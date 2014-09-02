@@ -32,6 +32,7 @@ int s2n_pkcs3_to_dh_params(struct s2n_dh_params *dh_params, struct s2n_blob *pkc
     dh_params->dh = d2i_DHparams(NULL, (const unsigned char **)(void *)&pkcs3->data, pkcs3->size);
     if (pkcs3->data - original_ptr != pkcs3->size) {
         *err = "Extraneous data in DH params PKCS3";
+        DH_free(dh_params->dh);
         return -1;
     }
     pkcs3->data = original_ptr;
@@ -145,6 +146,7 @@ int s2n_dh_compute_shared_secret_as_server(struct s2n_dh_params *server_dh_param
     shared_key_size = DH_compute_key(shared_key->data, pub_key, server_dh_params->dh);
     if (shared_key_size < 0) {
         *err = "Error computing Diffie Hellman shared secret";
+        BN_free(pub_key);
         return -1;
     }
 
@@ -179,6 +181,7 @@ int s2n_dh_generate_ephemeral_key(struct s2n_dh_params *dh_params, const char **
 int s2n_dh_params_free(struct s2n_dh_params *dh_params, const char **err)
 {
     DH_free(dh_params->dh);
+    dh_params->dh = NULL;
 
     return 0;
 }
