@@ -127,7 +127,7 @@ int s2n_init(const char **err)
     return 0;
 }
 
-int s2n_finalize(const char **err)
+int s2n_cleanup(const char **err)
 {
     if (entropy_fd == -1) {
         *err = "s2n was not initialized";

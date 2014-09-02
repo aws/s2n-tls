@@ -25,7 +25,7 @@
 struct s2n_config;
 
 extern int s2n_init(const char **err);
-extern int s2n_finalize(const char **err);
+extern int s2n_cleanup(const char **err);
 extern struct s2n_config *s2n_config_new(const char **err);
 extern int s2n_config_free(struct s2n_config *config, const char **err);
 
