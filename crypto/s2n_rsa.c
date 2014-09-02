@@ -36,11 +36,14 @@ int s2n_asn1der_to_rsa_public_key(struct s2n_rsa_public_key *key, struct s2n_blo
     }
     if (asn1der->data - original_ptr != asn1der->size) {
         *err = "Extraneous data in certificate";
+        X509_free(cert);
         return -1;
     }
     asn1der->data = original_ptr;
 
     EVP_PKEY *public_key = X509_get_pubkey(cert);
+    X509_free(cert);
+
     if (public_key == NULL) {
         *err = "Could not extract public key from certificate";
         return -1;
@@ -48,17 +51,18 @@ int s2n_asn1der_to_rsa_public_key(struct s2n_rsa_public_key *key, struct s2n_blo
 
     if (public_key->type != EVP_PKEY_RSA) {
         *err = "Certificate does not have an RSA public key";
+        EVP_PKEY_free(public_key);
         return -1;
     }
 
     key->rsa = EVP_PKEY_get1_RSA(public_key);
     if (key->rsa == NULL) {
         *err = "Could not decode RSA public key from certificate";
+        EVP_PKEY_free(public_key);
         return -1;
     }
 
     EVP_PKEY_free(public_key);
-    X509_free(cert);
 
     return 0;
 }
