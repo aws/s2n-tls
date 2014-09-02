@@ -192,5 +192,10 @@ int main(int argc, const char *argv[])
         }
     }
 
+    if (s2n_connection_free(conn, &error) < 0) {
+        fprintf(stderr, "Error freeing connection: '%s'\n", error);
+        exit(1);
+    }
+
     return 0;
 }

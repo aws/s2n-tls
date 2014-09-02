@@ -115,5 +115,11 @@ int main(int argc, const char *argv[])
     /* See echo.c */
     echo(conn, sockfd);
 
+    if (s2n_connection_free(conn, &error) < 0) {
+        fprintf(stderr, "Error freeing connection: '%s'\n", error);
+        exit(1);
+    }
+
+
     return 0;
 }
