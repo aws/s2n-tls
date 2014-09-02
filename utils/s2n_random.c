@@ -30,17 +30,7 @@
 #define ENTROPY_SOURCE "/dev/urandom"
 
 static int entropy_fd = -1;
-
-int s2n_init(const char **err)
-{
-    entropy_fd = open(ENTROPY_SOURCE, O_RDONLY);
-    if (entropy_fd == -1) {
-        *err = "Could not open entropy source";
-        return -1;
-    }
-
-    return 0;
-}
+static const RAND_METHOD *original_rand_method;
 
 int s2n_get_random_data(uint8_t *data, uint32_t n, const char **err)
 {
@@ -120,3 +110,34 @@ RAND_METHOD s2n_openssl_rand_method = {
     .pseudorand = openssl_compat_rand,
     .status = openssl_compat_status
 };
+
+int s2n_init(const char **err)
+{
+    entropy_fd = open(ENTROPY_SOURCE, O_RDONLY);
+    if (entropy_fd == -1) {
+        *err = "Could not open entropy source";
+        return -1;
+    }
+
+    original_rand_method = RAND_get_rand_method();
+
+    /* Over-ride OpenSSL's PRNG. NOTE: there is a unit test to validate that this works */
+    RAND_set_rand_method(&s2n_openssl_rand_method);
+
+    return 0;
+}
+
+int s2n_finalize(const char **err)
+{
+    if (entropy_fd == -1) {
+        *err = "s2n was not initialized";
+        return -1;
+    }
+
+    GUARD(close(entropy_fd));
+
+    /* Restore OpenSSL's original random methods */
+    RAND_set_rand_method(original_rand_method);
+
+    return 0;
+}

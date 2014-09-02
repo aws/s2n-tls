@@ -133,9 +133,6 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, char *cert_chai
 
     config->cert_and_key_pairs->chain_size = chain_size;
 
-    /* Over-ride OpenSSL's PRNG. NOTE: there is a unit test to validate that this works */
-    RAND_set_rand_method(&s2n_openssl_rand_method);
-
     return 0;
 }
 
