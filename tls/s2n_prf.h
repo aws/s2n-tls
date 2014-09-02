@@ -1,0 +1,47 @@
+/*
+ * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License").
+ * You may not use this file except in compliance with the License.
+ * A copy of the License is located at
+ *
+ *  http://aws.amazon.com/apache2.0
+ *
+ * or in the "license" file accompanying this file. This file is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ * express or implied. See the License for the specific language governing
+ * permissions and limitations under the License.
+ */
+
+#pragma once
+
+#include <stdint.h>
+
+#include "crypto/s2n_hash.h"
+#include "crypto/s2n_hmac.h"
+
+#include "utils/s2n_blob.h"
+
+#define S2N_MAX_DIGEST_LEN SHA512_DIGEST_LENGTH
+
+union s2n_prf_working_space {
+    struct {
+        struct s2n_hmac_state hmac;
+        uint8_t digest0[S2N_MAX_DIGEST_LEN];
+        uint8_t digest1[S2N_MAX_DIGEST_LEN];
+    } tls;
+
+    struct {
+        struct s2n_hash_state md5;
+        struct s2n_hash_state sha1;
+        uint8_t md5_digest[MD5_DIGEST_LENGTH];
+        uint8_t sha1_digest[SHA_DIGEST_LENGTH];
+    } ssl3;
+};
+
+#include "tls/s2n_connection.h"
+
+extern int s2n_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret, const char **err);
+extern int s2n_prf_key_expansion(struct s2n_connection *conn, const char **err);
+extern int s2n_prf_server_finished(struct s2n_connection *conn, const char **err);
+extern int s2n_prf_client_finished(struct s2n_connection *conn, const char **err);
