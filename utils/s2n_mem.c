@@ -56,6 +56,7 @@ int s2n_free(struct s2n_blob *b, const char **err)
 {
     free(b->data);
     b->data = NULL;
+    b->size = 0;
 
     return 0;
 }
