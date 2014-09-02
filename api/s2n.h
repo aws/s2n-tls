@@ -15,6 +15,10 @@
 
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 
 #define S2N_SSLv3 30
@@ -64,3 +68,7 @@ extern int s2n_connection_get_actual_protocol_version(struct s2n_connection *con
 extern int s2n_connection_was_client_hello_sslv2(struct s2n_connection *conn);
 extern const char *s2n_connection_get_cipher(struct s2n_connection *conn, const char **err);
 extern int s2n_connection_get_alert(struct s2n_connection *conn, const char **err);
+
+#ifdef __cplusplus
+}
+#endif
