@@ -161,8 +161,8 @@ int s2n_connection_wipe(struct s2n_connection *conn, const char **err)
 
     /* Clone the stuffers */
     /* ignore gcc 4.7 address warnings because dest is allocated on the stack */
-//#pragma GCC diagnostic push
-//#pragma GCC diagnostic ignored "-Waddress"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Waddress"
     memcpy_check(&alert_in, &conn->alert_in, sizeof(struct s2n_stuffer));
     memcpy_check(&reader_alert_out, &conn->reader_alert_out, sizeof(struct s2n_stuffer));
     memcpy_check(&writer_alert_out, &conn->writer_alert_out, sizeof(struct s2n_stuffer));
@@ -170,7 +170,7 @@ int s2n_connection_wipe(struct s2n_connection *conn, const char **err)
     memcpy_check(&header_in, &conn->header_in, sizeof(struct s2n_stuffer));
     memcpy_check(&in, &conn->in, sizeof(struct s2n_stuffer));
     memcpy_check(&out, &conn->out, sizeof(struct s2n_stuffer));
-//#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
 
     /* Zero the whole connection structure */
     if (memset(conn, 0, sizeof(struct s2n_connection)) != conn) {
