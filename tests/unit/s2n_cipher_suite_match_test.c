@@ -28,6 +28,7 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
+    EXPECT_SUCCESS(setenv("S2N_ENABLE_INSECURE_CLIENT", "1", 0));
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT, &err));
 
     count = 0;

@@ -124,6 +124,8 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
+    EXPECT_SUCCESS(setenv("S2N_ENABLE_INSECURE_CLIENT", "1", 0));
+
     /* Create a pipe */
     EXPECT_SUCCESS(s2n_init(&err));
     EXPECT_SUCCESS(pipe(server_to_client));
