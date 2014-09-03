@@ -14,6 +14,7 @@
  */
 
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -43,6 +44,18 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode, const char **err)
 
     if (s2n_blob_zero(&blob, err) < 0) {
         return NULL;
+    }
+
+    if (mode == S2N_CLIENT) {
+        /* At present s2n is not suitable for use in client mode, as it
+         * does not perform any certificate validation. However it is useful
+         * to use S2N in client mode for testing purposes. An environment
+         * variable is required to be set for the client mode to work.
+         */
+        if (getenv("S2N_ENABLE_INSECURE_CLIENT") == NULL) {
+            *err = "s2n can not be used in client mode";
+            return NULL;
+        }
     }
 
     /* Cast 'through' void to acknowledge that we are changing alignment,
