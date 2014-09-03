@@ -197,5 +197,9 @@ int main(int argc, const char *argv[])
         exit(1);
     }
 
+    if (s2n_cleanup(&error) < 0) {
+        fprintf(stderr, "Error running s2n_cleanup(): '%s'\n", error);
+    }
+
     return 0;
 }
