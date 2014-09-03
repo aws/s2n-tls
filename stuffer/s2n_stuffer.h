@@ -37,6 +37,9 @@ struct s2n_stuffer {
 
     /* Is this stuffer growable? */
     unsigned int growable:1;
+
+    /* A growable stuffer can also be temporarily tainted */
+    unsigned int tainted:1;
 };
 
 #define s2n_stuffer_data_available( s )   ((s)->write_cursor - (s)->read_cursor)

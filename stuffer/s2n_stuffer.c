@@ -81,22 +81,24 @@ int s2n_stuffer_free(struct s2n_stuffer *stuffer, const char **err)
 
 int s2n_stuffer_resize(struct s2n_stuffer *stuffer, uint32_t size, const char **err)
 {
+    if (stuffer->growable == 0) {
+        *err = "Cannot resize a static stuffer";
+        return -1;
+    }
+    if (stuffer->tainted == 1) {
+        *err = "Cannot resize a stuffer while tainted";
+        return -1;
+    }
     if (size == stuffer->blob.size) {
         return 0;
-    }
-    if (size > stuffer->blob.size && stuffer->growable == 0) {
-        *err = "Cannot grow a static stuffer";
-        return -1;
     }
     if (size < stuffer->blob.size) {
         if (s2n_stuffer_wipe_n(stuffer, stuffer->blob.size - size, err) < 0) {
             return -1;
         }
     }
-    if (stuffer->growable) {
-        if (s2n_realloc(&stuffer->blob, size, err) < 0) {
-            return -1;
-        }
+    if (s2n_realloc(&stuffer->blob, size, err) < 0) {
+        return -1;
     }
     stuffer->blob.size = size;
 
@@ -143,6 +145,7 @@ int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, uint32_t n, const char **err
 
 int s2n_stuffer_wipe(struct s2n_stuffer *stuffer, const char **err)
 {
+    stuffer->tainted = 0;
     return s2n_stuffer_wipe_n(stuffer, stuffer->write_cursor, err);
 }
 
@@ -162,6 +165,8 @@ void *s2n_stuffer_raw_read(struct s2n_stuffer *stuffer, uint32_t data_len, const
     if (s2n_stuffer_skip_read(stuffer, data_len, err) < 0) {
         return NULL;
     }
+
+    stuffer->tainted = 1;
 
     return stuffer->blob.data + stuffer->read_cursor - data_len;
 }
@@ -226,6 +231,8 @@ void *s2n_stuffer_raw_write(struct s2n_stuffer *stuffer, uint32_t data_len, cons
     if (s2n_stuffer_skip_write(stuffer, data_len, err) < 0) {
         return NULL;
     }
+
+    stuffer->tainted = 1;
 
     return stuffer->blob.data + stuffer->write_cursor - data_len;
 }
