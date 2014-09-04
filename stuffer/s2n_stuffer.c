@@ -30,6 +30,7 @@ int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in, const cha
     stuffer->wiped = 1;
     stuffer->alloced = 0;
     stuffer->growable = 0;
+    stuffer->tainted = 0;
     stuffer->read_cursor = 0;
     stuffer->write_cursor = 0;
 
@@ -44,7 +45,6 @@ int s2n_stuffer_alloc(struct s2n_stuffer *stuffer, uint32_t size, const char **e
     if (s2n_stuffer_init(stuffer, &stuffer->blob, err) < 0) {
         return -1;
     }
-    stuffer->wiped = 1;
     stuffer->alloced = 1;
 
     return 0;
@@ -173,7 +173,11 @@ void *s2n_stuffer_raw_read(struct s2n_stuffer *stuffer, uint32_t data_len, const
 
 int s2n_stuffer_read(struct s2n_stuffer *stuffer, struct s2n_blob *out, const char **err)
 {
-    void *ptr = s2n_stuffer_raw_read(stuffer, out->size, err);
+    if (s2n_stuffer_skip_read(stuffer, out->size, err) < 0) {
+        return -1;
+    }
+
+    void *ptr = stuffer->blob.data + stuffer->read_cursor - out->size;
     if (ptr == NULL) {
         return -1;
     }
@@ -185,7 +189,11 @@ int s2n_stuffer_read(struct s2n_stuffer *stuffer, struct s2n_blob *out, const ch
 
 int s2n_stuffer_erase_and_read(struct s2n_stuffer *stuffer, struct s2n_blob *out, const char **err)
 {
-    void *ptr = s2n_stuffer_raw_read(stuffer, out->size, err);
+    if (s2n_stuffer_skip_read(stuffer, out->size, err) < 0) {
+        return -1;
+    }
+
+    void *ptr = stuffer->blob.data + stuffer->read_cursor - out->size;
     if (ptr == NULL) {
         return -1;
     }
@@ -239,7 +247,11 @@ void *s2n_stuffer_raw_write(struct s2n_stuffer *stuffer, uint32_t data_len, cons
 
 int s2n_stuffer_write(struct s2n_stuffer *stuffer, struct s2n_blob *in, const char **err)
 {
-    void *ptr = s2n_stuffer_raw_write(stuffer, in->size, err);
+    if (s2n_stuffer_skip_write(stuffer, in->size, err) < 0) {
+        return -1;
+    }
+
+    void *ptr = stuffer->blob.data + stuffer->write_cursor - in->size;
     if (ptr == NULL) {
         return -1;
     }
@@ -359,11 +371,16 @@ int s2n_stuffer_write_uint32(struct s2n_stuffer *stuffer, uint32_t u, const char
 
 int s2n_stuffer_copy(struct s2n_stuffer *from, struct s2n_stuffer *to, uint32_t len, const char **err)
 {
-    uint8_t *from_ptr = s2n_stuffer_raw_read(from, len, err);
-    notnull_check(from_ptr);
+    if (s2n_stuffer_skip_read(from, len, err) < 0) {
+        return -1;
+    }
 
-    uint8_t *to_ptr = s2n_stuffer_raw_write(to, len, err);
-    notnull_check(to_ptr);
+    if (s2n_stuffer_skip_write(to, len, err) < 0) {
+        return -1;
+    }
+
+    uint8_t *from_ptr = from->blob.data + from->read_cursor - len;
+    uint8_t *to_ptr = to->blob.data + to->write_cursor - len;
 
     memcpy_check(to_ptr, from_ptr, len);
 
