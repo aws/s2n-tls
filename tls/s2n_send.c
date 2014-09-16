@@ -41,7 +41,7 @@ int s2n_flush(struct s2n_connection *conn, int *more, const char **err)
         w = s2n_stuffer_send_to_fd(&conn->out, conn->writefd, s2n_stuffer_data_available(&conn->out), err);
         if (w < 0) {
             if (errno == EWOULDBLOCK) {
-                conn->status = S2N_NEEDS_WRITE;
+                conn->status = S2N_NEEDS_SEND;
             }
             return -1;
         }
@@ -91,10 +91,7 @@ int s2n_send(struct s2n_connection *conn, void *buf, uint32_t size, int *more, c
         return -1;
     }
 
-    /* Take care of any pending handshake i/o */
-    GUARD(s2n_negotiate(conn, more, err));
-
-    /* And any other pending I/O */
+    /* Flush any pending I/O */
     GUARD(s2n_flush(conn, more, err));
 
     *more = 1;
@@ -134,7 +131,7 @@ int s2n_send(struct s2n_connection *conn, void *buf, uint32_t size, int *more, c
             w = s2n_stuffer_send_to_fd(&conn->out, conn->writefd, s2n_stuffer_data_available(&conn->out), err);
             if (w < 0) {
                 if (errno == EWOULDBLOCK) {
-                    conn->status = S2N_NEEDS_WRITE;
+                    conn->status = S2N_NEEDS_SEND;
                     return bytes_written;
                 }
                 return -1;

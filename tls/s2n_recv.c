@@ -50,7 +50,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
         }
         if (r < 0) {
             if (errno == EWOULDBLOCK) {
-                conn->status = S2N_NEEDS_READ;
+                conn->status = S2N_NEEDS_RECV;
             }
             return -1;
         }
@@ -79,7 +79,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
         }
         if (r < 0) {
             if (errno == EWOULDBLOCK) {
-                conn->status = S2N_NEEDS_READ;
+                conn->status = S2N_NEEDS_RECV;
             }
             return -1;
         }
@@ -104,9 +104,6 @@ int s2n_recv(struct s2n_connection *conn, void *buf, uint32_t size, int *more, c
     if (conn->closed) {
         return 0;
     }
-
-    /* Complete any pending handshake i/o */
-    GUARD(s2n_negotiate(conn, more, err));
 
     *more = 1;
 
