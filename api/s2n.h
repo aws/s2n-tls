@@ -40,7 +40,7 @@ extern int s2n_config_set_key_exchange_preferences(struct s2n_config *config, co
 
 struct s2n_connection;
 typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
-typedef enum { S2N_OK, S2N_NEEDS_READ, S2N_NEEDS_WRITE } s2n_status;
+typedef enum { S2N_OK, S2N_NEEDS_RECV, S2N_NEEDS_SEND } s2n_status;
 extern struct s2n_connection *s2n_connection_new(s2n_mode mode, const char **err);
 extern int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *config, const char **err);
 
