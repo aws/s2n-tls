@@ -47,8 +47,10 @@ int s2n_flush(struct s2n_connection *conn, int *more, const char **err)
         }
         conn->wire_bytes_out += w;
     }
+    if (conn->closing) {
+        conn->closed = 1;
+    }
     GUARD(s2n_stuffer_rewrite(&conn->out, err));
-    GUARD(s2n_stuffer_reread(&conn->out, err));
 
     /* If there's an alert pending out, send that */
     if (s2n_stuffer_data_available(&conn->reader_alert_out) == 2) {
@@ -57,6 +59,7 @@ int s2n_flush(struct s2n_connection *conn, int *more, const char **err)
         alert.size = 2;
         GUARD(s2n_record_write(conn, TLS_ALERT, &alert, err));
         GUARD(s2n_stuffer_rewrite(&conn->reader_alert_out, err));
+        conn->closing = 1;
 
         /* Actually write it ... */
         goto WRITE;
@@ -69,6 +72,7 @@ int s2n_flush(struct s2n_connection *conn, int *more, const char **err)
         alert.size = 2;
         GUARD(s2n_record_write(conn, TLS_ALERT, &alert, err));
         GUARD(s2n_stuffer_rewrite(&conn->writer_alert_out, err));
+        conn->closing = 1;
 
         /* Actually write it ... */
         goto WRITE;
