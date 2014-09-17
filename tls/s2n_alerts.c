@@ -76,11 +76,10 @@ int s2n_process_alert_fragment(struct s2n_connection *conn, const char **err)
         GUARD(s2n_stuffer_copy(&conn->in, &conn->alert_in, bytes_to_read, err));
 
         if (s2n_stuffer_data_available(&conn->alert_in) == 2) {
-            GUARD(s2n_queue_reader_close_alert(conn, err));
+            conn->closed = 1;
 
             /* Close notifications are handled as shutdowns */
             if (conn->alert_in_data[1] == S2N_TLS_ALERT_CLOSE_NOTIFY) {
-                conn->closed = 1;
                 return 0;
             }
 
@@ -89,20 +88,6 @@ int s2n_process_alert_fragment(struct s2n_connection *conn, const char **err)
             return -1;
         }
     }
-
-    return 0;
-}
-
-int s2n_queue_reader_close_alert(struct s2n_connection *conn, const char **err)
-{
-    uint8_t alert[2];
-    struct s2n_blob out = {.data = alert,.size = sizeof(alert) };
-
-    alert[0] = S2N_TLS_ALERT_LEVEL_FATAL;
-    alert[1] = S2N_TLS_ALERT_CLOSE_NOTIFY;
-
-    GUARD(s2n_stuffer_write(&conn->reader_alert_out, &out, err));
-    conn->closed = 1;
 
     return 0;
 }
@@ -116,7 +101,6 @@ int s2n_queue_writer_close_alert(struct s2n_connection *conn, const char **err)
     alert[1] = S2N_TLS_ALERT_CLOSE_NOTIFY;
 
     GUARD(s2n_stuffer_write(&conn->writer_alert_out, &out, err));
-    conn->closed = 1;
 
     return 0;
 }
@@ -130,7 +114,6 @@ int s2n_queue_reader_unsupported_protocol_version_alert(struct s2n_connection *c
     alert[1] = S2N_TLS_ALERT_PROTOCOL_VERSION;
 
     GUARD(s2n_stuffer_write(&conn->reader_alert_out, &out, err));
-    conn->closed = 1;
 
     return 0;
 }

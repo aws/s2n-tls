@@ -64,9 +64,15 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
         conn->header_in.blob.data[0] &= 0x7f;
         *isSSLv2 = 1;
 
-        GUARD(s2n_sslv2_record_header_parse(conn, record_type, &conn->client_protocol_version, &fragment_length, err));
+        if (s2n_sslv2_record_header_parse(conn, record_type, &conn->client_protocol_version, &fragment_length, err) < 0) {
+            conn->closed = 1;
+            return -1;
+        }
     } else {
-        GUARD(s2n_record_header_parse(conn, record_type, &fragment_length, err));
+        if (s2n_record_header_parse(conn, record_type, &fragment_length, err) < 0) {
+            conn->closed = 1;
+            return -1;
+        }
     }
 
     /* Read enough to have the whole record */
@@ -91,7 +97,10 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
     }
 
     /* Decrypt and parse the record */
-    GUARD(s2n_record_parse(conn, err));
+    if (s2n_record_parse(conn, err) < 0) {
+        conn->closed = 1;
+        return -1;
+    }
 
     return 0;
 }
