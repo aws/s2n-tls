@@ -83,6 +83,7 @@ static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct 
 static int handshake_write_io(struct s2n_connection *conn, const char **err)
 {
     uint8_t record_type = state_machine[conn->handshake.state].record_type;
+    int more = 0;
     int max_payload_size;
 
     /* If there's nothing in the out stuffer, put a handshake message in the 
@@ -119,7 +120,6 @@ static int handshake_write_io(struct s2n_connection *conn, const char **err)
     }
 
     /* Actually send the record */
-    int more;
     GUARD(s2n_flush(conn, &more, err));
 
     /* If we're done sending the last record, reset everything */
