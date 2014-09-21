@@ -115,7 +115,10 @@ int s2n_recv(struct s2n_connection *conn, void *buf, uint32_t size, int *more, c
         int r = s2n_read_full_record(conn, &record_type, &isSSLv2, err);
         if (r < 0) {
             if (errno == EWOULDBLOCK) {
-                return bytes_read;
+                if (bytes_read) {
+                    return bytes_read;
+                }
+                return -1;
             }
             if (r == -2) {
                 conn->closed = 1;
@@ -128,7 +131,7 @@ int s2n_recv(struct s2n_connection *conn, void *buf, uint32_t size, int *more, c
             *err = "SSLv2 record detected";
             return -1;
         }
-
+        
         if (record_type != TLS_APPLICATION_DATA) {
             if (record_type == TLS_ALERT) {
                 GUARD(s2n_process_alert_fragment(conn, err));
@@ -149,16 +152,20 @@ int s2n_recv(struct s2n_connection *conn, void *buf, uint32_t size, int *more, c
         GUARD(s2n_stuffer_erase_and_read(&conn->in, &out, err));
         bytes_read += out.size;
 
+        out.data += out.size;
+        size -= out.size;
+
         /* Are we ready for more encrypted data? */
         if (s2n_stuffer_data_available(&conn->in) == 0) {
             GUARD(s2n_stuffer_wipe(&conn->header_in, err));
             GUARD(s2n_stuffer_wipe(&conn->in, err));
             conn->in_status = ENCRYPTED;
-            break;
         }
 
-        out.data += out.size;
-        size -= out.size;
+        /* If we've read some data, return it */
+        if (bytes_read) {
+            break;
+        }
     }
 
     if (s2n_stuffer_data_available(&conn->in) == 0) {
