@@ -250,7 +250,7 @@ connection. **s2n_recv** will return the number of bytes read and also return
 **NOTE:** Unlike OpenSSL, repeated calls to **s2n_recv** should not duplicate the original parameters, but should update **buf** and **size** per the indication of size read. For example;
 
     int more, bytes_read = 0;
-    char data[10]; /* Some data we want to write */
+    char data[10];
     do {
         int r = s2n_recv(conn, data + bytes_read, 10 - bytes_read, &more, &err);
         if (r < 0) {
