@@ -47,10 +47,15 @@ int echo(struct s2n_connection *conn, int sockfd)
     } while (more);
 
     /* Now that we've negotiated, print some parameters */
+    int client_hello_version;
     int client_protocol_version;
     int server_protocol_version;
     int actual_protocol_version;
 
+    if ((client_hello_version = s2n_connection_get_client_hello_version(conn, &error)) < 0) {
+        fprintf(stderr, "Could not get client hello version\n");
+        exit(1);
+    }
     if ((client_protocol_version = s2n_connection_get_client_protocol_version(conn, &error)) < 0) {
         fprintf(stderr, "Could not get client protocol version\n");
         exit(1);
@@ -63,6 +68,7 @@ int echo(struct s2n_connection *conn, int sockfd)
         fprintf(stderr, "Could not get actual protocol version\n");
         exit(1);
     }
+    printf("Client hello version: %d\n", client_hello_version);
     printf("Client protocol version: %d\n", client_protocol_version);
     printf("Server protocol version: %d\n", server_protocol_version);
     printf("Actual protocol version: %d\n", actual_protocol_version);

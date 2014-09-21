@@ -61,9 +61,6 @@ struct s2n_handshake {
         HANDSHAKE_OVER
     } state, next_state;
 
-    /* Was the client hello message sslv2? */
-    uint8_t was_client_hello_sslv2;
-
     /* Set to 1 if the RSA verificiation failed */
     uint8_t rsa_failed;
 };
