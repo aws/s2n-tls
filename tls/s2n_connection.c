@@ -117,6 +117,9 @@ int s2n_shutdown(struct s2n_connection *conn, int *more, const char **err)
     /* Write the alert message out */
     GUARD(s2n_flush(conn, more, err));
 
+    /* Wipe the connection */
+    GUARD(s2n_connection_wipe(conn, err));
+
     return 0;
 }
 
