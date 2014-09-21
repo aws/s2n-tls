@@ -213,7 +213,7 @@ zero.
 
 **s2n_negotiate** performs the initial "handshake" phase of a TLS connection and must be called before any **s2n_recv** or **s2n_send** calls. 
 
-### s2n\_write
+### s2n\_send
 
     int s2n_send(struct s2n_connection *conn, 
                   void *buf, 
@@ -235,7 +235,7 @@ zero.
     } while (more); 
     
 
-### s2n\_read
+### s2n\_recv
 
     int s2n_recv(struct s2n_connection *conn,
                  void *buf, 
