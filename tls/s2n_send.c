@@ -45,6 +45,7 @@ int s2n_flush(struct s2n_connection *conn, int *more, const char **err)
     }
     if (conn->closing) {
         conn->closed = 1;
+        GUARD(s2n_connection_wipe(conn, err));
     }
     GUARD(s2n_stuffer_rewrite(&conn->out, err));
 
