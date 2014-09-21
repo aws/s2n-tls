@@ -97,6 +97,11 @@ int s2n_queue_writer_close_alert(struct s2n_connection *conn, const char **err)
     uint8_t alert[2];
     struct s2n_blob out = {.data = alert,.size = sizeof(alert) };
 
+    /* If there is an alert pending, do nothing */
+    if (s2n_stuffer_data_available(&conn->writer_alert_out)) {
+        return 0;
+    }
+
     alert[0] = S2N_TLS_ALERT_LEVEL_FATAL;
     alert[1] = S2N_TLS_ALERT_CLOSE_NOTIFY;
 
@@ -109,6 +114,11 @@ int s2n_queue_reader_unsupported_protocol_version_alert(struct s2n_connection *c
 {
     uint8_t alert[2];
     struct s2n_blob out = {.data = alert,.size = sizeof(alert) };
+
+    /* If there is an alert pending, do nothing */
+    if (s2n_stuffer_data_available(&conn->reader_alert_out)) {
+        return 0;
+    }
 
     alert[0] = S2N_TLS_ALERT_LEVEL_FATAL;
     alert[1] = S2N_TLS_ALERT_PROTOCOL_VERSION;
