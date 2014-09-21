@@ -54,6 +54,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn, const char **err)
         *err = "Unsupported SSL/TLS version";
         return -1;
     }
+    conn->client_hello_version = conn->client_protocol_version;
 
     if (session_id_len > 32) {
         *err = "Supplied session id is too long";
@@ -188,7 +189,7 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn, const char **err)
     GUARD(s2n_stuffer_read(in, &b, err));
 
     conn->server->chosen_cert_chain = conn->config->cert_and_key_pairs;
-    conn->handshake.was_client_hello_sslv2 = 1;
+    conn->client_hello_version = S2N_SSLv2;
     conn->handshake.next_state = SERVER_HELLO;
 
     return 0;

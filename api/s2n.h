@@ -21,6 +21,7 @@ extern "C" {
 
 #include <stdint.h>
 
+#define S2N_SSLv2 20
 #define S2N_SSLv3 30
 #define S2N_TLS10 31
 #define S2N_TLS11 32
@@ -63,7 +64,7 @@ extern uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn);
 extern int s2n_connection_get_client_protocol_version(struct s2n_connection *conn, const char **err);
 extern int s2n_connection_get_server_protocol_version(struct s2n_connection *conn, const char **err);
 extern int s2n_connection_get_actual_protocol_version(struct s2n_connection *conn, const char **err);
-extern int s2n_connection_was_client_hello_sslv2(struct s2n_connection *conn);
+extern int s2n_connection_get_client_hello_version(struct s2n_connection *conn, const char **err);
 extern const char *s2n_connection_get_cipher(struct s2n_connection *conn, const char **err);
 extern int s2n_connection_get_alert(struct s2n_connection *conn, const char **err);
 

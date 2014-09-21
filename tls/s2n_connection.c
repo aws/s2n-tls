@@ -270,9 +270,9 @@ int s2n_connection_get_actual_protocol_version(struct s2n_connection *conn, cons
     return conn->actual_protocol_version;
 }
 
-int s2n_connection_was_client_hello_sslv2(struct s2n_connection *conn)
+int s2n_connection_get_client_hello_version(struct s2n_connection *conn, const char **err)
 {
-    return conn->handshake.was_client_hello_sslv2;
+    return conn->client_hello_version;
 }
 
 int s2n_connection_get_alert(struct s2n_connection *conn, const char **err)
