@@ -100,9 +100,9 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
     return 0;
 }
 
-int s2n_recv(struct s2n_connection *conn, void *buf, uint32_t size, int *more, const char **err)
+ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, int *more, const char **err)
 {
-    int bytes_read = 0;
+    ssize_t bytes_read = 0;
     struct s2n_blob out = {.data = (uint8_t *) buf };
 
     if (conn->closed) {

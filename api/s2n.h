@@ -19,6 +19,7 @@
 extern "C" {
 #endif
 
+#include <sys/types.h>
 #include <stdint.h>
 
 #define S2N_SSLv2 20
@@ -52,8 +53,8 @@ extern int s2n_set_server_name(struct s2n_connection *conn, const char *server_n
 extern const char *s2n_get_server_name(struct s2n_connection *conn, const char **err);
 
 extern int s2n_negotiate(struct s2n_connection *conn, int *more, const char **err);
-extern int s2n_send(struct s2n_connection *conn, void *buf, uint32_t size, int *more, const char **err);
-extern int s2n_recv(struct s2n_connection *conn,  void *buf, uint32_t size, int *more, const char **err);
+extern ssize_t s2n_send(struct s2n_connection *conn, void *buf, ssize_t size, int *more, const char **err);
+extern ssize_t s2n_recv(struct s2n_connection *conn,  void *buf, ssize_t size, int *more, const char **err);
 extern int s2n_shutdown(struct s2n_connection *conn, int *more, const char **err);
 
 extern int s2n_connection_wipe(struct s2n_connection *conn, const char **err);
