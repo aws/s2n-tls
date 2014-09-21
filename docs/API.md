@@ -211,22 +211,22 @@ zero.
                       int *more, 
                       const char **err);
 
-**s2n_negotiate** performs the initial "handshake" phase of a TLS connection and must be called before any **s2n_read** or **s2n_write** calls. 
+**s2n_negotiate** performs the initial "handshake" phase of a TLS connection and must be called before any **s2n_recv** or **s2n_send** calls. 
 
 ### s2n\_write
 
-    int s2n_write(struct s2n_connection *conn, 
+    int s2n_send(struct s2n_connection *conn, 
                   void *buf, 
                   uint32_t size, 
                   int *more, 
                   const char **err)
 
-**s2n_write** writes and encrypts **size* of **buf** data to the associated connection. **s2n_write** will return the number of bytes written, and may indicate a partial write. Partial writes are possible not just for non-blocking I/O, but also for connections aborted while active. **NOTE:** Unlike OpenSSL, repeated calls to **s2n_write** should not duplicate the original parameters, but should update **buf** and **size** per the indication of size written. For example;
+**s2n_send** writes and encrypts **size* of **buf** data to the associated connection. **s2n_send** will return the number of bytes written, and may indicate a partial write. Partial writes are possible not just for non-blocking I/O, but also for connections aborted while active. **NOTE:** Unlike OpenSSL, repeated calls to **s2n_send** should not duplicate the original parameters, but should update **buf** and **size** per the indication of size written. For example;
 
     int more, written = 0;
     char data[10]; /* Some data we want to write */
     do {
-        int w = s2n_write(conn, data + written, 10 - written, &more, &err);
+        int w = s2n_send(conn, data + written, 10 - written, &more, &err);
         if (w < 0) {
             /* Some kind of error */
             break;
@@ -237,22 +237,22 @@ zero.
 
 ### s2n\_read
 
-    int s2n_read(struct s2n_connection *conn,
+    int s2n_recv(struct s2n_connection *conn,
                  void *buf, 
                  uint32_t size, 
                  int *more, 
                  const char **err);
 
-**s2n_read** decrypts and reads **size* to **buf** data from the associated
-connection. **s2n_read** will return the number of bytes read and also return
+**s2n_recv** decrypts and reads **size* to **buf** data from the associated
+connection. **s2n_recv** will return the number of bytes read and also return
 "0" on connection shutdown by the peer.
 
-**NOTE:** Unlike OpenSSL, repeated calls to **s2n_read** should not duplicate the original parameters, but should update **buf** and **size** per the indication of size read. For example;
+**NOTE:** Unlike OpenSSL, repeated calls to **s2n_recv** should not duplicate the original parameters, but should update **buf** and **size** per the indication of size read. For example;
 
     int more, bytes_read = 0;
     char data[10]; /* Some data we want to write */
     do {
-        int r = s2n_read(conn, data + bytes_read, 10 - bytes_read, &more, &err);
+        int r = s2n_recv(conn, data + bytes_read, 10 - bytes_read, &more, &err);
         if (r < 0) {
             /* Some kind of error */
             break;
@@ -455,7 +455,7 @@ This example server reads a single HTTP request (over HTTPS) and then responds w
                 printf("Got connection with no server name\n");
             }
 
-            if (s2n_write(conn, response, sizeof(response), &more, &error) < 0) {
+            if (s2n_send(conn, response, sizeof(response), &more, &error) < 0) {
                 s2n_connection_wipe(conn, &error);
                 continue;
             }
