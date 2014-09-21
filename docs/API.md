@@ -193,6 +193,20 @@ TLS alerts fatal and shuts down a connection whenever one is received.
 **s2n_connection_get_cipher** returns a string indicating the cipher suite
 negotiated by s2n for a connection, e.g. "TLS\_RSA\_WITH\_AES\_128\_CBC\_SHA".
 
+### s2n\_connection\_wipe
+
+    int s2n_connection_wipe(struct s2n_connection *conn, const char **err);
+
+**s2n_connection_wipe** erases all data associated with a connection including
+pending reads.
+
+### s2n\_connection\_free
+
+    int s2n_connection_free(struct s2n_connection *conn, const char **err);
+
+**s2n_connection_free** frees the memory associated with an s2n_connection
+handle.
+
 ## I/O functions
 
 s2n supports both blocking and non-blocking I/O. To use s2n in non-blocking
