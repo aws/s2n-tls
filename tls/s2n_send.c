@@ -80,10 +80,10 @@ int s2n_flush(struct s2n_connection *conn, int *more, const char **err)
     return 0;
 }
 
-int s2n_send(struct s2n_connection *conn, void *buf, uint32_t size, int *more, const char **err)
+ssize_t s2n_send(struct s2n_connection *conn, void *buf, ssize_t size, int *more, const char **err)
 {
     struct s2n_blob in = {.data = buf };
-    int bytes_written = 0;
+    ssize_t bytes_written = 0;
     int max_payload_size;
     int w;
 

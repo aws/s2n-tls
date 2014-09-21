@@ -221,18 +221,18 @@ zero.
 
 ### s2n\_negotiate
 
-    int s2n_negotiate(struct s2n_connection *conn, 
-                      int *more, 
+    int s2n_negotiate(struct s2n_connection *conn,
+                      int *more,
                       const char **err);
 
 **s2n_negotiate** performs the initial "handshake" phase of a TLS connection and must be called before any **s2n_recv** or **s2n_send** calls. 
 
 ### s2n\_send
 
-    int s2n_send(struct s2n_connection *conn, 
-                  void *buf, 
-                  uint32_t size, 
-                  int *more, 
+    ssize_t s2n_send(struct s2n_connection *conn 
+                  void *buf,
+                  ssize_t size,
+                  int *more,
                   const char **err)
 
 **s2n_send** writes and encrypts **size* of **buf** data to the associated connection. **s2n_send** will return the number of bytes written, and may indicate a partial write. Partial writes are possible not just for non-blocking I/O, but also for connections aborted while active. **NOTE:** Unlike OpenSSL, repeated calls to **s2n_send** should not duplicate the original parameters, but should update **buf** and **size** per the indication of size written. For example;
@@ -251,10 +251,10 @@ zero.
 
 ### s2n\_recv
 
-    int s2n_recv(struct s2n_connection *conn,
-                 void *buf, 
-                 uint32_t size, 
-                 int *more, 
+    ssize_t s2n_recv(struct s2n_connection *conn,
+                 void *buf,
+                 ssize_t size,
+                 int *more,
                  const char **err);
 
 **s2n_recv** decrypts and reads **size* to **buf** data from the associated
@@ -276,9 +276,9 @@ connection. **s2n_recv** will return the number of bytes read and also return
 
 ### s2n_shutdown
 
-    int s2n_shutdown(struct s2n_connection *conn, 
-                     int *more, 
-                     const char 
+    int s2n_shutdown(struct s2n_connection *conn,
+                     int *more,
+                     const char,
                      **err);
 
 **s2n_shutdown** shuts down the s2n connection. Once a connection has been shut down it is not available for reading or writing.
