@@ -120,7 +120,6 @@ struct s2n_connection {
      */
     sig_atomic_t closing;
     sig_atomic_t closed;
-    s2n_status status;
 
     /* TLS extension data */
     char server_name[256];

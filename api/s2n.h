@@ -40,7 +40,6 @@ extern int s2n_config_set_key_exchange_preferences(struct s2n_config *config, co
 
 struct s2n_connection;
 typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
-typedef enum { S2N_OK, S2N_NEEDS_RECV, S2N_NEEDS_SEND } s2n_status;
 extern struct s2n_connection *s2n_connection_new(s2n_mode mode, const char **err);
 extern int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *config, const char **err);
 
@@ -59,7 +58,6 @@ extern int s2n_shutdown(struct s2n_connection *conn, int *more, const char **err
 extern int s2n_connection_wipe(struct s2n_connection *conn, const char **err);
 extern int s2n_connection_free(struct s2n_connection *conn, const char **err);
 
-extern s2n_status s2n_connection_get_status(struct s2n_connection *conn);
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);
 extern uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn);
 extern int s2n_connection_get_client_protocol_version(struct s2n_connection *conn, const char **err);

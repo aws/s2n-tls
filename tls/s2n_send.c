@@ -37,12 +37,8 @@ int s2n_flush(struct s2n_connection *conn, int *more, const char **err)
     /* Write any data that's already pending */
   WRITE:
     while (s2n_stuffer_data_available(&conn->out)) {
-        conn->status = S2N_OK;
         w = s2n_stuffer_send_to_fd(&conn->out, conn->writefd, s2n_stuffer_data_available(&conn->out), err);
         if (w < 0) {
-            if (errno == EWOULDBLOCK) {
-                conn->status = S2N_NEEDS_SEND;
-            }
             return -1;
         }
         conn->wire_bytes_out += w;
@@ -131,11 +127,9 @@ int s2n_send(struct s2n_connection *conn, void *buf, uint32_t size, int *more, c
         /* Send it */
         while (s2n_stuffer_data_available(&conn->out)) {
             errno = 0;
-            conn->status = S2N_OK;
             w = s2n_stuffer_send_to_fd(&conn->out, conn->writefd, s2n_stuffer_data_available(&conn->out), err);
             if (w < 0) {
                 if (errno == EWOULDBLOCK) {
-                    conn->status = S2N_NEEDS_SEND;
                     return bytes_written;
                 }
                 return -1;
