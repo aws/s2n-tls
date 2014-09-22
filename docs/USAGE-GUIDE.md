@@ -1,9 +1,30 @@
+# Using SignalToNoise
+
+SignalToNoise is a C library, and is built using Make. To clone the latest
+copy of s2n from git and compile it, do:
+
+    git clone https://github.com/awslabs/s2n.git
+    cd s2n
+    make
+
+once built, static and dynamic libraries for s2n will be available in the lib/
+directory.
+
+## mlock() and system limits 
+Internally s2n uses mlock() to prevent memory from being swapped to disk. The
+s2n build tests may fail in some environments where the default limit on the
+amount of memory which may be locked is too low. To check this limit, run:
+
+    ulimit -l
+
+to raise the limit, consult the documentation for your platform.
+
 # SignalToNoise API
 
-The API for SignalToNoise is the set of functions and declarations that are in
-the "s2n.h" header file. Other functions and structures used in s2n internally
-can not be considered stable and their parameters, names, sizes and so on may
-change.
+The API exposed by SignalToNoise is the set of functions and declarations that
+are in the "s2n.h" header file. Other functions and structures used in s2n
+internally can not be considered stable and their parameters, names, sizes and
+so on may change.
 
 ## Preprocessor macros
 
