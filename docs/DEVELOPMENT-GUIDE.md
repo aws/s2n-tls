@@ -98,7 +98,7 @@ read directly, s2n_stuffer_raw_write() should be called when data is being
 inserted directly. Boundary and overflow checking will still be performed.
 
 Both of these functions return pointers. To ensure that these pointers remain
-valid, once called these functions both mark a stuffer as tainted. A tainted
-stuffer cannot be grown or resized, to prevent any call to realloc() from
+valid, these functions both mark a stuffer as tainted. A tainted stuffer cannot
+be grown or resized, to prevent any underlying call to realloc() from
 invalidating the pointers. s2n_stuffer_wipe() will reset the tainted state, so
-any pointers should be used once this has been called.
+any pointers saved can not used once this has been called.
