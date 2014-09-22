@@ -11,9 +11,10 @@ once built, static and dynamic libraries for s2n will be available in the lib/
 directory.
 
 ## mlock() and system limits 
+
 Internally s2n uses mlock() to prevent memory from being swapped to disk. The
-s2n build tests may fail in some environments where the default limit on the
-amount of memory which may be locked is too low. To check this limit, run:
+s2n build tests may fail in some environments where the default limit on locked
+memory is too low. To check this limit, run:
 
     ulimit -l
 
