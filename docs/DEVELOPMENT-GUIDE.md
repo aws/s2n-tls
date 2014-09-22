@@ -64,14 +64,14 @@ commonly used types and encodings.
 At the core of the stuffer there are four variables being tracked which
 together emulate a stream:
 
-               data_available()  space_remaining()
-                     |                 |
-             /------------------\/------------\
-    -------------------------------------------
-    | | | | |R| | | | | | | | | |W| | | | | | |
-    -------------------------------------------
-    ^        ^                   ^            ^
-    data  read cursor        write cursor  data + size
+                             data_available()      space_remaining()
+                                  |                       |
+                      /-----------------------\/--------------------\
+    -----------------------------------------------------------------
+    |   |   |   |   | R |   |   |   |   |   | W |   |   |   |   |   |
+    -----------------------------------------------------------------
+    ^                 ^                       ^                     ^
+    data          read cursor            write cursor          data + size
 
 Data can be written to a stuffer and this will increment the write cursor.
 Internally, the stuffer routines ensure that no more data can be written to the
