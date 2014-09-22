@@ -52,7 +52,9 @@ structure for tracking a pointer to a region of data along with the size of
 that region.
 
 s2n_mem.h provides s2n_alloc(), s2n_realloc() and s2n_free() functions that may
-be used to manage dynamically allocated blobs.
+be used to manage dynamically allocated blobs. These functions map directly
+to realloc() and free() and are used only to ensure that the size of the 
+memory region is consistently tracked with an s2n_blob.
 
 ## Stuffer : a buffer for stuff
 
