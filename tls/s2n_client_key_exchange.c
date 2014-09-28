@@ -29,8 +29,8 @@
 static int s2n_rsa_client_key_recv(struct s2n_connection *conn, const char **err)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
+    uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
     uint16_t length;
-    uint8_t client_protocol_version[2];
 
     if (conn->actual_protocol_version == S2N_SSLv3) {
         length = s2n_stuffer_data_available(in);
@@ -43,6 +43,10 @@ static int s2n_rsa_client_key_recv(struct s2n_connection *conn, const char **err
         return -1;
     }
 
+    /* Keep a copy of the client protocol version in wire format */
+    client_protocol_version[0] = conn->client_protocol_version / 10;
+    client_protocol_version[1] = conn->client_protocol_version % 10;
+
     /* Decrypt the pre-master secret */
     struct s2n_blob pms, encrypted;
     pms.data = conn->pending.rsa_premaster_secret;
@@ -51,16 +55,17 @@ static int s2n_rsa_client_key_recv(struct s2n_connection *conn, const char **err
     encrypted.size = s2n_stuffer_data_available(in);
     encrypted.data = s2n_stuffer_raw_read(in, length, err);
 
-    if (s2n_rsa_decrypt(&conn->config->cert_and_key_pairs->private_key, &encrypted, &pms, err) < 0) {
-        conn->handshake.rsa_failed = 1;
-    }
+    /* Set rsa_failed to 1 if s2n_rsa_decrypt returns anything other than zero */
+    conn->handshake.rsa_failed = !!s2n_rsa_decrypt(&conn->config->cert_and_key_pairs->private_key, &encrypted, &pms, err);
 
-    /* Check the client version number against the actual version number */
-    client_protocol_version[0] = conn->client_protocol_version / 10;
-    client_protocol_version[1] = conn->client_protocol_version % 10;
+    /* Set rsa_failed to 1, if it isn't already, if the protocol version isn't what we expect */
+    conn->handshake.rsa_failed |= !s2n_constant_time_equals(client_protocol_version, pms.data, S2N_TLS_PROTOCOL_VERSION_LEN);
 
-    if (!s2n_constant_time_equals(client_protocol_version, pms.data, 2)) {
-        conn->handshake.rsa_failed = 1;
+    if (conn->handshake.rsa_failed) {
+        /* Use a random pre-master secret */
+        GUARD(s2n_get_random_data(conn->pending.rsa_premaster_secret, S2N_TLS_SECRET_LEN, err));
+        conn->pending.rsa_premaster_secret[0] = client_protocol_version[0];
+        conn->pending.rsa_premaster_secret[1] = client_protocol_version[1];
     }
 
     /* Turn the pre-master secret into a master secret */

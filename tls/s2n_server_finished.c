@@ -28,11 +28,6 @@ int s2n_server_finished_recv(struct s2n_connection *conn, const char **err)
     int length = S2N_TLS_FINISHED_LEN;
     our_version = conn->handshake.server_finished;
 
-    if (conn->handshake.rsa_failed == 1) {
-        *err = "RSA validation failed";
-        return -1;
-    }
-
     if (conn->actual_protocol_version == S2N_SSLv3) {
         length = S2N_SSL_FINISHED_LEN;
     }
