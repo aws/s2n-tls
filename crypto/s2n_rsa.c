@@ -165,6 +165,11 @@ int s2n_rsa_verify(struct s2n_rsa_public_key *key, struct s2n_hash_state *digest
 
 int s2n_rsa_encrypt(struct s2n_rsa_public_key *key, struct s2n_blob *in, struct s2n_blob *out, const char **err)
 {
+    if (out->size < s2n_rsa_public_encrypted_size(key, err)) {
+        *err = "Insufficient memory for encryption";
+        return -1;
+    }
+
     int r = RSA_public_encrypt(in->size, (unsigned char *)in->data, (unsigned char *)out->data, key->rsa, RSA_PKCS1_PADDING);
     if (r != out->size) {
         *err = "Mismatch between predicted and actual encrypted sizes";
@@ -176,13 +181,22 @@ int s2n_rsa_encrypt(struct s2n_rsa_public_key *key, struct s2n_blob *in, struct 
 
 int s2n_rsa_decrypt(struct s2n_rsa_private_key *key, struct s2n_blob *in, struct s2n_blob *out, const char **err)
 {
-    int r = RSA_private_decrypt(in->size, (unsigned char *)in->data, (unsigned char *)out->data, key->rsa, RSA_PKCS1_PADDING);
-    if (r != out->size) {
-        *err = "Mismatch between predicted and actual decrypted sizes";
+    unsigned char intermediate[4096];
+    if (s2n_rsa_private_encrypted_size(key, err) > sizeof(intermediate)) {
+        *err = "Insufficient memory for decryption";
         return -1;
     }
 
-    return 0;
+    if (out->size > sizeof(intermediate)) {
+        *err = "Insufficient memory for decryption";
+        return -1;
+    }
+
+    int r = RSA_private_decrypt(in->size, (unsigned char *)in->data, intermediate, key->rsa, RSA_PKCS1_PADDING);
+
+    memcpy_check(out->data, intermediate, out->size);
+
+    return 0 - (r != out->size);
 }
 
 int s2n_rsa_keys_match(struct s2n_rsa_public_key *pub, struct s2n_rsa_private_key *priv, const char **err)
