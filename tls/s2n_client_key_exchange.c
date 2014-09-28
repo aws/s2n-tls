@@ -30,6 +30,7 @@ static int s2n_rsa_client_key_recv(struct s2n_connection *conn, const char **err
 {
     struct s2n_stuffer *in = &conn->handshake.io;
     uint16_t length;
+    uint8_t client_protocol_version[2];
 
     if (conn->actual_protocol_version == S2N_SSLv3) {
         length = s2n_stuffer_data_available(in);
@@ -55,7 +56,10 @@ static int s2n_rsa_client_key_recv(struct s2n_connection *conn, const char **err
     }
 
     /* Check the client version number against the actual version number */
-    if (pms.data[0] * 10 + pms.data[1] != conn->client_protocol_version) {
+    client_protocol_version[0] = conn->client_protocol_version / 10;
+    client_protocol_version[1] = conn->client_protocol_version % 10;
+
+    if (!s2n_constant_time_equals(client_protocol_version, pms.data, 2)) {
         conn->handshake.rsa_failed = 1;
     }
 
