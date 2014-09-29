@@ -90,9 +90,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in, &err));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in, &err));
         EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5, &err))
-            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out), &err))
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out), &err))
 
-            /* Let's decrypt it */
+        /* Let's decrypt it */
         uint8_t content_type;
         uint16_t fragment_length;
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length, &err));
