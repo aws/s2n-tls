@@ -88,45 +88,6 @@ int s2n_record_header_parse(struct s2n_connection *conn, uint8_t *content_type, 
     return 0;
 }
 
-static int s2n_verify_padding(struct s2n_connection *conn, struct s2n_blob *decrypted, const char **err)
-{
-    gte_check(decrypted->size, 0);
-
-    uint8_t p = decrypted->data[decrypted->size - 1];
-
-    if (p > (decrypted->size - 1)) {
-        *err = "Could not verify fragment";
-        return -1;
-    }
-
-    /* SSLv3 doesn't specify what the padding should actualy be */
-    if (conn->actual_protocol_version == S2N_SSLv3) {
-        return 0;
-    }
-
-    /* Check all 255 potential padding bytes */
-    uint8_t check = 255;
-    if (decrypted->size < 255) {
-        check = decrypted->size - 1;
-    }
-
-    uint8_t run = 0;
-    for (int i = decrypted->size - 1 - check; i < decrypted->size - 1; i++) {
-        if (decrypted->data[i] == p) {
-            run++;
-        } else {
-            run = 0;
-        }
-    }
-
-    if (run < p) {
-        *err = "Could not verify fragment";
-        return -1;
-    }
-
-    return 0;
-}
-
 int s2n_record_parse(struct s2n_connection *conn, const char **err)
 {
     struct s2n_blob iv;
@@ -134,7 +95,6 @@ int s2n_record_parse(struct s2n_connection *conn, const char **err)
     uint8_t ivpad[16];
     uint8_t content_type;
     uint16_t fragment_length;
-    int padding_mac_good = 1;
 
     uint8_t *sequence_number = conn->client->client_sequence_number;
     struct s2n_hmac_state *mac = &conn->client->client_record_mac;
@@ -202,22 +162,17 @@ int s2n_record_parse(struct s2n_connection *conn, const char **err)
 
     uint16_t payload_length = encrypted_length;
 
-    /* Padding */
-    if (cipher_suite->cipher->type == S2N_CBC) {
-        if (s2n_verify_padding(conn, &en, err) < 0) {
-            padding_mac_good = 0;
-        }
-        uint16_t padding_length = (en.data[en.size - 1] + 1);
-
-        gte_check(payload_length, padding_length);
-        payload_length -= padding_length;
-    }
-
     int mac_digest_size = s2n_hmac_digest_size(mac->alg, err);
     gte_check(mac_digest_size, 0);
 
     gte_check(payload_length, mac_digest_size);
     payload_length -= mac_digest_size;
+
+    /* Subtract the padding length */
+    if (cipher_suite->cipher->type == S2N_CBC) {
+        gt_check(en.size, 0);
+        payload_length -= (en.data[en.size - 1] + 1);
+    }
 
     /* Update the MAC */
     header[3] = (payload_length >> 8);
@@ -231,23 +186,29 @@ int s2n_record_parse(struct s2n_connection *conn, const char **err)
     } else {
         GUARD(s2n_hmac_update(mac, header, S2N_TLS_RECORD_HEADER_LENGTH, err));
     }
-    GUARD(s2n_hmac_update(mac, en.data, payload_length, err));
     s2n_increment_sequence_number(sequence_number);
 
-    /* MAC check */
-    uint8_t check_digest[S2N_MAX_DIGEST_LEN];
-    lte_check(mac_digest_size, sizeof(check_digest));
-    GUARD(s2n_hmac_digest(mac, check_digest, mac_digest_size, err));
-
-    if (s2n_hmac_digest_verify(en.data + payload_length, mac_digest_size, check_digest, mac_digest_size, err) < 0) {
-        *err = "Could not verify fragment";
-        padding_mac_good = 0;
+    /* Padding */
+    if (cipher_suite->cipher->type == S2N_CBC) {
+        if (s2n_verify_cbc(conn, mac, &en, err) < 0) {
+            *err = "Could not verify fragment";
+            GUARD(s2n_stuffer_wipe(&conn->in, err));
+            return -1;
+        }
     }
+    else {
+        /* MAC check for streaming ciphers - no padding */
+        GUARD(s2n_hmac_update(mac, en.data, payload_length, err));
 
-    /* Either the padding or the MAC were bad, reject the fragment */
-    if (!padding_mac_good) {
-        GUARD(s2n_stuffer_wipe(&conn->in, err));
-        return -1;
+        uint8_t check_digest[S2N_MAX_DIGEST_LEN];
+        lte_check(mac_digest_size, sizeof(check_digest));
+        GUARD(s2n_hmac_digest(mac, check_digest, mac_digest_size, err));
+
+        if (s2n_hmac_digest_verify(en.data + payload_length, mac_digest_size, check_digest, mac_digest_size, err) < 0) {
+            *err = "Could not verify fragment";
+            GUARD(s2n_stuffer_wipe(&conn->in, err));
+            return -1;
+        }
     }
 
     /* O.k., we've successfully read and decrypted the record, now we need to align the stuffer
