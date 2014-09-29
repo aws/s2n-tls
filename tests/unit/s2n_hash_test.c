@@ -28,7 +28,7 @@ int main(int argc, char **argv)
     uint8_t output_pad[96];
     uint8_t hello[] = "Hello world!\n";
     struct s2n_stuffer output;
-    struct s2n_hash_state hash;
+    struct s2n_hash_state hash, copy;
     struct s2n_blob out = {.data = output_pad,.size = sizeof(output_pad) };
 
     BEGIN_TEST();
@@ -39,7 +39,18 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(s2n_hash_digest_size(S2N_HASH_MD5, &err), 16);
     EXPECT_SUCCESS(s2n_hash_init(&hash, S2N_HASH_MD5, &err));
     EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *)hello), &err));
+    EXPECT_SUCCESS(s2n_hash_copy(&copy, &hash, &err));
     EXPECT_SUCCESS(s2n_hash_digest(&hash, digest_pad, MD5_DIGEST_LENGTH, &err));
+
+    for (int i = 0; i < 16; i++) {
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i], &err));
+    }
+
+    /* Reference value from command line md5sum */
+    EXPECT_EQUAL(memcmp(output_pad, "59ca0efa9f5633cb0371bbc0355478d8", 16 * 2), 0);
+
+    /* Check the copy */
+    EXPECT_SUCCESS(s2n_hash_digest(&copy, digest_pad, MD5_DIGEST_LENGTH, &err));
 
     for (int i = 0; i < 16; i++) {
         EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i], &err));
