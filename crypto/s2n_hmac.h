@@ -47,3 +47,4 @@ extern int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_
 extern int s2n_hmac_digest(struct s2n_hmac_state *state, void *out, uint32_t size, const char **err);
 extern int s2n_hmac_digest_verify(const void *a, uint32_t alen, const void *b, uint32_t blen, const char **err);
 extern int s2n_hmac_reset(struct s2n_hmac_state *state, const char **err);
+extern int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from, const char **err);

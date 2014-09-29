@@ -162,3 +162,9 @@ int s2n_hash_reset(struct s2n_hash_state *state, const char **err)
 {
     return s2n_hash_init(state, state->alg, err);
 }
+
+int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from, const char **err)
+{
+    memcpy_check(to, from, sizeof(struct s2n_hash_state));
+    return 0;
+}

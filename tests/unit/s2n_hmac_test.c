@@ -30,7 +30,7 @@ int main(int argc, char **argv)
     uint8_t sekrit[] = "sekrit";
     uint8_t longsekrit[] = "This is a really really really long key on purpose to make sure that it's longer than the block size";
     uint8_t hello[] = "Hello world!";
-    struct s2n_hmac_state hmac;
+    struct s2n_hmac_state hmac, copy;
     struct s2n_hmac_state cmac;
 
     struct s2n_blob out = {.data = output_pad,.size = sizeof(output_pad) };
@@ -43,7 +43,18 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(s2n_hmac_digest_size(S2N_HMAC_MD5, &err), 16);
     EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_MD5, sekrit, strlen((char *)sekrit), &err));
     EXPECT_SUCCESS(s2n_hmac_update(&hmac, hello, strlen((char *)hello), &err));
+    EXPECT_SUCCESS(s2n_hmac_copy(&copy, &hmac, &err));
     EXPECT_SUCCESS(s2n_hmac_digest(&hmac, digest_pad, 16, &err));
+
+    for (int i = 0; i < 16; i++) {
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i], &err));
+    }
+
+    /* Reference value from python */
+    EXPECT_EQUAL(memcmp(output_pad, "3ad68c53dc1a3cf35f6469877fae4585", 16 * 2), 0);
+
+    /* Check the copy */
+    EXPECT_SUCCESS(s2n_hmac_digest(&copy, digest_pad, 16, &err));
 
     for (int i = 0; i < 16; i++) {
         EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i], &err));

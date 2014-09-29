@@ -189,14 +189,11 @@ int s2n_hmac_reset(struct s2n_hmac_state *state, const char **err)
 
 int s2n_hmac_digest_verify(const void *a, uint32_t alen, const void *b, uint32_t blen, const char **err)
 {
-    if (alen != blen) {
-        *err = "HMACs are not comparable";
-        return -1;
-    }
+    return 0 - (!s2n_constant_time_equals(a, b, alen) | !!(alen - blen));
+}
 
-    if (!s2n_constant_time_equals(a, b, alen)) {
-        return -1;
-    }
-
+int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from, const char **err)
+{
+    memcpy_check(to, from, sizeof(struct s2n_hmac_state));
     return 0;
 }
