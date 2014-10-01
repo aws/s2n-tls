@@ -36,7 +36,7 @@
 /* qsort() u64s numerically */
 static int u64cmp (const void * left, const void * right)
 {
-   return *(uint64_t *)left - *(uint64_t *)right;
+   return *(const uint64_t *)left - *(const uint64_t *)right;
 }
 
 /* Generate summary statistics from a list of u64s */
@@ -49,18 +49,15 @@ static void summarize(uint64_t *list, int n, uint64_t *count, uint64_t *avg, uin
     uint64_t p75 = list[ n - (n / 4)];
     uint64_t iqr = p75 - p25;
 
-    *median = p50;
-    *stddev = iqr;
-
     /* Use the standard interquartile range rule for outlier detection */
-    int64_t floor = p25 - (iqr * 1.5);
+    int64_t low = p25 - (iqr * 1.5);
     if (iqr > p25) {
-        floor = 0;
+        low = 0;
     }
 
-    *avg = floor;
+    *avg = low;
         
-    int64_t ceil = p75 + (iqr * 1.5);
+    int64_t hi = p75 + (iqr * 1.5);
     /* Ignore overflow as we have plenty of room at the top */
 
     *count = 0;
@@ -72,7 +69,7 @@ static void summarize(uint64_t *list, int n, uint64_t *count, uint64_t *avg, uin
     for (int i = 0; i < n; i++) {
         int64_t value = list[ i ];
 
-        if (value < floor || value > ceil) {
+        if (value < low || value > hi) {
             continue;
         }
 

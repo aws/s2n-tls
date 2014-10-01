@@ -13,7 +13,10 @@
  * permissions and limitations under the License.
  */
 
+/* Use usleep */
+#define _XOPEN_SOURCE 500
 #include <unistd.h>
+
 #include <errno.h>
 #include <s2n.h>
 
@@ -99,7 +102,8 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
         if (conn->blinding == S2N_BUILT_IN_BLINDING) {
             int delay;
             GUARD(delay = s2n_connection_get_delay(conn, err)); 
-            GUARD(usleep(delay));
+            GUARD(sleep(delay / 1000000));
+            GUARD(usleep(delay % 1000000));
         }
 
         return -1;
