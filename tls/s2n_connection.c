@@ -29,6 +29,7 @@
 
 #include "crypto/s2n_cipher.h"
 
+#include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
@@ -63,6 +64,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode, const char **err)
      */
     conn = (struct s2n_connection *)(void *)blob.data;
     conn->mode = mode;
+    conn->blinding = S2N_BUILT_IN_BLINDING;
     conn->config = &s2n_default_config;
 
     /* Allocate the fixed-size stuffers */
@@ -315,4 +317,16 @@ const char *s2n_get_server_name(struct s2n_connection *conn, const char **err)
     }
 
     return conn->server_name;
+}
+
+int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blinding, const char **err)
+{
+    conn->blinding = blinding;
+    return 0;
+}
+
+int s2n_connection_get_delay(struct s2n_connection *conn, const char **err)
+{
+    /* Delay between 1ms and 10 seconds */
+    return s2n_random(1000 + 10000000, err);
 }

@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <limits.h>
 #include <fcntl.h>
 #include <string.h>
 #include <stdint.h>
@@ -70,6 +71,39 @@ int s2n_stuffer_write_random_data(struct s2n_stuffer *stuffer, uint32_t n, const
     }
 
     return 0;
+}
+
+int s2n_random(int max, const char **err)
+{
+    unsigned int r;
+
+    if (max <= 0) {
+        *err = "max must be a positive value";
+        return -1;
+    }
+
+    while(1) {
+        GUARD(s2n_get_random_data((uint8_t *) &r, sizeof(r), err));
+
+        /* Imagine an int was one byte and UINT_MAX was 256. If the
+         * caller asked for s2n_random(129, ...) we'd end up in
+         * trouble. Each number in the range 0...127 would be twice
+         * as likely as 128. That's because r == 0 % 129 -> 0, and
+         * r == 129 % 129 -> 0, but only r == 128 returns 128, 
+         * r == 257 is out of range.
+         *
+         * To de-bias the dice, we discard values of r that are higher
+         * that the highest multiple of 'max' an int can support. If
+         * max is a uint, then in the worst case we discard 50% - 1 r's. 
+         * But since 'max' is an int and INT_MAX is <= UINT_MAX / 2, 
+         * in the worst case we discard 25% - 1 r's. 
+         */
+        if (r < (UINT_MAX - (UINT_MAX % max))) {
+            return r % max;
+        }
+    }
+
+    return -1;
 }
 
 int openssl_compat_rand(unsigned char *buf, int num)

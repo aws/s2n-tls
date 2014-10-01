@@ -52,6 +52,16 @@ s2n defines two enum type:
 respectively.  At this time, s2n does not function as a client and only
 S2N_SERVER should be used.
 
+    typedef enum { S2N_BUILT_IN_BLINDING, S2N_SELF_SERVICE_BLINDING } s2n_blinding;
+
+
+**s2n_blinding** is used to opt-out of s2n's built-in blinding. By default s2n
+will cause a thread to sleep between 1ms and 10 seconds when a tamper evident
+record is encountered. S2N_SELF_SERVICE_BLINDING can be used to opt out of this
+behaviour. If s2n_recv() returns an error, self-service applications should
+call **s2n_connection_get_delay** and pause for the specified number of
+microseconds before calling close() or shutdown().
+
 ## Opaque structures
 
 s2n defines two opaque structures that are used for managed objects. These
@@ -173,6 +183,21 @@ extension. At present, client functionality is disabled.
 **s2n_get_server_name** returns the server name associated with a connection,
 or NULL if none is found. This can be used by a server to determine which server
 name the client is using.
+
+### s2n\_connection\_set\_blinding
+
+    int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blinding, const char **err);
+
+**s2n_connection_set_blinding** can be used to configure s2n to either use
+built-in blinding (set blinding to S2N_BUILT_IN_BLINDING) or self-service blinding
+(set blinding to S2N_SELF_SERVICE_BLINDING). 
+
+### s2n\_connection\_get\_delay
+
+    int s2n_connection_get_delay(struct s2n_connection *conn, const char **err);
+
+**s2n_connection_get_delay** returns the number of microseconds an application
+using self-service blinding should pause before calling close() or shutdown().
 
 ### s2n\_connection\_get\_wire\_bytes
 

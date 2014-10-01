@@ -46,6 +46,9 @@ struct s2n_connection {
     /* Is this connection a client or a server connection */
     s2n_mode mode;
 
+    /* Does s2n handle the blinding, or does the application */
+    s2n_blinding blinding;
+
     /* The version advertised by the client, by the
      * server, and the actual version we are currently
      * speaking. */

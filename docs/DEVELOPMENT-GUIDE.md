@@ -7,7 +7,7 @@ throughout the code.
 ## Readability and short functions
 
 One of the goals of the s2n code layout is to reduce the cognitive load on the
-programmer required to  write, review and extend s2n functionality. s2n is
+programmer required to write, review and extend s2n functionality. s2n is
 generally split into small, readable, discrete functions with a clear input and
 output. Human meaningful variable names are encouraged. #ifdefs are
 discouraged.
