@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include <unistd.h>
 #include <errno.h>
 #include <s2n.h>
 
@@ -94,6 +95,13 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
     if (s2n_record_parse(conn, err) < 0) {
         conn->closed = 1;
         GUARD(s2n_connection_wipe(conn, err));
+
+        if (conn->blinding == S2N_BUILT_IN_BLINDING) {
+            int delay;
+            GUARD(delay = s2n_connection_get_delay(conn, err)); 
+            GUARD(usleep(delay));
+        }
+
         return -1;
     }
 

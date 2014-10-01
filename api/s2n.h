@@ -49,6 +49,10 @@ extern int s2n_connection_set_fd(struct s2n_connection *conn, int readfd, const 
 extern int s2n_connection_set_read_fd(struct s2n_connection *conn, int readfd, const char **err);
 extern int s2n_connection_set_write_fd(struct s2n_connection *conn, int readfd, const char **err);
 
+typedef enum { S2N_BUILT_IN_BLINDING, S2N_SELF_SERVICE_BLINDING } s2n_blinding;
+extern int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blinding, const char **err);
+extern int s2n_connection_get_delay(struct s2n_connection *conn, const char **err);
+
 extern int s2n_set_server_name(struct s2n_connection *conn, const char *server_name, const char **err);
 extern const char *s2n_get_server_name(struct s2n_connection *conn, const char **err);
 
