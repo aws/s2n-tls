@@ -119,7 +119,7 @@ int main(int argc, char **argv)
     conn->actual_protocol_version = S2N_TLS12;
 
     /* Try every 16 bytes to simulate block alignments */
-    for (int i = 320; i < S2N_MAXIMUM_FRAGMENT_LENGTH; i += 16) {
+    for (int i = 288; i < S2N_MAXIMUM_FRAGMENT_LENGTH; i += 16) {
 
         EXPECT_SUCCESS(s2n_hmac_init(&record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key), &err));
 
@@ -160,21 +160,21 @@ int main(int argc, char **argv)
         /* Set up a record so that the MAC fails */
         EXPECT_SUCCESS(s2n_hmac_init(&record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key), &err));
 
-        /* Set up 250 bytes of padding */
-        for (int j = 1; j < 252; j++) {
-            fragment[i - j] = 250;
+        /* Set up 254 bytes of padding */
+        for (int j = 1; j < 256; j++) {
+            fragment[i - j] = 254;
         }
 
-        memcpy(fragment, random_data, i - 20 - 251);
-        EXPECT_SUCCESS(s2n_hmac_update(&record_mac, fragment, i - 20 - 251, &err));
-        EXPECT_SUCCESS(s2n_hmac_digest(&record_mac, fragment + (i - 20 - 251), 20, &err));
+        memcpy(fragment, random_data, i - 20 - 255);
+        EXPECT_SUCCESS(s2n_hmac_update(&record_mac, fragment, i - 20 - 255, &err));
+        EXPECT_SUCCESS(s2n_hmac_digest(&record_mac, fragment + (i - 20 - 255), 20, &err));
 
         /* Verify that the record would pass: the MAC and padding are ok */
         EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key), &err));
         EXPECT_SUCCESS(s2n_verify_cbc(conn, &check_mac, &decrypted, &err)); 
 
         /* Corrupt a HMAC byte */
-        fragment[i - 255]++;
+        fragment[i - 256]++;
 
         for (int t = 0; t < 10001; t++) {
             EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key), &err));
