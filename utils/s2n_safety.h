@@ -30,6 +30,7 @@
  * err and return -1;
  */
 #define memcpy_check( d, s, n )     do { notnull_check( (d) ); if ( memcpy( (d), (s), (n)) != (d) ) { *err = "memcpy error in " __FILE__ " line " STRING__LINE__; return -1; } } while(0)
+#define memset_check( d, c, n )     do { notnull_check( (d) ); if ( memset( (d), (c), (n)) != (d) ) { *err = "memset error in " __FILE__ " line " STRING__LINE__; return -1; } } while(0)
 
 /* Range check a number */
 #define gte_check(n, min)  do { if ( (n) < min ) { *err = "value is too low in " __FILE__ " line " STRING__LINE__; return -1; } } while(0)
