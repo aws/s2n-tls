@@ -25,6 +25,8 @@
 
 #include "stuffer/s2n_stuffer.h"
 
+#include "tls/s2n_record.h"
+
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
 
@@ -157,6 +159,9 @@ int s2n_init(const char **err)
 
     /* Over-ride OpenSSL's PRNG. NOTE: there is a unit test to validate that this works */
     RAND_set_rand_method(&s2n_openssl_rand_method);
+
+    /* Create the CBC masks */
+    GUARD(s2n_cbc_masks_init(err));
 
     return 0;
 }

@@ -24,4 +24,5 @@ extern int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, s
 extern int s2n_record_parse(struct s2n_connection *conn, const char **err);
 extern int s2n_record_header_parse(struct s2n_connection *conn, uint8_t *content_type, uint16_t *fragment_length, const char **err);
 extern int s2n_sslv2_record_header_parse(struct s2n_connection *conn, uint8_t *record_type, uint8_t *client_protocol_version, uint16_t *fragment_length, const char **err);
+extern int s2n_cbc_masks_init(const char **err);
 extern int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, struct s2n_blob *decrypted, const char **err);
