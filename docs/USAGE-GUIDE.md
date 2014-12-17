@@ -1,6 +1,6 @@
-# Using SignalToNoise
+# Using s2n
 
-SignalToNoise is a C library, and is built using Make. To clone the latest
+s2n is a C library, and is built using Make. To clone the latest
 copy of s2n from git and compile it, do:
 
     git clone https://github.com/awslabs/s2n.git
@@ -20,9 +20,9 @@ memory is too low. To check this limit, run:
 
 to raise the limit, consult the documentation for your platform.
 
-# SignalToNoise API
+# s2n API
 
-The API exposed by SignalToNoise is the set of functions and declarations that
+The API exposed by s2n is the set of functions and declarations that
 are in the "s2n.h" header file. Other functions and structures used in s2n
 internally can not be considered stable and their parameters, names, sizes and
 so on may change.

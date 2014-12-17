@@ -1,7 +1,7 @@
-# Development guide for SignalToNoise
+# Development guide for s2n
 
 If you are interested in working on, or are curious about, the internals of
-SignalToNoise it is helpful to understand some common conventions that are used
+s2n it is helpful to understand some common conventions that are used
 throughout the code.
 
 ## Readability and short functions
@@ -58,7 +58,7 @@ memory region is consistently tracked with an s2n_blob.
 
 ## Stuffer : a buffer for stuff
 
-The stuffer data structure included in SignalToNoise is intended to handle all
+The stuffer data structure included in s2n is intended to handle all
 input and output to memory buffers. In addition to basic size and overflow
 management, a stuffer can also perform serialisation and de-serialisation for
 commonly used types and encodings.
