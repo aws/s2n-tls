@@ -86,10 +86,22 @@ static void summarize(uint64_t *list, int n, uint64_t *count, uint64_t *avg, uin
         }
     }
 
-    *avg = sum / *count;
     *variance = sum_squares - (sum * sum);
-    *stddev = sqrt((*count * *variance) / (*count * (*count - 1)));
     *median = p50;
+
+    if (*count == 0) {
+        *avg = 0;
+    }
+    else {
+        *avg = sum / *count;
+    }
+
+    if (*count <= 1) {
+        *stddev = 0;
+    }
+    else {
+        *stddev = sqrt((*count * *variance) / (*count * (*count - 1)));
+    }
 }
 
 inline static uint64_t rdtsc(){
