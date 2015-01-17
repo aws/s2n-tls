@@ -33,8 +33,7 @@ static int mock_called = 0;
 
 int mock_openssl_compat_rand(unsigned char *buf, int num)
 {
-    const char *err;
-    int r = s2n_get_random_data(buf, num, &err);
+    int r = s2n_get_random_data(buf, num);
     if (r < 0) {
         return 0;
     }
@@ -81,7 +80,7 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_init(&err));
+    EXPECT_SUCCESS(s2n_init());
 
     /* Over-ride OpenSSL's PRNG */
     RAND_set_rand_method(&mock_openssl_rand_method);
@@ -89,17 +88,17 @@ int main(int argc, char **argv)
     /* Parse the DH params */
     b.data = dhparams;
     b.size = sizeof(dhparams);
-    EXPECT_SUCCESS(s2n_stuffer_alloc(&dhparams_in, sizeof(dhparams), &err));
-    EXPECT_SUCCESS(s2n_stuffer_alloc(&dhparams_out, sizeof(dhparams), &err));
-    EXPECT_SUCCESS(s2n_stuffer_write(&dhparams_in, &b, &err));
-    EXPECT_SUCCESS(s2n_stuffer_dhparams_from_pem(&dhparams_in, &dhparams_out, &err));
+    EXPECT_SUCCESS(s2n_stuffer_alloc(&dhparams_in, sizeof(dhparams)));
+    EXPECT_SUCCESS(s2n_stuffer_alloc(&dhparams_out, sizeof(dhparams)));
+    EXPECT_SUCCESS(s2n_stuffer_write(&dhparams_in, &b));
+    EXPECT_SUCCESS(s2n_stuffer_dhparams_from_pem(&dhparams_in, &dhparams_out));
     b.size = s2n_stuffer_data_available(&dhparams_out);
-    b.data = s2n_stuffer_raw_read(&dhparams_out, b.size, &err);
-    EXPECT_SUCCESS(s2n_pkcs3_to_dh_params(&dh_params, &b, &err));
+    b.data = s2n_stuffer_raw_read(&dhparams_out, b.size);
+    EXPECT_SUCCESS(s2n_pkcs3_to_dh_params(&dh_params, &b));
 
     EXPECT_EQUAL(mock_called, 0);
 
-    EXPECT_SUCCESS(s2n_dh_generate_ephemeral_key(&dh_params, &err));
+    EXPECT_SUCCESS(s2n_dh_generate_ephemeral_key(&dh_params));
 
     /* Verify that our mock random is called and that over-riding works */
     EXPECT_EQUAL(mock_called, 1);

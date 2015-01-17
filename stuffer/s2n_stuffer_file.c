@@ -20,15 +20,17 @@
 #include <errno.h>
 #include <fcntl.h>
 
+#include "error/s2n_errno.h"
+
 #include "stuffer/s2n_stuffer.h"
 
 #include "utils/s2n_safety.h"
 
-int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, int rfd, uint32_t len, const char **err)
+int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, int rfd, uint32_t len)
 {
 
     /* Make sure we have enough space to write */
-    GUARD(s2n_stuffer_skip_write(stuffer, len, err));
+    GUARD(s2n_stuffer_skip_write(stuffer, len));
 
     /* "undo" the skip write */
     stuffer->write_cursor -= len;
@@ -50,10 +52,10 @@ int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, int rfd, uint32_t len,
     return r;
 }
 
-int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, int wfd, uint32_t len, const char **err)
+int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, int wfd, uint32_t len)
 {
     /* Make sure we even have the data */
-    GUARD(s2n_stuffer_skip_read(stuffer, len, err));
+    GUARD(s2n_stuffer_skip_read(stuffer, len));
 
     /* "undo" the skip read */
     stuffer->read_cursor -= len;
@@ -73,36 +75,34 @@ int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, int wfd, uint32_t len, c
     return w;
 }
 
-int s2n_stuffer_alloc_ro_from_fd(struct s2n_stuffer *stuffer, int rfd, const char **err)
+int s2n_stuffer_alloc_ro_from_fd(struct s2n_stuffer *stuffer, int rfd)
 {
     struct stat st;
 
     if (fstat(rfd, &st) < 0) {
-        *err = "Could not fstat() file";
-        return -1;
+        S2N_ERROR(S2N_ERR_FSTAT);
     }
 
     stuffer->blob.data = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, rfd, 0);
     if (stuffer->blob.data == MAP_FAILED) {
-        *err = "Could not mmap file";
+        S2N_ERROR(S2N_ERR_MMAP);
     }
 
     stuffer->blob.size = st.st_size;
 
-    return s2n_stuffer_init(stuffer, &stuffer->blob, err);
+    return s2n_stuffer_init(stuffer, &stuffer->blob);
 }
 
-int s2n_stuffer_alloc_ro_from_file(struct s2n_stuffer *stuffer, const char *file, const char **err)
+int s2n_stuffer_alloc_ro_from_file(struct s2n_stuffer *stuffer, const char *file)
 {
     int fd;
 
     fd = open(file, O_RDONLY);
     if (fd < 0) {
-        *err = "Could not open file";
-        return -1;
+        S2N_ERROR(S2N_ERR_OPEN);
     }
 
-    int r = s2n_stuffer_alloc_ro_from_fd(stuffer, fd, err);
+    int r = s2n_stuffer_alloc_ro_from_fd(stuffer, fd);
 
     if (close(fd) < 0) {
         return -1;

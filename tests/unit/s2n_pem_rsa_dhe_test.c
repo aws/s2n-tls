@@ -132,75 +132,75 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_init(&err));
-    EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, sizeof(certificate), &err));
-    EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, sizeof(certificate), &err));
-    EXPECT_SUCCESS(s2n_stuffer_alloc(&dhparams_in, sizeof(dhparams), &err));
-    EXPECT_SUCCESS(s2n_stuffer_alloc(&dhparams_out, sizeof(dhparams), &err));
-    EXPECT_SUCCESS(s2n_stuffer_alloc(&rsa_key_in, sizeof(private_key), &err));
-    EXPECT_SUCCESS(s2n_stuffer_alloc(&rsa_key_out, sizeof(private_key), &err));
+    EXPECT_SUCCESS(s2n_init());
+    EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, sizeof(certificate)));
+    EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, sizeof(certificate)));
+    EXPECT_SUCCESS(s2n_stuffer_alloc(&dhparams_in, sizeof(dhparams)));
+    EXPECT_SUCCESS(s2n_stuffer_alloc(&dhparams_out, sizeof(dhparams)));
+    EXPECT_SUCCESS(s2n_stuffer_alloc(&rsa_key_in, sizeof(private_key)));
+    EXPECT_SUCCESS(s2n_stuffer_alloc(&rsa_key_out, sizeof(private_key)));
 
     b.data = certificate;
     b.size = sizeof(certificate);
-    EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b, &err));
+    EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));
 
     b.data = private_key;
     b.size = sizeof(private_key);
-    EXPECT_SUCCESS(s2n_stuffer_write(&rsa_key_in, &b, &err));
+    EXPECT_SUCCESS(s2n_stuffer_write(&rsa_key_in, &b));
 
     b.data = dhparams;
     b.size = sizeof(dhparams);
-    EXPECT_SUCCESS(s2n_stuffer_write(&dhparams_in, &b, &err));
+    EXPECT_SUCCESS(s2n_stuffer_write(&dhparams_in, &b));
 
-    EXPECT_SUCCESS(s2n_stuffer_certificate_from_pem(&certificate_in, &certificate_out, &err));
-    EXPECT_SUCCESS(s2n_stuffer_rsa_private_key_from_pem(&rsa_key_in, &rsa_key_out, &err));
-    EXPECT_SUCCESS(s2n_stuffer_dhparams_from_pem(&dhparams_in, &dhparams_out, &err));
+    EXPECT_SUCCESS(s2n_stuffer_certificate_from_pem(&certificate_in, &certificate_out));
+    EXPECT_SUCCESS(s2n_stuffer_rsa_private_key_from_pem(&rsa_key_in, &rsa_key_out));
+    EXPECT_SUCCESS(s2n_stuffer_dhparams_from_pem(&dhparams_in, &dhparams_out));
 
     struct s2n_rsa_private_key priv_key;
     struct s2n_rsa_public_key pub_key;
 
     b.size = s2n_stuffer_data_available(&certificate_out);
-    b.data = s2n_stuffer_raw_read(&certificate_out, b.size, &err);
-    EXPECT_SUCCESS(s2n_asn1der_to_rsa_public_key(&pub_key, &b, &err));
+    b.data = s2n_stuffer_raw_read(&certificate_out, b.size);
+    EXPECT_SUCCESS(s2n_asn1der_to_rsa_public_key(&pub_key, &b));
 
     b.size = s2n_stuffer_data_available(&rsa_key_out);
-    b.data = s2n_stuffer_raw_read(&rsa_key_out, b.size, &err);
-    EXPECT_SUCCESS(s2n_asn1der_to_rsa_private_key(&priv_key, &b, &err));
+    b.data = s2n_stuffer_raw_read(&rsa_key_out, b.size);
+    EXPECT_SUCCESS(s2n_asn1der_to_rsa_private_key(&priv_key, &b));
 
-    EXPECT_SUCCESS(s2n_rsa_keys_match(&pub_key, &priv_key, &err));
+    EXPECT_SUCCESS(s2n_rsa_keys_match(&pub_key, &priv_key));
 
     struct s2n_connection *conn;
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER, &err));
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(conn->config, (char *)chain, (char *)private_key, &err));
+    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(conn->config, (char *)chain, (char *)private_key));
 
     struct s2n_dh_params dh_params;
     b.size = s2n_stuffer_data_available(&dhparams_out);
-    b.data = s2n_stuffer_raw_read(&dhparams_out, b.size, &err);
-    EXPECT_SUCCESS(s2n_pkcs3_to_dh_params(&dh_params, &b, &err));
+    b.data = s2n_stuffer_raw_read(&dhparams_out, b.size);
+    EXPECT_SUCCESS(s2n_pkcs3_to_dh_params(&dh_params, &b));
 
-    EXPECT_SUCCESS(s2n_config_add_dhparams(conn->config, (char *)dhparams, &err));
+    EXPECT_SUCCESS(s2n_config_add_dhparams(conn->config, (char *)dhparams));
 
     /* Try signing and verification with RSA */
     uint8_t inputpad[] = "Hello world!";
     struct s2n_blob signature;
     struct s2n_hash_state tls10_one, tls10_two, tls12_one, tls12_two;
 
-    EXPECT_SUCCESS(s2n_hash_init(&tls10_one, S2N_HASH_MD5_SHA1, &err));
-    EXPECT_SUCCESS(s2n_hash_init(&tls10_two, S2N_HASH_MD5_SHA1, &err));
-    EXPECT_SUCCESS(s2n_hash_init(&tls12_one, S2N_HASH_SHA1, &err));
-    EXPECT_SUCCESS(s2n_hash_init(&tls12_two, S2N_HASH_SHA1, &err));
+    EXPECT_SUCCESS(s2n_hash_init(&tls10_one, S2N_HASH_MD5_SHA1));
+    EXPECT_SUCCESS(s2n_hash_init(&tls10_two, S2N_HASH_MD5_SHA1));
+    EXPECT_SUCCESS(s2n_hash_init(&tls12_one, S2N_HASH_SHA1));
+    EXPECT_SUCCESS(s2n_hash_init(&tls12_two, S2N_HASH_SHA1));
 
-    EXPECT_SUCCESS(s2n_alloc(&signature, s2n_rsa_public_encrypted_size(&pub_key, &err), &err));
+    EXPECT_SUCCESS(s2n_alloc(&signature, s2n_rsa_public_encrypted_size(&pub_key)));
 
-    EXPECT_SUCCESS(s2n_hash_update(&tls10_one, inputpad, sizeof(inputpad), &err));
-    EXPECT_SUCCESS(s2n_hash_update(&tls10_two, inputpad, sizeof(inputpad), &err));
-    EXPECT_SUCCESS(s2n_rsa_sign(&priv_key, &tls10_one, &signature, &err));
-    EXPECT_SUCCESS(s2n_rsa_verify(&pub_key, &tls10_two, &signature, &err));
+    EXPECT_SUCCESS(s2n_hash_update(&tls10_one, inputpad, sizeof(inputpad)));
+    EXPECT_SUCCESS(s2n_hash_update(&tls10_two, inputpad, sizeof(inputpad)));
+    EXPECT_SUCCESS(s2n_rsa_sign(&priv_key, &tls10_one, &signature));
+    EXPECT_SUCCESS(s2n_rsa_verify(&pub_key, &tls10_two, &signature));
 
-    EXPECT_SUCCESS(s2n_hash_update(&tls12_one, inputpad, sizeof(inputpad), &err));
-    EXPECT_SUCCESS(s2n_hash_update(&tls12_two, inputpad, sizeof(inputpad), &err));
-    EXPECT_SUCCESS(s2n_rsa_sign(&priv_key, &tls12_one, &signature, &err));
-    EXPECT_SUCCESS(s2n_rsa_verify(&pub_key, &tls12_two, &signature, &err));
+    EXPECT_SUCCESS(s2n_hash_update(&tls12_one, inputpad, sizeof(inputpad)));
+    EXPECT_SUCCESS(s2n_hash_update(&tls12_two, inputpad, sizeof(inputpad)));
+    EXPECT_SUCCESS(s2n_rsa_sign(&priv_key, &tls12_one, &signature));
+    EXPECT_SUCCESS(s2n_rsa_verify(&pub_key, &tls12_two, &signature));
 
     END_TEST();
 }

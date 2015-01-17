@@ -56,4 +56,4 @@ struct s2n_crypto_parameters {
 };
 
 extern void s2n_increment_sequence_number(uint8_t sequence_number[S2N_TLS_SEQUENCE_NUM_LEN]);
-extern int s2n_zero_sequence_number(uint8_t sequence_number[S2N_TLS_SEQUENCE_NUM_LEN], const char **err);
+extern int s2n_zero_sequence_number(uint8_t sequence_number[S2N_TLS_SEQUENCE_NUM_LEN]);

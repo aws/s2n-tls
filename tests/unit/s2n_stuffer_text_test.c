@@ -33,47 +33,47 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     /* Create a stuffer */
-    EXPECT_SUCCESS(s2n_stuffer_init_text(&token, tokenpad, sizeof(tokenpad), &err));
-    EXPECT_SUCCESS(s2n_stuffer_init_text(&stuffer, pad, sizeof(pad), &err));
-    EXPECT_SUCCESS(s2n_stuffer_write_text(&stuffer, text, sizeof(text), &err));
+    EXPECT_SUCCESS(s2n_stuffer_init_text(&token, tokenpad, sizeof(tokenpad)));
+    EXPECT_SUCCESS(s2n_stuffer_init_text(&stuffer, pad, sizeof(pad)));
+    EXPECT_SUCCESS(s2n_stuffer_write_text(&stuffer, text, sizeof(text)));
 
     /* Skip 4 bytes of whitespace */
-    EXPECT_EQUAL(s2n_stuffer_skip_whitespace(&stuffer, &err), 4);
+    EXPECT_EQUAL(s2n_stuffer_skip_whitespace(&stuffer), 4);
 
     /* Skip 4 bytes of whitespace */
-    EXPECT_SUCCESS(s2n_stuffer_peek_char(&stuffer, &c, &err));
+    EXPECT_SUCCESS(s2n_stuffer_peek_char(&stuffer, &c));
     EXPECT_EQUAL(c, 'T');
 
     /* Read the next 17 chars */
-    EXPECT_SUCCESS(s2n_stuffer_read_text(&stuffer, out, 17, &err));
+    EXPECT_SUCCESS(s2n_stuffer_read_text(&stuffer, out, 17));
     EXPECT_EQUAL(memcmp(out, "This is some text", 17), 0);
 
     /* Skip 3 bytes of whitespace */
-    EXPECT_EQUAL(s2n_stuffer_skip_whitespace(&stuffer, &err), 3);
+    EXPECT_EQUAL(s2n_stuffer_skip_whitespace(&stuffer), 3);
 
     /* Read the next 10 chars (including the terminating zero) */
-    EXPECT_SUCCESS(s2n_stuffer_read_text(&stuffer, out, 10, &err));
+    EXPECT_SUCCESS(s2n_stuffer_read_text(&stuffer, out, 10));
     EXPECT_EQUAL(memcmp(out, "more text", 10), 0);
 
     /* Test end of stream behaviour */
-    EXPECT_SUCCESS(s2n_stuffer_skip_whitespace(&stuffer, &err));
-    EXPECT_FAILURE(s2n_stuffer_peek_char(&stuffer, &c, &err));
-    EXPECT_FAILURE(s2n_stuffer_read_char(&stuffer, &c, &err));
+    EXPECT_SUCCESS(s2n_stuffer_skip_whitespace(&stuffer));
+    EXPECT_FAILURE(s2n_stuffer_peek_char(&stuffer, &c));
+    EXPECT_FAILURE(s2n_stuffer_read_char(&stuffer, &c));
 
     /* Start a new buffer */
-    EXPECT_SUCCESS(s2n_stuffer_init_text(&stuffer, pad, sizeof(pad), &err));
-    EXPECT_SUCCESS(s2n_stuffer_write_text(&stuffer, fields, strlen(fields), &err));
+    EXPECT_SUCCESS(s2n_stuffer_init_text(&stuffer, pad, sizeof(pad)));
+    EXPECT_SUCCESS(s2n_stuffer_write_text(&stuffer, fields, strlen(fields)));
 
-    EXPECT_SUCCESS(s2n_stuffer_read_token(&stuffer, &token, ',', &err));
+    EXPECT_SUCCESS(s2n_stuffer_read_token(&stuffer, &token, ','));
     EXPECT_EQUAL(memcmp("one", token.blob.data, 3), 0);
 
-    EXPECT_SUCCESS(s2n_stuffer_init_text(&token, tokenpad, sizeof(tokenpad), &err));
-    EXPECT_SUCCESS(s2n_stuffer_read_token(&stuffer, &token, ',', &err));
+    EXPECT_SUCCESS(s2n_stuffer_init_text(&token, tokenpad, sizeof(tokenpad)));
+    EXPECT_SUCCESS(s2n_stuffer_read_token(&stuffer, &token, ','));
     EXPECT_EQUAL(memcmp("two", token.blob.data, 3), 0);
 
     /* Check for end-of-stream termination */
-    EXPECT_SUCCESS(s2n_stuffer_init_text(&token, tokenpad, sizeof(tokenpad), &err));
-    EXPECT_SUCCESS(s2n_stuffer_read_token(&stuffer, &token, ',', &err));
+    EXPECT_SUCCESS(s2n_stuffer_init_text(&token, tokenpad, sizeof(tokenpad)));
+    EXPECT_SUCCESS(s2n_stuffer_read_token(&stuffer, &token, ','));
     EXPECT_EQUAL(memcmp("three", token.blob.data, 5), 0);
 
     END_TEST();

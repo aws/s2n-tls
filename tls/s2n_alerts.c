@@ -16,6 +16,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "error/s2n_errno.h"
+
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
@@ -53,11 +55,10 @@
 #define S2N_TLS_ALERT_LEVEL_WARNING         1
 #define S2N_TLS_ALERT_LEVEL_FATAL           2
 
-int s2n_process_alert_fragment(struct s2n_connection *conn, const char **err)
+int s2n_process_alert_fragment(struct s2n_connection *conn)
 {
     if (s2n_stuffer_data_available(&conn->alert_in) == 2) {
-        *err = "An alert is already present";
-        return -1;
+        S2N_ERROR(S2N_ERR_ALERT_PRESENT);
     }
 
     while (s2n_stuffer_data_available(&conn->in)) {
@@ -73,7 +74,7 @@ int s2n_process_alert_fragment(struct s2n_connection *conn, const char **err)
             bytes_to_read = s2n_stuffer_data_available(&conn->in);
         }
 
-        GUARD(s2n_stuffer_copy(&conn->in, &conn->alert_in, bytes_to_read, err));
+        GUARD(s2n_stuffer_copy(&conn->in, &conn->alert_in, bytes_to_read));
 
         if (s2n_stuffer_data_available(&conn->alert_in) == 2) {
             conn->closed = 1;
@@ -84,15 +85,14 @@ int s2n_process_alert_fragment(struct s2n_connection *conn, const char **err)
             }
 
             /* All other alerts are treated as fatal errors (even warnings) */
-            *err = "Received a TLS alert";
-            return -1;
+            S2N_ERROR(S2N_ERR_ALERT);
         }
     }
 
     return 0;
 }
 
-int s2n_queue_writer_close_alert(struct s2n_connection *conn, const char **err)
+int s2n_queue_writer_close_alert(struct s2n_connection *conn)
 {
     uint8_t alert[2];
     struct s2n_blob out = {.data = alert,.size = sizeof(alert) };
@@ -105,12 +105,12 @@ int s2n_queue_writer_close_alert(struct s2n_connection *conn, const char **err)
     alert[0] = S2N_TLS_ALERT_LEVEL_FATAL;
     alert[1] = S2N_TLS_ALERT_CLOSE_NOTIFY;
 
-    GUARD(s2n_stuffer_write(&conn->writer_alert_out, &out, err));
+    GUARD(s2n_stuffer_write(&conn->writer_alert_out, &out));
 
     return 0;
 }
 
-int s2n_queue_reader_unsupported_protocol_version_alert(struct s2n_connection *conn, const char **err)
+int s2n_queue_reader_unsupported_protocol_version_alert(struct s2n_connection *conn)
 {
     uint8_t alert[2];
     struct s2n_blob out = {.data = alert,.size = sizeof(alert) };
@@ -123,7 +123,7 @@ int s2n_queue_reader_unsupported_protocol_version_alert(struct s2n_connection *c
     alert[0] = S2N_TLS_ALERT_LEVEL_FATAL;
     alert[1] = S2N_TLS_ALERT_PROTOCOL_VERSION;
 
-    GUARD(s2n_stuffer_write(&conn->reader_alert_out, &out, err));
+    GUARD(s2n_stuffer_write(&conn->reader_alert_out, &out));
 
     return 0;
 }

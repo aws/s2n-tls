@@ -15,6 +15,8 @@
 
 #include <string.h>
 
+#include "error/s2n_errno.h"
+
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 
@@ -37,7 +39,7 @@ struct s2n_cipher_suite s2n_all_cipher_suites[] = {
 /* This is the initial cipher suite, but is never negotiated */
 struct s2n_cipher_suite s2n_null_cipher_suite = { "TLS_NULL_WITH_NULL_NULL", {TLS_NULL_WITH_NULL_NULL}, S2N_RSA, &s2n_null_cipher, S2N_HMAC_NONE };
 
-struct s2n_cipher_suite *s2n_cipher_suite_match(uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN], const char **err)
+struct s2n_cipher_suite *s2n_cipher_suite_match(uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN])
 {
     int low = 0;
     int top = (sizeof(s2n_all_cipher_suites) / sizeof(struct s2n_cipher_suite)) - 1;
@@ -60,19 +62,18 @@ struct s2n_cipher_suite *s2n_cipher_suite_match(uint8_t cipher_suite[S2N_TLS_CIP
     return NULL;
 }
 
-int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN], const char **err)
+int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN])
 {
     /* See if the pending cipher is one we support */
-    conn->pending.cipher_suite = s2n_cipher_suite_match(wire, err);
+    conn->pending.cipher_suite = s2n_cipher_suite_match(wire);
     if (conn->pending.cipher_suite == NULL) {
-        *err = "Cipher is not supported by s2n";
-        return -1;
+        S2N_ERROR(S2N_ERR_CIPHER_NOT_SUPPORTED);
     }
 
     return 0;
 }
 
-static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, uint32_t count, uint32_t cipher_suite_len, const char **err)
+static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
 {
     /* s2n supports only server order */
     for (int i = 0; i < conn->config->cipher_preferences->count; i++) {
@@ -82,28 +83,26 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
 
             if (!memcmp(ours, theirs + cipher_suite_len - S2N_TLS_CIPHER_SUITE_LEN, S2N_TLS_CIPHER_SUITE_LEN)) {
                 /* We have a match */
-                conn->pending.cipher_suite = s2n_cipher_suite_match(ours, err);
+                conn->pending.cipher_suite = s2n_cipher_suite_match(ours);
 
                 /* This should never happen */
                 if (conn->pending.cipher_suite == NULL) {
-                    *err = "Cipher suite is not supported by s2n";
-                    return -1;
+                    S2N_ERROR(S2N_ERR_CIPHER_NOT_SUPPORTED);
                 }
                 return 0;
             }
         }
     }
 
-    *err = "No supported cipher suite found";
-    return -1;
+    S2N_ERROR(S2N_ERR_CIPHER_NOT_SUPPORTED);
 }
 
-int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count, const char **err)
+int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count)
 {
-    return s2n_set_cipher_as_server(conn, wire, count, S2N_SSLv2_CIPHER_SUITE_LEN, err);
+    return s2n_set_cipher_as_server(conn, wire, count, S2N_SSLv2_CIPHER_SUITE_LEN);
 }
 
-int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count, const char **err)
+int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count)
 {
-    return s2n_set_cipher_as_server(conn, wire, count, S2N_TLS_CIPHER_SUITE_LEN, err);
+    return s2n_set_cipher_as_server(conn, wire, count, S2N_TLS_CIPHER_SUITE_LEN);
 }

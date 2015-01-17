@@ -24,6 +24,7 @@ include s2n.mk
 
 libs:
 	make -C utils
+	make -C error
 	make -C stuffer
 	make -C crypto
 	make -C tls
@@ -37,6 +38,7 @@ indent:
 	make -C stuffer indentsource
 	make -C crypto indentsource
 	make -C utils indentsource
+	make -C error indentsource
 	make -C tls indentsource
 	make -C bin indentsource
 
@@ -47,6 +49,7 @@ clean:
 	make -C stuffer decruft
 	make -C crypto decruft
 	make -C utils decruft
+	make -C error decruft
 	make -C tls decruft
 	make -C bin decruft
 	make -C lib decruft

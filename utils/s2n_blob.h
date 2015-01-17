@@ -22,5 +22,5 @@ struct s2n_blob {
     uint32_t size;
 };
 
-extern int s2n_blob_init(struct s2n_blob *b, uint8_t *data, uint32_t size, const char **err);
-extern int s2n_blob_zero(struct s2n_blob *b, const char **err);
+extern int s2n_blob_init(struct s2n_blob *b, uint8_t *data, uint32_t size);
+extern int s2n_blob_zero(struct s2n_blob *b);

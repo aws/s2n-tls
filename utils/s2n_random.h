@@ -20,6 +20,6 @@
 
 #include "stuffer/s2n_stuffer.h"
 
-extern int s2n_get_random_data(uint8_t *data, uint32_t n, const char **err);
-extern int s2n_stuffer_write_random_data(struct s2n_stuffer *tuffer, uint32_t n, const char **err);
-extern int s2n_random(int max, const char **err);
+extern int s2n_get_random_data(uint8_t *data, uint32_t n);
+extern int s2n_stuffer_write_random_data(struct s2n_stuffer *tuffer, uint32_t n);
+extern int s2n_random(int max);

@@ -43,6 +43,6 @@ extern struct s2n_cipher_suite s2n_null_cipher_suite;
 extern struct s2n_cipher_preferences *s2n_cipher_preferences_20140601;
 extern struct s2n_cipher_preferences *s2n_cipher_preferences_default;
 
-extern int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN], const char **err);
-extern int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count, const char **err);
-extern int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count, const char **err);
+extern int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN]);
+extern int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count);
+extern int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count);

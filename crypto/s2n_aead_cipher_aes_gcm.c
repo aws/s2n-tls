@@ -20,19 +20,19 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-static int s2n_aead_cipher_aes_gcm_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *add, struct s2n_blob *in, struct s2n_blob *out, const char **err)
+static int s2n_aead_cipher_aes_gcm_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *add, struct s2n_blob *in, struct s2n_blob *out)
 {
     gte_check(out->size, in->size);
     return 0;
 }
 
-int s2n_aead_cipher_aes_gcm_decrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *add, struct s2n_blob *in, struct s2n_blob *out, const char **err)
+int s2n_aead_cipher_aes_gcm_decrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *add, struct s2n_blob *in, struct s2n_blob *out)
 {
     gte_check(out->size, in->size);
     return 0;
 }
 
-int s2n_aead_cipher_aes_gcm_get_key(struct s2n_session_key *key, struct s2n_blob *in, const char **err)
+int s2n_aead_cipher_aes_gcm_get_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
 
     eq_check(in->size, 192 / 8);

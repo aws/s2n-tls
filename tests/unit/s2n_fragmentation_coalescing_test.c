@@ -404,13 +404,13 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     EXPECT_SUCCESS(setenv("S2N_ENABLE_INSECURE_CLIENT", "1", 0));
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT, &err));
+    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
     /* Create a pipe */
     EXPECT_SUCCESS(pipe(p));
 
     /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0], &err));
+    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
 
     /* Pretend the client hello has already been set */
     conn->handshake.state = SERVER_HELLO;
@@ -429,7 +429,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(p[1]));
 
     /* Negotiate the handshake. This will fail due to EOF, but that's ok. */
-    EXPECT_FAILURE(s2n_negotiate(conn, &status, &err));
+    EXPECT_FAILURE(s2n_negotiate(conn, &status));
 
     /* Verify that the data is as we expect it */
     EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
@@ -446,10 +446,10 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(pipe(p));
 
     /* Wipe the connection */
-    EXPECT_SUCCESS(s2n_connection_wipe(conn, &err));
+    EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
     /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0], &err));
+    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
 
     /* Pretend the client hello has already been set */
     conn->handshake.state = SERVER_HELLO;
@@ -468,7 +468,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(p[1]));
 
     /* Negotiate the handshake. This will fail due to EOF, but that's ok. */
-    EXPECT_FAILURE(s2n_negotiate(conn, &status, &err));
+    EXPECT_FAILURE(s2n_negotiate(conn, &status));
 
     /* Verify that the data is as we expect it */
     EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
@@ -485,10 +485,10 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(pipe(p));
 
     /* Wipe the connection */
-    EXPECT_SUCCESS(s2n_connection_wipe(conn, &err));
+    EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
     /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0], &err));
+    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
 
     /* Pretend the client hello has already been set */
     conn->handshake.state = SERVER_HELLO;
@@ -507,7 +507,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(p[1]));
 
     /* Negotiate the handshake. This will fail due to EOF, but that's ok. */
-    EXPECT_FAILURE(s2n_negotiate(conn, &status, &err));
+    EXPECT_FAILURE(s2n_negotiate(conn, &status));
 
     /* Verify that the data is as we expect it */
     EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
@@ -524,10 +524,10 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(pipe(p));
 
     /* Wipe the connection */
-    EXPECT_SUCCESS(s2n_connection_wipe(conn, &err));
+    EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
     /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0], &err));
+    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
 
     /* Pretend the client hello has already been set */
     conn->handshake.state = SERVER_HELLO;
@@ -546,7 +546,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(p[1]));
 
     /* Negotiate the handshake. This will fail due to EOF, but that's ok. */
-    EXPECT_FAILURE(s2n_negotiate(conn, &status, &err));
+    EXPECT_FAILURE(s2n_negotiate(conn, &status));
 
     /* Verify that the data is as we expect it */
     EXPECT_NOT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
@@ -563,10 +563,10 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(pipe(p));
 
     /* Wipe the connection */
-    EXPECT_SUCCESS(s2n_connection_wipe(conn, &err));
+    EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
     /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0], &err));
+    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
 
     /* Pretend the client hello has already been set */
     conn->handshake.state = SERVER_HELLO;
@@ -585,7 +585,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(p[1]));
 
     /* Negotiate the handshake. This will fail due to EOF, but that's ok. */
-    EXPECT_FAILURE(s2n_negotiate(conn, &status, &err));
+    EXPECT_FAILURE(s2n_negotiate(conn, &status));
 
     /* Verify that the data failed */
     EXPECT_NOT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);

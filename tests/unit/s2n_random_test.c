@@ -28,19 +28,17 @@ static uint8_t thread_data[2][100];
 void *thread_safety_tester(void *slot)
 {
     intptr_t slotnum = (intptr_t) slot;
-    const char *err;
 
-    s2n_get_random_data(thread_data[slotnum], 100, &err);
+    s2n_get_random_data(thread_data[slotnum], 100);
 
     return NULL;
 }
 
 void process_safety_tester(int write_fd)
 {
-    const char *err;
     uint8_t pad[100];
 
-    s2n_get_random_data(pad, 100, &err);
+    s2n_get_random_data(pad, 100);
 
     /* Write the data we got to our pipe */
     if (write(write_fd, pad, 100) != 100) {
@@ -65,10 +63,10 @@ int main(int argc, char **argv)
     pthread_t threads[2];
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_init(&err));
+    EXPECT_SUCCESS(s2n_init());
 
     /* Get one byte of data, to make sure the pool is (almost) full */
-    EXPECT_SUCCESS(s2n_get_random_data(data, 1, &err));
+    EXPECT_SUCCESS(s2n_get_random_data(data, 1));
 
     /* Create two threads and have them each grab 100 bytes */
     slot = 0;
@@ -84,7 +82,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_EQUAL(memcmp(thread_data[0], thread_data[1], 100), 0);
 
     /* Confirm that their data differs from the parent thread */
-    EXPECT_SUCCESS(s2n_get_random_data(data, 100, &err));
+    EXPECT_SUCCESS(s2n_get_random_data(data, 100));
     EXPECT_NOT_EQUAL(memcmp(thread_data[0], data, 100), 0);
     EXPECT_NOT_EQUAL(memcmp(thread_data[1], data, 100), 0);
 
@@ -106,7 +104,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(read(p[0], child_data, 100), 100);
 
     /* Get 100 bytes here in the parent process */
-    EXPECT_SUCCESS(s2n_get_random_data(data, 100, &err));
+    EXPECT_SUCCESS(s2n_get_random_data(data, 100));
 
     /* Confirm they differ */
     EXPECT_NOT_EQUAL(memcmp(child_data, data, 100), 0);
@@ -120,7 +118,7 @@ int main(int argc, char **argv)
      * bytes.
      */
     for (int i = 0; i < 5120; i++) {
-        EXPECT_SUCCESS(s2n_get_random_data(data, i, &err));
+        EXPECT_SUCCESS(s2n_get_random_data(data, i));
 
         if (i >= 64) {
             /* Set the run counts to 0 */

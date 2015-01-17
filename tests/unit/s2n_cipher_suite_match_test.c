@@ -29,14 +29,14 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     EXPECT_SUCCESS(setenv("S2N_ENABLE_INSECURE_CLIENT", "1", 0));
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT, &err));
+    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
     count = 0;
     for (int i = 0; i < 0xffff; i++) {
         wire[0] = (i >> 8);
         wire[1] = i & 0xff;
 
-        if (s2n_set_cipher_as_client(conn, wire, &err) == 0) {
+        if (s2n_set_cipher_as_client(conn, wire) == 0) {
             count++;
         }
     }

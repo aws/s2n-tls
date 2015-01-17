@@ -51,41 +51,41 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER, &err));
+    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
     /* Check the most common PRF */
     conn->actual_protocol_version = S2N_TLS11;
 
-    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&client_random_in, client_random_hex_in, &err));
-    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&server_random_in, server_random_hex_in, &err));
-    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&premaster_secret_in, premaster_secret_hex_in, &err));
+    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&client_random_in, client_random_hex_in));
+    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&server_random_in, server_random_hex_in));
+    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&premaster_secret_in, premaster_secret_hex_in));
 
-    EXPECT_SUCCESS(s2n_stuffer_init(&master_secret_hex_out, &master_secret, &err));
+    EXPECT_SUCCESS(s2n_stuffer_init(&master_secret_hex_out, &master_secret));
 
     /* Parse the hex */
     for (int i = 0; i < 48; i++) {
         uint8_t c;
-        EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&premaster_secret_in, &c, &err));
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&premaster_secret_in, &c));
         conn->pending.rsa_premaster_secret[i] = c;
     }
     for (int i = 0; i < 32; i++) {
         uint8_t c;
-        EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&client_random_in, &c, &err));
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&client_random_in, &c));
         conn->pending.client_random[i] = c;
     }
     for (int i = 0; i < 32; i++) {
         uint8_t c;
-        EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&server_random_in, &c, &err));
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&server_random_in, &c));
         conn->pending.server_random[i] = c;
     }
 
     pms.data = conn->pending.rsa_premaster_secret;
     pms.size = sizeof(conn->pending.rsa_premaster_secret);
-    EXPECT_SUCCESS(s2n_prf_master_secret(conn, &pms, &err));
+    EXPECT_SUCCESS(s2n_prf_master_secret(conn, &pms));
 
     /* Convert the master secret to hex */
     for (int i = 0; i < 48; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&master_secret_hex_out, conn->pending.master_secret[i], &err));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&master_secret_hex_out, conn->pending.master_secret[i]));
     }
 
     EXPECT_EQUAL(memcmp(master_secret_hex_pad, master_secret_hex_in, sizeof(master_secret_hex_pad)), 0);

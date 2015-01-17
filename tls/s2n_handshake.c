@@ -15,6 +15,8 @@
 
 #include <stdint.h>
 
+#include "error/s2n_errno.h"
+
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
 
@@ -22,52 +24,49 @@
 
 #include "utils/s2n_safety.h"
 
-int s2n_handshake_write_header(struct s2n_connection *conn, uint8_t message_type, const char **err)
+int s2n_handshake_write_header(struct s2n_connection *conn, uint8_t message_type)
 {
     if (s2n_stuffer_data_available(&conn->handshake.io)) {
-        *err = "starting a handshake message before previous one is sent";
-        return -1;
+        S2N_ERROR(S2N_ERR_HANDSHAKE_STATE);
     }
 
     /* Write the message header */
-    GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, message_type, err));
+    GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, message_type));
 
     /* Leave the length blank for now */
     uint16_t length = 0;
-    GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, length, err));
+    GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, length));
 
     return 0;
 }
 
-int s2n_handshake_finish_header(struct s2n_connection *conn, const char **err)
+int s2n_handshake_finish_header(struct s2n_connection *conn)
 {
     uint16_t length = s2n_stuffer_data_available(&conn->handshake.io);
     if (length < TLS_HANDSHAKE_HEADER_LENGTH) {
-        *err = "finishing a record that is too short";
-        return -1;
+        S2N_ERROR(S2N_ERR_SIZE_MISMATCH);
     }
 
     uint16_t payload = length - TLS_HANDSHAKE_HEADER_LENGTH;
 
     /* Write the message header */
-    GUARD(s2n_stuffer_rewrite(&conn->handshake.io, err));
-    GUARD(s2n_stuffer_skip_write(&conn->handshake.io, 1, err));
-    GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, payload, err));
-    GUARD(s2n_stuffer_skip_write(&conn->handshake.io, payload, err));
+    GUARD(s2n_stuffer_rewrite(&conn->handshake.io));
+    GUARD(s2n_stuffer_skip_write(&conn->handshake.io, 1));
+    GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, payload));
+    GUARD(s2n_stuffer_skip_write(&conn->handshake.io, payload));
 
     return 0;
 }
 
-int s2n_handshake_parse_header(struct s2n_connection *conn, uint8_t *message_type, uint32_t *length, const char **err)
+int s2n_handshake_parse_header(struct s2n_connection *conn, uint8_t *message_type, uint32_t *length)
 {
     if (s2n_stuffer_data_available(&conn->handshake.io) < TLS_HANDSHAKE_HEADER_LENGTH) {
-        *err = "parsing a handshake message that is too short";
-        return -1;
+        S2N_ERROR(S2N_ERR_SIZE_MISMATCH);
     }
 
     /* read the message header */
-    GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, message_type, err));
-    GUARD(s2n_stuffer_read_uint24(&conn->handshake.io, length, err));
+    GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, message_type));
+    GUARD(s2n_stuffer_read_uint24(&conn->handshake.io, length));
 
     return 0;
 }

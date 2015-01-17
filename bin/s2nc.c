@@ -90,38 +90,38 @@ int main(int argc, const char *argv[])
     const char *error;
 
     if (s2n_init(&error) < 0) {
-        fprintf(stderr, "Error running s2n_init(): '%s'\n", error);
+        fprintf(stderr, "Error running s2n_init(): '%s'\n", s2n_strerror(s2n_errno, "EN"));
     }
 
-    struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT, &error);
+    struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
 
     if (conn == NULL) {
-        fprintf(stderr, "Error getting new connection: '%s'\n", error);
+        fprintf(stderr, "Error getting new connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
     }
 
     printf("Connected to %s:%s\n", argv[1], port);
 
-    if (s2n_set_server_name(conn, argv[1], &error) < 0) {
-        fprintf(stderr, "Error setting server name: '%s'\n", error);
+    if (s2n_set_server_name(conn, argv[1]) < 0) {
+        fprintf(stderr, "Error setting server name: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
     }
 
-    if (s2n_connection_set_fd(conn, sockfd, &error) < 0) {
-        fprintf(stderr, "Error setting file descriptor: '%s'\n", error);
+    if (s2n_connection_set_fd(conn, sockfd) < 0) {
+        fprintf(stderr, "Error setting file descriptor: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
     }
 
     /* See echo.c */
     echo(conn, sockfd);
 
-    if (s2n_connection_free(conn, &error) < 0) {
-        fprintf(stderr, "Error freeing connection: '%s'\n", error);
+    if (s2n_connection_free(conn) < 0) {
+        fprintf(stderr, "Error freeing connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
     }
 
     if (s2n_cleanup(&error) < 0) {
-        fprintf(stderr, "Error running s2n_cleanup(): '%s'\n", error);
+        fprintf(stderr, "Error running s2n_cleanup(): '%s'\n", s2n_strerror(s2n_errno, "EN"));
     }
 
     return 0;

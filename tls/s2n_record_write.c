@@ -15,6 +15,8 @@
 
 #include <stdint.h>
 
+#include "error/s2n_errno.h"
+
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
@@ -38,7 +40,7 @@ static uint16_t overhead(struct s2n_connection *conn)
         active = conn->client;
     }
 
-    uint16_t extra = s2n_hmac_digest_size(active->cipher_suite->hmac_alg, NULL);
+    uint16_t extra = s2n_hmac_digest_size(active->cipher_suite->hmac_alg);
 
     if (active->cipher_suite->cipher->type == S2N_CBC) {
         /* Subtract one for the padding length byte */
@@ -55,7 +57,7 @@ static uint16_t overhead(struct s2n_connection *conn)
     return extra;
 }
 
-int s2n_record_max_write_payload_size(struct s2n_connection *conn, const char **err)
+int s2n_record_max_write_payload_size(struct s2n_connection *conn)
 {
     uint16_t max_fragment_size = conn->max_fragment_length;
     struct s2n_crypto_parameters *active = conn->server;
@@ -72,7 +74,7 @@ int s2n_record_max_write_payload_size(struct s2n_connection *conn, const char **
     return max_fragment_size - overhead(conn);
 }
 
-int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in, const char **err)
+int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in)
 {
     struct s2n_blob out, iv;
     uint8_t padding = 0;
@@ -94,19 +96,18 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     }
 
     if (s2n_stuffer_data_available(&conn->out)) {
-        *err = "Trying to start new record before previous one is done";
-        return -1;
+        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
-    int mac_digest_size = s2n_hmac_digest_size(mac->alg, err);
+    int mac_digest_size = s2n_hmac_digest_size(mac->alg);
     gte_check(mac_digest_size, 0);
 
     /* Before we do anything, we need to figure out what the length of the
      * fragment is going to be. 
      */
     uint16_t data_bytes_to_take = in->size;
-    if (data_bytes_to_take > s2n_record_max_write_payload_size(conn, err)) {
-        data_bytes_to_take = s2n_record_max_write_payload_size(conn, err);
+    if (data_bytes_to_take > s2n_record_max_write_payload_size(conn)) {
+        data_bytes_to_take = s2n_record_max_write_payload_size(conn);
     }
     uint16_t extra = overhead(conn);
 
@@ -119,30 +120,30 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     }
 
     /* Start the MAC with the sequence number */
-    GUARD(s2n_hmac_update(mac, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN, err));
+    GUARD(s2n_hmac_update(mac, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
     s2n_increment_sequence_number(sequence_number);
 
     /* Now that we know the length, start writing the record */
     protocol_version[0] = conn->actual_protocol_version / 10;
     protocol_version[1] = conn->actual_protocol_version % 10;
-    GUARD(s2n_stuffer_write_uint8(&conn->out, content_type, err));
-    GUARD(s2n_stuffer_write_bytes(&conn->out, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN, err));
+    GUARD(s2n_stuffer_write_uint8(&conn->out, content_type));
+    GUARD(s2n_stuffer_write_bytes(&conn->out, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
 
     /* First write a header that has the payload length, this is for the MAC */
-    GUARD(s2n_stuffer_write_uint16(&conn->out, data_bytes_to_take, err));
+    GUARD(s2n_stuffer_write_uint16(&conn->out, data_bytes_to_take));
 
     if (conn->actual_protocol_version > S2N_SSLv3) {
-        GUARD(s2n_hmac_update(mac, conn->out.blob.data, S2N_TLS_RECORD_HEADER_LENGTH, err));
+        GUARD(s2n_hmac_update(mac, conn->out.blob.data, S2N_TLS_RECORD_HEADER_LENGTH));
     } else {
         /* SSLv3 doesn't include the protocol version in the MAC */
-        GUARD(s2n_hmac_update(mac, conn->out.blob.data, 1, err));
-        GUARD(s2n_hmac_update(mac, conn->out.blob.data + 3, 2, err));
+        GUARD(s2n_hmac_update(mac, conn->out.blob.data, 1));
+        GUARD(s2n_hmac_update(mac, conn->out.blob.data + 3, 2));
     }
 
     /* Rewrite the length to be the actual fragment length */
     uint16_t actual_fragment_length = data_bytes_to_take + padding + extra;
-    GUARD(s2n_stuffer_wipe_n(&conn->out, 2, err));
-    GUARD(s2n_stuffer_write_uint16(&conn->out, actual_fragment_length, err));
+    GUARD(s2n_stuffer_wipe_n(&conn->out, 2));
+    GUARD(s2n_stuffer_write_uint16(&conn->out, actual_fragment_length));
 
     if (cipher_suite->cipher->type == S2N_CBC) {
         iv.size = block_size;
@@ -150,43 +151,43 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
 
         /* For TLS1.1/1.2; write the IV with random data */
         if (conn->actual_protocol_version > S2N_TLS10) {
-            GUARD(s2n_get_random_data(iv.data, iv.size, err));
-            GUARD(s2n_stuffer_write(&conn->out, &iv, err));
+            GUARD(s2n_get_random_data(iv.data, iv.size));
+            GUARD(s2n_stuffer_write(&conn->out, &iv));
         }
     }
 
     /* If we're AEAD, write the sequence number as an IV */
     if (cipher_suite->cipher->type == S2N_AEAD) {
-        GUARD(s2n_stuffer_write_bytes(&conn->out, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN, err));
+        GUARD(s2n_stuffer_write_bytes(&conn->out, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
     }
 
     /* Write the plaintext data */
     out.data = in->data;
     out.size = data_bytes_to_take;
-    GUARD(s2n_stuffer_write(&conn->out, &out, err));
-    GUARD(s2n_hmac_update(mac, out.data, out.size, err));
+    GUARD(s2n_stuffer_write(&conn->out, &out));
+    GUARD(s2n_hmac_update(mac, out.data, out.size));
 
     /* Write the digest */
-    uint8_t *digest = s2n_stuffer_raw_write(&conn->out, mac_digest_size, err);
+    uint8_t *digest = s2n_stuffer_raw_write(&conn->out, mac_digest_size);
     notnull_check(digest);
 
-    GUARD(s2n_hmac_digest(mac, digest, mac_digest_size, err));
-    GUARD(s2n_hmac_reset(mac, err));
+    GUARD(s2n_hmac_digest(mac, digest, mac_digest_size));
+    GUARD(s2n_hmac_reset(mac));
 
     if (cipher_suite->cipher->type == S2N_CBC) {
         /* Include padding bytes, each with the value 'p', and
          * include an extra padding length byte, also with the value 'p'.
          */
         for (int i = 0; i <= padding; i++) {
-            GUARD(s2n_stuffer_write_uint8(&conn->out, padding, err));
+            GUARD(s2n_stuffer_write_uint8(&conn->out, padding));
         }
     }
 
     /* Rewind to rewrite/encrypt the packet */
-    GUARD(s2n_stuffer_rewrite(&conn->out, err));
+    GUARD(s2n_stuffer_rewrite(&conn->out));
 
     /* Skip the header */
-    GUARD(s2n_stuffer_skip_write(&conn->out, S2N_TLS_RECORD_HEADER_LENGTH, err));
+    GUARD(s2n_stuffer_skip_write(&conn->out, S2N_TLS_RECORD_HEADER_LENGTH));
 
     struct s2n_blob en;
     uint16_t encrypted_length = data_bytes_to_take + mac_digest_size;
@@ -198,7 +199,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     if (cipher_suite->cipher->type == S2N_CBC) {
         if (conn->actual_protocol_version > S2N_TLS10) {
             /* Leave the IV alone and unencrypted */
-            GUARD(s2n_stuffer_skip_write(&conn->out, iv.size, err));
+            GUARD(s2n_stuffer_skip_write(&conn->out, iv.size));
         }
 
         /* Encrypt the padding and the padding length byte too */
@@ -207,17 +208,17 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
 
     /* Do the encryption */
     en.size = encrypted_length;
-    en.data = s2n_stuffer_raw_write(&conn->out, en.size, err);
+    en.data = s2n_stuffer_raw_write(&conn->out, en.size);
     notnull_check(en.data);
 
     switch (cipher_suite->cipher->type) {
     case S2N_STREAM:
-        if (cipher_suite->cipher->io.stream.encrypt(session_key, &en, &en, err) < 0) {
+        if (cipher_suite->cipher->io.stream.encrypt(session_key, &en, &en) < 0) {
             return -1;
         }
         break;
     case S2N_CBC:
-        if (cipher_suite->cipher->io.cbc.encrypt(session_key, &iv, &en, &en, err) < 0) {
+        if (cipher_suite->cipher->io.cbc.encrypt(session_key, &iv, &en, &en) < 0) {
             return -1;
         }
         /* Copy the last encrypted block to be the next IV */

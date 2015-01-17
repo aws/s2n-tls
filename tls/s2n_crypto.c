@@ -15,6 +15,8 @@
 
 #include <string.h>
 
+#include "utils/s2n_safety.h"
+
 #include "tls/s2n_crypto.h"
 
 void s2n_increment_sequence_number(uint8_t sequence_number[S2N_TLS_SEQUENCE_NUM_LEN])
@@ -28,11 +30,9 @@ void s2n_increment_sequence_number(uint8_t sequence_number[S2N_TLS_SEQUENCE_NUM_
     }
 }
 
-int s2n_zero_sequence_number(uint8_t sequence_number[S2N_TLS_SEQUENCE_NUM_LEN], const char **err)
+int s2n_zero_sequence_number(uint8_t sequence_number[S2N_TLS_SEQUENCE_NUM_LEN])
 {
-    if (memset(sequence_number, 0, S2N_TLS_SEQUENCE_NUM_LEN) != sequence_number) {
-        *err = "memset failed";
-        return -1;
-    }
+    memset_check(sequence_number, 0, S2N_TLS_SEQUENCE_NUM_LEN);
+
     return 0;
 }

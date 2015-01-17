@@ -15,6 +15,8 @@
 
 #include <stdint.h>
 
+#include "error/s2n_errno.h"
+
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
@@ -26,34 +28,33 @@
 /* From RFC5246 7.1. */
 #define CHANGE_CIPHER_SPEC_TYPE  1
 
-int s2n_client_ccs_recv(struct s2n_connection *conn, const char **err)
+int s2n_client_ccs_recv(struct s2n_connection *conn)
 {
     uint8_t type;
 
-    GUARD(s2n_prf_client_finished(conn, err));
-    GUARD(s2n_prf_key_expansion(conn, err));
-    GUARD(s2n_zero_sequence_number(conn->pending.client_sequence_number, err));
+    GUARD(s2n_prf_client_finished(conn));
+    GUARD(s2n_prf_key_expansion(conn));
+    GUARD(s2n_zero_sequence_number(conn->pending.client_sequence_number));
 
     /* Update the client to use the pending cipher-suite */
     conn->client = &conn->pending;
 
-    GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &type, err));
+    GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &type));
     if (type != CHANGE_CIPHER_SPEC_TYPE) {
-        *err = "Unknown change cipher spec message type";
-        return -1;
+        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
     /* Flush any partial alert messages that were pending */
-    GUARD(s2n_stuffer_wipe(&conn->alert_in, err));
+    GUARD(s2n_stuffer_wipe(&conn->alert_in));
 
     conn->handshake.next_state = CLIENT_FINISHED;
 
     return 0;
 }
 
-int s2n_client_ccs_send(struct s2n_connection *conn, const char **err)
+int s2n_client_ccs_send(struct s2n_connection *conn)
 {
-    GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, CHANGE_CIPHER_SPEC_TYPE, err));
+    GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, CHANGE_CIPHER_SPEC_TYPE));
 
     conn->handshake.next_state = CLIENT_FINISHED;
 

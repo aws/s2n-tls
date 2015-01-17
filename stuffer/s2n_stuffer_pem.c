@@ -15,6 +15,8 @@
 
 #include <string.h>
 
+#include "error/s2n_errno.h"
+
 #include "stuffer/s2n_stuffer.h"
 
 #include "utils/s2n_safety.h"
@@ -24,93 +26,87 @@
 #define S2N_PEM_BEGIN_TOKEN (S2N_PEM_LINE "BEGIN ")
 #define S2N_PEM_END_TOKEN   (S2N_PEM_LINE "END ")
 
-static int s2n_stuffer_data_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1, const char *keyword, const char **err)
+static int s2n_stuffer_data_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1, const char *keyword)
 {
     uint8_t linepad[S2N_PEM_LINE_LENGTH + 1];
     struct s2n_blob line_blob = {.data = linepad,.size = S2N_PEM_LINE_LENGTH + 1 };
     struct s2n_stuffer line;
     uint8_t *field;
 
-    GUARD(s2n_stuffer_init(&line, &line_blob, err));
-    GUARD(s2n_stuffer_read_token(pem, &line, '\n', err));
+    GUARD(s2n_stuffer_init(&line, &line_blob));
+    GUARD(s2n_stuffer_read_token(pem, &line, '\n'));
 
     /* Check that the line matches the header */
-    field = s2n_stuffer_raw_read(&line, sizeof(S2N_PEM_BEGIN_TOKEN) - 1, err);
+    field = s2n_stuffer_raw_read(&line, sizeof(S2N_PEM_BEGIN_TOKEN) - 1);
     notnull_check(field);
     if (memcmp(field, S2N_PEM_BEGIN_TOKEN, sizeof(S2N_PEM_BEGIN_TOKEN) - 1)) {
-        *err = "Error parsing non-PEM data";
-        return -1;
+        S2N_ERROR(S2N_ERR_INVALID_PEM);
     }
 
-    field = s2n_stuffer_raw_read(&line, strlen(keyword), err);
+    field = s2n_stuffer_raw_read(&line, strlen(keyword));
     notnull_check(field);
     if (memcmp(field, keyword, strlen(keyword))) {
-        *err = "Error parsing non-PEM data";
-        return -1;
+        S2N_ERROR(S2N_ERR_INVALID_PEM);
     }
 
-    field = s2n_stuffer_raw_read(&line, sizeof(S2N_PEM_LINE) - 1, err);
+    field = s2n_stuffer_raw_read(&line, sizeof(S2N_PEM_LINE) - 1);
     notnull_check(field);
     if (memcmp(field, S2N_PEM_LINE, sizeof(S2N_PEM_LINE) - 1)) {
-        *err = "Error parsing non-PEM data";
-        return -1;
+        S2N_ERROR(S2N_ERR_INVALID_PEM);
     }
 
     /* Get the actual base64 data */
     do {
-        GUARD(s2n_stuffer_rewrite(&line, err));
-        GUARD(s2n_stuffer_read_token(pem, &line, '\n', err));
+        GUARD(s2n_stuffer_rewrite(&line));
+        GUARD(s2n_stuffer_read_token(pem, &line, '\n'));
 
         char c;
-        GUARD(s2n_stuffer_peek_char(&line, &c, err));
+        GUARD(s2n_stuffer_peek_char(&line, &c));
         if (c == '-') {
-            GUARD(s2n_stuffer_reread(&line, err));
+            GUARD(s2n_stuffer_reread(&line));
             break;
         }
 
-        if (s2n_stuffer_read_base64(&line, asn1, err) < 0) {
-            GUARD(s2n_stuffer_reread(&line, err));
+        if (s2n_stuffer_read_base64(&line, asn1) < 0) {
+            GUARD(s2n_stuffer_reread(&line));
             break;
         }
 
     } while (1);
 
     /* Check that the line matches the trailer */
-    field = s2n_stuffer_raw_read(&line, sizeof(S2N_PEM_END_TOKEN) - 1, err);
+    field = s2n_stuffer_raw_read(&line, sizeof(S2N_PEM_END_TOKEN) - 1);
     notnull_check(field);
     if (memcmp(field, S2N_PEM_END_TOKEN, sizeof(S2N_PEM_END_TOKEN) - 1)) {
-        *err = "Error parsing non-PEM data 1";
-        return -1;
+        S2N_ERROR(S2N_ERR_INVALID_PEM);
     }
 
-    field = s2n_stuffer_raw_read(&line, strlen(keyword), err);
+    field = s2n_stuffer_raw_read(&line, strlen(keyword));
     notnull_check(field);
     if (memcmp(field, keyword, strlen(keyword))) {
-        *err = "Error parsing non-PEM data 2";
-        return -1;
+        S2N_ERROR(S2N_ERR_INVALID_PEM);
     }
 
-    field = s2n_stuffer_raw_read(&line, sizeof(S2N_PEM_LINE) - 1, err);
+    field = s2n_stuffer_raw_read(&line, sizeof(S2N_PEM_LINE) - 1);
     notnull_check(field);
     if (memcmp(field, S2N_PEM_LINE, sizeof(S2N_PEM_LINE) - 1)) {
-        *err = "Error parsing non-PEM data 3";
-        return -1;
+        S2N_ERROR(S2N_ERR_INVALID_PEM);
     }
 
     return 0;
 }
 
-int s2n_stuffer_rsa_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1, const char **err)
+int s2n_stuffer_rsa_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1)
 {
-    return s2n_stuffer_data_from_pem(pem, asn1, "RSA PRIVATE KEY", err);
+    return s2n_stuffer_data_from_pem(pem, asn1, "RSA PRIVATE KEY");
 }
 
-int s2n_stuffer_certificate_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1, const char **err)
+int s2n_stuffer_certificate_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1)
 {
-    return s2n_stuffer_data_from_pem(pem, asn1, "CERTIFICATE", err);
+    return s2n_stuffer_data_from_pem(pem, asn1, "CERTIFICATE");
 }
 
-int s2n_stuffer_dhparams_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *pkcs3, const char **err)
+int s2n_stuffer_dhparams_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *pkcs3)
 {
-    return s2n_stuffer_data_from_pem(pem, pkcs3, "DH PARAMETERS", err);
+    return s2n_stuffer_data_from_pem(pem, pkcs3, "DH PARAMETERS");
 }

@@ -32,14 +32,14 @@ struct s2n_rsa_private_key {
     RSA *rsa;
 };
 
-extern int s2n_rsa_keys_match(struct s2n_rsa_public_key *pub, struct s2n_rsa_private_key *priv, const char **err);
-extern int s2n_asn1der_to_rsa_public_key(struct s2n_rsa_public_key *key, struct s2n_blob *asn1der, const char **err);
-extern int s2n_asn1der_to_rsa_private_key(struct s2n_rsa_private_key *key, struct s2n_blob *asn1der, const char **err);
-extern int s2n_rsa_encrypt(struct s2n_rsa_public_key *key, struct s2n_blob *in, struct s2n_blob *out, const char **err);
-extern int s2n_rsa_decrypt(struct s2n_rsa_private_key *key, struct s2n_blob *in, struct s2n_blob *out, const char **err);
-extern int s2n_rsa_public_key_free(struct s2n_rsa_public_key *key, const char **err);
-extern int s2n_rsa_private_key_free(struct s2n_rsa_private_key *key, const char **err);
-extern int s2n_rsa_public_encrypted_size(struct s2n_rsa_public_key *key, const char **err);
-extern int s2n_rsa_private_encrypted_size(struct s2n_rsa_private_key *key, const char **err);
-extern int s2n_rsa_sign(struct s2n_rsa_private_key *key, struct s2n_hash_state *digest, struct s2n_blob *signature, const char **err);
-extern int s2n_rsa_verify(struct s2n_rsa_public_key *key, struct s2n_hash_state *digest, struct s2n_blob *signature, const char **err);
+extern int s2n_rsa_keys_match(struct s2n_rsa_public_key *pub, struct s2n_rsa_private_key *priv);
+extern int s2n_asn1der_to_rsa_public_key(struct s2n_rsa_public_key *key, struct s2n_blob *asn1der);
+extern int s2n_asn1der_to_rsa_private_key(struct s2n_rsa_private_key *key, struct s2n_blob *asn1der);
+extern int s2n_rsa_encrypt(struct s2n_rsa_public_key *key, struct s2n_blob *in, struct s2n_blob *out);
+extern int s2n_rsa_decrypt(struct s2n_rsa_private_key *key, struct s2n_blob *in, struct s2n_blob *out);
+extern int s2n_rsa_public_key_free(struct s2n_rsa_public_key *key);
+extern int s2n_rsa_private_key_free(struct s2n_rsa_private_key *key);
+extern int s2n_rsa_public_encrypted_size(struct s2n_rsa_public_key *key);
+extern int s2n_rsa_private_encrypted_size(struct s2n_rsa_private_key *key);
+extern int s2n_rsa_sign(struct s2n_rsa_private_key *key, struct s2n_hash_state *digest, struct s2n_blob *signature);
+extern int s2n_rsa_verify(struct s2n_rsa_public_key *key, struct s2n_hash_state *digest, struct s2n_blob *signature);

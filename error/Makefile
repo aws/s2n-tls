@@ -13,17 +13,9 @@
 # permissions and limitations under the License.
 #
 
-OBJS = $(wildcard ../utils/*.o ../stuffer/*.o ../tls/*.o ../iana/*.o ../crypto/*.o ../error/*.o)
-all: libs2n.a libs2n.so libs2n.dylib
+SRCS=$(wildcard *.c)
+OBJS=$(SRCS:.c=.o)
+
+all: $(OBJS)
 
 include ../s2n.mk
-
-libs2n.a: ${OBJS}
-	ar cru libs2n.a ${OBJS}
-	ranlib libs2n.a
-
-libs2n.so: ${OBJS}
-	gcc -shared -lc -lcrypto -lpthread -o libs2n.so ${OBJS}
-
-libs2n.dylib: ${OBJS}
-	test ! -f /usr/lib/libSystem.dylib || libtool -dynamic -lc -lcrypto -lpthread -o libs2n.dylib ${OBJS}

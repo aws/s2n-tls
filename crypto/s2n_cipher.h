@@ -39,23 +39,23 @@ struct s2n_session_key {
 };
 
 struct s2n_stream_cipher {
-    int (*decrypt) (struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out, const char **err);
-    int (*encrypt) (struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out, const char **err);
+    int (*decrypt) (struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out);
+    int (*encrypt) (struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out);
 };
 
 struct s2n_cbc_cipher {
     uint8_t block_size;
     uint8_t record_iv_size;
-    int (*decrypt) (struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out, const char **err);
-    int (*encrypt) (struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out, const char **err);
+    int (*decrypt) (struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out);
+    int (*encrypt) (struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out);
 };
 
 struct s2n_aead_cipher {
     uint8_t fixed_iv_size;
     uint8_t record_iv_size;
     uint8_t tag_size;
-    int (*decrypt) (struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *add, struct s2n_blob *in, struct s2n_blob *out, const char **err);
-    int (*encrypt) (struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *add, struct s2n_blob *in, struct s2n_blob *out, const char **err);
+    int (*decrypt) (struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *add, struct s2n_blob *in, struct s2n_blob *out);
+    int (*encrypt) (struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *add, struct s2n_blob *in, struct s2n_blob *out);
 };
 
 struct s2n_cipher {
@@ -66,8 +66,8 @@ struct s2n_cipher {
         struct s2n_cbc_cipher cbc;
     } io;
     uint8_t key_material_size;
-    int (*get_decryption_key) (struct s2n_session_key *key, struct s2n_blob *in, const char **err);
-    int (*get_encryption_key) (struct s2n_session_key *key, struct s2n_blob *in, const char **err);
+    int (*get_decryption_key) (struct s2n_session_key *key, struct s2n_blob *in);
+    int (*get_encryption_key) (struct s2n_session_key *key, struct s2n_blob *in);
 };
 
 extern struct s2n_cipher s2n_null_cipher;

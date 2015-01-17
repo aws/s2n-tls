@@ -20,14 +20,14 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-int s2n_stream_cipher_rc4_endecrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out, const char **err)
+int s2n_stream_cipher_rc4_endecrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out)
 {
     gte_check(out->size, in->size);
     RC4(&key->native_format.rc4, out->size, in->data, out->data);
     return 0;
 }
 
-int s2n_stream_cipher_rc4_get_key(struct s2n_session_key *key, struct s2n_blob *in, const char **err)
+int s2n_stream_cipher_rc4_get_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 16);
     RC4_set_key(&key->native_format.rc4, in->size, in->data);

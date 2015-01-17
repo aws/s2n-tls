@@ -120,9 +120,9 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_init(&err));
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER, &err));
-    EXPECT_SUCCESS(s2n_get_random_data(random_data, S2N_MAXIMUM_FRAGMENT_LENGTH, &err));
+    EXPECT_SUCCESS(s2n_init());
+    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+    EXPECT_SUCCESS(s2n_get_random_data(random_data, S2N_MAXIMUM_FRAGMENT_LENGTH));
 
     /* Emulate TLS1.2 */
     conn->actual_protocol_version = S2N_TLS12;
@@ -130,11 +130,11 @@ int main(int argc, char **argv)
     /* Try every 16 bytes to simulate block alignments */
     for (int i = 288; i < S2N_MAXIMUM_FRAGMENT_LENGTH; i += 16) {
 
-        EXPECT_SUCCESS(s2n_hmac_init(&record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key), &err));
+        EXPECT_SUCCESS(s2n_hmac_init(&record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
 
         memcpy(fragment, random_data, i - 20 - 1);
-        EXPECT_SUCCESS(s2n_hmac_update(&record_mac, fragment, i - 20 - 1, &err));
-        EXPECT_SUCCESS(s2n_hmac_digest(&record_mac, fragment + (i - 20 - 1), 20, &err));
+        EXPECT_SUCCESS(s2n_hmac_update(&record_mac, fragment, i - 20 - 1));
+        EXPECT_SUCCESS(s2n_hmac_digest(&record_mac, fragment + (i - 20 - 1), 20));
 
         /* Start out with zero byte padding */
         fragment[i - 1] = 0;
@@ -142,10 +142,10 @@ int main(int argc, char **argv)
 
         uint64_t timings[10001];
         for (int t = 0; t < 10001; t++) {
-            EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key), &err));
+            EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
 
             uint64_t before = rdtsc();
-            EXPECT_SUCCESS(s2n_verify_cbc(conn, &check_mac, &decrypted, &err)); 
+            EXPECT_SUCCESS(s2n_verify_cbc(conn, &check_mac, &decrypted)); 
             uint64_t after = rdtsc();
 
             timings[ t ] = (after - before);
@@ -155,10 +155,10 @@ int main(int argc, char **argv)
         summarize(timings, 10001, &good_count, &good_avg, &good_median, &good_stddev, &good_variance);
 
         for (int t = 0; t < 10001; t++) {
-            EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key), &err));
+            EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
 
             uint64_t before = rdtsc();
-            EXPECT_SUCCESS(s2n_verify_cbc(conn, &check_mac, &decrypted, &err)); 
+            EXPECT_SUCCESS(s2n_verify_cbc(conn, &check_mac, &decrypted)); 
             uint64_t after = rdtsc();
 
             timings[ t ] = (after - before);
@@ -167,7 +167,7 @@ int main(int argc, char **argv)
         summarize(timings, 10001, &good_count, &good_avg, &good_median, &good_stddev, &good_variance);
 
         /* Set up a record so that the MAC fails */
-        EXPECT_SUCCESS(s2n_hmac_init(&record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key), &err));
+        EXPECT_SUCCESS(s2n_hmac_init(&record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
 
         /* Set up 254 bytes of padding */
         for (int j = 1; j < 256; j++) {
@@ -175,21 +175,21 @@ int main(int argc, char **argv)
         }
 
         memcpy(fragment, random_data, i - 20 - 255);
-        EXPECT_SUCCESS(s2n_hmac_update(&record_mac, fragment, i - 20 - 255, &err));
-        EXPECT_SUCCESS(s2n_hmac_digest(&record_mac, fragment + (i - 20 - 255), 20, &err));
+        EXPECT_SUCCESS(s2n_hmac_update(&record_mac, fragment, i - 20 - 255));
+        EXPECT_SUCCESS(s2n_hmac_digest(&record_mac, fragment + (i - 20 - 255), 20));
 
         /* Verify that the record would pass: the MAC and padding are ok */
-        EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key), &err));
-        EXPECT_SUCCESS(s2n_verify_cbc(conn, &check_mac, &decrypted, &err)); 
+        EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+        EXPECT_SUCCESS(s2n_verify_cbc(conn, &check_mac, &decrypted)); 
 
         /* Corrupt a HMAC byte */
         fragment[i - 256]++;
 
         for (int t = 0; t < 10001; t++) {
-            EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key), &err));
+            EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
 
             uint64_t before = rdtsc();
-            EXPECT_FAILURE(s2n_verify_cbc(conn, &check_mac, &decrypted, &err)); 
+            EXPECT_FAILURE(s2n_verify_cbc(conn, &check_mac, &decrypted)); 
             uint64_t after = rdtsc();
 
             timings[ t ] = (after - before);
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
         }
 
         /* Set up the record so that the HMAC passes, and the padding fails */
-        EXPECT_SUCCESS(s2n_hmac_init(&record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key), &err));
+        EXPECT_SUCCESS(s2n_hmac_init(&record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
 
         /* Set up 15 bytes of padding */
         for (int j = 1; j < 17; j++) {
@@ -218,21 +218,21 @@ int main(int argc, char **argv)
         }
 
         memcpy(fragment, random_data, i - 20 - 16);
-        EXPECT_SUCCESS(s2n_hmac_update(&record_mac, fragment, i - 20 - 16, &err));
-        EXPECT_SUCCESS(s2n_hmac_digest(&record_mac, fragment + (i - 20 - 16), 20, &err));
+        EXPECT_SUCCESS(s2n_hmac_update(&record_mac, fragment, i - 20 - 16));
+        EXPECT_SUCCESS(s2n_hmac_digest(&record_mac, fragment + (i - 20 - 16), 20));
 
         /* Verify that the record would pass: the MAC and padding are ok */
-        EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key), &err));
-        EXPECT_SUCCESS(s2n_verify_cbc(conn, &check_mac, &decrypted, &err)); 
+        EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+        EXPECT_SUCCESS(s2n_verify_cbc(conn, &check_mac, &decrypted)); 
 
         /* Now corrupt a padding byte */
         fragment[i - 10]++;
 
         for (int t = 0; t < 10001; t++) {
-            EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key), &err));
+            EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
 
             uint64_t before = rdtsc();
-            EXPECT_FAILURE(s2n_verify_cbc(conn, &check_mac, &decrypted, &err)); 
+            EXPECT_FAILURE(s2n_verify_cbc(conn, &check_mac, &decrypted)); 
             uint64_t after = rdtsc();
 
             timings[ t ] = (after - before);

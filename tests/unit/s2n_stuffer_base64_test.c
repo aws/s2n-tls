@@ -29,47 +29,47 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
     
-    EXPECT_SUCCESS(s2n_init(&err));
+    EXPECT_SUCCESS(s2n_init());
 
     /* Create a 100 byte stuffer */
-    EXPECT_SUCCESS(s2n_stuffer_alloc(&stuffer, 1000, &err));
+    EXPECT_SUCCESS(s2n_stuffer_alloc(&stuffer, 1000));
 
     /* Write our known data */
-    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&known_data, hello_world, &err));
-    EXPECT_SUCCESS(s2n_stuffer_write_base64(&stuffer, &known_data, &err));
+    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&known_data, hello_world));
+    EXPECT_SUCCESS(s2n_stuffer_write_base64(&stuffer, &known_data));
 
     /* Check it against the known output */
     EXPECT_EQUAL(memcmp(stuffer.blob.data, hello_world_base64, strlen((char *)hello_world)), 0);
 
     /* Check that we can read it again */
-    EXPECT_SUCCESS(s2n_stuffer_alloc(&scratch, 50, &err));
-    EXPECT_SUCCESS(s2n_stuffer_read_base64(&stuffer, &scratch, &err));
+    EXPECT_SUCCESS(s2n_stuffer_alloc(&scratch, 50));
+    EXPECT_SUCCESS(s2n_stuffer_read_base64(&stuffer, &scratch));
     EXPECT_SUCCESS(memcmp(scratch.blob.data, hello_world, strlen(hello_world)));
 
     /* Now try with some randomly generated data. Make sure we try each boundary case,
      * where size % 3 == 0, 1, 2
      */
-    EXPECT_SUCCESS(s2n_stuffer_alloc(&entropy, 50, &err));
-    EXPECT_SUCCESS(s2n_stuffer_alloc(&mirror, 50, &err));
+    EXPECT_SUCCESS(s2n_stuffer_alloc(&entropy, 50));
+    EXPECT_SUCCESS(s2n_stuffer_alloc(&mirror, 50));
 
     for (int i = entropy.blob.size; i > 0; i--) {
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer, &err));
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&entropy, &err));
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&mirror, &err));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&entropy));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&mirror));
 
         /* Get i bytes of random data */
-        EXPECT_SUCCESS(s2n_get_random_data(pad, i, &err));
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&entropy, pad, i, &err));
+        EXPECT_SUCCESS(s2n_get_random_data(pad, i));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&entropy, pad, i));
 
         /* Write i bytes  it, base64 encoded */
         /* Read it back, decoded */
-        EXPECT_SUCCESS(s2n_stuffer_write_base64(&stuffer, &entropy, &err));
+        EXPECT_SUCCESS(s2n_stuffer_write_base64(&stuffer, &entropy));
 
         /* Should be (i / 3) * 4 + a carry  */
         EXPECT_EQUAL((i / 3) * 4 + ((i % 3) ? 4 : 0), s2n_stuffer_data_available(&stuffer));
 
         /* Read it back, decoded */
-        EXPECT_SUCCESS(s2n_stuffer_read_base64(&stuffer, &mirror, &err));
+        EXPECT_SUCCESS(s2n_stuffer_read_base64(&stuffer, &mirror));
 
         /* Verify it's the same */
         EXPECT_EQUAL(memcmp(mirror.blob.data, entropy.blob.data, i), 0);

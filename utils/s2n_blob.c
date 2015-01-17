@@ -15,20 +15,23 @@
 
 #include <string.h>
 
+#include "error/s2n_errno.h"
+
 #include "utils/s2n_blob.h"
 
-int s2n_blob_init(struct s2n_blob *b, uint8_t *data, uint32_t size, const char **err)
+#include <s2n.h>
+
+int s2n_blob_init(struct s2n_blob *b, uint8_t *data, uint32_t size)
 {
     b->data = data;
     b->size = size;
     return 0;
 }
 
-int s2n_blob_zero(struct s2n_blob *b, const char **err)
+int s2n_blob_zero(struct s2n_blob *b)
 {
     if (memset(b->data, 0, b->size) != b->data) {
-        *err = "Could not zero a blob";
-        return -1;
+        S2N_ERROR(S2N_ERR_MEMSET);
     }
 
     return 0;

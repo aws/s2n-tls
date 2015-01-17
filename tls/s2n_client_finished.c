@@ -15,6 +15,8 @@
 
 #include <stdint.h>
 
+#include "error/s2n_errno.h"
+
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 
@@ -22,17 +24,16 @@
 
 #include "utils/s2n_safety.h"
 
-int s2n_client_finished_recv(struct s2n_connection *conn, const char **err)
+int s2n_client_finished_recv(struct s2n_connection *conn)
 {
     uint8_t *our_version;
 
     our_version = conn->handshake.client_finished;
-    uint8_t *their_version = s2n_stuffer_raw_read(&conn->handshake.io, S2N_TLS_FINISHED_LEN, err);
+    uint8_t *their_version = s2n_stuffer_raw_read(&conn->handshake.io, S2N_TLS_FINISHED_LEN);
     notnull_check(their_version);
 
     if (!s2n_constant_time_equals(our_version, their_version, S2N_TLS_FINISHED_LEN)) {
-        *err = "Invalid finished message received";
-        return -1;
+        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
     conn->handshake.next_state = SERVER_CHANGE_CIPHER_SPEC;
@@ -40,22 +41,22 @@ int s2n_client_finished_recv(struct s2n_connection *conn, const char **err)
     return 0;
 }
 
-int s2n_client_finished_send(struct s2n_connection *conn, const char **err)
+int s2n_client_finished_send(struct s2n_connection *conn)
 {
     uint8_t *our_version;
 
-    GUARD(s2n_prf_key_expansion(conn, err));
-    GUARD(s2n_prf_client_finished(conn, err));
-    GUARD(s2n_zero_sequence_number(conn->pending.client_sequence_number, err));
+    GUARD(s2n_prf_key_expansion(conn));
+    GUARD(s2n_prf_client_finished(conn));
+    GUARD(s2n_zero_sequence_number(conn->pending.client_sequence_number));
     our_version = conn->handshake.client_finished;
 
     /* Update the client to use the pending cipher suite */
     conn->client = &conn->pending;
 
     if (conn->actual_protocol_version == S2N_SSLv3) {
-        GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, our_version, S2N_SSL_FINISHED_LEN, err));
+        GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, our_version, S2N_SSL_FINISHED_LEN));
     } else {
-        GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, our_version, S2N_TLS_FINISHED_LEN, err));
+        GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, our_version, S2N_TLS_FINISHED_LEN));
     }
 
     conn->handshake.next_state = SERVER_CHANGE_CIPHER_SPEC;

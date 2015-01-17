@@ -41,7 +41,7 @@ union s2n_prf_working_space {
 
 #include "tls/s2n_connection.h"
 
-extern int s2n_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret, const char **err);
-extern int s2n_prf_key_expansion(struct s2n_connection *conn, const char **err);
-extern int s2n_prf_server_finished(struct s2n_connection *conn, const char **err);
-extern int s2n_prf_client_finished(struct s2n_connection *conn, const char **err);
+extern int s2n_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret);
+extern int s2n_prf_key_expansion(struct s2n_connection *conn);
+extern int s2n_prf_server_finished(struct s2n_connection *conn);
+extern int s2n_prf_client_finished(struct s2n_connection *conn);
