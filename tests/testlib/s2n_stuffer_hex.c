@@ -35,9 +35,7 @@ static int s2n_stuffer_read_n_bits_hex(struct s2n_stuffer *stuffer, uint8_t n, u
     uint8_t hex_data[16];
     struct s2n_blob b = { .data = hex_data, .size = n / 4 };
 
-    if (s2n_stuffer_read(stuffer, &b) < 0) {
-        return -1;
-    }
+    GUARD(s2n_stuffer_read(stuffer, &b));
 
     /* Start with u = 0 */
     *u = 0;
@@ -64,12 +62,8 @@ int s2n_stuffer_read_hex(struct s2n_stuffer *stuffer, struct s2n_stuffer *out, u
 
     for (int i = 0; i < n; i++) {
         uint8_t c;
-        if (s2n_stuffer_read_uint8_hex(stuffer, &c) < 0) {
-            return -1;
-        }
-        if (s2n_stuffer_write_uint8(out, c) < 0) {
-            return -1;
-        }
+        GUARD(s2n_stuffer_read_uint8_hex(stuffer, &c));
+        GUARD(s2n_stuffer_write_uint8(out, c));
     }
 
     return 0;
@@ -81,12 +75,8 @@ int s2n_stuffer_write_hex(struct s2n_stuffer *stuffer, struct s2n_stuffer *in, u
 
     for (int i = 0; i < n; i++) {
         uint8_t c;
-        if (s2n_stuffer_read_uint8(in, &c) < 0) {
-            return -1;
-        }
-        if (s2n_stuffer_write_uint8_hex(stuffer, c) < 0) {
-            return -1;
-        }
+        GUARD(s2n_stuffer_read_uint8(in, &c));
+        GUARD(s2n_stuffer_write_uint8_hex(stuffer, c));
     }
 
     return 0;
@@ -100,9 +90,8 @@ int s2n_stuffer_read_uint64_hex(struct s2n_stuffer *stuffer, uint64_t *u)
 int s2n_stuffer_read_uint32_hex(struct s2n_stuffer *stuffer, uint32_t *u)
 {
     uint64_t u64;
-    if (s2n_stuffer_read_n_bits_hex(stuffer, 32, &u64) < 0) {
-        return -1;
-    }
+
+    GUARD(s2n_stuffer_read_n_bits_hex(stuffer, 32, &u64));
 
     *u = u64 & 0xffffffff;
 
@@ -112,9 +101,8 @@ int s2n_stuffer_read_uint32_hex(struct s2n_stuffer *stuffer, uint32_t *u)
 int s2n_stuffer_read_uint16_hex(struct s2n_stuffer *stuffer, uint16_t *u)
 {
     uint64_t u64;
-    if (s2n_stuffer_read_n_bits_hex(stuffer, 16, &u64) < 0) {
-        return -1;
-    }
+
+    GUARD(s2n_stuffer_read_n_bits_hex(stuffer, 16, &u64));
 
     *u = u64 & 0xffff;
 
@@ -124,9 +112,8 @@ int s2n_stuffer_read_uint16_hex(struct s2n_stuffer *stuffer, uint16_t *u)
 int s2n_stuffer_read_uint8_hex(struct s2n_stuffer *stuffer, uint8_t *u)
 {
     uint64_t u64;
-    if (s2n_stuffer_read_n_bits_hex(stuffer, 8, &u64) < 0) {
-        return -1;
-    }
+
+    GUARD(s2n_stuffer_read_n_bits_hex(stuffer, 8, &u64));
 
     *u = u64 & 0xff;
 
@@ -148,9 +135,7 @@ static int s2n_stuffer_write_n_bits_hex(struct s2n_stuffer *stuffer, uint8_t n, 
         u >>= 4;
     }
 
-    if (s2n_stuffer_write(stuffer, &b) < 0) {
-        return -1;
-    }
+    GUARD(s2n_stuffer_write(stuffer, &b));
 
     return 0;
 }
@@ -181,14 +166,10 @@ int s2n_stuffer_alloc_ro_from_hex_string(struct s2n_stuffer *stuffer, const char
         S2N_ERROR(S2N_ERR_SIZE_MISMATCH);
     }
 
-    if (s2n_stuffer_alloc(stuffer, strlen(str) / 2) < 0) {
-        return -1;
-    }
+    GUARD(s2n_stuffer_alloc(stuffer, strlen(str) / 2));
 
     for (int i = 0; i < strlen(str); i++) {
-        if (s2n_stuffer_write_uint8_hex(stuffer, str[i]) < 0) {
-            return -1;
-        }
+        GUARD(s2n_stuffer_write_uint8_hex(stuffer, str[i]));
     }
 
     return 0;

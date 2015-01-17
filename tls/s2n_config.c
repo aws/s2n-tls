@@ -48,22 +48,16 @@ struct s2n_config *s2n_config_new()
     struct s2n_blob allocator;
     struct s2n_config *new_config;
 
-    if (s2n_alloc(&allocator, sizeof(struct s2n_config)) < 0) {
-        return NULL;
-    }
+    GUARD_PTR(s2n_alloc(&allocator, sizeof(struct s2n_config)));
 
     new_config = (struct s2n_config *)(void *)allocator.data;
     new_config->cert_and_key_pairs = NULL;
 
-    if (s2n_alloc(&allocator, sizeof(struct s2n_cipher_preferences))) {
-        return NULL;
-    }
+    GUARD_PTR(s2n_alloc(&allocator, sizeof(struct s2n_cipher_preferences)));
 
     new_config->cipher_preferences = (void *)allocator.data;
 
-    if (s2n_alloc(&allocator, sizeof(wire_format_20140601)) < 0) {
-        return NULL;
-    }
+    GUARD_PTR(s2n_alloc(&allocator, sizeof(wire_format_20140601)));
 
     new_config->cipher_preferences->count = s2n_cipher_preferences_default->count;
     new_config->cipher_preferences->wire_format = (void *)allocator.data;

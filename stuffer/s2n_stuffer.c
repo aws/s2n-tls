@@ -41,12 +41,10 @@ int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in)
 
 int s2n_stuffer_alloc(struct s2n_stuffer *stuffer, uint32_t size)
 {
-    if (s2n_alloc(&stuffer->blob, size) < 0) {
-        return -1;
-    }
-    if (s2n_stuffer_init(stuffer, &stuffer->blob) < 0) {
-        return -1;
-    }
+
+    GUARD(s2n_alloc(&stuffer->blob, size));
+    GUARD(s2n_stuffer_init(stuffer, &stuffer->blob));
+
     stuffer->alloced = 1;
 
     return 0;
@@ -54,9 +52,8 @@ int s2n_stuffer_alloc(struct s2n_stuffer *stuffer, uint32_t size)
 
 int s2n_stuffer_growable_alloc(struct s2n_stuffer *stuffer, uint32_t size)
 {
-    if (s2n_stuffer_alloc(stuffer, size) < 0) {
-        return -1;
-    }
+    GUARD(s2n_stuffer_alloc(stuffer, size));
+
     stuffer->growable = 1;
 
     return 0;
@@ -68,13 +65,11 @@ int s2n_stuffer_free(struct s2n_stuffer *stuffer)
         return 0;
     }
     if (stuffer->wiped == 0) {
-        if (s2n_stuffer_wipe(stuffer) < 0) {
-            return -1;
-        }
+        GUARD(s2n_stuffer_wipe(stuffer));
     }
-    if (s2n_free(&stuffer->blob) < 0) {
-        return -1;
-    }
+
+    GUARD(s2n_free(&stuffer->blob));
+
     stuffer->blob.data = NULL;
     stuffer->blob.size = 0;
 
@@ -93,13 +88,11 @@ int s2n_stuffer_resize(struct s2n_stuffer *stuffer, uint32_t size)
         return 0;
     }
     if (size < stuffer->blob.size) {
-        if (s2n_stuffer_wipe_n(stuffer, stuffer->blob.size - size) < 0) {
-            return -1;
-        }
+        GUARD(s2n_stuffer_wipe_n(stuffer, stuffer->blob.size - size));
     }
-    if (s2n_realloc(&stuffer->blob, size) < 0) {
-        return -1;
-    }
+
+    GUARD(s2n_realloc(&stuffer->blob, size));
+
     stuffer->blob.size = size;
 
     return 0;
@@ -160,9 +153,7 @@ int s2n_stuffer_skip_read(struct s2n_stuffer *stuffer, uint32_t n)
 
 void *s2n_stuffer_raw_read(struct s2n_stuffer *stuffer, uint32_t data_len)
 {
-    if (s2n_stuffer_skip_read(stuffer, data_len) < 0) {
-        return NULL;
-    }
+    GUARD_PTR(s2n_stuffer_skip_read(stuffer, data_len));
 
     stuffer->tainted = 1;
 
@@ -171,9 +162,8 @@ void *s2n_stuffer_raw_read(struct s2n_stuffer *stuffer, uint32_t data_len)
 
 int s2n_stuffer_read(struct s2n_stuffer *stuffer, struct s2n_blob *out)
 {
-    if (s2n_stuffer_skip_read(stuffer, out->size) < 0) {
-        return -1;
-    }
+
+    GUARD(s2n_stuffer_skip_read(stuffer, out->size));
 
     void *ptr = stuffer->blob.data + stuffer->read_cursor - out->size;
     if (ptr == NULL) {
@@ -187,9 +177,7 @@ int s2n_stuffer_read(struct s2n_stuffer *stuffer, struct s2n_blob *out)
 
 int s2n_stuffer_erase_and_read(struct s2n_stuffer *stuffer, struct s2n_blob *out)
 {
-    if (s2n_stuffer_skip_read(stuffer, out->size) < 0) {
-        return -1;
-    }
+    GUARD(s2n_stuffer_skip_read(stuffer, out->size));
 
     void *ptr = stuffer->blob.data + stuffer->read_cursor - out->size;
     if (ptr == NULL) {
@@ -218,9 +206,7 @@ int s2n_stuffer_skip_write(struct s2n_stuffer *stuffer, uint32_t n)
             if (growth < 1024) {
                 growth = 1024;
             }
-            if (s2n_stuffer_resize(stuffer, stuffer->blob.size + growth) < 0) {
-                return -1;
-            }
+            GUARD(s2n_stuffer_resize(stuffer, stuffer->blob.size + growth));
         } else {
             S2N_ERROR(S2N_ERR_STUFFER_IS_FULL);
         }
@@ -233,9 +219,7 @@ int s2n_stuffer_skip_write(struct s2n_stuffer *stuffer, uint32_t n)
 
 void *s2n_stuffer_raw_write(struct s2n_stuffer *stuffer, uint32_t data_len)
 {
-    if (s2n_stuffer_skip_write(stuffer, data_len) < 0) {
-        return NULL;
-    }
+    GUARD_PTR(s2n_stuffer_skip_write(stuffer, data_len));
 
     stuffer->tainted = 1;
 
@@ -244,9 +228,7 @@ void *s2n_stuffer_raw_write(struct s2n_stuffer *stuffer, uint32_t data_len)
 
 int s2n_stuffer_write(struct s2n_stuffer *stuffer, struct s2n_blob *in)
 {
-    if (s2n_stuffer_skip_write(stuffer, in->size) < 0) {
-        return -1;
-    }
+    GUARD(s2n_stuffer_skip_write(stuffer, in->size));
 
     void *ptr = stuffer->blob.data + stuffer->write_cursor - in->size;
     if (ptr == NULL) {
@@ -268,9 +250,8 @@ int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, uint8_t *bytes, uint32_
 int s2n_stuffer_read_uint8(struct s2n_stuffer *stuffer, uint8_t *u)
 {
     struct s2n_blob b = {.data = u,.size = 1 };
-    if (s2n_stuffer_read(stuffer, &b) < 0) {
-        return -1;
-    }
+
+    GUARD(s2n_stuffer_read(stuffer, &b));
 
     return 0;
 }
@@ -278,9 +259,8 @@ int s2n_stuffer_read_uint8(struct s2n_stuffer *stuffer, uint8_t *u)
 int s2n_stuffer_write_uint8(struct s2n_stuffer *stuffer, uint8_t u)
 {
     struct s2n_blob b = {.data = &u,.size = 1 };
-    if (s2n_stuffer_write(stuffer, &b) < 0) {
-        return -1;
-    }
+
+    GUARD(s2n_stuffer_write(stuffer, &b));
 
     return 0;
 }
@@ -289,9 +269,8 @@ int s2n_stuffer_read_uint16(struct s2n_stuffer *stuffer, uint16_t *u)
 {
     uint8_t data[2];
     struct s2n_blob b = {.data = data,.size = sizeof(data) };
-    if (s2n_stuffer_read(stuffer, &b) < 0) {
-        return -1;
-    }
+
+    GUARD(s2n_stuffer_read(stuffer, &b));
 
     *u = data[0] << 8;
     *u |= data[1];
@@ -304,9 +283,7 @@ int s2n_stuffer_write_uint16(struct s2n_stuffer *stuffer, uint16_t u)
     uint8_t data[2] = { u >> 8, u & 0xff };
     struct s2n_blob b = {.data = data,.size = sizeof(data) };
 
-    if (s2n_stuffer_write(stuffer, &b) < 0) {
-        return -1;
-    }
+    GUARD(s2n_stuffer_write(stuffer, &b));
 
     return 0;
 }
@@ -315,9 +292,8 @@ int s2n_stuffer_read_uint24(struct s2n_stuffer *stuffer, uint32_t *u)
 {
     uint8_t data[3];
     struct s2n_blob b = {.data = data,.size = sizeof(data) };
-    if (s2n_stuffer_read(stuffer, &b) < 0) {
-        return -1;
-    }
+
+    GUARD(s2n_stuffer_read(stuffer, &b));
 
     *u = data[0] << 16;
     *u |= data[1] << 8;
@@ -331,9 +307,7 @@ int s2n_stuffer_write_uint24(struct s2n_stuffer *stuffer, uint32_t u)
     uint8_t data[3] = { u >> 16, u >> 8, u & 0xff };
     struct s2n_blob b = {.data = data,.size = sizeof(data) };
 
-    if (s2n_stuffer_write(stuffer, &b) < 0) {
-        return -1;
-    }
+    GUARD(s2n_stuffer_write(stuffer, &b));
 
     return 0;
 }
@@ -342,9 +316,8 @@ int s2n_stuffer_read_uint32(struct s2n_stuffer *stuffer, uint32_t *u)
 {
     uint8_t data[4];
     struct s2n_blob b = {.data = data,.size = sizeof(data) };
-    if (s2n_stuffer_read(stuffer, &b) < 0) {
-        return -1;
-    }
+
+    GUARD(s2n_stuffer_read(stuffer, &b));
 
     *u = data[0] << 24;
     *u |= data[1] << 16;
@@ -359,22 +332,16 @@ int s2n_stuffer_write_uint32(struct s2n_stuffer *stuffer, uint32_t u)
     uint8_t data[4] = { u >> 24, u >> 16, u >> 8, u & 0xff };
     struct s2n_blob b = {.data = data,.size = sizeof(data) };
 
-    if (s2n_stuffer_write(stuffer, &b) < 0) {
-        return -1;
-    }
+    GUARD(s2n_stuffer_write(stuffer, &b));
 
     return 0;
 }
 
 int s2n_stuffer_copy(struct s2n_stuffer *from, struct s2n_stuffer *to, uint32_t len)
 {
-    if (s2n_stuffer_skip_read(from, len) < 0) {
-        return -1;
-    }
+    GUARD(s2n_stuffer_skip_read(from, len));
 
-    if (s2n_stuffer_skip_write(to, len) < 0) {
-        return -1;
-    }
+    GUARD(s2n_stuffer_skip_write(to, len));
 
     uint8_t *from_ptr = from->blob.data + from->read_cursor - len;
     uint8_t *to_ptr = to->blob.data + to->write_cursor - len;

@@ -41,6 +41,7 @@
 #define exclusive_range_check( low, n, high )  gt_check(n, low); lt_check(n, high)
 
 #define GUARD( x )      if ( (x) < 0 ) return -1
+#define GUARD_PTR( x )  if ( (x) < 0 ) return NULL
 
 /**
  * Get the process id

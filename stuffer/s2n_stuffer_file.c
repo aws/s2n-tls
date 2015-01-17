@@ -104,9 +104,7 @@ int s2n_stuffer_alloc_ro_from_file(struct s2n_stuffer *stuffer, const char *file
 
     int r = s2n_stuffer_alloc_ro_from_fd(stuffer, fd);
 
-    if (close(fd) < 0) {
-        return -1;
-    }
+    GUARD(close(fd));
 
     return r;
 }

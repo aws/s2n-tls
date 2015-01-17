@@ -136,9 +136,7 @@ int s2n_record_parse(struct s2n_connection *conn)
     /* Decrypt stuff! */
     switch (cipher_suite->cipher->type) {
     case S2N_STREAM:
-        if (cipher_suite->cipher->io.stream.decrypt(session_key, &en, &en) < 0) {
-            return -1;
-        }
+        GUARD(cipher_suite->cipher->io.stream.decrypt(session_key, &en, &en));
         break;
     case S2N_CBC:
         /* Check that we have some data to decrypt */
@@ -149,9 +147,9 @@ int s2n_record_parse(struct s2n_connection *conn)
 
         /* Copy the last encrypted block to be the next IV */
         memcpy_check(ivpad, en.data + en.size - iv.size, iv.size);
-        if (cipher_suite->cipher->io.cbc.decrypt(session_key, &iv, &en, &en) < 0) {
-            return -1;
-        }
+
+        GUARD(cipher_suite->cipher->io.cbc.decrypt(session_key, &iv, &en, &en));
+
         memcpy_check(implicit_iv, ivpad, iv.size);
         break;
     default:

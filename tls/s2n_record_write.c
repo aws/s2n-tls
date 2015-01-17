@@ -213,14 +213,11 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
 
     switch (cipher_suite->cipher->type) {
     case S2N_STREAM:
-        if (cipher_suite->cipher->io.stream.encrypt(session_key, &en, &en) < 0) {
-            return -1;
-        }
+        GUARD(cipher_suite->cipher->io.stream.encrypt(session_key, &en, &en));
         break;
     case S2N_CBC:
-        if (cipher_suite->cipher->io.cbc.encrypt(session_key, &iv, &en, &en) < 0) {
-            return -1;
-        }
+        GUARD(cipher_suite->cipher->io.cbc.encrypt(session_key, &iv, &en, &en));
+
         /* Copy the last encrypted block to be the next IV */
         gte_check(en.size, block_size);
         memcpy_check(implicit_iv, en.data + en.size - block_size, block_size);
