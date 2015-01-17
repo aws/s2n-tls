@@ -41,13 +41,9 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     struct s2n_blob blob;
     struct s2n_connection *conn;
 
-    if (s2n_alloc(&blob, sizeof(struct s2n_connection))) {
-        return NULL;
-    }
+    GUARD_PTR(s2n_alloc(&blob, sizeof(struct s2n_connection)));
 
-    if (s2n_blob_zero(&blob) < 0) {
-        return NULL;
-    }
+    GUARD_PTR(s2n_blob_zero(&blob));
 
     if (mode == S2N_CLIENT) {
         /* At present s2n is not suitable for use in client mode, as it
@@ -71,41 +67,30 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     /* Allocate the fixed-size stuffers */
     blob.data = conn->alert_in_data;
     blob.size = S2N_ALERT_LENGTH;
-    if (s2n_stuffer_init(&conn->alert_in, &blob) < 0) {
-        return NULL;
-    }
+
+    GUARD_PTR(s2n_stuffer_init(&conn->alert_in, &blob));
+
     blob.data = conn->reader_alert_out_data;
     blob.size = S2N_ALERT_LENGTH;
-    if (s2n_stuffer_init(&conn->reader_alert_out, &blob) < 0) {
-        return NULL;
-    }
+
+    GUARD_PTR(s2n_stuffer_init(&conn->reader_alert_out, &blob));
+
     blob.data = conn->writer_alert_out_data;
     blob.size = S2N_ALERT_LENGTH;
-    if (s2n_stuffer_init(&conn->writer_alert_out, &blob) < 0) {
-        return NULL;
-    }
-    if (s2n_stuffer_alloc(&conn->out, S2N_MAXIMUM_RECORD_LENGTH) < 0) {
-        return NULL;
-    }
+
+    GUARD_PTR(s2n_stuffer_init(&conn->writer_alert_out, &blob));
+    GUARD_PTR(s2n_stuffer_alloc(&conn->out, S2N_MAXIMUM_RECORD_LENGTH));
 
     /* Initialize the growable stuffers. Zero length at first, but the resize
      * in _wipe will fix that 
      */
     blob.data = conn->header_in_data;
     blob.size = S2N_TLS_RECORD_HEADER_LENGTH;
-    if (s2n_stuffer_init(&conn->header_in, &blob) < 0) {
-        return NULL;
-    }
-    if (s2n_stuffer_growable_alloc(&conn->in, 0) < 0) {
-        return NULL;
-    }
-    if (s2n_stuffer_growable_alloc(&conn->handshake.io, 0) < 0) {
-        return NULL;
-    }
 
-    if (s2n_connection_wipe(conn) < 0) {
-        return NULL;
-    }
+    GUARD_PTR(s2n_stuffer_init(&conn->header_in, &blob));
+    GUARD_PTR(s2n_stuffer_growable_alloc(&conn->in, 0));
+    GUARD_PTR(s2n_stuffer_growable_alloc(&conn->handshake.io, 0));
+    GUARD_PTR(s2n_connection_wipe(conn));
 
     return conn;
 }
