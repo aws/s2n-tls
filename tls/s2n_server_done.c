@@ -15,16 +15,17 @@
 
 #include <stdint.h>
 
+#include "error/s2n_errno.h"
+
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 
 #include "stuffer/s2n_stuffer.h"
 
-int s2n_server_done_recv(struct s2n_connection *conn, const char **err)
+int s2n_server_done_recv(struct s2n_connection *conn)
 {
     if (s2n_stuffer_data_available(&conn->handshake.io)) {
-        *err = "Non-zero server done message intercepted";
-        return -1;
+        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
     conn->handshake.next_state = CLIENT_KEY;
@@ -32,7 +33,7 @@ int s2n_server_done_recv(struct s2n_connection *conn, const char **err)
     return 0;
 }
 
-int s2n_server_done_send(struct s2n_connection *conn, const char **err)
+int s2n_server_done_send(struct s2n_connection *conn)
 {
     conn->handshake.next_state = CLIENT_KEY;
 

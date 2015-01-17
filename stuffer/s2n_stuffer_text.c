@@ -20,16 +20,16 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
 
-int s2n_stuffer_peek_char(struct s2n_stuffer *s2n_stuffer, char *c, const char **err)
+int s2n_stuffer_peek_char(struct s2n_stuffer *s2n_stuffer, char *c)
 {
-    int r = s2n_stuffer_read_uint8(s2n_stuffer, (uint8_t *) c, err);
+    int r = s2n_stuffer_read_uint8(s2n_stuffer, (uint8_t *) c);
     if (r == 0) {
         s2n_stuffer->read_cursor--;
     }
     return r;
 }
 
-int s2n_stuffer_skip_whitespace(struct s2n_stuffer *s2n_stuffer, const char **err)
+int s2n_stuffer_skip_whitespace(struct s2n_stuffer *s2n_stuffer)
 {
     int skipped = 0;
     while (s2n_stuffer->read_cursor < s2n_stuffer->write_cursor) {
@@ -49,7 +49,7 @@ int s2n_stuffer_skip_whitespace(struct s2n_stuffer *s2n_stuffer, const char **er
     return skipped;
 }
 
-int s2n_stuffer_read_token(struct s2n_stuffer *stuffer, struct s2n_stuffer *token, char delim, const char **err)
+int s2n_stuffer_read_token(struct s2n_stuffer *stuffer, struct s2n_stuffer *token, char delim)
 {
     int token_size = 0;
 
@@ -61,9 +61,7 @@ int s2n_stuffer_read_token(struct s2n_stuffer *stuffer, struct s2n_stuffer *toke
         token_size++;
     }
 
-    if (s2n_stuffer_copy(stuffer, token, token_size, err) < 0) {
-        return -1;
-    }
+    GUARD(s2n_stuffer_copy(stuffer, token, token_size));
 
     /* Consume the delimiter too */
     if (stuffer->read_cursor < stuffer->write_cursor) {
@@ -73,25 +71,12 @@ int s2n_stuffer_read_token(struct s2n_stuffer *stuffer, struct s2n_stuffer *toke
     return 0;
 }
 
-int s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, char *str, const char **err)
+int s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, char *str)
 {
     uint32_t length = strlen(str);
     struct s2n_blob b = {.data = (uint8_t *) str,.size = length };
-    if (s2n_stuffer_alloc(stuffer, length + 1, err) < 0) {
-        return -1;
-    }
 
-    return s2n_stuffer_write(stuffer, &b, err);
-}
+    GUARD(s2n_stuffer_alloc(stuffer, length + 1));
 
-const char *s2n_stuffer_stringify(struct s2n_stuffer *stuffer, const char **err)
-{
-    if (s2n_stuffer_space_remaining(stuffer) == 0) {
-        *err = "Cannot stringify, no space";
-        return NULL;
-    }
-
-    stuffer->blob.data[stuffer->write_cursor] = '\0';
-
-    return (char *)stuffer->blob.data;
+    return s2n_stuffer_write(stuffer, &b);
 }

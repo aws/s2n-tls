@@ -17,34 +17,33 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 
+#include "error/s2n_errno.h"
+
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 
-int s2n_alloc(struct s2n_blob *b, uint32_t size, const char **err)
+int s2n_alloc(struct s2n_blob *b, uint32_t size)
 {
     b->data = NULL;
-    return s2n_realloc(b, size, err);
+    return s2n_realloc(b, size);
 }
 
-int s2n_realloc(struct s2n_blob *b, uint32_t size, const char **err)
+int s2n_realloc(struct s2n_blob *b, uint32_t size)
 {
     if (size == 0) {
-        return s2n_free(b, err);
+        return s2n_free(b);
     }
 
     b->data = realloc(b->data, size);
     if (b->data == NULL) {
-        *err = "realloc() failed";
-        return -1;
+        S2N_ERROR(S2N_ERR_REALLOC);
     }
     if (mlock(b->data, size) < 0) {
-        *err = "Could not mlock()";
-        return -1;
+        S2N_ERROR(S2N_ERR_MLOCK);
     }
 #ifdef MADV_DONTDUMP
     if (madvise(b->data, size, MADV_DONTDUMP) < 0) {
-        *err = "Could not madvise()";
-        return -1;
+        S2N_ERROR(S2N_ERR_MADVISE);
     }
 #endif
     b->size = size;
@@ -52,7 +51,7 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size, const char **err)
     return 0;
 }
 
-int s2n_free(struct s2n_blob *b, const char **err)
+int s2n_free(struct s2n_blob *b)
 {
     free(b->data);
     b->data = NULL;

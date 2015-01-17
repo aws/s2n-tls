@@ -19,31 +19,28 @@
 #include <sys/types.h>
 #include <stdint.h>
 
-#define TO_STRING(s) #s
-#define STRING_(s) TO_STRING(s)
-#define STRING__LINE__ STRING_(__LINE__)
+#include "error/s2n_errno.h"
 
 /* NULL check a pointer */
-#define notnull_check( ptr )           do { if ( (ptr) == NULL ) { *err = "NULL pointer encountered in " __FILE__ " line " STRING__LINE__; return -1; } } while(0)
+#define notnull_check( ptr )           do { if ( (ptr) == NULL ) { S2N_ERROR(S2N_ERR_NULL); } } while(0)
 
 /* Check memcpy's return, if it's not right (very unlikely!) bail, set an error
  * err and return -1;
  */
-#define memcpy_check( d, s, n )     do { notnull_check( (d) ); if ( memcpy( (d), (s), (n)) != (d) ) { *err = "memcpy error in " __FILE__ " line " STRING__LINE__; return -1; } } while(0)
-#define memset_check( d, c, n )     do { notnull_check( (d) ); if ( memset( (d), (c), (n)) != (d) ) { *err = "memset error in " __FILE__ " line " STRING__LINE__; return -1; } } while(0)
+#define memcpy_check( d, s, n )     do { notnull_check( (d) ); if ( memcpy( (d), (s), (n)) != (d) ) { S2N_ERROR(S2N_ERR_MEMCPY); } } while(0)
+#define memset_check( d, c, n )     do { notnull_check( (d) ); if ( memset( (d), (c), (n)) != (d) ) { S2N_ERROR(S2N_ERR_MEMSET); } } while(0)
 
 /* Range check a number */
-#define gte_check(n, min)  do { if ( (n) < min ) { *err = "value is too low in " __FILE__ " line " STRING__LINE__; return -1; } } while(0)
-#define lte_check(n, max)  do { if ( (n) > max ) { *err = "value is too high in " __FILE__ " line " STRING__LINE__; return -1; } } while(0)
-#define gt_check(n, min)  do { if ( (n) <= min ) { *err = "value is too low in " __FILE__ " line " STRING__LINE__; return -1; } } while(0)
-#define lt_check(n, max)  do { if ( (n) >= max ) { *err = "value is too high in " __FILE__ " line " STRING__LINE__; return -1; } } while(0)
-#define eq_check(a, b)  do { if ( (a) != (b) ) { *err = "values mismatch in " __FILE__ " line " STRING__LINE__; return -1; } } while(0)
-#define ne_check(a, b)  do { if ( (a) == (b) ) { *err = "values match in " __FILE__ " line " STRING__LINE__; return -1; } } while(0)
+#define gte_check(n, min)  do { if ( (n) < min ) { S2N_ERROR(S2N_ERR_SAFETY); } } while(0)
+#define lte_check(n, max)  do { if ( (n) > max ) { S2N_ERROR(S2N_ERR_SAFETY); } } while(0)
+#define gt_check(n, min)  do { if ( (n) <= min ) { S2N_ERROR(S2N_ERR_SAFETY); } } while(0)
+#define lt_check(n, max)  do { if ( (n) >= max ) { S2N_ERROR(S2N_ERR_SAFETY); } } while(0)
+#define eq_check(a, b)  do { if ( (a) != (b) ) { S2N_ERROR(S2N_ERR_SAFETY); } } while(0)
+#define ne_check(a, b)  do { if ( (a) == (b) ) { S2N_ERROR(S2N_ERR_SAFETY); } } while(0)
 #define inclusive_range_check( low, n, high )  gte_check(n, low); lte_check(n, high)
 #define exclusive_range_check( low, n, high )  gt_check(n, low); lt_check(n, high)
 
 #define GUARD( x )      if ( (x) < 0 ) return -1
-#define GUARD_REASON( x, y )   do { if ( (x) < 0 ) { *err = (y) ; return -1 } } while(0)
 
 /**
  * Get the process id

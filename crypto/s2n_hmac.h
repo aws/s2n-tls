@@ -40,11 +40,11 @@ struct s2n_hmac_state {
     uint8_t digest_pad[SHA512_DIGEST_LENGTH];
 };
 
-extern int s2n_hmac_digest_size(s2n_hmac_algorithm alg, const char **err);
+extern int s2n_hmac_digest_size(s2n_hmac_algorithm alg);
 
-extern int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen, const char **err);
-extern int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size, const char **err);
-extern int s2n_hmac_digest(struct s2n_hmac_state *state, void *out, uint32_t size, const char **err);
-extern int s2n_hmac_digest_verify(const void *a, uint32_t alen, const void *b, uint32_t blen, const char **err);
-extern int s2n_hmac_reset(struct s2n_hmac_state *state, const char **err);
-extern int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from, const char **err);
+extern int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen);
+extern int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size);
+extern int s2n_hmac_digest(struct s2n_hmac_state *state, void *out, uint32_t size);
+extern int s2n_hmac_digest_verify(const void *a, uint32_t alen, const void *b, uint32_t blen);
+extern int s2n_hmac_reset(struct s2n_hmac_state *state);
+extern int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from);

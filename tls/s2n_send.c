@@ -16,6 +16,8 @@
 #include <errno.h>
 #include <s2n.h>
 
+#include "error/s2n_errno.h"
+
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
@@ -28,7 +30,7 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-int s2n_flush(struct s2n_connection *conn, int *more, const char **err)
+int s2n_flush(struct s2n_connection *conn, int *more)
 {
     int w;
 
@@ -37,7 +39,7 @@ int s2n_flush(struct s2n_connection *conn, int *more, const char **err)
     /* Write any data that's already pending */
   WRITE:
     while (s2n_stuffer_data_available(&conn->out)) {
-        w = s2n_stuffer_send_to_fd(&conn->out, conn->writefd, s2n_stuffer_data_available(&conn->out), err);
+        w = s2n_stuffer_send_to_fd(&conn->out, conn->writefd, s2n_stuffer_data_available(&conn->out));
         if (w < 0) {
             return -1;
         }
@@ -45,17 +47,17 @@ int s2n_flush(struct s2n_connection *conn, int *more, const char **err)
     }
     if (conn->closing) {
         conn->closed = 1;
-        GUARD(s2n_connection_wipe(conn, err));
+        GUARD(s2n_connection_wipe(conn));
     }
-    GUARD(s2n_stuffer_rewrite(&conn->out, err));
+    GUARD(s2n_stuffer_rewrite(&conn->out));
 
     /* If there's an alert pending out, send that */
     if (s2n_stuffer_data_available(&conn->reader_alert_out) == 2) {
         struct s2n_blob alert;
         alert.data = conn->reader_alert_out.blob.data;
         alert.size = 2;
-        GUARD(s2n_record_write(conn, TLS_ALERT, &alert, err));
-        GUARD(s2n_stuffer_rewrite(&conn->reader_alert_out, err));
+        GUARD(s2n_record_write(conn, TLS_ALERT, &alert));
+        GUARD(s2n_stuffer_rewrite(&conn->reader_alert_out));
         conn->closing = 1;
 
         /* Actually write it ... */
@@ -67,8 +69,8 @@ int s2n_flush(struct s2n_connection *conn, int *more, const char **err)
         struct s2n_blob alert;
         alert.data = conn->writer_alert_out.blob.data;
         alert.size = 2;
-        GUARD(s2n_record_write(conn, TLS_ALERT, &alert, err));
-        GUARD(s2n_stuffer_rewrite(&conn->writer_alert_out, err));
+        GUARD(s2n_record_write(conn, TLS_ALERT, &alert));
+        GUARD(s2n_stuffer_rewrite(&conn->writer_alert_out));
         conn->closing = 1;
 
         /* Actually write it ... */
@@ -80,7 +82,7 @@ int s2n_flush(struct s2n_connection *conn, int *more, const char **err)
     return 0;
 }
 
-ssize_t s2n_send(struct s2n_connection *conn, void *buf, ssize_t size, int *more, const char **err)
+ssize_t s2n_send(struct s2n_connection *conn, void *buf, ssize_t size, int *more)
 {
     struct s2n_blob in = {.data = buf };
     ssize_t bytes_written = 0;
@@ -88,16 +90,15 @@ ssize_t s2n_send(struct s2n_connection *conn, void *buf, ssize_t size, int *more
     int w;
 
     if (conn->closed) {
-        *err = "Connection is closed";
-        return -1;
+        S2N_ERROR(S2N_ERR_CLOSED);
     }
 
     /* Flush any pending I/O */
-    GUARD(s2n_flush(conn, more, err));
+    GUARD(s2n_flush(conn, more));
 
     *more = 1;
 
-    GUARD((max_payload_size = s2n_record_max_write_payload_size(conn, err)));
+    GUARD((max_payload_size = s2n_record_max_write_payload_size(conn)));
 
     /* TLS 1.0 and SSLv3 are vulnerable to the so-called Beast attack. Work
      * around this by splitting messages into one byte records, and then
@@ -120,15 +121,15 @@ ssize_t s2n_send(struct s2n_connection *conn, void *buf, ssize_t size, int *more
         }
 
         /* Write and encrypt the record */
-        GUARD(s2n_stuffer_rewrite(&conn->out, err));
-        GUARD(s2n_record_write(conn, TLS_APPLICATION_DATA, &in, err));
+        GUARD(s2n_stuffer_rewrite(&conn->out));
+        GUARD(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
         bytes_written += in.size;
 
         /* Send it */
         while (s2n_stuffer_data_available(&conn->out)) {
             errno = 0;
-            w = s2n_stuffer_send_to_fd(&conn->out, conn->writefd, s2n_stuffer_data_available(&conn->out), err);
+            w = s2n_stuffer_send_to_fd(&conn->out, conn->writefd, s2n_stuffer_data_available(&conn->out));
             if (w < 0) {
                 if (errno == EWOULDBLOCK) {
                     return bytes_written;

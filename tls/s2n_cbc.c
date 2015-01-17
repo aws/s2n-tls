@@ -1,5 +1,6 @@
 #include <stdint.h>
 
+#include "error/s2n_errno.h"
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
@@ -11,7 +12,7 @@
 
 static uint8_t masks[256][255];
 
-int s2n_cbc_masks_init(const char **err)
+int s2n_cbc_masks_init()
 {
     /* We have 256 different 255-byte sized masks for checking padding. 0's indicate where we would expect
      * payload or MAC data to be. 0xff's indicate where we expected padding bytes, or the padding length
@@ -38,11 +39,11 @@ int s2n_cbc_masks_init(const char **err)
  * are correct, without leaking (via timing) how much padding there
  * actually is: this is considered secret. 
  */
-int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, struct s2n_blob *decrypted, const char **err)
+int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, struct s2n_blob *decrypted)
 {
     struct s2n_hmac_state copy;
 
-    int mac_digest_size = s2n_hmac_digest_size(hmac->alg, err);
+    int mac_digest_size = s2n_hmac_digest_size(hmac->alg);
     
     /* The record has to be at least big enough to contain the MAC,
      * plus the padding length byte */
@@ -59,18 +60,18 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
     }
 
     /* Update the MAC */
-    GUARD(s2n_hmac_update(hmac, decrypted->data, payload_length, err));
-    GUARD(s2n_hmac_copy(&copy, hmac, err));
+    GUARD(s2n_hmac_update(hmac, decrypted->data, payload_length));
+    GUARD(s2n_hmac_copy(&copy, hmac));
 
     /* Check the MAC */
     uint8_t check_digest[S2N_MAX_DIGEST_LEN];
     lte_check(mac_digest_size, sizeof(check_digest));
-    GUARD(s2n_hmac_digest(hmac, check_digest, mac_digest_size, err));
+    GUARD(s2n_hmac_digest(hmac, check_digest, mac_digest_size));
 
     int mismatches = s2n_constant_time_equals(decrypted->data + payload_length, check_digest, mac_digest_size) ^ 1;
 
     /* Compute a MAC on the rest of the data so that we perform the same number of hash operations */
-    GUARD(s2n_hmac_update(&copy, decrypted->data + payload_length + mac_digest_size, decrypted->size - payload_length - mac_digest_size - 1, err));
+    GUARD(s2n_hmac_update(&copy, decrypted->data + payload_length + mac_digest_size, decrypted->size - payload_length - mac_digest_size - 1));
 
     /* SSLv3 doesn't specify what the padding should actualy be */
     if (conn->actual_protocol_version == S2N_SSLv3) {
@@ -89,7 +90,9 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
         mismatches |= (decrypted->data[j] ^ padding_length) & mask[i];
     }
 
-    *err = "Could not verify fragment";
+    if (mismatches) {
+        S2N_ERROR(S2N_ERR_CBC_VERIFY);
+    }
 
-    return 0 - !!mismatches;
+    return 0;
 }

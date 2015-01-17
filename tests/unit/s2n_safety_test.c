@@ -17,14 +17,14 @@
 
 #include "utils/s2n_safety.h"
 
-static int failure_gte(const char **err)
+static int failure_gte()
 {
     gte_check(0, 1);
 
     return 0;
 }
 
-static int success_gte(const char **err)
+static int success_gte()
 {
     gte_check(0, 0);
     gte_check(1, 0);
@@ -32,7 +32,7 @@ static int success_gte(const char **err)
     return 0;
 }
 
-static int failure_gt(const char **err)
+static int failure_gt()
 {
     gt_check(0, 0);
     gt_check(0, 1);
@@ -40,21 +40,21 @@ static int failure_gt(const char **err)
     return 0;
 }
 
-static int success_gt(const char **err)
+static int success_gt()
 {
     gt_check(1, 0);
 
     return 0;
 }
 
-static int failure_lte(const char **err)
+static int failure_lte()
 {
     lte_check(1, 0);
 
     return 0;
 }
 
-static int success_lte(const char **err)
+static int success_lte()
 {
     lte_check(1, 1);
     lte_check(0, 1);
@@ -62,7 +62,7 @@ static int success_lte(const char **err)
     return 0;
 }
 
-static int failure_lt(const char **err)
+static int failure_lt()
 {
     lt_check(1, 0);
     lt_check(1, 1);
@@ -70,28 +70,28 @@ static int failure_lt(const char **err)
     return 0;
 }
 
-static int success_lt(const char **err)
+static int success_lt()
 {
     lt_check(0, 1);
 
     return 0;
 }
 
-static int success_notnull(const char **err)
+static int success_notnull()
 {
     notnull_check("");
 
     return 0;
 }
 
-static int failure_notnull(const char **err)
+static int failure_notnull()
 {
     notnull_check(NULL);
 
     return 0;
 }
 
-static int success_memcpy(const char **err)
+static int success_memcpy()
 {
     char dst[1024];
     char src[1024];
@@ -101,7 +101,7 @@ static int success_memcpy(const char **err)
     return 0;
 }
 
-static int failure_memcpy(const char **err)
+static int failure_memcpy()
 {
     char src[1024];
     char *ptr = NULL;
@@ -111,7 +111,7 @@ static int failure_memcpy(const char **err)
     return 0;
 }
 
-static int success_inclusive_range(const char **err)
+static int success_inclusive_range()
 {
     inclusive_range_check(0, 0, 2);
     inclusive_range_check(0, 1, 2);
@@ -120,49 +120,49 @@ static int success_inclusive_range(const char **err)
     return 0;
 }
 
-static int failure_inclusive_range_too_high(const char **err)
+static int failure_inclusive_range_too_high()
 {
     inclusive_range_check(0, 3, 2);
 
     return 0;
 }
 
-static int failure_inclusive_range_too_low(const char **err)
+static int failure_inclusive_range_too_low()
 {
     inclusive_range_check(0, -1, 2);
 
     return 0;
 }
 
-static int success_exclusive_range(const char **err)
+static int success_exclusive_range()
 {
     exclusive_range_check(0, 1, 2);
 
     return 0;
 }
 
-static int failure_exclusive_range_too_high(const char **err)
+static int failure_exclusive_range_too_high()
 {
     exclusive_range_check(0, 3, 2);
 
     return 0;
 }
 
-static int failure_exclusive_range_too_low(const char **err)
+static int failure_exclusive_range_too_low()
 {
     exclusive_range_check(0, -1, 2);
 
     return 0;
 }
 
-static int failure_exclusive_range_eq_high(const char **err)
+static int failure_exclusive_range_eq_high()
 {
     exclusive_range_check(0, 2, 2);
 
     return 0;
 }
 
-static int failure_exclusive_range_eq_low(const char **err)
+static int failure_exclusive_range_eq_low()
 {
     exclusive_range_check(0, 0, 2);
 
@@ -173,27 +173,27 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    EXPECT_FAILURE(failure_gte(&err));
-    EXPECT_FAILURE(failure_lte(&err));
-    EXPECT_FAILURE(failure_gt(&err));
-    EXPECT_FAILURE(failure_lt(&err));
-    EXPECT_FAILURE(failure_notnull(&err));
-    EXPECT_FAILURE(failure_memcpy(&err));
-    EXPECT_FAILURE(failure_inclusive_range_too_high(&err));
-    EXPECT_FAILURE(failure_inclusive_range_too_low(&err));
-    EXPECT_FAILURE(failure_exclusive_range_too_high(&err));
-    EXPECT_FAILURE(failure_exclusive_range_too_low(&err));
-    EXPECT_FAILURE(failure_exclusive_range_eq_high(&err));
-    EXPECT_FAILURE(failure_exclusive_range_eq_low(&err));
+    EXPECT_FAILURE(failure_gte());
+    EXPECT_FAILURE(failure_lte());
+    EXPECT_FAILURE(failure_gt());
+    EXPECT_FAILURE(failure_lt());
+    EXPECT_FAILURE(failure_notnull());
+    EXPECT_FAILURE(failure_memcpy());
+    EXPECT_FAILURE(failure_inclusive_range_too_high());
+    EXPECT_FAILURE(failure_inclusive_range_too_low());
+    EXPECT_FAILURE(failure_exclusive_range_too_high());
+    EXPECT_FAILURE(failure_exclusive_range_too_low());
+    EXPECT_FAILURE(failure_exclusive_range_eq_high());
+    EXPECT_FAILURE(failure_exclusive_range_eq_low());
 
-    EXPECT_SUCCESS(success_gte(&err));
-    EXPECT_SUCCESS(success_lte(&err));
-    EXPECT_SUCCESS(success_gt(&err));
-    EXPECT_SUCCESS(success_lt(&err));
-    EXPECT_SUCCESS(success_notnull(&err));
-    EXPECT_SUCCESS(success_memcpy(&err));
-    EXPECT_SUCCESS(success_inclusive_range(&err));
-    EXPECT_SUCCESS(success_exclusive_range(&err));
+    EXPECT_SUCCESS(success_gte());
+    EXPECT_SUCCESS(success_lte());
+    EXPECT_SUCCESS(success_gt());
+    EXPECT_SUCCESS(success_lt());
+    EXPECT_SUCCESS(success_notnull());
+    EXPECT_SUCCESS(success_memcpy());
+    EXPECT_SUCCESS(success_inclusive_range());
+    EXPECT_SUCCESS(success_exclusive_range());
 
     END_TEST();
 }

@@ -31,7 +31,7 @@
 #include "tls/s2n_prf.h"
 
 /* Mock block cipher that does nothing */
-int mock_block_endecrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out, const char **err)
+int mock_block_endecrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)
 {
     return 0;
 }
@@ -66,10 +66,10 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_init(&err));
-    EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, fixed_iv.data, fixed_iv.size, &err));
-    EXPECT_SUCCESS(s2n_get_random_data(random_data, S2N_MAXIMUM_FRAGMENT_LENGTH + 1, &err));
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER, &err));
+    EXPECT_SUCCESS(s2n_init());
+    EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, fixed_iv.data, fixed_iv.size));
+    EXPECT_SUCCESS(s2n_get_random_data(random_data, S2N_MAXIMUM_FRAGMENT_LENGTH + 1));
+    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
     /* Peer and we are in sync */
     conn->server = &conn->active;
@@ -82,8 +82,8 @@ int main(int argc, char **argv)
         struct s2n_blob in = {.data = random_data,.size = i };
         int bytes_written;
 
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out, &err));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in, &err));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
+        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
         if (i < S2N_MAXIMUM_FRAGMENT_LENGTH) {
             EXPECT_EQUAL(bytes_written, i);
@@ -98,23 +98,23 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->out.blob.data[4], bytes_written & 0xff);
         EXPECT_EQUAL(memcmp(conn->out.blob.data + 5, random_data, bytes_written), 0);
 
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in, &err));
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in, &err));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5, &err));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out), &err));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
         uint8_t content_type;
         uint16_t fragment_length;
-        EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length, &err));
-        EXPECT_SUCCESS(s2n_record_parse(conn, &err));
+        EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
+        EXPECT_SUCCESS(s2n_record_parse(conn));
         EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
         EXPECT_EQUAL(fragment_length, bytes_written);
     }
 
     /* test a fake streaming cipher with a MAC */
     conn->active.cipher_suite->hmac_alg = S2N_HMAC_SHA1;
-    EXPECT_SUCCESS(s2n_hmac_init(&conn->active.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key), &err));
-    EXPECT_SUCCESS(s2n_hmac_init(&conn->active.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key), &err));
+    EXPECT_SUCCESS(s2n_hmac_init(&conn->active.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+    EXPECT_SUCCESS(s2n_hmac_init(&conn->active.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     conn->active.cipher_suite = &s2n_null_cipher_suite;
     conn->actual_protocol_version = S2N_TLS11;
 
@@ -122,11 +122,11 @@ int main(int argc, char **argv)
         struct s2n_blob in = {.data = random_data,.size = i };
         int bytes_written;
 
-        EXPECT_SUCCESS(s2n_hmac_reset(&check_mac, &err));
-        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->active.server_sequence_number, 8, &err));
+        EXPECT_SUCCESS(s2n_hmac_reset(&check_mac));
+        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->active.server_sequence_number, 8));
 
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out, &err));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in, &err));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
+        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
         if (i < S2N_MAXIMUM_FRAGMENT_LENGTH - 20) {
             EXPECT_EQUAL(bytes_written, i);
@@ -144,36 +144,36 @@ int main(int argc, char **argv)
 
         uint8_t top = bytes_written >> 8;
         uint8_t bot = bytes_written & 0xff;
-        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->out.blob.data, 3, &err));
-        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, &top, 1, &err));
-        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, &bot, 1, &err));
-        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, random_data, bytes_written, &err));
+        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->out.blob.data, 3));
+        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, &top, 1));
+        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, &bot, 1));
+        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, random_data, bytes_written));
 
         uint8_t check_digest[20];
-        EXPECT_SUCCESS(s2n_hmac_digest(&check_mac, check_digest, 20, &err));
-        EXPECT_SUCCESS(s2n_hmac_digest_verify(conn->out.blob.data + 5 + bytes_written, 20, check_digest, 20, &err));
+        EXPECT_SUCCESS(s2n_hmac_digest(&check_mac, check_digest, 20));
+        EXPECT_SUCCESS(s2n_hmac_digest_verify(conn->out.blob.data + 5 + bytes_written, 20, check_digest, 20));
 
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in, &err));
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in, &err));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5, &err));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out), &err));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
         uint8_t original_seq_num[8];
         memcpy(original_seq_num, conn->server->client_sequence_number, 8);
 
         uint8_t content_type;
         uint16_t fragment_length;
-        EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length, &err));
-        EXPECT_SUCCESS(s2n_record_parse(conn, &err));
+        EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
+        EXPECT_SUCCESS(s2n_record_parse(conn));
         EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
         EXPECT_EQUAL(fragment_length, predicted_length);
 
         /* Similate a replay attack and verify that replaying the same record
          * fails due to the sequence number check */
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in, &err));
-        EXPECT_SUCCESS(s2n_stuffer_reread(&conn->out, &err));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out), &err));
-        EXPECT_FAILURE(s2n_record_parse(conn, &err));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+        EXPECT_SUCCESS(s2n_stuffer_reread(&conn->out));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
+        EXPECT_FAILURE(s2n_record_parse(conn));
 
         /* Restore the original sequence number */
         memcpy(conn->server->client_sequence_number, original_seq_num, 8);
@@ -182,20 +182,20 @@ int main(int argc, char **argv)
          * won't parse 
          */
         uint32_t byte_to_corrupt;
-        EXPECT_SUCCESS(s2n_random_int(fragment_length, &byte_to_corrupt, &err));
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in, &err));
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in, &err));
-        EXPECT_SUCCESS(s2n_stuffer_reread(&conn->out, &err));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5, &err));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out), &err));
+        EXPECT_SUCCESS(byte_to_corrupt = s2n_random(fragment_length));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+        EXPECT_SUCCESS(s2n_stuffer_reread(&conn->out));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
         conn->in.blob.data[byte_to_corrupt] += 1;
-        EXPECT_FAILURE(s2n_record_parse(conn, &err));
+        EXPECT_FAILURE(s2n_record_parse(conn));
     }
 
     /* Test a mock block cipher with a mac - in TLS1.0 mode */
-    EXPECT_SUCCESS(s2n_hmac_init(&conn->active.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key), &err));
-    EXPECT_SUCCESS(s2n_hmac_init(&conn->active.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key), &err));
+    EXPECT_SUCCESS(s2n_hmac_init(&conn->active.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+    EXPECT_SUCCESS(s2n_hmac_init(&conn->active.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     conn->actual_protocol_version = S2N_TLS10;
     conn->active.cipher_suite = &mock_block_cipher_suite;
 
@@ -204,11 +204,11 @@ int main(int argc, char **argv)
         struct s2n_blob in = {.data = random_data,.size = i };
         int bytes_written;
 
-        EXPECT_SUCCESS(s2n_hmac_reset(&check_mac, &err));
-        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->active.client_sequence_number, 8, &err));
+        EXPECT_SUCCESS(s2n_hmac_reset(&check_mac));
+        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->active.client_sequence_number, 8));
 
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out, &err));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in, &err));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
+        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
         if (i < max_aligned_fragment - 20 - 1) {
             EXPECT_EQUAL(bytes_written, i);
@@ -238,32 +238,32 @@ int main(int argc, char **argv)
 
         uint8_t top = bytes_written >> 8;
         uint8_t bot = bytes_written & 0xff;
-        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->out.blob.data, 3, &err));
-        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, &top, 1, &err));
-        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, &bot, 1, &err));
-        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, random_data, bytes_written, &err));
+        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->out.blob.data, 3));
+        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, &top, 1));
+        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, &bot, 1));
+        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, random_data, bytes_written));
 
         uint8_t check_digest[20];
-        EXPECT_SUCCESS(s2n_hmac_digest(&check_mac, check_digest, 20, &err));
-        EXPECT_SUCCESS(s2n_hmac_digest_verify(conn->out.blob.data + 5 + bytes_written, 20, check_digest, 20, &err));
+        EXPECT_SUCCESS(s2n_hmac_digest(&check_mac, check_digest, 20));
+        EXPECT_SUCCESS(s2n_hmac_digest_verify(conn->out.blob.data + 5 + bytes_written, 20, check_digest, 20));
 
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in, &err));
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in, &err));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5, &err));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out), &err));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
         uint8_t content_type;
         uint16_t fragment_length;
-        EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length, &err));
-        EXPECT_SUCCESS(s2n_record_parse(conn, &err));
+        EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
+        EXPECT_SUCCESS(s2n_record_parse(conn));
         EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
         EXPECT_EQUAL(fragment_length, predicted_length);
     }
 
     /* Test a mock block cipher with a mac - in TLS1.1+ mode */
     conn->active.cipher_suite->hmac_alg = S2N_HMAC_SHA1;
-    EXPECT_SUCCESS(s2n_hmac_init(&conn->active.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key), &err));
-    EXPECT_SUCCESS(s2n_hmac_init(&conn->active.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key), &err));
+    EXPECT_SUCCESS(s2n_hmac_init(&conn->active.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+    EXPECT_SUCCESS(s2n_hmac_init(&conn->active.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     conn->actual_protocol_version = S2N_TLS11;
     conn->active.cipher_suite = &mock_block_cipher_suite;
 
@@ -272,11 +272,11 @@ int main(int argc, char **argv)
         struct s2n_blob in = {.data = random_data,.size = i };
         int bytes_written;
 
-        EXPECT_SUCCESS(s2n_hmac_reset(&check_mac, &err));
-        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->active.client_sequence_number, 8, &err));
+        EXPECT_SUCCESS(s2n_hmac_reset(&check_mac));
+        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->active.client_sequence_number, 8));
 
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out, &err));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in, &err));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
+        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
         if (i < max_aligned_fragment - 20 - 16 - 1) {
             EXPECT_EQUAL(bytes_written, i);
@@ -306,23 +306,23 @@ int main(int argc, char **argv)
 
         uint8_t top = bytes_written >> 8;
         uint8_t bot = bytes_written & 0xff;
-        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->out.blob.data, 3, &err));
-        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, &top, 1, &err));
-        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, &bot, 1, &err));
-        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, random_data, bytes_written, &err));
+        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->out.blob.data, 3));
+        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, &top, 1));
+        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, &bot, 1));
+        EXPECT_SUCCESS(s2n_hmac_update(&check_mac, random_data, bytes_written));
 
         uint8_t check_digest[20];
-        EXPECT_SUCCESS(s2n_hmac_digest(&check_mac, check_digest, 20, &err));
-        EXPECT_SUCCESS(s2n_hmac_digest_verify(conn->out.blob.data + 16 + 5 + bytes_written, 20, check_digest, 20, &err));
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in, &err));
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in, &err));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5, &err));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out), &err));
+        EXPECT_SUCCESS(s2n_hmac_digest(&check_mac, check_digest, 20));
+        EXPECT_SUCCESS(s2n_hmac_digest_verify(conn->out.blob.data + 16 + 5 + bytes_written, 20, check_digest, 20));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
         uint8_t content_type;
         uint16_t fragment_length;
-        EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length, &err));
-        EXPECT_SUCCESS(s2n_record_parse(conn, &err));
+        EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
+        EXPECT_SUCCESS(s2n_record_parse(conn));
         EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
         EXPECT_EQUAL(fragment_length, predicted_length);
     }

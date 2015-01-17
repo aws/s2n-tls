@@ -20,6 +20,8 @@
 #include <errno.h>
 #include <s2n.h>
 
+#include "error/s2n_errno.h"
+
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_record.h"
@@ -31,7 +33,7 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int *isSSLv2, const char **err)
+int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int *isSSLv2)
 {
     int r;
 
@@ -46,9 +48,8 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
 
     /* Read the record until we at least have a header */
     while (s2n_stuffer_data_available(&conn->header_in) < S2N_TLS_RECORD_HEADER_LENGTH) {
-        r = s2n_stuffer_recv_from_fd(&conn->header_in, conn->readfd, S2N_TLS_RECORD_HEADER_LENGTH - s2n_stuffer_data_available(&conn->header_in), err);
+        r = s2n_stuffer_recv_from_fd(&conn->header_in, conn->readfd, S2N_TLS_RECORD_HEADER_LENGTH - s2n_stuffer_data_available(&conn->header_in));
         if (r == 0) {
-            *err = "EOF from remote end";
             return -2;
         }
         if (r < 0) {
@@ -64,24 +65,23 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
         conn->header_in.blob.data[0] &= 0x7f;
         *isSSLv2 = 1;
 
-        if (s2n_sslv2_record_header_parse(conn, record_type, &conn->client_protocol_version, &fragment_length, err) < 0) {
+        if (s2n_sslv2_record_header_parse(conn, record_type, &conn->client_protocol_version, &fragment_length) < 0) {
             conn->closed = 1;
-            GUARD(s2n_connection_wipe(conn, err));
+            GUARD(s2n_connection_wipe(conn));
             return -1;
         }
     } else {
-        if (s2n_record_header_parse(conn, record_type, &fragment_length, err) < 0) {
+        if (s2n_record_header_parse(conn, record_type, &fragment_length) < 0) {
             conn->closed = 1;
-            GUARD(s2n_connection_wipe(conn, err));
+            GUARD(s2n_connection_wipe(conn));
             return -1;
         }
     }
 
     /* Read enough to have the whole record */
     while (s2n_stuffer_data_available(&conn->in) < fragment_length) {
-        r = s2n_stuffer_recv_from_fd(&conn->in, conn->readfd, fragment_length - s2n_stuffer_data_available(&conn->in), err);
+        r = s2n_stuffer_recv_from_fd(&conn->in, conn->readfd, fragment_length - s2n_stuffer_data_available(&conn->in));
         if (r == 0) {
-            *err = "EOF from remote end";
             return -2;
         }
         if (r < 0) {
@@ -95,13 +95,13 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
     }
 
     /* Decrypt and parse the record */
-    if (s2n_record_parse(conn, err) < 0) {
+    if (s2n_record_parse(conn) < 0) {
         conn->closed = 1;
-        GUARD(s2n_connection_wipe(conn, err));
+        GUARD(s2n_connection_wipe(conn));
 
         if (conn->blinding == S2N_BUILT_IN_BLINDING) {
             int delay;
-            GUARD(delay = s2n_connection_get_delay(conn, err)); 
+            GUARD(delay = s2n_connection_get_delay(conn)); 
             GUARD(sleep(delay / 1000000));
             GUARD(usleep(delay % 1000000));
         }
@@ -112,7 +112,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
     return 0;
 }
 
-ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, int *more, const char **err)
+ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, int *more)
 {
     ssize_t bytes_read = 0;
     struct s2n_blob out = {.data = (uint8_t *) buf };
@@ -127,7 +127,7 @@ ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, int *more
         int isSSLv2 = 0;
         uint8_t record_type;
         errno = 0;
-        int r = s2n_read_full_record(conn, &record_type, &isSSLv2, err);
+        int r = s2n_read_full_record(conn, &record_type, &isSSLv2);
         if (r < 0) {
             if (errno == EWOULDBLOCK) {
                 if (bytes_read) {
@@ -137,25 +137,24 @@ ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, int *more
             }
             if (r == -2) {
                 conn->closed = 1;
-                GUARD(s2n_connection_wipe(conn, err));
+                GUARD(s2n_connection_wipe(conn));
                 return bytes_read;
             }
             return -1;
         }
     
         if (isSSLv2) {
-            *err = "SSLv2 record detected";
-            return -1;
+            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }
         
         if (record_type != TLS_APPLICATION_DATA) {
             if (record_type == TLS_ALERT) {
-                GUARD(s2n_process_alert_fragment(conn, err));
-                GUARD(s2n_flush(conn, more, err));
+                GUARD(s2n_process_alert_fragment(conn));
+                GUARD(s2n_flush(conn, more));
             }
 
-            GUARD(s2n_stuffer_wipe(&conn->header_in, err));
-            GUARD(s2n_stuffer_wipe(&conn->in, err));
+            GUARD(s2n_stuffer_wipe(&conn->header_in));
+            GUARD(s2n_stuffer_wipe(&conn->in));
             conn->in_status = ENCRYPTED;
             continue;
         }
@@ -165,7 +164,7 @@ ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, int *more
             out.size = s2n_stuffer_data_available(&conn->in);
         }
 
-        GUARD(s2n_stuffer_erase_and_read(&conn->in, &out, err));
+        GUARD(s2n_stuffer_erase_and_read(&conn->in, &out));
         bytes_read += out.size;
 
         out.data += out.size;
@@ -173,8 +172,8 @@ ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, int *more
 
         /* Are we ready for more encrypted data? */
         if (s2n_stuffer_data_available(&conn->in) == 0) {
-            GUARD(s2n_stuffer_wipe(&conn->header_in, err));
-            GUARD(s2n_stuffer_wipe(&conn->in, err));
+            GUARD(s2n_stuffer_wipe(&conn->header_in));
+            GUARD(s2n_stuffer_wipe(&conn->in));
             conn->in_status = ENCRYPTED;
         }
 

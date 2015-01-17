@@ -32,82 +32,82 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     /* Create a 100 byte stuffer */
-    EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &b, &err));
+    EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &b));
 
     /* Try to write 51 1-byte ints bytes */
     for (int i = 0; i < 50; i++) {
         uint8_t value = i * (0xff / 50);
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&stuffer, value, &err));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&stuffer, value));
     }
-    EXPECT_FAILURE(s2n_stuffer_write_uint8_hex(&stuffer, 1, &err));
+    EXPECT_FAILURE(s2n_stuffer_write_uint8_hex(&stuffer, 1));
 
     /* Read those back, and expect the same results */
     for (int i = 0; i < 50; i++) {
         uint8_t value = i * (0xff / 50);
-        EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&stuffer, &u8, &err));
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&stuffer, &u8));
         EXPECT_EQUAL(u8, value);
     }
-    EXPECT_FAILURE(s2n_stuffer_read_uint8_hex(&stuffer, &u8, &err));
+    EXPECT_FAILURE(s2n_stuffer_read_uint8_hex(&stuffer, &u8));
 
     /* Try to write 26 2-byte ints bytes */
-    EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer, &err));
+    EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
     for (int i = 0; i < 25; i++) {
         uint16_t value = i * (0xffff / 25);
-        EXPECT_SUCCESS(s2n_stuffer_write_uint16_hex(&stuffer, value, &err));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint16_hex(&stuffer, value));
     }
-    EXPECT_FAILURE(s2n_stuffer_write_uint16_hex(&stuffer, 1, &err));
+    EXPECT_FAILURE(s2n_stuffer_write_uint16_hex(&stuffer, 1));
 
     /* Read those back, and expect the same results */
     for (int i = 0; i < 25; i++) {
         uint16_t value = i * (0xffff / 25);
-        EXPECT_SUCCESS(s2n_stuffer_read_uint16_hex(&stuffer, &u16, &err));
+        EXPECT_SUCCESS(s2n_stuffer_read_uint16_hex(&stuffer, &u16));
         EXPECT_EQUAL(value, u16);
     }
-    EXPECT_FAILURE(s2n_stuffer_read_uint16_hex(&stuffer, &u16, &err));
+    EXPECT_FAILURE(s2n_stuffer_read_uint16_hex(&stuffer, &u16));
 
     /* Try to write 13 4-byte ints bytes */
-    EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer, &err));
-    EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &b, &err));
+    EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
+    EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &b));
     for (int i = 0; i < 12; i++) {
         uint32_t value = i * (0xffffffff / 12);
-        EXPECT_SUCCESS(s2n_stuffer_write_uint32_hex(&stuffer, value, &err));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint32_hex(&stuffer, value));
     }
-    EXPECT_FAILURE(s2n_stuffer_write_uint32_hex(&stuffer, 1, &err));
+    EXPECT_FAILURE(s2n_stuffer_write_uint32_hex(&stuffer, 1));
 
     /* Read those back, and expect the same results */
     for (int i = 0; i < 12; i++) {
         uint32_t value = i * (0xffffffff / 12);
-        EXPECT_SUCCESS(s2n_stuffer_read_uint32_hex(&stuffer, &u32, &err));
+        EXPECT_SUCCESS(s2n_stuffer_read_uint32_hex(&stuffer, &u32));
         EXPECT_EQUAL(value, u32);
     }
-    EXPECT_FAILURE(s2n_stuffer_read_uint32_hex(&stuffer, &u32, &err));
+    EXPECT_FAILURE(s2n_stuffer_read_uint32_hex(&stuffer, &u32));
 
     /* Try to write 7 8-byte ints bytes */
-    EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer, &err));
+    EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
     for (int i = 0; i < 6; i++) {
         uint64_t value = i * (0xffffffffffffffff / 6);
-        EXPECT_SUCCESS(s2n_stuffer_write_uint64_hex(&stuffer, value, &err));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint64_hex(&stuffer, value));
     }
-    EXPECT_FAILURE(s2n_stuffer_write_uint64_hex(&stuffer, 1, &err));
+    EXPECT_FAILURE(s2n_stuffer_write_uint64_hex(&stuffer, 1));
 
     /* Read those back, and expect the same results */
     for (int i = 0; i < 6; i++) {
         uint64_t value = i * (0xffffffffffffffff / 6);
-        EXPECT_SUCCESS(s2n_stuffer_read_uint64_hex(&stuffer, &u64, &err));
+        EXPECT_SUCCESS(s2n_stuffer_read_uint64_hex(&stuffer, &u64));
         EXPECT_EQUAL(value, u64);
     }
-    EXPECT_FAILURE(s2n_stuffer_read_uint64_hex(&stuffer, &u64, &err));
+    EXPECT_FAILURE(s2n_stuffer_read_uint64_hex(&stuffer, &u64));
 
-    EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer, &err));
+    EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
     uint8_t hex[] = "f0F0Zz";
     struct s2n_blob text = {.data = hex,.size = strlen((char *)hex) };
-    EXPECT_SUCCESS(s2n_stuffer_write(&stuffer, &text, &err));
+    EXPECT_SUCCESS(s2n_stuffer_write(&stuffer, &text));
 
-    EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&stuffer, &u8, &err));
+    EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&stuffer, &u8));
     EXPECT_EQUAL(u8, 240);
-    EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&stuffer, &u8, &err));
+    EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&stuffer, &u8));
     EXPECT_EQUAL(u8, 240);
-    EXPECT_FAILURE(s2n_stuffer_read_uint8_hex(&stuffer, &u8, &err));
+    EXPECT_FAILURE(s2n_stuffer_read_uint8_hex(&stuffer, &u8));
 
     END_TEST();
 }

@@ -15,6 +15,8 @@
 
 #include <s2n.h>
 
+#include "error/s2n_errno.h"
+
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_config.h"
@@ -23,30 +25,28 @@
 
 #include "utils/s2n_safety.h"
 
-int s2n_server_cert_recv(struct s2n_connection *conn, const char **err)
+int s2n_server_cert_recv(struct s2n_connection *conn)
 {
     uint32_t size_of_all_certificates;
 
-    GUARD(s2n_stuffer_read_uint24(&conn->handshake.io, &size_of_all_certificates, err));
+    GUARD(s2n_stuffer_read_uint24(&conn->handshake.io, &size_of_all_certificates));
 
     if (size_of_all_certificates > s2n_stuffer_data_available(&conn->handshake.io)) {
-        *err = "Invalid size of certificates message";
-        return -1;
+        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
     int certificate = 0;
     while (s2n_stuffer_data_available(&conn->handshake.io)) {
         uint32_t certificate_size;
 
-        GUARD(s2n_stuffer_read_uint24(&conn->handshake.io, &certificate_size, err));
+        GUARD(s2n_stuffer_read_uint24(&conn->handshake.io, &certificate_size));
 
         if (certificate_size > s2n_stuffer_data_available(&conn->handshake.io)) {
-            *err = "Invalid certificate size encountered";
-            return -1;
+            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }
 
         struct s2n_blob asn1cert;
-        asn1cert.data = s2n_stuffer_raw_read(&conn->handshake.io, certificate_size, err);
+        asn1cert.data = s2n_stuffer_raw_read(&conn->handshake.io, certificate_size);
         asn1cert.size = certificate_size;
         notnull_check(asn1cert.data);
 
@@ -54,7 +54,7 @@ int s2n_server_cert_recv(struct s2n_connection *conn, const char **err)
 
         /* Pull the public key from the first certificate */
         if (certificate == 0) {
-            GUARD(s2n_asn1der_to_rsa_public_key(&conn->pending.server_rsa_public_key, &asn1cert, err));
+            GUARD(s2n_asn1der_to_rsa_public_key(&conn->pending.server_rsa_public_key, &asn1cert));
         }
 
         certificate++;
@@ -69,15 +69,15 @@ int s2n_server_cert_recv(struct s2n_connection *conn, const char **err)
     return 0;
 }
 
-int s2n_server_cert_send(struct s2n_connection *conn, const char **err)
+int s2n_server_cert_send(struct s2n_connection *conn)
 {
     struct s2n_cert_chain *head = conn->server->chosen_cert_chain->head;
 
-    GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, conn->server->chosen_cert_chain->chain_size, err));
+    GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, conn->server->chosen_cert_chain->chain_size));
 
     while (head) {
-        GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, head->cert.size, err));
-        GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, head->cert.data, head->cert.size, err));
+        GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, head->cert.size));
+        GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, head->cert.data, head->cert.size));
         head = head->next;
     }
 

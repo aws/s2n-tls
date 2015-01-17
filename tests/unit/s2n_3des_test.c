@@ -40,9 +40,9 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_init(&err));
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER, &err));
-    EXPECT_SUCCESS(s2n_get_random_data(random_data, S2N_MAXIMUM_FRAGMENT_LENGTH + 1, &err));
+    EXPECT_SUCCESS(s2n_init());
+    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+    EXPECT_SUCCESS(s2n_get_random_data(random_data, S2N_MAXIMUM_FRAGMENT_LENGTH + 1));
 
     /* Peer and we are in sync */
     conn->server = &conn->active;
@@ -51,10 +51,10 @@ int main(int argc, char **argv)
     /* test the 3des cipher with a SHA1 hash */
     conn->active.cipher_suite->cipher = &s2n_3des;
     conn->active.cipher_suite->hmac_alg = S2N_HMAC_SHA1;
-    EXPECT_SUCCESS(conn->active.cipher_suite->cipher->get_encryption_key(&conn->active.server_key, &des3, &err));
-    EXPECT_SUCCESS(conn->active.cipher_suite->cipher->get_decryption_key(&conn->active.client_key, &des3, &err));
-    EXPECT_SUCCESS(s2n_hmac_init(&conn->active.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key), &err));
-    EXPECT_SUCCESS(s2n_hmac_init(&conn->active.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key), &err));
+    EXPECT_SUCCESS(conn->active.cipher_suite->cipher->get_encryption_key(&conn->active.server_key, &des3));
+    EXPECT_SUCCESS(conn->active.cipher_suite->cipher->get_decryption_key(&conn->active.client_key, &des3));
+    EXPECT_SUCCESS(s2n_hmac_init(&conn->active.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+    EXPECT_SUCCESS(s2n_hmac_init(&conn->active.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     conn->actual_protocol_version = S2N_TLS11;
 
     int max_aligned_fragment = S2N_MAXIMUM_FRAGMENT_LENGTH - (S2N_MAXIMUM_FRAGMENT_LENGTH % 8);
@@ -62,8 +62,8 @@ int main(int argc, char **argv)
         struct s2n_blob in = {.data = random_data,.size = i };
         int bytes_written;
 
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out, &err));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in, &err));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
+        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
         if (i < max_aligned_fragment - 20 - 8 - 1) {
             EXPECT_EQUAL(bytes_written, i);
@@ -87,21 +87,21 @@ int main(int argc, char **argv)
         }
 
         /* Copy the encrypted out data to the in data */
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in, &err));
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in, &err));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5, &err))
-        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out), &err))
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5))
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)))
 
         /* Let's decrypt it */
         uint8_t content_type;
         uint16_t fragment_length;
-        EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length, &err));
-        EXPECT_SUCCESS(s2n_record_parse(conn, &err));
+        EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
+        EXPECT_SUCCESS(s2n_record_parse(conn));
         EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
         EXPECT_EQUAL(fragment_length, predicted_length);
 
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in, &err));
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in, &err));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
     }
 
     END_TEST();

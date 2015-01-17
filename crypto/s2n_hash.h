@@ -55,10 +55,10 @@ struct s2n_hash_state {
     } hash_ctx;
 };
 
-extern int s2n_hash_digest_size(s2n_hash_algorithm alg, const char **err);
+extern int s2n_hash_digest_size(s2n_hash_algorithm alg);
 
-extern int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg, const char **err);
-extern int s2n_hash_update(struct s2n_hash_state *state, const void *in, uint32_t size, const char **err);
-extern int s2n_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size, const char **err);
-extern int s2n_hash_reset(struct s2n_hash_state *state, const char **err);
-extern int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from, const char **err); 
+extern int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg);
+extern int s2n_hash_update(struct s2n_hash_state *state, const void *in, uint32_t size);
+extern int s2n_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size);
+extern int s2n_hash_reset(struct s2n_hash_state *state);
+extern int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from); 

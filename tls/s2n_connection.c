@@ -20,6 +20,8 @@
 
 #include <s2n.h>
 
+#include "error/s2n_errno.h"
+
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
@@ -34,16 +36,16 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 
-struct s2n_connection *s2n_connection_new(s2n_mode mode, const char **err)
+struct s2n_connection *s2n_connection_new(s2n_mode mode)
 {
     struct s2n_blob blob;
     struct s2n_connection *conn;
 
-    if (s2n_alloc(&blob, sizeof(struct s2n_connection), err)) {
+    if (s2n_alloc(&blob, sizeof(struct s2n_connection))) {
         return NULL;
     }
 
-    if (s2n_blob_zero(&blob, err) < 0) {
+    if (s2n_blob_zero(&blob) < 0) {
         return NULL;
     }
 
@@ -54,8 +56,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode, const char **err)
          * variable is required to be set for the client mode to work.
          */
         if (getenv("S2N_ENABLE_INSECURE_CLIENT") == NULL) {
-            *err = "s2n can not be used in client mode";
-            return NULL;
+            S2N_ERROR_PTR(S2N_ERR_INSECURE_CLIENT);
         }
     }
 
@@ -70,20 +71,20 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode, const char **err)
     /* Allocate the fixed-size stuffers */
     blob.data = conn->alert_in_data;
     blob.size = S2N_ALERT_LENGTH;
-    if (s2n_stuffer_init(&conn->alert_in, &blob, err) < 0) {
+    if (s2n_stuffer_init(&conn->alert_in, &blob) < 0) {
         return NULL;
     }
     blob.data = conn->reader_alert_out_data;
     blob.size = S2N_ALERT_LENGTH;
-    if (s2n_stuffer_init(&conn->reader_alert_out, &blob, err) < 0) {
+    if (s2n_stuffer_init(&conn->reader_alert_out, &blob) < 0) {
         return NULL;
     }
     blob.data = conn->writer_alert_out_data;
     blob.size = S2N_ALERT_LENGTH;
-    if (s2n_stuffer_init(&conn->writer_alert_out, &blob, err) < 0) {
+    if (s2n_stuffer_init(&conn->writer_alert_out, &blob) < 0) {
         return NULL;
     }
-    if (s2n_stuffer_alloc(&conn->out, S2N_MAXIMUM_RECORD_LENGTH, err) < 0) {
+    if (s2n_stuffer_alloc(&conn->out, S2N_MAXIMUM_RECORD_LENGTH) < 0) {
         return NULL;
     }
 
@@ -92,62 +93,62 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode, const char **err)
      */
     blob.data = conn->header_in_data;
     blob.size = S2N_TLS_RECORD_HEADER_LENGTH;
-    if (s2n_stuffer_init(&conn->header_in, &blob, err) < 0) {
+    if (s2n_stuffer_init(&conn->header_in, &blob) < 0) {
         return NULL;
     }
-    if (s2n_stuffer_growable_alloc(&conn->in, 0, err) < 0) {
+    if (s2n_stuffer_growable_alloc(&conn->in, 0) < 0) {
         return NULL;
     }
-    if (s2n_stuffer_growable_alloc(&conn->handshake.io, 0, err) < 0) {
+    if (s2n_stuffer_growable_alloc(&conn->handshake.io, 0) < 0) {
         return NULL;
     }
 
-    if (s2n_connection_wipe(conn, err) < 0) {
+    if (s2n_connection_wipe(conn) < 0) {
         return NULL;
     }
 
     return conn;
 }
 
-int s2n_shutdown(struct s2n_connection *conn, int *more, const char **err)
+int s2n_shutdown(struct s2n_connection *conn, int *more)
 {
     /* Write any pending I/O */
-    GUARD(s2n_flush(conn, more, err));
+    GUARD(s2n_flush(conn, more));
 
-    GUARD(s2n_queue_writer_close_alert(conn, err));
+    GUARD(s2n_queue_writer_close_alert(conn));
 
     /* Write the alert message out */
-    GUARD(s2n_flush(conn, more, err));
+    GUARD(s2n_flush(conn, more));
 
     /* Wipe the connection */
-    GUARD(s2n_connection_wipe(conn, err));
+    GUARD(s2n_connection_wipe(conn));
 
     return 0;
 }
 
-int s2n_connection_free(struct s2n_connection *conn, const char **err)
+int s2n_connection_free(struct s2n_connection *conn)
 {
     struct s2n_blob blob;
 
-    GUARD(s2n_dh_params_free(&conn->pending.server_dh_params, err));
-    GUARD(s2n_dh_params_free(&conn->active.server_dh_params, err));
-    GUARD(s2n_stuffer_free(&conn->in, err));
-    GUARD(s2n_stuffer_free(&conn->out, err));
-    GUARD(s2n_stuffer_free(&conn->handshake.io, err));
+    GUARD(s2n_dh_params_free(&conn->pending.server_dh_params));
+    GUARD(s2n_dh_params_free(&conn->active.server_dh_params));
+    GUARD(s2n_stuffer_free(&conn->in));
+    GUARD(s2n_stuffer_free(&conn->out));
+    GUARD(s2n_stuffer_free(&conn->handshake.io));
 
     blob.data = (uint8_t *) conn;
     blob.size = sizeof(struct s2n_connection);
 
-    return s2n_free(&blob, err);
+    return s2n_free(&blob);
 }
 
-int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *config, const char **err)
+int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *config)
 {
     conn->config = config;
     return 0;
 }
 
-int s2n_connection_wipe(struct s2n_connection *conn, const char **err)
+int s2n_connection_wipe(struct s2n_connection *conn)
 {
     /* First make a copy of everything we'd like to save, which isn't very
      * much.
@@ -163,19 +164,19 @@ int s2n_connection_wipe(struct s2n_connection *conn, const char **err)
     struct s2n_stuffer out;
 
     /* Wipe all of the sensitive stuff */
-    GUARD(s2n_stuffer_wipe(&conn->alert_in, err));
-    GUARD(s2n_stuffer_wipe(&conn->reader_alert_out, err));
-    GUARD(s2n_stuffer_wipe(&conn->writer_alert_out, err));
-    GUARD(s2n_stuffer_wipe(&conn->handshake.io, err));
-    GUARD(s2n_stuffer_wipe(&conn->header_in, err));
-    GUARD(s2n_stuffer_wipe(&conn->in, err));
-    GUARD(s2n_stuffer_wipe(&conn->out, err));
+    GUARD(s2n_stuffer_wipe(&conn->alert_in));
+    GUARD(s2n_stuffer_wipe(&conn->reader_alert_out));
+    GUARD(s2n_stuffer_wipe(&conn->writer_alert_out));
+    GUARD(s2n_stuffer_wipe(&conn->handshake.io));
+    GUARD(s2n_stuffer_wipe(&conn->header_in));
+    GUARD(s2n_stuffer_wipe(&conn->in));
+    GUARD(s2n_stuffer_wipe(&conn->out));
 
     /* Allocate or resize to their original sizes */
-    GUARD(s2n_stuffer_resize(&conn->in, S2N_MAXIMUM_FRAGMENT_LENGTH, err));
+    GUARD(s2n_stuffer_resize(&conn->in, S2N_MAXIMUM_FRAGMENT_LENGTH));
 
     /* Allocate memory for handling handshakes */
-    GUARD(s2n_stuffer_resize(&conn->handshake.io, S2N_MAXIMUM_RECORD_LENGTH, err));
+    GUARD(s2n_stuffer_resize(&conn->handshake.io, S2N_MAXIMUM_RECORD_LENGTH));
 
     /* Clone the stuffers */
     /* ignore gcc 4.7 address warnings because dest is allocated on the stack */
@@ -191,10 +192,7 @@ int s2n_connection_wipe(struct s2n_connection *conn, const char **err)
 #pragma GCC diagnostic pop
 
     /* Zero the whole connection structure */
-    if (memset(conn, 0, sizeof(struct s2n_connection)) != conn) {
-        *err = "Could not zero the connection";
-        return -1;
-    }
+    memset_check(conn, 0, sizeof(struct s2n_connection));
 
     conn->mode = mode;
     conn->config = config;
@@ -203,12 +201,12 @@ int s2n_connection_wipe(struct s2n_connection *conn, const char **err)
     conn->client = &conn->active;
     conn->max_fragment_length = S2N_MAXIMUM_FRAGMENT_LENGTH;
     conn->handshake.state = CLIENT_HELLO;
-    GUARD(s2n_hash_init(&conn->handshake.client_md5, S2N_HASH_MD5, err));
-    GUARD(s2n_hash_init(&conn->handshake.client_sha1, S2N_HASH_SHA1, err));
-    GUARD(s2n_hash_init(&conn->handshake.client_sha256, S2N_HASH_SHA256, err));
-    GUARD(s2n_hash_init(&conn->handshake.server_md5, S2N_HASH_MD5, err));
-    GUARD(s2n_hash_init(&conn->handshake.server_sha1, S2N_HASH_SHA1, err));
-    GUARD(s2n_hash_init(&conn->handshake.server_sha256, S2N_HASH_SHA256, err));
+    GUARD(s2n_hash_init(&conn->handshake.client_md5, S2N_HASH_MD5));
+    GUARD(s2n_hash_init(&conn->handshake.client_sha1, S2N_HASH_SHA1));
+    GUARD(s2n_hash_init(&conn->handshake.client_sha256, S2N_HASH_SHA256));
+    GUARD(s2n_hash_init(&conn->handshake.server_md5, S2N_HASH_MD5));
+    GUARD(s2n_hash_init(&conn->handshake.server_sha1, S2N_HASH_SHA1));
+    GUARD(s2n_hash_init(&conn->handshake.server_sha256, S2N_HASH_SHA256));
 
     memcpy_check(&conn->alert_in, &alert_in, sizeof(struct s2n_stuffer));
     memcpy_check(&conn->reader_alert_out, &reader_alert_out, sizeof(struct s2n_stuffer));
@@ -226,22 +224,22 @@ int s2n_connection_wipe(struct s2n_connection *conn, const char **err)
     return 0;
 }
 
-int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd, const char **err)
+int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
 {
     conn->readfd = rfd;
     return 0;
 }
 
-int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd, const char **err)
+int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
 {
     conn->writefd = wfd;
     return 0;
 }
 
-int s2n_connection_set_fd(struct s2n_connection *conn, int fd, const char **err)
+int s2n_connection_set_fd(struct s2n_connection *conn, int fd)
 {
-    GUARD(s2n_connection_set_read_fd(conn, fd, err));
-    GUARD(s2n_connection_set_write_fd(conn, fd, err));
+    GUARD(s2n_connection_set_read_fd(conn, fd));
+    GUARD(s2n_connection_set_write_fd(conn, fd));
     return 0;
 }
 
@@ -255,53 +253,53 @@ uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn)
     return conn->wire_bytes_out;
 }
 
-const char *s2n_connection_get_cipher(struct s2n_connection *conn, const char **err)
+const char *s2n_connection_get_cipher(struct s2n_connection *conn)
 {
     return conn->active.cipher_suite->name;
 }
 
-int s2n_connection_get_client_protocol_version(struct s2n_connection *conn, const char **err)
+int s2n_connection_get_client_protocol_version(struct s2n_connection *conn)
 {
     return conn->client_protocol_version;
 }
 
-int s2n_connection_get_server_protocol_version(struct s2n_connection *conn, const char **err)
+int s2n_connection_get_server_protocol_version(struct s2n_connection *conn)
 {
     return conn->server_protocol_version;
 }
 
-int s2n_connection_get_actual_protocol_version(struct s2n_connection *conn, const char **err)
+int s2n_connection_get_actual_protocol_version(struct s2n_connection *conn)
 {
     return conn->actual_protocol_version;
 }
 
-int s2n_connection_get_client_hello_version(struct s2n_connection *conn, const char **err)
+int s2n_connection_get_client_hello_version(struct s2n_connection *conn)
 {
     return conn->client_hello_version;
 }
 
-int s2n_connection_get_alert(struct s2n_connection *conn, const char **err)
+int s2n_connection_get_alert(struct s2n_connection *conn)
 {
-    *err = "No alert code";
-    uint8_t alert_code = -1;
-    if (s2n_stuffer_data_available(&conn->alert_in) == 2) {
-        *err = "";
-        GUARD(s2n_stuffer_read_uint8(&conn->alert_in, &alert_code, err));
-        GUARD(s2n_stuffer_read_uint8(&conn->alert_in, &alert_code, err));
+    if (s2n_stuffer_data_available(&conn->alert_in) != 2) {
+        S2N_ERROR(S2N_ERR_NO_ALERT);
     }
+
+    uint8_t alert_code = 0;
+    GUARD(s2n_stuffer_read_uint8(&conn->alert_in, &alert_code));
+    GUARD(s2n_stuffer_read_uint8(&conn->alert_in, &alert_code));
+
     return alert_code;
 }
 
-int s2n_set_server_name(struct s2n_connection *conn, const char *server_name, const char **err)
+int s2n_set_server_name(struct s2n_connection *conn, const char *server_name)
 {
     if (conn->mode != S2N_CLIENT) {
-        *err = "Cannot set server name except as client";
-        return -1;
+        S2N_ERROR(S2N_ERR_CLIENT_MODE);
     }
 
     int len = strlen(server_name);
     if (len > 255) {
-        *err = "Server name is longer than 255";
+        S2N_ERROR(S2N_ERR_SERVER_NAME_TOO_LONG);
         return -1;
     }
 
@@ -310,7 +308,7 @@ int s2n_set_server_name(struct s2n_connection *conn, const char *server_name, co
     return 0;
 }
 
-const char *s2n_get_server_name(struct s2n_connection *conn, const char **err)
+const char *s2n_get_server_name(struct s2n_connection *conn)
 {
     if (strlen(conn->server_name) == 0) {
         return NULL;
@@ -319,14 +317,14 @@ const char *s2n_get_server_name(struct s2n_connection *conn, const char **err)
     return conn->server_name;
 }
 
-int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blinding, const char **err)
+int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blinding)
 {
     conn->blinding = blinding;
     return 0;
 }
 
-int s2n_connection_get_delay(struct s2n_connection *conn, const char **err)
+int s2n_connection_get_delay(struct s2n_connection *conn)
 {
     /* Delay between 1ms and 10 seconds */
-    return s2n_random(1000 + 10000000, err);
+    return s2n_random(1000 + 10000000);
 }

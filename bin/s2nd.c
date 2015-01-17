@@ -102,7 +102,6 @@ void usage()
 
 int main(int argc, const char *argv[])
 {
-    const char *error;
     struct addrinfo hints, *ai;
     int r, sockfd = 0;
 
@@ -144,61 +143,61 @@ int main(int argc, const char *argv[])
         exit(1);
     }
 
-    if (s2n_init(&error) < 0) {
-        fprintf(stderr, "Error running s2n_init(): '%s'\n", error);
+    if (s2n_init() < 0) {
+        fprintf(stderr, "Error running s2n_init(): '%s'\n", s2n_strerror(s2n_errno, "EN"));
     }
 
     printf("Listening on %s:%s\n", argv[1], argv[2]);
 
-    struct s2n_config *config = s2n_config_new(&error);
+    struct s2n_config *config = s2n_config_new();
     if (!config) {
-        fprintf(stderr, "Error getting new s2n config: '%s'\n", error);
+        fprintf(stderr, "Error getting new s2n config: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
     }
 
-    if (s2n_config_add_cert_chain_and_key(config, certificate, private_key, &error) < 0) {
-        fprintf(stderr, "Error getting certificate/key: '%s'\n", error);
+    if (s2n_config_add_cert_chain_and_key(config, certificate, private_key) < 0) {
+        fprintf(stderr, "Error getting certificate/key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
     }
 
-    if (s2n_config_add_dhparams(config, dhparams, &error) < 0) {
-        fprintf(stderr, "Error adding DH parameters: '%s'\n", error);
+    if (s2n_config_add_dhparams(config, dhparams) < 0) {
+        fprintf(stderr, "Error adding DH parameters: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
     }
 
-    struct s2n_connection *conn = s2n_connection_new(S2N_SERVER, &error);
+    struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
     if (!conn) {
-        fprintf(stderr, "Error getting new s2n connection: '%s'\n", error);
+        fprintf(stderr, "Error getting new s2n connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
     }
 
-    if (s2n_connection_set_config(conn, config, &error) < 0) {
-        fprintf(stderr, "Error setting configuration: '%s'\n", error);
+    if (s2n_connection_set_config(conn, config) < 0) {
+        fprintf(stderr, "Error setting configuration: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
     }
 
     int fd;
     while ((fd = accept(sockfd, ai->ai_addr, &ai->ai_addrlen)) > 0) {
-        if (s2n_connection_set_fd(conn, fd, &error) < 0) {
-            fprintf(stderr, "Error setting file descriptor: '%s'\n", error);
+        if (s2n_connection_set_fd(conn, fd) < 0) {
+            fprintf(stderr, "Error setting file descriptor: '%s'\n", s2n_strerror(s2n_errno, "EN"));
             exit(1);
         }
 
         echo(conn, fd);
 
-        if (s2n_connection_wipe(conn, &error) < 0) {
-            fprintf(stderr, "Error wiping connection: '%s'\n", error);
+        if (s2n_connection_wipe(conn) < 0) {
+            fprintf(stderr, "Error wiping connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
             exit(1);
         }
     }
 
-    if (s2n_connection_free(conn, &error) < 0) {
-        fprintf(stderr, "Error freeing connection: '%s'\n", error);
+    if (s2n_connection_free(conn) < 0) {
+        fprintf(stderr, "Error freeing connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
     }
 
-    if (s2n_cleanup(&error) < 0) {
-        fprintf(stderr, "Error running s2n_cleanup(): '%s'\n", error);
+    if (s2n_cleanup() < 0) {
+        fprintf(stderr, "Error running s2n_cleanup(): '%s'\n", s2n_strerror(s2n_errno, "EN"));
     }
 
     return 0;

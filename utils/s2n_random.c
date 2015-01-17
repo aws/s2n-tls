@@ -25,6 +25,8 @@
 
 #include "stuffer/s2n_stuffer.h"
 
+#include "error/s2n_errno.h"
+
 #include "tls/s2n_record.h"
 
 #include "utils/s2n_safety.h"
@@ -35,11 +37,10 @@
 static int entropy_fd = -1;
 static const RAND_METHOD *original_rand_method;
 
-int s2n_get_random_data(uint8_t *data, uint32_t n, const char **err)
+int s2n_get_random_data(uint8_t *data, uint32_t n)
 {
     if (entropy_fd == -1) {
-        *err = "s2n_get_random_data() called before s2n_init()";
-        return -1;
+        S2N_ERROR(S2N_ERR_RANDOM_UNITIALIZED);
     }
 
     while (n) {
@@ -56,15 +57,15 @@ int s2n_get_random_data(uint8_t *data, uint32_t n, const char **err)
     return 0;
 }
 
-int s2n_stuffer_write_random_data(struct s2n_stuffer *stuffer, uint32_t n, const char **err)
+int s2n_stuffer_write_random_data(struct s2n_stuffer *stuffer, uint32_t n)
 {
     if (entropy_fd == -1) {
-        *err = "s2n_get_random_data() called before s2n_init()";
+        S2N_ERROR(S2N_ERR_RANDOM_UNITIALIZED);
         return -1;
     }
 
     while (n) {
-        int r = s2n_stuffer_recv_from_fd(stuffer, entropy_fd, n, err);
+        int r = s2n_stuffer_recv_from_fd(stuffer, entropy_fd, n);
         if (r <= 0) {
             sleep(1);
             continue;
@@ -75,17 +76,14 @@ int s2n_stuffer_write_random_data(struct s2n_stuffer *stuffer, uint32_t n, const
     return 0;
 }
 
-int s2n_random(int max, const char **err)
+int s2n_random(int max)
 {
     unsigned int r;
 
-    if (max <= 0) {
-        *err = "max must be a positive value";
-        return -1;
-    }
+    gt_check(max, 0);
 
     while(1) {
-        GUARD(s2n_get_random_data((uint8_t *) &r, sizeof(r), err));
+        GUARD(s2n_get_random_data((uint8_t *) &r, sizeof(r)));
 
         /* Imagine an int was one byte and UINT_MAX was 256. If the
          * caller asked for s2n_random(129, ...) we'd end up in
@@ -110,8 +108,7 @@ int s2n_random(int max, const char **err)
 
 int openssl_compat_rand(unsigned char *buf, int num)
 {
-    const char *err;
-    int r = s2n_get_random_data(buf, num, &err);
+    int r = s2n_get_random_data(buf, num);
     if (r < 0) {
         return 0;
     }
@@ -147,12 +144,11 @@ RAND_METHOD s2n_openssl_rand_method = {
     .status = openssl_compat_status
 };
 
-int s2n_init(const char **err)
+int s2n_init()
 {
     entropy_fd = open(ENTROPY_SOURCE, O_RDONLY);
     if (entropy_fd == -1) {
-        *err = "Could not open entropy source";
-        return -1;
+        S2N_ERROR(S2N_ERR_OPEN_RANDOM);
     }
 
     original_rand_method = RAND_get_rand_method();
@@ -161,16 +157,15 @@ int s2n_init(const char **err)
     RAND_set_rand_method(&s2n_openssl_rand_method);
 
     /* Create the CBC masks */
-    GUARD(s2n_cbc_masks_init(err));
+    GUARD(s2n_cbc_masks_init());
 
     return 0;
 }
 
-int s2n_cleanup(const char **err)
+int s2n_cleanup()
 {
     if (entropy_fd == -1) {
-        *err = "s2n was not initialized";
-        return -1;
+        S2N_ERROR(S2N_ERR_NOT_INITIALIZED);
     }
 
     GUARD(close(entropy_fd));

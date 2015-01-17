@@ -15,6 +15,8 @@
 
 #include <string.h>
 
+#include "error/s2n_errno.h"
+
 #include "stuffer/s2n_stuffer.h"
 
 #include "utils/s2n_safety.h"
@@ -65,7 +67,7 @@ static uint8_t b64_inverse[256] = {
  * In general, shift before masking. This avoids needing to worry about how the
  * signed bit may be handled. 
  */
-int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out, const char **err)
+int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out)
 {
     uint8_t pad[4];
     int bytes_this_round = 3;
@@ -76,7 +78,7 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
             break;
         }
 
-        GUARD(s2n_stuffer_read(stuffer, &o, err));
+        GUARD(s2n_stuffer_read(stuffer, &o));
 
         uint8_t value1 = b64_inverse[o.data[0]];
         uint8_t value2 = b64_inverse[o.data[1]];
@@ -94,8 +96,7 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
          * everything has to be a valid character. 
          */
         if (value1 == 64 || value2 == 64 || value2 == 255 || value3 == 255 || value4 == 255) {
-            *err = "Invalid base64 ending encountered (1)";
-            return -1;
+            S2N_ERROR(S2N_ERR_INVALID_BASE64);
         }
 
         if (o.data[2] == '=') {
@@ -103,8 +104,7 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
              * should have none of its bottom four bits set.
              */
             if (o.data[3] != '=' || value2 & 0x0f) {
-                *err = "Invalid base64 ending encountered (2)";
-                return -1;
+                S2N_ERROR(S2N_ERR_INVALID_BASE64);
             }
             bytes_this_round = 1;
             value3 = 0;
@@ -112,8 +112,7 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
         } else if (o.data[3] == '=') {
             /* The last two bits of the final value should be unset */
             if (value3 & 0x03) {
-                *err = "Invalid base64 ending encountered (3)";
-                return -1;
+                S2N_ERROR(S2N_ERR_INVALID_BASE64);
             }
 
             bytes_this_round = 2;
@@ -123,20 +122,20 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
         /* value1 maps to the first 6 bits of the first data byte */
         /* value2's top two bits are the rest */
         uint8_t c = ((value1 << 2) & 0xfc) | ((value2 >> 4) & 0x03);
-        GUARD(s2n_stuffer_write_uint8(out, c, err));
+        GUARD(s2n_stuffer_write_uint8(out, c));
 
         if (bytes_this_round > 1) {
             /* Put the next four bits in the second data byte */
             /* Put the next four bits in the third data byte */
             c = ((value2 << 4) & 0xf0) | ((value3 >> 2) & 0x0f);
-            GUARD(s2n_stuffer_write_uint8(out, c, err));
+            GUARD(s2n_stuffer_write_uint8(out, c));
         }
 
         if (bytes_this_round > 2) {
             /* Put the next two bits in the third data byte */
             /* Put the next six bits in the fourth data byte */
             c = ((value3 << 6) & 0xc0) | (value4 & 0x3f);
-            GUARD(s2n_stuffer_write_uint8(out, c, err));
+            GUARD(s2n_stuffer_write_uint8(out, c));
         }
 
     } while (bytes_this_round == 3);
@@ -144,7 +143,7 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
     return 0;
 }
 
-int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in, const char **err)
+int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in)
 {
     uint8_t outpad[4];
     uint8_t inpad[3];
@@ -152,7 +151,7 @@ int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in
     struct s2n_blob i = {.data = inpad,.size = sizeof(inpad) };
 
     while (s2n_stuffer_data_available(in) > 2) {
-        GUARD(s2n_stuffer_read(in, &i, err));
+        GUARD(s2n_stuffer_read(in, &i));
 
         /* Take the top 6-bits of the first data byte  */
         o.data[0] = b64[(i.data[0] >> 2) & 0x3f];
@@ -171,13 +170,13 @@ int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in
          */
         o.data[3] = b64[i.data[2] & 0x3f];
 
-        GUARD(s2n_stuffer_write(stuffer, &o, err));
+        GUARD(s2n_stuffer_write(stuffer, &o));
     }
 
     if (s2n_stuffer_data_available(in)) {
         /* Read just one byte */
         i.size = 1;
-        GUARD(s2n_stuffer_read(in, &i, err));
+        GUARD(s2n_stuffer_read(in, &i));
         uint8_t c = i.data[0];
 
         /* We at least one data byte left to encode, encode
@@ -195,13 +194,13 @@ int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in
             o.data[2] = '=';
         } else {
             /* Read the last byte */
-            GUARD(s2n_stuffer_read(in, &i, err));
+            GUARD(s2n_stuffer_read(in, &i));
 
             o.data[1] = b64[((c << 4) & 0x30) | ((i.data[0] >> 4) & 0x0f)];
             o.data[2] = b64[((i.data[0] << 2) & 0x3c)];
         }
 
-        GUARD(s2n_stuffer_write(stuffer, &o, err));
+        GUARD(s2n_stuffer_write(stuffer, &o));
     }
 
     return 0;

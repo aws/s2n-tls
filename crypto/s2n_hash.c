@@ -16,23 +16,24 @@
 #include <openssl/md5.h>
 #include <openssl/sha.h>
 
+#include "error/s2n_errno.h"
+
 #include "crypto/s2n_hash.h"
 
 #include "utils/s2n_safety.h"
 
-int s2n_hash_digest_size(s2n_hash_algorithm alg, const char **err)
+int s2n_hash_digest_size(s2n_hash_algorithm alg)
 {
     int sizes[] = { 0, MD5_DIGEST_LENGTH, SHA_DIGEST_LENGTH, SHA256_DIGEST_LENGTH, SHA384_DIGEST_LENGTH, SHA512_DIGEST_LENGTH, MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH };
 
     if (alg >= sizeof(sizes) / sizeof(int)) {
-        *err = "Invalid hash algorithm";
-        return -1;
+        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
 
     return sizes[alg];
 }
 
-int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg, const char **err)
+int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
 {
     int r;
     switch (alg) {
@@ -60,13 +61,11 @@ int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg, const ch
         break;
 
     default:
-        *err = "Invalid hash algorithm";
-        return -1;
+        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
 
     if (r == 0) {
-        *err = "s2n_hash_init failed";
-        return -1;
+        S2N_ERROR(S2N_ERR_HASH_INIT_FAILED);
     }
 
     state->alg = alg;
@@ -74,7 +73,7 @@ int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg, const ch
     return 0;
 }
 
-int s2n_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size, const char **err)
+int s2n_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size)
 {
     int r;
     switch (state->alg) {
@@ -101,19 +100,17 @@ int s2n_hash_update(struct s2n_hash_state *state, const void *data, uint32_t siz
         r &= MD5_Update(&state->hash_ctx.md5_sha1.md5, data, size);
         break;
     default:
-        *err = "Invalid hash algorithm";
-        return -1;
+        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
 
     if (r == 0) {
-        *err = "s2n_hash_update failed";
-        return -1;
+        S2N_ERROR(S2N_ERR_HASH_UPDATE_FAILED);
     }
 
     return 0;
 }
 
-int s2n_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size, const char **err)
+int s2n_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size)
 {
     int r;
     switch (state->alg) {
@@ -146,24 +143,22 @@ int s2n_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size, cons
         r &= MD5_Final(out, &state->hash_ctx.md5_sha1.md5);
         break;
     default:
-        *err = "Invalid hash algorithm";
-        return -1;
+        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
 
     if (r == 0) {
-        *err = "s2n_hash_digest failed";
-        return -1;
+        S2N_ERROR(S2N_ERR_HASH_DIGEST_FAILED);
     }
 
     return 0;
 }
 
-int s2n_hash_reset(struct s2n_hash_state *state, const char **err)
+int s2n_hash_reset(struct s2n_hash_state *state)
 {
-    return s2n_hash_init(state, state->alg, err);
+    return s2n_hash_init(state, state->alg);
 }
 
-int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from, const char **err)
+int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from)
 {
     memcpy_check(to, from, sizeof(struct s2n_hash_state));
     return 0;

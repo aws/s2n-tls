@@ -19,6 +19,6 @@
 
 #include <stdint.h>
 
-int s2n_alloc(struct s2n_blob *b, uint32_t size, const char **err);
-int s2n_realloc(struct s2n_blob *b, uint32_t size, const char **err);
-int s2n_free(struct s2n_blob *b, const char **err);
+int s2n_alloc(struct s2n_blob *b, uint32_t size);
+int s2n_realloc(struct s2n_blob *b, uint32_t size);
+int s2n_free(struct s2n_blob *b);

@@ -30,7 +30,6 @@
 
 int echo(struct s2n_connection *conn, int sockfd)
 {
-    const char *error;
     struct pollfd readers[2];
 
     readers[0].fd = sockfd;
@@ -40,8 +39,8 @@ int echo(struct s2n_connection *conn, int sockfd)
 
     int more;
     do {
-        if (s2n_negotiate(conn, &more, &error) < 0) {
-            fprintf(stderr, "Failed to negotiate: '%s' %d\n", error, s2n_connection_get_alert(conn, &error));
+        if (s2n_negotiate(conn, &more) < 0) {
+            fprintf(stderr, "Failed to negotiate: '%s' %d\n", s2n_strerror(s2n_errno, "EN"), s2n_connection_get_alert(conn));
             exit(1);
         }
     } while (more);
@@ -52,19 +51,19 @@ int echo(struct s2n_connection *conn, int sockfd)
     int server_protocol_version;
     int actual_protocol_version;
 
-    if ((client_hello_version = s2n_connection_get_client_hello_version(conn, &error)) < 0) {
+    if ((client_hello_version = s2n_connection_get_client_hello_version(conn)) < 0) {
         fprintf(stderr, "Could not get client hello version\n");
         exit(1);
     }
-    if ((client_protocol_version = s2n_connection_get_client_protocol_version(conn, &error)) < 0) {
+    if ((client_protocol_version = s2n_connection_get_client_protocol_version(conn)) < 0) {
         fprintf(stderr, "Could not get client protocol version\n");
         exit(1);
     }
-    if ((server_protocol_version = s2n_connection_get_server_protocol_version(conn, &error)) < 0) {
+    if ((server_protocol_version = s2n_connection_get_server_protocol_version(conn)) < 0) {
         fprintf(stderr, "Could not get server protocol version\n");
         exit(1);
     }
-    if ((actual_protocol_version = s2n_connection_get_actual_protocol_version(conn, &error)) < 0) {
+    if ((actual_protocol_version = s2n_connection_get_actual_protocol_version(conn)) < 0) {
         fprintf(stderr, "Could not get actual protocol version\n");
         exit(1);
     }
@@ -73,11 +72,11 @@ int echo(struct s2n_connection *conn, int sockfd)
     printf("Server protocol version: %d\n", server_protocol_version);
     printf("Actual protocol version: %d\n", actual_protocol_version);
 
-    if (s2n_get_server_name(conn, &error)) {
-        printf("Server name: %s\n", s2n_get_server_name(conn, &error));
+    if (s2n_get_server_name(conn)) {
+        printf("Server name: %s\n", s2n_get_server_name(conn));
     }
 
-    printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn, &error));
+    printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
 
     /* Act as a simple proxy between stdin and the SSL connection */
     while (poll(readers, 2, -1) > 0) {
@@ -86,14 +85,14 @@ int echo(struct s2n_connection *conn, int sockfd)
 
         if (readers[0].revents & POLLIN) {
             do {
-                bytes_read = s2n_recv(conn, buffer, 10240, &more, &error);
+                bytes_read = s2n_recv(conn, buffer, 10240, &more);
                 if (bytes_read == 0) {
                     /* Connection has been closed */
-                    s2n_connection_wipe(conn, &error);
+                    s2n_connection_wipe(conn);
                     return 0;
                 }
                 if (bytes_read < 0) {
-                    fprintf(stderr, "Error reading from connection: '%s' %d\n", error, s2n_connection_get_alert(conn, &error));
+                    fprintf(stderr, "Error reading from connection: '%s' %d\n", s2n_strerror(s2n_errno, "EN"), s2n_connection_get_alert(conn));
                     exit(1);
                 }
                 bytes_written = write(STDOUT_FILENO, buffer, bytes_read);
@@ -125,9 +124,9 @@ int echo(struct s2n_connection *conn, int sockfd)
 
             char *buf_ptr = buffer;
             do {
-                bytes_written = s2n_send(conn, buf_ptr, bytes_available, &more, &error);
+                bytes_written = s2n_send(conn, buf_ptr, bytes_available, &more);
                 if (bytes_written < 0) {
-                    fprintf(stderr, "Error writing to connection: '%s'\n", error);
+                    fprintf(stderr, "Error writing to connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
                     exit(1);
                 }
 

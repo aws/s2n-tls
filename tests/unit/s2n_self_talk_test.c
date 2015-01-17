@@ -83,29 +83,28 @@ int mock_client(int writefd, int readfd)
 {
     char buffer[0xffff];
     struct s2n_connection *conn;
-    const char *err;
     int more;
 
     /* Give the server a chance to listen */
     sleep(1);
 
-    conn = s2n_connection_new(S2N_CLIENT, &err);
+    conn = s2n_connection_new(S2N_CLIENT);
 
-    s2n_connection_set_read_fd(conn, readfd, &err);
-    s2n_connection_set_write_fd(conn, writefd, &err);
+    s2n_connection_set_read_fd(conn, readfd);
+    s2n_connection_set_write_fd(conn, writefd);
 
-    s2n_negotiate(conn, &more, &err);
+    s2n_negotiate(conn, &more);
 
     for (int i = 1; i < 0xffff; i += 100) {
         for (int j = 0; j < i; j++) {
             buffer[j] = 33;
         }
         
-        s2n_send(conn, buffer, i, &more, &err);
+        s2n_send(conn, buffer, i, &more);
     }
     
-    s2n_shutdown(conn, &more, &err);
-    s2n_connection_wipe(conn, &err);
+    s2n_shutdown(conn, &more);
+    s2n_connection_wipe(conn);
 
     /* Give the server a chance to a void a sigpipe */
     sleep(1);
@@ -127,7 +126,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(setenv("S2N_ENABLE_INSECURE_CLIENT", "1", 0));
 
     /* Create a pipe */
-    EXPECT_SUCCESS(s2n_init(&err));
+    EXPECT_SUCCESS(s2n_init());
     EXPECT_SUCCESS(pipe(server_to_client));
     EXPECT_SUCCESS(pipe(client_to_server));
 
@@ -146,20 +145,20 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(client_to_server[1]));
     EXPECT_SUCCESS(close(server_to_client[0]));
 
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER, &err));
-    EXPECT_NOT_NULL(config = s2n_config_new(&err));
+    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+    EXPECT_NOT_NULL(config = s2n_config_new());
 
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, certificate, private_key, &err));
-    EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams, &err));
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, certificate, private_key));
+    EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams));
     
-    EXPECT_SUCCESS(s2n_connection_set_config(conn, config, &err));
+    EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
     /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0], &err));
-    EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1], &err));
+    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
+    EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
 
     /* Negotiate the handshake. */
-    EXPECT_SUCCESS(s2n_negotiate(conn, &status, &err));
+    EXPECT_SUCCESS(s2n_negotiate(conn, &status));
 
     char buffer[0xffff];
     for (int i = 1; i < 0xffff; i += 100) {
@@ -168,7 +167,7 @@ int main(int argc, char **argv)
         int size = i;
 
         do {
-            EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &status, &err));
+            EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &status));
 
             size -= bytes_read;
             ptr += bytes_read;
@@ -180,11 +179,11 @@ int main(int argc, char **argv)
     }
  
     /* Verify that read() returns EOF */
-    EXPECT_SUCCESS(s2n_recv(conn, buffer, 1, &status, &err));
+    EXPECT_SUCCESS(s2n_recv(conn, buffer, 1, &status));
    
-    EXPECT_SUCCESS(s2n_shutdown(conn, &status, &err));
+    EXPECT_SUCCESS(s2n_shutdown(conn, &status));
     
-    EXPECT_SUCCESS(s2n_connection_wipe(conn, &err));
+    EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
     /* Clean up */
     EXPECT_EQUAL(waitpid(-1, &status, 0), pid);

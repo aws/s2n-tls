@@ -13,16 +13,17 @@
  * permissions and limitations under the License.
  */
 
+#include "error/s2n_errno.h"
+
 #include "crypto/s2n_cipher.h"
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-int s2n_stream_cipher_null_endecrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out, const char **err)
+int s2n_stream_cipher_null_endecrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out)
 {
     if (out->data < in->data) {
-        *err = "Input too large for output";
-        return -1;
+        S2N_ERROR(S2N_ERR_SIZE_MISMATCH);
     }
 
     if (in->data != out->data) {
@@ -31,7 +32,7 @@ int s2n_stream_cipher_null_endecrypt(struct s2n_session_key *key, struct s2n_blo
     return 0;
 }
 
-int s2n_stream_cipher_null_get_key(struct s2n_session_key *key, struct s2n_blob *in, const char **err)
+int s2n_stream_cipher_null_get_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     return 0;
 }
