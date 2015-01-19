@@ -31,6 +31,9 @@
 #define TLS_DHE_RSA_WITH_AES_256_CBC_SHA256 0x00, 0x6B
 #define TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA   0x00, 0x16
 
+/* From https://tools.ietf.org/html/draft-ietf-tls-downgrade-scsv-03 */
+#define TLS_FALLBACK_SCSV                   0x56, 0x00
+
 /* TLS extension and algorithm types */
 #define TLS_EXTENSION_SERVER_NAME           0
 #define TLS_EXTENSION_SIGNATURE_ALGORITHMS 13
