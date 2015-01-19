@@ -39,6 +39,7 @@ struct s2n_cipher_preferences *s2n_cipher_preferences_20140601 = &cipher_prefere
 struct s2n_cipher_preferences *s2n_cipher_preferences_default = &cipher_preferences_20140601;
 
 struct s2n_config s2n_default_config = {
+    .minimum_protocol_version = S2N_TLS10,
     .cert_and_key_pairs = NULL,
     .cipher_preferences = &cipher_preferences_20140601
 };

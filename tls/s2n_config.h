@@ -35,6 +35,7 @@ struct s2n_cert_chain_and_key {
 };
 
 struct s2n_config {
+    int minimum_protocol_version;
     struct s2n_cert_chain_and_key *cert_and_key_pairs;
     struct s2n_cipher_preferences *cipher_preferences;
     struct s2n_dh_params *dhparams;

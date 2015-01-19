@@ -145,7 +145,7 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     uint16_t challenge_length;
     uint8_t *cipher_suites;
 
-    if (conn->client_protocol_version < S2N_SSLv3 || conn->client_protocol_version > S2N_TLS12) {
+    if (conn->client_protocol_version < conn->config->minimum_protocol_version || conn->client_protocol_version > S2N_TLS12) {
         GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
