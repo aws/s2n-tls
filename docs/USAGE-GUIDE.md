@@ -54,7 +54,6 @@ S2N_SERVER should be used.
 
     typedef enum { S2N_BUILT_IN_BLINDING, S2N_SELF_SERVICE_BLINDING } s2n_blinding;
 
-
 **s2n_blinding** is used to opt-out of s2n's built-in blinding. By default s2n
 will cause a thread to sleep between 1ms and 10 seconds when a tamper evident
 record is encountered. S2N_SELF_SERVICE_BLINDING can be used to opt out of this
@@ -79,21 +78,22 @@ structures are used to track each connection.
 
 s2n functions that return 'int' return 0 to indicate success and -1 to indicate
 failure. s2n functions that return pointer types return NULL in the case of
-failure. When an s2n function returns a failure, a string explaining the error
-may be placed in the "err" parameter to the function.
+failure. When an s2n function returns a failure, s2n_errno will be set to a value
+corresponding to the error. This error value can be translated into a string 
+explaining the error by calling s2n_strerror(s2n_errno, "EN"); 
 
 ## Configuration-oriented functions
 
 ### s2n\_config\_new
 
-    struct s2n_config * s2n_config_new(const char **err)
+    struct s2n_config * s2n_config_new()
 
 **s2n_config_new** returns a new configuration object suitable for associating certs and keys.
 This object can (and should) be associated with many connection objects. 
 
 ### s2n\_config\_free
 
-    struct int s2n_config_free(struct s2n_config *config, const char **err)
+    struct int s2n_config_free(struct s2n_config *config)
 
 **s2n_config_free** frees the memory associated with an **s2n_config** object.
 
@@ -101,8 +101,7 @@ This object can (and should) be associated with many connection objects.
 
     int s2n_config_add_cert_chain_and_key(struct s2n_config *config, 
                                           char *cert_chain_pem, 
-                                          char *private_key_pem, 
-                                          const char **err);
+                                          char *private_key_pem);
 
 **s2n_config_add_cert_chain_and_key** associates a certificate chain and a
 private key, with an **s2n_config** object. At present, only one
@@ -115,8 +114,7 @@ should be a PEM encoded private key corresponding to the server certificate.
 ### s2n\_config\_add\_dhparams
 
     int s2n_config_add_dhparams(struct s2n_config *config, 
-                                char *dhparams_pem, 
-                                const char **err)
+                                char *dhparams_pem)
 
 **s2n_config_add_dhparams** associates a set of Diffie-Hellman parameters with
 an **s2n_config** object. **dhparams_pem** should be PEM encoded DH parameters.
@@ -125,7 +123,7 @@ an **s2n_config** object. **dhparams_pem** should be PEM encoded DH parameters.
 
 ### s2n\_connection\_new
 
-    struct s2n_connection * s2n_connection_new(s2n_mode mode, const char **err);
+    struct s2n_connection * s2n_connection_new(s2n_mode mode);
 
 **s2n_connection_new** creates a new connection object. Each s2n SSL/TLS
 connection uses one of these objects. These connection objects can be operated
@@ -142,8 +140,7 @@ connections immediately after use.
 ### s2n\_connection\_set\_config
 
     int s2n_connection_set_config(struct s2n_connection *conn, 
-                                  struct s2n_config *config, 
-                                  const char **err);
+                                  struct s2n_config *config);
 
 **s2n_connection_set_config** Associates a configuration object with a
 connection. 
@@ -151,14 +148,11 @@ connection.
 ### s2n\_connection\_set\_fd
 
     int s2n_connection_set_fd(struct s2n_connection *conn, 
-                              int readfd, 
-                              const char **err);
+                              int readfd)
     int s2n_connection_set_read_fd(struct s2n_connection *conn, 
-                                   int readfd, 
-                                   const char **err);
+                                   int readfd)
     int s2n_connection_set_write_fd(struct s2n_connection *conn, 
-                                    int writefd,
-                                    const char **err);
+                                    int writefd);
 
 **s2n_connection_set_fd** sets the file-descriptor for an s2n connection. This
 file-descriptor should be active and connected. s2n also supports setting the
@@ -168,8 +162,7 @@ types of I/O).
 ### s2n\_set\_server\_name
 
     int s2n_set_server_name(struct s2n_connection *conn, 
-                            const char *server_name, 
-                            const char **err);
+                            const char *server_name);
 
 **s2n_set_server_name** Sets the server name for the connection. In future,
 this can be used by clients who wish to use the TLS "Server Name indicator"
@@ -177,8 +170,7 @@ extension. At present, client functionality is disabled.
 
 ### s2n\_get\_server\_name
 
-    const char *s2n_get_server_name(struct s2n_connection *conn, 
-                                    const char **err);
+    const char *s2n_get_server_name(struct s2n_connection *conn);
 
 **s2n_get_server_name** returns the server name associated with a connection,
 or NULL if none is found. This can be used by a server to determine which server
@@ -186,7 +178,7 @@ name the client is using.
 
 ### s2n\_connection\_set\_blinding
 
-    int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blinding, const char **err);
+    int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blinding);
 
 **s2n_connection_set_blinding** can be used to configure s2n to either use
 built-in blinding (set blinding to S2N_BUILT_IN_BLINDING) or self-service blinding
@@ -194,7 +186,7 @@ built-in blinding (set blinding to S2N_BUILT_IN_BLINDING) or self-service blindi
 
 ### s2n\_connection\_get\_delay
 
-    int s2n_connection_get_delay(struct s2n_connection *conn, const char **err);
+    int s2n_connection_get_delay(struct s2n_connection *conn);
 
 **s2n_connection_get_delay** returns the number of microseconds an application
 using self-service blinding should pause before calling close() or shutdown().
@@ -210,10 +202,10 @@ respestively.
 
 ### s2n\_connection\_get\_protocol\_version
 
-    int s2n_connection_get_client_hello_version(struct s2n_connection *conn, const char **err);
-    int s2n_connection_get_client_protocol_version(struct s2n_connection *conn, const char **err);
-    int s2n_connection_get_server_protocol_version(struct s2n_connection *conn, const char **err);
-    int s2n_connection_get_actual_protocol_version(struct s2n_connection *conn, const char **err);
+    int s2n_connection_get_client_hello_version(struct s2n_connection *conn);
+    int s2n_connection_get_client_protocol_version(struct s2n_connection *conn);
+    int s2n_connection_get_server_protocol_version(struct s2n_connection *conn);
+    int s2n_connection_get_actual_protocol_version(struct s2n_connection *conn);
     
 **s2n_connection_get_client_protocol_version** returns the protocol version
 number supported by the client, **s2n_connection_get_server_protocol_version**
@@ -227,7 +219,7 @@ Each version number value corresponds to the macros defined as **S2N_SSLv2**,
 
 ### s2n\_connection\_get\_alert
 
-    int s2n_connection_get_alert(struct s2n_connection *conn, const char **err);
+    int s2n_connection_get_alert(struct s2n_connection *conn);
 
 If a connection was shut down by the peer, **s2n_connection_get_alert** returns
 the TLS alert code that caused a connection to be shut down. s2n considers all
@@ -235,21 +227,21 @@ TLS alerts fatal and shuts down a connection whenever one is received.
 
 ### s2n\_connection\_get\_cipher
 
-    const char * s2n_connection_get_cipher(struct s2n_connection *conn, const char **err);
+    const char * s2n_connection_get_cipher(struct s2n_connection *conn);
     
 **s2n_connection_get_cipher** returns a string indicating the cipher suite
 negotiated by s2n for a connection, e.g. "TLS\_RSA\_WITH\_AES\_128\_CBC\_SHA".
 
 ### s2n\_connection\_wipe
 
-    int s2n_connection_wipe(struct s2n_connection *conn, const char **err);
+    int s2n_connection_wipe(struct s2n_connection *conn);
 
 **s2n_connection_wipe** erases all data associated with a connection including
 pending reads.
 
 ### s2n\_connection\_free
 
-    int s2n_connection_free(struct s2n_connection *conn, const char **err);
+    int s2n_connection_free(struct s2n_connection *conn);
 
 **s2n_connection_free** frees the memory associated with an s2n_connection
 handle.
@@ -268,9 +260,7 @@ zero.
 
 ### s2n\_negotiate
 
-    int s2n_negotiate(struct s2n_connection *conn,
-                      int *more,
-                      const char **err);
+    int s2n_negotiate(struct s2n_connection *conn, int *more);
 
 **s2n_negotiate** performs the initial "handshake" phase of a TLS connection and must be called before any **s2n_recv** or **s2n_send** calls. 
 
@@ -279,15 +269,14 @@ zero.
     ssize_t s2n_send(struct s2n_connection *conn 
                   void *buf,
                   ssize_t size,
-                  int *more,
-                  const char **err)
+                  int *more);
 
 **s2n_send** writes and encrypts **size* of **buf** data to the associated connection. **s2n_send** will return the number of bytes written, and may indicate a partial write. Partial writes are possible not just for non-blocking I/O, but also for connections aborted while active. **NOTE:** Unlike OpenSSL, repeated calls to **s2n_send** should not duplicate the original parameters, but should update **buf** and **size** per the indication of size written. For example;
 
     int more, written = 0;
     char data[10]; /* Some data we want to write */
     do {
-        int w = s2n_send(conn, data + written, 10 - written, &more, &err);
+        int w = s2n_send(conn, data + written, 10 - written, &more);
         if (w < 0) {
             /* Some kind of error */
             break;
@@ -301,8 +290,7 @@ zero.
     ssize_t s2n_recv(struct s2n_connection *conn,
                  void *buf,
                  ssize_t size,
-                 int *more,
-                 const char **err);
+                 int *more);
 
 **s2n_recv** decrypts and reads **size* to **buf** data from the associated
 connection. **s2n_recv** will return the number of bytes read and also return
@@ -313,7 +301,7 @@ connection. **s2n_recv** will return the number of bytes read and also return
     int more, bytes_read = 0;
     char data[10];
     do {
-        int r = s2n_recv(conn, data + bytes_read, 10 - bytes_read, &more, &err);
+        int r = s2n_recv(conn, data + bytes_read, 10 - bytes_read, &more);
         if (r < 0) {
             /* Some kind of error */
             break;
@@ -324,9 +312,7 @@ connection. **s2n_recv** will return the number of bytes read and also return
 ### s2n_shutdown
 
     int s2n_shutdown(struct s2n_connection *conn,
-                     int *more,
-                     const char,
-                     **err);
+                     int *more);
 
 **s2n_shutdown** shuts down the s2n connection. Once a connection has been shut down it is not available for reading or writing.
 
@@ -432,7 +418,6 @@ This example server reads a single HTTP request (over HTTPS) and then responds w
 
     int main(int argc, const char *argv[])
     {
-        const char *error;
         struct addrinfo hints, *ai;
         int r, sockfd = 0;
         int more;
@@ -471,58 +456,58 @@ This example server reads a single HTTP request (over HTTPS) and then responds w
         if (listen(sockfd, 1) == -1) {
             exit(1);
         }
-        struct s2n_config *config = s2n_config_new(&error);
+        struct s2n_config *config = s2n_config_new();
         if (!config) {
-            fprintf(stderr, "Error getting new s2n config: '%s'\n", error);
+            fprintf(stderr, "Error getting new s2n config: '%s'\n", s2n_strerror(s2n_errno, "EN"));
             exit(1);
         }
 
         if (s2n_config_add_cert_chain_and_key(config, "_default_", certificate, 
-                                              private_key, &error) < 0) {
-            fprintf(stderr, "Error getting certificate/key: '%s'\n", error);
+                                              private_key) < 0) {
+            fprintf(stderr, "Error getting certificate/key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
             exit(1);
         }
 
-        if (s2n_config_add_dhparams(config, dhparams, &error) < 0) {
-            fprintf(stderr, "Error adding DH parameters: '%s'\n", error);
+        if (s2n_config_add_dhparams(config, dhparams) < 0) {
+            fprintf(stderr, "Error adding DH parameters: '%s'\n", s2n_strerror(s2n_errno, "EN"));
             exit(1);
         }
 
-        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER, &error);
+        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
 
-        if (s2n_connection_set_config(conn, config, &error) < 0) {
-            fprintf(stderr, "Error setting configuration: '%s'\n", error);
+        if (s2n_connection_set_config(conn, config) < 0) {
+            fprintf(stderr, "Error setting configuration: '%s'\n", s2n_strerror(s2n_errno, "EN"));
             exit(1);
         }
 
         int fd;
         while ((fd = accept(sockfd, ai->ai_addr, &ai->ai_addrlen)) > 0) {
-            if (s2n_connection_set_fd(conn, fd, &error) < 0) {
-                fprintf(stderr, "Error setting file descriptor: '%s'\n", error);
+            if (s2n_connection_set_fd(conn, fd) < 0) {
+                fprintf(stderr, "Error setting file descriptor: '%s'\n", s2n_strerror(s2n_errno, "EN"));
                 exit(1);
             }
 
-            if (s2n_negotiate(conn, &more, &error) < 0) {
-                fprintf(stderr, "Error negotiating: '%s'\n", error);
-                s2n_connection_wipe(conn, &error);
+            if (s2n_negotiate(conn, &more) < 0) {
+                fprintf(stderr, "Error negotiating: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+                s2n_connection_wipe(conn);
                 continue;
             }
 
-            if (s2n_get_server_name(conn, &error)) {
+            if (s2n_get_server_name(conn)) {
                 printf("Got connection with server name: '%s'\n",
-                       s2n_get_server_name(conn, &error));
+                       s2n_get_server_name(conn));
             }
             else {
                 printf("Got connection with no server name\n");
             }
 
-            if (s2n_send(conn, response, sizeof(response), &more, &error) < 0) {
-                s2n_connection_wipe(conn, &error);
+            if (s2n_send(conn, response, sizeof(response), &more) < 0) {
+                s2n_connection_wipe(conn);
                 continue;
             }
 
-            s2n_shutdown(conn, &more, &error);
-            s2n_connection_wipe(conn, &error);
+            s2n_shutdown(conn, &more);
+            s2n_connection_wipe(conn);
         }
         
         return 0;

@@ -22,10 +22,7 @@ codebase.
 
 ## Error handling in s2n
 
-All s2n functions return -1 or NULL on error. Additionally s2n functions have a
-convention of taking a "const char **err" parameter as their last argument.  On
-error, functions should point the *err pointer at a string explaining the error
-encountered.
+All s2n functions return -1 or NULL on error.
 
 ## Basic safety routines
 
