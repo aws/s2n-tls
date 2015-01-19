@@ -75,13 +75,23 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
 
 static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
 {
+    uint8_t fallback_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_FALLBACK_SCSV };
+
+
     /* s2n supports only server order */
     for (int i = 0; i < conn->config->cipher_preferences->count; i++) {
         uint8_t *ours = conn->config->cipher_preferences->wire_format + (i * S2N_TLS_CIPHER_SUITE_LEN);
         for (int j = 0; j < count; j++) {
-            uint8_t *theirs = wire + (j * cipher_suite_len);
+            uint8_t *theirs = wire + (j * cipher_suite_len) + (cipher_suite_len - S2N_TLS_CIPHER_SUITE_LEN);
 
-            if (!memcmp(ours, theirs + cipher_suite_len - S2N_TLS_CIPHER_SUITE_LEN, S2N_TLS_CIPHER_SUITE_LEN)) {
+            if (!memcmp(fallback_scsv, theirs, S2N_TLS_CIPHER_SUITE_LEN)) {
+                if (conn->client_protocol_version < S2N_TLS12) {
+                    conn->closed = 1;
+                    S2N_ERROR(S2N_ERR_FALLBACK_DETECTED);
+                }
+            }
+
+            if (!memcmp(ours, theirs, S2N_TLS_CIPHER_SUITE_LEN)) {
                 /* We have a match */
                 conn->pending.cipher_suite = s2n_cipher_suite_match(ours);
 
