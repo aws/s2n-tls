@@ -26,6 +26,7 @@
 struct s2n_cipher_preferences {
     uint8_t count;
     uint8_t *wire_format;
+    int minimum_protocol_version;
 };
 
 typedef enum { S2N_RSA, S2N_DH, S2N_DHE, S2N_ECDH, S2N_ECDHE, S2N_ECDHE_ECDSA } s2n_key_exchange_algorithm;
