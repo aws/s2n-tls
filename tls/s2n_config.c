@@ -31,7 +31,7 @@ uint8_t wire_format_20140601[] =
     TLS_RSA_WITH_3DES_EDE_CBC_SHA, TLS_RSA_WITH_RC4_128_SHA, TLS_RSA_WITH_RC4_128_MD5
 };
 struct s2n_cipher_preferences cipher_preferences_20140601 = {
-    .count = 8,
+    .count = sizeof(wire_format_20140601) / sizeof(uint8_t),
     .wire_format = wire_format_20140601
 };
 /* s2n's list of cipher suites, in order of preference, as of 2015-02-02 */
@@ -40,7 +40,7 @@ uint8_t wire_format_20150202[] =
     TLS_RSA_WITH_3DES_EDE_CBC_SHA
 };
 struct s2n_cipher_preferences cipher_preferences_20150202 = {
-    .count = 6,
+    .count = sizeof(wire_format_20150202) / sizeof(uint8_t),
     .wire_format = wire_format_20150202
 };
 
