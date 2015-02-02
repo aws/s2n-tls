@@ -32,24 +32,34 @@ uint8_t wire_format_20140601[] =
 };
 struct s2n_cipher_preferences cipher_preferences_20140601 = {
     .count = sizeof(wire_format_20140601) / S2N_TLS_CIPHER_SUITE_LEN,
-    .wire_format = wire_format_20140601
+    .wire_format = wire_format_20140601,
+    .minimum_protocol_version = S2N_SSLv3
 };
-/* s2n's list of cipher suites, in order of preference, as of 2015-02-02 */
+
+/* Disable SSLv3 due to POODLE */
+struct s2n_cipher_preferences cipher_preferences_20141001 = {
+    .count = sizeof(wire_format_20140601) / S2N_TLS_CIPHER_SUITE_LEN,
+    .wire_format = wire_format_20140601,
+    .minimum_protocol_version = S2N_TLS10
+};
+
+/* Disable RC4 */
 uint8_t wire_format_20150202[] =
     { TLS_DHE_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA, TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA,
     TLS_RSA_WITH_3DES_EDE_CBC_SHA
 };
 struct s2n_cipher_preferences cipher_preferences_20150202 = {
     .count = sizeof(wire_format_20150202) / S2N_TLS_CIPHER_SUITE_LEN,
-    .wire_format = wire_format_20150202
+    .wire_format = wire_format_20150202,
+    .minimum_protocol_version = S2N_TLS10
 };
 
 struct s2n_cipher_preferences *s2n_cipher_preferences_20140601 = &cipher_preferences_20140601;
+struct s2n_cipher_preferences *s2n_cipher_preferences_20141001 = &cipher_preferences_20141001;
 struct s2n_cipher_preferences *s2n_cipher_preferences_20150202 = &cipher_preferences_20150202;
 struct s2n_cipher_preferences *s2n_cipher_preferences_default = &cipher_preferences_20150202;
 
 struct s2n_config s2n_default_config = {
-    .minimum_protocol_version = S2N_TLS10,
     .cert_and_key_pairs = NULL,
     .cipher_preferences = &cipher_preferences_20150202
 };
@@ -64,18 +74,7 @@ struct s2n_config *s2n_config_new()
     new_config = (struct s2n_config *)(void *)allocator.data;
     new_config->cert_and_key_pairs = NULL;
 
-    GUARD_PTR(s2n_alloc(&allocator, sizeof(struct s2n_cipher_preferences)));
-
-    new_config->cipher_preferences = (void *)allocator.data;
-
-    GUARD_PTR(s2n_alloc(&allocator, sizeof(wire_format_20150202)));
-
-    new_config->cipher_preferences->count = s2n_cipher_preferences_default->count;
-    new_config->cipher_preferences->wire_format = (void *)allocator.data;
-
-    if (memcpy(allocator.data, wire_format_20150202, allocator.size) != allocator.data) {
-        return NULL;
-    }
+    new_config->cipher_preferences = s2n_cipher_preferences_default;
 
     return new_config;
 }
