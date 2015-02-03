@@ -94,7 +94,7 @@ int s2n_config_free(struct s2n_config *config)
 int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version)
 {
     for (int i = 0; i < sizeof(selection) / sizeof(selection[1]); i++) {
-        if (strcasecmp(version, selection[i].version)) {
+        if (!strcasecmp(version, selection[i].version)) {
             config->cipher_preferences = selection[i].preferences;
             return 0;
         }
