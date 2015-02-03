@@ -121,8 +121,8 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     GUARD(s2n_stuffer_write_bytes(out, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
     GUARD(s2n_stuffer_copy(&client_random, out, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_stuffer_write_uint8(out, session_id_len));
-    GUARD(s2n_stuffer_write_uint16(out, conn->config->cipher_preferences->count * 2));
-    GUARD(s2n_stuffer_write_bytes(out, conn->config->cipher_preferences->wire_format, conn->config->cipher_preferences->count * 2));
+    GUARD(s2n_stuffer_write_uint16(out, conn->config->cipher_preferences->count * S2N_TLS_CIPHER_SUITE_LEN));
+    GUARD(s2n_stuffer_write_bytes(out, conn->config->cipher_preferences->wire_format, conn->config->cipher_preferences->count * S2N_TLS_CIPHER_SUITE_LEN));
 
     /* Zero compression methods */
     GUARD(s2n_stuffer_write_uint8(out, 1));
