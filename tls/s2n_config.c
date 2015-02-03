@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-//#include <openssl/rand.h>
 #include <strings.h>
 
 #include "error/s2n_errno.h"
@@ -61,7 +60,8 @@ struct {
     { "default", &cipher_preferences_20150202 },
     { "20140601", &cipher_preferences_20140601 },
     { "20141001", &cipher_preferences_20141001 },
-    { "20150202", &cipher_preferences_20150202 }
+    { "20150202", &cipher_preferences_20150202 },
+    { NULL, NULL }
 };
 
 struct s2n_config s2n_default_config = {
@@ -93,7 +93,7 @@ int s2n_config_free(struct s2n_config *config)
 
 int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version)
 {
-    for (int i = 0; i < sizeof(selection) / sizeof(selection[1]); i++) {
+    for (int i = 0; selection[i].version != NULL; i++) {
         if (!strcasecmp(version, selection[i].version)) {
             config->cipher_preferences = selection[i].preferences;
             return 0;
