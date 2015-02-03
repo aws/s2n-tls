@@ -72,6 +72,7 @@ struct s2n_error_translation EN[] = {
     { S2N_ERR_INSECURE_CLIENT, "client connections not allowed" },
     { S2N_ERR_HANDSHAKE_STATE, "Invalid handshake state encountered" },
     { S2N_ERR_FALLBACK_DETECTED, "TLS fallback detected" },
+    { S2N_ERR_INVALID_CIPHER_PREFERENCES, "Invalid Cipher Preferences version" },
 }; 
 
 const char *s2n_strerror(int error, const char *lang)
