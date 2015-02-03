@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#include <openssl/rand.h>
-#include <string.h>
+//#include <openssl/rand.h>
+#include <strings.h>
 
 #include "error/s2n_errno.h"
 
@@ -54,10 +54,15 @@ struct s2n_cipher_preferences cipher_preferences_20150202 = {
     .minimum_protocol_version = S2N_TLS10
 };
 
-struct s2n_cipher_preferences *s2n_cipher_preferences_20140601 = &cipher_preferences_20140601;
-struct s2n_cipher_preferences *s2n_cipher_preferences_20141001 = &cipher_preferences_20141001;
-struct s2n_cipher_preferences *s2n_cipher_preferences_20150202 = &cipher_preferences_20150202;
-struct s2n_cipher_preferences *s2n_cipher_preferences_default = &cipher_preferences_20150202;
+struct {
+    const char * version;
+    struct s2n_cipher_preferences * preferences;
+} selection[] = {
+    { "default", &cipher_preferences_20150202 },
+    { "20140601", &cipher_preferences_20140601 },
+    { "20141001", &cipher_preferences_20141001 },
+    { "20150202", &cipher_preferences_20150202 }
+};
 
 struct s2n_config s2n_default_config = {
     .cert_and_key_pairs = NULL,
@@ -74,7 +79,7 @@ struct s2n_config *s2n_config_new()
     new_config = (struct s2n_config *)(void *)allocator.data;
     new_config->cert_and_key_pairs = NULL;
 
-    new_config->cipher_preferences = s2n_cipher_preferences_default;
+    GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default"));
 
     return new_config;
 }
@@ -84,6 +89,19 @@ int s2n_config_free(struct s2n_config *config)
     struct s2n_blob b = {.data = (uint8_t *) config,.size = sizeof(struct s2n_config) };
 
     return s2n_free(&b);
+}
+
+int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version)
+{
+    for (int i = 0; i < sizeof(selection) / sizeof(selection[1]); i++) {
+        if (strcasecmp(version, selection[i].version)) {
+            config->cipher_preferences = selection[i].preferences;
+            return 0;
+        }
+    }
+
+    s2n_errno = S2N_ERR_INVALID_CIPHER_PREFERENCES;
+    return -1;
 }
 
 int s2n_config_add_cert_chain_and_key(struct s2n_config *config, char *cert_chain_pem, char *private_key_pem)
