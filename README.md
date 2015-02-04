@@ -1,6 +1,6 @@
 # s2n 
 
-s2n is an implementation of the TLS/SSL protocols. It is designed for servers, and supports SSLv3 (disabled by default), TLS1.0, TLS1.1 and TLS1.2. s2n is released and licensed under the Apache Software License version 2. 
+s2n is an implementation of the TLS/SSL protocols. It is designed for servers, and supports SSLv3 (disabled by default), TLS1.0, TLS1.1 and TLS1.2. s2n is released and licensed under the Apache License 2.0. 
 
 s2n features include:
 
