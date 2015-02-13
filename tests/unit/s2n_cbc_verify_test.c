@@ -205,7 +205,9 @@ int main(int argc, char **argv)
         if ((int64_t) mac_median < lo || (int64_t) mac_median > hi) {
             printf("\n\nRecord size: %d\nGood Median: %llu (Avg: %llu Stddev: %llu)\n"
                    "Bad Median: %llu (Avg: %llu Stddev: %llu)\n\n", 
-                    i, good_median, good_avg, good_stddev, mac_median, mac_avg, mac_stddev);
+                    i, (long long unsigned int)good_median, (long long unsigned int)good_avg,
+                    (long long unsigned int)good_stddev, (long long unsigned int)mac_median,
+                    (long long unsigned int)mac_avg, (long long unsigned int)mac_stddev);
             FAIL();
         }
 
@@ -248,7 +250,9 @@ int main(int argc, char **argv)
         if ((int64_t) pad_median < lo || (int64_t) pad_median > hi) {
             printf("\n\nRecord size: %d\nGood Median: %llu (Avg: %llu Stddev: %llu)\n"
                    "Bad Median: %llu (Avg: %llu Stddev: %llu)\n\n", 
-                    i, good_median, good_avg, good_stddev, pad_median, pad_avg, pad_stddev);
+                    i, (long long unsigned int)good_median, (long long unsigned int)good_avg,
+                    (long long unsigned int)good_stddev, (long long unsigned int)pad_median,
+                    (long long unsigned int)pad_avg, (long long unsigned int)pad_stddev);
             FAIL();
         }
  
@@ -261,7 +265,9 @@ int main(int argc, char **argv)
         if ((int64_t) pad_median < lo || (int64_t) pad_median > hi) {
             printf("\n\nRecord size: %dMAC Median: %llu (Avg: %llu Stddev: %llu)\n"
                    "PAD Median: %llu (Avg: %llu Stddev: %llu)\n\n", 
-                    i, mac_median, mac_avg, mac_stddev, pad_median, pad_avg, pad_stddev);
+                    i, (long long unsigned int)mac_median, (long long unsigned int)mac_avg,
+                    (long long unsigned int)mac_stddev, (long long unsigned int)pad_median,
+                    (long long unsigned int)pad_avg, (long long unsigned int)pad_stddev);
             FAIL();
         }
     }
