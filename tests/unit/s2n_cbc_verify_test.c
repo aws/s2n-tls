@@ -15,6 +15,7 @@
 
 #include "s2n_test.h"
 
+#include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
@@ -203,8 +204,8 @@ int main(int argc, char **argv)
         int64_t hi = good_median + (3 * good_stddev);
 
         if ((int64_t) mac_median < lo || (int64_t) mac_median > hi) {
-            printf("\n\nRecord size: %d\nGood Median: %llu (Avg: %llu Stddev: %llu)\n"
-                   "Bad Median: %llu (Avg: %llu Stddev: %llu)\n\n", 
+            printf("\n\nRecord size: %d\nGood Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n"
+                   "Bad Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n\n", 
                     i, good_median, good_avg, good_stddev, mac_median, mac_avg, mac_stddev);
             FAIL();
         }
@@ -246,8 +247,8 @@ int main(int argc, char **argv)
         hi = good_median + (good_stddev);
 
         if ((int64_t) pad_median < lo || (int64_t) pad_median > hi) {
-            printf("\n\nRecord size: %d\nGood Median: %llu (Avg: %llu Stddev: %llu)\n"
-                   "Bad Median: %llu (Avg: %llu Stddev: %llu)\n\n", 
+            printf("\n\nRecord size: %d\nGood Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n"
+                   "Bad Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n\n", 
                     i, good_median, good_avg, good_stddev, pad_median, pad_avg, pad_stddev);
             FAIL();
         }
@@ -259,8 +260,8 @@ int main(int argc, char **argv)
         hi = mac_median + (mac_stddev / 2);
 
         if ((int64_t) pad_median < lo || (int64_t) pad_median > hi) {
-            printf("\n\nRecord size: %dMAC Median: %llu (Avg: %llu Stddev: %llu)\n"
-                   "PAD Median: %llu (Avg: %llu Stddev: %llu)\n\n", 
+            printf("\n\nRecord size: %dMAC Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n"
+                   "PAD Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n\n", 
                     i, mac_median, mac_avg, mac_stddev, pad_median, pad_avg, pad_stddev);
             FAIL();
         }
