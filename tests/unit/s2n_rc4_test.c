@@ -85,10 +85,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
         EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5))
-            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)))
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)))
 
-            /* Check that the data looks right */
-            EXPECT_EQUAL(bytes_written + 20, s2n_stuffer_data_available(&conn->in));
+        /* Check that the data looks right */
+        EXPECT_EQUAL(bytes_written + 20, s2n_stuffer_data_available(&conn->in));
 
         /* Let's decrypt it */
         uint8_t content_type;
