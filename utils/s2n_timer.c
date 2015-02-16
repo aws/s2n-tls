@@ -37,7 +37,8 @@ int s2n_timer_reset(struct s2n_timer *timer, uint64_t *nanoseconds)
 
     *nanoseconds = timer->time - previous_time;
 
-    mach_timebase_info(&conversion_factor);   
+    GUARD(mach_timebase_info(&conversion_factor));
+
     *nanoseconds *= conversion_factor.numer;
     *nanoseconds /= conversion_factor.denom;
 
