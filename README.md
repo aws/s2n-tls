@@ -29,4 +29,4 @@ exchange algorithms.  For more detail about s2n, see the [API Reference](https:/
 
 ## Security and vulnerability notifications
 If you discover a security vulnerability or issue in s2n we ask that you notify
-it to AWS Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). 
+AWS Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). 
