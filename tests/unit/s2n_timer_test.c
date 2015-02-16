@@ -55,9 +55,9 @@ int main(int argc, char **argv)
      *
      * = 123456790 (same as 1 + 123456789)
      */
-    time_t previous_time = timer.time.tv_sec;
+    time_t previous_time;
     do {
-	previous_time = timer.time.tv_sec;
+        previous_time = timer.time.tv_sec;
         timer.time.tv_nsec = 999999999;
 
         EXPECT_SUCCESS(s2n_timer_reset(&timer, &nanoseconds));
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
     /* Now we perform the oppossite test: make sure that the previous value for
      * nsec is smaller than the later one */
     do {
-	previous_time = timer.time.tv_sec;
+        previous_time = timer.time.tv_sec;
         timer.time.tv_nsec = 0;
 
         EXPECT_SUCCESS(s2n_timer_reset(&timer, &nanoseconds));
