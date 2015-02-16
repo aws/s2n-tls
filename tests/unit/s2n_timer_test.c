@@ -31,6 +31,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(sleep(1));
     EXPECT_SUCCESS(s2n_timer_reset(&timer, &nanoseconds));
     EXPECT_TRUE(nanoseconds > 1000000000);
+    EXPECT_TRUE(nanoseconds < 2000000000);
 
     END_TEST();
 }

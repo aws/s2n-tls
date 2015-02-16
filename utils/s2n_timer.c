@@ -66,8 +66,8 @@ int s2n_timer_reset(struct s2n_timer *timer, uint64_t *nanoseconds)
 
     GUARD(s2n_timer_start(timer));
 
-    *nanoseconds = (uint64_t) ((previous_time.tv_sec - timer->time.tv_sec) * 1000000000);
-    *nanoseconds += (uint16_t) (previous_time.tv_nsec - timer->time.tv_nsec);
+    *nanoseconds = (uint64_t) ((timer->time.tv_sec - previous_time.tv_sec) * 1000000000);
+    *nanoseconds += (uint16_t) (timer->time.tv_nsec - previous_time.tv_nsec);
 
     return 0;
 }
