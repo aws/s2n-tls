@@ -13,6 +13,12 @@
 # permissions and limitations under the License.
 #
 
+ifeq ($(shell uname),Darwin)
+    LIBS = -lc -lcrypto -lpthread
+else
+    LIBS = -lc -lcrypto -lpthread -lrt
+endif
+
 OBJS = $(wildcard ../utils/*.o ../stuffer/*.o ../tls/*.o ../iana/*.o ../crypto/*.o ../error/*.o)
 all: libs2n.a libs2n.so libs2n.dylib
 
@@ -23,7 +29,7 @@ libs2n.a: ${OBJS}
 	ranlib libs2n.a
 
 libs2n.so: ${OBJS}
-	gcc -shared -lc -lcrypto -lpthread -lrt -o libs2n.so ${OBJS}
+	gcc -shared ${LIBS} -o libs2n.so ${OBJS}
 
 libs2n.dylib: ${OBJS}
-	test ! -f /usr/lib/libSystem.dylib || libtool -dynamic -lc -lcrypto -lpthread -o libs2n.dylib ${OBJS}
+	test ! -f /usr/lib/libSystem.dylib || libtool -dynamic ${LIBS} -o libs2n.dylib ${OBJS}
