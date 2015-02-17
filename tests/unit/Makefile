@@ -25,7 +25,7 @@ CRUFT += $(wildcard *_test)
 # Suppress the unreachable code warning, because tests involve what should be
 # unreachable code
 CFLAGS += -Wno-unreachable-code -I../../ -I../../api/
-LDFLAGS += -L../../lib/ -L../testlib/ -ltests2n -ls2n -lcrypto -lpthread -lm
+LDFLAGS += -L../../lib/ -L../testlib/ -ltests2n -ls2n -lcrypto -lpthread -lm -lrt
 
 run_tests: build_tests
 	(for test in *_test ; do DYLD_LIBRARY_PATH="../../lib/:../testlib/:$$DYLD_LIBRARY_PATH" LD_LIBRARY_PATH="../../lib/:../testlib/:$$LD_LIBRARY_PATH" ./$$test || exit 1 ; done )
