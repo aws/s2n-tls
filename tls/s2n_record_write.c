@@ -31,6 +31,33 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
 
+/* Derive the AAD for an AEAD mode cipher suite from the connection state, per
+ * RFC 5246 section 6.2.3.3 */
+static int get_aad(const struct s2n_connection *conn, uint8_t content_type, uint16_t record_length, struct s2n_blob *ad)
+{
+    gte_check(ad->size, S2N_TLS_AAD_LEN);
+
+    uint8_t *sequence_number = conn->server->server_sequence_number;
+
+    if (conn->mode == S2N_CLIENT) {
+        sequence_number = conn->client->client_sequence_number;
+    }
+
+    /* ad = seq_num || record_type || version || length */
+    memcpy_check(ad->data, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
+
+    int ad_len = S2N_TLS_SEQUENCE_NUM_LEN;
+    ad->data[ad_len++] = content_type;
+    ad->data[ad_len++] = conn->actual_protocol_version / 10;
+    ad->data[ad_len++] = conn->actual_protocol_version % 10;
+    ad->data[ad_len++] = record_length >> 8;
+    ad->data[ad_len++] = record_length & 0xFF;
+
+    ad->size = ad_len;
+
+    return 0;
+}
+
 /* How much overhead does the IV, MAC, TAG and padding bytes introduce ? */
 static uint16_t overhead(struct s2n_connection *conn)
 {
@@ -76,10 +103,12 @@ int s2n_record_max_write_payload_size(struct s2n_connection *conn)
 
 int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in)
 {
-    struct s2n_blob out, iv;
+    struct s2n_blob out, iv, aad;
     uint8_t padding = 0;
     uint16_t block_size = 0;
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
+    uint8_t aad_gen[S2N_TLS_AAD_LEN] = { 0 };
+    uint8_t aad_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
 
     uint8_t *sequence_number = conn->server->server_sequence_number;
     struct s2n_hmac_state *mac = &conn->server->server_record_mac;
@@ -121,7 +150,6 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
 
     /* Start the MAC with the sequence number */
     GUARD(s2n_hmac_update(mac, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
-    s2n_increment_sequence_number(sequence_number);
 
     /* Now that we know the length, start writing the record */
     protocol_version[0] = conn->actual_protocol_version / 10;
@@ -155,11 +183,24 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
             GUARD(s2n_stuffer_write(&conn->out, &iv));
         }
     }
-
-    /* If we're AEAD, write the sequence number as an IV */
-    if (cipher_suite->cipher->type == S2N_AEAD) {
+    /* If we're AEAD, write the sequence number as an IV, and generate the AAD */
+    else if (cipher_suite->cipher->type == S2N_AEAD) {
         GUARD(s2n_stuffer_write_bytes(&conn->out, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+
+        memcpy_check(aad_iv, implicit_iv, cipher_suite->cipher->io.aead.fixed_iv_size);
+        memcpy_check(aad_iv + cipher_suite->cipher->io.aead.fixed_iv_size, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
+
+        iv.data = aad_iv;
+        iv.size = cipher_suite->cipher->io.aead.fixed_iv_size + S2N_TLS_SEQUENCE_NUM_LEN;
+
+        aad.data = aad_gen;
+        aad.size = sizeof(aad_gen);
+
+        GUARD(get_aad(conn, content_type, data_bytes_to_take, &aad));
     }
+
+    /* We are done with this sequence number, so we can increment it */
+    s2n_increment_sequence_number(sequence_number);
 
     /* Write the plaintext data */
     out.data = in->data;
@@ -193,6 +234,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     uint16_t encrypted_length = data_bytes_to_take + mac_digest_size;
 
     if (cipher_suite->cipher->type == S2N_AEAD) {
+        encrypted_length += cipher_suite->cipher->io.aead.record_iv_size;
         encrypted_length += cipher_suite->cipher->io.aead.tag_size;
     }
 
@@ -221,6 +263,9 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
         /* Copy the last encrypted block to be the next IV */
         gte_check(en.size, block_size);
         memcpy_check(implicit_iv, en.data + en.size - block_size, block_size);
+        break;
+    case S2N_AEAD:
+        GUARD(cipher_suite->cipher->io.aead.encrypt(session_key, &iv, &aad, &en, &en));
         break;
     default:
         return -1;

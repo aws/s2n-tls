@@ -31,6 +31,7 @@
 #define S2N_TLS_FINISHED_LEN           12
 #define S2N_SSL_FINISHED_LEN           36
 #define S2N_TLS_MAX_IV_LEN             16
+#define S2N_TLS_AAD_LEN                13
 
 struct s2n_crypto_parameters {
     struct s2n_rsa_public_key server_rsa_public_key;
