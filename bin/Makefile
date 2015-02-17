@@ -16,7 +16,7 @@
 all: s2nc s2nd
 include ../s2n.mk
 
-LDFLAGS += -L../lib/ -ls2n -lcrypto 
+LDFLAGS += -L../lib/ -ls2n -lcrypto -lrt
 CRUFT += s2nc s2nd
 
 s2nc: s2nc.c echo.c
