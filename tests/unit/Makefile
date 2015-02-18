@@ -22,10 +22,16 @@ include ../../s2n.mk
 
 CRUFT += $(wildcard *_test)
 
+ifeq ($(shell uname),Darwin)
+    LIBS = -lcrypto -lpthread -lm
+else
+    LIBS = -lcrypto -lpthread -lm -lrt
+endif
+
 # Suppress the unreachable code warning, because tests involve what should be
 # unreachable code
 CFLAGS += -Wno-unreachable-code -I../../ -I../../api/
-LDFLAGS += -L../../lib/ -L../testlib/ -ltests2n -ls2n -lcrypto -lpthread -lm -lrt
+LDFLAGS += -L../../lib/ -L../testlib/ -ltests2n -ls2n ${LIBS}
 
 run_tests: build_tests
 	(for test in *_test ; do DYLD_LIBRARY_PATH="../../lib/:../testlib/:$$DYLD_LIBRARY_PATH" LD_LIBRARY_PATH="../../lib/:../testlib/:$$LD_LIBRARY_PATH" ./$$test || exit 1 ; done )
