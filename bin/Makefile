@@ -16,7 +16,13 @@
 all: s2nc s2nd
 include ../s2n.mk
 
-LDFLAGS += -L../lib/ -ls2n -lcrypto -lrt
+ifeq ($(shell uname),Darwin)
+    LIBS = -lcrypto
+else
+    LIBS = -lcrypto -lrt
+endif
+
+LDFLAGS += -L../lib/ -ls2n ${LIBS}
 CRUFT += s2nc s2nd
 
 s2nc: s2nc.c echo.c
