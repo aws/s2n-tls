@@ -147,11 +147,17 @@ int s2n_record_parse(struct s2n_connection *conn)
     /* In AEAD mode, the explicit IV is in the record */
     if (cipher_suite->cipher->type == S2N_AEAD) {
         gte_check(en.size, cipher_suite->cipher->io.aead.record_iv_size);
-        gte_check(payload_length, cipher_suite->cipher->io.aead.record_iv_size + cipher_suite->cipher->io.aead.tag_size);
-        gte_check(sizeof(aad_iv), cipher_suite->cipher->io.aead.fixed_iv_size + cipher_suite->cipher->io.aead.record_iv_size);
 
-        memcpy_check(aad_iv, implicit_iv, cipher_suite->cipher->io.aead.fixed_iv_size);
-        memcpy_check(aad_iv + cipher_suite->cipher->io.aead.fixed_iv_size, en.data, cipher_suite->cipher->io.aead.record_iv_size);
+        struct s2n_stuffer iv_stuffer;
+        iv.data = aad_iv;
+        iv.size = sizeof(aad_iv);
+
+        GUARD(s2n_stuffer_init(&iv_stuffer, &iv));
+        GUARD(s2n_stuffer_write_bytes(&iv_stuffer, implicit_iv, cipher_suite->cipher->io.aead.fixed_iv_size));
+        GUARD(s2n_stuffer_write_bytes(&iv_stuffer, en.data, cipher_suite->cipher->io.aead.record_iv_size));
+
+        /* Set the IV size to the amount of data written */
+        iv.size = s2n_stuffer_data_available(&iv_stuffer);
 
         iv.data = aad_iv;
         iv.size = cipher_suite->cipher->io.aead.fixed_iv_size + cipher_suite->cipher->io.aead.record_iv_size;
@@ -160,6 +166,7 @@ int s2n_record_parse(struct s2n_connection *conn)
         aad.size = sizeof(aad_gen);
 
         /* remove the AEAD overhead from the record size */
+        gte_check(payload_length, cipher_suite->cipher->io.aead.record_iv_size + cipher_suite->cipher->io.aead.tag_size);
         payload_length -= cipher_suite->cipher->io.aead.record_iv_size;
         payload_length -= cipher_suite->cipher->io.aead.tag_size;
 

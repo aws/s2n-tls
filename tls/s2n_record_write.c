@@ -146,7 +146,26 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     GUARD(s2n_stuffer_wipe_n(&conn->out, 2));
     GUARD(s2n_stuffer_write_uint16(&conn->out, actual_fragment_length));
 
-    if (cipher_suite->cipher->type == S2N_CBC) {
+    /* If we're AEAD, write the sequence number as an IV, and generate the AAD */
+    if (cipher_suite->cipher->type == S2N_AEAD) {
+        GUARD(s2n_stuffer_write_bytes(&conn->out, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+
+        struct s2n_stuffer iv_stuffer;
+        iv.data = aad_iv;
+        iv.size = sizeof(aad_iv);
+
+        GUARD(s2n_stuffer_init(&iv_stuffer, &iv));
+        GUARD(s2n_stuffer_write_bytes(&iv_stuffer, implicit_iv, cipher_suite->cipher->io.aead.fixed_iv_size));
+        GUARD(s2n_stuffer_write_bytes(&iv_stuffer, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+
+        /* Set the IV size to the amount of data written */
+        iv.size = s2n_stuffer_data_available(&iv_stuffer);
+
+        aad.data = aad_gen;
+        aad.size = sizeof(aad_gen);
+
+        GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &aad));
+    } else if (cipher_suite->cipher->type == S2N_CBC) {
         iv.size = block_size;
         iv.data = implicit_iv;
 
@@ -155,21 +174,6 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
             GUARD(s2n_get_random_data(iv.data, iv.size));
             GUARD(s2n_stuffer_write(&conn->out, &iv));
         }
-    }
-    /* If we're AEAD, write the sequence number as an IV, and generate the AAD */
-    else if (cipher_suite->cipher->type == S2N_AEAD) {
-        GUARD(s2n_stuffer_write_bytes(&conn->out, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
-
-        memcpy_check(aad_iv, implicit_iv, cipher_suite->cipher->io.aead.fixed_iv_size);
-        memcpy_check(aad_iv + cipher_suite->cipher->io.aead.fixed_iv_size, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
-
-        iv.data = aad_iv;
-        iv.size = cipher_suite->cipher->io.aead.fixed_iv_size + S2N_TLS_SEQUENCE_NUM_LEN;
-
-        aad.data = aad_gen;
-        aad.size = sizeof(aad_gen);
-
-        GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &aad));
     }
 
     /* We are done with this sequence number, so we can increment it */
