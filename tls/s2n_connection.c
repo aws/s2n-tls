@@ -115,6 +115,12 @@ int s2n_connection_free(struct s2n_connection *conn)
 {
     struct s2n_blob blob;
 
+    /* Destroy any keys */
+    GUARD(conn->active.cipher_suite->cipher->destroy_key(&conn->active.client_key));
+    GUARD(conn->active.cipher_suite->cipher->destroy_key(&conn->active.server_key));
+    GUARD(conn->active.cipher_suite->cipher->destroy_key(&conn->pending.client_key));
+    GUARD(conn->active.cipher_suite->cipher->destroy_key(&conn->pending.server_key));
+
     GUARD(s2n_dh_params_free(&conn->pending.server_dh_params));
     GUARD(s2n_dh_params_free(&conn->active.server_dh_params));
     GUARD(s2n_stuffer_free(&conn->in));

@@ -53,20 +53,32 @@ struct s2n_cipher_preferences cipher_preferences_20150202 = {
     .minimum_protocol_version = S2N_TLS10
 };
 
+/* Support AES-GCM modes */
+uint8_t wire_format_20150214[] =
+    { TLS_DHE_RSA_WITH_AES_128_GCM_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
+    TLS_RSA_WITH_AES_128_GCM_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA, TLS_RSA_WITH_3DES_EDE_CBC_SHA
+};
+struct s2n_cipher_preferences cipher_preferences_20150214 = {
+    .count = sizeof(wire_format_20150214) / S2N_TLS_CIPHER_SUITE_LEN,
+    .wire_format = wire_format_20150214,
+    .minimum_protocol_version = S2N_TLS10
+};
+
 struct {
     const char * version;
     struct s2n_cipher_preferences * preferences;
 } selection[] = {
-    { "default", &cipher_preferences_20150202 },
+    { "default", &cipher_preferences_20150214 },
     { "20140601", &cipher_preferences_20140601 },
     { "20141001", &cipher_preferences_20141001 },
     { "20150202", &cipher_preferences_20150202 },
+    { "20150214", &cipher_preferences_20150214 },
     { NULL, NULL }
 };
 
 struct s2n_config s2n_default_config = {
     .cert_and_key_pairs = NULL,
-    .cipher_preferences = &cipher_preferences_20150202
+    .cipher_preferences = &cipher_preferences_20150214
 };
 
 struct s2n_config *s2n_config_new()

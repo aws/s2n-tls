@@ -34,6 +34,11 @@ int s2n_stream_cipher_rc4_get_key(struct s2n_session_key *key, struct s2n_blob *
     return 0;
 }
 
+int s2n_stream_cipher_rc4_destroy_key(struct s2n_session_key *key)
+{
+    return 0;
+}
+
 struct s2n_cipher s2n_rc4 = {
     .type = S2N_STREAM,
     .key_material_size = 16,
@@ -41,5 +46,6 @@ struct s2n_cipher s2n_rc4 = {
                   .decrypt = s2n_stream_cipher_rc4_endecrypt,
                   .encrypt = s2n_stream_cipher_rc4_endecrypt},
     .get_decryption_key = s2n_stream_cipher_rc4_get_key,
-    .get_encryption_key = s2n_stream_cipher_rc4_get_key
+    .get_encryption_key = s2n_stream_cipher_rc4_get_key,
+    .destroy_key = s2n_stream_cipher_rc4_destroy_key,
 };
