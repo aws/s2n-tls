@@ -41,8 +41,8 @@ int main(int argc, char **argv)
         }
     }
 
-    /* We should have exactly 12 cipher suites */
-    EXPECT_EQUAL(count, 12);
+    /* We should have exactly 14 cipher suites */
+    EXPECT_EQUAL(count, 14);
 
     END_TEST();
 }

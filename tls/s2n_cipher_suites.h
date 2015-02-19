@@ -43,6 +43,7 @@ struct s2n_cipher_suite {
 extern struct s2n_cipher_suite s2n_null_cipher_suite;
 extern struct s2n_cipher_preferences *s2n_cipher_preferences_20140601;
 extern struct s2n_cipher_preferences *s2n_cipher_preferences_20150202;
+extern struct s2n_cipher_preferences *s2n_cipher_preferences_20150214;
 extern struct s2n_cipher_preferences *s2n_cipher_preferences_default;
 
 extern int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN]);

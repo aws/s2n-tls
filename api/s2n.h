@@ -66,6 +66,7 @@ extern int s2n_shutdown(struct s2n_connection *conn, int *more);
 
 extern int s2n_connection_wipe(struct s2n_connection *conn);
 extern int s2n_connection_free(struct s2n_connection *conn);
+extern int s2n_shutdown(struct s2n_connection *conn, int *more);
 
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);
 extern uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn);
