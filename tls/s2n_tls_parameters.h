@@ -32,9 +32,7 @@
 #define TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA   0x00, 0x16
 
 #define TLS_RSA_WITH_AES_128_GCM_SHA256     0x00, 0x9C
-#define TLS_RSA_WITH_AES_256_GCM_SHA384     0x00, 0x9D
 #define TLS_DHE_RSA_WITH_AES_128_GCM_SHA256 0x00, 0x9E
-#define TLS_DHE_RSA_WITH_AES_256_GCM_SHA384 0x00, 0x9F
 
 /* From https://tools.ietf.org/html/draft-ietf-tls-downgrade-scsv-03 */
 #define TLS_FALLBACK_SCSV                   0x56, 0x00
