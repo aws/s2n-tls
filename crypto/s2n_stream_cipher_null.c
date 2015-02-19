@@ -37,6 +37,11 @@ int s2n_stream_cipher_null_get_key(struct s2n_session_key *key, struct s2n_blob 
     return 0;
 }
 
+int s2n_stream_cipher_null_destroy_key(struct s2n_session_key *key)
+{
+    return 0;
+}
+
 struct s2n_cipher s2n_null_cipher = {
     .type = S2N_STREAM,
     .key_material_size = 0,
@@ -44,5 +49,6 @@ struct s2n_cipher s2n_null_cipher = {
                   .decrypt = s2n_stream_cipher_null_endecrypt,
                   .encrypt = s2n_stream_cipher_null_endecrypt},
     .get_encryption_key = s2n_stream_cipher_null_get_key,
-    .get_decryption_key = s2n_stream_cipher_null_get_key
+    .get_decryption_key = s2n_stream_cipher_null_get_key,
+    .destroy_key = s2n_stream_cipher_null_destroy_key,
 };

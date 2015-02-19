@@ -32,7 +32,7 @@ static int s2n_aead_cipher_aes_gcm_encrypt(struct s2n_session_key *key, struct s
 
     /* Initialize the IV */
     if (EVP_EncryptInit_ex(&key->native_format.evp_cipher_ctx, NULL, NULL, NULL, iv->data) != 1) {
-        S2N_ERROR(S2N_ERR_ENCRYPT);
+        S2N_ERROR(S2N_ERR_KEY_INIT);
     }
 
     /* Adjust our buffer pointers to account for the explicit IV and TAG lengths */
@@ -74,7 +74,7 @@ static int s2n_aead_cipher_aes_gcm_decrypt(struct s2n_session_key *key, struct s
 
     /* Initialize the IV */
     if (EVP_DecryptInit_ex(&key->native_format.evp_cipher_ctx, NULL, NULL, NULL, iv->data) != 1) {
-        S2N_ERROR(S2N_ERR_DECRYPT);
+        S2N_ERROR(S2N_ERR_KEY_INIT);
     }
 
     /* Adjust our buffer pointers to account for the explicit IV and TAG lengths */
@@ -151,6 +151,13 @@ static int s2n_aead_cipher_aes256_gcm_get_decryption_key(struct s2n_session_key 
     return 0;
 }
 
+static int s2n_aead_cipher_aes_gcm_destroy_key(struct s2n_session_key *key)
+{
+    EVP_CIPHER_CTX_cleanup(&key->native_format.evp_cipher_ctx);
+
+    return 0;
+}
+
 struct s2n_cipher s2n_aes128_gcm = {
     .key_material_size = 16,
     .type = S2N_AEAD,
@@ -161,7 +168,8 @@ struct s2n_cipher s2n_aes128_gcm = {
                 .decrypt = s2n_aead_cipher_aes_gcm_decrypt,
                 .encrypt = s2n_aead_cipher_aes_gcm_encrypt},
     .get_encryption_key = s2n_aead_cipher_aes128_gcm_get_encryption_key,
-    .get_decryption_key = s2n_aead_cipher_aes128_gcm_get_decryption_key
+    .get_decryption_key = s2n_aead_cipher_aes128_gcm_get_decryption_key,
+    .destroy_key = s2n_aead_cipher_aes_gcm_destroy_key,
 };
 
 struct s2n_cipher s2n_aes256_gcm = {
@@ -174,6 +182,7 @@ struct s2n_cipher s2n_aes256_gcm = {
                 .decrypt = s2n_aead_cipher_aes_gcm_decrypt,
                 .encrypt = s2n_aead_cipher_aes_gcm_encrypt},
     .get_encryption_key = s2n_aead_cipher_aes256_gcm_get_encryption_key,
-    .get_decryption_key = s2n_aead_cipher_aes256_gcm_get_decryption_key
+    .get_decryption_key = s2n_aead_cipher_aes256_gcm_get_decryption_key,
+    .destroy_key = s2n_aead_cipher_aes_gcm_destroy_key,
 };
 
