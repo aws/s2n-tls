@@ -33,33 +33,6 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
 
-/* Derive the AAD for an AEAD mode cipher suite from the connection state, per
- * RFC 5246 section 6.2.3.3 */
-static int get_aad(const struct s2n_connection *conn, uint8_t content_type, uint16_t record_length, struct s2n_blob *ad)
-{
-    gte_check(ad->size, S2N_TLS_AAD_LEN);
-
-    /* You always use your peers sequence number when reading records */
-    uint8_t *sequence_number = conn->client->client_sequence_number;
-
-    if (conn->mode == S2N_CLIENT) {
-        sequence_number = conn->server->server_sequence_number;
-    }
-
-    /* ad = seq_num || record_type || version || length */
-    memcpy_check(ad->data, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
-    int ad_len = S2N_TLS_SEQUENCE_NUM_LEN;
-    ad->data[ad_len++] = content_type;
-    ad->data[ad_len++] = conn->actual_protocol_version / 10;
-    ad->data[ad_len++] = conn->actual_protocol_version % 10; 
-    ad->data[ad_len++] = record_length >> 8;
-    ad->data[ad_len++] = record_length & 0xFF;
-
-    ad->size = ad_len;
-
-    return 0;
-}
-
 int s2n_sslv2_record_header_parse(struct s2n_connection *conn, uint8_t *record_type, uint8_t *client_protocol_version, uint16_t *fragment_length)
 {
     struct s2n_stuffer *in = &conn->header_in;
@@ -122,7 +95,7 @@ int s2n_record_parse(struct s2n_connection *conn)
     uint8_t ivpad[16];
     uint8_t content_type;
     uint16_t fragment_length;
-    uint8_t aad_gen[S2N_TLS_AAD_LEN] = { 0 };
+    uint8_t aad_gen[S2N_TLS_MAX_AAD_LEN] = { 0 };
     uint8_t aad_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
 
     uint8_t *sequence_number = conn->client->client_sequence_number;
@@ -190,7 +163,7 @@ int s2n_record_parse(struct s2n_connection *conn)
         payload_length -= cipher_suite->cipher->io.aead.record_iv_size;
         payload_length -= cipher_suite->cipher->io.aead.tag_size;
 
-        GUARD(get_aad(conn, content_type, payload_length, &aad));
+        GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, payload_length, &aad));
     }
 
     /* Decrypt stuff! */
@@ -225,16 +198,16 @@ int s2n_record_parse(struct s2n_connection *conn)
 
     int offset = 0;
 
-    /* Subtract the padding length */
-    if (cipher_suite->cipher->type == S2N_CBC) {
-        gt_check(en.size, 0);
-        payload_length -= (en.data[en.size - 1] + 1);
-    } 
     /* Skip the explicit IV */
-    else if (cipher_suite->cipher->type == S2N_AEAD) {
+    if (cipher_suite->cipher->type == S2N_AEAD) {
         gt_check(en.size, cipher_suite->cipher->io.aead.record_iv_size);
         offset = cipher_suite->cipher->io.aead.record_iv_size;
     }
+    /* Subtract the padding length */
+    else if (cipher_suite->cipher->type == S2N_CBC) {
+        gt_check(en.size, 0);
+        payload_length -= (en.data[en.size - 1] + 1);
+    } 
 
     /* Update the MAC */
     header[3] = (payload_length >> 8);
@@ -257,8 +230,7 @@ int s2n_record_parse(struct s2n_connection *conn)
             S2N_ERROR(S2N_ERR_BAD_MESSAGE);
             return -1;
         }
-    }
-    else {
+    } else {
         /* MAC check for streaming ciphers - no padding */
         GUARD(s2n_hmac_update(mac, en.data + offset, payload_length));
 
@@ -283,7 +255,7 @@ int s2n_record_parse(struct s2n_connection *conn)
     if (cipher_suite->cipher->type == S2N_CBC && conn->actual_protocol_version > S2N_TLS10) {
         GUARD(s2n_stuffer_skip_read(&conn->in, cipher_suite->cipher->io.cbc.record_iv_size));
     } else if (cipher_suite->cipher->type == S2N_AEAD && conn->actual_protocol_version >= S2N_TLS12) {
-        GUARD(s2n_stuffer_skip_read(&conn->in, cipher_suite->cipher->io.cbc.record_iv_size));
+        GUARD(s2n_stuffer_skip_read(&conn->in, cipher_suite->cipher->io.aead.record_iv_size));
     }
 
     /* Truncate and wipe the MAC and any padding */

@@ -31,7 +31,13 @@
 #define S2N_TLS_FINISHED_LEN           12
 #define S2N_SSL_FINISHED_LEN           36
 #define S2N_TLS_MAX_IV_LEN             16
-#define S2N_TLS_AAD_LEN                13
+
+#define S2N_TLS_GCM_AAD_LEN            13
+#define S2N_TLS_MAX_AAD_LEN            S2N_TLS_GCM_AAD_LEN
+#define S2N_TLS_GCM_FIXED_IV_LEN        4
+#define S2N_TLS_GCM_EXPLICIT_IV_LEN     8
+#define S2N_TLS_GCM_IV_LEN            (S2N_TLS_GCM_FIXED_IV_LEN + S2N_TLS_GCM_EXPLICIT_IV_LEN)
+#define S2N_TLS_GCM_TAG_LEN            16
 
 struct s2n_crypto_parameters {
     struct s2n_rsa_public_key server_rsa_public_key;

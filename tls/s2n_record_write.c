@@ -31,33 +31,6 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
 
-/* Derive the AAD for an AEAD mode cipher suite from the connection state, per
- * RFC 5246 section 6.2.3.3 */
-static int get_aad(const struct s2n_connection *conn, uint8_t content_type, uint16_t record_length, struct s2n_blob *ad)
-{
-    gte_check(ad->size, S2N_TLS_AAD_LEN);
-
-    uint8_t *sequence_number = conn->server->server_sequence_number;
-
-    if (conn->mode == S2N_CLIENT) {
-        sequence_number = conn->client->client_sequence_number;
-    }
-
-    /* ad = seq_num || record_type || version || length */
-    memcpy_check(ad->data, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
-
-    int ad_len = S2N_TLS_SEQUENCE_NUM_LEN;
-    ad->data[ad_len++] = content_type;
-    ad->data[ad_len++] = conn->actual_protocol_version / 10;
-    ad->data[ad_len++] = conn->actual_protocol_version % 10;
-    ad->data[ad_len++] = record_length >> 8;
-    ad->data[ad_len++] = record_length & 0xFF;
-
-    ad->size = ad_len;
-
-    return 0;
-}
-
 /* How much overhead does the IV, MAC, TAG and padding bytes introduce ? */
 static uint16_t overhead(struct s2n_connection *conn)
 {
@@ -107,7 +80,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     uint8_t padding = 0;
     uint16_t block_size = 0;
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
-    uint8_t aad_gen[S2N_TLS_AAD_LEN] = { 0 };
+    uint8_t aad_gen[S2N_TLS_MAX_AAD_LEN] = { 0 };
     uint8_t aad_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
 
     uint8_t *sequence_number = conn->server->server_sequence_number;
@@ -196,7 +169,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
         aad.data = aad_gen;
         aad.size = sizeof(aad_gen);
 
-        GUARD(get_aad(conn, content_type, data_bytes_to_take, &aad));
+        GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &aad));
     }
 
     /* We are done with this sequence number, so we can increment it */

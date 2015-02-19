@@ -113,7 +113,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(conn->active.cipher_suite->cipher->get_decryption_key(&conn->active.client_key, &aes256));
     EXPECT_SUCCESS(s2n_hmac_init(&conn->active.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     EXPECT_SUCCESS(s2n_hmac_init(&conn->active.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
-    conn->actual_protocol_version = S2N_TLS11;
+    conn->actual_protocol_version = S2N_TLS12;
 
     max_aligned_fragment = S2N_MAXIMUM_FRAGMENT_LENGTH - (S2N_MAXIMUM_FRAGMENT_LENGTH % 16);
     for (int i = 0; i <= max_aligned_fragment + 1; i++) {
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
 
         EXPECT_EQUAL(conn->out.blob.data[0], TLS_APPLICATION_DATA);
         EXPECT_EQUAL(conn->out.blob.data[1], 3);
-        EXPECT_EQUAL(conn->out.blob.data[2], 2);
+        EXPECT_EQUAL(conn->out.blob.data[2], 3);
         EXPECT_EQUAL(conn->out.blob.data[3], (predicted_length >> 8) & 0xff);
         EXPECT_EQUAL(conn->out.blob.data[4], predicted_length & 0xff);
 
@@ -150,7 +150,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5))
         EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)))
 
-            /* Let's decrypt it */
+        /* Let's decrypt it */
         uint8_t content_type;
         uint16_t fragment_length;
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
