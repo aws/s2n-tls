@@ -382,18 +382,7 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
         return 0;
     }
 
-    if (conn->pending.cipher_suite->cipher->type == S2N_CBC) {
-        /* Generate the IVs */
-        struct s2n_blob client_implicit_iv;
-        client_implicit_iv.data = conn->pending.client_implicit_iv;
-        client_implicit_iv.size = conn->pending.cipher_suite->cipher->io.cbc.block_size;
-        GUARD(s2n_stuffer_read(&key_material, &client_implicit_iv));
-
-        struct s2n_blob server_implicit_iv;
-        server_implicit_iv.data = conn->pending.server_implicit_iv;
-        server_implicit_iv.size = conn->pending.cipher_suite->cipher->io.cbc.block_size;
-        GUARD(s2n_stuffer_read(&key_material, &server_implicit_iv));
-    } else if (conn->pending.cipher_suite->cipher->type == S2N_AEAD) {
+    if (conn->pending.cipher_suite->cipher->type == S2N_AEAD) {
         /* Generate the IVs */
         struct s2n_blob client_implicit_iv;
         client_implicit_iv.data = conn->pending.client_implicit_iv;
@@ -403,6 +392,17 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
         struct s2n_blob server_implicit_iv;
         server_implicit_iv.data = conn->pending.server_implicit_iv;
         server_implicit_iv.size = conn->pending.cipher_suite->cipher->io.aead.fixed_iv_size;
+        GUARD(s2n_stuffer_read(&key_material, &server_implicit_iv));
+    } else if (conn->pending.cipher_suite->cipher->type == S2N_CBC) {
+        /* Generate the IVs */
+        struct s2n_blob client_implicit_iv;
+        client_implicit_iv.data = conn->pending.client_implicit_iv;
+        client_implicit_iv.size = conn->pending.cipher_suite->cipher->io.cbc.block_size;
+        GUARD(s2n_stuffer_read(&key_material, &client_implicit_iv));
+
+        struct s2n_blob server_implicit_iv;
+        server_implicit_iv.data = conn->pending.server_implicit_iv;
+        server_implicit_iv.size = conn->pending.cipher_suite->cipher->io.cbc.block_size;
         GUARD(s2n_stuffer_read(&key_material, &server_implicit_iv));
     }
 
