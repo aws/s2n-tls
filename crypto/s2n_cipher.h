@@ -68,6 +68,7 @@ struct s2n_cipher {
     uint8_t key_material_size;
     int (*get_decryption_key) (struct s2n_session_key *key, struct s2n_blob *in);
     int (*get_encryption_key) (struct s2n_session_key *key, struct s2n_blob *in);
+    int (*destroy_key) (struct s2n_session_key *key);
 };
 
 extern struct s2n_cipher s2n_null_cipher;
