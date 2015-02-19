@@ -33,18 +33,18 @@
 int main(int argc, char **argv)
 {
     struct s2n_connection *conn;
+    uint8_t random_data[S2N_MAXIMUM_FRAGMENT_LENGTH + 1];
     uint8_t mac_key[] = "sample mac key";
     uint8_t aes128_key[] = "123456789012345";
     uint8_t aes256_key[] = "1234567890123456789012345678901";
     struct s2n_blob aes128 = {.data = aes128_key,.size = sizeof(aes128_key) };
     struct s2n_blob aes256 = {.data = aes256_key,.size = sizeof(aes256_key) };
-    uint8_t random_data[S2N_MAXIMUM_FRAGMENT_LENGTH + 1];
 
     BEGIN_TEST();
 
     EXPECT_SUCCESS(s2n_init());
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-    EXPECT_SUCCESS(s2n_get_random_data(random_data, S2N_MAXIMUM_FRAGMENT_LENGTH + 1));
+    EXPECT_SUCCESS(s2n_get_random_data(random_data, sizeof(random_data)));
 
     /* Peer and we are in sync */
     conn->server = &conn->active;
@@ -91,20 +91,89 @@ int main(int argc, char **argv)
         /* Copy the encrypted out data to the in data */
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5))
-        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)))
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
         /* Let's decrypt it */
         uint8_t content_type;
         uint16_t fragment_length;
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
         EXPECT_SUCCESS(s2n_record_parse(conn));
+        EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
         EXPECT_EQUAL(fragment_length, predicted_length);
+
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+
+        /* Now lets corrupt some data and ensure the tests pass */
+        /* Copy the encrypted out data to the in data */
+        EXPECT_SUCCESS(s2n_stuffer_reread(&conn->out));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
+
+        /* Tamper the protocol version in the header, and ensure decryption fails, as we use this in the AAD */
+        conn->in.blob.data[2] = 2;
+        EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
+        EXPECT_FAILURE(s2n_record_parse(conn));
         EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+
+        /* Tamper with the IV and ensure decryption fails */
+        for (int j = 0; j < S2N_TLS_GCM_IV_LEN; j++) {
+            /* Copy the encrypted out data to the in data */
+            EXPECT_SUCCESS(s2n_stuffer_reread(&conn->out));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
+            conn->in.blob.data[5 + j] ++;
+            EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
+            EXPECT_FAILURE(s2n_record_parse(conn));
+            EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+        }
+
+        /* Tamper with the TAG and ensure decryption fails */
+        for (int j = 0; j < S2N_TLS_GCM_TAG_LEN; j++) {
+            /* Copy the encrypted out data to the in data */
+            EXPECT_SUCCESS(s2n_stuffer_reread(&conn->out));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
+            conn->in.blob.data[conn->in.blob.size - j - 1] ++;
+            EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
+            EXPECT_FAILURE(s2n_record_parse(conn));
+            EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+        }
+
+        /* Tamper w ith the cipher text and ensure decryption fails */
+        for (int j = S2N_TLS_GCM_IV_LEN; j < conn->in.blob.size - S2N_TLS_GCM_TAG_LEN; j++) {
+            /* Copy the encrypted out data to the in data */
+            EXPECT_SUCCESS(s2n_stuffer_reread(&conn->out));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
+            conn->in.blob.data[5 + j] ++;
+            EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
+            EXPECT_FAILURE(s2n_record_parse(conn));
+            EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+        }
     }
+
 
     /* test the AES256 cipher with a SHA1 hash */
     conn->active.cipher_suite->cipher = &s2n_aes256_gcm;
@@ -147,8 +216,8 @@ int main(int argc, char **argv)
         /* Copy the encrypted out data to the in data */
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5))
-        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)))
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
         /* Let's decrypt it */
         uint8_t content_type;
@@ -160,6 +229,74 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+
+        /* Now lets corrupt some data and ensure the tests pass */
+        /* Copy the encrypted out data to the in data */
+        EXPECT_SUCCESS(s2n_stuffer_reread(&conn->out));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
+
+        /* Tamper the protocol version in the header, and ensure decryption fails, as we use this in the AAD */
+        conn->in.blob.data[2] = 2;
+        EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
+        EXPECT_FAILURE(s2n_record_parse(conn));
+        EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
+
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+
+        /* Tamper with the IV and ensure decryption fails */
+        for (int j = 0; j < S2N_TLS_GCM_IV_LEN; j++) {
+            /* Copy the encrypted out data to the in data */
+            EXPECT_SUCCESS(s2n_stuffer_reread(&conn->out));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
+            conn->in.blob.data[5 + j] ++;
+            EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
+            EXPECT_FAILURE(s2n_record_parse(conn));
+            EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+        }
+
+        /* Tamper with the TAG and ensure decryption fails */
+        for (int j = 0; j < S2N_TLS_GCM_TAG_LEN; j++) {
+            /* Copy the encrypted out data to the in data */
+            EXPECT_SUCCESS(s2n_stuffer_reread(&conn->out));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
+            conn->in.blob.data[conn->in.blob.size - j - 1] ++;
+            EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
+            EXPECT_FAILURE(s2n_record_parse(conn));
+            EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+        }
+
+        /* Tamper w ith the cipher text and ensure decryption fails */
+        for (int j = S2N_TLS_GCM_IV_LEN; j < conn->in.blob.size - S2N_TLS_GCM_TAG_LEN; j++) {
+            /* Copy the encrypted out data to the in data */
+            EXPECT_SUCCESS(s2n_stuffer_reread(&conn->out));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
+            conn->in.blob.data[5 + j] ++;
+            EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
+            EXPECT_FAILURE(s2n_record_parse(conn));
+            EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+        }
     }
 
     END_TEST();
