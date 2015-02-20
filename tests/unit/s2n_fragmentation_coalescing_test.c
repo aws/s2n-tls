@@ -191,7 +191,6 @@ void fragmented_message(int write_fd)
 
     /* Close the pipe and exit */
     close(write_fd);
-    _exit(0);
 }
 
 void coalesced_message(int write_fd)
@@ -213,7 +212,6 @@ void coalesced_message(int write_fd)
     }
 
     close(write_fd);
-    _exit(0);
 }
 
 void interleaved_message(int write_fd)
@@ -257,7 +255,6 @@ void interleaved_message(int write_fd)
 
     /* Close the pipe and exit */
     close(write_fd);
-    _exit(0);
 }
 
 void interleaved_fragmented_fatal_alert(int write_fd)
@@ -326,7 +323,6 @@ void interleaved_fragmented_fatal_alert(int write_fd)
 
     /* Close the pipe and exit */
     close(write_fd);
-    _exit(0);
 }
 
 void interleaved_fragmented_warning_alert(int write_fd)
@@ -391,7 +387,6 @@ void interleaved_fragmented_warning_alert(int write_fd)
 
     /* Close the pipe and exit */
     close(write_fd);
-    _exit(0);
 }
 
 int main(int argc, char **argv)
@@ -423,6 +418,8 @@ int main(int argc, char **argv)
 
         /* Write the fragmented hello message */
         fragmented_message(p[1]);
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        _exit(0);
     }
 
     /* This is the parent process, close the write end of the pipe */
@@ -462,6 +459,8 @@ int main(int argc, char **argv)
 
         /* Write the fragmented hello message */
         coalesced_message(p[1]);
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        _exit(0);
     }
 
     /* This is the parent process, close the write end of the pipe */
@@ -501,6 +500,8 @@ int main(int argc, char **argv)
 
         /* Write the fragmented hello message */
         interleaved_message(p[1]);
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        _exit(0);
     }
 
     /* This is the parent process, close the write end of the pipe */
@@ -540,6 +541,8 @@ int main(int argc, char **argv)
 
         /* Write the fragmented hello message */
         interleaved_fragmented_warning_alert(p[1]);
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        _exit(0);
     }
 
     /* This is the parent process, close the write end of the pipe */
@@ -579,6 +582,8 @@ int main(int argc, char **argv)
 
         /* Write the fragmented hello message */
         interleaved_fragmented_fatal_alert(p[1]);
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        _exit(0);
     }
 
     /* This is the parent process, close the write end of the pipe */
@@ -597,6 +602,8 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
     EXPECT_EQUAL(status, 0);
     EXPECT_SUCCESS(close(p[0]));
+
+    EXPECT_SUCCESS(s2n_connection_free(conn));
 
     END_TEST();
 }
