@@ -88,5 +88,10 @@ int main(int argc, char **argv)
 
     EXPECT_EQUAL(memcmp(master_secret_hex_pad, master_secret_hex_in, sizeof(master_secret_hex_pad)), 0);
 
+    EXPECT_SUCCESS(s2n_connection_free(conn));
+    EXPECT_SUCCESS(s2n_stuffer_free(&client_random_in));
+    EXPECT_SUCCESS(s2n_stuffer_free(&server_random_in));
+    EXPECT_SUCCESS(s2n_stuffer_free(&premaster_secret_in));
+
     END_TEST();
 }
