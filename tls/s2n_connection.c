@@ -116,11 +116,8 @@ int s2n_connection_free(struct s2n_connection *conn)
 {
     struct s2n_blob blob;
 
-    /* Destroy any keys */
-    if (conn->active.cipher_suite && conn->active.cipher_suite->cipher->destroy_key) {
-        GUARD(conn->active.cipher_suite->cipher->destroy_key(&conn->active.client_key));
-        GUARD(conn->active.cipher_suite->cipher->destroy_key(&conn->active.server_key));
-    }
+    /* Destroy any keys - we call destroy on the pending object as that is where
+     * keys are allocated. */
     if (conn->pending.cipher_suite && conn->pending.cipher_suite->cipher->destroy_key) {
         GUARD(conn->pending.cipher_suite->cipher->destroy_key(&conn->pending.client_key));
         GUARD(conn->pending.cipher_suite->cipher->destroy_key(&conn->pending.server_key));
@@ -193,6 +190,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     conn->mode = mode;
     conn->config = config;
     conn->active.cipher_suite = &s2n_null_cipher_suite;
+    conn->pending.cipher_suite = &s2n_null_cipher_suite;
     conn->server = &conn->active;
     conn->client = &conn->active;
     conn->max_fragment_length = S2N_MAXIMUM_FRAGMENT_LENGTH;
