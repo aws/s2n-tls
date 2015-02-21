@@ -111,6 +111,7 @@ static int s2n_aead_cipher_aes128_gcm_get_encryption_key(struct s2n_session_key 
 {
     eq_check(in->size, 16);
 
+    EVP_CIPHER_CTX_init(&key->native_format.evp_cipher_ctx);
     EVP_EncryptInit_ex(&key->native_format.evp_cipher_ctx, EVP_aes_128_gcm(), NULL, NULL, NULL);
     EVP_CIPHER_CTX_ctrl(&key->native_format.evp_cipher_ctx, EVP_CTRL_GCM_SET_IVLEN, S2N_TLS_GCM_IV_LEN, NULL);
     EVP_EncryptInit_ex(&key->native_format.evp_cipher_ctx, NULL, NULL, in->data, NULL);
@@ -122,6 +123,7 @@ static int s2n_aead_cipher_aes256_gcm_get_encryption_key(struct s2n_session_key 
 {
     eq_check(in->size, 32);
 
+    EVP_CIPHER_CTX_init(&key->native_format.evp_cipher_ctx);
     EVP_EncryptInit_ex(&key->native_format.evp_cipher_ctx, EVP_aes_256_gcm(), NULL, NULL, NULL);
     EVP_CIPHER_CTX_ctrl(&key->native_format.evp_cipher_ctx, EVP_CTRL_GCM_SET_IVLEN, S2N_TLS_GCM_IV_LEN, NULL);
     EVP_EncryptInit_ex(&key->native_format.evp_cipher_ctx, NULL, NULL, in->data, NULL);
@@ -133,6 +135,7 @@ static int s2n_aead_cipher_aes128_gcm_get_decryption_key(struct s2n_session_key 
 {
     eq_check(in->size, 16);
 
+    EVP_CIPHER_CTX_init(&key->native_format.evp_cipher_ctx);
     EVP_DecryptInit_ex(&key->native_format.evp_cipher_ctx, EVP_aes_128_gcm(), NULL, NULL, NULL);
     EVP_CIPHER_CTX_ctrl(&key->native_format.evp_cipher_ctx, EVP_CTRL_GCM_SET_IVLEN, S2N_TLS_GCM_IV_LEN, NULL);
     EVP_DecryptInit_ex(&key->native_format.evp_cipher_ctx, NULL, NULL, in->data, NULL);
@@ -144,6 +147,7 @@ static int s2n_aead_cipher_aes256_gcm_get_decryption_key(struct s2n_session_key 
 {
     eq_check(in->size, 32);
 
+    EVP_CIPHER_CTX_init(&key->native_format.evp_cipher_ctx);
     EVP_DecryptInit_ex(&key->native_format.evp_cipher_ctx, EVP_aes_256_gcm(), NULL, NULL, NULL);
     EVP_CIPHER_CTX_ctrl(&key->native_format.evp_cipher_ctx, EVP_CTRL_GCM_SET_IVLEN, S2N_TLS_GCM_IV_LEN, NULL);
     EVP_DecryptInit_ex(&key->native_format.evp_cipher_ctx, NULL, NULL, in->data, NULL);
