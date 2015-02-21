@@ -37,6 +37,7 @@ int main(int argc, char **argv)
     /* Write our known data */
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&known_data, hello_world));
     EXPECT_SUCCESS(s2n_stuffer_write_base64(&stuffer, &known_data));
+    EXPECT_SUCCESS(s2n_stuffer_free(&known_data));
 
     /* Check it against the known output */
     EXPECT_EQUAL(memcmp(stuffer.blob.data, hello_world_base64, strlen((char *)hello_world)), 0);
@@ -74,6 +75,11 @@ int main(int argc, char **argv)
         /* Verify it's the same */
         EXPECT_EQUAL(memcmp(mirror.blob.data, entropy.blob.data, i), 0);
     }
+
+    EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+    EXPECT_SUCCESS(s2n_stuffer_free(&scratch));
+    EXPECT_SUCCESS(s2n_stuffer_free(&mirror));
+    EXPECT_SUCCESS(s2n_stuffer_free(&entropy));
 
     END_TEST();
 }

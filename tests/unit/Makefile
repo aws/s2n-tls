@@ -38,3 +38,6 @@ run_tests: build_tests
 
 build_tests: 
 	(for test in *.c; do ${CC} ${CFLAGS} -o `echo $$test | sed 's/.c$$//'` $$test ${LDFLAGS} ; done) 
+
+valgrind: build_tests
+	(for test in *_test ; do DYLD_LIBRARY_PATH="../../lib/:../testlib/:$$DYLD_LIBRARY_PATH" LD_LIBRARY_PATH="../../lib/:../testlib/:$$LD_LIBRARY_PATH" valgrind --leak-check=full --run-libc-freeres=no -q --error-exitcode=0 --gen-suppressions=all --log-fd=2 --num-callers=40 --leak-resolution=high --log-file=$$test-valgrind.log --undef-value-errors=no --trace-children=yes ./$$test; done )
