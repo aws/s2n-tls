@@ -235,6 +235,10 @@ int s2n_stuffer_write(struct s2n_stuffer *stuffer, struct s2n_blob *in)
         return -1;
     }
 
+    if (ptr == in->data) {
+        return 0;
+    }
+
     memcpy_check(ptr, in->data, in->size);
 
     return 0;
