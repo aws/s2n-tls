@@ -106,7 +106,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
     }
 
+    EXPECT_SUCCESS(conn->active.cipher_suite->cipher->destroy_key(&conn->active.server_key));
+    EXPECT_SUCCESS(conn->active.cipher_suite->cipher->destroy_key(&conn->active.client_key));
+    EXPECT_SUCCESS(s2n_connection_free(conn));
+
     /* test the AES256 cipher with a SHA1 hash */
+    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
     conn->active.cipher_suite->cipher = &s2n_aes256;
     conn->active.cipher_suite->hmac_alg = S2N_HMAC_SHA1;
     EXPECT_SUCCESS(conn->active.cipher_suite->cipher->get_encryption_key(&conn->active.server_key, &aes256));
@@ -161,6 +166,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
     }
+
+    EXPECT_SUCCESS(conn->active.cipher_suite->cipher->destroy_key(&conn->active.server_key));
+    EXPECT_SUCCESS(conn->active.cipher_suite->cipher->destroy_key(&conn->active.client_key));
+    EXPECT_SUCCESS(s2n_connection_free(conn));
 
     END_TEST();
 }

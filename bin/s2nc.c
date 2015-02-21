@@ -81,6 +81,8 @@ int main(int argc, const char *argv[])
         break;
     }
 
+    freeaddrinfo(ai_list);
+
     if (connected == 0) {
         fprintf(stderr, "Failed to connect to %s:%s\n", argv[1], port);
         close(sockfd);

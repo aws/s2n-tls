@@ -99,5 +99,7 @@ int main(int argc, char **argv)
     }
     EXPECT_FAILURE(s2n_stuffer_read_uint32(&stuffer, &u32));
 
+    EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+
     END_TEST();
 }
