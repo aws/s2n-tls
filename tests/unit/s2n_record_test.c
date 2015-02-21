@@ -45,7 +45,8 @@ struct s2n_cipher mock_block_cipher = {
                .encrypt = mock_block_endecrypt,
                .decrypt = mock_block_endecrypt},
     .get_encryption_key = NULL,
-    .get_decryption_key = NULL
+    .get_decryption_key = NULL,
+    .destroy_key = NULL,
 };
 
 struct s2n_cipher_suite mock_block_cipher_suite = {
@@ -326,6 +327,8 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
         EXPECT_EQUAL(fragment_length, predicted_length);
     }
+
+    EXPECT_SUCCESS(s2n_connection_free(conn));
 
     END_TEST();
 }

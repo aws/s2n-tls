@@ -52,6 +52,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
          * variable is required to be set for the client mode to work.
          */
         if (getenv("S2N_ENABLE_INSECURE_CLIENT") == NULL) {
+            s2n_free(&blob);
             S2N_ERROR_PTR(S2N_ERR_INSECURE_CLIENT);
         }
     }
@@ -115,11 +116,12 @@ int s2n_connection_free(struct s2n_connection *conn)
 {
     struct s2n_blob blob;
 
-    /* Destroy any keys */
-    GUARD(conn->active.cipher_suite->cipher->destroy_key(&conn->active.client_key));
-    GUARD(conn->active.cipher_suite->cipher->destroy_key(&conn->active.server_key));
-    GUARD(conn->active.cipher_suite->cipher->destroy_key(&conn->pending.client_key));
-    GUARD(conn->active.cipher_suite->cipher->destroy_key(&conn->pending.server_key));
+    /* Destroy any keys - we call destroy on the pending object as that is where
+     * keys are allocated. */
+    if (conn->pending.cipher_suite && conn->pending.cipher_suite->cipher->destroy_key) {
+        GUARD(conn->pending.cipher_suite->cipher->destroy_key(&conn->pending.client_key));
+        GUARD(conn->pending.cipher_suite->cipher->destroy_key(&conn->pending.server_key));
+    }
 
     GUARD(s2n_dh_params_free(&conn->pending.server_dh_params));
     GUARD(s2n_dh_params_free(&conn->active.server_dh_params));
@@ -188,6 +190,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     conn->mode = mode;
     conn->config = config;
     conn->active.cipher_suite = &s2n_null_cipher_suite;
+    conn->pending.cipher_suite = &s2n_null_cipher_suite;
     conn->server = &conn->active;
     conn->client = &conn->active;
     conn->max_fragment_length = S2N_MAXIMUM_FRAGMENT_LENGTH;

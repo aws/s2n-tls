@@ -103,5 +103,9 @@ int main(int argc, char **argv)
     /* Verify that our mock random is called and that over-riding works */
     EXPECT_EQUAL(mock_called, 1);
 
+    EXPECT_SUCCESS(s2n_dh_params_free(&dh_params));
+    EXPECT_SUCCESS(s2n_stuffer_free(&dhparams_out));
+    EXPECT_SUCCESS(s2n_stuffer_free(&dhparams_in));
+
     END_TEST();
 }
