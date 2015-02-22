@@ -96,6 +96,25 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     return conn;
 }
 
+static int s2n_connection_free_keys(struct s2n_connection *conn)
+{
+    /* Destroy any keys - we call destroy on the pending object as that is where
+     * keys are allocated. */
+    if (conn->pending.cipher_suite && conn->pending.cipher_suite->cipher->destroy_key) {
+        GUARD(conn->pending.cipher_suite->cipher->destroy_key(&conn->pending.client_key));
+        GUARD(conn->pending.cipher_suite->cipher->destroy_key(&conn->pending.server_key));
+    }
+
+    /* Free any pending server key received (we may not have completed a
+     * handshake, so this may not have been free'd yet) */
+    GUARD(s2n_rsa_public_key_free(&conn->pending.server_rsa_public_key));
+
+    GUARD(s2n_dh_params_free(&conn->pending.server_dh_params));
+    GUARD(s2n_dh_params_free(&conn->active.server_dh_params));
+
+    return 0;
+}
+
 int s2n_shutdown(struct s2n_connection *conn, int *more)
 {
     /* Write any pending I/O */
@@ -116,15 +135,8 @@ int s2n_connection_free(struct s2n_connection *conn)
 {
     struct s2n_blob blob;
 
-    /* Destroy any keys - we call destroy on the pending object as that is where
-     * keys are allocated. */
-    if (conn->pending.cipher_suite && conn->pending.cipher_suite->cipher->destroy_key) {
-        GUARD(conn->pending.cipher_suite->cipher->destroy_key(&conn->pending.client_key));
-        GUARD(conn->pending.cipher_suite->cipher->destroy_key(&conn->pending.server_key));
-    }
+    GUARD(s2n_connection_free_keys(conn));
 
-    GUARD(s2n_dh_params_free(&conn->pending.server_dh_params));
-    GUARD(s2n_dh_params_free(&conn->active.server_dh_params));
     GUARD(s2n_stuffer_free(&conn->in));
     GUARD(s2n_stuffer_free(&conn->out));
     GUARD(s2n_stuffer_free(&conn->handshake.io));
@@ -157,6 +169,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     struct s2n_stuffer out;
 
     /* Wipe all of the sensitive stuff */
+    GUARD(s2n_connection_free_keys(conn));
     GUARD(s2n_stuffer_wipe(&conn->alert_in));
     GUARD(s2n_stuffer_wipe(&conn->reader_alert_out));
     GUARD(s2n_stuffer_wipe(&conn->writer_alert_out));

@@ -53,7 +53,9 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
 
 int s2n_free(struct s2n_blob *b)
 {
-    free(b->data);
+    if (b->data) {
+        free(b->data);
+    }
     b->data = NULL;
     b->size = 0;
 
