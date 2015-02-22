@@ -45,7 +45,7 @@ s2n functions generally operate in a message passing way. For example,
 a simplified version of the flow when handling a TLS client finished message
 might looks like this:
 
-![s2n message passing](s2n_lambda.png "s2n message passing")
+![s2n message passing](images/s2n_lambda.png "s2n message passing")
 
 each function handles a clear, well-defined piece of work, before passing on
 responsibility to the next function. 
@@ -188,7 +188,7 @@ a stuffer is a blob and two cursors:
 
 This layout that makes it possible to implement a stream:
 
-![Stuffer layout](s2n_stuffer_layout.png "s2n stuffer internal layout")
+![Stuffer layout](images/s2n_stuffer_layout.png "s2n stuffer internal layout")
 
 All access to/from the stuffer goes "through" s2n_stuffer_ functions. For example, we can write with s2n_stuffer_write(), and when we do the write cursor is incremented to the new position. We can read with s2n_stuffer_read(), and of course we can only read data as far as the write cursor (which is always at or ahead of the read cursor). To protect user data, when we read data out of the stuffer, we wipe the copy of the data within the local stuffer memory. We also ensure that it's only possible to read as much data as is in the stuffer. 
 
