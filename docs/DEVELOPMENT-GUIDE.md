@@ -21,6 +21,8 @@ a case for them.
 * **Provide great performance and responsivity**<br/>TLS/SSL is rapidly becoming ubiquitious, in part due to advances in performance and responsivity. Naturally, people always appreciate speed, but costs are also important. Even small inefficiencies and overhead in s2n can become significant when multiplied by billions of users and quintillions of sessions. 
 * **Stay humble and stick to facts**<br/>s2n operates in a security critical space. Even with the most precautionary development methods it is impossible to guarantee the absence of defects. A subtle one-byte error on a single line may still cause problems. Boasting about security practices is destined to backfire and mis-lead. As opinions can differ on security best practises, sometimes in contradictory ways, we should be guided by facts and measurable data.   
 
+When weighing up difficult implementation trade-offs our ordered priorities are: 1. Security, 2. Readability 3. Ease of use, and 4. Performance. 
+
 ## Coding style and conventions 
 
 Per our tenets, an important goal is to reduce the cognitive load required to 
@@ -50,67 +52,91 @@ responsibility to the next function.
 
 The second convention of s2n's functions is that functions are generally
 split into two kinds: those that handle control flow and coordinate
-other functions, and those that parse messages. Splitting things up this
-way leads to a shallower call stack, but the main benefit is that functions
-can read quite declaratively. In the case of message parsers, the function
-contents can read almost like schemas of the message being passed. s2n is 
-also structured in a very message oriented way; for example the functions
-for reading and writing a particular message type are usually in the same
-file, so that all of context and logic needed to handle that message type
-can be seen and thought about in one neat place. 
+other functions, and those that parse messages. In the above diagram,
+for the most part the functions are calling each other directly. Instead
+there's usually a common parent function that's handling the calling and
+message routing. 
 
-A good example file to look at is https://github.com/awslabs/s2n/blob/master/tls/s2n_server_finished.c. 
+Splitting things up this way leads to a shallower call stack, but the main 
+benefit is that functions can read quite declaratively. In the case of message
+parsers, the function contents can read almost like schemas of the message 
+being passed. s2n is also structured in a very message oriented way; for 
+example the functions for reading and writing a particular message type 
+are usually in the same file, so that all of context and logic needed to 
+handle that message type can be seen and thought about in one neat place. 
+
+A good example file for message parsing to look at is [tls/s2n_server_finished.c](https://github.com/awslabs/s2n/blob/master/tls/s2n_server_finished.c). 
 From reading the file it should be reasonably clear that a server
 finished message consists just of S2N_TLS_FINISHED_LEN number of bytes, what 
 the next state is and what else is going on. 
 
-### Error handling 
+### Error handling and Macros
+
+As may be clear from s2n_server_finished.c, s2n has some conventions for how errors are handled. First up: s2n functions should always return -1 or NULL on error, and 0 or a valid pointer on success. s2n also includes a thread local variable: s2n_errno, for indicating the cause of the error. This is somewhat ugly and unfortunate, but it follows the convention set by libc (with errno), getaddrinfo (gai_errno), net-snmp (snmp_errno), and countless other libraries. In short; in C it is the pattern of least surprise. 
+
+In s2n, we **always** check return values. Because the coding pattern:
+
+    if (s2n_do_something(with_something_else) < 0) {
+        return -1;
+    }
+is so common, utils/s2n_safety.h provides two macros:
+
+    #define GUARD( x )      if ( (x) < 0 ) return -1
+    #define GUARD_PTR( x )  if ( (x) < 0 ) return NULL
+
+These macros should be used when calling functions you expect to succeed. Primarily these macros help save two lines that repeatedly clutter files, and secondarily they are very useful when developing and debugging code as it is easy to redefine the macro to implement a simple backtrace (even a dumb printf will suffice, but a breakpoint is more usual). 
+
+If cases where a condition could fail (where a protocol error occurs, for example) an S2N_ERROR() macro is provided for surfacing errors to an application. New error translations, and their human-readable translations can be defined in [error/s2n_errno.h](https://github.com/awslabs/s2n/blob/master/error/s2n_errno.h) and [error/s2n_errno.c](https://github.com/awslabs/s2n/blob/master/error/s2n_errno.c). When called, e.g.:
+
+    S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+
+the macro will set s2n_errno correctly, as well as some useful debug strings, and return -1. 
 
 ### Safety checking
 
+[utils/s2n_safety.h](https://github.com/awslabs/s2n/blob/master/utils/s2n_safety.h) provides several more convenience macros intended to make safety and bounds checking easier. There are checked versions of memcpy and memset, as well as predicate testers like gte_check, inclusive_range_check, exclusive_range_check for performing simple comparisons in a systematic, error-handled, way. 
+
+*Note*: In general, C preprocessor Macros with embedded control flow are a bad idea, but GUARD, S2N_ERROR and the safety checkers are so thoroughly used throughout s2n that it should be a clear and idiomatic pattern, almost forming a small domain specific language of sorts. 
+
 ### Control flow and the state machine
 
-### Code formatting
+Branches can be a source of cognitive load, as they ask the reader to follow a path of thinking, while always remembering that there is another to be explored. Additionally when branches are nested they can often lead to impossible to grasp combinatorial explosions. s2n tries to systematically reduce the number of branches used in the code in several ways. 
 
-### 
+Firstly, there are almost no ifdef calls in s2n. Ifdefs can be a particularly penalising source of cognitive load. In addition to being a branch, they also ask the reader to mix state from two different languages (C, and the C pre processor) and they tend to be associated with ugly rendering in IDEs and code formatters. In the few places where ifdef's are neccessary, we use them in a careful way without compromising the integrity of the function. [utils/s2n_timer.c](https://github.com/awslabs/s2n/blob/master/utils/s2n_timer.c) is a good example. Rather than mixing the Apple and non-Apple implementations and cluttering one function with several ifdefs, there is a complete implementation of the timer functionality for each platform. Within the POSIX implementation, an ifdef and define are used to use the most precise clock type, but in a way that does not compromise readability. 
 
-## Readability and short functions
+Secondly, s2n generally branches in the case of failure. Rather than creating a nest of if's:
 
-One of the goals of the s2n code layout is to reduce the cognitive load on the
-programmer required to write, review and extend s2n functionality. s2n is
-generally split into small, readable, discrete functions with a clear input and
-output. Human meaningful variable names are encouraged. #ifdefs are
-discouraged.
+    if (s2n_foo() == 0) {
+        if (s2n_bar() == 0) {
+             if (s2n_baz() == 0) {
 
-Each TLS/SSL message type is handled in isolation, in its own .c file, with the
-client and server handlers written as seperate functions but side by side for
-easy comparison.
+we instead do:
 
-Code is consistently formatted, and the s2n.mk Makefile includes an indent
-recipe suitable for formatting code. Run "make indent" to format the s2n
-codebase.
+    GUARD(s2n_foo());
+    GUARD(s2n_bar());
+    GUARD(s2n_baz));
 
-## Error handling in s2n
+This pattern leads to a linear control flow, where the main body of a function describes everything that happens in a regular, "*happy*" case. Any deviation is usually a fatal error and we exit the function. This is safe because s2n rarely allocates resources, and so has nothing to clean up on error. 
 
-All s2n functions return -1 or NULL on error.
+This pattern also leads to extremely few "else" clauses in the s2n code base. Within s2n, else clauses should be treated with suspicion and examined for potential eradication. Where an else clause is neccessary, we try to ensure that the first if block is the most likely case. Both to aid readability, and also for a more efficient compiled instruction pipeline (although good CPU branch prediction will rapidly correct any mis-ordering). 
 
-## Basic safety routines
+For branches on small enumerated types, s2n generally favours switch statements: though switch statements taking up more than about 25 lines of code are discouraged, and a default: block is mandatory. 
 
-The s2n_safety.h header defines various safety routines that it is considered
-idiomatic to use in s2n. gte_check, lte_check, gt_check, lt_check, eq_check,
-ne_check provide basic greater-than-or-equal-to, less-than-or-equal-to,
-greater-than, less-than, equality and non-equality checking. These checks can
-be used as assertions and a failure will trigger a "return -1" and an
-appropriate error string.
+Lastly: the core TLS state machine within s2n does not use branches and instead uses a table of function pointers (another technique borrowed from functional programming) to dispatch data to the correct handler. This is covered in more detail later in this document. 
 
-Additionally, there are inclusive_range_check() and exclusive_range_check()
-routines provided for range checking, and memcpy_check(), a checked version of
-memcpy().
+### Code formatting and commenting 
 
-As it is so common to call other functions and check their return value, a
-convenience macro "GUARD()" is provided. GUARD() will execute a function and
-will itself trigger a "return -1" if the function does not execute
-successfully.
+## Tests 
+
+## A tour of s2n memory handling: blobs and stuffers
+
+### s2n_blob : keeping track of memory ranges 
+
+### s2n_stuffer : a streaming buffer for stuff
+
+## s2n_connection : the core data for a connection
+
+## How s2n handles the s2n state machine
 
 ## Memory handling in s2n
 
