@@ -190,10 +190,32 @@ This layout that makes it possible to implement a stream:
 
 ![Stuffer layout](s2n_stuffer_layout.png "s2n stuffer internal layout")
 
-All access to/from the stuffer goes "through" s2n_stuffer_ functions. For example, we can write with s2n_stuffer_write(), and when we do the write cursor is incremented to the new position. We can read with s2n_stuffer_read(), and of course we can only read data as far as the write cursor (which is always at or ahead of the read cursor). To protect user data, when we read data out of the stuffer, we wipe the copy of the data within the local stuffer memory. 
+All access to/from the stuffer goes "through" s2n_stuffer_ functions. For example, we can write with s2n_stuffer_write(), and when we do the write cursor is incremented to the new position. We can read with s2n_stuffer_read(), and of course we can only read data as far as the write cursor (which is always at or ahead of the read cursor). To protect user data, when we read data out of the stuffer, we wipe the copy of the data within the local stuffer memory. We also ensure that it's only possible to read as much data as is in the stuffer. 
 
-A stuffer can be initialized directly from a blob, which makes it fixed in size, or it can be allocated dynamically. In the latter case, we can also choose to make the stuffer growable (by using s2n_stuffer_growable_alloc in favour of s2n_stuffer_alloc). If a stuffer is growable then attempts to write past the end of the current blob will result in the blob being extended (by at least 1K at a time) to fit the data. 
+A stuffer can be initialized directly from a blob, which makes it fixed in size, or it can be allocated dynamically. In the latter case, we can also choose to make the stuffer growable (by using s2n_stuffer_growable_alloc in favour of s2n_stuffer_alloc). If a stuffer is growable then attempting to write past the end of the current blob will result in the blob being extended (by at least 1K at a time) to fit the data. 
 
+To further encourage stream-oriented programming, the stuffer is also the place where all marshalling and de-mashalling happens. For example you can read and write ints directly to a stuffer:
+
+    /* Read and write integers in network order */
+    extern int s2n_stuffer_read_uint8(struct s2n_stuffer *stuffer, uint8_t *u);
+    extern int s2n_stuffer_read_uint16(struct s2n_stuffer *stuffer, uint16_t *u);
+    extern int s2n_stuffer_read_uint24(struct s2n_stuffer *stuffer, uint32_t *u);
+    extern int s2n_stuffer_read_uint32(struct s2n_stuffer *stuffer, uint32_t *u);
+    extern int s2n_stuffer_read_uint64(struct s2n_stuffer *stuffer, uint64_t *u);
+    extern int s2n_stuffer_write_uint8(struct s2n_stuffer *stuffer, uint8_t u);
+    extern int s2n_stuffer_write_uint16(struct s2n_stuffer *stuffer, uint16_t u);
+    extern int s2n_stuffer_write_uint24(struct s2n_stuffer *stuffer, uint32_t u);
+    extern int s2n_stuffer_write_uint32(struct s2n_stuffer *stuffer, uint32_t u);
+    extern int s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, uint64_t u);
+
+and there are other utility functions for handling base64 encoding to and from a stuffer, or text manipulation - like tokenisation. The idea is to implement basic serialising just once, rather than spread out and duplicated across the message parsers, and to maximize the declarative nature of the I/O. For example, this code to parse a TLS header:
+
+    GUARD(s2n_stuffer_read_uint8(in, &message_type));
+    GUARD(s2n_stuffer_read_uint8(in, &protocol_major_version));
+    GUARD(s2n_stuffer_read_uint8(in, &protocol_minor_version));
+    GUARD(s2n_stuffer_read_uint16(in, &record_size));
+    
+makes it very clear what the message format is, where the contents are being stored, and that we're handling things in a safe way.
 
 In addition to basic size and overflow
 management, a stuffer can also perform serialisation and de-serialisation for
