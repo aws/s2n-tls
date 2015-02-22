@@ -45,7 +45,7 @@ s2n functions generally operate in a message passing way. For example,
 a simplified version of the flow when handling a TLS client finished message
 might looks like this:
 
-![s2n message passing](s2n_lambda.png "s2n message passing")
+![s2n message passing](images/s2n_lambda.png "s2n message passing")
 
 each function handles a clear, well-defined piece of work, before passing on
 responsibility to the next function. 
@@ -188,7 +188,7 @@ a stuffer is a blob and two cursors:
 
 This layout that makes it possible to implement a stream:
 
-![Stuffer layout](s2n_stuffer_layout.png "s2n stuffer internal layout")
+![Stuffer layout](images/s2n_stuffer_layout.png "s2n stuffer internal layout")
 
 All access to/from the stuffer goes "through" s2n_stuffer_ functions. For example, we can write with s2n_stuffer_write(), and when we do the write cursor is incremented to the new position. We can read with s2n_stuffer_read(), and of course we can only read data as far as the write cursor (which is always at or ahead of the read cursor). To protect user data, when we read data out of the stuffer, we wipe the copy of the data within the local stuffer memory. We also ensure that it's only possible to read as much data as is in the stuffer. 
 
@@ -208,14 +208,14 @@ To further encourage stream-oriented programming, the stuffer is also the place 
     extern int s2n_stuffer_write_uint32(struct s2n_stuffer *stuffer, uint32_t u);
     extern int s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, uint64_t u);
 
-and there are other utility functions for handling base64 encoding to and from a stuffer, or text manipulation - like tokenisation. The idea is to implement basic serialising just once, rather than spread out and duplicated across the message parsers, and to maximize the declarative nature of the I/O. For example, this code to parse a TLS header:
+and there are other utility functions for handling base64 encoding to and from a stuffer, or text manipulation - like tokenisation. The idea is to implement basic serialising just once, rather than spread out and duplicated across the message parsers, and to maximize the declarative nature of the I/O. For example, this code parses a TLS header:
 
     GUARD(s2n_stuffer_read_uint8(in, &message_type));
     GUARD(s2n_stuffer_read_uint8(in, &protocol_major_version));
     GUARD(s2n_stuffer_read_uint8(in, &protocol_minor_version));
     GUARD(s2n_stuffer_read_uint16(in, &record_size));
     
-makes it very clear what the message format is, where the contents are being stored, and that we're handling things in a safe way.
+This pattern should make it very clear what the message format is, where the contents are being stored, and that we're handling things in a safe way.
 
 Unfortunately there are times when we must interact with C functions from other libraries; for example when handling encryption and decryption. In these cases it is usually neccessary to provide access to "raw" pointers. s2n provides two functions for this:
 
@@ -235,6 +235,25 @@ Here's how it works; internally stuffers track 4 bits of state:
 
 
 the first two bits of state track whether a stuffer was dynamically allocated (and so should be free'd later) and whether or not it is growable. The "wiped" piece of state tracks whether a stuffer has been wiped clean and the data erased. If a stuffer has been fully read then it should be in a wiped state, but a stuffer is also explicitly wiped at the end of its lifecycle and this bit of state helps avoids needless zeroing of memory. tainted is set to 1 whenever the raw access functions are called. If a stuffer is currently tainted then it can not be resized and it becomes ungrowable. This is reset when a stuffer is explicitly wiped, which begins the life-cycle anew. So any pointers returned by the raw access functions are legal only until s2n_stuffer_wipe is called. 
+
+The end result is that this kind of pattern is legal:
+
+    GUARD(s2n_stuffer_growable_alloc(&in, 1500));
+    GUARD(s2n_stuffer_write(&in, &fifteen_hundred_bytes_blob));
+    uint8_t * ptr = s2n_stuffer_raw_read(&in, 1500);
+    
+but attempting to write more data would not be legal:
+
+    GUARD(s2n_stuffer_growable_alloc(&in, 1500));
+    GUARD(s2n_stuffer_write(&in, &fifteen_hundred_bytes_blob));
+    uint8_t * ptr = s2n_stuffer_raw_read(&in, 1500);
+     
+    /* This write will fail, the stuffer is no longer growable, as a raw
+     * pointer was taken */
+    GUARD(s2n_stuffer_write(&in, &some_more_data_blob);
+     
+    /* Stuffer life cycle is now complete, reset everything and wipe */
+    GUARD(s2n_stuffer_wipe(&in));
 
 ## s2n_connection : the core data for a connection
 
