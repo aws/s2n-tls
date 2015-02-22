@@ -255,10 +255,18 @@ but attempting to write more data would not be legal:
     /* Stuffer life cycle is now complete, reset everything and wipe */
     GUARD(s2n_stuffer_wipe(&in));
 
-## s2n_connection : the core data for a connection
+## s2n_connection and the TLS state machine
 
-## How s2n handles the tls state machine
+Every connection (or session in TLS parlance) is associated with an s2n_connection structure. The details of this structure are opaque to applications, but internally it is where all of the TLS state is managed. 
 
 ## Contributing to s2n
 
+We are happy to accept contributions to s2n, and we suggest the following general procedure:
+
+* Please read all of the documentation available in the s2n "docs/" directory. This development guide along with the usage guide should give a good flavor for what the goals of s2n are and whether they line up with your idea for a contribution
+* If you have an idea for a significant contribution, it is worth firt cutting an issue and discussing the change. Get feedback on the API design, or what the feature might require, before writing code. 
+* If you discover a security critical bug, please report it via http://aws.amazon.com/security/vulnerability-reporting/ and **do not** create a public issue. 
+* Create a git fork of the s2n repository and prepare your changes locally within your fork.
+* When you're ready, and when all tests are passing, create a pull request to the master awslabs s2n repository.
+* All changes to s2n go through code review and legal review. All submissions and contributions are made under the terms of the Apache Software License 2.0. In some cases where ownership over copyright and authorship rights are not clear, we may ask you to sign a contributor license agreement. 
 
