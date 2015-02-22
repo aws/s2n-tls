@@ -16,6 +16,8 @@
 * [TLS 1.2](https://tools.ietf.org/html/rfc5246)
 * [AES GCM for TLS](https://tools.ietf.org/html/rfc5288)
 * [ECC cipher suites for TLS](https://tools.ietf.org/html/rfc4492)
+* [TLS extensions](https://tools.ietf.org/html/rfc6066)
+* [Application-Layer Protocol Negotiation Extension](https://tools.ietf.org/html/rfc7301)
 * [TLS 1.3 draft specification](https://github.com/tlswg/tls13-spec)
 
 ## Interesting implementations
