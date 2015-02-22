@@ -95,7 +95,7 @@ int s2n_dh_params_to_p_g_Ys(struct s2n_dh_params *server_dh_params, struct s2n_s
 
 int s2n_dh_compute_shared_secret_as_client(struct s2n_dh_params *server_dh_params, struct s2n_stuffer *Yc, struct s2n_blob *shared_key)
 {
-    struct s2n_dh_params client_params = { 0 };
+    struct s2n_dh_params client_params;
     uint8_t *public_key;
     uint16_t public_key_size;
     int shared_key_size;
@@ -158,14 +158,8 @@ int s2n_dh_compute_shared_secret_as_server(struct s2n_dh_params *server_dh_param
 
 int s2n_dh_params_copy(struct s2n_dh_params *from, struct s2n_dh_params *to)
 {
-    to->dh->p = BN_dup(from->dh->p);
-    if (to->dh->p == NULL) {
-        S2N_ERROR(S2N_ERR_DH_COPYING_PARAMETERS);
-    }
-
-    to->dh->g = BN_dup(from->dh->g);
-    if (to->dh->g == NULL) {
-        BN_free(from->dh->p);
+    to->dh = DHparams_dup(from->dh);
+    if (to->dh == NULL) {
         S2N_ERROR(S2N_ERR_DH_COPYING_PARAMETERS);
     }
 
