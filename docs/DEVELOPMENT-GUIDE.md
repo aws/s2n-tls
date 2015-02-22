@@ -186,9 +186,14 @@ a stuffer is a blob and two cursors:
         ...
      };
 
-This creates a layout that makes it possible to implement a stream:
+This layout that makes it possible to implement a stream:
 
 ![Stuffer layout](s2n_stuffer_layout.png "s2n stuffer internal layout")
+
+All access to/from the stuffer goes "through" s2n_stuffer_ functions. For example, we can write with s2n_stuffer_write(), and when we do the write cursor is incremented to the new position. We can read with s2n_stuffer_read(), and of course we can only read data as far as the write cursor (which is always at or ahead of the read cursor). To protect user data, when we read data out of the stuffer, we wipe the copy of the data within the local stuffer memory. 
+
+A stuffer can be initialized directly from a blob, which makes it fixed in size, or it can be allocated dynamically. In the latter case, we can also choose to make the stuffer growable (by using s2n_stuffer_growable_alloc in favour of s2n_stuffer_alloc). If a stuffer is growable then attempts to write past the end of the current blob will result in the blob being extended (by at least 1K at a time) to fit the data. 
+
 
 In addition to basic size and overflow
 management, a stuffer can also perform serialisation and de-serialisation for
