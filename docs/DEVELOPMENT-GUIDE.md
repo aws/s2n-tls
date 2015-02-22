@@ -217,42 +217,28 @@ and there are other utility functions for handling base64 encoding to and from a
     
 makes it very clear what the message format is, where the contents are being stored, and that we're handling things in a safe way.
 
-In addition to basic size and overflow
-management, a stuffer can also perform serialisation and de-serialisation for
-commonly used types and encodings.
+Unfortunately there are times when we must interact with C functions from other libraries; for example when handling encryption and decryption. In these cases it is usually neccessary to provide access to "raw" pointers. s2n provides two functions for this:
 
-Data can be written to a stuffer and this will increment the write cursor.
-Internally, the stuffer routines ensure that no more data can be written to the
-stuffer than there is space available. Data can be read from the stuffer, and
-this increments the read cursor. Attempts to read data beyond the write cursor
-will fail.
+    void *s2n_stuffer_raw_write(struct s2n_stuffer *stuffer, uint32_t data_len);
+    void *s2n_stuffer_raw_read(struct s2n_stuffer *stuffer, uint32_t data_len);
 
-There are also three types of stuffer: static stuffers which are backed by
-memory provided by the caller (usually a static buffer, allocated on the
-stack), alloced stuffers which are backed by realloc() but fixed in size and
-growable stuffers, which are backed by realloc() but may also grow in size to
-meet demand and can be resized using s2n_stuffer_resize().
+the first function returns a pointer to the existing location of the write cursor, and then increments the write cursor by data_len, so an external function is free to write to the pointer, as long as it only writes data_len bytes. The second function does the same thing, except that it increments the read cursor. Use of these functions is discouraged and should only be done when neccessary for compatibility. 
 
-Static buffers are initialized with s2n_stuffer_init(), alloced stuffers with
-s2n_stuffer_alloc() and growable stuffers with s2n_stuffer_growable_alloc().
-One initialized or allocated, stuffers also have a repeating life-cycle, with
-calls to s2n_stuffer_wipe() providing the re-incarnation and resetting the
-stuffer to its initial state (and wiping the contents).
+One problem with returning raw pointers is that a pointer can become stale if the stuffer is later resized. Growable stuffers are resized using realloc(), which is free to copy and re-address memory. This could leave the original pointer location dangling, potentially leading to an invalid access. To prevent this, stuffers have a life-cycle and can be tainted, which prevents them from being resized within their present life-cycle. 
 
-For performance reasons it is sometimes nesseccary to operate directly on the
-contents of a stuffer. s2n_stuffer_raw_read() and s2n_stuffer_raw_write() are
-provided for this, s2n_stuffer_raw_read() should be called when data is being
-read directly, s2n_stuffer_raw_write() should be called when data is being
-inserted directly. Boundary and overflow checking will still be performed.
+Here's how it works; internally stuffers track 4 bits of state:
 
-Both of these functions return pointers. To ensure that these pointers remain
-valid, these functions both mark a stuffer as tainted. A tainted stuffer cannot
-be grown or resized, to prevent any underlying call to realloc() from
-invalidating the pointers. s2n_stuffer_wipe() will reset the tainted state, so
-any pointers saved can not used once this has been called.
+    unsigned int alloced:1;
+    unsigned int growable:1;
+    unsigned int wiped:1;
+    unsigned int tainted:1;
+
+
+the first two bits of state track whether a stuffer was dynamically allocated (and so should be free'd later) and whether or not it is growable. The "wiped" piece of state tracks whether a stuffer has been wiped clean and the data erased. If a stuffer has been fully read then it should be in a wiped state, but a stuffer is also explicitly wiped at the end of its lifecycle and this bit of state helps avoids needless zeroing of memory. tainted is set to 1 whenever the raw access functions are called. If a stuffer is currently tainted then it can not be resized and it becomes ungrowable. This is reset when a stuffer is explicitly wiped, which begins the life-cycle anew. So any pointers returned by the raw access functions are legal only until s2n_stuffer_wipe is called. 
 
 ## s2n_connection : the core data for a connection
 
 ## How s2n handles the tls state machine
 
+## Contributing to s2n
 
