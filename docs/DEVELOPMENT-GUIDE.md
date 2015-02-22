@@ -45,7 +45,7 @@ s2n functions generally operate in a message passing way. For example,
 a simplified version of the flow when handling a TLS client finished message
 might looks like this:
 
-![s2n message passing](s2n_lambda.png "s2n message passing")
+![s2n message passing](images/s2n_lambda.png "s2n message passing")
 
 each function handles a clear, well-defined piece of work, before passing on
 responsibility to the next function. 
@@ -159,7 +159,7 @@ commonly used types and encodings.
 At the core of the stuffer there are four variables being tracked which
 together emulate a stream:
 
-![Stuffer layout](s2n_stuffer_layout.png "s2n stuffer internal layout")
+![Stuffer layout](images/s2n_stuffer_layout.png "s2n stuffer internal layout")
 
 Data can be written to a stuffer and this will increment the write cursor.
 Internally, the stuffer routines ensure that no more data can be written to the
