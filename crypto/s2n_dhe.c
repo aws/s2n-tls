@@ -109,15 +109,21 @@ int s2n_dh_compute_shared_secret_as_client(struct s2n_dh_params *server_dh_param
     GUARD(s2n_stuffer_write_uint16(Yc, public_key_size));
     public_key = s2n_stuffer_raw_write(Yc, public_key_size);
     if (public_key == NULL) {
+        GUARD(s2n_free(shared_key));
+        GUARD(s2n_dh_params_free(&client_params));
         S2N_ERROR(S2N_ERR_DH_WRITING_PUBLIC_KEY);
     }
 
     if (BN_bn2bin(client_params.dh->pub_key, public_key) != public_key_size) {
+        GUARD(s2n_free(shared_key));
+        GUARD(s2n_dh_params_free(&client_params));
         S2N_ERROR(S2N_ERR_DH_COPYING_PUBLIC_KEY);
     }
 
     shared_key_size = DH_compute_key(shared_key->data, server_dh_params->dh->pub_key, client_params.dh);
     if (shared_key_size < 0) {
+        GUARD(s2n_free(shared_key));
+        GUARD(s2n_dh_params_free(&client_params));
         S2N_ERROR(S2N_ERR_DH_SHARED_SECRET);
     }
 
