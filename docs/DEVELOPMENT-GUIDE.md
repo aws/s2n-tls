@@ -120,11 +120,19 @@ This pattern leads to a linear control flow, where the main body of a function d
 
 This pattern also leads to extremely few "else" clauses in the s2n code base. Within s2n, else clauses should be treated with suspicion and examined for potential eradication. Where an else clause is neccessary, we try to ensure that the first if block is the most likely case. Both to aid readability, and also for a more efficient compiled instruction pipeline (although good CPU branch prediction will rapidly correct any mis-ordering). 
 
-For branches on small enumerated types, s2n generally favours switch statements: though switch statements taking up more than about 25 lines of code are discouraged, and a default: block is mandatory. 
+For branches on small enumerated types, s2n generally favours switch statements: though switch statements taking up more than about 25 lines of code are discouraged, and a "default:" block is mandatory. 
 
-Lastly: the core TLS state machine within s2n does not use branches and instead uses a table of function pointers (another technique borrowed from functional programming) to dispatch data to the correct handler. This is covered in more detail later in this document. 
+Another technique for complexity avoidance is that the core TLS state machine within s2n does not use branches and instead uses a table of function pointers (another technique borrowed from functional programming) to dispatch data to the correct handler. This is covered in more detail later in this document. 
+
+Lastly, s2n studiously avoids locks. s2n is designed to be thread-safe, but does so by using atomic data types in the small number of well-isolated variables that may be accessed by multiple threads. 
 
 ### Code formatting and commenting 
+
+s2n is written in C99. The code formatting and indentation should be relatively clear from reading some s2n source files, but there is also an automated "make indent" target that will indent the s2n sources. 
+
+There should be no need for comments to explain *what* s2n code is doing; variables and functions should be given clear and human-readable names that makes their purpose and intent intuitive. Comments explaining *why* we are doing something are encouraged. Often some context setting is neccessary; a reference to an RFC, or a reminder of some critical state that is hard to work directly into the immediate code in a natural way. 
+
+Every source code file must include a copy of the Apache Software License 2.0, as well as a correct copyright notification. The year of copyright should be the year in which the file was first created. 
 
 ## Tests 
 
