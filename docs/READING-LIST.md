@@ -9,6 +9,7 @@
 
 ## RFCs and specifications relating to TLS/SSL
 
+* [SSLv2](http://www-archive.mozilla.org/projects/security/pki/nss/ssl/draft02.html)
 * [SSLv3](https://tools.ietf.org/html/rfc6101)
 * [TLS 1.0](https://tools.ietf.org/html/rfc2246)
 * [TLS 1.1](https://tools.ietf.org/html/rfc4346)
