@@ -261,6 +261,54 @@ Every connection (or session in TLS parlance) is associated with an s2n_connecti
 
 When a TLS connection is being started, the first communication consists of handshake messages. The client sends the first message (a client hello), and then the server replies (with a server hello), and so on. Because a server must wait for a client and vice versa, this phase of a TLS connection is not full-duplex. To save on memory, s2n uses a single stuffer for both incoming and outgoing handshake messages and it is located as s2n_connection->handshake.io (which is a growable stuffer). 
 
+Borrowing another trick from functional programming, the state machine for handling handshake messages is implementing using a table of function pointers, located in [tls/s2n_handshake_io.c](https://github.com/awslabs/s2n/blob/master/tls/s2n_handshake_io.c). 
+
+    static struct s2n_handshake_action state_machine[] = {
+        /*Message type  Handshake type       Writer S2N_SERVER                S2N_CLIENT                   handshake.state              */
+        {TLS_HANDSHAKE, TLS_CLIENT_HELLO,      'C', {s2n_client_hello_recv,    s2n_client_hello_send}},    /* CLIENT_HELLO              */
+        {TLS_HANDSHAKE, TLS_SERVER_HELLO,      'S', {s2n_server_hello_send,    s2n_server_hello_recv}},    /* SERVER_HELLO              */
+        {TLS_HANDSHAKE, TLS_SERVER_CERT,       'S', {s2n_server_cert_send,     s2n_server_cert_recv}},     /* SERVER_CERT               */
+        {TLS_HANDSHAKE, TLS_SERVER_KEY,        'S', {s2n_server_key_send,      s2n_server_key_recv}},      /* SERVER_KEY                */
+        {TLS_HANDSHAKE, TLS_SERVER_CERT_REQ,   'S', {NULL,                     NULL}},                     /* SERVER_CERT_REQ           */
+        {TLS_HANDSHAKE, TLS_SERVER_HELLO_DONE, 'S', {s2n_server_done_send,     s2n_server_done_recv}},     /* SERVER_HELLO_DONE         */
+        {TLS_HANDSHAKE, TLS_CLIENT_CERT,       'C', {NULL,                     NULL}},                     /* CLIENT_CERT               */
+        {TLS_HANDSHAKE, TLS_CLIENT_KEY,        'C', {s2n_client_key_recv,      s2n_client_key_send}},      /* CLIENT_KEY                */
+        {TLS_HANDSHAKE, TLS_CLIENT_CERT_VERIFY,'C', {NULL,                     NULL}},                     /* CLIENT_CERT_VERIFY        */
+        {TLS_CHANGE_CIPHER_SPEC, 0,            'C', {s2n_client_ccs_recv,      s2n_client_ccs_send}},      /* CLIENT_CHANGE_CIPHER_SPEC */
+        {TLS_HANDSHAKE, TLS_CLIENT_FINISHED,   'C', {s2n_client_finished_recv, s2n_client_finished_send}}, /* CLIENT_FINISHED           */
+        {TLS_CHANGE_CIPHER_SPEC, 0,            'S', {s2n_server_ccs_send,      s2n_server_ccs_recv}},      /* SERVER_CHANGE_CIPHER_SPEC */
+        {TLS_HANDSHAKE, TLS_SERVER_FINISHED,   'S', {s2n_server_finished_send, s2n_server_finished_recv}}, /* SERVER_FINISHED           */
+        {TLS_APPLICATION_DATA, 0,              'B', {NULL, NULL}}    /* HANDSHAKE_OVER            */
+    };
+
+The 'writer' field indicates whether we expect a Client or a Server to write a particular message type (or 'B' for both in the case of an application data message, but we haven't gotten to that yet). If s2n is acting as a server, then it attempts to read client messages, if it's acting as a client it will try to write it. To perform either operation it calls the relevant function pointer. This way the state machine can be very short and simple: write a handshake message out when we have one pending, and in the other direction read in data until we have a fully-buffered handshake message before then calling the relevant message parsing function. 
+
+One detail we've skipped over so far is that handshake messages are encapsulated by an additional record layer within the TLS protocol. As we've already seen, TLS records are fairly simple: just a 5 byte header indicating the message type (Handshake, application data, and alerts), protocol version, and record size. The remainder of the record is data and may or may not be encrypted. What isn't so simple is that TLS allows 'inner' messages, like Handshake message, to be fragmented across several records, and for a single record to contain multiple records. 
+
+![TLS layers](images/s2n_tls_layers.png "s2n TLS layers")
+
+In the outbound direction, s2n never coalesces messages into one records, so writing a handshake message is a simple matter of fragmenting the handshake message if neccessary and writing the records. In the inbound direction, the small state machine in s2n_handshake_io.c takes care of any fragmentation and coalescing. See [tests/unit/s2n_fragmentation_coalescing_test.c](https://github.com/awslabs/s2n/blob/master/tests/unit/s2n_fragmentation_coalescing_test.c) for our test cases covering the logic too. 
+
+To perform all of this, the s2n_connection structure has a few more internal stuffers:
+
+    struct s2n_stuffer header_in;
+    struct s2n_stuffer in;
+    struct s2n_stuffer out;
+    struct s2n_stuffer alert_in;
+
+'header_in' is a small 5 byte stuffer, which is used to read in a record header. Once that stuffer is full, and the size of the next record is determined (from that header), inward data is directed to the 'in' stuffer.  The 'out' stuffer is for data that we are writing out; like an encrypted TLS record. 'alert_in' is for any TLS alert message that s2n receives from its peer. s2n treats all alerts as fatal, but we buffer the full alert message so that reason can be logged. 
+
+When past the handshake phase, s2n supports full-duplex I/O. Seperate threads or event handlers are free to call s2n_send and s2n_recv on the same connection. Because either a read or a write may cause a connection to be closed, there are two additional stuffers for storing outbound alert messages:
+
+    struct s2n_stuffer reader_alert_out;
+    struct s2n_stuffer writer_alert_out;
+    
+this pattern means that both the reader thread and writer thread can create pending alert messages without needing any locks. If either the reader or writer generates an alert, it also sets the 'closing' state to 1.
+
+    sig_atomic_t closing;
+    sig_atomic_t closed;
+    
+'closing' is an atomic, but even if it were not it can only be changed from 0 to 1, so an over-write is harmless. Every time a TLS record is fully-written, s2n_send() checks to see if closing is set to 1. If it is then the reader or writer alert message will be sent (writer takes priority, if both are present) and the connection will be closed. Once the closed is 1, no more I/O may be sent or received on the connection. 
 
 ## Contributing to s2n
 
