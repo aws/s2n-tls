@@ -1,8 +1,78 @@
 # Development guide for s2n
 
-If you are interested in working on, or are curious about, the internals of
-s2n it is helpful to understand some common conventions that are used
-throughout the code.
+If you're curious about the internals of s2n, or interested in contributing to
+s2n, this document is for you. If you're interested in using s2n in an application
+that you're writing, see the accompanying usage guide instead.
+
+## s2n's tenets
+
+Before getting into the detail of how s2n works internally, it's worth covering
+s2n's tenets, as they guide and inform many of the design decisions we'll go through. 
+We're always open to considering new tenets, if you can think of better ones and make 
+a case for them. 
+
+### Tenets 
+* **Maintain an excellent TLS/SSL implementation**<br/>Although it's hidden "*under the hood*", TLS/SSL is the direct interface with customers and end-users. Good performance and security are critical to a positive experience.
+* **Protect user data and keys**<br/>Above all else, s2n must ensure that user data and private keys are being handled correctly and carefully. Security is often a matter of trade-offs and costs; we should always seek to increase the costs for attackers whenever the trade offs are acceptable to users.
+* **Stay minimal and simple**<br/>Write as little code as neccessary, omit little-used optional features and support as few modes of operation as possible.
+* **Write clear readable code with a light cognitive load**<br/>s2n's code should be consise, easy to follow and legible to a proficient C programmer. Our code should be organized in a way that divides the implementation up into small units of work, with all of the context neccessary at hand. We should also minimize the number of branches in our code, the depth of our call stacks, and the membership of our structures.   
+* **Defend in depth and systematically**<br/>Great care and attention to detail is required to write good code, but we should also use automation and mechanistic processess to protect against human error. We should fix bugs (of course), but also fix classes of bugs.
+* **Be easy to use and maintain sane defaults**<br/>It should be low effort, even for a novice developer, to use s2n in a safe way. We also shouldn't "*pass the buck*" and place the burden of subtle or complicated TLS-specific decision making on application authors or system administrators. 
+* **Provide great performance and responsivity**<br/>TLS/SSL is rapidly becoming ubiquitious, in part due to advances in performance and responsivity. Naturally, people always appreciate speed, but costs are also important. Even small inefficiencies and overhead in s2n can become significant when multiplied by billions of users and quintillions of sessions. 
+* **Stay humble and stick to facts**<br/>s2n operates in a security critical space. Even with the most precautionary development methods it is impossible to guarantee the absence of defects. A subtle one-byte error on a single line may still cause problems. Boasting about security practices is destined to backfire and mis-lead. As opinions can differ on security best practises, sometimes in contradictory ways, we should be guided by facts and measurable data.   
+
+## Coding style and conventions 
+
+Per our tenets, an important goal is to reduce the cognitive load required to 
+read, review and extend s2n. Although s2n is written in C, s2n adopts several
+patterns more common to functional programming, though they are used in a way
+that is idiomatic and shouldn't feel completely alien in C. 
+
+### High level function design
+The first convention is that's s2n's functions are generally quite small, no
+more than a page or two at most and commonly just a few lines. They usually 
+have a clear input and output and are in that sense "pure" functions; for 
+example handling a particular TLS handshake message type takes the message
+as input, and the output is connection state. 
+
+In a very technical sense, the functions are not actually 
+pure, as they operate on the members of structs that are passed rather than
+treating parameters as immutable, but it would be laborious and less readable
+in C to support multi-member return structures. What's more relevant is that
+s2n functions generally operate in a message passing way. For example,
+a simplified version of the flow when handling a TLS client finished message
+might looks like this:
+
+![s2n message passing](s2n_lambda.png "s2n message passing")
+
+each function handles a clear, well-defined piece of work, before passing on
+responsibility to the next function. 
+
+The second convention of s2n's functions is that functions are generally
+split into two kinds: those that handle control flow and coordinate
+other functions, and those that parse messages. Splitting things up this
+way leads to a shallower call stack, but the main benefit is that functions
+can read quite declaratively. In the case of message parsers, the function
+contents can read almost like schemas of the message being passed. s2n is 
+also structured in a very message oriented way; for example the functions
+for reading and writing a particular message type are usually in the same
+file, so that all of context and logic needed to handle that message type
+can be seen and thought about in one neat place. 
+
+A good example file to look at is https://github.com/awslabs/s2n/blob/master/tls/s2n_server_finished.c. 
+From reading the file it should be reasonably clear that a server
+finished message consists just of S2N_TLS_FINISHED_LEN number of bytes, what 
+the next state is and what else is going on. 
+
+### Error handling 
+
+### Safety checking
+
+### Control flow and the state machine
+
+### Code formatting
+
+### 
 
 ## Readability and short functions
 
@@ -63,14 +133,7 @@ commonly used types and encodings.
 At the core of the stuffer there are four variables being tracked which
 together emulate a stream:
 
-                             data_available()      space_remaining()
-                                  |                       |
-                      /-----------------------\/--------------------\
-    -----------------------------------------------------------------
-    |   |   |   |   | R |   |   |   |   |   | W |   |   |   |   |   |
-    -----------------------------------------------------------------
-    ^                 ^                       ^                     ^
-    data          read cursor            write cursor          data + size
+![Stuffer layout](s2n_stuffer_layout.png "s2n stuffer internal layout")
 
 Data can be written to a stuffer and this will increment the write cursor.
 Internally, the stuffer routines ensure that no more data can be written to the
