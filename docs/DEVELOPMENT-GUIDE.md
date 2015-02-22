@@ -257,7 +257,10 @@ but attempting to write more data would not be legal:
 
 ## s2n_connection and the TLS state machine
 
-Every connection (or session in TLS parlance) is associated with an s2n_connection structure. The details of this structure are opaque to applications, but internally it is where all of the TLS state is managed. 
+Every connection (or session in TLS parlance) is associated with an s2n_connection structure. The details of this structure are opaque to applications, but internally it is where all of the TLS state is managed. To make sense of what is going on, it is neccessary to understand how the TLS protocol works at the record and handshake layers.
+
+When a TLS connection is being started, the first communication consists of handshake messages. The client sends the first message (a client hello), and then the server replies (with a server hello), and so on. Because a server must wait for a client and vice versa, this phase of a TLS connection is not full-duplex. To save on memory, s2n uses a single stuffer for both incoming and outgoing handshake messages and it is located as s2n_connection->handshake.io (which is a growable stuffer). 
+
 
 ## Contributing to s2n
 
@@ -269,4 +272,5 @@ We are happy to accept contributions to s2n, and we suggest the following genera
 * Create a git fork of the s2n repository and prepare your changes locally within your fork.
 * When you're ready, and when all tests are passing, create a pull request to the master awslabs s2n repository.
 * All changes to s2n go through code review and legal review. All submissions and contributions are made under the terms of the Apache Software License 2.0. In some cases where ownership over copyright and authorship rights are not clear, we may ask you to sign a contributor license agreement. 
+* s2n undergoes periodic government and commercial security analyses, including code audits and penetration tests. To participate in these analsyses, we may ask you to sign a Non Disclosure Agreement. 
 
