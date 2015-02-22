@@ -104,13 +104,13 @@ Branches can be a source of cognitive load, as they ask the reader to follow a p
 
 Firstly, there are almost no ifdef calls in s2n. Ifdefs can be a particularly penalising source of cognitive load. In addition to being a branch, they also ask the reader to mix state from two different languages (C, and the C pre processor) and they tend to be associated with ugly rendering in IDEs and code formatters. In the few places where ifdef's are neccessary, we use them in a careful way without compromising the integrity of the function. [utils/s2n_timer.c](https://github.com/awslabs/s2n/blob/master/utils/s2n_timer.c) is a good example. Rather than mixing the Apple and non-Apple implementations and cluttering one function with several ifdefs, there is a complete implementation of the timer functionality for each platform. Within the POSIX implementation, an ifdef and define are used to use the most precise clock type, but in a way that does not compromise readability. 
 
-Secondly, s2n generally branches in the case of failure. Rather than creating a nest of if's:
+Secondly, s2n generally branches in the case of failure, rather than success. So instead of creating a nest of if's:
 
     if (s2n_foo() == 0) {
         if (s2n_bar() == 0) {
              if (s2n_baz() == 0) {
 
-we instead do:
+we do:
 
     GUARD(s2n_foo());
     GUARD(s2n_bar());
@@ -134,6 +134,16 @@ There should be no need for comments to explain *what* s2n code is doing; variab
 
 Every source code file must include a copy of the Apache Software License 2.0, as well as a correct copyright notification. The year of copyright should be the year in which the file was first created. 
 
+There is also a brief set of other coding conventions:
+
+* s2n uses explicitly sized primitives where possible. E.g. uint8_t, uint32_t. 
+* In general s2n uses unsigned ints for sizes, as TLS/SSL do the same.
+* Any structures exposed to application authors must be opaque: s2n manages the memory allocation and de-allocation.
+* Variables are declared closest to their first point of use, to maximize context around the typing. 
+* Duplication of logic is discouraged
+* 4 spaces, no tabs
+* Assuming a terminal that is 120 characters wide is ok
+
 ## Tests 
 
 s2n is written in C99, a language which lacks a "standard" testing framework. Although there are some more well used C++ testing frameworks, s2n also targets some embedded platforms on which a C++ compiler is unavailable. 
@@ -150,36 +160,39 @@ To avoid adding unneeded code to the production build of s2n, there is also a sm
 
 ## A tour of s2n memory handling: blobs and stuffers
 
-### s2n_blob : keeping track of memory ranges 
+C has a notorious history of issues around memory and buffer handling. To try and avoid problems in this area, s2n does not use C string functions or standard buffer manipulation patterns. Instead memory regions are tracked explicitly, with s2n_blob structures, and buffers are re-oriented as streams with s2n_stuffer structures.
+
+### s2n_blob : keeping track of memory ranges
+
+s2n_blob's are a very simple data structure:
+
+    struct s2n_blob {
+        uint8_t *data;
+        uint32_t size;
+    };
+
+functions which handle memory ranges are expected to at least use blobs (stuffers are better though, as we'll see). A blob can be initialized with an existing memory buffer using s2n_blob_init, but  [utils/s2n_mem.h](https://github.com/awslabs/s2n/blob/master/utils/s2n_mem.h) also defines routines for dynamically allocated blobs. For handling user data we prefer the latter, as s2n prevents the memory regions from being swapped to disk and from showing up in core files (where supported). 
 
 ### s2n_stuffer : a streaming buffer for stuff
 
-## s2n_connection : the core data for a connection
+The stuffer data structure included in s2n is intended to handle all protocol level
+input and output to memory buffers and is the real work-horse of s2n. At its core
+a stuffer is a blob and two cursors:
 
-## How s2n handles the s2n state machine
+     struct s2n_stuffer {
+        struct s2n_blob blob;
+        uint32_t read_cursor;
+        uint32_t write_cursor;
+        ...
+     };
 
-## Memory handling in s2n
-
-As passing around regions of memory is so common, s2n provides an s2n_blob
-structure for tracking a pointer to a region of data along with the size of
-that region.
-
-s2n_mem.h provides s2n_alloc(), s2n_realloc() and s2n_free() functions that may
-be used to manage dynamically allocated blobs. These functions map directly
-to realloc() and free() and are used only to ensure that the size of the 
-memory region is consistently tracked with an s2n_blob.
-
-## Stuffer : a buffer for stuff
-
-The stuffer data structure included in s2n is intended to handle all
-input and output to memory buffers. In addition to basic size and overflow
-management, a stuffer can also perform serialisation and de-serialisation for
-commonly used types and encodings.
-
-At the core of the stuffer there are four variables being tracked which
-together emulate a stream:
+This creates a layout that makes it possible to implement a stream:
 
 ![Stuffer layout](s2n_stuffer_layout.png "s2n stuffer internal layout")
+
+In addition to basic size and overflow
+management, a stuffer can also perform serialisation and de-serialisation for
+commonly used types and encodings.
 
 Data can be written to a stuffer and this will increment the write cursor.
 Internally, the stuffer routines ensure that no more data can be written to the
@@ -210,3 +223,9 @@ valid, these functions both mark a stuffer as tainted. A tainted stuffer cannot
 be grown or resized, to prevent any underlying call to realloc() from
 invalidating the pointers. s2n_stuffer_wipe() will reset the tainted state, so
 any pointers saved can not used once this has been called.
+
+## s2n_connection : the core data for a connection
+
+## How s2n handles the tls state machine
+
+
