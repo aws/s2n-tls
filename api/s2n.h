@@ -36,6 +36,8 @@ extern int s2n_init();
 extern int s2n_cleanup();
 extern struct s2n_config *s2n_config_new();
 extern int s2n_config_free(struct s2n_config *config);
+extern int s2n_config_free_dhparams(struct s2n_config *config);
+extern int s2n_config_free_cert_chain_and_key(struct s2n_config *config);
 extern const char *s2n_strerror(int error, const char *lang);
 
 extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, char *cert_chain_pem, char *private_key_pem);

@@ -183,13 +183,13 @@ int main(int argc, char **argv)
    
     EXPECT_SUCCESS(s2n_shutdown(conn, &status));
     
-    EXPECT_SUCCESS(s2n_connection_wipe(conn));
+    EXPECT_SUCCESS(s2n_connection_free(conn));
+
+    EXPECT_SUCCESS(s2n_config_free(config));
 
     /* Clean up */
     EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
     EXPECT_EQUAL(status, 0);
-
-    EXPECT_SUCCESS(s2n_connection_free(conn));
 
     END_TEST();
 

@@ -21,17 +21,21 @@
 
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
+#include "utils/s2n_safety.h"
 
 int s2n_alloc(struct s2n_blob *b, uint32_t size)
 {
     b->data = NULL;
-    return s2n_realloc(b, size);
+
+    GUARD(s2n_realloc(b, size));
+    return 0;
 }
 
 int s2n_realloc(struct s2n_blob *b, uint32_t size)
 {
     if (size == 0) {
-        return s2n_free(b);
+        GUARD(s2n_free(b));
+        return 0;
     }
 
     b->data = realloc(b->data, size);
@@ -53,7 +57,9 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
 
 int s2n_free(struct s2n_blob *b)
 {
-    free(b->data);
+    if (b->data) {
+        free(b->data);
+    }
     b->data = NULL;
     b->size = 0;
 
