@@ -121,7 +121,8 @@ int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
         GUARD(s2n_rsa_private_key_free(&config->cert_and_key_pairs->private_key));
     }
 
-    return s2n_free(&b);
+    GUARD(s2n_free(&b));
+    return 0;
 }
 
 int s2n_config_free_dhparams(struct s2n_config *config)
@@ -135,7 +136,8 @@ int s2n_config_free_dhparams(struct s2n_config *config)
         GUARD(s2n_dh_params_free(config->dhparams));
     }
 
-    return s2n_free(&b);
+    GUARD(s2n_free(&b));
+    return 0;
 }
 
 int s2n_config_free(struct s2n_config *config)
@@ -145,7 +147,8 @@ int s2n_config_free(struct s2n_config *config)
     GUARD(s2n_config_free_cert_chain_and_key(config));
     GUARD(s2n_config_free_dhparams(config));
 
-    return s2n_free(&b);
+    GUARD(s2n_free(&b));
+    return 0;
 }
 
 int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version)
