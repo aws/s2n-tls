@@ -144,7 +144,8 @@ int s2n_connection_free(struct s2n_connection *conn)
     blob.data = (uint8_t *) conn;
     blob.size = sizeof(struct s2n_connection);
 
-    return s2n_free(&blob);
+    GUARD(s2n_free(&blob));
+    return 0;
 }
 
 int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *config)
