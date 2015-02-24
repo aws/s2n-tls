@@ -21,6 +21,7 @@
 extern __thread const char *s2n_debug_str;
 
 typedef enum {
+    S2N_ERR_OK,
     S2N_ERR_KEY_INIT,
     S2N_ERR_ENCRYPT,
     S2N_ERR_DECRYPT,
