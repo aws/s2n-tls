@@ -95,12 +95,19 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
 
             if (!memcmp(ours, theirs, S2N_TLS_CIPHER_SUITE_LEN)) {
                 /* We have a match */
-                conn->pending.cipher_suite = s2n_cipher_suite_match(ours);
+                struct s2n_cipher_suite *match = s2n_cipher_suite_match(ours);
 
                 /* This should never happen */
-                if (conn->pending.cipher_suite == NULL) {
+                if (match == NULL) {
                     S2N_ERROR(S2N_ERR_CIPHER_NOT_SUPPORTED);
                 }
+
+                /* Don't choose DH key exchange if it's not configured. */
+                if (conn->config->dhparams == NULL && match->key_exchange_alg == S2N_DHE) {
+                    continue;
+                }
+
+                conn->pending.cipher_suite = match;
                 return 0;
             }
         }
