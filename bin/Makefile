@@ -22,7 +22,7 @@ else
     LIBS = -lcrypto -lrt
 endif
 
-LDFLAGS += -L../lib/ -ls2n ${LIBS} -ldl
+LDFLAGS += -L../lib/ -ls2n ${LIBS}
 CRUFT += s2nc s2nd
 
 s2nc: s2nc.c echo.c
