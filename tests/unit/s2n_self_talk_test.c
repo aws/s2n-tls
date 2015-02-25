@@ -42,7 +42,9 @@ static char certificate[] =
     "WbyxPJNtSlA9GfKBz1INR5cFsOL27VrBoMYHMaolveeslc1AW2HfBtXWXeWSEF7F\n"
     "QNgye8ZDPNzeSWSI0VyK2762wsTgTuUhHAaJ45660eX57+e8IvaM7xOEfBPDKYtU\n"
     "0a28ZuhvSr2akJtGCwcs2J6rs6I+rV84UktDxFC9LUezBo8D9FkMPLoPKKNH1dXR\n"
-    "6LO8GOkqWUrhPIEmfy9KYes3q2ZX6svk4rwBtommHRv30kPxnnU1YXt52Ri+XczO\n" "wEs=\n" "-----END CERTIFICATE-----\n";
+    "6LO8GOkqWUrhPIEmfy9KYes3q2ZX6svk4rwBtommHRv30kPxnnU1YXt52Ri+XczO\n"
+    "wEs=\n"
+    "-----END CERTIFICATE-----\n";
 
 static char private_key[] =
     "-----BEGIN RSA PRIVATE KEY-----\n"
@@ -69,7 +71,9 @@ static char private_key[] =
     "pRsovQKpiHQNgHizkwM861GqqrfisZZSyKfFlcynkACoVmyu7fv9VoD2VCMiqdUq\n"
     "IvjNmfE5RnXVQwja+668AS+MHi+GF77DTFBxoC5VHDAnXfLyIL9WWh9GEBoNLnKT\n"
     "hVm8RQKBgQCB9Skzdftc+14a4Vj3NCgdHZHz9mcdPhzJXUiQyZ3tYhaytX9E8mWq\n"
-    "pm/OFqahbxw6EQd86mgANBMKayD6B1Id1INqtXN1XYI50bSs1D2nOGsBM7MK9aWD\n" "JXlJ2hwsIc4q9En/LR3GtBaL84xTHGfznNylNhXi7GbO1wNMJuAukA==\n" "-----END RSA PRIVATE KEY-----\n";
+    "pm/OFqahbxw6EQd86mgANBMKayD6B1Id1INqtXN1XYI50bSs1D2nOGsBM7MK9aWD\n"
+    "JXlJ2hwsIc4q9En/LR3GtBaL84xTHGfznNylNhXi7GbO1wNMJuAukA==\n"
+    "-----END RSA PRIVATE KEY-----\n";
 
 static char dhparams[] =
     "-----BEGIN DH PARAMETERS-----\n"
@@ -77,9 +81,11 @@ static char dhparams[] =
     "Bbn6k0FQ7yMED6w5XWQKDC0z2m0FI/BPE3AjUfuPzEYGqTDf9zQZ2Lz4oAN90Sud\n"
     "luOoEhYR99cEbCn0T4eBvEf9IUtczXUZ/wj7gzGbGG07dLfT+CmCRJxCjhrosenJ\n"
     "gzucyS7jt1bobgU66JKkgMNm7hJY4/nhR5LWTCzZyzYQh2HM2Vk4K5ZqILpj/n0S\n"
-    "5JYTQ2PVhxP+Uu8+hICs/8VvM72DznjPZzufADipjC7CsQ4S6x/ecZluFtbb+ZTv\n" "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n" "-----END DH PARAMETERS-----\n";
+    "5JYTQ2PVhxP+Uu8+hICs/8VvM72DznjPZzufADipjC7CsQ4S6x/ecZluFtbb+ZTv\n"
+    "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n"
+    "-----END DH PARAMETERS-----\n";
 
-int mock_client(int writefd, int readfd)
+void mock_client(int writefd, int readfd)
 {
     char buffer[0xffff];
     struct s2n_connection *conn;
@@ -99,10 +105,10 @@ int mock_client(int writefd, int readfd)
         for (int j = 0; j < i; j++) {
             buffer[j] = 33;
         }
-        
+
         s2n_send(conn, buffer, i, &more);
     }
-    
+
     s2n_shutdown(conn, &more);
     s2n_connection_free(conn);
 
@@ -127,71 +133,75 @@ int main(int argc, char **argv)
 
     /* Create a pipe */
     EXPECT_SUCCESS(s2n_init());
-    EXPECT_SUCCESS(pipe(server_to_client));
-    EXPECT_SUCCESS(pipe(client_to_server));
 
-    /* Create a child process */
-    pid = fork();
-    if (pid == 0) {
-        /* This is the child process, close the read end of the pipe */
-        EXPECT_SUCCESS(close(client_to_server[0]));
-        EXPECT_SUCCESS(close(server_to_client[1]));
+    for (int is_dh_key_exchange = 0; is_dh_key_exchange <= 1; is_dh_key_exchange++) {
+        EXPECT_SUCCESS(pipe(server_to_client));
+        EXPECT_SUCCESS(pipe(client_to_server));
 
-        /* Write the fragmented hello message */
-        mock_client(client_to_server[1], server_to_client[0]);
-    }
+        /* Create a child process */
+        pid = fork();
+        if (pid == 0) {
+            /* This is the child process, close the read end of the pipe */
+            EXPECT_SUCCESS(close(client_to_server[0]));
+            EXPECT_SUCCESS(close(server_to_client[1]));
 
-    /* This is the parent */
-    EXPECT_SUCCESS(close(client_to_server[1]));
-    EXPECT_SUCCESS(close(server_to_client[0]));
-
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-    EXPECT_NOT_NULL(config = s2n_config_new());
-
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, certificate, private_key));
-    EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams));
-    
-    EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-
-    /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
-    EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
-
-    /* Negotiate the handshake. */
-    EXPECT_SUCCESS(s2n_negotiate(conn, &status));
-
-    char buffer[0xffff];
-    for (int i = 1; i < 0xffff; i += 100) {
-        char * ptr = buffer;
-        int bytes_read = 0;
-        int size = i;
-
-        do {
-            EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &status));
-
-            size -= bytes_read;
-            ptr += bytes_read;
-        } while(size);
-
-        for (int j = 0; j < i; j++) {
-            EXPECT_EQUAL(buffer[j], 33);
+            /* Write the fragmented hello message */
+            mock_client(client_to_server[1], server_to_client[0]);
         }
+
+        /* This is the parent */
+        EXPECT_SUCCESS(close(client_to_server[1]));
+        EXPECT_SUCCESS(close(server_to_client[0]));
+
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_NOT_NULL(config = s2n_config_new());
+
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, certificate, private_key));
+        if (is_dh_key_exchange) {
+            EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams));
+        }
+
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        /* Set up the connection to read from the fd */
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
+
+        /* Negotiate the handshake. */
+        EXPECT_SUCCESS(s2n_negotiate(conn, &status));
+
+        char buffer[0xffff];
+        for (int i = 1; i < 0xffff; i += 100) {
+            char * ptr = buffer;
+            int bytes_read = 0;
+            int size = i;
+
+            do {
+                EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &status));
+
+                size -= bytes_read;
+                ptr += bytes_read;
+            } while(size);
+
+            for (int j = 0; j < i; j++) {
+                EXPECT_EQUAL(buffer[j], 33);
+            }
+        }
+
+        /* Verify that read() returns EOF */
+        EXPECT_SUCCESS(s2n_recv(conn, buffer, 1, &status));
+
+        EXPECT_SUCCESS(s2n_shutdown(conn, &status));
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+
+        EXPECT_SUCCESS(s2n_config_free(config));
+
+        /* Clean up */
+        EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
+        EXPECT_EQUAL(status, 0);
     }
- 
-    /* Verify that read() returns EOF */
-    EXPECT_SUCCESS(s2n_recv(conn, buffer, 1, &status));
-   
-    EXPECT_SUCCESS(s2n_shutdown(conn, &status));
-    
-    EXPECT_SUCCESS(s2n_connection_free(conn));
-
-    EXPECT_SUCCESS(s2n_config_free(config));
-
-    /* Clean up */
-    EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
-    EXPECT_EQUAL(status, 0);
 
     END_TEST();
-
     return 0;
 }
