@@ -115,12 +115,6 @@ int main(int argc, const char *argv[])
         exit(1);
     }
 
-    const char *protocols[] = { "spdy/3.1", "http/1.1", NULL };
-    if (s2n_config_set_protocol_preferences(config, protocols) < 0) {
-        fprintf(stderr, "Error setting protocol preferences: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-        exit(1);
-    }
-
     if (s2n_set_server_name(conn, argv[1]) < 0) {
         fprintf(stderr, "Error setting server name: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
