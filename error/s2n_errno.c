@@ -89,6 +89,8 @@ struct s2n_error_translation EN[] = {
     { S2N_ERR_HANDSHAKE_STATE, "Invalid handshake state encountered" },
     { S2N_ERR_FALLBACK_DETECTED, "TLS fallback detected" },
     { S2N_ERR_INVALID_CIPHER_PREFERENCES, "Invalid Cipher Preferences version" },
+    { S2N_ERR_APPLICATION_PROTOCOL_TOO_LONG, "Application protocol name is too long"}, 
+    { S2N_ERR_NO_APPLICATION_PROTOCOL, "No supported application protocol to negotiate" },
 }; 
 
 const char *s2n_strerror(int error, const char *lang)
