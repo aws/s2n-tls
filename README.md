@@ -22,7 +22,7 @@ Cryptographic routines have been written in a modular way so that it is also
 possible to use BoringSSL, LibreSSL or other cryptographic libraries for these
 operations. 
 
-s2n has support for the AES256-CBC, AES128-CBC, 3DES-CBC and RC4
+s2n has support for the AES128-GCM, AES256-CBC, AES128-CBC, 3DES-CBC and RC4
 ciphers, and the RSA and DHE-RSA (a form of perfect forward secrecy) key
 exchange algorithms.  For more detail about s2n, see the [API Reference](https://github.com/awslabs/s2n/blob/master/docs/USAGE-GUIDE.md),
 [Example server](https://github.com/awslabs/s2n/tree/master/bin), and [Backlog](https://github.com/awslabs/s2n/issues).

@@ -77,6 +77,14 @@ int s2n_cbc_cipher_3des_get_encryption_key(struct s2n_session_key *key, struct s
 
     return 0;
 }
+
+static int s2n_cbc_cipher_3des_destroy_key(struct s2n_session_key *key)
+{
+    EVP_CIPHER_CTX_cleanup(&key->native_format.evp_cipher_ctx);
+
+    return 0;
+}
+
 struct s2n_cipher s2n_3des = {
     .key_material_size = 24,
     .type = S2N_CBC,
@@ -86,5 +94,6 @@ struct s2n_cipher s2n_3des = {
                .decrypt = s2n_cbc_cipher_3des_decrypt,
                .encrypt = s2n_cbc_cipher_3des_encrypt},
     .get_decryption_key = s2n_cbc_cipher_3des_get_decryption_key,
-    .get_encryption_key = s2n_cbc_cipher_3des_get_encryption_key
+    .get_encryption_key = s2n_cbc_cipher_3des_get_encryption_key,
+    .destroy_key = s2n_cbc_cipher_3des_destroy_key,
 };

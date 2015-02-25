@@ -98,6 +98,13 @@ int s2n_cbc_cipher_aes256_get_encryption_key(struct s2n_session_key *key, struct
     return 0;
 }
 
+static int s2n_cbc_cipher_aes_destroy_key(struct s2n_session_key *key)
+{
+    EVP_CIPHER_CTX_cleanup(&key->native_format.evp_cipher_ctx);
+
+    return 0;
+}
+
 struct s2n_cipher s2n_aes128 = {
     .key_material_size = 16,
     .type = S2N_CBC,
@@ -107,7 +114,8 @@ struct s2n_cipher s2n_aes128 = {
                .decrypt = s2n_cbc_cipher_aes_decrypt,
                .encrypt = s2n_cbc_cipher_aes_encrypt},
     .get_decryption_key = s2n_cbc_cipher_aes128_get_decryption_key,
-    .get_encryption_key = s2n_cbc_cipher_aes128_get_encryption_key
+    .get_encryption_key = s2n_cbc_cipher_aes128_get_encryption_key,
+    .destroy_key = s2n_cbc_cipher_aes_destroy_key,
 };
 
 struct s2n_cipher s2n_aes256 = {
@@ -119,5 +127,6 @@ struct s2n_cipher s2n_aes256 = {
                .decrypt = s2n_cbc_cipher_aes_decrypt,
                .encrypt = s2n_cbc_cipher_aes_encrypt},
     .get_decryption_key = s2n_cbc_cipher_aes256_get_decryption_key,
-    .get_encryption_key = s2n_cbc_cipher_aes256_get_encryption_key
+    .get_encryption_key = s2n_cbc_cipher_aes256_get_encryption_key,
+    .destroy_key = s2n_cbc_cipher_aes_destroy_key,
 };

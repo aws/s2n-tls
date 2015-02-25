@@ -53,20 +53,32 @@ struct s2n_cipher_preferences cipher_preferences_20150202 = {
     .minimum_protocol_version = S2N_TLS10
 };
 
+/* Support AES-GCM modes */
+uint8_t wire_format_20150214[] =
+    { TLS_DHE_RSA_WITH_AES_128_GCM_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
+    TLS_RSA_WITH_AES_128_GCM_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA, TLS_RSA_WITH_3DES_EDE_CBC_SHA
+};
+struct s2n_cipher_preferences cipher_preferences_20150214 = {
+    .count = sizeof(wire_format_20150214) / S2N_TLS_CIPHER_SUITE_LEN,
+    .wire_format = wire_format_20150214,
+    .minimum_protocol_version = S2N_TLS10
+};
+
 struct {
     const char * version;
     struct s2n_cipher_preferences * preferences;
 } selection[] = {
-    { "default", &cipher_preferences_20150202 },
+    { "default", &cipher_preferences_20150214 },
     { "20140601", &cipher_preferences_20140601 },
     { "20141001", &cipher_preferences_20141001 },
     { "20150202", &cipher_preferences_20150202 },
+    { "20150214", &cipher_preferences_20150214 },
     { NULL, NULL }
 };
 
 struct s2n_config s2n_default_config = {
     .cert_and_key_pairs = NULL,
-    .cipher_preferences = &cipher_preferences_20150202
+    .cipher_preferences = &cipher_preferences_20150214
 };
 
 struct s2n_config *s2n_config_new()
@@ -84,11 +96,59 @@ struct s2n_config *s2n_config_new()
     return new_config;
 }
 
+int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
+{
+    struct s2n_blob b = {
+        .data = (uint8_t *) config->cert_and_key_pairs,
+        .size = sizeof(struct s2n_cert_chain_and_key)
+    };
+
+    /* If there were cert and key pairs set, walk the chain and free the certs */
+    if (config->cert_and_key_pairs) {
+        struct s2n_cert_chain *node = config->cert_and_key_pairs->head;
+        while (node) {
+            struct s2n_blob n = {
+                .data = (uint8_t *)node,
+                .size = sizeof(struct s2n_cert_chain)
+            };
+            /* Free the cert */
+            GUARD(s2n_free(&node->cert));
+            /* Advance to next */
+            node = node->next;
+            /* Free the node */
+            GUARD(s2n_free(&n));
+        }
+        GUARD(s2n_rsa_private_key_free(&config->cert_and_key_pairs->private_key));
+    }
+
+    GUARD(s2n_free(&b));
+    return 0;
+}
+
+int s2n_config_free_dhparams(struct s2n_config *config)
+{
+    struct s2n_blob b = {
+        .data = (uint8_t *) config->dhparams,
+        .size = sizeof(struct s2n_dh_params)
+    };
+
+    if (config->dhparams) {
+        GUARD(s2n_dh_params_free(config->dhparams));
+    }
+
+    GUARD(s2n_free(&b));
+    return 0;
+}
+
 int s2n_config_free(struct s2n_config *config)
 {
     struct s2n_blob b = {.data = (uint8_t *) config,.size = sizeof(struct s2n_config) };
 
-    return s2n_free(&b);
+    GUARD(s2n_config_free_cert_chain_and_key(config));
+    GUARD(s2n_config_free_dhparams(config));
+
+    GUARD(s2n_free(&b));
+    return 0;
 }
 
 int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version)
@@ -120,10 +180,12 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, char *cert_chai
 
     /* Convert pem to asn1 and asn1 to the private key */
     GUARD(s2n_stuffer_rsa_private_key_from_pem(&key_in_stuffer, &key_out_stuffer));
+    GUARD(s2n_stuffer_free(&key_in_stuffer));
     key_blob.size = s2n_stuffer_data_available(&key_out_stuffer);
     key_blob.data = s2n_stuffer_raw_read(&key_out_stuffer, key_blob.size);
     notnull_check(key_blob.data);
     GUARD(s2n_asn1der_to_rsa_private_key(&config->cert_and_key_pairs->private_key, &key_blob));
+    GUARD(s2n_stuffer_free(&key_out_stuffer));
 
     /* Turn the chain into a stuffer */
     GUARD(s2n_stuffer_alloc_ro_from_string(&chain_in_stuffer, cert_chain_pem));
@@ -154,6 +216,9 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, char *cert_chai
         insert = &new_node->next;
     } while (s2n_stuffer_data_available(&chain_in_stuffer));
 
+    GUARD(s2n_stuffer_free(&chain_in_stuffer));
+    GUARD(s2n_stuffer_free(&cert_out_stuffer));
+
     config->cert_and_key_pairs->chain_size = chain_size;
 
     return 0;
@@ -175,11 +240,15 @@ int s2n_config_add_dhparams(struct s2n_config *config, char *dhparams_pem)
     /* Convert pem to asn1 and asn1 to the private key */
     GUARD(s2n_stuffer_dhparams_from_pem(&dhparams_in_stuffer, &dhparams_out_stuffer));
 
+    GUARD(s2n_stuffer_free(&dhparams_in_stuffer));
+
     dhparams_blob.size = s2n_stuffer_data_available(&dhparams_out_stuffer);
     dhparams_blob.data = s2n_stuffer_raw_read(&dhparams_out_stuffer, dhparams_blob.size);
     notnull_check(dhparams_blob.data);
 
     GUARD(s2n_pkcs3_to_dh_params(config->dhparams, &dhparams_blob));
+
+    GUARD(s2n_free(&dhparams_blob));
 
     return 0;
 }

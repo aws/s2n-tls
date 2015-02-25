@@ -76,10 +76,12 @@ int s2n_record_max_write_payload_size(struct s2n_connection *conn)
 
 int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in)
 {
-    struct s2n_blob out, iv;
+    struct s2n_blob out, iv, aad;
     uint8_t padding = 0;
     uint16_t block_size = 0;
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
+    uint8_t aad_gen[S2N_TLS_MAX_AAD_LEN] = { 0 };
+    uint8_t aad_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
 
     uint8_t *sequence_number = conn->server->server_sequence_number;
     struct s2n_hmac_state *mac = &conn->server->server_record_mac;
@@ -121,7 +123,6 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
 
     /* Start the MAC with the sequence number */
     GUARD(s2n_hmac_update(mac, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
-    s2n_increment_sequence_number(sequence_number);
 
     /* Now that we know the length, start writing the record */
     protocol_version[0] = conn->actual_protocol_version / 10;
@@ -145,7 +146,26 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     GUARD(s2n_stuffer_wipe_n(&conn->out, 2));
     GUARD(s2n_stuffer_write_uint16(&conn->out, actual_fragment_length));
 
-    if (cipher_suite->cipher->type == S2N_CBC) {
+    /* If we're AEAD, write the sequence number as an IV, and generate the AAD */
+    if (cipher_suite->cipher->type == S2N_AEAD) {
+        GUARD(s2n_stuffer_write_bytes(&conn->out, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+
+        struct s2n_stuffer iv_stuffer;
+        iv.data = aad_iv;
+        iv.size = sizeof(aad_iv);
+
+        GUARD(s2n_stuffer_init(&iv_stuffer, &iv));
+        GUARD(s2n_stuffer_write_bytes(&iv_stuffer, implicit_iv, cipher_suite->cipher->io.aead.fixed_iv_size));
+        GUARD(s2n_stuffer_write_bytes(&iv_stuffer, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+
+        /* Set the IV size to the amount of data written */
+        iv.size = s2n_stuffer_data_available(&iv_stuffer);
+
+        aad.data = aad_gen;
+        aad.size = sizeof(aad_gen);
+
+        GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &aad));
+    } else if (cipher_suite->cipher->type == S2N_CBC) {
         iv.size = block_size;
         iv.data = implicit_iv;
 
@@ -156,10 +176,8 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
         }
     }
 
-    /* If we're AEAD, write the sequence number as an IV */
-    if (cipher_suite->cipher->type == S2N_AEAD) {
-        GUARD(s2n_stuffer_write_bytes(&conn->out, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
-    }
+    /* We are done with this sequence number, so we can increment it */
+    s2n_increment_sequence_number(sequence_number);
 
     /* Write the plaintext data */
     out.data = in->data;
@@ -193,6 +211,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     uint16_t encrypted_length = data_bytes_to_take + mac_digest_size;
 
     if (cipher_suite->cipher->type == S2N_AEAD) {
+        encrypted_length += cipher_suite->cipher->io.aead.record_iv_size;
         encrypted_length += cipher_suite->cipher->io.aead.tag_size;
     }
 
@@ -221,6 +240,9 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
         /* Copy the last encrypted block to be the next IV */
         gte_check(en.size, block_size);
         memcpy_check(implicit_iv, en.data + en.size - block_size, block_size);
+        break;
+    case S2N_AEAD:
+        GUARD(cipher_suite->cipher->io.aead.encrypt(session_key, &iv, &aad, &en, &en));
         break;
     default:
         return -1;

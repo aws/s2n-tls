@@ -82,12 +82,14 @@ int s2n_asn1der_to_rsa_private_key(struct s2n_rsa_private_key *key, struct s2n_b
 int s2n_rsa_public_key_free(struct s2n_rsa_public_key *key)
 {
     RSA_free(key->rsa);
+    key->rsa = NULL;
     return 0;
 }
 
 int s2n_rsa_private_key_free(struct s2n_rsa_private_key *key)
 {
     RSA_free(key->rsa);
+    key->rsa = NULL;
     return 0;
 }
 

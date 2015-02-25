@@ -104,7 +104,7 @@ int mock_client(int writefd, int readfd)
     }
     
     s2n_shutdown(conn, &more);
-    s2n_connection_wipe(conn);
+    s2n_connection_free(conn);
 
     /* Give the server a chance to a void a sigpipe */
     sleep(1);
@@ -183,7 +183,9 @@ int main(int argc, char **argv)
    
     EXPECT_SUCCESS(s2n_shutdown(conn, &status));
     
-    EXPECT_SUCCESS(s2n_connection_wipe(conn));
+    EXPECT_SUCCESS(s2n_connection_free(conn));
+
+    EXPECT_SUCCESS(s2n_config_free(config));
 
     /* Clean up */
     EXPECT_EQUAL(waitpid(-1, &status, 0), pid);

@@ -202,5 +202,19 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_rsa_sign(&priv_key, &tls12_one, &signature));
     EXPECT_SUCCESS(s2n_rsa_verify(&pub_key, &tls12_two, &signature));
 
+    EXPECT_SUCCESS(s2n_dh_params_free(&dh_params));
+    EXPECT_SUCCESS(s2n_rsa_private_key_free(&priv_key));
+    EXPECT_SUCCESS(s2n_rsa_public_key_free(&pub_key));
+    EXPECT_SUCCESS(s2n_config_free_dhparams(conn->config));
+    EXPECT_SUCCESS(s2n_config_free_cert_chain_and_key(conn->config));
+    EXPECT_SUCCESS(s2n_connection_free(conn));
+    EXPECT_SUCCESS(s2n_free(&signature));
+    EXPECT_SUCCESS(s2n_stuffer_free(&certificate_in));
+    EXPECT_SUCCESS(s2n_stuffer_free(&certificate_out));
+    EXPECT_SUCCESS(s2n_stuffer_free(&dhparams_in));
+    EXPECT_SUCCESS(s2n_stuffer_free(&dhparams_out));
+    EXPECT_SUCCESS(s2n_stuffer_free(&rsa_key_in));
+    EXPECT_SUCCESS(s2n_stuffer_free(&rsa_key_out));
+
     END_TEST();
 }
