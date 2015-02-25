@@ -91,6 +91,8 @@ struct s2n_config *s2n_config_new()
     new_config = (struct s2n_config *)(void *)allocator.data;
     new_config->cert_and_key_pairs = NULL;
     new_config->dhparams = NULL;
+    new_config->application_protocols.data = NULL;
+    new_config->application_protocols.size = 0;
 
     GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default"));
 
