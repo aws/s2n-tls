@@ -105,6 +105,7 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
         GUARD(s2n_stuffer_read_uint16(&in, &extension_size));
 
         ext.size = extension_size;
+        lte_check(extension_size, s2n_stuffer_data_available(&in));
         ext.data = s2n_stuffer_raw_read(&in, ext.size);
         notnull_check(ext.data);
 
