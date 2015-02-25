@@ -165,6 +165,12 @@ int main(int argc, const char *argv[])
         exit(1);
     }
 
+    const char *protocols[] = { "spdy/3.1", "http/1.1", NULL };
+    if (s2n_config_set_protocol_preferences(config, protocols) < 0) {
+        fprintf(stderr, "Error setting protocol preferences: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        exit(1);
+    }
+
     struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
     if (!conn) {
         fprintf(stderr, "Error getting new s2n connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
