@@ -95,6 +95,12 @@ int main(int argc, const char *argv[])
         fprintf(stderr, "Error running s2n_init(): '%s'\n", s2n_strerror(s2n_errno, "EN"));
     }
 
+    struct s2n_config *config = s2n_config_new();
+    if (config == NULL) {
+        fprintf(stderr, "Error getting new config: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        exit(1);
+    }
+
     struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
 
     if (conn == NULL) {
@@ -103,6 +109,17 @@ int main(int argc, const char *argv[])
     }
 
     printf("Connected to %s:%s\n", argv[1], port);
+
+    if (s2n_connection_set_config(conn, config) < 0) {
+        fprintf(stderr, "Error setting configuration: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        exit(1);
+    }
+
+    const char *protocols[] = { "spdy/3.1", "http/1.1", NULL };
+    if (s2n_config_set_protocol_preferences(config, protocols) < 0) {
+        fprintf(stderr, "Error setting protocol preferences: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        exit(1);
+    }
 
     if (s2n_set_server_name(conn, argv[1]) < 0) {
         fprintf(stderr, "Error setting server name: '%s'\n", s2n_strerror(s2n_errno, "EN"));
@@ -119,6 +136,11 @@ int main(int argc, const char *argv[])
 
     if (s2n_connection_free(conn) < 0) {
         fprintf(stderr, "Error freeing connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        exit(1);
+    }
+
+    if (s2n_config_free(config) < 0) {
+        fprintf(stderr, "Error freeing configuration: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
     }
 
