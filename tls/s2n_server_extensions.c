@@ -95,7 +95,7 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
 
             /* copy the first protocol name */
             memcpy_check(conn->application_protocol, protocol, protocol_len);
-            protocol[protocol_len] = '\0';
+            conn->application_protocol[protocol_len] = '\0';
             break;
         }
     }
