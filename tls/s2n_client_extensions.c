@@ -59,21 +59,23 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_RSA));
     }
 
-    /* Write the server name */
-    GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SERVER_NAME));
-    GUARD(s2n_stuffer_write_uint16(out, server_name_len + 5));
+    if (server_name_len) {
+        /* Write the server name */
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SERVER_NAME));
+        GUARD(s2n_stuffer_write_uint16(out, server_name_len + 5));
 
-    /* Size of all of the server names */
-    GUARD(s2n_stuffer_write_uint16(out, server_name_len + 3));
+        /* Size of all of the server names */
+        GUARD(s2n_stuffer_write_uint16(out, server_name_len + 3));
 
-    /* Name type - host name, RFC3546 */
-    GUARD(s2n_stuffer_write_uint8(out, 0));
+        /* Name type - host name, RFC3546 */
+        GUARD(s2n_stuffer_write_uint8(out, 0));
 
-    struct s2n_blob server_name;
-    server_name.data = (uint8_t *) conn->server_name;
-    server_name.size = server_name_len;
-    GUARD(s2n_stuffer_write_uint16(out, server_name_len));
-    GUARD(s2n_stuffer_write(out, &server_name));
+        struct s2n_blob server_name;
+        server_name.data = (uint8_t *) conn->server_name;
+        server_name.size = server_name_len;
+        GUARD(s2n_stuffer_write_uint16(out, server_name_len));
+        GUARD(s2n_stuffer_write(out, &server_name));
+    }
 
     /* Write ALPN extension */
     if (application_protocols_len) {
@@ -102,6 +104,7 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
         GUARD(s2n_stuffer_read_uint16(&in, &extension_size));
 
         ext.size = extension_size;
+        lte_check(extension_size, s2n_stuffer_data_available(&in));
         ext.data = s2n_stuffer_raw_read(&in, ext.size);
         notnull_check(ext.data);
 
