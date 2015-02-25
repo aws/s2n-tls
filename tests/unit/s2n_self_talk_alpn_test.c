@@ -137,7 +137,7 @@ int main(int argc, char **argv)
     int client_to_server[2];
 
     const char *protocols[] = { "http/1.1", "spdy/3.1", NULL };
-    const char *missmatch_protocols[] = { "spdy/2", NULL };
+    const char *mismatch_protocols[] = { "spdy/2", NULL };
 
     BEGIN_TEST();
 
@@ -277,8 +277,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(close(client_to_server[0]));
         EXPECT_SUCCESS(close(server_to_client[1]));
 
-        /* Clients ALPN preferences match our preferences, so we pick the
-         * most preffered server one */
+        /* Client only advertises our second choice, so we should negotiate it */
         mock_client(client_to_server[1], server_to_client[0], &protocols[1], protocols[1]);
     }
 
@@ -335,9 +334,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(close(client_to_server[0]));
         EXPECT_SUCCESS(close(server_to_client[1]));
 
-        /* Clients ALPN preferences match our preferences, so we pick the
-         * most preffered server one */
-        mock_client(client_to_server[1], server_to_client[0], missmatch_protocols, NULL);
+        /* Client doesn't support any of our protocols, so we shouldn't complete
+         * the handshake */
+        mock_client(client_to_server[1], server_to_client[0], mismatch_protocols, NULL);
     }
 
     /* This is the parent */
