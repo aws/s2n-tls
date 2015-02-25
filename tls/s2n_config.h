@@ -38,6 +38,7 @@ struct s2n_config {
     struct s2n_dh_params *dhparams;
     struct s2n_cert_chain_and_key *cert_and_key_pairs;
     struct s2n_cipher_preferences *cipher_preferences;
+    struct s2n_blob application_protocols;
 };
 
 extern struct s2n_config s2n_default_config;
