@@ -90,6 +90,7 @@ struct s2n_config *s2n_config_new()
 
     new_config = (struct s2n_config *)(void *)allocator.data;
     new_config->cert_and_key_pairs = NULL;
+    new_config->dhparams = NULL;
 
     GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default"));
 
@@ -146,6 +147,7 @@ int s2n_config_free(struct s2n_config *config)
 
     GUARD(s2n_config_free_cert_chain_and_key(config));
     GUARD(s2n_config_free_dhparams(config));
+    GUARD(s2n_free(&config->application_protocols));
 
     GUARD(s2n_free(&b));
     return 0;
@@ -162,6 +164,39 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
 
     s2n_errno = S2N_ERR_INVALID_CIPHER_PREFERENCES;
     return -1;
+}
+
+int s2n_config_set_protocol_preferences(struct s2n_config *config, const char **protocols)
+{
+    struct s2n_stuffer protocol_stuffer;
+
+    GUARD(s2n_free(&config->application_protocols));
+
+    if (protocols == NULL) {
+        /* NULL value indicates no prference, so nothing to do */
+        return 0;
+    }
+
+    GUARD(s2n_stuffer_growable_alloc(&protocol_stuffer, 256));
+    for (int i = 0; protocols[i] != NULL; i++) {
+        size_t length = strlen(protocols[i]);
+        uint8_t protocol[255];
+
+        if (length > 255 || (s2n_stuffer_data_available(&protocol_stuffer) + length + 1) > 65535) {
+            return S2N_ERR_APPLICATION_PROTOCOL_TOO_LONG;
+        }
+        memcpy_check(protocol, protocols[i], length);
+        GUARD(s2n_stuffer_write_uint8(&protocol_stuffer, length));
+        GUARD(s2n_stuffer_write_bytes(&protocol_stuffer, protocol, length));
+    }
+
+    uint32_t size = s2n_stuffer_data_available(&protocol_stuffer);
+    /* config->application_protocols blob now owns this data */
+    config->application_protocols.size = size;
+    config->application_protocols.data = s2n_stuffer_raw_read(&protocol_stuffer, size);
+    notnull_check(config->application_protocols.data);
+
+    return 0;
 }
 
 int s2n_config_add_cert_chain_and_key(struct s2n_config *config, char *cert_chain_pem, char *private_key_pem)
