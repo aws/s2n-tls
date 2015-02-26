@@ -8,6 +8,32 @@ copy of s2n from git use:
 
 s2n depends on a local copy of libcrypto for certain ciphers.
 
+## Building s2n with LibreSSL
+
+To build s2n with LibreSSL, do the following:
+
+    # We keep the build artifacts in the -build directory
+    cd libcrypto-build
+
+    # Download the latest version of LibreSSL
+    curl http://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-x.y.z.tar.gz > libressl-x.y.z.tar.gz
+    tar -xzvf libressl-x.y.z.tar.gz
+
+    # Build LibreSSL's libcrypto
+    cd libressl-x.y.z
+    ./configure --prefix=`pwd`/../../libcrypto-root/
+    make
+    make install
+
+    # Make to the main s2n directory
+    cd ../../
+
+    # Build s2n
+    make
+
+once built, static and dynamic libraries for s2n will be available in the lib/
+directory.
+
 ## Building s2n with OpenSSL-1.0.2
 
 To build s2n with OpenSSL-1.0.2, do the following:
