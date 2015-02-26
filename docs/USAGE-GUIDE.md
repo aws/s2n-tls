@@ -63,7 +63,7 @@ To build s2n with OpenSSL-1.0.2, do the following:
     # Build s2n
     make
 
-**Mac Users:** please replace "./Config" with "./Configure darwin64-x86_64-cc".
+**Mac Users:** please replace "./config" with "./Configure darwin64-x86_64-cc".
 
 once built, static and dynamic libraries for s2n will be available in the lib/
 directory.
