@@ -20,6 +20,12 @@
 * [Application-Layer Protocol Negotiation Extension](https://tools.ietf.org/html/rfc7301)
 * [TLS 1.3 draft specification](https://github.com/tlswg/tls13-spec)
 
+## ASN.1 and X509
+
+* [X.509 PKI](https://tools.ietf.org/html/rfc4210)
+* [X.509 PKI and CRLs](https://tools.ietf.org/html/rfc5280)
+* [Layman's Guide to ASN.1](http://luca.ntop.org/Teaching/Appunti/asn1.html)
+
 ## Interesting implementations
 
 * [MiTLS](http://www.mitls.org/wsgi/home) , and [TLS Attacks](http://www.mitls.org/wsgi/tls-attacks) in particular. 
