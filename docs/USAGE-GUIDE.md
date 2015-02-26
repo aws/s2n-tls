@@ -1,11 +1,69 @@
 # Using s2n
 
 s2n is a C library, and is built using Make. To clone the latest
-copy of s2n from git and compile it, do:
+copy of s2n from git use:
 
     git clone https://github.com/awslabs/s2n.git
     cd s2n
+
+s2n depends on a local copy of libcrypto for certain ciphers.
+
+## Building s2n with LibreSSL
+
+To build s2n with LibreSSL, do the following:
+
+    # We keep the build artifacts in the -build directory
+    cd libcrypto-build
+
+    # Download the latest version of LibreSSL
+    curl http://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-x.y.z.tar.gz > libressl-x.y.z.tar.gz
+    tar -xzvf libressl-x.y.z.tar.gz
+
+    # Build LibreSSL's libcrypto
+    cd libressl-x.y.z
+    ./configure --prefix=`pwd`/../../libcrypto-root/
     make
+    make install
+
+    # Make to the main s2n directory
+    cd ../../
+
+    # Build s2n
+    make
+
+once built, static and dynamic libraries for s2n will be available in the lib/
+directory.
+
+## Building s2n with OpenSSL-1.0.2
+
+To build s2n with OpenSSL-1.0.2, do the following:
+
+    # We keep the build artifacts in the -build directory
+    cd libcrypto-build
+
+    # Download the latest version of OpenSSL
+    curl https://www.openssl.org/source/openssl-1.0.2.tar.gz > openssl-1.0.2.tar.gz
+    tar -xzvf openssl-1.0.2.tar.gz
+
+    # Build openssl' libcrypto
+    cd openssl-1.0.2
+    ./config -fPIC no-shared no-libunbound no-gmp no-jpake no-krb5              \
+             no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-store no-zlib     \
+             no-hw no-mdc2 no-seed no-idea enable-ec-nist_64_gcc_128 no-camellia\ 
+             no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng                  \
+             -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS      \
+             --prefix=`pwd`/../../libcrypto-root/
+    make depend
+    make -j 32
+    make install
+
+    # Make to the main s2n directory
+    cd ../../
+
+    # Build s2n
+    make
+
+**Mac Users:** please replace "./config" with "./Configure darwin64-x86_64-cc".
 
 once built, static and dynamic libraries for s2n will be available in the lib/
 directory.
