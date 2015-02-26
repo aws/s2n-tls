@@ -168,19 +168,19 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
     return -1;
 }
 
-int s2n_config_set_protocol_preferences(struct s2n_config *config, const char **protocols)
+int s2n_config_set_protocol_preferences(struct s2n_config *config, const char **protocols, int protocol_count)
 {
     struct s2n_stuffer protocol_stuffer;
 
     GUARD(s2n_free(&config->application_protocols));
 
-    if (protocols == NULL) {
+    if (protocols == NULL || protocol_count == 0) {
         /* NULL value indicates no prference, so nothing to do */
         return 0;
     }
 
     GUARD(s2n_stuffer_growable_alloc(&protocol_stuffer, 256));
-    for (int i = 0; protocols[i] != NULL; i++) {
+    for (int i = 0; i < protocol_count; i++) {
         size_t length = strlen(protocols[i]);
         uint8_t protocol[255];
 

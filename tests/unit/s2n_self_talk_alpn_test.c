@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -79,7 +79,7 @@ static char dhparams[] =
     "gzucyS7jt1bobgU66JKkgMNm7hJY4/nhR5LWTCzZyzYQh2HM2Vk4K5ZqILpj/n0S\n"
     "5JYTQ2PVhxP+Uu8+hICs/8VvM72DznjPZzufADipjC7CsQ4S6x/ecZluFtbb+ZTv\n" "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n" "-----END DH PARAMETERS-----\n";
 
-int mock_client(int writefd, int readfd, const char **protocols, const char *expected)
+int mock_client(int writefd, int readfd, const char **protocols, int count, const char *expected)
 {
     char buffer[0xffff];
     struct s2n_connection *conn;
@@ -92,7 +92,7 @@ int mock_client(int writefd, int readfd, const char **protocols, const char *exp
 
     conn = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
-    s2n_config_set_protocol_preferences(config, protocols);
+    s2n_config_set_protocol_preferences(config, protocols, count);
     s2n_connection_set_config(conn, config);
 
     s2n_connection_set_read_fd(conn, readfd);
@@ -136,8 +136,8 @@ int main(int argc, char **argv)
     int server_to_client[2];
     int client_to_server[2];
 
-    const char *protocols[] = { "http/1.1", "spdy/3.1", NULL };
-    const char *mismatch_protocols[] = { "spdy/2", NULL };
+    const char *protocols[] = { "http/1.1", "spdy/3.1" };
+    const char *mismatch_protocols[] = { "spdy/2" };
 
     BEGIN_TEST();
 
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_init());
     EXPECT_NOT_NULL(config = s2n_config_new());
-    EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols));
+    EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, 2));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, certificate, private_key));
     EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams));
     
@@ -163,7 +163,7 @@ int main(int argc, char **argv)
 
         /* Send the client hello with no ALPN extensions, and validate we didn't
          * negotiate an application protocol */
-        mock_client(client_to_server[1], server_to_client[0], NULL, NULL);
+        mock_client(client_to_server[1], server_to_client[0], NULL, 0, NULL);
     }
 
     /* This is the parent */
@@ -221,7 +221,7 @@ int main(int argc, char **argv)
 
         /* Clients ALPN preferences match our preferences, so we pick the
          * most preffered server one */
-        mock_client(client_to_server[1], server_to_client[0], protocols, protocols[0]);
+        mock_client(client_to_server[1], server_to_client[0], protocols, 2, protocols[0]);
     }
 
     /* This is the parent */
@@ -278,7 +278,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(close(server_to_client[1]));
 
         /* Client only advertises our second choice, so we should negotiate it */
-        mock_client(client_to_server[1], server_to_client[0], &protocols[1], protocols[1]);
+        mock_client(client_to_server[1], server_to_client[0], &protocols[1], 1, protocols[1]);
     }
 
     /* This is the parent */
@@ -336,7 +336,7 @@ int main(int argc, char **argv)
 
         /* Client doesn't support any of our protocols, so we shouldn't complete
          * the handshake */
-        mock_client(client_to_server[1], server_to_client[0], mismatch_protocols, NULL);
+        mock_client(client_to_server[1], server_to_client[0], mismatch_protocols, 1, NULL);
     }
 
     /* This is the parent */
