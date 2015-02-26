@@ -21,6 +21,7 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_alerts.h"
+#include "tls/s2n_tls.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -36,6 +37,7 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
     uint8_t compression_method;
     uint8_t session_id[S2N_TLS_SESSION_ID_LEN];
     uint8_t session_id_len;
+    uint16_t extensions_size;
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
     GUARD(s2n_stuffer_read_bytes(in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
@@ -76,6 +78,24 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
+    if (s2n_stuffer_data_available(in) < 2) {
+        conn->handshake.next_state = SERVER_CERT;
+        /* No extensions */
+        return 0;
+    }
+
+    GUARD(s2n_stuffer_read_uint16(in, &extensions_size));
+
+    if (extensions_size > s2n_stuffer_data_available(in)) {
+        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+    }
+
+    struct s2n_blob extensions;
+    extensions.size = extensions_size;
+    extensions.data = s2n_stuffer_raw_read(in, extensions.size);
+
+    GUARD(s2n_server_extensions_recv(conn, &extensions));
+
     conn->handshake.next_state = SERVER_CERT;
 
     return 0;
@@ -115,6 +135,8 @@ int s2n_server_hello_send(struct s2n_connection *conn)
     GUARD(s2n_stuffer_write_uint8(out, session_id_len));
     GUARD(s2n_stuffer_write_bytes(out, conn->pending.cipher_suite->value, S2N_TLS_CIPHER_SUITE_LEN));
     GUARD(s2n_stuffer_write_uint8(out, S2N_TLS_COMPRESSION_METHOD_NULL));
+
+    GUARD(s2n_server_extensions_send(conn, out));
 
     conn->actual_protocol_version_established = 1;
     conn->handshake.next_state = SERVER_CERT;
