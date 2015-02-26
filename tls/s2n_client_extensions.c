@@ -32,6 +32,11 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 {
     uint16_t total_size = 0;
 
+    /* Signature algorithms */
+    if (conn->actual_protocol_version == S2N_TLS12) {
+        total_size += 8;
+    }
+
     uint16_t application_protocols_len = conn->config->application_protocols.size;
     uint16_t server_name_len = strlen(conn->server_name);
 
@@ -40,10 +45,6 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     }
     if (application_protocols_len) {
         total_size += 6 + application_protocols_len;
-    }
-
-    if (conn->actual_protocol_version == S2N_TLS12) {
-        total_size += 8;
     }
 
     GUARD(s2n_stuffer_write_uint16(out, total_size));
