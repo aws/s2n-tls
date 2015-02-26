@@ -14,12 +14,12 @@
 #
 
 ifeq ($(shell uname),Darwin)
-    LIBS = -lc -lcrypto -lpthread
+    LIBS = -lc -lpthread
 else
-    LIBS = -lc -lcrypto -lpthread -lrt
+    LIBS = -lc -lpthread -lrt
 endif
 
-OBJS = $(wildcard ../utils/*.o ../stuffer/*.o ../tls/*.o ../iana/*.o ../crypto/*.o ../error/*.o)
+OBJS = $(wildcard ../utils/*.o ../stuffer/*.o ../tls/*.o ../iana/*.o ../crypto/*.o ../error/*.o ../libcrypto-root/lib/libcrypto.a)
 all: libs2n.a libs2n.so libs2n.dylib
 
 include ../s2n.mk
