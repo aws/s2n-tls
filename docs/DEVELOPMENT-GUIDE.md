@@ -312,13 +312,13 @@ this pattern means that both the reader thread and writer thread can create pend
 
 ## Contributing to s2n
 
-We are happy to accept contributions to s2n, and we suggest the following general procedure:
+We are happy to accept contributions to s2n, large or small. We suggest the following general procedure:
 
 * Please read all of the documentation available in the s2n "docs/" directory. This development guide along with the usage guide should give a good flavor for what the goals of s2n are and whether they line up with your idea for a contribution
 * If you have an idea for a significant contribution, it is worth first cutting an issue and discussing the change. Get feedback on the API design, or what the feature might require, before writing code. 
 * If you discover a security critical bug, please report it via http://aws.amazon.com/security/vulnerability-reporting/ and **do not** create a public issue. 
 * Create a git fork of the s2n repository and prepare your changes locally within your fork.
 * When you're ready, and when all tests are passing, create a pull request to the master awslabs s2n repository.
-* All changes to s2n go through code review and legal review. All submissions and contributions are made under the terms of the Apache Software License 2.0. In some cases where ownership over copyright and authorship rights are not clear, we may ask you to sign a contributor license agreement. 
+* All changes to s2n go through code review and legal review. All submissions and contributions are made under the terms of the Apache Software License 2.0. For larger contributions, we may ask you to sign a contributor license agreement.
 * s2n undergoes periodic government and commercial security analyses, including code audits and penetration tests. To participate in these analyses, we may ask you to sign a Non Disclosure Agreement. 
 
