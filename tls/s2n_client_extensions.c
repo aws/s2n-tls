@@ -30,13 +30,14 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 {
     uint16_t total_size = 0;
 
+    /* Signature algorithms */
+    if (conn->actual_protocol_version == S2N_TLS12) {
+        total_size += 8;
+    }
+
     uint16_t server_name_len = strlen(conn->server_name);
     if (server_name_len) {
         total_size += 9 + server_name_len;
-    }
-
-    if (conn->actual_protocol_version == S2N_TLS12) {
-        total_size += 8;
     }
 
     GUARD(s2n_stuffer_write_uint16(out, total_size));
@@ -52,21 +53,23 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_RSA));
     }
 
-    /* Write the server name */
-    GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SERVER_NAME));
-    GUARD(s2n_stuffer_write_uint16(out, server_name_len + 5));
+    if (server_name_len) {
+        /* Write the server name */
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SERVER_NAME));
+        GUARD(s2n_stuffer_write_uint16(out, server_name_len + 5));
 
-    /* Size of all of the server names */
-    GUARD(s2n_stuffer_write_uint16(out, server_name_len + 3));
+        /* Size of all of the server names */
+        GUARD(s2n_stuffer_write_uint16(out, server_name_len + 3));
 
-    /* Name type - host name, RFC3546 */
-    GUARD(s2n_stuffer_write_uint8(out, 0));
+        /* Name type - host name, RFC3546 */
+        GUARD(s2n_stuffer_write_uint8(out, 0));
 
-    struct s2n_blob server_name;
-    server_name.data = (uint8_t *) conn->server_name;
-    server_name.size = server_name_len;
-    GUARD(s2n_stuffer_write_uint16(out, server_name_len));
-    GUARD(s2n_stuffer_write(out, &server_name));
+        struct s2n_blob server_name;
+        server_name.data = (uint8_t *) conn->server_name;
+        server_name.size = server_name_len;
+        GUARD(s2n_stuffer_write_uint16(out, server_name_len));
+        GUARD(s2n_stuffer_write(out, &server_name));
+    }
 
     return 0;
 }
