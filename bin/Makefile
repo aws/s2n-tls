@@ -19,7 +19,7 @@ include ../s2n.mk
 ifeq ($(shell uname),Darwin)
     LIBS = 
 else
-    LIBS = -lrt
+    LIBS = -ldl -lrt
 endif
 
 LDFLAGS += -L../lib/ -ls2n ${LIBS}
