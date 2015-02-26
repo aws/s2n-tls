@@ -14,12 +14,12 @@ a case for them.
 ### Tenets 
 * **Maintain an excellent TLS/SSL implementation**<br/>Although it's hidden "*under the hood*", TLS/SSL is the direct interface with customers and end-users. Good performance and security are critical to a positive experience.
 * **Protect user data and keys**<br/>Above all else, s2n must ensure that user data and private keys are being handled correctly and carefully. Security is often a matter of trade-offs and costs; we should always seek to increase the costs for attackers whenever the trade offs are acceptable to users.
-* **Stay minimal and simple**<br/>Write as little code as neccessary, omit little-used optional features and support as few modes of operation as possible.
-* **Write clear readable code with a light cognitive load**<br/>s2n's code should be consise, easy to follow and legible to a proficient C programmer. Our code should be organized in a way that divides the implementation up into small units of work, with all of the context neccessary at hand. We should also minimize the number of branches in our code, the depth of our call stacks, and the membership of our structures.   
-* **Defend in depth and systematically**<br/>Great care and attention to detail is required to write good code, but we should also use automation and mechanistic processess to protect against human error. We should fix bugs (of course), but also fix classes of bugs.
+* **Stay minimal and simple**<br/>Write as little code as necessary, omit little-used optional features and support as few modes of operation as possible.
+* **Write clear readable code with a light cognitive load**<br/>s2n's code should be concise, easy to follow and legible to a proficient C programmer. Our code should be organized in a way that divides the implementation up into small units of work, with all of the context necessary at hand. We should also minimize the number of branches in our code, the depth of our call stacks, and the membership of our structures.   
+* **Defend in depth and systematically**<br/>Great care and attention to detail is required to write good code, but we should also use automation and mechanistic processes to protect against human error. We should fix bugs (of course), but also fix classes of bugs.
 * **Be easy to use and maintain sane defaults**<br/>It should be low effort, even for a novice developer, to use s2n in a safe way. We also shouldn't "*pass the buck*" and place the burden of subtle or complicated TLS-specific decision making on application authors or system administrators. 
-* **Provide great performance and responsivity**<br/>TLS/SSL is rapidly becoming ubiquitious, in part due to advances in performance and responsivity. Naturally, people always appreciate speed, but costs are also important. Even small inefficiencies and overhead in s2n can become significant when multiplied by billions of users and quintillions of sessions. 
-* **Stay humble and stick to facts**<br/>s2n operates in a security critical space. Even with the most precautionary development methods it is impossible to guarantee the absence of defects. A subtle one-byte error on a single line may still cause problems. Boasting about security practices is destined to backfire and mis-lead. As opinions can differ on security best practises, sometimes in contradictory ways, we should be guided by facts and measurable data.   
+* **Provide great performance and responsively**<br/>TLS/SSL is rapidly becoming ubiquitous, in part due to advances in performance and responsively. Naturally, people always appreciate speed, but costs are also important. Even small inefficiencies and overhead in s2n can become significant when multiplied by billions of users and quintillions of sessions. 
+* **Stay humble and stick to facts**<br/>s2n operates in a security critical space. Even with the most precautionary development methods it is impossible to guarantee the absence of defects. A subtle one-byte error on a single line may still cause problems. Boasting about security practices is destined to backfire and mis-lead. As opinions can differ on security best practices, sometimes in contradictory ways, we should be guided by facts and measurable data.   
 
 When weighing up difficult implementation trade-offs our ordered priorities are: 1. Security, 2. Readability 3. Ease of use, and 4. Performance. 
 
@@ -102,7 +102,7 @@ the macro will set s2n_errno correctly, as well as some useful debug strings, an
 
 Branches can be a source of cognitive load, as they ask the reader to follow a path of thinking, while always remembering that there is another to be explored. Additionally when branches are nested they can often lead to impossible to grasp combinatorial explosions. s2n tries to systematically reduce the number of branches used in the code in several ways. 
 
-Firstly, there are almost no ifdef calls in s2n. Ifdefs can be a particularly penalising source of cognitive load. In addition to being a branch, they also ask the reader to mix state from two different languages (C, and the C pre processor) and they tend to be associated with ugly rendering in IDEs and code formatters. In the few places where ifdef's are neccessary, we use them in a careful way without compromising the integrity of the function. [utils/s2n_timer.c](https://github.com/awslabs/s2n/blob/master/utils/s2n_timer.c) is a good example. Rather than mixing the Apple and non-Apple implementations and cluttering one function with several ifdefs, there is a complete implementation of the timer functionality for each platform. Within the POSIX implementation, an ifdef and define are used to use the most precise clock type, but in a way that does not compromise readability. 
+Firstly, there are almost no ifdef calls in s2n. Ifdefs can be a particularly penalizing source of cognitive load. In addition to being a branch, they also ask the reader to mix state from two different languages (C, and the C pre processor) and they tend to be associated with ugly rendering in IDEs and code formatters. In the few places where ifdef's are necessary, we use them in a careful way without compromising the integrity of the function. [utils/s2n_timer.c](https://github.com/awslabs/s2n/blob/master/utils/s2n_timer.c) is a good example. Rather than mixing the Apple and non-Apple implementations and cluttering one function with several ifdefs, there is a complete implementation of the timer functionality for each platform. Within the POSIX implementation, an ifdef and define are used to use the most precise clock type, but in a way that does not compromise readability. 
 
 Secondly, s2n generally branches in the case of failure, rather than success. So instead of creating a nest of if's:
 
@@ -114,13 +114,13 @@ we do:
 
     GUARD(s2n_foo());
     GUARD(s2n_bar());
-    GUARD(s2n_baz));
+    GUARD(s2n_baz()));
 
 This pattern leads to a linear control flow, where the main body of a function describes everything that happens in a regular, "*happy*" case. Any deviation is usually a fatal error and we exit the function. This is safe because s2n rarely allocates resources, and so has nothing to clean up on error. 
 
-This pattern also leads to extremely few "else" clauses in the s2n code base. Within s2n, else clauses should be treated with suspicion and examined for potential eradication. Where an else clause is neccessary, we try to ensure that the first if block is the most likely case. Both to aid readability, and also for a more efficient compiled instruction pipeline (although good CPU branch prediction will rapidly correct any mis-ordering). 
+This pattern also leads to extremely few "else" clauses in the s2n code base. Within s2n, else clauses should be treated with suspicion and examined for potential eradication. Where an else clause is necessary, we try to ensure that the first if block is the most likely case. Both to aid readability, and also for a more efficient compiled instruction pipeline (although good CPU branch prediction will rapidly correct any mis-ordering). 
 
-For branches on small enumerated types, s2n generally favours switch statements: though switch statements taking up more than about 25 lines of code are discouraged, and a "default:" block is mandatory. 
+For branches on small enumerated types, s2n generally favors switch statements: though switch statements taking up more than about 25 lines of code are discouraged, and a "default:" block is mandatory. 
 
 Another technique for complexity avoidance is that the core TLS state machine within s2n does not use branches and instead uses a table of function pointers (another technique borrowed from functional programming) to dispatch data to the correct handler. This is covered in more detail later in this document. 
 
@@ -130,7 +130,7 @@ Lastly, s2n studiously avoids locks. s2n is designed to be thread-safe, but does
 
 s2n is written in C99. The code formatting and indentation should be relatively clear from reading some s2n source files, but there is also an automated "make indent" target that will indent the s2n sources. 
 
-There should be no need for comments to explain *what* s2n code is doing; variables and functions should be given clear and human-readable names that makes their purpose and intent intuitive. Comments explaining *why* we are doing something are encouraged. Often some context setting is neccessary; a reference to an RFC, or a reminder of some critical state that is hard to work directly into the immediate code in a natural way. 
+There should be no need for comments to explain *what* s2n code is doing; variables and functions should be given clear and human-readable names that makes their purpose and intent intuitive. Comments explaining *why* we are doing something are encouraged. Often some context setting is necessary; a reference to an RFC, or a reminder of some critical state that is hard to work directly into the immediate code in a natural way. 
 
 Every source code file must include a copy of the Apache Software License 2.0, as well as a correct copyright notification. The year of copyright should be the year in which the file was first created. 
 
@@ -154,7 +154,7 @@ Unit tests are added as .c files in [tests/unit/](https://github.com/awslabs/s2n
 
 The test framework will take care of compiling and executing the tests and even indicates success or failure with motivating green or red text in the console.
 
-In addition to fully covering functionality in the correct cases, s2n tests are also expected to include adversarial or "negative" test cases. For example the tests performed on record encryption validate that s2n is tamper resistent by attempting to actually tamper with records. Similarly, we validate that our memory handling routines cannot be over-filled by attempting to over-fill them. 
+In addition to fully covering functionality in the correct cases, s2n tests are also expected to include adversarial or "negative" test cases. For example the tests performed on record encryption validate that s2n is tamper resistant by attempting to actually tamper with records. Similarly, we validate that our memory handling routines cannot be over-filled by attempting to over-fill them. 
 
 To avoid adding unneeded code to the production build of s2n, there is also a small test library defined at [tests/testlib/](https://github.com/awslabs/s2n/blob/master/tests/testlib/) which includes routines useful for test cases. For example there is a hex parser and emitter, which is useful for defining network data in test cases, but not needed in production.
 
@@ -192,9 +192,9 @@ This layout that makes it possible to implement a stream:
 
 All access to/from the stuffer goes "through" s2n_stuffer_ functions. For example, we can write with s2n_stuffer_write(), and when we do the write cursor is incremented to the new position. We can read with s2n_stuffer_read(), and of course we can only read data as far as the write cursor (which is always at or ahead of the read cursor). To protect user data, when we read data out of the stuffer, we wipe the copy of the data within the local stuffer memory. We also ensure that it's only possible to read as much data as is in the stuffer. 
 
-A stuffer can be initialized directly from a blob, which makes it fixed in size, or it can be allocated dynamically. In the latter case, we can also choose to make the stuffer growable (by using s2n_stuffer_growable_alloc in favour of s2n_stuffer_alloc). If a stuffer is growable then attempting to write past the end of the current blob will result in the blob being extended (by at least 1K at a time) to fit the data. 
+A stuffer can be initialized directly from a blob, which makes it fixed in size, or it can be allocated dynamically. In the latter case, we can also choose to make the stuffer growable (by using s2n_stuffer_growable_alloc in favor of s2n_stuffer_alloc). If a stuffer is growable then attempting to write past the end of the current blob will result in the blob being extended (by at least 1K at a time) to fit the data. 
 
-To further encourage stream-oriented programming, the stuffer is also the place where all marshalling and de-mashalling happens. For example you can read and write ints directly to a stuffer:
+To further encourage stream-oriented programming, the stuffer is also the place where all marshaling and de-marshaling happens. For example you can read and write ints directly to a stuffer:
 
     /* Read and write integers in network order */
     extern int s2n_stuffer_read_uint8(struct s2n_stuffer *stuffer, uint8_t *u);
@@ -208,7 +208,7 @@ To further encourage stream-oriented programming, the stuffer is also the place 
     extern int s2n_stuffer_write_uint32(struct s2n_stuffer *stuffer, uint32_t u);
     extern int s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, uint64_t u);
 
-and there are other utility functions for handling base64 encoding to and from a stuffer, or text manipulation - like tokenisation. The idea is to implement basic serialising just once, rather than spread out and duplicated across the message parsers, and to maximize the declarative nature of the I/O. For example, this code parses a TLS header:
+and there are other utility functions for handling base64 encoding to and from a stuffer, or text manipulation - like tokenization. The idea is to implement basic serializing just once, rather than spread out and duplicated across the message parsers, and to maximize the declarative nature of the I/O. For example, this code parses a TLS header:
 
     GUARD(s2n_stuffer_read_uint8(in, &message_type));
     GUARD(s2n_stuffer_read_uint8(in, &protocol_major_version));
@@ -217,12 +217,12 @@ and there are other utility functions for handling base64 encoding to and from a
     
 This pattern should make it very clear what the message format is, where the contents are being stored, and that we're handling things in a safe way.
 
-Unfortunately there are times when we must interact with C functions from other libraries; for example when handling encryption and decryption. In these cases it is usually neccessary to provide access to "raw" pointers. s2n provides two functions for this:
+Unfortunately there are times when we must interact with C functions from other libraries; for example when handling encryption and decryption. In these cases it is usually necessary to provide access to "raw" pointers. s2n provides two functions for this:
 
     void *s2n_stuffer_raw_write(struct s2n_stuffer *stuffer, uint32_t data_len);
     void *s2n_stuffer_raw_read(struct s2n_stuffer *stuffer, uint32_t data_len);
 
-the first function returns a pointer to the existing location of the write cursor, and then increments the write cursor by data_len, so an external function is free to write to the pointer, as long as it only writes data_len bytes. The second function does the same thing, except that it increments the read cursor. Use of these functions is discouraged and should only be done when neccessary for compatibility. 
+the first function returns a pointer to the existing location of the write cursor, and then increments the write cursor by data_len, so an external function is free to write to the pointer, as long as it only writes data_len bytes. The second function does the same thing, except that it increments the read cursor. Use of these functions is discouraged and should only be done when necessary for compatibility. 
 
 One problem with returning raw pointers is that a pointer can become stale if the stuffer is later resized. Growable stuffers are resized using realloc(), which is free to copy and re-address memory. This could leave the original pointer location dangling, potentially leading to an invalid access. To prevent this, stuffers have a life-cycle and can be tainted, which prevents them from being resized within their present life-cycle. 
 
@@ -257,7 +257,7 @@ but attempting to write more data would not be legal:
 
 ## s2n_connection and the TLS state machine
 
-Every connection (or session in TLS parlance) is associated with an s2n_connection structure. The details of this structure are opaque to applications, but internally it is where all of the TLS state is managed. To make sense of what is going on, it is neccessary to understand how the TLS protocol works at the record and handshake layers.
+Every connection (or session in TLS parlance) is associated with an s2n_connection structure. The details of this structure are opaque to applications, but internally it is where all of the TLS state is managed. To make sense of what is going on, it is necessary to understand how the TLS protocol works at the record and handshake layers.
 
 When a TLS connection is being started, the first communication consists of handshake messages. The client sends the first message (a client hello), and then the server replies (with a server hello), and so on. Because a server must wait for a client and vice versa, this phase of a TLS connection is not full-duplex. To save on memory, s2n uses a single stuffer for both incoming and outgoing handshake messages and it is located as s2n_connection->handshake.io (which is a growable stuffer). 
 
@@ -287,7 +287,7 @@ One detail we've skipped over so far is that handshake messages are encapsulated
 
 ![TLS layers](images/s2n_tls_layers.png "s2n TLS layers")
 
-In the outbound direction, s2n never coalesces messages into one records, so writing a handshake message is a simple matter of fragmenting the handshake message if neccessary and writing the records. In the inbound direction, the small state machine in s2n_handshake_io.c takes care of any fragmentation and coalescing. See [tests/unit/s2n_fragmentation_coalescing_test.c](https://github.com/awslabs/s2n/blob/master/tests/unit/s2n_fragmentation_coalescing_test.c) for our test cases covering the logic too. 
+In the outbound direction, s2n never coalesces messages into one records, so writing a handshake message is a simple matter of fragmenting the handshake message if necessary and writing the records. In the inbound direction, the small state machine in s2n_handshake_io.c takes care of any fragmentation and coalescing. See [tests/unit/s2n_fragmentation_coalescing_test.c](https://github.com/awslabs/s2n/blob/master/tests/unit/s2n_fragmentation_coalescing_test.c) for our test cases covering the logic too. 
 
 To perform all of this, the s2n_connection structure has a few more internal stuffers:
 
@@ -298,7 +298,7 @@ To perform all of this, the s2n_connection structure has a few more internal stu
 
 'header_in' is a small 5 byte stuffer, which is used to read in a record header. Once that stuffer is full, and the size of the next record is determined (from that header), inward data is directed to the 'in' stuffer.  The 'out' stuffer is for data that we are writing out; like an encrypted TLS record. 'alert_in' is for any TLS alert message that s2n receives from its peer. s2n treats all alerts as fatal, but we buffer the full alert message so that reason can be logged. 
 
-When past the handshake phase, s2n supports full-duplex I/O. Seperate threads or event handlers are free to call s2n_send and s2n_recv on the same connection. Because either a read or a write may cause a connection to be closed, there are two additional stuffers for storing outbound alert messages:
+When past the handshake phase, s2n supports full-duplex I/O. Separate threads or event handlers are free to call s2n_send and s2n_recv on the same connection. Because either a read or a write may cause a connection to be closed, there are two additional stuffers for storing outbound alert messages:
 
     struct s2n_stuffer reader_alert_out;
     struct s2n_stuffer writer_alert_out;
@@ -315,10 +315,10 @@ this pattern means that both the reader thread and writer thread can create pend
 We are happy to accept contributions to s2n, and we suggest the following general procedure:
 
 * Please read all of the documentation available in the s2n "docs/" directory. This development guide along with the usage guide should give a good flavor for what the goals of s2n are and whether they line up with your idea for a contribution
-* If you have an idea for a significant contribution, it is worth firt cutting an issue and discussing the change. Get feedback on the API design, or what the feature might require, before writing code. 
+* If you have an idea for a significant contribution, it is worth first cutting an issue and discussing the change. Get feedback on the API design, or what the feature might require, before writing code. 
 * If you discover a security critical bug, please report it via http://aws.amazon.com/security/vulnerability-reporting/ and **do not** create a public issue. 
 * Create a git fork of the s2n repository and prepare your changes locally within your fork.
 * When you're ready, and when all tests are passing, create a pull request to the master awslabs s2n repository.
 * All changes to s2n go through code review and legal review. All submissions and contributions are made under the terms of the Apache Software License 2.0. In some cases where ownership over copyright and authorship rights are not clear, we may ask you to sign a contributor license agreement. 
-* s2n undergoes periodic government and commercial security analyses, including code audits and penetration tests. To participate in these analsyses, we may ask you to sign a Non Disclosure Agreement. 
+* s2n undergoes periodic government and commercial security analyses, including code audits and penetration tests. To participate in these analyses, we may ask you to sign a Non Disclosure Agreement. 
 
