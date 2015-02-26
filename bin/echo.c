@@ -75,6 +75,10 @@ int echo(struct s2n_connection *conn, int sockfd)
     if (s2n_get_server_name(conn)) {
         printf("Server name: %s\n", s2n_get_server_name(conn));
     }
+    if (s2n_get_application_protocol(conn)) {
+        printf("Application protocol: %s\n",
+                s2n_get_application_protocol(conn));
+    }
 
     printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
 

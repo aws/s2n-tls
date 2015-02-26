@@ -26,6 +26,8 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
+static int s2n_alpn_mutual_protocol(struct s2n_connection *conn);
+
 int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     uint16_t total_size = 0;
@@ -35,9 +37,14 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         total_size += 8;
     }
 
+    uint16_t application_protocols_len = conn->config->application_protocols.size;
     uint16_t server_name_len = strlen(conn->server_name);
+
     if (server_name_len) {
         total_size += 9 + server_name_len;
+    }
+    if (application_protocols_len) {
+        total_size += 6 + application_protocols_len;
     }
 
     GUARD(s2n_stuffer_write_uint16(out, total_size));
@@ -71,6 +78,14 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write(out, &server_name));
     }
 
+    /* Write ALPN extension */
+    if (application_protocols_len) {
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_ALPN));
+        GUARD(s2n_stuffer_write_uint16(out, application_protocols_len + 2));
+        GUARD(s2n_stuffer_write_uint16(out, application_protocols_len));
+        GUARD(s2n_stuffer_write(out, &conn->config->application_protocols));
+    }
+
     return 0;
 }
 
@@ -90,6 +105,7 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
         GUARD(s2n_stuffer_read_uint16(&in, &extension_size));
 
         ext.size = extension_size;
+        lte_check(extension_size, s2n_stuffer_data_available(&in));
         ext.data = s2n_stuffer_raw_read(&in, ext.size);
         notnull_check(ext.data);
 
@@ -98,11 +114,11 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
 
         switch (extension_type) {
             int found_sha1_rsa;
-            uint16_t size_of_all_server_names;
+            uint16_t size_of_all;
 
         case TLS_EXTENSION_SERVER_NAME:
-            GUARD(s2n_stuffer_read_uint16(&extension, &size_of_all_server_names));
-            if (size_of_all_server_names > s2n_stuffer_data_available(&extension) || size_of_all_server_names < 3) {
+            GUARD(s2n_stuffer_read_uint16(&extension, &size_of_all));
+            if (size_of_all > s2n_stuffer_data_available(&extension) || size_of_all < 3) {
                 continue;
             }
 
@@ -114,7 +130,7 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
 
             uint16_t server_name_len;
             GUARD(s2n_stuffer_read_uint16(&extension, &server_name_len));
-            if (server_name_len + 3 > size_of_all_server_names) {
+            if (server_name_len + 3 > size_of_all) {
                 continue;
             }
 
@@ -160,8 +176,67 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
                 S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
             }
             break;
+        case TLS_EXTENSION_ALPN:
+            {
+            GUARD(s2n_stuffer_read_uint16(&extension, &size_of_all));
+            if (size_of_all > s2n_stuffer_data_available(&extension) || size_of_all < 3) {
+                continue;
+            }
+
+            GUARD(s2n_alloc(&conn->application_protocols, size_of_all));
+
+            GUARD(s2n_stuffer_read(&extension, &conn->application_protocols));
+
+            GUARD(s2n_alpn_mutual_protocol(conn));
+
+            break;
+            }
         }
     }
 
     return 0;
 }
+
+int s2n_alpn_mutual_protocol(struct s2n_connection *conn)
+{
+    if (!conn->config->application_protocols.size) {
+        return 0;
+    }
+
+    struct s2n_stuffer client_protos;
+    struct s2n_stuffer server_protos;
+    GUARD(s2n_stuffer_init(&client_protos, &conn->application_protocols));
+    GUARD(s2n_stuffer_write(&client_protos, &conn->application_protocols));
+    GUARD(s2n_stuffer_init(&server_protos, &conn->config->application_protocols));
+    GUARD(s2n_stuffer_write(&server_protos, &conn->config->application_protocols));
+
+    while (s2n_stuffer_data_available(&server_protos)) {
+        uint8_t length;
+        uint8_t protocol[255];
+        GUARD(s2n_stuffer_read_uint8(&server_protos, &length));
+        GUARD(s2n_stuffer_read_bytes(&server_protos, protocol, length));
+        
+        while (s2n_stuffer_data_available(&client_protos)) {
+            uint8_t client_length;
+            uint8_t client_protocol[255];
+            GUARD(s2n_stuffer_read_uint8(&client_protos, &client_length));
+            if (client_length > s2n_stuffer_data_available(&client_protos)) {
+                S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+            }
+            if (client_length != length) {
+                GUARD(s2n_stuffer_skip_read(&client_protos, client_length));
+            }
+            GUARD(s2n_stuffer_read_bytes(&client_protos, client_protocol, client_length));
+            if (memcmp(client_protocol, protocol, client_length) == 0) {
+                memcpy_check(conn->application_protocol, client_protocol, client_length);
+                conn->application_protocol[client_length] = '\0';
+                return 0;
+            }
+        }
+
+        GUARD(s2n_stuffer_reread(&client_protos));
+    }
+
+    S2N_ERROR(S2N_ERR_NO_APPLICATION_PROTOCOL);
+}
+

@@ -119,6 +119,20 @@ should be a PEM encoded private key corresponding to the server certificate.
 **s2n_config_add_dhparams** associates a set of Diffie-Hellman parameters with
 an **s2n_config** object. **dhparams_pem** should be PEM encoded DH parameters.
 
+### s2n\_config\_set\_protocol\_preferences
+
+    int s2n_config_set_protocol_preferences(struct s2n_config *config,
+                                            const char **protocols,
+                                            int protocol_count)
+
+***s2n_config_set_protocol_preferences*** sets the application protocol
+preferences on an **s2n_config** object.  **protocols** is a list in order of
+preference, with most preferred protocol first, and of length
+**protocol_count**.  When acting as an **S2N_CLIENT** the protocol list is
+included in the Client Hello message as the ALPN extension.  As an
+**S2N_SERVER**, the list is used to negotiate a mutual application protocol
+with the client.
+
 ## Connection-oriented functions
 
 ### s2n\_connection\_new
@@ -216,6 +230,14 @@ returns the protocol version used in the initial client hello message.
 
 Each version number value corresponds to the macros defined as **S2N_SSLv2**,
 **S2N_SSLv3**, **S2N_TLS10**, **S2N_TLS11** and **S2N_TLS12**.
+
+### s2n\_get\_application\_protocol
+
+    const char *s2n_get_application_protocol(struct s2n_connection *conn)
+
+**s2n_get_application_protocol** returns the negotiated application protocol
+for a **s2n_connection**.  In the event of no protocol being negotiated, NULL
+is returned.
 
 ### s2n\_connection\_get\_alert
 
