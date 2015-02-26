@@ -325,6 +325,15 @@ const char *s2n_get_server_name(struct s2n_connection *conn)
     return conn->server_name;
 }
 
+const char *s2n_get_application_protocol(struct s2n_connection *conn)
+{
+    if (strlen(conn->application_protocol) == 0) {
+        return NULL;
+    }
+
+    return conn->application_protocol;
+}
+
 int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blinding)
 {
     conn->blinding = blinding;
