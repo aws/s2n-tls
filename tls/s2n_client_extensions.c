@@ -46,6 +46,9 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     if (application_protocols_len) {
         total_size += 6 + application_protocols_len;
     }
+    if (conn->config->ocsp_status_request) {
+        total_size += 9;
+    }
 
     GUARD(s2n_stuffer_write_uint16(out, total_size));
 
@@ -84,6 +87,14 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint16(out, application_protocols_len + 2));
         GUARD(s2n_stuffer_write_uint16(out, application_protocols_len));
         GUARD(s2n_stuffer_write(out, &conn->config->application_protocols));
+    }
+
+    if (conn->config->ocsp_status_request) {
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_STATUS_REQUEST));
+        GUARD(s2n_stuffer_write_uint16(out, 5));
+        GUARD(s2n_stuffer_write_uint8(out, 1));
+        GUARD(s2n_stuffer_write_uint16(out, 0));
+        GUARD(s2n_stuffer_write_uint16(out, 0));
     }
 
     return 0;
@@ -177,7 +188,6 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
             }
             break;
         case TLS_EXTENSION_ALPN:
-            {
             GUARD(s2n_stuffer_read_uint16(&extension, &size_of_all));
             if (size_of_all > s2n_stuffer_data_available(&extension) || size_of_all < 3) {
                 continue;
@@ -190,7 +200,8 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
             GUARD(s2n_alpn_mutual_protocol(conn));
 
             break;
-            }
+        case TLS_EXTENSION_STATUS_REQUEST:
+            break;
         }
     }
 
