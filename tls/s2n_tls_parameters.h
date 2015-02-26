@@ -39,10 +39,11 @@
 
 /* TLS extension and algorithm types */
 #define TLS_EXTENSION_SERVER_NAME           0
+#define TLS_EXTENSION_STATUS_REQUEST        5
 #define TLS_EXTENSION_SIGNATURE_ALGORITHMS 13
+#define TLS_EXTENSION_ALPN                 16
 #define TLS_SIGNATURE_ALGORITHM_RSA         1
 #define TLS_SIGNATURE_ALGORITHM_SHA1        2
-#define TLS_EXTENSION_ALPN                 16
 
 /* The TLS record types we support */
 #define TLS_CHANGE_CIPHER_SPEC 20
