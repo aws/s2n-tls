@@ -17,9 +17,9 @@ all: s2nc s2nd
 include ../s2n.mk
 
 ifeq ($(shell uname),Darwin)
-    LIBS = -lcrypto
+    LIBS = 
 else
-    LIBS = -lcrypto -lrt
+    LIBS = -ldl -lrt
 endif
 
 LDFLAGS += -L../lib/ -ls2n ${LIBS}
