@@ -129,5 +129,8 @@ struct s2n_connection {
     char server_name[256];
     struct s2n_blob application_protocols;
     char application_protocol[256];
+
+    /* OCSP stapling response data */
     s2n_status_request_type status_type;
+    struct s2n_blob status_response;
 };
