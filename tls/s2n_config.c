@@ -93,6 +93,8 @@ struct s2n_config *s2n_config_new()
     new_config->dhparams = NULL;
     new_config->application_protocols.data = NULL;
     new_config->application_protocols.size = 0;
+    new_config->ocsp_status.data = NULL;
+    new_config->ocsp_status.size = 0;
     new_config->status_request_type = S2N_STATUS_REQUEST_NONE;
 
     GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default"));
@@ -151,6 +153,7 @@ int s2n_config_free(struct s2n_config *config)
     GUARD(s2n_config_free_cert_chain_and_key(config));
     GUARD(s2n_config_free_dhparams(config));
     GUARD(s2n_free(&config->application_protocols));
+    GUARD(s2n_free(&config->ocsp_status));
 
     GUARD(s2n_free(&b));
     return 0;
