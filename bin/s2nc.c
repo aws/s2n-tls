@@ -43,6 +43,8 @@ void usage()
     fprintf(stderr, "  -n [server name]\n");
     fprintf(stderr, "  --name [server name]\n");
     fprintf(stderr, "    Sets the SNI server name header for this client.  If not specified, the host value is used.\n");
+    fprintf(stderr, "  --s,--status\n");
+    fprintf(stderr, "    Request the OCSP status of the remote server certificate\n");
     fprintf(stderr, "\n");
     exit(1);
 }
@@ -56,6 +58,7 @@ int main(int argc, char * const *argv)
     /* Optional args */
     const char *alpn_protocols = NULL;
     const char *server_name = NULL;
+    s2n_status_request_type type = S2N_STATUS_REQUEST_NONE;
     /* required args */
     const char *host = NULL;
     const char *port = "443";
@@ -64,10 +67,11 @@ int main(int argc, char * const *argv)
         { "alpn", required_argument, 0, 'a' },
         { "help", no_argument, 0, 'h' },
         { "name", required_argument, 0, 'n' },
+        { "status", no_argument, 0, 's' },
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long (argc, argv, "a:h", long_options, &option_index);
+        int c = getopt_long (argc, argv, "a:hns", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -80,6 +84,9 @@ int main(int argc, char * const *argv)
                 break;
             case 'n':
                 server_name = optarg;
+                break;
+            case 's':
+                type = S2N_STATUS_REQUEST_OCSP;
                 break;
             case '?':
                 usage();
@@ -152,6 +159,11 @@ int main(int argc, char * const *argv)
     struct s2n_config *config = s2n_config_new();
     if (config == NULL) {
         fprintf(stderr, "Error getting new config: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        exit(1);
+    }
+
+    if (s2n_config_set_status_request_type(config, type) < 0) {
+        fprintf(stderr, "Error setting status request type: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
     }
 
