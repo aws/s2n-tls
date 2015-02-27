@@ -67,7 +67,7 @@ int main(int argc, char * const *argv)
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long (argc, argv, "a:h", long_options, &option_index);
+        int c = getopt_long (argc, argv, "a:hn:", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -82,11 +82,8 @@ int main(int argc, char * const *argv)
                 server_name = optarg;
                 break;
             case '?':
-                usage();
-                break;
-
             default:
-                exit(1);
+                usage();
                 break;
         }
     }
@@ -156,30 +153,53 @@ int main(int argc, char * const *argv)
     }
 
     if (alpn_protocols) {
-        char **protocols = malloc(strlen(alpn_protocols) * sizeof(char*));
-        int protocol_count = 0;
+        /* Count the number of commas, this tells us how many protocols there
+           are in the list */
         const char *ptr = alpn_protocols;
-        const char *next = alpn_protocols;
-        int i = 0;
+        int protocol_count = 1;
         while (*ptr) {
             if (*ptr == ',') {
-                protocols[protocol_count] = malloc(i + 1);
-                memcpy(protocols[protocol_count], next, i);
-                protocols[protocol_count][i] = 0;
-                i = 0;
                 protocol_count++;
+            }
+            ptr++;
+        }
+
+        char **protocols = malloc(strlen(alpn_protocols) * protocol_count);
+        if (!protocols) {
+            fprintf(stderr, "Error allocating memory\n");
+            exit(1);
+        }
+
+        const char *next = alpn_protocols;
+        int index = 0;
+        int length = 0;
+        ptr = alpn_protocols;
+        while (*ptr) {
+            if (*ptr == ',') {
+                protocols[index] = malloc(length + 1);
+                if (!protocols[index]) {
+                    fprintf(stderr, "Error allocating memory\n");
+                    exit(1);
+                }
+                memcpy(protocols[index], next, length);
+                protocols[index][length] = '\0';
+                length = 0;
+                index++;
                 ptr++;
                 next = ptr;
             } else {
-                i ++;
+                length++;
                 ptr++;
             }
         }
         if (ptr != next) {
-            protocols[protocol_count] = malloc(i + 1);
-            memcpy(protocols[protocol_count], next, i);
-            protocols[protocol_count][i] = 0;
-            protocol_count++;
+            protocols[index] = malloc(length + 1);
+            if (!protocols[index]) {
+                fprintf(stderr, "Error allocating memory\n");
+                exit(1);
+            }
+            memcpy(protocols[index], next, length);
+            protocols[index][length] = '\0';
         }
         if (s2n_config_set_protocol_preferences(config, (const char * const *)protocols, protocol_count) < 0) {
             fprintf(stderr, "Failed to set protocol preferences: '%s'\n", s2n_strerror(s2n_errno, "EN"));
