@@ -39,6 +39,7 @@ struct s2n_config {
     struct s2n_cert_chain_and_key *cert_and_key_pairs;
     struct s2n_cipher_preferences *cipher_preferences;
     struct s2n_blob application_protocols;
+    struct s2n_blob ocsp_status;
     s2n_status_request_type status_request_type;
 };
 
