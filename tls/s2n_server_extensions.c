@@ -20,6 +20,7 @@
 
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_tls.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -31,13 +32,11 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     uint16_t total_size = 0;
 
     uint8_t application_protocol_len = strlen(conn->application_protocol);
-    uint8_t send_ocsp_status = (conn->status_type == S2N_STATUS_REQUEST_OCSP &&
-        conn->config->ocsp_status.size > 0) ? 1 : 0;
 
     if (application_protocol_len) {
         total_size += 7 + application_protocol_len;
     }
-    if (send_ocsp_status) {
+    if (s2n_server_can_send_ocsp(conn)) {
         total_size += 4;
     }
 
@@ -55,7 +54,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint8(out, application_protocol_len));
         GUARD(s2n_stuffer_write_bytes(out, (uint8_t*)conn->application_protocol, application_protocol_len));
     }
-    if (send_ocsp_status) {
+    if (s2n_server_can_send_ocsp(conn)) {
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_STATUS_REQUEST));
         GUARD(s2n_stuffer_write_uint16(out, 0));
     }
