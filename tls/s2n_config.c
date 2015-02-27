@@ -212,6 +212,14 @@ int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_req
     return 0;
 }
 
+int s2n_config_add_cert_status(struct s2n_config *config, const uint8_t *status, uint32_t length)
+{
+    GUARD(s2n_alloc(&config->ocsp_status, length));
+    memcpy_check(&config->ocsp_status, status, length);
+
+    return 0;
+}
+
 int s2n_config_add_cert_chain_and_key(struct s2n_config *config, char *cert_chain_pem, char *private_key_pem)
 {
     struct s2n_stuffer chain_in_stuffer, cert_out_stuffer, key_in_stuffer, key_out_stuffer;
