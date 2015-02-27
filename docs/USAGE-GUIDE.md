@@ -34,6 +34,35 @@ To build s2n with LibreSSL, do the following:
 once built, static and dynamic libraries for s2n will be available in the lib/
 directory.
 
+## Building s2n with BoringSSL
+
+To build s2n with BoringSSL, do the following:
+
+    # We keep the build artifacts in the -build directory
+    cd libcrypto-build
+
+    # Clone BoringSSL
+    git clone https://boringssl.googlesource.com/boringssl
+
+    # Build BoringSSL's libcrypto
+    cd boringssl
+    mkdir build
+    cd build
+    cmake -DCMAKE_C_FLAGS="-fPIC" ../
+    make
+
+    # Copy the built library and includes
+    mkdir ../../../libcrypto-root/lib/
+    cp crypto/libcrypto.a ../../../libcrypto-root/lib/
+    cp -r ../include/ ../../../libcrypto-root/include
+
+    # Build s2n
+    cd ../../../
+    make
+
+once built, static and dynamic libraries for s2n will be available in the lib/
+directory.
+
 ## Building s2n with OpenSSL-1.0.2
 
 To build s2n with OpenSSL-1.0.2, do the following:
