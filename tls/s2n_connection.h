@@ -127,6 +127,5 @@ struct s2n_connection {
 
     /* TLS extension data */
     char server_name[256];
-    struct s2n_blob application_protocols;
     char application_protocol[256];
 };

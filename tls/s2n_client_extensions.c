@@ -26,7 +26,7 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-static int s2n_alpn_mutual_protocol(struct s2n_connection *conn);
+static int s2n_alpn_mutual_protocol(struct s2n_connection *conn, struct s2n_blob *application_protocols);
 
 int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
@@ -183,11 +183,13 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
                 continue;
             }
 
-            GUARD(s2n_alloc(&conn->application_protocols, size_of_all));
+            struct s2n_blob application_protocols = {
+                .data = s2n_stuffer_raw_read(&extension, size_of_all),
+                .size = size_of_all
+            };
+            notnull_check(application_protocols.data);
 
-            GUARD(s2n_stuffer_read(&extension, &conn->application_protocols));
-
-            GUARD(s2n_alpn_mutual_protocol(conn));
+            GUARD(s2n_alpn_mutual_protocol(conn, &application_protocols));
 
             break;
             }
@@ -197,7 +199,7 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
     return 0;
 }
 
-int s2n_alpn_mutual_protocol(struct s2n_connection *conn)
+int s2n_alpn_mutual_protocol(struct s2n_connection *conn, struct s2n_blob *application_protocols)
 {
     if (!conn->config->application_protocols.size) {
         return 0;
@@ -205,8 +207,8 @@ int s2n_alpn_mutual_protocol(struct s2n_connection *conn)
 
     struct s2n_stuffer client_protos;
     struct s2n_stuffer server_protos;
-    GUARD(s2n_stuffer_init(&client_protos, &conn->application_protocols));
-    GUARD(s2n_stuffer_write(&client_protos, &conn->application_protocols));
+    GUARD(s2n_stuffer_init(&client_protos, application_protocols));
+    GUARD(s2n_stuffer_write(&client_protos, application_protocols));
     GUARD(s2n_stuffer_init(&server_protos, &conn->config->application_protocols));
     GUARD(s2n_stuffer_write(&server_protos, &conn->config->application_protocols));
 
