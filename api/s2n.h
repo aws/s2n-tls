@@ -45,6 +45,8 @@ extern int s2n_config_add_dhparams(struct s2n_config *config, char *dhparams_pem
 extern int s2n_config_set_key_exchange_preferences(struct s2n_config *config, const char *preferences);
 extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
 extern int s2n_config_set_protocol_preferences(struct s2n_config *config, const char * const *protocols, int protocol_count);
+typedef enum { S2N_STATUS_REQUEST_NONE, S2N_STATUS_REQUEST_OCSP } s2n_status_request_type;
+extern int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_request_type type);
 
 struct s2n_connection;
 typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;

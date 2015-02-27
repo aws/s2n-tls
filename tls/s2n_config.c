@@ -93,7 +93,7 @@ struct s2n_config *s2n_config_new()
     new_config->dhparams = NULL;
     new_config->application_protocols.data = NULL;
     new_config->application_protocols.size = 0;
-    new_config->ocsp_status_request = 0;
+    new_config->status_request_type = S2N_STATUS_REQUEST_NONE;
 
     GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default"));
 
@@ -202,9 +202,9 @@ int s2n_config_set_protocol_preferences(struct s2n_config *config, const char * 
     return 0;
 }
 
-int s2n_config_set_ocsp_status_request(struct s2n_config *config, uint8_t enable)
+int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_request_type type)
 {
-    config->ocsp_status_request = enable;
+    config->status_request_type = type;
 
     return 0;
 }

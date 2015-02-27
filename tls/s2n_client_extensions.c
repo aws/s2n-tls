@@ -46,7 +46,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     if (application_protocols_len) {
         total_size += 6 + application_protocols_len;
     }
-    if (conn->config->ocsp_status_request) {
+    if (conn->config->status_request_type != S2N_STATUS_REQUEST_NONE) {
         total_size += 9;
     }
 
@@ -89,10 +89,12 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write(out, &conn->config->application_protocols));
     }
 
-    if (conn->config->ocsp_status_request) {
+    if (conn->config->status_request_type != S2N_STATUS_REQUEST_NONE) {
+        /* We only support OCSP */
+        eq_check(conn->config->status_request_type, S2N_STATUS_REQUEST_OCSP);
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_STATUS_REQUEST));
         GUARD(s2n_stuffer_write_uint16(out, 5));
-        GUARD(s2n_stuffer_write_uint8(out, 1));
+        GUARD(s2n_stuffer_write_uint8(out, (uint8_t)conn->config->status_request_type));
         GUARD(s2n_stuffer_write_uint16(out, 0));
         GUARD(s2n_stuffer_write_uint16(out, 0));
     }
