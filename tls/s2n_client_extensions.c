@@ -26,7 +26,10 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-static int s2n_alpn_mutual_protocol(struct s2n_connection *conn);
+static int s2n_server_name_rcv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_signature_algorithms_rcv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_alpn_rcv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_status_request_rcv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
@@ -126,110 +129,113 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
         GUARD(s2n_stuffer_write(&extension, &ext));
 
         switch (extension_type) {
-            int found_sha1_rsa;
-            uint16_t size_of_all;
-
         case TLS_EXTENSION_SERVER_NAME:
-            GUARD(s2n_stuffer_read_uint16(&extension, &size_of_all));
-            if (size_of_all > s2n_stuffer_data_available(&extension) || size_of_all < 3) {
-                continue;
-            }
-
-            uint8_t server_name_type;
-            GUARD(s2n_stuffer_read_uint8(&extension, &server_name_type));
-            if (server_name_type != 0) {
-                continue;
-            }
-
-            uint16_t server_name_len;
-            GUARD(s2n_stuffer_read_uint16(&extension, &server_name_len));
-            if (server_name_len + 3 > size_of_all) {
-                continue;
-            }
-
-            if (server_name_len > sizeof(conn->server_name) - 1) {
-                continue;
-            }
-
-            uint8_t *server_name = s2n_stuffer_raw_read(&extension, server_name_len);
-            notnull_check(server_name);
-
-            /* copy the first server name */
-            memcpy_check(conn->server_name, server_name, server_name_len);
+            GUARD(s2n_server_name_rcv(conn, &extension));
             break;
-
         case TLS_EXTENSION_SIGNATURE_ALGORITHMS:
-            found_sha1_rsa = 0;
-
-            uint16_t length_of_all_pairs;
-            GUARD(s2n_stuffer_read_uint16(&extension, &length_of_all_pairs));
-            if (length_of_all_pairs > s2n_stuffer_data_available(&extension)) {
-                continue;
-            }
-
-            /* Pairs occur in two byte lengths */
-            if (length_of_all_pairs % 2 || s2n_stuffer_data_available(&extension) % 2) {
-                continue;
-            }
-
-            while (s2n_stuffer_data_available(&extension)) {
-                uint8_t hash_alg;
-                uint8_t sig_alg;
-
-                GUARD(s2n_stuffer_read_uint8(&extension, &hash_alg));
-                GUARD(s2n_stuffer_read_uint8(&extension, &sig_alg));
-
-                if (hash_alg == TLS_SIGNATURE_ALGORITHM_SHA1 && sig_alg == TLS_SIGNATURE_ALGORITHM_RSA) {
-                    found_sha1_rsa = 1;
-                    break;
-                }
-            }
-
-            if (found_sha1_rsa == 0) {
-                S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
-            }
+            GUARD(s2n_signature_algorithms_rcv(conn, &extension));
             break;
         case TLS_EXTENSION_ALPN:
-            GUARD(s2n_stuffer_read_uint16(&extension, &size_of_all));
-            if (size_of_all > s2n_stuffer_data_available(&extension) || size_of_all < 3) {
-                continue;
-            }
-
-            GUARD(s2n_alloc(&conn->application_protocols, size_of_all));
-
-            GUARD(s2n_stuffer_read(&extension, &conn->application_protocols));
-
-            GUARD(s2n_alpn_mutual_protocol(conn));
-
+            GUARD(s2n_alpn_rcv(conn, &extension));
             break;
         case TLS_EXTENSION_STATUS_REQUEST:
-            {
-            GUARD(s2n_stuffer_read_uint16(&extension, &size_of_all));
-            if (size_of_all > s2n_stuffer_data_available(&extension) || size_of_all < 5) {
-                continue;
-            }
-            uint8_t type;
-            GUARD(s2n_stuffer_read_uint8(&extension, &type));
-            if (type != 1) {
-                continue;
-            }
-            conn->status_type = S2N_STATUS_REQUEST_OCSP;
+            GUARD(s2n_status_request_rcv(conn, &extension));
             break;
-            }
-        }
+       }
     }
 
     return 0;
 }
 
-int s2n_alpn_mutual_protocol(struct s2n_connection *conn)
+static int s2n_server_name_rcv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    if (!conn->config->application_protocols.size) {
+    uint16_t size_of_all;
+    uint8_t server_name_type;
+    uint16_t server_name_len;
+    uint8_t *server_name;
+
+    GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
+    if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all < 3) {
+        /* the size of all server names is incorrect, ignore the extension */
         return 0;
     }
 
+    GUARD(s2n_stuffer_read_uint8(extension, &server_name_type));
+    if (server_name_type != 0) {
+        /* unknown server name type, ignore the extension */
+        return 0;
+    }
+
+    GUARD(s2n_stuffer_read_uint16(extension, &server_name_len));
+    if (server_name_len + 3 > size_of_all) {
+        /* the server name length is incorrect, ignore the extension */
+        return 0;
+    }
+
+    if (server_name_len > sizeof(conn->server_name) - 1) {
+        /* the server name is too long, ignore the extension */
+        return 0;
+    }
+
+    notnull_check(server_name = s2n_stuffer_raw_read(extension, server_name_len));
+
+    /* copy the first server name */
+    memcpy_check(conn->server_name, server_name, server_name_len);
+    return 0;
+}
+
+static int s2n_signature_algorithms_rcv(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    uint16_t length_of_all_pairs;
+    GUARD(s2n_stuffer_read_uint16(extension, &length_of_all_pairs));
+    if (length_of_all_pairs > s2n_stuffer_data_available(extension)) {
+        /* Malformed length, ignore the extension */
+        return 0;
+    }
+
+    if (length_of_all_pairs % 2 || s2n_stuffer_data_available(extension) % 2) {
+        /* Pairs occur in two byte lengths. Malformed length, ignore the extension. */
+        return 0;
+    }
+
+    while (s2n_stuffer_data_available(extension)) {
+        uint8_t hash_alg;
+        uint8_t sig_alg;
+
+        GUARD(s2n_stuffer_read_uint8(extension, &hash_alg));
+        GUARD(s2n_stuffer_read_uint8(extension, &sig_alg));
+
+        if (hash_alg == TLS_SIGNATURE_ALGORITHM_SHA1 && sig_alg == TLS_SIGNATURE_ALGORITHM_RSA) {
+            /* Supported pair found, return success */
+            return 0;
+        }
+    }
+
+    /* No supported signature algorithms, fail the handshake */
+    S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+}
+
+static int s2n_alpn_rcv(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    uint16_t size_of_all;
     struct s2n_stuffer client_protos;
     struct s2n_stuffer server_protos;
+
+    GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
+    if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all < 3) {
+        /* Malformed length, ignore the extension */
+        return 0;
+    }
+
+    GUARD(s2n_alloc(&conn->application_protocols, size_of_all));
+    GUARD(s2n_stuffer_read(extension, &conn->application_protocols));
+
+    if (!conn->config->application_protocols.size) {
+        /* No protocols configured, nothing to do */
+        return 0;
+    }
+
+    /* Find a matching protocol */
     GUARD(s2n_stuffer_init(&client_protos, &conn->application_protocols));
     GUARD(s2n_stuffer_write(&client_protos, &conn->application_protocols));
     GUARD(s2n_stuffer_init(&server_protos, &conn->config->application_protocols));
@@ -240,7 +246,7 @@ int s2n_alpn_mutual_protocol(struct s2n_connection *conn)
         uint8_t protocol[255];
         GUARD(s2n_stuffer_read_uint8(&server_protos, &length));
         GUARD(s2n_stuffer_read_bytes(&server_protos, protocol, length));
-        
+
         while (s2n_stuffer_data_available(&client_protos)) {
             uint8_t client_length;
             uint8_t client_protocol[255];
@@ -265,3 +271,20 @@ int s2n_alpn_mutual_protocol(struct s2n_connection *conn)
     S2N_ERROR(S2N_ERR_NO_APPLICATION_PROTOCOL);
 }
 
+static int s2n_status_request_rcv(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    uint16_t size_of_all;
+    GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
+    if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all < 5) {
+        /* Malformed length, ignore the extension */
+        return 0;
+    }
+    uint8_t type;
+    GUARD(s2n_stuffer_read_uint8(extension, &type));
+    if (type != 1) {
+        /* We only support OCSP (type 1), ignore the extension */
+        return 0;
+    }
+    conn->status_type = S2N_STATUS_REQUEST_OCSP;
+    return 0;
+}
