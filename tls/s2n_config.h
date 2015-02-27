@@ -19,6 +19,7 @@
 #include "crypto/s2n_dhe.h"
 
 #include "utils/s2n_blob.h"
+#include "api/s2n.h"
 
 #define S2N_MAX_SERVER_NAME 256
 
