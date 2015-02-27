@@ -28,6 +28,9 @@
 
 #include <s2n.h>
 
+#include <openssl/bio.h>
+#include <openssl/ocsp.h>
+
 int echo(struct s2n_connection *conn, int sockfd)
 {
     struct pollfd readers[2];
@@ -78,6 +81,28 @@ int echo(struct s2n_connection *conn, int sockfd)
     if (s2n_get_application_protocol(conn)) {
         printf("Application protocol: %s\n",
                 s2n_get_application_protocol(conn));
+    }
+    uint32_t length;
+    const uint8_t *status = s2n_connection_get_ocsp_response(conn, &length);
+    if (status && length > 0) {
+        fprintf(stderr, "OCSP response: ");
+        BIO *bio_err;
+        if ((bio_err = BIO_new(BIO_s_file())) != NULL) {
+            BIO_set_fp(bio_err, stderr, BIO_NOCLOSE | BIO_FP_TEXT);
+
+            OCSP_RESPONSE *rsp = d2i_OCSP_RESPONSE(NULL, &status, length);
+            if (rsp == NULL) {
+                fprintf(stderr, "response parse error\n");
+            } else {
+                fprintf(stderr, "\n");
+                OCSP_RESPONSE_print(bio_err, rsp, 0);
+                fprintf(stderr, "\n");
+
+                OCSP_RESPONSE_free(rsp);
+            }
+
+            BIO_free(bio_err);
+        }
     }
 
     printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
