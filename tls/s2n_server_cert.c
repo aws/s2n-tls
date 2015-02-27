@@ -20,6 +20,7 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_config.h"
+#include "tls/s2n_tls.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -62,7 +63,9 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
 
     conn->handshake.next_state = SERVER_HELLO_DONE;
 
-    if (conn->pending.cipher_suite->key_exchange_alg == S2N_DHE) {
+    if (conn->status_type == S2N_STATUS_REQUEST_OCSP) {
+        conn->handshake.next_state = SERVER_CERT_STATUS;
+    } else if (conn->pending.cipher_suite->key_exchange_alg == S2N_DHE) {
         conn->handshake.next_state = SERVER_KEY;
     }
 
@@ -83,7 +86,9 @@ int s2n_server_cert_send(struct s2n_connection *conn)
 
     conn->handshake.next_state = SERVER_HELLO_DONE;
 
-    if (conn->pending.cipher_suite->key_exchange_alg == S2N_DHE) {
+    if (s2n_server_can_send_ocsp(conn)) {
+        conn->handshake.next_state = SERVER_CERT_STATUS;
+    } else if (conn->pending.cipher_suite->key_exchange_alg == S2N_DHE) {
         conn->handshake.next_state = SERVER_KEY;
     }
 

@@ -48,6 +48,7 @@ struct s2n_handshake {
         CLIENT_HELLO,
         SERVER_HELLO,
         SERVER_CERT,
+        SERVER_CERT_STATUS,
         SERVER_KEY,
         SERVER_CERT_REQ,
         SERVER_HELLO_DONE,
