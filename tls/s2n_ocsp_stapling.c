@@ -44,12 +44,6 @@ int s2n_server_status_send(struct s2n_connection *conn)
 
 int s2n_server_status_recv(struct s2n_connection *conn)
 {
-    uint32_t length;
-    GUARD(s2n_stuffer_read_uint24(&conn->handshake.io, &length));
-    if (length < 4 || length > s2n_stuffer_data_available(&conn->handshake.io)) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
-
     uint8_t type;
     struct s2n_blob status = { .data = NULL, .size = 0 };
 
@@ -59,9 +53,11 @@ int s2n_server_status_recv(struct s2n_connection *conn)
     notnull_check(status.data);
 
     if (type == S2N_STATUS_REQUEST_OCSP) {
-        /* TODO: Validate it! */
-
+        GUARD(s2n_alloc(&conn->status_response, status.size));
+        memcpy_check(conn->status_response.data, status.data, status.size);
+        conn->status_response.size = status.size;
     }
+
     conn->handshake.next_state = SERVER_HELLO_DONE;
 
     if (conn->pending.cipher_suite->key_exchange_alg == S2N_DHE) {

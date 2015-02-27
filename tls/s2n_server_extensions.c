@@ -107,10 +107,6 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
             conn->application_protocol[protocol_len] = '\0';
             break;
         case TLS_EXTENSION_STATUS_REQUEST:
-            GUARD(s2n_stuffer_read_uint16(&extension, &size_of_all));
-            if (size_of_all != 0) {
-                continue;
-            }
             conn->status_type = S2N_STATUS_REQUEST_OCSP;
             break;
         }
