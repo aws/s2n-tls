@@ -41,6 +41,7 @@ extern int s2n_config_free_cert_chain_and_key(struct s2n_config *config);
 extern const char *s2n_strerror(int error, const char *lang);
 
 extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, char *cert_chain_pem, char *private_key_pem);
+extern int s2n_config_add_cert_status(struct s2n_config *config, const uint8_t *status, uint32_t length);
 extern int s2n_config_add_dhparams(struct s2n_config *config, char *dhparams_pem);
 extern int s2n_config_set_key_exchange_preferences(struct s2n_config *config, const char *preferences);
 extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
@@ -64,6 +65,7 @@ extern int s2n_connection_get_delay(struct s2n_connection *conn);
 extern int s2n_set_server_name(struct s2n_connection *conn, const char *server_name);
 extern const char *s2n_get_server_name(struct s2n_connection *conn);
 extern const char *s2n_get_application_protocol(struct s2n_connection *conn);
+extern const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uint32_t *length);
 
 extern int s2n_negotiate(struct s2n_connection *conn, int *more);
 extern ssize_t s2n_send(struct s2n_connection *conn, void *buf, ssize_t size, int *more);
