@@ -164,7 +164,7 @@ int main(int argc, char * const *argv)
             ptr++;
         }
 
-        char **protocols = malloc(strlen(alpn_protocols) * protocol_count);
+        char **protocols = malloc(sizeof(char *) * protocol_count);
         if (!protocols) {
             fprintf(stderr, "Error allocating memory\n");
             exit(1);
