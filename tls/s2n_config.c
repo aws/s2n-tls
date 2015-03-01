@@ -168,7 +168,7 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
     return -1;
 }
 
-int s2n_config_set_protocol_preferences(struct s2n_config *config, const char **protocols, int protocol_count)
+int s2n_config_set_protocol_preferences(struct s2n_config *config, const char * const *protocols, int protocol_count)
 {
     struct s2n_stuffer protocol_stuffer;
 
