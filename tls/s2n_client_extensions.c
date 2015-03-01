@@ -204,6 +204,11 @@ static int s2n_alpn_rcv(struct s2n_connection *conn, struct s2n_stuffer *extensi
     struct s2n_stuffer client_protos;
     struct s2n_stuffer server_protos;
 
+    if (!conn->config->application_protocols.size) {
+        /* No protocols configured, nothing to do */
+        return 0;
+    }
+
     GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
     if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all < 3) {
         /* Malformed length, ignore the extension */
