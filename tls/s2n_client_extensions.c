@@ -221,23 +221,26 @@ static int s2n_alpn_rcv(struct s2n_connection *conn, struct s2n_stuffer *extensi
     struct s2n_stuffer client_protos;
     struct s2n_stuffer server_protos;
 
+    if (!conn->config->application_protocols.size) {
+        /* No protocols configured, nothing to do */
+        return 0;
+    }
+
     GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
     if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all < 3) {
         /* Malformed length, ignore the extension */
         return 0;
     }
 
-    GUARD(s2n_alloc(&conn->application_protocols, size_of_all));
-    GUARD(s2n_stuffer_read(extension, &conn->application_protocols));
-
-    if (!conn->config->application_protocols.size) {
-        /* No protocols configured, nothing to do */
-        return 0;
-    }
+    struct s2n_blob application_protocols = {
+        .data = s2n_stuffer_raw_read(extension, size_of_all),
+        .size = size_of_all
+    };
+    notnull_check(application_protocols.data);
 
     /* Find a matching protocol */
-    GUARD(s2n_stuffer_init(&client_protos, &conn->application_protocols));
-    GUARD(s2n_stuffer_write(&client_protos, &conn->application_protocols));
+    GUARD(s2n_stuffer_init(&client_protos, &application_protocols));
+    GUARD(s2n_stuffer_write(&client_protos, &application_protocols));
     GUARD(s2n_stuffer_init(&server_protos, &conn->config->application_protocols));
     GUARD(s2n_stuffer_write(&server_protos, &conn->config->application_protocols));
 
