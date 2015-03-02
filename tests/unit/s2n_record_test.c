@@ -62,13 +62,13 @@ int main(int argc, char **argv)
     uint8_t mac_key[] = "sample mac key";
     struct s2n_blob fixed_iv = {.data = mac_key,.size = sizeof(mac_key) };
     struct s2n_hmac_state check_mac;
-    uint8_t random_data[S2N_MAXIMUM_FRAGMENT_LENGTH + 1];
+    uint8_t random_data[S2N_DEFAULT_FRAGMENT_LENGTH + 1];
 
     BEGIN_TEST();
 
     EXPECT_SUCCESS(s2n_init());
     EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, fixed_iv.data, fixed_iv.size));
-    EXPECT_SUCCESS(s2n_get_random_data(random_data, S2N_MAXIMUM_FRAGMENT_LENGTH + 1));
+    EXPECT_SUCCESS(s2n_get_random_data(random_data, S2N_DEFAULT_FRAGMENT_LENGTH + 1));
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
     /* Peer and we are in sync */
@@ -78,17 +78,17 @@ int main(int argc, char **argv)
     conn->active.cipher_suite = &s2n_null_cipher_suite;
     conn->actual_protocol_version = S2N_TLS11;
 
-    for (int i = 0; i <= S2N_MAXIMUM_FRAGMENT_LENGTH + 1; i++) {
+    for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
         struct s2n_blob in = {.data = random_data,.size = i };
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
         EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
-        if (i < S2N_MAXIMUM_FRAGMENT_LENGTH) {
+        if (i < S2N_DEFAULT_FRAGMENT_LENGTH) {
             EXPECT_EQUAL(bytes_written, i);
         } else {
-            EXPECT_EQUAL(bytes_written, S2N_MAXIMUM_FRAGMENT_LENGTH);
+            EXPECT_EQUAL(bytes_written, S2N_DEFAULT_FRAGMENT_LENGTH);
         }
 
         EXPECT_EQUAL(conn->out.blob.data[0], TLS_APPLICATION_DATA);
@@ -118,7 +118,7 @@ int main(int argc, char **argv)
     conn->active.cipher_suite = &s2n_null_cipher_suite;
     conn->actual_protocol_version = S2N_TLS11;
 
-    for (int i = 0; i <= S2N_MAXIMUM_FRAGMENT_LENGTH + 1; i++) {
+    for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
         struct s2n_blob in = {.data = random_data,.size = i };
         int bytes_written;
 
@@ -128,10 +128,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
         EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
-        if (i < S2N_MAXIMUM_FRAGMENT_LENGTH - 20) {
+        if (i < S2N_DEFAULT_FRAGMENT_LENGTH - 20) {
             EXPECT_EQUAL(bytes_written, i);
         } else {
-            EXPECT_EQUAL(bytes_written, S2N_MAXIMUM_FRAGMENT_LENGTH - 20);
+            EXPECT_EQUAL(bytes_written, S2N_DEFAULT_FRAGMENT_LENGTH - 20);
         }
 
         uint16_t predicted_length = bytes_written + 20;
@@ -199,7 +199,7 @@ int main(int argc, char **argv)
     conn->actual_protocol_version = S2N_TLS10;
     conn->active.cipher_suite = &mock_block_cipher_suite;
 
-    uint16_t max_aligned_fragment = S2N_MAXIMUM_FRAGMENT_LENGTH - (S2N_MAXIMUM_FRAGMENT_LENGTH % 16);
+    uint16_t max_aligned_fragment = S2N_DEFAULT_FRAGMENT_LENGTH - (S2N_DEFAULT_FRAGMENT_LENGTH % 16);
     for (int i = 0; i <= max_aligned_fragment + 1; i++) {
         struct s2n_blob in = {.data = random_data,.size = i };
         int bytes_written;
@@ -267,7 +267,7 @@ int main(int argc, char **argv)
     conn->actual_protocol_version = S2N_TLS11;
     conn->active.cipher_suite = &mock_block_cipher_suite;
 
-    max_aligned_fragment = S2N_MAXIMUM_FRAGMENT_LENGTH - (S2N_MAXIMUM_FRAGMENT_LENGTH % 16);
+    max_aligned_fragment = S2N_DEFAULT_FRAGMENT_LENGTH - (S2N_DEFAULT_FRAGMENT_LENGTH % 16);
     for (int i = 0; i <= max_aligned_fragment + 1; i++) {
         struct s2n_blob in = {.data = random_data,.size = i };
         int bytes_written;
