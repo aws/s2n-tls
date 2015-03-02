@@ -80,7 +80,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     blob.size = S2N_ALERT_LENGTH;
 
     GUARD_PTR(s2n_stuffer_init(&conn->writer_alert_out, &blob));
-    GUARD_PTR(s2n_stuffer_alloc(&conn->out, S2N_MAXIMUM_RECORD_LENGTH));
+    GUARD_PTR(s2n_stuffer_alloc(&conn->out, S2N_DEFAULT_RECORD_LENGTH));
 
     /* Initialize the growable stuffers. Zero length at first, but the resize
      * in _wipe will fix that 
@@ -182,10 +182,10 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     GUARD(s2n_stuffer_wipe(&conn->out));
 
     /* Allocate or resize to their original sizes */
-    GUARD(s2n_stuffer_resize(&conn->in, S2N_MAXIMUM_FRAGMENT_LENGTH));
+    GUARD(s2n_stuffer_resize(&conn->in, S2N_DEFAULT_FRAGMENT_LENGTH));
 
     /* Allocate memory for handling handshakes */
-    GUARD(s2n_stuffer_resize(&conn->handshake.io, S2N_MAXIMUM_RECORD_LENGTH));
+    GUARD(s2n_stuffer_resize(&conn->handshake.io, S2N_DEFAULT_RECORD_LENGTH));
 
     /* Clone the stuffers */
     /* ignore gcc 4.7 address warnings because dest is allocated on the stack */
@@ -209,7 +209,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     conn->pending.cipher_suite = &s2n_null_cipher_suite;
     conn->server = &conn->active;
     conn->client = &conn->active;
-    conn->max_fragment_length = S2N_MAXIMUM_FRAGMENT_LENGTH;
+    conn->max_fragment_length = S2N_DEFAULT_FRAGMENT_LENGTH;
     conn->handshake.state = CLIENT_HELLO;
     GUARD(s2n_hash_init(&conn->handshake.client_md5, S2N_HASH_MD5));
     GUARD(s2n_hash_init(&conn->handshake.client_sha1, S2N_HASH_SHA1));

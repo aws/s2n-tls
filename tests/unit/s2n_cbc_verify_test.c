@@ -115,21 +115,21 @@ int main(int argc, char **argv)
 {
     struct s2n_connection *conn;
     uint8_t mac_key[] = "sample mac key";
-    uint8_t fragment[S2N_MAXIMUM_FRAGMENT_LENGTH];
-    uint8_t random_data[S2N_MAXIMUM_FRAGMENT_LENGTH];
+    uint8_t fragment[S2N_DEFAULT_FRAGMENT_LENGTH];
+    uint8_t random_data[S2N_DEFAULT_FRAGMENT_LENGTH];
     struct s2n_hmac_state check_mac, record_mac;
 
     BEGIN_TEST();
 
     EXPECT_SUCCESS(s2n_init());
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-    EXPECT_SUCCESS(s2n_get_random_data(random_data, S2N_MAXIMUM_FRAGMENT_LENGTH));
+    EXPECT_SUCCESS(s2n_get_random_data(random_data, S2N_DEFAULT_FRAGMENT_LENGTH));
 
     /* Emulate TLS1.2 */
     conn->actual_protocol_version = S2N_TLS12;
 
     /* Try every 16 bytes to simulate block alignments */
-    for (int i = 288; i < S2N_MAXIMUM_FRAGMENT_LENGTH; i += 16) {
+    for (int i = 288; i < S2N_DEFAULT_FRAGMENT_LENGTH; i += 16) {
 
         EXPECT_SUCCESS(s2n_hmac_init(&record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
 

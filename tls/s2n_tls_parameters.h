@@ -70,9 +70,9 @@
 
 /* s2n uses a record length that is aligned to the dominant internet MTU;
  * 1500 bytes, minus 20 bytes for an IP header, minus 20 bytes for a tcp
- * header */
-#define S2N_MAXIMUM_RECORD_LENGTH (1500 - 20 - 20)
-#define S2N_MAXIMUM_FRAGMENT_LENGTH (S2N_MAXIMUM_RECORD_LENGTH - S2N_TLS_RECORD_HEADER_LENGTH)
+ * header and 20 bytes for tcp options (timestamp, sack etc) */
+#define S2N_DEFAULT_RECORD_LENGTH (1500 - 20 - 20 - 20)
+#define S2N_DEFAULT_FRAGMENT_LENGTH (S2N_DEFAULT_RECORD_LENGTH - S2N_TLS_RECORD_HEADER_LENGTH)
 
 /* Put a 64k cap on the size of any handshake message */
 #define S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH (64 * 1024)
