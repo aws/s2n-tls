@@ -212,8 +212,18 @@ int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_req
     return 0;
 }
 
+static int s2n_config_is_ocsp_response(const uint8_t *data, uint32_t length)
+{
+    OCSP_RESPONSE *rsp = d2i_OCSP_RESPONSE(NULL, &data, length);
+    notnull_check(rsp);
+    OCSP_RESPONSE_free(rsp);
+
+    return 0;
+}
+
 int s2n_config_add_cert_status(struct s2n_config *config, const uint8_t *status, uint32_t length)
 {
+    GUARD(s2n_config_is_ocsp_response(status, length));
     GUARD(s2n_alloc(&config->ocsp_status, length));
     memcpy_check(&config->ocsp_status, status, length);
 
