@@ -284,10 +284,10 @@ static int s2n_status_request_rcv(struct s2n_connection *conn, struct s2n_stuffe
     }
     uint8_t type;
     GUARD(s2n_stuffer_read_uint8(extension, &type));
-    if (type != 1) {
+    if (type != (uint8_t)S2N_STATUS_REQUEST_OCSP) {
         /* We only support OCSP (type 1), ignore the extension */
         return 0;
     }
-    conn->status_type = S2N_STATUS_REQUEST_OCSP;
+    conn->status_type = (s2n_status_request_type)type;
     return 0;
 }
