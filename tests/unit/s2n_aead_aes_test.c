@@ -33,7 +33,7 @@
 int main(int argc, char **argv)
 {
     struct s2n_connection *conn;
-    uint8_t random_data[S2N_MAXIMUM_FRAGMENT_LENGTH + 1];
+    uint8_t random_data[S2N_DEFAULT_FRAGMENT_LENGTH + 1];
     uint8_t mac_key[] = "sample mac key";
     uint8_t aes128_key[] = "123456789012345";
     uint8_t aes256_key[] = "1234567890123456789012345678901";
@@ -59,18 +59,21 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hmac_init(&conn->active.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     conn->actual_protocol_version = S2N_TLS12;
 
-    int max_aligned_fragment = S2N_MAXIMUM_FRAGMENT_LENGTH - (S2N_MAXIMUM_FRAGMENT_LENGTH % 16);
-    for (int i = 0; i <= max_aligned_fragment + 1; i++) {
+    int max_fragment = S2N_DEFAULT_FRAGMENT_LENGTH;
+    for (int i = 0; i <= max_fragment + 1; i++) {
         struct s2n_blob in = {.data = random_data,.size = i };
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
         EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
-        if (i < max_aligned_fragment - 20 - 8 - 1) {
+        static const int overhead = 20 /* TLS header */
+            + 8   /* IV */
+            + 16; /* TAG */
+        if (i < max_fragment - overhead) {
             EXPECT_EQUAL(bytes_written, i);
         } else {
-            EXPECT_EQUAL(bytes_written, max_aligned_fragment - 20 - 8 - 1);
+            EXPECT_EQUAL(bytes_written, max_fragment - overhead);
         }
 
         uint16_t predicted_length = bytes_written + 20;
@@ -187,18 +190,20 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hmac_init(&conn->active.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     conn->actual_protocol_version = S2N_TLS12;
 
-    max_aligned_fragment = S2N_MAXIMUM_FRAGMENT_LENGTH - (S2N_MAXIMUM_FRAGMENT_LENGTH % 16);
-    for (int i = 0; i <= max_aligned_fragment + 1; i++) {
+    for (int i = 0; i <= max_fragment + 1; i++) {
         struct s2n_blob in = {.data = random_data,.size = i };
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
         EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
-        if (i < max_aligned_fragment - 20 - 8 - 1) {
+        static const int overhead = 20 /* TLS header */
+            + 8   /* IV */
+            + 16; /* TAG */
+        if (i < max_fragment - overhead) {
             EXPECT_EQUAL(bytes_written, i);
         } else {
-            EXPECT_EQUAL(bytes_written, max_aligned_fragment - 20 - 8 - 1);
+            EXPECT_EQUAL(bytes_written, max_fragment - overhead);
         }
 
         uint16_t predicted_length = bytes_written + 20;
