@@ -19,6 +19,7 @@
 
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
+#include "utils/s2n_safety.h"
 
 /* All of the cipher suites that s2n negotiates, in order of value */
 struct s2n_cipher_suite s2n_all_cipher_suites[] = {
@@ -95,15 +96,19 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
 
             if (!memcmp(ours, theirs, S2N_TLS_CIPHER_SUITE_LEN)) {
                 /* We have a match */
-                struct s2n_cipher_suite *match = s2n_cipher_suite_match(ours);
+                struct s2n_cipher_suite *match;
+                uint16_t key_exchange_flags;
 
+                match = s2n_cipher_suite_match(ours);
                 /* This should never happen */
                 if (match == NULL) {
                     S2N_ERROR(S2N_ERR_CIPHER_NOT_SUPPORTED);
                 }
 
+                GUARD(s2n_get_key_exchange_flags(match->key_exchange_alg, &key_exchange_flags));
+
                 /* Don't choose DH key exchange if it's not configured. */
-                if (conn->config->dhparams == NULL && match->key_exchange_alg == S2N_DHE) {
+                if (conn->config->dhparams == NULL && (key_exchange_flags & S2N_KEY_EXCHANGE_DH)) {
                     continue;
                 }
 
@@ -125,3 +130,18 @@ int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t *wire, uin
 {
     return s2n_set_cipher_as_server(conn, wire, count, S2N_TLS_CIPHER_SUITE_LEN);
 }
+
+int s2n_get_key_exchange_flags(s2n_key_exchange_algorithm alg, uint16_t *flags)
+{
+    static uint16_t alg_flags[] = {
+        [S2N_RSA]           = 0,
+        [S2N_DH]            = S2N_KEY_EXCHANGE_DH,
+        [S2N_DHE]           = S2N_KEY_EXCHANGE_DH | S2N_KEY_EXCHANGE_EPH,
+        [S2N_ECDH]          = S2N_KEY_EXCHANGE_DH | S2N_KEY_EXCHANGE_ECC,
+        [S2N_ECDHE]         = S2N_KEY_EXCHANGE_DH | S2N_KEY_EXCHANGE_EPH | S2N_KEY_EXCHANGE_ECC,
+        [S2N_ECDHE_ECDSA]   = S2N_KEY_EXCHANGE_DH | S2N_KEY_EXCHANGE_EPH | S2N_KEY_EXCHANGE_ECC,
+    };
+    *flags = alg_flags[alg];
+    return 0;
+}
+
