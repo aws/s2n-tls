@@ -175,6 +175,20 @@ certificate-chain/key pair may be associated with a config.
 certificate in the chain being your servers certificate. **private_key_pem**
 should be a PEM encoded private key corresponding to the server certificate.
 
+### s2n\_config\_add\_cert\_chain\_\_and\_key\_with\_status
+
+    int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config, 
+                                                      char *cert_chain_pem, 
+                                                      char *private_key_pem,
+                                                      const uint8_t *status,
+                                                      uint32_t length)
+
+**s2n_config_add_cert_chain_and_key_with_status** performs the same function
+as s2n_config_add_cert_chain_and_key, and associates an OCSP status response
+with the server certificate.  If a client requests the OCSP status of the server
+certificate, this is the response used in the CertificateStatus handsake
+msssage.
+
 ### s2n\_config\_add\_dhparams
 
     int s2n_config_add_dhparams(struct s2n_config *config, 
@@ -196,15 +210,6 @@ preference, with most preferred protocol first, and of length
 included in the Client Hello message as the ALPN extension.  As an
 **S2N_SERVER**, the list is used to negotiate a mutual application protocol
 with the client.
-
-### s2n\_config\_add\_cert\_status
-
-    int s2n_config_add_cert_status(struct s2n_config *config, const uint8_t *status, uint32_t length)
-
-**s2n_config_add_cert_status** associates an OCSP status response with an
-**s2n_config** object.  If a client requests the OCSP status of the server
-certificate, this is the response used in the CertificateStatus handsake
-msssage.
 
 ### s2n\_config\_set\_status\_request\_type
 
