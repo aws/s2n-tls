@@ -26,7 +26,7 @@ LDFLAGS += -L../lib/ -ls2n ${LIBS}
 CRUFT += s2nc s2nd
 
 s2nc: s2nc.c echo.c
-	${CC} ${CFLAGS} s2nc.c echo.c  -o s2nc ${LDFLAGS} ../libcrypto-root/lib/libcrypto.a
+	${CC} ${CFLAGS} s2nc.c echo.c  -o s2nc ${LDFLAGS}
 
 s2nd: s2nd.c echo.c
-	${CC} ${CFLAGS} s2nd.c echo.c -o s2nd ${LDFLAGS} ../libcrypto-root/lib/libcrypto.a
+	${CC} ${CFLAGS} s2nd.c echo.c -o s2nd ${LDFLAGS}
