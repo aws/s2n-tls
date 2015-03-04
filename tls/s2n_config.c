@@ -24,6 +24,8 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
 
+#include <openssl/ocsp.h>
+
 /* s2n's list of cipher suites, in order of preference, as of 2014-06-01 */
 uint8_t wire_format_20140601[] =
     { TLS_DHE_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA, TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA,
