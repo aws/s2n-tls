@@ -26,12 +26,12 @@
 
 int s2n_server_status_send(struct s2n_connection *conn)
 {
-    uint32_t length = conn->config->ocsp_status.size + 4;
+    uint32_t length = conn->config->cert_and_key_pairs->ocsp_status.size + 4;
     GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, length));
 
     GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, (uint8_t)S2N_STATUS_REQUEST_OCSP));
-    GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, conn->config->ocsp_status.size));
-    GUARD(s2n_stuffer_write(&conn->handshake.io, &conn->config->ocsp_status));
+    GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, conn->config->cert_and_key_pairs->ocsp_status.size));
+    GUARD(s2n_stuffer_write(&conn->handshake.io, &conn->config->cert_and_key_pairs->ocsp_status));
 
     conn->handshake.next_state = SERVER_HELLO_DONE;
 
