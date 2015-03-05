@@ -112,6 +112,8 @@ static int s2n_connection_free_keys(struct s2n_connection *conn)
     GUARD(s2n_dh_params_free(&conn->pending.server_dh_params));
     GUARD(s2n_dh_params_free(&conn->active.server_dh_params));
 
+    GUARD(s2n_free(&conn->status_response));
+
     return 0;
 }
 
@@ -344,4 +346,14 @@ int s2n_connection_get_delay(struct s2n_connection *conn)
 {
     /* Delay between 1ms and 10 seconds */
     return s2n_random(1000 + 10000000);
+}
+
+const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uint32_t *length)
+{
+    if (!length) {
+        return NULL;
+    }
+
+    *length = conn->status_response.size;
+    return conn->status_response.data;
 }

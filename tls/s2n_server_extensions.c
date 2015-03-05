@@ -20,19 +20,27 @@
 
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_tls.h"
 
 #include "stuffer/s2n_stuffer.h"
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
+static int s2n_server_recv_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_server_recv_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension);
+
 int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     uint16_t total_size = 0;
 
     uint8_t application_protocol_len = strlen(conn->application_protocol);
+
     if (application_protocol_len) {
         total_size += 7 + application_protocol_len;
+    }
+    if (s2n_server_can_send_ocsp(conn)) {
+        total_size += 4;
     }
 
     if (total_size == 0) {
@@ -48,6 +56,12 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint16(out, application_protocol_len + 1));
         GUARD(s2n_stuffer_write_uint8(out, application_protocol_len));
         GUARD(s2n_stuffer_write_bytes(out, (uint8_t*)conn->application_protocol, application_protocol_len));
+    }
+
+    /* Write OCSP extension */
+    if (s2n_server_can_send_ocsp(conn)) {
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_STATUS_REQUEST));
+        GUARD(s2n_stuffer_write_uint16(out, 0));
     }
 
     return 0;
@@ -76,29 +90,47 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
         GUARD(s2n_stuffer_write(&extension, &ext));
 
         switch (extension_type) {
-            uint16_t size_of_all;
-
         case TLS_EXTENSION_ALPN:
-            GUARD(s2n_stuffer_read_uint16(&extension, &size_of_all));
-            if (size_of_all > s2n_stuffer_data_available(&extension) || size_of_all < 3) {
-                continue;
-            }
-
-            uint8_t protocol_len;
-            GUARD(s2n_stuffer_read_uint8(&extension, &protocol_len));
-            if (protocol_len > sizeof(conn->application_protocol) - 1) {
-                continue;
-            }
-
-            uint8_t *protocol = s2n_stuffer_raw_read(&extension, protocol_len);
-            notnull_check(protocol);
-
-            /* copy the first protocol name */
-            memcpy_check(conn->application_protocol, protocol, protocol_len);
-            conn->application_protocol[protocol_len] = '\0';
+            GUARD(s2n_server_recv_alpn(conn, &extension));
+            break;
+        case TLS_EXTENSION_STATUS_REQUEST:
+            GUARD(s2n_server_recv_status_request(conn, &extension));
             break;
         }
     }
+
+    return 0;
+}
+
+int s2n_server_recv_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    uint16_t size_of_all;
+    GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
+    if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all < 3) {
+        /* ignore invalid extension size */
+        return 0;
+    }
+
+    uint8_t protocol_len;
+    GUARD(s2n_stuffer_read_uint8(extension, &protocol_len));
+    if (protocol_len > sizeof(conn->application_protocol) - 1) {
+        /* ignore invalid extension size */
+        return 0;
+    }
+
+    uint8_t *protocol = s2n_stuffer_raw_read(extension, protocol_len);
+    notnull_check(protocol);
+
+    /* copy the first protocol name */
+    memcpy_check(conn->application_protocol, protocol, protocol_len);
+    conn->application_protocol[protocol_len] = '\0';
+
+    return 0;
+}
+
+int s2n_server_recv_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    conn->status_type = S2N_STATUS_REQUEST_OCSP;
 
     return 0;
 }

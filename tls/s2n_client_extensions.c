@@ -29,6 +29,7 @@
 static int s2n_server_name_rcv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_signature_algorithms_rcv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_alpn_rcv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_status_request_rcv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
@@ -47,6 +48,9 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     }
     if (application_protocols_len) {
         total_size += 6 + application_protocols_len;
+    }
+    if (conn->config->status_request_type != S2N_STATUS_REQUEST_NONE) {
+        total_size += 9;
     }
 
     GUARD(s2n_stuffer_write_uint16(out, total_size));
@@ -88,6 +92,16 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write(out, &conn->config->application_protocols));
     }
 
+    if (conn->config->status_request_type != S2N_STATUS_REQUEST_NONE) {
+        /* We only support OCSP */
+        eq_check(conn->config->status_request_type, S2N_STATUS_REQUEST_OCSP);
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_STATUS_REQUEST));
+        GUARD(s2n_stuffer_write_uint16(out, 5));
+        GUARD(s2n_stuffer_write_uint8(out, (uint8_t)conn->config->status_request_type));
+        GUARD(s2n_stuffer_write_uint16(out, 0));
+        GUARD(s2n_stuffer_write_uint16(out, 0));
+    }
+
     return 0;
 }
 
@@ -123,6 +137,9 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
             break;
         case TLS_EXTENSION_ALPN:
             GUARD(s2n_alpn_rcv(conn, &extension));
+            break;
+        case TLS_EXTENSION_STATUS_REQUEST:
+            GUARD(s2n_status_request_rcv(conn, &extension));
             break;
        }
     }
@@ -257,3 +274,20 @@ static int s2n_alpn_rcv(struct s2n_connection *conn, struct s2n_stuffer *extensi
     S2N_ERROR(S2N_ERR_NO_APPLICATION_PROTOCOL);
 }
 
+static int s2n_status_request_rcv(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    uint16_t size_of_all;
+    GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
+    if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all < 5) {
+        /* Malformed length, ignore the extension */
+        return 0;
+    }
+    uint8_t type;
+    GUARD(s2n_stuffer_read_uint8(extension, &type));
+    if (type != (uint8_t)S2N_STATUS_REQUEST_OCSP) {
+        /* We only support OCSP (type 1), ignore the extension */
+        return 0;
+    }
+    conn->status_type = (s2n_status_request_type)type;
+    return 0;
+}
