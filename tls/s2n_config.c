@@ -285,7 +285,7 @@ int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config,
         GUARD(s2n_config_is_ocsp_response(status, length));
 
         GUARD(s2n_alloc(&config->cert_and_key_pairs->ocsp_status, length));
-        memcpy_check(&config->cert_and_key_pairs->ocsp_status, status, length);
+        memcpy_check(config->cert_and_key_pairs->ocsp_status.data, status, length);
     }
 
     return 0;
