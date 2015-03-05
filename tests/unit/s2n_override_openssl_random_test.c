@@ -21,6 +21,8 @@
 #include "utils/s2n_blob.h"
 #include <s2n.h>
 
+#if !defined(OPENSSL_IS_BORINGSSL)
+
 static uint8_t dhparams[] =
     "-----BEGIN DH PARAMETERS-----\n"
     "MIIBCAKCAQEAy1+hVWCfNQoPB+NA733IVOONl8fCumiz9zdRRu1hzVa2yvGseUSq\n"
@@ -72,6 +74,7 @@ RAND_METHOD mock_openssl_rand_method = {
     .status = mock_openssl_compat_status
 };
 
+
 int main(int argc, char **argv)
 {
     struct s2n_stuffer dhparams_in, dhparams_out;
@@ -109,3 +112,15 @@ int main(int argc, char **argv)
 
     END_TEST();
 }
+
+#else /* defined(OPENSSL_IS_BORINGSSL) */
+
+int main(int argc, char **argv)
+{
+    BEGIN_TEST();
+
+    END_TEST();
+}
+
+#endif
+

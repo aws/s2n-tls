@@ -44,8 +44,41 @@ To build s2n with BoringSSL, do the following:
     # Clone BoringSSL
     git clone https://boringssl.googlesource.com/boringssl
 
-    # Build BoringSSL's libcrypto
+    # Patch BoringSSL's headers to valid C99
     cd boringssl
+    patch -p1 << EOF
+    diff --git a/include/openssl/asn1.h b/include/openssl/asn1.h
+    index 5c5e990..6463f46 100644
+    --- a/include/openssl/asn1.h
+    +++ b/include/openssl/asn1.h
+    @@ -515,9 +515,9 @@ struct X509_algor_st
+            ASN1_OBJECT *algorithm;
+            ASN1_TYPE *parameter;
+            } /* X509_ALGOR */;
+    -DEFINE_STACK_OF(X509_ALGOR);
+    +DEFINE_STACK_OF(X509_ALGOR)
+     
+    -DECLARE_ASN1_FUNCTIONS(X509_ALGOR);
+    +DECLARE_ASN1_FUNCTIONS(X509_ALGOR)
+     
+     typedef struct NETSCAPE_X509_st
+     	{
+    diff --git a/include/openssl/bio.h b/include/openssl/bio.h
+    index 8ec321b..08bf3c1 100644
+    --- a/include/openssl/bio.h
+    +++ b/include/openssl/bio.h
+    @@ -75,7 +75,7 @@ extern "C" {
+     
+     /* Allocation and freeing. */
+     
+    -DEFINE_STACK_OF(BIO);
+    +DEFINE_STACK_OF(BIO)
+     
+     /* BIO_new creates a new BIO with the given type and a reference count of one.
+      * It returns the fresh |BIO|, or NULL on error. */
+     EOF
+
+    # Build OpenSSL
     mkdir build
     cd build
     cmake -DCMAKE_C_FLAGS="-fPIC" ../
