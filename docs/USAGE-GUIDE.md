@@ -102,7 +102,7 @@ but does accept SSL2.0 hello messages.
 
 ## Enums
 
-s2n defines two enum type:
+s2n defines three enum type:
 
     typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
 
@@ -118,6 +118,12 @@ record is encountered. S2N_SELF_SERVICE_BLINDING can be used to opt out of this
 behaviour. If s2n_recv() returns an error, self-service applications should
 call **s2n_connection_get_delay** and pause for the specified number of
 microseconds before calling close() or shutdown().
+
+    typedef enum { S2N_STATUS_REQUEST_NONE, S2N_STATUS_REQUEST_OCSP } s2n_status_request_type;
+
+**s2n_status_request_type** is used to define the type, if any, of certificate
+status request an S2N_CLIENT should make during the handshake.  The only
+supported status request type is OCSP, S2N_STATUS_REQUEST_OCSP.
 
 ## Opaque structures
 
@@ -169,6 +175,20 @@ certificate-chain/key pair may be associated with a config.
 certificate in the chain being your servers certificate. **private_key_pem**
 should be a PEM encoded private key corresponding to the server certificate.
 
+### s2n\_config\_add\_cert\_chain\_\_and\_key\_with\_status
+
+    int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config, 
+                                                      char *cert_chain_pem, 
+                                                      char *private_key_pem,
+                                                      const uint8_t *status,
+                                                      uint32_t length)
+
+**s2n_config_add_cert_chain_and_key_with_status** performs the same function
+as s2n_config_add_cert_chain_and_key, and associates an OCSP status response
+with the server certificate.  If a client requests the OCSP status of the server
+certificate, this is the response used in the CertificateStatus handsake
+msssage.
+
 ### s2n\_config\_add\_dhparams
 
     int s2n_config_add_dhparams(struct s2n_config *config, 
@@ -183,13 +203,21 @@ an **s2n_config** object. **dhparams_pem** should be PEM encoded DH parameters.
                                             const char **protocols,
                                             int protocol_count)
 
-***s2n_config_set_protocol_preferences*** sets the application protocol
+**s2n_config_set_protocol_preferences** sets the application protocol
 preferences on an **s2n_config** object.  **protocols** is a list in order of
 preference, with most preferred protocol first, and of length
 **protocol_count**.  When acting as an **S2N_CLIENT** the protocol list is
 included in the Client Hello message as the ALPN extension.  As an
 **S2N_SERVER**, the list is used to negotiate a mutual application protocol
 with the client.
+
+### s2n\_config\_set\_status\_request\_type
+
+    int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_request_type type);
+
+**s2n_config_set_status_request_type** Sets up an S2N_CLIENT to request the
+server certificate status during an SSL handshake.  If set to
+S2N_STATUS_REQUEST_NONE, no status request is made.
 
 ## Connection-oriented functions
 
@@ -296,6 +324,13 @@ Each version number value corresponds to the macros defined as **S2N_SSLv2**,
 **s2n_get_application_protocol** returns the negotiated application protocol
 for a **s2n_connection**.  In the event of no protocol being negotiated, NULL
 is returned.
+
+### s2n\_connection\_get\_ocsp\_response
+
+    const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uint32_t *length)
+
+**s2n_connection_get_ocsp_response** returns the OCSP response sent by a server
+during the handshake.  If no status response is received, NULL is returned.
 
 ### s2n\_connection\_get\_alert
 
