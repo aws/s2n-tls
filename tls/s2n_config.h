@@ -19,6 +19,7 @@
 #include "crypto/s2n_dhe.h"
 
 #include "utils/s2n_blob.h"
+#include "api/s2n.h"
 
 #define S2N_MAX_SERVER_NAME 256
 
@@ -31,6 +32,7 @@ struct s2n_cert_chain_and_key {
     uint32_t chain_size;
     struct s2n_cert_chain *head;
     struct s2n_rsa_private_key private_key;
+    struct s2n_blob ocsp_status;
     char server_name[S2N_MAX_SERVER_NAME];
 };
 
@@ -39,6 +41,7 @@ struct s2n_config {
     struct s2n_cert_chain_and_key *cert_and_key_pairs;
     struct s2n_cipher_preferences *cipher_preferences;
     struct s2n_blob application_protocols;
+    s2n_status_request_type status_request_type;
 };
 
 extern struct s2n_config s2n_default_config;

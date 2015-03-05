@@ -79,6 +79,11 @@ int echo(struct s2n_connection *conn, int sockfd)
         printf("Application protocol: %s\n",
                 s2n_get_application_protocol(conn));
     }
+    uint32_t length;
+    const uint8_t *status = s2n_connection_get_ocsp_response(conn, &length);
+    if (status && length > 0) {
+        fprintf(stderr, "OCSP response received, length %d\n", length);
+    }
 
     printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
 

@@ -24,6 +24,8 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
 
+#include <openssl/ocsp.h>
+
 /* s2n's list of cipher suites, in order of preference, as of 2014-06-01 */
 uint8_t wire_format_20140601[] =
     { TLS_DHE_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA, TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA,
@@ -93,6 +95,7 @@ struct s2n_config *s2n_config_new()
     new_config->dhparams = NULL;
     new_config->application_protocols.data = NULL;
     new_config->application_protocols.size = 0;
+    new_config->status_request_type = S2N_STATUS_REQUEST_NONE;
 
     GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default"));
 
@@ -122,6 +125,7 @@ int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
             GUARD(s2n_free(&n));
         }
         GUARD(s2n_rsa_private_key_free(&config->cert_and_key_pairs->private_key));
+        GUARD(s2n_free(&config->cert_and_key_pairs->ocsp_status));
     }
 
     GUARD(s2n_free(&b));
@@ -168,7 +172,7 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
     return -1;
 }
 
-int s2n_config_set_protocol_preferences(struct s2n_config *config, const char **protocols, int protocol_count)
+int s2n_config_set_protocol_preferences(struct s2n_config *config, const char * const *protocols, int protocol_count)
 {
     struct s2n_stuffer protocol_stuffer;
 
@@ -201,7 +205,24 @@ int s2n_config_set_protocol_preferences(struct s2n_config *config, const char **
     return 0;
 }
 
-int s2n_config_add_cert_chain_and_key(struct s2n_config *config, char *cert_chain_pem, char *private_key_pem)
+int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_request_type type)
+{
+    config->status_request_type = type;
+
+    return 0;
+}
+
+static int s2n_config_is_ocsp_response(const uint8_t *data, uint32_t length)
+{
+    OCSP_RESPONSE *rsp = d2i_OCSP_RESPONSE(NULL, &data, length);
+    notnull_check(rsp);
+    OCSP_RESPONSE_free(rsp);
+
+    return 0;
+}
+
+int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config,
+        char *cert_chain_pem, char *private_key_pem, const uint8_t *status, uint32_t length)
 {
     struct s2n_stuffer chain_in_stuffer, cert_out_stuffer, key_in_stuffer, key_out_stuffer;
     struct s2n_blob key_blob;
@@ -210,6 +231,8 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, char *cert_chai
     /* Allocate the memory for the chain and key struct */
     GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert_chain_and_key)));
     config->cert_and_key_pairs = (struct s2n_cert_chain_and_key *)(void *)mem.data;
+    config->cert_and_key_pairs->ocsp_status.data = NULL;
+    config->cert_and_key_pairs->ocsp_status.size = 0;
 
     /* Put the private key pem in a stuffer */
     GUARD(s2n_stuffer_alloc_ro_from_string(&key_in_stuffer, private_key_pem));
@@ -257,6 +280,20 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, char *cert_chai
     GUARD(s2n_stuffer_free(&cert_out_stuffer));
 
     config->cert_and_key_pairs->chain_size = chain_size;
+
+    if (status && length > 0) {
+        GUARD(s2n_config_is_ocsp_response(status, length));
+
+        GUARD(s2n_alloc(&config->cert_and_key_pairs->ocsp_status, length));
+        memcpy_check(config->cert_and_key_pairs->ocsp_status.data, status, length);
+    }
+
+    return 0;
+}
+
+int s2n_config_add_cert_chain_and_key(struct s2n_config *config, char *cert_chain_pem, char *private_key_pem)
+{
+    GUARD(s2n_config_add_cert_chain_and_key_with_status(config, cert_chain_pem, private_key_pem, NULL, 0));
 
     return 0;
 }

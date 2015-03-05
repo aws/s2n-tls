@@ -37,6 +37,8 @@ extern int s2n_server_hello_send(struct s2n_connection *conn);
 extern int s2n_server_hello_recv(struct s2n_connection *conn);
 extern int s2n_server_cert_send(struct s2n_connection *conn);
 extern int s2n_server_cert_recv(struct s2n_connection *conn);
+extern int s2n_server_status_send(struct s2n_connection *conn);
+extern int s2n_server_status_recv(struct s2n_connection *conn);
 extern int s2n_server_key_send(struct s2n_connection *conn);
 extern int s2n_server_key_recv(struct s2n_connection *conn);
 extern int s2n_server_done_send(struct s2n_connection *conn);
@@ -59,3 +61,7 @@ extern int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_st
 extern int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *extensions);
 extern int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 extern int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *extensions);
+
+#define s2n_server_can_send_ocsp(conn) ((conn)->status_type == S2N_STATUS_REQUEST_OCSP && \
+        (conn)->config->cert_and_key_pairs && \
+        (conn)->config->cert_and_key_pairs->ocsp_status.size > 0)

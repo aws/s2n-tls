@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
+#include <getopt.h>
 
 #include <errno.h>
 
@@ -30,26 +31,83 @@
 
 void usage()
 {
-    fprintf(stderr, "usage: s2nc host [port]\n");
+    fprintf(stderr, "usage: s2nc [options] host [port]\n");
     fprintf(stderr, " host: hostname or IP address to connect to\n");
     fprintf(stderr, " port: port to connect to\n");
-
+    fprintf(stderr, "\n Options:\n\n");
+    fprintf(stderr, "  -a [protocols]\n");
+    fprintf(stderr, "  --alpn [protocols]\n");
+    fprintf(stderr, "    Sets the application protocols supported by this client, as a comma seperated list.\n");
+    fprintf(stderr, "  -h,--help\n");
+    fprintf(stderr, "    Display this message and quit.\n");
+    fprintf(stderr, "  -n [server name]\n");
+    fprintf(stderr, "  --name [server name]\n");
+    fprintf(stderr, "    Sets the SNI server name header for this client.  If not specified, the host value is used.\n");
+    fprintf(stderr, "  --s,--status\n");
+    fprintf(stderr, "    Request the OCSP status of the remote server certificate\n");
+    fprintf(stderr, "\n");
     exit(1);
 }
 
 extern int echo(struct s2n_connection *conn, int sockfd);
 
-int main(int argc, const char *argv[])
+int main(int argc, char * const *argv)
 {
     struct addrinfo hints, *ai_list, *ai;
-    const char *port = "443";
     int r, sockfd = 0;
+    /* Optional args */
+    const char *alpn_protocols = NULL;
+    const char *server_name = NULL;
+    s2n_status_request_type type = S2N_STATUS_REQUEST_NONE;
+    /* required args */
+    const char *host = NULL;
+    const char *port = "443";
 
-    if (argc < 2 || argc > 3) {
+    static struct option long_options[] = {
+        { "alpn", required_argument, 0, 'a' },
+        { "help", no_argument, 0, 'h' },
+        { "name", required_argument, 0, 'n' },
+        { "status", no_argument, 0, 's' },
+    };
+    while (1) {
+        int option_index = 0;
+        int c = getopt_long (argc, argv, "a:hn:s", long_options, &option_index);
+        if (c == -1) {
+            break;
+        }
+        switch (c) {
+            case 'a':
+                alpn_protocols = optarg;
+                break;
+            case 'h':
+                usage();
+                break;
+            case 'n':
+                server_name = optarg;
+                break;
+            case 's':
+                type = S2N_STATUS_REQUEST_OCSP;
+                break;
+            case '?':
+            default:
+                usage();
+                break;
+        }
+    }
+
+    if (optind < argc) {
+        host = argv[optind++];
+    }
+    if (optind < argc) {
+        port = argv[optind++];
+    }
+
+    if (!host) {
         usage();
     }
-    if (argc == 3) {
-        port = argv[2];
+
+    if (!server_name) {
+        server_name = host;
     }
 
     if (memset(&hints, 0, sizeof(hints)) != &hints) {
@@ -60,7 +118,7 @@ int main(int argc, const char *argv[])
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-    if ((r = getaddrinfo(argv[1], port, &hints, &ai_list)) != 0) {
+    if ((r = getaddrinfo(host, port, &hints, &ai_list)) != 0) {
         fprintf(stderr, "error: %s\n", gai_strerror(r));
         return -1;
     }
@@ -101,6 +159,71 @@ int main(int argc, const char *argv[])
         exit(1);
     }
 
+    if (s2n_config_set_status_request_type(config, type) < 0) {
+        fprintf(stderr, "Error setting status request type: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        exit(1);
+    }
+
+    if (alpn_protocols) {
+        /* Count the number of commas, this tells us how many protocols there
+           are in the list */
+        const char *ptr = alpn_protocols;
+        int protocol_count = 1;
+        while (*ptr) {
+            if (*ptr == ',') {
+                protocol_count++;
+            }
+            ptr++;
+        }
+
+        char **protocols = malloc(sizeof(char *) * protocol_count);
+        if (!protocols) {
+            fprintf(stderr, "Error allocating memory\n");
+            exit(1);
+        }
+
+        const char *next = alpn_protocols;
+        int index = 0;
+        int length = 0;
+        ptr = alpn_protocols;
+        while (*ptr) {
+            if (*ptr == ',') {
+                protocols[index] = malloc(length + 1);
+                if (!protocols[index]) {
+                    fprintf(stderr, "Error allocating memory\n");
+                    exit(1);
+                }
+                memcpy(protocols[index], next, length);
+                protocols[index][length] = '\0';
+                length = 0;
+                index++;
+                ptr++;
+                next = ptr;
+            } else {
+                length++;
+                ptr++;
+            }
+        }
+        if (ptr != next) {
+            protocols[index] = malloc(length + 1);
+            if (!protocols[index]) {
+                fprintf(stderr, "Error allocating memory\n");
+                exit(1);
+            }
+            memcpy(protocols[index], next, length);
+            protocols[index][length] = '\0';
+        }
+        if (s2n_config_set_protocol_preferences(config, (const char * const *)protocols, protocol_count) < 0) {
+            fprintf(stderr, "Failed to set protocol preferences: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+            exit(1);
+        }
+        while(protocol_count) {
+            protocol_count--;
+            free(protocols[protocol_count]);
+        }
+        free(protocols);
+    }
+
     struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
 
     if (conn == NULL) {
@@ -108,14 +231,14 @@ int main(int argc, const char *argv[])
         exit(1);
     }
 
-    printf("Connected to %s:%s\n", argv[1], port);
+    printf("Connected to %s:%s\n", host, port);
 
     if (s2n_connection_set_config(conn, config) < 0) {
         fprintf(stderr, "Error setting configuration: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
     }
 
-    if (s2n_set_server_name(conn, argv[1]) < 0) {
+    if (s2n_set_server_name(conn, server_name) < 0) {
         fprintf(stderr, "Error setting server name: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
     }
