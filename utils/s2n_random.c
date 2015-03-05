@@ -35,7 +35,6 @@
 #define ENTROPY_SOURCE "/dev/urandom"
 
 static int entropy_fd = -1;
-static const RAND_METHOD *original_rand_method;
 
 int s2n_get_random_data(uint8_t *data, uint32_t n)
 {
@@ -106,6 +105,9 @@ int s2n_random(int max)
     return -1;
 }
 
+#ifndef OPENSSL_IS_BORINGSSL
+static const RAND_METHOD *original_rand_method;
+
 int openssl_compat_rand(unsigned char *buf, int num)
 {
     int r = s2n_get_random_data(buf, num);
@@ -143,6 +145,7 @@ RAND_METHOD s2n_openssl_rand_method = {
     .pseudorand = openssl_compat_rand,
     .status = openssl_compat_status
 };
+#endif
 
 int s2n_init()
 {
@@ -151,13 +154,15 @@ int s2n_init()
         S2N_ERROR(S2N_ERR_OPEN_RANDOM);
     }
 
+    /* Create the CBC masks */
+    GUARD(s2n_cbc_masks_init());
+
+#ifndef OPENSSL_IS_BORINGSSL
     original_rand_method = RAND_get_rand_method();
 
     /* Over-ride OpenSSL's PRNG. NOTE: there is a unit test to validate that this works */
     RAND_set_rand_method(&s2n_openssl_rand_method);
-
-    /* Create the CBC masks */
-    GUARD(s2n_cbc_masks_init());
+#endif
 
     return 0;
 }
@@ -170,8 +175,10 @@ int s2n_cleanup()
 
     GUARD(close(entropy_fd));
 
+#ifndef OPENSSL_IS_BORINGSSL
     /* Restore OpenSSL's original random methods */
     RAND_set_rand_method(original_rand_method);
+#endif
 
     return 0;
 }

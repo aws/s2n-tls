@@ -30,10 +30,20 @@
 
 #define BEGIN_TEST()  int test_count = 0; { fprintf(stdout, "Running %-50s ... ", __FILE__); }
 #define END_TEST()  { if (isatty(fileno(stdout))) { \
-                            fprintf(stdout, "\033[32;1mPASSED\033[0m %10d tests\n", test_count ); \
+                            if (test_count) { \
+                                fprintf(stdout, "\033[32;1mPASSED\033[0m %10d tests\n", test_count ); \
+                            }\
+                            else {\
+                                fprintf(stdout, "\033[33;1mSKIPPED\033[0m       ALL tests\n" ); \
+                            }\
                        } \
                        else { \
-                            fprintf(stdout, "PASSED %10d tests\n", test_count ); \
+                            if (test_count) { \
+                                fprintf(stdout, "PASSED %10d tests\n", test_count ); \
+                            }\
+                            else {\
+                                fprintf(stdout, "SKIPPED       ALL tests\n" ); \
+                            }\
                        } \
                        return 0;\
                     }
