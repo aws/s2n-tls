@@ -39,10 +39,11 @@
 
 /* TLS extension and algorithm types */
 #define TLS_EXTENSION_SERVER_NAME           0
+#define TLS_EXTENSION_STATUS_REQUEST        5
 #define TLS_EXTENSION_SIGNATURE_ALGORITHMS 13
+#define TLS_EXTENSION_ALPN                 16
 #define TLS_SIGNATURE_ALGORITHM_RSA         1
 #define TLS_SIGNATURE_ALGORITHM_SHA1        2
-#define TLS_EXTENSION_ALPN                 16
 
 /* The TLS record types we support */
 #define TLS_CHANGE_CIPHER_SPEC 20
@@ -69,9 +70,9 @@
 
 /* s2n uses a record length that is aligned to the dominant internet MTU;
  * 1500 bytes, minus 20 bytes for an IP header, minus 20 bytes for a tcp
- * header */
-#define S2N_MAXIMUM_RECORD_LENGTH (1500 - 20 - 20)
-#define S2N_MAXIMUM_FRAGMENT_LENGTH (S2N_MAXIMUM_RECORD_LENGTH - S2N_TLS_RECORD_HEADER_LENGTH)
+ * header and 20 bytes for tcp options (timestamp, sack etc) */
+#define S2N_DEFAULT_RECORD_LENGTH (1500 - 20 - 20 - 20)
+#define S2N_DEFAULT_FRAGMENT_LENGTH (S2N_DEFAULT_RECORD_LENGTH - S2N_TLS_RECORD_HEADER_LENGTH)
 
 /* Put a 64k cap on the size of any handshake message */
 #define S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH (64 * 1024)
