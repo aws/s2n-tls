@@ -36,7 +36,9 @@ directory.
 
 ## Building s2n with BoringSSL
 
-To build s2n with BoringSSL, do the following:
+To build s2n with BoringSSL, you must check out a copy of the BoringSSL
+directly via git. This procedure has been tested with
+fb68d6c901b98ffe15b8890d00bc819bf44c5f01 of BoringSSL.
 
     # We keep the build artifacts in the -build directory
     cd libcrypto-build
