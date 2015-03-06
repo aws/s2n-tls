@@ -19,6 +19,9 @@
 
 #include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
+
+#include <openssl/engine.h>
+#include <openssl/dh.h>
 #include <s2n.h>
 
 #if !defined(OPENSSL_IS_BORINGSSL)
@@ -33,7 +36,7 @@ static uint8_t dhparams[] =
 
 static int mock_called = 0;
 
-int mock_openssl_compat_rand(unsigned char *buf, int num)
+static int mock_openssl_compat_rand(unsigned char *buf, int num)
 {
     int r = s2n_get_random_data(buf, num);
     if (r < 0) {
@@ -45,31 +48,21 @@ int mock_openssl_compat_rand(unsigned char *buf, int num)
     return 1;
 }
 
-void mock_openssl_compat_seed(const void *buf, int num)
-{
-
-}
-
-int mock_openssl_compat_status()
+static int mock_openssl_compat_status()
 {
     return 1;
 }
 
-void mock_openssl_compat_cleanup()
+static int mock_openssl_compat_init(ENGINE *e)
 {
-
-}
-
-void mock_openssl_compat_add(const void *buf, int num, double entropy)
-{
-
+    return 1;
 }
 
 RAND_METHOD mock_openssl_rand_method = {
-    .seed = mock_openssl_compat_seed,
+    .seed = NULL,
     .bytes = mock_openssl_compat_rand,
-    .cleanup = mock_openssl_compat_cleanup,
-    .add = mock_openssl_compat_add,
+    .cleanup = NULL,
+    .add = NULL,
     .pseudorand = mock_openssl_compat_rand,
     .status = mock_openssl_compat_status
 };
@@ -85,9 +78,21 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_init());
 
-    /* Over-ride OpenSSL's PRNG */
-    RAND_set_rand_method(&mock_openssl_rand_method);
+    ENGINE *e = ENGINE_new();
+    EXPECT_NOT_NULL(e);
 
+    EXPECT_TRUE(ENGINE_set_id(e, "s2n_test") == 1);
+    EXPECT_TRUE(ENGINE_set_name(e, "s2n_test entropy generator") == 1);
+    EXPECT_TRUE(ENGINE_set_flags(e, ENGINE_FLAGS_NO_REGISTER_ALL) == 1);
+    EXPECT_TRUE(ENGINE_set_init_function(e, mock_openssl_compat_init) == 1);
+    EXPECT_TRUE(ENGINE_set_RAND(e, &mock_openssl_rand_method) == 1);
+    EXPECT_TRUE(ENGINE_add(e) == 1);
+    EXPECT_TRUE(ENGINE_free(e) == 1);
+    
+    EXPECT_NOT_NULL(e = ENGINE_by_id("s2n_test"));
+    EXPECT_TRUE(ENGINE_init(e) == 1);
+    EXPECT_TRUE(ENGINE_set_default(e, ENGINE_METHOD_RAND) == 1);
+    
     /* Parse the DH params */
     b.data = dhparams;
     b.size = sizeof(dhparams);
@@ -101,7 +106,7 @@ int main(int argc, char **argv)
 
     EXPECT_EQUAL(mock_called, 0);
 
-    EXPECT_SUCCESS(s2n_dh_generate_ephemeral_key(&dh_params));
+    EXPECT_TRUE(DH_generate_key(dh_params.dh) == 1);
 
     /* Verify that our mock random is called and that over-riding works */
     EXPECT_EQUAL(mock_called, 1);
