@@ -24,8 +24,6 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
 
-#include <openssl/ocsp.h>
-
 /* s2n's list of cipher suites, in order of preference, as of 2014-06-01 */
 uint8_t wire_format_20140601[] =
     { TLS_DHE_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA, TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA,
@@ -212,15 +210,6 @@ int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_req
     return 0;
 }
 
-static int s2n_config_is_ocsp_response(const uint8_t *data, uint32_t length)
-{
-    OCSP_RESPONSE *rsp = d2i_OCSP_RESPONSE(NULL, &data, length);
-    notnull_check(rsp);
-    OCSP_RESPONSE_free(rsp);
-
-    return 0;
-}
-
 int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config,
         char *cert_chain_pem, char *private_key_pem, const uint8_t *status, uint32_t length)
 {
@@ -282,8 +271,6 @@ int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config,
     config->cert_and_key_pairs->chain_size = chain_size;
 
     if (status && length > 0) {
-        GUARD(s2n_config_is_ocsp_response(status, length));
-
         GUARD(s2n_alloc(&config->cert_and_key_pairs->ocsp_status, length));
         memcpy_check(config->cert_and_key_pairs->ocsp_status.data, status, length);
     }

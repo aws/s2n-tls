@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#include <openssl/engine.h>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -35,7 +37,6 @@
 #define ENTROPY_SOURCE "/dev/urandom"
 
 static int entropy_fd = -1;
-static const RAND_METHOD *original_rand_method;
 
 int s2n_get_random_data(uint8_t *data, uint32_t n)
 {
@@ -106,7 +107,8 @@ int s2n_random(int max)
     return -1;
 }
 
-int openssl_compat_rand(unsigned char *buf, int num)
+#ifndef OPENSSL_IS_BORINGSSL
+int s2n_openssl_compat_rand(unsigned char *buf, int num)
 {
     int r = s2n_get_random_data(buf, num);
     if (r < 0) {
@@ -115,34 +117,25 @@ int openssl_compat_rand(unsigned char *buf, int num)
     return 1;
 }
 
-void openssl_compat_seed(const void *buf, int num)
-{
-
-}
-
-int openssl_compat_status()
+int s2n_openssl_compat_status()
 {
     return 1;
 }
 
-void openssl_compat_cleanup()
+int s2n_openssl_compat_init()
 {
-
-}
-
-void openssl_compat_add(const void *buf, int num, double entropy)
-{
-
+    return 1;
 }
 
 RAND_METHOD s2n_openssl_rand_method = {
-    .seed = openssl_compat_seed,
-    .bytes = openssl_compat_rand,
-    .cleanup = openssl_compat_cleanup,
-    .add = openssl_compat_add,
-    .pseudorand = openssl_compat_rand,
-    .status = openssl_compat_status
+    .seed = NULL,
+    .bytes = s2n_openssl_compat_rand,
+    .cleanup = NULL,
+    .add = NULL,
+    .pseudorand = s2n_openssl_compat_rand,
+    .status = s2n_openssl_compat_status
 };
+#endif
 
 int s2n_init()
 {
@@ -151,13 +144,32 @@ int s2n_init()
         S2N_ERROR(S2N_ERR_OPEN_RANDOM);
     }
 
-    original_rand_method = RAND_get_rand_method();
-
-    /* Over-ride OpenSSL's PRNG. NOTE: there is a unit test to validate that this works */
-    RAND_set_rand_method(&s2n_openssl_rand_method);
-
     /* Create the CBC masks */
     GUARD(s2n_cbc_masks_init());
+
+#ifndef OPENSSL_IS_BORINGSSL
+
+    /* Create an engine */
+    ENGINE *e = ENGINE_new();
+    if (e == NULL ||
+        ENGINE_set_id(e, "s2n") != 1 ||
+        ENGINE_set_name(e, "s2n entropy generator") != 1 ||
+        ENGINE_set_flags(e, ENGINE_FLAGS_NO_REGISTER_ALL) != 1 ||
+        ENGINE_set_init_function(e, s2n_openssl_compat_init) != 1 ||
+        ENGINE_set_RAND(e, &s2n_openssl_rand_method) != 1 ||
+        ENGINE_add(e) != 1 ||
+        ENGINE_free(e) != 1) {
+        S2N_ERROR(S2N_ERR_OPEN_RANDOM);
+    }
+
+    /* Use that engine for rand() */
+    e = ENGINE_by_id("s2n");
+    if (e == NULL ||
+        ENGINE_init(e) != 1 ||
+        ENGINE_set_default(e, ENGINE_METHOD_RAND) != 1) {
+        S2N_ERROR(S2N_ERR_OPEN_RANDOM);
+    }
+#endif
 
     return 0;
 }
@@ -169,9 +181,6 @@ int s2n_cleanup()
     }
 
     GUARD(close(entropy_fd));
-
-    /* Restore OpenSSL's original random methods */
-    RAND_set_rand_method(original_rand_method);
 
     return 0;
 }
