@@ -34,6 +34,70 @@ To build s2n with LibreSSL, do the following:
 once built, static and dynamic libraries for s2n will be available in the lib/
 directory.
 
+## Building s2n with BoringSSL
+
+To build s2n with BoringSSL, you must check out a copy of the BoringSSL
+directly via git. This procedure has been tested with
+fb68d6c901b98ffe15b8890d00bc819bf44c5f01 of BoringSSL.
+
+    # We keep the build artifacts in the -build directory
+    cd libcrypto-build
+
+    # Clone BoringSSL
+    git clone https://boringssl.googlesource.com/boringssl
+
+    # Patch BoringSSL's headers to valid C99
+    cd boringssl
+    patch -p1 << EOF
+    diff --git a/include/openssl/asn1.h b/include/openssl/asn1.h
+    index 5c5e990..6463f46 100644
+    --- a/include/openssl/asn1.h
+    +++ b/include/openssl/asn1.h
+    @@ -515,9 +515,9 @@ struct X509_algor_st
+            ASN1_OBJECT *algorithm;
+            ASN1_TYPE *parameter;
+            } /* X509_ALGOR */;
+    -DEFINE_STACK_OF(X509_ALGOR);
+    +DEFINE_STACK_OF(X509_ALGOR)
+     
+    -DECLARE_ASN1_FUNCTIONS(X509_ALGOR);
+    +DECLARE_ASN1_FUNCTIONS(X509_ALGOR)
+     
+     typedef struct NETSCAPE_X509_st
+     	{
+    diff --git a/include/openssl/bio.h b/include/openssl/bio.h
+    index 8ec321b..08bf3c1 100644
+    --- a/include/openssl/bio.h
+    +++ b/include/openssl/bio.h
+    @@ -75,7 +75,7 @@ extern "C" {
+     
+     /* Allocation and freeing. */
+     
+    -DEFINE_STACK_OF(BIO);
+    +DEFINE_STACK_OF(BIO)
+     
+     /* BIO_new creates a new BIO with the given type and a reference count of one.
+      * It returns the fresh |BIO|, or NULL on error. */
+     EOF
+
+    # Build OpenSSL
+    mkdir build
+    cd build
+    cmake -DCMAKE_C_FLAGS="-fPIC" ../
+    make
+
+    # Copy the built library and includes
+    mkdir ../../../libcrypto-root/lib/
+    cp crypto/libcrypto.a ../../../libcrypto-root/lib/
+    cp -r ../include/ ../../../libcrypto-root/include
+
+    # Build s2n
+    cd ../../../
+    make
+
+once built, static and dynamic libraries for s2n will be available in the lib/
+directory.
+
 ## Building s2n with OpenSSL-1.0.2
 
 To build s2n with OpenSSL-1.0.2, do the following:
