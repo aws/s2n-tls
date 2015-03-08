@@ -21,15 +21,14 @@
 
 #include "utils/s2n_random.h"
 
-
-
 static uint8_t thread_data[2][100];
 
 void *thread_safety_tester(void *slot)
 {
     intptr_t slotnum = (intptr_t) slot;
+    struct s2n_blob blob = {.data = thread_data[slotnum], .size = 100 };
 
-    s2n_get_random_data(thread_data[slotnum], 100);
+    s2n_get_public_random_data(&blob);
 
     return NULL;
 }
@@ -38,7 +37,8 @@ void process_safety_tester(int write_fd)
 {
     uint8_t pad[100];
 
-    s2n_get_random_data(pad, 100);
+    struct s2n_blob blob = {.data = pad, .size = 100 };
+    s2n_get_public_random_data(&blob);
 
     /* Write the data we got to our pipe */
     if (write(write_fd, pad, 100) != 100) {
@@ -59,6 +59,7 @@ int main(int argc, char **argv)
     pid_t pid;
     uint8_t data[5120];
     uint8_t child_data[100];
+    struct s2n_blob blob = {.data = data };
 
     pthread_t threads[2];
 
@@ -66,7 +67,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_init());
 
     /* Get one byte of data, to make sure the pool is (almost) full */
-    EXPECT_SUCCESS(s2n_get_random_data(data, 1));
+    blob.size = 1;
+    EXPECT_SUCCESS(s2n_get_public_random_data(&blob));
 
     /* Create two threads and have them each grab 100 bytes */
     slot = 0;
@@ -82,7 +84,8 @@ int main(int argc, char **argv)
     EXPECT_NOT_EQUAL(memcmp(thread_data[0], thread_data[1], 100), 0);
 
     /* Confirm that their data differs from the parent thread */
-    EXPECT_SUCCESS(s2n_get_random_data(data, 100));
+    blob.size = 100;
+    EXPECT_SUCCESS(s2n_get_public_random_data(&blob));
     EXPECT_NOT_EQUAL(memcmp(thread_data[0], data, 100), 0);
     EXPECT_NOT_EQUAL(memcmp(thread_data[1], data, 100), 0);
 
@@ -104,7 +107,8 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(read(p[0], child_data, 100), 100);
 
     /* Get 100 bytes here in the parent process */
-    EXPECT_SUCCESS(s2n_get_random_data(data, 100));
+    blob.size = 100;
+    EXPECT_SUCCESS(s2n_get_public_random_data(&blob));
 
     /* Confirm they differ */
     EXPECT_NOT_EQUAL(memcmp(child_data, data, 100), 0);
@@ -114,11 +118,21 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(status, 0);
     EXPECT_SUCCESS(close(p[0]));
 
+    /* Get two sets of data in the same process/thread, and confirm that they
+     * differ
+     */
+    blob.data = child_data;
+    EXPECT_SUCCESS(s2n_get_public_random_data(&blob));
+    blob.data = data;
+    EXPECT_SUCCESS(s2n_get_public_random_data(&blob));
+    EXPECT_NOT_EQUAL(memcmp(child_data, data, 100), 0);
+
     /* Try to fetch a volume of randomly generated data, every size between 1 and 5120
      * bytes.
      */
     for (int i = 0; i < 5120; i++) {
-        EXPECT_SUCCESS(s2n_get_random_data(data, i));
+        blob.size = i;
+        EXPECT_SUCCESS(s2n_get_public_random_data(&blob));
 
         if (i >= 64) {
             /* Set the run counts to 0 */
@@ -144,6 +158,67 @@ int main(int argc, char **argv)
             }
         }
     }
+
+    for (int i = 0; i < 5120; i++) {
+        blob.size = i;
+        EXPECT_SUCCESS(s2n_get_private_random_data(&blob));
+
+        if (i >= 64) {
+            /* Set the run counts to 0 */
+            memset(bit_set_run, 0, 8);
+
+            /* Apply 8 monobit tests to the data. Basically, we're
+             * looking for successive runs where a given bit is set.
+             * If a run exists with any particular bit 64 times in 
+             * a row, then the data doesn't look randomly generated.
+             */
+            for (int j = 0; j < i; j++) {
+                for (int k = 0; k < 8; k++) {
+                    if (data[j] & bits[k]) {
+                        bit_set_run[k]++;
+
+                        if (j >= 64) {
+                            EXPECT_TRUE(bit_set_run[k] < 64);
+                        }
+                    } else {
+                        bit_set_run[k] = 0;
+                    }
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < 5120; i++) {
+        blob.size = i;
+        EXPECT_SUCCESS(s2n_get_urandom_data(&blob));
+
+        if (i >= 64) {
+            /* Set the run counts to 0 */
+            memset(bit_set_run, 0, 8);
+
+            /* Apply 8 monobit tests to the data. Basically, we're
+             * looking for successive runs where a given bit is set.
+             * If a run exists with any particular bit 64 times in 
+             * a row, then the data doesn't look randomly generated.
+             */
+            for (int j = 0; j < i; j++) {
+                for (int k = 0; k < 8; k++) {
+                    if (data[j] & bits[k]) {
+                        bit_set_run[k]++;
+
+                        if (j >= 64) {
+                            EXPECT_TRUE(bit_set_run[k] < 64);
+                        }
+                    } else {
+                        bit_set_run[k] = 0;
+                    }
+                }
+            }
+        }
+    }
+
+
+
 
     END_TEST();
 }

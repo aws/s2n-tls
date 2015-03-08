@@ -64,7 +64,7 @@ static int s2n_rsa_client_key_recv(struct s2n_connection *conn)
 
     if (conn->handshake.rsa_failed) {
         /* Use a random pre-master secret */
-        GUARD(s2n_get_random_data(conn->pending.rsa_premaster_secret, S2N_TLS_SECRET_LEN));
+        GUARD(s2n_get_private_random_data(&pms));
         conn->pending.rsa_premaster_secret[0] = client_protocol_version[0];
         conn->pending.rsa_premaster_secret[1] = client_protocol_version[1];
     }
@@ -150,12 +150,15 @@ static int s2n_rsa_client_key_send(struct s2n_connection *conn)
     client_protocol_version[0] = conn->client_protocol_version / 10;
     client_protocol_version[1] = conn->client_protocol_version % 10;
 
-    memcpy_check(conn->pending.rsa_premaster_secret, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN);
-    GUARD(s2n_get_random_data(conn->pending.rsa_premaster_secret + S2N_TLS_PROTOCOL_VERSION_LEN, S2N_TLS_SECRET_LEN - S2N_TLS_PROTOCOL_VERSION_LEN));
 
     struct s2n_blob pms;
     pms.data = conn->pending.rsa_premaster_secret;
     pms.size = S2N_TLS_SECRET_LEN;
+
+    GUARD(s2n_get_private_random_data(&pms));
+
+    /* Over-write the first two bytes with the client protocol version, per RFC2246 7.4.7.1 */
+    memcpy_check(conn->pending.rsa_premaster_secret, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN);
 
     int encrypted_size = s2n_rsa_public_encrypted_size(&conn->pending.server_rsa_public_key);
     if (encrypted_size < 0 || encrypted_size > 0xffff) {

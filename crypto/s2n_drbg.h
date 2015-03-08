@@ -15,12 +15,21 @@
 
 #pragma once
 
-#include <openssl/rand.h>
-#include <stdint.h>
+#include <openssl/evp.h>
 
-#include "stuffer/s2n_stuffer.h"
+#include "utils/s2n_blob.h"
 
-extern int s2n_get_public_random_data(struct s2n_blob *blob);
-extern int s2n_get_private_random_data(struct s2n_blob *blob);
-extern int s2n_get_urandom_data(struct s2n_blob *blob);
-extern int s2n_public_random(int max);
+/* We reseed after 2^48 bytes have been generated */
+#define S2N_DRBG_RESEED_LIMIT   281474976710656
+
+struct s2n_drbg {
+    int initialized:1;
+    uint64_t bytes_used;
+    uint8_t cache[128];
+    uint8_t cache_remaining;
+    EVP_CIPHER_CTX evp_cipher_ctx;
+    uint32_t generation;
+};
+
+extern int s2n_drbg_seed(struct s2n_drbg *drbg);
+extern int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob);

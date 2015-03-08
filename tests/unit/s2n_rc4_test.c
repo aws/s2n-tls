@@ -37,12 +37,13 @@ int main(int argc, char **argv)
     uint8_t rc4_key[] = "123456789012345";
     struct s2n_blob key_iv = {.data = rc4_key,.size = sizeof(rc4_key) };
     uint8_t random_data[S2N_DEFAULT_FRAGMENT_LENGTH + 1];
+    struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
 
     BEGIN_TEST();
 
     EXPECT_SUCCESS(s2n_init());
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-    EXPECT_SUCCESS(s2n_get_random_data(random_data, S2N_DEFAULT_FRAGMENT_LENGTH + 1));
+    EXPECT_SUCCESS(s2n_get_urandom_data(&r));
 
     /* Peer and we are in sync */
     conn->server = &conn->active;
