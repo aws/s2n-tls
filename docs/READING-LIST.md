@@ -47,5 +47,6 @@
 ## Miscellaneous
 
 * [DJBs crypto page](http://cr.yp.to/crypto.html) 
+* [DJBs entropy attacks](http://blog.cr.yp.to/20140205-entropy.html)
 * [NaCL](http://nacl.cr.yp.to/) and [libsodium](https://github.com/jedisct1/libsodium)
 * [spiped](http://www.tarsnap.com/spiped.html) 
