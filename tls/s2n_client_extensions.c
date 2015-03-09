@@ -30,6 +30,8 @@ static int s2n_server_name_rcv(struct s2n_connection *conn, struct s2n_stuffer *
 static int s2n_signature_algorithms_rcv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_alpn_rcv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_status_request_rcv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_elliptic_curves_rcv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_ec_point_formats_rcv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
@@ -52,6 +54,10 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     if (conn->config->status_request_type != S2N_STATUS_REQUEST_NONE) {
         total_size += 9;
     }
+
+    /* Write ECC extensions: Supported Curves and Supported Point Formats */
+    int ec_curves_count = sizeof(s2n_ecc_supported_curves) / sizeof(s2n_ecc_supported_curves[0]);
+    total_size += 12 + ec_curves_count * 2;
 
     GUARD(s2n_stuffer_write_uint16(out, total_size));
 
@@ -102,6 +108,28 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint16(out, 0));
     }
 
+    /*
+     * RFC 4492: Clients SHOULD send both the Supported Elliptic Curves Extension
+     * and the Supported Point Formats Extension.
+     */
+    {
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_ELLIPTIC_CURVES));
+        GUARD(s2n_stuffer_write_uint16(out, 2 + ec_curves_count * 2));
+        /* Curve list len */
+        GUARD(s2n_stuffer_write_uint16(out, ec_curves_count * 2));
+        /* Curve list */
+        for (int i = 0; i < ec_curves_count; i++) {
+            GUARD(s2n_stuffer_write_uint16(out, s2n_ecc_supported_curves[i].iana_id));
+        }
+
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_EC_POINT_FORMATS));
+        GUARD(s2n_stuffer_write_uint16(out, 2));
+        /* Point format list len */
+        GUARD(s2n_stuffer_write_uint8(out, 1));
+        /* Only allow uncompressed format */
+        GUARD(s2n_stuffer_write_uint8(out, 0));
+    }
+
     return 0;
 }
 
@@ -140,6 +168,12 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
             break;
         case TLS_EXTENSION_STATUS_REQUEST:
             GUARD(s2n_status_request_rcv(conn, &extension));
+            break;
+        case TLS_EXTENSION_ELLIPTIC_CURVES:
+            GUARD(s2n_elliptic_curves_rcv(conn, &extension));
+            break;
+        case TLS_EXTENSION_EC_POINT_FORMATS:
+            GUARD(s2n_ec_point_formats_rcv(conn, &extension));
             break;
        }
     }
@@ -289,5 +323,36 @@ static int s2n_status_request_rcv(struct s2n_connection *conn, struct s2n_stuffe
         return 0;
     }
     conn->status_type = (s2n_status_request_type)type;
+    return 0;
+}
+
+static int s2n_elliptic_curves_rcv(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    uint16_t size_of_all;
+    struct s2n_blob proposed_curves;
+
+    GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
+    if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all % 2) {
+        /* Malformed length, ignore the extension */
+        return 0;
+    }
+
+    proposed_curves.size = size_of_all;
+    proposed_curves.data = s2n_stuffer_raw_read(extension, proposed_curves.size);
+    notnull_check(proposed_curves.data);
+
+    if (s2n_ecc_find_supported_curve(&proposed_curves, &conn->pending.server_ecc_params.negotiated_curve) != 0) {
+        /* Can't agree on a curve, ECC is not allowed. Return success to proceed with the handhsake. */
+        conn->pending.server_ecc_params.negotiated_curve = NULL;
+    }
+    return 0;
+}
+
+static int s2n_ec_point_formats_rcv(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    /**
+     * Only uncompressed points are supported by the server and the client must include it in
+     * th e extension. Just skip the extension.
+     */
     return 0;
 }

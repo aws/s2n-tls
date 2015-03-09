@@ -37,11 +37,15 @@
 /* From https://tools.ietf.org/html/draft-ietf-tls-downgrade-scsv-03 */
 #define TLS_FALLBACK_SCSV                   0x56, 0x00
 
-/* TLS extension and algorithm types */
+/* TLS extensions from https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml */
 #define TLS_EXTENSION_SERVER_NAME           0
 #define TLS_EXTENSION_STATUS_REQUEST        5
+#define TLS_EXTENSION_ELLIPTIC_CURVES      10
+#define TLS_EXTENSION_EC_POINT_FORMATS     11
 #define TLS_EXTENSION_SIGNATURE_ALGORITHMS 13
 #define TLS_EXTENSION_ALPN                 16
+
+/* TLS signature algorithms */
 #define TLS_SIGNATURE_ALGORITHM_RSA         1
 #define TLS_SIGNATURE_ALGORITHM_SHA1        2
 
