@@ -29,6 +29,7 @@
 int s2n_server_cert_recv(struct s2n_connection *conn)
 {
     uint32_t size_of_all_certificates;
+    uint16_t key_exchange_alg_flags;
 
     GUARD(s2n_stuffer_read_uint24(&conn->handshake.io, &size_of_all_certificates));
 
@@ -63,9 +64,10 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
 
     conn->handshake.next_state = SERVER_HELLO_DONE;
 
+    GUARD(s2n_get_key_exchange_flags(conn->pending.cipher_suite->key_exchange_alg, &key_exchange_alg_flags));
     if (conn->status_type == S2N_STATUS_REQUEST_OCSP) {
         conn->handshake.next_state = SERVER_CERT_STATUS;
-    } else if (conn->pending.cipher_suite->key_exchange_alg == S2N_DHE) {
+    } else if (key_exchange_alg_flags & S2N_KEY_EXCHANGE_EPH) {
         conn->handshake.next_state = SERVER_KEY;
     }
 
@@ -75,6 +77,7 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
 int s2n_server_cert_send(struct s2n_connection *conn)
 {
     struct s2n_cert_chain *head = conn->server->chosen_cert_chain->head;
+    uint16_t key_exchange_alg_flags;
 
     GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, conn->server->chosen_cert_chain->chain_size));
 
@@ -86,9 +89,10 @@ int s2n_server_cert_send(struct s2n_connection *conn)
 
     conn->handshake.next_state = SERVER_HELLO_DONE;
 
+    GUARD(s2n_get_key_exchange_flags(conn->pending.cipher_suite->key_exchange_alg, &key_exchange_alg_flags));
     if (s2n_server_can_send_ocsp(conn)) {
         conn->handshake.next_state = SERVER_CERT_STATUS;
-    } else if (conn->pending.cipher_suite->key_exchange_alg == S2N_DHE) {
+    } else if (key_exchange_alg_flags & S2N_KEY_EXCHANGE_EPH) {
         conn->handshake.next_state = SERVER_KEY;
     }
 
