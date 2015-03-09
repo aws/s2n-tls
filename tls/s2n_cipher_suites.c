@@ -113,8 +113,8 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
 
                 GUARD(s2n_get_key_exchange_flags(match->key_exchange_alg, &key_exchange_flags));
 
-                /* Don't choose DH key exchange if it's not configured. */
-                if (conn->config->dhparams == NULL && (key_exchange_flags & S2N_KEY_EXCHANGE_DH)) {
+                /* Don't choose DHE key exchange if it's not configured. */
+                if (conn->config->dhparams == NULL && match->key_exchange_alg == S2N_DHE) {
                     continue;
                 }
                 /* Don't choose EC ciphers if the curve was not agreed upon. */
