@@ -37,6 +37,12 @@ struct s2n_cipher_suite s2n_all_cipher_suites[] = {
     {"TLS_DHE_RSA_WITH_AES_256_CBC_SHA256", {TLS_DHE_RSA_WITH_AES_256_CBC_SHA256}, S2N_DHE, &s2n_aes256, S2N_HMAC_SHA256, S2N_TLS12},   /* 0x00,0x6B */
     {"TLS_RSA_WITH_AES_128_GCM_SHA256", {TLS_RSA_WITH_AES_128_GCM_SHA256}, S2N_RSA, &s2n_aes128_gcm, S2N_HMAC_NONE, S2N_TLS12},   /* 0x00,0x9C */
     {"TLS_DHE_RSA_WITH_AES_128_GCM_SHA256", {TLS_DHE_RSA_WITH_AES_128_GCM_SHA256}, S2N_DHE, &s2n_aes128_gcm, S2N_HMAC_NONE, S2N_TLS12},   /* 0x00,0x9E */
+    {"TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA", {TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA}, S2N_ECDHE, &s2n_3des, S2N_HMAC_SHA1, S2N_TLS10},   /* 0xC0,0x12 */
+    {"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA", {TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA}, S2N_ECDHE, &s2n_aes128, S2N_HMAC_SHA1, S2N_TLS10},   /* 0xC0,0x13 */
+    {"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA", {TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA}, S2N_ECDHE, &s2n_aes256, S2N_HMAC_SHA1, S2N_TLS10},   /* 0xC0,0x14 */
+    {"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256", {TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256}, S2N_ECDHE, &s2n_aes128, S2N_HMAC_SHA256, S2N_TLS12},   /* 0xC0,0x27 */
+    {"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384", {TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384}, S2N_ECDHE, &s2n_aes256, S2N_HMAC_SHA384, S2N_TLS12},   /* 0xC0,0x28 */
+    {"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", {TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256}, S2N_ECDHE, &s2n_aes128_gcm, S2N_HMAC_NONE, S2N_TLS12},   /* 0xC0,0x2F */
 };
 
 /* This is the initial cipher suite, but is never negotiated */
@@ -109,6 +115,10 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
 
                 /* Don't choose DH key exchange if it's not configured. */
                 if (conn->config->dhparams == NULL && (key_exchange_flags & S2N_KEY_EXCHANGE_DH)) {
+                    continue;
+                }
+                /* Don't choose EC ciphers if the curve was not agreed upon. */
+                if (conn->pending.server_ecc_params.negotiated_curve == NULL && (key_exchange_flags & S2N_KEY_EXCHANGE_ECC)) {
                     continue;
                 }
 
