@@ -18,6 +18,7 @@
 #include <openssl/ec.h>
 
 #include "stuffer/s2n_stuffer.h"
+#include "crypto/s2n_hash.h"
 
 struct s2n_ecc_named_curve {
     /* See https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8 */
@@ -37,8 +38,8 @@ struct s2n_ecc_params {
 };
 
 int s2n_ecc_generate_ephemeral_key(struct s2n_ecc_params *server_ecc_params);
-int s2n_ecc_write_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2n_stuffer *out, struct s2n_blob *written);
-int s2n_ecc_read_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2n_stuffer *in, struct s2n_blob *read);
+int s2n_ecc_write_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2n_stuffer *out, struct s2n_hash_state *written_data_hash);
+int s2n_ecc_read_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2n_stuffer *in, struct s2n_hash_state *read_data_hash);
 int s2n_ecc_compute_shared_secret_as_server(struct s2n_ecc_params *server_ecc_params, struct s2n_stuffer *Yc_in, struct s2n_blob *shared_key);
 int s2n_ecc_compute_shared_secret_as_client(struct s2n_ecc_params *server_ecc_params, struct s2n_stuffer *Yc_out, struct s2n_blob *shared_key);
 int s2n_ecc_find_supported_curve(struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **found);
