@@ -41,8 +41,8 @@ int main(int argc, char **argv)
         }
     }
 
-    /* We should have exactly 20 cipher suites */
-    EXPECT_EQUAL(count, 20);
+    /* We should have exactly 21 cipher suite */
+    EXPECT_EQUAL(count, 21);
 
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
