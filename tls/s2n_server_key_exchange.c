@@ -50,11 +50,13 @@ static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn)
 {
     struct s2n_hash_state signature_hash;
     struct s2n_stuffer *in = &conn->handshake.io;
-    struct s2n_blob serverECDHparams, signature;
+    struct s2n_blob signature;
     uint16_t signature_length;
 
-    /* Read server ECDH params */
-    GUARD(s2n_ecc_read_ecc_params(&conn->pending.server_ecc_params, in, &serverECDHparams));
+    GUARD(s2n_hash_init(&signature_hash, conn->pending.signature_digest_alg));
+
+    /* Read server ECDH params and calculate their hash */
+    GUARD(s2n_ecc_read_ecc_params(&conn->pending.server_ecc_params, in, &signature_hash));
 
     if (conn->actual_protocol_version == S2N_TLS12) {
         uint8_t hash_algorithm;
@@ -73,10 +75,8 @@ static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn)
     }
 
     /* Verify the signature */
-    GUARD(s2n_hash_init(&signature_hash, conn->pending.signature_digest_alg));
     GUARD(s2n_hash_update(&signature_hash, conn->pending.client_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_hash_update(&signature_hash, conn->pending.server_random, S2N_TLS_RANDOM_DATA_LEN));
-    GUARD(s2n_hash_update(&signature_hash, serverECDHparams.data, serverECDHparams.size));
 
     GUARD(s2n_stuffer_read_uint16(in, &signature_length));
     signature.size = signature_length;
@@ -183,15 +183,17 @@ int s2n_server_key_send(struct s2n_connection *conn)
 
 static int s2n_ecdhe_server_key_send(struct s2n_connection *conn)
 {
-    struct s2n_blob serverECDHparams, signature;
+    struct s2n_blob signature;
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_hash_state signature_hash;
 
-    /* Generate an ephemeral key */
+    GUARD(s2n_hash_init(&signature_hash, conn->pending.signature_digest_alg));
+
+    /* Generate an ephemeral key and  */
     GUARD(s2n_ecc_generate_ephemeral_key(&conn->pending.server_ecc_params));
 
-    /* Write it out */
-    GUARD(s2n_ecc_write_ecc_params(&conn->pending.server_ecc_params, out, &serverECDHparams));
+    /* Write it out and calcualte the hash */
+    GUARD(s2n_ecc_write_ecc_params(&conn->pending.server_ecc_params, out, &signature_hash));
 
     if (conn->actual_protocol_version == S2N_TLS12) {
         /* SHA1 hash alg */
@@ -200,10 +202,8 @@ static int s2n_ecdhe_server_key_send(struct s2n_connection *conn)
         GUARD(s2n_stuffer_write_uint8(out, 1));
     }
 
-    GUARD(s2n_hash_init(&signature_hash, conn->pending.signature_digest_alg));
     GUARD(s2n_hash_update(&signature_hash, conn->pending.client_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_hash_update(&signature_hash, conn->pending.server_random, S2N_TLS_RANDOM_DATA_LEN));
-    GUARD(s2n_hash_update(&signature_hash, serverECDHparams.data, serverECDHparams.size));
 
     signature.size = s2n_rsa_private_encrypted_size(&conn->config->cert_and_key_pairs->private_key);
     GUARD(s2n_stuffer_write_uint16(out, signature.size));
