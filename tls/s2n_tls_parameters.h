@@ -31,17 +31,29 @@
 #define TLS_DHE_RSA_WITH_AES_256_CBC_SHA256 0x00, 0x6B
 #define TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA   0x00, 0x16
 
-#define TLS_RSA_WITH_AES_128_GCM_SHA256     0x00, 0x9C
-#define TLS_DHE_RSA_WITH_AES_128_GCM_SHA256 0x00, 0x9E
+#define TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA       0xC0, 0x13
+#define TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256    0xC0, 0x27
+#define TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA       0xC0, 0x14
+#define TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384    0xC0, 0x28
+#define TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA      0xC0, 0x12
+
+#define TLS_RSA_WITH_AES_128_GCM_SHA256          0x00, 0x9C
+#define TLS_DHE_RSA_WITH_AES_128_GCM_SHA256      0x00, 0x9E
+#define TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256    0xC0, 0x2F
+#define TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384    0xC0, 0x30
 
 /* From https://tools.ietf.org/html/draft-ietf-tls-downgrade-scsv-03 */
 #define TLS_FALLBACK_SCSV                   0x56, 0x00
 
-/* TLS extension and algorithm types */
+/* TLS extensions from https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml */
 #define TLS_EXTENSION_SERVER_NAME           0
 #define TLS_EXTENSION_STATUS_REQUEST        5
+#define TLS_EXTENSION_ELLIPTIC_CURVES      10
+#define TLS_EXTENSION_EC_POINT_FORMATS     11
 #define TLS_EXTENSION_SIGNATURE_ALGORITHMS 13
 #define TLS_EXTENSION_ALPN                 16
+
+/* TLS signature algorithms */
 #define TLS_SIGNATURE_ALGORITHM_RSA         1
 #define TLS_SIGNATURE_ALGORITHM_SHA1        2
 
@@ -50,6 +62,10 @@
 #define TLS_ALERT              21
 #define TLS_HANDSHAKE          22
 #define TLS_APPLICATION_DATA   23
+
+/* Elliptic cruves from https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8 */
+#define TLS_EC_CURVE_SECP_256_R1           23
+#define TLS_EC_CURVE_SECP_384_R1           24
 
 /* The maximum size of a TLS record is 16389 bytes. This is;  1 byte for content
  * type, 2 bytes for the protocol version, 2 bytes for the length field,
