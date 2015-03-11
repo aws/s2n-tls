@@ -52,7 +52,7 @@ struct s2n_cipher mock_block_cipher = {
 struct s2n_cipher_suite mock_block_cipher_suite = {
     .name = "TLS_MOCK_CBC",
     .value = {0x12, 0x34},
-    .key_exchange_alg = S2N_RSA,
+    .key_exchange_alg = &s2n_rsa,
     .cipher = &mock_block_cipher,
     .hmac_alg = S2N_HMAC_SHA1
 };
