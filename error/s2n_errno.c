@@ -91,6 +91,10 @@ struct s2n_error_translation EN[] = {
     { S2N_ERR_INVALID_CIPHER_PREFERENCES, "Invalid Cipher Preferences version" },
     { S2N_ERR_APPLICATION_PROTOCOL_TOO_LONG, "Application protocol name is too long" },
     { S2N_ERR_NO_APPLICATION_PROTOCOL, "No supported application protocol to negotiate" },
+    { S2N_ERR_ECDHE_GEN_KEY, "Failed to generate an ECDHE key" },
+    { S2N_ERR_ECDHE_SHARED_SECRET, "Error computing ECDHE shared secret" },
+    { S2N_ERR_ECDHE_UNSUPPORTED_CURVE, "Unsupported EC curve was presented during an ECDHE handshake" },
+    { S2N_ERR_ECDHE_SERIALIZING, "Error serializing ECDHE public" },
 }; 
 
 const char *s2n_strerror(int error, const char *lang)

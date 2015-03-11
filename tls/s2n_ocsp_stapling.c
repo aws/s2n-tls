@@ -34,8 +34,7 @@ int s2n_server_status_send(struct s2n_connection *conn)
     GUARD(s2n_stuffer_write(&conn->handshake.io, &conn->config->cert_and_key_pairs->ocsp_status));
 
     conn->handshake.next_state = SERVER_HELLO_DONE;
-
-    if (conn->pending.cipher_suite->key_exchange_alg == S2N_DHE) {
+    if (conn->pending.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_EPH) {
         conn->handshake.next_state = SERVER_KEY;
     }
 
@@ -60,7 +59,7 @@ int s2n_server_status_recv(struct s2n_connection *conn)
 
     conn->handshake.next_state = SERVER_HELLO_DONE;
 
-    if (conn->pending.cipher_suite->key_exchange_alg == S2N_DHE) {
+    if (conn->pending.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_EPH) {
         conn->handshake.next_state = SERVER_KEY;
     }
 

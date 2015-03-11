@@ -29,12 +29,23 @@ struct s2n_cipher_preferences {
     int minimum_protocol_version;
 };
 
-typedef enum { S2N_RSA, S2N_DH, S2N_DHE, S2N_ECDH, S2N_ECDHE, S2N_ECDHE_ECDSA } s2n_key_exchange_algorithm;
+/* Key exchange flags that can be OR'ed */
+#define S2N_KEY_EXCHANGE_DH       0x01 /* Diffie–Hellman key exchange, including ephemeral */
+#define S2N_KEY_EXCHANGE_EPH      0x02 /* Ephemeral key exchange */
+#define S2N_KEY_EXCHANGE_ECC      0x04 /* Elliptic curve cryptography */
+
+struct s2n_key_exchange_algorithm {
+    /* OR'ed S2N_KEY_EXCHANGE_* flags */
+    uint16_t flags;
+};
+extern const struct s2n_key_exchange_algorithm s2n_rsa;
+extern const struct s2n_key_exchange_algorithm s2n_dhe;
+extern const struct s2n_key_exchange_algorithm s2n_ecdhe;
 
 struct s2n_cipher_suite {
     const char *name;
     uint8_t value[2];
-    s2n_key_exchange_algorithm key_exchange_alg;
+    const struct s2n_key_exchange_algorithm *key_exchange_alg;
     struct s2n_cipher *cipher;
     s2n_hmac_algorithm hmac_alg;
     uint8_t minimum_required_tls_version;
@@ -44,6 +55,7 @@ extern struct s2n_cipher_suite s2n_null_cipher_suite;
 extern struct s2n_cipher_preferences *s2n_cipher_preferences_20140601;
 extern struct s2n_cipher_preferences *s2n_cipher_preferences_20150202;
 extern struct s2n_cipher_preferences *s2n_cipher_preferences_20150214;
+extern struct s2n_cipher_preferences *s2n_cipher_preferences_20150306;
 extern struct s2n_cipher_preferences *s2n_cipher_preferences_default;
 
 extern int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN]);
