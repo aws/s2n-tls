@@ -21,14 +21,15 @@
 #include <openssl/obj_mac.h>
 #include <stdint.h>
 
+#include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
 
 #define TLS_EC_CURVE_TYPE_NAMED 3
 
 const struct s2n_ecc_named_curve s2n_ecc_supported_curves[2] = {
-    { .iana_id = 23 , .libcrypto_nid = NID_X9_62_prime256v1 },
-    { .iana_id = 24 , .libcrypto_nid = NID_secp384r1 },
+    { .iana_id = TLS_EC_CURVE_SECP_256_R1 , .libcrypto_nid = NID_X9_62_prime256v1 },
+    { .iana_id = TLS_EC_CURVE_SECP_384_R1 , .libcrypto_nid = NID_secp384r1 },
 };
 
 static EC_KEY *s2n_ecc_generate_own_key(const struct s2n_ecc_named_curve *named_curve);
@@ -169,13 +170,13 @@ int s2n_ecc_compute_shared_secret_as_client(struct s2n_ecc_params *server_ecc_pa
     /* Compute the shared secret */
     if (s2n_ecc_compute_shared_secret(client_key, EC_KEY_get0_public_key(server_ecc_params->ec_key), shared_key) != 0) {
         EC_KEY_free(client_key);
-        return -1;
+        S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
     }
 
     /* Write the client public to Yc */
     if (s2n_ecc_write_point_with_length(EC_KEY_get0_public_key(client_key), EC_KEY_get0_group(client_key), Yc_out) != 0) {
         EC_KEY_free(client_key);
-        return -1;
+        S2N_ERROR(S2N_ERR_ECDHE_SERIALIZING);
     }
     EC_KEY_free(client_key);
 

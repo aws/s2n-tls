@@ -84,11 +84,9 @@ static int s2n_dhe_client_key_recv(struct s2n_connection *conn)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
     struct s2n_blob shared_key;
-    uint16_t key_exchange_alg_flags;
 
     /* Get the shared key */
-    GUARD(s2n_get_key_exchange_flags(conn->pending.cipher_suite->key_exchange_alg, &key_exchange_alg_flags));
-    if (key_exchange_alg_flags & S2N_KEY_EXCHANGE_ECC) {
+    if (conn->pending.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC) {
         GUARD(s2n_ecc_compute_shared_secret_as_server(&conn->pending.server_ecc_params, in, &shared_key));
     } else {
         GUARD(s2n_dh_compute_shared_secret_as_server(&conn->pending.server_dh_params, in, &shared_key));
@@ -102,7 +100,7 @@ static int s2n_dhe_client_key_recv(struct s2n_connection *conn)
     GUARD(s2n_free(&shared_key));
 
     /* We don't need the server params any more */
-    if (key_exchange_alg_flags & S2N_KEY_EXCHANGE_ECC) {
+    if (conn->pending.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC) {
         GUARD(s2n_ecc_params_free(&conn->pending.server_ecc_params));
     } else {
         GUARD(s2n_dh_params_free(&conn->pending.server_dh_params));
@@ -115,9 +113,7 @@ static int s2n_dhe_client_key_recv(struct s2n_connection *conn)
 
 int s2n_client_key_recv(struct s2n_connection *conn)
 {
-    uint16_t key_exchange_alg_flags;
-    GUARD(s2n_get_key_exchange_flags(conn->pending.cipher_suite->key_exchange_alg, &key_exchange_alg_flags));
-    if (key_exchange_alg_flags & S2N_KEY_EXCHANGE_DH) {
+    if (conn->pending.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_DH) {
         return s2n_dhe_client_key_recv(conn);
     } else {
         return s2n_rsa_client_key_recv(conn);
@@ -130,10 +126,8 @@ static int s2n_dhe_client_key_send(struct s2n_connection *conn)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_blob shared_key;
-    uint16_t key_exchange_alg_flags;
 
-    GUARD(s2n_get_key_exchange_flags(conn->pending.cipher_suite->key_exchange_alg, &key_exchange_alg_flags));
-    if (key_exchange_alg_flags & S2N_KEY_EXCHANGE_ECC) {
+    if (conn->pending.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC) {
         GUARD(s2n_ecc_compute_shared_secret_as_client(&conn->pending.server_ecc_params, out, &shared_key));
     } else {
         GUARD(s2n_dh_compute_shared_secret_as_client(&conn->pending.server_dh_params, out, &shared_key));
@@ -147,7 +141,7 @@ static int s2n_dhe_client_key_send(struct s2n_connection *conn)
     GUARD(s2n_free(&shared_key));
 
     /* We don't need the server params any more */
-    if (key_exchange_alg_flags & S2N_KEY_EXCHANGE_ECC) {
+    if (conn->pending.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC) {
         GUARD(s2n_ecc_params_free(&conn->pending.server_ecc_params));
     } else {
         GUARD(s2n_dh_params_free(&conn->pending.server_dh_params));
@@ -204,9 +198,7 @@ static int s2n_rsa_client_key_send(struct s2n_connection *conn)
 
 int s2n_client_key_send(struct s2n_connection *conn)
 {
-    uint16_t key_exchange_alg_flags;
-    GUARD(s2n_get_key_exchange_flags(conn->pending.cipher_suite->key_exchange_alg, &key_exchange_alg_flags));
-    if (key_exchange_alg_flags & S2N_KEY_EXCHANGE_DH) {
+    if (conn->pending.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_DH) {
         return s2n_dhe_client_key_send(conn);
     } else {
         return s2n_rsa_client_key_send(conn);
