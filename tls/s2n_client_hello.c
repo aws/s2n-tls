@@ -62,38 +62,41 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
     }
 
     GUARD(s2n_stuffer_read_bytes(in, session_id, session_id_len));
-    GUARD(s2n_stuffer_read_uint16(in, &cipher_suites_length));
-    cipher_suites = s2n_stuffer_raw_read(in, cipher_suites_length);
-    notnull_check(cipher_suites);
 
+    GUARD(s2n_stuffer_read_uint16(in, &cipher_suites_length));
     if (cipher_suites_length % S2N_TLS_CIPHER_SUITE_LEN) {
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
-
-    GUARD(s2n_set_cipher_as_tls_server(conn, cipher_suites, cipher_suites_length / 2));
+    cipher_suites = s2n_stuffer_raw_read(in, cipher_suites_length);
+    notnull_check(cipher_suites);
+    /* Don't choose the cipher yet, read the extensions first */
 
     GUARD(s2n_stuffer_read_uint8(in, &compression_methods));
     GUARD(s2n_stuffer_skip_read(in, compression_methods));
 
+    /* This is going to be our default if the client has no preference. */
+    conn->pending.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
+
+    if (s2n_stuffer_data_available(in) >= 2) {
+        /* Read extensions if they are present */
+        GUARD(s2n_stuffer_read_uint16(in, &extensions_size));
+
+        if (extensions_size > s2n_stuffer_data_available(in)) {
+            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        }
+
+        struct s2n_blob extensions;
+        extensions.size = extensions_size;
+        extensions.data = s2n_stuffer_raw_read(in, extensions.size);
+
+        GUARD(s2n_client_extensions_recv(conn, &extensions));
+    }
+
+    /* Now choose the ciphers and the cert chain. */
+    GUARD(s2n_set_cipher_as_tls_server(conn, cipher_suites, cipher_suites_length / 2));
     conn->server->chosen_cert_chain = conn->config->cert_and_key_pairs;
+
     conn->handshake.next_state = SERVER_HELLO;
-
-    if (s2n_stuffer_data_available(in) < 2) {
-        /* No extensions */
-        return 0;
-    }
-
-    GUARD(s2n_stuffer_read_uint16(in, &extensions_size));
-
-    if (extensions_size > s2n_stuffer_data_available(in)) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
-
-    struct s2n_blob extensions;
-    extensions.size = extensions_size;
-    extensions.data = s2n_stuffer_raw_read(in, extensions.size);
-
-    GUARD(s2n_client_extensions_recv(conn, &extensions));
 
     return 0;
 }

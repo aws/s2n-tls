@@ -111,6 +111,8 @@ static int s2n_connection_free_keys(struct s2n_connection *conn)
 
     GUARD(s2n_dh_params_free(&conn->pending.server_dh_params));
     GUARD(s2n_dh_params_free(&conn->active.server_dh_params));
+    GUARD(s2n_ecc_params_free(&conn->pending.server_ecc_params));
+    GUARD(s2n_ecc_params_free(&conn->active.server_ecc_params));
 
     GUARD(s2n_free(&conn->status_response));
 
