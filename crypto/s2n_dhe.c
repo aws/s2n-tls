@@ -93,7 +93,7 @@ int s2n_dh_params_to_p_g_Ys(struct s2n_dh_params *server_dh_params, struct s2n_s
     return 0;
 }
 
-int s2n_dh_compute_shared_secret_as_client(struct s2n_dh_params *server_dh_params, struct s2n_stuffer *Yc, struct s2n_blob *shared_key)
+int s2n_dh_compute_shared_secret_as_client(struct s2n_dh_params *server_dh_params, struct s2n_stuffer *Yc_out, struct s2n_blob *shared_key)
 {
     struct s2n_dh_params client_params;
     uint8_t *public_key;
@@ -106,8 +106,8 @@ int s2n_dh_compute_shared_secret_as_client(struct s2n_dh_params *server_dh_param
     GUARD(s2n_alloc(shared_key, DH_size(server_dh_params->dh)));
 
     public_key_size = BN_num_bytes(client_params.dh->pub_key);
-    GUARD(s2n_stuffer_write_uint16(Yc, public_key_size));
-    public_key = s2n_stuffer_raw_write(Yc, public_key_size);
+    GUARD(s2n_stuffer_write_uint16(Yc_out, public_key_size));
+    public_key = s2n_stuffer_raw_write(Yc_out, public_key_size);
     if (public_key == NULL) {
         GUARD(s2n_free(shared_key));
         GUARD(s2n_dh_params_free(&client_params));
@@ -134,12 +134,19 @@ int s2n_dh_compute_shared_secret_as_client(struct s2n_dh_params *server_dh_param
     return 0;
 }
 
-int s2n_dh_compute_shared_secret_as_server(struct s2n_dh_params *server_dh_params, struct s2n_blob *Yc, struct s2n_blob *shared_key)
+int s2n_dh_compute_shared_secret_as_server(struct s2n_dh_params *server_dh_params, struct s2n_stuffer *Yc_in, struct s2n_blob *shared_key)
 {
+    uint16_t Yc_length;
+    struct s2n_blob Yc;
     int shared_key_size;
     BIGNUM *pub_key;
 
-    pub_key = BN_bin2bn((const unsigned char *)Yc->data, Yc->size, NULL);
+    GUARD(s2n_stuffer_read_uint16(Yc_in, &Yc_length));
+    Yc.size = Yc_length;
+    Yc.data = s2n_stuffer_raw_read(Yc_in, Yc.size);
+    notnull_check(Yc.data);
+
+    pub_key = BN_bin2bn((const unsigned char *)Yc.data, Yc.size, NULL);
     notnull_check(pub_key);
     GUARD(s2n_alloc(shared_key, DH_size(server_dh_params->dh)));
 

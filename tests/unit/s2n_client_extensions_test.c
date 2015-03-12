@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #include <s2n.h>
 
@@ -136,9 +137,9 @@ int main(int argc, char **argv)
         do {
             int ret;
             ret = s2n_negotiate(client_conn, &client_more);
-            EXPECT_TRUE(ret == 0 || client_more);
+            EXPECT_TRUE(ret == 0 || (client_more && errno == EAGAIN));
             ret = s2n_negotiate(server_conn, &server_more);
-            EXPECT_TRUE(ret == 0 || server_more);
+            EXPECT_TRUE(ret == 0 || (server_more && errno == EAGAIN));
         } while (client_more || server_more);
 
         /* Verify that the server didn't receive the server name. */
@@ -196,9 +197,9 @@ int main(int argc, char **argv)
         do {
             int ret;
             ret = s2n_negotiate(client_conn, &client_more);
-            EXPECT_TRUE(ret == 0 || client_more);
+            EXPECT_TRUE(ret == 0 || (client_more && errno == EAGAIN));
             ret = s2n_negotiate(server_conn, &server_more);
-            EXPECT_TRUE(ret == 0 || server_more);
+            EXPECT_TRUE(ret == 0 || (server_more && errno == EAGAIN));
         } while (client_more || server_more);
 
         /* Verify that the server name was received intact. */

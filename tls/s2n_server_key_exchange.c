@@ -27,7 +27,71 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
 
+static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn);
+static int s2n_dhe_server_key_recv(struct s2n_connection *conn);
+static int s2n_ecdhe_server_key_send(struct s2n_connection *conn);
+static int s2n_dhe_server_key_send(struct s2n_connection *conn);
+
 int s2n_server_key_recv(struct s2n_connection *conn)
+{
+    if (conn->pending.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC) {
+        GUARD(s2n_ecdhe_server_key_recv(conn));
+    } else {
+        GUARD(s2n_dhe_server_key_recv(conn));
+    }
+
+    conn->handshake.next_state = SERVER_HELLO_DONE;
+    return 0;
+}
+
+static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn)
+{
+    struct s2n_hash_state signature_hash;
+    struct s2n_stuffer *in = &conn->handshake.io;
+    struct s2n_blob signature;
+    uint16_t signature_length;
+
+    GUARD(s2n_hash_init(&signature_hash, conn->pending.signature_digest_alg));
+
+    /* Read server ECDH params and calculate their hash */
+    GUARD(s2n_ecc_read_ecc_params(&conn->pending.server_ecc_params, in, &signature_hash));
+
+    if (conn->actual_protocol_version == S2N_TLS12) {
+        uint8_t hash_algorithm;
+        uint8_t signature_algorithm;
+
+        GUARD(s2n_stuffer_read_uint8(in, &hash_algorithm));
+        GUARD(s2n_stuffer_read_uint8(in, &signature_algorithm));
+
+        if (signature_algorithm != TLS_SIGNATURE_ALGORITHM_RSA) {
+            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        }
+
+        if (hash_algorithm != TLS_SIGNATURE_ALGORITHM_SHA1) {
+            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        }
+    }
+
+    /* Verify the signature */
+    GUARD(s2n_hash_update(&signature_hash, conn->pending.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    GUARD(s2n_hash_update(&signature_hash, conn->pending.server_random, S2N_TLS_RANDOM_DATA_LEN));
+
+    GUARD(s2n_stuffer_read_uint16(in, &signature_length));
+    signature.size = signature_length;
+    signature.data = s2n_stuffer_raw_read(in, signature.size);
+    notnull_check(signature.data);
+
+    if (s2n_rsa_verify(&conn->pending.server_rsa_public_key, &signature_hash, &signature) < 0) {
+        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+    }
+
+    /* We don't need the key any more, so free it */
+    GUARD(s2n_rsa_public_key_free(&conn->pending.server_rsa_public_key));
+
+    return 0;
+}
+
+static int s2n_dhe_server_key_recv(struct s2n_connection *conn)
 {
     struct s2n_hash_state signature_hash;
     struct s2n_stuffer *in = &conn->handshake.io;
@@ -67,11 +131,11 @@ int s2n_server_key_recv(struct s2n_connection *conn)
         GUARD(s2n_stuffer_read_uint8(in, &hash_algorithm));
         GUARD(s2n_stuffer_read_uint8(in, &signature_algorithm));
 
-        if (signature_algorithm != 1) {
+        if (signature_algorithm != TLS_SIGNATURE_ALGORITHM_RSA) {
             S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }
 
-        if (hash_algorithm != 2) {
+        if (hash_algorithm != TLS_SIGNATURE_ALGORITHM_SHA1) {
             S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }
     }
@@ -103,6 +167,53 @@ int s2n_server_key_recv(struct s2n_connection *conn)
 
 int s2n_server_key_send(struct s2n_connection *conn)
 {
+    if (conn->pending.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC) {
+        GUARD(s2n_ecdhe_server_key_send(conn));
+    } else {
+        GUARD(s2n_dhe_server_key_send(conn));
+    }
+
+    conn->handshake.next_state = SERVER_HELLO_DONE;
+    return 0;
+}
+
+static int s2n_ecdhe_server_key_send(struct s2n_connection *conn)
+{
+    struct s2n_blob signature;
+    struct s2n_stuffer *out = &conn->handshake.io;
+    struct s2n_hash_state signature_hash;
+
+    GUARD(s2n_hash_init(&signature_hash, conn->pending.signature_digest_alg));
+
+    /* Generate an ephemeral key and  */
+    GUARD(s2n_ecc_generate_ephemeral_key(&conn->pending.server_ecc_params));
+
+    /* Write it out and calcualte the hash */
+    GUARD(s2n_ecc_write_ecc_params(&conn->pending.server_ecc_params, out, &signature_hash));
+
+    if (conn->actual_protocol_version == S2N_TLS12) {
+        GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_SHA1));
+        GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_RSA));
+    }
+
+    GUARD(s2n_hash_update(&signature_hash, conn->pending.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    GUARD(s2n_hash_update(&signature_hash, conn->pending.server_random, S2N_TLS_RANDOM_DATA_LEN));
+
+    signature.size = s2n_rsa_private_encrypted_size(&conn->config->cert_and_key_pairs->private_key);
+    GUARD(s2n_stuffer_write_uint16(out, signature.size));
+
+    signature.data = s2n_stuffer_raw_write(out, signature.size);
+    notnull_check(signature.data);
+
+    if (s2n_rsa_sign(&conn->config->cert_and_key_pairs->private_key, &signature_hash, &signature) < 0) {
+        S2N_ERROR(S2N_ERR_DH_FAILED_SIGNING);
+    }
+
+    return 0;
+}
+
+static int s2n_dhe_server_key_send(struct s2n_connection *conn)
+{
     struct s2n_blob serverDHparams, signature;
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_hash_state signature_hash;
@@ -117,10 +228,8 @@ int s2n_server_key_send(struct s2n_connection *conn)
     GUARD(s2n_dh_params_to_p_g_Ys(&conn->pending.server_dh_params, out, &serverDHparams));
 
     if (conn->actual_protocol_version == S2N_TLS12) {
-        /* SHA1 hash alg */
-        GUARD(s2n_stuffer_write_uint8(out, 2));
-        /* RSA signature type */
-        GUARD(s2n_stuffer_write_uint8(out, 1));
+        GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_SHA1));
+        GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_RSA));
     }
 
     GUARD(s2n_hash_init(&signature_hash, conn->pending.signature_digest_alg));
@@ -137,8 +246,6 @@ int s2n_server_key_send(struct s2n_connection *conn)
     if (s2n_rsa_sign(&conn->config->cert_and_key_pairs->private_key, &signature_hash, &signature) < 0) {
         S2N_ERROR(S2N_ERR_DH_FAILED_SIGNING);
     }
-
-    conn->handshake.next_state = SERVER_HELLO_DONE;
 
     return 0;
 }

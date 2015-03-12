@@ -64,21 +64,38 @@ struct s2n_cipher_preferences cipher_preferences_20150214 = {
     .minimum_protocol_version = S2N_TLS10
 };
 
+/* Use ECDHE instead of plain DHE. Prioritize ECHDE in favour of non ECDHE; GCM in favour of CBC; AES128 in favour of AES256. */
+uint8_t wire_format_20150306[] = {
+    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+    TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+    TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+    TLS_RSA_WITH_AES_128_GCM_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA, TLS_RSA_WITH_3DES_EDE_CBC_SHA
+};
+struct s2n_cipher_preferences cipher_preferences_20150306 = {
+    .count = sizeof(wire_format_20150306) / S2N_TLS_CIPHER_SUITE_LEN,
+    .wire_format = wire_format_20150306,
+    .minimum_protocol_version = S2N_TLS10
+};
+
 struct {
     const char * version;
     struct s2n_cipher_preferences * preferences;
 } selection[] = {
-    { "default", &cipher_preferences_20150214 },
+    { "default", &cipher_preferences_20150306 },
     { "20140601", &cipher_preferences_20140601 },
     { "20141001", &cipher_preferences_20141001 },
     { "20150202", &cipher_preferences_20150202 },
     { "20150214", &cipher_preferences_20150214 },
+    { "20150306", &cipher_preferences_20150306 },
     { NULL, NULL }
 };
 
 struct s2n_config s2n_default_config = {
     .cert_and_key_pairs = NULL,
-    .cipher_preferences = &cipher_preferences_20150214
+    .cipher_preferences = &cipher_preferences_20150306
 };
 
 struct s2n_config *s2n_config_new()
