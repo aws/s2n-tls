@@ -28,7 +28,8 @@
 
 struct s2n_drbg {
     struct s2n_blob value;
-    uint8_t value_data[16];
+    uint8_t key[16];
+    uint8_t v[16];
     EVP_CIPHER_CTX evp_cipher_ctx;
     uint64_t bytes_used;
     uint32_t generation;
