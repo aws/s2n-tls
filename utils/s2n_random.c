@@ -40,8 +40,8 @@
 
 static int entropy_fd = -1;
 
-static __thread struct s2n_drbg per_thread_private_drbg = { 0 };
-static __thread struct s2n_drbg per_thread_public_drbg = { 0 };
+static __thread struct s2n_drbg per_thread_private_drbg = { { 0 } };
+static __thread struct s2n_drbg per_thread_public_drbg = { { 0 } };
 
 #if !defined(MAP_INHERIT_ZERO)
 static __thread int zero_if_forked = 0;
@@ -60,9 +60,12 @@ static __thread int *zero_if_forked_ptr;
 
 static inline int s2n_check_fork()
 {
+    struct s2n_blob public = { .data = (void *) "s2n public drbg", .size = sizeof("s2n public drbg") };
+    struct s2n_blob private = { .data = (void *) "s2n private drbg", .size = sizeof("s2n private drbg") };
+
     if (zero_if_forked == 0) {
-        GUARD(s2n_drbg_seed(&per_thread_public_drbg));
-        GUARD(s2n_drbg_seed(&per_thread_private_drbg));
+        GUARD(s2n_drbg_instantiate(&per_thread_public_drbg, &public));
+        GUARD(s2n_drbg_instantiate(&per_thread_private_drbg, &private));
         zero_if_forked = 1;
     }
 
