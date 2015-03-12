@@ -122,7 +122,6 @@ int s2n_rsa_sign(struct s2n_rsa_private_key *key, struct s2n_hash_state *digest,
 
     unsigned int signature_size = signature->size;
     if (RSA_sign(type, digest_out, digest_length, signature->data, &signature_size, key->rsa) == 0) {
-        fprintf(stderr, "ERROR:  rsa_sign\n");
         S2N_ERROR(S2N_ERR_SIGN);
     }
     if (signature_size > signature->size) {
@@ -184,7 +183,6 @@ int s2n_rsa_decrypt(struct s2n_rsa_private_key *key, struct s2n_blob *in, struct
 
     int r = RSA_private_decrypt(in->size, (unsigned char *)in->data, intermediate, key->rsa, RSA_PKCS1_PADDING);
     if (r != out->size) {
-        fprintf(stderr, "r: %d size: %d\n", r, out->size);
         S2N_ERROR(S2N_ERR_SIZE_MISMATCH);
     }
 
