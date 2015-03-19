@@ -164,7 +164,9 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
         aad.data = aad_gen;
         aad.size = sizeof(aad_gen);
 
-        GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &aad));
+        struct s2n_stuffer ad_stuffer;
+        GUARD(s2n_stuffer_init(&ad_stuffer, &aad));
+        GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &ad_stuffer));
     } else if (cipher_suite->cipher->type == S2N_CBC) {
         iv.size = block_size;
         iv.data = implicit_iv;
