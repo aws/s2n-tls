@@ -15,10 +15,10 @@
 
 #pragma once
 
-#include <openssl/evp.h>
-
 #include "crypto/s2n_hash.h"
 #include "utils/s2n_blob.h"
+
+#define S2N_DRBG_BLOCK_SIZE     16
 
 /* We reseed after 2^35 bytes have been generated: from NIST SP800-90A 10.2.1 Table 3 */
 #define S2N_DRBG_RESEED_LIMIT   34359738368
