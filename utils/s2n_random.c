@@ -148,12 +148,6 @@ int s2n_openssl_compat_rand(unsigned char *buf, int num)
 {
     struct s2n_blob out = {.data = buf, .size = num};
 
-#if 0
-    if(s2n_get_private_random_data(&out) < 0) {
-        return 0;
-    }
-#endif
-
     if(s2n_get_private_random_data(&out) < 0) {
         return 0;
     }

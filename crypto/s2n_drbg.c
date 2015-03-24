@@ -23,7 +23,7 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
 
-static int s2n_drbg_block_encrypt(uint8_t key[16], uint8_t in[16], uint8_t out[16])
+static int s2n_drbg_block_encrypt(uint8_t key[S2N_DRBG_BLOCK_SIZE], uint8_t in[S2N_DRBG_BLOCK_SIZE], uint8_t out[S2N_DRBG_BLOCK_SIZE])
 {
     AES_KEY ctx;
 
@@ -35,10 +35,10 @@ static int s2n_drbg_block_encrypt(uint8_t key[16], uint8_t in[16], uint8_t out[1
 
 static int s2n_drbg_bits(struct s2n_drbg *drbg, struct s2n_blob *out)
 {
-    int block_aligned_size = out->size - (out->size % 16);
+    int block_aligned_size = out->size - (out->size % S2N_DRBG_BLOCK_SIZE);
 
     /* Per NIST SP800-90A 10.2.1.2: */
-    for (int i = 0; i < block_aligned_size; i += 16) {
+    for (int i = 0; i < block_aligned_size; i += S2N_DRBG_BLOCK_SIZE) {
         GUARD(s2n_increment_sequence_number(&drbg->value));
         GUARD(s2n_drbg_block_encrypt(drbg->key, drbg->v, out->data + i));
     }
@@ -47,7 +47,7 @@ static int s2n_drbg_bits(struct s2n_drbg *drbg, struct s2n_blob *out)
         return 0;
     }
 
-    uint8_t spare_block[16];
+    uint8_t spare_block[S2N_DRBG_BLOCK_SIZE];
     GUARD(s2n_increment_sequence_number(&drbg->value));
     GUARD(s2n_drbg_block_encrypt(drbg->key, drbg->v, spare_block));
 
@@ -70,8 +70,8 @@ static int s2n_drbg_update(struct s2n_drbg *drbg, struct s2n_blob *provided_data
         temp[i] ^= provided_data->data[i];
     }
 
-    memcpy_check(drbg->key, temp, 16);
-    memcpy_check(drbg->v, temp + 16, 16);
+    memcpy_check(drbg->key, temp, S2N_DRBG_BLOCK_SIZE);
+    memcpy_check(drbg->v, temp + S2N_DRBG_BLOCK_SIZE, S2N_DRBG_BLOCK_SIZE);
 
     return 0;
 }
@@ -125,7 +125,7 @@ int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob)
         S2N_ERROR(S2N_ERR_DRBG_REQUEST_SIZE);
     }
 
-    if (drbg->bytes_used + blob->size + 16 >= S2N_DRBG_RESEED_LIMIT) {
+    if (drbg->bytes_used + blob->size + S2N_DRBG_BLOCK_SIZE >= S2N_DRBG_RESEED_LIMIT) {
         struct s2n_blob ps = {.size = 0 };
         GUARD(s2n_drbg_seed(drbg, &ps));
     }
