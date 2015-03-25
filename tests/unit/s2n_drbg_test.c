@@ -19,6 +19,8 @@
 #include <fcntl.h>
 #include <s2n.h>
 
+#include <openssl/aes.h>
+
 #include "crypto/s2n_drbg.h"
 
 #include "utils/s2n_safety.h"
@@ -175,11 +177,13 @@ int main(int argc, char **argv)
 
         uint8_t nist_key[16];
         uint8_t nist_v[16];
+        AES_KEY nist_aes_key;
 
         GUARD(s2n_stuffer_read_bytes(&nist_reference_keys, nist_key, sizeof(nist_key)));
         GUARD(s2n_stuffer_read_bytes(&nist_reference_values, nist_v, sizeof(nist_v)));
 
-        EXPECT_TRUE(memcmp(nist_key, nist_drbg.key, sizeof(nist_drbg.key)) == 0);
+        AES_set_encrypt_key(nist_key, 128, &nist_aes_key);
+        EXPECT_TRUE(memcmp(&nist_aes_key, &nist_drbg.key, sizeof(nist_drbg.key)) == 0);
         EXPECT_TRUE(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)) == 0);
 
         /* Generate 512 bits (FIRST CALL) */
@@ -190,7 +194,8 @@ int main(int argc, char **argv)
         GUARD(s2n_stuffer_read_bytes(&nist_reference_keys, nist_key, sizeof(nist_key)));
         GUARD(s2n_stuffer_read_bytes(&nist_reference_values, nist_v, sizeof(nist_v)));
 
-        EXPECT_TRUE(memcmp(nist_key, nist_drbg.key, sizeof(nist_drbg.key)) == 0);
+        AES_set_encrypt_key(nist_key, 128, &nist_aes_key);
+        EXPECT_TRUE(memcmp(&nist_aes_key, &nist_drbg.key, sizeof(nist_drbg.key)) == 0);
         EXPECT_TRUE(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)) == 0);
 
         /* Generate another 512 bits (SECOND CALL) */
@@ -199,7 +204,8 @@ int main(int argc, char **argv)
         GUARD(s2n_stuffer_read_bytes(&nist_reference_keys, nist_key, sizeof(nist_key)));
         GUARD(s2n_stuffer_read_bytes(&nist_reference_values, nist_v, sizeof(nist_v)));
 
-        EXPECT_TRUE(memcmp(nist_key, nist_drbg.key, sizeof(nist_drbg.key)) == 0);
+        AES_set_encrypt_key(nist_key, 128, &nist_aes_key);
+        EXPECT_TRUE(memcmp(&nist_aes_key, &nist_drbg.key, sizeof(nist_drbg.key)) == 0);
         EXPECT_TRUE(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)) == 0);
 
         uint8_t nist_returned_bits[64];

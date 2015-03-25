@@ -14,7 +14,6 @@
  */
 
 #include <openssl/aes.h>
-#include <openssl/evp.h>
 
 #include "crypto/s2n_sequence.h"
 #include "crypto/s2n_drbg.h"
@@ -23,12 +22,9 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
 
-static int s2n_drbg_block_encrypt(uint8_t key[S2N_DRBG_BLOCK_SIZE], uint8_t in[S2N_DRBG_BLOCK_SIZE], uint8_t out[S2N_DRBG_BLOCK_SIZE])
+static int s2n_drbg_block_encrypt(AES_KEY *key, uint8_t in[S2N_DRBG_BLOCK_SIZE], uint8_t out[S2N_DRBG_BLOCK_SIZE])
 {
-    AES_KEY ctx;
-
-    AES_set_encrypt_key(key, 128, &ctx);
-    AES_encrypt(in, out, &ctx);
+    AES_encrypt(in, out, key);
 
     return 0;
 }
@@ -40,7 +36,7 @@ static int s2n_drbg_bits(struct s2n_drbg *drbg, struct s2n_blob *out)
     /* Per NIST SP800-90A 10.2.1.2: */
     for (int i = 0; i < block_aligned_size; i += S2N_DRBG_BLOCK_SIZE) {
         GUARD(s2n_increment_sequence_number(&drbg->value));
-        GUARD(s2n_drbg_block_encrypt(drbg->key, drbg->v, out->data + i));
+        GUARD(s2n_drbg_block_encrypt(&drbg->key, drbg->v, out->data + i));
     }
 
     if (out->size <= block_aligned_size) {
@@ -49,7 +45,7 @@ static int s2n_drbg_bits(struct s2n_drbg *drbg, struct s2n_blob *out)
 
     uint8_t spare_block[S2N_DRBG_BLOCK_SIZE];
     GUARD(s2n_increment_sequence_number(&drbg->value));
-    GUARD(s2n_drbg_block_encrypt(drbg->key, drbg->v, spare_block));
+    GUARD(s2n_drbg_block_encrypt(&drbg->key, drbg->v, spare_block));
 
     memcpy_check(out->data + block_aligned_size, spare_block, out->size - block_aligned_size);
 
@@ -70,7 +66,8 @@ static int s2n_drbg_update(struct s2n_drbg *drbg, struct s2n_blob *provided_data
         temp[i] ^= provided_data->data[i];
     }
 
-    memcpy_check(drbg->key, temp, S2N_DRBG_BLOCK_SIZE);
+    /* Update the key and value */
+    AES_set_encrypt_key(temp, 128, &drbg->key);
     memcpy_check(drbg->v, temp + S2N_DRBG_BLOCK_SIZE, S2N_DRBG_BLOCK_SIZE);
 
     return 0;
@@ -102,6 +99,7 @@ int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *personalization_string
 
 int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string)
 {
+    uint8_t all_zeros[ S2N_DRBG_BLOCK_SIZE ] = { 0 };
     drbg->value.size = sizeof(drbg->v);
     drbg->value.data = drbg->v;
 
@@ -109,7 +107,7 @@ int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization
     memset_check(drbg->v, 0, sizeof(drbg->v));
 
     /* Start off with zerod key, per 10.2.1.3.1 item 5 */
-    memset_check(drbg->key, 0, sizeof(drbg->key));
+    AES_set_encrypt_key(all_zeros, 128, &drbg->key);
 
     /* Seed / update the DRBG */
     GUARD(s2n_drbg_seed(drbg, personalization_string));
@@ -132,6 +130,15 @@ int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob)
 
     GUARD(s2n_drbg_bits(drbg, blob));
     GUARD(s2n_drbg_update(drbg, &zeros));
+
+    return 0;
+}
+
+int s2n_drbg_wipe(struct s2n_drbg *drbg)
+{
+    struct s2n_blob state = {.data = (void *) drbg, .size = sizeof(struct s2n_drbg) };
+
+    GUARD(s2n_blob_zero(&state));
 
     return 0;
 }

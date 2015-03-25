@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include <openssl/aes.h>
+
 #include "crypto/s2n_hash.h"
 #include "utils/s2n_blob.h"
 
@@ -28,7 +30,7 @@
 
 struct s2n_drbg {
     struct s2n_blob value;
-    uint8_t key[16];
+    AES_KEY key;
     uint8_t v[16];
     uint64_t bytes_used;
     uint32_t generation;
@@ -50,3 +52,4 @@ struct s2n_drbg {
  */
 extern int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string);
 extern int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *returned_bits);
+extern int s2n_drbg_wipe(struct s2n_drbg *drbg);
