@@ -84,7 +84,7 @@ struct {
     const char * version;
     struct s2n_cipher_preferences * preferences;
 } selection[] = {
-    { "default", &cipher_preferences_20150214 },
+    { "default", &cipher_preferences_20150306 },
     { "20140601", &cipher_preferences_20140601 },
     { "20141001", &cipher_preferences_20141001 },
     { "20150202", &cipher_preferences_20150202 },
