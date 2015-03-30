@@ -68,7 +68,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 
         /* Just one signature/hash pair, so 2 bytes */
         GUARD(s2n_stuffer_write_uint16(out, 2));
-        GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_SHA1));
+        GUARD(s2n_stuffer_write_uint8(out, TLS_HASH_ALGORITHM_SHA1));
         GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_RSA));
     }
 
@@ -239,7 +239,7 @@ static int s2n_signature_algorithms_rcv(struct s2n_connection *conn, struct s2n_
         GUARD(s2n_stuffer_read_uint8(extension, &hash_alg));
         GUARD(s2n_stuffer_read_uint8(extension, &sig_alg));
 
-        if (hash_alg == TLS_SIGNATURE_ALGORITHM_SHA1 && sig_alg == TLS_SIGNATURE_ALGORITHM_RSA) {
+        if (hash_alg == TLS_HASH_ALGORITHM_SHA1 && sig_alg == TLS_SIGNATURE_ALGORITHM_RSA) {
             /* Supported pair found, return success */
             return 0;
         }
