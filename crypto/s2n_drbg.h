@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include <openssl/aes.h>
+#include <openssl/evp.h>
 
 #include "crypto/s2n_hash.h"
 #include "utils/s2n_blob.h"
@@ -30,7 +30,7 @@
 
 struct s2n_drbg {
     struct s2n_blob value;
-    AES_KEY key;
+    EVP_CIPHER_CTX ctx;
     uint8_t v[16];
     uint64_t bytes_used;
     uint32_t generation;
