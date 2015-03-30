@@ -48,13 +48,14 @@ static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn)
 {
     struct s2n_hash_state signature_hash;
     struct s2n_stuffer *in = &conn->handshake.io;
+    struct s2n_blob ecdhparams;
     struct s2n_blob signature;
     uint16_t signature_length;
 
     GUARD(s2n_hash_init(&signature_hash, conn->pending.signature_digest_alg));
 
     /* Read server ECDH params and calculate their hash */
-    GUARD(s2n_ecc_read_ecc_params(&conn->pending.server_ecc_params, in, &signature_hash));
+    GUARD(s2n_ecc_read_ecc_params(&conn->pending.server_ecc_params, in, &ecdhparams));
 
     if (conn->actual_protocol_version == S2N_TLS12) {
         uint8_t hash_algorithm;
@@ -67,15 +68,35 @@ static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn)
             S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }
 
-        if (hash_algorithm != TLS_SIGNATURE_ALGORITHM_SHA1) {
-            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        switch(hash_algorithm) {
+            case TLS_HASH_ALGORITHM_MD5:
+                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_MD5));
+                break;
+            case TLS_HASH_ALGORITHM_SHA1:
+                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA1));
+                break;
+            case TLS_HASH_ALGORITHM_SHA224:
+                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA224));
+                break;
+            case TLS_HASH_ALGORITHM_SHA256:
+                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA256));
+                break;
+            case TLS_HASH_ALGORITHM_SHA384:
+                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA384));
+                break;
+            case TLS_HASH_ALGORITHM_SHA512:
+                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA512));
+                break;
+            default:
+                S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }
     }
 
-    /* Verify the signature */
     GUARD(s2n_hash_update(&signature_hash, conn->pending.client_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_hash_update(&signature_hash, conn->pending.server_random, S2N_TLS_RANDOM_DATA_LEN));
+    GUARD(s2n_hash_update(&signature_hash, ecdhparams.data, ecdhparams.size));
 
+    /* Verify the signature */
     GUARD(s2n_stuffer_read_uint16(in, &signature_length));
     signature.size = signature_length;
     signature.data = s2n_stuffer_raw_read(in, signature.size);
@@ -135,12 +156,32 @@ static int s2n_dhe_server_key_recv(struct s2n_connection *conn)
             S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }
 
-        if (hash_algorithm != TLS_SIGNATURE_ALGORITHM_SHA1) {
-            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        switch(hash_algorithm) {
+            case TLS_HASH_ALGORITHM_MD5:
+                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_MD5));
+                break;
+            case TLS_HASH_ALGORITHM_SHA1:
+                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA1));
+                break;
+            case TLS_HASH_ALGORITHM_SHA224:
+                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA224));
+                break;
+            case TLS_HASH_ALGORITHM_SHA256:
+                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA256));
+                break;
+            case TLS_HASH_ALGORITHM_SHA384:
+                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA384));
+                break;
+            case TLS_HASH_ALGORITHM_SHA512:
+                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA512));
+                break;
+            default:
+                S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }
     }
 
     GUARD(s2n_hash_init(&signature_hash, conn->pending.signature_digest_alg));
+
     GUARD(s2n_hash_update(&signature_hash, conn->pending.client_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_hash_update(&signature_hash, conn->pending.server_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_hash_update(&signature_hash, serverDHparams.data, serverDHparams.size));
@@ -182,6 +223,7 @@ static int s2n_ecdhe_server_key_send(struct s2n_connection *conn)
     struct s2n_blob signature;
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_hash_state signature_hash;
+    struct s2n_blob ecdhparams;
 
     GUARD(s2n_hash_init(&signature_hash, conn->pending.signature_digest_alg));
 
@@ -189,15 +231,17 @@ static int s2n_ecdhe_server_key_send(struct s2n_connection *conn)
     GUARD(s2n_ecc_generate_ephemeral_key(&conn->pending.server_ecc_params));
 
     /* Write it out and calcualte the hash */
-    GUARD(s2n_ecc_write_ecc_params(&conn->pending.server_ecc_params, out, &signature_hash));
+    GUARD(s2n_ecc_write_ecc_params(&conn->pending.server_ecc_params, out, &ecdhparams));
 
     if (conn->actual_protocol_version == S2N_TLS12) {
-        GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_SHA1));
+        GUARD(s2n_stuffer_write_uint8(out, TLS_HASH_ALGORITHM_SHA1));
         GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_RSA));
     }
 
+    /* Add the random data to the hash */
     GUARD(s2n_hash_update(&signature_hash, conn->pending.client_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_hash_update(&signature_hash, conn->pending.server_random, S2N_TLS_RANDOM_DATA_LEN));
+    GUARD(s2n_hash_update(&signature_hash, ecdhparams.data, ecdhparams.size));
 
     signature.size = s2n_rsa_private_encrypted_size(&conn->config->cert_and_key_pairs->private_key);
     GUARD(s2n_stuffer_write_uint16(out, signature.size));
@@ -228,7 +272,7 @@ static int s2n_dhe_server_key_send(struct s2n_connection *conn)
     GUARD(s2n_dh_params_to_p_g_Ys(&conn->pending.server_dh_params, out, &serverDHparams));
 
     if (conn->actual_protocol_version == S2N_TLS12) {
-        GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_SHA1));
+        GUARD(s2n_stuffer_write_uint8(out, TLS_HASH_ALGORITHM_SHA1));
         GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_RSA));
     }
 

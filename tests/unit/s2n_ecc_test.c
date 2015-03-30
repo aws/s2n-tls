@@ -29,20 +29,17 @@ int main(int argc, char **argv)
     for (int i = 0; i < sizeof(s2n_ecc_supported_curves) / sizeof(s2n_ecc_supported_curves[0]); i++) {
         struct s2n_ecc_params server_params, client_params;
         struct s2n_stuffer wire;
-        struct s2n_hash_state written_hash, read_hash;
-        struct s2n_blob server_shared, client_shared;
+        struct s2n_blob server_shared, client_shared, ecdh_params_sent, ecdh_params_received;
 
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire, 1024));
-        EXPECT_SUCCESS(s2n_hash_init(&written_hash, S2N_HASH_SHA256));
-        EXPECT_SUCCESS(s2n_hash_init(&read_hash, S2N_HASH_SHA256));
 
         /* Server generates a key for a given curve */
         server_params.negotiated_curve = &s2n_ecc_supported_curves[i];
         EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&server_params));
         /* Server sends the public */
-        EXPECT_SUCCESS(s2n_ecc_write_ecc_params(&server_params, &wire, &written_hash));
+        EXPECT_SUCCESS(s2n_ecc_write_ecc_params(&server_params, &wire, &ecdh_params_sent));
         /* Client reads the public */
-        EXPECT_SUCCESS(s2n_ecc_read_ecc_params(&client_params, &wire, &read_hash));
+        EXPECT_SUCCESS(s2n_ecc_read_ecc_params(&client_params, &wire, &ecdh_params_received));
         /* The client got the curve */
         EXPECT_EQUAL(client_params.negotiated_curve, server_params.negotiated_curve);
 
