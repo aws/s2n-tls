@@ -94,23 +94,6 @@ const char nist_reference_values_hex[] =
 "92502bb0772968a7f73c491375fd48a4" "baa517ead345078a5b83566f9963e2c0" "7adb91d7090edea7f7a76d272523469e"
 "d1c7680165714dfb8256bd09b1a25f9f" "c30fb4bf77be6ff6bf71bd6cf171791b" "c7aff7a54d51dd50a72948ceed18ac16";
 
-const char nist_reference_keys_hex[] =
-"34efd7d4b6fdc5c14222292bd10a4d6a" "380112415ed0cfa4e910c91f27adf396" "0ea90501784f40ba056a06e859f64249"
-"4bcb20cb1fa05b6e36487f2b1485d0b2" "7562c4aa6ec867303135c6861f9cde2c" "6a2905ef7f6bf3c58b3792de4853b56e"
-"de6acbdcf6c1b738c8d984db15abfcc4" "7e192a78ac3ddcb62e614374b9135f04" "b3f3e280ca37335afa1f1c6d3d73d1e3"
-"8cc57ec9734a5eef6652cac680668635" "f948c32d0fdaf1032dd9acb6e63a4af7" "681b7053b69a372ace849166f611adc4"
-"27cab6e3e7102057b3b1f810148d10df" "c4f1f7a8651a0d4af90865723c26b9ab" "9e390b4283ce55b60f41f632690701dc"
-"83011458e48339e68bf49ce497f05367" "4621f8de248511977d7b06b493b4416e" "50031cf538c89202450f884b0f1a4e44"
-"4eca805b7ac91b460ff2ec771b096219" "c895f5287e23cb2c37e221277a7f437f" "e27ab5108f51958b330dd0a7f7d52731"
-"d2905b434ce0e1ee6de2d06a9ddfb506" "b33c86a31af2d92b932fa7c7871757f3" "9ebd8b882f220d55a1f24b205d098919"
-"4bea34cae7b50d3e074183f5a6b7cf79" "66cca59280ad0974623dd6766b53b3ee" "6dd7b3a0944cfad4f0469e1d5920fe6c"
-"0b5c39898d21fbddc6e95899975e7bbe" "4de0733f3a65bd04b7566ceca51e9dd6" "135a9997b91f845bf19e19a51a36c73e"
-"10560981e4d1a018c3ba2661dac3342f" "51edca3ff99e44e9cc261dea1aa163a9" "5f87fef03cd4e58aa50d79c0cd652ec1"
-"29fa750ee2f8e893faecdac973fa0005" "6f85bf8c36bccae8375bf86e58efd243" "dc053bd873a0550f259090b4a397292d"
-"7cd575b803ac1bf34e9bb9b13e0b0f1b" "7a98b2c560614f7a6abae16f6132fdb0" "02fabefd18eb8792081c18d08806cd7d"
-"ffd55853c1e964221a2b52a5155ae647" "7f33de8d70be01e0b759e71f1ad4b330" "ab2a57ccfd9f7f4e39419cd8e172c15a"
-"27095946ba6001daee37ff50136456d1" "a28d0bdd09dea0b48dba8432473b6f96" "1787241c6975f759efbd923f825cf444";
-
 const char nist_reference_returned_bits_hex[] =
 "2a76d71b329f449c98dc08fff1d205a2fbd9e4ade120c7611c225c984eac8531288dd3049f3dc3bb3671501ab8fbf9ad49c86cce307653bd8caf29cb0cf07764"
 "5a1c26803f3ffd4daf32042fdcc32c3812bb5ef13bc208cef82ea047d2890a6f5dcecf32bcc32a2585775ac5e1ffaa8de00664c54fe00a7674b985619e953c3a"
@@ -140,14 +123,13 @@ int nist_fake_urandom_data(struct s2n_blob *blob)
 int main(int argc, char **argv)
 {
     uint8_t data[256];
-    struct s2n_drbg drbg;
+    struct s2n_drbg drbg = {{ 0 }};
     struct s2n_blob blob = {.data = data, .size = 16 };
     struct s2n_timer timer;
     uint64_t drbg_nanoseconds;
     uint64_t urandom_nanoseconds;
     struct s2n_stuffer nist_reference_personalization_strings;
     struct s2n_stuffer nist_reference_returned_bits;
-    struct s2n_stuffer nist_reference_keys;
     struct s2n_stuffer nist_reference_values;
 
     BEGIN_TEST();
@@ -161,7 +143,6 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&nist_reference_personalization_strings, nist_reference_personalization_strings_hex));
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&nist_reference_returned_bits, nist_reference_returned_bits_hex));
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&nist_reference_values, nist_reference_values_hex));
-    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&nist_reference_keys, nist_reference_keys_hex));
 
     /* Check everything against the NIST vectors */
     for (int i = 0; i < 14; i++) {
@@ -175,15 +156,9 @@ int main(int argc, char **argv)
         /* Instantiate the DRBG */
         EXPECT_SUCCESS(s2n_drbg_instantiate(&nist_drbg, &personalization_string));
 
-        uint8_t nist_key[16];
         uint8_t nist_v[16];
-        AES_KEY nist_aes_key;
 
-        GUARD(s2n_stuffer_read_bytes(&nist_reference_keys, nist_key, sizeof(nist_key)));
         GUARD(s2n_stuffer_read_bytes(&nist_reference_values, nist_v, sizeof(nist_v)));
-
-        AES_set_encrypt_key(nist_key, 128, &nist_aes_key);
-        EXPECT_TRUE(memcmp(&nist_aes_key, &nist_drbg.key, sizeof(nist_drbg.key)) == 0);
         EXPECT_TRUE(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)) == 0);
 
         /* Generate 512 bits (FIRST CALL) */
@@ -191,21 +166,13 @@ int main(int argc, char **argv)
         struct s2n_blob generated = {.data = out, .size = 64 };
         EXPECT_SUCCESS(s2n_drbg_generate(&nist_drbg, &generated));
 
-        GUARD(s2n_stuffer_read_bytes(&nist_reference_keys, nist_key, sizeof(nist_key)));
         GUARD(s2n_stuffer_read_bytes(&nist_reference_values, nist_v, sizeof(nist_v)));
-
-        AES_set_encrypt_key(nist_key, 128, &nist_aes_key);
-        EXPECT_TRUE(memcmp(&nist_aes_key, &nist_drbg.key, sizeof(nist_drbg.key)) == 0);
         EXPECT_TRUE(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)) == 0);
 
         /* Generate another 512 bits (SECOND CALL) */
         EXPECT_SUCCESS(s2n_drbg_generate(&nist_drbg, &generated));
 
-        GUARD(s2n_stuffer_read_bytes(&nist_reference_keys, nist_key, sizeof(nist_key)));
         GUARD(s2n_stuffer_read_bytes(&nist_reference_values, nist_v, sizeof(nist_v)));
-
-        AES_set_encrypt_key(nist_key, 128, &nist_aes_key);
-        EXPECT_TRUE(memcmp(&nist_aes_key, &nist_drbg.key, sizeof(nist_drbg.key)) == 0);
         EXPECT_TRUE(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)) == 0);
 
         uint8_t nist_returned_bits[64];

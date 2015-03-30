@@ -25,7 +25,7 @@ CRUFT += $(wildcard *_test)
 ifeq ($(shell uname),Darwin)
     LIBS = -lpthread -lm
 else
-    LIBS = -lpthread -lm -ldl -lrt
+    LIBS = -lpthread -lm -ldl -lrt -lcrypto
 endif
 
 # Suppress the unreachable code warning, because tests involve what should be

@@ -60,8 +60,10 @@ static __thread int *zero_if_forked_ptr;
 
 static inline int s2n_check_fork()
 {
-    struct s2n_blob public = { .data = (void *) "s2n public drbg", .size = sizeof("s2n public drbg") };
-    struct s2n_blob private = { .data = (void *) "s2n private drbg", .size = sizeof("s2n private drbg") };
+    uint8_t s2n_public_drbg[] = "s2n public drbg";
+    uint8_t s2n_private_drbg[] = "s2n private drbg";
+    struct s2n_blob public = { .data = s2n_public_drbg, .size = sizeof(s2n_public_drbg) };
+    struct s2n_blob private = { .data = s2n_private_drbg, .size = sizeof(s2n_private_drbg) };
 
     if (zero_if_forked == 0) {
         GUARD(s2n_drbg_instantiate(&per_thread_public_drbg, &public));
