@@ -73,7 +73,6 @@ int s2n_ecc_write_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2
     notnull_check(point.data);
     GUARD(s2n_ecc_write_point_data_snug(EC_KEY_get0_public_key(server_ecc_params->ec_key), EC_KEY_get0_group(server_ecc_params->ec_key), &point));
 
-    /* Calculate a hash of the written data */
     written->size = 3 + (1 + point_len);
 
     return 0;
@@ -124,7 +123,6 @@ int s2n_ecc_read_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2n
     }
     EC_POINT_free(point);
 
-    /* Write the hash of read data */
     read->size = 3 + (1 + point_length);
 
     return 0;
