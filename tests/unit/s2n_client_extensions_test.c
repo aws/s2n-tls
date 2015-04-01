@@ -439,6 +439,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
 
         for (int i = 0; i < 2; i++) {
            EXPECT_SUCCESS(close(server_to_client[i]));
@@ -500,6 +501,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
 
         for (int i = 0; i < 2; i++) {
            EXPECT_SUCCESS(close(server_to_client[i]));
