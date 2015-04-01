@@ -104,6 +104,10 @@ int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const vo
         hash_alg = S2N_HASH_SHA1;
         state->digest_size = SHA_DIGEST_LENGTH;
         break;
+    case S2N_HMAC_SHA224:
+        hash_alg = S2N_HASH_SHA224;
+        state->digest_size = SHA224_DIGEST_LENGTH;
+        break;
     case S2N_HMAC_SHA256:
         hash_alg = S2N_HASH_SHA256;
         state->digest_size = SHA256_DIGEST_LENGTH;
