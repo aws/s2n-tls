@@ -171,7 +171,9 @@ int s2n_record_parse(struct s2n_connection *conn)
         payload_length -= cipher_suite->cipher->io.aead.record_iv_size;
         payload_length -= cipher_suite->cipher->io.aead.tag_size;
 
-        GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, payload_length, &aad));
+        struct s2n_stuffer ad_stuffer;
+        GUARD(s2n_stuffer_init(&ad_stuffer, &aad));
+        GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, payload_length, &ad_stuffer));
     }
 
     /* Decrypt stuff! */

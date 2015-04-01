@@ -49,14 +49,14 @@ int s2n_ecc_generate_ephemeral_key(struct s2n_ecc_params *server_ecc_params)
     return 0;
 }
 
-int s2n_ecc_write_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2n_stuffer *out, struct s2n_hash_state *written_data_hash)
+int s2n_ecc_write_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2n_stuffer *out, struct s2n_blob *written)
 {
     uint8_t point_len;
-    struct s2n_blob point, written;
+    struct s2n_blob point;
 
     /* Remember when the written data starts */
-    written.data = s2n_stuffer_raw_write(out, 0);
-    notnull_check(written.data);
+    written->data = s2n_stuffer_raw_write(out, 0);
+    notnull_check(written->data);
 
     GUARD(s2n_stuffer_write_uint8(out, TLS_EC_CURVE_TYPE_NAMED));
     GUARD(s2n_stuffer_write_uint16(out, server_ecc_params->negotiated_curve->iana_id));
@@ -73,23 +73,21 @@ int s2n_ecc_write_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2
     notnull_check(point.data);
     GUARD(s2n_ecc_write_point_data_snug(EC_KEY_get0_public_key(server_ecc_params->ec_key), EC_KEY_get0_group(server_ecc_params->ec_key), &point));
 
-    /* Calculate a hash of the written data */
-    written.size = 3 + (1 + point_len);
-    GUARD(s2n_hash_update(written_data_hash, written.data, written.size));
+    written->size = 3 + (1 + point_len);
 
     return 0;
 }
 
-int s2n_ecc_read_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2n_stuffer *in, struct s2n_hash_state *read_data_hash)
+int s2n_ecc_read_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2n_stuffer *in, struct s2n_blob *read)
 {
     uint8_t curve_type;
     uint8_t point_length;
-    struct s2n_blob point_blob, curve_blob, read;
+    struct s2n_blob point_blob, curve_blob;
     EC_POINT *point;
 
     /* Remember where we started reading the data */
-    read.data = s2n_stuffer_raw_read(in, 0);
-    notnull_check(read.data);
+    read->data = s2n_stuffer_raw_read(in, 0);
+    notnull_check(read->data);
 
     /* Read the curve */
     GUARD(s2n_stuffer_read_uint8(in, &curve_type));
@@ -125,9 +123,7 @@ int s2n_ecc_read_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2n
     }
     EC_POINT_free(point);
 
-    /* Write the hash of read data */
-    read.size = 3 + (1 + point_length);
-    GUARD(s2n_hash_update(read_data_hash, read.data, read.size));
+    read->size = 3 + (1 + point_length);
 
     return 0;
 }
