@@ -113,8 +113,10 @@ int main(int argc, char **argv)
         int server_to_client[2];
         int client_to_server[2];
 
-        /* Craft a cipher preference with a cipher_idx cipher */
-        memcpy_check(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
+        /* Craft a cipher preference with a cipher_idx cipher
+           NOTE: Its safe to use memcpy as the address of server_cipher_preferences
+           will never be NULL */
+        memcpy(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
         server_cipher_preferences.count = 1;
         server_cipher_preferences.wire_format = default_cipher_preferences->wire_format + cipher_idx * S2N_TLS_CIPHER_SUITE_LEN;
         server_config->cipher_preferences = &server_cipher_preferences;
