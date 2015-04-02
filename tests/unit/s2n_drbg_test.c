@@ -178,6 +178,8 @@ int main(int argc, char **argv)
         uint8_t nist_returned_bits[64];
         GUARD(s2n_stuffer_read_bytes(&nist_reference_returned_bits, nist_returned_bits, sizeof(nist_returned_bits)));
         EXPECT_TRUE(memcmp(nist_returned_bits, out, sizeof(nist_returned_bits)) == 0);
+
+        EXPECT_SUCCESS(s2n_drbg_wipe(&nist_drbg));
     }
 
     EXPECT_SUCCESS(s2n_drbg_instantiate(&drbg, &blob));
@@ -215,7 +217,7 @@ int main(int argc, char **argv)
     }
     EXPECT_EQUAL(drbg.generation, 2);
 
-    /* Set up a DRBG against the NIST test vectors */
+    EXPECT_SUCCESS(s2n_drbg_wipe(&drbg));
 
     END_TEST();
 }
