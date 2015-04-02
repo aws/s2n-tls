@@ -219,5 +219,10 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_drbg_wipe(&drbg));
 
+    EXPECT_SUCCESS(s2n_stuffer_free(&nist_reference_entropy));
+    EXPECT_SUCCESS(s2n_stuffer_free(&nist_reference_personalization_strings));
+    EXPECT_SUCCESS(s2n_stuffer_free(&nist_reference_returned_bits));
+    EXPECT_SUCCESS(s2n_stuffer_free(&nist_reference_values));
+
     END_TEST();
 }
