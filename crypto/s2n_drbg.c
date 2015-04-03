@@ -35,11 +35,12 @@ static int s2n_drbg_block_encrypt(EVP_CIPHER_CTX *ctx, uint8_t in[S2N_DRBG_BLOCK
 
 static int s2n_drbg_bits(struct s2n_drbg *drbg, struct s2n_blob *out)
 {
+    struct s2n_blob value = {.data = drbg->v, .size = sizeof(drbg->v) };
     int block_aligned_size = out->size - (out->size % S2N_DRBG_BLOCK_SIZE);
 
     /* Per NIST SP800-90A 10.2.1.2: */
     for (int i = 0; i < block_aligned_size; i += S2N_DRBG_BLOCK_SIZE) {
-        GUARD(s2n_increment_sequence_number(&drbg->value));
+        GUARD(s2n_increment_sequence_number(&value));
         GUARD(s2n_drbg_block_encrypt(&drbg->ctx, drbg->v, out->data + i));
     }
 
@@ -48,7 +49,7 @@ static int s2n_drbg_bits(struct s2n_drbg *drbg, struct s2n_blob *out)
     }
 
     uint8_t spare_block[S2N_DRBG_BLOCK_SIZE];
-    GUARD(s2n_increment_sequence_number(&drbg->value));
+    GUARD(s2n_increment_sequence_number(&value));
     GUARD(s2n_drbg_block_encrypt(&drbg->ctx, drbg->v, spare_block));
 
     memcpy_check(out->data + block_aligned_size, spare_block, out->size - block_aligned_size);
@@ -80,7 +81,7 @@ static int s2n_drbg_update(struct s2n_drbg *drbg, struct s2n_blob *provided_data
     return 0;
 }
 
-int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *personalization_string)
+int s2n_drbg_seed(struct s2n_drbg *drbg)
 {
     uint8_t seed[32];
     struct s2n_blob blob = {.data = seed, .size = sizeof(seed) };
@@ -92,8 +93,8 @@ int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *personalization_string
         GUARD(drbg->entropy_generator(&blob));
     }
 
-    for (int i = 0; i < personalization_string->size && i < blob.size; i++) {
-        blob.data[i] ^= personalization_string->data[i];
+    for (int i = 0; i < sizeof(drbg->ps); i++) {
+        blob.data[i] ^= drbg->ps[i];
     }
 
     GUARD(s2n_drbg_update(drbg, &blob));
@@ -106,11 +107,11 @@ int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *personalization_string
 
 int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string)
 {
-    drbg->value.size = sizeof(drbg->v);
-    drbg->value.data = drbg->v;
+    struct s2n_blob value = {.data = drbg->v, .size = sizeof(drbg->v) };
+    struct s2n_blob ps = {.data = drbg->ps, .size = sizeof(drbg->ps) };
 
     /* Start off with zerod data, per 10.2.1.3.1 item 4 */
-    memset_check(drbg->v, 0, sizeof(drbg->v));
+    GUARD(s2n_blob_zero(&value));
 
     /* Start off with zerod key, per 10.2.1.3.1 item 5 */
     (void) EVP_CIPHER_CTX_init(&drbg->ctx);
@@ -118,8 +119,15 @@ int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization
         S2N_ERROR(S2N_ERR_DRBG);
     }
 
+    /* Copy the personalization string */
+    GUARD(s2n_blob_zero(&ps));
+
+    for (int i = 0; i < personalization_string->size && i < ps.size; i++) {
+        ps.data[i] = personalization_string->data[i];
+    }
+
     /* Seed / update the DRBG */
-    GUARD(s2n_drbg_seed(drbg, personalization_string));
+    GUARD(s2n_drbg_seed(drbg));
 
     return 0;
 }
@@ -133,8 +141,7 @@ int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob)
     }
 
     if (drbg->bytes_used + blob->size + S2N_DRBG_BLOCK_SIZE >= S2N_DRBG_RESEED_LIMIT) {
-        struct s2n_blob ps = {.size = 0 };
-        GUARD(s2n_drbg_seed(drbg, &ps));
+        GUARD(s2n_drbg_seed(drbg));
     }
 
     GUARD(s2n_drbg_bits(drbg, blob));
