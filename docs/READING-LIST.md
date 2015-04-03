@@ -46,6 +46,8 @@
 
 ## Miscellaneous
 
-* [DJBs crypto page](http://cr.yp.to/crypto.html) 
+* [NIST SP 800-90A](http://csrc.nist.gov/publications/nistpubs/800-90A/SP800-90A.pdf)
+* [DJBs crypto page](http://cr.yp.to/crypto.html)
+* [DJBs entropy attacks](http://blog.cr.yp.to/20140205-entropy.html)
 * [NaCL](http://nacl.cr.yp.to/) and [libsodium](https://github.com/jedisct1/libsodium)
 * [spiped](http://www.tarsnap.com/spiped.html) 

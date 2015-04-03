@@ -60,7 +60,8 @@ int s2n_server_finished_send(struct s2n_connection *conn)
     GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, our_version, length));
 
     /* Zero the sequence number */
-    GUARD(s2n_zero_sequence_number(conn->pending.server_sequence_number));
+    struct s2n_blob seq = {.data = conn->pending.server_sequence_number, .size = S2N_TLS_SEQUENCE_NUM_LEN };
+    GUARD(s2n_blob_zero(&seq));
 
     /* Update the pending state to active, and point the client at the active state */
     memcpy_check(&conn->active, &conn->pending, sizeof(conn->active));

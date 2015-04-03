@@ -26,6 +26,7 @@ int main(int argc, char **argv)
     uint8_t hello_world_base64[] = "SGVsbG8gd29ybGQhAA==";
     struct s2n_stuffer stuffer, known_data, scratch, entropy, mirror;
     uint8_t pad[50];
+    struct s2n_blob r = {.data = pad, .size = sizeof(pad)};
 
     BEGIN_TEST();
     
@@ -59,7 +60,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&mirror));
 
         /* Get i bytes of random data */
-        EXPECT_SUCCESS(s2n_get_random_data(pad, i));
+        r.size = i;
+        EXPECT_SUCCESS(s2n_get_urandom_data(&r));
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&entropy, pad, i));
 
         /* Write i bytes  it, base64 encoded */

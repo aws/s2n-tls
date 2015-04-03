@@ -64,12 +64,13 @@ int main(int argc, char **argv)
     struct s2n_blob fixed_iv = {.data = mac_key,.size = sizeof(mac_key) };
     struct s2n_hmac_state check_mac;
     uint8_t random_data[S2N_DEFAULT_FRAGMENT_LENGTH + 1];
+    struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
 
     BEGIN_TEST();
 
     EXPECT_SUCCESS(s2n_init());
     EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, fixed_iv.data, fixed_iv.size));
-    EXPECT_SUCCESS(s2n_get_random_data(random_data, S2N_DEFAULT_FRAGMENT_LENGTH + 1));
+    EXPECT_SUCCESS(s2n_get_urandom_data(&r));
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
     /* Peer and we are in sync */
@@ -183,7 +184,7 @@ int main(int argc, char **argv)
          * won't parse 
          */
         uint32_t byte_to_corrupt;
-        EXPECT_SUCCESS(byte_to_corrupt = s2n_random(fragment_length));
+        EXPECT_SUCCESS(byte_to_corrupt = s2n_public_random(fragment_length));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
         EXPECT_SUCCESS(s2n_stuffer_reread(&conn->out));

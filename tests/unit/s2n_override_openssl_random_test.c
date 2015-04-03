@@ -38,7 +38,9 @@ static int mock_called = 0;
 
 static int mock_openssl_compat_rand(unsigned char *buf, int num)
 {
-    int r = s2n_get_random_data(buf, num);
+    struct s2n_blob blob = {.data = buf, .size = num };
+
+    int r = s2n_get_urandom_data(&blob);
     if (r < 0) {
         return 0;
     }

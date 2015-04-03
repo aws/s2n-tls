@@ -106,7 +106,7 @@ int s2n_server_hello_send(struct s2n_connection *conn)
     uint32_t gmt_unix_time = time(NULL);
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_stuffer server_random;
-    struct s2n_blob b;
+    struct s2n_blob b, r;
     uint8_t session_id_len = 0;
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
@@ -116,7 +116,11 @@ int s2n_server_hello_send(struct s2n_connection *conn)
     /* Create the server random data */
     GUARD(s2n_stuffer_init(&server_random, &b));
     GUARD(s2n_stuffer_write_uint32(&server_random, gmt_unix_time));
-    GUARD(s2n_stuffer_write_random_data(&server_random, 28));
+
+    r.data = s2n_stuffer_raw_write(&server_random, S2N_TLS_RANDOM_DATA_LEN - 4);
+    r.size = S2N_TLS_RANDOM_DATA_LEN - 4;
+    notnull_check(r.data);
+    GUARD(s2n_get_public_random_data(&r));
 
     if (conn->client_protocol_version < conn->server_protocol_version) {
         conn->actual_protocol_version = conn->client_protocol_version;

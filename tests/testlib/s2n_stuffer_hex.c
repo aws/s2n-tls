@@ -168,8 +168,31 @@ int s2n_stuffer_alloc_ro_from_hex_string(struct s2n_stuffer *stuffer, const char
 
     GUARD(s2n_stuffer_alloc(stuffer, strlen(str) / 2));
 
-    for (int i = 0; i < strlen(str); i++) {
-        GUARD(s2n_stuffer_write_uint8_hex(stuffer, str[i]));
+    for (int i = 0; i < strlen(str); i += 2) {
+        uint8_t u = 0;
+
+        if (str[i] >= '0' && str[i] <= '9') {
+            u = str[i] - '0';
+        } else if (str[i] >= 'a' && str[i] <= 'f') {
+            u = str[i] - 'a' + 10;
+        } else if (str[i] >= 'A' && str[i] <= 'F') {
+            u = str[i] - 'A' + 10;
+        } else {
+            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        }
+        u <<= 4;
+
+        if (str[i + 1] >= '0' && str[i + 1] <= '9') {
+            u |= str[i + 1] - '0';
+        } else if (str[i + 1] >= 'a' && str[i + 1] <= 'f') {
+            u |= str[i + 1] - 'a' + 10;
+        } else if (str[i + 1] >= 'A' && str[i + 1] <= 'F') {
+            u |= str[i + 1] - 'A' + 10;
+        } else {
+            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        }
+
+        GUARD(s2n_stuffer_write_uint8(stuffer, u));
     }
 
     return 0;

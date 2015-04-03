@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -13,26 +13,19 @@
  * permissions and limitations under the License.
  */
 
-#include <string.h>
+#include "crypto/s2n_sequence.h"
 
-#include "utils/s2n_safety.h"
+#include "utils/s2n_blob.h"
 
-#include "tls/s2n_crypto.h"
-
-void s2n_increment_sequence_number(uint8_t sequence_number[S2N_TLS_SEQUENCE_NUM_LEN])
+int s2n_increment_sequence_number(struct s2n_blob *sequence_number)
 {
-    for (int i = S2N_TLS_SEQUENCE_NUM_LEN - 1; i >= 0; i--) {
-        sequence_number[i] += 1;
-        if (sequence_number[i]) {
+    for (int i = sequence_number->size - 1; i >= 0; i--) {
+        sequence_number->data[i] += 1;
+        if (sequence_number->data[i]) {
             break;
         }
         /* seq[i] wrapped, so let it carry */
     }
-}
-
-int s2n_zero_sequence_number(uint8_t sequence_number[S2N_TLS_SEQUENCE_NUM_LEN])
-{
-    memset_check(sequence_number, 0, S2N_TLS_SEQUENCE_NUM_LEN);
 
     return 0;
 }
