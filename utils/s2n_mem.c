@@ -43,10 +43,12 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
         S2N_ERROR(S2N_ERR_REALLOC);
     }
     if (mlock(b->data, size) < 0) {
+        GUARD(s2n_free(b));
         S2N_ERROR(S2N_ERR_MLOCK);
     }
 #ifdef MADV_DONTDUMP
     if (madvise(b->data, size, MADV_DONTDUMP) < 0) {
+        GUARD(s2n_free(b));
         S2N_ERROR(S2N_ERR_MADVISE);
     }
 #endif
