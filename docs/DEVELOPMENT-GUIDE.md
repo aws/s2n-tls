@@ -114,7 +114,7 @@ we do:
 
     GUARD(s2n_foo());
     GUARD(s2n_bar());
-    GUARD(s2n_baz()));
+    GUARD(s2n_baz());
 
 This pattern leads to a linear control flow, where the main body of a function describes everything that happens in a regular, "*happy*" case. Any deviation is usually a fatal error and we exit the function. This is safe because s2n rarely allocates resources, and so has nothing to clean up on error. 
 
