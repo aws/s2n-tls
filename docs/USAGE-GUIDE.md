@@ -481,4 +481,5 @@ connection. **s2n_recv** will return the number of bytes read and also return
 
 # Examples
 
-To understand the API it may be easiest to see examples in action.
+To understand the API it may be easiest to see examples in action. s2n's [bin/](https://github.com/awslabs/s2n/blob/master/bin/) directory
+includes an example client (s2nc) and server (s2nd)..
