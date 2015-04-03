@@ -26,6 +26,7 @@
 
 #include "stuffer/s2n_stuffer.h"
 
+#include "crypto/s2n_sequence.h"
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_hmac.h"
 
@@ -230,7 +231,9 @@ int s2n_record_parse(struct s2n_connection *conn)
     } else {
         GUARD(s2n_hmac_update(mac, header, S2N_TLS_RECORD_HEADER_LENGTH));
     }
-    s2n_increment_sequence_number(sequence_number);
+
+    struct s2n_blob seq = {.data = sequence_number, .size = S2N_TLS_SEQUENCE_NUM_LEN };
+    GUARD(s2n_increment_sequence_number(&seq));
 
     /* Padding */
     if (cipher_suite->cipher->type == S2N_CBC) {

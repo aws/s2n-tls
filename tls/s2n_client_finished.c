@@ -47,7 +47,9 @@ int s2n_client_finished_send(struct s2n_connection *conn)
 
     GUARD(s2n_prf_key_expansion(conn));
     GUARD(s2n_prf_client_finished(conn));
-    GUARD(s2n_zero_sequence_number(conn->pending.client_sequence_number));
+
+    struct s2n_blob seq = {.data = conn->pending.client_sequence_number, .size = sizeof(conn->pending.client_sequence_number) };
+    GUARD(s2n_blob_zero(&seq));
     our_version = conn->handshake.client_finished;
 
     /* Update the client to use the pending cipher suite */

@@ -347,7 +347,7 @@ int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blindi
 int s2n_connection_get_delay(struct s2n_connection *conn)
 {
     /* Delay between 1ms and 10 seconds */
-    return s2n_random(1000 + 10000000);
+    return s2n_public_random(1000 + 10000000);
 }
 
 const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uint32_t *length)
