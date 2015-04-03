@@ -29,11 +29,16 @@
 #define S2N_DRBG_GENERATE_LIMIT 8192
 
 struct s2n_drbg {
-    struct s2n_blob value;
     EVP_CIPHER_CTX ctx;
+
+    /* The current DRBG 'value' */
     uint8_t v[16];
+
+    /* First 32 bytes of the personalization string used */
+    uint8_t ps[32];
+
+    /* Track how many bytes have been used */
     uint64_t bytes_used;
-    uint32_t generation;
 
     /* Function pointer to the entropy generating function. If it's NULL, then
      * s2n_get_urandom_data() will be used. This function pointer is intended
@@ -41,6 +46,11 @@ struct s2n_drbg {
      * fed to the DRBG test vectors.
      */
     int (*entropy_generator)(struct s2n_blob *);
+
+    /* Also used only by the unit tests: which generation of the DRBG is this.
+     * This number is incremented every time we reseed.
+     */
+    uint32_t generation;
 };
 
 /* Per NIST SP 800-90C 6.3
