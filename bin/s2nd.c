@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <signal.h>
 #include <stdio.h>
 
 #include <errno.h>
@@ -111,15 +112,20 @@ int main(int argc, const char *argv[])
 
     if (memset(&hints, 0, sizeof(hints)) != &hints) {
         fprintf(stderr, "memset error: %s\n", strerror(errno));
-        return -1;
+        exit(1);
     }
 
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
+    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
+        fprintf(stderr, "Error disabling SIGPIPE\n");
+        exit(1);
+    }
+
     if ((r = getaddrinfo(argv[1], argv[2], &hints, &ai)) < 0) {
         fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(r));
-        return -1;
+        exit(1);
     }
 
     if ((sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) == -1) {

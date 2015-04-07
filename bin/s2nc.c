@@ -112,15 +112,20 @@ int main(int argc, char * const *argv)
 
     if (memset(&hints, 0, sizeof(hints)) != &hints) {
         fprintf(stderr, "memset error: %s\n", strerror(errno));
-        return -1;
+        exit(1);
     }
 
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
+    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
+        fprintf(stderr, "Error disabling SIGPIPE\n");
+        exit(1);
+    }
+
     if ((r = getaddrinfo(host, port, &hints, &ai_list)) != 0) {
         fprintf(stderr, "error: %s\n", gai_strerror(r));
-        return -1;
+        exit(1);
     }
 
     int connected = 0;
