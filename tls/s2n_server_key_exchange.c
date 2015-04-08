@@ -102,6 +102,8 @@ static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn)
     signature.data = s2n_stuffer_raw_read(in, signature.size);
     notnull_check(signature.data);
 
+    gt_check(signature_length, 0);
+
     if (s2n_rsa_verify(&conn->pending.server_rsa_public_key, &signature_hash, &signature) < 0) {
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
@@ -190,6 +192,8 @@ static int s2n_dhe_server_key_recv(struct s2n_connection *conn)
     signature.size = signature_length;
     signature.data = s2n_stuffer_raw_read(in, signature.size);
     notnull_check(signature.data);
+
+    gt_check(signature_length, 0);
 
     if (s2n_rsa_verify(&conn->pending.server_rsa_public_key, &signature_hash, &signature) < 0) {
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
