@@ -56,6 +56,8 @@ static int s2n_rsa_client_key_recv(struct s2n_connection *conn)
     encrypted.size = s2n_stuffer_data_available(in);
     encrypted.data = s2n_stuffer_raw_read(in, length);
 
+    gt_check(encrypted.size, 0);
+
     /* Set rsa_failed to 1 if s2n_rsa_decrypt returns anything other than zero */
     conn->handshake.rsa_failed = !!s2n_rsa_decrypt(&conn->config->cert_and_key_pairs->private_key, &encrypted, &pms);
 

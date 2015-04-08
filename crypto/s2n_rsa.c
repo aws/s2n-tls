@@ -95,11 +95,17 @@ int s2n_rsa_private_key_free(struct s2n_rsa_private_key *key)
 
 int s2n_rsa_public_encrypted_size(struct s2n_rsa_public_key *key)
 {
+    notnull_check(key->rsa);
+    notnull_check(key->rsa->n);
+
     return RSA_size(key->rsa);
 }
 
 int s2n_rsa_private_encrypted_size(struct s2n_rsa_private_key *key)
 {
+    notnull_check(key->rsa);
+    notnull_check(key->rsa->n);
+
     return RSA_size(key->rsa);
 }
 
