@@ -32,17 +32,17 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
 
     GUARD(s2n_stuffer_read_uint24(&conn->handshake.io, &size_of_all_certificates));
 
-    if (size_of_all_certificates > s2n_stuffer_data_available(&conn->handshake.io)) {
+    if (size_of_all_certificates > s2n_stuffer_data_available(&conn->handshake.io) || size_of_all_certificates < 3) {
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
-    int certificate = 0;
+    int certificate_count = 0;
     while (s2n_stuffer_data_available(&conn->handshake.io)) {
         uint32_t certificate_size;
 
         GUARD(s2n_stuffer_read_uint24(&conn->handshake.io, &certificate_size));
 
-        if (certificate_size > s2n_stuffer_data_available(&conn->handshake.io)) {
+        if (certificate_size > s2n_stuffer_data_available(&conn->handshake.io) || certificate_size == 0) {
             S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }
 
@@ -52,14 +52,17 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
         notnull_check(asn1cert.data);
 
         /* TODO: certificate validation goes here */
+        gt_check(certificate_size, 0);
 
         /* Pull the public key from the first certificate */
-        if (certificate == 0) {
+        if (certificate_count == 0) {
             GUARD(s2n_asn1der_to_rsa_public_key(&conn->pending.server_rsa_public_key, &asn1cert));
         }
 
-        certificate++;
+        certificate_count++;
     }
+
+    gte_check(certificate_count, 1);
 
     conn->handshake.next_state = SERVER_HELLO_DONE;
 
