@@ -79,7 +79,7 @@ To build s2n with OpenSSL-1.0.2, do the following:
     cd openssl-1.0.2
     ./config -fPIC no-shared no-libunbound no-gmp no-jpake no-krb5              \
              no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-store no-zlib     \
-             no-hw no-mdc2 no-seed no-idea enable-ec-nist_64_gcc_128 no-camellia\ 
+             no-hw no-mdc2 no-seed no-idea enable-ec-nist_64_gcc_128 no-camellia\
              no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng                  \
              -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS      \
              --prefix=`pwd`/../../libcrypto-root/
