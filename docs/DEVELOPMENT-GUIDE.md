@@ -261,7 +261,7 @@ Every connection (or session in TLS parlance) is associated with an s2n_connecti
 
 When a TLS connection is being started, the first communication consists of handshake messages. The client sends the first message (a client hello), and then the server replies (with a server hello), and so on. Because a server must wait for a client and vice versa, this phase of a TLS connection is not full-duplex. To save on memory, s2n uses a single stuffer for both incoming and outgoing handshake messages and it is located as s2n_connection->handshake.io (which is a growable stuffer). 
 
-Borrowing another trick from functional programming, the state machine for handling handshake messages is implementing using a table of function pointers, located in [tls/s2n_handshake_io.c](https://github.com/awslabs/s2n/blob/master/tls/s2n_handshake_io.c). 
+Borrowing another trick from functional programming, the state machine for handling handshake messages is implemented using a table of function pointers, located in [tls/s2n_handshake_io.c](https://github.com/awslabs/s2n/blob/master/tls/s2n_handshake_io.c). 
 
     static struct s2n_handshake_action state_machine[] = {
         /*Message type  Handshake type       Writer S2N_SERVER                S2N_CLIENT                   handshake.state              */
