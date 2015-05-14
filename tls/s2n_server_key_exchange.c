@@ -52,10 +52,10 @@ static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn)
     struct s2n_blob signature;
     uint16_t signature_length;
 
-    GUARD(s2n_hash_init(&signature_hash, conn->pending.signature_digest_alg));
-
     /* Read server ECDH params and calculate their hash */
     GUARD(s2n_ecc_read_ecc_params(&conn->pending.server_ecc_params, in, &ecdhparams));
+
+    GUARD(s2n_hash_init(&signature_hash, conn->pending.signature_digest_alg));
 
     if (conn->actual_protocol_version == S2N_TLS12) {
         uint8_t hash_algorithm;
@@ -147,6 +147,8 @@ static int s2n_dhe_server_key_recv(struct s2n_connection *conn)
     /* Now we know the total size of the structure */
     serverDHparams.size = 2 + p_length + 2 + g_length + 2 + Ys_length;
 
+    GUARD(s2n_hash_init(&signature_hash, conn->pending.signature_digest_alg));
+
     if (conn->actual_protocol_version == S2N_TLS12) {
         uint8_t hash_algorithm;
         uint8_t signature_algorithm;
@@ -181,8 +183,6 @@ static int s2n_dhe_server_key_recv(struct s2n_connection *conn)
                 S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }
     }
-
-    GUARD(s2n_hash_init(&signature_hash, conn->pending.signature_digest_alg));
 
     GUARD(s2n_hash_update(&signature_hash, conn->pending.client_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_hash_update(&signature_hash, conn->pending.server_random, S2N_TLS_RANDOM_DATA_LEN));
