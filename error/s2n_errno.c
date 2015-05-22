@@ -61,6 +61,7 @@ struct s2n_error_translation EN[] = {
     { S2N_ERR_DH_SHARED_SECRET, "error computing diffie-helman shared secret" },
     { S2N_ERR_DH_WRITING_PUBLIC_KEY, "error writing diffie-helman public key" },
     { S2N_ERR_DH_FAILED_SIGNING, "error signing diffie helman values" },
+    { S2N_ERR_DH_TOO_SMALL, "Diffie Helman parameters are too small" },
     { S2N_ERR_INVALID_PKCS3, "invalid PKCS3 encountered" },
     { S2N_ERR_HASH_DIGEST_FAILED, "failed to create hash digest" },
     { S2N_ERR_HASH_INIT_FAILED, "error initializing hash" },
