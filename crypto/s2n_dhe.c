@@ -38,6 +38,12 @@ int s2n_pkcs3_to_dh_params(struct s2n_dh_params *dh_params, struct s2n_blob *pkc
     }
     pkcs3->data = original_ptr;
 
+    /* Require at least 2048 bits for the DH size */
+    if (DH_size(dh_params->dh) < (2048 / 8)) {
+        DH_free(dh_params->dh);
+        S2N_ERROR(S2N_ERR_DH_TOO_SMALL);
+    }
+
     return 0;
 }
 
