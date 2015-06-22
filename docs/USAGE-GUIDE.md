@@ -132,7 +132,7 @@ but does accept SSL2.0 hello messages.
 
 ## Enums
 
-s2n defines three enum type:
+s2n defines three enum types:
 
     typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
 
@@ -143,11 +143,12 @@ S2N_SERVER should be used.
     typedef enum { S2N_BUILT_IN_BLINDING, S2N_SELF_SERVICE_BLINDING } s2n_blinding;
 
 **s2n_blinding** is used to opt-out of s2n's built-in blinding. By default s2n
-will cause a thread to sleep between 1ms and 10 seconds when a tamper evident
-record is encountered. S2N_SELF_SERVICE_BLINDING can be used to opt out of this
-behaviour. If s2n_recv() returns an error, self-service applications should
-call **s2n_connection_get_delay** and pause for the specified number of
-microseconds before calling close() or shutdown().
+will cause a thread to sleep between 1ms and 10 seconds whenever tampering
+is detected. S2N_SELF_SERVICE_BLINDING can be used to opt out of this
+behaviour and is useful for applications that are handling many connections
+in a single thread. If s2n_recv() returns an error, self-service applications 
+should call **s2n_connection_get_delay** and pause activity on the connection 
+for the specified number of microseconds before calling close() or shutdown().
 
     typedef enum { S2N_STATUS_REQUEST_NONE, S2N_STATUS_REQUEST_OCSP } s2n_status_request_type;
 
