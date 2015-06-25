@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(setenv("S2N_ENABLE_INSECURE_CLIENT", "1", 0));
+    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
 
     EXPECT_SUCCESS(s2n_init());
     EXPECT_NOT_NULL(config = s2n_config_new());

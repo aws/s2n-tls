@@ -86,7 +86,7 @@ struct s2n_error_translation EN[] = {
     { S2N_ERR_NO_ALERT, "No Alert present" },
     { S2N_ERR_CLIENT_MODE, "operation not allowed in client mode" },
     { S2N_ERR_SERVER_NAME_TOO_LONG, "server name is too long" },
-    { S2N_ERR_INSECURE_CLIENT, "client connections not allowed" },
+    { S2N_ERR_CLIENT_MODE_DISABLED, "client connections not allowed" },
     { S2N_ERR_HANDSHAKE_STATE, "Invalid handshake state encountered" },
     { S2N_ERR_FALLBACK_DETECTED, "TLS fallback detected" },
     { S2N_ERR_INVALID_CIPHER_PREFERENCES, "Invalid Cipher Preferences version" },
