@@ -2,6 +2,12 @@
 
 s2n is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority. It is released and licensed under the Apache Software License 2.0. 
 
+## Using s2n
+
+The s2n I/O APIs are designed to be intuitive to developers familiar with the widely-used POSIX I/O APIs, and s2n supports blocking, non-blocking and full-duplex I/O. Additionally there are no locks or mutexes within s2n. 
+
+For details on building the s2n library and how to use s2n in an application you are developing, see the [API Reference](https://github.com/awslabs/s2n/blob/master/docs/USAGE-GUIDE.md).
+
 ## s2n features
 
 s2n implements SSLv3, TLS1.0, TLS1.1 and TLS1.2. For encryption, s2n suppports 128-bit and 256-bit AES, in the CBC and GCM modes, 3DES and RC4. For forward secrecy, s2n supports both DHE and ECDHE. s2n also supports the Server Name Indicator (SNI), Application-Layer Protocol Negotiation (ALPN) and the Online Certificate Status Protocol (OCSP) TLS extensions. SSLv3, RC4 and DHE are each disabled by default for security reasons. 
@@ -13,12 +19,6 @@ As it can be difficult to keep track of which encryption algorithms and protocol
     
     /* Use a specific (i.e. tested) set of ciphersuite and protocol preferences */
     s2n_config_set_cipher_preferences(config, "20150306")
-
-## Using s2n
-
-The s2n I/O APIs are designed to be intuitive to developers familiar with the widely-used POSIX I/O APIs, and s2n supports blocking, non-blocking and full-duplex I/O. Additionally there are no locks or mutexes within s2n. 
-
-For details on building the s2n library and how to use s2n in an application you are developing, see the [API Reference](https://github.com/awslabs/s2n/blob/master/docs/USAGE-GUIDE.md).
 
 ## s2n security mechanisms
 
