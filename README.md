@@ -12,12 +12,12 @@ For details on building the s2n library and how to use s2n in an application you
 
 s2n implements SSLv3, TLS1.0, TLS1.1 and TLS1.2. For encryption, s2n suppports 128-bit and 256-bit AES, in the CBC and GCM modes, 3DES and RC4. For forward secrecy, s2n supports both DHE and ECDHE. s2n also supports the Server Name Indicator (SNI), Application-Layer Protocol Negotiation (ALPN) and the Online Certificate Status Protocol (OCSP) TLS extensions. SSLv3, RC4 and DHE are each disabled by default for security reasons. 
 
-As it can be difficult to keep track of which encryption algorithms and protocols are best to use, s2n features a simple API to use the latest "default" set of preferences. If you prefer to remain on a specific version for backwards compatibility, that is supported too. 
+As it can be difficult to keep track of which encryption algorithms and protocols are best to use, s2n features a simple API to use the latest "default" set of preferences. If you prefer to remain on a specific version for backwards compatibility, that is also supported. 
 
-    /* Use the latest "default" set of ciphersuite and protocol preferences */
+    /* Use the latest s2n "default" set of ciphersuite and protocol preferences */
     s2n_config_set_cipher_preferences(config, "default");
     
-    /* Use a specific (i.e. tested) set of ciphersuite and protocol preferences */
+    /* Use a specific set of preferences, update when you're ready */
     s2n_config_set_cipher_preferences(config, "20150306")
 
 ## s2n security mechanisms
@@ -27,11 +27,11 @@ Internally s2n takes a systematic approach to data protection and includes sever
 ##### Small and auditable code base
 Ignoring tests, blank lines and comments, s2n is about 6,000 lines of code. s2n's code is also structured and written with a focus on reviewability. All s2n code is subject to code review, and we plan to complete security reviews of s2n on an anual basis.
 
-To date there have been two external code-level reviews of s2n, including one by a commercial security vendor, and s2n has been shared with some members of the broader cryptography, security and Open Source communities. Any issues discovered are always recorded in the s2n issue tracker. 
+To date there have been two external code-level reviews of s2n, including one by a commercial security vendor. s2n has also been shared with some trusted members of the broader cryptography, security, and Open Source communities. Any issues discovered are always recorded in the s2n issue tracker. 
 
 ##### Static analysis, fuzz-testing and penetration testing
 
-In addition to code reviews, s2n is also subject to regular static analsys, fuzz-testing and penetration testing. Several penetration tests have occured, including two by commercial vendors.  
+In addition to code reviews, s2n is subject to regular static analysis, fuzz-testing and penetration testing. Several penetration tests have occured, including two by commercial vendors.  
 
 ##### Erase on read
 s2n encrypts or erases plaintext data as quickly as possible. For example, decrypted data buffers are erased as they are read by the application.
