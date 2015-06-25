@@ -42,7 +42,7 @@ s2n uses operating system features to protect data from being swapped to disk or
 ##### Minimalist feature adoption
 s2n avoids implementing rarely used options and extensions, as well as features with a history of triggering protocol-level vulnerabilities. For example there is no support for session renegotiation or DTLS.
 
-##### Segmented random number generation
+##### Compartmentalized random number generation
 The security of TLS and its associated encryption algorithms depends upon secure random number generation. s2n provides every thread with two seperate random number generators. One for "public" randomly generated data which may appear in the clear, and one for "private" data which should remain secret. This approach lessens the risk of potential predictability weaknesses in random number generation algorithms from leaking information across contexts. 
 
 ##### Modularized encryption
