@@ -108,6 +108,12 @@ memory is too low. To check this limit, run:
 
 to raise the limit, consult the documentation for your platform.
 
+## client mode
+
+At this time s2n does not perform certificate validation and client mode is
+disabled as a precaution. To enable client mode for testing and development,
+set the **S2N_ENABLE_CLIENT_MODE** environment variable.
+
 # s2n API
 
 The API exposed by s2n is the set of functions and declarations that
@@ -142,25 +148,28 @@ S2N_SERVER should be used.
 
     typedef enum { S2N_BUILT_IN_BLINDING, S2N_SELF_SERVICE_BLINDING } s2n_blinding;
 
-**s2n_blinding** is used to opt-out of s2n's built-in blinding. By default s2n
-will cause a thread to sleep between 1ms and 10 seconds whenever tampering
-is detected. S2N_SELF_SERVICE_BLINDING can be used to opt out of this
-behaviour and is useful for applications that are handling many connections
-in a single thread. If s2n_recv() returns an error, self-service applications 
+**s2n_blinding** is used to opt-out of s2n's built-in blinding. Blinding is a
+mitigation against timing side-channels which in some cases can leak information
+about encrypted data. By default s2n will cause a thread to sleep between 1ms and 
+10 seconds whenever tampering is detected. 
+
+Setting the **S2N_SELF_SERVICE_BLINDING** option with **s2n_connection_set_blinding**
+turns off this behavior. This is useful for applications that are handling many connections
+in a single thread. In that case, if s2n_recv() returns an error, self-service applications 
 should call **s2n_connection_get_delay** and pause activity on the connection 
 for the specified number of microseconds before calling close() or shutdown().
 
     typedef enum { S2N_STATUS_REQUEST_NONE, S2N_STATUS_REQUEST_OCSP } s2n_status_request_type;
 
 **s2n_status_request_type** is used to define the type, if any, of certificate
-status request an S2N_CLIENT should make during the handshake.  The only
-supported status request type is OCSP, S2N_STATUS_REQUEST_OCSP.
+status request an S2N_CLIENT should make during the handshake. The only
+supported status request type is OCSP, **S2N_STATUS_REQUEST_OCSP**.
 
 ## Opaque structures
 
-s2n defines two opaque structures that are used for managed objects. These
-structures are opaque and can only be safely referenced indirectly through
-pointers. 
+s2n defines two opaque structures that are used for managed objects. Because
+these structures are opaque, they can only be safely referenced indirectly through
+pointers and their sizes may change with future versions of s2n.
 
     struct s2n_config;
     struct s2n_connection;
@@ -175,7 +184,7 @@ s2n functions that return 'int' return 0 to indicate success and -1 to indicate
 failure. s2n functions that return pointer types return NULL in the case of
 failure. When an s2n function returns a failure, s2n_errno will be set to a value
 corresponding to the error. This error value can be translated into a string 
-explaining the error by calling s2n_strerror(s2n_errno, "EN"); 
+explaining the error in English by calling s2n_strerror(s2n_errno, "EN"); 
 
 ## Initialization and teardown
 
