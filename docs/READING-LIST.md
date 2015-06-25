@@ -3,7 +3,7 @@
 
 ## Books
 
-* [Bulletproof SSL and TLS](http://www.amazon.com/Bulletproof-SSL-TLS-Understanding-Applications/dp/1907117040/) - great book by Ivan Ristic. If you buy one book about SSL/TLS, buy this one.
+* [Bulletproof SSL and TLS](http://www.amazon.com/Bulletproof-SSL-TLS-Understanding-Applications/dp/1907117040/) - great book by Ivan Ristic.
 * [Implementing SSL / TLS using Cryptography and PKI](http://www.amazon.com/Implementing-SSL-TLS-Using-Cryptography/dp/0470920416/) - by Joshua Davies.
 * [Introduction to Modern Cryptography, 2nd ed](http://www.amazon.com/Introduction-Cryptography-Chapman-Network-Security/dp/1466570261/) - Katz and Lindell
 
