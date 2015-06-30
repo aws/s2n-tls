@@ -241,7 +241,7 @@ when that thread or process is done calling other s2n functions.
 ### s2n\_config\_new
 
 ```c
-struct s2n_config * s2n_config_new()
+struct s2n_config * s2n_config_new();
 ```
 
 **s2n_config_new** returns a new configuration object suitable for associating certs and keys.
@@ -250,7 +250,7 @@ This object can (and should) be associated with many connection objects.
 ### s2n\_config\_free
 
 ```c
-struct int s2n_config_free(struct s2n_config *config)
+struct int s2n_config_free(struct s2n_config *config);
 ```
 
 **s2n_config_free** frees the memory associated with an **s2n_config** object.
@@ -259,7 +259,7 @@ struct int s2n_config_free(struct s2n_config *config)
 
 ```c
 int s2n_config_set_cipher_preferences(struct s2n_config *config,
-                                      const char *version)
+                                      const char *version);
 ```
 
 **s2n_config_set_cipher_preferences** sets the ciphersuite and protocol versions. The currently supported versions are;
@@ -305,7 +305,7 @@ int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config,
                                                   char *cert_chain_pem, 
                                                   char *private_key_pem,
                                                   const uint8_t *status,
-                                                  uint32_t length)
+                                                  uint32_t length);
 ```
 
 **s2n_config_add_cert_chain_and_key_with_status** performs the same function
@@ -318,7 +318,7 @@ msssage.
 
 ```c
 int s2n_config_add_dhparams(struct s2n_config *config, 
-                            char *dhparams_pem)
+                            char *dhparams_pem);
 ```
 
 **s2n_config_add_dhparams** associates a set of Diffie-Hellman parameters with
@@ -329,7 +329,7 @@ an **s2n_config** object. **dhparams_pem** should be PEM encoded DH parameters.
 ```c
 int s2n_config_set_protocol_preferences(struct s2n_config *config,
                                         const char **protocols,
-                                        int protocol_count)
+                                        int protocol_count);
 ```
 
 **s2n_config_set_protocol_preferences** sets the application protocol
@@ -384,9 +384,9 @@ connection.
 
 ```c
 int s2n_connection_set_fd(struct s2n_connection *conn, 
-                          int readfd)
+                          int readfd);
 int s2n_connection_set_read_fd(struct s2n_connection *conn, 
-                               int readfd)
+                               int readfd);
 int s2n_connection_set_write_fd(struct s2n_connection *conn, 
                                 int writefd);
 ```
@@ -469,7 +469,7 @@ Each version number value corresponds to the macros defined as **S2N_SSLv2**,
 ### s2n\_get\_application\_protocol
 
 ```c
-const char *s2n_get_application_protocol(struct s2n_connection *conn)
+const char *s2n_get_application_protocol(struct s2n_connection *conn);
 ```
 
 **s2n_get_application_protocol** returns the negotiated application protocol
@@ -479,7 +479,7 @@ is returned.
 ### s2n\_connection\_get\_ocsp\_response
 
 ```c
-const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uint32_t *length)
+const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uint32_t *length);
 ```
 
 **s2n_connection_get_ocsp_response** returns the OCSP response sent by a server
@@ -499,7 +499,7 @@ TLS alerts fatal and shuts down a connection whenever one is received.
 
 ```c
 const char * s2n_connection_get_cipher(struct s2n_connection *conn);
-```c
+```
 
 **s2n_connection_get_cipher** returns a string indicating the cipher suite
 negotiated by s2n for a connection, e.g. "TLS\_RSA\_WITH\_AES\_128\_CBC\_SHA".
