@@ -311,8 +311,8 @@ int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config,
 **s2n_config_add_cert_chain_and_key_with_status** performs the same function
 as s2n_config_add_cert_chain_and_key, and associates an OCSP status response
 with the server certificate.  If a client requests the OCSP status of the server
-certificate, this is the response used in the CertificateStatus handsake
-msssage.
+certificate, this is the response used in the CertificateStatus handshake
+message.
 
 ### s2n\_config\_add\_dhparams
 
