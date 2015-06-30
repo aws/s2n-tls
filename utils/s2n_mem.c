@@ -38,10 +38,11 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
         return 0;
     }
 
-    b->data = realloc(b->data, size);
-    if (b->data == NULL) {
+    uint8_t *data = realloc(b->data, size);
+    if (data == NULL) {
         S2N_ERROR(S2N_ERR_REALLOC);
     }
+    b->data = data;
     if (mlock(b->data, size) < 0) {
         GUARD(s2n_free(b));
         S2N_ERROR(S2N_ERR_MLOCK);
