@@ -113,10 +113,6 @@ int s2n_server_recv_alpn(struct s2n_connection *conn, struct s2n_stuffer *extens
 
     uint8_t protocol_len;
     GUARD(s2n_stuffer_read_uint8(extension, &protocol_len));
-    if (protocol_len > sizeof(conn->application_protocol) - 1) {
-        /* ignore invalid extension size */
-        return 0;
-    }
 
     uint8_t *protocol = s2n_stuffer_raw_read(extension, protocol_len);
     notnull_check(protocol);
