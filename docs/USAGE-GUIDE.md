@@ -25,8 +25,7 @@ tar -xzvf libressl-x.y.z.tar.gz
 # Build LibreSSL's libcrypto
 cd libressl-x.y.z
 ./configure --prefix=`pwd`/../../libcrypto-root/
-make
-make install
+make CFLAGS=-fPIC install
 
 # Make to the main s2n directory
 cd ../../
