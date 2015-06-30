@@ -19,6 +19,7 @@
 * [TLS extensions](https://tools.ietf.org/html/rfc6066)
 * [Application-Layer Protocol Negotiation Extension](https://tools.ietf.org/html/rfc7301)
 * [TLS 1.3 draft specification](https://github.com/tlswg/tls13-spec)
+* [SSLv3 is deprecated](https://tools.ietf.org/html/rfc7568)
 
 ## ASN.1 and X509
 
