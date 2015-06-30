@@ -31,7 +31,7 @@ static int s2n_cbc_cipher_aes_encrypt(struct s2n_session_key *key, struct s2n_bl
     }
 
     int len = out->size;
-    if (EVP_EncryptUpdate(&key->native_format.evp_cipher_ctx, out->data, &len, in->data, in->size) == 0) {;
+    if (EVP_EncryptUpdate(&key->native_format.evp_cipher_ctx, out->data, &len, in->data, in->size) == 0) {
         S2N_ERROR(S2N_ERR_ENCRYPT);
     }
 
