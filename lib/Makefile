@@ -29,7 +29,7 @@ libs2n.a: ${OBJS}
 	ranlib libs2n.a
 
 libs2n.so: ${OBJS}
-	gcc -shared ${LIBS} -o libs2n.so ${OBJS}
+	${CC} -shared ${LIBS} -o libs2n.so ${OBJS}
 
 libs2n.dylib: ${OBJS}
 	test ! -f /usr/lib/libSystem.dylib || libtool -dynamic ${LIBS} -o libs2n.dylib ${OBJS}
