@@ -52,6 +52,7 @@ cd libcrypto-build
 git clone https://boringssl.googlesource.com/boringssl
     
 # Build BoringSSL
+cd boringssl
 mkdir build
 cd build
 cmake -DCMAKE_C_FLAGS="-fPIC" ../
