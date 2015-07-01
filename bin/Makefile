@@ -19,7 +19,7 @@ include ../s2n.mk
 ifeq ($(shell uname),Darwin)
     LIBS = 
 else
-    LIBS = -ldl -lrt -lpthread
+    LIBS = -ldl -lrt -lpthread -lcrypto
 endif
 
 LDFLAGS += -L../lib/ -ls2n ${LIBS}
