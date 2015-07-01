@@ -18,6 +18,7 @@ OBJS=$(SRCS:.c=.o)
 TESTS=$(SRCS:.c=)
 VALGRIND_TESTS=$(SRCS:.c=_valgrind)
 
+.PHONY : all
 all: $(TESTS)
 
 include ../../s2n.mk
@@ -39,5 +40,6 @@ $(TESTS)::
 	@${CC} ${CFLAGS} -o $@ $@.c ${LDFLAGS} 2>&1
 	@DYLD_LIBRARY_PATH="../../lib/:../testlib/:$$DYLD_LIBRARY_PATH" LD_LIBRARY_PATH="../../lib/:../testlib/:$$LD_LIBRARY_PATH" ./$@
 
+.PHONY : valgrind
 valgrind: $(TESTS)
 	(for test in *_test ; do DYLD_LIBRARY_PATH="../../lib/:../testlib/:$$DYLD_LIBRARY_PATH" LD_LIBRARY_PATH="../../lib/:../testlib/:$$LD_LIBRARY_PATH" valgrind --leak-check=full --run-libc-freeres=no -q --error-exitcode=0 --gen-suppressions=all --log-fd=2 --num-callers=40 --leak-resolution=high --log-file=$$test-valgrind.log --undef-value-errors=no --trace-children=yes ./$$test; done )
