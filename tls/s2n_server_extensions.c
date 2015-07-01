@@ -30,6 +30,7 @@
 
 static int s2n_recv_server_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_server_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_recv_server_sct_list(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
@@ -48,6 +49,9 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     }
     if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC) {
         total_size += 6;
+    }
+    if (s2n_server_can_send_sct_list(conn)) {
+        total_size += 4 + conn->config->cert_and_key_pairs->sct_list.size;
     }
 
     if (total_size == 0) {
@@ -97,6 +101,14 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint16(out, 0));
     }
 
+    /* Write Signed Certificate Timestamp extension */
+    if (s2n_server_can_send_sct_list(conn)) {
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SCT_LIST));
+        GUARD(s2n_stuffer_write_uint16(out, conn->config->cert_and_key_pairs->sct_list.size));
+        GUARD(s2n_stuffer_write_bytes(out, conn->config->cert_and_key_pairs->sct_list.data,
+                                      conn->config->cert_and_key_pairs->sct_list.size));
+    }
+
     return 0;
 }
 
@@ -129,6 +141,9 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
         case TLS_EXTENSION_STATUS_REQUEST:
             GUARD(s2n_recv_server_status_request(conn, &extension));
             break;
+        case TLS_EXTENSION_SCT_LIST:
+            GUARD(s2n_recv_server_sct_list(conn, &extension));
+            break;
         }
     }
 
@@ -160,6 +175,21 @@ int s2n_recv_server_alpn(struct s2n_connection *conn, struct s2n_stuffer *extens
 int s2n_recv_server_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     conn->status_type = S2N_STATUS_REQUEST_OCSP;
+
+    return 0;
+}
+
+int s2n_recv_server_sct_list(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    struct s2n_blob sct_list = { .data = NULL, .size = 0 };
+
+    sct_list.size = s2n_stuffer_data_available(extension);
+    sct_list.data = s2n_stuffer_raw_read(extension, sct_list.size);
+    notnull_check(sct_list.data);
+
+    GUARD(s2n_alloc(&conn->ct_response, sct_list.size));
+    memcpy_check(conn->ct_response.data, sct_list.data, sct_list.size);
+    conn->ct_response.size = sct_list.size;
 
     return 0;
 }

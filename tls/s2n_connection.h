@@ -174,6 +174,10 @@ struct s2n_connection {
     /* OCSP stapling response data */
     s2n_status_request_type status_type;
     struct s2n_blob status_response;
+
+    /* Certificate Transparency response data */
+    s2n_ct_support_level ct_level_requested;
+    struct s2n_blob ct_response;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);

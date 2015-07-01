@@ -219,6 +219,10 @@ int cache_delete(void *ctx, const void *key, uint64_t key_size)
     return 0;
 }
 
+static uint8_t sct_list[] = {
+    0xff, 0xff, 0xff, 0xff, // bogus test data
+};
+
 extern int echo(struct s2n_connection *conn, int sockfd);
 extern int negotiate(struct s2n_connection *conn);
 
@@ -248,6 +252,8 @@ int main(int argc, char *const *argv)
 {
     struct addrinfo hints, *ai;
     int r, sockfd = 0;
+    s2n_tls_extension sct_ext = { .type = S2N_EXTENSION_CERTIFICATE_TRANSPARENCY,
+                                  .length = sizeof(sct_list), .data = sct_list };
 
     /* required args */
     const char *host = NULL;
@@ -370,7 +376,8 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    if (s2n_config_add_cert_chain_and_key(config, certificate_chain, private_key) < 0) {
+    if (s2n_config_add_cert_chain_and_key_with_extensions(config, certificate_chain, private_key,
+                                                          &sct_ext, 1) < 0) {
         fprintf(stderr, "Error getting certificate/key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
     }

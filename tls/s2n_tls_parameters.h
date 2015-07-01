@@ -57,6 +57,7 @@
 #define TLS_EXTENSION_EC_POINT_FORMATS     11
 #define TLS_EXTENSION_SIGNATURE_ALGORITHMS 13
 #define TLS_EXTENSION_ALPN                 16
+#define TLS_EXTENSION_SCT_LIST             18
 #define TLS_EXTENSION_RENEGOTIATION_INFO   65281
 
 /* TLS Signature Algorithms - RFC 5246 7.4.1.4.1*/
@@ -100,7 +101,7 @@
 /* The maximum size of an SSL2 message is 2^14 - 1, as neither of the first two
  * bits in the length field are usable. Per;
  * http://www-archive.mozilla.org/projects/security/pki/nss/ssl/draft02.html
- * section 1.1 
+ * section 1.1
  */
 #define S2N_SSL2_RECORD_HEADER_LENGTH   2
 #define S2N_SSL2_MAXIMUM_MESSAGE_LENGTH 16383

@@ -253,6 +253,7 @@ struct s2n_config *s2n_config_new(void)
     new_config->cache_retrieve_data = NULL;
     new_config->cache_delete = NULL;
     new_config->cache_delete_data = NULL;
+    new_config->ct_type = S2N_CT_SUPPORT_NONE;
 
     GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default"));
 
@@ -283,6 +284,7 @@ int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
         }
         GUARD(s2n_rsa_private_key_free(&config->cert_and_key_pairs->private_key));
         GUARD(s2n_free(&config->cert_and_key_pairs->ocsp_status));
+        GUARD(s2n_free(&config->cert_and_key_pairs->sct_list));
     }
 
     GUARD(s2n_free(&b));
@@ -361,6 +363,14 @@ int s2n_config_set_protocol_preferences(struct s2n_config *config, const char *c
     return 0;
 }
 
+int s2n_config_set_ct_support_level(struct s2n_config *config, s2n_ct_support_level type)
+{
+    config->ct_type = type;
+
+    return 0;
+}
+
+
 int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_request_type type)
 {
     config->status_request_type = type;
@@ -370,15 +380,37 @@ int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_req
 
 int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem, const uint8_t * status, uint32_t length)
 {
+    struct s2n_blob ocsp_copy;
+
+    /* copy status to workaround the const declaration */
+    GUARD(s2n_alloc(&ocsp_copy, length));
+    memcpy_check(ocsp_copy.data, status, length);
+
+    s2n_tls_extension ocsp_extension = { .type = S2N_EXTENSION_OCSP_STAPLING,
+                                         .data = ocsp_copy.data, .length = length };
+    GUARD(s2n_config_add_cert_chain_and_key_with_extensions(config, cert_chain_pem, private_key_pem,
+                                                            &ocsp_extension, 1));
+
+    GUARD(s2n_free(&ocsp_copy));
+
+    return 0;
+}
+
+int s2n_config_add_cert_chain_and_key_with_extensions(struct s2n_config *config, const char *cert_chain_pem,
+        const char *private_key_pem, s2n_tls_extension *extensions, uint16_t num_extensions)
+{
     struct s2n_stuffer chain_in_stuffer, cert_out_stuffer, key_in_stuffer, key_out_stuffer;
     struct s2n_blob key_blob;
     struct s2n_blob mem;
+    int have_sct = 0, have_ocsp = 0;
 
     /* Allocate the memory for the chain and key struct */
     GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert_chain_and_key)));
     config->cert_and_key_pairs = (struct s2n_cert_chain_and_key *)(void *)mem.data;
     config->cert_and_key_pairs->ocsp_status.data = NULL;
     config->cert_and_key_pairs->ocsp_status.size = 0;
+    config->cert_and_key_pairs->sct_list.data = NULL;
+    config->cert_and_key_pairs->sct_list.size = 0;
 
     /* Put the private key pem in a stuffer */
     GUARD(s2n_stuffer_alloc_ro_from_string(&key_in_stuffer, private_key_pem));
@@ -427,9 +459,37 @@ int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config, con
 
     config->cert_and_key_pairs->chain_size = chain_size;
 
-    if (status && length > 0) {
-        GUARD(s2n_alloc(&config->cert_and_key_pairs->ocsp_status, length));
-        memcpy_check(config->cert_and_key_pairs->ocsp_status.data, status, length);
+    for (uint16_t ext_idx = 0; ext_idx < num_extensions; ext_idx++) {
+        switch (extensions[ext_idx].type) {
+            case S2N_EXTENSION_CERTIFICATE_TRANSPARENCY: {
+                if (have_sct) {
+                    S2N_ERROR(S2N_ERR_INVALID_SCT_LIST);
+                } else {
+                    if (extensions[ext_idx].data && extensions[ext_idx].length > 0) {
+                        have_sct = 1;
+                        GUARD(s2n_alloc(&config->cert_and_key_pairs->sct_list, extensions[ext_idx].length));
+                        memcpy_check(config->cert_and_key_pairs->sct_list.data, extensions[ext_idx].data, extensions[ext_idx].length);
+                    } else {
+                       S2N_ERROR(S2N_ERR_INVALID_SCT_LIST);
+                   }
+                }
+            } break;
+            case S2N_EXTENSION_OCSP_STAPLING: {
+                if (have_ocsp) {
+                    S2N_ERROR(S2N_ERR_INVALID_OCSP_RESPONSE);
+                } else {
+                    if (extensions[ext_idx].data && extensions[ext_idx].length > 0) {
+                        have_ocsp = 1;
+                        GUARD(s2n_alloc(&config->cert_and_key_pairs->ocsp_status, extensions[ext_idx].length));
+                        memcpy_check(config->cert_and_key_pairs->ocsp_status.data, extensions[ext_idx].data, extensions[ext_idx].length);
+                    } else {
+                        S2N_ERROR(S2N_ERR_INVALID_OCSP_RESPONSE);
+                    }
+                }
+            } break;
+            default:
+                S2N_ERROR(S2N_ERR_UNRECOGNIZED_EXTENSION);
+        }
     }
 
     /* Validate the leaf cert's public key matches the provided private key */
@@ -447,7 +507,8 @@ int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config, con
 
 int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem)
 {
-    GUARD(s2n_config_add_cert_chain_and_key_with_status(config, cert_chain_pem, private_key_pem, NULL, 0));
+    GUARD(s2n_config_add_cert_chain_and_key_with_extensions(config, cert_chain_pem, private_key_pem,
+                                                            NULL, 0));
 
     return 0;
 }

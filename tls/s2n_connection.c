@@ -142,6 +142,8 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
     GUARD(s2n_ecc_params_free(&conn->secure.server_ecc_params));
 
+    GUARD(s2n_free(&conn->ct_response));
+
     return 0;
 }
 
@@ -614,7 +616,7 @@ int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
     notnull_check(conn->send);
     /* Make sure we even have the data */
     GUARD(s2n_stuffer_skip_read(stuffer, len));
-    
+
     /* "undo" the skip read */
     stuffer->read_cursor -= len;
 
@@ -636,4 +638,14 @@ int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection)
 {
     return (s2n_connection->managed_io && s2n_connection->corked_io);
+}
+
+const uint8_t *s2n_connection_get_sct_list(struct s2n_connection *conn, uint32_t *length)
+{
+    if (!length) {
+        return NULL;
+    }
+
+    *length = conn->ct_response.size;
+    return conn->ct_response.data;
 }

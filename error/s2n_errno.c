@@ -114,6 +114,9 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_INITIAL_HMAC, "error calling EVP_CIPHER_CTX_ctrl for composite cbc cipher"},
     {S2N_ERR_RECORD_LIMIT, "TLS record limit reached"},
     {S2N_ERR_CORK_SET_ON_UNMANAGED, "Attempt to set connection cork management on unmanaged IO"},
+    {S2N_ERR_UNRECOGNIZED_EXTENSION, "TLS extension not recognized" },
+    {S2N_ERR_INVALID_SCT_LIST, "SCT list is invalid" },
+    {S2N_ERR_INVALID_OCSP_RESPONSE, "OCSP response is invalid" },
 };
 
 const char *s2n_strerror(int error, const char *lang)

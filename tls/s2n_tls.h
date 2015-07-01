@@ -59,3 +59,8 @@ extern int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_bl
 #define s2n_server_can_send_ocsp(conn) ((conn)->status_type == S2N_STATUS_REQUEST_OCSP && \
         (conn)->config->cert_and_key_pairs && \
         (conn)->config->cert_and_key_pairs->ocsp_status.size > 0)
+
+#define s2n_server_can_send_sct_list(conn) ((conn)->ct_level_requested == S2N_CT_SUPPORT_REQUEST && \
+        (conn)->config->cert_and_key_pairs && \
+        (conn)->config->cert_and_key_pairs->sct_list.size > 0)
+

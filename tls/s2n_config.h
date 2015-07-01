@@ -33,6 +33,7 @@ struct s2n_cert_chain_and_key {
     struct s2n_cert_chain *head;
     struct s2n_rsa_private_key private_key;
     struct s2n_blob ocsp_status;
+    struct s2n_blob sct_list;
     char server_name[S2N_MAX_SERVER_NAME];
 };
 
@@ -54,6 +55,7 @@ struct s2n_config {
 
     int (*cache_delete) (void *data, const void *key, uint64_t key_size);
     void *cache_delete_data;
+    s2n_ct_support_level ct_type;
 };
 
 extern struct s2n_config s2n_default_config;

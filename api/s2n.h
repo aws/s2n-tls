@@ -59,7 +59,18 @@ extern int s2n_config_set_cache_store_callback(struct s2n_config *config, int (*
 extern int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, int (*cache_retrieve)(void *, const void *key, uint64_t key_size, void *value, uint64_t *value_size), void *data);
 extern int s2n_config_set_cache_delete_callback(struct s2n_config *config, int (*cache_delete)(void *, const void *key, uint64_t key_size), void *data);
 
+typedef enum { S2N_EXTENSION_OCSP_STAPLING, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY } s2n_tls_extension_type;
+
+typedef struct {
+  s2n_tls_extension_type type;
+  uint8_t *data;
+  uint32_t length;
+} s2n_tls_extension;
+
+extern int s2n_config_add_cert_chain_and_key_with_extensions(struct s2n_config *config, const char *cert_chain_pem,
+        const char *private_key_pem, s2n_tls_extension *extensions, uint16_t num_extensions);
 extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem);
+
 extern int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config,
         const char *cert_chain_pem, const char *private_key_pem, const uint8_t *status, uint32_t length);
 extern int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem);
@@ -67,6 +78,8 @@ extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const ch
 extern int s2n_config_set_protocol_preferences(struct s2n_config *config, const char * const *protocols, int protocol_count);
 typedef enum { S2N_STATUS_REQUEST_NONE = 0, S2N_STATUS_REQUEST_OCSP = 1 } s2n_status_request_type;
 extern int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_request_type type);
+typedef enum { S2N_CT_SUPPORT_NONE = 0, S2N_CT_SUPPORT_REQUEST = 1 } s2n_ct_support_level;
+extern int s2n_config_set_ct_support_level(struct s2n_config *config, s2n_ct_support_level level);
 
 struct s2n_connection;
 typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
@@ -96,6 +109,7 @@ extern int s2n_set_server_name(struct s2n_connection *conn, const char *server_n
 extern const char *s2n_get_server_name(struct s2n_connection *conn);
 extern const char *s2n_get_application_protocol(struct s2n_connection *conn);
 extern const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uint32_t *length);
+extern const uint8_t *s2n_connection_get_sct_list(struct s2n_connection *conn, uint32_t *length);
 
 typedef enum { S2N_NOT_BLOCKED = 0, S2N_BLOCKED_ON_READ, S2N_BLOCKED_ON_WRITE } s2n_blocked_status;
 extern int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked);

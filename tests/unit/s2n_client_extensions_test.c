@@ -46,6 +46,15 @@ static uint8_t server_ocsp_status[] = {
     0xc0, 0xa3, 0x29, 0x11, 0x61, 0x0b, 0x65, 0xdb, 0x14, 0x79, 0xb1, 0x7d, 0x8a, 0x57, 0x91, 0x59, 0xa4, 0xfc, 0x4c, 0x60, 0x4f, 0x3c, 0xc8, 0x31, 0x9b, 0x69, 0x70, 0xb9, 0xae, 0xed, 0xb1, 0xde, 0x58, 0x8d, 0x62, 0x30, 0xb4, 0x7b, 0x46, 0xf2, 0xda, 0x7b, 0xbb, 0x72, 0xcf, 0xf0, 0x47, 0x8b, 0x84,
 };
 
+/* This data format is bogus, but sufficient to test the server is able
+   to return correctly what has been configured.  Once the client does
+   validation we will need real data here.
+ */
+static uint8_t sct_list[] = {
+    0xff, 0xff, 0xff, 0xff, 0xff
+};
+
+
 static char certificate[] =
     "-----BEGIN CERTIFICATE-----\n"
     "MIIDLjCCAhYCCQDL1lr6N8/gvzANBgkqhkiG9w0BAQUFADBZMQswCQYDVQQGEwJB\n"
@@ -735,6 +744,224 @@ int main(int argc, char **argv)
            EXPECT_SUCCESS(close(server_to_client[i]));
            EXPECT_SUCCESS(close(client_to_server[i]));
         }
+    }
+
+    /* Client does not request SCT, but server is configured to serve them. */
+    {
+        struct s2n_connection *client_conn;
+        struct s2n_connection *server_conn;
+        struct s2n_config *server_config;
+        int server_to_client[2];
+        int client_to_server[2];
+
+        s2n_tls_extension sct_ext = { .type = S2N_EXTENSION_CERTIFICATE_TRANSPARENCY,
+                                      .length = sizeof(sct_list), .data = sct_list };
+        uint32_t length;
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(pipe(server_to_client));
+        EXPECT_SUCCESS(pipe(client_to_server));
+        for (int i = 0; i < 2; i++) {
+            EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
+            EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
+        }
+
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        client_conn->actual_protocol_version = S2N_TLS12;
+        client_conn->server_protocol_version = S2N_TLS12;
+        client_conn->client_protocol_version = S2N_TLS12;
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
+
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        server_conn->actual_protocol_version = S2N_TLS12;
+        server_conn->server_protocol_version = S2N_TLS12;
+        server_conn->client_protocol_version = S2N_TLS12;
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
+
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_with_extensions(server_config, certificate, private_key,
+                                                                         &sct_ext, 1));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* Verify that the client did *not* receive an SCT list */
+        EXPECT_NULL(s2n_connection_get_sct_list(client_conn, &length));
+        EXPECT_EQUAL(length, 0);
+
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+        for (int i = 0; i < 2; i++) {
+            EXPECT_SUCCESS(close(server_to_client[i]));
+            EXPECT_SUCCESS(close(client_to_server[i]));
+        }
+    }
+
+    /* Client requests SCT and server does have it. */
+    {
+        struct s2n_connection *client_conn;
+        struct s2n_connection *server_conn;
+        struct s2n_config *client_config;
+        struct s2n_config *server_config;
+        int server_to_client[2];
+        int client_to_server[2];
+
+        s2n_tls_extension sct_ext = { .type = S2N_EXTENSION_CERTIFICATE_TRANSPARENCY,
+                                      .length = sizeof(sct_list), .data = sct_list };
+        uint32_t length;
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(pipe(server_to_client));
+        EXPECT_SUCCESS(pipe(client_to_server));
+        for (int i = 0; i < 2; i++) {
+            EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
+            EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
+        }
+
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        client_conn->actual_protocol_version = S2N_TLS12;
+        client_conn->server_protocol_version = S2N_TLS12;
+        client_conn->client_protocol_version = S2N_TLS12;
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
+
+        /* Indicate that the client wants CT if available */
+        EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_ct_support_level(client_config, S2N_CT_SUPPORT_REQUEST));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        server_conn->actual_protocol_version = S2N_TLS12;
+        server_conn->server_protocol_version = S2N_TLS12;
+        server_conn->client_protocol_version = S2N_TLS12;
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
+
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_with_extensions(server_config, certificate, private_key,
+                                                                         &sct_ext, 1));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* Verify that the client did receive an SCT list */
+        EXPECT_NOT_NULL(s2n_connection_get_sct_list(client_conn, &length));
+        EXPECT_EQUAL(length, sizeof(sct_list));
+
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+        for (int i = 0; i < 2; i++) {
+            EXPECT_SUCCESS(close(server_to_client[i]));
+            EXPECT_SUCCESS(close(client_to_server[i]));
+        }
+    }
+
+    /* Client requests SCT and server does *not* have it. */
+    {
+        struct s2n_connection *client_conn;
+        struct s2n_connection *server_conn;
+        struct s2n_config *client_config;
+        struct s2n_config *server_config;
+        int server_to_client[2];
+        int client_to_server[2];
+
+        uint32_t length;
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(pipe(server_to_client));
+        EXPECT_SUCCESS(pipe(client_to_server));
+        for (int i = 0; i < 2; i++) {
+            EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
+            EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
+        }
+
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        client_conn->actual_protocol_version = S2N_TLS12;
+        client_conn->server_protocol_version = S2N_TLS12;
+        client_conn->client_protocol_version = S2N_TLS12;
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
+
+        /* Indicate that the client wants CT if available */
+        EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_ct_support_level(client_config, S2N_CT_SUPPORT_REQUEST));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        server_conn->actual_protocol_version = S2N_TLS12;
+        server_conn->server_protocol_version = S2N_TLS12;
+        server_conn->client_protocol_version = S2N_TLS12;
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
+
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, certificate, private_key));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* Verify that the client does not get a list */
+        EXPECT_NULL(s2n_connection_get_sct_list(client_conn, &length));
+        EXPECT_EQUAL(length, 0);
+
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+        for (int i = 0; i < 2; i++) {
+            EXPECT_SUCCESS(close(server_to_client[i]));
+            EXPECT_SUCCESS(close(client_to_server[i]));
+        }
+    }
+
+    /* Client provides bad SCT list */
+    {
+        struct s2n_config *server_config;
+        s2n_tls_extension sct_ext = { .type = S2N_EXTENSION_CERTIFICATE_TRANSPARENCY,
+                                      .length = 0, .data = NULL };
+
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_FAILURE(s2n_config_add_cert_chain_and_key_with_extensions(server_config, certificate, private_key,
+                                                                         &sct_ext, 1));
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+    }
+
+    /* Client provides bad OCSP response */
+    {
+        struct s2n_config *server_config;
+        s2n_tls_extension ocsp_ext = { .type = S2N_EXTENSION_OCSP_STAPLING,
+                                       .length = 0, .data = NULL };
+
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_FAILURE(s2n_config_add_cert_chain_and_key_with_extensions(server_config, certificate, private_key,
+                                                                         &ocsp_ext, 1));
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+    }
+
+    /* Client provides duplicate SCT list */
+    {
+        struct s2n_config *server_config;
+        s2n_tls_extension sct_ext[] = {
+            { .type = S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, .length = sizeof(sct_list), .data = sct_list },
+            { .type = S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, .length = sizeof(sct_list), .data = sct_list },
+        };
+
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_FAILURE(s2n_config_add_cert_chain_and_key_with_extensions(server_config, certificate, private_key,
+                                                                         sct_ext, 2));
+        EXPECT_SUCCESS(s2n_config_free(server_config));
     }
 
     END_TEST();

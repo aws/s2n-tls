@@ -34,6 +34,7 @@ static int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2
 static int s2n_recv_client_elliptic_curves(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_ec_point_formats(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_recv_client_sct_list(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
@@ -55,6 +56,9 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     }
     if (conn->config->status_request_type != S2N_STATUS_REQUEST_NONE) {
         total_size += 9;
+    }
+    if (conn->config->ct_type != S2N_CT_SUPPORT_NONE) {
+        total_size += 4;
     }
 
     /* Write ECC extensions: Supported Curves and Supported Point Formats */
@@ -113,6 +117,12 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint16(out, 5));
         GUARD(s2n_stuffer_write_uint8(out, (uint8_t) conn->config->status_request_type));
         GUARD(s2n_stuffer_write_uint16(out, 0));
+        GUARD(s2n_stuffer_write_uint16(out, 0));
+    }
+
+    /* Write Certificate Transparency extension */
+    if (conn->config->ct_type != S2N_CT_SUPPORT_NONE) {
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SCT_LIST));
         GUARD(s2n_stuffer_write_uint16(out, 0));
     }
 
@@ -185,6 +195,9 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
             break;
         case TLS_EXTENSION_RENEGOTIATION_INFO:
             GUARD(s2n_recv_client_renegotiation_info(conn, &extension));
+            break;
+        case TLS_EXTENSION_SCT_LIST:
+            GUARD(s2n_recv_client_sct_list(conn, &extension));
             break;
         }
     }
@@ -402,5 +415,11 @@ static int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struc
     }
 
     conn->secure_renegotiation = 1;
+    return 0;
+}
+
+static int s2n_recv_client_sct_list(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    conn->ct_level_requested = S2N_CT_SUPPORT_REQUEST;
     return 0;
 }

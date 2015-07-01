@@ -387,8 +387,8 @@ s2n does not expose an API to control the order of preference for each ciphersui
 
 ```c
 int s2n_config_add_cert_chain_and_key(struct s2n_config *config, 
-                                      char *cert_chain_pem, 
-                                      char *private_key_pem);
+                                      const char *cert_chain_pem,
+                                      const char *private_key_pem);
 ```
 
 **s2n_config_add_cert_chain_and_key** associates a certificate chain and a
@@ -399,21 +399,42 @@ certificate-chain/key pair may be associated with a config.
 certificate in the chain being your servers certificate. **private_key_pem**
 should be a PEM encoded private key corresponding to the server certificate.
 
-### s2n\_config\_add\_cert\_chain\_and\_key\_with\_status
+### s2n\_config\_add\_cert\_chain\_and\_key\_with\_extensions
 
 ```c
-int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config, 
-                                                  char *cert_chain_pem, 
-                                                  char *private_key_pem,
-                                                  const uint8_t *status,
-                                                  uint32_t length);
+int s2n_config_add_cert_chain_and_key_with_extensions(struct s2n_config *config,
+                                                      const char *cert_chain_pem,
+                                                      const char *private_key_pem,
+                                                      s2n_tls_extension *extensions,
+                                                      uint16_t num_extensions);
 ```
 
-**s2n_config_add_cert_chain_and_key_with_status** performs the same function
-as s2n_config_add_cert_chain_and_key, and associates an OCSP status response
-with the server certificate.  If a client requests the OCSP status of the server
+**s2n_config_add_cert_chain_and_key_with_extensions** performs the same function
+as s2n_config_add_cert_chain_and_key, and associates data for TLS extensions
+with the server certificate.
+
+`s2n_tls_extension` is defined as:
+
+    typedef enum { S2N_EXTENSION_OCSP_STAPLING,
+                   S2N_EXTENSION_CERTIFICATE_TRANSPARENCY } s2n_tls_extension_type;
+    typedef struct {
+      s2n_tls_extension_type type;
+      uint8_t *data;
+      uint32_t length;
+    } s2n_tls_extension;
+
+At this time the following extensions are supported:
+
+`S2N_EXTENSION_OCSP_STAPLING` - If a client requests the OCSP status of the server
 certificate, this is the response used in the CertificateStatus handshake
 message.
+
+`S2N_EXTENSION_CERTIFICATE_TRANSPARENCY` - If a client supports receiving SCTs
+via the TLS extension (section 3.3.1 of RFC6962) this data is returned within
+the extension response during the handshake.  The format of this data is the
+SignedCertificateTimestampList structure defined in that document.  See
+http://www.certificate-transparency.org/ for more information about Certificate
+Transparency.
 
 ### s2n\_config\_add\_dhparams
 
