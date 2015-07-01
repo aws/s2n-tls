@@ -71,7 +71,6 @@ extern const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *co
 extern int s2n_negotiate(struct s2n_connection *conn, int *more);
 extern ssize_t s2n_send(struct s2n_connection *conn, void *buf, ssize_t size, int *more);
 extern ssize_t s2n_recv(struct s2n_connection *conn,  void *buf, ssize_t size, int *more);
-extern int s2n_shutdown(struct s2n_connection *conn, int *more);
 
 extern int s2n_connection_wipe(struct s2n_connection *conn);
 extern int s2n_connection_free(struct s2n_connection *conn);
