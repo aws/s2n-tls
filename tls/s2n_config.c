@@ -98,7 +98,7 @@ struct s2n_config s2n_default_config = {
     .cipher_preferences = &cipher_preferences_20150306
 };
 
-struct s2n_config *s2n_config_new()
+struct s2n_config *s2n_config_new(void)
 {
     struct s2n_blob allocator;
     struct s2n_config *new_config;
