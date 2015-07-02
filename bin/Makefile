@@ -18,6 +18,8 @@ include ../s2n.mk
 
 ifeq ($(shell uname),Darwin)
     LIBS = 
+else ifeq ($(shell uname),FreeBSD)
+    LIBS = -lthr -lcrypto
 else
     LIBS = -ldl -lrt -lpthread
 endif

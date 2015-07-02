@@ -26,6 +26,8 @@ CRUFT += $(wildcard *_test)
 
 ifeq ($(shell uname),Darwin)
     LIBS = -lpthread -lm
+else ifeq ($(shell uname),FreeBSD)
+    LIBS = -lthr -lcrypto
 else
     LIBS = -lpthread -lm -ldl -lrt -lcrypto
 endif
