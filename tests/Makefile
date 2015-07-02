@@ -14,11 +14,11 @@
 #
 
 all:
-	make -C testlib
-	make -C unit
+	${MAKE} -C testlib
+	${MAKE} -C unit
 
 include ../s2n.mk
 
 clean:
-	make -C testlib decruft
-	make -C unit decruft
+	${MAKE} -C testlib decruft
+	${MAKE} -C unit decruft
