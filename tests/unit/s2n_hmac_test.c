@@ -105,7 +105,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hmac_init(&cmac, S2N_HMAC_MD5, longsekrit, strlen((char *)longsekrit)));
     EXPECT_SUCCESS(s2n_hmac_update(&cmac, hello, strlen((char *)hello)));
     EXPECT_SUCCESS(s2n_hmac_digest(&cmac, check_pad, 16));
-    EXPECT_SUCCESS(s2n_hmac_digest_verify(digest_pad, 16, check_pad, 16));
+    EXPECT_SUCCESS(s2n_hmac_digest_verify(digest_pad, check_pad, 16));
 
     /* Try SHA1 */
     EXPECT_EQUAL(s2n_hmac_digest_size(S2N_HMAC_SHA1), 20);
