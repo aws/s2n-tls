@@ -19,10 +19,10 @@ include ../s2n.mk
 ifeq ($(shell uname),Darwin)
     LIBS = 
 else
-    LIBS = -ldl -lrt -lpthread
+    LIBS = -ldl -lrt -lpthread -lssl
 endif
 
-LDFLAGS += -L../lib/ -ls2n ${LIBS}
+LDFLAGS += -L../lib -ls2n ${LIBS}
 CRUFT += s2nc s2nd
 
 s2nc: s2nc.c echo.c
