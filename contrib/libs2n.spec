@@ -32,10 +32,10 @@ make %{?_smp_mflags} libs
 
 %install
 [ "${RPM_BUILD_ROOT}" != "/" ] && rm -fr "${RPM_BUILD_ROOT}"
-install -D -m 0755 api/s2n.h ${RPM_BUILD_ROOT}%{_includedir}/s2n.h
+install -D -m 0644 api/s2n.h ${RPM_BUILD_ROOT}%{_includedir}/s2n.h
 install -D -m 0755 lib/libs2n.so ${RPM_BUILD_ROOT}%{_libdir}/libs2n.so
 install -D -m 0755 lib/libs2n.a ${RPM_BUILD_ROOT}%{_libdir}/libs2n.a
-install -D -m 0755 contrib/libs2n.pc ${RPM_BUILD_ROOT}%{_libdir}/pkgconfig/libs2n.pc
+install -D -m 0644 contrib/libs2n.pc ${RPM_BUILD_ROOT}%{_libdir}/pkgconfig/libs2n.pc
 
 %clean 
 [ "${RPM_BUILD_ROOT}" != "/" ] && rm -fr "${RPM_BUILD_ROOT}"
