@@ -1,0 +1,13 @@
+prefix=/usr
+exec_prefix=${prefix}
+libdir=/usr/lib64
+sharedlibdir=${libdir}
+includedir=/usr/include
+
+Name: libs2n
+Description: s2n is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.
+Version: 20150703
+
+Requires:
+Libs: -L${libdir} -L${sharedlibdir} -ls2n
+Cflags: -I${includedir}

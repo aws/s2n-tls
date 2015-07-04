@@ -53,3 +53,6 @@ clean:
 	make -C tls decruft
 	make -C bin decruft
 	make -C lib decruft
+
+rpm:
+	(cd ..; sh $(CURDIR)/contrib/buildrpm.sh $(CURDIR))
