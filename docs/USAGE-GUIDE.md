@@ -92,7 +92,7 @@ cd openssl-1.0.2
          -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS      \
          --prefix=`pwd`/../../libcrypto-root/
 make depend
-make -j 32
+make
 make install
 
 # Make to the main s2n directory
