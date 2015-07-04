@@ -3,6 +3,7 @@
 
 PROGRAM="libs2n"
 VERSION="20150703"
+OPENSSLVER="1.0.2"
 
 BUILDNAME="${PROGRAM}-${VERSION}"
 SPECFILE="${PROGRAM}.spec"
@@ -34,6 +35,22 @@ fi
 DIRNAME="`dirname $DIRECTORY`"
 BASENAME="`basename $DIRECTORY`"
 SPECFULL="${BASENAME}/contrib/${SPECFILE}"
+CRYPTODIR="${BASENAME}/libcrypto-build"
+
+# Build local copy of libcrypto.
+cd ${CRYPTODIR} || (echo "Failed to change to libcrypto-build directory"; exit 1)
+echo -e "\nDownloading and building local copy of latest OpenSSL ${OPENSSLVER}...\n"
+curl -q https://www.openssl.org/source/openssl-${OPENSSLVER}-latest.tar.gz > openssl-${OPENSSLVER}.tar.gz
+tar -xzvf openssl-${OPENSSLVER}.tar.gz
+cd `find -maxdepth 1 -name "openssl-${OPENSSLVER}*" -type d | head -1`
+./config -fPIC no-shared no-libunbound no-gmp no-jpake no-krb5        \
+	no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-store no-zlib     \
+	no-hw no-mdc2 no-seed no-idea enable-ec-nist_64_gcc_128 no-camellia\
+	no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng                  \
+	-DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS      \
+	--prefix=`pwd`/../../libcrypto-root/ &&                            \
+make depend && make &&                                                \
+make install || (echo "Failed to build OpenSSL ${OPENSSLVER}"; exit 1)
 
 # Move to base directory
 cd ${DIRNAME}
