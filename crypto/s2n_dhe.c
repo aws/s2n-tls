@@ -59,7 +59,6 @@ int s2n_check_all_dh_params(struct s2n_dh_params *dh_params)
         S2N_ERROR(S2N_ERR_DH_PARAMS_CREATE);
     }
 
-
     return 0;
 }
 
