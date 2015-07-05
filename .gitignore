@@ -1,0 +1,10 @@
+*.o
+*.a
+*.dylib
+*.so
+*~
+libcrypto-build/*
+libcrypto-root/*
+tests/unit/*_test
+bin/s2nc
+bin/s2nd
