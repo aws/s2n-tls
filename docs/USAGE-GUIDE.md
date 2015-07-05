@@ -19,7 +19,7 @@ To build s2n with LibreSSL, do the following:
 cd libcrypto-build
 
 # Download the latest version of LibreSSL
-curl http://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-x.y.z.tar.gz > libressl-x.y.z.tar.gz
+curl -O http://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-x.y.z.tar.gz
 tar -xzvf libressl-x.y.z.tar.gz
 
 # Build LibreSSL's libcrypto
