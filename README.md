@@ -91,3 +91,6 @@ If you package or distribute s2n, or use s2n as part of a large multi-user servi
 
 ## Contributing to s2n
 If you are interested in contributing to s2n, please see our [development guide](https://github.com/awslabs/s2n/blob/master/docs/DEVELOPMENT-GUIDE.md).
+
+## Language Bindings for s2n
+See our [language bindings list](https://github.com/awslabs/s2n/blob/master/docs/BINDINGS.md) for language bindings for s2n that we're aware of. 
