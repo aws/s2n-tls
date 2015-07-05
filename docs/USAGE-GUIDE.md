@@ -299,7 +299,7 @@ certificate-chain/key pair may be associated with a config.
 certificate in the chain being your servers certificate. **private_key_pem**
 should be a PEM encoded private key corresponding to the server certificate.
 
-### s2n\_config\_add\_cert\_chain\_\_and\_key\_with\_status
+### s2n\_config\_add\_cert\_chain\_and\_key\_with\_status
 
 ```c
 int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config, 
