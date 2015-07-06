@@ -13,10 +13,6 @@
  * permissions and limitations under the License.
  */
 
-/* Use usleep */
-#define _XOPEN_SOURCE 500
-#include <unistd.h>
-
 #include <errno.h>
 #include <s2n.h>
 
@@ -309,12 +305,7 @@ static int handshake_read_io(struct s2n_connection *conn)
         GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
         if (r < 0) {
-            if (conn->blinding == S2N_BUILT_IN_BLINDING) {
-                int delay;
-                GUARD(delay = s2n_connection_get_delay(conn));
-                GUARD(sleep(delay / 1000000));
-                GUARD(usleep(delay % 1000000));
-            }
+            GUARD(s2n_sleep_delay(conn));
 
             return r;
         }
