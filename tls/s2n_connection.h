@@ -133,3 +133,6 @@ struct s2n_connection {
     s2n_status_request_type status_type;
     struct s2n_blob status_response;
 };
+
+/* Sleep s2n_connection_get_delay() ammount of time */
+int s2n_sleep_delay(struct s2n_connection *conn);

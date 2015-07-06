@@ -13,6 +13,9 @@
  * permissions and limitations under the License.
  */
 
+#define _XOPEN_SOURCE 500       /* For usleep() */
+
+#include <unistd.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -349,6 +352,18 @@ int s2n_connection_get_delay(struct s2n_connection *conn)
     /* Delay between 1ms and 10 seconds in microseconds */
     int min = 1000, max = 10 * 1000 * 1000;
     return min + s2n_public_random(max - min);
+}
+
+int s2n_sleep_delay(struct s2n_connection *conn)
+{
+    if (conn->blinding == S2N_BUILT_IN_BLINDING) {
+        int delay;
+        GUARD(delay = s2n_connection_get_delay(conn));
+        GUARD(sleep(delay / 1000000));
+        GUARD(usleep(delay % 1000000));
+    }
+
+    return 0;
 }
 
 const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uint32_t *length)

@@ -98,13 +98,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
     if (s2n_record_parse(conn) < 0) {
         conn->closed = 1;
         GUARD(s2n_connection_wipe(conn));
-
-        if (conn->blinding == S2N_BUILT_IN_BLINDING) {
-            int delay;
-            GUARD(delay = s2n_connection_get_delay(conn)); 
-            GUARD(sleep(delay / 1000000));
-            GUARD(usleep(delay % 1000000));
-        }
+        GUARD(s2n_sleep_delay(conn));
 
         return -1;
     }
