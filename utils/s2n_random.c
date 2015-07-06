@@ -58,7 +58,7 @@ static __thread int *zero_if_forked_ptr;
 
 #endif
 
-static inline int s2n_check_fork()
+static inline int s2n_check_fork(void)
 {
     uint8_t s2n_public_drbg[] = "s2n public drbg";
     uint8_t s2n_private_drbg[] = "s2n private drbg";
@@ -156,12 +156,12 @@ int s2n_openssl_compat_rand(unsigned char *buf, int num)
     return 1;
 }
 
-int s2n_openssl_compat_status()
+int s2n_openssl_compat_status(void)
 {
     return 1;
 }
 
-int s2n_openssl_compat_init()
+int s2n_openssl_compat_init(ENGINE *unused)
 {
     return 1;
 }
@@ -176,7 +176,7 @@ RAND_METHOD s2n_openssl_rand_method = {
 };
 #endif
 
-int s2n_init()
+int s2n_init(void)
 {
     entropy_fd = open(ENTROPY_SOURCE, O_RDONLY);
     if (entropy_fd == -1) {
@@ -230,7 +230,7 @@ int s2n_init()
     return 0;
 }
 
-int s2n_cleanup()
+int s2n_cleanup(void)
 {
     if (entropy_fd == -1) {
         S2N_ERROR(S2N_ERR_NOT_INITIALIZED);

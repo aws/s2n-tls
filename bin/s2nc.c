@@ -153,9 +153,7 @@ int main(int argc, char * const *argv)
         exit(1);
     }
 
-    const char *error;
-
-    if (s2n_init(&error) < 0) {
+    if (s2n_init() < 0) {
         fprintf(stderr, "Error running s2n_init(): '%s'\n", s2n_strerror(s2n_errno, "EN"));
     }
 
@@ -267,7 +265,7 @@ int main(int argc, char * const *argv)
         exit(1);
     }
 
-    if (s2n_cleanup(&error) < 0) {
+    if (s2n_cleanup() < 0) {
         fprintf(stderr, "Error running s2n_cleanup(): '%s'\n", s2n_strerror(s2n_errno, "EN"));
     }
 
