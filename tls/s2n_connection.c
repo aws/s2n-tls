@@ -357,10 +357,23 @@ int s2n_connection_get_delay(struct s2n_connection *conn)
 int s2n_sleep_delay(struct s2n_connection *conn)
 {
     if (conn->blinding == S2N_BUILT_IN_BLINDING) {
-        int delay;
+        int delay, r;
         GUARD(delay = s2n_connection_get_delay(conn));
-        GUARD(sleep(delay / 1000000));
-        GUARD(usleep(delay % 1000000));
+
+        SLEEP:
+        r = sleep(delay / 1000000);
+        if (r != 0) {
+            goto SLEEP;
+        }
+
+        USLEEP:
+        r = usleep(delay % 1000000);
+        if (r < 0) {
+            if (errno == EINTR) {
+                goto USLEEP;
+            }
+            return r;
+        }
     }
 
     return 0;

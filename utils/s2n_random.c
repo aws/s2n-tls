@@ -178,8 +178,12 @@ RAND_METHOD s2n_openssl_rand_method = {
 
 int s2n_init(void)
 {
+    OPEN:
     entropy_fd = open(ENTROPY_SOURCE, O_RDONLY);
     if (entropy_fd == -1) {
+        if (errno == EINTR) {
+            goto OPEN;
+        }
         S2N_ERROR(S2N_ERR_OPEN_RANDOM);
     }
 
