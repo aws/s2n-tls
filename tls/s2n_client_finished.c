@@ -32,7 +32,7 @@ int s2n_client_finished_recv(struct s2n_connection *conn)
     uint8_t *their_version = s2n_stuffer_raw_read(&conn->handshake.io, S2N_TLS_FINISHED_LEN);
     notnull_check(their_version);
 
-    if (!s2n_constant_time_equals(our_version, their_version, S2N_TLS_FINISHED_LEN)) {
+    if (!s2n_constant_time_equals(our_version, their_version, S2N_TLS_FINISHED_LEN) || conn->handshake.rsa_failed) {
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
