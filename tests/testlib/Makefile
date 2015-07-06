@@ -16,6 +16,7 @@
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
+.PHONY : all
 all: libtests2n.so libtests2n.dylib
 
 include ../../s2n.mk

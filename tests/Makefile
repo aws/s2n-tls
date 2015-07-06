@@ -13,12 +13,14 @@
 # permissions and limitations under the License.
 #
 
+.PHONY : all
 all:
 	make -C testlib
 	make -C unit
 
 include ../s2n.mk
 
+.PHONY : clean
 clean:
 	make -C testlib decruft
 	make -C unit decruft

@@ -20,6 +20,8 @@ else
 endif
 
 OBJS = $(wildcard ../utils/*.o ../stuffer/*.o ../tls/*.o ../iana/*.o ../crypto/*.o ../error/*.o ../libcrypto-root/lib/libcrypto.a)
+
+.PHONY : all
 all: libs2n.a libs2n.so libs2n.dylib
 
 include ../s2n.mk

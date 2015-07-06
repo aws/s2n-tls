@@ -13,6 +13,7 @@
 # permissions and limitations under the License.
 #
 
+.PHONY : all
 all: s2nc s2nd
 include ../s2n.mk
 
