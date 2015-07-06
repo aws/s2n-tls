@@ -179,9 +179,10 @@ about encrypted data. By default s2n will cause a thread to sleep between 1ms an
 
 Setting the **S2N_SELF_SERVICE_BLINDING** option with **s2n_connection_set_blinding**
 turns off this behavior. This is useful for applications that are handling many connections
-in a single thread. In that case, if s2n_recv() returns an error, self-service applications 
-should call **s2n_connection_get_delay** and pause activity on the connection 
-for the specified number of microseconds before calling close() or shutdown().
+in a single thread. In that case, if s2n_recv() or s2n_negotiate() return an error, 
+self-service applications should call **s2n_connection_get_delay** and pause 
+activity on the connection  for the specified number of microseconds before calling
+close() or shutdown().
 
 ```c
 typedef enum { S2N_STATUS_REQUEST_NONE, S2N_STATUS_REQUEST_OCSP } s2n_status_request_type;
