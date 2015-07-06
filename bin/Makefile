@@ -13,11 +13,14 @@
 # permissions and limitations under the License.
 #
 
+.PHONY : all
 all: s2nc s2nd
 include ../s2n.mk
 
 ifeq ($(shell uname),Darwin)
     LIBS = 
+else ifeq ($(shell uname),FreeBSD)
+    LIBS = -lthr -lcrypto
 else
     LIBS = -ldl -lrt -lpthread
 endif

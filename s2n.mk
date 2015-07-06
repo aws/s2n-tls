@@ -25,8 +25,10 @@ CFLAGS = -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts
 
 INDENTOPTS = -npro -kr -i4 -ts4 -nut -sob -l180 -ss -ncs -cp1
 
+.PHONY : indentsource
 indentsource:
 	( for source in ${SOURCES} ; do ${INDENT} ${INDENTOPTS} $$source; done )
 
+.PHONY : decruft
 decruft:
-	rm -f ${CRUFT}
+	$(RM) -- ${CRUFT}

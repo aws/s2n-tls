@@ -17,39 +17,51 @@ DIRS=$(wildcard */)
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
+.PHONY : all
 all: bin
-	make -C tests
+	$(MAKE) -C tests
 
 include s2n.mk
 
+.PHONY : libs
 libs:
-	make -C utils
-	make -C error
-	make -C stuffer
-	make -C crypto
-	make -C tls
-	make -C lib
+	$(MAKE) -C utils
+	$(MAKE) -C error
+	$(MAKE) -C stuffer
+	$(MAKE) -C crypto
+	$(MAKE) -C tls
+	$(MAKE) -C lib
 
+.PHONY : bin
 bin: libs
-	make -C bin
+	$(MAKE) -C bin
+	$(MAKE) -C utils
+	$(MAKE) -C error
+	$(MAKE) -C stuffer
+	$(MAKE) -C crypto
+	$(MAKE) -C tls
+	$(MAKE) -C lib
 
+.PHONY : indent
 indent:
-	make -C tests indentsource
-	make -C stuffer indentsource
-	make -C crypto indentsource
-	make -C utils indentsource
-	make -C error indentsource
-	make -C tls indentsource
-	make -C bin indentsource
+	$(MAKE) -C tests indentsource
+	$(MAKE) -C stuffer indentsource
+	$(MAKE) -C crypto indentsource
+	$(MAKE) -C utils indentsource
+	$(MAKE) -C error indentsource
+	$(MAKE) -C tls indentsource
+	$(MAKE) -C bin indentsource
 
+.PHONY : pre_commit_check
 pre_commit_check: all indent clean
 
+.PHONY : clean
 clean:
-	make -C tests clean
-	make -C stuffer decruft
-	make -C crypto decruft
-	make -C utils decruft
-	make -C error decruft
-	make -C tls decruft
-	make -C bin decruft
-	make -C lib decruft
+	$(MAKE) -C tests clean
+	$(MAKE) -C stuffer decruft
+	$(MAKE) -C crypto decruft
+	$(MAKE) -C utils decruft
+	$(MAKE) -C error decruft
+	$(MAKE) -C tls decruft
+	$(MAKE) -C bin decruft
+	$(MAKE) -C lib decruft

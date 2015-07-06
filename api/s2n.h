@@ -32,9 +32,9 @@ extern __thread int s2n_errno;
 
 struct s2n_config;
 
-extern int s2n_init();
-extern int s2n_cleanup();
-extern struct s2n_config *s2n_config_new();
+extern int s2n_init(void);
+extern int s2n_cleanup(void);
+extern struct s2n_config *s2n_config_new(void);
 extern int s2n_config_free(struct s2n_config *config);
 extern int s2n_config_free_dhparams(struct s2n_config *config);
 extern int s2n_config_free_cert_chain_and_key(struct s2n_config *config);
