@@ -30,7 +30,7 @@ ifeq ($(shell uname),Darwin)
 else ifeq ($(shell uname),FreeBSD)
     LIBS = -lthr -lcrypto
 else
-    LIBS = -lpthread -lm -ldl -lrt -lcrypto
+    LIBS = -lpthread -lm -ldl -lrt -L../../libcrypto-root/lib -lcrypto
 endif
 
 # Suppress the unreachable code warning, because tests involve what should be
