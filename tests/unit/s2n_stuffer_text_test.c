@@ -17,6 +17,7 @@
 #include <string.h>
 
 #include "stuffer/s2n_stuffer.h"
+#include "utils/s2n_blob.h"
 #include "utils/s2n_random.h"
 
 int main(int argc, char **argv)
@@ -29,12 +30,15 @@ int main(int argc, char **argv)
     char out[1024];
     char c;
     struct s2n_stuffer stuffer, token;
+    struct s2n_blob pblob, tblob;
 
     BEGIN_TEST();
 
     /* Create a stuffer */
-    EXPECT_SUCCESS(s2n_stuffer_init_text(&token, tokenpad, sizeof(tokenpad)));
-    EXPECT_SUCCESS(s2n_stuffer_init_text(&stuffer, pad, sizeof(pad)));
+    EXPECT_SUCCESS(s2n_blob_init(&tblob, (uint8_t *)tokenpad, sizeof(tokenpad)));
+    EXPECT_SUCCESS(s2n_stuffer_init(&token, &tblob));
+    EXPECT_SUCCESS(s2n_blob_init(&pblob, (uint8_t *)pad, sizeof(pad)));
+    EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &pblob));
     EXPECT_SUCCESS(s2n_stuffer_write_text(&stuffer, text, sizeof(text)));
 
     /* Skip 4 bytes of whitespace */
@@ -61,18 +65,18 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_stuffer_read_char(&stuffer, &c));
 
     /* Start a new buffer */
-    EXPECT_SUCCESS(s2n_stuffer_init_text(&stuffer, pad, sizeof(pad)));
+    EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &pblob));
     EXPECT_SUCCESS(s2n_stuffer_write_text(&stuffer, fields, strlen(fields)));
 
     EXPECT_SUCCESS(s2n_stuffer_read_token(&stuffer, &token, ','));
     EXPECT_EQUAL(memcmp("one", token.blob.data, 3), 0);
 
-    EXPECT_SUCCESS(s2n_stuffer_init_text(&token, tokenpad, sizeof(tokenpad)));
+    EXPECT_SUCCESS(s2n_stuffer_init(&token, &tblob));
     EXPECT_SUCCESS(s2n_stuffer_read_token(&stuffer, &token, ','));
     EXPECT_EQUAL(memcmp("two", token.blob.data, 3), 0);
 
     /* Check for end-of-stream termination */
-    EXPECT_SUCCESS(s2n_stuffer_init_text(&token, tokenpad, sizeof(tokenpad)));
+    EXPECT_SUCCESS(s2n_stuffer_init(&token, &tblob));
     EXPECT_SUCCESS(s2n_stuffer_read_token(&stuffer, &token, ','));
     EXPECT_EQUAL(memcmp("three", token.blob.data, 5), 0);
 
