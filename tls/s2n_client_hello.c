@@ -57,7 +57,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
     }
     conn->client_hello_version = conn->client_protocol_version;
 
-    if (session_id_len > 32) {
+    if (session_id_len > S2N_TLS_SESSION_ID_LEN) {
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
