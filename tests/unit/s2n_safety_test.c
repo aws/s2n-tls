@@ -195,5 +195,23 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(success_inclusive_range());
     EXPECT_SUCCESS(success_exclusive_range());
 
+    uint8_t a[4] = { 1, 2, 3, 4 };
+    uint8_t b[4] = { 1, 2, 3, 4 };
+    uint8_t c[4] = { 5, 6, 7, 8 };
+    uint8_t d[4] = { 5, 6, 7, 8 };
+    uint8_t e[4] = { 1, 2, 3, 4 };
+
+    EXPECT_EQUAL(s2n_constant_time_equals(a, b, sizeof(a)), 1);
+    EXPECT_EQUAL(s2n_constant_time_equals(a, c, sizeof(a)), 0);
+
+    EXPECT_SUCCESS(s2n_constant_time_copy_or_dont(a, c, sizeof(a), 0));
+    EXPECT_EQUAL(s2n_constant_time_equals(a, c, sizeof(a)), 1);
+
+    for (int i = 1; i < 256; i++) {
+        EXPECT_SUCCESS(s2n_constant_time_copy_or_dont(b, d, sizeof(a), i));
+        EXPECT_EQUAL(s2n_constant_time_equals(b, d, sizeof(a)), 0);
+        EXPECT_EQUAL(s2n_constant_time_equals(b, e, sizeof(a)), 1);
+    }
+
     END_TEST();
 }
