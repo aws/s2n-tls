@@ -79,7 +79,7 @@ To build s2n with OpenSSL-1.0.2, do the following:
 cd libcrypto-build
 
 # Download the latest version of OpenSSL
-curl -O https://www.openssl.org/source/openssl-1.0.2-latest.tar.gz
+curl -LO https://www.openssl.org/source/openssl-1.0.2-latest.tar.gz
 tar -xzvf openssl-1.0.2-latest.tar.gz
 
 # Build openssl' libcrypto  (NOTE: check directory name 1.0.2-latest unpacked as)
