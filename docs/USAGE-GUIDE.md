@@ -256,7 +256,7 @@ struct int s2n_config_free(struct s2n_config *config);
 
 **s2n_config_free** frees the memory associated with an **s2n_config** object.
 
-### s2n\_config\_set\_protocol\_preferences
+### s2n\_config\_set\_cipher\_preferences
 
 ```c
 int s2n_config_set_cipher_preferences(struct s2n_config *config,
@@ -364,7 +364,7 @@ connection uses one of these objects. These connection objects can be operated
 on by up to two threads at a time, one sender and one receiver, but neither
 sending nor receiving are atomic, so if these objects are being called by
 multiple sender or receiver threads, you must perform your own locking to
-ensure that only one sender or reciever is active at a time. The **mode**
+ensure that only one sender or receiver is active at a time. The **mode**
 parameters specifies if the caller is a server, or is a client.
 
 Connections objects are re-usable across many connections, and should be
@@ -446,7 +446,7 @@ uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn);
 
 **s2n_connection_get_wire_bytes_in** and **s2n_connection_get_wire_bytes_out**
 return the number of bytes transmitted by s2n "on the wire", in and out
-respestively. 
+respectively. 
 
 ### s2n\_connection\_get\_protocol\_version
 
