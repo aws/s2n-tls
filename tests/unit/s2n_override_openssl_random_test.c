@@ -34,42 +34,6 @@ static uint8_t dhparams[] =
     "gzucyS7jt1bobgU66JKkgMNm7hJY4/nhR5LWTCzZyzYQh2HM2Vk4K5ZqILpj/n0S\n"
     "5JYTQ2PVhxP+Uu8+hICs/8VvM72DznjPZzufADipjC7CsQ4S6x/ecZluFtbb+ZTv\n" "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n" "-----END DH PARAMETERS-----\n";
 
-static int mock_called = 0;
-
-static int mock_openssl_compat_rand(unsigned char *buf, int num)
-{
-    struct s2n_blob blob = {.data = buf, .size = num };
-
-    int r = s2n_get_urandom_data(&blob);
-    if (r < 0) {
-        return 0;
-    }
-
-    mock_called = 1;
-
-    return 1;
-}
-
-static int mock_openssl_compat_status()
-{
-    return 1;
-}
-
-static int mock_openssl_compat_init(ENGINE *e)
-{
-    return 1;
-}
-
-RAND_METHOD mock_openssl_rand_method = {
-    .seed = NULL,
-    .bytes = mock_openssl_compat_rand,
-    .cleanup = NULL,
-    .add = NULL,
-    .pseudorand = mock_openssl_compat_rand,
-    .status = mock_openssl_compat_status
-};
-
-
 int main(int argc, char **argv)
 {
     struct s2n_stuffer dhparams_in, dhparams_out;
@@ -80,21 +44,6 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_init());
 
-    ENGINE *e = ENGINE_new();
-    EXPECT_NOT_NULL(e);
-
-    EXPECT_TRUE(ENGINE_set_id(e, "s2n_test") == 1);
-    EXPECT_TRUE(ENGINE_set_name(e, "s2n_test entropy generator") == 1);
-    EXPECT_TRUE(ENGINE_set_flags(e, ENGINE_FLAGS_NO_REGISTER_ALL) == 1);
-    EXPECT_TRUE(ENGINE_set_init_function(e, mock_openssl_compat_init) == 1);
-    EXPECT_TRUE(ENGINE_set_RAND(e, &mock_openssl_rand_method) == 1);
-    EXPECT_TRUE(ENGINE_add(e) == 1);
-    EXPECT_TRUE(ENGINE_free(e) == 1);
-    
-    EXPECT_NOT_NULL(e = ENGINE_by_id("s2n_test"));
-    EXPECT_TRUE(ENGINE_init(e) == 1);
-    EXPECT_TRUE(ENGINE_set_default(e, ENGINE_METHOD_RAND) == 1);
-    
     /* Parse the DH params */
     b.data = dhparams;
     b.size = sizeof(dhparams);
@@ -106,12 +55,12 @@ int main(int argc, char **argv)
     b.data = s2n_stuffer_raw_read(&dhparams_out, b.size);
     EXPECT_SUCCESS(s2n_pkcs3_to_dh_params(&dh_params, &b));
 
-    EXPECT_EQUAL(mock_called, 0);
+    EXPECT_EQUAL(s2n_get_private_random_bytes_used(), 0);
 
-    EXPECT_TRUE(DH_generate_key(dh_params.dh) == 1);
-
-    /* Verify that our mock random is called and that over-riding works */
-    EXPECT_EQUAL(mock_called, 1);
+    EXPECT_SUCCESS(s2n_dh_generate_ephemeral_key(&dh_params));
+    
+    /* Verify that our DRBG is called and that over-riding works */
+    EXPECT_NOT_EQUAL(s2n_get_private_random_bytes_used(), 0);
 
     EXPECT_SUCCESS(s2n_dh_params_free(&dh_params));
     EXPECT_SUCCESS(s2n_stuffer_free(&dhparams_out));

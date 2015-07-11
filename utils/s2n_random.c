@@ -90,6 +90,16 @@ int s2n_get_private_random_data(struct s2n_blob *blob)
     return 0;
 }
 
+int s2n_get_public_random_bytes_used(void)
+{
+    return s2n_drbg_bytes_used(&per_thread_public_drbg);
+}
+
+int s2n_get_private_random_bytes_used(void)
+{
+    return s2n_drbg_bytes_used(&per_thread_private_drbg);
+}
+
 int s2n_get_urandom_data(struct s2n_blob *blob)
 {
     uint32_t n = blob->size;
@@ -225,6 +235,7 @@ int s2n_init(void)
         ENGINE_set_default(e, ENGINE_METHOD_RAND) != 1) {
         S2N_ERROR(S2N_ERR_OPEN_RANDOM);
     }
+
 #endif
 
     return 0;

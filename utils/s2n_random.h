@@ -15,12 +15,11 @@
 
 #pragma once
 
-#include <openssl/rand.h>
-#include <stdint.h>
-
-#include "stuffer/s2n_stuffer.h"
+#include "utils/s2n_blob.h"
 
 extern int s2n_get_public_random_data(struct s2n_blob *blob);
+extern int s2n_get_public_random_bytes_used(void);
 extern int s2n_get_private_random_data(struct s2n_blob *blob);
+extern int s2n_get_private_random_bytes_used(void);
 extern int s2n_get_urandom_data(struct s2n_blob *blob);
 extern int s2n_public_random(int max);
