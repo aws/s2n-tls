@@ -40,7 +40,7 @@ LDFLAGS += -L../../lib/ -L../../libcrypto-root/lib -L../testlib/ -ltests2n -ls2n
 
 $(TESTS)::
 	@${CC} ${CFLAGS} -o $@ $@.c ${LDFLAGS} 2>&1
-	@DYLD_LIBRARY_PATH="../../lib/:../testlib/:$$DYLD_LIBRARY_PATH" LD_LIBRARY_PATH="../../lib/:../testlib/:$$LD_LIBRARY_PATH" ./$@
+	-@DYLD_LIBRARY_PATH="../../lib/:../testlib/:$$DYLD_LIBRARY_PATH" LD_LIBRARY_PATH="../../lib/:../testlib/:$$LD_LIBRARY_PATH" ./$@
 
 .PHONY : valgrind
 valgrind: $(TESTS)
