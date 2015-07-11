@@ -13,10 +13,18 @@
 # permissions and limitations under the License.
 #
 
+OPENSSL_VERSION=$(shell ../libcrypto-root/bin/openssl version 2> /dev/null || echo 1)
+ifeq (${OPENSSL_VERSION}, 1)
+	COMPILE_INFO=Compiled with the missing version of openssl
+else
+	COMPILE_INFO=Compiled with ${OPENSSL_VERSION}.
+endif
+
 .PHONY : all
 all:
-	${MAKE} -C testlib
-	${MAKE} -C unit
+	# ${MAKE} -C testlib
+	# ${MAKE} -C unit
+	@echo "\033[1m ${COMPILE_INFO} \033[0;39m"
 
 include ../s2n.mk
 
