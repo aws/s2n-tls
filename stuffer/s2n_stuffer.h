@@ -96,12 +96,11 @@ extern int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuff
 extern int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in);
 
 /* Useful for text manipulation ... */
-#define s2n_stuffer_init_text( stuffer, text, len )  s2n_stuffer_init( (stuffer), (uint8_t *) (text), (len) )
 #define s2n_stuffer_write_char( stuffer, c )  s2n_stuffer_write_uint8( (stuffer), (uint8_t) (c) )
 #define s2n_stuffer_read_char( stuffer, c )  s2n_stuffer_read_uint8( (stuffer), (uint8_t *) (c) )
-#define s2n_stuffer_write_str( stuffer, c, n )  s2n_stuffer_write( (stuffer), (const uint8_t *) (c), strlen((c)) )
-#define s2n_stuffer_write_text( stuffer, c, n )  s2n_stuffer_write( (stuffer), (const uint8_t *) (c), (n) )
-#define s2n_stuffer_read_text( stuffer, c, n )  s2n_stuffer_read( (stuffer), (uint8_t *) (c), (n) )
+#define s2n_stuffer_write_str( stuffer, c )  s2n_stuffer_write_bytes( (stuffer), (const uint8_t *) (c), strlen((c)) )
+#define s2n_stuffer_write_text( stuffer, c, n )  s2n_stuffer_write_bytes( (stuffer), (const uint8_t *) (c), (n) )
+#define s2n_stuffer_read_text( stuffer, c, n )  s2n_stuffer_read_bytes( (stuffer), (uint8_t *) (c), (n) )
 extern int s2n_stuffer_peek_char(struct s2n_stuffer *stuffer, char *c);
 extern int s2n_stuffer_read_token(struct s2n_stuffer *stuffer, struct s2n_stuffer *token, char delim);
 extern int s2n_stuffer_skip_whitespace(struct s2n_stuffer *stuffer);
