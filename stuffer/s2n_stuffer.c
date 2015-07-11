@@ -323,7 +323,7 @@ int s2n_stuffer_read_uint32(struct s2n_stuffer *stuffer, uint32_t *u)
 
     GUARD(s2n_stuffer_read(stuffer, &b));
 
-    *u = data[0] << 24;
+    *u = ((uint32_t) data[0]) << 24;
     *u |= data[1] << 16;
     *u |= data[2] << 8;
     *u |= data[3];
