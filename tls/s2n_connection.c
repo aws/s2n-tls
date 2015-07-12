@@ -13,8 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#define _XOPEN_SOURCE 500       /* For usleep() */
-
 #include <unistd.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -347,20 +345,28 @@ int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blindi
     return 0;
 }
 
-int s2n_connection_get_delay(struct s2n_connection *conn)
+#define ONE_MS INT64_C(1000000)
+#define ONE_S  INT64_C(1000000000)
+#define TEN_S  INT64_C(10000000000)
+
+int64_t s2n_connection_get_delay(struct s2n_connection *conn)
 {
-    /* Delay between 1ms and 10 seconds in microseconds */
-    int min = 1000, max = 10 * 1000 * 1000;
+    /* Delay between 1ms and 10 seconds in nanoseconds */
+    int64_t min = ONE_MS, max = TEN_S;
     return min + s2n_public_random(max - min);
 }
 
 int s2n_sleep_delay(struct s2n_connection *conn)
 {
     if (conn->blinding == S2N_BUILT_IN_BLINDING) {
-        int delay;
+        int delay, r;
         GUARD(delay = s2n_connection_get_delay(conn));
-        GUARD(sleep(delay / 1000000));
-        GUARD(usleep(delay % 1000000));
+        struct timespec sleep_time = { .tv_sec = delay / ONE_S, .tv_nsec = delay % ONE_S };
+
+        do {
+            r = nanosleep(&sleep_time, &sleep_time);
+        }
+        while (r != 0);
     }
 
     return 0;

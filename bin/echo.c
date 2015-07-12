@@ -88,7 +88,9 @@ int echo(struct s2n_connection *conn, int sockfd)
     printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
 
     /* Act as a simple proxy between stdin and the SSL connection */
-    while (poll(readers, 2, -1) > 0) {
+    int p;
+    POLL:
+    while ((p = poll(readers, 2, -1)) > 0) {
         char buffer[10240];
         int bytes_read, bytes_written;
 
@@ -121,8 +123,12 @@ int echo(struct s2n_connection *conn, int sockfd)
             }
 
             /* Read as many bytes as we think we can */
+            READ:
             bytes_read = read(STDIN_FILENO, buffer, bytes_available);
             if (bytes_read < 0) {
+                if (errno == EINTR) {
+                    goto READ;
+                }
                 fprintf(stderr, "Error reading from stdin\n");
                 exit(1);
             }
@@ -143,6 +149,9 @@ int echo(struct s2n_connection *conn, int sockfd)
                 buf_ptr += bytes_written;
             } while (bytes_available || more);
         }
+    }
+    if (p < 0 && errno == EINTR) {
+        goto POLL;
     }
 
     return 0;

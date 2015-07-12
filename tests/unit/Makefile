@@ -26,7 +26,7 @@ include ../../s2n.mk
 CRUFT += $(wildcard *_test)
 
 ifeq ($(shell uname),Darwin)
-    LIBS = -lpthread -lm
+    LIBS = -lpthread -lm -lcrypto
 else ifeq ($(shell uname),FreeBSD)
     LIBS = -lthr -lcrypto
 else
@@ -36,7 +36,8 @@ endif
 # Suppress the unreachable code warning, because tests involve what should be
 # unreachable code
 CFLAGS += -Wno-unreachable-code -I../../libcrypto-root/include/ -I../../ -I../../api/
-LDFLAGS += -L../../lib/ -L../../libcrypto-root/lib -L../testlib/ -ltests2n -ls2n ${LIBS}
+#LDFLAGS += -L../../lib/ -L../../libcrypto-root/lib -L../testlib/ -ltests2n -ls2n ${LIBS}
+LDFLAGS += -L../../lib/ -L../testlib/ -ltests2n -ls2n ${LIBS}
 
 $(TESTS)::
 	@${CC} ${CFLAGS} -o $@ $@.c ${LDFLAGS} 2>&1

@@ -22,4 +22,4 @@ extern int s2n_get_public_random_bytes_used(void);
 extern int s2n_get_private_random_data(struct s2n_blob *blob);
 extern int s2n_get_private_random_bytes_used(void);
 extern int s2n_get_urandom_data(struct s2n_blob *blob);
-extern int s2n_public_random(int max);
+extern int64_t s2n_public_random(int64_t max);

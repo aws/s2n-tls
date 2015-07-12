@@ -97,8 +97,12 @@ int s2n_stuffer_alloc_ro_from_file(struct s2n_stuffer *stuffer, const char *file
 {
     int fd;
 
+    OPEN:
     fd = open(file, O_RDONLY);
     if (fd < 0) {
+        if (errno == EINTR) {
+            goto OPEN;
+        }
         S2N_ERROR(S2N_ERR_OPEN);
     }
 

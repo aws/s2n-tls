@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 #include <signal.h>
+#include <errno.h>
 #include <s2n.h>
 
 #include "tls/s2n_tls_parameters.h"

@@ -181,7 +181,7 @@ Setting the **S2N_SELF_SERVICE_BLINDING** option with **s2n_connection_set_blind
 turns off this behavior. This is useful for applications that are handling many connections
 in a single thread. In that case, if s2n_recv() or s2n_negotiate() return an error, 
 self-service applications should call **s2n_connection_get_delay** and pause 
-activity on the connection  for the specified number of microseconds before calling
+activity on the connection  for the specified number of nanoseconds before calling
 close() or shutdown().
 
 ```c
@@ -431,10 +431,10 @@ built-in blinding (set blinding to S2N_BUILT_IN_BLINDING) or self-service blindi
 ### s2n\_connection\_get\_delay
 
 ```c
-int s2n_connection_get_delay(struct s2n_connection *conn);
+int64_t s2n_connection_get_delay(struct s2n_connection *conn);
 ```
 
-**s2n_connection_get_delay** returns the number of microseconds an application
+**s2n_connection_get_delay** returns the number of nanoseconds an application
 using self-service blinding should pause before calling close() or shutdown().
 
 ### s2n\_connection\_get\_wire\_bytes

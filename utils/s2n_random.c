@@ -123,9 +123,9 @@ int s2n_get_urandom_data(struct s2n_blob *blob)
     return 0;
 }
 
-int s2n_public_random(int max)
+int64_t s2n_public_random(int64_t max)
 {
-    unsigned int r;
+    uint64_t r;
 
     gt_check(max, 0);
 
@@ -146,7 +146,7 @@ int s2n_public_random(int max)
          * But since 'max' is an int and INT_MAX is <= UINT_MAX / 2,
          * in the worst case we discard 25% - 1 r's.
          */
-        if (r < (UINT_MAX - (UINT_MAX % max))) {
+        if (r < (UINT64_MAX - (UINT64_MAX % max))) {
             return r % max;
         }
     }
@@ -188,8 +188,12 @@ RAND_METHOD s2n_openssl_rand_method = {
 
 int s2n_init(void)
 {
+    OPEN:
     entropy_fd = open(ENTROPY_SOURCE, O_RDONLY);
     if (entropy_fd == -1) {
+        if (errno == EINTR) {
+            goto OPEN;
+        }
         S2N_ERROR(S2N_ERR_OPEN_RANDOM);
     }
 
