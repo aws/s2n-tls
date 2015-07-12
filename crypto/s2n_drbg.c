@@ -42,6 +42,7 @@ static int s2n_drbg_bits(struct s2n_drbg *drbg, struct s2n_blob *out)
     for (int i = 0; i < block_aligned_size; i += S2N_DRBG_BLOCK_SIZE) {
         GUARD(s2n_increment_sequence_number(&value));
         GUARD(s2n_drbg_block_encrypt(&drbg->ctx, drbg->v, out->data + i));
+        drbg->bytes_used += S2N_DRBG_BLOCK_SIZE;
     }
 
     if (out->size <= block_aligned_size) {
@@ -51,6 +52,7 @@ static int s2n_drbg_bits(struct s2n_drbg *drbg, struct s2n_blob *out)
     uint8_t spare_block[S2N_DRBG_BLOCK_SIZE];
     GUARD(s2n_increment_sequence_number(&value));
     GUARD(s2n_drbg_block_encrypt(&drbg->ctx, drbg->v, spare_block));
+    drbg->bytes_used += S2N_DRBG_BLOCK_SIZE;
 
     memcpy_check(out->data + block_aligned_size, spare_block, out->size - block_aligned_size);
 
@@ -161,4 +163,9 @@ int s2n_drbg_wipe(struct s2n_drbg *drbg)
     GUARD(s2n_blob_zero(&state));
 
     return 0;
+}
+
+int s2n_drbg_bytes_used(struct s2n_drbg *drbg)
+{
+    return drbg->bytes_used;
 }
