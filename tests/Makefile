@@ -22,8 +22,8 @@ endif
 
 .PHONY : all
 all:
-	# ${MAKE} -C testlib
-	# ${MAKE} -C unit
+	${MAKE} -C testlib
+	${MAKE} -C unit
 	@echo "\033[1m ${COMPILE_INFO} \033[0;39m"
 
 include ../s2n.mk
