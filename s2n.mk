@@ -20,7 +20,7 @@ else ifeq ($(PLATFORM),FreeBSD)
     LIBS = -lthr
     CRYPTO_LIBS = -lcrypto
 else
-    LIBS = -ldl -lrt -lpthread
+    LIBS = -lpthread -ldl -lrt
     CRYPTO_LIBS = -lcrypto
 endif
 
