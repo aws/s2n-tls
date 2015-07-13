@@ -13,12 +13,6 @@
 # permissions and limitations under the License.
 #
 
-ifeq ($(shell uname),Darwin)
-    LIBS = -lc -lpthread
-else
-    LIBS = -lc -lpthread -lrt
-endif
-
 OBJS = $(wildcard ../utils/*.o ../stuffer/*.o ../tls/*.o ../iana/*.o ../crypto/*.o ../error/*.o ../libcrypto-root/lib/libcrypto.a)
 
 .PHONY : all

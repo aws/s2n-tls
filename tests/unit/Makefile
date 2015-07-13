@@ -17,6 +17,7 @@ SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 TESTS=$(SRCS:.c=)
 VALGRIND_TESTS=$(SRCS:.c=_valgrind)
+CRYPTO_LDFLAGS = -L../../libcrypto-root/lib
 
 .PHONY : all
 all: $(TESTS)
@@ -24,20 +25,12 @@ all: $(TESTS)
 include ../../s2n.mk
 
 CRUFT += $(wildcard *_test)
-
-ifeq ($(shell uname),Darwin)
-    LIBS = -lpthread -lm -lcrypto
-else ifeq ($(shell uname),FreeBSD)
-    LIBS = -lthr -lcrypto
-else
-    LIBS = -lpthread -lm -ldl -lrt -lcrypto
-endif
+LIBS += -lm
 
 # Suppress the unreachable code warning, because tests involve what should be
 # unreachable code
 CFLAGS += -Wno-unreachable-code -I../../libcrypto-root/include/ -I../../ -I../../api/
-#LDFLAGS += -L../../lib/ -L../../libcrypto-root/lib -L../testlib/ -ltests2n -ls2n ${LIBS}
-LDFLAGS += -L../../lib/ -L../testlib/ -ltests2n -ls2n ${LIBS}
+LDFLAGS += -L../../lib/ ${CRYPTO_LDFLAGS} -L../testlib/ -ltests2n -ls2n ${LIBS} ${CRYPTO_LIBS}
 
 $(TESTS)::
 	@${CC} ${CFLAGS} -o $@ $@.c ${LDFLAGS} 2>&1

@@ -13,6 +13,17 @@
 # permissions and limitations under the License.
 #
 
+ifeq ($(PLATFORM),Darwin)
+    LIBS = -lc -lpthread
+    CRYPTO_LIBS =
+else ifeq ($(PLATFORM),FreeBSD)
+    LIBS = -lthr
+    CRYPTO_LIBS = -lcrypto
+else
+    LIBS = -ldl -lrt -lpthread
+    CRYPTO_LIBS = -lcrypto
+endif
+
 SOURCES = $(wildcard *.c *.h)
 CRUFT   = $(wildcard *.c~ *.h~ *.c.BAK *.h.BAK *.o *.a *.so *.dylib)
 INDENT  = $(shell (if indent --version 2>&1 | grep GNU > /dev/null; then echo indent ; elif gindent --version 2>&1 | grep GNU > /dev/null; then echo gindent; else echo true ; fi ))

@@ -13,6 +13,9 @@
 # permissions and limitations under the License.
 #
 
+PLATFORM := $(shell uname)
+MAKEFLAGS += PLATFORM=$(PLATFORM)
+
 DIRS=$(wildcard */)
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
