@@ -31,8 +31,6 @@
 
 #include "error/s2n_errno.h"
 
-#include "tls/s2n_record.h"
-
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
 
@@ -196,9 +194,6 @@ int s2n_init(void)
         }
         S2N_ERROR(S2N_ERR_OPEN_RANDOM);
     }
-
-    /* Create the CBC masks */
-    GUARD(s2n_cbc_masks_init());
 
 #if defined(MAP_INHERIT_ZERO)
     if ((zero_if_forked_ptr = mmap(NULL, sizeof(int), PROT_READ|PROT_WRITE,

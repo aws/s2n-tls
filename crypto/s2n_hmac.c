@@ -84,8 +84,10 @@ static int s2n_sslv3_mac_digest(struct s2n_hmac_state *state, void *out, uint32_
 int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
 {
     s2n_hash_algorithm hash_alg = S2N_HASH_NONE;
+    state->currently_in_hash_block = 0;
     state->digest_size = 0;
     state->block_size = 64;
+    state->hash_block_size = 64;
 
     switch (alg) {
     case S2N_HMAC_NONE:
@@ -116,11 +118,13 @@ int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const vo
         hash_alg = S2N_HASH_SHA384;
         state->digest_size = SHA384_DIGEST_LENGTH;
         state->block_size = 128;
+        state->hash_block_size = 128;
         break;
     case S2N_HMAC_SHA512:
         hash_alg = S2N_HASH_SHA512;
         state->digest_size = SHA512_DIGEST_LENGTH;
         state->block_size = 128;
+        state->hash_block_size = 128;
         break;
     default:
         S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
@@ -168,6 +172,10 @@ int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const vo
 
 int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
 {
+    /* Keep track of how much of the current hash block is full */
+    state->currently_in_hash_block += (128000 + size) % state->hash_block_size;
+    state->currently_in_hash_block %= state->block_size;
+
     return s2n_hash_update(&state->inner, in, size);
 }
 
@@ -183,6 +191,24 @@ int s2n_hmac_digest(struct s2n_hmac_state *state, void *out, uint32_t size)
     GUARD(s2n_hash_update(&state->outer, state->digest_pad, state->digest_size));
 
     return s2n_hash_digest(&state->outer, out, size);
+}
+
+int s2n_hmac_digest_two_compression_rounds(struct s2n_hmac_state *state, void *out, uint32_t size)
+{
+    GUARD(s2n_hmac_digest(state, out, size));
+
+    /* If there were 8 or more bytes of space left in the current hash block
+     * then the serialized length will have fit in that block. If there were
+     * fewer than 8 then adding the length will have caused an extra compression
+     * block round. This digest function always does two compression rounds,
+     * even if there is no need for the second.
+     */
+    if (state->currently_in_hash_block > (state->hash_block_size - 8))
+    {
+        return 0;
+    }
+
+    return s2n_hash_update(&state->inner, state->xor_pad, state->hash_block_size);
 }
 
 int s2n_hmac_reset(struct s2n_hmac_state *state)
