@@ -162,10 +162,7 @@ void *s2n_stuffer_raw_read(struct s2n_stuffer *stuffer, uint32_t data_len)
 
 int s2n_stuffer_read(struct s2n_stuffer *stuffer, struct s2n_blob *out)
 {
-    // null check the out structure
-    if (NULL == out) {
-        return -1;
-    }
+     notnull_check(out);
 
     return s2n_stuffer_read_bytes(stuffer, out->data, out->size);
 }
@@ -190,9 +187,7 @@ int s2n_stuffer_read_bytes(struct s2n_stuffer *stuffer, uint8_t *data, uint32_t 
     GUARD(s2n_stuffer_skip_read(stuffer, size));
 
     void *ptr = stuffer->blob.data + stuffer->read_cursor - size;
-    if (ptr == NULL) {
-        return -1;
-    }
+    notnull_check(ptr);
 
     memcpy_check(data, ptr, size);
 
