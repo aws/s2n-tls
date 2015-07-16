@@ -25,22 +25,6 @@
 #include "tls/s2n_record.h"
 #include "tls/s2n_prf.h"
 
-static uint8_t masks[256][255];
-
-int s2n_cbc_masks_init()
-{
-    /* We have 256 different 255-byte sized masks for checking padding. 0's indicate where we would expect
-     * payload or MAC data to be. 0xff's indicate where we expected padding bytes, or the padding length
-     * byte to be. 
-     */
-    for (int i = 0; i < 256; i++) {
-        memset_check(&masks[i][0], 0, 255 - i);
-        memset_check(&masks[i][255 - i], 0xFF, i);
-    }
-
-    return 0;
-}
-
 /* A TLS CBC record looks like ..
  *
  * [ Payload data ] [ HMAC ] [ Padding ] [ Padding length byte ]
@@ -81,7 +65,7 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
     /* Check the MAC */
     uint8_t check_digest[S2N_MAX_DIGEST_LEN];
     lte_check(mac_digest_size, sizeof(check_digest));
-    GUARD(s2n_hmac_digest(hmac, check_digest, mac_digest_size));
+    GUARD(s2n_hmac_digest_two_compression_rounds(hmac, check_digest, mac_digest_size));
 
     int mismatches = s2n_constant_time_equals(decrypted->data + payload_length, check_digest, mac_digest_size) ^ 1;
 
@@ -94,15 +78,15 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
     }
 
     /* Check the padding */
-    uint8_t *mask = masks[ padding_length ];
-
     int check = 255;
     if (check > payload_and_padding_size) {
         check = payload_and_padding_size;
     }
 
-    for (int i = 255 - check, j = decrypted->size - check; i < 255 && j < decrypted->size; i++, j++) {
-        mismatches |= (decrypted->data[j] ^ padding_length) & mask[i];
+    int cutoff = check - padding_length;
+    for (int i = 0, j = decrypted->size - check; i < check && j < decrypted->size; i++, j++) {
+        uint8_t mask = ~(0xff << ((i >= cutoff) * 8));
+        mismatches |= (decrypted->data[j] ^ padding_length) & mask;
     }
 
     if (mismatches) {
