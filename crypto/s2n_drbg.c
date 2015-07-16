@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/param.h>
+
 #include <openssl/evp.h>
 
 #include "crypto/s2n_sequence.h"
@@ -124,9 +126,7 @@ int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization
     /* Copy the personalization string */
     GUARD(s2n_blob_zero(&ps));
 
-    for (int i = 0; i < personalization_string->size && i < ps.size; i++) {
-        ps.data[i] = personalization_string->data[i];
-    }
+    memcpy_check(ps.data, personalization_string->data, MIN(ps.size, personalization_string->size));
 
     /* Seed / update the DRBG */
     GUARD(s2n_drbg_seed(drbg));
