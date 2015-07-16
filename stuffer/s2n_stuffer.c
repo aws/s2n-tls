@@ -162,17 +162,9 @@ void *s2n_stuffer_raw_read(struct s2n_stuffer *stuffer, uint32_t data_len)
 
 int s2n_stuffer_read(struct s2n_stuffer *stuffer, struct s2n_blob *out)
 {
+     notnull_check(out);
 
-    GUARD(s2n_stuffer_skip_read(stuffer, out->size));
-
-    void *ptr = stuffer->blob.data + stuffer->read_cursor - out->size;
-    if (ptr == NULL) {
-        return -1;
-    }
-
-    memcpy_check(out->data, ptr, out->size);
-
-    return 0;
+    return s2n_stuffer_read_bytes(stuffer, out->data, out->size);
 }
 
 int s2n_stuffer_erase_and_read(struct s2n_stuffer *stuffer, struct s2n_blob *out)
@@ -190,11 +182,16 @@ int s2n_stuffer_erase_and_read(struct s2n_stuffer *stuffer, struct s2n_blob *out
     return 0;
 }
 
-int s2n_stuffer_read_bytes(struct s2n_stuffer *stuffer, uint8_t *bytes, uint32_t n)
+int s2n_stuffer_read_bytes(struct s2n_stuffer *stuffer, uint8_t *data, uint32_t size)
 {
-    struct s2n_blob out = {.data = bytes,.size = n };
+    GUARD(s2n_stuffer_skip_read(stuffer, size));
 
-    return s2n_stuffer_read(stuffer, &out);
+    void *ptr = stuffer->blob.data + stuffer->read_cursor - size;
+    notnull_check(ptr);
+
+    memcpy_check(data, ptr, size);
+
+    return 0;
 }
 
 int s2n_stuffer_skip_write(struct s2n_stuffer *stuffer, uint32_t n)
@@ -228,27 +225,25 @@ void *s2n_stuffer_raw_write(struct s2n_stuffer *stuffer, uint32_t data_len)
 
 int s2n_stuffer_write(struct s2n_stuffer *stuffer, struct s2n_blob *in)
 {
-    GUARD(s2n_stuffer_skip_write(stuffer, in->size));
+    return s2n_stuffer_write_bytes(stuffer, in->data, in->size);
+}
 
-    void *ptr = stuffer->blob.data + stuffer->write_cursor - in->size;
+int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, uint8_t *data, uint32_t size)
+{
+    GUARD(s2n_stuffer_skip_write(stuffer, size));
+
+    void *ptr = stuffer->blob.data + stuffer->write_cursor - size;
     if (ptr == NULL) {
         return -1;
     }
 
-    if (ptr == in->data) {
+    if (ptr == data) {
         return 0;
     }
 
-    memcpy_check(ptr, in->data, in->size);
+    memcpy_check(ptr, data, size);
 
     return 0;
-}
-
-int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, uint8_t *bytes, uint32_t n)
-{
-    struct s2n_blob in = {.data = bytes,.size = n };
-
-    return s2n_stuffer_write(stuffer, &in);
 }
 
 int s2n_stuffer_read_uint8(struct s2n_stuffer *stuffer, uint8_t *u)
