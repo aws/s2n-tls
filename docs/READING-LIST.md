@@ -31,7 +31,7 @@
 
 * [MiTLS](http://www.mitls.org/wsgi/home) , and [TLS Attacks](http://www.mitls.org/wsgi/tls-attacks) in particular. 
 * [GoTLS](http://golang.org/pkg/crypto/tls/) - TLS as implemented in the Go programming language
-* [OpenSSL](https://www.openssl.org/) - ubiquitious and reference implementation
+* [OpenSSL](https://www.openssl.org/) - ubiquitous and reference implementation
 * [LibreSSL](http://www.libressl.org/) - fork of OpenSSL maintained by a team from OpenBSD
 * [BoringSSL](https://boringssl.googlesource.com/boringssl/) - fork of OpenSSL maintained by Google Security team
 * [NSS](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS) - maintained by Mozilla, used by several browsers
