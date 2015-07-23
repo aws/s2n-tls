@@ -33,6 +33,7 @@
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
+#include "utils/s2n_mem.h"
 
 #define ENTROPY_SOURCE "/dev/urandom"
 
@@ -186,6 +187,8 @@ RAND_METHOD s2n_openssl_rand_method = {
 
 int s2n_init(void)
 {
+    GUARD(s2n_mem_init());
+
     OPEN:
     entropy_fd = open(ENTROPY_SOURCE, O_RDONLY);
     if (entropy_fd == -1) {
