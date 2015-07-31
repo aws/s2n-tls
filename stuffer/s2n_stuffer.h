@@ -47,28 +47,28 @@ struct s2n_stuffer {
 
 /* Initialize and destroying stuffers */
 extern int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in);
-extern int s2n_stuffer_alloc(struct s2n_stuffer *stuffer, uint32_t size);
-extern int s2n_stuffer_growable_alloc(struct s2n_stuffer *stuffer, uint32_t size);
+extern int s2n_stuffer_alloc(struct s2n_stuffer *stuffer, const uint32_t size);
+extern int s2n_stuffer_growable_alloc(struct s2n_stuffer *stuffer, const uint32_t size);
 extern int s2n_stuffer_free(struct s2n_stuffer *stuffer);
-extern int s2n_stuffer_resize(struct s2n_stuffer *stuffer, uint32_t size);
+extern int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size);
 extern int s2n_stuffer_reread(struct s2n_stuffer *stuffer);
 extern int s2n_stuffer_rewrite(struct s2n_stuffer *stuffer);
 extern int s2n_stuffer_wipe(struct s2n_stuffer *stuffer);
-extern int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, uint32_t n);
+extern int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t n);
 
 /* Basic read and write */
 extern int s2n_stuffer_read(struct s2n_stuffer *stuffer, struct s2n_blob *out);
 extern int s2n_stuffer_erase_and_read(struct s2n_stuffer *stuffer, struct s2n_blob *out);
-extern int s2n_stuffer_write(struct s2n_stuffer *stuffer, struct s2n_blob *in);
+extern int s2n_stuffer_write(struct s2n_stuffer *stuffer, const struct s2n_blob *in);
 extern int s2n_stuffer_read_bytes(struct s2n_stuffer *stuffer, uint8_t *out, uint32_t n);
-extern int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, uint8_t *in, uint32_t n);
+extern int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t *in, const uint32_t n);
 extern int s2n_stuffer_skip_read(struct s2n_stuffer *stuffer, uint32_t n);
-extern int s2n_stuffer_skip_write(struct s2n_stuffer *stuffer, uint32_t n);
+extern int s2n_stuffer_skip_write(struct s2n_stuffer *stuffer, const uint32_t n);
 
 /* Raw read/write move the cursor along and give you a pointer you can
  * read/write data_len bytes from/to in-place.
  */
-extern void *s2n_stuffer_raw_write(struct s2n_stuffer *stuffer, uint32_t data_len);
+extern void *s2n_stuffer_raw_write(struct s2n_stuffer *stuffer, const uint32_t data_len);
 extern void *s2n_stuffer_raw_read(struct s2n_stuffer *stuffer, uint32_t data_len);
 
 /* Send/receive stuffer to/from a file descriptor */
@@ -82,11 +82,11 @@ extern int s2n_stuffer_read_uint24(struct s2n_stuffer *stuffer, uint32_t *u);
 extern int s2n_stuffer_read_uint32(struct s2n_stuffer *stuffer, uint32_t *u);
 extern int s2n_stuffer_read_uint64(struct s2n_stuffer *stuffer, uint64_t *u);
 
-extern int s2n_stuffer_write_uint8(struct s2n_stuffer *stuffer, uint8_t u);
-extern int s2n_stuffer_write_uint16(struct s2n_stuffer *stuffer, uint16_t u);
-extern int s2n_stuffer_write_uint24(struct s2n_stuffer *stuffer, uint32_t u);
-extern int s2n_stuffer_write_uint32(struct s2n_stuffer *stuffer, uint32_t u);
-extern int s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, uint64_t u);
+extern int s2n_stuffer_write_uint8(struct s2n_stuffer *stuffer, const uint8_t u);
+extern int s2n_stuffer_write_uint16(struct s2n_stuffer *stuffer, const uint16_t u);
+extern int s2n_stuffer_write_uint24(struct s2n_stuffer *stuffer, const uint32_t u);
+extern int s2n_stuffer_write_uint32(struct s2n_stuffer *stuffer, const uint32_t u);
+extern int s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, const uint64_t u);
 
 /* Copy one stuffer to another */
 extern int s2n_stuffer_copy(struct s2n_stuffer *from, struct s2n_stuffer *to, uint32_t len);
@@ -104,7 +104,7 @@ extern int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuf
 extern int s2n_stuffer_peek_char(struct s2n_stuffer *stuffer, char *c);
 extern int s2n_stuffer_read_token(struct s2n_stuffer *stuffer, struct s2n_stuffer *token, char delim);
 extern int s2n_stuffer_skip_whitespace(struct s2n_stuffer *stuffer);
-extern int s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, char *str);
+extern int s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, const char *str);
 
 /* Read an RSA private key from a PEM encoded stuffer to an ASN1/DER encoded one */
 extern int s2n_stuffer_rsa_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1);

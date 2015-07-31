@@ -71,12 +71,10 @@ int s2n_stuffer_read_token(struct s2n_stuffer *stuffer, struct s2n_stuffer *toke
     return 0;
 }
 
-int s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, char *str)
+int s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, const char *str)
 {
     uint32_t length = strlen(str);
-    struct s2n_blob b = {.data = (uint8_t *) str,.size = length };
 
     GUARD(s2n_stuffer_alloc(stuffer, length + 1));
-
-    return s2n_stuffer_write(stuffer, &b);
+    return s2n_stuffer_write_bytes(stuffer, (const uint8_t *)str, length);
 }
