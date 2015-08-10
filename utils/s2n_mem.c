@@ -14,6 +14,7 @@
  */
 
 #include <stdint.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <sys/mman.h>
 
@@ -23,10 +24,24 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
+static long page_size = 4096;
+static int  use_mlock = 1;
+
+int s2n_mem_init(void)
+{
+    GUARD(page_size = sysconf(_SC_PAGESIZE));
+    if (getenv("S2N_DONT_MLOCK")) {
+        use_mlock = 0;
+    }
+
+    return 0;
+}
+
 int s2n_alloc(struct s2n_blob *b, uint32_t size)
 {
     b->data = NULL;
-
+    b->size = 0;
+    b->allocated = 0;
     GUARD(s2n_realloc(b, size));
     return 0;
 }
@@ -34,37 +49,53 @@ int s2n_alloc(struct s2n_blob *b, uint32_t size)
 int s2n_realloc(struct s2n_blob *b, uint32_t size)
 {
     if (size == 0) {
-        GUARD(s2n_free(b));
+        return s2n_free(b);
+    }
+
+    if (size < b->allocated) {
+        b->size = size;
         return 0;
     }
 
-    uint8_t *data = realloc(b->data, size);
-    if (data == NULL) {
-        S2N_ERROR(S2N_ERR_REALLOC);
+    uint32_t allocate = page_size * ((size + (page_size - 1)) / page_size); 
+
+    void *data;
+    if (posix_memalign(&data, page_size, allocate)) {
+        S2N_ERROR(S2N_ERR_ALLOC);
     }
+
+    if (b->size) {
+        memcpy_check(data, b->data, b->size);
+    }
+
     b->data = data;
-    if (mlock(b->data, size) < 0) {
-        GUARD(s2n_free(b));
-        S2N_ERROR(S2N_ERR_MLOCK);
-    }
+    b->size = size;
+    b->allocated = allocate;
+
 #ifdef MADV_DONTDUMP
     if (madvise(b->data, size, MADV_DONTDUMP) < 0) {
         GUARD(s2n_free(b));
         S2N_ERROR(S2N_ERR_MADVISE);
     }
 #endif
-    b->size = size;
+    if (use_mlock == 0) {
+        return 0;
+    }
+
+    if (mlock(b->data, size) < 0) {
+        GUARD(s2n_free(b));
+        S2N_ERROR(S2N_ERR_MLOCK);
+    }
 
     return 0;
 }
 
 int s2n_free(struct s2n_blob *b)
 {
-    if (b->data) {
-        free(b->data);
-    }
+    free(b->data);
     b->data = NULL;
     b->size = 0;
+    b->allocated = 0;
 
     return 0;
 }

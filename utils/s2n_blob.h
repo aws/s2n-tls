@@ -20,6 +20,7 @@
 struct s2n_blob {
     uint8_t *data;
     uint32_t size;
+    uint32_t allocated;
 };
 
 extern int s2n_blob_init(struct s2n_blob *b, uint8_t *data, uint32_t size);
