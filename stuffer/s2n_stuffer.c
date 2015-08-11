@@ -121,9 +121,7 @@ int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t size)
     }
 
     /* Use '0' instead of 0 precisely to prevent C string compatibility */
-    if (memset(stuffer->blob.data + stuffer->write_cursor - n, '0', n) != stuffer->blob.data + stuffer->write_cursor - n) {
-        S2N_ERROR(S2N_ERR_MEMSET);
-    }
+    memset(stuffer->blob.data + stuffer->write_cursor - n, '0', n);
     stuffer->write_cursor -= n;
 
     if (stuffer->write_cursor == 0) {
