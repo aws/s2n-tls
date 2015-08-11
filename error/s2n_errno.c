@@ -34,8 +34,6 @@ struct s2n_error_translation EN[] = {
     { S2N_ERR_KEY_INIT, "error initializing encryption key" },
     { S2N_ERR_ENCRYPT, "error encrypting data" },
     { S2N_ERR_DECRYPT, "error decrypting data" },
-    { S2N_ERR_UNUSED1, "unused error code 1" },
-    { S2N_ERR_UNUSED2, "unused error code 2" },
     { S2N_ERR_MADVISE, "error calling madvise" },
     { S2N_ERR_ALLOC,   "error allocating memory" },
     { S2N_ERR_MLOCK,   "error calling mlock" },
