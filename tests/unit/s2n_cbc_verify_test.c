@@ -37,7 +37,9 @@
 /* qsort() u64s numerically */
 static int u64cmp (const void * left, const void * right)
 {
-   return *(const uint64_t *)left - *(const uint64_t *)right;
+   if (*(const uint64_t *)left > *(const uint64_t *)right) return 1;
+   if (*(const uint64_t *)left < *(const uint64_t *)right) return -1;
+   return 0;
 }
 
 /* Generate summary statistics from a list of u64s */
