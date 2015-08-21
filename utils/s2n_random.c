@@ -35,6 +35,8 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_mem.h"
 
+#include <openssl/rand.h>
+
 #define ENTROPY_SOURCE "/dev/urandom"
 
 static int entropy_fd = -1;
