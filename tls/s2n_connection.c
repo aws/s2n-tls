@@ -206,6 +206,8 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     /* Zero the whole connection structure */
     memset_check(conn, 0, sizeof(struct s2n_connection));
 
+    conn->readfd = -1;
+    conn->writefd = -1;
     conn->mode = mode;
     conn->config = config;
     conn->active.cipher_suite = &s2n_null_cipher_suite;
