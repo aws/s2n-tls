@@ -132,7 +132,7 @@ ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, int *more
             if (r == -2) {
                 conn->closed = 1;
                 GUARD(s2n_connection_wipe(conn));
-		*more = 0;
+                *more = 0;
                 return bytes_read;
             }
             return -1;
