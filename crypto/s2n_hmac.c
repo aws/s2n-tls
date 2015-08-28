@@ -149,7 +149,7 @@ int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const vo
 
         memcpy_check(state->xor_pad, state->digest_pad, state->digest_size);
         copied = state->digest_size;
-    } else if (klen) {
+    } else {
         memcpy_check(state->xor_pad, key, klen);
     }
 
