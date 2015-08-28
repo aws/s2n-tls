@@ -27,7 +27,7 @@
 /* Check memcpy's return, if it's not right (very unlikely!) bail, set an error
  * err and return -1;
  */
-#define memcpy_check( d, s, n )     do { if ( (n) && (s) ) { notnull_check( (d) ); memcpy( (d), (s), (n)); } } while(0)
+#define memcpy_check( d, s, n )     do { if ( (n) ) { notnull_check( (d) ); memcpy( (d), (s), (n)); } } while(0)
 #define memset_check( d, c, n )     do { if ( (n) ) { notnull_check( (d) ); memset( (d), (c), (n)); } } while(0)
 
 /* Range check a number */
