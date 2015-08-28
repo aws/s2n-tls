@@ -28,7 +28,7 @@
  * err and return -1;
  */
 #define memcpy_check( d, s, n )     do { notnull_check( (d) ); if ( (n) && (s) ) { memcpy( (d), (s), (n)); } } while(0)
-#define memset_check( d, c, n )     do { notnull_check( (d) ); if ( (n) && (s) ) { memset( (d), (c), (n)); } } while(0)
+#define memset_check( d, c, n )     do { notnull_check( (d) ); if ( (n) && (c) ) { memset( (d), (c), (n)); } } while(0)
 
 /* Range check a number */
 #define gte_check(n, min)  do { if ( (n) < min ) { S2N_ERROR(S2N_ERR_SAFETY); } } while(0)
