@@ -109,8 +109,8 @@ int main(int argc, char **argv)
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        int client_more;
-        int server_more;
+        s2n_blocked_status client_blocked;
+        s2n_blocked_status server_blocked;
         int server_to_client[2];
         int client_to_server[2];
 
@@ -141,15 +141,15 @@ int main(int argc, char **argv)
 
         do {
             int ret;
-            ret = s2n_negotiate(client_conn, &client_more);
-            EXPECT_TRUE(ret == 0 || (client_more && errno == EAGAIN));
-            ret = s2n_negotiate(server_conn, &server_more);
-            EXPECT_TRUE(ret == 0 || (server_more && errno == EAGAIN));
-        } while (client_more || server_more);
+            ret = s2n_negotiate(client_conn, &client_blocked);
+            EXPECT_TRUE(ret == 0 || (client_blocked && errno == EAGAIN));
+            ret = s2n_negotiate(server_conn, &server_blocked);
+            EXPECT_TRUE(ret == 0 || (server_blocked && errno == EAGAIN));
+        } while (client_blocked || server_blocked);
 
-        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_more));
+        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_more));
+        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 
         for (int i = 0; i < 2; i++) {

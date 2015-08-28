@@ -110,8 +110,8 @@ int main(int argc, char **argv)
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
-        int client_more;
-        int server_more;
+        s2n_blocked_status client_blocked;
+        s2n_blocked_status server_blocked;
         int server_to_client[2];
         int client_to_server[2];
 
@@ -137,18 +137,18 @@ int main(int argc, char **argv)
 
         do {
             int ret;
-            ret = s2n_negotiate(client_conn, &client_more);
-            EXPECT_TRUE(ret == 0 || (client_more && errno == EAGAIN));
-            ret = s2n_negotiate(server_conn, &server_more);
-            EXPECT_TRUE(ret == 0 || (server_more && errno == EAGAIN));
-        } while (client_more || server_more);
+            ret = s2n_negotiate(client_conn, &client_blocked);
+            EXPECT_TRUE(ret == 0 || (client_blocked && errno == EAGAIN));
+            ret = s2n_negotiate(server_conn, &server_blocked);
+            EXPECT_TRUE(ret == 0 || (server_blocked && errno == EAGAIN));
+        } while (client_blocked || server_blocked);
 
         /* Verify that the server didn't receive the server name. */
         EXPECT_NULL(s2n_get_server_name(server_conn));
 
-        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_more));
+        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_more));
+        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -164,8 +164,8 @@ int main(int argc, char **argv)
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
-        int client_more;
-        int server_more;
+        s2n_blocked_status client_blocked;
+        s2n_blocked_status server_blocked;
         int server_to_client[2];
         int client_to_server[2];
 
@@ -197,20 +197,20 @@ int main(int argc, char **argv)
 
         do {
             int ret;
-            ret = s2n_negotiate(client_conn, &client_more);
-            EXPECT_TRUE(ret == 0 || (client_more && errno == EAGAIN));
-            ret = s2n_negotiate(server_conn, &server_more);
-            EXPECT_TRUE(ret == 0 || (server_more && errno == EAGAIN));
-        } while (client_more || server_more);
+            ret = s2n_negotiate(client_conn, &client_blocked);
+            EXPECT_TRUE(ret == 0 || (client_blocked && errno == EAGAIN));
+            ret = s2n_negotiate(server_conn, &server_blocked);
+            EXPECT_TRUE(ret == 0 || (server_blocked && errno == EAGAIN));
+        } while (client_blocked || server_blocked);
 
         /* Verify that the server name was received intact. */
         EXPECT_NOT_NULL(received_server_name = s2n_get_server_name(server_conn));
         EXPECT_EQUAL(strlen(received_server_name), strlen(sent_server_name));
         EXPECT_BYTEARRAY_EQUAL(received_server_name, sent_server_name, strlen(received_server_name));
 
-        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_more));
+        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_more));
+        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -224,7 +224,7 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
-        int server_more;
+        s2n_blocked_status server_blocked;
         int server_to_client[2];
         int client_to_server[2];
         const char *sent_server_name = "svr";
@@ -311,8 +311,8 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(write(client_to_server[1], client_extensions, sizeof(client_extensions)), sizeof(client_extensions));
 
         /* Verify that the CLIENT HELLO is accepted */
-        s2n_negotiate(server_conn, &server_more);
-        EXPECT_EQUAL(server_more, 1);
+        s2n_negotiate(server_conn, &server_blocked);
+        EXPECT_EQUAL(server_blocked, 1);
         EXPECT_EQUAL(server_conn->handshake.state, CLIENT_KEY);
 
         /* Verify that the server name was received intact. */
@@ -320,7 +320,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(strlen(received_server_name), strlen(sent_server_name));
         EXPECT_BYTEARRAY_EQUAL(received_server_name, sent_server_name, strlen(received_server_name));
 
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_more));
+        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -335,8 +335,8 @@ int main(int argc, char **argv)
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
-        int client_more;
-        int server_more;
+        s2n_blocked_status client_blocked;
+        s2n_blocked_status server_blocked;
         int server_to_client[2];
         int client_to_server[2];
         uint32_t length;
@@ -363,19 +363,19 @@ int main(int argc, char **argv)
 
         do {
             int ret;
-            ret = s2n_negotiate(client_conn, &client_more);
-            EXPECT_TRUE(ret == 0 || client_more);
-            ret = s2n_negotiate(server_conn, &server_more);
-            EXPECT_TRUE(ret == 0 || server_more);
-        } while (client_more || server_more);
+            ret = s2n_negotiate(client_conn, &client_blocked);
+            EXPECT_TRUE(ret == 0 || client_blocked);
+            ret = s2n_negotiate(server_conn, &server_blocked);
+            EXPECT_TRUE(ret == 0 || server_blocked);
+        } while (client_blocked || server_blocked);
 
         /* Verify that the client didn't receive an OCSP response. */
         EXPECT_NULL(s2n_connection_get_ocsp_response(client_conn, &length));
         EXPECT_EQUAL(length, 0);
 
-        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_more));
+        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_more));
+        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -392,8 +392,8 @@ int main(int argc, char **argv)
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
         struct s2n_config *client_config;
-        int client_more;
-        int server_more;
+        s2n_blocked_status client_blocked;
+        s2n_blocked_status server_blocked;
         int server_to_client[2];
         int client_to_server[2];
         uint32_t length;
@@ -424,19 +424,19 @@ int main(int argc, char **argv)
 
         do {
             int ret;
-            ret = s2n_negotiate(client_conn, &client_more);
-            EXPECT_TRUE(ret == 0 || client_more);
-            ret = s2n_negotiate(server_conn, &server_more);
-            EXPECT_TRUE(ret == 0 || server_more);
-        } while (client_more || server_more);
+            ret = s2n_negotiate(client_conn, &client_blocked);
+            EXPECT_TRUE(ret == 0 || client_blocked);
+            ret = s2n_negotiate(server_conn, &server_blocked);
+            EXPECT_TRUE(ret == 0 || server_blocked);
+        } while (client_blocked || server_blocked);
 
         /* Verify that the client didn't receive an OCSP response. */
         EXPECT_NULL(s2n_connection_get_ocsp_response(client_conn, &length));
         EXPECT_EQUAL(length, 0);
 
-        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_more));
+        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_more));
+        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -454,8 +454,8 @@ int main(int argc, char **argv)
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
         struct s2n_config *client_config;
-        int client_more;
-        int server_more;
+        s2n_blocked_status client_blocked;
+        s2n_blocked_status server_blocked;
         int server_to_client[2];
         int client_to_server[2];
         uint32_t length;
@@ -486,19 +486,19 @@ int main(int argc, char **argv)
 
         do {
             int ret;
-            ret = s2n_negotiate(client_conn, &client_more);
-            EXPECT_TRUE(ret == 0 || client_more);
-            ret = s2n_negotiate(server_conn, &server_more);
-            EXPECT_TRUE(ret == 0 || server_more);
-        } while (client_more || server_more);
+            ret = s2n_negotiate(client_conn, &client_blocked);
+            EXPECT_TRUE(ret == 0 || client_blocked);
+            ret = s2n_negotiate(server_conn, &server_blocked);
+            EXPECT_TRUE(ret == 0 || server_blocked);
+        } while (client_blocked || server_blocked);
 
         /* Verify that the client didn't receive an OCSP response. */
         EXPECT_NULL(s2n_connection_get_ocsp_response(client_conn, &length));
         EXPECT_EQUAL(length, 0);
 
-        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_more));
+        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_more));
+        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));

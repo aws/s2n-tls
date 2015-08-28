@@ -37,13 +37,13 @@ int echo(struct s2n_connection *conn, int sockfd)
     readers[1].fd = STDIN_FILENO;
     readers[1].events = POLLIN;
 
-    int more;
+    s2n_blocked_status blocked;
     do {
-        if (s2n_negotiate(conn, &more) < 0) {
+        if (s2n_negotiate(conn, &blocked) < 0) {
             fprintf(stderr, "Failed to negotiate: '%s' %d\n", s2n_strerror(s2n_errno, "EN"), s2n_connection_get_alert(conn));
             exit(1);
         }
-    } while (more);
+    } while (blocked);
 
     /* Now that we've negotiated, print some parameters */
     int client_hello_version;
@@ -96,7 +96,7 @@ int echo(struct s2n_connection *conn, int sockfd)
 
         if (readers[0].revents & POLLIN) {
             do {
-                bytes_read = s2n_recv(conn, buffer, 10240, &more);
+                bytes_read = s2n_recv(conn, buffer, 10240, &blocked);
                 if (bytes_read == 0) {
                     /* Connection has been closed */
                     s2n_connection_wipe(conn);
@@ -111,7 +111,7 @@ int echo(struct s2n_connection *conn, int sockfd)
                     fprintf(stderr, "Error writing to stdout\n");
                     exit(1);
                 }
-            } while (more);
+            } while (blocked);
         }
         if (readers[1].revents & POLLIN) {
             int bytes_available;
@@ -139,7 +139,7 @@ int echo(struct s2n_connection *conn, int sockfd)
 
             char *buf_ptr = buffer;
             do {
-                bytes_written = s2n_send(conn, buf_ptr, bytes_available, &more);
+                bytes_written = s2n_send(conn, buf_ptr, bytes_available, &blocked);
                 if (bytes_written < 0) {
                     fprintf(stderr, "Error writing to connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
                     exit(1);
@@ -147,7 +147,7 @@ int echo(struct s2n_connection *conn, int sockfd)
 
                 bytes_available -= bytes_written;
                 buf_ptr += bytes_written;
-            } while (bytes_available || more);
+            } while (bytes_available || blocked);
         }
     }
     if (p < 0 && errno == EINTR) {

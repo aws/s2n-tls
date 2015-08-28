@@ -30,11 +30,11 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-int s2n_flush(struct s2n_connection *conn, int *more)
+int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
     int w;
 
-    *more = 1;
+    *blocked = S2N_BLOCKED_ON_WRITE;
 
     /* Write any data that's already pending */
   WRITE:
@@ -77,12 +77,12 @@ int s2n_flush(struct s2n_connection *conn, int *more)
         goto WRITE;
     }
 
-    *more = 0;
+    *blocked = S2N_NOT_BLOCKED;
 
     return 0;
 }
 
-ssize_t s2n_send(struct s2n_connection *conn, void *buf, ssize_t size, int *more)
+ssize_t s2n_send(struct s2n_connection *conn, void *buf, ssize_t size, s2n_blocked_status *blocked)
 {
     struct s2n_blob in = {.data = buf };
     ssize_t bytes_written = 0;
@@ -94,9 +94,9 @@ ssize_t s2n_send(struct s2n_connection *conn, void *buf, ssize_t size, int *more
     }
 
     /* Flush any pending I/O */
-    GUARD(s2n_flush(conn, more));
+    GUARD(s2n_flush(conn, blocked));
 
-    *more = 1;
+    *blocked = S2N_BLOCKED_ON_WRITE;
 
     GUARD((max_payload_size = s2n_record_max_write_payload_size(conn)));
 
@@ -143,7 +143,7 @@ ssize_t s2n_send(struct s2n_connection *conn, void *buf, ssize_t size, int *more
         size -= in.size;
     }
 
-    *more = 0;
+    *blocked = 0;
 
     return bytes_written;
 }

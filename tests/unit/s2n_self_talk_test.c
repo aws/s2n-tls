@@ -89,7 +89,7 @@ void mock_client(int writefd, int readfd)
 {
     char buffer[0xffff];
     struct s2n_connection *conn;
-    int more;
+    s2n_blocked_status blocked;
 
     /* Give the server a chance to listen */
     sleep(1);
@@ -99,17 +99,17 @@ void mock_client(int writefd, int readfd)
     s2n_connection_set_read_fd(conn, readfd);
     s2n_connection_set_write_fd(conn, writefd);
 
-    s2n_negotiate(conn, &more);
+    s2n_negotiate(conn, &blocked);
 
     for (int i = 1; i < 0xffff; i += 100) {
         for (int j = 0; j < i; j++) {
             buffer[j] = 33;
         }
 
-        s2n_send(conn, buffer, i, &more);
+        s2n_send(conn, buffer, i, &blocked);
     }
 
-    s2n_shutdown(conn, &more);
+    s2n_shutdown(conn, &blocked);
     s2n_connection_free(conn);
 
     /* Give the server a chance to a void a sigpipe */
@@ -122,6 +122,7 @@ int main(int argc, char **argv)
 {
     struct s2n_connection *conn;
     struct s2n_config *config;
+    s2n_blocked_status blocked;
     int status;
     pid_t pid;
     int server_to_client[2];
@@ -168,7 +169,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
 
         /* Negotiate the handshake. */
-        EXPECT_SUCCESS(s2n_negotiate(conn, &status));
+        EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
 
         char buffer[0xffff];
         for (int i = 1; i < 0xffff; i += 100) {
@@ -177,7 +178,7 @@ int main(int argc, char **argv)
             int size = i;
 
             do {
-                EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &status));
+                EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &blocked));
 
                 size -= bytes_read;
                 ptr += bytes_read;
@@ -189,9 +190,9 @@ int main(int argc, char **argv)
         }
 
         /* Verify that read() returns EOF */
-        EXPECT_SUCCESS(s2n_recv(conn, buffer, 1, &status));
+        EXPECT_SUCCESS(s2n_recv(conn, buffer, 1, &blocked));
 
-        EXPECT_SUCCESS(s2n_shutdown(conn, &status));
+        EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
 

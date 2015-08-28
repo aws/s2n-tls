@@ -120,7 +120,7 @@ static int s2n_connection_free_keys(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_shutdown(struct s2n_connection *conn, int *more)
+int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *more)
 {
     /* Write any pending I/O */
     GUARD(s2n_flush(conn, more));

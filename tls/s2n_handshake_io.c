@@ -87,7 +87,7 @@ static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct 
 static int handshake_write_io(struct s2n_connection *conn)
 {
     uint8_t record_type = state_machine[conn->handshake.state].record_type;
-    int more = 0;
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     int max_payload_size;
 
     /* If there's nothing in the out stuffer, put a handshake message in the 
@@ -124,7 +124,7 @@ static int handshake_write_io(struct s2n_connection *conn)
     }
 
     /* Actually send the record */
-    GUARD(s2n_flush(conn, &more));
+    GUARD(s2n_flush(conn, &blocked));
 
     /* If we're done sending the last record, reset everything */
     if (s2n_stuffer_data_available(&conn->handshake.io) == 0) {
@@ -322,7 +322,7 @@ static int handshake_read_io(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_negotiate(struct s2n_connection *conn, int *more)
+int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
     char this = 'S';
     if (conn->mode == S2N_CLIENT) {
@@ -332,12 +332,13 @@ int s2n_negotiate(struct s2n_connection *conn, int *more)
     while (state_machine[conn->handshake.state].writer != 'B') {
 
         /* Flush any pending I/O or alert messages */
-        GUARD(s2n_flush(conn, more));
-        *more = 1;
+        GUARD(s2n_flush(conn, blocked));
 
         if (state_machine[conn->handshake.state].writer == this) {
+            *blocked = S2N_BLOCKED_ON_WRITE;
             GUARD(handshake_write_io(conn));
         } else {
+            *blocked = S2N_BLOCKED_ON_READ;
             GUARD(handshake_read_io(conn));
         }
 
@@ -347,7 +348,7 @@ int s2n_negotiate(struct s2n_connection *conn, int *more)
         }
     }
 
-    *more = 0;
+    *blocked = S2N_NOT_BLOCKED;
 
     return 0;
 }
