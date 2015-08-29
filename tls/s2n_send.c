@@ -143,7 +143,7 @@ ssize_t s2n_send(struct s2n_connection *conn, void *buf, ssize_t size, s2n_block
         size -= in.size;
     }
 
-    *blocked = 0;
+    *blocked = S2N_NOT_BLOCKED;
 
     return bytes_written;
 }
