@@ -25,14 +25,14 @@ if (s2n_connection_set_fd(conn, fd) < 0) {
 }
 
 /* Negotiate the TLS handshake */
-int more;
-if (s2n_negotiate(conn, &more) < 0) {
+s2n_blocked_status blocked;
+if (s2n_negotiate(conn, &blocked) < 0) {
     ... error ...
 }
     
 /* Write data to the connection */
 int bytes_written;
-bytes_written = s2n_send(conn, "Hello World", sizeof("Hello World"), &more);
+bytes_written = s2n_send(conn, "Hello World", sizeof("Hello World"), &blocked);
 ```
 
 For details on building the s2n library and how to use s2n in an application you are developing, see the [API Reference](https://github.com/awslabs/s2n/blob/master/docs/USAGE-GUIDE.md).
