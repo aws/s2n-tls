@@ -201,8 +201,8 @@ int s2n_init(void)
     }
 
 #if defined(MAP_INHERIT_ZERO)
-    if ((zero_if_forked_ptr = mmap(NULL, sizeof(int), PROT_READ|PROT_WRITE,
-                                   MAP_ANON|MAP_PRIVATE, -1, 0)) == MAP_FAILED) {
+    zero_if_forked_ptr = mmap(NULL, sizeof(int), PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0);
+    if (zero_if_forked_ptr == MAP_FAILED) {
         S2N_ERROR(S2N_ERR_OPEN_RANDOM);
     }
 
