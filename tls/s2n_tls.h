@@ -29,7 +29,7 @@ struct s2n_tls_session_id {
     uint8_t session_id_len;
 };
 
-extern int s2n_flush(struct s2n_connection *conn, int *more);
+extern int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *more);
 extern int s2n_client_hello_send(struct s2n_connection *conn);
 extern int s2n_client_hello_recv(struct s2n_connection *conn);
 extern int s2n_sslv2_client_hello_recv(struct s2n_connection *conn);

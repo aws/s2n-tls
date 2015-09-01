@@ -228,6 +228,7 @@ void send_messages(int write_fd, uint8_t *server_hello, uint32_t server_hello_le
 int main(int argc, char **argv)
 {
     struct s2n_connection *conn;
+    s2n_blocked_status blocked;
     int status;
     pid_t pid;
     int p[2];
@@ -266,7 +267,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(p[1]));
 
     /* Negotiate the handshake. This will fail due to EOF, but that's ok. */
-    EXPECT_FAILURE(s2n_negotiate(conn, &status));
+    EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
     EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
@@ -308,7 +309,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(p[1]));
 
     /* Negotiate the handshake. This will fail due to EOF, but that's ok. */
-    EXPECT_FAILURE(s2n_negotiate(conn, &status));
+    EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
     EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
@@ -350,7 +351,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(p[1]));
 
     /* Negotiate the handshake. This will fail due to EOF, but that's ok. */
-    EXPECT_FAILURE(s2n_negotiate(conn, &status));
+    EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
     EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
@@ -392,7 +393,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(p[1]));
 
     /* Negotiate the handshake. This will fail due to EOF, but that's ok. */
-    EXPECT_FAILURE(s2n_negotiate(conn, &status));
+    EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
     EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
@@ -434,7 +435,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(p[1]));
 
     /* Negotiate the handshake. This will fail due to EOF, but that's ok. */
-    EXPECT_FAILURE(s2n_negotiate(conn, &status));
+    EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
     EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
@@ -476,7 +477,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(p[1]));
 
     /* Negotiate the handshake. This will fail due to EOF, but that's ok. */
-    EXPECT_FAILURE(s2n_negotiate(conn, &status));
+    EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
     EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);

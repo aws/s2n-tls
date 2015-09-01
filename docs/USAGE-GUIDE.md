@@ -158,7 +158,7 @@ but does accept SSL2.0 hello messages.
 
 ## Enums
 
-s2n defines three enum types:
+s2n defines four enum types:
 
 ```c
 typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
@@ -167,6 +167,15 @@ typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
 **s2n_mode** is used to declare connections as server or client type,
 respectively.  At this time, s2n does not function as a client and only
 S2N_SERVER should be used.
+
+```c
+typedef enum { S2N_NOT_BLOCKED, S2N_BLOCKED_ON_READ, S2N_BLOCKED_ON_WRITE } s2n_blocked_status;
+```
+
+**s2n_blocked_status** is used in non-blocking mode to indicate in which
+direction s2n became blocked on I/O before it returned control to the caller.
+This allows an application to avoid retrying s2n operations until I/O is 
+possible in that direction.
 
 ```c
 typedef enum { S2N_BUILT_IN_BLINDING, S2N_SELF_SERVICE_BLINDING } s2n_blinding;
@@ -529,16 +538,17 @@ s2n supports both blocking and non-blocking I/O. To use s2n in non-blocking
 mode, set the underlying file descriptors as non-blocking (i.e. with
 **fcntl**). In blocking mode, each s2n I/O function will not return until it is
 complete. In non-blocking mode an s2n I/O function may return while there is
-still I/O pending. In this case the value of the **more** parameter will be set
-to 1.
+still I/O pending. In this case the value of the **blocked** parameter will be set
+to either **S2N_BLOCKED_ON_READ** or **S2N_BLOCKED_ON_WRITE**, depending on the
+direction in which s2n is blocked.
 
-s2n I/O functions should be called repeatedly until the **more** parameter is
-zero. 
+s2n I/O functions should be called repeatedly until the **blocked** parameter is
+**S2N_NOT_BLOCKED**. 
 
 ### s2n\_negotiate
 
 ```c
-int s2n_negotiate(struct s2n_connection *conn, int *more);
+int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked);
 ```
 
 **s2n_negotiate** performs the initial "handshake" phase of a TLS connection and must be called before any **s2n_recv** or **s2n_send** calls.
@@ -549,22 +559,23 @@ int s2n_negotiate(struct s2n_connection *conn, int *more);
 ssize_t s2n_send(struct s2n_connection *conn 
               void *buf,
               ssize_t size,
-              int *more);
+              s2n_blocked_status *blocked);
 ```
 
 **s2n_send** writes and encrypts **size* of **buf** data to the associated connection. **s2n_send** will return the number of bytes written, and may indicate a partial write. Partial writes are possible not just for non-blocking I/O, but also for connections aborted while active. **NOTE:** Unlike OpenSSL, repeated calls to **s2n_send** should not duplicate the original parameters, but should update **buf** and **size** per the indication of size written. For example;
 
 ```c
-int more, written = 0;
+s2n_blocked_status blocked;
+int written = 0;
 char data[10]; /* Some data we want to write */
 do {
-    int w = s2n_send(conn, data + written, 10 - written, &more);
+    int w = s2n_send(conn, data + written, 10 - written, &blocked);
     if (w < 0) {
         /* Some kind of error */
         break;
     }
     written += w;
-} while (more); 
+} while (blocked != S2N_NOT_BLOCKED); 
 ```    
 
 ### s2n\_recv
@@ -573,7 +584,7 @@ do {
 ssize_t s2n_recv(struct s2n_connection *conn,
              void *buf,
              ssize_t size,
-             int *more);
+             s2n_blocked_status *blocked);
 ```
 
 **s2n_recv** decrypts and reads **size* to **buf** data from the associated
@@ -583,23 +594,24 @@ connection. **s2n_recv** will return the number of bytes read and also return
 **NOTE:** Unlike OpenSSL, repeated calls to **s2n_recv** should not duplicate the original parameters, but should update **buf** and **size** per the indication of size read. For example;
 
 ```c
-int more, bytes_read = 0;
+s2n_blocked_status blocked;
+int bytes_read = 0;
 char data[10];
 do {
-    int r = s2n_recv(conn, data + bytes_read, 10 - bytes_read, &more);
+    int r = s2n_recv(conn, data + bytes_read, 10 - bytes_read, &blocked);
     if (r < 0) {
         /* Some kind of error */
         break;
     }
     bytes_read += r;
-} while (more);
+} while (blocked != S2N_NOT_BLOCKED);
 ```
 
 ### s2n_shutdown
 
 ```c
 int s2n_shutdown(struct s2n_connection *conn,
-                 int *more);
+                 s2n_blocked_status *blocked);
 ```
 
 **s2n_shutdown** shuts down the s2n connection. Once a connection has been shut down it is not available for reading or writing.
