@@ -111,10 +111,7 @@ int main(int argc, char * const *argv)
         server_name = host;
     }
 
-    if (memset(&hints, 0, sizeof(hints)) != &hints) {
-        fprintf(stderr, "memset error: %s\n", strerror(errno));
-        exit(1);
-    }
+    memset(&hints, 0, sizeof(hints));
 
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
