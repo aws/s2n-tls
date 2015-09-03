@@ -158,7 +158,7 @@ uint8_t heartbeat_message[] = {
 };
 
 uint8_t warning_alert[] = {       /* warning: user cancelled */
-    0x02, 0x50
+    0x02, 0x5a
 };
 
 uint8_t fatal_alert[] = {       /* Fatal: unexpected message */
