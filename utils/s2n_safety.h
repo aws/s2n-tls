@@ -24,8 +24,7 @@
 /* NULL check a pointer */
 #define notnull_check( ptr )           do { if ( (ptr) == NULL ) { S2N_ERROR(S2N_ERR_NULL); } } while(0)
 
-/* Check memcpy's return, if it's not right (very unlikely!) bail, set an error
- * err and return -1;
+/* Check memcpy and memset's arguments, if these are not right, log an error
  */
 #define memcpy_check( d, s, n )     do { if ( (n) ) { notnull_check( (d) ); memcpy( (d), (s), (n)); } } while(0)
 #define memset_check( d, c, n )     do { if ( (n) ) { notnull_check( (d) ); memset( (d), (c), (n)); } } while(0)
