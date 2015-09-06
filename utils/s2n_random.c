@@ -59,7 +59,7 @@ static __thread int *zero_if_forked_ptr;
 
 #endif
 
-static inline int s2n_check_fork(void)
+static inline int s2n_defend_if_forked(void)
 {
     uint8_t s2n_public_drbg[] = "s2n public drbg";
     uint8_t s2n_private_drbg[] = "s2n private drbg";
@@ -77,7 +77,7 @@ static inline int s2n_check_fork(void)
 
 int s2n_get_public_random_data(struct s2n_blob *blob)
 {
-    GUARD(s2n_check_fork());
+    GUARD(s2n_defend_if_forked());
     GUARD(s2n_drbg_generate(&per_thread_public_drbg, blob));
 
     return 0;
@@ -85,7 +85,7 @@ int s2n_get_public_random_data(struct s2n_blob *blob)
 
 int s2n_get_private_random_data(struct s2n_blob *blob)
 {
-    GUARD(s2n_check_fork());
+    GUARD(s2n_defend_if_forked());
     GUARD(s2n_drbg_generate(&per_thread_private_drbg, blob));
 
     return 0;
@@ -216,7 +216,7 @@ int s2n_init(void)
     }
 #endif
 
-    GUARD(s2n_check_fork());
+    GUARD(s2n_defend_if_forked());
 
 #ifndef OPENSSL_IS_BORINGSSL
     /* Create an engine */
