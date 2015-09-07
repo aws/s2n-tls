@@ -90,11 +90,11 @@ int s2n_drbg_seed(struct s2n_drbg *drbg)
     uint8_t seed[32];
     struct s2n_blob blob = {.data = seed, .size = sizeof(seed) };
 
-    if (!drbg->entropy_generator) {
-        GUARD(s2n_get_urandom_data(&blob));
+    if (drbg->entropy_generator) {
+        GUARD(drbg->entropy_generator(&blob));
     }
     else {
-        GUARD(drbg->entropy_generator(&blob));
+        GUARD(s2n_get_urandom_data(&blob));
     }
 
     for (int i = 0; i < sizeof(drbg->ps); i++) {
