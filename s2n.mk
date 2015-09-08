@@ -19,6 +19,9 @@ ifeq ($(PLATFORM),Darwin)
 else ifeq ($(PLATFORM),FreeBSD)
     LIBS = -lthr
     CRYPTO_LIBS = -lcrypto
+else ifeq ($(PLATFORM),NetBSD)
+    LIBS = -lpthread
+    CRYPTO_LIBS = -lcrypto
 else
     LIBS = -lpthread -ldl -lrt
     CRYPTO_LIBS = -lcrypto
