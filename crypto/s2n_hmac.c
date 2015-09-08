@@ -213,6 +213,7 @@ int s2n_hmac_digest_two_compression_rounds(struct s2n_hmac_state *state, void *o
 
 int s2n_hmac_reset(struct s2n_hmac_state *state)
 {
+    state->currently_in_hash_block = 0;
     memcpy_check(&state->inner, &state->inner_just_key, sizeof(state->inner));
 
     return 0;
