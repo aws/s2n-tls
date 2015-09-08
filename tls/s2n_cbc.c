@@ -36,7 +36,14 @@
  *
  * The goal of s2n_verify_cbc() is to verify that the padding and hmac
  * are correct, without leaking (via timing) how much padding there
- * actually is: this is considered secret. 
+ * actually is: as this is considered secret. 
+ *
+ * In addition to our efforts here though, s2n also wraps any CBC
+ * verification error (or record parsing error in general) with
+ * a randomized delay of between 1ms and 10 seconds. See s2n_connection.c.
+ * This amount of delay randomization is sufficient to increase the
+ * complexity of attack for even a 1 microsecond timing leak (which
+ * is quite large) by a factor of around 83 trillion.
  */
 int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, struct s2n_blob *decrypted)
 {
