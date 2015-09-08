@@ -77,14 +77,14 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
         return 0 - mismatches;
     }
 
-    /* Check the padding */
+    /* Check the maximum amount of padding */
     int check = 255;
-    if (check > payload_and_padding_size) {
-        check = payload_and_padding_size;
+    if (check > (payload_and_padding_size - 1)) {
+        check = (payload_and_padding_size - 1);
     }
 
     int cutoff = check - padding_length;
-    for (int i = 0, j = decrypted->size - check; i < check && j < decrypted->size; i++, j++) {
+    for (int i = 0, j = decrypted->size - 1 - check; i < check && j < decrypted->size; i++, j++) {
         uint8_t mask = ~(0xff << ((i >= cutoff) * 8));
         mismatches |= (decrypted->data[j] ^ padding_length) & mask;
     }
