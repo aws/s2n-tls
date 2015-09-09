@@ -36,7 +36,14 @@
  *
  * The goal of s2n_verify_cbc() is to verify that the padding and hmac
  * are correct, without leaking (via timing) how much padding there
- * actually is: this is considered secret. 
+ * actually is: as this is considered secret. 
+ *
+ * In addition to our efforts here though, s2n also wraps any CBC
+ * verification error (or record parsing error in general) with
+ * a randomized delay of between 1ms and 10 seconds. See s2n_connection.c.
+ * This amount of delay randomization is sufficient to increase the
+ * complexity of attack for even a 1 microsecond timing leak (which
+ * is quite large) by a factor of around 83 trillion.
  */
 int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, struct s2n_blob *decrypted)
 {
@@ -77,14 +84,14 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
         return 0 - mismatches;
     }
 
-    /* Check the padding */
+    /* Check the maximum amount of padding */
     int check = 255;
-    if (check > payload_and_padding_size) {
-        check = payload_and_padding_size;
+    if (check > (payload_and_padding_size - 1)) {
+        check = (payload_and_padding_size - 1);
     }
 
     int cutoff = check - padding_length;
-    for (int i = 0, j = decrypted->size - check; i < check && j < decrypted->size; i++, j++) {
+    for (int i = 0, j = decrypted->size - 1 - check; i < check && j < decrypted->size; i++, j++) {
         uint8_t mask = ~(0xff << ((i >= cutoff) * 8));
         mismatches |= (decrypted->data[j] ^ padding_length) & mask;
     }

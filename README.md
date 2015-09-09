@@ -83,6 +83,9 @@ The security of TLS and its associated encryption algorithms depends upon secure
 ##### Modularized encryption
 s2n has been structured so that different encryption libraries may be used. Today s2n supports OpenSSL, LibreSSL, BoringSSL, and the Apple Common Crypto framework to perform the underlying cryptographic operations.
 
+##### Timing blinding
+s2n includes structured support for blinding time-based side-channels that may leak sensitive data. For example, if s2n fails to parse a TLS record or handshake message, s2n will add a randomized delay of between 1ms and 10 seconds, granular to nanoseconds, before responding. This raises the complexity of real-world timing side-channel attacks by a factor of at least tens of trillions. 
+
 ##### Table based state-machines
 s2n uses simple tables to drive the TLS/SSL state machines, making it difficult for invalid out-of-order states to arise. 
 
