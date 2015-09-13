@@ -183,7 +183,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
         }
 
-        /* Tamper w ith the cipher text and ensure decryption fails */
+        /* Tamper with the ciphertext and ensure decryption fails */
         for (int j = 0; j < i - S2N_TLS_GCM_TAG_LEN; j++) {
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(conn->active.cipher_suite->cipher->get_encryption_key(&conn->active.server_key, &aes128));
@@ -292,7 +292,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
         EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
-        /* Tamper the protocol version in the header, and ensure decryption fails, as we use this in the AAD */
+        /* Tamper with the protocol version in the header, and ensure decryption fails, as we use this in the AAD */
         conn->in.blob.data[2] = 2;
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
         EXPECT_FAILURE(s2n_record_parse(conn));
@@ -353,7 +353,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
         }
 
-        /* Tamper w ith the cipher text and ensure decryption fails */
+        /* Tamper with the ciphertext and ensure decryption fails */
         for (int j = S2N_TLS_GCM_IV_LEN; j < i - S2N_TLS_GCM_TAG_LEN; j++) {
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             conn->active.cipher_suite->cipher = &s2n_aes256_gcm;
