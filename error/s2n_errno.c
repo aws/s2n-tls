@@ -97,6 +97,7 @@ struct s2n_error_translation EN[] = {
     { S2N_ERR_ECDHE_SHARED_SECRET, "Error computing ECDHE shared secret" },
     { S2N_ERR_ECDHE_UNSUPPORTED_CURVE, "Unsupported EC curve was presented during an ECDHE handshake" },
     { S2N_ERR_ECDHE_SERIALIZING, "Error serializing ECDHE public" },
+    { S2N_ERR_SHUTDOWN_PAUSED, "s2n_shutdown() called while paused" },
 }; 
 
 const char *s2n_strerror(int error, const char *lang)

@@ -305,7 +305,7 @@ static int handshake_read_io(struct s2n_connection *conn)
         GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
         if (r < 0) {
-            GUARD(s2n_sleep_delay(conn));
+            GUARD(s2n_connection_kill(conn));
 
             return r;
         }

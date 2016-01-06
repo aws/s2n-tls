@@ -34,6 +34,7 @@
 
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
+#include "utils/s2n_timer.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 
@@ -93,6 +94,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->in, 0));
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->handshake.io, 0));
     GUARD_PTR(s2n_connection_wipe(conn));
+    GUARD_PTR(s2n_timer_start(&conn->write_timer));
 
     return conn;
 }
@@ -122,6 +124,13 @@ static int s2n_connection_free_keys(struct s2n_connection *conn)
 
 int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *more)
 {
+    uint64_t elapsed;
+
+    GUARD(s2n_timer_elapsed(&conn->write_timer, &elapsed));
+    if (elapsed < conn->delay) {
+        S2N_ERROR(S2N_ERR_SHUTDOWN_PAUSED);
+    }
+
     /* Write any pending I/O */
     GUARD(s2n_flush(conn, more));
 
@@ -349,23 +358,41 @@ int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blindi
     return 0;
 }
 
-#define ONE_MS INT64_C(1000000)
 #define ONE_S  INT64_C(1000000000)
 #define TEN_S  INT64_C(10000000000)
 
 int64_t s2n_connection_get_delay(struct s2n_connection *conn)
 {
-    /* Delay between 1ms and 10 seconds in nanoseconds */
-    int64_t min = ONE_MS, max = TEN_S;
-    return min + s2n_public_random(max - min);
+    if (!conn->delay) {
+        return 0;
+    }
+
+    uint64_t elapsed;
+    GUARD(s2n_timer_elapsed(&conn->write_timer, &elapsed));
+
+    if (elapsed > conn->delay) {
+        return 0;
+    }
+
+    return conn->delay - elapsed;
 }
 
-int s2n_sleep_delay(struct s2n_connection *conn)
+int s2n_connection_kill(struct s2n_connection *conn)
 {
+    conn->closed = 1;
+
+    /* Delay between 10 and 30 seconds in nanoseconds */
+    int64_t min = TEN_S, max = 3 * TEN_S;
+
+    /* Keep track of the delay so that it can be enforced */
+    conn->delay = min + s2n_public_random(max - min);
+
+    /* Restart the write timer */
+    GUARD(s2n_timer_start(&conn->write_timer));
+
     if (conn->blinding == S2N_BUILT_IN_BLINDING) {
-        int delay, r;
-        GUARD(delay = s2n_connection_get_delay(conn));
-        struct timespec sleep_time = { .tv_sec = delay / ONE_S, .tv_nsec = delay % ONE_S };
+        struct timespec sleep_time = { .tv_sec = conn->delay / ONE_S, .tv_nsec = conn->delay % ONE_S };
+        int r;
 
         do {
             r = nanosleep(&sleep_time, &sleep_time);
