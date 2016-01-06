@@ -34,4 +34,5 @@
 #endif
 
 extern int s2n_timer_start(struct s2n_timer *timer);
+extern int s2n_timer_elapsed(struct s2n_timer *timer, uint64_t *nanoseconds);
 extern int s2n_timer_reset(struct s2n_timer *timer, uint64_t *nanoseconds);
