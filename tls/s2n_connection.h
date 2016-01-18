@@ -31,6 +31,7 @@
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
 
+#include "utils/s2n_timer.h"
 #include "utils/s2n_mem.h"
 
 #define S2N_TLS_PROTOCOL_VERSION_LEN    2
@@ -49,6 +50,15 @@ struct s2n_connection {
 
     /* Does s2n handle the blinding, or does the application */
     s2n_blinding blinding;
+
+    /* A timer to measure the time between record writes */
+    struct s2n_timer write_timer;
+
+    /* When fatal errors occurs, s2n imposes a pause before
+     * the connection is closed. If non-zero, this value tracks
+     * how many nanoseconds to pause - which will be relative to
+     * the write_timer value. */
+    uint64_t delay;
 
     /* The version advertised by the client, by the
      * server, and the actual version we are currently
@@ -135,5 +145,5 @@ struct s2n_connection {
     struct s2n_blob status_response;
 };
 
-/* Sleep s2n_connection_get_delay() ammount of time */
-int s2n_sleep_delay(struct s2n_connection *conn);
+/* Kill a bad connection */
+int s2n_connection_kill(struct s2n_connection *conn);

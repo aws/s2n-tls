@@ -28,6 +28,21 @@ int s2n_timer_start(struct s2n_timer *timer)
     return 0;
 }
 
+int s2n_timer_elapsed(struct s2n_timer *timer, uint64_t *nanoseconds)
+{
+    mach_timebase_info_data_t conversion_factor;
+    uint64_t current_time = mach_absolute_time();
+
+    *nanoseconds = current_time - timer->time;
+
+    GUARD(mach_timebase_info(&conversion_factor));
+
+    *nanoseconds *= conversion_factor.numer;
+    *nanoseconds /= conversion_factor.denom;
+
+    return 0;
+}
+
 int s2n_timer_reset(struct s2n_timer *timer, uint64_t *nanoseconds)
 {
     mach_timebase_info_data_t conversion_factor;
@@ -60,7 +75,19 @@ int s2n_timer_start(struct s2n_timer *timer)
     return 0;
 }
 
-int s2n_timer_reset(struct s2n_timer *timer, uint64_t *nanoseconds) 
+int s2n_timer_elapsed(struct s2n_timer *timer, uint64_t *nanoseconds)
+{
+    struct timespec current_time;
+
+    GUARD(clock_gettime(S2N_CLOCK, &current_time));
+
+    *nanoseconds =  (current_time.tv_sec  - timer->time.tv_sec) * 1000000000;
+    *nanoseconds += (current_time.tv_nsec - timer->time.tv_nsec);
+
+    return 0;
+}
+
+int s2n_timer_reset(struct s2n_timer *timer, uint64_t *nanoseconds)
 {
     struct timespec previous_time = timer->time;
 
