@@ -38,6 +38,10 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 
+#define GCC_VERSION (__GNUC__ * 10000 \
+                     + __GNUC_MINOR__ * 100 \
+                     + __GNUC_PATCHLEVEL__)
+
 struct s2n_connection *s2n_connection_new(s2n_mode mode)
 {
     struct s2n_blob blob;
@@ -201,8 +205,11 @@ int s2n_connection_wipe(struct s2n_connection *conn)
 
     /* Clone the stuffers */
     /* ignore gcc 4.7 address warnings because dest is allocated on the stack */
+    /* pragma gcc diagnostic was added in gcc 4.6 */
+#if GCC_VERSION >= 40600
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Waddress"
+#endif
     memcpy_check(&alert_in, &conn->alert_in, sizeof(struct s2n_stuffer));
     memcpy_check(&reader_alert_out, &conn->reader_alert_out, sizeof(struct s2n_stuffer));
     memcpy_check(&writer_alert_out, &conn->writer_alert_out, sizeof(struct s2n_stuffer));
@@ -210,7 +217,9 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     memcpy_check(&header_in, &conn->header_in, sizeof(struct s2n_stuffer));
     memcpy_check(&in, &conn->in, sizeof(struct s2n_stuffer));
     memcpy_check(&out, &conn->out, sizeof(struct s2n_stuffer));
+#if GCC_VERSION >= 40600
 #pragma GCC diagnostic pop
+#endif
 
     /* Zero the whole connection structure */
     memset_check(conn, 0, sizeof(struct s2n_connection));
