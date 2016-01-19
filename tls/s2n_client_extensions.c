@@ -293,13 +293,14 @@ static int s2n_alpn_rcv(struct s2n_connection *conn, struct s2n_stuffer *extensi
             }
             if (client_length != length) {
                 GUARD(s2n_stuffer_skip_read(&client_protos, client_length));
-            }
-            GUARD(s2n_stuffer_read_bytes(&client_protos, client_protocol, client_length));
-            if (memcmp(client_protocol, protocol, client_length) == 0) {
-                memcpy_check(conn->application_protocol, client_protocol, client_length);
-                conn->application_protocol[client_length] = '\0';
-                return 0;
-            }
+            } else {
+		GUARD(s2n_stuffer_read_bytes(&client_protos, client_protocol, client_length));
+		if (memcmp(client_protocol, protocol, client_length) == 0) {
+		    memcpy_check(conn->application_protocol, client_protocol, client_length);
+		    conn->application_protocol[client_length] = '\0';
+		    return 0;
+		}
+	    }
         }
 
         GUARD(s2n_stuffer_reread(&client_protos));
