@@ -206,7 +206,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     /* Clone the stuffers */
     /* ignore gcc 4.7 address warnings because dest is allocated on the stack */
     /* pragma gcc diagnostic was added in gcc 4.6 */
-#if GCC_VERSION >= 40600
+#if defined(__GNUC__) && GCC_VERSION >= 40600
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Waddress"
 #endif
@@ -217,7 +217,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     memcpy_check(&header_in, &conn->header_in, sizeof(struct s2n_stuffer));
     memcpy_check(&in, &conn->in, sizeof(struct s2n_stuffer));
     memcpy_check(&out, &conn->out, sizeof(struct s2n_stuffer));
-#if GCC_VERSION >= 40600
+#if defined(__GNUC__) && GCC_VERSION >= 40600
 #pragma GCC diagnostic pop
 #endif
 
