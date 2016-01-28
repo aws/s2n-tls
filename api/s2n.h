@@ -38,6 +38,7 @@ extern struct s2n_config *s2n_config_new(void);
 extern int s2n_config_free(struct s2n_config *config);
 extern int s2n_config_free_dhparams(struct s2n_config *config);
 extern int s2n_config_free_cert_chain_and_key(struct s2n_config *config);
+extern int s2n_config_set_nanoseconds_since_epoch_callback(struct s2n_config *config, int (*nanoseconds_since_epoch)(void *, uint64_t *), void * data);
 extern const char *s2n_strerror(int error, const char *lang);
 
 extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, char *cert_chain_pem, char *private_key_pem);

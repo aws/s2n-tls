@@ -27,6 +27,8 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_timer.h"
 
+#include "tls/s2n_config.h"
+
 #include "testlib/s2n_testlib.h"
 
 
@@ -131,6 +133,7 @@ int main(int argc, char **argv)
     struct s2n_stuffer nist_reference_personalization_strings;
     struct s2n_stuffer nist_reference_returned_bits;
     struct s2n_stuffer nist_reference_values;
+    struct s2n_config *config = s2n_config_new();
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_init());
@@ -185,18 +188,18 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_drbg_instantiate(&drbg, &blob));
 
     /* Use the DRBG for 16MB of data */
-    EXPECT_SUCCESS(s2n_timer_start(&timer));
+    EXPECT_SUCCESS(s2n_timer_start(config, &timer));
     for (int i = 0; i < 1000000; i++) {
         EXPECT_SUCCESS(s2n_drbg_generate(&drbg, &blob));
     }
-    EXPECT_SUCCESS(s2n_timer_reset(&timer, &drbg_nanoseconds));
+    EXPECT_SUCCESS(s2n_timer_reset(config, &timer, &drbg_nanoseconds));
 
     /* Use urandom for 16MB of data */
-    EXPECT_SUCCESS(s2n_timer_start(&timer));
+    EXPECT_SUCCESS(s2n_timer_start(config, &timer));
     for (int i = 0; i < 1000000; i++) {
         EXPECT_SUCCESS(s2n_get_urandom_data(&blob));
     }
-    EXPECT_SUCCESS(s2n_timer_reset(&timer, &urandom_nanoseconds));
+    EXPECT_SUCCESS(s2n_timer_reset(config, &timer, &urandom_nanoseconds));
 
     /* Confirm that the DRBG is faster than urandom */
     EXPECT_TRUE(drbg_nanoseconds < urandom_nanoseconds);

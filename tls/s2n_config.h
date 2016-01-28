@@ -42,6 +42,8 @@ struct s2n_config {
     struct s2n_cipher_preferences *cipher_preferences;
     struct s2n_blob application_protocols;
     s2n_status_request_type status_request_type;
+    int (*nanoseconds_since_epoch)(void *, uint64_t *);
+    void *data_for_nanoseconds_since_epoch;
 };
 
 extern struct s2n_config s2n_default_config;

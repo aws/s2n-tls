@@ -16,25 +16,28 @@
 
 #include "utils/s2n_timer.h"
 
+#include "tls/s2n_config.h"
+
 int main(int argc, char **argv)
 {
+    struct s2n_config *config = s2n_config_new();
     struct s2n_timer timer;
     uint64_t nanoseconds;
 
     BEGIN_TEST();
 
     /* First: Perform some tests using the real clock */
-    EXPECT_SUCCESS(s2n_timer_start(&timer));
-    EXPECT_SUCCESS(s2n_timer_reset(&timer, &nanoseconds));
+    EXPECT_SUCCESS(s2n_timer_start(config, &timer));
+    EXPECT_SUCCESS(s2n_timer_reset(config, &timer, &nanoseconds));
     EXPECT_TRUE(nanoseconds < 1000000000);
-    EXPECT_SUCCESS(s2n_timer_elapsed(&timer, &nanoseconds));
+    EXPECT_SUCCESS(s2n_timer_elapsed(config, &timer, &nanoseconds));
     EXPECT_TRUE(nanoseconds < 1000000000);
     EXPECT_SUCCESS(sleep(1));
-    EXPECT_SUCCESS(s2n_timer_reset(&timer, &nanoseconds));
+    EXPECT_SUCCESS(s2n_timer_reset(config, &timer, &nanoseconds));
     EXPECT_TRUE(nanoseconds > 1000000000);
     EXPECT_TRUE(nanoseconds < 2000000000);
     EXPECT_SUCCESS(sleep(1));
-    EXPECT_SUCCESS(s2n_timer_elapsed(&timer, &nanoseconds));
+    EXPECT_SUCCESS(s2n_timer_elapsed(config, &timer, &nanoseconds));
     EXPECT_TRUE(nanoseconds > 1000000000);
     EXPECT_TRUE(nanoseconds < 2000000000);
 
@@ -66,7 +69,7 @@ int main(int argc, char **argv)
         previous_time = timer.time.tv_sec;
         timer.time.tv_nsec = 999999999;
 
-        EXPECT_SUCCESS(s2n_timer_reset(&timer, &nanoseconds));
+        EXPECT_SUCCESS(s2n_timer_reset(config, &timer, &nanoseconds));
     }
     while(previous_time != (timer.time.tv_sec - 1) || timer.time.tv_nsec == 999999999);
 
@@ -79,7 +82,7 @@ int main(int argc, char **argv)
         previous_time = timer.time.tv_sec;
         timer.time.tv_nsec = 0;
 
-        EXPECT_SUCCESS(s2n_timer_reset(&timer, &nanoseconds));
+        EXPECT_SUCCESS(s2n_timer_reset(config, &timer, &nanoseconds));
     }
     while(previous_time != (timer.time.tv_sec - 1) || timer.time.tv_nsec == 0);
 

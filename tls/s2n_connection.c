@@ -94,7 +94,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->in, 0));
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->handshake.io, 0));
     GUARD_PTR(s2n_connection_wipe(conn));
-    GUARD_PTR(s2n_timer_start(&conn->write_timer));
+    GUARD_PTR(s2n_timer_start(conn->config, &conn->write_timer));
 
     return conn;
 }
@@ -126,7 +126,7 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *more)
 {
     uint64_t elapsed;
 
-    GUARD(s2n_timer_elapsed(&conn->write_timer, &elapsed));
+    GUARD(s2n_timer_elapsed(conn->config, &conn->write_timer, &elapsed));
     if (elapsed < conn->delay) {
         S2N_ERROR(S2N_ERR_SHUTDOWN_PAUSED);
     }
@@ -368,7 +368,7 @@ int64_t s2n_connection_get_delay(struct s2n_connection *conn)
     }
 
     uint64_t elapsed;
-    GUARD(s2n_timer_elapsed(&conn->write_timer, &elapsed));
+    GUARD(s2n_timer_elapsed(conn->config, &conn->write_timer, &elapsed));
 
     if (elapsed > conn->delay) {
         return 0;
@@ -388,7 +388,7 @@ int s2n_connection_kill(struct s2n_connection *conn)
     conn->delay = min + s2n_public_random(max - min);
 
     /* Restart the write timer */
-    GUARD(s2n_timer_start(&conn->write_timer));
+    GUARD(s2n_timer_start(conn->config, &conn->write_timer));
 
     if (conn->blinding == S2N_BUILT_IN_BLINDING) {
         struct timespec sleep_time = { .tv_sec = conn->delay / ONE_S, .tv_nsec = conn->delay % ONE_S };
