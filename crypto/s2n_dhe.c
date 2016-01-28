@@ -217,11 +217,11 @@ int s2n_dh_params_check(struct s2n_dh_params *params) {
     int codes = 0;
 
     if (DH_check(params->dh, &codes) == 0) {
-        S2N_ERROR(S2N_ERR_DH_PARAMETER_CHECK);;
+        S2N_ERROR(S2N_ERR_DH_PARAMETER_CHECK);
     }
 
     if (codes != 0) {
-        S2N_ERROR(S2N_ERR_DH_PARAMETER_CHECK);;
+        S2N_ERROR(S2N_ERR_DH_PARAMETER_CHECK);
     }
 
     return 0;
