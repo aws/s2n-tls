@@ -44,6 +44,8 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_init());
 
+    EXPECT_EQUAL(s2n_get_private_random_bytes_used(), 0);
+
     /* Parse the DH params */
     b.data = dhparams;
     b.size = sizeof(dhparams);
@@ -54,8 +56,6 @@ int main(int argc, char **argv)
     b.size = s2n_stuffer_data_available(&dhparams_out);
     b.data = s2n_stuffer_raw_read(&dhparams_out, b.size);
     EXPECT_SUCCESS(s2n_pkcs3_to_dh_params(&dh_params, &b));
-
-    EXPECT_EQUAL(s2n_get_private_random_bytes_used(), 0);
 
     EXPECT_SUCCESS(s2n_dh_generate_ephemeral_key(&dh_params));
     

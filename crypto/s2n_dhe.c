@@ -79,6 +79,9 @@ int s2n_pkcs3_to_dh_params(struct s2n_dh_params *dh_params, struct s2n_blob *pkc
         S2N_ERROR(S2N_ERR_DH_TOO_SMALL);
     }
 
+    /* Check the generator and prime */
+    GUARD(s2n_dh_params_check(dh_params));
+
     return 0;
 }
 
@@ -145,6 +148,7 @@ int s2n_dh_compute_shared_secret_as_client(struct s2n_dh_params *server_dh_param
     uint16_t public_key_size;
     int shared_key_size;
 
+    GUARD(s2n_dh_params_check(server_dh_params));
     GUARD(s2n_dh_params_copy(server_dh_params, &client_params));
     GUARD(s2n_dh_generate_ephemeral_key(&client_params));
     GUARD(s2n_alloc(shared_key, DH_size(server_dh_params->dh)));
@@ -205,6 +209,20 @@ int s2n_dh_compute_shared_secret_as_server(struct s2n_dh_params *server_dh_param
     shared_key->size = shared_key_size;
 
     BN_free(pub_key);
+
+    return 0;
+}
+
+int s2n_dh_params_check(struct s2n_dh_params *params) {
+    int codes = 0;
+
+    if (DH_check(params->dh, &codes) == 0) {
+        S2N_ERROR(S2N_ERR_DH_PARAMETER_CHECK);
+    }
+
+    if (codes != 0) {
+        S2N_ERROR(S2N_ERR_DH_PARAMETER_CHECK);
+    }
 
     return 0;
 }
