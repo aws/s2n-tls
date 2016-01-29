@@ -41,55 +41,5 @@ int main(int argc, char **argv)
     EXPECT_TRUE(nanoseconds > 1000000000);
     EXPECT_TRUE(nanoseconds < 2000000000);
 
-#if !defined(__APPLE__) || !defined(__MACH__)
-    /* Next: perform some tests around timespec boundaries */
-
-    /* Pretend that there were 999,999,999 nanoseconds elapsed in the
-     * previously measured instant. Keep reseting the timer until
-     * the second progresses from that instant, and there are also
-     * less than 999,999,999 nanoseconds elapsed.
-     *
-     * This sets up a situation in which the tv_sec field causes time
-     * to move "forwards", and tv_nsec causes it to move backwards.
-     * e.g.
-     *
-     * previous_time = 10
-     *
-     * timer.time.tv_sec = 11
-     * timer.time.tv_nsec = 123456789;
-     *
-     * delta will be:
-     *   (11 - 10) * 1000000000
-     * + (123456789 - 999999999)
-     *
-     * = 123456790 (same as 1 + 123456789)
-     */
-    time_t previous_time;
-    do {
-        previous_time = timer.time.tv_sec;
-        timer.time.tv_nsec = 999999999;
-
-        EXPECT_SUCCESS(s2n_timer_reset(config, &timer, &nanoseconds));
-    }
-    while(previous_time != (timer.time.tv_sec - 1) || timer.time.tv_nsec == 999999999);
-
-    EXPECT_TRUE(nanoseconds < 1000000000);
-    EXPECT_TRUE(nanoseconds == 1 + timer.time.tv_nsec);
-
-    /* Now we perform the oppossite test: make sure that the previous value for
-     * nsec is smaller than the later one */
-    do {
-        previous_time = timer.time.tv_sec;
-        timer.time.tv_nsec = 0;
-
-        EXPECT_SUCCESS(s2n_timer_reset(config, &timer, &nanoseconds));
-    }
-    while(previous_time != (timer.time.tv_sec - 1) || timer.time.tv_nsec == 0);
-
-    EXPECT_TRUE(nanoseconds > 1000000000);
-    EXPECT_TRUE(nanoseconds < 2000000000);
-    EXPECT_TRUE(nanoseconds == 1000000000 + timer.time.tv_nsec);
-#endif
-
     END_TEST();
 }
