@@ -79,6 +79,23 @@ static char dhparams[] =
     "gzucyS7jt1bobgU66JKkgMNm7hJY4/nhR5LWTCzZyzYQh2HM2Vk4K5ZqILpj/n0S\n"
     "5JYTQ2PVhxP+Uu8+hICs/8VvM72DznjPZzufADipjC7CsQ4S6x/ecZluFtbb+ZTv\n" "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n" "-----END DH PARAMETERS-----\n";
 
+int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
+{
+    static int called = 0;
+
+    /* When first called return 0 seconds */
+    *nanoseconds = 0;
+
+    /* When next called return 31 seconds */
+    if (called) {
+        *nanoseconds += (uint64_t) 31 * 1000000000;
+    }
+
+    called = 1;
+
+    return 0;
+}
+
 int mock_client(int writefd, int readfd, const char **protocols, int count, const char *expected)
 {
     char buffer[0xffff];
@@ -350,6 +367,11 @@ int main(int argc, char **argv)
     /* Set up the connection to read from the fd */
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
     EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
+
+    /* s2n_negotiate will fail, which ordinarily would delay with a sleep. 
+     * Remove the sleep and fake the delay with a mock time routine */
+    EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
+    EXPECT_SUCCESS(s2n_config_set_nanoseconds_since_epoch_callback(config, mock_nanoseconds_since_epoch, NULL));
 
     /* Negotiate the handshake. */
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
