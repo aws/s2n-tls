@@ -369,7 +369,7 @@ int s2n_config_set_nanoseconds_since_epoch_callback(struct s2n_config *config, i
 **s2n_config_set_nanoseconds_since_epoch_callback** allows the caller to set a
 callback function that will be used to get the time. The callback function
 takes two arguments; a pointer to abitrary data for use within the callback,
-and a pointer to a 64 bit unsigned integer. The former pointer will be set to
+and a pointer to a 64 bit unsigned integer. The first pointer will be set to
 the value of **data** which supplied by the caller when setting the callback.
 The integer pointed to by the second pointer should be set to the number of
 nanoseconds since the Unix epoch (Midnight, January 1st, 1970). The function
