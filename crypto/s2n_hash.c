@@ -137,7 +137,7 @@ int s2n_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size)
         break;
     case S2N_HASH_SHA384:
         eq_check(size, SHA384_DIGEST_LENGTH);
-        r = SHA512_Final(out, &state->hash_ctx.sha384);
+        r = SHA384_Final(out, &state->hash_ctx.sha384);
         break;
     case S2N_HASH_SHA512:
         eq_check(size, SHA512_DIGEST_LENGTH);
