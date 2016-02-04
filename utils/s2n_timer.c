@@ -16,86 +16,33 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_timer.h"
 
-#if defined(__APPLE__) && defined(__MACH__)
-#include <mach/clock.h>
-#include <mach/mach.h>
-#include <mach/mach_time.h>
+#include "tls/s2n_config.h"
 
-int s2n_timer_start(struct s2n_timer *timer) 
+int s2n_timer_start(struct s2n_config *config, struct s2n_timer *timer)
 {
-    timer->time = mach_absolute_time();
+    GUARD(config->nanoseconds_since_epoch(config->data_for_nanoseconds_since_epoch, &timer->time));
 
     return 0;
 }
 
-int s2n_timer_elapsed(struct s2n_timer *timer, uint64_t *nanoseconds)
+int s2n_timer_elapsed(struct s2n_config *config, struct s2n_timer *timer, uint64_t *nanoseconds)
 {
-    mach_timebase_info_data_t conversion_factor;
-    uint64_t current_time = mach_absolute_time();
+    uint64_t current_time;
+
+    GUARD(config->nanoseconds_since_epoch(config->data_for_nanoseconds_since_epoch, &current_time));
 
     *nanoseconds = current_time - timer->time;
 
-    GUARD(mach_timebase_info(&conversion_factor));
-
-    *nanoseconds *= conversion_factor.numer;
-    *nanoseconds /= conversion_factor.denom;
-
     return 0;
 }
 
-int s2n_timer_reset(struct s2n_timer *timer, uint64_t *nanoseconds)
+int s2n_timer_reset(struct s2n_config *config, struct s2n_timer *timer, uint64_t *nanoseconds)
 {
-    mach_timebase_info_data_t conversion_factor;
     uint64_t previous_time = timer->time;
 
-    GUARD(s2n_timer_start(timer));
+    GUARD(s2n_timer_start(config, timer));
 
     *nanoseconds = timer->time - previous_time;
 
-    GUARD(mach_timebase_info(&conversion_factor));
-
-    *nanoseconds *= conversion_factor.numer;
-    *nanoseconds /= conversion_factor.denom;
-
     return 0;
 }
-
-#else
-
-#if defined(CLOCK_MONOTONIC_RAW)
-    #define S2N_CLOCK CLOCK_MONOTONIC_RAW
-#else
-    #define S2N_CLOCK CLOCK_MONOTONIC
-#endif
-
-int s2n_timer_start(struct s2n_timer *timer) 
-{
-    GUARD(clock_gettime(S2N_CLOCK, &timer->time));
-
-    return 0;
-}
-
-int s2n_timer_elapsed(struct s2n_timer *timer, uint64_t *nanoseconds)
-{
-    struct timespec current_time;
-
-    GUARD(clock_gettime(S2N_CLOCK, &current_time));
-
-    *nanoseconds =  (current_time.tv_sec  - timer->time.tv_sec) * 1000000000;
-    *nanoseconds += (current_time.tv_nsec - timer->time.tv_nsec);
-
-    return 0;
-}
-
-int s2n_timer_reset(struct s2n_timer *timer, uint64_t *nanoseconds)
-{
-    struct timespec previous_time = timer->time;
-
-    GUARD(s2n_timer_start(timer));
-
-    *nanoseconds =  (timer->time.tv_sec  - previous_time.tv_sec) * 1000000000;
-    *nanoseconds += (timer->time.tv_nsec - previous_time.tv_nsec);
-
-    return 0;
-}
-#endif

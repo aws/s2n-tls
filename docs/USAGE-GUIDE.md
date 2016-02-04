@@ -360,6 +360,23 @@ int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_req
 server certificate status during an SSL handshake.  If set to
 S2N_STATUS_REQUEST_NONE, no status request is made.
 
+### s2n\_config\_set\_nanoseconds\_since\_epoch\_callback
+
+```c
+int s2n_config_set_nanoseconds_since_epoch_callback(struct s2n_config *config, int (*nanoseconds_since_epoch)(void *, uint64_t *), void * data);
+```
+
+**s2n_config_set_nanoseconds_since_epoch_callback** allows the caller to set a
+callback function that will be used to get the time. The callback function
+takes two arguments; a pointer to abitrary data for use within the callback,
+and a pointer to a 64 bit unsigned integer. The first pointer will be set to
+the value of **data** which supplied by the caller when setting the callback.
+The integer pointed to by the second pointer should be set to the number of
+nanoseconds since the Unix epoch (Midnight, January 1st, 1970). The function
+should return 0 on success and -1 on error. The function is also required to 
+implement a monotonic time source; the number of nanoseconds returned should
+never decrease between calls.
+
 ## Connection-oriented functions
 
 ### s2n\_connection\_new

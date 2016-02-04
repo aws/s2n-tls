@@ -24,6 +24,49 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
 
+#if defined(__APPLE__) && defined(__MACH__)
+
+#include <mach/clock.h>
+#include <mach/mach.h>
+#include <mach/mach_time.h>
+
+int get_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
+{
+    mach_timebase_info_data_t conversion_factor;
+
+    GUARD(mach_timebase_info(&conversion_factor));
+
+    *nanoseconds = mach_absolute_time();
+    *nanoseconds *= conversion_factor.numer;
+    *nanoseconds /= conversion_factor.denom;
+
+    return 0;
+}
+
+#else
+
+#include <time.h>
+
+#if defined(CLOCK_MONOTONIC_RAW)
+    #define S2N_CLOCK CLOCK_MONOTONIC_RAW
+#else
+    #define S2N_CLOCK CLOCK_MONOTONIC
+#endif
+
+int get_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
+{
+    struct timespec current_time;
+
+    GUARD(clock_gettime(S2N_CLOCK, &current_time));
+
+    *nanoseconds = current_time.tv_sec * 1000000000;
+    *nanoseconds += current_time.tv_nsec;
+
+    return 0;
+}
+
+#endif
+
 /* s2n's list of cipher suites, in order of preference, as of 2014-06-01 */
 uint8_t wire_format_20140601[] =
     { TLS_DHE_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA, TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA,
@@ -95,7 +138,8 @@ struct {
 
 struct s2n_config s2n_default_config = {
     .cert_and_key_pairs = NULL,
-    .cipher_preferences = &cipher_preferences_20150306
+    .cipher_preferences = &cipher_preferences_20150306,
+    .nanoseconds_since_epoch = get_nanoseconds_since_epoch,
 };
 
 struct s2n_config *s2n_config_new(void)
@@ -111,6 +155,7 @@ struct s2n_config *s2n_config_new(void)
     new_config->application_protocols.data = NULL;
     new_config->application_protocols.size = 0;
     new_config->status_request_type = S2N_STATUS_REQUEST_NONE;
+    new_config->nanoseconds_since_epoch = get_nanoseconds_since_epoch;
 
     GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default"));
 
@@ -327,6 +372,16 @@ int s2n_config_add_dhparams(struct s2n_config *config, char *dhparams_pem)
     GUARD(s2n_pkcs3_to_dh_params(config->dhparams, &dhparams_blob));
 
     GUARD(s2n_free(&dhparams_blob));
+
+    return 0;
+}
+ 
+int s2n_config_set_nanoseconds_since_epoch_callback(struct s2n_config *config, int (*nanoseconds_since_epoch)(void *, uint64_t *), void * data)
+{
+    notnull_check(nanoseconds_since_epoch);
+
+    config->nanoseconds_since_epoch = nanoseconds_since_epoch;
+    config->data_for_nanoseconds_since_epoch = data;
 
     return 0;
 }
