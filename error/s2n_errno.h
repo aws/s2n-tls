@@ -28,6 +28,7 @@ typedef enum {
     S2N_ERR_MADVISE,
     S2N_ERR_ALLOC,
     S2N_ERR_MLOCK,
+    S2N_ERR_MUNLOCK,
     S2N_ERR_FSTAT,
     S2N_ERR_OPEN,
     S2N_ERR_MMAP,
