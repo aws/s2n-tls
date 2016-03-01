@@ -42,6 +42,7 @@ int s2n_alloc(struct s2n_blob *b, uint32_t size)
     b->data = NULL;
     b->size = 0;
     b->allocated = 0;
+    b->mlocked = 0;
     GUARD(s2n_realloc(b, size));
     return 0;
 }
@@ -87,16 +88,27 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
         GUARD(s2n_free(b));
         S2N_ERROR(S2N_ERR_MLOCK);
     }
+    b->mlocked = 1;
 
     return 0;
 }
 
 int s2n_free(struct s2n_blob *b)
 {
+    int munlock_rc = 0;
+    if (b->mlocked) {
+       munlock_rc = munlock(b->data, b->size);
+    }
+
     free(b->data);
     b->data = NULL;
     b->size = 0;
     b->allocated = 0;
+
+    if (munlock_rc < 0 ) {
+        S2N_ERROR(S2N_ERR_MUNLOCK);
+    }
+    b->mlocked = 0;
 
     return 0;
 }

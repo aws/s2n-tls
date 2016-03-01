@@ -37,6 +37,7 @@ struct s2n_error_translation EN[] = {
     { S2N_ERR_MADVISE, "error calling madvise" },
     { S2N_ERR_ALLOC,   "error allocating memory" },
     { S2N_ERR_MLOCK,   "error calling mlock" },
+    { S2N_ERR_MUNLOCK, "error calling munlock" },
     { S2N_ERR_FSTAT,   "error calling fstat" },
     { S2N_ERR_OPEN,    "error calling open" },
     { S2N_ERR_MMAP,    "error calling mmap" },
