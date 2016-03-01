@@ -105,7 +105,7 @@ int s2n_free(struct s2n_blob *b)
     b->size = 0;
     b->allocated = 0;
 
-    if (munlock_rc < 0 ) {
+    if (munlock_rc < 0) {
         S2N_ERROR(S2N_ERR_MUNLOCK);
     }
     b->mlocked = 0;
