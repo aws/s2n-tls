@@ -228,8 +228,7 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
         }
     }
 
-    s2n_errno = S2N_ERR_INVALID_CIPHER_PREFERENCES;
-    return -1;
+    S2N_ERROR(S2N_ERR_INVALID_CIPHER_PREFERENCES);
 }
 
 int s2n_config_set_protocol_preferences(struct s2n_config *config, const char * const *protocols, int protocol_count)

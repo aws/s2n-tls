@@ -326,7 +326,6 @@ int s2n_set_server_name(struct s2n_connection *conn, const char *server_name)
     int len = strlen(server_name);
     if (len > 255) {
         S2N_ERROR(S2N_ERR_SERVER_NAME_TOO_LONG);
-        return -1;
     }
 
     memcpy_check(conn->server_name, server_name, len);
