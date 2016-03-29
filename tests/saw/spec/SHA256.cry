@@ -1,0 +1,196 @@
+/*
+ * Copyright (c) 2013-2016 Galois, Inc.
+ * Distributed under the terms of the BSD3 license (see LICENSE file)
+ *
+ * @tmd - 24 April 2015 - took Ian's SHA512, converted to SHA256
+ * @ian - 15 August 2015 - he lies, probably ment 2014.
+ *
+ * This is a very simple implementation of SHA256, designed to be as clearly
+ * mathced to the specification in NIST's FIPS-PUB-180-4 as possible
+ *
+ * * The output correctly matches on all test vectors from
+ * http://csrc.nist.gov/groups/ST/toolkit/documents/Examples/SHA256.pdf
+ */
+module SHA256 where
+
+/*
+ * SHA256 Functions : Section 4.1.2
+ */
+
+Ch : [32] -> [32] -> [32] -> [32]
+Ch x y z = (x && y) ^ (~x && z)
+
+Maj : [32] -> [32] -> [32] -> [32]
+Maj x y z = (x && y) ^ (x && z) ^ (y && z)
+
+S0 : [32] -> [32]
+S0 x = (x >>> 2) ^ (x >>> 13) ^ (x >>> 22)
+
+S1 : [32] -> [32]
+S1 x = (x >>> 6) ^ (x >>> 11) ^ (x >>> 25)
+
+s0 : [32] -> [32]
+s0 x = (x >>> 7) ^ (x >>> 18) ^ (x >> 3)
+
+s1 : [32] -> [32]
+s1 x = (x >>> 17) ^ (x >>> 19) ^ (x >> 10)
+
+/*
+ * SHA256 Constants : Section 4.2.2
+ */
+
+K : [64][32]
+K = [ 0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+      0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+      0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+      0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+      0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+      0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+      0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+      0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+     ]
+
+/*
+ * Preprocessing (padding and parsing) for SHA256 : Section 5.1.1 and 5.2.1
+ */
+preprocess : {msgLen,contentLen,chunks,padding}
+     ( fin msgLen
+     , 64 >= width msgLen                              // message width fits in a word
+     , contentLen == msgLen + 65                       // message + header
+     , chunks     == (contentLen+511) / 512
+     , padding    == (512 - contentLen % 512) % 512    // prettier if type #'s could be < 0
+     )
+     => [msgLen] -> [chunks][512]
+preprocess msg = split (msg # [True] # (zero:[padding]) # (`msgLen:[64]))
+
+/*
+ * SHA256 Initial Hash Value :  Section 5.3.3
+ */
+
+H0 : [8][32]
+H0 = [ 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+       0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19]
+
+/*
+ * The SHA256 Hash computation : Section 6.2.2
+ *
+ * We have split the computation into a message scheduling function, corresponding
+ * to step 1 in the documents loop, and a compression function, corresponding to steps 2-4.
+ */
+
+SHA256MessageSchedule : [16][32] -> [64][32]
+SHA256MessageSchedule M = W where
+    W = M # [ s1 (W@(j-2)) + (W@(j-7)) + s0 (W@(j-15)) + (W@(j-16)) | j <- [16 .. 63]:[_][8] ]
+
+
+
+SHA256Compress : [8][32] -> [64][32] -> [8][32]
+SHA256Compress H W = [as!0 + H@0, bs!0 + H@1, cs!0 + H@2, ds!0 + H@3, es!0 + H@4, fs!0 + H@5, gs!0 + H@6, hs!0 + H@7] where
+    T1 = [h + S1 e + Ch e f g  + k + w | h <- hs | e <- es | f <- fs | g <- gs | k <- K | w <- W]
+    T2 = [S0 a  + Maj a b c  | a <- as | b <- bs | c <- cs]
+    hs = take `{65} ([H@7] # gs)
+    gs = take `{65} ([H@6] # fs)
+    fs = take `{65} ([H@5] # es)
+    es = take `{65} ([H@4] # [d + t1 | d <- ds | t1 <- T1])
+    ds = take `{65} ([H@3] # cs)
+    cs = take `{65} ([H@2] # bs)
+    bs = take `{65} ([H@1] # as)
+    as = take `{65} ([H@0] # [t1 + t2 | t1 <- T1 | t2 <- T2])
+
+SHA256Block : [8][32] -> [16][32] -> [8][32]
+SHA256Block H M = SHA256Compress H (SHA256MessageSchedule M)
+
+//////// Functional/idiomatic top level ////////
+
+/*
+ * The SHA256' function hashes a preprocessed sequence of blocks with the
+ * compression function.  The SHA256 function hashes a sequence of bytes, and
+ * is more likely the function that will be similar to those seein in an
+ * implementation to be verified.
+ */
+
+SHA256' : {a} (fin a) => [a][16][32] -> [8][32]
+SHA256' blocks = hash!0 where
+    hash = [H0] # [SHA256Block h b | h <- hash | b <- blocks]
+
+SHA256 : {a} (fin a, 64 >= width (8*a)) => [a][8] -> [256]
+SHA256 msg =   join (SHA256' [ split x | x <- preprocess(join msg)])
+
+property katsPass = ~zero == [test == kat | (test,kat) <- kats ]
+
+kats = [ (SHA256 "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"
+         , 0x248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1)
+       , (SHA256 ""
+         ,0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855)
+       , (SHA256 "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"
+         , 0xcf5b16a778af8380036ce59e7b0492370b249b11e8f07a51afac45037afee9d1)
+       // , ([0x61 | i <- [1..1000000] : [_][32]]
+       //   , 0xcdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0)
+       ]
+
+//////// Imperative top level ////////
+
+type SHA256State = { h : [8][32]
+                   , block : [64][8]
+                   , n : [16]
+                   , sz : [64]
+                   }
+
+SHA256Init : SHA256State
+SHA256Init = { h = H0
+             , block = zero
+             , n = 0
+             , sz = 0
+             }
+
+SHA256Update1 : SHA256State -> [8] -> SHA256State
+SHA256Update1 s b =
+  if s.n == 64
+    then { h = SHA256Block s.h (split (join s.block))
+         , block = [b] # zero
+         , n = 1
+         , sz = s.sz + 8
+         }
+    else { h = s.h
+         , block = update s.block s.n b
+         , n = s.n + 1
+         , sz = s.sz + 8
+         }
+
+SHA256Update : {n} (fin n) => SHA256State -> [n][8] -> SHA256State
+SHA256Update sinit bs = ss!0
+  where ss = [sinit] # [ SHA256Update1 s b | s <- ss | b <- bs ]
+
+update : {a, b, c} (fin c) => [b]a -> [c] -> a -> [min b (2 ^^ c)]a
+update a i x = [ if j == i then x else e | e <- a | j <- [0 ..] ]
+
+// Add padding and size and process the final block.
+SHA256Final : SHA256State -> [256]
+SHA256Final s = join (SHA256Block h b')
+  // Because the message is always made up of bytes, and the size is a
+  // fixed number of bytes, the 1 pad will always be at least a byte.
+  where s' = SHA256Update1 s 0x80
+        // Don't need to add zeros. They're already there. Just update
+        // the count of bytes in this block. After adding the 1 pad, there
+        // are two possible cases: the size will fit in the current block,
+        // or it won't.
+        (h, b) = if s'.n <= 56 then (s'.h, s'.block)
+                 else (SHA256Block s'.h (split (join s'.block)), zero)
+        b' = split (join b || (zero # s.sz))
+
+SHA256Imp : {a} (64 >= width (8*a)) => [a][8] -> [256]
+SHA256Imp msg = SHA256Final (SHA256Update SHA256Init msg)
+
+property katsPassImp = ~zero == [test == kat | (test,kat) <- katsImp ]
+
+katsImp = [ (SHA256Imp "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"
+            , 0x248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1)
+          , (SHA256Imp ""
+            , 0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855)
+          , (SHA256Imp "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"
+            , 0xcf5b16a778af8380036ce59e7b0492370b249b11e8f07a51afac45037afee9d1)
+          // , ([0x61 | i <- [1..1000000] : [_][32]]
+          //   , 0xcdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0)
+          ]
+
+property imp_correct msg = SHA256 msg == SHA256Imp msg
