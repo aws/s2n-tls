@@ -1,9 +1,24 @@
 import "HMAC.cry";
 m <- llvm_load_module "../src/hmac.bc";
 
+let hmac_state = do {
+    llvm_ptr "state" (llvm_struct "struct.s2n_hmac_state");
+    alg <- llvm_var "state->0" (llvm_int 32);
+    hash_block_size <- llvm_var "state->1" (llvm_int 16);
+    currently_in_hash_block <- llvm_var "state->2" (llvm_int 32);
+    block_size <- llvm_var "state->3" (llvm_int 16);
+    digest_size <- llvm_var "state->4" (llvm_int 8);
+    xor_pad <- llvm_var "state->8" (llvm_array 128 (llvm_int 8));
+    digest_pad <- llvm_var "state->9" (llvm_array 64 (llvm_int 8));
+    llvm_assert_eq "state->0" {{ 4 : [32] }}; // S2N_HMAC_SHA256
+    // TODO: return values of llvm_vars.
+    return ();
+};
+
 let hash_init_spec = do {
     llvm_ptr "state" (llvm_struct "struct.s2n_hash_state");
     alg <- llvm_var "alg" (llvm_int 32);
+    llvm_return {{ 0 : [32] }};
     llvm_no_simulate;
 };
 
@@ -13,6 +28,7 @@ let hash_update_spec n = do {
     llvm_ptr "data" (llvm_array n (llvm_int 8)); // TODO: is it a byte array?
     data <- llvm_var "*data" (llvm_array n (llvm_int 8));
     size <- llvm_var "size" (llvm_int 32);
+    llvm_return {{ 0 : [32] }};
     llvm_no_simulate;
 };
 
@@ -22,10 +38,55 @@ let hash_digest_spec n = do {
     llvm_ptr "out" (llvm_array n (llvm_int 8)); // TODO: is it a byte array?
     data <- llvm_var "*out" (llvm_array n (llvm_int 8));
     size <- llvm_var "size" (llvm_int 32);
+    llvm_return {{ 0 : [32] }};
+    llvm_no_simulate;
+};
+
+let hmac_init_spec n = do {
+    hmac_state;
+    alg <- llvm_var "alg" (llvm_int 32);
+    llvm_ptr "key" (llvm_array n (llvm_int 8)); // TODO: is it a byte array?
+    key <- llvm_var "*key" (llvm_array n (llvm_int 8));
+    klen <- llvm_var "klen" (llvm_int 32);
+    llvm_return {{ 0 : [32] }};
+
+    llvm_sat_branches true;
+    llvm_no_simulate;
+};
+
+let hmac_update_spec n = do {
+    hmac_state;
+    llvm_ptr "in" (llvm_array n (llvm_int 8)); // TODO: is it a byte array?
+    inp <- llvm_var "*in" (llvm_array n (llvm_int 8));
+    size <- llvm_var "size" (llvm_int 32);
+    llvm_return {{ 0 : [32] }};
+
+    llvm_no_simulate;
+};
+
+let hmac_digest_spec n = do {
+    hmac_state;
+    llvm_ptr "out" (llvm_array n (llvm_int 8)); // TODO: is it a byte array?
+    out <- llvm_var "*out" (llvm_array n (llvm_int 8));
+    size <- llvm_var "size" (llvm_int 32);
+    llvm_return {{ 0 : [32] }};
+
+    llvm_sat_branches true;
     llvm_no_simulate;
 };
 
 hash_init_ov   <- llvm_verify m "s2n_hash_init"   [] hash_init_spec;
 hash_update_ov <- llvm_verify m "s2n_hash_update" [] (hash_update_spec 10);
 hash_digest_ov <- llvm_verify m "s2n_hash_digest" [] (hash_digest_spec 20);
+
+hmac_init_ov   <- llvm_verify m "s2n_hmac_init"
+                  [hash_init_ov, hash_update_ov, hash_digest_ov]
+                  (hmac_init_spec 10);
+hmac_update_ov <- llvm_verify m "s2n_hmac_update"
+                  [hash_update_ov]
+                  (hmac_update_spec 10);
+hmac_digest_ov <- llvm_verify m "s2n_hmac_digest"
+                  [hash_init_ov, hash_update_ov, hash_digest_ov]
+                  (hmac_digest_spec 20);
+
 print "Done.";
