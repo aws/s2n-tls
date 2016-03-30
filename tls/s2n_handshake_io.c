@@ -92,10 +92,10 @@ static int handshake_write_io(struct s2n_connection *conn)
     int max_payload_size;
 
     /* Populate handshake.io with header/payload for the current state, once.
-     * Check tainted instead of s2n_stuffer_data_available to differentiate between the initial call
+     * Check wiped instead of s2n_stuffer_data_available to differentiate between the initial call
      * to handshake_write_io and a repeated call after an EWOULDBLOCK.
      */
-    if (conn->handshake.io.tainted == 0) {
+    if (conn->handshake.io.wiped == 1) {
         if (record_type == TLS_HANDSHAKE) {
             GUARD(s2n_handshake_write_header(conn, state_machine[conn->handshake.state].message_type));
         }
