@@ -1,0 +1,57 @@
+/*
+ * Copyright (c) 2013-2016 Galois, Inc.
+ * Distributed under the terms of the BSD3 license (see LICENSE file)
+ */
+module HMAC where
+
+import SHA256
+
+hmacSHA256 : {pwBytes, msgBytes}
+             (fin pwBytes, fin msgBytes
+             , 32 >= width msgBytes
+             , 64 >= width (8*pwBytes)
+             , 64 >= width (8 * (64 + msgBytes))
+             ) => [pwBytes][8] -> [msgBytes][8] -> [256]
+hmacSHA256 = hmac `{blockLength=64} SHA256 SHA256 SHA256
+
+// Due to limitations of the type system we must accept two
+// separate arguments (both aledgedly the same) for two
+// separate length inputs.
+hmac : { msgBytes, pwBytes, digest, blockLength }
+       ( fin pwBytes, fin digest, fin blockLength )
+    => ([blockLength + msgBytes][8] -> [8*digest])
+    -> ([blockLength + digest][8] -> [8*digest])
+    -> ([pwBytes][8] -> [8*digest])
+    -> [pwBytes][8]
+    -> [msgBytes][8]
+    -> [digest*8]
+hmac hash hash2 hash3 key message = hash2 (okey # internal)
+ where
+ ks : [blockLength][8]
+ ks   = if `pwBytes > (`blockLength : [max (width pwBytes) (width blockLength)])
+            then take `{blockLength} (split (hash3 key) # (zero : [blockLength][8]))
+            else take `{blockLength} (key # (zero : [blockLength][8]))
+ okey = [k ^ 0x5C | k <- ks]
+ ikey = [k ^ 0x36 | k <- ks]
+ internal = split (hash (ikey # message))
+
+property pass =
+    ~zero ==
+    [ hmacSHA256 [0x0b | _ <- [1..20] : [_][6]] "Hi There" == 0xb0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7
+    , hmacSHA256 "Jefe" "what do ya want for nothing?" == 0x5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843
+    ]
+
+type HMACSHA256State =
+     { innerState : SHA256State
+     , outerState : SHA256State
+     , keyState : SHA256State
+     }
+
+hmac_init : SHA256State -> SHA256State -> SHA256State -> HMACSHA256State
+hmac_init is os ks = { innerState = is, outerState = os, keyState = ks }
+
+hmac_update : {n} HMACSHA256State -> [n][8] -> HMACSHA256State
+hmac_update = error "nyi"
+
+hmac_final : {n} HMACSHA256State -> [n]
+hmac_final = error "nyi"

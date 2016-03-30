@@ -1,0 +1,31 @@
+import "HMAC.cry";
+m <- llvm_load_module "../src/hmac.bc";
+
+let hash_init_spec = do {
+    llvm_ptr "state" (llvm_struct "struct.s2n_hash_state");
+    alg <- llvm_var "alg" (llvm_int 32);
+    llvm_no_simulate;
+};
+
+// Here, `n` is the size of the new data to hash.
+let hash_update_spec n = do {
+    llvm_ptr "state" (llvm_struct "struct.s2n_hash_state");
+    llvm_ptr "data" (llvm_array n (llvm_int 8)); // TODO: is it a byte array?
+    data <- llvm_var "*data" (llvm_array n (llvm_int 8));
+    size <- llvm_var "size" (llvm_int 32);
+    llvm_no_simulate;
+};
+
+// Here, `n` is the digest size for the specific hash algorithm.
+let hash_digest_spec n = do {
+    llvm_ptr "state" (llvm_struct "struct.s2n_hash_state");
+    llvm_ptr "out" (llvm_array n (llvm_int 8)); // TODO: is it a byte array?
+    data <- llvm_var "*out" (llvm_array n (llvm_int 8));
+    size <- llvm_var "size" (llvm_int 32);
+    llvm_no_simulate;
+};
+
+hash_init_ov   <- llvm_verify m "s2n_hash_init"   [] hash_init_spec;
+hash_update_ov <- llvm_verify m "s2n_hash_update" [] (hash_update_spec 10);
+hash_digest_ov <- llvm_verify m "s2n_hash_digest" [] (hash_digest_spec 20);
+print "Done.";
