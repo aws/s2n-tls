@@ -131,7 +131,6 @@ int main(int argc, char **argv)
     struct s2n_blob b;
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
 
     EXPECT_SUCCESS(s2n_init());
     EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, sizeof(certificate)));
