@@ -133,10 +133,12 @@ int main(int argc, char **argv)
     struct s2n_stuffer nist_reference_personalization_strings;
     struct s2n_stuffer nist_reference_returned_bits;
     struct s2n_stuffer nist_reference_values;
-    struct s2n_config *config = s2n_config_new();
+    struct s2n_config *config;
 
     BEGIN_TEST();
+
     EXPECT_SUCCESS(s2n_init());
+    EXPECT_NOT_NULL(config = s2n_config_new())
 
     /* Open /dev/urandom */
     EXPECT_TRUE(entropy_fd = open("/dev/urandom", O_RDONLY));

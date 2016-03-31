@@ -37,6 +37,7 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
+    EXPECT_SUCCESS(s2n_init());
     /* Initialise our output stuffers */
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
 

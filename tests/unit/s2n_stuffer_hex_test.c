@@ -31,6 +31,7 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
+    EXPECT_SUCCESS(s2n_init());
     /* Create a 100 byte stuffer */
     EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &b));
 
