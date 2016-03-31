@@ -26,7 +26,6 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_init());
     EXPECT_NOT_NULL(config = s2n_config_new());
     /* First: Perform some tests using the real clock */
     EXPECT_SUCCESS(s2n_timer_start(config, &timer));

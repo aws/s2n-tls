@@ -132,7 +132,6 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_init());
     EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, sizeof(certificate)));
     EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, sizeof(certificate)));
     EXPECT_SUCCESS(s2n_stuffer_alloc(&dhparams_in, sizeof(dhparams)));

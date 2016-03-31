@@ -42,7 +42,6 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_init());
 
     EXPECT_EQUAL(s2n_get_private_random_bytes_used(), 0);
 

@@ -103,7 +103,6 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
     EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
-    EXPECT_SUCCESS(s2n_init());
 
     /* Client doens't use the server name extension. */
     {

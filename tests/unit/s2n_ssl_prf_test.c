@@ -50,7 +50,6 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_init());
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 

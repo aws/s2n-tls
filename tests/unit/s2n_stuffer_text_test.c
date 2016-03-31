@@ -34,7 +34,6 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_init());
     /* Create a stuffer */
     EXPECT_SUCCESS(s2n_blob_init(&tblob, (uint8_t *)tokenpad, sizeof(tokenpad)));
     EXPECT_SUCCESS(s2n_stuffer_init(&token, &tblob));
