@@ -50,6 +50,7 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
+
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&client_random_in, client_random_hex_in));

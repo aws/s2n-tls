@@ -83,6 +83,7 @@ static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct 
 /* Writing is relatively straight forward, simply write each message out as a record,
  * we may fragment a message across multiple records, but we never coalesce multiple
  * messages into single records. 
+ * Precondition: pending outbound I/O has already been flushed
  */
 static int handshake_write_io(struct s2n_connection *conn)
 {
@@ -90,10 +91,11 @@ static int handshake_write_io(struct s2n_connection *conn)
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     int max_payload_size;
 
-    /* If there's nothing in the out stuffer, put a handshake message in the 
-     * handshake stuffer.
+    /* Populate handshake.io with header/payload for the current state, once.
+     * Check wiped instead of s2n_stuffer_data_available to differentiate between the initial call
+     * to handshake_write_io and a repeated call after an EWOULDBLOCK.
      */
-    if (s2n_stuffer_data_available(&conn->out) == 0) {
+    if (conn->handshake.io.wiped == 1) {
         if (record_type == TLS_HANDSHAKE) {
             GUARD(s2n_handshake_write_header(conn, state_machine[conn->handshake.state].message_type));
         }
@@ -103,37 +105,37 @@ static int handshake_write_io(struct s2n_connection *conn)
         }
     }
 
-    /* Write the handshake data to records  */
+    /* Write the handshake data to records in fragment sized chunks */
     struct s2n_blob out;
-    out.size = s2n_stuffer_data_available(&conn->handshake.io);
+    while(s2n_stuffer_data_available(&conn->handshake.io) > 0) {
+        out.size = s2n_stuffer_data_available(&conn->handshake.io);
 
-    /* ... in fragment sized chunks */
-    GUARD((max_payload_size = s2n_record_max_write_payload_size(conn)));
-    if (out.size > max_payload_size) {
-        out.size = max_payload_size;
+        GUARD((max_payload_size = s2n_record_max_write_payload_size(conn)));
+        if (out.size > max_payload_size) {
+            out.size = max_payload_size;
+        }
+
+        out.data = s2n_stuffer_raw_read(&conn->handshake.io, out.size);
+        notnull_check(out.data);
+
+        /* Make the actual record */
+        GUARD(s2n_record_write(conn, record_type, &out));
+
+        /* MD5 and SHA sum the handshake data too */
+        if (record_type == TLS_HANDSHAKE) {
+            GUARD(s2n_conn_update_handshake_hashes(conn, &out));
+        }
+
+        /* Actually send the record. We could block here. Assume the caller will call flush before coming back. */
+        GUARD(s2n_flush(conn, &blocked));
     }
-    out.data = s2n_stuffer_raw_read(&conn->handshake.io, out.size);
-    notnull_check(out.data);
 
-    /* Make the actual record */
-    GUARD(s2n_record_write(conn, record_type, &out));
+    /* We're done sending the last record, reset everything */
+    GUARD(s2n_stuffer_wipe(&conn->out));
+    GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
-    /* MD5 and SHA sum the handshake data too */
-    if (record_type == TLS_HANDSHAKE) {
-        GUARD(s2n_conn_update_handshake_hashes(conn, &out));
-    }
-
-    /* Actually send the record */
-    GUARD(s2n_flush(conn, &blocked));
-
-    /* If we're done sending the last record, reset everything */
-    if (s2n_stuffer_data_available(&conn->handshake.io) == 0) {
-        GUARD(s2n_stuffer_wipe(&conn->out));
-        GUARD(s2n_stuffer_wipe(&conn->handshake.io));
-
-        /* Advance the state machine */
-        conn->handshake.state = conn->handshake.next_state;
-    }
+    /* Advance the state machine */
+    conn->handshake.state = conn->handshake.next_state;
 
     return 0;
 }
