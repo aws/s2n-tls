@@ -36,7 +36,7 @@ int main(int argc, char **argv)
     uint8_t mac_key[] = "sample mac key";
     uint8_t des3_key[] = "12345678901234567890123";
     struct s2n_blob des3 = {.data = des3_key,.size = sizeof(des3_key) };
-    uint8_t random_data[S2N_DEFAULT_FRAGMENT_LENGTH + 1];
+    uint8_t random_data[S2N_SMALL_FRAGMENT_LENGTH + 1];
     struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
 
     BEGIN_TEST();
@@ -58,7 +58,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hmac_init(&conn->active.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     conn->actual_protocol_version = S2N_TLS11;
 
-    int max_aligned_fragment = S2N_DEFAULT_FRAGMENT_LENGTH - (S2N_DEFAULT_FRAGMENT_LENGTH % 8);
+    int max_aligned_fragment = S2N_SMALL_FRAGMENT_LENGTH - (S2N_SMALL_FRAGMENT_LENGTH % 8);
     for (int i = 0; i <= max_aligned_fragment + 1; i++) {
         struct s2n_blob in = {.data = random_data,.size = i };
         int bytes_written;

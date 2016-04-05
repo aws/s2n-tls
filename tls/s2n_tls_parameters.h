@@ -89,11 +89,16 @@
 #define S2N_SSL2_MAXIMUM_MESSAGE_LENGTH 16383
 #define S2N_SSL2_MAXIMUM_RECORD_LENGTH  (S2N_SSL2_MAXIMUM_MESSAGE_LENGTH + S2N_SSL2_RECORD_HEADER_LENGTH)
 
-/* s2n uses a record length that is aligned to the dominant internet MTU;
+/* s2n can use a "small" record length that is aligned to the dominant internet MTU;
  * 1500 bytes, minus 20 bytes for an IP header, minus 20 bytes for a tcp
- * header and 20 bytes for tcp options (timestamp, sack etc) */
-#define S2N_DEFAULT_RECORD_LENGTH (1500 - 20 - 20 - 20)
-#define S2N_DEFAULT_FRAGMENT_LENGTH (S2N_DEFAULT_RECORD_LENGTH - S2N_TLS_RECORD_HEADER_LENGTH)
+ * header and 20 bytes for tcp/ip options (timestamp, sack etc) and a "large" record
+ * length that is designed to maximize throughput (fewer MACs per byte transferred
+ * and better efficiency of crypto engines).
+ */
+#define S2N_SMALL_RECORD_LENGTH (1500 - 20 - 20 - 20)
+#define S2N_SMALL_FRAGMENT_LENGTH (S2N_SMALL_RECORD_LENGTH - S2N_TLS_RECORD_HEADER_LENGTH)
+#define S2N_LARGE_RECORD_LENGTH S2N_TLS_MAXIMUM_RECORD_LENGTH
+#define S2N_LARGE_FRAGMENT_LENGTH S2N_TLS_MAXIMUM_FRAGMENT_LENGTH
 
 /* Put a 64k cap on the size of any handshake message */
 #define S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH (64 * 1024)
