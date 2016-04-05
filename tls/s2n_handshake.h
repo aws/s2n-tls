@@ -26,7 +26,6 @@
 
 struct s2n_handshake {
     struct s2n_stuffer io;
-    uint32_t bytes_remaining;
 
     struct s2n_hash_state client_md5;
     struct s2n_hash_state client_sha1;
