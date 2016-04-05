@@ -28,8 +28,8 @@
  *
  */
 
-#define BEGIN_TEST()  int test_count = 0; { fprintf(stdout, "Running %-50s ... ", __FILE__); }
-#define END_TEST()  { if (isatty(fileno(stdout))) { \
+#define BEGIN_TEST() int test_count = 0; EXPECT_SUCCESS(s2n_init()); { fprintf(stdout, "Running %-50s ... ", __FILE__); }
+#define END_TEST()   EXPECT_SUCCESS(s2n_cleanup()); { if (isatty(fileno(stdout))) { \
                             if (test_count) { \
                                 fprintf(stdout, "\033[32;1mPASSED\033[0m %10d tests\n", test_count ); \
                             }\

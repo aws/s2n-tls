@@ -161,7 +161,6 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
 
-    EXPECT_SUCCESS(s2n_init());
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, 2));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, certificate, private_key));

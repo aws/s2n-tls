@@ -133,7 +133,6 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
 
     /* Create a pipe */
-    EXPECT_SUCCESS(s2n_init());
 
     for (int is_dh_key_exchange = 0; is_dh_key_exchange <= 1; is_dh_key_exchange++) {
         EXPECT_SUCCESS(pipe(server_to_client));

@@ -20,12 +20,13 @@
 
 int main(int argc, char **argv)
 {
-    struct s2n_config *config = s2n_config_new();
+    struct s2n_config *config;
     struct s2n_timer timer;
     uint64_t nanoseconds;
 
     BEGIN_TEST();
 
+    EXPECT_NOT_NULL(config = s2n_config_new());
     /* First: Perform some tests using the real clock */
     EXPECT_SUCCESS(s2n_timer_start(config, &timer));
     EXPECT_SUCCESS(s2n_timer_reset(config, &timer, &nanoseconds));

@@ -118,6 +118,10 @@ ulimit -l
 
 to raise the limit, consult the documentation for your platform.
 
+### Disabling mlock()
+To disable s2n's mlock behavior, run your application with the `S2N_DONT_MLOCK` environment variable set. 
+s2n also reads this for unit tests. Try `S2N_DONT_MLOCK=1 make` if you're having mlock failures during unit tests.
+
 ## client mode
 
 At this time s2n does not perform certificate validation and client mode is
