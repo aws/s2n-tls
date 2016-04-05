@@ -108,7 +108,7 @@ ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_block
     struct s2n_blob out = {.data = (uint8_t *) buf };
 
     if (conn->closed) {
-        return 0;
+        S2N_ERROR(S2N_ERR_CLOSED);
     }
 
     *blocked = S2N_BLOCKED_ON_READ;
