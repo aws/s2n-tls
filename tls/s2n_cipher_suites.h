@@ -46,6 +46,7 @@ struct s2n_cipher_suite {
     const char *name;
     uint8_t value[2];
     const struct s2n_key_exchange_algorithm *key_exchange_alg;
+    /* Cipher name in Openssl format */
     struct s2n_cipher *cipher;
     s2n_hmac_algorithm hmac_alg;
     uint8_t minimum_required_tls_version;
