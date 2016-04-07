@@ -117,8 +117,8 @@ int main(int argc, char **argv)
 {
     struct s2n_connection *conn;
     uint8_t mac_key[] = "sample mac key";
-    uint8_t fragment[S2N_DEFAULT_FRAGMENT_LENGTH];
-    uint8_t random_data[S2N_DEFAULT_FRAGMENT_LENGTH];
+    uint8_t fragment[S2N_SMALL_FRAGMENT_LENGTH];
+    uint8_t random_data[S2N_SMALL_FRAGMENT_LENGTH];
     struct s2n_hmac_state check_mac, record_mac;
     struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
 
@@ -131,7 +131,7 @@ int main(int argc, char **argv)
     conn->actual_protocol_version = S2N_TLS12;
 
     /* Try every 16 bytes to simulate block alignments */
-    for (int i = 288; i < S2N_DEFAULT_FRAGMENT_LENGTH; i += 16) {
+    for (int i = 288; i < S2N_SMALL_FRAGMENT_LENGTH; i += 16) {
 
         EXPECT_SUCCESS(s2n_hmac_init(&record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
 

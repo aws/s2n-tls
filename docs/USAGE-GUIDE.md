@@ -467,6 +467,21 @@ int64_t s2n_connection_get_delay(struct s2n_connection *conn);
 **s2n_connection_get_delay** returns the number of nanoseconds an application
 using self-service blinding should pause before calling close() or shutdown().
 
+### s2n\_connection\_prefer\_throughput(struct s2n_connection *conn)
+
+```c
+int s2n_connection_prefer_throughput(struct s2n_connection *conn);
+int s2n_connection_prefer_low_latency(struct s2n_connection *conn);
+```
+
+**s2n_connection_prefer_throughput** and **s2n_connection_prefer_low_latency**
+change the behavior of s2n when sending data to prefer either throughput
+or low latency. Connections prefering low latency will be encrypted using small
+record sizes that can be decrypted sooner by the recipient. Connections
+prefering throughput will use large record sizes that minimize overhead.
+
+Connections prefer low latency by default.
+
 ### s2n\_connection\_get\_wire\_bytes
 
 ```c
