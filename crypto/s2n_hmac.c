@@ -219,9 +219,9 @@ int s2n_hmac_reset(struct s2n_hmac_state *state)
     return 0;
 }
 
-int s2n_hmac_digest_verify(const void *a, uint32_t alen, const void *b, uint32_t blen)
+int s2n_hmac_digest_verify(const void *a, const void *b, uint32_t len)
 {
-    return 0 - (!s2n_constant_time_equals(a, b, alen) | !!(alen - blen));
+    return 0 - !s2n_constant_time_equals(a, b, len);
 }
 
 int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)

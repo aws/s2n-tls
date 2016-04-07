@@ -48,6 +48,6 @@ extern int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, c
 extern int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size);
 extern int s2n_hmac_digest(struct s2n_hmac_state *state, void *out, uint32_t size);
 extern int s2n_hmac_digest_two_compression_rounds(struct s2n_hmac_state *state, void *out, uint32_t size);
-extern int s2n_hmac_digest_verify(const void *a, uint32_t alen, const void *b, uint32_t blen);
+extern int s2n_hmac_digest_verify(const void *a, const void *b, uint32_t len);
 extern int s2n_hmac_reset(struct s2n_hmac_state *state);
 extern int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from);
