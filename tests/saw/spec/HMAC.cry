@@ -6,6 +6,8 @@ module HMAC where
 
 import SHA256
 
+//////// Functional version ////////
+
 hmacSHA256 : {pwBytes, msgBytes}
              (fin pwBytes, fin msgBytes
              , 32 >= width msgBytes
@@ -13,6 +15,16 @@ hmacSHA256 : {pwBytes, msgBytes}
              , 64 >= width (8 * (64 + msgBytes))
              ) => [pwBytes][8] -> [msgBytes][8] -> [256]
 hmacSHA256 = hmac `{blockLength=64} SHA256 SHA256 SHA256
+
+kinit : { pwBytes, blockLength, digest }
+        ( fin pwBytes, fin blockLength, fin digest )
+     => ([pwBytes][8] -> [8*digest])
+     -> [pwBytes][8]
+     -> [blockLength][8]
+kinit hash key =
+  if `pwBytes > (`blockLength : [max (width pwBytes) (width blockLength)])
+  then take `{blockLength} (split (hash key) # (zero : [blockLength][8]))
+  else take `{blockLength} (key # (zero : [blockLength][8]))
 
 // Due to limitations of the type system we must accept two
 // separate arguments (both aledgedly the same) for two
@@ -27,13 +39,11 @@ hmac : { msgBytes, pwBytes, digest, blockLength }
     -> [digest*8]
 hmac hash hash2 hash3 key message = hash2 (okey # internal)
  where
- ks : [blockLength][8]
- ks   = if `pwBytes > (`blockLength : [max (width pwBytes) (width blockLength)])
-            then take `{blockLength} (split (hash3 key) # (zero : [blockLength][8]))
-            else take `{blockLength} (key # (zero : [blockLength][8]))
- okey = [k ^ 0x5C | k <- ks]
- ikey = [k ^ 0x36 | k <- ks]
- internal = split (hash (ikey # message))
+   ks : [blockLength][8]
+   ks = kinit hash3 key
+   okey = [k ^ 0x5C | k <- ks]
+   ikey = [k ^ 0x36 | k <- ks]
+   internal = split (hash (ikey # message))
 
 property pass =
     ~zero ==
@@ -41,17 +51,45 @@ property pass =
     , hmacSHA256 "Jefe" "what do ya want for nothing?" == 0x5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843
     ]
 
-type HMACSHA256State =
+//////// Imperative version ////////
+
+// This mirrors the `s2n_hmac_state` struct.
+type HMACState =
      { innerState : SHA256State
-     , outerState : SHA256State
-     , keyState : SHA256State
+     //, innerJustKeyState : SHA256State
+     //, outerState : SHA256State
+     //, xorPad : [128][8]
+     //, digestPad : [SHA512DigestLength][8]
      }
 
-hmac_init : SHA256State -> SHA256State -> SHA256State -> HMACSHA256State
-hmac_init is os ks = { innerState = is, outerState = os, keyState = ks }
+hmac_init : { pwBytes }
+            ( fin pwBytes, 64 >= width (8*pwBytes) )
+         => [pwBytes][8]
+         -> HMACState
+hmac_init key = { innerState = SHA256Update SHA256Init k1 }
+  where
+    k0 : [64][8]
+    k0 = kinit SHA256Imp key
+    k1 = [ k ^ 0x36 | k <- k0 ]
 
-hmac_update : {n} HMACSHA256State -> [n][8] -> HMACSHA256State
-hmac_update = error "nyi"
+hmac_update : {n} (fin n) => HMACState -> [n][8] -> HMACState
+hmac_update s m = { innerState = SHA256Update s.innerState m }
 
-hmac_final : {n} HMACSHA256State -> [n]
-hmac_final = error "nyi"
+// TODO: pre-calculate hash state after processing key
+hmac_final : { pwBytes }
+             ( fin pwBytes, 64 >= width (8*pwBytes) )
+          => [pwBytes][8] -> HMACState -> [256]
+hmac_final key s = SHA256Final (SHA256Update os1 (split hin))
+  where
+    k0 : [64][8]
+    k0 = kinit SHA256Imp key
+    k1 = [ k ^ 0x5C | k <- k0 ]
+    os1 = SHA256Update SHA256Init k1
+    hin = SHA256Final s.innerState
+
+hmac_imp : { a, b }
+           ( fin b, 64 >= width (8 * a) )
+        => [a][8]
+        -> [b][8]
+        -> [256]
+hmac_imp key msg = hmac_final key (hmac_update (hmac_init key) msg)
