@@ -250,7 +250,7 @@ int s2n_record_parse(struct s2n_connection *conn)
         lte_check(mac_digest_size, sizeof(check_digest));
         GUARD(s2n_hmac_digest(mac, check_digest, mac_digest_size));
 
-        if (s2n_hmac_digest_verify(en.data + payload_length + offset, mac_digest_size, check_digest, mac_digest_size) < 0) {
+        if (s2n_hmac_digest_verify(en.data + payload_length + offset, check_digest, mac_digest_size) < 0) {
             GUARD(s2n_stuffer_wipe(&conn->in));
             S2N_ERROR(S2N_ERR_BAD_MESSAGE);
             return -1;

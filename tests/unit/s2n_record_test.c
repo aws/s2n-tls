@@ -152,7 +152,7 @@ int main(int argc, char **argv)
 
         uint8_t check_digest[20];
         EXPECT_SUCCESS(s2n_hmac_digest(&check_mac, check_digest, 20));
-        EXPECT_SUCCESS(s2n_hmac_digest_verify(conn->out.blob.data + 5 + bytes_written, 20, check_digest, 20));
+        EXPECT_SUCCESS(s2n_hmac_digest_verify(conn->out.blob.data + 5 + bytes_written, check_digest, 20));
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
@@ -246,7 +246,7 @@ int main(int argc, char **argv)
 
         uint8_t check_digest[20];
         EXPECT_SUCCESS(s2n_hmac_digest(&check_mac, check_digest, 20));
-        EXPECT_SUCCESS(s2n_hmac_digest_verify(conn->out.blob.data + 5 + bytes_written, 20, check_digest, 20));
+        EXPECT_SUCCESS(s2n_hmac_digest_verify(conn->out.blob.data + 5 + bytes_written, check_digest, 20));
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
@@ -314,7 +314,7 @@ int main(int argc, char **argv)
 
         uint8_t check_digest[20];
         EXPECT_SUCCESS(s2n_hmac_digest(&check_mac, check_digest, 20));
-        EXPECT_SUCCESS(s2n_hmac_digest_verify(conn->out.blob.data + 16 + 5 + bytes_written, 20, check_digest, 20));
+        EXPECT_SUCCESS(s2n_hmac_digest_verify(conn->out.blob.data + 16 + 5 + bytes_written, check_digest, 20));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
         EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
