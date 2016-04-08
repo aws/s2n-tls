@@ -1,0 +1,8 @@
+import "HMAC.cry";
+
+let check n = do {
+    print (str_concat "Checking imp_correct for byte count " (show n));
+    time (prove_print abc {{ imp_correct : [n][8] -> [n][8] -> Bit }});
+};
+
+for [0, 1, 2, 63, 64, 65, 127, 128, 129, 1000] check;

@@ -93,3 +93,13 @@ hmac_imp : { a, b }
         -> [b][8]
         -> [256]
 hmac_imp key msg = hmac_final key (hmac_update (hmac_init key) msg)
+
+
+//////// Equivalence of implementations ////////
+
+hmacSHA256_imp = hmac_imp
+
+imp_correct : { klen, mlen }
+              ( 32 >= width mlen, 64 >= width (8 * klen) )
+           => [klen][8] -> [mlen][8] -> Bit
+property imp_correct key msg = hmacSHA256 key msg == hmacSHA256_imp key msg
