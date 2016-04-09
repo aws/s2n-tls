@@ -172,8 +172,18 @@ int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const vo
 
 int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
 {
-    /* Keep track of how much of the current hash block is full */
-    state->currently_in_hash_block += (128000 + size) % state->hash_block_size;
+    /* Keep track of how much of the current hash block is full
+     *
+     * Why the 4294967040 constant in this code? 4294967040 is the highest 32-bit
+     * value that is congruent to 0 modulo all of our HMAC block sizes. It
+     * therefore has no effect on the mathematical result.
+     *
+     * What it does do however is ensure that the mod operation takes a
+     * constant number of instruction cycles, regardless of the size of the
+     * input. On some platforms, including Intel, the operation can take a
+     * smaller number of cycles if the input is "small".
+     */
+    state->currently_in_hash_block += (4294967040 + size) % state->hash_block_size;
     state->currently_in_hash_block %= state->block_size;
 
     return s2n_hash_update(&state->inner, in, size);
