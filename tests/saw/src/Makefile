@@ -41,4 +41,12 @@ hmac.bc: ${OBJS}
 .PHONY: clean
 clean:
 	rm -f hmac.bc
+	rm -rf tmp
 	make -C s2n clean
+
+# Make Emacs-format tags.
+.PHONY: tmp/TAGS
+tmp/TAGS:
+	mkdir -p tmp
+	: > tmp/TAGS
+	find `pwd`/s2n \( -name '*.c' -o -name '*.h' \) -exec etags --append -o tmp/TAGS {} +
