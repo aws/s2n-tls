@@ -52,47 +52,161 @@ property pass =
     ]
 
 //////// Imperative version ////////
+//
+// To start, the imperative version is specialized to SHA256.
+
+type SHA512DigestLength = 64
 
 // This mirrors the `s2n_hmac_state` struct.
 type HMACState =
-     { innerState : SHA256State
-     //, innerJustKeyState : SHA256State
-     //, outerState : SHA256State
-     //, xorPad : [128][8]
-     //, digestPad : [SHA512DigestLength][8]
+     { // alg : HMACAlgorithm // TODO
+
+       hash_block_size         : [16]
+     , currently_in_hash_block : [32]
+     , block_size              : [16]
+     , digest_size             : [8]
+
+     , inner          : SHA256State
+     , inner_just_key : SHA256State
+     , outer          : SHA256State
+
+     , xor_pad    : [128][8]
+     , digest_pad : [SHA512DigestLength][8]
      }
 
 hmac_init : { pwBytes }
             ( fin pwBytes, 64 >= width (8*pwBytes) )
          => [pwBytes][8]
          -> HMACState
-hmac_init key = { innerState = SHA256Update SHA256Init k1 }
+hmac_init key =
+  { hash_block_size         = hash_block_size
+  , currently_in_hash_block = currently_in_hash_block
+  , block_size              = block_size
+  , digest_size             = digest_size
+  , inner                   = inner
+  , inner_just_key          = inner_just_key
+  , outer                   = outer
+  , xor_pad                 = xor_pad
+  , digest_pad              = digest_pad
+  }
   where
+    // SHA256-specific values.
+    //
+    // /usr/include/openssl/sha.h
+    currently_in_hash_block = 0
+    sha256_digest_length    = 32
+    digest_size             = sha256_digest_length
+    block_size              = 64
+    hash_block_size         = 64
+
     k0 : [64][8]
     k0 = kinit SHA256Imp key
-    k1 = [ k ^ 0x36 | k <- k0 ]
 
-hmac_update : {n} (fin n) => HMACState -> [n][8] -> HMACState
-hmac_update s m = { innerState = SHA256Update s.innerState m }
+    ikey = [ k ^ 0x36 | k <- k0 ]
+    okey = [ k ^ 0x6a | k <- ikey ]
 
-// TODO: pre-calculate hash state after processing key
-hmac_final : { pwBytes }
-             ( fin pwBytes, 64 >= width (8*pwBytes) )
-          => [pwBytes][8] -> HMACState -> [256]
-hmac_final key s = SHA256Final (SHA256Update os1 (split hin))
+    inner_just_key = SHA256Update SHA256Init ikey
+    inner          = inner_just_key
+
+    // MAYBE TODO: In `s2n_hmac_init`, these are used in the hash
+    // computation for `k0`, when the key is long and needs to be
+    // hashed. So, we need to refactor `kinit` if we want the state to
+    // match here. However, this potential hash value in `outer` in
+    // never used outside of `hmac_init`, so hopefully we can just
+    // avoid modeling it.
+    outer      = SHA256Init
+    digest_pad = zero
+
+    xor_pad = okey # zero
+
+hmac_update : {n} (32 >= width n) => HMACState -> [n][8] -> HMACState
+hmac_update s m =
+  { inner = SHA256Update s.inner m
+
+  // TODO: as pointed out by Joey, this will overflow when `n` is
+  // larger than `2^32 - 1 - 128000`.
+  , currently_in_hash_block =
+      (s.currently_in_hash_block +
+       ((128000 + `n) % (zero # s.hash_block_size))) %
+      (zero # s.block_size)
+
+  // Rest unchanged.
+  , hash_block_size = s.hash_block_size
+  , block_size      = s.block_size
+  , digest_size     = s.digest_size
+  , inner_just_key  = s.inner_just_key
+  , outer           = s.outer
+  , xor_pad         = s.xor_pad
+  , digest_pad      = s.digest_pad
+  }
+
+// TODO: What about `size` argument to `s2n_hmac_digest`? The `size`
+// argument is supposed to be the "digest length" of the underlying
+// hash. Here we are specializing to SHA256, so `size` would be 32.
+hmac_digest : HMACState -> (HMACState, [256])
+hmac_digest s = (sout, out)
   where
-    k0 : [64][8]
-    k0 = kinit SHA256Imp key
-    k1 = [ k ^ 0x5C | k <- k0 ]
-    os1 = SHA256Update SHA256Init k1
-    hin = SHA256Final s.innerState
+    // The 32 here is specific to SHA256.
+    hin : [32][8]
+    hin = split (SHA256Final inner)
+    digest_pad : [SHA512DigestLength][8]
+    digest_pad = hin # zero
+
+    // The 64 here is specific to SHA256.
+    okey : [64][8]
+    okey = take s.xor_pad
+
+    // TODO: the `inner` and `outer` here are probably not accurate:
+    // in s2n, the `s2n_hash_digest` has been called on them, which
+    // presumably can change them (calls `SHA256_Final` from
+    // underlying C crypto lib behind the scenes). However, our
+    // Cryptol `SHA256Final` does not change the hash state. Even
+    // if we leave the hash function uninterpreted later, we will
+    // still need to change the interface of our Cryptol `<hash>Final`
+    // to additionally return an updated `<hash>State`.
+    outer = SHA256Update SHA256Init (okey # hin)
+    inner = s.inner
+
+    out = SHA256Final outer
+
+    sout : HMACState
+    sout =
+      { inner      = inner
+      , outer      = outer
+      , digest_pad = digest_pad
+
+      // Rest unchanged.
+      , hash_block_size         = s.hash_block_size
+      , currently_in_hash_block = s.currently_in_hash_block
+      , block_size              = s.block_size
+      , digest_size             = s.digest_size
+      , inner_just_key          = s.inner_just_key
+      , xor_pad                 = s.xor_pad
+      }
+
+hmac_reset : HMACState -> HMACState
+hmac_reset s =
+  { currently_in_hash_block = 0
+  , inner                   = s.inner_just_key
+
+  // Rest unchanged.
+  , hash_block_size = s.hash_block_size
+  , block_size      = s.block_size
+  , digest_size     = s.digest_size
+  , inner_just_key  = s.inner_just_key
+  , outer           = s.outer
+  , xor_pad         = s.xor_pad
+  , digest_pad      = s.digest_pad
+  }
 
 hmac_imp : { a, b }
-           ( fin b, 64 >= width (8 * a) )
+           ( fin b, 64 >= width (8 * a)
+           , 32 >= width b
+           )
         => [a][8]
         -> [b][8]
         -> [256]
-hmac_imp key msg = hmac_final key (hmac_update (hmac_init key) msg)
+hmac_imp key msg = (hmac_digest (hmac_update (hmac_init key) msg)).1
 
 
 //////// Equivalence of implementations ////////
