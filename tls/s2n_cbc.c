@@ -79,7 +79,7 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
     /* Compute a MAC on the rest of the data so that we perform the same number of hash operations */
     GUARD(s2n_hmac_update(&copy, decrypted->data + payload_length + mac_digest_size, decrypted->size - payload_length - mac_digest_size - 1));
 
-    /* SSLv3 doesn't specify what the padding should actualy be */
+    /* SSLv3 doesn't specify what the padding should actually be */
     if (conn->actual_protocol_version == S2N_SSLv3) {
         return 0 - mismatches;
     }
