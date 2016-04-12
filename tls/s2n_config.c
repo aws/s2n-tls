@@ -107,6 +107,28 @@ struct s2n_cipher_preferences cipher_preferences_20150214 = {
     .minimum_protocol_version = S2N_TLS10
 };
 
+/* Make a CBC cipher #1 to avoid negotiating GCM with buggy Java clients */
+uint8_t wire_format_20160411_java[] = {
+    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+    TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
+    TLS_RSA_WITH_AES_128_CBC_SHA,
+    TLS_RSA_WITH_AES_128_GCM_SHA256,
+    TLS_RSA_WITH_AES_256_GCM_SHA384,
+    TLS_RSA_WITH_AES_128_CBC_SHA256,
+    TLS_RSA_WITH_AES_256_CBC_SHA,
+    TLS_RSA_WITH_AES_256_CBC_SHA256,
+    TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+};
+struct s2n_cipher_preferences cipher_preferences_20160411_java = {
+    .count = sizeof(wire_format_20160411_java) / S2N_TLS_CIPHER_SUITE_LEN,
+    .wire_format = wire_format_20160411_java,
+    .minimum_protocol_version = S2N_TLS10
+};
+
 /* Use ECDHE instead of plain DHE. Prioritize ECHDE in favour of non ECDHE; GCM in favour of CBC; AES128 in favour of AES256. */
 uint8_t wire_format_20150306[] = {
     TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
@@ -133,6 +155,7 @@ struct {
     { "20150202", &cipher_preferences_20150202 },
     { "20150214", &cipher_preferences_20150214 },
     { "20150306", &cipher_preferences_20150306 },
+    { "20160411_java", &cipher_preferences_20160411_java},
     { NULL, NULL }
 };
 
