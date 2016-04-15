@@ -8,6 +8,12 @@ else
 LL ?= llvm-link
 endif
 
+ifeq (, $(shell which llvm-dis))
+LLVM_DIS ?= /usr/local/opt/llvm/bin/llvm-dis
+else
+LLVM_DIS ?= llvm-dis
+endif
+
 ifeq (, $(shell which clang))
 CLANG ?= /usr/local/opt/llvm/bin/clang
 else
@@ -22,7 +28,7 @@ OPENSSL_INC ?= -I/usr/local/opt/openssl/include
 OBJS = s2n/crypto/s2n_hmac.o s2n/crypto/s2n_hash.o s2n/utils/s2n_safety.o
 
 .PHONY: all
-all: hmac.bc
+all: tmp/hmac.bc tmp/hmac.ll
 
 s2n/Makefile:
 	git clone https://github.com/awslabs/s2n.git
@@ -35,8 +41,11 @@ s2n/utils/%.o: s2n/utils/%.c
 	make s2n/Makefile
 	make -C s2n/utils CC=${CLANG} CFLAGS="-emit-llvm -I../libcrypto-root/include -I../api -I.. $(OPENSSL_INC)" $(notdir $@)
 
-hmac.bc: ${OBJS}
+tmp/hmac.bc: ${OBJS} | tmp
 	${LL} -o $@ $+
+
+tmp/hmac.ll: tmp/hmac.bc | tmp
+	${LLVM_DIS} -o $@ $<
 
 .PHONY: clean
 clean:
@@ -46,7 +55,9 @@ clean:
 
 # Make Emacs-format tags.
 .PHONY: tmp/TAGS
-tmp/TAGS:
-	mkdir -p tmp
+tmp/TAGS: | tmp
 	: > tmp/TAGS
 	find `pwd`/s2n \( -name '*.c' -o -name '*.h' \) -exec etags --append -o tmp/TAGS {} +
+
+tmp:
+	mkdir -p tmp
