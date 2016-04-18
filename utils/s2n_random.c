@@ -254,6 +254,7 @@ int s2n_cleanup(void)
     GUARD(s2n_drbg_wipe(&per_thread_private_drbg));
     GUARD(s2n_drbg_wipe(&per_thread_public_drbg));
     GUARD(close(entropy_fd));
+    entropy_fd = -1;
 
     return 0;
 }
