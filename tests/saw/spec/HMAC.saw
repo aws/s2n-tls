@@ -15,9 +15,70 @@ let hmac_state = do {
     return ();
 };
 
+// We specialize everything to SHA256 for now. So, we only define the
+// SHA256 related constants. See './HMAC.cry' for summary of relevant
+// C and LLVM sources, e.g. the struct layouts leading to the
+// mysterious paths like "(((state->1).0).3).0" below.
+
 let hash_init_spec = do {
     llvm_ptr "state" (llvm_struct "struct.s2n_hash_state");
-    alg <- llvm_var "alg" (llvm_int 32);
+    llvm_var "state->0" (llvm_int 32);
+    alg0 <- llvm_var "alg" (llvm_int 32);
+    // Feature requests:
+    //
+    // - named fields: being able to define the mapping ourselves is
+    //   sufficient. I.e. in the .saw file I would describe the
+    //   mapping with something like
+    //
+    //     [ ("->alg", "->0")
+    //     , ("->hash_ctx", "->1")
+    //     ]
+    //
+    // - support for entire structs: having to break a struct down into
+    //   all of its fields is tedious and error prone. I would like to
+    //   simply do
+    //
+    //
+    //     hash_ctx0 <- llvm_var "(state->1).0" (llvm_struct "struct.SHA512state_st");
+    //
+    //   and then have 'hash_ctx0' be of type
+    //
+    //     ([8][64], [64], [64], [16][64], [32], [32])
+    //
+    //   or perhaps even better, of type 'SHA512_c_state'. Or,
+    //   for named fields on the Cryptol tuple type, I could define
+    //   projections, or manually map the tuple to a 'SHA512_c_state'.
+    hash_ctx0_h      <- llvm_var "((state->1).0).0" (llvm_array 8 (llvm_int 64));
+    hash_ctx0_Nl     <- llvm_var "((state->1).0).1" (llvm_int 64);
+    hash_ctx0_Nh     <- llvm_var "((state->1).0).2" (llvm_int 64);
+    hash_ctx0_u      <- llvm_var "(((state->1).0).3).0" (llvm_array 16 (llvm_int 64));
+    hash_ctx0_num    <- llvm_var "((state->1).0).4" (llvm_int 32);
+    hash_ctx0_md_len <- llvm_var "((state->1).0).5" (llvm_int 32);
+
+    let st0 = {{
+      { h      = hash_ctx0_h
+      , Nl     = hash_ctx0_Nl
+      , Nh     = hash_ctx0_Nh
+      , u      = hash_ctx0_u
+      , num    = hash_ctx0_num
+      , md_len = hash_ctx0_md_len
+      } : SHA512_c_state
+    }};
+    // We need to pass in the starting state since many of the bits in
+    // the union are unused in the SHA256 state.
+    let st1 = {{ sha256_init_sha512_c_state st0 }};
+
+    // Specialize to SHA256.
+    llvm_assert_eq "alg" {{ S2N_HASH_SHA256 }};
+
+    llvm_ensure_eq "state->0" {{ S2N_HASH_SHA256 }};
+    llvm_ensure_eq "((state->1).0).0" {{ st1.h }};
+    llvm_ensure_eq "((state->1).0).1" {{ st1.Nl }};
+    llvm_ensure_eq "((state->1).0).2" {{ st1.Nh }};
+    llvm_ensure_eq "(((state->1).0).3).0" {{ st1.u }};
+    llvm_ensure_eq "((state->1).0).4" {{ st1.num }};
+    llvm_ensure_eq "((state->1).0).5" {{ st1.md_len }};
+
     llvm_return {{ 0 : [32] }};
     llvm_no_simulate;
 };
