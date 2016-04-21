@@ -292,7 +292,7 @@ type SHA256_c_bits = 8*32+32+32+16*32+32+32
 join256_c_state : SHA256_c_state -> [SHA256_c_bits]
 join256_c_state st = join st.h # st.Nl # st.Nh # join st.u # st.num # st.md_len
 
-SHA256_DIGEST_LENGTH = 32:[32]
+type SHA256_DIGEST_LENGTH = 32
 
 // Recall the 'SHA256State' in our Cryptol model in './SHA256.cry':
 /*
@@ -303,11 +303,11 @@ type SHA256State = { h     : [8][32]
                    }
 */
 
-// TODO(conathan): is my endianness correct here? In other words, I'm
-// using the initial, high order bits of the SHA512 state to construct
-// the SHA256 state, but it could instead be the lower order bits. I
-// should inspect the LLVM or do a simple C experiment to justify my
-// choice.
+// I'm using the initial, high order bits of the SHA512 state to
+// construct the SHA256 state. The LLVM code doesn't make it clear
+// that this is correct -- it depends on the semantics of 'bitcast' --
+// but I did an experiment which validates this choice; see
+// 'examples/llvm/union' in the SAWScript repo.
 sha512_c_state_to_sha256_c_state : SHA512_c_state -> SHA256_c_state
 sha512_c_state_to_sha256_c_state st =
   { h      = split (take bits)
@@ -319,7 +319,7 @@ sha512_c_state_to_sha256_c_state st =
   }
   where
     bits : [SHA256_c_bits]
-    bits = take bits0 // Per TODO above, is this 'take' or 'drop'?
+    bits = take bits0
     bits0 : [SHA512_c_bits]
     bits0 = join512_c_state st
 
@@ -336,7 +336,7 @@ sha256_c_state_to_sha512_c_state st0 st =
   }
   where
     bits : [SHA512_c_bits]
-    bits = join256_c_state st # drop bits0 // The endianness TODO affects this.
+    bits = join256_c_state st # drop bits0
     bits0 : [SHA512_c_bits]
     bits0 = join512_c_state st0
 
@@ -358,14 +358,34 @@ sha256_state_to_sha256_c_state st =
   , Nh     = Nh
   , u      = split (join st.block)
   , num    = (zero # st.n) : [32]
-  , md_len = SHA256_DIGEST_LENGTH
+  , md_len = `SHA256_DIGEST_LENGTH : [32]
   }
   where
     [Nh, Nl] = split st.sz
 
+////////////////////////////////////////////////////////////////
+
 sha256_init_sha512_c_state : SHA512_c_state -> SHA512_c_state
 sha256_init_sha512_c_state st0_c_512 = st1_c_512
   where
-   st1_256 = SHA256Init
-   st1_c_256 = sha256_state_to_sha256_c_state st1_256
-   st1_c_512 = sha256_c_state_to_sha512_c_state st0_c_512 st1_c_256
+    st1_256 = SHA256Init
+    st1_c_256 = sha256_state_to_sha256_c_state st1_256
+    st1_c_512 = sha256_c_state_to_sha512_c_state st0_c_512 st1_c_256
+
+sha256_update_sha512_c_state : {n} (fin n) => SHA512_c_state -> [n][8] -> SHA512_c_state
+sha256_update_sha512_c_state st0_c_512 in = st1_c_512
+  where
+    st0_c_256 = sha512_c_state_to_sha256_c_state st0_c_512
+    st0_256 = sha256_c_state_to_sha256_state st0_c_256
+    st1_256 = SHA256Update st0_256 in
+    st1_c_256 = sha256_state_to_sha256_c_state st1_256
+    st1_c_512 = sha256_c_state_to_sha512_c_state st0_c_512 st1_c_256
+
+// We don't return a new 'SHA512_c_state', since it's unspecified (I
+// think ...).
+sha256_digest_sha512_c_state : SHA512_c_state -> [SHA256_DIGEST_LENGTH][8]
+sha256_digest_sha512_c_state st0_c_512 = out1
+  where
+    st0_c_256 = sha512_c_state_to_sha256_c_state st0_c_512
+    st0_256 = sha256_c_state_to_sha256_state st0_c_256
+    out1 = split (SHA256Final st0_256)

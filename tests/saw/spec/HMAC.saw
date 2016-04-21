@@ -1,29 +1,18 @@
 import "HMAC.cry";
 m <- llvm_load_module "../src/hmac.bc";
 
-let hmac_state = do {
-    llvm_ptr "state" (llvm_struct "struct.s2n_hmac_state");
-    alg <- llvm_var "state->0" (llvm_int 32);
-    hash_block_size <- llvm_var "state->1" (llvm_int 16);
-    currently_in_hash_block <- llvm_var "state->2" (llvm_int 32);
-    block_size <- llvm_var "state->3" (llvm_int 16);
-    digest_size <- llvm_var "state->4" (llvm_int 8);
-    xor_pad <- llvm_var "state->8" (llvm_array 128 (llvm_int 8));
-    digest_pad <- llvm_var "state->9" (llvm_array 64 (llvm_int 8));
-    llvm_assert_eq "state->0" {{ 4 : [32] }}; // S2N_HMAC_SHA256
-    // TODO: return values of llvm_vars.
-    return ();
-};
-
+////////////////////////////////////////////////////////////////
+// Hash.
+//
 // We specialize everything to SHA256 for now. So, we only define the
 // SHA256 related constants. See './HMAC.cry' for summary of relevant
 // C and LLVM sources, e.g. the struct layouts leading to the
 // mysterious paths like "(((state->1).0).3).0" below.
 
-let hash_init_spec = do {
+let setup_initial_hash_state = do {
     llvm_ptr "state" (llvm_struct "struct.s2n_hash_state");
-    llvm_var "state->0" (llvm_int 32);
-    alg0 <- llvm_var "alg" (llvm_int 32);
+
+    alg0 <- llvm_var "state->0" (llvm_int 32);
     // Feature requests:
     //
     // - named fields: being able to define the mapping ourselves is
@@ -64,43 +53,98 @@ let hash_init_spec = do {
       , md_len = hash_ctx0_md_len
       } : SHA512_c_state
     }};
-    // We need to pass in the starting state since many of the bits in
-    // the union are unused in the SHA256 state.
-    let st1 = {{ sha256_init_sha512_c_state st0 }};
 
-    // Specialize to SHA256.
-    llvm_assert_eq "alg" {{ S2N_HASH_SHA256 }};
+    return (alg0, st0);
+};
 
-    llvm_ensure_eq "state->0" {{ S2N_HASH_SHA256 }};
+let check_final_hash_state st1 = do {
     llvm_ensure_eq "((state->1).0).0" {{ st1.h }};
     llvm_ensure_eq "((state->1).0).1" {{ st1.Nl }};
     llvm_ensure_eq "((state->1).0).2" {{ st1.Nh }};
     llvm_ensure_eq "(((state->1).0).3).0" {{ st1.u }};
     llvm_ensure_eq "((state->1).0).4" {{ st1.num }};
     llvm_ensure_eq "((state->1).0).5" {{ st1.md_len }};
+};
 
+let hash_init_spec = do {
+    (_, st0) <- setup_initial_hash_state;
+    alg0 <- llvm_var "alg" (llvm_int 32);
+
+    // Specialize to SHA256.
+    llvm_assert_eq "alg" {{ S2N_HASH_SHA256 }};
+
+    // We need to pass in the starting state since many of the bits in
+    // the union are unused in the SHA256 state.
+    let st1 = {{ sha256_init_sha512_c_state st0 }};
+
+    // Specialize to SHA256.
+    llvm_ensure_eq "state->0" {{ S2N_HASH_SHA256 }};
+
+    check_final_hash_state st1;
     llvm_return {{ 0 : [32] }};
-    llvm_no_simulate;
+
+    llvm_no_simulate; // "Admit".
 };
 
 // Here, `n` is the size of the new data to hash.
 let hash_update_spec n = do {
-    llvm_ptr "state" (llvm_struct "struct.s2n_hash_state");
-    llvm_ptr "data" (llvm_array n (llvm_int 8)); // TODO: is it a byte array?
-    data <- llvm_var "*data" (llvm_array n (llvm_int 8));
-    size <- llvm_var "size" (llvm_int 32);
+    (_, st0) <- setup_initial_hash_state;
+    llvm_ptr "data" (llvm_array n (llvm_int 8));
+    data0 <- llvm_var "*data" (llvm_array n (llvm_int 8));
+    size0 <- llvm_var "size" (llvm_int 32);
+
+    // Specialize to SHA256.
+    llvm_assert_eq "state->0" {{ S2N_HASH_SHA256 }};
+
+    llvm_assert_eq "size" {{ `n : [32] }};
+    let st1 = {{ sha256_update_sha512_c_state st0 data0 }};
+
+    check_final_hash_state st1;
     llvm_return {{ 0 : [32] }};
+
     llvm_no_simulate;
 };
 
 // Here, `n` is the digest size for the specific hash algorithm.
 let hash_digest_spec n = do {
-    llvm_ptr "state" (llvm_struct "struct.s2n_hash_state");
-    llvm_ptr "out" (llvm_array n (llvm_int 8)); // TODO: is it a byte array?
-    data <- llvm_var "*out" (llvm_array n (llvm_int 8));
-    size <- llvm_var "size" (llvm_int 32);
+    (_, st0) <- setup_initial_hash_state;
+    llvm_ptr "out" (llvm_array n (llvm_int 8));
+    out0 <- llvm_var "*out" (llvm_array n (llvm_int 8));
+    size0 <- llvm_var "size" (llvm_int 32);
+
+    // Specialize to SHA256.
+    llvm_assert_eq "state->0" {{ S2N_HASH_SHA256 }};
+    llvm_assert_eq "size" {{ `SHA256_DIGEST_LENGTH : [32] }};
+
+    let out1 = {{ sha256_digest_sha512_c_state st0 }};
+
+    // Specialize to SHA256.
+    llvm_ensure_eq "state->0" {{ S2N_HASH_SHA256 }};
+
+    // We don't check the final hash state, since it's unspecified (I
+    // think ...).
+
+    llvm_ensure_eq "*out" {{ out1 }};
     llvm_return {{ 0 : [32] }};
+
     llvm_no_simulate;
+};
+
+////////////////////////////////////////////////////////////////
+// HMAC.
+
+let hmac_state = do {
+    llvm_ptr "state" (llvm_struct "struct.s2n_hmac_state");
+    alg <- llvm_var "state->0" (llvm_int 32);
+    hash_block_size <- llvm_var "state->1" (llvm_int 16);
+    currently_in_hash_block <- llvm_var "state->2" (llvm_int 32);
+    block_size <- llvm_var "state->3" (llvm_int 16);
+    digest_size <- llvm_var "state->4" (llvm_int 8);
+    xor_pad <- llvm_var "state->8" (llvm_array 128 (llvm_int 8));
+    digest_pad <- llvm_var "state->9" (llvm_array 64 (llvm_int 8));
+    llvm_assert_eq "state->0" {{ 4 : [32] }}; // S2N_HMAC_SHA256
+    // TODO: return values of llvm_vars.
+    return ();
 };
 
 let hmac_init_spec n = do {
@@ -136,18 +180,30 @@ let hmac_digest_spec n = do {
     llvm_no_simulate;
 };
 
+////////////////////////////////////////////////////////////////
+
+let key_size = 10;
+let msg_size = 10;
+// Specialize to SHA256.
+//
+// Can't use '{{ `SHA256_DIGEST_LENGTH : [32] }}' here since arg is
+// specialized to 'Int'.
+let digest_size = 32;
+
 hash_init_ov   <- llvm_verify m "s2n_hash_init"   [] hash_init_spec;
-hash_update_ov <- llvm_verify m "s2n_hash_update" [] (hash_update_spec 10);
-hash_digest_ov <- llvm_verify m "s2n_hash_digest" [] (hash_digest_spec 20);
+hash_update_ov <- llvm_verify m "s2n_hash_update" []
+  (hash_update_spec msg_size);
+hash_digest_ov <- llvm_verify m "s2n_hash_digest" []
+  (hash_digest_spec digest_size);
 
 hmac_init_ov   <- llvm_verify m "s2n_hmac_init"
                   [hash_init_ov, hash_update_ov, hash_digest_ov]
-                  (hmac_init_spec 10);
+                  (hmac_init_spec key_size);
 hmac_update_ov <- llvm_verify m "s2n_hmac_update"
                   [hash_update_ov]
-                  (hmac_update_spec 10);
+                  (hmac_update_spec msg_size);
 hmac_digest_ov <- llvm_verify m "s2n_hmac_digest"
                   [hash_init_ov, hash_update_ov, hash_digest_ov]
-                  (hmac_digest_spec 20);
+                  (hmac_digest_spec digest_size);
 
 print "Done.";
