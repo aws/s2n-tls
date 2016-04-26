@@ -9,10 +9,13 @@ m <- llvm_load_module "../src/hmac.bc";
 // C and LLVM sources, e.g. the struct layouts leading to the
 // mysterious paths like "(((state->1).0).3).0" below.
 
-let setup_initial_hash_state = do {
-    llvm_ptr "state" (llvm_struct "struct.s2n_hash_state");
+// The 'prefix' argument is a "struct path prefix", e.g. "state->" or
+// "(state->5).". Note the trailing, dangling dereference.
+let setup_initial_hash_state prefix = do {
+    // Make struct path using 'prefix'.
+    let p before after = str_concat before (str_concat prefix after);
 
-    alg0 <- llvm_var "state->0" (llvm_int 32);
+    alg0 <- llvm_var (p "" "0") (llvm_int 32);
     // Feature requests:
     //
     // - named fields: being able to define the mapping ourselves is
@@ -37,12 +40,12 @@ let setup_initial_hash_state = do {
     //   or perhaps even better, of type 'SHA512_c_state'. Or,
     //   for named fields on the Cryptol tuple type, I could define
     //   projections, or manually map the tuple to a 'SHA512_c_state'.
-    hash_ctx0_h      <- llvm_var "((state->1).0).0" (llvm_array 8 (llvm_int 64));
-    hash_ctx0_Nl     <- llvm_var "((state->1).0).1" (llvm_int 64);
-    hash_ctx0_Nh     <- llvm_var "((state->1).0).2" (llvm_int 64);
-    hash_ctx0_u      <- llvm_var "(((state->1).0).3).0" (llvm_array 16 (llvm_int 64));
-    hash_ctx0_num    <- llvm_var "((state->1).0).4" (llvm_int 32);
-    hash_ctx0_md_len <- llvm_var "((state->1).0).5" (llvm_int 32);
+    hash_ctx0_h      <- llvm_var (p "((" "1).0).0") (llvm_array 8 (llvm_int 64));
+    hash_ctx0_Nl     <- llvm_var (p "((" "1).0).1") (llvm_int 64);
+    hash_ctx0_Nh     <- llvm_var (p "((" "1).0).2") (llvm_int 64);
+    hash_ctx0_u      <- llvm_var (p "(((" "1).0).3).0") (llvm_array 16 (llvm_int 64));
+    hash_ctx0_num    <- llvm_var (p "((" "1).0).4") (llvm_int 32);
+    hash_ctx0_md_len <- llvm_var (p "((" "1).0).5") (llvm_int 32);
 
     let st0 = {{
       { h      = hash_ctx0_h
@@ -57,17 +60,21 @@ let setup_initial_hash_state = do {
     return (alg0, st0);
 };
 
-let check_final_hash_state st1 = do {
-    llvm_ensure_eq "((state->1).0).0" {{ st1.h }};
-    llvm_ensure_eq "((state->1).0).1" {{ st1.Nl }};
-    llvm_ensure_eq "((state->1).0).2" {{ st1.Nh }};
-    llvm_ensure_eq "(((state->1).0).3).0" {{ st1.u }};
-    llvm_ensure_eq "((state->1).0).4" {{ st1.num }};
-    llvm_ensure_eq "((state->1).0).5" {{ st1.md_len }};
+let check_final_hash_state prefix st1 = do {
+    // Make struct path using 'prefix'.
+    let p before after = str_concat before (str_concat prefix after);
+
+    llvm_ensure_eq (p "((" "1).0).0") {{ st1.h }};
+    llvm_ensure_eq (p "((" "1).0).1") {{ st1.Nl }};
+    llvm_ensure_eq (p "((" "1).0).2") {{ st1.Nh }};
+    llvm_ensure_eq (p "(((" "1).0).3).0") {{ st1.u }};
+    llvm_ensure_eq (p "((" "1).0).4") {{ st1.num }};
+    llvm_ensure_eq (p "((" "1).0).5") {{ st1.md_len }};
 };
 
 let hash_init_spec = do {
-    (_, st0) <- setup_initial_hash_state;
+    llvm_ptr "state" (llvm_struct "struct.s2n_hash_state");
+    (_, st0) <- setup_initial_hash_state "state->";
     alg0 <- llvm_var "alg" (llvm_int 32);
 
     // Specialize to SHA256.
@@ -80,7 +87,7 @@ let hash_init_spec = do {
     // Specialize to SHA256.
     llvm_ensure_eq "state->0" {{ S2N_HASH_SHA256 }};
 
-    check_final_hash_state st1;
+    check_final_hash_state "state->" st1;
     llvm_return {{ 0 : [32] }};
 
     llvm_no_simulate; // "Admit".
@@ -88,8 +95,9 @@ let hash_init_spec = do {
 
 // Here, `n` is the size of the new data to hash.
 let hash_update_spec n = do {
-    (_, st0) <- setup_initial_hash_state;
+    llvm_ptr "state" (llvm_struct "struct.s2n_hash_state");
     llvm_ptr "data" (llvm_array n (llvm_int 8));
+    (_, st0) <- setup_initial_hash_state "state->";
     data0 <- llvm_var "*data" (llvm_array n (llvm_int 8));
     size0 <- llvm_var "size" (llvm_int 32);
 
@@ -99,7 +107,10 @@ let hash_update_spec n = do {
     llvm_assert_eq "size" {{ `n : [32] }};
     let st1 = {{ sha256_update_sha512_c_state st0 data0 }};
 
-    check_final_hash_state st1;
+    // Specialize to SHA256.
+    llvm_ensure_eq "state->0" {{ S2N_HASH_SHA256 }};
+
+    check_final_hash_state "state->" st1;
     llvm_return {{ 0 : [32] }};
 
     llvm_no_simulate;
@@ -107,8 +118,9 @@ let hash_update_spec n = do {
 
 // Here, `n` is the digest size for the specific hash algorithm.
 let hash_digest_spec n = do {
-    (_, st0) <- setup_initial_hash_state;
+    llvm_ptr "state" (llvm_struct "struct.s2n_hash_state");
     llvm_ptr "out" (llvm_array n (llvm_int 8));
+    (_, st0) <- setup_initial_hash_state "state->";
     out0 <- llvm_var "*out" (llvm_array n (llvm_int 8));
     size0 <- llvm_var "size" (llvm_int 32);
 
@@ -185,10 +197,7 @@ let hmac_digest_spec n = do {
 let key_size = 10;
 let msg_size = 10;
 // Specialize to SHA256.
-//
-// Can't use '{{ `SHA256_DIGEST_LENGTH : [32] }}' here since arg is
-// specialized to 'Int'.
-let digest_size = 32;
+let digest_size = eval_int {{ `SHA256_DIGEST_LENGTH : [32] }};
 
 hash_init_ov   <- llvm_verify m "s2n_hash_init"   [] hash_init_spec;
 hash_update_ov <- llvm_verify m "s2n_hash_update" []
