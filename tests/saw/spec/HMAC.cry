@@ -55,7 +55,7 @@ property pass =
 //
 // To start, the imperative version is specialized to SHA256.
 
-type SHA512DigestLength = 64
+type SHA512_DIGEST_LENGTH = 64
 
 // This mirrors the `s2n_hmac_state` struct.
 type HMACState =
@@ -71,7 +71,7 @@ type HMACState =
      , outer          : SHA256State
 
      , xor_pad    : [128][8]
-     , digest_pad : [SHA512DigestLength][8]
+     , digest_pad : [SHA512_DIGEST_LENGTH][8]
      }
 
 hmac_init : { pwBytes }
@@ -149,7 +149,7 @@ hmac_digest s = (sout, out)
     // The 32 here is specific to SHA256.
     hin : [32][8]
     hin = split (SHA256Final inner)
-    digest_pad : [SHA512DigestLength][8]
+    digest_pad : [SHA512_DIGEST_LENGTH][8]
     digest_pad = hin # zero
 
     // The 64 here is specific to SHA256.
@@ -220,6 +220,10 @@ property imp_correct key msg = hmacSHA256 key msg == hmacSHA256_imp key msg
 
 //////// Translations between C/LLVM and Cryptol data types ////////
 
+////////////////////////////////////////////////////////////////
+// Hashing (specialized to SHA256).
+////////////////////////////////////////////////////////////////
+
 // s2n_hash.h
 /*
 typedef enum { S2N_HASH_NONE, S2N_HASH_MD5, S2N_HASH_SHA1, S2N_HASH_SHA224, S2N_HASH_SHA256, S2N_HASH_SHA384,
@@ -238,7 +242,7 @@ S2N_HASH_SHA256 = 4:[32]
 139 } SHA256_CTX;
 */
 // Looking at the generated LLVM in ':/src/hmac.ll' gives the precise
-// laytout, without having to find the definitions of the above
+// layout, without having to find the definitions of the above
 // macros.
 /*
 %struct.SHA512state_st = type { [8 x i64], i64, i64, %union.anon.0, i32, i32 }
@@ -303,6 +307,9 @@ type SHA256State = { h     : [8][32]
                    }
 */
 
+////////////////////////////////////////////////////////////////
+// Basic hash-state translations.
+
 // I'm using the initial, high order bits of the SHA512 state to
 // construct the SHA256 state. The LLVM code doesn't make it clear
 // that this is correct -- it depends on the semantics of 'bitcast' --
@@ -364,28 +371,145 @@ sha256_state_to_sha256_c_state st =
     [Nh, Nl] = split st.sz
 
 ////////////////////////////////////////////////////////////////
+// Composed hash-state translations.
+
+sha512_c_state_to_sha256_state : SHA512_c_state -> SHA256State
+sha512_c_state_to_sha256_state st =
+  sha256_c_state_to_sha256_state (sha512_c_state_to_sha256_c_state st)
+
+sha256_state_to_sha512_c_state : SHA512_c_state -> SHA256State -> SHA512_c_state
+sha256_state_to_sha512_c_state st0 st =
+  sha256_c_state_to_sha512_c_state st0 (sha256_state_to_sha256_c_state st)
+
+////////////////////////////////////////////////////////////////
+// SHA256 specs in terms of the SHA512 C hash state.
 
 sha256_init_sha512_c_state : SHA512_c_state -> SHA512_c_state
 sha256_init_sha512_c_state st0_c_512 = st1_c_512
   where
-    st1_256 = SHA256Init
-    st1_c_256 = sha256_state_to_sha256_c_state st1_256
-    st1_c_512 = sha256_c_state_to_sha512_c_state st0_c_512 st1_c_256
+    st0_256 = SHA256Init
+    st1_c_512 = sha256_state_to_sha512_c_state st0_c_512 st0_256
 
 sha256_update_sha512_c_state : {n} (fin n) => SHA512_c_state -> [n][8] -> SHA512_c_state
 sha256_update_sha512_c_state st0_c_512 in = st1_c_512
   where
-    st0_c_256 = sha512_c_state_to_sha256_c_state st0_c_512
-    st0_256 = sha256_c_state_to_sha256_state st0_c_256
+    st0_256 = sha512_c_state_to_sha256_state st0_c_512
     st1_256 = SHA256Update st0_256 in
-    st1_c_256 = sha256_state_to_sha256_c_state st1_256
-    st1_c_512 = sha256_c_state_to_sha512_c_state st0_c_512 st1_c_256
+    st1_c_512 = sha256_state_to_sha512_c_state st0_c_512 st1_256
 
 // We don't return a new 'SHA512_c_state', since it's unspecified (I
 // think ...).
 sha256_digest_sha512_c_state : SHA512_c_state -> [SHA256_DIGEST_LENGTH][8]
 sha256_digest_sha512_c_state st0_c_512 = out1
   where
-    st0_c_256 = sha512_c_state_to_sha256_c_state st0_c_512
-    st0_256 = sha256_c_state_to_sha256_state st0_c_256
+    st0_256 = sha512_c_state_to_sha256_state st0_c_512
     out1 = split (SHA256Final st0_256)
+
+////////////////////////////////////////////////////////////////
+// HMAC (specialized to SHA256).
+////////////////////////////////////////////////////////////////
+
+// s2n_hmac.h
+/*
+typedef enum { S2N_HMAC_NONE, S2N_HMAC_MD5, S2N_HMAC_SHA1, S2N_HMAC_SHA224, S2N_HMAC_SHA256, S2N_HMAC_SHA384,
+    S2N_HMAC_SHA512, S2N_HMAC_SSLv3_MD5, S2N_HMAC_SSLv3_SHA1
+} s2n_hmac_algorithm;
+*/
+S2N_HMAC_SHA256 = 4:[32]
+
+// s2n_hmac.h
+/*
+
+struct s2n_hmac_state {
+    s2n_hmac_algorithm alg;
+
+    uint16_t hash_block_size;
+    uint32_t currently_in_hash_block;
+    uint16_t block_size;
+    uint8_t digest_size;
+
+    struct s2n_hash_state inner;
+    struct s2n_hash_state inner_just_key;
+    struct s2n_hash_state outer;
+
+    /* key needs to be as large as the biggest block size */
+    uint8_t xor_pad[128];
+
+    /* For storing the inner digest */
+    uint8_t digest_pad[SHA512_DIGEST_LENGTH];
+};
+*/
+// No surprises in the LLVM (:/src/hmac.ll)
+/*
+%struct.s2n_hmac_state = type { i32, i16, i32, i16, i8, %struct.s2n_hash_state, %struct.s2n_hash_state, %struct.s2n_hash_state, [128 x i8], [64 x i8] }
+*/
+
+type HMAC_c_state =
+  { alg                     : [32]
+  , hash_block_size         : [16]
+  , currently_in_hash_block : [32]
+  , block_size              : [16]
+  , digest_size             : [8]
+  , inner                   : SHA512_c_state
+  , inner_just_key          : SHA512_c_state
+  , outer                   : SHA512_c_state
+  , xor_pad                 : [128][8]
+  , digest_pad              : [SHA512_DIGEST_LENGTH][8]
+  }
+
+////////////////////////////////////////////////////////////////
+// HMAC-state translations.
+
+hmac_c_state_to_hmac_state : HMAC_c_state -> HMACState
+hmac_c_state_to_hmac_state st =
+  { hash_block_size         = st.hash_block_size
+  , currently_in_hash_block = st.currently_in_hash_block
+  , block_size              = st.block_size
+  , digest_size             = st.digest_size
+  , inner                   = sha512_c_state_to_sha256_state st.inner
+  , inner_just_key          = sha512_c_state_to_sha256_state st.inner_just_key
+  , outer                   = sha512_c_state_to_sha256_state st.outer
+  , xor_pad                 = st.xor_pad
+  , digest_pad              = st.digest_pad
+  }
+
+hmac_state_to_hmac_c_state : HMAC_c_state -> HMACState -> HMAC_c_state
+hmac_state_to_hmac_c_state st0 st =
+  { alg                     = st0.alg
+  , hash_block_size         = st.hash_block_size
+  , currently_in_hash_block = st.currently_in_hash_block
+  , block_size              = st.block_size
+  , digest_size             = st.digest_size
+  , inner                   = sha256_state_to_sha512_c_state st0.inner st.inner
+  , inner_just_key          = sha256_state_to_sha512_c_state st0.inner_just_key st.inner_just_key
+  , outer                   = sha256_state_to_sha512_c_state st0.outer st.outer
+  , xor_pad                 = st.xor_pad
+  , digest_pad              = st.digest_pad
+  }
+
+////////////////////////////////////////////////////////////////
+// HMAC specs in terms of C HMAC state.
+
+hmac_init_c_state :
+     { pwBytes } ( fin pwBytes, 64 >= width (8*pwBytes) )
+  => HMAC_c_state -> [pwBytes][8] -> HMAC_c_state
+hmac_init_c_state st0_c key = st1_c
+  where
+    st1 = hmac_init key
+    st1_c = hmac_state_to_hmac_c_state st0_c st1
+
+hmac_update_c_state : {n} (32 >= width n) => HMAC_c_state -> [n][8] -> HMAC_c_state
+hmac_update_c_state st0_c msg = st1_c
+  where
+    st0 = hmac_c_state_to_hmac_state st0_c
+    st1 = hmac_update st0 msg
+    st1_c = hmac_state_to_hmac_c_state st0_c st1
+
+// TDOO: see TODO comment on 'hmac_digest': we might not treat 'inner'
+// and 'outer' correctly here!
+hmac_digest_c_state : HMAC_c_state -> (HMAC_c_state, [256])
+hmac_digest_c_state st0_c = (st1_c, out)
+  where
+    st0 = hmac_c_state_to_hmac_state st0_c
+    (st1, out) = hmac_digest st0
+    st1_c = hmac_state_to_hmac_c_state st0_c st1
