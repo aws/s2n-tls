@@ -245,7 +245,7 @@ let hmac_update_spec n = do {
     llvm_return {{ 0 : [32] }};
 
     llvm_sat_branches true;
-    llvm_no_simulate;
+    //llvm_no_simulate;
 };
 
 let hmac_digest_spec n = do {
@@ -277,7 +277,7 @@ let hmac_digest_spec n = do {
     llvm_return {{ 0 : [32] }};
 
     llvm_sat_branches true;
-    llvm_no_simulate;
+    //llvm_no_simulate;
 };
 
 ////////////////////////////////////////////////////////////////
