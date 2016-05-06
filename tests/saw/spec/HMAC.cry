@@ -156,7 +156,7 @@ hmac_digest s = (sout, out)
     okey : [64][8]
     okey = take s.xor_pad
 
-    // TODO: the `inner` and `outer` here are probably not accurate:
+    // The `inner` and `outer` here are probably not accurate:
     // in s2n, the `s2n_hash_digest` has been called on them, which
     // presumably can change them (calls `SHA256_Final` from
     // underlying C crypto lib behind the scenes). However, our
@@ -164,7 +164,26 @@ hmac_digest s = (sout, out)
     // if we leave the hash function uninterpreted later, we will
     // still need to change the interface of our Cryptol `<hash>Final`
     // to additionally return an updated `<hash>State`.
-    outer = SHA256Update SHA256Init (okey # hin)
+    //
+    // However, we probably don't need to say anything about the
+    // *hash* state after calls to "final" functions, since
+    // 's2n_hash_reset' just calls 's2n_hash_init'. So, the above
+    // concern is not much of a concern after all.
+
+    // Our goal is to leave the hash functions (init, update,
+    // digest/final) uninterpreted, and so we need the structure of
+    // our calls to these functions to match the structure of calls in
+    // the s2n code, since we don't have lemmas giving algebraic
+    // properties of these functions (e.g. here we'd need
+    //
+    //   update (update st x) y == update st (x # y)
+    //
+    // ). So, we replace
+    //
+    //outer = SHA256Update SHA256Init (okey # hin)
+    //
+    // with:
+    outer = SHA256Update (SHA256Update SHA256Init okey) hin
     inner = s.inner
 
     out = SHA256Final outer
