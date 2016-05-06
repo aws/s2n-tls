@@ -543,6 +543,14 @@ hmac_digest_c_state st0_c = (st1_c, out)
 // corresponding hash functions on the raw C hash states, instead of
 // converting them to Cryptol SHA256 hash states.
 
+type hash_init_ty     = SHA512_c_state
+type hash_update_ty n = SHA512_c_state -> [n][8] -> SHA512_c_state
+type hash_digest_ty   = SHA512_c_state -> [SHA256_DIGEST_LENGTH][8]
+type hash_ty n = { init : hash_init_ty
+                 , update : hash_update_ty n
+                 , digest : hash_digest_ty
+                 }
+
 /* TODO: abstract hmac_init_c_state here once symbolic simulation is
 // working.
 
@@ -556,9 +564,10 @@ hmac_init_c_state' st0_c key = st1_c
 
 */
 
-hmac_update_c_state' : {n} (32 >= width n) => HMAC_c_state -> [n][8] -> HMAC_c_state
-hmac_update_c_state' s m =
-  { inner = sha256_update_sha512_c_state s.inner m
+hmac_update_c_state' : {n} (32 >= width n) =>
+  hash_ty n -> HMAC_c_state -> [n][8] -> HMAC_c_state
+hmac_update_c_state' hash s m =
+  { inner = hash.update s.inner m
   , currently_in_hash_block =
       (s.currently_in_hash_block + (`n % (zero # s.hash_block_size))) %
       (zero # s.block_size)

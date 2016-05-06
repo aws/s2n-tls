@@ -197,6 +197,16 @@ let check_final_hmac_state st1 = do {
 
 ////////////////////////////////////////////////////////////////
 
+// Specialize to SHA256.
+let {{
+hash : {n} (fin n) => hash_ty n
+hash =
+  { init   = sha256_init_sha512_c_state zero
+  , update = sha256_update_sha512_c_state
+  , digest = sha256_digest_sha512_c_state
+  } : hash_ty n
+}};
+
 let hmac_init_spec n = do {
     llvm_ptr "key" (llvm_array n (llvm_int 8));
     st0 <- setup_initial_hmac_state;
@@ -248,7 +258,7 @@ let hmac_update_spec n = do {
 
     llvm_assert_eq "size" {{ `n : [32] }};
 
-    let st1 = {{ hmac_update_c_state' st0 in0 }};
+    let st1 = {{ hmac_update_c_state' (hash`{n}) st0 in0 }};
 
     // TODO: add 'alg' field to 'HMACState' in 'HMAC.cry' and enforce
     // SHA256 here.
@@ -288,6 +298,10 @@ let hmac_digest_spec n = do {
 
     // Feature request: be able to write '(st1, digest)' instead of
     // 'st1_digest'.
+    //
+    // TODO: how to generalize the hash here? We need update at
+    // multiples types (for 'xor_pad' and 'digest_pad'). I.e.,
+    // 'hash`{n}' for a particular 'n' won't work here.
     let st1_digest = {{ hmac_digest_c_state' st0 }};
     let st1 = {{ st1_digest.0 }};
     let digest = {{ st1_digest.1 }};
