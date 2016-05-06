@@ -507,7 +507,12 @@ hmac_state_to_hmac_c_state st0 st =
   }
 
 ////////////////////////////////////////////////////////////////
-// HMAC specs in terms of C HMAC state.
+// Shallow HMAC specs in terms of C HMAC state.
+//
+// Here "shallow" because we convert the HMAC C state to higher level
+// HMAC Cryptol state (names are confusing, since both version of the
+// state are in Cryptol :P) and then call the corresponding HMAC
+// Cryptol state functions, which use SHA256 Cryptol state underneath.
 
 hmac_init_c_state :
      { pwBytes } ( fin pwBytes, 64 >= width (8*pwBytes) )
@@ -524,11 +529,113 @@ hmac_update_c_state st0_c msg = st1_c
     st1 = hmac_update st0 msg
     st1_c = hmac_state_to_hmac_c_state st0_c st1
 
-// TDOO: see TODO comment on 'hmac_digest': we might not treat 'inner'
-// and 'outer' correctly here!
 hmac_digest_c_state : HMAC_c_state -> (HMAC_c_state, [256])
 hmac_digest_c_state st0_c = (st1_c, out)
   where
     st0 = hmac_c_state_to_hmac_state st0_c
     (st1, out) = hmac_digest st0
     st1_c = hmac_state_to_hmac_c_state st0_c st1
+
+////////////////////////////////////////////////////////////////
+// Deep HMAC specs in terms of C HMAC state.
+//
+// Here "deep" because we reimplement the HMAC functions to call the
+// corresponding hash functions on the raw C hash states, instead of
+// converting them to Cryptol SHA256 hash states.
+
+/* TODO: abstract hmac_init_c_state here once symbolic simulation is
+// working.
+
+hmac_init_c_state' :
+     { pwBytes } ( fin pwBytes, 64 >= width (8*pwBytes) )
+  => HMAC_c_state -> [pwBytes][8] -> HMAC_c_state
+hmac_init_c_state' st0_c key = st1_c
+  where
+    st1 = hmac_init key
+    st1_c = hmac_state_to_hmac_c_state st0_c st1
+
+*/
+
+hmac_update_c_state' : {n} (32 >= width n) => HMAC_c_state -> [n][8] -> HMAC_c_state
+hmac_update_c_state' s m =
+  { inner = sha256_update_sha512_c_state s.inner m
+  , currently_in_hash_block =
+      (s.currently_in_hash_block + (`n % (zero # s.hash_block_size))) %
+      (zero # s.block_size)
+
+  // Rest unchanged.
+  , alg             = s.alg
+  , hash_block_size = s.hash_block_size
+  , block_size      = s.block_size
+  , digest_size     = s.digest_size
+  , inner_just_key  = s.inner_just_key
+  , outer           = s.outer
+  , xor_pad         = s.xor_pad
+  , digest_pad      = s.digest_pad
+  }
+
+// TODO: What about `size` argument to `s2n_hmac_digest`? The `size`
+// argument is supposed to be the "digest length" of the underlying
+// hash. Here we are specializing to SHA256, so `size` would be 32.
+hmac_digest_c_state' : HMAC_c_state -> (HMAC_c_state, [256])
+hmac_digest_c_state' s = (sout, out)
+  where
+    // The 32 here is specific to SHA256.
+    hin : [32][8]
+    hin = sha256_digest_sha512_c_state inner
+    digest_pad : [SHA512_DIGEST_LENGTH][8]
+    digest_pad = hin # zero
+
+    // The 64 here is specific to SHA256.
+    okey : [64][8]
+    okey = take s.xor_pad
+
+    // The `inner` and `outer` here are probably not accurate:
+    // in s2n, the `s2n_hash_digest` has been called on them, which
+    // presumably can change them (calls `SHA256_Final` from
+    // underlying C crypto lib behind the scenes). However, our
+    // Cryptol `SHA256Final` does not change the hash state. Even
+    // if we leave the hash function uninterpreted later, we will
+    // still need to change the interface of our Cryptol `<hash>Final`
+    // to additionally return an updated `<hash>State`.
+    //
+    // However, we probably don't need to say anything about the
+    // *hash* state after calls to "final" functions, since
+    // 's2n_hash_reset' just calls 's2n_hash_init'. So, the above
+    // concern is not much of a concern after all.
+
+    // Our goal is to leave the hash functions (init, update,
+    // digest/final) uninterpreted, and so we need the structure of
+    // our calls to these functions to match the structure of calls in
+    // the s2n code, since we don't have lemmas giving algebraic
+    // properties of these functions (e.g. here we'd need
+    //
+    //   update (update st x) y == update st (x # y)
+    //
+    // ). So, we replace
+    //
+    //outer = SHA256Update SHA256Init (okey # hin)
+    //
+    // with:
+    outer = sha256_update_sha512_c_state
+      (sha256_update_sha512_c_state (sha256_init_sha512_c_state s.outer) okey)
+      hin
+    inner = s.inner
+
+    out = join (sha256_digest_sha512_c_state outer)
+
+    sout : HMAC_c_state
+    sout =
+      { inner      = inner
+      , outer      = outer
+      , digest_pad = digest_pad
+
+      // Rest unchanged.
+      , alg                     = s.alg
+      , hash_block_size         = s.hash_block_size
+      , currently_in_hash_block = s.currently_in_hash_block
+      , block_size              = s.block_size
+      , digest_size             = s.digest_size
+      , inner_just_key          = s.inner_just_key
+      , xor_pad                 = s.xor_pad
+      }

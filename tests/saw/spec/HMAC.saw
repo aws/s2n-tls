@@ -248,7 +248,7 @@ let hmac_update_spec n = do {
 
     llvm_assert_eq "size" {{ `n : [32] }};
 
-    let st1 = {{ hmac_update_c_state st0 in0 }};
+    let st1 = {{ hmac_update_c_state' st0 in0 }};
 
     // TODO: add 'alg' field to 'HMACState' in 'HMAC.cry' and enforce
     // SHA256 here.
@@ -259,7 +259,7 @@ let hmac_update_spec n = do {
     llvm_sat_branches true;
 
     llvm_verify_tactic do {
-        unint_z3 ["SHA256Update"];
+        unint_z3 ["sha256_update_sha512_c_state"];
     };
 };
 
@@ -284,12 +284,11 @@ let hmac_digest_spec n = do {
     llvm_assert {{ (st0.inner.u)@3 == (`SHA256_DIGEST_LENGTH : [64]) }};
     llvm_assert {{ (st0.inner_just_key.u)@3 == (`SHA256_DIGEST_LENGTH : [64]) }};
     llvm_assert {{ (st0.outer.u)@3 == (`SHA256_DIGEST_LENGTH : [64]) }};
-
     llvm_assert_eq "size" {{ `n : [32] }};
 
     // Feature request: be able to write '(st1, digest)' instead of
     // 'st1_digest'.
-    let st1_digest = {{ hmac_digest_c_state st0 }};
+    let st1_digest = {{ hmac_digest_c_state' st0 }};
     let st1 = {{ st1_digest.0 }};
     let digest = {{ st1_digest.1 }};
 
@@ -306,7 +305,10 @@ let hmac_digest_spec n = do {
 
     llvm_sat_branches true;
     llvm_verify_tactic do {
-        unint_z3 ["SHA256Block"];
+        unint_z3 [ "sha256_init_sha512_c_state"
+                 , "sha256_update_sha512_c_state"
+                 , "sha256_digest_sha512_c_state"
+                 ];
     };
 };
 
