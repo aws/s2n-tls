@@ -514,23 +514,23 @@ hmac_state_to_hmac_c_state st0 st =
 // state are in Cryptol :P) and then call the corresponding HMAC
 // Cryptol state functions, which use SHA256 Cryptol state underneath.
 
-hmac_init_c_state :
+hmac_init_c_state_old :
      { pwBytes } ( fin pwBytes, 64 >= width (8*pwBytes) )
   => HMAC_c_state -> [pwBytes][8] -> HMAC_c_state
-hmac_init_c_state st0_c key = st1_c
+hmac_init_c_state_old st0_c key = st1_c
   where
     st1 = hmac_init key
     st1_c = hmac_state_to_hmac_c_state st0_c st1
 
-hmac_update_c_state : {n} (32 >= width n) => HMAC_c_state -> [n][8] -> HMAC_c_state
-hmac_update_c_state st0_c msg = st1_c
+hmac_update_c_state_old : {n} (32 >= width n) => HMAC_c_state -> [n][8] -> HMAC_c_state
+hmac_update_c_state_old st0_c msg = st1_c
   where
     st0 = hmac_c_state_to_hmac_state st0_c
     st1 = hmac_update st0 msg
     st1_c = hmac_state_to_hmac_c_state st0_c st1
 
-hmac_digest_c_state : HMAC_c_state -> (HMAC_c_state, [256])
-hmac_digest_c_state st0_c = (st1_c, out)
+hmac_digest_c_state_old : HMAC_c_state -> (HMAC_c_state, [256])
+hmac_digest_c_state_old st0_c = (st1_c, out)
   where
     st0 = hmac_c_state_to_hmac_state st0_c
     (st1, out) = hmac_digest st0
@@ -543,31 +543,42 @@ hmac_digest_c_state st0_c = (st1_c, out)
 // corresponding hash functions on the raw C hash states, instead of
 // converting them to Cryptol SHA256 hash states.
 
-type hash_init_ty     = SHA512_c_state
+type hash_init_ty     = SHA512_c_state -> SHA512_c_state
 type hash_update_ty n = SHA512_c_state -> [n][8] -> SHA512_c_state
 type hash_digest_ty   = SHA512_c_state -> [SHA256_DIGEST_LENGTH][8]
-type hash_ty n = { init : hash_init_ty
-                 , update : hash_update_ty n
-                 , digest : hash_digest_ty
-                 }
+
+hash_init_c_state : hash_init_ty
+hash_init_c_state = undefined // sha256_init_sha512_c_state
+
+// Cryptol does not support polymorphic arguments (rank 2
+// polymorphism), so making the hash update function a parameter to
+// the hmac functions is annoying, since we must pass a separate
+// monomorphic copy for each use at a different type. Instead, we just
+// define it at the top level, but can leave it uninterpreted in the
+// "generic" verification.
+hash_update_c_state : {n} (fin n) => hash_update_ty n
+hash_update_c_state = undefined // sha256_update_sha512_c_state
+
+hash_digest_c_state : hash_digest_ty
+hash_digest_c_state = undefined // sha256_digest_sha512_c_state
 
 /* TODO: abstract hmac_init_c_state here once symbolic simulation is
 // working.
 
-hmac_init_c_state' :
+hmac_init_c_state :
      { pwBytes } ( fin pwBytes, 64 >= width (8*pwBytes) )
   => HMAC_c_state -> [pwBytes][8] -> HMAC_c_state
-hmac_init_c_state' st0_c key = st1_c
+hmac_init_c_state st0_c key = st1_c
   where
     st1 = hmac_init key
     st1_c = hmac_state_to_hmac_c_state st0_c st1
 
 */
 
-hmac_update_c_state' : {n} (32 >= width n) =>
-  hash_ty n -> HMAC_c_state -> [n][8] -> HMAC_c_state
-hmac_update_c_state' hash s m =
-  { inner = hash.update s.inner m
+hmac_update_c_state : {n} (32 >= width n) =>
+  HMAC_c_state -> [n][8] -> HMAC_c_state
+hmac_update_c_state s m =
+  { inner = hash_update_c_state s.inner m
   , currently_in_hash_block =
       (s.currently_in_hash_block + (`n % (zero # s.hash_block_size))) %
       (zero # s.block_size)
@@ -586,12 +597,12 @@ hmac_update_c_state' hash s m =
 // TODO: What about `size` argument to `s2n_hmac_digest`? The `size`
 // argument is supposed to be the "digest length" of the underlying
 // hash. Here we are specializing to SHA256, so `size` would be 32.
-hmac_digest_c_state' : HMAC_c_state -> (HMAC_c_state, [256])
-hmac_digest_c_state' s = (sout, out)
+hmac_digest_c_state : HMAC_c_state -> (HMAC_c_state, [256])
+hmac_digest_c_state s = (sout, out)
   where
     // The 32 here is specific to SHA256.
     hin : [32][8]
-    hin = sha256_digest_sha512_c_state inner
+    hin = hash_digest_c_state inner
     digest_pad : [SHA512_DIGEST_LENGTH][8]
     digest_pad = hin # zero
 
@@ -626,12 +637,12 @@ hmac_digest_c_state' s = (sout, out)
     //outer = SHA256Update SHA256Init (okey # hin)
     //
     // with:
-    outer = sha256_update_sha512_c_state
-      (sha256_update_sha512_c_state (sha256_init_sha512_c_state s.outer) okey)
+    outer = hash_update_c_state
+      (hash_update_c_state (hash_init_c_state s.outer) okey)
       hin
     inner = s.inner
 
-    out = join (sha256_digest_sha512_c_state outer)
+    out = join (hash_digest_c_state outer)
 
     sout : HMAC_c_state
     sout =

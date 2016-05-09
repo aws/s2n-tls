@@ -40,6 +40,7 @@ let setup_initial_hash_state prefix = do {
     //   or perhaps even better, of type 'SHA512_c_state'. Or,
     //   for named fields on the Cryptol tuple type, I could define
     //   projections, or manually map the tuple to a 'SHA512_c_state'.
+
     hash_ctx0_h      <- llvm_var (p "((" "1).0).0") (llvm_array 8 (llvm_int 64));
     hash_ctx0_Nl     <- llvm_var (p "((" "1).0).1") (llvm_int 64);
     hash_ctx0_Nh     <- llvm_var (p "((" "1).0).2") (llvm_int 64);
@@ -78,14 +79,14 @@ let hash_init_spec = do {
     alg0 <- llvm_var "alg" (llvm_int 32);
 
     // Specialize to SHA256.
-    llvm_assert_eq "alg" {{ S2N_HASH_SHA256 }};
+    //llvm_assert_eq "alg" {{ S2N_HASH_SHA256 }};
 
     // We need to pass in the starting state since many of the bits in
     // the union are unused in the SHA256 state.
-    let st1 = {{ sha256_init_sha512_c_state st0 }};
+    let st1 = {{ hash_init_c_state st0 }};
 
     // Specialize to SHA256.
-    llvm_ensure_eq "state->0" {{ S2N_HASH_SHA256 }};
+    //llvm_ensure_eq "state->0" {{ S2N_HASH_SHA256 }};
 
     check_final_hash_state "state->" st1;
     llvm_return {{ 0 : [32] }};
@@ -102,13 +103,13 @@ let hash_update_spec n = do {
     size0 <- llvm_var "size" (llvm_int 32);
 
     // Specialize to SHA256.
-    llvm_assert_eq "state->0" {{ S2N_HASH_SHA256 }};
+    //llvm_assert_eq "state->0" {{ S2N_HASH_SHA256 }};
 
     llvm_assert_eq "size" {{ `n : [32] }};
-    let st1 = {{ sha256_update_sha512_c_state st0 data0 }};
+    let st1 = {{ hash_update_c_state st0 data0 }};
 
     // Specialize to SHA256.
-    llvm_ensure_eq "state->0" {{ S2N_HASH_SHA256 }};
+    //llvm_ensure_eq "state->0" {{ S2N_HASH_SHA256 }};
 
     check_final_hash_state "state->" st1;
     llvm_return {{ 0 : [32] }};
@@ -125,13 +126,13 @@ let hash_digest_spec n = do {
     size0 <- llvm_var "size" (llvm_int 32);
 
     // Specialize to SHA256.
-    llvm_assert_eq "state->0" {{ S2N_HASH_SHA256 }};
-    llvm_assert_eq "size" {{ `SHA256_DIGEST_LENGTH : [32] }};
+    //llvm_assert_eq "state->0" {{ S2N_HASH_SHA256 }};
+    //llvm_assert_eq "size" {{ `SHA256_DIGEST_LENGTH : [32] }};
 
-    let out1 = {{ sha256_digest_sha512_c_state st0 }};
+    let out1 = {{ hash_digest_c_state st0 }};
 
     // Specialize to SHA256.
-    llvm_ensure_eq "state->0" {{ S2N_HASH_SHA256 }};
+    //llvm_ensure_eq "state->0" {{ S2N_HASH_SHA256 }};
 
     // We don't check the final hash state, since it's unspecified (I
     // think ...).
@@ -165,16 +166,16 @@ let setup_initial_hmac_state = do {
     digest_pad0 <- llvm_var "state->9" (llvm_array size (llvm_int 8));
 
     let st0 = {{
-      { alg = alg0
-      , hash_block_size = hash_block_size0
+      { alg                     = alg0
+      , hash_block_size         = hash_block_size0
       , currently_in_hash_block = currently_in_hash_block0
-      , block_size = block_size0
-      , digest_size = digest_size0
-      , inner = inner0
-      , inner_just_key = inner_just_key0
-      , outer = outer0
-      , xor_pad = xor_pad0
-      , digest_pad = digest_pad0
+      , block_size              = block_size0
+      , digest_size             = digest_size0
+      , inner                   = inner0
+      , inner_just_key          = inner_just_key0
+      , outer                   = outer0
+      , xor_pad                 = xor_pad0
+      , digest_pad              = digest_pad0
       }
     }};
     return st0;
@@ -183,7 +184,7 @@ let setup_initial_hmac_state = do {
 let check_final_hmac_state st1 = do {
     llvm_ensure_eq "state->0" {{ st1.alg }};
     llvm_ensure_eq "state->1" {{ st1.hash_block_size }};
-    //llvm_ensure_eq "state->2" {{ st1.currently_in_hash_block }};
+    llvm_ensure_eq "state->2" {{ st1.currently_in_hash_block }};
     llvm_ensure_eq "state->3" {{ st1.block_size }};
     llvm_ensure_eq "state->4" {{ st1.digest_size }};
 
@@ -191,21 +192,14 @@ let check_final_hmac_state st1 = do {
     check_final_hash_state "(state->6)." {{ st1.inner_just_key }};
     check_final_hash_state "(state->7)." {{ st1.outer }};
 
-    //llvm_ensure_eq "state->8" {{ st1.xor_pad }};
+    llvm_ensure_eq "state->8" {{ st1.xor_pad }};
+
+    // Don't care about 'digest_pad', because it gets overwritten
+    // using 's2n_hash_digest' before use in 's2n_hmac_digest'.
     //llvm_ensure_eq "state->9" {{ st1.digest_pad }};
 };
 
 ////////////////////////////////////////////////////////////////
-
-// Specialize to SHA256.
-let {{
-hash : {n} (fin n) => hash_ty n
-hash =
-  { init   = sha256_init_sha512_c_state zero
-  , update = sha256_update_sha512_c_state
-  , digest = sha256_digest_sha512_c_state
-  } : hash_ty n
-}};
 
 let hmac_init_spec n = do {
     llvm_ptr "key" (llvm_array n (llvm_int 8));
@@ -220,7 +214,7 @@ let hmac_init_spec n = do {
     // A SAWScript 'Int', here 'n', can be treated as a Cryptol type.
     llvm_assert_eq "klen" {{ `n : [32] }};
 
-    let st1 = {{ hmac_init_c_state st0 key0 }};
+    let st1 = {{ hmac_init_c_state_old st0 key0 }};
 
     // TODO: add 'alg' field to 'HMACState' in 'HMAC.cry' and enforce
     // SHA256 here by setting alg to 'S2N_HMAC_SHA256' in 'hmac_init'.
@@ -233,6 +227,14 @@ let hmac_init_spec n = do {
     // sha hash functions uninterpreted (using sawscript 'unint_z3'
     // tactic; this takes the place of the tactic).
     llvm_no_simulate;
+    /*
+    llvm_verify_tactic do {
+        unint_z3 [ "hash_init_c_state"
+                 , "hash_update_c_state"
+                 , "hash_digest_c_state"
+                 ];
+    };
+    */
 };
 
 let hmac_update_spec n = do {
@@ -241,11 +243,15 @@ let hmac_update_spec n = do {
     in0 <- llvm_var "*in" (llvm_array n (llvm_int 8));
     size0 <- llvm_var "size" (llvm_int 32);
 
+    // TODO: what values to put here? We don't want to specialize to SHA256
+    // anymore.
+    //
     // Specialize to SHA256.
     llvm_assert_eq "state->0" {{ S2N_HMAC_SHA256 }};
     llvm_assert_eq "state->1" {{ 64 : [16] }};
     llvm_assert_eq "state->3" {{ 64 : [16] }};
     llvm_assert_eq "state->4" {{ 32 : [8] }};
+/*
     llvm_assert_eq "(state->5).0" {{ S2N_HASH_SHA256 }};
     llvm_assert_eq "(((state->5).1).0).5" {{ `SHA256_DIGEST_LENGTH : [32] }};
     llvm_assert_eq "(state->6).0" {{ S2N_HASH_SHA256 }};
@@ -255,10 +261,10 @@ let hmac_update_spec n = do {
     llvm_assert {{ (st0.inner.u)@3 == (`SHA256_DIGEST_LENGTH : [64]) }};
     llvm_assert {{ (st0.inner_just_key.u)@3 == (`SHA256_DIGEST_LENGTH : [64]) }};
     llvm_assert {{ (st0.outer.u)@3 == (`SHA256_DIGEST_LENGTH : [64]) }};
-
+*/
     llvm_assert_eq "size" {{ `n : [32] }};
 
-    let st1 = {{ hmac_update_c_state' (hash`{n}) st0 in0 }};
+    let st1 = {{ hmac_update_c_state st0 in0 }};
 
     // TODO: add 'alg' field to 'HMACState' in 'HMAC.cry' and enforce
     // SHA256 here.
@@ -269,7 +275,10 @@ let hmac_update_spec n = do {
     llvm_sat_branches true;
 
     llvm_verify_tactic do {
-        unint_z3 ["sha256_update_sha512_c_state"];
+        unint_z3 [ "hash_init_c_state"
+                 , "hash_update_c_state"
+                 , "hash_digest_c_state"
+                 ];
     };
 };
 
@@ -284,6 +293,7 @@ let hmac_digest_spec n = do {
     llvm_assert_eq "state->1" {{ 64 : [16] }};
     llvm_assert_eq "state->3" {{ 64 : [16] }};
     llvm_assert_eq "state->4" {{ 32 : [8] }};
+/*
     llvm_assert_eq "(state->5).0" {{ S2N_HASH_SHA256 }};
     llvm_assert_eq "(((state->5).1).0).5" {{ `SHA256_DIGEST_LENGTH : [32] }};
     llvm_assert_eq "(state->6).0" {{ S2N_HASH_SHA256 }};
@@ -294,6 +304,7 @@ let hmac_digest_spec n = do {
     llvm_assert {{ (st0.inner.u)@3 == (`SHA256_DIGEST_LENGTH : [64]) }};
     llvm_assert {{ (st0.inner_just_key.u)@3 == (`SHA256_DIGEST_LENGTH : [64]) }};
     llvm_assert {{ (st0.outer.u)@3 == (`SHA256_DIGEST_LENGTH : [64]) }};
+*/
     llvm_assert_eq "size" {{ `n : [32] }};
 
     // Feature request: be able to write '(st1, digest)' instead of
@@ -302,7 +313,7 @@ let hmac_digest_spec n = do {
     // TODO: how to generalize the hash here? We need update at
     // multiples types (for 'xor_pad' and 'digest_pad'). I.e.,
     // 'hash`{n}' for a particular 'n' won't work here.
-    let st1_digest = {{ hmac_digest_c_state' st0 }};
+    let st1_digest = {{ hmac_digest_c_state st0 }};
     let st1 = {{ st1_digest.0 }};
     let digest = {{ st1_digest.1 }};
 
@@ -319,9 +330,9 @@ let hmac_digest_spec n = do {
 
     llvm_sat_branches true;
     llvm_verify_tactic do {
-        unint_z3 [ "sha256_init_sha512_c_state"
-                 , "sha256_update_sha512_c_state"
-                 , "sha256_digest_sha512_c_state"
+        unint_z3 [ "hash_init_c_state"
+                 , "hash_update_c_state"
+                 , "hash_digest_c_state"
                  ];
     };
 };
