@@ -2,7 +2,7 @@ import "dotprod.cry";
 m <- llvm_load_module "dotprod.bc";
 xs <- fresh_symbolic "xs" {| [12][32] |};
 ys <- fresh_symbolic "ys" {| [12][32] |};
-let allocs = [ ("x", 12), ("y", 12) ];
+let allocs = [ ("x", 13), ("y", 12) ];
 let inputs = [ ("*x", xs, 12)
              , ("*y", ys, 12)
              , ("size", {{ 12:[32] }}, 1)
