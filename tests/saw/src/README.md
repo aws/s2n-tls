@@ -6,3 +6,8 @@ underlying SSL libs.
 
 The s2n source is in `s2n`. We are not currently tracking a specific
 revision, but we may want to get consistent builds.
+
+As temporary workaround until SAW is extended to support multiple
+specs for the same function, we patch the s2n sources trivially using
+`distinguish_update_calls_at_different_sizes.patch`, to distinguish
+update calls with different size arguments.
