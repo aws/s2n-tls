@@ -1,0 +1,9 @@
+zip : {n, a} (fin n, Arith a) => (a -> a -> a) -> [n]a -> [n]a -> [n]a
+zip f xs ys = [ f x y | x <- xs | y <- ys ]
+
+sum : {n, a} (fin n, fin a) => [n][a] -> [a]
+sum xs = ys!0
+  where ys = [0] # [ x + y | x <- xs | y <- ys ]
+
+dotprod : {n, a} (fin n, fin a) => [n][a] -> [n][a] -> [a]
+dotprod xs ys = sum (zip (*) xs ys)
