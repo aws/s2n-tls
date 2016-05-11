@@ -11,4 +11,4 @@ install:
   - sudo apt-get install z3 -y
 
 script:
-  - ./saw dotprod.saw
+  - make saw

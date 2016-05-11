@@ -24,6 +24,14 @@ OBJS=$(SRCS:.c=.o)
 all: bin
 	$(MAKE) -C tests
 
+.PHONY : bc
+bc:
+	$(MAKE) -C crypto bc 
+
+.PHONY : saw
+saw: bc
+	$(MAKE) -C saw
+
 include s2n.mk
 
 .PHONY : libs

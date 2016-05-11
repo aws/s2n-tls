@@ -15,8 +15,12 @@
 
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
+BCS=$(SRCS:.c=.bc)
 
 .PHONY : all
 all: $(OBJS)
+
+.PHONY : bc
+bc: $(BCS)
 
 include ../s2n.mk
