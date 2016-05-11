@@ -21,7 +21,7 @@ SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
 .PHONY : all
-all: bin
+all: bin bc
 	$(MAKE) -C tests
 
 .PHONY : bc
@@ -30,7 +30,7 @@ bc:
 
 .PHONY : saw
 saw: bc
-	$(MAKE) -C saw
+	$(MAKE) -C tests/saw
 
 include s2n.mk
 

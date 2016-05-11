@@ -38,7 +38,7 @@ CFLAGS = -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts
          -D_FORTIFY_SOURCE=2
 
 %.bc: %.c
-	clang -o $@ $< $(CFLAGS) -S -emit-llvm
+	clang -o ../tests/saw/bitcode/$@ $< $(CFLAGS) -S -emit-llvm
 
 
 INDENTOPTS = -npro -kr -i4 -ts4 -nut -sob -l180 -ss -ncs -cp1
