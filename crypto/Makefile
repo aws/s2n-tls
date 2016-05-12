@@ -15,12 +15,17 @@
 
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
-BCS=$(SRCS:.c=.bc)
+
+BCS_1=$(SRCS:.c=.bc)
+BCS=$(addprefix ../tests/saw/bitcode/, $(BCS_1))
 
 .PHONY : all
 all: $(OBJS)
 
 .PHONY : bc
-bc: $(BCS)
+bc: ../tests/saw/bitcode/all_llvm.bc
+
+../tests/saw/bitcode/all_llvm.bc : $(BCS)
+	llvm-link -o $@ $+
 
 include ../s2n.mk
