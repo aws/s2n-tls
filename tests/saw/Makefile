@@ -15,9 +15,9 @@ clean-logs :
 
 
 %.log : %.saw
+	@echo saw $<
 	@set -o pipefail; \
 	./saw $< | tee $@; 
-	@echo saw $<
 
 runsaw :
 	$(foreach script,$(SCRIPTS),./saw $(script) && )echo
