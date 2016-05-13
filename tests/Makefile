@@ -27,6 +27,7 @@ all:
 	${MAKE} -C unit
 	@echo "\033[1m ${COMPILE_INFO} \033[0;39m"
 
+#TODO: probably delete
 run_saw :
 	patch -p2  -i $(PATCH)
 	${MAKE} -C saw; \

@@ -1,5 +1,6 @@
 SCRIPTS = $(wildcard *.saw)
 LOGS=$(SCRIPTS:.saw=.log)
+SHELL:=/bin/bash 
 
 PATCH_FILE = distinguish_update_calls_at_different_sizes.patch
 
@@ -14,7 +15,9 @@ clean-logs :
 
 
 %.log : %.saw
-	./saw $< | tee $@
+	@set -o pipefail; \
+	./saw $< | tee $@; 
+	@echo saw $<
 
 runsaw :
 	$(foreach script,$(SCRIPTS),./saw $(script) && )echo
