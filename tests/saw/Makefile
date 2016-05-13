@@ -7,8 +7,9 @@ PATCH_FILE = distinguish_update_calls_at_different_sizes.patch
 .PHONY : all
 all: clean-logs $(LOGS)
 
+.PHONY : clean-logs
 clean-logs : 
-	$(RM) -- *.log
+	$(RM) -- $(wildcard *.log)
 
 
 %.log : %.saw
@@ -19,8 +20,8 @@ clean-logs :
 runsaw :
 	$(foreach script,$(SCRIPTS),./saw $(script) && )echo
 
-decruft :
+decruft : clean-logs
 	${MAKE} -C bitcode decruft
-	$(RM) -- $(wildcard *.log)
+
 
 
