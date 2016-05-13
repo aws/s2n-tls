@@ -16,7 +16,7 @@
 PLATFORM := $(shell uname)
 MAKEFLAGS += PLATFORM=$(PLATFORM)
 
-PATCH = tests/saw/distinguish_update_calls_at_different_sizes.patch 
+PATCH = tests/saw/patch.patch 
 
 DIRS=$(wildcard */)
 SRCS=$(wildcard *.c)
@@ -26,8 +26,11 @@ OBJS=$(SRCS:.c=.o)
 all: bin bc
 	$(MAKE) -C tests
 
+$(PATCH) :
+	touch $@
+
 .PHONY : bc
-bc:
+bc: $(PATCH)
 	patch -p1  -i $(PATCH)
 	${MAKE} -C crypto bc; \
 	status=$$?; \
