@@ -41,7 +41,7 @@ let setup_initial_hash_state prefix = do {
     //   for named fields on the Cryptol tuple type, I could define
     //   projections, or manually map the tuple to a 'SHA512_c_state'.
 
-    hash_ctx0_h      <- llvm_var (p "((" "1).0).0") (llvm_array 8 (llvm_int 64));
+    hash_ctx0_h      <- llvm_var (p "((" "1).20).0") (llvm_array 8 (llvm_int 64));
     hash_ctx0_Nl     <- llvm_var (p "((" "1).0).1") (llvm_int 64);
     hash_ctx0_Nh     <- llvm_var (p "((" "1).0).2") (llvm_int 64);
     hash_ctx0_u      <- llvm_var (p "(((" "1).0).3).0") (llvm_array 16 (llvm_int 64));
