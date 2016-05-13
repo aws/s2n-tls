@@ -21,12 +21,13 @@ else
 endif
 
 .PHONY : all
-all: saw
+all:
+	${MAKE} -C saw
 	${MAKE} -C testlib
 	${MAKE} -C unit
 	@echo "\033[1m ${COMPILE_INFO} \033[0;39m"
 
-saw :
+run_saw :
 	patch -p2  -i $(PATCH)
 	${MAKE} -C saw; \
 	status=$$?; \
