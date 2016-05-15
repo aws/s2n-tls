@@ -18,6 +18,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <fcntl.h>
 
 #include <s2n.h>
 
@@ -135,6 +136,11 @@ int mock_client(int writefd, int readfd, const char **protocols, int count, cons
         s2n_send(conn, buffer, i, &blocked);
     }
     
+    int shutdown_rc= -1;
+    do {
+        shutdown_rc = s2n_shutdown(conn, &blocked);
+    } while(shutdown_rc != 0);
+
     s2n_connection_free(conn);
 
     /* Give the server a chance to a void a sigpipe */
@@ -310,6 +316,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
 
     /* Negotiate the handshake. */
+
     EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
 
     for (int i = 1; i < 0xffff; i += 100) {
@@ -343,6 +350,10 @@ int main(int argc, char **argv)
     /* Create a pipe */
     EXPECT_SUCCESS(pipe(server_to_client));
     EXPECT_SUCCESS(pipe(client_to_server));
+    for (int i = 0; i < 2; i++) {
+        EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
+        EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
+    }
 
     /* Create a child process */
     pid = fork();
@@ -373,12 +384,16 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_set_nanoseconds_since_epoch_callback(config, mock_nanoseconds_since_epoch, NULL));
 
     /* Negotiate the handshake. */
-    EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
+    int negotiate_rc;
+    do {
+        negotiate_rc = s2n_negotiate(conn, &blocked);
+    } while(errno == EAGAIN && blocked);
+    EXPECT_TRUE(negotiate_rc == -1 && s2n_errno == S2N_ERR_NO_APPLICATION_PROTOCOL);
 
     /* Expect NULL negotiated protocol */
     EXPECT_EQUAL(s2n_get_application_protocol(conn), NULL);
 
-    EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
+    /* Negotiation failed. Free the connection without shutdown */
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
     /* Close the pipes */

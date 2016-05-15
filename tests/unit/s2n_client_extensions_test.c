@@ -145,10 +145,28 @@ int main(int argc, char **argv)
         /* Verify that the server didn't receive the server name. */
         EXPECT_NULL(s2n_get_server_name(server_conn));
 
-        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
+        uint8_t server_shutdown = 0;
+        uint8_t client_shutdown = 0;
+        do {
+            int ret;
+            if (!server_shutdown) {
+                ret = s2n_shutdown(server_conn, &server_blocked);
+                EXPECT_TRUE(ret == 0 || (server_blocked && errno == EAGAIN));
+                if (ret == 0) {
+                    server_shutdown = 1;
+                }
+            }
+            if (!client_shutdown) {
+                ret = s2n_shutdown(client_conn, &client_blocked);
+                EXPECT_TRUE(ret == 0 || (client_blocked && errno == EAGAIN));
+                if (ret == 0) {
+                    client_shutdown = 1;
+                }
+            }
+        } while (!server_shutdown || !client_shutdown);
+
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
 
@@ -207,10 +225,28 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(strlen(received_server_name), strlen(sent_server_name));
         EXPECT_BYTEARRAY_EQUAL(received_server_name, sent_server_name, strlen(received_server_name));
 
-        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
+        uint8_t server_shutdown = 0;
+        uint8_t client_shutdown = 0;
+        do {
+            int ret;
+            if (!server_shutdown) {
+                ret = s2n_shutdown(server_conn, &server_blocked);
+                EXPECT_TRUE(ret == 0 || (server_blocked && errno == EAGAIN));
+                if (ret == 0) {
+                    server_shutdown = 1;
+                }
+            }
+            if (!client_shutdown) {
+                ret = s2n_shutdown(client_conn, &client_blocked);
+                EXPECT_TRUE(ret == 0 || (client_blocked && errno == EAGAIN));
+                if (ret == 0) {
+                    client_shutdown = 1;
+                }
+            }
+        } while (!server_shutdown || !client_shutdown);
+
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         for (int i = 0; i < 2; i++) {
@@ -319,7 +355,10 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(strlen(received_server_name), strlen(sent_server_name));
         EXPECT_BYTEARRAY_EQUAL(received_server_name, sent_server_name, strlen(received_server_name));
 
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
+        /* Not a real tls client but make sure we block on its close_notify */
+        int shutdown_rc = s2n_shutdown(server_conn, &server_blocked);
+        EXPECT_TRUE(shutdown_rc == -1 && errno == EAGAIN && server_conn->close_notify_queued);
+
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -372,10 +411,28 @@ int main(int argc, char **argv)
         EXPECT_NULL(s2n_connection_get_ocsp_response(client_conn, &length));
         EXPECT_EQUAL(length, 0);
 
-        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
+        uint8_t server_shutdown = 0;
+        uint8_t client_shutdown = 0;
+        do {
+            int ret;
+            if (!server_shutdown) {
+                ret = s2n_shutdown(server_conn, &server_blocked);
+                EXPECT_TRUE(ret == 0 || (server_blocked && errno == EAGAIN));
+                if (ret == 0) {
+                    server_shutdown = 1;
+                }
+            }
+            if (!client_shutdown) {
+                ret = s2n_shutdown(client_conn, &client_blocked);
+                EXPECT_TRUE(ret == 0 || (client_blocked && errno == EAGAIN));
+                if (ret == 0) {
+                    client_shutdown = 1;
+                }
+            }
+        } while (!server_shutdown || !client_shutdown);
+
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
 
@@ -433,10 +490,28 @@ int main(int argc, char **argv)
         EXPECT_NULL(s2n_connection_get_ocsp_response(client_conn, &length));
         EXPECT_EQUAL(length, 0);
 
-        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
+        uint8_t server_shutdown = 0;
+        uint8_t client_shutdown = 0;
+        do {
+            int ret;
+            if (!server_shutdown) {
+                ret = s2n_shutdown(server_conn, &server_blocked);
+                EXPECT_TRUE(ret == 0 || (server_blocked && errno == EAGAIN));
+                if (ret == 0) {
+                    server_shutdown = 1;
+                }
+            }
+            if (!client_shutdown) {
+                ret = s2n_shutdown(client_conn, &client_blocked);
+                EXPECT_TRUE(ret == 0 || (client_blocked && errno == EAGAIN));
+                if (ret == 0) {
+                    client_shutdown = 1;
+                }
+            }
+        } while (!server_shutdown || !client_shutdown);
+
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
@@ -495,10 +570,28 @@ int main(int argc, char **argv)
         EXPECT_NULL(s2n_connection_get_ocsp_response(client_conn, &length));
         EXPECT_EQUAL(length, 0);
 
-        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
+        uint8_t server_shutdown = 0;
+        uint8_t client_shutdown = 0;
+        do {
+            int ret;
+            if (!server_shutdown) {
+                ret = s2n_shutdown(server_conn, &server_blocked);
+                EXPECT_TRUE(ret == 0 || (server_blocked && errno == EAGAIN));
+                if (ret == 0) {
+                    server_shutdown = 1;
+                }
+            }
+            if (!client_shutdown) {
+                ret = s2n_shutdown(client_conn, &client_blocked);
+                EXPECT_TRUE(ret == 0 || (client_blocked && errno == EAGAIN));
+                if (ret == 0) {
+                    client_shutdown = 1;
+                }
+            }
+        } while (!server_shutdown || !client_shutdown);
+
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
