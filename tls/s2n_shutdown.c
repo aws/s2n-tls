@@ -23,6 +23,9 @@
 
 int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *more)
 {
+    notnull_check(conn);
+    notnull_check(more);
+
     /* Treat this call as a no-op if already wiped */
     if (conn->readfd == -1 && conn->writefd == -1) {
         return 0;
