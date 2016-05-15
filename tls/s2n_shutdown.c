@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -21,9 +21,6 @@
 
 #include "utils/s2n_safety.h"
 
-#include <sys/ioctl.h>
-#include <stdio.h>
-
 int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *more)
 {
     /* Treat this call as a no-op if already wiped */
@@ -40,11 +37,8 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *more)
     /* Write any pending I/O */
     GUARD(s2n_flush(conn, more));
     
-    /* Queue our close notify */
-    if (!conn->close_notify_queued) {
-        GUARD(s2n_queue_writer_close_alert(conn));
-        conn->close_notify_queued = 1;
-    }
+    /* Queue our close notify, once. */
+    GUARD(s2n_queue_writer_close_alert(conn));
 
     /* Write it */
     GUARD(s2n_flush(conn, more));
