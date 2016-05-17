@@ -8,7 +8,14 @@ git clone https://github.com/awslabs/s2n.git
 cd s2n
 ```
 
-s2n depends on a local copy of libcrypto for certain ciphers.
+## Building s2n with existing libcrypto
+
+To build s2n with an existing libcrypto installation, store its root folder in the
+`LIBCRYPTO_ROOT` environment variable.
+```shell
+# /usr/local/ssl/lib should contain libcrypto.a
+LIBCRYPTO_ROOT=/usr/local/ssl make
+```
 
 ## Building s2n with LibreSSL
 
