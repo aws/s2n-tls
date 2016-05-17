@@ -16,6 +16,10 @@
 PLATFORM := $(shell uname)
 MAKEFLAGS += PLATFORM=$(PLATFORM)
 
+ifndef LIBCRYPTO_ROOT
+	export LIBCRYPTO_ROOT = $(shell echo "`pwd`/libcrypto-root")
+endif
+
 DIRS=$(wildcard */)
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)

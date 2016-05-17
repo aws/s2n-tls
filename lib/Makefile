@@ -13,7 +13,7 @@
 # permissions and limitations under the License.
 #
 
-OBJS = $(wildcard ../utils/*.o ../stuffer/*.o ../tls/*.o ../iana/*.o ../crypto/*.o ../error/*.o ../libcrypto-root/lib/libcrypto.a)
+OBJS = $(wildcard ../utils/*.o ../stuffer/*.o ../tls/*.o ../iana/*.o ../crypto/*.o ../error/*.o $(LIBCRYPTO_ROOT)/lib/libcrypto.a)
 
 .PHONY : all
 all: libs2n.a libs2n.so libs2n.dylib
