@@ -45,9 +45,6 @@ CFLAGS_LLVM = -emit-llvm -I../libcrypto-root/include -I../api -I.. $(OPENSSL_INC
 ../tests/saw/bitcode/%.bc: %.c
 	clang $(CFLAGS_LLVM) -o $@ $< 
 
-all_llvm.bc : $(BCS)
-	llvm-link -o $@ $+
-
 INDENTOPTS = -npro -kr -i4 -ts4 -nut -sob -l180 -ss -ncs -cp1
 
 .PHONY : indentsource

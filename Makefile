@@ -23,7 +23,7 @@ SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
 .PHONY : all
-all: bin bc
+all: bin
 	$(MAKE) -C tests
 
 $(PATCH) :
