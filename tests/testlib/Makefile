@@ -15,14 +15,14 @@
 
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
-CRYPTO_LDFLAGS = -L../../libcrypto-root/lib
+CRYPTO_LDFLAGS = -L$(LIBCRYPTO_ROOT)/lib
 
 .PHONY : all
 all: libtests2n.so libtests2n.dylib
 
 include ../../s2n.mk
 
-CFLAGS += -I../../ -I../../api/ -I../../libcrypto-root/include/
+CFLAGS += -I../../ -I../../api/ -I$(LIBCRYPTO_ROOT)/include/
 LDFLAGS += -L../../lib/ ${CRYPTO_LDFLAGS} -lcrypto -lpthread -ls2n
 
 libtests2n.so: ${OBJS}
