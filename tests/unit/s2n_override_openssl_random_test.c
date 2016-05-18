@@ -24,7 +24,7 @@
 #include <openssl/dh.h>
 #include <s2n.h>
 
-#if !defined(OPENSSL_IS_BORINGSSL)
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_FIPS)
 
 static uint8_t dhparams[] =
     "-----BEGIN DH PARAMETERS-----\n"
@@ -41,7 +41,6 @@ int main(int argc, char **argv)
     struct s2n_blob b;
 
     BEGIN_TEST();
-
 
     EXPECT_EQUAL(s2n_get_private_random_bytes_used(), 0);
 
