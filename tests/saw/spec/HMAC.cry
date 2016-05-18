@@ -74,6 +74,18 @@ type HMACState =
      , digest_pad : [SHA512_DIGEST_LENGTH][8]
      }
 
+/*
+kinit' : { pwBytes, blockLength, digest }
+        ( fin pwBytes, fin blockLength, fin digest )
+     => ([pwBytes][8] -> [8*digest])
+     -> [pwBytes][8]
+     -> [blockLength][8]
+kinit' hash key =
+  if `pwBytes > (`blockLength : [max (width pwBytes) (width blockLength)])
+  then take `{blockLength} (split (hash key) # (zero : [blockLength][8]))
+  else take `{blockLength} (key # (zero : [blockLength][8]))
+*/
+
 hmac_init : { pwBytes }
             ( fin pwBytes, 64 >= width (8*pwBytes) )
          => [pwBytes][8]
@@ -111,7 +123,7 @@ hmac_init key =
     // MAYBE TODO: In `s2n_hmac_init`, these are used in the hash
     // computation for `k0`, when the key is long and needs to be
     // hashed. So, we need to refactor `kinit` if we want the state to
-    // match here. However, this potential hash value in `outer` in
+    // match here. However, this potential hash value in `outer` is
     // never used outside of `hmac_init`, so hopefully we can just
     // avoid modeling it.
     outer      = SHA256Init
@@ -562,18 +574,58 @@ hash_update_c_state = undefined // sha256_update_sha512_c_state
 hash_digest_c_state : hash_digest_ty
 hash_digest_c_state = undefined // sha256_digest_sha512_c_state
 
-/* TODO: abstract hmac_init_c_state here once symbolic simulation is
-// working.
+hmac_init_c_state : { pwBytes }
+            ( fin pwBytes, 64 >= width (8*pwBytes) )
+         => HMAC_c_state
+         -> [32]
+         -> [pwBytes][8]
+         -> HMAC_c_state
+hmac_init_c_state st0 alg key =
+  { alg                     = alg
+  , hash_block_size         = hash_block_size
+  , currently_in_hash_block = currently_in_hash_block
+  , block_size              = block_size
+  , digest_size             = digest_size
 
-hmac_init_c_state :
-     { pwBytes } ( fin pwBytes, 64 >= width (8*pwBytes) )
-  => HMAC_c_state -> [pwBytes][8] -> HMAC_c_state
-hmac_init_c_state st0_c key = st1_c
+  , inner                   = inner
+  , inner_just_key          = inner_just_key
+  , outer                   = outer
+
+  , xor_pad                 = xor_pad
+  , digest_pad              = digest_pad
+  }
   where
-    st1 = hmac_init key
-    st1_c = hmac_state_to_hmac_c_state st0_c st1
+    // SHA256-specific values.
+    //
+    // /usr/include/openssl/sha.h
+    currently_in_hash_block = 0
+    sha256_digest_length    = 32
+    digest_size             = sha256_digest_length
+    block_size              = 64
+    hash_block_size         = 64
 
-*/
+    k0 : [64][8]
+    k0 = kinit undefined key
+
+    ikey = [ k ^ 0x36 | k <- k0 ]
+    okey = [ k ^ 0x6a | k <- ikey ]
+
+    inner_just_key = hash_update_c_state
+      (hash_init_c_state st0.inner_just_key) ikey
+    inner          = hash_update_c_state
+      (hash_init_c_state st0.inner) ikey
+
+    // MAYBE TODO: In `s2n_hmac_init`, these are used in the hash
+    // computation for `k0`, when the key is long and needs to be
+    // hashed. So, we need to refactor `kinit` if we want the state to
+    // match here. However, this potential hash value in `outer` is
+    // never used outside of `hmac_init`, so hopefully we can just
+    // avoid modeling it.
+    outer      = hash_init_c_state st0.outer
+    digest_pad = zero
+
+    xor_pad = okey # drop st0.xor_pad
+
 
 hmac_update_c_state : {n} (32 >= width n) =>
   HMAC_c_state -> [n][8] -> HMAC_c_state

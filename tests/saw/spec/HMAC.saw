@@ -211,22 +211,23 @@ let hmac_init_spec n = do {
     // Specialize to SHA256.
     llvm_assert_eq "alg" {{ S2N_HMAC_SHA256 }};
 
+    // Fix values for reproducibilty.
+    llvm_assert_eq "state->8" {{ ~zero : [128][8] }};
+    llvm_assert_eq "*key" {{ ~zero : [64][8] }};
+
     // A SAWScript 'Int', here 'n', can be treated as a Cryptol type.
     llvm_assert_eq "klen" {{ `n : [32] }};
 
-    let st1 = {{ hmac_init_c_state_old st0 key0 }};
+    let st1 = {{ hmac_init_c_state st0 alg0 key0 }};
 
-    // TODO: add 'alg' field to 'HMACState' in 'HMAC.cry' and enforce
-    // SHA256 here by setting alg to 'S2N_HMAC_SHA256' in 'hmac_init'.
-
-    check_final_hmac_state st1;
+    //check_final_hmac_state st1;
     llvm_return {{ 0 : [32] }};
 
     llvm_sat_branches true;
     // TODO: Try printing out the proof goal. Then, use z3 and keep
     // sha hash functions uninterpreted (using sawscript 'unint_z3'
     // tactic; this takes the place of the tactic).
-    llvm_no_simulate;
+    //llvm_no_simulate;
     /*
     llvm_verify_tactic do {
         unint_z3 [ "hash_init_c_state"
@@ -235,6 +236,12 @@ let hmac_init_spec n = do {
                  ];
     };
     */
+    llvm_verify_tactic do {
+        unint_z3 [ "hash_init_c_state"
+                 , "hash_update_c_state"
+                 , "hash_digest_c_state"
+                 ];
+    };
 };
 
 let hmac_update_spec n = do {
@@ -340,7 +347,9 @@ let hmac_digest_spec n = do {
 ////////////////////////////////////////////////////////////////
 
 // TODO: try key sizes above and below the hash block size.
-let key_size = 64;
+//
+// 63 takes about a minute. 62 takes longer, perhaps forever?
+let key_size = 64; // 64 <= block_size (== 64), i.e. small-key case.
 let msg_size = 64;
 // Specialize to SHA256.
 let digest_size = eval_size {| SHA256_DIGEST_LENGTH |};
