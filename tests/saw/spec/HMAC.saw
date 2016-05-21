@@ -190,12 +190,17 @@ let check_final_hmac_state st1 = do {
 
     check_final_hash_state "(state->5)." {{ st1.inner }};
     check_final_hash_state "(state->6)." {{ st1.inner_just_key }};
+
+    // XXX: Don't care about 'outer' because it gets overwritten by
+    // 's2n_hash_reset' before use in 's2n_hmac_digest'.
+    //
     check_final_hash_state "(state->7)." {{ st1.outer }};
 
     llvm_ensure_eq "state->8" {{ st1.xor_pad }};
 
     // Don't care about 'digest_pad', because it gets overwritten
     // using 's2n_hash_digest' before use in 's2n_hmac_digest'.
+    //
     //llvm_ensure_eq "state->9" {{ st1.digest_pad }};
 };
 
@@ -213,35 +218,46 @@ let hmac_init_spec n = do {
 
     // Fix values for reproducibilty.
     llvm_assert_eq "state->8" {{ ~zero : [128][8] }};
-    llvm_assert_eq "*key" {{ ~zero : [64][8] }};
+    //llvm_assert_eq "*key" {{ ~zero : [64][8] }};
 
     // A SAWScript 'Int', here 'n', can be treated as a Cryptol type.
     llvm_assert_eq "klen" {{ `n : [32] }};
 
     let st1 = {{ hmac_init_c_state st0 alg0 key0 }};
 
-    //check_final_hmac_state st1;
+    check_final_hmac_state st1;
     llvm_return {{ 0 : [32] }};
-
+    
     llvm_sat_branches true;
     // TODO: Try printing out the proof goal. Then, use z3 and keep
     // sha hash functions uninterpreted (using sawscript 'unint_z3'
     // tactic; this takes the place of the tactic).
     //llvm_no_simulate;
+    llvm_verify_tactic do {
+      //quickcheck 10;
+      //z3;
+      //abc;
+        unint_z3 [ "hash_init_c_state"
+                 , "hash_update_c_state"
+                 , "hash_digest_c_state"
+                 ];
+    };
     /*
     llvm_verify_tactic do {
+        unfolding [ "kinit"
+                  , "hmac_init_c_state"
+                  , "S2N_HMAC_SHA256"
+                  , "take"
+                  , "drop"
+                  ];
+        // print_goal;
+        print_goal_consts;
         unint_z3 [ "hash_init_c_state"
                  , "hash_update_c_state"
                  , "hash_digest_c_state"
                  ];
     };
-    */
-    llvm_verify_tactic do {
-        unint_z3 [ "hash_init_c_state"
-                 , "hash_update_c_state"
-                 , "hash_digest_c_state"
-                 ];
-    };
+*/
 };
 
 let hmac_update_spec n = do {
@@ -324,9 +340,6 @@ let hmac_digest_spec n = do {
     let st1 = {{ st1_digest.0 }};
     let digest = {{ st1_digest.1 }};
 
-    // TODO: add 'alg' field to 'HMACState' in 'HMAC.cry' and enforce
-    // SHA256 here.
-
     // May have trouble here since we haven't specified the final
     // values of the internal hash states. One approach would be to
     // add another version of 'check_final_hmac_state' which doesn't
@@ -334,6 +347,10 @@ let hmac_digest_spec n = do {
     // 'inner_just_key', and 'outer').
     llvm_ensure_eq "*out" {{ split digest : [32][8] }};
     llvm_return {{ 0 : [32] }};
+
+    // XXX: should we be checking the final state here in some way? I
+    // think "yes", if we support calling 'hmac_reset' instead of a fresh
+    // 'hmac_init'.
 
     llvm_sat_branches true;
     llvm_verify_tactic do {
