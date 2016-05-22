@@ -24,7 +24,7 @@
 #include <openssl/dh.h>
 #include <s2n.h>
 
-#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_FIPS)
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_FIPS) && !defined(LIBRESSL_VERSION_NUMBER)
 
 static uint8_t dhparams[] =
     "-----BEGIN DH PARAMETERS-----\n"
