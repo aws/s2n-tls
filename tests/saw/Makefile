@@ -17,7 +17,11 @@ clean-logs :
 	@set -o pipefail; \
 	./saw $< | tee $@; 
 
-bitcode : bitcode/all_llvm.bc
+bitcode : clean_the_dir bitcode/all_llvm.bc
+
+clean_the_dir :
+	${RM} -r s2n
+	${RM} -r IS_PATCHED
 
 CRYPTO_C = $(wildcard ../../crypto/*.c) $(wildcard ../../crypto/*.h) ../../crypto/Makefile
 CRYPTO_COPY = $(addprefix s2n/crypto/, $(notdir $(CRYPTO_C)))
