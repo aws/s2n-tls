@@ -41,9 +41,28 @@ CFLAGS = -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts
          -I../api/ -I../ -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security \
          -D_FORTIFY_SOURCE=2
 
+#../tests/saw/%.c : %.c %.patch
+#	cp $< ../tests/saw/$<
+#	patch -d ../tests/saw/
+
 CFLAGS_LLVM = -emit-llvm -I../libcrypto-root/include -I../api -I.. $(OPENSSL_INC) -c
-../tests/saw/bitcode/%.bc: %.c
+
+$(BITCODE_DIR)%.bc: %.c
 	clang $(CFLAGS_LLVM) -o $@ $< 
+
+#	clang $(CFLAGS_LLVM) $(firstword $(filter %$<, $(PATCHED_C)) $<) 
+
+#	TOCOMPILE=$(if $(findstring $<, $(notdir $(PATCHED_C))),  
+#ifneq (,$(findstring hmac.c, $(notdir $(PATCHED_C))))
+#	echo found one
+#	$(MAKE) ../tests/saw/crypto/$<
+#else
+#	@echo $<
+#	@echo $(notdir $(PATCHED_C))
+#	@echo $(findstring $<, $(notdir $(PATCHED_C)))
+#	@echo ____
+#endif
+#		clang ($CFLAGS_LLVM) -o ../saw/
 
 INDENTOPTS = -npro -kr -i4 -ts4 -nut -sob -l180 -ss -ncs -cp1
 

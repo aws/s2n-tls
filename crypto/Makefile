@@ -16,16 +16,23 @@
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
+PATCHES=$(wildcard ../tests/saw/crypto/*.patch)
+PATCHED_C=$(PATCHES:.patch=.c)
+
+SRCS_NO_PATCH = $(filter $(notdir $(PATCHED_C)), $(SRCS))
+
+BITCODE_DIR?=../tests/saw/bitcode/
+
 BCS_1=$(SRCS:.c=.bc)
-BCS=$(addprefix ../tests/saw/bitcode/, $(BCS_1))
+BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
 
 .PHONY : all
 all: $(OBJS)
 
 .PHONY : bc
-bc: ../tests/saw/bitcode/all_llvm.bc
+bc: $(BITCODE_DIR)all_llvm.bc
 
-../tests/saw/bitcode/all_llvm.bc : $(BCS)
+$(BITCODE_DIR)all_llvm.bc : $(BCS)
 	llvm-link -o $@ $+
 
 include ../s2n.mk
