@@ -16,7 +16,7 @@
 PLATFORM := $(shell uname)
 MAKEFLAGS += PLATFORM=$(PLATFORM)
 
-PATCH = tests/saw/patch.patch 
+PATCH?= tests/saw/patch.patch 
 
 DIRS=$(wildcard */)
 SRCS=$(wildcard *.c)
@@ -29,13 +29,12 @@ all: bin
 $(PATCH) :
 	touch $@
 
+bitcode :
+	${MAKE} -C tests/saw bitcode
+
 .PHONY : bc
-bc: $(PATCH)
-	patch -p1  -i $(PATCH)
-	${MAKE} -C crypto bc; \
-	status=$$?; \
-	patch -p1 -R -i $(PATCH); \
-	exit $$status
+bc: 
+	${MAKE} -C crypto bc 
 
 .PHONY : saw
 saw:  bc
