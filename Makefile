@@ -37,7 +37,7 @@ bc:
 	${MAKE} -C crypto bc 
 
 .PHONY : saw
-saw:  bc
+saw: 
 	$(MAKE) -C tests/saw
 
 include s2n.mk

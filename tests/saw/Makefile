@@ -5,7 +5,7 @@ SHELL:=/bin/bash
 PATCH_FILE = distinguish_update_calls_at_different_sizes.patch
 
 .PHONY : all
-all: clean-logs $(LOGS)
+all: bitcode clean-logs $(LOGS)
 
 .PHONY : clean-logs
 clean-logs : 
@@ -48,9 +48,12 @@ s2n/stuffer :
 
 export BITCODE_DIR := $(CURDIR)/bitcode/
 
-bitcode/all_llvm.bc : s2n/crypto s2n/utils s2n/stuffer s2n/tls s2n/api s2n/error s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(UTILS_COPY) $(TLS_COPY) $(STUFFER_COPY) $(API_COPY) $(ERROR_COPY)
-	${MAKE} -C s2n bc
+IS_PATCHED :
+	patch -p1 -d s2n -i ../patch.patch
+	touch $@
 
+bitcode/all_llvm.bc : s2n/crypto s2n/utils s2n/stuffer s2n/tls s2n/api s2n/error s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(UTILS_COPY) $(TLS_COPY) $(STUFFER_COPY) $(API_COPY) $(ERROR_COPY) IS_PATCHED
+	${MAKE} -C s2n bc
 
 s2n/%.h : ../../%.h
 	cp $< $@
@@ -73,6 +76,8 @@ runsaw :
 
 decruft : clean-logs
 	${MAKE} -C bitcode decruft
+	${RM} -r s2n
+	${RM} IS_PATCHED
 
 
 
