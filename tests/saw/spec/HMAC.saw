@@ -345,7 +345,8 @@ let hmac_digest_spec n = do {
 
 // TODO: try key sizes above and below the hash block size.
 //
-// abc/sha256: 63: 2 minutes
+// abc/sha256: 62: 52 minutes!
+//             63: 2 minutes
 //             64: 1 minute
 //             65: 2.5 minutes
 //             66: 2.5 minutes

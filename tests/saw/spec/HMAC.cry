@@ -244,10 +244,10 @@ hmac_imp key msg = (hmac_digest (hmac_update (hmac_init key) msg)).1
 
 hmacSHA256_imp = hmac_imp
 
-imp_correct : { klen, mlen }
+hmac_imp_correct : { klen, mlen }
               ( 32 >= width mlen, 64 >= width (8 * klen) )
            => [klen][8] -> [mlen][8] -> Bit
-property imp_correct key msg = hmacSHA256 key msg == hmacSHA256_imp key msg
+property hmac_imp_correct key msg = hmacSHA256 key msg == hmacSHA256_imp key msg
 
 //////// Translations between C/LLVM and Cryptol data types ////////
 
@@ -766,3 +766,24 @@ hmac_digest_c_state s = (sout, out)
       , inner_just_key          = s.inner_just_key
       , xor_pad                 = s.xor_pad
       }
+
+//////// Equivalence of implementations ////////
+
+hmac_c_state : { klen, mlen }
+     ( 32 >= width mlen, 64 >= width (8 * klen) )
+  => HMAC_c_state -> [klen][8] -> [mlen][8] -> [SHA256_DIGEST_LENGTH * 8]
+hmac_c_state st0 key msg = digest
+  where
+  (st1, digest) =
+    hmac_digest_c_state
+      (hmac_update_c_state
+        (hmac_init_c_state st0 alg key)
+        msg)
+  // Specialize to SHA256.
+  alg = S2N_HMAC_SHA256
+
+hmac_c_state_correct : { klen, mlen }
+              ( 32 >= width mlen, 64 >= width (8 * klen) )
+           => HMAC_c_state -> [klen][8] -> [mlen][8] -> Bit
+property hmac_c_state_correct st0 key msg =
+  hmacSHA256 key msg == hmac_c_state st0 key msg
