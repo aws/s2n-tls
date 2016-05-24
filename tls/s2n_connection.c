@@ -237,9 +237,11 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     GUARD(s2n_hash_init(&conn->handshake.client_md5, S2N_HASH_MD5));
     GUARD(s2n_hash_init(&conn->handshake.client_sha1, S2N_HASH_SHA1));
     GUARD(s2n_hash_init(&conn->handshake.client_sha256, S2N_HASH_SHA256));
+    GUARD(s2n_hash_init(&conn->handshake.client_sha384, S2N_HASH_SHA384));
     GUARD(s2n_hash_init(&conn->handshake.server_md5, S2N_HASH_MD5));
     GUARD(s2n_hash_init(&conn->handshake.server_sha1, S2N_HASH_SHA1));
     GUARD(s2n_hash_init(&conn->handshake.server_sha256, S2N_HASH_SHA256));
+    GUARD(s2n_hash_init(&conn->handshake.server_sha384, S2N_HASH_SHA384));
     GUARD(s2n_hmac_init(&conn->client->client_record_mac, S2N_HMAC_NONE, NULL, 0));
     GUARD(s2n_hmac_init(&conn->server->server_record_mac, S2N_HMAC_NONE, NULL, 0));
 

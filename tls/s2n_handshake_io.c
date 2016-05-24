@@ -73,9 +73,11 @@ static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct 
     GUARD(s2n_hash_update(&conn->handshake.client_md5, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.client_sha1, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.client_sha256, data->data, data->size));
+    GUARD(s2n_hash_update(&conn->handshake.client_sha384, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.server_md5, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.server_sha1, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.server_sha256, data->data, data->size));
+    GUARD(s2n_hash_update(&conn->handshake.server_sha384, data->data, data->size));
 
     return 0;
 }
