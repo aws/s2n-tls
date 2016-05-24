@@ -73,6 +73,18 @@ let check_final_hash_state prefix st1 = do {
     llvm_ensure_eq (p "((" "1).0).5") {{ st1.md_len }};
 };
 
+let check_final_hash_state_hmac prefix st1 = do {
+    // Make struct path using 'prefix'.
+    let p before after = str_concat before (str_concat prefix after);
+
+    llvm_ensure_eq (p "((" "1).0).0") {{ st1.h }};
+    llvm_ensure_eq (p "((" "1).0).1") {{ st1.Nl }};
+    llvm_ensure_eq (p "((" "1).0).2") {{ st1.Nh }};
+    llvm_ensure_eq (p "(((" "1).0).3).0") {{ st1.u }};
+    llvm_ensure_eq (p "((" "1).0).4") {{ st1.num }};
+    llvm_ensure_eq (p "((" "1).0).5") {{ st1.md_len }};
+};
+
 let hash_init_spec = do {
     llvm_ptr "state" (llvm_struct "struct.s2n_hash_state");
     (_, st0) <- setup_initial_hash_state "state->";
@@ -188,13 +200,13 @@ let check_final_hmac_state st1 = do {
     llvm_ensure_eq "state->3" {{ st1.block_size }};
     llvm_ensure_eq "state->4" {{ st1.digest_size }};
 
-    check_final_hash_state "(state->5)." {{ st1.inner }};
-    check_final_hash_state "(state->6)." {{ st1.inner_just_key }};
+    check_final_hash_state_hmac "(state->5)." {{ st1.inner }};
+    check_final_hash_state_hmac "(state->6)." {{ st1.inner_just_key }};
 
     // XXX: Don't care about 'outer' because it gets overwritten by
     // 's2n_hash_reset' before use in 's2n_hmac_digest'.
     //
-    check_final_hash_state "(state->7)." {{ st1.outer }};
+    check_final_hash_state_hmac "(state->7)." {{ st1.outer }};
 
     llvm_ensure_eq "state->8" {{ st1.xor_pad }};
 
@@ -225,24 +237,13 @@ let hmac_init_spec n = do {
     llvm_return {{ 0 : [32] }};
     
     llvm_sat_branches true;
-    //llvm_no_simulate;
-    llvm_verify_tactic do {
-      //quickcheck 10;
-      //z3;
-      /*
-      simplify (add_prelude_eqs ["eq_refl"] basic_ss);
-      simplify (cryptol_ss ());
-      print_goal;
-      */
-      abc;
-      /*
-        unint_z3 [ "hash_init_c_state"
-                 , "hash_update_c_state"
-                 , "hash_digest_c_state"
-                 ];
-    */
-    };
 
+    llvm_verify_tactic do {
+        unint_yices [ "hash_init_c_state"
+                    , "hash_update_c_state"
+                    , "hash_digest_c_state"
+                    ];
+    };
 };
 
 let hmac_update_spec n = do {
