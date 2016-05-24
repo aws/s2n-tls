@@ -36,9 +36,15 @@ bitcode :
 bc: 
 	${MAKE} -C crypto bc 
 
-.PHONY : saw
-saw: 
+.PHONY : saw_patch
+saw_patch : 
 	$(MAKE) -C tests/saw
+
+.PHONY : saw
+saw : bc 
+	$(MAKE) -C tests/saw runsaw
+
+
 
 include s2n.mk
 
