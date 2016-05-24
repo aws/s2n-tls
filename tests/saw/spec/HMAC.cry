@@ -561,8 +561,8 @@ type hash_digest_ty   = SHA512_c_state -> [SHA256_DIGEST_LENGTH][8]
 
 hash_init_c_state : hash_init_ty
 // hash_init_c_state = undefined
-// hash_init_c_state = sha256_init_sha512_c_state
-hash_init_c_state = \_ -> zero
+hash_init_c_state = sha256_init_sha512_c_state
+// hash_init_c_state = \_ -> zero
 
 // Cryptol does not support polymorphic arguments (rank 2
 // polymorphism), so making the hash update function a parameter to
@@ -572,7 +572,8 @@ hash_init_c_state = \_ -> zero
 // "generic" verification.
 hash_update_c_state : {n} (fin n) => hash_update_ty n
 // hash_update_c_state = undefined
-// hash_update_c_state = sha256_update_sha512_c_state
+hash_update_c_state = sha256_update_sha512_c_state
+/*
 hash_update_c_state = \x _ -> inc x
   where
     inc s =
@@ -583,26 +584,61 @@ hash_update_c_state = \x _ -> inc x
       , num    = s.num + 1
       , md_len = s.md_len
       } : SHA512_c_state
-
+*/
 
 
 hash_digest_c_state : hash_digest_ty
 // hash_digest_c_state = undefined
-// hash_digest_c_state = sha256_digest_sha512_c_state
-hash_digest_c_state = \s -> zero # split s.num
+hash_digest_c_state = sha256_digest_sha512_c_state
+//hash_digest_c_state = \s -> zero # split s.num
 
 
-/*
-kinit : { pwBytes, blockLength, digest }
-        ( fin pwBytes, fin blockLength, fin digest )
-     => ([pwBytes][8] -> [8*digest])
+// SHA 256 digest size = 32     (32 * 8 = 256)
+// SHA 256 block  size = 64
+//
+// Cases depending on key size:
+//
+// * small key (key len <= block size (= 64))
+//
+//   copy key into xor_pad, up to key_len
+//
+// * large key (key len > block size (= 64))
+//
+//   update outer state with key to klen
+//   digest outer state into digest pad at digest size (32)
+//
+// The C code that follows the key init sets all remaining bytes,
+// up to block size, to 0x36, and xors the other bytes with 0x36.
+// This is equivalent to setting upper bytes (i.e. up to block size)
+// to zero in key init, and then xoring everything with 0x36.
+//
+// We don't care about xor_pad and outer, so we should be able to
+// just ignore them. But for now we just compute them anyway.
+key_init_c_state : { pwBytes, blockLength }
+        ( fin pwBytes, fin blockLength,
+          // When we generalize to other hash functions, the
+          // RHS will be a type var here.
+          SHA512_DIGEST_LENGTH >= SHA256_DIGEST_LENGTH )
+     => SHA512_c_state
+     -> [SHA512_DIGEST_LENGTH][8]
      -> [pwBytes][8]
-     -> [blockLength][8]
-kinit hash key =
+     -> (SHA512_c_state, [SHA512_DIGEST_LENGTH][8], [blockLength][8])
+key_init_c_state outer0 digest_pad0 key =
   if `pwBytes > (`blockLength : [max (width pwBytes) (width blockLength)])
-  then take `{blockLength} (split (hash key) # (zero : [blockLength][8]))
-  else take `{blockLength} (key # (zero : [blockLength][8]))
-*/
+  then (outer2, digest_pad1, hash')
+  else (outer1, digest_pad0, key')
+  where
+  outer1 = hash_init_c_state outer0
+
+  // Long key.
+  outer2 = hash_update_c_state outer1 key
+  hash : [SHA256_DIGEST_LENGTH][8]
+  hash = hash_digest_c_state outer2
+  digest_pad1 = hash # drop `{SHA256_DIGEST_LENGTH} digest_pad0
+  hash' = take `{blockLength} (hash # (zero : [blockLength][8]))
+
+  // Short key.
+  key' = take `{blockLength} (key # (zero : [blockLength][8]))
 
 hmac_init_c_state : { pwBytes }
             ( fin pwBytes, 64 >= width (8*pwBytes) )
@@ -634,36 +670,14 @@ hmac_init_c_state st0 alg key =
     block_size              = 64
     hash_block_size         = 64
 
-    /* */
     k0 : [64][8]
-    k0 = kinit undefined key
+    (outer, digest_pad, k0) = key_init_c_state st0.outer st0.digest_pad key
     ikey = [ k ^ 0x36 | k <- k0 ]
     okey = [ k ^ 0x6a | k <- ikey ]
-    /* */
-
-/*
-    // Could do 'ikey' in two parts, to more closely emulate the C
-    // code, and perhaps speed up the "key length < 64" case.
-    ikey_front = [ k ^ 0x36 | k <- key ]
-    ikey_back = [ 0x36 | _ <- zero ] : [inf][8]
-    ikey = take`{64} (ikey_front # ikey_back)
-    okey = [ k ^ 0x6a | k <- ikey ]
-*/
 
     inner_just_key = hash_update_c_state
       (hash_init_c_state st0.inner_just_key) ikey
     inner          = inner_just_key
-    // hash_update_c_state
-    //   (hash_init_c_state st0.inner) ikey
-
-    // MAYBE TODO: In `s2n_hmac_init`, these are used in the hash
-    // computation for `k0`, when the key is long and needs to be
-    // hashed. So, we need to refactor `kinit` if we want the state to
-    // match here. However, this potential hash value in `outer` is
-    // never used outside of `hmac_init`, so hopefully we can just
-    // avoid modeling it.
-    outer      = hash_init_c_state st0.outer
-    digest_pad = zero
 
     xor_pad = okey # drop st0.xor_pad
 

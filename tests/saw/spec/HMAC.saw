@@ -216,10 +216,6 @@ let hmac_init_spec n = do {
     // Specialize to SHA256.
     llvm_assert_eq "alg" {{ S2N_HMAC_SHA256 }};
 
-    // Fix values for reproducibilty.
-    llvm_assert_eq "state->8" {{ ~zero : [128][8] }};
-    //llvm_assert_eq "*key" {{ ~zero : [64][8] }};
-
     // A SAWScript 'Int', here 'n', can be treated as a Cryptol type.
     llvm_assert_eq "klen" {{ `n : [32] }};
 
@@ -229,35 +225,24 @@ let hmac_init_spec n = do {
     llvm_return {{ 0 : [32] }};
     
     llvm_sat_branches true;
-    // TODO: Try printing out the proof goal. Then, use z3 and keep
-    // sha hash functions uninterpreted (using sawscript 'unint_z3'
-    // tactic; this takes the place of the tactic).
     //llvm_no_simulate;
     llvm_verify_tactic do {
       //quickcheck 10;
       //z3;
-      //abc;
+      /*
+      simplify (add_prelude_eqs ["eq_refl"] basic_ss);
+      simplify (cryptol_ss ());
+      print_goal;
+      */
+      abc;
+      /*
         unint_z3 [ "hash_init_c_state"
                  , "hash_update_c_state"
                  , "hash_digest_c_state"
                  ];
+    */
     };
-    /*
-    llvm_verify_tactic do {
-        unfolding [ "kinit"
-                  , "hmac_init_c_state"
-                  , "S2N_HMAC_SHA256"
-                  , "take"
-                  , "drop"
-                  ];
-        // print_goal;
-        print_goal_consts;
-        unint_z3 [ "hash_init_c_state"
-                 , "hash_update_c_state"
-                 , "hash_digest_c_state"
-                 ];
-    };
-*/
+
 };
 
 let hmac_update_spec n = do {
@@ -266,9 +251,6 @@ let hmac_update_spec n = do {
     in0 <- llvm_var "*in" (llvm_array n (llvm_int 8));
     size0 <- llvm_var "size" (llvm_int 32);
 
-    // TODO: what values to put here? We don't want to specialize to SHA256
-    // anymore.
-    //
     // Specialize to SHA256.
     llvm_assert_eq "state->0" {{ S2N_HMAC_SHA256 }};
     llvm_assert_eq "state->1" {{ 64 : [16] }};
@@ -288,9 +270,6 @@ let hmac_update_spec n = do {
     llvm_assert_eq "size" {{ `n : [32] }};
 
     let st1 = {{ hmac_update_c_state st0 in0 }};
-
-    // TODO: add 'alg' field to 'HMACState' in 'HMAC.cry' and enforce
-    // SHA256 here.
 
     check_final_hmac_state st1;
     llvm_return {{ 0 : [32] }};
@@ -365,8 +344,11 @@ let hmac_digest_spec n = do {
 
 // TODO: try key sizes above and below the hash block size.
 //
-// 63 takes about a minute. 62 takes longer, perhaps forever?
-let key_size = 64; // 64 <= block_size (== 64), i.e. small-key case.
+// abc/sha256: 63: 2 minutes
+//             64: 1 minute
+//             65: 2.5 minutes
+//             66: 2.5 minutes
+let key_size = 64;
 let msg_size = 64;
 // Specialize to SHA256.
 let digest_size = eval_size {| SHA256_DIGEST_LENGTH |};
@@ -375,6 +357,8 @@ set_base 16;
 hash_init_ov   <- llvm_verify m "s2n_hash_init"   [] hash_init_spec;
 hash_update_ov <- llvm_verify m "s2n_hash_update" []
   (hash_update_spec msg_size);
+hash_update_key_ov <- llvm_verify m "s2n_hash_update_key" []
+  (hash_update_spec key_size);
 hash_update_xor_ov <- llvm_verify m "s2n_hash_update_xor_pad" []
   (hash_update_spec msg_size);
 hash_update_digest_ov <- llvm_verify m "s2n_hash_update_digest_pad" []
@@ -382,14 +366,17 @@ hash_update_digest_ov <- llvm_verify m "s2n_hash_update_digest_pad" []
 hash_digest_ov <- llvm_verify m "s2n_hash_digest" []
   (hash_digest_spec digest_size);
 
+let hash_ovs = [hash_init_ov, hash_update_ov, hash_update_digest_ov,
+                hash_update_key_ov, hash_update_xor_ov, hash_digest_ov];
+
 hmac_init_ov   <- llvm_verify m "s2n_hmac_init"
-                  [hash_init_ov, hash_update_ov, hash_digest_ov]
+                  hash_ovs
                   (hmac_init_spec key_size);
 hmac_update_ov <- llvm_verify m "s2n_hmac_update"
-                  [hash_update_ov]
+                  hash_ovs
                   (hmac_update_spec msg_size);
 hmac_digest_ov <- llvm_verify m "s2n_hmac_digest"
-                  [hash_init_ov, hash_update_xor_ov, hash_update_digest_ov, hash_digest_ov]
+                  hash_ovs
                   (hmac_digest_spec digest_size);
 
 print "Done.";
