@@ -561,8 +561,8 @@ type hash_digest_ty   = SHA512_c_state -> [SHA256_DIGEST_LENGTH][8]
 
 hash_init_c_state : hash_init_ty
 // hash_init_c_state = undefined
-// hash_init_c_state = sha256_init_sha512_c_state
-hash_init_c_state = \_ -> zero
+hash_init_c_state = sha256_init_sha512_c_state
+///hash_init_c_state = \_ -> zero
 
 // Cryptol does not support polymorphic arguments (rank 2
 // polymorphism), so making the hash update function a parameter to
@@ -572,7 +572,8 @@ hash_init_c_state = \_ -> zero
 // "generic" verification.
 hash_update_c_state : {n} (fin n) => hash_update_ty n
 // hash_update_c_state = undefined
-// hash_update_c_state = sha256_update_sha512_c_state
+hash_update_c_state = sha256_update_sha512_c_state
+/*
 hash_update_c_state = \x _ -> inc x
   where
     inc s =
@@ -583,13 +584,13 @@ hash_update_c_state = \x _ -> inc x
       , num    = s.num + 1
       , md_len = s.md_len
       } : SHA512_c_state
-
+*/
 
 
 hash_digest_c_state : hash_digest_ty
 // hash_digest_c_state = undefined
-// hash_digest_c_state = sha256_digest_sha512_c_state
-hash_digest_c_state = \s -> zero # split s.num
+hash_digest_c_state = sha256_digest_sha512_c_state
+//hash_digest_c_state = \s -> zero # split s.num
 
 
 /*
