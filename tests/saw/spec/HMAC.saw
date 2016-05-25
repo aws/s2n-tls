@@ -350,26 +350,35 @@ let hmac_digest_spec n = do {
 //             64: 1 minute
 //             65: 2.5 minutes
 //             66: 2.5 minutes
-let key_size = 64;
-let msg_size = 64;
+let key_size = 65;
+let msg_size = 62;
 // Specialize to SHA256.
 let digest_size = eval_size {| SHA256_DIGEST_LENGTH |};
+let block_size = 64;
 
 set_base 16;
 hash_init_ov   <- llvm_verify m "s2n_hash_init"   [] hash_init_spec;
-hash_update_ov <- llvm_verify m "s2n_hash_update" []
-  (hash_update_spec msg_size);
-hash_update_key_ov <- llvm_verify m "s2n_hash_update_key" []
-  (hash_update_spec key_size);
-hash_update_xor_ov <- llvm_verify m "s2n_hash_update_xor_pad" []
-  (hash_update_spec msg_size);
-hash_update_digest_ov <- llvm_verify m "s2n_hash_update_digest_pad" []
-  (hash_update_spec digest_size);
+
 hash_digest_ov <- llvm_verify m "s2n_hash_digest" []
   (hash_digest_spec digest_size);
 
-let hash_ovs = [hash_init_ov, hash_update_ov, hash_update_digest_ov,
-                hash_update_key_ov, hash_update_xor_ov, hash_digest_ov];
+// Can we build 'hash_ovs' using a loop over the sizes?
+hash_update_key_size_ov    <- llvm_verify m "s2n_hash_update" []
+  (hash_update_spec key_size);
+hash_update_block_size_ov  <- llvm_verify m "s2n_hash_update" []
+  (hash_update_spec block_size);
+hash_update_msg_size_ov    <- llvm_verify m "s2n_hash_update" []
+  (hash_update_spec msg_size);
+hash_update_digest_size_ov <- llvm_verify m "s2n_hash_update" []
+  (hash_update_spec digest_size);
+let hash_ovs =
+  [ hash_init_ov
+  , hash_update_key_size_ov
+  , hash_update_block_size_ov
+  , hash_update_msg_size_ov
+  , hash_update_digest_size_ov
+  , hash_digest_ov
+  ];
 
 hmac_init_ov   <- llvm_verify m "s2n_hmac_init"
                   hash_ovs
