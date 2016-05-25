@@ -254,18 +254,20 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
     master_secret.data = conn->pending.master_secret;
     master_secret.size = sizeof(conn->pending.master_secret);
     if (conn->actual_protocol_version == S2N_TLS12) {
-        if (conn->pending.cipher_suite->tls12_prf_alg == S2N_HMAC_SHA256) {
-            GUARD(s2n_hash_digest(&conn->handshake.client_sha256, sha_digest, SHA256_DIGEST_LENGTH));
-            sha.data = sha_digest;
-            sha.size = SHA256_DIGEST_LENGTH;
-        } else if (conn->pending.cipher_suite->tls12_prf_alg == S2N_HMAC_SHA384) {
-            GUARD(s2n_hash_digest(&conn->handshake.client_sha384, sha_digest, SHA384_DIGEST_LENGTH));
-            sha.data = sha_digest;
-            sha.size = SHA384_DIGEST_LENGTH;
-        } else {
-            S2N_ERROR(S2N_ERR_PRF_INVALID_ALGORITHM);
+        switch(conn->pending.cipher_suite->tls12_prf_alg) {
+            case S2N_HMAC_SHA256:
+                GUARD(s2n_hash_digest(&conn->handshake.client_sha256, sha_digest, SHA256_DIGEST_LENGTH));
+                sha.size = SHA256_DIGEST_LENGTH;
+                break;
+            case S2N_HMAC_SHA384:
+                GUARD(s2n_hash_digest(&conn->handshake.client_sha384, sha_digest, SHA384_DIGEST_LENGTH));
+                sha.size = SHA384_DIGEST_LENGTH;
+                break;
+            default:
+                S2N_ERROR(S2N_ERR_PRF_INVALID_ALGORITHM);
         }
 
+        sha.data = sha_digest;
         return s2n_prf(conn, &master_secret, &label, &sha, NULL, &client_finished);
     }
 
@@ -300,18 +302,20 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
     master_secret.data = conn->pending.master_secret;
     master_secret.size = sizeof(conn->pending.master_secret);
     if (conn->actual_protocol_version == S2N_TLS12) {
-        if (conn->pending.cipher_suite->tls12_prf_alg == S2N_HMAC_SHA256) {
-            GUARD(s2n_hash_digest(&conn->handshake.server_sha256, sha_digest, SHA256_DIGEST_LENGTH));
-            sha.data = sha_digest;
-            sha.size = SHA256_DIGEST_LENGTH;
-        } else if (conn->pending.cipher_suite->tls12_prf_alg == S2N_HMAC_SHA384) {
-            GUARD(s2n_hash_digest(&conn->handshake.server_sha384, sha_digest, SHA384_DIGEST_LENGTH));
-            sha.data = sha_digest;
-            sha.size = SHA384_DIGEST_LENGTH;
-        } else {
-            S2N_ERROR(S2N_ERR_PRF_INVALID_ALGORITHM);
+        switch(conn->pending.cipher_suite->tls12_prf_alg) {
+            case S2N_HMAC_SHA256:
+                GUARD(s2n_hash_digest(&conn->handshake.server_sha256, sha_digest, SHA256_DIGEST_LENGTH));
+                sha.size = SHA256_DIGEST_LENGTH;
+                break;
+            case S2N_HMAC_SHA384:
+                GUARD(s2n_hash_digest(&conn->handshake.server_sha384, sha_digest, SHA384_DIGEST_LENGTH));
+                sha.size = SHA384_DIGEST_LENGTH;
+                break;
+            default:
+                S2N_ERROR(S2N_ERR_PRF_INVALID_ALGORITHM);
         }
 
+        sha.data = sha_digest;
         return s2n_prf(conn, &master_secret, &label, &sha, NULL, &server_finished);
     }
 
