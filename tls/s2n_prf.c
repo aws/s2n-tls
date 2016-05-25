@@ -262,6 +262,8 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
             GUARD(s2n_hash_digest(&conn->handshake.client_sha384, sha_digest, SHA384_DIGEST_LENGTH));
             sha.data = sha_digest;
             sha.size = SHA384_DIGEST_LENGTH;
+        } else {
+            S2N_ERROR(S2N_ERR_PRF_INVALID_ALGORITHM);
         }
 
         return s2n_prf(conn, &master_secret, &label, &sha, NULL, &client_finished);
@@ -306,6 +308,8 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
             GUARD(s2n_hash_digest(&conn->handshake.server_sha384, sha_digest, SHA384_DIGEST_LENGTH));
             sha.data = sha_digest;
             sha.size = SHA384_DIGEST_LENGTH;
+        } else {
+            S2N_ERROR(S2N_ERR_PRF_INVALID_ALGORITHM);
         }
 
         return s2n_prf(conn, &master_secret, &label, &sha, NULL, &server_finished);
