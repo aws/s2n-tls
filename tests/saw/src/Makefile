@@ -27,8 +27,6 @@ OPENSSL_INC ?= -I/usr/local/opt/openssl/include
 
 OBJS = s2n/crypto/s2n_hmac.o s2n/crypto/s2n_hash.o s2n/utils/s2n_safety.o
 
-PATCH_FILE = distinguish_update_calls_at_different_sizes.patch
-
 .PHONY: all
 all: hmac.bc hmac.ll
 
@@ -41,11 +39,11 @@ hmac.ll: tmp/hmac.ll
 s2n/Makefile:
 	git clone https://github.com/awslabs/s2n.git
 
-s2n/crypto/%.o: s2n/crypto/%.c | tmp/patch_is_applied
+s2n/crypto/%.o: s2n/crypto/%.c
 	make s2n/Makefile
 	make -C s2n/crypto CC=${CLANG} CFLAGS="-emit-llvm -I../libcrypto-root/include -I../api -I.. $(OPENSSL_INC)" $(notdir $@)
 
-s2n/utils/%.o: s2n/utils/%.c | tmp/patch_is_applied
+s2n/utils/%.o: s2n/utils/%.c
 	make s2n/Makefile
 	make -C s2n/utils CC=${CLANG} CFLAGS="-emit-llvm -I../libcrypto-root/include -I../api -I.. $(OPENSSL_INC)" $(notdir $@)
 
@@ -55,14 +53,8 @@ tmp/hmac.bc: ${OBJS} | tmp
 tmp/hmac.ll: tmp/hmac.bc | tmp
 	${LLVM_DIS} -o $@ $<
 
-tmp/patch_is_applied: $(PATCH_FILE) | tmp
-	cd s2n && patch --strip 1 < ../$(PATCH_FILE)
-	touch $@
-
 .PHONY: clean
 clean:
-# Revert the patch
-	cd s2n && git checkout .
 	rm -rf tmp
 	make -C s2n clean
 
