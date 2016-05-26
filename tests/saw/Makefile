@@ -20,6 +20,21 @@ clean-logs :
 	./saw $< | tee $@
 
 
+decruft : clean-logs
+	${MAKE} -C bitcode decruft
+	${RM} -r s2n
+	${RM} IS_PATCHED
+
+
+###############
+#The following is to allow for patching s2n during development
+#to use it, put a patch (at the level of the s2n directory) in the file
+#patch.patch in this directory and call the bitcode target. That will
+#create bitcode/all_llvm.bc, which can be used by SAW
+
+#beware: the copied directory gets deleted every time that tests are run, so modifications
+#should not be made there
+################
 
 bitcode : clean_the_dir bitcode/all_llvm.bc
 
@@ -79,13 +94,6 @@ s2n/Makefile : ../../Makefile
 s2n/s2n.mk : ../../s2n.mk
 	cp $< $@
 
-runsaw :
-	$(foreach script,$(SCRIPTS),./saw $(script) && )echo
-
-decruft : clean-logs
-	${MAKE} -C bitcode decruft
-	${RM} -r s2n
-	${RM} IS_PATCHED
 
 
 
