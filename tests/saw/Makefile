@@ -5,7 +5,9 @@ SHELL:=/bin/bash
 PATCH_FILE = distinguish_update_calls_at_different_sizes.patch
 
 .PHONY : all
-all: bitcode clean-logs $(LOGS)
+all:
+	@${MAKE} clean-logs
+	@${MAKE} $(LOGS)
 
 .PHONY : clean-logs
 clean-logs : 
@@ -15,7 +17,9 @@ clean-logs :
 %.log : %.saw
 	@echo saw $<
 	@set -o pipefail; \
-	./saw $< | tee $@; 
+	./saw $< | tee $@
+
+
 
 bitcode : clean_the_dir bitcode/all_llvm.bc
 

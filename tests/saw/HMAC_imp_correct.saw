@@ -1,0 +1,8 @@
+import "cryptol_specs/HMAC.cry";
+
+let check n = do {
+    print (str_concat "Checking 'hmac_imp_correct' for byte count " (show n));
+    time (prove_print abc {{ hmac_imp_correct : [n][8] -> [n][8] -> Bit }});
+};
+
+for [0, 1, 128 /*, 2, 63, 64, 65, 127, 128, 129 , 1000 */] check;
