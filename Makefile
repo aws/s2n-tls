@@ -38,9 +38,7 @@ bc:
 
 .PHONY : saw
 saw : bc 
-	$(MAKE) -C tests/saw runsaw
-
-
+	$(MAKE) -C tests/saw
 
 include s2n.mk
 

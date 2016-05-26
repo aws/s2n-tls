@@ -74,6 +74,18 @@ type HMACState =
      , digest_pad : [SHA512_DIGEST_LENGTH][8]
      }
 
+/*
+kinit' : { pwBytes, blockLength, digest }
+        ( fin pwBytes, fin blockLength, fin digest )
+     => ([pwBytes][8] -> [8*digest])
+     -> [pwBytes][8]
+     -> [blockLength][8]
+kinit' hash key =
+  if `pwBytes > (`blockLength : [max (width pwBytes) (width blockLength)])
+  then take `{blockLength} (split (hash key) # (zero : [blockLength][8]))
+  else take `{blockLength} (key # (zero : [blockLength][8]))
+*/
+
 hmac_init : { pwBytes }
             ( fin pwBytes, 64 >= width (8*pwBytes) )
          => [pwBytes][8]
@@ -111,7 +123,7 @@ hmac_init key =
     // MAYBE TODO: In `s2n_hmac_init`, these are used in the hash
     // computation for `k0`, when the key is long and needs to be
     // hashed. So, we need to refactor `kinit` if we want the state to
-    // match here. However, this potential hash value in `outer` in
+    // match here. However, this potential hash value in `outer` is
     // never used outside of `hmac_init`, so hopefully we can just
     // avoid modeling it.
     outer      = SHA256Init
@@ -232,10 +244,10 @@ hmac_imp key msg = (hmac_digest (hmac_update (hmac_init key) msg)).1
 
 hmacSHA256_imp = hmac_imp
 
-imp_correct : { klen, mlen }
+hmac_imp_correct : { klen, mlen }
               ( 32 >= width mlen, 64 >= width (8 * klen) )
            => [klen][8] -> [mlen][8] -> Bit
-property imp_correct key msg = hmacSHA256 key msg == hmacSHA256_imp key msg
+property hmac_imp_correct key msg = hmacSHA256 key msg == hmacSHA256_imp key msg
 
 //////// Translations between C/LLVM and Cryptol data types ////////
 
@@ -543,12 +555,17 @@ hmac_digest_c_state_old st0_c = (st1_c, out)
 // corresponding hash functions on the raw C hash states, instead of
 // converting them to Cryptol SHA256 hash states.
 
-type hash_init_ty     = SHA512_c_state -> SHA512_c_state
-type hash_update_ty n = SHA512_c_state -> [n][8] -> SHA512_c_state
-type hash_digest_ty   = SHA512_c_state -> [SHA256_DIGEST_LENGTH][8]
+type hash_init_ty =
+  SHA512_c_state -> SHA512_c_state
+type hash_update_ty msg_size =
+  SHA512_c_state -> [msg_size][8] -> SHA512_c_state
+type hash_digest_ty digest_size =
+  SHA512_c_state -> [digest_size][8]
 
 hash_init_c_state : hash_init_ty
-hash_init_c_state = undefined // sha256_init_sha512_c_state
+hash_init_c_state = sha256_init_sha512_c_state
+//hash_init_c_state = undefined
+//hash_init_c_state = \_ -> zero
 
 // Cryptol does not support polymorphic arguments (rank 2
 // polymorphism), so making the hash update function a parameter to
@@ -556,31 +573,129 @@ hash_init_c_state = undefined // sha256_init_sha512_c_state
 // monomorphic copy for each use at a different type. Instead, we just
 // define it at the top level, but can leave it uninterpreted in the
 // "generic" verification.
-hash_update_c_state : {n} (fin n) => hash_update_ty n
-hash_update_c_state = undefined // sha256_update_sha512_c_state
-
-hash_digest_c_state : hash_digest_ty
-hash_digest_c_state = undefined // sha256_digest_sha512_c_state
-
-/* TODO: abstract hmac_init_c_state here once symbolic simulation is
-// working.
-
-hmac_init_c_state :
-     { pwBytes } ( fin pwBytes, 64 >= width (8*pwBytes) )
-  => HMAC_c_state -> [pwBytes][8] -> HMAC_c_state
-hmac_init_c_state st0_c key = st1_c
+hash_update_c_state :
+  {msg_size} (fin msg_size) => hash_update_ty msg_size
+hash_update_c_state = sha256_update_sha512_c_state
+//hash_update_c_state = undefined
+/*
+hash_update_c_state = \x _ -> inc x
   where
-    st1 = hmac_init key
-    st1_c = hmac_state_to_hmac_c_state st0_c st1
-
+    inc s =
+      { h      = s.h
+      , Nl     = s.Nl
+      , Nh     = s.Nh
+      , u      = s.u
+      , num    = s.num + 1
+      , md_len = s.md_len
+      } : SHA512_c_state
 */
 
-hmac_update_c_state : {n} (32 >= width n) =>
-  HMAC_c_state -> [n][8] -> HMAC_c_state
+
+hash_digest_c_state :
+  {digest_size} (fin digest_size) => hash_digest_ty digest_size
+// To support any digest length, we pad and truncate as necessary.
+// This implementation only makes sense for SHA256 size params, but
+// that is not a concern since we leave these functions uninterpreted
+// in the verification against the S2N C code (we want a concrete
+// implementation for debugging and to compare with our functional spec).
+hash_digest_c_state st =
+  take `{digest_size}
+    (sha256_digest_sha512_c_state st # (zero : [inf][8]))
+//hash_digest_c_state = undefined
+//hash_digest_c_state = \s -> zero # split s.num
+
+
+// Cases depending on key size:
+//
+// * small key (key size <= block size)
+//
+//   copy key into 'xor_pad', up to key size
+//
+// * large key (key size > block size)
+//
+//   update outer state with key to key size
+//   digest outer state into digest pad at digest size
+//
+// The C code that follows the key init sets all remaining bytes,
+// up to block size, to 0x36, and xors the other bytes with 0x36.
+// This is equivalent to setting upper bytes (i.e. up to block size)
+// to zero in key init, and then xoring everything with 0x36.
+//
+// We don't care about 'xor_pad' and 'outer', so we should be able to
+// just ignore them. But for now we just compute them anyway.
+key_init_c_state : { key_size, block_size, digest_size }
+        ( fin key_size, fin block_size,
+          SHA512_DIGEST_LENGTH >= digest_size )
+     => SHA512_c_state
+     -> [SHA512_DIGEST_LENGTH][8]
+     -> [key_size][8]
+     -> (SHA512_c_state, [SHA512_DIGEST_LENGTH][8], [block_size][8])
+key_init_c_state outer0 digest_pad0 key =
+  if `key_size > (`block_size : [max (width key_size) (width block_size)])
+  then (outer2, digest_pad1, hash')
+  else (outer1, digest_pad0, key')
+  where
+  outer1 = hash_init_c_state outer0
+
+  // Long key.
+  outer2 = hash_update_c_state outer1 key
+  hash : [digest_size][8]
+  hash = hash_digest_c_state outer2
+  digest_pad1 = hash # drop `{digest_size} digest_pad0
+  hash' = take `{block_size} (hash # (zero : [block_size][8]))
+
+  // Short key.
+  key' = take `{block_size} (key # (zero : [block_size][8]))
+
+hmac_init_c_state :
+     { key_size, block_size, hash_block_size, digest_size }
+     ( fin key_size
+     , 64 >= width (8*key_size)
+     , 16 >= width hash_block_size
+     , 16 >= width block_size
+     , 8 >= width digest_size
+     , 128 >= block_size
+     , 64 >= digest_size )
+  => HMAC_c_state
+  -> [32]
+  -> [key_size][8]
+  -> HMAC_c_state
+hmac_init_c_state st0 alg key =
+  { alg                     = alg
+  , hash_block_size         = `hash_block_size
+  , currently_in_hash_block = currently_in_hash_block
+  , block_size              = `block_size
+  , digest_size             = `digest_size
+
+  , inner                   = inner
+  , inner_just_key          = inner_just_key
+  , outer                   = outer
+
+  , xor_pad                 = xor_pad
+  , digest_pad              = digest_pad
+  }
+  where
+    currently_in_hash_block = 0
+
+    k0 : [block_size][8]
+    (outer, digest_pad, k0) =
+      key_init_c_state `{digest_size=digest_size} st0.outer st0.digest_pad key
+    ikey = [ k ^ 0x36 | k <- k0 ]
+    okey = [ k ^ 0x6a | k <- ikey ]
+
+    inner_just_key = hash_update_c_state
+      (hash_init_c_state st0.inner_just_key) ikey
+    inner          = inner_just_key
+
+    xor_pad = okey # drop st0.xor_pad
+
+
+hmac_update_c_state : {msg_size} (32 >= width msg_size) =>
+  HMAC_c_state -> [msg_size][8] -> HMAC_c_state
 hmac_update_c_state s m =
   { inner = hash_update_c_state s.inner m
   , currently_in_hash_block =
-      (s.currently_in_hash_block + (`n % (zero # s.hash_block_size))) %
+      (s.currently_in_hash_block + (`msg_size % (zero # s.hash_block_size))) %
       (zero # s.block_size)
 
   // Rest unchanged.
@@ -597,17 +712,19 @@ hmac_update_c_state s m =
 // TODO: What about `size` argument to `s2n_hmac_digest`? The `size`
 // argument is supposed to be the "digest length" of the underlying
 // hash. Here we are specializing to SHA256, so `size` would be 32.
-hmac_digest_c_state : HMAC_c_state -> (HMAC_c_state, [256])
+hmac_digest_c_state :
+     { block_size, digest_size }
+     ( 64 >= digest_size
+     , 128 >= block_size )
+  => HMAC_c_state -> (HMAC_c_state, [8 * digest_size])
 hmac_digest_c_state s = (sout, out)
   where
-    // The 32 here is specific to SHA256.
-    hin : [32][8]
+    hin : [digest_size][8]
     hin = hash_digest_c_state inner
     digest_pad : [SHA512_DIGEST_LENGTH][8]
     digest_pad = hin # zero
 
-    // The 64 here is specific to SHA256.
-    okey : [64][8]
+    okey : [block_size][8]
     okey = take s.xor_pad
 
     // The `inner` and `outer` here are probably not accurate:
@@ -659,3 +776,27 @@ hmac_digest_c_state s = (sout, out)
       , inner_just_key          = s.inner_just_key
       , xor_pad                 = s.xor_pad
       }
+
+//////// Equivalence of implementations ////////
+//
+// This is specialized to SHA256, since we don't have concrete
+// implementations of the other algorithms.
+hmac_c_state : { key_size, msg_size }
+     ( 32 >= width msg_size, 64 >= width (8 * key_size) )
+  => HMAC_c_state -> [key_size][8] -> [msg_size][8] -> [SHA256_DIGEST_LENGTH * 8]
+hmac_c_state st0 key msg = digest
+  where
+  (st1, digest) =
+    hmac_digest_c_state `{block_size=64}
+      (hmac_update_c_state
+        (hmac_init_c_state `{block_size=64,hash_block_size=64,digest_size=SHA256_DIGEST_LENGTH}
+         st0 alg key)
+        msg)
+  // Specialize to SHA256.
+  alg = S2N_HMAC_SHA256
+
+hmac_c_state_correct : { key_size, msg_size }
+              ( 32 >= width msg_size, 64 >= width (8 * key_size) )
+           => HMAC_c_state -> [key_size][8] -> [msg_size][8] -> Bit
+property hmac_c_state_correct st0 key msg =
+  hmacSHA256 key msg == hmac_c_state st0 key msg
