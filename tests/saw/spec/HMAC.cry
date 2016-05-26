@@ -261,7 +261,14 @@ typedef enum { S2N_HASH_NONE, S2N_HASH_MD5, S2N_HASH_SHA1, S2N_HASH_SHA224, S2N_
     S2N_HASH_SHA512, S2N_HASH_MD5_SHA1
 } s2n_hash_algorithm;
 */
-S2N_HASH_SHA256 = 4:[32]
+S2N_HASH_NONE     = 0:[32]
+S2N_HASH_MD5      = 1:[32]
+S2N_HASH_SHA1     = 2:[32]
+S2N_HASH_SHA224   = 3:[32]
+S2N_HASH_SHA256   = 4:[32]
+S2N_HASH_SHA384   = 5:[32]
+S2N_HASH_SHA512   = 6:[32]
+S2N_HASH_MD5_SHA1 = 7:[32]
 
 // /usr/include/openssl/sha.h
 /*
@@ -446,7 +453,16 @@ typedef enum { S2N_HMAC_NONE, S2N_HMAC_MD5, S2N_HMAC_SHA1, S2N_HMAC_SHA224, S2N_
     S2N_HMAC_SHA512, S2N_HMAC_SSLv3_MD5, S2N_HMAC_SSLv3_SHA1
 } s2n_hmac_algorithm;
 */
-S2N_HMAC_SHA256 = 4:[32]
+
+S2N_HMAC_NONE       = 0:[32]
+S2N_HMAC_MD5        = 1:[32]
+S2N_HMAC_SHA1       = 2:[32]
+S2N_HMAC_SHA224     = 3:[32]
+S2N_HMAC_SHA256     = 4:[32]
+S2N_HMAC_SHA384     = 5:[32]
+S2N_HMAC_SHA512     = 6:[32]
+S2N_HMAC_SSLv3_MD5  = 7:[32]
+S2N_HMAC_SSLv3_SHA1 = 8:[32]
 
 // s2n_hmac.h
 /*

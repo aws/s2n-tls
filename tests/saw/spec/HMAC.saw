@@ -96,6 +96,8 @@ let hash_init_spec = do {
     // Specialize to SHA256.
     //llvm_assert_eq "alg" {{ S2N_HASH_SHA256 }};
 
+    // TODO: should we make the result depend on the alg argument 'alg0'?
+    //
     // We need to pass in the starting state since many of the bits in
     // the union are unused in the SHA256 state.
     let st1 = {{ hash_init_c_state st0 }};
@@ -226,19 +228,29 @@ let check_final_hmac_state st1 = do {
 
 ////////////////////////////////////////////////////////////////
 
-let hmac_init_spec key_size block_size hash_block_size digest_size = do {
+let hmac_init_spec
+      key_size
+      (cfg : { name            : String
+             , hmac_alg        : Term
+             , digest_size     : Int
+             , block_size      : Int
+             , hash_block_size : Int
+             }) = do {
+
     llvm_ptr "key" (llvm_array key_size (llvm_int 8));
     st0 <- setup_initial_hmac_state;
     alg0 <- llvm_var "alg" (llvm_int 32);
     key0 <- llvm_var "*key" (llvm_array key_size (llvm_int 8));
     klen0 <- llvm_var "klen" (llvm_int 32);
 
-    // Specialize to SHA256.
-    llvm_assert_eq "alg" {{ S2N_HMAC_SHA256 }};
+    llvm_assert_eq "alg" cfg.hmac_alg;
 
     // Here 'key_size', a SAWScript 'Int', can be treated as a Cryptol type.
     llvm_assert_eq "klen" {{ `key_size : [32] }};
 
+    let block_size      = cfg.block_size;
+    let hash_block_size = cfg.hash_block_size;
+    let digest_size     = cfg.digest_size;
     let st1 = {{
       hmac_init_c_state
         `{key_size=key_size
@@ -261,17 +273,32 @@ let hmac_init_spec key_size block_size hash_block_size digest_size = do {
     };
 };
 
-let hmac_update_spec msg_size = do {
+let hmac_update_spec
+      msg_size
+      (cfg : { name            : String
+             , hmac_alg        : Term
+             , digest_size     : Int
+             , block_size      : Int
+             , hash_block_size : Int
+             }) = do {
+
     llvm_ptr "in" (llvm_array msg_size (llvm_int 8));
     st0 <- setup_initial_hmac_state;
     in0 <- llvm_var "*in" (llvm_array msg_size (llvm_int 8));
     size0 <- llvm_var "size" (llvm_int 32);
 
-    // Specialize to SHA256.
-    llvm_assert_eq "state->0" {{ S2N_HMAC_SHA256 }};
-    llvm_assert_eq "state->1" {{ 64 : [16] }};
-    llvm_assert_eq "state->3" {{ 64 : [16] }};
-    llvm_assert_eq "state->4" {{ 32 : [8] }};
+    // Specify the HMAC algorithm.
+    llvm_assert_eq "state->0" cfg.hmac_alg;
+    // Feature request: support SAWScript record dererence
+    // in {{ }}-embedded Cryptol terms. Instead, I have to
+    // unpack all record fields in SAWScript in order to access
+    // their values in Cryptol.
+    let hash_block_size = cfg.hash_block_size;
+    llvm_assert_eq "state->1" {{ `hash_block_size : [16] }};
+    let block_size = cfg.block_size;
+    llvm_assert_eq "state->3" {{ `block_size : [16] }};
+    let digest_size = cfg.digest_size;
+    llvm_assert_eq "state->4" {{ `digest_size : [8] }};
 /*
     llvm_assert_eq "(state->5).0" {{ S2N_HASH_SHA256 }};
     llvm_assert_eq "(((state->5).1).0).5" {{ `SHA256_DIGEST_LENGTH : [32] }};
@@ -300,17 +327,31 @@ let hmac_update_spec msg_size = do {
     };
 };
 
-let hmac_digest_spec block_size digest_size = do {
-    llvm_ptr "out" (llvm_array digest_size (llvm_int 8));
+let hmac_digest_spec
+      (cfg : { name            : String
+             , hmac_alg        : Term
+             , digest_size     : Int
+             , block_size      : Int
+             , hash_block_size : Int
+             }) = do {
+
+    llvm_ptr "out" (llvm_array cfg.digest_size (llvm_int 8));
     st0 <- setup_initial_hmac_state;
-    out0 <- llvm_var "*out" (llvm_array digest_size (llvm_int 8));
+    out0 <- llvm_var "*out" (llvm_array cfg.digest_size (llvm_int 8));
     size0 <- llvm_var "size" (llvm_int 32);
 
-    // Specialize to SHA256.
-    llvm_assert_eq "state->0" {{ S2N_HMAC_SHA256 }};
-    llvm_assert_eq "state->1" {{ 64 : [16] }};
-    llvm_assert_eq "state->3" {{ 64 : [16] }};
-    llvm_assert_eq "state->4" {{ 32 : [8] }};
+    // Specify the HMAC algorithm.
+    llvm_assert_eq "state->0" cfg.hmac_alg;
+    // Feature request: support SAWScript record dererence
+    // in {{ }}-embedded Cryptol terms. Instead, I have to
+    // unpack all record fields in SAWScript in order to access
+    // their values in Cryptol.
+    let hash_block_size = cfg.hash_block_size;
+    llvm_assert_eq "state->1" {{ `hash_block_size : [16] }};
+    let block_size = cfg.block_size;
+    llvm_assert_eq "state->3" {{ `block_size : [16] }};
+    let digest_size = cfg.digest_size;
+    llvm_assert_eq "state->4" {{ `digest_size : [8] }};
 /*
     llvm_assert_eq "(state->5).0" {{ S2N_HASH_SHA256 }};
     llvm_assert_eq "(((state->5).1).0).5" {{ `SHA256_DIGEST_LENGTH : [32] }};
@@ -338,7 +379,7 @@ let hmac_digest_spec block_size digest_size = do {
     // add another version of 'check_final_hmac_state' which doesn't
     // check any of the embedded hash states (i.e. 'inner',
     // 'inner_just_key', and 'outer').
-    llvm_ensure_eq "*out" {{ split digest : [32][8] }};
+    llvm_ensure_eq "*out" {{ split digest : [digest_size][8] }};
     llvm_return {{ 0 : [32] }};
 
     // XXX: should we be checking the final state here in some way? I
@@ -356,6 +397,143 @@ let hmac_digest_spec block_size digest_size = do {
 
 ////////////////////////////////////////////////////////////////
 
+// Feature request: SAWScript type synonyms, so that I don't have to
+// inline this record type everywhere. Even better (?): infer the type.
+let verify_s2n_hmac
+      key_size
+      msg_size
+      (cfg : { name            : String
+             , hmac_alg        : Term
+             , digest_size     : Int
+             , block_size      : Int
+             , hash_block_size : Int
+             }) = do {
+  set_base 16;
+  print "";
+  print (str_concat "Verifying HMAC: alg = "
+        (str_concat cfg.name
+        (str_concat ", key size = "
+        (str_concat (show key_size)
+        (str_concat ", msg size = "
+        (str_concat (show msg_size)
+                    " ..."))))));
+
+  hash_init_ov   <- llvm_verify m "s2n_hash_init"   [] hash_init_spec;
+  hash_digest_ov <- llvm_verify m "s2n_hash_digest" []
+    (hash_digest_spec (cfg.digest_size));
+
+  // Can we build 'hash_ovs' using a loop over the sizes?
+  //
+  // Feature request: polymorphic specs: here we'd just like to say
+  // that 's2n_hash_update' has the *polymorphic* spec 'hash_update_spec',
+  // and have SAW figure out how to instantiate the size param at
+  // each call site.
+  hash_update_key_size_ov    <- llvm_verify m "s2n_hash_update" []
+    (hash_update_spec key_size);
+  hash_update_block_size_ov  <- llvm_verify m "s2n_hash_update" []
+    (hash_update_spec cfg.block_size);
+  hash_update_msg_size_ov    <- llvm_verify m "s2n_hash_update" []
+    (hash_update_spec msg_size);
+  hash_update_digest_size_ov <- llvm_verify m "s2n_hash_update" []
+    (hash_update_spec cfg.digest_size);
+  let hash_ovs =
+    [ hash_init_ov
+    , hash_update_key_size_ov
+    , hash_update_block_size_ov
+    , hash_update_msg_size_ov
+    , hash_update_digest_size_ov
+    , hash_digest_ov
+    ];
+
+  // Feature request: I'd like to construct the update overrides like this:
+  /*
+  hash_update_ovs <- for [key_size, cfg.block_size, msg_size, cfg.digest_size]
+    (\msg_size -> llvm_verify m "s2n_hash_update" [] (hash_update_spec msg_size));
+  */
+  // but then I have no way to combine them with the 'init' and 'digest' overrides,
+  // since there is no list concat operator (as far as I know).
+
+  hmac_init_ov <-
+    llvm_verify m "s2n_hmac_init"   hash_ovs (hmac_init_spec key_size cfg);
+  hmac_update_ov <-
+    llvm_verify m "s2n_hmac_update" hash_ovs (hmac_update_spec msg_size cfg);
+  hmac_digest_ov <-
+    llvm_verify m "s2n_hmac_digest" hash_ovs (hmac_digest_spec cfg);
+
+  print "Done!";
+};
+
+////////////////////////////////////////////////////////////////
+
+
+/* TODO: NONE does not work: hash_digest_spec verificiation fails with
+
+```
+saw: user error (internal: uncaught exception: Invalid load address (lss__alloc26))
+```
+Hopefully this is a corner case problem for empty arrays ...
+
+*/
+let none_cfg =
+  { name            = "NONE"
+  , hmac_alg        = {{ S2N_HMAC_NONE }}
+  , digest_size     = 0
+  , block_size      = 64
+  , hash_block_size = 64
+  };
+
+// let sslv3_md5_cfg = <not supported>
+
+let md5_cfg =
+  { name            = "MD5"
+  , hmac_alg        = {{ S2N_HMAC_MD5 }}
+  , digest_size     = 16
+  , block_size      = 64
+  , hash_block_size = 64
+  };
+
+// let sslv3_sha1_cfg = <not supported>
+
+let sha1_cfg =
+  { name            = "SHA1"
+  , hmac_alg        = {{ S2N_HMAC_SHA1 }}
+  , digest_size     = 20
+  , block_size      = 64
+  , hash_block_size = 64
+  };
+
+let sha224_cfg =
+  { name            = "SHA224"
+  , hmac_alg        = {{ S2N_HMAC_SHA224 }}
+  , digest_size     = 28
+  , block_size      = 64
+  , hash_block_size = 64
+  };
+
+let sha256_cfg =
+  { name            = "SHA256"
+  , hmac_alg        = {{ S2N_HMAC_SHA256 }}
+  , digest_size     = 32
+  , block_size      = 64
+  , hash_block_size = 64
+  };
+
+let sha384_cfg =
+  { name            = "SHA384"
+  , hmac_alg        = {{ S2N_HMAC_SHA384 }}
+  , digest_size     = 48
+  , block_size      = 128
+  , hash_block_size = 128
+  };
+
+let sha512_cfg =
+  { name            = "SHA512"
+  , hmac_alg        = {{ S2N_HMAC_SHA512 }}
+  , digest_size     = 64
+  , block_size      = 128
+  , hash_block_size = 128
+  };
+
 // We need to verify key lengths above and below-or-equal to the block
 // size, in order to exercise both versions of the key initialization
 // code.
@@ -366,59 +544,37 @@ let hmac_digest_spec block_size digest_size = do {
 // abc/sha256:
 //   62: 52 minutes!
 //   63: 2 minutes
-//   64: 1 minute
+//   64: 1 minute     // key size == block size
 //   65: 2.5 minutes
 //   66: 2.5 minutes
-//
-// yices/unint:
-//   TODO
-let key_size = 64;
-let msg_size = 62;
-// Specialize to SHA256.
-let digest_size = eval_size {| SHA256_DIGEST_LENGTH |};
-let block_size = 64;
-let hash_block_size = 64;
 
-set_base 16;
-hash_init_ov   <- llvm_verify m "s2n_hash_init"   [] hash_init_spec;
 
-hash_digest_ov <- llvm_verify m "s2n_hash_digest" []
-  (hash_digest_spec digest_size);
+let verify_s2n_hmac_at_several_key_and_msg_sizes
+      (cfg : { name            : String
+             , hmac_alg        : Term
+             , digest_size     : Int
+             , block_size      : Int
+             , hash_block_size : Int
+             }) = do {
+  // Feature request: be able to write 'cfg.block_size + 1',
+  // or failing that, be able to write 'eval_size {| cfg.block_size + 1 |}'.
+  //
+  // For SHA512, verifying when 'block_size - 1' is included takes 10 minutes.
+  // Without the 'block_size - 1' case, the verification takes about 30 seconds.
+  let block_size = cfg.block_size;
+  for [ /* eval_size {| block_size - 1 |}, */
+        cfg.block_size
+      , eval_size {| block_size + 1 |}] (\key_size ->
+    for [1,10,100,200] (\msg_size ->
+      verify_s2n_hmac key_size msg_size cfg));
+};
 
-// Can we build 'hash_ovs' using a loop over the sizes?
-//
-// Feature request: polymorphic specs: here we'd just like to say
-// that 's2n_hash_update' has the *polymorphic* spec 'hash_update_spec',
-// and have SAW figure out how to instantiate the size param at
-// each call site.
-hash_update_key_size_ov    <- llvm_verify m "s2n_hash_update" []
-  (hash_update_spec key_size);
-hash_update_block_size_ov  <- llvm_verify m "s2n_hash_update" []
-  (hash_update_spec block_size);
-hash_update_msg_size_ov    <- llvm_verify m "s2n_hash_update" []
-  (hash_update_spec msg_size);
-hash_update_digest_size_ov <- llvm_verify m "s2n_hash_update" []
-  (hash_update_spec digest_size);
-let hash_ovs =
-  [ hash_init_ov
-  , hash_update_key_size_ov
-  , hash_update_block_size_ov
-  , hash_update_msg_size_ov
-  , hash_update_digest_size_ov
-  , hash_digest_ov
-  ];
-
-hmac_init_ov <-
-  llvm_verify m "s2n_hmac_init"
-  hash_ovs
-  (hmac_init_spec key_size block_size hash_block_size digest_size);
-hmac_update_ov <-
-  llvm_verify m "s2n_hmac_update"
-  hash_ovs
-  (hmac_update_spec msg_size);
-hmac_digest_ov <-
-  llvm_verify m "s2n_hmac_digest"
-  hash_ovs
-  (hmac_digest_spec block_size digest_size);
-
-print "Done.";
+for [ /* none_cfg, */
+      md5_cfg
+    , sha1_cfg
+    , sha224_cfg
+    , sha256_cfg
+    , sha384_cfg
+    , sha512_cfg
+    ]
+    verify_s2n_hmac_at_several_key_and_msg_sizes;
