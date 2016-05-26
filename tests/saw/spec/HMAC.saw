@@ -73,6 +73,9 @@ let check_final_hash_state prefix st1 = do {
     llvm_ensure_eq (p "((" "1).0).5") {{ st1.md_len }};
 };
 
+// The idea was to have a different version for use in the HMAC specs,
+// in case we wanted to not check some fields. But in the end
+// this is the same as above, so we can probably remove it.
 let check_final_hash_state_hmac prefix st1 = do {
     // Make struct path using 'prefix'.
     let p before after = str_concat before (str_concat prefix after);
@@ -106,19 +109,18 @@ let hash_init_spec = do {
     llvm_no_simulate; // "Admit".
 };
 
-// Here, `n` is the size of the new data to hash.
-let hash_update_spec n = do {
+let hash_update_spec msg_size = do {
     llvm_ptr "state" (llvm_struct "struct.s2n_hash_state");
-    llvm_ptr "data" (llvm_array n (llvm_int 8));
+    llvm_ptr "data" (llvm_array msg_size (llvm_int 8));
     (_, st0) <- setup_initial_hash_state "state->";
-    data0 <- llvm_var "*data" (llvm_array n (llvm_int 8));
+    data0 <- llvm_var "*data" (llvm_array msg_size (llvm_int 8));
     size0 <- llvm_var "size" (llvm_int 32);
 
     // Specialize to SHA256.
     //llvm_assert_eq "state->0" {{ S2N_HASH_SHA256 }};
 
-    llvm_assert_eq "size" {{ `n : [32] }};
-    let st1 = {{ hash_update_c_state st0 data0 }};
+    llvm_assert_eq "size" {{ `msg_size : [32] }};
+    let st1 = {{ hash_update_c_state`{msg_size=msg_size} st0 data0 }};
 
     // Specialize to SHA256.
     //llvm_ensure_eq "state->0" {{ S2N_HASH_SHA256 }};
@@ -126,22 +128,21 @@ let hash_update_spec n = do {
     check_final_hash_state "state->" st1;
     llvm_return {{ 0 : [32] }};
 
-    llvm_no_simulate;
+    llvm_no_simulate; // "Admit".
 };
 
-// Here, `n` is the digest size for the specific hash algorithm.
-let hash_digest_spec n = do {
+let hash_digest_spec digest_size = do {
     llvm_ptr "state" (llvm_struct "struct.s2n_hash_state");
-    llvm_ptr "out" (llvm_array n (llvm_int 8));
+    llvm_ptr "out" (llvm_array digest_size (llvm_int 8));
     (_, st0) <- setup_initial_hash_state "state->";
-    out0 <- llvm_var "*out" (llvm_array n (llvm_int 8));
+    out0 <- llvm_var "*out" (llvm_array digest_size (llvm_int 8));
     size0 <- llvm_var "size" (llvm_int 32);
 
     // Specialize to SHA256.
     //llvm_assert_eq "state->0" {{ S2N_HASH_SHA256 }};
     //llvm_assert_eq "size" {{ `SHA256_DIGEST_LENGTH : [32] }};
 
-    let out1 = {{ hash_digest_c_state st0 }};
+    let out1 = {{ hash_digest_c_state`{digest_size=digest_size} st0 }};
 
     // Specialize to SHA256.
     //llvm_ensure_eq "state->0" {{ S2N_HASH_SHA256 }};
@@ -152,7 +153,7 @@ let hash_digest_spec n = do {
     llvm_ensure_eq "*out" {{ out1 }};
     llvm_return {{ 0 : [32] }};
 
-    llvm_no_simulate;
+    llvm_no_simulate; // "Admit".
 };
 
 ////////////////////////////////////////////////////////////////
@@ -174,8 +175,12 @@ let setup_initial_hmac_state = do {
 
     xor_pad0 <- llvm_var "state->8" (llvm_array 128 (llvm_int 8));
 
-    let size = eval_size {| SHA512_DIGEST_LENGTH |};
-    digest_pad0 <- llvm_var "state->9" (llvm_array size (llvm_int 8));
+    // The digest size is the SHA512 digest size, because SHA512
+    // has the largest digest size; the other hash algorithms only
+    // use a prefix of this buffer.
+    let digest_size = eval_size {| SHA512_DIGEST_LENGTH |};
+    digest_pad0 <- llvm_var "state->9" (llvm_array digest_size
+    (llvm_int 8));
 
     let st0 = {{
       { alg                     = alg0
@@ -213,25 +218,35 @@ let check_final_hmac_state st1 = do {
     // Don't care about 'digest_pad', because it gets overwritten
     // using 's2n_hash_digest' before use in 's2n_hmac_digest'.
     //
+    // TODO: could try leaving this in and seeing if the verification
+    // still goes through (since we tried to model exactly what happens).
+    //
     //llvm_ensure_eq "state->9" {{ st1.digest_pad }};
 };
 
 ////////////////////////////////////////////////////////////////
 
-let hmac_init_spec n = do {
-    llvm_ptr "key" (llvm_array n (llvm_int 8));
+let hmac_init_spec key_size block_size hash_block_size digest_size = do {
+    llvm_ptr "key" (llvm_array key_size (llvm_int 8));
     st0 <- setup_initial_hmac_state;
     alg0 <- llvm_var "alg" (llvm_int 32);
-    key0 <- llvm_var "*key" (llvm_array n (llvm_int 8));
+    key0 <- llvm_var "*key" (llvm_array key_size (llvm_int 8));
     klen0 <- llvm_var "klen" (llvm_int 32);
 
     // Specialize to SHA256.
     llvm_assert_eq "alg" {{ S2N_HMAC_SHA256 }};
 
-    // A SAWScript 'Int', here 'n', can be treated as a Cryptol type.
-    llvm_assert_eq "klen" {{ `n : [32] }};
+    // Here 'key_size', a SAWScript 'Int', can be treated as a Cryptol type.
+    llvm_assert_eq "klen" {{ `key_size : [32] }};
 
-    let st1 = {{ hmac_init_c_state st0 alg0 key0 }};
+    let st1 = {{
+      hmac_init_c_state
+        `{key_size=key_size
+         ,block_size=block_size
+         ,hash_block_size=hash_block_size
+         ,digest_size=digest_size}
+        st0 alg0 key0
+    }};
 
     check_final_hmac_state st1;
     llvm_return {{ 0 : [32] }};
@@ -246,10 +261,10 @@ let hmac_init_spec n = do {
     };
 };
 
-let hmac_update_spec n = do {
-    llvm_ptr "in" (llvm_array n (llvm_int 8));
+let hmac_update_spec msg_size = do {
+    llvm_ptr "in" (llvm_array msg_size (llvm_int 8));
     st0 <- setup_initial_hmac_state;
-    in0 <- llvm_var "*in" (llvm_array n (llvm_int 8));
+    in0 <- llvm_var "*in" (llvm_array msg_size (llvm_int 8));
     size0 <- llvm_var "size" (llvm_int 32);
 
     // Specialize to SHA256.
@@ -268,7 +283,7 @@ let hmac_update_spec n = do {
     llvm_assert {{ (st0.inner_just_key.u)@3 == (`SHA256_DIGEST_LENGTH : [64]) }};
     llvm_assert {{ (st0.outer.u)@3 == (`SHA256_DIGEST_LENGTH : [64]) }};
 */
-    llvm_assert_eq "size" {{ `n : [32] }};
+    llvm_assert_eq "size" {{ `msg_size : [32] }};
 
     let st1 = {{ hmac_update_c_state st0 in0 }};
 
@@ -285,10 +300,10 @@ let hmac_update_spec n = do {
     };
 };
 
-let hmac_digest_spec n = do {
-    llvm_ptr "out" (llvm_array n (llvm_int 8));
+let hmac_digest_spec block_size digest_size = do {
+    llvm_ptr "out" (llvm_array digest_size (llvm_int 8));
     st0 <- setup_initial_hmac_state;
-    out0 <- llvm_var "*out" (llvm_array n (llvm_int 8));
+    out0 <- llvm_var "*out" (llvm_array digest_size (llvm_int 8));
     size0 <- llvm_var "size" (llvm_int 32);
 
     // Specialize to SHA256.
@@ -308,15 +323,13 @@ let hmac_digest_spec n = do {
     llvm_assert {{ (st0.inner_just_key.u)@3 == (`SHA256_DIGEST_LENGTH : [64]) }};
     llvm_assert {{ (st0.outer.u)@3 == (`SHA256_DIGEST_LENGTH : [64]) }};
 */
-    llvm_assert_eq "size" {{ `n : [32] }};
+    llvm_assert_eq "size" {{ `digest_size : [32] }};
 
     // Feature request: be able to write '(st1, digest)' instead of
     // 'st1_digest'.
-    //
-    // TODO: how to generalize the hash here? We need update at
-    // multiples types (for 'xor_pad' and 'digest_pad'). I.e.,
-    // 'hash`{n}' for a particular 'n' won't work here.
-    let st1_digest = {{ hmac_digest_c_state st0 }};
+    let st1_digest = {{
+      hmac_digest_c_state`{block_size=block_size,digest_size=digest_size} st0
+    }};
     let st1 = {{ st1_digest.0 }};
     let digest = {{ st1_digest.1 }};
 
@@ -343,18 +356,28 @@ let hmac_digest_spec n = do {
 
 ////////////////////////////////////////////////////////////////
 
-// TODO: try key sizes above and below the hash block size.
+// We need to verify key lengths above and below-or-equal to the block
+// size, in order to exercise both versions of the key initialization
+// code.
 //
-// abc/sha256: 62: 52 minutes!
-//             63: 2 minutes
-//             64: 1 minute
-//             65: 2.5 minutes
-//             66: 2.5 minutes
-let key_size = 65;
+// For SHA256, the block size is 64. Timing stats for different key
+// sizes:
+//
+// abc/sha256:
+//   62: 52 minutes!
+//   63: 2 minutes
+//   64: 1 minute
+//   65: 2.5 minutes
+//   66: 2.5 minutes
+//
+// yices/unint:
+//   TODO
+let key_size = 64;
 let msg_size = 62;
 // Specialize to SHA256.
 let digest_size = eval_size {| SHA256_DIGEST_LENGTH |};
 let block_size = 64;
+let hash_block_size = 64;
 
 set_base 16;
 hash_init_ov   <- llvm_verify m "s2n_hash_init"   [] hash_init_spec;
@@ -363,6 +386,11 @@ hash_digest_ov <- llvm_verify m "s2n_hash_digest" []
   (hash_digest_spec digest_size);
 
 // Can we build 'hash_ovs' using a loop over the sizes?
+//
+// Feature request: polymorphic specs: here we'd just like to say
+// that 's2n_hash_update' has the *polymorphic* spec 'hash_update_spec',
+// and have SAW figure out how to instantiate the size param at
+// each call site.
 hash_update_key_size_ov    <- llvm_verify m "s2n_hash_update" []
   (hash_update_spec key_size);
 hash_update_block_size_ov  <- llvm_verify m "s2n_hash_update" []
@@ -380,14 +408,17 @@ let hash_ovs =
   , hash_digest_ov
   ];
 
-hmac_init_ov   <- llvm_verify m "s2n_hmac_init"
-                  hash_ovs
-                  (hmac_init_spec key_size);
-hmac_update_ov <- llvm_verify m "s2n_hmac_update"
-                  hash_ovs
-                  (hmac_update_spec msg_size);
-hmac_digest_ov <- llvm_verify m "s2n_hmac_digest"
-                  hash_ovs
-                  (hmac_digest_spec digest_size);
+hmac_init_ov <-
+  llvm_verify m "s2n_hmac_init"
+  hash_ovs
+  (hmac_init_spec key_size block_size hash_block_size digest_size);
+hmac_update_ov <-
+  llvm_verify m "s2n_hmac_update"
+  hash_ovs
+  (hmac_update_spec msg_size);
+hmac_digest_ov <-
+  llvm_verify m "s2n_hmac_digest"
+  hash_ovs
+  (hmac_digest_spec block_size digest_size);
 
 print "Done.";
