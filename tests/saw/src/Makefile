@@ -1,0 +1,66 @@
+# NB: Here 'LL', 'CLANG', and 'OPENSSL_INC' default to an OSX Homebrew
+# installation, but this configuration also works when LLVM and
+# OpenSSL are installed in the standard places. For other setups, you
+# can override these settings with e.g 'make LL=<path to llvm-link>'.
+ifeq (, $(shell which llvm-link))
+LL ?= /usr/local/opt/llvm/bin/llvm-link
+else
+LL ?= llvm-link
+endif
+
+ifeq (, $(shell which llvm-dis))
+LLVM_DIS ?= /usr/local/opt/llvm/bin/llvm-dis
+else
+LLVM_DIS ?= llvm-dis
+endif
+
+ifeq (, $(shell which clang))
+CLANG ?= /usr/local/opt/llvm/bin/clang
+else
+CLANG ?= clang
+endif
+
+# If this path does not exist it will simply be ignored by 'clang'.
+OPENSSL_INC ?= -I/usr/local/opt/openssl/include
+
+################################################################
+
+OBJS = s2n/crypto/s2n_hmac.o s2n/crypto/s2n_hash.o s2n/utils/s2n_safety.o
+
+.PHONY: all
+all: hmac.bc hmac.ll
+
+hmac.bc: tmp/hmac.bc
+	cp $< $@
+
+hmac.ll: tmp/hmac.ll
+	cp $< $@
+
+s2n:
+	git clone https://github.com/awslabs/s2n.git
+
+s2n/crypto/%.o: s2n/crypto/%.c | s2n
+	make -C s2n/crypto CC=${CLANG} CFLAGS="-emit-llvm -I../libcrypto-root/include -I../api -I.. $(OPENSSL_INC)" $(notdir $@)
+
+s2n/utils/%.o: s2n/utils/%.c | s2n
+	make -C s2n/utils CC=${CLANG} CFLAGS="-emit-llvm -I../libcrypto-root/include -I../api -I.. $(OPENSSL_INC)" $(notdir $@)
+
+tmp/hmac.bc: ${OBJS} | tmp
+	${LL} -o $@ $+
+
+tmp/hmac.ll: tmp/hmac.bc | tmp
+	${LLVM_DIS} -o $@ $<
+
+.PHONY: clean
+clean:
+	rm -rf tmp
+	make -C s2n clean
+
+# Make Emacs-format tags.
+.PHONY: tmp/TAGS
+tmp/TAGS: | tmp
+	: > tmp/TAGS
+	find `pwd`/s2n \( -name '*.c' -o -name '*.h' \) -exec etags --append -o tmp/TAGS {} +
+
+tmp:
+	mkdir -p tmp

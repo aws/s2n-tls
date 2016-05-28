@@ -1,0 +1,818 @@
+/*
+ * Copyright (c) 2013-2016 Galois, Inc.
+ * Distributed under the terms of the BSD3 license (see LICENSE file)
+ */
+module HMAC where
+
+import SHA256
+
+//////// Functional version ////////
+
+hmacSHA256 : {pwBytes, msgBytes}
+             (fin pwBytes, fin msgBytes
+             , 32 >= width msgBytes
+             , 64 >= width (8*pwBytes)
+             , 64 >= width (8 * (64 + msgBytes))
+             ) => [pwBytes][8] -> [msgBytes][8] -> [256]
+hmacSHA256 = hmac `{blockLength=64} SHA256 SHA256 SHA256
+
+kinit : { pwBytes, blockLength, digest }
+        ( fin pwBytes, fin blockLength, fin digest )
+     => ([pwBytes][8] -> [8*digest])
+     -> [pwBytes][8]
+     -> [blockLength][8]
+kinit hash key =
+  if `pwBytes > (`blockLength : [max (width pwBytes) (width blockLength)])
+  then take `{blockLength} (split (hash key) # (zero : [blockLength][8]))
+  else take `{blockLength} (key # (zero : [blockLength][8]))
+
+// Due to limitations of the type system we must accept two
+// separate arguments (both aledgedly the same) for two
+// separate length inputs.
+hmac : { msgBytes, pwBytes, digest, blockLength }
+       ( fin pwBytes, fin digest, fin blockLength )
+    => ([blockLength + msgBytes][8] -> [8*digest])
+    -> ([blockLength + digest][8] -> [8*digest])
+    -> ([pwBytes][8] -> [8*digest])
+    -> [pwBytes][8]
+    -> [msgBytes][8]
+    -> [digest*8]
+hmac hash hash2 hash3 key message = hash2 (okey # internal)
+ where
+   ks : [blockLength][8]
+   ks = kinit hash3 key
+   okey = [k ^ 0x5C | k <- ks]
+   ikey = [k ^ 0x36 | k <- ks]
+   internal = split (hash (ikey # message))
+
+property pass =
+    ~zero ==
+    [ hmacSHA256 [0x0b | _ <- [1..20] : [_][6]] "Hi There" == 0xb0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7
+    , hmacSHA256 "Jefe" "what do ya want for nothing?" == 0x5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843
+    ]
+
+//////// Imperative version ////////
+//
+// To start, the imperative version is specialized to SHA256.
+
+type SHA512_DIGEST_LENGTH = 64
+
+// This mirrors the `s2n_hmac_state` struct.
+type HMACState =
+     { // alg : HMACAlgorithm // TODO
+
+       hash_block_size         : [16]
+     , currently_in_hash_block : [32]
+     , block_size              : [16]
+     , digest_size             : [8]
+
+     , inner          : SHA256State
+     , inner_just_key : SHA256State
+     , outer          : SHA256State
+
+     , xor_pad    : [128][8]
+     , digest_pad : [SHA512_DIGEST_LENGTH][8]
+     }
+
+/*
+kinit' : { pwBytes, blockLength, digest }
+        ( fin pwBytes, fin blockLength, fin digest )
+     => ([pwBytes][8] -> [8*digest])
+     -> [pwBytes][8]
+     -> [blockLength][8]
+kinit' hash key =
+  if `pwBytes > (`blockLength : [max (width pwBytes) (width blockLength)])
+  then take `{blockLength} (split (hash key) # (zero : [blockLength][8]))
+  else take `{blockLength} (key # (zero : [blockLength][8]))
+*/
+
+hmac_init : { pwBytes }
+            ( fin pwBytes, 64 >= width (8*pwBytes) )
+         => [pwBytes][8]
+         -> HMACState
+hmac_init key =
+  { hash_block_size         = hash_block_size
+  , currently_in_hash_block = currently_in_hash_block
+  , block_size              = block_size
+  , digest_size             = digest_size
+  , inner                   = inner
+  , inner_just_key          = inner_just_key
+  , outer                   = outer
+  , xor_pad                 = xor_pad
+  , digest_pad              = digest_pad
+  }
+  where
+    // SHA256-specific values.
+    //
+    // /usr/include/openssl/sha.h
+    currently_in_hash_block = 0
+    sha256_digest_length    = 32
+    digest_size             = sha256_digest_length
+    block_size              = 64
+    hash_block_size         = 64
+
+    k0 : [64][8]
+    k0 = kinit SHA256Imp key
+
+    ikey = [ k ^ 0x36 | k <- k0 ]
+    okey = [ k ^ 0x6a | k <- ikey ]
+
+    inner_just_key = SHA256Update SHA256Init ikey
+    inner          = inner_just_key
+
+    // MAYBE TODO: In `s2n_hmac_init`, these are used in the hash
+    // computation for `k0`, when the key is long and needs to be
+    // hashed. So, we need to refactor `kinit` if we want the state to
+    // match here. However, this potential hash value in `outer` is
+    // never used outside of `hmac_init`, so hopefully we can just
+    // avoid modeling it.
+    outer      = SHA256Init
+    digest_pad = zero
+
+    xor_pad = okey # zero
+
+hmac_update : {n} (32 >= width n) => HMACState -> [n][8] -> HMACState
+hmac_update s m =
+  { inner = SHA256Update s.inner m
+
+  // TODO: as pointed out by Joey, this will overflow when `n` is
+  // larger than `2^32 - 1 - 128000`.
+  , currently_in_hash_block =
+      (s.currently_in_hash_block +
+       ((128000 + `n) % (zero # s.hash_block_size))) %
+      (zero # s.block_size)
+
+  // Rest unchanged.
+  , hash_block_size = s.hash_block_size
+  , block_size      = s.block_size
+  , digest_size     = s.digest_size
+  , inner_just_key  = s.inner_just_key
+  , outer           = s.outer
+  , xor_pad         = s.xor_pad
+  , digest_pad      = s.digest_pad
+  }
+
+// TODO: What about `size` argument to `s2n_hmac_digest`? The `size`
+// argument is supposed to be the "digest length" of the underlying
+// hash. Here we are specializing to SHA256, so `size` would be 32.
+hmac_digest : HMACState -> (HMACState, [256])
+hmac_digest s = (sout, out)
+  where
+    // The 32 here is specific to SHA256.
+    hin : [32][8]
+    hin = split (SHA256Final inner)
+    digest_pad : [SHA512_DIGEST_LENGTH][8]
+    digest_pad = hin # zero
+
+    // The 64 here is specific to SHA256.
+    okey : [64][8]
+    okey = take s.xor_pad
+
+    // The `inner` and `outer` here are probably not accurate:
+    // in s2n, the `s2n_hash_digest` has been called on them, which
+    // presumably can change them (calls `SHA256_Final` from
+    // underlying C crypto lib behind the scenes). However, our
+    // Cryptol `SHA256Final` does not change the hash state. Even
+    // if we leave the hash function uninterpreted later, we will
+    // still need to change the interface of our Cryptol `<hash>Final`
+    // to additionally return an updated `<hash>State`.
+    //
+    // However, we probably don't need to say anything about the
+    // *hash* state after calls to "final" functions, since
+    // 's2n_hash_reset' just calls 's2n_hash_init'. So, the above
+    // concern is not much of a concern after all.
+
+    // Our goal is to leave the hash functions (init, update,
+    // digest/final) uninterpreted, and so we need the structure of
+    // our calls to these functions to match the structure of calls in
+    // the s2n code, since we don't have lemmas giving algebraic
+    // properties of these functions (e.g. here we'd need
+    //
+    //   update (update st x) y == update st (x # y)
+    //
+    // ). So, we replace
+    //
+    //outer = SHA256Update SHA256Init (okey # hin)
+    //
+    // with:
+    outer = SHA256Update (SHA256Update SHA256Init okey) hin
+    inner = s.inner
+
+    out = SHA256Final outer
+
+    sout : HMACState
+    sout =
+      { inner      = inner
+      , outer      = outer
+      , digest_pad = digest_pad
+
+      // Rest unchanged.
+      , hash_block_size         = s.hash_block_size
+      , currently_in_hash_block = s.currently_in_hash_block
+      , block_size              = s.block_size
+      , digest_size             = s.digest_size
+      , inner_just_key          = s.inner_just_key
+      , xor_pad                 = s.xor_pad
+      }
+
+hmac_reset : HMACState -> HMACState
+hmac_reset s =
+  { currently_in_hash_block = 0
+  , inner                   = s.inner_just_key
+
+  // Rest unchanged.
+  , hash_block_size = s.hash_block_size
+  , block_size      = s.block_size
+  , digest_size     = s.digest_size
+  , inner_just_key  = s.inner_just_key
+  , outer           = s.outer
+  , xor_pad         = s.xor_pad
+  , digest_pad      = s.digest_pad
+  }
+
+hmac_imp : { a, b }
+           ( fin b, 64 >= width (8 * a)
+           , 32 >= width b
+           )
+        => [a][8]
+        -> [b][8]
+        -> [256]
+hmac_imp key msg = (hmac_digest (hmac_update (hmac_init key) msg)).1
+
+
+//////// Equivalence of implementations ////////
+
+hmacSHA256_imp = hmac_imp
+
+hmac_imp_correct : { klen, mlen }
+              ( 32 >= width mlen, 64 >= width (8 * klen) )
+           => [klen][8] -> [mlen][8] -> Bit
+property hmac_imp_correct key msg = hmacSHA256 key msg == hmacSHA256_imp key msg
+
+//////// Translations between C/LLVM and Cryptol data types ////////
+
+////////////////////////////////////////////////////////////////
+// Hashing (specialized to SHA256).
+////////////////////////////////////////////////////////////////
+
+// s2n_hash.h
+/*
+typedef enum { S2N_HASH_NONE, S2N_HASH_MD5, S2N_HASH_SHA1, S2N_HASH_SHA224, S2N_HASH_SHA256, S2N_HASH_SHA384,
+    S2N_HASH_SHA512, S2N_HASH_MD5_SHA1
+} s2n_hash_algorithm;
+*/
+S2N_HASH_NONE     = 0:[32]
+S2N_HASH_MD5      = 1:[32]
+S2N_HASH_SHA1     = 2:[32]
+S2N_HASH_SHA224   = 3:[32]
+S2N_HASH_SHA256   = 4:[32]
+S2N_HASH_SHA384   = 5:[32]
+S2N_HASH_SHA512   = 6:[32]
+S2N_HASH_MD5_SHA1 = 7:[32]
+
+// /usr/include/openssl/sha.h
+/*
+134 typedef struct SHA256state_st {
+135     SHA_LONG h[8];
+136     SHA_LONG Nl, Nh;
+137     SHA_LONG data[SHA_LBLOCK];
+138     unsigned int num, md_len;
+139 } SHA256_CTX;
+*/
+// Looking at the generated LLVM in ':/src/hmac.ll' gives the precise
+// layout, without having to find the definitions of the above
+// macros.
+/*
+%struct.SHA512state_st = type { [8 x i64], i64, i64, %union.anon.0, i32, i32 }
+%union.anon.0 = type { [16 x i64] }
+*/
+
+// The hash state in s2n is stored in a union, and the largest member
+// of that union is the SHA512 hash state. So, we need to translate
+// between SHA512 and SHA256 hash states.
+//
+// /usr/include/openssl/sha.h
+/*
+183 typedef struct SHA512state_st {
+184     SHA_LONG64 h[8];
+185     SHA_LONG64 Nl, Nh;
+186     union {
+187         SHA_LONG64 d[SHA_LBLOCK];
+188         unsigned char p[SHA512_CBLOCK];
+189     } u;
+190     unsigned int num, md_len;
+191 } SHA512_CTX;
+*/
+// :/src/hmac.ll
+/*
+%struct.SHA256state_st = type { [8 x i32], i32, i32, [16 x i32], i32, i32 }
+*/
+
+type SHA512_c_state =
+  { h      : [8][64]
+  , Nl     : [64]
+  , Nh     : [64]
+  , u      : [16][64]
+  , num    : [32]
+  , md_len : [32]
+  }
+type SHA512_c_bits = 8*64+64+64+16*64+32+32
+
+join512_c_state : SHA512_c_state -> [SHA512_c_bits]
+join512_c_state st = join st.h # st.Nl # st.Nh # join st.u # st.num # st.md_len
+
+type SHA256_c_state =
+  { h      : [8][32]
+  , Nl     : [32]     // The low bits of 'sz'.
+  , Nh     : [32]     // The high bits of 'sz'.
+  , u      : [16][32] // The 'block': '[16][32] == [8][64]' when flattened.
+  , num    : [32]     // The 'n', but extended to 32 bits.
+  , md_len : [32]     // The value of 'md_len' is always 32,
+  }                   // i.e. 'SHA256_DIGEST_LENGTH'.
+type SHA256_c_bits = 8*32+32+32+16*32+32+32
+
+join256_c_state : SHA256_c_state -> [SHA256_c_bits]
+join256_c_state st = join st.h # st.Nl # st.Nh # join st.u # st.num # st.md_len
+
+type SHA256_DIGEST_LENGTH = 32
+
+// Recall the 'SHA256State' in our Cryptol model in './SHA256.cry':
+/*
+type SHA256State = { h     : [8][32]
+                   , block : [64][8]
+                   , n     : [16]
+                   , sz    : [64]
+                   }
+*/
+
+////////////////////////////////////////////////////////////////
+// Basic hash-state translations.
+
+// I'm using the initial, high order bits of the SHA512 state to
+// construct the SHA256 state. The LLVM code doesn't make it clear
+// that this is correct -- it depends on the semantics of 'bitcast' --
+// but I did an experiment which validates this choice; see
+// 'examples/llvm/union' in the SAWScript repo.
+sha512_c_state_to_sha256_c_state : SHA512_c_state -> SHA256_c_state
+sha512_c_state_to_sha256_c_state st =
+  { h      = split (take bits)
+  , Nl     = take (drop`{front=8*32} bits)
+  , Nh     = take (drop`{front=8*32+32} bits)
+  , u      = split (take (drop`{front=8*32+32+32} bits))
+  , num    = take (drop`{front=8*32+32+32+16*32} bits)
+  , md_len = drop`{front=8*32+32+32+16*32+32} bits
+  }
+  where
+    bits : [SHA256_c_bits]
+    bits = take bits0
+    bits0 : [SHA512_c_bits]
+    bits0 = join512_c_state st
+
+// We need the original state, 'st0', to compute the trailing SHA512
+// bits which aren't used in the SHA256 state.
+sha256_c_state_to_sha512_c_state : SHA512_c_state -> SHA256_c_state -> SHA512_c_state
+sha256_c_state_to_sha512_c_state st0 st =
+  { h      = split (take bits)
+  , Nl     = take (drop`{front=8*64} bits)
+  , Nh     = take (drop`{front=8*64+64} bits)
+  , u      = split (take (drop`{front=8*64+64+64} bits))
+  , num    = take (drop`{front=8*64+64+64+16*64} bits)
+  , md_len = drop`{front=8*64+64+64+16*64+32} bits
+  }
+  where
+    bits : [SHA512_c_bits]
+    bits = join256_c_state st # drop bits0
+    bits0 : [SHA512_c_bits]
+    bits0 = join512_c_state st0
+
+sha256_c_state_to_sha256_state : SHA256_c_state -> SHA256State
+sha256_c_state_to_sha256_state st =
+  { h     = st.h
+  , block = split (join st.u)
+  , n     = drop st.num
+  , sz    = st.Nh # st.Nl
+  }
+  where
+    bits : [SHA256_c_bits]
+    bits = join256_c_state st
+
+sha256_state_to_sha256_c_state : SHA256State -> SHA256_c_state
+sha256_state_to_sha256_c_state st =
+  { h      = st.h
+  , Nl     = Nl
+  , Nh     = Nh
+  , u      = split (join st.block)
+  , num    = (zero # st.n) : [32]
+  , md_len = `SHA256_DIGEST_LENGTH : [32]
+  }
+  where
+    [Nh, Nl] = split st.sz
+
+////////////////////////////////////////////////////////////////
+// Composed hash-state translations.
+
+sha512_c_state_to_sha256_state : SHA512_c_state -> SHA256State
+sha512_c_state_to_sha256_state st =
+  sha256_c_state_to_sha256_state (sha512_c_state_to_sha256_c_state st)
+
+sha256_state_to_sha512_c_state : SHA512_c_state -> SHA256State -> SHA512_c_state
+sha256_state_to_sha512_c_state st0 st =
+  sha256_c_state_to_sha512_c_state st0 (sha256_state_to_sha256_c_state st)
+
+////////////////////////////////////////////////////////////////
+// SHA256 specs in terms of the SHA512 C hash state.
+
+sha256_init_sha512_c_state : SHA512_c_state -> SHA512_c_state
+sha256_init_sha512_c_state st0_c_512 = st1_c_512
+  where
+    st0_256 = SHA256Init
+    st1_c_512 = sha256_state_to_sha512_c_state st0_c_512 st0_256
+
+sha256_update_sha512_c_state : {n} (fin n) => SHA512_c_state -> [n][8] -> SHA512_c_state
+sha256_update_sha512_c_state st0_c_512 in = st1_c_512
+  where
+    st0_256 = sha512_c_state_to_sha256_state st0_c_512
+    st1_256 = SHA256Update st0_256 in
+    st1_c_512 = sha256_state_to_sha512_c_state st0_c_512 st1_256
+
+// We don't return a new 'SHA512_c_state', since it's unspecified (I
+// think ...).
+sha256_digest_sha512_c_state : SHA512_c_state -> [SHA256_DIGEST_LENGTH][8]
+sha256_digest_sha512_c_state st0_c_512 = out1
+  where
+    st0_256 = sha512_c_state_to_sha256_state st0_c_512
+    out1 = split (SHA256Final st0_256)
+
+////////////////////////////////////////////////////////////////
+// HMAC (specialized to SHA256).
+////////////////////////////////////////////////////////////////
+
+// s2n_hmac.h
+/*
+typedef enum { S2N_HMAC_NONE, S2N_HMAC_MD5, S2N_HMAC_SHA1, S2N_HMAC_SHA224, S2N_HMAC_SHA256, S2N_HMAC_SHA384,
+    S2N_HMAC_SHA512, S2N_HMAC_SSLv3_MD5, S2N_HMAC_SSLv3_SHA1
+} s2n_hmac_algorithm;
+*/
+
+S2N_HMAC_NONE       = 0:[32]
+S2N_HMAC_MD5        = 1:[32]
+S2N_HMAC_SHA1       = 2:[32]
+S2N_HMAC_SHA224     = 3:[32]
+S2N_HMAC_SHA256     = 4:[32]
+S2N_HMAC_SHA384     = 5:[32]
+S2N_HMAC_SHA512     = 6:[32]
+S2N_HMAC_SSLv3_MD5  = 7:[32]
+S2N_HMAC_SSLv3_SHA1 = 8:[32]
+
+// s2n_hmac.h
+/*
+
+struct s2n_hmac_state {
+    s2n_hmac_algorithm alg;
+
+    uint16_t hash_block_size;
+    uint32_t currently_in_hash_block;
+    uint16_t block_size;
+    uint8_t digest_size;
+
+    struct s2n_hash_state inner;
+    struct s2n_hash_state inner_just_key;
+    struct s2n_hash_state outer;
+
+    /* key needs to be as large as the biggest block size */
+    uint8_t xor_pad[128];
+
+    /* For storing the inner digest */
+    uint8_t digest_pad[SHA512_DIGEST_LENGTH];
+};
+*/
+// No surprises in the LLVM (:/src/hmac.ll)
+/*
+%struct.s2n_hmac_state = type { i32, i16, i32, i16, i8, %struct.s2n_hash_state, %struct.s2n_hash_state, %struct.s2n_hash_state, [128 x i8], [64 x i8] }
+*/
+
+type HMAC_c_state =
+  { alg                     : [32]
+  , hash_block_size         : [16]
+  , currently_in_hash_block : [32]
+  , block_size              : [16]
+  , digest_size             : [8]
+  , inner                   : SHA512_c_state
+  , inner_just_key          : SHA512_c_state
+  , outer                   : SHA512_c_state
+  , xor_pad                 : [128][8]
+  , digest_pad              : [SHA512_DIGEST_LENGTH][8]
+  }
+
+////////////////////////////////////////////////////////////////
+// HMAC-state translations.
+
+hmac_c_state_to_hmac_state : HMAC_c_state -> HMACState
+hmac_c_state_to_hmac_state st =
+  { hash_block_size         = st.hash_block_size
+  , currently_in_hash_block = st.currently_in_hash_block
+  , block_size              = st.block_size
+  , digest_size             = st.digest_size
+  , inner                   = sha512_c_state_to_sha256_state st.inner
+  , inner_just_key          = sha512_c_state_to_sha256_state st.inner_just_key
+  , outer                   = sha512_c_state_to_sha256_state st.outer
+  , xor_pad                 = st.xor_pad
+  , digest_pad              = st.digest_pad
+  }
+
+hmac_state_to_hmac_c_state : HMAC_c_state -> HMACState -> HMAC_c_state
+hmac_state_to_hmac_c_state st0 st =
+  { alg                     = st0.alg
+  , hash_block_size         = st.hash_block_size
+  , currently_in_hash_block = st.currently_in_hash_block
+  , block_size              = st.block_size
+  , digest_size             = st.digest_size
+  , inner                   = sha256_state_to_sha512_c_state st0.inner st.inner
+  , inner_just_key          = sha256_state_to_sha512_c_state st0.inner_just_key st.inner_just_key
+  , outer                   = sha256_state_to_sha512_c_state st0.outer st.outer
+  , xor_pad                 = st.xor_pad
+  , digest_pad              = st.digest_pad
+  }
+
+////////////////////////////////////////////////////////////////
+// Shallow HMAC specs in terms of C HMAC state.
+//
+// Here "shallow" because we convert the HMAC C state to higher level
+// HMAC Cryptol state (names are confusing, since both version of the
+// state are in Cryptol :P) and then call the corresponding HMAC
+// Cryptol state functions, which use SHA256 Cryptol state underneath.
+
+hmac_init_c_state_old :
+     { pwBytes } ( fin pwBytes, 64 >= width (8*pwBytes) )
+  => HMAC_c_state -> [pwBytes][8] -> HMAC_c_state
+hmac_init_c_state_old st0_c key = st1_c
+  where
+    st1 = hmac_init key
+    st1_c = hmac_state_to_hmac_c_state st0_c st1
+
+hmac_update_c_state_old : {n} (32 >= width n) => HMAC_c_state -> [n][8] -> HMAC_c_state
+hmac_update_c_state_old st0_c msg = st1_c
+  where
+    st0 = hmac_c_state_to_hmac_state st0_c
+    st1 = hmac_update st0 msg
+    st1_c = hmac_state_to_hmac_c_state st0_c st1
+
+hmac_digest_c_state_old : HMAC_c_state -> (HMAC_c_state, [256])
+hmac_digest_c_state_old st0_c = (st1_c, out)
+  where
+    st0 = hmac_c_state_to_hmac_state st0_c
+    (st1, out) = hmac_digest st0
+    st1_c = hmac_state_to_hmac_c_state st0_c st1
+
+////////////////////////////////////////////////////////////////
+// Deep HMAC specs in terms of C HMAC state.
+//
+// Here "deep" because we reimplement the HMAC functions to call the
+// corresponding hash functions on the raw C hash states, instead of
+// converting them to Cryptol SHA256 hash states.
+
+type hash_init_ty =
+  SHA512_c_state -> SHA512_c_state
+type hash_update_ty msg_size =
+  SHA512_c_state -> [msg_size][8] -> SHA512_c_state
+type hash_digest_ty digest_size =
+  SHA512_c_state -> [digest_size][8]
+
+hash_init_c_state : hash_init_ty
+hash_init_c_state = sha256_init_sha512_c_state
+//hash_init_c_state = undefined
+//hash_init_c_state = \_ -> zero
+
+// Cryptol does not support polymorphic arguments (rank 2
+// polymorphism), so making the hash update function a parameter to
+// the hmac functions is annoying, since we must pass a separate
+// monomorphic copy for each use at a different type. Instead, we just
+// define it at the top level, but can leave it uninterpreted in the
+// "generic" verification.
+hash_update_c_state :
+  {msg_size} (fin msg_size) => hash_update_ty msg_size
+hash_update_c_state = sha256_update_sha512_c_state
+//hash_update_c_state = undefined
+/*
+hash_update_c_state = \x _ -> inc x
+  where
+    inc s =
+      { h      = s.h
+      , Nl     = s.Nl
+      , Nh     = s.Nh
+      , u      = s.u
+      , num    = s.num + 1
+      , md_len = s.md_len
+      } : SHA512_c_state
+*/
+
+
+hash_digest_c_state :
+  {digest_size} (fin digest_size) => hash_digest_ty digest_size
+// To support any digest length, we pad and truncate as necessary.
+// This implementation only makes sense for SHA256 size params, but
+// that is not a concern since we leave these functions uninterpreted
+// in the verification against the S2N C code (we want a concrete
+// implementation for debugging and to compare with our functional spec).
+hash_digest_c_state st =
+  take `{digest_size}
+    (sha256_digest_sha512_c_state st # (zero : [inf][8]))
+//hash_digest_c_state = undefined
+//hash_digest_c_state = \s -> zero # split s.num
+
+
+// Cases depending on key size:
+//
+// * small key (key size <= block size)
+//
+//   copy key into 'xor_pad', up to key size
+//
+// * large key (key size > block size)
+//
+//   update outer state with key to key size
+//   digest outer state into digest pad at digest size
+//
+// The C code that follows the key init sets all remaining bytes,
+// up to block size, to 0x36, and xors the other bytes with 0x36.
+// This is equivalent to setting upper bytes (i.e. up to block size)
+// to zero in key init, and then xoring everything with 0x36.
+//
+// We don't care about 'xor_pad' and 'outer', so we should be able to
+// just ignore them. But for now we just compute them anyway.
+key_init_c_state : { key_size, block_size, digest_size }
+        ( fin key_size, fin block_size,
+          SHA512_DIGEST_LENGTH >= digest_size )
+     => SHA512_c_state
+     -> [SHA512_DIGEST_LENGTH][8]
+     -> [key_size][8]
+     -> (SHA512_c_state, [SHA512_DIGEST_LENGTH][8], [block_size][8])
+key_init_c_state outer0 digest_pad0 key =
+  if `key_size > (`block_size : [max (width key_size) (width block_size)])
+  then (outer2, digest_pad1, hash')
+  else (outer1, digest_pad0, key')
+  where
+  outer1 = hash_init_c_state outer0
+
+  // Long key.
+  outer2 = hash_update_c_state outer1 key
+  hash : [digest_size][8]
+  hash = hash_digest_c_state outer2
+  digest_pad1 = hash # drop `{digest_size} digest_pad0
+  hash' = take `{block_size} (hash # (zero : [block_size][8]))
+
+  // Short key.
+  key' = take `{block_size} (key # (zero : [block_size][8]))
+
+hmac_init_c_state :
+     { key_size, block_size, hash_block_size, digest_size }
+     ( fin key_size
+     , 64 >= width (8*key_size)
+     , 16 >= width hash_block_size
+     , 16 >= width block_size
+     , 8 >= width digest_size
+     , 128 >= block_size
+     , 64 >= digest_size )
+  => HMAC_c_state
+  -> [32]
+  -> [key_size][8]
+  -> HMAC_c_state
+hmac_init_c_state st0 alg key =
+  { alg                     = alg
+  , hash_block_size         = `hash_block_size
+  , currently_in_hash_block = currently_in_hash_block
+  , block_size              = `block_size
+  , digest_size             = `digest_size
+
+  , inner                   = inner
+  , inner_just_key          = inner_just_key
+  , outer                   = outer
+
+  , xor_pad                 = xor_pad
+  , digest_pad              = digest_pad
+  }
+  where
+    currently_in_hash_block = 0
+
+    k0 : [block_size][8]
+    (outer, digest_pad, k0) =
+      key_init_c_state `{digest_size=digest_size} st0.outer st0.digest_pad key
+    ikey = [ k ^ 0x36 | k <- k0 ]
+    okey = [ k ^ 0x6a | k <- ikey ]
+
+    inner_just_key = hash_update_c_state
+      (hash_init_c_state st0.inner_just_key) ikey
+    inner          = inner_just_key
+
+    xor_pad = okey # drop st0.xor_pad
+
+
+hmac_update_c_state : {msg_size} (32 >= width msg_size) =>
+  HMAC_c_state -> [msg_size][8] -> HMAC_c_state
+hmac_update_c_state s m =
+  { inner = hash_update_c_state s.inner m
+  , currently_in_hash_block =
+      (s.currently_in_hash_block + (`msg_size % (zero # s.hash_block_size))) %
+      (zero # s.block_size)
+
+  // Rest unchanged.
+  , alg             = s.alg
+  , hash_block_size = s.hash_block_size
+  , block_size      = s.block_size
+  , digest_size     = s.digest_size
+  , inner_just_key  = s.inner_just_key
+  , outer           = s.outer
+  , xor_pad         = s.xor_pad
+  , digest_pad      = s.digest_pad
+  }
+
+// TODO: What about `size` argument to `s2n_hmac_digest`? The `size`
+// argument is supposed to be the "digest length" of the underlying
+// hash. Here we are specializing to SHA256, so `size` would be 32.
+hmac_digest_c_state :
+     { block_size, digest_size }
+     ( 64 >= digest_size
+     , 128 >= block_size )
+  => HMAC_c_state -> (HMAC_c_state, [8 * digest_size])
+hmac_digest_c_state s = (sout, out)
+  where
+    hin : [digest_size][8]
+    hin = hash_digest_c_state inner
+    digest_pad : [SHA512_DIGEST_LENGTH][8]
+    digest_pad = hin # zero
+
+    okey : [block_size][8]
+    okey = take s.xor_pad
+
+    // The `inner` and `outer` here are probably not accurate:
+    // in s2n, the `s2n_hash_digest` has been called on them, which
+    // presumably can change them (calls `SHA256_Final` from
+    // underlying C crypto lib behind the scenes). However, our
+    // Cryptol `SHA256Final` does not change the hash state. Even
+    // if we leave the hash function uninterpreted later, we will
+    // still need to change the interface of our Cryptol `<hash>Final`
+    // to additionally return an updated `<hash>State`.
+    //
+    // However, we probably don't need to say anything about the
+    // *hash* state after calls to "final" functions, since
+    // 's2n_hash_reset' just calls 's2n_hash_init'. So, the above
+    // concern is not much of a concern after all.
+
+    // Our goal is to leave the hash functions (init, update,
+    // digest/final) uninterpreted, and so we need the structure of
+    // our calls to these functions to match the structure of calls in
+    // the s2n code, since we don't have lemmas giving algebraic
+    // properties of these functions (e.g. here we'd need
+    //
+    //   update (update st x) y == update st (x # y)
+    //
+    // ). So, we replace
+    //
+    //outer = SHA256Update SHA256Init (okey # hin)
+    //
+    // with:
+    outer = hash_update_c_state
+      (hash_update_c_state (hash_init_c_state s.outer) okey)
+      hin
+    inner = s.inner
+
+    out = join (hash_digest_c_state outer)
+
+    sout : HMAC_c_state
+    sout =
+      { inner      = inner
+      , outer      = outer
+      , digest_pad = digest_pad
+
+      // Rest unchanged.
+      , alg                     = s.alg
+      , hash_block_size         = s.hash_block_size
+      , currently_in_hash_block = s.currently_in_hash_block
+      , block_size              = s.block_size
+      , digest_size             = s.digest_size
+      , inner_just_key          = s.inner_just_key
+      , xor_pad                 = s.xor_pad
+      }
+
+//////// Equivalence of implementations ////////
+//
+// This is specialized to SHA256, since we don't have concrete
+// implementations of the other algorithms.
+hmac_c_state : { key_size, msg_size }
+     ( 32 >= width msg_size, 64 >= width (8 * key_size) )
+  => HMAC_c_state -> [key_size][8] -> [msg_size][8] -> [SHA256_DIGEST_LENGTH * 8]
+hmac_c_state st0 key msg = digest
+  where
+  (st1, digest) =
+    hmac_digest_c_state `{block_size=64}
+      (hmac_update_c_state
+        (hmac_init_c_state `{block_size=64,hash_block_size=64,digest_size=SHA256_DIGEST_LENGTH}
+         st0 alg key)
+        msg)
+  // Specialize to SHA256.
+  alg = S2N_HMAC_SHA256
+
+hmac_c_state_correct : { key_size, msg_size }
+              ( 32 >= width msg_size, 64 >= width (8 * key_size) )
+           => HMAC_c_state -> [key_size][8] -> [msg_size][8] -> Bit
+property hmac_c_state_correct st0 key msg =
+  hmacSHA256 key msg == hmac_c_state st0 key msg
