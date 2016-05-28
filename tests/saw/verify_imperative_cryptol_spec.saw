@@ -19,7 +19,7 @@
 //
 ////////////////////////////////////////////////////////////////
 
-import "cryptol_specs/HMAC.cry";
+import "spec/HMAC.cry";
 
 let check n = do {
     print (str_concat "Checking 'hmac_c_state_correct' for byte count " (show n));

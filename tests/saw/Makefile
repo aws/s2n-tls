@@ -1,8 +1,6 @@
 SCRIPTS = $(wildcard *.saw)
-LOGS=$(SCRIPTS:.saw=.log)
+LOGS=$(patsubst %.saw,tmp/%.log,$(SCRIPTS))
 SHELL:=/bin/bash 
-
-PATCH_FILE = distinguish_update_calls_at_different_sizes.patch
 
 .PHONY : all
 all:
@@ -11,20 +9,21 @@ all:
 
 .PHONY : clean-logs
 clean-logs : 
-	$(RM) -- $(wildcard *.log)
+	$(RM) -- $(wildcard tmp/*.log)
 
-
-%.log : %.saw
+tmp/%.log : %.saw bitcode/all_llvm.bc
 	@echo saw $<
 	@set -o pipefail; \
-	./saw $< | tee $@
+	saw $< | tee $@
 
+.PHONY: clean
+clean: decruft
 
+.PHONY: decruft
 decruft : clean-logs
 	${MAKE} -C bitcode decruft
 	${RM} -r s2n
-	${RM} IS_PATCHED
-
+	${RM} -r tmp
 
 ###############
 #The following is to allow for patching s2n during development
@@ -40,7 +39,7 @@ bitcode : clean_the_dir bitcode/all_llvm.bc
 
 clean_the_dir :
 	${RM} -r s2n
-	${RM} -r IS_PATCHED
+	${RM} -r tmp
 
 CRYPTO_C = $(wildcard ../../crypto/*.c) $(wildcard ../../crypto/*.h) ../../crypto/Makefile
 CRYPTO_COPY = $(addprefix s2n/crypto/, $(notdir $(CRYPTO_C)))
@@ -71,11 +70,14 @@ s2n/stuffer :
 
 export BITCODE_DIR := $(CURDIR)/bitcode/
 
-IS_PATCHED :
-	patch -p1 -d s2n -i ../patch.patch
+tmp:
+	mkdir -p tmp
+
+tmp/IS_PATCHED : | tmp
+	if [ -f ../patch.patch ]; then patch -p1 -d s2n -i ../patch.patch; fi
 	touch $@
 
-bitcode/all_llvm.bc : s2n/crypto s2n/utils s2n/stuffer s2n/tls s2n/api s2n/error s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(UTILS_COPY) $(TLS_COPY) $(STUFFER_COPY) $(API_COPY) $(ERROR_COPY) IS_PATCHED
+bitcode/all_llvm.bc : s2n/crypto s2n/utils s2n/stuffer s2n/tls s2n/api s2n/error s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(UTILS_COPY) $(TLS_COPY) $(STUFFER_COPY) $(API_COPY) $(ERROR_COPY) tmp/IS_PATCHED
 	${MAKE} -C s2n bc
 
 s2n/%.h : ../../%.h
