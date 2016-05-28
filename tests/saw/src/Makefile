@@ -36,15 +36,13 @@ hmac.bc: tmp/hmac.bc
 hmac.ll: tmp/hmac.ll
 	cp $< $@
 
-s2n/Makefile:
+s2n:
 	git clone https://github.com/awslabs/s2n.git
 
-s2n/crypto/%.o: s2n/crypto/%.c
-	make s2n/Makefile
+s2n/crypto/%.o: s2n/crypto/%.c | s2n
 	make -C s2n/crypto CC=${CLANG} CFLAGS="-emit-llvm -I../libcrypto-root/include -I../api -I.. $(OPENSSL_INC)" $(notdir $@)
 
-s2n/utils/%.o: s2n/utils/%.c
-	make s2n/Makefile
+s2n/utils/%.o: s2n/utils/%.c | s2n
 	make -C s2n/utils CC=${CLANG} CFLAGS="-emit-llvm -I../libcrypto-root/include -I../api -I.. $(OPENSSL_INC)" $(notdir $@)
 
 tmp/hmac.bc: ${OBJS} | tmp

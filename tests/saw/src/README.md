@@ -11,3 +11,7 @@ As temporary workaround until SAW is extended to support multiple
 specs for the same function, we patch the s2n sources trivially using
 `distinguish_update_calls_at_different_sizes.patch`, to distinguish
 update calls with different size arguments.
+
+To build the LLVM files, do
+
+    make s2n; make
