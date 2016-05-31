@@ -9,6 +9,7 @@ compiler:
 
 before_install:
   - sudo add-apt-repository ppa:hvr/z3 -y
+  - sudo apt-key update
   - sudo apt-get update
     # Install prlimit to set the memlock limit to unlimited for this process
   - (test "$TRAVIS_OS_NAME" = "linux" && sudo .travis/install_prlimit.sh $PWD/.travis && sudo .travis/prlimit --pid "$$" --memlock=unlimited:unlimited) || true

@@ -5,11 +5,22 @@ SHELL:=/bin/bash
 .PHONY : all
 all:
 	@${MAKE} clean-logs
+	@${MAKE} clean-bitcode
 	@${MAKE} $(LOGS)
+	@${MAKE} failure-tests
 
 .PHONY : clean-logs
 clean-logs : 
 	$(RM) -- $(wildcard tmp/*.log)
+
+.PHONY : clean-bitcode
+clean-bitcode :
+	$(RM) -- bitcode/all_llvm.bc
+
+.PHONY : clean-failure-logs
+clean-failure-logs :
+	$(RM) -- $(wildcard failure_tests/*.log)
+
 
 tmp/%.log : %.saw bitcode/all_llvm.bc
 	@echo saw $<
@@ -39,13 +50,22 @@ FAILURE_PATCHES = $(wildcard failure_tests/*.patch)
 FAILURE_LOGS = $(FAILURE_PATCHES:.patch=.log)
 
 .PHONY : failure_tests
-failure_tests : bitcode $(FAILURE_LOGS)
+failure_tests : bitcode
+	@${MAKE} clean-failure-logs
+	@${MAKE} $(FAILURE_LOGS)
 
-failure_tests/%.log : failure_tests/%.patch
+.SECONDARY : $(wildcard btcode/*.bc)
+
+failure_tests/%.log : bitcode/%.bc
+	cp $< bitcode/all_llvm.bc
+	! saw HMAC.saw &> $@
+
+bitcode/%.bc : failure_tests/%.patch
 	patch -p1 -d s2n -i ../$<
 	${MAKE} -C s2n bc; \
         status=$$?; \
-        patch -R -p1 -d s2n -i  ../$< > $@; \
+	cp bitcode/all_llvm.bc $@
+	patch -R -p1 -d s2n -i  ../$<; \
         exit $$status
 
 bitcode : clean_the_dir bitcode/all_llvm.bc
@@ -53,6 +73,7 @@ bitcode : clean_the_dir bitcode/all_llvm.bc
 clean_the_dir :
 	${RM} -r s2n
 	${RM} -r tmp
+	${RM} -r failure_tests/*.log
 
 CRYPTO_C = $(wildcard ../../crypto/*.c) $(wildcard ../../crypto/*.h) ../../crypto/Makefile
 CRYPTO_COPY = $(addprefix s2n/crypto/, $(notdir $(CRYPTO_C)))
@@ -104,7 +125,6 @@ s2n/%Makefile : ../../%Makefile
 
 s2n/Makefile : ../../Makefile
 	cp $< $@
-
 
 s2n/s2n.mk : ../../s2n.mk
 	cp $< $@
