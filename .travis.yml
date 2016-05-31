@@ -17,7 +17,7 @@ before_install:
 
 install:
   - sudo apt-get install z3 -y --force-yes
-  - curl http://saw.galois.com/builds/saw
+  - curl http://saw.galois.com/builds/saw > saw
   - export PATH=$PATH:$PWD
 
 
