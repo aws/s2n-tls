@@ -49,8 +49,10 @@ decruft : clean-logs
 FAILURE_PATCHES = $(wildcard failure_tests/*.patch)
 FAILURE_LOGS = $(FAILURE_PATCHES:.patch=.log)
 
-.PHONY : failure_tests
-failure_tests : bitcode
+.NOTPARALLEL : $(FAILURE_LOGS)
+
+.PHONY : failure-tests
+failure-tests : bitcode
 	@${MAKE} clean-failure-logs
 	@${MAKE} $(FAILURE_LOGS)
 
@@ -68,12 +70,16 @@ bitcode/%.bc : failure_tests/%.patch
 	patch -R -p1 -d s2n -i  ../$<; \
         exit $$status
 
-bitcode : clean_the_dir bitcode/all_llvm.bc
+.PHONY : bitcode
+bitcode :
+	${MAKE} clean_the_dir
+	${MAKE} bitcode/all_llvm.bc
 
 clean_the_dir :
 	${RM} -r s2n
 	${RM} -r tmp
 	${RM} -r failure_tests/*.log
+	${RM} -r bitcode/*.bc
 
 CRYPTO_C = $(wildcard ../../crypto/*.c) $(wildcard ../../crypto/*.h) ../../crypto/Makefile
 CRYPTO_COPY = $(addprefix s2n/crypto/, $(notdir $(CRYPTO_C)))
