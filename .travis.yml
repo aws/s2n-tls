@@ -12,6 +12,8 @@ before_install:
   - sudo apt-get update
     # Install prlimit to set the memlock limit to unlimited for this process
   - (test "$TRAVIS_OS_NAME" = "linux" && sudo .travis/install_prlimit.sh $PWD/.travis && sudo .travis/prlimit --pid "$$" --memlock=unlimited:unlimited) || true
+  - wget http://saw.galois.com/builds/saw
+  - export PATH=$PATH:./
 
 
 install:
@@ -30,6 +32,7 @@ before_script:
   - make install
 
 script:
+  - saw --version
   - cd ../../
   - make
   - make saw
