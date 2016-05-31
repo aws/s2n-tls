@@ -16,11 +16,6 @@
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
-PATCHES=$(wildcard ../tests/saw/crypto/*.patch)
-PATCHED_C=$(PATCHES:.patch=.c)
-
-SRCS_NO_PATCH = $(filter $(notdir $(PATCHED_C)), $(SRCS))
-
 BITCODE_DIR?=../tests/saw/bitcode/
 
 BCS_1=$(SRCS:.c=.bc)
