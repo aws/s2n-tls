@@ -13,12 +13,13 @@ before_install:
   - sudo apt-get update
     # Install prlimit to set the memlock limit to unlimited for this process
   - (test "$TRAVIS_OS_NAME" = "linux" && sudo .travis/install_prlimit.sh $PWD/.travis && sudo .travis/prlimit --pid "$$" --memlock=unlimited:unlimited) || true
-  - wget http://saw.galois.com/builds/saw
-  - export PATH=$PATH:./
 
 
 install:
-  - sudo apt-get install z3 -y
+  - sudo apt-get install z3 -y --force-yes
+  - wget http://saw.galois.com/builds/saw
+  - export PATH=$PATH:./
+
 
 before_script:
   - cd libcrypto-build
