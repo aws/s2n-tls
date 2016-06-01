@@ -16,7 +16,9 @@
 PLATFORM := $(shell uname)
 MAKEFLAGS += PLATFORM=$(PLATFORM)
 
-PATCH?= tests/saw/patch.patch 
+ifndef LIBCRYPTO_ROOT
+	export LIBCRYPTO_ROOT = $(shell echo "`pwd`/libcrypto-root")
+endif
 
 DIRS=$(wildcard */)
 SRCS=$(wildcard *.c)
@@ -25,9 +27,6 @@ OBJS=$(SRCS:.c=.o)
 .PHONY : all
 all: bin
 	$(MAKE) -C tests
-
-$(PATCH) :
-	touch $@
 
 bitcode :
 	${MAKE} -C tests/saw bitcode

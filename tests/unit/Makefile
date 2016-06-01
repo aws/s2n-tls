@@ -17,7 +17,7 @@ SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 TESTS=$(SRCS:.c=)
 VALGRIND_TESTS=$(SRCS:.c=_valgrind)
-CRYPTO_LDFLAGS = -L../../libcrypto-root/lib
+CRYPTO_LDFLAGS = -L$(LIBCRYPTO_ROOT)/lib
 
 .PHONY : all
 all: $(TESTS)
@@ -29,12 +29,12 @@ LIBS += -lm
 
 # Suppress the unreachable code warning, because tests involve what should be
 # unreachable code
-CFLAGS += -Wno-unreachable-code -I../../libcrypto-root/include/ -I../../ -I../../api/
+CFLAGS += -Wno-unreachable-code -I$(LIBCRYPTO_ROOT)/include/ -I../../ -I../../api/
 LDFLAGS += -L../../lib/ ${CRYPTO_LDFLAGS} -L../testlib/ -ltests2n -ls2n ${LIBS} ${CRYPTO_LIBS}
 
 $(TESTS)::
 	@${CC} ${CFLAGS} -o $@ $@.c ${LDFLAGS} 2>&1
-	@DYLD_LIBRARY_PATH="../../lib/:../testlib/:$$DYLD_LIBRARY_PATH" LD_LIBRARY_PATH="../../lib/:../testlib/:$$LD_LIBRARY_PATH" ./$@
+	@DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" ./$@
 
 .PHONY : valgrind
 valgrind: $(TESTS)

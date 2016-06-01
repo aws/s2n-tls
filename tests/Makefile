@@ -13,7 +13,7 @@
 # permissions and limitations under the License.
 #
 
-OPENSSL_VERSION=$(shell ../libcrypto-root/bin/openssl version 2> /dev/null || echo 1)
+OPENSSL_VERSION=$(shell $(LIBCRYPTO_ROOT)/bin/openssl version 2> /dev/null || echo 1)
 ifeq (${OPENSSL_VERSION}, 1)
 	COMPILE_INFO=Compiled with the missing version of openssl
 else

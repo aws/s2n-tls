@@ -37,7 +37,7 @@ INDENT  = $(shell (if indent --version 2>&1 | grep GNU > /dev/null; then echo in
 
 CFLAGS = -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized \
          -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wstack-protector -fPIC \
-         -std=c99 -D_POSIX_C_SOURCE=200112L -fstack-protector-all -O2 -I../libcrypto-root/include/ \
+         -std=c99 -D_POSIX_C_SOURCE=200112L -fstack-protector-all -O2 -I$(LIBCRYPTO_ROOT)/include/ \
          -I../api/ -I../ -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security \
          -D_FORTIFY_SOURCE=2
 

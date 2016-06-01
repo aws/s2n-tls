@@ -155,7 +155,7 @@ int64_t s2n_public_random(int64_t max)
     return -1;
 }
 
-#ifndef OPENSSL_IS_BORINGSSL
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_FIPS) && !defined(LIBRESSL_VERSION_NUMBER)
 
 int s2n_openssl_compat_rand(unsigned char *buf, int num)
 {
@@ -218,7 +218,7 @@ int s2n_init(void)
 
     GUARD(s2n_defend_if_forked());
 
-#ifndef OPENSSL_IS_BORINGSSL
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_FIPS) && !defined(LIBRESSL_VERSION_NUMBER)
     /* Create an engine */
     ENGINE *e = ENGINE_new();
     if (e == NULL ||
