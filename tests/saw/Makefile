@@ -60,7 +60,7 @@ failure-tests : bitcode
 
 failure_tests/%.log : bitcode/%.bc
 	cp $< bitcode/all_llvm.bc
-	! saw HMAC.saw &> $@
+	! saw verify_s2n_hmac_sha256.saw &> $@
 
 bitcode/%.bc : failure_tests/%.patch
 	patch -p1 -d s2n -i ../$<

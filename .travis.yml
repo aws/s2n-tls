@@ -2,6 +2,7 @@ sudo: true
 
 os:
   - linux
+  - osx
 
 compiler:
   - gcc
@@ -17,8 +18,9 @@ before_install:
 
 install:
   - sudo apt-get install z3 -y --force-yes
-  - curl http://saw.galois.com/builds/saw > saw
-  - export PATH=$PATH:$PWD
+  - test "$TRAVIS_OS_NAME" = linux" && curl http://saw.galois.com/builds/nightly/saw-0.2-2016-06-01-Ubuntu14.04-64.tar.gz > saw.tar.gz || true
+  - test "$TRAVIS_OS_NAME" = linux" && tar -xzvf saw.tar.gz || true 
+  - export PATH=$PATH:$PWD/saw-0.2-2016-04-12-Ubuntu14.04-64/bin
 
 
 before_script:
@@ -36,6 +38,6 @@ before_script:
 script:
   - cd ../../
   - make
-  - make saw
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; make saw; fi 
 
 
