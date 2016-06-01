@@ -25,6 +25,7 @@
 #include <string.h>
 #include <signal.h>
 #include <stdio.h>
+#include <getopt.h>
 
 #include <errno.h>
 
@@ -95,19 +96,62 @@ extern int echo(struct s2n_connection *conn, int sockfd);
 
 void usage()
 {
-    fprintf(stderr, "usage: s2nd host port\n");
+    fprintf(stderr, "usage: s2nd [options] host port\n");
     fprintf(stderr, " host: hostname or IP address to listen on\n");
     fprintf(stderr, " port: port to listen on\n");
+    fprintf(stderr, "\n Options:\n\n");
+    fprintf(stderr, "  -c [version_string]\n");
+    fprintf(stderr, "  --ciphers [version_string]\n");
+    fprintf(stderr, "    Set the cipher prefence version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
+    fprintf(stderr, "  -h,--help\n");
+    fprintf(stderr, "    Display this message and quit.\n");
 
     exit(1);
 }
 
-int main(int argc, const char *argv[])
+int main(int argc, char * const *argv)
 {
     struct addrinfo hints, *ai;
     int r, sockfd = 0;
 
-    if (argc != 3) {
+    /* required args */
+    const char *host = NULL;
+    const char *port = NULL;
+
+    const char *cipher_prefs = "default";
+
+    static struct option long_options[] = {
+        { "help", no_argument, 0, 'h' },
+        { "ciphers", required_argument, 0, 'c' },
+    };
+    while (1) {
+        int option_index = 0;
+        int c = getopt_long (argc, argv, "c:h", long_options, &option_index);
+        if (c == -1) {
+            break;
+        }
+        switch (c) {
+            case 'c':
+                cipher_prefs = optarg;
+                break;
+            case 'h':
+                usage();
+                break;
+            case '?':
+            default:
+                usage();
+                break;
+        }
+    }
+
+    if (optind < argc) {
+        host = argv[optind++];
+    }
+    if (optind < argc) {
+        port = argv[optind++];
+    }
+
+    if (!host || !port) {
         usage();
     }
 
@@ -121,7 +165,7 @@ int main(int argc, const char *argv[])
         exit(1);
     }
 
-    if ((r = getaddrinfo(argv[1], argv[2], &hints, &ai)) < 0) {
+    if ((r = getaddrinfo(host, port, &hints, &ai)) < 0) {
         fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(r));
         exit(1);
     }
@@ -151,7 +195,7 @@ int main(int argc, const char *argv[])
         fprintf(stderr, "Error running s2n_init(): '%s'\n", s2n_strerror(s2n_errno, "EN"));
     }
 
-    printf("Listening on %s:%s\n", argv[1], argv[2]);
+    printf("Listening on %s:%s\n", host, port);
 
     struct s2n_config *config = s2n_config_new();
     if (!config) {
@@ -166,6 +210,11 @@ int main(int argc, const char *argv[])
 
     if (s2n_config_add_dhparams(config, dhparams) < 0) {
         fprintf(stderr, "Error adding DH parameters: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        exit(1);
+    }
+
+    if (s2n_config_set_cipher_preferences(config, cipher_prefs) < 0) {
+        fprintf(stderr, "Error setting cipher prefs: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
     }
 
