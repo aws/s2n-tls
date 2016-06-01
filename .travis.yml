@@ -21,6 +21,8 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then curl http://saw.galois.com/builds/nightly/saw-0.2-2016-06-01-Ubuntu14.04-64.tar.gz > saw.tar.gz; tar -xzvf saw.tar.gz; fi
   - export PATH=$PATH:$PWD/saw-0.2-2016-04-12-Ubuntu14.04-64/bin
   - echo $PATH
+  - ls
+  - ls saw-0.2-2016-04-12-Ubuntu14.04-64/bin
 
 
 before_script:
@@ -31,13 +33,13 @@ before_script:
   - cd openssl-1.0.2*
   - (test "$TRAVIS_OS_NAME" = "linux" && ./config -fPIC no-shared no-libunbound no-gmp no-jpake no-krb5 no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-store no-zlib no-hw no-mdc2 no-seed no-idea enable-ec-nist_64_gcc_128 no-camellia no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS --prefix=`pwd`/../../libcrypto-root/) || true
   - (test "$TRAVIS_OS_NAME" = "osx" && ./Configure darwin64-x86_64-cc -fPIC --prefix=`pwd`/../../libcrypto-root/) || true
-  - make depend
-  - make
-  - make install
+#  - make depend
+#  - make
+#  - make install
 
 script:
   - cd ../../
-  - make
+  # - make
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then make saw; fi 
 
 
