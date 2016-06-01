@@ -6,14 +6,14 @@ Currently this directory houses a test that compares the s2n
 implementation of HMAC with a cryptol spec of the same. There are 3
 files that take part in this test.
 
-  1. all_llvm.bc
-  2. HMAC.cry
-  3. HMAC.saw
-  
+  1. bitcode/all_llvm.bc
+  2. spec/HMAC.cry
+  3. spec/HMAC.saw
+
 all_llvm.bc contains linked llvm bitcode definitions for the entirity
 of s2n/crypto. This bitcode is not currently linked with code from the
 other directories in s2n, because so far, those directories have not
-contained code necessary for verification. 
+contained code necessary for verification.
 
 HMAC.cry is a [Cryptol](http://www.cryptol.net/)
 specification/implementation of HMAC. Cryptol can be seen as an
@@ -42,8 +42,8 @@ which is not currently a necessary prerequisite for s2n.
 We have integrated the build of this test into the s2n build. Right
 now, the steps for a build are (files that do the work are listed in parenthesis):
 
-  1. patch s2n to prepare it for SAW (we expect to remove this step
-     soon), (s2n/Makefile)
+  1. patch s2n to prepare it for SAW, when necessary (currently not
+     necessary) (s2n/Makefile)
   2. compile all files in s2n/crypto to llvm bitcode (located in
      s2n/tests/saw/bitcode) using the clang
      compiler, (s2n/crypto/Makefile, sn2/s2n.mk)
@@ -51,13 +51,13 @@ now, the steps for a build are (files that do the work are listed in parenthesis
      llvm-link (s2n/crypto/Makefile)
   4. enter the test directory and run all of the saw scripts that are
      in the s2n/tests/saw directory, checking and logging the results
-	 (s2n/Makefile, s2n/tests/makefile, s2n/tests/saw) and
+     (s2n/Makefile, s2n/tests/makefile, s2n/tests/saw) and
   5. enable cleaning for compiled bitcode and test logs. all bitcode
      (.bc) in any source directories will be cleaned, but logs (.log)
      will only be cleaned out of the saw directory. On recommendation,
      it's trivial to switch the behavior for either.
      (s2n/tests/Makefile, s2n/tests/saw)
-	 
+
 With the exception of step 5 (`make clean`), all of these steps are
 run by running `make saw` in the s2n root directory. The only
 modification needed for a Travis script is to install Z3, download
