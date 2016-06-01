@@ -35,6 +35,19 @@ decruft : clean-logs
 #should not be made there
 ################
 
+FAILURE_PATCHES = $(wildcard failure_tests/*.patch)
+FAILURE_LOGS = $(FAILURE_PATCHES:.patch=.log)
+
+.PHONY : failure_tests
+failure_tests : bitcode $(FAILURE_LOGS)
+
+failure_tests/%.log : failure_tests/%.patch
+	patch -p1 -d s2n -i ../$<
+	${MAKE} -C s2n bc; \
+        status=$$?; \
+        patch -R -p1 -d s2n -i  ../$< > $@; \
+        exit $$status
+
 bitcode : clean_the_dir bitcode/all_llvm.bc
 
 clean_the_dir :
