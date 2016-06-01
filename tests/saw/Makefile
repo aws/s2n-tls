@@ -1,4 +1,25 @@
+#####################
+# Copyright 2016 Galois, Inc. All Rights Reserved
+#
+#  Authors:
+#	Joey Dodds : jdodds@galois.com
+#       Nathan Collins : conathan@galois.com
+#	
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#  http://aws.amazon.com/apache2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+########################
+
 SCRIPTS = $(wildcard *.saw)
+#A log file will be created for each test in the temp dir
 LOGS=$(patsubst %.saw,tmp/%.log,$(SCRIPTS))
 SHELL:=/bin/bash 
 
@@ -35,15 +56,6 @@ decruft : clean-logs
 	${RM} -r s2n
 	${RM} -r tmp
 
-###############
-#The following is to allow for patching s2n during development
-#to use it, put a patch (at the level of the s2n directory) in the file
-#patch.patch in this directory and call the bitcode target. That will
-#create bitcode/all_llvm.bc, which can be used by SAW
-
-#beware: the copied directory gets deleted every time that tests are run, so modifications
-#should not be made there
-################
 
 FAILURE_PATCHES = $(wildcard failure_tests/*.patch)
 FAILURE_LOGS = $(FAILURE_PATCHES:.patch=.log)
@@ -56,12 +68,14 @@ failure-tests : bitcode
 
 #@${MAKE} $(FAILURE_LOGS) commented for now because these can't happen in parallel
 
+#The bitcode files don't get deleted, in case we want to do tests on them
 .SECONDARY : $(wildcard btcode/*.bc)
 
 failure_tests/%.log : bitcode/%.bc
 	cp $< bitcode/all_llvm.bc
 	! saw verify_s2n_hmac_sha256.saw &> $@
 
+#keeping track of the status to make sure that even if the make fails the patch still gets undone
 bitcode/%.bc : failure_tests/%.patch
 	patch -p1 -d s2n -i ../$<
 	${MAKE} -C s2n bc; \
@@ -70,6 +84,7 @@ bitcode/%.bc : failure_tests/%.patch
 	patch -R -p1 -d s2n -i  ../$<; \
         exit $$status
 
+#if we ask this makefile to create bitcode it will always completely rebuild it
 .PHONY : bitcode
 bitcode :
 	${MAKE} clean_the_dir

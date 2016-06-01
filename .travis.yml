@@ -18,10 +18,6 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install z3 -y --force-yes; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then curl http://saw.galois.com/builds/nightly/saw-0.2-2016-06-01-Ubuntu14.04-64.tar.gz > saw.tar.gz; tar -xzvf saw.tar.gz; fi
   - export PATH=$PATH:$PWD/saw-0.2-2016-06-01-Ubuntu14.04-64/bin
-  - echo $PATH
-  - ls
-  - ls saw-0.2-2016-06-01-Ubuntu14.04-64/bin
-
 
 before_script:
   - cd libcrypto-build
