@@ -53,7 +53,10 @@ property pass =
 
 //////// Imperative version ////////
 //
-// To start, the imperative version is specialized to SHA256.
+// To start, the imperative version is specialized to SHA256. This is a
+// simplified imperative version, built as a stepping stone to the full
+// verification of the code in s2n. The code between here and the
+// definition of HMAC_c_state is not used by the proof.
 
 type SHA512_DIGEST_LENGTH = 64
 
@@ -252,7 +255,7 @@ property hmac_imp_correct key msg = hmacSHA256 key msg == hmacSHA256_imp key msg
 //////// Translations between C/LLVM and Cryptol data types ////////
 
 ////////////////////////////////////////////////////////////////
-// Hashing (specialized to SHA256).
+// Hashing 
 ////////////////////////////////////////////////////////////////
 
 // s2n_hash.h
@@ -347,6 +350,11 @@ type SHA256State = { h     : [8][32]
 
 ////////////////////////////////////////////////////////////////
 // Basic hash-state translations.
+
+// The following code describes how to marshall back and forth between a
+// SHA256 C state and a SHA512 C state. Doing this is unnecessary for the
+// HMAC verification, but it is necessary to concretely evaluate the specs.
+// The rest of this section, therefore, does not need to be trusted.
 
 // I'm using the initial, high order bits of the SHA512 state to
 // construct the SHA256 state. The LLVM code doesn't make it clear
@@ -581,7 +589,6 @@ type hash_digest_ty digest_size =
 hash_init_c_state : hash_init_ty
 hash_init_c_state = sha256_init_sha512_c_state
 //hash_init_c_state = undefined
-//hash_init_c_state = \_ -> zero
 
 // Cryptol does not support polymorphic arguments (rank 2
 // polymorphism), so making the hash update function a parameter to
@@ -593,18 +600,6 @@ hash_update_c_state :
   {msg_size} (fin msg_size) => hash_update_ty msg_size
 hash_update_c_state = sha256_update_sha512_c_state
 //hash_update_c_state = undefined
-/*
-hash_update_c_state = \x _ -> inc x
-  where
-    inc s =
-      { h      = s.h
-      , Nl     = s.Nl
-      , Nh     = s.Nh
-      , u      = s.u
-      , num    = s.num + 1
-      , md_len = s.md_len
-      } : SHA512_c_state
-*/
 
 
 hash_digest_c_state :
@@ -618,7 +613,6 @@ hash_digest_c_state st =
   take `{digest_size}
     (sha256_digest_sha512_c_state st # (zero : [inf][8]))
 //hash_digest_c_state = undefined
-//hash_digest_c_state = \s -> zero # split s.num
 
 
 // Cases depending on key size:
