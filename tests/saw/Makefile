@@ -5,7 +5,6 @@ SHELL:=/bin/bash
 .PHONY : all
 all:
 	@${MAKE} clean-logs
-	@${MAKE} clean-bitcode
 	@${MAKE} $(LOGS)
 	@${MAKE} failure-tests
 
@@ -22,7 +21,7 @@ clean-failure-logs :
 	$(RM) -- $(wildcard failure_tests/*.log)
 
 
-tmp/%.log : %.saw bitcode/all_llvm.bc
+tmp/%.log : %.saw bitcode/all_llvm.bc tmp
 	@echo saw $<
 	@set -o pipefail; \
 	saw $< | tee $@
@@ -49,12 +48,13 @@ decruft : clean-logs
 FAILURE_PATCHES = $(wildcard failure_tests/*.patch)
 FAILURE_LOGS = $(FAILURE_PATCHES:.patch=.log)
 
-.NOTPARALLEL : $(FAILURE_LOGS)
-
 .PHONY : failure-tests
 failure-tests : bitcode
 	@${MAKE} clean-failure-logs
-	@${MAKE} $(FAILURE_LOGS)
+	@${MAKE} failure_tests/bad_magic_mod.log
+	@${MAKE} failure_tests/msgchange.log
+
+#@${MAKE} $(FAILURE_LOGS) commented for now because these can't happen in parallel
 
 .SECONDARY : $(wildcard btcode/*.bc)
 
@@ -117,7 +117,7 @@ tmp/IS_PATCHED : | tmp
 	if [ -f ../patch.patch ]; then patch -p1 -d s2n -i ../patch.patch; fi
 	touch $@
 
-bitcode/all_llvm.bc : s2n/crypto s2n/utils s2n/stuffer s2n/tls s2n/api s2n/error s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(UTILS_COPY) $(TLS_COPY) $(STUFFER_COPY) $(API_COPY) $(ERROR_COPY) tmp/IS_PATCHED
+bitcode/all_llvm.bc : s2n/crypto s2n/utils s2n/stuffer s2n/tls s2n/api s2n/error s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(UTILS_COPY) $(TLS_COPY) $(STUFFER_COPY) $(API_COPY) $(ERROR_COPY)
 	${MAKE} -C s2n bc
 
 s2n/%.h : ../../%.h

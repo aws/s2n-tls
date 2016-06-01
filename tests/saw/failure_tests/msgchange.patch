@@ -6,7 +6,7 @@
  {
 +
 +      //try something shady...
-+    if (((char*)in)[10]=='3'){
++    if (size > 10 && ((char*)in)[10]=='3'){
 +      ((char*)in)[10]='4';
 +    }
 +
