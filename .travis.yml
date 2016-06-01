@@ -38,6 +38,7 @@ before_script:
 script:
   - cd ../../
   # - make
+  - ls tests/saw/spec
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then make saw; fi 
 
 
