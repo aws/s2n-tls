@@ -41,7 +41,7 @@ int echo(struct s2n_connection *conn, int sockfd)
     do {
         if (s2n_negotiate(conn, &blocked) < 0) {
             fprintf(stderr, "Failed to negotiate: '%s' %d\n", s2n_strerror(s2n_errno, "EN"), s2n_connection_get_alert(conn));
-            exit(1);
+            return -1;
         }
     } while (blocked);
 
