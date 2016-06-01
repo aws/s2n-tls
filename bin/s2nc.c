@@ -44,6 +44,7 @@ void usage()
     fprintf(stderr, "  -n [server name]\n");
     fprintf(stderr, "  --name [server name]\n");
     fprintf(stderr, "    Sets the SNI server name header for this client.  If not specified, the host value is used.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  --s,--status\n");
     fprintf(stderr, "    Request the OCSP status of the remote server certificate\n");
     fprintf(stderr, "\n");
@@ -51,6 +52,7 @@ void usage()
 }
 
 extern int echo(struct s2n_connection *conn, int sockfd);
+extern int negotiate(struct s2n_connection *conn);
 
 int main(int argc, char * const *argv)
 {
@@ -69,6 +71,7 @@ int main(int argc, char * const *argv)
         { "help", no_argument, 0, 'h' },
         { "name", required_argument, 0, 'n' },
         { "status", no_argument, 0, 's' },
+
     };
     while (1) {
         int option_index = 0;
@@ -250,7 +253,14 @@ int main(int argc, char * const *argv)
     }
 
     /* See echo.c */
+    negotiate(conn);
     echo(conn, sockfd);
+
+    s2n_blocked_status blocked;
+    if (s2n_shutdown(conn, &blocked) < 0) {
+        fprintf(stderr, "Error calling s2n_shutdown: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        exit(1);
+    }
 
     if (s2n_connection_free(conn) < 0) {
         fprintf(stderr, "Error freeing connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));

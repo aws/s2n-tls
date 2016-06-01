@@ -93,6 +93,7 @@ static char dhparams[] =
     "-----END DH PARAMETERS-----\n";
 
 extern int echo(struct s2n_connection *conn, int sockfd);
+extern int negotiate(struct s2n_connection *conn);
 
 void usage()
 {
@@ -103,6 +104,9 @@ void usage()
     fprintf(stderr, "  -c [version_string]\n");
     fprintf(stderr, "  --ciphers [version_string]\n");
     fprintf(stderr, "    Set the cipher prefence version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
+    fprintf(stderr, "  -n\n");
+    fprintf(stderr, "  --negotiate\n");
+    fprintf(stderr, "    Only perform tls handshake and then shutdown the connection\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -119,6 +123,7 @@ int main(int argc, char * const *argv)
     const char *port = NULL;
 
     const char *cipher_prefs = "default";
+    int only_negotiate = 0;
 
     static struct option long_options[] = {
         { "help", no_argument, 0, 'h' },
@@ -126,7 +131,7 @@ int main(int argc, char * const *argv)
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long (argc, argv, "c:h", long_options, &option_index);
+        int c = getopt_long (argc, argv, "c:hn", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -136,6 +141,9 @@ int main(int argc, char * const *argv)
                 break;
             case 'h':
                 usage();
+                break;
+            case 'n':
+                only_negotiate = 1;
                 break;
             case '?':
             default:
@@ -236,7 +244,19 @@ int main(int argc, char * const *argv)
             exit(1);
         }
 
-        echo(conn, fd);
+        negotiate(conn);
+
+        if (!only_negotiate) {
+            echo(conn, fd);
+        }
+
+        s2n_blocked_status blocked;
+        if(s2n_shutdown(conn, &blocked) < 0) {
+            fprintf(stderr, "Error running s2n_shutdown: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+            exit(1);
+        }
+
+        close(fd);
 
         if (s2n_connection_wipe(conn) < 0) {
             fprintf(stderr, "Error wiping connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
