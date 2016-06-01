@@ -37,6 +37,6 @@ before_script:
 script:
   - cd ../../
   - make
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; make saw; fi 
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then make saw; fi 
 
 
