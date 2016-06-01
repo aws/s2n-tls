@@ -24,6 +24,9 @@
 
 #define S2N_MAX_DIGEST_LEN SHA512_DIGEST_LENGTH
 
+/* Enough to support TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384, 2*SHA384_DIGEST_LEN + 2*AES256_KEY_SIZE */
+#define S2N_MAX_KEY_BLOCK_LEN 160
+
 union s2n_prf_working_space {
     struct {
         struct s2n_hmac_state hmac;

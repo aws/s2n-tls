@@ -336,7 +336,7 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     struct s2n_blob master_secret = {.data = conn->pending.master_secret,.size = sizeof(conn->pending.master_secret) };
     struct s2n_blob label, out;
     uint8_t key_expansion_label[] = "key expansion";
-    uint8_t key_block[128];
+    uint8_t key_block[S2N_MAX_KEY_BLOCK_LEN];
 
     label.data = key_expansion_label;
     label.size = sizeof(key_expansion_label) - 1;
