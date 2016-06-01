@@ -18,8 +18,8 @@ before_install:
 
 install:
   - sudo apt-get install z3 -y --force-yes
-  - test "$TRAVIS_OS_NAME" = linux" && curl http://saw.galois.com/builds/nightly/saw-0.2-2016-06-01-Ubuntu14.04-64.tar.gz > saw.tar.gz || true
-  - test "$TRAVIS_OS_NAME" = linux" && tar -xzvf saw.tar.gz || true 
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; curl http://saw.galois.com/builds/nightly/saw-0.2-2016-06-01-Ubuntu14.04-64.tar.gz > saw.tar.gz; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; tar -xzvf saw.tar.gz; fi 
   - export PATH=$PATH:$PWD/saw-0.2-2016-04-12-Ubuntu14.04-64/bin
 
 
@@ -38,6 +38,6 @@ before_script:
 script:
   - cd ../../
   - make
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; make saw; fi 
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; make saw; fi 
 
 
