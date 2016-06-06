@@ -32,6 +32,7 @@ extern __thread int s2n_errno;
 
 typedef enum {
     S2N_ERR_OK,
+    S2N_ERR_IO,
     S2N_ERR_KEY_INIT,
     S2N_ERR_ENCRYPT,
     S2N_ERR_DECRYPT,

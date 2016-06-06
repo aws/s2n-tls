@@ -31,6 +31,7 @@ struct s2n_error_translation
 
 struct s2n_error_translation EN[] = { 
     { S2N_ERR_OK, "no error" },
+    { S2N_ERR_IO, "underlying I/O operation failed, check system errno" },
     { S2N_ERR_KEY_INIT, "error initializing encryption key" },
     { S2N_ERR_ENCRYPT, "error encrypting data" },
     { S2N_ERR_DECRYPT, "error decrypting data" },
