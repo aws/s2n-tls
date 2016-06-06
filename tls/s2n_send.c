@@ -129,7 +129,10 @@ ssize_t s2n_send(struct s2n_connection *conn, void *buf, ssize_t size, s2n_block
             w = s2n_stuffer_send_to_fd(&conn->out, conn->writefd, s2n_stuffer_data_available(&conn->out));
             if (w < 0) {
                 if (errno == EWOULDBLOCK) {
-                    return bytes_written;
+                    if (bytes_written) {
+                        return bytes_written;
+                    }
+                    return -1;
                 }
                 return -1;
             }
