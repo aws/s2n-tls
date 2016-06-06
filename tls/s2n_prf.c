@@ -237,7 +237,7 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
 {
     struct s2n_blob master_secret, md5, sha;
     uint8_t md5_digest[MD5_DIGEST_LENGTH];
-    uint8_t sha_digest[SHA256_DIGEST_LENGTH];
+    uint8_t sha_digest[SHA384_DIGEST_LENGTH];
     uint8_t client_finished_label[] = "client finished";
     struct s2n_blob client_finished;
     struct s2n_blob label;
@@ -285,7 +285,7 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
 {
     struct s2n_blob master_secret, md5, sha;
     uint8_t md5_digest[MD5_DIGEST_LENGTH];
-    uint8_t sha_digest[SHA256_DIGEST_LENGTH];
+    uint8_t sha_digest[SHA384_DIGEST_LENGTH];
     uint8_t server_finished_label[] = "server finished";
     struct s2n_blob server_finished;
     struct s2n_blob label;
