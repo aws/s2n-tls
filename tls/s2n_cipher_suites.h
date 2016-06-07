@@ -49,6 +49,10 @@ struct s2n_cipher_suite {
     /* Cipher name in Openssl format */
     struct s2n_cipher *cipher;
     s2n_hmac_algorithm hmac_alg;
+    /* RFC 5426(TLS1.2) allows cipher suite defined PRFs. Cipher suites defined in and before TLS1.2 will use
+     * P_hash with SHA256 when TLS1.2 is negotiated. 
+     */
+    s2n_hmac_algorithm tls12_prf_alg;
     uint8_t minimum_required_tls_version;
 };
 

@@ -147,7 +147,7 @@ static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct 
     GUARD(s2n_blob_zero(out));
 
     if (conn->actual_protocol_version == S2N_TLS12) {
-        return s2n_p_hash(&conn->prf_space, S2N_HMAC_SHA256, secret, label, seed_a, seed_b, out);
+        return s2n_p_hash(&conn->prf_space, conn->pending.cipher_suite->tls12_prf_alg, secret, label, seed_a, seed_b, out);
     }
 
     struct s2n_blob half_secret = {.data = secret->data,.size = (secret->size + 1) / 2 };
@@ -237,7 +237,7 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
 {
     struct s2n_blob master_secret, md5, sha;
     uint8_t md5_digest[MD5_DIGEST_LENGTH];
-    uint8_t sha_digest[SHA256_DIGEST_LENGTH];
+    uint8_t sha_digest[SHA384_DIGEST_LENGTH];
     uint8_t client_finished_label[] = "client finished";
     struct s2n_blob client_finished;
     struct s2n_blob label;
@@ -254,10 +254,20 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
     master_secret.data = conn->pending.master_secret;
     master_secret.size = sizeof(conn->pending.master_secret);
     if (conn->actual_protocol_version == S2N_TLS12) {
-        GUARD(s2n_hash_digest(&conn->handshake.client_sha256, sha_digest, SHA256_DIGEST_LENGTH));
-        sha.data = sha_digest;
-        sha.size = SHA256_DIGEST_LENGTH;
+        switch(conn->pending.cipher_suite->tls12_prf_alg) {
+            case S2N_HMAC_SHA256:
+                GUARD(s2n_hash_digest(&conn->handshake.client_sha256, sha_digest, SHA256_DIGEST_LENGTH));
+                sha.size = SHA256_DIGEST_LENGTH;
+                break;
+            case S2N_HMAC_SHA384:
+                GUARD(s2n_hash_digest(&conn->handshake.client_sha384, sha_digest, SHA384_DIGEST_LENGTH));
+                sha.size = SHA384_DIGEST_LENGTH;
+                break;
+            default:
+                S2N_ERROR(S2N_ERR_PRF_INVALID_ALGORITHM);
+        }
 
+        sha.data = sha_digest;
         return s2n_prf(conn, &master_secret, &label, &sha, NULL, &client_finished);
     }
 
@@ -275,7 +285,7 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
 {
     struct s2n_blob master_secret, md5, sha;
     uint8_t md5_digest[MD5_DIGEST_LENGTH];
-    uint8_t sha_digest[SHA256_DIGEST_LENGTH];
+    uint8_t sha_digest[SHA384_DIGEST_LENGTH];
     uint8_t server_finished_label[] = "server finished";
     struct s2n_blob server_finished;
     struct s2n_blob label;
@@ -292,10 +302,20 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
     master_secret.data = conn->pending.master_secret;
     master_secret.size = sizeof(conn->pending.master_secret);
     if (conn->actual_protocol_version == S2N_TLS12) {
-        GUARD(s2n_hash_digest(&conn->handshake.server_sha256, sha_digest, SHA256_DIGEST_LENGTH));
-        sha.data = sha_digest;
-        sha.size = SHA256_DIGEST_LENGTH;
+        switch(conn->pending.cipher_suite->tls12_prf_alg) {
+            case S2N_HMAC_SHA256:
+                GUARD(s2n_hash_digest(&conn->handshake.server_sha256, sha_digest, SHA256_DIGEST_LENGTH));
+                sha.size = SHA256_DIGEST_LENGTH;
+                break;
+            case S2N_HMAC_SHA384:
+                GUARD(s2n_hash_digest(&conn->handshake.server_sha384, sha_digest, SHA384_DIGEST_LENGTH));
+                sha.size = SHA384_DIGEST_LENGTH;
+                break;
+            default:
+                S2N_ERROR(S2N_ERR_PRF_INVALID_ALGORITHM);
+        }
 
+        sha.data = sha_digest;
         return s2n_prf(conn, &master_secret, &label, &sha, NULL, &server_finished);
     }
 
@@ -316,7 +336,7 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     struct s2n_blob master_secret = {.data = conn->pending.master_secret,.size = sizeof(conn->pending.master_secret) };
     struct s2n_blob label, out;
     uint8_t key_expansion_label[] = "key expansion";
-    uint8_t key_block[128];
+    uint8_t key_block[S2N_MAX_KEY_BLOCK_LEN];
 
     label.data = key_expansion_label;
     label.size = sizeof(key_expansion_label) - 1;
