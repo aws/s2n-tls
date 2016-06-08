@@ -127,3 +127,24 @@ const char *s2n_strerror(int error, const char *lang)
 
     return no_such_error;
 }
+
+int s2n_error_get_type(int error)
+{
+    if (error < S2N_ERR_T_IO_START) {
+        return S2N_ERR_T_OK;
+    } else if (error < S2N_ERR_T_CLOSED_START) {
+        return S2N_ERR_T_IO;
+    } else if (error < S2N_ERR_T_BLOCKED_START) {
+        return S2N_ERR_T_CLOSED;
+    } else if (error < S2N_ERR_T_ALERT_START) {
+        return S2N_ERR_T_BLOCKED;
+    } else if (error < S2N_ERR_T_PROTO_START) {
+        return S2N_ERR_T_ALERT;
+    } else if (error < S2N_ERR_T_INTERNAL_START) {
+        return S2N_ERR_T_PROTO;
+    } else if (error < S2N_ERR_T_USAGE_START) {
+        return S2N_ERR_T_INTERNAL;
+    } else {
+        return S2N_ERR_T_USAGE;
+    }
+}
