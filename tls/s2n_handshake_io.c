@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/param.h>
+
 #include <errno.h>
 #include <s2n.h>
 
@@ -113,9 +115,7 @@ static int handshake_write_io(struct s2n_connection *conn)
         out.size = s2n_stuffer_data_available(&conn->handshake.io);
 
         GUARD((max_payload_size = s2n_record_max_write_payload_size(conn)));
-        if (out.size > max_payload_size) {
-            out.size = max_payload_size;
-        }
+        out.size = MIN(out.size, max_payload_size);
 
         out.data = s2n_stuffer_raw_read(&conn->handshake.io, out.size);
         notnull_check(out.data);
