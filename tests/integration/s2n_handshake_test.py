@@ -40,6 +40,7 @@ S2N_CIPHERS=[
     "ECDHE-RSA-AES256-SHA384",
     "ECDHE-RSA-AES128-GCM-SHA256",
     "ECDHE-RSA-AES256-GCM-SHA384",
+    "AES256-GCM-SHA384",
 ]
 
 def try_handshake(endpoint, port, cipher):
