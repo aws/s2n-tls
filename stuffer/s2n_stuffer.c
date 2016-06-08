@@ -102,7 +102,7 @@ int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size)
 int s2n_stuffer_rewrite(struct s2n_stuffer *stuffer)
 {
     stuffer->write_cursor = 0;
-    stuffer->read_cursor = MIN(stuffer->read_cursor, stuffer->write_cursor);
+    stuffer->read_cursor = 0;
 
     return 0;
 }
@@ -194,7 +194,7 @@ int s2n_stuffer_skip_write(struct s2n_stuffer *stuffer, const uint32_t n)
     if (s2n_stuffer_space_remaining(stuffer) < n) {
         if (stuffer->growable) {
             /* Always grow a stuffer by at least 1k */
-            uint32_t growth = MIN(n, 1024);
+            uint32_t growth = MAX(n, 1024);
 
             GUARD(s2n_stuffer_resize(stuffer, stuffer->blob.size + growth));
         } else {
