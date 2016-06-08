@@ -123,7 +123,7 @@ ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_block
                 if (bytes_read) {
                     return bytes_read;
                 }
-                return -1;
+                S2N_ERROR(S2N_ERR_BLOCKED);
             }
             if (r == -2) {
                 conn->closed = 1;
@@ -131,7 +131,7 @@ ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_block
                 *blocked = S2N_NOT_BLOCKED;
                 return bytes_read;
             }
-            return -1;
+            S2N_ERROR(S2N_ERR_IO);
         }
     
         if (isSSLv2) {

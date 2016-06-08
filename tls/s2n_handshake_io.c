@@ -217,7 +217,10 @@ static int handshake_read_io(struct s2n_connection *conn)
             conn->closed = 1;
             S2N_ERROR(S2N_ERR_CLOSED);
         }
-        return -1;
+        if (errno == EWOULDBLOCK) {
+            S2N_ERROR(S2N_ERR_BLOCKED);
+        }
+        S2N_ERROR(S2N_ERR_IO);
     }
 
     if (isSSLv2) {
