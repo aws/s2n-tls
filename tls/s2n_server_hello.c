@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/param.h>
+
 #include <s2n.h>
 #include <time.h>
 
@@ -122,9 +124,7 @@ int s2n_server_hello_send(struct s2n_connection *conn)
     notnull_check(r.data);
     GUARD(s2n_get_public_random_data(&r));
 
-    if (conn->client_protocol_version < conn->server_protocol_version) {
-        conn->actual_protocol_version = conn->client_protocol_version;
-    }
+    conn->actual_protocol_version = MIN(conn->client_protocol_version, conn->server_protocol_version);
 
     protocol_version[0] = conn->actual_protocol_version / 10;
     protocol_version[1] = conn->actual_protocol_version % 10;

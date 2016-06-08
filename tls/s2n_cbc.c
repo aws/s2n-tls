@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/param.h>
 #include <stdint.h>
 
 #include "error/s2n_errno.h"
@@ -60,10 +61,7 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
     /* Determine what the padding length is */
     uint8_t padding_length = decrypted->data[decrypted->size - 1];
 
-    int payload_length = payload_and_padding_size - padding_length - 1;
-    if (payload_length < 0) {
-        payload_length = 0;
-    }
+    int payload_length = MAX(payload_and_padding_size - padding_length - 1, 0);
 
     /* Update the MAC */
     GUARD(s2n_hmac_update(hmac, decrypted->data, payload_length));
@@ -84,11 +82,8 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
         return 0 - mismatches;
     }
 
-    /* Check the maximum amount of padding */
-    int check = 255;
-    if (check > (payload_and_padding_size - 1)) {
-        check = (payload_and_padding_size - 1);
-    }
+    /* Check the maximum amount that could theoritically be padding */
+    int check = MIN(255, (payload_and_padding_size - 1));
 
     int cutoff = check - padding_length;
     for (int i = 0, j = decrypted->size - 1 - check; i < check && j < decrypted->size; i++, j++) {
