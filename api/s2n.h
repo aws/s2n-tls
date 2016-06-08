@@ -122,7 +122,6 @@ extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, char *ce
 extern int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config,
         char *cert_chain_pem, char *private_key_pem, const uint8_t *status, uint32_t length);
 extern int s2n_config_add_dhparams(struct s2n_config *config, char *dhparams_pem);
-extern int s2n_config_set_key_exchange_preferences(struct s2n_config *config, const char *preferences);
 extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
 extern int s2n_config_set_protocol_preferences(struct s2n_config *config, const char * const *protocols, int protocol_count);
 typedef enum { S2N_STATUS_REQUEST_NONE = 0, S2N_STATUS_REQUEST_OCSP = 1 } s2n_status_request_type;
