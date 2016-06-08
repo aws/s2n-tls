@@ -555,7 +555,7 @@ const char * s2n_connection_get_cipher(struct s2n_connection *conn);
 ```
 
 **s2n_connection_get_cipher** returns a string indicating the cipher suite
-negotiated by s2n for a connection, e.g. "TLS\_RSA\_WITH\_AES\_128\_CBC\_SHA".
+negotiated by s2n for a connection in Openssl format, e.g. "ECDHE-RSA-AES128-GCM-SHA256".
 
 ### s2n\_connection\_wipe
 
