@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/param.h>
 #include <errno.h>
 #include <s2n.h>
 
@@ -105,10 +106,7 @@ ssize_t s2n_send(struct s2n_connection *conn, void *buf, ssize_t size, s2n_block
 
     /* Now write the data we were asked to send this round */
     while (size) {
-        in.size = size;
-        if (in.size > max_payload_size) {
-            in.size = max_payload_size;
-        }
+        in.size = MIN(size, max_payload_size);
 
         if (conn->actual_protocol_version < S2N_TLS11 && conn->active.cipher_suite->cipher->type == S2N_CBC) {
             if (in.size > 1 && cbcHackUsed == 0) {

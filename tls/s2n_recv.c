@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/param.h>
+
 /* Use usleep */
 #define _XOPEN_SOURCE 500
 #include <unistd.h>
@@ -150,10 +152,7 @@ ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_block
             continue;
         }
 
-        out.size = size;
-        if (out.size > s2n_stuffer_data_available(&conn->in)) {
-            out.size = s2n_stuffer_data_available(&conn->in);
-        }
+        out.size = MIN(size, s2n_stuffer_data_available(&conn->in));
 
         GUARD(s2n_stuffer_erase_and_read(&conn->in, &out));
         bytes_read += out.size;

@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/param.h>
 #include <openssl/md5.h>
 #include <openssl/sha.h>
 #include <string.h>
@@ -62,10 +63,7 @@ static int s2n_sslv3_prf(union s2n_prf_working_space *ws, struct s2n_blob *secre
         GUARD(s2n_hash_update(md5, ws->ssl3.sha1_digest, sizeof(ws->ssl3.sha1_digest)));
         GUARD(s2n_hash_digest(md5, ws->ssl3.md5_digest, sizeof(ws->ssl3.md5_digest)));
 
-        uint32_t bytes_to_copy = outputlen;
-        if (bytes_to_copy > sizeof(ws->ssl3.md5_digest)) {
-            bytes_to_copy = sizeof(ws->ssl3.md5_digest);
-        }
+        uint32_t bytes_to_copy = MIN(outputlen, sizeof(ws->ssl3.md5_digest));
 
         memcpy_check(output, ws->ssl3.md5_digest, bytes_to_copy);
 
@@ -112,10 +110,7 @@ static int s2n_p_hash(union s2n_prf_working_space *ws, s2n_hmac_algorithm alg, s
         }
         GUARD(s2n_hmac_digest(hmac, ws->tls.digest1, digest_size));
 
-        uint32_t bytes_to_xor = outputlen;
-        if (bytes_to_xor > digest_size) {
-            bytes_to_xor = digest_size;
-        }
+        uint32_t bytes_to_xor = MIN(outputlen, digest_size);
 
         for (int i = 0; i < bytes_to_xor; i++) {
             *output ^= ws->tls.digest1[i];
