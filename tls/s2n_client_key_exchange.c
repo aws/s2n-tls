@@ -119,8 +119,6 @@ int s2n_client_key_recv(struct s2n_connection *conn)
     } else {
         return s2n_rsa_client_key_recv(conn);
     }
-
-    S2N_ERROR(S2N_ERR_INVALID_KEY_EXCHANGE_ALGORITHM);
 }
 
 static int s2n_dhe_client_key_send(struct s2n_connection *conn)
@@ -207,6 +205,4 @@ int s2n_client_key_send(struct s2n_connection *conn)
     } else {
         return s2n_rsa_client_key_send(conn);
     }
-
-    S2N_ERROR(S2N_ERR_INVALID_KEY_EXCHANGE_ALGORITHM);
 }
