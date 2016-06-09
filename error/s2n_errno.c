@@ -85,7 +85,6 @@ struct s2n_error_translation EN[] = {
     { S2N_ERR_CIPHER_NOT_SUPPORTED, "Cipher is not supported" },
     { S2N_ERR_BAD_MESSAGE, "Bad message encountered" },
     { S2N_ERR_INVALID_SIGNATURE_ALGORITHM, "Invalid signature algorithm" },
-    { S2N_ERR_INVALID_KEY_EXCHANGE_ALGORITHM, "Invaid key exchange algorithm" },
     { S2N_ERR_NO_CERTIFICATE_IN_PEM, "No certificate in PEM" },
     { S2N_ERR_NO_ALERT, "No Alert present" },
     { S2N_ERR_CLIENT_MODE, "operation not allowed in client mode" },
