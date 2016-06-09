@@ -30,7 +30,7 @@
 
 int negotiate(struct s2n_connection *conn)
 {
-   s2n_blocked_status blocked;
+    s2n_blocked_status blocked;
     do {
         if (s2n_negotiate(conn, &blocked) < 0) {
             fprintf(stderr, "Failed to negotiate: '%s' %d\n", s2n_strerror(s2n_errno, "EN"), s2n_connection_get_alert(conn));

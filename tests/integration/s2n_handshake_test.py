@@ -56,12 +56,13 @@ def try_handshake(endpoint, port, cipher):
     except Exception as err:
         print str(err)
         return -1
-    else:
-        return 0
+    
+    ssl_sock.send(cipher)
+    return 0
 
 def main(argv):
     if len(argv) < 2:
-        print "handshake_test.py host port"
+        print "s2n_handshake_test.py host port"
         sys.exit(1)
 
     print "Running handshake tests with " + str(ssl.OPENSSL_VERSION)
