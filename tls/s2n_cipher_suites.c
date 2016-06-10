@@ -131,6 +131,11 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
                     continue;
                 }
 
+                /* Don't choose a suite the client shouldn't be able support */
+                if (conn->client_protocol_version < match->minimum_required_tls_version) {
+                    continue;
+                }
+
                 conn->pending.cipher_suite = match;
                 return 0;
             }
