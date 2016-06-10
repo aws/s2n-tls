@@ -35,8 +35,8 @@ const struct s2n_key_exchange_algorithm s2n_ecdhe = {
 struct s2n_cipher_suite s2n_all_cipher_suites[] = {
     {"RC4-MD5", {TLS_RSA_WITH_RC4_128_MD5}, &s2n_rsa, &s2n_rc4, S2N_HMAC_MD5, S2N_HMAC_SHA256, S2N_SSLv3},   /* 0x00,0x04 */
     {"RC4-SHA", {TLS_RSA_WITH_RC4_128_SHA}, &s2n_rsa, &s2n_rc4, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_SSLv3},  /* 0x00,0x05 */
-    {"DES-CBC3-SHA", {TLS_RSA_WITH_3DES_EDE_CBC_SHA}, &s2n_rsa, &s2n_3des, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_TLS10},   /* 0x00,0x0A */
-    {"EDH-RSA-DES-CBC3-SHA", {TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA}, &s2n_dhe, &s2n_3des, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_TLS10},   /* 0x00,0x16 */
+    {"DES-CBC3-SHA", {TLS_RSA_WITH_3DES_EDE_CBC_SHA}, &s2n_rsa, &s2n_3des, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_SSLv3},   /* 0x00,0x0A */
+    {"EDH-RSA-DES-CBC3-SHA", {TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA}, &s2n_dhe, &s2n_3des, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_SSLv3},   /* 0x00,0x16 */
     {"AES128-SHA", {TLS_RSA_WITH_AES_128_CBC_SHA}, &s2n_rsa, &s2n_aes128, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_TLS10},   /* 0x00,0x2F */
     {"DHE-RSA-AES128-SHA", {TLS_DHE_RSA_WITH_AES_128_CBC_SHA}, &s2n_dhe, &s2n_aes128, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_TLS10},   /* 0x00,0x33 */
     {"AES256-SHA", {TLS_RSA_WITH_AES_256_CBC_SHA}, &s2n_rsa, &s2n_aes256, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_TLS10},   /* 0x00,0x35 */
