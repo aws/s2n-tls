@@ -18,36 +18,43 @@ import ssl
 import socket
 
 # All supported ciphers
-S2N_CIPHERS=[
-    "RC4-MD5",
-    "RC4-SHA",
-    "DES-CBC3-SHA",
-    "EDH-RSA-DES-CBC3-SHA",
-    "AES128-SHA",
-    "DHE-RSA-AES128-SHA",
-    "AES256-SHA",
-    "DHE-RSA-AES256-SHA",
-    "AES128-SHA256",
-    "AES256-SHA256",
-    "DHE-RSA-AES128-SHA256",
-    "DHE-RSA-AES256-SHA256",
-    "AES128-GCM-SHA256",
-    "DHE-RSA-AES128-GCM-SHA256",
-    "ECDHE-RSA-DES-CBC3-SHA",
-    "ECDHE-RSA-AES128-SHA",
-    "ECDHE-RSA-AES256-SHA",
-    "ECDHE-RSA-AES128-SHA256",
-    "ECDHE-RSA-AES256-SHA384",
-    "ECDHE-RSA-AES128-GCM-SHA256",
-    "ECDHE-RSA-AES256-GCM-SHA384",
-    "AES256-GCM-SHA384",
+S2N_CIPHERS= [
+    ("RC4-MD5", ssl.PROTOCOL_SSLv3),
+    ("RC4-SHA", ssl.PROTOCOL_SSLv3),
+    ("DES-CBC3-SHA", ssl.PROTOCOL_SSLv3),
+    ("EDH-RSA-DES-CBC3-SHA", ssl.PROTOCOL_SSLv3),
+    ("AES128-SHA", ssl.PROTOCOL_TLSv1),
+    ("DHE-RSA-AES128-SHA", ssl.PROTOCOL_TLSv1),
+    ("AES256-SHA", ssl.PROTOCOL_TLSv1),
+    ("DHE-RSA-AES256-SHA", ssl.PROTOCOL_TLSv1),
+    ("AES128-SHA256", ssl.PROTOCOL_TLSv1_2),
+    ("AES256-SHA256", ssl.PROTOCOL_TLSv1_2),
+    ("DHE-RSA-AES128-SHA256", ssl.PROTOCOL_TLSv1_2),
+    ("DHE-RSA-AES256-SHA256", ssl.PROTOCOL_TLSv1_2),
+    ("AES128-GCM-SHA256", ssl.PROTOCOL_TLSv1_2),
+    ("AES256-GCM-SHA384", ssl.PROTOCOL_TLSv1_2),
+    ("DHE-RSA-AES128-GCM-SHA256", ssl.PROTOCOL_TLSv1_2),
+    ("ECDHE-RSA-DES-CBC3-SHA", ssl.PROTOCOL_TLSv1),
+    ("ECDHE-RSA-AES128-SHA", ssl.PROTOCOL_TLSv1),
+    ("ECDHE-RSA-AES256-SHA", ssl.PROTOCOL_TLSv1),
+    ("ECDHE-RSA-AES128-SHA256", ssl.PROTOCOL_TLSv1_2),
+    ("ECDHE-RSA-AES256-SHA384", ssl.PROTOCOL_TLSv1_2),
+    ("ECDHE-RSA-AES128-GCM-SHA256", ssl.PROTOCOL_TLSv1_2),
+    ("ECDHE-RSA-AES256-GCM-SHA384", ssl.PROTOCOL_TLSv1_2),
 ]
 
-def try_handshake(endpoint, port, cipher):
+PROTO_VERS_TO_STR = {
+    ssl.PROTOCOL_SSLv3 : "SSlv3",
+    ssl.PROTOCOL_TLSv1 : "TLSv1.0",
+    ssl.PROTOCOL_TLSv1_1 : "TLSv1.1",
+    ssl.PROTOCOL_TLSv1_2 : "TLSv1.2",
+}
+
+def try_handshake(endpoint, port, cipher, ssl_version):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(1)
     try:
-        ssl_sock = ssl.wrap_socket(sock, ssl_version=ssl.PROTOCOL_TLSv1_2, ciphers=cipher)
+        ssl_sock = ssl.wrap_socket(sock, ssl_version=ssl_version, ciphers=cipher)
     except ssl.SSLError as err:
         print str(err)
         return -1
@@ -56,8 +63,7 @@ def try_handshake(endpoint, port, cipher):
     except Exception as err:
         print str(err)
         return -1
-    
-    ssl_sock.send(cipher)
+
     return 0
 
 def main(argv):
@@ -65,15 +71,23 @@ def main(argv):
         print "s2n_handshake_test.py host port"
         sys.exit(1)
 
-    print "Running handshake tests with " + str(ssl.OPENSSL_VERSION)
+    print "\nRunning handshake tests with: " + str(ssl.OPENSSL_VERSION)
     failed = 0
-    for cipher in S2N_CIPHERS:
-        ret = try_handshake(argv[0], int(argv[1]), cipher)
-        if ret == 0:
-            print cipher + "...SUCCEEDED"
-        else:
-            print cipher + "...FAILED"
-            failed = 1
+    for ssl_version in [ssl.PROTOCOL_SSLv3, ssl.PROTOCOL_TLSv1, ssl.PROTOCOL_TLSv1_1, ssl.PROTOCOL_TLSv1_2]:
+        print "\n\tTesting ciphers using client version: " + PROTO_VERS_TO_STR[ssl_version]
+        for cipher in S2N_CIPHERS:
+            cipher_name = cipher[0]
+            cipher_vers = cipher[1]
+
+            if ssl_version < cipher_vers:
+                continue
+
+            ret = try_handshake(argv[0], int(argv[1]), cipher_name, ssl_version)
+            if ret == 0:
+                print "Cipher: " + cipher_name + " Vers:" +  PROTO_VERS_TO_STR[ssl_version] + "...SUCCEEDED"
+            else:
+                print "Cipher: " + cipher_name + " Vers:" +  PROTO_VERS_TO_STR[ssl_version] + "...FAILED"
+                failed = 1
     return failed
 
 if __name__ == "__main__":
