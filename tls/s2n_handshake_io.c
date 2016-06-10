@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/param.h>
+
 #include <errno.h>
 #include <s2n.h>
 
@@ -73,9 +75,11 @@ static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct 
     GUARD(s2n_hash_update(&conn->handshake.client_md5, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.client_sha1, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.client_sha256, data->data, data->size));
+    GUARD(s2n_hash_update(&conn->handshake.client_sha384, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.server_md5, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.server_sha1, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.server_sha256, data->data, data->size));
+    GUARD(s2n_hash_update(&conn->handshake.server_sha384, data->data, data->size));
 
     return 0;
 }
@@ -108,12 +112,9 @@ static int handshake_write_io(struct s2n_connection *conn)
     /* Write the handshake data to records in fragment sized chunks */
     struct s2n_blob out;
     while(s2n_stuffer_data_available(&conn->handshake.io) > 0) {
-        out.size = s2n_stuffer_data_available(&conn->handshake.io);
 
         GUARD((max_payload_size = s2n_record_max_write_payload_size(conn)));
-        if (out.size > max_payload_size) {
-            out.size = max_payload_size;
-        }
+        out.size = MIN(s2n_stuffer_data_available(&conn->handshake.io), max_payload_size);
 
         out.data = s2n_stuffer_raw_read(&conn->handshake.io, out.size);
         notnull_check(out.data);
@@ -215,7 +216,10 @@ static int handshake_read_io(struct s2n_connection *conn)
             conn->closed = 1;
             S2N_ERROR(S2N_ERR_CLOSED);
         }
-        return -1;
+        if (errno == EWOULDBLOCK) {
+            S2N_ERROR(S2N_ERR_BLOCKED);
+        }
+        S2N_ERROR(S2N_ERR_IO);
     }
 
     if (isSSLv2) {

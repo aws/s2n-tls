@@ -288,6 +288,7 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config,
 |    version | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | AES-CBC | AES-GCM | 3DES | RC4 | DHE | ECDHE |
 |------------|-------|--------|--------|--------|---------|---------|------|-----|-----|-------|
 | "default"  |       |   X    |    X   |    X   |    X    |    X    |  X   |     |     |   X   |
+| "20160411" |       |   X    |    X   |    X   |    X    |    X    |  X   |     |     |   X   |
 | "20150306" |       |   X    |    X   |    X   |    X    |    X    |  X   |     |     |   X   |
 | "20150214" |       |   X    |    X   |    X   |    X    |    X    |  X   |     |  X  |       |
 | "20150202" |       |   X    |    X   |    X   |    X    |         |  X   |     |  X  |       |
@@ -295,6 +296,8 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config,
 | "20140601" |   X   |   X    |    X   |    X   |    X    |         |  X   |  X  |  X  |       |
 
 The "default" version is special in that it will be updated with future s2n changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change. 
+
+"20160411" follows the same general preference order as "default". The main difference is it has a CBC cipher suite at the top. This is to accomodate certain Java clients that have poor GCM implementations. Users of s2n who have found GCM to be hurting performance for their clients should consider this version.
 
 s2n does not expose an API to control the order of preference for each ciphersuite or protocol version. s2n follows the following order:
 
@@ -555,7 +558,7 @@ const char * s2n_connection_get_cipher(struct s2n_connection *conn);
 ```
 
 **s2n_connection_get_cipher** returns a string indicating the cipher suite
-negotiated by s2n for a connection, e.g. "TLS\_RSA\_WITH\_AES\_128\_CBC\_SHA".
+negotiated by s2n for a connection in Openssl format, e.g. "ECDHE-RSA-AES128-GCM-SHA256".
 
 ### s2n\_connection\_wipe
 

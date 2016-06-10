@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/param.h>
 #include <errno.h>
 #include <s2n.h>
 
@@ -39,7 +40,13 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *blocked)
     /* Write any data that's already pending */
   WRITE:
     while (s2n_stuffer_data_available(&conn->out)) {
-        GUARD(w = s2n_stuffer_send_to_fd(&conn->out, conn->writefd, s2n_stuffer_data_available(&conn->out)));
+        w = s2n_stuffer_send_to_fd(&conn->out, conn->writefd, s2n_stuffer_data_available(&conn->out));
+        if (w < 0) {
+            if (errno == EWOULDBLOCK) {
+                S2N_ERROR(S2N_ERR_BLOCKED);
+            }
+            S2N_ERROR(S2N_ERR_IO);
+        }
         conn->wire_bytes_out += w;
     }
     if (conn->closing) {
@@ -105,10 +112,7 @@ ssize_t s2n_send(struct s2n_connection *conn, void *buf, ssize_t size, s2n_block
 
     /* Now write the data we were asked to send this round */
     while (size) {
-        in.size = size;
-        if (in.size > max_payload_size) {
-            in.size = max_payload_size;
-        }
+        in.size = MIN(size, max_payload_size);
 
         if (conn->actual_protocol_version < S2N_TLS11 && conn->active.cipher_suite->cipher->type == S2N_CBC) {
             if (in.size > 1 && cbcHackUsed == 0) {
@@ -129,9 +133,12 @@ ssize_t s2n_send(struct s2n_connection *conn, void *buf, ssize_t size, s2n_block
             w = s2n_stuffer_send_to_fd(&conn->out, conn->writefd, s2n_stuffer_data_available(&conn->out));
             if (w < 0) {
                 if (errno == EWOULDBLOCK) {
-                    return bytes_written;
+                    if (bytes_written) {
+                        return bytes_written;
+                    }
+                    S2N_ERROR(S2N_ERR_BLOCKED);
                 }
-                return -1;
+                S2N_ERROR(S2N_ERR_IO);
             }
             conn->wire_bytes_out += w;
         }

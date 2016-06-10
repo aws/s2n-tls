@@ -31,6 +31,8 @@ struct s2n_error_translation
 
 struct s2n_error_translation EN[] = { 
     { S2N_ERR_OK, "no error" },
+    { S2N_ERR_IO, "underlying I/O operation failed, check system errno" },
+    { S2N_ERR_BLOCKED, "underlying I/O operation would block" },
     { S2N_ERR_KEY_INIT, "error initializing encryption key" },
     { S2N_ERR_ENCRYPT, "error encrypting data" },
     { S2N_ERR_DECRYPT, "error decrypting data" },
@@ -69,6 +71,7 @@ struct s2n_error_translation EN[] = {
     { S2N_ERR_HASH_INVALID_ALGORITHM, "invalid hash algorithm" },
     { S2N_ERR_HASH_UPDATE_FAILED, "error updating hash" },
     { S2N_ERR_HMAC_INVALID_ALGORITHM, "invalid HMAC algorithm" },
+    { S2N_ERR_PRF_INVALID_ALGORITHM, "invalid prf hash algorithm" },
     { S2N_ERR_SIZE_MISMATCH, "size mismatch" },
     { S2N_ERR_DECODE_CERTIFICATE, "error decoding certificate" },
     { S2N_ERR_DECODE_PRIVATE_KEY, "error decoding private key" },
@@ -82,7 +85,6 @@ struct s2n_error_translation EN[] = {
     { S2N_ERR_CIPHER_NOT_SUPPORTED, "Cipher is not supported" },
     { S2N_ERR_BAD_MESSAGE, "Bad message encountered" },
     { S2N_ERR_INVALID_SIGNATURE_ALGORITHM, "Invalid signature algorithm" },
-    { S2N_ERR_INVALID_KEY_EXCHANGE_ALGORITHM, "Invaid key exchange algorithm" },
     { S2N_ERR_NO_CERTIFICATE_IN_PEM, "No certificate in PEM" },
     { S2N_ERR_NO_ALERT, "No Alert present" },
     { S2N_ERR_CLIENT_MODE, "operation not allowed in client mode" },

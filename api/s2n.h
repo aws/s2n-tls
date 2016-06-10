@@ -32,6 +32,8 @@ extern __thread int s2n_errno;
 
 typedef enum {
     S2N_ERR_OK,
+    S2N_ERR_IO,
+    S2N_ERR_BLOCKED,
     S2N_ERR_KEY_INIT,
     S2N_ERR_ENCRYPT,
     S2N_ERR_DECRYPT,
@@ -70,6 +72,7 @@ typedef enum {
     S2N_ERR_HASH_INVALID_ALGORITHM,
     S2N_ERR_HASH_UPDATE_FAILED,
     S2N_ERR_HMAC_INVALID_ALGORITHM,
+    S2N_ERR_PRF_INVALID_ALGORITHM,
     S2N_ERR_SIZE_MISMATCH,
     S2N_ERR_DECODE_CERTIFICATE,
     S2N_ERR_DECODE_PRIVATE_KEY,
@@ -83,7 +86,6 @@ typedef enum {
     S2N_ERR_CIPHER_NOT_SUPPORTED,
     S2N_ERR_BAD_MESSAGE,
     S2N_ERR_INVALID_SIGNATURE_ALGORITHM,
-    S2N_ERR_INVALID_KEY_EXCHANGE_ALGORITHM,
     S2N_ERR_NO_CERTIFICATE_IN_PEM,
     S2N_ERR_NO_ALERT,
     S2N_ERR_CLIENT_MODE,
@@ -119,7 +121,6 @@ extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, char *ce
 extern int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config,
         char *cert_chain_pem, char *private_key_pem, const uint8_t *status, uint32_t length);
 extern int s2n_config_add_dhparams(struct s2n_config *config, char *dhparams_pem);
-extern int s2n_config_set_key_exchange_preferences(struct s2n_config *config, const char *preferences);
 extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
 extern int s2n_config_set_protocol_preferences(struct s2n_config *config, const char * const *protocols, int protocol_count);
 typedef enum { S2N_STATUS_REQUEST_NONE = 0, S2N_STATUS_REQUEST_OCSP = 1 } s2n_status_request_type;
