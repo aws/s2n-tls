@@ -97,7 +97,7 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
 static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
 {
     uint8_t fallback_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_FALLBACK_SCSV };
-
+    struct s2n_cipher_suite *higher_vers_match = NULL;
 
     /* s2n supports only server order */
     for (int i = 0; i < conn->config->cipher_preferences->count; i++) {
@@ -131,8 +131,9 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
                     continue;
                 }
 
-                /* Don't choose a suite the client shouldn't be able support */
+                /* Don't immediately choose a cipher the client shouldn't be able to support */
                 if (conn->client_protocol_version < match->minimum_required_tls_version) {
+                    higher_vers_match = match;
                     continue;
                 }
 
@@ -140,6 +141,12 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
                 return 0;
             }
         }
+    }
+
+    /* Settle for a cipher with a higher required proto version, if it was set */
+    if (higher_vers_match != NULL) {
+        conn->pending.cipher_suite = higher_vers_match;
+        return 0;
     }
 
     S2N_ERROR(S2N_ERR_CIPHER_NOT_SUPPORTED);
