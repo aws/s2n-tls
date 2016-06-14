@@ -1,4 +1,4 @@
-#!/bin/bash
+#
 # Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
@@ -12,20 +12,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 #
+#!/bin/bash
 
-set -e
+LIBCRYPTO_ROOT=$1
 
-OUT_DIR=$1
-
-pushd $PWD
-
-wget https://www.kernel.org/pub/linux/utils/util-linux/v2.25/util-linux-2.25.2.tar.gz
-tar -xzvf util-linux-2.25.2.tar.gz
-cd util-linux-2.25.2
-./configure ADJTIME_PATH=/var/lib/hwclock/adjtime --disable-chfn-chsh --disable-login --disable-nologin --disable-su --disable-setpriv --disable-runuser --disable-pylibmount --disable-static --without-python --without-systemd --without-systemdsystemunitdir --without-ncurses
-
-# only compile prlimit
-make prlimit
-mv ./prlimit $OUT_DIR
-
-popd
+wget https://www.python.org/ftp/python/2.7.10/Python-2.7.10.tgz
+tar xzf Python-2.7.10.tgz
+cd Python-2.7.10
+./configure CPPFLAGS="-I$LIBCRYPTO_ROOT/include" LDFLAGS="-L$LIBCRYPTO_ROOT/lib"
+make
+sudo make install

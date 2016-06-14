@@ -3,26 +3,28 @@ sudo: true
 os:
   - osx
   - linux
+
 compiler:
   - gcc
   - clang
 
 install:
-  # Install prlimit to set the memlock limit to unlimited for this process
-  - (test "$TRAVIS_OS_NAME" = "linux" && sudo .travis/install_prlimit.sh $PWD/.travis && sudo .travis/prlimit --pid "$$" --memlock=unlimited:unlimited) || true
-
-before_script:
   - cd libcrypto-build
   - curl -L https://www.openssl.org/source/openssl-1.0.2-latest.tar.gz > openssl-1.0.2.tar.gz
   - tar -xzvf openssl-1.0.2.tar.gz
   - rm openssl-1.0.2.tar.gz
   - cd openssl-1.0.2*
-  - (test "$TRAVIS_OS_NAME" = "linux" && ./config -fPIC no-shared no-libunbound no-gmp no-jpake no-krb5 no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-store no-zlib no-hw no-mdc2 no-seed no-idea enable-ec-nist_64_gcc_128 no-camellia no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS --prefix=`pwd`/../../libcrypto-root/) || true
+  - (test "$TRAVIS_OS_NAME" = "linux" && ./config -fPIC no-shared no-libunbound no-gmp no-jpake no-krb5 no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-store no-zlib no-hw no-mdc2 no-seed no-idea enable-ec-nist_64_gcc_128 no-camellia no-bf no-ripemd no-dsa no-ssl2 no-capieng -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS --prefix=`pwd`/../../libcrypto-root/) || true
   - (test "$TRAVIS_OS_NAME" = "osx" && ./Configure darwin64-x86_64-cc -fPIC --prefix=`pwd`/../../libcrypto-root/) || true
   - make depend
   - make
   - make install
+  - cd ../../
+  # Install python linked with our compiled Openssl for integration tests
+  - .travis/install_python.sh `pwd`/libcrypto-root
+  # Install prlimit to set the memlock limit to unlimited for this process 
+  - (test "$TRAVIS_OS_NAME" = "linux" && sudo .travis/install_prlimit.sh $PWD/.travis && sudo .travis/prlimit --pid "$$" --memlock=unlimited:unlimited) || true
 
 script:
-  - cd ../../
   - make
+  - make integration
