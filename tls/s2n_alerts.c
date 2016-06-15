@@ -92,7 +92,7 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_queue_writer_close_alert(struct s2n_connection *conn)
+int s2n_queue_writer_close_alert_warning(struct s2n_connection *conn)
 {
     uint8_t alert[2];
     struct s2n_blob out = {.data = alert,.size = sizeof(alert) };
@@ -102,7 +102,7 @@ int s2n_queue_writer_close_alert(struct s2n_connection *conn)
         return 0;
     }
 
-    alert[0] = S2N_TLS_ALERT_LEVEL_FATAL;
+    alert[0] = S2N_TLS_ALERT_LEVEL_WARNING;
     alert[1] = S2N_TLS_ALERT_CLOSE_NOTIFY;
 
     GUARD(s2n_stuffer_write(&conn->writer_alert_out, &out));

@@ -40,8 +40,8 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *more)
     /* Write any pending I/O */
     GUARD(s2n_flush(conn, more));
     
-    /* Queue our close notify, once. */
-    GUARD(s2n_queue_writer_close_alert(conn));
+    /* Queue our close notify, once. Use warning level so clients don't give up */
+    GUARD(s2n_queue_writer_close_alert_warning(conn));
 
     /* Write it */
     GUARD(s2n_flush(conn, more));
