@@ -39,6 +39,23 @@ struct s2n_handshake {
     uint8_t server_finished[S2N_SSL_FINISHED_LEN];
     uint8_t client_finished[S2N_SSL_FINISHED_LEN];
 
+    enum handshake_type {
+        /* A Full handshake with forward secrecy */
+        FULL_WITH_PFS,
+
+        /* A full handshake with forward secrecy and an OCSP response */
+        FULL_WITH_PFS_WITH_STATUS,
+
+        /* A full handshake with no forward secrecy */
+        FULL_NO_PFS,
+
+        /* A full handshake with no forward secrecy, but with an OCSP response */
+        FULL_NO_PFS_WITH_STATUS,
+
+        /* A resumption handshake */
+        RESUME
+    };
+
     /* We use this state machine to track where we are in the 
      * handshake. We can only progress forwards in the list
      * of states, if the other end of a connections attempts to
@@ -61,7 +78,7 @@ struct s2n_handshake {
         SERVER_CHANGE_CIPHER_SPEC,
         SERVER_FINISHED,
         HANDSHAKE_OVER
-    } state, next_state;
+    } state;
 
     /* Set to 1 if the RSA verificiation failed */
     uint8_t rsa_failed;

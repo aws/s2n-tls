@@ -44,6 +44,10 @@ struct s2n_config {
     s2n_status_request_type status_request_type;
     int (*nanoseconds_since_epoch)(void *, uint64_t *);
     void *data_for_nanoseconds_since_epoch;
+
+    /* If caching is being used, these must all be set */
+    int (*cache_store)(const void *key, uint64_t key_size, const void *value, uint64_t value_size);
+    int (*cache_retrieve)(const void *key, uint64_t key_size, void *value, uint64_t value_size);
 };
 
 extern struct s2n_config s2n_default_config;
