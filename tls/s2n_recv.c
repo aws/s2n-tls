@@ -182,3 +182,37 @@ ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_block
 
     return bytes_read;
 }
+
+int s2n_recv_close_notify(struct s2n_connection *conn, s2n_blocked_status *blocked)
+{
+    uint8_t record_type;
+    int isSSLv2;
+    *blocked = S2N_BLOCKED_ON_READ;
+
+    errno = 0;
+    int rc = s2n_read_full_record(conn, &record_type, &isSSLv2);
+    if (rc < 0) {
+        if (errno == EWOULDBLOCK) {
+            return -1;
+        } else if (rc == -2) {
+            *blocked = S2N_NOT_BLOCKED;
+            S2N_ERROR(S2N_ERR_SHUTDOWN_CLOSED);
+        }
+
+        return -1;
+    }
+
+    if (isSSLv2) {
+        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+    }
+
+    if (record_type != TLS_ALERT) {
+        S2N_ERROR(S2N_ERR_SHUTDOWN_RECORD_TYPE);
+    }
+
+    /* Only succeds for an incoming close_notify alert */
+    GUARD(s2n_process_alert_fragment(conn));
+
+    *blocked = S2N_NOT_BLOCKED;
+    return 0;
+}

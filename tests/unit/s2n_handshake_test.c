@@ -179,10 +179,28 @@ int main(int argc, char **argv)
             EXPECT_TRUE(ret == 0 || (server_blocked && errno == EAGAIN));
         } while (client_blocked || server_blocked);
 
-        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
+        uint8_t server_shutdown=0;
+        uint8_t client_shutdown=0;
+        do {
+            int ret;
+            if (!server_shutdown) {
+                ret = s2n_shutdown(server_conn, &server_blocked);
+                EXPECT_TRUE(ret == 0 || (server_blocked && errno == EAGAIN));
+                if (ret == 0) {
+                    server_shutdown = 1;
+                }
+            }
+            if (!client_shutdown) {
+                ret = s2n_shutdown(client_conn, &client_blocked); 
+                EXPECT_TRUE(ret == 0 || (client_blocked && errno == EAGAIN));
+                if (ret == 0) {
+                    client_shutdown = 1;
+                }
+            }
+        } while (!server_shutdown || !client_shutdown);
+
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
 
         for (int i = 0; i < 2; i++) {
            EXPECT_SUCCESS(close(server_to_client[i]));

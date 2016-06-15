@@ -97,6 +97,42 @@ static char private_key[] =
     "JXlJ2hwsIc4q9En/LR3GtBaL84xTHGfznNylNhXi7GbO1wNMJuAukA==\n"
     "-----END RSA PRIVATE KEY-----\n";
 
+static int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
+{
+    int server_rc = -1;
+    s2n_blocked_status server_blocked;
+    int client_rc = -1;
+    s2n_blocked_status client_blocked;
+    do {
+        if (client_rc == -1) {
+            client_rc = s2n_negotiate(client_conn, &client_blocked);
+        }
+        if (server_rc == -1) {
+            server_rc = s2n_negotiate(server_conn, &server_blocked);
+        }
+    } while ((server_blocked || client_blocked) && errno == EAGAIN);
+
+    return (server_rc || client_rc);
+}
+
+static int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
+{
+    int server_rc = -1;
+    s2n_blocked_status server_blocked;
+    int client_rc = -1;
+    s2n_blocked_status client_blocked;
+    do {
+        if (server_rc == -1) {
+            server_rc = s2n_shutdown(server_conn, &server_blocked);
+        }
+        if (client_rc == -1) {
+            client_rc = s2n_shutdown(client_conn, &client_blocked);
+        }
+    } while ((server_blocked || client_blocked) && errno == EAGAIN);
+
+    return (server_rc || client_rc);
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -109,8 +145,6 @@ int main(int argc, char **argv)
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
-        s2n_blocked_status client_blocked;
-        s2n_blocked_status server_blocked;
         int server_to_client[2];
         int client_to_server[2];
 
@@ -134,21 +168,15 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, certificate, private_key));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
-        do {
-            int ret;
-            ret = s2n_negotiate(client_conn, &client_blocked);
-            EXPECT_TRUE(ret == 0 || (client_blocked && errno == EAGAIN));
-            ret = s2n_negotiate(server_conn, &server_blocked);
-            EXPECT_TRUE(ret == 0 || (server_blocked && errno == EAGAIN));
-        } while (client_blocked || server_blocked);
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that the server didn't receive the server name. */
         EXPECT_NULL(s2n_get_server_name(server_conn));
 
-        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
 
@@ -163,8 +191,6 @@ int main(int argc, char **argv)
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
-        s2n_blocked_status client_blocked;
-        s2n_blocked_status server_blocked;
         int server_to_client[2];
         int client_to_server[2];
 
@@ -194,23 +220,17 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, certificate, private_key));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
-        do {
-            int ret;
-            ret = s2n_negotiate(client_conn, &client_blocked);
-            EXPECT_TRUE(ret == 0 || (client_blocked && errno == EAGAIN));
-            ret = s2n_negotiate(server_conn, &server_blocked);
-            EXPECT_TRUE(ret == 0 || (server_blocked && errno == EAGAIN));
-        } while (client_blocked || server_blocked);
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that the server name was received intact. */
         EXPECT_NOT_NULL(received_server_name = s2n_get_server_name(server_conn));
         EXPECT_EQUAL(strlen(received_server_name), strlen(sent_server_name));
         EXPECT_BYTEARRAY_EQUAL(received_server_name, sent_server_name, strlen(received_server_name));
 
-        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         for (int i = 0; i < 2; i++) {
@@ -319,7 +339,10 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(strlen(received_server_name), strlen(sent_server_name));
         EXPECT_BYTEARRAY_EQUAL(received_server_name, sent_server_name, strlen(received_server_name));
 
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
+        /* Not a real tls client but make sure we block on its close_notify */
+        int shutdown_rc = s2n_shutdown(server_conn, &server_blocked);
+        EXPECT_TRUE(shutdown_rc == -1 && errno == EAGAIN && server_conn->close_notify_queued);
+
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -334,8 +357,6 @@ int main(int argc, char **argv)
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
-        s2n_blocked_status client_blocked;
-        s2n_blocked_status server_blocked;
         int server_to_client[2];
         int client_to_server[2];
         uint32_t length;
@@ -360,22 +381,16 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_with_status(server_config, certificate, private_key, server_ocsp_status, sizeof(server_ocsp_status)));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
-        do {
-            int ret;
-            ret = s2n_negotiate(client_conn, &client_blocked);
-            EXPECT_TRUE(ret == 0 || client_blocked);
-            ret = s2n_negotiate(server_conn, &server_blocked);
-            EXPECT_TRUE(ret == 0 || server_blocked);
-        } while (client_blocked || server_blocked);
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that the client didn't receive an OCSP response. */
         EXPECT_NULL(s2n_connection_get_ocsp_response(client_conn, &length));
         EXPECT_EQUAL(length, 0);
 
-        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
 
@@ -391,8 +406,6 @@ int main(int argc, char **argv)
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
         struct s2n_config *client_config;
-        s2n_blocked_status client_blocked;
-        s2n_blocked_status server_blocked;
         int server_to_client[2];
         int client_to_server[2];
         uint32_t length;
@@ -421,22 +434,16 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, certificate, private_key));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
-        do {
-            int ret;
-            ret = s2n_negotiate(client_conn, &client_blocked);
-            EXPECT_TRUE(ret == 0 || client_blocked);
-            ret = s2n_negotiate(server_conn, &server_blocked);
-            EXPECT_TRUE(ret == 0 || server_blocked);
-        } while (client_blocked || server_blocked);
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that the client didn't receive an OCSP response. */
         EXPECT_NULL(s2n_connection_get_ocsp_response(client_conn, &length));
         EXPECT_EQUAL(length, 0);
 
-        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
@@ -453,8 +460,6 @@ int main(int argc, char **argv)
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
         struct s2n_config *client_config;
-        s2n_blocked_status client_blocked;
-        s2n_blocked_status server_blocked;
         int server_to_client[2];
         int client_to_server[2];
         uint32_t length;
@@ -483,22 +488,16 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_with_status(server_config, certificate, private_key, server_ocsp_status, sizeof(server_ocsp_status)));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
-        do {
-            int ret;
-            ret = s2n_negotiate(client_conn, &client_blocked);
-            EXPECT_TRUE(ret == 0 || client_blocked);
-            ret = s2n_negotiate(server_conn, &server_blocked);
-            EXPECT_TRUE(ret == 0 || server_blocked);
-        } while (client_blocked || server_blocked);
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that the client didn't receive an OCSP response. */
         EXPECT_NULL(s2n_connection_get_ocsp_response(client_conn, &length));
         EXPECT_EQUAL(length, 0);
 
-        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
