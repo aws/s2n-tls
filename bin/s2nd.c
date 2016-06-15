@@ -251,10 +251,7 @@ int main(int argc, char * const *argv)
         }
 
         s2n_blocked_status blocked;
-        if(s2n_shutdown(conn, &blocked) < 0) {
-            fprintf(stderr, "Error running s2n_shutdown: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-            exit(1);
-        }
+        s2n_shutdown(conn, &blocked);
 
         close(fd);
 
