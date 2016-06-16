@@ -331,8 +331,9 @@ int main(int argc, char **argv)
 
         /* Verify that the CLIENT HELLO is accepted */
         s2n_negotiate(server_conn, &server_blocked);
-        EXPECT_EQUAL(server_blocked, 1);
-        EXPECT_EQUAL(server_conn->handshake.state, CLIENT_KEY);
+        EXPECT_EQUAL(server_blocked, S2N_BLOCKED_ON_WRITE);
+        EXPECT_EQUAL(server_conn->handshake.handshake_type, FULL_NO_PFS);
+        EXPECT_EQUAL(server_conn->handshake.message_number, 2);
 
         /* Verify that the server name was received intact. */
         EXPECT_NOT_NULL(received_server_name = s2n_get_server_name(server_conn));
@@ -341,7 +342,9 @@ int main(int argc, char **argv)
 
         /* Not a real tls client but make sure we block on its close_notify */
         int shutdown_rc = s2n_shutdown(server_conn, &server_blocked);
-        EXPECT_TRUE(shutdown_rc == -1 && errno == EAGAIN && server_conn->close_notify_queued);
+        EXPECT_EQUAL(shutdown_rc, -1);
+        EXPECT_EQUAL(errno, EAGAIN);
+        EXPECT_EQUAL(server_conn->close_notify_queued, 1);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 
