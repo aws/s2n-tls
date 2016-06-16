@@ -35,3 +35,5 @@ extern int s2n_stuffer_write_uint64_hex(struct s2n_stuffer *stuffer, uint64_t u)
 extern int s2n_stuffer_alloc_ro_from_hex_string(struct s2n_stuffer *stuffer, const char *str);
 
 void s2n_print_connection(struct s2n_connection *conn, const char *marker);
+
+#define ACTIVE_HANDSHAKE_STATE( conn )   state_machine[ handshakes[ (conn)->handshake.handshake_type ][ (conn)->handshake.message_number ] ]

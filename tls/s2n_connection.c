@@ -233,7 +233,8 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     conn->server = &conn->active;
     conn->client = &conn->active;
     conn->max_fragment_length = S2N_SMALL_FRAGMENT_LENGTH;
-    conn->handshake.state = CLIENT_HELLO;
+    conn->handshake.handshake_type = INITIAL;
+    conn->handshake.message_number = 0;
     GUARD(s2n_hash_init(&conn->handshake.client_md5, S2N_HASH_MD5));
     GUARD(s2n_hash_init(&conn->handshake.client_sha1, S2N_HASH_SHA1));
     GUARD(s2n_hash_init(&conn->handshake.client_sha256, S2N_HASH_SHA256));

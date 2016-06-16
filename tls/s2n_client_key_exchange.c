@@ -76,8 +76,6 @@ static int s2n_rsa_client_key_recv(struct s2n_connection *conn)
     /* Erase the pre-master secret */
     GUARD(s2n_blob_zero(&pms));
 
-    conn->handshake.next_state = CLIENT_CHANGE_CIPHER_SPEC;
-
     return 0;
 }
 
@@ -106,8 +104,6 @@ static int s2n_dhe_client_key_recv(struct s2n_connection *conn)
     } else {
         GUARD(s2n_dh_params_free(&conn->pending.server_dh_params));
     }
-
-    conn->handshake.next_state = CLIENT_CHANGE_CIPHER_SPEC;
 
     return 0;
 }
@@ -145,8 +141,6 @@ static int s2n_dhe_client_key_send(struct s2n_connection *conn)
     } else {
         GUARD(s2n_dh_params_free(&conn->pending.server_dh_params));
     }
-
-    conn->handshake.next_state = CLIENT_CHANGE_CIPHER_SPEC;
 
     return 0;
 }
@@ -192,8 +186,6 @@ static int s2n_rsa_client_key_send(struct s2n_connection *conn)
 
     /* Erase the pre-master secret */
     GUARD(s2n_blob_zero(&pms));
-
-    conn->handshake.next_state = CLIENT_CHANGE_CIPHER_SPEC;
 
     return 0;
 }

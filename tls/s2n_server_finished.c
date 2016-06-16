@@ -41,8 +41,6 @@ int s2n_server_finished_recv(struct s2n_connection *conn)
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
-    conn->handshake.next_state = HANDSHAKE_OVER;
-
     return 0;
 }
 
@@ -66,8 +64,6 @@ int s2n_server_finished_send(struct s2n_connection *conn)
     /* Update the pending state to active, and point the client at the active state */
     memcpy_check(&conn->active, &conn->pending, sizeof(conn->active));
     conn->client = &conn->active;
-
-    conn->handshake.next_state = HANDSHAKE_OVER;
 
     return 0;
 }

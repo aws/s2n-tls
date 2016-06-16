@@ -49,16 +49,12 @@ int s2n_client_ccs_recv(struct s2n_connection *conn)
     /* Flush any partial alert messages that were pending */
     GUARD(s2n_stuffer_wipe(&conn->alert_in));
 
-    conn->handshake.next_state = CLIENT_FINISHED;
-
     return 0;
 }
 
 int s2n_client_ccs_send(struct s2n_connection *conn)
 {
     GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, CHANGE_CIPHER_SPEC_TYPE));
-
-    conn->handshake.next_state = CLIENT_FINISHED;
 
     return 0;
 }

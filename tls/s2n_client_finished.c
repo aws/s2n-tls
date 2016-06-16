@@ -36,8 +36,6 @@ int s2n_client_finished_recv(struct s2n_connection *conn)
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
-    conn->handshake.next_state = SERVER_CHANGE_CIPHER_SPEC;
-
     return 0;
 }
 
@@ -60,8 +58,6 @@ int s2n_client_finished_send(struct s2n_connection *conn)
     } else {
         GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, our_version, S2N_TLS_FINISHED_LEN));
     }
-
-    conn->handshake.next_state = SERVER_CHANGE_CIPHER_SPEC;
 
     return 0;
 }

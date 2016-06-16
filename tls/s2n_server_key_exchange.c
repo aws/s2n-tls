@@ -40,7 +40,6 @@ int s2n_server_key_recv(struct s2n_connection *conn)
         GUARD(s2n_dhe_server_key_recv(conn));
     }
 
-    conn->handshake.next_state = SERVER_HELLO_DONE;
     return 0;
 }
 
@@ -205,8 +204,6 @@ static int s2n_dhe_server_key_recv(struct s2n_connection *conn)
     /* Copy the DH details */
     GUARD(s2n_dh_p_g_Ys_to_dh_params(&conn->pending.server_dh_params, &p, &g, &Ys));
 
-    conn->handshake.next_state = SERVER_HELLO_DONE;
-
     return 0;
 }
 
@@ -218,7 +215,6 @@ int s2n_server_key_send(struct s2n_connection *conn)
         GUARD(s2n_dhe_server_key_send(conn));
     }
 
-    conn->handshake.next_state = SERVER_HELLO_DONE;
     return 0;
 }
 

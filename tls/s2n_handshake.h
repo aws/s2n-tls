@@ -39,7 +39,10 @@ struct s2n_handshake {
     uint8_t server_finished[S2N_SSL_FINISHED_LEN];
     uint8_t client_finished[S2N_SSL_FINISHED_LEN];
 
-    enum handshake_type {
+    enum {
+        /* Dummy handshake that we always start out with */
+        INITIAL, 
+
         /* A Full handshake with forward secrecy */
         FULL_WITH_PFS,
 
@@ -54,32 +57,13 @@ struct s2n_handshake {
 
         /* A resumption handshake */
         RESUME
-    };
+    } handshake_type;
 
-    /* We use this state machine to track where we are in the 
-     * handshake. We can only progress forwards in the list
-     * of states, if the other end of a connections attempts to
-     * go backwards, we'll abort. Though it's ok to skip some
-     * (e.g. CLIENT_CERT*). 
-     */
-    enum handshake_state {
-        CLIENT_HELLO,
-        SERVER_HELLO,
-        SERVER_CERT,
-        SERVER_CERT_STATUS,
-        SERVER_KEY,
-        SERVER_CERT_REQ,
-        SERVER_HELLO_DONE,
-        CLIENT_CERT,
-        CLIENT_KEY,
-        CLIENT_CERT_VERIFY,
-        CLIENT_CHANGE_CIPHER_SPEC,
-        CLIENT_FINISHED,
-        SERVER_CHANGE_CIPHER_SPEC,
-        SERVER_FINISHED,
-        HANDSHAKE_OVER
-    } state;
+    /* Which handshake message number are we processing */
+    int message_number;
 
     /* Set to 1 if the RSA verificiation failed */
     uint8_t rsa_failed;
 };
+
+extern int s2n_conn_set_handshake_type(struct s2n_connection *conn);
