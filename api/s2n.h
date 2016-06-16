@@ -121,7 +121,7 @@ extern const char *s2n_strerror(int error, const char *lang);
 
 extern int s2n_config_set_cache_store_callback(struct s2n_config *config, int (*cache_store)(void *, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data);
 extern int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, int (*cache_retrieve)(void *, const void *key, uint64_t key_size, void *value, uint64_t *value_size), void *data);
-extern int s2n_config_set_cache_delete_callback(struct s2n_config *config, int (*cache_retrieve)(void *, const void *key, uint64_t key_size), void *data);
+extern int s2n_config_set_cache_delete_callback(struct s2n_config *config, int (*cache_delete)(void *, const void *key, uint64_t key_size), void *data);
 
 extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, char *cert_chain_pem, char *private_key_pem);
 extern int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config,
