@@ -52,25 +52,6 @@ struct s2n_handshake_action {
     int (*handler[2]) (struct s2n_connection * conn);
 };
 
-/* This is the list of message types that we support */
-typedef enum {
-    CLIENT_HELLO,
-    SERVER_HELLO,
-    SERVER_CERT,
-    SERVER_CERT_STATUS,
-    SERVER_KEY,
-    SERVER_CERT_REQ,
-    SERVER_HELLO_DONE,
-    CLIENT_CERT,
-    CLIENT_KEY,
-    CLIENT_CERT_VERIFY,
-    CLIENT_CHANGE_CIPHER_SPEC,
-    CLIENT_FINISHED,
-    SERVER_CHANGE_CIPHER_SPEC,
-    SERVER_FINISHED,
-    APPLICATION_DATA
-} message_type_t;
-
 /* ... and this is their corresponding handlers, in the same order */
 static struct s2n_handshake_action state_machine[] = {
     /*Record type   Message type         Writer S2N_SERVER                S2N_CLIENT                   message_type_t               */
@@ -123,7 +104,14 @@ static message_type_t handshakes[6][16] = {
           SERVER_FINISHED, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED, APPLICATION_DATA }
 };
 
-#define ACTIVE_STATE( conn ) state_machine[ handshakes[ (conn)->handshake.handshake_type ][ (conn)->handshake.message_number ] ]
+#define ACTIVE_MESSAGE( conn ) handshakes[ (conn)->handshake.handshake_type ][ (conn)->handshake.message_number ]
+#define ACTIVE_STATE( conn ) state_machine[ ACTIVE_MESSAGE( (conn) ) ]
+
+/* Used in our test cases */
+message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn)
+{
+    return ACTIVE_MESSAGE(conn);
+}
 
 int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 {

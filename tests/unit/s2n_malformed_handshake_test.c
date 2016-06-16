@@ -198,6 +198,8 @@ static uint8_t certificate_too_large[] = {
     0x00, 0x00, 0x10
 };
 
+extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
+
 void send_messages(int write_fd, uint8_t *server_hello, uint32_t server_hello_len, uint8_t *server_cert, uint32_t server_cert_len)
 {
     uint8_t record_header[5] = { TLS_HANDSHAKE, 0x03, 0x03, (server_hello_len >> 8), server_hello_len & 0xff };
@@ -250,7 +252,7 @@ int main(int argc, char **argv)
 
     /* Pretend the client hello has already been set */
     conn->handshake.handshake_type = FULL_NO_PFS;
-    conn->handshake.message_number = 1;
+    conn->handshake.message_number = SERVER_HELLO;
 
     /* Create a child process */
     pid = fork();
@@ -274,7 +276,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was processed .. we should be HELLO DONE */
-    EXPECT_EQUAL(conn->handshake.message_number, 3);
+    EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_HELLO_DONE);
 
     /* Clean up */
     EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
@@ -293,7 +295,7 @@ int main(int argc, char **argv)
 
     /* Pretend the client hello has already been set */
     conn->handshake.handshake_type = FULL_NO_PFS;
-    conn->handshake.message_number = 1;
+    conn->handshake.message_number = SERVER_HELLO;
 
     /* Create a child process */
     pid = fork();
@@ -317,7 +319,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was not processed, we're stuck in SERVER_CERT */
-    EXPECT_EQUAL(conn->handshake.message_number, 2);
+    EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
 
     /* Clean up */
     EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
@@ -336,7 +338,7 @@ int main(int argc, char **argv)
 
     /* Pretend the client hello has already been set */
     conn->handshake.handshake_type = FULL_NO_PFS;
-    conn->handshake.message_number = 1;
+    conn->handshake.message_number = SERVER_HELLO;
 
     /* Create a child process */
     pid = fork();
@@ -360,7 +362,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was not processed, we're stuck in SERVER_CERT */
-    EXPECT_EQUAL(conn->handshake.message_number, 2);
+    EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
 
     /* Clean up */
     EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
@@ -379,7 +381,7 @@ int main(int argc, char **argv)
 
     /* Pretend the client hello has already been set */
     conn->handshake.handshake_type = FULL_NO_PFS;
-    conn->handshake.message_number = 1;
+    conn->handshake.message_number = SERVER_HELLO;
 
     /* Create a child process */
     pid = fork();
@@ -403,7 +405,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was not processed, we're stuck in SERVER_CERT */
-    EXPECT_EQUAL(conn->handshake.message_number, 2);
+    EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
 
     /* Clean up */
     EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
@@ -422,7 +424,7 @@ int main(int argc, char **argv)
 
     /* Pretend the client hello has already been set */
     conn->handshake.handshake_type = FULL_NO_PFS;
-    conn->handshake.message_number = 1;
+    conn->handshake.message_number = SERVER_HELLO;
 
     /* Create a child process */
     pid = fork();
@@ -446,7 +448,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was not processed, we're stuck in SERVER_CERT */
-    EXPECT_EQUAL(conn->handshake.message_number, 2);
+    EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
 
     /* Clean up */
     EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
@@ -465,7 +467,7 @@ int main(int argc, char **argv)
 
     /* Pretend the client hello has already been set */
     conn->handshake.handshake_type = FULL_NO_PFS;
-    conn->handshake.message_number = 1;
+    conn->handshake.message_number = SERVER_HELLO;
 
     /* Create a child process */
     pid = fork();
@@ -489,7 +491,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was not processed, we're stuck in SERVER_CERT */
-    EXPECT_EQUAL(conn->handshake.message_number, 2);
+    EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
 
     /* Clean up */
     EXPECT_EQUAL(waitpid(pid, &status, 0), pid);

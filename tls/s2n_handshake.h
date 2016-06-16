@@ -24,6 +24,25 @@
 
 #include "crypto/s2n_hash.h"
 
+/* This is the list of message types that we support */
+typedef enum {
+    CLIENT_HELLO,
+    SERVER_HELLO,
+    SERVER_CERT,
+    SERVER_CERT_STATUS,
+    SERVER_KEY,
+    SERVER_CERT_REQ,
+    SERVER_HELLO_DONE,
+    CLIENT_CERT,
+    CLIENT_KEY,
+    CLIENT_CERT_VERIFY,
+    CLIENT_CHANGE_CIPHER_SPEC,
+    CLIENT_FINISHED,
+    SERVER_CHANGE_CIPHER_SPEC,
+    SERVER_FINISHED,
+    APPLICATION_DATA
+} message_type_t;
+
 struct s2n_handshake {
     struct s2n_stuffer io;
 
