@@ -47,8 +47,13 @@ struct s2n_config {
 
     /* If caching is being used, these must all be set */
     int (*cache_store)(void *data, const void *key, uint64_t key_size, const void *value, uint64_t value_size);
+    void *cache_store_data;
+
     int (*cache_retrieve)(void *data, const void *key, uint64_t key_size, void *value, uint64_t *value_size);
+    void *cache_retrieve_data;
+
     int (*cache_delete)(void *data, const void *key, uint64_t key_size);
+    void *cache_delete_data;
 };
 
 extern struct s2n_config s2n_default_config;
