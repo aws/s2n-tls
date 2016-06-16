@@ -109,7 +109,11 @@ void mock_client(int writefd, int readfd)
         s2n_send(conn, buffer, i, &blocked);
     }
 
-    s2n_shutdown(conn, &blocked);
+    int shutdown_rc = -1;
+    while(shutdown_rc != 0) {
+        shutdown_rc = s2n_shutdown(conn, &blocked);
+    }
+
     s2n_connection_free(conn);
 
     /* Give the server a chance to a void a sigpipe */
@@ -137,6 +141,8 @@ int main(int argc, char **argv)
     for (int is_dh_key_exchange = 0; is_dh_key_exchange <= 1; is_dh_key_exchange++) {
         EXPECT_SUCCESS(pipe(server_to_client));
         EXPECT_SUCCESS(pipe(client_to_server));
+
+
 
         /* Create a child process */
         pid = fork();
@@ -188,10 +194,11 @@ int main(int argc, char **argv)
             }
         }
 
-        /* Verify that read() returns EOF */
-        EXPECT_SUCCESS(s2n_recv(conn, buffer, 1, &blocked));
-
-        EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
+        int shutdown_rc = -1;
+        do {
+            shutdown_rc = s2n_shutdown(conn, &blocked);
+            EXPECT_TRUE(shutdown_rc == 0 || (errno == EAGAIN && blocked));
+        } while(shutdown_rc != 0);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
 

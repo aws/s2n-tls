@@ -57,6 +57,7 @@ extern int s2n_handshake_write_header(struct s2n_connection *conn, uint8_t messa
 extern int s2n_handshake_finish_header(struct s2n_connection *conn);
 extern int s2n_handshake_parse_header(struct s2n_connection *conn, uint8_t *message_type, uint32_t *length);
 extern int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int *isSSLv2);
+extern int s2n_recv_close_notify(struct s2n_connection *conn, s2n_blocked_status *blocked);
 extern int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 extern int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *extensions);
 extern int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out);

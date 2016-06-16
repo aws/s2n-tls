@@ -110,7 +110,10 @@ struct s2n_connection {
     uint8_t writer_alert_out_data[S2N_ALERT_LENGTH];
     struct s2n_stuffer reader_alert_out;
     struct s2n_stuffer writer_alert_out;
-   
+
+    /* Determines if we're currently sending or receiving in s2n_shutdown */
+    unsigned int close_notify_queued:1;
+
     /* Our handshake state machine */
     struct s2n_handshake handshake;
 

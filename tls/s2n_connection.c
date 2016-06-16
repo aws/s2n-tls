@@ -70,6 +70,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     conn->mode = mode;
     conn->blinding = S2N_BUILT_IN_BLINDING;
     conn->config = &s2n_default_config;
+    conn->close_notify_queued = 0;
 
     /* Allocate the fixed-size stuffers */
     blob.data = conn->alert_in_data;
@@ -122,29 +123,6 @@ static int s2n_connection_free_keys(struct s2n_connection *conn)
     GUARD(s2n_ecc_params_free(&conn->active.server_ecc_params));
 
     GUARD(s2n_free(&conn->status_response));
-
-    return 0;
-}
-
-int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *more)
-{
-    uint64_t elapsed;
-
-    GUARD(s2n_timer_elapsed(conn->config, &conn->write_timer, &elapsed));
-    if (elapsed < conn->delay) {
-        S2N_ERROR(S2N_ERR_SHUTDOWN_PAUSED);
-    }
-
-    /* Write any pending I/O */
-    GUARD(s2n_flush(conn, more));
-
-    GUARD(s2n_queue_writer_close_alert(conn));
-
-    /* Write the alert message out */
-    GUARD(s2n_flush(conn, more));
-
-    /* Wipe the connection */
-    GUARD(s2n_connection_wipe(conn));
 
     return 0;
 }
@@ -228,6 +206,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     conn->writefd = -1;
     conn->mode = mode;
     conn->config = config;
+    conn->close_notify_queued = 0;
     conn->active.cipher_suite = &s2n_null_cipher_suite;
     conn->pending.cipher_suite = &s2n_null_cipher_suite;
     conn->server = &conn->active;
