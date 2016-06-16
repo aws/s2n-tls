@@ -80,9 +80,9 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
-    GUARD(s2n_conn_set_handshake_type(conn));
 
     if (s2n_stuffer_data_available(in) < 2) {
+        GUARD(s2n_conn_set_handshake_type(conn));
         /* No extensions */
         return 0;
     }
@@ -99,7 +99,6 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
 
     GUARD(s2n_server_extensions_recv(conn, &extensions));
 
-    /* Update the handshake type if neccessary */
     GUARD(s2n_conn_set_handshake_type(conn));
 
     return 0;
