@@ -391,6 +391,11 @@ should return 0 on success and -1 on error. The function is also required to
 implement a monotonic time source; the number of nanoseconds returned should
 never decrease between calls.
 
+## Session Caching related calls
+
+s2n includes support for resuming from cached SSL/TLS session, provided 
+the caller sets (and implements) three callback functions.
+
 ### s2n\_config\_set\_cache\_store\_callback
 
 ```c
@@ -425,13 +430,13 @@ data returned. If there is insufficient space, -1 should be returned.
 ### s2n\_config\_set\_cache\_delete\_callback
 
 ```c
-int s2n_config_set_cache_delete_callback(struct s2n_config *config, int (*cache_retrieve)(void *, const void *key, uint64_t key_size), void *data);
+int s2n_config_set_cache_delete_callback(struct s2n_config *config, int (*cache_delete))(void *, const void *key, uint64_t key_size), void *data);
 ```
 
 **s2n_config_set_cache_delete_callback** allows the caller to set a callback
 function that will be used to delete SSL session data from a cache. The
 callback function takes three arguments: a pointer to abitrary data for use
-within the callback, a pointer to a key which can be used to retrieve the
+within the callback, a pointer to a key which can be used to delete the
 cached entry, and a 64 bit unsigned integer specifying the size of this key.
 
 ## Connection-oriented functions
