@@ -286,7 +286,7 @@ static int handshake_read_io(struct s2n_connection *conn)
     }
 
     if (isSSLv2) {
-        if (conn->handshake.message_number != 0) {
+        if (ACTIVE_MESSAGE(conn) != CLIENT_HELLO) {
             S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }
 
