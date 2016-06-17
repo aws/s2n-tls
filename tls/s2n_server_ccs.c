@@ -50,8 +50,6 @@ int s2n_server_ccs_recv(struct s2n_connection *conn)
     /* Flush any partial alert messages that were pending */
     GUARD(s2n_stuffer_wipe(&conn->alert_in));
 
-    conn->handshake.next_state = SERVER_FINISHED;
-
     return 0;
 }
 
@@ -61,8 +59,6 @@ int s2n_server_ccs_send(struct s2n_connection *conn)
 
     /* Compute the finished message */
     GUARD(s2n_prf_server_finished(conn));
-
-    conn->handshake.next_state = SERVER_FINISHED;
 
     return 0;
 }

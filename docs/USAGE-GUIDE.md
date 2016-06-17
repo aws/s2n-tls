@@ -391,6 +391,54 @@ should return 0 on success and -1 on error. The function is also required to
 implement a monotonic time source; the number of nanoseconds returned should
 never decrease between calls.
 
+## Session Caching related calls
+
+s2n includes support for resuming from cached SSL/TLS session, provided 
+the caller sets (and implements) three callback functions.
+
+### s2n\_config\_set\_cache\_store\_callback
+
+```c
+int s2n_config_set_cache_store_callback(struct s2n_config *config, int (*cache_store)(void *, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data);
+```
+
+**s2n_config_set_cache_store_callback** allows the caller to set a callback
+function that will be used to store SSL session data in a cache. The callback
+function takes five arguments: a pointer to abitrary data for use within the
+callback, a pointer to a key which can be used to retrieve the cached entry, a
+64 bit unsigned integer specifying the size of this key, a pointer to a value
+which should be stored, and a 64 bit unsigned integer specified the size of
+this value.
+
+### s2n\_config\_set\_cache\_retrieve\_callback
+
+```c
+int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, int (*cache_retrieve)(void *, const void *key, uint64_t key_size, void *value, uint64_t *value_size), void *data)
+```
+
+**s2n_config_set_cache_retrieve_callback** allows the caller to set a callback
+function that will be used to retrieve SSL session data from a cache. The
+callback function takes five arguments: a pointer to abitrary data for use
+within the callback, a pointer to a key which can be used to retrieve the
+cached entry, a 64 bit unsigned integer specifying the size of this key, a
+pointer to a memory location where the value should be stored,
+and a pointer to a 64 bit unsigned integer specifing the size of this value.
+Initially *value_size will be set to the amount of space allocated for
+the value, the callback should set *value_size to the actual size of the
+data returned. If there is insufficient space, -1 should be returned.
+
+### s2n\_config\_set\_cache\_delete\_callback
+
+```c
+int s2n_config_set_cache_delete_callback(struct s2n_config *config, int (*cache_delete))(void *, const void *key, uint64_t key_size), void *data);
+```
+
+**s2n_config_set_cache_delete_callback** allows the caller to set a callback
+function that will be used to delete SSL session data from a cache. The
+callback function takes three arguments: a pointer to abitrary data for use
+within the callback, a pointer to a key which can be used to delete the
+cached entry, and a 64 bit unsigned integer specifying the size of this key.
+
 ## Connection-oriented functions
 
 ### s2n\_connection\_new

@@ -96,7 +96,8 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
     GUARD(s2n_set_cipher_as_tls_server(conn, cipher_suites, cipher_suites_length / 2));
     conn->server->chosen_cert_chain = conn->config->cert_and_key_pairs;
 
-    conn->handshake.next_state = SERVER_HELLO;
+    /* Set the handshake type */
+    GUARD(s2n_conn_set_handshake_type(conn));
 
     return 0;
 }
@@ -138,8 +139,6 @@ int s2n_client_hello_send(struct s2n_connection *conn)
 
     /* Write the extensions */
     GUARD(s2n_client_extensions_send(conn, out));
-
-    conn->handshake.next_state = SERVER_HELLO;
 
     return 0;
 }
@@ -192,7 +191,7 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
 
     conn->server->chosen_cert_chain = conn->config->cert_and_key_pairs;
     conn->client_hello_version = S2N_SSLv2;
-    conn->handshake.next_state = SERVER_HELLO;
+    GUARD(s2n_conn_set_handshake_type(conn));
 
     return 0;
 }

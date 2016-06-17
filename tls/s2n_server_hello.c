@@ -80,8 +80,9 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
+
     if (s2n_stuffer_data_available(in) < 2) {
-        conn->handshake.next_state = SERVER_CERT;
+        GUARD(s2n_conn_set_handshake_type(conn));
         /* No extensions */
         return 0;
     }
@@ -98,7 +99,7 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
 
     GUARD(s2n_server_extensions_recv(conn, &extensions));
 
-    conn->handshake.next_state = SERVER_CERT;
+    GUARD(s2n_conn_set_handshake_type(conn));
 
     return 0;
 }
@@ -143,7 +144,6 @@ int s2n_server_hello_send(struct s2n_connection *conn)
     GUARD(s2n_server_extensions_send(conn, out));
 
     conn->actual_protocol_version_established = 1;
-    conn->handshake.next_state = SERVER_CERT;
 
     return 0;
 }
