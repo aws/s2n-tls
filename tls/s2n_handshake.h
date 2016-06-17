@@ -27,14 +27,10 @@
 struct s2n_handshake {
     struct s2n_stuffer io;
 
-    struct s2n_hash_state client_md5;
-    struct s2n_hash_state client_sha1;
-    struct s2n_hash_state client_sha256;
-    struct s2n_hash_state client_sha384;
-    struct s2n_hash_state server_md5;
-    struct s2n_hash_state server_sha1;
-    struct s2n_hash_state server_sha256;
-    struct s2n_hash_state server_sha384;
+    struct s2n_hash_state md5;
+    struct s2n_hash_state sha1;
+    struct s2n_hash_state sha256;
+    struct s2n_hash_state sha384;
 
     uint8_t server_finished[S2N_SSL_FINISHED_LEN];
     uint8_t client_finished[S2N_SSL_FINISHED_LEN];
