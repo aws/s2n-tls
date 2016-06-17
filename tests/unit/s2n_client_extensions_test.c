@@ -97,6 +97,8 @@ static char private_key[] =
     "JXlJ2hwsIc4q9En/LR3GtBaL84xTHGfznNylNhXi7GbO1wNMJuAukA==\n"
     "-----END RSA PRIVATE KEY-----\n";
 
+extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
+
 static int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
 {
     int server_rc = -1;
@@ -331,7 +333,7 @@ int main(int argc, char **argv)
 
         /* Verify that the CLIENT HELLO is accepted */
         s2n_negotiate(server_conn, &server_blocked);
-        EXPECT_TRUE(server_conn->handshake.message_number > 0);
+        EXPECT_TRUE(s2n_conn_get_current_message_type(server_conn) > CLIENT_HELLO);
         EXPECT_EQUAL(server_conn->handshake.handshake_type, FULL_NO_PFS);
 
         /* Verify that the server name was received intact. */
