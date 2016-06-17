@@ -215,17 +215,23 @@ static int s2n_sslv3_finished(struct s2n_connection *conn, uint8_t prefix[4], st
 static int s2n_sslv3_client_finished(struct s2n_connection *conn)
 {
     uint8_t prefix[4] = { 0x43, 0x4c, 0x4e, 0x54 };
+    struct s2n_hash_state md5, sha1;
 
     lte_check(MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH, sizeof(conn->handshake.client_finished));
-    return s2n_sslv3_finished(conn, prefix, &conn->handshake.md5, &conn->handshake.sha1, conn->handshake.client_finished);
+    GUARD(s2n_hash_copy(&md5, &conn->handshake.md5));
+    GUARD(s2n_hash_copy(&sha1, &conn->handshake.sha1));
+    return s2n_sslv3_finished(conn, prefix, &md5, &sha1, conn->handshake.client_finished);
 }
 
 static int s2n_sslv3_server_finished(struct s2n_connection *conn)
 {
     uint8_t prefix[4] = { 0x53, 0x52, 0x56, 0x52 };
+    struct s2n_hash_state md5, sha1;
 
     lte_check(MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH, sizeof(conn->handshake.server_finished));
-    return s2n_sslv3_finished(conn, prefix, &conn->handshake.md5, &conn->handshake.sha1, conn->handshake.server_finished);
+    GUARD(s2n_hash_copy(&md5, &conn->handshake.md5));
+    GUARD(s2n_hash_copy(&sha1, &conn->handshake.sha1));
+    return s2n_sslv3_finished(conn, prefix, &md5, &sha1, conn->handshake.server_finished);
 }
 
 int s2n_prf_client_finished(struct s2n_connection *conn)
