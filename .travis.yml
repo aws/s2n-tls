@@ -16,5 +16,5 @@ install:
   - (test "$TRAVIS_OS_NAME" = "linux" && sudo .travis/install_prlimit.sh $PWD/.travis > /dev/null && sudo .travis/prlimit --pid "$$" --memlock=unlimited:unlimited) || true
 
 script:
-  - make
+  - make -j8
   - make integration
