@@ -18,18 +18,11 @@ S2ND_HOST=127.0.0.1
 
 .PHONY : all
 all:
-	# Clean up existing s2nd if it exists
-	-test -e s2nd.pid && kill `cat s2nd.pid` 2>/dev/null; rm s2nd.pid 2>/dev/null
-	@echo "Starting s2nd with all cipher suites...."
+	# Run our handshake test
 	( \
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
-	../../bin/s2nd -n -c test_all $(S2ND_HOST) $(S2ND_PORT) 1>/dev/null & echo "$$!" > s2nd.pid \
-	)
-	# Run our handshake test
-	( \
 	python3 s2n_handshake_test.py $(S2ND_HOST) $(S2ND_PORT); \
 	STATUS=$$?; \
-	kill `cat s2nd.pid`; rm s2nd.pid 2>/dev/null ; \
 	exit $$STATUS \
 	)

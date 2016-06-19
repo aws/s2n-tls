@@ -13,10 +13,10 @@
 # permissions and limitations under the License.
 #
 
-import os
 import sys
 import ssl
 import socket
+import subprocess
 
 # All supported ciphers
 S2N_CIPHERS= [
@@ -52,8 +52,15 @@ PROTO_VERS_TO_STR = {
 }
 
 def try_handshake(endpoint, port, cipher, ssl_version):
+    # Fire up s2nd
+    s2nd = subprocess.Popen(["../../bin/s2nd", "-c", "test_all", str(endpoint), str(port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+
+    # Make sure it's running
+    s2nd.stdout.readline()
+
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(1)
+
     try:
         ssl_sock = ssl.wrap_socket(sock, ssl_version=ssl_version, ciphers=cipher)
     except ssl.SSLError as err:
@@ -64,6 +71,38 @@ def try_handshake(endpoint, port, cipher, ssl_version):
     except Exception as err:
         print(str(err))
         return -1
+
+    # Write the cipher name towards s2n
+    ssl_sock.send((cipher + "\n").encode("utf-8"))
+    found = 0
+    for line in range(0, 10):
+        output = s2nd.stdout.readline().decode("utf-8")
+        if output.strip() == cipher:
+            found = 1
+            break
+
+    if found == 0:
+        return -1
+
+    # Write the cipher name from s2n
+    buffered = ssl_sock.makefile()
+    s2nd.stdin.write((cipher + "\n").encode("utf-8"))
+    found = 0
+    for line in range(0, 10):
+        try:
+            output = buffered.readline().decode("utf-8")
+        except:
+            pass
+
+        if output.strip() == cipher:
+            found = 1
+            break
+
+    if found == 0:
+        return -1
+
+    s2nd.kill()
+    s2nd.wait()
 
     return 0
 
