@@ -28,7 +28,7 @@ all:
 	)
 	# Run our handshake test
 	( \
-	python s2n_handshake_test.py $(S2ND_HOST) $(S2ND_PORT); \
+	python3 s2n_handshake_test.py $(S2ND_HOST) $(S2ND_PORT); \
 	STATUS=$$?; \
 	kill `cat s2nd.pid`; rm s2nd.pid 2>/dev/null ; \
 	exit $$STATUS \

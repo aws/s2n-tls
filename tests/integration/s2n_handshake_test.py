@@ -13,6 +13,7 @@
 # permissions and limitations under the License.
 #
 
+import os
 import sys
 import ssl
 import socket
@@ -56,25 +57,25 @@ def try_handshake(endpoint, port, cipher, ssl_version):
     try:
         ssl_sock = ssl.wrap_socket(sock, ssl_version=ssl_version, ciphers=cipher)
     except ssl.SSLError as err:
-        print str(err)
+        print(str(err))
         return -1
     try:
         ssl_sock.connect((endpoint, port))
     except Exception as err:
-        print str(err)
+        print(str(err))
         return -1
 
     return 0
 
 def main(argv):
     if len(argv) < 2:
-        print "s2n_handshake_test.py host port"
+        print("s2n_handshake_test.py host port")
         sys.exit(1)
 
-    print "\nRunning handshake tests with: " + str(ssl.OPENSSL_VERSION)
+    print("\nRunning handshake tests with: " + str(ssl.OPENSSL_VERSION))
     failed = 0
     for ssl_version in [ssl.PROTOCOL_SSLv3, ssl.PROTOCOL_TLSv1, ssl.PROTOCOL_TLSv1_1, ssl.PROTOCOL_TLSv1_2]:
-        print "\n\tTesting ciphers using client version: " + PROTO_VERS_TO_STR[ssl_version]
+        print("\n\tTesting ciphers using client version: " + PROTO_VERS_TO_STR[ssl_version])
         for cipher in S2N_CIPHERS:
             cipher_name = cipher[0]
             cipher_vers = cipher[1]
@@ -83,10 +84,17 @@ def main(argv):
                 continue
 
             ret = try_handshake(argv[0], int(argv[1]), cipher_name, ssl_version)
+            print("Cipher: %-30s Vers: %-10s ... " % (cipher_name, PROTO_VERS_TO_STR[ssl_version]), end='')
             if ret == 0:
-                print "Cipher: " + cipher_name + " Vers:" +  PROTO_VERS_TO_STR[ssl_version] + "...SUCCEEDED"
+                if sys.stdout.isatty():
+                    print("\033[32;1mPASSED\033[0m")
+                else:
+                    print("PASSED")
             else:
-                print "Cipher: " + cipher_name + " Vers:" +  PROTO_VERS_TO_STR[ssl_version] + "...FAILED"
+                if sys.stdout.isatty():
+                    print("\033[31;1mFAILED\033[0m")
+                else:
+                    print("FAILED")
                 failed = 1
     return failed
 
