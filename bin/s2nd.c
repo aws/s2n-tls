@@ -118,6 +118,7 @@ int main(int argc, char * const *argv)
     struct addrinfo hints, *ai;
     int r, sockfd = 0;
 
+
     /* required args */
     const char *host = NULL;
     const char *port = NULL;
@@ -161,6 +162,16 @@ int main(int argc, char * const *argv)
 
     if (!host || !port) {
         usage();
+    }
+
+    if (setvbuf(stdin, NULL, _IONBF, 0) < 0) {
+        fprintf(stderr, "Error disabling buffering for stdin\n");
+        exit(1);
+    }
+
+    if (setvbuf(stdout, NULL, _IONBF, 0) < 0) {
+        fprintf(stderr, "Error disabling buffering for stdout\n");
+        exit(1);
     }
 
     memset(&hints, 0, sizeof(hints));
