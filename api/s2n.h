@@ -31,7 +31,7 @@ extern "C" {
 extern __thread int s2n_errno;
 
 typedef enum {
-    S2N_ERR_T_OK,
+    S2N_ERR_T_OK=0,
     S2N_ERR_T_IO,
     S2N_ERR_T_CLOSED,
     S2N_ERR_T_BLOCKED,

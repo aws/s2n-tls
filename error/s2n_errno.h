@@ -17,14 +17,22 @@
 
 #include <s2n.h>
 
-#define S2N_ERR_T_OK_START 0
-#define S2N_ERR_T_IO_START 1000
-#define S2N_ERR_T_CLOSED_START 2000
-#define S2N_ERR_T_BLOCKED_START 3000
-#define S2N_ERR_T_ALERT_START 4000
-#define S2N_ERR_T_PROTO_START 5000
-#define S2N_ERR_T_INTERNAL_START 6000
-#define S2N_ERR_T_USAGE_START 7000
+/**
+ * To easily retrieve error types, we split error values into two parts.
+ * The upper 6 bits describe the error type and the lower bits describe the value within the category.
+ * [ Error Type Bits(31-26) ][ Value Bits(25-0) ]
+ */
+#define S2N_ERR_NUM_VALUE_BITS 26
+
+/* Start value for each error type. */
+#define S2N_ERR_T_OK_START S2N_ERR_T_OK << S2N_ERR_NUM_VALUE_BITS
+#define S2N_ERR_T_IO_START S2N_ERR_T_IO << S2N_ERR_NUM_VALUE_BITS
+#define S2N_ERR_T_CLOSED_START S2N_ERR_T_CLOSED << S2N_ERR_NUM_VALUE_BITS
+#define S2N_ERR_T_BLOCKED_START S2N_ERR_T_BLOCKED << S2N_ERR_NUM_VALUE_BITS
+#define S2N_ERR_T_ALERT_START S2N_ERR_T_ALERT << S2N_ERR_NUM_VALUE_BITS
+#define S2N_ERR_T_PROTO_START S2N_ERR_T_PROTO << S2N_ERR_NUM_VALUE_BITS
+#define S2N_ERR_T_INTERNAL_START S2N_ERR_T_INTERNAL << S2N_ERR_NUM_VALUE_BITS
+#define S2N_ERR_T_USAGE_START S2N_ERR_T_USAGE << S2N_ERR_NUM_VALUE_BITS
 
 typedef enum {
     /* S2N_ERR_T_OK */
