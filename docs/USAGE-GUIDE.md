@@ -235,6 +235,60 @@ failure. When an s2n function returns a failure, s2n_errno will be set to a valu
 corresponding to the error. This error value can be translated into a string 
 explaining the error in English by calling s2n_strerror(s2n_errno, "EN"); 
 
+Example:
+
+```
+if (s2n_config_set_cipher_preferences(config, prefs) < 0) {
+    printf("Setting cipher prefs failed! %s", (s2n_strerror(s2n_errno, "EN"));
+    return -1;
+}
+```
+
+### Error categories
+
+s2n organizes errors into different "types" to allow applications to do logic on error values without catching all possibilities. 
+Applications using non-blocking I/O should check error type to determine if the I/O operation failed because it would block or for some other error. To retrieve the type for a given error use `s2n_error_get_type()`.
+Applications should perform any error handling logic using these high level types:
+
+```
+S2N_ERR_T_OK=0, /* No error */
+S2N_ERR_T_IO, /* Underlying I/O operation failed, check system errno */
+S2N_ERR_T_CLOSED, /* EOF */
+S2N_ERR_T_BLOCKED, /* Underlying I/O operation would block */
+S2N_ERR_T_ALERT, /* Incoming Alert */
+S2N_ERR_T_PROTO, /* Failure in some part of the TLS protocol. Ex: CBC verification failure */
+S2N_ERR_T_INTERNAL, /* Error internal to s2n. A precondition could have failed. */
+S2N_ERR_T_USAGE /* User input error. Ex: Providing an invalid cipher preference version */
+```
+
+Here's an example that handles errors based on type:
+
+```
+if (s2n_recv(conn, &blocked) < 0) {
+    switch(s2n_error_get_type(s2n_errno)) {
+        case S2N_ERR_T_BLOCKED:
+            /* Blocked, come back later */
+            return -1;
+        case S2N_ERR_T_CLOSED:
+            return 0;
+        case S2N_ERR_T_IO:
+            handle_io_err();
+            return -1;
+        case S2N_ERR_T_PROTO:
+            handle_proto_err();
+            return -1;
+        case S2N_ERR_T_ALERT:
+            log_alert(s2n_connection_get_alert(conn));
+            return -1;
+        /* Everything else */
+        default:
+            log_other_error();
+            return -1;
+    }
+}
+```
+
+
 ## Initialization and teardown
 
 ### s2n\_init
@@ -709,61 +763,6 @@ int s2n_shutdown(struct s2n_connection *conn,
 ```
 
 **s2n_shutdown** shuts down the s2n connection. Once a connection has been shut down it is not available for reading or writing.
-
-## Errors
-
-All s2n functions return 0 on success and -1 on failure. For failures, the thread local variable "s2n_errno" will be set with specific error information. Applications that simply wish to log the error can use a pattern like this:
-
-```
-if (s2n_config_set_cipher_preferences(config, prefs) < 0) {
-    printf("Setting cipher prefs failed! %s", (s2n_strerror(s2n_errno, "EN"));
-    return -1;
-}
-```
-
-### Error categories
-
-s2n organizes errors into different "types" to allow applications to do logic on error values without catching all possibilities. 
-Applications using non-blocking I/O should check the error type to see if the I/O operation failed because it would block or not. To retrieve the type for a given error use `s2n_error_get_type()`.
-Applications should perform any error handling logic using these high level types:
-
-```
-S2N_ERR_T_OK=0, /* No error */
-S2N_ERR_T_IO, /* Underlying I/O operation failed, check system errno */
-S2N_ERR_T_CLOSED, /* EOF */
-S2N_ERR_T_BLOCKED, /* Underlying I/O operation would block */
-S2N_ERR_T_ALERT, /* Incoming Alert */
-S2N_ERR_T_PROTO, /* Failure in some part of the TLS protocol. Ex: CBC verification failure */
-S2N_ERR_T_INTERNAL, /* Error internal to s2n. A precondition could have failed. */
-S2N_ERR_T_USAGE /* User input error. Ex: Providing an invalid cipher preference version */
-```
-
-Here's an example that handles errors based on type:
-
-```
-if (s2n_recv(conn, &blocked) < 0) {
-    switch(s2n_error_get_type(s2n_errno)) {
-        case S2N_ERR_T_BLOCKED:
-            /* Blocked, come back later */
-            return -1;
-        case S2N_ERR_T_CLOSED:
-            return 0;
-        case S2N_ERR_T_IO:
-            handle_io_err();
-            return -1;
-        case S2N_ERR_T_PROTO:
-            handle_proto_err();
-            return -1;
-        case S2N_ERR_T_ALERT:
-            log_alert(s2n_connection_get_alert(conn));
-            return -1;
-        /* Everything else */
-        default:
-            log_other_error();
-            return -1;
-    }
-}
-```
 
 # Examples
 
