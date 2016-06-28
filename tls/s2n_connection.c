@@ -107,14 +107,14 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
 
 static int s2n_connection_free_keys(struct s2n_connection *conn)
 {
-    /* Destroy any keys - we call destroy on the secure object as that is where
+    /* Destroy any keys - we call destroy on the object as that is where
      * keys are allocated. */
     if (conn->secure.cipher_suite && conn->secure.cipher_suite->cipher->destroy_key) {
         GUARD(conn->secure.cipher_suite->cipher->destroy_key(&conn->secure.client_key));
         GUARD(conn->secure.cipher_suite->cipher->destroy_key(&conn->secure.server_key));
     }
 
-    /* Free any secure server key received (we may not have completed a
+    /* Free any server key received (we may not have completed a
      * handshake, so this may not have been free'd yet) */
     GUARD(s2n_rsa_public_key_free(&conn->secure.server_rsa_public_key));
 

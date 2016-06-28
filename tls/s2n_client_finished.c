@@ -49,7 +49,7 @@ int s2n_client_finished_send(struct s2n_connection *conn)
     GUARD(s2n_blob_zero(&seq));
     our_version = conn->handshake.client_finished;
 
-    /* Update the server to use the secure cipher suite */
+    /* Update the server to use the cipher suite */
     conn->client = &conn->secure;
 
     if (conn->actual_protocol_version == S2N_SSLv3) {

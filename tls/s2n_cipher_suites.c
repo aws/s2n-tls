@@ -85,7 +85,7 @@ struct s2n_cipher_suite *s2n_cipher_suite_match(uint8_t cipher_suite[S2N_TLS_CIP
 
 int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN])
 {
-    /* See if the secure cipher is one we support */
+    /* See if the cipher is one we support */
     conn->secure.cipher_suite = s2n_cipher_suite_match(wire);
     if (conn->secure.cipher_suite == NULL) {
         S2N_ERROR(S2N_ERR_CIPHER_NOT_SUPPORTED);

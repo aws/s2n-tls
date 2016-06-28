@@ -74,7 +74,7 @@ static struct s2n_handshake_action state_machine[] = {
     {TLS_APPLICATION_DATA, 0,              'B', {NULL, NULL}}    /* APPLICATION_DATA            */
 };
 
-/* We support 5 different ordering of messages, desecure on what is being negotiated. There's also a dummy "INITIAL" handshake
+/* We support 5 different ordering of messages, depending on what is being negotiated. There's also a dummy "INITIAL" handshake
  * that everything starts out as until we know better.
  */
 static message_type_t handshakes[6][16] = {
@@ -413,7 +413,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
 
     while (ACTIVE_STATE(conn).writer != 'B') {
 
-        /* Flush any secure I/O or alert messages */
+        /* Flush any pending I/O or alert messages */
         GUARD(s2n_flush(conn, blocked));
 
         if (ACTIVE_STATE(conn).writer == this) {

@@ -46,7 +46,7 @@ int s2n_server_ccs_recv(struct s2n_connection *conn)
     /* Update the secure state to active, and point the client at the active state */
     conn->server = &conn->secure;
 
-    /* Flush any partial alert messages that were secure */
+    /* Flush any partial alert messages that were pending */
     GUARD(s2n_stuffer_wipe(&conn->alert_in));
 
     if (conn->handshake.handshake_type == RESUME) {
