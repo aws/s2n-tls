@@ -23,12 +23,14 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
+#include "tls/s2n_resume.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
 
 #include "stuffer/s2n_stuffer.h"
 
 #include "utils/s2n_safety.h"
+#include "utils/s2n_random.h"
 
 /* From RFC5246 7.4 */
 #define TLS_HELLO_REQUEST       0
@@ -72,7 +74,7 @@ static struct s2n_handshake_action state_machine[] = {
     {TLS_APPLICATION_DATA, 0,              'B', {NULL, NULL}}    /* APPLICATION_DATA            */
 };
 
-/* We support 5 different ordering of messages, depending on what is being negotiated. There's also a dummy "INITIAL" handshake
+/* We support 5 different ordering of messages, desecure on what is being negotiated. There's also a dummy "INITIAL" handshake
  * that everything starts out as until we know better.
  */
 static message_type_t handshakes[6][16] = {
@@ -115,7 +117,20 @@ message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn)
 
 int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 {
-    if (conn->pending.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_EPH) {
+    if (s2n_is_caching_enabled(conn->config)) {
+        if (!s2n_resume_from_cache(conn)) {
+            conn->handshake.handshake_type = RESUME;
+            return 0;
+        }
+
+        struct s2n_blob session_id = { .data = conn->session_id, .size = S2N_TLS_SESSION_ID_LEN };
+
+        /* Generate a new session id */
+        GUARD(s2n_get_public_random_data(&session_id));
+        conn->session_id_len = S2N_TLS_SESSION_ID_LEN;
+    }
+
+    if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_EPH) {
         conn->handshake.handshake_type = FULL_WITH_PFS;
 
         if (s2n_server_can_send_ocsp(conn)) {
@@ -124,10 +139,10 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
     }
     else {
         conn->handshake.handshake_type = FULL_NO_PFS;
-    
+
         if (s2n_server_can_send_ocsp(conn)) {
             conn->handshake.handshake_type = FULL_NO_PFS_WITH_STATUS;
-        } 
+        }
     }
 
     return 0;
@@ -146,7 +161,7 @@ static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct 
 /* Writing is relatively straight forward, simply write each message out as a record,
  * we may fragment a message across multiple records, but we never coalesce multiple
  * messages into single records. 
- * Precondition: pending outbound I/O has already been flushed
+ * Precondition: secure outbound I/O has already been flushed
  */
 static int handshake_write_io(struct s2n_connection *conn)
 {
@@ -396,7 +411,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
 
     while (ACTIVE_STATE(conn).writer != 'B') {
 
-        /* Flush any pending I/O or alert messages */
+        /* Flush any secure I/O or alert messages */
         GUARD(s2n_flush(conn, blocked));
 
         if (ACTIVE_STATE(conn).writer == this) {
@@ -404,7 +419,12 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
             GUARD(handshake_write_io(conn));
         } else {
             *blocked = S2N_BLOCKED_ON_READ;
-            GUARD(handshake_read_io(conn));
+            if (handshake_read_io(conn) < 0) {
+                if (s2n_is_caching_enabled(conn->config) && conn->session_id_len) {
+                    conn->config->cache_delete(conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
+                }
+                return -1;
+            }
         }
 
         /* If the handshake has just ended, free up memory */

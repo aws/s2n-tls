@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/param.h>
 #include <time.h>
 #include <stdint.h>
 
@@ -38,8 +39,6 @@
 int s2n_client_hello_recv(struct s2n_connection *conn)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
-    uint8_t session_id[S2N_TLS_SESSION_ID_LEN];
-    uint8_t session_id_len;
     uint8_t compression_methods;
     uint16_t extensions_size;
     uint16_t cipher_suites_length;
@@ -47,8 +46,8 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
     GUARD(s2n_stuffer_read_bytes(in, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
-    GUARD(s2n_stuffer_read_bytes(in, conn->pending.client_random, S2N_TLS_RANDOM_DATA_LEN));
-    GUARD(s2n_stuffer_read_uint8(in, &session_id_len));
+    GUARD(s2n_stuffer_read_bytes(in, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    GUARD(s2n_stuffer_read_uint8(in, &conn->session_id_len));
 
     conn->client_protocol_version = (client_protocol_version[0] * 10) + client_protocol_version[1];
     if (conn->client_protocol_version < conn->config->cipher_preferences->minimum_protocol_version || conn->client_protocol_version > S2N_TLS12) {
@@ -56,12 +55,13 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
     conn->client_hello_version = conn->client_protocol_version;
+    conn->actual_protocol_version = MIN(conn->client_protocol_version, conn->server_protocol_version);
 
-    if (session_id_len > S2N_TLS_SESSION_ID_LEN) {
+    if (conn->session_id_len > S2N_TLS_SESSION_ID_LEN || conn->session_id_len > s2n_stuffer_data_available(in)) {
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
-    GUARD(s2n_stuffer_read_bytes(in, session_id, session_id_len));
+    GUARD(s2n_stuffer_read_bytes(in, conn->session_id, conn->session_id_len));
 
     GUARD(s2n_stuffer_read_uint16(in, &cipher_suites_length));
     if (cipher_suites_length % S2N_TLS_CIPHER_SUITE_LEN) {
@@ -75,7 +75,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
     GUARD(s2n_stuffer_skip_read(in, compression_methods));
 
     /* This is going to be our default if the client has no preference. */
-    conn->pending.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
+    conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
 
     if (s2n_stuffer_data_available(in) >= 2) {
         /* Read extensions if they are present */
@@ -111,7 +111,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     uint8_t session_id_len = 0;
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
-    b.data = conn->pending.client_random;
+    b.data = conn->secure.client_random;
     b.size = S2N_TLS_RANDOM_DATA_LEN;
 
     /* Create the client random data */
@@ -156,6 +156,8 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
         GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
+    conn->actual_protocol_version = MIN(conn->client_protocol_version, conn->server_protocol_version);
+    conn->client_hello_version = S2N_SSLv2;
 
     /* We start 5 bytes into the record */
     GUARD(s2n_stuffer_read_uint16(in, &cipher_suites_length));
@@ -165,10 +167,6 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     }
 
     GUARD(s2n_stuffer_read_uint16(in, &session_id_length));
-
-    if (session_id_length) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
 
     GUARD(s2n_stuffer_read_uint16(in, &challenge_length));
 
@@ -180,8 +178,19 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     notnull_check(cipher_suites);
     GUARD(s2n_set_cipher_as_sslv2_server(conn, cipher_suites, cipher_suites_length / S2N_SSLv2_CIPHER_SUITE_LEN));
 
+    if (session_id_length > s2n_stuffer_data_available(in)) {
+        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+    }
+    if (session_id_length > 0 && session_id_length <= S2N_TLS_SESSION_ID_LEN) {
+        GUARD(s2n_stuffer_read_bytes(in, conn->session_id, session_id_length));
+        conn->session_id_len = (uint8_t) session_id_length;
+    }
+    else {
+        GUARD(s2n_stuffer_skip_read(in, session_id_length));
+    }
+
     struct s2n_blob b;
-    b.data = conn->pending.client_random;
+    b.data = conn->secure.client_random;
     b.size = S2N_TLS_RANDOM_DATA_LEN;
 
     b.data += S2N_TLS_RANDOM_DATA_LEN - challenge_length;
@@ -190,7 +199,6 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     GUARD(s2n_stuffer_read(in, &b));
 
     conn->server->chosen_cert_chain = conn->config->cert_and_key_pairs;
-    conn->client_hello_version = S2N_SSLv2;
     GUARD(s2n_conn_set_handshake_type(conn));
 
     return 0;

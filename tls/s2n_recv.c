@@ -27,6 +27,7 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_record.h"
+#include "tls/s2n_resume.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
 
@@ -131,6 +132,9 @@ ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_block
             if (r == -2) {
                 conn->closed = 1;
                 *blocked = S2N_NOT_BLOCKED;
+                if (s2n_is_caching_enabled(conn->config) && conn->session_id_len) {
+                    conn->config->cache_delete(conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
+                }
                 if (!bytes_read) {
                     GUARD(s2n_connection_wipe(conn));
                 }

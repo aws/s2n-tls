@@ -342,9 +342,9 @@ static int s2n_elliptic_curves_rcv(struct s2n_connection *conn, struct s2n_stuff
     proposed_curves.data = s2n_stuffer_raw_read(extension, proposed_curves.size);
     notnull_check(proposed_curves.data);
 
-    if (s2n_ecc_find_supported_curve(&proposed_curves, &conn->pending.server_ecc_params.negotiated_curve) != 0) {
+    if (s2n_ecc_find_supported_curve(&proposed_curves, &conn->secure.server_ecc_params.negotiated_curve) != 0) {
         /* Can't agree on a curve, ECC is not allowed. Return success to proceed with the handhsake. */
-        conn->pending.server_ecc_params.negotiated_curve = NULL;
+        conn->secure.server_ecc_params.negotiated_curve = NULL;
     }
     return 0;
 }

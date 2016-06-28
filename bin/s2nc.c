@@ -235,8 +235,6 @@ int main(int argc, char * const *argv)
         exit(1);
     }
 
-    printf("Connected to %s:%s\n", host, port);
-
     if (s2n_connection_set_config(conn, config) < 0) {
         fprintf(stderr, "Error setting configuration: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
@@ -254,6 +252,9 @@ int main(int argc, char * const *argv)
 
     /* See echo.c */
     negotiate(conn);
+
+    printf("Connected to %s:%s\n", host, port);
+
     echo(conn, sockfd);
 
     s2n_blocked_status blocked;
