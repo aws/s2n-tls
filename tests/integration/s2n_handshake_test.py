@@ -87,6 +87,7 @@ def try_handshake(endpoint, port, cipher, ssl_version):
     # Write the cipher name from s2n
     buffered = ssl_sock.makefile()
     s2nd.stdin.write((cipher + "\n").encode("utf-8"))
+    s2nd.stdin.flush()
     found = 0
     for line in range(0, 10):
         try:

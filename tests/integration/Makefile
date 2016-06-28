@@ -18,6 +18,14 @@ S2ND_HOST=127.0.0.1
 
 .PHONY : all
 all:
+	# Run our resume test
+	( \
+	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
+	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
+	python3 s2n_resume_test.py $(S2ND_HOST) $(S2ND_PORT); \
+	STATUS=$$?; \
+	exit $$STATUS \
+    )
 	# Run our handshake test
 	( \
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
