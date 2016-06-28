@@ -66,6 +66,7 @@ struct s2n_cipher {
         struct s2n_cbc_cipher cbc;
     } io;
     uint8_t key_material_size;
+    int (*init) (struct s2n_session_key *key);
     int (*get_decryption_key) (struct s2n_session_key *key, struct s2n_blob *in);
     int (*get_encryption_key) (struct s2n_session_key *key, struct s2n_blob *in);
     int (*destroy_key) (struct s2n_session_key *key);

@@ -51,6 +51,8 @@ int main(int argc, char **argv)
     /* test the 3des cipher with a SHA1 hash */
     conn->active.cipher_suite->cipher = &s2n_3des;
     conn->active.cipher_suite->hmac_alg = S2N_HMAC_SHA1;
+    EXPECT_SUCCESS(conn->active.cipher_suite->cipher->init(&conn->active.server_key));
+    EXPECT_SUCCESS(conn->active.cipher_suite->cipher->init(&conn->active.client_key));
     EXPECT_SUCCESS(conn->active.cipher_suite->cipher->get_encryption_key(&conn->active.server_key, &des3));
     EXPECT_SUCCESS(conn->active.cipher_suite->cipher->get_decryption_key(&conn->active.client_key, &des3));
     EXPECT_SUCCESS(s2n_hmac_init(&conn->active.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));

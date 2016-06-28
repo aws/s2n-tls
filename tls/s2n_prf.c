@@ -365,6 +365,9 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     GUARD(s2n_stuffer_init(&key_material, &out));
     GUARD(s2n_stuffer_write(&key_material, &out));
 
+    GUARD(conn->pending.cipher_suite->cipher->init(&conn->pending.client_key));
+    GUARD(conn->pending.cipher_suite->cipher->init(&conn->pending.server_key));
+
     /* What's our hmac algorithm? */
     s2n_hmac_algorithm hmac_alg = conn->pending.cipher_suite->hmac_alg;
     if (conn->actual_protocol_version == S2N_SSLv3) {
