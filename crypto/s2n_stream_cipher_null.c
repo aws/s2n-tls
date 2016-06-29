@@ -20,7 +20,7 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-int s2n_stream_cipher_null_endecrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out)
+static int s2n_stream_cipher_null_endecrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out)
 {
     if (out->data < in->data) {
         S2N_ERROR(S2N_ERR_SIZE_MISMATCH);
@@ -32,12 +32,17 @@ int s2n_stream_cipher_null_endecrypt(struct s2n_session_key *key, struct s2n_blo
     return 0;
 }
 
-int s2n_stream_cipher_null_get_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_stream_cipher_null_get_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     return 0;
 }
 
-int s2n_stream_cipher_null_destroy_key(struct s2n_session_key *key)
+static int s2n_stream_cipher_null_destroy_key(struct s2n_session_key *key)
+{
+    return 0;
+}
+
+static int s2n_stream_cipher_null_init(struct s2n_session_key *key)
 {
     return 0;
 }
@@ -48,6 +53,7 @@ struct s2n_cipher s2n_null_cipher = {
     .io.stream = {
                   .decrypt = s2n_stream_cipher_null_endecrypt,
                   .encrypt = s2n_stream_cipher_null_endecrypt},
+    .init = s2n_stream_cipher_null_init,
     .get_encryption_key = s2n_stream_cipher_null_get_key,
     .get_decryption_key = s2n_stream_cipher_null_get_key,
     .destroy_key = s2n_stream_cipher_null_destroy_key,
