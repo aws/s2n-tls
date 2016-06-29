@@ -14,6 +14,7 @@
  */
 
 #include <stdint.h>
+#include <sys/param.h>
 
 #include "error/s2n_errno.h"
 
@@ -108,10 +109,8 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     /* Before we do anything, we need to figure out what the length of the
      * fragment is going to be. 
      */
-    uint16_t data_bytes_to_take = in->size;
-    if (data_bytes_to_take > s2n_record_max_write_payload_size(conn)) {
-        data_bytes_to_take = s2n_record_max_write_payload_size(conn);
-    }
+    uint16_t data_bytes_to_take = MIN(in->size, s2n_record_max_write_payload_size(conn));
+
     uint16_t extra = overhead(conn);
 
     /* If we have padding to worry about, figure that out too */

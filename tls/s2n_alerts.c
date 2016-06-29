@@ -14,7 +14,7 @@
  */
 
 #include <stdint.h>
-#include <stdio.h>
+#include <sys/param.h>
 
 #include "error/s2n_errno.h"
 
@@ -69,10 +69,7 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
             bytes_required = 1;
         }
 
-        int bytes_to_read = bytes_required;
-        if (bytes_to_read > s2n_stuffer_data_available(&conn->in)) {
-            bytes_to_read = s2n_stuffer_data_available(&conn->in);
-        }
+        int bytes_to_read = MIN(bytes_required, s2n_stuffer_data_available(&conn->in));
 
         GUARD(s2n_stuffer_copy(&conn->in, &conn->alert_in, bytes_to_read));
 
