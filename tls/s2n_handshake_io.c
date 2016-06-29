@@ -229,10 +229,8 @@ static int read_full_handshake_message(struct s2n_connection *conn, uint8_t *mes
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
-    uint32_t bytes_to_take = handshake_message_length - s2n_stuffer_data_available(&conn->handshake.io);;
-    if (bytes_to_take > s2n_stuffer_data_available(&conn->in)) {
-        bytes_to_take = s2n_stuffer_data_available(&conn->in);
-    }
+    uint32_t bytes_to_take = handshake_message_length - s2n_stuffer_data_available(&conn->handshake.io);
+    bytes_to_take = MIN(bytes_to_take, s2n_stuffer_data_available(&conn->in));
 
     /* If the record is handshake data, add it to the handshake buffer */
     GUARD(s2n_stuffer_copy(&conn->in, &conn->handshake.io, bytes_to_take));
