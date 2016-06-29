@@ -123,13 +123,11 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
             return 0;
         }
 
-        if (conn->mode == S2N_SERVER) {
-            struct s2n_blob session_id = { .data = conn->session_id, .size = S2N_TLS_SESSION_ID_LEN };
+        struct s2n_blob session_id = { .data = conn->session_id, .size = S2N_TLS_SESSION_ID_LEN };
 
-            /* Generate a new session id */
-            GUARD(s2n_get_public_random_data(&session_id));
-            conn->session_id_len = S2N_TLS_SESSION_ID_LEN;
-        }
+        /* Generate a new session id */
+        GUARD(s2n_get_public_random_data(&session_id));
+        conn->session_id_len = S2N_TLS_SESSION_ID_LEN;
     }
 
     if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_EPH) {
