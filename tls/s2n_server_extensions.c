@@ -27,8 +27,8 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-static int s2n_server_recv_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension);
-static int s2n_server_recv_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_recv_server_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_recv_server_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
@@ -91,10 +91,10 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
 
         switch (extension_type) {
         case TLS_EXTENSION_ALPN:
-            GUARD(s2n_server_recv_alpn(conn, &extension));
+            GUARD(s2n_recv_server_alpn(conn, &extension));
             break;
         case TLS_EXTENSION_STATUS_REQUEST:
-            GUARD(s2n_server_recv_status_request(conn, &extension));
+            GUARD(s2n_recv_server_status_request(conn, &extension));
             break;
         }
     }
@@ -102,7 +102,7 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
     return 0;
 }
 
-int s2n_server_recv_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension)
+int s2n_recv_server_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     uint16_t size_of_all;
     GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
@@ -124,7 +124,7 @@ int s2n_server_recv_alpn(struct s2n_connection *conn, struct s2n_stuffer *extens
     return 0;
 }
 
-int s2n_server_recv_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension)
+int s2n_recv_server_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     conn->status_type = S2N_STATUS_REQUEST_OCSP;
 

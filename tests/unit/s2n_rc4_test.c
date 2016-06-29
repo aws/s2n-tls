@@ -50,6 +50,8 @@ int main(int argc, char **argv)
     /* test the RC4 cipher with a SHA1 hash */
     conn->secure.cipher_suite->cipher = &s2n_rc4;
     conn->secure.cipher_suite->hmac_alg = S2N_HMAC_SHA1;
+    EXPECT_SUCCESS(conn->secure.cipher_suite->cipher->init(&conn->secure.server_key));
+    EXPECT_SUCCESS(conn->secure.cipher_suite->cipher->init(&conn->secure.client_key));
     EXPECT_SUCCESS(conn->secure.cipher_suite->cipher->get_decryption_key(&conn->secure.client_key, &key_iv));
     EXPECT_SUCCESS(conn->secure.cipher_suite->cipher->get_encryption_key(&conn->secure.server_key, &key_iv));
     EXPECT_SUCCESS(s2n_hmac_init(&conn->secure.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
@@ -102,6 +104,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
     }
 
+    EXPECT_SUCCESS(conn->secure.cipher_suite->cipher->destroy_key(&conn->secure.server_key));
+    EXPECT_SUCCESS(conn->secure.cipher_suite->cipher->destroy_key(&conn->secure.client_key));
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
     END_TEST();

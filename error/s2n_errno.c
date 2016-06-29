@@ -127,3 +127,8 @@ const char *s2n_strerror(int error, const char *lang)
 
     return no_such_error;
 }
+
+int s2n_error_get_type(int error)
+{
+    return (error >> S2N_ERR_NUM_VALUE_BITS);
+}
