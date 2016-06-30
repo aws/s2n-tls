@@ -267,17 +267,7 @@ static int handshake_read_io(struct s2n_connection *conn)
     uint8_t record_type;
     int isSSLv2;
 
-    int r = s2n_read_full_record(conn, &record_type, &isSSLv2);
-    if (r < 0) {
-        if (r == -2) {
-            conn->closed = 1;
-            S2N_ERROR(S2N_ERR_CLOSED);
-        }
-        if (errno == EWOULDBLOCK) {
-            S2N_ERROR(S2N_ERR_BLOCKED);
-        }
-        S2N_ERROR(S2N_ERR_IO);
-    }
+    GUARD(s2n_read_full_record(conn, &record_type, &isSSLv2));
 
     if (isSSLv2) {
         if (ACTIVE_MESSAGE(conn) != CLIENT_HELLO) {
@@ -345,6 +335,7 @@ static int handshake_read_io(struct s2n_connection *conn)
 
     /* Record is a handshake message */
     while (s2n_stuffer_data_available(&conn->in)) {
+        int r;
         uint8_t handshake_message_type;
         GUARD((r = read_full_handshake_message(conn, &handshake_message_type)));
 
