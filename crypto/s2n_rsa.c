@@ -68,10 +68,16 @@ int s2n_asn1der_to_rsa_private_key(struct s2n_rsa_private_key *key, struct s2n_b
 {
     uint8_t *original_ptr = asn1der->data;
 
-    key->rsa = d2i_RSAPrivateKey(NULL, (const unsigned char **)(void *)&asn1der->data, asn1der->size);
-    if (key->rsa == NULL) {
+    EVP_PKEY *pkey = d2i_PrivateKey(EVP_PKEY_RSA, NULL, (const unsigned char **)(void *)&asn1der->data, asn1der->size);
+    if( pkey == NULL ) {
         S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
     }
+    key->rsa = EVP_PKEY_get1_RSA(pkey);
+    EVP_PKEY_free(pkey);
+    if( key->rsa == NULL) {
+        S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
+    }
+
     if (asn1der->data - original_ptr != asn1der->size) {
         S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
     }
