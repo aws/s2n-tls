@@ -85,10 +85,11 @@ static int s2n_drbg_update(struct s2n_drbg *drbg, struct s2n_blob *provided_data
     return 0;
 }
 
-int s2n_drbg_seed(struct s2n_drbg *drbg)
+int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
 {
     uint8_t seed[32];
     struct s2n_blob blob = {.data = seed, .size = sizeof(seed) };
+    lte_check(ps->size, sizeof(seed));
 
     if (drbg->entropy_generator) {
         GUARD(drbg->entropy_generator(&blob));
@@ -97,8 +98,8 @@ int s2n_drbg_seed(struct s2n_drbg *drbg)
         GUARD(s2n_get_urandom_data(&blob));
     }
 
-    for (int i = 0; i < sizeof(drbg->ps); i++) {
-        blob.data[i] ^= drbg->ps[i];
+    for (int i = 0; i < ps->size; i++) {
+        blob.data[i] ^= ps->data[i];
     }
 
     GUARD(s2n_drbg_update(drbg, &blob));
@@ -112,7 +113,8 @@ int s2n_drbg_seed(struct s2n_drbg *drbg)
 int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string)
 {
     struct s2n_blob value = {.data = drbg->v, .size = sizeof(drbg->v) };
-    struct s2n_blob ps = {.data = drbg->ps, .size = sizeof(drbg->ps) };
+    uint8_t ps_prefix[32];
+    struct s2n_blob ps = {.data = ps_prefix, .size = sizeof(ps_prefix) };
 
     /* Start off with zerod data, per 10.2.1.3.1 item 4 */
     GUARD(s2n_blob_zero(&value));
@@ -129,8 +131,12 @@ int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization
     memcpy_check(ps.data, personalization_string->data, MIN(ps.size, personalization_string->size));
 
     /* Seed / update the DRBG */
-    GUARD(s2n_drbg_seed(drbg));
+    GUARD(s2n_drbg_seed(drbg, &ps));
 
+    /* After initial seeding, pivot to RDRAND if available and not overridden */
+    if (drbg->entropy_generator == NULL && s2n_cpu_supports_rdrand()) {
+        drbg->entropy_generator = s2n_get_rdrand_data;
+    }
     return 0;
 }
 
@@ -142,10 +148,7 @@ int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob)
         S2N_ERROR(S2N_ERR_DRBG_REQUEST_SIZE);
     }
 
-    if (drbg->bytes_used + blob->size + S2N_DRBG_BLOCK_SIZE >= S2N_DRBG_RESEED_LIMIT) {
-        GUARD(s2n_drbg_seed(drbg));
-    }
-
+    GUARD(s2n_drbg_seed(drbg, &zeros));
     GUARD(s2n_drbg_bits(drbg, blob));
     GUARD(s2n_drbg_update(drbg, &zeros));
 

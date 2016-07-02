@@ -17,6 +17,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/param.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <limits.h>
@@ -24,6 +25,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <errno.h>
+#include <cpuid.h>
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -38,6 +40,9 @@
 #include <openssl/rand.h>
 
 #define ENTROPY_SOURCE "/dev/urandom"
+
+/* See https://en.wikipedia.org/wiki/CPUID */
+#define RDRAND_ECX_FLAG     0x40000000
 
 static int entropy_fd = -1;
 
@@ -257,4 +262,76 @@ int s2n_cleanup(void)
     entropy_fd = -1;
 
     return 0;
+}
+
+int s2n_cpu_supports_rdrand()
+{
+#if defined(__x86_64__)||defined(__i386__)
+    uint32_t eax, ebx, ecx, edx;
+    if (!__get_cpuid(1, &eax, &ebx, &ecx, &edx)) {
+      return 0;
+    }
+
+    if (ecx & RDRAND_ECX_FLAG) {
+      return 1;
+    }
+#endif
+    return 0;
+}
+
+/* Due to the need to support some older assemblers,
+ * we cannot use either the compiler intrinsics or
+ * the RDRAND assembly mnemonic. For this reason,
+ * we're using the opcode directly (0F C7/6). This
+ * stores the result in eax.
+ *
+ * volatile is important to prevent the compiler from
+ * re-ordering or optimizing the use of RDRAND.
+ */
+int s2n_get_rdrand_data(struct s2n_blob *out)
+{
+
+#if defined(__x86_64__)||defined(__i386__)
+    int space_remaining = 0;
+    struct s2n_stuffer stuffer;
+    union {
+        uint64_t u64;
+        uint8_t  u8[8];
+    } output;
+
+    GUARD(s2n_stuffer_init(&stuffer, out));
+
+    while((space_remaining = s2n_stuffer_space_remaining(&stuffer))) {
+        int success = 0;
+
+        for (int tries = 0; tries < 10; tries++) {
+            __asm__ __volatile__(
+                ".byte 0x48;\n"
+                ".byte 0x0f;\n"
+                ".byte 0xc7;\n"
+                ".byte 0xf0;\n"
+                "adcl $0x00, %%ebx;\n"
+                :"=b"(success), "=a"(output.u64)
+                :"b"(0)
+                :"cc"
+            );
+
+            if (success) {
+                break;
+            }
+        }
+
+        if (!success) {
+            return -1;
+        }
+
+        int data_to_fill = MIN(sizeof(output), space_remaining);
+
+        GUARD(s2n_stuffer_write_bytes(&stuffer, output.u8, data_to_fill));
+    }
+
+    return 0;
+#else
+    return -1;
+#endif
 }
