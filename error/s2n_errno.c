@@ -71,6 +71,7 @@ struct s2n_error_translation EN[] = {
     { S2N_ERR_HASH_INVALID_ALGORITHM, "invalid hash algorithm" },
     { S2N_ERR_HASH_UPDATE_FAILED, "error updating hash" },
     { S2N_ERR_HMAC_INVALID_ALGORITHM, "invalid HMAC algorithm" },
+    { S2N_ERR_HKDF_OUTPUT_SIZE, "invalid HKDF output size" },
     { S2N_ERR_PRF_INVALID_ALGORITHM, "invalid prf hash algorithm" },
     { S2N_ERR_SIZE_MISMATCH, "size mismatch" },
     { S2N_ERR_DECODE_CERTIFICATE, "error decoding certificate" },
