@@ -269,6 +269,7 @@ static int s2n_ecc_compute_shared_secret(EC_KEY *own_key, const EC_POINT *peer_p
     GUARD(s2n_alloc(shared_secret, shared_secret_size));
 
     if (ECDH_compute_key(shared_secret->data, shared_secret_size, peer_public, own_key, NULL) != shared_secret_size) {
+        s2n_free(shared_secret);
         S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
     }
 
