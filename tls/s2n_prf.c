@@ -422,29 +422,23 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
         return 0;
     }
 
-    if (conn->secure.cipher_suite->cipher->type == S2N_AEAD) {
-        /* Generate the IVs */
-        struct s2n_blob client_implicit_iv;
-        client_implicit_iv.data = conn->secure.client_implicit_iv;
-        client_implicit_iv.size = conn->secure.cipher_suite->cipher->io.aead.fixed_iv_size;
-        GUARD(s2n_stuffer_read(&key_material, &client_implicit_iv));
-
-        struct s2n_blob server_implicit_iv;
-        server_implicit_iv.data = conn->secure.server_implicit_iv;
-        server_implicit_iv.size = conn->secure.cipher_suite->cipher->io.aead.fixed_iv_size;
-        GUARD(s2n_stuffer_read(&key_material, &server_implicit_iv));
-    } else if (conn->secure.cipher_suite->cipher->type == S2N_CBC) {
-        /* Generate the IVs */
-        struct s2n_blob client_implicit_iv;
-        client_implicit_iv.data = conn->secure.client_implicit_iv;
-        client_implicit_iv.size = conn->secure.cipher_suite->cipher->io.cbc.block_size;
-        GUARD(s2n_stuffer_read(&key_material, &client_implicit_iv));
-
-        struct s2n_blob server_implicit_iv;
-        server_implicit_iv.data = conn->secure.server_implicit_iv;
-        server_implicit_iv.size = conn->secure.cipher_suite->cipher->io.cbc.block_size;
-        GUARD(s2n_stuffer_read(&key_material, &server_implicit_iv));
+    uint32_t implicit_iv_size = 0;
+    switch(conn->secure.cipher_suite->cipher->type) {
+        case S2N_AEAD:
+            implicit_iv_size = conn->secure.cipher_suite->cipher->io.aead.fixed_iv_size;
+            break;
+        case S2N_CBC:
+            implicit_iv_size = conn->secure.cipher_suite->cipher->io.cbc.block_size;
+            break;
+        /* No-op for stream ciphers */
+        default:
+            break;
     }
+
+    struct s2n_blob client_implicit_iv = { .data = conn->secure.client_implicit_iv, .size = implicit_iv_size };
+    struct s2n_blob server_implicit_iv = { .data = conn->secure.server_implicit_iv, .size = implicit_iv_size };
+    GUARD(s2n_stuffer_read(&key_material, &client_implicit_iv));
+    GUARD(s2n_stuffer_read(&key_material, &server_implicit_iv));
 
     return 0;
 }

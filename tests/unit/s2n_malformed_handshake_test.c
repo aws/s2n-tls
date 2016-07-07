@@ -269,7 +269,9 @@ int main(int argc, char **argv)
     /* This is the parent process, close the write end of the pipe */
     EXPECT_SUCCESS(close(p[1]));
 
-    /* Negotiate the handshake. This will fail due to EOF, but that's ok. */
+    /* Negotiate the handshake. This will fail due to EOF, but that's ok. Turn off Blinding before negotiation so that
+     * server doesn't delay its response and test finishes quickly. */
+    EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
@@ -312,7 +314,9 @@ int main(int argc, char **argv)
     /* This is the parent process, close the write end of the pipe */
     EXPECT_SUCCESS(close(p[1]));
 
-    /* Negotiate the handshake. This will fail due to EOF, but that's ok. */
+    /* Negotiate the handshake. This will fail due to EOF, but that's ok. Turn off Blinding before negotiation so that
+     * server doesn't delay its response and test finishes quickly. */
+    EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
@@ -355,7 +359,9 @@ int main(int argc, char **argv)
     /* This is the parent process, close the write end of the pipe */
     EXPECT_SUCCESS(close(p[1]));
 
-    /* Negotiate the handshake. This will fail due to EOF, but that's ok. */
+    /* Negotiate the handshake. This will fail due to EOF, but that's ok. Turn off Blinding before negotiation so that
+     * server doesn't delay its response and test finishes quickly. */
+    EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
@@ -398,7 +404,9 @@ int main(int argc, char **argv)
     /* This is the parent process, close the write end of the pipe */
     EXPECT_SUCCESS(close(p[1]));
 
-    /* Negotiate the handshake. This will fail due to EOF, but that's ok. */
+    /* Negotiate the handshake. This will fail due to EOF, but that's ok. Turn off Blinding before negotiation so that
+     * server doesn't delay its response and test finishes quickly. */
+    EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
@@ -441,7 +449,9 @@ int main(int argc, char **argv)
     /* This is the parent process, close the write end of the pipe */
     EXPECT_SUCCESS(close(p[1]));
 
-    /* Negotiate the handshake. This will fail due to EOF, but that's ok. */
+    /* Negotiate the handshake. This will fail due to EOF, but that's ok. Turn off Blinding before negotiation so that
+     * server doesn't delay its response and test finishes quickly. */
+    EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
@@ -484,7 +494,9 @@ int main(int argc, char **argv)
     /* This is the parent process, close the write end of the pipe */
     EXPECT_SUCCESS(close(p[1]));
 
-    /* Negotiate the handshake. This will fail due to EOF, but that's ok. */
+    /* Negotiate the handshake. This will fail due to EOF, but that's ok. Turn off Blinding before negotiation so that
+     * server doesn't delay its response and test finishes quickly. */
+    EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */

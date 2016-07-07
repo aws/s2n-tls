@@ -22,9 +22,6 @@
 
 #define S2N_DRBG_BLOCK_SIZE     16
 
-/* We reseed after 2^35 bytes have been generated: from NIST SP800-90A 10.2.1 Table 3 */
-#define S2N_DRBG_RESEED_LIMIT   34359738368
-
 /* The maximum size of any one request: from NIST SP800-90A 10.2.1 Table 3 */
 #define S2N_DRBG_GENERATE_LIMIT 8192
 
@@ -33,9 +30,6 @@ struct s2n_drbg {
 
     /* The current DRBG 'value' */
     uint8_t v[16];
-
-    /* First 32 bytes of the personalization string used */
-    uint8_t ps[32];
 
     /* Track how many bytes have been used */
     uint64_t bytes_used;
@@ -55,7 +49,7 @@ struct s2n_drbg {
 
 /* Per NIST SP 800-90C 6.3
  *
- * s2n's DRBG does not provide prediction resistance (the internal state must be kept secret),
+ * s2n's DRBG does provide prediction resistance
  * and does not support the additional_input parameter (which per 800-90C may be zero).
  *
   * The security strength provided by s2n's DRBG is fixed in size (128 bits).

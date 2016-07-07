@@ -246,10 +246,8 @@ static int read_full_handshake_message(struct s2n_connection *conn, uint8_t *mes
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
-    uint32_t bytes_to_take = handshake_message_length - s2n_stuffer_data_available(&conn->handshake.io);;
-    if (bytes_to_take > s2n_stuffer_data_available(&conn->in)) {
-        bytes_to_take = s2n_stuffer_data_available(&conn->in);
-    }
+    uint32_t bytes_to_take = handshake_message_length - s2n_stuffer_data_available(&conn->handshake.io);
+    bytes_to_take = MIN(bytes_to_take, s2n_stuffer_data_available(&conn->in));
 
     /* If the record is handshake data, add it to the handshake buffer */
     GUARD(s2n_stuffer_copy(&conn->in, &conn->handshake.io, bytes_to_take));
@@ -286,17 +284,7 @@ static int handshake_read_io(struct s2n_connection *conn)
     uint8_t record_type;
     int isSSLv2;
 
-    int r = s2n_read_full_record(conn, &record_type, &isSSLv2);
-    if (r < 0) {
-        if (r == -2) {
-            conn->closed = 1;
-            S2N_ERROR(S2N_ERR_CLOSED);
-        }
-        if (errno == EWOULDBLOCK) {
-            S2N_ERROR(S2N_ERR_BLOCKED);
-        }
-        S2N_ERROR(S2N_ERR_IO);
-    }
+    GUARD(s2n_read_full_record(conn, &record_type, &isSSLv2));
 
     if (isSSLv2) {
         if (ACTIVE_MESSAGE(conn) != CLIENT_HELLO) {
@@ -364,6 +352,7 @@ static int handshake_read_io(struct s2n_connection *conn)
 
     /* Record is a handshake message */
     while (s2n_stuffer_data_available(&conn->in)) {
+        int r;
         uint8_t handshake_message_type;
         GUARD((r = read_full_handshake_message(conn, &handshake_message_type)));
 
