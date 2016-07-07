@@ -55,7 +55,7 @@ static int s2n_rsa_client_key_recv(struct s2n_connection *conn)
 
     encrypted.size = s2n_stuffer_data_available(in);
     encrypted.data = s2n_stuffer_raw_read(in, length);
-
+    notnull_check(encrypted.data);
     gt_check(encrypted.size, 0);
 
     /* First: use a random pre-master secret */

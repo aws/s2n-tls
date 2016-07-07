@@ -88,6 +88,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
         struct s2n_blob extensions;
         extensions.size = extensions_size;
         extensions.data = s2n_stuffer_raw_read(in, extensions.size);
+        notnull_check(extensions.data);
 
         GUARD(s2n_client_extensions_recv(conn, &extensions));
     }

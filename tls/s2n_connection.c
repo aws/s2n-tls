@@ -58,7 +58,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
          * variable is required to be set for the client mode to work.
          */
         if (getenv("S2N_ENABLE_CLIENT_MODE") == NULL) {
-            s2n_free(&blob);
+            GUARD_PTR(s2n_free(&blob));
             S2N_ERROR_PTR(S2N_ERR_CLIENT_MODE_DISABLED);
         }
     }
