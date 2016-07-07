@@ -76,9 +76,9 @@ def try_resume(endpoint, port, cipher, ssl_version):
     seperators = 0
     for line in s2nd.stdout:
         line = line.decode("utf-8").strip()
-        if line.startswith("Cipher negotiated"):
+        if line.startswith("Resumed session"):
             seperators += 1
-        if seperators == 6:
+        if seperators == 5:
             break
 
     # Write the cipher name towards s2n

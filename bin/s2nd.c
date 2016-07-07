@@ -152,6 +152,12 @@ int cache_retrieve(void *ctx, const void *key, uint64_t key_size, void *value, u
     *value_size = cache[ index ].value_len;
     memcpy(value, cache[ index ].value, cache[ index ].value_len);
 
+    printf("Resumed session ");
+    for (int i = 0; i < key_size; i++) {
+        printf("%02x", ((const uint8_t* )key)[i]);
+    }
+    printf("\n");
+
     return 0;
 }
 
