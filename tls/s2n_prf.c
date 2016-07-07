@@ -382,17 +382,27 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
 
     /* Check that we have a valid MAC and key size */
     int mac_size;
-    GUARD((mac_size = s2n_hmac_digest_size(hmac_alg)));
+    if (conn->secure.cipher_suite->cipher->type == S2N_COMP) {
+        mac_size = conn->secure.cipher_suite->cipher->io.comp.mac_key_size;
+    } else {
+        GUARD((mac_size = s2n_hmac_digest_size(hmac_alg)));
+    }
 
     /* Seed the client MAC */
-    uint8_t *client_write_mac_key = s2n_stuffer_raw_read(&key_material, mac_size);
-    notnull_check(client_write_mac_key);
-    GUARD(s2n_hmac_init(&conn->secure.client_record_mac, hmac_alg, client_write_mac_key, mac_size));
+    uint8_t *client_mac_write_key = s2n_stuffer_raw_read(&key_material, mac_size);
+    notnull_check(client_mac_write_key);
+    GUARD(s2n_hmac_init(&conn->secure.client_record_mac, hmac_alg, client_mac_write_key, mac_size));
 
     /* Seed the server MAC */
-    uint8_t *server_write_mac_key = s2n_stuffer_raw_read(&key_material, mac_size);
-    notnull_check(server_write_mac_key);
-    GUARD(s2n_hmac_init(&conn->secure.server_record_mac, hmac_alg, server_write_mac_key, mac_size));
+    uint8_t *server_mac_write_key = s2n_stuffer_raw_read(&key_material, mac_size);
+    notnull_check(server_mac_write_key);
+    GUARD(s2n_hmac_init(&conn->secure.server_record_mac, hmac_alg, server_mac_write_key, mac_size));
+
+    /* Composite CBC does MAC inside the cipher, so pass them the MAC key */
+    if (conn->secure.cipher_suite->cipher->type == S2N_COMP) {
+        GUARD(conn->secure.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->secure.server_key, server_mac_write_key, mac_size));
+        GUARD(conn->secure.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->secure.client_key, client_mac_write_key, mac_size));
+    }
 
     /* Make the client key */
     struct s2n_blob client_key;
@@ -409,6 +419,7 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     struct s2n_blob server_key;
     server_key.size = conn->secure.cipher_suite->cipher->key_material_size;
     server_key.data = s2n_stuffer_raw_read(&key_material, server_key.size);
+
     notnull_check(server_key.data);
     if (conn->mode == S2N_SERVER) {
         GUARD(conn->secure.cipher_suite->cipher->get_encryption_key(&conn->secure.server_key, &server_key));
@@ -429,7 +440,10 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     case S2N_CBC:
         implicit_iv_size = conn->secure.cipher_suite->cipher->io.cbc.block_size;
         break;
-        /* No-op for stream ciphers */
+    case S2N_COMP:
+        implicit_iv_size = conn->secure.cipher_suite->cipher->io.comp.block_size;
+        break;
+    /* No-op for stream ciphers */
     default:
         break;
     }
