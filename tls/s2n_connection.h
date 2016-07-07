@@ -60,7 +60,7 @@ struct s2n_connection {
     uint64_t delay;
 
     /* The session id */
-    uint8_t session_id[S2N_TLS_SESSION_ID_LEN];
+    uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN];
     uint8_t session_id_len;
 
     /* The version advertised by the client, by the

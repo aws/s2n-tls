@@ -57,7 +57,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
     conn->client_hello_version = conn->client_protocol_version;
     conn->actual_protocol_version = MIN(conn->client_protocol_version, conn->server_protocol_version);
 
-    if (conn->session_id_len > S2N_TLS_SESSION_ID_LEN || conn->session_id_len > s2n_stuffer_data_available(in)) {
+    if (conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN || conn->session_id_len > s2n_stuffer_data_available(in)) {
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
@@ -181,7 +181,7 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     if (session_id_length > s2n_stuffer_data_available(in)) {
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
-    if (session_id_length > 0 && session_id_length <= S2N_TLS_SESSION_ID_LEN) {
+    if (session_id_length > 0 && session_id_length <= S2N_TLS_SESSION_ID_MAX_LEN) {
         GUARD(s2n_stuffer_read_bytes(in, conn->session_id, session_id_length));
         conn->session_id_len = (uint8_t) session_id_length;
     }
