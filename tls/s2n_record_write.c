@@ -151,17 +151,17 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
         GUARD(s2n_hmac_update(mac, conn->out.blob.data + 3, 2));
     }
 
-    /* This side channel is used update the MAC with the parts outside the payload(seq num, content type, vers, payload len).
-     * The composite "encrypt" function will take care of computing the rest of the MAC and filling in padding.
+    /* Compute non-payload parts of the MAC(seq num, type, proto vers, fragment length) for composite ciphers.
+     * Composite "encrypt" will MAC the payload data and filling in padding.
      */
     if (cipher_suite->cipher->type == S2N_COMPOSITE) {
-        /* Only fragment length is needed for HMAC, but the EVP ctrl function wants fragment length + eiv len. */
+        /* Only fragment length is needed for MAC, but the EVP ctrl function needs fragment length + eiv len. */
         uint16_t payload_and_eiv_len = data_bytes_to_take;
         if (conn->actual_protocol_version > S2N_TLS10) {
             payload_and_eiv_len += block_size;
         }
 
-        /* Outputs number of extra bytes required for mac and padding */
+        /* Outputs number of extra bytes required for MAC and padding */
         int pad_and_mac_len;
         GUARD(cipher_suite->cipher->io.comp.initial_hmac(session_key, sequence_number, content_type, conn->actual_protocol_version,
                                                          payload_and_eiv_len, &pad_and_mac_len));
@@ -284,7 +284,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
         GUARD(cipher_suite->cipher->io.aead.encrypt(session_key, &iv, &aad, &en, &en));
         break;
     case S2N_COMPOSITE:
-        /* This will: compute mac, append padding and padding length, and encrypt */
+        /* This will: compute mac, append padding, append padding length, and encrypt */
         GUARD(cipher_suite->cipher->io.comp.encrypt(session_key, &iv, &en, &en));
 
         /* Copy the last encrypted block to be the next IV */

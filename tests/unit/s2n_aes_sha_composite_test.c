@@ -110,7 +110,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5))
-                EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)))
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)))
 
             /* Let's decrypt it */
             uint8_t content_type;
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5))
-                EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)))
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)))
 
             /* Let's decrypt it */
             uint8_t content_type;
@@ -243,7 +243,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5))
-                EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)))
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)))
 
             /* Let's decrypt it */
             uint8_t content_type;
@@ -309,7 +309,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5))
-                EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)))
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)))
 
             /* Let's decrypt it */
             uint8_t content_type;

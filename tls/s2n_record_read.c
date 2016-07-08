@@ -148,9 +148,8 @@ int s2n_record_parse(struct s2n_connection *conn)
     gte_check(payload_length, mac_digest_size);
     payload_length -= mac_digest_size;
 
-    /* Compute the initial parts of the HMAC and adjust the payload length for composite CBC.
-     * This side channel is used to update its MAC with the parts outside the payload(seq num, content type, vers, payload len).
-     * Composite "decrypt" function will take care of computing the rest of the MAC.
+    /* Compute non-payload parts of the MAC(seq num, type, proto vers, fragment length) for composite ciphers.
+     * Composite "decrypt" will MAC the actual payload data.
      */
     if (cipher_suite->cipher->type == S2N_COMPOSITE) {
         /* In the decrypt case, this outputs the MAC digest length:
