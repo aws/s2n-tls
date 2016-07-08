@@ -410,10 +410,11 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
             GUARD(handshake_write_io(conn));
         } else {
             *blocked = S2N_BLOCKED_ON_READ;
-            if (handshake_read_io(conn) < 0 && s2n_errno != S2N_ERR_BLOCKED) {
-                if (s2n_is_caching_enabled(conn->config) && conn->session_id_len) {
+            if (handshake_read_io(conn) < 0) {
+                if (s2n_errno != S2N_ERR_BLOCKED && s2n_is_caching_enabled(conn->config) && conn->session_id_len) {
                     conn->config->cache_delete(conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
                 }
+
                 return -1;
             }
         }
