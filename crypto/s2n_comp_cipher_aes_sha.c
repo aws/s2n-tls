@@ -43,7 +43,7 @@ static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key
      * See https://github.com/openssl/openssl/blob/master/crypto/evp/e_aes_cbc_hmac_sha1.c#L814
      * and https://github.com/openssl/openssl/blob/4f0c475719defd7c051964ef9964cc6e5b3a63bf/ssl/record/ssl3_record.c#L743
      */
-    int ctrl_ret = EVP_CIPHER_CTX_ctrl(&key->native_format.evp_cipher_ctx, EVP_CTRL_AEAD_TLS1_AAD, EVP_AEAD_TLS1_AAD_LEN, ctrl_buf);
+    int ctrl_ret = EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_AEAD_TLS1_AAD, EVP_AEAD_TLS1_AAD_LEN, ctrl_buf);
 
     if (ctrl_ret < 0) {
         S2N_ERROR(S2N_ERR_INITIAL_HMAC);
@@ -57,11 +57,11 @@ static int s2n_composite_cipher_aes_sha_encrypt(struct s2n_session_key *key, str
 {
     eq_check(out->size, in->size);
 
-    if (EVP_EncryptInit_ex(&key->native_format.evp_cipher_ctx, NULL, NULL, NULL, iv->data) == 0) {
+    if (EVP_EncryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data) == 0) {
         S2N_ERROR(S2N_ERR_KEY_INIT);
     }
 
-    if (EVP_Cipher(&key->native_format.evp_cipher_ctx, out->data, in->data, in->size) == 0) {
+    if (EVP_Cipher(key->evp_cipher_ctx, out->data, in->data, in->size) == 0) {
         S2N_ERROR(S2N_ERR_ENCRYPT);
     }
 
@@ -72,126 +72,126 @@ static int s2n_composite_cipher_aes_sha_decrypt(struct s2n_session_key *key, str
 {
     eq_check(out->size, in->size);
 
-    if (EVP_DecryptInit_ex(&key->native_format.evp_cipher_ctx, NULL, NULL, NULL, iv->data) == 0) {
+    if (EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data) == 0) {
         S2N_ERROR(S2N_ERR_KEY_INIT);
     }
 
-    if (EVP_Cipher(&key->native_format.evp_cipher_ctx, out->data, in->data, in->size) == 0) {
+    if (EVP_Cipher(key->evp_cipher_ctx, out->data, in->data, in->size) == 0) {
         S2N_ERROR(S2N_ERR_DECRYPT);
     }
 
     return 0;
 }
 
-static int s2n_composite_cipher_aes_sha_get_mac_write_key(struct s2n_session_key *key, uint8_t *mac_key, uint32_t mac_size)
+static int s2n_composite_cipher_aes_sha_set_mac_write_key(struct s2n_session_key *key, uint8_t *mac_key, uint32_t mac_size)
 {
     eq_check(mac_size, SHA_DIGEST_LENGTH);
 
-    EVP_CIPHER_CTX_ctrl(&key->native_format.evp_cipher_ctx, EVP_CTRL_AEAD_SET_MAC_KEY, mac_size, mac_key);
+    EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_AEAD_SET_MAC_KEY, mac_size, mac_key);
 
     return 0;
 }
 
-static int s2n_composite_cipher_aes_sha256_get_mac_write_key(struct s2n_session_key *key, uint8_t *mac_key, uint32_t mac_size)
+static int s2n_composite_cipher_aes_sha256_set_mac_write_key(struct s2n_session_key *key, uint8_t *mac_key, uint32_t mac_size)
 {
     eq_check(mac_size, SHA256_DIGEST_LENGTH);
 
-    EVP_CIPHER_CTX_ctrl(&key->native_format.evp_cipher_ctx, EVP_CTRL_AEAD_SET_MAC_KEY, mac_size, mac_key);
+    EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_AEAD_SET_MAC_KEY, mac_size, mac_key);
 
     return 0;
 }
 
 
-static int s2n_composite_cipher_aes128_sha_get_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_composite_cipher_aes128_sha_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 16);
 
-    EVP_CIPHER_CTX_set_padding(&key->native_format.evp_cipher_ctx, EVP_CIPH_NO_PADDING);
-    EVP_EncryptInit_ex(&key->native_format.evp_cipher_ctx, EVP_aes_128_cbc_hmac_sha1(), NULL, in->data, NULL);
+    EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
+    EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_aes_128_cbc_hmac_sha1(), NULL, in->data, NULL);
 
     return 0;
 }
 
-static int s2n_composite_cipher_aes128_sha_get_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_composite_cipher_aes128_sha_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 16);
 
-    EVP_CIPHER_CTX_set_padding(&key->native_format.evp_cipher_ctx, EVP_CIPH_NO_PADDING);
-    EVP_DecryptInit_ex(&key->native_format.evp_cipher_ctx, EVP_aes_128_cbc_hmac_sha1(), NULL, in->data, NULL);
+    EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
+    EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_aes_128_cbc_hmac_sha1(), NULL, in->data, NULL);
 
     return 0;
 }
 
-static int s2n_composite_cipher_aes256_sha_get_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_composite_cipher_aes256_sha_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 32);
 
-    EVP_CIPHER_CTX_set_padding(&key->native_format.evp_cipher_ctx, EVP_CIPH_NO_PADDING);
-    EVP_EncryptInit_ex(&key->native_format.evp_cipher_ctx, EVP_aes_256_cbc_hmac_sha1(), NULL, in->data, NULL);
+    EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
+    EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_aes_256_cbc_hmac_sha1(), NULL, in->data, NULL);
 
     return 0;
 }
 
-static int s2n_composite_cipher_aes256_sha_get_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_composite_cipher_aes256_sha_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 32);
 
-    EVP_CIPHER_CTX_set_padding(&key->native_format.evp_cipher_ctx, EVP_CIPH_NO_PADDING);
-    EVP_DecryptInit_ex(&key->native_format.evp_cipher_ctx, EVP_aes_256_cbc_hmac_sha1(), NULL, in->data, NULL);
+    EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
+    EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_aes_256_cbc_hmac_sha1(), NULL, in->data, NULL);
 
     return 0;
 }
 
-static int s2n_composite_cipher_aes128_sha256_get_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_composite_cipher_aes128_sha256_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 16);
 
-    EVP_CIPHER_CTX_set_padding(&key->native_format.evp_cipher_ctx, EVP_CIPH_NO_PADDING);
-    EVP_EncryptInit_ex(&key->native_format.evp_cipher_ctx, EVP_aes_128_cbc_hmac_sha256(), NULL, in->data, NULL);
+    EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
+    EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_aes_128_cbc_hmac_sha256(), NULL, in->data, NULL);
 
     return 0;
 }
 
-static int s2n_composite_cipher_aes128_sha256_get_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_composite_cipher_aes128_sha256_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 16);
 
-    EVP_CIPHER_CTX_set_padding(&key->native_format.evp_cipher_ctx, EVP_CIPH_NO_PADDING);
-    EVP_DecryptInit_ex(&key->native_format.evp_cipher_ctx, EVP_aes_128_cbc_hmac_sha256(), NULL, in->data, NULL);
+    EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
+    EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_aes_128_cbc_hmac_sha256(), NULL, in->data, NULL);
 
     return 0;
 }
 
-static int s2n_composite_cipher_aes256_sha256_get_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_composite_cipher_aes256_sha256_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 32);
 
-    EVP_CIPHER_CTX_set_padding(&key->native_format.evp_cipher_ctx, EVP_CIPH_NO_PADDING);
-    EVP_EncryptInit_ex(&key->native_format.evp_cipher_ctx, EVP_aes_256_cbc_hmac_sha256(), NULL, in->data, NULL);
+    EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
+    EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_aes_256_cbc_hmac_sha256(), NULL, in->data, NULL);
 
     return 0;
 }
 
-static int s2n_composite_cipher_aes256_sha256_get_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_composite_cipher_aes256_sha256_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 32);
 
-    EVP_CIPHER_CTX_set_padding(&key->native_format.evp_cipher_ctx, EVP_CIPH_NO_PADDING);
-    EVP_DecryptInit_ex(&key->native_format.evp_cipher_ctx, EVP_aes_256_cbc_hmac_sha256(), NULL, in->data, NULL);
+    EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
+    EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_aes_256_cbc_hmac_sha256(), NULL, in->data, NULL);
 
     return 0;
 }
 
 static int s2n_composite_cipher_aes_sha_init(struct s2n_session_key *key)
 {
-    EVP_CIPHER_CTX_init(&key->native_format.evp_cipher_ctx);
+    EVP_CIPHER_CTX_init(key->evp_cipher_ctx);
 
     return 0;
 }
 
 static int s2n_composite_cipher_aes_sha_destroy_key(struct s2n_session_key *key)
 {
-    EVP_CIPHER_CTX_cleanup(&key->native_format.evp_cipher_ctx);
+    EVP_CIPHER_CTX_cleanup(key->evp_cipher_ctx);
 
     return 0;
 }
@@ -205,11 +205,11 @@ struct s2n_cipher s2n_aes128_sha = {
                 .mac_key_size = SHA_DIGEST_LENGTH,
                 .decrypt = s2n_composite_cipher_aes_sha_decrypt,
                 .encrypt = s2n_composite_cipher_aes_sha_encrypt,
-                .get_mac_write_key = s2n_composite_cipher_aes_sha_get_mac_write_key,
+                .set_mac_write_key = s2n_composite_cipher_aes_sha_set_mac_write_key,
                 .initial_hmac = s2n_composite_cipher_aes_sha_initial_hmac },
     .init = s2n_composite_cipher_aes_sha_init,
-    .get_encryption_key = s2n_composite_cipher_aes128_sha_get_encryption_key,
-    .get_decryption_key = s2n_composite_cipher_aes128_sha_get_decryption_key,
+    .set_encryption_key = s2n_composite_cipher_aes128_sha_set_encryption_key,
+    .set_decryption_key = s2n_composite_cipher_aes128_sha_set_decryption_key,
     .destroy_key = s2n_composite_cipher_aes_sha_destroy_key,
 };
 
@@ -222,11 +222,11 @@ struct s2n_cipher s2n_aes256_sha = {
                 .mac_key_size = SHA_DIGEST_LENGTH,
                 .decrypt = s2n_composite_cipher_aes_sha_decrypt,
                 .encrypt = s2n_composite_cipher_aes_sha_encrypt,
-                .get_mac_write_key = s2n_composite_cipher_aes_sha_get_mac_write_key,
+                .set_mac_write_key = s2n_composite_cipher_aes_sha_set_mac_write_key,
                 .initial_hmac = s2n_composite_cipher_aes_sha_initial_hmac },
     .init = s2n_composite_cipher_aes_sha_init,
-    .get_encryption_key = s2n_composite_cipher_aes256_sha_get_encryption_key,
-    .get_decryption_key = s2n_composite_cipher_aes256_sha_get_decryption_key,
+    .set_encryption_key = s2n_composite_cipher_aes256_sha_set_encryption_key,
+    .set_decryption_key = s2n_composite_cipher_aes256_sha_set_decryption_key,
     .destroy_key = s2n_composite_cipher_aes_sha_destroy_key,
 };
 
@@ -239,11 +239,11 @@ struct s2n_cipher s2n_aes128_sha256 = {
                 .mac_key_size = SHA256_DIGEST_LENGTH,
                 .decrypt = s2n_composite_cipher_aes_sha_decrypt,
                 .encrypt = s2n_composite_cipher_aes_sha_encrypt,
-                .get_mac_write_key = s2n_composite_cipher_aes_sha256_get_mac_write_key,
+                .set_mac_write_key = s2n_composite_cipher_aes_sha256_set_mac_write_key,
                 .initial_hmac = s2n_composite_cipher_aes_sha_initial_hmac },
     .init = s2n_composite_cipher_aes_sha_init,
-    .get_encryption_key = s2n_composite_cipher_aes128_sha256_get_encryption_key,
-    .get_decryption_key = s2n_composite_cipher_aes128_sha256_get_decryption_key,
+    .set_encryption_key = s2n_composite_cipher_aes128_sha256_set_encryption_key,
+    .set_decryption_key = s2n_composite_cipher_aes128_sha256_set_decryption_key,
     .destroy_key = s2n_composite_cipher_aes_sha_destroy_key,
 };
 
@@ -256,10 +256,10 @@ struct s2n_cipher s2n_aes256_sha256 = {
                 .mac_key_size = SHA256_DIGEST_LENGTH,
                 .decrypt = s2n_composite_cipher_aes_sha_decrypt,
                 .encrypt = s2n_composite_cipher_aes_sha_encrypt,
-                .get_mac_write_key = s2n_composite_cipher_aes_sha256_get_mac_write_key,
+                .set_mac_write_key = s2n_composite_cipher_aes_sha256_set_mac_write_key,
                 .initial_hmac = s2n_composite_cipher_aes_sha_initial_hmac },
     .init = s2n_composite_cipher_aes_sha_init,
-    .get_encryption_key = s2n_composite_cipher_aes256_sha256_get_encryption_key,
-    .get_decryption_key = s2n_composite_cipher_aes256_sha256_get_decryption_key,
+    .set_encryption_key = s2n_composite_cipher_aes256_sha256_set_encryption_key,
+    .set_decryption_key = s2n_composite_cipher_aes256_sha256_set_decryption_key,
     .destroy_key = s2n_composite_cipher_aes_sha_destroy_key,
 };

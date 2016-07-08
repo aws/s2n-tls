@@ -400,8 +400,8 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
 
     /* Composite CBC does MAC inside the cipher, so pass them the MAC key */
     if (conn->secure.cipher_suite->cipher->type == S2N_COMPOSITE) {
-        GUARD(conn->secure.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->secure.server_key, server_mac_write_key, mac_size));
-        GUARD(conn->secure.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->secure.client_key, client_mac_write_key, mac_size));
+        GUARD(conn->secure.cipher_suite->cipher->io.comp.set_mac_write_key(&conn->secure.server_key, server_mac_write_key, mac_size));
+        GUARD(conn->secure.cipher_suite->cipher->io.comp.set_mac_write_key(&conn->secure.client_key, client_mac_write_key, mac_size));
     }
 
     /* Make the client key */
@@ -410,9 +410,9 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     client_key.data = s2n_stuffer_raw_read(&key_material, client_key.size);
     notnull_check(client_key.data);
     if (conn->mode == S2N_CLIENT) {
-        GUARD(conn->secure.cipher_suite->cipher->get_encryption_key(&conn->secure.client_key, &client_key));
+        GUARD(conn->secure.cipher_suite->cipher->set_encryption_key(&conn->secure.client_key, &client_key));
     } else {
-        GUARD(conn->secure.cipher_suite->cipher->get_decryption_key(&conn->secure.client_key, &client_key));
+        GUARD(conn->secure.cipher_suite->cipher->set_decryption_key(&conn->secure.client_key, &client_key));
     }
 
     /* Make the server key */
@@ -422,9 +422,9 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
 
     notnull_check(server_key.data);
     if (conn->mode == S2N_SERVER) {
-        GUARD(conn->secure.cipher_suite->cipher->get_encryption_key(&conn->secure.server_key, &server_key));
+        GUARD(conn->secure.cipher_suite->cipher->set_encryption_key(&conn->secure.server_key, &server_key));
     } else {
-        GUARD(conn->secure.cipher_suite->cipher->get_decryption_key(&conn->secure.server_key, &server_key));
+        GUARD(conn->secure.cipher_suite->cipher->set_decryption_key(&conn->secure.server_key, &server_key));
     }
 
     /* TLS >= 1.1 has no implicit IVs for non AEAD ciphers */

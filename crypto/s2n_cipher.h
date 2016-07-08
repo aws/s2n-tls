@@ -56,7 +56,7 @@ struct s2n_composite_cipher {
     uint8_t mac_key_size;
     int (*decrypt) (struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out);
     int (*encrypt) (struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out);
-    int (*get_mac_write_key) (struct s2n_session_key *key, uint8_t *mac_key, uint32_t mac_size);
+    int (*set_mac_write_key) (struct s2n_session_key *key, uint8_t *mac_key, uint32_t mac_size);
     int (*initial_hmac) (struct s2n_session_key *key, uint8_t *sequence_number, uint8_t content_type, uint16_t protocol_version,
                          uint16_t payload_and_eiv_len, int *extra);
 };
@@ -70,10 +70,10 @@ struct s2n_cipher {
         struct s2n_composite_cipher comp;
     } io;
     uint8_t key_material_size;
-    int (*init) (struct s2n_session_key * key);
-    int (*get_decryption_key) (struct s2n_session_key * key, struct s2n_blob * in);
-    int (*get_encryption_key) (struct s2n_session_key * key, struct s2n_blob * in);
-    int (*destroy_key) (struct s2n_session_key * key);
+    int (*init) (struct s2n_session_key *key);
+    int (*set_decryption_key) (struct s2n_session_key *key, struct s2n_blob *in);
+    int (*set_encryption_key) (struct s2n_session_key *key, struct s2n_blob *in);
+    int (*destroy_key) (struct s2n_session_key *key);
 };
 
 extern int s2n_session_key_alloc(struct s2n_session_key *key);

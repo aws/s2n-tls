@@ -93,7 +93,7 @@ struct s2n_cipher s2n_rc4 = {
                   .decrypt = s2n_stream_cipher_rc4_decrypt,
                   .encrypt = s2n_stream_cipher_rc4_encrypt},
     .init = s2n_stream_cipher_rc4_init,
-    .get_decryption_key = s2n_stream_cipher_rc4_get_decryption_key,
-    .get_encryption_key = s2n_stream_cipher_rc4_get_encryption_key,
+    .set_decryption_key = s2n_stream_cipher_rc4_get_decryption_key,
+    .set_encryption_key = s2n_stream_cipher_rc4_get_encryption_key,
     .destroy_key = s2n_stream_cipher_rc4_destroy_key,
 };

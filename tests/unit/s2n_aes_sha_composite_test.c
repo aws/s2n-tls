@@ -69,10 +69,10 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->get_encryption_key(&conn->initial.server_key, &aes128));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->get_decryption_key(&conn->initial.client_key, &aes128));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->initial.server_key, mac_key_sha, sizeof(mac_key_sha)));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->initial.client_key, mac_key_sha, sizeof(mac_key_sha)));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->set_encryption_key(&conn->initial.server_key, &aes128));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->set_decryption_key(&conn->initial.client_key, &aes128));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.set_mac_write_key(&conn->initial.server_key, mac_key_sha, sizeof(mac_key_sha)));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.set_mac_write_key(&conn->initial.client_key, mac_key_sha, sizeof(mac_key_sha)));
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
@@ -135,10 +135,10 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->get_encryption_key(&conn->initial.server_key, &aes256));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->get_decryption_key(&conn->initial.client_key, &aes256));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->initial.server_key, mac_key_sha, sizeof(mac_key_sha)));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->initial.client_key, mac_key_sha, sizeof(mac_key_sha)));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->set_encryption_key(&conn->initial.server_key, &aes256));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->set_decryption_key(&conn->initial.client_key, &aes256));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.set_mac_write_key(&conn->initial.server_key, mac_key_sha, sizeof(mac_key_sha)));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.set_mac_write_key(&conn->initial.client_key, mac_key_sha, sizeof(mac_key_sha)));
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
@@ -202,10 +202,10 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->get_encryption_key(&conn->initial.server_key, &aes128));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->get_decryption_key(&conn->initial.client_key, &aes128));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->initial.server_key, mac_key_sha256, sizeof(mac_key_sha256)));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->initial.client_key, mac_key_sha256, sizeof(mac_key_sha256)));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->set_encryption_key(&conn->initial.server_key, &aes128));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->set_decryption_key(&conn->initial.client_key, &aes128));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.set_mac_write_key(&conn->initial.server_key, mac_key_sha256, sizeof(mac_key_sha256)));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.set_mac_write_key(&conn->initial.client_key, mac_key_sha256, sizeof(mac_key_sha256)));
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
@@ -268,10 +268,10 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->get_encryption_key(&conn->initial.server_key, &aes256));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->get_decryption_key(&conn->initial.client_key, &aes256));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->initial.server_key, mac_key_sha256, sizeof(mac_key_sha256)));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->initial.client_key, mac_key_sha256, sizeof(mac_key_sha256)));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->set_encryption_key(&conn->initial.server_key, &aes256));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->set_decryption_key(&conn->initial.client_key, &aes256));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.set_mac_write_key(&conn->initial.server_key, mac_key_sha256, sizeof(mac_key_sha256)));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.set_mac_write_key(&conn->initial.client_key, mac_key_sha256, sizeof(mac_key_sha256)));
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
