@@ -50,7 +50,7 @@ struct s2n_aead_cipher {
     int (*encrypt) (struct s2n_session_key * key, struct s2n_blob * iv, struct s2n_blob * add, struct s2n_blob * in, struct s2n_blob * out);
 };
 
-struct s2n_comp_cipher {
+struct s2n_composite_cipher {
     uint8_t block_size;
     uint8_t record_iv_size;
     uint8_t mac_key_size;
@@ -62,12 +62,12 @@ struct s2n_comp_cipher {
 };
 
 struct s2n_cipher {
-    enum { S2N_STREAM, S2N_CBC, S2N_AEAD, S2N_COMP } type;
+    enum { S2N_STREAM, S2N_CBC, S2N_AEAD, S2N_COMPOSITE } type;
     union {
         struct s2n_stream_cipher stream;
         struct s2n_aead_cipher aead;
         struct s2n_cbc_cipher cbc;
-        struct s2n_comp_cipher comp;
+        struct s2n_composite_cipher comp;
     } io;
     uint8_t key_material_size;
     int (*init) (struct s2n_session_key * key);

@@ -54,7 +54,7 @@ static uint16_t overhead(struct s2n_connection *conn)
     } else if (active->cipher_suite->cipher->type == S2N_AEAD) {
         extra += active->cipher_suite->cipher->io.aead.tag_size;
         extra += active->cipher_suite->cipher->io.aead.record_iv_size;
-    } else if (active->cipher_suite->cipher->type == S2N_COMP && conn->actual_protocol_version > S2N_TLS10) {
+    } else if (active->cipher_suite->cipher->type == S2N_COMPOSITE && conn->actual_protocol_version > S2N_TLS10) {
         extra += active->cipher_suite->cipher->io.comp.record_iv_size;
     }
 
@@ -73,7 +73,7 @@ int s2n_record_max_write_payload_size(struct s2n_connection *conn)
     /* Round the fragment size down to be block aligned */
     if (active->cipher_suite->cipher->type == S2N_CBC) {
         max_fragment_size -= max_fragment_size % active->cipher_suite->cipher->io.cbc.block_size;
-    } else if (active->cipher_suite->cipher->type == S2N_COMP) {
+    } else if (active->cipher_suite->cipher->type == S2N_COMPOSITE) {
         max_fragment_size -= max_fragment_size % active->cipher_suite->cipher->io.comp.block_size;
         /* Composite digest length */
         max_fragment_size -= active->cipher_suite->cipher->io.comp.mac_key_size;
@@ -127,7 +127,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
         if (((data_bytes_to_take + extra) % block_size)) {
             padding = block_size - ((data_bytes_to_take + extra) % block_size);
         }
-    } else if (cipher_suite->cipher->type == S2N_COMP) {
+    } else if (cipher_suite->cipher->type == S2N_COMPOSITE) {
         block_size = cipher_suite->cipher->io.comp.block_size;
     }
 
@@ -154,7 +154,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     /* This side channel is used update the MAC with the parts outside the payload(seq num, content type, vers, payload len).
      * The composite "encrypt" function will take care of computing the rest of the MAC and filling in padding.
      */
-    if (cipher_suite->cipher->type == S2N_COMP) {
+    if (cipher_suite->cipher->type == S2N_COMPOSITE) {
         /* Only fragment length is needed for HMAC, but the EVP ctrl function wants fragment length + eiv len. */
         uint16_t payload_and_eiv_len = data_bytes_to_take;
         if (conn->actual_protocol_version > S2N_TLS10) {
@@ -194,7 +194,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
         struct s2n_stuffer ad_stuffer;
         GUARD(s2n_stuffer_init(&ad_stuffer, &aad));
         GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &ad_stuffer));
-    } else if (cipher_suite->cipher->type == S2N_CBC || cipher_suite->cipher->type == S2N_COMP) {
+    } else if (cipher_suite->cipher->type == S2N_CBC || cipher_suite->cipher->type == S2N_COMPOSITE) {
         iv.size = block_size;
         iv.data = implicit_iv;
 
@@ -251,7 +251,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
 		/* Encrypt the padding and the padding length byte too */
 		encrypted_length += padding + 1;
 		break;
-	case S2N_COMP:
+	case S2N_COMPOSITE:
 		/* Composite CBC expects a pointer starting at explicit IV: [Explicit IV | fragment | MAC | padding | padding len ]
 		 * extra will account for the explicit IV len(if applicable), MAC digest len, padding len + padding byte.
 		 */
@@ -283,7 +283,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     case S2N_AEAD:
         GUARD(cipher_suite->cipher->io.aead.encrypt(session_key, &iv, &aad, &en, &en));
         break;
-    case S2N_COMP:
+    case S2N_COMPOSITE:
         /* This will: compute mac, append padding and padding length, and encrypt */
         GUARD(cipher_suite->cipher->io.comp.encrypt(session_key, &iv, &en, &en));
 

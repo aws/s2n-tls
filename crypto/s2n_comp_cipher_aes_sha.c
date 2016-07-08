@@ -24,8 +24,8 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-static int s2n_comp_cipher_aes_sha_initial_hmac(struct s2n_session_key *key, uint8_t *sequence_number, uint8_t content_type,
-                                                uint16_t protocol_version, uint16_t payload_and_eiv_len, int *extra)
+static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key, uint8_t *sequence_number, uint8_t content_type,
+                                                     uint16_t protocol_version, uint16_t payload_and_eiv_len, int *extra)
 {
     uint8_t ctrl_buf[EVP_AEAD_TLS1_AAD_LEN];
     struct s2n_blob ctrl_blob = { .data = ctrl_buf, .size = EVP_AEAD_TLS1_AAD_LEN };
@@ -53,7 +53,7 @@ static int s2n_comp_cipher_aes_sha_initial_hmac(struct s2n_session_key *key, uin
     return 0;
 }
 
-static int s2n_comp_cipher_aes_sha_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)
+static int s2n_composite_cipher_aes_sha_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)
 {
     eq_check(out->size, in->size);
 
@@ -68,7 +68,7 @@ static int s2n_comp_cipher_aes_sha_encrypt(struct s2n_session_key *key, struct s
     return 0;
 }
 
-static int s2n_comp_cipher_aes_sha_decrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)
+static int s2n_composite_cipher_aes_sha_decrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)
 {
     eq_check(out->size, in->size);
 
@@ -83,7 +83,7 @@ static int s2n_comp_cipher_aes_sha_decrypt(struct s2n_session_key *key, struct s
     return 0;
 }
 
-static int s2n_comp_cipher_aes_sha_get_mac_write_key(struct s2n_session_key *key, uint8_t *mac_key, uint32_t mac_size)
+static int s2n_composite_cipher_aes_sha_get_mac_write_key(struct s2n_session_key *key, uint8_t *mac_key, uint32_t mac_size)
 {
     eq_check(mac_size, SHA_DIGEST_LENGTH);
 
@@ -92,7 +92,7 @@ static int s2n_comp_cipher_aes_sha_get_mac_write_key(struct s2n_session_key *key
     return 0;
 }
 
-static int s2n_comp_cipher_aes_sha256_get_mac_write_key(struct s2n_session_key *key, uint8_t *mac_key, uint32_t mac_size)
+static int s2n_composite_cipher_aes_sha256_get_mac_write_key(struct s2n_session_key *key, uint8_t *mac_key, uint32_t mac_size)
 {
     eq_check(mac_size, SHA256_DIGEST_LENGTH);
 
@@ -102,7 +102,7 @@ static int s2n_comp_cipher_aes_sha256_get_mac_write_key(struct s2n_session_key *
 }
 
 
-static int s2n_comp_cipher_aes128_sha_get_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_composite_cipher_aes128_sha_get_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 16);
 
@@ -112,7 +112,7 @@ static int s2n_comp_cipher_aes128_sha_get_encryption_key(struct s2n_session_key 
     return 0;
 }
 
-static int s2n_comp_cipher_aes128_sha_get_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_composite_cipher_aes128_sha_get_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 16);
 
@@ -122,7 +122,7 @@ static int s2n_comp_cipher_aes128_sha_get_decryption_key(struct s2n_session_key 
     return 0;
 }
 
-static int s2n_comp_cipher_aes256_sha_get_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_composite_cipher_aes256_sha_get_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 32);
 
@@ -132,7 +132,7 @@ static int s2n_comp_cipher_aes256_sha_get_encryption_key(struct s2n_session_key 
     return 0;
 }
 
-static int s2n_comp_cipher_aes256_sha_get_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_composite_cipher_aes256_sha_get_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 32);
 
@@ -142,7 +142,7 @@ static int s2n_comp_cipher_aes256_sha_get_decryption_key(struct s2n_session_key 
     return 0;
 }
 
-static int s2n_comp_cipher_aes128_sha256_get_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_composite_cipher_aes128_sha256_get_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 16);
 
@@ -152,7 +152,7 @@ static int s2n_comp_cipher_aes128_sha256_get_encryption_key(struct s2n_session_k
     return 0;
 }
 
-static int s2n_comp_cipher_aes128_sha256_get_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_composite_cipher_aes128_sha256_get_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 16);
 
@@ -162,7 +162,7 @@ static int s2n_comp_cipher_aes128_sha256_get_decryption_key(struct s2n_session_k
     return 0;
 }
 
-static int s2n_comp_cipher_aes256_sha256_get_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_composite_cipher_aes256_sha256_get_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 32);
 
@@ -172,7 +172,7 @@ static int s2n_comp_cipher_aes256_sha256_get_encryption_key(struct s2n_session_k
     return 0;
 }
 
-static int s2n_comp_cipher_aes256_sha256_get_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_composite_cipher_aes256_sha256_get_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 32);
 
@@ -182,14 +182,14 @@ static int s2n_comp_cipher_aes256_sha256_get_decryption_key(struct s2n_session_k
     return 0;
 }
 
-static int s2n_comp_cipher_aes_sha_init(struct s2n_session_key *key)
+static int s2n_composite_cipher_aes_sha_init(struct s2n_session_key *key)
 {
     EVP_CIPHER_CTX_init(&key->native_format.evp_cipher_ctx);
 
     return 0;
 }
 
-static int s2n_comp_cipher_aes_sha_destroy_key(struct s2n_session_key *key)
+static int s2n_composite_cipher_aes_sha_destroy_key(struct s2n_session_key *key)
 {
     EVP_CIPHER_CTX_cleanup(&key->native_format.evp_cipher_ctx);
 
@@ -198,68 +198,68 @@ static int s2n_comp_cipher_aes_sha_destroy_key(struct s2n_session_key *key)
 
 struct s2n_cipher s2n_aes128_sha = {
     .key_material_size = 16,
-    .type = S2N_COMP,
+    .type = S2N_COMPOSITE,
     .io.comp = {
                 .block_size = 16,
                 .record_iv_size = 16,
                 .mac_key_size = SHA_DIGEST_LENGTH,
-                .decrypt = s2n_comp_cipher_aes_sha_decrypt,
-                .encrypt = s2n_comp_cipher_aes_sha_encrypt,
-                .get_mac_write_key = s2n_comp_cipher_aes_sha_get_mac_write_key,
-                .initial_hmac = s2n_comp_cipher_aes_sha_initial_hmac },
-    .init = s2n_comp_cipher_aes_sha_init,
-    .get_encryption_key = s2n_comp_cipher_aes128_sha_get_encryption_key,
-    .get_decryption_key = s2n_comp_cipher_aes128_sha_get_decryption_key,
-    .destroy_key = s2n_comp_cipher_aes_sha_destroy_key,
+                .decrypt = s2n_composite_cipher_aes_sha_decrypt,
+                .encrypt = s2n_composite_cipher_aes_sha_encrypt,
+                .get_mac_write_key = s2n_composite_cipher_aes_sha_get_mac_write_key,
+                .initial_hmac = s2n_composite_cipher_aes_sha_initial_hmac },
+    .init = s2n_composite_cipher_aes_sha_init,
+    .get_encryption_key = s2n_composite_cipher_aes128_sha_get_encryption_key,
+    .get_decryption_key = s2n_composite_cipher_aes128_sha_get_decryption_key,
+    .destroy_key = s2n_composite_cipher_aes_sha_destroy_key,
 };
 
 struct s2n_cipher s2n_aes256_sha = {
     .key_material_size = 32,
-    .type = S2N_COMP,
+    .type = S2N_COMPOSITE,
     .io.comp = {
                 .block_size = 16,
                 .record_iv_size = 16,
                 .mac_key_size = SHA_DIGEST_LENGTH,
-                .decrypt = s2n_comp_cipher_aes_sha_decrypt,
-                .encrypt = s2n_comp_cipher_aes_sha_encrypt,
-                .get_mac_write_key = s2n_comp_cipher_aes_sha_get_mac_write_key,
-                .initial_hmac = s2n_comp_cipher_aes_sha_initial_hmac },
-    .init = s2n_comp_cipher_aes_sha_init,
-    .get_encryption_key = s2n_comp_cipher_aes256_sha_get_encryption_key,
-    .get_decryption_key = s2n_comp_cipher_aes256_sha_get_decryption_key,
-    .destroy_key = s2n_comp_cipher_aes_sha_destroy_key,
+                .decrypt = s2n_composite_cipher_aes_sha_decrypt,
+                .encrypt = s2n_composite_cipher_aes_sha_encrypt,
+                .get_mac_write_key = s2n_composite_cipher_aes_sha_get_mac_write_key,
+                .initial_hmac = s2n_composite_cipher_aes_sha_initial_hmac },
+    .init = s2n_composite_cipher_aes_sha_init,
+    .get_encryption_key = s2n_composite_cipher_aes256_sha_get_encryption_key,
+    .get_decryption_key = s2n_composite_cipher_aes256_sha_get_decryption_key,
+    .destroy_key = s2n_composite_cipher_aes_sha_destroy_key,
 };
 
 struct s2n_cipher s2n_aes128_sha256 = {
     .key_material_size = 16,
-    .type = S2N_COMP,
+    .type = S2N_COMPOSITE,
     .io.comp = {
                 .block_size = 16,
                 .record_iv_size = 16,
                 .mac_key_size = SHA256_DIGEST_LENGTH,
-                .decrypt = s2n_comp_cipher_aes_sha_decrypt,
-                .encrypt = s2n_comp_cipher_aes_sha_encrypt,
-                .get_mac_write_key = s2n_comp_cipher_aes_sha256_get_mac_write_key,
-                .initial_hmac = s2n_comp_cipher_aes_sha_initial_hmac },
-    .init = s2n_comp_cipher_aes_sha_init,
-    .get_encryption_key = s2n_comp_cipher_aes128_sha256_get_encryption_key,
-    .get_decryption_key = s2n_comp_cipher_aes128_sha256_get_decryption_key,
-    .destroy_key = s2n_comp_cipher_aes_sha_destroy_key,
+                .decrypt = s2n_composite_cipher_aes_sha_decrypt,
+                .encrypt = s2n_composite_cipher_aes_sha_encrypt,
+                .get_mac_write_key = s2n_composite_cipher_aes_sha256_get_mac_write_key,
+                .initial_hmac = s2n_composite_cipher_aes_sha_initial_hmac },
+    .init = s2n_composite_cipher_aes_sha_init,
+    .get_encryption_key = s2n_composite_cipher_aes128_sha256_get_encryption_key,
+    .get_decryption_key = s2n_composite_cipher_aes128_sha256_get_decryption_key,
+    .destroy_key = s2n_composite_cipher_aes_sha_destroy_key,
 };
 
 struct s2n_cipher s2n_aes256_sha256 = {
     .key_material_size = 32,
-    .type = S2N_COMP,
+    .type = S2N_COMPOSITE,
     .io.comp = {
                 .block_size = 16,
                 .record_iv_size = 16,
                 .mac_key_size = SHA256_DIGEST_LENGTH,
-                .decrypt = s2n_comp_cipher_aes_sha_decrypt,
-                .encrypt = s2n_comp_cipher_aes_sha_encrypt,
-                .get_mac_write_key = s2n_comp_cipher_aes_sha256_get_mac_write_key,
-                .initial_hmac = s2n_comp_cipher_aes_sha_initial_hmac },
-    .init = s2n_comp_cipher_aes_sha_init,
-    .get_encryption_key = s2n_comp_cipher_aes256_sha256_get_encryption_key,
-    .get_decryption_key = s2n_comp_cipher_aes256_sha256_get_decryption_key,
-    .destroy_key = s2n_comp_cipher_aes_sha_destroy_key,
+                .decrypt = s2n_composite_cipher_aes_sha_decrypt,
+                .encrypt = s2n_composite_cipher_aes_sha_encrypt,
+                .get_mac_write_key = s2n_composite_cipher_aes_sha256_get_mac_write_key,
+                .initial_hmac = s2n_composite_cipher_aes_sha_initial_hmac },
+    .init = s2n_composite_cipher_aes_sha_init,
+    .get_encryption_key = s2n_composite_cipher_aes256_sha256_get_encryption_key,
+    .get_decryption_key = s2n_composite_cipher_aes256_sha256_get_decryption_key,
+    .destroy_key = s2n_composite_cipher_aes_sha_destroy_key,
 };

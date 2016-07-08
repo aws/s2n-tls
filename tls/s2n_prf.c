@@ -382,7 +382,7 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
 
     /* Check that we have a valid MAC and key size */
     int mac_size;
-    if (conn->secure.cipher_suite->cipher->type == S2N_COMP) {
+    if (conn->secure.cipher_suite->cipher->type == S2N_COMPOSITE) {
         mac_size = conn->secure.cipher_suite->cipher->io.comp.mac_key_size;
     } else {
         GUARD((mac_size = s2n_hmac_digest_size(hmac_alg)));
@@ -399,7 +399,7 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     GUARD(s2n_hmac_init(&conn->secure.server_record_mac, hmac_alg, server_mac_write_key, mac_size));
 
     /* Composite CBC does MAC inside the cipher, so pass them the MAC key */
-    if (conn->secure.cipher_suite->cipher->type == S2N_COMP) {
+    if (conn->secure.cipher_suite->cipher->type == S2N_COMPOSITE) {
         GUARD(conn->secure.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->secure.server_key, server_mac_write_key, mac_size));
         GUARD(conn->secure.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->secure.client_key, client_mac_write_key, mac_size));
     }
@@ -440,7 +440,7 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     case S2N_CBC:
         implicit_iv_size = conn->secure.cipher_suite->cipher->io.cbc.block_size;
         break;
-    case S2N_COMP:
+    case S2N_COMPOSITE:
         implicit_iv_size = conn->secure.cipher_suite->cipher->io.comp.block_size;
         break;
     /* No-op for stream ciphers */

@@ -49,15 +49,15 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_get_urandom_data(&r));
 
     /* Peer and we are in sync */
-    conn->server = &conn->active;
-    conn->client = &conn->active;
+    conn->server = &conn->initial;
+    conn->client = &conn->initial;
 
     int max_aligned_fragment = S2N_SMALL_FRAGMENT_LENGTH - (S2N_SMALL_FRAGMENT_LENGTH % 16);
     uint8_t proto_versions[3] = { S2N_TLS10, S2N_TLS11, S2N_TLS12 };
 
     /* test the composite AES128_SHA1 cipher  */
-    conn->active.cipher_suite->cipher = &s2n_aes128_sha;
-    conn->active.cipher_suite->hmac_alg = S2N_HMAC_NONE;
+    conn->initial.cipher_suite->cipher = &s2n_aes128_sha;
+    conn->initial.cipher_suite->hmac_alg = S2N_HMAC_NONE;
 
     /* It's important to verify all TLS versions for the composite implementation.
      * There are a few gotchas with respect to explicit IV length and payload length
@@ -69,10 +69,10 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-            EXPECT_SUCCESS(conn->active.cipher_suite->cipher->get_encryption_key(&conn->active.server_key, &aes128));
-            EXPECT_SUCCESS(conn->active.cipher_suite->cipher->get_decryption_key(&conn->active.client_key, &aes128));
-            EXPECT_SUCCESS(conn->active.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->active.server_key, mac_key_sha, sizeof(mac_key_sha)));
-            EXPECT_SUCCESS(conn->active.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->active.client_key, mac_key_sha, sizeof(mac_key_sha)));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->get_encryption_key(&conn->initial.server_key, &aes128));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->get_decryption_key(&conn->initial.client_key, &aes128));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->initial.server_key, mac_key_sha, sizeof(mac_key_sha)));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->initial.client_key, mac_key_sha, sizeof(mac_key_sha)));
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
@@ -126,8 +126,8 @@ int main(int argc, char **argv)
     }
 
     /* test the composite AES256_SHA1 cipher  */
-    conn->active.cipher_suite->cipher = &s2n_aes256_sha;
-    conn->active.cipher_suite->hmac_alg = S2N_HMAC_NONE;
+    conn->initial.cipher_suite->cipher = &s2n_aes256_sha;
+    conn->initial.cipher_suite->hmac_alg = S2N_HMAC_NONE;
     for (int j = 0; j < 3; j++ ) {
         for (int i = 0; i < max_aligned_fragment; i++) {
             struct s2n_blob in = {.data = random_data,.size = i };
@@ -135,10 +135,10 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-            EXPECT_SUCCESS(conn->active.cipher_suite->cipher->get_encryption_key(&conn->active.server_key, &aes256));
-            EXPECT_SUCCESS(conn->active.cipher_suite->cipher->get_decryption_key(&conn->active.client_key, &aes256));
-            EXPECT_SUCCESS(conn->active.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->active.server_key, mac_key_sha, sizeof(mac_key_sha)));
-            EXPECT_SUCCESS(conn->active.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->active.client_key, mac_key_sha, sizeof(mac_key_sha)));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->get_encryption_key(&conn->initial.server_key, &aes256));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->get_decryption_key(&conn->initial.client_key, &aes256));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->initial.server_key, mac_key_sha, sizeof(mac_key_sha)));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->initial.client_key, mac_key_sha, sizeof(mac_key_sha)));
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
@@ -193,8 +193,8 @@ int main(int argc, char **argv)
 
 
     /* test the composite AES128_SHA256 cipher  */
-    conn->active.cipher_suite->cipher = &s2n_aes128_sha256;
-    conn->active.cipher_suite->hmac_alg = S2N_HMAC_NONE;
+    conn->initial.cipher_suite->cipher = &s2n_aes128_sha256;
+    conn->initial.cipher_suite->hmac_alg = S2N_HMAC_NONE;
     for (int j = 0; j < 3; j++ ) {
         for (int i = 0; i < max_aligned_fragment; i++) {
             struct s2n_blob in = {.data = random_data,.size = i };
@@ -202,10 +202,10 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-            EXPECT_SUCCESS(conn->active.cipher_suite->cipher->get_encryption_key(&conn->active.server_key, &aes128));
-            EXPECT_SUCCESS(conn->active.cipher_suite->cipher->get_decryption_key(&conn->active.client_key, &aes128));
-            EXPECT_SUCCESS(conn->active.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->active.server_key, mac_key_sha256, sizeof(mac_key_sha256)));
-            EXPECT_SUCCESS(conn->active.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->active.client_key, mac_key_sha256, sizeof(mac_key_sha256)));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->get_encryption_key(&conn->initial.server_key, &aes128));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->get_decryption_key(&conn->initial.client_key, &aes128));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->initial.server_key, mac_key_sha256, sizeof(mac_key_sha256)));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->initial.client_key, mac_key_sha256, sizeof(mac_key_sha256)));
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
@@ -259,8 +259,8 @@ int main(int argc, char **argv)
     }
 
     /* test the composite AES256_SHA256 cipher  */
-    conn->active.cipher_suite->cipher = &s2n_aes256_sha256;
-    conn->active.cipher_suite->hmac_alg = S2N_HMAC_NONE;
+    conn->initial.cipher_suite->cipher = &s2n_aes256_sha256;
+    conn->initial.cipher_suite->hmac_alg = S2N_HMAC_NONE;
     for (int j = 0; j < 3; j++ ) {
         for (int i = 0; i < max_aligned_fragment; i++) {
             struct s2n_blob in = {.data = random_data,.size = i };
@@ -268,10 +268,10 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-            EXPECT_SUCCESS(conn->active.cipher_suite->cipher->get_encryption_key(&conn->active.server_key, &aes256));
-            EXPECT_SUCCESS(conn->active.cipher_suite->cipher->get_decryption_key(&conn->active.client_key, &aes256));
-            EXPECT_SUCCESS(conn->active.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->active.server_key, mac_key_sha256, sizeof(mac_key_sha256)));
-            EXPECT_SUCCESS(conn->active.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->active.client_key, mac_key_sha256, sizeof(mac_key_sha256)));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->get_encryption_key(&conn->initial.server_key, &aes256));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->get_decryption_key(&conn->initial.client_key, &aes256));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->initial.server_key, mac_key_sha256, sizeof(mac_key_sha256)));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->cipher->io.comp.get_mac_write_key(&conn->initial.client_key, mac_key_sha256, sizeof(mac_key_sha256)));
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
