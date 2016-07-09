@@ -81,6 +81,9 @@ def try_resume(endpoint, port, cipher, ssl_version):
         if seperators == 5:
             break
 
+    if seperators != 5:
+        return -1
+
     # Write the cipher name towards s2n
     s_client.stdin.write((cipher + "\n").encode("utf-8"))
     s_client.stdin.flush()
