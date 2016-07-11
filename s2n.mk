@@ -37,6 +37,16 @@ CFLAGS = -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts
          -I../api/ -I../ -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security \
          -D_FORTIFY_SOURCE=2
 
+ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)
+    # Override compiler to clang if fuzzing, since gcc does not support as many sanitizer flags as clang
+    CC=clang
+
+    # Turn on debugging flags when S2N_UNSAFE_FUZZING_MODE is enabled to give detailed stack traces in case an error
+    # occurs while fuzzing.
+    CFLAGS += -DS2N_UNSAFE_FUZZING_MODE -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls \
+              -fsanitize-coverage=edge,trace-cmp -fsanitize=address,undefined,leak
+endif
+
 INDENTOPTS = -npro -kr -i4 -ts4 -nut -sob -l180 -ss -ncs -cp1
 
 .PHONY : indentsource

@@ -54,6 +54,16 @@ int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, int rfd, uint32_t len)
 
 int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, int wfd, uint32_t len)
 {
+    /* If S2N_UNSAFE_FUZZING_MODE is enabled, check if the file descriptor is -1 (which is invalid), and if so, skip
+     * writing anything. This is to speed up fuzz tests that write unnecessary data that is never actually read.
+     */
+    #if defined(S2N_UNSAFE_FUZZING_MODE)
+        if(wfd == -1){
+            stuffer->read_cursor += len;
+            return len;
+        }
+    #endif
+
     /* Make sure we even have the data */
     GUARD(s2n_stuffer_skip_read(stuffer, len));
 

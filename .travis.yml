@@ -1,4 +1,13 @@
 sudo: true
+language: c
+
+addons:
+    apt:
+      sources:
+        - ubuntu-toolchain-r-test
+      packages:
+        - gcc-6
+        - g++-6
 
 os:
   - osx
@@ -8,7 +17,20 @@ compiler:
   - gcc
   - clang
 
+before_install:
+  # Install GCC 6 if on OSX
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew update                ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew tap homebrew/versions ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew install gcc6          ; fi
+  # Set GCC 6 as Default on both Ubuntu and OSX
+  - alias gcc=$(which gcc-6)
+  # Install latest version of clang, clang++, and llvm-symbolizer and add them to beginning of PATH. Needed for fuzzing.
+  - (.travis/install_clang.sh `pwd`/clang-download `pwd`/clang-latest $TRAVIS_OS_NAME) && export PATH=`pwd`/clang-latest/bin:$PATH
+
 install:
+  # Download and Install LibFuzzer
+  - .travis/install_libFuzzer.sh `pwd`/fuzz_dependencies/libFuzzer-download `pwd`/fuzz_dependencies $TRAVIS_OS_NAME
+  # Download and Install Openssl
   - .travis/install_openssl.sh `pwd`/libcrypto-build `pwd`/libcrypto-root $TRAVIS_OS_NAME > /dev/null
   # Install python linked with our compiled Openssl for integration tests
   - sudo .travis/install_python.sh `pwd`/libcrypto-root > /dev/null
@@ -20,3 +42,4 @@ script:
   # Build and run unit tests with scan-build for osx. scan-build bundle isn't available for linux
   - (test "$TRAVIS_OS_NAME" = "osx" && scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/*; exit $STATUS) || true
   - make integration
+  - make clean && make fuzz

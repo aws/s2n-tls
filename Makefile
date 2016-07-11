@@ -53,6 +53,11 @@ bin: libs
 integration: bin
 	$(MAKE) -C tests integration
 
+.PHONY : fuzz
+fuzz : export S2N_UNSAFE_FUZZING_MODE = 1
+fuzz : bin
+	$(MAKE) -C tests fuzz
+
 .PHONY : indent
 indent:
 	$(MAKE) -C tests indentsource
