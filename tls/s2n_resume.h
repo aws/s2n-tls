@@ -22,6 +22,7 @@
 #define S2N_SERIALIZED_FORMAT_VERSION   1
 #define S2N_STATE_LIFETIME_IN_NANOS     21600000000
 #define S2N_STATE_SIZE_IN_BYTES         (1 + 8 + 1 + S2N_TLS_CIPHER_SUITE_LEN + S2N_TLS_SECRET_LEN)
+#define S2N_TLS_SESSION_CACHE_TTL       (6 * 60 * 60)
 
 extern int s2n_is_caching_enabled(struct s2n_config *config);
 extern int s2n_resume_from_cache(struct s2n_connection *conn);

@@ -138,7 +138,7 @@ int s2n_store_to_cache(struct s2n_connection *conn)
     GUARD(s2n_serialize_resumption_state(conn, &to));
 
     /* Store to the cache */
-    conn->config->cache_store(conn->config->cache_store_data, conn->session_id, conn->session_id_len, entry.data, entry.size);
+    conn->config->cache_store(conn->config->cache_store_data, S2N_TLS_SESSION_CACHE_TTL, conn->session_id, conn->session_id_len, entry.data, entry.size);
 
     return 0;
 }
