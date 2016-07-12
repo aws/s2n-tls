@@ -105,7 +105,7 @@ struct session_cache_entry {
 
 struct session_cache_entry session_cache[256];
 
-int cache_store(void *ctx, const void *key, uint64_t key_size, const void *value, uint64_t value_size)
+int cache_store(void *ctx, uint64_t ttl, const void *key, uint64_t key_size, const void *value, uint64_t value_size)
 {
     struct session_cache_entry *cache = ctx;
 

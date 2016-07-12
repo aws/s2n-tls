@@ -432,7 +432,7 @@ int s2n_config_set_nanoseconds_since_epoch_callback(struct s2n_config *config, i
     return 0;
 }
 
-int s2n_config_set_cache_store_callback(struct s2n_config *config, int (*cache_store)(void *, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data)
+int s2n_config_set_cache_store_callback(struct s2n_config *config, int (*cache_store)(void *, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data)
 {
     notnull_check(cache_store);
 
