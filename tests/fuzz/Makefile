@@ -32,7 +32,7 @@ ASAN_OPTIONS= symbolize=1
 LSAN_OPTIONS= log_threads=1
 UBSAN_OPTIONS= print_stacktrace=1
 FUZZ_TIMEOUT_SEC= 120
-LIBFUZZER_ARGS = -timeout=1 -max_len=4096 -use_traces=1 -print_final_stats=1 -jobs=32 -workers=32 \
+LIBFUZZER_ARGS = -timeout=5 -max_len=4096 -use_traces=1 -print_final_stats=1 -jobs=32 -workers=32 \
                    -max_total_time=${FUZZ_TIMEOUT_SEC}
 
 $(TESTS)::
