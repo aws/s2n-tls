@@ -197,6 +197,12 @@ struct s2n_config *s2n_config_new(void)
     new_config->application_protocols.size = 0;
     new_config->status_request_type = S2N_STATUS_REQUEST_NONE;
     new_config->nanoseconds_since_epoch = get_nanoseconds_since_epoch;
+    new_config->cache_store = NULL;
+    new_config->cache_store_data = NULL;
+    new_config->cache_retrieve = NULL;
+    new_config->cache_retrieve_data = NULL;
+    new_config->cache_delete = NULL;
+    new_config->cache_delete_data = NULL;
 
     GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default"));
 
@@ -426,7 +432,7 @@ int s2n_config_set_nanoseconds_since_epoch_callback(struct s2n_config *config, i
     return 0;
 }
 
-int s2n_config_set_cache_store_callback(struct s2n_config *config, int (*cache_store)(void *, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data)
+int s2n_config_set_cache_store_callback(struct s2n_config *config, int (*cache_store)(void *, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data)
 {
     notnull_check(cache_store);
 

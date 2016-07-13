@@ -43,15 +43,14 @@ int s2n_client_finished_send(struct s2n_connection *conn)
 {
     uint8_t *our_version;
 
-    GUARD(s2n_prf_key_expansion(conn));
     GUARD(s2n_prf_client_finished(conn));
 
-    struct s2n_blob seq = {.data = conn->pending.client_sequence_number, .size = sizeof(conn->pending.client_sequence_number) };
+    struct s2n_blob seq = {.data = conn->secure.client_sequence_number, .size = sizeof(conn->secure.client_sequence_number) };
     GUARD(s2n_blob_zero(&seq));
     our_version = conn->handshake.client_finished;
 
-    /* Update the client to use the pending cipher suite */
-    conn->client = &conn->pending;
+    /* Update the server to use the cipher suite */
+    conn->client = &conn->secure;
 
     if (conn->actual_protocol_version == S2N_SSLv3) {
         GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, our_version, S2N_SSL_FINISHED_LEN));

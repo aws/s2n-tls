@@ -275,7 +275,7 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
-    EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
+    EXPECT_EQUAL(memcmp(conn->secure.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was processed .. we should be HELLO DONE */
     EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_HELLO_DONE);
@@ -320,7 +320,7 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
-    EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
+    EXPECT_EQUAL(memcmp(conn->secure.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was not processed, we're stuck in SERVER_CERT */
     EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
@@ -365,7 +365,7 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
-    EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
+    EXPECT_EQUAL(memcmp(conn->secure.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was not processed, we're stuck in SERVER_CERT */
     EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
@@ -410,7 +410,7 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
-    EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
+    EXPECT_EQUAL(memcmp(conn->secure.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was not processed, we're stuck in SERVER_CERT */
     EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
@@ -455,7 +455,7 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
-    EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
+    EXPECT_EQUAL(memcmp(conn->secure.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was not processed, we're stuck in SERVER_CERT */
     EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
@@ -500,7 +500,7 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
-    EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
+    EXPECT_EQUAL(memcmp(conn->secure.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was not processed, we're stuck in SERVER_CERT */
     EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);

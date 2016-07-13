@@ -26,6 +26,7 @@ int main(int argc, char **argv)
     uint8_t u8;
     uint16_t u16;
     uint32_t u32;
+    uint64_t u64;
 
     BEGIN_TEST();
 
@@ -98,6 +99,22 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(value, u32);
     }
     EXPECT_FAILURE(s2n_stuffer_read_uint32(&stuffer, &u32));
+
+    /* Try to write 13 8-byte ints bytes */
+    EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
+    for (int i = 0; i < 12; i++) {
+        uint64_t value = i * (0xffffffffffffffff / 12);
+        EXPECT_SUCCESS(s2n_stuffer_write_uint64(&stuffer, value));
+    }
+    EXPECT_FAILURE(s2n_stuffer_write_uint64(&stuffer, 1));
+
+    /* Read those back, and expect the same results */
+    for (int i = 0; i < 12; i++) {
+        uint64_t value = i * (0xffffffffffffffff / 12);
+        EXPECT_SUCCESS(s2n_stuffer_read_uint64(&stuffer, &u64));
+        EXPECT_EQUAL(value, u64);
+    }
+    EXPECT_FAILURE(s2n_stuffer_read_uint64(&stuffer, &u64));
 
     EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
 

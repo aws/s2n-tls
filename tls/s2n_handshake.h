@@ -56,7 +56,7 @@ struct s2n_handshake {
 
     enum {
         /* Dummy handshake that we always start out with */
-        INITIAL, 
+        INITIAL,
 
         /* A Full handshake with forward secrecy */
         FULL_WITH_PFS,

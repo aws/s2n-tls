@@ -453,16 +453,17 @@ the caller sets (and implements) three callback functions.
 ### s2n\_config\_set\_cache\_store\_callback
 
 ```c
-int s2n_config_set_cache_store_callback(struct s2n_config *config, int (*cache_store)(void *, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data);
+int s2n_config_set_cache_store_callback(struct s2n_config *config, int (*cache_store)(void *, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data);
 ```
 
 **s2n_config_set_cache_store_callback** allows the caller to set a callback
 function that will be used to store SSL session data in a cache. The callback
-function takes five arguments: a pointer to abitrary data for use within the
-callback, a pointer to a key which can be used to retrieve the cached entry, a
-64 bit unsigned integer specifying the size of this key, a pointer to a value
-which should be stored, and a 64 bit unsigned integer specified the size of
-this value.
+function takes six arguments: a pointer to abitrary data for use within the
+callback, a 64-bit unsigned integer specifying the number of seconds the
+session data may be stored for, a pointer to a key which can be used to
+retrieve the cached entry, a 64 bit unsigned integer specifying the size of
+this key, a pointer to a value which should be stored, and a 64 bit unsigned
+integer specified the size of this value.
 
 ### s2n\_config\_set\_cache\_retrieve\_callback
 

@@ -37,7 +37,7 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
     uint8_t compression_method;
-    uint8_t session_id[S2N_TLS_SESSION_ID_LEN];
+    uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN];
     uint8_t session_id_len;
     uint16_t extensions_size;
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
@@ -58,18 +58,19 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
-    conn->pending.signature_digest_alg = S2N_HASH_MD5_SHA1;
+    conn->secure.signature_digest_alg = S2N_HASH_MD5_SHA1;
     if (conn->actual_protocol_version == S2N_TLS12) {
-        conn->pending.signature_digest_alg = S2N_HASH_SHA1;
+        conn->secure.signature_digest_alg = S2N_HASH_SHA1;
     }
 
-    GUARD(s2n_stuffer_read_bytes(in, conn->pending.server_random, S2N_TLS_RANDOM_DATA_LEN));
+    GUARD(s2n_stuffer_read_bytes(in, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_stuffer_read_uint8(in, &session_id_len));
 
-    if (session_id_len > S2N_TLS_SESSION_ID_LEN) {
+    if (session_id_len > S2N_TLS_SESSION_ID_MAX_LEN) {
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
+    conn->session_id_len = session_id_len;
     GUARD(s2n_stuffer_read_bytes(in, session_id, session_id_len));
     uint8_t *cipher_suite_wire = s2n_stuffer_raw_read(in, S2N_TLS_CIPHER_SUITE_LEN);
     notnull_check(cipher_suite_wire);
@@ -80,9 +81,13 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
+    GUARD(s2n_conn_set_handshake_type(conn));
+
+    if (conn->handshake.handshake_type == RESUME) {
+        GUARD(s2n_prf_key_expansion(conn));
+    }
 
     if (s2n_stuffer_data_available(in) < 2) {
-        GUARD(s2n_conn_set_handshake_type(conn));
         /* No extensions */
         return 0;
     }
@@ -100,8 +105,6 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
 
     GUARD(s2n_server_extensions_recv(conn, &extensions));
 
-    GUARD(s2n_conn_set_handshake_type(conn));
-
     return 0;
 }
 
@@ -111,10 +114,9 @@ int s2n_server_hello_send(struct s2n_connection *conn)
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_stuffer server_random;
     struct s2n_blob b, r;
-    uint8_t session_id_len = 0;
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
-    b.data = conn->pending.server_random;
+    b.data = conn->secure.server_random;
     b.size = S2N_TLS_RANDOM_DATA_LEN;
 
     /* Create the server random data */
@@ -126,20 +128,19 @@ int s2n_server_hello_send(struct s2n_connection *conn)
     notnull_check(r.data);
     GUARD(s2n_get_public_random_data(&r));
 
-    conn->actual_protocol_version = MIN(conn->client_protocol_version, conn->server_protocol_version);
-
     protocol_version[0] = conn->actual_protocol_version / 10;
     protocol_version[1] = conn->actual_protocol_version % 10;
 
-    conn->pending.signature_digest_alg = S2N_HASH_MD5_SHA1;
+    conn->secure.signature_digest_alg = S2N_HASH_MD5_SHA1;
     if (conn->actual_protocol_version == S2N_TLS12) {
-        conn->pending.signature_digest_alg = S2N_HASH_SHA1;
+        conn->secure.signature_digest_alg = S2N_HASH_SHA1;
     }
 
     GUARD(s2n_stuffer_write_bytes(out, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
-    GUARD(s2n_stuffer_write_bytes(out, conn->pending.server_random, S2N_TLS_RANDOM_DATA_LEN));
-    GUARD(s2n_stuffer_write_uint8(out, session_id_len));
-    GUARD(s2n_stuffer_write_bytes(out, conn->pending.cipher_suite->value, S2N_TLS_CIPHER_SUITE_LEN));
+    GUARD(s2n_stuffer_write_bytes(out, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
+    GUARD(s2n_stuffer_write_uint8(out, conn->session_id_len));
+    GUARD(s2n_stuffer_write_bytes(out, conn->session_id, conn->session_id_len));
+    GUARD(s2n_stuffer_write_bytes(out, conn->secure.cipher_suite->value, S2N_TLS_CIPHER_SUITE_LEN));
     GUARD(s2n_stuffer_write_uint8(out, S2N_TLS_COMPRESSION_METHOD_NULL));
 
     GUARD(s2n_server_extensions_send(conn, out));

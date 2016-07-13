@@ -54,7 +54,7 @@ extern int s2n_config_free_cert_chain_and_key(struct s2n_config *config);
 extern int s2n_config_set_nanoseconds_since_epoch_callback(struct s2n_config *config, int (*nanoseconds_since_epoch)(void *, uint64_t *), void * data);
 extern const char *s2n_strerror(int error, const char *lang);
 
-extern int s2n_config_set_cache_store_callback(struct s2n_config *config, int (*cache_store)(void *, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data);
+extern int s2n_config_set_cache_store_callback(struct s2n_config *config, int (*cache_store)(void *, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data);
 extern int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, int (*cache_retrieve)(void *, const void *key, uint64_t key_size, void *value, uint64_t *value_size), void *data);
 extern int s2n_config_set_cache_delete_callback(struct s2n_config *config, int (*cache_delete)(void *, const void *key, uint64_t key_size), void *data);
 

@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include <netinet/tcp.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
@@ -91,6 +92,98 @@ static char dhparams[] =
     "5JYTQ2PVhxP+Uu8+hICs/8VvM72DznjPZzufADipjC7CsQ4S6x/ecZluFtbb+ZTv\n"
     "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n"
     "-----END DH PARAMETERS-----\n";
+
+#define MAX_KEY_LEN 32
+#define MAX_VAL_LEN 255
+
+struct session_cache_entry {
+    uint8_t key[MAX_KEY_LEN];
+    uint8_t key_len;
+    uint8_t value[MAX_VAL_LEN];
+    uint8_t value_len;
+};
+
+struct session_cache_entry session_cache[256];
+
+int cache_store(void *ctx, uint64_t ttl, const void *key, uint64_t key_size, const void *value, uint64_t value_size)
+{
+    struct session_cache_entry *cache = ctx;
+
+    if (key_size == 0 || key_size > MAX_KEY_LEN) {
+        return -1;
+    }
+    if (value_size == 0 || value_size > MAX_VAL_LEN) {
+        return -1;
+    }
+
+    uint8_t index = ((const uint8_t *)key)[0];
+
+    memcpy(cache[ index ].key, key, key_size);
+    memcpy(cache[ index ].value, value, value_size);
+
+    cache[ index ].key_len = key_size;
+    cache[ index ].value_len = value_size;
+
+    return 0;
+}
+
+int cache_retrieve(void *ctx, const void *key, uint64_t key_size, void *value, uint64_t *value_size)
+{
+    struct session_cache_entry *cache = ctx;
+
+    if (key_size == 0 || key_size > MAX_KEY_LEN) {
+        return -1;
+    }
+
+    uint8_t index = ((const uint8_t *)key)[0];
+
+    if (cache[ index ].key_len != key_size) {
+        return -1;
+    }
+
+    if (memcmp(cache[ index ].key, key, key_size)) {
+        return -1;
+    }
+
+    if (*value_size < cache[ index ].value_len) {
+        return -1;
+    }
+
+    *value_size = cache[ index ].value_len;
+    memcpy(value, cache[ index ].value, cache[ index ].value_len);
+
+    printf("Resumed session ");
+    for (int i = 0; i < key_size; i++) {
+        printf("%02x", ((const uint8_t* )key)[i]);
+    }
+    printf("\n");
+
+    return 0;
+}
+
+int cache_delete(void *ctx, const void *key, uint64_t key_size)
+{
+    struct session_cache_entry *cache = ctx;
+
+    if (key_size == 0 || key_size > MAX_KEY_LEN) {
+        return -1;
+    }
+
+    uint8_t index = ((const uint8_t *)key)[0];
+
+    if (cache[ index ].key_len != key_size) {
+        return -1;
+    }
+
+    if (memcmp(cache[ index ].key, key, key_size)) {
+        return -1;
+    }
+
+    cache[ index ].key_len = 0;
+    cache[ index ].value_len = 0;
+
+    return 0;
+}
 
 extern int echo(struct s2n_connection *conn, int sockfd);
 extern int negotiate(struct s2n_connection *conn);
@@ -234,6 +327,21 @@ int main(int argc, char * const *argv)
 
     if (s2n_config_set_cipher_preferences(config, cipher_prefs) < 0) {
         fprintf(stderr, "Error setting cipher prefs: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        exit(1);
+    }
+
+    if (s2n_config_set_cache_store_callback(config, cache_store, session_cache) < 0) {
+        fprintf(stderr, "Error setting cache store callback: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        exit(1);
+    }
+
+    if (s2n_config_set_cache_retrieve_callback(config, cache_retrieve, session_cache) < 0) {
+        fprintf(stderr, "Error setting cache retrieve callback: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        exit(1);
+    }
+
+    if (s2n_config_set_cache_delete_callback(config, cache_delete, session_cache) < 0) {
+        fprintf(stderr, "Error setting cache retrieve callback: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
     }
 

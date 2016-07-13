@@ -56,7 +56,7 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
 
         /* Pull the public key from the first certificate */
         if (certificate_count == 0) {
-            GUARD(s2n_asn1der_to_rsa_public_key(&conn->pending.server_rsa_public_key, &asn1cert));
+            GUARD(s2n_asn1der_to_rsa_public_key(&conn->secure.server_rsa_public_key, &asn1cert));
         }
 
         certificate_count++;

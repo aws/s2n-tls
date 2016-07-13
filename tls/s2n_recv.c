@@ -27,6 +27,7 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_record.h"
+#include "tls/s2n_resume.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
 
@@ -135,11 +136,18 @@ ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_block
                     return bytes_read;
                 }
             }
+
             /* Don't propogate the error if we already read some bytes */
             if (s2n_errno == S2N_ERR_BLOCKED && bytes_read) {
                 s2n_errno = S2N_ERR_OK;
                 return bytes_read;
             }
+
+            /* If we get here, it's an error condition */
+            if (s2n_errno != S2N_ERR_BLOCKED && s2n_is_caching_enabled(conn->config) && conn->session_id_len) {
+                conn->config->cache_delete(conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
+            }
+
             return -1;
         }
     

@@ -13,7 +13,9 @@
 # permissions and limitations under the License.
 #
 
+import os
 import sys
+import time
 import ssl
 import socket
 import subprocess
@@ -45,35 +47,48 @@ S2N_CIPHERS= [
 ]
 
 PROTO_VERS_TO_STR = {
-    ssl.PROTOCOL_SSLv3 : "SSlv3",
+    ssl.PROTOCOL_SSLv3 : "SSLv3",
     ssl.PROTOCOL_TLSv1 : "TLSv1.0",
     ssl.PROTOCOL_TLSv1_1 : "TLSv1.1",
     ssl.PROTOCOL_TLSv1_2 : "TLSv1.2",
 }
 
-def try_handshake(endpoint, port, cipher, ssl_version):
+PROTO_VERS_TO_ARG = {
+    ssl.PROTOCOL_SSLv3 : "-ssl3",
+    ssl.PROTOCOL_TLSv1 : "-tls1",
+    ssl.PROTOCOL_TLSv1_1 : "-tls1_1",
+    ssl.PROTOCOL_TLSv1_2 : "-tls1_2",
+}
+
+def try_resume(endpoint, port, cipher, ssl_version):
     # Fire up s2nd
     s2nd = subprocess.Popen(["../../bin/s2nd", "-c", "test_all", str(endpoint), str(port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
     # Make sure it's running
     s2nd.stdout.readline()
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(1)
+    # Fire up s_client
+    s_client = subprocess.Popen(["../../libcrypto-root/bin/openssl", "s_client", PROTO_VERS_TO_ARG[ssl_version], "-cipher", cipher,
+                                 "-quiet", "-reconnect", "-connect", str(endpoint) + ":" + str(port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                 stderr=subprocess.DEVNULL)
 
-    try:
-        ssl_sock = ssl.wrap_socket(sock, ssl_version=ssl_version, ciphers=cipher)
-    except ssl.SSLError as err:
-        print(str(err))
-        return -1
-    try:
-        ssl_sock.connect((endpoint, port))
-    except Exception as err:
-        print(str(err))
+    # Wait until the 6th connection
+    seperators = 0
+    for line in s2nd.stdout:
+        line = line.decode("utf-8").strip()
+        if line.startswith("Resumed session"):
+            seperators += 1
+        if seperators == 5:
+            break
+
+    if seperators != 5:
         return -1
 
     # Write the cipher name towards s2n
-    ssl_sock.send((cipher + "\n").encode("utf-8"))
+    s_client.stdin.write((cipher + "\n").encode("utf-8"))
+    s_client.stdin.flush()
+
+    # Read it
     found = 0
     for line in range(0, 10):
         output = s2nd.stdout.readline().decode("utf-8")
@@ -85,16 +100,11 @@ def try_handshake(endpoint, port, cipher, ssl_version):
         return -1
 
     # Write the cipher name from s2n
-    buffered = ssl_sock.makefile()
     s2nd.stdin.write((cipher + "\n").encode("utf-8"))
     s2nd.stdin.flush()
     found = 0
     for line in range(0, 10):
-        try:
-            output = buffered.readline().decode("utf-8")
-        except:
-            pass
-
+        output = s_client.stdout.readline().decode("utf-8")
         if output.strip() == cipher:
             found = 1
             break
@@ -102,6 +112,8 @@ def try_handshake(endpoint, port, cipher, ssl_version):
     if found == 0:
         return -1
 
+    s_client.kill()
+    s_client.wait()
     s2nd.kill()
     s2nd.wait()
 
@@ -109,10 +121,10 @@ def try_handshake(endpoint, port, cipher, ssl_version):
 
 def main(argv):
     if len(argv) < 2:
-        print("s2n_handshake_test.py host port")
+        print("s2n_resume_test.py host port")
         sys.exit(1)
 
-    print("\nRunning handshake tests with: " + str(ssl.OPENSSL_VERSION))
+    print("\nRunning resumption tests with: " + os.popen('../../libcrypto-root/bin/openssl version').read())
     failed = 0
     for ssl_version in [ssl.PROTOCOL_SSLv3, ssl.PROTOCOL_TLSv1, ssl.PROTOCOL_TLSv1_1, ssl.PROTOCOL_TLSv1_2]:
         print("\n\tTesting ciphers using client version: " + PROTO_VERS_TO_STR[ssl_version])
@@ -123,7 +135,7 @@ def main(argv):
             if ssl_version < cipher_vers:
                 continue
 
-            ret = try_handshake(argv[0], int(argv[1]), cipher_name, ssl_version)
+            ret = try_resume(argv[0], int(argv[1]), cipher_name, ssl_version)
             print("Cipher: %-30s Vers: %-10s ... " % (cipher_name, PROTO_VERS_TO_STR[ssl_version]), end='')
             if ret == 0:
                 if sys.stdout.isatty():
