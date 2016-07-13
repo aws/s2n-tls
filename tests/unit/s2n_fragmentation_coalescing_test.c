@@ -403,6 +403,9 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
 
     /* Create a pipe */
     EXPECT_SUCCESS(pipe(p));
@@ -448,6 +451,9 @@ int main(int argc, char **argv)
 
     /* Wipe the connection */
     EXPECT_SUCCESS(s2n_connection_wipe(conn));
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
 
     /* Set up the connection to read from the fd */
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
@@ -490,6 +496,9 @@ int main(int argc, char **argv)
 
     /* Wipe the connection */
     EXPECT_SUCCESS(s2n_connection_wipe(conn));
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
 
     /* Set up the connection to read from the fd */
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
@@ -532,6 +541,9 @@ int main(int argc, char **argv)
 
     /* Wipe the connection */
     EXPECT_SUCCESS(s2n_connection_wipe(conn));
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
 
     /* Set up the connection to read from the fd */
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
@@ -574,6 +586,9 @@ int main(int argc, char **argv)
 
     /* Wipe the connection */
     EXPECT_SUCCESS(s2n_connection_wipe(conn));
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
 
     /* Set up the connection to read from the fd */
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));

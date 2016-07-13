@@ -165,18 +165,30 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
+        client_conn->server_protocol_version = S2N_TLS12;
+        client_conn->client_protocol_version = S2N_TLS12;
+        client_conn->actual_protocol_version = S2N_TLS12;
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        server_conn->server_protocol_version = S2N_TLS12;
+        server_conn->client_protocol_version = S2N_TLS12;
+        server_conn->actual_protocol_version = S2N_TLS12;
 
+        int tries = 0;
         do {
             int ret;
             ret = s2n_negotiate(client_conn, &client_blocked);
             EXPECT_TRUE(ret == 0 || (client_blocked && errno == EAGAIN));
             ret = s2n_negotiate(server_conn, &server_blocked);
             EXPECT_TRUE(ret == 0 || (server_blocked && errno == EAGAIN));
+            tries += 1;
+
+            if (tries == 100) {
+                FAIL();
+            }
         } while (client_blocked || server_blocked);
 
         uint8_t server_shutdown=0;

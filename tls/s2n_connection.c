@@ -228,10 +228,15 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     memcpy_check(&conn->in, &in, sizeof(struct s2n_stuffer));
     memcpy_check(&conn->out, &out, sizeof(struct s2n_stuffer));
 
-    /* Set everything to the highest version at first */
-    conn->server_protocol_version = s2n_highest_protocol_version;
-    conn->client_protocol_version = s2n_highest_protocol_version;
-    conn->actual_protocol_version = s2n_highest_protocol_version;
+    if (conn->mode == S2N_SERVER) {
+        conn->server_protocol_version = s2n_highest_protocol_version;
+        conn->client_protocol_version = s2n_unknown_protocol_version;
+    }
+    else {
+        conn->server_protocol_version = s2n_unknown_protocol_version;
+        conn->client_protocol_version = s2n_highest_protocol_version;
+    }
+    conn->actual_protocol_version = s2n_unknown_protocol_version;
 
     return 0;
 }
