@@ -129,9 +129,6 @@ ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_block
         if (r < 0) {
             if (s2n_errno == S2N_ERR_CLOSED) {
                 *blocked = S2N_NOT_BLOCKED;
-                if (s2n_is_caching_enabled(conn->config) && conn->session_id_len) {
-                    conn->config->cache_delete(conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
-                }
                 if (!bytes_read) {
                     GUARD(s2n_connection_wipe(conn));
                     return 0;
@@ -139,11 +136,18 @@ ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_block
                     return bytes_read;
                 }
             }
+
             /* Don't propogate the error if we already read some bytes */
             if (s2n_errno == S2N_ERR_BLOCKED && bytes_read) {
                 s2n_errno = S2N_ERR_OK;
                 return bytes_read;
             }
+
+            /* If we get here, it's an error condition */
+            if (s2n_is_caching_enabled(conn->config) && conn->session_id_len) {
+                conn->config->cache_delete(conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
+            }
+
             return -1;
         }
     
@@ -153,6 +157,9 @@ ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_block
         
         if (record_type != TLS_APPLICATION_DATA) {
             if (record_type == TLS_ALERT) {
+                if (s2n_is_caching_enabled(conn->config) && conn->session_id_len) {
+                    conn->config->cache_delete(conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
+                }
                 GUARD(s2n_process_alert_fragment(conn));
                 GUARD(s2n_flush(conn, blocked));
             }
