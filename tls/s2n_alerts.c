@@ -21,6 +21,7 @@
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
+#include "tls/s2n_resume.h"
 #include "tls/s2n_alerts.h"
 
 #include "utils/s2n_safety.h"
@@ -79,6 +80,11 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
             /* Close notifications are handled as shutdowns */
             if (conn->alert_in_data[1] == S2N_TLS_ALERT_CLOSE_NOTIFY) {
                 return 0;
+            }
+
+            /* Expire any cached session on an error alert */
+            if (s2n_is_caching_enabled(conn->config) && conn->session_id_len) {
+                conn->config->cache_delete(conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
             }
 
             /* All other alerts are treated as fatal errors (even warnings) */

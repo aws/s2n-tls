@@ -157,9 +157,6 @@ ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_block
         
         if (record_type != TLS_APPLICATION_DATA) {
             if (record_type == TLS_ALERT) {
-                if (s2n_is_caching_enabled(conn->config) && conn->session_id_len) {
-                    conn->config->cache_delete(conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
-                }
                 GUARD(s2n_process_alert_fragment(conn));
                 GUARD(s2n_flush(conn, blocked));
             }
