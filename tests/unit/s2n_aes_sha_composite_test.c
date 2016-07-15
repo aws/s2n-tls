@@ -15,21 +15,22 @@
 
 #include "s2n_test.h"
 
-#include <string.h>
-
 #include <s2n.h>
+#include <string.h>
+#include <openssl/evp.h>
 
 #include "testlib/s2n_testlib.h"
 
+#include "tls/s2n_record.h"
 #include "tls/s2n_cipher_suites.h"
+
 #include "stuffer/s2n_stuffer.h"
-#include "crypto/s2n_cipher.h"
+
 #include "utils/s2n_random.h"
 
+#include "crypto/s2n_cipher.h"
 #include "crypto/s2n_hmac.h"
 #include "crypto/s2n_hash.h"
-
-#include "tls/s2n_record.h"
 
 int main(int argc, char **argv)
 {
@@ -44,6 +45,11 @@ int main(int argc, char **argv)
     struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
 
     BEGIN_TEST();
+
+    /* Skip the test if we don't have the implementations for composite ciphers available */
+    if (!s2n_composite_ciphers_supported()) {
+        END_TEST();
+    }
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
     EXPECT_SUCCESS(s2n_get_urandom_data(&r));

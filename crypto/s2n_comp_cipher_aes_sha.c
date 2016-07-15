@@ -24,6 +24,14 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
+int s2n_composite_ciphers_supported()
+{
+    /* EVP_aes_128_cbc_hmac_sha1() returns NULL if the implementations aren't available.
+     * See https://github.com/openssl/openssl/blob/master/crypto/evp/e_aes_cbc_hmac_sha1.c#L952
+     */
+    return (EVP_aes_128_cbc_hmac_sha1() ? 1 : 0);
+}
+
 static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key, uint8_t *sequence_number, uint8_t content_type,
                                                      uint16_t protocol_version, uint16_t payload_and_eiv_len, int *extra)
 {
@@ -38,7 +46,7 @@ static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key
     GUARD(s2n_stuffer_write_uint8(&ctrl_stuffer, protocol_version % 10));
     GUARD(s2n_stuffer_write_uint16(&ctrl_stuffer, payload_and_eiv_len));
 
-    /* This will unnecessarily mangle the input buffer, which is fine since we're using a temporary buffer
+    /* This will unnecessarily mangle the input buffer, which is fine since it's a temporary buffer
      * Return value will be length of digest, padding, and padding length byte.
      * See https://github.com/openssl/openssl/blob/master/crypto/evp/e_aes_cbc_hmac_sha1.c#L814
      * and https://github.com/openssl/openssl/blob/4f0c475719defd7c051964ef9964cc6e5b3a63bf/ssl/record/ssl3_record.c#L743

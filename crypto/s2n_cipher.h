@@ -79,6 +79,8 @@ struct s2n_cipher {
 extern int s2n_session_key_alloc(struct s2n_session_key *key);
 extern int s2n_session_key_free(struct s2n_session_key *key);
 
+extern int s2n_composite_ciphers_supported();
+
 extern struct s2n_cipher s2n_null_cipher;
 extern struct s2n_cipher s2n_rc4;
 extern struct s2n_cipher s2n_aes128;
