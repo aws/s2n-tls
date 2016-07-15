@@ -398,12 +398,6 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     notnull_check(server_mac_write_key);
     GUARD(s2n_hmac_init(&conn->secure.server_record_mac, hmac_alg, server_mac_write_key, mac_size));
 
-    /* Composite CBC does MAC inside the cipher, so pass them the MAC key */
-    if (conn->secure.cipher_suite->cipher->type == S2N_COMPOSITE) {
-        GUARD(conn->secure.cipher_suite->cipher->io.comp.set_mac_write_key(&conn->secure.server_key, server_mac_write_key, mac_size));
-        GUARD(conn->secure.cipher_suite->cipher->io.comp.set_mac_write_key(&conn->secure.client_key, client_mac_write_key, mac_size));
-    }
-
     /* Make the client key */
     struct s2n_blob client_key;
     client_key.size = conn->secure.cipher_suite->cipher->key_material_size;
@@ -425,6 +419,14 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
         GUARD(conn->secure.cipher_suite->cipher->set_encryption_key(&conn->secure.server_key, &server_key));
     } else {
         GUARD(conn->secure.cipher_suite->cipher->set_decryption_key(&conn->secure.server_key, &server_key));
+    }
+
+    /* Composite CBC does MAC inside the cipher, pass it the MAC key. 
+     * Must happen after setting encryption/decryption keys.
+     */
+    if (conn->secure.cipher_suite->cipher->type == S2N_COMPOSITE) {
+        GUARD(conn->secure.cipher_suite->cipher->io.comp.set_mac_write_key(&conn->secure.server_key, server_mac_write_key, mac_size));
+        GUARD(conn->secure.cipher_suite->cipher->io.comp.set_mac_write_key(&conn->secure.client_key, client_mac_write_key, mac_size));
     }
 
     /* TLS >= 1.1 has no implicit IVs for non AEAD ciphers */
