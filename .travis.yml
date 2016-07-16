@@ -16,7 +16,7 @@ install:
   - (test "$TRAVIS_OS_NAME" = "linux" && sudo .travis/install_prlimit.sh $PWD/.travis > /dev/null && sudo .travis/prlimit --pid "$$" --memlock=unlimited:unlimited) || true
   - mkdir -p .travis/checker && .travis/install_scan-build.sh .travis/checker && export PATH=$PATH:.travis/checker/bin
 script:
-  - make -j8
-  # Bundled scan-build is only available for OSX but running on a single platform should be sufficient
-  - (test "$TRAVIS_OS_NAME" = "osx" && make clean && scan-build make bin) || true
+  - (test "$TRAVIS_OS_NAME" = "linux" && make -j8) || true
+  # Build and run unit tests with scan-build for osx. scan-build bundle isn't available for linux
+  - (test "$TRAVIS_OS_NAME" = "osx" && scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/*; exit $STATUS) || true
   - make integration
