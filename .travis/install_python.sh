@@ -21,4 +21,4 @@ tar xzf Python-3.5.1.tgz
 cd Python-3.5.1
 ./configure CPPFLAGS="-I$LIBCRYPTO_ROOT/include" LDFLAGS="-L$LIBCRYPTO_ROOT/lib"
 make
-sudo make install
+make install
