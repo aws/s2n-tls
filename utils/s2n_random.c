@@ -108,16 +108,6 @@ int s2n_get_private_random_bytes_used(void)
 
 int s2n_get_urandom_data(struct s2n_blob *blob)
 {
-    /* If S2N_UNSAFE_FUZZING_MODE is enabled, then generate fake random numbers in order to ensure that fuzz tests are
-     * deterministic and repeatable. Should return non-zero values since this function may be called repeatedly at
-     * startup until a non-zero value is returned. */
-    #if defined(S2N_UNSAFE_FUZZING_MODE)
-        for(int i=0; i < blob->size; i++){
-            blob->data[i] = 4; // Fake RNG. Chosen by fair dice roll. https://xkcd.com/221/
-        }
-        return 0;
-    #endif
-
     uint32_t n = blob->size;
     uint8_t *data = blob->data;
 

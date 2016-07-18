@@ -111,12 +111,6 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
 int s2n_server_hello_send(struct s2n_connection *conn)
 {
     uint32_t gmt_unix_time = time(NULL);
-
-    /* If S2N_UNSAFE_FUZZING_MODE is enabled, override the system time to 0, to ensure fuzz tests are deterministic. */
-    #if defined(S2N_UNSAFE_FUZZING_MODE)
-        gmt_unix_time = 0;
-    #endif
-
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_stuffer server_random;
     struct s2n_blob b, r;

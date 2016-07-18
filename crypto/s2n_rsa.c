@@ -156,12 +156,6 @@ int s2n_rsa_verify(struct s2n_rsa_public_key *key, struct s2n_hash_state *digest
     GUARD(s2n_hash_digest(digest, digest_out, digest_length));
 
     if (RSA_verify(type, digest_out, digest_length, signature->data, signature->size, key->rsa) == 0) {
-       /* If S2N_UNSAFE_FUZZING_MODE is enabled, don't return S2N_ERR_VERIFY_SIGNATURE. This will assume all RSA
-        * signatures pass verification and will aid with branch coverage for fuzz tests */
-       #if defined(S2N_UNSAFE_FUZZING_MODE)
-           return 0;
-       #endif
-
         S2N_ERROR(S2N_ERR_VERIFY_SIGNATURE);
     }
 

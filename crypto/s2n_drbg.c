@@ -142,17 +142,6 @@ int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization
 
 int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob)
 {
-    /* If S2N_UNSAFE_FUZZING_MODE is enabled, then generate fake random numbers in order to ensure that fuzz tests are
-     * deterministic and repeatable. Should return non-zero values since this function may be called repeatedly at
-     * startup until a non-zero value is returned. */
-    #if defined(S2N_UNSAFE_FUZZING_MODE)
-        for(int i=0; i < blob->size; i++){
-            blob->data[i] = 4; // Fake RNG. Chosen by fair dice roll. https://xkcd.com/221/
-        }
-        drbg->bytes_used += blob->size;
-        return 0;
-    #endif
-
     uint8_t all_zeros[32] = { 0 };
     struct s2n_blob zeros = {.data = all_zeros, .size = sizeof(all_zeros) };
     if (blob->size > S2N_DRBG_GENERATE_LIMIT) {

@@ -39,13 +39,6 @@ pid_t s2n_actual_getpid()
 
 int s2n_constant_time_equals(const uint8_t *a, const uint8_t *b, uint32_t len)
 {
-    /* If compiled with S2N_UNSAFE_FUZZING_MODE, allow all signatures checked with s2n_constant_time_equals to always
-     * pass verification even if they are invalid in order to aid code coverage with fuzz tests.
-     */
-    #if defined(S2N_UNSAFE_FUZZING_MODE)
-        return !0;
-    #endif
-
     uint8_t xor = 0;
     for (int i = 0; i < len; i++) {
         xor |= a[i] ^ b[i];
