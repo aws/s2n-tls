@@ -130,14 +130,16 @@ static char dhparams[] =
 
 static int MAX_NEGOTIATION_ATTEMPTS = 10;
 
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len) {
+int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
+{
     GUARD(s2n_init());
     GUARD(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
     return 0;
 }
 
 
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
+int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
+{
     if(len < S2N_TLS_RECORD_HEADER_LENGTH){
         return 0;
     }
@@ -180,12 +182,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
     eq_check(client_blocked, S2N_NOT_BLOCKED);
 
     /* Let Server receive data and attempt Negotiation */
-    int numAttemptedNegotiations = 0;
+    int num_attempted_negotiations = 0;
     s2n_blocked_status server_blocked;
     do {
         s2n_negotiate(server_conn, &server_blocked);
-        numAttemptedNegotiations += 1;
-    } while(!server_blocked && numAttemptedNegotiations < MAX_NEGOTIATION_ATTEMPTS);
+        num_attempted_negotiations += 1;
+    } while(!server_blocked && num_attempted_negotiations < MAX_NEGOTIATION_ATTEMPTS);
 
     /* Clean up */
     GUARD(s2n_connection_wipe(server_conn));
