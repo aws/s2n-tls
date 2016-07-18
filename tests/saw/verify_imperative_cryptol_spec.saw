@@ -23,7 +23,13 @@ import "spec/HMAC.cry";
 
 let check n = do {
     print (str_concat "Checking 'hmac_c_state_correct' for byte count " (show n));
-    time (prove_print abc {{ hmac_c_state_correct : HMAC_c_state -> [n][8] -> [n][8] -> Bit }});
+    x <- time (prove_print abc {{ hmac_c_state_correct : HMAC_c_state -> [n][8] -> [n][8] -> Bit }});
+    print (show x);
+    print("***BEGIN JSON FOR METRICS");
+    print("{");
+    print(str_concat (str_concat "\"Name\": \"hmac_c_state_correct size " (show n)) "\",");
+    print(str_concat (str_concat "\"Size\" : " (show n)) "}");
+    print("***END JSON FOR METRICS");
 };
 
-for [0, 1, 128 /* ,  2, 63, 64, 65, 127, 128, 129 , 1000 */] check;
+for [0, 1, 128 /*,  2, 63, 64, 65, 127, 128, 129 , 1000 */] check;
