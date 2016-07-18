@@ -316,6 +316,30 @@ let hmac_digest_spec
 
 ////////////////////////////////////////////////////////////////
 
+let a_fun x  = do{ return (str_concat x
+    	       	   	  (str_concat "x" ""));};
+
+let json_string key_size msg_size
+    (cfg : { name            : String
+             , hmac_alg        : Term
+             , digest_size     : Int
+             , block_size      : Int
+             , hash_block_size : Int
+             })
+	     = do{
+	     return
+		(str_concat "***BEGIN JSON FOR METRICS \n"
+ 	  	(str_concat "{\"Name\": \""
+ 	  	(str_concat cfg.name
+ 	  	(str_concat ", key size = "
+ 	  	(str_concat (show key_size)
+ 	  	(str_concat ", msg size = "
+ 	  	(str_concat (show msg_size)
+ 	  	(str_concat "\", \"Size\" : "
+ 	  	(str_concat (show (eval_size {| key_size + msg_size |}))
+ 	  	("\"}\n***END JSON FOR METRICS"))))))))));
+ };
+
 let verify_s2n_hmac
       key_size
       msg_size
@@ -362,8 +386,9 @@ let verify_s2n_hmac
     llvm_verify m "s2n_hmac_update" hash_ovs (hmac_update_spec msg_size cfg);
   hmac_digest_ov <-
     llvm_verify m "s2n_hmac_digest" hash_ovs (hmac_digest_spec cfg);
-
   print "Done!";
+  str <- (json_string key_size msg_size cfg);
+  print (str);
 };
 
 ////////////////////////////////////////////////////////////////
@@ -428,6 +453,9 @@ let sha512_cfg =
   , block_size      = 128
   , hash_block_size = 128
   };
+
+
+    
 
 // We need to verify key lengths above and below-or-equal to the block
 // size, in order to exercise both versions of the key initialization

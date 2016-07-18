@@ -24,7 +24,6 @@ import "spec/HMAC.cry";
 let check n = do {
     print (str_concat "Checking 'hmac_c_state_correct' for byte count " (show n));
     x <- time (prove_print abc {{ hmac_c_state_correct : HMAC_c_state -> [n][8] -> [n][8] -> Bit }});
-    print (show x);
     print("***BEGIN JSON FOR METRICS");
     print("{");
     print(str_concat (str_concat "\"Name\": \"hmac_c_state_correct size " (show n)) "\",");
