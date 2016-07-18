@@ -43,9 +43,9 @@ TEST_SPECIFIC_OVERRIDES="${PWD}/LD_PRELOAD/${TEST_NAME}_overrides.so"
 GLOBAL_OVERRIDES="${PWD}/LD_PRELOAD/global_overrides.so"
 
 if [ -e $TEST_SPECIFIC_OVERRIDES ];
-then 
+then
 	export LD_PRELOAD="$TEST_SPECIFIC_OVERRIDES $GLOBAL_OVERRIDES"
-else 
+else
 	export LD_PRELOAD="$GLOBAL_OVERRIDES"
 fi
 
@@ -58,8 +58,13 @@ BRANCH_COVERAGE=`grep -o "cov: [0-9]*" ${TEST_NAME}_output.txt | awk '{print $2}
 
 if [ $ACTUAL_TEST_FAILURE == $EXPECTED_TEST_FAILURE ];
 then
+	if [ $EXPECTED_TEST_FAILURE == 1 ];
+	then
+		# Clean up LibFuzzer corpus files if the test is negative.
+		rm -f leak-* crash-*
+	fi
 	printf "\033[32;1mPASSED\033[0m %12d tests, %8d branches covered\n" $TEST_COUNT $BRANCH_COVERAGE
-else 
+else
 	cat ${TEST_NAME}_output.txt
 	printf "\033[31;1mFAILED\033[0m %12d tests, %8d branches covered\n" $TEST_COUNT $BRANCH_COVERAGE
 	exit -1
