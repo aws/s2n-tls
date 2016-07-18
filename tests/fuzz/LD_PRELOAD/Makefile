@@ -14,10 +14,7 @@
 #
 
 SRCS=$(wildcard *.c)
-#OBJS = $(wildcard ../../../utils/*.o ../../../stuffer/*.o ../../../tls/*.o ../../../iana/*.o ../../../crypto/*.o ../../../error/*.o $(LIBCRYPTO_ROOT)/lib/libcrypto.a)
-OBJS=$(SRCS:.c=.o)
 OVERRIDES=$(SRCS:.c=)
-CRYPTO_LDFLAGS = -L$(LIBCRYPTO_ROOT)/lib
 
 .PHONY : all
 all : $(OVERRIDES)
