@@ -137,14 +137,13 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
     return 0;
 }
 
-
 int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
     if(len < S2N_TLS_RECORD_HEADER_LENGTH){
         return 0;
     }
 
-    /* Set up File Descriptors from client to server*/
+    /* Set up File Descriptors from client to server */
     int client_to_server[2];
     GUARD(pipe(client_to_server));
 

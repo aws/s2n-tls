@@ -25,8 +25,9 @@
 
 time_t time (time_t *__timer)
 {
-    // Always assume the time is zero when fuzzing the server, this is to ensure that Fuzz tests are deterministic and
-    // don't depend on the time the test was run.
+    /* Always assume the time is zero when fuzzing the server, this is to ensure that Fuzz tests are deterministic and
+     * don't depend on the time the test was run.
+     */
     return 0;
 }
 
@@ -34,26 +35,27 @@ time_t time (time_t *__timer)
 int RSA_verify(int dtype, const unsigned char *m, unsigned int m_len,
                  const unsigned char *sigbuf, unsigned int siglen, RSA *rsa)
 {
-    // Always assume that the RSA_verify function passes
+    /* Always assume that the RSA_verify function passes */
     return 1;
 }
 
 int s2n_constant_time_equals(const uint8_t *a, const uint8_t *b, uint32_t len)
 {
-    // Allow all signatures checked with s2n_constant_time_equals to always pass verification even if they are invalid
-    // in order to aid code coverage with server fuzz test.
+    /* Allow all signatures checked with s2n_constant_time_equals to always pass verification even if they are invalid
+     * in order to aid code coverage with server fuzz test.
+     */
     return !0;
 }
 
 int s2n_rsa_client_key_recv(struct s2n_connection *conn)
 {
-    // Perform the original function
+    /* Perform the original function */
     typedef int (*orig_s2n_rsa_client_key_recv_func_type)(struct s2n_connection *conn);
     orig_s2n_rsa_client_key_recv_func_type orig_s2n_rsa_client_key_recv;
     orig_s2n_rsa_client_key_recv = (orig_s2n_rsa_client_key_recv_func_type) dlsym(RTLD_NEXT, "s2n_rsa_client_key_recv");
     int original_return_code = orig_s2n_rsa_client_key_recv(conn);
 
-    // Then, overwrite the RSA Failed flag to false before returning, this will help fuzzing code coverage.
+    /* Then, overwrite the RSA Failed flag to false before returning, this will help fuzzing code coverage. */
     conn->handshake.rsa_failed = 0;
 
     return original_return_code;
