@@ -337,7 +337,7 @@ let json_string key_size msg_size
  	  	(str_concat (show msg_size)
  	  	(str_concat "\", \"Size\" : "
  	  	(str_concat (show (eval_size {| key_size + msg_size |}))
- 	  	("\"}\n***END JSON FOR METRICS"))))))))));
+ 	  	("}\n***END JSON FOR METRICS"))))))))));
  };
 
 let verify_s2n_hmac
