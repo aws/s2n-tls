@@ -325,7 +325,7 @@ let json_string key_size msg_size
              , digest_size     : Int
              , block_size      : Int
              , hash_block_size : Int
-             })
+             }) time_seconds
 	     = do{
 	     return
 		(str_concat "***BEGIN JSON FOR METRICS \n"
@@ -337,7 +337,9 @@ let json_string key_size msg_size
  	  	(str_concat (show msg_size)
  	  	(str_concat "\", \"Size\" : "
  	  	(str_concat (show (eval_size {| key_size + msg_size |}))
- 	  	("}\n***END JSON FOR METRICS"))))))))));
+		(str_concat ", \"Time\" : "
+		(str_concat (show time_seconds)
+ 	  	("}\n***END JSON FOR METRICS"))))))))))));
  };
 
 let verify_s2n_hmac
@@ -359,18 +361,25 @@ let verify_s2n_hmac
         (str_concat (show msg_size)
                     " ..."))))));
 
-  hash_init_ov   <- llvm_verify m "s2n_hash_init"   [] hash_init_spec;
-  hash_digest_ov <- llvm_verify m "s2n_hash_digest" []
-    (hash_digest_spec (cfg.digest_size));
 
-  hash_update_key_size_ov    <- llvm_verify m "s2n_hash_update" []
-    (hash_update_spec key_size);
-  hash_update_block_size_ov  <- llvm_verify m "s2n_hash_update" []
-    (hash_update_spec cfg.block_size);
-  hash_update_msg_size_ov    <- llvm_verify m "s2n_hash_update" []
-    (hash_update_spec msg_size);
-  hash_update_digest_size_ov <- llvm_verify m "s2n_hash_update" []
-    (hash_update_spec cfg.digest_size);
+  (t, hash_init_ov)   <- with_time (llvm_verify m "s2n_hash_init"   [] hash_init_spec);
+  let total = t;
+  (t, hash_digest_ov) <- with_time (llvm_verify m "s2n_hash_digest" []
+    (hash_digest_spec (cfg.digest_size)));
+  let total = eval_size {|total + t|};
+  (t, hash_update_key_size_ov) <- with_time (llvm_verify m "s2n_hash_update" []
+    (hash_update_spec key_size));
+  let total = eval_size {|total + t|};
+  (t, hash_update_block_size_ov)  <- with_time (llvm_verify m "s2n_hash_update" []
+    (hash_update_spec cfg.block_size));
+  let total = eval_size {|total + t|};
+  (t, hash_update_msg_size_ov)    <- with_time (llvm_verify m "s2n_hash_update" []
+    (hash_update_spec msg_size));
+  let total = eval_size {|total + t|};
+  (t, hash_update_digest_size_ov) <- with_time (llvm_verify m "s2n_hash_update" []
+    (hash_update_spec cfg.digest_size));
+  let total = eval_size {|total + t|};
+
   let hash_ovs =
     [ hash_init_ov
     , hash_update_key_size_ov
@@ -380,15 +389,20 @@ let verify_s2n_hmac
     , hash_digest_ov
     ];
 
-  hmac_init_ov <-
-    llvm_verify m "s2n_hmac_init"   hash_ovs (hmac_init_spec key_size cfg);
-  hmac_update_ov <-
-    llvm_verify m "s2n_hmac_update" hash_ovs (hmac_update_spec msg_size cfg);
-  hmac_digest_ov <-
-    llvm_verify m "s2n_hmac_digest" hash_ovs (hmac_digest_spec cfg);
+  (t, hmac_init_ov) <-
+    with_time (llvm_verify m "s2n_hmac_init"   hash_ovs (hmac_init_spec key_size cfg));
+  let total = eval_size {|/*total +*/ t|};
+  (t, hmac_update_ov) <-
+    with_time (llvm_verify m "s2n_hmac_update" hash_ovs (hmac_update_spec msg_size cfg));
+  let total = eval_size {|total + t|};
+  (t, hmac_digest_ov) <-
+    with_time (llvm_verify m "s2n_hmac_digest" hash_ovs (hmac_digest_spec cfg));
+  let total = eval_size {|total + t|};
   print "Done!";
-  str <- (json_string key_size msg_size cfg);
-  print (str);
+  str <- (json_string key_size msg_size cfg t);
+  print (str); 
+
+
 };
 
 ////////////////////////////////////////////////////////////////
