@@ -159,10 +159,17 @@ int main(int argc, char **argv)
         }
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        client_conn->actual_protocol_version = S2N_TLS12;
+        client_conn->server_protocol_version = S2N_TLS12;
+        client_conn->client_protocol_version = S2N_TLS12;
+
         EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        server_conn->actual_protocol_version = S2N_TLS12;
+        server_conn->server_protocol_version = S2N_TLS12;
+        server_conn->client_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
@@ -208,6 +215,9 @@ int main(int argc, char **argv)
         }
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        client_conn->actual_protocol_version = S2N_TLS12;
+        client_conn->server_protocol_version = S2N_TLS12;
+        client_conn->client_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
@@ -215,6 +225,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_set_server_name(client_conn, sent_server_name));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        server_conn->actual_protocol_version = S2N_TLS12;
+        server_conn->server_protocol_version = S2N_TLS12;
+        server_conn->client_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
@@ -318,6 +331,9 @@ int main(int argc, char **argv)
         }
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        server_conn->actual_protocol_version = S2N_TLS12;
+        server_conn->server_protocol_version = S2N_TLS12;
+        server_conn->client_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
@@ -374,10 +390,16 @@ int main(int argc, char **argv)
         }
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        client_conn->actual_protocol_version = S2N_TLS12;
+        client_conn->server_protocol_version = S2N_TLS12;
+        client_conn->client_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        server_conn->actual_protocol_version = S2N_TLS12;
+        server_conn->server_protocol_version = S2N_TLS12;
+        server_conn->client_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
@@ -423,6 +445,9 @@ int main(int argc, char **argv)
         }
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        client_conn->actual_protocol_version = S2N_TLS12;
+        client_conn->server_protocol_version = S2N_TLS12;
+        client_conn->client_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
@@ -431,6 +456,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        server_conn->actual_protocol_version = S2N_TLS12;
+        server_conn->server_protocol_version = S2N_TLS12;
+        server_conn->client_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
@@ -477,6 +505,9 @@ int main(int argc, char **argv)
         }
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        client_conn->actual_protocol_version = S2N_TLS12;
+        client_conn->server_protocol_version = S2N_TLS12;
+        client_conn->client_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
@@ -485,6 +516,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        server_conn->actual_protocol_version = S2N_TLS12;
+        server_conn->server_protocol_version = S2N_TLS12;
+        server_conn->client_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 

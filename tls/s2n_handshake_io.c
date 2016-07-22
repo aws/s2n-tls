@@ -152,10 +152,41 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
 static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data)
 {
-    GUARD(s2n_hash_update(&conn->handshake.md5, data->data, data->size));
-    GUARD(s2n_hash_update(&conn->handshake.sha1, data->data, data->size));
-    GUARD(s2n_hash_update(&conn->handshake.sha256, data->data, data->size));
-    GUARD(s2n_hash_update(&conn->handshake.sha384, data->data, data->size));
+    switch (conn->actual_protocol_version) {
+
+        /* If we don't know the protocol yet, compute everything */
+        case S2N_UNKNOWN_PROTOCOL_VERSION:
+            GUARD(s2n_hash_update(&conn->handshake.md5, data->data, data->size));
+            GUARD(s2n_hash_update(&conn->handshake.sha1, data->data, data->size));
+            GUARD(s2n_hash_update(&conn->handshake.sha256, data->data, data->size));
+            GUARD(s2n_hash_update(&conn->handshake.sha384, data->data, data->size));
+            break;
+
+        /* SSLv3 - TLS1.1 uses MD5 and SHA1 */
+        case S2N_SSLv3:
+        case S2N_TLS10:
+        case S2N_TLS11:
+            GUARD(s2n_hash_update(&conn->handshake.md5, data->data, data->size));
+            GUARD(s2n_hash_update(&conn->handshake.sha1, data->data, data->size));
+            break;
+
+        /* TLS 1.2 supports a specific hash */
+        case S2N_TLS12:
+            if (conn->secure.cipher_suite->tls12_prf_alg == S2N_HMAC_SHA256) {
+                GUARD(s2n_hash_update(&conn->handshake.sha256, data->data, data->size));
+            }
+            else if (conn->secure.cipher_suite->tls12_prf_alg == S2N_HMAC_SHA384) {
+                GUARD(s2n_hash_update(&conn->handshake.sha384, data->data, data->size));
+            }
+            else {
+                S2N_ERROR(S2N_ERR_PRF_INVALID_ALGORITHM);
+            }
+            break;
+
+        default:
+            S2N_ERROR(S2N_ERR_PRF_INVALID_ALGORITHM);
+            break;
+    }
 
     return 0;
 }
@@ -261,7 +292,7 @@ static int read_full_handshake_message(struct s2n_connection *conn, uint8_t *mes
         notnull_check(handshake.data);
 
         /* MD5 and SHA sum the handshake data too */
-        GUARD(s2n_conn_update_handshake_hashes(conn, &handshake));
+        //GUARD(s2n_conn_update_handshake_hashes(conn, &handshake));
 
         return 0;
     }

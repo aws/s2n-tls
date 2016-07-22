@@ -253,6 +253,9 @@ int main(int argc, char **argv)
     /* Pretend the client hello has already been set */
     conn->handshake.handshake_type = FULL_NO_PFS;
     conn->handshake.message_number = SERVER_HELLO;
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
 
     /* Create a child process */
     pid = fork();
@@ -298,6 +301,9 @@ int main(int argc, char **argv)
     /* Pretend the client hello has already been set */
     conn->handshake.handshake_type = FULL_NO_PFS;
     conn->handshake.message_number = SERVER_HELLO;
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
 
     /* Create a child process */
     pid = fork();
@@ -343,6 +349,9 @@ int main(int argc, char **argv)
     /* Pretend the client hello has already been set */
     conn->handshake.handshake_type = FULL_NO_PFS;
     conn->handshake.message_number = SERVER_HELLO;
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
 
     /* Create a child process */
     pid = fork();
@@ -388,6 +397,9 @@ int main(int argc, char **argv)
     /* Pretend the client hello has already been set */
     conn->handshake.handshake_type = FULL_NO_PFS;
     conn->handshake.message_number = SERVER_HELLO;
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
 
     /* Create a child process */
     pid = fork();
@@ -433,6 +445,9 @@ int main(int argc, char **argv)
     /* Pretend the client hello has already been set */
     conn->handshake.handshake_type = FULL_NO_PFS;
     conn->handshake.message_number = SERVER_HELLO;
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
 
     /* Create a child process */
     pid = fork();
@@ -478,6 +493,9 @@ int main(int argc, char **argv)
     /* Pretend the client hello has already been set */
     conn->handshake.handshake_type = FULL_NO_PFS;
     conn->handshake.message_number = SERVER_HELLO;
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
 
     /* Create a child process */
     pid = fork();
