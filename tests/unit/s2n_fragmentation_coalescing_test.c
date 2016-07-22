@@ -414,7 +414,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
 
     /* Pretend the client hello has already been set */
-    conn->handshake.handshake_type = FULL_NO_PFS;
+    conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
     conn->handshake.message_number = SERVER_HELLO;
 
     /* Create a child process */
@@ -459,7 +459,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
 
     /* Pretend the client hello has already been set */
-    conn->handshake.handshake_type = FULL_NO_PFS;
+    conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
     conn->handshake.message_number = SERVER_HELLO;
 
     /* Create a child process */
@@ -504,7 +504,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
 
     /* Pretend the client hello has already been set */
-    conn->handshake.handshake_type = FULL_NO_PFS;
+    conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
     conn->handshake.message_number = SERVER_HELLO;
 
     /* Create a child process */
@@ -549,7 +549,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
 
     /* Pretend the client hello has already been set */
-    conn->handshake.handshake_type = FULL_NO_PFS;
+    conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
     conn->handshake.message_number = SERVER_HELLO;
 
     /* Create a child process */
@@ -594,7 +594,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
 
     /* Pretend the client hello has already been set */
-    conn->handshake.handshake_type = FULL_NO_PFS;
+    conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
     conn->handshake.message_number = SERVER_HELLO;
 
     /* Create a child process */

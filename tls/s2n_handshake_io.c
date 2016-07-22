@@ -74,36 +74,39 @@ static struct s2n_handshake_action state_machine[] = {
     {TLS_APPLICATION_DATA, 0,              'B', {NULL, NULL}}    /* APPLICATION_DATA            */
 };
 
+
 /* We support 5 different ordering of messages, depending on what is being negotiated. There's also a dummy "INITIAL" handshake
  * that everything starts out as until we know better.
  */
-static message_type_t handshakes[6][16] = {
-        /* INITIAL */
+static message_type_t handshakes[16][16] = {
+        /* Initial "Dummy" handshake */
+        [ 0 ] =
         { CLIENT_HELLO, SERVER_HELLO },
 
-        /* FULL_WITH_PFS */
-        { CLIENT_HELLO, SERVER_HELLO, SERVER_CERT, SERVER_KEY,
-          SERVER_HELLO_DONE, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
-          SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED, APPLICATION_DATA },
+        [ NEGOTIATED /* Not a full handshake - is a resumption */ ] =
+        { CLIENT_HELLO, SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC,
+          SERVER_FINISHED, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED, APPLICATION_DATA },
 
-        /* FULL_WITH_PFS_WITH_STATUS */
-        { CLIENT_HELLO, SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS,
-          SERVER_KEY, SERVER_HELLO_DONE, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC,
-          CLIENT_FINISHED, SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED, APPLICATION_DATA },
-
-        /* FULL_NO_PFS */ 
+        [ NEGOTIATED | FULL_HANDSHAKE ] = /* A regular full handshake */
         { CLIENT_HELLO, SERVER_HELLO, SERVER_CERT, SERVER_HELLO_DONE,
           CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
           SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED, APPLICATION_DATA },
 
-        /* FULL_NO_PFS_WITH_STATUS */
+        [ NEGOTIATED | FULL_HANDSHAKE | PERFECT_FORWARD_SECRECY ] = /* Add PFS */
+        { CLIENT_HELLO, SERVER_HELLO, SERVER_CERT, SERVER_KEY,
+          SERVER_HELLO_DONE, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+          SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED, APPLICATION_DATA },
+
+        [ NEGOTIATED | FULL_HANDSHAKE | OCSP_STATUS ] = /* Add OCSP */
         { CLIENT_HELLO, SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS,
           SERVER_HELLO_DONE, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
           SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED, APPLICATION_DATA },
 
-        /* RESUME */
-        { CLIENT_HELLO, SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC,
-          SERVER_FINISHED, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED, APPLICATION_DATA }
+        [ NEGOTIATED | FULL_HANDSHAKE | PERFECT_FORWARD_SECRECY | OCSP_STATUS ] = /* PFS + OCSP */
+        { CLIENT_HELLO, SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS,
+          SERVER_KEY, SERVER_HELLO_DONE, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC,
+          CLIENT_FINISHED, SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED, APPLICATION_DATA }
+
 };
 
 #define ACTIVE_MESSAGE( conn ) handshakes[ (conn)->handshake.handshake_type ][ (conn)->handshake.message_number ]
@@ -117,12 +120,14 @@ message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn)
 
 int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 {
+    /* Reset to a negotiated handshake type, not the initial */
+    conn->handshake.handshake_type = NEGOTIATED;
+
     if (s2n_is_caching_enabled(conn->config)) {
         if (!s2n_resume_from_cache(conn)) {
-            conn->handshake.handshake_type = RESUME;
+            /* Nothing more needed - not a full handshake */
             return 0;
         }
-
         if (conn->mode == S2N_SERVER) {
             struct s2n_blob session_id = { .data = conn->session_id, .size = S2N_TLS_SESSION_ID_MAX_LEN };
 
@@ -132,19 +137,15 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
         }
     }
 
+    /* If we get this far, it's a full handshake type */
+    conn->handshake.handshake_type |= FULL_HANDSHAKE;
+
     if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_EPH) {
-        conn->handshake.handshake_type = FULL_WITH_PFS;
-
-        if (s2n_server_can_send_ocsp(conn)) {
-            conn->handshake.handshake_type = FULL_WITH_PFS_WITH_STATUS;
-        }
+        conn->handshake.handshake_type |= PERFECT_FORWARD_SECRECY;
     }
-    else {
-        conn->handshake.handshake_type = FULL_NO_PFS;
 
-        if (s2n_server_can_send_ocsp(conn)) {
-            conn->handshake.handshake_type = FULL_NO_PFS_WITH_STATUS;
-        }
+    if (s2n_server_can_send_ocsp(conn)) {
+        conn->handshake.handshake_type |= OCSP_STATUS;
     }
 
     return 0;

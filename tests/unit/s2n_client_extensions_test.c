@@ -350,7 +350,7 @@ int main(int argc, char **argv)
         /* Verify that the CLIENT HELLO is accepted */
         s2n_negotiate(server_conn, &server_blocked);
         EXPECT_TRUE(s2n_conn_get_current_message_type(server_conn) > CLIENT_HELLO);
-        EXPECT_EQUAL(server_conn->handshake.handshake_type, FULL_NO_PFS);
+        EXPECT_EQUAL(server_conn->handshake.handshake_type, NEGOTIATED | FULL_HANDSHAKE);
 
         /* Verify that the server name was received intact. */
         EXPECT_NOT_NULL(received_server_name = s2n_get_server_name(server_conn));
