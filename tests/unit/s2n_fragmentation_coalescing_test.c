@@ -165,6 +165,8 @@ uint8_t fatal_alert[] = {       /* Fatal: unexpected message */
     0x01, 0x0a
 };
 
+extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
+
 void fragmented_message(int write_fd)
 {
     int written = 0;
@@ -409,7 +411,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
 
     /* Pretend the client hello has already been set */
-    conn->handshake.state = SERVER_HELLO;
+    conn->handshake.handshake_type = FULL_NO_PFS;
+    conn->handshake.message_number = SERVER_HELLO;
 
     /* Create a child process */
     pid = fork();
@@ -430,10 +433,10 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
-    EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
+    EXPECT_EQUAL(memcmp(conn->secure.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was processed */
-    EXPECT_EQUAL(conn->handshake.state, SERVER_CERT);
+    EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
 
     /* Clean up */
     EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
@@ -450,7 +453,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
 
     /* Pretend the client hello has already been set */
-    conn->handshake.state = SERVER_HELLO;
+    conn->handshake.handshake_type = FULL_NO_PFS;
+    conn->handshake.message_number = SERVER_HELLO;
 
     /* Create a child process */
     pid = fork();
@@ -471,10 +475,10 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
-    EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
+    EXPECT_EQUAL(memcmp(conn->secure.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server done message was processed */
-    EXPECT_EQUAL(conn->handshake.state, SERVER_HELLO_DONE);
+    EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_HELLO_DONE);
 
     /* Clean up */
     EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
@@ -491,7 +495,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
 
     /* Pretend the client hello has already been set */
-    conn->handshake.state = SERVER_HELLO;
+    conn->handshake.handshake_type = FULL_NO_PFS;
+    conn->handshake.message_number = SERVER_HELLO;
 
     /* Create a child process */
     pid = fork();
@@ -512,10 +517,10 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
-    EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
+    EXPECT_EQUAL(memcmp(conn->secure.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was processed */
-    EXPECT_EQUAL(conn->handshake.state, SERVER_CERT);
+    EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
 
     /* Clean up */
     EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
@@ -532,7 +537,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
 
     /* Pretend the client hello has already been set */
-    conn->handshake.state = SERVER_HELLO;
+    conn->handshake.handshake_type = FULL_NO_PFS;
+    conn->handshake.message_number = SERVER_HELLO;
 
     /* Create a child process */
     pid = fork();
@@ -553,10 +559,10 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
-    EXPECT_NOT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
+    EXPECT_NOT_EQUAL(memcmp(conn->secure.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was not processed */
-    EXPECT_EQUAL(conn->handshake.state, SERVER_HELLO);
+    EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_HELLO);
 
     /* Clean up */
     EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
@@ -573,7 +579,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
 
     /* Pretend the client hello has already been set */
-    conn->handshake.state = SERVER_HELLO;
+    conn->handshake.handshake_type = FULL_NO_PFS;
+    conn->handshake.message_number = SERVER_HELLO;
 
     /* Create a child process */
     pid = fork();
@@ -594,10 +601,10 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data failed */
-    EXPECT_NOT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
+    EXPECT_NOT_EQUAL(memcmp(conn->secure.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was not processed */
-    EXPECT_NOT_EQUAL(conn->handshake.state, SERVER_CERT);
+    EXPECT_NOT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
 
     /* Clean up */
     EXPECT_EQUAL(waitpid(pid, &status, 0), pid);

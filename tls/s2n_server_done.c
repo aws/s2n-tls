@@ -28,14 +28,10 @@ int s2n_server_done_recv(struct s2n_connection *conn)
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
-    conn->handshake.next_state = CLIENT_KEY;
-
     return 0;
 }
 
 int s2n_server_done_send(struct s2n_connection *conn)
 {
-    conn->handshake.next_state = CLIENT_KEY;
-
     return 0;
 }

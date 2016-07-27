@@ -235,6 +235,60 @@ failure. When an s2n function returns a failure, s2n_errno will be set to a valu
 corresponding to the error. This error value can be translated into a string 
 explaining the error in English by calling s2n_strerror(s2n_errno, "EN"); 
 
+Example:
+
+```
+if (s2n_config_set_cipher_preferences(config, prefs) < 0) {
+    printf("Setting cipher prefs failed! %s", (s2n_strerror(s2n_errno, "EN"));
+    return -1;
+}
+```
+
+### Error categories
+
+s2n organizes errors into different "types" to allow applications to do logic on error values without catching all possibilities. 
+Applications using non-blocking I/O should check error type to determine if the I/O operation failed because it would block or for some other error. To retrieve the type for a given error use `s2n_error_get_type()`.
+Applications should perform any error handling logic using these high level types:
+
+```
+S2N_ERR_T_OK=0, /* No error */
+S2N_ERR_T_IO, /* Underlying I/O operation failed, check system errno */
+S2N_ERR_T_CLOSED, /* EOF */
+S2N_ERR_T_BLOCKED, /* Underlying I/O operation would block */
+S2N_ERR_T_ALERT, /* Incoming Alert */
+S2N_ERR_T_PROTO, /* Failure in some part of the TLS protocol. Ex: CBC verification failure */
+S2N_ERR_T_INTERNAL, /* Error internal to s2n. A precondition could have failed. */
+S2N_ERR_T_USAGE /* User input error. Ex: Providing an invalid cipher preference version */
+```
+
+Here's an example that handles errors based on type:
+
+```
+if (s2n_recv(conn, &blocked) < 0) {
+    switch(s2n_error_get_type(s2n_errno)) {
+        case S2N_ERR_T_BLOCKED:
+            /* Blocked, come back later */
+            return -1;
+        case S2N_ERR_T_CLOSED:
+            return 0;
+        case S2N_ERR_T_IO:
+            handle_io_err();
+            return -1;
+        case S2N_ERR_T_PROTO:
+            handle_proto_err();
+            return -1;
+        case S2N_ERR_T_ALERT:
+            log_alert(s2n_connection_get_alert(conn));
+            return -1;
+        /* Everything else */
+        default:
+            log_other_error();
+            return -1;
+    }
+}
+```
+
+
 ## Initialization and teardown
 
 ### s2n\_init
@@ -390,6 +444,55 @@ nanoseconds since the Unix epoch (Midnight, January 1st, 1970). The function
 should return 0 on success and -1 on error. The function is also required to 
 implement a monotonic time source; the number of nanoseconds returned should
 never decrease between calls.
+
+## Session Caching related calls
+
+s2n includes support for resuming from cached SSL/TLS session, provided 
+the caller sets (and implements) three callback functions.
+
+### s2n\_config\_set\_cache\_store\_callback
+
+```c
+int s2n_config_set_cache_store_callback(struct s2n_config *config, int (*cache_store)(void *, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data);
+```
+
+**s2n_config_set_cache_store_callback** allows the caller to set a callback
+function that will be used to store SSL session data in a cache. The callback
+function takes six arguments: a pointer to abitrary data for use within the
+callback, a 64-bit unsigned integer specifying the number of seconds the
+session data may be stored for, a pointer to a key which can be used to
+retrieve the cached entry, a 64 bit unsigned integer specifying the size of
+this key, a pointer to a value which should be stored, and a 64 bit unsigned
+integer specified the size of this value.
+
+### s2n\_config\_set\_cache\_retrieve\_callback
+
+```c
+int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, int (*cache_retrieve)(void *, const void *key, uint64_t key_size, void *value, uint64_t *value_size), void *data)
+```
+
+**s2n_config_set_cache_retrieve_callback** allows the caller to set a callback
+function that will be used to retrieve SSL session data from a cache. The
+callback function takes five arguments: a pointer to abitrary data for use
+within the callback, a pointer to a key which can be used to retrieve the
+cached entry, a 64 bit unsigned integer specifying the size of this key, a
+pointer to a memory location where the value should be stored,
+and a pointer to a 64 bit unsigned integer specifing the size of this value.
+Initially *value_size will be set to the amount of space allocated for
+the value, the callback should set *value_size to the actual size of the
+data returned. If there is insufficient space, -1 should be returned.
+
+### s2n\_config\_set\_cache\_delete\_callback
+
+```c
+int s2n_config_set_cache_delete_callback(struct s2n_config *config, int (*cache_delete))(void *, const void *key, uint64_t key_size), void *data);
+```
+
+**s2n_config_set_cache_delete_callback** allows the caller to set a callback
+function that will be used to delete SSL session data from a cache. The
+callback function takes three arguments: a pointer to abitrary data for use
+within the callback, a pointer to a key which can be used to delete the
+cached entry, and a 64 bit unsigned integer specifying the size of this key.
 
 ## Connection-oriented functions
 

@@ -93,9 +93,9 @@ int s2n_record_parse(struct s2n_connection *conn)
     struct s2n_blob iv;
     struct s2n_blob en;
     struct s2n_blob aad;
-    uint8_t ivpad[16];
     uint8_t content_type;
     uint16_t fragment_length;
+    uint8_t ivpad[S2N_TLS_MAX_IV_LEN];
     uint8_t aad_gen[S2N_TLS_MAX_AAD_LEN] = { 0 };
     uint8_t aad_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
 

@@ -1,8 +1,8 @@
 sudo: true
 
 os:
-  - linux
   - osx
+  - linux
 
 compiler:
   - gcc
@@ -10,30 +10,20 @@ compiler:
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository ppa:hvr/z3 -y; sudo apt-key update; sudo apt-get update; fi
-    # Install prlimit to set the memlock limit to unlimited for this process
-  - (test "$TRAVIS_OS_NAME" = "linux" && sudo .travis/install_prlimit.sh $PWD/.travis && sudo .travis/prlimit --pid "$$" --memlock=unlimited:unlimited) || true
 
 install:
+  - .travis/install_openssl.sh `pwd`/libcrypto-build `pwd`/libcrypto-root $TRAVIS_OS_NAME > /dev/null
+  # Install python linked with our compiled Openssl for integration tests
+  - sudo .travis/install_python.sh `pwd`/libcrypto-root > /dev/null
+  # Install prlimit to set the memlock limit to unlimited for this process
+  - (test "$TRAVIS_OS_NAME" = "linux" && sudo .travis/install_prlimit.sh $PWD/.travis && sudo .travis/prlimit --pid "$$" --memlock=unlimited:unlimited) || true
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install z3 -y --force-yes; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then curl http://saw.galois.com/builds/nightly/saw-0.2-2016-07-22-Ubuntu14.04-64.tar.gz > saw.tar.gz; tar -xzvf saw.tar.gz; fi
   - export PATH=$PATH:$PWD/saw-0.2-2016-07-22-Ubuntu14.04-64/bin
 
-before_script:
-  - cd libcrypto-build
-  - curl -L https://www.openssl.org/source/openssl-1.0.2-latest.tar.gz > openssl-1.0.2.tar.gz
-  - tar -xzvf openssl-1.0.2.tar.gz
-  - rm openssl-1.0.2.tar.gz
-  - cd openssl-1.0.2*
-  - (test "$TRAVIS_OS_NAME" = "linux" && ./config -fPIC no-shared no-libunbound no-gmp no-jpake no-krb5 no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-store no-zlib no-hw no-mdc2 no-seed no-idea enable-ec-nist_64_gcc_128 no-camellia no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS --prefix=`pwd`/../../libcrypto-root/) || true
-  - (test "$TRAVIS_OS_NAME" = "osx" && ./Configure darwin64-x86_64-cc -fPIC --prefix=`pwd`/../../libcrypto-root/) || true
-  - make depend
-  - make
-  - make install
-
 script:
-  - cd ../../
-  - make
-  - ls tests/saw/spec
+  - (test "$TRAVIS_OS_NAME" = "linux" && make -j8) || true
+  # Build and run unit tests with scan-build for osx. scan-build bundle isn't available for linux
+  - (test "$TRAVIS_OS_NAME" = "osx" && scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/*; exit $STATUS) || true
+  - make integration
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then make saw; fi 
-
-

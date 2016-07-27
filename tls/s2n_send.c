@@ -51,7 +51,10 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *blocked)
     }
     if (conn->closing) {
         conn->closed = 1;
-        GUARD(s2n_connection_wipe(conn));
+        /* Delay wiping for close_notify. s2n_shutdown() needs to wait for peer's close_notify */
+        if (!conn->close_notify_queued) {
+            GUARD(s2n_connection_wipe(conn));
+        }
     }
     GUARD(s2n_stuffer_rewrite(&conn->out));
 
@@ -110,11 +113,16 @@ ssize_t s2n_send(struct s2n_connection *conn, void *buf, ssize_t size, s2n_block
      */
     int cbcHackUsed = 0;
 
+    struct s2n_crypto_parameters *writer = conn->server;
+    if (conn->mode == S2N_CLIENT) {
+        writer = conn->client;
+    }
+
     /* Now write the data we were asked to send this round */
     while (size) {
         in.size = MIN(size, max_payload_size);
 
-        if (conn->actual_protocol_version < S2N_TLS11 && conn->active.cipher_suite->cipher->type == S2N_CBC) {
+        if (conn->actual_protocol_version < S2N_TLS11 && writer->cipher_suite->cipher->type == S2N_CBC) {
             if (in.size > 1 && cbcHackUsed == 0) {
                 in.size = 1;
                 cbcHackUsed = 1;

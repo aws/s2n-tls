@@ -56,21 +56,13 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
 
         /* Pull the public key from the first certificate */
         if (certificate_count == 0) {
-            GUARD(s2n_asn1der_to_rsa_public_key(&conn->pending.server_rsa_public_key, &asn1cert));
+            GUARD(s2n_asn1der_to_rsa_public_key(&conn->secure.server_rsa_public_key, &asn1cert));
         }
 
         certificate_count++;
     }
 
     gte_check(certificate_count, 1);
-
-    conn->handshake.next_state = SERVER_HELLO_DONE;
-
-    if (conn->status_type == S2N_STATUS_REQUEST_OCSP) {
-        conn->handshake.next_state = SERVER_CERT_STATUS;
-    } else if (conn->pending.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_EPH) {
-        conn->handshake.next_state = SERVER_KEY;
-    }
 
     return 0;
 }
@@ -85,14 +77,6 @@ int s2n_server_cert_send(struct s2n_connection *conn)
         GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, head->cert.size));
         GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, head->cert.data, head->cert.size));
         head = head->next;
-    }
-
-    conn->handshake.next_state = SERVER_HELLO_DONE;
-
-    if (s2n_server_can_send_ocsp(conn)) {
-        conn->handshake.next_state = SERVER_CERT_STATUS;
-    } else if (conn->pending.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_EPH) {
-        conn->handshake.next_state = SERVER_KEY;
     }
 
     return 0;

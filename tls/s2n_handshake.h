@@ -24,45 +24,61 @@
 
 #include "crypto/s2n_hash.h"
 
+/* This is the list of message types that we support */
+typedef enum {
+    CLIENT_HELLO,
+    SERVER_HELLO,
+    SERVER_CERT,
+    SERVER_CERT_STATUS,
+    SERVER_KEY,
+    SERVER_CERT_REQ,
+    SERVER_HELLO_DONE,
+    CLIENT_CERT,
+    CLIENT_KEY,
+    CLIENT_CERT_VERIFY,
+    CLIENT_CHANGE_CIPHER_SPEC,
+    CLIENT_FINISHED,
+    SERVER_CHANGE_CIPHER_SPEC,
+    SERVER_FINISHED,
+    APPLICATION_DATA
+} message_type_t;
+
 struct s2n_handshake {
     struct s2n_stuffer io;
 
-    struct s2n_hash_state client_md5;
-    struct s2n_hash_state client_sha1;
-    struct s2n_hash_state client_sha256;
-    struct s2n_hash_state client_sha384;
-    struct s2n_hash_state server_md5;
-    struct s2n_hash_state server_sha1;
-    struct s2n_hash_state server_sha256;
-    struct s2n_hash_state server_sha384;
+    struct s2n_hash_state md5;
+    struct s2n_hash_state sha1;
+    struct s2n_hash_state sha256;
+    struct s2n_hash_state sha384;
 
     uint8_t server_finished[S2N_SSL_FINISHED_LEN];
     uint8_t client_finished[S2N_SSL_FINISHED_LEN];
 
-    /* We use this state machine to track where we are in the 
-     * handshake. We can only progress forwards in the list
-     * of states, if the other end of a connections attempts to
-     * go backwards, we'll abort. Though it's ok to skip some
-     * (e.g. CLIENT_CERT*). 
-     */
-    enum handshake_state {
-        CLIENT_HELLO,
-        SERVER_HELLO,
-        SERVER_CERT,
-        SERVER_CERT_STATUS,
-        SERVER_KEY,
-        SERVER_CERT_REQ,
-        SERVER_HELLO_DONE,
-        CLIENT_CERT,
-        CLIENT_KEY,
-        CLIENT_CERT_VERIFY,
-        CLIENT_CHANGE_CIPHER_SPEC,
-        CLIENT_FINISHED,
-        SERVER_CHANGE_CIPHER_SPEC,
-        SERVER_FINISHED,
-        HANDSHAKE_OVER
-    } state, next_state;
+    enum {
+        /* Dummy handshake that we always start out with */
+        INITIAL,
+
+        /* A Full handshake with forward secrecy */
+        FULL_WITH_PFS,
+
+        /* A full handshake with forward secrecy and an OCSP response */
+        FULL_WITH_PFS_WITH_STATUS,
+
+        /* A full handshake with no forward secrecy */
+        FULL_NO_PFS,
+
+        /* A full handshake with no forward secrecy, but with an OCSP response */
+        FULL_NO_PFS_WITH_STATUS,
+
+        /* A resumption handshake */
+        RESUME
+    } handshake_type;
+
+    /* Which handshake message number are we processing */
+    int message_number;
 
     /* Set to 1 if the RSA verificiation failed */
     uint8_t rsa_failed;
 };
+
+extern int s2n_conn_set_handshake_type(struct s2n_connection *conn);

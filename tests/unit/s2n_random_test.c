@@ -129,6 +129,9 @@ int main(int argc, char **argv)
     /* Try to fetch a volume of randomly generated data, every size between 1 and 5120
      * bytes.
      */
+    int trailing_zeros[8];
+
+    memset(trailing_zeros, 0, sizeof(trailing_zeros));
     for (int i = 0; i < 5120; i++) {
         blob.size = i;
         EXPECT_SUCCESS(s2n_get_public_random_data(&blob));
@@ -156,8 +159,23 @@ int main(int argc, char **argv)
                 }
             }
         }
+        /* A common mistake in array filling leaves the last bytes zero
+         * depending on the length.
+         */
+        int remainder = i % 8;
+        int non_zero_found = 0;
+        for (int t = i - remainder; t < i; t++) {
+            non_zero_found |= data[t];
+        }
+        if (!non_zero_found) {
+            trailing_zeros[remainder]++;
+        }
+    }
+    for (int t = 1; t < 8; t++) {
+        EXPECT_TRUE(trailing_zeros[t] < 5120 / 16);
     }
 
+    memset(trailing_zeros, 0, sizeof(trailing_zeros));
     for (int i = 0; i < 5120; i++) {
         blob.size = i;
         EXPECT_SUCCESS(s2n_get_private_random_data(&blob));
@@ -185,8 +203,23 @@ int main(int argc, char **argv)
                 }
             }
         }
+        /* A common mistake in array filling leaves the last bytes zero
+         * depending on the length.
+         */
+        int remainder = i % 8;
+        int non_zero_found = 0;
+        for (int t = i - remainder; t < i; t++) {
+            non_zero_found |= data[t];
+        }
+        if (!non_zero_found) {
+            trailing_zeros[remainder]++;
+        }
+    }
+    for (int t = 1; t < 8; t++) {
+        EXPECT_TRUE(trailing_zeros[t] < 5120 / 16);
     }
 
+    memset(trailing_zeros, 0, sizeof(trailing_zeros));
     for (int i = 0; i < 5120; i++) {
         blob.size = i;
         EXPECT_SUCCESS(s2n_get_urandom_data(&blob));
@@ -214,10 +247,67 @@ int main(int argc, char **argv)
                 }
             }
         }
+        /* A common mistake in array filling leaves the last bytes zero
+         * depending on the length.
+         */
+        int remainder = i % 8;
+        int non_zero_found = 0;
+        for (int t = i - remainder; t < i; t++) {
+            non_zero_found |= data[t];
+        }
+        if (!non_zero_found) {
+            trailing_zeros[remainder]++;
+        }
+    }
+    for (int t = 1; t < 8; t++) {
+        EXPECT_TRUE(trailing_zeros[t] < 5120 / 16);
     }
 
+    if (s2n_cpu_supports_rdrand()) {
+        memset(trailing_zeros, 0, sizeof(trailing_zeros));
+        for (int i = 0; i < 5120; i++) {
+            blob.size = i;
+            EXPECT_SUCCESS(s2n_get_urandom_data(&blob));
 
+            if (i >= 64) {
+                /* Set the run counts to 0 */
+                memset(bit_set_run, 0, 8);
 
+                /* Apply 8 monobit tests to the data. Basically, we're
+                 * looking for successive runs where a given bit is set.
+                 * If a run exists with any particular bit 64 times in 
+                 * a row, then the data doesn't look randomly generated.
+                 */
+                for (int j = 0; j < i; j++) {
+                    for (int k = 0; k < 8; k++) {
+                        if (data[j] & bits[k]) {
+                            bit_set_run[k]++;
+
+                            if (j >= 64) {
+                                EXPECT_TRUE(bit_set_run[k] < 64);
+                            }
+                        } else {
+                            bit_set_run[k] = 0;
+                        }
+                    }
+                }
+            }
+            /* A common mistake in array filling leaves the last bytes zero
+             * depending on the length
+             */
+            int remainder = i % 8;
+            int non_zero_found = 0;
+            for (int t = i - remainder; t < i; t++) {
+              non_zero_found |= data[t];
+            }
+            if (!non_zero_found) {
+              trailing_zeros[remainder]++;
+            }
+        }
+        for (int t = 1; t < 8; t++) {
+          EXPECT_TRUE(trailing_zeros[t] < 5120 / 16);
+        }
+    }
 
     END_TEST();
 }

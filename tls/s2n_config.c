@@ -145,6 +145,23 @@ struct s2n_cipher_preferences cipher_preferences_20150306 = {
     .minimum_protocol_version = S2N_TLS10
 };
 
+/* All supported ciphers. Only exposed for integration testing. */
+uint8_t wire_format_test_all[] = {
+    TLS_RSA_WITH_RC4_128_MD5, TLS_RSA_WITH_RC4_128_SHA, TLS_RSA_WITH_3DES_EDE_CBC_SHA, TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
+    TLS_RSA_WITH_AES_128_CBC_SHA, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, TLS_RSA_WITH_AES_256_CBC_SHA,
+    TLS_DHE_RSA_WITH_AES_256_CBC_SHA, TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_RSA_WITH_AES_256_CBC_SHA256,
+    TLS_DHE_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_256_CBC_SHA256, TLS_RSA_WITH_AES_128_GCM_SHA256,
+    TLS_DHE_RSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
+    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, TLS_RSA_WITH_AES_256_GCM_SHA384
+};
+
+struct s2n_cipher_preferences cipher_preferences_test_all = {
+    .count = sizeof(wire_format_test_all),
+    .wire_format = wire_format_test_all,
+    .minimum_protocol_version = S2N_SSLv3
+};
+
 struct {
     const char * version;
     struct s2n_cipher_preferences * preferences;
@@ -156,6 +173,7 @@ struct {
     { "20150214", &cipher_preferences_20150214 },
     { "20150306", &cipher_preferences_20150306 },
     { "20160411", &cipher_preferences_20160411 },
+    { "test_all", &cipher_preferences_test_all },
     { NULL, NULL }
 };
 
@@ -179,6 +197,12 @@ struct s2n_config *s2n_config_new(void)
     new_config->application_protocols.size = 0;
     new_config->status_request_type = S2N_STATUS_REQUEST_NONE;
     new_config->nanoseconds_since_epoch = get_nanoseconds_since_epoch;
+    new_config->cache_store = NULL;
+    new_config->cache_store_data = NULL;
+    new_config->cache_retrieve = NULL;
+    new_config->cache_retrieve_data = NULL;
+    new_config->cache_delete = NULL;
+    new_config->cache_delete_data = NULL;
 
     GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default"));
 
@@ -404,6 +428,36 @@ int s2n_config_set_nanoseconds_since_epoch_callback(struct s2n_config *config, i
 
     config->nanoseconds_since_epoch = nanoseconds_since_epoch;
     config->data_for_nanoseconds_since_epoch = data;
+
+    return 0;
+}
+
+int s2n_config_set_cache_store_callback(struct s2n_config *config, int (*cache_store)(void *, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data)
+{
+    notnull_check(cache_store);
+
+    config->cache_store = cache_store;
+    config->cache_store_data = data;
+
+    return 0;
+}
+
+int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, int (*cache_retrieve)(void *, const void *key, uint64_t key_size, void *value, uint64_t *value_size), void *data)
+{
+    notnull_check(cache_retrieve);
+
+    config->cache_retrieve = cache_retrieve;
+    config->cache_retrieve_data = data;
+
+    return 0;
+}
+
+int s2n_config_set_cache_delete_callback(struct s2n_config *config, int (*cache_delete)(void *, const void *key, uint64_t key_size), void *data)
+{
+    notnull_check(cache_delete);
+
+    config->cache_delete = cache_delete;
+    config->cache_delete_data = data;
 
     return 0;
 }

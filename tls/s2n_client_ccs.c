@@ -33,13 +33,12 @@ int s2n_client_ccs_recv(struct s2n_connection *conn)
     uint8_t type;
 
     GUARD(s2n_prf_client_finished(conn));
-    GUARD(s2n_prf_key_expansion(conn));
 
-    struct s2n_blob seq = {.data = conn->pending.client_sequence_number, .size = sizeof(conn->pending.client_sequence_number) };
+    struct s2n_blob seq = {.data = conn->secure.client_sequence_number, .size = sizeof(conn->secure.client_sequence_number) };
     GUARD(s2n_blob_zero(&seq));
 
-    /* Update the client to use the pending cipher-suite */
-    conn->client = &conn->pending;
+    /* Update the client to use the cipher-suite */
+    conn->client = &conn->secure;
 
     GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &type));
     if (type != CHANGE_CIPHER_SPEC_TYPE) {
@@ -49,16 +48,12 @@ int s2n_client_ccs_recv(struct s2n_connection *conn)
     /* Flush any partial alert messages that were pending */
     GUARD(s2n_stuffer_wipe(&conn->alert_in));
 
-    conn->handshake.next_state = CLIENT_FINISHED;
-
     return 0;
 }
 
 int s2n_client_ccs_send(struct s2n_connection *conn)
 {
     GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, CHANGE_CIPHER_SPEC_TYPE));
-
-    conn->handshake.next_state = CLIENT_FINISHED;
 
     return 0;
 }

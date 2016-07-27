@@ -71,6 +71,7 @@ struct s2n_error_translation EN[] = {
     { S2N_ERR_HASH_INVALID_ALGORITHM, "invalid hash algorithm" },
     { S2N_ERR_HASH_UPDATE_FAILED, "error updating hash" },
     { S2N_ERR_HMAC_INVALID_ALGORITHM, "invalid HMAC algorithm" },
+    { S2N_ERR_HKDF_OUTPUT_SIZE, "invalid HKDF output size" },
     { S2N_ERR_PRF_INVALID_ALGORITHM, "invalid prf hash algorithm" },
     { S2N_ERR_SIZE_MISMATCH, "size mismatch" },
     { S2N_ERR_DECODE_CERTIFICATE, "error decoding certificate" },
@@ -102,6 +103,8 @@ struct s2n_error_translation EN[] = {
     { S2N_ERR_ECDHE_UNSUPPORTED_CURVE, "Unsupported EC curve was presented during an ECDHE handshake" },
     { S2N_ERR_ECDHE_SERIALIZING, "Error serializing ECDHE public" },
     { S2N_ERR_SHUTDOWN_PAUSED, "s2n_shutdown() called while paused" },
+    { S2N_ERR_SHUTDOWN_CLOSED, "Peer closed before sending their close_notify" },
+    { S2N_ERR_SHUTDOWN_RECORD_TYPE, "Non alert record received during s2n_shutdown()" },
 }; 
 
 const char *s2n_strerror(int error, const char *lang)
@@ -124,4 +127,9 @@ const char *s2n_strerror(int error, const char *lang)
     }
 
     return no_such_error;
+}
+
+int s2n_error_get_type(int error)
+{
+    return (error >> S2N_ERR_NUM_VALUE_BITS);
 }

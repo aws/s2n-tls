@@ -40,6 +40,8 @@
 #define S2N_TLS_GCM_IV_LEN            (S2N_TLS_GCM_FIXED_IV_LEN + S2N_TLS_GCM_EXPLICIT_IV_LEN)
 #define S2N_TLS_GCM_TAG_LEN            16
 
+#define S2N_TLS_SESSION_ID_MAX_LEN     32
+
 struct s2n_crypto_parameters {
     struct s2n_rsa_public_key server_rsa_public_key;
     struct s2n_dh_params server_dh_params;

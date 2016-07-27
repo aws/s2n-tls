@@ -26,6 +26,10 @@ all:
 	${MAKE} -C unit
 	@echo "\033[1m ${COMPILE_INFO} \033[0;39m"
 
+.PHONY : integration
+integration:
+	${MAKE} -C integration
+
 include ../s2n.mk
 
 .PHONY : clean

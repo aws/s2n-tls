@@ -20,14 +20,17 @@
 
 #include "error/s2n_errno.h"
 
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
+#include "tls/s2n_resume.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
 
 #include "stuffer/s2n_stuffer.h"
 
 #include "utils/s2n_safety.h"
+#include "utils/s2n_random.h"
 
 /* From RFC5246 7.4 */
 #define TLS_HELLO_REQUEST       0
@@ -51,8 +54,9 @@ struct s2n_handshake_action {
     int (*handler[2]) (struct s2n_connection * conn);
 };
 
+/* ... and this is their corresponding handlers, in the same order */
 static struct s2n_handshake_action state_machine[] = {
-    /*Message type  Handshake type       Writer S2N_SERVER                S2N_CLIENT                   handshake.state              */
+    /*Record type   Message type         Writer S2N_SERVER                S2N_CLIENT                   message_type_t               */
     {TLS_HANDSHAKE, TLS_CLIENT_HELLO,      'C', {s2n_client_hello_recv,    s2n_client_hello_send}},    /* CLIENT_HELLO              */
     {TLS_HANDSHAKE, TLS_SERVER_HELLO,      'S', {s2n_server_hello_send,    s2n_server_hello_recv}},    /* SERVER_HELLO              */
     {TLS_HANDSHAKE, TLS_SERVER_CERT,       'S', {s2n_server_cert_send,     s2n_server_cert_recv}},     /* SERVER_CERT               */
@@ -67,19 +71,91 @@ static struct s2n_handshake_action state_machine[] = {
     {TLS_HANDSHAKE, TLS_CLIENT_FINISHED,   'C', {s2n_client_finished_recv, s2n_client_finished_send}}, /* CLIENT_FINISHED           */
     {TLS_CHANGE_CIPHER_SPEC, 0,            'S', {s2n_server_ccs_send,      s2n_server_ccs_recv}},      /* SERVER_CHANGE_CIPHER_SPEC */
     {TLS_HANDSHAKE, TLS_SERVER_FINISHED,   'S', {s2n_server_finished_send, s2n_server_finished_recv}}, /* SERVER_FINISHED           */
-    {TLS_APPLICATION_DATA, 0,              'B', {NULL, NULL}}    /* HANDSHAKE_OVER            */
+    {TLS_APPLICATION_DATA, 0,              'B', {NULL, NULL}}    /* APPLICATION_DATA            */
 };
+
+/* We support 5 different ordering of messages, depending on what is being negotiated. There's also a dummy "INITIAL" handshake
+ * that everything starts out as until we know better.
+ */
+static message_type_t handshakes[6][16] = {
+        /* INITIAL */
+        { CLIENT_HELLO, SERVER_HELLO },
+
+        /* FULL_WITH_PFS */
+        { CLIENT_HELLO, SERVER_HELLO, SERVER_CERT, SERVER_KEY,
+          SERVER_HELLO_DONE, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+          SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED, APPLICATION_DATA },
+
+        /* FULL_WITH_PFS_WITH_STATUS */
+        { CLIENT_HELLO, SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS,
+          SERVER_KEY, SERVER_HELLO_DONE, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC,
+          CLIENT_FINISHED, SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED, APPLICATION_DATA },
+
+        /* FULL_NO_PFS */ 
+        { CLIENT_HELLO, SERVER_HELLO, SERVER_CERT, SERVER_HELLO_DONE,
+          CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+          SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED, APPLICATION_DATA },
+
+        /* FULL_NO_PFS_WITH_STATUS */
+        { CLIENT_HELLO, SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS,
+          SERVER_HELLO_DONE, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+          SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED, APPLICATION_DATA },
+
+        /* RESUME */
+        { CLIENT_HELLO, SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC,
+          SERVER_FINISHED, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED, APPLICATION_DATA }
+};
+
+#define ACTIVE_MESSAGE( conn ) handshakes[ (conn)->handshake.handshake_type ][ (conn)->handshake.message_number ]
+#define ACTIVE_STATE( conn ) state_machine[ ACTIVE_MESSAGE( (conn) ) ]
+
+/* Used in our test cases */
+message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn)
+{
+    return ACTIVE_MESSAGE(conn);
+}
+
+int s2n_conn_set_handshake_type(struct s2n_connection *conn)
+{
+    if (s2n_is_caching_enabled(conn->config)) {
+        if (!s2n_resume_from_cache(conn)) {
+            conn->handshake.handshake_type = RESUME;
+            return 0;
+        }
+
+        if (conn->mode == S2N_SERVER) {
+            struct s2n_blob session_id = { .data = conn->session_id, .size = S2N_TLS_SESSION_ID_MAX_LEN };
+
+            /* Generate a new session id */
+            GUARD(s2n_get_public_random_data(&session_id));
+            conn->session_id_len = S2N_TLS_SESSION_ID_MAX_LEN;
+        }
+    }
+
+    if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_EPH) {
+        conn->handshake.handshake_type = FULL_WITH_PFS;
+
+        if (s2n_server_can_send_ocsp(conn)) {
+            conn->handshake.handshake_type = FULL_WITH_PFS_WITH_STATUS;
+        }
+    }
+    else {
+        conn->handshake.handshake_type = FULL_NO_PFS;
+
+        if (s2n_server_can_send_ocsp(conn)) {
+            conn->handshake.handshake_type = FULL_NO_PFS_WITH_STATUS;
+        }
+    }
+
+    return 0;
+}
 
 static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data)
 {
-    GUARD(s2n_hash_update(&conn->handshake.client_md5, data->data, data->size));
-    GUARD(s2n_hash_update(&conn->handshake.client_sha1, data->data, data->size));
-    GUARD(s2n_hash_update(&conn->handshake.client_sha256, data->data, data->size));
-    GUARD(s2n_hash_update(&conn->handshake.client_sha384, data->data, data->size));
-    GUARD(s2n_hash_update(&conn->handshake.server_md5, data->data, data->size));
-    GUARD(s2n_hash_update(&conn->handshake.server_sha1, data->data, data->size));
-    GUARD(s2n_hash_update(&conn->handshake.server_sha256, data->data, data->size));
-    GUARD(s2n_hash_update(&conn->handshake.server_sha384, data->data, data->size));
+    GUARD(s2n_hash_update(&conn->handshake.md5, data->data, data->size));
+    GUARD(s2n_hash_update(&conn->handshake.sha1, data->data, data->size));
+    GUARD(s2n_hash_update(&conn->handshake.sha256, data->data, data->size));
+    GUARD(s2n_hash_update(&conn->handshake.sha384, data->data, data->size));
 
     return 0;
 }
@@ -87,11 +163,11 @@ static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct 
 /* Writing is relatively straight forward, simply write each message out as a record,
  * we may fragment a message across multiple records, but we never coalesce multiple
  * messages into single records. 
- * Precondition: pending outbound I/O has already been flushed
+ * Precondition: secure outbound I/O has already been flushed
  */
 static int handshake_write_io(struct s2n_connection *conn)
 {
-    uint8_t record_type = state_machine[conn->handshake.state].record_type;
+    uint8_t record_type = ACTIVE_STATE(conn).record_type;
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     int max_payload_size;
 
@@ -101,9 +177,9 @@ static int handshake_write_io(struct s2n_connection *conn)
      */
     if (conn->handshake.io.wiped == 1) {
         if (record_type == TLS_HANDSHAKE) {
-            GUARD(s2n_handshake_write_header(conn, state_machine[conn->handshake.state].message_type));
+            GUARD(s2n_handshake_write_header(conn, ACTIVE_STATE(conn).message_type));
         }
-        GUARD(state_machine[conn->handshake.state].handler[conn->mode] (conn));
+        GUARD(ACTIVE_STATE(conn).handler[conn->mode] (conn));
         if (record_type == TLS_HANDSHAKE) {
             GUARD(s2n_handshake_finish_header(conn));
         }
@@ -136,7 +212,7 @@ static int handshake_write_io(struct s2n_connection *conn)
     GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
     /* Advance the state machine */
-    conn->handshake.state = conn->handshake.next_state;
+    conn->handshake.message_number++;
 
     return 0;
 }
@@ -170,10 +246,8 @@ static int read_full_handshake_message(struct s2n_connection *conn, uint8_t *mes
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
-    uint32_t bytes_to_take = handshake_message_length - s2n_stuffer_data_available(&conn->handshake.io);;
-    if (bytes_to_take > s2n_stuffer_data_available(&conn->in)) {
-        bytes_to_take = s2n_stuffer_data_available(&conn->in);
-    }
+    uint32_t bytes_to_take = handshake_message_length - s2n_stuffer_data_available(&conn->handshake.io);
+    bytes_to_take = MIN(bytes_to_take, s2n_stuffer_data_available(&conn->in));
 
     /* If the record is handshake data, add it to the handshake buffer */
     GUARD(s2n_stuffer_copy(&conn->in, &conn->handshake.io, bytes_to_take));
@@ -210,20 +284,10 @@ static int handshake_read_io(struct s2n_connection *conn)
     uint8_t record_type;
     int isSSLv2;
 
-    int r = s2n_read_full_record(conn, &record_type, &isSSLv2);
-    if (r < 0) {
-        if (r == -2) {
-            conn->closed = 1;
-            S2N_ERROR(S2N_ERR_CLOSED);
-        }
-        if (errno == EWOULDBLOCK) {
-            S2N_ERROR(S2N_ERR_BLOCKED);
-        }
-        S2N_ERROR(S2N_ERR_IO);
-    }
+    GUARD(s2n_read_full_record(conn, &record_type, &isSSLv2));
 
     if (isSSLv2) {
-        if (conn->handshake.state != CLIENT_HELLO) {
+        if (ACTIVE_MESSAGE(conn) != CLIENT_HELLO) {
             S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }
 
@@ -246,7 +310,7 @@ static int handshake_read_io(struct s2n_connection *conn)
         conn->in_status = ENCRYPTED;
 
         /* Advance the state machine */
-        conn->handshake.state = conn->handshake.next_state;
+        conn->handshake.message_number++;
     }
 
     /* Now we have a record, but it could be a partial fragment of a message, or it might
@@ -260,7 +324,7 @@ static int handshake_read_io(struct s2n_connection *conn)
         }
 
         GUARD(s2n_stuffer_copy(&conn->in, &conn->handshake.io, s2n_stuffer_data_available(&conn->in)));
-        GUARD(state_machine[conn->handshake.state].handler[conn->mode] (conn));
+        GUARD(ACTIVE_STATE(conn).handler[conn->mode] (conn));
         GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
         /* We're done with the record, wipe it */
@@ -269,7 +333,7 @@ static int handshake_read_io(struct s2n_connection *conn)
         conn->in_status = ENCRYPTED;
 
         /* Advance the state machine */
-        conn->handshake.state = conn->handshake.next_state;
+        conn->handshake.message_number++;
 
         return 0;
     } else if (record_type != TLS_HANDSHAKE) {
@@ -288,6 +352,7 @@ static int handshake_read_io(struct s2n_connection *conn)
 
     /* Record is a handshake message */
     while (s2n_stuffer_data_available(&conn->in)) {
+        int r;
         uint8_t handshake_message_type;
         GUARD((r = read_full_handshake_message(conn, &handshake_message_type)));
 
@@ -302,12 +367,12 @@ static int handshake_read_io(struct s2n_connection *conn)
             return 0;
         }
 
-        if (handshake_message_type != state_machine[conn->handshake.state].message_type) {
+        if (handshake_message_type != ACTIVE_STATE(conn).message_type) {
             S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }
 
         /* Call the relevant handler */
-        r = state_machine[conn->handshake.state].handler[conn->mode](conn);
+        r = ACTIVE_STATE(conn).handler[conn->mode](conn);
         GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
         if (r < 0) {
@@ -317,7 +382,7 @@ static int handshake_read_io(struct s2n_connection *conn)
         }
 
         /* Advance the state machine */
-        conn->handshake.state = conn->handshake.next_state;
+        conn->handshake.message_number++;
     }
 
     /* We're done with the record, wipe it */
@@ -335,21 +400,27 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
         this = 'C';
     }
 
-    while (state_machine[conn->handshake.state].writer != 'B') {
+    while (ACTIVE_STATE(conn).writer != 'B') {
 
         /* Flush any pending I/O or alert messages */
         GUARD(s2n_flush(conn, blocked));
 
-        if (state_machine[conn->handshake.state].writer == this) {
+        if (ACTIVE_STATE(conn).writer == this) {
             *blocked = S2N_BLOCKED_ON_WRITE;
             GUARD(handshake_write_io(conn));
         } else {
             *blocked = S2N_BLOCKED_ON_READ;
-            GUARD(handshake_read_io(conn));
+            if (handshake_read_io(conn) < 0) {
+                if (s2n_errno != S2N_ERR_BLOCKED && s2n_is_caching_enabled(conn->config) && conn->session_id_len) {
+                    conn->config->cache_delete(conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
+                }
+
+                return -1;
+            }
         }
 
         /* If the handshake has just ended, free up memory */
-        if (state_machine[conn->handshake.state].writer == 'B') {
+        if (ACTIVE_STATE(conn).writer == 'B') {
             GUARD(s2n_stuffer_resize(&conn->handshake.io, 0));
         }
     }

@@ -66,26 +66,26 @@ int main(int argc, char **argv)
     for (int i = 0; i < 48; i++) {
         uint8_t c;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&premaster_secret_in, &c));
-        conn->pending.rsa_premaster_secret[i] = c;
+        conn->secure.rsa_premaster_secret[i] = c;
     }
     for (int i = 0; i < 32; i++) {
         uint8_t c;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&client_random_in, &c));
-        conn->pending.client_random[i] = c;
+        conn->secure.client_random[i] = c;
     }
     for (int i = 0; i < 32; i++) {
         uint8_t c;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&server_random_in, &c));
-        conn->pending.server_random[i] = c;
+        conn->secure.server_random[i] = c;
     }
 
-    pms.data = conn->pending.rsa_premaster_secret;
-    pms.size = sizeof(conn->pending.rsa_premaster_secret);
+    pms.data = conn->secure.rsa_premaster_secret;
+    pms.size = sizeof(conn->secure.rsa_premaster_secret);
     EXPECT_SUCCESS(s2n_prf_master_secret(conn, &pms));
 
     /* Convert the master secret to hex */
     for (int i = 0; i < 48; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&master_secret_hex_out, conn->pending.master_secret[i]));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&master_secret_hex_out, conn->secure.master_secret[i]));
     }
 
     EXPECT_EQUAL(memcmp(master_secret_hex_pad, master_secret_hex_in, sizeof(master_secret_hex_pad)), 0);

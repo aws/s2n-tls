@@ -60,6 +60,10 @@ bin: libs
 	$(MAKE) -C tls
 	$(MAKE) -C lib
 
+.PHONY : integration
+integration: bin
+	$(MAKE) -C tests integration
+
 .PHONY : indent
 indent:
 	$(MAKE) -C tests indentsource
