@@ -31,7 +31,7 @@ int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob) {
      * This function should generate non-zero values since this function may be called repeatedly at startup until a
      * non-zero value is generated.
      */
-    s2n_get_urandom_data(blob);
+    GUARD(s2n_get_urandom_data(blob));
     drbg->bytes_used += blob->size;
     return 0;
 }
