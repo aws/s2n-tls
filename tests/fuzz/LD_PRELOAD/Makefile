@@ -1,4 +1,4 @@
-#!/bin/bash
+#
 # Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
@@ -13,19 +13,19 @@
 # permissions and limitations under the License.
 #
 
-set -e
+SRCS=$(wildcard *.c)
+OVERRIDES=$(SRCS:.c=)
 
-OUT_DIR=$1
+.PHONY : all
+all : $(OVERRIDES)
 
-pushd $PWD
+include ../../../s2n.mk
 
-wget https://www.kernel.org/pub/linux/utils/util-linux/v2.25/util-linux-2.25.2.tar.gz
-tar -xzvf util-linux-2.25.2.tar.gz
-cd util-linux-2.25.2
-./configure ADJTIME_PATH=/var/lib/hwclock/adjtime --disable-chfn-chsh --disable-login --disable-nologin --disable-su --disable-setpriv --disable-runuser --disable-pylibmount --disable-static --without-python --without-systemd --without-systemdsystemunitdir --without-ncurses || cat config.log
+CRUFT += $(wildcard *.so)
 
-# only compile prlimit
-make prlimit
-mv ./prlimit $OUT_DIR
+LD_PRELOAD_CFLAGS = -Wno-unreachable-code -O0 -I$(LIBCRYPTO_ROOT)/include/ -I../../../ -I../../../api/
 
-popd
+$(OVERRIDES)::
+	# Don't include Sanitizer/Fuzz compiler flags since when the LD_PRELOAD shared object is Preloaded, the Sanitizer init 
+	# functions won't have been loaded yet, causing undefined symbol errors.
+	${CC} ${DEFAULT_CFLAGS} ${DEBUG_CFLAGS} ${LD_PRELOAD_CFLAGS} -shared -fPIC $@.c -o $@.so -ldl

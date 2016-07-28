@@ -30,9 +30,14 @@ all:
 integration:
 	${MAKE} -C integration
 
+.PHONY : fuzz
+fuzz:
+	${MAKE} -C fuzz
+
 include ../s2n.mk
 
 .PHONY : clean
 clean:
 	${MAKE} -C testlib decruft
 	${MAKE} -C unit decruft
+	${MAKE} -C fuzz decruft

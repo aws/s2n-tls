@@ -12,20 +12,29 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 #
-
 set -e
 
-OUT_DIR=$1
+usage() {
+	echo "install_libFuzzer.sh download_dir install_dir travis_platform"
+	exit 1
+}
 
-pushd $PWD
+if [ "$#" -ne "3" ]; then
+	usage
+fi
 
-wget https://www.kernel.org/pub/linux/utils/util-linux/v2.25/util-linux-2.25.2.tar.gz
-tar -xzvf util-linux-2.25.2.tar.gz
-cd util-linux-2.25.2
-./configure ADJTIME_PATH=/var/lib/hwclock/adjtime --disable-chfn-chsh --disable-login --disable-nologin --disable-su --disable-setpriv --disable-runuser --disable-pylibmount --disable-static --without-python --without-systemd --without-systemdsystemunitdir --without-ncurses || cat config.log
+LIBFUZZER_DOWNLOAD_DIR=$1
+LIBFUZZER_INSTALL_DIR=$2
+PLATFORM=$3
 
-# only compile prlimit
-make prlimit
-mv ./prlimit $OUT_DIR
+mkdir -p $LIBFUZZER_DOWNLOAD_DIR
+cd $LIBFUZZER_DOWNLOAD_DIR
 
-popd
+git clone https://chromium.googlesource.com/chromium/llvm-project/llvm/lib/Fuzzer
+
+echo "Compiling LibFuzzer..."
+clang++ -c -g -v -O2 -lstdc++ -std=c++11 Fuzzer/*.cpp -IFuzzer
+ar ruv libFuzzer.a Fuzzer*.o
+
+echo "Copying libFuzzer.a to $LIBFUZZER_INSTALL_DIR"
+cp libFuzzer.a $LIBFUZZER_INSTALL_DIR

@@ -6,5 +6,12 @@
 libcrypto-build/*
 libcrypto-root/*
 tests/unit/*_test
+tests/fuzz/fuzz-*.log
 bin/s2nc
 bin/s2nd
+util-linux-*
+Python-*
+clang-*
+fuzz_dependencies/*
+.travis/prlimit
+.travis/.libs/*
