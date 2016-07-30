@@ -94,52 +94,66 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
     return 0;
 }
 
+static int s2n_wire_ciphers_contain(uint8_t *match, uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
+{
+    for (int i = 0; i < count; i++) {
+        uint8_t *theirs = wire + (i * cipher_suite_len) + (cipher_suite_len - S2N_TLS_CIPHER_SUITE_LEN);
+
+        if (!memcmp(match, theirs, S2N_TLS_CIPHER_SUITE_LEN)) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
 {
-    uint8_t fallback_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_FALLBACK_SCSV };
+
     struct s2n_cipher_suite *higher_vers_match = NULL;
+
+    /* RFC 7507 - If client is attempting to negotiate a TLS Version that is lower than the highest supported server
+     * version, and the client cipher list contains TLS_FALLBACK_SCSV, then the server must abort the connection since
+     * TLS_FALLBACK_SCSV should only be present when the client previously failed to negotiate a higher TLS version.
+     */
+    if (conn->client_protocol_version < S2N_TLS12) {
+        uint8_t fallback_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_FALLBACK_SCSV };
+        if (s2n_wire_ciphers_contain(fallback_scsv, wire, count, cipher_suite_len)) {
+            conn->closed = 1;
+            S2N_ERROR(S2N_ERR_FALLBACK_DETECTED);
+        }
+    }
 
     /* s2n supports only server order */
     for (int i = 0; i < conn->config->cipher_preferences->count; i++) {
         uint8_t *ours = conn->config->cipher_preferences->wire_format + (i * S2N_TLS_CIPHER_SUITE_LEN);
-        for (int j = 0; j < count; j++) {
-            uint8_t *theirs = wire + (j * cipher_suite_len) + (cipher_suite_len - S2N_TLS_CIPHER_SUITE_LEN);
 
-            if (!memcmp(fallback_scsv, theirs, S2N_TLS_CIPHER_SUITE_LEN)) {
-                if (conn->client_protocol_version < S2N_TLS12) {
-                    conn->closed = 1;
-                    S2N_ERROR(S2N_ERR_FALLBACK_DETECTED);
-                }
+        if (s2n_wire_ciphers_contain(ours, wire, count, cipher_suite_len)) {
+            /* We have a match */
+            struct s2n_cipher_suite *match = s2n_cipher_suite_match(ours);
+
+            /* This should never happen */
+            if (match == NULL) {
+                S2N_ERROR(S2N_ERR_CIPHER_NOT_SUPPORTED);
             }
 
-            if (!memcmp(ours, theirs, S2N_TLS_CIPHER_SUITE_LEN)) {
-                /* We have a match */
-                struct s2n_cipher_suite *match;
-
-                match = s2n_cipher_suite_match(ours);
-                /* This should never happen */
-                if (match == NULL) {
-                    S2N_ERROR(S2N_ERR_CIPHER_NOT_SUPPORTED);
-                }
-
-                /* Don't choose DHE key exchange if it's not configured. */
-                if (conn->config->dhparams == NULL && match->key_exchange_alg == &s2n_dhe) {
-                    continue;
-                }
-                /* Don't choose EC ciphers if the curve was not agreed upon. */
-                if (conn->secure.server_ecc_params.negotiated_curve == NULL && (match->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC)) {
-                    continue;
-                }
-
-                /* Don't immediately choose a cipher the client shouldn't be able to support */
-                if (conn->client_protocol_version < match->minimum_required_tls_version) {
-                    higher_vers_match = match;
-                    continue;
-                }
-
-                conn->secure.cipher_suite = match;
-                return 0;
+            /* Don't choose DHE key exchange if it's not configured. */
+            if (conn->config->dhparams == NULL && match->key_exchange_alg == &s2n_dhe) {
+                continue;
             }
+            /* Don't choose EC ciphers if the curve was not agreed upon. */
+            if (conn->secure.server_ecc_params.negotiated_curve == NULL && (match->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC)) {
+                continue;
+            }
+
+            /* Don't immediately choose a cipher the client shouldn't be able to support */
+            if (conn->client_protocol_version < match->minimum_required_tls_version) {
+                higher_vers_match = match;
+                continue;
+            }
+
+            conn->secure.cipher_suite = match;
+            return 0;
         }
     }
 
