@@ -32,7 +32,7 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
 static int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_elliptic_curves(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_ec_point_formats(struct s2n_connection *conn, struct s2n_stuffer *extension);
-static int s2n_recv_renegotiation_info(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
@@ -177,7 +177,7 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
             GUARD(s2n_recv_client_ec_point_formats(conn, &extension));
             break;
         case TLS_EXTENSION_RENEGOTIATION_INFO:
-            GUARD(s2n_recv_renegotiation_info(conn, &extension));
+            GUARD(s2n_recv_client_renegotiation_info(conn, &extension));
             break;
        }
     }
@@ -362,7 +362,7 @@ static int s2n_recv_client_ec_point_formats(struct s2n_connection *conn, struct 
     return 0;
 }
 
-static int s2n_recv_renegotiation_info(struct s2n_connection *conn, struct s2n_stuffer *extension)
+static int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     /* RFC5746 Section 3.2: The renegotiated_connection field is of zero length for the initial handshake. */
     uint8_t renegotiated_connection_len;
