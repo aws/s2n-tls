@@ -32,6 +32,7 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
 static int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_elliptic_curves(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_ec_point_formats(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_recv_renegotiation_info(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
@@ -174,6 +175,9 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
             break;
         case TLS_EXTENSION_EC_POINT_FORMATS:
             GUARD(s2n_recv_client_ec_point_formats(conn, &extension));
+            break;
+        case TLS_EXTENSION_RENEGOTIATION_INFO:
+            GUARD(s2n_recv_renegotiation_info(conn, &extension));
             break;
        }
     }
@@ -355,5 +359,18 @@ static int s2n_recv_client_ec_point_formats(struct s2n_connection *conn, struct 
      * Only uncompressed points are supported by the server and the client must include it in
      * the extension. Just skip the extension.
      */
+    return 0;
+}
+
+static int s2n_recv_renegotiation_info(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    /* RFC5746 Section 3.2: The renegotiated_connection field is of zero length for the initial handshake. */
+    uint8_t renegotiated_connection_len;
+    GUARD(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
+    if (s2n_stuffer_data_available(extension) || renegotiated_connection_len) {
+        S2N_ERROR(S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
+    }
+
+    conn->secure_renegotiation = 1;
     return 0;
 }
