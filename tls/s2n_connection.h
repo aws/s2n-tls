@@ -145,6 +145,13 @@ struct s2n_connection {
     /* TLS extension data */
     char server_name[256];
     char application_protocol[256];
+    /* s2n does not support renegotiation.
+     * RFC5746 Section 4.3 suggests servers implement a minimal version of the
+     * renegotiation_info extension even if renegotiation is not supported. 
+     * Some clients may fail the handshake if a corresponding renegotiation_info
+     * extension is not sent back by the server.
+     */
+    unsigned int secure_renegotiation:1;
 
     /* OCSP stapling response data */
     s2n_status_request_type status_type;

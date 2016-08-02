@@ -109,7 +109,7 @@ static int s2n_wire_ciphers_contain(uint8_t *match, uint8_t *wire, uint32_t coun
 
 static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
 {
-
+    uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
     struct s2n_cipher_suite *higher_vers_match = NULL;
 
     /* RFC 7507 - If client is attempting to negotiate a TLS Version that is lower than the highest supported server
@@ -122,6 +122,11 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
             conn->closed = 1;
             S2N_ERROR(S2N_ERR_FALLBACK_DETECTED);
         }
+    }
+
+    /* RFC5746 Section 3.6: A server must check if TLS_EMPTY_RENEGOTIATION_INFO_SCSV is included */
+    if (s2n_wire_ciphers_contain(renegotiation_info_scsv, wire, count, cipher_suite_len)) {
+        conn->secure_renegotiation = 1;
     }
 
     /* s2n supports only server order */

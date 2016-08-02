@@ -22,29 +22,130 @@
 
 int main(int argc, char **argv)
 {
-    struct s2n_connection *conn;
-    uint8_t wire[2];
-    int count;
-
     BEGIN_TEST();
 
     EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-    count = 0;
-    for (int i = 0; i < 0xffff; i++) {
-        wire[0] = (i >> 8);
-        wire[1] = i & 0xff;
+    {
+        struct s2n_connection *conn;
+        uint8_t wire[2];
+        int count;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-        if (s2n_set_cipher_as_client(conn, wire) == 0) {
-            count++;
+        count = 0;
+        for (int i = 0; i < 0xffff; i++) {
+            wire[0] = (i >> 8);
+            wire[1] = i & 0xff;
+
+            if (s2n_set_cipher_as_client(conn, wire) == 0) {
+                count++;
+            }
         }
+
+        /* We should have exactly 22 cipher suites */
+        EXPECT_EQUAL(count, 22);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* We should have exactly 22 cipher suites */
-    EXPECT_EQUAL(count, 22);
+    /* Test server cipher selection and scsv detection */
+    {
+        struct s2n_connection *conn;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
-    EXPECT_SUCCESS(s2n_connection_free(conn));
+        uint8_t wire_ciphers[] = {
+            TLS_RSA_WITH_RC4_128_MD5,
+            TLS_RSA_WITH_RC4_128_SHA,
+            TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+            TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
+            TLS_RSA_WITH_AES_128_CBC_SHA,
+            TLS_DHE_RSA_WITH_AES_128_CBC_SHA,
+            TLS_RSA_WITH_AES_256_CBC_SHA,
+            TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
+            TLS_RSA_WITH_AES_128_CBC_SHA256,
+            TLS_RSA_WITH_AES_256_CBC_SHA256,
+            TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,
+            TLS_DHE_RSA_WITH_AES_256_CBC_SHA256,
+            TLS_RSA_WITH_AES_128_GCM_SHA256,
+            TLS_RSA_WITH_AES_256_GCM_SHA384,
+            TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+            TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+            TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+            TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+            TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
+            TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+            TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+        };
+
+        uint8_t wire_ciphers_fallback[] = {
+            TLS_RSA_WITH_RC4_128_MD5,
+            TLS_RSA_WITH_RC4_128_SHA,
+            TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+            TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
+            TLS_RSA_WITH_AES_128_CBC_SHA,
+            TLS_DHE_RSA_WITH_AES_128_CBC_SHA,
+            TLS_RSA_WITH_AES_256_CBC_SHA,
+            TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
+            TLS_RSA_WITH_AES_128_CBC_SHA256,
+            TLS_RSA_WITH_AES_256_CBC_SHA256,
+            TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,
+            TLS_DHE_RSA_WITH_AES_256_CBC_SHA256,
+            TLS_RSA_WITH_AES_128_GCM_SHA256,
+            TLS_RSA_WITH_AES_256_GCM_SHA384,
+            TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+            TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+            TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+            TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+            TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
+            TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+            TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+            TLS_FALLBACK_SCSV, /* At the end to verify it isn't missed */
+        };
+
+        uint8_t wire_ciphers_renegotiation[] = {
+            TLS_RSA_WITH_RC4_128_MD5,
+            TLS_RSA_WITH_RC4_128_SHA,
+            TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+            TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
+            TLS_RSA_WITH_AES_128_CBC_SHA,
+            TLS_DHE_RSA_WITH_AES_128_CBC_SHA,
+            TLS_RSA_WITH_AES_256_CBC_SHA,
+            TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
+            TLS_RSA_WITH_AES_128_CBC_SHA256,
+            TLS_RSA_WITH_AES_256_CBC_SHA256,
+            TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,
+            TLS_DHE_RSA_WITH_AES_256_CBC_SHA256,
+            TLS_RSA_WITH_AES_128_GCM_SHA256,
+            TLS_RSA_WITH_AES_256_GCM_SHA384,
+            TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+            TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+            TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+            TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+            TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
+            TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+            TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+            TLS_EMPTY_RENEGOTIATION_INFO_SCSV, /* At the end to verify it isn't missed */
+        };
+
+        const uint8_t cipher_count = sizeof(wire_ciphers) / S2N_TLS_CIPHER_SUITE_LEN;
+        EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers, cipher_count));
+        EXPECT_EQUAL(conn->secure_renegotiation, 0);
+        EXPECT_SUCCESS(s2n_connection_wipe(conn));
+
+        const uint8_t cipher_count_renegotiation = sizeof(wire_ciphers_renegotiation) / S2N_TLS_CIPHER_SUITE_LEN;
+        EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_renegotiation, cipher_count_renegotiation));
+        EXPECT_EQUAL(conn->secure_renegotiation, 1);
+        EXPECT_SUCCESS(s2n_connection_wipe(conn));
+
+        const uint8_t cipher_count_fallback = sizeof(wire_ciphers_fallback) / S2N_TLS_CIPHER_SUITE_LEN;
+        /* Simulate a TLSv11 client to trigger the fallback error */
+        conn->client_protocol_version = S2N_TLS11;
+        EXPECT_FAILURE(s2n_set_cipher_as_tls_server(conn, wire_ciphers_fallback, cipher_count_fallback));
+        EXPECT_EQUAL(conn->secure_renegotiation, 0);
+        EXPECT_SUCCESS(s2n_connection_wipe(conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
 
     END_TEST();
 }
