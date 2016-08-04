@@ -137,11 +137,35 @@ uint8_t wire_format_20150306[] = {
     TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
     TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
     TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-    TLS_RSA_WITH_AES_128_GCM_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA, TLS_RSA_WITH_3DES_EDE_CBC_SHA
+    TLS_RSA_WITH_AES_128_GCM_SHA256,
+    TLS_RSA_WITH_AES_128_CBC_SHA256,
+    TLS_RSA_WITH_AES_128_CBC_SHA,
+    TLS_RSA_WITH_3DES_EDE_CBC_SHA
 };
 struct s2n_cipher_preferences cipher_preferences_20150306 = {
     .count = sizeof(wire_format_20150306) / S2N_TLS_CIPHER_SUITE_LEN,
     .wire_format = wire_format_20150306,
+    .minimum_protocol_version = S2N_TLS10
+};
+
+uint8_t wire_format_20160804[] = {
+    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+    TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
+    TLS_RSA_WITH_AES_128_GCM_SHA256,
+    TLS_RSA_WITH_AES_256_GCM_SHA384,
+    TLS_RSA_WITH_AES_128_CBC_SHA,
+    TLS_RSA_WITH_AES_128_CBC_SHA256,
+    TLS_RSA_WITH_AES_256_CBC_SHA,
+    TLS_RSA_WITH_AES_256_CBC_SHA256,
+    TLS_RSA_WITH_3DES_EDE_CBC_SHA
+};
+struct s2n_cipher_preferences cipher_preferences_20160804 = {
+    .count = sizeof(wire_format_20160804) / S2N_TLS_CIPHER_SUITE_LEN,
+    .wire_format = wire_format_20160804,
     .minimum_protocol_version = S2N_TLS10
 };
 
@@ -173,6 +197,7 @@ struct {
     { "20150214", &cipher_preferences_20150214 },
     { "20150306", &cipher_preferences_20150306 },
     { "20160411", &cipher_preferences_20160411 },
+    { "20160804", &cipher_preferences_20160804 },
     { "test_all", &cipher_preferences_test_all },
     { NULL, NULL }
 };
