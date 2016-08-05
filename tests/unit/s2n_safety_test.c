@@ -94,7 +94,7 @@ static int failure_notnull()
 static int success_memcpy()
 {
     char dst[1024];
-    char src[1024];
+    char src[1024] = {0};
 
     memcpy_check(dst, src, 1024);
 
