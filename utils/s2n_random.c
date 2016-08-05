@@ -46,8 +46,8 @@
 
 static int entropy_fd = -1;
 
-static __thread struct s2n_drbg per_thread_private_drbg = { { 0 } };
-static __thread struct s2n_drbg per_thread_public_drbg = { { 0 } };
+static __thread struct s2n_drbg per_thread_private_drbg = { {0} };
+static __thread struct s2n_drbg per_thread_public_drbg = { {0} };
 
 #if !defined(MAP_INHERIT_ZERO)
 static __thread int zero_if_forked = 0;
@@ -68,8 +68,8 @@ static inline int s2n_defend_if_forked(void)
 {
     uint8_t s2n_public_drbg[] = "s2n public drbg";
     uint8_t s2n_private_drbg[] = "s2n private drbg";
-    struct s2n_blob public = { .data = s2n_public_drbg, .size = sizeof(s2n_public_drbg) };
-    struct s2n_blob private = { .data = s2n_private_drbg, .size = sizeof(s2n_private_drbg) };
+    struct s2n_blob public = {.data = s2n_public_drbg,.size = sizeof(s2n_public_drbg) };
+    struct s2n_blob private = {.data = s2n_private_drbg,.size = sizeof(s2n_private_drbg) };
 
     if (zero_if_forked == 0) {
         GUARD(s2n_drbg_instantiate(&per_thread_public_drbg, &public));
@@ -135,8 +135,8 @@ int64_t s2n_public_random(int64_t max)
 
     gt_check(max, 0);
 
-    while(1) {
-        struct s2n_blob blob = { .data = (void *) &r, sizeof(r) };
+    while (1) {
+        struct s2n_blob blob = {.data = (void *)&r, sizeof(r) };
         GUARD(s2n_get_public_random_data(&blob));
 
         /* Imagine an int was one byte and UINT_MAX was 256. If the
@@ -164,9 +164,9 @@ int64_t s2n_public_random(int64_t max)
 
 int s2n_openssl_compat_rand(unsigned char *buf, int num)
 {
-    struct s2n_blob out = {.data = buf, .size = num};
+    struct s2n_blob out = {.data = buf,.size = num };
 
-    if(s2n_get_private_random_data(&out) < 0) {
+    if (s2n_get_private_random_data(&out) < 0) {
         return 0;
     }
     return 1;
@@ -177,7 +177,7 @@ int s2n_openssl_compat_status(void)
     return 1;
 }
 
-int s2n_openssl_compat_init(ENGINE *unused)
+int s2n_openssl_compat_init(ENGINE * unused)
 {
     return 1;
 }
@@ -196,7 +196,7 @@ int s2n_init(void)
 {
     GUARD(s2n_mem_init());
 
-    OPEN:
+  OPEN:
     entropy_fd = open(ENTROPY_SOURCE, O_RDONLY);
     if (entropy_fd == -1) {
         if (errno == EINTR) {
@@ -204,9 +204,8 @@ int s2n_init(void)
         }
         S2N_ERROR(S2N_ERR_OPEN_RANDOM);
     }
-
 #if defined(MAP_INHERIT_ZERO)
-    zero_if_forked_ptr = mmap(NULL, sizeof(int), PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0);
+    zero_if_forked_ptr = mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
     if (zero_if_forked_ptr == MAP_FAILED) {
         S2N_ERROR(S2N_ERR_OPEN_RANDOM);
     }
@@ -230,21 +229,15 @@ int s2n_init(void)
         ENGINE_set_id(e, "s2n") != 1 ||
         ENGINE_set_name(e, "s2n entropy generator") != 1 ||
         ENGINE_set_flags(e, ENGINE_FLAGS_NO_REGISTER_ALL) != 1 ||
-        ENGINE_set_init_function(e, s2n_openssl_compat_init) != 1 ||
-        ENGINE_set_RAND(e, &s2n_openssl_rand_method) != 1 ||
-        ENGINE_add(e) != 1 ||
-        ENGINE_free(e) != 1) {
+        ENGINE_set_init_function(e, s2n_openssl_compat_init) != 1 || ENGINE_set_RAND(e, &s2n_openssl_rand_method) != 1 || ENGINE_add(e) != 1 || ENGINE_free(e) != 1) {
         S2N_ERROR(S2N_ERR_OPEN_RANDOM);
     }
 
     /* Use that engine for rand() */
     e = ENGINE_by_id("s2n");
-    if (e == NULL ||
-        ENGINE_init(e) != 1 ||
-        ENGINE_set_default(e, ENGINE_METHOD_RAND) != 1) {
+    if (e == NULL || ENGINE_init(e) != 1 || ENGINE_set_default(e, ENGINE_METHOD_RAND) != 1) {
         S2N_ERROR(S2N_ERR_OPEN_RANDOM);
     }
-
 #endif
 
     return 0;
@@ -269,11 +262,11 @@ int s2n_cpu_supports_rdrand()
 #if defined(__x86_64__)||defined(__i386__)
     uint32_t eax, ebx, ecx, edx;
     if (!__get_cpuid(1, &eax, &ebx, &ecx, &edx)) {
-      return 0;
+        return 0;
     }
 
     if (ecx & RDRAND_ECX_FLAG) {
-      return 1;
+        return 1;
     }
 #endif
     return 0;
@@ -296,25 +289,18 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
     struct s2n_stuffer stuffer;
     union {
         uint64_t u64;
-        uint8_t  u8[8];
+        uint8_t u8[8];
     } output;
 
     GUARD(s2n_stuffer_init(&stuffer, out));
 
-    while((space_remaining = s2n_stuffer_space_remaining(&stuffer))) {
+    while ((space_remaining = s2n_stuffer_space_remaining(&stuffer))) {
         int success = 0;
 
         for (int tries = 0; tries < 10; tries++) {
-            __asm__ __volatile__(
-                ".byte 0x48;\n"
-                ".byte 0x0f;\n"
-                ".byte 0xc7;\n"
-                ".byte 0xf0;\n"
-                "adcl $0x00, %%ebx;\n"
-                :"=b"(success), "=a"(output.u64)
-                :"b"(0)
-                :"cc"
-            );
+            __asm__ __volatile__(".byte 0x48;\n" ".byte 0x0f;\n" ".byte 0xc7;\n" ".byte 0xf0;\n" "adcl $0x00, %%ebx;\n":"=b"(success), "=a"(output.u64)
+                                 :"b"(0)
+                                 :"cc");
 
             if (success) {
                 break;

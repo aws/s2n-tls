@@ -39,7 +39,7 @@ struct s2n_drbg {
      * ONLY for the s2n_drbg_test case to use, so that known entropy data can
      * fed to the DRBG test vectors.
      */
-    int (*entropy_generator)(struct s2n_blob *);
+    int (*entropy_generator) (struct s2n_blob *);
 
     /* Also used only by the unit tests: which generation of the DRBG is this.
      * This number is incremented every time we reseed.

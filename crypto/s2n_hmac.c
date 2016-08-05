@@ -223,8 +223,7 @@ int s2n_hmac_digest_two_compression_rounds(struct s2n_hmac_state *state, void *o
      * compression block round. This digest function always does two compression rounds,
      * even if there is no need for the second.
      */
-    if (state->currently_in_hash_block > (state->hash_block_size - 9))
-    {
+    if (state->currently_in_hash_block > (state->hash_block_size - 9)) {
         return 0;
     }
 

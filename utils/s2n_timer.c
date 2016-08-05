@@ -25,7 +25,7 @@ int s2n_timer_start(struct s2n_config *config, struct s2n_timer *timer)
     return 0;
 }
 
-int s2n_timer_elapsed(struct s2n_config *config, struct s2n_timer *timer, uint64_t *nanoseconds)
+int s2n_timer_elapsed(struct s2n_config *config, struct s2n_timer *timer, uint64_t * nanoseconds)
 {
     uint64_t current_time;
 
@@ -36,7 +36,7 @@ int s2n_timer_elapsed(struct s2n_config *config, struct s2n_timer *timer, uint64
     return 0;
 }
 
-int s2n_timer_reset(struct s2n_config *config, struct s2n_timer *timer, uint64_t *nanoseconds)
+int s2n_timer_reset(struct s2n_config *config, struct s2n_timer *timer, uint64_t * nanoseconds)
 {
     uint64_t previous_time = timer->time;
 

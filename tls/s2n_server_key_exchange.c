@@ -67,27 +67,27 @@ static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn)
             S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }
 
-        switch(hash_algorithm) {
-            case TLS_HASH_ALGORITHM_MD5:
-                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_MD5));
-                break;
-            case TLS_HASH_ALGORITHM_SHA1:
-                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA1));
-                break;
-            case TLS_HASH_ALGORITHM_SHA224:
-                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA224));
-                break;
-            case TLS_HASH_ALGORITHM_SHA256:
-                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA256));
-                break;
-            case TLS_HASH_ALGORITHM_SHA384:
-                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA384));
-                break;
-            case TLS_HASH_ALGORITHM_SHA512:
-                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA512));
-                break;
-            default:
-                S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        switch (hash_algorithm) {
+        case TLS_HASH_ALGORITHM_MD5:
+            GUARD(s2n_hash_init(&signature_hash, S2N_HASH_MD5));
+            break;
+        case TLS_HASH_ALGORITHM_SHA1:
+            GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA1));
+            break;
+        case TLS_HASH_ALGORITHM_SHA224:
+            GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA224));
+            break;
+        case TLS_HASH_ALGORITHM_SHA256:
+            GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA256));
+            break;
+        case TLS_HASH_ALGORITHM_SHA384:
+            GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA384));
+            break;
+        case TLS_HASH_ALGORITHM_SHA512:
+            GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA512));
+            break;
+        default:
+            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }
     }
 
@@ -159,27 +159,27 @@ static int s2n_dhe_server_key_recv(struct s2n_connection *conn)
             S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }
 
-        switch(hash_algorithm) {
-            case TLS_HASH_ALGORITHM_MD5:
-                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_MD5));
-                break;
-            case TLS_HASH_ALGORITHM_SHA1:
-                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA1));
-                break;
-            case TLS_HASH_ALGORITHM_SHA224:
-                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA224));
-                break;
-            case TLS_HASH_ALGORITHM_SHA256:
-                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA256));
-                break;
-            case TLS_HASH_ALGORITHM_SHA384:
-                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA384));
-                break;
-            case TLS_HASH_ALGORITHM_SHA512:
-                GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA512));
-                break;
-            default:
-                S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        switch (hash_algorithm) {
+        case TLS_HASH_ALGORITHM_MD5:
+            GUARD(s2n_hash_init(&signature_hash, S2N_HASH_MD5));
+            break;
+        case TLS_HASH_ALGORITHM_SHA1:
+            GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA1));
+            break;
+        case TLS_HASH_ALGORITHM_SHA224:
+            GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA224));
+            break;
+        case TLS_HASH_ALGORITHM_SHA256:
+            GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA256));
+            break;
+        case TLS_HASH_ALGORITHM_SHA384:
+            GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA384));
+            break;
+        case TLS_HASH_ALGORITHM_SHA512:
+            GUARD(s2n_hash_init(&signature_hash, S2N_HASH_SHA512));
+            break;
+        default:
+            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }
     }
 

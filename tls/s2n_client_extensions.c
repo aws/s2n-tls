@@ -104,7 +104,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         eq_check(conn->config->status_request_type, S2N_STATUS_REQUEST_OCSP);
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_STATUS_REQUEST));
         GUARD(s2n_stuffer_write_uint16(out, 5));
-        GUARD(s2n_stuffer_write_uint8(out, (uint8_t)conn->config->status_request_type));
+        GUARD(s2n_stuffer_write_uint8(out, (uint8_t) conn->config->status_request_type));
         GUARD(s2n_stuffer_write_uint16(out, 0));
         GUARD(s2n_stuffer_write_uint16(out, 0));
     }
@@ -179,7 +179,7 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
         case TLS_EXTENSION_RENEGOTIATION_INFO:
             GUARD(s2n_recv_client_renegotiation_info(conn, &extension));
             break;
-       }
+        }
     }
 
     return 0;
@@ -323,11 +323,11 @@ static int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2
     }
     uint8_t type;
     GUARD(s2n_stuffer_read_uint8(extension, &type));
-    if (type != (uint8_t)S2N_STATUS_REQUEST_OCSP) {
+    if (type != (uint8_t) S2N_STATUS_REQUEST_OCSP) {
         /* We only support OCSP (type 1), ignore the extension */
         return 0;
     }
-    conn->status_type = (s2n_status_request_type)type;
+    conn->status_type = (s2n_status_request_type) type;
     return 0;
 }
 
