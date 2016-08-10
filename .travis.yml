@@ -8,11 +8,8 @@ addons:
       packages:
         - gcc-6
         - g++-6
-<<<<<<< HEAD
         - indent
-=======
         - cppcheck
->>>>>>> Add cppcheck for every build
 
 os:
   - osx
