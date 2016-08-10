@@ -34,7 +34,7 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
 
-int s2n_sslv2_record_header_parse(struct s2n_connection *conn, uint8_t *record_type, uint8_t *client_protocol_version, uint16_t *fragment_length)
+int s2n_sslv2_record_header_parse(struct s2n_connection *conn, uint8_t * record_type, uint8_t * client_protocol_version, uint16_t * fragment_length)
 {
     struct s2n_stuffer *in = &conn->header_in;
 
@@ -57,7 +57,7 @@ int s2n_sslv2_record_header_parse(struct s2n_connection *conn, uint8_t *record_t
     return 0;
 }
 
-int s2n_record_header_parse(struct s2n_connection *conn, uint8_t *content_type, uint16_t *fragment_length)
+int s2n_record_header_parse(struct s2n_connection *conn, uint8_t * content_type, uint16_t * fragment_length)
 {
     struct s2n_stuffer *in = &conn->header_in;
 
@@ -186,7 +186,7 @@ int s2n_record_parse(struct s2n_connection *conn)
         ne_check(en.size, 0);
 
         /* ... and that we have a multiple of the block size */
-        eq_check(en.size % iv.size,  0);
+        eq_check(en.size % iv.size, 0);
 
         /* Copy the last encrypted block to be the next IV */
         memcpy_check(ivpad, en.data + en.size - iv.size, iv.size);
@@ -217,7 +217,7 @@ int s2n_record_parse(struct s2n_connection *conn)
     else if (cipher_suite->cipher->type == S2N_CBC) {
         gt_check(en.size, 0);
         payload_length -= (en.data[en.size - 1] + 1);
-    } 
+    }
 
     /* Update the MAC */
     header[3] = (payload_length >> 8);
@@ -232,7 +232,7 @@ int s2n_record_parse(struct s2n_connection *conn)
         GUARD(s2n_hmac_update(mac, header, S2N_TLS_RECORD_HEADER_LENGTH));
     }
 
-    struct s2n_blob seq = {.data = sequence_number, .size = S2N_TLS_SEQUENCE_NUM_LEN };
+    struct s2n_blob seq = {.data = sequence_number,.size = S2N_TLS_SEQUENCE_NUM_LEN };
     GUARD(s2n_increment_sequence_number(&seq));
 
     /* Padding */
