@@ -122,7 +122,11 @@ ssize_t s2n_send(struct s2n_connection *conn, void *buf, ssize_t size, s2n_block
     while (size) {
         in.size = MIN(size, max_payload_size);
 
-        if (conn->actual_protocol_version < S2N_TLS11 && writer->cipher_suite->cipher->type == S2N_CBC) {
+        /* Don't split messages in server mode for interoperability with naive clients.
+         * Some clients may have expectations based on the amount of content in the first record.
+         */
+        if (conn->actual_protocol_version < S2N_TLS11 && writer->cipher_suite->cipher->type == S2N_CBC
+                                                      && conn->mode != S2N_SERVER) {
             if (in.size > 1 && cbcHackUsed == 0) {
                 in.size = 1;
                 cbcHackUsed = 1;
