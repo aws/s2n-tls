@@ -37,7 +37,7 @@ int s2n_server_ccs_recv(struct s2n_connection *conn)
     }
 
     /* Zero the sequence number */
-    struct s2n_blob seq = {.data = conn->secure.server_sequence_number, .size = S2N_TLS_SEQUENCE_NUM_LEN };
+    struct s2n_blob seq = {.data = conn->secure.server_sequence_number,.size = S2N_TLS_SEQUENCE_NUM_LEN };
     GUARD(s2n_blob_zero(&seq));
 
     /* Compute the finished message */

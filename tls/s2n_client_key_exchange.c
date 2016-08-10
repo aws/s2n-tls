@@ -64,9 +64,8 @@ static int s2n_rsa_client_key_recv(struct s2n_connection *conn)
     conn->secure.rsa_premaster_secret[0] = client_protocol_version[0];
     conn->secure.rsa_premaster_secret[1] = client_protocol_version[1];
 
-
     /* Set rsa_failed to 1 if s2n_rsa_decrypt returns anything other than zero */
-    conn->handshake.rsa_failed = !!s2n_rsa_decrypt(&conn->config->cert_and_key_pairs->private_key, &encrypted, &pms);
+    conn->handshake.rsa_failed = ! !s2n_rsa_decrypt(&conn->config->cert_and_key_pairs->private_key, &encrypted, &pms);
 
     /* Set rsa_failed to 1, if it isn't already, if the protocol version isn't what we expect */
     conn->handshake.rsa_failed |= !s2n_constant_time_equals(client_protocol_version, pms.data, S2N_TLS_PROTOCOL_VERSION_LEN);
@@ -82,7 +81,7 @@ static int s2n_rsa_client_key_recv(struct s2n_connection *conn)
 
     /* Save the master secret in the cache */
     if (s2n_is_caching_enabled(conn->config)) {
-       GUARD(s2n_store_to_cache(conn));
+        GUARD(s2n_store_to_cache(conn));
     }
 
     return 0;
@@ -112,7 +111,7 @@ static int s2n_dhe_client_key_recv(struct s2n_connection *conn)
 
     /* Save the master secret in the cache */
     if (s2n_is_caching_enabled(conn->config)) {
-       GUARD(s2n_store_to_cache(conn));
+        GUARD(s2n_store_to_cache(conn));
     }
 
     /* We don't need the server params any more */
@@ -157,7 +156,7 @@ static int s2n_dhe_client_key_send(struct s2n_connection *conn)
 
     /* Save the master secret in the cache */
     if (s2n_is_caching_enabled(conn->config)) {
-       GUARD(s2n_store_to_cache(conn));
+        GUARD(s2n_store_to_cache(conn));
     }
 
     /* We don't need the server params any more */
@@ -175,7 +174,6 @@ static int s2n_rsa_client_key_send(struct s2n_connection *conn)
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
     client_protocol_version[0] = conn->client_protocol_version / 10;
     client_protocol_version[1] = conn->client_protocol_version % 10;
-
 
     struct s2n_blob pms;
     pms.data = conn->secure.rsa_premaster_secret;
@@ -217,7 +215,7 @@ static int s2n_rsa_client_key_send(struct s2n_connection *conn)
 
     /* Save the master secret in the cache */
     if (s2n_is_caching_enabled(conn->config)) {
-       GUARD(s2n_store_to_cache(conn));
+        GUARD(s2n_store_to_cache(conn));
     }
 
     return 0;

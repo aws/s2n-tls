@@ -83,7 +83,9 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
 
     GUARD(s2n_conn_set_handshake_type(conn));
 
+        fprintf(stderr, "hello 1\n");
     if (IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type)) {
+        fprintf(stderr, "hello 2\n");
         GUARD(s2n_prf_key_expansion(conn));
     }
 

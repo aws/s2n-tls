@@ -8,6 +8,7 @@ addons:
       packages:
         - gcc-6
         - g++-6
+        - indent
 
 os:
   - osx
@@ -22,6 +23,7 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew update                ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew tap homebrew/versions ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew install gcc6          ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew install gnu-indent    ; fi
   # Set GCC 6 as Default on both Ubuntu and OSX
   - alias gcc=$(which gcc-6)
   # Install latest version of clang, clang++, and llvm-symbolizer and add them to beginning of PATH. Needed for fuzzing.

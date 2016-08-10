@@ -260,12 +260,12 @@ int s2n_connection_set_fd(struct s2n_connection *conn, int fd)
     return 0;
 }
 
-uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn)
+uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection * conn)
 {
     return conn->wire_bytes_in;
 }
 
-uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn)
+uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection * conn)
 {
     return conn->wire_bytes_out;
 }
@@ -351,7 +351,7 @@ int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blindi
 #define ONE_S  INT64_C(1000000000)
 #define TEN_S  INT64_C(10000000000)
 
-int64_t s2n_connection_get_delay(struct s2n_connection *conn)
+int64_t s2n_connection_get_delay(struct s2n_connection * conn)
 {
     if (!conn->delay) {
         return 0;
@@ -381,7 +381,7 @@ int s2n_connection_kill(struct s2n_connection *conn)
     GUARD(s2n_timer_start(conn->config, &conn->write_timer));
 
     if (conn->blinding == S2N_BUILT_IN_BLINDING) {
-        struct timespec sleep_time = { .tv_sec = conn->delay / ONE_S, .tv_nsec = conn->delay % ONE_S };
+        struct timespec sleep_time = {.tv_sec = conn->delay / ONE_S,.tv_nsec = conn->delay % ONE_S };
         int r;
 
         do {
@@ -393,7 +393,7 @@ int s2n_connection_kill(struct s2n_connection *conn)
     return 0;
 }
 
-const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uint32_t *length)
+const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uint32_t * length)
 {
     if (!length) {
         return NULL;

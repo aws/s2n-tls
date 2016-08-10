@@ -67,7 +67,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint16(out, application_protocol_len + 3));
         GUARD(s2n_stuffer_write_uint16(out, application_protocol_len + 1));
         GUARD(s2n_stuffer_write_uint8(out, application_protocol_len));
-        GUARD(s2n_stuffer_write_bytes(out, (uint8_t*)conn->application_protocol, application_protocol_len));
+        GUARD(s2n_stuffer_write_bytes(out, (uint8_t *) conn->application_protocol, application_protocol_len));
     }
 
     /* Write OCSP extension */
@@ -142,4 +142,3 @@ int s2n_recv_server_status_request(struct s2n_connection *conn, struct s2n_stuff
 
     return 0;
 }
-

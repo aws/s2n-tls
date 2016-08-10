@@ -44,4 +44,3 @@ int s2n_ecc_compute_shared_secret_as_server(struct s2n_ecc_params *server_ecc_pa
 int s2n_ecc_compute_shared_secret_as_client(struct s2n_ecc_params *server_ecc_params, struct s2n_stuffer *Yc_out, struct s2n_blob *shared_key);
 int s2n_ecc_find_supported_curve(struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **found);
 int s2n_ecc_params_free(struct s2n_ecc_params *server_ecc_params);
-

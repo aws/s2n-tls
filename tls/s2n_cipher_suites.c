@@ -24,19 +24,21 @@
 const struct s2n_key_exchange_algorithm s2n_rsa = {
     .flags = 0,
 };
+
 const struct s2n_key_exchange_algorithm s2n_dhe = {
     .flags = S2N_KEY_EXCHANGE_DH | S2N_KEY_EXCHANGE_EPH,
 };
+
 const struct s2n_key_exchange_algorithm s2n_ecdhe = {
     .flags = S2N_KEY_EXCHANGE_DH | S2N_KEY_EXCHANGE_EPH | S2N_KEY_EXCHANGE_ECC,
 };
 
 /* All of the cipher suites that s2n negotiates, in order of value */
 struct s2n_cipher_suite s2n_all_cipher_suites[] = {
-    {"RC4-MD5", {TLS_RSA_WITH_RC4_128_MD5}, &s2n_rsa, &s2n_rc4, S2N_HMAC_MD5, S2N_HMAC_SHA256, S2N_SSLv3},   /* 0x00,0x04 */
-    {"RC4-SHA", {TLS_RSA_WITH_RC4_128_SHA}, &s2n_rsa, &s2n_rc4, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_SSLv3},  /* 0x00,0x05 */
-    {"DES-CBC3-SHA", {TLS_RSA_WITH_3DES_EDE_CBC_SHA}, &s2n_rsa, &s2n_3des, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_SSLv3},   /* 0x00,0x0A */
-    {"EDH-RSA-DES-CBC3-SHA", {TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA}, &s2n_dhe, &s2n_3des, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_SSLv3},   /* 0x00,0x16 */
+    {"RC4-MD5", {TLS_RSA_WITH_RC4_128_MD5}, &s2n_rsa, &s2n_rc4, S2N_HMAC_MD5, S2N_HMAC_SHA256, S2N_SSLv3},  /* 0x00,0x04 */
+    {"RC4-SHA", {TLS_RSA_WITH_RC4_128_SHA}, &s2n_rsa, &s2n_rc4, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_SSLv3}, /* 0x00,0x05 */
+    {"DES-CBC3-SHA", {TLS_RSA_WITH_3DES_EDE_CBC_SHA}, &s2n_rsa, &s2n_3des, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_SSLv3},  /* 0x00,0x0A */
+    {"EDH-RSA-DES-CBC3-SHA", {TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA}, &s2n_dhe, &s2n_3des, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_SSLv3},  /* 0x00,0x16 */
     {"AES128-SHA", {TLS_RSA_WITH_AES_128_CBC_SHA}, &s2n_rsa, &s2n_aes128, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_TLS10},   /* 0x00,0x2F */
     {"DHE-RSA-AES128-SHA", {TLS_DHE_RSA_WITH_AES_128_CBC_SHA}, &s2n_dhe, &s2n_aes128, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_TLS10},   /* 0x00,0x33 */
     {"AES256-SHA", {TLS_RSA_WITH_AES_256_CBC_SHA}, &s2n_rsa, &s2n_aes256, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_TLS10},   /* 0x00,0x35 */
@@ -45,14 +47,14 @@ struct s2n_cipher_suite s2n_all_cipher_suites[] = {
     {"AES256-SHA256", {TLS_RSA_WITH_AES_256_CBC_SHA256}, &s2n_rsa, &s2n_aes256, S2N_HMAC_SHA256, S2N_HMAC_SHA256, S2N_TLS12},   /* 0x00,0x3D */
     {"DHE-RSA-AES128-SHA256", {TLS_DHE_RSA_WITH_AES_128_CBC_SHA256}, &s2n_dhe, &s2n_aes128, S2N_HMAC_SHA256, S2N_HMAC_SHA256, S2N_TLS12},   /* 0x00,0x67 */
     {"DHE-RSA-AES256-SHA256", {TLS_DHE_RSA_WITH_AES_256_CBC_SHA256}, &s2n_dhe, &s2n_aes256, S2N_HMAC_SHA256, S2N_HMAC_SHA256, S2N_TLS12},   /* 0x00,0x6B */
-    {"AES128-GCM-SHA256", {TLS_RSA_WITH_AES_128_GCM_SHA256}, &s2n_rsa, &s2n_aes128_gcm, S2N_HMAC_NONE, S2N_HMAC_SHA256, S2N_TLS12},   /* 0x00,0x9C */
+    {"AES128-GCM-SHA256", {TLS_RSA_WITH_AES_128_GCM_SHA256}, &s2n_rsa, &s2n_aes128_gcm, S2N_HMAC_NONE, S2N_HMAC_SHA256, S2N_TLS12}, /* 0x00,0x9C */
     {"AES256-GCM-SHA384", {TLS_RSA_WITH_AES_256_GCM_SHA384}, &s2n_rsa, &s2n_aes256_gcm, S2N_HMAC_NONE, S2N_HMAC_SHA384, S2N_TLS12}, /* 0x00,0x9D */
-    {"DHE-RSA-AES128-GCM-SHA256", {TLS_DHE_RSA_WITH_AES_128_GCM_SHA256}, &s2n_dhe, &s2n_aes128_gcm, S2N_HMAC_NONE, S2N_HMAC_SHA256, S2N_TLS12},   /* 0x00,0x9E */
-    {"ECDHE-RSA-DES-CBC3-SHA", {TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA}, &s2n_ecdhe, &s2n_3des, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_TLS10},   /* 0xC0,0x12 */
-    {"ECDHE-RSA-AES128-SHA", {TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA}, &s2n_ecdhe, &s2n_aes128, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_TLS10},   /* 0xC0,0x13 */
-    {"ECDHE-RSA-AES256-SHA", {TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA}, &s2n_ecdhe, &s2n_aes256, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_TLS10},   /* 0xC0,0x14 */
-    {"ECDHE-RSA-AES128-SHA256", {TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256}, &s2n_ecdhe, &s2n_aes128, S2N_HMAC_SHA256, S2N_HMAC_SHA256, S2N_TLS12},   /* 0xC0,0x27 */
-    {"ECDHE-RSA-AES256-SHA384", {TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384}, &s2n_ecdhe, &s2n_aes256, S2N_HMAC_SHA384, S2N_HMAC_SHA384, S2N_TLS12},   /* 0xC0,0x28 */
+    {"DHE-RSA-AES128-GCM-SHA256", {TLS_DHE_RSA_WITH_AES_128_GCM_SHA256}, &s2n_dhe, &s2n_aes128_gcm, S2N_HMAC_NONE, S2N_HMAC_SHA256, S2N_TLS12}, /* 0x00,0x9E */
+    {"ECDHE-RSA-DES-CBC3-SHA", {TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA}, &s2n_ecdhe, &s2n_3des, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_TLS10},    /* 0xC0,0x12 */
+    {"ECDHE-RSA-AES128-SHA", {TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA}, &s2n_ecdhe, &s2n_aes128, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_TLS10}, /* 0xC0,0x13 */
+    {"ECDHE-RSA-AES256-SHA", {TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA}, &s2n_ecdhe, &s2n_aes256, S2N_HMAC_SHA1, S2N_HMAC_SHA256, S2N_TLS10}, /* 0xC0,0x14 */
+    {"ECDHE-RSA-AES128-SHA256", {TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256}, &s2n_ecdhe, &s2n_aes128, S2N_HMAC_SHA256, S2N_HMAC_SHA256, S2N_TLS12}, /* 0xC0,0x27 */
+    {"ECDHE-RSA-AES256-SHA384", {TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384}, &s2n_ecdhe, &s2n_aes256, S2N_HMAC_SHA384, S2N_HMAC_SHA384, S2N_TLS12}, /* 0xC0,0x28 */
     {"ECDHE-RSA-AES128-GCM-SHA256", {TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256}, &s2n_ecdhe, &s2n_aes128_gcm, S2N_HMAC_NONE, S2N_HMAC_SHA256, S2N_TLS12},   /* 0xC0,0x2F */
     {"ECDHE-RSA-AES256-GCM-SHA384", {TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384}, &s2n_ecdhe, &s2n_aes256_gcm, S2N_HMAC_NONE, S2N_HMAC_SHA384, S2N_TLS12},   /* 0xC0,0x30 */
 };
@@ -94,7 +96,7 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
     return 0;
 }
 
-static int s2n_wire_ciphers_contain(uint8_t *match, uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
+static int s2n_wire_ciphers_contain(uint8_t * match, uint8_t * wire, uint32_t count, uint32_t cipher_suite_len)
 {
     for (int i = 0; i < count; i++) {
         uint8_t *theirs = wire + (i * cipher_suite_len) + (cipher_suite_len - S2N_TLS_CIPHER_SUITE_LEN);
@@ -107,7 +109,7 @@ static int s2n_wire_ciphers_contain(uint8_t *match, uint8_t *wire, uint32_t coun
     return 0;
 }
 
-static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
+static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire, uint32_t count, uint32_t cipher_suite_len)
 {
     uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
     struct s2n_cipher_suite *higher_vers_match = NULL;
@@ -171,13 +173,12 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
     S2N_ERROR(S2N_ERR_CIPHER_NOT_SUPPORTED);
 }
 
-int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count)
+int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count)
 {
     return s2n_set_cipher_as_server(conn, wire, count, S2N_SSLv2_CIPHER_SUITE_LEN);
 }
 
-int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count)
+int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count)
 {
     return s2n_set_cipher_as_server(conn, wire, count, S2N_TLS_CIPHER_SUITE_LEN);
 }
-

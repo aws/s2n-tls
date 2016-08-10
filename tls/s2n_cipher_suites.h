@@ -30,9 +30,9 @@ struct s2n_cipher_preferences {
 };
 
 /* Key exchange flags that can be OR'ed */
-#define S2N_KEY_EXCHANGE_DH       0x01 /* Diffie–Hellman key exchange, including ephemeral */
-#define S2N_KEY_EXCHANGE_EPH      0x02 /* Ephemeral key exchange */
-#define S2N_KEY_EXCHANGE_ECC      0x04 /* Elliptic curve cryptography */
+#define S2N_KEY_EXCHANGE_DH       0x01  /* Diffie–Hellman key exchange, including ephemeral */
+#define S2N_KEY_EXCHANGE_EPH      0x02  /* Ephemeral key exchange */
+#define S2N_KEY_EXCHANGE_ECC      0x04  /* Elliptic curve cryptography */
 
 struct s2n_key_exchange_algorithm {
     /* OR'ed S2N_KEY_EXCHANGE_* flags */
@@ -64,5 +64,5 @@ extern struct s2n_cipher_preferences *s2n_cipher_preferences_20150306;
 extern struct s2n_cipher_preferences *s2n_cipher_preferences_default;
 
 extern int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN]);
-extern int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count);
-extern int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count);
+extern int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);
+extern int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);

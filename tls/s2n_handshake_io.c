@@ -57,56 +57,53 @@ struct s2n_handshake_action {
 /* ... and this is their corresponding handlers, in the same order */
 static struct s2n_handshake_action state_machine[] = {
     /*Record type   Message type         Writer S2N_SERVER                S2N_CLIENT                   message_type_t               */
-    {TLS_HANDSHAKE, TLS_CLIENT_HELLO,      'C', {s2n_client_hello_recv,    s2n_client_hello_send}},    /* CLIENT_HELLO              */
-    {TLS_HANDSHAKE, TLS_SERVER_HELLO,      'S', {s2n_server_hello_send,    s2n_server_hello_recv}},    /* SERVER_HELLO              */
-    {TLS_HANDSHAKE, TLS_SERVER_CERT,       'S', {s2n_server_cert_send,     s2n_server_cert_recv}},     /* SERVER_CERT               */
-    {TLS_HANDSHAKE, TLS_SERVER_CERT_STATUS,'S', {s2n_server_status_send,   s2n_server_status_recv}},   /* SERVER_CERT_STATUS        */
-    {TLS_HANDSHAKE, TLS_SERVER_KEY,        'S', {s2n_server_key_send,      s2n_server_key_recv}},      /* SERVER_KEY                */
-    {TLS_HANDSHAKE, TLS_SERVER_CERT_REQ,   'S', {NULL,                     NULL}},                     /* SERVER_CERT_REQ           */
-    {TLS_HANDSHAKE, TLS_SERVER_HELLO_DONE, 'S', {s2n_server_done_send,     s2n_server_done_recv}},     /* SERVER_HELLO_DONE         */
-    {TLS_HANDSHAKE, TLS_CLIENT_CERT,       'C', {NULL,                     NULL}},                     /* CLIENT_CERT               */
-    {TLS_HANDSHAKE, TLS_CLIENT_KEY,        'C', {s2n_client_key_recv,      s2n_client_key_send}},      /* CLIENT_KEY                */
-    {TLS_HANDSHAKE, TLS_CLIENT_CERT_VERIFY,'C', {NULL,                     NULL}},                     /* CLIENT_CERT_VERIFY        */
-    {TLS_CHANGE_CIPHER_SPEC, 0,            'C', {s2n_client_ccs_recv,      s2n_client_ccs_send}},      /* CLIENT_CHANGE_CIPHER_SPEC */
-    {TLS_HANDSHAKE, TLS_CLIENT_FINISHED,   'C', {s2n_client_finished_recv, s2n_client_finished_send}}, /* CLIENT_FINISHED           */
-    {TLS_CHANGE_CIPHER_SPEC, 0,            'S', {s2n_server_ccs_send,      s2n_server_ccs_recv}},      /* SERVER_CHANGE_CIPHER_SPEC */
-    {TLS_HANDSHAKE, TLS_SERVER_FINISHED,   'S', {s2n_server_finished_send, s2n_server_finished_recv}}, /* SERVER_FINISHED           */
-    {TLS_APPLICATION_DATA, 0,              'B', {NULL, NULL}}    /* APPLICATION_DATA            */
+    {TLS_HANDSHAKE, TLS_CLIENT_HELLO, 'C', {s2n_client_hello_recv, s2n_client_hello_send}}, /* CLIENT_HELLO              */
+    {TLS_HANDSHAKE, TLS_SERVER_HELLO, 'S', {s2n_server_hello_send, s2n_server_hello_recv}}, /* SERVER_HELLO              */
+    {TLS_HANDSHAKE, TLS_SERVER_CERT, 'S', {s2n_server_cert_send, s2n_server_cert_recv}},    /* SERVER_CERT               */
+    {TLS_HANDSHAKE, TLS_SERVER_CERT_STATUS, 'S', {s2n_server_status_send, s2n_server_status_recv}}, /* SERVER_CERT_STATUS        */
+    {TLS_HANDSHAKE, TLS_SERVER_KEY, 'S', {s2n_server_key_send, s2n_server_key_recv}},   /* SERVER_KEY                */
+    {TLS_HANDSHAKE, TLS_SERVER_CERT_REQ, 'S', {NULL, NULL}},    /* SERVER_CERT_REQ           */
+    {TLS_HANDSHAKE, TLS_SERVER_HELLO_DONE, 'S', {s2n_server_done_send, s2n_server_done_recv}},  /* SERVER_HELLO_DONE         */
+    {TLS_HANDSHAKE, TLS_CLIENT_CERT, 'C', {NULL, NULL}},    /* CLIENT_CERT               */
+    {TLS_HANDSHAKE, TLS_CLIENT_KEY, 'C', {s2n_client_key_recv, s2n_client_key_send}},   /* CLIENT_KEY                */
+    {TLS_HANDSHAKE, TLS_CLIENT_CERT_VERIFY, 'C', {NULL, NULL}}, /* CLIENT_CERT_VERIFY        */
+    {TLS_CHANGE_CIPHER_SPEC, 0, 'C', {s2n_client_ccs_recv, s2n_client_ccs_send}},   /* CLIENT_CHANGE_CIPHER_SPEC */
+    {TLS_HANDSHAKE, TLS_CLIENT_FINISHED, 'C', {s2n_client_finished_recv, s2n_client_finished_send}},    /* CLIENT_FINISHED           */
+    {TLS_CHANGE_CIPHER_SPEC, 0, 'S', {s2n_server_ccs_send, s2n_server_ccs_recv}},   /* SERVER_CHANGE_CIPHER_SPEC */
+    {TLS_HANDSHAKE, TLS_SERVER_FINISHED, 'S', {s2n_server_finished_send, s2n_server_finished_recv}},    /* SERVER_FINISHED           */
+    {TLS_APPLICATION_DATA, 0, 'B', {NULL, NULL}}    /* APPLICATION_DATA            */
 };
-
 
 /* We support 5 different ordering of messages, depending on what is being negotiated. There's also a dummy "INITIAL" handshake
  * that everything starts out as until we know better.
  */
-static message_type_t handshakes[16][16] = {
-        /* Initial "Dummy" handshake */
-        [ 0 ] =
-        { CLIENT_HELLO, SERVER_HELLO },
+static message_type_t handshakes[6][16] = {
+    /* INITIAL */
+    {CLIENT_HELLO, SERVER_HELLO},
 
-        [ NEGOTIATED /* Not a full handshake - is a resumption */ ] =
-        { CLIENT_HELLO, SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC,
-          SERVER_FINISHED, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED, APPLICATION_DATA },
+    /* FULL_WITH_PFS */
+    {CLIENT_HELLO, SERVER_HELLO, SERVER_CERT, SERVER_KEY,
+     SERVER_HELLO_DONE, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+     SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED, APPLICATION_DATA},
 
-        [ NEGOTIATED | FULL_HANDSHAKE ] = /* A regular full handshake */
-        { CLIENT_HELLO, SERVER_HELLO, SERVER_CERT, SERVER_HELLO_DONE,
-          CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
-          SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED, APPLICATION_DATA },
+    /* FULL_WITH_PFS_WITH_STATUS */
+    {CLIENT_HELLO, SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS,
+     SERVER_KEY, SERVER_HELLO_DONE, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC,
+     CLIENT_FINISHED, SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED, APPLICATION_DATA},
 
-        [ NEGOTIATED | FULL_HANDSHAKE | PERFECT_FORWARD_SECRECY ] = /* Add PFS */
-        { CLIENT_HELLO, SERVER_HELLO, SERVER_CERT, SERVER_KEY,
-          SERVER_HELLO_DONE, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
-          SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED, APPLICATION_DATA },
+    /* FULL_NO_PFS */
+    {CLIENT_HELLO, SERVER_HELLO, SERVER_CERT, SERVER_HELLO_DONE,
+     CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+     SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED, APPLICATION_DATA},
 
-        [ NEGOTIATED | FULL_HANDSHAKE | OCSP_STATUS ] = /* Add OCSP */
-        { CLIENT_HELLO, SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS,
-          SERVER_HELLO_DONE, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
-          SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED, APPLICATION_DATA },
+    /* FULL_NO_PFS_WITH_STATUS */
+    {CLIENT_HELLO, SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS,
+     SERVER_HELLO_DONE, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+     SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED, APPLICATION_DATA},
 
-        [ NEGOTIATED | FULL_HANDSHAKE | PERFECT_FORWARD_SECRECY | OCSP_STATUS ] = /* PFS + OCSP */
-        { CLIENT_HELLO, SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS,
-          SERVER_KEY, SERVER_HELLO_DONE, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC,
-          CLIENT_FINISHED, SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED, APPLICATION_DATA }
-
+    /* RESUME */
+    {CLIENT_HELLO, SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC,
+     SERVER_FINISHED, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED, APPLICATION_DATA}
 };
 
 #define ACTIVE_MESSAGE( conn ) handshakes[ (conn)->handshake.handshake_type ][ (conn)->handshake.message_number ]
@@ -120,16 +117,14 @@ message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn)
 
 int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 {
-    /* Reset to a negotiated handshake type, not the initial */
-    conn->handshake.handshake_type = NEGOTIATED;
-
     if (s2n_is_caching_enabled(conn->config)) {
         if (!s2n_resume_from_cache(conn)) {
-            /* Nothing more needed - not a full handshake */
+            conn->handshake.handshake_type = RESUME;
             return 0;
         }
+
         if (conn->mode == S2N_SERVER) {
-            struct s2n_blob session_id = { .data = conn->session_id, .size = S2N_TLS_SESSION_ID_MAX_LEN };
+            struct s2n_blob session_id = {.data = conn->session_id,.size = S2N_TLS_SESSION_ID_MAX_LEN };
 
             /* Generate a new session id */
             GUARD(s2n_get_public_random_data(&session_id));
@@ -137,15 +132,18 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
         }
     }
 
-    /* If we get this far, it's a full handshake type */
-    conn->handshake.handshake_type |= FULL_HANDSHAKE;
-
     if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_EPH) {
-        conn->handshake.handshake_type |= PERFECT_FORWARD_SECRECY;
-    }
+        conn->handshake.handshake_type = FULL_WITH_PFS;
 
-    if (s2n_server_can_send_ocsp(conn)) {
-        conn->handshake.handshake_type |= OCSP_STATUS;
+        if (s2n_server_can_send_ocsp(conn)) {
+            conn->handshake.handshake_type = FULL_WITH_PFS_WITH_STATUS;
+        }
+    } else {
+        conn->handshake.handshake_type = FULL_NO_PFS;
+
+        if (s2n_server_can_send_ocsp(conn)) {
+            conn->handshake.handshake_type = FULL_NO_PFS_WITH_STATUS;
+        }
     }
 
     return 0;
@@ -153,41 +151,10 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
 static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data)
 {
-    switch (conn->actual_protocol_version) {
-
-        /* If we don't know the protocol yet, compute everything */
-        case S2N_UNKNOWN_PROTOCOL_VERSION:
-            GUARD(s2n_hash_update(&conn->handshake.md5, data->data, data->size));
-            GUARD(s2n_hash_update(&conn->handshake.sha1, data->data, data->size));
-            GUARD(s2n_hash_update(&conn->handshake.sha256, data->data, data->size));
-            GUARD(s2n_hash_update(&conn->handshake.sha384, data->data, data->size));
-            break;
-
-        /* SSLv3 - TLS1.1 uses MD5 and SHA1 */
-        case S2N_SSLv3:
-        case S2N_TLS10:
-        case S2N_TLS11:
-            GUARD(s2n_hash_update(&conn->handshake.md5, data->data, data->size));
-            GUARD(s2n_hash_update(&conn->handshake.sha1, data->data, data->size));
-            break;
-
-        /* TLS 1.2 supports a specific hash */
-        case S2N_TLS12:
-            if (conn->secure.cipher_suite->tls12_prf_alg == S2N_HMAC_SHA256) {
-                GUARD(s2n_hash_update(&conn->handshake.sha256, data->data, data->size));
-            }
-            else if (conn->secure.cipher_suite->tls12_prf_alg == S2N_HMAC_SHA384) {
-                GUARD(s2n_hash_update(&conn->handshake.sha384, data->data, data->size));
-            }
-            else {
-                S2N_ERROR(S2N_ERR_PRF_INVALID_ALGORITHM);
-            }
-            break;
-
-        default:
-            S2N_ERROR(S2N_ERR_PRF_INVALID_ALGORITHM);
-            break;
-    }
+    GUARD(s2n_hash_update(&conn->handshake.md5, data->data, data->size));
+    GUARD(s2n_hash_update(&conn->handshake.sha1, data->data, data->size));
+    GUARD(s2n_hash_update(&conn->handshake.sha256, data->data, data->size));
+    GUARD(s2n_hash_update(&conn->handshake.sha384, data->data, data->size));
 
     return 0;
 }
@@ -219,7 +186,7 @@ static int handshake_write_io(struct s2n_connection *conn)
 
     /* Write the handshake data to records in fragment sized chunks */
     struct s2n_blob out;
-    while(s2n_stuffer_data_available(&conn->handshake.io) > 0) {
+    while (s2n_stuffer_data_available(&conn->handshake.io) > 0) {
 
         GUARD((max_payload_size = s2n_record_max_write_payload_size(conn)));
         out.size = MIN(s2n_stuffer_data_available(&conn->handshake.io), max_payload_size);
@@ -255,7 +222,7 @@ static int handshake_write_io(struct s2n_connection *conn)
  *  0  - we read the whole handshake message.
  * -1  - error processing the handshake message.
  */
-static int read_full_handshake_message(struct s2n_connection *conn, uint8_t *message_type)
+static int read_full_handshake_message(struct s2n_connection *conn, uint8_t * message_type)
 {
     uint32_t current_handshake_data = s2n_stuffer_data_available(&conn->handshake.io);
     if (current_handshake_data < TLS_HANDSHAKE_HEADER_LENGTH) {
@@ -293,7 +260,7 @@ static int read_full_handshake_message(struct s2n_connection *conn, uint8_t *mes
         notnull_check(handshake.data);
 
         /* MD5 and SHA sum the handshake data too */
-        //GUARD(s2n_conn_update_handshake_hashes(conn, &handshake));
+        GUARD(s2n_conn_update_handshake_hashes(conn, &handshake));
 
         return 0;
     }
@@ -404,7 +371,7 @@ static int handshake_read_io(struct s2n_connection *conn)
         }
 
         /* Call the relevant handler */
-        r = ACTIVE_STATE(conn).handler[conn->mode](conn);
+        r = ACTIVE_STATE(conn).handler[conn->mode] (conn);
         GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
         if (r < 0) {
@@ -425,7 +392,7 @@ static int handshake_read_io(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
+int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
 {
     char this = 'S';
     if (conn->mode == S2N_CLIENT) {

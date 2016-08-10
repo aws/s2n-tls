@@ -213,7 +213,8 @@ int s2n_dh_compute_shared_secret_as_server(struct s2n_dh_params *server_dh_param
     return 0;
 }
 
-int s2n_dh_params_check(struct s2n_dh_params *params) {
+int s2n_dh_params_check(struct s2n_dh_params *params)
+{
     int codes = 0;
 
     if (DH_check(params->dh, &codes) == 0) {

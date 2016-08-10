@@ -22,7 +22,7 @@
 
 #include <s2n.h>
 
-int s2n_blob_init(struct s2n_blob *b, uint8_t *data, uint32_t size)
+int s2n_blob_init(struct s2n_blob *b, uint8_t * data, uint32_t size)
 {
     b->data = data;
     b->size = size;
