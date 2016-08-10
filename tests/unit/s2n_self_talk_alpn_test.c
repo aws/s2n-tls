@@ -208,10 +208,10 @@ int main(int argc, char **argv)
 
     for (int i = 1; i < 0xffff; i += 100) {
         char * ptr = buffer;
-        int bytes_read = 0;
         int size = i;
 
         do {
+            int bytes_read = 0;
             EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &blocked));
 
             size -= bytes_read;
@@ -266,10 +266,10 @@ int main(int argc, char **argv)
 
     for (int i = 1; i < 0xffff; i += 100) {
         char * ptr = buffer;
-        int bytes_read = 0;
         int size = i;
 
         do {
+            int bytes_read = 0;
             EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &blocked));
 
             size -= bytes_read;
@@ -321,10 +321,10 @@ int main(int argc, char **argv)
 
     for (int i = 1; i < 0xffff; i += 100) {
         char * ptr = buffer;
-        int bytes_read = 0;
         int size = i;
 
         do {
+            int bytes_read = 0;
             EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &blocked));
 
             size -= bytes_read;

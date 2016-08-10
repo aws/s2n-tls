@@ -16,8 +16,8 @@
 set -e
 
 FAILED=0
-
-cppcheck --std=c99 --error-exitcode=-1 --quiet -j 8 --enable=style,performance,portability,information,missingInclude -I ./tests api bin crypto error stuffer tests tls utils || FAILED=1
+cppcheck --version
+cppcheck --std=c99 --error-exitcode=-1 --quiet -j 8 --enable=style,performance,portability,information,missingInclude --suppressions-list=.travis/cppcheck_suppressions.txt -I ./tests api bin crypto error stuffer tests tls utils || FAILED=1
 
 if [ $FAILED == 1 ];
 then

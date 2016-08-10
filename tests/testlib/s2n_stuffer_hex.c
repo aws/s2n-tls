@@ -32,7 +32,7 @@ static uint8_t hex[16] = {
  */
 static int s2n_stuffer_read_n_bits_hex(struct s2n_stuffer *stuffer, uint8_t n, uint64_t *u)
 {
-    uint8_t hex_data[16];
+    uint8_t hex_data[16] = {0};
     struct s2n_blob b = { .data = hex_data, .size = n / 4 };
 
     GUARD(s2n_stuffer_read(stuffer, &b));

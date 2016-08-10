@@ -65,7 +65,7 @@ static int s2n_rsa_client_key_recv(struct s2n_connection *conn)
     conn->secure.rsa_premaster_secret[1] = client_protocol_version[1];
 
     /* Set rsa_failed to 1 if s2n_rsa_decrypt returns anything other than zero */
-    conn->handshake.rsa_failed = ! !s2n_rsa_decrypt(&conn->config->cert_and_key_pairs->private_key, &encrypted, &pms);
+    conn->handshake.rsa_failed = !!s2n_rsa_decrypt(&conn->config->cert_and_key_pairs->private_key, &encrypted, &pms);
 
     /* Set rsa_failed to 1, if it isn't already, if the protocol version isn't what we expect */
     conn->handshake.rsa_failed |= !s2n_constant_time_equals(client_protocol_version, pms.data, S2N_TLS_PROTOCOL_VERSION_LEN);
