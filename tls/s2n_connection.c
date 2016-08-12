@@ -206,6 +206,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     conn->mode = mode;
     conn->config = config;
     conn->close_notify_queued = 0;
+    conn->current_user_data_consumed = 0;
     conn->initial.cipher_suite = &s2n_null_cipher_suite;
     conn->secure.cipher_suite = &s2n_null_cipher_suite;
     conn->server = &conn->initial;
