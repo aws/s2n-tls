@@ -92,9 +92,6 @@ struct s2n_connection {
     struct s2n_stuffer out;
     enum { ENCRYPTED, PLAINTEXT } in_status;
 
-    /* How big is the record we are actively reading? */
-    uint16_t current_in_record_size;
-
     /* How much of the current user buffer have we already
      * encrypted and have pending for the wire.
      */
