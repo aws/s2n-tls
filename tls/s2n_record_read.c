@@ -196,6 +196,10 @@ int s2n_record_parse(struct s2n_connection *conn)
         memcpy_check(implicit_iv, ivpad, iv.size);
         break;
     case S2N_AEAD:
+        /* Skip explicit IV for decryption */
+        en.size -= cipher_suite->cipher->io.aead.record_iv_size;
+        en.data += cipher_suite->cipher->io.aead.record_iv_size;
+
         /* Check that we have some data to decrypt */
         ne_check(en.size, 0);
 
@@ -206,15 +210,8 @@ int s2n_record_parse(struct s2n_connection *conn)
         break;
     }
 
-    int offset = 0;
-
-    /* Skip the explicit IV */
-    if (cipher_suite->cipher->type == S2N_AEAD) {
-        gt_check(en.size, cipher_suite->cipher->io.aead.record_iv_size);
-        offset = cipher_suite->cipher->io.aead.record_iv_size;
-    }
     /* Subtract the padding length */
-    else if (cipher_suite->cipher->type == S2N_CBC) {
+    if (cipher_suite->cipher->type == S2N_CBC) {
         gt_check(en.size, 0);
         payload_length -= (en.data[en.size - 1] + 1);
     }
@@ -244,13 +241,13 @@ int s2n_record_parse(struct s2n_connection *conn)
         }
     } else {
         /* MAC check for streaming ciphers - no padding */
-        GUARD(s2n_hmac_update(mac, en.data + offset, payload_length));
+        GUARD(s2n_hmac_update(mac, en.data, payload_length));
 
         uint8_t check_digest[S2N_MAX_DIGEST_LEN];
         lte_check(mac_digest_size, sizeof(check_digest));
         GUARD(s2n_hmac_digest(mac, check_digest, mac_digest_size));
 
-        if (s2n_hmac_digest_verify(en.data + payload_length + offset, check_digest, mac_digest_size) < 0) {
+        if (s2n_hmac_digest_verify(en.data + payload_length, check_digest, mac_digest_size) < 0) {
             GUARD(s2n_stuffer_wipe(&conn->in));
             S2N_ERROR(S2N_ERR_BAD_MESSAGE);
             return -1;
