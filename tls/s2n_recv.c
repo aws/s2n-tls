@@ -56,7 +56,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
             conn->closed = 1;
             S2N_ERROR(S2N_ERR_CLOSED);
         } else if (r < 0) {
-            if (errno == EWOULDBLOCK) {
+            if (errno == EWOULDBLOCK || errno == EAGAIN) {
                 S2N_ERROR(S2N_ERR_BLOCKED);
             }
             S2N_ERROR(S2N_ERR_IO);
@@ -88,7 +88,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
             conn->closed = 1;
             S2N_ERROR(S2N_ERR_CLOSED);
         } else if (r < 0) {
-            if (errno == EWOULDBLOCK) {
+            if (errno == EWOULDBLOCK || errno == EAGAIN) {
                 S2N_ERROR(S2N_ERR_BLOCKED);
             }
             S2N_ERROR(S2N_ERR_IO);
