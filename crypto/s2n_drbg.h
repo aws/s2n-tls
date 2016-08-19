@@ -25,6 +25,9 @@
 /* The maximum size of any one request: from NIST SP800-90A 10.2.1 Table 3 */
 #define S2N_DRBG_GENERATE_LIMIT 8192
 
+/* We reseed after 2^35 bytes have been generated: from NIST SP800-90A 10.2.1 Table 3 */
+#define S2N_DRBG_RESEED_LIMIT   34359738368
+
 struct s2n_drbg {
     EVP_CIPHER_CTX ctx;
 
