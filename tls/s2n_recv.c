@@ -125,25 +125,42 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
     while (size && !conn->closed) {
         int isSSLv2 = 0;
         uint8_t record_type;
+
+        /* If we have decrypted data already, first use it */
+        if (s2n_stuffer_data_available(&conn->in) && conn->in_status == PLAINTEXT) {
+            out.size = MIN(size, s2n_stuffer_data_available(&conn->in));
+
+            GUARD(s2n_stuffer_erase_and_read(&conn->in, &out));
+            bytes_read += out.size;
+
+            out.data += out.size;
+            size -= out.size;
+
+            /* Are we ready for more encrypted data? */
+            if (s2n_stuffer_data_available(&conn->in) == 0) {
+                GUARD(s2n_stuffer_wipe(&conn->header_in));
+                GUARD(s2n_stuffer_wipe(&conn->in));
+                conn->in_status = ENCRYPTED;
+            }
+        }
+
+        /* If we copied any data we're done - as we try to preserve record boundaries
+         * to the caller.
+         */
+        if (bytes_read) {
+            break;
+        }
+
+        /* We need to read data from the wire */
         int r = s2n_read_full_record(conn, &record_type, &isSSLv2);
         if (r < 0) {
             if (s2n_errno == S2N_ERR_CLOSED) {
                 *blocked = S2N_NOT_BLOCKED;
-                if (!bytes_read) {
-                    GUARD(s2n_connection_wipe(conn));
-                    return 0;
-                } else {
-                    return bytes_read;
-                }
+                GUARD(s2n_connection_wipe(conn));
+                return 0;
             }
 
-            /* Don't propogate the error if we already read some bytes */
-            if (s2n_errno == S2N_ERR_BLOCKED && bytes_read) {
-                s2n_errno = S2N_ERR_OK;
-                return bytes_read;
-            }
-
-            /* If we get here, it's an error condition */
+            /* If we get here, it's an error condition: purge the cache */
             if (s2n_errno != S2N_ERR_BLOCKED && s2n_is_caching_enabled(conn->config) && conn->session_id_len) {
                 conn->config->cache_delete(conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
             }
@@ -164,33 +181,10 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
             GUARD(s2n_stuffer_wipe(&conn->header_in));
             GUARD(s2n_stuffer_wipe(&conn->in));
             conn->in_status = ENCRYPTED;
-            continue;
-        }
-
-        out.size = MIN(size, s2n_stuffer_data_available(&conn->in));
-
-        GUARD(s2n_stuffer_erase_and_read(&conn->in, &out));
-        bytes_read += out.size;
-
-        out.data += out.size;
-        size -= out.size;
-
-        /* Are we ready for more encrypted data? */
-        if (s2n_stuffer_data_available(&conn->in) == 0) {
-            GUARD(s2n_stuffer_wipe(&conn->header_in));
-            GUARD(s2n_stuffer_wipe(&conn->in));
-            conn->in_status = ENCRYPTED;
-        }
-
-        /* If we've read some data, return it */
-        if (bytes_read) {
-            break;
         }
     }
 
-    if (s2n_stuffer_data_available(&conn->in) == 0) {
-        *blocked = S2N_NOT_BLOCKED;
-    }
+    *blocked = S2N_NOT_BLOCKED;
 
     return bytes_read;
 }

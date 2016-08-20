@@ -105,12 +105,6 @@ ssize_t s2n_send(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
 
     GUARD((max_payload_size = s2n_record_max_write_payload_size(conn)));
 
-    /* TLS 1.0 and SSLv3 are vulnerable to the so-called Beast attack. Work
-     * around this by splitting messages into one byte records, and then
-     * the remainder can follow as usual.
-     */
-    int cbcHackUsed = 0;
-
     struct s2n_crypto_parameters *writer = conn->server;
     if (conn->mode == S2N_CLIENT) {
         writer = conn->client;
@@ -125,9 +119,9 @@ ssize_t s2n_send(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
          * Some clients may have expectations based on the amount of content in the first record.
          */
         if (conn->actual_protocol_version < S2N_TLS11 && writer->cipher_suite->cipher->type == S2N_CBC && conn->mode != S2N_SERVER) {
-            if (in.size > 1 && cbcHackUsed == 0) {
+            if (in.size > 1 && conn->cbc_hack_used == 0) {
                 in.size = 1;
-                cbcHackUsed = 1;
+                conn->cbc_hack_used = 1;
             }
         }
 
@@ -142,6 +136,7 @@ ssize_t s2n_send(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
 
     /* If everything has been written, then there's no user data pending */
     conn->current_user_data_consumed = 0;
+    conn->cbc_hack_used = 0;
 
     *blocked = S2N_NOT_BLOCKED;
 

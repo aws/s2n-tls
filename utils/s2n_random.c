@@ -25,8 +25,11 @@
 #include <string.h>
 #include <stdint.h>
 #include <errno.h>
-#include <cpuid.h>
 #include <time.h>
+
+#if defined(__x86_64__)||defined(__i386__)
+#include <cpuid.h>
+#endif
 
 #include "stuffer/s2n_stuffer.h"
 

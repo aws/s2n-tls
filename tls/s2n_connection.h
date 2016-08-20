@@ -100,6 +100,13 @@ struct s2n_connection {
      */
     uint16_t current_user_data_consumed;
 
+    /* TLS 1.0 and SSLv3 are vulnerable to the so-called Beast attack. Work
+     * around this by splitting messages into one byte records, and then
+     * the remainder can follow as usual. This variable tracks if a one
+     * byte record has been generated.
+     */
+    int cbc_hack_used;
+
     /* An alert may be fragmented across multiple records,
      * this stuffer is used to re-assemble.
      */

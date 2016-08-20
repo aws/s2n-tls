@@ -27,15 +27,25 @@ else
     CRYPTO_LIBS = -lcrypto
 endif
 
+CC	= $(CROSS_COMPILE)gcc
+AR	= $(CROSS_COMPILE)ar
+RANLIB	= $(CROSS_COMPILE)ranlib
+
 SOURCES = $(wildcard *.c *.h)
 CRUFT   = $(wildcard *.c~ *.h~ *.c.BAK *.h.BAK *.o *.a *.so *.dylib)
 INDENT  = $(shell (if indent --version 2>&1 | grep GNU > /dev/null; then echo indent ; elif gindent --version 2>&1 | grep GNU > /dev/null; then echo gindent; else echo true ; fi ))
 
 DEFAULT_CFLAGS = -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized \
-                 -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wstack-protector -fPIC \
-                 -std=c99 -D_POSIX_C_SOURCE=200112L -fstack-protector-all -O2 -I$(LIBCRYPTO_ROOT)/include/ \
+                 -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -fPIC \
+                 -std=c99 -D_POSIX_C_SOURCE=200809L -O2 -I$(LIBCRYPTO_ROOT)/include/ \
                  -I../api/ -I../ -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security \
                  -D_FORTIFY_SOURCE=2
+
+# Add a flag to disable stack protector for alternative libcs without
+# libssp.
+ifneq ($(NO_STACK_PROTECTOR), 1)
+DEFAULT_CFLAGS += -Wstack-protector -fstack-protector-all
+endif
 
 CFLAGS = ${DEFAULT_CFLAGS}
 
