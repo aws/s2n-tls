@@ -451,7 +451,7 @@ int main(int argc, char **argv)
         /* Verify that the CLIENT HELLO is accepted */
         s2n_negotiate(server_conn, &server_blocked);
         EXPECT_TRUE(s2n_conn_get_current_message_type(server_conn) > CLIENT_HELLO);
-        EXPECT_EQUAL(server_conn->handshake.handshake_type, FULL_NO_PFS);
+        EXPECT_EQUAL(server_conn->handshake.handshake_type & NEGOTIATED, NEGOTIATED);
 
         /* Verify that the that we detected secure_renegotiation */
         EXPECT_EQUAL(server_conn->secure_renegotiation, 1);
