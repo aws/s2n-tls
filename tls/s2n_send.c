@@ -116,6 +116,11 @@ ssize_t s2n_send(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
         writer = conn->client;
     }
 
+    /* Defensive check against an invalid retry */
+    if (conn->current_user_data_consumed > size) {
+        S2N_ERROR(S2N_ERR_SEND_SIZE);
+    }
+
     /* Now write the data we were asked to send this round */
     while (size - conn->current_user_data_consumed) {
         struct s2n_blob in = {.data = ((uint8_t *) buf) + conn->current_user_data_consumed };
