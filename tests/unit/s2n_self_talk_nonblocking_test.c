@@ -22,6 +22,8 @@
 
 #include <s2n.h>
 
+#include "utils/s2n_random.h"
+
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 
@@ -80,9 +82,10 @@ static char dhparams[] =
     "gzucyS7jt1bobgU66JKkgMNm7hJY4/nhR5LWTCzZyzYQh2HM2Vk4K5ZqILpj/n0S\n"
     "5JYTQ2PVhxP+Uu8+hICs/8VvM72DznjPZzufADipjC7CsQ4S6x/ecZluFtbb+ZTv\n" "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n" "-----END DH PARAMETERS-----\n";
 
-int mock_client(int writefd, int readfd, uint32_t size)
+int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size)
 {
-    uint8_t *ptr = malloc(size);
+    uint8_t *buffer = malloc(size);
+    uint8_t *ptr = buffer;
     struct s2n_connection *conn;
     struct s2n_config *config;
     s2n_blocked_status blocked;
@@ -100,7 +103,7 @@ int mock_client(int writefd, int readfd, uint32_t size)
 
     result = s2n_negotiate(conn, &blocked);
     if (result < 0) {
-        result = 1;
+        _exit(1);
     }
 
     /* Receive 10MB of data */
@@ -119,18 +122,25 @@ int mock_client(int writefd, int readfd, uint32_t size)
         shutdown_rc = s2n_shutdown(conn, &blocked);
     } while(shutdown_rc != 0);
 
+    for (int i = 0; i < size; i++) {
+        if (buffer[i] != expected_data[i]) {
+            _exit(1);
+        }
+    }
+
+    free(buffer);
     s2n_connection_free(conn);
 
     /* Give the server a chance to a void a sigpipe */
     sleep(1);
 
-    _exit(result);
+    _exit(0);
 }
 
 int main(int argc, char **argv)
 {
-    uint8_t buffer[10000000];
-    uint8_t *ptr = buffer;
+    uint8_t data[10000000];
+    uint8_t *ptr = data;
     struct s2n_connection *conn;
     struct s2n_config *config;
     s2n_blocked_status blocked;
@@ -138,6 +148,7 @@ int main(int argc, char **argv)
     pid_t pid;
     int server_to_client[2];
     int client_to_server[2];
+    struct s2n_blob blob = {.data = data, .size = sizeof(data)};
 
     BEGIN_TEST();
 
@@ -146,11 +157,13 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, certificate, private_key));
     EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams));
+
+    /* Get some random data to send/receive */
+    EXPECT_SUCCESS(s2n_get_urandom_data(&blob));
     
     /* Create a pipe */
     EXPECT_SUCCESS(pipe(server_to_client));
     EXPECT_SUCCESS(pipe(client_to_server));
-
 
     /* Create a child process */
     pid = fork();
@@ -160,7 +173,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(close(server_to_client[1]));
 
         /* Run the client */
-        mock_client(client_to_server[1], server_to_client[0], sizeof(buffer));
+        mock_client(client_to_server[1], server_to_client[0], data, sizeof(data));
     }
 
     /* This is the parent */
@@ -186,7 +199,7 @@ int main(int argc, char **argv)
 
     /* Try to all 10MB of data, should be enough to fill PIPEBUF, so
        we'll get blocked at some point */
-    uint32_t remaining = sizeof(buffer);
+    uint32_t remaining = sizeof(data);
     while (remaining) {
         int r = s2n_send(conn, ptr, remaining, &blocked);
         if (r < 0) {
@@ -201,13 +214,11 @@ int main(int argc, char **argv)
         ptr += r;
     }
         
-
     /* Remaining shouldn't have progressed at all */
-    EXPECT_EQUAL(remaining, sizeof(buffer));
+    EXPECT_EQUAL(remaining, sizeof(data));
 
     /* Wake the child process by sending it SIGCONT */
     EXPECT_SUCCESS(kill(pid, SIGCONT));
-
 
     /* Make our sockets blocking again */
     EXPECT_NOT_EQUAL(fcntl(client_to_server[0], F_SETFL, fcntl(client_to_server[0], F_GETFL) ^ O_NONBLOCK), -1);
