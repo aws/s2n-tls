@@ -9,6 +9,7 @@ addons:
         - gcc-6
         - g++-6
         - indent
+        - cppcheck
 
 os:
   - osx
@@ -24,6 +25,7 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew tap homebrew/versions ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew install gcc6          ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew install gnu-indent    ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew install cppcheck      ; fi
   # Set GCC 6 as Default on both Ubuntu and OSX
   - alias gcc=$(which gcc-6)
   # Install latest version of clang, clang++, and llvm-symbolizer and add them to beginning of PATH. Needed for fuzzing.
@@ -38,6 +40,7 @@ install:
   # Install prlimit to set the memlock limit to unlimited for this process
   - (test "$TRAVIS_OS_NAME" = "linux" && sudo "PATH=$PATH" .travis/install_prlimit.sh $PWD/.travis > /dev/null && sudo .travis/prlimit --pid "$$" --memlock=unlimited:unlimited) || true
   - mkdir -p .travis/checker && .travis/install_scan-build.sh .travis/checker && export PATH=$PATH:.travis/checker/bin
+  - .travis/run_cppcheck.sh
 
 script:
   - (test "$TRAVIS_OS_NAME" = "linux" && make -j8) || true

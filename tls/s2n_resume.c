@@ -93,7 +93,7 @@ static int s2n_deserialize_resumption_state(struct s2n_connection *conn, struct 
 
 int s2n_resume_from_cache(struct s2n_connection *conn)
 {
-    uint8_t data[S2N_STATE_SIZE_IN_BYTES];
+    uint8_t data[S2N_STATE_SIZE_IN_BYTES] = { 0 };
     struct s2n_blob entry = {.data = data,.size = S2N_STATE_SIZE_IN_BYTES };
     struct s2n_stuffer from;
     uint64_t size;
@@ -122,7 +122,7 @@ int s2n_resume_from_cache(struct s2n_connection *conn)
 
 int s2n_store_to_cache(struct s2n_connection *conn)
 {
-    uint8_t data[S2N_STATE_SIZE_IN_BYTES];
+    uint8_t data[S2N_STATE_SIZE_IN_BYTES] = { 0 };
     struct s2n_blob entry = {.data = data,.size = S2N_STATE_SIZE_IN_BYTES };
     struct s2n_stuffer to;
 

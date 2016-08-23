@@ -168,7 +168,6 @@ static int handshake_write_io(struct s2n_connection *conn)
 {
     uint8_t record_type = ACTIVE_STATE(conn).record_type;
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-    int max_payload_size;
 
     /* Populate handshake.io with header/payload for the current state, once.
      * Check wiped instead of s2n_stuffer_data_available to differentiate between the initial call
@@ -187,7 +186,7 @@ static int handshake_write_io(struct s2n_connection *conn)
     /* Write the handshake data to records in fragment sized chunks */
     struct s2n_blob out;
     while (s2n_stuffer_data_available(&conn->handshake.io) > 0) {
-
+        int max_payload_size;
         GUARD((max_payload_size = s2n_record_max_write_payload_size(conn)));
         out.size = MIN(s2n_stuffer_data_available(&conn->handshake.io), max_payload_size);
 

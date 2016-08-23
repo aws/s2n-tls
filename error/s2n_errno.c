@@ -110,14 +110,12 @@ struct s2n_error_translation EN[] = {
 
 const char *s2n_strerror(int error, const char *lang)
 {
-    const char *no_such_language = "Language is not supported for error translation";
-    const char *no_such_error = "Internal s2n error";
-
     if (lang == NULL) {
         lang = "EN";
     }
 
     if (strcasecmp(lang, "EN")) {
+        const char *no_such_language = "Language is not supported for error translation";
         return no_such_language;
     }
 
@@ -127,6 +125,7 @@ const char *s2n_strerror(int error, const char *lang)
         }
     }
 
+    const char *no_such_error = "Internal s2n error";
     return no_such_error;
 }
 

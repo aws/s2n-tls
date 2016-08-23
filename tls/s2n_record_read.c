@@ -237,7 +237,6 @@ int s2n_record_parse(struct s2n_connection *conn)
         if (s2n_verify_cbc(conn, mac, &en) < 0) {
             GUARD(s2n_stuffer_wipe(&conn->in));
             S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-            return -1;
         }
     } else {
         /* MAC check for streaming ciphers - no padding */
@@ -250,7 +249,6 @@ int s2n_record_parse(struct s2n_connection *conn)
         if (s2n_hmac_digest_verify(en.data + payload_length, check_digest, mac_digest_size) < 0) {
             GUARD(s2n_stuffer_wipe(&conn->in));
             S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-            return -1;
         }
     }
 
