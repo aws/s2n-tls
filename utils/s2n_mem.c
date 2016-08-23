@@ -58,7 +58,7 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
         return 0;
     }
 
-    uint32_t allocate = page_size * ((size + (page_size - 1)) / page_size);
+    uint32_t allocate = page_size * (((size - 1) / page_size) + 1);
 
     void *data;
     if (posix_memalign(&data, page_size, allocate)) {
