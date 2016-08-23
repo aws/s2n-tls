@@ -50,7 +50,6 @@ int s2n_server_ccs_recv(struct s2n_connection *conn)
     GUARD(s2n_stuffer_wipe(&conn->alert_in));
 
     if (IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type)) {
-        printf("Got here\n");
         GUARD(s2n_prf_key_expansion(conn));
     }
 
