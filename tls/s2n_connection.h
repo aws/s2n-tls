@@ -95,6 +95,11 @@ struct s2n_connection {
     /* How big is the record we are actively reading? */
     uint16_t current_in_record_size;
 
+    /* How much of the current user buffer have we already
+     * encrypted and have pending for the wire.
+     */
+    uint32_t current_user_data_consumed;
+
     /* An alert may be fragmented across multiple records,
      * this stuffer is used to re-assemble.
      */

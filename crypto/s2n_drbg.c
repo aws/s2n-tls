@@ -147,7 +147,13 @@ int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob)
         S2N_ERROR(S2N_ERR_DRBG_REQUEST_SIZE);
     }
 
-    GUARD(s2n_drbg_seed(drbg, &zeros));
+    /* If either the entropy generator is set, for prediction resistance,
+     * or if we reach the definitely-need-to-reseed limit, then reseed.
+     */
+    if (drbg->entropy_generator || drbg->bytes_used + blob->size + S2N_DRBG_BLOCK_SIZE >= S2N_DRBG_RESEED_LIMIT) {
+        GUARD(s2n_drbg_seed(drbg, &zeros));
+    }
+
     GUARD(s2n_drbg_bits(drbg, blob));
     GUARD(s2n_drbg_update(drbg, &zeros));
 

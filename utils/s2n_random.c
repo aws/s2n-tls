@@ -25,7 +25,11 @@
 #include <string.h>
 #include <stdint.h>
 #include <errno.h>
+#include <time.h>
+
+#if defined(__x86_64__)||defined(__i386__)
 #include <cpuid.h>
+#endif
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -43,6 +47,9 @@
 
 /* See https://en.wikipedia.org/wiki/CPUID */
 #define RDRAND_ECX_FLAG     0x40000000
+
+/* One second in nanoseconds */
+#define ONE_S  INT64_C(1000000000)
 
 static int entropy_fd = -1;
 
@@ -110,15 +117,39 @@ int s2n_get_urandom_data(struct s2n_blob *blob)
 {
     uint32_t n = blob->size;
     uint8_t *data = blob->data;
-
-    if (entropy_fd == -1) {
-        S2N_ERROR(S2N_ERR_RANDOM_UNITIALIZED);
-    }
+    struct timespec sleep_time = {.tv_sec = 0, .tv_nsec = 0 };
+    long backoff = 1;
 
     while (n) {
         int r = read(entropy_fd, data, n);
         if (r <= 0) {
-            sleep(1);
+            /*
+             * A non-blocking read() on /dev/urandom should "never" fail,
+             * except for EINTR. If it does, briefly pause and use
+             * exponential backoff to avoid creating a tight spinning loop.
+             *
+             * iteration          delay
+             * ---------    -----------------
+             *    1         10          nsec
+             *    2         100         nsec
+             *    3         1,000       nsec
+             *    4         10,000      nsec
+             *    5         100,000     nsec
+             *    6         1,000,000   nsec
+             *    7         10,000,000  nsec
+             *    8         99,999,999  nsec
+             *    9         99,999,999  nsec
+             *    ...
+             */
+            if (errno != EINTR) {
+                backoff = MIN(backoff * 10, ONE_S - 1);
+                sleep_time.tv_nsec = backoff;
+                do {
+                    r = nanosleep(&sleep_time, &sleep_time);
+                }
+                while (r != 0);
+            }
+
             continue;
         }
 
