@@ -347,7 +347,7 @@ int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blindi
 #define ONE_S  INT64_C(1000000000)
 #define TEN_S  INT64_C(10000000000)
 
-int64_t s2n_connection_get_delay(struct s2n_connection * conn)
+uint64_t s2n_connection_get_delay(struct s2n_connection * conn)
 {
     if (!conn->delay) {
         return 0;
