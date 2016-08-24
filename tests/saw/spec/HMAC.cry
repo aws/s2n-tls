@@ -827,3 +827,34 @@ hmac_c_state_correct : { key_size, msg_size }
            => HMAC_c_state -> [key_size][8] -> [msg_size][8] -> Bit
 property hmac_c_state_correct st0 key msg =
   hmacSHA256 key msg == hmac_c_state st0 key msg
+
+hmac_c_state_multi : { key_size, msg_size, msg_chunks}
+     ( 32 >= width msg_size, 64 >= width (8 * key_size), fin msg_chunks )
+  => HMAC_c_state -> [key_size][8] -> [msg_chunks][msg_size][8] -> [SHA256_DIGEST_LENGTH * 8]
+hmac_c_state_multi st0 key msgs = digest
+  where
+    initial_state = (hmac_init_c_state `{block_size=64,hash_block_size=64,digest_size=SHA256_DIGEST_LENGTH}
+         st0 alg key)
+    mid_state = hmac_update_c_state_multi initial_state msgs
+    (st1, digest) = hmac_digest_c_state `{block_size=64} mid_state
+  // Specialize to SHA256.
+    alg = S2N_HMAC_SHA256
+
+hmac_update_c_state_multi : {msg_size, msg_chunks}
+  ( 32 >= width msg_size, fin msg_chunks)
+  => HMAC_c_state -> [msg_chunks][msg_size][8] -> HMAC_c_state
+hmac_update_c_state_multi st msgs = states ! 0
+  where
+    states = [st] # [hmac_update_c_state s msg | msg <- msgs | s <- states]
+
+hmac_c_state_multi_correct : { key_size, msg_size, msg_chunks }
+              ( 32 >= width msg_size, 64 >= width (8 * key_size), fin msg_chunks, 32 >= width (msg_chunks * msg_size) )
+           => HMAC_c_state -> [key_size][8] -> [msg_chunks][msg_size][8] -> Bit
+property hmac_c_state_multi_correct st0 key msgs =
+    hmacSHA256 key (join msgs) == hmac_c_state_multi st0 key msgs
+
+hmac_update_append x y s =
+  hmac_update_c_state (hmac_update_c_state s x) y == hmac_update_c_state s (x # y)
+
+hash_update_append x y s =
+  hash_update_c_state (hash_update_c_state s x) y == hash_update_c_state s (x # y)
