@@ -179,7 +179,6 @@ uint8_t wire_format_20160824[] = {
     TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
     TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
     TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-    TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
     TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
     TLS_RSA_WITH_AES_128_GCM_SHA256,
     TLS_RSA_WITH_AES_128_CBC_SHA256,
@@ -222,7 +221,7 @@ struct {
     "20150306", &cipher_preferences_20150306}, {
     "20160411", &cipher_preferences_20160411}, {
     "20160804", &cipher_preferences_20160804}, {
-    "20160804", &cipher_preferences_20160824}, {
+    "20160824", &cipher_preferences_20160824}, {
     "test_all", &cipher_preferences_test_all}, {
     NULL, NULL}
 };
