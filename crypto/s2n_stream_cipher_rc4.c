@@ -25,7 +25,7 @@ static int s2n_stream_cipher_rc4_encrypt(struct s2n_session_key *key, struct s2n
     gte_check(out->size, in->size);
 
     int len = out->size;
-    if (EVP_EncryptUpdate(&key->evp_cipher_ctx, out->data, &len, in->data, in->size) == 0) {
+    if (EVP_EncryptUpdate(key->evp_cipher_ctx, out->data, &len, in->data, in->size) == 0) {
         S2N_ERROR(S2N_ERR_ENCRYPT);
     }
 
@@ -41,7 +41,7 @@ static int s2n_stream_cipher_rc4_decrypt(struct s2n_session_key *key, struct s2n
     gte_check(out->size, in->size);
 
     int len = out->size;
-    if (EVP_DecryptUpdate(&key->evp_cipher_ctx, out->data, &len, in->data, in->size) == 0) {
+    if (EVP_DecryptUpdate(key->evp_cipher_ctx, out->data, &len, in->data, in->size) == 0) {
         S2N_ERROR(S2N_ERR_ENCRYPT);
     }
 
@@ -55,7 +55,7 @@ static int s2n_stream_cipher_rc4_decrypt(struct s2n_session_key *key, struct s2n
 static int s2n_stream_cipher_rc4_get_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 16);
-    EVP_EncryptInit_ex(&key->evp_cipher_ctx, EVP_rc4(), NULL, in->data, NULL);
+    EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_rc4(), NULL, in->data, NULL);
 
     return 0;
 }
@@ -63,21 +63,21 @@ static int s2n_stream_cipher_rc4_get_encryption_key(struct s2n_session_key *key,
 static int s2n_stream_cipher_rc4_get_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 16);
-    EVP_DecryptInit_ex(&key->evp_cipher_ctx, EVP_rc4(), NULL, in->data, NULL);
+    EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_rc4(), NULL, in->data, NULL);
 
     return 0;
 }
 
 static int s2n_stream_cipher_rc4_init(struct s2n_session_key *key)
 {
-    EVP_CIPHER_CTX_init(&key->evp_cipher_ctx);
+    EVP_CIPHER_CTX_init(key->evp_cipher_ctx);
 
     return 0;
 }
 
 static int s2n_stream_cipher_rc4_destroy_key(struct s2n_session_key *key)
 {
-    EVP_CIPHER_CTX_cleanup(&key->evp_cipher_ctx);
+    EVP_CIPHER_CTX_cleanup(key->evp_cipher_ctx);
 
     return 0;
 }

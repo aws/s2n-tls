@@ -32,7 +32,7 @@ struct s2n_drbg {
     /* Track how many bytes have been used */
     uint64_t bytes_used;
     
-    EVP_CIPHER_CTX ctx;
+    EVP_CIPHER_CTX *ctx;
 
     /* The current DRBG 'value' */
     uint8_t v[16];
