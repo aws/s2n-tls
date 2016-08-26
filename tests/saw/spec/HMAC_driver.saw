@@ -1,0 +1,256 @@
+////////////////////////////////////////////////////////////////
+// Copyright 2016 Galois, Inc. All Rights Reserved
+//
+// Authors:
+//      Aaron Tomb : atomb@galois.com
+//	Nathan Collins : conathan@galois.com
+//      Joey Dodds : jdodds@galois.com
+//
+// Licensed under the Apache License, Version 2.0 (the "License").
+// You may not use this file except in compliance with the License.
+// A copy of the License is located at
+//
+//  http://aws.amazon.com/apache2.0
+//
+// or in the "license" file accompanying this file. This file is distributed
+// on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+// express or implied. See the License for the specific language governing
+// permissions and limitations under the License.
+//
+////////////////////////////////////////////////////////////////
+
+include "HMAC.saw";
+
+let json_string key_size msg_size function
+    (cfg : { name            : String
+             , hmac_alg        : Term
+             , digest_size     : Int
+             , block_size      : Int
+             , hash_block_size : Int
+             }) time_seconds provers complexity
+	     = do{
+	     return
+		(str_concat "***BEGIN JSON FOR METRICS \n"
+ 	  	(str_concat "{\"Name\": \""
+ 	  	(str_concat cfg.name
+ 	  	(str_concat ", key size = "
+ 	  	(str_concat (show key_size)
+ 	  	(str_concat ", msg size = "
+ 	  	(str_concat (show msg_size)
+		(str_concat "\", \"Function\" : \""
+		(str_concat function
+ 	  	(str_concat "\", \"Size\" : "
+ 	  	(str_concat (show (eval_size {| key_size + msg_size |}))
+		(str_concat ", \"Time\" : "
+		(str_concat (show time_seconds)
+		(str_concat ", \"Provers\" : "
+		(str_concat (show provers)
+		(str_concat ", \"Complexity\" : "
+		(str_concat (show complexity)
+ 	  	("}\n***END JSON FOR METRICS"))))))))))))))))));
+ };
+
+let verify_s2n_hmac
+      key_size
+      msg_size
+      (cfg : { name            : String
+             , hmac_alg        : Term
+             , digest_size     : Int
+             , block_size      : Int
+             , hash_block_size : Int
+             }) = do {
+  set_base 16;
+  print "";
+  print (str_concat "Verifying HMAC: alg = "
+        (str_concat cfg.name
+        (str_concat ", key size = "
+        (str_concat (show key_size)
+        (str_concat ", msg size = "
+        (str_concat (show msg_size)
+                    " ..."))))));
+
+
+  (t, hash_init_ov)   <- with_time (llvm_verify m "s2n_hash_init"   [] hash_init_spec);
+
+let solvers = llvm_spec_solvers hash_init_ov;
+  let complexity = llvm_spec_size hash_init_ov;
+  str <- (json_string key_size msg_size "s2n_hash_init" cfg t solvers complexity);
+  print(str);
+
+
+  (t, hash_digest_ov) <- with_time (llvm_verify m "s2n_hash_digest" []
+    (hash_digest_spec (cfg.digest_size)));
+
+  let solvers = llvm_spec_solvers hash_digest_ov;
+  let complexity = llvm_spec_size hash_digest_ov;
+  str <- (json_string key_size msg_size "s2n_hash_digest" cfg t solvers complexity);
+  print(str);
+
+
+  (t, hash_update_key_size_ov) <- with_time (llvm_verify m "s2n_hash_update" []
+    (hash_update_spec key_size));
+
+  let solvers = llvm_spec_solvers hash_update_key_size_ov;
+  let complexity = llvm_spec_size hash_update_key_size_ov;
+  str <- (json_string key_size msg_size "s2n_hash_update_key_size" cfg t solvers complexity);
+  print(str);
+
+
+  (t, hash_update_block_size_ov)  <- with_time (llvm_verify m "s2n_hash_update" []
+    (hash_update_spec cfg.block_size));
+
+  let solvers = llvm_spec_solvers hash_update_block_size_ov;
+  let complexity = llvm_spec_size hash_update_block_size_ov;
+  str <- (json_string key_size msg_size "s2n_hash_update_block_size" cfg t solvers complexity);
+  print(str);
+
+  (t, hash_update_msg_size_ov)    <- with_time (llvm_verify m "s2n_hash_update" []
+    (hash_update_spec msg_size));
+
+  let solvers = llvm_spec_solvers hash_update_msg_size_ov;
+  let complexity = llvm_spec_size hash_update_msg_size_ov;
+  str <- (json_string key_size msg_size "s2n_hash_update_msg_size" cfg t solvers complexity);
+  print(str);
+
+  (t, hash_update_digest_size_ov) <- with_time (llvm_verify m "s2n_hash_update" []
+    (hash_update_spec cfg.digest_size));
+
+  let solvers = llvm_spec_solvers hash_update_digest_size_ov;
+  let complexity = llvm_spec_size hash_update_digest_size_ov;
+  str <- (json_string key_size msg_size "s2n_hash_update_digest_size" cfg t solvers complexity);
+  print(str);
+
+
+  let hash_ovs =
+    [ hash_init_ov
+    , hash_update_key_size_ov
+    , hash_update_block_size_ov
+    , hash_update_msg_size_ov
+    , hash_update_digest_size_ov
+    , hash_digest_ov
+    ];
+
+  (t, hmac_init_ov) <-
+    with_time (llvm_verify m "s2n_hmac_init"   hash_ovs (hmac_init_spec key_size cfg));
+
+  let solvers = llvm_spec_solvers hmac_init_ov;
+  let complexity = llvm_spec_size hmac_init_ov;
+  str <- (json_string key_size msg_size "s2n_hmac_init" cfg t solvers complexity);
+  print(str);
+
+  (t, hmac_update_ov) <-
+    with_time (llvm_verify m "s2n_hmac_update" hash_ovs (hmac_update_spec msg_size cfg));
+
+  let solvers = llvm_spec_solvers hmac_update_ov;
+  let complexity = llvm_spec_size hmac_update_ov;
+  str <- (json_string key_size msg_size "s2n_hmac_update" cfg t solvers complexity);
+  print(str);
+
+  (t, hmac_digest_ov) <-
+    with_time (llvm_verify m "s2n_hmac_digest" hash_ovs (hmac_digest_spec cfg));
+
+  let solvers = llvm_spec_solvers hmac_digest_ov;
+  let complexity = llvm_spec_size hmac_digest_ov;
+  str <- (json_string key_size msg_size "s2n_hmac_digest" cfg t solvers complexity);
+  print(str);
+
+  print "Done!";
+
+
+};
+
+////////////////////////////////////////////////////////////////
+
+
+let none_cfg =
+  { name            = "NONE"
+  , hmac_alg        = {{ S2N_HMAC_NONE }}
+  , digest_size     = 0
+  , block_size      = 64
+  , hash_block_size = 64
+  };
+
+// let sslv3_md5_cfg = <not supported>
+
+let md5_cfg =
+  { name            = "MD5"
+  , hmac_alg        = {{ S2N_HMAC_MD5 }}
+  , digest_size     = 16
+  , block_size      = 64
+  , hash_block_size = 64
+  };
+
+// let sslv3_sha1_cfg = <not supported>
+
+let sha1_cfg =
+  { name            = "SHA1"
+  , hmac_alg        = {{ S2N_HMAC_SHA1 }}
+  , digest_size     = 20
+  , block_size      = 64
+  , hash_block_size = 64
+  };
+
+let sha224_cfg =
+  { name            = "SHA224"
+  , hmac_alg        = {{ S2N_HMAC_SHA224 }}
+  , digest_size     = 28
+  , block_size      = 64
+  , hash_block_size = 64
+  };
+
+let sha256_cfg =
+  { name            = "SHA256"
+  , hmac_alg        = {{ S2N_HMAC_SHA256 }}
+  , digest_size     = 32
+  , block_size      = 64
+  , hash_block_size = 64
+  };
+
+let sha384_cfg =
+  { name            = "SHA384"
+  , hmac_alg        = {{ S2N_HMAC_SHA384 }}
+  , digest_size     = 48
+  , block_size      = 128
+  , hash_block_size = 128
+  };
+
+let sha512_cfg =
+  { name            = "SHA512"
+  , hmac_alg        = {{ S2N_HMAC_SHA512 }}
+  , digest_size     = 64
+  , block_size      = 128
+  , hash_block_size = 128
+  };
+
+
+    
+
+// We need to verify key lengths above and below-or-equal to the block
+// size, in order to exercise both versions of the key initialization
+// code.
+//
+// For SHA256, the block size is 64. Timing stats for different key
+// sizes:
+//
+// abc/sha256:
+//   62: 52 minutes!
+//   63: 2 minutes
+//   64: 1 minute     // key size == block size
+//   65: 2.5 minutes
+//   66: 2.5 minutes
+
+
+let verify_s2n_hmac_at_several_key_and_msg_sizes
+      (cfg : { name            : String
+             , hmac_alg        : Term
+             , digest_size     : Int
+             , block_size      : Int
+             , hash_block_size : Int
+             }) = do {
+  let block_size = cfg.block_size;
+  for [ /* eval_size {| block_size - 1 |}, */
+        cfg.block_size
+      , eval_size {| block_size + 1 |}] (\key_size ->
+    for [1,10,100,200] (\msg_size ->
+      verify_s2n_hmac key_size msg_size cfg));
+};
