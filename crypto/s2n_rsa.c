@@ -76,6 +76,10 @@ int s2n_asn1der_to_rsa_private_key(struct s2n_rsa_private_key *key, struct s2n_b
         S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
     }
 
+    if (!RSA_check_key(key->rsa)) {
+        S2N_ERROR(S2N_ERR_PRIVATE_KEY_CHECK);
+    }
+
     return 0;
 }
 
