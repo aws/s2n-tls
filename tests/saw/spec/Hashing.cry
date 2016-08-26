@@ -1,0 +1,224 @@
+////////////////////////////////////////////////////////////////
+// Copyright 2016 Galois, Inc. All Rights Reserved
+//
+// Authors:
+//      Aaron Tomb : atomb@galois.com
+//	Nathan Collins : conathan@galois.com
+//      Joey Dodds : jdodds@galois.com
+//
+// Licensed under the Apache License, Version 2.0 (the "License").
+// You may not use this file except in compliance with the License.
+// A copy of the License is located at
+//
+//  http://aws.amazon.com/apache2.0
+//
+// or in the "license" file accompanying this file. This file is distributed
+// on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+// express or implied. See the License for the specific language governing
+// permissions and limitations under the License.
+//
+////////////////////////////////////////////////////////////////
+
+module Hashing where
+
+import SHA256
+
+
+////////////////////////////////////////////////////////////////
+// Hashing 
+////////////////////////////////////////////////////////////////
+
+// s2n_hash.h
+/*
+typedef enum { S2N_HASH_NONE, S2N_HASH_MD5, S2N_HASH_SHA1, S2N_HASH_SHA224, S2N_HASH_SHA256, S2N_HASH_SHA384,
+    S2N_HASH_SHA512, S2N_HASH_MD5_SHA1
+} s2n_hash_algorithm;
+*/
+S2N_HASH_NONE     = 0:[32]
+S2N_HASH_MD5      = 1:[32]
+S2N_HASH_SHA1     = 2:[32]
+S2N_HASH_SHA224   = 3:[32]
+S2N_HASH_SHA256   = 4:[32]
+S2N_HASH_SHA384   = 5:[32]
+S2N_HASH_SHA512   = 6:[32]
+S2N_HASH_MD5_SHA1 = 7:[32]
+
+// /usr/include/openssl/sha.h
+/*
+134 typedef struct SHA256state_st {
+135     SHA_LONG h[8];
+136     SHA_LONG Nl, Nh;
+137     SHA_LONG data[SHA_LBLOCK];
+138     unsigned int num, md_len;
+139 } SHA256_CTX;
+*/
+// Looking at the generated LLVM in ':/src/hmac.ll' gives the precise
+// layout, without having to find the definitions of the above
+// macros.
+/*
+%struct.SHA512state_st = type { [8 x i64], i64, i64, %union.anon.0, i32, i32 }
+%union.anon.0 = type { [16 x i64] }
+*/
+
+// The hash state in s2n is stored in a union, and the largest member
+// of that union is the SHA512 hash state. So, we need to translate
+// between SHA512 and SHA256 hash states.
+//
+// /usr/include/openssl/sha.h
+/*
+183 typedef struct SHA512state_st {
+184     SHA_LONG64 h[8];
+185     SHA_LONG64 Nl, Nh;
+186     union {
+187         SHA_LONG64 d[SHA_LBLOCK];
+188         unsigned char p[SHA512_CBLOCK];
+189     } u;
+190     unsigned int num, md_len;
+191 } SHA512_CTX;
+*/
+// :/src/hmac.ll
+/*
+%struct.SHA256state_st = type { [8 x i32], i32, i32, [16 x i32], i32, i32 }
+*/
+
+type SHA512_c_state =
+  { h      : [8][64]
+  , Nl     : [64]
+  , Nh     : [64]
+  , u      : [16][64]
+  , num    : [32]
+  , md_len : [32]
+  }
+type SHA512_c_bits = 8*64+64+64+16*64+32+32
+
+join512_c_state : SHA512_c_state -> [SHA512_c_bits]
+join512_c_state st = join st.h # st.Nl # st.Nh # join st.u # st.num # st.md_len
+
+type SHA256_c_state =
+  { h      : [8][32]
+  , Nl     : [32]     // The low bits of 'sz'.
+  , Nh     : [32]     // The high bits of 'sz'.
+  , u      : [16][32] // The 'block': '[16][32] == [8][64]' when flattened.
+  , num    : [32]     // The 'n', but extended to 32 bits.
+  , md_len : [32]     // The value of 'md_len' is always 32,
+  }                   // i.e. 'SHA256_DIGEST_LENGTH'.
+type SHA256_c_bits = 8*32+32+32+16*32+32+32
+
+join256_c_state : SHA256_c_state -> [SHA256_c_bits]
+join256_c_state st = join st.h # st.Nl # st.Nh # join st.u # st.num # st.md_len
+
+type SHA256_DIGEST_LENGTH = 32
+type SHA512_DIGEST_LENGTH = 64
+
+
+// Recall the 'SHA256State' in our Cryptol model in './SHA256.cry':
+/*
+type SHA256State = { h     : [8][32]
+                   , block : [64][8]
+                   , n     : [16]
+                   , sz    : [64]
+                   }
+*/
+
+////////////////////////////////////////////////////////////////
+// Basic hash-state translations.
+
+// The following code describes how to marshall back and forth between a
+// SHA256 C state and a SHA512 C state. Doing this is unnecessary for the
+// HMAC verification, but it is necessary to concretely evaluate the specs.
+// The rest of this section, therefore, does not need to be trusted.
+
+// I'm using the initial, high order bits of the SHA512 state to
+// construct the SHA256 state. The LLVM code doesn't make it clear
+// that this is correct -- it depends on the semantics of 'bitcast' --
+// but I did an experiment which validates this choice; see
+// 'examples/llvm/union' in the SAWScript repo.
+sha512_c_state_to_sha256_c_state : SHA512_c_state -> SHA256_c_state
+sha512_c_state_to_sha256_c_state st =
+  { h      = split (take bits)
+  , Nl     = take (drop`{front=8*32} bits)
+  , Nh     = take (drop`{front=8*32+32} bits)
+  , u      = split (take (drop`{front=8*32+32+32} bits))
+  , num    = take (drop`{front=8*32+32+32+16*32} bits)
+  , md_len = drop`{front=8*32+32+32+16*32+32} bits
+  }
+  where
+    bits : [SHA256_c_bits]
+    bits = take bits0
+    bits0 : [SHA512_c_bits]
+    bits0 = join512_c_state st
+
+// We need the original state, 'st0', to compute the trailing SHA512
+// bits which aren't used in the SHA256 state.
+sha256_c_state_to_sha512_c_state : SHA512_c_state -> SHA256_c_state -> SHA512_c_state
+sha256_c_state_to_sha512_c_state st0 st =
+  { h      = split (take bits)
+  , Nl     = take (drop`{front=8*64} bits)
+  , Nh     = take (drop`{front=8*64+64} bits)
+  , u      = split (take (drop`{front=8*64+64+64} bits))
+  , num    = take (drop`{front=8*64+64+64+16*64} bits)
+  , md_len = drop`{front=8*64+64+64+16*64+32} bits
+  }
+  where
+    bits : [SHA512_c_bits]
+    bits = join256_c_state st # drop bits0
+    bits0 : [SHA512_c_bits]
+    bits0 = join512_c_state st0
+
+sha256_c_state_to_sha256_state : SHA256_c_state -> SHA256State
+sha256_c_state_to_sha256_state st =
+  { h     = st.h
+  , block = split (join st.u)
+  , n     = drop st.num
+  , sz    = st.Nh # st.Nl
+  }
+  where
+    bits : [SHA256_c_bits]
+    bits = join256_c_state st
+
+sha256_state_to_sha256_c_state : SHA256State -> SHA256_c_state
+sha256_state_to_sha256_c_state st =
+  { h      = st.h
+  , Nl     = Nl
+  , Nh     = Nh
+  , u      = split (join st.block)
+  , num    = (zero # st.n) : [32]
+  , md_len = `SHA256_DIGEST_LENGTH : [32]
+  }
+  where
+    [Nh, Nl] = split st.sz
+
+////////////////////////////////////////////////////////////////
+// Composed hash-state translations.
+
+sha512_c_state_to_sha256_state : SHA512_c_state -> SHA256State
+sha512_c_state_to_sha256_state st =
+  sha256_c_state_to_sha256_state (sha512_c_state_to_sha256_c_state st)
+
+sha256_state_to_sha512_c_state : SHA512_c_state -> SHA256State -> SHA512_c_state
+sha256_state_to_sha512_c_state st0 st =
+  sha256_c_state_to_sha512_c_state st0 (sha256_state_to_sha256_c_state st)
+
+////////////////////////////////////////////////////////////////
+// SHA256 specs in terms of the SHA512 C hash state.
+
+sha256_init_sha512_c_state : SHA512_c_state -> SHA512_c_state
+sha256_init_sha512_c_state st0_c_512 = st1_c_512
+  where
+    st0_256 = SHA256Init
+    st1_c_512 = sha256_state_to_sha512_c_state st0_c_512 st0_256
+
+sha256_update_sha512_c_state : {n} (fin n) => SHA512_c_state -> [n][8] -> SHA512_c_state
+sha256_update_sha512_c_state st0_c_512 in = st1_c_512
+  where
+    st0_256 = sha512_c_state_to_sha256_state st0_c_512
+    st1_256 = SHA256Update st0_256 in
+    st1_c_512 = sha256_state_to_sha512_c_state st0_c_512 st1_256
+
+// We don't return a new 'SHA512_c_state', since it's unspecified (I
+// think ...).
+sha256_digest_sha512_c_state : SHA512_c_state -> [SHA256_DIGEST_LENGTH][8]
+sha256_digest_sha512_c_state st0_c_512 = out1
+  where
+    st0_256 = sha512_c_state_to_sha256_state st0_c_512
+    out1 = split (SHA256Final st0_256)

@@ -1,0 +1,92 @@
+////////////////////////////////////////////////////////////////
+// Copyright 2016 Galois, Inc. All Rights Reserved
+//
+// Authors:
+//      Aaron Tomb : atomb@galois.com
+//	Nathan Collins : conathan@galois.com
+//      Joey Dodds : jdodds@galois.com
+//
+// Licensed under the Apache License, Version 2.0 (the "License").
+// You may not use this file except in compliance with the License.
+// A copy of the License is located at
+//
+//  http://aws.amazon.com/apache2.0
+//
+// or in the "license" file accompanying this file. This file is distributed
+// on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+// express or implied. See the License for the specific language governing
+// permissions and limitations under the License.
+//
+////////////////////////////////////////////////////////////////
+
+module HMAC_properties where
+
+import HMAC
+import Hashing
+import HMAC_iterative
+
+//////// Equivalence of implementations ////////
+//
+// This is specialized to SHA256, since we don't have concrete
+// implementations of the other algorithms.
+hmac_c_state : { key_size, msg_size }
+     ( 32 >= width msg_size, 64 >= width (8 * key_size) )
+  => HMAC_c_state -> [key_size][8] -> [msg_size][8] -> [SHA256_DIGEST_LENGTH * 8]
+hmac_c_state st0 key msg = digest
+  where
+  (st1, digest) =
+    hmac_digest_c_state `{block_size=64}
+      (hmac_update_c_state
+        (hmac_init_c_state `{block_size=64,hash_block_size=64,digest_size=SHA256_DIGEST_LENGTH}
+         st0 alg key)
+        msg)
+  // Specialize to SHA256.
+  alg = S2N_HMAC_SHA256
+
+hmac_c_state_correct : { key_size, msg_size }
+              ( 32 >= width msg_size, 64 >= width (8 * key_size) )
+           => HMAC_c_state -> [key_size][8] -> [msg_size][8] -> Bit
+property hmac_c_state_correct st0 key msg =
+  hmacSHA256 key msg == hmac_c_state st0 key msg
+
+hmac_c_state_multi : { key_size, msg_size, msg_chunks}
+     ( 32 >= width msg_size, 64 >= width (8 * key_size), fin msg_chunks )
+  => HMAC_c_state -> [key_size][8] -> [msg_chunks][msg_size][8] -> [SHA256_DIGEST_LENGTH * 8]
+hmac_c_state_multi st0 key msgs = digest
+  where
+    initial_state = (hmac_init_c_state `{block_size=64,hash_block_size=64,digest_size=SHA256_DIGEST_LENGTH}
+         st0 alg key)
+    mid_state = hmac_update_c_state_multi initial_state msgs
+    (st1, digest) = hmac_digest_c_state `{block_size=64} mid_state
+  // Specialize to SHA256.
+    alg = S2N_HMAC_SHA256
+
+hmac_update_c_state_multi : {msg_size, msg_chunks}
+  ( 32 >= width msg_size, fin msg_chunks)
+  => HMAC_c_state -> [msg_chunks][msg_size][8] -> HMAC_c_state
+hmac_update_c_state_multi st msgs = states ! 0
+  where
+    states = [st] # [hmac_update_c_state s msg | msg <- msgs | s <- states]
+
+hmac_c_state_multi_correct : { key_size, msg_size, msg_chunks }
+              ( 32 >= width msg_size, 64 >= width (8 * key_size), fin msg_chunks, 32 >= width (msg_chunks * msg_size) )
+           => HMAC_c_state -> [key_size][8] -> [msg_chunks][msg_size][8] -> Bit
+property hmac_c_state_multi_correct st0 key msgs =
+    hmacSHA256 key (join msgs) == hmac_c_state_multi st0 key msgs
+
+hmac_update_append x y s =
+  hmac_update_c_state (hmac_update_c_state s x) y == hmac_update_c_state s (x # y)
+
+hash_update_append x y s =
+  hash_update_c_state (hash_update_c_state s x) y == hash_update_c_state s (x # y)
+
+hmac_update_append_init x y k st0 =
+    hmac_update_c_state (hmac_update_c_state s x) y == hmac_update_c_state s (x # y)
+    where
+      s = hmac_init_c_state st0 S2N_HMAC_SHA256 k
+
+property pass =
+    ~zero ==
+    [ hmacSHA256 [0x0b | _ <- [1..20] : [_][6]] "Hi There" == 0xb0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7
+    , hmacSHA256 "Jefe" "what do ya want for nothing?" == 0x5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843
+    ]
