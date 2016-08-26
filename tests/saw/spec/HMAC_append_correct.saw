@@ -25,10 +25,10 @@ let hash_lemma = rewrite (cryptol_ss ()) (unfold_term ["hash_update_append"] {{h
 // print_term hash_lemma;
 
 time (prove_print (do {
-     		       unfolding ["hmac_update_append"];
-		       unfolding ["hmac_update_c_state"];
+     		       unfolding ["hmac_update_append_init"];
+		       unfolding ["hmac_update_c_state", "hmac_init_c_state"];
 		       simplify(cryptol_ss ());
 		       simplify (addsimp' hash_lemma empty_ss);
      		       print_goal;
 		       assume_unsat;
-		     }) {{hmac_update_append}} );
+		     }) {{hmac_update_append_init}} );
