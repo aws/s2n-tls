@@ -431,6 +431,16 @@ int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config, cha
         memcpy_check(config->cert_and_key_pairs->ocsp_status.data, status, length);
     }
 
+    /* Validate the leaf cert's public key matches the provided private key */
+    struct s2n_rsa_public_key public_key;
+    GUARD(s2n_asn1der_to_rsa_public_key(&public_key, &config->cert_and_key_pairs->head->cert));
+    const int key_match_ret = s2n_rsa_keys_match(&public_key, &config->cert_and_key_pairs->private_key);
+    GUARD(s2n_rsa_public_key_free(&public_key));
+    if (key_match_ret < 0) {
+        /* s2n_errno already set */
+        return -1;
+    }
+
     return 0;
 }
 
