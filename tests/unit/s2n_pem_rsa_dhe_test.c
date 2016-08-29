@@ -115,6 +115,35 @@ static uint8_t private_key[] =
     "hVm8RQKBgQCB9Skzdftc+14a4Vj3NCgdHZHz9mcdPhzJXUiQyZ3tYhaytX9E8mWq\n"
     "pm/OFqahbxw6EQd86mgANBMKayD6B1Id1INqtXN1XYI50bSs1D2nOGsBM7MK9aWD\n" "JXlJ2hwsIc4q9En/LR3GtBaL84xTHGfznNylNhXi7GbO1wNMJuAukA==\n" "-----END RSA PRIVATE KEY-----\n";
 
+static uint8_t unmatched_private_key[] =
+    "-----BEGIN RSA PRIVATE KEY-----\n"
+    "MIIEpQIBAAKCAQEA6ddvtO6DbX5GLrWeXD2jufmR6lvYuzwpIHbDf0RQr2AT50wf\n"
+    "vV+sMYVa/d4g68tqtihH691tqzKevVc25LXM0a0f0NfnrNibyA1/66CwFQsyy1j2\n"
+    "U90BdguI/ZxqEV58ee/PzerOoS5d/rgBALzGwwYwyvlzr35KGjfRZ4XOFoToKnkN\n"
+    "0mR44firCvb7dJ53QRXoPbkYpQQQ3vMWMOtDZoPsvP0dJJ50B7LaFL6nbOyJmZ2T\n"
+    "evaAov1Nuk5QSrZf2icpuQVXxuu2xLmTNL25OUiV3t7ZjiLtrOZrmrIzv8/sLcWp\n"
+    "VJcFWFoKizmjvpDfD086a9c81vo4kqgD/RZ9dQIDAQABAoIBAQDBNUzJ3MxgupW4\n"
+    "YD2BDzjpH2jNj6fKRBHjDd3HmKVl0eeAE2iiKpt2qy2cVl0zFfaMnUmXe3PyoLeB\n"
+    "z76+R+v8TqPcBZgZOzuzllvcTv9N09vbIh0c+50KcMt2aDdHNJ96jIdRJzIlAM+O\n"
+    "9290sYU0fDfybRuFo74MXZQ6idbWyNMjXEv2oPrmvMmOHm10sz9BCXWFUpDpDFKD\n"
+    "8xgw1GZ1QeHITWoQXMI2uJUFFj2hYbRAl6f8cMXVjUipmMNpfJk4CbtEdSMPkjrz\n"
+    "XgIVrMCorCiaLuVQgSQCHB01n8ETM6R9PYSgMSg3RYYqKq4N0nvREUf4VvKV8JOY\n"
+    "EGzNgq3BAoGBAPvHPoCKQawLEr4jE5ITMqhZXlBXh8aU7LetjSY1BfnsiH43eg1n\n"
+    "186lfOX0r1I2KkVZTehZohkEo8xeEpc+XMdux1z0mX2uz1tfmHl838sRaTBs1JZ0\n"
+    "slkBrASfDdOnLlHCMhRmFEEnA0eelNYCiy/Ak0UX7NpuhZ3bh2jGemixAoGBAO3D\n"
+    "MupFbCl64AFEuLCA3wSFRhG82AScYAF1txoTM01V/kqy66j2jJsqMXkVcyBcLBkJ\n"
+    "5ozW4kIKkh0dYtIjDpsnXKBK/kVcvJN+60hwVnAMFFJPlRCdejkKSsSe9xod+FzU\n"
+    "DvwWLpLaO3sFtykGHelFbzMDB6FaZQFSfSMsNhIFAoGBAKaNafor+z9s38wpdfPG\n"
+    "gVc+LxakoGur7l+fDeU9ZCOs5ang1vtxOyA29sVDtIqEzDet2MygJou4NwalIFUu\n"
+    "ar9+t6D1KWgrsH24YivTgFNbxCLFi2ev8J7SbVFtSf8983UgKnK2CCYFQbUp4Tkk\n"
+    "26AOGx20svjX7cm8A/o6eZUxAoGBANtedXSnNuOSpmklMc5QKPRvzrWA6kJe0Umn\n"
+    "hZf+TSA2jlf3eu07BYIITPst6jnaMSms89XQUZOjUyqfuVSu2cQXbiPK7Y2rwaXI\n"
+    "vWbplybsTjefi6Z31ZQZReDh1pV3P3bOhUDban898RFRtauZJDHdSXrkeb7Ku1Sb\n"
+    "+i9glEbNAoGAJngXJZ2djyzCxYtSNyUFP8AZfmSy+vmHVCCri1FCoFfj9D1HTw4h\n"
+    "G0guyN3/Qm51gJVeBTOu/dtoA5JAZi6CRyNuhClLCqV+jGsUr9xyMzA+t/JHVr+0\n"
+    "XQhx4wqVYQs2852qaJg+wYUi50FtRT6hLyDQmg9ttvS4YIwMTdVzl2Q=\n"
+    "-----END RSA PRIVATE KEY-----\n";
+
 static uint8_t dhparams[] =
     "-----BEGIN DH PARAMETERS-----\n"
     "MIIBCAKCAQEAy1+hVWCfNQoPB+NA733IVOONl8fCumiz9zdRRu1hzVa2yvGseUSq\n"
@@ -168,16 +197,16 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_rsa_keys_match(&pub_key, &priv_key));
 
-    struct s2n_connection *conn;
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(conn->config, (char *)chain, (char *)private_key));
+    struct s2n_config *config;
+    EXPECT_NOT_NULL(config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, (char *)chain, (char *)private_key));
 
     struct s2n_dh_params dh_params;
     b.size = s2n_stuffer_data_available(&dhparams_out);
     b.data = s2n_stuffer_raw_read(&dhparams_out, b.size);
     EXPECT_SUCCESS(s2n_pkcs3_to_dh_params(&dh_params, &b));
 
-    EXPECT_SUCCESS(s2n_config_add_dhparams(conn->config, (char *)dhparams));
+    EXPECT_SUCCESS(s2n_config_add_dhparams(config, (char *)dhparams));
 
     /* Try signing and verification with RSA */
     uint8_t inputpad[] = "Hello world!";
@@ -201,12 +230,16 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_rsa_sign(&priv_key, &tls12_one, &signature));
     EXPECT_SUCCESS(s2n_rsa_verify(&pub_key, &tls12_two, &signature));
 
+    EXPECT_SUCCESS(s2n_config_free(config));
+
+    /* Mismatched public/private key should fail */
+    EXPECT_NOT_NULL(config = s2n_config_new());
+    EXPECT_FAILURE(s2n_config_add_cert_chain_and_key(config, (char *)chain, (char *)unmatched_private_key));
+    EXPECT_SUCCESS(s2n_config_free(config));
+
     EXPECT_SUCCESS(s2n_dh_params_free(&dh_params));
     EXPECT_SUCCESS(s2n_rsa_private_key_free(&priv_key));
     EXPECT_SUCCESS(s2n_rsa_public_key_free(&pub_key));
-    EXPECT_SUCCESS(s2n_config_free_dhparams(conn->config));
-    EXPECT_SUCCESS(s2n_config_free_cert_chain_and_key(conn->config));
-    EXPECT_SUCCESS(s2n_connection_free(conn));
     EXPECT_SUCCESS(s2n_free(&signature));
     EXPECT_SUCCESS(s2n_stuffer_free(&certificate_in));
     EXPECT_SUCCESS(s2n_stuffer_free(&certificate_out));
