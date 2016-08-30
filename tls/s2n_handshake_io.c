@@ -30,6 +30,7 @@
 #include "stuffer/s2n_stuffer.h"
 
 #include "utils/s2n_safety.h"
+#include "utils/s2n_socket.h"
 #include "utils/s2n_random.h"
 
 /* From RFC5246 7.4 */
@@ -107,12 +108,44 @@ static message_type_t handshakes[6][16] = {
 };
 
 #define ACTIVE_MESSAGE( conn ) handshakes[ (conn)->handshake.handshake_type ][ (conn)->handshake.message_number ]
+#define PREVIOUS_MESSAGE( conn ) handshakes[ (conn)->handshake.handshake_type ][ (conn)->handshake.message_number - 1 ]
+
 #define ACTIVE_STATE( conn ) state_machine[ ACTIVE_MESSAGE( (conn) ) ]
+#define PREVIOUS_STATE( conn ) state_machine[ PREVIOUS_MESSAGE( (conn) ) ]
 
 /* Used in our test cases */
 message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn)
 {
     return ACTIVE_MESSAGE(conn);
+}
+
+static int s2n_advance_message(struct s2n_connection *conn)
+{
+    char this = 'S';
+    if (conn->mode == S2N_CLIENT) {
+        this = 'C';
+    }
+
+    /* Actually advance the message number */
+    conn->handshake.message_number++;
+
+    /* Are we changing I/O directions */
+    if (ACTIVE_STATE(conn).writer == PREVIOUS_STATE(conn).writer) {
+        return 0;
+    }
+
+    /* We're the new writer */
+    if (ACTIVE_STATE(conn).writer == this) {
+        /* Set TCP_CORK/NOPUSH */
+        GUARD(s2n_socket_cork(conn));
+
+        return 0;
+    }
+
+    /* We're the new reader - release the data */
+    GUARD(s2n_socket_uncork(conn));
+
+    return 0;
 }
 
 int s2n_conn_set_handshake_type(struct s2n_connection *conn)
@@ -210,7 +243,7 @@ static int handshake_write_io(struct s2n_connection *conn)
     GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
     /* Advance the state machine */
-    conn->handshake.message_number++;
+    GUARD(s2n_advance_message(conn));
 
     return 0;
 }
@@ -308,7 +341,7 @@ static int handshake_read_io(struct s2n_connection *conn)
         conn->in_status = ENCRYPTED;
 
         /* Advance the state machine */
-        conn->handshake.message_number++;
+        GUARD(s2n_advance_message(conn));
     }
 
     /* Now we have a record, but it could be a partial fragment of a message, or it might
@@ -331,7 +364,7 @@ static int handshake_read_io(struct s2n_connection *conn)
         conn->in_status = ENCRYPTED;
 
         /* Advance the state machine */
-        conn->handshake.message_number++;
+        GUARD(s2n_advance_message(conn));
 
         return 0;
     } else if (record_type != TLS_HANDSHAKE) {
@@ -380,7 +413,7 @@ static int handshake_read_io(struct s2n_connection *conn)
         }
 
         /* Advance the state machine */
-        conn->handshake.message_number++;
+        GUARD(s2n_advance_message(conn));
     }
 
     /* We're done with the record, wipe it */
