@@ -19,3 +19,4 @@
 
 /* Highest version supported by s2n is TLS1.2 */
 uint8_t s2n_highest_protocol_version = S2N_TLS12;
+uint8_t s2n_unknown_protocol_version = S2N_UNKNOWN_PROTOCOL_VERSION;
