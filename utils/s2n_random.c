@@ -53,8 +53,8 @@
 
 static int entropy_fd = -1;
 
-static __thread struct s2n_drbg per_thread_private_drbg = { {0} };
-static __thread struct s2n_drbg per_thread_public_drbg = { {0} };
+static __thread struct s2n_drbg per_thread_private_drbg = {0};
+static __thread struct s2n_drbg per_thread_public_drbg = {0};
 
 #if !defined(MAP_INHERIT_ZERO)
 static __thread int zero_if_forked = 0;

@@ -106,6 +106,7 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_SHUTDOWN_RECORD_TYPE, "Non alert record received during s2n_shutdown()"},
     {S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO, "renegotiation_info should be empty"},
     {S2N_ERR_SEND_SIZE, "Retried s2n_send() size is invalid"},
+    {S2N_ERR_PRIVATE_KEY_CHECK, "Error calling RSA_check_key()"},
 };
 
 const char *s2n_strerror(int error, const char *lang)

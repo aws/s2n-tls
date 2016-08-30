@@ -43,8 +43,9 @@ install:
   - .travis/run_cppcheck.sh
 
 script:
-  - (test "$TRAVIS_OS_NAME" = "linux" && make -j8) || true
+  # On Linux build with make
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then make -j 8   ; fi
   # Build and run unit tests with scan-build for osx. scan-build bundle isn't available for linux
-  - (test "$TRAVIS_OS_NAME" = "osx" && scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/*; exit $STATUS) || true
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/*; exit $STATUS ; fi
   - make integration
   - make clean && make fuzz

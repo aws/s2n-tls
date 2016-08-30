@@ -27,6 +27,7 @@ extern "C" {
 #define S2N_TLS10 31
 #define S2N_TLS11 32
 #define S2N_TLS12 33
+#define S2N_UNKNOWN_PROTOCOL_VERSION 0
 
 extern __thread int s2n_errno;
 

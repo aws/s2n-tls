@@ -29,13 +29,13 @@
 #define S2N_DRBG_RESEED_LIMIT   34359738368
 
 struct s2n_drbg {
+    /* Track how many bytes have been used */
+    uint64_t bytes_used;
+    
     EVP_CIPHER_CTX ctx;
 
     /* The current DRBG 'value' */
     uint8_t v[16];
-
-    /* Track how many bytes have been used */
-    uint64_t bytes_used;
 
     /* Function pointer to the entropy generating function. If it's NULL, then
      * s2n_get_urandom_data() will be used. This function pointer is intended
