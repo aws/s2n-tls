@@ -34,6 +34,7 @@
 
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
+#include "utils/s2n_socket.h"
 #include "utils/s2n_timer.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
@@ -100,6 +101,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->in, 0));
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->handshake.io, 0));
     GUARD_PTR(s2n_connection_wipe(conn));
+    GUARD_PTR(s2n_socket_snapshot(conn));
     GUARD_PTR(s2n_timer_start(conn->config, &conn->write_timer));
 
     return conn;
@@ -173,6 +175,9 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     GUARD(s2n_stuffer_wipe(&conn->header_in));
     GUARD(s2n_stuffer_wipe(&conn->in));
     GUARD(s2n_stuffer_wipe(&conn->out));
+
+    /* Restore the socket option values */
+    GUARD(s2n_socket_restore(conn));
 
     /* Allocate or resize to their original sizes */
     GUARD(s2n_stuffer_resize(&conn->in, S2N_LARGE_FRAGMENT_LENGTH));

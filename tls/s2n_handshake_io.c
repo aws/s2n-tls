@@ -129,6 +129,11 @@ static int s2n_advance_message(struct s2n_connection *conn)
     /* Actually advance the message number */
     conn->handshake.message_number++;
 
+    /* If the caller started out with a corked socket, we don't mess with it */
+    if (conn->original_cork_val) {
+        return 0;
+    }
+
     /* Are we changing I/O directions */
     if (ACTIVE_STATE(conn).writer == PREVIOUS_STATE(conn).writer) {
         return 0;
@@ -142,7 +147,8 @@ static int s2n_advance_message(struct s2n_connection *conn)
         return 0;
     }
 
-    /* We're the new reader - release the data */
+    /* We're the new reader, or we reached the "B" writer stage indicating that
+       we're at the application data stage  - uncork the data */
     GUARD(s2n_socket_uncork(conn));
 
     return 0;

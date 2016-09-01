@@ -16,6 +16,7 @@
 #include <tls/s2n_connection.h>
 
 #include <utils/s2n_socket.h>
+#include <utils/s2n_safety.h>
 
 #include <netinet/tcp.h>
 #include <netinet/in.h>
@@ -25,17 +26,45 @@
     #define S2N_CORK        TCP_CORK
     #define S2N_CORK_ON     1
     #define S2N_CORK_OFF    0
-
 #elif TCP_NOPUSH   
     #define S2N_CORK        TCP_NOPUSH
     #define S2N_CORK_ON     1
     #define S2N_CORK_OFF    0
-
 #elif TCP_NODELAY
     #define S2N_CORK        TCP_NODELAY
     #define S2N_CORK_ON     0
     #define S2N_CORK_OFF    1
 #endif
+
+int s2n_socket_snapshot(struct s2n_connection *conn)
+{
+    socklen_t len = sizeof(int);
+
+#ifdef S2N_CORK
+    getsockopt(conn->writefd, IPPROTO_TCP, S2N_CORK, &conn->original_cork_val, &len);
+    eq_check(len, sizeof(int));
+#endif
+
+#ifdef SO_RCVLOWAT
+    getsockopt(conn->writefd, IPPROTO_TCP, SO_RCVLOWAT, &conn->original_rcvlowat_val, &len);
+    eq_check(len, sizeof(int));
+#endif
+
+    return 0;
+}
+
+int s2n_socket_restore(struct s2n_connection *conn)
+{
+#ifdef S2N_CORK
+    setsockopt(conn->writefd, IPPROTO_TCP, S2N_CORK, &conn->original_cork_val, sizeof(conn->original_cork_val));
+#endif
+
+#ifdef SO_RCVLOWAT
+    setsockopt(conn->writefd, IPPROTO_TCP, SO_RCVLOWAT, &conn->original_rcvlowat_val, sizeof(conn->original_rcvlowat_val));
+#endif
+
+    return 0;
+}
 
 int s2n_socket_cork(struct s2n_connection *conn)
 {
@@ -61,3 +90,11 @@ int s2n_socket_uncork(struct s2n_connection *conn)
     return 0;
 }
 
+int s2n_socket_read_size(struct s2n_connection *conn, int size)
+{
+#ifdef SO_RCVLOWAT
+    setsockopt(conn->writefd, IPPROTO_TCP, SO_RCVLOWAT, &size, sizeof(size));
+#endif
+
+    return 0;
+}
