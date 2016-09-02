@@ -16,6 +16,8 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew install gnu-indent    ; fi
   # Set GCC 6 as Default on both Ubuntu and OSX
   - alias gcc=$(which gcc-6)
+  - which clang
+  - clang --version
   # Install latest version of clang, clang++, and llvm-symbolizer and add them to beginning of PATH. Needed for fuzzing.
   - (.travis/install_clang.sh `pwd`/clang-download `pwd`/clang-latest $TRAVIS_OS_NAME) && export PATH=`pwd`/clang-latest/bin:$PATH
 
