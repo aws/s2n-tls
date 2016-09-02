@@ -38,16 +38,18 @@
 
 int s2n_socket_snapshot(struct s2n_connection *conn)
 {
-    socklen_t len = sizeof(int);
-
 #ifdef S2N_CORK
-    getsockopt(conn->writefd, IPPROTO_TCP, S2N_CORK, &conn->original_cork_val, &len);
-    eq_check(len, sizeof(int));
+    socklen_t corklen = sizeof(int);
+
+    getsockopt(conn->writefd, IPPROTO_TCP, S2N_CORK, &conn->original_cork_val, &corklen);
+    eq_check(corklen, sizeof(int));
 #endif
 
 #ifdef SO_RCVLOWAT
-    getsockopt(conn->writefd, IPPROTO_TCP, SO_RCVLOWAT, &conn->original_rcvlowat_val, &len);
-    eq_check(len, sizeof(int));
+    socklen_t watlen = sizeof(int);
+
+    getsockopt(conn->writefd, IPPROTO_TCP, SO_RCVLOWAT, &conn->original_rcvlowat_val, &watlen);
+    eq_check(watlen, sizeof(int));
 #endif
 
     return 0;
