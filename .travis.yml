@@ -16,13 +16,8 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew install gnu-indent    ; fi
   # Set GCC 6 as Default on both Ubuntu and OSX
   - alias gcc=$(which gcc-6)
-  - which clang
-  - clang --version
   # Install latest version of clang, clang++, and llvm-symbolizer and add them to beginning of PATH. Needed for fuzzing.
   - (.travis/install_clang.sh `pwd`/clang-download `pwd`/clang-latest $TRAVIS_OS_NAME) && export PATH=`pwd`/clang-latest/bin:$PATH
-
-  # Install llvm 4.0
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty main" -y; sudo apt-get update; wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -; sudo apt-get -f install llvm-4.0 -y; fi
 
   # Install SAW on Linux only 
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then curl http://saw.galois.com/builds/nightly/saw-0.2-2016-07-22-Ubuntu14.04-64.tar.gz > saw.tar.gz; tar -xzvf saw.tar.gz; fi
@@ -41,4 +36,4 @@ script:
   # Build and run unit tests with scan-build for osx. scan-build bundle isn't available for linux
   - (test "$TRAVIS_OS_NAME" = "osx" && scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/*; exit $STATUS) || true
   - make integration
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then make saw; fi 
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export PATH="usr/local/clang-3.4/bin/":$PATH; make saw; fi 
