@@ -32,6 +32,7 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
 static int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_elliptic_curves(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_ec_point_formats(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
@@ -103,7 +104,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         eq_check(conn->config->status_request_type, S2N_STATUS_REQUEST_OCSP);
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_STATUS_REQUEST));
         GUARD(s2n_stuffer_write_uint16(out, 5));
-        GUARD(s2n_stuffer_write_uint8(out, (uint8_t)conn->config->status_request_type));
+        GUARD(s2n_stuffer_write_uint8(out, (uint8_t) conn->config->status_request_type));
         GUARD(s2n_stuffer_write_uint16(out, 0));
         GUARD(s2n_stuffer_write_uint16(out, 0));
     }
@@ -175,7 +176,10 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
         case TLS_EXTENSION_EC_POINT_FORMATS:
             GUARD(s2n_recv_client_ec_point_formats(conn, &extension));
             break;
-       }
+        case TLS_EXTENSION_RENEGOTIATION_INFO:
+            GUARD(s2n_recv_client_renegotiation_info(conn, &extension));
+            break;
+        }
     }
 
     return 0;
@@ -319,11 +323,11 @@ static int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2
     }
     uint8_t type;
     GUARD(s2n_stuffer_read_uint8(extension, &type));
-    if (type != (uint8_t)S2N_STATUS_REQUEST_OCSP) {
+    if (type != (uint8_t) S2N_STATUS_REQUEST_OCSP) {
         /* We only support OCSP (type 1), ignore the extension */
         return 0;
     }
-    conn->status_type = (s2n_status_request_type)type;
+    conn->status_type = (s2n_status_request_type) type;
     return 0;
 }
 
@@ -355,5 +359,18 @@ static int s2n_recv_client_ec_point_formats(struct s2n_connection *conn, struct 
      * Only uncompressed points are supported by the server and the client must include it in
      * the extension. Just skip the extension.
      */
+    return 0;
+}
+
+static int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    /* RFC5746 Section 3.2: The renegotiated_connection field is of zero length for the initial handshake. */
+    uint8_t renegotiated_connection_len;
+    GUARD(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
+    if (s2n_stuffer_data_available(extension) || renegotiated_connection_len) {
+        S2N_ERROR(S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
+    }
+
+    conn->secure_renegotiation = 1;
     return 0;
 }

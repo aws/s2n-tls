@@ -42,6 +42,9 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     if (s2n_server_can_send_ocsp(conn)) {
         total_size += 4;
     }
+    if (conn->secure_renegotiation) {
+        total_size += 5;
+    }
 
     if (total_size == 0) {
         return 0;
@@ -49,13 +52,22 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 
     GUARD(s2n_stuffer_write_uint16(out, total_size));
 
+    /* Write the renegotiation_info extension */
+    if (conn->secure_renegotiation) {
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_RENEGOTIATION_INFO));
+        /* renegotiation_info length */
+        GUARD(s2n_stuffer_write_uint16(out, 1));
+        /* renegotiated_connection length */
+        GUARD(s2n_stuffer_write_uint8(out, 0));
+    }
+
     /* Write ALPN extension */
     if (application_protocol_len) {
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_ALPN));
         GUARD(s2n_stuffer_write_uint16(out, application_protocol_len + 3));
         GUARD(s2n_stuffer_write_uint16(out, application_protocol_len + 1));
         GUARD(s2n_stuffer_write_uint8(out, application_protocol_len));
-        GUARD(s2n_stuffer_write_bytes(out, (uint8_t*)conn->application_protocol, application_protocol_len));
+        GUARD(s2n_stuffer_write_bytes(out, (uint8_t *) conn->application_protocol, application_protocol_len));
     }
 
     /* Write OCSP extension */
@@ -130,4 +142,3 @@ int s2n_recv_server_status_request(struct s2n_connection *conn, struct s2n_stuff
 
     return 0;
 }
-

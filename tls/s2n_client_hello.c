@@ -185,8 +185,7 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     if (session_id_length > 0 && session_id_length <= S2N_TLS_SESSION_ID_MAX_LEN) {
         GUARD(s2n_stuffer_read_bytes(in, conn->session_id, session_id_length));
         conn->session_id_len = (uint8_t) session_id_length;
-    }
-    else {
+    } else {
         GUARD(s2n_stuffer_skip_read(in, session_id_length));
     }
 

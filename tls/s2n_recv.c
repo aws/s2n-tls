@@ -36,7 +36,7 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int *isSSLv2)
+int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int *isSSLv2)
 {
     int r;
 
@@ -110,7 +110,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
     return 0;
 }
 
-ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_blocked_status *blocked)
+ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_blocked_status * blocked)
 {
     ssize_t bytes_read = 0;
     struct s2n_blob out = {.data = (uint8_t *) buf };
@@ -150,11 +150,11 @@ ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_block
 
             return -1;
         }
-    
+
         if (isSSLv2) {
             S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }
-        
+
         if (record_type != TLS_APPLICATION_DATA) {
             if (record_type == TLS_ALERT) {
                 GUARD(s2n_process_alert_fragment(conn));
@@ -195,7 +195,7 @@ ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_block
     return bytes_read;
 }
 
-int s2n_recv_close_notify(struct s2n_connection *conn, s2n_blocked_status *blocked)
+int s2n_recv_close_notify(struct s2n_connection *conn, s2n_blocked_status * blocked)
 {
     uint8_t record_type;
     int isSSLv2;

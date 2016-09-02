@@ -44,8 +44,9 @@
 #define TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256    0xC0, 0x2F
 #define TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384    0xC0, 0x30
 
-/* From https://tools.ietf.org/html/draft-ietf-tls-downgrade-scsv-03 */
+/* From https://tools.ietf.org/html/rfc7507 */
 #define TLS_FALLBACK_SCSV                   0x56, 0x00
+#define TLS_EMPTY_RENEGOTIATION_INFO_SCSV   0x00, 0xff
 
 /* TLS extensions from https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml */
 #define TLS_EXTENSION_SERVER_NAME           0
@@ -54,6 +55,7 @@
 #define TLS_EXTENSION_EC_POINT_FORMATS     11
 #define TLS_EXTENSION_SIGNATURE_ALGORITHMS 13
 #define TLS_EXTENSION_ALPN                 16
+#define TLS_EXTENSION_RENEGOTIATION_INFO   65281
 
 /* TLS signature algorithms */
 #define TLS_SIGNATURE_ALGORITHM_RSA         1
