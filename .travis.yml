@@ -32,8 +32,8 @@ install:
  
 
 script:
-  - (test "$TRAVIS_OS_NAME" = "linux" && make -j8) || true
+  # - (test "$TRAVIS_OS_NAME" = "linux" && make -j8) || true
   # Build and run unit tests with scan-build for osx. scan-build bundle isn't available for linux
-  - (test "$TRAVIS_OS_NAME" = "osx" && scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/*; exit $STATUS) || true
-  - make integration
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export PATH="usr/local/clang-3.4/bin/":$PATH; clang --version; llvm-link --version; make saw; fi 
+  # - (test "$TRAVIS_OS_NAME" = "osx" && scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/*; exit $STATUS) || true
+  # - make integration
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export PATH="usr/local/clang-3.4/bin/":$PATH; which clang; clang --version; llvm-link --version; make saw; fi 
