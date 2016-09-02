@@ -24,7 +24,7 @@ before_install:
   - export PATH=$PATH:$PWD/saw-0.2-2016-07-22-Ubuntu14.04-64/bin
 
   # Install Z3 on Linux
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then mkdir z3; curl http://saw.galois.com/builds/z3/z3 > z3/z3; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then mkdir z3; curl http://saw.galois.com/builds/z3/z3 > z3/z3; sudo chmod +x z3/z3; fi
   - export PATH=$PWD/z3:$PATH
 
 install:
