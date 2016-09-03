@@ -22,13 +22,10 @@ before_install:
   # Install SAW on Linux only 
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then curl http://saw.galois.com/builds/nightly/saw-0.2-2016-07-22-Ubuntu14.04-64.tar.gz > saw.tar.gz; tar -xzvf saw.tar.gz; fi
   - export PATH=$PATH:$PWD/saw-0.2-2016-07-22-Ubuntu14.04-64/bin
+
   # Install Z3
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository ppa:hvr/z3 -y; sudo apt-key update; sudo apt-get update; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install z3 -y --force-yes; fi
-
-  # Install Z3 on Linux
-  #- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then mkdir z3; curl http://saw.galois.com/builds/z3/z3 > z3/z3; sudo chmod +x z3/z3; fi
-  #- export PATH=$PWD/z3:$PATH
 
 install:
   - .travis/install_openssl.sh `pwd`/libcrypto-build `pwd`/libcrypto-root $TRAVIS_OS_NAME > /dev/null
@@ -39,8 +36,8 @@ install:
  
 
 script:
-  # - (test "$TRAVIS_OS_NAME" = "linux" && make -j8) || true
+   - (test "$TRAVIS_OS_NAME" = "linux" && make -j8) || true
   # Build and run unit tests with scan-build for osx. scan-build bundle isn't available for linux
-  # - (test "$TRAVIS_OS_NAME" = "osx" && scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/*; exit $STATUS) || true
-  # - make integration
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export PATH="/usr/local/clang-3.4/bin/":$PATH; echo $PATH; which clang; clang --version; llvm-link --version; make saw; fi 
+   - (test "$TRAVIS_OS_NAME" = "osx" && scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/*; exit $STATUS) || true
+   - make integration
+   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export PATH="/usr/local/clang-3.4/bin/":$PATH; echo $PATH; which clang; clang --version; llvm-link --version; make saw; fi 
