@@ -218,7 +218,9 @@ let hmac_init_spec
     check_final_hmac_state st1;
     llvm_return {{ 0 : [32] }};
 
-    //JD: admitting until licences are figured out
+    //JD: Right now we aren't verifying this property. It performs
+    // poorly using the current release of Z3. Nightlies of Z3 have
+    // fixed the problem, but are not yet integrated into our build.
     //llvm_sat_branches true;
 
     //llvm_verify_tactic do {
