@@ -49,7 +49,7 @@ int s2n_server_ccs_recv(struct s2n_connection *conn)
     /* Flush any partial alert messages that were pending */
     GUARD(s2n_stuffer_wipe(&conn->alert_in));
 
-    if (conn->handshake.handshake_type == RESUME) {
+    if (IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type)) {
         GUARD(s2n_prf_key_expansion(conn));
     }
 
@@ -60,7 +60,7 @@ int s2n_server_ccs_send(struct s2n_connection *conn)
 {
     GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, CHANGE_CIPHER_SPEC_TYPE));
 
-    if (conn->handshake.handshake_type == RESUME) {
+    if (IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type)) {
         GUARD(s2n_prf_key_expansion(conn));
     }
 

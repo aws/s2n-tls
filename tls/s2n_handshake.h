@@ -54,25 +54,28 @@ struct s2n_handshake {
     uint8_t server_finished[S2N_SSL_FINISHED_LEN];
     uint8_t client_finished[S2N_SSL_FINISHED_LEN];
 
-    enum {
-        /* Dummy handshake that we always start out with */
-        INITIAL,
 
-        /* A Full handshake with forward secrecy */
-        FULL_WITH_PFS,
+    /* Handshake type is a bitset, with the following
+       bit posiions */
+    int handshake_type;
 
-        /* A full handshake with forward secrecy and an OCSP response */
-        FULL_WITH_PFS_WITH_STATUS,
+/* Has the handshake been negotiated yet? */
+#define INITIAL                     0x00
+#define NEGOTIATED                  0x01
 
-        /* A full handshake with no forward secrecy */
-        FULL_NO_PFS,
+/* Resume is just "negotiated" */
+#define RESUME                      0x01
 
-        /* A full handshake with no forward secrecy, but with an OCSP response */
-        FULL_NO_PFS_WITH_STATUS,
+/* Handshake is a full handshake  */
+#define FULL_HANDSHAKE              0x02
+#define IS_FULL_HANDSHAKE( type )   ( (type) & FULL_HANDSHAKE )
+#define IS_RESUMPTION_HANDSHAKE( type ) ( !IS_FULL_HANDSHAKE( (type) ) )
 
-        /* A resumption handshake */
-        RESUME
-    } handshake_type;
+/* Handshake uses perfect forward secrecy */
+#define PERFECT_FORWARD_SECRECY     0x04
+
+/* Handshake needs OCSP status message */
+#define OCSP_STATUS                 0x08
 
     /* Which handshake message number are we processing */
     int message_number;

@@ -174,6 +174,23 @@ struct s2n_cipher_preferences cipher_preferences_20160804 = {
     .minimum_protocol_version = S2N_TLS10
 };
 
+uint8_t wire_format_20160824[] = {
+    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+    TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+    TLS_RSA_WITH_AES_128_GCM_SHA256,
+    TLS_RSA_WITH_AES_128_CBC_SHA256,
+    TLS_RSA_WITH_AES_128_CBC_SHA
+};
+
+struct s2n_cipher_preferences cipher_preferences_20160824 = {
+    .count = sizeof(wire_format_20160824) / S2N_TLS_CIPHER_SUITE_LEN,
+    .wire_format = wire_format_20160824,
+    .minimum_protocol_version = S2N_TLS10
+};
+
 /* All supported ciphers. Only exposed for integration testing. */
 uint8_t wire_format_test_all[] = {
     TLS_RSA_WITH_RC4_128_MD5, TLS_RSA_WITH_RC4_128_SHA, TLS_RSA_WITH_3DES_EDE_CBC_SHA, TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
@@ -196,7 +213,7 @@ struct {
     struct s2n_cipher_preferences *preferences;
 } selection[] = {
     {
-    "default", &cipher_preferences_20150306}, {
+    "default", &cipher_preferences_20160824}, {
     "20140601", &cipher_preferences_20140601}, {
     "20141001", &cipher_preferences_20141001}, {
     "20150202", &cipher_preferences_20150202}, {
@@ -204,13 +221,14 @@ struct {
     "20150306", &cipher_preferences_20150306}, {
     "20160411", &cipher_preferences_20160411}, {
     "20160804", &cipher_preferences_20160804}, {
+    "20160824", &cipher_preferences_20160824}, {
     "test_all", &cipher_preferences_test_all}, {
     NULL, NULL}
 };
 
 struct s2n_config s2n_default_config = {
     .cert_and_key_pairs = NULL,
-    .cipher_preferences = &cipher_preferences_20150306,
+    .cipher_preferences = &cipher_preferences_20160824,
     .nanoseconds_since_epoch = get_nanoseconds_since_epoch,
 };
 
@@ -411,6 +429,16 @@ int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config, cha
     if (status && length > 0) {
         GUARD(s2n_alloc(&config->cert_and_key_pairs->ocsp_status, length));
         memcpy_check(config->cert_and_key_pairs->ocsp_status.data, status, length);
+    }
+
+    /* Validate the leaf cert's public key matches the provided private key */
+    struct s2n_rsa_public_key public_key;
+    GUARD(s2n_asn1der_to_rsa_public_key(&public_key, &config->cert_and_key_pairs->head->cert));
+    const int key_match_ret = s2n_rsa_keys_match(&public_key, &config->cert_and_key_pairs->private_key);
+    GUARD(s2n_rsa_public_key_free(&public_key));
+    if (key_match_ret < 0) {
+        /* s2n_errno already set */
+        return -1;
     }
 
     return 0;

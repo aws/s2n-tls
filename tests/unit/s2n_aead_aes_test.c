@@ -67,7 +67,6 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
     EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
-    conn->actual_protocol_version = S2N_TLS12;
 
     int max_fragment = S2N_SMALL_FRAGMENT_LENGTH;
     for (int i = 0; i < max_fragment; i++) {
@@ -75,6 +74,9 @@ int main(int argc, char **argv)
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
+        conn->server_protocol_version = S2N_TLS12;
+        conn->client_protocol_version = S2N_TLS12;
+        conn->actual_protocol_version = S2N_TLS12;
         conn->server = &conn->initial;
         conn->client = &conn->initial;
         EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
@@ -125,6 +127,9 @@ int main(int argc, char **argv)
 
         /* Start over */
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
+        conn->server_protocol_version = S2N_TLS12;
+        conn->client_protocol_version = S2N_TLS12;
+        conn->actual_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
         EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
         EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
@@ -149,6 +154,9 @@ int main(int argc, char **argv)
         /* Tamper with the IV and ensure decryption fails */
         for (int j = 0; j < S2N_TLS_GCM_IV_LEN; j++) {
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
+            conn->server_protocol_version = S2N_TLS12;
+            conn->client_protocol_version = S2N_TLS12;
+            conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
             EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
             EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
@@ -171,6 +179,9 @@ int main(int argc, char **argv)
         /* Tamper with the TAG and ensure decryption fails */
         for (int j = 0; j < S2N_TLS_GCM_TAG_LEN; j++) {
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
+            conn->server_protocol_version = S2N_TLS12;
+            conn->client_protocol_version = S2N_TLS12;
+            conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
             EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
             EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
@@ -193,6 +204,9 @@ int main(int argc, char **argv)
         /* Tamper with the ciphertext and ensure decryption fails */
         for (int j = 0; j < i - S2N_TLS_GCM_TAG_LEN; j++) {
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
+            conn->server_protocol_version = S2N_TLS12;
+            conn->client_protocol_version = S2N_TLS12;
+            conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
             EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
             EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
@@ -230,6 +244,9 @@ int main(int argc, char **argv)
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
+        conn->server_protocol_version = S2N_TLS12;
+        conn->client_protocol_version = S2N_TLS12;
+        conn->actual_protocol_version = S2N_TLS12;
         conn->initial.cipher_suite->cipher = &s2n_aes256_gcm;
         EXPECT_SUCCESS(setup_server_keys(conn, &aes256));
         EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
@@ -279,6 +296,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
 
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
+        conn->server_protocol_version = S2N_TLS12;
+        conn->client_protocol_version = S2N_TLS12;
+        conn->actual_protocol_version = S2N_TLS12;
         conn->initial.cipher_suite->cipher = &s2n_aes256_gcm;
         EXPECT_SUCCESS(setup_server_keys(conn, &aes256));
         EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
@@ -305,6 +325,9 @@ int main(int argc, char **argv)
         /* Tamper with the IV and ensure decryption fails */
         for (int j = 0; j < S2N_TLS_GCM_IV_LEN; j++) {
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
+            conn->server_protocol_version = S2N_TLS12;
+            conn->client_protocol_version = S2N_TLS12;
+            conn->actual_protocol_version = S2N_TLS12;
             conn->initial.cipher_suite->cipher = &s2n_aes256_gcm;
             EXPECT_SUCCESS(setup_server_keys(conn, &aes256));
             EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
@@ -329,6 +352,9 @@ int main(int argc, char **argv)
         /* Tamper with the TAG and ensure decryption fails */
         for (int j = 0; j < S2N_TLS_GCM_TAG_LEN; j++) {
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
+            conn->server_protocol_version = S2N_TLS12;
+            conn->client_protocol_version = S2N_TLS12;
+            conn->actual_protocol_version = S2N_TLS12;
             conn->initial.cipher_suite->cipher = &s2n_aes256_gcm;
             EXPECT_SUCCESS(setup_server_keys(conn, &aes256));
             EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
@@ -353,6 +379,9 @@ int main(int argc, char **argv)
         /* Tamper with the ciphertext and ensure decryption fails */
         for (int j = S2N_TLS_GCM_IV_LEN; j < i - S2N_TLS_GCM_TAG_LEN; j++) {
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
+            conn->server_protocol_version = S2N_TLS12;
+            conn->client_protocol_version = S2N_TLS12;
+            conn->actual_protocol_version = S2N_TLS12;
             conn->initial.cipher_suite->cipher = &s2n_aes256_gcm;
             EXPECT_SUCCESS(setup_server_keys(conn, &aes256));
             EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));

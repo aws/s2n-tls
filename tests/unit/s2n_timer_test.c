@@ -57,6 +57,7 @@ int main(int argc, char **argv)
     mock_time = 40;
     EXPECT_SUCCESS(s2n_timer_elapsed(config, &timer, &nanoseconds));
     EXPECT_EQUAL(nanoseconds, 10);
+    EXPECT_EQUAL(mock_time, 40); /* Work-around for cppcheck complaining that mock_time is never read after being set */
 
     END_TEST();
 }

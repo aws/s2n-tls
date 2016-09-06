@@ -109,6 +109,10 @@ int mock_client(int writefd, int readfd, const char **protocols, int count, cons
     sleep(1);
 
     conn = s2n_connection_new(S2N_CLIENT);
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
+
     config = s2n_config_new();
     s2n_config_set_protocol_preferences(config, protocols, count);
     s2n_connection_set_config(conn, config);
@@ -194,6 +198,10 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(server_to_client[0]));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
+
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
     /* Set up the connection to read from the fd */
@@ -208,10 +216,10 @@ int main(int argc, char **argv)
 
     for (int i = 1; i < 0xffff; i += 100) {
         char * ptr = buffer;
-        int bytes_read = 0;
         int size = i;
 
         do {
+            int bytes_read = 0;
             EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &blocked));
 
             size -= bytes_read;
@@ -252,6 +260,9 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(server_to_client[0]));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
     /* Set up the connection to read from the fd */
@@ -266,10 +277,10 @@ int main(int argc, char **argv)
 
     for (int i = 1; i < 0xffff; i += 100) {
         char * ptr = buffer;
-        int bytes_read = 0;
         int size = i;
 
         do {
+            int bytes_read = 0;
             EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &blocked));
 
             size -= bytes_read;
@@ -309,6 +320,9 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(server_to_client[0]));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
     /* Set up the connection to read from the fd */
@@ -321,10 +335,10 @@ int main(int argc, char **argv)
 
     for (int i = 1; i < 0xffff; i += 100) {
         char * ptr = buffer;
-        int bytes_read = 0;
         int size = i;
 
         do {
+            int bytes_read = 0;
             EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &blocked));
 
             size -= bytes_read;
@@ -372,6 +386,9 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(server_to_client[0]));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
     /* Set up the connection to read from the fd */

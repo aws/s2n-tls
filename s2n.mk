@@ -27,19 +27,25 @@ else
     CRYPTO_LIBS = -lcrypto
 endif
 
-# If this path does not exist it will simply be ignored by 'clang'.
-OPENSSL_INC ?= -I/usr/local/opt/openssl/include
-
+CC	= $(CROSS_COMPILE)gcc
+AR	= $(CROSS_COMPILE)ar
+RANLIB	= $(CROSS_COMPILE)ranlib
 
 SOURCES = $(wildcard *.c *.h)
 CRUFT   = $(wildcard *.c~ *.h~ *.c.BAK *.h.BAK *.o *.a *.so *.dylib *.bc)
 INDENT  = $(shell (if indent --version 2>&1 | grep GNU > /dev/null; then echo indent ; elif gindent --version 2>&1 | grep GNU > /dev/null; then echo gindent; else echo true ; fi ))
 
 DEFAULT_CFLAGS = -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized \
-                 -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wstack-protector -fPIC \
-                 -std=c99 -D_POSIX_C_SOURCE=200112L -fstack-protector-all -O2 -I$(LIBCRYPTO_ROOT)/include/ \
+                 -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -fPIC \
+                 -std=c99 -D_POSIX_C_SOURCE=200809L -O2 -I$(LIBCRYPTO_ROOT)/include/ \
                  -I../api/ -I../ -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security \
                  -D_FORTIFY_SOURCE=2
+
+# Add a flag to disable stack protector for alternative libcs without
+# libssp.
+ifneq ($(NO_STACK_PROTECTOR), 1)
+DEFAULT_CFLAGS += -Wstack-protector -fstack-protector-all
+endif
 
 CFLAGS = ${DEFAULT_CFLAGS}
 
@@ -56,28 +62,12 @@ ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)
     CFLAGS = ${DEFAULT_CFLAGS} ${DEBUG_FLAGS} ${FUZZ_CFLAGS}
 endif
 
-#../tests/saw/%.c : %.c %.patch
-#	cp $< ../tests/saw/$<
-#	patch -d ../tests/saw/
 
 CFLAGS_LLVM = -emit-llvm -I../libcrypto-root/include -I../api -I.. $(OPENSSL_INC) -c
 
 $(BITCODE_DIR)%.bc: %.c
 	clang $(CFLAGS_LLVM) -o $@ $< 
 
-#	clang $(CFLAGS_LLVM) $(firstword $(filter %$<, $(PATCHED_C)) $<) 
-
-#	TOCOMPILE=$(if $(findstring $<, $(notdir $(PATCHED_C))),  
-#ifneq (,$(findstring hmac.c, $(notdir $(PATCHED_C))))
-#	echo found one
-#	$(MAKE) ../tests/saw/crypto/$<
-#else
-#	@echo $<
-#	@echo $(notdir $(PATCHED_C))
-#	@echo $(findstring $<, $(notdir $(PATCHED_C)))
-#	@echo ____
-#endif
-#		clang ($CFLAGS_LLVM) -o ../saw/
 
 INDENTOPTS = -npro -kr -i4 -ts4 -nut -sob -l180 -ss -ncs -cp1
 

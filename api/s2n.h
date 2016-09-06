@@ -27,6 +27,7 @@ extern "C" {
 #define S2N_TLS10 31
 #define S2N_TLS11 32
 #define S2N_TLS12 33
+#define S2N_UNKNOWN_PROTOCOL_VERSION 0
 
 extern __thread int s2n_errno;
 
@@ -81,7 +82,7 @@ extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn);
 
 typedef enum { S2N_BUILT_IN_BLINDING, S2N_SELF_SERVICE_BLINDING } s2n_blinding;
 extern int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blinding);
-extern int64_t s2n_connection_get_delay(struct s2n_connection *conn);
+extern uint64_t s2n_connection_get_delay(struct s2n_connection *conn);
 
 extern int s2n_set_server_name(struct s2n_connection *conn, const char *server_name);
 extern const char *s2n_get_server_name(struct s2n_connection *conn);

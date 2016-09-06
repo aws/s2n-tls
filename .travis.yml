@@ -1,5 +1,15 @@
 sudo: true
 
+addons:
+    apt:
+      sources:
+        - ubuntu-toolchain-r-test
+      packages:
+        - gcc-6
+        - g++-6
+        - indent
+        - cppcheck
+
 os:
   - osx
   - linux
@@ -14,6 +24,7 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew tap homebrew/versions ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew install gcc6          ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew install gnu-indent    ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew install cppcheck      ; fi
   # Set GCC 6 as Default on both Ubuntu and OSX
   - alias gcc=$(which gcc-6)
   # Install latest version of clang, clang++, and llvm-symbolizer and add them to beginning of PATH. Needed for fuzzing.
@@ -34,10 +45,14 @@ install:
   # Install prlimit to set the memlock limit to unlimited for this process
   - (test "$TRAVIS_OS_NAME" = "linux" && sudo .travis/install_prlimit.sh $PWD/.travis && sudo .travis/prlimit --pid "$$" --memlock=unlimited:unlimited) || true
  
+  - .travis/run_cppcheck.sh
 
 script:
-   - (test "$TRAVIS_OS_NAME" = "linux" && make -j8) || true
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then make -j 8   ; fi
   # Build and run unit tests with scan-build for osx. scan-build bundle isn't available for linux
-   - (test "$TRAVIS_OS_NAME" = "osx" && scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/*; exit $STATUS) || true
-   - make integration
-   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export PATH="/usr/local/clang-3.4/bin/":$PATH; echo $PATH; which clang; clang --version; llvm-link --version; make saw; fi 
+  - (test "$TRAVIS_OS_NAME" = "osx" && scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/*; exit $STATUS) || true
+  - make integration
+  - make clean && make fuzz
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/*; exit $STATUS ; fi
+  - make integration
+  - make clean && make fuzz  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export PATH="/usr/local/clang-3.4/bin/":$PATH; echo $PATH; which clang; clang --version; llvm-link --version; make saw; fi 

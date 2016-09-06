@@ -46,17 +46,12 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
 
     conn->server_protocol_version = (protocol_version[0] * 10) + protocol_version[1];
 
-    if (conn->server_protocol_version > conn->actual_protocol_version) {
+    if (conn->server_protocol_version < conn->config->cipher_preferences->minimum_protocol_version || conn->server_protocol_version > conn->client_protocol_version) {
         GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
-    conn->actual_protocol_version = conn->server_protocol_version;
+    conn->actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
     conn->actual_protocol_version_established = 1;
-
-    /* Verify that the protocol version is sane */
-    if (conn->actual_protocol_version < S2N_SSLv3 || conn->actual_protocol_version > S2N_TLS12) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
 
     conn->secure.signature_digest_alg = S2N_HASH_MD5_SHA1;
     if (conn->actual_protocol_version == S2N_TLS12) {
@@ -83,7 +78,7 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
 
     GUARD(s2n_conn_set_handshake_type(conn));
 
-    if (conn->handshake.handshake_type == RESUME) {
+    if (IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type)) {
         GUARD(s2n_prf_key_expansion(conn));
     }
 

@@ -48,7 +48,7 @@ int s2n_asn1der_to_rsa_public_key(struct s2n_rsa_public_key *key, struct s2n_blo
         S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
     }
 
-    if (public_key->type != EVP_PKEY_RSA) {
+    if (EVP_PKEY_base_id(public_key) != EVP_PKEY_RSA) {
         EVP_PKEY_free(public_key);
         S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
     }
@@ -76,6 +76,10 @@ int s2n_asn1der_to_rsa_private_key(struct s2n_rsa_private_key *key, struct s2n_b
         S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
     }
 
+    if (!RSA_check_key(key->rsa)) {
+        S2N_ERROR(S2N_ERR_PRIVATE_KEY_CHECK);
+    }
+
     return 0;
 }
 
@@ -93,10 +97,25 @@ int s2n_rsa_private_key_free(struct s2n_rsa_private_key *key)
     return 0;
 }
 
+static int s2n_rsa_modulus_check(RSA *rsa)
+{
+    /* RSA was made opaque starting in Openssl 1.1.0 */
+    #if OPENSSL_VERSION_NUMBER < 0x10100000L
+        notnull_check(rsa->n);
+    #else
+        BIGNUM *n = NULL;
+        /* RSA still owns the memory for n */
+        RSA_get0_key(rsa, &n, NULL, NULL);
+        notnull_check(n);
+    #endif
+
+    return 0;
+}
+
 int s2n_rsa_public_encrypted_size(struct s2n_rsa_public_key *key)
 {
     notnull_check(key->rsa);
-    notnull_check(key->rsa->n);
+    GUARD(s2n_rsa_modulus_check(key->rsa));
 
     return RSA_size(key->rsa);
 }
@@ -104,7 +123,7 @@ int s2n_rsa_public_encrypted_size(struct s2n_rsa_public_key *key)
 int s2n_rsa_private_encrypted_size(struct s2n_rsa_private_key *key)
 {
     notnull_check(key->rsa);
-    notnull_check(key->rsa->n);
+    GUARD(s2n_rsa_modulus_check(key->rsa));
 
     return RSA_size(key->rsa);
 }
