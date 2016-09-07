@@ -1,0 +1,72 @@
+////////////////////////////////////////////////////////////////
+// Copyright 2016 Galois, Inc. All Rights Reserved
+//
+// Authors:
+//      Aaron Tomb : atomb@galois.com
+//	Nathan Collins : conathan@galois.com
+//      Joey Dodds : jdodds@galois.com
+//
+// Licensed under the Apache License, Version 2.0 (the "License").
+// You may not use this file except in compliance with the License.
+// A copy of the License is located at
+//
+//  http://aws.amazon.com/apache2.0
+//
+// or in the "license" file accompanying this file. This file is distributed
+// on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+// express or implied. See the License for the specific language governing
+// permissions and limitations under the License.
+//
+////////////////////////////////////////////////////////////////
+
+module HMAC where
+
+import SHA256
+
+//////// Functional version ////////
+
+hmacSHA256 : {pwBytes, msgBytes}
+             (fin pwBytes, fin msgBytes
+             , 32 >= width msgBytes
+             , 64 >= width (8*pwBytes)
+             , 64 >= width (8 * (64 + msgBytes))
+             ) => [pwBytes][8] -> [msgBytes][8] -> [256]
+hmacSHA256 = hmac `{blockLength=64} SHA256 SHA256 SHA256
+
+kinit : { pwBytes, blockLength, digest }
+        ( fin pwBytes, fin blockLength, fin digest )
+     => ([pwBytes][8] -> [8*digest])
+     -> [pwBytes][8]
+     -> [blockLength][8]
+kinit hash key =
+  if `pwBytes > (`blockLength : [max (width pwBytes) (width blockLength)])
+  then take `{blockLength} (split (hash key) # (zero : [blockLength][8]))
+  else take `{blockLength} (key # (zero : [blockLength][8]))
+
+// Due to limitations of the type system we must accept two
+// separate arguments (both aledgedly the same) for two
+// separate length inputs.
+hmac : { msgBytes, pwBytes, digest, blockLength }
+       ( fin pwBytes, fin digest, fin blockLength )
+    => ([blockLength + msgBytes][8] -> [8*digest])
+    -> ([blockLength + digest][8] -> [8*digest])
+    -> ([pwBytes][8] -> [8*digest])
+    -> [pwBytes][8]
+    -> [msgBytes][8]
+    -> [digest*8]
+hmac hash hash2 hash3 key message = hash2 (okey # internal)
+ where
+   ks : [blockLength][8]
+   ks = kinit hash3 key
+   okey = [k ^ 0x5C | k <- ks]
+   ikey = [k ^ 0x36 | k <- ks]
+   internal = split (hash (ikey # message))
+
+
+
+
+
+
+
+
+

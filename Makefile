@@ -28,6 +28,17 @@ OBJS=$(SRCS:.c=.o)
 all: bin
 	$(MAKE) -C tests
 
+bitcode :
+	${MAKE} -C tests/saw bitcode
+
+.PHONY : bc
+bc: 
+	${MAKE} -C crypto bc 
+
+.PHONY : saw
+saw : bc 
+	$(MAKE) -C tests/saw
+
 include s2n.mk
 
 .PHONY : libs

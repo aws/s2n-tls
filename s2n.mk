@@ -32,7 +32,7 @@ AR	= $(CROSS_COMPILE)ar
 RANLIB	= $(CROSS_COMPILE)ranlib
 
 SOURCES = $(wildcard *.c *.h)
-CRUFT   = $(wildcard *.c~ *.h~ *.c.BAK *.h.BAK *.o *.a *.so *.dylib)
+CRUFT   = $(wildcard *.c~ *.h~ *.c.BAK *.h.BAK *.o *.a *.so *.dylib *.bc)
 INDENT  = $(shell (if indent --version 2>&1 | grep GNU > /dev/null; then echo indent ; elif gindent --version 2>&1 | grep GNU > /dev/null; then echo gindent; else echo true ; fi ))
 
 DEFAULT_CFLAGS = -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized \
@@ -61,6 +61,13 @@ ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)
     # an error occurs while fuzzing.
     CFLAGS = ${DEFAULT_CFLAGS} ${DEBUG_FLAGS} ${FUZZ_CFLAGS}
 endif
+
+
+CFLAGS_LLVM = -emit-llvm -I../libcrypto-root/include -I../api -I.. $(OPENSSL_INC) -c
+
+$(BITCODE_DIR)%.bc: %.c
+	clang $(CFLAGS_LLVM) -o $@ $< 
+
 
 INDENTOPTS = -npro -kr -i4 -ts4 -nut -sob -l180 -ss -ncs -cp1
 

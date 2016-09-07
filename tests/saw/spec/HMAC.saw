@@ -1,0 +1,321 @@
+////////////////////////////////////////////////////////////////
+// Copyright 2016 Galois, Inc. All Rights Reserved
+//
+// Authors:
+//      Aaron Tomb : atomb@galois.com
+//	Nathan Collins : conathan@galois.com
+//      Joey Dodds : jdodds@galois.com
+//
+// Licensed under the Apache License, Version 2.0 (the "License").
+// You may not use this file except in compliance with the License.
+// A copy of the License is located at
+//
+//  http://aws.amazon.com/apache2.0
+//
+// or in the "license" file accompanying this file. This file is distributed
+// on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+// express or implied. See the License for the specific language governing
+// permissions and limitations under the License.
+//
+////////////////////////////////////////////////////////////////
+
+import "HMAC_iterative.cry";
+import "Hashing.cry";
+m <- llvm_load_module "../bitcode/all_llvm.bc";
+
+////////////////////////////////////////////////////////////////
+// Hash.
+//
+
+// The 'prefix' argument is a "struct path prefix", e.g. "state->" or
+// "(state->5).". Note the trailing, dangling dereference.
+let setup_initial_hash_state prefix = do {
+    // Make struct path using 'prefix'.
+    let p before after = str_concat before (str_concat prefix after);
+
+    alg0 <- llvm_var (p "" "0") (llvm_int 32);
+
+    hash_ctx0_h      <- llvm_var (p "((" "1).0).0") (llvm_array 8 (llvm_int 64));
+    hash_ctx0_Nl     <- llvm_var (p "((" "1).0).1") (llvm_int 64);
+    hash_ctx0_Nh     <- llvm_var (p "((" "1).0).2") (llvm_int 64);
+    hash_ctx0_u      <- llvm_var (p "(((" "1).0).3).0") (llvm_array 16 (llvm_int 64));
+    hash_ctx0_num    <- llvm_var (p "((" "1).0).4") (llvm_int 32);
+    hash_ctx0_md_len <- llvm_var (p "((" "1).0).5") (llvm_int 32);
+
+    let st0 = {{
+      { h      = hash_ctx0_h
+      , Nl     = hash_ctx0_Nl
+      , Nh     = hash_ctx0_Nh
+      , u      = hash_ctx0_u
+      , num    = hash_ctx0_num
+      , md_len = hash_ctx0_md_len
+      } : SHA512_c_state
+    }};
+
+    return (alg0, st0);
+};
+
+let check_final_hash_state prefix st1 = do {
+    // Make struct path using 'prefix'.
+    let p before after = str_concat before (str_concat prefix after);
+
+    llvm_ensure_eq (p "((" "1).0).0") {{ st1.h }};
+    llvm_ensure_eq (p "((" "1).0).1") {{ st1.Nl }};
+    llvm_ensure_eq (p "((" "1).0).2") {{ st1.Nh }};
+    llvm_ensure_eq (p "(((" "1).0).3).0") {{ st1.u }};
+    llvm_ensure_eq (p "((" "1).0).4") {{ st1.num }};
+    llvm_ensure_eq (p "((" "1).0).5") {{ st1.md_len }};
+};
+
+let hash_init_spec = do {
+    llvm_ptr "state" (llvm_struct "struct.s2n_hash_state");
+    (_, st0) <- setup_initial_hash_state "state->";
+    alg0 <- llvm_var "alg" (llvm_int 32);
+
+    // We need to pass in the starting state since many of the bits in
+    // the union are unused by many of the hash algorithms.
+    let st1 = {{ hash_init_c_state st0 }};
+
+    check_final_hash_state "state->" st1;
+    llvm_return {{ 0 : [32] }};
+
+    llvm_no_simulate; // "Admit".
+};
+
+let hash_update_spec msg_size = do {
+    llvm_ptr "state" (llvm_struct "struct.s2n_hash_state");
+    llvm_ptr "data" (llvm_array msg_size (llvm_int 8));
+    (_, st0) <- setup_initial_hash_state "state->";
+    data0 <- llvm_var "*data" (llvm_array msg_size (llvm_int 8));
+    size0 <- llvm_var "size" (llvm_int 32);
+
+    llvm_assert_eq "size" {{ `msg_size : [32] }};
+    let st1 = {{ hash_update_c_state`{msg_size=msg_size} st0 data0 }};
+
+    check_final_hash_state "state->" st1;
+    llvm_return {{ 0 : [32] }};
+
+    llvm_no_simulate; // "Admit".
+};
+
+let hash_digest_spec digest_size = do {
+    llvm_ptr "state" (llvm_struct "struct.s2n_hash_state");
+    llvm_ptr "out" (llvm_array digest_size (llvm_int 8));
+    (_, st0) <- setup_initial_hash_state "state->";
+    out0 <- llvm_var "*out" (llvm_array digest_size (llvm_int 8));
+    size0 <- llvm_var "size" (llvm_int 32);
+
+    let out1 = {{ hash_digest_c_state`{digest_size=digest_size} st0 }};
+
+    llvm_ensure_eq "*out" {{ out1 }};
+    llvm_return {{ 0 : [32] }};
+
+    llvm_no_simulate; // "Admit".
+};
+
+////////////////////////////////////////////////////////////////
+// HMAC.
+
+let setup_initial_hmac_state = do {
+    llvm_ptr "state" (llvm_struct "struct.s2n_hmac_state");
+
+    alg0 <- llvm_var "state->0" (llvm_int 32);
+
+    hash_block_size0         <- llvm_var "state->1" (llvm_int 16);
+    currently_in_hash_block0 <- llvm_var "state->2" (llvm_int 32);
+    block_size0              <- llvm_var "state->3" (llvm_int 16);
+    digest_size0             <- llvm_var "state->4" (llvm_int 8);
+
+    (_, inner0)          <- setup_initial_hash_state "(state->5).";
+    (_, inner_just_key0) <- setup_initial_hash_state "(state->6).";
+    (_, outer0)          <- setup_initial_hash_state "(state->7).";
+
+    xor_pad0 <- llvm_var "state->8" (llvm_array 128 (llvm_int 8));
+
+    // The digest size is the SHA512 digest size, because SHA512
+    // has the largest digest size; the other hash algorithms only
+    // use a prefix of this buffer.
+    let digest_size = eval_size {| SHA512_DIGEST_LENGTH |};
+    digest_pad0 <- llvm_var "state->9" (llvm_array digest_size
+    (llvm_int 8));
+
+    let st0 = {{
+      { alg                     = alg0
+      , hash_block_size         = hash_block_size0
+      , currently_in_hash_block = currently_in_hash_block0
+      , block_size              = block_size0
+      , digest_size             = digest_size0
+      , inner                   = inner0
+      , inner_just_key          = inner_just_key0
+      , outer                   = outer0
+      , xor_pad                 = xor_pad0
+      , digest_pad              = digest_pad0
+      }
+    }};
+    return st0;
+};
+
+let check_final_hmac_state st1 = do {
+    llvm_ensure_eq "state->0" {{ st1.alg }};
+    llvm_ensure_eq "state->1" {{ st1.hash_block_size }};
+    llvm_ensure_eq "state->2" {{ st1.currently_in_hash_block }};
+    llvm_ensure_eq "state->3" {{ st1.block_size }};
+    llvm_ensure_eq "state->4" {{ st1.digest_size }};
+
+    check_final_hash_state "(state->5)." {{ st1.inner }};
+    check_final_hash_state "(state->6)." {{ st1.inner_just_key }};
+
+    // XXX: Don't care about 'outer' because it gets overwritten by
+    // 's2n_hash_reset' before use in 's2n_hmac_digest'.
+    //
+    check_final_hash_state "(state->7)." {{ st1.outer }};
+
+    llvm_ensure_eq "state->8" {{ st1.xor_pad }};
+
+    // Don't care about 'digest_pad', because it gets overwritten
+    // using 's2n_hash_digest' before use in 's2n_hmac_digest'.
+    //
+    // TODO: could try leaving this in and seeing if the verification
+    // still goes through (since we tried to model exactly what happens).
+    //
+    //llvm_ensure_eq "state->9" {{ st1.digest_pad }};
+};
+
+////////////////////////////////////////////////////////////////
+
+let hmac_init_spec
+      key_size
+      (cfg : { name            : String
+             , hmac_alg        : Term
+             , digest_size     : Int
+             , block_size      : Int
+             , hash_block_size : Int
+             }) = do {
+
+    llvm_ptr "key" (llvm_array key_size (llvm_int 8));
+    st0 <- setup_initial_hmac_state;
+    alg0 <- llvm_var "alg" (llvm_int 32);
+    key0 <- llvm_var "*key" (llvm_array key_size (llvm_int 8));
+    klen0 <- llvm_var "klen" (llvm_int 32);
+
+    llvm_assert_eq "alg" cfg.hmac_alg;
+
+    // Here 'key_size', a SAWScript 'Int', can be treated as a Cryptol type.
+    llvm_assert_eq "klen" {{ `key_size : [32] }};
+
+    let block_size      = cfg.block_size;
+    let hash_block_size = cfg.hash_block_size;
+    let digest_size     = cfg.digest_size;
+    let st1 = {{
+      hmac_init_c_state
+        `{key_size=key_size
+         ,block_size=block_size
+         ,hash_block_size=hash_block_size
+         ,digest_size=digest_size}
+        st0 alg0 key0
+    }};
+
+    check_final_hmac_state st1;
+    llvm_return {{ 0 : [32] }};
+
+    //JD: Right now we aren't verifying this property. It performs
+    // poorly using the current release of Z3. Nightlies of Z3 have
+    // fixed the problem, but are not yet integrated into our build.
+    //llvm_sat_branches true;
+
+    //llvm_verify_tactic do {
+    //    unint_yices [ "hash_init_c_state"
+    //                , "hash_update_c_state"
+    //                , "hash_digest_c_state"
+    //                ];
+    //};
+
+    llvm_no_simulate; // "Admit".
+};
+
+let hmac_update_spec
+      msg_size
+      (cfg : { name            : String
+             , hmac_alg        : Term
+             , digest_size     : Int
+             , block_size      : Int
+             , hash_block_size : Int
+             }) = do {
+
+    llvm_ptr "in" (llvm_array msg_size (llvm_int 8));
+    st0 <- setup_initial_hmac_state;
+    in0 <- llvm_var "*in" (llvm_array msg_size (llvm_int 8));
+    size0 <- llvm_var "size" (llvm_int 32);
+
+    // Specify the HMAC algorithm.
+    llvm_assert_eq "state->0" cfg.hmac_alg;
+
+    let hash_block_size = cfg.hash_block_size;
+    llvm_assert_eq "state->1" {{ `hash_block_size : [16] }};
+    let block_size = cfg.block_size;
+    llvm_assert_eq "state->3" {{ `block_size : [16] }};
+    let digest_size = cfg.digest_size;
+    llvm_assert_eq "state->4" {{ `digest_size : [8] }};
+    llvm_assert_eq "size" {{ `msg_size : [32] }};
+
+    let st1 = {{ hmac_update_c_state st0 in0 }};
+
+    check_final_hmac_state st1;
+    llvm_return {{ 0 : [32] }};
+
+    llvm_sat_branches true;
+
+    llvm_verify_tactic do {
+        unint_z3 [ "hash_init_c_state"
+                 , "hash_update_c_state"
+                 , "hash_digest_c_state"
+                 ];
+    };
+};
+
+let hmac_digest_spec
+      (cfg : { name            : String
+             , hmac_alg        : Term
+             , digest_size     : Int
+             , block_size      : Int
+             , hash_block_size : Int
+             }) = do {
+
+    llvm_ptr "out" (llvm_array cfg.digest_size (llvm_int 8));
+    st0 <- setup_initial_hmac_state;
+    out0 <- llvm_var "*out" (llvm_array cfg.digest_size (llvm_int 8));
+    size0 <- llvm_var "size" (llvm_int 32);
+
+    // Specify the HMAC algorithm.
+    llvm_assert_eq "state->0" cfg.hmac_alg;
+
+    let hash_block_size = cfg.hash_block_size;
+    llvm_assert_eq "state->1" {{ `hash_block_size : [16] }};
+    let block_size = cfg.block_size;
+    llvm_assert_eq "state->3" {{ `block_size : [16] }};
+    let digest_size = cfg.digest_size;
+    llvm_assert_eq "state->4" {{ `digest_size : [8] }};
+    llvm_assert_eq "size" {{ `digest_size : [32] }};
+
+    // Feature request: be able to write '(st1, digest)' instead of
+    // 'st1_digest'.
+    let st1_digest = {{
+      hmac_digest_c_state`{block_size=block_size,digest_size=digest_size} st0
+    }};
+    let st1 = {{ st1_digest.0 }};
+    let digest = {{ st1_digest.1 }};
+
+    llvm_ensure_eq "*out" {{ split digest : [digest_size][8] }};
+    llvm_return {{ 0 : [32] }};
+
+    llvm_sat_branches true;
+    llvm_verify_tactic do {
+        unint_z3 [ "hash_init_c_state"
+                 , "hash_update_c_state"
+                 , "hash_digest_c_state"
+                 ];
+    };
+};
+
+
+
