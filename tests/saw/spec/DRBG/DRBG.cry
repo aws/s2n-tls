@@ -1,18 +1,46 @@
-type s2n_blob =
-  { data : [100] // unknown size array for now
+/*type s2n_blob data_size =
+  { data : [data_size] 
   , size : [32]
   , allocated : [32]
-  , mlocked : [64] //unsigned int?? 
-  }
+  , mlocked : Bit 
+  }*/
+
+type cipher_ctx = ()
 
 type s2n_drbg =
   { bytes_used : [64]
-  , ctx : [64] //not sure, an enum from openssl?
+  , ctx : cipher_ctx
   , v : [16][8]
-  , entropy_generator : s2n_blob -> [64] 
-  , generation : 32
   }
 
-s2n_drbg_instantiate drbg personalization_string =
-  let value = { data = drbg.v
-                size = 
+type seedlen = 32 //bytes, 256 bits fixed by table 3 for AES-128
+
+drbg_instantiate : {ps_size, entropy_size}
+                -> [seedlen][8]
+                -> [ps_size][8]
+                -> s2n_drbg
+drbg_instantiate entropy ps = drbg_update seed zero zero
+  where
+    ps' : [seedlen][8]
+    ps' = if `{ps_size} > `{seedlen}
+          then take ps
+          else ps # zero
+    seed = entropy ^ ps'
+  
+  
+
+drbg_reseed : {ps_size}
+              s2n_drbg
+           -> [seedlen][8]
+           -> [ps_size][8]
+	   -> s2n_drbg
+drbg_reseed drbg entropy ps = undefined
+
+drbg_uninstantiate : s2n_drbg -> s2n_drbg
+drbg_uninstantiate drbg = zero
+
+drbg_generate : {n} s2n_drbg -> ([n][8], s2n_drbg)
+drbg_generate drbg = undefined
+
+drbg_update : [seedlen][8] -> s2n_drbg -> s2n_drbg
+drbg_update data drbg
