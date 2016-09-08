@@ -1,0 +1,18 @@
+type s2n_blob =
+  { data : [100] // unknown size array for now
+  , size : [32]
+  , allocated : [32]
+  , mlocked : [64] //unsigned int?? 
+  }
+
+type s2n_drbg =
+  { bytes_used : [64]
+  , ctx : [64] //not sure, an enum from openssl?
+  , v : [16][8]
+  , entropy_generator : s2n_blob -> [64] 
+  , generation : 32
+  }
+
+s2n_drbg_instantiate drbg personalization_string =
+  let value = { data = drbg.v
+                size = 
