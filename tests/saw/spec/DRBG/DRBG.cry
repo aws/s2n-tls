@@ -1,32 +1,26 @@
-/*type s2n_blob data_size =
-  { data : [data_size] 
-  , size : [32]
-  , allocated : [32]
-  , mlocked : Bit 
-  }*/
-
-type cipher_ctx = ()
+type cipher_ctx = { key : [blocklen][8] }
 
 type s2n_drbg =
   { bytes_used : [64]
-  , ctx : cipher_ctx
-  , v : [16][8]
+  , ctx : cipher_ctx 
+  , v : [blocklen][8]
   }
 
+type blocklen = 16 //bytes
 type seedlen = 32 //bytes, 256 bits fixed by table 3 for AES-128
 
-drbg_instantiate : {ps_size, entropy_size}
-                -> [seedlen][8]
+drbg_instantiate : {ps_size}
+                   (fin ps_size) 
+                => [seedlen][8]
                 -> [ps_size][8]
                 -> s2n_drbg
-drbg_instantiate entropy ps = drbg_update seed zero zero
+drbg_instantiate entropy ps = drbg_update seed zero
   where
     ps' : [seedlen][8]
-    ps' = if `{ps_size} > `{seedlen}
-          then take ps
-          else ps # zero
+    /* pad ps with zeros if needed to reach seedlen
+       otherwise truncate to seedlen */
+    ps' = take `{seedlen} (ps # (zero : [seedlen][8])) 
     seed = entropy ^ ps'
-  
   
 
 drbg_reseed : {ps_size}
@@ -42,5 +36,22 @@ drbg_uninstantiate drbg = zero
 drbg_generate : {n} s2n_drbg -> ([n][8], s2n_drbg)
 drbg_generate drbg = undefined
 
+/* What is ctr_len, we think it is >= blocklen, so
+   we go to the else branch of 2.1 every time */
 drbg_update : [seedlen][8] -> s2n_drbg -> s2n_drbg
-drbg_update data drbg
+drbg_update data drbg = result
+  where
+    enc_result : [seedlen/blocklen][blocklen][8]
+    enc_result = [ block_encrypt drbg.ctx (split ((join drbg.v) + i)) | i <- [1.. seedlen/blocklen]]
+    first_seedlen : [seedlen][8]
+    first_seedlen = take (join enc_result)
+    data_xor = first_seedlen ^ data
+    // blocklen * seedlen / blocklen is seedlen in our case, but might be different
+    // if seedlen isn't a multiple of blocklen
+    result = {   bytes_used = drbg.bytes_used + (`blocklen * (`seedlen / `blocklen))
+               , ctx = { key = take data_xor}
+               , v = drop data_xor
+             }
+
+block_encrypt : cipher_ctx -> [blocklen][8] -> [blocklen][8]
+block_encrypt ctx v = undefined
