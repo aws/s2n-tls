@@ -31,15 +31,25 @@ Axiom equiv_one : forall m k,
 Axiom update_empty : forall s, HMAC_update empty_string s = s.
 
 Lemma fold_right_concat : forall s l,
-        fold_right concat (s) l = concat (fold_right concat empty_string l) s.
+    fold_right concat (s) l = concat (fold_right concat empty_string l) s.
 Proof.
-      induction l.
-      simpl in *. rewrite concat_empty_l. auto.
-      simpl in *. rewrite IHl. rewrite concat_assoc. auto.
-      Qed.
+  induction l.
+  simpl in *. rewrite concat_empty_l. auto.
+  simpl in *. rewrite IHl. rewrite concat_assoc. auto.
+Qed.
 
-
-
+Lemma update_concat_any:
+  forall (l : list string) (key s : string),
+    HMAC_update (concat (fold_right concat empty_string (rev l)) s) (HMAC_init key) =
+    HMAC_update s (fold_right HMAC_update (HMAC_init key) l).
+Proof.
+  induction l; intros.
+    + simpl in *. rewrite concat_empty_l. auto.
+    + simpl in *. rewrite <- update_concat. rewrite fold_right_app.
+      simpl. rewrite fold_right_concat. simpl. rewrite concat_empty. rewrite <- IHl. f_equal.
+      rewrite concat_assoc. auto.
+Qed.
+  
 Theorem HMAC_incremental_equiv :
   forall (ms : list string) key,
     HMAC key (fold_right concat empty_string ms) =
@@ -47,22 +57,14 @@ Theorem HMAC_incremental_equiv :
 Proof.
   intros.
   rewrite <- fold_left_rev_right in *.
-  remember (length ms).
-  generalize dependent ms.
-  revert key.
-  induction n; intros.
-  - intros. destruct ms.
-    + simpl in *. rewrite <- equiv_one.  rewrite update_empty. auto.
-    + simpl in *. congruence.
-  - intros. assert (S n = length (rev ms)).  rewrite rev_length. apply Heqn.
-    destruct (rev ms) eqn:?; simpl in *; try congruence. assert ((rev (rev ms)) = rev (s :: l)) by congruence.
-    rewrite rev_involutive in *. simpl in *. subst. rewrite fold_right_app. simpl in *.
-    rewrite fold_right_concat. rewrite <- equiv_one. simpl in *. f_equal. clear - n.
-    revert s. clear n.
-    induction l; intros.
-    + simpl in *. rewrite concat_empty_l. rewrite concat_empty. auto.
-    + simpl in *. rewrite <- update_concat. rewrite concat_empty in *. rewrite fold_right_app.
-      simpl. rewrite fold_right_concat. simpl. rewrite concat_empty. rewrite <- IHl. f_equal.
-      rewrite concat_assoc. rewrite concat_empty. rewrite concat_assoc. auto.
+  remember (rev ms).
+  destruct l; simpl.
+  - rewrite <- equiv_one. destruct ms.
+    + simpl. rewrite update_empty. auto.
+    +  assert (rev nil = rev (rev (s :: ms))). f_equal. auto.
+       clear Heql. rewrite rev_involutive in *. simpl in *. congruence.
+  - rewrite <- equiv_one. rewrite <- update_concat_any.
+    f_equal.  assert (rev (s :: l) = rev (rev ms)). f_equal. auto.
+    rewrite rev_involutive in *. subst. clear Heql. simpl.
+    rewrite fold_right_app. simpl. rewrite concat_empty. rewrite fold_right_concat. auto.
 Qed.
-  
