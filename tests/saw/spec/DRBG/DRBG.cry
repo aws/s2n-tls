@@ -1,3 +1,5 @@
+module DRBG where
+
 type cipher_ctx = { key : [blocklen][8] }
 
 type s2n_drbg =
@@ -32,17 +34,38 @@ drbg_reseed drbg entropy ps = undefined
 
 drbg_uninstantiate : s2n_drbg -> s2n_drbg
 drbg_uninstantiate drbg = zero
+/* This is the spec of the s2n code, in that it reseeds automatically
+   if reseed is required. This is in opposition to the spec, which
+   requires an error code.
 
-drbg_generate : {n} s2n_drbg -> ([n][8], s2n_drbg)
-drbg_generate drbg = undefined
+   We are curious about why s2n_drbg counts a number of bytes used,
+   while the spec tracks a number of calls to generate. We don't 
+   belive that this is buggy behavior, since if we call the maximum
+   size with generate each time, we will reseed before the spec would
+   require it. */
+drbg_generate : {n} (fin n, n >= 1, n <= 1024) => s2n_drbg -> ([n][8], s2n_drbg)
+drbg_generate drbg =   (returned_bits, drbg')
+  where
+    additional_input : [seedlen][8]
+    additional_input = zero
+    type enc_count = (n + blocklen -1)/blocklen
+    //enc_result : [enc_count][blocklen][8]
+    enc_result = [ block_encrypt drbg.ctx (split ((join drbg.v) + (i + 1)))
+                 | i <- [1 .. enc_count]]
+    returned_bits : [n][8]
+    returned_bits = take (join enc_result)
+    drbg' = drbg_update additional_input drbg
+
 
 /* What is ctr_len, we think it is >= blocklen, so
    we go to the else branch of 2.1 every time */
 drbg_update : [seedlen][8] -> s2n_drbg -> s2n_drbg
 drbg_update data drbg = result
   where
-    enc_result : [seedlen/blocklen][blocklen][8]
-    enc_result = [ block_encrypt drbg.ctx (split ((join drbg.v) + i)) | i <- [1.. seedlen/blocklen]]
+    type enc_count = (seedlen + blocklen -1)/blocklen
+    enc_result : [enc_count][blocklen][8]
+    enc_result = [ block_encrypt drbg.ctx (split ((join drbg.v) + i))
+                 | i <- [1.. enc_count]]
     first_seedlen : [seedlen][8]
     first_seedlen = take (join enc_result)
     data_xor = first_seedlen ^ data
