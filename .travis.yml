@@ -30,6 +30,15 @@ before_install:
   - alias gcc=$(which gcc-6)
   # Install latest version of clang, clang++, and llvm-symbolizer and add them to beginning of PATH. Needed for fuzzing.
   - (.travis/install_clang.sh `pwd`/clang-download `pwd`/clang-latest $TRAVIS_OS_NAME) && export PATH=`pwd`/clang-latest/bin:$PATH
+
+  # Install SAW on Linux only 
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then curl http://saw.galois.com/builds/nightly/saw-0.2-2016-07-22-Ubuntu14.04-64.tar.gz > saw.tar.gz; tar -xzvf saw.tar.gz; fi
+  - export PATH=$PATH:$PWD/saw-0.2-2016-07-22-Ubuntu14.04-64/bin
+
+  # Install Z3
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository ppa:hvr/z3 -y; sudo apt-key update; sudo apt-get update; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install z3 -y --force-yes; fi
+
 install:
   # Download and Install LibFuzzer
   - .travis/install_libFuzzer.sh `pwd`/fuzz_dependencies/libFuzzer-download `pwd`/fuzz_dependencies $TRAVIS_OS_NAME
@@ -43,9 +52,12 @@ install:
   - .travis/run_cppcheck.sh
 
 script:
-  # On Linux build with make
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then make -j 8   ; fi
   # Build and run unit tests with scan-build for osx. scan-build bundle isn't available for linux
+  - (test "$TRAVIS_OS_NAME" = "osx" && scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/*; exit $STATUS) || true
+  - make integration
+  - make clean && make fuzz
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/*; exit $STATUS ; fi
   - make integration
   - make clean && make fuzz
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export PATH="/usr/local/clang-3.4/bin/":$PATH; echo $PATH; which clang; clang --version; llvm-link --version; make saw; fi 

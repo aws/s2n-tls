@@ -41,3 +41,4 @@ clean:
 	${MAKE} -C testlib decruft
 	${MAKE} -C unit decruft
 	${MAKE} -C fuzz decruft
+	${MAKE} -C saw decruft
