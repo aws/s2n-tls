@@ -2,6 +2,10 @@ module DRBG where
 
 import AES
 
+type blocklen = 128 //bits
+type seedlen = 256 //bits, 256 bits fixed by table 3 for AES-128
+type reseed_limit = 2 ^^ 35 // max number of bytes to generate before reseeding
+
 type cipher_ctx = { key : [blocklen]                  
  }
 
@@ -13,9 +17,6 @@ type s2n_drbg =
   , ctx : cipher_ctx 
   , v : [blocklen]
   }
-
-type blocklen = 128 //bits
-type seedlen = 256 //bits, 256 bits fixed by table 3 for AES-128
 
 drbg_instantiate : {ps_size}
                    (fin ps_size) 
@@ -59,18 +60,24 @@ drbg_uninstantiate drbg = zero
    belive that this is buggy behavior, since if we call the maximum
    size with generate each time, we will reseed before the spec would
    require it. */
-drbg_generate : {n} (fin n, n >= 1, n <= 8192) => s2n_drbg -> ([n], s2n_drbg)
-drbg_generate drbg =   (returned_bits, drbg')
+drbg_generate : {n} (fin n, n >= 1, n <= 8192) =>
+                s2n_drbg -> [seedlen] -> Bit ->
+                ([n], s2n_drbg)
+drbg_generate drbg entropy reseed_p = (returned_bits, drbg')
   where
     additional_input : [seedlen]
     additional_input = zero
+    drbg_r =
+      if reseed_p || drbg.bytes_used + `n * 8 + `blocklen * 8 >= `reseed_limit then
+        drbg_reseed drbg entropy (zero : [128])
+      else drbg
     type enc_count = (n + blocklen -1)/blocklen
     //enc_result : [enc_count][blocklen]
-    enc_result = [ block_encrypt drbg.ctx.key (drbg.v + (i + 1))
+    enc_result = [ block_encrypt drbg_r.ctx.key (drbg_r.v + (i + 1))
                  | i <- [1 .. enc_count]]
     //returned_bits : [n]
     returned_bits = take (join `{each=blocklen} enc_result)
-    drbg' = drbg_update additional_input drbg
+    drbg' = drbg_update additional_input drbg_r
 
 
 /* What is ctr_len, we think it is >= blocklen, so
