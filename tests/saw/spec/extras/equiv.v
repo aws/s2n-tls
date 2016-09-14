@@ -6,8 +6,8 @@ Parameter empty_string : string.
 
 Parameter concat : string -> string -> string.
 
+(*3 axioms about concatenation that should hold for any reasonable implementation *)
 Axiom concat_assoc : forall a b c, concat a (concat b c) = concat (concat a b) c. 
-
 Axiom concat_empty : forall s : string, concat s empty_string = s.
 Axiom concat_empty_l : forall s : string, concat empty_string s = s.
 
@@ -22,12 +22,15 @@ Parameter HMAC_update : string -> state -> state.
 
 Parameter HMAC_digest : state -> string.
 
+(* We have proved this as stated here in SAW *)
 Axiom update_concat : forall m1 m2 s,
     HMAC_update (concat m1 m2) s = HMAC_update m2 (HMAC_update m1 s).
 
+(* We have proved this for a set of m and k sizes in SAW *)
 Axiom equiv_one : forall m k,
     HMAC_digest (HMAC_update m (HMAC_init k)) = HMAC k m.
 
+(* Not yet proved in SAW, can be proved as stated *)
 Axiom update_empty : forall s, HMAC_update empty_string s = s.
 
 Lemma fold_right_concat : forall s l,
