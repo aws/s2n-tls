@@ -30,7 +30,7 @@ drbg_instantiate entropy ps = drbg_update seed zero
        otherwise truncate to seedlen */
     ps' = take `{seedlen} (ps # (zero : [seedlen])) 
     seed = entropy ^ ps'
-  
+
 /* Should bytes used be reset before the update? s2n doesn't
    it seems like the NIST spec counts that update as the first 
    
@@ -48,7 +48,7 @@ drbg_reseed drbg entropy ps = drbg''
     seed_material = entropy ^ ps_pad
     drbg' = drbg_update seed_material drbg
     drbg'' = { v = drbg'.v, ctx = drbg'.ctx, bytes_used = 0}
-    
+
 drbg_uninstantiate : s2n_drbg -> s2n_drbg
 drbg_uninstantiate drbg = zero
 /* This is the spec of the s2n code, in that it reseeds automatically
@@ -60,7 +60,9 @@ drbg_uninstantiate drbg = zero
    belive that this is buggy behavior, since if we call the maximum
    size with generate each time, we will reseed before the spec would
    require it. */
-drbg_generate : {n} (fin n, n >= 1, n <= 8192) =>
+drbg_generate : {n, blocks} (fin n, fin blocks, n >= 1, n <= 8192,
+                             blocks * blocklen >= n,
+                             (blocks - 1) * blocklen <= n - 1) =>
                 s2n_drbg -> [seedlen] -> Bit ->
                 ([n], s2n_drbg)
 drbg_generate drbg entropy reseed_p = (returned_bits, drbg')
@@ -69,13 +71,13 @@ drbg_generate drbg entropy reseed_p = (returned_bits, drbg')
     additional_input = zero
     drbg_r =
       if reseed_p || drbg.bytes_used + `n * 8 + `blocklen * 8 >= `reseed_limit then
-        drbg_reseed drbg entropy (zero : [128])
+        drbg_reseed drbg entropy (zero : [256])
       else drbg
-    type enc_count = (n + blocklen -1)/blocklen
-    //enc_result : [enc_count][blocklen]
-    enc_result = [ block_encrypt drbg_r.ctx.key (drbg_r.v + (i + 1))
-                 | i <- [1 .. enc_count]]
-    //returned_bits : [n]
+    //type enc_count = (n + blocklen - 1)/blocklen
+    enc_result : [blocks][blocklen]
+    enc_result = [ block_encrypt drbg_r.ctx.key (drbg_r.v + i)
+                 | i <- [1 .. blocks]]
+    returned_bits : [n]
     returned_bits = take (join `{each=blocklen} enc_result)
     drbg' = drbg_update additional_input drbg_r
 
@@ -85,16 +87,16 @@ drbg_generate drbg entropy reseed_p = (returned_bits, drbg')
 drbg_update : [seedlen] -> s2n_drbg -> s2n_drbg
 drbg_update data drbg = result
   where
-    type enc_count = (seedlen + blocklen -1)/blocklen
-    //enc_result : [enc_count][blocklen]
-    enc_result = [ block_encrypt (drbg.ctx.key : [128])  ((drbg.v + i) : [128])
-                 | i <- [1.. enc_count]]
+    type blocks = (seedlen + blocklen -1)/blocklen
+    enc_result : [blocks][blocklen]
+    enc_result = [ block_encrypt drbg.ctx.key (drbg.v + i)
+                 | i <- [1.. blocks]]
     first_seedlen : [seedlen]
     first_seedlen = take (join `{each=blocklen} enc_result)
     data_xor = first_seedlen ^ data
     // blocklen * seedlen / blocklen is seedlen in our case, but might be different
     // if seedlen isn't a multiple of blocklen
-    result = {   bytes_used = drbg.bytes_used + ((`blocklen * (`seedlen / `blocklen)) / 8)
+    result = {   bytes_used = drbg.bytes_used + (`blocks / 8)
                , ctx = { key = take data_xor
                        //, block_encrypt = drbg.ctx.block_encrypt
                        }
