@@ -241,8 +241,10 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
         GUARD(cipher_suite->cipher->io.cbc.encrypt(session_key, &iv, &en, &en));
 
         /* Copy the last encrypted block to be the next IV */
-        gte_check(en.size, block_size);
-        memcpy_check(implicit_iv, en.data + en.size - block_size, block_size);
+        if (conn->actual_protocol_version < S2N_TLS11) {
+            gte_check(en.size, block_size);
+            memcpy_check(implicit_iv, en.data + en.size - block_size, block_size);
+        }
         break;
     case S2N_AEAD:
         GUARD(cipher_suite->cipher->io.aead.encrypt(session_key, &iv, &aad, &en, &en));
