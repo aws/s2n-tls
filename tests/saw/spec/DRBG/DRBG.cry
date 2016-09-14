@@ -1,37 +1,53 @@
 module DRBG where
 
-type cipher_ctx = { key : [blocklen][8] }
+import AES
+
+type cipher_ctx = { key : [blocklen]                  
+ }
+
+block_encrypt : [blocklen] -> [blocklen] -> [blocklen]
+block_encrypt key data = aesEncrypt(data, key)
 
 type s2n_drbg =
   { bytes_used : [64]
   , ctx : cipher_ctx 
-  , v : [blocklen][8]
+  , v : [blocklen]
   }
 
-type blocklen = 16 //bytes
-type seedlen = 32 //bytes, 256 bits fixed by table 3 for AES-128
+type blocklen = 128 //bits
+type seedlen = 256 //bits, 256 bits fixed by table 3 for AES-128
 
 drbg_instantiate : {ps_size}
                    (fin ps_size) 
-                => [seedlen][8]
-                -> [ps_size][8]
+                => [seedlen]
+                -> [ps_size]
                 -> s2n_drbg
 drbg_instantiate entropy ps = drbg_update seed zero
   where
-    ps' : [seedlen][8]
+    ps' : [seedlen]
     /* pad ps with zeros if needed to reach seedlen
        otherwise truncate to seedlen */
-    ps' = take `{seedlen} (ps # (zero : [seedlen][8])) 
+    ps' = take `{seedlen} (ps # (zero : [seedlen])) 
     seed = entropy ^ ps'
   
-
+/* Should bytes used be reset before the update? s2n doesn't
+   it seems like the NIST spec counts that update as the first 
+   
+   we limit ps_size to a maximum of seedlen because this is an
+   implementation specific choice made by s2n*/
 drbg_reseed : {ps_size}
-              s2n_drbg
-           -> [seedlen][8]
-           -> [ps_size][8]
+              (ps_size <= seedlen)
+           => s2n_drbg
+           -> [seedlen]
+           -> [ps_size]
 	   -> s2n_drbg
-drbg_reseed drbg entropy ps = undefined
-
+drbg_reseed drbg entropy ps = drbg''
+  where
+    ps_pad = ps # zero
+    seed_material = entropy ^ ps_pad
+    drbg' = drbg_update seed_material drbg
+    drbg'' = { v = drbg'.v, ctx = drbg'.ctx, bytes_used = 0}
+    
 drbg_uninstantiate : s2n_drbg -> s2n_drbg
 drbg_uninstantiate drbg = zero
 /* This is the spec of the s2n code, in that it reseeds automatically
@@ -43,38 +59,37 @@ drbg_uninstantiate drbg = zero
    belive that this is buggy behavior, since if we call the maximum
    size with generate each time, we will reseed before the spec would
    require it. */
-drbg_generate : {n} (fin n, n >= 1, n <= 1024) => s2n_drbg -> ([n][8], s2n_drbg)
+drbg_generate : {n} (fin n, n >= 1, n <= 8192) => s2n_drbg -> ([n], s2n_drbg)
 drbg_generate drbg =   (returned_bits, drbg')
   where
-    additional_input : [seedlen][8]
+    additional_input : [seedlen]
     additional_input = zero
     type enc_count = (n + blocklen -1)/blocklen
-    //enc_result : [enc_count][blocklen][8]
-    enc_result = [ block_encrypt drbg.ctx (split ((join drbg.v) + (i + 1)))
+    //enc_result : [enc_count][blocklen]
+    enc_result = [ block_encrypt drbg.ctx.key (drbg.v + (i + 1))
                  | i <- [1 .. enc_count]]
-    returned_bits : [n][8]
-    returned_bits = take (join enc_result)
+    //returned_bits : [n]
+    returned_bits = take (join `{each=blocklen} enc_result)
     drbg' = drbg_update additional_input drbg
 
 
 /* What is ctr_len, we think it is >= blocklen, so
    we go to the else branch of 2.1 every time */
-drbg_update : [seedlen][8] -> s2n_drbg -> s2n_drbg
+drbg_update : [seedlen] -> s2n_drbg -> s2n_drbg
 drbg_update data drbg = result
   where
     type enc_count = (seedlen + blocklen -1)/blocklen
-    enc_result : [enc_count][blocklen][8]
-    enc_result = [ block_encrypt drbg.ctx (split ((join drbg.v) + i))
+    //enc_result : [enc_count][blocklen]
+    enc_result = [ block_encrypt (drbg.ctx.key : [128])  ((drbg.v + i) : [128])
                  | i <- [1.. enc_count]]
-    first_seedlen : [seedlen][8]
-    first_seedlen = take (join enc_result)
+    first_seedlen : [seedlen]
+    first_seedlen = take (join `{each=blocklen} enc_result)
     data_xor = first_seedlen ^ data
     // blocklen * seedlen / blocklen is seedlen in our case, but might be different
     // if seedlen isn't a multiple of blocklen
-    result = {   bytes_used = drbg.bytes_used + (`blocklen * (`seedlen / `blocklen))
-               , ctx = { key = take data_xor}
+    result = {   bytes_used = drbg.bytes_used + ((`blocklen * (`seedlen / `blocklen)) / 8)
+               , ctx = { key = take data_xor
+                       //, block_encrypt = drbg.ctx.block_encrypt
+                       }
                , v = drop data_xor
              }
-
-block_encrypt : cipher_ctx -> [blocklen][8] -> [blocklen][8]
-block_encrypt ctx v = undefined
