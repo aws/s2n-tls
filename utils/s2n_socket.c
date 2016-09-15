@@ -36,7 +36,7 @@
     #define S2N_CORK_OFF    1
 #endif
 
-int s2n_socket_snapshot(struct s2n_connection *conn)
+int s2n_socket_write_snapshot(struct s2n_connection *conn)
 {
 #ifdef S2N_CORK
     socklen_t corklen = sizeof(int);
@@ -45,30 +45,41 @@ int s2n_socket_snapshot(struct s2n_connection *conn)
     eq_check(corklen, sizeof(int));
 #endif
 
+    return 0;
+}
+
+
+int s2n_socket_read_snapshot(struct s2n_connection *conn)
+{
 #ifdef SO_RCVLOWAT
     socklen_t watlen = sizeof(int);
 
-    getsockopt(conn->writefd, IPPROTO_TCP, SO_RCVLOWAT, &conn->original_rcvlowat_val, &watlen);
+    getsockopt(conn->readfd, IPPROTO_TCP, SO_RCVLOWAT, &conn->original_rcvlowat_val, &watlen);
     eq_check(watlen, sizeof(int));
 #endif
 
     return 0;
 }
 
-int s2n_socket_restore(struct s2n_connection *conn)
+int s2n_socket_write_restore(struct s2n_connection *conn)
 {
 #ifdef S2N_CORK
     setsockopt(conn->writefd, IPPROTO_TCP, S2N_CORK, &conn->original_cork_val, sizeof(conn->original_cork_val));
 #endif
 
+    return 0;
+}
+
+int s2n_socket_read_restore(struct s2n_connection *conn)
+{
 #ifdef SO_RCVLOWAT
-    setsockopt(conn->writefd, IPPROTO_TCP, SO_RCVLOWAT, &conn->original_rcvlowat_val, sizeof(conn->original_rcvlowat_val));
+    setsockopt(conn->readfd, IPPROTO_TCP, SO_RCVLOWAT, &conn->original_rcvlowat_val, sizeof(conn->original_rcvlowat_val));
 #endif
 
     return 0;
 }
 
-int s2n_socket_cork(struct s2n_connection *conn)
+int s2n_socket_write_cork(struct s2n_connection *conn)
 {
 #ifdef S2N_CORK
     int optval = S2N_CORK_ON;
@@ -80,7 +91,7 @@ int s2n_socket_cork(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_socket_uncork(struct s2n_connection *conn)
+int s2n_socket_write_uncork(struct s2n_connection *conn)
 {
 #ifdef S2N_CORK
     int optval = S2N_CORK_OFF;
@@ -92,7 +103,7 @@ int s2n_socket_uncork(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_socket_read_size(struct s2n_connection *conn, int size)
+int s2n_socket_set_read_size(struct s2n_connection *conn, int size)
 {
 #ifdef SO_RCVLOWAT
     setsockopt(conn->writefd, IPPROTO_TCP, SO_RCVLOWAT, &size, sizeof(size));

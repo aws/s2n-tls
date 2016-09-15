@@ -17,8 +17,10 @@
 
 #include <tls/s2n_connection.h>
 
-extern int s2n_socket_snapshot(struct s2n_connection *conn);
-extern int s2n_socket_restore(struct s2n_connection *conn);
-extern int s2n_socket_cork(struct s2n_connection *conn);
-extern int s2n_socket_uncork(struct s2n_connection *conn);
-extern int s2n_socket_read_size(struct s2n_connection *conn, int size);
+extern int s2n_socket_read_snapshot(struct s2n_connection *conn);
+extern int s2n_socket_write_snapshot(struct s2n_connection *conn);
+extern int s2n_socket_read_restore(struct s2n_connection *conn);
+extern int s2n_socket_write_restore(struct s2n_connection *conn);
+extern int s2n_socket_write_cork(struct s2n_connection *conn);
+extern int s2n_socket_write_uncork(struct s2n_connection *conn);
+extern int s2n_socket_set_read_size(struct s2n_connection *conn, int size);

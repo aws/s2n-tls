@@ -142,14 +142,14 @@ static int s2n_advance_message(struct s2n_connection *conn)
     /* We're the new writer */
     if (ACTIVE_STATE(conn).writer == this) {
         /* Set TCP_CORK/NOPUSH */
-        GUARD(s2n_socket_cork(conn));
+        GUARD(s2n_socket_write_cork(conn));
 
         return 0;
     }
 
     /* We're the new reader, or we reached the "B" writer stage indicating that
        we're at the application data stage  - uncork the data */
-    GUARD(s2n_socket_uncork(conn));
+    GUARD(s2n_socket_write_uncork(conn));
 
     return 0;
 }
