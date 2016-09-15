@@ -65,21 +65,27 @@ drbg_generate : {n, blocks} (fin n, fin blocks, n >= 1, n <= 8192,
                              (blocks - 1) * blocklen <= n - 1) =>
                 s2n_drbg -> [seedlen] -> Bit ->
                 ([n], s2n_drbg)
-drbg_generate drbg entropy reseed_p = (returned_bits, drbg')
+drbg_generate drbg entropy reseed_p = (returned_bits, drbg_out)
   where
     additional_input : [seedlen]
     additional_input = zero
+    // Re-seed if we have exceeded the limit, or if reseed_p is set
     drbg_r =
       if reseed_p || drbg.bytes_used + `n * 8 + `blocklen * 8 >= `reseed_limit then
         drbg_reseed drbg entropy (zero : [256])
       else drbg
-    //type enc_count = (n + blocklen - 1)/blocklen
+    // Encrypt v+1, v+2, ..., v + ceil (n / blocklen)
     enc_result : [blocks][blocklen]
     enc_result = [ block_encrypt drbg_r.ctx.key (drbg_r.v + i)
                  | i <- [1 .. blocks]]
+    // Set v = v+blocks, as if the above loop side-effected v
+    drbg_v = { bytes_used = drbg_r.bytes_used,
+               ctx = drbg_r.ctx, v = drbg_r.v + `blocks }
+    // Return the requested number of bits of enc_result
     returned_bits : [n]
     returned_bits = take (join `{each=blocklen} enc_result)
-    drbg' = drbg_update additional_input drbg_r
+    // Update the drbg state
+    drbg_out = drbg_update additional_input drbg_v
 
 
 /* What is ctr_len, we think it is >= blocklen, so
@@ -87,15 +93,20 @@ drbg_generate drbg entropy reseed_p = (returned_bits, drbg')
 drbg_update : [seedlen] -> s2n_drbg -> s2n_drbg
 drbg_update data drbg = result
   where
+    // NOTE: blocklen * seedlen / blocklen is seedlen in our case, but might be
+    // different if seedlen isn't a multiple of blocklen
     type blocks = (seedlen + blocklen -1)/blocklen
+    // Encrypt v+1, v+2, ..., v + ceil (seedlen / blocklen)
     enc_result : [blocks][blocklen]
     enc_result = [ block_encrypt drbg.ctx.key (drbg.v + i)
                  | i <- [1.. blocks]]
+    // Take just the required number of bits from enc_result
     first_seedlen : [seedlen]
     first_seedlen = take (join `{each=blocklen} enc_result)
+    // XOR the additional input data with first_seedlen
     data_xor = first_seedlen ^ data
-    // blocklen * seedlen / blocklen is seedlen in our case, but might be different
-    // if seedlen isn't a multiple of blocklen
+    // Return the first half of data_xor as the new key, and the last half of it
+    // as the new value for v
     result = {   bytes_used = drbg.bytes_used + (`blocks / 8)
                , ctx = { key = take data_xor
                        //, block_encrypt = drbg.ctx.block_encrypt
