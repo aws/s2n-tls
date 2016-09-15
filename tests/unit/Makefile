@@ -20,6 +20,7 @@ VALGRIND_TESTS=$(SRCS:.c=_valgrind)
 CRYPTO_LDFLAGS = -L$(LIBCRYPTO_ROOT)/lib
 
 .PHONY : all
+.PRECIOUS : $(TESTS)
 all: $(TESTS)
 
 include ../../s2n.mk
