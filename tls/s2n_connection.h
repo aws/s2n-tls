@@ -80,6 +80,9 @@ struct s2n_connection {
     struct s2n_crypto_parameters *client;
     struct s2n_crypto_parameters *server;
 
+    /* DH key agreement needs some memory for the shared secret */
+    struct s2n_blob dh_shared_secret;
+
     /* The PRF needs some storage elements to work with */
     union s2n_prf_working_space prf_space;
 

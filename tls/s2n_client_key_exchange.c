@@ -90,21 +90,21 @@ static int s2n_rsa_client_key_recv(struct s2n_connection *conn)
 static int s2n_dhe_client_key_recv(struct s2n_connection *conn)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
-    struct s2n_blob shared_key;
+    struct s2n_blob *shared_key = &conn->dh_shared_secret;
+
 
     /* Get the shared key */
     if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC) {
-        GUARD(s2n_ecc_compute_shared_secret_as_server(&conn->secure.server_ecc_params, in, &shared_key));
+        GUARD(s2n_ecc_compute_shared_secret_as_server(&conn->secure.server_ecc_params, in, shared_key));
     } else {
-        GUARD(s2n_dh_compute_shared_secret_as_server(&conn->secure.server_dh_params, in, &shared_key));
+        GUARD(s2n_dh_compute_shared_secret_as_server(&conn->secure.server_dh_params, in, shared_key));
     }
 
     /* Turn the pre-master secret into a master secret */
-    GUARD(s2n_prf_master_secret(conn, &shared_key));
+    GUARD(s2n_prf_master_secret(conn, shared_key));
 
     /* Erase the pre-master secret */
-    GUARD(s2n_blob_zero(&shared_key));
-    GUARD(s2n_free(&shared_key));
+    GUARD(s2n_blob_zero(shared_key));
 
     /* Expand the keys */
     GUARD(s2n_prf_key_expansion(conn));
@@ -136,20 +136,19 @@ int s2n_client_key_recv(struct s2n_connection *conn)
 static int s2n_dhe_client_key_send(struct s2n_connection *conn)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
-    struct s2n_blob shared_key;
+    struct s2n_blob *shared_key = &conn->dh_shared_secret;
 
     if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC) {
-        GUARD(s2n_ecc_compute_shared_secret_as_client(&conn->secure.server_ecc_params, out, &shared_key));
+        GUARD(s2n_ecc_compute_shared_secret_as_client(&conn->secure.server_ecc_params, out, shared_key));
     } else {
-        GUARD(s2n_dh_compute_shared_secret_as_client(&conn->secure.server_dh_params, out, &shared_key));
+        GUARD(s2n_dh_compute_shared_secret_as_client(&conn->secure.server_dh_params, out, shared_key));
     }
 
     /* Turn the pre-master secret into a master secret */
-    GUARD(s2n_prf_master_secret(conn, &shared_key));
+    GUARD(s2n_prf_master_secret(conn, shared_key));
 
     /* Erase the pre-master secret */
-    GUARD(s2n_blob_zero(&shared_key));
-    GUARD(s2n_free(&shared_key));
+    GUARD(s2n_blob_zero(shared_key));
 
     /* Expand the keys */
     GUARD(s2n_prf_key_expansion(conn));
