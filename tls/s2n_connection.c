@@ -101,7 +101,6 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->in, 0));
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->handshake.io, 0));
     GUARD_PTR(s2n_connection_wipe(conn));
-    GUARD_PTR(s2n_socket_snapshot(conn));
     GUARD_PTR(s2n_timer_start(conn->config, &conn->write_timer));
 
     return conn;
@@ -256,6 +255,9 @@ int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
 int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
 {
     conn->writefd = wfd;
+
+    GUARD(s2n_socket_snapshot(conn));
+
     return 0;
 }
 
