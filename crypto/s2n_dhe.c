@@ -28,24 +28,109 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 
+#define S2N_MIN_DH_PRIME_SIZE_BYTES (2048 / 8)
+
+/* Caller is not responsible for freeing values returned by these accessors
+ * Per https://www.openssl.org/docs/man1.1.0/crypto/DH_get0_pqg.html
+ */
+static const BIGNUM *s2n_get_Ys_dh_param(struct s2n_dh_params *dh_params)
+{
+    const BIGNUM *Ys = NULL;
+    #if OPENSSL_VERSION_NUMBER < 0x10100000L
+        Ys = dh_params->dh->pub_key;
+    #else
+        DH_get0_key(dh_params->dh, &Ys, NULL);
+    #endif
+
+    return Ys;
+}
+
+static const BIGNUM *s2n_get_p_dh_param(struct s2n_dh_params *dh_params)
+{
+    const BIGNUM *p = NULL;
+    #if OPENSSL_VERSION_NUMBER < 0x10100000L
+        p = dh_params->dh->p;
+    #else
+        DH_get0_pqg(dh_params->dh, &p, NULL, NULL);
+    #endif
+
+    return p;
+}
+
+static const BIGNUM *s2n_get_g_dh_param(struct s2n_dh_params *dh_params)
+{
+    const BIGNUM *g = NULL;
+    #if OPENSSL_VERSION_NUMBER < 0x10100000L
+        g = dh_params->dh->g;
+    #else
+        DH_get0_pqg(dh_params->dh, NULL, NULL, &g);
+    #endif
+
+    return g;
+}
+
 static int s2n_check_p_g_dh_params(struct s2n_dh_params *dh_params)
 {
     notnull_check(dh_params);
     notnull_check(dh_params->dh);
-    notnull_check(dh_params->dh->g);
-    notnull_check(dh_params->dh->p);
 
-    if (DH_size(dh_params->dh) < (2048 / 8)) {
+    const BIGNUM *p = s2n_get_p_dh_param(dh_params);
+    const BIGNUM *g = s2n_get_g_dh_param(dh_params);
+
+    notnull_check(g);
+    notnull_check(p);
+
+    if (DH_size(dh_params->dh) < S2N_MIN_DH_PRIME_SIZE_BYTES) {
         S2N_ERROR(S2N_ERR_DH_PARAMS_CREATE);
     }
 
-    if (BN_is_zero(dh_params->dh->g)) {
+    if (BN_is_zero(g)) {
         S2N_ERROR(S2N_ERR_DH_PARAMS_CREATE);
     }
 
-    if (BN_is_zero(dh_params->dh->p)) {
+    if (BN_is_zero(p)) {
         S2N_ERROR(S2N_ERR_DH_PARAMS_CREATE);
     }
+
+    return 0;
+}
+
+static int s2n_check_pub_key_dh_params(struct s2n_dh_params *dh_params)
+{
+    const BIGNUM *pub_key = s2n_get_Ys_dh_param(dh_params);
+
+    notnull_check(pub_key);
+
+    if (BN_is_zero(pub_key)) {
+        S2N_ERROR(S2N_ERR_DH_PARAMS_CREATE);
+    }
+
+    return 0;
+}
+
+static int s2n_set_p_g_Ys_dh_params(struct s2n_dh_params *dh_params, struct s2n_blob *p, struct s2n_blob *g, struct s2n_blob *Ys)
+{
+    BIGNUM *bn_p = BN_bin2bn((const unsigned char *)p->data, p->size, NULL);
+    BIGNUM *bn_g = BN_bin2bn((const unsigned char *)g->data, g->size, NULL);
+    BIGNUM *bn_Ys = BN_bin2bn((const unsigned char *)Ys->data, Ys->size, NULL);
+
+    #if OPENSSL_VERSION_NUMBER < 0x10100000L
+        dh_params->dh->p = bn_p;
+        dh_params->dh->g = bn_g;
+        dh_params->dh->pub_key = bn_Ys;
+    #else
+        if (DH_set0_pqg(dh_params->dh, bn_p, NULL, bn_g) == 0) {
+            /* Per https://www.openssl.org/docs/man1.1.0/crypto/DH_get0_pqg.html:
+             * values that have been passed in should not be freed directly after this function has been called
+             */
+            S2N_ERROR(S2N_ERR_DH_PARAMS_CREATE);
+        }
+
+        if (DH_set0_key(dh_params->dh, bn_Ys, NULL) == 0) {
+            /* Same as DH_set0_pqg */
+            S2N_ERROR(S2N_ERR_DH_PARAMS_CREATE);
+        }
+    #endif
 
     return 0;
 }
@@ -53,11 +138,7 @@ static int s2n_check_p_g_dh_params(struct s2n_dh_params *dh_params)
 int s2n_check_all_dh_params(struct s2n_dh_params *dh_params)
 {
     GUARD(s2n_check_p_g_dh_params(dh_params));
-    notnull_check(dh_params->dh->pub_key);
-
-    if (BN_is_zero(dh_params->dh->pub_key)) {
-        S2N_ERROR(S2N_ERR_DH_PARAMS_CREATE);
-    }
+    GUARD(s2n_check_pub_key_dh_params(dh_params));
 
     return 0;
 }
@@ -74,7 +155,7 @@ int s2n_pkcs3_to_dh_params(struct s2n_dh_params *dh_params, struct s2n_blob *pkc
     pkcs3->data = original_ptr;
 
     /* Require at least 2048 bits for the DH size */
-    if (DH_size(dh_params->dh) < (2048 / 8)) {
+    if (DH_size(dh_params->dh) < S2N_MIN_DH_PRIME_SIZE_BYTES) {
         DH_free(dh_params->dh);
         S2N_ERROR(S2N_ERR_DH_TOO_SMALL);
     }
@@ -92,10 +173,7 @@ int s2n_dh_p_g_Ys_to_dh_params(struct s2n_dh_params *server_dh_params, struct s2
         S2N_ERROR(S2N_ERR_DH_PARAMS_CREATE);
     }
 
-    server_dh_params->dh->p = BN_bin2bn((const unsigned char *)p->data, p->size, NULL);
-    server_dh_params->dh->g = BN_bin2bn((const unsigned char *)g->data, g->size, NULL);
-    server_dh_params->dh->pub_key = BN_bin2bn((const unsigned char *)Ys->data, Ys->size, NULL);
-
+    GUARD(s2n_set_p_g_Ys_dh_params(server_dh_params, p, g, Ys));
     GUARD(s2n_check_all_dh_params(server_dh_params));
 
     return 0;
@@ -105,9 +183,13 @@ int s2n_dh_params_to_p_g_Ys(struct s2n_dh_params *server_dh_params, struct s2n_s
 {
     GUARD(s2n_check_all_dh_params(server_dh_params));
 
-    uint16_t p_size = BN_num_bytes(server_dh_params->dh->p);
-    uint16_t g_size = BN_num_bytes(server_dh_params->dh->g);
-    uint16_t Ys_size = BN_num_bytes(server_dh_params->dh->pub_key);
+    const BIGNUM *bn_p = s2n_get_p_dh_param(server_dh_params);
+    const BIGNUM *bn_g = s2n_get_g_dh_param(server_dh_params);
+    const BIGNUM *bn_Ys = s2n_get_Ys_dh_param(server_dh_params);
+
+    uint16_t p_size = BN_num_bytes(bn_p);
+    uint16_t g_size = BN_num_bytes(bn_g);
+    uint16_t Ys_size = BN_num_bytes(bn_Ys);
     uint8_t *p;
     uint8_t *g;
     uint8_t *Ys;
@@ -118,22 +200,22 @@ int s2n_dh_params_to_p_g_Ys(struct s2n_dh_params *server_dh_params, struct s2n_s
     GUARD(s2n_stuffer_write_uint16(out, p_size));
     p = s2n_stuffer_raw_write(out, p_size);
     notnull_check(p);
-    if (BN_bn2bin(server_dh_params->dh->p, p) != p_size) {
-        S2N_ERROR(S2N_ERR_DH_SERIAZING);
+    if (BN_bn2bin(bn_p, p) != p_size) {
+        S2N_ERROR(S2N_ERR_DH_SERIALIZING);
     }
 
     GUARD(s2n_stuffer_write_uint16(out, g_size));
     g = s2n_stuffer_raw_write(out, g_size);
     notnull_check(g);
-    if (BN_bn2bin(server_dh_params->dh->g, g) != g_size) {
-        S2N_ERROR(S2N_ERR_DH_SERIAZING);
+    if (BN_bn2bin(bn_g, g) != g_size) {
+        S2N_ERROR(S2N_ERR_DH_SERIALIZING);
     }
 
     GUARD(s2n_stuffer_write_uint16(out, Ys_size));
     Ys = s2n_stuffer_raw_write(out, Ys_size);
     notnull_check(Ys);
-    if (BN_bn2bin(server_dh_params->dh->pub_key, Ys) != Ys_size) {
-        S2N_ERROR(S2N_ERR_DH_SERIAZING);
+    if (BN_bn2bin(bn_Ys, Ys) != Ys_size) {
+        S2N_ERROR(S2N_ERR_DH_SERIALIZING);
     }
 
     output->size = p_size + 2 + g_size + 2 + Ys_size + 2;
@@ -144,8 +226,8 @@ int s2n_dh_params_to_p_g_Ys(struct s2n_dh_params *server_dh_params, struct s2n_s
 int s2n_dh_compute_shared_secret_as_client(struct s2n_dh_params *server_dh_params, struct s2n_stuffer *Yc_out, struct s2n_blob *shared_key)
 {
     struct s2n_dh_params client_params;
-    uint8_t *public_key;
-    uint16_t public_key_size;
+    uint8_t *client_pub_key;
+    uint16_t client_pub_key_size;
     int shared_key_size;
 
     GUARD(s2n_dh_params_check(server_dh_params));
@@ -153,22 +235,25 @@ int s2n_dh_compute_shared_secret_as_client(struct s2n_dh_params *server_dh_param
     GUARD(s2n_dh_generate_ephemeral_key(&client_params));
     GUARD(s2n_alloc(shared_key, DH_size(server_dh_params->dh)));
 
-    public_key_size = BN_num_bytes(client_params.dh->pub_key);
-    GUARD(s2n_stuffer_write_uint16(Yc_out, public_key_size));
-    public_key = s2n_stuffer_raw_write(Yc_out, public_key_size);
-    if (public_key == NULL) {
+    const BIGNUM *client_pub_key_bn = s2n_get_Ys_dh_param(&client_params);
+    client_pub_key_size = BN_num_bytes(client_pub_key_bn);
+    GUARD(s2n_stuffer_write_uint16(Yc_out, client_pub_key_size));
+    client_pub_key = s2n_stuffer_raw_write(Yc_out, client_pub_key_size);
+    if (client_pub_key == NULL) {
         GUARD(s2n_free(shared_key));
         GUARD(s2n_dh_params_free(&client_params));
         S2N_ERROR(S2N_ERR_DH_WRITING_PUBLIC_KEY);
     }
 
-    if (BN_bn2bin(client_params.dh->pub_key, public_key) != public_key_size) {
+    if (BN_bn2bin(client_pub_key_bn, client_pub_key) != client_pub_key_size) {
         GUARD(s2n_free(shared_key));
         GUARD(s2n_dh_params_free(&client_params));
         S2N_ERROR(S2N_ERR_DH_COPYING_PUBLIC_KEY);
     }
 
-    shared_key_size = DH_compute_key(shared_key->data, server_dh_params->dh->pub_key, client_params.dh);
+    /* server_dh_params already validated */
+    const BIGNUM *server_pub_key_bn = s2n_get_Ys_dh_param(server_dh_params);
+    shared_key_size = DH_compute_key(shared_key->data, server_pub_key_bn, client_params.dh);
     if (shared_key_size < 0) {
         GUARD(s2n_free(shared_key));
         GUARD(s2n_dh_params_free(&client_params));

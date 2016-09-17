@@ -58,7 +58,7 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_DH_COPYING_PUBLIC_KEY, "error copying Diffie-Hellman public key"},
     {S2N_ERR_DH_GENERATING_PARAMETERS, "error generating Diffie-Hellman parameters"},
     {S2N_ERR_DH_PARAMS_CREATE, "error creating Diffie-Hellman parameters"},
-    {S2N_ERR_DH_SERIAZING, "error serializing Diffie-Hellman parameters"},
+    {S2N_ERR_DH_SERIALIZING, "error serializing Diffie-Hellman parameters"},
     {S2N_ERR_DH_SHARED_SECRET, "error computing Diffie-Hellman shared secret"},
     {S2N_ERR_DH_WRITING_PUBLIC_KEY, "error writing Diffie-Hellman public key"},
     {S2N_ERR_DH_FAILED_SIGNING, "error signing Diffie-Hellman values"},
