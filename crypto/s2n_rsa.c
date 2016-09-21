@@ -103,7 +103,7 @@ static int s2n_rsa_modulus_check(RSA *rsa)
     #if OPENSSL_VERSION_NUMBER < 0x10100000L
         notnull_check(rsa->n);
     #else
-        BIGNUM *n = NULL;
+        const BIGNUM *n = NULL;
         /* RSA still owns the memory for n */
         RSA_get0_key(rsa, &n, NULL, NULL);
         notnull_check(n);
