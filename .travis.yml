@@ -41,7 +41,7 @@ before_install:
 
     - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then mkdir z3; curl http://saw.galois.com/builds/z3/z3 > z3/z3; sudo chmod +x z3/z3; fi
     - export PATH=$PWD/z3:$PATH
-    - z3 --version 
+    - z3 --version
 
 install:
   # Download and Install LibFuzzer
