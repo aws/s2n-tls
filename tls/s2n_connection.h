@@ -80,11 +80,13 @@ struct s2n_connection {
     struct s2n_crypto_parameters *client;
     struct s2n_crypto_parameters *server;
 
-    /* DH key agreement needs some memory for the shared secret */
-    struct s2n_blob dh_shared_secret;
-
     /* The PRF needs some storage elements to work with */
     union s2n_prf_working_space prf_space;
+
+    /* Does this connection use pre-warmed memory that should never
+     * be de-allocated.
+     */
+    int prewarmed;
 
     /* Our workhorse stuffers, used for buffering the plaintext
      * and encrypted data in both directions.

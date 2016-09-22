@@ -683,6 +683,17 @@ int s2n_connection_free(struct s2n_connection *conn);
 **s2n_connection_free** frees the memory associated with an s2n_connection
 handle.
 
+### s2n\_connection\_prewarm
+
+```c
+int s2n_connection_prewarm(struct s2n_connection *conn);
+```
+
+**s2n_connection_prewarm** causes s2n to allocate all of the possible
+memory that a connection may consume and to keep this memory allocated
+across invokations of **s2n_connection_wipe**. This can result in up
+to 100K memory overhead per connection.
+
 ## I/O functions
 
 s2n supports both blocking and non-blocking I/O. To use s2n in non-blocking

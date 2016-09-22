@@ -88,7 +88,6 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     blob.size = S2N_ALERT_LENGTH;
 
     /* s2n uses 2K DHE, which is 2048 bits, which is 256 bytes */
-    GUARD_PTR(s2n_alloc(&conn->dh_shared_secret, 254));
     GUARD_PTR(s2n_stuffer_init(&conn->writer_alert_out, &blob));
     GUARD_PTR(s2n_stuffer_alloc(&conn->out, S2N_LARGE_RECORD_LENGTH));
 
@@ -424,6 +423,7 @@ int s2n_connection_prewarm(struct s2n_connection *conn)
 {
     /* Max out the size of a handshake message */
     GUARD(s2n_stuffer_resize(&conn->handshake.io, S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH));
+    conn->prewarmed = 1;
 
     return 0;
 }

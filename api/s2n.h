@@ -106,6 +106,7 @@ extern int s2n_connection_get_actual_protocol_version(struct s2n_connection *con
 extern int s2n_connection_get_client_hello_version(struct s2n_connection *conn);
 extern const char *s2n_connection_get_cipher(struct s2n_connection *conn);
 extern int s2n_connection_get_alert(struct s2n_connection *conn);
+extern int s2n_connection_prewarm(struct s2n_connection *conn);
 
 #ifdef __cplusplus
 }

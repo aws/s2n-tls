@@ -417,7 +417,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
         }
 
         /* If the handshake has just ended, free up memory */
-        if (ACTIVE_STATE(conn).writer == 'B') {
+        if (ACTIVE_STATE(conn).writer == 'B' && !conn->prewarmed) {
             GUARD(s2n_stuffer_resize(&conn->handshake.io, 0));
         }
     }
