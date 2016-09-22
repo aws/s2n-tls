@@ -91,6 +91,12 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     GUARD_PTR(s2n_stuffer_init(&conn->writer_alert_out, &blob));
     GUARD_PTR(s2n_stuffer_alloc(&conn->out, S2N_LARGE_RECORD_LENGTH));
 
+    /* Allocate long term key memory */
+    GUARD_PTR(s2n_session_key_alloc(&conn->secure.client_key));
+    GUARD_PTR(s2n_session_key_alloc(&conn->secure.server_key));
+    GUARD_PTR(s2n_session_key_alloc(&conn->initial.client_key));
+    GUARD_PTR(s2n_session_key_alloc(&conn->initial.server_key));
+
     /* Initialize the growable stuffers. Zero length at first, but the resize
      * in _wipe will fix that 
      */
@@ -108,6 +114,16 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
 
 static int s2n_connection_free_keys(struct s2n_connection *conn)
 {
+    GUARD(s2n_session_key_free(&conn->secure.client_key));
+    GUARD(s2n_session_key_free(&conn->secure.server_key));
+    GUARD(s2n_session_key_free(&conn->initial.client_key));
+    GUARD(s2n_session_key_free(&conn->initial.server_key));
+
+    return 0;
+}
+
+static int s2n_connection_wipe_keys(struct s2n_connection *conn)
+{
     /* Destroy any keys - we call destroy on the object as that is where
      * keys are allocated. */
     if (conn->secure.cipher_suite && conn->secure.cipher_suite->cipher->destroy_key) {
@@ -122,8 +138,6 @@ static int s2n_connection_free_keys(struct s2n_connection *conn)
     GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
     GUARD(s2n_ecc_params_free(&conn->secure.server_ecc_params));
 
-    GUARD(s2n_free(&conn->status_response));
-
     return 0;
 }
 
@@ -131,8 +145,10 @@ int s2n_connection_free(struct s2n_connection *conn)
 {
     struct s2n_blob blob;
 
+    GUARD(s2n_connection_wipe_keys(conn));
     GUARD(s2n_connection_free_keys(conn));
 
+    GUARD(s2n_free(&conn->status_response));
     GUARD(s2n_stuffer_free(&conn->in));
     GUARD(s2n_stuffer_free(&conn->out));
     GUARD(s2n_stuffer_free(&conn->handshake.io));
@@ -164,9 +180,14 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     struct s2n_stuffer header_in;
     struct s2n_stuffer in;
     struct s2n_stuffer out;
+    /* Session keys will be wiped. Preserve structs to avoid reallocation */
+    struct s2n_session_key initial_client_key;
+    struct s2n_session_key initial_server_key;
+    struct s2n_session_key secure_client_key;
+    struct s2n_session_key secure_server_key;
 
     /* Wipe all of the sensitive stuff */
-    GUARD(s2n_connection_free_keys(conn));
+    GUARD(s2n_connection_wipe_keys(conn));
     GUARD(s2n_stuffer_wipe(&conn->alert_in));
     GUARD(s2n_stuffer_wipe(&conn->reader_alert_out));
     GUARD(s2n_stuffer_wipe(&conn->writer_alert_out));
@@ -178,6 +199,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     /* Restore the socket option values */
     GUARD(s2n_socket_read_restore(conn));
     GUARD(s2n_socket_write_restore(conn));
+    GUARD(s2n_free(&conn->status_response));
 
     /* Allocate or resize to their original sizes */
     GUARD(s2n_stuffer_resize(&conn->in, S2N_LARGE_FRAGMENT_LENGTH));
@@ -199,6 +221,10 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     memcpy_check(&header_in, &conn->header_in, sizeof(struct s2n_stuffer));
     memcpy_check(&in, &conn->in, sizeof(struct s2n_stuffer));
     memcpy_check(&out, &conn->out, sizeof(struct s2n_stuffer));
+    memcpy_check(&initial_client_key, &conn->initial.client_key, sizeof(struct s2n_session_key));
+    memcpy_check(&initial_server_key, &conn->initial.server_key, sizeof(struct s2n_session_key));
+    memcpy_check(&secure_client_key, &conn->secure.client_key, sizeof(struct s2n_session_key));
+    memcpy_check(&secure_server_key, &conn->secure.server_key, sizeof(struct s2n_session_key));
 #if defined(__GNUC__) && GCC_VERSION >= 40600
 #pragma GCC diagnostic pop
 #endif
@@ -233,6 +259,10 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     memcpy_check(&conn->header_in, &header_in, sizeof(struct s2n_stuffer));
     memcpy_check(&conn->in, &in, sizeof(struct s2n_stuffer));
     memcpy_check(&conn->out, &out, sizeof(struct s2n_stuffer));
+    memcpy_check(&conn->initial.client_key, &initial_client_key, sizeof(struct s2n_session_key));
+    memcpy_check(&conn->initial.server_key, &initial_server_key, sizeof(struct s2n_session_key));
+    memcpy_check(&conn->secure.client_key, &secure_client_key, sizeof(struct s2n_session_key));
+    memcpy_check(&conn->secure.server_key, &secure_server_key, sizeof(struct s2n_session_key));
 
     if (conn->mode == S2N_SERVER) {
         conn->server_protocol_version = s2n_highest_protocol_version;
