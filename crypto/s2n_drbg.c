@@ -43,7 +43,7 @@ static int s2n_drbg_bits(struct s2n_drbg *drbg, struct s2n_blob *out)
     /* Per NIST SP800-90A 10.2.1.2: */
     for (int i = 0; i < block_aligned_size; i += S2N_DRBG_BLOCK_SIZE) {
         GUARD(s2n_increment_sequence_number(&value));
-        GUARD(s2n_drbg_block_encrypt(&drbg->ctx, drbg->v, out->data + i));
+        GUARD(s2n_drbg_block_encrypt(drbg->ctx, drbg->v, out->data + i));
         drbg->bytes_used += S2N_DRBG_BLOCK_SIZE;
     }
 
@@ -53,7 +53,7 @@ static int s2n_drbg_bits(struct s2n_drbg *drbg, struct s2n_blob *out)
 
     uint8_t spare_block[S2N_DRBG_BLOCK_SIZE];
     GUARD(s2n_increment_sequence_number(&value));
-    GUARD(s2n_drbg_block_encrypt(&drbg->ctx, drbg->v, spare_block));
+    GUARD(s2n_drbg_block_encrypt(drbg->ctx, drbg->v, spare_block));
     drbg->bytes_used += S2N_DRBG_BLOCK_SIZE;
 
     memcpy_check(out->data + block_aligned_size, spare_block, out->size - block_aligned_size);
@@ -76,7 +76,7 @@ static int s2n_drbg_update(struct s2n_drbg *drbg, struct s2n_blob *provided_data
     }
 
     /* Update the key and value */
-    if (EVP_EncryptInit_ex(&drbg->ctx, EVP_aes_128_ecb(), NULL, temp, NULL) != 1) {
+    if (EVP_EncryptInit_ex(drbg->ctx, EVP_aes_128_ecb(), NULL, temp, NULL) != 1) {
         S2N_ERROR(S2N_ERR_DRBG);
     }
 
@@ -118,9 +118,14 @@ int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization
     /* Start off with zerod data, per 10.2.1.3.1 item 4 */
     GUARD(s2n_blob_zero(&value));
 
+    drbg->ctx = EVP_CIPHER_CTX_new();
+    if (!drbg->ctx) {
+        S2N_ERROR(S2N_ERR_DRBG);
+    }
+    (void)EVP_CIPHER_CTX_init(drbg->ctx);
+
     /* Start off with zerod key, per 10.2.1.3.1 item 5 */
-    (void)EVP_CIPHER_CTX_init(&drbg->ctx);
-    if (EVP_EncryptInit_ex(&drbg->ctx, EVP_aes_128_ecb(), NULL, drbg->v, NULL) != 1) {
+    if (EVP_EncryptInit_ex(drbg->ctx, EVP_aes_128_ecb(), NULL, drbg->v, NULL) != 1) {
         S2N_ERROR(S2N_ERR_DRBG);
     }
 
@@ -164,9 +169,12 @@ int s2n_drbg_wipe(struct s2n_drbg *drbg)
 {
     struct s2n_blob state = {.data = (void *)drbg,.size = sizeof(struct s2n_drbg) };
 
-    if (EVP_CIPHER_CTX_cleanup(&drbg->ctx) != 1) {
+    if (EVP_CIPHER_CTX_cleanup(drbg->ctx) != 1) {
         S2N_ERROR(S2N_ERR_DRBG);
     }
+
+    EVP_CIPHER_CTX_free(drbg->ctx);
+    drbg->ctx = NULL;
 
     GUARD(s2n_blob_zero(&state));
 
