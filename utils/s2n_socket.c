@@ -43,6 +43,7 @@ int s2n_socket_write_snapshot(struct s2n_connection *conn)
 
     getsockopt(conn->writefd, IPPROTO_TCP, S2N_CORK, &conn->original_cork_val, &corklen);
     eq_check(corklen, sizeof(int));
+    conn->original_cork_is_set = 1;
 #endif
 
     return 0;
@@ -56,6 +57,7 @@ int s2n_socket_read_snapshot(struct s2n_connection *conn)
 
     getsockopt(conn->readfd, IPPROTO_TCP, SO_RCVLOWAT, &conn->original_rcvlowat_val, &watlen);
     eq_check(watlen, sizeof(int));
+    conn->original_rcvlowat_is_set = 1;
 #endif
 
     return 0;
@@ -64,7 +66,11 @@ int s2n_socket_read_snapshot(struct s2n_connection *conn)
 int s2n_socket_write_restore(struct s2n_connection *conn)
 {
 #ifdef S2N_CORK
+    if (!conn->original_cork_is_set) {
+        return 0;
+    }
     setsockopt(conn->writefd, IPPROTO_TCP, S2N_CORK, &conn->original_cork_val, sizeof(conn->original_cork_val));
+    conn->original_cork_is_set = 0;
 #endif
 
     return 0;
@@ -73,7 +79,11 @@ int s2n_socket_write_restore(struct s2n_connection *conn)
 int s2n_socket_read_restore(struct s2n_connection *conn)
 {
 #ifdef SO_RCVLOWAT
+   if (!conn->original_rcvlowat_is_set) {
+        return 0;
+    }
     setsockopt(conn->readfd, IPPROTO_TCP, SO_RCVLOWAT, &conn->original_rcvlowat_val, sizeof(conn->original_rcvlowat_val));
+    conn->original_rcvlowat_is_set = 0;
 #endif
 
     return 0;
