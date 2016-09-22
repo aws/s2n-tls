@@ -27,15 +27,7 @@
 #include "utils/s2n_blob.h"
 
 struct s2n_session_key {
-    union {
-        RC4_KEY rc4;
-        struct {
-            DES_key_schedule dks1;
-            DES_key_schedule dks2;
-            DES_key_schedule dks3;
-        } des;
-        EVP_CIPHER_CTX evp_cipher_ctx;
-    } native_format;
+    EVP_CIPHER_CTX evp_cipher_ctx;
 };
 
 struct s2n_stream_cipher {

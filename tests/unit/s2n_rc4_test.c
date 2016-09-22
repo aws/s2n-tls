@@ -46,6 +46,7 @@ int main(int argc, char **argv)
 
     /* Peer and we are in sync */
     conn->server = &conn->secure;
+    conn->client = &conn->secure;
 
     /* test the RC4 cipher with a SHA1 hash */
     conn->secure.cipher_suite->cipher = &s2n_rc4;
