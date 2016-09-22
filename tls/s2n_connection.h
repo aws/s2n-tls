@@ -86,7 +86,7 @@ struct s2n_connection {
     /* Does this connection use pre-warmed memory that should never
      * be de-allocated.
      */
-    int prewarmed;
+    int prewarmed:1;
 
     /* Our workhorse stuffers, used for buffering the plaintext
      * and encrypted data in both directions.
