@@ -87,7 +87,6 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     blob.data = conn->writer_alert_out_data;
     blob.size = S2N_ALERT_LENGTH;
 
-    /* s2n uses 2K DHE, which is 2048 bits, which is 256 bytes */
     GUARD_PTR(s2n_stuffer_init(&conn->writer_alert_out, &blob));
     GUARD_PTR(s2n_stuffer_alloc(&conn->out, S2N_LARGE_RECORD_LENGTH));
 
@@ -199,9 +198,12 @@ int s2n_connection_wipe(struct s2n_connection *conn)
 #pragma GCC diagnostic pop
 #endif
 
+    int prewarmed = conn->prewarmed;
+
     /* Zero the whole connection structure */
     memset_check(conn, 0, sizeof(struct s2n_connection));
 
+    conn->prewarmed = prewarmed;
     conn->readfd = -1;
     conn->writefd = -1;
     conn->mode = mode;
