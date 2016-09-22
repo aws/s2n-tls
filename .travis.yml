@@ -19,6 +19,10 @@ compiler:
   - gcc
   - clang
 
+env:
+  - TESTS=unitfuzz
+  - TESTS=sawHMAC
+
 before_install:
   # Install GCC 6 if on OSX
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew update                ; fi
