@@ -26,6 +26,13 @@ env:
   - LATEST_CLANG=true TESTS=fuzz
   - TESTS=sawHMAC
 
+matrix:
+  exclude
+  - compiler: gcc
+    env: TESTS=sawHMAC
+  - os: osx
+    env: TESTS=sawHMAC
+
 before_install:
   # Install GCC 6 if on OSX
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   .travis/brew_install_gcc6.sh ; fi
