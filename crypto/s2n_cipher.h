@@ -27,15 +27,7 @@
 #include "utils/s2n_blob.h"
 
 struct s2n_session_key {
-    union {
-        RC4_KEY rc4;
-        struct {
-            DES_key_schedule dks1;
-            DES_key_schedule dks2;
-            DES_key_schedule dks3;
-        } des;
-        EVP_CIPHER_CTX evp_cipher_ctx;
-    } native_format;
+    EVP_CIPHER_CTX *evp_cipher_ctx;
 };
 
 struct s2n_stream_cipher {
@@ -71,6 +63,9 @@ struct s2n_cipher {
     int (*get_encryption_key) (struct s2n_session_key * key, struct s2n_blob * in);
     int (*destroy_key) (struct s2n_session_key * key);
 };
+
+extern int s2n_session_key_alloc(struct s2n_session_key *key);
+extern int s2n_session_key_free(struct s2n_session_key *key);
 
 extern struct s2n_cipher s2n_null_cipher;
 extern struct s2n_cipher s2n_rc4;

@@ -26,12 +26,12 @@ static int s2n_cbc_cipher_3des_encrypt(struct s2n_session_key *key, struct s2n_b
 {
     gte_check(out->size, in->size);
 
-    if (EVP_EncryptInit_ex(&key->native_format.evp_cipher_ctx, NULL, NULL, NULL, iv->data) == 0) {
+    if (EVP_EncryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data) == 0) {
         S2N_ERROR(S2N_ERR_KEY_INIT);
     }
 
     int len = out->size;
-    if (EVP_EncryptUpdate(&key->native_format.evp_cipher_ctx, out->data, &len, in->data, in->size) == 0) {
+    if (EVP_EncryptUpdate(key->evp_cipher_ctx, out->data, &len, in->data, in->size) == 0) {
         S2N_ERROR(S2N_ERR_ENCRYPT);
     }
 
@@ -46,12 +46,12 @@ static int s2n_cbc_cipher_3des_decrypt(struct s2n_session_key *key, struct s2n_b
 {
     gte_check(out->size, in->size);
 
-    if (EVP_DecryptInit_ex(&key->native_format.evp_cipher_ctx, NULL, NULL, NULL, iv->data) == 0) {
+    if (EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data) == 0) {
         S2N_ERROR(S2N_ERR_KEY_INIT);
     }
 
     int len = out->size;
-    if (EVP_DecryptUpdate(&key->native_format.evp_cipher_ctx, out->data, &len, in->data, in->size) == 0) {
+    if (EVP_DecryptUpdate(key->evp_cipher_ctx, out->data, &len, in->data, in->size) == 0) {
         S2N_ERROR(S2N_ERR_DECRYPT);
     }
 
@@ -61,8 +61,8 @@ static int s2n_cbc_cipher_3des_decrypt(struct s2n_session_key *key, struct s2n_b
 static int s2n_cbc_cipher_3des_get_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 192 / 8);
-    EVP_CIPHER_CTX_set_padding(&key->native_format.evp_cipher_ctx, EVP_CIPH_NO_PADDING);
-    EVP_DecryptInit_ex(&key->native_format.evp_cipher_ctx, EVP_des_ede3_cbc(), NULL, in->data, NULL);
+    EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
+    EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_des_ede3_cbc(), NULL, in->data, NULL);
 
     return 0;
 }
@@ -70,22 +70,22 @@ static int s2n_cbc_cipher_3des_get_decryption_key(struct s2n_session_key *key, s
 static int s2n_cbc_cipher_3des_get_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 192 / 8);
-    EVP_CIPHER_CTX_set_padding(&key->native_format.evp_cipher_ctx, EVP_CIPH_NO_PADDING);
-    EVP_EncryptInit_ex(&key->native_format.evp_cipher_ctx, EVP_des_ede3_cbc(), NULL, in->data, NULL);
+    EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
+    EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_des_ede3_cbc(), NULL, in->data, NULL);
 
     return 0;
 }
 
 static int s2n_cbc_cipher_3des_init(struct s2n_session_key *key)
 {
-    EVP_CIPHER_CTX_init(&key->native_format.evp_cipher_ctx);
+    EVP_CIPHER_CTX_init(key->evp_cipher_ctx);
 
     return 0;
 }
 
 static int s2n_cbc_cipher_3des_destroy_key(struct s2n_session_key *key)
 {
-    EVP_CIPHER_CTX_cleanup(&key->native_format.evp_cipher_ctx);
+    EVP_CIPHER_CTX_cleanup(key->evp_cipher_ctx);
 
     return 0;
 }
