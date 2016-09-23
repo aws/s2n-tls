@@ -22,49 +22,38 @@ compiler:
   - clang
 
 env:
-  - TESTS=unitfuzz
+  - BUILD_S2N=true TESTS=unit
+  - LATEST_CLANG=true TESTS=fuzz
   - TESTS=sawHMAC
 
 before_install:
   # Install GCC 6 if on OSX
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew update                ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew tap homebrew/versions ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew install gcc6          ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew install gnu-indent    ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew install cppcheck      ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   .travis/brew_install_gcc6.sh ; fi
   # Set GCC 6 as Default on both Ubuntu and OSX
   - alias gcc=$(which gcc-6)
   # Install latest version of clang, clang++, and llvm-symbolizer and add them to beginning of PATH. Needed for fuzzing.
-  - (.travis/install_clang.sh `pwd`/clang-download `pwd`/clang-latest $TRAVIS_OS_NAME) && export PATH=`pwd`/clang-latest/bin:$PATH
+  - if [[ "$LATEST_CLANG" == "true" ]]; then (.travis/install_clang.sh `pwd`/clang-download `pwd`/clang-latest $TRAVIS_OS_NAME) && export PATH=`pwd`/clang-latest/bin:$PATH ; fi
 
-  # Install SAW on Linux only 
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then curl http://saw.galois.com/builds/nightly/saw-0.2-2016-09-22-Ubuntu14.04-64.tar.gz > saw.tar.gz; tar -xzvf saw.tar.gz; fi
-  - export PATH=$PATH:$PWD/saw-0.2-2016-09-22-Ubuntu14.04-64/bin
-
-  # Install Z3
-  # - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository ppa:hvr/z3 -y; sudo apt-key update; sudo apt-get update; fi
-  # - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install z3 -y --force-yes; fi
-
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then mkdir z3; curl http://saw.galois.com/builds/z3/z3 > z3/z3; sudo chmod +x z3/z3; fi
-  - export PATH=$PWD/z3:$PATH
-  - z3 --version
+  # Install SAW with Z3 on Linux only 
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then .travis/install_saw.sh ; fi
+  - export PATH=$PATH:$PWD/saw-0.2-2016-09-22-Ubuntu14.04-64/bin:$PWD/z3
 
 install:
   # Download and Install LibFuzzer
-  - .travis/install_libFuzzer.sh `pwd`/fuzz_dependencies/libFuzzer-download `pwd`/fuzz_dependencies $TRAVIS_OS_NAME
+  - if [[ "$TESTS" == "fuzz" ]]; then .travis/install_libFuzzer.sh `pwd`/fuzz_dependencies/libFuzzer-download `pwd`/fuzz_dependencies $TRAVIS_OS_NAME ; fi
   # Download and Install Openssl
-  - .travis/install_openssl.sh `pwd`/libcrypto-build `pwd`/libcrypto-root $TRAVIS_OS_NAME > /dev/null
+  - if [[ "$BUILD_S2N" == "true" ]]; then .travis/install_openssl.sh `pwd`/libcrypto-build `pwd`/libcrypto-root $TRAVIS_OS_NAME > /dev/null ; fi
   # Install python linked with our compiled Openssl for integration tests
-  - sudo "PATH=$PATH" .travis/install_python.sh `pwd`/libcrypto-root > /dev/null
+  - if [[ "$BUILD_S2N" == "true" ]]; sudo "PATH=$PATH" .travis/install_python.sh `pwd`/libcrypto-root > /dev/null ; fi
   # Install prlimit to set the memlock limit to unlimited for this process
-  - (test "$TRAVIS_OS_NAME" = "linux" && sudo "PATH=$PATH" .travis/install_prlimit.sh $PWD/.travis > /dev/null && sudo .travis/prlimit --pid "$$" --memlock=unlimited:unlimited) || true
+  - if [[ "$BUILD_S2N" == "true" ]]; (test "$TRAVIS_OS_NAME" = "linux" && sudo "PATH=$PATH" .travis/install_prlimit.sh $PWD/.travis > /dev/null && sudo .travis/prlimit --pid "$$" --memlock=unlimited:unlimited) || true ; fi
   - mkdir -p .travis/checker && .travis/install_scan-build.sh .travis/checker && export PATH=$PATH:.travis/checker/bin
-  - .travis/run_cppcheck.sh
+  - if [[ "$BUILD_S2N' == "true" ]]; .travis/run_cppcheck.sh ; fi
 
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then make -j 8   ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "unit" ]]; then make -j 8   ; fi
   # Build and run unit tests with scan-build for osx. scan-build bundle isn't available for linux
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/*; exit $STATUS ; fi
-  - make integration
-  - make clean && make fuzz
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export PATH="/usr/local/clang-3.4/bin/":$PATH; echo $PATH; which clang; clang --version; llvm-link --version; make saw; fi 
+  - if [[ "$TRAVIS_OS_NAME" == "osx" && "$TESTS" == "unit" ]]; then   scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/*; exit $STATUS ; fi
+  - if [[ "$TESTS" == "unit" ]]; then make integration ; fi
+  - if [[ "$TESTS == "fuzz" ]]; then make clean && make fuzz fi;
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS"== "sawHMAC"]]; amke saw; fi 
