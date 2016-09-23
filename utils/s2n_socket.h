@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include <tls/s2n_connection.h>
+#include "tls/s2n_connection.h"
 
 extern int s2n_socket_read_snapshot(struct s2n_connection *conn);
 extern int s2n_socket_write_snapshot(struct s2n_connection *conn);
