@@ -34,6 +34,7 @@
 
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
+#include "utils/s2n_socket.h"
 #include "utils/s2n_timer.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
@@ -195,6 +196,9 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     GUARD(s2n_stuffer_wipe(&conn->in));
     GUARD(s2n_stuffer_wipe(&conn->out));
 
+    /* Restore the socket option values */
+    GUARD(s2n_socket_read_restore(conn));
+    GUARD(s2n_socket_write_restore(conn));
     GUARD(s2n_free(&conn->status_response));
 
     /* Allocate or resize to their original sizes */
@@ -276,12 +280,18 @@ int s2n_connection_wipe(struct s2n_connection *conn)
 int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
 {
     conn->readfd = rfd;
+
+    GUARD(s2n_socket_read_snapshot(conn));
+
     return 0;
 }
 
 int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
 {
     conn->writefd = wfd;
+
+    GUARD(s2n_socket_write_snapshot(conn));
+
     return 0;
 }
 

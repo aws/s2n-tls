@@ -44,6 +44,12 @@ struct s2n_connection {
     int readfd;
     int writefd;
 
+    /* Original socket option settings before s2n takes over the fd */
+    unsigned int original_rcvlowat_is_set:1;
+    int original_rcvlowat_val;
+    unsigned int original_cork_is_set:1;
+    int original_cork_val;
+
     /* Is this connection a client or a server connection */
     s2n_mode mode;
 

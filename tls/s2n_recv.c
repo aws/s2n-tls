@@ -33,6 +33,7 @@
 
 #include "stuffer/s2n_stuffer.h"
 
+#include "utils/s2n_socket.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
@@ -51,7 +52,10 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
 
     /* Read the record until we at least have a header */
     while (s2n_stuffer_data_available(&conn->header_in) < S2N_TLS_RECORD_HEADER_LENGTH) {
-        r = s2n_stuffer_recv_from_fd(&conn->header_in, conn->readfd, S2N_TLS_RECORD_HEADER_LENGTH - s2n_stuffer_data_available(&conn->header_in));
+        int remaining = S2N_TLS_RECORD_HEADER_LENGTH - s2n_stuffer_data_available(&conn->header_in);
+
+        GUARD(s2n_socket_set_read_size(conn, remaining));
+        r = s2n_stuffer_recv_from_fd(&conn->header_in, conn->readfd, remaining);
         if (r == 0) {
             conn->closed = 1;
             S2N_ERROR(S2N_ERR_CLOSED);
@@ -83,7 +87,9 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
 
     /* Read enough to have the whole record */
     while (s2n_stuffer_data_available(&conn->in) < fragment_length) {
-        r = s2n_stuffer_recv_from_fd(&conn->in, conn->readfd, fragment_length - s2n_stuffer_data_available(&conn->in));
+        int remaining = fragment_length - s2n_stuffer_data_available(&conn->in);
+        GUARD(s2n_socket_set_read_size(conn, remaining));
+        r = s2n_stuffer_recv_from_fd(&conn->in, conn->readfd, remaining);
         if (r == 0) {
             conn->closed = 1;
             S2N_ERROR(S2N_ERR_CLOSED);
