@@ -27,7 +27,7 @@ env:
   - TESTS=sawHMAC
 
 matrix:
-  exclude
+  exclude:
   - compiler: gcc
     env: TESTS=sawHMAC
   - os: osx
