@@ -64,5 +64,5 @@ script:
   # Build and run unit tests with scan-build for osx. scan-build bundle isn't available for linux
   - if [[ "$TRAVIS_OS_NAME" == "osx" && "$TESTS" == "unit" ]]; then   scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/*; exit $STATUS ; fi
   - if [[ "$TESTS" == "unit" ]]; then make integration ; fi
-  - if [[ "$TESTS" == "fuzz" ]]; then make clean && make fuzz fi;
-  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS"== "sawHMAC"]]; then make saw; fi 
+  - if [[ "$TESTS" == "fuzz" ]]; then make clean && make fuzz ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "sawHMAC"]]; then make saw; fi 
