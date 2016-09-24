@@ -17,6 +17,69 @@ To build s2n with an existing libcrypto installation, store its root folder in t
 LIBCRYPTO_ROOT=/usr/local/ssl make
 ```
 
+## Building s2n with OpenSSL-1.1.0
+
+To build s2n with OpenSSL-1.1.0, do the following:
+
+```shell
+# We keep the build artifacts in the -build directory
+cd libcrypto-build
+
+# Download the latest version of OpenSSL
+curl -LO https://www.openssl.org/source/openssl-1.1.0-latest.tar.gz
+tar -xzvf openssl-1.1.0-latest.tar.gz
+
+# Build openssl' libcrypto  (NOTE: check directory name 1.1.0-latest unpacked as)
+cd openssl-1.1.0a
+./config -fPIC no-shared              \
+         no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
+         no-hw no-mdc2 no-seed no-idea enable-ec_nistp_64_gcc_128 no-camellia\
+         no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng                  \
+         -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS      \
+         --prefix=`pwd`/../../libcrypto-root/
+make
+make install
+
+# Make to the main s2n directory
+cd ../../
+
+# Build s2n
+make
+```
+
+## Building s2n with OpenSSL-1.0.2
+
+To build s2n with OpenSSL-1.0.2, do the following:
+
+```shell
+# We keep the build artifacts in the -build directory
+cd libcrypto-build
+
+# Download the latest version of OpenSSL
+curl -LO https://www.openssl.org/source/openssl-1.0.2-latest.tar.gz
+tar -xzvf openssl-1.0.2-latest.tar.gz
+
+# Build openssl' libcrypto  (NOTE: check directory name 1.0.2-latest unpacked as)
+cd openssl-1.0.2d
+./config -fPIC no-shared no-libunbound no-gmp no-jpake no-krb5              \
+         no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-store no-zlib     \
+         no-hw no-mdc2 no-seed no-idea enable-ec-nistp_64_gcc_128 no-camellia\
+         no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng                  \
+         -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS      \
+         --prefix=`pwd`/../../libcrypto-root/
+make depend
+make
+make install
+
+# Make to the main s2n directory
+cd ../../
+
+# Build s2n
+make
+```
+
+**Mac Users:** please replace "./config" with "./Configure darwin64-x86_64-cc".
+
 ## Building s2n with LibreSSL
 
 To build s2n with LibreSSL, do the following:
@@ -73,42 +136,6 @@ cp -r ../include/ ../../../libcrypto-root/include
 cd ../../../
 make
 ```
-
-once built, static and dynamic libraries for s2n will be available in the lib/
-directory.
-
-## Building s2n with OpenSSL-1.0.2
-
-To build s2n with OpenSSL-1.0.2, do the following:
-
-```shell
-# We keep the build artifacts in the -build directory
-cd libcrypto-build
-
-# Download the latest version of OpenSSL
-curl -LO https://www.openssl.org/source/openssl-1.0.2-latest.tar.gz
-tar -xzvf openssl-1.0.2-latest.tar.gz
-
-# Build openssl' libcrypto  (NOTE: check directory name 1.0.2-latest unpacked as)
-cd openssl-1.0.2d
-./config -fPIC no-shared no-libunbound no-gmp no-jpake no-krb5              \
-         no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-store no-zlib     \
-         no-hw no-mdc2 no-seed no-idea enable-ec-nist_64_gcc_128 no-camellia\
-         no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng                  \
-         -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS      \
-         --prefix=`pwd`/../../libcrypto-root/
-make depend
-make
-make install
-
-# Make to the main s2n directory
-cd ../../
-
-# Build s2n
-make
-```
-
-**Mac Users:** please replace "./config" with "./Configure darwin64-x86_64-cc".
 
 once built, static and dynamic libraries for s2n will be available in the lib/
 directory.
