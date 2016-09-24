@@ -250,7 +250,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
         GUARD(cipher_suite->cipher->io.aead.encrypt(session_key, &iv, &aad, &en, &en));
         break;
     default:
-        return -1;
+        S2N_ERROR(S2N_ERR_CIPHER_TYPE);
         break;
     }
 
