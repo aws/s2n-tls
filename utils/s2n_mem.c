@@ -53,16 +53,26 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
         return s2n_free(b);
     }
 
+    /* blob already has space for the request */
     if (size < b->allocated) {
         b->size = size;
         return 0;
     }
 
-    uint32_t allocate = page_size * (((size - 1) / page_size) + 1);
-
+    uint32_t allocate;
     void *data;
-    if (posix_memalign(&data, page_size, allocate)) {
-        S2N_ERROR(S2N_ERR_ALLOC);
+    /* allocate memory with the required alignment */
+    if (use_mlock) {
+        allocate = page_size * (((size - 1) / page_size) + 1);
+        if (posix_memalign(&data, page_size, allocate)) {
+            S2N_ERROR(S2N_ERR_ALLOC);
+        }
+    } else {
+        allocate = size;
+        data = malloc(allocate);
+        if (!data) {
+            S2N_ERROR(S2N_ERR_ALLOC);
+        }
     }
 
     if (b->size) {
