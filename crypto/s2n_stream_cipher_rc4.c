@@ -55,7 +55,9 @@ static int s2n_stream_cipher_rc4_decrypt(struct s2n_session_key *key, struct s2n
 static int s2n_stream_cipher_rc4_get_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 16);
-    EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_rc4(), NULL, in->data, NULL);
+    if (EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_rc4(), NULL, in->data, NULL) != 1) {
+        S2N_ERROR(S2N_ERR_KEY_INIT);
+    }
 
     return 0;
 }
@@ -63,7 +65,9 @@ static int s2n_stream_cipher_rc4_get_encryption_key(struct s2n_session_key *key,
 static int s2n_stream_cipher_rc4_get_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 16);
-    EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_rc4(), NULL, in->data, NULL);
+    if (EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_rc4(), NULL, in->data, NULL) != 1) {
+        S2N_ERROR(S2N_ERR_KEY_INIT);
+    }
 
     return 0;
 }

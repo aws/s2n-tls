@@ -61,8 +61,12 @@ int s2n_cbc_cipher_aes_decrypt(struct s2n_session_key *key, struct s2n_blob *iv,
 int s2n_cbc_cipher_aes128_get_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 128 / 8);
+
+    /* Always returns 1 */
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
-    EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_aes_128_cbc(), NULL, in->data, NULL);
+    if (EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_aes_128_cbc(), NULL, in->data, NULL) != 1) {
+        S2N_ERROR(S2N_ERR_KEY_INIT);
+    }
 
     return 0;
 }
@@ -70,8 +74,11 @@ int s2n_cbc_cipher_aes128_get_decryption_key(struct s2n_session_key *key, struct
 static int s2n_cbc_cipher_aes128_get_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 128 / 8);
+
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
-    EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_aes_128_cbc(), NULL, in->data, NULL);
+    if (EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_aes_128_cbc(), NULL, in->data, NULL) != 1) {
+        S2N_ERROR(S2N_ERR_KEY_INIT);
+    }
 
     return 0;
 }
@@ -79,8 +86,11 @@ static int s2n_cbc_cipher_aes128_get_encryption_key(struct s2n_session_key *key,
 static int s2n_cbc_cipher_aes256_get_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 256 / 8);
+
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
-    EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_aes_256_cbc(), NULL, in->data, NULL);
+    if (EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_aes_256_cbc(), NULL, in->data, NULL) != 1) {
+        S2N_ERROR(S2N_ERR_KEY_INIT);
+    }
 
     return 0;
 }
@@ -88,8 +98,11 @@ static int s2n_cbc_cipher_aes256_get_decryption_key(struct s2n_session_key *key,
 int s2n_cbc_cipher_aes256_get_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 256 / 8);
+
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
-    EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_aes_256_cbc(), NULL, in->data, NULL);
+    if (EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_aes_256_cbc(), NULL, in->data, NULL) != 1) {
+        S2N_ERROR(S2N_ERR_KEY_INIT);
+    }
 
     return 0;
 }
