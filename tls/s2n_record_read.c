@@ -160,9 +160,6 @@ int s2n_record_parse(struct s2n_connection *conn)
         /* Set the IV size to the amount of data written */
         iv.size = s2n_stuffer_data_available(&iv_stuffer);
 
-        iv.data = aad_iv;
-        iv.size = cipher_suite->cipher->io.aead.fixed_iv_size + cipher_suite->cipher->io.aead.record_iv_size;
-
         aad.data = aad_gen;
         aad.size = sizeof(aad_gen);
 
