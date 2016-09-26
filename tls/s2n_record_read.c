@@ -210,7 +210,7 @@ int s2n_record_parse(struct s2n_connection *conn)
         GUARD(cipher_suite->cipher->io.aead.decrypt(session_key, &iv, &aad, &en, &en));
         break;
     default:
-        return -1;
+        S2N_ERROR(S2N_ERR_CIPHER_TYPE);
         break;
     }
 
