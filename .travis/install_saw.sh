@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #download saw binaries
-curl http://saw.galois.com/builds/nightly/saw-0.2-2016-09-22-Ubuntu14.04-64.tar.gz > \
+curl http://saw.galois.com/builds/nightly/saw-0.2-2016-09-26-Ubuntu14.04-64.tar.gz > \
      saw.tar.gz; tar -xzvf saw.tar.gz
 
 #download z3
