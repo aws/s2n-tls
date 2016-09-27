@@ -22,8 +22,11 @@
 import "HMAC_properties.cry";
 import "modthm.cry";
 
-let hash_lemma =
+let hash_lemma1 =
   rewrite (cryptol_ss ()) (unfold_term ["hash_update_append"] {{ hash_update_append }});
+
+let hash_lemma2 =
+  rewrite (cryptol_ss ()) (unfold_term ["hash_update_empty"] {{ hash_update_empty }});
 
 let mod_lemma = rewrite (cryptol_ss ()) (unfold_term ["modthm"] {{ modthm }});
 
@@ -31,9 +34,17 @@ time (prove_print (do {
     unfolding ["hmac_update_append"];
     unfolding ["hmac_update_c_state"];
     simplify(cryptol_ss ());
-    simplify (addsimp' hash_lemma empty_ss);
+    simplify (addsimp' hash_lemma1 empty_ss);
     simplify (add_cryptol_eqs ["demote_add_distr"] empty_ss);
     simplify (addsimp' mod_lemma empty_ss);
     simplify (add_prelude_eqs ["eq_refl"] empty_ss);
     trivial;
 }) {{ hmac_update_append }});
+
+time (prove_print (do {
+    unfolding ["hmac_update_empty"];
+    unfolding ["hmac_update_c_state"];
+    simplify(cryptol_ss ());
+    simplify (addsimp' hash_lemma2 empty_ss);
+    unint_z3 ["hash_update_c_state"];
+}) {{ hmac_update_empty }});
