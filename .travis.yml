@@ -24,14 +24,45 @@ compiler:
 env:
   - BUILD_S2N=true TESTS=unit
   - LATEST_CLANG=true TESTS=fuzz
-  - TESTS=sawHMAC
+  - TESTS=sawHMAC CONFIG=md5
+  - TESTS=sawHMAC CONFIG=none
+  - TESTS=sawHMAC CONFIG=sha1
+  - TESTS=sawHMAC CONFIG=sha224
+  - TESTS=sawHMAC CONFIG=sha56
+  - TESTS=sawHMAC CONFIG=sha384
+  - TESTS=sawHMAC CONFIG=sha512
+
 
 matrix:
   exclude:
   - compiler: gcc
-    env: TESTS=sawHMAC
+    env: TESTS=sawHMAC CONFIG=md5
+  - compiler: gcc
+    env: TESTS=sawHMAC CONFIG=none
+  - compiler: gcc
+    env: TESTS=sawHMAC CONFIG=sha1
+  - compiler: gcc
+    env: TESTS=sawHMAC CONFIG=sha224
+  - compiler: gcc
+    env: TESTS=sawHMAC CONFIG=sha256
+  - compiler: gcc
+    env: TESTS=sawHMAC CONFIG=sha384
+  - compiler: gcc
+    env: TESTS=sawHMAC CONFIG=sha512  
   - os: osx
-    env: TESTS=sawHMAC
+    env: TESTS=sawHMAC CONFIG=md5
+  - os: osx
+    env: TESTS=sawHMAC CONFIG=none
+  - os: osx
+    env: TESTS=sawHMAC CONFIG=sha1
+  - os: osx
+    env: TESTS=sawHMAC CONFIG=sha224
+  - os: osx
+    env: TESTS=sawHMAC CONFIG=sha256
+  - os: osx
+    env: TESTS=sawHMAC CONFIG=sha384
+  - os: osx
+    env: TESTS=sawHMAC CONFIG=sha512  
   - compiler: gcc
     env: LATEST_CLANG=true TESTS=fuzz
 
@@ -65,4 +96,4 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" && "$TESTS" == "unit" ]]; then   scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/*; exit $STATUS ; fi
   - if [[ "$TESTS" == "unit" ]]; then make integration ; fi
   - if [[ "$TESTS" == "fuzz" ]]; then make clean && make fuzz ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "sawHMAC" ]]; then make saw ; fi 
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "sawHMAC" ]]; then make -C tests/saw/ tmp/verify_s2n_hmac_$CONFIG.log ; fi 
