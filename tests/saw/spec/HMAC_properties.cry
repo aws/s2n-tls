@@ -85,6 +85,13 @@ hmac_update_append_init x y k st0 =
     where
       s = hmac_init_c_state st0 S2N_HMAC_SHA256 k
 
+property hash_update_empty s = hash_update_c_state s [] == s
+
+property hmac_update_empty s =
+  s.currently_in_hash_block == s.currently_in_hash_block % (zero # s.block_size)
+  ==>
+  hmac_update_c_state s [] == s
+
 property pass =
     ~zero ==
     [ hmacSHA256 [0x0b | _ <- [1..20] : [_][6]] "Hi There" == 0xb0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7
