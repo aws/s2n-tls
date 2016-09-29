@@ -22,6 +22,7 @@ SCRIPTS = $(wildcard *.saw)
 #A log file will be created for each test in the temp dir
 LOGS=$(patsubst %.saw,tmp/%.log,$(SCRIPTS))
 SHELL:=/bin/bash 
+export LIBCRYPTO_ROOT:=$(shell pwd)/../../libcrypto-root
 
 .PHONY : all
 all:
