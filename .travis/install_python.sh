@@ -16,9 +16,9 @@
 
 LIBCRYPTO_ROOT=$1
 
-wget https://www.python.org/ftp/python/3.5.1/Python-3.5.1.tgz
-tar xzf Python-3.5.1.tgz
-cd Python-3.5.1
+wget https://www.python.org/ftp/python/3.6.0/Python-3.6.0b1.tgz
+tar xzf Python-3.6.0b1.tgz
+cd Python-3.6.0b1
 ./configure CPPFLAGS="-I$LIBCRYPTO_ROOT/include" LDFLAGS="-L$LIBCRYPTO_ROOT/lib"
 make
 make install
