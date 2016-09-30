@@ -56,7 +56,7 @@ install:
 script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then make -j 8   ; fi
   # Build and run unit tests with scan-build for osx. scan-build bundle isn't available for linux
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/*; exit $STATUS ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/* ; [ "$STATUS" -eq "0" ] ; fi
   - make integration
   - make clean && make fuzz
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export PATH="/usr/local/clang-3.4/bin/":$PATH; echo $PATH; which clang; clang --version; llvm-link --version; make saw; fi 
