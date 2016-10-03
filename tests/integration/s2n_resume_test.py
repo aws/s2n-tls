@@ -13,51 +13,22 @@
 # permissions and limitations under the License.
 #
 
+"""
+Session resumption tests using Openssl s_client against s2nd with session caching.
+Openssl 1.1.0 removed SSLv3, 3DES, an RC4, so we won't have coverage there.
+"""
+
 import os
 import sys
 import time
-import ssl
 import socket
 import subprocess
+from s2n_test_constants import *
 
-# All supported ciphers
-S2N_CIPHERS= [
-    ("RC4-MD5", ssl.PROTOCOL_SSLv3),
-    ("RC4-SHA", ssl.PROTOCOL_SSLv3),
-    ("DES-CBC3-SHA", ssl.PROTOCOL_SSLv3),
-    ("EDH-RSA-DES-CBC3-SHA", ssl.PROTOCOL_SSLv3),
-    ("AES128-SHA", ssl.PROTOCOL_TLSv1),
-    ("DHE-RSA-AES128-SHA", ssl.PROTOCOL_TLSv1),
-    ("AES256-SHA", ssl.PROTOCOL_TLSv1),
-    ("DHE-RSA-AES256-SHA", ssl.PROTOCOL_TLSv1),
-    ("AES128-SHA256", ssl.PROTOCOL_TLSv1_2),
-    ("AES256-SHA256", ssl.PROTOCOL_TLSv1_2),
-    ("DHE-RSA-AES128-SHA256", ssl.PROTOCOL_TLSv1_2),
-    ("DHE-RSA-AES256-SHA256", ssl.PROTOCOL_TLSv1_2),
-    ("AES128-GCM-SHA256", ssl.PROTOCOL_TLSv1_2),
-    ("AES256-GCM-SHA384", ssl.PROTOCOL_TLSv1_2),
-    ("DHE-RSA-AES128-GCM-SHA256", ssl.PROTOCOL_TLSv1_2),
-    ("ECDHE-RSA-DES-CBC3-SHA", ssl.PROTOCOL_TLSv1),
-    ("ECDHE-RSA-AES128-SHA", ssl.PROTOCOL_TLSv1),
-    ("ECDHE-RSA-AES256-SHA", ssl.PROTOCOL_TLSv1),
-    ("ECDHE-RSA-AES128-SHA256", ssl.PROTOCOL_TLSv1_2),
-    ("ECDHE-RSA-AES256-SHA384", ssl.PROTOCOL_TLSv1_2),
-    ("ECDHE-RSA-AES128-GCM-SHA256", ssl.PROTOCOL_TLSv1_2),
-    ("ECDHE-RSA-AES256-GCM-SHA384", ssl.PROTOCOL_TLSv1_2),
-]
-
-PROTO_VERS_TO_STR = {
-    ssl.PROTOCOL_SSLv3 : "SSLv3",
-    ssl.PROTOCOL_TLSv1 : "TLSv1.0",
-    ssl.PROTOCOL_TLSv1_1 : "TLSv1.1",
-    ssl.PROTOCOL_TLSv1_2 : "TLSv1.2",
-}
-
-PROTO_VERS_TO_ARG = {
-    ssl.PROTOCOL_SSLv3 : "-ssl3",
-    ssl.PROTOCOL_TLSv1 : "-tls1",
-    ssl.PROTOCOL_TLSv1_1 : "-tls1_1",
-    ssl.PROTOCOL_TLSv1_2 : "-tls1_2",
+PROTO_VERS_TO_S_CLIENT_ARG = {
+    S2N_TLS10 : "-tls1",
+    S2N_TLS11 : "-tls1_1",
+    S2N_TLS12 : "-tls1_2",
 }
 
 def try_resume(endpoint, port, cipher, ssl_version):
@@ -68,7 +39,7 @@ def try_resume(endpoint, port, cipher, ssl_version):
     s2nd.stdout.readline()
 
     # Fire up s_client
-    s_client = subprocess.Popen(["../../libcrypto-root/bin/openssl", "s_client", PROTO_VERS_TO_ARG[ssl_version], "-cipher", cipher,
+    s_client = subprocess.Popen(["../../libcrypto-root/bin/openssl", "s_client", PROTO_VERS_TO_S_CLIENT_ARG[ssl_version], "-cipher", cipher,
                                  "-quiet", "-reconnect", "-connect", str(endpoint) + ":" + str(port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                  stderr=subprocess.DEVNULL)
 
@@ -126,8 +97,8 @@ def main(argv):
 
     print("\nRunning resumption tests with: " + os.popen('../../libcrypto-root/bin/openssl version').read())
     failed = 0
-    for ssl_version in [ssl.PROTOCOL_SSLv3, ssl.PROTOCOL_TLSv1, ssl.PROTOCOL_TLSv1_1, ssl.PROTOCOL_TLSv1_2]:
-        print("\n\tTesting ciphers using client version: " + PROTO_VERS_TO_STR[ssl_version])
+    for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
+        print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
         for cipher in S2N_CIPHERS:
             cipher_name = cipher[0]
             cipher_vers = cipher[1]
@@ -136,7 +107,7 @@ def main(argv):
                 continue
 
             ret = try_resume(argv[0], int(argv[1]), cipher_name, ssl_version)
-            print("Cipher: %-30s Vers: %-10s ... " % (cipher_name, PROTO_VERS_TO_STR[ssl_version]), end='')
+            print("Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version]), end='')
             if ret == 0:
                 if sys.stdout.isatty():
                     print("\033[32;1mPASSED\033[0m")
