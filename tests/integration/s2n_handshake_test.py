@@ -98,6 +98,10 @@ def main(argv):
             cipher_name = cipher.openssl_name
             cipher_vers = cipher.min_tls_vers
 
+            # 3DES cipers not supported by this client
+            if cipher_name == "DES-CBC3-SHA" or cipher_name == "EDH-RSA-DES-CBC3-SHA" or cipher_name == "ECDHE-RSA-DES-CBC3-SHA":
+                continue
+
             if s2n_tls_vers < cipher_vers:
                 continue
 
