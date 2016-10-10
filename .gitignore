@@ -1,6 +1,7 @@
 *.o
 *.a
 *.dylib
+*.dSYM
 *.so
 *~
 libcrypto-build/*
