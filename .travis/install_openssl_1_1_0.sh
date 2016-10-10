@@ -17,12 +17,12 @@ set -e
 pushd `pwd`
 
 usage() {
-	echo "install_openssl.sh build_dir install_dir travis_platform"
-	exit 1
+    echo "install_openssl.sh build_dir install_dir travis_platform"
+    exit 1
 }
 
 if [ "$#" -ne "3" ]; then
-	usage
+    usage
 fi
 
 BUILD_DIR=$1
@@ -36,12 +36,12 @@ rm openssl-1.1.0.tar.gz
 cd openssl-1.1.0*
 
 if [ "$PLATFORM" == "linux" ]; then
-	CONFIGURE="./config"
+    CONFIGURE="./config"
 elif [ "$PLATFORM" == "osx" ]; then
-	CONFIGURE="./Configure darwin64-x86_64-cc"
+    CONFIGURE="./Configure darwin64-x86_64-cc"
 else
-	echo "Invalid platform! $PLATFORM"
-	usage
+    echo "Invalid platform! $PLATFORM"
+    usage
 fi
 
 # Use g3 to get debug symbols in libcrypto to chase memory leaks
