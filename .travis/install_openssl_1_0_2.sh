@@ -17,7 +17,7 @@ set -e
 pushd `pwd`
 
 usage() {
-    echo "install_openssl.sh build_dir install_dir travis_platform"
+    echo "install_openssl_1_0_2.sh build_dir install_dir travis_platform"
     exit 1
 }
 
