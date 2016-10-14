@@ -146,18 +146,11 @@ let bits_spec n = do {
     data <- llvm_var "*(out->0)" (llvm_array n (llvm_int 8));
     llvm_assert_eq "out->1" {{ `n : [32] }};
     let res = {{ drbg_generate_internal `{n=n*8} s.ctx.key s.v }};
-    //llvm_ensure_eq "*(out->0)" {{ split res.0 : [n][8] }};
+    llvm_ensure_eq "*(out->0)" {{ split res.0 : [n][8] }};
     llvm_ensure_eq "drbg->0" {{ s.bytes_used + `n }};
     llvm_ensure_eq "drbg->2" {{ split res.1 : [blocksize][8] }};
     llvm_return {{ 0 : [32] }};
-    //llvm_verify_tactic abc;
-    llvm_verify_tactic do {
-      unfolding ["drbg_generate_internal"];
-      simplify (cryptol_ss ());
-      //print_goal;
-      //unint_z3 ["block_encrypt"];
-      assume_unsat;
-    };
+    llvm_verify_tactic (unint_z3 ["block_encrypt"]);
 };
 
 let update_spec n = do {
