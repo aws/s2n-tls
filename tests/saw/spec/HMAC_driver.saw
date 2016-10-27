@@ -246,11 +246,11 @@ let verify_s2n_hmac_at_several_key_and_msg_sizes
              , digest_size     : Int
              , block_size      : Int
              , hash_block_size : Int
-             }) = do {
+             }) msg_sizes = do {
   let block_size = cfg.block_size;
   for [ /* eval_size {| block_size - 1 |}, */
         cfg.block_size
       , eval_size {| block_size + 1 |}] (\key_size ->
-    for [1,10,100,200] (\msg_size ->
+    for msg_sizes (\msg_size ->
       verify_s2n_hmac key_size msg_size cfg));
 };
