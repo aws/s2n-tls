@@ -225,7 +225,8 @@ let hmac_init_spec
     llvm_sat_branches true;
 
     llvm_verify_tactic do {
-        unint_z3 [ "hash_init_c_state"
+        print_goal_size;
+	unint_z3 [ "hash_init_c_state"
                     , "hash_update_c_state"
                     , "hash_digest_c_state"
                     ];
