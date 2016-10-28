@@ -13,13 +13,11 @@
 # permissions and limitations under the License.
 #
 
-CRYPTO_LDFLAGS = -L../libcrypto-root/lib
-
 .PHONY : all
 all: s2nc s2nd
 include ../s2n.mk
 
-LDFLAGS += -L../lib/ ${CRYPTO_LDFLAGS} -ls2n ${LIBS} ${CRYPTO_LIBS}
+LDFLAGS += -L../lib/ -ls2n ${LIBS}
 CRUFT += s2nc s2nd
 
 s2nc: s2nc.c echo.c
