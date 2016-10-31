@@ -100,7 +100,7 @@ int s2n_rsa_private_key_free(struct s2n_rsa_private_key *key)
 static int s2n_rsa_modulus_check(RSA *rsa)
 {
     /* RSA was made opaque starting in Openssl 1.1.0 */
-    #if OPENSSL_VERSION_NUMBER < 0x10100000L
+    #if OPENSSL_VERSION_NUMBER < 0x10100000L || defined LIBRESSL_VERSION_NUMBER
         notnull_check(rsa->n);
     #else
         const BIGNUM *n = NULL;
