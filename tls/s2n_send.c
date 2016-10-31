@@ -90,7 +90,7 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status * blocked)
     return 0;
 }
 
-ssize_t s2n_send(struct s2n_connection * conn, void *buf, ssize_t size, s2n_blocked_status * blocked)
+ssize_t s2n_send(struct s2n_connection * conn, const void *buf, ssize_t size, s2n_blocked_status * blocked)
 {
     int max_payload_size;
 
@@ -123,7 +123,7 @@ ssize_t s2n_send(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
 
     /* Now write the data we were asked to send this round */
     while (size - conn->current_user_data_consumed) {
-        struct s2n_blob in = {.data = ((uint8_t *) buf) + conn->current_user_data_consumed };
+        struct s2n_blob in = {.data = ((uint8_t *)(uintptr_t) buf) + conn->current_user_data_consumed };
         in.size = MIN(size - conn->current_user_data_consumed, max_payload_size);
 
         /* Don't split messages in server mode for interoperability with naive clients.
