@@ -80,8 +80,10 @@ static int s2n_map_embiggen(struct s2n_map *map, uint32_t capacity)
     tmp.immutable = 0;
 
     for (int i = 0; i < map->capacity; i++) {
-        if (map->table[i].value.size) {
+        if (map->table[i].key.size) {
             GUARD(s2n_map_add(&tmp, &map->table[i].key, &map->table[i].value));
+            GUARD(s2n_free(&map->table[i].key));
+            GUARD(s2n_free(&map->table[i].value));
         }
     }
 
@@ -149,10 +151,17 @@ int s2n_map_add(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *valu
     return 0;
 }
 
+int s2n_map_complete(struct s2n_map *map)
+{
+    map->immutable = 1;
+
+    return 0;
+}
+
 int s2n_map_lookup(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *value)
 {
     if (!map->immutable) {
-        map->immutable = 1;
+        S2N_ERROR(S2N_ERR_MAP_IMMUTABLE);
     }
 
     uint32_t slot = s2n_map_slot(map, key);
