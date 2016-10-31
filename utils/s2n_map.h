@@ -26,5 +26,4 @@ extern struct s2n_map *s2n_map_new();
 extern int s2n_map_add(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *value);
 extern int s2n_map_complete(struct s2n_map *map);
 extern int s2n_map_lookup(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *value);
-extern int s2n_map_hlookup(struct s2n_map *map, struct s2n_hash_state *hash, struct s2n_blob *value);
 extern int s2n_map_free(struct s2n_map *map);
