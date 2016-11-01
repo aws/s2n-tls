@@ -23,7 +23,7 @@
 int main(int argc, char **argv)
 {
     char keystr[sizeof("ffff")];
-    char valstr[sizeof("16384")];
+    char valstr[sizeof("8192")];
     struct s2n_map *map;
     struct s2n_blob key;
     struct s2n_blob val;
@@ -32,8 +32,8 @@ int main(int argc, char **argv)
 
     EXPECT_NOT_NULL(map = s2n_map_new());
 
-    /* Insert 16k key value pairs of the form hex(i) -> dec(i) */
-    for (int i = 0; i < 16384; i++) {
+    /* Insert 8k key value pairs of the form hex(i) -> dec(i) */
+    for (int i = 0; i < 8192; i++) {
         EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", i));
         EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", i));
 
@@ -66,8 +66,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_map_complete(map));
 
     /* Make sure that add-after-complete fails */
-    EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", 16385));
-    EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", 16385));
+    EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", 8193));
+    EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", 8193));
 
     key.data = (void *) keystr;
     key.size = strlen(keystr) + 1;
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_map_add(map, &key, &val));
 
     /* Check for equivalence */
-    for (int i = 0; i < 16384; i++) {
+    for (int i = 0; i < 8192; i++) {
 
         EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", i));
         EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", i));
@@ -92,7 +92,7 @@ int main(int argc, char **argv)
        
         
     /* Check for a key that shouldn't be there */
-    EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", 16385));
+    EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", 8193));
     key.data = (void *) keystr;
     key.size = strlen(keystr) + 1;
     EXPECT_EQUAL(s2n_map_lookup(map, &key, &val), 0);
