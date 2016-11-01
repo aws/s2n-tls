@@ -75,7 +75,7 @@ before_install:
   - if [[ "$LATEST_CLANG" == "true" ]]; then (.travis/install_clang.sh `pwd`/clang-download `pwd`/clang-latest $TRAVIS_OS_NAME) && export PATH=`pwd`/clang-latest/bin:$PATH ; fi
 
   # Install SAW with Z3 on Linux only 
-  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "sawHMAC"]]; then .travis/install_saw.sh ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "sawHMAC" ]]; then .travis/install_saw.sh ; fi
   - export PATH=$PATH:$PWD/saw-0.2-2016-09-26-Ubuntu14.04-64/bin:$PWD/z3
 
 install:
