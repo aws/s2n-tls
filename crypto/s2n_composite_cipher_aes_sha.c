@@ -46,7 +46,7 @@ static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key
     GUARD(s2n_stuffer_write_uint8(&ctrl_stuffer, protocol_version % 10));
     GUARD(s2n_stuffer_write_uint16(&ctrl_stuffer, payload_and_eiv_len));
 
-    /* This will unnecessarily mangle the input buffer, which is fine since it's a temporary buffer
+    /* This will unnecessarily mangle the input buffer, which is fine since it's temporary
      * Return value will be length of digest, padding, and padding length byte.
      * See https://github.com/openssl/openssl/blob/master/crypto/evp/e_aes_cbc_hmac_sha1.c#L814
      * and https://github.com/openssl/openssl/blob/4f0c475719defd7c051964ef9964cc6e5b3a63bf/ssl/record/ssl3_record.c#L743
