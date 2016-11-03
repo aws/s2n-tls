@@ -44,8 +44,8 @@ before_install:
 install:
   # Download and Install LibFuzzer
   - .travis/install_libFuzzer.sh `pwd`/fuzz_dependencies/libFuzzer-download `pwd`/fuzz_dependencies $TRAVIS_OS_NAME
-  # Download and Install Openssl
-  - .travis/install_openssl.sh `pwd`/libcrypto-build `pwd`/libcrypto-root $TRAVIS_OS_NAME > /dev/null
+  # Download and Install Openssl 1.1.0
+  - .travis/install_openssl_1_1_0.sh `pwd`/libcrypto-build `pwd`/libcrypto-root $TRAVIS_OS_NAME > /dev/null
   # Install python linked with our compiled Openssl for integration tests
   - sudo "PATH=$PATH" .travis/install_python.sh `pwd`/libcrypto-root > /dev/null
   # Install prlimit to set the memlock limit to unlimited for this process
