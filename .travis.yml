@@ -24,54 +24,61 @@ compiler:
 env:
   - BUILD_S2N=true TESTS=unit
   - LATEST_CLANG=true TESTS=fuzz
-  - TESTS=sawHMAC CONFIG=md5
-  - TESTS=sawHMAC CONFIG=none
-  - TESTS=sawHMAC CONFIG=sha1
-  - TESTS=sawHMAC CONFIG=sha224
-  - TESTS=sawHMAC CONFIG=sha256
-  - TESTS=sawHMAC CONFIG=sha384
-  - TESTS=sawHMAC CONFIG=sha512
-  - TESTS=sawDRBG
+  - TESTS=sawHMAC CONFIG=md5 SAW=true
+  - TESTS=sawHMAC CONFIG=none SAW=true
+  - TESTS=sawHMAC CONFIG=sha1 SAW=true
+  - TESTS=sawHMAC CONFIG=sha224 SAW=true
+  - TESTS=sawHMAC CONFIG=sha256 SAW=true
+  - TESTS=sawHMAC CONFIG=sha384 SAW=true
+  - TESTS=sawHMAC CONFIG=sha512 SAW=true
+  - TESTS=sawDRBG SAW=true
+  - TESTS=sawHMACFailure SAW=true
 
 
 matrix:
   exclude:
   - compiler: gcc
-    env: TESTS=sawHMAC CONFIG=md5
+    env: TESTS=sawHMAC CONFIG=md5 SAW=true
   - compiler: gcc
-    env: TESTS=sawHMAC CONFIG=none
+    env: TESTS=sawHMAC CONFIG=none SAW=true
   - compiler: gcc
-    env: TESTS=sawHMAC CONFIG=sha1
+    env: TESTS=sawHMAC CONFIG=sha1 SAW=true
   - compiler: gcc
-    env: TESTS=sawHMAC CONFIG=sha224
+    env: TESTS=sawHMAC CONFIG=sha224 SAW=true
   - compiler: gcc
-    env: TESTS=sawHMAC CONFIG=sha256
+    env: TESTS=sawHMAC CONFIG=sha256 SAW=true
   - compiler: gcc
-    env: TESTS=sawHMAC CONFIG=sha384
+    env: TESTS=sawHMAC CONFIG=sha384 SAW=true
   - compiler: gcc
-    env: TESTS=sawHMAC CONFIG=sha512  
+    env: TESTS=sawHMAC CONFIG=sha512 SAW=true
   - os: osx
-    env: TESTS=sawHMAC CONFIG=md5
+    env: TESTS=sawHMAC CONFIG=md5 SAW=true
   - os: osx
-    env: TESTS=sawHMAC CONFIG=none
+    env: TESTS=sawHMAC CONFIG=none SAW=true
   - os: osx
-    env: TESTS=sawHMAC CONFIG=sha1
+    env: TESTS=sawHMAC CONFIG=sha1 SAW=true
   - os: osx
-    env: TESTS=sawHMAC CONFIG=sha224
+    env: TESTS=sawHMAC CONFIG=sha224 SAW=true
   - os: osx
-    env: TESTS=sawHMAC CONFIG=sha256
+    env: TESTS=sawHMAC CONFIG=sha256 SAW=true
   - os: osx
-    env: TESTS=sawHMAC CONFIG=sha384
+    env: TESTS=sawHMAC CONFIG=sha384 SAW=true
   - os: osx
-    env: TESTS=sawHMAC CONFIG=sha512  
+    env: TESTS=sawHMAC CONFIG=sha512 SAW=true
   - compiler: gcc
     env: LATEST_CLANG=true TESTS=fuzz
   - os: osx
     env: LATEST_CLANG=true TESTS=fuzz
   - os: osx
-    env: TESTS=sawDRBG
+    env: TESTS=sawDRBG SAW=true
   - compiler: gcc
-    env: TESTS=sawDRBG
+    env: TESTS=sawDRBG SAW=true
+  - os: osx
+    env: TESTS=sawHMACFailure SAW=true
+  - compiler: gcc
+    env: TESTS=sawHMACFailure SAW=true
+
+    
 
 before_install:
   # Install GCC 6 if on OSX
@@ -82,7 +89,7 @@ before_install:
   - if [[ "$LATEST_CLANG" == "true" ]]; then (.travis/install_clang.sh `pwd`/clang-download `pwd`/clang-latest $TRAVIS_OS_NAME) && export PATH=`pwd`/clang-latest/bin:$PATH ; fi
 
   # Install SAW with Z3 on Linux only 
-  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "sawHMAC" ]]; then .travis/install_saw.sh ; fi
+  - if [[ "$SAW" == "true" ]]; then .travis/install_saw.sh ; fi
   - export PATH=$PATH:$PWD/saw-0.2-2016-09-26-Ubuntu14.04-64/bin:$PWD/z3
 
 install:
@@ -105,3 +112,4 @@ script:
   - if [[ "$TESTS" == "fuzz" ]]; then make clean && make fuzz ; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "sawHMAC" ]]; then make -C tests/saw/ tmp/verify_s2n_hmac_$CONFIG.log ; fi
   - if [[ "$TESTS" == "sawDRBG" ]]; then make -C tests/saw tmp/spec/DRBG/DRBG.saw ; fi
+  - if [[ "$TESTS" == "sawHMACFailure" ]]; then make -C tests/saw failure-tests
