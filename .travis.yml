@@ -31,6 +31,7 @@ env:
   - TESTS=sawHMAC CONFIG=sha256
   - TESTS=sawHMAC CONFIG=sha384
   - TESTS=sawHMAC CONFIG=sha512
+  - TESTS=sawDRBG
 
 
 matrix:
@@ -67,6 +68,10 @@ matrix:
     env: LATEST_CLANG=true TESTS=fuzz
   - os: osx
     env: LATEST_CLANG=true TESTS=fuzz
+  - os: osx
+    env: TESTS=sawDRBG
+  - compiler: gcc
+    env: TESTS=sawDRBG
 
 before_install:
   # Install GCC 6 if on OSX
@@ -98,4 +103,5 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" && "$TESTS" == "unit" ]]; then   scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/*; exit $STATUS ; fi
   - if [[ "$TESTS" == "unit" ]]; then make integration ; fi
   - if [[ "$TESTS" == "fuzz" ]]; then make clean && make fuzz ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "sawHMAC" ]]; then make -C tests/saw/ tmp/verify_s2n_hmac_$CONFIG.log ; fi 
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "sawHMAC" ]]; then make -C tests/saw/ tmp/verify_s2n_hmac_$CONFIG.log ; fi
+  - if [[ "$TESTS" == "sawDRBG" ]]; then make -C tests/saw tmp/spec/DRBG/DRBG.saw ; fi

@@ -63,7 +63,7 @@ ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)
 endif
 
 
-CFLAGS_LLVM = ${DEFAULT_CFLAGS} -emit-llvm -c
+CFLAGS_LLVM = ${DEFAULT_CFLAGS} -fno-inline -emit-llvm -c
 
 $(BITCODE_DIR)%.bc: %.c
 	clang $(CFLAGS_LLVM) -o $@ $< 
