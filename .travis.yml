@@ -90,7 +90,7 @@ before_install:
 
   # Install SAW with Z3 on Linux only 
   - if [[ "$SAW" == "true" ]]; then .travis/install_saw.sh ; fi
-  - export PATH=$PATH:$PWD/saw-0.2-2016-09-26-Ubuntu14.04-64/bin:$PWD/z3
+  - export PATH=$PATH:$PWD/saw-0.2-2016-11-02-Ubuntu14.04-64/bin:$PWD/z3
 
 install:
   # Download and Install LibFuzzer
