@@ -36,7 +36,7 @@
 static const BIGNUM *s2n_get_Ys_dh_param(struct s2n_dh_params *dh_params)
 {
     const BIGNUM *Ys = NULL;
-    #if OPENSSL_VERSION_NUMBER < 0x10100000L
+    #if OPENSSL_VERSION_NUMBER < 0x10100000L || defined LIBRESSL_VERSION_NUMBER
         Ys = dh_params->dh->pub_key;
     #else
         DH_get0_key(dh_params->dh, &Ys, NULL);
@@ -48,7 +48,7 @@ static const BIGNUM *s2n_get_Ys_dh_param(struct s2n_dh_params *dh_params)
 static const BIGNUM *s2n_get_p_dh_param(struct s2n_dh_params *dh_params)
 {
     const BIGNUM *p = NULL;
-    #if OPENSSL_VERSION_NUMBER < 0x10100000L
+    #if OPENSSL_VERSION_NUMBER < 0x10100000L || defined LIBRESSL_VERSION_NUMBER
         p = dh_params->dh->p;
     #else
         DH_get0_pqg(dh_params->dh, &p, NULL, NULL);
@@ -60,7 +60,7 @@ static const BIGNUM *s2n_get_p_dh_param(struct s2n_dh_params *dh_params)
 static const BIGNUM *s2n_get_g_dh_param(struct s2n_dh_params *dh_params)
 {
     const BIGNUM *g = NULL;
-    #if OPENSSL_VERSION_NUMBER < 0x10100000L
+    #if OPENSSL_VERSION_NUMBER < 0x10100000L || defined LIBRESSL_VERSION_NUMBER
         g = dh_params->dh->g;
     #else
         DH_get0_pqg(dh_params->dh, NULL, NULL, &g);
@@ -114,7 +114,7 @@ static int s2n_set_p_g_Ys_dh_params(struct s2n_dh_params *dh_params, struct s2n_
     BIGNUM *bn_g = BN_bin2bn((const unsigned char *)g->data, g->size, NULL);
     BIGNUM *bn_Ys = BN_bin2bn((const unsigned char *)Ys->data, Ys->size, NULL);
 
-    #if OPENSSL_VERSION_NUMBER < 0x10100000L
+    #if OPENSSL_VERSION_NUMBER < 0x10100000L || defined LIBRESSL_VERSION_NUMBER
         dh_params->dh->p = bn_p;
         dh_params->dh->g = bn_g;
         dh_params->dh->pub_key = bn_Ys;
