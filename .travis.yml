@@ -65,6 +65,8 @@ matrix:
     env: TESTS=sawHMAC CONFIG=sha512  
   - compiler: gcc
     env: LATEST_CLANG=true TESTS=fuzz
+  - os: osx
+    env: LATEST_CLANG=true TESTS=fuzz
 
 before_install:
   # Install GCC 6 if on OSX
