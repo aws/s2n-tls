@@ -54,7 +54,7 @@ $CONFIGURE -g3 -fPIC no-shared              \
 
 make depend
 make
-make install
+make install_sw
 
 popd
 

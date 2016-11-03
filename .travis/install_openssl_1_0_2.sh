@@ -51,7 +51,7 @@ $CONFIGURE -g3 -fPIC no-shared no-libunbound no-gmp no-jpake no-krb5 no-md2 no-r
 
 make depend
 make
-make install
+make install_sw
 
 popd
 
