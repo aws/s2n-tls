@@ -22,13 +22,13 @@ all:
 	( \
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
-	python3 s2n_resume_test.py $(S2ND_HOST) $(S2ND_PORT); \
+	python3 s2n_resume_test_s_client.py $(S2ND_HOST) $(S2ND_PORT); \
     )
 	# Run Python ssl handshake tests
 	( \
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
-	python3 s2n_handshake_test.py $(S2ND_HOST) $(S2ND_PORT); \
+	python3 s2n_handshake_test_s_client.py $(S2ND_HOST) $(S2ND_PORT); \
 	)
 	# Run gnutls handshake tests
 	( \
