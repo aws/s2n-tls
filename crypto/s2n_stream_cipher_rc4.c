@@ -52,7 +52,7 @@ static int s2n_stream_cipher_rc4_decrypt(struct s2n_session_key *key, struct s2n
     return 0;
 }
 
-static int s2n_stream_cipher_rc4_get_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_stream_cipher_rc4_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 16);
     if (EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_rc4(), NULL, in->data, NULL) != 1) {
@@ -62,7 +62,7 @@ static int s2n_stream_cipher_rc4_get_encryption_key(struct s2n_session_key *key,
     return 0;
 }
 
-static int s2n_stream_cipher_rc4_get_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_stream_cipher_rc4_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 16);
     if (EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_rc4(), NULL, in->data, NULL) != 1) {
@@ -93,7 +93,7 @@ struct s2n_cipher s2n_rc4 = {
                   .decrypt = s2n_stream_cipher_rc4_decrypt,
                   .encrypt = s2n_stream_cipher_rc4_encrypt},
     .init = s2n_stream_cipher_rc4_init,
-    .get_decryption_key = s2n_stream_cipher_rc4_get_decryption_key,
-    .get_encryption_key = s2n_stream_cipher_rc4_get_encryption_key,
+    .set_decryption_key = s2n_stream_cipher_rc4_set_decryption_key,
+    .set_encryption_key = s2n_stream_cipher_rc4_set_encryption_key,
     .destroy_key = s2n_stream_cipher_rc4_destroy_key,
 };

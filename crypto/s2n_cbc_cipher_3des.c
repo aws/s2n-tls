@@ -58,7 +58,7 @@ static int s2n_cbc_cipher_3des_decrypt(struct s2n_session_key *key, struct s2n_b
     return 0;
 }
 
-static int s2n_cbc_cipher_3des_get_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_cbc_cipher_3des_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 192 / 8);
 
@@ -70,7 +70,7 @@ static int s2n_cbc_cipher_3des_get_decryption_key(struct s2n_session_key *key, s
     return 0;
 }
 
-static int s2n_cbc_cipher_3des_get_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_cbc_cipher_3des_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 192 / 8);
 
@@ -105,7 +105,7 @@ struct s2n_cipher s2n_3des = {
                .decrypt = s2n_cbc_cipher_3des_decrypt,
                .encrypt = s2n_cbc_cipher_3des_encrypt},
     .init = s2n_cbc_cipher_3des_init,
-    .get_decryption_key = s2n_cbc_cipher_3des_get_decryption_key,
-    .get_encryption_key = s2n_cbc_cipher_3des_get_encryption_key,
+    .set_decryption_key = s2n_cbc_cipher_3des_set_decryption_key,
+    .set_encryption_key = s2n_cbc_cipher_3des_set_encryption_key,
     .destroy_key = s2n_cbc_cipher_3des_destroy_key,
 };
