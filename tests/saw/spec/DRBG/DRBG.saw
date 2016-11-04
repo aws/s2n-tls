@@ -17,7 +17,10 @@ let aes_128_ecb_spec = do {
 };
 
 let cipher_new_spec = do {
-    llvm_return_arbitrary;
+    llvm_ptr "return" (llvm_struct "struct.evp_cipher_ctx_st");       // ctx
+    llvm_ptr "return->11" (llvm_array keysize (llvm_int 8));          // key
+    llvm_allocates "return";
+    llvm_allocates "return->11";
     llvm_no_simulate;
 };
 
@@ -119,6 +122,11 @@ let get_urandom_spec = do {
     llvm_no_simulate;
 };
 
+let supports_rdrand_spec = do {
+    llvm_return_arbitrary;
+    llvm_no_simulate;
+};
+
 let blob_zero_spec n = do {
     llvm_ptr "args[0]" (llvm_struct "struct.s2n_blob");
     sz <- llvm_var "args[0]->1" (llvm_int 32);
@@ -135,6 +143,8 @@ let increment_sequence_number_spec = do {
     v <- llvm_var "*(args[0])" (llvm_array blocksize (llvm_int 8));
     llvm_ensure_eq "*(args[0])" {{ split (join v + 1) : [blocksize][8] }};
     llvm_return {{ 0 : [32] }};
+    llvm_sat_branches true;
+    llvm_verify_tactic abc;
     llvm_no_simulate;
 };
 
@@ -163,6 +173,7 @@ let update_spec n = do {
     ensure_drbg_state "drbg" {{ drbg_update (join data) s }};
     llvm_return {{ 0 : [32] }};
     llvm_sat_branches true;
+    llvm_simplify_addrs true;
     llvm_verify_tactic (unint_z3 ["block_encrypt"]);
 };
 
@@ -186,12 +197,10 @@ let instantiate_spec n = do {
     llvm_ptr "personalization_string->0" (llvm_array n (llvm_int 8));
     str <- llvm_var "*(personalization_string->0)" (llvm_array n (llvm_int 8));
     llvm_assert_eq "personalization_string->1" {{ `n : [32] }};
-    //let res = {{ drbg_instantiate s (join str) }};
+    ensure_drbg_state "drbg" {{ drbg_instantiate zero (join str) }};
     llvm_return {{ 0 : [32] }};
-    // TODO: prove something
     llvm_sat_branches true;
-    llvm_verify_tactic abc;
-    llvm_no_simulate;
+    llvm_verify_tactic (unint_z3 ["block_encrypt", "fake_entropy"]);
 };
 
 let generate_spec n = do {
@@ -245,19 +254,21 @@ zero_ov_block <- llvm_verify m "s2n_blob_zero" [] (blob_zero_spec blocksize);
 zero_ov_seed <- llvm_verify m "s2n_blob_zero" [] (blob_zero_spec seedsize);
 zero_ov_drbg <- llvm_verify m "s2n_blob_zero" [] (blob_zero_spec 48);
 
+supports_rdrand_ov <- llvm_verify m "s2n_cpu_supports_rdrand" [] supports_rdrand_spec;
+
 inc_ov <- llvm_verify m "s2n_increment_sequence_number" [] increment_sequence_number_spec;
 
 get_urandom_ov <- llvm_verify m "s2n_get_urandom_data" [] get_urandom_spec;
 
-blk_enc_ov <- llvm_verify m "s2n_drbg_block_encrypt" [encryptUpdate_ov] block_encrypt_spec;
+//blk_enc_ov <- llvm_verify m "s2n_drbg_block_encrypt" [encryptUpdate_ov] block_encrypt_spec;
 
-bits_ov <- llvm_verify m "s2n_drbg_bits" [inc_ov, blk_enc_ov] (bits_spec seedsize);
+bits_ov <- llvm_verify m "s2n_drbg_bits" [inc_ov, encryptUpdate_ov /* blk_enc_ov*/ ] (bits_spec seedsize);
 
 update_ov <- llvm_verify m "s2n_drbg_update" [bits_ov, encryptInit_ov, aes_128_ecb_ov] (update_spec seedsize);
 
 seed_ov <- llvm_verify m "s2n_drbg_seed" [get_urandom_ov, update_ov] (seed_spec seedsize);
 
-instantiate_ov <- llvm_verify m "s2n_drbg_instantiate" [zero_ov_block, zero_ov_seed, cipher_init_ov, encryptInit_ov, aes_128_ecb_ov, seed_ov] (instantiate_spec seedsize);
+instantiate_ov <- llvm_verify m "s2n_drbg_instantiate" [zero_ov_block, zero_ov_seed, cipher_new_ov, cipher_init_ov, encryptInit_ov, aes_128_ecb_ov, seed_ov, supports_rdrand_ov] (instantiate_spec seedsize);
 
 generate_ov <- llvm_verify m "s2n_drbg_generate" [seed_ov, bits_ov, update_ov] (generate_spec seedsize);
 
