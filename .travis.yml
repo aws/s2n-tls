@@ -77,6 +77,9 @@ matrix:
     env: TESTS=sawHMACFailure SAW=true
   - compiler: gcc
     env: TESTS=sawHMACFailure SAW=true
+  #This exception is because the test isn't finished yet, remove to turn on DRBG Saw tests
+  - compiler: clang
+    env: TESTS=sawDRBG SAW=true
 
     
 
