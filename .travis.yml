@@ -99,7 +99,7 @@ install:
   # Download and Install LibFuzzer
   - if [[ "$TESTS" == "fuzz" ]]; then .travis/install_libFuzzer.sh `pwd`/fuzz_dependencies/libFuzzer-download `pwd`/fuzz_dependencies $TRAVIS_OS_NAME ; fi
   # Download and Install Openssl
-  - if [[ "$BUILD_S2N" == "true" || "$TESTS" == "fuzz" ]]; then .travis/install_openssl_1_1_0.sh `pwd`/libcrypto-build `pwd`/libcrypto-root $TRAVIS_OS_NAME > /dev/null ; fi
+  - .travis/install_openssl_1_1_0.sh `pwd`/libcrypto-build `pwd`/libcrypto-root $TRAVIS_OS_NAME > /dev/null
   # Install python linked with our compiled Openssl for integration tests
   - if [[ "$BUILD_S2N" == "true" ]]; then sudo "PATH=$PATH" .travis/install_python.sh `pwd`/libcrypto-root > /dev/null ; fi
   # Download and Install GnuTLS for integration tests
