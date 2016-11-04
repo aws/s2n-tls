@@ -14,56 +14,38 @@
 #
 
 """
-Session resumption tests using Openssl s_client against s2nd with session caching.
-Openssl 1.1.0 removed SSLv3, 3DES, an RC4, so we won't have coverage there.
+Simple handshake tests using gnutls-cli
 """
 
 import os
 import sys
-import time
+import ssl
 import socket
 import subprocess
 from s2n_test_constants import *
 
-PROTO_VERS_TO_S_CLIENT_ARG = {
-    S2N_TLS10 : "-tls1",
-    S2N_TLS11 : "-tls1_1",
-    S2N_TLS12 : "-tls1_2",
-}
-
-def try_resume(endpoint, port, cipher, ssl_version):
+def try_gnutls_handshake(endpoint, port, priority_str):
     # Fire up s2nd
     s2nd = subprocess.Popen(["../../bin/s2nd", "-c", "test_all", str(endpoint), str(port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
     # Make sure it's running
     s2nd.stdout.readline()
 
-    # Fire up s_client
-    s_client = subprocess.Popen(["../../libcrypto-root/bin/openssl", "s_client", PROTO_VERS_TO_S_CLIENT_ARG[ssl_version], "-cipher", cipher,
-                                 "-quiet", "-reconnect", "-connect", str(endpoint) + ":" + str(port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                 stderr=subprocess.DEVNULL)
+    # Fire up gnutls-cli, use insecure since s2nd is using a dummy cert
+    gnutls_cli = subprocess.Popen(["gnutls-cli", "--priority=" + priority_str,"--insecure", "-p " + str(port), str(endpoint)], 
+                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
-    # Wait until the 6th connection
-    seperators = 0
-    for line in s2nd.stdout:
-        line = line.decode("utf-8").strip()
-        if line.startswith("Resumed session"):
-            seperators += 1
-        if seperators == 5:
-            break
-
-    if seperators != 5:
-        return -1
-
-    # Write the cipher name towards s2n
-    s_client.stdin.write((cipher + "\n").encode("utf-8"))
-    s_client.stdin.flush()
+    # Write the priority str towards s2nd. Prepend with the 's2n' string to make sure we don't accidently match something
+    # in the gnutls-cli handshake output
+    written_str = "s2n" + priority_str
+    gnutls_cli.stdin.write((written_str + "\n").encode("utf-8"))
+    gnutls_cli.stdin.flush()
 
     # Read it
     found = 0
-    for line in range(0, 10):
+    for line in range(0, 50):
         output = s2nd.stdout.readline().decode("utf-8")
-        if output.strip() == cipher:
+        if output.strip() == written_str:
             found = 1
             break
 
@@ -71,42 +53,47 @@ def try_resume(endpoint, port, cipher, ssl_version):
         return -1
 
     # Write the cipher name from s2n
-    s2nd.stdin.write((cipher + "\n").encode("utf-8"))
+    s2nd.stdin.write((written_str + "\n").encode("utf-8"))
     s2nd.stdin.flush()
     found = 0
-    for line in range(0, 10):
-        output = s_client.stdout.readline().decode("utf-8")
-        if output.strip() == cipher:
+    for line in range(0, 50):
+        output = gnutls_cli.stdout.readline().decode("utf-8")
+        if output.strip() == written_str:
             found = 1
             break
 
     if found == 0:
         return -1
 
-    s_client.kill()
-    s_client.wait()
+    gnutls_cli.kill()
+    gnutls_cli.wait()
     s2nd.kill()
     s2nd.wait()
 
     return 0
 
+
 def main(argv):
     if len(argv) < 2:
-        print("s2n_resume_test.py host port")
+        print("s2n_handshake_test_gnutls.py host port")
         sys.exit(1)
 
-    print("\nRunning resumption tests with: " + os.popen('../../libcrypto-root/bin/openssl version').read())
+    print("\nRunning GnuTLS handshake tests with: " + os.popen('gnutls-cli --version | grep -w gnutls-cli').read())
     failed = 0
-    for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
+    for ssl_version in [S2N_SSLv3, S2N_TLS10, S2N_TLS11, S2N_TLS12]:
         print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
         for cipher in S2N_CIPHERS:
-            cipher_name = cipher[0]
-            cipher_vers = cipher[1]
+            # Use the Openssl name for printing
+            cipher_name = cipher.openssl_name
+            cipher_priority_str = cipher.gnutls_priority_str
+            cipher_vers = cipher.min_tls_vers
 
             if ssl_version < cipher_vers:
                 continue
 
-            ret = try_resume(argv[0], int(argv[1]), cipher_name, ssl_version)
+            # Add the SSL version to make the cipher priority string fully qualified
+            complete_priority_str = cipher_priority_str + ":+" + S2N_PROTO_VERS_TO_GNUTLS[ssl_version]
+            ret = try_gnutls_handshake(argv[0], int(argv[1]), complete_priority_str)
             print("Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version]), end='')
             if ret == 0:
                 if sys.stdout.isatty():

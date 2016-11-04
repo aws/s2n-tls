@@ -95,8 +95,12 @@ def main(argv):
     for s2n_tls_vers, python_tls_vers in S2N_PYTHON_VERSIONS:
         print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[s2n_tls_vers])
         for cipher in S2N_CIPHERS:
-            cipher_name = cipher[0]
-            cipher_vers = cipher[1]
+            cipher_name = cipher.openssl_name
+            cipher_vers = cipher.min_tls_vers
+
+            # 3DES cipers not supported by this client
+            if cipher_name == "DES-CBC3-SHA" or cipher_name == "EDH-RSA-DES-CBC3-SHA" or cipher_name == "ECDHE-RSA-DES-CBC3-SHA":
+                continue
 
             if s2n_tls_vers < cipher_vers:
                 continue
