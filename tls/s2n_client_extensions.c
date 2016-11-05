@@ -18,6 +18,7 @@
 
 #include "error/s2n_errno.h"
 
+#include "tls/s2n_tls_digest_preferences.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_connection.h"
 
