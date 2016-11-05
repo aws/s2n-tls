@@ -40,7 +40,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 
     /* Signature algorithms */
     if (conn->actual_protocol_version == S2N_TLS12) {
-        total_size += 8;
+        total_size += (sizeof(s2n_preferred_hashes) * 2) + 6;
     }
 
     uint16_t application_protocols_len = conn->config->application_protocols.size;
@@ -65,12 +65,14 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     if (conn->actual_protocol_version == S2N_TLS12) {
         /* The extension header */
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SIGNATURE_ALGORITHMS));
-        GUARD(s2n_stuffer_write_uint16(out, 4));
+        GUARD(s2n_stuffer_write_uint16(out, (sizeof(s2n_preferred_hashes) * 2) + 2));
 
-        /* Just one signature/hash pair, so 2 bytes */
-        GUARD(s2n_stuffer_write_uint16(out, 2));
-        GUARD(s2n_stuffer_write_uint8(out, TLS_HASH_ALGORITHM_SHA1));
-        GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_RSA));
+        /* The array of hashes and signature algorithms we support */
+        GUARD(s2n_stuffer_write_uint16(out, sizeof(s2n_preferred_hashes) * 2));
+        for (int i =  0; i < sizeof(s2n_preferred_hashes); i++) {
+            GUARD(s2n_stuffer_write_uint8(out, s2n_preferred_hashes[i]));
+            GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_RSA));
+        }
     }
 
     if (server_name_len) {
@@ -224,6 +226,7 @@ static int s2n_recv_client_server_name(struct s2n_connection *conn, struct s2n_s
 
 static int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
+    int chosen = sizeof(s2n_preferred_hashes);
     uint16_t length_of_all_pairs;
     GUARD(s2n_stuffer_read_uint16(extension, &length_of_all_pairs));
     if (length_of_all_pairs > s2n_stuffer_data_available(extension)) {
@@ -243,10 +246,32 @@ static int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, str
         GUARD(s2n_stuffer_read_uint8(extension, &hash_alg));
         GUARD(s2n_stuffer_read_uint8(extension, &sig_alg));
 
-        if (hash_alg == TLS_HASH_ALGORITHM_SHA1 && sig_alg == TLS_SIGNATURE_ALGORITHM_RSA) {
-            /* Supported pair found, return success */
-            return 0;
+        /* We only support RSA for now */
+        if (sig_alg != TLS_SIGNATURE_ALGORITHM_RSA) {
+            continue;
         }
+
+        /* Chosen starts out high, at the size of the preferred_hashes. We
+         * always search backwards from chosen, so can only move to an algorithm
+         * with a higher preference.
+         */
+        for (int i = chosen - 1; i >= 0; i--) {
+            if (s2n_preferred_hashes[i] != hash_alg) {
+                continue;
+            }
+
+            chosen = i;
+
+            if (i == 0) {
+                break;
+            }
+        }
+    }
+
+    /* Did we chose a hash algorithm ? */
+    if (chosen < sizeof(s2n_preferred_hashes)) {
+        conn->secure.signature_digest_alg = s2n_hash_tls_to_alg[ s2n_preferred_hashes[chosen] ];
+        return 0;
     }
 
     /* No supported signature algorithms, fail the handshake */
