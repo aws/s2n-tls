@@ -70,6 +70,11 @@ const struct s2n_record_algorithm s2n_record_alg_aes128_sha256 = {
     .hmac_alg = S2N_HMAC_SHA256,
 };
 
+const struct s2n_record_algorithm s2n_record_alg_aes128_sha256_composite = {
+    .cipher = &s2n_aes128_sha256,
+    .hmac_alg = S2N_HMAC_NONE,
+};
+
 const struct s2n_record_algorithm s2n_record_alg_aes256_sha = {
     .cipher = &s2n_aes256,
     .hmac_alg = S2N_HMAC_SHA1,
@@ -83,6 +88,11 @@ const struct s2n_record_algorithm s2n_record_alg_aes256_sha_composite = {
 const struct s2n_record_algorithm s2n_record_alg_aes256_sha256 = {
     .cipher = &s2n_aes256,
     .hmac_alg = S2N_HMAC_SHA256,
+};
+
+const struct s2n_record_algorithm s2n_record_alg_aes256_sha256_composite = {
+    .cipher = &s2n_aes256_sha256,
+    .hmac_alg = S2N_HMAC_NONE,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_aes256_sha384 = {
@@ -211,8 +221,8 @@ struct s2n_cipher_suite s2n_rsa_with_aes_128_cbc_sha256 = /* 0x00,0x3C */ {
     .iana_value = { TLS_RSA_WITH_AES_128_CBC_SHA256 },
     .key_exchange_alg = &s2n_rsa,
     .record_alg = NULL,
-    .all_record_algs = { &s2n_record_alg_aes128_sha256 },
-    .num_record_algs = 1,
+    .all_record_algs = { &s2n_record_alg_aes128_sha256_composite, &s2n_record_alg_aes128_sha256 },
+    .num_record_algs = 2,
     .tls12_prf_alg = S2N_HMAC_SHA256,
     .minimum_required_tls_version = S2N_TLS12,
 };
@@ -223,8 +233,8 @@ struct s2n_cipher_suite s2n_rsa_with_aes_256_cbc_sha256 = /* 0x00,0x3D */ {
     .iana_value = { TLS_RSA_WITH_AES_256_CBC_SHA256 },
     .key_exchange_alg = &s2n_rsa,
     .record_alg = NULL,
-    .all_record_algs = { &s2n_record_alg_aes256_sha256 },
-    .num_record_algs = 1,
+    .all_record_algs = { &s2n_record_alg_aes256_sha256_composite, &s2n_record_alg_aes256_sha256 },
+    .num_record_algs = 2,
     .tls12_prf_alg = S2N_HMAC_SHA256,
     .minimum_required_tls_version = S2N_TLS12,
 };
@@ -235,8 +245,8 @@ struct s2n_cipher_suite s2n_dhe_rsa_with_aes_128_cbc_sha256 = /* 0x00,0x67 */ {
     .iana_value = { TLS_DHE_RSA_WITH_AES_128_CBC_SHA256 },
     .key_exchange_alg = &s2n_dhe,
     .record_alg = NULL,
-    .all_record_algs = { &s2n_record_alg_aes128_sha256 },
-    .num_record_algs = 1,
+    .all_record_algs = { &s2n_record_alg_aes128_sha256_composite, &s2n_record_alg_aes128_sha256 },
+    .num_record_algs = 2,
     .tls12_prf_alg = S2N_HMAC_SHA256,
     .minimum_required_tls_version = S2N_TLS12,
 };
@@ -247,8 +257,8 @@ struct s2n_cipher_suite s2n_dhe_rsa_with_aes_256_cbc_sha256 = /* 0x00,0x6B */ {
     .iana_value = { TLS_DHE_RSA_WITH_AES_256_CBC_SHA256 },
     .key_exchange_alg = &s2n_dhe,
     .record_alg = NULL,
-    .all_record_algs = { &s2n_record_alg_aes256_sha256 },
-    .num_record_algs = 1,
+    .all_record_algs = { &s2n_record_alg_aes256_sha256_composite, &s2n_record_alg_aes256_sha256 },
+    .num_record_algs = 2,
     .tls12_prf_alg = S2N_HMAC_SHA256,
     .minimum_required_tls_version = S2N_TLS12,
 };
@@ -331,8 +341,8 @@ struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_128_cbc_sha256 = /* 0xC0,0x27 */ 
     .iana_value = { TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 },
     .key_exchange_alg = &s2n_ecdhe,
     .record_alg = NULL,
-    .all_record_algs = { &s2n_record_alg_aes128_sha256 },
-    .num_record_algs = 1,
+    .all_record_algs = { &s2n_record_alg_aes128_sha256_composite, &s2n_record_alg_aes128_sha256 },
+    .num_record_algs = 2,
     .tls12_prf_alg = S2N_HMAC_SHA256,
     .minimum_required_tls_version = S2N_TLS12,
 };
