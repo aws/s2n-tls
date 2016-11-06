@@ -49,12 +49,22 @@ struct s2n_cipher mock_block_cipher = {
     .destroy_key = NULL,
 };
 
-struct s2n_cipher_suite mock_block_cipher_suite = {
-    .name = "TLS_MOCK_CBC",
-    .value = {0x12, 0x34},
-    .key_exchange_alg = &s2n_rsa,
+struct s2n_record_algorithm mock_block_record_alg = {
     .cipher = &mock_block_cipher,
-    .hmac_alg = S2N_HMAC_SHA1
+    .hmac_alg = S2N_HMAC_SHA1,
+};
+
+struct s2n_cipher_suite mock_block_cipher_suite = {
+    .available = 1,
+    .name = "TLS_MOCK_CBC",
+    .iana_value = {0x12, 0x34},
+    .key_exchange_alg = &s2n_rsa,
+    .record_alg = &mock_block_record_alg,
+};
+
+struct s2n_record_algorithm mock_null_sha1_record_alg = {
+    .cipher = &s2n_null_cipher,
+    .hmac_alg = S2N_HMAC_SHA1,
 };
 
 int main(int argc, char **argv)
@@ -114,7 +124,7 @@ int main(int argc, char **argv)
     }
 
     /* test a fake streaming cipher with a MAC */
-    conn->initial.cipher_suite->hmac_alg = S2N_HMAC_SHA1;
+    conn->initial.cipher_suite->record_alg = &mock_null_sha1_record_alg;
     EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     conn->initial.cipher_suite = &s2n_null_cipher_suite;
@@ -263,7 +273,6 @@ int main(int argc, char **argv)
     }
 
     /* Test a mock block cipher with a mac - in TLS1.1+ mode */
-    conn->initial.cipher_suite->hmac_alg = S2N_HMAC_SHA1;
     EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     EXPECT_SUCCESS(s2n_hmac_init(&conn->initial.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     conn->actual_protocol_version = S2N_TLS11;

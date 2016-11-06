@@ -126,7 +126,7 @@ int s2n_server_hello_send(struct s2n_connection *conn)
     GUARD(s2n_stuffer_write_bytes(out, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_stuffer_write_uint8(out, conn->session_id_len));
     GUARD(s2n_stuffer_write_bytes(out, conn->session_id, conn->session_id_len));
-    GUARD(s2n_stuffer_write_bytes(out, conn->secure.cipher_suite->value, S2N_TLS_CIPHER_SUITE_LEN));
+    GUARD(s2n_stuffer_write_bytes(out, conn->secure.cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     GUARD(s2n_stuffer_write_uint8(out, S2N_TLS_COMPRESSION_METHOD_NULL));
 
     GUARD(s2n_server_extensions_send(conn, out));

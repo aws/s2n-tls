@@ -365,11 +365,11 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     GUARD(s2n_stuffer_init(&key_material, &out));
     GUARD(s2n_stuffer_write(&key_material, &out));
 
-    GUARD(conn->secure.cipher_suite->cipher->init(&conn->secure.client_key));
-    GUARD(conn->secure.cipher_suite->cipher->init(&conn->secure.server_key));
+    GUARD(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.client_key));
+    GUARD(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.server_key));
 
     /* What's our hmac algorithm? */
-    s2n_hmac_algorithm hmac_alg = conn->secure.cipher_suite->hmac_alg;
+    s2n_hmac_algorithm hmac_alg = conn->secure.cipher_suite->record_alg->hmac_alg;
     if (conn->actual_protocol_version == S2N_SSLv3) {
         if (hmac_alg == S2N_HMAC_SHA1) {
             hmac_alg = S2N_HMAC_SSLv3_SHA1;
@@ -382,8 +382,8 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
 
     /* Check that we have a valid MAC and key size */
     int mac_size;
-    if (conn->secure.cipher_suite->cipher->type == S2N_COMPOSITE) {
-        mac_size = conn->secure.cipher_suite->cipher->io.comp.mac_key_size;
+    if (conn->secure.cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
+        mac_size = conn->secure.cipher_suite->record_alg->cipher->io.comp.mac_key_size;
     } else {
         GUARD((mac_size = s2n_hmac_digest_size(hmac_alg)));
     }
@@ -400,50 +400,50 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
 
     /* Make the client key */
     struct s2n_blob client_key;
-    client_key.size = conn->secure.cipher_suite->cipher->key_material_size;
+    client_key.size = conn->secure.cipher_suite->record_alg->cipher->key_material_size;
     client_key.data = s2n_stuffer_raw_read(&key_material, client_key.size);
     notnull_check(client_key.data);
     if (conn->mode == S2N_CLIENT) {
-        GUARD(conn->secure.cipher_suite->cipher->set_encryption_key(&conn->secure.client_key, &client_key));
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.client_key, &client_key));
     } else {
-        GUARD(conn->secure.cipher_suite->cipher->set_decryption_key(&conn->secure.client_key, &client_key));
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &client_key));
     }
 
     /* Make the server key */
     struct s2n_blob server_key;
-    server_key.size = conn->secure.cipher_suite->cipher->key_material_size;
+    server_key.size = conn->secure.cipher_suite->record_alg->cipher->key_material_size;
     server_key.data = s2n_stuffer_raw_read(&key_material, server_key.size);
 
     notnull_check(server_key.data);
     if (conn->mode == S2N_SERVER) {
-        GUARD(conn->secure.cipher_suite->cipher->set_encryption_key(&conn->secure.server_key, &server_key));
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.server_key, &server_key));
     } else {
-        GUARD(conn->secure.cipher_suite->cipher->set_decryption_key(&conn->secure.server_key, &server_key));
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.server_key, &server_key));
     }
 
     /* Composite CBC does MAC inside the cipher, pass it the MAC key. 
      * Must happen after setting encryption/decryption keys.
      */
-    if (conn->secure.cipher_suite->cipher->type == S2N_COMPOSITE) {
-        GUARD(conn->secure.cipher_suite->cipher->io.comp.set_mac_write_key(&conn->secure.server_key, server_mac_write_key, mac_size));
-        GUARD(conn->secure.cipher_suite->cipher->io.comp.set_mac_write_key(&conn->secure.client_key, client_mac_write_key, mac_size));
+    if (conn->secure.cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->secure.server_key, server_mac_write_key, mac_size));
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->secure.client_key, client_mac_write_key, mac_size));
     }
 
     /* TLS >= 1.1 has no implicit IVs for non AEAD ciphers */
-    if (conn->actual_protocol_version > S2N_TLS10 && conn->secure.cipher_suite->cipher->type != S2N_AEAD) {
+    if (conn->actual_protocol_version > S2N_TLS10 && conn->secure.cipher_suite->record_alg->cipher->type != S2N_AEAD) {
         return 0;
     }
 
     uint32_t implicit_iv_size = 0;
-    switch (conn->secure.cipher_suite->cipher->type) {
+    switch (conn->secure.cipher_suite->record_alg->cipher->type) {
     case S2N_AEAD:
-        implicit_iv_size = conn->secure.cipher_suite->cipher->io.aead.fixed_iv_size;
+        implicit_iv_size = conn->secure.cipher_suite->record_alg->cipher->io.aead.fixed_iv_size;
         break;
     case S2N_CBC:
-        implicit_iv_size = conn->secure.cipher_suite->cipher->io.cbc.block_size;
+        implicit_iv_size = conn->secure.cipher_suite->record_alg->cipher->io.cbc.block_size;
         break;
     case S2N_COMPOSITE:
-        implicit_iv_size = conn->secure.cipher_suite->cipher->io.comp.block_size;
+        implicit_iv_size = conn->secure.cipher_suite->record_alg->cipher->io.comp.block_size;
         break;
     /* No-op for stream ciphers */
     default:
