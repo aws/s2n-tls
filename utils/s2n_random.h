@@ -17,6 +17,8 @@
 
 #include "utils/s2n_blob.h"
 
+extern int s2n_rand_init(void);
+extern int s2n_rand_cleanup(void);
 extern int s2n_get_public_random_data(struct s2n_blob *blob);
 extern int s2n_get_public_random_bytes_used(void);
 extern int s2n_get_private_random_data(struct s2n_blob *blob);
