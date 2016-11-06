@@ -33,8 +33,9 @@
 #define S2N_SSL_FINISHED_LEN           36
 #define S2N_TLS_MAX_IV_LEN             16
 
-#define S2N_TLS_GCM_AAD_LEN            13
-#define S2N_TLS_MAX_AAD_LEN            S2N_TLS_GCM_AAD_LEN
+/* From RFC 5246 6.2.3.3 */
+#define S2N_TLS12_AAD_LEN              13
+#define S2N_TLS_MAX_AAD_LEN            S2N_TLS12_AAD_LEN
 #define S2N_TLS_GCM_FIXED_IV_LEN        4
 #define S2N_TLS_GCM_EXPLICIT_IV_LEN     8
 #define S2N_TLS_GCM_IV_LEN            (S2N_TLS_GCM_FIXED_IV_LEN + S2N_TLS_GCM_EXPLICIT_IV_LEN)
