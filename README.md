@@ -39,7 +39,7 @@ For details on building the s2n library and how to use s2n in an application you
 
 ## s2n features
 
-s2n implements SSLv3, TLS1.0, TLS1.1, and TLS1.2. For encryption, s2n supports 128-bit and 256-bit AES, in the CBC and GCM modes, 3DES, and RC4. For forward secrecy, s2n supports both DHE and ECDHE. s2n also supports the Server Name Indicator (SNI), Application-Layer Protocol Negotiation (ALPN) and the Online Certificate Status Protocol (OCSP) TLS extensions. SSLv3, RC4, 3DES, and DHE are each disabled by default for security reasons.
+s2n implements SSLv3, TLS1.0, TLS1.1, and TLS1.2. For encryption, s2n supports 128-bit and 256-bit AES, in the CBC and GCM modes, ChaCha20, 3DES, and RC4. For forward secrecy, s2n supports both DHE and ECDHE. s2n also supports the Server Name Indicator (SNI), Application-Layer Protocol Negotiation (ALPN) and the Online Certificate Status Protocol (OCSP) TLS extensions. SSLv3, RC4, 3DES and DHE are each disabled by default for security reasons. 
 
 As it can be difficult to keep track of which encryption algorithms and protocols are best to use, s2n features a simple API to use the latest "default" set of preferences. If you prefer to remain on a specific version for backwards compatibility, that is also supported. 
 

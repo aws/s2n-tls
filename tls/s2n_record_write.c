@@ -176,15 +176,28 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
 
     /* If we're AEAD, write the sequence number as an IV, and generate the AAD */
     if (cipher_suite->record_alg->cipher->type == S2N_AEAD) {
-        GUARD(s2n_stuffer_write_bytes(&conn->out, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
-
         struct s2n_stuffer iv_stuffer;
         iv.data = aad_iv;
         iv.size = sizeof(aad_iv);
-
         GUARD(s2n_stuffer_init(&iv_stuffer, &iv));
-        GUARD(s2n_stuffer_write_bytes(&iv_stuffer, implicit_iv, cipher_suite->record_alg->cipher->io.aead.fixed_iv_size));
-        GUARD(s2n_stuffer_write_bytes(&iv_stuffer, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+
+        if (cipher_suite->record_alg->flags & S2N_TLS12_AEAD_NONCE) {
+            GUARD(s2n_stuffer_write_bytes(&conn->out, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+            GUARD(s2n_stuffer_write_bytes(&iv_stuffer, implicit_iv, cipher_suite->record_alg->cipher->io.aead.fixed_iv_size));
+            GUARD(s2n_stuffer_write_bytes(&iv_stuffer, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+        } else if (cipher_suite->record_alg->flags & S2N_TLS13_AEAD_NONCE) {
+            /* Zero the first four bytes */
+            uint8_t four_zeroes[4] = { 0 };
+            GUARD(s2n_stuffer_write_bytes(&iv_stuffer, four_zeroes, 4));
+            /* Write the sequence number */
+            GUARD(s2n_stuffer_write_bytes(&iv_stuffer, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+            /* XOR with the implicit IV */
+            for(int i = 0; i < cipher_suite->record_alg->cipher->io.aead.fixed_iv_size; i++) {
+                aad_iv[i] = aad_iv[i] ^ implicit_iv[i];
+            }
+        } else {
+            S2N_ERROR(S2N_ERR_INVALID_NONCE_TYPE);
+        }
 
         /* Set the IV size to the amount of data written */
         iv.size = s2n_stuffer_data_available(&iv_stuffer);
