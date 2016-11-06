@@ -45,8 +45,8 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    /* Skip the test if we don't have the implementations for composite ciphers available */
-    if (!s2n_composite_ciphers_supported()) {
+    /* Skip test if we can't use the ciphers */
+    if (!s2n_aes128_sha.is_available() || !s2n_aes256_sha.is_available()) {
         END_TEST();
     }
 

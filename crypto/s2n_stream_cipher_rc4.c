@@ -20,6 +20,11 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
+static uint8_t s2n_stream_cipher_rc4_avilable()
+{
+    return (EVP_rc4() ? 1 : 0);
+}
+
 static int s2n_stream_cipher_rc4_encrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out)
 {
     gte_check(out->size, in->size);
@@ -92,6 +97,7 @@ struct s2n_cipher s2n_rc4 = {
     .io.stream = {
                   .decrypt = s2n_stream_cipher_rc4_decrypt,
                   .encrypt = s2n_stream_cipher_rc4_encrypt},
+    .is_available = s2n_stream_cipher_rc4_avilable,
     .init = s2n_stream_cipher_rc4_init,
     .set_decryption_key = s2n_stream_cipher_rc4_set_decryption_key,
     .set_encryption_key = s2n_stream_cipher_rc4_set_encryption_key,
