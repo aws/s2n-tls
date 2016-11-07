@@ -23,11 +23,11 @@ import socket
 import subprocess
 from s2n_test_constants import *
 
-#S2N_PYTHON_VERSIONS = [
-#    (S2N_TLS10, ssl.PROTOCOL_TLSv1),
-#    (S2N_TLS11, ssl.PROTOCOL_TLSv1_1),
-#    (S2N_TLS12, ssl.PROTOCOL_TLSv1_2),
-#:]
+S2N_PYTHON_VERSIONS = [
+    (S2N_TLS10, ssl.PROTOCOL_TLSv1),
+    (S2N_TLS11, ssl.PROTOCOL_TLSv1_1),
+    (S2N_TLS12, ssl.PROTOCOL_TLSv1_2),
+]
 
 def try_handshake(endpoint, port, cipher, ssl_version):
     # Fire up s2nd
