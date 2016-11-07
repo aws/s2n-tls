@@ -86,8 +86,6 @@ def try_handshake(endpoint, port, cipher, ssl_version):
     return 0
 
 def main(argv):
-    sys.exit(0)
-
     if len(argv) < 2:
         print("s2n_handshake_test.py host port")
         sys.exit(1)
