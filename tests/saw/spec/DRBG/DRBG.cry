@@ -36,7 +36,7 @@ drbg_instantiate : {ps_size}
                 => [seedlen]
                 -> [ps_size]
                 -> s2n_drbg
-drbg_instantiate entropy ps = drbg_update (entropy ^ ps') zero
+drbg_instantiate entropy ps = drbg_reseed zero entropy ps'
   where
     /* pad ps with zeros if needed to reach seedlen
        otherwise truncate to seedlen */
