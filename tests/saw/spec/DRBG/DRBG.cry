@@ -25,11 +25,14 @@ type s2n_drbg =
 drbg_generate_internal : {n, blocks}
                          ( fin n, fin blocks, n >= 1, n <= 8192
                          , n == blocklen * blocks)
-                      => [keylen]
-                      -> [blocklen]
-                      -> ([n], [blocklen])
-drbg_generate_internal key v =
-  (join [ block_encrypt key (v + i) | i <- [1 .. blocks]], v + `blocks)
+                      => s2n_drbg
+                      -> ([n], s2n_drbg)
+drbg_generate_internal drbg =
+  (join [ block_encrypt drbg.ctx.key (drbg.v + i) | i <- [1 .. blocks]], drbg')
+    where drbg' = { bytes_used = drbg.bytes_used + `(blocks * blocksize)
+                  , ctx = drbg.ctx
+                  , v = drbg.v + `blocks
+                  }
 
 drbg_instantiate : {ps_size}
                    (fin ps_size)
@@ -83,9 +86,7 @@ drbg_generate drbg entropy reseed_p = (take enc_result, drbg_out)
         drbg_reseed drbg entropy (zero : [256])
       else drbg
     // Encrypt v+1, v+2, ..., v + ceil (n / blocklen)
-    (enc_result, v') = drbg_generate_internal `{blocks=blocks} drbg_r.ctx.key drbg_r.v
-    // Set v = v+blocks, as if the above loop side-effected v
-    drbg_v = { bytes_used = drbg_r.bytes_used, ctx = drbg_r.ctx, v = v' }
+    (enc_result, drbg_v) = drbg_generate_internal `{blocks=blocks} drbg_r
     // Update the drbg state
     drbg_out = drbg_update zero drbg_v
 
@@ -98,7 +99,7 @@ drbg_update data drbg = result
     // different if seedlen isn't a multiple of blocklen
     type blocks = (seedlen + blocklen -1)/blocklen
     // Encrypt v+1, v+2, ..., v + ceil (seedlen / blocklen)
-    (enc_result, _) = drbg_generate_internal `{blocks=blocks} drbg.ctx.key drbg.v
+    (enc_result, _) = drbg_generate_internal `{blocks=blocks} drbg
     // XOR the additional input data with the first bits of enc_result
     data_xor = (take enc_result) ^ data
     // Return the first half of data_xor as the new key, and the last half of it
