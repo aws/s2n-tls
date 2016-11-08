@@ -103,7 +103,7 @@ drbg_update data drbg = result
     data_xor = (take enc_result) ^ data
     // Return the first half of data_xor as the new key, and the last half of it
     // as the new value for v
-    result = { bytes_used = drbg.bytes_used + (`blocks / 8)
+    result = { bytes_used = drbg.bytes_used + (`blocks * `blocksize)
              , ctx = { key = take data_xor }
              , v = drop data_xor
              }
