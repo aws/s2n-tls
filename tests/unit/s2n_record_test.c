@@ -329,6 +329,17 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(fragment_length, predicted_length);
     }
 
+    /* Test TLS record limit */
+    struct s2n_blob empty_blob = { .data = NULL, .size = 0 };
+    conn->initial.cipher_suite = &s2n_null_cipher_suite;
+
+    /* Fast forward the sequence number */
+    uint8_t max_num_records[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+    memcpy(conn->initial.server_sequence_number, max_num_records, sizeof(max_num_records));
+    EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
+    /* Sequence number should wrap around */
+    EXPECT_FAILURE(s2n_record_write(conn, TLS_APPLICATION_DATA, &empty_blob));
+
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
     END_TEST();

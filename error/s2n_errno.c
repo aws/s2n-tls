@@ -109,6 +109,7 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_PRIVATE_KEY_CHECK, "Error calling RSA_check_key()"},
     {S2N_ERR_CIPHER_TYPE, "Unknown cipher type used"},
     {S2N_ERR_INITIAL_HMAC, "error calling EVP_CIPHER_CTX_ctrl for composite cbc cipher"},
+    {S2N_ERR_RECORD_LIMIT, "TLS record limit reached"},
 };
 
 const char *s2n_strerror(int error, const char *lang)
