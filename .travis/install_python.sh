@@ -29,7 +29,7 @@ cd $BUILD_DIR
 wget https://www.python.org/ftp/python/3.6.0/Python-3.6.0b1.tgz
 tar xzf Python-3.6.0b1.tgz
 cd Python-3.6.0b1
- CPPFLAGS="-I$LIBCRYPTO_ROOT/include" LDFLAGS="-Wl,-R$LIBCRYPTO_ROOT/lib -L$LIBCRYPTO_ROOT/lib" ./configure --prefix="$INSTALL_DIR"
+ CPPFLAGS="-I$LIBCRYPTO_ROOT/include" LDFLAGS="-Wl,-rpath,$LIBCRYPTO_ROOT/lib -L$LIBCRYPTO_ROOT/lib" ./configure --prefix="$INSTALL_DIR"
 make
 make install
 
