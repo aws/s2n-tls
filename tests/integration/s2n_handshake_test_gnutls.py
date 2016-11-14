@@ -73,9 +73,16 @@ def try_gnutls_handshake(endpoint, port, priority_str):
 
     return 0
 
-def handshake(endpoint, port, cipher_name, ssl_version, priority_str):
+def handshake(endpoint, port, cipher_name, ssl_version, priority_str, digests):
     ret = try_gnutls_handshake(endpoint, port, priority_str)
-    print("Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version]), end='')
+
+    if len(digests) == 0:
+        print("Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version]), end='')
+    else:
+        # strip the first nine bytes from each name ("RSA-SIGN-")
+        digest_string = ':'.join([x[9:] for x in digests])
+        print("Digests: %-40s Vers: %-10s ... " % (digest_string, S2N_PROTO_VERS_TO_STR[ssl_version]), end='')
+
     if ret == 0:
         if sys.stdout.isatty():
             print("\033[32;1mPASSED\033[0m")
@@ -109,7 +116,7 @@ def main(argv):
             # Add the SSL version to make the cipher priority string fully qualified
             complete_priority_str = cipher_priority_str + ":+" + S2N_PROTO_VERS_TO_GNUTLS[ssl_version] + ":+SIGN-ALL"
 
-            if handshake(argv[0], int(argv[1]), cipher_name, ssl_version, complete_priority_str) < 0:
+            if handshake(argv[0], int(argv[1]), cipher_name, ssl_version, complete_priority_str, []) < 0:
                 return -1
 
     # Produce permutations of every accepted signature alrgorithm in every possible order
@@ -123,7 +130,7 @@ def main(argv):
             for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or x.openssl_name == "DHE-RSA-AES128-GCM-SHA256", S2N_CIPHERS):
 
                 complete_priority_str = cipher.gnutls_priority_str + ":+VERS-TLS1.2:+" + ":+".join(permutation)
-                if handshake(argv[0], int(argv[1]), cipher.openssl_name, S2N_TLS12, complete_priority_str) < 0:
+                if handshake(argv[0], int(argv[1]), cipher.openssl_name, S2N_TLS12, complete_priority_str, permutation) < 0:
                     return -1
 
 if __name__ == "__main__":
