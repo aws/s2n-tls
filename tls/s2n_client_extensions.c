@@ -65,6 +65,10 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     if (conn->actual_protocol_version == S2N_TLS12) {
         /* The extension header */
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SIGNATURE_ALGORITHMS));
+
+        /* Each hash-signature-alg pair is two bytes, and there's another two bytes for
+         * the extension length field.
+         */
         GUARD(s2n_stuffer_write_uint16(out, (sizeof(s2n_preferred_hashes) * 2) + 2));
 
         /* The array of hashes and signature algorithms we support */
