@@ -17,6 +17,7 @@
 
 #include "error/s2n_errno.h"
 
+#include "tls/s2n_tls_digest_preferences.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 
@@ -26,6 +27,15 @@
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
+
+/* Table to translate from s2n algorthim numbers to TLS numbers */
+static uint8_t s2n_hash_alg_to_tls[] = {
+    [S2N_HASH_MD5] = TLS_HASH_ALGORITHM_MD5,
+    [S2N_HASH_SHA1] = TLS_HASH_ALGORITHM_SHA1,
+    [S2N_HASH_SHA224] = TLS_HASH_ALGORITHM_SHA224,
+    [S2N_HASH_SHA256] = TLS_HASH_ALGORITHM_SHA256,
+    [S2N_HASH_SHA384] = TLS_HASH_ALGORITHM_SHA384,
+    [S2N_HASH_SHA512] = TLS_HASH_ALGORITHM_SHA512 };
 
 static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn);
 static int s2n_dhe_server_key_recv(struct s2n_connection *conn);
