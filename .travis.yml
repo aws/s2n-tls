@@ -47,7 +47,7 @@ install:
   # Download and Install Openssl 1.1.0
   - .travis/install_openssl_1_1_0.sh `pwd`/libcrypto-build `pwd`/libcrypto-root $TRAVIS_OS_NAME > /dev/null
   # Install python linked with our compiled Openssl for integration tests
-  - sudo "PATH=$PATH" .travis/install_python.sh `pwd`/libcrypto-root > /dev/null
+  - mkdir python-build python && .travis/install_python.sh `pwd`/libcrypto-root `pwd`/python-build `pwd`/python && export PATH=`pwd`/python/bin:$PATH
   # Download and Install GnuTLS for integration tests
   - mkdir gnutls gnutls-build && .travis/install_gnutls.sh `pwd`/gnutls-build `pwd`/gnutls $TRAVIS_OS_NAME > /dev/null && export PATH=`pwd`/gnutls/bin:$PATH
   # Install prlimit to set the memlock limit to unlimited for this process
