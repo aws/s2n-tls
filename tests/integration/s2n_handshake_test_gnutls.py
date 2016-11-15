@@ -22,6 +22,7 @@ import sys
 import ssl
 import socket
 import subprocess
+import itertools
 from s2n_test_constants import *
 
 def try_gnutls_handshake(endpoint, port, priority_str):
@@ -72,6 +73,28 @@ def try_gnutls_handshake(endpoint, port, priority_str):
 
     return 0
 
+def handshake(endpoint, port, cipher_name, ssl_version, priority_str, digests):
+    ret = try_gnutls_handshake(endpoint, port, priority_str)
+
+    if len(digests) == 0:
+        print("Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version]), end='')
+    else:
+        # strip the first nine bytes from each name ("RSA-SIGN-")
+        digest_string = ':'.join([x[9:] for x in digests])
+        print("Digests: %-40s Vers: %-10s ... " % (digest_string, S2N_PROTO_VERS_TO_STR[ssl_version]), end='')
+
+    if ret == 0:
+        if sys.stdout.isatty():
+            print("\033[32;1mPASSED\033[0m")
+        else:
+            print("PASSED")
+        return 0
+    else:
+        if sys.stdout.isatty():
+            print("\033[31;1mFAILED\033[0m")
+        else:
+            print("FAILED")
+        return -1
 
 def main(argv):
     if len(argv) < 2:
@@ -79,7 +102,6 @@ def main(argv):
         sys.exit(1)
 
     print("\nRunning GnuTLS handshake tests with: " + os.popen('gnutls-cli --version | grep -w gnutls-cli').read())
-    failed = 0
     for ssl_version in [S2N_SSLv3, S2N_TLS10, S2N_TLS11, S2N_TLS12]:
         print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
         for cipher in S2N_CIPHERS:
@@ -92,21 +114,24 @@ def main(argv):
                 continue
 
             # Add the SSL version to make the cipher priority string fully qualified
-            complete_priority_str = cipher_priority_str + ":+" + S2N_PROTO_VERS_TO_GNUTLS[ssl_version]
-            ret = try_gnutls_handshake(argv[0], int(argv[1]), complete_priority_str)
-            print("Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version]), end='')
-            if ret == 0:
-                if sys.stdout.isatty():
-                    print("\033[32;1mPASSED\033[0m")
-                else:
-                    print("PASSED")
-            else:
-                if sys.stdout.isatty():
-                    print("\033[31;1mFAILED\033[0m")
-                else:
-                    print("FAILED")
-                failed = 1
-    return failed
+            complete_priority_str = cipher_priority_str + ":+" + S2N_PROTO_VERS_TO_GNUTLS[ssl_version] + ":+SIGN-ALL"
+
+            if handshake(argv[0], int(argv[1]), cipher_name, ssl_version, complete_priority_str, []) < 0:
+                return -1
+
+    # Produce permutations of every accepted signature alrgorithm in every possible order
+    signatures = ["SIGN-RSA-SHA1", "SIGN-RSA-SHA224", "SIGN-RSA-SHA256", "SIGN-RSA-SHA384", "SIGN-RSA-SHA512"];
+    for size in range(1, len(signatures) + 1):
+        print("\n\tTesting ciphers using signature preferences of size: " + str(size))
+
+        for permutation in itertools.permutations(signatures, size):
+
+            # Try an ECDHE cipher suite and a DHE one
+            for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or x.openssl_name == "DHE-RSA-AES128-GCM-SHA256", S2N_CIPHERS):
+
+                complete_priority_str = cipher.gnutls_priority_str + ":+VERS-TLS1.2:+" + ":+".join(permutation)
+                if handshake(argv[0], int(argv[1]), cipher.openssl_name, S2N_TLS12, complete_priority_str, permutation) < 0:
+                    return -1
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
