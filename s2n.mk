@@ -15,17 +15,15 @@
 
 ifeq ($(PLATFORM),Darwin)
     LIBS = -lc -lpthread
-    CRYPTO_LIBS =
 else ifeq ($(PLATFORM),FreeBSD)
     LIBS = -lthr
-    CRYPTO_LIBS = -lcrypto
 else ifeq ($(PLATFORM),NetBSD)
     LIBS = -lpthread
-    CRYPTO_LIBS = -lcrypto
 else
     LIBS = -lpthread -ldl -lrt
-    CRYPTO_LIBS = -lcrypto
 endif
+
+CRYPTO_LIBS = -lcrypto
 
 CC	= $(CROSS_COMPILE)$(CC)
 AR	= $(CROSS_COMPILE)ar

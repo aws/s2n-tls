@@ -53,11 +53,6 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
     conn->actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
     conn->actual_protocol_version_established = 1;
 
-    conn->secure.signature_digest_alg = S2N_HASH_MD5_SHA1;
-    if (conn->actual_protocol_version == S2N_TLS12) {
-        conn->secure.signature_digest_alg = S2N_HASH_SHA1;
-    }
-
     GUARD(s2n_stuffer_read_bytes(in, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_stuffer_read_uint8(in, &session_id_len));
 
@@ -126,10 +121,6 @@ int s2n_server_hello_send(struct s2n_connection *conn)
     protocol_version[0] = conn->actual_protocol_version / 10;
     protocol_version[1] = conn->actual_protocol_version % 10;
 
-    conn->secure.signature_digest_alg = S2N_HASH_MD5_SHA1;
-    if (conn->actual_protocol_version == S2N_TLS12) {
-        conn->secure.signature_digest_alg = S2N_HASH_SHA1;
-    }
 
     GUARD(s2n_stuffer_write_bytes(out, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
     GUARD(s2n_stuffer_write_bytes(out, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
