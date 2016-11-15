@@ -27,7 +27,7 @@ else
     CRYPTO_LIBS = -lcrypto
 endif
 
-CC	= $(CROSS_COMPILE)gcc
+CC	= $(CROSS_COMPILE)$(CC)
 AR	= $(CROSS_COMPILE)ar
 RANLIB	= $(CROSS_COMPILE)ranlib
 
