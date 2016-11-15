@@ -35,8 +35,8 @@ static int setup_server_keys(struct s2n_connection *server_conn, struct s2n_blob
 {
     GUARD(server_conn->initial.cipher_suite->cipher->init(&server_conn->initial.server_key));
     GUARD(server_conn->initial.cipher_suite->cipher->init(&server_conn->initial.client_key));
-    GUARD(server_conn->initial.cipher_suite->cipher->get_encryption_key(&server_conn->initial.server_key, key));
-    GUARD(server_conn->initial.cipher_suite->cipher->get_decryption_key(&server_conn->initial.client_key, key));
+    GUARD(server_conn->initial.cipher_suite->cipher->set_encryption_key(&server_conn->initial.server_key, key));
+    GUARD(server_conn->initial.cipher_suite->cipher->set_decryption_key(&server_conn->initial.client_key, key));
 
     return 0;
 }

@@ -367,7 +367,7 @@ int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_req
     return 0;
 }
 
-int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config, char *cert_chain_pem, char *private_key_pem, const uint8_t * status, uint32_t length)
+int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem, const uint8_t * status, uint32_t length)
 {
     struct s2n_stuffer chain_in_stuffer, cert_out_stuffer, key_in_stuffer, key_out_stuffer;
     struct s2n_blob key_blob;
@@ -444,14 +444,14 @@ int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config, cha
     return 0;
 }
 
-int s2n_config_add_cert_chain_and_key(struct s2n_config *config, char *cert_chain_pem, char *private_key_pem)
+int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem)
 {
     GUARD(s2n_config_add_cert_chain_and_key_with_status(config, cert_chain_pem, private_key_pem, NULL, 0));
 
     return 0;
 }
 
-int s2n_config_add_dhparams(struct s2n_config *config, char *dhparams_pem)
+int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
 {
     struct s2n_stuffer dhparams_in_stuffer, dhparams_out_stuffer;
     struct s2n_blob dhparams_blob;

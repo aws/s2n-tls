@@ -13,43 +13,21 @@
 # permissions and limitations under the License.
 #
 
+"""
+Simple handshake tests using the Python ssl module.
+"""
+
 import sys
 import ssl
 import socket
 import subprocess
+from s2n_test_constants import *
 
-# All supported ciphers
-S2N_CIPHERS= [
-    ("RC4-MD5", ssl.PROTOCOL_SSLv3),
-    ("RC4-SHA", ssl.PROTOCOL_SSLv3),
-    ("DES-CBC3-SHA", ssl.PROTOCOL_SSLv3),
-    ("EDH-RSA-DES-CBC3-SHA", ssl.PROTOCOL_SSLv3),
-    ("AES128-SHA", ssl.PROTOCOL_TLSv1),
-    ("DHE-RSA-AES128-SHA", ssl.PROTOCOL_TLSv1),
-    ("AES256-SHA", ssl.PROTOCOL_TLSv1),
-    ("DHE-RSA-AES256-SHA", ssl.PROTOCOL_TLSv1),
-    ("AES128-SHA256", ssl.PROTOCOL_TLSv1_2),
-    ("AES256-SHA256", ssl.PROTOCOL_TLSv1_2),
-    ("DHE-RSA-AES128-SHA256", ssl.PROTOCOL_TLSv1_2),
-    ("DHE-RSA-AES256-SHA256", ssl.PROTOCOL_TLSv1_2),
-    ("AES128-GCM-SHA256", ssl.PROTOCOL_TLSv1_2),
-    ("AES256-GCM-SHA384", ssl.PROTOCOL_TLSv1_2),
-    ("DHE-RSA-AES128-GCM-SHA256", ssl.PROTOCOL_TLSv1_2),
-    ("ECDHE-RSA-DES-CBC3-SHA", ssl.PROTOCOL_TLSv1),
-    ("ECDHE-RSA-AES128-SHA", ssl.PROTOCOL_TLSv1),
-    ("ECDHE-RSA-AES256-SHA", ssl.PROTOCOL_TLSv1),
-    ("ECDHE-RSA-AES128-SHA256", ssl.PROTOCOL_TLSv1_2),
-    ("ECDHE-RSA-AES256-SHA384", ssl.PROTOCOL_TLSv1_2),
-    ("ECDHE-RSA-AES128-GCM-SHA256", ssl.PROTOCOL_TLSv1_2),
-    ("ECDHE-RSA-AES256-GCM-SHA384", ssl.PROTOCOL_TLSv1_2),
+S2N_PYTHON_VERSIONS = [
+    (S2N_TLS10, ssl.PROTOCOL_TLSv1),
+    (S2N_TLS11, ssl.PROTOCOL_TLSv1_1),
+    (S2N_TLS12, ssl.PROTOCOL_TLSv1_2),
 ]
-
-PROTO_VERS_TO_STR = {
-    ssl.PROTOCOL_SSLv3 : "SSlv3",
-    ssl.PROTOCOL_TLSv1 : "TLSv1.0",
-    ssl.PROTOCOL_TLSv1_1 : "TLSv1.1",
-    ssl.PROTOCOL_TLSv1_2 : "TLSv1.2",
-}
 
 def try_handshake(endpoint, port, cipher, ssl_version):
     # Fire up s2nd
@@ -114,17 +92,21 @@ def main(argv):
 
     print("\nRunning handshake tests with: " + str(ssl.OPENSSL_VERSION))
     failed = 0
-    for ssl_version in [ssl.PROTOCOL_SSLv3, ssl.PROTOCOL_TLSv1, ssl.PROTOCOL_TLSv1_1, ssl.PROTOCOL_TLSv1_2]:
-        print("\n\tTesting ciphers using client version: " + PROTO_VERS_TO_STR[ssl_version])
+    for s2n_tls_vers, python_tls_vers in S2N_PYTHON_VERSIONS:
+        print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[s2n_tls_vers])
         for cipher in S2N_CIPHERS:
-            cipher_name = cipher[0]
-            cipher_vers = cipher[1]
+            cipher_name = cipher.openssl_name
+            cipher_vers = cipher.min_tls_vers
 
-            if ssl_version < cipher_vers:
+            # Skip the cipher if openssl can't test it. 3DES/RC4 are disabled by default in 1.1.0
+            if not cipher.openssl_1_1_0_compatible:
                 continue
 
-            ret = try_handshake(argv[0], int(argv[1]), cipher_name, ssl_version)
-            print("Cipher: %-30s Vers: %-10s ... " % (cipher_name, PROTO_VERS_TO_STR[ssl_version]), end='')
+            if s2n_tls_vers < cipher_vers:
+                continue
+
+            ret = try_handshake(argv[0], int(argv[1]), cipher_name, python_tls_vers)
+            print("Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[s2n_tls_vers]), end='')
             if ret == 0:
                 if sys.stdout.isatty():
                     print("\033[32;1mPASSED\033[0m")

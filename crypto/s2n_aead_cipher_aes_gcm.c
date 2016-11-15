@@ -101,7 +101,7 @@ static int s2n_aead_cipher_aes_gcm_decrypt(struct s2n_session_key *key, struct s
     return 0;
 }
 
-static int s2n_aead_cipher_aes128_gcm_get_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_aead_cipher_aes128_gcm_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 16);
 
@@ -118,7 +118,7 @@ static int s2n_aead_cipher_aes128_gcm_get_encryption_key(struct s2n_session_key 
     return 0;
 }
 
-static int s2n_aead_cipher_aes256_gcm_get_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_aead_cipher_aes256_gcm_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 32);
 
@@ -135,7 +135,7 @@ static int s2n_aead_cipher_aes256_gcm_get_encryption_key(struct s2n_session_key 
     return 0;
 }
 
-static int s2n_aead_cipher_aes128_gcm_get_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_aead_cipher_aes128_gcm_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 16);
 
@@ -152,7 +152,7 @@ static int s2n_aead_cipher_aes128_gcm_get_decryption_key(struct s2n_session_key 
     return 0;
 }
 
-static int s2n_aead_cipher_aes256_gcm_get_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static int s2n_aead_cipher_aes256_gcm_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     eq_check(in->size, 32);
 
@@ -193,8 +193,8 @@ struct s2n_cipher s2n_aes128_gcm = {
                 .decrypt = s2n_aead_cipher_aes_gcm_decrypt,
                 .encrypt = s2n_aead_cipher_aes_gcm_encrypt},
     .init = s2n_aead_cipher_aes_gcm_init,
-    .get_encryption_key = s2n_aead_cipher_aes128_gcm_get_encryption_key,
-    .get_decryption_key = s2n_aead_cipher_aes128_gcm_get_decryption_key,
+    .set_encryption_key = s2n_aead_cipher_aes128_gcm_set_encryption_key,
+    .set_decryption_key = s2n_aead_cipher_aes128_gcm_set_decryption_key,
     .destroy_key = s2n_aead_cipher_aes_gcm_destroy_key,
 };
 
@@ -208,7 +208,7 @@ struct s2n_cipher s2n_aes256_gcm = {
                 .decrypt = s2n_aead_cipher_aes_gcm_decrypt,
                 .encrypt = s2n_aead_cipher_aes_gcm_encrypt},
     .init = s2n_aead_cipher_aes_gcm_init,
-    .get_encryption_key = s2n_aead_cipher_aes256_gcm_get_encryption_key,
-    .get_decryption_key = s2n_aead_cipher_aes256_gcm_get_decryption_key,
+    .set_encryption_key = s2n_aead_cipher_aes256_gcm_set_encryption_key,
+    .set_decryption_key = s2n_aead_cipher_aes256_gcm_set_decryption_key,
     .destroy_key = s2n_aead_cipher_aes_gcm_destroy_key,
 };

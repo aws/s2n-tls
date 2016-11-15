@@ -17,12 +17,12 @@ set -e
 pushd `pwd`
 
 usage() {
-	echo "install_openssl.sh build_dir install_dir travis_platform"
-	exit 1
+    echo "install_openssl_1_0_2.sh build_dir install_dir travis_platform"
+    exit 1
 }
 
 if [ "$#" -ne "3" ]; then
-	usage
+    usage
 fi
 
 BUILD_DIR=$1
@@ -36,20 +36,22 @@ rm openssl-1.0.2.tar.gz
 cd openssl-1.0.2*
 
 if [ "$PLATFORM" == "linux" ]; then
-	./config -fPIC no-shared no-libunbound no-gmp no-jpake no-krb5 no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace \
-			 no-store no-zlib no-hw no-mdc2 no-seed no-idea enable-ec_nistp_64_gcc_128 no-camellia no-bf no-ripemd \
-			 no-dsa no-ssl2 no-capieng -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS \
-			 --prefix=$INSTALL_DIR
+    CONFIGURE="./config"
 elif [ "$PLATFORM" == "osx" ]; then
-	./Configure darwin64-x86_64-cc -fPIC --prefix=$INSTALL_DIR
+    CONFIGURE="./Configure darwin64-x86_64-cc"
 else
-	echo "Invalid platform! $PLATFORM"
-	usage
+    echo "Invalid platform! $PLATFORM"
+    usage
 fi
+
+$CONFIGURE -g3 -fPIC no-libunbound no-gmp no-jpake no-krb5 no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace \
+         no-store no-zlib no-hw no-mdc2 no-seed no-idea enable-ec_nistp_64_gcc_128 no-camellia no-bf no-ripemd \
+         no-dsa no-ssl2 no-capieng -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS \
+         --prefix=$INSTALL_DIR
 
 make depend
 make
-make install
+make install_sw
 
 popd
 

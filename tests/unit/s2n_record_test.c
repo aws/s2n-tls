@@ -44,8 +44,8 @@ struct s2n_cipher mock_block_cipher = {
                .record_iv_size = 16,
                .encrypt = mock_block_endecrypt,
                .decrypt = mock_block_endecrypt},
-    .get_encryption_key = NULL,
-    .get_decryption_key = NULL,
+    .set_encryption_key = NULL,
+    .set_decryption_key = NULL,
     .destroy_key = NULL,
 };
 

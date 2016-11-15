@@ -36,14 +36,14 @@ struct s2n_map_entry {
 
 struct s2n_map {
     /* The total capacity of the table, in number of elements. */
-    uint32_t capacity; 
+    uint32_t capacity;
 
     /* The total number of elements currently in the table. Used for measuring the load factor */
     uint32_t size;
 
     /* Once a map has been looked up, it is considered immutable */
     int      immutable;
-    
+
     /* Pointer to the hash-table, should be capacity * sizeof(struct s2n_map_entry) */
     struct s2n_map_entry *table;
 };
@@ -56,9 +56,9 @@ static uint32_t s2n_map_slot(struct s2n_map *map, struct s2n_blob *key)
         uint32_t u32[8];
     } digest;
 
-    GUARD(s2n_hash_init(&sha256, S2N_HASH_SHA256)); 
-    GUARD(s2n_hash_update(&sha256, key->data, key->size)); 
-    GUARD(s2n_hash_digest(&sha256, digest.u8, sizeof(digest)));    
+    GUARD(s2n_hash_init(&sha256, S2N_HASH_SHA256));
+    GUARD(s2n_hash_update(&sha256, key->data, key->size));
+    GUARD(s2n_hash_digest(&sha256, digest.u8, sizeof(digest)));
 
     return digest.u32[0] % map->capacity;
 }
@@ -66,7 +66,7 @@ static uint32_t s2n_map_slot(struct s2n_map *map, struct s2n_blob *key)
 static int s2n_map_embiggen(struct s2n_map *map, uint32_t capacity)
 {
     struct s2n_blob mem;
-    struct s2n_map tmp; 
+    struct s2n_map tmp;
 
     if (map->immutable) {
         S2N_ERROR(S2N_ERR_MAP_IMMUTABLE);
@@ -103,9 +103,9 @@ static int s2n_map_embiggen(struct s2n_map *map, uint32_t capacity)
 
 struct s2n_map *s2n_map_new()
 {
-    struct s2n_blob mem; 
+    struct s2n_blob mem;
     struct s2n_map *map;
-   
+
     GUARD_PTR(s2n_alloc(&mem, sizeof(struct s2n_map)));
 
     map = (void *) mem.data;
@@ -114,7 +114,7 @@ struct s2n_map *s2n_map_new()
     map->table = NULL;
 
     GUARD_PTR(s2n_map_embiggen(map, S2N_INITIAL_TABLE_SIZE));
-    
+
     return map;
 }
 
@@ -130,20 +130,20 @@ int s2n_map_add(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *valu
     }
 
     uint32_t slot = s2n_map_slot(map, key);
-    
+
     /* Linear probing until we find an empty slot */
     while(map->table[slot].key.size) {
         if (key->size != map->table[slot].key.size ||
             memcmp(key->data,  map->table[slot].key.data, key->size)) {
             slot++;
-            slot %= map->capacity; 
+            slot %= map->capacity;
             continue;
         }
 
         /* We found a duplicate key */
         S2N_ERROR(S2N_ERR_MAP_DUPLICATE);
     }
-    
+
     GUARD(s2n_dup(key, &map->table[slot].key));
     GUARD(s2n_dup(value, &map->table[slot].value));
     map->size++;
@@ -161,7 +161,7 @@ int s2n_map_complete(struct s2n_map *map)
 int s2n_map_lookup(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *value)
 {
     if (!map->immutable) {
-        S2N_ERROR(S2N_ERR_MAP_IMMUTABLE);
+        S2N_ERROR(S2N_ERR_MAP_MUTABLE);
     }
 
     uint32_t slot = s2n_map_slot(map, key);
@@ -170,10 +170,10 @@ int s2n_map_lookup(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *v
         if (key->size != map->table[slot].key.size ||
             memcmp(key->data,  map->table[slot].key.data, key->size)) {
             slot++;
-            slot %= map->capacity; 
+            slot %= map->capacity;
             continue;
         }
-        
+
         /* We found a match */
         value->data = map->table[slot].value.data;
         value->size = map->table[slot].value.size;

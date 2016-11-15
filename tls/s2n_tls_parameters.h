@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include "crypto/s2n_hash.h"
+
 /* Codes from http://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-5 */
 #define TLS_NULL_WITH_NULL_NULL             0x00, 0x00
 #define TLS_RSA_WITH_AES_256_CBC_SHA256     0x00, 0x3D

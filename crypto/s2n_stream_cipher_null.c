@@ -54,7 +54,7 @@ struct s2n_cipher s2n_null_cipher = {
                   .decrypt = s2n_stream_cipher_null_endecrypt,
                   .encrypt = s2n_stream_cipher_null_endecrypt},
     .init = s2n_stream_cipher_null_init,
-    .get_encryption_key = s2n_stream_cipher_null_get_key,
-    .get_decryption_key = s2n_stream_cipher_null_get_key,
+    .set_encryption_key = s2n_stream_cipher_null_get_key,
+    .set_decryption_key = s2n_stream_cipher_null_get_key,
     .destroy_key = s2n_stream_cipher_null_destroy_key,
 };

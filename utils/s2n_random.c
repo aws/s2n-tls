@@ -257,7 +257,7 @@ int s2n_init(void)
     /* Create an engine */
     ENGINE *e = ENGINE_new();
     if (e == NULL ||
-        ENGINE_set_id(e, "s2n") != 1 ||
+        ENGINE_set_id(e, "s2n_rand") != 1 ||
         ENGINE_set_name(e, "s2n entropy generator") != 1 ||
         ENGINE_set_flags(e, ENGINE_FLAGS_NO_REGISTER_ALL) != 1 ||
         ENGINE_set_init_function(e, s2n_openssl_compat_init) != 1 || ENGINE_set_RAND(e, &s2n_openssl_rand_method) != 1 || ENGINE_add(e) != 1 || ENGINE_free(e) != 1) {
@@ -265,8 +265,8 @@ int s2n_init(void)
     }
 
     /* Use that engine for rand() */
-    e = ENGINE_by_id("s2n");
-    if (e == NULL || ENGINE_init(e) != 1 || ENGINE_set_default(e, ENGINE_METHOD_RAND) != 1) {
+    e = ENGINE_by_id("s2n_rand");
+    if (e == NULL || ENGINE_init(e) != 1 || ENGINE_set_default(e, ENGINE_METHOD_RAND) != 1 || ENGINE_free(e) != 1) {
         S2N_ERROR(S2N_ERR_OPEN_RANDOM);
     }
 #endif
@@ -284,6 +284,14 @@ int s2n_cleanup(void)
     GUARD(s2n_drbg_wipe(&per_thread_public_drbg));
     GUARD(close(entropy_fd));
     entropy_fd = -1;
+
+    /* Cleanup our rand ENGINE in libcrypto */
+    ENGINE *rand_engine = ENGINE_by_id("s2n_rand");
+    if (rand_engine) {
+        ENGINE_finish(rand_engine);
+        ENGINE_free(rand_engine);
+        ENGINE_cleanup();
+    }
 
     return 0;
 }

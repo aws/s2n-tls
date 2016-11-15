@@ -130,9 +130,15 @@ static char dhparams[] =
 
 static int MAX_NEGOTIATION_ATTEMPTS = 10;
 
+static void s2n_server_fuzz_atexit()
+{
+    s2n_cleanup();
+}
+
 int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 {
     GUARD(s2n_init());
+    GUARD(atexit(s2n_server_fuzz_atexit));
     GUARD(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
     return 0;
 }

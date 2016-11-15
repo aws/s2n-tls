@@ -100,7 +100,7 @@ int s2n_rsa_private_key_free(struct s2n_rsa_private_key *key)
 static int s2n_rsa_modulus_check(RSA *rsa)
 {
     /* RSA was made opaque starting in Openssl 1.1.0 */
-    #if OPENSSL_VERSION_NUMBER < 0x10100000L
+    #if OPENSSL_VERSION_NUMBER < 0x10100000L || defined LIBRESSL_VERSION_NUMBER
         notnull_check(rsa->n);
     #else
         const BIGNUM *n = NULL;
@@ -128,19 +128,32 @@ int s2n_rsa_private_encrypted_size(struct s2n_rsa_private_key *key)
     return RSA_size(key->rsa);
 }
 
+static int s2n_hash_alg_to_NID[] = {
+    [S2N_HASH_MD5_SHA1] = NID_md5_sha1,
+    [S2N_HASH_SHA1]     = NID_sha1,
+    [S2N_HASH_SHA224]   = NID_sha224,
+    [S2N_HASH_SHA256]   = NID_sha256,
+    [S2N_HASH_SHA384]   = NID_sha384,
+    [S2N_HASH_SHA512]   = NID_sha512 };
+
 int s2n_rsa_sign(struct s2n_rsa_private_key *key, struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
-    uint8_t digest_out[MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH];
+    /* Maximum size is SHA512 */
+    uint8_t digest_out[SHA512_DIGEST_LENGTH];
 
-    int type, digest_length;
-    if (digest->alg == S2N_HASH_MD5_SHA1) {
-        type = NID_md5_sha1;
-        digest_length = MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH;
-    } else if (digest->alg == S2N_HASH_SHA1) {
-        type = NID_sha1;
-        digest_length = SHA_DIGEST_LENGTH;
-    } else {
-        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
+    int type, digest_length = s2n_hash_digest_size(digest->alg);
+    switch(digest->alg) {
+        case S2N_HASH_MD5_SHA1:
+        case S2N_HASH_SHA1:
+        case S2N_HASH_SHA224:
+        case S2N_HASH_SHA256:
+        case S2N_HASH_SHA384:
+        case S2N_HASH_SHA512:
+            type = s2n_hash_alg_to_NID[ digest->alg ];
+            break;
+        default:
+            S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
+            break;
     }
 
     GUARD(s2n_hash_digest(digest, digest_out, digest_length));
@@ -161,15 +174,19 @@ int s2n_rsa_verify(struct s2n_rsa_public_key *key, struct s2n_hash_state *digest
 {
     uint8_t digest_out[MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH];
 
-    int type, digest_length;
-    if (digest->alg == S2N_HASH_MD5_SHA1) {
-        type = NID_md5_sha1;
-        digest_length = MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH;
-    } else if (digest->alg == S2N_HASH_SHA1) {
-        type = NID_sha1;
-        digest_length = SHA_DIGEST_LENGTH;
-    } else {
-        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
+    int type, digest_length = s2n_hash_digest_size(digest->alg);
+    switch(digest->alg) {
+        case S2N_HASH_MD5_SHA1:
+        case S2N_HASH_SHA1:
+        case S2N_HASH_SHA224:
+        case S2N_HASH_SHA256:
+        case S2N_HASH_SHA384:
+        case S2N_HASH_SHA512:
+            type = s2n_hash_alg_to_NID[ digest->alg ];
+            break;
+        default:
+            S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
+            break;
     }
 
     GUARD(s2n_hash_digest(digest, digest_out, digest_length));

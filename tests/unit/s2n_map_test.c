@@ -24,11 +24,27 @@ int main(int argc, char **argv)
 {
     char keystr[sizeof("ffff")];
     char valstr[sizeof("8192")];
-    struct s2n_map *map;
+    struct s2n_map *empty, *map;
     struct s2n_blob key;
     struct s2n_blob val;
 
     BEGIN_TEST();
+
+    EXPECT_NOT_NULL(empty = s2n_map_new());
+
+    /* Try a lookup on an empty map. Expect an error because the map is still mutable. */
+    EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", 1234));
+    key.data = (void *) keystr;
+    key.size = strlen(keystr) + 1;
+    EXPECT_FAILURE(s2n_map_lookup(empty, &key, &val));
+
+    /* Make the empty map complete */
+    EXPECT_SUCCESS(s2n_map_complete(empty));
+
+    /* Lookup and expect no result */
+    EXPECT_EQUAL(s2n_map_lookup(empty, &key, &val), 0);
+
+    EXPECT_SUCCESS(s2n_map_free(empty));
 
     EXPECT_NOT_NULL(map = s2n_map_new());
 
@@ -89,8 +105,8 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(memcmp(val.data, valstr, strlen(valstr) + 1));
     }
-       
-        
+
+
     /* Check for a key that shouldn't be there */
     EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", 8193));
     key.data = (void *) keystr;
