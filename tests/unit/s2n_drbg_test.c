@@ -156,8 +156,8 @@ int nist_fake_urandom_data(struct s2n_blob *blob)
 
 int main(int argc, char **argv)
 {
-    uint8_t data[256] = { 0 };
-    struct s2n_drbg drbg = {{ 0 }};
+    uint8_t data[256] = {0};
+    struct s2n_drbg drbg = {0};
     struct s2n_blob blob = {.data = data, .size = 64 };
     struct s2n_timer timer;
     uint64_t drbg_nanoseconds;
@@ -182,7 +182,7 @@ int main(int argc, char **argv)
 
     /* Check everything against the NIST vectors */
     for (int i = 0; i < 14; i++) {
-        uint8_t ps[32];
+        uint8_t ps[32] = {0};
         struct s2n_drbg nist_drbg = { .entropy_generator = nist_fake_urandom_data };
         struct s2n_blob personalization_string = {.data = ps, .size = 32};
         /* Read the next personalization string */

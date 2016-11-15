@@ -30,6 +30,7 @@
 #include "stuffer/s2n_stuffer.h"
 
 #include "utils/s2n_safety.h"
+#include "utils/s2n_socket.h"
 #include "utils/s2n_random.h"
 
 /* From RFC5246 7.4 */
@@ -107,12 +108,50 @@ static message_type_t handshakes[16][16] = {
 };
 
 #define ACTIVE_MESSAGE( conn ) handshakes[ (conn)->handshake.handshake_type ][ (conn)->handshake.message_number ]
+#define PREVIOUS_MESSAGE( conn ) handshakes[ (conn)->handshake.handshake_type ][ (conn)->handshake.message_number - 1 ]
+
 #define ACTIVE_STATE( conn ) state_machine[ ACTIVE_MESSAGE( (conn) ) ]
+#define PREVIOUS_STATE( conn ) state_machine[ PREVIOUS_MESSAGE( (conn) ) ]
 
 /* Used in our test cases */
 message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn)
 {
     return ACTIVE_MESSAGE(conn);
+}
+
+static int s2n_advance_message(struct s2n_connection *conn)
+{
+    char this = 'S';
+    if (conn->mode == S2N_CLIENT) {
+        this = 'C';
+    }
+
+    /* Actually advance the message number */
+    conn->handshake.message_number++;
+
+    /* If the caller started out with a corked socket, we don't mess with it */
+    if (conn->original_cork_val) {
+        return 0;
+    }
+
+    /* Are we changing I/O directions */
+    if (ACTIVE_STATE(conn).writer == PREVIOUS_STATE(conn).writer) {
+        return 0;
+    }
+
+    /* We're the new writer */
+    if (ACTIVE_STATE(conn).writer == this) {
+        /* Set TCP_CORK/NOPUSH */
+        GUARD(s2n_socket_write_cork(conn));
+
+        return 0;
+    }
+
+    /* We're the new reader, or we reached the "B" writer stage indicating that
+       we're at the application data stage  - uncork the data */
+    GUARD(s2n_socket_write_uncork(conn));
+
+    return 0;
 }
 
 int s2n_conn_set_handshake_type(struct s2n_connection *conn)
@@ -167,7 +206,6 @@ static int handshake_write_io(struct s2n_connection *conn)
 {
     uint8_t record_type = ACTIVE_STATE(conn).record_type;
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-    int max_payload_size;
 
     /* Populate handshake.io with header/payload for the current state, once.
      * Check wiped instead of s2n_stuffer_data_available to differentiate between the initial call
@@ -186,7 +224,7 @@ static int handshake_write_io(struct s2n_connection *conn)
     /* Write the handshake data to records in fragment sized chunks */
     struct s2n_blob out;
     while (s2n_stuffer_data_available(&conn->handshake.io) > 0) {
-
+        int max_payload_size;
         GUARD((max_payload_size = s2n_record_max_write_payload_size(conn)));
         out.size = MIN(s2n_stuffer_data_available(&conn->handshake.io), max_payload_size);
 
@@ -210,7 +248,7 @@ static int handshake_write_io(struct s2n_connection *conn)
     GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
     /* Advance the state machine */
-    conn->handshake.message_number++;
+    GUARD(s2n_advance_message(conn));
 
     return 0;
 }
@@ -308,7 +346,7 @@ static int handshake_read_io(struct s2n_connection *conn)
         conn->in_status = ENCRYPTED;
 
         /* Advance the state machine */
-        conn->handshake.message_number++;
+        GUARD(s2n_advance_message(conn));
     }
 
     /* Now we have a record, but it could be a partial fragment of a message, or it might
@@ -331,7 +369,7 @@ static int handshake_read_io(struct s2n_connection *conn)
         conn->in_status = ENCRYPTED;
 
         /* Advance the state machine */
-        conn->handshake.message_number++;
+        GUARD(s2n_advance_message(conn));
 
         return 0;
     } else if (record_type != TLS_HANDSHAKE) {
@@ -380,7 +418,7 @@ static int handshake_read_io(struct s2n_connection *conn)
         }
 
         /* Advance the state machine */
-        conn->handshake.message_number++;
+        GUARD(s2n_advance_message(conn));
     }
 
     /* We're done with the record, wipe it */

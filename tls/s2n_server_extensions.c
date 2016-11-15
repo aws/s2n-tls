@@ -21,6 +21,7 @@
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_cipher_suites.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -45,6 +46,9 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     if (conn->secure_renegotiation) {
         total_size += 5;
     }
+    if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC) {
+        total_size += 6;
+    }
 
     if (total_size == 0) {
         return 0;
@@ -52,12 +56,29 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 
     GUARD(s2n_stuffer_write_uint16(out, total_size));
 
+    /* Write the Supported Points Format extention.
+     * RFC 4492 section 5.2 states that the absence of this extension in the Server Hello
+     * is equivalent to allowing only the uncompressed point format. Let's send the
+     * extension in case clients(Openssl 1.0.0) don't honor the implied behavior.
+     */
+    if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC)  {
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_EC_POINT_FORMATS));
+        /* Total extension length */
+        GUARD(s2n_stuffer_write_uint16(out, 2));
+        /* Format list length */
+        GUARD(s2n_stuffer_write_uint8(out, 1));
+        /* Only uncompressed format is supported. Interoperability shouldn't be an issue:
+         * RFC 4492 Section 5.1.2: Implementations must support it for all of their curves.
+         */
+        GUARD(s2n_stuffer_write_uint8(out, TLS_EC_FORMAT_UNCOMPRESSED));
+    }
+
     /* Write the renegotiation_info extension */
     if (conn->secure_renegotiation) {
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_RENEGOTIATION_INFO));
         /* renegotiation_info length */
         GUARD(s2n_stuffer_write_uint16(out, 1));
-        /* renegotiated_connection length */
+        /* renegotiated_connection length. Zero since we don't support renegotiation. */
         GUARD(s2n_stuffer_write_uint8(out, 0));
     }
 

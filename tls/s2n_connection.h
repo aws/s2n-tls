@@ -44,6 +44,12 @@ struct s2n_connection {
     int readfd;
     int writefd;
 
+    /* Original socket option settings before s2n takes over the fd */
+    unsigned int original_rcvlowat_is_set:1;
+    int original_rcvlowat_val;
+    unsigned int original_cork_is_set:1;
+    int original_cork_val;
+
     /* Is this connection a client or a server connection */
     s2n_mode mode;
 
@@ -92,13 +98,10 @@ struct s2n_connection {
     struct s2n_stuffer out;
     enum { ENCRYPTED, PLAINTEXT } in_status;
 
-    /* How big is the record we are actively reading? */
-    uint16_t current_in_record_size;
-
     /* How much of the current user buffer have we already
      * encrypted and have pending for the wire.
      */
-    uint32_t current_user_data_consumed;
+    ssize_t current_user_data_consumed;
 
     /* An alert may be fragmented across multiple records,
      * this stuffer is used to re-assemble.

@@ -21,7 +21,7 @@
 
 int main(int argc, char **argv)
 {
-    uint8_t entropy[2048];
+    uint8_t entropy[2048] = {0};
     struct s2n_stuffer stuffer;
     uint8_t u8;
     uint16_t u16;

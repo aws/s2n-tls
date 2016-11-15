@@ -290,7 +290,6 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
 
         while (s2n_stuffer_data_available(&client_protos)) {
             uint8_t client_length;
-            uint8_t client_protocol[255];
             GUARD(s2n_stuffer_read_uint8(&client_protos, &client_length));
             if (client_length > s2n_stuffer_data_available(&client_protos)) {
                 S2N_ERROR(S2N_ERR_BAD_MESSAGE);
@@ -298,6 +297,7 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
             if (client_length != length) {
                 GUARD(s2n_stuffer_skip_read(&client_protos, client_length));
             } else {
+                uint8_t client_protocol[255];
                 GUARD(s2n_stuffer_read_bytes(&client_protos, client_protocol, client_length));
                 if (memcmp(client_protocol, protocol, client_length) == 0) {
                     memcpy_check(conn->application_protocol, client_protocol, client_length);

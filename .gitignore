@@ -1,10 +1,13 @@
 *.o
 *.a
 *.dylib
+*.dSYM
 *.so
 *~
+*.dSYM
 libcrypto-build/*
 libcrypto-root/*
+tests/integration/__pycache__
 tests/unit/*_test
 tests/fuzz/fuzz-*.log
 bin/s2nc

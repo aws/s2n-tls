@@ -1,0 +1,110 @@
+module DRBG where
+
+import AES
+
+type keylen   = AESKeySize // bits
+type blocklen = 128 // bits
+type seedlen  = 256 // bits, 256 bits fixed by table 3 for AES-128
+type reseed_limit = 2 ^^ 35 // max number of bytes to generate before reseeding
+
+type blocksize = 16 // blocklen / 8
+type keysize = 32 // keylen / 8
+type seedsize = 48
+
+type cipher_ctx = { key : [keylen] }
+
+block_encrypt : [keylen] -> [blocklen] -> [blocklen]
+block_encrypt key data = aesEncrypt(data, key)
+
+type s2n_drbg =
+  { bytes_used : [64]
+  , ctx : cipher_ctx
+  , v : [blocklen]
+  }
+
+drbg_generate_internal : {n, blocks}
+                         ( fin n, fin blocks, n >= 1, n <= 8192
+                         , n == blocklen * blocks)
+                      => s2n_drbg
+                      -> ([n], s2n_drbg)
+drbg_generate_internal drbg =
+  (join [ block_encrypt drbg.ctx.key (drbg.v + i) | i <- [1 .. blocks]], drbg')
+    where drbg' = { bytes_used = drbg.bytes_used + `(blocks * blocksize)
+                  , ctx = drbg.ctx
+                  , v = drbg.v + `blocks
+                  }
+
+drbg_instantiate : {ps_size}
+                   (fin ps_size)
+                => [seedlen]
+                -> [ps_size]
+                -> s2n_drbg
+drbg_instantiate entropy ps = drbg_reseed zero entropy ps'
+  where
+    /* pad ps with zeros if needed to reach seedlen
+       otherwise truncate to seedlen */
+    ps' = take `{seedlen} (ps # (zero : [seedlen]))
+
+/* Should bytes used be reset before the update? s2n doesn't
+   it seems like the NIST spec counts that update as the first
+
+   we limit ps_size to a maximum of seedlen because this is an
+   implementation specific choice made by s2n*/
+drbg_reseed : {ps_size}
+              (ps_size <= seedlen)
+           => s2n_drbg
+           -> [seedlen]
+           -> [ps_size]
+	   -> s2n_drbg
+drbg_reseed drbg entropy ps = drbg''
+  where
+    drbg' = drbg_update (entropy ^ (ps # zero)) drbg
+    drbg'' = { v = drbg'.v, ctx = drbg'.ctx, bytes_used = 0}
+
+drbg_uninstantiate : s2n_drbg -> s2n_drbg
+drbg_uninstantiate drbg = zero
+
+/* This is the spec of the s2n code, in that it reseeds automatically
+   if reseed is required. This is in opposition to the spec, which
+   requires an error code.
+
+   We are curious about why s2n_drbg counts a number of bytes used,
+   while the spec tracks a number of calls to generate. We don't
+   belive that this is buggy behavior, since if we call the maximum
+   size with generate each time, we will reseed before the spec would
+   require it. */
+drbg_generate : {n, blocks} (fin n, fin blocks, n >= 1, n <= 8192,
+                             blocks * blocklen >= n,
+                             (blocks - 1) * blocklen <= n - 1) =>
+                s2n_drbg -> [seedlen] -> Bit ->
+                ([n], s2n_drbg)
+drbg_generate drbg entropy reseed_p = (take enc_result, drbg_out)
+  where
+    // Re-seed if we have exceeded the limit, or if reseed_p is set
+    drbg_r =
+      if reseed_p \/ drbg.bytes_used + `n * 8 + `blocklen * 8 >= `reseed_limit then
+        drbg_reseed drbg entropy (zero : [256])
+      else drbg
+    // Encrypt v+1, v+2, ..., v + ceil (n / blocklen)
+    (enc_result, drbg_v) = drbg_generate_internal `{blocks=blocks} drbg_r
+    // Update the drbg state
+    drbg_out = drbg_update zero drbg_v
+
+/* What is ctr_len? We think it is >= blocklen, so
+   we go to the else branch of 2.1 every time */
+drbg_update : [seedlen] -> s2n_drbg -> s2n_drbg
+drbg_update data drbg = result
+  where
+    // NOTE: blocklen * seedlen / blocklen is seedlen in our case, but might be
+    // different if seedlen isn't a multiple of blocklen
+    type blocks = (seedlen + blocklen -1)/blocklen
+    // Encrypt v+1, v+2, ..., v + ceil (seedlen / blocklen)
+    (enc_result, _) = drbg_generate_internal `{blocks=blocks} drbg
+    // XOR the additional input data with the first bits of enc_result
+    data_xor = (take enc_result) ^ data
+    // Return the first half of data_xor as the new key, and the last half of it
+    // as the new value for v
+    result = { bytes_used = drbg.bytes_used + (`blocks * `blocksize)
+             , ctx = { key = take data_xor }
+             , v = drop data_xor
+             }

@@ -72,7 +72,14 @@
 #define TLS_HANDSHAKE          22
 #define TLS_APPLICATION_DATA   23
 
-/* Elliptic cruves from https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8 */
+/* Elliptic curve formats from http://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-9
+ * Only uncompressed is supported.
+ */
+#define TLS_EC_FORMAT_UNCOMPRESSED               0
+#define TLS_EC_FORMAT_ANSIX962_COMPRESSED_PRIME  1
+#define TLS_EC_FORMAT_ANSIX962_COMPRESSED_CHAR2  2
+
+/* Elliptic curves from https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8 */
 #define TLS_EC_CURVE_SECP_256_R1           23
 #define TLS_EC_CURVE_SECP_384_R1           24
 
