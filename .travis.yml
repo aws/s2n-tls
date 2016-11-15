@@ -18,47 +18,102 @@ os:
   - linux
 
 compiler:
-  - gcc
   - clang
+
+env:
+  - BUILD_S2N=true TESTS=integration
+  - LATEST_CLANG=true TESTS=fuzz
+  - TESTS=sawHMAC SAW_HMAC_TEST=md5 SAW=true
+  - TESTS=sawHMAC SAW_HMAC_TEST=none SAW=true
+  - TESTS=sawHMAC SAW_HMAC_TEST=sha1 SAW=true
+  - TESTS=sawHMAC SAW_HMAC_TEST=sha224 SAW=true
+  - TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true
+  - TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true
+  - TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true
+  - TESTS=sawDRBG SAW=true
+  - TESTS=sawHMACFailure SAW=true
+
+
+matrix:
+  exclude:
+  - compiler: gcc
+    env: TESTS=sawHMAC SAW_HMAC_TEST=md5 SAW=true
+  - compiler: gcc
+    env: TESTS=sawHMAC SAW_HMAC_TEST=none SAW=true
+  - compiler: gcc
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha1 SAW=true
+  - compiler: gcc
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha224 SAW=true
+  - compiler: gcc
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true
+  - compiler: gcc
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true
+  - compiler: gcc
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true
+  - os: osx
+    env: TESTS=sawHMAC SAW_HMAC_TEST=md5 SAW=true
+  - os: osx
+    env: TESTS=sawHMAC SAW_HMAC_TEST=none SAW=true
+  - os: osx
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha1 SAW=true
+  - os: osx
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha224 SAW=true
+  - os: osx
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true
+  - os: osx
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true
+  - os: osx
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true
+  - compiler: gcc
+    env: LATEST_CLANG=true TESTS=fuzz
+  - os: osx
+    env: LATEST_CLANG=true TESTS=fuzz
+  - os: osx
+    env: TESTS=sawDRBG SAW=true
+  - compiler: gcc
+    env: TESTS=sawDRBG SAW=true
+  - os: osx
+    env: TESTS=sawHMACFailure SAW=true
+  - compiler: gcc
+    env: TESTS=sawHMACFailure SAW=true
+  #This exception is because the test isn't finished yet, remove to turn on DRBG Saw tests
+  - compiler: clang
+    env: TESTS=sawDRBG SAW=true
+
+    
 
 before_install:
   # Install GCC 6 if on OSX
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew update                ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew tap homebrew/versions ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew install gcc6          ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew install gnu-indent    ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   brew install cppcheck      ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   .travis/install_osx_dependencies.sh ; fi
   # Set GCC 6 as Default on both Ubuntu and OSX
   - alias gcc=$(which gcc-6)
   # Install latest version of clang, clang++, and llvm-symbolizer and add them to beginning of PATH. Needed for fuzzing.
-  - (.travis/install_clang.sh `pwd`/clang-download `pwd`/clang-latest $TRAVIS_OS_NAME) && export PATH=`pwd`/clang-latest/bin:$PATH
+  - if [[ "$LATEST_CLANG" == "true" ]]; then (.travis/install_clang.sh `pwd`/clang-download `pwd`/clang-latest $TRAVIS_OS_NAME) && export PATH=`pwd`/clang-latest/bin:$PATH ; fi
 
-  # Install SAW on Linux only 
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then curl http://saw.galois.com/builds/nightly/saw-0.2-2016-07-22-Ubuntu14.04-64.tar.gz > saw.tar.gz; tar -xzf saw.tar.gz; fi
-  - export PATH=$PATH:$PWD/saw-0.2-2016-07-22-Ubuntu14.04-64/bin
-
-  # Install Z3
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository ppa:hvr/z3 -y > /dev/null; sudo apt-key -qq update /dev/null; sudo apt-get -qq update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get -qq install z3 -y --force-yes; fi
+  # Install SAW with Z3 on Linux only 
+  - if [[ "$SAW" == "true" ]]; then .travis/install_saw.sh ; fi
+  - export PATH=$PATH:$PWD/saw-0.2-2016-11-02-Ubuntu14.04-64/bin:$PWD/z3
 
 install:
   # Download and Install LibFuzzer
-  - .travis/install_libFuzzer.sh `pwd`/fuzz_dependencies/libFuzzer-download `pwd`/fuzz_dependencies $TRAVIS_OS_NAME
-  # Download and Install Openssl 1.1.0
+  - if [[ "$TESTS" == "fuzz" ]]; then .travis/install_libFuzzer.sh `pwd`/fuzz_dependencies/libFuzzer-download `pwd`/fuzz_dependencies $TRAVIS_OS_NAME ; fi
+  # Download and Install Openssl
   - .travis/install_openssl_1_1_0.sh `pwd`/libcrypto-build `pwd`/libcrypto-root $TRAVIS_OS_NAME > /dev/null
   # Install python linked with our compiled Openssl for integration tests
-  - mkdir python-build python && .travis/install_python.sh `pwd`/libcrypto-root `pwd`/python-build `pwd`/python && export PATH=`pwd`/python/bin:$PATH
+  - if [[ "$BUILD_S2N" == "true" ]]; then sudo "PATH=$PATH" .travis/install_python.sh `pwd`/libcrypto-root > /dev/null ; fi
   # Download and Install GnuTLS for integration tests
-  - mkdir gnutls gnutls-build && .travis/install_gnutls.sh `pwd`/gnutls-build `pwd`/gnutls $TRAVIS_OS_NAME > /dev/null && export PATH=`pwd`/gnutls/bin:$PATH
+  - if [[ "$TESTS" == "integration" ]]; then mkdir gnutls gnutls-build && .travis/install_gnutls.sh `pwd`/gnutls-build `pwd`/gnutls $TRAVIS_OS_NAME > /dev/null && export PATH=`pwd`/gnutls/bin:$PATH ; fi
   # Install prlimit to set the memlock limit to unlimited for this process
-  - (test "$TRAVIS_OS_NAME" = "linux" && sudo "PATH=$PATH" .travis/install_prlimit.sh $PWD/.travis > /dev/null && sudo .travis/prlimit --pid "$$" --memlock=unlimited:unlimited) || true
-  - mkdir -p .travis/checker && .travis/install_scan-build.sh .travis/checker && export PATH=$PATH:.travis/checker/bin
-  - .travis/run_cppcheck.sh
+  - if [[ "$BUILD_S2N" == "true" ]]; then (test "$TRAVIS_OS_NAME" = "linux" && sudo "PATH=$PATH" .travis/install_prlimit.sh $PWD/.travis > /dev/null && sudo .travis/prlimit --pid "$$" --memlock=unlimited:unlimited) || true ; fi
+  - if [[ "$BUILD_S2N" == "true" ]]; then mkdir -p .travis/checker && .travis/install_scan-build.sh .travis/checker && export PATH=$PATH:.travis/checker/bin ; fi
+  - if [[ "$BUILD_S2N" == "true" ]]; then .travis/run_cppcheck.sh ; fi
 
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then make -j 8   ; fi
-  # Build and run unit tests with scan-build for osx. scan-build bundle isn't available for linux
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/* ; [ "$STATUS" -eq "0" ] ; fi
-  - make integration
-  - make clean && make fuzz
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export PATH="/usr/local/clang-3.4/bin/":$PATH; echo $PATH; which clang; clang --version; llvm-link --version; make saw; fi 
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "integration" ]]; then make -j 8   ; fi
+  # Build and run integration tests with scan-build for osx. scan-build bundle isn't available for linux
+  - if [[ "$TRAVIS_OS_NAME" == "osx" && "$TESTS" == "integration" ]]; then   scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/* ; [ "$STATUS" -eq "0" ] ; fi
+  - if [[ "$TESTS" == "integration" ]]; then make integration ; fi
+  - if [[ "$TESTS" == "fuzz" ]]; then make clean && make fuzz ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "sawHMAC" ]]; then make -C tests/saw/ tmp/verify_s2n_hmac_$SAW_HMAC_TEST.log ; fi
+  - if [[ "$TESTS" == "sawDRBG" ]]; then make -C tests/saw tmp/spec/DRBG/DRBG.log ; fi
+  - if [[ "$TESTS" == "sawHMACFailure" ]]; then make -C tests/saw failure-tests ; fi
