@@ -45,7 +45,7 @@ ifneq ($(NO_STACK_PROTECTOR), 1)
 DEFAULT_CFLAGS += -Wstack-protector -fstack-protector-all
 endif
 
-CFLAGS = ${DEFAULT_CFLAGS}
+CFLAGS += ${DEFAULT_CFLAGS}
 
 DEBUG_CFLAGS = -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls
 
@@ -57,7 +57,7 @@ ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)
 
     # Turn on debugging and fuzzing flags when S2N_UNSAFE_FUZZING_MODE is enabled to give detailed stack traces in case
     # an error occurs while fuzzing.
-    CFLAGS = ${DEFAULT_CFLAGS} ${DEBUG_FLAGS} ${FUZZ_CFLAGS}
+    CFLAGS += ${DEFAULT_CFLAGS} ${DEBUG_FLAGS} ${FUZZ_CFLAGS}
 endif
 
 
