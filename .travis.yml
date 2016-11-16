@@ -62,8 +62,7 @@ before_install:
   - alias gcc=$(which gcc-6)
   # Install latest version of clang, clang++, and llvm-symbolizer and add them to beginning of PATH. Needed for fuzzing.
   - if [[ "$LATEST_CLANG" == "true" ]]; then (.travis/install_clang.sh `pwd`/clang-download `pwd`/clang-latest $TRAVIS_OS_NAME) && export PATH=`pwd`/clang-latest/bin:$PATH ; fi
-
-  # Install SAW with Z3 on Linux only 
+  # Install SAW with Z3 on Linux only
   - if [[ "$SAW" == "true" ]]; then .travis/install_saw.sh ; fi
   - export PATH=$PATH:$PWD/saw-0.2-2016-11-02-Ubuntu14.04-64/bin:$PWD/z3
 
@@ -73,7 +72,7 @@ install:
   # Download and Install Openssl
   - .travis/install_openssl_1_1_0.sh `pwd`/libcrypto-build `pwd`/libcrypto-root $TRAVIS_OS_NAME > /dev/null
   # Install python linked with our compiled Openssl for integration tests
-  - if [[ "$BUILD_S2N" == "true" ]]; then mkdir python-build python && .travis/install_python.sh `pwd`/libcrypto-root `pwd`/python-build `pwd`/python > /dev/null && export PATH=`pwd`/python/bin:$PATH ; fi
+  - if [[ "$TESTS" == "integration" ]]; then mkdir python-build python && .travis/install_python.sh `pwd`/libcrypto-root `pwd`/python-build `pwd`/python > /dev/null && export PATH=`pwd`/python/bin:$PATH ; fi
   # Download and Install GnuTLS for integration tests
   - if [[ "$TESTS" == "integration" ]]; then mkdir gnutls gnutls-build && .travis/install_gnutls.sh `pwd`/gnutls-build `pwd`/gnutls $TRAVIS_OS_NAME > /dev/null && export PATH=`pwd`/gnutls/bin:$PATH ; fi
   # Install prlimit to set the memlock limit to unlimited for this process
