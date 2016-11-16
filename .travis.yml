@@ -17,9 +17,6 @@ os:
   - osx
   - linux
 
-compiler:
-  - clang
-
 env:
   - BUILD_S2N=true TESTS=integration
   - LATEST_CLANG=true TESTS=fuzz
@@ -33,23 +30,8 @@ env:
   - TESTS=sawDRBG SAW=true
   - TESTS=sawHMACFailure SAW=true
 
-
 matrix:
   exclude:
-  - compiler: gcc
-    env: TESTS=sawHMAC SAW_HMAC_TEST=md5 SAW=true
-  - compiler: gcc
-    env: TESTS=sawHMAC SAW_HMAC_TEST=none SAW=true
-  - compiler: gcc
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha1 SAW=true
-  - compiler: gcc
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha224 SAW=true
-  - compiler: gcc
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true
-  - compiler: gcc
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true
-  - compiler: gcc
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true
   - os: osx
     env: TESTS=sawHMAC SAW_HMAC_TEST=md5 SAW=true
   - os: osx
@@ -64,23 +46,14 @@ matrix:
     env: TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true
   - os: osx
     env: TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true
-  - compiler: gcc
-    env: LATEST_CLANG=true TESTS=fuzz
   - os: osx
     env: LATEST_CLANG=true TESTS=fuzz
   - os: osx
     env: TESTS=sawDRBG SAW=true
-  - compiler: gcc
-    env: TESTS=sawDRBG SAW=true
   - os: osx
-    env: TESTS=sawHMACFailure SAW=true
-  - compiler: gcc
     env: TESTS=sawHMACFailure SAW=true
   #This exception is because the test isn't finished yet, remove to turn on DRBG Saw tests
-  - compiler: clang
-    env: TESTS=sawDRBG SAW=true
-
-    
+  - env: TESTS=sawDRBG SAW=true
 
 before_install:
   # Install GCC 6 if on OSX
