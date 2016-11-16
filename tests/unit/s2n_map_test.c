@@ -44,6 +44,7 @@ int main(int argc, char **argv)
     /* Lookup and expect no result */
     EXPECT_EQUAL(s2n_map_lookup(empty, &key, &val), 0);
 
+    /* Done with the empty map */
     EXPECT_SUCCESS(s2n_map_free(empty));
 
     EXPECT_NOT_NULL(map = s2n_map_new());
