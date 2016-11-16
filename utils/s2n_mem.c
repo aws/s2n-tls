@@ -122,3 +122,15 @@ int s2n_free(struct s2n_blob *b)
 
     return 0;
 }
+
+int s2n_dup(struct s2n_blob *from, struct s2n_blob *to)
+{
+    eq_check(to->size, 0);
+    eq_check(to->data, NULL);
+
+    GUARD(s2n_alloc(to, from->size));
+    
+    memcpy_check(to->data, from->data, to->size);
+
+    return 0;
+}

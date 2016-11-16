@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -12,15 +12,18 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-
 #pragma once
+
+#include <string.h>
+
+#include "crypto/s2n_hash.h"
 
 #include "utils/s2n_blob.h"
 
-#include <stdint.h>
+struct s2n_map;
 
-int s2n_mem_init(void);
-int s2n_alloc(struct s2n_blob *b, uint32_t size);
-int s2n_realloc(struct s2n_blob *b, uint32_t size);
-int s2n_free(struct s2n_blob *b);
-int s2n_dup(struct s2n_blob *from, struct s2n_blob *to);
+extern struct s2n_map *s2n_map_new();
+extern int s2n_map_add(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *value);
+extern int s2n_map_complete(struct s2n_map *map);
+extern int s2n_map_lookup(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *value);
+extern int s2n_map_free(struct s2n_map *map);
