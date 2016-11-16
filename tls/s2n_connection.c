@@ -238,6 +238,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     conn->config = config;
     conn->close_notify_queued = 0;
     conn->current_user_data_consumed = 0;
+    conn->cbc_hack_used = 0;
     conn->initial.cipher_suite = &s2n_null_cipher_suite;
     conn->secure.cipher_suite = &s2n_null_cipher_suite;
     conn->server = &conn->initial;
@@ -457,4 +458,9 @@ int s2n_connection_prefer_low_latency(struct s2n_connection *conn)
     conn->max_fragment_length = S2N_SMALL_FRAGMENT_LENGTH;
 
     return 0;
+}
+
+int s2n_connection_prefer_low_memory(struct s2n_connection *conn)
+{
+    return s2n_connection_prefer_low_latency(conn);
 }

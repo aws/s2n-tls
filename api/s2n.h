@@ -79,6 +79,7 @@ extern int s2n_connection_set_write_fd(struct s2n_connection *conn, int readfd);
 
 extern int s2n_connection_prefer_throughput(struct s2n_connection *conn);
 extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn);
+extern int s2n_connection_prefer_low_memory(struct s2n_connection *conn);
 
 typedef enum { S2N_BUILT_IN_BLINDING, S2N_SELF_SERVICE_BLINDING } s2n_blinding;
 extern int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blinding);
