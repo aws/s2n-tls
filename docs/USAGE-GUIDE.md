@@ -352,7 +352,7 @@ This object can (and should) be associated with many connection objects.
 ### s2n\_config\_free
 
 ```c
-struct int s2n_config_free(struct s2n_config *config);
+int s2n_config_free(struct s2n_config *config);
 ```
 
 **s2n_config_free** frees the memory associated with an **s2n_config** object.
