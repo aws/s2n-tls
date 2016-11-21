@@ -33,7 +33,7 @@ def try_gnutls_handshake(endpoint, port, priority_str):
     s2nd.stdout.readline()
 
     # Fire up gnutls-cli, use insecure since s2nd is using a dummy cert
-    gnutls_cli = subprocess.Popen(["gnutls-cli", "--priority=" + priority_str,"--insecure", "-p " + str(port), str(endpoint)], 
+    gnutls_cli = subprocess.Popen(["gnutls-cli", "--priority=" + priority_str,"--insecure", "-p " + str(port), str(endpoint)],
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
     # Write the priority str towards s2nd. Prepend with the 's2n' string to make sure we don't accidently match something
@@ -73,15 +73,20 @@ def try_gnutls_handshake(endpoint, port, priority_str):
 
     return 0
 
-def handshake(endpoint, port, cipher_name, ssl_version, priority_str, digests):
+def handshake(endpoint, port, cipher_name, ssl_version, priority_str, digests, curves):
     ret = try_gnutls_handshake(endpoint, port, priority_str)
 
-    if len(digests) == 0:
-        print("Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version]), end='')
-    else:
+    if len(digests):
         # strip the first nine bytes from each name ("RSA-SIGN-")
         digest_string = ':'.join([x[9:] for x in digests])
         print("Digests: %-40s Vers: %-10s ... " % (digest_string, S2N_PROTO_VERS_TO_STR[ssl_version]), end='')
+    elif len(curves):
+        # strip the first 6 bytes of each curve name ("CURVE-")
+        curve_string = ":".join([x[6:] for x in curves])
+        print("Curves: %-40s Vers: %-10s ... " % (curve_string, S2N_PROTO_VERS_TO_STR[ssl_version]), end='')
+    else:
+        print("Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version]), end='')
+
 
     if ret == 0:
         if sys.stdout.isatty():
@@ -114,12 +119,13 @@ def main(argv):
                 continue
 
             # Add the SSL version to make the cipher priority string fully qualified
-            complete_priority_str = cipher_priority_str + ":+" + S2N_PROTO_VERS_TO_GNUTLS[ssl_version] + ":+SIGN-ALL"
+            complete_priority_str = cipher_priority_str + ":+" + S2N_PROTO_VERS_TO_GNUTLS[ssl_version] + ":+SIGN-ALL" + ":+CURVE-ALL"
 
-            if handshake(argv[0], int(argv[1]), cipher_name, ssl_version, complete_priority_str, []) < 0:
+            # Last two arguments are for providing specific signature algorithms and elliptic curves
+            if handshake(argv[0], int(argv[1]), cipher_name, ssl_version, complete_priority_str, [], []) < 0:
                 return -1
 
-    # Produce permutations of every accepted signature alrgorithm in every possible order
+    # Produce permutations of every accepted signature algorithm in every possible order
     signatures = ["SIGN-RSA-SHA1", "SIGN-RSA-SHA224", "SIGN-RSA-SHA256", "SIGN-RSA-SHA384", "SIGN-RSA-SHA512"];
     for size in range(1, len(signatures) + 1):
         print("\n\tTesting ciphers using signature preferences of size: " + str(size))
@@ -129,9 +135,21 @@ def main(argv):
             # Try an ECDHE cipher suite and a DHE one
             for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or x.openssl_name == "DHE-RSA-AES128-GCM-SHA256", S2N_CIPHERS):
 
-                complete_priority_str = cipher.gnutls_priority_str + ":+VERS-TLS1.2:+" + ":+".join(permutation)
-                if handshake(argv[0], int(argv[1]), cipher.openssl_name, S2N_TLS12, complete_priority_str, permutation) < 0:
+                complete_priority_str = cipher.gnutls_priority_str + ":+CURVE-ALL" + ":+VERS-TLS1.2:+" + ":+".join(permutation)
+                if handshake(argv[0], int(argv[1]), cipher.openssl_name, S2N_TLS12, complete_priority_str, permutation, []) < 0:
                     return -1
+
+    # Produce permutations of every curve s2n supports in every possible order
+    curves = ["CURVE-SECP256R1", "CURVE-SECP384R1", "CURVE-SECP521R1"]
+    for size in range(1, len(curves) + 1):
+        print("\n\tTesting ciphers using curve preferences of size: " + str(size))
+
+        for permutation in itertools.permutations(curves,size):
+            # Use an arbitrary ECDHE kx cipher
+            cipher = [x for x in S2N_CIPHERS if x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256"][0]
+            complete_priority_str = cipher.gnutls_priority_str + ":+SIGN-ALL" + ":+VERS-TLS1.2:+" + ":+".join(permutation)
+            if handshake(argv[0], int(argv[1]), cipher.openssl_name, S2N_TLS12, complete_priority_str, [], permutation) < 0:
+                return -1
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
