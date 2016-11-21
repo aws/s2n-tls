@@ -89,6 +89,7 @@
 /* Elliptic curves from https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8 */
 #define TLS_EC_CURVE_SECP_256_R1           23
 #define TLS_EC_CURVE_SECP_384_R1           24
+#define TLS_EC_CURVE_SECP_521_R1           25
 
 /* The maximum size of a TLS record is 16389 bytes. This is;  1 byte for content
  * type, 2 bytes for the protocol version, 2 bytes for the length field,

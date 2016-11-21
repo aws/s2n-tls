@@ -27,9 +27,10 @@
 
 #define TLS_EC_CURVE_TYPE_NAMED 3
 
-const struct s2n_ecc_named_curve s2n_ecc_supported_curves[2] = {
+const struct s2n_ecc_named_curve s2n_ecc_supported_curves[3] = {
     {.iana_id = TLS_EC_CURVE_SECP_256_R1, .libcrypto_nid = NID_X9_62_prime256v1, .name = "secp256r1"},
-    {.iana_id = TLS_EC_CURVE_SECP_384_R1, .libcrypto_nid = NID_secp384r1, .name= "secp384r1"},
+    {.iana_id = TLS_EC_CURVE_SECP_384_R1, .libcrypto_nid = NID_secp384r1, .name = "secp384r1"},
+    {.iana_id = TLS_EC_CURVE_SECP_521_R1, .libcrypto_nid = NID_secp521r1, .name = "secp521r1"},
 };
 
 static EC_KEY *s2n_ecc_generate_own_key(const struct s2n_ecc_named_curve *named_curve);

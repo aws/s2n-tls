@@ -29,7 +29,7 @@ struct s2n_ecc_named_curve {
 };
 
 /* An array of supported curves in order of descending preference */
-extern const struct s2n_ecc_named_curve s2n_ecc_supported_curves[2];
+extern const struct s2n_ecc_named_curve s2n_ecc_supported_curves[3];
 
 struct s2n_ecc_params {
     /* Negotiated named curve from s2n_ecc_supported_curves, or NULL if ECC can't be used */
