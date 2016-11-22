@@ -27,7 +27,10 @@
 #include <errno.h>
 #include <time.h>
 
-#if defined(__x86_64__)||defined(__i386__)
+#include "utils/s2n_compiler.h"
+
+/* clang can define gcc version to be < 4.3, but cpuid.h exists for most releases */
+#if ((defined(__x86_64__) || defined(__i386__)) && (defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4,3,0)))
 #include <cpuid.h>
 #endif
 
@@ -298,7 +301,7 @@ int s2n_cleanup(void)
 
 int s2n_cpu_supports_rdrand()
 {
-#if defined(__x86_64__)||defined(__i386__)
+#if ((defined(__x86_64__) || defined(__i386__)) && (defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4,3,0)))
     uint32_t eax, ebx, ecx, edx;
     if (!__get_cpuid(1, &eax, &ebx, &ecx, &edx)) {
         return 0;
@@ -323,7 +326,7 @@ int s2n_cpu_supports_rdrand()
 int s2n_get_rdrand_data(struct s2n_blob *out)
 {
 
-#if defined(__x86_64__)||defined(__i386__)
+#if defined(__x86_64__) || defined(__i386__)
     int space_remaining = 0;
     struct s2n_stuffer stuffer;
     union {
