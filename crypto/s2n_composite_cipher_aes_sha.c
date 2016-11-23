@@ -18,6 +18,7 @@
 #include <openssl/sha.h>
 
 #include "crypto/s2n_cipher.h"
+#include "crypto/s2n_openssl.h"
 
 #include "tls/s2n_crypto.h"
 
@@ -31,7 +32,7 @@ static const EVP_CIPHER *s2n_evp_aes_128_cbc_hmac_sha1(void)
      * See https://www.openssl.org/news/cl101.txt. LibreSSL defines OPENSSL_VERSION_NUMBER to be
      * 0x20000000L but AES-SHA1-CBC is in LibreSSL since first major release(2.0.0).
      */
-    #if OPENSSL_VERSION_NUMBER > 0x10000FFFL
+    #if S2N_OPENSSL_VERSION_AT_LEAST(1,0,1)
         return EVP_aes_128_cbc_hmac_sha1();
     #else
         return NULL;
@@ -40,7 +41,7 @@ static const EVP_CIPHER *s2n_evp_aes_128_cbc_hmac_sha1(void)
 
 static const EVP_CIPHER *s2n_evp_aes_256_cbc_hmac_sha1(void)
 {
-    #if OPENSSL_VERSION_NUMBER > 0x10000FFFL
+    #if S2N_OPENSSL_VERSION_AT_LEAST(1,0,1)
         return EVP_aes_256_cbc_hmac_sha1();
     #else
         return NULL;
