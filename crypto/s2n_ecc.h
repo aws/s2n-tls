@@ -25,6 +25,7 @@ struct s2n_ecc_named_curve {
     uint16_t iana_id;
     /* See nid_list in openssl/ssl/t1_lib.c */
     int libcrypto_nid;
+    const char *name;
 };
 
 /* An array of supported curves in order of descending preference */
