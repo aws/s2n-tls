@@ -226,10 +226,8 @@ RAND_METHOD s2n_openssl_rand_method = {
 };
 #endif
 
-int s2n_init(void)
+int s2n_rand_init(void)
 {
-    GUARD(s2n_mem_init());
-
   OPEN:
     entropy_fd = open(ENTROPY_SOURCE, O_RDONLY);
     if (entropy_fd == -1) {
@@ -277,7 +275,7 @@ int s2n_init(void)
     return 0;
 }
 
-int s2n_cleanup(void)
+int s2n_rand_cleanup(void)
 {
     if (entropy_fd == -1) {
         S2N_ERROR(S2N_ERR_NOT_INITIALIZED);

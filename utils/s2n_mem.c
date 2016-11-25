@@ -37,6 +37,13 @@ int s2n_mem_init(void)
     return 0;
 }
 
+int s2n_mem_cleanup(void)
+{
+    page_size = 4096;
+    use_mlock = 1;
+    return 0;
+}
+
 int s2n_alloc(struct s2n_blob *b, uint32_t size)
 {
     b->data = NULL;

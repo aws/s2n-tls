@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -13,15 +13,24 @@
  * permissions and limitations under the License.
  */
 
-#pragma once
+#include "tls/s2n_cipher_suites.h"
 
-#include "utils/s2n_blob.h"
+#include "utils/s2n_mem.h"
+#include "utils/s2n_random.h"
+#include "utils/s2n_safety.h"
 
-#include <stdint.h>
+int s2n_init(void)
+{
+	GUARD(s2n_mem_init());
+	GUARD(s2n_rand_init());
 
-int s2n_mem_init(void);
-int s2n_mem_cleanup(void);
-int s2n_alloc(struct s2n_blob *b, uint32_t size);
-int s2n_realloc(struct s2n_blob *b, uint32_t size);
-int s2n_free(struct s2n_blob *b);
-int s2n_dup(struct s2n_blob *from, struct s2n_blob *to);
+	return 0;
+}
+
+int s2n_cleanup(void)
+{
+	GUARD(s2n_rand_cleanup());
+	GUARD(s2n_mem_cleanup());
+
+	return 0;
+}
