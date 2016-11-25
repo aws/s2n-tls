@@ -112,6 +112,7 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_MAP_IMMUTABLE, "Attempt to update an immutable map"},
     {S2N_ERR_MAP_MUTABLE, "Attempt to lookup a mutable map"},
     {S2N_ERR_INITIAL_HMAC, "error calling EVP_CIPHER_CTX_ctrl for composite cbc cipher"},
+    {S2N_ERR_RECORD_LIMIT, "TLS record limit reached"},
 };
 
 const char *s2n_strerror(int error, const char *lang)
