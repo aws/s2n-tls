@@ -22,6 +22,7 @@
 #include "stuffer/s2n_stuffer.h"
 
 #include "crypto/s2n_hash.h"
+#include "crypto/s2n_openssl.h"
 #include "crypto/s2n_rsa.h"
 
 #include "utils/s2n_random.h"
@@ -100,15 +101,14 @@ int s2n_rsa_private_key_free(struct s2n_rsa_private_key *key)
 static int s2n_rsa_modulus_check(RSA *rsa)
 {
     /* RSA was made opaque starting in Openssl 1.1.0 */
-    #if OPENSSL_VERSION_NUMBER < 0x10100000L || defined LIBRESSL_VERSION_NUMBER
-        notnull_check(rsa->n);
-    #else
+    #if S2N_OPENSSL_VERSION_AT_LEAST(1,1,0) && !defined(LIBRESSL_VERSION_NUMBER)
         const BIGNUM *n = NULL;
         /* RSA still owns the memory for n */
         RSA_get0_key(rsa, &n, NULL, NULL);
         notnull_check(n);
+    #else
+        notnull_check(rsa->n);
     #endif
-
     return 0;
 }
 

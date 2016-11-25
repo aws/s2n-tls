@@ -23,6 +23,7 @@
 #include "stuffer/s2n_stuffer.h"
 
 #include "crypto/s2n_dhe.h"
+#include "crypto/s2n_openssl.h"
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
@@ -36,10 +37,12 @@
 static const BIGNUM *s2n_get_Ys_dh_param(struct s2n_dh_params *dh_params)
 {
     const BIGNUM *Ys = NULL;
-    #if OPENSSL_VERSION_NUMBER < 0x10100000L || defined LIBRESSL_VERSION_NUMBER
-        Ys = dh_params->dh->pub_key;
-    #else
+
+    /* DH made opaque in Openssl 1.1.0 */
+    #if S2N_OPENSSL_VERSION_AT_LEAST(1,1,0) && !defined(LIBRESSL_VERSION_NUMBER)
         DH_get0_key(dh_params->dh, &Ys, NULL);
+    #else
+        Ys = dh_params->dh->pub_key;
     #endif
 
     return Ys;
@@ -48,10 +51,10 @@ static const BIGNUM *s2n_get_Ys_dh_param(struct s2n_dh_params *dh_params)
 static const BIGNUM *s2n_get_p_dh_param(struct s2n_dh_params *dh_params)
 {
     const BIGNUM *p = NULL;
-    #if OPENSSL_VERSION_NUMBER < 0x10100000L || defined LIBRESSL_VERSION_NUMBER
-        p = dh_params->dh->p;
-    #else
+    #if S2N_OPENSSL_VERSION_AT_LEAST(1,1,0) && !defined(LIBRESSL_VERSION_NUMBER)
         DH_get0_pqg(dh_params->dh, &p, NULL, NULL);
+    #else
+        p = dh_params->dh->p;
     #endif
 
     return p;
@@ -60,10 +63,10 @@ static const BIGNUM *s2n_get_p_dh_param(struct s2n_dh_params *dh_params)
 static const BIGNUM *s2n_get_g_dh_param(struct s2n_dh_params *dh_params)
 {
     const BIGNUM *g = NULL;
-    #if OPENSSL_VERSION_NUMBER < 0x10100000L || defined LIBRESSL_VERSION_NUMBER
-        g = dh_params->dh->g;
-    #else
+    #if S2N_OPENSSL_VERSION_AT_LEAST(1,1,0) && !defined(LIBRESSL_VERSION_NUMBER)
         DH_get0_pqg(dh_params->dh, NULL, NULL, &g);
+    #else
+        g = dh_params->dh->g;
     #endif
 
     return g;
@@ -114,11 +117,7 @@ static int s2n_set_p_g_Ys_dh_params(struct s2n_dh_params *dh_params, struct s2n_
     BIGNUM *bn_g = BN_bin2bn((const unsigned char *)g->data, g->size, NULL);
     BIGNUM *bn_Ys = BN_bin2bn((const unsigned char *)Ys->data, Ys->size, NULL);
 
-    #if OPENSSL_VERSION_NUMBER < 0x10100000L || defined LIBRESSL_VERSION_NUMBER
-        dh_params->dh->p = bn_p;
-        dh_params->dh->g = bn_g;
-        dh_params->dh->pub_key = bn_Ys;
-    #else
+    #if S2N_OPENSSL_VERSION_AT_LEAST(1,1,0) && !defined(LIBRESSL_VERSION_NUMBER)
         if (DH_set0_pqg(dh_params->dh, bn_p, NULL, bn_g) == 0) {
             /* Per https://www.openssl.org/docs/man1.1.0/crypto/DH_get0_pqg.html:
              * values that have been passed in should not be freed directly after this function has been called
@@ -130,6 +129,10 @@ static int s2n_set_p_g_Ys_dh_params(struct s2n_dh_params *dh_params, struct s2n_
             /* Same as DH_set0_pqg */
             S2N_ERROR(S2N_ERR_DH_PARAMS_CREATE);
         }
+    #else
+        dh_params->dh->p = bn_p;
+        dh_params->dh->g = bn_g;
+        dh_params->dh->pub_key = bn_Ys;
     #endif
 
     return 0;

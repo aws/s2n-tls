@@ -23,6 +23,16 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
+static uint8_t s2n_aead_cipher_aes128_gcm_available()
+{
+    return (EVP_aes_128_gcm() ? 1 : 0);
+}
+
+static uint8_t s2n_aead_cipher_aes256_gcm_available()
+{
+    return (EVP_aes_256_gcm() ? 1 : 0);
+}
+
 static int s2n_aead_cipher_aes_gcm_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *aad, struct s2n_blob *in, struct s2n_blob *out)
 {
     gte_check(in->size, S2N_TLS_GCM_TAG_LEN);
@@ -192,6 +202,7 @@ struct s2n_cipher s2n_aes128_gcm = {
                 .tag_size = S2N_TLS_GCM_TAG_LEN,
                 .decrypt = s2n_aead_cipher_aes_gcm_decrypt,
                 .encrypt = s2n_aead_cipher_aes_gcm_encrypt},
+    .is_available = s2n_aead_cipher_aes128_gcm_available,
     .init = s2n_aead_cipher_aes_gcm_init,
     .set_encryption_key = s2n_aead_cipher_aes128_gcm_set_encryption_key,
     .set_decryption_key = s2n_aead_cipher_aes128_gcm_set_decryption_key,
@@ -207,6 +218,7 @@ struct s2n_cipher s2n_aes256_gcm = {
                 .tag_size = S2N_TLS_GCM_TAG_LEN,
                 .decrypt = s2n_aead_cipher_aes_gcm_decrypt,
                 .encrypt = s2n_aead_cipher_aes_gcm_encrypt},
+    .is_available = s2n_aead_cipher_aes256_gcm_available,
     .init = s2n_aead_cipher_aes_gcm_init,
     .set_encryption_key = s2n_aead_cipher_aes256_gcm_set_encryption_key,
     .set_decryption_key = s2n_aead_cipher_aes256_gcm_set_decryption_key,

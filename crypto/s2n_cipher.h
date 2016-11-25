@@ -70,16 +70,15 @@ struct s2n_cipher {
         struct s2n_composite_cipher comp;
     } io;
     uint8_t key_material_size;
-    int (*init) (struct s2n_session_key *key);
-    int (*set_decryption_key) (struct s2n_session_key *key, struct s2n_blob *in);
-    int (*set_encryption_key) (struct s2n_session_key *key, struct s2n_blob *in);
-    int (*destroy_key) (struct s2n_session_key *key);
+    uint8_t (*is_available) (void);
+    int     (*init) (struct s2n_session_key *key);
+    int     (*set_decryption_key) (struct s2n_session_key *key, struct s2n_blob *in);
+    int     (*set_encryption_key) (struct s2n_session_key *key, struct s2n_blob *in);
+    int     (*destroy_key) (struct s2n_session_key *key);
 };
 
 extern int s2n_session_key_alloc(struct s2n_session_key *key);
 extern int s2n_session_key_free(struct s2n_session_key *key);
-
-extern int s2n_composite_ciphers_supported();
 
 extern struct s2n_cipher s2n_null_cipher;
 extern struct s2n_cipher s2n_rc4;

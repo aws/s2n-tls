@@ -22,6 +22,16 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
+static uint8_t s2n_cbc_cipher_aes128_avilable()
+{
+    return (EVP_aes_128_cbc() ? 1 : 0);
+}
+
+static uint8_t s2n_cbc_cipher_aes256_avilable()
+{
+    return (EVP_aes_256_cbc() ? 1 : 0);
+}
+
 static int s2n_cbc_cipher_aes_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)
 {
     gte_check(out->size, in->size);
@@ -129,6 +139,7 @@ struct s2n_cipher s2n_aes128 = {
                .record_iv_size = 16,
                .decrypt = s2n_cbc_cipher_aes_decrypt,
                .encrypt = s2n_cbc_cipher_aes_encrypt},
+    .is_available = s2n_cbc_cipher_aes128_avilable,
     .init = s2n_cbc_cipher_aes_init,
     .set_decryption_key = s2n_cbc_cipher_aes128_set_decryption_key,
     .set_encryption_key = s2n_cbc_cipher_aes128_set_encryption_key,
@@ -143,6 +154,7 @@ struct s2n_cipher s2n_aes256 = {
                .record_iv_size = 16,
                .decrypt = s2n_cbc_cipher_aes_decrypt,
                .encrypt = s2n_cbc_cipher_aes_encrypt},
+    .is_available = s2n_cbc_cipher_aes256_avilable,
     .init = s2n_cbc_cipher_aes_init,
     .set_decryption_key = s2n_cbc_cipher_aes256_set_decryption_key,
     .set_encryption_key = s2n_cbc_cipher_aes256_set_encryption_key,

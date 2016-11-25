@@ -20,6 +20,11 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
+static uint8_t s2n_stream_cipher_null_avilable()
+{
+    return 1;
+}
+
 static int s2n_stream_cipher_null_endecrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out)
 {
     if (out->data < in->data) {
@@ -53,6 +58,7 @@ struct s2n_cipher s2n_null_cipher = {
     .io.stream = {
                   .decrypt = s2n_stream_cipher_null_endecrypt,
                   .encrypt = s2n_stream_cipher_null_endecrypt},
+    .is_available = s2n_stream_cipher_null_avilable,
     .init = s2n_stream_cipher_null_init,
     .set_encryption_key = s2n_stream_cipher_null_get_key,
     .set_decryption_key = s2n_stream_cipher_null_get_key,

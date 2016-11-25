@@ -22,6 +22,11 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
+static uint8_t s2n_cbc_cipher_3des_available()
+{
+    return (EVP_des_ede3_cbc() ? 1 : 0);
+}
+
 static int s2n_cbc_cipher_3des_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)
 {
     gte_check(out->size, in->size);
@@ -104,6 +109,7 @@ struct s2n_cipher s2n_3des = {
                .record_iv_size = 8,
                .decrypt = s2n_cbc_cipher_3des_decrypt,
                .encrypt = s2n_cbc_cipher_3des_encrypt},
+    .is_available = s2n_cbc_cipher_3des_available,
     .init = s2n_cbc_cipher_3des_init,
     .set_decryption_key = s2n_cbc_cipher_3des_set_decryption_key,
     .set_encryption_key = s2n_cbc_cipher_3des_set_encryption_key,
