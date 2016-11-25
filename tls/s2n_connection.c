@@ -32,16 +32,13 @@
 
 #include "crypto/s2n_cipher.h"
 
+#include "utils/s2n_compiler.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_socket.h"
 #include "utils/s2n_timer.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
-
-#define GCC_VERSION (__GNUC__ * 10000 \
-                     + __GNUC_MINOR__ * 100 \
-                     + __GNUC_PATCHLEVEL__)
 
 struct s2n_connection *s2n_connection_new(s2n_mode mode)
 {
@@ -98,7 +95,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     GUARD_PTR(s2n_session_key_alloc(&conn->initial.server_key));
 
     /* Initialize the growable stuffers. Zero length at first, but the resize
-     * in _wipe will fix that 
+     * in _wipe will fix that
      */
     blob.data = conn->header_in_data;
     blob.size = S2N_TLS_RECORD_HEADER_LENGTH;
@@ -210,7 +207,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     /* Clone the stuffers */
     /* ignore gcc 4.7 address warnings because dest is allocated on the stack */
     /* pragma gcc diagnostic was added in gcc 4.6 */
-#if defined(__GNUC__) && GCC_VERSION >= 40600
+#if S2N_GCC_VERSION_AT_LEAST(4,6,0)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Waddress"
 #endif
@@ -225,7 +222,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     memcpy_check(&initial_server_key, &conn->initial.server_key, sizeof(struct s2n_session_key));
     memcpy_check(&secure_client_key, &conn->secure.client_key, sizeof(struct s2n_session_key));
     memcpy_check(&secure_server_key, &conn->secure.server_key, sizeof(struct s2n_session_key));
-#if defined(__GNUC__) && GCC_VERSION >= 40600
+#if S2N_GCC_VERSION_AT_LEAST(4,6,0)
 #pragma GCC diagnostic pop
 #endif
 
