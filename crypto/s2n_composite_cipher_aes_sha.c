@@ -65,8 +65,8 @@ static uint8_t s2n_composite_cipher_aes256_sha_available(void)
 static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key, uint8_t *sequence_number, uint8_t content_type,
                                                      uint16_t protocol_version, uint16_t payload_and_eiv_len, int *extra)
 {
-    uint8_t ctrl_buf[EVP_AEAD_TLS1_AAD_LEN];
-    struct s2n_blob ctrl_blob = { .data = ctrl_buf, .size = EVP_AEAD_TLS1_AAD_LEN };
+    uint8_t ctrl_buf[S2N_TLS12_AAD_LEN];
+    struct s2n_blob ctrl_blob = { .data = ctrl_buf, .size = S2N_TLS12_AAD_LEN };
     struct s2n_stuffer ctrl_stuffer;
     GUARD(s2n_stuffer_init(&ctrl_stuffer, &ctrl_blob));
 
@@ -81,7 +81,7 @@ static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key
      * See https://github.com/openssl/openssl/blob/master/crypto/evp/e_aes_cbc_hmac_sha1.c#L814
      * and https://github.com/openssl/openssl/blob/4f0c475719defd7c051964ef9964cc6e5b3a63bf/ssl/record/ssl3_record.c#L743
      */
-    int ctrl_ret = EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_AEAD_TLS1_AAD, EVP_AEAD_TLS1_AAD_LEN, ctrl_buf);
+    int ctrl_ret = EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_AEAD_TLS1_AAD, S2N_TLS12_AAD_LEN, ctrl_buf);
 
     if (ctrl_ret < 0) {
         S2N_ERROR(S2N_ERR_INITIAL_HMAC);
