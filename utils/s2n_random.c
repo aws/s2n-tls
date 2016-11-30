@@ -286,6 +286,7 @@ int s2n_rand_cleanup(void)
     GUARD(close(entropy_fd));
     entropy_fd = -1;
 
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_FIPS) && !defined(LIBRESSL_VERSION_NUMBER)
     /* Cleanup our rand ENGINE in libcrypto */
     ENGINE *rand_engine = ENGINE_by_id("s2n_rand");
     if (rand_engine) {
@@ -293,6 +294,7 @@ int s2n_rand_cleanup(void)
         ENGINE_free(rand_engine);
         ENGINE_cleanup();
     }
+#endif
 
     return 0;
 }
