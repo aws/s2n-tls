@@ -300,23 +300,29 @@ struct s2n_cert_public_key;
 
 ## Error handling
 
+```
+const char *s2n_strerror(int error, const char *lang);
+const char *s2n_strerror_debug(int error, const char *lang);
+````
+
 s2n functions that return 'int' return 0 to indicate success and -1 to indicate
 failure. s2n functions that return pointer types return NULL in the case of
 failure. When an s2n function returns a failure, s2n_errno will be set to a value
-corresponding to the error. This error value can be translated into a string 
-explaining the error in English by calling s2n_strerror(s2n_errno, "EN"); 
+corresponding to the error. This error value can be translated into a string
+explaining the error in English by calling s2n_strerror(s2n_errno, "EN");
+A string containing internal debug information, including filename and line number, can be generated with `s2n_strerror_debug`
+This string is useful to include when reporting issues to the s2n development team.
 
 Example:
 
 ```
 if (s2n_config_set_cipher_preferences(config, prefs) < 0) {
-    printf("Setting cipher prefs failed! %s", (s2n_strerror(s2n_errno, "EN"));
+    printf("Setting cipher prefs failed! %s : %s", s2n_strerror(s2n_errno, "EN"), s2n_strerror_debug(s2n_errno, "EN"));
     return -1;
 }
 ```
 
 **NOTE**: To avoid possible confusion, s2n_errno should be cleared after processing an error: `s2n_errno = S2N_ERR_T_OK`
-
 
 ### Error categories
 

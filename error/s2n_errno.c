@@ -23,6 +23,9 @@
 __thread int s2n_errno;
 __thread const char *s2n_debug_str;
 
+static const char *no_such_language = "Language is not supported for error translation";
+static const char *no_such_error = "Internal s2n error";
+
 struct s2n_error_translation {
     int errno_value;
     const char *str;
@@ -142,7 +145,6 @@ const char *s2n_strerror(int error, const char *lang)
     }
 
     if (strcasecmp(lang, "EN")) {
-        const char *no_such_language = "Language is not supported for error translation";
         return no_such_language;
     }
 
@@ -152,8 +154,25 @@ const char *s2n_strerror(int error, const char *lang)
         }
     }
 
-    const char *no_such_error = "Internal s2n error";
     return no_such_error;
+}
+
+const char *s2n_strerror_debug(int error, const char *lang)
+{
+    if (lang == NULL) {
+        lang = "EN";
+    }
+
+    if (strcasecmp(lang, "EN")) {
+        return no_such_language;
+    }
+
+    /* No error, just return the no error string */
+    if (error == S2N_ERR_OK) {
+        return s2n_strerror(error, lang);
+    }
+
+    return s2n_debug_str;
 }
 
 int s2n_error_get_type(int error)
