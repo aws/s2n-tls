@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#pragma once
+
 /* Per https://wiki.openssl.org/index.php/Manual:OPENSSL_VERSION_NUMBER(3)
  * OPENSSL_VERSION_NUMBER in hex is: MNNFFRBB major minor fix final beta/patch.
  * bitwise: MMMMNNNNNNNNFFFFFFFFRRRRBBBBBBBB
