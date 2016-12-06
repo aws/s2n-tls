@@ -42,7 +42,7 @@ static int s2n_serialize_resumption_state(struct s2n_connection *conn, struct s2
     /* Write the entry */
     GUARD(s2n_stuffer_write_uint8(to, S2N_SERIALIZED_FORMAT_VERSION));
     GUARD(s2n_stuffer_write_uint8(to, conn->actual_protocol_version));
-    GUARD(s2n_stuffer_write_bytes(to, conn->secure.cipher_suite->value, S2N_TLS_CIPHER_SUITE_LEN));
+    GUARD(s2n_stuffer_write_bytes(to, conn->secure.cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     GUARD(s2n_stuffer_write_uint64(to, now));
     GUARD(s2n_stuffer_write_bytes(to, conn->secure.master_secret, S2N_TLS_SECRET_LEN));
 
@@ -71,7 +71,7 @@ static int s2n_deserialize_resumption_state(struct s2n_connection *conn, struct 
     }
 
     GUARD(s2n_stuffer_read_bytes(from, cipher_suite, S2N_TLS_CIPHER_SUITE_LEN));
-    if (memcmp(conn->secure.cipher_suite->value, cipher_suite, S2N_TLS_CIPHER_SUITE_LEN)) {
+    if (memcmp(conn->secure.cipher_suite->iana_value, cipher_suite, S2N_TLS_CIPHER_SUITE_LEN)) {
         return -1;
     }
 

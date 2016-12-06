@@ -123,9 +123,9 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
 {
     /* Destroy any keys - we call destroy on the object as that is where
      * keys are allocated. */
-    if (conn->secure.cipher_suite && conn->secure.cipher_suite->cipher->destroy_key) {
-        GUARD(conn->secure.cipher_suite->cipher->destroy_key(&conn->secure.client_key));
-        GUARD(conn->secure.cipher_suite->cipher->destroy_key(&conn->secure.server_key));
+    if (conn->secure.cipher_suite && conn->secure.cipher_suite->record_alg->cipher->destroy_key) {
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.client_key));
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.server_key));
     }
 
     /* Free any server key received (we may not have completed a
