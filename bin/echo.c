@@ -73,9 +73,7 @@ int negotiate(struct s2n_connection *conn)
         printf("Application protocol: %s\n", s2n_get_application_protocol(conn));
     }
 
-    if (s2n_connection_get_curve(conn)) {
-        printf("Curve: %s\n", s2n_connection_get_curve(conn));
-    }
+    printf("Curve: %s\n", s2n_connection_get_curve(conn));
 
     uint32_t length;
     const uint8_t *status = s2n_connection_get_ocsp_response(conn, &length);
