@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include <openssl/aes.h>
 #include <openssl/evp.h>
 
 #include "crypto/s2n_cipher.h"
