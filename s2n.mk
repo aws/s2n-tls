@@ -37,7 +37,7 @@ DEFAULT_CFLAGS = -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-su
                  -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -fPIC \
                  -std=c99 -D_POSIX_C_SOURCE=200809L -O2 -I$(LIBCRYPTO_ROOT)/include/ \
                  -I../api/ -I../ -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security \
-                 -D_FORTIFY_SOURCE=2
+                 -D_FORTIFY_SOURCE=2 -fgnu89-inline
 
 # Add a flag to disable stack protector for alternative libcs without
 # libssp.
