@@ -386,7 +386,6 @@ static int handshake_read_io(struct s2n_connection *conn)
         return 0;
     }
 
-
     /* Record is a handshake message */
     while (s2n_stuffer_data_available(&conn->in)) {
         int r;
