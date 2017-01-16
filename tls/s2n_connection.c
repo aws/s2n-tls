@@ -155,10 +155,10 @@ static int s2n_connection_free_io_contexts(struct s2n_connection *conn)
     struct s2n_blob recv_io_blob;
 
     send_io_blob.data = (uint8_t *)conn->send_io_context;
-    send_io_blob.size = sizeof(struct s2n_socket_io_context);
+    send_io_blob.size = sizeof(struct s2n_socket_write_io_context);
 
     recv_io_blob.data = (uint8_t *)conn->recv_io_context;
-    recv_io_blob.size = sizeof(struct s2n_socket_io_context);
+    recv_io_blob.size = sizeof(struct s2n_socket_read_io_context);
 
     GUARD(s2n_free(&send_io_blob));
     GUARD(s2n_free(&recv_io_blob));
@@ -337,11 +337,11 @@ int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_connection_send 
 int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
 {
     struct s2n_blob ctx_mem;
-    struct s2n_socket_io_context *peer_socket_ctx;
+    struct s2n_socket_read_io_context *peer_socket_ctx;
 
-    GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_io_context)));
+    GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_read_io_context)));
 
-    peer_socket_ctx = (struct s2n_socket_io_context *)(void *)ctx_mem.data;
+    peer_socket_ctx = (struct s2n_socket_read_io_context *)(void *)ctx_mem.data;
     peer_socket_ctx->fd = rfd;
 
     s2n_connection_set_recv_cb(conn, s2n_socket_read);
@@ -356,11 +356,11 @@ int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
 int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
 {
     struct s2n_blob ctx_mem;
-    struct s2n_socket_io_context *peer_socket_ctx;
+    struct s2n_socket_write_io_context *peer_socket_ctx;
 
-    GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_io_context)));
+    GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_write_io_context)));
 
-    peer_socket_ctx = (struct s2n_socket_io_context *)(void *)ctx_mem.data;
+    peer_socket_ctx = (struct s2n_socket_write_io_context *)(void *)ctx_mem.data;
     peer_socket_ctx->fd = wfd;
 
     s2n_connection_set_send_cb(conn, s2n_socket_write);

@@ -17,14 +17,22 @@
 
 #include "tls/s2n_connection.h"
 
-/* The default io_context for communication over a socket */
-struct s2n_socket_io_context {
+/* The default read I/O context for communication over a socket */
+struct s2n_socket_read_io_context {
     /* The peer's fd */
     int fd;
 
-    /* Original socket option settings before s2n takes over the fd */
+    /* Original SO_RCVLOWAT socket option settings before s2n takes over the fd */
     unsigned int original_rcvlowat_is_set:1;
     int original_rcvlowat_val;
+};
+
+/* The default write I/O context for communication over a socket */
+struct s2n_socket_write_io_context {
+    /* The peer's fd */
+    int fd;
+    
+    /* Original TCP_CORK socket option settings before s2n takes over the fd */
     unsigned int original_cork_is_set:1;
     int original_cork_val;
 };
