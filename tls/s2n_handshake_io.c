@@ -130,7 +130,7 @@ static int s2n_advance_message(struct s2n_connection *conn)
     conn->handshake.message_number++;
 
     /* If the caller started out with a corked socket, we don't mess with it */
-    if (conn->original_cork_val) {
+    if (s2n_socket_was_corked(conn)) {
         return 0;
     }
 
@@ -385,6 +385,7 @@ static int handshake_read_io(struct s2n_connection *conn)
         conn->in_status = ENCRYPTED;
         return 0;
     }
+
 
     /* Record is a handshake message */
     while (s2n_stuffer_data_available(&conn->in)) {

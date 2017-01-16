@@ -71,6 +71,12 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     conn->close_notify_queued = 0;
     conn->session_id_len = 0;
 
+    conn->send = NULL;
+    conn->recv = NULL;
+    conn->send_io_context = NULL;
+    conn->recv_io_context = NULL;
+    conn->custom_io = -1;
+
     /* Allocate the fixed-size stuffers */
     blob.data = conn->alert_in_data;
     blob.size = S2N_ALERT_LENGTH;
@@ -138,6 +144,28 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     return 0;
 }
 
+static int s2n_connection_free_io_contexts(struct s2n_connection *conn)
+{
+    /* Free the I/O context if it was allocated by s2n. Don't touch user-controlled contexts. */
+    if (!conn->custom_io) {
+        return 0;
+    }
+    
+    struct s2n_blob send_io_blob;
+    struct s2n_blob recv_io_blob;
+
+    send_io_blob.data = (uint8_t *)conn->send_io_context;
+    send_io_blob.size = sizeof(struct s2n_socket_io_context);
+
+    recv_io_blob.data = (uint8_t *)conn->recv_io_context;
+    recv_io_blob.size = sizeof(struct s2n_socket_io_context);
+
+    GUARD(s2n_free(&send_io_blob));
+    GUARD(s2n_free(&recv_io_blob));
+    
+    return 0;
+}
+
 int s2n_connection_free(struct s2n_connection *conn)
 {
     struct s2n_blob blob;
@@ -197,6 +225,12 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     GUARD(s2n_socket_read_restore(conn));
     GUARD(s2n_socket_write_restore(conn));
     GUARD(s2n_free(&conn->status_response));
+    
+    /* Remove all I/O-related members */
+    GUARD(s2n_connection_free_io_contexts(conn));
+    conn->custom_io = -1;
+    conn->send = NULL;
+    conn->recv = NULL;
 
     /* Allocate or resize to their original sizes */
     GUARD(s2n_stuffer_resize(&conn->in, S2N_LARGE_FRAGMENT_LENGTH));
@@ -229,8 +263,10 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     /* Zero the whole connection structure */
     memset_check(conn, 0, sizeof(struct s2n_connection));
 
-    conn->readfd = -1;
-    conn->writefd = -1;
+    conn->send = NULL;
+    conn->recv = NULL;
+    conn->send_io_context = NULL;
+    conn->recv_io_context = NULL;
     conn->mode = mode;
     conn->config = config;
     conn->close_notify_queued = 0;
@@ -274,9 +310,43 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     return 0;
 }
 
+int s2n_connection_set_recv_ctx(struct s2n_connection *conn, void *ctx)
+{
+    conn->recv_io_context = ctx;
+    return 0;
+}
+
+int s2n_connection_set_send_ctx(struct s2n_connection *conn, void *ctx)
+{
+    conn->send_io_context = ctx;
+    return 0;
+}
+
+int s2n_connection_set_recv_cb(struct s2n_connection *conn, s2n_connection_recv recv)
+{
+    conn->recv = recv;
+    return 0;
+}
+
+int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_connection_send send)
+{
+    conn->send = send;
+    return 0;
+}
+
 int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
 {
-    conn->readfd = rfd;
+    struct s2n_blob ctx_mem;
+    struct s2n_socket_io_context *peer_socket_ctx;
+
+    GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_io_context)));
+
+    peer_socket_ctx = (struct s2n_socket_io_context *)(void *)ctx_mem.data;
+    peer_socket_ctx->fd = rfd;
+
+    s2n_connection_set_recv_cb(conn, s2n_socket_read);
+    s2n_connection_set_recv_ctx(conn, peer_socket_ctx);
+    conn->custom_io = 0;
 
     GUARD(s2n_socket_read_snapshot(conn));
 
@@ -285,7 +355,17 @@ int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
 
 int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
 {
-    conn->writefd = wfd;
+    struct s2n_blob ctx_mem;
+    struct s2n_socket_io_context *peer_socket_ctx;
+
+    GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_io_context)));
+
+    peer_socket_ctx = (struct s2n_socket_io_context *)(void *)ctx_mem.data;
+    peer_socket_ctx->fd = wfd;
+
+    s2n_connection_set_send_cb(conn, s2n_socket_write);
+    s2n_connection_set_send_ctx(conn, peer_socket_ctx);
+    conn->custom_io = 0;
 
     GUARD(s2n_socket_write_snapshot(conn));
 
@@ -455,3 +535,54 @@ int s2n_connection_prefer_low_latency(struct s2n_connection *conn)
 
     return 0;
 }
+
+int s2n_connection_recv_stuffer(struct s2n_stuffer *stuffer, struct s2n_connection *conn, uint32_t len)
+{
+    notnull_check(conn->recv);
+    /* Make sure we have enough space to write */
+    GUARD(s2n_stuffer_skip_write(stuffer, len));
+
+    /* "undo" the skip write */
+    stuffer->write_cursor -= len;
+
+  RECV:
+    errno = 0;
+    int r = conn->recv(conn->recv_io_context, stuffer->blob.data + stuffer->write_cursor, len);
+    if (r < 0) {
+        if (errno == EINTR) {
+            goto RECV;
+        }
+        return -1;
+    }
+
+    /* Record just how many bytes we have written */
+    stuffer->write_cursor += r;
+    stuffer->wiped = 0;
+
+    return r;
+}
+
+int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connection *conn, uint32_t len)
+{
+    notnull_check(conn->send);
+    /* Make sure we even have the data */
+    GUARD(s2n_stuffer_skip_read(stuffer, len));
+    
+    /* "undo" the skip read */
+    stuffer->read_cursor -= len;
+
+  SEND:
+    errno = 0;
+    int w = conn->send(conn->send_io_context, stuffer->blob.data + stuffer->read_cursor, len);
+    if(w < 0) {
+        if (errno == EINTR) {
+            goto SEND;
+        }
+        return -1;
+    }
+
+    stuffer->read_cursor += w;
+
+    return w;
+}
+
