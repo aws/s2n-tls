@@ -54,7 +54,9 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
     while (s2n_stuffer_data_available(&conn->header_in) < S2N_TLS_RECORD_HEADER_LENGTH) {
         int remaining = S2N_TLS_RECORD_HEADER_LENGTH - s2n_stuffer_data_available(&conn->header_in);
 
-        GUARD(s2n_socket_set_read_size(conn, remaining));
+        if (conn->managed_io) {
+            GUARD(s2n_socket_set_read_size(conn, remaining));
+        }
         r = s2n_connection_recv_stuffer(&conn->header_in, conn, remaining);
         if (r == 0) {
             conn->closed = 1;

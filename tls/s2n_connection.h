@@ -49,8 +49,8 @@ struct s2n_connection {
     void *recv_io_context;
 
     /* Has the user set their own I/O callbacks or is this connection using the
-     * default socket-based I/O */
-    uint8_t custom_io;
+     * default socket-based I/O set by s2n */
+    uint8_t managed_io;
 
     /* Is this connection a client or a server connection */
     s2n_mode mode;

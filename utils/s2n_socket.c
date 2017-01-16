@@ -43,7 +43,6 @@ int s2n_socket_write_snapshot(struct s2n_connection *conn)
     socklen_t corklen = sizeof(int);
 
     struct s2n_socket_write_io_context *w_io_ctx = (struct s2n_socket_write_io_context *) conn->send_io_context;
-    
     notnull_check(w_io_ctx);
 
     getsockopt(w_io_ctx->fd, IPPROTO_TCP, S2N_CORK, &w_io_ctx->original_cork_val, &corklen);
@@ -61,7 +60,6 @@ int s2n_socket_read_snapshot(struct s2n_connection *conn)
     socklen_t watlen = sizeof(int);
     
     struct s2n_socket_read_io_context *r_io_ctx = (struct s2n_socket_read_io_context *) conn->recv_io_context;
-
     notnull_check(r_io_ctx);
 
     getsockopt(r_io_ctx->fd, IPPROTO_TCP, SO_RCVLOWAT, &r_io_ctx->original_rcvlowat_val, &watlen);
@@ -76,7 +74,6 @@ int s2n_socket_write_restore(struct s2n_connection *conn)
 {
 #ifdef S2N_CORK
     struct s2n_socket_write_io_context *w_io_ctx = (struct s2n_socket_write_io_context *) conn->send_io_context;
-   
     notnull_check(w_io_ctx);
 
     if (!w_io_ctx->original_cork_is_set) {
@@ -93,7 +90,6 @@ int s2n_socket_read_restore(struct s2n_connection *conn)
 {
 #ifdef SO_RCVLOWAT
     struct s2n_socket_read_io_context *r_io_ctx = (struct s2n_socket_read_io_context *) conn->recv_io_context;
-    
     notnull_check(r_io_ctx);
 
     if (!r_io_ctx->original_rcvlowat_is_set) {
@@ -109,7 +105,7 @@ int s2n_socket_read_restore(struct s2n_connection *conn)
 int s2n_socket_was_corked(struct s2n_connection *conn)
 {
     /* If we're not using custom I/O and a send fd has not been set yet, return false*/
-    if (conn->custom_io || !conn->send) {
+    if (!conn->managed_io || !conn->send) {
         return 0;
     }
 

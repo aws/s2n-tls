@@ -75,7 +75,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     conn->recv = NULL;
     conn->send_io_context = NULL;
     conn->recv_io_context = NULL;
-    conn->custom_io = -1;
+    conn->managed_io = 0;
 
     /* Allocate the fixed-size stuffers */
     blob.data = conn->alert_in_data;
@@ -147,7 +147,7 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
 static int s2n_connection_free_io_contexts(struct s2n_connection *conn)
 {
     /* Free the I/O context if it was allocated by s2n. Don't touch user-controlled contexts. */
-    if (!conn->custom_io) {
+    if (!conn->managed_io) {
         return 0;
     }
     
@@ -162,6 +162,24 @@ static int s2n_connection_free_io_contexts(struct s2n_connection *conn)
 
     GUARD(s2n_free(&send_io_blob));
     GUARD(s2n_free(&recv_io_blob));
+    
+    return 0;
+}
+
+static int s2n_connection_wipe_io(struct s2n_connection *conn)
+{
+    if (conn->managed_io && conn->recv){
+        GUARD(s2n_socket_read_restore(conn));
+    }
+    if (conn->managed_io && conn->send){
+        GUARD(s2n_socket_write_restore(conn));
+    }
+    
+    /* Remove all I/O-related members */
+    GUARD(s2n_connection_free_io_contexts(conn));
+    conn->managed_io = 0;
+    conn->send = NULL;
+    conn->recv = NULL;
     
     return 0;
 }
@@ -221,16 +239,10 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     GUARD(s2n_stuffer_wipe(&conn->in));
     GUARD(s2n_stuffer_wipe(&conn->out));
 
-    /* Restore the socket option values */
-    GUARD(s2n_socket_read_restore(conn));
-    GUARD(s2n_socket_write_restore(conn));
-    GUARD(s2n_free(&conn->status_response));
+    /* Wipe the I/O-related info and restore the original socket if necessary */
+    GUARD(s2n_connection_wipe_io(conn));
     
-    /* Remove all I/O-related members */
-    GUARD(s2n_connection_free_io_contexts(conn));
-    conn->custom_io = -1;
-    conn->send = NULL;
-    conn->recv = NULL;
+    GUARD(s2n_free(&conn->status_response));
 
     /* Allocate or resize to their original sizes */
     GUARD(s2n_stuffer_resize(&conn->in, S2N_LARGE_FRAGMENT_LENGTH));
@@ -346,7 +358,7 @@ int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
 
     s2n_connection_set_recv_cb(conn, s2n_socket_read);
     s2n_connection_set_recv_ctx(conn, peer_socket_ctx);
-    conn->custom_io = 0;
+    conn->managed_io = 1;
 
     GUARD(s2n_socket_read_snapshot(conn));
 
@@ -365,7 +377,7 @@ int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
 
     s2n_connection_set_send_cb(conn, s2n_socket_write);
     s2n_connection_set_send_ctx(conn, peer_socket_ctx);
-    conn->custom_io = 0;
+    conn->managed_io = 1;
 
     GUARD(s2n_socket_write_snapshot(conn));
 
