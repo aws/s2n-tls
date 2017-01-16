@@ -230,10 +230,6 @@ int main(int argc, char **argv)
     EXPECT_NOT_EQUAL(fcntl(client_to_server[0], F_SETFL, fcntl(client_to_server[0], F_GETFL) | O_NONBLOCK), -1);
     EXPECT_NOT_EQUAL(fcntl(server_to_client[1], F_SETFL, fcntl(server_to_client[1], F_GETFL) | O_NONBLOCK), -1);
 
-    struct pollfd ufds[2];
-    ufds[0].fd = client_to_server[0];
-    ufds[0].events = POLLIN | POLLPRI;
-
     /* Negotiate the handshake. */
     do {
         int ret;
