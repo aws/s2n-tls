@@ -36,7 +36,7 @@
  */
 static const BIGNUM *s2n_get_Ys_dh_param(struct s2n_dh_params *dh_params)
 {
-    const BIGNUM *Ys = NULL;
+    const BIGNUM *Ys;
 
     /* DH made opaque in Openssl 1.1.0 */
     #if S2N_OPENSSL_VERSION_AT_LEAST(1,1,0) && !defined(LIBRESSL_VERSION_NUMBER)
@@ -50,7 +50,7 @@ static const BIGNUM *s2n_get_Ys_dh_param(struct s2n_dh_params *dh_params)
 
 static const BIGNUM *s2n_get_p_dh_param(struct s2n_dh_params *dh_params)
 {
-    const BIGNUM *p = NULL;
+    const BIGNUM *p;
     #if S2N_OPENSSL_VERSION_AT_LEAST(1,1,0) && !defined(LIBRESSL_VERSION_NUMBER)
         DH_get0_pqg(dh_params->dh, &p, NULL, NULL);
     #else
@@ -62,7 +62,7 @@ static const BIGNUM *s2n_get_p_dh_param(struct s2n_dh_params *dh_params)
 
 static const BIGNUM *s2n_get_g_dh_param(struct s2n_dh_params *dh_params)
 {
-    const BIGNUM *g = NULL;
+    const BIGNUM *g;
     #if S2N_OPENSSL_VERSION_AT_LEAST(1,1,0) && !defined(LIBRESSL_VERSION_NUMBER)
         DH_get0_pqg(dh_params->dh, NULL, NULL, &g);
     #else
