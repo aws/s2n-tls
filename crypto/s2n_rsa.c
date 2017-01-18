@@ -31,16 +31,18 @@
 
 int s2n_asn1der_to_rsa_public_key(struct s2n_rsa_public_key *key, struct s2n_blob *asn1der)
 {
-    uint8_t *original_ptr = asn1der->data;
-    X509 *cert = d2i_X509(NULL, (const unsigned char **)(void *)&asn1der->data, asn1der->size);
+    uint8_t *cert_to_parse = asn1der->data;
+    X509 *cert = d2i_X509(NULL, (const unsigned char **)(void *)&cert_to_parse, asn1der->size);
     if (cert == NULL) {
         S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
     }
-    if (asn1der->data - original_ptr != asn1der->size) {
+    /* If cert parsing is successful, d2i_X509 increments *cert_to_parse to the byte following the parsed data */
+    uint32_t parsed_len = cert_to_parse - asn1der->data;
+
+    if (parsed_len != asn1der->size) {
         X509_free(cert);
         S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
     }
-    asn1der->data = original_ptr;
 
     EVP_PKEY *public_key = X509_get_pubkey(cert);
     X509_free(cert);
@@ -67,19 +69,24 @@ int s2n_asn1der_to_rsa_public_key(struct s2n_rsa_public_key *key, struct s2n_blo
 
 int s2n_asn1der_to_rsa_private_key(struct s2n_rsa_private_key *key, struct s2n_blob *asn1der)
 {
-    uint8_t *original_ptr = asn1der->data;
+    uint8_t *cert_to_parse = asn1der->data;
 
-    key->rsa = d2i_RSAPrivateKey(NULL, (const unsigned char **)(void *)&asn1der->data, asn1der->size);
-    if (key->rsa == NULL) {
+    RSA* rsa_key = d2i_RSAPrivateKey(NULL, (const unsigned char **)(void *)&cert_to_parse, asn1der->size);
+    if (rsa_key == NULL) {
         S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
     }
-    if (asn1der->data - original_ptr != asn1der->size) {
+    /* If cert parsing is successful, d2i_RSAPrivateKey increments *cert_to_parse to the byte following the parsed data */
+    uint32_t parsed_len = cert_to_parse - asn1der->data;
+
+    if (parsed_len != asn1der->size) {
         S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
     }
 
-    if (!RSA_check_key(key->rsa)) {
+    if (!RSA_check_key(rsa_key)) {
         S2N_ERROR(S2N_ERR_PRIVATE_KEY_CHECK);
     }
+
+    key->rsa = rsa_key;
 
     return 0;
 }
