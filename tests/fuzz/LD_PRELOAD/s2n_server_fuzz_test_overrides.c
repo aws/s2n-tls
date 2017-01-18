@@ -44,7 +44,7 @@ int s2n_constant_time_equals(const uint8_t *a, const uint8_t *b, uint32_t len)
     /* Allow all signatures checked with s2n_constant_time_equals to always pass verification even if they are invalid
      * in order to aid code coverage with server fuzz test.
      */
-    return !0;
+    return 1;
 }
 
 int s2n_rsa_client_key_recv(struct s2n_connection *conn)
