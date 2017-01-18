@@ -168,6 +168,7 @@ int main(int argc, char **argv)
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
         client_conn->actual_protocol_version = S2N_TLS12;
+        client_conn->verify_server_cert_chain_callback = accept_all_rsa_certs;
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));

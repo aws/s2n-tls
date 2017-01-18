@@ -106,6 +106,9 @@ extern int s2n_connection_wipe(struct s2n_connection *conn);
 extern int s2n_connection_free(struct s2n_connection *conn);
 extern int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked);
 
+typedef enum { S2N_CERT_AUTH_REQUIRED, S2N_CERT_AUTH_NONE } s2n_cert_auth_type;
+extern int s2n_connection_set_client_cert_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type);
+
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);
 extern uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn);
 extern int s2n_connection_get_client_protocol_version(struct s2n_connection *conn);

@@ -95,6 +95,7 @@ int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size)
     sleep(1);
 
     conn = s2n_connection_new(S2N_CLIENT);
+    conn->verify_server_cert_chain_callback = accept_all_rsa_certs;
     config = s2n_config_new();
     s2n_connection_set_config(conn, config);
 

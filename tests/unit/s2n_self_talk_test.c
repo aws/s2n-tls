@@ -157,6 +157,7 @@ void mock_client(int writefd, int readfd)
     conn->server_protocol_version = S2N_TLS12;
     conn->client_protocol_version = S2N_TLS12;
     conn->actual_protocol_version = S2N_TLS12;
+    conn->verify_server_cert_chain_callback = accept_all_rsa_certs;
 
     s2n_connection_set_read_fd(conn, readfd);
     s2n_connection_set_write_fd(conn, writefd);
@@ -204,8 +205,6 @@ int main(int argc, char **argv)
             /* Create a pipe */
             EXPECT_SUCCESS(pipe(server_to_client));
             EXPECT_SUCCESS(pipe(client_to_server));
-
-
 
             /* Create a child process */
             pid = fork();

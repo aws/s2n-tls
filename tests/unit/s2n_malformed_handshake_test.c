@@ -256,6 +256,7 @@ int main(int argc, char **argv)
     conn->server_protocol_version = S2N_TLS12;
     conn->client_protocol_version = S2N_TLS12;
     conn->actual_protocol_version = S2N_TLS12;
+    conn->verify_server_cert_chain_callback = accept_all_rsa_certs;
 
     /* Create a child process */
     pid = fork();

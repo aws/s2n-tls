@@ -33,7 +33,6 @@ struct s2n_cert_chain_and_key {
     struct s2n_cert_chain *head;
     struct s2n_rsa_private_key private_key;
     struct s2n_blob ocsp_status;
-    char server_name[S2N_MAX_SERVER_NAME];
 };
 
 struct s2n_config {

@@ -30,7 +30,7 @@ struct s2n_cipher_preferences {
 };
 
 /* Key exchange flags that can be OR'ed */
-#define S2N_KEY_EXCHANGE_DH       0x01  /* Diffie–Hellman key exchange, including ephemeral */
+#define S2N_KEY_EXCHANGE_DH       0x01  /* Diffie-Hellman key exchange, including ephemeral */
 #define S2N_KEY_EXCHANGE_EPH      0x02  /* Ephemeral key exchange */
 #define S2N_KEY_EXCHANGE_ECC      0x04  /* Elliptic curve cryptography */
 
