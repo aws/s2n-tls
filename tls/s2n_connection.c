@@ -154,15 +154,18 @@ static int s2n_connection_free_io_contexts(struct s2n_connection *conn)
     struct s2n_blob send_io_blob;
     struct s2n_blob recv_io_blob;
 
-    send_io_blob.data = (uint8_t *)conn->send_io_context;
-    send_io_blob.size = sizeof(struct s2n_socket_write_io_context);
+    if (conn->send_io_context) {
+        send_io_blob.data = (uint8_t *)conn->send_io_context;
+        send_io_blob.size = sizeof(struct s2n_socket_write_io_context);
+        GUARD(s2n_free(&send_io_blob));
+    }
 
-    recv_io_blob.data = (uint8_t *)conn->recv_io_context;
-    recv_io_blob.size = sizeof(struct s2n_socket_read_io_context);
+    if (conn->recv_io_context) {
+        recv_io_blob.data = (uint8_t *)conn->recv_io_context;
+        recv_io_blob.size = sizeof(struct s2n_socket_read_io_context);
+        GUARD(s2n_free(&recv_io_blob));
+    }
 
-    GUARD(s2n_free(&send_io_blob));
-    GUARD(s2n_free(&recv_io_blob));
-    
     return 0;
 }
 
