@@ -69,9 +69,9 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
 
 int s2n_server_cert_send(struct s2n_connection *conn)
 {
-    struct s2n_cert_chain *head = conn->server->chosen_cert_chain->head;
+    struct s2n_cert_chain *head = conn->server->server_cert_chain->head;
 
-    GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, conn->server->chosen_cert_chain->chain_size));
+    GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, conn->server->server_cert_chain->chain_size));
 
     while (head) {
         GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, head->cert.size));

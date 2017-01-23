@@ -101,7 +101,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 
     /* Now choose the ciphers and the cert chain. */
     GUARD(s2n_set_cipher_as_tls_server(conn, cipher_suites, cipher_suites_length / 2));
-    conn->server->chosen_cert_chain = conn->config->cert_and_key_pairs;
+    conn->server->server_cert_chain = conn->config->cert_and_key_pairs;
 
     /* Set the handshake type */
     GUARD(s2n_conn_set_handshake_type(conn));
@@ -210,7 +210,7 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
 
     GUARD(s2n_stuffer_read(in, &b));
 
-    conn->server->chosen_cert_chain = conn->config->cert_and_key_pairs;
+    conn->server->server_cert_chain = conn->config->cert_and_key_pairs;
     GUARD(s2n_conn_set_handshake_type(conn));
 
     return 0;
