@@ -25,7 +25,7 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 
-int s2n_hmac_digest_size(s2n_hmac_algorithm alg)
+int s2n_hmac_digest_size(s2n_hmac_algorithm alg, uint8_t *out)
 {
     if (alg == S2N_HMAC_SSLv3_MD5) {
         alg = S2N_HMAC_MD5;
@@ -34,7 +34,8 @@ int s2n_hmac_digest_size(s2n_hmac_algorithm alg)
         alg = S2N_HMAC_SHA1;
     }
 
-    return s2n_hash_digest_size((s2n_hash_algorithm) alg);
+    GUARD(s2n_hash_digest_size((s2n_hash_algorithm) alg, out));
+    return 0;
 }
 
 static int s2n_sslv3_mac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)

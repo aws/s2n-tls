@@ -31,8 +31,9 @@
 int s2n_hkdf_extract(s2n_hmac_algorithm alg, const struct s2n_blob *salt, const struct s2n_blob *key, struct s2n_blob *pseudo_rand_key)
 {
     struct s2n_hmac_state hmac;
-    pseudo_rand_key->size = s2n_hmac_digest_size(alg);
-
+    uint8_t hmac_size;
+    GUARD(s2n_hmac_digest_size(alg, &hmac_size));
+    pseudo_rand_key->size = hmac_size;
     GUARD(s2n_hmac_init(&hmac, alg, salt->data, salt->size));
     GUARD(s2n_hmac_update(&hmac, key->data, key->size));
     GUARD(s2n_hmac_digest(&hmac, pseudo_rand_key->data, pseudo_rand_key->size));
@@ -45,7 +46,8 @@ static int s2n_hkdf_expand(s2n_hmac_algorithm alg, const struct s2n_blob *pseudo
     uint8_t prev[MAX_DIGEST_SIZE] = { 0 };
 
     uint32_t done_len = 0;
-    uint32_t hash_len = s2n_hmac_digest_size(alg);
+    uint8_t hash_len;
+    GUARD(s2n_hmac_digest_size(alg, &hash_len));
     uint32_t total_rounds = output->size / hash_len;
     if (output->size % hash_len) {
         total_rounds++;

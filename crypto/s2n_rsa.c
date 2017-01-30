@@ -143,30 +143,35 @@ static int s2n_hash_alg_to_NID[] = {
     [S2N_HASH_SHA384]   = NID_sha384,
     [S2N_HASH_SHA512]   = NID_sha512 };
 
+int s2n_hash_NID_type(s2n_hash_algorithm alg, int *out)
+{
+    switch(alg) {
+    case S2N_HASH_MD5_SHA1:
+    case S2N_HASH_SHA1:
+    case S2N_HASH_SHA224:
+    case S2N_HASH_SHA256:
+    case S2N_HASH_SHA384:
+    case S2N_HASH_SHA512:
+        *out = s2n_hash_alg_to_NID[alg];
+        break;
+    default:
+        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
+    }
+    return 0;
+}
+
 int s2n_rsa_sign(struct s2n_rsa_private_key *key, struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
-    /* Maximum size is SHA512 */
-    uint8_t digest_out[SHA512_DIGEST_LENGTH];
+    uint8_t digest_length;
+    int NID_type;
+    GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
+    GUARD(s2n_hash_NID_type(digest->alg, &NID_type));
 
-    int type, digest_length = s2n_hash_digest_size(digest->alg);
-    switch(digest->alg) {
-        case S2N_HASH_MD5_SHA1:
-        case S2N_HASH_SHA1:
-        case S2N_HASH_SHA224:
-        case S2N_HASH_SHA256:
-        case S2N_HASH_SHA384:
-        case S2N_HASH_SHA512:
-            type = s2n_hash_alg_to_NID[ digest->alg ];
-            break;
-        default:
-            S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
-            break;
-    }
-
+    uint8_t digest_out[digest_length];
     GUARD(s2n_hash_digest(digest, digest_out, digest_length));
 
     unsigned int signature_size = signature->size;
-    if (RSA_sign(type, digest_out, digest_length, signature->data, &signature_size, key->rsa) == 0) {
+    if (RSA_sign(NID_type, digest_out, digest_length, signature->data, &signature_size, key->rsa) == 0) {
         S2N_ERROR(S2N_ERR_SIGN);
     }
     if (signature_size > signature->size) {
@@ -179,26 +184,15 @@ int s2n_rsa_sign(struct s2n_rsa_private_key *key, struct s2n_hash_state *digest,
 
 int s2n_rsa_verify(struct s2n_rsa_public_key *key, struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
-    uint8_t digest_out[MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH];
+    uint8_t digest_length;
+    int NID_type;
+    GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
+    GUARD(s2n_hash_NID_type(digest->alg, &NID_type));
 
-    int type, digest_length = s2n_hash_digest_size(digest->alg);
-    switch(digest->alg) {
-        case S2N_HASH_MD5_SHA1:
-        case S2N_HASH_SHA1:
-        case S2N_HASH_SHA224:
-        case S2N_HASH_SHA256:
-        case S2N_HASH_SHA384:
-        case S2N_HASH_SHA512:
-            type = s2n_hash_alg_to_NID[ digest->alg ];
-            break;
-        default:
-            S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
-            break;
-    }
-
+    uint8_t digest_out[digest_length];
     GUARD(s2n_hash_digest(digest, digest_out, digest_length));
 
-    if (RSA_verify(type, digest_out, digest_length, signature->data, signature->size, key->rsa) == 0) {
+    if (RSA_verify(NID_type, digest_out, digest_length, signature->data, signature->size, key->rsa) == 0) {
         S2N_ERROR(S2N_ERR_VERIFY_SIGNATURE);
     }
 

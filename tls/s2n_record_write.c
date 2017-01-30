@@ -42,7 +42,8 @@ static uint16_t overhead(struct s2n_connection *conn)
         active = conn->client;
     }
 
-    uint16_t extra = s2n_hmac_digest_size(active->cipher_suite->record_alg->hmac_alg);
+    uint8_t extra;
+    GUARD(s2n_hmac_digest_size(active->cipher_suite->record_alg->hmac_alg, &extra));
 
     if (active->cipher_suite->record_alg->cipher->type == S2N_CBC) {
         /* Subtract one for the padding length byte */
@@ -111,8 +112,8 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
-    int mac_digest_size = s2n_hmac_digest_size(mac->alg);
-    gte_check(mac_digest_size, 0);
+    uint8_t mac_digest_size;
+    GUARD(s2n_hmac_digest_size(mac->alg, &mac_digest_size));
 
     /* Before we do anything, we need to figure out what the length of the
      * fragment is going to be. 

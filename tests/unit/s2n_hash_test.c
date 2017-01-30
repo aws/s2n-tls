@@ -35,8 +35,9 @@ int main(int argc, char **argv)
 
     /* Initialise our output stuffers */
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
-
-    EXPECT_EQUAL(s2n_hash_digest_size(S2N_HASH_MD5), 16);
+    uint8_t md5_digest_size;
+    GUARD(s2n_hash_digest_size(S2N_HASH_MD5, &md5_digest_size));
+    EXPECT_EQUAL(md5_digest_size, 16);
     EXPECT_SUCCESS(s2n_hash_init(&hash, S2N_HASH_MD5));
     EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *)hello)));
     EXPECT_SUCCESS(s2n_hash_copy(&copy, &hash));
@@ -60,7 +61,9 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(memcmp(output_pad, "59ca0efa9f5633cb0371bbc0355478d8", 16 * 2), 0);
 
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
-    EXPECT_EQUAL(s2n_hash_digest_size(S2N_HASH_SHA1), 20);
+    uint8_t sha1_digest_size;
+    GUARD(s2n_hash_digest_size(S2N_HASH_SHA1, &sha1_digest_size));
+    EXPECT_EQUAL(sha1_digest_size, 20);
     EXPECT_SUCCESS(s2n_hash_init(&hash, S2N_HASH_SHA1));
     EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *)hello)));
     EXPECT_SUCCESS(s2n_hash_digest(&hash, digest_pad, SHA_DIGEST_LENGTH));
@@ -73,7 +76,9 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(memcmp(output_pad, "47a013e660d408619d894b20806b1d5086aab03b", 20 * 2), 0);
 
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
-    EXPECT_EQUAL(s2n_hash_digest_size(S2N_HASH_SHA256), 32);
+    uint8_t sha256_digest_size;
+    GUARD(s2n_hash_digest_size(S2N_HASH_SHA256, &sha256_digest_size));
+    EXPECT_EQUAL(sha256_digest_size, 32);
     EXPECT_SUCCESS(s2n_hash_init(&hash, S2N_HASH_SHA256));
     EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *)hello)));
     EXPECT_SUCCESS(s2n_hash_digest(&hash, digest_pad, SHA256_DIGEST_LENGTH));
@@ -86,7 +91,9 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(memcmp(output_pad, "0ba904eae8773b70c75333db4de2f3ac45a8ad4ddba1b242f0b3cfc199391dd8", 32 * 2), 0);
 
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
-    EXPECT_EQUAL(s2n_hash_digest_size(S2N_HASH_SHA384), 48);
+    uint8_t sha384_digest_size;
+    GUARD(s2n_hash_digest_size(S2N_HASH_SHA384, sha384_digest_size));
+    EXPECT_EQUAL(sha384_digest_size, 48);
     EXPECT_SUCCESS(s2n_hash_init(&hash, S2N_HASH_SHA384));
     EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *)hello)));
     EXPECT_SUCCESS(s2n_hash_digest(&hash, digest_pad, SHA384_DIGEST_LENGTH));

@@ -50,7 +50,8 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
 {
     struct s2n_hmac_state copy;
 
-    int mac_digest_size = s2n_hmac_digest_size(hmac->alg);
+    uint8_t mac_digest_size;
+    GUARD(s2n_hmac_digest_size(hmac->alg, &mac_digest_size));
 
     /* The record has to be at least big enough to contain the MAC,
      * plus the padding length byte */
