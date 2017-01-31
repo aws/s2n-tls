@@ -35,7 +35,7 @@ int s2n_hmac_hash_alg(s2n_hmac_algorithm hmac_alg, s2n_hash_algorithm *out)
     case S2N_HMAC_SHA256:     *out = S2N_HASH_SHA256; break;
     case S2N_HMAC_SHA384:     *out = S2N_HASH_SHA384; break;
     case S2N_HMAC_SHA512:     *out = S2N_HASH_SHA512; break;
-    case S2N_HMAC_SSLv3_MD5:  *out = S2N_HMAC_MD5;    break;
+    case S2N_HMAC_SSLv3_MD5:  *out = S2N_HASH_MD5;    break;
     case S2N_HMAC_SSLv3_SHA1: *out = S2N_HASH_SHA1;   break;
     default:
         S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);

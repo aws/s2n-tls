@@ -19,6 +19,7 @@
 #include "stuffer/s2n_stuffer.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
+#include "utils/s2n_safety.h"
 #include <string.h>
 
 int main(int argc, char **argv)

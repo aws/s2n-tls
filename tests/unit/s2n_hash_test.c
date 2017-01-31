@@ -21,6 +21,7 @@
 #include "stuffer/s2n_stuffer.h"
 #include "crypto/s2n_hash.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_safety.h"
 
 int main(int argc, char **argv)
 {
@@ -92,7 +93,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
     uint8_t sha384_digest_size;
-    GUARD(s2n_hash_digest_size(S2N_HASH_SHA384, sha384_digest_size));
+    GUARD(s2n_hash_digest_size(S2N_HASH_SHA384, &sha384_digest_size));
     EXPECT_EQUAL(sha384_digest_size, 48);
     EXPECT_SUCCESS(s2n_hash_init(&hash, S2N_HASH_SHA384));
     EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *)hello)));
