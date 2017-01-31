@@ -133,23 +133,23 @@ int s2n_hmac_hash_block_size(s2n_hmac_algorithm hmac_alg, uint16_t *block_size)
     return 0;
 }
 
-int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm hmac_alg, const void *key, uint32_t klen)
+int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
 {
     s2n_hash_algorithm hash_alg;
     state->currently_in_hash_block = 0;
 
-    GUARD(s2n_hmac_hash_alg(hmac_alg, &hash_alg));
-    GUARD(s2n_hmac_digest_size(hmac_alg, &state->digest_size));
-    GUARD(s2n_hmac_block_size(hmac_alg, &state->block_size));
-    GUARD(s2n_hmac_hash_block_size(hmac_alg, &state->hash_block_size));
+    GUARD(s2n_hmac_hash_alg(alg, &hash_alg));
+    GUARD(s2n_hmac_digest_size(alg, &state->digest_size));
+    GUARD(s2n_hmac_block_size(alg, &state->block_size));
+    GUARD(s2n_hmac_hash_block_size(alg, &state->hash_block_size));
 
     gte_check(sizeof(state->xor_pad), state->block_size);
     gte_check(sizeof(state->digest_pad), state->digest_size);
 
-    state->alg = hmac_alg;
+    state->alg = alg;
 
-    if (hmac_alg == S2N_HMAC_SSLv3_SHA1 || hmac_alg == S2N_HMAC_SSLv3_MD5) {
-        return s2n_sslv3_mac_init(state, hmac_alg, key, klen);
+    if (alg == S2N_HMAC_SSLv3_SHA1 || alg == S2N_HMAC_SSLv3_MD5) {
+        return s2n_sslv3_mac_init(state, alg, key, klen);
     }
 
     GUARD(s2n_hash_init(&state->inner_just_key, hash_alg));
