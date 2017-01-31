@@ -27,6 +27,7 @@
 
 int s2n_hmac_hash_alg(s2n_hmac_algorithm hmac_alg, s2n_hash_algorithm *out)
 {
+    notnull_check(out);
     switch(hmac_alg) {
     case S2N_HMAC_NONE:       *out = S2N_HASH_NONE;   break;
     case S2N_HMAC_MD5:        *out = S2N_HASH_MD5;    break;

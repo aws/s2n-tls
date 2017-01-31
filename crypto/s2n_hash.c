@@ -24,6 +24,7 @@
 
 int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
 {
+    notnull_check(out);
     switch (alg) {
     case S2N_HASH_NONE:     *out = 0;                    break;
     case S2N_HASH_MD5:      *out = MD5_DIGEST_LENGTH;    break;
