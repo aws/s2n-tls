@@ -180,7 +180,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
         EXPECT_EQUAL(fragment_length, predicted_length);
 
-        /* Similate a replay attack and verify that replaying the same record
+        /* Simulate a replay attack and verify that replaying the same record
          * fails due to the sequence number check */
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
         EXPECT_SUCCESS(s2n_stuffer_reread(&conn->out));

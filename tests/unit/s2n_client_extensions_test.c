@@ -142,7 +142,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
     EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
 
-    /* Client doens't use the server name extension. */
+    /* Client doesn't use the server name extension. */
     {
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
@@ -486,7 +486,7 @@ int main(int argc, char **argv)
             0x00, 0x21,
             /* renegotiated_connection len */
             0x20,
-            /* fake enegotiated_connection */
+            /* fake renegotiated_connection */
             ZERO_TO_THIRTY_ONE,
         };
         int client_extensions_len = sizeof(client_extensions);

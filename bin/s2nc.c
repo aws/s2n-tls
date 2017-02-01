@@ -38,7 +38,7 @@ void usage()
     fprintf(stderr, "\n Options:\n\n");
     fprintf(stderr, "  -a [protocols]\n");
     fprintf(stderr, "  --alpn [protocols]\n");
-    fprintf(stderr, "    Sets the application protocols supported by this client, as a comma seperated list.\n");
+    fprintf(stderr, "    Sets the application protocols supported by this client, as a comma separated list.\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
     fprintf(stderr, "  -n [server name]\n");

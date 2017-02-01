@@ -377,7 +377,7 @@ static int s2n_recv_client_elliptic_curves(struct s2n_connection *conn, struct s
     notnull_check(proposed_curves.data);
 
     if (s2n_ecc_find_supported_curve(&proposed_curves, &conn->secure.server_ecc_params.negotiated_curve) != 0) {
-        /* Can't agree on a curve, ECC is not allowed. Return success to proceed with the handhsake. */
+        /* Can't agree on a curve, ECC is not allowed. Return success to proceed with the handshake. */
         conn->secure.server_ecc_params.negotiated_curve = NULL;
     }
     return 0;
