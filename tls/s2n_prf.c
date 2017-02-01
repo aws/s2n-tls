@@ -82,7 +82,8 @@ static int s2n_p_hash(union s2n_prf_working_space *ws, s2n_hmac_algorithm alg, s
                       struct s2n_blob *label, struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *out)
 {
     struct s2n_hmac_state *hmac = &ws->tls.hmac;
-    uint32_t digest_size = s2n_hmac_digest_size(alg);
+    uint8_t digest_size;
+    GUARD(s2n_hmac_digest_size(alg, &digest_size));
 
     /* First compute hmac(secret + A(0)) */
     GUARD(s2n_hmac_init(hmac, alg, secret->data, secret->size));
@@ -381,11 +382,11 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     }
 
     /* Check that we have a valid MAC and key size */
-    int mac_size;
+    uint8_t mac_size;
     if (conn->secure.cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
         mac_size = conn->secure.cipher_suite->record_alg->cipher->io.comp.mac_key_size;
     } else {
-        GUARD((mac_size = s2n_hmac_digest_size(hmac_alg)));
+        GUARD(s2n_hmac_digest_size(hmac_alg, &mac_size));
     }
 
     /* Seed the client MAC */
