@@ -190,8 +190,6 @@ int64_t s2n_public_random(int64_t max)
             return r % max;
         }
     }
-
-    return -1;
 }
 
 #if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_FIPS) && !defined(LIBRESSL_VERSION_NUMBER)

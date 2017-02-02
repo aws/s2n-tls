@@ -251,7 +251,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(close(server_to_client[1]));
 
         /* Clients ALPN preferences match our preferences, so we pick the
-         * most preffered server one */
+         * most preferred server one */
         mock_client(client_to_server[1], server_to_client[0], protocols, 2, protocols[0]);
     }
 
@@ -272,7 +272,7 @@ int main(int argc, char **argv)
     /* Negotiate the handshake. */
     EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
 
-    /* Expect our most prefered negotiated protocol */
+    /* Expect our most preferred negotiated protocol */
     EXPECT_STRING_EQUAL(s2n_get_application_protocol(conn), protocols[0]);
 
     for (int i = 1; i < 0xffff; i += 100) {
@@ -299,7 +299,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
     EXPECT_EQUAL(status, 0);
 
-    /* Test a lower prefered matching ALPN request */
+    /* Test a lower preferred matching ALPN request */
     /* Create a pipe */
     EXPECT_SUCCESS(pipe(server_to_client));
     EXPECT_SUCCESS(pipe(client_to_server));
@@ -350,7 +350,7 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Expect our least prefered negotiated protocol */
+    /* Expect our least preferred negotiated protocol */
     EXPECT_STRING_EQUAL(s2n_get_application_protocol(conn), protocols[1]);
 
     EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));

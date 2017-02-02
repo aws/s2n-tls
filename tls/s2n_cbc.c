@@ -83,7 +83,7 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
         return 0 - mismatches;
     }
 
-    /* Check the maximum amount that could theoritically be padding */
+    /* Check the maximum amount that could theoretically be padding */
     int check = MIN(255, (payload_and_padding_size - 1));
 
     int cutoff = check - padding_length;

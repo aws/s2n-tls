@@ -132,7 +132,7 @@ struct s2n_cipher_preferences cipher_preferences_20160411 = {
     .minimum_protocol_version = S2N_TLS10
 };
 
-/* Use ECDHE instead of plain DHE. Prioritize ECHDE in favour of non ECDHE; GCM in favour of CBC; AES128 in favour of AES256. */
+/* Use ECDHE instead of plain DHE. Prioritize ECDHE in favour of non ECDHE; GCM in favour of CBC; AES128 in favour of AES256. */
 uint8_t wire_format_20150306[] = {
     TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
     TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
@@ -334,7 +334,7 @@ int s2n_config_set_protocol_preferences(struct s2n_config *config, const char *c
     GUARD(s2n_free(&config->application_protocols));
 
     if (protocols == NULL || protocol_count == 0) {
-        /* NULL value indicates no prference, so nothing to do */
+        /* NULL value indicates no preference, so nothing to do */
         return 0;
     }
 

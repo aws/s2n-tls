@@ -26,7 +26,7 @@
 #include "tls/s2n_handshake.h"
 
 /*
- * The TLS protocol allows messages to be fragmentd, interleaved and coalesced into 'records'. These
+ * The TLS protocol allows messages to be fragmented, interleaved and coalesced into 'records'. These
  * tests check that fragmented messages are recombined, that several messages in the same record work
  * and that messages interleaved with alerts (including a fragmented alert message) all work.
  *
@@ -80,7 +80,7 @@ uint8_t server_cert[] = {       /* SERVER CERT */
     /* Length of the first cert */
     0x00, 0x03, 0x32,
 
-    /* Certifcate data - via openssl x509 -in cert.pem -outform DER | xxd -i */
+    /* Certificate data - via openssl x509 -in cert.pem -outform DER | xxd -i */
     0x30, 0x82, 0x03, 0x2e, 0x30, 0x82, 0x02, 0x16, 0x02, 0x09, 0x00, 0xcb,
     0xd6, 0x5a, 0xfa, 0x37, 0xcf, 0xe0, 0xbf, 0x30, 0x0d, 0x06, 0x09, 0x2a,
     0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x05, 0x05, 0x00, 0x30, 0x59,

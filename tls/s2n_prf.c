@@ -135,7 +135,7 @@ static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct 
     }
 
     /* We zero the out blob because p_hash works by XOR'ing with the existing
-     * buffer. This is a little convuloted but means we can avoid dynamic memory
+     * buffer. This is a little convoluted but means we can avoid dynamic memory
      * allocation. When we call p_hash once (in the TLS1.2 case) it will produce
      * the right values. When we call it twice in the regular case, the two
      * outputs will be XORd just ass the TLS 1.0 and 1.1 RFCs require.
@@ -256,9 +256,8 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
     master_secret.data = conn->secure.master_secret;
     master_secret.size = sizeof(conn->secure.master_secret);
     if (conn->actual_protocol_version == S2N_TLS12) {
+        struct s2n_hash_state hash_state;
         switch (conn->secure.cipher_suite->tls12_prf_alg) {
-            struct s2n_hash_state hash_state;
-
         case S2N_HMAC_SHA256:
             GUARD(s2n_hash_copy(&hash_state, &conn->handshake.sha256));
             GUARD(s2n_hash_digest(&hash_state, sha_digest, SHA256_DIGEST_LENGTH));
@@ -312,9 +311,8 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
     master_secret.data = conn->secure.master_secret;
     master_secret.size = sizeof(conn->secure.master_secret);
     if (conn->actual_protocol_version == S2N_TLS12) {
+        struct s2n_hash_state hash_state;
         switch (conn->secure.cipher_suite->tls12_prf_alg) {
-            struct s2n_hash_state hash_state;
-
         case S2N_HMAC_SHA256:
             GUARD(s2n_hash_copy(&hash_state, &conn->handshake.sha256));
             GUARD(s2n_hash_digest(&hash_state, sha_digest, SHA256_DIGEST_LENGTH));

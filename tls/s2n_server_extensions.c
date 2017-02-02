@@ -56,7 +56,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 
     GUARD(s2n_stuffer_write_uint16(out, total_size));
 
-    /* Write the Supported Points Format extention.
+    /* Write the Supported Points Format extension.
      * RFC 4492 section 5.2 states that the absence of this extension in the Server Hello
      * is equivalent to allowing only the uncompressed point format. Let's send the
      * extension in case clients(Openssl 1.0.0) don't honor the implied behavior.
