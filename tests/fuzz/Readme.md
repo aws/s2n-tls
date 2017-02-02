@@ -11,7 +11,7 @@ Every test in this directory will be run as a Fuzz test for several minutes duri
 5. Optionally, if initialization is required, have a function `int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)` that will perform any initialization that will be run only once at startup.
 
 ##Fuzz Test Directory Structure
-For a test with name `$TEST_NAME`, its files should be layed out with the following structure:
+For a test with name `$TEST_NAME`, its files should be laid out with the following structure:
 
 **Required:** The actual Fuzz test to run:
 > `s2n/tests/fuzz/${TEST_NAME}.c`
@@ -28,7 +28,7 @@ A Corpus is a directory of "interesting" inputs that result in a good branch/cod
 #LD_PRELOAD
 The `LD_PRELOAD` directory contains function overrides for each Fuzz test that will be used **instead** of the original functions defined elsewhere. These function overrides will only be used during fuzz tests, and will not effect the rest of the s2n codebase when not fuzzing. Using `LD_PRELOAD` instead of C Preprocessor `#ifdef`'s is preferable in the following ways:
 
-1. Using the C Preprocessor requires the use of fuzz only compiler flags and `#ifdef`'s that end up cluttering the original s2n codebase and increases developer cognative load when developing other features for s2n. Using `LD_PRELOAD` helps keep s2n's code clean, and reduces developer cognative load when working with the core codebase.
+1. Using the C Preprocessor requires the use of fuzz only compiler flags and `#ifdef`'s that end up cluttering the original s2n codebase and increases developer cognitive load when developing other features for s2n. Using `LD_PRELOAD` helps keep s2n's code clean, and reduces developer cognitive load when working with the core codebase.
 2. `LD_PRELOAD` provides better flexibility than `#ifdef`'s in that it allows different Fuzz tests to efficiently have different function overrides for the same functions.
 3. It is possible to override functions that are outside of s2n's codebase.
 

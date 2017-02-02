@@ -82,7 +82,8 @@ static int s2n_p_hash(union s2n_prf_working_space *ws, s2n_hmac_algorithm alg, s
                       struct s2n_blob *label, struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *out)
 {
     struct s2n_hmac_state *hmac = &ws->tls.hmac;
-    uint32_t digest_size = s2n_hmac_digest_size(alg);
+    uint8_t digest_size;
+    GUARD(s2n_hmac_digest_size(alg, &digest_size));
 
     /* First compute hmac(secret + A(0)) */
     GUARD(s2n_hmac_init(hmac, alg, secret->data, secret->size));
@@ -134,7 +135,7 @@ static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct 
     }
 
     /* We zero the out blob because p_hash works by XOR'ing with the existing
-     * buffer. This is a little convuloted but means we can avoid dynamic memory
+     * buffer. This is a little convoluted but means we can avoid dynamic memory
      * allocation. When we call p_hash once (in the TLS1.2 case) it will produce
      * the right values. When we call it twice in the regular case, the two
      * outputs will be XORd just ass the TLS 1.0 and 1.1 RFCs require.
@@ -255,9 +256,8 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
     master_secret.data = conn->secure.master_secret;
     master_secret.size = sizeof(conn->secure.master_secret);
     if (conn->actual_protocol_version == S2N_TLS12) {
+        struct s2n_hash_state hash_state;
         switch (conn->secure.cipher_suite->tls12_prf_alg) {
-            struct s2n_hash_state hash_state;
-
         case S2N_HMAC_SHA256:
             GUARD(s2n_hash_copy(&hash_state, &conn->handshake.sha256));
             GUARD(s2n_hash_digest(&hash_state, sha_digest, SHA256_DIGEST_LENGTH));
@@ -311,9 +311,8 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
     master_secret.data = conn->secure.master_secret;
     master_secret.size = sizeof(conn->secure.master_secret);
     if (conn->actual_protocol_version == S2N_TLS12) {
+        struct s2n_hash_state hash_state;
         switch (conn->secure.cipher_suite->tls12_prf_alg) {
-            struct s2n_hash_state hash_state;
-
         case S2N_HMAC_SHA256:
             GUARD(s2n_hash_copy(&hash_state, &conn->handshake.sha256));
             GUARD(s2n_hash_digest(&hash_state, sha_digest, SHA256_DIGEST_LENGTH));
@@ -381,11 +380,11 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     }
 
     /* Check that we have a valid MAC and key size */
-    int mac_size;
+    uint8_t mac_size;
     if (conn->secure.cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
         mac_size = conn->secure.cipher_suite->record_alg->cipher->io.comp.mac_key_size;
     } else {
-        GUARD((mac_size = s2n_hmac_digest_size(hmac_alg)));
+        GUARD(s2n_hmac_digest_size(hmac_alg, &mac_size));
     }
 
     /* Seed the client MAC */

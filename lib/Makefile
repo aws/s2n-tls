@@ -25,7 +25,7 @@ libs2n.a: ${OBJS}
 	$(RANLIB) libs2n.a
 
 libs2n.so: ${OBJS}
-	${CC} -shared  ${LIBS} -L${LIBCRYPTO_ROOT}/lib ${CRYPTO_LIBS} -o libs2n.so ${OBJS}
+	${CC} -shared -o libs2n.so ${OBJS} ${LIBS} -L${LIBCRYPTO_ROOT}/lib ${CRYPTO_LIBS}
 
 libs2n.dylib: ${OBJS}
 	test ! -f /usr/lib/libSystem.dylib || libtool -dynamic  ${LIBS} -L${LIBCRYPTO_ROOT}/lib ${CRYPTO_LIBS} -o libs2n.dylib ${OBJS}

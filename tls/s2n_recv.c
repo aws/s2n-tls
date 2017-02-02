@@ -145,7 +145,7 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
                 }
             }
 
-            /* Don't propogate the error if we already read some bytes */
+            /* Don't propagate the error if we already read some bytes */
             if (s2n_errno == S2N_ERR_BLOCKED && bytes_read) {
                 s2n_errno = S2N_ERR_OK;
                 return bytes_read;
@@ -219,7 +219,7 @@ int s2n_recv_close_notify(struct s2n_connection *conn, s2n_blocked_status * bloc
         S2N_ERROR(S2N_ERR_SHUTDOWN_RECORD_TYPE);
     }
 
-    /* Only succeds for an incoming close_notify alert */
+    /* Only succeeds for an incoming close_notify alert */
     GUARD(s2n_process_alert_fragment(conn));
 
     *blocked = S2N_NOT_BLOCKED;

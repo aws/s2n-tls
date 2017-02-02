@@ -56,7 +56,7 @@ struct s2n_handshake {
 
 
     /* Handshake type is a bitset, with the following
-       bit posiions */
+       bit positions */
     int handshake_type;
 
 /* Has the handshake been negotiated yet? */
@@ -80,7 +80,7 @@ struct s2n_handshake {
     /* Which handshake message number are we processing */
     int message_number;
 
-    /* Set to 1 if the RSA verificiation failed */
+    /* Set to 1 if the RSA verification failed */
     uint8_t rsa_failed;
 };
 

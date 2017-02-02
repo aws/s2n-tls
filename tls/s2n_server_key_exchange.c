@@ -28,7 +28,7 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
 
-/* Table to translate from s2n algorthim numbers to TLS numbers */
+/* Table to translate from s2n algorithm numbers to TLS numbers */
 static uint8_t s2n_hash_alg_to_tls[] = {
     [S2N_HASH_MD5] = TLS_HASH_ALGORITHM_MD5,
     [S2N_HASH_SHA1] = TLS_HASH_ALGORITHM_SHA1,

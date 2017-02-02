@@ -142,7 +142,8 @@ int s2n_record_parse(struct s2n_connection *conn)
     notnull_check(en.data);
 
     uint16_t payload_length = encrypted_length;
-    int mac_digest_size = s2n_hmac_digest_size(mac->alg);
+    uint8_t mac_digest_size;
+    GUARD(s2n_hmac_digest_size(mac->alg, &mac_digest_size));
 
     gte_check(mac_digest_size, 0);
     gte_check(payload_length, mac_digest_size);

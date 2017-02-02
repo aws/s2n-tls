@@ -27,7 +27,7 @@ static s2n_hash_algorithm s2n_hash_tls_to_alg[] = {
     [TLS_HASH_ALGORITHM_SHA384] = S2N_HASH_SHA384,
     [TLS_HASH_ALGORITHM_SHA512] = S2N_HASH_SHA512 };
 
-/* Our own order of preferense for signature hashes. No MD5 to avoid
+/* Our own order of preference for signature hashes. No MD5 to avoid
  * SLOTH.
  */
 static uint8_t  s2n_preferred_hashes[] = {

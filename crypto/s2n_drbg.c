@@ -115,7 +115,7 @@ int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization
     uint8_t ps_prefix[32];
     struct s2n_blob ps = {.data = ps_prefix,.size = sizeof(ps_prefix) };
 
-    /* Start off with zerod data, per 10.2.1.3.1 item 4 */
+    /* Start off with zeroed data, per 10.2.1.3.1 item 4 */
     GUARD(s2n_blob_zero(&value));
 
     drbg->ctx = EVP_CIPHER_CTX_new();
@@ -124,7 +124,7 @@ int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization
     }
     (void)EVP_CIPHER_CTX_init(drbg->ctx);
 
-    /* Start off with zerod key, per 10.2.1.3.1 item 5 */
+    /* Start off with zeroed key, per 10.2.1.3.1 item 5 */
     if (EVP_EncryptInit_ex(drbg->ctx, EVP_aes_128_ecb(), NULL, drbg->v, NULL) != 1) {
         S2N_ERROR(S2N_ERR_DRBG);
     }

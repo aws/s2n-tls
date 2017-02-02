@@ -25,16 +25,32 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 
-int s2n_hmac_digest_size(s2n_hmac_algorithm alg)
+int s2n_hmac_hash_alg(s2n_hmac_algorithm hmac_alg, s2n_hash_algorithm *out)
 {
-    if (alg == S2N_HMAC_SSLv3_MD5) {
-        alg = S2N_HMAC_MD5;
+    switch(hmac_alg) {
+    case S2N_HMAC_NONE:       *out = S2N_HASH_NONE;   break;
+    case S2N_HMAC_MD5:        *out = S2N_HASH_MD5;    break;
+    case S2N_HMAC_SHA1:       *out = S2N_HASH_SHA1;   break;
+    case S2N_HMAC_SHA224:     *out = S2N_HASH_SHA224; break;
+    case S2N_HMAC_SHA256:     *out = S2N_HASH_SHA256; break;
+    case S2N_HMAC_SHA384:     *out = S2N_HASH_SHA384; break;
+    case S2N_HMAC_SHA512:     *out = S2N_HASH_SHA512; break;
+    case S2N_HMAC_SSLv3_MD5:  *out = S2N_HASH_MD5;    break;
+    case S2N_HMAC_SSLv3_SHA1: *out = S2N_HASH_SHA1;   break;
+    default:
+        S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
     }
-    if (alg == S2N_HMAC_SSLv3_SHA1) {
-        alg = S2N_HMAC_SHA1;
-    }
+    return 0;
+}
 
-    return s2n_hash_digest_size((s2n_hash_algorithm) alg);
+
+
+int s2n_hmac_digest_size(s2n_hmac_algorithm hmac_alg, uint8_t *out)
+{
+    s2n_hash_algorithm hash_alg;
+    GUARD(s2n_hmac_hash_alg(hmac_alg, &hash_alg));
+    GUARD(s2n_hash_digest_size(hash_alg, out));
+    return 0;
 }
 
 static int s2n_sslv3_mac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
@@ -81,54 +97,51 @@ static int s2n_sslv3_mac_digest(struct s2n_hmac_state *state, void *out, uint32_
     return s2n_hash_digest(&state->inner, out, size);
 }
 
-int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
+int s2n_hmac_block_size(s2n_hmac_algorithm hmac_alg, uint16_t *block_size)
 {
-    s2n_hash_algorithm hash_alg = S2N_HASH_NONE;
-    state->currently_in_hash_block = 0;
-    state->digest_size = 0;
-    state->block_size = 64;
-    state->hash_block_size = 64;
-
-    switch (alg) {
-    case S2N_HMAC_NONE:
-        break;
-    case S2N_HMAC_SSLv3_MD5:
-        state->block_size = 48;
-        /* Fall through ... */
-    case S2N_HMAC_MD5:
-        hash_alg = S2N_HASH_MD5;
-        state->digest_size = MD5_DIGEST_LENGTH;
-        break;
-    case S2N_HMAC_SSLv3_SHA1:
-        state->block_size = 40;
-        /* Fall through ... */
-    case S2N_HMAC_SHA1:
-        hash_alg = S2N_HASH_SHA1;
-        state->digest_size = SHA_DIGEST_LENGTH;
-        break;
-    case S2N_HMAC_SHA224:
-        hash_alg = S2N_HASH_SHA224;
-        state->digest_size = SHA224_DIGEST_LENGTH;
-        break;
-    case S2N_HMAC_SHA256:
-        hash_alg = S2N_HASH_SHA256;
-        state->digest_size = SHA256_DIGEST_LENGTH;
-        break;
-    case S2N_HMAC_SHA384:
-        hash_alg = S2N_HASH_SHA384;
-        state->digest_size = SHA384_DIGEST_LENGTH;
-        state->block_size = 128;
-        state->hash_block_size = 128;
-        break;
-    case S2N_HMAC_SHA512:
-        hash_alg = S2N_HASH_SHA512;
-        state->digest_size = SHA512_DIGEST_LENGTH;
-        state->block_size = 128;
-        state->hash_block_size = 128;
-        break;
+    switch(hmac_alg) {
+    case S2N_HMAC_NONE:       *block_size = 64;   break;
+    case S2N_HMAC_MD5:        *block_size = 64;   break;
+    case S2N_HMAC_SHA1:       *block_size = 64;   break;
+    case S2N_HMAC_SHA224:     *block_size = 64;   break;
+    case S2N_HMAC_SHA256:     *block_size = 64;   break;
+    case S2N_HMAC_SHA384:     *block_size = 128;  break;
+    case S2N_HMAC_SHA512:     *block_size = 128;  break;
+    case S2N_HMAC_SSLv3_MD5:  *block_size = 48;   break;
+    case S2N_HMAC_SSLv3_SHA1: *block_size = 40;   break;
     default:
         S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
     }
+    return 0;
+}
+
+int s2n_hmac_hash_block_size(s2n_hmac_algorithm hmac_alg, uint16_t *block_size)
+{
+    switch(hmac_alg) {
+    case S2N_HMAC_NONE:       *block_size = 64;   break;
+    case S2N_HMAC_MD5:        *block_size = 64;   break;
+    case S2N_HMAC_SHA1:       *block_size = 64;   break;
+    case S2N_HMAC_SHA224:     *block_size = 64;   break;
+    case S2N_HMAC_SHA256:     *block_size = 64;   break;
+    case S2N_HMAC_SHA384:     *block_size = 128;  break;
+    case S2N_HMAC_SHA512:     *block_size = 128;  break;
+    case S2N_HMAC_SSLv3_MD5:  *block_size = 64;   break;
+    case S2N_HMAC_SSLv3_SHA1: *block_size = 64;   break;
+    default:
+        S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
+    }
+    return 0;
+}
+
+int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
+{
+    s2n_hash_algorithm hash_alg;
+    state->currently_in_hash_block = 0;
+
+    GUARD(s2n_hmac_hash_alg(alg, &hash_alg));
+    GUARD(s2n_hmac_digest_size(alg, &state->digest_size));
+    GUARD(s2n_hmac_block_size(alg, &state->block_size));
+    GUARD(s2n_hmac_hash_block_size(alg, &state->hash_block_size));
 
     gte_check(sizeof(state->xor_pad), state->block_size);
     gte_check(sizeof(state->digest_pad), state->digest_size);

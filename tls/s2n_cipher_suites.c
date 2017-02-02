@@ -420,7 +420,7 @@ int s2n_cipher_suites_init(void)
 
         /* Find the highest priority supported record algorithm */
         for (int j = 0; j < cur_suite->num_record_algs; j++) {
-            /* Can we use the record algorithm's cipher? Won't be available if the system CPU architechure
+            /* Can we use the record algorithm's cipher? Won't be available if the system CPU architecture
              * doesn't support it or if the libcrypto lacks the feature. All hmac_algs are supported.
              */
             if (cur_suite->all_record_algs[j]->cipher->is_available()) {
