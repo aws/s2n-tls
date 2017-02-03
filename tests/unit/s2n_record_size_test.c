@@ -63,13 +63,13 @@ int main(int argc, char **argv)
      */
     int small_aligned_payload = S2N_SMALL_FRAGMENT_LENGTH - (S2N_SMALL_FRAGMENT_LENGTH % 16) - 20 - 16 - 1;
     int large_aligned_payload = S2N_LARGE_FRAGMENT_LENGTH - (S2N_LARGE_FRAGMENT_LENGTH % 16) - 20 - 16 - 1;
-
+    int medium_aligned_payload = S2N_DEFAULT_FRAGMENT_LENGTH - (S2N_DEFAULT_FRAGMENT_LENGTH % 16) - 20 - 16 - 1;
     int bytes_written;
 
-    /* Check the default: small record */
+    /* Check the default: medium records */
     EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
     EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &r));
-    EXPECT_EQUAL(bytes_written, small_aligned_payload);
+    EXPECT_EQUAL(bytes_written, medium_aligned_payload);
 
     /* Check explicitly small records */
     EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));

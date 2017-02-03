@@ -35,7 +35,7 @@
 int main(int argc, char **argv)
 {
     struct s2n_connection *conn;
-    uint8_t random_data[S2N_SMALL_FRAGMENT_LENGTH + 1];
+    uint8_t random_data[S2N_DEFAULT_FRAGMENT_LENGTH + 1];
     uint8_t mac_key_sha[20] = "server key shaserve";
     uint8_t mac_key_sha256[32] = "server key sha256server key sha";
     uint8_t aes128_key[] = "123456789012345";
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
     conn->server = &conn->initial;
     conn->client = &conn->initial;
 
-    int max_aligned_fragment = S2N_SMALL_FRAGMENT_LENGTH - (S2N_SMALL_FRAGMENT_LENGTH % 16);
+    int max_aligned_fragment = S2N_DEFAULT_FRAGMENT_LENGTH - (S2N_DEFAULT_FRAGMENT_LENGTH % 16);
     uint8_t proto_versions[3] = { S2N_TLS10, S2N_TLS11, S2N_TLS12 };
 
     /* test the composite AES128_SHA1 cipher  */

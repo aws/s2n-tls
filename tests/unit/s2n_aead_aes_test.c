@@ -44,7 +44,7 @@ static int setup_server_keys(struct s2n_connection *server_conn, struct s2n_blob
 int main(int argc, char **argv)
 {
     struct s2n_connection *conn;
-    uint8_t random_data[S2N_SMALL_FRAGMENT_LENGTH + 1];
+    uint8_t random_data[S2N_DEFAULT_FRAGMENT_LENGTH + 1];
     uint8_t aes128_key[] = "123456789012345";
     uint8_t aes256_key[] = "1234567890123456789012345678901";
     struct s2n_blob aes128 = {.data = aes128_key,.size = sizeof(aes128_key) };
@@ -64,7 +64,7 @@ int main(int argc, char **argv)
     conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
     EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
 
-    int max_fragment = S2N_SMALL_FRAGMENT_LENGTH;
+    int max_fragment = S2N_DEFAULT_FRAGMENT_LENGTH;
     for (int i = 0; i < max_fragment; i++) {
         struct s2n_blob in = {.data = random_data,.size = i };
         int bytes_written;
