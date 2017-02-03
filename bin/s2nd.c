@@ -13,10 +13,11 @@
  * permissions and limitations under the License.
  */
 
+#include <netinet/tcp.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
-#include <sys/poll.h>
+#include <poll.h>
 #include <netdb.h>
 
 #include <stdlib.h>
@@ -49,9 +50,7 @@ static char certificate[] =
     "WbyxPJNtSlA9GfKBz1INR5cFsOL27VrBoMYHMaolveeslc1AW2HfBtXWXeWSEF7F\n"
     "QNgye8ZDPNzeSWSI0VyK2762wsTgTuUhHAaJ45660eX57+e8IvaM7xOEfBPDKYtU\n"
     "0a28ZuhvSr2akJtGCwcs2J6rs6I+rV84UktDxFC9LUezBo8D9FkMPLoPKKNH1dXR\n"
-    "6LO8GOkqWUrhPIEmfy9KYes3q2ZX6svk4rwBtommHRv30kPxnnU1YXt52Ri+XczO\n"
-    "wEs=\n"
-    "-----END CERTIFICATE-----\n";
+    "6LO8GOkqWUrhPIEmfy9KYes3q2ZX6svk4rwBtommHRv30kPxnnU1YXt52Ri+XczO\n" "wEs=\n" "-----END CERTIFICATE-----\n";
 
 static char private_key[] =
     "-----BEGIN RSA PRIVATE KEY-----\n"
@@ -78,9 +77,7 @@ static char private_key[] =
     "pRsovQKpiHQNgHizkwM861GqqrfisZZSyKfFlcynkACoVmyu7fv9VoD2VCMiqdUq\n"
     "IvjNmfE5RnXVQwja+668AS+MHi+GF77DTFBxoC5VHDAnXfLyIL9WWh9GEBoNLnKT\n"
     "hVm8RQKBgQCB9Skzdftc+14a4Vj3NCgdHZHz9mcdPhzJXUiQyZ3tYhaytX9E8mWq\n"
-    "pm/OFqahbxw6EQd86mgANBMKayD6B1Id1INqtXN1XYI50bSs1D2nOGsBM7MK9aWD\n"
-    "JXlJ2hwsIc4q9En/LR3GtBaL84xTHGfznNylNhXi7GbO1wNMJuAukA==\n"
-    "-----END RSA PRIVATE KEY-----\n";
+    "pm/OFqahbxw6EQd86mgANBMKayD6B1Id1INqtXN1XYI50bSs1D2nOGsBM7MK9aWD\n" "JXlJ2hwsIc4q9En/LR3GtBaL84xTHGfznNylNhXi7GbO1wNMJuAukA==\n" "-----END RSA PRIVATE KEY-----\n";
 
 static char dhparams[] =
     "-----BEGIN DH PARAMETERS-----\n"
@@ -88,9 +85,99 @@ static char dhparams[] =
     "Bbn6k0FQ7yMED6w5XWQKDC0z2m0FI/BPE3AjUfuPzEYGqTDf9zQZ2Lz4oAN90Sud\n"
     "luOoEhYR99cEbCn0T4eBvEf9IUtczXUZ/wj7gzGbGG07dLfT+CmCRJxCjhrosenJ\n"
     "gzucyS7jt1bobgU66JKkgMNm7hJY4/nhR5LWTCzZyzYQh2HM2Vk4K5ZqILpj/n0S\n"
-    "5JYTQ2PVhxP+Uu8+hICs/8VvM72DznjPZzufADipjC7CsQ4S6x/ecZluFtbb+ZTv\n"
-    "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n"
-    "-----END DH PARAMETERS-----\n";
+    "5JYTQ2PVhxP+Uu8+hICs/8VvM72DznjPZzufADipjC7CsQ4S6x/ecZluFtbb+ZTv\n" "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n" "-----END DH PARAMETERS-----\n";
+
+#define MAX_KEY_LEN 32
+#define MAX_VAL_LEN 255
+
+struct session_cache_entry {
+    uint8_t key[MAX_KEY_LEN];
+    uint8_t key_len;
+    uint8_t value[MAX_VAL_LEN];
+    uint8_t value_len;
+};
+
+struct session_cache_entry session_cache[256];
+
+int cache_store(void *ctx, uint64_t ttl, const void *key, uint64_t key_size, const void *value, uint64_t value_size)
+{
+    struct session_cache_entry *cache = ctx;
+
+    if (key_size == 0 || key_size > MAX_KEY_LEN) {
+        return -1;
+    }
+    if (value_size == 0 || value_size > MAX_VAL_LEN) {
+        return -1;
+    }
+
+    uint8_t index = ((const uint8_t *)key)[0];
+
+    memcpy(cache[index].key, key, key_size);
+    memcpy(cache[index].value, value, value_size);
+
+    cache[index].key_len = key_size;
+    cache[index].value_len = value_size;
+
+    return 0;
+}
+
+int cache_retrieve(void *ctx, const void *key, uint64_t key_size, void *value, uint64_t * value_size)
+{
+    struct session_cache_entry *cache = ctx;
+
+    if (key_size == 0 || key_size > MAX_KEY_LEN) {
+        return -1;
+    }
+
+    uint8_t index = ((const uint8_t *)key)[0];
+
+    if (cache[index].key_len != key_size) {
+        return -1;
+    }
+
+    if (memcmp(cache[index].key, key, key_size)) {
+        return -1;
+    }
+
+    if (*value_size < cache[index].value_len) {
+        return -1;
+    }
+
+    *value_size = cache[index].value_len;
+    memcpy(value, cache[index].value, cache[index].value_len);
+
+    printf("Resumed session ");
+    for (int i = 0; i < key_size; i++) {
+        printf("%02x", ((const uint8_t *)key)[i]);
+    }
+    printf("\n");
+
+    return 0;
+}
+
+int cache_delete(void *ctx, const void *key, uint64_t key_size)
+{
+    struct session_cache_entry *cache = ctx;
+
+    if (key_size == 0 || key_size > MAX_KEY_LEN) {
+        return -1;
+    }
+
+    uint8_t index = ((const uint8_t *)key)[0];
+
+    if (cache[index].key_len != key_size) {
+        return -1;
+    }
+
+    if (memcmp(cache[index].key, key, key_size)) {
+        return -1;
+    }
+
+    cache[index].key_len = 0;
+    cache[index].value_len = 0;
+
+    return 0;
+}
 
 extern int echo(struct s2n_connection *conn, int sockfd);
 extern int negotiate(struct s2n_connection *conn);
@@ -103,7 +190,7 @@ void usage()
     fprintf(stderr, "\n Options:\n\n");
     fprintf(stderr, "  -c [version_string]\n");
     fprintf(stderr, "  --ciphers [version_string]\n");
-    fprintf(stderr, "    Set the cipher prefence version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
+    fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
     fprintf(stderr, "  -n\n");
     fprintf(stderr, "  --negotiate\n");
     fprintf(stderr, "    Only perform tls handshake and then shutdown the connection\n");
@@ -113,11 +200,10 @@ void usage()
     exit(1);
 }
 
-int main(int argc, char * const *argv)
+int main(int argc, char *const *argv)
 {
     struct addrinfo hints, *ai;
     int r, sockfd = 0;
-
 
     /* required args */
     const char *host = NULL;
@@ -127,29 +213,29 @@ int main(int argc, char * const *argv)
     int only_negotiate = 0;
 
     static struct option long_options[] = {
-        { "help", no_argument, 0, 'h' },
-        { "ciphers", required_argument, 0, 'c' },
+        {"help", no_argument, 0, 'h'},
+        {"ciphers", required_argument, 0, 'c'},
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long (argc, argv, "c:hn", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hn", long_options, &option_index);
         if (c == -1) {
             break;
         }
         switch (c) {
-            case 'c':
-                cipher_prefs = optarg;
-                break;
-            case 'h':
-                usage();
-                break;
-            case 'n':
-                only_negotiate = 1;
-                break;
-            case '?':
-            default:
-                usage();
-                break;
+        case 'c':
+            cipher_prefs = optarg;
+            break;
+        case 'h':
+            usage();
+            break;
+        case 'n':
+            only_negotiate = 1;
+            break;
+        case '?':
+        default:
+            usage();
+            break;
         }
     }
 
@@ -234,6 +320,21 @@ int main(int argc, char * const *argv)
 
     if (s2n_config_set_cipher_preferences(config, cipher_prefs) < 0) {
         fprintf(stderr, "Error setting cipher prefs: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        exit(1);
+    }
+
+    if (s2n_config_set_cache_store_callback(config, cache_store, session_cache) < 0) {
+        fprintf(stderr, "Error setting cache store callback: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        exit(1);
+    }
+
+    if (s2n_config_set_cache_retrieve_callback(config, cache_retrieve, session_cache) < 0) {
+        fprintf(stderr, "Error setting cache retrieve callback: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        exit(1);
+    }
+
+    if (s2n_config_set_cache_delete_callback(config, cache_delete, session_cache) < 0) {
+        fprintf(stderr, "Error setting cache retrieve callback: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
     }
 

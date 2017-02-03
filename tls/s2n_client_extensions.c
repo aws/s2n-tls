@@ -18,6 +18,7 @@
 
 #include "error/s2n_errno.h"
 
+#include "tls/s2n_tls_digest_preferences.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_connection.h"
 
@@ -32,6 +33,7 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
 static int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_elliptic_curves(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_ec_point_formats(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
@@ -39,7 +41,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 
     /* Signature algorithms */
     if (conn->actual_protocol_version == S2N_TLS12) {
-        total_size += 8;
+        total_size += (sizeof(s2n_preferred_hashes) * 2) + 6;
     }
 
     uint16_t application_protocols_len = conn->config->application_protocols.size;
@@ -64,12 +66,18 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     if (conn->actual_protocol_version == S2N_TLS12) {
         /* The extension header */
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SIGNATURE_ALGORITHMS));
-        GUARD(s2n_stuffer_write_uint16(out, 4));
 
-        /* Just one signature/hash pair, so 2 bytes */
-        GUARD(s2n_stuffer_write_uint16(out, 2));
-        GUARD(s2n_stuffer_write_uint8(out, TLS_HASH_ALGORITHM_SHA1));
-        GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_RSA));
+        /* Each hash-signature-alg pair is two bytes, and there's another two bytes for
+         * the extension length field.
+         */
+        GUARD(s2n_stuffer_write_uint16(out, (sizeof(s2n_preferred_hashes) * 2) + 2));
+
+        /* The array of hashes and signature algorithms we support */
+        GUARD(s2n_stuffer_write_uint16(out, sizeof(s2n_preferred_hashes) * 2));
+        for (int i =  0; i < sizeof(s2n_preferred_hashes); i++) {
+            GUARD(s2n_stuffer_write_uint8(out, s2n_preferred_hashes[i]));
+            GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_RSA));
+        }
     }
 
     if (server_name_len) {
@@ -103,7 +111,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         eq_check(conn->config->status_request_type, S2N_STATUS_REQUEST_OCSP);
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_STATUS_REQUEST));
         GUARD(s2n_stuffer_write_uint16(out, 5));
-        GUARD(s2n_stuffer_write_uint8(out, (uint8_t)conn->config->status_request_type));
+        GUARD(s2n_stuffer_write_uint8(out, (uint8_t) conn->config->status_request_type));
         GUARD(s2n_stuffer_write_uint16(out, 0));
         GUARD(s2n_stuffer_write_uint16(out, 0));
     }
@@ -175,7 +183,10 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
         case TLS_EXTENSION_EC_POINT_FORMATS:
             GUARD(s2n_recv_client_ec_point_formats(conn, &extension));
             break;
-       }
+        case TLS_EXTENSION_RENEGOTIATION_INFO:
+            GUARD(s2n_recv_client_renegotiation_info(conn, &extension));
+            break;
+        }
     }
 
     return 0;
@@ -220,6 +231,7 @@ static int s2n_recv_client_server_name(struct s2n_connection *conn, struct s2n_s
 
 static int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
+    int chosen = sizeof(s2n_preferred_hashes);
     uint16_t length_of_all_pairs;
     GUARD(s2n_stuffer_read_uint16(extension, &length_of_all_pairs));
     if (length_of_all_pairs > s2n_stuffer_data_available(extension)) {
@@ -239,10 +251,32 @@ static int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, str
         GUARD(s2n_stuffer_read_uint8(extension, &hash_alg));
         GUARD(s2n_stuffer_read_uint8(extension, &sig_alg));
 
-        if (hash_alg == TLS_HASH_ALGORITHM_SHA1 && sig_alg == TLS_SIGNATURE_ALGORITHM_RSA) {
-            /* Supported pair found, return success */
-            return 0;
+        /* We only support RSA for now */
+        if (sig_alg != TLS_SIGNATURE_ALGORITHM_RSA) {
+            continue;
         }
+
+        /* Chosen starts out high, at the size of the preferred_hashes. We
+         * always search backwards from chosen, so can only move to an algorithm
+         * with a higher preference.
+         */
+        for (int i = chosen - 1; i >= 0; i--) {
+            if (s2n_preferred_hashes[i] != hash_alg) {
+                continue;
+            }
+
+            chosen = i;
+
+            if (i == 0) {
+                break;
+            }
+        }
+    }
+
+    /* Did we chose a hash algorithm ? */
+    if (chosen < sizeof(s2n_preferred_hashes)) {
+        conn->secure.signature_digest_alg = s2n_hash_tls_to_alg[ s2n_preferred_hashes[chosen] ];
+        return 0;
     }
 
     /* No supported signature algorithms, fail the handshake */
@@ -286,7 +320,6 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
 
         while (s2n_stuffer_data_available(&client_protos)) {
             uint8_t client_length;
-            uint8_t client_protocol[255];
             GUARD(s2n_stuffer_read_uint8(&client_protos, &client_length));
             if (client_length > s2n_stuffer_data_available(&client_protos)) {
                 S2N_ERROR(S2N_ERR_BAD_MESSAGE);
@@ -294,6 +327,7 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
             if (client_length != length) {
                 GUARD(s2n_stuffer_skip_read(&client_protos, client_length));
             } else {
+                uint8_t client_protocol[255];
                 GUARD(s2n_stuffer_read_bytes(&client_protos, client_protocol, client_length));
                 if (memcmp(client_protocol, protocol, client_length) == 0) {
                     memcpy_check(conn->application_protocol, client_protocol, client_length);
@@ -319,11 +353,11 @@ static int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2
     }
     uint8_t type;
     GUARD(s2n_stuffer_read_uint8(extension, &type));
-    if (type != (uint8_t)S2N_STATUS_REQUEST_OCSP) {
+    if (type != (uint8_t) S2N_STATUS_REQUEST_OCSP) {
         /* We only support OCSP (type 1), ignore the extension */
         return 0;
     }
-    conn->status_type = (s2n_status_request_type)type;
+    conn->status_type = (s2n_status_request_type) type;
     return 0;
 }
 
@@ -342,9 +376,9 @@ static int s2n_recv_client_elliptic_curves(struct s2n_connection *conn, struct s
     proposed_curves.data = s2n_stuffer_raw_read(extension, proposed_curves.size);
     notnull_check(proposed_curves.data);
 
-    if (s2n_ecc_find_supported_curve(&proposed_curves, &conn->pending.server_ecc_params.negotiated_curve) != 0) {
-        /* Can't agree on a curve, ECC is not allowed. Return success to proceed with the handhsake. */
-        conn->pending.server_ecc_params.negotiated_curve = NULL;
+    if (s2n_ecc_find_supported_curve(&proposed_curves, &conn->secure.server_ecc_params.negotiated_curve) != 0) {
+        /* Can't agree on a curve, ECC is not allowed. Return success to proceed with the handshake. */
+        conn->secure.server_ecc_params.negotiated_curve = NULL;
     }
     return 0;
 }
@@ -355,5 +389,18 @@ static int s2n_recv_client_ec_point_formats(struct s2n_connection *conn, struct 
      * Only uncompressed points are supported by the server and the client must include it in
      * the extension. Just skip the extension.
      */
+    return 0;
+}
+
+static int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    /* RFC5746 Section 3.2: The renegotiated_connection field is of zero length for the initial handshake. */
+    uint8_t renegotiated_connection_len;
+    GUARD(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
+    if (s2n_stuffer_data_available(extension) || renegotiated_connection_len) {
+        S2N_ERROR(S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
+    }
+
+    conn->secure_renegotiation = 1;
     return 0;
 }

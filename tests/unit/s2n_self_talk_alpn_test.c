@@ -109,6 +109,10 @@ int mock_client(int writefd, int readfd, const char **protocols, int count, cons
     sleep(1);
 
     conn = s2n_connection_new(S2N_CLIENT);
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
+
     config = s2n_config_new();
     s2n_config_set_protocol_preferences(config, protocols, count);
     s2n_connection_set_config(conn, config);
@@ -194,6 +198,10 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(server_to_client[0]));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
+
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
     /* Set up the connection to read from the fd */
@@ -208,10 +216,10 @@ int main(int argc, char **argv)
 
     for (int i = 1; i < 0xffff; i += 100) {
         char * ptr = buffer;
-        int bytes_read = 0;
         int size = i;
 
         do {
+            int bytes_read = 0;
             EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &blocked));
 
             size -= bytes_read;
@@ -243,7 +251,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(close(server_to_client[1]));
 
         /* Clients ALPN preferences match our preferences, so we pick the
-         * most preffered server one */
+         * most preferred server one */
         mock_client(client_to_server[1], server_to_client[0], protocols, 2, protocols[0]);
     }
 
@@ -252,6 +260,9 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(server_to_client[0]));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
     /* Set up the connection to read from the fd */
@@ -261,15 +272,15 @@ int main(int argc, char **argv)
     /* Negotiate the handshake. */
     EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
 
-    /* Expect our most prefered negotiated protocol */
+    /* Expect our most preferred negotiated protocol */
     EXPECT_STRING_EQUAL(s2n_get_application_protocol(conn), protocols[0]);
 
     for (int i = 1; i < 0xffff; i += 100) {
         char * ptr = buffer;
-        int bytes_read = 0;
         int size = i;
 
         do {
+            int bytes_read = 0;
             EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &blocked));
 
             size -= bytes_read;
@@ -288,7 +299,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
     EXPECT_EQUAL(status, 0);
 
-    /* Test a lower prefered matching ALPN request */
+    /* Test a lower preferred matching ALPN request */
     /* Create a pipe */
     EXPECT_SUCCESS(pipe(server_to_client));
     EXPECT_SUCCESS(pipe(client_to_server));
@@ -309,6 +320,9 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(server_to_client[0]));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
     /* Set up the connection to read from the fd */
@@ -321,10 +335,10 @@ int main(int argc, char **argv)
 
     for (int i = 1; i < 0xffff; i += 100) {
         char * ptr = buffer;
-        int bytes_read = 0;
         int size = i;
 
         do {
+            int bytes_read = 0;
             EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &blocked));
 
             size -= bytes_read;
@@ -336,7 +350,7 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Expect our least prefered negotiated protocol */
+    /* Expect our least preferred negotiated protocol */
     EXPECT_STRING_EQUAL(s2n_get_application_protocol(conn), protocols[1]);
 
     EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
@@ -372,6 +386,9 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(server_to_client[0]));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
     /* Set up the connection to read from the fd */

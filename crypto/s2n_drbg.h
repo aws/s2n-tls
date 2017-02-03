@@ -22,30 +22,27 @@
 
 #define S2N_DRBG_BLOCK_SIZE     16
 
-/* We reseed after 2^35 bytes have been generated: from NIST SP800-90A 10.2.1 Table 3 */
-#define S2N_DRBG_RESEED_LIMIT   34359738368
-
 /* The maximum size of any one request: from NIST SP800-90A 10.2.1 Table 3 */
 #define S2N_DRBG_GENERATE_LIMIT 8192
 
+/* We reseed after 2^35 bytes have been generated: from NIST SP800-90A 10.2.1 Table 3 */
+#define S2N_DRBG_RESEED_LIMIT   34359738368
+
 struct s2n_drbg {
-    EVP_CIPHER_CTX ctx;
+    /* Track how many bytes have been used */
+    uint64_t bytes_used;
+    
+    EVP_CIPHER_CTX *ctx;
 
     /* The current DRBG 'value' */
     uint8_t v[16];
-
-    /* First 32 bytes of the personalization string used */
-    uint8_t ps[32];
-
-    /* Track how many bytes have been used */
-    uint64_t bytes_used;
 
     /* Function pointer to the entropy generating function. If it's NULL, then
      * s2n_get_urandom_data() will be used. This function pointer is intended
      * ONLY for the s2n_drbg_test case to use, so that known entropy data can
      * fed to the DRBG test vectors.
      */
-    int (*entropy_generator)(struct s2n_blob *);
+    int (*entropy_generator) (struct s2n_blob *);
 
     /* Also used only by the unit tests: which generation of the DRBG is this.
      * This number is incremented every time we reseed.
@@ -55,7 +52,7 @@ struct s2n_drbg {
 
 /* Per NIST SP 800-90C 6.3
  *
- * s2n's DRBG does not provide prediction resistance (the internal state must be kept secret),
+ * s2n's DRBG does provide prediction resistance
  * and does not support the additional_input parameter (which per 800-90C may be zero).
  *
   * The security strength provided by s2n's DRBG is fixed in size (128 bits).

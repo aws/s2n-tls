@@ -1,0 +1,21 @@
+valid_block_sizes : [16] -> [16] -> Bit
+valid_block_sizes hbs bs =
+  // We're not handling SSLv3 yet.
+  //((bs, hbs) == (40, 64)) ||
+  //((bs, hbs) == (48, 64)) ||
+  ((bs, hbs) == (64, 64)) ||
+  ((bs, hbs) == (128, 128))
+
+modthm : [32] -> [32] -> [32] -> [16] -> [16] -> Bit
+modthm x11 x15 x16 hash_block_size block_size =
+  ((((x11 + (x16 % x17)) % x18) + (x15 % x17)) % x18)
+  ==
+  ((x11 + ((x16 + x15) % x17)) % x18)
+  where x17 = zero # hash_block_size
+        x18 = zero # block_size
+
+modthm_precond : [32] -> [32] -> [32] -> [16] -> [16] -> Bit
+modthm_precond x11 x15 x16 hash_block_size block_size =
+  if (valid_block_sizes hash_block_size block_size) then
+    modthm x11 x15 x16 hash_block_size block_size
+  else True

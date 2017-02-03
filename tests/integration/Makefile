@@ -18,11 +18,15 @@ S2ND_HOST=127.0.0.1
 
 .PHONY : all
 all:
-	# Run our handshake test
+	# Run s_client handshake tests
 	( \
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
-	python3 s2n_handshake_test.py $(S2ND_HOST) $(S2ND_PORT); \
-	STATUS=$$?; \
-	exit $$STATUS \
+	python3 s2n_handshake_test_s_client.py $(S2ND_HOST) $(S2ND_PORT); \
+    )
+	# Run gnutls handshake tests
+	( \
+	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLID_LIBRARY_PATH" \
+	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
+	python3 s2n_handshake_test_gnutls.py $(S2ND_HOST) $(S2ND_PORT); \
 	)

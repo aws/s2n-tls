@@ -21,6 +21,7 @@
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
+#include "tls/s2n_resume.h"
 #include "tls/s2n_alerts.h"
 
 #include "utils/s2n_safety.h"
@@ -29,7 +30,7 @@
 #define S2N_TLS_ALERT_CLOSE_NOTIFY          0
 #define S2N_TLS_ALERT_UNEXPECTED_MSG        10
 #define S2N_TLS_ALERT_BAD_RECORD_MAC        20
-#define S2N_TLS_ALERT_DECRIPT_FAILED        21
+#define S2N_TLS_ALERT_DECRYPT_FAILED        21
 #define S2N_TLS_ALERT_RECORD_OVERFLOW       22
 #define S2N_TLS_ALERT_DECOMP_FAILED         30
 #define S2N_TLS_ALERT_HANDSHAKE_FAILED      40
@@ -81,6 +82,11 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
                 return 0;
             }
 
+            /* Expire any cached session on an error alert */
+            if (s2n_is_caching_enabled(conn->config) && conn->session_id_len) {
+                conn->config->cache_delete(conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
+            }
+
             /* All other alerts are treated as fatal errors (even warnings) */
             S2N_ERROR(S2N_ERR_ALERT);
         }
@@ -92,15 +98,15 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
 int s2n_queue_writer_close_alert_warning(struct s2n_connection *conn)
 {
     uint8_t alert[2];
+    alert[0] = S2N_TLS_ALERT_LEVEL_WARNING;
+    alert[1] = S2N_TLS_ALERT_CLOSE_NOTIFY;
+
     struct s2n_blob out = {.data = alert,.size = sizeof(alert) };
 
     /* If there is an alert pending or we've already sent a close_notify, do nothing */
     if (s2n_stuffer_data_available(&conn->writer_alert_out) || conn->close_notify_queued) {
         return 0;
     }
-
-    alert[0] = S2N_TLS_ALERT_LEVEL_WARNING;
-    alert[1] = S2N_TLS_ALERT_CLOSE_NOTIFY;
 
     GUARD(s2n_stuffer_write(&conn->writer_alert_out, &out));
     conn->close_notify_queued = 1;
@@ -111,15 +117,15 @@ int s2n_queue_writer_close_alert_warning(struct s2n_connection *conn)
 int s2n_queue_reader_unsupported_protocol_version_alert(struct s2n_connection *conn)
 {
     uint8_t alert[2];
+    alert[0] = S2N_TLS_ALERT_LEVEL_FATAL;
+    alert[1] = S2N_TLS_ALERT_PROTOCOL_VERSION;
+
     struct s2n_blob out = {.data = alert,.size = sizeof(alert) };
 
     /* If there is an alert pending, do nothing */
     if (s2n_stuffer_data_available(&conn->reader_alert_out)) {
         return 0;
     }
-
-    alert[0] = S2N_TLS_ALERT_LEVEL_FATAL;
-    alert[1] = S2N_TLS_ALERT_PROTOCOL_VERSION;
 
     GUARD(s2n_stuffer_write(&conn->reader_alert_out, &out));
 

@@ -28,16 +28,16 @@
 #define TLS_EC_CURVE_TYPE_NAMED 3
 
 const struct s2n_ecc_named_curve s2n_ecc_supported_curves[2] = {
-    { .iana_id = TLS_EC_CURVE_SECP_256_R1 , .libcrypto_nid = NID_X9_62_prime256v1 },
-    { .iana_id = TLS_EC_CURVE_SECP_384_R1 , .libcrypto_nid = NID_secp384r1 },
+    {.iana_id = TLS_EC_CURVE_SECP_256_R1,.libcrypto_nid = NID_X9_62_prime256v1},
+    {.iana_id = TLS_EC_CURVE_SECP_384_R1,.libcrypto_nid = NID_secp384r1},
 };
 
 static EC_KEY *s2n_ecc_generate_own_key(const struct s2n_ecc_named_curve *named_curve);
-static EC_POINT *s2n_ecc_blob_to_point(struct s2n_blob *blob, const EC_KEY *ec_key);
-static int s2n_ecc_calculate_point_length(const EC_POINT *point, const EC_GROUP *group, uint8_t *length);
-static int s2n_ecc_write_point_data_snug(const EC_POINT *point, const EC_GROUP *group, struct s2n_blob *out);
-static int s2n_ecc_write_point_with_length(const EC_POINT *point, const EC_GROUP *group, struct s2n_stuffer *out);
-static int s2n_ecc_compute_shared_secret(EC_KEY *own_key, const EC_POINT *peer_public, struct s2n_blob *shared_secret);
+static EC_POINT *s2n_ecc_blob_to_point(struct s2n_blob *blob, const EC_KEY * ec_key);
+static int s2n_ecc_calculate_point_length(const EC_POINT * point, const EC_GROUP * group, uint8_t * length);
+static int s2n_ecc_write_point_data_snug(const EC_POINT * point, const EC_GROUP * group, struct s2n_blob *out);
+static int s2n_ecc_write_point_with_length(const EC_POINT * point, const EC_GROUP * group, struct s2n_stuffer *out);
+static int s2n_ecc_compute_shared_secret(EC_KEY * own_key, const EC_POINT * peer_public, struct s2n_blob *shared_secret);
 
 int s2n_ecc_generate_ephemeral_key(struct s2n_ecc_params *server_ecc_params)
 {
@@ -95,6 +95,8 @@ int s2n_ecc_read_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2n
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
     curve_blob.data = s2n_stuffer_raw_read(in, 2);
+    notnull_check(curve_blob.data);
+
     curve_blob.size = 2;
     /* Verify that the client supports the server curve */
     if (s2n_ecc_find_supported_curve(&curve_blob, &server_ecc_params->negotiated_curve) != 0) {
@@ -201,7 +203,7 @@ static EC_KEY *s2n_ecc_generate_own_key(const struct s2n_ecc_named_curve *named_
     return key;
 }
 
-static EC_POINT *s2n_ecc_blob_to_point(struct s2n_blob *blob, const EC_KEY *ec_key)
+static EC_POINT *s2n_ecc_blob_to_point(struct s2n_blob *blob, const EC_KEY * ec_key)
 {
     const EC_GROUP *group = EC_KEY_get0_group(ec_key);
     EC_POINT *point = EC_POINT_new(group);
@@ -215,7 +217,7 @@ static EC_POINT *s2n_ecc_blob_to_point(struct s2n_blob *blob, const EC_KEY *ec_k
     return point;
 }
 
-static int s2n_ecc_calculate_point_length(const EC_POINT *point, const EC_GROUP *group, uint8_t *length)
+static int s2n_ecc_calculate_point_length(const EC_POINT * point, const EC_GROUP * group, uint8_t * length)
 {
     size_t ret = EC_POINT_point2oct(group, point, POINT_CONVERSION_UNCOMPRESSED, NULL, 0, NULL);
     if (ret == 0) {
@@ -228,7 +230,7 @@ static int s2n_ecc_calculate_point_length(const EC_POINT *point, const EC_GROUP 
     return 0;
 }
 
-static int s2n_ecc_write_point_data_snug(const EC_POINT *point, const EC_GROUP *group, struct s2n_blob *out)
+static int s2n_ecc_write_point_data_snug(const EC_POINT * point, const EC_GROUP * group, struct s2n_blob *out)
 {
     size_t ret = EC_POINT_point2oct(group, point, POINT_CONVERSION_UNCOMPRESSED, out->data, out->size, NULL);
     if (ret != out->size) {
@@ -237,7 +239,7 @@ static int s2n_ecc_write_point_data_snug(const EC_POINT *point, const EC_GROUP *
     return 0;
 }
 
-static int s2n_ecc_write_point_with_length(const EC_POINT *point, const EC_GROUP *group, struct s2n_stuffer *out)
+static int s2n_ecc_write_point_with_length(const EC_POINT * point, const EC_GROUP * group, struct s2n_stuffer *out)
 {
     uint8_t point_len;
     struct s2n_blob point_blob;
@@ -255,7 +257,7 @@ static int s2n_ecc_write_point_with_length(const EC_POINT *point, const EC_GROUP
     return 0;
 }
 
-static int s2n_ecc_compute_shared_secret(EC_KEY *own_key, const EC_POINT *peer_public, struct s2n_blob *shared_secret)
+static int s2n_ecc_compute_shared_secret(EC_KEY * own_key, const EC_POINT * peer_public, struct s2n_blob *shared_secret)
 {
     int field_degree;
     int shared_secret_size;
@@ -269,6 +271,7 @@ static int s2n_ecc_compute_shared_secret(EC_KEY *own_key, const EC_POINT *peer_p
     GUARD(s2n_alloc(shared_secret, shared_secret_size));
 
     if (ECDH_compute_key(shared_secret->data, shared_secret_size, peer_public, own_key, NULL) != shared_secret_size) {
+        GUARD(s2n_free(shared_secret));
         S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
     }
 
@@ -298,4 +301,3 @@ int s2n_ecc_find_supported_curve(struct s2n_blob *iana_ids, const struct s2n_ecc
     /* Nothing found */
     S2N_ERROR(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 }
-

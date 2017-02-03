@@ -22,6 +22,7 @@
 #include "stuffer/s2n_stuffer.h"
 
 #include "crypto/s2n_hash.h"
+#include "crypto/s2n_openssl.h"
 #include "crypto/s2n_rsa.h"
 
 #include "utils/s2n_random.h"
@@ -30,16 +31,18 @@
 
 int s2n_asn1der_to_rsa_public_key(struct s2n_rsa_public_key *key, struct s2n_blob *asn1der)
 {
-    uint8_t *original_ptr = asn1der->data;
-    X509 *cert = d2i_X509(NULL, (const unsigned char **)(void *)&asn1der->data, asn1der->size);
+    uint8_t *cert_to_parse = asn1der->data;
+    X509 *cert = d2i_X509(NULL, (const unsigned char **)(void *)&cert_to_parse, asn1der->size);
     if (cert == NULL) {
         S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
     }
-    if (asn1der->data - original_ptr != asn1der->size) {
+    /* If cert parsing is successful, d2i_X509 increments *cert_to_parse to the byte following the parsed data */
+    uint32_t parsed_len = cert_to_parse - asn1der->data;
+
+    if (parsed_len != asn1der->size) {
         X509_free(cert);
         S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
     }
-    asn1der->data = original_ptr;
 
     EVP_PKEY *public_key = X509_get_pubkey(cert);
     X509_free(cert);
@@ -48,7 +51,7 @@ int s2n_asn1der_to_rsa_public_key(struct s2n_rsa_public_key *key, struct s2n_blo
         S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
     }
 
-    if (public_key->type != EVP_PKEY_RSA) {
+    if (EVP_PKEY_base_id(public_key) != EVP_PKEY_RSA) {
         EVP_PKEY_free(public_key);
         S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
     }
@@ -66,21 +69,29 @@ int s2n_asn1der_to_rsa_public_key(struct s2n_rsa_public_key *key, struct s2n_blo
 
 int s2n_asn1der_to_rsa_private_key(struct s2n_rsa_private_key *key, struct s2n_blob *asn1der)
 {
-    uint8_t *original_ptr = asn1der->data;
+    uint8_t *cert_to_parse = asn1der->data;
 
-    EVP_PKEY *pkey = d2i_PrivateKey(EVP_PKEY_RSA, NULL, (const unsigned char **)(void *)&asn1der->data, asn1der->size);
+    EVP_PKEY *pkey = d2i_PrivateKey(EVP_PKEY_RSA, NULL, (const unsigned char **)(void *)&cert_to_parse, asn1der->size);
     if (pkey == NULL) {
         S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
     }
-    key->rsa = EVP_PKEY_get1_RSA(pkey);
+    RSA *rsa_key = EVP_PKEY_get1_RSA(pkey);
     EVP_PKEY_free(pkey);
-    if (key->rsa == NULL) {
+    if (rsa_key == NULL) {
         S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
     }
 
-    if (asn1der->data - original_ptr != asn1der->size) {
+    /* If cert parsing is successful, d2i_RSAPrivateKey increments *cert_to_parse to the byte following the parsed data */
+    uint32_t parsed_len = cert_to_parse - asn1der->data;
+    if (parsed_len != asn1der->size) {
         S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
     }
+
+    if (!RSA_check_key(rsa_key)) {
+        S2N_ERROR(S2N_ERR_PRIVATE_KEY_CHECK);
+    }
+
+    key->rsa = rsa_key;
 
     return 0;
 }
@@ -99,10 +110,24 @@ int s2n_rsa_private_key_free(struct s2n_rsa_private_key *key)
     return 0;
 }
 
+static int s2n_rsa_modulus_check(RSA *rsa)
+{
+    /* RSA was made opaque starting in Openssl 1.1.0 */
+    #if S2N_OPENSSL_VERSION_AT_LEAST(1,1,0) && !defined(LIBRESSL_VERSION_NUMBER)
+        const BIGNUM *n = NULL;
+        /* RSA still owns the memory for n */
+        RSA_get0_key(rsa, &n, NULL, NULL);
+        notnull_check(n);
+    #else
+        notnull_check(rsa->n);
+    #endif
+    return 0;
+}
+
 int s2n_rsa_public_encrypted_size(struct s2n_rsa_public_key *key)
 {
     notnull_check(key->rsa);
-    notnull_check(key->rsa->n);
+    GUARD(s2n_rsa_modulus_check(key->rsa));
 
     return RSA_size(key->rsa);
 }
@@ -110,30 +135,49 @@ int s2n_rsa_public_encrypted_size(struct s2n_rsa_public_key *key)
 int s2n_rsa_private_encrypted_size(struct s2n_rsa_private_key *key)
 {
     notnull_check(key->rsa);
-    notnull_check(key->rsa->n);
+    GUARD(s2n_rsa_modulus_check(key->rsa));
 
     return RSA_size(key->rsa);
 }
 
-int s2n_rsa_sign(struct s2n_rsa_private_key *key, struct s2n_hash_state *digest, struct s2n_blob *signature)
-{
-    uint8_t digest_out[MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH];
+static int s2n_hash_alg_to_NID[] = {
+    [S2N_HASH_MD5_SHA1] = NID_md5_sha1,
+    [S2N_HASH_SHA1]     = NID_sha1,
+    [S2N_HASH_SHA224]   = NID_sha224,
+    [S2N_HASH_SHA256]   = NID_sha256,
+    [S2N_HASH_SHA384]   = NID_sha384,
+    [S2N_HASH_SHA512]   = NID_sha512 };
 
-    int type, digest_length;
-    if (digest->alg == S2N_HASH_MD5_SHA1) {
-        type = NID_md5_sha1;
-        digest_length = MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH;
-    } else if (digest->alg == S2N_HASH_SHA1) {
-        type = NID_sha1;
-        digest_length = SHA_DIGEST_LENGTH;
-    } else {
+int s2n_hash_NID_type(s2n_hash_algorithm alg, int *out)
+{
+    switch(alg) {
+    case S2N_HASH_MD5_SHA1:
+    case S2N_HASH_SHA1:
+    case S2N_HASH_SHA224:
+    case S2N_HASH_SHA256:
+    case S2N_HASH_SHA384:
+    case S2N_HASH_SHA512:
+        *out = s2n_hash_alg_to_NID[alg];
+        break;
+    default:
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
+    return 0;
+}
 
+int s2n_rsa_sign(struct s2n_rsa_private_key *key, struct s2n_hash_state *digest, struct s2n_blob *signature)
+{
+    uint8_t digest_length;
+    int NID_type;
+    GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
+    GUARD(s2n_hash_NID_type(digest->alg, &NID_type));
+    lte_check(digest_length, MAX_DIGEST_LENGTH);
+
+    uint8_t digest_out[MAX_DIGEST_LENGTH];
     GUARD(s2n_hash_digest(digest, digest_out, digest_length));
 
     unsigned int signature_size = signature->size;
-    if (RSA_sign(type, digest_out, digest_length, signature->data, &signature_size, key->rsa) == 0) {
+    if (RSA_sign(NID_type, digest_out, digest_length, signature->data, &signature_size, key->rsa) == 0) {
         S2N_ERROR(S2N_ERR_SIGN);
     }
     if (signature_size > signature->size) {
@@ -146,22 +190,16 @@ int s2n_rsa_sign(struct s2n_rsa_private_key *key, struct s2n_hash_state *digest,
 
 int s2n_rsa_verify(struct s2n_rsa_public_key *key, struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
-    uint8_t digest_out[MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH];
+    uint8_t digest_length;
+    int NID_type;
+    GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
+    GUARD(s2n_hash_NID_type(digest->alg, &NID_type));
+    lte_check(digest_length, MAX_DIGEST_LENGTH);
 
-    int type, digest_length;
-    if (digest->alg == S2N_HASH_MD5_SHA1) {
-        type = NID_md5_sha1;
-        digest_length = MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH;
-    } else if (digest->alg == S2N_HASH_SHA1) {
-        type = NID_sha1;
-        digest_length = SHA_DIGEST_LENGTH;
-    } else {
-        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
-    }
-
+    uint8_t digest_out[MAX_DIGEST_LENGTH];
     GUARD(s2n_hash_digest(digest, digest_out, digest_length));
 
-    if (RSA_verify(type, digest_out, digest_length, signature->data, signature->size, key->rsa) == 0) {
+    if (RSA_verify(NID_type, digest_out, digest_length, signature->data, signature->size, key->rsa) == 0) {
         S2N_ERROR(S2N_ERR_VERIFY_SIGNATURE);
     }
 

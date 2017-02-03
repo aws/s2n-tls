@@ -21,11 +21,12 @@
 
 int main(int argc, char **argv)
 {
-    uint8_t entropy[2048];
+    uint8_t entropy[2048] = {0};
     struct s2n_stuffer stuffer;
     uint8_t u8;
     uint16_t u16;
     uint32_t u32;
+    uint64_t u64;
 
     BEGIN_TEST();
 
@@ -37,14 +38,14 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_stuffer_write(&stuffer, &in));
 
     /* Try to write 101 1-byte ints bytes */
-    for (int i = 0; i < 100; i++) {
+    for (uint64_t i = 0; i < 100; i++) {
         uint64_t value = i * (0xff / 100);
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, value));
     }
     EXPECT_FAILURE(s2n_stuffer_write_uint8(&stuffer, 1));
 
     /* Read those back, and expect the same results */
-    for (int i = 0; i < 100; i++) {
+    for (uint64_t i = 0; i < 100; i++) {
         uint64_t value = i * (0xff / 100);
         EXPECT_SUCCESS(s2n_stuffer_read_uint8(&stuffer, &u8));
         EXPECT_EQUAL(value, u8);
@@ -53,14 +54,14 @@ int main(int argc, char **argv)
 
     /* Try to write 51 2-byte ints bytes */
     EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
-    for (int i = 0; i < 50; i++) {
+    for (uint64_t i = 0; i < 50; i++) {
         uint64_t value = i * (0xffff / 50);
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, value));
     }
     EXPECT_FAILURE(s2n_stuffer_write_uint16(&stuffer, 1));
 
     /* Read those back, and expect the same results */
-    for (int i = 0; i < 50; i++) {
+    for (uint64_t i = 0; i < 50; i++) {
         uint64_t value = i * (0xffff / 50);
         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &u16));
         EXPECT_EQUAL(value, u16);
@@ -69,14 +70,14 @@ int main(int argc, char **argv)
 
     /* Try to write 34 3-byte ints bytes */
     EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
-    for (int i = 0; i < 33; i++) {
+    for (uint64_t i = 0; i < 33; i++) {
         uint64_t value = i * (0xffffff / 33);
         EXPECT_SUCCESS(s2n_stuffer_write_uint24(&stuffer, value));
     }
     EXPECT_FAILURE(s2n_stuffer_write_uint24(&stuffer, 1));
 
     /* Read those back, and expect the same results */
-    for (int i = 0; i < 33; i++) {
+    for (uint64_t i = 0; i < 33; i++) {
         uint64_t value = i * (0xffffff / 33);
         EXPECT_SUCCESS(s2n_stuffer_read_uint24(&stuffer, &u32));
         EXPECT_EQUAL(value, u32);
@@ -85,19 +86,35 @@ int main(int argc, char **argv)
 
     /* Try to write 26 4-byte ints bytes */
     EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
-    for (int i = 0; i < 25; i++) {
+    for (uint64_t i = 0; i < 25; i++) {
         uint64_t value = i * (0xffffffff / 25);
         EXPECT_SUCCESS(s2n_stuffer_write_uint32(&stuffer, value));
     }
     EXPECT_FAILURE(s2n_stuffer_write_uint32(&stuffer, 1));
 
     /* Read those back, and expect the same results */
-    for (int i = 0; i < 25; i++) {
+    for (uint64_t i = 0; i < 25; i++) {
         uint64_t value = i * (0xffffffff / 25);
         EXPECT_SUCCESS(s2n_stuffer_read_uint32(&stuffer, &u32));
         EXPECT_EQUAL(value, u32);
     }
     EXPECT_FAILURE(s2n_stuffer_read_uint32(&stuffer, &u32));
+
+    /* Try to write 13 8-byte ints bytes */
+    EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
+    for (int i = 0; i < 12; i++) {
+        uint64_t value = i * (0xffffffffffffffff / 12);
+        EXPECT_SUCCESS(s2n_stuffer_write_uint64(&stuffer, value));
+    }
+    EXPECT_FAILURE(s2n_stuffer_write_uint64(&stuffer, 1));
+
+    /* Read those back, and expect the same results */
+    for (int i = 0; i < 12; i++) {
+        uint64_t value = i * (0xffffffffffffffff / 12);
+        EXPECT_SUCCESS(s2n_stuffer_read_uint64(&stuffer, &u64));
+        EXPECT_EQUAL(value, u64);
+    }
+    EXPECT_FAILURE(s2n_stuffer_read_uint64(&stuffer, &u64));
 
     EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
 

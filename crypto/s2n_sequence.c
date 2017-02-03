@@ -15,6 +15,8 @@
 
 #include "crypto/s2n_sequence.h"
 
+#include "error/s2n_errno.h"
+
 #include "utils/s2n_blob.h"
 
 int s2n_increment_sequence_number(struct s2n_blob *sequence_number)
@@ -24,6 +26,15 @@ int s2n_increment_sequence_number(struct s2n_blob *sequence_number)
         if (sequence_number->data[i]) {
             break;
         }
+
+        /* RFC 5246 6.1: If a TLS implementation would need to wrap a sequence number, it must
+         * renegotiate instead. We don't support renegotiation. Caller needs to create a new session.
+         * This condition is very unlikely. It requires 2^64 - 1 records to be sent.
+         */
+        if (i == 0) {
+            S2N_ERROR(S2N_ERR_RECORD_LIMIT);
+        }
+
         /* seq[i] wrapped, so let it carry */
     }
 

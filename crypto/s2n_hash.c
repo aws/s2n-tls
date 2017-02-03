@@ -22,11 +22,21 @@
 
 #include "utils/s2n_safety.h"
 
-int s2n_hash_digest_size(s2n_hash_algorithm alg)
+int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
 {
-    int sizes[] = { 0, MD5_DIGEST_LENGTH, SHA_DIGEST_LENGTH, SHA224_DIGEST_LENGTH, SHA256_DIGEST_LENGTH, SHA384_DIGEST_LENGTH, SHA512_DIGEST_LENGTH, MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH };
-
-    return sizes[alg];
+    switch (alg) {
+    case S2N_HASH_NONE:     *out = 0;                    break;
+    case S2N_HASH_MD5:      *out = MD5_DIGEST_LENGTH;    break;
+    case S2N_HASH_SHA1:     *out = SHA_DIGEST_LENGTH;    break;
+    case S2N_HASH_SHA224:   *out = SHA224_DIGEST_LENGTH; break;
+    case S2N_HASH_SHA256:   *out = SHA256_DIGEST_LENGTH; break;
+    case S2N_HASH_SHA384:   *out = SHA384_DIGEST_LENGTH; break;
+    case S2N_HASH_SHA512:   *out = SHA512_DIGEST_LENGTH; break;
+    case S2N_HASH_MD5_SHA1: *out = MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH; break;
+    default:
+        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
+    }
+    return 0;
 }
 
 int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)

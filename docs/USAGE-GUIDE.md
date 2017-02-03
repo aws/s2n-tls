@@ -17,6 +17,69 @@ To build s2n with an existing libcrypto installation, store its root folder in t
 LIBCRYPTO_ROOT=/usr/local/ssl make
 ```
 
+## Building s2n with OpenSSL-1.1.0
+
+To build s2n with OpenSSL-1.1.0, do the following:
+
+```shell
+# We keep the build artifacts in the -build directory
+cd libcrypto-build
+
+# Download the latest version of OpenSSL
+curl -LO https://www.openssl.org/source/openssl-1.1.0-latest.tar.gz
+tar -xzvf openssl-1.1.0-latest.tar.gz
+
+# Build openssl' libcrypto  (NOTE: check directory name 1.1.0-latest unpacked as)
+cd openssl-1.1.0a
+./config -fPIC no-shared              \
+         no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
+         no-hw no-mdc2 no-seed no-idea enable-ec_nistp_64_gcc_128 no-camellia\
+         no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng                  \
+         -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS      \
+         --prefix=`pwd`/../../libcrypto-root/
+make
+make install
+
+# Make to the main s2n directory
+cd ../../
+
+# Build s2n
+make
+```
+
+## Building s2n with OpenSSL-1.0.2
+
+To build s2n with OpenSSL-1.0.2, do the following:
+
+```shell
+# We keep the build artifacts in the -build directory
+cd libcrypto-build
+
+# Download the latest version of OpenSSL
+curl -LO https://www.openssl.org/source/openssl-1.0.2-latest.tar.gz
+tar -xzvf openssl-1.0.2-latest.tar.gz
+
+# Build openssl' libcrypto  (NOTE: check directory name 1.0.2-latest unpacked as)
+cd openssl-1.0.2d
+./config -fPIC no-shared no-libunbound no-gmp no-jpake no-krb5              \
+         no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-store no-zlib     \
+         no-hw no-mdc2 no-seed no-idea enable-ec-nistp_64_gcc_128 no-camellia\
+         no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng                  \
+         -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS      \
+         --prefix=`pwd`/../../libcrypto-root/
+make depend
+make
+make install
+
+# Make to the main s2n directory
+cd ../../
+
+# Build s2n
+make
+```
+
+**Mac Users:** please replace "./config" with "./Configure darwin64-x86_64-cc".
+
 ## Building s2n with LibreSSL
 
 To build s2n with LibreSSL, do the following:
@@ -73,42 +136,6 @@ cp -r ../include/ ../../../libcrypto-root/include
 cd ../../../
 make
 ```
-
-once built, static and dynamic libraries for s2n will be available in the lib/
-directory.
-
-## Building s2n with OpenSSL-1.0.2
-
-To build s2n with OpenSSL-1.0.2, do the following:
-
-```shell
-# We keep the build artifacts in the -build directory
-cd libcrypto-build
-
-# Download the latest version of OpenSSL
-curl -LO https://www.openssl.org/source/openssl-1.0.2-latest.tar.gz
-tar -xzvf openssl-1.0.2-latest.tar.gz
-
-# Build openssl' libcrypto  (NOTE: check directory name 1.0.2-latest unpacked as)
-cd openssl-1.0.2d
-./config -fPIC no-shared no-libunbound no-gmp no-jpake no-krb5              \
-         no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-store no-zlib     \
-         no-hw no-mdc2 no-seed no-idea enable-ec-nist_64_gcc_128 no-camellia\
-         no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng                  \
-         -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS      \
-         --prefix=`pwd`/../../libcrypto-root/
-make depend
-make
-make install
-
-# Make to the main s2n directory
-cd ../../
-
-# Build s2n
-make
-```
-
-**Mac Users:** please replace "./config" with "./Configure darwin64-x86_64-cc".
 
 once built, static and dynamic libraries for s2n will be available in the lib/
 directory.
@@ -325,7 +352,7 @@ This object can (and should) be associated with many connection objects.
 ### s2n\_config\_free
 
 ```c
-struct int s2n_config_free(struct s2n_config *config);
+int s2n_config_free(struct s2n_config *config);
 ```
 
 **s2n_config_free** frees the memory associated with an **s2n_config** object.
@@ -341,7 +368,9 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config,
 
 |    version | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | AES-CBC | AES-GCM | 3DES | RC4 | DHE | ECDHE |
 |------------|-------|--------|--------|--------|---------|---------|------|-----|-----|-------|
-| "default"  |       |   X    |    X   |    X   |    X    |    X    |  X   |     |     |   X   |
+| "default"  |       |   X    |    X   |    X   |    X    |    X    |      |     |     |   X   |
+| "20160824" |       |   X    |    X   |    X   |    X    |    X    |      |     |     |   X   |
+| "20160804" |       |   X    |    X   |    X   |    X    |    X    |  X   |     |     |   X   |
 | "20160411" |       |   X    |    X   |    X   |    X    |    X    |  X   |     |     |   X   |
 | "20150306" |       |   X    |    X   |    X   |    X    |    X    |  X   |     |     |   X   |
 | "20150214" |       |   X    |    X   |    X   |    X    |    X    |  X   |     |  X  |       |
@@ -453,16 +482,17 @@ the caller sets (and implements) three callback functions.
 ### s2n\_config\_set\_cache\_store\_callback
 
 ```c
-int s2n_config_set_cache_store_callback(struct s2n_config *config, int (*cache_store)(void *, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data);
+int s2n_config_set_cache_store_callback(struct s2n_config *config, int (*cache_store)(void *, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data);
 ```
 
 **s2n_config_set_cache_store_callback** allows the caller to set a callback
 function that will be used to store SSL session data in a cache. The callback
-function takes five arguments: a pointer to abitrary data for use within the
-callback, a pointer to a key which can be used to retrieve the cached entry, a
-64 bit unsigned integer specifying the size of this key, a pointer to a value
-which should be stored, and a 64 bit unsigned integer specified the size of
-this value.
+function takes six arguments: a pointer to abitrary data for use within the
+callback, a 64-bit unsigned integer specifying the number of seconds the
+session data may be stored for, a pointer to a key which can be used to
+retrieve the cached entry, a 64 bit unsigned integer specifying the size of
+this key, a pointer to a value which should be stored, and a 64 bit unsigned
+integer specified the size of this value.
 
 ### s2n\_config\_set\_cache\_retrieve\_callback
 

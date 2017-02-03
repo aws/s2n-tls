@@ -31,7 +31,7 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *blocked)
+int s2n_flush(struct s2n_connection *conn, s2n_blocked_status * blocked)
 {
     int w;
 
@@ -42,18 +42,19 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *blocked)
     while (s2n_stuffer_data_available(&conn->out)) {
         w = s2n_stuffer_send_to_fd(&conn->out, conn->writefd, s2n_stuffer_data_available(&conn->out));
         if (w < 0) {
-            if (errno == EWOULDBLOCK) {
+            if (errno == EWOULDBLOCK || errno == EAGAIN) {
                 S2N_ERROR(S2N_ERR_BLOCKED);
             }
             S2N_ERROR(S2N_ERR_IO);
         }
         conn->wire_bytes_out += w;
     }
+
     if (conn->closing) {
         conn->closed = 1;
         /* Delay wiping for close_notify. s2n_shutdown() needs to wait for peer's close_notify */
         if (!conn->close_notify_queued) {
-            s2n_connection_wipe(conn);
+            GUARD(s2n_connection_wipe(conn));
         }
     }
     GUARD(s2n_stuffer_rewrite(&conn->out));
@@ -89,12 +90,9 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *blocked)
     return 0;
 }
 
-ssize_t s2n_send(struct s2n_connection *conn, void *buf, ssize_t size, s2n_blocked_status *blocked)
+ssize_t s2n_send(struct s2n_connection * conn, const void *buf, ssize_t size, s2n_blocked_status * blocked)
 {
-    struct s2n_blob in = {.data = buf };
-    ssize_t bytes_written = 0;
     int max_payload_size;
-    int w;
 
     if (conn->closed) {
         S2N_ERROR(S2N_ERR_CLOSED);
@@ -113,11 +111,25 @@ ssize_t s2n_send(struct s2n_connection *conn, void *buf, ssize_t size, s2n_block
      */
     int cbcHackUsed = 0;
 
-    /* Now write the data we were asked to send this round */
-    while (size) {
-        in.size = MIN(size, max_payload_size);
+    struct s2n_crypto_parameters *writer = conn->server;
+    if (conn->mode == S2N_CLIENT) {
+        writer = conn->client;
+    }
 
-        if (conn->actual_protocol_version < S2N_TLS11 && conn->active.cipher_suite->cipher->type == S2N_CBC) {
+    /* Defensive check against an invalid retry */
+    if (conn->current_user_data_consumed > size) {
+        S2N_ERROR(S2N_ERR_SEND_SIZE);
+    }
+
+    /* Now write the data we were asked to send this round */
+    while (size - conn->current_user_data_consumed) {
+        struct s2n_blob in = {.data = ((uint8_t *)(uintptr_t) buf) + conn->current_user_data_consumed };
+        in.size = MIN(size - conn->current_user_data_consumed, max_payload_size);
+
+        /* Don't split messages in server mode for interoperability with naive clients.
+         * Some clients may have expectations based on the amount of content in the first record.
+         */
+        if (conn->actual_protocol_version < S2N_TLS11 && writer->cipher_suite->record_alg->cipher->type == S2N_CBC && conn->mode != S2N_SERVER) {
             if (in.size > 1 && cbcHackUsed == 0) {
                 in.size = 1;
                 cbcHackUsed = 1;
@@ -127,30 +139,16 @@ ssize_t s2n_send(struct s2n_connection *conn, void *buf, ssize_t size, s2n_block
         /* Write and encrypt the record */
         GUARD(s2n_stuffer_rewrite(&conn->out));
         GUARD(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
-
-        bytes_written += in.size;
+        conn->current_user_data_consumed += in.size;
 
         /* Send it */
-        while (s2n_stuffer_data_available(&conn->out)) {
-            errno = 0;
-            w = s2n_stuffer_send_to_fd(&conn->out, conn->writefd, s2n_stuffer_data_available(&conn->out));
-            if (w < 0) {
-                if (errno == EWOULDBLOCK) {
-                    if (bytes_written) {
-                        return bytes_written;
-                    }
-                    S2N_ERROR(S2N_ERR_BLOCKED);
-                }
-                S2N_ERROR(S2N_ERR_IO);
-            }
-            conn->wire_bytes_out += w;
-        }
-
-        in.data += in.size;
-        size -= in.size;
+        GUARD(s2n_flush(conn, blocked));
     }
+
+    /* If everything has been written, then there's no user data pending */
+    conn->current_user_data_consumed = 0;
 
     *blocked = S2N_NOT_BLOCKED;
 
-    return bytes_written;
+    return size;
 }

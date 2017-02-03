@@ -28,6 +28,17 @@ OBJS=$(SRCS:.c=.o)
 all: bin
 	$(MAKE) -C tests
 
+bitcode :
+	${MAKE} -C tests/saw bitcode
+
+.PHONY : bc
+bc: 
+	${MAKE} -C crypto bc 
+
+.PHONY : saw
+saw : bc 
+	$(MAKE) -C tests/saw
+
 include s2n.mk
 
 .PHONY : libs
@@ -52,6 +63,23 @@ bin: libs
 .PHONY : integration
 integration: bin
 	$(MAKE) -C tests integration
+
+
+.PHONY : fuzz
+ifeq ($(shell uname),Linux)
+fuzz : fuzz-linux
+else
+fuzz : fuzz-osx
+endif
+
+.PHONY : fuzz-osx
+fuzz-osx : 
+	@echo "\033[33;1mSKIPPED\033[0m Fuzzing is not supported on \"$$(uname -mprs)\" at this time."
+
+.PHONY : fuzz-linux
+fuzz-linux : export S2N_UNSAFE_FUZZING_MODE = 1
+fuzz-linux : bin
+	$(MAKE) -C tests fuzz
 
 .PHONY : indent
 indent:

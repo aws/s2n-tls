@@ -21,7 +21,7 @@
 
 #include "utils/s2n_safety.h"
 
-int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *more)
+int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status * more)
 {
     notnull_check(conn);
     notnull_check(more);
@@ -36,7 +36,7 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *more)
     if (elapsed < conn->delay) {
         S2N_ERROR(S2N_ERR_SHUTDOWN_PAUSED);
     }
-    
+
     /* Queue our close notify, once. Use warning level so clients don't give up */
     GUARD(s2n_queue_writer_close_alert_warning(conn));
 
@@ -49,7 +49,7 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *more)
         GUARD(s2n_stuffer_wipe(&conn->in));
         conn->in_status = ENCRYPTED;
     }
- 
+
     /* Fails with S2N_ERR_SHUTDOWN_RECORD_TYPE or S2N_ERR_ALERT on receipt of anything but a close_notify */
     GUARD(s2n_recv_close_notify(conn, more));
 

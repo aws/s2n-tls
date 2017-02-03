@@ -1,0 +1,120 @@
+/*
+ * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License").
+ * You may not use this file except in compliance with the License.
+ * A copy of the License is located at
+ *
+ *  http://aws.amazon.com/apache2.0
+ *
+ * or in the "license" file accompanying this file. This file is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ * express or implied. See the License for the specific language governing
+ * permissions and limitations under the License.
+ */
+
+#include "s2n_test.h"
+
+#include <s2n.h>
+#include <string.h>
+
+#include "utils/s2n_map.h"
+
+int main(int argc, char **argv)
+{
+    char keystr[sizeof("ffff")];
+    char valstr[sizeof("8192")];
+    struct s2n_map *empty, *map;
+    struct s2n_blob key;
+    struct s2n_blob val;
+
+    BEGIN_TEST();
+
+    EXPECT_NOT_NULL(empty = s2n_map_new());
+
+    /* Try a lookup on an empty map. Expect an error because the map is still mutable. */
+    EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", 1234));
+    key.data = (void *) keystr;
+    key.size = strlen(keystr) + 1;
+    EXPECT_FAILURE(s2n_map_lookup(empty, &key, &val));
+
+    /* Make the empty map complete */
+    EXPECT_SUCCESS(s2n_map_complete(empty));
+
+    /* Lookup and expect no result */
+    EXPECT_EQUAL(s2n_map_lookup(empty, &key, &val), 0);
+
+    /* Done with the empty map */
+    EXPECT_SUCCESS(s2n_map_free(empty));
+
+    EXPECT_NOT_NULL(map = s2n_map_new());
+
+    /* Insert 8k key value pairs of the form hex(i) -> dec(i) */
+    for (int i = 0; i < 8192; i++) {
+        EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", i));
+        EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", i));
+
+        key.data = (void *) keystr;
+        key.size = strlen(keystr) + 1;
+        val.data = (void *) valstr;
+        val.size = strlen(valstr) + 1;
+
+        EXPECT_SUCCESS(s2n_map_add(map, &key, &val));
+    }
+
+    /* Try inserting some duplicates */
+    for (int i = 0; i < 10; i++) {
+        EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", i));
+        EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", i));
+
+        key.data = (void *) keystr;
+        key.size = strlen(keystr) + 1;
+        val.data = (void *) valstr;
+        val.size = strlen(valstr) + 1;
+
+        EXPECT_FAILURE(s2n_map_add(map, &key, &val));
+    }
+
+    /* Try a lookup before the map is complete: should fail */
+    EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", 1));
+    EXPECT_FAILURE(s2n_map_lookup(map, &key, &val));
+
+    /* Make the map complete */
+    EXPECT_SUCCESS(s2n_map_complete(map));
+
+    /* Make sure that add-after-complete fails */
+    EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", 8193));
+    EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", 8193));
+
+    key.data = (void *) keystr;
+    key.size = strlen(keystr) + 1;
+    val.data = (void *) valstr;
+    val.size = strlen(valstr) + 1;
+
+    EXPECT_FAILURE(s2n_map_add(map, &key, &val));
+
+    /* Check for equivalence */
+    for (int i = 0; i < 8192; i++) {
+
+        EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", i));
+        EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", i));
+
+        key.data = (void *) keystr;
+        key.size = strlen(keystr) + 1;
+
+        EXPECT_EQUAL(s2n_map_lookup(map, &key, &val), 1);
+
+        EXPECT_SUCCESS(memcmp(val.data, valstr, strlen(valstr) + 1));
+    }
+
+
+    /* Check for a key that shouldn't be there */
+    EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", 8193));
+    key.data = (void *) keystr;
+    key.size = strlen(keystr) + 1;
+    EXPECT_EQUAL(s2n_map_lookup(map, &key, &val), 0);
+
+    EXPECT_SUCCESS(s2n_map_free(map));
+
+    END_TEST();
+}

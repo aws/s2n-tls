@@ -25,7 +25,7 @@
 #include "utils/s2n_safety.h"
 
 static long page_size = 4096;
-static int  use_mlock = 1;
+static int use_mlock = 1;
 
 int s2n_mem_init(void)
 {
@@ -34,6 +34,13 @@ int s2n_mem_init(void)
         use_mlock = 0;
     }
 
+    return 0;
+}
+
+int s2n_mem_cleanup(void)
+{
+    page_size = 4096;
+    use_mlock = 1;
     return 0;
 }
 
@@ -53,14 +60,27 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
         return s2n_free(b);
     }
 
+    /* blob already has space for the request */
     if (size < b->allocated) {
         b->size = size;
         return 0;
     }
 
-    uint32_t allocate = page_size * ((size + (page_size - 1)) / page_size);
-
     void *data;
+    if (!use_mlock) {
+        data = realloc(b->data, size);
+        if (!data) {
+            S2N_ERROR(S2N_ERR_ALLOC);
+        }
+
+        b->data = data;
+        b->size = size;
+        b->allocated = size;
+        return 0;
+    }
+
+    /* Page aligned allocation required for mlock */
+    uint32_t allocate = page_size * (((size - 1) / page_size) + 1);
     if (posix_memalign(&data, page_size, allocate)) {
         S2N_ERROR(S2N_ERR_ALLOC);
     }
@@ -80,9 +100,6 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
         S2N_ERROR(S2N_ERR_MADVISE);
     }
 #endif
-    if (use_mlock == 0) {
-        return 0;
-    }
 
     if (mlock(b->data, size) < 0) {
         GUARD(s2n_free(b));
@@ -97,7 +114,7 @@ int s2n_free(struct s2n_blob *b)
 {
     int munlock_rc = 0;
     if (b->mlocked) {
-       munlock_rc = munlock(b->data, b->size);
+        munlock_rc = munlock(b->data, b->size);
     }
 
     free(b->data);
@@ -109,6 +126,18 @@ int s2n_free(struct s2n_blob *b)
         S2N_ERROR(S2N_ERR_MUNLOCK);
     }
     b->mlocked = 0;
+
+    return 0;
+}
+
+int s2n_dup(struct s2n_blob *from, struct s2n_blob *to)
+{
+    eq_check(to->size, 0);
+    eq_check(to->data, NULL);
+
+    GUARD(s2n_alloc(to, from->size));
+    
+    memcpy_check(to->data, from->data, to->size);
 
     return 0;
 }
