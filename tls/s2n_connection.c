@@ -337,13 +337,13 @@ int s2n_connection_set_send_ctx(struct s2n_connection *conn, void *ctx)
     return 0;
 }
 
-int s2n_connection_set_recv_cb(struct s2n_connection *conn, s2n_connection_recv recv)
+int s2n_connection_set_recv_cb(struct s2n_connection *conn, s2n_recv_fn recv)
 {
     conn->recv = recv;
     return 0;
 }
 
-int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_connection_send send)
+int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_send_fn send)
 {
     conn->send = send;
     return 0;

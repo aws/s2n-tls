@@ -165,12 +165,10 @@ int s2n_socket_read(void *io_context, uint8_t *buf, uint32_t len)
         return -1;
     }
 
-    errno = 0;
-    int ret = read(rfd, buf, len);
-
     /* On success, the number of bytes read is returned. On failure, -1 is
      * returned and errno is set appropriately. */
-    return ret;
+    errno = 0;
+    return read(rfd, buf, len);
 }
 
 int s2n_socket_write(void *io_context, const uint8_t *buf, uint32_t len)
@@ -181,10 +179,8 @@ int s2n_socket_write(void *io_context, const uint8_t *buf, uint32_t len)
         return -1;
     }
 
-    errno = 0;
-    int ret = write(wfd, buf, len);
-
     /* On success, the number of bytes written is returned. On failure, -1 is
      * returned and errno is set appropriately. */
-    return ret;
+    errno = 0;
+    return write(wfd, buf, len);
 }

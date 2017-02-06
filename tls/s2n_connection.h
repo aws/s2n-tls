@@ -41,8 +41,8 @@ struct s2n_connection {
     struct s2n_config *config;
 
     /* The send and receive callbacks don't have to be the same (e.g. two pipes) */
-    s2n_connection_send *send;
-    s2n_connection_recv *recv;
+    s2n_send_fn *send;
+    s2n_recv_fn *recv;
 
     /* The context passed to the I/O callbacks */
     void *send_io_context;
