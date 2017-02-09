@@ -19,6 +19,9 @@ os:
 
 env:
   - BUILD_S2N=true TESTS=integration
+  # Force libcrypto to use "software only" crypto implementations for AES and AES-GCM. Verify s2n can gracefully use
+  # unoptimized routines. See https://www.openssl.org/docs/man1.1.0/crypto/OPENSSL_ia32cap.html
+  - OPENSSL_ia32cap="~0x200000200000000" BUILD_S2N=true TESTS=integration
   - LATEST_CLANG=true TESTS=fuzz
   - TESTS=sawHMAC SAW_HMAC_TEST=md5 SAW=true
   - TESTS=sawHMAC SAW_HMAC_TEST=none SAW=true
