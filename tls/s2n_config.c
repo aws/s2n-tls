@@ -383,7 +383,7 @@ int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config, con
     GUARD(s2n_stuffer_alloc_ro_from_string(&key_in_stuffer, private_key_pem));
     GUARD(s2n_stuffer_growable_alloc(&key_out_stuffer, strlen(private_key_pem)));
 
-    /* Convert pem to asn1 and asn1 to the private key */
+    /* Convert pem to asn1 and asn1 to the private key. Handles both PKCS#1 and PKCS#8 formats */
     GUARD(s2n_stuffer_rsa_private_key_from_pem(&key_in_stuffer, &key_out_stuffer));
     GUARD(s2n_stuffer_free(&key_in_stuffer));
     key_blob.size = s2n_stuffer_data_available(&key_out_stuffer);

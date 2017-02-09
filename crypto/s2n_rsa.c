@@ -71,13 +71,18 @@ int s2n_asn1der_to_rsa_private_key(struct s2n_rsa_private_key *key, struct s2n_b
 {
     uint8_t *cert_to_parse = asn1der->data;
 
-    RSA* rsa_key = d2i_RSAPrivateKey(NULL, (const unsigned char **)(void *)&cert_to_parse, asn1der->size);
+    EVP_PKEY *pkey = d2i_PrivateKey(EVP_PKEY_RSA, NULL, (const unsigned char **)(void *)&cert_to_parse, asn1der->size);
+    if (pkey == NULL) {
+        S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
+    }
+    RSA *rsa_key = EVP_PKEY_get1_RSA(pkey);
+    EVP_PKEY_free(pkey);
     if (rsa_key == NULL) {
         S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
     }
+
     /* If cert parsing is successful, d2i_RSAPrivateKey increments *cert_to_parse to the byte following the parsed data */
     uint32_t parsed_len = cert_to_parse - asn1der->data;
-
     if (parsed_len != asn1der->size) {
         S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
     }
