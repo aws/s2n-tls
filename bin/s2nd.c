@@ -234,6 +234,10 @@ void usage()
     fprintf(stderr, "  -n\n");
     fprintf(stderr, "  --negotiate\n");
     fprintf(stderr, "    Only perform tls handshake and then shutdown the connection\n");
+    fprintf(stderr, "  --prefer-low-latency\n");
+    fprintf(stderr, "    Prefer low latency by clamping maximum outgoing record size at 1500.");
+    fprintf(stderr, "  --prefer-throughput\n");
+    fprintf(stderr, "    Prefer throughput by raising maximum outgoing record size to 16k");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -251,10 +255,17 @@ int main(int argc, char *const *argv)
 
     const char *cipher_prefs = "default";
     int only_negotiate = 0;
+    int prefer_throughput = 0;
+    int prefer_low_latency = 0;
 
     static struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
         {"ciphers", required_argument, 0, 'c'},
+        {"negotiate", no_argument, 0, 'n'},
+        {"prefer-low-latency", no_argument, 0, 'l'},
+        {"prefer-throughput", no_argument, 0, 'p'},
+        /* Per getopt(3) the last element of the array has to be filled with all zeros */
+        { 0 },
     };
     while (1) {
         int option_index = 0;
@@ -272,11 +283,22 @@ int main(int argc, char *const *argv)
         case 'n':
             only_negotiate = 1;
             break;
+        case 'l':
+            prefer_low_latency = 1;
+            break;
+        case 'p':
+            prefer_throughput = 1;
+            break;
         case '?':
         default:
             usage();
             break;
         }
+    }
+
+    if (prefer_throughput && prefer_low_latency) {
+        fprintf(stderr, "prefer-throughput and prefer-low-latency options are mutually exclusive\n");
+        exit(1);
     }
 
     if (optind < argc) {
@@ -386,6 +408,16 @@ int main(int argc, char *const *argv)
 
     if (s2n_connection_set_config(conn, config) < 0) {
         fprintf(stderr, "Error setting configuration: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        exit(1);
+    }
+
+    if (prefer_throughput && s2n_connection_prefer_throughput(conn) < 0) {
+        fprintf(stderr, "Error setting prefer throughput: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        exit(1);
+    }
+
+    if (prefer_low_latency && s2n_connection_prefer_low_latency(conn) < 0) {
+        fprintf(stderr, "Error setting prefer low latency: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
     }
 
