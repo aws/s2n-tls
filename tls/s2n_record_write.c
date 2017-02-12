@@ -181,17 +181,16 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
         iv.size = sizeof(aad_iv);
         GUARD(s2n_stuffer_init(&iv_stuffer, &iv));
 
-        if (cipher_suite->record_alg->flags & S2N_TLS12_AEAD_NONCE) {
+        if (cipher_suite->record_alg->flags & S2N_TLS12_AES_GCM_AEAD_NONCE) {
+            /* Partially explicit nonce. See RFC 5288 Section 3 */
             GUARD(s2n_stuffer_write_bytes(&conn->out, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
             GUARD(s2n_stuffer_write_bytes(&iv_stuffer, implicit_iv, cipher_suite->record_alg->cipher->io.aead.fixed_iv_size));
             GUARD(s2n_stuffer_write_bytes(&iv_stuffer, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
-        } else if (cipher_suite->record_alg->flags & S2N_TLS13_AEAD_NONCE) {
-            /* Zero the first four bytes */
+        } else if (cipher_suite->record_alg->flags & S2N_TLS12_CHACHA_POLY_AEAD_NONCE) {
+            /* Fully implicit nonce. See RFC7905 Section 2 */
             uint8_t four_zeroes[4] = { 0 };
             GUARD(s2n_stuffer_write_bytes(&iv_stuffer, four_zeroes, 4));
-            /* Write the sequence number */
             GUARD(s2n_stuffer_write_bytes(&iv_stuffer, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
-            /* XOR with the implicit IV */
             for(int i = 0; i < cipher_suite->record_alg->cipher->io.aead.fixed_iv_size; i++) {
                 aad_iv[i] = aad_iv[i] ^ implicit_iv[i];
             }

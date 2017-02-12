@@ -115,22 +115,22 @@ const struct s2n_record_algorithm s2n_record_alg_aes256_sha384 = {
 const struct s2n_record_algorithm s2n_record_alg_aes128_gcm = {
     .cipher = &s2n_aes128_gcm,
     .hmac_alg = S2N_HMAC_NONE,
-    .flags = S2N_TLS12_AEAD_NONCE,
+    .flags = S2N_TLS12_AES_GCM_AEAD_NONCE,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_aes256_gcm = {
     .cipher = &s2n_aes256_gcm,
     .hmac_alg = S2N_HMAC_NONE,
-    .flags = S2N_TLS12_AEAD_NONCE,
+    .flags = S2N_TLS12_AES_GCM_AEAD_NONCE,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_chacha20_poly1305 = {
     .cipher = &s2n_chacha20_poly1305,
     .hmac_alg = S2N_HMAC_NONE,
-    /* We don't support TLS1.3 yet. Per RFC 7905: Chacha20-Poly1305 uses a nonce construction expected
-     * to be used in TLS1.3.
+    /* Per RFC 7905, ChaCha20-Poly1305 will use a nonce construction expected to be used in TLS1.3.
+     * Give it a distinct 1.2 nonce value in case this changes.
      */
-    .flags = S2N_TLS13_AEAD_NONCE,
+    .flags = S2N_TLS12_CHACHA_POLY_AEAD_NONCE,
 };
 
 /* This is the initial cipher suite, but is never negotiated */

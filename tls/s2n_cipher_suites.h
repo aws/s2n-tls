@@ -46,8 +46,8 @@ extern const struct s2n_key_exchange_algorithm s2n_ecdhe;
 #define S2N_MAX_POSSIBLE_RECORD_ALGS  2
 
 /* Record algorithm flags that can be OR'ed */
-#define S2N_TLS12_AEAD_NONCE 0x01
-#define S2N_TLS13_AEAD_NONCE 0x02
+#define S2N_TLS12_AES_GCM_AEAD_NONCE     0x01
+#define S2N_TLS12_CHACHA_POLY_AEAD_NONCE 0x02
 
 struct s2n_record_algorithm {
     const struct s2n_cipher *cipher;
