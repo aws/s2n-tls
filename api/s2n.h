@@ -76,6 +76,7 @@ extern int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_con
 extern int s2n_connection_set_fd(struct s2n_connection *conn, int fd);
 extern int s2n_connection_set_read_fd(struct s2n_connection *conn, int readfd);
 extern int s2n_connection_set_write_fd(struct s2n_connection *conn, int writefd);
+extern int s2n_connection_use_corked_io(struct s2n_connection *conn);
 
 typedef int s2n_recv_fn(void *io_context, uint8_t *buf, uint32_t len);
 typedef int s2n_send_fn(void *io_context, const uint8_t *buf, uint32_t len);
