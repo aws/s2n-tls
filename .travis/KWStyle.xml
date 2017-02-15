@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<!-- For list of supported features see: https://kitware.github.io/KWStyle/resources/features.html -->
+
+<Description>
+    <LineLength>177</LineLength>
+    <Functions>
+        <regex>[A-Za-z_]</regex>
+        <length>217</length>
+    </Functions>
+</Description>
