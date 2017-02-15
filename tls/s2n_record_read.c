@@ -155,10 +155,11 @@ int s2n_record_parse(struct s2n_connection *conn)
     if (cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
         /* In the decrypt case, this outputs the MAC digest length:
          * https://github.com/openssl/openssl/blob/master/crypto/evp/e_aes_cbc_hmac_sha1.c#L842 */
-        int mac_size;
+        int mac_size = 0;
         GUARD(cipher_suite->record_alg->cipher->io.comp.initial_hmac(session_key, sequence_number, content_type, conn->actual_protocol_version,
                                                          payload_length, &mac_size));
 
+        gte_check(payload_length, mac_size);
         payload_length -= mac_size;
         /* Adjust payload_length for explicit IV */
         if (conn->actual_protocol_version > S2N_TLS10) {
