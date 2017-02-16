@@ -21,6 +21,7 @@
 
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
 const struct s2n_key_exchange_algorithm s2n_rsa = {
@@ -504,7 +505,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
      * version, and the client cipher list contains TLS_FALLBACK_SCSV, then the server must abort the connection since
      * TLS_FALLBACK_SCSV should only be present when the client previously failed to negotiate a higher TLS version.
      */
-    if (conn->client_protocol_version < S2N_TLS12) {
+    if (conn->client_protocol_version < s2n_highest_protocol_version) {
         uint8_t fallback_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_FALLBACK_SCSV };
         if (s2n_wire_ciphers_contain(fallback_scsv, wire, count, cipher_suite_len)) {
             conn->closed = 1;
