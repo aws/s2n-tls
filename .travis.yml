@@ -10,6 +10,7 @@ addons:
         - g++-6
         - indent
         - cppcheck
+        - kwstyle
 
 osx_image: xcode8
 
@@ -79,6 +80,7 @@ install:
   - if [[ "$BUILD_S2N" == "true" ]]; then (test "$TRAVIS_OS_NAME" = "linux" && sudo "PATH=$PATH" .travis/install_prlimit.sh $PWD/.travis > /dev/null && sudo .travis/prlimit --pid "$$" --memlock=unlimited:unlimited) || true ; fi
   - if [[ "$BUILD_S2N" == "true" ]]; then mkdir -p .travis/checker && .travis/install_scan-build.sh .travis/checker && export PATH=$PATH:.travis/checker/bin ; fi
   - if [[ "$BUILD_S2N" == "true" ]]; then .travis/run_cppcheck.sh ; fi
+  - if [[ "$BUILD_S2N" == "true" && "$TRAVIS_OS_NAME" == "linux" ]]; then .travis/run_kwstyle.sh ; fi
 
 script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "integration" ]]; then make -j 8   ; fi
