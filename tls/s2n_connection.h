@@ -89,6 +89,11 @@ struct s2n_connection {
     /* The PRF needs some storage elements to work with */
     union s2n_prf_working_space prf_space;
 
+    /* Does this connection use pre-warmed memory that should never
+     * be de-allocated.
+     */
+    unsigned int prewarmed:1;
+
     /* Our workhorse stuffers, used for buffering the plaintext
      * and encrypted data in both directions.
      */

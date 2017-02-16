@@ -226,9 +226,12 @@ int s2n_connection_wipe(struct s2n_connection *conn)
 #pragma GCC diagnostic pop
 #endif
 
+    int prewarmed = conn->prewarmed;
+
     /* Zero the whole connection structure */
     memset_check(conn, 0, sizeof(struct s2n_connection));
 
+    conn->prewarmed = prewarmed;
     conn->readfd = -1;
     conn->writefd = -1;
     conn->mode = mode;
@@ -452,6 +455,15 @@ int s2n_connection_prefer_throughput(struct s2n_connection *conn)
 int s2n_connection_prefer_low_latency(struct s2n_connection *conn)
 {
     conn->max_fragment_length = S2N_SMALL_FRAGMENT_LENGTH;
+
+    return 0;
+}
+
+int s2n_connection_prewarm(struct s2n_connection *conn)
+{
+    /* Max out the size of a handshake message */
+    GUARD(s2n_stuffer_resize(&conn->handshake.io, S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH));
+    conn->prewarmed = 1;
 
     return 0;
 }
