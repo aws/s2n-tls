@@ -785,6 +785,34 @@ do {
 } while (blocked != S2N_NOT_BLOCKED);
 ```
 
+### s2n\_connection\_set\_send\_cb
+
+```c
+int s2n_connection_set_recv_cb(struct s2n_connection *conn, s2n_connection_recv recv);
+int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_connection_send send);
+int s2n_connection_set_recv_ctx(struct s2n_connection *conn, void *ctx);
+int s2n_connection_set_send_ctx(struct s2n_connection *conn, void *ctx);
+```
+
+s2n also provides an I/O abstraction layer in the event the application would
+like to keep control over I/O operations. **s2n_connection_set_recv_cb** and
+**s2n_connection_set_send_cb** may be used to send or receive data with callbacks
+defined by the user. These may be blocking or nonblocking. 
+
+```c
+typedef int s2n_connection_send(void *io_context, const uint8_t *buf, uint32_t len);
+typedef int s2n_connection_recv(void *io_context, uint8_t *buf, uint32_t len);
+```
+
+These callbacks take as input a context containing anything needed in the 
+function (for example, a file descriptor), the buffer holding data to be sent 
+or received, and the length of the buffer. The **io_context** passed to the
+callbacks may be set separately using **s2n_connection_set_recv_ctx** and
+**s2n_connection_set_send_ctx**. 
+
+The callback may send or receive less than the requested length. The function 
+should return the number of bytes sent/received, or set errno and return an error code < 0.
+
 ### s2n_shutdown
 
 ```c

@@ -40,15 +40,17 @@ struct s2n_connection {
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
 
-    /* The read and write fds don't have to be the same (e.g. two pipes) */
-    int readfd;
-    int writefd;
+    /* The send and receive callbacks don't have to be the same (e.g. two pipes) */
+    s2n_send_fn *send;
+    s2n_recv_fn *recv;
 
-    /* Original socket option settings before s2n takes over the fd */
-    unsigned int original_rcvlowat_is_set:1;
-    int original_rcvlowat_val;
-    unsigned int original_cork_is_set:1;
-    int original_cork_val;
+    /* The context passed to the I/O callbacks */
+    void *send_io_context;
+    void *recv_io_context;
+
+    /* Has the user set their own I/O callbacks or is this connection using the
+     * default socket-based I/O set by s2n */
+    uint8_t managed_io;
 
     /* Is this connection a client or a server connection */
     s2n_mode mode;
@@ -168,3 +170,7 @@ struct s2n_connection {
 
 /* Kill a bad connection */
 int s2n_connection_kill(struct s2n_connection *conn);
+
+/* Send/recv a stuffer to/from a connection */
+int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connection *conn, uint32_t len);
+int s2n_connection_recv_stuffer(struct s2n_stuffer *stuffer, struct s2n_connection *conn, uint32_t len);

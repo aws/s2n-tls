@@ -77,6 +77,13 @@ extern int s2n_connection_set_fd(struct s2n_connection *conn, int readfd);
 extern int s2n_connection_set_read_fd(struct s2n_connection *conn, int readfd);
 extern int s2n_connection_set_write_fd(struct s2n_connection *conn, int readfd);
 
+typedef int s2n_recv_fn(void *io_context, uint8_t *buf, uint32_t len);
+typedef int s2n_send_fn(void *io_context, const uint8_t *buf, uint32_t len);
+extern int s2n_connection_set_recv_ctx(struct s2n_connection *conn, void *ctx);
+extern int s2n_connection_set_send_ctx(struct s2n_connection *conn, void *ctx);
+extern int s2n_connection_set_recv_cb(struct s2n_connection *conn, s2n_recv_fn recv);
+extern int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_send_fn send);
+
 extern int s2n_connection_prefer_throughput(struct s2n_connection *conn);
 extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn);
 
