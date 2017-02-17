@@ -39,7 +39,7 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 
-int deny_all_certs(struct s2n_blob *x509_der_cert, struct s2n_cert_public_key *public_key, void* context)
+int deny_all_certs(struct s2n_blob *x509_der_cert, struct s2n_cert_public_key *public_key, void *context)
 {
     S2N_ERROR(S2N_ERR_CERT_UNTRUSTED);
 }
@@ -245,8 +245,8 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     struct s2n_session_key secure_server_key;
 
     s2n_cert_auth_type initial_client_cert_auth_type = conn->client_cert_auth_type;
-    verify_cert_chain* initial_verify_client_cert = conn->verify_client_cert_chain_callback;
-    verify_cert_chain* initial_verify_server_cert = conn->verify_server_cert_chain_callback;
+    verify_cert_chain *initial_verify_client_cert = conn->verify_client_cert_chain_callback;
+    verify_cert_chain *initial_verify_server_cert = conn->verify_server_cert_chain_callback;
     void *initial_verify_client_cert_context = conn->verify_client_cert_context;
     void *initial_verify_server_cert_context = conn->verify_server_cert_context;
 
@@ -379,7 +379,7 @@ int s2n_connection_set_client_cert_auth_type(struct s2n_connection *conn, s2n_ce
     return 0;
 }
 
-int s2n_connection_set_server_cert_verify_callback(struct s2n_connection *conn, verify_cert_chain* callback, void *context)
+int s2n_connection_set_server_cert_verify_callback(struct s2n_connection *conn, verify_cert_chain *callback, void *context)
 {
     notnull_check(callback);
     conn->verify_server_cert_chain_callback = callback;
@@ -387,7 +387,7 @@ int s2n_connection_set_server_cert_verify_callback(struct s2n_connection *conn, 
     return 0;
 }
 
-int s2n_connection_set_client_cert_verify_callback(struct s2n_connection *conn, verify_cert_chain* callback, void *context)
+int s2n_connection_set_client_cert_verify_callback(struct s2n_connection *conn, verify_cert_chain *callback, void *context)
 {
     notnull_check(callback);
     conn->verify_client_cert_chain_callback = callback;

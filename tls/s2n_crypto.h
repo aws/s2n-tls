@@ -16,7 +16,6 @@
 #pragma once
 
 #include "tls/s2n_config.h"
-#include "crypto/s2n_certificate.h"
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_hmac.h"
 #include "crypto/s2n_hash.h"

@@ -22,7 +22,6 @@
 
 #include "crypto/s2n_rsa.h"
 #include "error/s2n_errno.h"
-#include "crypto/s2n_certificate.h"
 #include "utils/s2n_safety.h"
 
 /**
@@ -77,7 +76,7 @@
 #define EXPECT_BYTEARRAY_EQUAL( p1, p2, l ) EXPECT_EQUAL( memcmp( (p1), (p2), (l) ), 0 )
 #define EXPECT_STRING_EQUAL( p1, p2 ) EXPECT_EQUAL( strcmp( (p1), (p2) ), 0 )
 
-int accept_all_rsa_certs(struct s2n_blob *client_cert_chain_blob, struct s2n_cert_public_key *public_key, void *context)
+int accept_all_rsa_certs(struct s2n_blob *client_cert_chain_blob, struct s2n_cert_public_key *cert_public_key, void *context)
 {
     struct s2n_stuffer cert_chain_in;
     GUARD(s2n_stuffer_init(&cert_chain_in, client_cert_chain_blob));
@@ -102,8 +101,10 @@ int accept_all_rsa_certs(struct s2n_blob *client_cert_chain_blob, struct s2n_cer
 
             /* Pull the public key from the first certificate */
             if (certificate_count == 0) {
-                GUARD(s2n_asn1der_to_rsa_public_key(&public_key->public_key.rsa, &asn1cert));
-                public_key->cert_type = S2N_CERT_TYPE_RSA_SIGN;
+                struct s2n_rsa_public_key *rsa_pub_key;
+                GUARD(s2n_cert_public_key_get_rsa(cert_public_key, &rsa_pub_key));
+                GUARD(s2n_asn1der_to_rsa_public_key(rsa_pub_key, &asn1cert));
+                GUARD(s2n_cert_public_key_set_cert_type(cert_public_key, S2N_CERT_TYPE_RSA_SIGN));
             }
 
             certificate_count++;

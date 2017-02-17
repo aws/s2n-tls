@@ -13,44 +13,32 @@
  * permissions and limitations under the License.
  */
 
-#include <string.h>
-
-#include "error/s2n_errno.h"
-
-#include "utils/s2n_safety.h"
-#include "utils/s2n_blob.h"
-
 #include <s2n.h>
 
-int s2n_blob_get_data(struct s2n_blob *b, uint8_t **data)
+#include "crypto/s2n_certificate.h"
+#include "utils/s2n_safety.h"
+
+int s2n_cert_public_key_set_cert_type(struct s2n_cert_public_key *cert_pub_key, s2n_cert_type cert_type)
 {
-    notnull_check(b);
-    notnull_check(b->data);
-    notnull_check(data);
-    *data = b->data;
+    notnull_check(cert_pub_key);
+    cert_pub_key->cert_type = cert_type;
 
     return 0;
 }
 
-int s2n_blob_get_size(struct s2n_blob *b, uint32_t *size)
+int s2n_cert_public_key_set_rsa(struct s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key rsa)
 {
-    notnull_check(b);
-    notnull_check(size);
+    notnull_check(cert_pub_key);
+    cert_pub_key->public_key.rsa = rsa;
 
-    *size = b->size;
     return 0;
 }
 
-int s2n_blob_init(struct s2n_blob *b, uint8_t * data, uint32_t size)
+int s2n_cert_public_key_get_rsa(struct s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key **rsa)
 {
-    b->data = data;
-    b->size = size;
-    return 0;
-}
-
-int s2n_blob_zero(struct s2n_blob *b)
-{
-    memset_check(b->data, 0, b->size);
+    notnull_check(cert_pub_key);
+    notnull_check(rsa);
+    *rsa = &cert_pub_key->public_key.rsa;
 
     return 0;
 }

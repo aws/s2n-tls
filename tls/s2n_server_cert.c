@@ -15,6 +15,7 @@
 
 #include <s2n.h>
 
+#include "crypto/s2n_certificate.h"
 #include "error/s2n_errno.h"
 
 #include "tls/s2n_cipher_suites.h"

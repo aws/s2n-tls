@@ -21,6 +21,7 @@ extern "C" {
 
 #include <sys/types.h>
 #include <stdint.h>
+#include <openssl/ossl_typ.h>
 
 #define S2N_SSLv2 20
 #define S2N_SSLv3 30
@@ -108,6 +109,49 @@ extern int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked
 
 typedef enum { S2N_CERT_AUTH_REQUIRED, S2N_CERT_AUTH_NONE } s2n_cert_auth_type;
 extern int s2n_connection_set_client_cert_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type);
+
+/* RFC's that define below values:
+ *  - https://tools.ietf.org/html/rfc5246#section-7.4.4
+ *  - https://tools.ietf.org/search/rfc4492#section-5.5
+ */
+typedef enum {
+    S2N_CERT_TYPE_RSA_SIGN = 1,
+    S2N_CERT_TYPE_DSS_SIGN = 2,
+    S2N_CERT_TYPE_RSA_FIXED_DH = 3,
+    S2N_CERT_TYPE_DSS_FIXED_DH = 4,
+    S2N_CERT_TYPE_RSA_EPHEMERAL_DH_RESERVED = 5,
+    S2N_CERT_TYPE_DSS_EPHEMERAL_DH_RESERVED = 6,
+    S2N_CERT_TYPE_FORTEZZA_DMS_RESERVED = 20,
+    S2N_CERT_TYPE_ECDSA_SIGN = 64,
+    S2N_CERT_TYPE_RSA_FIXED_ECDH = 65,
+    S2N_CERT_TYPE_ECDSA_FIXED_ECDH = 66,
+} s2n_cert_type;
+
+
+struct s2n_blob;
+extern int s2n_blob_get_data(struct s2n_blob *b, uint8_t **data);
+extern int s2n_blob_get_size(struct s2n_blob *b, uint32_t *size);
+
+struct s2n_rsa_public_key;
+extern int s2n_rsa_public_key_from_openssl(struct s2n_rsa_public_key *s2n_rsa, RSA *openssl_rsa);
+
+struct s2n_cert_public_key;
+extern int s2n_cert_public_key_set_cert_type(struct s2n_cert_public_key *cert_pub_key, s2n_cert_type cert_type);
+extern int s2n_cert_public_key_get_rsa(struct s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key **rsa);
+extern int s2n_cert_public_key_set_rsa(struct s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key rsa);
+
+/*
+ * Verifies the Certificate Chain and places the Certificate's Public Key in the public_key_out parameter.
+ * @param cert_chain The DER formatted full chain of certificates recieved
+ * @param public_key The public key that should be updated with the key extracted from the certificate
+ * @param context A pointer to any caller defined context data
+ *
+ * @return The function should return 0 if Certificate is trusted and public key extraction was successful, and less than
+ *         0 if the Certificate is untrusted, or there was some other error.
+ */
+typedef int verify_cert_chain(struct s2n_blob *cert_chain, struct s2n_cert_public_key *public_key, void *context);
+extern int s2n_connection_set_server_cert_verify_callback(struct s2n_connection *conn, verify_cert_chain *callback, void *context);
+extern int s2n_connection_set_client_cert_verify_callback(struct s2n_connection *conn, verify_cert_chain *callback, void *context);
 
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);
 extern uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn);

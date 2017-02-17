@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_certificate.h"
+#include <s2n.h>
 
 /* Only Support Certificates signed using RSA. */
 static uint8_t s2n_cert_type_preference_list[] = {

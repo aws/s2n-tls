@@ -30,7 +30,6 @@
 
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
-#include "s2n_tls_callback.h"
 
 #include "utils/s2n_blob.h"
 #include "utils/s2n_timer.h"
@@ -90,8 +89,8 @@ struct s2n_connection {
 
     /* Certificate Authentication and Verification Parameters */
     s2n_cert_auth_type client_cert_auth_type;
-    verify_cert_chain* verify_client_cert_chain_callback;
-    verify_cert_chain* verify_server_cert_chain_callback;
+    verify_cert_chain *verify_client_cert_chain_callback;
+    verify_cert_chain *verify_server_cert_chain_callback;
     void *verify_client_cert_context;
     void *verify_server_cert_context;
     uint8_t server_preferred_cert_types[S2N_MAX_CERT_TYPE_PREFERENCE_LEN];
@@ -188,9 +187,6 @@ struct s2n_connection {
     s2n_status_request_type status_type;
     struct s2n_blob status_response;
 };
-
-extern int s2n_connection_set_server_cert_verify_callback(struct s2n_connection *conn, verify_cert_chain* callback, void *context);
-extern int s2n_connection_set_client_cert_verify_callback(struct s2n_connection *conn, verify_cert_chain* callback, void *context);
 
 /* Kill a bad connection */
 int s2n_connection_kill(struct s2n_connection *conn);

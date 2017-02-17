@@ -28,6 +28,48 @@
 
 #include <s2n.h>
 
+#include "crypto/s2n_rsa.h"
+#include "stuffer/s2n_stuffer.h"
+#include "utils/s2n_safety.h"
+
+int accept_all_rsa_certs(struct s2n_blob *client_cert_chain_blob, struct s2n_cert_public_key *cert_public_key, void *context)
+{
+    struct s2n_stuffer cert_chain_in;
+    GUARD(s2n_stuffer_init(&cert_chain_in, client_cert_chain_blob));
+    GUARD(s2n_stuffer_write(&cert_chain_in, client_cert_chain_blob));
+
+    int certificate_count = 0;
+        while (s2n_stuffer_data_available(&cert_chain_in)) {
+            uint32_t certificate_size;
+
+            GUARD(s2n_stuffer_read_uint24(&cert_chain_in, &certificate_size));
+
+            if (certificate_size > s2n_stuffer_data_available(&cert_chain_in) || certificate_size == 0) {
+                S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+            }
+
+            struct s2n_blob asn1cert;
+            asn1cert.data = s2n_stuffer_raw_read(&cert_chain_in, certificate_size);
+            asn1cert.size = certificate_size;
+            notnull_check(asn1cert.data);
+
+            gt_check(certificate_size, 0);
+
+            /* Pull the public key from the first certificate */
+            if (certificate_count == 0) {
+                struct s2n_rsa_public_key *rsa_pub_key;
+                GUARD(s2n_cert_public_key_get_rsa(cert_public_key, &rsa_pub_key));
+                GUARD(s2n_asn1der_to_rsa_public_key(rsa_pub_key, &asn1cert));
+                GUARD(s2n_cert_public_key_set_cert_type(cert_public_key, S2N_CERT_TYPE_RSA_SIGN));
+            }
+
+            certificate_count++;
+        }
+
+        gte_check(certificate_count, 1);
+    return 0;
+}
+
 int negotiate(struct s2n_connection *conn)
 {
     s2n_blocked_status blocked;
