@@ -37,7 +37,7 @@ fi
 ASAN_OPTIONS+="symbolize=1"
 LSAN_OPTIONS+="log_threads=1"
 UBSAN_OPTIONS+="print_stacktrace=1"
-LIBFUZZER_ARGS+="-timeout=5 -max_len=4096 -use_traces=1 -print_final_stats=1 -jobs=32 -workers=32 -max_total_time=${FUZZ_TIMEOUT_SEC}"
+LIBFUZZER_ARGS+="-timeout=5 -max_len=4096 -use_traces=1 -print_final_stats=1 -jobs=8 -workers=8 -max_total_time=${FUZZ_TIMEOUT_SEC}"
 
 TEST_SPECIFIC_OVERRIDES="${PWD}/LD_PRELOAD/${TEST_NAME}_overrides.so"
 GLOBAL_OVERRIDES="${PWD}/LD_PRELOAD/global_overrides.so"
