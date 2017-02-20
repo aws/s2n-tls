@@ -37,7 +37,8 @@ fi
 ASAN_OPTIONS+="symbolize=1"
 LSAN_OPTIONS+="log_threads=1"
 UBSAN_OPTIONS+="print_stacktrace=1"
-LIBFUZZER_ARGS+="-timeout=5 -max_len=4096 -use_traces=1 -print_final_stats=1 -jobs=8 -workers=8 -max_total_time=${FUZZ_TIMEOUT_SEC}"
+NUM_CPU_THREADS=`nproc`
+LIBFUZZER_ARGS+="-timeout=5 -max_len=4096 -use_traces=1 -print_final_stats=1 -jobs=${NUM_CPU_THREADS} -workers=${NUM_CPU_THREADS} -max_total_time=${FUZZ_TIMEOUT_SEC}"
 
 TEST_SPECIFIC_OVERRIDES="${PWD}/LD_PRELOAD/${TEST_NAME}_overrides.so"
 GLOBAL_OVERRIDES="${PWD}/LD_PRELOAD/global_overrides.so"
@@ -50,7 +51,7 @@ else
 fi
 
 ACTUAL_TEST_FAILURE=0
-printf "Running  %-40s for %5d sec... " ${TEST_NAME} ${FUZZ_TIMEOUT_SEC}
+printf "Running  %-40s for %5d sec with %2d threads... " ${TEST_NAME} ${FUZZ_TIMEOUT_SEC} ${NUM_CPU_THREADS}
 ./${TEST_NAME} ${LIBFUZZER_ARGS} ./corpus/${TEST_NAME} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
 
 TEST_COUNT=`grep -o "stat::number_of_executed_units: [0-9]*" ${TEST_NAME}_output.txt | awk '{test_count += $2} END {print test_count}'`
