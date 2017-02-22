@@ -130,8 +130,44 @@ static char dhparams[] =
 
 static int MAX_NEGOTIATION_ATTEMPTS = 10;
 
+int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
+{
+    struct s2n_stuffer *in_buf;
+    int n_read, n_avail;
+
+    if (buf == NULL) {
+        return 0;
+    }
+
+    in_buf = (struct s2n_stuffer *) io_context;
+    if (in_buf == NULL) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    // read the number of bytes requested or less if it isn't available
+    n_avail = s2n_stuffer_data_available(in_buf);
+    n_read = (len < n_avail) ? len : n_avail;
+
+    if (n_read == 0) {
+        errno = EAGAIN;
+        return -1;
+    }
+
+    s2n_stuffer_read_bytes(in_buf, buf, n_read);
+    return n_read;
+}
+
+int buffer_write(void *io_context, const uint8_t *buf, uint32_t len)
+{
+    return len;
+}
+
+static struct s2n_config *server_config;
+
 static void s2n_server_fuzz_atexit()
 {
+    s2n_config_free(server_config);
     s2n_cleanup();
 }
 
@@ -140,6 +176,12 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
     GUARD(s2n_init());
     GUARD(atexit(s2n_server_fuzz_atexit));
     GUARD(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
+
+    /* Set up Server Config */
+    notnull_check(server_config = s2n_config_new());
+    GUARD(s2n_config_add_cert_chain_and_key(server_config, certificate_chain, private_key));
+    GUARD(s2n_config_add_dhparams(server_config, dhparams));
+
     return 0;
 }
 
@@ -149,42 +191,19 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
         return 0;
     }
 
-    /* Set up File Descriptors from client to server */
-    int client_to_server[2];
-    GUARD(pipe(client_to_server));
-
-    for (int i = 0; i < 2; i++) {
-        GUARD(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK));
-    }
-
-    /* Set up Server Config */
-    struct s2n_config *server_config;
-    notnull_check(server_config = s2n_config_new());
-    GUARD(s2n_config_add_cert_chain_and_key(server_config, certificate_chain, private_key));
-    GUARD(s2n_config_add_dhparams(server_config, dhparams));
+    struct s2n_stuffer in;
+    GUARD(s2n_stuffer_alloc(&in, len));
+    GUARD(s2n_stuffer_write_bytes(&in, buf, len));
 
     /* Set up Server Connection */
     struct s2n_connection *server_conn;
     notnull_check(server_conn = s2n_connection_new(S2N_SERVER));
-    GUARD(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
+    GUARD(s2n_connection_set_recv_cb(server_conn, &buffer_read));
+    GUARD(s2n_connection_set_send_cb(server_conn, &buffer_write));
+    GUARD(s2n_connection_set_recv_ctx(server_conn, &in));
     GUARD(s2n_connection_set_config(server_conn, server_config));
     GUARD(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
     server_conn->delay = 0;
-
-    /* Set Server write FD to -1, to skip writing data since server out data is never read. */
-    GUARD(s2n_connection_set_write_fd(server_conn, -1));
-
-    /* Set up Client Connection */
-    struct s2n_connection *client_conn;
-    notnull_check(client_conn = s2n_connection_new(S2N_CLIENT));
-    GUARD(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
-
-    /* Write data to client out file descriptor so that it is received by the server */
-    struct s2n_stuffer *client_out = &client_conn->out;
-    GUARD(s2n_stuffer_write_bytes(client_out, buf, len));
-    s2n_blocked_status client_blocked;
-    GUARD(s2n_flush(client_conn, &client_blocked));
-    eq_check(client_blocked, S2N_NOT_BLOCKED);
 
     /* Let Server receive data and attempt Negotiation */
     int num_attempted_negotiations = 0;
@@ -195,16 +214,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     } while(!server_blocked && num_attempted_negotiations < MAX_NEGOTIATION_ATTEMPTS);
 
     /* Clean up */
-    GUARD(s2n_connection_wipe(server_conn));
-    GUARD(s2n_connection_wipe(client_conn));
 
-    for (int i = 0; i < 2; i++) {
-        GUARD(close(client_to_server[i]));
-    }
-
-    GUARD(s2n_config_free(server_config));
     GUARD(s2n_connection_free(server_conn));
-    GUARD(s2n_connection_free(client_conn));
+    GUARD(s2n_stuffer_free(&in));
 
     return 0;
 }
