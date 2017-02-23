@@ -49,7 +49,7 @@ int s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, uint32_t len)
 
 int s2n_constant_time_copy_or_dont(uint8_t * a, const uint8_t * b, uint32_t len, uint8_t dont)
 {
-    uint8_t mask = ~(0xff << ((!dont) * 8));
+    uint8_t mask = ((uint_fast16_t)((uint_fast16_t)(dont) - 1)) >> 8;
 
     /* dont = 0 : mask = 0xff */
     /* dont > 0 : mask = 0x00 */
