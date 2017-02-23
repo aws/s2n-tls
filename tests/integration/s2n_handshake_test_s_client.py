@@ -32,9 +32,26 @@ PROTO_VERS_TO_S_CLIENT_ARG = {
     S2N_TLS12 : "-tls1_2",
 }
 
-def try_handshake(endpoint, port, cipher, ssl_version, sig_algs=None, curves=None, resume=None):
+def try_handshake(endpoint, port, cipher, ssl_version, sig_algs=None, curves=None, resume=False,
+        prefer_low_latency=False):
+    """
+    Attempt to handshake against s2nd listening on `endpoint` and `port` using Openssl s_client
+
+    :param int endpoint: endpoint for s2nd to listen on
+    :param int port: port for s2nd to listen on
+    :param str cipher: ciphers for Openssl s_client to offer. See https://www.openssl.org/docs/man1.0.2/apps/ciphers.html
+    :param int ssl_version: SSL version for s_client to use
+    :param str sig_algs: Signature algorithms for s_client to offer
+    :param str curves: Elliptic curves for s_client to offer
+    :param bool resume: True if s_client should try to reconnect to s2nd and reuse the same TLS session. False for normal negotiation.
+    :param bool prefer_low_latency: True if s2nd should use 1500 for max outgoing record size. False for default max.
+    :return: 0 on successfully negotiation(s), -1 on failure
+    """
     # Fire up s2nd
-    s2nd = subprocess.Popen(["../../bin/s2nd", "-c", "test_all", str(endpoint), str(port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    s2nd_cmd = ["../../bin/s2nd", "-c", "test_all", str(endpoint), str(port)]
+    if prefer_low_latency == True:
+        s2nd_cmd.append("--prefer-low-latency")
+    s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
     # Make sure it's running
     s2nd.stdout.readline()
@@ -47,7 +64,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, sig_algs=None, curves=Non
         s_client_cmd.extend(["-sigalgs", sig_algs])
     if curves is not None:
         s_client_cmd.extend(["-curves", curves])
-    if resume is not None:
+    if resume == True:
         s_client_cmd.append("-reconnect")
 
     # Fire up s_client
@@ -115,6 +132,9 @@ def print_result(result_prefix, return_code):
             print("FAILED")
 
 def handshake_test(host, port):
+    """
+    Basic handshake tests using all valid combinations of supported cipher suites and TLS versions.
+    """
     print("\n\tRunning handshake tests:")
     failed = 0
     for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
@@ -139,6 +159,9 @@ def handshake_test(host, port):
     return failed
 
 def resume_test(host, port):
+    """
+    Tests s2n's session resumption capability using all valid combinations of cipher suite and TLS version.
+    """
     print("\n\tRunning resumption tests:")
     failed = 0
     for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
@@ -163,6 +186,11 @@ def resume_test(host, port):
     return failed
 
 def sigalg_test(host, port):
+    """
+    Acceptance test for supported signature algorithms. Tests all possible supported sigalgs with unsupported ones mixed in
+    for noise.
+    """
+
     failed = 0
     supported_sigs = ["RSA+SHA1", "RSA+SHA224", "RSA+SHA256", "RSA+SHA384", "RSA+SHA512"]
     unsupported_sigs = ["ECDSA+SHA256", "DSA+SHA384", "ECDSA+SHA512", "DSA+SHA1"]
@@ -190,8 +218,12 @@ def sigalg_test(host, port):
     return failed
 
 def elliptic_curve_test(host, port):
+    """
+    Acceptance test for supported elliptic curves. Tests all possible supported curves with unsupported curves mixed in
+    for noise.
+    """
     supported_curves = ["P-256", "P-384"]
-    unsupported_curves = ["X25519", "P-521", "B-163", "K-409"]
+    unsupported_curves = ["B-163", "K-409"]
     print("\n\tRunning elliptic curve tests:")
     print("\tExpected supported:   " + str(supported_curves))
     print("\tExpected unsupported: " + str(unsupported_curves))
@@ -211,8 +243,16 @@ def elliptic_curve_test(host, port):
                 print_result(prefix, ret)
                 if ret != 0:
                     failed = 1
+    return failed
 
-    # Make sure we can still negotiate a non-EC kx suite if we don't match anything on the client
+def elliptic_curve_fallback_test(host, port):
+    """
+    Tests graceful fallback when s2n doesn't support any curves offered by the client. A non-ecc suite should be
+    negotiated.
+    """
+    failed = 0
+    # Make sure s2n can still negotiate a non-EC kx(AES256-GCM-SHA384) suite if we don't match anything on the client
+    unsupported_curves = ["B-163", "K-409"]
     ret = try_handshake(host, port, "ECDHE-RSA-AES128-SHA:AES256-GCM-SHA384", S2N_TLS12, curves=":".join(unsupported_curves))
     print_result("%-65s ... " % "Testing curve mismatch fallback", ret)
     if ret != 0:
@@ -220,9 +260,31 @@ def elliptic_curve_test(host, port):
 
     return failed
 
+def handshake_fragmentation_test(host,port):
+    """
+    Tests negotation with s_client despite message fragmentation. Max record size is clamped to force s2n
+    to fragment the ServerCertifcate message.
+    """
+    print("\n\tRunning handshake fragmentation tests:")
+    failed = 0
+    for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
+        print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
+        # Cipher isn't relevant for this test, pick one available in all TLS versions
+        cipher_name = "ECDHE-RSA-AES128-SHA"
+
+        # Low latency option indirectly forces fragmentation.
+        ret = try_handshake(host, port, cipher_name, ssl_version, prefer_low_latency=True)
+        result_prefix = "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
+        print_result(result_prefix, ret)
+        if ret != 0:
+            failed = 1
+
+    failed = 0
+    return failed
+
 def main(argv):
     if len(argv) < 2:
-        print("s2n_resume_test.py host port")
+        print("s2n_handshake_test_s_client.py host port")
         sys.exit(1)
 
     print("\nRunning tests with: " + os.popen('../../libcrypto-root/bin/openssl version').read())
@@ -234,6 +296,8 @@ def main(argv):
     failed += handshake_test(host, port)
     failed += sigalg_test(host, port)
     failed += elliptic_curve_test(host, port)
+    failed += elliptic_curve_fallback_test(host, port)
+    failed += handshake_fragmentation_test(host,port)
     return failed
 
 if __name__ == "__main__":
