@@ -27,7 +27,7 @@
     #define S2N_CORK        TCP_CORK
     #define S2N_CORK_ON     1
     #define S2N_CORK_OFF    0
-#elif TCP_NOPUSH   
+#elif TCP_NOPUSH
     #define S2N_CORK        TCP_NOPUSH
     #define S2N_CORK_ON     1
     #define S2N_CORK_OFF    0
@@ -119,14 +119,14 @@ int s2n_socket_write_cork(struct s2n_connection *conn)
 {
 #ifdef S2N_CORK
     int optval = S2N_CORK_ON;
-    
+
     struct s2n_socket_write_io_context *w_io_ctx = (struct s2n_socket_write_io_context *) conn->send_io_context;
     notnull_check(w_io_ctx);
 
     /* Ignore the return value, if it fails it fails */
     setsockopt(w_io_ctx->fd, IPPROTO_TCP, S2N_CORK, &optval, sizeof(optval));
 #endif
-    
+
     return 0;
 }
 
@@ -134,14 +134,14 @@ int s2n_socket_write_uncork(struct s2n_connection *conn)
 {
 #ifdef S2N_CORK
     int optval = S2N_CORK_OFF;
-    
+
     struct s2n_socket_write_io_context *w_io_ctx = (struct s2n_socket_write_io_context *) conn->send_io_context;
     notnull_check(w_io_ctx);
 
     /* Ignore the return value, if it fails it fails */
     setsockopt(w_io_ctx->fd, IPPROTO_TCP, S2N_CORK, &optval, sizeof(optval));
 #endif
- 
+
     return 0;
 }
 

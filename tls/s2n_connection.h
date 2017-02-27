@@ -52,6 +52,11 @@ struct s2n_connection {
      * default socket-based I/O set by s2n */
     uint8_t managed_io;
 
+    /* Is this connection using CORK/SO_RCVLOWAT optimizations? Only valid when the connection is using
+     * managed_io
+     */
+    unsigned int corked_io:1;
+
     /* Is this connection a client or a server connection */
     s2n_mode mode;
 

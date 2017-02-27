@@ -76,6 +76,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     conn->send_io_context = NULL;
     conn->recv_io_context = NULL;
     conn->managed_io = 0;
+    conn->corked_io = 0;
 
     /* Allocate the fixed-size stuffers */
     blob.data = conn->alert_in_data;
@@ -150,7 +151,7 @@ static int s2n_connection_free_io_contexts(struct s2n_connection *conn)
     if (!conn->managed_io) {
         return 0;
     }
-    
+
     struct s2n_blob send_io_blob;
     struct s2n_blob recv_io_blob;
 
@@ -171,19 +172,19 @@ static int s2n_connection_free_io_contexts(struct s2n_connection *conn)
 
 static int s2n_connection_wipe_io(struct s2n_connection *conn)
 {
-    if (conn->managed_io && conn->recv){
+    if (conn->managed_io && conn->corked_io && conn->recv){
         GUARD(s2n_socket_read_restore(conn));
     }
-    if (conn->managed_io && conn->send){
+    if (conn->managed_io && conn->corked_io && conn->send){
         GUARD(s2n_socket_write_restore(conn));
     }
-    
+
     /* Remove all I/O-related members */
     GUARD(s2n_connection_free_io_contexts(conn));
     conn->managed_io = 0;
     conn->send = NULL;
     conn->recv = NULL;
-    
+
     return 0;
 }
 
@@ -244,7 +245,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
 
     /* Wipe the I/O-related info and restore the original socket if necessary */
     GUARD(s2n_connection_wipe_io(conn));
-    
+
     GUARD(s2n_free(&conn->status_response));
 
     /* Allocate or resize to their original sizes */
@@ -363,6 +364,9 @@ int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
     s2n_connection_set_recv_ctx(conn, peer_socket_ctx);
     conn->managed_io = 1;
 
+    /* This is only needed if the user is using corked io.
+     * Take the snapshot in case optimized io is enabled after setting the fd.
+     */
     GUARD(s2n_socket_read_snapshot(conn));
 
     return 0;
@@ -382,6 +386,9 @@ int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
     s2n_connection_set_send_ctx(conn, peer_socket_ctx);
     conn->managed_io = 1;
 
+    /* This is only needed if the user is using corked io.
+     * Take the snapshot in case optimized io is enabled after setting the fd.
+     */
     GUARD(s2n_socket_write_snapshot(conn));
 
     return 0;
@@ -391,6 +398,13 @@ int s2n_connection_set_fd(struct s2n_connection *conn, int fd)
 {
     GUARD(s2n_connection_set_read_fd(conn, fd));
     GUARD(s2n_connection_set_write_fd(conn, fd));
+    return 0;
+}
+
+int s2n_connection_use_corked_io(struct s2n_connection *conn)
+{
+    conn->corked_io = 1;
+
     return 0;
 }
 

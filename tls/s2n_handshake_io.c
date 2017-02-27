@@ -131,8 +131,10 @@ static int s2n_advance_message(struct s2n_connection *conn)
     /* Actually advance the message number */
     conn->handshake.message_number++;
 
-    /* If the caller started out with a corked socket, we don't mess with it */
-    if (s2n_socket_was_corked(conn)) {
+    /* If optimized io hasn't been enabled or if the caller started out with a corked socket,
+     * we don't mess with it
+     */
+    if (!conn->corked_io || s2n_socket_was_corked(conn)) {
         return 0;
     }
 
@@ -143,15 +145,19 @@ static int s2n_advance_message(struct s2n_connection *conn)
 
     /* We're the new writer */
     if (ACTIVE_STATE(conn).writer == this) {
-        /* Set TCP_CORK/NOPUSH */
-        GUARD(s2n_socket_write_cork(conn));
+        if (conn->managed_io && conn->corked_io) {
+            /* Set TCP_CORK/NOPUSH */
+            GUARD(s2n_socket_write_cork(conn));
+        }
 
         return 0;
     }
 
     /* We're the new reader, or we reached the "B" writer stage indicating that
        we're at the application data stage  - uncork the data */
-    GUARD(s2n_socket_write_uncork(conn));
+    if (conn->managed_io && conn->corked_io) {
+        GUARD(s2n_socket_write_uncork(conn));
+    }
 
     return 0;
 }
