@@ -291,7 +291,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     conn->secure.cipher_suite = &s2n_null_cipher_suite;
     conn->server = &conn->initial;
     conn->client = &conn->initial;
-    conn->max_fragment_length = S2N_DEFAULT_FRAGMENT_LENGTH;
+    conn->max_outgoing_fragment_length = S2N_DEFAULT_FRAGMENT_LENGTH;
     conn->handshake.handshake_type = INITIAL;
     conn->handshake.message_number = 0;
     GUARD(s2n_hash_init(&conn->handshake.md5, S2N_HASH_MD5));
@@ -553,14 +553,14 @@ const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uin
 
 int s2n_connection_prefer_throughput(struct s2n_connection *conn)
 {
-    conn->max_fragment_length = S2N_LARGE_FRAGMENT_LENGTH;
+    conn->max_outgoing_fragment_length = S2N_LARGE_FRAGMENT_LENGTH;
 
     return 0;
 }
 
 int s2n_connection_prefer_low_latency(struct s2n_connection *conn)
 {
-    conn->max_fragment_length = S2N_SMALL_FRAGMENT_LENGTH;
+    conn->max_outgoing_fragment_length = S2N_SMALL_FRAGMENT_LENGTH;
 
     return 0;
 }

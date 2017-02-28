@@ -135,7 +135,10 @@ struct s2n_connection {
     /* Our handshake state machine */
     struct s2n_handshake handshake;
 
-    uint16_t max_fragment_length;
+    /* Maximum outgoing fragment size for this connection. Does not limit
+     * incoming record size.
+     */
+    uint16_t max_outgoing_fragment_length;
 
     /* Keep some accounting on each connection */
     uint64_t wire_bytes_in;

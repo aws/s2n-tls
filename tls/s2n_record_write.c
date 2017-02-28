@@ -64,7 +64,7 @@ static uint16_t overhead(struct s2n_connection *conn)
 
 int s2n_record_max_write_payload_size(struct s2n_connection *conn)
 {
-    uint16_t max_fragment_size = conn->max_fragment_length;
+    uint16_t max_fragment_size = conn->max_outgoing_fragment_length;
     struct s2n_crypto_parameters *active = conn->server;
 
     if (conn->mode == S2N_CLIENT) {
