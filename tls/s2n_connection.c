@@ -313,7 +313,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     conn->verify_server_cert_chain_callback = initial_verify_server_cert;
     conn->verify_client_cert_context = initial_verify_client_cert_context;
     conn->verify_server_cert_context = initial_verify_server_cert_context;
-    conn->max_outgoing_fragment_length = S2N_SMALL_FRAGMENT_LENGTH;
+    conn->max_outgoing_fragment_length = S2N_DEFAULT_FRAGMENT_LENGTH;
     conn->handshake.handshake_type = INITIAL;
     conn->handshake.message_number = 0;
     GUARD(s2n_hash_init(&conn->handshake.md5, S2N_HASH_MD5));
