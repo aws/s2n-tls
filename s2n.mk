@@ -57,7 +57,7 @@ ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)
 
     # Turn on debugging and fuzzing flags when S2N_UNSAFE_FUZZING_MODE is enabled to give detailed stack traces in case
     # an error occurs while fuzzing.
-    CFLAGS += ${DEFAULT_CFLAGS} ${DEBUG_FLAGS} ${FUZZ_CFLAGS}
+    CFLAGS += ${DEFAULT_CFLAGS} ${DEBUG_CFLAGS} ${FUZZ_CFLAGS}
 endif
 
 
