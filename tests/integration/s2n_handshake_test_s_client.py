@@ -288,8 +288,7 @@ def handshake_fragmentation_test(host,port):
         print_result(result_prefix, ret)
         if ret != 0:
             failed = 1
-
-    failed = 0
+    return failed
 
 def client_auth_test(host, port):
     print("\n\tRunning Client Auth Handshake Tests:")
@@ -312,6 +311,7 @@ def client_auth_test(host, port):
             print_result(result_prefix, ret)
             if ret != 0:
                 failed = 1
+    return failed
 
 def main(argv):
     if len(argv) < 2:

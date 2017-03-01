@@ -108,7 +108,7 @@ extern int s2n_connection_free(struct s2n_connection *conn);
 extern int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked);
 
 typedef enum { S2N_CERT_AUTH_REQUIRED, S2N_CERT_AUTH_NONE } s2n_cert_auth_type;
-extern int s2n_connection_set_client_cert_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type);
+extern int s2n_connection_set_cert_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type);
 
 /* RFC's that define below values:
  *  - https://tools.ietf.org/html/rfc5246#section-7.4.4
@@ -150,8 +150,7 @@ extern int s2n_cert_public_key_set_rsa(struct s2n_cert_public_key *cert_pub_key,
  *         0 if the Certificate is untrusted, or there was some other error.
  */
 typedef int verify_cert_chain(struct s2n_blob *cert_chain, struct s2n_cert_public_key *public_key, void *context);
-extern int s2n_connection_set_server_cert_verify_callback(struct s2n_connection *conn, verify_cert_chain *callback, void *context);
-extern int s2n_connection_set_client_cert_verify_callback(struct s2n_connection *conn, verify_cert_chain *callback, void *context);
+extern int s2n_connection_set_cert_verify_callback(struct s2n_connection *conn, verify_cert_chain *callback, void *context);
 
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);
 extern uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn);

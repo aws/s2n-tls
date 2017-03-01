@@ -45,7 +45,7 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
     struct s2n_cert_public_key cert_public_key;
 
     /* Determine the Cert Type, Verify the Cert, and extract the Public Key */
-    GUARD(conn->verify_client_cert_chain_callback(&client_cert_chain, &cert_public_key, conn->verify_client_cert_context));
+    GUARD(conn->verify_cert_chain_callback(&client_cert_chain, &cert_public_key, conn->verify_cert_context));
 
     switch (cert_public_key.cert_type) {
     /* s2n currently only supports RSA Certificates */
@@ -65,14 +65,9 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
 
 int s2n_client_cert_send(struct s2n_connection *conn)
 {
-    struct s2n_stuffer *out = &conn->handshake.io;
-    struct s2n_blob client_cert_chain = conn->client->client_cert_chain;
-    notnull_check(client_cert_chain.data);
-
+    struct s2n_cert_chain_and_key *chain = conn->config->cert_and_key_pairs;
     /* TODO: Check that RSA is in conn->server_preferred_cert_types and conn->secure.client_cert_sig_algorithm */
 
-    GUARD(s2n_stuffer_write_uint24(out, client_cert_chain.size));
-    GUARD(s2n_stuffer_write(out, &client_cert_chain));
-
+    GUARD(s2n_send_cert_chain(&conn->handshake.io, chain));
     return 0;
 }

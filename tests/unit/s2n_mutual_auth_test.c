@@ -167,6 +167,8 @@ int buffer_write(void *io_context, const uint8_t *buf, uint32_t len)
     return len;
 }
 
+static const int MAX_TRIES = 100;
+
 int main(int argc, char **argv)
 {
     struct s2n_config *config;
@@ -221,10 +223,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_recv_ctx(server_conn, &client_to_server));
         EXPECT_SUCCESS(s2n_connection_set_send_ctx(server_conn, &server_to_client));
 
-        s2n_connection_set_client_cert_auth_type(client_conn, S2N_CERT_AUTH_REQUIRED);
-        s2n_connection_set_client_cert_auth_type(server_conn, S2N_CERT_AUTH_REQUIRED);
-        s2n_connection_set_server_cert_verify_callback(client_conn, &accept_all_rsa_certs, NULL);
-        s2n_connection_set_client_cert_verify_callback(server_conn, &accept_all_rsa_certs, NULL);
+        s2n_connection_set_cert_auth_type(client_conn, S2N_CERT_AUTH_REQUIRED);
+        s2n_connection_set_cert_auth_type(server_conn, S2N_CERT_AUTH_REQUIRED);
+        s2n_connection_set_cert_verify_callback(client_conn, &accept_all_rsa_certs, NULL);
+        s2n_connection_set_cert_verify_callback(server_conn, &accept_all_rsa_certs, NULL);
 
         int tries = 0;
         do {
@@ -235,12 +237,16 @@ int main(int argc, char **argv)
             EXPECT_TRUE(ret == 0 || (server_blocked && errno == EAGAIN));
             tries += 1;
 
-            if (tries == 100) {
-                FAIL();
+            if (tries >= MAX_TRIES) {
+               FAIL();
             }
         } while (client_blocked || server_blocked);
+
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
+    EXPECT_SUCCESS(s2n_config_free(config));
     END_TEST();
     return 0;
 }

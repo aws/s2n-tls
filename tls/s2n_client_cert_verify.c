@@ -70,5 +70,37 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
 
 int s2n_client_cert_verify_send(struct s2n_connection *conn)
 {
-    S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
+    struct s2n_stuffer *out = &conn->handshake.io;
+
+    s2n_hash_algorithm chosen_hash_alg = S2N_HASH_MD5_SHA1;
+    s2n_signature_algorithm chosen_signature_alg = S2N_SIGNATURE_RSA;
+
+    if(conn->actual_protocol_version == S2N_TLS12){
+        chosen_hash_alg = conn->secure.client_cert_hash_algorithm;
+        chosen_signature_alg = conn->secure.client_cert_sig_algorithm;
+
+        GUARD(s2n_stuffer_write_uint8(out, (uint8_t) chosen_hash_alg));
+        GUARD(s2n_stuffer_write_uint8(out, (uint8_t) chosen_signature_alg));
+    }
+
+    struct s2n_hash_state hash_state;
+    GUARD(s2n_handshake_get_hash_state(conn, chosen_hash_alg, &hash_state));
+
+    struct s2n_blob signature;
+
+    switch (chosen_signature_alg) {
+    /* s2n currently only supports RSA Signatures */
+    case S2N_SIGNATURE_RSA:
+        signature.size = s2n_rsa_private_encrypted_size(&conn->config->cert_and_key_pairs->private_key);
+        GUARD(s2n_stuffer_write_uint16(out, signature.size));
+
+        signature.data = s2n_stuffer_raw_write(out, signature.size);
+        notnull_check(signature.data);
+        GUARD(s2n_rsa_sign(&conn->config->cert_and_key_pairs->private_key, &hash_state, &signature));
+        break;
+    default:
+        S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    }
+
+    return 0;
 }

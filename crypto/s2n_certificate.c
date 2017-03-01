@@ -42,3 +42,20 @@ int s2n_cert_public_key_get_rsa(struct s2n_cert_public_key *cert_pub_key, struct
 
     return 0;
 }
+
+int s2n_send_cert_chain(struct s2n_stuffer *out, struct s2n_cert_chain_and_key *chain)
+{
+    notnull_check(out);
+    notnull_check(chain);
+    GUARD(s2n_stuffer_write_uint24(out, chain->chain_size));
+
+    struct s2n_cert_chain *head = chain->head;
+    while (head) {
+        notnull_check(head);
+        GUARD(s2n_stuffer_write_uint24(out, head->cert.size));
+        GUARD(s2n_stuffer_write_bytes(out, head->cert.data, head->cert.size));
+        head = head->next;
+    }
+
+    return 0;
+}

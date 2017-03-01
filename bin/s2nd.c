@@ -435,8 +435,8 @@ int main(int argc, char *const *argv)
     }
 
     if(mutualAuth) {
-        s2n_connection_set_client_cert_auth_type(conn, S2N_CERT_AUTH_REQUIRED);
-        s2n_connection_set_client_cert_verify_callback(conn, &accept_all_rsa_certs, NULL);
+        s2n_connection_set_cert_auth_type(conn, S2N_CERT_AUTH_REQUIRED);
+        s2n_connection_set_cert_verify_callback(conn, &accept_all_rsa_certs, NULL);
     }
 
     int fd;

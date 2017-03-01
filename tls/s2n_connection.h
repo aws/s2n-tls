@@ -89,12 +89,8 @@ struct s2n_connection {
 
     /* Certificate Authentication and Verification Parameters */
     s2n_cert_auth_type client_cert_auth_type;
-    verify_cert_chain *verify_client_cert_chain_callback;
-    verify_cert_chain *verify_server_cert_chain_callback;
-    void *verify_client_cert_context;
-    void *verify_server_cert_context;
-    uint8_t server_preferred_cert_types[S2N_MAX_CERT_TYPE_PREFERENCE_LEN];
-    uint8_t server_preferred_cert_types_len;
+    verify_cert_chain *verify_cert_chain_callback;
+    void *verify_cert_context;
 
 
     /* Our crypto parameters */

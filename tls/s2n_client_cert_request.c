@@ -31,12 +31,7 @@ int s2n_client_cert_req_recv(struct s2n_connection *conn)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
 
-    uint8_t cert_types_len;
-    uint8_t *cert_types;
-
-    GUARD(s2n_stuffer_read_uint8(in, &cert_types_len));
-    cert_types = s2n_stuffer_raw_read(in, cert_types_len);
-    notnull_check(cert_types);
+    GUARD(s2n_recv_client_cert_preferences(in, &conn->secure.client_cert_type));
 
     if(conn->actual_protocol_version == S2N_TLS12){
         s2n_hash_algorithm chosen_hash_algorithm;
@@ -52,14 +47,6 @@ int s2n_client_cert_req_recv(struct s2n_connection *conn)
     if(cert_authorities_len != 0) {
         /* Avoid parsing X.501 encoded CA Distinguished Names */
         S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
-    }
-
-    lte_check(cert_types_len, S2N_MAX_CERT_TYPE_PREFERENCE_LEN);
-
-    conn->server_preferred_cert_types_len = cert_types_len;
-
-    for(int i = 0; i < conn->server_preferred_cert_types_len; i++){
-        conn->server_preferred_cert_types[i] = cert_types[i];
     }
 
     return 0;

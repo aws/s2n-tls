@@ -42,7 +42,7 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
     cert_chain.data = s2n_stuffer_raw_read(&conn->handshake.io, size_of_all_certificates);
     cert_chain.size = size_of_all_certificates;
 
-    GUARD(conn->verify_server_cert_chain_callback(&cert_chain, &public_key, conn->verify_server_cert_context));
+    GUARD(conn->verify_cert_chain_callback(&cert_chain, &public_key, conn->verify_cert_context));
 
     if(public_key.cert_type != S2N_CERT_TYPE_RSA_SIGN) {
         S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
@@ -55,15 +55,7 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
 
 int s2n_server_cert_send(struct s2n_connection *conn)
 {
-    struct s2n_cert_chain *head = conn->server->server_cert_chain->head;
-
-    GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, conn->server->server_cert_chain->chain_size));
-
-    while (head) {
-        GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, head->cert.size));
-        GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, head->cert.data, head->cert.size));
-        head = head->next;
-    }
+    GUARD(s2n_send_cert_chain(&conn->handshake.io, conn->server->server_cert_chain));
 
     return 0;
 }

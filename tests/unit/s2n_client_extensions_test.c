@@ -162,7 +162,7 @@ int main(int argc, char **argv)
         client_conn->actual_protocol_version = S2N_TLS12;
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
-        client_conn->verify_server_cert_chain_callback = accept_all_rsa_certs;
+        client_conn->verify_cert_chain_callback = accept_all_rsa_certs;
 
         EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
@@ -219,7 +219,7 @@ int main(int argc, char **argv)
         client_conn->actual_protocol_version = S2N_TLS12;
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
-        client_conn->verify_server_cert_chain_callback = accept_all_rsa_certs;
+        client_conn->verify_cert_chain_callback = accept_all_rsa_certs;
 
         EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
@@ -587,7 +587,7 @@ int main(int argc, char **argv)
         client_conn->actual_protocol_version = S2N_TLS12;
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
-        client_conn->verify_server_cert_chain_callback = accept_all_rsa_certs;
+        client_conn->verify_cert_chain_callback = accept_all_rsa_certs;
 
         EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
@@ -644,7 +644,7 @@ int main(int argc, char **argv)
         client_conn->actual_protocol_version = S2N_TLS12;
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
-        client_conn->verify_server_cert_chain_callback = accept_all_rsa_certs;
+        client_conn->verify_cert_chain_callback = accept_all_rsa_certs;
 
         EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
@@ -706,7 +706,7 @@ int main(int argc, char **argv)
         client_conn->actual_protocol_version = S2N_TLS12;
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
-        client_conn->verify_server_cert_chain_callback = accept_all_rsa_certs;
+        client_conn->verify_cert_chain_callback = accept_all_rsa_certs;
 
         EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));

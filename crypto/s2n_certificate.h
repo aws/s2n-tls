@@ -18,6 +18,8 @@
 #include <stdint.h>
 
 #include "crypto/s2n_rsa.h"
+#include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_config.h"
 
 struct s2n_cert_public_key {
     s2n_cert_type cert_type;
@@ -26,3 +28,5 @@ struct s2n_cert_public_key {
         /* TODO: Support other Public Key Types (Eg ECDSA) */
     } public_key;
 };
+
+int s2n_send_cert_chain(struct s2n_stuffer *out, struct s2n_cert_chain_and_key *chain);

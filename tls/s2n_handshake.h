@@ -78,7 +78,7 @@ struct s2n_handshake {
 /* Handshake needs OCSP status message */
 #define OCSP_STATUS                 0x08
 
-/* Handshake needs OCSP status message */
+/* Handshake should request a Client Certificate */
 #define CLIENT_AUTH                 0x10
 
     /* Which handshake message number are we processing */

@@ -46,7 +46,6 @@
 struct s2n_crypto_parameters {
     struct s2n_rsa_public_key server_rsa_public_key;
     struct s2n_rsa_public_key client_rsa_public_key;
-    struct s2n_rsa_private_key client_rsa_private_key;
     struct s2n_dh_params server_dh_params;
     struct s2n_ecc_params server_ecc_params;
     struct s2n_cert_chain_and_key *server_cert_chain;
