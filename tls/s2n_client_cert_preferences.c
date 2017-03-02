@@ -46,10 +46,10 @@ int s2n_choose_preferred_client_cert_type(struct s2n_stuffer *in, int certs_avai
     while(certs_read < certs_available){
         for (int i = curr_best_cert_type_index; i >= 0; i--) {
             s2n_cert_type curr_cert_type = cert_types[i];
+            certs_read++;
             if (s2n_cert_type_preference_list[i] != curr_cert_type) {
                 continue;
             }
-            certs_read++;
 
             found_valid_cert = 1;
             curr_best_cert_type_index = i;
