@@ -49,7 +49,7 @@ CFLAGS += ${DEFAULT_CFLAGS}
 
 DEBUG_CFLAGS = -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls
 
-FUZZ_CFLAGS = -fsanitize-coverage=edge,trace-cmp -fsanitize=address,undefined,leak
+FUZZ_CFLAGS = -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak
 
 ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)
     # Override compiler to clang if fuzzing, since gcc does not support as many sanitizer flags as clang
@@ -57,7 +57,7 @@ ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)
 
     # Turn on debugging and fuzzing flags when S2N_UNSAFE_FUZZING_MODE is enabled to give detailed stack traces in case
     # an error occurs while fuzzing.
-    CFLAGS += ${DEFAULT_CFLAGS} ${DEBUG_FLAGS} ${FUZZ_CFLAGS}
+    CFLAGS += ${DEFAULT_CFLAGS} ${DEBUG_CFLAGS} ${FUZZ_CFLAGS}
 endif
 
 
