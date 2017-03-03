@@ -37,7 +37,7 @@ extern inline void* trace_memcpy_check(void *restrict to, const void *restrict f
 
 /* Check memcpy and memset's arguments, if these are not right, log an error
  */
-#define memcpy_check( d, s, n )     do { if ( (n) ) { void *r = trace_memcpy_check( (d), (s) , (n), "Error encountered in " __FILE__ " line " STRING__LINE__); if (r == NULL) { return -1; } } } while(0)
+#define memcpy_check( d, s, n )     do { if ( (n) ) { void *r = trace_memcpy_check( (d), (s) , (n), _S2N_DEBUG_LINE); if (r == NULL) { return -1; } } } while(0)
 #define memset_check( d, c, n )     do { if ( (n) ) { notnull_check( (d) ); memset( (d), (c), (n)); } } while(0)
 
 /* Range check a number */
