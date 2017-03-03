@@ -103,7 +103,7 @@ int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size)
 
     result = s2n_negotiate(conn, &blocked);
     if (result < 0) {
-        _exit(1);
+        return 1;
     }
 
     /* Receive 10MB of data */
@@ -124,7 +124,7 @@ int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size)
 
     for (int i = 0; i < size; i++) {
         if (buffer[i] != expected_data[i]) {
-            _exit(1);
+        return 1;
         }
     }
 
@@ -134,13 +134,11 @@ int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size)
     /* Give the server a chance to a void a sigpipe */
     sleep(1);
 
-    _exit(0);
+    return 0;
 }
 
 int main(int argc, char **argv)
 {
-    uint8_t data[10000000];
-    uint8_t *ptr = data;
     struct s2n_connection *conn;
     struct s2n_config *config;
     s2n_blocked_status blocked;
@@ -148,7 +146,6 @@ int main(int argc, char **argv)
     pid_t pid;
     int server_to_client[2];
     int client_to_server[2];
-    struct s2n_blob blob = {.data = data, .size = sizeof(data)};
 
     BEGIN_TEST();
 
@@ -158,7 +155,14 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, certificate, private_key));
     EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams));
 
+    const uint32_t data_size = 10000000;
+    uint8_t *data = malloc(data_size);
+    EXPECT_NOT_NULL(data);
+
     /* Get some random data to send/receive */
+    struct s2n_blob blob;
+    blob.data = data;
+    blob.size = data_size;
     EXPECT_SUCCESS(s2n_get_urandom_data(&blob));
     
     /* Create a pipe */
@@ -173,7 +177,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(close(server_to_client[1]));
 
         /* Run the client */
-        mock_client(client_to_server[1], server_to_client[0], data, sizeof(data));
+        const int client_rc = mock_client(client_to_server[1], server_to_client[0], data, data_size);
+
+        free(data);
+        _exit(client_rc);
     }
 
     /* This is the parent */
@@ -199,7 +206,8 @@ int main(int argc, char **argv)
 
     /* Try to all 10MB of data, should be enough to fill PIPEBUF, so
        we'll get blocked at some point */
-    uint32_t remaining = sizeof(data);
+    uint32_t remaining = data_size;
+    uint8_t *ptr = data;
     while (remaining) {
         int r = s2n_send(conn, ptr, remaining, &blocked);
         if (r < 0) {
@@ -215,7 +223,7 @@ int main(int argc, char **argv)
     }
         
     /* Remaining shouldn't have progressed at all */
-    EXPECT_EQUAL(remaining, sizeof(data));
+    EXPECT_EQUAL(remaining, data_size);
 
     /* Wake the child process by sending it SIGCONT */
     EXPECT_SUCCESS(kill(pid, SIGCONT));
@@ -243,6 +251,8 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(status, 0);
     EXPECT_SUCCESS(s2n_config_free(config));
     END_TEST();
+
+    free(data);
 
     return 0;
 }
