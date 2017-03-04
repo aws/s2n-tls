@@ -60,6 +60,7 @@ matrix:
   - env: TESTS=sawDRBG SAW=true
   allow_failures:
     - os: osx
+  fast_finish: true
 
 before_install:
   # Install GCC 6 if on OSX
