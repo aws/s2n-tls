@@ -48,8 +48,8 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
 
         struct s2n_blob asn1cert;
         asn1cert.data = s2n_stuffer_raw_read(&conn->handshake.io, certificate_size);
-        asn1cert.size = certificate_size;
         notnull_check(asn1cert.data);
+        asn1cert.size = certificate_size;
 
         /* TODO: certificate validation goes here */
         gt_check(certificate_size, 0);
