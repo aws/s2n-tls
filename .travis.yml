@@ -92,14 +92,14 @@ install:
   # Download and Install Openssl 1.1.0
   - if [[ ! -d "$OPENSSL_1_1_0_INSTALL_DIR" ]]; then .travis/install_openssl_1_1_0.sh /tmp $OPENSSL_1_1_0_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
   # Install python linked with the latest Openssl for integration tests
-  - if [[ ! -d "$PYTHON_INSTALL_DIR" ]] && [[ "$TESTS" == "integration" ]]; then mkdir -p $PYTHON_INSTALL_DIR && .travis/install_python.sh $OPENSSL_1_1_0_INSTALL_DIR /tmp $PYTHON_INSTALL_DIR > /dev/null ; fi
+  - if [[ ! -d "$PYTHON_INSTALL_DIR" ]]; then mkdir -p $PYTHON_INSTALL_DIR && .travis/install_python.sh $OPENSSL_1_1_0_INSTALL_DIR /tmp $PYTHON_INSTALL_DIR > /dev/null ; fi
   # Download and Install GnuTLS for integration tests
-  - if [[ ! -d "$GNUTLS_INSTALL_DIR" ]] && [[ "$TESTS" == "integration" ]]; then mkdir -p $GNUTLS_INSTALL_DIR && .travis/install_gnutls.sh /tmp $GNUTLS_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
+  - if [[ ! -d "$GNUTLS_INSTALL_DIR" ]]; then mkdir -p $GNUTLS_INSTALL_DIR && .travis/install_gnutls.sh /tmp $GNUTLS_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
   - if [[ ! -d "$PRLIMIT_INSTALL_DIR" ]] && [[ "$TRAVIS_OS_NAME" == "linux" ]]; then mkdir -p $PRLIMIT_INSTALL_DIR && .travis/install_prlimit.sh /tmp $PRLIMIT_INSTALL_DIR > /dev/null ; fi
   - if [[ "$BUILD_S2N" == "true" ]]; then mkdir -p .travis/checker && .travis/install_scan-build.sh .travis/checker && export PATH=$PATH:.travis/checker/bin ; fi
   # Install SAW and Z3 for formal verification
-  - if [[ ! -d "$SAW_INSTALL_DIR" ]] && [[ "$SAW" == "true" ]]; then mkdir -p $SAW_INSTALL_DIR && .travis/install_saw.sh /tmp $SAW_INSTALL_DIR > /dev/null ; fi
-  - if [[ ! -d "$Z3_INSTALL_DIR" ]] && [[ "$SAW" == "true" ]]; then mkdir -p $Z3_INSTALL_DIR && .travis/install_z3.sh /tmp $Z3_INSTALL_DIR > /dev/null ; fi
+  - if [[ ! -d "$SAW_INSTALL_DIR" ]]; then mkdir -p $SAW_INSTALL_DIR && .travis/install_saw.sh /tmp $SAW_INSTALL_DIR > /dev/null ; fi
+  - if [[ ! -d "$Z3_INSTALL_DIR" ]]; then mkdir -p $Z3_INSTALL_DIR && .travis/install_z3.sh /tmp $Z3_INSTALL_DIR > /dev/null ; fi
 
 before_script:
   # Add all of our test dependencies to the PATH
