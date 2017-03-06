@@ -40,10 +40,8 @@ cd openssl-1.1.0a
 make
 make install
 
-# Make to the main s2n directory
-cd ../../
-
 # Build s2n
+cd ../../
 make
 ```
 
@@ -71,10 +69,8 @@ make depend
 make
 make install
 
-# Make to the main s2n directory
-cd ../../
-
 # Build s2n
+cd ../../
 make
 ```
 
@@ -97,10 +93,8 @@ cd libressl-x.y.z
 ./configure --prefix=`pwd`/../../libcrypto-root/
 make CFLAGS=-fPIC install
 
-# Make to the main s2n directory
-cd ../../
-
 # Build s2n
+cd ../../
 make
 ```
 
