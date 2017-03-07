@@ -15,8 +15,18 @@
 
 set -e
 
+usage() {
+    echo "install_prlimit.sh download_dir install_dir"
+    exit 1
+}
+
+if [ "$#" -ne "2" ]; then
+    usage
+fi
+
 BUILD_DIR=$1
 INSTALL_DIR=$2
+NUM_CORES=`nproc`
 
 cd $BUILD_DIR
 wget https://www.kernel.org/pub/linux/utils/util-linux/v2.25/util-linux-2.25.2.tar.gz
@@ -38,6 +48,6 @@ cd util-linux-2.25.2
     --without-ncurses \
     --prefix=$INSTALL_DIR || cat config.log
 
-make -j `grep -c ^processor /proc/cpuinfo`
+make -j $NUM_CORES
 make install
 
