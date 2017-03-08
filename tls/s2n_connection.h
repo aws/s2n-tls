@@ -102,7 +102,7 @@ struct s2n_connection {
     struct s2n_crypto_parameters *server;
 
     /* The PRF needs some storage elements to work with */
-    union s2n_prf_working_space prf_space;
+    struct s2n_prf_working_space prf_space;
 
     /* Our workhorse stuffers, used for buffering the plaintext
      * and encrypted data in both directions.

@@ -46,6 +46,8 @@ int s2n_ecdsa_sign(const struct s2n_ecdsa_private_key *key, struct s2n_hash_stat
         S2N_ERROR(S2N_ERR_SIZE_MISMATCH);
     }
     signature->size = signature_size;
+
+    GUARD(s2n_hash_reset(digest));
     
     return 0;
 }
@@ -63,6 +65,8 @@ int s2n_ecdsa_verify(const struct s2n_ecdsa_public_key *key, struct s2n_hash_sta
     if (ECDSA_verify(0, digest_out, digest_length, signature->data, signature->size, key->eckey) == 0) {
         S2N_ERROR(S2N_ERR_VERIFY_SIGNATURE);
     }
+
+    GUARD(s2n_hash_reset(digest));
     
     return 0;
 }
@@ -157,26 +161,26 @@ int s2n_ecdsa_signature_size(const struct s2n_ecdsa_private_key *key)
     return ECDSA_size(key->eckey);
 }
 
-int s2n_ecdsa_keys_match(const struct s2n_ecdsa_public_key *pub_key, const struct s2n_ecdsa_private_key *priv_key) 
+int s2n_ecdsa_keys_match(const struct s2n_ecdsa_public_key *pub_key, struct s2n_hash_state *state_in,
+                         const struct s2n_ecdsa_private_key *priv_key, struct s2n_hash_state *state_out)
 {
     uint8_t input[16];
     struct s2n_blob random_input;
-    struct s2n_hash_state state_in, state_out;
     struct s2n_blob signature;
 
     random_input.data = input;
     random_input.size = sizeof(input);
     GUARD(s2n_get_public_random_data(&random_input));
 
-    GUARD(s2n_hash_init(&state_in, S2N_HASH_SHA1));
-    GUARD(s2n_hash_init(&state_out, S2N_HASH_SHA1));
-    GUARD(s2n_hash_update(&state_in, input, sizeof(input)));
-    GUARD(s2n_hash_update(&state_out, input, sizeof(input)));
+    GUARD(s2n_hash_init(state_in, S2N_HASH_SHA1));
+    GUARD(s2n_hash_init(state_out, S2N_HASH_SHA1));
+    GUARD(s2n_hash_update(state_in, input, sizeof(input)));
+    GUARD(s2n_hash_update(state_out, input, sizeof(input)));
 
     GUARD(s2n_alloc(&signature, s2n_ecdsa_signature_size(priv_key)));
     
-    GUARD(s2n_ecdsa_sign(priv_key, &state_in, &signature));
-    GUARD(s2n_ecdsa_verify(pub_key, &state_out, &signature));
+    GUARD(s2n_ecdsa_sign(priv_key, state_in, &signature));
+    GUARD(s2n_ecdsa_verify(pub_key, state_out, &signature));
 
     return 0;
 }

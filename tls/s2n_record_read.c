@@ -111,6 +111,7 @@ int s2n_record_parse(struct s2n_connection *conn)
 
     uint8_t *sequence_number = conn->client->client_sequence_number;
     struct s2n_hmac_state *mac = &conn->client->client_record_mac;
+    struct s2n_hmac_state *mac_copy = &conn->client->client_record_mac_copy;
     struct s2n_session_key *session_key = &conn->client->client_key;
     const struct s2n_cipher_suite *cipher_suite = conn->client->cipher_suite;
     uint8_t *implicit_iv = conn->client->client_implicit_iv;
@@ -292,7 +293,7 @@ int s2n_record_parse(struct s2n_connection *conn)
 
     /* Padding */
     if (cipher_suite->record_alg->cipher->type == S2N_CBC) {
-        if (s2n_verify_cbc(conn, mac, &en) < 0) {
+        if (s2n_verify_cbc(conn, mac, mac_copy, &en) < 0) {
             GUARD(s2n_stuffer_wipe(&conn->in));
             S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }

@@ -46,10 +46,8 @@
  * complexity of attack for even a 1 microsecond timing leak (which
  * is quite large) by a factor of around 83 trillion.
  */
-int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, struct s2n_blob *decrypted)
+int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, struct s2n_hmac_state *copy, struct s2n_blob *decrypted)
 {
-    struct s2n_hmac_state copy;
-
     uint8_t mac_digest_size;
     GUARD(s2n_hmac_digest_size(hmac->alg, &mac_digest_size));
 
@@ -66,7 +64,7 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
 
     /* Update the MAC */
     GUARD(s2n_hmac_update(hmac, decrypted->data, payload_length));
-    GUARD(s2n_hmac_copy(&copy, hmac));
+    GUARD(s2n_hmac_copy(copy, hmac));
 
     /* Check the MAC */
     uint8_t check_digest[S2N_MAX_DIGEST_LEN];
@@ -76,7 +74,7 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
     int mismatches = s2n_constant_time_equals(decrypted->data + payload_length, check_digest, mac_digest_size) ^ 1;
 
     /* Compute a MAC on the rest of the data so that we perform the same number of hash operations */
-    GUARD(s2n_hmac_update(&copy, decrypted->data + payload_length + mac_digest_size, decrypted->size - payload_length - mac_digest_size - 1));
+    GUARD(s2n_hmac_update(copy, decrypted->data + payload_length + mac_digest_size, decrypted->size - payload_length - mac_digest_size - 1));
 
     /* SSLv3 doesn't specify what the padding should actually be */
     if (conn->actual_protocol_version == S2N_SSLv3) {
@@ -91,6 +89,8 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
         uint8_t mask = ~(0xff << ((i >= cutoff) * 8));
         mismatches |= (decrypted->data[j] ^ padding_length) & mask;
     }
+
+    GUARD(s2n_hmac_reset(copy));
 
     if (mismatches) {
         S2N_ERROR(S2N_ERR_CBC_VERIFY);

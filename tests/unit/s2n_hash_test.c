@@ -26,49 +26,47 @@
 int main(int argc, char **argv)
 {
     uint8_t digest_pad[64];
-    uint8_t output_pad[96];
+    uint8_t output_pad[128];
     uint8_t hello[] = "Hello world!\n";
+    uint8_t string1[] = "String 1\n";
+    uint8_t string2[] = "and String 2\n";
     struct s2n_stuffer output;
     struct s2n_hash_state hash, copy;
     struct s2n_blob out = {.data = output_pad,.size = sizeof(output_pad) };
 
     BEGIN_TEST();
 
-    /* Initialise our output stuffers */
-    EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
+    GUARD(s2n_hash_new(&hash));
+    GUARD(s2n_hash_new(&copy));
+
+    /* Try MD5 */
     uint8_t md5_digest_size;
     GUARD(s2n_hash_digest_size(S2N_HASH_MD5, &md5_digest_size));
     EXPECT_EQUAL(md5_digest_size, 16);
     EXPECT_SUCCESS(s2n_hash_init(&hash, S2N_HASH_MD5));
     EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *)hello)));
-    EXPECT_SUCCESS(s2n_hash_copy(&copy, &hash));
     EXPECT_SUCCESS(s2n_hash_digest(&hash, digest_pad, MD5_DIGEST_LENGTH));
 
-    for (int i = 0; i < 16; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
-    }
-
-    /* Reference value from command line md5sum */
-    EXPECT_EQUAL(memcmp(output_pad, "59ca0efa9f5633cb0371bbc0355478d8", 16 * 2), 0);
-
-    /* Check the copy */
-    EXPECT_SUCCESS(s2n_hash_digest(&copy, digest_pad, MD5_DIGEST_LENGTH));
-
-    for (int i = 0; i < 16; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
-    }
-
-    /* Reference value from command line md5sum */
-    EXPECT_EQUAL(memcmp(output_pad, "59ca0efa9f5633cb0371bbc0355478d8", 16 * 2), 0);
-
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
+    for (int i = 0; i < 16; i++) {
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+    }
+
+    /* Reference value from command line md5sum */
+    EXPECT_EQUAL(memcmp(output_pad, "59ca0efa9f5633cb0371bbc0355478d8", 16 * 2), 0);
+
+    /* Try SHA1 */
+    GUARD(s2n_hash_reset(&hash));
+
     uint8_t sha1_digest_size;
     GUARD(s2n_hash_digest_size(S2N_HASH_SHA1, &sha1_digest_size));
     EXPECT_EQUAL(sha1_digest_size, 20);
     EXPECT_SUCCESS(s2n_hash_init(&hash, S2N_HASH_SHA1));
     EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *)hello)));
+    EXPECT_SUCCESS(s2n_hash_copy(&copy, &hash));
     EXPECT_SUCCESS(s2n_hash_digest(&hash, digest_pad, SHA_DIGEST_LENGTH));
 
+    EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
     for (int i = 0; i < 20; i++) {
         EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
     }
@@ -76,7 +74,71 @@ int main(int argc, char **argv)
     /* Reference value from command line sha1sum */
     EXPECT_EQUAL(memcmp(output_pad, "47a013e660d408619d894b20806b1d5086aab03b", 20 * 2), 0);
 
+    /* Check the copy */
+    EXPECT_SUCCESS(s2n_hash_digest(&copy, digest_pad, SHA_DIGEST_LENGTH));
+
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
+    for (int i = 0; i < 20; i++) {
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+    }
+
+    /* Reference value from command line sha1sum */
+    EXPECT_EQUAL(memcmp(output_pad, "47a013e660d408619d894b20806b1d5086aab03b", 20 * 2), 0);
+
+    /* Test that a multi-update works */
+    EXPECT_SUCCESS(s2n_hash_reset(&hash));
+    EXPECT_SUCCESS(s2n_hash_reset(&copy));
+
+    EXPECT_SUCCESS(s2n_hash_update(&hash, string1, strlen((char *)string1)));
+    EXPECT_SUCCESS(s2n_hash_copy(&copy, &hash));
+    EXPECT_SUCCESS(s2n_hash_update(&hash, string2, strlen((char *)string2)));
+    EXPECT_SUCCESS(s2n_hash_digest(&hash, digest_pad, SHA_DIGEST_LENGTH));
+
+    EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
+    for (int i = 0; i < 20; i++) {
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+    }
+
+    /* Reference value from command line sha1sum */
+    EXPECT_EQUAL(memcmp(output_pad, "4afd618f797f0c6bd85b2035338bb26c62ab0dbc", 20 * 2), 0);
+
+    /* Test that a copy-update works */
+    EXPECT_SUCCESS(s2n_hash_update(&copy, string2, strlen((char *)string2)));
+    EXPECT_SUCCESS(s2n_hash_digest(&copy, digest_pad, SHA_DIGEST_LENGTH));
+
+    EXPECT_SUCCESS(s2n_hash_free(&copy));
+
+    EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
+    for (int i = 0; i < 20; i++) {
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+    }
+
+    /* Reference value from command line sha1sum */
+    EXPECT_EQUAL(memcmp(output_pad, "4afd618f797f0c6bd85b2035338bb26c62ab0dbc", 20 * 2), 0);
+
+    /* Try SHA224 and test s2n_hash_free */
+    GUARD(s2n_hash_reset(&hash));
+
+    uint8_t sha224_digest_size;
+    GUARD(s2n_hash_digest_size(S2N_HASH_SHA224, &sha224_digest_size));
+    EXPECT_EQUAL(sha224_digest_size, 28);
+    EXPECT_SUCCESS(s2n_hash_init(&hash, S2N_HASH_SHA224));
+    EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *)hello)));
+    EXPECT_SUCCESS(s2n_hash_digest(&hash, digest_pad, SHA224_DIGEST_LENGTH));
+
+    EXPECT_SUCCESS(s2n_hash_free(&hash));
+
+    EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
+    for (int i = 0; i < 28; i++) {
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+    }
+
+    /* Reference value from command line sha224sum */
+    EXPECT_EQUAL(memcmp(output_pad, "f771a839cff678857feee21492184ca7a456ac3cf57e78057b7beaf5", 28 * 2), 0);
+
+    /* Try SHA256 using a freed hash state */
+    GUARD(s2n_hash_new(&hash));
+
     uint8_t sha256_digest_size;
     GUARD(s2n_hash_digest_size(S2N_HASH_SHA256, &sha256_digest_size));
     EXPECT_EQUAL(sha256_digest_size, 32);
@@ -84,6 +146,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *)hello)));
     EXPECT_SUCCESS(s2n_hash_digest(&hash, digest_pad, SHA256_DIGEST_LENGTH));
 
+    EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
     for (int i = 0; i < 32; i++) {
         EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
     }
@@ -91,7 +154,9 @@ int main(int argc, char **argv)
     /* Reference value from command line sha256sum */
     EXPECT_EQUAL(memcmp(output_pad, "0ba904eae8773b70c75333db4de2f3ac45a8ad4ddba1b242f0b3cfc199391dd8", 32 * 2), 0);
 
-    EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
+    /* Try SHA384 */
+    GUARD(s2n_hash_reset(&hash));
+
     uint8_t sha384_digest_size;
     GUARD(s2n_hash_digest_size(S2N_HASH_SHA384, &sha384_digest_size));
     EXPECT_EQUAL(sha384_digest_size, 48);
@@ -99,12 +164,33 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *)hello)));
     EXPECT_SUCCESS(s2n_hash_digest(&hash, digest_pad, SHA384_DIGEST_LENGTH));
 
+    EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
     for (int i = 0; i < 48; i++) {
         EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
     }
 
-    /* Reference value from command line sha512sum */
+    /* Reference value from command line sha384sum */
     EXPECT_EQUAL(memcmp(output_pad, "f7f8f1b9d5a9a61742eeda26c20990282ac08dabda14e70376fcb4c8b46198a9959ea9d7d194b38520eed5397ffe6d8e", 48 * 2), 0);
+
+    /* Try SHA512 */
+    GUARD(s2n_hash_reset(&hash));
+
+    uint8_t sha512_digest_size;
+    GUARD(s2n_hash_digest_size(S2N_HASH_SHA512, &sha512_digest_size));
+    EXPECT_EQUAL(sha512_digest_size, 64);
+    EXPECT_SUCCESS(s2n_hash_init(&hash, S2N_HASH_SHA512));
+    EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *)hello)));
+    EXPECT_SUCCESS(s2n_hash_digest(&hash, digest_pad, SHA512_DIGEST_LENGTH));
+
+    EXPECT_SUCCESS(s2n_hash_free(&hash));
+
+    EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
+    for (int i = 0; i < 64; i++) {
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+    }
+
+    /* Reference value from command line sha384sum */
+    EXPECT_EQUAL(memcmp(output_pad, "32c07a0b3a3fd0dd8f28021b4eea1c19d871f4586316b394124f3c99fb68e59579e05039c3bd9aab9841214f1c132f7666eb8800f14be8b9b091a7dba32bfe6f", 64 * 2), 0);
 
     END_TEST();
 }
