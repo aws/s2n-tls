@@ -22,6 +22,8 @@
 
 #include "utils/s2n_blob.h"
 
+#include <openssl/evp.h>
+
 #define S2N_MAX_DIGEST_LEN SHA512_DIGEST_LENGTH
 
 /* Enough to support TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384, 2*SHA384_DIGEST_LEN + 2*AES256_KEY_SIZE */
@@ -29,7 +31,7 @@
 
 union s2n_prf_working_space {
     struct {
-        struct s2n_hmac_state hmac;
+        EVP_MD *md;
         uint8_t digest0[S2N_MAX_DIGEST_LEN];
         uint8_t digest1[S2N_MAX_DIGEST_LEN];
     } tls;

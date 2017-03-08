@@ -16,6 +16,7 @@
 #include <sys/param.h>
 #include <openssl/md5.h>
 #include <openssl/sha.h>
+#include <openssl/evp.h>
 #include <string.h>
 
 #include "error/s2n_errno.h"
@@ -81,35 +82,80 @@ static int s2n_sslv3_prf(union s2n_prf_working_space *ws, struct s2n_blob *secre
 static int s2n_p_hash(union s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret,
                       struct s2n_blob *label, struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *out)
 {
-    struct s2n_hmac_state *hmac = &ws->tls.hmac;
+    const EVP_MD *md = ws->tls.md;
+
+    switch (alg) {
+    case S2N_HMAC_SSLv3_MD5:
+    case S2N_HMAC_MD5:
+        md = EVP_md5();
+        break;
+    case S2N_HMAC_SSLv3_SHA1:
+    case S2N_HMAC_SHA1:
+        md = EVP_sha1();
+        break;
+    case S2N_HMAC_SHA224:
+        md = EVP_sha224();
+        break;
+    case S2N_HMAC_SHA256:
+        md = EVP_sha256();
+        break;
+    case S2N_HMAC_SHA384:
+        md = EVP_sha384();
+        break;
+    case S2N_HMAC_SHA512:
+        md = EVP_sha512();
+        break;
+    default:
+        S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
+    }
+
     uint8_t digest_size;
     GUARD(s2n_hmac_digest_size(alg, &digest_size));
+    size_t digest_size_size = (size_t)digest_size;
+    size_t *digest_size_pointer = &digest_size_size;
+    EVP_MD_CTX ctx_init, ctx, ctx_tmp;
+    EVP_PKEY *mac_key;
+    int ret = 0;
 
-    /* First compute hmac(secret + A(0)) */
-    GUARD(s2n_hmac_init(hmac, alg, secret->data, secret->size));
-    GUARD(s2n_hmac_update(hmac, label->data, label->size));
-    GUARD(s2n_hmac_update(hmac, seed_a->data, seed_a->size));
+    EVP_MD_CTX_init(&ctx_init);
+    EVP_MD_CTX_set_flags(&ctx_init, EVP_MD_CTX_FLAG_NON_FIPS_ALLOW);
+    EVP_MD_CTX_init(&ctx);
+    EVP_MD_CTX_init(&ctx_tmp);
+    mac_key = EVP_PKEY_new_mac_key(EVP_PKEY_HMAC, NULL, secret->data, secret->size);
+    if (!mac_key)
+        goto err;
+    if (!EVP_DigestSignInit(&ctx_init, NULL, md, NULL, mac_key))
+        goto err;
+    if (!EVP_MD_CTX_copy_ex(&ctx, &ctx_init))
+        goto err;
+    if (!EVP_DigestSignUpdate(&ctx, label->data, label->size))
+        goto err;
+    if (!EVP_DigestSignUpdate(&ctx, seed_a->data, seed_a->size))
+        goto err;
+    if (seed_b && !EVP_DigestSignUpdate(&ctx, seed_b->data, seed_b->size))
+        goto err;
+    if (!EVP_DigestSignFinal(&ctx, ws->tls.digest0, digest_size_pointer))
+        goto err;
 
-    if (seed_b) {
-        GUARD(s2n_hmac_update(hmac, seed_b->data, seed_b->size));
-    }
-    GUARD(s2n_hmac_digest(hmac, ws->tls.digest0, digest_size));
 
     uint32_t outputlen = out->size;
     uint8_t *output = out->data;
 
     while (outputlen) {
         /* Now compute hmac(secret + A(N - 1) + seed) */
-        GUARD(s2n_hmac_reset(hmac));
-        GUARD(s2n_hmac_update(hmac, ws->tls.digest0, digest_size));
-
+        if (!EVP_MD_CTX_copy_ex(&ctx, &ctx_init))
+            goto err;
+        if (!EVP_DigestSignUpdate(&ctx, ws->tls.digest0, digest_size))
+            goto err;
         /* Add the label + seed and compute this round's A */
-        GUARD(s2n_hmac_update(hmac, label->data, label->size));
-        GUARD(s2n_hmac_update(hmac, seed_a->data, seed_a->size));
-        if (seed_b) {
-            GUARD(s2n_hmac_update(hmac, seed_b->data, seed_b->size));
-        }
-        GUARD(s2n_hmac_digest(hmac, ws->tls.digest1, digest_size));
+        if (!EVP_DigestSignUpdate(&ctx, label->data, label->size))
+            goto err;
+        if (!EVP_DigestSignUpdate(&ctx, seed_a->data, seed_a->size))
+            goto err;
+        if (seed_b && !EVP_DigestSignUpdate(&ctx, seed_b->data, seed_b->size))
+            goto err;
+        if (!EVP_DigestSignFinal(&ctx, ws->tls.digest1, digest_size_pointer))
+            goto err;
 
         uint32_t bytes_to_xor = MIN(outputlen, digest_size);
 
@@ -120,12 +166,21 @@ static int s2n_p_hash(union s2n_prf_working_space *ws, s2n_hmac_algorithm alg, s
         }
 
         /* Stash a digest of A(N), in A(N), for the next round */
-        GUARD(s2n_hmac_reset(hmac));
-        GUARD(s2n_hmac_update(hmac, ws->tls.digest0, digest_size));
-        GUARD(s2n_hmac_digest(hmac, ws->tls.digest0, digest_size));
+        if (!EVP_MD_CTX_copy_ex(&ctx, &ctx_init))
+            goto err;
+        if (!EVP_DigestSignUpdate(&ctx, ws->tls.digest0, digest_size))
+            goto err;
+        if (!EVP_DigestSignFinal(&ctx, ws->tls.digest0, digest_size_pointer))
+            goto err;
     }
 
-    return 0;
+    ret = 1;
+ err:
+    EVP_PKEY_free(mac_key);
+    EVP_MD_CTX_cleanup(&ctx);
+    EVP_MD_CTX_cleanup(&ctx_tmp);
+    EVP_MD_CTX_cleanup(&ctx_init);
+    return ret;
 }
 
 static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label, struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *out)
