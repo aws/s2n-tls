@@ -15,17 +15,39 @@
 
 set -e
 
-OUT_DIR=$1
+usage() {
+    echo "install_prlimit.sh download_dir install_dir"
+    exit 1
+}
 
-pushd $PWD
+if [ "$#" -ne "2" ]; then
+    usage
+fi
 
+BUILD_DIR=$1
+INSTALL_DIR=$2
+NUM_CORES=`nproc`
+
+cd $BUILD_DIR
 wget https://www.kernel.org/pub/linux/utils/util-linux/v2.25/util-linux-2.25.2.tar.gz
 tar -xzvf util-linux-2.25.2.tar.gz
 cd util-linux-2.25.2
-./configure ADJTIME_PATH=/var/lib/hwclock/adjtime --disable-chfn-chsh --disable-login --disable-nologin --disable-su --disable-setpriv --disable-runuser --disable-pylibmount --disable-static --without-python --without-systemd --without-systemdsystemunitdir --without-ncurses || cat config.log
+./configure ADJTIME_PATH=/var/lib/hwclock/adjtime \
+    --disable-chfn-chsh \
+    --disable-login \
+    --disable-nologin \
+    --disable-su \
+    --disable-setpriv \
+    --disable-runuser \
+    --disable-pylibmount \
+    --disable-static \
+    --without-python \
+    --without-systemd \
+    --disable-makeinstall-chown \
+    --without-systemdsystemunitdir \
+    --without-ncurses \
+    --prefix=$INSTALL_DIR || cat config.log
 
-# only compile prlimit
-make prlimit
-mv ./prlimit $OUT_DIR
+make -j $NUM_CORES
+make install
 
-popd

@@ -1,5 +1,11 @@
 sudo: true
 language: c
+cache:
+    directories:
+        # Cache test dependencies that would normally be re-compiled for every build.
+        # This directory is unique for each entry of the build matrix per:
+        # https://docs.travis-ci.com/user/caching/#Caches-and-build-matrices
+        - test-deps
 
 addons:
     apt:
@@ -63,34 +69,55 @@ matrix:
   fast_finish: true
 
 before_install:
+  # Setup the cache directory paths
+  - if [[ ! -d test-deps ]]; then mkdir test-deps ; fi
+  - export PYTHON_INSTALL_DIR=`pwd`/test-deps/python
+  - export GNUTLS_INSTALL_DIR=`pwd`/test-deps/gnutls
+  - export PRLIMIT_INSTALL_DIR=`pwd`/test-deps/prlimit
+  - export SAW_INSTALL_DIR=`pwd`/test-deps/saw
+  - export Z3_INSTALL_DIR=`pwd`/test-deps/z3
+  - export OPENSSL_1_1_0_INSTALL_DIR=`pwd`/test-deps/openssl-1.1.0
   # Install GCC 6 if on OSX
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   .travis/install_osx_dependencies.sh ; fi
   # Set GCC 6 as Default on both Ubuntu and OSX
   - alias gcc=$(which gcc-6)
   # Install latest version of clang, clang++, and llvm-symbolizer and add them to beginning of PATH. Needed for fuzzing.
   - if [[ "$LATEST_CLANG" == "true" ]]; then (.travis/install_clang.sh `pwd`/clang-download `pwd`/clang-latest $TRAVIS_OS_NAME) && export PATH=`pwd`/clang-latest/bin:$PATH ; fi
-  # Install SAW with Z3 on Linux only
-  - if [[ "$SAW" == "true" ]]; then .travis/install_saw.sh ; fi
-  - export PATH=$PATH:$PWD/saw-0.2-2016-11-02-Ubuntu14.04-64/bin:$PWD/z3
 
+# Install missing test dependencies. If the install directory already exists, cached artifacts will be used
+# for that dependency.
 install:
   # Download and Install LibFuzzer
   - if [[ "$TESTS" == "fuzz" ]]; then .travis/install_libFuzzer.sh `pwd`/fuzz_dependencies/libFuzzer-download `pwd`/fuzz_dependencies $TRAVIS_OS_NAME ; fi
-  # Download and Install Openssl
-  - .travis/install_openssl_1_1_0.sh `pwd`/libcrypto-build `pwd`/libcrypto-root $TRAVIS_OS_NAME > /dev/null
-  # Install python linked with our compiled Openssl for integration tests
-  - if [[ "$TESTS" == "integration" ]]; then mkdir python-build python && .travis/install_python.sh `pwd`/libcrypto-root `pwd`/python-build `pwd`/python > /dev/null && export PATH=`pwd`/python/bin:$PATH ; fi
+  # Download and Install Openssl 1.1.0
+  - if [[ ! -d "$OPENSSL_1_1_0_INSTALL_DIR" ]]; then .travis/install_openssl_1_1_0.sh /tmp $OPENSSL_1_1_0_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
+  # Install python linked with the latest Openssl for integration tests
+  - if [[ ! -d "$PYTHON_INSTALL_DIR" ]]; then mkdir -p $PYTHON_INSTALL_DIR && .travis/install_python.sh $OPENSSL_1_1_0_INSTALL_DIR /tmp $PYTHON_INSTALL_DIR > /dev/null ; fi
   # Download and Install GnuTLS for integration tests
-  - if [[ "$TESTS" == "integration" ]]; then mkdir gnutls gnutls-build && .travis/install_gnutls.sh `pwd`/gnutls-build `pwd`/gnutls $TRAVIS_OS_NAME > /dev/null && export PATH=`pwd`/gnutls/bin:$PATH ; fi
-  # Install prlimit to set the memlock limit to unlimited for this process
-  - if [[ "$BUILD_S2N" == "true" ]]; then (test "$TRAVIS_OS_NAME" = "linux" && sudo "PATH=$PATH" .travis/install_prlimit.sh $PWD/.travis > /dev/null && sudo .travis/prlimit --pid "$$" --memlock=unlimited:unlimited) || true ; fi
+  - if [[ ! -d "$GNUTLS_INSTALL_DIR" ]]; then mkdir -p $GNUTLS_INSTALL_DIR && .travis/install_gnutls.sh /tmp $GNUTLS_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
+  - if [[ ! -d "$PRLIMIT_INSTALL_DIR" ]] && [[ "$TRAVIS_OS_NAME" == "linux" ]]; then mkdir -p $PRLIMIT_INSTALL_DIR && .travis/install_prlimit.sh /tmp $PRLIMIT_INSTALL_DIR > /dev/null ; fi
   - if [[ "$BUILD_S2N" == "true" ]]; then mkdir -p .travis/checker && .travis/install_scan-build.sh .travis/checker && export PATH=$PATH:.travis/checker/bin ; fi
-  - if [[ "$BUILD_S2N" == "true" ]]; then .travis/run_cppcheck.sh ; fi
-  - if [[ "$BUILD_S2N" == "true" && "$TRAVIS_OS_NAME" == "linux" ]]; then .travis/run_kwstyle.sh ; fi
+  # Install SAW and Z3 for formal verification
+  - if [[ ! -d "$SAW_INSTALL_DIR" ]]; then mkdir -p $SAW_INSTALL_DIR && .travis/install_saw.sh /tmp $SAW_INSTALL_DIR > /dev/null ; fi
+  - if [[ ! -d "$Z3_INSTALL_DIR" ]]; then mkdir -p $Z3_INSTALL_DIR && .travis/install_z3.sh /tmp $Z3_INSTALL_DIR > /dev/null ; fi
+
+before_script:
+  # Add all of our test dependencies to the PATH
+  - export PATH=$PYTHON_INSTALL_DIR/bin:$LIBCRYPTO_ROOT/bin:$GNUTLS_INSTALL_DIR/bin:$SAW_INSTALL_DIR/bin:$Z3_INSTALL_DIR/bin:$PATH
+  # Select the libcrypto to build s2n against. This can be a TravisCI build variable in the future to gain coverage
+  # against older versions(1.0.1, 1.0.2) and forks(LibreSSL).
+  - export LIBCRYPTO_ROOT=$OPENSSL_1_1_0_INSTALL_DIR
+  # Create a link to the selected libcrypto. This shouldn't be needed when LIBCRYPTO_ROOT is set, but some tests
+  # have the "libcrypto-root" directory path hardcoded.
+  - rm -rf libcrypto-root && ln -s $LIBCRYPTO_ROOT libcrypto-root
+  # Use prlimit to set the memlock limit to unlimited for linux. OSX is unlimited by default
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo -E $PRLIMIT_INSTALL_DIR/bin/prlimit --pid "$$" --memlock=unlimited:unlimited ; fi
 
 script:
+  - if [[ "$BUILD_S2N" == "true" ]]; then .travis/run_cppcheck.sh ; fi
+  - if [[ "$BUILD_S2N" == "true" && "$TRAVIS_OS_NAME" == "linux" ]]; then .travis/run_kwstyle.sh ; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "integration" ]]; then make -j 8   ; fi
-  # Build and run integration tests with scan-build for osx. scan-build bundle isn't available for linux
+  # Build and run unit tests with scan-build for osx. scan-build bundle isn't available for linux
   - if [[ "$TRAVIS_OS_NAME" == "osx" && "$TESTS" == "integration" ]]; then   scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/* ; [ "$STATUS" -eq "0" ] ; fi
   - if [[ "$TESTS" == "integration" ]]; then make integration ; fi
   - if [[ "$TESTS" == "fuzz" ]]; then make clean && make fuzz ; fi
