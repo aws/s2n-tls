@@ -150,6 +150,8 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     GUARD_PTR(s2n_session_key_alloc(&conn->initial.client_key));
     GUARD_PTR(s2n_session_key_alloc(&conn->initial.server_key));
 
+    GUARD_PTR(s2n_prf_new(conn));
+
     /* Initialize the growable stuffers. Zero length at first, but the resize
      * in _wipe will fix that
      */
@@ -177,6 +179,10 @@ static int s2n_connection_free_keys(struct s2n_connection *conn)
 
 static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n_config *config)
 {
+    /* Preserve the PRF state before zeroing the connection struct */
+    struct s2n_evp_hmac_state p_hash_evp_hmac = conn->prf_space.tls.p_hash.evp_hmac;
+    const struct s2n_p_hash_hmac *p_hash_hmac = conn->prf_space.tls.p_hash_hmac;
+
     /* Zero the whole connection structure */
     memset_check(conn, 0, sizeof(struct s2n_connection));
 
@@ -186,6 +192,8 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->recv_io_context = NULL;
     conn->mode = mode;
     conn->config = config;
+    conn->prf_space.tls.p_hash.evp_hmac = p_hash_evp_hmac;
+    conn->prf_space.tls.p_hash_hmac = p_hash_hmac;
     conn->close_notify_queued = 0;
     conn->current_user_data_consumed = 0;
     conn->initial.cipher_suite = &s2n_null_cipher_suite;
@@ -281,6 +289,8 @@ int s2n_connection_free(struct s2n_connection *conn)
 
     GUARD(s2n_connection_wipe_keys(conn));
     GUARD(s2n_connection_free_keys(conn));
+
+    GUARD(s2n_prf_free(conn));
 
     GUARD(s2n_free(&conn->status_response));
     GUARD(s2n_stuffer_free(&conn->in));
