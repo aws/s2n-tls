@@ -190,7 +190,25 @@ but does accept SSL2.0 hello messages.
 
 ## Enums
 
-s2n defines four enum types:
+s2n defines five enum types:
+
+```c
+typedef enum {
+    S2N_ERR_T_OK=0,
+    S2N_ERR_T_IO,
+    S2N_ERR_T_CLOSED,
+    S2N_ERR_T_BLOCKED,
+    S2N_ERR_T_ALERT,
+    S2N_ERR_T_PROTO,
+    S2N_ERR_T_INTERNAL,
+    S2N_ERR_T_USAGE
+} s2n_error_type;
+```
+
+***s2n_error_type*** is used to help applications determine why an s2n function failed.
+This enum is optimized for use in C switch statements. Each value in the enum represents
+an error "category". See [Error Handling](#error-handling) for more detail.
+
 
 ```c
 typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
@@ -265,6 +283,9 @@ if (s2n_config_set_cipher_preferences(config, prefs) < 0) {
 }
 ```
 
+**NOTE**: To avoid possible confusion, s2n_errno should be cleared after processing an error: `s2n_errno = S2N_ERR_T_OK`
+
+
 ### Error categories
 
 s2n organizes errors into different "types" to allow applications to do logic on error values without catching all possibilities. 
@@ -285,6 +306,7 @@ S2N_ERR_T_USAGE /* User input error. Ex: Providing an invalid cipher preference 
 Here's an example that handles errors based on type:
 
 ```
+s2n_errno = S2N_ERR_T_OK;
 if (s2n_recv(conn, &blocked) < 0) {
     switch(s2n_error_get_type(s2n_errno)) {
         case S2N_ERR_T_BLOCKED:
