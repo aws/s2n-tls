@@ -74,6 +74,7 @@ int main(int argc, char **argv)
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
+        EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
         conn->server_protocol_version = S2N_TLS12;
         conn->client_protocol_version = S2N_TLS12;
         conn->actual_protocol_version = S2N_TLS12;
