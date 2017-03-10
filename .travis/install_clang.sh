@@ -43,6 +43,11 @@ GIT_CURL_VERBOSE=1
 echo "Downloading Clang..."
 git clone https://chromium.googlesource.com/chromium/src/tools/clang
 
+cd clang
+# Reset to known working version of Clang
+git reset --hard e96a7b48d35ab6a268c8372048781cdec903a794
+cd ..
+
 echo "Updating Clang..."
 $CLANG_DOWNLOAD_DIR/clang/scripts/update.py
 
