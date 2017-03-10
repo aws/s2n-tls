@@ -300,6 +300,18 @@ struct s2n_cipher_suite s2n_dhe_rsa_with_aes_128_gcm_sha256 = /* 0x00,0x9E */ {
     .minimum_required_tls_version = S2N_TLS12,
 };
 
+struct s2n_cipher_suite s2n_dhe_rsa_with_aes_256_gcm_sha384 = /* 0x00,0x9F */ {
+    .available = 0,
+    .name = "DHE-RSA-AES256-GCM-SHA384",
+    .iana_value = { TLS_DHE_RSA_WITH_AES_256_GCM_SHA384 },
+    .key_exchange_alg = &s2n_dhe,
+    .record_alg = NULL,
+    .all_record_algs = { &s2n_record_alg_aes256_gcm },
+    .num_record_algs = 1,
+    .tls12_prf_alg = S2N_HMAC_SHA384,
+    .minimum_required_tls_version = S2N_TLS12,
+};
+
 struct s2n_cipher_suite s2n_ecdhe_rsa_with_3des_ede_cbc_sha = /* 0xC0,0x12 */ {
     .available = 0,
     .name = "ECDHE-RSA-DES-CBC3-SHA",
@@ -401,6 +413,7 @@ struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
     &s2n_rsa_with_aes_128_gcm_sha256,         /* 0x00,0x9C */
     &s2n_rsa_with_aes_256_gcm_sha384,         /* 0x00,0x9D */
     &s2n_dhe_rsa_with_aes_128_gcm_sha256,     /* 0x00,0x9E */
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384,     /* 0x00,0x9F */
     &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,     /* 0xC0,0x12 */
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha,      /* 0xC0,0x13 */
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha,      /* 0xC0,0x14 */
