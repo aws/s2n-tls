@@ -147,7 +147,7 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     /* Free any server key received (we may not have completed a
      * handshake, so this may not have been free'd yet) */
     GUARD(s2n_rsa_public_key_free(&conn->secure.server_rsa_public_key));
-
+    GUARD(s2n_rsa_public_key_free(&conn->secure.client_rsa_public_key));
     GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
     GUARD(s2n_ecc_params_free(&conn->secure.server_ecc_params));
     GUARD(s2n_free(&conn->secure.client_cert_chain));
@@ -244,7 +244,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     struct s2n_session_key secure_server_key;
 
     s2n_cert_auth_type initial_client_cert_auth_type = conn->client_cert_auth_type;
-    verify_cert_chain *initial_verify_cert_cb = conn->verify_cert_chain_callback;
+    verify_cert_trust_chain *initial_verify_cert_cb = conn->verify_cert_chain_callback;
     void *initial_verify_cert_context = conn->verify_cert_context;
 
     /* Wipe all of the sensitive stuff */
@@ -374,7 +374,7 @@ int s2n_connection_set_cert_auth_type(struct s2n_connection *conn, s2n_cert_auth
     return 0;
 }
 
-int s2n_connection_set_cert_verify_callback(struct s2n_connection *conn, verify_cert_chain *callback, void *context)
+int s2n_connection_set_cert_verify_callback(struct s2n_connection *conn, verify_cert_trust_chain *callback, void *context)
 {
     notnull_check(callback);
     conn->verify_cert_chain_callback = callback;

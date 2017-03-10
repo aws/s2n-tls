@@ -223,7 +223,7 @@ int cache_delete(void *ctx, const void *key, uint64_t key_size)
 
 extern int echo(struct s2n_connection *conn, int sockfd);
 extern int negotiate(struct s2n_connection *conn);
-extern int accept_all_rsa_certs(struct s2n_blob *client_cert_chain_blob, struct s2n_cert_public_key *public_key, void *context);
+extern int accept_all_rsa_certs(struct s2n_blob *cert_chain_in, struct s2n_cert_public_key *public_key_out, void *context);
 
 void usage()
 {
