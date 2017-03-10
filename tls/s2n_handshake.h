@@ -29,6 +29,7 @@ typedef enum {
     CLIENT_HELLO,
     SERVER_HELLO,
     SERVER_CERT,
+    SERVER_NEW_SESSION_TICKET,
     SERVER_CERT_STATUS,
     SERVER_KEY,
     SERVER_CERT_REQ,
@@ -76,6 +77,9 @@ struct s2n_handshake {
 
 /* Handshake needs OCSP status message */
 #define OCSP_STATUS                 0x08
+
+/* Session Resumption via session-tickets */
+#define WITH_SESSION_TICKET         0x20
 
     /* Which handshake message number are we processing */
     int message_number;
