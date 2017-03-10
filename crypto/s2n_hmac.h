@@ -19,8 +19,16 @@
 
 #include "crypto/s2n_hash.h"
 
-typedef enum { S2N_HMAC_NONE, S2N_HMAC_MD5, S2N_HMAC_SHA1, S2N_HMAC_SHA224, S2N_HMAC_SHA256, S2N_HMAC_SHA384,
-    S2N_HMAC_SHA512, S2N_HMAC_SSLv3_MD5, S2N_HMAC_SSLv3_SHA1
+typedef enum {
+    S2N_HMAC_NONE,
+    S2N_HMAC_MD5,
+    S2N_HMAC_SHA1,
+    S2N_HMAC_SHA224,
+    S2N_HMAC_SHA256,
+    S2N_HMAC_SHA384,
+    S2N_HMAC_SHA512,
+    S2N_HMAC_SSLv3_MD5,
+    S2N_HMAC_SSLv3_SHA1
 } s2n_hmac_algorithm;
 
 struct s2n_hmac_state {

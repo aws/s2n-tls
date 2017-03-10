@@ -22,6 +22,25 @@
 
 #include <s2n.h>
 
+int s2n_blob_get_data(struct s2n_blob *b, uint8_t **data)
+{
+    notnull_check(b);
+    notnull_check(b->data);
+    notnull_check(data);
+    *data = b->data;
+
+    return 0;
+}
+
+int s2n_blob_get_size(struct s2n_blob *b, uint32_t *size)
+{
+    notnull_check(b);
+    notnull_check(size);
+
+    *size = b->size;
+    return 0;
+}
+
 int s2n_blob_init(struct s2n_blob *b, uint8_t * data, uint32_t size)
 {
     b->data = data;

@@ -77,6 +77,8 @@ typedef enum {
     S2N_ERR_SHUTDOWN_CLOSED,
     S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO,
     S2N_ERR_RECORD_LIMIT,
+    S2N_ERR_CERT_UNTRUSTED,
+    S2N_ERR_CERT_TYPE_UNSUPPORTED,
     /* S2N_ERR_T_INTERNAL */
     S2N_ERR_MADVISE = S2N_ERR_T_INTERNAL_START,
     S2N_ERR_ALLOC,
@@ -111,6 +113,7 @@ typedef enum {
     S2N_ERR_MAP_IMMUTABLE,
     S2N_ERR_MAP_MUTABLE,
     S2N_ERR_INITIAL_HMAC,
+    S2N_ERR_UNIMPLEMENTED,
     /* S2N_ERR_T_USAGE */
     S2N_ERR_NO_ALERT = S2N_ERR_T_USAGE_START,
     S2N_ERR_CLIENT_MODE,
@@ -137,5 +140,6 @@ extern __thread const char *s2n_debug_str;
 #define STRING__LINE__ STRING_(__LINE__)
 
 #define _S2N_ERROR( x )     s2n_debug_str = "Error encountered in " __FILE__ " line " STRING__LINE__ ; s2n_errno = ( x )
+
 #define S2N_ERROR( x )      _S2N_ERROR( ( x ) ); return -1
 #define S2N_ERROR_PTR( x )  _S2N_ERROR( ( x ) ); return NULL

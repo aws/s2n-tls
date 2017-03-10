@@ -125,7 +125,9 @@ static char dhparams[] =
     "Bbn6k0FQ7yMED6w5XWQKDC0z2m0FI/BPE3AjUfuPzEYGqTDf9zQZ2Lz4oAN90Sud\n"
     "luOoEhYR99cEbCn0T4eBvEf9IUtczXUZ/wj7gzGbGG07dLfT+CmCRJxCjhrosenJ\n"
     "gzucyS7jt1bobgU66JKkgMNm7hJY4/nhR5LWTCzZyzYQh2HM2Vk4K5ZqILpj/n0S\n"
-    "5JYTQ2PVhxP+Uu8+hICs/8VvM72DznjPZzufADipjC7CsQ4S6x/ecZluFtbb+ZTv\n" "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n" "-----END DH PARAMETERS-----\n";
+    "5JYTQ2PVhxP+Uu8+hICs/8VvM72DznjPZzufADipjC7CsQ4S6x/ecZluFtbb+ZTv\n"
+    "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n"
+    "-----END DH PARAMETERS-----\n";
 
 #define MAX_KEY_LEN 32
 #define MAX_VAL_LEN 255
@@ -221,6 +223,7 @@ int cache_delete(void *ctx, const void *key, uint64_t key_size)
 
 extern int echo(struct s2n_connection *conn, int sockfd);
 extern int negotiate(struct s2n_connection *conn);
+extern int accept_all_rsa_certs(struct s2n_blob *cert_chain_in, struct s2n_cert_public_key *public_key_out, void *context);
 
 void usage()
 {
@@ -231,6 +234,9 @@ void usage()
     fprintf(stderr, "  -c [version_string]\n");
     fprintf(stderr, "  --ciphers [version_string]\n");
     fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
+    fprintf(stderr, "  -m\n");
+    fprintf(stderr, "  --mutualAuth\n");
+    fprintf(stderr, "    Request a Client Certificate. Any RSA Certificate will be accepted.\n");
     fprintf(stderr, "  -n\n");
     fprintf(stderr, "  --negotiate\n");
     fprintf(stderr, "    Only perform tls handshake and then shutdown the connection\n");
@@ -257,9 +263,12 @@ int main(int argc, char *const *argv)
     int only_negotiate = 0;
     int prefer_throughput = 0;
     int prefer_low_latency = 0;
+    int mutualAuth = 0;
 
     static struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
+        {"mutualAuth", no_argument, 0, 'm'},
+        {"negotiate", no_argument, 0, 'n'},
         {"ciphers", required_argument, 0, 'c'},
         {"negotiate", no_argument, 0, 'n'},
         {"prefer-low-latency", no_argument, 0, 'l'},
@@ -269,7 +278,7 @@ int main(int argc, char *const *argv)
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hn", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmn", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -279,6 +288,9 @@ int main(int argc, char *const *argv)
             break;
         case 'h':
             usage();
+            break;
+        case 'm':
+            mutualAuth = 1;
             break;
         case 'n':
             only_negotiate = 1;
@@ -401,6 +413,7 @@ int main(int argc, char *const *argv)
     }
 
     struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+
     if (!conn) {
         fprintf(stderr, "Error getting new s2n connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
@@ -419,6 +432,11 @@ int main(int argc, char *const *argv)
     if (prefer_low_latency && s2n_connection_prefer_low_latency(conn) < 0) {
         fprintf(stderr, "Error setting prefer low latency: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
+    }
+
+    if(mutualAuth) {
+        s2n_connection_set_cert_auth_type(conn, S2N_CERT_AUTH_REQUIRED);
+        s2n_connection_set_cert_verify_callback(conn, &accept_all_rsa_certs, NULL);
     }
 
     int fd;

@@ -255,6 +255,7 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
 
     master_secret.data = conn->secure.master_secret;
     master_secret.size = sizeof(conn->secure.master_secret);
+
     if (conn->actual_protocol_version == S2N_TLS12) {
         struct s2n_hash_state hash_state;
         switch (conn->secure.cipher_suite->tls12_prf_alg) {

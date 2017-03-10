@@ -29,13 +29,24 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
+int s2n_rsa_public_key_from_openssl(struct s2n_rsa_public_key *s2n_rsa, RSA *openssl_rsa)
+{
+    notnull_check(s2n_rsa);
+    notnull_check(openssl_rsa);
+    s2n_rsa->rsa = openssl_rsa;
+
+    return 0;
+}
+
 int s2n_asn1der_to_rsa_public_key(struct s2n_rsa_public_key *key, struct s2n_blob *asn1der)
 {
     uint8_t *cert_to_parse = asn1der->data;
     X509 *cert = d2i_X509(NULL, (const unsigned char **)(void *)&cert_to_parse, asn1der->size);
+
     if (cert == NULL) {
         S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
     }
+
     /* If cert parsing is successful, d2i_X509 increments *cert_to_parse to the byte following the parsed data */
     uint32_t parsed_len = cert_to_parse - asn1der->data;
 
@@ -98,7 +109,12 @@ int s2n_asn1der_to_rsa_private_key(struct s2n_rsa_private_key *key, struct s2n_b
 
 int s2n_rsa_public_key_free(struct s2n_rsa_public_key *key)
 {
-    RSA_free(key->rsa);
+    notnull_check(key);
+
+    if(key->rsa != NULL){
+        RSA_free(key->rsa);
+    }
+
     key->rsa = NULL;
     return 0;
 }
@@ -190,6 +206,11 @@ int s2n_rsa_sign(struct s2n_rsa_private_key *key, struct s2n_hash_state *digest,
 
 int s2n_rsa_verify(struct s2n_rsa_public_key *key, struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
+    notnull_check(key);
+    notnull_check(key->rsa);
+    notnull_check(digest);
+    notnull_check(signature);
+
     uint8_t digest_length;
     int NID_type;
     GUARD(s2n_hash_digest_size(digest->alg, &digest_length));

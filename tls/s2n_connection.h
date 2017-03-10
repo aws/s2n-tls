@@ -31,10 +31,12 @@
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
 
+#include "utils/s2n_blob.h"
 #include "utils/s2n_timer.h"
 #include "utils/s2n_mem.h"
 
 #define S2N_TLS_PROTOCOL_VERSION_LEN    2
+#define S2N_MAX_CERT_TYPE_PREFERENCE_LEN   16
 
 struct s2n_connection {
     /* The configuration (cert, key .. etc ) */
@@ -84,6 +86,12 @@ struct s2n_connection {
     uint8_t server_protocol_version;
     uint8_t actual_protocol_version;
     uint8_t actual_protocol_version_established;
+
+    /* Certificate Authentication and Verification Parameters */
+    s2n_cert_auth_type client_cert_auth_type;
+    verify_cert_trust_chain *verify_cert_chain_callback;
+    void *verify_cert_context;
+
 
     /* Our crypto parameters */
     struct s2n_crypto_parameters initial;
