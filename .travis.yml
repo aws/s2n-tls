@@ -25,7 +25,8 @@ os:
   - linux
 
 env:
-  - BUILD_S2N=true TESTS=integration
+  - S2N_LIBCRYPTO=openssl-1.1.0 BUILD_S2N=true TESTS=integration
+  - S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=integration
   # Force libcrypto to use "software only" crypto implementations for AES and AES-GCM. Verify s2n can gracefully use
   # unoptimized routines. See https://www.openssl.org/docs/man1.1.0/crypto/OPENSSL_ia32cap.html
   - OPENSSL_ia32cap="~0x200000200000000" BUILD_S2N=true TESTS=integration
@@ -80,6 +81,7 @@ before_install:
   - export LATEST_CLANG_INSTALL_DIR=`pwd`/test-deps/clang
   - export SCAN_BUILD_INSTALL_DIR=`pwd`/test-deps/scan-build
   - export OPENSSL_1_1_0_INSTALL_DIR=`pwd`/test-deps/openssl-1.1.0
+  - export OPENSSL_1_0_2_INSTALL_DIR=`pwd`/test-deps/openssl-1.0.2
   # Install GCC 6 if on OSX
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   .travis/install_osx_dependencies.sh ; fi
   # Set GCC 6 as Default on both Ubuntu and OSX
@@ -94,6 +96,7 @@ install:
   - if [[ ! -d "$LIBFUZZER_INSTALL_DIR" ]]; then PATH=$LATEST_CLANG_INSTALL_DIR/bin:$PATH .travis/install_libFuzzer.sh `mktemp -d` $LIBFUZZER_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
   # Download and Install Openssl 1.1.0
   - if [[ ! -d "$OPENSSL_1_1_0_INSTALL_DIR" ]]; then .travis/install_openssl_1_1_0.sh `mktemp -d` $OPENSSL_1_1_0_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
+  - if [[ ! -d "$OPENSSL_1_0_2_INSTALL_DIR" ]]; then .travis/install_openssl_1_0_2.sh `mktemp -d` $OPENSSL_1_0_2_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
   # Install python linked with the latest Openssl for integration tests
   - if [[ ! -d "$PYTHON_INSTALL_DIR" ]]; then mkdir -p $PYTHON_INSTALL_DIR && .travis/install_python.sh $OPENSSL_1_1_0_INSTALL_DIR `mktemp -d` $PYTHON_INSTALL_DIR > /dev/null ; fi
   # Download and Install GnuTLS for integration tests
@@ -107,9 +110,10 @@ install:
 before_script:
   # Add all of our test dependencies to the PATH
   - export PATH=$PYTHON_INSTALL_DIR/bin:$LIBCRYPTO_ROOT/bin:$GNUTLS_INSTALL_DIR/bin:$SAW_INSTALL_DIR/bin:$Z3_INSTALL_DIR/bin:$SCAN_BUILD_INSTALL_DIR/bin:$PATH
-  # Select the libcrypto to build s2n against. This can be a TravisCI build variable in the future to gain coverage
-  # against older versions(1.0.1, 1.0.2) and forks(LibreSSL).
-  - export LIBCRYPTO_ROOT=$OPENSSL_1_1_0_INSTALL_DIR
+  # Select the libcrypto to build s2n against. If this is unset, default to the latest(Openssl 1.1.0)
+  - if [[ -z $S2N_LIBCRYPTO ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_0_INSTALL_DIR ; fi
+  - if [[ "$S2N_LIBCRYPTO" == "openssl-1.1.0" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_0_INSTALL_DIR ; fi
+  - if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_0_2_INSTALL_DIR ; fi
   # Set the libfuzzer to use for fuzz tests
   - export LIBFUZZER_ROOT=$LIBFUZZER_INSTALL_DIR
   # Create a link to the selected libcrypto. This shouldn't be needed when LIBCRYPTO_ROOT is set, but some tests
