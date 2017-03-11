@@ -18,6 +18,11 @@ OBJS=$(SRCS:.c=.o)
 TESTS=$(SRCS:.c=)
 CRYPTO_LDFLAGS = -L$(LIBCRYPTO_ROOT)/lib
 
+ifndef LIBFUZZER_ROOT
+    export LIBFUZZER_ROOT = $(shell echo "../../fuzz_dependencies")
+endif
+
+
 .PHONY : all
 all : ld-preload
 all : $(TESTS)
@@ -28,7 +33,7 @@ CRUFT += $(wildcard *_test) $(wildcard fuzz-*.log) $(wildcard *_test_output.txt)
 LIBS += -lm
 
 CFLAGS += -Wno-unreachable-code -O0 -I$(LIBCRYPTO_ROOT)/include/ -I../../ -I../../api/
-LDFLAGS += ../../fuzz_dependencies/libFuzzer.a -lstdc++ -L../../lib/ ${CRYPTO_LDFLAGS} -L../testlib/ -ls2n ${LIBS} ${CRYPTO_LIBS}
+LDFLAGS += $(LIBFUZZER_ROOT)/lib/libFuzzer.a -lstdc++ -L../../lib/ ${CRYPTO_LDFLAGS} -L../testlib/ -ls2n ${LIBS} ${CRYPTO_LIBS}
 
 DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH"
 LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH"
