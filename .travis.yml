@@ -111,8 +111,10 @@ install:
   - if [[ ! -d "$Z3_INSTALL_DIR" ]]; then mkdir -p $Z3_INSTALL_DIR && .travis/install_z3.sh `mktemp -d` $Z3_INSTALL_DIR > /dev/null ; fi
 
 before_script:
-  # Add all of our test dependencies to the PATH
-  - export PATH=$PYTHON_INSTALL_DIR/bin:$LIBCRYPTO_ROOT/bin:$GNUTLS_INSTALL_DIR/bin:$SAW_INSTALL_DIR/bin:$Z3_INSTALL_DIR/bin:$SCAN_BUILD_INSTALL_DIR/bin:$PATH
+  # Add all of our test dependencies to the PATH. Use Openssl 1.1.0 so the latest openssl is used for s_client
+  # integration tests.
+  - export PATH=$PYTHON_INSTALL_DIR/bin:$OPENSSL_1_1_0_INSTALL_DIR/bin:$GNUTLS_INSTALL_DIR/bin:$SAW_INSTALL_DIR/bin:$Z3_INSTALL_DIR/bin:$SCAN_BUILD_INSTALL_DIR/bin:$PATH
+  - export LD_LIBRARY_PATH=$OPENSSL_1_1_0_INSTALL_DIR/lib:$LD_LIBRARY_PATH; export DYLD_LIBRARY_PATH=$OPENSSL_1_1_0_INSTALL_DIR/lib:$LD_LIBRARY_PATH;
   # Select the libcrypto to build s2n against. If this is unset, default to the latest(Openssl 1.1.0)
   - if [[ -z $S2N_LIBCRYPTO ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_0_INSTALL_DIR ; fi
   - if [[ "$S2N_LIBCRYPTO" == "openssl-1.1.0" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_0_INSTALL_DIR ; fi
