@@ -15,6 +15,7 @@
 
 #include <s2n.h>
 
+#include "crypto/s2n_certificate.h"
 #include "error/s2n_errno.h"
 
 #include "tls/s2n_cipher_suites.h"
@@ -69,15 +70,6 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
 
 int s2n_server_cert_send(struct s2n_connection *conn)
 {
-    struct s2n_cert_chain *head = conn->server->server_cert_chain->head;
-
-    GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, conn->server->server_cert_chain->chain_size));
-
-    while (head) {
-        GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, head->cert.size));
-        GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, head->cert.data, head->cert.size));
-        head = head->next;
-    }
-
+    GUARD(s2n_send_cert_chain(&conn->handshake.io, conn->server->server_cert_chain));
     return 0;
 }
