@@ -172,10 +172,10 @@ static int s2n_connection_free_io_contexts(struct s2n_connection *conn)
 
 static int s2n_connection_wipe_io(struct s2n_connection *conn)
 {
-    if (conn->managed_io && conn->corked_io && conn->recv){
+    if (s2n_connection_is_managed_corked(conn) && conn->recv){
         GUARD(s2n_socket_read_restore(conn));
     }
-    if (conn->managed_io && conn->corked_io && conn->send){
+    if (s2n_connection_is_managed_corked(conn) && conn->send){
         GUARD(s2n_socket_write_restore(conn));
     }
 
@@ -615,3 +615,7 @@ int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
     return w;
 }
 
+int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection)
+{
+    return (s2n_connection->managed_io && s2n_connection->corked_io);
+}

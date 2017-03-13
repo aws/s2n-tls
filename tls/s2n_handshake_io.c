@@ -172,7 +172,7 @@ static int s2n_advance_message(struct s2n_connection *conn)
 
     /* We're the new writer */
     if (ACTIVE_STATE(conn).writer == this) {
-        if (conn->managed_io && conn->corked_io) {
+        if (s2n_connection_is_managed_corked(conn)) {
             /* Set TCP_CORK/NOPUSH */
             GUARD(s2n_socket_write_cork(conn));
         }
@@ -182,7 +182,7 @@ static int s2n_advance_message(struct s2n_connection *conn)
 
     /* We're the new reader, or we reached the "B" writer stage indicating that
        we're at the application data stage  - uncork the data */
-    if (conn->managed_io && conn->corked_io) {
+    if (s2n_connection_is_managed_corked(conn)) {
         GUARD(s2n_socket_write_uncork(conn));
     }
 

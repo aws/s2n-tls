@@ -176,6 +176,8 @@ struct s2n_connection {
     struct s2n_blob status_response;
 };
 
+int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);
+
 /* Kill a bad connection */
 int s2n_connection_kill(struct s2n_connection *conn);
 

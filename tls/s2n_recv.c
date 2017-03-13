@@ -54,7 +54,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
     while (s2n_stuffer_data_available(&conn->header_in) < S2N_TLS_RECORD_HEADER_LENGTH) {
         int remaining = S2N_TLS_RECORD_HEADER_LENGTH - s2n_stuffer_data_available(&conn->header_in);
 
-        if (conn->managed_io && conn->corked_io) {
+        if (s2n_connection_is_managed_corked(conn)) {
             GUARD(s2n_socket_set_read_size(conn, remaining));
         }
         r = s2n_connection_recv_stuffer(&conn->header_in, conn, remaining);
@@ -92,7 +92,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
     while (s2n_stuffer_data_available(&conn->in) < fragment_length) {
         int remaining = fragment_length - s2n_stuffer_data_available(&conn->in);
 
-        if (conn->managed_io && conn->corked_io) {
+        if (s2n_connection_is_managed_corked(conn)) {
             GUARD(s2n_socket_set_read_size(conn, remaining));
         }
 
