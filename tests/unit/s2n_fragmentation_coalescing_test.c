@@ -406,7 +406,7 @@ int main(int argc, char **argv)
     conn->server_protocol_version = S2N_TLS12;
     conn->client_protocol_version = S2N_TLS12;
     conn->actual_protocol_version = S2N_TLS12;
-    conn->verify_cert_chain_callback = accept_all_rsa_certs;
+    conn->verify_cert_chain_cb = accept_all_rsa_certs;
 
     /* Create a pipe */
     EXPECT_SUCCESS(pipe(p));
@@ -455,6 +455,7 @@ int main(int argc, char **argv)
     conn->server_protocol_version = S2N_TLS12;
     conn->client_protocol_version = S2N_TLS12;
     conn->actual_protocol_version = S2N_TLS12;
+    conn->verify_cert_chain_cb = accept_all_rsa_certs;
 
     /* Set up the connection to read from the fd */
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
@@ -500,6 +501,8 @@ int main(int argc, char **argv)
     conn->server_protocol_version = S2N_TLS12;
     conn->client_protocol_version = S2N_TLS12;
     conn->actual_protocol_version = S2N_TLS12;
+    conn->verify_cert_chain_cb = accept_all_rsa_certs;
+
 
     /* Set up the connection to read from the fd */
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
@@ -545,6 +548,7 @@ int main(int argc, char **argv)
     conn->server_protocol_version = S2N_TLS12;
     conn->client_protocol_version = S2N_TLS12;
     conn->actual_protocol_version = S2N_TLS12;
+    conn->verify_cert_chain_cb = accept_all_rsa_certs;
 
     /* Set up the connection to read from the fd */
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
@@ -590,6 +594,7 @@ int main(int argc, char **argv)
     conn->server_protocol_version = S2N_TLS12;
     conn->client_protocol_version = S2N_TLS12;
     conn->actual_protocol_version = S2N_TLS12;
+    conn->verify_cert_chain_cb = accept_all_rsa_certs;
 
     /* Set up the connection to read from the fd */
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));

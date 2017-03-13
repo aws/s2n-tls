@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -225,8 +225,8 @@ int main(int argc, char **argv)
 
         s2n_connection_set_cert_auth_type(client_conn, S2N_CERT_AUTH_REQUIRED);
         s2n_connection_set_cert_auth_type(server_conn, S2N_CERT_AUTH_REQUIRED);
-        s2n_connection_set_cert_verify_callback(client_conn, &accept_all_rsa_certs, NULL);
-        s2n_connection_set_cert_verify_callback(server_conn, &accept_all_rsa_certs, NULL);
+        s2n_connection_set_verify_cert_chain_cb(client_conn, &accept_all_rsa_certs, NULL);
+        s2n_connection_set_verify_cert_chain_cb(server_conn, &accept_all_rsa_certs, NULL);
 
         int tries = 0;
         do {

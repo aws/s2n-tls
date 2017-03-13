@@ -153,7 +153,7 @@ extern int s2n_cert_public_key_set_rsa(struct s2n_cert_public_key *cert_pub_key,
  *         0 if the Certificate is untrusted, or there was some other error.
  */
 typedef int verify_cert_trust_chain(struct s2n_blob *cert_chain_in, struct s2n_cert_public_key *public_key_out, void *context);
-extern int s2n_connection_set_cert_verify_callback(struct s2n_connection *conn, verify_cert_trust_chain *callback, void *context);
+extern int s2n_connection_set_verify_cert_chain_cb(struct s2n_connection *conn, verify_cert_trust_chain *callback, void *context);
 
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);
 extern uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn);

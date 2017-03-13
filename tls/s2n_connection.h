@@ -36,7 +36,6 @@
 #include "utils/s2n_mem.h"
 
 #define S2N_TLS_PROTOCOL_VERSION_LEN    2
-#define S2N_MAX_CERT_TYPE_PREFERENCE_LEN   16
 
 struct s2n_connection {
     /* The configuration (cert, key .. etc ) */
@@ -89,7 +88,7 @@ struct s2n_connection {
 
     /* Certificate Authentication and Verification Parameters */
     s2n_cert_auth_type client_cert_auth_type;
-    verify_cert_trust_chain *verify_cert_chain_callback;
+    verify_cert_trust_chain *verify_cert_chain_cb;
     void *verify_cert_context;
 
 

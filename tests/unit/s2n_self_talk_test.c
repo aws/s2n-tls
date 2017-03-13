@@ -157,7 +157,7 @@ void mock_client(int writefd, int readfd)
     conn->server_protocol_version = S2N_TLS12;
     conn->client_protocol_version = S2N_TLS12;
     conn->actual_protocol_version = S2N_TLS12;
-    conn->verify_cert_chain_callback = accept_all_rsa_certs;
+    conn->verify_cert_chain_cb = accept_all_rsa_certs;
 
     s2n_connection_set_read_fd(conn, readfd);
     s2n_connection_set_write_fd(conn, writefd);

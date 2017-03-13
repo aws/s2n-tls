@@ -151,7 +151,7 @@ int mock_client(int writefd, int readfd)
     conn = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
     s2n_connection_set_config(conn, config);
-    conn->verify_cert_chain_callback = accept_all_rsa_certs;
+    conn->verify_cert_chain_cb = accept_all_rsa_certs;
 
     // Unlike the server, the client just passes ownership of I/O to s2n
     s2n_connection_set_read_fd(conn, readfd);

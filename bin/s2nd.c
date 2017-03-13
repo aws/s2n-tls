@@ -263,7 +263,7 @@ int main(int argc, char *const *argv)
     int only_negotiate = 0;
     int prefer_throughput = 0;
     int prefer_low_latency = 0;
-    int mutualAuth = 0;
+    int mutual_auth = 0;
 
     static struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
@@ -290,7 +290,7 @@ int main(int argc, char *const *argv)
             usage();
             break;
         case 'm':
-            mutualAuth = 1;
+            mutual_auth = 1;
             break;
         case 'n':
             only_negotiate = 1;
@@ -434,9 +434,9 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    if(mutualAuth) {
+    if(mutual_auth) {
         s2n_connection_set_cert_auth_type(conn, S2N_CERT_AUTH_REQUIRED);
-        s2n_connection_set_cert_verify_callback(conn, &accept_all_rsa_certs, NULL);
+        s2n_connection_set_verify_cert_chain_cb(conn, &accept_all_rsa_certs, NULL);
     }
 
     int fd;

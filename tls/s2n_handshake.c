@@ -81,8 +81,8 @@ int s2n_handshake_get_hash_state(struct s2n_connection *conn, s2n_hash_algorithm
         *hash_state = conn->handshake.sha1;
         break;
     case S2N_HASH_SHA224:
-            *hash_state = conn->handshake.sha224;
-            break;
+        *hash_state = conn->handshake.sha224;
+        break;
     case S2N_HASH_SHA256:
         *hash_state = conn->handshake.sha256;
         break;
