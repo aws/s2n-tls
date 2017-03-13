@@ -49,8 +49,10 @@ struct s2n_handshake {
 
     struct s2n_hash_state md5;
     struct s2n_hash_state sha1;
+    struct s2n_hash_state sha224;
     struct s2n_hash_state sha256;
     struct s2n_hash_state sha384;
+    struct s2n_hash_state sha512;
 
     uint8_t server_finished[S2N_SSL_FINISHED_LEN];
     uint8_t client_finished[S2N_SSL_FINISHED_LEN];
@@ -89,3 +91,4 @@ struct s2n_handshake {
 };
 
 extern int s2n_conn_set_handshake_type(struct s2n_connection *conn);
+extern int s2n_handshake_get_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg, struct s2n_hash_state *hash_state);

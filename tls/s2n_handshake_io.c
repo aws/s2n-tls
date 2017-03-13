@@ -33,7 +33,7 @@
 #include "utils/s2n_socket.h"
 #include "utils/s2n_random.h"
 
-/* From RFC5246 7.4 */
+/* From RFC 5246 7.4 */
 #define TLS_HELLO_REQUEST              0
 #define TLS_CLIENT_HELLO               1
 #define TLS_SERVER_HELLO               2
@@ -226,8 +226,10 @@ static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct 
 {
     GUARD(s2n_hash_update(&conn->handshake.md5, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.sha1, data->data, data->size));
+    GUARD(s2n_hash_update(&conn->handshake.sha224, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.sha256, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.sha384, data->data, data->size));
+    GUARD(s2n_hash_update(&conn->handshake.sha512, data->data, data->size));
 
     return 0;
 }
@@ -325,15 +327,6 @@ static int read_full_handshake_message(struct s2n_connection *conn, uint8_t * me
 
     /* If we have the whole handshake message, then success */
     if (s2n_stuffer_data_available(&conn->handshake.io) == handshake_message_length) {
-        struct s2n_blob handshake;
-        handshake.data = conn->handshake.io.blob.data;
-        handshake.size = TLS_HANDSHAKE_HEADER_LENGTH + handshake_message_length;
-
-        notnull_check(handshake.data);
-
-        /* MD5 and SHA sum the handshake data too */
-        GUARD(s2n_conn_update_handshake_hashes(conn, &handshake));
-
         return 0;
     }
 
@@ -343,12 +336,31 @@ static int read_full_handshake_message(struct s2n_connection *conn, uint8_t * me
     return 1;
 }
 
+static int s2n_handshake_conn_update_hashes(struct s2n_connection *conn)
+{
+    uint8_t message_type;
+    uint32_t handshake_message_length;
+
+    GUARD(s2n_stuffer_reread(&conn->handshake.io));
+    GUARD(s2n_handshake_parse_header(conn, &message_type, &handshake_message_length));
+
+    struct s2n_blob handshake_record;
+    handshake_record.data = conn->handshake.io.blob.data;
+    handshake_record.size = TLS_HANDSHAKE_HEADER_LENGTH + handshake_message_length;
+    notnull_check(handshake_record.data);
+
+    /* MD5 and SHA sum the handshake data too */
+    GUARD(s2n_conn_update_handshake_hashes(conn, &handshake_record));
+
+    return 0;
+}
+
 /* Reading is a little more complicated than writing as the TLS RFCs allow content
  * types to be interleaved at the record layer. We may get an alert message
  * during the handshake phase, or messages of types that we don't support (e.g.
  * HEARTBEAT messages), or during renegotiations we may even get application
  * data messages that need to be handled by the application. The latter is punted
- * for now (s2n does support renegotiations).
+ * for now (s2n does not support renegotiations).
  */
 static int handshake_read_io(struct s2n_connection *conn)
 {
@@ -444,6 +456,11 @@ static int handshake_read_io(struct s2n_connection *conn)
 
         /* Call the relevant handler */
         r = ACTIVE_STATE(conn).handler[conn->mode] (conn);
+
+        /* Don't update handshake hashes until after the handler has executed since some handlers need to read the
+         * hash values before they are updated. */
+        s2n_handshake_conn_update_hashes(conn);
+
         GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
         if (r < 0) {
