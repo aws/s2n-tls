@@ -403,6 +403,10 @@ int s2n_connection_set_fd(struct s2n_connection *conn, int fd)
 
 int s2n_connection_use_corked_io(struct s2n_connection *conn)
 {
+    if (!conn->managed_io) {
+        /* Caller shouldn't be trying to set s2n IO corked on non-s2n-managed IO */
+        S2N_ERROR(S2N_ERR_CORK_SET_ON_UNMANAGED);
+    }
     conn->corked_io = 1;
 
     return 0;

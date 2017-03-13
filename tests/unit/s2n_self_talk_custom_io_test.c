@@ -217,6 +217,8 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
+    EXPECT_FAILURE(s2n_connection_use_corked_io(conn));
+
     /* Set up our I/O callbacks. Use stuffers for the "I/O context" */
     EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
     EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
