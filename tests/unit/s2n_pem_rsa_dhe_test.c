@@ -20,6 +20,7 @@
 #include "tls/s2n_config.h"
 #include "crypto/s2n_rsa.h"
 #include "crypto/s2n_dhe.h"
+#include "crypto/s2n_fips.h"
 
 static uint8_t certificate[] =
     "-----BEGIN CERTIFICATE-----\n"
@@ -213,30 +214,37 @@ int main(int argc, char **argv)
     struct s2n_blob signature;
     struct s2n_hash_state tls10_one, tls10_two, tls12_one, tls12_two;
 
-    EXPECT_SUCCESS(s2n_hash_new(&tls10_one));
-    EXPECT_SUCCESS(s2n_hash_new(&tls10_two));
+    EXPECT_SUCCESS(s2n_alloc(&signature, s2n_rsa_public_encrypted_size(&pub_key)));
+
+    if (s2n_hash_is_available(S2N_HASH_MD5_SHA1)) {
+        /* TLS 1.0 use of RSA with DHE is not permitted when FIPS mode is set */
+        EXPECT_SUCCESS(s2n_hash_new(&tls10_one));
+        EXPECT_SUCCESS(s2n_hash_new(&tls10_two));
+
+        EXPECT_SUCCESS(s2n_hash_init(&tls10_one, S2N_HASH_MD5_SHA1));
+        EXPECT_SUCCESS(s2n_hash_init(&tls10_two, S2N_HASH_MD5_SHA1));
+
+        EXPECT_SUCCESS(s2n_hash_update(&tls10_one, inputpad, sizeof(inputpad)));
+        EXPECT_SUCCESS(s2n_hash_update(&tls10_two, inputpad, sizeof(inputpad)));
+        EXPECT_SUCCESS(s2n_rsa_sign(&priv_key, &tls10_one, &signature));
+        EXPECT_SUCCESS(s2n_rsa_verify(&pub_key, &tls10_two, &signature));
+
+        EXPECT_SUCCESS(s2n_hash_free(&tls10_one));
+        EXPECT_SUCCESS(s2n_hash_free(&tls10_two));
+    }
+
+    /* TLS 1.2 use of RSA with DHE is permitted for FIPS and non-FIPS */
     EXPECT_SUCCESS(s2n_hash_new(&tls12_one));
     EXPECT_SUCCESS(s2n_hash_new(&tls12_two));
 
-    EXPECT_SUCCESS(s2n_hash_init(&tls10_one, S2N_HASH_MD5_SHA1));
-    EXPECT_SUCCESS(s2n_hash_init(&tls10_two, S2N_HASH_MD5_SHA1));
     EXPECT_SUCCESS(s2n_hash_init(&tls12_one, S2N_HASH_SHA1));
     EXPECT_SUCCESS(s2n_hash_init(&tls12_two, S2N_HASH_SHA1));
-
-    EXPECT_SUCCESS(s2n_alloc(&signature, s2n_rsa_public_encrypted_size(&pub_key)));
-
-    EXPECT_SUCCESS(s2n_hash_update(&tls10_one, inputpad, sizeof(inputpad)));
-    EXPECT_SUCCESS(s2n_hash_update(&tls10_two, inputpad, sizeof(inputpad)));
-    EXPECT_SUCCESS(s2n_rsa_sign(&priv_key, &tls10_one, &signature));
-    EXPECT_SUCCESS(s2n_rsa_verify(&pub_key, &tls10_two, &signature));
 
     EXPECT_SUCCESS(s2n_hash_update(&tls12_one, inputpad, sizeof(inputpad)));
     EXPECT_SUCCESS(s2n_hash_update(&tls12_two, inputpad, sizeof(inputpad)));
     EXPECT_SUCCESS(s2n_rsa_sign(&priv_key, &tls12_one, &signature));
     EXPECT_SUCCESS(s2n_rsa_verify(&pub_key, &tls12_two, &signature));
 
-    EXPECT_SUCCESS(s2n_hash_free(&tls10_one));
-    EXPECT_SUCCESS(s2n_hash_free(&tls10_two));
     EXPECT_SUCCESS(s2n_hash_free(&tls12_one));
     EXPECT_SUCCESS(s2n_hash_free(&tls12_two));
 

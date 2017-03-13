@@ -259,6 +259,7 @@ struct {
     const struct s2n_cipher_preferences *preferences;
 } selection[] = {
     { "default", &cipher_preferences_20170210 },
+    { "default_fips", &cipher_preferences_20170405},
     { "20140601", &cipher_preferences_20140601 },
     { "20141001", &cipher_preferences_20141001 },
     { "20150202", &cipher_preferences_20150202 },

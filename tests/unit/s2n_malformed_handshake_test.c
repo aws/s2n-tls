@@ -53,8 +53,8 @@ static uint8_t server_hello_message[] = {
     /* Session ID */
     ZERO_TO_THIRTY_ONE,
 
-    /* Cipher suite - TLS_RSA_WITH_RC4_128_SHA */
-    0x00, 0x05,
+    /* Cipher suite - TLS_RSA_WITH_AES_256_CBC_SHA256 */
+    0x00, 0x3D,
 
     /* Compression method: none  */
     0x00

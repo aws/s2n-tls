@@ -21,6 +21,8 @@
 
 #include <s2n.h>
 
+#include "crypto/s2n_fips.h"
+
 #include "error/s2n_errno.h"
 
 #include "tls/s2n_cipher_suites.h"
@@ -106,17 +108,26 @@ static int s2n_connection_new_hashes(struct s2n_connection *conn)
 static int s2n_connection_init_hashes(struct s2n_connection *conn)
 {
     /* Initialize all of the Connection's hash states */
-    GUARD(s2n_hash_init(&conn->handshake.md5, S2N_HASH_MD5));
+    
+    if (s2n_hash_is_available(S2N_HASH_MD5)) {
+        /* Only initialize hashes that use MD5 if available. */
+        GUARD(s2n_hash_init(&conn->handshake.md5, S2N_HASH_MD5));
+        GUARD(s2n_hash_init(&conn->handshake.sslv3_md5_copy, S2N_HASH_MD5));
+        GUARD(s2n_hash_init(&conn->prf_space.ssl3.md5, S2N_HASH_MD5));
+    }
+
+    if (s2n_hash_is_available(S2N_HASH_MD5_SHA1)) {
+        /* Only initialize hashes that use MD5_SHA1 if available. */
+        GUARD(s2n_hash_init(&conn->handshake.md5_sha1, S2N_HASH_MD5_SHA1));
+    }
+
     GUARD(s2n_hash_init(&conn->handshake.sha1, S2N_HASH_SHA1));
     GUARD(s2n_hash_init(&conn->handshake.sha224, S2N_HASH_SHA224));
     GUARD(s2n_hash_init(&conn->handshake.sha256, S2N_HASH_SHA256));
     GUARD(s2n_hash_init(&conn->handshake.sha384, S2N_HASH_SHA384));
     GUARD(s2n_hash_init(&conn->handshake.sha512, S2N_HASH_SHA512));
-    GUARD(s2n_hash_init(&conn->handshake.md5_sha1, S2N_HASH_MD5_SHA1));
-    GUARD(s2n_hash_init(&conn->handshake.sslv3_md5_copy, S2N_HASH_MD5));
-    GUARD(s2n_hash_init(&conn->handshake.sslv3_sha1_copy, S2N_HASH_SHA1));
     GUARD(s2n_hash_init(&conn->handshake.tls_hash_copy, S2N_HASH_NONE));
-    GUARD(s2n_hash_init(&conn->prf_space.ssl3.md5, S2N_HASH_MD5));
+    GUARD(s2n_hash_init(&conn->handshake.sslv3_sha1_copy, S2N_HASH_SHA1));
     GUARD(s2n_hash_init(&conn->prf_space.ssl3.sha1, S2N_HASH_SHA1));
     GUARD(s2n_hash_init(&conn->initial.signature_hash, S2N_HASH_NONE));
     GUARD(s2n_hash_init(&conn->secure.signature_hash, S2N_HASH_NONE));
@@ -163,7 +174,12 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
      * which is ok, as blob.data is always aligned.
      */
     conn = (struct s2n_connection *)(void *)blob.data;
-    conn->config = &s2n_default_config;
+
+    if (s2n_is_in_fips_mode()) {
+        conn->config = &s2n_default_fips_config;
+    } else {
+        conn->config = &s2n_default_config;
+    }
 
     /* By default, only the client will authenticate the Server's Certificate. The Server does not request or
      * authenticate any client certificates. */

@@ -20,6 +20,8 @@
 
 #include "error/s2n_errno.h"
 
+#include "crypto/s2n_fips.h"
+
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
@@ -296,13 +298,21 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
 static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data)
 {
-    GUARD(s2n_hash_update(&conn->handshake.md5, data->data, data->size));
+    if (s2n_hash_is_available(S2N_HASH_MD5)) {
+        /* The MD5 hash cannot be initialized when FIPS mode is set. */
+        GUARD(s2n_hash_update(&conn->handshake.md5, data->data, data->size));
+    }
+
+    if (s2n_hash_is_available(S2N_HASH_MD5_SHA1)) {
+        /* The MD5_SHA1 hash cannot be initialized when FIPS mode is set. */
+        GUARD(s2n_hash_update(&conn->handshake.md5_sha1, data->data, data->size));
+    }
+
     GUARD(s2n_hash_update(&conn->handshake.sha1, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.sha224, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.sha256, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.sha384, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.sha512, data->data, data->size));
-    GUARD(s2n_hash_update(&conn->handshake.md5_sha1, data->data, data->size));
 
     return 0;
 }

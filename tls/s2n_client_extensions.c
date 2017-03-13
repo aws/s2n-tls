@@ -44,7 +44,7 @@ static int s2n_send_client_signature_algorithms_extension(struct s2n_connection 
     /* Each hash-signature-alg pair is two bytes, and there's another two bytes for
      * the extension length field.
      */
-    uint16_t preferred_hashes_len = sizeof(s2n_preferred_hashes) / sizeof(s2n_preferred_hashes[0]);
+    uint16_t preferred_hashes_len = s2n_preferred_hashes.size / sizeof(s2n_preferred_hashes.data[0]);
     uint16_t preferred_hashes_size = preferred_hashes_len * 2;
     uint16_t extension_len_field_size = 2;
 
@@ -60,7 +60,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 
     /* Signature algorithms */
     if (conn->actual_protocol_version == S2N_TLS12) {
-        total_size += (sizeof(s2n_preferred_hashes) * 2) + 6;
+        total_size += (s2n_preferred_hashes.size * 2) + 6;
     }
 
     uint16_t application_protocols_len = conn->config->application_protocols.size;
@@ -250,12 +250,12 @@ static int s2n_recv_client_server_name(struct s2n_connection *conn, struct s2n_s
 int s2n_send_client_signature_algorithms(struct s2n_stuffer *out)
 {
     /* The array of hashes and signature algorithms we support */
-    uint16_t preferred_hashes_len = sizeof(s2n_preferred_hashes) / sizeof(s2n_preferred_hashes[0]);
+    uint16_t preferred_hashes_len = s2n_preferred_hashes.size / sizeof(s2n_preferred_hashes.data[0]);
     uint16_t preferred_hashes_size = preferred_hashes_len * 2;
     GUARD(s2n_stuffer_write_uint16(out, preferred_hashes_size));
 
     for (int i =  0; i < preferred_hashes_len; i++) {
-        GUARD(s2n_stuffer_write_uint8(out, s2n_preferred_hashes[i]));
+        GUARD(s2n_stuffer_write_uint8(out, s2n_preferred_hashes.data[i]));
         GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_RSA));
     }
     return 0;
@@ -287,12 +287,12 @@ int s2n_choose_preferred_signature_hash_pair(struct s2n_stuffer *in, int pairs_a
     uint8_t *their_hash_sig_pairs = s2n_stuffer_raw_read(in, pairs_available * 2);
     notnull_check(their_hash_sig_pairs);
 
-    for(int our_hash_idx = 0; our_hash_idx < sizeof(s2n_preferred_hashes); our_hash_idx++) {
+    for(int our_hash_idx = 0; our_hash_idx < s2n_preferred_hashes.size; our_hash_idx++) {
         for(int their_sig_hash_idx = 0; their_sig_hash_idx < pairs_available; their_sig_hash_idx++){
             uint8_t their_hash_alg = their_hash_sig_pairs[2 * their_sig_hash_idx];
             uint8_t their_sig_alg = their_hash_sig_pairs[2 * their_sig_hash_idx + 1];
 
-            if(their_sig_alg == TLS_SIGNATURE_ALGORITHM_RSA && their_hash_alg == s2n_preferred_hashes[our_hash_idx]) {
+            if(their_sig_alg == TLS_SIGNATURE_ALGORITHM_RSA && their_hash_alg == s2n_preferred_hashes.data[our_hash_idx]) {
                 *hash_alg_out = s2n_hash_tls_to_alg[their_hash_alg];
                 *signature_alg_out = their_sig_alg;
                 return 0;
