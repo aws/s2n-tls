@@ -59,8 +59,12 @@
 #define TLS_EXTENSION_ALPN                 16
 #define TLS_EXTENSION_RENEGOTIATION_INFO   65281
 
-/* TLS signature algorithms */
+/* TLS Signature Algorithms - RFC 5246 7.4.1.4.1*/
+#define TLS_SIGNATURE_ALGORITHM_ANONYMOUS   0
 #define TLS_SIGNATURE_ALGORITHM_RSA         1
+#define TLS_SIGNATURE_ALGORITHM_DSA         2
+#define TLS_SIGNATURE_ALGORITHM_ECDSA       3
+
 #define TLS_HASH_ALGORITHM_MD5              1
 #define TLS_HASH_ALGORITHM_SHA1             2
 #define TLS_HASH_ALGORITHM_SHA224           3

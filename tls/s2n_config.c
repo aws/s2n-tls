@@ -345,7 +345,7 @@ int s2n_config_set_protocol_preferences(struct s2n_config *config, const char *c
         uint8_t protocol[255];
 
         if (length > 255 || (s2n_stuffer_data_available(&protocol_stuffer) + length + 1) > 65535) {
-            return S2N_ERR_APPLICATION_PROTOCOL_TOO_LONG;
+            S2N_ERROR(S2N_ERR_APPLICATION_PROTOCOL_TOO_LONG);
         }
         memcpy_check(protocol, protocols[i], length);
         GUARD(s2n_stuffer_write_uint8(&protocol_stuffer, length));

@@ -70,3 +70,35 @@ int s2n_handshake_parse_header(struct s2n_connection *conn, uint8_t * message_ty
 
     return 0;
 }
+
+int s2n_handshake_get_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg, struct s2n_hash_state *hash_state)
+{
+    switch (hash_alg) {
+    case S2N_HASH_MD5:
+        *hash_state = conn->handshake.md5;
+        break;
+    case S2N_HASH_SHA1:
+        *hash_state = conn->handshake.sha1;
+        break;
+    case S2N_HASH_SHA224:
+        *hash_state = conn->handshake.sha224;
+        break;
+    case S2N_HASH_SHA256:
+        *hash_state = conn->handshake.sha256;
+        break;
+    case S2N_HASH_SHA384:
+        *hash_state = conn->handshake.sha384;
+        break;
+    case S2N_HASH_MD5_SHA1:
+        hash_state->alg = S2N_HASH_MD5_SHA1;
+        hash_state->hash_ctx.md5_sha1.md5 = conn->handshake.md5.hash_ctx.md5;
+        hash_state->hash_ctx.md5_sha1.sha1 = conn->handshake.sha1.hash_ctx.sha1;
+        break;
+    case S2N_HASH_SHA512:
+       *hash_state = conn->handshake.sha512;
+       break;
+    default:
+        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
+    }
+    return 0;
+}
