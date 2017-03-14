@@ -194,6 +194,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
     EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
 
+    EXPECT_SUCCESS(s2n_connection_use_corked_io(conn));
+
     /* Negotiate the handshake. */
     EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
 
