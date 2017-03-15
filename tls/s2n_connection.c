@@ -314,14 +314,19 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     memcpy_check(&conn->secure.server_key, &secure_server_key, sizeof(struct s2n_session_key));
 
     if (conn->mode == S2N_SERVER) {
+        /* Start with the highest protocol version so that the highest common protocol version can be selected */
+        /* during handshake. */
         conn->server_protocol_version = s2n_highest_protocol_version;
         conn->client_protocol_version = s2n_unknown_protocol_version;
+        conn->actual_protocol_version = s2n_unknown_protocol_version;
     }
     else {
+        /* For clients, also set actual_protocol_version.  Record generation uses that value for the initial */
+        /* ClientHello record version. Not all servers ignore the record version in ClientHello. */
         conn->server_protocol_version = s2n_unknown_protocol_version;
         conn->client_protocol_version = s2n_highest_protocol_version;
+        conn->actual_protocol_version = s2n_highest_protocol_version;
     }
-    conn->actual_protocol_version = s2n_unknown_protocol_version;
 
     return 0;
 }
