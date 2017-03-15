@@ -58,5 +58,5 @@ mv ../third_party $CLANG_DOWNLOAD_DIR
 echo "Installed Clang Version: "
 $CLANG_DOWNLOAD_DIR/third_party/llvm-build/Release+Asserts/bin/clang --version
 
-ln -s $CLANG_DOWNLOAD_DIR/third_party/llvm-build/Release+Asserts/ $CLANG_INSTALL_DIR
+mkdir -p $CLANG_INSTALL_DIR && cp -rf $CLANG_DOWNLOAD_DIR/third_party/llvm-build/Release+Asserts/* $CLANG_INSTALL_DIR
 

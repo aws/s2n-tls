@@ -37,4 +37,5 @@ clang++ -c -g -v -O2 -lstdc++ -std=c++11 Fuzzer/*.cpp -IFuzzer
 ar ruv libFuzzer.a Fuzzer*.o
 
 echo "Copying libFuzzer.a to $LIBFUZZER_INSTALL_DIR"
-cp libFuzzer.a $LIBFUZZER_INSTALL_DIR
+mkdir -p $LIBFUZZER_INSTALL_DIR/lib && cp libFuzzer.a $LIBFUZZER_INSTALL_DIR/lib
+

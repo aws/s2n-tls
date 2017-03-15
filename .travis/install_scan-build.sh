@@ -15,9 +15,16 @@
 
 set -e
 
-pushd `pwd`
+usage() {
+    echo "install_scan-build.sh install_dir"
+    exit 1
+}
 
+if [ "$#" -ne "1" ]; then
+    usage
+fi
 INSTALL_DIR=$1
 
 wget http://clang-analyzer.llvm.org/downloads/checker-278.tar.bz2
-tar jxf checker-278.tar.bz2 --strip-components=1 -C $INSTALL_DIR
+mkdir -p $INSTALL_DIR && tar jxf checker-278.tar.bz2 --strip-components=1 -C $INSTALL_DIR
+
