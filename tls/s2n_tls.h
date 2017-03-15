@@ -38,6 +38,8 @@ extern int s2n_client_cert_req_recv(struct s2n_connection *conn);
 extern int s2n_client_cert_req_send(struct s2n_connection *conn);
 extern int s2n_server_done_send(struct s2n_connection *conn);
 extern int s2n_server_done_recv(struct s2n_connection *conn);
+extern int s2n_client_cert_recv(struct s2n_connection *conn);
+extern int s2n_client_cert_send(struct s2n_connection *conn);
 extern int s2n_client_key_send(struct s2n_connection *conn);
 extern int s2n_client_key_recv(struct s2n_connection *conn);
 extern int s2n_client_ccs_send(struct s2n_connection *conn);

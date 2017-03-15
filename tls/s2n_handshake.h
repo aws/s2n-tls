@@ -80,6 +80,9 @@ struct s2n_handshake {
 /* Handshake needs OCSP status message */
 #define OCSP_STATUS                 0x08
 
+/* Handshake should request a Client Certificate */
+#define CLIENT_AUTH                 0x10
+
 /* Session Resumption via session-tickets */
 #define WITH_SESSION_TICKET         0x20
 
