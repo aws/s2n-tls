@@ -56,7 +56,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, sig_algs=None, curves=Non
     # Make sure it's running
     s2nd.stdout.readline()
 
-    s_client_cmd = ["../../libcrypto-root/bin/openssl", "s_client", PROTO_VERS_TO_S_CLIENT_ARG[ssl_version], "-quiet",
+    s_client_cmd = ["openssl", "s_client", PROTO_VERS_TO_S_CLIENT_ARG[ssl_version], "-quiet",
             "-connect", str(endpoint) + ":" + str(port)]
     if cipher is not None:
         s_client_cmd.extend(["-cipher", cipher])
@@ -287,7 +287,7 @@ def main(argv):
         print("s2n_handshake_test_s_client.py host port")
         sys.exit(1)
 
-    print("\nRunning tests with: " + os.popen('../../libcrypto-root/bin/openssl version').read())
+    print("\nRunning tests with: " + os.popen('openssl version').read())
 
     host = argv[0]
     port = argv[1]
