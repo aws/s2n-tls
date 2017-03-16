@@ -84,6 +84,7 @@ before_install:
   - export OPENSSL_1_1_0_INSTALL_DIR=`pwd`/test-deps/openssl-1.1.0
   - export OPENSSL_1_0_2_INSTALL_DIR=`pwd`/test-deps/openssl-1.0.2
   - export LIBRESSL_INSTALL_DIR=`pwd`/test-deps/libressl
+  - export CPPCHECK_INSTALL_DIR=`pwd`/test-deps/cppcheck
   # Install GCC 6 if on OSX
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   .travis/install_osx_dependencies.sh ; fi
   # Set GCC 6 as Default on both Ubuntu and OSX
@@ -99,6 +100,7 @@ install:
   # Download and Install Openssl 1.1.0
   - if [[ ! -d "$OPENSSL_1_1_0_INSTALL_DIR" ]]; then .travis/install_openssl_1_1_0.sh `mktemp -d` $OPENSSL_1_1_0_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
   - if [[ ! -d "$OPENSSL_1_0_2_INSTALL_DIR" ]]; then .travis/install_openssl_1_0_2.sh `mktemp -d` $OPENSSL_1_0_2_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
+  - if [[ ! -d "$CPPCHECK_INSTALL_DIR" ]]; then mkdir -p $CPPCHECK_INSTALL_DIR && .travis/install_cppcheck.sh $CPPCHECK_INSTALL_DIR > /dev/null ; fi
   - if [[ ! -d "$LIBRESSL_INSTALL_DIR" ]]; then .travis/install_libressl.sh `mktemp -d` $LIBRESSL_INSTALL_DIR > /dev/null ; fi
   # Install python linked with the latest Openssl for integration tests
   - if [[ ! -d "$PYTHON_INSTALL_DIR" ]]; then mkdir -p $PYTHON_INSTALL_DIR && .travis/install_python.sh $OPENSSL_1_1_0_INSTALL_DIR `mktemp -d` $PYTHON_INSTALL_DIR > /dev/null ; fi
@@ -129,7 +131,7 @@ before_script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo -E $PRLIMIT_INSTALL_DIR/bin/prlimit --pid "$$" --memlock=unlimited:unlimited ; fi
 
 script:
-  - if [[ "$BUILD_S2N" == "true" ]]; then .travis/run_cppcheck.sh ; fi
+  - if [[ "$BUILD_S2N" == "true" ]]; then .travis/run_cppcheck.sh $CPPCHECK_INSTALL_DIR; fi
   - if [[ "$BUILD_S2N" == "true" && "$TRAVIS_OS_NAME" == "linux" ]]; then .travis/run_kwstyle.sh ; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "integration" ]]; then make -j 8   ; fi
   # Build and run unit tests with scan-build for osx. scan-build bundle isn't available for linux
