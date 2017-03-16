@@ -58,7 +58,7 @@ curl -LO https://www.openssl.org/source/openssl-1.0.2-latest.tar.gz
 tar -xzvf openssl-1.0.2-latest.tar.gz
 
 # Build openssl libcrypto  (NOTE: check directory name 1.0.2-latest unpacked as)
-cd openssl-1.0.2d
+cd openssl-1.0.2k
 ./config -fPIC no-shared no-libunbound no-gmp no-jpake no-krb5              \
          no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-store no-zlib     \
          no-hw no-mdc2 no-seed no-idea enable-ec-nistp_64_gcc_128 no-camellia\
