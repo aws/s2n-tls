@@ -432,6 +432,15 @@ const char *s2n_connection_get_cipher(struct s2n_connection *conn)
     return conn->secure.cipher_suite->name;
 }
 
+const char *s2n_connection_get_curve(struct s2n_connection *conn)
+{
+    if (!conn->secure.server_ecc_params.negotiated_curve) {
+        return "NONE";
+    }
+
+    return conn->secure.server_ecc_params.negotiated_curve->name;
+}
+
 int s2n_connection_get_client_protocol_version(struct s2n_connection *conn)
 {
     return conn->client_protocol_version;
