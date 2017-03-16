@@ -53,8 +53,5 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status * more)
     /* Fails with S2N_ERR_SHUTDOWN_RECORD_TYPE or S2N_ERR_ALERT on receipt of anything but a close_notify */
     GUARD(s2n_recv_close_notify(conn, more));
 
-    /* Wipe the connection */
-    GUARD(s2n_connection_wipe(conn));
-
     return 0;
 }
