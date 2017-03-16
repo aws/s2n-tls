@@ -77,7 +77,8 @@ int s2n_record_header_parse(struct s2n_connection *conn, uint8_t * content_type,
      * for ClientHello.
      *
      * https://tools.ietf.org/html/rfc5246#appendix-E.1 */
-    if(tls_major_version < 2 || 3 < tls_major_version) {
+    if (tls_major_version < S2N_MINIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION
+            || S2N_MAXIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION < tls_major_version) {
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 

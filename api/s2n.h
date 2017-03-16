@@ -22,6 +22,8 @@ extern "C" {
 #include <sys/types.h>
 #include <stdint.h>
 
+#define S2N_MINIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION 2
+#define S2N_MAXIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION 3
 #define S2N_SSLv2 20
 #define S2N_SSLv3 30
 #define S2N_TLS10 31
