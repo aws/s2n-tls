@@ -30,7 +30,7 @@ curl -LO https://www.openssl.org/source/openssl-1.1.0-latest.tar.gz
 tar -xzvf openssl-1.1.0-latest.tar.gz
 
 # Build openssl libcrypto  (NOTE: check directory name 1.1.0-latest unpacked as)
-cd openssl-1.1.0a
+cd openssl-1.1.0e
 ./config -fPIC no-shared              \
          no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
          no-hw no-mdc2 no-seed no-idea enable-ec_nistp_64_gcc_128 no-camellia\
