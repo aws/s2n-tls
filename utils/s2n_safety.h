@@ -26,7 +26,7 @@
 
 extern inline void* trace_memcpy_check(void *restrict to, const void *restrict from, size_t size, const char *debug_str)
 {
-    if(to == NULL || from == NULL) {
+    if (to == NULL || from == NULL) {
         s2n_errno = S2N_ERR_NULL;
         s2n_debug_str = debug_str;
         return NULL;
