@@ -16,22 +16,23 @@
 set -e
 
 usage() {
-	echo "Usage: runFuzzTest.sh TEST_NAME FUZZ_TIMEOUT_SEC"
-	exit 1
+    echo "Usage: runFuzzTest.sh TEST_NAME FUZZ_TIMEOUT_SEC"
+    exit 1
 }
 
 if [ "$#" -ne "2" ]; then
-	usage
+    usage
 fi
 
 TEST_NAME=$1
 FUZZ_TIMEOUT_SEC=$2
+MIN_TEST_PER_SEC="1000"
 
 if [[ $TEST_NAME == *_negative_test ]];
 then
-	EXPECTED_TEST_FAILURE=1
+    EXPECTED_TEST_FAILURE=1
 else
-	EXPECTED_TEST_FAILURE=0
+    EXPECTED_TEST_FAILURE=0
 fi
 
 ASAN_OPTIONS+="symbolize=1"
@@ -45,9 +46,9 @@ GLOBAL_OVERRIDES="${PWD}/LD_PRELOAD/global_overrides.so"
 
 if [ -e $TEST_SPECIFIC_OVERRIDES ];
 then
-	export LD_PRELOAD="$TEST_SPECIFIC_OVERRIDES $GLOBAL_OVERRIDES"
+    export LD_PRELOAD="$TEST_SPECIFIC_OVERRIDES $GLOBAL_OVERRIDES"
 else
-	export LD_PRELOAD="$GLOBAL_OVERRIDES"
+    export LD_PRELOAD="$GLOBAL_OVERRIDES"
 fi
 
 ACTUAL_TEST_FAILURE=0
@@ -55,18 +56,27 @@ printf "Running  %-40s for %5d sec with %2d threads... " ${TEST_NAME} ${FUZZ_TIM
 ./${TEST_NAME} ${LIBFUZZER_ARGS} ./corpus/${TEST_NAME} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
 
 TEST_COUNT=`grep -o "stat::number_of_executed_units: [0-9]*" ${TEST_NAME}_output.txt | awk '{test_count += $2} END {print test_count}'`
+TESTS_PER_SEC=`echo $(($TEST_COUNT / $FUZZ_TIMEOUT_SEC))`
 BRANCH_COVERAGE=`grep -o "cov: [0-9]*" ${TEST_NAME}_output.txt | awk '{print $2}' | sort | tail -1`
 
 if [ $ACTUAL_TEST_FAILURE == $EXPECTED_TEST_FAILURE ];
 then
-	if [ $EXPECTED_TEST_FAILURE == 1 ];
-	then
-		# Clean up LibFuzzer corpus files if the test is negative.
-		rm -f leak-* crash-*
-	fi
-	printf "\033[32;1mPASSED\033[0m %12d tests, %8d branches covered\n" $TEST_COUNT $BRANCH_COVERAGE
+    printf "\033[32;1mPASSED\033[0m %8d tests, %6d test/sec, %5d branches covered\n" $TEST_COUNT $TESTS_PER_SEC $BRANCH_COVERAGE
+    
+    if [ $EXPECTED_TEST_FAILURE == 1 ];
+    then
+        # Clean up LibFuzzer corpus files if the test is negative.
+        rm -f leak-* crash-*
+    else
+       if [ "$TESTS_PER_SEC" -lt $MIN_TEST_PER_SEC ]; then
+            printf "\033[31;1mWARNING!\033[0m ${TEST_NAME} is only ${TESTS_PER_SEC} tests/sec, which is below ${MIN_TEST_PER_SEC}/sec! Fuzz tests are more effective at higher rates.\n\n"
+        fi
+    fi
+    
+    
+    
 else
-	cat ${TEST_NAME}_output.txt
-	printf "\033[31;1mFAILED\033[0m %12d tests, %8d branches covered\n" $TEST_COUNT $BRANCH_COVERAGE
-	exit -1
+    cat ${TEST_NAME}_output.txt
+    printf "\033[31;1mFAILED\033[0m %10d tests, %6d branches covered\n" $TEST_COUNT $BRANCH_COVERAGE
+    exit -1
 fi
