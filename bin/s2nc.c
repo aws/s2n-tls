@@ -39,6 +39,9 @@ void usage()
     fprintf(stderr, "  -a [protocols]\n");
     fprintf(stderr, "  --alpn [protocols]\n");
     fprintf(stderr, "    Sets the application protocols supported by this client, as a comma separated list.\n");
+    fprintf(stderr, "  -e\n");
+    fprintf(stderr, "  --echo\n");
+    fprintf(stderr, "    Listen to stdin after TLS Connection is established and echo it to the Server\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
     fprintf(stderr, "  -n [server name]\n");
@@ -65,9 +68,11 @@ int main(int argc, char *const *argv)
     /* required args */
     const char *host = NULL;
     const char *port = "443";
+    int echo_input = 0;
 
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
+        {"echo", required_argument, 0, 'e'},
         {"help", no_argument, 0, 'h'},
         {"name", required_argument, 0, 'n'},
         {"status", no_argument, 0, 's'},
@@ -82,6 +87,9 @@ int main(int argc, char *const *argv)
         switch (c) {
         case 'a':
             alpn_protocols = optarg;
+            break;
+        case 'e':
+            echo_input = 1;
             break;
         case 'h':
             usage();
@@ -251,9 +259,18 @@ int main(int argc, char *const *argv)
     }
 
     /* See echo.c */
-    negotiate(conn);
+    int ret = negotiate(conn);
+
+    if (ret != 0) {
+        printf("Error During Negotiation: %s\n", s2n_strerror(s2n_errno, "EN"));
+        return -1;
+    }
 
     printf("Connected to %s:%s\n", host, port);
+
+    if (echo_input != 1) {
+        return 0;
+    }
 
     echo(conn, sockfd);
 
