@@ -72,6 +72,16 @@ int s2n_record_header_parse(struct s2n_connection *conn, uint8_t * content_type,
 
     uint8_t version = (protocol_version[0] * 10) + protocol_version[1];
 
+    uint8_t tls_major_version = protocol_version[0];
+    /* TLS servers compliant with this specification MUST accept any value {03,XX} as the record layer version number
+     * for ClientHello.
+     *
+     * https://tools.ietf.org/html/rfc5246#appendix-E.1 */
+    if (tls_major_version < S2N_MINIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION
+            || S2N_MAXIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION < tls_major_version) {
+        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+    }
+
     if (conn->actual_protocol_version_established && conn->actual_protocol_version != version) {
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
