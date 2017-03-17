@@ -33,15 +33,15 @@ LIBS += -lm
 CFLAGS += -Wno-unreachable-code -I$(LIBCRYPTO_ROOT)/include/ -I../../ -I../../api/
 LDFLAGS += -L../../lib/ ${CRYPTO_LDFLAGS} -L../testlib/ -ltests2n -ls2n ${LIBS} ${CRYPTO_LIBS}
 
-ifeq (,$(strip ${TEST_FILES}))
-	TEST_FILES=${TESTS}
+ifeq (,$(strip ${UNIT_TESTS}))
+	UNIT_TESTS=${TESTS}
 endif
 
 $(TESTS)::
 	@${CC} ${CFLAGS} -o $@ $@.c ${LDFLAGS} 2>&1
 
 run_tests: $(TESTS)
-	@(for test in ${TEST_FILES} ; do DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" ./$$test; done )
+	@(for test in ${UNIT_TESTS} ; do DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" ./$$test; done )
 
 .PHONY : valgrind
 valgrind: $(TESTS)
