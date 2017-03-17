@@ -261,14 +261,14 @@ int main(int argc, char *const *argv)
     /* See echo.c */
     int ret = negotiate(conn);
 
-    if(ret != 0){
+    if (ret != 0) {
         printf("Error During Negotiation: %s\n", s2n_strerror(s2n_errno, "EN"));
         return -1;
     }
 
     printf("Connected to %s:%s\n", host, port);
 
-    if(echo_input != 1){
+    if (echo_input != 1) {
         return 0;
     }
 

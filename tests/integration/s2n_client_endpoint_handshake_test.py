@@ -77,7 +77,7 @@ def well_known_endpoints_test():
     for endpoint in well_known_endpoints:
         ret = try_client_handshake(endpoint)
         print_result("Endpoint:  %-40s... " % endpoint, ret)
-        if(ret != 0):
+        if ret != 0:
             failed += 1
 
     return failed
