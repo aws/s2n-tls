@@ -1,4 +1,5 @@
-sudo: true
+sudo: required
+dist: trusty
 language: c
 cache:
     directories:
