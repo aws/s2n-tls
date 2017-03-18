@@ -376,8 +376,7 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    if (s2n_config_add_cert_chain_and_key_with_extensions(config, certificate_chain, private_key,
-                                                          &sct_ext, 1) < 0) {
+    if (s2n_config_add_cert_chain_and_key_with_extensions(config, certificate_chain, private_key, &sct_ext, 1) < 0) {
         fprintf(stderr, "Error getting certificate/key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
     }

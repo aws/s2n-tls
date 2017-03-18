@@ -421,5 +421,6 @@ static int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struc
 static int s2n_recv_client_sct_list(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     conn->ct_level_requested = S2N_CT_SUPPORT_REQUEST;
+    /* Skip reading the extension, per RFC6962 (3.1.1) it SHOULD be empty anyway  */
     return 0;
 }

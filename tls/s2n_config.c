@@ -462,30 +462,22 @@ int s2n_config_add_cert_chain_and_key_with_extensions(struct s2n_config *config,
     for (uint16_t ext_idx = 0; ext_idx < num_extensions; ext_idx++) {
         switch (extensions[ext_idx].type) {
             case S2N_EXTENSION_CERTIFICATE_TRANSPARENCY: {
-                if (have_sct) {
+                if (have_sct || extensions[ext_idx].data == NULL || extensions[ext_idx].length == 0) {
                     S2N_ERROR(S2N_ERR_INVALID_SCT_LIST);
-                } else {
-                    if (extensions[ext_idx].data && extensions[ext_idx].length > 0) {
-                        have_sct = 1;
-                        GUARD(s2n_alloc(&config->cert_and_key_pairs->sct_list, extensions[ext_idx].length));
-                        memcpy_check(config->cert_and_key_pairs->sct_list.data, extensions[ext_idx].data, extensions[ext_idx].length);
-                    } else {
-                       S2N_ERROR(S2N_ERR_INVALID_SCT_LIST);
-                   }
                 }
+                have_sct = 1;
+                GUARD(s2n_alloc(&config->cert_and_key_pairs->sct_list, extensions[ext_idx].length));
+                memcpy_check(config->cert_and_key_pairs->sct_list.data, extensions[ext_idx].data,
+                             extensions[ext_idx].length);
             } break;
             case S2N_EXTENSION_OCSP_STAPLING: {
-                if (have_ocsp) {
+                if (have_ocsp || extensions[ext_idx].data == NULL || extensions[ext_idx].length == 0) {
                     S2N_ERROR(S2N_ERR_INVALID_OCSP_RESPONSE);
-                } else {
-                    if (extensions[ext_idx].data && extensions[ext_idx].length > 0) {
-                        have_ocsp = 1;
-                        GUARD(s2n_alloc(&config->cert_and_key_pairs->ocsp_status, extensions[ext_idx].length));
-                        memcpy_check(config->cert_and_key_pairs->ocsp_status.data, extensions[ext_idx].data, extensions[ext_idx].length);
-                    } else {
-                        S2N_ERROR(S2N_ERR_INVALID_OCSP_RESPONSE);
-                    }
                 }
+                have_ocsp = 1;
+                GUARD(s2n_alloc(&config->cert_and_key_pairs->ocsp_status, extensions[ext_idx].length));
+                memcpy_check(config->cert_and_key_pairs->ocsp_status.data, extensions[ext_idx].data,
+                             extensions[ext_idx].length);
             } break;
             default:
                 S2N_ERROR(S2N_ERR_UNRECOGNIZED_EXTENSION);
@@ -507,8 +499,7 @@ int s2n_config_add_cert_chain_and_key_with_extensions(struct s2n_config *config,
 
 int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem)
 {
-    GUARD(s2n_config_add_cert_chain_and_key_with_extensions(config, cert_chain_pem, private_key_pem,
-                                                            NULL, 0));
+    GUARD(s2n_config_add_cert_chain_and_key_with_extensions(config, cert_chain_pem, private_key_pem, NULL, 0));
 
     return 0;
 }
