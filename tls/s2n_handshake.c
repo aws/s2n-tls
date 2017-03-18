@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
+#include "tls/s2n_cipher_suites.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -98,5 +99,63 @@ int s2n_handshake_get_hash_state(struct s2n_connection *conn, s2n_hash_algorithm
     default:
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
+    return 0;
+}
+
+int s2n_handshake_require_all_hashes(struct s2n_connection *conn)
+{
+    memset(conn->handshake.required_hash_algs, 1, sizeof(conn->handshake.required_hash_algs));
+    return 0;
+}
+
+int s2n_handshake_require_hash(struct s2n_handshake *handshake, s2n_hash_algorithm hash_alg)
+{
+    handshake->required_hash_algs[hash_alg] = 1;
+    return 0;
+}
+
+uint8_t s2n_handshake_is_hash_required(struct s2n_handshake *handshake, s2n_hash_algorithm hash_alg)
+{
+    return handshake->required_hash_algs[hash_alg];
+}
+
+/* Update the required handshake hash algs depending on current handshake session state.
+ * This function must called at the end of a handshake message handler.
+ */
+int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
+{
+    /* Clear all of the required hashes */
+    memset(conn->handshake.required_hash_algs, 0, sizeof(conn->handshake.required_hash_algs));
+
+    message_type_t handshake_message = s2n_conn_get_current_message_type(conn);
+    const uint8_t client_cert_verify_done = (handshake_message >= CLIENT_CERT_VERIFY) ? 1 : 0;
+    s2n_cert_auth_type client_cert_auth_type;
+    GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
+
+    /* If client authentication is possible, all hashes are needed until we're past CLIENT_CERT_VERIFY. */
+    if ((client_cert_auth_type != S2N_CERT_AUTH_NONE) && !client_cert_verify_done) {
+        GUARD(s2n_handshake_require_all_hashes(conn));
+        return 0;
+    }
+
+    /* We don't need all of the hashes. Set the hash alg(s) required for the PRF */
+    switch (conn->actual_protocol_version) {
+    case S2N_SSLv3:
+    case S2N_TLS10:
+    case S2N_TLS11:
+        GUARD(s2n_handshake_require_hash(&conn->handshake, S2N_HASH_MD5));
+        GUARD(s2n_handshake_require_hash(&conn->handshake, S2N_HASH_SHA1));
+        break;
+    case S2N_TLS12:
+    {
+        /* For TLS 1.2 the cipher suite defines the PRF hash alg */
+        s2n_hmac_algorithm tls12_prf_alg = conn->secure.cipher_suite->tls12_prf_alg;
+        s2n_hash_algorithm hash_alg;
+        GUARD(s2n_hmac_hash_alg(tls12_prf_alg, &hash_alg));
+        GUARD(s2n_handshake_require_hash(&conn->handshake, hash_alg));
+        break;
+    }
+    }
+
     return 0;
 }

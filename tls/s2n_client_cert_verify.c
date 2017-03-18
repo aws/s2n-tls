@@ -60,6 +60,9 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
         S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     }
 
+    /* Client certificate has been verified. Minimize required handshake hash algs */
+    GUARD(s2n_conn_update_required_handshake_hashes(conn));
+
     return 0;
 }
 
@@ -97,6 +100,9 @@ int s2n_client_cert_verify_send(struct s2n_connection *conn)
     default:
         S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     }
+
+    /* Client certificate has been verified. Minimize required handshake hash algs */
+    GUARD(s2n_conn_update_required_handshake_hashes(conn));
 
     return 0;
 }

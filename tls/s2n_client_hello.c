@@ -21,6 +21,8 @@
 
 #include "error/s2n_errno.h"
 
+#include "crypto/s2n_hash.h"
+
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
@@ -120,6 +122,9 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 
     /* Set the handshake type */
     GUARD(s2n_conn_set_handshake_type(conn));
+
+    /* We've selected the cipher, update the required hashes for this connection */
+    GUARD(s2n_conn_update_required_handshake_hashes(conn));
 
     return 0;
 }

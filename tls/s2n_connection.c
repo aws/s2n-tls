@@ -536,6 +536,9 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     GUARD(s2n_connection_init_hashes(conn));
     GUARD(s2n_connection_init_hmacs(conn));
 
+    /* Require all handshakes hashes. This set can be reduced as the handshake progresses. */
+    GUARD(s2n_handshake_require_all_hashes(conn));
+
     if (conn->mode == S2N_SERVER) {
         /* Start with the highest protocol version so that the highest common protocol version can be selected */
         /* during handshake. */
