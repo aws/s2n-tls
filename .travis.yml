@@ -12,14 +12,12 @@ addons:
     apt:
       sources:
         - ubuntu-toolchain-r-test
-        - xeron-oskom/util-linux
       packages:
         - gcc-6
         - g++-6
         - indent
         - cppcheck
         - kwstyle
-        - util-linux
 
 osx_image: xcode8
 
@@ -109,7 +107,7 @@ install:
   - if [[ ! -d "$PYTHON_INSTALL_DIR" ]]; then mkdir -p $PYTHON_INSTALL_DIR && .travis/install_python.sh $OPENSSL_1_1_0_INSTALL_DIR `mktemp -d` $PYTHON_INSTALL_DIR > /dev/null ; fi
   # Download and Install GnuTLS for integration tests
   - if [[ ! -d "$GNUTLS_INSTALL_DIR" ]]; then mkdir -p $GNUTLS_INSTALL_DIR && .travis/install_gnutls.sh `mktemp -d` $GNUTLS_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
-  #- if [[ ! -d "$PRLIMIT_INSTALL_DIR" ]] && [[ "$TRAVIS_OS_NAME" == "linux" ]]; then mkdir -p $PRLIMIT_INSTALL_DIR && .travis/install_prlimit.sh `mktemp -d` $PRLIMIT_INSTALL_DIR > /dev/null ; fi
+  - if [[ ! -d "$PRLIMIT_INSTALL_DIR" ]] && [[ "$TRAVIS_OS_NAME" == "linux" ]]; then mkdir -p $PRLIMIT_INSTALL_DIR && sudo .travis/install_prlimit.sh `mktemp -d` $PRLIMIT_INSTALL_DIR > /dev/null ; fi
   - if [[ ! -d "$SCAN_BUILD_INSTALL_DIR" ]] && [[ "$TRAVIS_OS_NAME" == "osx" ]]; then .travis/install_scan-build.sh $SCAN_BUILD_INSTALL_DIR; fi
   # Install SAW and Z3 for formal verification
   - if [[ ! -d "$SAW_INSTALL_DIR" ]]; then mkdir -p $SAW_INSTALL_DIR && .travis/install_saw.sh `mktemp -d` $SAW_INSTALL_DIR > /dev/null ; fi
@@ -131,7 +129,7 @@ before_script:
   # have the "libcrypto-root" directory path hardcoded.
   - rm -rf libcrypto-root && ln -s $LIBCRYPTO_ROOT libcrypto-root
   # Use prlimit to set the memlock limit to unlimited for linux. OSX is unlimited by default
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo -E prlimit --pid "$$" --memlock=unlimited:unlimited ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo -E $PRLIMIT_INSTALL_DIR/bin/prlimit --pid "$$" --memlock=unlimited:unlimited ; fi
 
 script:
   - if [[ "$BUILD_S2N" == "true" ]]; then .travis/run_cppcheck.sh $CPPCHECK_INSTALL_DIR; fi
