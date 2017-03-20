@@ -19,7 +19,7 @@ addons:
         - indent
         - cppcheck
         - kwstyle
-	- util-linux
+        - util-linux
 
 osx_image: xcode8
 
