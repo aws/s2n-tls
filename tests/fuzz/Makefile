@@ -22,6 +22,10 @@ ifndef LIBFUZZER_ROOT
     export LIBFUZZER_ROOT = $(shell echo "../../fuzz_dependencies")
 endif
 
+ifndef FUZZ_TIMEOUT_SEC
+    export FUZZ_TIMEOUT_SEC=120
+endif
+
 
 .PHONY : all
 all : ld-preload
@@ -37,8 +41,6 @@ LDFLAGS += $(LIBFUZZER_ROOT)/lib/libFuzzer.a -lstdc++ -L../../lib/ ${CRYPTO_LDFL
 
 DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH"
 LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH"
-
-FUZZ_TIMEOUT_SEC=120
 
 ld-preload :
 	${MAKE} -C LD_PRELOAD
