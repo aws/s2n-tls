@@ -29,6 +29,7 @@
 
 #include "crypto/s2n_hmac.h"
 #include "crypto/s2n_hash.h"
+#include "crypto/s2n_openssl.h"
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
@@ -113,28 +114,35 @@ static int s2n_p_hash(union s2n_prf_working_space *ws, s2n_hmac_algorithm alg, s
     GUARD(s2n_hmac_digest_size(alg, &digest_size));
     size_t digest_size_size = (size_t)digest_size;
     size_t *digest_size_pointer = &digest_size_size;
-    EVP_MD_CTX ctx_init, ctx, ctx_tmp;
+    EVP_MD_CTX *ctx_init, *ctx, *ctx_tmp;
     EVP_PKEY *mac_key;
     int ret = 0;
 
-    EVP_MD_CTX_init(&ctx_init);
-    EVP_MD_CTX_set_flags(&ctx_init, EVP_MD_CTX_FLAG_NON_FIPS_ALLOW);
-    EVP_MD_CTX_init(&ctx);
-    EVP_MD_CTX_init(&ctx_tmp);
+#if S2N_OPENSSL_VERSION_AT_LEAST(1,1,0) && !defined(LIBRESSL_VERSION_NUMBER)
+    ctx_init = EVP_MD_CTX_new();
+    ctx = EVP_MD_CTX_new();
+    ctx_tmp = EVP_MD_CTX_new();
+#else
+    ctx_init = EVP_MD_CTX_create();
+    ctx = EVP_MD_CTX_create();
+    ctx_tmp = EVP_MD_CTX_create();
+#endif
+
+    EVP_MD_CTX_set_flags(ctx_init, EVP_MD_CTX_FLAG_NON_FIPS_ALLOW);
     mac_key = EVP_PKEY_new_mac_key(EVP_PKEY_HMAC, NULL, secret->data, secret->size);
     if (!mac_key)
         goto err;
-    if (!EVP_DigestSignInit(&ctx_init, NULL, md, NULL, mac_key))
+    if (!EVP_DigestSignInit(ctx_init, NULL, md, NULL, mac_key))
         goto err;
-    if (!EVP_MD_CTX_copy_ex(&ctx, &ctx_init))
+    if (!EVP_MD_CTX_copy_ex(ctx, ctx_init))
         goto err;
-    if (!EVP_DigestSignUpdate(&ctx, label->data, label->size))
+    if (!EVP_DigestSignUpdate(ctx, label->data, label->size))
         goto err;
-    if (!EVP_DigestSignUpdate(&ctx, seed_a->data, seed_a->size))
+    if (!EVP_DigestSignUpdate(ctx, seed_a->data, seed_a->size))
         goto err;
-    if (seed_b && !EVP_DigestSignUpdate(&ctx, seed_b->data, seed_b->size))
+    if (seed_b && !EVP_DigestSignUpdate(ctx, seed_b->data, seed_b->size))
         goto err;
-    if (!EVP_DigestSignFinal(&ctx, ws->tls.digest0, digest_size_pointer))
+    if (!EVP_DigestSignFinal(ctx, ws->tls.digest0, digest_size_pointer))
         goto err;
 
 
@@ -143,18 +151,18 @@ static int s2n_p_hash(union s2n_prf_working_space *ws, s2n_hmac_algorithm alg, s
 
     while (outputlen) {
         /* Now compute hmac(secret + A(N - 1) + seed) */
-        if (!EVP_MD_CTX_copy_ex(&ctx, &ctx_init))
+        if (!EVP_MD_CTX_copy_ex(ctx, ctx_init))
             goto err;
-        if (!EVP_DigestSignUpdate(&ctx, ws->tls.digest0, digest_size))
+        if (!EVP_DigestSignUpdate(ctx, ws->tls.digest0, digest_size))
             goto err;
         /* Add the label + seed and compute this round's A */
-        if (!EVP_DigestSignUpdate(&ctx, label->data, label->size))
+        if (!EVP_DigestSignUpdate(ctx, label->data, label->size))
             goto err;
-        if (!EVP_DigestSignUpdate(&ctx, seed_a->data, seed_a->size))
+        if (!EVP_DigestSignUpdate(ctx, seed_a->data, seed_a->size))
             goto err;
-        if (seed_b && !EVP_DigestSignUpdate(&ctx, seed_b->data, seed_b->size))
+        if (seed_b && !EVP_DigestSignUpdate(ctx, seed_b->data, seed_b->size))
             goto err;
-        if (!EVP_DigestSignFinal(&ctx, ws->tls.digest1, digest_size_pointer))
+        if (!EVP_DigestSignFinal(ctx, ws->tls.digest1, digest_size_pointer))
             goto err;
 
         uint32_t bytes_to_xor = MIN(outputlen, digest_size);
@@ -166,20 +174,27 @@ static int s2n_p_hash(union s2n_prf_working_space *ws, s2n_hmac_algorithm alg, s
         }
 
         /* Stash a digest of A(N), in A(N), for the next round */
-        if (!EVP_MD_CTX_copy_ex(&ctx, &ctx_init))
+        if (!EVP_MD_CTX_copy_ex(ctx, ctx_init))
             goto err;
-        if (!EVP_DigestSignUpdate(&ctx, ws->tls.digest0, digest_size))
+        if (!EVP_DigestSignUpdate(ctx, ws->tls.digest0, digest_size))
             goto err;
-        if (!EVP_DigestSignFinal(&ctx, ws->tls.digest0, digest_size_pointer))
+        if (!EVP_DigestSignFinal(ctx, ws->tls.digest0, digest_size_pointer))
             goto err;
     }
 
     ret = 1;
- err:
+ 
+err:
     EVP_PKEY_free(mac_key);
-    EVP_MD_CTX_cleanup(&ctx);
-    EVP_MD_CTX_cleanup(&ctx_tmp);
-    EVP_MD_CTX_cleanup(&ctx_init);
+#if S2N_OPENSSL_VERSION_AT_LEAST(1,1,0) && !defined(LIBRESSL_VERSION_NUMBER)
+    EVP_MD_CTX_free(ctx_init);
+    EVP_MD_CTX_free(ctx);
+    EVP_MD_CTX_free(ctx_tmp);
+#else
+    EVP_MD_CTX_destroy(ctx_init);
+    EVP_MD_CTX_destroy(ctx);
+    EVP_MD_CTX_destroy(ctx_tmp);
+#endif
     return ret;
 }
 
