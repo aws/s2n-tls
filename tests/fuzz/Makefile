@@ -26,10 +26,14 @@ ifndef FUZZ_TIMEOUT_SEC
     export FUZZ_TIMEOUT_SEC=120
 endif
 
+ifndef FUZZ_TESTS
+    export FUZZ_TESTS=${TESTS}
+endif
+
 
 .PHONY : all
 all : ld-preload
-all : $(TESTS)
+all : run_tests
 
 include ../../s2n.mk
 
@@ -47,11 +51,13 @@ ld-preload :
 
 $(TESTS)::
 	@${CC} ${CFLAGS} $@.c -o $@  ${LDFLAGS} > /dev/null
-	@( \
+
+run_tests: $(TESTS)
+	@( for test_name in ${FUZZ_TESTS} ; do \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}; \
 	export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}; \
 	export LIBCRYPTO_ROOT=${LIBCRYPTO_ROOT}; \
-	./runFuzzTest.sh $@ ${FUZZ_TIMEOUT_SEC}; \
+	./runFuzzTest.sh $${test_name} ${FUZZ_TIMEOUT_SEC}; done\
 	)
 
 .PHONY : clean
