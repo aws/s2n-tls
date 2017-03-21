@@ -378,31 +378,13 @@ int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_req
     return 0;
 }
 
-int s2n_config_add_cert_chain_and_key_with_status(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem, const uint8_t * status, uint32_t length)
-{
-    struct s2n_blob ocsp_copy;
-
-    /* copy status to workaround the const declaration */
-    GUARD(s2n_alloc(&ocsp_copy, length));
-    memcpy_check(ocsp_copy.data, status, length);
-
-    s2n_tls_extension ocsp_extension = { .type = S2N_EXTENSION_OCSP_STAPLING,
-                                         .data = ocsp_copy.data, .length = length };
-    GUARD(s2n_config_add_cert_chain_and_key_with_extensions(config, cert_chain_pem, private_key_pem,
-                                                            &ocsp_extension, 1));
-
-    GUARD(s2n_free(&ocsp_copy));
-
-    return 0;
-}
-
 int s2n_config_add_cert_chain_and_key_with_extensions(struct s2n_config *config, const char *cert_chain_pem,
         const char *private_key_pem, s2n_tls_extension *extensions, uint16_t num_extensions)
 {
     struct s2n_stuffer chain_in_stuffer, cert_out_stuffer, key_in_stuffer, key_out_stuffer;
     struct s2n_blob key_blob;
     struct s2n_blob mem;
-    int have_sct = 0, have_ocsp = 0;
+    int have_ocsp = 0, have_sct = 0;
 
     /* Allocate the memory for the chain and key struct */
     GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert_chain_and_key)));
@@ -460,28 +442,26 @@ int s2n_config_add_cert_chain_and_key_with_extensions(struct s2n_config *config,
     config->cert_and_key_pairs->chain_size = chain_size;
 
     for (uint16_t ext_idx = 0; ext_idx < num_extensions; ext_idx++) {
+        /* Validate we haven't got duplicate data in the configuration */
         switch (extensions[ext_idx].type) {
-            case S2N_EXTENSION_CERTIFICATE_TRANSPARENCY: {
-                if (have_sct || extensions[ext_idx].data == NULL || extensions[ext_idx].length == 0) {
+            case S2N_EXTENSION_OCSP_STAPLING:
+                if (have_ocsp || extensions[ext_idx].data == NULL || extensions[ext_idx].length == 0) {
                     S2N_ERROR(S2N_ERR_INVALID_SCT_LIST);
                 }
-                have_sct = 1;
-                GUARD(s2n_alloc(&config->cert_and_key_pairs->sct_list, extensions[ext_idx].length));
-                memcpy_check(config->cert_and_key_pairs->sct_list.data, extensions[ext_idx].data,
-                             extensions[ext_idx].length);
-            } break;
-            case S2N_EXTENSION_OCSP_STAPLING: {
-                if (have_ocsp || extensions[ext_idx].data == NULL || extensions[ext_idx].length == 0) {
+                have_ocsp = 1;
+                break;
+            case S2N_EXTENSION_CERTIFICATE_TRANSPARENCY:
+                if (have_sct  || extensions[ext_idx].data == NULL || extensions[ext_idx].length == 0) {
                     S2N_ERROR(S2N_ERR_INVALID_OCSP_RESPONSE);
                 }
-                have_ocsp = 1;
-                GUARD(s2n_alloc(&config->cert_and_key_pairs->ocsp_status, extensions[ext_idx].length));
-                memcpy_check(config->cert_and_key_pairs->ocsp_status.data, extensions[ext_idx].data,
-                             extensions[ext_idx].length);
-            } break;
+                have_sct = 1;
+                break;
             default:
                 S2N_ERROR(S2N_ERR_UNRECOGNIZED_EXTENSION);
         }
+
+        /* Set the data */
+        GUARD(s2n_config_set_extension_data(config, &extensions[ext_idx]));
     }
 
     /* Validate the leaf cert's public key matches the provided private key */
@@ -575,3 +555,35 @@ int s2n_config_set_cache_delete_callback(struct s2n_config *config, int (*cache_
 
     return 0;
 }
+
+int s2n_config_set_extension_data(struct s2n_config *config, const s2n_tls_extension *extension)
+{
+    notnull_check(config);
+    notnull_check(extension);
+
+    switch (extension->type) {
+        case S2N_EXTENSION_CERTIFICATE_TRANSPARENCY:
+            {
+                GUARD(s2n_free(&config->cert_and_key_pairs->sct_list));
+
+                if (extension->data && extension->length) {
+                    GUARD(s2n_alloc(&config->cert_and_key_pairs->sct_list, extension->length));
+                    memcpy_check(config->cert_and_key_pairs->sct_list.data, extension->data, extension->length);
+                }
+            } break;
+        case S2N_EXTENSION_OCSP_STAPLING:
+            {
+                GUARD(s2n_free(&config->cert_and_key_pairs->ocsp_status));
+
+                if (extension->data && extension->length) {
+                    GUARD(s2n_alloc(&config->cert_and_key_pairs->ocsp_status, extension->length));
+                    memcpy_check(config->cert_and_key_pairs->ocsp_status.data, extension->data, extension->length);
+                }
+            } break;
+        default:
+            S2N_ERROR(S2N_ERR_UNRECOGNIZED_EXTENSION);
+    }
+
+    return 0;
+}
+

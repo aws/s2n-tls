@@ -604,7 +604,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_with_status(server_config, certificate, private_key, server_ocsp_status, sizeof(server_ocsp_status)));
+        s2n_tls_extension ocsp_ext = { .type = S2N_EXTENSION_OCSP_STAPLING,
+                                      .length = sizeof(server_ocsp_status), .data = server_ocsp_status };
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_with_extensions(server_config, certificate, private_key, &ocsp_ext, 1));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -723,7 +725,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_with_status(server_config, certificate, private_key, server_ocsp_status, sizeof(server_ocsp_status)));
+        s2n_tls_extension ocsp_ext = { .type = S2N_EXTENSION_OCSP_STAPLING,
+                                      .length = sizeof(server_ocsp_status), .data = server_ocsp_status };
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_with_extensions(server_config, certificate, private_key, &ocsp_ext, 1));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));

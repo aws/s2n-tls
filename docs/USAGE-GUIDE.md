@@ -437,8 +437,8 @@ with the server certificate.
 
 `s2n_tls_extension` is defined as:
 
-    typedef enum { S2N_EXTENSION_OCSP_STAPLING,
-                   S2N_EXTENSION_CERTIFICATE_TRANSPARENCY } s2n_tls_extension_type;
+    typedef enum { S2N_EXTENSION_OCSP_STAPLING = 5,
+                   S2N_EXTENSION_CERTIFICATE_TRANSPARENCY = 18 } s2n_tls_extension_type;
     typedef struct {
       s2n_tls_extension_type type;
       uint8_t *data;
@@ -493,6 +493,18 @@ int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_req
 **s2n_config_set_status_request_type** Sets up an S2N_CLIENT to request the
 server certificate status during an SSL handshake.  If set to
 S2N_STATUS_REQUEST_NONE, no status request is made.
+
+### s2n\_config\_set\_extension\_data
+
+```c
+int s2n_config_set_extension_data(struct s2n_config *config, const s2n_tls_extension *extension);
+```
+
+**s2n_config_set_extension_data** Sets the extension data in the **s2n_config**
+object for the specified extension.  This method will clear any existing data
+that is set.   If the data and length members of the **s2n_tls_extension**
+parameter are set to NULL, no new data is set in the **s2n_config** object,
+effectively clearing existing data.
 
 ### s2n\_config\_set\_nanoseconds\_since\_epoch\_callback
 
