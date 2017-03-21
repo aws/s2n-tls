@@ -21,7 +21,7 @@ addons:
 osx_image: xcode8
 
 os:
-  - osx
+  #- osx
   - linux
 
 env:
@@ -33,12 +33,12 @@ env:
   - OPENSSL_ia32cap="~0x200000200000000" BUILD_S2N=true TESTS=integration
   - LATEST_CLANG=true TESTS=fuzz
   - TESTS=sawHMAC SAW_HMAC_TEST=md5 SAW=true
-  - TESTS=sawHMAC SAW_HMAC_TEST=none SAW=true
-  - TESTS=sawHMAC SAW_HMAC_TEST=sha1 SAW=true
-  - TESTS=sawHMAC SAW_HMAC_TEST=sha224 SAW=true
-  - TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true
-  - TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true
-  - TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true
+  #- TESTS=sawHMAC SAW_HMAC_TEST=none SAW=true
+  #- TESTS=sawHMAC SAW_HMAC_TEST=sha1 SAW=true
+  #- TESTS=sawHMAC SAW_HMAC_TEST=sha224 SAW=true
+  #- TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true
+  #- TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true
+  #- TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true
   - TESTS=sawDRBG SAW=true
   - TESTS=sawHMACFailure SAW=true
 
@@ -87,8 +87,10 @@ before_install:
   - export CPPCHECK_INSTALL_DIR=`pwd`/test-deps/cppcheck
   # Install GCC 6 if on OSX
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   .travis/install_osx_dependencies.sh ; fi
+  # Install GCC 6 if on Linux
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [["$GCC6_REQUIRED" = "true"]]; then sudo apt-get -y install gcc-6 c++-6 ; fi
   # Set GCC 6 as Default on both Ubuntu and OSX
-  #- alias gcc=$(which gcc-6)
+  - if [["$GCC6_REQUIRED" = "true"]]; then alias gcc=$(which gcc-6) ; fi
   # Install latest version of clang, clang++, and llvm-symbolizer. Needed for fuzzing.
   - if [[ "$TESTS" == "fuzz" ]] && [[ ! -d "$LATEST_CLANG_INSTALL_DIR" ]]; then .travis/install_clang.sh `mktemp -d` $LATEST_CLANG_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
 
@@ -99,7 +101,7 @@ install:
   - if [[ "$TESTS" == "fuzz" ]] && [[ ! -d "$LIBFUZZER_INSTALL_DIR" ]]; then PATH=$LATEST_CLANG_INSTALL_DIR/bin:$PATH .travis/install_libFuzzer.sh `mktemp -d` $LIBFUZZER_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
   # Download and Install Openssl 1.1.0
   - if [[ "$S2N_LIBCRYPTO" = "openssl-1.1.0" ]] && [[ ! -d "$OPENSSL_1_1_0_INSTALL_DIR" ]]; then .travis/install_openssl_1_1_0.sh `mktemp -d` $OPENSSL_1_1_0_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
-  - if [[ "$TESTS" == "integration" ]] && [[ ! -d "$OPENSSL_1_0_2_INSTALL_DIR" ]]; then .travis/install_openssl_1_0_2.sh `mktemp -d` $OPENSSL_1_0_2_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
+  - if [[ "$S2N_LIBCRYPTO" = "openssl-1.1.0" ]] && [[ ! -d "$OPENSSL_1_0_2_INSTALL_DIR" ]]; then .travis/install_openssl_1_0_2.sh `mktemp -d` $OPENSSL_1_0_2_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
   - if [[ "$BUILD_S2N" == "true" ]]    && [[ ! -d "$CPPCHECK_INSTALL_DIR" ]]; then mkdir -p $CPPCHECK_INSTALL_DIR && .travis/install_cppcheck.sh $CPPCHECK_INSTALL_DIR > /dev/null ; fi
   - if [[ "$S2N_LIBCRYPTO" = "libressl" ]]    && [[ ! -d "$LIBRESSL_INSTALL_DIR" ]]; then .travis/install_libressl.sh `mktemp -d` $LIBRESSL_INSTALL_DIR > /dev/null ; fi
   # Install python linked with the latest Openssl for integration tests
