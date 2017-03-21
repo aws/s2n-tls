@@ -40,8 +40,14 @@ endif
 $(TESTS)::
 	@${CC} ${CFLAGS} -o $@ $@.c ${LDFLAGS} 2>&1
 
-run_tests: $(TESTS)
-	@(for test in ${UNIT_TESTS} ; do DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" ./$$test; done )
+run_tests:: $(TESTS)
+	@(for test in ${UNIT_TESTS} ; do\
+	  (\
+	    DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
+	    LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
+	    ./$$test; \
+	  ) & \
+	  done; wait)
 
 .PHONY : valgrind
 valgrind: $(TESTS)
