@@ -88,9 +88,9 @@ before_install:
   # Install GCC 6 if on OSX
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then   .travis/install_osx_dependencies.sh ; fi
   # Install GCC 6 if on Linux
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [["$GCC6_REQUIRED" = "true"]]; then sudo apt-get -y install gcc-6 c++-6 ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [["$GCC6_REQUIRED" == "true"]]; then sudo apt-get -y install gcc-6 c++-6 ; fi
   # Set GCC 6 as Default on both Ubuntu and OSX
-  - if [["$GCC6_REQUIRED" = "true"]]; then alias gcc=$(which gcc-6) ; fi
+  - if [["$GCC6_REQUIRED" == "true"]]; then alias gcc=$(which gcc-6) ; fi
   # Install latest version of clang, clang++, and llvm-symbolizer. Needed for fuzzing.
   - if [[ "$TESTS" == "fuzz" ]] && [[ ! -d "$LATEST_CLANG_INSTALL_DIR" ]]; then .travis/install_clang.sh `mktemp -d` $LATEST_CLANG_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
 
@@ -103,8 +103,8 @@ install:
   # Always install 1.1.0
   - if [[ "$TESTS" == "integration" ]]          &&  [[ ! -d "$OPENSSL_1_1_0_INSTALL_DIR" ]]; then .travis/install_openssl_1_1_0.sh `mktemp -d` $OPENSSL_1_1_0_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
   #install the others if needed
-  - if [[ "$S2N_LIBCRYPTO" = "openssl-1.0.2" ]] && [[ ! -d "$OPENSSL_1_0_2_INSTALL_DIR" ]]; then .travis/install_openssl_1_0_2.sh `mktemp -d` $OPENSSL_1_0_2_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
-  - if [[ "$S2N_LIBCRYPTO" = "libressl" ]]      && [[ ! -d "$LIBRESSL_INSTALL_DIR" ]]; then .travis/install_libressl.sh `mktemp -d` $LIBRESSL_INSTALL_DIR > /dev/null ; fi
+  - if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2" ]] && [[ ! -d "$OPENSSL_1_0_2_INSTALL_DIR" ]]; then .travis/install_openssl_1_0_2.sh `mktemp -d` $OPENSSL_1_0_2_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
+  - if [[ "$S2N_LIBCRYPTO" == "libressl" ]]      && [[ ! -d "$LIBRESSL_INSTALL_DIR" ]]; then .travis/install_libressl.sh `mktemp -d` $LIBRESSL_INSTALL_DIR > /dev/null ; fi
   - if [[ "$BUILD_S2N" == "true" ]]             && [[ ! -d "$CPPCHECK_INSTALL_DIR" ]]; then mkdir -p $CPPCHECK_INSTALL_DIR && .travis/install_cppcheck.sh $CPPCHECK_INSTALL_DIR > /dev/null ; fi
   # Install python linked with the latest Openssl for integration tests
   - if [[ ! -d "$PYTHON_INSTALL_DIR" ]]; then mkdir -p $PYTHON_INSTALL_DIR && .travis/install_python.sh $OPENSSL_1_1_0_INSTALL_DIR `mktemp -d` $PYTHON_INSTALL_DIR > /dev/null ; fi
