@@ -23,7 +23,7 @@ sudo gem install --pre bam-bam-boogieman
 
 #Install the apt-get dependencies from the smack build script: this way they will still be there
 #when we get things from cache
-DEPENDENCIES="git cmake python-yaml python-psutil unzip wget"
+DEPENDENCIES="git cmake python-yaml python-psutil unzip wget python3-yaml"
 DEPENDENCIES+=" clang-3.7 llvm-3.7 mono-complete libz-dev libedit-dev"
 # Adding LLVM repository
 sudo add-apt-repository "deb http://llvm-apt.ecranbleu.org/apt/trusty/ llvm-toolchain-trusty-3.7 main"
