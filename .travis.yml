@@ -95,7 +95,7 @@ before_install:
   - if [["$GCC6_REQUIRED" == "true"]]; then alias gcc=$(which gcc-6) ; fi
   # Install latest version of clang, clang++, and llvm-symbolizer. Needed for fuzzing.
   - if [[ "$TESTS" == "fuzz" ]] && [[ ! -d "$LATEST_CLANG_INSTALL_DIR" ]]; then .travis/install_clang.sh `mktemp -d` $LATEST_CLANG_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [[ "$TESTS" == "ctverif" ]]; then ./travis/install_ctverif_dependencies.sh ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [[ "$TESTS" == "ctverif" ]]; then .travis/install_ctverif_dependencies.sh ; fi
 
 # Install missing test dependencies. If the install directory already exists, cached artifacts will be used
 # for that dependency.
