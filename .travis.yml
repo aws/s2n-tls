@@ -19,7 +19,7 @@ addons:
 osx_image: xcode8
 
 os:
-  #- osx
+  - osx
   - linux
 
 env:
@@ -30,13 +30,13 @@ env:
   # unoptimized routines. See https://www.openssl.org/docs/man1.1.0/crypto/OPENSSL_ia32cap.html
   - S2N_LIBCRYPTO=openssl-1.1.0 OPENSSL_ia32cap="~0x200000200000000" BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
   - S2N_LIBCRYPTO=openssl-1.1.0 LATEST_CLANG=true TESTS=fuzz
-  - TESTS=sawHMAC SAW_HMAC_TEST=md5    SAW=true
-  - TESTS=sawHMAC SAW_HMAC_TEST=none   SAW=true
-  - TESTS=sawHMAC SAW_HMAC_TEST=sha1   SAW=true
-  - TESTS=sawHMAC SAW_HMAC_TEST=sha224 SAW=true
-  - TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true
-  - TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true
-  - TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true
+  - TESTS=sawHMAC SAW_HMAC_TEST=md5    SAW=true GCC6_REQUIRED=true
+  - TESTS=sawHMAC SAW_HMAC_TEST=none   SAW=true GCC6_REQUIRED=true
+  - TESTS=sawHMAC SAW_HMAC_TEST=sha1   SAW=true GCC6_REQUIRED=true
+  - TESTS=sawHMAC SAW_HMAC_TEST=sha224 SAW=true GCC6_REQUIRED=true
+  - TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true GCC6_REQUIRED=true
+  - TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true GCC6_REQUIRED=true
+  - TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true GCC6_REQUIRED=true
   - TESTS=sawDRBG SAW=true
   - TESTS=sawHMACFailure SAW=true
 
