@@ -57,7 +57,7 @@ matrix:
   - os: osx
     env: TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true GCC6_REQUIRED=true
   - os: osx
-    env: LATEST_CLANG=true TESTS=fuzz
+    env: S2N_LIBCRYPTO=openssl-1.1.0 LATEST_CLANG=true TESTS=fuzz
   - os: osx
     env: TESTS=sawDRBG                      SAW=true  GCC6_REQUIRED=true
   - os: osx
