@@ -37,35 +37,37 @@ env:
   - TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true GCC6_REQUIRED=true
   - TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true GCC6_REQUIRED=true
   - TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true GCC6_REQUIRED=true
-  - TESTS=sawDRBG SAW=true
-  - TESTS=sawHMACFailure SAW=true
+  - TESTS=sawDRBG                      SAW=true
+  - TESTS=sawHMACFailure               SAW=true
 
 matrix:
   exclude:
   - os: osx
-    env: TESTS=sawHMAC SAW_HMAC_TEST=md5 SAW=true
+    env: TESTS=sawHMAC SAW_HMAC_TEST=md5    SAW=true GCC6_REQUIRED=true
   - os: osx
-    env: TESTS=sawHMAC SAW_HMAC_TEST=none SAW=true
+    env: TESTS=sawHMAC SAW_HMAC_TEST=none   SAW=true GCC6_REQUIRED=true
   - os: osx
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha1 SAW=true
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha1   SAW=true GCC6_REQUIRED=true
   - os: osx
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha224 SAW=true
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha224 SAW=true GCC6_REQUIRED=true
   - os: osx
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true GCC6_REQUIRED=true
   - os: osx
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true GCC6_REQUIRED=true
   - os: osx
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true GCC6_REQUIRED=true
   - os: osx
     env: LATEST_CLANG=true TESTS=fuzz
   - os: osx
-    env: TESTS=sawDRBG SAW=true
+    env: TESTS=sawDRBG                      SAW=true  GCC6_REQUIRED=true
   - os: osx
-    env: TESTS=sawHMACFailure SAW=true
+    env: TESTS=sawHMACFailure               SAW=true
   #This exception is because the test isn't finished yet, remove to turn on DRBG Saw tests
-  - env: TESTS=sawDRBG SAW=true
+  - env: TESTS=sawDRBG                      SAW=true
   allow_failures:
     - os: osx
+    - env: TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true GCC6_REQUIRED=true
+    - env: TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true GCC6_REQUIRED=true
   fast_finish: true
 
 before_install:
