@@ -39,5 +39,6 @@ sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-3.7
 sudo update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-3.7 20
 sudo update-alternatives --install /usr/bin/llvm-link llvm-link /usr/bin/llvm-link-3.7 20
 sudo update-alternatives --install /usr/bin/llvm-dis llvm-dis /usr/bin/llvm-dis-3.7 20
+pip install pyyaml
 
 
