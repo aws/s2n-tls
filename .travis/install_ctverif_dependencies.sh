@@ -41,4 +41,8 @@ sudo update-alternatives --install /usr/bin/llvm-link llvm-link /usr/bin/llvm-li
 sudo update-alternatives --install /usr/bin/llvm-dis llvm-dis /usr/bin/llvm-dis-3.7 20
 pip install pyyaml
 
+which python
+python --version
+pip install psutil
+
 
