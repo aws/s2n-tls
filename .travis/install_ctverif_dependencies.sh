@@ -24,11 +24,10 @@ sudo gem install --pre bam-bam-boogieman
 #Install the apt-get dependencies from the smack build script: this way they will still be there
 #when we get things from cache
 DEPENDENCIES="git cmake python-yaml python-psutil unzip wget"
-Z3_DOWNLOAD_LINK="https://github.com/Z3Prover/z3/releases/download/z3-4.4.1/z3-4.4.1-x64-ubuntu-14.04.zip"
 DEPENDENCIES+=" clang-3.7 llvm-3.7 mono-complete libz-dev libedit-dev"
 # Adding LLVM repository
 sudo add-apt-repository "deb http://llvm-apt.ecranbleu.org/apt/trusty/ llvm-toolchain-trusty-3.7 main"
-${WGET} -O - http://llvm-apt.ecranbleu.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
+wget --no-verbose -O - http://llvm-apt.ecranbleu.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
 # Adding MONO repository
 sudo add-apt-repository "deb http://download.mono-project.com/repo/debian wheezy main"
 sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
