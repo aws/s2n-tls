@@ -118,7 +118,7 @@ install:
   # Install SAW and Z3 for formal verification
   - if  [[ "$SAW" == "true" ]]                   && [[ ! -d "$SAW_INSTALL_DIR" ]];           then mkdir -p $SAW_INSTALL_DIR && .travis/install_saw.sh `mktemp -d` $SAW_INSTALL_DIR > /dev/null ; fi
   - if  [[ "$SAW" == "true" ]]                   && [[ ! -d "$Z3_INSTALL_DIR" ]];            then mkdir -p $Z3_INSTALL_DIR && .travis/install_z3.sh `mktemp -d` $Z3_INSTALL_DIR > /dev/null ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [[ "$TESTS" == "ctverif" ]]  && [[ ! -d "$CTVERIF_INSTALL_DIR" ]]; then mkdir -p $CTVERIF_INSTALL_DIR && .travis/install_ctverif.sh `mktemp -d` $CTVERIF_INSTALL_DIR > /dev/null ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [[ "$TESTS" == "ctverif" ]]  && [[ ! -d "$CTVERIF_INSTALL_DIR" ]]; then mkdir -p $CTVERIF_INSTALL_DIR && .travis/install_ctverif.sh $CTVERIF_INSTALL_DIR > /dev/null ; fi
 
 before_script:
   # Add all of our test dependencies to the PATH. Use Openssl 1.1.0 so the latest openssl is used for s_client
