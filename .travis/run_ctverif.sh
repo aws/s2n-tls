@@ -28,10 +28,14 @@ INSTALL_DIR=$1
 CTVERIF_DIR="${1}/verifying-constant-time"
 
 printenv
+echo "***** sourcing smack.evironment"
 source "${INSTALL_DIR}/smack.environment"
 printenv
 
-which smack
+which smack || echo "can't find smack"
+which boogie || echo "can't find z3"
+pwd
+
 
 FAILED=0
 
