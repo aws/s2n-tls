@@ -510,7 +510,7 @@ int s2n_cipher_suites_cleanup(void)
     return 0;
 }
 
-struct s2n_cipher_suite *s2n_cipher_suite_match(uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN])
+struct s2n_cipher_suite *s2n_cipher_suite_from_wire(uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN])
 {
     int low = 0;
     int top = (sizeof(s2n_all_cipher_suites) / sizeof(struct s2n_cipher_suite*)) - 1;
@@ -536,7 +536,7 @@ struct s2n_cipher_suite *s2n_cipher_suite_match(uint8_t cipher_suite[S2N_TLS_CIP
 int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN])
 {
     /* See if the cipher is one we support */
-    conn->secure.cipher_suite = s2n_cipher_suite_match(wire);
+    conn->secure.cipher_suite = s2n_cipher_suite_from_wire(wire);
     if (conn->secure.cipher_suite == NULL) {
         S2N_ERROR(S2N_ERR_CIPHER_NOT_SUPPORTED);
     }
@@ -585,7 +585,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
 
         if (s2n_wire_ciphers_contain(ours, wire, count, cipher_suite_len)) {
             /* We have a match */
-            struct s2n_cipher_suite *match = s2n_cipher_suite_match(ours);
+            struct s2n_cipher_suite *match = s2n_cipher_suite_from_wire(ours);
 
             /* This should never happen */
             if (match == NULL) {
