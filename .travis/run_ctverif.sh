@@ -26,12 +26,15 @@ fi
 
 INSTALL_DIR=$1
 CTVERIF_DIR="${1}/verifying-constant-time"
+SMACK_DIR="${1}/smack/bin"
 
 printenv
 echo "***** sourcing smack.evironment"
 source "${INSTALL_DIR}/smack.environment"
 printenv
-
+echo "***** adding smackdir"
+export PATH="${SMACK_DIR}:${PATH}"
+printenv
 which smack || echo "can't find smack"
 which boogie || echo "can't find z3"
 pwd
