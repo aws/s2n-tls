@@ -23,25 +23,26 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-static const EVP_CIPHER *s2n_evp_chacha20_poly1305(void)
-{
-    /* EVP for ChaCha20-Poly1305 added in Openssl 1.1.0. See:
-     * https://www.openssl.org/news/cl110.txt . No support in LibreSSL.
-     */
-    #if S2N_OPENSSL_VERSION_AT_LEAST(1,1,0) && !defined LIBRESSL_VERSION_NUMBER
-        return EVP_chacha20_poly1305();
-    #else
-        return NULL;
-    #endif
-}
+/* EVP for ChaCha20-Poly1305 added in Openssl 1.1.0. See: https://www.openssl.org/news/cl110.txt .
+ * LibreSSL supports the cipher, but the interface is different from Openssl's. We should define a
+ * separate s2n_cipher struct for the LibreSSL version.
+ */
+#if ((S2N_OPENSSL_VERSION_AT_LEAST(1,1,0)) && (!defined LIBRESSL_VERSION_NUMBER))
+#define S2N_CHACHA20_POLY1305_AVAILABLE
+#endif
 
 static uint8_t s2n_aead_chacha20_poly1305_available(void)
 {
-    return (s2n_evp_chacha20_poly1305() ? 1 : 0);
+#ifdef S2N_CHACHA20_POLY1305_AVAILABLE
+    return 1;
+#else
+    return 0;
+#endif
 }
 
 static int s2n_aead_chacha20_poly1305_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *aad, struct s2n_blob *in, struct s2n_blob *out)
 {
+#ifdef S2N_CHACHA20_POLY1305_AVAILABLE
     gte_check(in->size, S2N_TLS_CHACHA20_POLY1305_TAG_LEN);
     gte_check(out->size, in->size);
     eq_check(iv->size, S2N_TLS_CHACHA20_POLY1305_IV_LEN);
@@ -77,10 +78,14 @@ static int s2n_aead_chacha20_poly1305_encrypt(struct s2n_session_key *key, struc
     }
 
     return 0;
+#else
+    S2N_ERROR(S2N_ERR_ENCRYPT);
+#endif
 }
 
 static int s2n_aead_chacha20_poly1305_decrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *aad, struct s2n_blob *in, struct s2n_blob *out)
 {
+#ifdef S2N_CHACHA20_POLY1305_AVAILABLE
     gte_check(in->size, S2N_TLS_CHACHA20_POLY1305_TAG_LEN);
     gte_check(out->size, in->size);
     eq_check(iv->size, S2N_TLS_CHACHA20_POLY1305_IV_LEN);
@@ -116,13 +121,17 @@ static int s2n_aead_chacha20_poly1305_decrypt(struct s2n_session_key *key, struc
     }
 
     return 0;
+#else
+    S2N_ERROR(S2N_ERR_DECRYPT);
+#endif
 }
 
 static int s2n_aead_chacha20_poly1305_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
+#ifdef S2N_CHACHA20_POLY1305_AVAILABLE
     eq_check(in->size, S2N_TLS_CHACHA20_POLY1305_KEY_LEN);
 
-    if (EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_chacha20_poly1305(), NULL, NULL, NULL) != 1) {
+    if (EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_chacha20_poly1305(), NULL, NULL, NULL) != 1) {
         S2N_ERROR(S2N_ERR_KEY_INIT);
     }
 
@@ -133,13 +142,17 @@ static int s2n_aead_chacha20_poly1305_set_encryption_key(struct s2n_session_key 
     }
 
     return 0;
+#else
+    S2N_ERROR(S2N_ERR_KEY_INIT);
+#endif
 }
 
 static int s2n_aead_chacha20_poly1305_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
+#ifdef S2N_CHACHA20_POLY1305_AVAILABLE
     eq_check(in->size, S2N_TLS_CHACHA20_POLY1305_KEY_LEN);
 
-    if (EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_chacha20_poly1305(), NULL, NULL, NULL) != 1) {
+    if (EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_chacha20_poly1305(), NULL, NULL, NULL) != 1) {
         S2N_ERROR(S2N_ERR_KEY_INIT);
     }
 
@@ -150,6 +163,9 @@ static int s2n_aead_chacha20_poly1305_set_decryption_key(struct s2n_session_key 
     }
 
     return 0;
+#else
+    S2N_ERROR(S2N_ERR_KEY_INIT);
+#endif
 }
 
 static int s2n_aead_chacha20_poly1305_init(struct s2n_session_key *key)
