@@ -149,4 +149,4 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "sawHMAC" ]]; then make -C tests/saw/ tmp/verify_s2n_hmac_$SAW_HMAC_TEST.log ; fi
   - if [[ "$TESTS" == "sawDRBG" ]]; then make -C tests/saw tmp/spec/DRBG/DRBG.log ; fi
   - if [[ "$TESTS" == "sawHMACFailure" ]]; then make -C tests/saw failure-tests ; fi
-  - if [[ "$TESTS" == "ctverif"]]; then .travis/run_ctverif.sh $CTVERIF_INSTALL_DIR ; fi
+  - if [[ "$TESTS" == "ctverif" ]]; then .travis/run_ctverif.sh $CTVERIF_INSTALL_DIR ; fi
