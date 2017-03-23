@@ -27,7 +27,11 @@ fi
 INSTALL_DIR=$1
 CTVERIF_DIR="${1}/verifying-constant-time"
 
+printenv
 source "${INSTALL_DIR}/smack.environment"
+printenv
+
+which smack
 
 FAILED=0
 
