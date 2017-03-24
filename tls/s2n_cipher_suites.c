@@ -443,8 +443,10 @@ struct s2n_cipher_suite s2n_dhe_rsa_with_chacha20_poly1305_sha256 = /* 0xCC,0xAA
     .minimum_required_tls_version = S2N_TLS12,
 };
 
-/* All of the cipher suites that s2n negotiates, in order of IANA value */
-struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
+/* All of the cipher suites that s2n negotiates, in order of IANA value.
+ * Exposed for the "test_all" cipher preference list.
+ */
+static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
     &s2n_rsa_with_rc4_128_md5,                     /* 0x00,0x04 */
     &s2n_rsa_with_rc4_128_sha,                     /* 0x00,0x05 */
     &s2n_rsa_with_3des_ede_cbc_sha,                /* 0x00,0x0A */
@@ -472,10 +474,17 @@ struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
     &s2n_dhe_rsa_with_chacha20_poly1305_sha256,    /* 0xCC,0xAA */
 };
 
+/* All supported ciphers. Exposed for integration testing. */
+const struct s2n_cipher_preferences cipher_preferences_test_all = {
+    .count = sizeof(s2n_all_cipher_suites) / sizeof(s2n_all_cipher_suites[0]),
+    .suites = s2n_all_cipher_suites,
+    .minimum_protocol_version = S2N_SSLv3
+};
+
 /* Determines cipher suite availability and selects record algorithms */
 int s2n_cipher_suites_init(void)
 {
-    const int num_cipher_suites = sizeof(s2n_all_cipher_suites) / sizeof(struct s2n_cipher_suite*);
+    const int num_cipher_suites = sizeof(s2n_all_cipher_suites) / sizeof(s2n_all_cipher_suites[0]);
     for (int i = 0; i < num_cipher_suites; i++) {
         struct s2n_cipher_suite *cur_suite = s2n_all_cipher_suites[i];
         cur_suite->available = 0;
@@ -511,7 +520,7 @@ int s2n_cipher_suites_cleanup(void)
     return 0;
 }
 
-struct s2n_cipher_suite *s2n_cipher_suite_from_wire(uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN])
+struct s2n_cipher_suite *s2n_cipher_suite_from_wire(const uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN])
 {
     int low = 0;
     int top = (sizeof(s2n_all_cipher_suites) / sizeof(struct s2n_cipher_suite*)) - 1;
@@ -545,10 +554,10 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
     return 0;
 }
 
-static int s2n_wire_ciphers_contain(uint8_t * match, uint8_t * wire, uint32_t count, uint32_t cipher_suite_len)
+static int s2n_wire_ciphers_contain(const uint8_t * match, const uint8_t * wire, uint32_t count, uint32_t cipher_suite_len)
 {
     for (int i = 0; i < count; i++) {
-        uint8_t *theirs = wire + (i * cipher_suite_len) + (cipher_suite_len - S2N_TLS_CIPHER_SUITE_LEN);
+        const uint8_t *theirs = wire + (i * cipher_suite_len) + (cipher_suite_len - S2N_TLS_CIPHER_SUITE_LEN);
 
         if (!memcmp(match, theirs, S2N_TLS_CIPHER_SUITE_LEN)) {
             return 1;
@@ -582,16 +591,11 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
 
     /* s2n supports only server order */
     for (int i = 0; i < conn->config->cipher_preferences->count; i++) {
-        uint8_t *ours = conn->config->cipher_preferences->wire_format + (i * S2N_TLS_CIPHER_SUITE_LEN);
+        const uint8_t *ours = conn->config->cipher_preferences->suites[i]->iana_value;
 
         if (s2n_wire_ciphers_contain(ours, wire, count, cipher_suite_len)) {
             /* We have a match */
             struct s2n_cipher_suite *match = s2n_cipher_suite_from_wire(ours);
-
-            /* This should never happen */
-            if (match == NULL) {
-                S2N_ERROR(S2N_ERR_CIPHER_NOT_SUPPORTED);
-            }
 
             /* Skip the suite if we don't have an available implementation */
             if (!match->available) {

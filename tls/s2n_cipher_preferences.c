@@ -22,166 +22,164 @@
 #include "error/s2n_errno.h"
 
 /* s2n's list of cipher suites, in order of preference, as of 2014-06-01 */
-uint8_t wire_format_20140601[] =
-    { TLS_DHE_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA, TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA,
-    TLS_RSA_WITH_3DES_EDE_CBC_SHA, TLS_RSA_WITH_RC4_128_SHA, TLS_RSA_WITH_RC4_128_MD5
+struct s2n_cipher_suite *cipher_suites_20140601[] = {
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
+    &s2n_dhe_rsa_with_3des_ede_cbc_sha,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_3des_ede_cbc_sha,
+    &s2n_rsa_with_rc4_128_sha,
+    &s2n_rsa_with_rc4_128_md5
 };
 
 const struct s2n_cipher_preferences cipher_preferences_20140601 = {
-    .count = sizeof(wire_format_20140601) / S2N_TLS_CIPHER_SUITE_LEN,
-    .wire_format = wire_format_20140601,
+    .count = sizeof(cipher_suites_20140601) / sizeof(cipher_suites_20140601[0]),
+    .suites = cipher_suites_20140601,
     .minimum_protocol_version = S2N_SSLv3
 };
 
 /* Disable SSLv3 due to POODLE */
 const struct s2n_cipher_preferences cipher_preferences_20141001 = {
-    .count = sizeof(wire_format_20140601) / S2N_TLS_CIPHER_SUITE_LEN,
-    .wire_format = wire_format_20140601,
+    .count = sizeof(cipher_suites_20140601) / sizeof(cipher_suites_20140601[0]),
+    .suites = cipher_suites_20140601,
     .minimum_protocol_version = S2N_TLS10
 };
 
 /* Disable RC4 */
-uint8_t wire_format_20150202[] =
-    { TLS_DHE_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA, TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA,
-    TLS_RSA_WITH_3DES_EDE_CBC_SHA
+struct s2n_cipher_suite *cipher_suites_20150202[] = {
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
+    &s2n_dhe_rsa_with_3des_ede_cbc_sha,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_3des_ede_cbc_sha
 };
 
 const struct s2n_cipher_preferences cipher_preferences_20150202 = {
-    .count = sizeof(wire_format_20150202) / S2N_TLS_CIPHER_SUITE_LEN,
-    .wire_format = wire_format_20150202,
+    .count = sizeof(cipher_suites_20150202) / sizeof(cipher_suites_20150202[0]),
+    .suites = cipher_suites_20150202,
     .minimum_protocol_version = S2N_TLS10
 };
 
 /* Support AES-GCM modes */
-uint8_t wire_format_20150214[] = { TLS_DHE_RSA_WITH_AES_128_GCM_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
-    TLS_RSA_WITH_AES_128_GCM_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA, TLS_RSA_WITH_3DES_EDE_CBC_SHA
+struct s2n_cipher_suite *cipher_suites_20150214[] = {
+    &s2n_dhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
+    &s2n_dhe_rsa_with_3des_ede_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_3des_ede_cbc_sha
 };
 
 const struct s2n_cipher_preferences cipher_preferences_20150214 = {
-    .count = sizeof(wire_format_20150214) / S2N_TLS_CIPHER_SUITE_LEN,
-    .wire_format = wire_format_20150214,
+    .count = sizeof(cipher_suites_20150214) / sizeof(cipher_suites_20150214[0]),
+    .suites = cipher_suites_20150214,
     .minimum_protocol_version = S2N_TLS10
 };
 
 /* Make a CBC cipher #1 to avoid negotiating GCM with buggy Java clients */
-uint8_t wire_format_20160411[] = {
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-    TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
-    TLS_RSA_WITH_AES_128_CBC_SHA,
-    TLS_RSA_WITH_AES_128_GCM_SHA256,
-    TLS_RSA_WITH_AES_256_GCM_SHA384,
-    TLS_RSA_WITH_AES_128_CBC_SHA256,
-    TLS_RSA_WITH_AES_256_CBC_SHA,
-    TLS_RSA_WITH_AES_256_CBC_SHA256,
-    TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+struct s2n_cipher_suite *cipher_suites_20160411[] = {
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_3des_ede_cbc_sha,
 };
 
 const struct s2n_cipher_preferences cipher_preferences_20160411 = {
-    .count = sizeof(wire_format_20160411) / S2N_TLS_CIPHER_SUITE_LEN,
-    .wire_format = wire_format_20160411,
+    .count = sizeof(cipher_suites_20160411) / sizeof(cipher_suites_20160411[0]),
+    .suites = cipher_suites_20160411,
     .minimum_protocol_version = S2N_TLS10
 };
 
 /* Use ECDHE instead of plain DHE. Prioritize ECDHE in favour of non ECDHE; GCM in favour of CBC; AES128 in favour of AES256. */
-uint8_t wire_format_20150306[] = {
-    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-    TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-    TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
-    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-    TLS_RSA_WITH_AES_128_GCM_SHA256,
-    TLS_RSA_WITH_AES_128_CBC_SHA256,
-    TLS_RSA_WITH_AES_128_CBC_SHA,
-    TLS_RSA_WITH_3DES_EDE_CBC_SHA
+struct s2n_cipher_suite *cipher_suites_20150306[] = {
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_3des_ede_cbc_sha
 };
 
 const struct s2n_cipher_preferences cipher_preferences_20150306 = {
-    .count = sizeof(wire_format_20150306) / S2N_TLS_CIPHER_SUITE_LEN,
-    .wire_format = wire_format_20150306,
+    .count = sizeof(cipher_suites_20150306) / sizeof(cipher_suites_20150306[0]),
+    .suites = cipher_suites_20150306,
     .minimum_protocol_version = S2N_TLS10
 };
 
-uint8_t wire_format_20160804[] = {
-    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-    TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
-    TLS_RSA_WITH_AES_128_GCM_SHA256,
-    TLS_RSA_WITH_AES_256_GCM_SHA384,
-    TLS_RSA_WITH_AES_128_CBC_SHA,
-    TLS_RSA_WITH_AES_128_CBC_SHA256,
-    TLS_RSA_WITH_AES_256_CBC_SHA,
-    TLS_RSA_WITH_AES_256_CBC_SHA256,
-    TLS_RSA_WITH_3DES_EDE_CBC_SHA
+struct s2n_cipher_suite *cipher_suites_20160804[] = {
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_3des_ede_cbc_sha
 };
 
 const struct s2n_cipher_preferences cipher_preferences_20160804 = {
-    .count = sizeof(wire_format_20160804) / S2N_TLS_CIPHER_SUITE_LEN,
-    .wire_format = wire_format_20160804,
+    .count = sizeof(cipher_suites_20160804) / sizeof(cipher_suites_20160804[0]),
+    .suites = cipher_suites_20160804,
     .minimum_protocol_version = S2N_TLS10
 };
 
-uint8_t wire_format_20160824[] = {
-    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-    TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-    TLS_RSA_WITH_AES_128_GCM_SHA256,
-    TLS_RSA_WITH_AES_128_CBC_SHA256,
-    TLS_RSA_WITH_AES_128_CBC_SHA
+struct s2n_cipher_suite *cipher_suites_20160824[] = {
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha
 };
 
 const struct s2n_cipher_preferences cipher_preferences_20160824 = {
-    .count = sizeof(wire_format_20160824) / S2N_TLS_CIPHER_SUITE_LEN,
-    .wire_format = wire_format_20160824,
+    .count = sizeof(cipher_suites_20160824) / sizeof(cipher_suites_20160824[0]),
+    .suites = cipher_suites_20160824,
     .minimum_protocol_version = S2N_TLS10
 };
 
 /* Add ChaCha20 suite */
-uint8_t wire_format_20170210[] = {
-    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-    TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-    TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-    TLS_RSA_WITH_AES_128_GCM_SHA256,
-    TLS_RSA_WITH_AES_128_CBC_SHA256,
-    TLS_RSA_WITH_AES_128_CBC_SHA
+struct s2n_cipher_suite *cipher_suites_20170210[] = {
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha
 };
 
 const struct s2n_cipher_preferences cipher_preferences_20170210 = {
-    .count = sizeof(wire_format_20170210) / S2N_TLS_CIPHER_SUITE_LEN,
-    .wire_format = wire_format_20170210,
+    .count = sizeof(cipher_suites_20170210) / sizeof(cipher_suites_20170210[0]),
+    .suites = cipher_suites_20170210,
     .minimum_protocol_version = S2N_TLS10
 };
-
-/* All supported ciphers. Only exposed for integration testing. */
-uint8_t wire_format_test_all[] = {
-    TLS_RSA_WITH_RC4_128_MD5, TLS_RSA_WITH_RC4_128_SHA, TLS_RSA_WITH_3DES_EDE_CBC_SHA, TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
-    TLS_RSA_WITH_AES_128_CBC_SHA, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, TLS_RSA_WITH_AES_256_CBC_SHA,
-    TLS_DHE_RSA_WITH_AES_256_CBC_SHA, TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_RSA_WITH_AES_256_CBC_SHA256,
-    TLS_DHE_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_256_CBC_SHA256, TLS_RSA_WITH_AES_128_GCM_SHA256,
-    TLS_DHE_RSA_WITH_AES_128_GCM_SHA256, TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-    TLS_RSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256, TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-};
-
-const struct s2n_cipher_preferences cipher_preferences_test_all = {
-    .count = sizeof(wire_format_test_all),
-    .wire_format = wire_format_test_all,
-    .minimum_protocol_version = S2N_SSLv3
-};
-
 
 struct {
     const char *version;

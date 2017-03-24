@@ -21,7 +21,7 @@
 
 struct s2n_cipher_preferences {
     uint8_t count;
-    uint8_t *wire_format;
+    struct s2n_cipher_suite **suites;
     int minimum_protocol_version;
 };
 

@@ -92,11 +92,38 @@ struct s2n_cipher_suite {
     const uint8_t minimum_required_tls_version;
 };
 
+/* Never negotiated */
 extern struct s2n_cipher_suite s2n_null_cipher_suite;
+
+extern struct s2n_cipher_suite s2n_rsa_with_rc4_128_md5;
+extern struct s2n_cipher_suite s2n_rsa_with_rc4_128_sha;
+extern struct s2n_cipher_suite s2n_rsa_with_3des_ede_cbc_sha;
+extern struct s2n_cipher_suite s2n_dhe_rsa_with_3des_ede_cbc_sha;
+extern struct s2n_cipher_suite s2n_rsa_with_aes_128_cbc_sha;
+extern struct s2n_cipher_suite s2n_dhe_rsa_with_aes_128_cbc_sha;
+extern struct s2n_cipher_suite s2n_rsa_with_aes_256_cbc_sha;
+extern struct s2n_cipher_suite s2n_dhe_rsa_with_aes_256_cbc_sha;
+extern struct s2n_cipher_suite s2n_rsa_with_aes_128_cbc_sha256;
+extern struct s2n_cipher_suite s2n_rsa_with_aes_256_cbc_sha256;
+extern struct s2n_cipher_suite s2n_dhe_rsa_with_aes_128_cbc_sha256;
+extern struct s2n_cipher_suite s2n_dhe_rsa_with_aes_256_cbc_sha256;
+extern struct s2n_cipher_suite s2n_rsa_with_aes_128_gcm_sha256;
+extern struct s2n_cipher_suite s2n_rsa_with_aes_256_gcm_sha384;
+extern struct s2n_cipher_suite s2n_dhe_rsa_with_aes_128_gcm_sha256;
+extern struct s2n_cipher_suite s2n_dhe_rsa_with_aes_256_gcm_sha384;
+extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_3des_ede_cbc_sha;
+extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_128_cbc_sha;
+extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_256_cbc_sha;
+extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_128_cbc_sha256;
+extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_256_cbc_sha384;
+extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_128_gcm_sha256;
+extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
+extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_chacha20_poly1305_sha256;
+extern struct s2n_cipher_suite s2n_dhe_rsa_with_chacha20_poly1305_sha256;
 
 extern int s2n_cipher_suites_init(void);
 extern int s2n_cipher_suites_cleanup(void);
-extern struct s2n_cipher_suite *s2n_cipher_suite_from_wire(uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN]);
+extern struct s2n_cipher_suite *s2n_cipher_suite_from_wire(const uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN]);
 extern int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN]);
 extern int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);
 extern int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);

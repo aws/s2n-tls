@@ -193,13 +193,11 @@ int main(int argc, char **argv)
         struct s2n_connection *server_conn;
         int server_to_client[2];
         int client_to_server[2];
-        uint8_t *cur_cipher = default_cipher_preferences->wire_format + cipher_idx * S2N_TLS_CIPHER_SUITE_LEN;
+        struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
         uint8_t expect_failure = 0;
 
         /* Expect failure if the libcrypto we're building with can't support the cipher */
-        struct s2n_cipher_suite *cipher_suite;
-        EXPECT_NOT_NULL(cipher_suite = s2n_cipher_suite_from_wire(cur_cipher));
-        if (!cipher_suite->available) {
+        if (!cur_cipher->available) {
             expect_failure = 1;
         }
 
@@ -208,7 +206,7 @@ int main(int argc, char **argv)
            will never be NULL */
         memcpy(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
         server_cipher_preferences.count = 1;
-        server_cipher_preferences.wire_format = default_cipher_preferences->wire_format + cipher_idx * S2N_TLS_CIPHER_SUITE_LEN;
+        server_cipher_preferences.suites = &cur_cipher;
         server_config->cipher_preferences = &server_cipher_preferences;
 
         /* Create nonblocking pipes */

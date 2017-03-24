@@ -112,7 +112,7 @@ int s2n_record_parse(struct s2n_connection *conn)
     uint8_t *sequence_number = conn->client->client_sequence_number;
     struct s2n_hmac_state *mac = &conn->client->client_record_mac;
     struct s2n_session_key *session_key = &conn->client->client_key;
-    struct s2n_cipher_suite *cipher_suite = conn->client->cipher_suite;
+    const struct s2n_cipher_suite *cipher_suite = conn->client->cipher_suite;
     uint8_t *implicit_iv = conn->client->client_implicit_iv;
 
     if (conn->mode == S2N_CLIENT) {

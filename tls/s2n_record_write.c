@@ -97,7 +97,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     uint8_t *sequence_number = conn->server->server_sequence_number;
     struct s2n_hmac_state *mac = &conn->server->server_record_mac;
     struct s2n_session_key *session_key = &conn->server->server_key;
-    struct s2n_cipher_suite *cipher_suite = conn->server->cipher_suite;
+    const struct s2n_cipher_suite *cipher_suite = conn->server->cipher_suite;
     uint8_t *implicit_iv = conn->server->server_implicit_iv;
 
     if (conn->mode == S2N_CLIENT) {
