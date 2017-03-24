@@ -138,10 +138,25 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     GUARD(s2n_stuffer_write_bytes(out, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
     GUARD(s2n_stuffer_copy(&client_random, out, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_stuffer_write_uint8(out, session_id_len));
-    GUARD(s2n_stuffer_write_uint16(out, conn->config->cipher_preferences->count * S2N_TLS_CIPHER_SUITE_LEN));
 
+    /* Find the number of available suites in the preference list. Some ciphers may be unavailable if s2n is built
+     * with an older libcrypto
+     */
+    uint16_t num_available_suites = 0;
+    for (int i = 0; i < conn->config->cipher_preferences->count; i++) {
+        if (conn->config->cipher_preferences->suites[i]->available) {
+            num_available_suites++;
+        }
+    }
+
+    /* Write size of the list of available ciphers */
+    GUARD(s2n_stuffer_write_uint16(out, num_available_suites * S2N_TLS_CIPHER_SUITE_LEN));
+
+    /* Now, write the IANA values every available cipher suite in our list */
     for (int i = 0; i < conn->config->cipher_preferences->count; i++ ) {
-        GUARD(s2n_stuffer_write_bytes(out, conn->config->cipher_preferences->suites[i]->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
+        if (conn->config->cipher_preferences->suites[i]->available) {
+            GUARD(s2n_stuffer_write_bytes(out, conn->config->cipher_preferences->suites[i]->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
+        }
     }
 
     /* Zero compression methods */
