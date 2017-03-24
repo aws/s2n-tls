@@ -24,6 +24,7 @@
 
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
+#include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
 #include "utils/s2n_safety.h"
 
@@ -173,7 +174,7 @@ static int try_handshake(struct s2n_connection *server_conn, struct s2n_connecti
 int main(int argc, char **argv)
 {
     struct s2n_config *server_config;
-    struct s2n_cipher_preferences *default_cipher_preferences;
+    const struct s2n_cipher_preferences *default_cipher_preferences;
 
     BEGIN_TEST();
 

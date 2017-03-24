@@ -23,12 +23,6 @@
 
 #include <stdint.h>
 
-struct s2n_cipher_preferences {
-    uint8_t count;
-    uint8_t *wire_format;
-    int minimum_protocol_version;
-};
-
 /* Key exchange flags that can be OR'ed */
 #define S2N_KEY_EXCHANGE_DH       0x01  /* Diffie-Hellman key exchange, including ephemeral */
 #define S2N_KEY_EXCHANGE_EPH      0x02  /* Ephemeral key exchange */
@@ -99,11 +93,6 @@ struct s2n_cipher_suite {
 };
 
 extern struct s2n_cipher_suite s2n_null_cipher_suite;
-extern struct s2n_cipher_preferences *s2n_cipher_preferences_20140601;
-extern struct s2n_cipher_preferences *s2n_cipher_preferences_20150202;
-extern struct s2n_cipher_preferences *s2n_cipher_preferences_20150214;
-extern struct s2n_cipher_preferences *s2n_cipher_preferences_20150306;
-extern struct s2n_cipher_preferences *s2n_cipher_preferences_default;
 
 extern int s2n_cipher_suites_init(void);
 extern int s2n_cipher_suites_cleanup(void);
