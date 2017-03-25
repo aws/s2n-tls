@@ -401,6 +401,9 @@ The "default" version is special in that it will be updated with future s2n chan
 
 s2n does not expose an API to control the order of preference for each ciphersuite or protocol version. s2n follows the following order:
 
+*NOTE*: All ChaCha20-Poly1305 cipher suites will not be available if s2n is not built with an Openssl 1.1.0 libcrypto. The
+underlying encrpyt/decrypt functions are not available in older versions.
+
 1. Always prefer the highest protocol version supported
 2. Always use forward secrecy where possible. Prefer ECDHE over DHE. 
 3. Prefer encryption ciphers in the following order: AES128, AES256, ChaCha20, 3DES, RC4.
