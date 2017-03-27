@@ -19,17 +19,9 @@
 #include <string.h>
 
 #include "crypto/s2n_signature.h"
-#include "error/s2n_errno.h"
-
-#include "tls/s2n_tls_parameters.h"
+#include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
 
-#include "stuffer/s2n_stuffer.h"
-
-#include "utils/s2n_safety.h"
-#include "utils/s2n_blob.h"
-
-extern int s2n_choose_preferred_signature_hash_algorithm(struct s2n_stuffer *in, int num_pairs, s2n_hash_algorithm *hash_alg, s2n_signature_algorithm *signature_alg);
+extern int s2n_choose_preferred_signature_hash_pair(struct s2n_stuffer *in, int num_pairs, s2n_hash_algorithm *hash_alg, s2n_signature_algorithm *signature_alg);
 extern int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *in, s2n_hash_algorithm *out, s2n_signature_algorithm *signature_alg);
-extern int s2n_send_client_signature_algorithms_extension(struct s2n_connection *conn, struct s2n_stuffer *out);
 extern int s2n_send_client_signature_algorithms(struct s2n_stuffer *out);

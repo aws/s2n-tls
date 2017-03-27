@@ -21,6 +21,7 @@
 #include "crypto/s2n_hmac.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_rsa.h"
+#include "crypto/s2n_signature.h"
 #include "crypto/s2n_dhe.h"
 #include "crypto/s2n_ecc.h"
 
@@ -49,6 +50,7 @@ struct s2n_crypto_parameters {
     struct s2n_ecc_params server_ecc_params;
     struct s2n_cert_chain_and_key *server_cert_chain;
     s2n_hash_algorithm signature_digest_alg;
+    s2n_signature_algorithm sig_alg;
 
     struct s2n_cipher_suite *cipher_suite;
     struct s2n_session_key client_key;
