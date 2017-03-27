@@ -184,7 +184,7 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
             GUARD(s2n_recv_client_server_name(conn, &extension));
             break;
         case TLS_EXTENSION_SIGNATURE_ALGORITHMS:
-            GUARD(s2n_recv_client_signature_algorithms(conn, &extension, &conn->secure.hash_alg, &conn->secure.sig_alg));
+            GUARD(s2n_recv_client_signature_algorithms(conn, &extension, &conn->secure.conn_hash_alg, &conn->secure.conn_sig_alg));
             break;
         case TLS_EXTENSION_ALPN:
             GUARD(s2n_recv_client_alpn(conn, &extension));

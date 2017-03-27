@@ -78,9 +78,9 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
     conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
 
     /* Default our signature digest algorithms */
-    conn->secure.hash_alg = S2N_HASH_MD5_SHA1;
+    conn->secure.conn_hash_alg = S2N_HASH_MD5_SHA1;
     if (conn->actual_protocol_version == S2N_TLS12) {
-        conn->secure.hash_alg = S2N_HASH_SHA1;
+        conn->secure.conn_hash_alg = S2N_HASH_SHA1;
     }
 
     if (s2n_stuffer_data_available(in) >= 2) {
@@ -148,9 +148,9 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     GUARD(s2n_client_extensions_send(conn, out));
 
     /* Default our signature digest algorithm to SHA1. Will be used when verifying a client certificate. */
-    conn->secure.hash_alg = S2N_HASH_MD5_SHA1;
+    conn->secure.conn_hash_alg = S2N_HASH_MD5_SHA1;
     if (conn->actual_protocol_version == S2N_TLS12) {
-        conn->secure.hash_alg = S2N_HASH_SHA1;
+        conn->secure.conn_hash_alg = S2N_HASH_SHA1;
     }
 
     return 0;
