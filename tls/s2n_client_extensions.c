@@ -285,6 +285,7 @@ int s2n_choose_preferred_signature_hash_pair(struct s2n_stuffer *in, int pairs_a
         s2n_hash_algorithm *hash_alg_out, s2n_signature_algorithm *signature_alg_out)
 {
     uint8_t *their_hash_sig_pairs = s2n_stuffer_raw_read(in, pairs_available * 2);
+    notnull_check(their_hash_sig_pairs);
 
     for(int our_hash_idx = 0; our_hash_idx < sizeof(s2n_preferred_hashes); our_hash_idx++) {
         for(int their_sig_hash_idx = 0; their_sig_hash_idx < pairs_available; their_sig_hash_idx++){
