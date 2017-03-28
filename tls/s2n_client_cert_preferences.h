@@ -23,5 +23,5 @@ static uint8_t s2n_cert_type_preference_list[] = {
     S2N_CERT_TYPE_RSA_SIGN
 };
 
-int s2n_recv_client_cert_preferences(struct s2n_stuffer *in, s2n_cert_type *chosen_cert_type);
-int s2n_choose_preferred_client_cert_type(struct s2n_stuffer *in, int certs_available, uint8_t *cert_types, s2n_cert_type *chosen_cert_type);
+int s2n_recv_client_cert_preferences(struct s2n_stuffer *in, s2n_cert_type *chosen_cert_type_out);
+int s2n_choose_preferred_client_cert_type(struct s2n_stuffer *in, int num_certs, s2n_cert_type *chosen_cert_type_out);

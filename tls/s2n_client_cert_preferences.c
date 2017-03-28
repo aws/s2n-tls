@@ -18,53 +18,27 @@
 #include "tls/s2n_client_cert_preferences.h"
 #include "utils/s2n_safety.h"
 
-int s2n_recv_client_cert_preferences(struct s2n_stuffer *in, s2n_cert_type *chosen_cert_type)
+int s2n_recv_client_cert_preferences(struct s2n_stuffer *in, s2n_cert_type *chosen_cert_type_out)
 {
     uint8_t cert_types_len;
-    uint8_t *cert_types;
-
     GUARD(s2n_stuffer_read_uint8(in, &cert_types_len));
-    cert_types = s2n_stuffer_raw_read(in, cert_types_len);
-    notnull_check(cert_types);
-
-    GUARD(s2n_choose_preferred_client_cert_type(in, cert_types_len, cert_types, chosen_cert_type));
+    GUARD(s2n_choose_preferred_client_cert_type(in, cert_types_len, chosen_cert_type_out));
 
     return 0;
 }
 
-int s2n_choose_preferred_client_cert_type(struct s2n_stuffer *in, int certs_available, uint8_t *cert_types,
-        s2n_cert_type *chosen_cert_type)
+int s2n_choose_preferred_client_cert_type(struct s2n_stuffer *in, int num_certs, s2n_cert_type *chosen_cert_type_out)
 {
-    s2n_cert_type best_cert_type;
-    int found_valid_cert = 0;
-    int certs_read = 0;
-    int curr_best_cert_type_index = sizeof(s2n_cert_type_preference_list) - 1;
+    uint8_t *their_cert_type_pref_list = s2n_stuffer_raw_read(in, num_certs);
+    notnull_check(their_cert_type_pref_list);
 
-    /* Current Best starts out high, at the size of the preferred cert_type. We
-     * always search backwards from chosen, so can only move to an algorithm
-     * with a higher preference.
-     */
-    while(certs_read < certs_available){
-        for (int i = curr_best_cert_type_index; i >= 0; i--) {
-            s2n_cert_type curr_cert_type = cert_types[i];
-            certs_read++;
-            if (s2n_cert_type_preference_list[i] != curr_cert_type) {
-                continue;
-            }
-
-            found_valid_cert = 1;
-            curr_best_cert_type_index = i;
-            best_cert_type = curr_cert_type;
-
-            if (i == 0) {
-                break;
+    for (int our_cert_pref_idx = 0; our_cert_pref_idx < sizeof(s2n_cert_type_preference_list); our_cert_pref_idx++) {
+        for (int their_cert_idx = 0; their_cert_idx < num_certs; their_cert_idx++) {
+            if(their_cert_type_pref_list[their_cert_idx] == s2n_cert_type_preference_list[our_cert_pref_idx]){
+                *chosen_cert_type_out = s2n_cert_type_preference_list[our_cert_pref_idx];
+                return 0;
             }
         }
-    }
-
-    if (found_valid_cert) {
-        *chosen_cert_type = best_cert_type;
-        return 0;
     }
 
     S2N_ERROR(S2N_ERR_CERT_TYPE_UNSUPPORTED);
