@@ -743,8 +743,10 @@ const char * s2n_connection_get_curve(struct s2n_connection *conn);
 int s2n_connection_wipe(struct s2n_connection *conn);
 ```
 
-**s2n_connection_wipe** erases all data associated with a connection including
-pending reads.
+**s2n_connection_wipe** wipes an existing connection and allows it to be reused. It erases all data associated with a connection including
+pending reads. This function should be called after all I/O is completed and [s2n_shutdown](#s2n\_shutdown) has been called.
+Reusing the same connection handle(s) is more performant than repeatedly calling [s2n_connection_new](#s2n\_connection\_new) and
+[s2n_connection_free](#s2n\_connection\_free)
 
 ### s2n\_connection\_free
 
@@ -753,7 +755,9 @@ int s2n_connection_free(struct s2n_connection *conn);
 ```
 
 **s2n_connection_free** frees the memory associated with an s2n_connection
-handle.
+handle. The handle is considered invalid after **s2n_connection_free** is used.
+[s2n_connection_wipe](#s2n\_connection\_wipe) does not need to be called prior to this function. **s2n_connection_free** performs its own wipe
+of sensitive data.
 
 ## I/O functions
 
@@ -865,9 +869,16 @@ int s2n_shutdown(struct s2n_connection *conn,
                  s2n_blocked_status *blocked);
 ```
 
-**s2n_shutdown** shuts down the s2n connection. Once a connection has been shut down it is not available for reading or writing.
+**s2n_shutdown** attempts a closure at the TLS layer. It does not close the underlying transport. The call may block in either direction.
+Unlike other TLS implementations, **s2n_shutdown** attempts a graceful shutdown by default. It will not return with success unless a close_notify alert is successfully
+sent and received. As a result, **s2n_shutdown** may fail when interacting with a non-conformant TLS implementation.
+Once **s2n_shutdown** is complete:
+* The s2n_connection handle cannot be used for reading for writing.
+* The underlying transport can be closed. Most likely via `close()`.
+* The s2n_connection handle can be freed via [s2n_connection_free](#s2n\_connection\_free) or reused via [s2n_connection_wipe](#s2n\_connection\_wipe)
 
 # Examples
 
 To understand the API it may be easiest to see examples in action. s2n's [bin/](https://github.com/awslabs/s2n/blob/master/bin/) directory
 includes an example client (s2nc) and server (s2nd).
+

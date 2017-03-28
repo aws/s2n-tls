@@ -13,11 +13,11 @@
 # permissions and limitations under the License.
 #
 
-brew update
-brew tap homebrew/versions
-brew install gcc6
-brew install gnu-indent
-brew install cppcheck
+set -e
 
-# Download and Install Clang Scan-build for static analysis
-if [[ ! -d "$SCAN_BUILD_INSTALL_DIR" ]] && [[ "$TRAVIS_OS_NAME" == "osx" ]]; then .travis/install_scan-build.sh $SCAN_BUILD_INSTALL_DIR; fi
+if [["$GCC6_REQUIRED" == "true"]]; then
+    sudo apt-get -y install gcc-6 c++-6 ; fi
+
+# Download and Install prlimit for memlock
+if [[ ! -d "$PRLIMIT_INSTALL_DIR" ]] && [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+    mkdir -p $PRLIMIT_INSTALL_DIR && sudo .travis/install_prlimit.sh `mktemp -d` $PRLIMIT_INSTALL_DIR > /dev/null ; fi
