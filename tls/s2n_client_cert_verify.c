@@ -37,7 +37,7 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
     if(conn->actual_protocol_version == S2N_TLS12){
         int pairs_available = 1;
         /* Read and Validate Hash and Signature Algorithms provided by Client */
-        GUARD(s2n_choose_preferred_signature_hash_algorithm(in, pairs_available, &chosen_hash_alg, &chosen_signature_alg));
+        GUARD(s2n_choose_preferred_signature_hash_pair(in, pairs_available, &chosen_hash_alg, &chosen_signature_alg));
     }
 
     uint16_t signature_size;
