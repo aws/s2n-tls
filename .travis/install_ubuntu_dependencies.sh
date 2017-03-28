@@ -15,7 +15,7 @@
 
 set -e
 
-if [["$GCC6_REQUIRED" == "true"]]; then
+if [[ "$GCC6_REQUIRED" == "true" ]]; then
     sudo apt-get -y install gcc-6 c++-6 ; fi
 
 # Download and Install prlimit for memlock
