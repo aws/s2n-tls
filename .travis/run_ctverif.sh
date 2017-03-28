@@ -39,10 +39,18 @@ ls $SMACK_DIR
 
 FAILED=0
 
-cd "${CTVERIF_DIR}/examples/sort"
+cd "${CTVERIF_DIR}/examples/s2n-travis"
 pwd
 make clean
-make || FAILED=1
+cp ~/s2n/utils/s2n_safety.c .
+
+#If it succeeds, we will see this line
+SUCCESS_CODE="Boogie program verifier finished with 2 verified, 0 errors"
+
+temp_file=$(mktemp)
+
+make | tee ${temp_file}
+grep -q "${SUCCESS_CODE}" ${temp_file} || FAILED=1
 
 if [ $FAILED == 1 ];
 then

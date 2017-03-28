@@ -37,6 +37,4 @@ source $INSTALL_DIR/smack.environment
 
 #install ctverif
 cd $INSTALL_DIR
-git clone --depth 1 https://github.com/imdea-software/verifying-constant-time.git -b test-automation
-cd verifying-constant-time/examples/sort
-make
+git clone --depth 1 https://github.com/danielsn/verifying-constant-time.git -b s2n-test
