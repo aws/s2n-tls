@@ -14,7 +14,6 @@
 #
 
 set -e
-set -x
 
 usage() {
     echo "run_ctverif.sh install_dir"
@@ -29,13 +28,8 @@ INSTALL_DIR=$1
 CTVERIF_DIR="${1}/verifying-constant-time"
 SMACK_DIR="${1}/smack"
 
-printenv
-echo "***** sourcing smack.evironment"
 source "${INSTALL_DIR}/smack.environment"
-printenv
-echo "***** adding smackdir"
 export PATH="${SMACK_DIR}/bin:${SMACK_DIR}/build:${PATH}"
-printenv
 which smack || echo "can't find smack"
 which boogie || echo "can't find z3"
 which llvm2bpl || echo "can't find llvm2bpl"
