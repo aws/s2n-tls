@@ -460,24 +460,22 @@ S2N_STATUS_REQUEST_NONE, no status request is made.
 ### s2n\_config\_set\_extension\_data
 
 ```c
-int s2n_config_set_extension_data(struct s2n_config *config, const s2n_tls_extension *extension);
+int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length);
 ```
 
 **s2n_config_set_extension_data** Sets the extension data in the **s2n_config**
 object for the specified extension.  This method will clear any existing data
-that is set.   If the data and length members of the **s2n_tls_extension**
-parameter are set to NULL, no new data is set in the **s2n_config** object,
-effectively clearing existing data.
+that is set.   If the data and length parameters are set to NULL, no new data
+is set in the **s2n_config** object, effectively clearing existing data.
 
-`s2n_tls_extension` is defined as:
+`s2n_tls_extension_type` is defined as:
 
-    typedef enum { S2N_EXTENSION_OCSP_STAPLING = 5,
-                   S2N_EXTENSION_CERTIFICATE_TRANSPARENCY = 18 } s2n_tls_extension_type;
-    typedef struct {
-      s2n_tls_extension_type type;
-      uint8_t *data;
-      uint32_t length;
-    } s2n_tls_extension;
+```c
+    typedef enum {
+      S2N_EXTENSION_OCSP_STAPLING = 5,
+      S2N_EXTENSION_CERTIFICATE_TRANSPARENCY = 18
+    } s2n_tls_extension_type;
+```
 
 At this time the following extensions are supported:
 

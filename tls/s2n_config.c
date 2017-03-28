@@ -524,28 +524,27 @@ int s2n_config_set_cache_delete_callback(struct s2n_config *config, int (*cache_
     return 0;
 }
 
-int s2n_config_set_extension_data(struct s2n_config *config, const s2n_tls_extension *extension)
+int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length)
 {
     notnull_check(config);
-    notnull_check(extension);
 
-    switch (extension->type) {
+    switch (type) {
         case S2N_EXTENSION_CERTIFICATE_TRANSPARENCY:
             {
                 GUARD(s2n_free(&config->cert_and_key_pairs->sct_list));
 
-                if (extension->data && extension->length) {
-                    GUARD(s2n_alloc(&config->cert_and_key_pairs->sct_list, extension->length));
-                    memcpy_check(config->cert_and_key_pairs->sct_list.data, extension->data, extension->length);
+                if (data && length) {
+                    GUARD(s2n_alloc(&config->cert_and_key_pairs->sct_list, length));
+                    memcpy_check(config->cert_and_key_pairs->sct_list.data, data, length);
                 }
             } break;
         case S2N_EXTENSION_OCSP_STAPLING:
             {
                 GUARD(s2n_free(&config->cert_and_key_pairs->ocsp_status));
 
-                if (extension->data && extension->length) {
-                    GUARD(s2n_alloc(&config->cert_and_key_pairs->ocsp_status, extension->length));
-                    memcpy_check(config->cert_and_key_pairs->ocsp_status.data, extension->data, extension->length);
+                if (data && length) {
+                    GUARD(s2n_alloc(&config->cert_and_key_pairs->ocsp_status, length));
+                    memcpy_check(config->cert_and_key_pairs->ocsp_status.data, data, length);
                 }
             } break;
         default:

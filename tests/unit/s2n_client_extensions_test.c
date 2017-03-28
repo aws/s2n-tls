@@ -604,10 +604,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
-        s2n_tls_extension ocsp_ext = { .type = S2N_EXTENSION_OCSP_STAPLING,
-                                      .length = sizeof(server_ocsp_status), .data = server_ocsp_status };
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, certificate, private_key));
-        EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, &ocsp_ext));
+        EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, S2N_EXTENSION_OCSP_STAPLING, server_ocsp_status, sizeof(server_ocsp_status)));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -726,10 +724,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
-        s2n_tls_extension ocsp_ext = { .type = S2N_EXTENSION_OCSP_STAPLING,
-                                      .length = sizeof(server_ocsp_status), .data = server_ocsp_status };
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, certificate, private_key));
-        EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, &ocsp_ext));
+        EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, S2N_EXTENSION_OCSP_STAPLING, server_ocsp_status, sizeof(server_ocsp_status)));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -760,8 +756,6 @@ int main(int argc, char **argv)
         int server_to_client[2];
         int client_to_server[2];
 
-        s2n_tls_extension sct_ext = { .type = S2N_EXTENSION_CERTIFICATE_TRANSPARENCY,
-                                      .length = sizeof(sct_list), .data = sct_list };
         uint32_t length;
 
         /* Create nonblocking pipes */
@@ -788,7 +782,7 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, certificate, private_key));
-        EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, &sct_ext));
+        EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, sct_list, sizeof(sct_list)));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -818,8 +812,6 @@ int main(int argc, char **argv)
         int server_to_client[2];
         int client_to_server[2];
 
-        s2n_tls_extension sct_ext = { .type = S2N_EXTENSION_CERTIFICATE_TRANSPARENCY,
-                                      .length = sizeof(sct_list), .data = sct_list };
         uint32_t length;
 
         /* Create nonblocking pipes */
@@ -851,7 +843,7 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, certificate, private_key));
-        EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, &sct_ext));
+        EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, sct_list, sizeof(sct_list)));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));

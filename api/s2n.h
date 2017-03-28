@@ -66,12 +66,6 @@ typedef enum {
     S2N_EXTENSION_CERTIFICATE_TRANSPARENCY = 18,
 } s2n_tls_extension_type;
 
-typedef struct {
-  s2n_tls_extension_type type;
-  uint8_t *data;
-  uint32_t length;
-} s2n_tls_extension;
-
 extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem);
 
 extern int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem);
@@ -81,7 +75,7 @@ typedef enum { S2N_STATUS_REQUEST_NONE = 0, S2N_STATUS_REQUEST_OCSP = 1 } s2n_st
 extern int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_request_type type);
 typedef enum { S2N_CT_SUPPORT_NONE = 0, S2N_CT_SUPPORT_REQUEST = 1 } s2n_ct_support_level;
 extern int s2n_config_set_ct_support_level(struct s2n_config *config, s2n_ct_support_level level);
-extern int s2n_config_set_extension_data(struct s2n_config *config, const s2n_tls_extension *extension);
+extern int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length);
 
 struct s2n_connection;
 typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
