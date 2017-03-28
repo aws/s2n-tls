@@ -93,7 +93,7 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then .travis/install_osx_dependencies.sh ; fi
   - .travis/install_default_dependencies.sh
     # Set GCC 6 as Default on both Ubuntu and OSX
-  - if [["$GCC6_REQUIRED" == "true"]]; then alias gcc=$(which gcc-6) ; fi
+  - if [[ "$GCC6_REQUIRED" == "true" ]]; then alias gcc=$(which gcc-6) ; fi
   
 before_script:
   # Add all of our test dependencies to the PATH. Use Openssl 1.1.0 so the latest openssl is used for s_client
