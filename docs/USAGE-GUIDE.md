@@ -421,43 +421,6 @@ certificate-chain/key pair may be associated with a config.
 certificate in the chain being your servers certificate. **private_key_pem**
 should be a PEM encoded private key corresponding to the server certificate.
 
-### s2n\_config\_add\_cert\_chain\_and\_key\_with\_extensions
-
-```c
-int s2n_config_add_cert_chain_and_key_with_extensions(struct s2n_config *config,
-                                                      const char *cert_chain_pem,
-                                                      const char *private_key_pem,
-                                                      s2n_tls_extension *extensions,
-                                                      uint16_t num_extensions);
-```
-
-**s2n_config_add_cert_chain_and_key_with_extensions** performs the same function
-as s2n_config_add_cert_chain_and_key, and associates data for TLS extensions
-with the server certificate.
-
-`s2n_tls_extension` is defined as:
-
-    typedef enum { S2N_EXTENSION_OCSP_STAPLING,
-                   S2N_EXTENSION_CERTIFICATE_TRANSPARENCY } s2n_tls_extension_type;
-    typedef struct {
-      s2n_tls_extension_type type;
-      uint8_t *data;
-      uint32_t length;
-    } s2n_tls_extension;
-
-At this time the following extensions are supported:
-
-`S2N_EXTENSION_OCSP_STAPLING` - If a client requests the OCSP status of the server
-certificate, this is the response used in the CertificateStatus handshake
-message.
-
-`S2N_EXTENSION_CERTIFICATE_TRANSPARENCY` - If a client supports receiving SCTs
-via the TLS extension (section 3.3.1 of RFC6962) this data is returned within
-the extension response during the handshake.  The format of this data is the
-SignedCertificateTimestampList structure defined in that document.  See
-http://www.certificate-transparency.org/ for more information about Certificate
-Transparency.
-
 ### s2n\_config\_add\_dhparams
 
 ```c
@@ -493,6 +456,39 @@ int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_req
 **s2n_config_set_status_request_type** Sets up an S2N_CLIENT to request the
 server certificate status during an SSL handshake.  If set to
 S2N_STATUS_REQUEST_NONE, no status request is made.
+
+### s2n\_config\_set\_extension\_data
+
+```c
+int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length);
+```
+
+**s2n_config_set_extension_data** Sets the extension data in the **s2n_config**
+object for the specified extension.  This method will clear any existing data
+that is set.   If the data and length parameters are set to NULL, no new data
+is set in the **s2n_config** object, effectively clearing existing data.
+
+`s2n_tls_extension_type` is defined as:
+
+```c
+    typedef enum {
+      S2N_EXTENSION_OCSP_STAPLING = 5,
+      S2N_EXTENSION_CERTIFICATE_TRANSPARENCY = 18
+    } s2n_tls_extension_type;
+```
+
+At this time the following extensions are supported:
+
+`S2N_EXTENSION_OCSP_STAPLING` - If a client requests the OCSP status of the server
+certificate, this is the response used in the CertificateStatus handshake
+message.
+
+`S2N_EXTENSION_CERTIFICATE_TRANSPARENCY` - If a client supports receiving SCTs
+via the TLS extension (section 3.3.1 of RFC6962) this data is returned within
+the extension response during the handshake.  The format of this data is the
+SignedCertificateTimestampList structure defined in that document.  See
+http://www.certificate-transparency.org/ for more information about Certificate
+Transparency.
 
 ### s2n\_config\_set\_nanoseconds\_since\_epoch\_callback
 
