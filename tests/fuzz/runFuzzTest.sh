@@ -27,6 +27,7 @@ fi
 TEST_NAME=$1
 FUZZ_TIMEOUT_SEC=$2
 MIN_TEST_PER_SEC="1000"
+MIN_BRANCHES_COVERED="100"
 
 if [[ $TEST_NAME == *_negative_test ]];
 then
@@ -70,10 +71,13 @@ then
     else
        if [ "$TESTS_PER_SEC" -lt $MIN_TEST_PER_SEC ]; then
             printf "\033[31;1mWARNING!\033[0m ${TEST_NAME} is only ${TESTS_PER_SEC} tests/sec, which is below ${MIN_TEST_PER_SEC}/sec! Fuzz tests are more effective at higher rates.\n\n"
-        fi
+       fi
+
+       if [ "$BRANCH_COVERAGE" -lt $MIN_BRANCHES_COVERED ]; then
+            printf "\033[31;1mWARNING!\033[0m ${TEST_NAME} only covers ${BRANCH_COVERAGE} branches, which is below ${MIN_BRANCHES_COVERED} branches! This is likely a bug.\n"
+            exit -1;
+       fi
     fi
-    
-    
     
 else
     cat ${TEST_NAME}_output.txt
