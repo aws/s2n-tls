@@ -72,8 +72,6 @@ typedef struct {
   uint32_t length;
 } s2n_tls_extension;
 
-extern int s2n_config_add_cert_chain_and_key_with_extensions(struct s2n_config *config, const char *cert_chain_pem,
-        const char *private_key_pem, s2n_tls_extension *extensions, uint16_t num_extensions);
 extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem);
 
 extern int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem);
