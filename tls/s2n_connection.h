@@ -36,7 +36,7 @@
 
 #define S2N_TLS_PROTOCOL_VERSION_LEN    2
 
-typedef enum { S2N_CERT_AUTH_REQUIRED, S2N_CERT_AUTH_NONE } s2n_cert_auth_type;
+typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED } s2n_cert_auth_type;
 
 
  /* Verifies the Certificate Chain of trust and places the leaf Certificate's Public Key in the public_key_out parameter.

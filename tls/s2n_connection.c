@@ -53,13 +53,13 @@ int accept_all_rsa_certs(struct s2n_blob *cert_chain_in, struct s2n_cert_public_
     GUARD(s2n_stuffer_init(&cert_chain_in_stuffer, cert_chain_in));
     GUARD(s2n_stuffer_write(&cert_chain_in_stuffer, cert_chain_in));
 
-    int certificate_count = 0;
+    uint32_t certificate_count = 0;
     while (s2n_stuffer_data_available(&cert_chain_in_stuffer)) {
         uint32_t certificate_size;
 
         GUARD(s2n_stuffer_read_uint24(&cert_chain_in_stuffer, &certificate_size));
 
-        if (certificate_size > s2n_stuffer_data_available(&cert_chain_in_stuffer) || certificate_size == 0) {
+        if (certificate_size == 0 || certificate_size > s2n_stuffer_data_available(&cert_chain_in_stuffer) ) {
             S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }
 
@@ -67,8 +67,6 @@ int accept_all_rsa_certs(struct s2n_blob *cert_chain_in, struct s2n_cert_public_
         asn1cert.data = s2n_stuffer_raw_read(&cert_chain_in_stuffer, certificate_size);
         asn1cert.size = certificate_size;
         notnull_check(asn1cert.data);
-
-        gt_check(certificate_size, 0);
 
         /* Pull the public key from the first certificate */
         if (certificate_count == 0) {
