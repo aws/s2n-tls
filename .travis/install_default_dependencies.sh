@@ -16,27 +16,38 @@
 set -e
 
  # Install latest version of clang, clang++, and llvm-symbolizer. Needed for fuzzing.
-if [[ ! -d "$LATEST_CLANG_INSTALL_DIR" ]]; then .travis/install_clang.sh `mktemp -d` $LATEST_CLANG_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
+if [[ "$TESTS" == "fuzz" ]]                  && [[ ! -d "$LATEST_CLANG_INSTALL_DIR" ]]; then
+    .travis/install_clang.sh `mktemp -d` $LATEST_CLANG_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
 
 # Download and Install LibFuzzer with latest clang
-if [[ ! -d "$LIBFUZZER_INSTALL_DIR" ]]; then PATH=$LATEST_CLANG_INSTALL_DIR/bin:$PATH .travis/install_libFuzzer.sh `mktemp -d` $LIBFUZZER_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
+if [[ "$TESTS" == "fuzz" ]]                  && [[ ! -d "$LIBFUZZER_INSTALL_DIR" ]]; then
+    PATH=$LATEST_CLANG_INSTALL_DIR/bin:$PATH .travis/install_libFuzzer.sh `mktemp -d` $LIBFUZZER_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
 
 # Download and Install Openssl 1.1.0
-if [[ ! -d "$OPENSSL_1_1_0_INSTALL_DIR" ]]; then .travis/install_openssl_1_1_0.sh `mktemp -d` $OPENSSL_1_1_0_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
-if [[ ! -d "$OPENSSL_1_0_2_INSTALL_DIR" ]]; then .travis/install_openssl_1_0_2.sh `mktemp -d` $OPENSSL_1_0_2_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
+if [[ "$TESTS" == "integration" ]]        && [[ ! -d "$OPENSSL_1_1_0_INSTALL_DIR" ]]; then
+    .travis/install_openssl_1_1_0.sh `mktemp -d` $OPENSSL_1_1_0_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
+
+# Download and Install Openssl 1.0.2
+if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2" ]] && [[ ! -d "$OPENSSL_1_0_2_INSTALL_DIR" ]]; then
+    .travis/install_openssl_1_0_2.sh `mktemp -d` $OPENSSL_1_0_2_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
 
 # Download and Install CppCheck
-if [[ ! -d "$CPPCHECK_INSTALL_DIR" ]]; then mkdir -p $CPPCHECK_INSTALL_DIR && .travis/install_cppcheck.sh $CPPCHECK_INSTALL_DIR > /dev/null ; fi
+if [[ "$BUILD_S2N" == "true" ]]              && [[ ! -d "$CPPCHECK_INSTALL_DIR" ]]; then
+    mkdir -p $CPPCHECK_INSTALL_DIR && .travis/install_cppcheck.sh $CPPCHECK_INSTALL_DIR > /dev/null ; fi
 
 # Download and Install LibreSSL
-if [[ ! -d "$LIBRESSL_INSTALL_DIR" ]]; then .travis/install_libressl.sh `mktemp -d` $LIBRESSL_INSTALL_DIR > /dev/null ; fi
+if [[ "$S2N_LIBCRYPTO" == "libressl" ]]      && [[ ! -d "$LIBRESSL_INSTALL_DIR" ]]; then
+    .travis/install_libressl.sh `mktemp -d` $LIBRESSL_INSTALL_DIR > /dev/null ; fi
 
 # Install python linked with the latest Openssl for integration tests
-if [[ ! -d "$PYTHON_INSTALL_DIR" ]]; then mkdir -p $PYTHON_INSTALL_DIR && .travis/install_python.sh $OPENSSL_1_1_0_INSTALL_DIR `mktemp -d` $PYTHON_INSTALL_DIR > /dev/null ; fi
+if [[ "$TESTS" == "integration" ]]           && [[ ! -d "$PYTHON_INSTALL_DIR" ]]; then
+    mkdir -p $PYTHON_INSTALL_DIR && .travis/install_python.sh $OPENSSL_1_1_0_INSTALL_DIR `mktemp -d` $PYTHON_INSTALL_DIR > /dev/null ; fi
 
 # Download and Install GnuTLS for integration tests
-if [[ ! -d "$GNUTLS_INSTALL_DIR" ]]; then mkdir -p $GNUTLS_INSTALL_DIR && .travis/install_gnutls.sh `mktemp -d` $GNUTLS_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
+if [[ "$TESTS" == "integration" ]]           && [[ ! -d "$GNUTLS_INSTALL_DIR" ]]; then mkdir -p $GNUTLS_INSTALL_DIR && .travis/install_gnutls.sh `mktemp -d` $GNUTLS_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
 
 # Install SAW and Z3 for formal verification
-if [[ ! -d "$SAW_INSTALL_DIR" ]]; then mkdir -p $SAW_INSTALL_DIR && .travis/install_saw.sh `mktemp -d` $SAW_INSTALL_DIR > /dev/null ; fi
-if [[ ! -d "$Z3_INSTALL_DIR" ]]; then mkdir -p $Z3_INSTALL_DIR && .travis/install_z3.sh `mktemp -d` $Z3_INSTALL_DIR > /dev/null ; fi
+if [[ "$SAW" == "true" ]]                    && [[ ! -d "$SAW_INSTALL_DIR" ]]; then
+    mkdir -p $SAW_INSTALL_DIR && .travis/install_saw.sh `mktemp -d` $SAW_INSTALL_DIR > /dev/null ; fi
+if [[ "$SAW" == "true" ]]                    && [[ ! -d "$Z3_INSTALL_DIR" ]]; then
+    mkdir -p $Z3_INSTALL_DIR && .travis/install_z3.sh `mktemp -d` $Z3_INSTALL_DIR > /dev/null ; fi

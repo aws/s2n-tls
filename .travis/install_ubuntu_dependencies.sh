@@ -15,5 +15,9 @@
 
 set -e
 
+if [[ "$GCC6_REQUIRED" == "true" ]]; then
+    sudo apt-get -y install gcc-6 c++-6 ; fi
+
 # Download and Install prlimit for memlock
-if [[ ! -d "$PRLIMIT_INSTALL_DIR" ]] && [[ "$TRAVIS_OS_NAME" == "linux" ]]; then mkdir -p $PRLIMIT_INSTALL_DIR && .travis/install_prlimit.sh `mktemp -d` $PRLIMIT_INSTALL_DIR > /dev/null ; fi
+if [[ ! -d "$PRLIMIT_INSTALL_DIR" ]] && [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+    mkdir -p $PRLIMIT_INSTALL_DIR && sudo .travis/install_prlimit.sh `mktemp -d` $PRLIMIT_INSTALL_DIR > /dev/null ; fi

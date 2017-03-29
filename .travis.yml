@@ -1,4 +1,5 @@
-sudo: true
+sudo: required
+dist: trusty
 language: c
 cache:
     directories:
@@ -12,10 +13,7 @@ addons:
       sources:
         - ubuntu-toolchain-r-test
       packages:
-        - gcc-6
-        - g++-6
         - indent
-        - cppcheck
         - kwstyle
 
 osx_image: xcode8
@@ -25,47 +23,47 @@ os:
   - linux
 
 env:
-  - S2N_LIBCRYPTO=openssl-1.1.0 BUILD_S2N=true TESTS=integration
-  - S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=integration
-  - S2N_LIBCRYPTO=libressl BUILD_S2N=true TESTS=integration
+  - S2N_LIBCRYPTO=openssl-1.1.0 BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
+  - S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
+  - S2N_LIBCRYPTO=libressl      BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
   # Force libcrypto to use "software only" crypto implementations for AES and AES-GCM. Verify s2n can gracefully use
   # unoptimized routines. See https://www.openssl.org/docs/man1.1.0/crypto/OPENSSL_ia32cap.html
-  - OPENSSL_ia32cap="~0x200000200000000" BUILD_S2N=true TESTS=integration
-  - LATEST_CLANG=true TESTS=fuzz
-  - TESTS=sawHMAC SAW_HMAC_TEST=md5 SAW=true
-  - TESTS=sawHMAC SAW_HMAC_TEST=none SAW=true
-  - TESTS=sawHMAC SAW_HMAC_TEST=sha1 SAW=true
-  - TESTS=sawHMAC SAW_HMAC_TEST=sha224 SAW=true
-  - TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true
-  - TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true
-  - TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true
-  - TESTS=sawDRBG SAW=true
-  - TESTS=sawHMACFailure SAW=true
+  - S2N_LIBCRYPTO=openssl-1.1.0 OPENSSL_ia32cap="~0x200000200000000" BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
+  - S2N_LIBCRYPTO=openssl-1.1.0 LATEST_CLANG=true TESTS=fuzz
+  - TESTS=sawHMAC SAW_HMAC_TEST=md5    SAW=true GCC6_REQUIRED=true
+  - TESTS=sawHMAC SAW_HMAC_TEST=none   SAW=true GCC6_REQUIRED=true
+  - TESTS=sawHMAC SAW_HMAC_TEST=sha1   SAW=true GCC6_REQUIRED=true
+  - TESTS=sawHMAC SAW_HMAC_TEST=sha224 SAW=true GCC6_REQUIRED=true
+  - TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true GCC6_REQUIRED=true
+  - TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true GCC6_REQUIRED=true
+  - TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true GCC6_REQUIRED=true
+  - TESTS=sawDRBG                      SAW=true
+  - TESTS=sawHMACFailure               SAW=true
 
 matrix:
   exclude:
   - os: osx
-    env: TESTS=sawHMAC SAW_HMAC_TEST=md5 SAW=true
+    env: TESTS=sawHMAC SAW_HMAC_TEST=md5    SAW=true GCC6_REQUIRED=true
   - os: osx
-    env: TESTS=sawHMAC SAW_HMAC_TEST=none SAW=true
+    env: TESTS=sawHMAC SAW_HMAC_TEST=none   SAW=true GCC6_REQUIRED=true
   - os: osx
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha1 SAW=true
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha1   SAW=true GCC6_REQUIRED=true
   - os: osx
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha224 SAW=true
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha224 SAW=true GCC6_REQUIRED=true
   - os: osx
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true GCC6_REQUIRED=true
   - os: osx
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true GCC6_REQUIRED=true
   - os: osx
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true GCC6_REQUIRED=true
   - os: osx
-    env: LATEST_CLANG=true TESTS=fuzz
+    env: S2N_LIBCRYPTO=openssl-1.1.0 LATEST_CLANG=true TESTS=fuzz
   - os: osx
-    env: TESTS=sawDRBG SAW=true
+    env: TESTS=sawDRBG                      SAW=true  GCC6_REQUIRED=true
   - os: osx
-    env: TESTS=sawHMACFailure SAW=true
+    env: TESTS=sawHMACFailure               SAW=true
   #This exception is because the test isn't finished yet, remove to turn on DRBG Saw tests
-  - env: TESTS=sawDRBG SAW=true
+  - env: TESTS=sawDRBG                      SAW=true
   allow_failures:
     - os: osx
   fast_finish: true
@@ -85,15 +83,15 @@ before_install:
   - export OPENSSL_1_0_2_INSTALL_DIR=`pwd`/test-deps/openssl-1.0.2
   - export LIBRESSL_INSTALL_DIR=`pwd`/test-deps/libressl
   - export CPPCHECK_INSTALL_DIR=`pwd`/test-deps/cppcheck
-  
+
 # Install missing test dependencies. If the install directory already exists, cached artifacts will be used
 # for that dependency.
 install:
-  - .travis/install_default_dependencies.sh
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then .travis/install_ubuntu_dependencies.sh ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then .travis/install_osx_dependencies.sh ; fi
+  - .travis/install_default_dependencies.sh
     # Set GCC 6 as Default on both Ubuntu and OSX
-  - alias gcc=$(which gcc-6)
+  - if [[ "$GCC6_REQUIRED" == "true" ]]; then alias gcc=$(which gcc-6) ; fi
   
 before_script:
   # Add all of our test dependencies to the PATH. Use Openssl 1.1.0 so the latest openssl is used for s_client
