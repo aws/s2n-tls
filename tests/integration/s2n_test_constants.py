@@ -20,14 +20,15 @@ S2N_TLS10 = 31
 S2N_TLS11 = 32
 S2N_TLS12 = 33
 
-# namedtuple makes iterating through ciphers across libraries easier.
+# namedtuple makes iterating through ciphers across client libraries easier. The openssl_1_1_0_compatible flag is for
+# s_client tests. s_client won't be able to use those ciphers.
 S2N_CIPHER = collections.namedtuple('S2N_CIPHER', 'openssl_name gnutls_priority_str min_tls_vers openssl_1_1_0_compatible')
 
 # Specifying a single cipher suite in GnuTLS requires specifying a "priority string" that removes all cipher suites,
 # and then adds each algorithm(kx,auth,enc,mac) for a given suite. See https://www.gnutls.org/manual/html_node/Priority-Strings.html
 S2N_GNUTLS_PRIORITY_PREFIX="NONE:+COMP-NULL:+CTYPE-ALL:+CURVE-ALL"
 
-S2N_CIPHERS= [
+ALL_TEST_CIPHERS = [
     S2N_CIPHER("RC4-MD5", S2N_GNUTLS_PRIORITY_PREFIX + ":+RSA:+ARCFOUR-128:+MD5", S2N_SSLv3, False),
     S2N_CIPHER("RC4-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+RSA:+ARCFOUR-128:+SHA1", S2N_SSLv3, False),
     S2N_CIPHER("DES-CBC3-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+RSA:+3DES-CBC:+SHA1", S2N_SSLv3, False),
@@ -51,7 +52,28 @@ S2N_CIPHERS= [
     S2N_CIPHER("ECDHE-RSA-AES256-SHA384", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-RSA:+AES-256-CBC:+SHA384", S2N_TLS12, True),
     S2N_CIPHER("ECDHE-RSA-AES128-GCM-SHA256", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-RSA:+AES-128-GCM:+AEAD", S2N_TLS12, True),
     S2N_CIPHER("ECDHE-RSA-AES256-GCM-SHA384", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-RSA:+AES-256-GCM:+AEAD", S2N_TLS12, True),
+    S2N_CIPHER("ECDHE-RSA-CHACHA20-POLY1305", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-RSA:+CHACHA20-POLY1305:+AEAD", S2N_TLS12, True),
+    S2N_CIPHER("DHE-RSA-CHACHA20-POLY1305", S2N_GNUTLS_PRIORITY_PREFIX + ":+DHE-RSA:+CHACHA20-POLY1305:+AEAD", S2N_TLS12, True),
 ]
+
+# Test ciphers to use when s2n built with Openssl 1.1.0 libcrypto. All ciphers should be available.
+OPENSSL_1_1_0_TEST_CIPHERS = ALL_TEST_CIPHERS
+
+# Test ciphers to use when s2n is built with Openssl 1.0.2 libcrypto. 1.0.2 does not have the
+# ChaCha20-Poly1305 cipher.
+OPENSSL_1_0_2_TEST_CIPHERS = list(filter(lambda x: x.openssl_name != "ECDHE-RSA-CHACHA20-POLY1305" and x.openssl_name != "DHE-RSA-CHACHA20-POLY1305", ALL_TEST_CIPHERS))
+
+# Test ciphers to use when s2n is built with LibreSSL libcrypto. s2n does not implement the
+# ChaCha20-Poly1305 cipher offered by LibreSSL.
+LIBRESSL_TEST_CIPHERS = list(filter(lambda x: x.openssl_name != "ECDHE-RSA-CHACHA20-POLY1305" and x.openssl_name != "DHE-RSA-CHACHA20-POLY1305", ALL_TEST_CIPHERS))
+
+# Dictionary to look up ciphers to use by libcrypto s2n is built with.
+# Libcrypto string will be an argument to test scripts.
+S2N_LIBCRYPTO_TO_TEST_CIPHERS = {
+    "openssl-1.1.0" : OPENSSL_1_1_0_TEST_CIPHERS,
+    "openssl-1.0.2" : OPENSSL_1_0_2_TEST_CIPHERS,
+    "libressl"      : LIBRESSL_TEST_CIPHERS,
+}
 
 S2N_PROTO_VERS_TO_STR = {
     S2N_SSLv3 : "SSLv3",
@@ -66,3 +88,4 @@ S2N_PROTO_VERS_TO_GNUTLS = {
     S2N_TLS11 : "VERS-TLS1.1",
     S2N_TLS12 : "VERS-TLS1.2",
 }
+

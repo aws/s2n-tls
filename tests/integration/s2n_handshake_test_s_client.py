@@ -18,6 +18,7 @@ Handshake tests using Openssl s_client against s2nd
 Openssl 1.1.0 removed SSLv3, 3DES, an RC4, so we won't have coverage there.
 """
 
+import argparse
 import os
 import sys
 import time
@@ -131,7 +132,7 @@ def print_result(result_prefix, return_code):
         else:
             print("FAILED")
 
-def handshake_test(host, port):
+def handshake_test(host, port, test_ciphers):
     """
     Basic handshake tests using all valid combinations of supported cipher suites and TLS versions.
     """
@@ -139,7 +140,7 @@ def handshake_test(host, port):
     failed = 0
     for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
         print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
-        for cipher in S2N_CIPHERS:
+        for cipher in test_ciphers:
             cipher_name = cipher.openssl_name
             cipher_vers = cipher.min_tls_vers
 
@@ -158,7 +159,7 @@ def handshake_test(host, port):
 
     return failed
 
-def resume_test(host, port):
+def resume_test(host, port, test_ciphers):
     """
     Tests s2n's session resumption capability using all valid combinations of cipher suite and TLS version.
     """
@@ -166,7 +167,7 @@ def resume_test(host, port):
     failed = 0
     for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
         print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
-        for cipher in S2N_CIPHERS:
+        for cipher in test_ciphers:
             cipher_name = cipher.openssl_name
             cipher_vers = cipher.min_tls_vers
 
@@ -208,7 +209,7 @@ def sigalg_test(host, port):
             mixed_sigs = unsupported_sigs + list(permutation)
             mixed_sigs_str = ':'.join(mixed_sigs)
             # Try an ECDHE cipher suite and a DHE one
-            for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or x.openssl_name == "DHE-RSA-AES128-GCM-SHA256", S2N_CIPHERS):
+            for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or x.openssl_name == "DHE-RSA-AES128-GCM-SHA256", ALL_TEST_CIPHERS):
                 ret = try_handshake(host, port, cipher.openssl_name, S2N_TLS12, sig_algs=mixed_sigs_str)
                 # Trim the RSA part off for brevity. User should know we are only supported RSA at the moment.
                 prefix = "Digests: %-50s Vers: %10s ... " % (':'.join([x[4:] for x in permutation]), S2N_PROTO_VERS_TO_STR[S2N_TLS12])
@@ -237,7 +238,7 @@ def elliptic_curve_test(host, port):
             # Put some unsupported curves in front to make sure we gracefully skip them
             mixed_curves = unsupported_curves + list(permutation)
             mixed_curves_str = ':'.join(mixed_curves)
-            for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or x.openssl_name == "ECDHE-RSA-AES128-SHA", S2N_CIPHERS):
+            for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or x.openssl_name == "ECDHE-RSA-AES128-SHA", ALL_TEST_CIPHERS):
                 ret = try_handshake(host, port, cipher.openssl_name, S2N_TLS12, curves=mixed_curves_str)
                 prefix = "Curves: %-40s Vers: %10s ... " % (':'.join(list(permutation)), S2N_PROTO_VERS_TO_STR[S2N_TLS12])
                 print_result(prefix, ret)
@@ -282,18 +283,25 @@ def handshake_fragmentation_test(host,port):
     failed = 0
     return failed
 
-def main(argv):
-    if len(argv) < 2:
-        print("s2n_handshake_test_s_client.py host port")
-        sys.exit(1)
+def main():
+    parser = argparse.ArgumentParser(description='Runs TLS server integration tests against s2nd using Openssl s_client')
+    parser.add_argument('host', help='The host for s2nd to bind to')
+    parser.add_argument('port', type=int, help='The port for s2nd to bind to')
+    parser.add_argument('--libcrypto', default='openssl-1.1.0', choices=['openssl-1.0.2', 'openssl-1.1.0', 'libressl'],
+            help="""The Libcrypto that s2n was built with. s2n supports different cipher suites depending on
+                    libcrypto version. Defaults to openssl-1.1.0.""")
+    args = parser.parse_args()
+
+    # Retrieve the test ciphers to use based on the libcrypto version s2n was built with
+    test_ciphers = S2N_LIBCRYPTO_TO_TEST_CIPHERS[args.libcrypto]
+    host = args.host
+    port = args.port
 
     print("\nRunning tests with: " + os.popen('openssl version').read())
 
-    host = argv[0]
-    port = argv[1]
     failed = 0
-    failed += resume_test(host, port)
-    failed += handshake_test(host, port)
+    failed += resume_test(host, port, test_ciphers)
+    failed += handshake_test(host, port, test_ciphers)
     failed += sigalg_test(host, port)
     failed += elliptic_curve_test(host, port)
     failed += elliptic_curve_fallback_test(host, port)
@@ -301,5 +309,5 @@ def main(argv):
     return failed
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(main())
 

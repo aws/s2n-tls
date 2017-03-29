@@ -117,6 +117,7 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_UNRECOGNIZED_EXTENSION, "TLS extension not recognized" },
     {S2N_ERR_INVALID_SCT_LIST, "SCT list is invalid" },
     {S2N_ERR_INVALID_OCSP_RESPONSE, "OCSP response is invalid" },
+    {S2N_ERR_INVALID_NONCE_TYPE, "Invalid AEAD nonce type"},
 };
 
 const char *s2n_strerror(int error, const char *lang)

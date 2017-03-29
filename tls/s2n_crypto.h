@@ -21,6 +21,7 @@
 #include "crypto/s2n_hmac.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_rsa.h"
+#include "crypto/s2n_signature.h"
 #include "crypto/s2n_dhe.h"
 #include "crypto/s2n_ecc.h"
 
@@ -41,6 +42,13 @@
 #define S2N_TLS_GCM_IV_LEN            (S2N_TLS_GCM_FIXED_IV_LEN + S2N_TLS_GCM_EXPLICIT_IV_LEN)
 #define S2N_TLS_GCM_TAG_LEN            16
 
+/* From RFC 7905 */
+#define S2N_TLS_CHACHA20_POLY1305_FIXED_IV_LEN    12
+#define S2N_TLS_CHACHA20_POLY1305_EXPLICIT_IV_LEN  0
+#define S2N_TLS_CHACHA20_POLY1305_IV_LEN          12
+#define S2N_TLS_CHACHA20_POLY1305_KEY_LEN         32
+#define S2N_TLS_CHACHA20_POLY1305_TAG_LEN         16
+
 #define S2N_TLS_SESSION_ID_MAX_LEN     32
 
 struct s2n_crypto_parameters {
@@ -48,7 +56,8 @@ struct s2n_crypto_parameters {
     struct s2n_dh_params server_dh_params;
     struct s2n_ecc_params server_ecc_params;
     struct s2n_cert_chain_and_key *server_cert_chain;
-    s2n_hash_algorithm signature_digest_alg;
+    s2n_hash_algorithm conn_hash_alg;
+    s2n_signature_algorithm conn_sig_alg;
 
     struct s2n_cipher_suite *cipher_suite;
     struct s2n_session_key client_key;

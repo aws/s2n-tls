@@ -64,7 +64,7 @@ static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn)
     /* Read server ECDH params and calculate their hash */
     GUARD(s2n_ecc_read_ecc_params(&conn->secure.server_ecc_params, in, &ecdhparams));
 
-    GUARD(s2n_hash_init(&signature_hash, conn->secure.signature_digest_alg));
+    GUARD(s2n_hash_init(&signature_hash, conn->secure.conn_hash_alg));
 
     if (conn->actual_protocol_version == S2N_TLS12) {
         uint8_t hash_algorithm;
@@ -147,7 +147,7 @@ static int s2n_dhe_server_key_recv(struct s2n_connection *conn)
     /* Now we know the total size of the structure */
     serverDHparams.size = 2 + p_length + 2 + g_length + 2 + Ys_length;
 
-    GUARD(s2n_hash_init(&signature_hash, conn->secure.signature_digest_alg));
+    GUARD(s2n_hash_init(&signature_hash, conn->secure.conn_hash_alg));
 
     if (conn->actual_protocol_version == S2N_TLS12) {
         uint8_t hash_algorithm;
@@ -224,12 +224,12 @@ static int s2n_ecdhe_server_key_send(struct s2n_connection *conn)
     GUARD(s2n_ecc_write_ecc_params(&conn->secure.server_ecc_params, out, &ecdhparams));
 
     if (conn->actual_protocol_version == S2N_TLS12) {
-        GUARD(s2n_stuffer_write_uint8(out, s2n_hash_alg_to_tls[ conn->secure.signature_digest_alg ]));
+        GUARD(s2n_stuffer_write_uint8(out, s2n_hash_alg_to_tls[ conn->secure.conn_hash_alg ]));
         GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_RSA));
     }
 
     /* Add the random data to the hash */
-    GUARD(s2n_hash_init(&signature_hash, conn->secure.signature_digest_alg));
+    GUARD(s2n_hash_init(&signature_hash, conn->secure.conn_hash_alg));
     GUARD(s2n_hash_update(&signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_hash_update(&signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_hash_update(&signature_hash, ecdhparams.data, ecdhparams.size));
@@ -263,11 +263,11 @@ static int s2n_dhe_server_key_send(struct s2n_connection *conn)
     GUARD(s2n_dh_params_to_p_g_Ys(&conn->secure.server_dh_params, out, &serverDHparams));
 
     if (conn->actual_protocol_version == S2N_TLS12) {
-        GUARD(s2n_stuffer_write_uint8(out, s2n_hash_alg_to_tls[ conn->secure.signature_digest_alg ]));
+        GUARD(s2n_stuffer_write_uint8(out, s2n_hash_alg_to_tls[ conn->secure.conn_hash_alg ]));
         GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_RSA));
     }
 
-    GUARD(s2n_hash_init(&signature_hash, conn->secure.signature_digest_alg));
+    GUARD(s2n_hash_init(&signature_hash, conn->secure.conn_hash_alg));
     GUARD(s2n_hash_update(&signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_hash_update(&signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_hash_update(&signature_hash, serverDHparams.data, serverDHparams.size));

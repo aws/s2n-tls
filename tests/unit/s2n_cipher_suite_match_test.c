@@ -42,8 +42,8 @@ int main(int argc, char **argv)
             }
         }
 
-        /* We should have exactly 23 cipher suites */
-        EXPECT_EQUAL(count, 23);
+        /* We should have exactly 25 cipher suites */
+        EXPECT_EQUAL(count, 25);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
@@ -75,6 +75,8 @@ int main(int argc, char **argv)
             TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
             TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
             TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+            TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+            TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
         };
 
         uint8_t wire_ciphers_fallback[] = {
@@ -99,6 +101,8 @@ int main(int argc, char **argv)
             TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
             TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
             TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+            TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+            TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
             TLS_FALLBACK_SCSV, /* At the end to verify it isn't missed */
         };
 
@@ -124,6 +128,8 @@ int main(int argc, char **argv)
             TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
             TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
             TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+            TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+            TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
             TLS_EMPTY_RENEGOTIATION_INFO_SCSV, /* At the end to verify it isn't missed */
         };
 

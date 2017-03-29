@@ -382,17 +382,18 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config,
 
 **s2n_config_set_cipher_preferences** sets the ciphersuite and protocol versions. The currently supported versions are;
 
-|    version | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | AES-CBC | AES-GCM | 3DES | RC4 | DHE | ECDHE |
-|------------|-------|--------|--------|--------|---------|---------|------|-----|-----|-------|
-| "default"  |       |   X    |    X   |    X   |    X    |    X    |      |     |     |   X   |
-| "20160824" |       |   X    |    X   |    X   |    X    |    X    |      |     |     |   X   |
-| "20160804" |       |   X    |    X   |    X   |    X    |    X    |  X   |     |     |   X   |
-| "20160411" |       |   X    |    X   |    X   |    X    |    X    |  X   |     |     |   X   |
-| "20150306" |       |   X    |    X   |    X   |    X    |    X    |  X   |     |     |   X   |
-| "20150214" |       |   X    |    X   |    X   |    X    |    X    |  X   |     |  X  |       |
-| "20150202" |       |   X    |    X   |    X   |    X    |         |  X   |     |  X  |       |
-| "20141001" |       |   X    |    X   |    X   |    X    |         |  X   |  X  |  X  |       |
-| "20140601" |   X   |   X    |    X   |    X   |    X    |         |  X   |  X  |  X  |       |
+|    version | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | AES-CBC | ChaCha20-Poly1305 | AES-GCM | 3DES | RC4 | DHE | ECDHE |
+|------------|-------|--------|--------|--------|---------|-------------------|---------|------|-----|-----|-------|
+| "default"  |       |   X    |    X   |    X   |    X    |         X         |    X    |      |     |     |   X   |
+| "20170210" |       |   X    |    X   |    X   |    X    |         X         |    X    |      |     |     |   X   |
+| "20160824" |       |   X    |    X   |    X   |    X    |                   |    X    |      |     |     |   X   |
+| "20160804" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |     |   X   |
+| "20160411" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |     |   X   |
+| "20150306" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |     |   X   |
+| "20150214" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |  X  |       |
+| "20150202" |       |   X    |    X   |    X   |    X    |                   |         |  X   |     |  X  |       |
+| "20141001" |       |   X    |    X   |    X   |    X    |                   |         |  X   |  X  |  X  |       |
+| "20140601" |   X   |   X    |    X   |    X   |    X    |                   |         |  X   |  X  |  X  |       |
 
 The "default" version is special in that it will be updated with future s2n changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change. 
 
@@ -400,10 +401,13 @@ The "default" version is special in that it will be updated with future s2n chan
 
 s2n does not expose an API to control the order of preference for each ciphersuite or protocol version. s2n follows the following order:
 
+*NOTE*: All ChaCha20-Poly1305 cipher suites will not be available if s2n is not built with an Openssl 1.1.0 libcrypto. The
+underlying encrpyt/decrypt functions are not available in older versions.
+
 1. Always prefer the highest protocol version supported
 2. Always use forward secrecy where possible. Prefer ECDHE over DHE. 
-3. Prefer encryption ciphers in the following order: AES128, 3DES, AES256, RC4.
-4. Prefer record authentication modes in the following order: GCM, SHA256, SHA1, MD5.
+3. Prefer encryption ciphers in the following order: AES128, AES256, ChaCha20, 3DES, RC4.
+4. Prefer record authentication modes in the following order: GCM, Poly1305, SHA256, SHA1, MD5.
 
 ### s2n\_config\_add\_cert\_chain\_and\_key
 
@@ -420,43 +424,6 @@ certificate-chain/key pair may be associated with a config.
 **cert_chain_pem** should be a PEM encoded certificate chain, with the first
 certificate in the chain being your servers certificate. **private_key_pem**
 should be a PEM encoded private key corresponding to the server certificate.
-
-### s2n\_config\_add\_cert\_chain\_and\_key\_with\_extensions
-
-```c
-int s2n_config_add_cert_chain_and_key_with_extensions(struct s2n_config *config,
-                                                      const char *cert_chain_pem,
-                                                      const char *private_key_pem,
-                                                      s2n_tls_extension *extensions,
-                                                      uint16_t num_extensions);
-```
-
-**s2n_config_add_cert_chain_and_key_with_extensions** performs the same function
-as s2n_config_add_cert_chain_and_key, and associates data for TLS extensions
-with the server certificate.
-
-`s2n_tls_extension` is defined as:
-
-    typedef enum { S2N_EXTENSION_OCSP_STAPLING,
-                   S2N_EXTENSION_CERTIFICATE_TRANSPARENCY } s2n_tls_extension_type;
-    typedef struct {
-      s2n_tls_extension_type type;
-      uint8_t *data;
-      uint32_t length;
-    } s2n_tls_extension;
-
-At this time the following extensions are supported:
-
-`S2N_EXTENSION_OCSP_STAPLING` - If a client requests the OCSP status of the server
-certificate, this is the response used in the CertificateStatus handshake
-message.
-
-`S2N_EXTENSION_CERTIFICATE_TRANSPARENCY` - If a client supports receiving SCTs
-via the TLS extension (section 3.3.1 of RFC6962) this data is returned within
-the extension response during the handshake.  The format of this data is the
-SignedCertificateTimestampList structure defined in that document.  See
-http://www.certificate-transparency.org/ for more information about Certificate
-Transparency.
 
 ### s2n\_config\_add\_dhparams
 
@@ -493,6 +460,39 @@ int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_req
 **s2n_config_set_status_request_type** Sets up an S2N_CLIENT to request the
 server certificate status during an SSL handshake.  If set to
 S2N_STATUS_REQUEST_NONE, no status request is made.
+
+### s2n\_config\_set\_extension\_data
+
+```c
+int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length);
+```
+
+**s2n_config_set_extension_data** Sets the extension data in the **s2n_config**
+object for the specified extension.  This method will clear any existing data
+that is set.   If the data and length parameters are set to NULL, no new data
+is set in the **s2n_config** object, effectively clearing existing data.
+
+`s2n_tls_extension_type` is defined as:
+
+```c
+    typedef enum {
+      S2N_EXTENSION_OCSP_STAPLING = 5,
+      S2N_EXTENSION_CERTIFICATE_TRANSPARENCY = 18
+    } s2n_tls_extension_type;
+```
+
+At this time the following extensions are supported:
+
+`S2N_EXTENSION_OCSP_STAPLING` - If a client requests the OCSP status of the server
+certificate, this is the response used in the CertificateStatus handshake
+message.
+
+`S2N_EXTENSION_CERTIFICATE_TRANSPARENCY` - If a client supports receiving SCTs
+via the TLS extension (section 3.3.1 of RFC6962) this data is returned within
+the extension response during the handshake.  The format of this data is the
+SignedCertificateTimestampList structure defined in that document.  See
+http://www.certificate-transparency.org/ for more information about Certificate
+Transparency.
 
 ### s2n\_config\_set\_nanoseconds\_since\_epoch\_callback
 
