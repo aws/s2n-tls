@@ -74,8 +74,7 @@ matrix:
 before_install:
   # Setup the cache directory paths
   - if [[ ! -d test-deps ]]; then mkdir test-deps ; fi
-  - export BASE_DIR=`pwd`
-  - echo $BASE_DIR
+  - export BASE_S2N_DIR=`pwd`
   - export PYTHON_INSTALL_DIR=`pwd`/test-deps/python
   - export GNUTLS_INSTALL_DIR=`pwd`/test-deps/gnutls
   - export PRLIMIT_INSTALL_DIR=`pwd`/test-deps/prlimit

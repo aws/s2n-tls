@@ -42,7 +42,7 @@ FAILED=0
 cd "${CTVERIF_DIR}/examples/s2n-travis"
 pwd
 make clean
-cp ${BASE_S2N_DIR}/s2n/utils/s2n_safety.c .
+cp "${BASE_S2N_DIR}/utils/s2n_safety.c" .
 
 #If it succeeds, we will see this line
 SUCCESS_CODE="Boogie program verifier finished with 2 verified, 0 errors"
