@@ -18,6 +18,7 @@
 
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
+#include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
 #include "utils/s2n_safety.h"
 
@@ -174,7 +175,7 @@ static const int MAX_TRIES = 100;
 int main(int argc, char **argv)
 {
     struct s2n_config *config;
-    struct s2n_cipher_preferences *default_cipher_preferences;
+    const struct s2n_cipher_preferences *default_cipher_preferences;
 
 
     BEGIN_TEST();
@@ -200,7 +201,14 @@ int main(int argc, char **argv)
            will never be NULL */
         memcpy(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
         server_cipher_preferences.count = 1;
-        server_cipher_preferences.wire_format = default_cipher_preferences->wire_format + cipher_idx * S2N_TLS_CIPHER_SUITE_LEN;
+        struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
+
+        if (!cur_cipher->available) {
+            /* Skip Ciphers that aren't supported with the linked libcrypto */
+            continue;
+        }
+
+        server_cipher_preferences.suites = &cur_cipher;
         config->cipher_preferences = &server_cipher_preferences;
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
