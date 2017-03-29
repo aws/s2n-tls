@@ -44,13 +44,11 @@ pwd
 make clean
 cp "${BASE_S2N_DIR}/utils/s2n_safety.c" .
 
-#If it succeeds, we will see this line
-SUCCESS_CODE="Boogie program verifier finished with 2 verified, 0 errors"
-
 temp_file=$(mktemp)
-
 make | tee ${temp_file}
-grep -q "${SUCCESS_CODE}" ${temp_file} || FAILED=1
+
+#We expect it to succeed on two functions, and fail on none.
+$CTVERIF_DIR/bin/count_success.pl "${temp_file}" 2 0 || FAILED=1
 
 if [ $FAILED == 1 ];
 then
