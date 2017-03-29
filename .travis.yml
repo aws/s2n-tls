@@ -19,7 +19,7 @@ addons:
 osx_image: xcode8
 
 os:
-  #- osx
+  - osx
   - linux
 
 env:
