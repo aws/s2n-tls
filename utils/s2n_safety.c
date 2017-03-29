@@ -21,6 +21,8 @@
 #include <sys/types.h>
 #include <stdint.h>
 
+#include "s2n_annotations.h"
+
 /**
  * Get the process id
  *

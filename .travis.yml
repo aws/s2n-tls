@@ -24,7 +24,7 @@ os:
 
 env:
   - TESTS=ctverif
-  #- S2N_LIBCRYPTO=openssl-1.1.0 BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
+  - S2N_LIBCRYPTO=openssl-1.1.0 BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
   #- S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
   #- S2N_LIBCRYPTO=libressl      BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
   # Force libcrypto to use "software only" crypto implementations for AES and AES-GCM. Verify s2n can gracefully use
