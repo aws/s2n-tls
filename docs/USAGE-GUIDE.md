@@ -385,6 +385,7 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config,
 |    version | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | AES-CBC | ChaCha20-Poly1305 | AES-GCM | 3DES | RC4 | DHE | ECDHE |
 |------------|-------|--------|--------|--------|---------|-------------------|---------|------|-----|-----|-------|
 | "default"  |       |   X    |    X   |    X   |    X    |         X         |    X    |      |     |     |   X   |
+| "20170328" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |  X  |   X   |
 | "20170210" |       |   X    |    X   |    X   |    X    |         X         |    X    |      |     |     |   X   |
 | "20160824" |       |   X    |    X   |    X   |    X    |                   |    X    |      |     |     |   X   |
 | "20160804" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |     |   X   |
