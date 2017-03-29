@@ -91,4 +91,5 @@ extern struct s2n_cipher s2n_aes128_sha;
 extern struct s2n_cipher s2n_aes256_sha;
 extern struct s2n_cipher s2n_aes128_sha256;
 extern struct s2n_cipher s2n_aes256_sha256;
+extern struct s2n_cipher s2n_chacha20_poly1305;
 

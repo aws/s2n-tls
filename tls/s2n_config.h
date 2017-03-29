@@ -23,6 +23,8 @@
 
 #define S2N_MAX_SERVER_NAME 256
 
+struct s2n_cipher_preferences;
+
 struct s2n_cert_chain {
     struct s2n_blob cert;
     struct s2n_cert_chain *next;
@@ -40,7 +42,7 @@ struct s2n_cert_chain_and_key {
 struct s2n_config {
     struct s2n_dh_params *dhparams;
     struct s2n_cert_chain_and_key *cert_and_key_pairs;
-    struct s2n_cipher_preferences *cipher_preferences;
+    const struct s2n_cipher_preferences *cipher_preferences;
     struct s2n_blob application_protocols;
     s2n_status_request_type status_request_type;
     int (*nanoseconds_since_epoch) (void *, uint64_t *);

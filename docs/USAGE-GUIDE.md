@@ -382,17 +382,18 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config,
 
 **s2n_config_set_cipher_preferences** sets the ciphersuite and protocol versions. The currently supported versions are;
 
-|    version | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | AES-CBC | AES-GCM | 3DES | RC4 | DHE | ECDHE |
-|------------|-------|--------|--------|--------|---------|---------|------|-----|-----|-------|
-| "default"  |       |   X    |    X   |    X   |    X    |    X    |      |     |     |   X   |
-| "20160824" |       |   X    |    X   |    X   |    X    |    X    |      |     |     |   X   |
-| "20160804" |       |   X    |    X   |    X   |    X    |    X    |  X   |     |     |   X   |
-| "20160411" |       |   X    |    X   |    X   |    X    |    X    |  X   |     |     |   X   |
-| "20150306" |       |   X    |    X   |    X   |    X    |    X    |  X   |     |     |   X   |
-| "20150214" |       |   X    |    X   |    X   |    X    |    X    |  X   |     |  X  |       |
-| "20150202" |       |   X    |    X   |    X   |    X    |         |  X   |     |  X  |       |
-| "20141001" |       |   X    |    X   |    X   |    X    |         |  X   |  X  |  X  |       |
-| "20140601" |   X   |   X    |    X   |    X   |    X    |         |  X   |  X  |  X  |       |
+|    version | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | AES-CBC | ChaCha20-Poly1305 | AES-GCM | 3DES | RC4 | DHE | ECDHE |
+|------------|-------|--------|--------|--------|---------|-------------------|---------|------|-----|-----|-------|
+| "default"  |       |   X    |    X   |    X   |    X    |         X         |    X    |      |     |     |   X   |
+| "20170210" |       |   X    |    X   |    X   |    X    |         X         |    X    |      |     |     |   X   |
+| "20160824" |       |   X    |    X   |    X   |    X    |                   |    X    |      |     |     |   X   |
+| "20160804" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |     |   X   |
+| "20160411" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |     |   X   |
+| "20150306" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |     |   X   |
+| "20150214" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |  X  |       |
+| "20150202" |       |   X    |    X   |    X   |    X    |                   |         |  X   |     |  X  |       |
+| "20141001" |       |   X    |    X   |    X   |    X    |                   |         |  X   |  X  |  X  |       |
+| "20140601" |   X   |   X    |    X   |    X   |    X    |                   |         |  X   |  X  |  X  |       |
 
 The "default" version is special in that it will be updated with future s2n changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change. 
 
@@ -400,10 +401,13 @@ The "default" version is special in that it will be updated with future s2n chan
 
 s2n does not expose an API to control the order of preference for each ciphersuite or protocol version. s2n follows the following order:
 
+*NOTE*: All ChaCha20-Poly1305 cipher suites will not be available if s2n is not built with an Openssl 1.1.0 libcrypto. The
+underlying encrpyt/decrypt functions are not available in older versions.
+
 1. Always prefer the highest protocol version supported
 2. Always use forward secrecy where possible. Prefer ECDHE over DHE. 
-3. Prefer encryption ciphers in the following order: AES128, 3DES, AES256, RC4.
-4. Prefer record authentication modes in the following order: GCM, SHA256, SHA1, MD5.
+3. Prefer encryption ciphers in the following order: AES128, AES256, ChaCha20, 3DES, RC4.
+4. Prefer record authentication modes in the following order: GCM, Poly1305, SHA256, SHA1, MD5.
 
 ### s2n\_config\_add\_cert\_chain\_and\_key
 

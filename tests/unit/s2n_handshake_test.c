@@ -24,6 +24,7 @@
 
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
+#include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
 #include "utils/s2n_safety.h"
 
@@ -122,10 +123,58 @@ static char dhparams[] =
     "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n"
     "-----END DH PARAMETERS-----\n";
 
+static int try_handshake(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
+{
+    s2n_blocked_status server_blocked;
+    s2n_blocked_status client_blocked;
+
+    int tries = 0;
+    do {
+        int client_rc = s2n_negotiate(client_conn, &client_blocked);
+        if (!(client_rc == 0 || (client_blocked && errno == EAGAIN))) {
+            return -1;
+        }
+
+        int server_rc = s2n_negotiate(server_conn, &server_blocked);
+        if (!(server_rc == 0 || (server_blocked && errno == EAGAIN))) {
+            return -1;
+        }
+
+        tries += 1;
+        if (tries == 100) {
+            return -1;
+        }
+    } while (client_blocked || server_blocked);
+
+    uint8_t server_shutdown = 0;
+    uint8_t client_shutdown = 0;
+    do {
+        if (!server_shutdown) {
+            int server_rc = s2n_shutdown(server_conn, &server_blocked);
+            if (server_rc == 0) {
+                server_shutdown = 1;
+            } else if (!(server_blocked && errno == EAGAIN)) {
+                return -1;
+            }
+        }
+
+        if (!client_shutdown) {
+            int client_rc = s2n_shutdown(client_conn, &client_blocked);
+            if (client_rc == 0) {
+                client_shutdown = 1;
+            } else if (!(client_blocked && errno == EAGAIN)) {
+                return -1;
+            }
+        }
+    } while (!server_shutdown || !client_shutdown);
+
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     struct s2n_config *server_config;
-    struct s2n_cipher_preferences *default_cipher_preferences;
+    const struct s2n_cipher_preferences *default_cipher_preferences;
 
     BEGIN_TEST();
 
@@ -136,22 +185,28 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams));
     EXPECT_NOT_NULL(default_cipher_preferences = server_config->cipher_preferences);
 
-    /* Verify that a handshake succeeds for every cipher in the default list. */
+    /* Verify that a handshake succeeds for every available cipher in the default list. For unavailable ciphers,
+     * make sure that we fail the handshake. */
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        s2n_blocked_status client_blocked;
-        s2n_blocked_status server_blocked;
         int server_to_client[2];
         int client_to_server[2];
+        struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
+        uint8_t expect_failure = 0;
+
+        /* Expect failure if the libcrypto we're building with can't support the cipher */
+        if (!cur_cipher->available) {
+            expect_failure = 1;
+        }
 
         /* Craft a cipher preference with a cipher_idx cipher
            NOTE: Its safe to use memcpy as the address of server_cipher_preferences
            will never be NULL */
         memcpy(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
         server_cipher_preferences.count = 1;
-        server_cipher_preferences.wire_format = default_cipher_preferences->wire_format + cipher_idx * S2N_TLS_CIPHER_SUITE_LEN;
+        server_cipher_preferences.suites = &cur_cipher;
         server_config->cipher_preferences = &server_cipher_preferences;
 
         /* Create nonblocking pipes */
@@ -177,39 +232,11 @@ int main(int argc, char **argv)
         server_conn->client_protocol_version = S2N_TLS12;
         server_conn->actual_protocol_version = S2N_TLS12;
 
-        int tries = 0;
-        do {
-            int ret;
-            ret = s2n_negotiate(client_conn, &client_blocked);
-            EXPECT_TRUE(ret == 0 || (client_blocked && errno == EAGAIN));
-            ret = s2n_negotiate(server_conn, &server_blocked);
-            EXPECT_TRUE(ret == 0 || (server_blocked && errno == EAGAIN));
-            tries += 1;
-
-            if (tries == 100) {
-                FAIL();
-            }
-        } while (client_blocked || server_blocked);
-
-        uint8_t server_shutdown=0;
-        uint8_t client_shutdown=0;
-        do {
-            int ret;
-            if (!server_shutdown) {
-                ret = s2n_shutdown(server_conn, &server_blocked);
-                EXPECT_TRUE(ret == 0 || (server_blocked && errno == EAGAIN));
-                if (ret == 0) {
-                    server_shutdown = 1;
-                }
-            }
-            if (!client_shutdown) {
-                ret = s2n_shutdown(client_conn, &client_blocked); 
-                EXPECT_TRUE(ret == 0 || (client_blocked && errno == EAGAIN));
-                if (ret == 0) {
-                    client_shutdown = 1;
-                }
-            }
-        } while (!server_shutdown || !client_shutdown);
+        if (!expect_failure) {
+            EXPECT_SUCCESS(try_handshake(server_conn, client_conn));
+        } else {
+            EXPECT_FAILURE(try_handshake(server_conn, client_conn));
+        }
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));

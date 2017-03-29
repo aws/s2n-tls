@@ -16,6 +16,12 @@
 S2ND_PORT=8888
 S2ND_HOST=127.0.0.1
 
+# If the libcrypto that s2n was built with is not specified, assume latest(1.1.0).
+# Required to determine the cipher suites to use in integration tests.
+ifndef S2N_LIBCRYPTO
+	export S2N_LIBCRYPTO="openssl-1.1.0"
+endif
+
 .PHONY : all
 all:
 	# Run s2n client endpoint handshake tests
@@ -28,11 +34,11 @@ all:
 	( \
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
-	python3 s2n_handshake_test_s_client.py $(S2ND_HOST) $(S2ND_PORT); \
+	python3 s2n_handshake_test_s_client.py --libcrypto $(S2N_LIBCRYPTO) $(S2ND_HOST) $(S2ND_PORT); \
 	)
 	# Run gnutls handshake tests
 	( \
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLID_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
-	python3 s2n_handshake_test_gnutls.py $(S2ND_HOST) $(S2ND_PORT); \
+	python3 s2n_handshake_test_gnutls.py --libcrypto $(S2N_LIBCRYPTO) $(S2ND_HOST) $(S2ND_PORT); \
 	)

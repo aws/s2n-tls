@@ -17,7 +17,7 @@
 
 #include "error/s2n_errno.h"
 
-#include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_config.h"
 
 #include "utils/s2n_random.h"
@@ -67,169 +67,9 @@ int get_nanoseconds_since_epoch(void *data, uint64_t * nanoseconds)
 
 #endif
 
-/* s2n's list of cipher suites, in order of preference, as of 2014-06-01 */
-uint8_t wire_format_20140601[] =
-    { TLS_DHE_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA, TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA,
-    TLS_RSA_WITH_3DES_EDE_CBC_SHA, TLS_RSA_WITH_RC4_128_SHA, TLS_RSA_WITH_RC4_128_MD5
-};
-
-struct s2n_cipher_preferences cipher_preferences_20140601 = {
-    .count = sizeof(wire_format_20140601) / S2N_TLS_CIPHER_SUITE_LEN,
-    .wire_format = wire_format_20140601,
-    .minimum_protocol_version = S2N_SSLv3
-};
-
-/* Disable SSLv3 due to POODLE */
-struct s2n_cipher_preferences cipher_preferences_20141001 = {
-    .count = sizeof(wire_format_20140601) / S2N_TLS_CIPHER_SUITE_LEN,
-    .wire_format = wire_format_20140601,
-    .minimum_protocol_version = S2N_TLS10
-};
-
-/* Disable RC4 */
-uint8_t wire_format_20150202[] =
-    { TLS_DHE_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA, TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA,
-    TLS_RSA_WITH_3DES_EDE_CBC_SHA
-};
-
-struct s2n_cipher_preferences cipher_preferences_20150202 = {
-    .count = sizeof(wire_format_20150202) / S2N_TLS_CIPHER_SUITE_LEN,
-    .wire_format = wire_format_20150202,
-    .minimum_protocol_version = S2N_TLS10
-};
-
-/* Support AES-GCM modes */
-uint8_t wire_format_20150214[] = { TLS_DHE_RSA_WITH_AES_128_GCM_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
-    TLS_RSA_WITH_AES_128_GCM_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA, TLS_RSA_WITH_3DES_EDE_CBC_SHA
-};
-
-struct s2n_cipher_preferences cipher_preferences_20150214 = {
-    .count = sizeof(wire_format_20150214) / S2N_TLS_CIPHER_SUITE_LEN,
-    .wire_format = wire_format_20150214,
-    .minimum_protocol_version = S2N_TLS10
-};
-
-/* Make a CBC cipher #1 to avoid negotiating GCM with buggy Java clients */
-uint8_t wire_format_20160411[] = {
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-    TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
-    TLS_RSA_WITH_AES_128_CBC_SHA,
-    TLS_RSA_WITH_AES_128_GCM_SHA256,
-    TLS_RSA_WITH_AES_256_GCM_SHA384,
-    TLS_RSA_WITH_AES_128_CBC_SHA256,
-    TLS_RSA_WITH_AES_256_CBC_SHA,
-    TLS_RSA_WITH_AES_256_CBC_SHA256,
-    TLS_RSA_WITH_3DES_EDE_CBC_SHA,
-};
-
-struct s2n_cipher_preferences cipher_preferences_20160411 = {
-    .count = sizeof(wire_format_20160411) / S2N_TLS_CIPHER_SUITE_LEN,
-    .wire_format = wire_format_20160411,
-    .minimum_protocol_version = S2N_TLS10
-};
-
-/* Use ECDHE instead of plain DHE. Prioritize ECDHE in favour of non ECDHE; GCM in favour of CBC; AES128 in favour of AES256. */
-uint8_t wire_format_20150306[] = {
-    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-    TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-    TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
-    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-    TLS_RSA_WITH_AES_128_GCM_SHA256,
-    TLS_RSA_WITH_AES_128_CBC_SHA256,
-    TLS_RSA_WITH_AES_128_CBC_SHA,
-    TLS_RSA_WITH_3DES_EDE_CBC_SHA
-};
-
-struct s2n_cipher_preferences cipher_preferences_20150306 = {
-    .count = sizeof(wire_format_20150306) / S2N_TLS_CIPHER_SUITE_LEN,
-    .wire_format = wire_format_20150306,
-    .minimum_protocol_version = S2N_TLS10
-};
-
-uint8_t wire_format_20160804[] = {
-    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-    TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
-    TLS_RSA_WITH_AES_128_GCM_SHA256,
-    TLS_RSA_WITH_AES_256_GCM_SHA384,
-    TLS_RSA_WITH_AES_128_CBC_SHA,
-    TLS_RSA_WITH_AES_128_CBC_SHA256,
-    TLS_RSA_WITH_AES_256_CBC_SHA,
-    TLS_RSA_WITH_AES_256_CBC_SHA256,
-    TLS_RSA_WITH_3DES_EDE_CBC_SHA
-};
-
-struct s2n_cipher_preferences cipher_preferences_20160804 = {
-    .count = sizeof(wire_format_20160804) / S2N_TLS_CIPHER_SUITE_LEN,
-    .wire_format = wire_format_20160804,
-    .minimum_protocol_version = S2N_TLS10
-};
-
-uint8_t wire_format_20160824[] = {
-    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-    TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-    TLS_RSA_WITH_AES_128_GCM_SHA256,
-    TLS_RSA_WITH_AES_128_CBC_SHA256,
-    TLS_RSA_WITH_AES_128_CBC_SHA
-};
-
-struct s2n_cipher_preferences cipher_preferences_20160824 = {
-    .count = sizeof(wire_format_20160824) / S2N_TLS_CIPHER_SUITE_LEN,
-    .wire_format = wire_format_20160824,
-    .minimum_protocol_version = S2N_TLS10
-};
-
-/* All supported ciphers. Only exposed for integration testing. */
-uint8_t wire_format_test_all[] = {
-    TLS_RSA_WITH_RC4_128_MD5, TLS_RSA_WITH_RC4_128_SHA, TLS_RSA_WITH_3DES_EDE_CBC_SHA, TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
-    TLS_RSA_WITH_AES_128_CBC_SHA, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, TLS_RSA_WITH_AES_256_CBC_SHA,
-    TLS_DHE_RSA_WITH_AES_256_CBC_SHA, TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_RSA_WITH_AES_256_CBC_SHA256,
-    TLS_DHE_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_256_CBC_SHA256, TLS_RSA_WITH_AES_128_GCM_SHA256,
-    TLS_DHE_RSA_WITH_AES_128_GCM_SHA256, TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-    TLS_RSA_WITH_AES_256_GCM_SHA384
-};
-
-struct s2n_cipher_preferences cipher_preferences_test_all = {
-    .count = sizeof(wire_format_test_all),
-    .wire_format = wire_format_test_all,
-    .minimum_protocol_version = S2N_SSLv3
-};
-
-struct {
-    const char *version;
-    struct s2n_cipher_preferences *preferences;
-} selection[] = {
-    {
-    "default", &cipher_preferences_20160824}, {
-    "20140601", &cipher_preferences_20140601}, {
-    "20141001", &cipher_preferences_20141001}, {
-    "20150202", &cipher_preferences_20150202}, {
-    "20150214", &cipher_preferences_20150214}, {
-    "20150306", &cipher_preferences_20150306}, {
-    "20160411", &cipher_preferences_20160411}, {
-    "20160804", &cipher_preferences_20160804}, {
-    "20160824", &cipher_preferences_20160824}, {
-    "test_all", &cipher_preferences_test_all}, {
-    NULL, NULL}
-};
-
 struct s2n_config s2n_default_config = {
     .cert_and_key_pairs = NULL,
-    .cipher_preferences = &cipher_preferences_20160824,
+    .cipher_preferences = &cipher_preferences_20170210,
     .nanoseconds_since_epoch = get_nanoseconds_since_epoch,
 };
 
@@ -316,18 +156,6 @@ int s2n_config_free(struct s2n_config *config)
 
     GUARD(s2n_free(&b));
     return 0;
-}
-
-int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version)
-{
-    for (int i = 0; selection[i].version != NULL; i++) {
-        if (!strcasecmp(version, selection[i].version)) {
-            config->cipher_preferences = selection[i].preferences;
-            return 0;
-        }
-    }
-
-    S2N_ERROR(S2N_ERR_INVALID_CIPHER_PREFERENCES);
 }
 
 int s2n_config_set_protocol_preferences(struct s2n_config *config, const char *const *protocols, int protocol_count)
