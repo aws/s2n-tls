@@ -74,7 +74,7 @@ typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED } s2n_cert_auth_type;
 * @return The function should return 0 if Certificate is trusted and public key extraction was successful, and less than
 *         0 if the Certificate is untrusted, or there was some other error.
 */
-typedef int verify_cert_trust_chain(struct s2n_blob *cert_chain_in, struct s2n_cert_public_key *public_key_out, void *context);
+typedef int verify_cert_trust_chain(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
 
 int s2n_send_cert_chain(struct s2n_stuffer *out, struct s2n_cert_chain_and_key *chain);
 int s2n_cert_public_key_set_cert_type(struct s2n_cert_public_key *cert_pub_key, s2n_cert_type cert_type);

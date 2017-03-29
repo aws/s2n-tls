@@ -42,11 +42,12 @@
 #include "utils/s2n_mem.h"
 
 /* Accept all RSA Certificates is unsafe and is only used in the s2n Client */
-int accept_all_rsa_certs(struct s2n_blob *cert_chain_in, struct s2n_cert_public_key *public_key_out, void *context)
+int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context)
 {
+    struct s2n_blob cert_chain_blob = { .data = cert_chain_in, .size = cert_chain_len};
     struct s2n_stuffer cert_chain_in_stuffer;
-    GUARD(s2n_stuffer_init(&cert_chain_in_stuffer, cert_chain_in));
-    GUARD(s2n_stuffer_write(&cert_chain_in_stuffer, cert_chain_in));
+    GUARD(s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob));
+    GUARD(s2n_stuffer_write(&cert_chain_in_stuffer, &cert_chain_blob));
 
     uint32_t certificate_count = 0;
     while (s2n_stuffer_data_available(&cert_chain_in_stuffer)) {
