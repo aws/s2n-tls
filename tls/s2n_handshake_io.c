@@ -200,7 +200,6 @@ static message_type_t handshakes[64][16] = {
              SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
              APPLICATION_DATA
      },
-
 };
 
 #define ACTIVE_MESSAGE( conn ) handshakes[ (conn)->handshake.handshake_type ][ (conn)->handshake.message_number ]
