@@ -12,7 +12,9 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-#pragma once
 
-//For compilation purposes, these annotations are no-ops 
-#define S2N_PUBLIC_INPUT(__a)
+#pragma once
+#include "ct-verif.h"
+
+//Override the annotations to the ones that ct-verif expects
+#define S2N_PUBLIC_INPUT(__a) public_in( __SMACK_value( __a ) )

@@ -1,4 +1,3 @@
-#!/bin/bash
 # Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
@@ -13,29 +12,14 @@
 # permissions and limitations under the License.
 #
 
-set -e
+#######################
+# Requires ct-verif to be installed along with all its dependencies
+# requires the environment variable CTVERIF_DIR to point to the directory
+# where ct-verif is installed
+#######################
 
-usage() {
-    echo "install_ctverif.sh install_dir"
-    exit 1
-}
+include ${CTVERIF_DIR}/lib/ct-verif.mk
 
-if [ "$#" -ne "1" ]; then
-    usage
-fi
-
-INSTALL_DIR=$1
-
-cd $INSTALL_DIR
-
-#install smack
-git clone --depth 1 https://github.com/smackers/smack.git -b develop
-cd smack/bin
-./build.sh
-
-source $INSTALL_DIR/smack.environment
-
-#install ctverif
-cd $INSTALL_DIR
-git clone --depth 1 https://github.com/imdea-software/verifying-constant-time.git -b test-automation
+goals += s2n_constant_time_equals@s2n_safety.c
+goals += s2n_constant_time_copy_or_dont@s2n_safety.c
 

@@ -88,7 +88,6 @@ before_install:
   - export LIBRESSL_INSTALL_DIR=`pwd`/test-deps/libressl
   - export CPPCHECK_INSTALL_DIR=`pwd`/test-deps/cppcheck
   - export CTVERIF_INSTALL_DIR=`pwd`/test-deps/ctverif
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [[ "$TESTS" == "ctverif" ]]; then .travis/install_ctverif_dependencies.sh ; fi
 
 # Install missing test dependencies. If the install directory already exists, cached artifacts will be used
 # for that dependency.
@@ -98,8 +97,6 @@ install:
   - .travis/install_default_dependencies.sh
     # Set GCC 6 as Default on both Ubuntu and OSX
   - if [[ "$GCC6_REQUIRED" == "true" ]]; then alias gcc=$(which gcc-6) ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [[ "$TESTS" == "ctverif" ]]  && [[ ! -d "$CTVERIF_INSTALL_DIR" ]]; then mkdir -p $CTVERIF_INSTALL_DIR && .travis/install_ctverif.sh $CTVERIF_INSTALL_DIR > /dev/null ; fi
-
 
 before_script:
   # Add all of our test dependencies to the PATH. Use Openssl 1.1.0 so the latest openssl is used for s_client

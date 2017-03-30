@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -25,30 +25,27 @@ if [ "$#" -ne "1" ]; then
 fi
 
 INSTALL_DIR=$1
-CTVERIF_DIR="${1}/verifying-constant-time"
+export CTVERIF_DIR="${1}/verifying-constant-time"
 SMACK_DIR="${1}/smack"
 
+#Put the dependencies are on the path
 source "${INSTALL_DIR}/smack.environment"
 export PATH="${SMACK_DIR}/bin:${SMACK_DIR}/build:${PATH}"
+#Test that they are really there
 which smack || echo "can't find smack"
 which boogie || echo "can't find z3"
 which llvm2bpl || echo "can't find llvm2bpl"
-pwd
-echo "*** SMACK BIN dir ***"
-ls $SMACK_DIR
 
-FAILED=0
-
-cd "${CTVERIF_DIR}/examples/s2n-travis"
-pwd
-make clean
+#copy the current version of the file to the test
+cd "${BASE_S2N_DIR}/tests/ctverif"
 cp "${BASE_S2N_DIR}/utils/s2n_safety.c" .
+make clean
 
-temp_file=$(mktemp)
-make | tee ${temp_file}
-
-#We expect it to succeed on two functions, and fail on none.
-$CTVERIF_DIR/bin/count_success.pl "${temp_file}" 2 0 || FAILED=1
+#run the test.  We expect both to pass, and none to fail
+FAILED=0
+EXPECTED_PASS=2
+EXPECTED_FAIL=0
+make | ./count_success.pl $EXPECTED_PASS $EXPECTED_FAIL || FAILED=1
 
 if [ $FAILED == 1 ];
 then
