@@ -446,6 +446,13 @@ int main(int argc, char *const *argv)
 
         negotiate(conn);
 
+        if(mutual_auth) {
+            if(!s2n_connection_did_handshake_negotiate_client_auth(conn)) {
+                fprintf(stderr, "Error: Mutual Auth was required, but not negotiatied.\n");
+                return -1;
+            }
+        }
+
         if (!only_negotiate) {
             echo(conn, fd);
         }
