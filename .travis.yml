@@ -44,6 +44,8 @@ env:
 matrix:
   exclude:
   - os: osx
+    env: TESTS=ctverif
+  - os: osx
     env: TESTS=sawHMAC SAW_HMAC_TEST=md5    SAW=true GCC6_REQUIRED=true
   - os: osx
     env: TESTS=sawHMAC SAW_HMAC_TEST=none   SAW=true GCC6_REQUIRED=true
