@@ -255,6 +255,8 @@ int main(int argc, char **argv)
         /* Verify that both connections are waiting for Application Data */
         EXPECT_TRUE(APPLICATION_DATA == s2n_conn_get_current_message_type(client_conn));
         EXPECT_TRUE(APPLICATION_DATA == s2n_conn_get_current_message_type(server_conn));
+        EXPECT_TRUE(server_conn->handshake.handshake_type & CLIENT_AUTH);
+        EXPECT_TRUE(client_conn->handshake.handshake_type & CLIENT_AUTH);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
