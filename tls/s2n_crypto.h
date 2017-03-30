@@ -17,6 +17,7 @@
 
 #include "tls/s2n_config.h"
 
+#include "crypto/s2n_certificate.h"
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_hmac.h"
 #include "crypto/s2n_hash.h"
@@ -24,6 +25,7 @@
 #include "crypto/s2n_signature.h"
 #include "crypto/s2n_dhe.h"
 #include "crypto/s2n_ecc.h"
+
 
 #define S2N_TLS_SECRET_LEN             48
 #define S2N_TLS_RANDOM_DATA_LEN        32
@@ -53,11 +55,15 @@
 
 struct s2n_crypto_parameters {
     struct s2n_rsa_public_key server_rsa_public_key;
+    struct s2n_rsa_public_key client_rsa_public_key;
     struct s2n_dh_params server_dh_params;
     struct s2n_ecc_params server_ecc_params;
     struct s2n_cert_chain_and_key *server_cert_chain;
     s2n_hash_algorithm conn_hash_alg;
     s2n_signature_algorithm conn_sig_alg;
+    s2n_cert_type client_cert_type;
+    s2n_hash_algorithm client_cert_hash_algorithm;
+    s2n_signature_algorithm client_cert_sig_algorithm;
 
     struct s2n_cipher_suite *cipher_suite;
     struct s2n_session_key client_key;

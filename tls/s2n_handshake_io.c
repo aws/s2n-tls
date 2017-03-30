@@ -41,6 +41,7 @@
 #define TLS_SERVER_CERT               11
 #define TLS_SERVER_KEY                12
 #define TLS_SERVER_CERT_REQ           13
+#define TLS_CLIENT_CERT_REQ           13 /* Same as SERVER_CERT_REQ*/
 #define TLS_SERVER_HELLO_DONE         14
 #define TLS_CLIENT_CERT               11  /* Same as SERVER_CERT */
 #define TLS_CLIENT_CERT_VERIFY        15
@@ -67,7 +68,7 @@ static struct s2n_handshake_action state_machine[] = {
     [SERVER_CERT]               = {TLS_HANDSHAKE, TLS_SERVER_CERT, 'S', {s2n_server_cert_send, s2n_server_cert_recv}},
     [SERVER_CERT_STATUS]        = {TLS_HANDSHAKE, TLS_SERVER_CERT_STATUS, 'S', {s2n_server_status_send, s2n_server_status_recv}},
     [SERVER_KEY]                = {TLS_HANDSHAKE, TLS_SERVER_KEY, 'S', {s2n_server_key_send, s2n_server_key_recv}},
-    [SERVER_CERT_REQ]           = {TLS_HANDSHAKE, TLS_SERVER_CERT_REQ, 'S', {NULL, NULL}},
+    [SERVER_CERT_REQ]           = {TLS_HANDSHAKE, TLS_CLIENT_CERT_REQ, 'S', {s2n_client_cert_req_send, s2n_client_cert_req_recv}},
     [SERVER_HELLO_DONE]         = {TLS_HANDSHAKE, TLS_SERVER_HELLO_DONE, 'S', {s2n_server_done_send, s2n_server_done_recv}}, 
     [CLIENT_CERT]               = {TLS_HANDSHAKE, TLS_CLIENT_CERT, 'C', {NULL, NULL}},
     [CLIENT_KEY]                = {TLS_HANDSHAKE, TLS_CLIENT_KEY, 'C', {s2n_client_key_recv, s2n_client_key_send}},
