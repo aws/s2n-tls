@@ -35,8 +35,13 @@ PROTO_VERS_TO_S_CLIENT_ARG = {
     S2N_TLS12 : "-tls1_2",
 }
 
+def cleanup_processes(*processes):
+    for p in processes:
+        p.kill()
+        p.wait()
+
 def try_handshake(endpoint, port, cipher, ssl_version, sig_algs=None, curves=None, resume=False,
-        prefer_low_latency=False):
+        prefer_low_latency=False, clientAuth=None):
     """
     Attempt to handshake against s2nd listening on `endpoint` and `port` using Openssl s_client
 
@@ -51,9 +56,15 @@ def try_handshake(endpoint, port, cipher, ssl_version, sig_algs=None, curves=Non
     :return: 0 on successfully negotiation(s), -1 on failure
     """
     # Fire up s2nd
-    s2nd_cmd = ["../../bin/s2nd", "-c", "test_all", str(endpoint), str(port)]
+    s2nd_cmd = ["../../bin/s2nd", "-c", "test_all"]
+
     if prefer_low_latency == True:
         s2nd_cmd.append("--prefer-low-latency")
+
+    if clientAuth is not None:
+        s2nd_cmd.append("-m")
+
+    s2nd_cmd.extend([str(endpoint), str(port)])
     s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
     # Make sure it's running
@@ -69,6 +80,9 @@ def try_handshake(endpoint, port, cipher, ssl_version, sig_algs=None, curves=Non
         s_client_cmd.extend(["-curves", curves])
     if resume == True:
         s_client_cmd.append("-reconnect")
+    if clientAuth is not None:
+        s_client_cmd.extend(["-key", "./test_certs/client_2048_rsa.key"])
+        s_client_cmd.extend(["-cert", "./test_certs/client_2048_rsa.cert"])
 
     # Fire up s_client
     s_client = subprocess.Popen(s_client_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
@@ -84,6 +98,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, sig_algs=None, curves=Non
                 break
 
         if seperators != 5:
+            cleanup_processes(s2nd, s_client)
             return -1
 
     # Write the cipher name towards s2n
@@ -99,6 +114,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, sig_algs=None, curves=Non
             break
 
     if found == 0:
+        cleanup_processes(s2nd, s_client)
         return -1
 
     # Write the cipher name from s2n
@@ -112,12 +128,10 @@ def try_handshake(endpoint, port, cipher, ssl_version, sig_algs=None, curves=Non
             break
 
     if found == 0:
+        cleanup_processes(s2nd, s_client)
         return -1
 
-    s_client.kill()
-    s_client.wait()
-    s2nd.kill()
-    s2nd.wait()
+    cleanup_processes(s2nd, s_client)
 
     return 0
 
@@ -142,7 +156,7 @@ def create_thread_pool():
     threadpool = ThreadPool(processes=threadpool_size)
     return threadpool
 
-def run_handshake_test(host, port, ssl_version, cipher):
+def run_handshake_test(host, port, ssl_version, cipher, useClientAuth):
     cipher_name = cipher.openssl_name
     cipher_vers = cipher.min_tls_vers
 
@@ -154,12 +168,13 @@ def run_handshake_test(host, port, ssl_version, cipher):
         return 0
 
     ret = try_handshake(host, port, cipher_name, ssl_version)
-    result_prefix = "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
+    result_prefix = "Cipher: %-28s ClientAuth: %-5s Vers: %-8s ... " % (cipher_name, str(useClientAuth), S2N_PROTO_VERS_TO_STR[ssl_version])
     print_result(result_prefix, ret)
     
     return ret
     
-def handshake_test(host, port, test_ciphers):
+
+def handshake_test(host, port, test_ciphers, useClientAuth=None):
     """
     Basic handshake tests using all valid combinations of supported cipher suites and TLS versions.
     """
@@ -173,7 +188,8 @@ def handshake_test(host, port, test_ciphers):
         results = []
         
         for cipher in test_ciphers:
-            async_result = threadpool.apply_async(run_handshake_test, (host, port + port_offset, ssl_version, cipher))
+
+            async_result = threadpool.apply_async(run_handshake_test, (host, port + port_offset, ssl_version, cipher, useClientAuth))
             port_offset += 1
             results.append(async_result)
 
@@ -215,17 +231,18 @@ def resume_test(host, port, test_ciphers):
 supported_sigs = ["RSA+SHA1", "RSA+SHA224", "RSA+SHA256", "RSA+SHA384", "RSA+SHA512"]
 unsupported_sigs = ["ECDSA+SHA256", "DSA+SHA384", "ECDSA+SHA512", "DSA+SHA1"]
 
-def run_sigalg_test(host, port, cipher, ssl_version, permutation):
+def run_sigalg_test(host, port, cipher, ssl_version, permutation, useClientAuth):
     # Put some unsupported algs in front to make sure we gracefully skip them
     mixed_sigs = unsupported_sigs + list(permutation)
     mixed_sigs_str = ':'.join(mixed_sigs)
     ret = try_handshake(host, port, cipher.openssl_name, ssl_version, sig_algs=mixed_sigs_str)
     # Trim the RSA part off for brevity. User should know we are only supported RSA at the moment.
-    prefix = "Digests: %-40s Port: %-5s Vers: %-8s... " % (':'.join([x[4:] for x in permutation]), port, S2N_PROTO_VERS_TO_STR[S2N_TLS12])
+    prefix = "Digests:%-40s ClientAuth:%-5s Port:%-5s Vers:%-8s... " % (':'.join([x[4:] for x in permutation]), str(useClientAuth), port, S2N_PROTO_VERS_TO_STR[S2N_TLS12])
     print_result(prefix, ret)
     return ret
 
-def sigalg_test(host, port):
+def sigalg_test(host, port, useClientAuth=None):
+
     """
     Acceptance test for supported signature algorithms. Tests all possible supported sigalgs with unsupported ones mixed in
     for noise.
@@ -247,7 +264,7 @@ def sigalg_test(host, port):
             for cipher in ALL_TEST_CIPHERS:
                 # Try an ECDHE cipher suite and a DHE one
                 if(cipher.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or cipher.openssl_name == "DHE-RSA-AES128-GCM-SHA256"):
-                    async_result = threadpool.apply_async(run_sigalg_test, (host, port + portOffset, cipher, S2N_TLS12, permutation))
+                    async_result = threadpool.apply_async(run_sigalg_test, (host, port + portOffset, cipher, S2N_TLS12, permutation, useClientAuth))
                     portOffset = portOffset + 1
                     results.append(async_result)
 
@@ -343,7 +360,9 @@ def main():
     failed = 0
     failed += resume_test(host, port, test_ciphers)
     failed += handshake_test(host, port, test_ciphers)
+    failed += handshake_test(host, port, test_ciphers, useClientAuth=True)
     failed += sigalg_test(host, port)
+    failed += sigalg_test(host, port, useClientAuth=True)
     failed += elliptic_curve_test(host, port)
     failed += elliptic_curve_fallback_test(host, port)
     failed += handshake_fragmentation_test(host,port)

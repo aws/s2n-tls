@@ -90,7 +90,7 @@ struct s2n_connection {
 
     /* Certificate Authentication and Verification Parameters */
     s2n_cert_auth_type client_cert_auth_type;
-    verify_cert_trust_chain *verify_cert_chain_cb;
+    verify_cert_trust_chain_fn *verify_cert_chain_cb;
     void *verify_cert_context;
 
     /* Our crypto parameters */
@@ -198,7 +198,7 @@ int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
 int s2n_connection_recv_stuffer(struct s2n_stuffer *stuffer, struct s2n_connection *conn, uint32_t len);
 
 extern int s2n_connection_set_cert_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type);
-extern int s2n_connection_set_verify_cert_chain_cb(struct s2n_connection *conn, verify_cert_trust_chain *callback, void *context);
+extern int s2n_connection_set_verify_cert_chain_cb(struct s2n_connection *conn, verify_cert_trust_chain_fn *callback, void *context);
 
 int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
 int deny_all_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key, void *context);

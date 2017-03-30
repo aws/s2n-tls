@@ -149,8 +149,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_recv_ctx(server_conn, &client_to_server));
         EXPECT_SUCCESS(s2n_connection_set_send_ctx(server_conn, &server_to_client));
 
-        s2n_connection_set_cert_auth_type(client_conn, S2N_CERT_AUTH_REQUIRED);
-        s2n_connection_set_cert_auth_type(server_conn, S2N_CERT_AUTH_REQUIRED);
+        s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_REQUIRED);
+        s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_REQUIRED);
         s2n_connection_set_verify_cert_chain_cb(client_conn, &accept_all_rsa_certs, NULL);
         s2n_connection_set_verify_cert_chain_cb(server_conn, &accept_all_rsa_certs, NULL);
 

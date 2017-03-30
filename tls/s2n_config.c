@@ -204,6 +204,24 @@ int s2n_config_set_protocol_preferences(struct s2n_config *config, const char *c
     return 0;
 }
 
+int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_type cert_auth_type)
+{
+    notnull_check(config);
+    config->client_cert_auth_type = cert_auth_type;
+    return 0;
+}
+
+int s2n_config_set_verify_cert_chain_cb(struct s2n_config *config, verify_cert_trust_chain_fn *callback, void *context)
+{
+    notnull_check(config);
+    notnull_check(callback);
+
+    config->verify_cert_chain_cb = callback;
+    config->verify_cert_context = context;
+
+    return 0;
+}
+
 int s2n_config_set_ct_support_level(struct s2n_config *config, s2n_ct_support_level type)
 {
     config->ct_type = type;

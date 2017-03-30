@@ -595,13 +595,13 @@ int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_send_fn send)
     return 0;
 }
 
-int s2n_connection_set_cert_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type)
+int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type)
 {
     conn->client_cert_auth_type = cert_auth_type;
     return 0;
 }
 
-int s2n_connection_set_verify_cert_chain_cb(struct s2n_connection *conn, verify_cert_trust_chain *callback, void *context)
+int s2n_connection_set_verify_cert_chain_cb(struct s2n_connection *conn, verify_cert_trust_chain_fn *callback, void *context)
 {
     notnull_check(callback);
     conn->verify_cert_chain_cb = callback;

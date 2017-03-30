@@ -27,6 +27,48 @@
 #include <errno.h>
 
 #include <s2n.h>
+#include "crypto/s2n_rsa.h"
+#include "stuffer/s2n_stuffer.h"
+#include "utils/s2n_safety.h"
+
+/* Accept all RSA Certificates is unsafe and is only used in the s2n Client */
+int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context)
+{
+    struct s2n_blob cert_chain_blob = { .data = cert_chain_in, .size = cert_chain_len};
+    struct s2n_stuffer cert_chain_in_stuffer;
+    GUARD(s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob));
+    GUARD(s2n_stuffer_write(&cert_chain_in_stuffer, &cert_chain_blob));
+
+    uint32_t certificate_count = 0;
+    while (s2n_stuffer_data_available(&cert_chain_in_stuffer)) {
+        uint32_t certificate_size;
+
+        GUARD(s2n_stuffer_read_uint24(&cert_chain_in_stuffer, &certificate_size));
+
+        if (certificate_size == 0 || certificate_size > s2n_stuffer_data_available(&cert_chain_in_stuffer) ) {
+            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        }
+
+        struct s2n_blob asn1cert;
+        asn1cert.data = s2n_stuffer_raw_read(&cert_chain_in_stuffer, certificate_size);
+        asn1cert.size = certificate_size;
+        notnull_check(asn1cert.data);
+
+        /* Pull the public key from the first certificate */
+        if (certificate_count == 0) {
+            struct s2n_rsa_public_key *rsa_pub_key_out;
+            GUARD(s2n_cert_public_key_get_rsa(public_key_out, &rsa_pub_key_out));
+            /* Assume that the asn1cert is an RSA Cert */
+            GUARD(s2n_asn1der_to_rsa_public_key(rsa_pub_key_out, &asn1cert));
+            GUARD(s2n_cert_public_key_set_cert_type(public_key_out, S2N_CERT_TYPE_RSA_SIGN));
+        }
+
+        certificate_count++;
+    }
+
+    gte_check(certificate_count, 1);
+    return 0;
+}
 
 int negotiate(struct s2n_connection *conn)
 {
