@@ -89,10 +89,10 @@ cp ../../utils/s2n_safety.c .
 ### Execute the test
 
 ```
+make clean
 EXPECTED_PASS=2
 EXPECTED_FAIL=0
 make | ./count_success.pl $EXPECTED_PASS $EXPECTED_FAIL
-make clean && make 
 ```
 
 If both tests pass, you will see
