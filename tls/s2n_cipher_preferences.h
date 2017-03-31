@@ -34,6 +34,7 @@ extern const struct s2n_cipher_preferences cipher_preferences_20160411;
 extern const struct s2n_cipher_preferences cipher_preferences_20160804;
 extern const struct s2n_cipher_preferences cipher_preferences_20160824;
 extern const struct s2n_cipher_preferences cipher_preferences_20170210;
+extern const struct s2n_cipher_preferences cipher_preferences_20170328;
 extern const struct s2n_cipher_preferences cipher_preferences_test_all;
 
 extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
