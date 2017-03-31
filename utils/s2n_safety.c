@@ -68,7 +68,7 @@ int s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, uint32_t len)
 }
 
 /**
- * Given arrays "a" and "b" of length "len", conditionally copy "a" to "b"
+ * Given arrays "dest" and "src" of length "len", conditionally copy "src" to "dest"
  * The execution time of this function is independent of the values
  * stored in the arrays, and of whether the copy occurs.
  *
@@ -77,10 +77,10 @@ int s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, uint32_t len)
  * will affect the timing of this function).
  *
  */
-int s2n_constant_time_copy_or_dont(uint8_t * a, const uint8_t * b, uint32_t len, uint8_t dont)
+int s2n_constant_time_copy_or_dont(uint8_t * dest, const uint8_t * src, uint32_t len, uint8_t dont)
 {
-    S2N_PUBLIC_INPUT(a);
-    S2N_PUBLIC_INPUT(b);
+    S2N_PUBLIC_INPUT(dest);
+    S2N_PUBLIC_INPUT(src);
     S2N_PUBLIC_INPUT(len);
     
     uint8_t mask = ((uint_fast16_t)((uint_fast16_t)(dont) - 1)) >> 8;
@@ -89,9 +89,9 @@ int s2n_constant_time_copy_or_dont(uint8_t * a, const uint8_t * b, uint32_t len,
     /* dont > 0 : mask = 0x00 */
 
     for (int i = 0; i < len; i++) {
-        uint8_t old = a[i];
-        uint8_t diff = (old ^ b[i]) & mask;
-        a[i] = old ^ diff;
+        uint8_t old = dest[i];
+        uint8_t diff = (old ^ src[i]) & mask;
+        dest[i] = old ^ diff;
     }
 
     return 0;
