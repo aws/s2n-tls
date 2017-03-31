@@ -36,7 +36,7 @@ rm openssl-1.1.0.tar.gz
 cd openssl-1.1.0*
 
 if [ "$PLATFORM" == "linux" ]; then
-    CONFIGURE="./config"
+    CONFIGURE="./config -d"
 elif [ "$PLATFORM" == "osx" ]; then
     CONFIGURE="./Configure darwin64-x86_64-cc"
 else
@@ -45,7 +45,7 @@ else
 fi
 
 # Use g3 to get debug symbols in libcrypto to chase memory leaks
-$CONFIGURE -g3 -d -fPIC              \
+$CONFIGURE -g3 -fPIC              \
          no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
          no-hw no-mdc2 no-seed no-idea enable-ec_nistp_64_gcc_128 no-camellia\
          no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng                  \
