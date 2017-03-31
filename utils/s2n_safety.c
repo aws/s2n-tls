@@ -21,6 +21,8 @@
 #include <sys/types.h>
 #include <stdint.h>
 
+#include "s2n_annotations.h"
+
 /**
  * Get the process id
  *
@@ -37,8 +39,26 @@ pid_t s2n_actual_getpid()
 #endif
 }
 
+/**
+ * Given arrays "a" and "b" of length "len", determine whether they
+ * hold equal contents.
+ *
+ * The execution time of this function is independent of the values
+ * stored in the arrays.  
+ *
+ * Timing may depend on the length of the arrays, and on the location
+ * of the arrays in memory (e.g. if a buffer has been paged out, this
+ * will affect the timing of this function).
+ *
+ * Returns:
+ *  Whether all bytes in arrays "a" and "b" are identical
+ */
 int s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, uint32_t len)
 {
+    S2N_PUBLIC_INPUT(a);
+    S2N_PUBLIC_INPUT(b);
+    S2N_PUBLIC_INPUT(len);
+    
     uint8_t xor = 0;
     for (int i = 0; i < len; i++) {
         xor |= a[i] ^ b[i];
@@ -47,8 +67,22 @@ int s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, uint32_t len)
     return !xor;
 }
 
+/**
+ * Given arrays "a" and "b" of length "len", conditionally copy "a" to "b"
+ * The execution time of this function is independent of the values
+ * stored in the arrays, and of whether the copy occurs.
+ *
+ * Timing may depend on the length of the arrays, and on the location
+ * of the arrays in memory (e.g. if a buffer has been paged out, this
+ * will affect the timing of this function).
+ *
+ */
 int s2n_constant_time_copy_or_dont(uint8_t * a, const uint8_t * b, uint32_t len, uint8_t dont)
 {
+    S2N_PUBLIC_INPUT(a);
+    S2N_PUBLIC_INPUT(b);
+    S2N_PUBLIC_INPUT(len);
+    
     uint8_t mask = ((uint_fast16_t)((uint_fast16_t)(dont) - 1)) >> 8;
 
     /* dont = 0 : mask = 0xff */

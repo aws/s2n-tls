@@ -23,6 +23,7 @@ os:
   - linux
 
 env:
+  - TESTS=ctverif
   - S2N_LIBCRYPTO=openssl-1.1.0 BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
   - S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
   - S2N_LIBCRYPTO=libressl      BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
@@ -42,6 +43,8 @@ env:
 
 matrix:
   exclude:
+  - os: osx
+    env: TESTS=ctverif
   - os: osx
     env: TESTS=sawHMAC SAW_HMAC_TEST=md5    SAW=true GCC6_REQUIRED=true
   - os: osx
@@ -71,6 +74,7 @@ matrix:
 before_install:
   # Setup the cache directory paths
   - if [[ ! -d test-deps ]]; then mkdir test-deps ; fi
+  - export BASE_S2N_DIR=`pwd`
   - export PYTHON_INSTALL_DIR=`pwd`/test-deps/python
   - export GNUTLS_INSTALL_DIR=`pwd`/test-deps/gnutls
   - export PRLIMIT_INSTALL_DIR=`pwd`/test-deps/prlimit
@@ -83,6 +87,7 @@ before_install:
   - export OPENSSL_1_0_2_INSTALL_DIR=`pwd`/test-deps/openssl-1.0.2
   - export LIBRESSL_INSTALL_DIR=`pwd`/test-deps/libressl
   - export CPPCHECK_INSTALL_DIR=`pwd`/test-deps/cppcheck
+  - export CTVERIF_INSTALL_DIR=`pwd`/test-deps/ctverif
 
 # Install missing test dependencies. If the install directory already exists, cached artifacts will be used
 # for that dependency.
@@ -92,7 +97,7 @@ install:
   - .travis/install_default_dependencies.sh
     # Set GCC 6 as Default on both Ubuntu and OSX
   - if [[ "$GCC6_REQUIRED" == "true" ]]; then alias gcc=$(which gcc-6) ; fi
-  
+
 before_script:
   # Add all of our test dependencies to the PATH. Use Openssl 1.1.0 so the latest openssl is used for s_client
   # integration tests.
@@ -122,3 +127,4 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "sawHMAC" ]]; then make -C tests/saw/ tmp/verify_s2n_hmac_$SAW_HMAC_TEST.log ; fi
   - if [[ "$TESTS" == "sawDRBG" ]]; then make -C tests/saw tmp/spec/DRBG/DRBG.log ; fi
   - if [[ "$TESTS" == "sawHMACFailure" ]]; then make -C tests/saw failure-tests ; fi
+  - if [[ "$TESTS" == "ctverif" ]]; then .travis/run_ctverif.sh $CTVERIF_INSTALL_DIR ; fi
