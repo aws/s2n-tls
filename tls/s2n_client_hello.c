@@ -112,7 +112,6 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 
 int s2n_client_hello_send(struct s2n_connection *conn)
 {
-    uint32_t gmt_unix_time = time(NULL);
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_stuffer client_random;
     struct s2n_blob b, r;
@@ -124,10 +123,9 @@ int s2n_client_hello_send(struct s2n_connection *conn)
 
     /* Create the client random data */
     GUARD(s2n_stuffer_init(&client_random, &b));
-    GUARD(s2n_stuffer_write_uint32(&client_random, gmt_unix_time));
 
-    r.data = s2n_stuffer_raw_write(&client_random, S2N_TLS_RANDOM_DATA_LEN - 4);
-    r.size = S2N_TLS_RANDOM_DATA_LEN - 4;
+    r.data = s2n_stuffer_raw_write(&client_random, S2N_TLS_RANDOM_DATA_LEN);
+    r.size = S2N_TLS_RANDOM_DATA_LEN;
     notnull_check(r.data);
     GUARD(s2n_get_public_random_data(&r));
 
