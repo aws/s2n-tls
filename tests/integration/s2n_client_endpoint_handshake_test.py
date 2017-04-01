@@ -73,9 +73,17 @@ def well_known_endpoints_test():
 
     print("\n\tTesting s2n Client with Well Known Endpoints:")
 
+    maxRetries = 5;
     failed = 0
     for endpoint in well_known_endpoints:
-        ret = try_client_handshake(endpoint)
+        # Retry handshake in case there are any problems going over the internet
+        for i in range(1, maxRetries):
+            ret = try_client_handshake(endpoint)
+            if ret is 0:
+                break
+            else:
+                time.sleep(i)
+        
         print_result("Endpoint:  %-40s... " % endpoint, ret)
         if ret != 0:
             failed += 1
