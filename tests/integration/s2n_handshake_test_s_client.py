@@ -25,6 +25,8 @@ import time
 import socket
 import subprocess
 import itertools
+import multiprocessing
+from multiprocessing.pool import ThreadPool
 from s2n_test_constants import *
 
 PROTO_VERS_TO_S_CLIENT_ARG = {
@@ -120,41 +122,64 @@ def try_handshake(endpoint, port, cipher, ssl_version, sig_algs=None, curves=Non
     return 0
 
 def print_result(result_prefix, return_code):
-    print(result_prefix, end='')
+    suffix = ""
     if return_code == 0:
         if sys.stdout.isatty():
-            print("\033[32;1mPASSED\033[0m")
+            suffix = "\033[32;1mPASSED\033[0m"
         else:
-            print("PASSED")
+            suffix = "PASSED"
     else:
         if sys.stdout.isatty():
-            print("\033[31;1mFAILED\033[0m")
+            suffix = "\033[31;1mFAILED\033[0m"
         else:
-            print("FAILED")
+            suffix ="FAILED"
+            
+    print(result_prefix + suffix)
 
+def createThreadPool():
+    threadpoolSize = multiprocessing.cpu_count() * 4
+    threadpool = ThreadPool(processes=threadpoolSize)
+    print("\tUsing ThreadPool of size: " + str(threadpoolSize))
+    return threadpool
+
+def run_handshake_test(host, port, ssl_version, cipher):
+    cipher_name = cipher.openssl_name
+    cipher_vers = cipher.min_tls_vers
+
+    # Skip the cipher if openssl can't test it. 3DES/RC4 are disabled by default in 1.1.0
+    if not cipher.openssl_1_1_0_compatible:
+        return 0
+
+    if ssl_version < cipher_vers:
+        return 0
+
+    ret = try_handshake(host, port, cipher_name, ssl_version)
+    result_prefix = "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
+    print_result(result_prefix, ret)
+    
+    return ret
+    
 def handshake_test(host, port, test_ciphers):
     """
     Basic handshake tests using all valid combinations of supported cipher suites and TLS versions.
     """
     print("\n\tRunning handshake tests:")
+    
+    threadpool = createThreadPool()
     failed = 0
     for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
         print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
+        
+        portOffset = 0
+        results = []
+        
         for cipher in test_ciphers:
-            cipher_name = cipher.openssl_name
-            cipher_vers = cipher.min_tls_vers
-
-            # Skip the cipher if openssl can't test it. 3DES/RC4 are disabled by default in 1.1.0
-            if not cipher.openssl_1_1_0_compatible:
-                continue
-
-            if ssl_version < cipher_vers:
-                continue
-
-            ret = try_handshake(host, port, cipher_name, ssl_version)
-            result_prefix = "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
-            print_result(result_prefix, ret)
-            if ret != 0:
+            async_result = threadpool.apply_async(run_handshake_test, (host, port + portOffset, ssl_version, cipher))
+            portOffset += 1
+            results.append(async_result)
+        
+        for async_result in results:
+            if async_result.get() != 0:
                 failed = 1
 
     return failed
@@ -186,18 +211,31 @@ def resume_test(host, port, test_ciphers):
 
     return failed
 
+supported_sigs = ["RSA+SHA1", "RSA+SHA224", "RSA+SHA256", "RSA+SHA384", "RSA+SHA512"]
+unsupported_sigs = ["ECDSA+SHA256", "DSA+SHA384", "ECDSA+SHA512", "DSA+SHA1"]
+
+def run_sigalg_test(host, port, cipher, ssl_version, permutation):
+    # Put some unsupported algs in front to make sure we gracefully skip them
+    mixed_sigs = unsupported_sigs + list(permutation)
+    mixed_sigs_str = ':'.join(mixed_sigs)
+    ret = try_handshake(host, port, cipher.openssl_name, ssl_version, sig_algs=mixed_sigs_str)
+    # Trim the RSA part off for brevity. User should know we are only supported RSA at the moment.
+    prefix = "Digests: %-50s Vers: %10s ... " % (':'.join([x[4:] for x in permutation]), S2N_PROTO_VERS_TO_STR[S2N_TLS12])
+    print_result(prefix, ret)
+    return ret
+
 def sigalg_test(host, port):
     """
     Acceptance test for supported signature algorithms. Tests all possible supported sigalgs with unsupported ones mixed in
     for noise.
     """
-
     failed = 0
-    supported_sigs = ["RSA+SHA1", "RSA+SHA224", "RSA+SHA256", "RSA+SHA384", "RSA+SHA512"]
-    unsupported_sigs = ["ECDSA+SHA256", "DSA+SHA384", "ECDSA+SHA512", "DSA+SHA1"]
+    
     print("\n\tRunning signature algorithm tests:")
     print("\tExpected supported:   " + str(supported_sigs))
     print("\tExpected unsupported: " + str(unsupported_sigs))
+    
+    threadpool = createThreadPool()
 
     failed = 0
     for size in range(1, len(supported_sigs) + 1):
@@ -205,16 +243,18 @@ def sigalg_test(host, port):
 
         # Produce permutations of every accepted signature alrgorithm in every possible order
         for permutation in itertools.permutations(supported_sigs, size):
-            # Put some unsupported algs in front to make sure we gracefully skip them
-            mixed_sigs = unsupported_sigs + list(permutation)
-            mixed_sigs_str = ':'.join(mixed_sigs)
-            # Try an ECDHE cipher suite and a DHE one
-            for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or x.openssl_name == "DHE-RSA-AES128-GCM-SHA256", ALL_TEST_CIPHERS):
-                ret = try_handshake(host, port, cipher.openssl_name, S2N_TLS12, sig_algs=mixed_sigs_str)
-                # Trim the RSA part off for brevity. User should know we are only supported RSA at the moment.
-                prefix = "Digests: %-50s Vers: %10s ... " % (':'.join([x[4:] for x in permutation]), S2N_PROTO_VERS_TO_STR[S2N_TLS12])
-                print_result(prefix, ret)
-                if ret != 0:
+            portOffset = 0
+            results = []
+            
+            for cipher in ALL_TEST_CIPHERS:
+                # Try an ECDHE cipher suite and a DHE one
+                if(cipher.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or cipher.openssl_name == "DHE-RSA-AES128-GCM-SHA256"):
+                    async_result = threadpool.apply_async(run_sigalg_test, (host, port + portOffset, cipher, S2N_TLS12, permutation))
+                    portOffset = portOffset + 1
+                    results.append(async_result)
+
+            for async_result in results:
+                if async_result.get() != 0:
                     failed = 1
     return failed
 
