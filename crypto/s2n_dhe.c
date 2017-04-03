@@ -29,7 +29,7 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 
-#define S2N_MIN_DH_PRIME_SIZE_BYTES (2048 / 8)
+#define S2N_MIN_DH_PRIME_SIZE_BYTES (1024 / 8)
 
 /* Caller is not responsible for freeing values returned by these accessors
  * Per https://www.openssl.org/docs/man1.1.0/crypto/DH_get0_pqg.html

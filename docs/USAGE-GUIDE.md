@@ -435,6 +435,19 @@ int s2n_config_add_dhparams(struct s2n_config *config,
 
 **s2n_config_add_dhparams** associates a set of Diffie-Hellman parameters with
 an **s2n_config** object. **dhparams_pem** should be PEM encoded DH parameters.
+Due to the [Logjam](https://weakdh.org/) attack, it is strongly recommended to
+use DH parameters >= 2048 bits. 
+
+Here is an example that generates DH params using Openssl:
+```sh
+openssl dhparam -out dhparams.pem 2048
+```
+
+*NOTE*: Certain versions of [Java](http://bugs.java.com/bugdatabase/view_bug.do?bug_id=6521495)
+prior to [JDK8](http://bugs.java.com/bugdatabase/view_bug.do?bug_id=7044060) will not
+support DH params larger than 1024 bits. If your application requires interop with peers that use the affected Java
+versions, configure a [cipher preference list](#s2n\_config\_set\_cipher\_preferences) that has DHE ciphers disabled.
+The affected Java versions support ECDHE-based ciphers.
 
 ### s2n\_config\_set\_protocol\_preferences
 
