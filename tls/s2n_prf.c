@@ -16,7 +16,6 @@
 #include <sys/param.h>
 #include <openssl/md5.h>
 #include <openssl/sha.h>
-#include <openssl/evp.h>
 #include <string.h>
 
 #include "error/s2n_errno.h"
