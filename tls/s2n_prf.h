@@ -31,6 +31,8 @@
 
 union s2n_prf_working_space {
     struct {
+        EVP_PKEY *mac_key;
+        EVP_MD_CTX *md_ctx;
         uint8_t digest0[S2N_MAX_DIGEST_LEN];
         uint8_t digest1[S2N_MAX_DIGEST_LEN];
     } tls;

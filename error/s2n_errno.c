@@ -72,7 +72,6 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_P_HASH_INIT_FAILED, "error initializing p_hash"},
     {S2N_ERR_P_HASH_UPDATE_FAILED, "error updating p_hash"},
     {S2N_ERR_P_HASH_FINAL_FAILED, "error creating p_hash digest"},
-    {S2N_ERR_P_HASH_COPY_FAILED, "error copying p_hash"},
     {S2N_ERR_HMAC_INVALID_ALGORITHM, "invalid HMAC algorithm"},
     {S2N_ERR_HKDF_OUTPUT_SIZE, "invalid HKDF output size"},
     {S2N_ERR_PRF_INVALID_ALGORITHM, "invalid prf hash algorithm"},
