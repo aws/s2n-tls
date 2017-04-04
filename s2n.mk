@@ -28,12 +28,14 @@ CRYPTO_LIBS = -lcrypto
 CC	:= $(CROSS_COMPILE)$(CC)
 AR	= $(CROSS_COMPILE)ar
 RANLIB	= $(CROSS_COMPILE)ranlib
+CLANG   ?= clang
 
 SOURCES = $(wildcard *.c *.h)
 CRUFT   = $(wildcard *.c~ *.h~ *.c.BAK *.h.BAK *.o *.a *.so *.dylib *.bc)
 INDENT  = $(shell (if indent --version 2>&1 | grep GNU > /dev/null; then echo indent ; elif gindent --version 2>&1 | grep GNU > /dev/null; then echo gindent; else echo true ; fi ))
 
-DEFAULT_CFLAGS = -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized \
+#DEFAULT_CFLAGS = -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized 
+DEFAULT_CFLAGS = -pedantic -w -Wimplicit -Wchar-subscripts -Wuninitialized \
                  -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -fPIC \
                  -std=c99 -D_POSIX_C_SOURCE=200809L -O2 -I$(LIBCRYPTO_ROOT)/include/ \
                  -I../api/ -I../ -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security \
@@ -61,10 +63,10 @@ ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)
 endif
 
 
-CFLAGS_LLVM = ${DEFAULT_CFLAGS} -fno-inline -emit-llvm -c
+CFLAGS_LLVM = ${DEFAULT_CFLAGS} -fno-inline -emit-llvm -c -g
 
 $(BITCODE_DIR)%.bc: %.c
-	clang $(CFLAGS_LLVM) -o $@ $< 
+	$(CLANG) $(CFLAGS_LLVM) -o $@ $< 
 
 
 INDENTOPTS = -npro -kr -i4 -ts4 -nut -sob -l180 -ss -ncs -cp1
