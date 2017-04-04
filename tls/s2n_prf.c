@@ -80,7 +80,7 @@ static int s2n_sslv3_prf(union s2n_prf_working_space *ws, struct s2n_blob *secre
     return 0;
 }
 
-static int s2n_p_hash_init(union s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret)
+static int s2n_p_hash_init(union s2n_prf_working_space *ws, s2n_hmac_algorithm alg, const struct s2n_blob *secret)
 {
     int r = 0;
 
@@ -163,7 +163,7 @@ static int s2n_p_hash_free(union s2n_prf_working_space *ws)
     return 0;
 }
 
-static int s2n_p_hash_reset(union s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret)
+static int s2n_p_hash_reset(union s2n_prf_working_space *ws, s2n_hmac_algorithm alg, const struct s2n_blob *secret)
 {
     GUARD(s2n_p_hash_free(ws));
     GUARD(s2n_p_hash_init(ws, alg, secret));
@@ -171,7 +171,7 @@ static int s2n_p_hash_reset(union s2n_prf_working_space *ws, s2n_hmac_algorithm 
     return 0;
 }
 
-static int s2n_p_hash(union s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret,
+static int s2n_p_hash(union s2n_prf_working_space *ws, s2n_hmac_algorithm alg, const struct s2n_blob *secret,
                       struct s2n_blob *label, struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *out)
 {
     size_t digest_size;
