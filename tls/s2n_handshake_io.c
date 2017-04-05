@@ -41,7 +41,7 @@
 #define TLS_SERVER_CERT               11
 #define TLS_SERVER_KEY                12
 #define TLS_SERVER_CERT_REQ           13
-#define TLS_CLIENT_CERT_REQ           13 /* Same as SERVER_CERT_REQ*/
+#define TLS_CLIENT_CERT_REQ           13 /* Same as SERVER_CERT_REQ */
 #define TLS_SERVER_HELLO_DONE         14
 #define TLS_CLIENT_CERT               11  /* Same as SERVER_CERT */
 #define TLS_CLIENT_CERT_VERIFY        15

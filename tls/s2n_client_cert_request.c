@@ -38,7 +38,7 @@ int s2n_client_cert_req_recv(struct s2n_connection *conn)
         s2n_signature_algorithm chosen_signature_algorithm;
         GUARD(s2n_recv_client_signature_algorithms(conn, in, &chosen_hash_algorithm, &chosen_signature_algorithm));
         conn->secure.client_cert_hash_algorithm = chosen_hash_algorithm;
-        conn->secure.client_cert_sig_algorithm = chosen_signature_algorithm;
+        conn->secure.client_cert_sig_alg = chosen_signature_algorithm;
     }
 
     uint16_t cert_authorities_len = 0;
