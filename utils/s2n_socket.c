@@ -125,6 +125,8 @@ int s2n_socket_write_cork(struct s2n_connection *conn)
 
     /* Ignore the return value, if it fails it fails */
     setsockopt(w_io_ctx->fd, IPPROTO_TCP, S2N_CORK, &optval, sizeof(optval));
+    /* Galois addition */
+    conn->corked = optval;
 #endif
 
     return 0;
@@ -140,6 +142,8 @@ int s2n_socket_write_uncork(struct s2n_connection *conn)
 
     /* Ignore the return value, if it fails it fails */
     setsockopt(w_io_ctx->fd, IPPROTO_TCP, S2N_CORK, &optval, sizeof(optval));
+    /* Galois addition */
+    conn->corked = optval;
 #endif
 
     return 0;
