@@ -24,12 +24,12 @@ os:
 
 env:
   - TESTS=ctverif
-  - S2N_LIBCRYPTO=openssl-1.1.0 BUILD_S2N=true TESTS=integration GCC6_REQUIRED=false
-  - S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=integration GCC6_REQUIRED=false
-  - S2N_LIBCRYPTO=libressl      BUILD_S2N=true TESTS=integration GCC6_REQUIRED=false
+  - S2N_LIBCRYPTO=openssl-1.1.0 BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
+  - S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
+  - S2N_LIBCRYPTO=libressl      BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
   # Force libcrypto to use "software only" crypto implementations for AES and AES-GCM. Verify s2n can gracefully use
   # unoptimized routines. See https://www.openssl.org/docs/man1.1.0/crypto/OPENSSL_ia32cap.html
-  - S2N_LIBCRYPTO=openssl-1.1.0 OPENSSL_ia32cap="~0x200000200000000" BUILD_S2N=true TESTS=integration GCC6_REQUIRED=false
+  - S2N_LIBCRYPTO=openssl-1.1.0 OPENSSL_ia32cap="~0x200000200000000" BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
   - S2N_LIBCRYPTO=openssl-1.1.0 LATEST_CLANG=true TESTS=fuzz
   - TESTS=sawHMAC SAW_HMAC_TEST=md5    SAW=true GCC6_REQUIRED=false
   - TESTS=sawHMAC SAW_HMAC_TEST=none   SAW=true GCC6_REQUIRED=false
