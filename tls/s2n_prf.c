@@ -117,7 +117,7 @@ static int s2n_p_hash_init(union s2n_prf_working_space *ws, s2n_hmac_algorithm a
         r = EVP_DigestSignInit(ws->tls.md_ctx, NULL, EVP_sha512(), NULL, ws->tls.mac_key);
         break;
     default:
-        S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
+        S2N_ERROR(S2N_ERR_P_HASH_INVALID_ALGORITHM);
     }
 
     if (r == 0) {
