@@ -66,7 +66,9 @@ endif
 CFLAGS_LLVM = ${DEFAULT_CFLAGS} -fno-inline -emit-llvm -c -g
 
 $(BITCODE_DIR)%.bc: %.c
-	$(CLANG) $(CFLAGS_LLVM) -o $@ $< 
+        # -O0 is a temporary fix to prevent clang from emiting LLVM
+        # instructions that are not supported by SAW
+	$(CLANG) $(CFLAGS_LLVM) -O0 -o $@ $< 
 
 
 INDENTOPTS = -npro -kr -i4 -ts4 -nut -sob -l180 -ss -ncs -cp1
