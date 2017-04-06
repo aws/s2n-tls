@@ -136,10 +136,10 @@ def print_result(result_prefix, return_code):
             
     print(result_prefix + suffix)
 
-def createThreadPool():
-    threadpoolSize = multiprocessing.cpu_count() * 4
+def create_thread_pool():
+    threadpoolSize = multiprocessing.cpu_count() * 2  #Multiply by 2 since performance improves slightly if CPU has hyperthreading
+    print("\tCreating ThreadPool of size: " + str(threadpoolSize))
     threadpool = ThreadPool(processes=threadpoolSize)
-    print("\tUsing ThreadPool of size: " + str(threadpoolSize))
     return threadpool
 
 def run_handshake_test(host, port, ssl_version, cipher):
@@ -165,19 +165,20 @@ def handshake_test(host, port, test_ciphers):
     """
     print("\n\tRunning handshake tests:")
     
-    threadpool = createThreadPool()
     failed = 0
     for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
         print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
-        
-        portOffset = 0
+        threadpool = create_thread_pool()
+        port_offset = 0
         results = []
         
         for cipher in test_ciphers:
-            async_result = threadpool.apply_async(run_handshake_test, (host, port + portOffset, ssl_version, cipher))
-            portOffset += 1
+            async_result = threadpool.apply_async(run_handshake_test, (host, port + port_offset, ssl_version, cipher))
+            port_offset += 1
             results.append(async_result)
-        
+
+        threadpool.close()
+        threadpool.join()
         for async_result in results:
             if async_result.get() != 0:
                 failed = 1
@@ -220,7 +221,7 @@ def run_sigalg_test(host, port, cipher, ssl_version, permutation):
     mixed_sigs_str = ':'.join(mixed_sigs)
     ret = try_handshake(host, port, cipher.openssl_name, ssl_version, sig_algs=mixed_sigs_str)
     # Trim the RSA part off for brevity. User should know we are only supported RSA at the moment.
-    prefix = "Digests: %-50s Vers: %10s ... " % (':'.join([x[4:] for x in permutation]), S2N_PROTO_VERS_TO_STR[S2N_TLS12])
+    prefix = "Digests: %-40s Port: %-5s Vers: %-8s... " % (':'.join([x[4:] for x in permutation]), port, S2N_PROTO_VERS_TO_STR[S2N_TLS12])
     print_result(prefix, ret)
     return ret
 
@@ -235,17 +236,14 @@ def sigalg_test(host, port):
     print("\tExpected supported:   " + str(supported_sigs))
     print("\tExpected unsupported: " + str(unsupported_sigs))
     
-    threadpool = createThreadPool()
-
     failed = 0
     for size in range(1, len(supported_sigs) + 1):
         print("\n\t\tTesting ciphers using signature preferences of size: " + str(size))
-
+        threadpool = create_thread_pool()
+        portOffset = 0
+        results = []
         # Produce permutations of every accepted signature alrgorithm in every possible order
         for permutation in itertools.permutations(supported_sigs, size):
-            portOffset = 0
-            results = []
-            
             for cipher in ALL_TEST_CIPHERS:
                 # Try an ECDHE cipher suite and a DHE one
                 if(cipher.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or cipher.openssl_name == "DHE-RSA-AES128-GCM-SHA256"):
@@ -253,9 +251,12 @@ def sigalg_test(host, port):
                     portOffset = portOffset + 1
                     results.append(async_result)
 
-            for async_result in results:
-                if async_result.get() != 0:
-                    failed = 1
+        threadpool.close()
+        threadpool.join()
+        for async_result in results:
+            if async_result.get() != 0:
+                failed = 1
+
     return failed
 
 def elliptic_curve_test(host, port):
