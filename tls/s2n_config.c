@@ -72,10 +72,62 @@ int deny_all_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_c
     S2N_ERROR(S2N_ERR_CERT_UNTRUSTED);
 }
 
+/* Accept all RSA Certificates is unsafe and is only used in the s2n Client for testing purposes */
+int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context)
+{
+    struct s2n_blob cert_chain_blob = { .data = cert_chain_in, .size = cert_chain_len};
+    struct s2n_stuffer cert_chain_in_stuffer;
+    GUARD(s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob));
+    GUARD(s2n_stuffer_write(&cert_chain_in_stuffer, &cert_chain_blob));
+
+    uint32_t certificate_count = 0;
+    while (s2n_stuffer_data_available(&cert_chain_in_stuffer)) {
+        uint32_t certificate_size;
+
+        GUARD(s2n_stuffer_read_uint24(&cert_chain_in_stuffer, &certificate_size));
+
+        if (certificate_size == 0 || certificate_size > s2n_stuffer_data_available(&cert_chain_in_stuffer) ) {
+            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        }
+
+        struct s2n_blob asn1cert;
+        asn1cert.data = s2n_stuffer_raw_read(&cert_chain_in_stuffer, certificate_size);
+        asn1cert.size = certificate_size;
+        notnull_check(asn1cert.data);
+
+        /* Pull the public key from the first certificate */
+        if (certificate_count == 0) {
+            struct s2n_rsa_public_key *rsa_pub_key_out;
+            GUARD(s2n_cert_public_key_get_rsa(public_key_out, &rsa_pub_key_out));
+            /* Assume that the asn1cert is an RSA Cert */
+            GUARD(s2n_asn1der_to_rsa_public_key(rsa_pub_key_out, &asn1cert));
+            GUARD(s2n_cert_public_key_set_cert_type(public_key_out, S2N_CERT_TYPE_RSA_SIGN));
+        }
+
+        certificate_count++;
+    }
+
+    gte_check(certificate_count, 1);
+    return 0;
+}
+
 struct s2n_config s2n_default_config = {
     .cert_and_key_pairs = NULL,
     .cipher_preferences = &cipher_preferences_20170210,
     .nanoseconds_since_epoch = get_nanoseconds_since_epoch,
+    .client_cert_auth_type = S2N_CERT_AUTH_NONE, /* Do not require the client to provide a Cert to the Server */
+    .verify_cert_chain_cb = deny_all_certs,
+    .verify_cert_context = NULL,
+};
+
+/* This config should only used by the s2n_client for unit/integration testing purposes. */
+struct s2n_config s2n_unsafe_client_config = {
+    .cert_and_key_pairs = NULL,
+    .cipher_preferences = &cipher_preferences_20170210,
+    .nanoseconds_since_epoch = get_nanoseconds_since_epoch,
+    .client_cert_auth_type = S2N_CERT_AUTH_NONE,
+    .verify_cert_chain_cb = accept_all_rsa_certs,
+    .verify_cert_context = NULL,
 };
 
 struct s2n_config *s2n_config_new(void)
@@ -204,10 +256,18 @@ int s2n_config_set_protocol_preferences(struct s2n_config *config, const char *c
     return 0;
 }
 
-int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_type cert_auth_type)
+int s2n_config_get_client_auth_type(struct s2n_config *config, s2n_cert_auth_type *client_auth_type)
 {
     notnull_check(config);
-    config->client_cert_auth_type = cert_auth_type;
+    notnull_check(client_auth_type);
+    *client_auth_type = config->client_cert_auth_type;
+    return 0;
+}
+
+int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_type client_auth_type)
+{
+    notnull_check(config);
+    config->client_cert_auth_type = client_auth_type;
     return 0;
 }
 

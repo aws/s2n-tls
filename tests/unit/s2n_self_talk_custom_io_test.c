@@ -85,13 +85,14 @@ int buffer_write(void *io_context, const uint8_t *buf, uint32_t len)
 int mock_client(int writefd, int readfd)
 {
     struct s2n_connection *conn;
-    struct s2n_config *config;
+    struct s2n_config *client_config;
     s2n_blocked_status blocked;
     int result = 0;
 
     conn = s2n_connection_new(S2N_CLIENT);
-    config = s2n_config_new();
-    s2n_connection_set_config(conn, config);
+    client_config = s2n_config_new();
+    s2n_config_set_verify_cert_chain_cb(client_config, accept_all_rsa_certs, NULL);
+    s2n_connection_set_config(conn, client_config);
 
     // Unlike the server, the client just passes ownership of I/O to s2n
     s2n_connection_set_read_fd(conn, readfd);
@@ -104,7 +105,7 @@ int mock_client(int writefd, int readfd)
 
     s2n_shutdown(conn, &blocked);
     s2n_connection_free(conn);
-    s2n_config_free(config);
+    s2n_config_free(client_config);
     s2n_cleanup();
 
     _exit(0);
@@ -184,7 +185,7 @@ int main(int argc, char **argv)
     /* Negotiate the handshake. */
     do {
         int ret;
-        
+
         ret = s2n_negotiate(conn, &blocked);
         EXPECT_TRUE(ret == 0 || (blocked && (errno == EAGAIN || errno == EWOULDBLOCK)));
         

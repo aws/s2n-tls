@@ -260,8 +260,11 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
     /* A handshake type has been negotiated */
     conn->handshake.handshake_type = NEGOTIATED;
 
+    s2n_cert_auth_type client_cert_auth_type;
+    GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
+
     /* Only check cache for Session ID if Client Auth is not configured */
-    if (conn->client_cert_auth_type == S2N_CERT_AUTH_NONE && s2n_is_caching_enabled(conn->config)) {
+    if (client_cert_auth_type == S2N_CERT_AUTH_NONE && s2n_is_caching_enabled(conn->config)) {
         if (!s2n_resume_from_cache(conn)) {
             return 0;
         }
@@ -278,7 +281,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
     /* If we get this far, it's a full handshake */
     conn->handshake.handshake_type |= FULL_HANDSHAKE;
 
-    if(conn->client_cert_auth_type != S2N_CERT_AUTH_NONE) {
+    if(client_cert_auth_type != S2N_CERT_AUTH_NONE) {
         conn->handshake.handshake_type |= CLIENT_AUTH;
     }
 

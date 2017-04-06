@@ -88,11 +88,6 @@ struct s2n_connection {
     uint8_t actual_protocol_version;
     uint8_t actual_protocol_version_established;
 
-    /* Certificate Authentication and Verification Parameters */
-    s2n_cert_auth_type client_cert_auth_type;
-    verify_cert_trust_chain_fn *verify_cert_chain_cb;
-    void *verify_cert_context;
-
     /* Our crypto parameters */
     struct s2n_crypto_parameters initial;
     struct s2n_crypto_parameters secure;
@@ -103,6 +98,17 @@ struct s2n_connection {
 
     /* The PRF needs some storage elements to work with */
     struct s2n_prf_working_space prf_space;
+
+    /* Whether to use client_cert_auth_type stored in s2n_config or in this s2n_connection.
+     *
+     * By default the s2n_connection will defer to s2n_config->client_cert_auth_type on whether or not to use Client Auth.
+     * But users can override Client Auth at the connection level using s2n_connection_set_client_auth_type() without mutating
+     * s2n_config since s2n_config can be shared between multiple s2n_connections. */
+    uint8_t client_cert_auth_type_overridden;
+
+    /* Whether or not the s2n_connection should require the Client to authenticate itself to the server. Only used if
+     * client_cert_auth_type_overridden is non-zero. */
+    s2n_cert_auth_type client_cert_auth_type;
 
     /* Our workhorse stuffers, used for buffering the plaintext
      * and encrypted data in both directions.
@@ -197,8 +203,7 @@ int s2n_connection_kill(struct s2n_connection *conn);
 int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connection *conn, uint32_t len);
 int s2n_connection_recv_stuffer(struct s2n_stuffer *stuffer, struct s2n_connection *conn, uint32_t len);
 
-extern int s2n_connection_set_cert_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type);
-extern int s2n_connection_set_verify_cert_chain_cb(struct s2n_connection *conn, verify_cert_trust_chain_fn *callback, void *context);
+extern int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type);
+extern int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type *client_cert_auth_type);
+extern int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len);
 
-int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
-int deny_all_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key, void *context);

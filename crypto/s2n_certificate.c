@@ -26,14 +26,6 @@ int s2n_cert_public_key_set_cert_type(struct s2n_cert_public_key *cert_pub_key, 
     return 0;
 }
 
-int s2n_cert_public_key_set_rsa(struct s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key rsa)
-{
-    notnull_check(cert_pub_key);
-    cert_pub_key->public_key.rsa = rsa;
-
-    return 0;
-}
-
 int s2n_cert_public_key_get_rsa(struct s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key **rsa)
 {
     notnull_check(cert_pub_key);

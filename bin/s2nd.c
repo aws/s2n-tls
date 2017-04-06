@@ -417,6 +417,11 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
+    if(mutual_auth) {
+        s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED);
+        s2n_config_set_verify_cert_chain_cb(config, &accept_all_rsa_certs, NULL);
+    }
+
     if (s2n_connection_set_config(conn, config) < 0) {
         fprintf(stderr, "Error setting configuration: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
@@ -430,11 +435,6 @@ int main(int argc, char *const *argv)
     if (prefer_low_latency && s2n_connection_prefer_low_latency(conn) < 0) {
         fprintf(stderr, "Error setting prefer low latency: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
-    }
-
-    if(mutual_auth) {
-        s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_REQUIRED);
-        s2n_connection_set_verify_cert_chain_cb(conn, &accept_all_rsa_certs, NULL);
     }
 
     int fd;

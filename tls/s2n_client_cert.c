@@ -45,7 +45,7 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
     struct s2n_cert_public_key cert_public_key;
 
     /* Determine the Cert Type, Verify the Cert, and extract the Public Key */
-    GUARD(conn->verify_cert_chain_cb(client_cert_chain.data, client_cert_chain.size, &cert_public_key, conn->verify_cert_context));
+    GUARD(conn->config->verify_cert_chain_cb(client_cert_chain.data, client_cert_chain.size, &cert_public_key, conn->config->verify_cert_context));
 
     switch (cert_public_key.cert_type) {
     /* s2n currently only supports RSA Certificates */
