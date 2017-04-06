@@ -25,9 +25,6 @@ BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
 all: $(OBJS)
 
 .PHONY : bc
-bc: $(BITCODE_DIR)all_llvm.bc
-
-$(BITCODE_DIR)all_llvm.bc : $(BCS)
-	llvm-link -o $@ $+
+bc: $(BCS)
 
 include ../s2n.mk

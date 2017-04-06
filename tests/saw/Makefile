@@ -100,9 +100,15 @@ clean_the_dir :
 CRYPTO_C = $(wildcard ../../crypto/*.c) $(wildcard ../../crypto/*.h) ../../crypto/Makefile
 CRYPTO_COPY = $(addprefix s2n/crypto/, $(notdir $(CRYPTO_C)))
 
-UTILS_COPY =$(addprefix s2n/utils/, $(notdir $(wildcard ../../utils/*.h)))
-TLS_COPY =$(addprefix s2n/tls/, $(notdir $(wildcard ../../tls/*.h)))
-STUFFER_COPY =$(addprefix s2n/stuffer/, $(notdir $(wildcard ../../stuffer/*.h)))
+UTILS_C = $(wildcard ../../utils/*.c) $(wildcard ../../utils/*.h) ../../utils/Makefile
+UTILS_COPY =$(addprefix s2n/utils/, $(notdir $(UTILS_C)))
+
+TLS_C = $(wildcard ../../tls/*.c) $(wildcard ../../tls/*.h) ../../tls/Makefile
+TLS_COPY =$(addprefix s2n/tls/, $(notdir $(TLS_C)))
+
+STUFFER_C = $(wildcard ../../stuffer/*.c) $(wildcard ../../stuffer/*.h) ../../stuffer/Makefile
+STUFFER_COPY =$(addprefix s2n/stuffer/, $(notdir $(STUFFER_C)))
+
 API_COPY =$(addprefix s2n/api/, $(notdir $(wildcard ../../api/*.h)))
 ERROR_COPY =$(addprefix s2n/error/, $(notdir $(wildcard ../../error/*.h)))
 
@@ -135,6 +141,7 @@ tmp/IS_PATCHED : | tmp
 
 bitcode/all_llvm.bc : s2n/crypto s2n/utils s2n/stuffer s2n/tls s2n/api s2n/error s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(UTILS_COPY) $(TLS_COPY) $(STUFFER_COPY) $(API_COPY) $(ERROR_COPY)
 	${MAKE} -C s2n bc
+	${MAKE} -C bitcode all_llvm.bc
 
 s2n/%.h : ../../%.h
 	cp $< $@
