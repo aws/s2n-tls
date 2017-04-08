@@ -137,9 +137,9 @@ def print_result(result_prefix, return_code):
     print(result_prefix + suffix)
 
 def create_thread_pool():
-    threadpoolSize = multiprocessing.cpu_count() * 2  #Multiply by 2 since performance improves slightly if CPU has hyperthreading
-    print("\tCreating ThreadPool of size: " + str(threadpoolSize))
-    threadpool = ThreadPool(processes=threadpoolSize)
+    threadpool_size = multiprocessing.cpu_count() * 2  #Multiply by 2 since performance improves slightly if CPU has hyperthreading
+    print("\tCreating ThreadPool of size: " + str(threadpool_size))
+    threadpool = ThreadPool(processes=threadpool_size)
     return threadpool
 
 def run_handshake_test(host, port, ssl_version, cipher):

@@ -102,9 +102,9 @@ def handshake(endpoint, port, cipher_name, ssl_version, priority_str, digests):
     return ret
 
 def create_thread_pool():
-    threadpoolSize = multiprocessing.cpu_count() * 2  #Multiply by 2 since performance improves slightly if CPU has hyperthreading
-    print("\tCreating ThreadPool of size: " + str(threadpoolSize))
-    threadpool = ThreadPool(processes=threadpoolSize)
+    threadpool_size = multiprocessing.cpu_count() * 2  #Multiply by 2 since performance improves slightly if CPU has hyperthreading
+    print("\tCreating ThreadPool of size: " + str(threadpool_size))
+    threadpool = ThreadPool(processes=threadpool_size)
     return threadpool
 
 def main():
