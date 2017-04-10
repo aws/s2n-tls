@@ -110,13 +110,14 @@ static int s2n_aead_chacha20_poly1305_decrypt(struct s2n_session_key *key, struc
         S2N_ERROR(S2N_ERR_DECRYPT);
     }
 
-    /* Decrypt the data */
-    if (EVP_DecryptUpdate(key->evp_cipher_ctx, out->data, &out_len, in->data, in_len) != 1) {
-        S2N_ERROR(S2N_ERR_DECRYPT);
-    }
+    int evp_decrypt_rc = 1;
+    /* Decrypt the data, but don't short circuit tag verification. EVP_Decrypt* return 0 on failure, 1 for success. */
+    evp_decrypt_rc &= EVP_DecryptUpdate(key->evp_cipher_ctx, out->data, &out_len, in->data, in_len);
 
     /* Verify the tag */
-    if (EVP_DecryptFinal_ex(key->evp_cipher_ctx, out->data, &out_len) != 1) {
+    evp_decrypt_rc &= EVP_DecryptFinal_ex(key->evp_cipher_ctx, out->data, &out_len);
+
+    if (evp_decrypt_rc != 1) {
         S2N_ERROR(S2N_ERR_DECRYPT);
     }
 
