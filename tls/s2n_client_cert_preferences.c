@@ -35,6 +35,5 @@ int s2n_recv_client_cert_preferences(struct s2n_stuffer *in, s2n_cert_type *chos
             }
         }
     }
-
     S2N_ERROR(S2N_ERR_CERT_TYPE_UNSUPPORTED);
 }
