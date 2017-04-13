@@ -1,3 +1,15 @@
+// This module contains a high-level model of the cork-uncork state
+// machine. This state machine only tracks the current sender (client,
+// server or both) and is driven by the new value of the 'writer' field
+// of the handshake state machine state (the 'handshake_action').
+//
+// It also contains a predicate that states the high-level model
+// simulates the lower-level model of s2n_advance_message in Cryptol
+// and is verified in the SAW proof script.
+//
+// Finally, the
+
+
 module CorkUncork where
 
 import Cryptol::Extras
@@ -37,7 +49,7 @@ highLevelSimulatesLowLevel conn_old =
          state_new  = (writer2sender writer_new, corkAdapt conn_new.corked)
          input      = writer_new
 
-//We're specifying the server state machine
+// The abstract transition function for the cork/uncork state machine
 advanceMessage : State -> [8] -> State
 advanceMessage (s, corking) c =
   if (s == clientSender) then
@@ -50,41 +62,16 @@ advanceMessage (s, corking) c =
           else (appData, corking - 1)
   else (appData, corking)
 
-//Another one, easier for F*
-advanceMessageNoarith : State -> [8] -> State
-advanceMessageNoarith (s, corking) c =
-  if (s == clientSender) then
-     if c == 'C' then (clientSender, corking)
-     else if c == 'S' then (serverSender, corked)
-          else (appData, corking)
-  else if s == serverSender then
-     if c == 'C' then (clientSender, uncorked)
-     else if c == 'S' then (serverSender, corking)
-          else (appData, uncorked)
-  else (appData, corking)
-
-prop : State -> [8] -> Bit
-prop (s, corking) c =
-  if (corking == corked) || (corking == uncorked) then (corking' == corked) || (corking' == uncorked)
-  else True
-     where (s', corking') = advanceMessage (s, corking) c
-
-prop2 : State -> [8] -> Bit
-prop2 (s, corking) c = (s == serverSender /\ corking == uncorked) \/ prop (s, corking) c
-
+// generate a trace of states for the standard cork/uncork state //
+// machine (assumes socket is initially uncorked) given a list of input
+// actions (new writers)
 run : {n} [n][8] -> [n+1]State
 run writers = scanl advanceMessage (clientSender, uncorked) writers
 
-exec2 : {n} (fin n) => [n][8] -> State
-exec2 writers = resultState ! 0
-    where resultState = [(clientSender, uncorked)] # [advanceMessage s c | c <- writers | s <- resultState ]
-    
+// returns the last state of the 
 exec : {n} (fin n) => [n][8] -> State
 exec writers = foldl advanceMessage (clientSender, uncorked) writers
 
-prop3 : [12][8] -> Bit
-prop3 writers = corking == corked \/ corking == uncorked
+finalStateIsCorrect : [12][8] -> Bit
+finalStateIsCorrect writers = corking == corked \/ corking == uncorked
   where (s, corking) = exec writers
-
-// resultState ! 0
-//     where resultState  = [(clientSender, uncorked)] # [advanceMessage s c | c <- writers | s <- resultState ]

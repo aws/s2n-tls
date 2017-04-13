@@ -1,18 +1,23 @@
+// Low-level specification of the cork/uncork state machine. The main
+// function is s2n_advance_message, and we prove it's equivalence to its
+// counterpart in s2n_handshake_io.c
+
 module s2n_advance_message where
 import Cryptol::Extras
 
+// Part of the s2n_connection struct that s2n_advance_message
+// uses. The names of the fields are the same as in C.
 type connection = {handshake : handshake
                   ,mode : [32]
                   ,corked_io : [32]
                   ,corked : [32]
                   }
 
-type corking = [32]
-
 type handshake = {handshake_type : [32]
                  ,message_number : [32]
                  }
 
+// {ACTIVE,PREVIOUS}_{STATE,MESSAGE} functions model the corresponding macros in C
 ACTIVE_MESSAGE : connection -> [32]
 ACTIVE_MESSAGE conn = (handshakes @ (conn.handshake.handshake_type))
                                   @ (conn.handshake.message_number)
@@ -27,21 +32,9 @@ ACTIVE_STATE conn = state_machine @ (ACTIVE_MESSAGE conn)
 PREVIOUS_STATE : connection -> handshake_action
 PREVIOUS_STATE conn = state_machine @ (PREVIOUS_MESSAGE conn)
 
-conn_test : connection
-conn_test = {handshake = {handshake_type = (NEGOTIATED || FULL_HANDSHAKE)
-                         ,message_number = 0 //SERVER_HELLO_DONE
-                         }
-            ,mode = S2N_SERVER
-            ,corked_io = 1
-            ,corked = 1
-            }
-
-test1 = (ACTIVE_STATE conn_test).writer
-
-test2 = ACTIVE_MESSAGE conn_test
-
-test3 = s2n_advance_message conn_test
-
+// Helper function that gives the value of the 'writer' field of the
+// current hanshake state (handshake action) that would correspond to
+// the connection mode  (S2N_SERVER or S2N_CLIENT)
 mode_writer : [32] -> [8]
 mode_writer m = if m == S2N_SERVER then 'S' else 'C'
 
@@ -51,6 +44,8 @@ s2n_cork c = 1
 s2n_uncork : connection -> [32]
 s2n_uncork c = 0
 
+// This function models the update of the s2n_connection struct by the
+// s2n_advance_message function in s2n
 s2n_advance_message : connection -> connection
 s2n_advance_message conn = conn2
   where conn2 = {handshake = handshake2
@@ -63,9 +58,11 @@ s2n_advance_message conn = conn2
                                    }
         cork2 = if ((ACTIVE_STATE conn2).writer != (PREVIOUS_STATE conn2).writer)
                 then if (ACTIVE_STATE conn2).writer == mode_writer conn2.mode
-                     then  s2n_cork conn else s2n_uncork conn
+                     then s2n_cork conn else s2n_uncork conn
                 else conn.corked
 
+// this models the handshake_action struct (part of the handshake
+// state), but without the handler functions
 type handshake_action = {record_type : [8]
                         ,message_type : [8]
                         ,writer : [8]
@@ -74,6 +71,7 @@ type handshake_action = {record_type : [8]
 mkAct : [8] -> [8] -> [8] -> handshake_action
 mkAct r m w = {record_type = r, message_type = m, writer = w}
 
+// A model of the handshake states (array state_machine in C)
 state_machine : [16]handshake_action
 state_machine = [state_machine_fn m | m <- [0..15]]
 
@@ -97,6 +95,7 @@ state_machine_fn m =
    else if m == APPLICATION_DATA then mkAct TLS_APPLICATION_DATA 0 'B'
    else zero
 
+// A model of the handshake state machine (array handshakes in C)
 handshakes : [64][16][32]
 handshakes = [handshakes_fn h | h <- [0..63]]
 
@@ -125,15 +124,18 @@ handshakes_fn handshk =
      SERVER_NEW_SESSION_TICKET, SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED, APPLICATION_DATA] # zero
    else zero  
 
+// A predicate to tell whether a given handshake struct is valid
+// (i.e. the fields are indexing into a valid state of the handshake
+// state machine)
 valid_handshake : handshake -> Bit
 valid_handshake hs = (handshakes_fn hs.handshake_type) != zero /\
                      (implies (hs.message_number > 0) ((handshakes_fn hs.handshake_type)@(hs.message_number + 1) != 0))
 
+// Logical implication
 implies : Bit -> Bit -> Bit
 implies l r = if r then True else ~l
 
-
-
+// values of similarly names C macros and enum values
 INITIAL : [32]
 INITIAL =  zero # 0x00 
 NEGOTIATED : [32]
