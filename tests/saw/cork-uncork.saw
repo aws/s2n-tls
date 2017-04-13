@@ -70,6 +70,15 @@ let s2n_advance_message_spec = do {
     llvm_verify_tactic z3;
 };
 
+// Specs for the 4 functions that s2n_advance_message calls. Right now
+// we just assume the specs and don't verify them. That's because we
+// don't model the state that they depend on, instead, making assumptions
+// about it: we use managed corking and the socket was initially uncorked.
+
+// Specification for s2n_socket_write_uncork. The relevant part is
+// that it sets the conn->corked materialized ghost field to 0 to
+// indicate that the socket has been uncorked. In the future we will associate
+// such ghost state directly with the socket file descriptor.
 let s2n_socket_write_uncork_spec = do {
    setup_connection "conn";
 
@@ -81,6 +90,10 @@ let s2n_socket_write_uncork_spec = do {
    llvm_no_simulate;
 };
 
+// Specification for s2n_socket_write_cork. The relevant part is
+// that it sets the conn->corked materialized ghost field to 1 to
+// indicate that the socket has been corked. In the future we will associate
+// such ghost state directly with the socket file descriptor.
 let s2n_socket_write_cork_spec = do {
    setup_connection "conn";
 
@@ -92,6 +105,11 @@ let s2n_socket_write_cork_spec = do {
    llvm_no_simulate;
 };
 
+// Specification for s2n_socket_was_corked.  We assume this function
+// always returns 0 to indicate our assumption that the socket was
+// uncorked initially. If it was corked, then the cork/uncork state
+// machine would be bypassed making verification moot.
+
 let s2n_socket_was_corked_spec = do {
    setup_connection "conn";
    llvm_return {{ 0 : [32] }};
@@ -100,6 +118,10 @@ let s2n_socket_was_corked_spec = do {
    llvm_no_simulate;
 };
 
+// Specification for s2n_connection_is_managed_corked. We assume it
+// always returns 1 to reflect our assumption that the library is
+// managing the corking and uncorking of the socket. Otherwise, the
+//cork/uncork state machine would be bypassed making verification moot.
 let s2n_connection_is_managed_corked_spec = do {
    setup_connection "s2n_connection";
    llvm_return {{ 1 : [32] }};
