@@ -50,12 +50,13 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
 {
     struct s2n_hmac_state copy;
 
-    int mac_digest_size = s2n_hmac_digest_size(hmac->alg);
-    
+    uint8_t mac_digest_size;
+    GUARD(s2n_hmac_digest_size(hmac->alg, &mac_digest_size));
+
     /* The record has to be at least big enough to contain the MAC,
      * plus the padding length byte */
     gt_check(decrypted->size, mac_digest_size);
-    
+
     int payload_and_padding_size = decrypted->size - mac_digest_size;
 
     /* Determine what the padding length is */
@@ -82,7 +83,7 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
         return 0 - mismatches;
     }
 
-    /* Check the maximum amount that could theoritically be padding */
+    /* Check the maximum amount that could theoretically be padding */
     int check = MIN(255, (payload_and_padding_size - 1));
 
     int cutoff = check - padding_length;

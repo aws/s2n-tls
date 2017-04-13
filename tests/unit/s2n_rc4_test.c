@@ -36,7 +36,7 @@ int main(int argc, char **argv)
     uint8_t mac_key[] = "sample mac key";
     uint8_t rc4_key[] = "123456789012345";
     struct s2n_blob key_iv = {.data = rc4_key,.size = sizeof(rc4_key) };
-    uint8_t random_data[S2N_SMALL_FRAGMENT_LENGTH + 1];
+    uint8_t random_data[S2N_DEFAULT_FRAGMENT_LENGTH + 1];
     struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
 
     BEGIN_TEST();
@@ -45,30 +45,30 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_get_urandom_data(&r));
 
     /* Peer and we are in sync */
-    conn->server = &conn->active;
+    conn->server = &conn->secure;
+    conn->client = &conn->secure;
 
     /* test the RC4 cipher with a SHA1 hash */
-    conn->active.cipher_suite->cipher = &s2n_rc4;
-    conn->active.cipher_suite->hmac_alg = S2N_HMAC_SHA1;
-    EXPECT_SUCCESS(conn->active.cipher_suite->cipher->init(&conn->active.server_key));
-    EXPECT_SUCCESS(conn->active.cipher_suite->cipher->init(&conn->active.client_key));
-    EXPECT_SUCCESS(conn->active.cipher_suite->cipher->get_decryption_key(&conn->active.client_key, &key_iv));
-    EXPECT_SUCCESS(conn->active.cipher_suite->cipher->get_encryption_key(&conn->active.server_key, &key_iv));
-    EXPECT_SUCCESS(s2n_hmac_init(&conn->active.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
-    EXPECT_SUCCESS(s2n_hmac_init(&conn->active.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+    conn->secure.cipher_suite->record_alg = &s2n_record_alg_rc4_sha;
+    EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.server_key));
+    EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.client_key));
+    EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &key_iv));
+    EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.server_key, &key_iv));
+    EXPECT_SUCCESS(s2n_hmac_init(&conn->secure.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+    EXPECT_SUCCESS(s2n_hmac_init(&conn->secure.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     conn->actual_protocol_version = S2N_TLS11;
 
-    for (int i = 0; i <= S2N_SMALL_FRAGMENT_LENGTH + 1; i++) {
+    for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
         struct s2n_blob in = {.data = random_data,.size = i };
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
         EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
-        if (i <= S2N_SMALL_FRAGMENT_LENGTH - 20) {
+        if (i <= S2N_DEFAULT_FRAGMENT_LENGTH - 20) {
             EXPECT_EQUAL(bytes_written, i);
         } else {
-            EXPECT_EQUAL(bytes_written, S2N_SMALL_FRAGMENT_LENGTH - 20);
+            EXPECT_EQUAL(bytes_written, S2N_DEFAULT_FRAGMENT_LENGTH - 20);
         }
 
         uint16_t predicted_length = bytes_written + 20;
@@ -104,8 +104,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
     }
 
-    EXPECT_SUCCESS(conn->active.cipher_suite->cipher->destroy_key(&conn->active.server_key));
-    EXPECT_SUCCESS(conn->active.cipher_suite->cipher->destroy_key(&conn->active.client_key));
+    EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.server_key));
+    EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.client_key));
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
     END_TEST();

@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include "crypto/s2n_hash.h"
+
 /* Codes from http://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-5 */
 #define TLS_NULL_WITH_NULL_NULL             0x00, 0x00
 #define TLS_RSA_WITH_AES_256_CBC_SHA256     0x00, 0x3D
@@ -44,8 +46,12 @@
 #define TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256    0xC0, 0x2F
 #define TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384    0xC0, 0x30
 
-/* From https://tools.ietf.org/html/draft-ietf-tls-downgrade-scsv-03 */
+#define TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256  0xCC, 0xA8
+#define TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256    0xCC, 0xAA
+
+/* From https://tools.ietf.org/html/rfc7507 */
 #define TLS_FALLBACK_SCSV                   0x56, 0x00
+#define TLS_EMPTY_RENEGOTIATION_INFO_SCSV   0x00, 0xff
 
 /* TLS extensions from https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml */
 #define TLS_EXTENSION_SERVER_NAME           0
@@ -54,9 +60,15 @@
 #define TLS_EXTENSION_EC_POINT_FORMATS     11
 #define TLS_EXTENSION_SIGNATURE_ALGORITHMS 13
 #define TLS_EXTENSION_ALPN                 16
+#define TLS_EXTENSION_SCT_LIST             18
+#define TLS_EXTENSION_RENEGOTIATION_INFO   65281
 
-/* TLS signature algorithms */
+/* TLS Signature Algorithms - RFC 5246 7.4.1.4.1*/
+#define TLS_SIGNATURE_ALGORITHM_ANONYMOUS   0
 #define TLS_SIGNATURE_ALGORITHM_RSA         1
+#define TLS_SIGNATURE_ALGORITHM_DSA         2
+#define TLS_SIGNATURE_ALGORITHM_ECDSA       3
+
 #define TLS_HASH_ALGORITHM_MD5              1
 #define TLS_HASH_ALGORITHM_SHA1             2
 #define TLS_HASH_ALGORITHM_SHA224           3
@@ -70,7 +82,14 @@
 #define TLS_HANDSHAKE          22
 #define TLS_APPLICATION_DATA   23
 
-/* Elliptic cruves from https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8 */
+/* Elliptic curve formats from http://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-9
+ * Only uncompressed is supported.
+ */
+#define TLS_EC_FORMAT_UNCOMPRESSED               0
+#define TLS_EC_FORMAT_ANSIX962_COMPRESSED_PRIME  1
+#define TLS_EC_FORMAT_ANSIX962_COMPRESSED_CHAR2  2
+
+/* Elliptic curves from https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8 */
 #define TLS_EC_CURVE_SECP_256_R1           23
 #define TLS_EC_CURVE_SECP_384_R1           24
 
@@ -85,7 +104,7 @@
 /* The maximum size of an SSL2 message is 2^14 - 1, as neither of the first two
  * bits in the length field are usable. Per;
  * http://www-archive.mozilla.org/projects/security/pki/nss/ssl/draft02.html
- * section 1.1 
+ * section 1.1
  */
 #define S2N_SSL2_RECORD_HEADER_LENGTH   2
 #define S2N_SSL2_MAXIMUM_MESSAGE_LENGTH 16383
@@ -99,6 +118,13 @@
  */
 #define S2N_SMALL_RECORD_LENGTH (1500 - 20 - 20 - 20)
 #define S2N_SMALL_FRAGMENT_LENGTH (S2N_SMALL_RECORD_LENGTH - S2N_TLS_RECORD_HEADER_LENGTH)
+
+/* Testing in the wild has found 8k max record sizes give a good balance of low latency
+ * and throughput.
+ */
+#define S2N_DEFAULT_RECORD_LENGTH 8092
+#define S2N_DEFAULT_FRAGMENT_LENGTH (S2N_DEFAULT_RECORD_LENGTH - S2N_TLS_RECORD_HEADER_LENGTH)
+
 #define S2N_LARGE_RECORD_LENGTH S2N_TLS_MAXIMUM_RECORD_LENGTH
 #define S2N_LARGE_FRAGMENT_LENGTH S2N_TLS_MAXIMUM_FRAGMENT_LENGTH
 

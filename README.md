@@ -2,7 +2,7 @@
 
 s2n is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority. It is released and licensed under the Apache Software License 2.0. 
 
-[![Build Status](https://img.shields.io/travis/awslabs/s2n.svg)](https://travis-ci.org/aws/s2n)
+[![Build Status](https://img.shields.io/travis/awslabs/s2n.svg)](https://travis-ci.org/awslabs/s2n)
 [![Apache 2 License](https://img.shields.io/github/license/awslabs/s2n.svg)](http://aws.amazon.com/apache-2-0/)
 [![C99](https://img.shields.io/badge/language-C99-blue.svg)](http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf)
 [![Github forks](https://img.shields.io/github/forks/awslabs/s2n.svg)](https://github.com/awslabs/s2n/network)
@@ -39,7 +39,7 @@ For details on building the s2n library and how to use s2n in an application you
 
 ## s2n features
 
-s2n implements SSLv3, TLS1.0, TLS1.1, and TLS1.2. For encryption, s2n supports 128-bit and 256-bit AES, in the CBC and GCM modes, 3DES, and RC4. For forward secrecy, s2n supports both DHE and ECDHE. s2n also supports the Server Name Indicator (SNI), Application-Layer Protocol Negotiation (ALPN) and the Online Certificate Status Protocol (OCSP) TLS extensions. SSLv3, RC4, and DHE are each disabled by default for security reasons. 
+s2n implements SSLv3, TLS1.0, TLS1.1, and TLS1.2. For encryption, s2n supports 128-bit and 256-bit AES, in the CBC and GCM modes, ChaCha20, 3DES, and RC4. For forward secrecy, s2n supports both DHE and ECDHE. s2n also supports the Server Name Indicator (SNI), Application-Layer Protocol Negotiation (ALPN) and the Online Certificate Status Protocol (OCSP) TLS extensions. SSLv3, RC4, 3DES and DHE are each disabled by default for security reasons. 
 
 As it can be difficult to keep track of which encryption algorithms and protocols are best to use, s2n features a simple API to use the latest "default" set of preferences. If you prefer to remain on a specific version for backwards compatibility, that is also supported. 
 

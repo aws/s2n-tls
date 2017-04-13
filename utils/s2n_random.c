@@ -17,6 +17,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/param.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <limits.h>
@@ -24,6 +25,14 @@
 #include <string.h>
 #include <stdint.h>
 #include <errno.h>
+#include <time.h>
+
+#include "utils/s2n_compiler.h"
+
+/* clang can define gcc version to be < 4.3, but cpuid.h exists for most releases */
+#if ((defined(__x86_64__) || defined(__i386__)) && (defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4,3,0)))
+#include <cpuid.h>
+#endif
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -39,10 +48,16 @@
 
 #define ENTROPY_SOURCE "/dev/urandom"
 
+/* See https://en.wikipedia.org/wiki/CPUID */
+#define RDRAND_ECX_FLAG     0x40000000
+
+/* One second in nanoseconds */
+#define ONE_S  INT64_C(1000000000)
+
 static int entropy_fd = -1;
 
-static __thread struct s2n_drbg per_thread_private_drbg = { { 0 } };
-static __thread struct s2n_drbg per_thread_public_drbg = { { 0 } };
+static __thread struct s2n_drbg per_thread_private_drbg = {0};
+static __thread struct s2n_drbg per_thread_public_drbg = {0};
 
 #if !defined(MAP_INHERIT_ZERO)
 static __thread int zero_if_forked = 0;
@@ -63,8 +78,8 @@ static inline int s2n_defend_if_forked(void)
 {
     uint8_t s2n_public_drbg[] = "s2n public drbg";
     uint8_t s2n_private_drbg[] = "s2n private drbg";
-    struct s2n_blob public = { .data = s2n_public_drbg, .size = sizeof(s2n_public_drbg) };
-    struct s2n_blob private = { .data = s2n_private_drbg, .size = sizeof(s2n_private_drbg) };
+    struct s2n_blob public = {.data = s2n_public_drbg,.size = sizeof(s2n_public_drbg) };
+    struct s2n_blob private = {.data = s2n_private_drbg,.size = sizeof(s2n_private_drbg) };
 
     if (zero_if_forked == 0) {
         GUARD(s2n_drbg_instantiate(&per_thread_public_drbg, &public));
@@ -105,15 +120,39 @@ int s2n_get_urandom_data(struct s2n_blob *blob)
 {
     uint32_t n = blob->size;
     uint8_t *data = blob->data;
-
-    if (entropy_fd == -1) {
-        S2N_ERROR(S2N_ERR_RANDOM_UNITIALIZED);
-    }
+    struct timespec sleep_time = {.tv_sec = 0, .tv_nsec = 0 };
+    long backoff = 1;
 
     while (n) {
         int r = read(entropy_fd, data, n);
         if (r <= 0) {
-            sleep(1);
+            /*
+             * A non-blocking read() on /dev/urandom should "never" fail,
+             * except for EINTR. If it does, briefly pause and use
+             * exponential backoff to avoid creating a tight spinning loop.
+             *
+             * iteration          delay
+             * ---------    -----------------
+             *    1         10          nsec
+             *    2         100         nsec
+             *    3         1,000       nsec
+             *    4         10,000      nsec
+             *    5         100,000     nsec
+             *    6         1,000,000   nsec
+             *    7         10,000,000  nsec
+             *    8         99,999,999  nsec
+             *    9         99,999,999  nsec
+             *    ...
+             */
+            if (errno != EINTR) {
+                backoff = MIN(backoff * 10, ONE_S - 1);
+                sleep_time.tv_nsec = backoff;
+                do {
+                    r = nanosleep(&sleep_time, &sleep_time);
+                }
+                while (r != 0);
+            }
+
             continue;
         }
 
@@ -130,8 +169,8 @@ int64_t s2n_public_random(int64_t max)
 
     gt_check(max, 0);
 
-    while(1) {
-        struct s2n_blob blob = { .data = (void *) &r, sizeof(r) };
+    while (1) {
+        struct s2n_blob blob = {.data = (void *)&r, sizeof(r) };
         GUARD(s2n_get_public_random_data(&blob));
 
         /* Imagine an int was one byte and UINT_MAX was 256. If the
@@ -151,17 +190,15 @@ int64_t s2n_public_random(int64_t max)
             return r % max;
         }
     }
-
-    return -1;
 }
 
 #if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_FIPS) && !defined(LIBRESSL_VERSION_NUMBER)
 
 int s2n_openssl_compat_rand(unsigned char *buf, int num)
 {
-    struct s2n_blob out = {.data = buf, .size = num};
+    struct s2n_blob out = {.data = buf,.size = num };
 
-    if(s2n_get_private_random_data(&out) < 0) {
+    if (s2n_get_private_random_data(&out) < 0) {
         return 0;
     }
     return 1;
@@ -172,7 +209,7 @@ int s2n_openssl_compat_status(void)
     return 1;
 }
 
-int s2n_openssl_compat_init(ENGINE *unused)
+int s2n_openssl_compat_init(ENGINE * unused)
 {
     return 1;
 }
@@ -187,11 +224,9 @@ RAND_METHOD s2n_openssl_rand_method = {
 };
 #endif
 
-int s2n_init(void)
+int s2n_rand_init(void)
 {
-    GUARD(s2n_mem_init());
-
-    OPEN:
+  OPEN:
     entropy_fd = open(ENTROPY_SOURCE, O_RDONLY);
     if (entropy_fd == -1) {
         if (errno == EINTR) {
@@ -199,9 +234,8 @@ int s2n_init(void)
         }
         S2N_ERROR(S2N_ERR_OPEN_RANDOM);
     }
-
 #if defined(MAP_INHERIT_ZERO)
-    zero_if_forked_ptr = mmap(NULL, sizeof(int), PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0);
+    zero_if_forked_ptr = mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
     if (zero_if_forked_ptr == MAP_FAILED) {
         S2N_ERROR(S2N_ERR_OPEN_RANDOM);
     }
@@ -222,30 +256,24 @@ int s2n_init(void)
     /* Create an engine */
     ENGINE *e = ENGINE_new();
     if (e == NULL ||
-        ENGINE_set_id(e, "s2n") != 1 ||
+        ENGINE_set_id(e, "s2n_rand") != 1 ||
         ENGINE_set_name(e, "s2n entropy generator") != 1 ||
         ENGINE_set_flags(e, ENGINE_FLAGS_NO_REGISTER_ALL) != 1 ||
-        ENGINE_set_init_function(e, s2n_openssl_compat_init) != 1 ||
-        ENGINE_set_RAND(e, &s2n_openssl_rand_method) != 1 ||
-        ENGINE_add(e) != 1 ||
-        ENGINE_free(e) != 1) {
+        ENGINE_set_init_function(e, s2n_openssl_compat_init) != 1 || ENGINE_set_RAND(e, &s2n_openssl_rand_method) != 1 || ENGINE_add(e) != 1 || ENGINE_free(e) != 1) {
         S2N_ERROR(S2N_ERR_OPEN_RANDOM);
     }
 
     /* Use that engine for rand() */
-    e = ENGINE_by_id("s2n");
-    if (e == NULL ||
-        ENGINE_init(e) != 1 ||
-        ENGINE_set_default(e, ENGINE_METHOD_RAND) != 1) {
+    e = ENGINE_by_id("s2n_rand");
+    if (e == NULL || ENGINE_init(e) != 1 || ENGINE_set_default(e, ENGINE_METHOD_RAND) != 1 || ENGINE_free(e) != 1) {
         S2N_ERROR(S2N_ERR_OPEN_RANDOM);
     }
-
 #endif
 
     return 0;
 }
 
-int s2n_cleanup(void)
+int s2n_rand_cleanup(void)
 {
     if (entropy_fd == -1) {
         S2N_ERROR(S2N_ERR_NOT_INITIALIZED);
@@ -256,5 +284,80 @@ int s2n_cleanup(void)
     GUARD(close(entropy_fd));
     entropy_fd = -1;
 
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_FIPS) && !defined(LIBRESSL_VERSION_NUMBER)
+    /* Cleanup our rand ENGINE in libcrypto */
+    ENGINE *rand_engine = ENGINE_by_id("s2n_rand");
+    if (rand_engine) {
+        ENGINE_finish(rand_engine);
+        ENGINE_free(rand_engine);
+        ENGINE_cleanup();
+    }
+#endif
+
     return 0;
+}
+
+int s2n_cpu_supports_rdrand()
+{
+#if ((defined(__x86_64__) || defined(__i386__)) && (defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4,3,0)))
+    uint32_t eax, ebx, ecx, edx;
+    if (!__get_cpuid(1, &eax, &ebx, &ecx, &edx)) {
+        return 0;
+    }
+
+    if (ecx & RDRAND_ECX_FLAG) {
+        return 1;
+    }
+#endif
+    return 0;
+}
+
+/* Due to the need to support some older assemblers,
+ * we cannot use either the compiler intrinsics or
+ * the RDRAND assembly mnemonic. For this reason,
+ * we're using the opcode directly (0F C7/6). This
+ * stores the result in eax.
+ *
+ * volatile is important to prevent the compiler from
+ * re-ordering or optimizing the use of RDRAND.
+ */
+int s2n_get_rdrand_data(struct s2n_blob *out)
+{
+
+#if defined(__x86_64__) || defined(__i386__)
+    int space_remaining = 0;
+    struct s2n_stuffer stuffer;
+    union {
+        uint64_t u64;
+        uint8_t u8[8];
+    } output;
+
+    GUARD(s2n_stuffer_init(&stuffer, out));
+
+    while ((space_remaining = s2n_stuffer_space_remaining(&stuffer))) {
+        int success = 0;
+
+        for (int tries = 0; tries < 10; tries++) {
+            __asm__ __volatile__(".byte 0x48;\n" ".byte 0x0f;\n" ".byte 0xc7;\n" ".byte 0xf0;\n" "adcl $0x00, %%ebx;\n":"=b"(success), "=a"(output.u64)
+                                 :"b"(0)
+                                 :"cc");
+
+            if (success) {
+                break;
+            }
+        }
+
+        if (!success) {
+            return -1;
+        }
+
+        int data_to_fill = MIN(sizeof(output), space_remaining);
+
+        GUARD(s2n_stuffer_write_bytes(&stuffer, output.u8, data_to_fill));
+    }
+
+    return 0;
+#else
+    return -1;
+#endif
 }

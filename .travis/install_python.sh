@@ -14,11 +14,22 @@
 #
 #!/bin/bash
 
-LIBCRYPTO_ROOT=$1
+set -e
 
-wget https://www.python.org/ftp/python/3.5.1/Python-3.5.1.tgz
-tar xzf Python-3.5.1.tgz
-cd Python-3.5.1
-./configure CPPFLAGS="-I$LIBCRYPTO_ROOT/include" LDFLAGS="-L$LIBCRYPTO_ROOT/lib"
+if [ "$#" -ne 3 ]; then
+	echo "install_python.sh libcrypto_root build_dir install_dir"
+	exit 1
+fi
+
+LIBCRYPTO_ROOT=$1
+BUILD_DIR=$2
+INSTALL_DIR=$3
+
+cd $BUILD_DIR
+wget https://www.python.org/ftp/python/3.6.0/Python-3.6.0.tgz
+tar xzf Python-3.6.0.tgz
+cd Python-3.6.0
+ CPPFLAGS="-I$LIBCRYPTO_ROOT/include" LDFLAGS="-Wl,-rpath,$LIBCRYPTO_ROOT/lib -L$LIBCRYPTO_ROOT/lib" ./configure --prefix="$INSTALL_DIR"
 make
-sudo make install
+make install
+

@@ -24,9 +24,20 @@
 /* NULL check a pointer */
 #define notnull_check( ptr )           do { if ( (ptr) == NULL ) { S2N_ERROR(S2N_ERR_NULL); } } while(0)
 
+extern inline void* trace_memcpy_check(void *restrict to, const void *restrict from, size_t size, const char *debug_str)
+{
+    if (to == NULL || from == NULL) {
+        s2n_errno = S2N_ERR_NULL;
+        s2n_debug_str = debug_str;
+        return NULL;
+    }
+
+    return memcpy(to, from, size);
+}
+
 /* Check memcpy and memset's arguments, if these are not right, log an error
  */
-#define memcpy_check( d, s, n )     do { if ( (n) ) { notnull_check( (d) ); memcpy( (d), (s), (n)); } } while(0)
+#define memcpy_check( d, s, n )     do { if ( (n) ) { void *r = trace_memcpy_check( (d), (s) , (n), _S2N_DEBUG_LINE); if (r == NULL) { return -1; } } } while(0)
 #define memset_check( d, c, n )     do { if ( (n) ) { notnull_check( (d) ); memset( (d), (c), (n)); } } while(0)
 
 /* Range check a number */
@@ -51,7 +62,7 @@
 extern pid_t s2n_actual_getpid();
 
 /* Returns 1 if a and b are equal, in constant time */
-extern int s2n_constant_time_equals(const uint8_t *a, const uint8_t *b, uint32_t len);
+extern int s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, uint32_t len);
 
 /* Copy src to dst, or don't copy it, in constant time */
-extern int s2n_constant_time_copy_or_dont(const uint8_t *dst, const uint8_t *src, uint32_t len, uint8_t dont);
+extern int s2n_constant_time_copy_or_dont(const uint8_t * dst, const uint8_t * src, uint32_t len, uint8_t dont);

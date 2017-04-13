@@ -45,16 +45,17 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_get_urandom_data(&r));
 
     /* Peer and we are in sync */
-    conn->server = &conn->active;
-    conn->client = &conn->active;
+    conn->server = &conn->secure;
+    conn->client = &conn->secure;
 
     /* test the AES128 cipher with a SHA1 hash */
-    conn->active.cipher_suite->cipher = &s2n_aes128;
-    conn->active.cipher_suite->hmac_alg = S2N_HMAC_SHA1;
-    EXPECT_SUCCESS(conn->active.cipher_suite->cipher->get_encryption_key(&conn->active.server_key, &aes128));
-    EXPECT_SUCCESS(conn->active.cipher_suite->cipher->get_decryption_key(&conn->active.client_key, &aes128));
-    EXPECT_SUCCESS(s2n_hmac_init(&conn->active.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
-    EXPECT_SUCCESS(s2n_hmac_init(&conn->active.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+    conn->secure.cipher_suite->record_alg = &s2n_record_alg_aes128_sha;
+    EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.server_key));
+    EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.client_key));
+    EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.server_key, &aes128));
+    EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &aes128));
+    EXPECT_SUCCESS(s2n_hmac_init(&conn->secure.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+    EXPECT_SUCCESS(s2n_hmac_init(&conn->secure.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     conn->actual_protocol_version = S2N_TLS11;
 
     /* Align the record size, then subtract 20 bytes for the HMAC, 16 bytes for the explicit IV, and one byte
@@ -62,13 +63,13 @@ int main(int argc, char **argv)
      */
     int small_aligned_payload = S2N_SMALL_FRAGMENT_LENGTH - (S2N_SMALL_FRAGMENT_LENGTH % 16) - 20 - 16 - 1;
     int large_aligned_payload = S2N_LARGE_FRAGMENT_LENGTH - (S2N_LARGE_FRAGMENT_LENGTH % 16) - 20 - 16 - 1;
-
+    int medium_aligned_payload = S2N_DEFAULT_FRAGMENT_LENGTH - (S2N_DEFAULT_FRAGMENT_LENGTH % 16) - 20 - 16 - 1;
     int bytes_written;
 
-    /* Check the default: small record */
+    /* Check the default: medium records */
     EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
     EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &r));
-    EXPECT_EQUAL(bytes_written, small_aligned_payload);
+    EXPECT_EQUAL(bytes_written, medium_aligned_payload);
 
     /* Check explicitly small records */
     EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
@@ -83,10 +84,10 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(bytes_written, large_aligned_payload);
 
     /* Clean up */
-    EXPECT_SUCCESS(conn->active.cipher_suite->cipher->destroy_key(&conn->active.server_key));
-    EXPECT_SUCCESS(conn->active.cipher_suite->cipher->destroy_key(&conn->active.client_key));
+    EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.server_key));
+    EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.client_key));
     EXPECT_SUCCESS(s2n_connection_free(conn));
-    EXPECT_SUCCESS(s2n_hmac_init(&conn->active.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
-    
+    EXPECT_SUCCESS(s2n_hmac_init(&conn->secure.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+
     END_TEST();
 }

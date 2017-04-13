@@ -1,0 +1,3 @@
+// cppcheck Message: [utils/s2n_random.c:322]: (style) union member 'Anonymous0::u64' is never used.
+// Reason for Suppression: output.u64 is used inside raw __asm__  instructions which cppcheck isn't able to detect
+unusedStructMember:utils/s2n_random.c

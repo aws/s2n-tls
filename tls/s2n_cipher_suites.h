@@ -23,46 +23,107 @@
 
 #include <stdint.h>
 
-struct s2n_cipher_preferences {
-    uint8_t count;
-    uint8_t *wire_format;
-    int minimum_protocol_version;
-};
-
 /* Key exchange flags that can be OR'ed */
-#define S2N_KEY_EXCHANGE_DH       0x01 /* Diffie–Hellman key exchange, including ephemeral */
-#define S2N_KEY_EXCHANGE_EPH      0x02 /* Ephemeral key exchange */
-#define S2N_KEY_EXCHANGE_ECC      0x04 /* Elliptic curve cryptography */
+#define S2N_KEY_EXCHANGE_DH       0x01  /* Diffie-Hellman key exchange, including ephemeral */
+#define S2N_KEY_EXCHANGE_EPH      0x02  /* Ephemeral key exchange */
+#define S2N_KEY_EXCHANGE_ECC      0x04  /* Elliptic curve cryptography */
 
 struct s2n_key_exchange_algorithm {
     /* OR'ed S2N_KEY_EXCHANGE_* flags */
     uint16_t flags;
 };
+
 extern const struct s2n_key_exchange_algorithm s2n_rsa;
 extern const struct s2n_key_exchange_algorithm s2n_dhe;
 extern const struct s2n_key_exchange_algorithm s2n_ecdhe;
 
-struct s2n_cipher_suite {
-    const char *name;
-    uint8_t value[2];
-    const struct s2n_key_exchange_algorithm *key_exchange_alg;
-    /* Cipher name in Openssl format */
-    struct s2n_cipher *cipher;
+#define S2N_MAX_POSSIBLE_RECORD_ALGS  2
+
+/* Record algorithm flags that can be OR'ed */
+#define S2N_TLS12_AES_GCM_AEAD_NONCE     0x01
+#define S2N_TLS12_CHACHA_POLY_AEAD_NONCE 0x02
+
+struct s2n_record_algorithm {
+    const struct s2n_cipher *cipher;
     s2n_hmac_algorithm hmac_alg;
-    /* RFC 5426(TLS1.2) allows cipher suite defined PRFs. Cipher suites defined in and before TLS1.2 will use
-     * P_hash with SHA256 when TLS1.2 is negotiated. 
-     */
-    s2n_hmac_algorithm tls12_prf_alg;
-    uint8_t minimum_required_tls_version;
+    uint32_t flags;
 };
 
-extern struct s2n_cipher_suite s2n_null_cipher_suite;
-extern struct s2n_cipher_preferences *s2n_cipher_preferences_20140601;
-extern struct s2n_cipher_preferences *s2n_cipher_preferences_20150202;
-extern struct s2n_cipher_preferences *s2n_cipher_preferences_20150214;
-extern struct s2n_cipher_preferences *s2n_cipher_preferences_20150306;
-extern struct s2n_cipher_preferences *s2n_cipher_preferences_default;
+/* Verbose names to avoid confusion with s2n_cipher. Exposed for unit tests */
+extern const struct s2n_record_algorithm s2n_record_alg_null;
+extern const struct s2n_record_algorithm s2n_record_alg_rc4_md5;
+extern const struct s2n_record_algorithm s2n_record_alg_rc4_sha;
+extern const struct s2n_record_algorithm s2n_record_alg_3des_sha;
+extern const struct s2n_record_algorithm s2n_record_alg_aes128_sha;
+extern const struct s2n_record_algorithm s2n_record_alg_aes128_sha_composite;
+extern const struct s2n_record_algorithm s2n_record_alg_aes128_sha256;
+extern const struct s2n_record_algorithm s2n_record_alg_aes128_sha256_composite;
+extern const struct s2n_record_algorithm s2n_record_alg_aes256_sha;
+extern const struct s2n_record_algorithm s2n_record_alg_aes256_sha_composite;
+extern const struct s2n_record_algorithm s2n_record_alg_aes256_sha256;
+extern const struct s2n_record_algorithm s2n_record_alg_aes256_sha256_composite;
+extern const struct s2n_record_algorithm s2n_record_alg_aes256_sha384;
+extern const struct s2n_record_algorithm s2n_record_alg_aes128_gcm;
+extern const struct s2n_record_algorithm s2n_record_alg_aes256_gcm;
+extern const struct s2n_record_algorithm s2n_record_alg_chacha20_poly1305;
 
+struct s2n_cipher_suite {
+    /* Is there an implementation available? Set in s2n_cipher_suites_init() */
+    unsigned int available:1;
+
+    /* Cipher name in Openssl format */
+    const char *name;
+    const uint8_t iana_value[2];
+
+    const struct s2n_key_exchange_algorithm *key_exchange_alg;
+
+    /* Algorithms used for per-record security. Set in s2n_cipher_suites_init() */
+    const struct s2n_record_algorithm *record_alg;
+
+    /* List of all possible record alg implementations in descending priority */
+    const struct s2n_record_algorithm *all_record_algs[S2N_MAX_POSSIBLE_RECORD_ALGS];
+    const uint8_t num_record_algs;
+
+    /* RFC 5426(TLS1.2) allows cipher suite defined PRFs. Cipher suites defined in and before TLS1.2 will use
+     * P_hash with SHA256 when TLS1.2 is negotiated.
+     */
+    const s2n_hmac_algorithm tls12_prf_alg;
+
+    const uint8_t minimum_required_tls_version;
+};
+
+/* Never negotiated */
+extern struct s2n_cipher_suite s2n_null_cipher_suite;
+
+extern struct s2n_cipher_suite s2n_rsa_with_rc4_128_md5;
+extern struct s2n_cipher_suite s2n_rsa_with_rc4_128_sha;
+extern struct s2n_cipher_suite s2n_rsa_with_3des_ede_cbc_sha;
+extern struct s2n_cipher_suite s2n_dhe_rsa_with_3des_ede_cbc_sha;
+extern struct s2n_cipher_suite s2n_rsa_with_aes_128_cbc_sha;
+extern struct s2n_cipher_suite s2n_dhe_rsa_with_aes_128_cbc_sha;
+extern struct s2n_cipher_suite s2n_rsa_with_aes_256_cbc_sha;
+extern struct s2n_cipher_suite s2n_dhe_rsa_with_aes_256_cbc_sha;
+extern struct s2n_cipher_suite s2n_rsa_with_aes_128_cbc_sha256;
+extern struct s2n_cipher_suite s2n_rsa_with_aes_256_cbc_sha256;
+extern struct s2n_cipher_suite s2n_dhe_rsa_with_aes_128_cbc_sha256;
+extern struct s2n_cipher_suite s2n_dhe_rsa_with_aes_256_cbc_sha256;
+extern struct s2n_cipher_suite s2n_rsa_with_aes_128_gcm_sha256;
+extern struct s2n_cipher_suite s2n_rsa_with_aes_256_gcm_sha384;
+extern struct s2n_cipher_suite s2n_dhe_rsa_with_aes_128_gcm_sha256;
+extern struct s2n_cipher_suite s2n_dhe_rsa_with_aes_256_gcm_sha384;
+extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_3des_ede_cbc_sha;
+extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_128_cbc_sha;
+extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_256_cbc_sha;
+extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_128_cbc_sha256;
+extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_256_cbc_sha384;
+extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_128_gcm_sha256;
+extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
+extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_chacha20_poly1305_sha256;
+extern struct s2n_cipher_suite s2n_dhe_rsa_with_chacha20_poly1305_sha256;
+
+extern int s2n_cipher_suites_init(void);
+extern int s2n_cipher_suites_cleanup(void);
+extern struct s2n_cipher_suite *s2n_cipher_suite_from_wire(const uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN]);
 extern int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN]);
-extern int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count);
-extern int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count);
+extern int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);
+extern int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);

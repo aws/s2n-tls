@@ -37,8 +37,17 @@
 
 #include <stdint.h>
 
-typedef enum { S2N_HASH_NONE, S2N_HASH_MD5, S2N_HASH_SHA1, S2N_HASH_SHA224, S2N_HASH_SHA256, S2N_HASH_SHA384,
-    S2N_HASH_SHA512, S2N_HASH_MD5_SHA1
+#define MAX_DIGEST_LENGTH SHA512_DIGEST_LENGTH
+
+typedef enum {
+    S2N_HASH_NONE,
+    S2N_HASH_MD5,
+    S2N_HASH_SHA1,
+    S2N_HASH_SHA224,
+    S2N_HASH_SHA256,
+    S2N_HASH_SHA384,
+    S2N_HASH_SHA512,
+    S2N_HASH_MD5_SHA1
 } s2n_hash_algorithm;
 
 struct s2n_hash_state {
@@ -57,10 +66,10 @@ struct s2n_hash_state {
     } hash_ctx;
 };
 
-extern int s2n_hash_digest_size(s2n_hash_algorithm alg);
+extern int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out);
 
 extern int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg);
 extern int s2n_hash_update(struct s2n_hash_state *state, const void *in, uint32_t size);
 extern int s2n_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size);
 extern int s2n_hash_reset(struct s2n_hash_state *state);
-extern int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from); 
+extern int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from);

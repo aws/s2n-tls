@@ -26,7 +26,7 @@
 #include "tls/s2n_handshake.h"
 
 /*
- * The TLS protocol allows messages to be fragmentd, interleaved and coalesced into 'records'. These
+ * The TLS protocol allows messages to be fragmented, interleaved and coalesced into 'records'. These
  * tests check that fragmented messages are recombined, that several messages in the same record work
  * and that messages interleaved with alerts (including a fragmented alert message) all work.
  *
@@ -80,7 +80,7 @@ uint8_t server_cert[] = {       /* SERVER CERT */
     /* Length of the first cert */
     0x00, 0x03, 0x32,
 
-    /* Certifcate data - via openssl x509 -in cert.pem -outform DER | xxd -i */
+    /* Certificate data - via openssl x509 -in cert.pem -outform DER | xxd -i */
     0x30, 0x82, 0x03, 0x2e, 0x30, 0x82, 0x02, 0x16, 0x02, 0x09, 0x00, 0xcb,
     0xd6, 0x5a, 0xfa, 0x37, 0xcf, 0xe0, 0xbf, 0x30, 0x0d, 0x06, 0x09, 0x2a,
     0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x05, 0x05, 0x00, 0x30, 0x59,
@@ -403,6 +403,9 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
 
     /* Create a pipe */
     EXPECT_SUCCESS(pipe(p));
@@ -411,7 +414,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
 
     /* Pretend the client hello has already been set */
-    conn->handshake.handshake_type = FULL_NO_PFS;
+    conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
     conn->handshake.message_number = SERVER_HELLO;
 
     /* Create a child process */
@@ -433,7 +436,7 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
-    EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
+    EXPECT_EQUAL(memcmp(conn->secure.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was processed */
     EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
@@ -448,12 +451,15 @@ int main(int argc, char **argv)
 
     /* Wipe the connection */
     EXPECT_SUCCESS(s2n_connection_wipe(conn));
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
 
     /* Set up the connection to read from the fd */
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
 
     /* Pretend the client hello has already been set */
-    conn->handshake.handshake_type = FULL_NO_PFS;
+    conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
     conn->handshake.message_number = SERVER_HELLO;
 
     /* Create a child process */
@@ -475,7 +481,7 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
-    EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
+    EXPECT_EQUAL(memcmp(conn->secure.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server done message was processed */
     EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_HELLO_DONE);
@@ -490,12 +496,15 @@ int main(int argc, char **argv)
 
     /* Wipe the connection */
     EXPECT_SUCCESS(s2n_connection_wipe(conn));
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
 
     /* Set up the connection to read from the fd */
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
 
     /* Pretend the client hello has already been set */
-    conn->handshake.handshake_type = FULL_NO_PFS;
+    conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
     conn->handshake.message_number = SERVER_HELLO;
 
     /* Create a child process */
@@ -517,7 +526,7 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
-    EXPECT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
+    EXPECT_EQUAL(memcmp(conn->secure.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was processed */
     EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);
@@ -532,12 +541,15 @@ int main(int argc, char **argv)
 
     /* Wipe the connection */
     EXPECT_SUCCESS(s2n_connection_wipe(conn));
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
 
     /* Set up the connection to read from the fd */
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
 
     /* Pretend the client hello has already been set */
-    conn->handshake.handshake_type = FULL_NO_PFS;
+    conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
     conn->handshake.message_number = SERVER_HELLO;
 
     /* Create a child process */
@@ -559,7 +571,7 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data is as we expect it */
-    EXPECT_NOT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
+    EXPECT_NOT_EQUAL(memcmp(conn->secure.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was not processed */
     EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_HELLO);
@@ -574,12 +586,15 @@ int main(int argc, char **argv)
 
     /* Wipe the connection */
     EXPECT_SUCCESS(s2n_connection_wipe(conn));
+    conn->server_protocol_version = S2N_TLS12;
+    conn->client_protocol_version = S2N_TLS12;
+    conn->actual_protocol_version = S2N_TLS12;
 
     /* Set up the connection to read from the fd */
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, p[0]));
 
     /* Pretend the client hello has already been set */
-    conn->handshake.handshake_type = FULL_NO_PFS;
+    conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
     conn->handshake.message_number = SERVER_HELLO;
 
     /* Create a child process */
@@ -601,7 +616,7 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
     /* Verify that the data failed */
-    EXPECT_NOT_EQUAL(memcmp(conn->pending.server_random, zero_to_thirty_one, 32), 0);
+    EXPECT_NOT_EQUAL(memcmp(conn->secure.server_random, zero_to_thirty_one, 32), 0);
 
     /* Check that the server hello message was not processed */
     EXPECT_NOT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_CERT);

@@ -16,7 +16,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
-#include <sys/poll.h>
+#include <poll.h>
 #include <netdb.h>
 
 #include <stdlib.h>
@@ -70,14 +70,15 @@ int negotiate(struct s2n_connection *conn)
     }
 
     if (s2n_get_application_protocol(conn)) {
-        printf("Application protocol: %s\n",
-                s2n_get_application_protocol(conn));
+        printf("Application protocol: %s\n", s2n_get_application_protocol(conn));
     }
+
+    printf("Curve: %s\n", s2n_connection_get_curve(conn));
 
     uint32_t length;
     const uint8_t *status = s2n_connection_get_ocsp_response(conn, &length);
     if (status && length > 0) {
-        fprintf(stderr, "OCSP response received, length %d\n", length);
+        fprintf(stderr, "OCSP response received, length %u\n", length);
     }
 
     printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
@@ -97,7 +98,7 @@ int echo(struct s2n_connection *conn, int sockfd)
     /* Act as a simple proxy between stdin and the SSL connection */
     int p;
     s2n_blocked_status blocked;
-    POLL:
+  POLL:
     while ((p = poll(readers, 2, -1)) > 0) {
         char buffer[10240];
         int bytes_read, bytes_written;
@@ -131,7 +132,7 @@ int echo(struct s2n_connection *conn, int sockfd)
             }
 
             /* Read as many bytes as we think we can */
-            READ:
+          READ:
             bytes_read = read(STDIN_FILENO, buffer, bytes_available);
             if (bytes_read < 0) {
                 if (errno == EINTR) {
