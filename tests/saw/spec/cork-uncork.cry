@@ -40,9 +40,9 @@ corkedFromConn conn = zero # [mode_writer conn.mode == (ACTIVE_STATE conn).write
 //level cannot make a step, then the high level can't also
 highLevelSimulatesLowLevel : connection -> Bit
 highLevelSimulatesLowLevel conn_old =
-   if (valid_handshake conn_old.handshake /\ conn_old.mode == S2N_SERVER /\ conn_old.corked_io == 1 /\ (conn_old.corked == corkedFromConn conn_old)) then state_new == (advanceMessage state_old writer_new)
+   if (valid_handshake conn_old.handshake /\ conn_old.mode == S2N_SERVER /\ conn_old.corked_io == 1 /\ (conn_old.corked == corkedFromConn conn_old)) then state_new == (cork_transition state_old writer_new)
    else True
-   where conn_new   = s2n_advance_message conn_old
+   where conn_new   = advance_message conn_old
          writer_old = (ACTIVE_STATE conn_old).writer
          writer_new = (ACTIVE_STATE conn_new).writer
          state_old  = (writer2sender writer_old, corkAdapt conn_old.corked)
@@ -50,8 +50,8 @@ highLevelSimulatesLowLevel conn_old =
          input      = writer_new
 
 // The abstract transition function for the cork/uncork state machine
-advanceMessage : State -> [8] -> State
-advanceMessage (s, corking) c =
+cork_transition : State -> [8] -> State
+cork_transition (s, corking) c =
   if (s == clientSender) then
      if c == 'C' then (clientSender, corking)
      else if c == 'S' then (serverSender, corking + 1)
@@ -66,11 +66,11 @@ advanceMessage (s, corking) c =
 // machine (assumes socket is initially uncorked) given a list of input
 // actions (new writers)
 run : {n} [n][8] -> [n+1]State
-run writers = scanl advanceMessage (clientSender, uncorked) writers
+run writers = scanl cork_transition (clientSender, uncorked) writers
 
 // returns the last state of the 
 exec : {n} (fin n) => [n][8] -> State
-exec writers = foldl advanceMessage (clientSender, uncorked) writers
+exec writers = foldl cork_transition (clientSender, uncorked) writers
 
 finalStateIsCorrect : [12][8] -> Bit
 finalStateIsCorrect writers = corking == corked \/ corking == uncorked

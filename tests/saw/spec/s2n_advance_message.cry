@@ -46,8 +46,8 @@ s2n_uncork c = 0
 
 // This function models the update of the s2n_connection struct by the
 // s2n_advance_message function in s2n
-s2n_advance_message : connection -> connection
-s2n_advance_message conn = conn2
+advance_message : connection -> connection
+advance_message conn = conn2
   where conn2 = {handshake = handshake2
                 ,mode = conn.mode
                 ,corked_io = conn.corked_io
