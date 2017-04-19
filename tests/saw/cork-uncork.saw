@@ -149,5 +149,5 @@ let verify_cork_uncork = do {
 verify_cork_uncork; //prove correspondence of the C code and the low-level model
 prove abc {{ highLevelSimulatesLowLevel }}; //prove correspondence of the high-level and low-level models
 print "Verified the low-level->high-level cork-uncork simulation";
-prove z3 {{ finalStateIsCorrect }};
+prove z3 {{ noDoubleCorkUncork }};
 print "Verified that double uncorking or corking cannot occur";

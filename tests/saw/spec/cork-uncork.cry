@@ -7,7 +7,9 @@
 // simulates the lower-level model of s2n_advance_message in Cryptol
 // and is verified in the SAW proof script.
 //
-// Finally, the
+
+// Finally, the property we want to prove is about not corking or
+// uncorking a socket twice in a row. It is encoded in 'noDoubleCorkUncork'.
 
 
 module CorkUncork where
@@ -72,6 +74,9 @@ run writers = scanl cork_transition (clientSender, uncorked) writers
 exec : {n} (fin n) => [n][8] -> State
 exec writers = foldl cork_transition (clientSender, uncorked) writers
 
-finalStateIsCorrect : [12][8] -> Bit
-finalStateIsCorrect writers = corking == corked \/ corking == uncorked
-  where (s, corking) = exec writers
+// there is no uncorking or corking twice in a row
+noDoubleCorkUncork : [12][8] -> Bit
+noDoubleCorkUncork writers = and (map corkingInBounds (run writers))
+
+corkingInBounds : State -> Bit
+corkingInBounds (_, corking) = corking == corked \/ corking == uncorked
