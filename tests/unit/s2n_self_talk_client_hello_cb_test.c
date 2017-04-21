@@ -25,6 +25,11 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 
+struct client_hello_context {
+    int invoked;
+    struct s2n_config *config;
+};
+
 static char certificate[] =
     "-----BEGIN CERTIFICATE-----\n"
     "MIIDLjCCAhYCCQDL1lr6N8/gvzANBgkqhkiG9w0BAQUFADBZMQswCQYDVQQGEwJB\n"
@@ -149,13 +154,16 @@ int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
 
 int client_hello_swap_config(struct s2n_connection *conn, void *ctx)
 {
-    struct s2n_config *config;
+    struct client_hello_context *client_hello_ctx;
     const char *server_name;
 
     if (ctx == NULL) {
         return -1;
     }
-    config = ctx;
+    client_hello_ctx = ctx;
+
+    /* Incremet counter to ensure that callback was invoked */
+    client_hello_ctx->invoked++;
 
     /* Validate that we have server name */
     server_name = s2n_get_server_name(conn);
@@ -164,12 +172,23 @@ int client_hello_swap_config(struct s2n_connection *conn, void *ctx)
     }
 
     /* Swap config */
-    s2n_connection_set_config(conn, config);
+    s2n_connection_set_config(conn, client_hello_ctx->config);
     return 0;
 }
 
-int client_hello_fail_handshake(struct s2n_connection *conn, void *data)
+int client_hello_fail_handshake(struct s2n_connection *conn, void *ctx)
 {
+    struct client_hello_context *client_hello_ctx;
+
+    if (ctx == NULL) {
+        return -1;
+    }
+    client_hello_ctx = ctx;
+
+    /* Incremet counter to ensure that callback was invoked */
+    client_hello_ctx->invoked++;
+
+    /* Return negative value to terminate the handshake */
     return -1;
 }
 
@@ -184,6 +203,7 @@ int main(int argc, char **argv)
     pid_t pid;
     int server_to_client[2];
     int client_to_server[2];
+    struct client_hello_context client_hello_ctx;
     BEGIN_TEST();
 
     EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
@@ -197,8 +217,12 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(swap_config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(swap_config, certificate, private_key));
 
+    /* Prepare context */
+    client_hello_ctx.invoked = 0;
+    client_hello_ctx.config = swap_config;
+
     /* Set up the callback to swap config on client hello */
-    EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_swap_config, swap_config));
+    EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_swap_config, &client_hello_ctx));
 
     /* Create a pipe */
     EXPECT_SUCCESS(pipe(server_to_client));
@@ -232,6 +256,9 @@ int main(int argc, char **argv)
     /* Negotiate the handshake. */
     EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
 
+    /* Ensure that callback was invoked */
+    EXPECT_EQUAL(client_hello_ctx.invoked, 1);
+
     /* Expect NULL negotiated protocol */
     EXPECT_EQUAL(s2n_get_application_protocol(conn), NULL);
 
@@ -264,7 +291,11 @@ int main(int argc, char **argv)
     /* Test rejecting connection in client hello callback */
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, certificate, private_key));
-    EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_fail_handshake, NULL));
+
+    /* Setup ClientHello callback */
+    client_hello_ctx.invoked = 0;
+    client_hello_ctx.config = NULL;
+    EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_fail_handshake, &client_hello_ctx));
 
     /* Create a pipe */
     EXPECT_SUCCESS(pipe(server_to_client));
@@ -302,6 +333,9 @@ int main(int argc, char **argv)
 
     /* Negotiate the handshake. */
     EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
+
+    /* Ensure that callback was invoked */
+    EXPECT_EQUAL(client_hello_ctx.invoked, 1);
 
     /* Shutdown to flush alert. Expect failure as client doesn't send close
      * notify */
