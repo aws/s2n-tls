@@ -48,6 +48,9 @@ struct s2n_config {
     int (*nanoseconds_since_epoch) (void *, uint64_t *);
     void *data_for_nanoseconds_since_epoch;
 
+    s2n_client_hello_fn *client_hello_cb;
+    void *client_hello_cb_ctx;
+
     /* If caching is being used, these must all be set */
     int (*cache_store) (void *data, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size);
     void *cache_store_data;

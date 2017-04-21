@@ -515,6 +515,27 @@ should return 0 on success and -1 on error. The function is also required to
 implement a monotonic time source; the number of nanoseconds returned should
 never decrease between calls.
 
+### s2n\_config\_set\_client\_hello\_cb
+
+```c
+int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_fn client_hello_callback, void *ctx);
+```
+
+**s2n_config_set_client_hello_cb** allows the caller to set a callback function
+that will be called after ClientHello was parsed.
+
+```c
+typedef int s2n_client_hello_fn(struct s2n_connection *conn, void *ctx);
+```
+
+The callback function take as an input s2n connection, which received
+ClientHello and context provided in **s2n_config_set_client_hello_cb**. The
+callback can get any ClientHello infromation from the connection and use
+**s2n_connection_set_config** call to change the config of the connection.
+
+The callback can return 0 to continue handshake in s2n or it can return negative
+value to make s2n terminate handshake early with fatal handshake failure alert.
+
 ## Session Caching related calls
 
 s2n includes support for resuming from cached SSL/TLS session, provided 

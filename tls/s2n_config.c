@@ -384,3 +384,9 @@ int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_t
     return 0;
 }
 
+int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_fn client_hello_cb, void *ctx)
+{
+    config->client_hello_cb = client_hello_cb;
+    config->client_hello_cb_ctx = ctx;
+    return 0;
+}
