@@ -45,6 +45,7 @@ run_tests:: $(TESTS)
 	  (\
 	    DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
 	    LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
+	    LD_PRELOAD="../LD_PRELOAD/allocator_overrides.so" \
 	    ./$$test; \
 	  ) & \
 	  done; wait)
