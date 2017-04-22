@@ -121,6 +121,7 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_UNIMPLEMENTED, "Unimplemented feature"},
     {S2N_ERR_CERT_UNTRUSTED, "Certificate is untrusted"},
     {S2N_ERR_CERT_TYPE_UNSUPPORTED, "Certificate Type is unsupported"},
+    {S2N_ERR_CANCELLED, "handshake was cancelled"},
 };
 
 const char *s2n_strerror(int error, const char *lang)

@@ -87,6 +87,8 @@ struct s2n_config *s2n_config_new(void)
     new_config->application_protocols.size = 0;
     new_config->status_request_type = S2N_STATUS_REQUEST_NONE;
     new_config->nanoseconds_since_epoch = get_nanoseconds_since_epoch;
+    new_config->client_hello_cb = NULL;
+    new_config->client_hello_cb_ctx = NULL;
     new_config->cache_store = NULL;
     new_config->cache_store_data = NULL;
     new_config->cache_retrieve = NULL;
@@ -384,3 +386,10 @@ int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_t
     return 0;
 }
 
+int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_fn client_hello_cb, void *ctx)
+{
+    config->client_hello_cb = client_hello_cb;
+    config->client_hello_cb_ctx = ctx;
+
+    return 0;
+}
