@@ -73,6 +73,7 @@ static int s2n_map_embiggen(struct s2n_map *map, uint32_t capacity)
     }
 
     GUARD(s2n_alloc(&mem, (capacity * sizeof(struct s2n_map_entry))));
+    GUARD(s2n_blob_zero(&mem));
 
     tmp.capacity = capacity;
     tmp.size = 0;
@@ -110,6 +111,7 @@ struct s2n_map *s2n_map_new()
 
     map = (void *) mem.data;
     map->capacity = 0;
+    map->size = 0;
     map->immutable = 0;
     map->table = NULL;
 
