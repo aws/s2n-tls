@@ -46,7 +46,7 @@ clean-failure-logs :
 
 
 tmp/%.log : %.saw bitcode/all_llvm.bc tmp
-	@echo "Running formal verification with ${Z3_VERSION} and ${SAW_VERSION}"
+	@echo "Running formal verification with ${Z3_VERSION}"
 	@echo saw $<
 	@set -o pipefail; \
 	saw $< | tee $@
