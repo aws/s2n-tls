@@ -17,7 +17,15 @@
 
 #include <dlfcn.h>
 #include <string.h>
+
+/* Overrides will work only if RTLD_NEXT is defined */
+#ifdef RTLD_NEXT
+
+/* if we use glibc, include malloc.h for malloc_usable_size */
+#ifdef __GLIBC__
 #include <malloc.h>
+#define HAVE_MALLOC_USABLE_SIZE
+#endif
 
 typedef int (*posix_memalign_fn)(void **memptr, size_t alignment, size_t size);
 typedef void *(*realloc_fn)(void *ptr, size_t size);
@@ -52,7 +60,6 @@ void *realloc(void *ptr, size_t size)
     /* Override original realloc to fill allocated memory with some data to
      * catch errors due to missing initialization */
     void *p;
-    size_t ptr_alloc_size;
 
     if (orig_realloc == NULL) {
         /* C99 forbids converting void * to function pointers, so direct
@@ -63,14 +70,31 @@ void *realloc(void *ptr, size_t size)
         *(void **) &orig_realloc = dlsym(RTLD_NEXT, "realloc");
     }
 
-    ptr_alloc_size = malloc_usable_size(ptr);
     p = orig_realloc(ptr, size);
 
+#ifdef HAVE_MALLOC_USABLE_SIZE
+    /* If malloc_usable_size is availible, we can get the size of previously
+     * allocated buffer, to find out how many new bytes we've allocated */
+    size_t ptr_alloc_size;
+    size_t p_alloc_size;
+
+    ptr_alloc_size = malloc_usable_size(ptr);
+    p_alloc_size = malloc_usable_size(p);
+
     /* If call succeeded and we're enlarging memory, fill the extension with
-     * some random data */
-    if (p && size > ptr_alloc_size) {
-        memset((char *) p + ptr_alloc_size, 0xff, size - ptr_alloc_size);
+     * non-zero data */
+    if (p && p_alloc_size > ptr_alloc_size) {
+        memset((char *) p + ptr_alloc_size, 0xff, p_alloc_size - ptr_alloc_size);
     }
+#else
+    /* If we're allocating new buffer and the call succeeded, fill the buffer
+     * with non-zero data*/
+    if (p && !ptr) {
+        memset(p, 0xff, size);
+    }
+#endif
 
     return p;
 }
+
+#endif
