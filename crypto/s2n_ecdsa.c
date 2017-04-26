@@ -20,9 +20,10 @@
 #include "stuffer/s2n_stuffer.h"
 
 #include "error/s2n_errno.h"
-#include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
+#include "utils/s2n_random.h"
+#include "utils/s2n_safety.h"
 
 #include "crypto/s2n_ecdsa.h"
 #include "crypto/s2n_hash.h"
@@ -157,9 +158,14 @@ int s2n_ecdsa_signature_size(const struct s2n_ecdsa_private_key *key)
 
 int s2n_ecdsa_keys_match(const struct s2n_ecdsa_public_key *pub_key, const struct s2n_ecdsa_private_key *priv_key) 
 {
-    uint8_t input[] = "keys match!";
+    uint8_t input[16];
+    struct s2n_blob random_input;
     struct s2n_hash_state state_in, state_out;
     struct s2n_blob signature;
+
+    random_input.data = input;
+    random_input.size = sizeof(input);
+    GUARD(s2n_get_public_random_data(&random_input));
 
     GUARD(s2n_hash_init(&state_in, S2N_HASH_SHA1));
     GUARD(s2n_hash_init(&state_out, S2N_HASH_SHA1));
