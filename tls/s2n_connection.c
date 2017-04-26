@@ -178,6 +178,41 @@ static int s2n_connection_free_keys(struct s2n_connection *conn)
     return 0;
 }
 
+static int s2n_connection_wipe_connection(struct s2n_connection *conn, int mode, struct s2n_config *config)
+{
+    /* Zero the whole connection structure */
+    memset_check(conn, 0, sizeof(struct s2n_connection));
+
+    conn->send = NULL;
+    conn->recv = NULL;
+    conn->send_io_context = NULL;
+    conn->recv_io_context = NULL;
+    conn->mode = mode;
+    conn->config = config;
+    conn->close_notify_queued = 0;
+    conn->current_user_data_consumed = 0;
+    conn->initial.cipher_suite = &s2n_null_cipher_suite;
+    conn->secure.cipher_suite = &s2n_null_cipher_suite;
+    conn->server = &conn->initial;
+    conn->client = &conn->initial;
+    conn->max_outgoing_fragment_length = S2N_DEFAULT_FRAGMENT_LENGTH;
+    conn->handshake.handshake_type = INITIAL;
+    conn->handshake.message_number = 0;
+    conn->client_cert_auth_type = S2N_CERT_AUTH_NONE;
+    conn->verify_cert_chain_cb = deny_all_certs;
+    conn->verify_cert_context = NULL;
+    GUARD(s2n_hash_init(&conn->handshake.md5, S2N_HASH_MD5));
+    GUARD(s2n_hash_init(&conn->handshake.sha1, S2N_HASH_SHA1));
+    GUARD(s2n_hash_init(&conn->handshake.sha224, S2N_HASH_SHA224));
+    GUARD(s2n_hash_init(&conn->handshake.sha256, S2N_HASH_SHA256));
+    GUARD(s2n_hash_init(&conn->handshake.sha384, S2N_HASH_SHA384));
+    GUARD(s2n_hash_init(&conn->handshake.sha512, S2N_HASH_SHA512));
+    GUARD(s2n_hmac_init(&conn->client->client_record_mac, S2N_HMAC_NONE, NULL, 0));
+    GUARD(s2n_hmac_init(&conn->server->server_record_mac, S2N_HMAC_NONE, NULL, 0));
+
+    return 0;
+}
+
 static int s2n_connection_wipe_keys(struct s2n_connection *conn)
 {
     /* Destroy any keys - we call destroy on the object as that is where
@@ -271,9 +306,7 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
 
 int s2n_connection_wipe(struct s2n_connection *conn)
 {
-    /* First make a copy of everything we'd like to save, which isn't very
-     * much.
-     */
+    /* First make a copy of everything we'd like to save, which isn't very much. */
     int mode = conn->mode;
     struct s2n_config *config = conn->config;
     struct s2n_stuffer alert_in;
@@ -332,35 +365,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
 #pragma GCC diagnostic pop
 #endif
 
-    /* Zero the whole connection structure */
-    memset_check(conn, 0, sizeof(struct s2n_connection));
-
-    conn->send = NULL;
-    conn->recv = NULL;
-    conn->send_io_context = NULL;
-    conn->recv_io_context = NULL;
-    conn->mode = mode;
-    conn->config = config;
-    conn->close_notify_queued = 0;
-    conn->current_user_data_consumed = 0;
-    conn->initial.cipher_suite = &s2n_null_cipher_suite;
-    conn->secure.cipher_suite = &s2n_null_cipher_suite;
-    conn->server = &conn->initial;
-    conn->client = &conn->initial;
-    conn->max_outgoing_fragment_length = S2N_DEFAULT_FRAGMENT_LENGTH;
-    conn->handshake.handshake_type = INITIAL;
-    conn->handshake.message_number = 0;
-    conn->client_cert_auth_type = S2N_CERT_AUTH_NONE;
-    conn->verify_cert_chain_cb = deny_all_certs;
-    conn->verify_cert_context = NULL;
-    GUARD(s2n_hash_init(&conn->handshake.md5, S2N_HASH_MD5));
-    GUARD(s2n_hash_init(&conn->handshake.sha1, S2N_HASH_SHA1));
-    GUARD(s2n_hash_init(&conn->handshake.sha224, S2N_HASH_SHA224));
-    GUARD(s2n_hash_init(&conn->handshake.sha256, S2N_HASH_SHA256));
-    GUARD(s2n_hash_init(&conn->handshake.sha384, S2N_HASH_SHA384));
-    GUARD(s2n_hash_init(&conn->handshake.sha512, S2N_HASH_SHA512));
-    GUARD(s2n_hmac_init(&conn->client->client_record_mac, S2N_HMAC_NONE, NULL, 0));
-    GUARD(s2n_hmac_init(&conn->server->server_record_mac, S2N_HMAC_NONE, NULL, 0));
+    GUARD(s2n_connection_wipe_connection(conn, mode, config));
 
     memcpy_check(&conn->alert_in, &alert_in, sizeof(struct s2n_stuffer));
     memcpy_check(&conn->reader_alert_out, &reader_alert_out, sizeof(struct s2n_stuffer));
