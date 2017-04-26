@@ -98,6 +98,78 @@ int s2n_record_header_parse(struct s2n_connection *conn, uint8_t * content_type,
     return 0;
 }
 
+int s2n_record_read_decryption(struct s2n_connection *conn, const struct s2n_cipher_suite *cipher_suite, struct s2n_session_key *session_key,
+                               struct s2n_blob iv, struct s2n_blob en, uint8_t *implicit_iv, uint8_t *ivpad)
+{
+    /* Decrypt stuff! */
+    switch (cipher_suite->record_alg->cipher->type) {
+        case S2N_STREAM:
+            GUARD(cipher_suite->record_alg->cipher->io.stream.decrypt(session_key, &en, &en));
+            break;
+        case S2N_CBC:
+            /* Check that we have some data to decrypt */
+            ne_check(en.size, 0);
+
+            /* ... and that we have a multiple of the block size */
+            eq_check(en.size % iv.size, 0);
+
+            /* Copy the last encrypted block to be the next IV */
+            if (conn->actual_protocol_version < S2N_TLS11) {
+                memcpy_check(ivpad, en.data + en.size - iv.size, iv.size);
+            }
+
+            GUARD(cipher_suite->record_alg->cipher->io.cbc.decrypt(session_key, &iv, &en, &en));
+
+            if (conn->actual_protocol_version < S2N_TLS11) {
+                memcpy_check(implicit_iv, ivpad, iv.size);
+            }
+            break;
+        case S2N_COMPOSITE:
+            ne_check(en.size, 0);
+            eq_check(en.size % iv.size,  0);
+
+            /* Copy the last encrypted block to be the next IV */
+            memcpy_check(ivpad, en.data + en.size - iv.size, iv.size);
+
+            /* This will: Skip the explicit IV(if applicable), decrypt the payload, verify the MAC and padding. */
+            GUARD((cipher_suite->record_alg->cipher->io.comp.decrypt(session_key, &iv, &en, &en)));
+
+            memcpy_check(implicit_iv, ivpad, iv.size);
+            break;
+        default:
+            S2N_ERROR(S2N_ERR_CIPHER_TYPE);
+            break;
+    }
+
+    return 0;
+}
+
+int s2n_record_read_check_padding(struct s2n_connection *conn, const struct s2n_cipher_suite *cipher_suite,
+                                  struct s2n_hmac_state *mac, struct s2n_blob en, uint16_t payload_length, uint8_t mac_digest_size )
+{
+    /* Padding */
+    if (cipher_suite->record_alg->cipher->type == S2N_CBC) {
+        if (s2n_verify_cbc(conn, mac, &en) < 0) {
+            GUARD(s2n_stuffer_wipe(&conn->in));
+            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        }
+    } else {
+        /* MAC check for streaming ciphers - no padding */
+        GUARD(s2n_hmac_update(mac, en.data, payload_length));
+
+        uint8_t check_digest[S2N_MAX_DIGEST_LEN];
+        lte_check(mac_digest_size, sizeof(check_digest));
+        GUARD(s2n_hmac_digest(mac, check_digest, mac_digest_size));
+
+        if (s2n_hmac_digest_verify(en.data + payload_length, check_digest, mac_digest_size) < 0) {
+            GUARD(s2n_stuffer_wipe(&conn->in));
+            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        }
+    }
+
+    return 0;
+}
+
 int s2n_record_parse(struct s2n_connection *conn)
 {
     struct s2n_blob iv;
@@ -160,8 +232,7 @@ int s2n_record_parse(struct s2n_connection *conn)
     payload_length -= mac_digest_size;
 
     /* Compute non-payload parts of the MAC(seq num, type, proto vers, fragment length) for composite ciphers.
-     * Composite "decrypt" will MAC the actual payload data.
-     */
+     * Composite "decrypt" will MAC the actual payload data.*/
     if (cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
         /* In the decrypt case, this outputs the MAC digest length:
          * https://github.com/openssl/openssl/blob/master/crypto/evp/e_aes_cbc_hmac_sha1.c#L842 */
@@ -217,33 +288,7 @@ int s2n_record_parse(struct s2n_connection *conn)
         struct s2n_stuffer ad_stuffer;
         GUARD(s2n_stuffer_init(&ad_stuffer, &aad));
         GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, payload_length, &ad_stuffer));
-    }
 
-    /* Decrypt stuff! */
-    switch (cipher_suite->record_alg->cipher->type) {
-    case S2N_STREAM:
-        GUARD(cipher_suite->record_alg->cipher->io.stream.decrypt(session_key, &en, &en));
-        break;
-    case S2N_CBC:
-        /* Check that we have some data to decrypt */
-        ne_check(en.size, 0);
-
-        /* ... and that we have a multiple of the block size */
-        eq_check(en.size % iv.size, 0);
-
-        /* Copy the last encrypted block to be the next IV */
-        if (conn->actual_protocol_version < S2N_TLS11) {
-            memcpy_check(ivpad, en.data + en.size - iv.size, iv.size);
-        }
-
-        GUARD(cipher_suite->record_alg->cipher->io.cbc.decrypt(session_key, &iv, &en, &en));
-
-        if (conn->actual_protocol_version < S2N_TLS11) {
-            memcpy_check(implicit_iv, ivpad, iv.size);
-        }
-        break;
-    case S2N_AEAD:
-        /* Skip explicit IV for decryption */
         en.size -= cipher_suite->record_alg->cipher->io.aead.record_iv_size;
         en.data += cipher_suite->record_alg->cipher->io.aead.record_iv_size;
 
@@ -251,23 +296,8 @@ int s2n_record_parse(struct s2n_connection *conn)
         ne_check(en.size, 0);
 
         GUARD(cipher_suite->record_alg->cipher->io.aead.decrypt(session_key, &iv, &aad, &en, &en));
-        break;
-    case S2N_COMPOSITE:
-        ne_check(en.size, 0);
-        eq_check(en.size % iv.size,  0);
-
-        /* Copy the last encrypted block to be the next IV */
-        memcpy_check(ivpad, en.data + en.size - iv.size, iv.size);
-
-        /* This will: Skip the explicit IV(if applicable), decrypt the payload, verify the MAC and padding. */
-        GUARD((cipher_suite->record_alg->cipher->io.comp.decrypt(session_key, &iv, &en, &en)));
-
-        memcpy_check(implicit_iv, ivpad, iv.size);
-        break;
-    default:
-        S2N_ERROR(S2N_ERR_CIPHER_TYPE);
-        break;
     }
+    s2n_record_read_decryption(conn, cipher_suite, session_key, iv, en, implicit_iv, ivpad);
 
     /* Subtract the padding length */
     if (cipher_suite->record_alg->cipher->type == S2N_CBC || cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
@@ -291,29 +321,9 @@ int s2n_record_parse(struct s2n_connection *conn)
     struct s2n_blob seq = {.data = sequence_number,.size = S2N_TLS_SEQUENCE_NUM_LEN };
     GUARD(s2n_increment_sequence_number(&seq));
 
-    /* Padding */
-    if (cipher_suite->record_alg->cipher->type == S2N_CBC) {
-        if (s2n_verify_cbc(conn, mac, &en) < 0) {
-            GUARD(s2n_stuffer_wipe(&conn->in));
-            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-        }
-    } else {
-        /* MAC check for streaming ciphers - no padding */
-        GUARD(s2n_hmac_update(mac, en.data, payload_length));
-
-        uint8_t check_digest[S2N_MAX_DIGEST_LEN];
-        lte_check(mac_digest_size, sizeof(check_digest));
-        GUARD(s2n_hmac_digest(mac, check_digest, mac_digest_size));
-
-        if (s2n_hmac_digest_verify(en.data + payload_length, check_digest, mac_digest_size) < 0) {
-            GUARD(s2n_stuffer_wipe(&conn->in));
-            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-        }
-    }
-
+    GUARD(s2n_record_read_check_padding(conn, cipher_suite, mac, en, payload_length, mac_digest_size));
     /* O.k., we've successfully read and decrypted the record, now we need to align the stuffer
-     * for reading the plaintext data.
-     */
+     * for reading the plaintext data.*/
     GUARD(s2n_stuffer_reread(&conn->in));
     GUARD(s2n_stuffer_reread(&conn->header_in));
 

@@ -6,6 +6,6 @@
     <LineLength>177</LineLength>
     <Functions>
         <regex>[A-Za-z_]</regex>
-        <length>240</length>
+        <length>170</length>
     </Functions>
 </Description>
