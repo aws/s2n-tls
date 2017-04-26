@@ -356,6 +356,36 @@ static int s2n_handshake_conn_update_hashes(struct s2n_connection *conn)
     return 0;
 }
 
+int s2n_handshake_handle_sslv2(struct s2n_connection *conn)
+{
+    if (ACTIVE_MESSAGE(conn) != CLIENT_HELLO) {
+        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+    }
+
+    /* Add the message to our handshake hashes */
+    struct s2n_blob hashed = {.data = conn->header_in.blob.data + 2,.size = 3 };
+    GUARD(s2n_conn_update_handshake_hashes(conn, &hashed));
+
+    hashed.data = conn->in.blob.data;
+    hashed.size = s2n_stuffer_data_available(&conn->in);
+    GUARD(s2n_conn_update_handshake_hashes(conn, &hashed));
+
+    /* Handle an SSLv2 client hello */
+    GUARD(s2n_stuffer_copy(&conn->in, &conn->handshake.io, s2n_stuffer_data_available(&conn->in)));
+    GUARD(s2n_sslv2_client_hello_recv(conn));
+    GUARD(s2n_stuffer_wipe(&conn->handshake.io));
+
+    /* We're done with the record, wipe it */
+    GUARD(s2n_stuffer_wipe(&conn->header_in));
+    GUARD(s2n_stuffer_wipe(&conn->in));
+    conn->in_status = ENCRYPTED;
+
+    /* Advance the state machine */
+    GUARD(s2n_advance_message(conn));
+
+    return 0;
+}
+
 /* Reading is a little more complicated than writing as the TLS RFCs allow content
  * types to be interleaved at the record layer. We may get an alert message
  * during the handshake phase, or messages of types that we don't support (e.g.
@@ -371,30 +401,7 @@ static int handshake_read_io(struct s2n_connection *conn)
     GUARD(s2n_read_full_record(conn, &record_type, &isSSLv2));
 
     if (isSSLv2) {
-        if (ACTIVE_MESSAGE(conn) != CLIENT_HELLO) {
-            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-        }
-
-        /* Add the message to our handshake hashes */
-        struct s2n_blob hashed = {.data = conn->header_in.blob.data + 2,.size = 3 };
-        GUARD(s2n_conn_update_handshake_hashes(conn, &hashed));
-
-        hashed.data = conn->in.blob.data;
-        hashed.size = s2n_stuffer_data_available(&conn->in);
-        GUARD(s2n_conn_update_handshake_hashes(conn, &hashed));
-
-        /* Handle an SSLv2 client hello */
-        GUARD(s2n_stuffer_copy(&conn->in, &conn->handshake.io, s2n_stuffer_data_available(&conn->in)));
-        GUARD(s2n_sslv2_client_hello_recv(conn));
-        GUARD(s2n_stuffer_wipe(&conn->handshake.io));
-
-        /* We're done with the record, wipe it */
-        GUARD(s2n_stuffer_wipe(&conn->header_in));
-        GUARD(s2n_stuffer_wipe(&conn->in));
-        conn->in_status = ENCRYPTED;
-
-        /* Advance the state machine */
-        GUARD(s2n_advance_message(conn));
+        GUARD(s2n_handshake_handle_sslv2(conn));
     }
 
     /* Now we have a record, but it could be a partial fragment of a message, or it might
