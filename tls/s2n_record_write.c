@@ -86,14 +86,8 @@ int s2n_record_max_write_payload_size(struct s2n_connection *conn)
 }
 
 int s2n_record_write_encryption(struct s2n_connection *conn, const struct s2n_cipher_suite *cipher_suite, struct s2n_session_key *session_key,
-                                uint16_t block_size, uint16_t encrypted_length, struct s2n_blob iv, uint8_t *implicit_iv, struct s2n_blob aad)
+                                uint16_t block_size, struct s2n_blob iv, uint8_t *implicit_iv, struct s2n_blob en)
 {
-    /* Do the encryption */
-    struct s2n_blob en;
-    en.size = encrypted_length;
-    en.data = s2n_stuffer_raw_write(&conn->out, en.size);
-    notnull_check(en.data);
-
     switch (cipher_suite->record_alg->cipher->type) {
         case S2N_STREAM:
             GUARD(cipher_suite->record_alg->cipher->io.stream.encrypt(session_key, &en, &en));
@@ -106,9 +100,6 @@ int s2n_record_write_encryption(struct s2n_connection *conn, const struct s2n_ci
                 gte_check(en.size, block_size);
                 memcpy_check(implicit_iv, en.data + en.size - block_size, block_size);
             }
-            break;
-        case S2N_AEAD:
-            GUARD(cipher_suite->record_alg->cipher->io.aead.encrypt(session_key, &iv, &aad, &en, &en));
             break;
         case S2N_COMPOSITE:
             /* This will: compute mac, append padding, append padding length, and encrypt */
@@ -184,8 +175,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     uint8_t mac_digest_size;
     GUARD(s2n_hmac_digest_size(mac->alg, &mac_digest_size));
 
-    /* Before we do anything, we need to figure out what the length of the
-     * fragment is going to be.  */
+    /* Before we do anything, we need to figure out what the length of the fragment is going to be.  */
     uint16_t data_bytes_to_take = MIN(in->size, s2n_record_max_write_payload_size(conn));
 
     uint16_t extra = overhead(conn);
@@ -221,8 +211,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     }
 
     /* Compute non-payload parts of the MAC(seq num, type, proto vers, fragment length) for composite ciphers.
-     * Composite "encrypt" will MAC the payload data and filling in padding.
-     */
+     * Composite "encrypt" will MAC the payload data and filling in padding.*/
     if (cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
         /* Only fragment length is needed for MAC, but the EVP ctrl function needs fragment length + eiv len. */
         uint16_t payload_and_eiv_len = data_bytes_to_take;
@@ -305,8 +294,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
 
     if (cipher_suite->record_alg->cipher->type == S2N_CBC) {
         /* Include padding bytes, each with the value 'p', and
-         * include an extra padding length byte, also with the value 'p'.
-         */
+         * include an extra padding length byte, also with the value 'p'.*/
         for (int i = 0; i <= padding; i++) {
             GUARD(s2n_stuffer_write_uint8(&conn->out, padding));
         }
@@ -321,7 +309,17 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     uint16_t encrypted_length = data_bytes_to_take + mac_digest_size;
     encrypted_length = s2n_record_write_modify_encrypted_length(conn, cipher_suite, iv, padding, extra, encrypted_length);
 
-    GUARD(s2n_record_write_encryption(conn, cipher_suite, session_key, block_size, encrypted_length, iv, implicit_iv, aad));
+    /* Do the encryption */
+    struct s2n_blob en;
+    en.size = encrypted_length;
+    en.data = s2n_stuffer_raw_write(&conn->out, en.size);
+    notnull_check(en.data);
+
+    if (cipher_suite->record_alg->cipher->type == S2N_AEAD) {
+        GUARD(cipher_suite->record_alg->cipher->io.aead.encrypt(session_key, &iv, &aad, &en, &en));
+    } else {
+        GUARD(s2n_record_write_encryption(conn, cipher_suite, session_key, block_size, iv, implicit_iv, en));
+    }
 
     conn->wire_bytes_out += actual_fragment_length + S2N_TLS_RECORD_HEADER_LENGTH;
     return data_bytes_to_take;
