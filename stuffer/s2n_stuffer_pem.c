@@ -108,6 +108,18 @@ int s2n_stuffer_rsa_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stu
     return s2n_stuffer_data_from_pem(pem, asn1, "PRIVATE KEY");
 }
 
+int s2n_stuffer_ec_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1)
+{
+    const int rc = s2n_stuffer_data_from_pem(pem, asn1, "EC PRIVATE KEY");
+    if(!rc) {
+        return 0;
+    }
+    /* PEM may be using the PKCS#8 format. Retry with "PRIVATE KEY" */
+    s2n_stuffer_reread(pem);
+    s2n_stuffer_reread(asn1);
+    return s2n_stuffer_data_from_pem(pem, asn1, "PRIVATE KEY");
+}
+
 int s2n_stuffer_certificate_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1)
 {
     return s2n_stuffer_data_from_pem(pem, asn1, "CERTIFICATE");
