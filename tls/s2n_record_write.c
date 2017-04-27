@@ -117,7 +117,7 @@ int s2n_record_write_encryption(struct s2n_connection *conn, const struct s2n_ci
     return 0;
 }
 
-uint16_t s2n_record_write_cal_encrypted_length(struct s2n_connection *conn, const struct s2n_cipher_suite *cipher_suite, struct s2n_blob iv,
+uint16_t s2n_record_skip_write_encrypted_length(struct s2n_connection *conn, const struct s2n_cipher_suite *cipher_suite, struct s2n_blob iv,
                                              uint8_t padding, uint8_t extra, uint16_t encrypted_length)
 {
     switch (cipher_suite->record_alg->cipher->type) {
@@ -305,7 +305,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     /* Skip the header */
     GUARD(s2n_stuffer_skip_write(&conn->out, S2N_TLS_RECORD_HEADER_LENGTH));
 
-    uint16_t encrypted_length = s2n_record_write_cal_encrypted_length(conn, cipher_suite, iv, padding, extra, data_bytes_to_take + mac_digest_size);
+    uint16_t encrypted_length = s2n_record_skip_write_encrypted_length(conn, cipher_suite, iv, padding, extra, data_bytes_to_take + mac_digest_size);
 
     /* Do the encryption */
     struct s2n_blob en;

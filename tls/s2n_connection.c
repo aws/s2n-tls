@@ -178,7 +178,7 @@ static int s2n_connection_free_keys(struct s2n_connection *conn)
     return 0;
 }
 
-static int s2n_connection_wipe_connection(struct s2n_connection *conn, int mode, struct s2n_config *config)
+static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n_config *config)
 {
     /* Zero the whole connection structure */
     memset_check(conn, 0, sizeof(struct s2n_connection));
@@ -365,7 +365,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
 #pragma GCC diagnostic pop
 #endif
 
-    GUARD(s2n_connection_wipe_connection(conn, mode, config));
+    GUARD(s2n_connection_zero(conn, mode, config));
 
     memcpy_check(&conn->alert_in, &alert_in, sizeof(struct s2n_stuffer));
     memcpy_check(&conn->reader_alert_out, &reader_alert_out, sizeof(struct s2n_stuffer));
