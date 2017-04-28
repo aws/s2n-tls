@@ -45,7 +45,7 @@ make clean
 FAILED=0
 EXPECTED_PASS=2
 EXPECTED_FAIL=0
-make | ./count_success.pl $EXPECTED_PASS $EXPECTED_FAIL || FAILED=1
+make 2>&1 | ./count_success.pl $EXPECTED_PASS $EXPECTED_FAIL || FAILED=1
 
 if [ $FAILED == 1 ];
 then
