@@ -40,7 +40,6 @@ while (my $line = <STDIN>){
 	for my $fns (split(",",$1)){
 	    my $trimmed = trim ($fns);
 	    push @undefined_functions, $trimmed;
-	    print "found some !!!!!\n";
 	}
     }
     
