@@ -345,7 +345,7 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
     return s2n_prf(conn, &master_secret, &label, &md5, &sha, &server_finished);
 }
 
-int s2n_prf_make_client_key(struct s2n_connection *conn, struct s2n_stuffer *key_material)
+static int s2n_prf_make_client_key(struct s2n_connection *conn, struct s2n_stuffer *key_material)
 {
     struct s2n_blob client_key;
     client_key.size = conn->secure.cipher_suite->record_alg->cipher->key_material_size;
@@ -361,7 +361,7 @@ int s2n_prf_make_client_key(struct s2n_connection *conn, struct s2n_stuffer *key
     return 0;
 }
 
-int s2n_prf_make_server_key(struct s2n_connection *conn, struct s2n_stuffer *key_material)
+static int s2n_prf_make_server_key(struct s2n_connection *conn, struct s2n_stuffer *key_material)
 {
     struct s2n_blob server_key;
     server_key.size = conn->secure.cipher_suite->record_alg->cipher->key_material_size;

@@ -356,7 +356,7 @@ static int s2n_handshake_conn_update_hashes(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_handshake_handle_sslv2(struct s2n_connection *conn)
+static int s2n_handshake_handle_sslv2(struct s2n_connection *conn)
 {
     if (ACTIVE_MESSAGE(conn) != CLIENT_HELLO) {
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
