@@ -36,7 +36,7 @@ PREVIOUS_STATE conn = state_machine @ (PREVIOUS_MESSAGE conn)
 // current hanshake state (handshake action) that would correspond to
 // the connection mode  (S2N_SERVER or S2N_CLIENT)
 mode_writer : [32] -> [8]
-mode_writer m = if m == S2N_SERVER then 'S' else 'C'
+mode_writer m = if m == S2N_CLIENT then 'C' else 'S'
 
 s2n_cork : connection -> [32]
 s2n_cork c = 1

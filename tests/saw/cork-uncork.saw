@@ -40,9 +40,6 @@ let s2n_advance_message_spec = do {
     // deserealize the relevant fields of the s2n_connection struct passed to
     // s2n_advance_message
     conn <- setup_connection "conn";
-    // Preconditions
-    // we assume Server mode
-    llvm_assert_eq "conn->mode" {{ 0 : [32] }};
     // we assume that corking/uncorking is managed by s2n
     llvm_assert_eq "conn->corked_io" {{ 1 : [32] }};
     // we assume that the handshake struct denotes a valid handshake state
