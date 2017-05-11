@@ -46,6 +46,7 @@ int s2n_ecdsa_sign(const struct s2n_ecdsa_private_key *key, struct s2n_hash_stat
         S2N_ERROR(S2N_ERR_SIZE_MISMATCH);
     }
     signature->size = signature_size;
+    
     return 0;
 }
 
@@ -58,7 +59,7 @@ int s2n_ecdsa_verify(const struct s2n_ecdsa_public_key *key, struct s2n_hash_sta
     uint8_t digest_out[MAX_DIGEST_LENGTH];
     GUARD(s2n_hash_digest(digest, digest_out, digest_length));
     
-    // ECDSA_verify ignores the first parameter
+    /* ECDSA_verify ignores the first parameter */
     if (ECDSA_verify(0, digest_out, digest_length, signature->data, signature->size, key->eckey) == 0) {
         S2N_ERROR(S2N_ERR_VERIFY_SIGNATURE);
     }

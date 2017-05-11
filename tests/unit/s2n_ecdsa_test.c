@@ -16,8 +16,10 @@
 #include "s2n_test.h"
 
 #include "stuffer/s2n_stuffer.h"
+
 #include "tls/s2n_connection.h"
 #include "tls/s2n_config.h"
+
 #include "crypto/s2n_ecdsa.h"
 #include "crypto/s2n_ecc.h"
 
@@ -84,6 +86,17 @@ int main(int argc, char **argv)
     struct s2n_stuffer unmatched_ecdsa_key_in, unmatched_ecdsa_key_out;
     struct s2n_blob b;
 
+    const int supported_hash_algorithms[8] = {
+        S2N_HASH_NONE, 
+        S2N_HASH_MD5, 
+        S2N_HASH_SHA1, 
+        S2N_HASH_SHA224, 
+        S2N_HASH_SHA256, 
+        S2N_HASH_SHA384, 
+        S2N_HASH_SHA512, 
+        S2N_HASH_MD5_SHA1
+    };
+
     BEGIN_TEST();
 
     EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, sizeof(certificate)));
@@ -131,33 +144,34 @@ int main(int argc, char **argv)
     /* Try signing and verification with ECDSA */
     uint8_t inputpad[] = "Hello world!";
     struct s2n_blob signature, bad_signature;
-    struct s2n_hash_state tls10_one, tls10_two, tls12_one, tls12_two;
-
-    EXPECT_SUCCESS(s2n_hash_init(&tls10_one, S2N_HASH_MD5_SHA1));
-    EXPECT_SUCCESS(s2n_hash_init(&tls10_two, S2N_HASH_MD5_SHA1));
-    EXPECT_SUCCESS(s2n_hash_init(&tls12_one, S2N_HASH_SHA1));
-    EXPECT_SUCCESS(s2n_hash_init(&tls12_two, S2N_HASH_SHA1));
-
-    EXPECT_SUCCESS(s2n_alloc(&signature, s2n_ecdsa_signature_size(&priv_key)));
-
-    EXPECT_SUCCESS(s2n_hash_update(&tls10_one, inputpad, sizeof(inputpad)));
-    EXPECT_SUCCESS(s2n_hash_update(&tls10_two, inputpad, sizeof(inputpad)));
-    EXPECT_SUCCESS(s2n_ecdsa_sign(&priv_key, &tls10_one, &signature));
-    EXPECT_SUCCESS(s2n_ecdsa_verify(&pub_key, &tls10_two, &signature));
-
-    EXPECT_SUCCESS(s2n_hash_update(&tls12_one, inputpad, sizeof(inputpad)));
-    EXPECT_SUCCESS(s2n_hash_update(&tls12_two, inputpad, sizeof(inputpad)));
-    EXPECT_SUCCESS(s2n_ecdsa_sign(&priv_key, &tls12_one, &signature));
-    EXPECT_SUCCESS(s2n_ecdsa_verify(&pub_key, &tls12_two, &signature));
-
+    struct s2n_hash_state hash_one, hash_two;
+    uint32_t maximum_signature_length = s2n_ecdsa_signature_size(&priv_key);
+    
+    EXPECT_SUCCESS(s2n_alloc(&signature, maximum_signature_length));
+    
+    for (int i = 0; i < sizeof(supported_hash_algorithms) / sizeof(supported_hash_algorithms[0]); i++) {
+        int hash_alg = supported_hash_algorithms[i];
+        EXPECT_SUCCESS(s2n_hash_init(&hash_one, hash_alg));
+        EXPECT_SUCCESS(s2n_hash_init(&hash_two, hash_alg));
+            
+        EXPECT_SUCCESS(s2n_hash_update(&hash_one, inputpad, sizeof(inputpad)));
+        EXPECT_SUCCESS(s2n_hash_update(&hash_two, inputpad, sizeof(inputpad)));
+        
+        /* Reset signature size when we compute a new signature */
+        signature.size = maximum_signature_length;
+        
+        EXPECT_SUCCESS(s2n_ecdsa_sign(&priv_key, &hash_one, &signature));
+        EXPECT_SUCCESS(s2n_ecdsa_verify(&pub_key, &hash_two, &signature));
+    }
+            
     /* Mismatched public/private key should fail verification */
     EXPECT_SUCCESS(s2n_alloc(&bad_signature, s2n_ecdsa_signature_size(&unmatched_priv_key)));
 
     EXPECT_FAILURE(s2n_ecdsa_keys_match(&pub_key, &unmatched_priv_key));
 
-    EXPECT_SUCCESS(s2n_ecdsa_sign(&unmatched_priv_key, &tls12_one, &bad_signature));
-    EXPECT_FAILURE(s2n_ecdsa_verify(&pub_key, &tls12_two, &bad_signature));
-
+    EXPECT_SUCCESS(s2n_ecdsa_sign(&unmatched_priv_key, &hash_one, &bad_signature));
+    EXPECT_FAILURE(s2n_ecdsa_verify(&pub_key, &hash_two, &bad_signature));
+    
     EXPECT_SUCCESS(s2n_free(&signature));
     EXPECT_SUCCESS(s2n_free(&bad_signature));
     EXPECT_SUCCESS(s2n_ecdsa_public_key_free(&pub_key));
