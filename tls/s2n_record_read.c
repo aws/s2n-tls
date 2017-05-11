@@ -78,7 +78,7 @@ int s2n_record_header_parse(struct s2n_connection *conn, uint8_t * content_type,
      *
      * https://tools.ietf.org/html/rfc5246#appendix-E.1 */
     if (tls_major_version < S2N_MINIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION
-            || S2N_MAXIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION < tls_major_version) {
+        || S2N_MAXIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION < tls_major_version) {
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
@@ -167,7 +167,7 @@ int s2n_record_parse(struct s2n_connection *conn)
          * https://github.com/openssl/openssl/blob/master/crypto/evp/e_aes_cbc_hmac_sha1.c#L842 */
         int mac_size = 0;
         GUARD(cipher_suite->record_alg->cipher->io.comp.initial_hmac(session_key, sequence_number, content_type, conn->actual_protocol_version,
-                                                         payload_length, &mac_size));
+                                                                     payload_length, &mac_size));
 
         gte_check(payload_length, mac_size);
         payload_length -= mac_size;
@@ -221,52 +221,52 @@ int s2n_record_parse(struct s2n_connection *conn)
 
     /* Decrypt stuff! */
     switch (cipher_suite->record_alg->cipher->type) {
-    case S2N_STREAM:
-        GUARD(cipher_suite->record_alg->cipher->io.stream.decrypt(session_key, &en, &en));
-        break;
-    case S2N_CBC:
-        /* Check that we have some data to decrypt */
-        ne_check(en.size, 0);
+        case S2N_STREAM:
+            GUARD(cipher_suite->record_alg->cipher->io.stream.decrypt(session_key, &en, &en));
+            break;
+        case S2N_CBC:
+            /* Check that we have some data to decrypt */
+            ne_check(en.size, 0);
 
-        /* ... and that we have a multiple of the block size */
-        eq_check(en.size % iv.size, 0);
+            /* ... and that we have a multiple of the block size */
+            eq_check(en.size % iv.size, 0);
 
-        /* Copy the last encrypted block to be the next IV */
-        if (conn->actual_protocol_version < S2N_TLS11) {
+            /* Copy the last encrypted block to be the next IV */
+            if (conn->actual_protocol_version < S2N_TLS11) {
+                memcpy_check(ivpad, en.data + en.size - iv.size, iv.size);
+            }
+
+            GUARD(cipher_suite->record_alg->cipher->io.cbc.decrypt(session_key, &iv, &en, &en));
+
+            if (conn->actual_protocol_version < S2N_TLS11) {
+                memcpy_check(implicit_iv, ivpad, iv.size);
+            }
+            break;
+        case S2N_AEAD:
+            /* Skip explicit IV for decryption */
+            en.size -= cipher_suite->record_alg->cipher->io.aead.record_iv_size;
+            en.data += cipher_suite->record_alg->cipher->io.aead.record_iv_size;
+
+            /* Check that we have some data to decrypt */
+            ne_check(en.size, 0);
+
+            GUARD(cipher_suite->record_alg->cipher->io.aead.decrypt(session_key, &iv, &aad, &en, &en));
+            break;
+        case S2N_COMPOSITE:
+            ne_check(en.size, 0);
+            eq_check(en.size % iv.size,  0);
+
+            /* Copy the last encrypted block to be the next IV */
             memcpy_check(ivpad, en.data + en.size - iv.size, iv.size);
-        }
 
-        GUARD(cipher_suite->record_alg->cipher->io.cbc.decrypt(session_key, &iv, &en, &en));
+            /* This will: Skip the explicit IV(if applicable), decrypt the payload, verify the MAC and padding. */
+            GUARD((cipher_suite->record_alg->cipher->io.comp.decrypt(session_key, &iv, &en, &en)));
 
-        if (conn->actual_protocol_version < S2N_TLS11) {
             memcpy_check(implicit_iv, ivpad, iv.size);
-        }
-        break;
-    case S2N_AEAD:
-        /* Skip explicit IV for decryption */
-        en.size -= cipher_suite->record_alg->cipher->io.aead.record_iv_size;
-        en.data += cipher_suite->record_alg->cipher->io.aead.record_iv_size;
-
-        /* Check that we have some data to decrypt */
-        ne_check(en.size, 0);
-
-        GUARD(cipher_suite->record_alg->cipher->io.aead.decrypt(session_key, &iv, &aad, &en, &en));
-        break;
-    case S2N_COMPOSITE:
-        ne_check(en.size, 0);
-        eq_check(en.size % iv.size,  0);
-
-        /* Copy the last encrypted block to be the next IV */
-        memcpy_check(ivpad, en.data + en.size - iv.size, iv.size);
-
-        /* This will: Skip the explicit IV(if applicable), decrypt the payload, verify the MAC and padding. */
-        GUARD((cipher_suite->record_alg->cipher->io.comp.decrypt(session_key, &iv, &en, &en)));
-
-        memcpy_check(implicit_iv, ivpad, iv.size);
-        break;
-    default:
-        S2N_ERROR(S2N_ERR_CIPHER_TYPE);
-        break;
+            break;
+        default:
+            S2N_ERROR(S2N_ERR_CIPHER_TYPE);
+            break;
     }
 
     /* Subtract the padding length */
