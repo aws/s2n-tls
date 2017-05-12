@@ -78,7 +78,7 @@ int main(int argc, char **argv)
         conn->client = &conn->initial;
         conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
         EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+        EXPECT_SUCCESS(bytes_written = conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &in));
 
         const int overhead = 8   /* IV */
             + 16; /* TAG */
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
         uint8_t content_type;
         uint16_t fragment_length;
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
-        EXPECT_SUCCESS(s2n_record_parse(conn));
+        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->record_parse(conn));
         EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
         EXPECT_EQUAL(fragment_length, predicted_length);
 
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS12;
         conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
         EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
-        EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &in));
 
         /* Now lets corrupt some data and ensure the tests pass */
         /* Copy the encrypted out data to the in data */
@@ -139,7 +139,7 @@ int main(int argc, char **argv)
         /* Tamper the protocol version in the header, and ensure decryption fails, as we use this in the AAD */
         conn->in.blob.data[2] = 2;
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
-        EXPECT_FAILURE(s2n_record_parse(conn));
+        EXPECT_FAILURE(conn->secure.cipher_suite->record_alg->record_parse(conn));
         EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
@@ -153,7 +153,7 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS12;
             conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
             EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
-            EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+            EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &in));
 
             /* Copy the encrypted out data to the in data */
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
             conn->in.blob.data[5 + j] ++;
             EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
-            EXPECT_FAILURE(s2n_record_parse(conn));
+            EXPECT_FAILURE(conn->secure.cipher_suite->record_alg->record_parse(conn));
             EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
@@ -177,7 +177,7 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS12;
             conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
             EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
-            EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+            EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &in));
 
             /* Copy the encrypted out data to the in data */
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
@@ -186,7 +186,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
             conn->in.blob.data[s2n_stuffer_data_available(&conn->in) - j - 1] ++;
             EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
-            EXPECT_FAILURE(s2n_record_parse(conn));
+            EXPECT_FAILURE(conn->secure.cipher_suite->record_alg->record_parse(conn));
             EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
@@ -201,7 +201,7 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS12;
             conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
             EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
-            EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+            EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &in));
 
             /* Copy the encrypted out data to the in data */
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
             conn->in.blob.data[S2N_TLS_GCM_IV_LEN + j]++;
             EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
-            EXPECT_FAILURE(s2n_record_parse(conn));
+            EXPECT_FAILURE(conn->secure.cipher_suite->record_alg->record_parse(conn));
             EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
@@ -240,7 +240,7 @@ int main(int argc, char **argv)
         conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_gcm;
         EXPECT_SUCCESS(setup_server_keys(conn, &aes256));
         conn->actual_protocol_version = S2N_TLS12;
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+        EXPECT_SUCCESS(bytes_written = conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &in));
 
         const int overhead = 8   /* IV */
             + 16; /* TAG */
@@ -275,7 +275,7 @@ int main(int argc, char **argv)
         uint8_t content_type;
         uint16_t fragment_length;
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
-        EXPECT_SUCCESS(s2n_record_parse(conn));
+        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->record_parse(conn));
         EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
         EXPECT_EQUAL(fragment_length, predicted_length);
 
@@ -289,7 +289,7 @@ int main(int argc, char **argv)
         conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_gcm;
         EXPECT_SUCCESS(setup_server_keys(conn, &aes256));
         conn->actual_protocol_version = S2N_TLS12;
-        EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &in));
 
         /* Now lets corrupt some data and ensure the tests pass */
         /* Copy the encrypted out data to the in data */
@@ -301,7 +301,7 @@ int main(int argc, char **argv)
         /* Tamper with the protocol version in the header, and ensure decryption fails, as we use this in the AAD */
         conn->in.blob.data[2] = 2;
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
-        EXPECT_FAILURE(s2n_record_parse(conn));
+        EXPECT_FAILURE(conn->secure.cipher_suite->record_alg->record_parse(conn));
         EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
@@ -316,7 +316,7 @@ int main(int argc, char **argv)
             conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_gcm;
             EXPECT_SUCCESS(setup_server_keys(conn, &aes256));
             conn->actual_protocol_version = S2N_TLS12;
-            EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+            EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &in));
 
             /* Copy the encrypted out data to the in data */
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
@@ -325,7 +325,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
             conn->in.blob.data[5 + j] ++;
             EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
-            EXPECT_FAILURE(s2n_record_parse(conn));
+            EXPECT_FAILURE(conn->secure.cipher_suite->record_alg->record_parse(conn));
             EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
@@ -341,7 +341,7 @@ int main(int argc, char **argv)
             conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_gcm;
             EXPECT_SUCCESS(setup_server_keys(conn, &aes256));
             conn->actual_protocol_version = S2N_TLS12;
-            EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+            EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &in));
 
             /* Copy the encrypted out data to the in data */
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
@@ -350,7 +350,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
             conn->in.blob.data[s2n_stuffer_data_available(&conn->in) - j - 1] ++;
             EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
-            EXPECT_FAILURE(s2n_record_parse(conn));
+            EXPECT_FAILURE(conn->secure.cipher_suite->record_alg->record_parse(conn));
             EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
@@ -366,7 +366,7 @@ int main(int argc, char **argv)
             conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_gcm;
             EXPECT_SUCCESS(setup_server_keys(conn, &aes256));
             conn->actual_protocol_version = S2N_TLS12;
-            EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+            EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &in));
 
             /* Copy the encrypted out data to the in data */
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
@@ -375,7 +375,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
             conn->in.blob.data[j]++;
             EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
-            EXPECT_FAILURE(s2n_record_parse(conn));
+            EXPECT_FAILURE(conn->secure.cipher_suite->record_alg->record_parse(conn));
             EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));

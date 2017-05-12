@@ -24,6 +24,7 @@
 
 #include "error/s2n_errno.h"
 
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_record.h"
@@ -115,7 +116,13 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
     }
 
     /* Decrypt and parse the record */
-    if (s2n_record_parse(conn) < 0) {
+    int parse_ret;
+    if (conn->mode == S2N_SERVER) {
+            parse_ret = conn->client->cipher_suite->record_alg->record_parse(conn);
+        } else {
+            parse_ret = conn->server->cipher_suite->record_alg->record_parse(conn);
+        }
+    if (parse_ret < 0) {
         GUARD(s2n_connection_kill(conn));
 
         return -1;

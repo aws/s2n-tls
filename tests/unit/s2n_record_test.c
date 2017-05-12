@@ -52,6 +52,8 @@ struct s2n_cipher mock_block_cipher = {
 struct s2n_record_algorithm mock_block_record_alg = {
     .cipher = &mock_block_cipher,
     .hmac_alg = S2N_HMAC_SHA1,
+    .record_write = s2n_cbc_record_write,
+    .record_parse = s2n_cbc_record_parse,
 };
 
 struct s2n_cipher_suite mock_block_cipher_suite = {
@@ -95,7 +97,7 @@ int main(int argc, char **argv)
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+        EXPECT_SUCCESS(bytes_written = conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &in));
 
         if (i < S2N_DEFAULT_FRAGMENT_LENGTH) {
             EXPECT_EQUAL(bytes_written, i);
@@ -118,7 +120,7 @@ int main(int argc, char **argv)
         uint8_t content_type;
         uint16_t fragment_length;
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
-        EXPECT_SUCCESS(s2n_record_parse(conn));
+        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->record_parse(conn));
         EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
         EXPECT_EQUAL(fragment_length, bytes_written);
     }
@@ -138,7 +140,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->initial.server_sequence_number, 8));
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+        EXPECT_SUCCESS(bytes_written = conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &in));
 
         if (i < S2N_DEFAULT_FRAGMENT_LENGTH - 20) {
             EXPECT_EQUAL(bytes_written, i);
@@ -176,7 +178,7 @@ int main(int argc, char **argv)
         uint8_t content_type;
         uint16_t fragment_length;
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
-        EXPECT_SUCCESS(s2n_record_parse(conn));
+        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->record_parse(conn));
         EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
         EXPECT_EQUAL(fragment_length, predicted_length);
 
@@ -185,7 +187,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
         EXPECT_SUCCESS(s2n_stuffer_reread(&conn->out));
         EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
-        EXPECT_FAILURE(s2n_record_parse(conn));
+        EXPECT_FAILURE(conn->secure.cipher_suite->record_alg->record_parse(conn));
 
         /* Restore the original sequence number */
         memcpy(conn->server->client_sequence_number, original_seq_num, 8);
@@ -202,7 +204,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
         conn->in.blob.data[byte_to_corrupt] += 1;
-        EXPECT_FAILURE(s2n_record_parse(conn));
+        EXPECT_FAILURE(conn->secure.cipher_suite->record_alg->record_parse(conn));
     }
 
     /* Test a mock block cipher with a mac - in TLS1.0 mode */
@@ -220,7 +222,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->initial.client_sequence_number, 8));
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+        EXPECT_SUCCESS(bytes_written = conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &in));
 
         if (i < max_aligned_fragment - 20 - 1) {
             EXPECT_EQUAL(bytes_written, i);
@@ -267,7 +269,7 @@ int main(int argc, char **argv)
         uint8_t content_type;
         uint16_t fragment_length;
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
-        EXPECT_SUCCESS(s2n_record_parse(conn));
+        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->record_parse(conn));
         EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
         EXPECT_EQUAL(fragment_length, predicted_length);
     }
@@ -287,7 +289,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_hmac_update(&check_mac, conn->initial.client_sequence_number, 8));
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+        EXPECT_SUCCESS(bytes_written = conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &in));
 
         if (i < max_aligned_fragment - 20 - 16 - 1) {
             EXPECT_EQUAL(bytes_written, i);
@@ -333,7 +335,7 @@ int main(int argc, char **argv)
         uint8_t content_type;
         uint16_t fragment_length;
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
-        EXPECT_SUCCESS(s2n_record_parse(conn));
+        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->record_parse(conn));
         EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
         EXPECT_EQUAL(fragment_length, predicted_length);
     }
@@ -347,7 +349,7 @@ int main(int argc, char **argv)
     memcpy(conn->initial.server_sequence_number, max_num_records, sizeof(max_num_records));
     EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
     /* Sequence number should wrap around */
-    EXPECT_FAILURE(s2n_record_write(conn, TLS_APPLICATION_DATA, &empty_blob));
+    EXPECT_FAILURE(conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &empty_blob));
 
     EXPECT_SUCCESS(s2n_connection_free(conn));
 

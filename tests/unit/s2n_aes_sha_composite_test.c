@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
-            EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+            EXPECT_SUCCESS(bytes_written = conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &in));
 
             int explicit_iv_len;
             if (conn->actual_protocol_version > S2N_TLS10) {
@@ -124,7 +124,7 @@ int main(int argc, char **argv)
             uint8_t content_type;
             uint16_t fragment_length;
             EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
-            EXPECT_SUCCESS(s2n_record_parse(conn));
+            EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->record_parse(conn));
             EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
             EXPECT_EQUAL(fragment_length, predicted_length);
 
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
-            EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+            EXPECT_SUCCESS(bytes_written = conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &in));
 
             int explicit_iv_len;
             if (conn->actual_protocol_version > S2N_TLS10) {
@@ -189,7 +189,7 @@ int main(int argc, char **argv)
             uint8_t content_type;
             uint16_t fragment_length;
             EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
-            EXPECT_SUCCESS(s2n_record_parse(conn));
+            EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->record_parse(conn));
             EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
             EXPECT_EQUAL(fragment_length, predicted_length);
 
@@ -215,7 +215,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
-            EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+            EXPECT_SUCCESS(bytes_written = conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &in));
 
             int explicit_iv_len;
             if (conn->actual_protocol_version > S2N_TLS10) {
@@ -255,7 +255,7 @@ int main(int argc, char **argv)
             uint8_t content_type;
             uint16_t fragment_length;
             EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
-            EXPECT_SUCCESS(s2n_record_parse(conn));
+            EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->record_parse(conn));
             EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
             EXPECT_EQUAL(fragment_length, predicted_length);
 
@@ -280,7 +280,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
-            EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+            EXPECT_SUCCESS(bytes_written = conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &in));
 
             int explicit_iv_len;
             if (conn->actual_protocol_version > S2N_TLS10) {
@@ -320,7 +320,7 @@ int main(int argc, char **argv)
             uint8_t content_type;
             uint16_t fragment_length;
             EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
-            EXPECT_SUCCESS(s2n_record_parse(conn));
+            EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->record_parse(conn));
             EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
             EXPECT_EQUAL(fragment_length, predicted_length);
 

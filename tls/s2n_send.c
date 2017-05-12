@@ -64,7 +64,11 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status * blocked)
         struct s2n_blob alert;
         alert.data = conn->reader_alert_out.blob.data;
         alert.size = 2;
-        GUARD(s2n_record_write(conn, TLS_ALERT, &alert));
+        if (conn->mode == S2N_CLIENT) {
+            GUARD(conn->client->cipher_suite->record_alg->record_write(conn, TLS_ALERT, &alert));
+        } else {
+            GUARD(conn->server->cipher_suite->record_alg->record_write(conn, TLS_ALERT, &alert));
+        }
         GUARD(s2n_stuffer_rewrite(&conn->reader_alert_out));
         conn->closing = 1;
 
@@ -77,7 +81,11 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status * blocked)
         struct s2n_blob alert;
         alert.data = conn->writer_alert_out.blob.data;
         alert.size = 2;
-        GUARD(s2n_record_write(conn, TLS_ALERT, &alert));
+        if (conn->mode == S2N_CLIENT) {
+            GUARD(conn->client->cipher_suite->record_alg->record_write(conn, TLS_ALERT, &alert));
+        } else {
+            GUARD(conn->server->cipher_suite->record_alg->record_write(conn, TLS_ALERT, &alert));
+        }
         GUARD(s2n_stuffer_rewrite(&conn->writer_alert_out));
         conn->closing = 1;
 
@@ -138,7 +146,11 @@ ssize_t s2n_send(struct s2n_connection * conn, const void *buf, ssize_t size, s2
 
         /* Write and encrypt the record */
         GUARD(s2n_stuffer_rewrite(&conn->out));
-        GUARD(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+        if (conn->mode == S2N_CLIENT) {
+            GUARD(conn->client->cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &in));
+        } else {
+            GUARD(conn->server->cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &in));
+        }
         conn->current_user_data_consumed += in.size;
 
         /* Send it */
