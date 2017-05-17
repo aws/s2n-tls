@@ -68,19 +68,19 @@ int main(int argc, char **argv)
 
     /* Check the default: medium records */
     EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-    EXPECT_SUCCESS(bytes_written = conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &r));
+    EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &r));
     EXPECT_EQUAL(bytes_written, medium_aligned_payload);
 
     /* Check explicitly small records */
     EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
     EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-    EXPECT_SUCCESS(bytes_written = conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &r));
+    EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &r));
     EXPECT_EQUAL(bytes_written, small_aligned_payload);
 
     /* Check explicitly large records */
     EXPECT_SUCCESS(s2n_connection_prefer_throughput(conn));
     EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-    EXPECT_SUCCESS(bytes_written = conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &r));
+    EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &r));
     EXPECT_EQUAL(bytes_written, large_aligned_payload);
 
     /* Clean up */

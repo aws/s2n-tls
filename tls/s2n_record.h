@@ -20,10 +20,12 @@
 #include "s2n_connection.h"
 
 extern int s2n_record_max_write_payload_size(struct s2n_connection *conn);
+extern int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in);
 extern int s2n_stream_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in);
 extern int s2n_cbc_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in);
 extern int s2n_composite_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in);
 extern int s2n_aead_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in);
+extern int s2n_record_parse(struct s2n_connection *conn);
 extern int s2n_stream_record_parse(struct s2n_connection *conn);
 extern int s2n_cbc_record_parse(struct s2n_connection *conn);
 extern int s2n_composite_record_parse(struct s2n_connection *conn);

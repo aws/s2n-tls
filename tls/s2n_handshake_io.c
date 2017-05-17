@@ -270,11 +270,7 @@ static int handshake_write_io(struct s2n_connection *conn)
         notnull_check(out.data);
 
         /* Make the actual record */
-        if (conn->mode == S2N_CLIENT) {
-            GUARD(conn->client->cipher_suite->record_alg->record_write(conn, record_type, &out));
-        } else {
-            GUARD(conn->server->cipher_suite->record_alg->record_write(conn, record_type, &out));
-        }
+        GUARD(s2n_record_write(conn, record_type, &out));
 
         /* MD5 and SHA sum the handshake data too */
         if (record_type == TLS_HANDSHAKE) {

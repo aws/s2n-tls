@@ -149,4 +149,24 @@ int s2n_record_header_parse(struct s2n_connection *conn, uint8_t * content_type,
     return 0;
 }
 
+int s2n_record_parse(struct s2n_connection *conn)
+{
+    if (conn->mode == S2N_SERVER) {
+        GUARD(conn->client->cipher_suite->record_alg->record_parse(conn));
+    } else {
+        GUARD(conn->server->cipher_suite->record_alg->record_parse(conn));
+    }
 
+    return 0;
+}
+
+int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in) {
+    uint16_t bytes_written;
+    if (conn->mode == S2N_CLIENT) {
+        bytes_written = conn->client->cipher_suite->record_alg->record_write(conn, content_type, in);
+    } else {
+        bytes_written = conn->server->cipher_suite->record_alg->record_write(conn, content_type, in);
+    }
+
+    return bytes_written;
+}

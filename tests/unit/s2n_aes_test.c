@@ -66,7 +66,7 @@ int main(int argc, char **argv)
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-        EXPECT_SUCCESS(bytes_written = conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &in));
+        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
         if (i < max_aligned_fragment - 20 - 16 - 1) {
             EXPECT_EQUAL(bytes_written, i);
@@ -99,7 +99,7 @@ int main(int argc, char **argv)
         uint8_t content_type;
         uint16_t fragment_length;
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
-        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->record_parse(conn));
+        EXPECT_SUCCESS(s2n_record_parse(conn));
         EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
         EXPECT_EQUAL(fragment_length, predicted_length);
 
@@ -130,7 +130,7 @@ int main(int argc, char **argv)
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-        EXPECT_SUCCESS(bytes_written = conn->secure.cipher_suite->record_alg->record_write(conn, TLS_APPLICATION_DATA, &in));
+        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
         if (i < max_aligned_fragment - 20 - 16 - 1) {
             EXPECT_EQUAL(bytes_written, i);
@@ -163,7 +163,7 @@ int main(int argc, char **argv)
         uint8_t content_type;
         uint16_t fragment_length;
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
-        EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->record_parse(conn));
+        EXPECT_SUCCESS(s2n_record_parse(conn));
         EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
         EXPECT_EQUAL(fragment_length, predicted_length);
 
