@@ -24,9 +24,17 @@
 /* NULL check a pointer */
 #define notnull_check( ptr )           do { if ( (ptr) == NULL ) { S2N_ERROR(S2N_ERR_NULL); } } while(0)
 
+/* Check memcpy destination and source do not overlap */
+extern inline int overlap_check(void *restrict to, const void *restrict from, size_t size)
+{
+	char *dst = to;
+	const char *src = from;
+	return (dst <= src && dst + size > src) || (src <= dst && src + size > dst);
+}
+
 extern inline void* trace_memcpy_check(void *restrict to, const void *restrict from, size_t size, const char *debug_str)
 {
-    if (to == NULL || from == NULL) {
+    if (to == NULL || from == NULL || overlap_check(to, from, size)) {
         s2n_errno = S2N_ERR_NULL;
         s2n_debug_str = debug_str;
         return NULL;
