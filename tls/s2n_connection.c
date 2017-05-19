@@ -129,6 +129,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     conn->recv_io_context = NULL;
     conn->managed_io = 0;
     conn->corked_io = 0;
+    conn->context = NULL;
 
     /* Allocate the fixed-size stuffers */
     blob.data = conn->alert_in_data;
@@ -304,6 +305,17 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
     return 0;
 }
 
+int s2n_connection_set_ctx(struct s2n_connection *conn, void *ctx)
+{
+    conn->context = ctx;
+    return 0;
+}
+
+void *s2n_connection_get_ctx(struct s2n_connection *conn)
+{
+    return conn->context;
+}
+
 int s2n_connection_wipe(struct s2n_connection *conn)
 {
     /* First make a copy of everything we'd like to save, which isn't very much. */
@@ -342,6 +354,9 @@ int s2n_connection_wipe(struct s2n_connection *conn)
 
     /* Allocate memory for handling handshakes */
     GUARD(s2n_stuffer_resize(&conn->handshake.io, S2N_LARGE_RECORD_LENGTH));
+
+    /* Remove context associated with connection */
+    conn->context = NULL;
 
     /* Clone the stuffers */
     /* ignore gcc 4.7 address warnings because dest is allocated on the stack */

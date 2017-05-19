@@ -56,6 +56,9 @@ struct s2n_connection {
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
 
+    /* The user defined context associated with connection */
+    void *context;
+
     /* The send and receive callbacks don't have to be the same (e.g. two pipes) */
     s2n_send_fn *send;
     s2n_recv_fn *recv;
