@@ -96,6 +96,10 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
 
     GUARD(s2n_server_extensions_recv(conn, &extensions));
 
+    if (conn->mode == S2N_CLIENT && conn->status_type == S2N_STATUS_REQUEST_OCSP) {
+        conn->handshake.handshake_type |= OCSP_STATUS;
+    }
+
     return 0;
 }
 
