@@ -70,16 +70,19 @@ void *realloc(void *ptr, size_t size)
         *(void **) &orig_realloc = dlsym(RTLD_NEXT, "realloc");
     }
 
+
+#ifdef HAVE_MALLOC_USABLE_SIZE
+    /* If malloc_usable_size is available, we can get the size of previously
+     * allocated buffer, to find out how many new bytes we've allocated.
+     * Get the usable size for ptr before we call realloc, because realloc may call
+     * free() on the original pointer. */
+    size_t ptr_alloc_size = malloc_usable_size(ptr);
+#endif
+
     p = orig_realloc(ptr, size);
 
 #ifdef HAVE_MALLOC_USABLE_SIZE
-    /* If malloc_usable_size is availible, we can get the size of previously
-     * allocated buffer, to find out how many new bytes we've allocated */
-    size_t ptr_alloc_size;
-    size_t p_alloc_size;
-
-    ptr_alloc_size = malloc_usable_size(ptr);
-    p_alloc_size = malloc_usable_size(p);
+    size_t p_alloc_size = malloc_usable_size(p);
 
     /* If call succeeded and we're enlarging memory, fill the extension with
      * non-zero data */
