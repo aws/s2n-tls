@@ -22,8 +22,6 @@ CRYPTO_LDFLAGS = -L$(LIBCRYPTO_ROOT)/lib
 # Users can specify a subset of tests to be run, otherwise run all tests.
 ifeq (,$(strip ${UNIT_TESTS}))
 	UNIT_TESTS := ${TESTS}
-else
-	UNIT_TESTS := $(strip ${UNIT_TESTS})
 endif
 
 .PHONY : all
