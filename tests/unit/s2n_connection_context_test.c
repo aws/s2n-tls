@@ -17,14 +17,10 @@
 #include <stdlib.h>
 #include <s2n.h>
 
-struct test_ctx {
-    int test;
-};
-
 int main(int argc, char **argv)
 {
     struct s2n_connection *conn;
-    struct test_ctx ctx;
+    int ctx;
 
     BEGIN_TEST();
 
