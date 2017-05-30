@@ -134,7 +134,6 @@ int s2n_record_parse(struct s2n_connection *conn)
         iv.data = implicit_iv;
         iv.size = cipher_suite->record_alg->cipher->io.cbc.record_iv_size;
         lte_check(cipher_suite->record_alg->cipher->io.cbc.record_iv_size, S2N_TLS_MAX_IV_LEN);
-        gte_check(cipher_suite->record_alg->cipher->io.cbc.record_iv_size, 0);
 
         /* For TLS >= 1.1 the IV is in the packet */
         if (conn->actual_protocol_version > S2N_TLS10) {
