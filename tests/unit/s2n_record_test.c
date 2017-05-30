@@ -52,6 +52,8 @@ struct s2n_cipher mock_block_cipher = {
 struct s2n_record_algorithm mock_block_record_alg = {
     .cipher = &mock_block_cipher,
     .hmac_alg = S2N_HMAC_SHA1,
+    .record_write = s2n_cbc_record_write,
+    .record_parse = s2n_cbc_record_parse,
 };
 
 struct s2n_cipher_suite mock_block_cipher_suite = {
