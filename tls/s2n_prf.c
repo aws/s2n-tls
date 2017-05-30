@@ -345,6 +345,38 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
     return s2n_prf(conn, &master_secret, &label, &md5, &sha, &server_finished);
 }
 
+static int s2n_prf_make_client_key(struct s2n_connection *conn, struct s2n_stuffer *key_material)
+{
+    struct s2n_blob client_key;
+    client_key.size = conn->secure.cipher_suite->record_alg->cipher->key_material_size;
+    client_key.data = s2n_stuffer_raw_read(key_material, client_key.size);
+    notnull_check(client_key.data);
+
+    if (conn->mode == S2N_CLIENT) {
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.client_key, &client_key));
+    } else {
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &client_key));
+    }
+
+    return 0;
+}
+
+static int s2n_prf_make_server_key(struct s2n_connection *conn, struct s2n_stuffer *key_material)
+{
+    struct s2n_blob server_key;
+    server_key.size = conn->secure.cipher_suite->record_alg->cipher->key_material_size;
+    server_key.data = s2n_stuffer_raw_read(key_material, server_key.size);
+
+    notnull_check(server_key.data);
+    if (conn->mode == S2N_SERVER) {
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.server_key, &server_key));
+    } else {
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.server_key, &server_key));
+    }
+
+    return 0;
+}
+
 int s2n_prf_key_expansion(struct s2n_connection *conn)
 {
     struct s2n_blob client_random = {.data = conn->secure.client_random,.size = sizeof(conn->secure.client_random) };
@@ -398,27 +430,10 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     GUARD(s2n_hmac_init(&conn->secure.server_record_mac, hmac_alg, server_mac_write_key, mac_size));
 
     /* Make the client key */
-    struct s2n_blob client_key;
-    client_key.size = conn->secure.cipher_suite->record_alg->cipher->key_material_size;
-    client_key.data = s2n_stuffer_raw_read(&key_material, client_key.size);
-    notnull_check(client_key.data);
-    if (conn->mode == S2N_CLIENT) {
-        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.client_key, &client_key));
-    } else {
-        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &client_key));
-    }
+    GUARD(s2n_prf_make_client_key(conn, &key_material));
 
     /* Make the server key */
-    struct s2n_blob server_key;
-    server_key.size = conn->secure.cipher_suite->record_alg->cipher->key_material_size;
-    server_key.data = s2n_stuffer_raw_read(&key_material, server_key.size);
-
-    notnull_check(server_key.data);
-    if (conn->mode == S2N_SERVER) {
-        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.server_key, &server_key));
-    } else {
-        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.server_key, &server_key));
-    }
+    GUARD(s2n_prf_make_server_key(conn, &key_material));
 
     /* Composite CBC does MAC inside the cipher, pass it the MAC key. 
      * Must happen after setting encryption/decryption keys.
