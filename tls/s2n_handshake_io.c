@@ -216,7 +216,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
         conn->handshake.handshake_type |= PERFECT_FORWARD_SECRECY;
     }
 
-    if (s2n_server_can_send_ocsp(conn)) {
+    if (s2n_server_can_send_ocsp(conn) || s2n_server_sent_ocsp(conn)) {
         conn->handshake.handshake_type |= OCSP_STATUS;
     }
 
