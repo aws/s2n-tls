@@ -615,6 +615,24 @@ int s2n_connection_set_config(struct s2n_connection *conn,
 **s2n_connection_set_config** Associates a configuration object with a
 connection. 
 
+### s2n\_connection\_set\_ctx
+
+```c
+int s2n_connection_set_ctx(struct s2n_connection *conn, void *ctx);
+```
+
+**s2n_connection_set_ctx** sets user defined context in **s2n_connection**
+object.
+
+### s2n\_connection\_get\_ctx
+
+```c
+void *s2n_connection_get_ctx(struct s2n_connection *conn);
+```
+
+**s2n_connection_get_ctx** gets user defined context from **s2n_connection**
+object.
+
 ### s2n\_connection\_set\_fd
 
 ```c
