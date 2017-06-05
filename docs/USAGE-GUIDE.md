@@ -683,7 +683,7 @@ built-in blinding (set blinding to S2N_BUILT_IN_BLINDING) or self-service blindi
 ### s2n\_connection\_get\_delay
 
 ```c
-int64_t s2n_connection_get_delay(struct s2n_connection *conn);
+uint64_t s2n_connection_get_delay(struct s2n_connection *conn);
 ```
 
 **s2n_connection_get_delay** returns the number of nanoseconds an application
