@@ -66,9 +66,6 @@ struct s2n_handshake {
 #define INITIAL                     0x00
 #define NEGOTIATED                  0x01
 
-/* Resume is just "negotiated" */
-#define RESUME                      0x01
-
 /* Handshake is a full handshake  */
 #define FULL_HANDSHAKE              0x02
 #define IS_FULL_HANDSHAKE( type )   ( (type) & FULL_HANDSHAKE )
