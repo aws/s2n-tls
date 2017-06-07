@@ -122,9 +122,9 @@ s2nState2RFCState hsa rfcstate =
    //same senders
    (sender2writer (message rfcstate).sender == hsa.writer) /\
    //same record type/protocol
-   (protocol2recordType (message rfcstate).protocol == hsa.record_type)
+   (protocol2recordType (message rfcstate).protocol == hsa.record_type) /\
    //same message type
-   
+   (s2nMessageType rfcstate == hsa.message_type)
 
 // convert a specification representation of sender to a 'writer' character in s2n.
 sender2writer : Sender -> [8]
