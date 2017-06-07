@@ -1,0 +1,3 @@
+import "spec/rfc-handshake.cry";
+import "spec/s2n_advance_message.cry";
+c_code <- llvm_load_module "bitcode/all_llvm.bc";

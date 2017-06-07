@@ -1,0 +1,166 @@
+// This module provides an specification of the
+// TLS 1.2 handshake message state machine according to RFC 5246. This
+// is an overapproximation because state transitions don't depend on
+// message contents --- and, in reality, they should.
+
+module TLSHandshake where
+
+import Cryptol::Extras
+import s2n_advance_message
+
+type State = [5]
+
+// states
+(helloRequestSent : State) = 0
+(clientHelloSent : State) = 1
+(serverHelloSent : State) = 2
+(serverCertificateSent : State) = 3
+(serverKeyExchangeSent : State) = 4
+(certificateRequestSent : State) = 5
+(serverHelloDoneSent : State) = 6
+(serverHelloDoneSentCertRequested : State) = 7
+(clientCertificateSent : State) = 8
+(clientKeyExchangeSent : State) = 9
+(clientKeyExchangeSentCertSent : State) = 10
+(certificateVerifySent : State) = 11
+(clientChangeCipherSpecSent : State) = 12
+(clientFinishedSent : State) = 13
+(serverChangeCipherSpecSent : State) = 14
+(serverFinishedSent : State) = 15
+(applicationDataTransmission : State) = 16
+
+// TLS protocol types
+type Protocol = [2]
+(handshake : Protocol) = 0
+(changeCipherSpec : Protocol) = 1
+(alert : Protocol) = 2
+(data : Protocol) = 3
+
+//message types
+type MessageType = [4]
+//handshake message types
+(helloRequest : MessageType) = 0
+(clientHello : MessageType) = 1
+(serverHello : MessageType) = 2
+(certificate : MessageType) = 3
+(serverKeyExchange : MessageType) = 4
+(certificateRequest : MessageType) = 5
+(serverHelloDone : MessageType) = 6
+(certificateVerify : MessageType) = 7
+(clientKeyExchange : MessageType) = 8
+(finished : MessageType) = 9
+
+// ChangeCipherSpec message types
+(changeCipherSpecMessage : MessageType) = 0
+
+// Data message types
+(applicationData : MessageType) = 0
+(error : MessageType) = 1
+
+// sender
+type Sender = [2]
+(server : Sender) = 0
+(client : Sender) = 1
+(both : Sender) = 2
+(noSender : Sender) = 3
+
+// state transition relation
+handshakeTransition : State -> State -> Bool
+handshakeTransition old new =
+    (old == helloRequestSent /\ new == clientHelloSent)
+ \/ (old == clientHelloSent /\ new == serverHelloSent)
+ \/ (old == serverHelloSent /\ new == serverCertificateSent)
+ \/ (old == serverHelloSent /\ new == serverKeyExchangeSent)
+ \/ (old == serverCertificateSent /\ new == serverHelloDoneSent)
+ \/ (old == serverCertificateSent /\ new == certificateRequestSent)
+ \/ (old == serverKeyExchangeSent /\ new ==  serverHelloDoneSent)
+ \/ (old == serverKeyExchangeSent /\ new == certificateRequestSent)
+ \/ (old == certificateRequestSent /\ new == serverHelloDoneSentCertRequested)
+ \/ (old == serverHelloDoneSent /\ new == clientKeyExchangeSent)
+ \/ (old == clientKeyExchangeSent /\ new == clientChangeCipherSpecSent)
+ \/ (old == serverHelloDoneSentCertRequested /\ new == clientCertificateSent)
+ \/ (old == clientCertificateSent /\ new == clientKeyExchangeSentCertSent)
+ \/ (old == clientKeyExchangeSentCertSent /\ new == certificateVerifySent)
+ \/ (old == certificateVerifySent /\ new == clientChangeCipherSpecSent)
+ \/ (old == clientChangeCipherSpecSent /\ new == clientFinishedSent)
+ \/ (old == clientFinishedSent /\ new == serverChangeCipherSpecSent)
+ \/ (old == serverChangeCipherSpecSent /\ new == serverFinishedSent)
+ \/ (old == serverFinishedSent /\ new == applicationDataTransmission)
+
+type Message = {messageType : MessageType
+               ,protocol : Protocol
+               ,sender : Sender
+               }
+
+mkMessage : Sender -> Protocol -> MessageType -> Message
+mkMessage s p mt = {sender = s, protocol = p, messageType = mt}
+
+message : State -> Message
+message state =
+           if state == helloRequestSent then mkMessage server handshake helloRequest
+      else if state == clientHelloSent then mkMessage client handshake clientHello
+      else if state == serverHelloSent then mkMessage server handshake serverHello
+      else if state == serverCertificateSent then mkMessage server handshake certificate
+      else if state == serverKeyExchangeSent then mkMessage server handshake serverKeyExchange
+      else if state == certificateRequestSent then mkMessage server handshake certificateRequest
+      else if state == serverHelloDoneSent \/ state == serverHelloDoneSentCertRequested
+           then mkMessage server handshake serverHelloDone
+      else if state == clientCertificateSent then mkMessage client handshake certificate
+      else if state == clientKeyExchangeSent \/ state == clientKeyExchangeSentCertSent
+           then mkMessage client handshake clientKeyExchange
+      else if state == certificateVerifySent then mkMessage client handshake certificateVerify
+      else if state == clientChangeCipherSpecSent then mkMessage client changeCipherSpec changeCipherSpecMessage
+      else if state == clientFinishedSent then mkMessage client handshake finished
+      else if state == serverChangeCipherSpecSent then mkMessage server changeCipherSpec changeCipherSpecMessage
+      else if state == serverFinishedSent then mkMessage server handshake finished
+      else if state == applicationDataTransmission then mkMessage both data applicationData
+      else mkMessage noSender data error
+
+// relation between RFC and s2n handshake state machines
+s2nState2RFCState : handshake_action -> State -> Bool
+s2nState2RFCState hsa rfcstate =
+   //same senders
+   (sender2writer (message rfcstate).sender == hsa.writer) /\
+   //same record type/protocol
+   (protocol2recordType (message rfcstate).protocol == hsa.record_type)
+   //same message type
+   
+
+// convert a specification representation of sender to a 'writer' character in s2n.
+sender2writer : Sender -> [8]
+sender2writer sndr = if sndr == server then 'S'
+                else if sndr == client then 'C'
+                else if sndr == both   then 'B'
+                else                        'E'
+
+// convert protocol number to s2n TLS record type constant
+protocol2recordType : Protocol -> [8]
+protocol2recordType protocol = if protocol == handshake then TLS_HANDSHAKE
+                          else if protocol == changeCipherSpec then TLS_CHANGE_CIPHER_SPEC
+                          else if protocol == alert then TLS_ALERT
+                          else /* protocol == data */ TLS_APPLICATION_DATA
+
+s2nMessageType : State -> [8]
+s2nMessageType state =
+  if prot == handshake then (if mt == helloRequest then TLS_HELLO_REQUEST
+                        else if mt == clientHello  then TLS_CLIENT_HELLO
+                        else if mt == serverHello  then TLS_SERVER_HELLO
+                        else if mt == certificate  then (if send == server then TLS_SERVER_CERT
+                                                         else if send == client then TLS_CLIENT_CERT
+                                                         else ERROR_MESSAGE)
+                        else if mt == serverKeyExchange then TLS_SERVER_KEY
+                        else if mt == certificateRequest then TLS_SERVER_CERT_REQ
+                        else if mt == serverHelloDone then TLS_SERVER_HELLO_DONE
+                        else if mt == certificateVerify then TLS_CLIENT_CERT_VERIFY
+                        else if mt == clientKeyExchange then TLS_CLIENT_KEY
+                        else if mt == finished then (if send == server then TLS_SERVER_FINISHED
+                                                     else if send == client then TLS_SERVER_FINISHED
+                                                     else ERROR_MESSAGE)
+                        else ERROR_MESSAGE)
+
+  else 0
+     where mt = (message state).messageType
+           send = (message state).sender
+           prot = (message state).protocol
+
+ERROR_MESSAGE = 10 // unused in current s2n
