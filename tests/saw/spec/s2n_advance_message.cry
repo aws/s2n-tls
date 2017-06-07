@@ -135,7 +135,7 @@ valid_handshake hs = (handshakes_fn hs.handshake_type) != zero /\
 implies : Bit -> Bit -> Bit
 implies l r = if r then True else ~l
 
-// values of similarly names C macros and enum values
+// values of similarly named C macros and enum values
 INITIAL : [32]
 INITIAL =  zero # 0x00 
 NEGOTIATED : [32]
@@ -168,12 +168,13 @@ SERVER_CHANGE_CIPHER_SPEC = 13
 SERVER_FINISHED = 14
 APPLICATION_DATA = 15
 
+//TLS record type
 TLS_CHANGE_CIPHER_SPEC = 20
 TLS_ALERT = 21
 TLS_HANDSHAKE = 22
 TLS_APPLICATION_DATA = 23
 
-
+//TLS handshake message types
 TLS_HELLO_REQUEST = 0
 TLS_CLIENT_HELLO  = 1
 TLS_SERVER_HELLO  = 2
