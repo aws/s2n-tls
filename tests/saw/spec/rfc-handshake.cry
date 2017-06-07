@@ -164,3 +164,8 @@ s2nMessageType state =
            prot = (message state).protocol
 
 ERROR_MESSAGE = 10 // unused in current s2n
+
+rfcSimulatesS2N : connection -> State -> State -> Bool
+rfcSimulatesS2N conn rfcold rfcnew =
+   (handshakeTransition rfcold rfcnew /\ s2nState2RFCState (ACTIVE_STATE conn) rfcold)
+   ==> (s2nState2RFCState (ACTIVE_STATE (advance_message conn)) rfcnew)
