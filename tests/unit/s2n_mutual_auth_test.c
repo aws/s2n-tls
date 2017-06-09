@@ -253,8 +253,6 @@ int main(int argc, char **argv)
         } while (client_blocked || server_blocked);
 
         /* Verify that both connections are waiting for Application Data */
-        EXPECT_TRUE(APPLICATION_DATA == s2n_conn_get_current_message_type(client_conn));
-        EXPECT_TRUE(APPLICATION_DATA == s2n_conn_get_current_message_type(server_conn));
         EXPECT_TRUE(server_conn->handshake.handshake_type & CLIENT_AUTH);
         EXPECT_TRUE(client_conn->handshake.handshake_type & CLIENT_AUTH);
 

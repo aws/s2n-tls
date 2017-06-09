@@ -16,6 +16,7 @@
 #include <s2n.h>
 
 #include "error/s2n_errno.h"
+
 #include "tls/s2n_client_extensions.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
@@ -36,7 +37,7 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
 
     if(conn->actual_protocol_version == S2N_TLS12){
         int pairs_available = 1;
-        /* Read and Validate Hash and Signature Algorithms provided by Client */
+        /* Make sure the client is actually using one of the {sig,hash} pairs that we sent in the ClientCertificateRequest */
         GUARD(s2n_choose_preferred_signature_hash_pair(in, pairs_available, &chosen_hash_alg, &chosen_signature_alg));
     }
 
@@ -50,18 +51,13 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
     struct s2n_hash_state hash_state;
     GUARD(s2n_handshake_get_hash_state(conn, chosen_hash_alg, &hash_state));
 
-    int ret = -1;
     switch (chosen_signature_alg) {
     /* s2n currently only supports RSA Signatures */
     case S2N_SIGNATURE_RSA:
-        ret = s2n_rsa_verify(&conn->secure.client_rsa_public_key, &hash_state, &signature);
+        GUARD(s2n_rsa_verify(&conn->secure.client_rsa_public_key, &hash_state, &signature));
         break;
     default:
         S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
-    }
-
-    if (ret < 0) {
-        S2N_ERROR(S2N_ERR_VERIFY_SIGNATURE);
     }
 
     return 0;
