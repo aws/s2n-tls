@@ -256,7 +256,7 @@ def resume_test(host, port, test_ciphers):
     return failed
 
 supported_sigs = ["RSA+SHA1", "RSA+SHA224", "RSA+SHA256", "RSA+SHA384", "RSA+SHA512"]
-unsupported_sigs = ["ECDSA+SHA256", "DSA+SHA384", "ECDSA+SHA512", "DSA+SHA1"]
+unsupported_sigs = ["ECDSA+SHA256", "ECDSA+SHA512"]
 
 def run_sigalg_test(host, port, cipher, ssl_version, permutation, use_client_auth):
     # Put some unsupported algs in front to make sure we gracefully skip them
