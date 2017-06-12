@@ -1,5 +1,5 @@
 // This module provides an specification of the
-// TLS 1.2 handshake message state machine according to RFC 5246. This
+// TLS 1.2 handshake message state machine according to RFCs 5246 and 5077. This
 // is an overapproximation because state transitions don't depend on
 // message contents --- and, in reality, they should.
 
@@ -28,6 +28,11 @@ type State = [5]
 (serverChangeCipherSpecSent : State) = 14
 (serverFinishedSent : State) = 15
 (applicationDataTransmission : State) = 16
+(serverNewSessionTicketSent : State) = 17
+(serverChangeCipherSpecWithTicketSent : State) = 18
+(serverFinishedWithTicketSent : State) = 19
+(clientChangeCipherSpecWithTicketSent : State) = 20
+(clientFinishedWithTicketSent : State) = 21
 
 // TLS protocol types
 type Protocol = [2]
@@ -39,16 +44,17 @@ type Protocol = [2]
 //message types
 type MessageType = [4]
 //handshake message types
-(helloRequest : MessageType) = 0
-(clientHello : MessageType) = 1
-(serverHello : MessageType) = 2
-(certificate : MessageType) = 3
-(serverKeyExchange : MessageType) = 4
+(helloRequest       : MessageType) = 0
+(clientHello        : MessageType) = 1
+(serverHello        : MessageType) = 2
+(certificate        : MessageType) = 3
+(serverKeyExchange  : MessageType) = 4
 (certificateRequest : MessageType) = 5
-(serverHelloDone : MessageType) = 6
-(certificateVerify : MessageType) = 7
-(clientKeyExchange : MessageType) = 8
-(finished : MessageType) = 9
+(serverHelloDone    : MessageType) = 6
+(certificateVerify  : MessageType) = 7
+(clientKeyExchange  : MessageType) = 8
+(finished           : MessageType) = 9
+(newSessionTicket   : MessageType) = 10
 
 // ChangeCipherSpec message types
 (changeCipherSpecMessage : MessageType) = 0
@@ -59,9 +65,9 @@ type MessageType = [4]
 
 // sender
 type Sender = [2]
-(server : Sender) = 0
-(client : Sender) = 1
-(both : Sender) = 2
+(server   : Sender) = 0
+(client   : Sender) = 1
+(both     : Sender) = 2
 (noSender : Sender) = 3
 
 // state transition relation
@@ -86,6 +92,13 @@ handshakeTransition old new =
  \/ (old == clientFinishedSent /\ new == serverChangeCipherSpecSent)
  \/ (old == serverChangeCipherSpecSent /\ new == serverFinishedSent)
  \/ (old == serverFinishedSent /\ new == applicationDataTransmission)
+ \/ (old == serverHelloSent /\ new == serverNewSessionTicketSent)
+ \/ (old == serverHelloSent /\ new == serverChangeCipherSpecWithTicketSent)
+ \/ (old == serverNewSessionTicketSent /\ new == serverChangeCipherSpecWithTicketSent)
+ \/ (old == serverChangeCipherSpecWithTicketSent /\ new == serverFinishedWithTicketSent)
+ \/ (old == serverFinishedWithTicketSent /\ new == clientChangeCipherSpecWithTicketSent)
+ \/ (old == clientChangeCipherSpecWithTicketSent /\ new == clientFinishedWithTicketSent)
+ \/ (old == clientFinishedWithTicketSent /\ new == applicationDataTransmission)
 
 type Message = {messageType : MessageType
                ,protocol : Protocol
@@ -114,6 +127,11 @@ message state =
       else if state == serverChangeCipherSpecSent then mkMessage server changeCipherSpec changeCipherSpecMessage
       else if state == serverFinishedSent then mkMessage server handshake finished
       else if state == applicationDataTransmission then mkMessage both data applicationData
+      else if state == serverNewSessionTicketSent then mkMessage server handshake newSessionTicket
+      else if state == serverChangeCipherSpecWithTicketSent then mkMessage server changeCipherSpec changeCipherSpecMessage
+      else if state == serverFinishedWithTicketSent then mkMessage server handshake finished
+      else if state == clientChangeCipherSpecWithTicketSent then mkMessage client changeCipherSpec changeCipherSpecMessage
+      else if state == clientFinishedWithTicketSent then mkMessage client handshake finished
       else mkMessage noSender data error
 
 // relation between RFC and s2n handshake state machines
@@ -156,6 +174,7 @@ s2nMessageType state =
                         else if mt == finished then (if send == server then TLS_SERVER_FINISHED
                                                      else if send == client then TLS_SERVER_FINISHED
                                                      else ERROR_MESSAGE)
+                        else if mt == newSessionTicket then TLS_SERVER_NEW_SESSION_TICKET
                         else ERROR_MESSAGE)
 
   else 0
