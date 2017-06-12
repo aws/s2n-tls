@@ -2,4 +2,4 @@ import "spec/rfc-handshake.cry";
 import "spec/s2n_advance_message.cry";
 //c_code <- llvm_load_module "bitcode/all_llvm.bc";
 
-prove z3 {{ rfcSimulatesS2N }};
+prove_print z3 {{ rfcSimulatesS2N }};
