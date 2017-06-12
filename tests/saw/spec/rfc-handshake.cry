@@ -29,10 +29,11 @@ type State = [5]
 (serverFinishedSent : State) = 15
 (applicationDataTransmission : State) = 16
 (serverNewSessionTicketSent : State) = 17
-(serverChangeCipherSpecWithTicketSent : State) = 18
-(serverFinishedWithTicketSent : State) = 19
-(clientChangeCipherSpecWithTicketSent : State) = 20
-(clientFinishedWithTicketSent : State) = 21
+(serverRenewSessionTicketSent : State) = 18
+(serverChangeCipherSpecWithTicketSent : State) = 19
+(serverFinishedWithTicketSent : State) = 20
+(clientChangeCipherSpecWithTicketSent : State) = 21
+(clientFinishedWithTicketSent : State) = 22
 
 // TLS protocol types
 type Protocol = [2]
@@ -90,6 +91,8 @@ handshakeTransition old new =
  \/ (old == certificateVerifySent /\ new == clientChangeCipherSpecSent)
  \/ (old == clientChangeCipherSpecSent /\ new == clientFinishedSent)
  \/ (old == clientFinishedSent /\ new == serverChangeCipherSpecSent)
+ \/ (old == clientFinishedSent /\ new == serverNewSessionTicketSent)
+ \/ (old == serverNewSessionTicketSent /\ new == serverChangeCipherSpecSent)
  \/ (old == serverChangeCipherSpecSent /\ new == serverFinishedSent)
  \/ (old == serverFinishedSent /\ new == applicationDataTransmission)
  \/ (old == serverHelloSent /\ new == serverNewSessionTicketSent)
