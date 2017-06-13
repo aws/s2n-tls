@@ -131,6 +131,9 @@ valid_handshake : handshake -> Bit
 valid_handshake hs = (handshakes_fn hs.handshake_type) != zero /\
                      (implies (hs.message_number > 0) ((handshakes_fn hs.handshake_type)@(hs.message_number + 1) != 0))
 
+valid_connection : connection -> Bit
+valid_connection conn = valid_handshake (conn.handshake)
+
 // Logical implication
 implies : Bit -> Bit -> Bit
 implies l r = if r then True else ~l
