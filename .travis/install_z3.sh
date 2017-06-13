@@ -31,7 +31,7 @@ mkdir -p $DOWNLOAD_DIR
 cd $DOWNLOAD_DIR
 
 #download z3
-curl http://saw.galois.com/builds/z3/z3 > z3
+curl https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/z3-2017-04-04-Ubuntu14.04-64 > z3
 sudo chmod +x z3
 mkdir -p $INSTALL_DIR/bin && mv z3 $INSTALL_DIR/bin
 
