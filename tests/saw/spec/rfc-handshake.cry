@@ -138,14 +138,19 @@ message state =
       else mkMessage noSender data error
 
 // relation between RFC and s2n handshake state machines
-s2nState2RFCState : handshake_action -> State -> Bool
-s2nState2RFCState hsa rfcstate =
+s2nRFCState : handshake_action -> State -> Bool
+s2nRFCState hsa rfcstate =
    //same senders
    (sender2writer (message rfcstate).sender == hsa.writer) /\
    //same record type/protocol
    (protocol2recordType (message rfcstate).protocol == hsa.record_type) /\
    //same message type
    (s2nMessageType rfcstate == hsa.message_type)
+
+action2State : handshake_action -> (Bool, State)
+action2State hsa = (False, 0) //stub
+   where sender = writer2sender hsa.writer
+         (rtValid, record) = recordType2protocol hsa.record_type
 
 // convert a specification representation of sender to a 'writer' character in s2n.
 sender2writer : Sender -> [8]
@@ -154,12 +159,26 @@ sender2writer sndr = if sndr == server then 'S'
                 else if sndr == both   then 'B'
                 else                        'E'
 
+writer2sender : [8] -> Sender
+writer2sender writer = if writer == 'S' then server
+                  else if writer == 'C' then client
+                  else if writer == 'B' then both
+                  else noSender
+
+
 // convert protocol number to s2n TLS record type constant
 protocol2recordType : Protocol -> [8]
 protocol2recordType protocol = if protocol == handshake then TLS_HANDSHAKE
                           else if protocol == changeCipherSpec then TLS_CHANGE_CIPHER_SPEC
                           else if protocol == alert then TLS_ALERT
                           else /* protocol == data */ TLS_APPLICATION_DATA
+
+recordType2protocol : [8] -> (Bool, Protocol)
+recordType2protocol recType = if recType == TLS_HANDSHAKE then (True, handshake)
+                         else if recType == TLS_CHANGE_CIPHER_SPEC then (True, changeCipherSpec)
+                         else if recType == TLS_ALERT then (True, alert)
+                         else if recType == TLS_APPLICATION_DATA then (True, data)
+                         else (False, data)
 
 s2nMessageType : State -> [8]
 s2nMessageType state =
@@ -185,9 +204,37 @@ s2nMessageType state =
            send = (message state).sender
            prot = (message state).protocol
 
+messageTypeFromS2N : [8] -> (Bool, MessageType)
+messageTypeFromS2N mt = if mt == TLS_HELLO_REQUEST then (True, helloRequest)
+                   else if mt == TLS_CLIENT_HELLO  then (True, clientHello)
+                   else if mt == TLS_SERVER_HELLO  then (True, serverHello)
+                   else if mt == TLS_SERVER_NEW_SESSION_TICKET then (True, newSessionTicket)
+                   else if mt == TLS_SERVER_CERT then (True, certificate)
+                   else if mt == TLS_SERVER_KEY  then (True, serverKeyExchange)
+                   else if mt == TLS_SERVER_CERT_REQ then (True, certificateRequest)
+                   else if mt == TLS_SERVER_HELLO_DONE then (True, serverHelloDone)
+                   else if mt == TLS_CLIENT_CERT then (True, certificate)
+                   else if mt == TLS_CLIENT_CERT_VERIFY then (True, certificateVerify)
+                   else if mt == TLS_CLIENT_KEY then (True, clientKeyExchange)
+                   else if mt == TLS_CLIENT_FINISHED then (True, finished)
+                   else if mt == TLS_SERVER_FINISHED then (True, finished)
+                  // else if mt == TLS_SERVER_CERT_STATUS then
+                   else (False, 0)
+
 ERROR_MESSAGE = 10 // unused in current s2n
 
-rfcSimulatesS2N : connection -> State -> State -> Bool
-rfcSimulatesS2N conn rfcold rfcnew =
-   (handshakeTransition rfcold rfcnew /\ s2nState2RFCState (ACTIVE_STATE conn) rfcold)
-   ==> (s2nState2RFCState (ACTIVE_STATE (advance_message conn)) rfcnew)
+// \forall conn \in Connection. valid (conn) ==> \exists r1, r2 \in State.
+// s2nRFCState (ACTIVE_STATE conn) r1 /\
+// s2nRFCState (ACTIVE_STATE (s2n_advance_message conn) r2)  /\
+// handshakeTransition r1 r2
+rfcSimulatesS2N : connection -> (connection -> State) -> (connection -> State) -> Bool
+rfcSimulatesS2N conn rfcPreWitness rfcPostWitness =
+   valid_connection conn ==>
+   (s2nRFCState s2nPre rfcPre /\
+    s2nRFCState s2nPost rfcPost /\
+    handshakeTransition rfcPre rfcPost) 
+   where rfcPre  = rfcPreWitness conn
+         rfcPost = rfcPostWitness conn
+         s2nPre  = ACTIVE_STATE conn
+         s2nPost = ACTIVE_STATE (advance_message conn)
+
