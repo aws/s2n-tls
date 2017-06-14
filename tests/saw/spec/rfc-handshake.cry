@@ -34,6 +34,7 @@ type State = [5]
 (serverFinishedWithTicketSent : State) = 20
 (clientChangeCipherSpecWithTicketSent : State) = 21
 (clientFinishedWithTicketSent : State) = 22
+(serverCertificateStatusSent : State) = 23
 
 // TLS protocol types
 type Protocol = [2]
@@ -56,6 +57,7 @@ type MessageType = [4]
 (clientKeyExchange  : MessageType) = 8
 (finished           : MessageType) = 9
 (newSessionTicket   : MessageType) = 10
+(certificateStatus  : MessageType) = 11
 
 // ChangeCipherSpec message types
 (changeCipherSpecMessage : MessageType) = 0
@@ -80,6 +82,7 @@ handshakeTransition old new =
  \/ (old == serverHelloSent /\ new == serverKeyExchangeSent)
  \/ (old == serverCertificateSent /\ new == serverHelloDoneSent)
  \/ (old == serverCertificateSent /\ new == certificateRequestSent)
+ \/ (old == serverCertificateSent /\ new == serverKeyExchangeSent)
  \/ (old == serverKeyExchangeSent /\ new ==  serverHelloDoneSent)
  \/ (old == serverKeyExchangeSent /\ new == certificateRequestSent)
  \/ (old == certificateRequestSent /\ new == serverHelloDoneSentCertRequested)
@@ -95,6 +98,7 @@ handshakeTransition old new =
  \/ (old == serverNewSessionTicketSent /\ new == serverChangeCipherSpecSent)
  \/ (old == serverChangeCipherSpecSent /\ new == serverFinishedSent)
  \/ (old == serverFinishedSent /\ new == applicationDataTransmission)
+
  \/ (old == serverHelloSent /\ new == serverNewSessionTicketSent)
  \/ (old == serverHelloSent /\ new == serverChangeCipherSpecWithTicketSent)
  \/ (old == serverNewSessionTicketSent /\ new == serverChangeCipherSpecWithTicketSent)
@@ -102,6 +106,11 @@ handshakeTransition old new =
  \/ (old == serverFinishedWithTicketSent /\ new == clientChangeCipherSpecWithTicketSent)
  \/ (old == clientChangeCipherSpecWithTicketSent /\ new == clientFinishedWithTicketSent)
  \/ (old == clientFinishedWithTicketSent /\ new == applicationDataTransmission)
+ 
+ \/ (old == serverCertificateSent /\ new == serverCertificateStatusSent)
+ \/ (old == serverCertificateStatusSent /\ new == serverHelloDoneSent)
+ \/ (old == serverCertificateStatusSent /\ new == certificateRequestSent)
+ \/ (old == serverCertificateStatusSent /\ new == serverKeyExchangeSent)
 
 type Message = {messageType : MessageType
                ,protocol : Protocol
@@ -135,6 +144,7 @@ message state =
       else if state == serverFinishedWithTicketSent then mkMessage server handshake finished
       else if state == clientChangeCipherSpecWithTicketSent then mkMessage client changeCipherSpec changeCipherSpecMessage
       else if state == clientFinishedWithTicketSent then mkMessage client handshake finished
+      else if state == serverCertificateStatusSent then mkMessage server handshake certificateStatus
       else mkMessage noSender data error
 
 // relation between RFC and s2n handshake state machines
@@ -146,11 +156,6 @@ s2nRFCState hsa rfcstate =
    (protocol2recordType (message rfcstate).protocol == hsa.record_type) /\
    //same message type
    (s2nMessageType rfcstate == hsa.message_type)
-
-action2State : handshake_action -> (Bool, State)
-action2State hsa = (False, 0) //stub
-   where sender = writer2sender hsa.writer
-         (rtValid, record) = recordType2protocol hsa.record_type
 
 // convert a specification representation of sender to a 'writer' character in s2n.
 sender2writer : Sender -> [8]
@@ -218,7 +223,7 @@ messageTypeFromS2N mt = if mt == TLS_HELLO_REQUEST then (True, helloRequest)
                    else if mt == TLS_CLIENT_KEY then (True, clientKeyExchange)
                    else if mt == TLS_CLIENT_FINISHED then (True, finished)
                    else if mt == TLS_SERVER_FINISHED then (True, finished)
-                  // else if mt == TLS_SERVER_CERT_STATUS then
+                   else if mt == TLS_SERVER_CERT_STATUS then (True, certificateStatus)
                    else (False, 0)
 
 ERROR_MESSAGE = 10 // unused in current s2n
