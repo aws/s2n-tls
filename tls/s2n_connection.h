@@ -36,22 +36,6 @@
 
 #define S2N_TLS_PROTOCOL_VERSION_LEN    2
 
-typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED } s2n_cert_auth_type;
-
-
- /* Verifies the Certificate Chain of trust and places the leaf Certificate's Public Key in the public_key_out parameter.
- *
- * Does not perform any hostname validation, which is still needed in order to completely validate a Certificate.
- *
- * @param cert_chain_in The DER formatted full chain of certificates recieved
- * @param public_key_out The public key that should be updated with the key extracted from the certificate
- * @param context A pointer to any caller defined context data
- *
- * @return The function should return 0 if Certificate is trusted and public key extraction was successful, and less than
- *         0 if the Certificate is untrusted, or there was some other error.
- */
-typedef int verify_cert_trust_chain(struct s2n_blob *cert_chain_in, struct s2n_cert_public_key *public_key_out, void *context);
-
 struct s2n_connection {
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
@@ -216,5 +200,5 @@ int s2n_connection_recv_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
 extern int s2n_connection_set_cert_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type);
 extern int s2n_connection_set_verify_cert_chain_cb(struct s2n_connection *conn, verify_cert_trust_chain *callback, void *context);
 
-int accept_all_rsa_certs(struct s2n_blob *cert_chain_in, struct s2n_cert_public_key *public_key_out, void *context);
-int deny_all_certs(struct s2n_blob *x509_der_cert, struct s2n_cert_public_key *public_key, void *context);
+int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
+int deny_all_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key, void *context);

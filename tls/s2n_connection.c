@@ -41,17 +41,13 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 
-int deny_all_certs(struct s2n_blob *x509_der_cert, struct s2n_cert_public_key *public_key, void *context)
-{
-    S2N_ERROR(S2N_ERR_CERT_UNTRUSTED);
-}
-
 /* Accept all RSA Certificates is unsafe and is only used in the s2n Client */
-int accept_all_rsa_certs(struct s2n_blob *cert_chain_in, struct s2n_cert_public_key *public_key_out, void *context)
+int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context)
 {
+    struct s2n_blob cert_chain_blob = { .data = cert_chain_in, .size = cert_chain_len};
     struct s2n_stuffer cert_chain_in_stuffer;
-    GUARD(s2n_stuffer_init(&cert_chain_in_stuffer, cert_chain_in));
-    GUARD(s2n_stuffer_write(&cert_chain_in_stuffer, cert_chain_in));
+    GUARD(s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob));
+    GUARD(s2n_stuffer_write(&cert_chain_in_stuffer, &cert_chain_blob));
 
     uint32_t certificate_count = 0;
     while (s2n_stuffer_data_available(&cert_chain_in_stuffer)) {
@@ -97,12 +93,13 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
      * which is ok, as blob.data is always aligned.
      */
     conn = (struct s2n_connection *)(void *)blob.data;
+    conn->config = &s2n_default_config;
 
     /* By default, only the client will authenticate the Server's Certificate. The Server does not request or
      * authenticate any client certificates. */
-    conn->client_cert_auth_type = S2N_CERT_AUTH_NONE;
-    conn->verify_cert_chain_cb = deny_all_certs;
-    conn->verify_cert_context = NULL;
+    conn->client_cert_auth_type = conn->config->client_cert_auth_type;
+    conn->verify_cert_chain_cb = conn->config->verify_cert_chain_cb;
+    conn->verify_cert_context = conn->config->verify_cert_context;
 
     if (mode == S2N_CLIENT) {
         /* At present s2n is not suitable for use in client mode, as it
@@ -120,7 +117,6 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
 
     conn->mode = mode;
     conn->blinding = S2N_BUILT_IN_BLINDING;
-    conn->config = &s2n_default_config;
     conn->close_notify_queued = 0;
     conn->session_id_len = 0;
     conn->send = NULL;
@@ -231,7 +227,6 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
     GUARD(s2n_ecc_params_free(&conn->secure.server_ecc_params));
     GUARD(s2n_free(&conn->secure.client_cert_chain));
-
     GUARD(s2n_free(&conn->ct_response));
 
     return 0;
