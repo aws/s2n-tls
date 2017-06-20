@@ -202,6 +202,7 @@ s2nMessageType state =
                                                      else if send == client then TLS_SERVER_FINISHED
                                                      else ERROR_MESSAGE)
                         else if mt == newSessionTicket then TLS_SERVER_NEW_SESSION_TICKET
+                        else if mt == certificateStatus then TLS_SERVER_CERT_STATUS
                         else ERROR_MESSAGE)
 
   else 0
