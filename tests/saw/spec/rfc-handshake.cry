@@ -232,14 +232,17 @@ ERROR_MESSAGE = 10 // unused in current s2n
 // s2nRFCState (ACTIVE_STATE conn) r1 /\
 // s2nRFCState (ACTIVE_STATE (s2n_advance_message conn) r2)  /\
 // handshakeTransition r1 r2
-rfcSimulatesS2N : connection -> (connection -> State) -> (connection -> State) -> Bool
-rfcSimulatesS2N conn rfcPreWitness rfcPostWitness =
+rfcSimulatesS2N : connection -> Bool
+rfcSimulatesS2N conn = 
    valid_connection conn ==>
+   or [rfcSimulatesS2N2 conn s1 s2 | s1 <- states, s2 <- states]
+   where states = [0 .. 23]
+
+rfcSimulatesS2N2 : connection -> State -> State -> Bool
+rfcSimulatesS2N2 conn rfcPre rfcPost =
    (s2nRFCState s2nPre rfcPre /\
     s2nRFCState s2nPost rfcPost /\
     handshakeTransition rfcPre rfcPost) 
-   where rfcPre  = rfcPreWitness conn
-         rfcPost = rfcPostWitness conn
-         s2nPre  = ACTIVE_STATE conn
+   where s2nPre  = ACTIVE_STATE conn
          s2nPost = ACTIVE_STATE (advance_message conn)
 
