@@ -50,6 +50,13 @@ let json_string key_size msg_size function
  	  	("}\n***END JSON FOR METRICS"))))))))))))))))));
  };
 
+let print_json fn cfg t key_size msg_size ov = do {
+  let solvers = (); // llvm_spec_solvers hash_init_ov; // TODO
+  let complexity = (); // llvm_spec_size hash_init_ov; // TODO
+  str <- json_string key_size msg_size fn cfg t solvers complexity;
+  print str;
+};
+
 let verify_s2n_hmac
       key_size
       msg_size
@@ -70,56 +77,40 @@ let verify_s2n_hmac
                     " ..."))))));
 
 
-  (t, hash_init_ov)   <- with_time (llvm_verify m "s2n_hash_init"   [] hash_init_spec);
+  (t, hash_init_ov)   <- with_time (crucible_llvm_unsafe_assume_spec "s2n_hash_init" hash_init_spec);
 
-let solvers = llvm_spec_solvers hash_init_ov;
-  let complexity = llvm_spec_size hash_init_ov;
-  str <- (json_string key_size msg_size "s2n_hash_init" cfg t solvers complexity);
-  print(str);
+  print_json "s2n_hash_init" cfg t key_size msg_size hash_init_ov;
 
 
-  (t, hash_digest_ov) <- with_time (llvm_verify m "s2n_hash_digest" []
-    (hash_digest_spec (cfg.digest_size)));
+  (t, hash_digest_ov) <- with_time (crucible_llvm_unsafe_assume_spec "s2n_hash_digest" (hash_digest_spec (cfg.digest_size)));
 
-  let solvers = llvm_spec_solvers hash_digest_ov;
-  let complexity = llvm_spec_size hash_digest_ov;
-  str <- (json_string key_size msg_size "s2n_hash_digest" cfg t solvers complexity);
-  print(str);
+  print_json "s2n_hash_digest" cfg t key_size msg_size hash_digest_ov;
 
 
-  (t, hash_update_key_size_ov) <- with_time (llvm_verify m "s2n_hash_update" []
-    (hash_update_spec key_size));
+  (t, hash_update_key_size_ov) <- with_time (crucible_llvm_unsafe_assume_spec "s2n_hash_update" (hash_update_spec key_size));
 
-  let solvers = llvm_spec_solvers hash_update_key_size_ov;
-  let complexity = llvm_spec_size hash_update_key_size_ov;
-  str <- (json_string key_size msg_size "s2n_hash_update_key_size" cfg t solvers complexity);
-  print(str);
+  print_json "s2n_hash_update_key_size" cfg t key_size msg_size hash_update_key_size_ov;
 
 
-  (t, hash_update_block_size_ov)  <- with_time (llvm_verify m "s2n_hash_update" []
-    (hash_update_spec cfg.block_size));
+  (t, hash_update_block_size_ov)  <- with_time (crucible_llvm_unsafe_assume_spec "s2n_hash_update" (hash_update_spec cfg.block_size));
 
-  let solvers = llvm_spec_solvers hash_update_block_size_ov;
-  let complexity = llvm_spec_size hash_update_block_size_ov;
-  str <- (json_string key_size msg_size "s2n_hash_update_block_size" cfg t solvers complexity);
-  print(str);
+  print_json "s2n_hash_update_block_size" cfg t key_size msg_size hash_update_block_size_ov;
 
-  (t, hash_update_msg_size_ov)    <- with_time (llvm_verify m "s2n_hash_update" []
-    (hash_update_spec msg_size));
+  (t, hash_update_msg_size_ov)    <- with_time (crucible_llvm_unsafe_assume_spec "s2n_hash_update" (hash_update_spec msg_size));
 
-  let solvers = llvm_spec_solvers hash_update_msg_size_ov;
-  let complexity = llvm_spec_size hash_update_msg_size_ov;
-  str <- (json_string key_size msg_size "s2n_hash_update_msg_size" cfg t solvers complexity);
-  print(str);
+  print_json "s2n_hash_update_msg_size" cfg t key_size msg_size hash_update_msg_size_ov;
 
-  (t, hash_update_digest_size_ov) <- with_time (llvm_verify m "s2n_hash_update" []
-    (hash_update_spec cfg.digest_size));
+  (t, hash_update_digest_size_ov) <- with_time (crucible_llvm_unsafe_assume_spec "s2n_hash_update" (hash_update_spec cfg.digest_size));
 
-  let solvers = llvm_spec_solvers hash_update_digest_size_ov;
-  let complexity = llvm_spec_size hash_update_digest_size_ov;
-  str <- (json_string key_size msg_size "s2n_hash_update_digest_size" cfg t solvers complexity);
-  print(str);
+  print_json "s2n_hash_update_digest_size" cfg t key_size msg_size hash_update_digest_size_ov;
 
+  (t, hash_copy_ov) <- with_time (crucible_llvm_unsafe_assume_spec "s2n_hash_copy" hash_copy_spec);
+
+  print_json "s2n_hash_copy" cfg t key_size msg_size hash_copy_ov;
+
+  (t, hash_reset_ov) <- with_time (crucible_llvm_unsafe_assume_spec "s2n_hash_reset" hash_reset_spec);
+
+  print_json "s2n_hash_reset" cfg t key_size msg_size hash_reset_ov;
 
   let hash_ovs =
     [ hash_init_ov
@@ -128,31 +119,24 @@ let solvers = llvm_spec_solvers hash_init_ov;
     , hash_update_msg_size_ov
     , hash_update_digest_size_ov
     , hash_digest_ov
+    , hash_copy_ov
+    , hash_reset_ov
     ];
 
   (t, hmac_init_ov) <-
-    with_time (llvm_verify m "s2n_hmac_init"   hash_ovs (hmac_init_spec key_size cfg));
+    with_time (crucible_llvm_verify "s2n_hmac_init"   hash_ovs true (hmac_init_spec key_size cfg) z3_hash_unint);
 
-  let solvers = llvm_spec_solvers hmac_init_ov;
-  let complexity = llvm_spec_size hmac_init_ov;
-  str <- (json_string key_size msg_size "s2n_hmac_init" cfg t solvers complexity);
-  print(str);
+  print_json "s2n_hmac_init" cfg t key_size msg_size hmac_init_ov;
 
   (t, hmac_update_ov) <-
-    with_time (llvm_verify m "s2n_hmac_update" hash_ovs (hmac_update_spec msg_size cfg));
+    with_time (crucible_llvm_verify "s2n_hmac_update" hash_ovs true (hmac_update_spec msg_size cfg) z3_hash_unint);
 
-  let solvers = llvm_spec_solvers hmac_update_ov;
-  let complexity = llvm_spec_size hmac_update_ov;
-  str <- (json_string key_size msg_size "s2n_hmac_update" cfg t solvers complexity);
-  print(str);
+  print_json "s2n_hmac_update" cfg t key_size msg_size hmac_update_ov;
 
   (t, hmac_digest_ov) <-
-    with_time (llvm_verify m "s2n_hmac_digest" hash_ovs (hmac_digest_spec cfg));
+    with_time (crucible_llvm_verify "s2n_hmac_digest" hash_ovs true (hmac_digest_spec cfg) z3_hash_unint);
 
-  let solvers = llvm_spec_solvers hmac_digest_ov;
-  let complexity = llvm_spec_size hmac_digest_ov;
-  str <- (json_string key_size msg_size "s2n_hmac_digest" cfg t solvers complexity);
-  print(str);
+  print_json "s2n_hmac_digest" cfg t key_size msg_size hmac_digest_ov;
 
   print "Done!";
 
