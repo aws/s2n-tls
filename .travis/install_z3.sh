@@ -16,7 +16,7 @@
 set -e
 
 usage() {
-	echo "install_z3.sh download_dir install_dir"
+	echo "install_z3_yices.sh download_dir install_dir"
 	exit 1
 }
 
@@ -30,8 +30,12 @@ INSTALL_DIR=$2
 mkdir -p $DOWNLOAD_DIR
 cd $DOWNLOAD_DIR
 
-#download z3
+#download z3 and yices
 curl https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/z3-2017-04-04-Ubuntu14.04-64 > z3
+curl http://saw.galois.com/builds/yices/yices_smt2-linux-static > yices_smt2
 sudo chmod +x z3
-mkdir -p $INSTALL_DIR/bin && mv z3 $INSTALL_DIR/bin
+sudo chmod +x yices_smt2
+mkdir -p $INSTALL_DIR/bin
+mv z3 $INSTALL_DIR/bin
+mv yices_smt2 $INSTALL_DIR/bin
 
