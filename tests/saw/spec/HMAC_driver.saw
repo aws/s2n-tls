@@ -51,8 +51,8 @@ let json_string key_size msg_size function
  };
 
 let print_json fn cfg t key_size msg_size ov = do {
-  let solvers = (); // llvm_spec_solvers hash_init_ov; // TODO
-  let complexity = (); // llvm_spec_size hash_init_ov; // TODO
+  let solvers = crucible_spec_solvers ov;
+  let complexity = crucible_spec_size ov;
   str <- json_string key_size msg_size fn cfg t solvers complexity;
   print str;
 };
