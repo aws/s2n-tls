@@ -8,6 +8,28 @@ module TLSHandshake where
 import Cryptol::Extras
 import s2n_advance_message
 
+// Main correctness property: a simulation of the S2N handshake state
+// machine by an RFC-derived state machine
+
+// \forall conn \in Connection. valid (conn) ==> \exists r1, r2 \in State.
+// s2nRFCState (ACTIVE_STATE conn) r1 /\
+// s2nRFCState (ACTIVE_STATE (s2n_advance_message conn) r2)  /\
+// handshakeTransition r1 r2
+rfcSimulatesS2N : connection -> Bool
+rfcSimulatesS2N conn = 
+   valid_connection conn ==>
+   or [rfcSimulatesS2N2 conn s1 s2 | s1 <- states, s2 <- states]
+   where states = [0 .. 23]
+
+rfcSimulatesS2N2 : connection -> State -> State -> Bool
+rfcSimulatesS2N2 conn rfcPre rfcPost =
+   (s2nRFCState s2nPre rfcPre /\
+    s2nRFCState s2nPost rfcPost /\
+    handshakeTransition rfcPre rfcPost) 
+   where s2nPre  = ACTIVE_STATE conn
+         s2nPost = ACTIVE_STATE (advance_message conn)
+
+
 type State = [5]
 
 // states
@@ -73,9 +95,156 @@ type Sender = [2]
 (both     : Sender) = 2
 (noSender : Sender) = 3
 
-// state transition relation
+// Handshake state transition relation per the RFCs
 handshakeTransition : State -> State -> Bool
 handshakeTransition old new =
+  or [ old == fst t /\ new == snd t | t <- valid_transitions]
+  where valid_transitions =
+          [(helloRequestSent, clientHelloSent)
+          ,(clientHelloSent, serverHelloSent)
+          ,(serverHelloSent, serverCertificateSent)
+          ,(serverHelloSent, serverKeyExchangeSent)
+          ,(serverCertificateSent, serverHelloDoneSent)
+          ,(serverCertificateSent, certificateRequestSent)
+          ,(serverCertificateSent, serverKeyExchangeSent)
+          ,(serverKeyExchangeSent, serverHelloDoneSent)
+          ,(serverKeyExchangeSent, certificateRequestSent)
+          ,(certificateRequestSent, serverHelloDoneSentCertRequested)
+          ,(serverHelloDoneSent, clientKeyExchangeSent)
+          ,(clientKeyExchangeSent, clientChangeCipherSpecSent)
+          ,(serverHelloDoneSentCertRequested, clientCertificateSent)
+          ,(clientCertificateSent, clientKeyExchangeSentCertSent)
+          ,(clientKeyExchangeSentCertSent, certificateVerifySent)
+          ,(certificateVerifySent, clientChangeCipherSpecSent)
+          ,(clientChangeCipherSpecSent, clientFinishedSent)
+          ,(clientFinishedSent, serverChangeCipherSpecSent)
+          ,(clientFinishedSent, serverNewSessionTicketSent)
+          ,(serverNewSessionTicketSent, serverChangeCipherSpecSent)
+          ,(serverChangeCipherSpecSent, serverFinishedSent)
+          ,(serverFinishedSent, applicationDataTransmission)
+          ,(serverHelloSent, serverNewSessionTicketSent)
+          ,(serverHelloSent, serverChangeCipherSpecWithTicketSent)
+          ,(serverNewSessionTicketSent, serverChangeCipherSpecWithTicketSent)
+          ,(serverChangeCipherSpecWithTicketSent, serverFinishedWithTicketSent)
+          ,(serverFinishedWithTicketSent, clientChangeCipherSpecWithTicketSent)
+          ,(clientChangeCipherSpecWithTicketSent, clientFinishedWithTicketSent)
+          ,(clientFinishedWithTicketSent, applicationDataTransmission)
+          ,(serverCertificateSent, serverCertificateStatusSent)
+          ,(serverCertificateStatusSent, serverHelloDoneSent)
+          ,(serverCertificateStatusSent, certificateRequestSent)
+          ,(serverCertificateStatusSent, serverKeyExchangeSent)
+          ]
+
+fst (a, b) = a
+snd (a, b) = b
+
+prop_HandshakeTransitionEquiv : State -> State -> Bool
+prop_HandshakeTransitionEquiv old new = handshakeTransitionOld old new == handshakeTransition old new
+
+type Message = {messageType : MessageType
+               ,protocol : Protocol
+               ,sender : Sender
+               }
+
+mkMessage : Sender -> Protocol -> MessageType -> Message
+mkMessage s p mt = {sender = s, protocol = p, messageType = mt}
+
+// Message sent in each state
+message : State -> Message
+message = lookupDefault messages (mkMessage noSender data error)
+    where messages =
+            [(helloRequestSent, mkMessage server handshake helloRequest)
+            ,(clientHelloSent, mkMessage client handshake clientHello)
+            ,(serverHelloSent, mkMessage server handshake serverHello)
+            ,(serverCertificateSent, mkMessage server handshake certificate)
+            ,(serverKeyExchangeSent, mkMessage server handshake serverKeyExchange)
+            ,(certificateRequestSent, mkMessage server handshake certificateRequest)
+            ,(serverHelloDoneSent, mkMessage server handshake serverHelloDone)
+            ,(serverHelloDoneSentCertRequested, mkMessage server handshake serverHelloDone)
+            ,(clientCertificateSent, mkMessage client handshake certificate)
+            ,(clientKeyExchangeSent, mkMessage client handshake clientKeyExchange)
+            ,(clientKeyExchangeSentCertSent, mkMessage client handshake clientKeyExchange)
+            ,(certificateVerifySent, mkMessage client handshake certificateVerify)
+            ,(clientChangeCipherSpecSent, mkMessage client changeCipherSpec changeCipherSpecMessage)
+            ,(clientFinishedSent, mkMessage client handshake finished)
+            ,(serverChangeCipherSpecSent, mkMessage server changeCipherSpec changeCipherSpecMessage)
+            ,(serverFinishedSent, mkMessage server handshake finished)
+            ,(applicationDataTransmission, mkMessage both data applicationData)
+            ,(serverNewSessionTicketSent, mkMessage server handshake newSessionTicket)
+            ,(serverChangeCipherSpecWithTicketSent, mkMessage server changeCipherSpec changeCipherSpecMessage)
+            ,(serverFinishedWithTicketSent, mkMessage server handshake finished)
+            ,(clientChangeCipherSpecWithTicketSent, mkMessage client changeCipherSpec changeCipherSpecMessage)
+            ,(clientFinishedWithTicketSent, mkMessage client handshake finished)
+            ,(serverCertificateStatusSent, mkMessage server handshake certificateStatus)
+            ]
+
+lookupDefault : {a, b, n} (fin n, Cmp a) => [n](a, b) -> b -> a -> b
+lookupDefault dict def key = fst (foldl find (def, False) dict)
+   where find (value, found) (key', value') =
+           if found then (value, found)
+           else if key == key' then (value', True)
+                else (value, found)
+
+prop_messageEquiv : State -> Bool
+prop_messageEquiv s = message s == messageOld s
+
+
+// relation between RFC and s2n handshake state machines
+s2nRFCState : handshake_action -> State -> Bool
+s2nRFCState hsa rfcstate =
+   //same senders
+   (sender2writer (message rfcstate).sender == hsa.writer) /\
+   //same record type/protocol
+   (protocol2recordType (message rfcstate).protocol == hsa.record_type) /\
+   //same message type
+   (s2nMessageType rfcstate == hsa.message_type)
+
+// convert a specification representation of sender to a 'writer' character in s2n.
+sender2writer : Sender -> [8]
+sender2writer sndr = if sndr == server then 'S'
+                else if sndr == client then 'C'
+                else if sndr == both   then 'B'
+                else                        'E'
+
+// convert protocol number to s2n TLS record type constant
+protocol2recordType : Protocol -> [8]
+protocol2recordType = lookupDefault protocols TLS_APPLICATION_DATA
+   where protocols = [(handshake, TLS_HANDSHAKE)
+                     ,(changeCipherSpec, TLS_CHANGE_CIPHER_SPEC)
+                     ,(alert, TLS_ALERT)
+                     ,(data, TLS_APPLICATION_DATA)
+                     ]
+
+s2nMessageType : State -> [8]
+s2nMessageType state =
+  if prot == handshake then (if mt == helloRequest then TLS_HELLO_REQUEST
+                       else if mt == clientHello  then TLS_CLIENT_HELLO
+                       else if mt == serverHello  then TLS_SERVER_HELLO
+                       else if mt == certificate  then (if send == server then TLS_SERVER_CERT
+                                                         else if send == client then TLS_CLIENT_CERT
+                                                         else ERROR_MESSAGE)
+                       else if mt == serverKeyExchange then TLS_SERVER_KEY
+                       else if mt == certificateRequest then TLS_SERVER_CERT_REQ
+                       else if mt == serverHelloDone then TLS_SERVER_HELLO_DONE
+                       else if mt == certificateVerify then TLS_CLIENT_CERT_VERIFY
+                       else if mt == clientKeyExchange then TLS_CLIENT_KEY
+                       else if mt == finished then (if send == server then TLS_SERVER_FINISHED
+                                                     else if send == client then TLS_SERVER_FINISHED
+                                                     else ERROR_MESSAGE)
+                       else if mt == newSessionTicket then TLS_SERVER_NEW_SESSION_TICKET
+                       else if mt == certificateStatus then TLS_SERVER_CERT_STATUS
+                       else ERROR_MESSAGE)
+
+  else 0
+     where mt = (message state).messageType
+           send = (message state).sender
+           prot = (message state).protocol
+
+ERROR_MESSAGE = 10 // unused in current s2n
+
+// state transition relation (Old version)
+handshakeTransitionOld : State -> State -> Bool
+handshakeTransitionOld old new =
     (old == helloRequestSent /\ new == clientHelloSent)
  \/ (old == clientHelloSent /\ new == serverHelloSent)
  \/ (old == serverHelloSent /\ new == serverCertificateSent)
@@ -112,16 +281,8 @@ handshakeTransition old new =
  \/ (old == serverCertificateStatusSent /\ new == certificateRequestSent)
  \/ (old == serverCertificateStatusSent /\ new == serverKeyExchangeSent)
 
-type Message = {messageType : MessageType
-               ,protocol : Protocol
-               ,sender : Sender
-               }
-
-mkMessage : Sender -> Protocol -> MessageType -> Message
-mkMessage s p mt = {sender = s, protocol = p, messageType = mt}
-
-message : State -> Message
-message state =
+messageOld : State -> Message
+messageOld state =
            if state == helloRequestSent then mkMessage server handshake helloRequest
       else if state == clientHelloSent then mkMessage client handshake clientHello
       else if state == serverHelloSent then mkMessage server handshake serverHello
@@ -146,104 +307,3 @@ message state =
       else if state == clientFinishedWithTicketSent then mkMessage client handshake finished
       else if state == serverCertificateStatusSent then mkMessage server handshake certificateStatus
       else mkMessage noSender data error
-
-// relation between RFC and s2n handshake state machines
-s2nRFCState : handshake_action -> State -> Bool
-s2nRFCState hsa rfcstate =
-   //same senders
-   (sender2writer (message rfcstate).sender == hsa.writer) /\
-   //same record type/protocol
-   (protocol2recordType (message rfcstate).protocol == hsa.record_type) /\
-   //same message type
-   (s2nMessageType rfcstate == hsa.message_type)
-
-// convert a specification representation of sender to a 'writer' character in s2n.
-sender2writer : Sender -> [8]
-sender2writer sndr = if sndr == server then 'S'
-                else if sndr == client then 'C'
-                else if sndr == both   then 'B'
-                else                        'E'
-
-writer2sender : [8] -> Sender
-writer2sender writer = if writer == 'S' then server
-                  else if writer == 'C' then client
-                  else if writer == 'B' then both
-                  else noSender
-
-
-// convert protocol number to s2n TLS record type constant
-protocol2recordType : Protocol -> [8]
-protocol2recordType protocol = if protocol == handshake then TLS_HANDSHAKE
-                          else if protocol == changeCipherSpec then TLS_CHANGE_CIPHER_SPEC
-                          else if protocol == alert then TLS_ALERT
-                          else /* protocol == data */ TLS_APPLICATION_DATA
-
-recordType2protocol : [8] -> (Bool, Protocol)
-recordType2protocol recType = if recType == TLS_HANDSHAKE then (True, handshake)
-                         else if recType == TLS_CHANGE_CIPHER_SPEC then (True, changeCipherSpec)
-                         else if recType == TLS_ALERT then (True, alert)
-                         else if recType == TLS_APPLICATION_DATA then (True, data)
-                         else (False, data)
-
-s2nMessageType : State -> [8]
-s2nMessageType state =
-  if prot == handshake then (if mt == helloRequest then TLS_HELLO_REQUEST
-                        else if mt == clientHello  then TLS_CLIENT_HELLO
-                        else if mt == serverHello  then TLS_SERVER_HELLO
-                        else if mt == certificate  then (if send == server then TLS_SERVER_CERT
-                                                         else if send == client then TLS_CLIENT_CERT
-                                                         else ERROR_MESSAGE)
-                        else if mt == serverKeyExchange then TLS_SERVER_KEY
-                        else if mt == certificateRequest then TLS_SERVER_CERT_REQ
-                        else if mt == serverHelloDone then TLS_SERVER_HELLO_DONE
-                        else if mt == certificateVerify then TLS_CLIENT_CERT_VERIFY
-                        else if mt == clientKeyExchange then TLS_CLIENT_KEY
-                        else if mt == finished then (if send == server then TLS_SERVER_FINISHED
-                                                     else if send == client then TLS_SERVER_FINISHED
-                                                     else ERROR_MESSAGE)
-                        else if mt == newSessionTicket then TLS_SERVER_NEW_SESSION_TICKET
-                        else if mt == certificateStatus then TLS_SERVER_CERT_STATUS
-                        else ERROR_MESSAGE)
-
-  else 0
-     where mt = (message state).messageType
-           send = (message state).sender
-           prot = (message state).protocol
-
-messageTypeFromS2N : [8] -> (Bool, MessageType)
-messageTypeFromS2N mt = if mt == TLS_HELLO_REQUEST then (True, helloRequest)
-                   else if mt == TLS_CLIENT_HELLO  then (True, clientHello)
-                   else if mt == TLS_SERVER_HELLO  then (True, serverHello)
-                   else if mt == TLS_SERVER_NEW_SESSION_TICKET then (True, newSessionTicket)
-                   else if mt == TLS_SERVER_CERT then (True, certificate)
-                   else if mt == TLS_SERVER_KEY  then (True, serverKeyExchange)
-                   else if mt == TLS_SERVER_CERT_REQ then (True, certificateRequest)
-                   else if mt == TLS_SERVER_HELLO_DONE then (True, serverHelloDone)
-                   else if mt == TLS_CLIENT_CERT then (True, certificate)
-                   else if mt == TLS_CLIENT_CERT_VERIFY then (True, certificateVerify)
-                   else if mt == TLS_CLIENT_KEY then (True, clientKeyExchange)
-                   else if mt == TLS_CLIENT_FINISHED then (True, finished)
-                   else if mt == TLS_SERVER_FINISHED then (True, finished)
-                   else if mt == TLS_SERVER_CERT_STATUS then (True, certificateStatus)
-                   else (False, 0)
-
-ERROR_MESSAGE = 10 // unused in current s2n
-
-// \forall conn \in Connection. valid (conn) ==> \exists r1, r2 \in State.
-// s2nRFCState (ACTIVE_STATE conn) r1 /\
-// s2nRFCState (ACTIVE_STATE (s2n_advance_message conn) r2)  /\
-// handshakeTransition r1 r2
-rfcSimulatesS2N : connection -> Bool
-rfcSimulatesS2N conn = 
-   valid_connection conn ==>
-   or [rfcSimulatesS2N2 conn s1 s2 | s1 <- states, s2 <- states]
-   where states = [0 .. 23]
-
-rfcSimulatesS2N2 : connection -> State -> State -> Bool
-rfcSimulatesS2N2 conn rfcPre rfcPost =
-   (s2nRFCState s2nPre rfcPre /\
-    s2nRFCState s2nPost rfcPost /\
-    handshakeTransition rfcPre rfcPost) 
-   where s2nPre  = ACTIVE_STATE conn
-         s2nPost = ACTIVE_STATE (advance_message conn)
-
