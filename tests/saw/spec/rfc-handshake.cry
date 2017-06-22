@@ -1,5 +1,5 @@
 // This module provides an specification of the
-// TLS 1.2 handshake message state machine according to RFCs 5246 and 5077. This
+// TLS 1.2 handshake message state machine according to RFCs 5246, 5077 and 6066 // (OCSP extension only). This
 // is an overapproximation because state transitions don't depend on
 // message contents --- and, in reality, they should.
 
@@ -19,7 +19,7 @@ rfcSimulatesS2N : connection -> Bool
 rfcSimulatesS2N conn = 
    valid_connection conn ==>
    or [rfcSimulatesS2N2 conn s1 s2 | s1 <- states, s2 <- states]
-   where states = [0 .. 23]
+   where states = [0 .. 23] // warning, 23 is a hardcoding of the maximum state number in the RFC state machine
 
 rfcSimulatesS2N2 : connection -> State -> State -> Bool
 rfcSimulatesS2N2 conn rfcPre rfcPost =
@@ -28,7 +28,6 @@ rfcSimulatesS2N2 conn rfcPre rfcPost =
     handshakeTransition rfcPre rfcPost) 
    where s2nPre  = ACTIVE_STATE conn
          s2nPost = ACTIVE_STATE (advance_message conn)
-
 
 type State = [5]
 
