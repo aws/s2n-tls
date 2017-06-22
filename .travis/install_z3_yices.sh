@@ -32,7 +32,7 @@ cd $DOWNLOAD_DIR
 
 #download z3 and yices
 curl https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/z3-2017-04-04-Ubuntu14.04-64 > z3
-curl http://saw.galois.com/builds/yices/yices_smt2-linux-static > yices_smt2
+curl https://saw.galois.com/builds/yices/yices_smt2-linux-static > yices_smt2
 sudo chmod +x z3
 sudo chmod +x yices_smt2
 mkdir -p $INSTALL_DIR/bin
