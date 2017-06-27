@@ -63,7 +63,7 @@ ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)
 endif
 
 
-CFLAGS_LLVM = ${DEFAULT_CFLAGS} -fno-inline -emit-llvm -c -g
+CFLAGS_LLVM = ${DEFAULT_CFLAGS} -emit-llvm -c -g -O1
 
 $(BITCODE_DIR)%.bc: %.c
         # -O0 is a temporary fix to prevent clang from emiting LLVM
