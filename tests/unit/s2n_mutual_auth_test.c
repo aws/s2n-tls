@@ -94,6 +94,10 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
 
+    /*
+     * Test Mutual Auth using **s2n_connection_set_client_auth_type**
+     */
+
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -155,8 +159,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_recv_ctx(server_conn, &client_to_server));
         EXPECT_SUCCESS(s2n_connection_set_send_ctx(server_conn, &server_to_client));
 
-
-
         int tries = 0;
         do {
             int ret;
@@ -181,6 +183,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
+
+    /*
+     * Test Mutual Auth using **s2n_config_set_client_auth_type**
+     */
 
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED));
 
@@ -230,8 +236,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_send_ctx(client_conn, &client_to_server));
         EXPECT_SUCCESS(s2n_connection_set_recv_ctx(server_conn, &client_to_server));
         EXPECT_SUCCESS(s2n_connection_set_send_ctx(server_conn, &server_to_client));
-
-
 
         int tries = 0;
         do {
