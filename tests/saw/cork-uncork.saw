@@ -1,51 +1,77 @@
 import "spec/cork-uncork.cry";
 import "spec/s2n_advance_message.cry";
-c_code <- llvm_load_module "bitcode/all_llvm.bc";
+load_crucible_llvm_module "bitcode/all_llvm.bc";
 
-// setup_handshake and setup_connection de-serialize parts of the
-// s2n_handshake and s2n_connection structs into Cryptol records. Prefix
-// is the name of the variable or a field accessor path that holds the
-// (pointer to) the struct in LLVM memory.
+////////////////////////////////////////////////////////////////
+// Generic Utilities.
+//
 
-let setup_handshake prefix = do {
-   let dot_concat f = str_concat prefix (str_concat "." f);
-   handshake_type <- llvm_var (dot_concat "handshake_type") (llvm_int 32);
-   message_number <- llvm_var (dot_concat "message_number") (llvm_int 32);
-   return {{ {handshake_type = handshake_type
-             ,message_number = message_number
-             }
-	  }};
+let alloc_init ty v = do {
+    p <- crucible_alloc ty;
+    crucible_points_to p v;
+    return p;
 };
 
-let setup_connection prefix = do {
-   llvm_ptr prefix (llvm_struct "struct.s2n_connection");
-   let arrow_concat f = str_concat prefix (str_concat "->" f);
-   corked_io <- llvm_var (arrow_concat "corked_io") (llvm_int 32);
-   mode <- llvm_var (arrow_concat "mode") (llvm_int 32);
-   corked <- llvm_var (arrow_concat "corked") (llvm_int 32);
-   handshake <- setup_handshake (arrow_concat "handshake");
-   //send_io_ctx <- llvm_ptr (arrow_concat "send_io_context") (llvm_struct "struct.s2n_socket_read_io_context");
-   //fd <- llvm_var (arrow_concat "send_io_context->0") (llvm_int 32);
-   return {{ {corked_io = corked_io
-             ,mode      = mode
-             ,handshake = handshake
-	     ,corked    = corked
-             }
-          }}; 
+let ptr_to_fresh n ty = do {
+    x <- crucible_fresh_var n ty;
+    p <- alloc_init ty (crucible_term x);
+    return (x, p);
 };
+
+let fresh_ptr ty = do {
+    p <- crucible_alloc ty;
+    val <- crucible_fresh_expanded_val ty;
+    crucible_points_to p val;
+    return (p, val);
+};
+
+// // setup_handshake and setup_connection de-serialize parts of the
+// // s2n_handshake and s2n_connection structs into Cryptol records. Prefix
+// // is the name of the variable or a field accessor path that holds the
+// // (pointer to) the struct in LLVM memory.
+
+// let setup_handshake prefix = do {
+//    let dot_concat f = str_concat prefix (str_concat "." f);
+//    handshake_type <- llvm_var (dot_concat "handshake_type") (llvm_int 32);
+//    message_number <- llvm_var (dot_concat "message_number") (llvm_int 32);
+//    return {{ {handshake_type = handshake_type
+//              ,message_number = message_number
+//              }
+// 	  }};
+// };
+
+// let setup_connection prefix = do {
+//    llvm_ptr prefix (llvm_struct "struct.s2n_connection");
+//    let arrow_concat f = str_concat prefix (str_concat "->" f);
+//    corked_io <- llvm_var (arrow_concat "corked_io") (llvm_int 32);
+//    mode <- llvm_var (arrow_concat "mode") (llvm_int 32);
+//    corked <- llvm_var (arrow_concat "corked") (llvm_int 32);
+//    handshake <- setup_handshake (arrow_concat "handshake");
+//    //send_io_ctx <- llvm_ptr (arrow_concat "send_io_context") (llvm_struct "struct.s2n_socket_read_io_context");
+//    //fd <- llvm_var (arrow_concat "send_io_context->0") (llvm_int 32);
+//    return {{ {corked_io = corked_io
+//              ,mode      = mode
+//              ,handshake = handshake
+// 	     ,corked    = corked
+//              }
+//           }}; 
+// };
 
 // specification for s2n_advance_message that sets up simulation of it
 // by advance_message
 let s2n_advance_message_spec = do {
-    // deserealize the relevant fields of the s2n_connection struct passed to
-    // s2n_advance_message
-    conn <- setup_connection "conn";
+    pconn <- fresh_ptr "struct.s2n_connection";
+
     // we assume that corking/uncorking is managed by s2n
-    llvm_assert_eq "conn->corked_io" {{ 1 : [32] }};
+    // llvm_assert_eq "conn->corked_io" {{ 1 : [32] }};
+    
     // we assume that the handshake struct denotes a valid handshake state
     // (e.g. it will not index out of bounds in the state transition array
     // "handshakes")
-    llvm_assert {{ valid_handshake conn.handshake }};
+    // llvm_assert {{ valid_handshake conn.handshake }};
+
+    crucible_execute_func [pconn];
+
 
     // Next we check that the changes to s2n_connection fields are
     // simulated by the low-level specification of the function. We do
@@ -53,18 +79,18 @@ let s2n_advance_message_spec = do {
     // deserealized pre-state of the s2n_connection struct and checking
     // that values of the fields of the resulting struct match the fields
     // of the post-state of the s2n_connection struct.
-    llvm_ensure_eq "conn->corked" {{ (advance_message conn).corked }};
-    llvm_ensure_eq "conn->corked_io" {{ (advance_message conn).corked_io }};
-    llvm_ensure_eq "conn->mode" {{ (advance_message conn).mode }};
-    llvm_ensure_eq "conn->handshake.handshake_type" {{ (advance_message conn).handshake.handshake_type }};
-    llvm_ensure_eq "conn->handshake.message_number" {{ (advance_message conn).handshake.message_number }};
+    //llvm_ensure_eq "conn->corked" {{ (advance_message conn).corked }};
+    //llvm_ensure_eq "conn->corked_io" {{ (advance_message conn).corked_io }};
+    //llvm_ensure_eq "conn->mode" {{ (advance_message conn).mode }};
+    //llvm_ensure_eq "conn->handshake.handshake_type" {{ (advance_message conn).handshake.handshake_type }};
+    //llvm_ensure_eq "conn->handshake.message_number" {{ (advance_message conn).handshake.message_number }};
 
     // assert that s2n_advance_message returns 0 (true if the 4
     // functions it calls don't fail)
-    llvm_return {{ 0 : [32] }};
+    //crucible_return {{ 0 : [32] }};
 
     // advise SAW to use Z3
-    llvm_verify_tactic z3;
+    //llvm_verify_tactic z3;
 };
 
 // Specs for the 4 functions that s2n_advance_message calls. Right now
@@ -133,12 +159,13 @@ let s2n_connection_is_managed_corked_spec = do {
 // bottom up in the call graph. Results of verification are function
 // summaries (_fs), or "overrides" in the internal SAW terminology.
 let verify_cork_uncork = do {
-    s2n_socket_write_uncork_fs <- llvm_verify c_code "s2n_socket_write_uncork" [] s2n_socket_write_uncork_spec;
-    s2n_socket_write_cork_fs <- llvm_verify c_code "s2n_socket_write_cork" [] s2n_socket_write_cork_spec;
-    s2n_socket_was_corked_fs <- llvm_verify c_code "s2n_socket_was_corked" [] s2n_socket_was_corked_spec;
-    s2n_connection_is_managed_corked_fs <- llvm_verify c_code "s2n_connection_is_managed_corked" [] s2n_connection_is_managed_corked_spec;
+    // s2n_socket_write_uncork_fs <- llvm_verify c_code "s2n_socket_write_uncork" [] s2n_socket_write_uncork_spec;
+    // s2n_socket_write_cork_fs <- llvm_verify c_code "s2n_socket_write_cork" [] s2n_socket_write_cork_spec;
+    // s2n_socket_was_corked_fs <- llvm_verify c_code "s2n_socket_was_corked" [] s2n_socket_was_corked_spec;
+    // s2n_connection_is_managed_corked_fs <- llvm_verify c_code "s2n_connection_is_managed_corked" [] s2n_connection_is_managed_corked_spec;
 
-    s2n_advance_message_proof <- llvm_verify c_code "s2n_advance_message" [s2n_socket_write_uncork_fs, s2n_socket_write_cork_fs, s2n_socket_was_corked_fs, s2n_connection_is_managed_corked_fs] s2n_advance_message_spec;
+    s2n_advance_message_proof <- crucible_llvm_verify "s2n_advance_message" [] s2n_advance_message_spec z3;
+    // [s2n_socket_write_uncork_fs, s2n_socket_write_cork_fs, s2n_socket_was_corked_fs, s2n_connection_is_managed_corked_fs] ;
     print "Verified C->low-level s2n_advance_message simulation";
 };
 
