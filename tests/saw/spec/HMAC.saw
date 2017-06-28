@@ -39,12 +39,11 @@ let ptr_to_fresh n ty = do {
     return (x, p);
 };
 
-// We can get this done in about 1/4 the time if we use Yices.
-let z3_hash_unint =
+let yices_hash_unint =
     unint_yices [ "hash_init_c_state"
-             , "hash_update_c_state"
-             , "hash_digest_c_state"
-             ];
+                , "hash_update_c_state"
+                , "hash_digest_c_state"
+                ];
 
 ////////////////////////////////////////////////////////////////
 // Hash.
@@ -111,7 +110,7 @@ let hash_init_spec = do {
     update_hash_state pstate st1;
     crucible_return (crucible_term {{ 0 : [32] }});
 };
-  
+
 let hash_reset_spec = do {
     pstate <- crucible_alloc (llvm_struct "struct.s2n_hash_state");
     st0 <- setup_hash_state pstate;
@@ -120,7 +119,7 @@ let hash_reset_spec = do {
     update_hash_state pstate st1;
     crucible_return (crucible_term {{ 0 : [32] }});
 };
-  
+
 let hash_copy_spec = do {
     pstate1 <- crucible_alloc (llvm_struct "struct.s2n_hash_state");
     pstate2 <- crucible_alloc (llvm_struct "struct.s2n_hash_state");
@@ -162,7 +161,7 @@ let setup_hmac_state alg0 hash_block_size0 block_size0 digest_size0 = do {
     xor_pad0 <- crucible_fresh_var "xor_pad" (llvm_array 128 (llvm_int 8));
     let digest_size = eval_size {| SHA512_DIGEST_LENGTH |};
     digest_pad0 <- crucible_fresh_var "digest_pad" (llvm_array digest_size (llvm_int 8));
-              
+
     crucible_points_to (crucible_elem pstate 0) (crucible_term alg0);
     crucible_points_to (crucible_elem pstate 1) (crucible_term hash_block_size0);
     crucible_points_to (crucible_elem pstate 2) (crucible_term currently_in_hash_block0);
@@ -189,7 +188,7 @@ let setup_hmac_state alg0 hash_block_size0 block_size0 digest_size0 = do {
       }};
     return (pstate, st0);
 };
-  
+
 let check_hmac_state pstate st = do {
     crucible_points_to (crucible_elem pstate 0) (crucible_term {{ st.alg }});
     crucible_points_to (crucible_elem pstate 1) (crucible_term {{ st.hash_block_size }});
@@ -204,7 +203,7 @@ let check_hmac_state pstate st = do {
     //
     //update_hash_state (crucible_elem pstate 7) {{ st.outer }};
     crucible_points_to (crucible_elem pstate 8) (crucible_term {{ st.xor_pad }});
-    
+
     // Don't care about 'digest_pad', because it gets overwritten
     // using 's2n_hash_digest' before use in 's2n_hmac_digest'.
     //
@@ -302,7 +301,7 @@ let hmac_update_spec
 
     crucible_return (crucible_term {{ 0 : [32] }});
 };
-  
+
 let hmac_digest_spec
       (cfg : { name            : String
              , hmac_alg        : Term
@@ -351,36 +350,3 @@ let hmac_digest_size_spec
     crucible_points_to psize (crucible_term {{ `digest_size : [8] }});
     crucible_return (crucible_term {{ 0 : [32] }});
 };
-
-
-let sha512_cfg =
-    { name            = "SHA512"
-    , hmac_alg        = {{ S2N_HMAC_SHA512 }}
-    , digest_size     = 64
-    , block_size      = 128
-    , hash_block_size = 128
-    };
-
-/*
-hash_init_ov <- crucible_llvm_unsafe_assume_spec "s2n_hash_init" hash_init_spec;
-hash_update32_ov <- crucible_llvm_unsafe_assume_spec "s2n_hash_update" (hash_update_spec 32);
-hash_update64_ov <- crucible_llvm_unsafe_assume_spec "s2n_hash_update" (hash_update_spec 64);
-hash_update128_ov <- crucible_llvm_unsafe_assume_spec "s2n_hash_update" (hash_update_spec 128);
-hash_digest_ov <- crucible_llvm_unsafe_assume_spec "s2n_hash_digest" (hash_digest_spec sha512_cfg.digest_size);
-hash_reset_ov <- crucible_llvm_unsafe_assume_spec "s2n_hash_reset" hash_reset_spec;
-hash_copy_ov <- crucible_llvm_unsafe_assume_spec "s2n_hash_copy" hash_copy_spec;
-let ovs =
-  [ hash_init_ov
-  , hash_update32_ov
-  , hash_update64_ov
-  , hash_update128_ov
-  , hash_digest_ov
-  , hash_reset_ov
-  , hash_copy_ov
-  ];
-
-// Unifying multiple occurrences of variables not yet supported.
-hmac_init_ov <- crucible_llvm_verify "s2n_hmac_init" ovs true (hmac_init_spec 32 sha512_cfg) z3_hash_unint;
-hmac_update_ov <- crucible_llvm_verify "s2n_hmac_update" ovs true (hmac_update_spec 32 sha512_cfg) z3_hash_unint;
-hmac_digest_ov <- crucible_llvm_verify "s2n_hmac_digest" ovs true (hmac_digest_spec sha512_cfg) z3_hash_unint;
-*/

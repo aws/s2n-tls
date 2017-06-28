@@ -129,17 +129,17 @@ let verify_s2n_hmac
     ];
 
   (t, hmac_init_ov) <-
-    with_time (crucible_llvm_verify "s2n_hmac_init"   hash_ovs true (hmac_init_spec key_size cfg) z3_hash_unint);
+    with_time (crucible_llvm_verify "s2n_hmac_init"   hash_ovs true (hmac_init_spec key_size cfg) yices_hash_unint);
 
   print_json "s2n_hmac_init" cfg t key_size msg_size hmac_init_ov;
 
   (t, hmac_update_ov) <-
-    with_time (crucible_llvm_verify "s2n_hmac_update" hash_ovs true (hmac_update_spec msg_size cfg) z3_hash_unint);
+    with_time (crucible_llvm_verify "s2n_hmac_update" hash_ovs true (hmac_update_spec msg_size cfg) yices_hash_unint);
 
   print_json "s2n_hmac_update" cfg t key_size msg_size hmac_update_ov;
 
   (t, hmac_digest_ov) <-
-    with_time (crucible_llvm_verify "s2n_hmac_digest" hash_ovs true (hmac_digest_spec cfg) z3_hash_unint);
+    with_time (crucible_llvm_verify "s2n_hmac_digest" hash_ovs true (hmac_digest_spec cfg) yices_hash_unint);
 
   print_json "s2n_hmac_digest" cfg t key_size msg_size hmac_digest_ov;
 
@@ -210,24 +210,6 @@ let sha512_cfg =
   , block_size      = 128
   , hash_block_size = 128
   };
-
-
-    
-
-// We need to verify key lengths above and below-or-equal to the block
-// size, in order to exercise both versions of the key initialization
-// code.
-//
-// For SHA256, the block size is 64. Timing stats for different key
-// sizes:
-//
-// abc/sha256:
-//   62: 52 minutes!
-//   63: 2 minutes
-//   64: 1 minute     // key size == block size
-//   65: 2.5 minutes
-//   66: 2.5 minutes
-
 
 let verify_s2n_hmac_at_several_key_and_msg_sizes
       (cfg : { name            : String
