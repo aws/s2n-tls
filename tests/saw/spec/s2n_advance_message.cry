@@ -9,7 +9,7 @@ import Cryptol::Extras
 // uses. The names of the fields are the same as in C.
 type connection = {handshake : handshake
                   ,mode : [32]
-                  ,corked_io : [32]
+                  ,corked_io : [8]
                   ,corked : [32]
                   }
 

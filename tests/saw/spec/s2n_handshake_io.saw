@@ -1,0 +1,123 @@
+// Low level specifications for some of the functions and constants declared in tls/s2n_handshake_io.c
+
+import "cork-uncork.cry";
+import "s2n_advance_message.cry";
+
+load_crucible_llvm_module "../bitcode/all_llvm.bc";
+print "Loaded bitcode via Crucible";
+
+////////////////////////////////////////////////////////////////
+// Generic Utilities.
+//
+
+let alloc_init ty v = do {
+    p <- crucible_alloc ty;
+    crucible_points_to p v;
+    return p;
+};
+
+let ptr_to_fresh n ty = do {
+    x <- crucible_fresh_var n ty;
+    p <- alloc_init ty (crucible_term x);
+    return (x, p);
+};
+
+let fresh_ptr ty = do {
+    p <- crucible_alloc ty;
+    val <- crucible_fresh_expanded_val ty;
+    crucible_points_to p val;
+    return (p, val);
+};
+
+//conn->corked
+let conn_corked pconn = crucible_elem pconn 49;
+
+// conn->corked_io
+let conn_corked_io pconn = crucible_elem pconn 6;
+
+//conn->mode
+let conn_mode pconn = crucible_elem pconn 7;
+
+//conn->handshake->handshake_type
+let conn_handshake_handshake_type pconn = crucible_elem (crucible_elem pconn 36) 9;
+
+//conn->handshake->message_number
+let conn_handshake_message_number pconn = crucible_elem (crucible_elem pconn 36) 10;
+
+let setup_connection = do {
+   pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
+   // we assume that corking/uncorking is managed by s2n
+   let corked_io = {{1 : [8]}};
+   crucible_points_to (conn_corked_io pconn) (crucible_term corked_io); 
+   
+   mode <- crucible_fresh_var "mode" (llvm_int 32);
+   crucible_points_to (conn_mode pconn) (crucible_term mode);
+   
+   corked <- crucible_fresh_var "corked" (llvm_int 32);
+   crucible_points_to (conn_corked pconn) (crucible_term corked); //conn->corked, materialized ghost state
+
+   handshake_type <- crucible_fresh_var "handshake_type" (llvm_int 32);
+   crucible_points_to (conn_handshake_handshake_type pconn) (crucible_term handshake_type); 
+
+   message_number <- crucible_fresh_var "message_number" (llvm_int 32);
+   crucible_points_to (conn_handshake_message_number pconn) (crucible_term message_number); 
+
+   return (pconn, {{ {corked_io = corked_io
+                     ,mode      = mode
+                     ,handshake = {message_number = message_number
+		                  ,handshake_type = handshake_type}
+         	     ,corked    = corked
+                     }
+                  }}); 
+};
+
+
+let verify_state_machine_elem sm ixt = do {
+    let ix = eval_int ixt;
+    let abstract = {{ state_machine @ ix }};
+
+    crucible_points_to (crucible_elem (crucible_elem sm ix) 0) (crucible_term {{ abstract.record_type }});
+
+    crucible_points_to (crucible_elem (crucible_elem sm ix) 1) (crucible_term {{ abstract.message_type }});
+
+    crucible_points_to (crucible_elem (crucible_elem sm ix) 2) (crucible_term {{ abstract.writer }});
+
+};
+
+// specification for s2n_advance_message that sets up simulation of it
+// by advance_message
+let s2n_advance_message_spec = do {
+    (pconn, conn) <- setup_connection;
+    // we assume that the handshake struct denotes a valid handshake state
+    // (e.g. it will not index out of bounds in the state transition array
+    // "handshakes")
+    crucible_precond {{ valid_handshake conn.handshake }};
+
+    crucible_execute_func [pconn];
+
+    // Next we check that the changes to s2n_connection fields are
+    // simulated by the low-level specification of the function. We do
+    // this by running the model function advance_message on the
+    // deserealized pre-state of the s2n_connection struct and checking
+    // that values of the fields of the resulting struct match the fields
+    // of the post-state of the s2n_connection struct.
+    let conn' = {{ advance_message conn }};
+    crucible_points_to (conn_corked pconn) (crucible_term {{ conn'.corked }});
+    crucible_points_to (conn_corked_io pconn) (crucible_term {{ conn'.corked_io }});
+    crucible_points_to (conn_mode pconn) (crucible_term {{ (advance_message conn).mode }});
+    crucible_points_to (conn_handshake_handshake_type pconn) (crucible_term {{ (advance_message conn).handshake.handshake_type }});
+    crucible_points_to (conn_handshake_message_number pconn) (crucible_term {{ (advance_message conn).handshake.message_number }});
+
+    // make sure the low-level spec representation of the declarative
+    // handshake/cork-uncork state machine is equivalent to the one in
+    // s2n
+    crucible_points_to (crucible_global "handshakes") (crucible_term {{ handshakes }});
+    let messages = [ {{CLIENT_HELLO}}, {{SERVER_HELLO}}, {{SERVER_CERT}}, {{SERVER_NEW_SESSION_TICKET}}, {{SERVER_CERT_STATUS}}, {{SERVER_KEY}}, {{SERVER_CERT}}, {{SERVER_CERT_REQ}}, {{SERVER_HELLO_DONE}}, {{CLIENT_CERT}}, {{CLIENT_KEY}}, {{CLIENT_CERT_VERIFY}}, {{CLIENT_CHANGE_CIPHER_SPEC}}, {{SERVER_FINISHED}}, {{APPLICATION_DATA}}];
+
+    for messages (verify_state_machine_elem (crucible_global "state_machine"));
+    // assert that s2n_advance_message returns 0 (true if the 4
+    // functions it calls don't fail)
+    crucible_return (crucible_term {{ 0 : [32] }});
+};
+
+s2n_advance_message_proof <- crucible_llvm_verify "s2n_advance_message" [] true s2n_advance_message_spec z3;
