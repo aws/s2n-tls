@@ -74,7 +74,7 @@ let setup_connection = do {
 
 let verify_state_machine_elem sm ixt = do {
     let ix = eval_int ixt;
-    let abstract = {{ state_machine @ ix }};
+    let abstract = {{ state_machine @ ixt }};
 
     crucible_points_to (crucible_elem (crucible_elem sm ix) 0) (crucible_term {{ abstract.record_type }});
 
@@ -112,7 +112,7 @@ let s2n_advance_message_spec = do {
     // handshake/cork-uncork state machine is equivalent to the one in
     // s2n
     crucible_points_to (crucible_global "handshakes") (crucible_term {{ handshakes }});
-    let messages = [ {{CLIENT_HELLO}}, {{SERVER_HELLO}}, {{SERVER_CERT}}, {{SERVER_NEW_SESSION_TICKET}}, {{SERVER_CERT_STATUS}}, {{SERVER_KEY}}, {{SERVER_CERT}}, {{SERVER_CERT_REQ}}, {{SERVER_HELLO_DONE}}, {{CLIENT_CERT}}, {{CLIENT_KEY}}, {{CLIENT_CERT_VERIFY}}, {{CLIENT_CHANGE_CIPHER_SPEC}}, {{SERVER_FINISHED}}, {{APPLICATION_DATA}}];
+    let messages = [ {{CLIENT_HELLO : [4]}}, {{SERVER_HELLO : [4]}}, {{SERVER_CERT : [4]}}, {{SERVER_NEW_SESSION_TICKET : [4]}}, {{SERVER_CERT_STATUS : [4]}}, {{SERVER_KEY : [4]}}, {{SERVER_CERT : [4]}}, {{SERVER_CERT_REQ : [4]}}, {{SERVER_HELLO_DONE : [4]}}, {{CLIENT_CERT : [4]}}, {{CLIENT_KEY : [4]}}, {{CLIENT_CERT_VERIFY : [4]}}, {{CLIENT_CHANGE_CIPHER_SPEC : [4]}}, {{SERVER_FINISHED : [4]}}, {{APPLICATION_DATA : [4]}}];
 
     for messages (verify_state_machine_elem (crucible_global "state_machine"));
     // assert that s2n_advance_message returns 0 (true if the 4
@@ -120,4 +120,71 @@ let s2n_advance_message_spec = do {
     crucible_return (crucible_term {{ 0 : [32] }});
 };
 
-s2n_advance_message_proof <- crucible_llvm_verify "s2n_advance_message" [] true s2n_advance_message_spec z3;
+// Specs for the 4 functions that s2n_advance_message calls. Right now
+// we just assume the specs and don't verify them. That's because we
+// don't model the state that they depend on, instead, making assumptions
+// about it: we use managed corking and the socket was initially uncorked.
+
+// Specification for s2n_socket_write_uncork. The relevant part is
+// that it sets the conn->corked materialized ghost field to 0 to
+// indicate that the socket has been uncorked. In the future we will associate
+// such ghost state directly with the socket file descriptor.
+let s2n_socket_write_uncork_spec = do {
+    pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
+
+    crucible_execute_func [pconn];
+
+    crucible_points_to (conn_corked pconn) (crucible_term {{ 0 : [32] }});
+
+    crucible_return (crucible_term {{ 0 : [32] }});
+};
+
+// Specification for s2n_socket_write_cork. The relevant part is
+// that it sets the conn->corked materialized ghost field to 1 to
+// indicate that the socket has been corked. In the future we will associate
+// such ghost state directly with the socket file descriptor.
+let s2n_socket_write_cork_spec = do {
+    pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
+
+    crucible_execute_func [pconn];
+
+    crucible_points_to (conn_corked pconn) (crucible_term {{ 1 : [32] }});
+
+    crucible_return (crucible_term {{ 0 : [32] }});
+};
+
+// Specification for s2n_socket_was_corked.  We assume this function
+// always returns 0 to indicate our assumption that the socket was
+// uncorked initially. If it was corked, then the cork/uncork state
+// machine would be bypassed making verification moot.
+let s2n_socket_was_corked_spec = do {
+    pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
+
+    crucible_execute_func [pconn];
+
+    crucible_return (crucible_term {{ 0 : [32] }});
+};
+
+
+// Specification for s2n_connection_is_managed_corked. We assume it
+// always returns 1 to reflect our assumption that the library is
+// managing the corking and uncorking of the socket. Otherwise, the
+//cork/uncork state machine would be bypassed making verification moot.
+let s2n_connection_is_managed_corked_spec = do {
+    pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
+
+    crucible_execute_func [pconn];
+
+    crucible_return (crucible_term {{ 1 : [32] }});
+};
+
+// Dependencies specifications/overrides
+
+s2n_socket_write_uncork <- crucible_llvm_unsafe_assume_spec "s2n_socket_write_uncork" s2n_socket_write_uncork_spec;
+s2n_socket_write_cork <- crucible_llvm_unsafe_assume_spec "s2n_socket_write_cork" s2n_socket_write_cork_spec;
+s2n_socket_was_corked <- crucible_llvm_unsafe_assume_spec "s2n_socket_was_corked" s2n_socket_was_corked_spec;
+s2n_connection_is_managed_corked <- crucible_llvm_unsafe_assume_spec "s2n_connection_is_managed_corked" s2n_connection_is_managed_corked_spec;
+
+let dependencies = [s2n_socket_write_uncork, s2n_socket_write_cork, s2n_socket_was_corked, s2n_connection_is_managed_corked];
+
+s2n_advance_message_proof <- crucible_llvm_verify "s2n_advance_message" dependencies true s2n_advance_message_spec z3;
