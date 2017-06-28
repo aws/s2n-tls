@@ -1,5 +1,9 @@
 import "spec/rfc-handshake.cry";
 import "spec/s2n_advance_message.cry";
-//c_code <- llvm_load_module "bitcode/all_llvm.bc";
+include "s2n_handshake_io.saw";
 
+//prove correspondence of the C code and the low-level model
+s2n_advance_message_proof;
+print "Verified that the low-level specification corresponds to the C code";
 prove_print abc {{ rfcSimulatesS2N }};
+print "Proved simulation of the s2n handshake state machine by the RFC-derived state machine";

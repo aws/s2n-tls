@@ -1,9 +1,8 @@
 // Low level specifications for some of the functions and constants declared in tls/s2n_handshake_io.c
 
-import "cork-uncork.cry";
-import "s2n_advance_message.cry";
+import "spec/s2n_advance_message.cry";
 
-load_crucible_llvm_module "../bitcode/all_llvm.bc";
+load_crucible_llvm_module "bitcode/all_llvm.bc";
 print "Loaded bitcode via Crucible";
 
 ////////////////////////////////////////////////////////////////
@@ -178,13 +177,17 @@ let s2n_connection_is_managed_corked_spec = do {
     crucible_return (crucible_term {{ 1 : [32] }});
 };
 
-// Dependencies specifications/overrides
 
-s2n_socket_write_uncork <- crucible_llvm_unsafe_assume_spec "s2n_socket_write_uncork" s2n_socket_write_uncork_spec;
-s2n_socket_write_cork <- crucible_llvm_unsafe_assume_spec "s2n_socket_write_cork" s2n_socket_write_cork_spec;
-s2n_socket_was_corked <- crucible_llvm_unsafe_assume_spec "s2n_socket_was_corked" s2n_socket_was_corked_spec;
-s2n_connection_is_managed_corked <- crucible_llvm_unsafe_assume_spec "s2n_connection_is_managed_corked" s2n_connection_is_managed_corked_spec;
+let s2n_advance_message_proof = do {
+    // Dependencies specifications/overrides
+    s2n_socket_write_uncork <- crucible_llvm_unsafe_assume_spec "s2n_socket_write_uncork" s2n_socket_write_uncork_spec;
+    s2n_socket_write_cork <- crucible_llvm_unsafe_assume_spec "s2n_socket_write_cork" s2n_socket_write_cork_spec;
+    s2n_socket_was_corked <- crucible_llvm_unsafe_assume_spec "s2n_socket_was_corked" s2n_socket_was_corked_spec;
+    s2n_connection_is_managed_corked <- crucible_llvm_unsafe_assume_spec "s2n_connection_is_managed_corked" s2n_connection_is_managed_corked_spec;
 
-let dependencies = [s2n_socket_write_uncork, s2n_socket_write_cork, s2n_socket_was_corked, s2n_connection_is_managed_corked];
+    let dependencies = [s2n_socket_write_uncork, s2n_socket_write_cork, s2n_socket_was_corked, s2n_connection_is_managed_corked];
 
-s2n_advance_message_proof <- crucible_llvm_verify "s2n_advance_message" dependencies true s2n_advance_message_spec z3;
+    s2n_advance_message_proof <- crucible_llvm_verify "s2n_advance_message" dependencies true s2n_advance_message_spec z3;
+
+    return ();
+};
