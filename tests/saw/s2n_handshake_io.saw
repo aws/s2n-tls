@@ -187,7 +187,7 @@ let s2n_advance_message_proof = do {
 
     let dependencies = [s2n_socket_write_uncork, s2n_socket_write_cork, s2n_socket_was_corked, s2n_connection_is_managed_corked];
 
-    s2n_advance_message_proof <- crucible_llvm_verify "s2n_advance_message" dependencies true s2n_advance_message_spec z3;
+    s2n_advance_message_proof <- crucible_llvm_verify "s2n_advance_message" dependencies true s2n_advance_message_spec yices;
 
     return ();
 };
