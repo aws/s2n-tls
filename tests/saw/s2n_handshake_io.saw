@@ -43,6 +43,8 @@ let conn_handshake_handshake_type pconn = crucible_elem (crucible_elem pconn 36)
 //conn->handshake->message_number
 let conn_handshake_message_number pconn = crucible_elem (crucible_elem pconn 36) 10;
 
+// setup_handshake de-serializes parts of the s2n_handshake and
+// s2n_connection structs into a Cryptol record.
 let setup_connection = do {
    pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
    // we assume that corking/uncorking is managed by s2n
@@ -92,6 +94,7 @@ let s2n_advance_message_spec = do {
     // "handshakes")
     crucible_precond {{ valid_handshake conn.handshake }};
 
+    // symbolically execute s2n_advance_message
     crucible_execute_func [pconn];
 
     // Next we check that the changes to s2n_connection fields are
