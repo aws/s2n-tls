@@ -112,6 +112,10 @@ let verify_s2n_hmac
 
   print_json "s2n_hash_reset" cfg t key_size msg_size hash_reset_ov;
 
+  (t, hmac_digest_size_ov) <- with_time (crucible_llvm_unsafe_assume_spec "s2n_hmac_digest_size" (hmac_digest_size_spec cfg));
+
+  print_json "s2n_hmac_digest_size" cfg t key_size msg_size hmac_digest_size_ov;
+
   let hash_ovs =
     [ hash_init_ov
     , hash_update_key_size_ov
@@ -121,6 +125,7 @@ let verify_s2n_hmac
     , hash_digest_ov
     , hash_copy_ov
     , hash_reset_ov
+    , hmac_digest_size_ov
     ];
 
   (t, hmac_init_ov) <-

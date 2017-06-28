@@ -338,6 +338,21 @@ let hmac_digest_spec
     crucible_return (crucible_term {{ 0 : [32] }});
 };
 
+let hmac_digest_size_spec
+      (cfg : { name            : String
+             , hmac_alg        : Term
+             , digest_size     : Int
+             , block_size      : Int
+             , hash_block_size : Int
+             }) = do {
+    psize <- crucible_alloc (llvm_int 8);
+    crucible_execute_func [crucible_term cfg.hmac_alg, psize];
+    let digest_size = cfg.digest_size;
+    crucible_points_to psize (crucible_term {{ `digest_size : [8] }});
+    crucible_return (crucible_term {{ 0 : [32] }});
+};
+
+
 let sha512_cfg =
     { name            = "SHA512"
     , hmac_alg        = {{ S2N_HMAC_SHA512 }}
