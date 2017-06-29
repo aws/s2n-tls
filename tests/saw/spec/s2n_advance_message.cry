@@ -11,6 +11,10 @@ type connection = {handshake : handshake
                   ,mode : [32]
                   ,corked_io : [8]
                   ,corked : [32]
+                  ,is_caching_enabled : Bit
+                  ,resume_from_cache : Bit
+                  ,server_can_send_ocsp : Bit
+                  ,key_exchange_eph : Bit
                   }
 
 type handshake = {handshake_type : [32]
@@ -44,6 +48,30 @@ s2n_cork c = 1
 s2n_uncork : connection -> [32]
 s2n_uncork c = 0
 
+conn_set_handshake_type : connection -> connection
+conn_set_handshake_type conn = conn'
+  where conn' = {handshake = handshake'
+                ,mode = conn.mode
+                ,corked_io = conn.corked_io
+                ,corked = conn.corked
+                ,is_caching_enabled = conn.is_caching_enabled
+                ,resume_from_cache = conn.resume_from_cache
+                ,server_can_send_ocsp = conn.server_can_send_ocsp
+                ,key_exchange_eph = conn.key_exchange_eph}
+        (handshake' : handshake) = {handshake_type = handshake_type'
+                                   ,message_number = conn.handshake.message_number
+                                   }
+        handshake_type' = NEGOTIATED || full_handshake || perfect_forward_secrecy || ocsp_status
+        full_handshake  = if (conn.is_caching_enabled && ~conn.resume_from_cache)
+                          then FULL_HANDSHAKE
+                          else zero
+        perfect_forward_secrecy = if conn.key_exchange_eph
+                                  then PERFECT_FORWARD_SECRECY
+                                  else zero
+        ocsp_status = if conn.server_can_send_ocsp
+                      then OCSP_STATUS
+                      else zero
+                                                     
 // This function models the update of the s2n_connection struct by the
 // s2n_advance_message function in s2n
 advance_message : connection -> connection
@@ -52,6 +80,10 @@ advance_message conn = conn2
                 ,mode = conn.mode
                 ,corked_io = conn.corked_io
                 ,corked = cork2
+                ,is_caching_enabled = conn.is_caching_enabled
+                ,resume_from_cache = conn.resume_from_cache
+                ,server_can_send_ocsp = conn.server_can_send_ocsp
+                ,key_exchange_eph = conn.key_exchange_eph
                 }
         (handshake2 : handshake) = {handshake_type = conn.handshake.handshake_type
                                    ,message_number = conn.handshake.message_number + 1
