@@ -35,6 +35,7 @@ static int s2n_recv_client_elliptic_curves(struct s2n_connection *conn, struct s
 static int s2n_recv_client_ec_point_formats(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_sct_list(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_recv_client_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 static int s2n_send_client_signature_algorithms_extension(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
@@ -65,6 +66,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 
     uint16_t application_protocols_len = conn->config->application_protocols.size;
     uint16_t server_name_len = strlen(conn->server_name);
+    uint16_t mfl_code_len = sizeof(conn->config->mfl_code);
 
     if (server_name_len) {
         total_size += 9 + server_name_len;
@@ -77,6 +79,9 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     }
     if (conn->config->ct_type != S2N_CT_SUPPORT_NONE) {
         total_size += 4;
+    }
+    if (conn->config->mfl_code != S2N_TLS_MAX_FRAG_LEN_EXT_NONE) {
+        total_size += 5;
     }
 
     /* Write ECC extensions: Supported Curves and Supported Point Formats */
@@ -129,6 +134,13 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     if (conn->config->ct_type != S2N_CT_SUPPORT_NONE) {
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SCT_LIST));
         GUARD(s2n_stuffer_write_uint16(out, 0));
+    }
+
+    /* Write Max Fragmentation Length extension */
+    if (conn->config->mfl_code != S2N_TLS_MAX_FRAG_LEN_EXT_NONE) {
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_MAX_FRAG_LEN));
+        GUARD(s2n_stuffer_write_uint16(out, mfl_code_len));
+        GUARD(s2n_stuffer_write_uint8(out, conn->config->mfl_code));
     }
 
     /*
@@ -203,6 +215,9 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
             break;
         case TLS_EXTENSION_SCT_LIST:
             GUARD(s2n_recv_client_sct_list(conn, &extension));
+            break;
+        case TLS_EXTENSION_MAX_FRAG_LEN:
+            GUARD(s2n_recv_client_max_frag_len(conn, &extension));
             break;
         }
     }
@@ -427,5 +442,33 @@ static int s2n_recv_client_sct_list(struct s2n_connection *conn, struct s2n_stuf
 {
     conn->ct_level_requested = S2N_CT_SUPPORT_REQUEST;
     /* Skip reading the extension, per RFC6962 (3.1.1) it SHOULD be empty anyway  */
+    return 0;
+}
+
+/*
+ * Convert max_fragment_length codes to length.
+ * RFC 6066 says:
+ *    enum{
+ *        2^9(1), 2^10(2), 2^11(3), 2^12(4), (255)
+ *    } MaxFragmentLength;
+ * and we add 0 -> extension unused
+ */
+static uint16_t mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_INVALID] =
+{
+    S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, /* S2N_TLS_MAX_FRAG_LEN_EXT_NONE */
+    512,                             /* S2N_TLS_MAX_FRAG_LEN_512  */
+    1024,                            /* S2N_TLS_MAX_FRAG_LEN_1024 */
+    2048,                            /* S2N_TLS_MAX_FRAG_LEN_2048 */
+    4096,                            /* S2N_TLS_MAX_FRAG_LEN_4096 */
+};
+
+static int s2n_recv_client_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    uint8_t mfl_code;
+    GUARD(s2n_stuffer_read_uint8(extension, &mfl_code));
+    if (mfl_code >= S2N_TLS_MAX_FRAG_LEN_INVALID || mfl_code_to_length[mfl_code] > S2N_TLS_MAXIMUM_FRAGMENT_LENGTH) {
+        S2N_ERROR(S2N_ERR_INVALID_MAX_FRAG_LEN);
+    }
+    conn->max_fragment_length = mfl_code_to_length[mfl_code];
     return 0;
 }

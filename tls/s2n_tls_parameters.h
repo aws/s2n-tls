@@ -55,6 +55,7 @@
 
 /* TLS extensions from https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml */
 #define TLS_EXTENSION_SERVER_NAME           0
+#define TLS_EXTENSION_MAX_FRAG_LEN          1
 #define TLS_EXTENSION_STATUS_REQUEST        5
 #define TLS_EXTENSION_ELLIPTIC_CURVES      10
 #define TLS_EXTENSION_EC_POINT_FORMATS     11

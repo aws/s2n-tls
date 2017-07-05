@@ -50,6 +50,8 @@ struct s2n_config {
     s2n_cert_auth_type client_cert_auth_type;
     verify_cert_trust_chain *verify_cert_chain_cb;
     void *verify_cert_context;
+
+    uint8_t mfl_code;
 };
 
 extern struct s2n_config s2n_default_config;
