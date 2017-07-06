@@ -37,10 +37,29 @@ let conn_corked_io pconn = crucible_elem pconn 6;
 //conn->mode
 let conn_mode pconn = crucible_elem pconn 7;
 
-//conn->handshake->handshake_type
+//conn->secure.cipher_suite->key_exchange_alg->flags
+let conn_secure_cipher_suite pconn = (crucible_elem
+        (crucible_elem pconn 19) 10);
+
+let key_exchange_algorithm csuite =
+    crucible_elem csuite 3;
+
+let kea_flags kea =
+    crucible_elem kea 0;
+
+//conn->status_type
+let conn_status_type pconn = crucible_elem pconn 45;
+
+let conn_config pconn = crucible_elem pconn 0;
+let cert_key_pairs config = (crucible_elem config 1);
+
+//conn->config->cert_and_key_pairs->sct_list.size
+let sct_list_size cert_and_key = crucible_elem (crucible_elem (cert_and_key)  3) 1; 
+
+//conn->handshake.handshake_type
 let conn_handshake_handshake_type pconn = crucible_elem (crucible_elem pconn 36) 9;
 
-//conn->handshake->message_number
+//conn->handshake.message_number
 let conn_handshake_message_number pconn = crucible_elem (crucible_elem pconn 36) 10;
 
 // setup_handshake de-serializes parts of the s2n_handshake and
@@ -63,11 +82,37 @@ let setup_connection = do {
    message_number <- crucible_fresh_var "message_number" (llvm_int 32);
    crucible_points_to (conn_handshake_message_number pconn) (crucible_term message_number); 
 
+   cipher_suite <- crucible_alloc (llvm_struct "struct.s2n_cipher_suite");
+   crucible_points_to (conn_secure_cipher_suite pconn)  cipher_suite;
+
+   kea <- crucible_alloc (llvm_struct "struct.s2n_key_exchange_algorithm");
+   crucible_points_to (key_exchange_algorithm cipher_suite) kea;
+
+   eph_flag <- crucible_fresh_var "eph_flag" (llvm_int 16);
+   crucible_points_to (kea_flags kea) (crucible_term eph_flag);
+
+   config <- crucible_alloc (llvm_struct "struct.s2n_config");
+   crucible_points_to (conn_config pconn) config;
+
+   cak <- crucible_alloc (llvm_struct "struct.s2n_cert_chain_and_key");
+   crucible_points_to (cert_key_pairs config) cak;
+
+   status_size <- crucible_fresh_var "status_size" (llvm_int 32);
+   crucible_points_to (sct_list_size cak) (crucible_term status_size);
+
+   ocsp_flag <- crucible_fresh_var "ocsp_flag" (llvm_int 32);
+   crucible_points_to (conn_status_type pconn) (crucible_term ocsp_flag);
+
+ 
    return (pconn, {{ {corked_io = corked_io
                      ,mode      = mode
                      ,handshake = {message_number = message_number
 		                  ,handshake_type = handshake_type}
          	     ,corked    = corked
+                     ,is_caching_enabled = False
+                     ,key_exchange_eph =(eph_flag && 2) != zero //TODO 2 might be wrong
+                     ,server_can_send_ocsp = (ocsp_flag == 1) && (status_size > 0)
+                     ,resume_from_cache = False
                      }
                   }}); 
 };
@@ -83,6 +128,45 @@ let verify_state_machine_elem sm ixt = do {
 
     crucible_points_to (crucible_elem (crucible_elem sm ix) 2) (crucible_term {{ abstract.writer }});
 
+};
+
+// for now axiomitize this is always false and see if we can prove something
+let s2n_is_caching_enabled_spec = do {
+    pconf <- crucible_alloc (llvm_struct "struct.s2n_config");
+
+    crucible_execute_func [pconf];
+    crucible_return (crucible_term {{ 0 : [32] }});
+};
+
+// specification for s2n_conn_set_handshake_type that sets up simulation of it
+// by advance_message
+let s2n_conn_set_handshake_type_spec = do {
+    (pconn, conn) <- setup_connection;
+    // we assume that the handshake struct denotes a valid handshake state
+    // (e.g. it will not index out of bounds in the state transition array
+    // "handshakes")
+    crucible_precond {{ valid_handshake conn.handshake }};
+
+    // symbolically execute s2n_advance_message
+    crucible_execute_func [pconn];
+
+    // Next we check that the changes to s2n_connection fields are
+    // simulated by the low-level specification of the function. We do
+    // this by running the model function advance_message on the
+    // deserealized pre-state of the s2n_connection struct and checking
+    // that values of the fields of the resulting struct match the fields
+    // of the post-state of the s2n_connection struct. In this case only handshake type
+    // should change
+    let conn' = {{ conn_set_handshake_type conn }};
+    crucible_points_to (conn_corked pconn) (crucible_term {{ conn'.corked }});
+    crucible_points_to (conn_corked_io pconn) (crucible_term {{ conn'.corked_io }});
+    crucible_points_to (conn_mode pconn) (crucible_term {{ (advance_message conn).mode }});
+    crucible_points_to (conn_handshake_handshake_type pconn) (crucible_term {{ (advance_message conn).handshake.handshake_type }});
+    crucible_points_to (conn_handshake_message_number pconn) (crucible_term {{ (advance_message conn).handshake.message_number }});
+
+    // assert that s2n_advance_message returns 0 (true if the 4
+    // functions it calls don't fail)
+    crucible_return (crucible_term {{ 0 : [32] }});
 };
 
 // specification for s2n_advance_message that sets up simulation of it
@@ -187,10 +271,11 @@ let s2n_advance_message_proof = do {
     s2n_socket_write_cork <- crucible_llvm_unsafe_assume_spec "s2n_socket_write_cork" s2n_socket_write_cork_spec;
     s2n_socket_was_corked <- crucible_llvm_unsafe_assume_spec "s2n_socket_was_corked" s2n_socket_was_corked_spec;
     s2n_connection_is_managed_corked <- crucible_llvm_unsafe_assume_spec "s2n_connection_is_managed_corked" s2n_connection_is_managed_corked_spec;
-
+    s2n_is_caching_enabled <- crucible_llvm_unsafe_assume_spec "s2n_is_caching_enabled" s2n_is_caching_enabled_spec;
     let dependencies = [s2n_socket_write_uncork, s2n_socket_write_cork, s2n_socket_was_corked, s2n_connection_is_managed_corked];
 
     s2n_advance_message_proof <- crucible_llvm_verify "s2n_advance_message" dependencies true s2n_advance_message_spec yices;
-
+    s2n_conn_set_handshake_type_proof <- crucible_llvm_verify "s2n_conn_set_handshake_type" [s2n_is_caching_enabled] true s2n_conn_set_handshake_type_spec yices;
+    print "done";
     return ();
 };
