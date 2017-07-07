@@ -31,6 +31,7 @@
 static int s2n_recv_server_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_server_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_server_sct_list(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_recv_server_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
@@ -52,6 +53,9 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     }
     if (s2n_server_can_send_sct_list(conn)) {
         total_size += 4 + conn->config->cert_and_key_pairs->sct_list.size;
+    }
+    if (conn->max_fragment_length) {
+        total_size += 6;
     }
 
     if (total_size == 0) {
@@ -109,6 +113,12 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
                                       conn->config->cert_and_key_pairs->sct_list.size));
     }
 
+    if (conn->max_fragment_length) {
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_MAX_FRAG_LEN));
+        GUARD(s2n_stuffer_write_uint16(out, sizeof(uint16_t)));
+        GUARD(s2n_stuffer_write_uint16(out, conn->max_fragment_length));
+    }
+
     return 0;
 }
 
@@ -144,6 +154,8 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
         case TLS_EXTENSION_SCT_LIST:
             GUARD(s2n_recv_server_sct_list(conn, &extension));
             break;
+        case TLS_EXTENSION_MAX_FRAG_LEN:
+            GUARD(s2n_recv_server_max_frag_len(conn, &extension));
         }
     }
 
@@ -189,5 +201,16 @@ int s2n_recv_server_sct_list(struct s2n_connection *conn, struct s2n_stuffer *ex
 
     GUARD(s2n_dup(&sct_list, &conn->ct_response));
 
+    return 0;
+}
+
+int s2n_recv_server_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    uint16_t max_fragment_length;
+    GUARD(s2n_stuffer_read_uint16(extension, &max_fragment_length));
+    if (max_fragment_length != mfl_code_to_length[conn->config->mfl_code]) {
+        S2N_ERROR(S2N_ERR_MAX_FRAG_LEN_MISMATCH);
+    }
+    
     return 0;
 }

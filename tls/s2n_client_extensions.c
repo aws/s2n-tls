@@ -445,22 +445,6 @@ static int s2n_recv_client_sct_list(struct s2n_connection *conn, struct s2n_stuf
     return 0;
 }
 
-/*
- * Convert max_fragment_length codes to length.
- * RFC 6066 says:
- *    enum{
- *        2^9(1), 2^10(2), 2^11(3), 2^12(4), (255)
- *    } MaxFragmentLength;
- * and we add 0 -> extension unused
- */
-static uint16_t mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_INVALID] =
-{
-    S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, /* S2N_TLS_MAX_FRAG_LEN_EXT_NONE */
-    512,                             /* S2N_TLS_MAX_FRAG_LEN_512  */
-    1024,                            /* S2N_TLS_MAX_FRAG_LEN_1024 */
-    2048,                            /* S2N_TLS_MAX_FRAG_LEN_2048 */
-    4096,                            /* S2N_TLS_MAX_FRAG_LEN_4096 */
-};
 
 static int s2n_recv_client_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
