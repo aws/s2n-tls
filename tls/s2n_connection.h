@@ -178,9 +178,6 @@ struct s2n_connection {
     /* Certificate Transparency response data */
     s2n_ct_support_level ct_level_requested;
     struct s2n_blob ct_response;
-
-    /* Galois addition: materialized ghost corking state of the underlying socket */
-    int corked;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);

@@ -32,11 +32,12 @@ writer2sender w = if w == 'C' then clientSender else
                   if w == 'S' then serverSender else
                                    appData
 
-corkAdapt : [32] -> [2]
-corkAdapt c = if c == 0 then 0 else 1
+corkAdapt : [1] -> [2]
+corkAdapt c = zero # c
 
-corkedFromConn : connection -> [32]
-corkedFromConn conn = zero # [mode_writer conn.mode == (ACTIVE_STATE conn).writer]
+corkedFromConn : connection -> [1]
+corkedFromConn conn = if mode_writer conn.mode == (ACTIVE_STATE conn).writer then 1
+                      else 0
 
 //if low level can make a step, then the high level can. If the low
 //level cannot make a step, then the high level can't also

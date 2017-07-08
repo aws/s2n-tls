@@ -28,9 +28,6 @@ let fresh_ptr ty = do {
     return (p, val);
 };
 
-//conn->corked
-let conn_corked pconn = crucible_elem pconn 49;
-
 // conn->corked_io
 let conn_corked_io pconn = crucible_elem pconn 6;
 
@@ -62,6 +59,10 @@ let conn_handshake_handshake_type pconn = crucible_elem (crucible_elem pconn 36)
 //conn->handshake.message_number
 let conn_handshake_message_number pconn = crucible_elem (crucible_elem pconn 36) 10;
 
+corked <- crucible_declare_ghost_state "corked";
+// assume the socket is initially uncorked
+crucible_ghost_value corked {{ 0 : [1] }};
+
 // setup_handshake de-serializes parts of the s2n_handshake and
 // s2n_connection structs into a Cryptol record.
 let setup_connection = do {
@@ -73,14 +74,14 @@ let setup_connection = do {
    mode <- crucible_fresh_var "mode" (llvm_int 32);
    crucible_points_to (conn_mode pconn) (crucible_term mode);
    
-   corked <- crucible_fresh_var "corked" (llvm_int 32);
-   crucible_points_to (conn_corked pconn) (crucible_term corked); //conn->corked, materialized ghost state
-
    handshake_type <- crucible_fresh_var "handshake_type" (llvm_int 32);
    crucible_points_to (conn_handshake_handshake_type pconn) (crucible_term handshake_type); 
 
    message_number <- crucible_fresh_var "message_number" (llvm_int 32);
-   crucible_points_to (conn_handshake_message_number pconn) (crucible_term message_number); 
+   crucible_points_to (conn_handshake_message_number pconn) (crucible_term message_number);
+
+   cork_val <- crucible_fresh_var "corked" (llvm_int 1);
+   crucible_ghost_value corked cork_val;
 
    cipher_suite <- crucible_alloc (llvm_struct "struct.s2n_cipher_suite");
    crucible_points_to (conn_secure_cipher_suite pconn)  cipher_suite;
@@ -108,7 +109,7 @@ let setup_connection = do {
                      ,mode      = mode
                      ,handshake = {message_number = message_number
 		                  ,handshake_type = handshake_type}
-         	     ,corked    = corked
+         	     ,corked    = cork_val
                      ,is_caching_enabled = False
                      ,key_exchange_eph =(eph_flag && 2) != zero //TODO 2 might be wrong
                      ,server_can_send_ocsp = (ocsp_flag == 1) && (status_size > 0)
@@ -158,7 +159,7 @@ let s2n_conn_set_handshake_type_spec = do {
     // of the post-state of the s2n_connection struct. In this case only handshake type
     // should change
     let conn' = {{ conn_set_handshake_type conn }};
-    crucible_points_to (conn_corked pconn) (crucible_term {{ conn'.corked }});
+    //crucible_ghost_value corked {{ conn'.corked }};    
     crucible_points_to (conn_corked_io pconn) (crucible_term {{ conn'.corked_io }});
     crucible_points_to (conn_mode pconn) (crucible_term {{ (advance_message conn).mode }});
     crucible_points_to (conn_handshake_handshake_type pconn) (crucible_term {{ (advance_message conn).handshake.handshake_type }});
@@ -188,7 +189,7 @@ let s2n_advance_message_spec = do {
     // that values of the fields of the resulting struct match the fields
     // of the post-state of the s2n_connection struct.
     let conn' = {{ advance_message conn }};
-    crucible_points_to (conn_corked pconn) (crucible_term {{ conn'.corked }});
+    crucible_ghost_value corked {{ conn'.corked }};
     crucible_points_to (conn_corked_io pconn) (crucible_term {{ conn'.corked_io }});
     crucible_points_to (conn_mode pconn) (crucible_term {{ (advance_message conn).mode }});
     crucible_points_to (conn_handshake_handshake_type pconn) (crucible_term {{ (advance_message conn).handshake.handshake_type }});
@@ -220,7 +221,7 @@ let s2n_socket_write_uncork_spec = do {
 
     crucible_execute_func [pconn];
 
-    crucible_points_to (conn_corked pconn) (crucible_term {{ 0 : [32] }});
+    crucible_ghost_value corked {{ 0 : [1] }};
 
     crucible_return (crucible_term {{ 0 : [32] }});
 };
@@ -234,7 +235,7 @@ let s2n_socket_write_cork_spec = do {
 
     crucible_execute_func [pconn];
 
-    crucible_points_to (conn_corked pconn) (crucible_term {{ 1 : [32] }});
+    crucible_ghost_value corked {{ 1 : [1] }};
 
     crucible_return (crucible_term {{ 0 : [32] }});
 };

@@ -10,7 +10,7 @@ import Cryptol::Extras
 type connection = {handshake : handshake
                   ,mode : [32]
                   ,corked_io : [8]
-                  ,corked : [32]
+                  ,corked : [1]
                   ,is_caching_enabled : Bit
                   ,resume_from_cache : Bit
                   ,server_can_send_ocsp : Bit
@@ -42,10 +42,10 @@ PREVIOUS_STATE conn = state_machine @ (PREVIOUS_MESSAGE conn)
 mode_writer : [32] -> [8]
 mode_writer m = if m == S2N_CLIENT then 'C' else 'S'
 
-s2n_cork : connection -> [32]
+s2n_cork : connection -> [1]
 s2n_cork c = 1
 
-s2n_uncork : connection -> [32]
+s2n_uncork : connection -> [1]
 s2n_uncork c = 0
 
 conn_set_handshake_type : connection -> connection
