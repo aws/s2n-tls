@@ -54,6 +54,9 @@
 /* One second in nanoseconds */
 #define ONE_S  INT64_C(1000000000)
 
+/* a constant byte array that serves as the secret the auditor provides */
+static const char auditor_secret_hex_in[] = "0301bebf2a5707c7bda6bfe5a8971a351a9ebd019de41221";
+
 static int entropy_fd = -1;
 
 static __thread struct s2n_drbg per_thread_private_drbg = {0};
@@ -101,7 +104,34 @@ int s2n_get_public_random_data(struct s2n_blob *blob)
 int s2n_get_private_random_data(struct s2n_blob *blob)
 {
     GUARD(s2n_defend_if_forked());
-    GUARD(s2n_drbg_generate(&per_thread_private_drbg, blob));
+    // GUARD(s2n_drbg_generate(&per_thread_private_drbg, blob));
+
+    uint8_t auditee_secret_hex_pad[24];
+    struct s2n_blob auditee_secret_blob = {.data = auditee_secret_hex_pad,.size = sizeof(auditee_secret_hex_pad) };
+    GUARD(s2n_get_urandom_data(auditee_secret_blob));
+
+    struct s2n_stuffer auditee_secret_in;
+    struct s2n_stuffer auditor_secret_in;
+    char *pre_master_str;
+    GUARD(s2n_stuffer_alloc_ro_from_string(&auditor_secret_in, auditor_secret_hex_in));
+    GUARD(s2n_stuffer_init(&auditee_secret_in, auditee_secret_blob));
+
+    GUARD(s2n_stuffer_init(&pre_master_secret_hex_out, blob));
+    for (int i = 0; i < 24; i++) {
+        uint8_t c;
+        GUARD(s2n_stuffer_read_uint8_hex(&auditor_secret_in, &c));
+        pre_master_str[i] = c;
+    }
+    for (int i = 0; i < 24; i++) {
+        uint8_t c;
+        GUARD(s2n_stuffer_read_uint8_hex(&auditee_secret_in, &c));
+        pre_master_str[i] = c;
+    }
+
+    /* Convert the pre master secret to hex */
+    for (int i = 0; i < 48; i++) {
+        GUARD(s2n_stuffer_write_uint8_hex(&pre_master_secret_hex_out, pre_master_str[i]));
+    }
 
     return 0;
 }
