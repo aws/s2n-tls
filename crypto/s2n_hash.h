@@ -76,7 +76,6 @@ struct s2n_hash_evp_digest {
 
 struct s2n_hash_state {
     s2n_hash_algorithm alg;
-    const struct s2n_hash *hash_impl;
     union {
         union s2n_hash_low_level_digest low_level;
         struct s2n_hash_evp_digest high_level;
@@ -92,6 +91,12 @@ struct s2n_hash {
     int (*reset) (struct s2n_hash_state *state);
     int (*free) (struct s2n_hash_state *state);
 };
+
+extern const struct s2n_hash s2n_low_level_hash;
+extern const struct s2n_hash s2n_evp_hash;
+
+/* Set during s2n_fips_init to either s2n_low_level_hash or s2n_evp_hash. */
+extern const struct s2n_hash *s2n_hash;
 
 extern int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out);
 extern int s2n_hash_new(struct s2n_hash_state *state);
