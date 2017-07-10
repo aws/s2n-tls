@@ -338,7 +338,6 @@ static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
     }
 
     to->alg = from->alg;
-    to->hash_impl = from->hash_impl;
 
     return 0;
 }
@@ -391,17 +390,7 @@ const struct s2n_hash s2n_evp_hash = {
 
 int s2n_hash_new(struct s2n_hash_state *state)
 {
-    if (s2n_is_in_fips_mode()) {
-        /* When in FIPS mode, the EVP Digest API's must be used for hashes */
-        state->hash_impl = &s2n_evp_hash;
-    } else {
-        /* Aside from FIPS mode, the low level API's are used for hashes to avoid
-         * request-path memory allocation that occurs within EVP_DigestInit and EVP_DigestCopy
-         */
-        state->hash_impl = &s2n_low_level_hash;
-    }
-
-    return state->hash_impl->new(state);
+    return s2n_hash->new(state);
 }
 
 int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
@@ -419,30 +408,30 @@ int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
         }
     }
 
-    return state->hash_impl->init(state, alg);
+    return s2n_hash->init(state, alg);
 }
 
 int s2n_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size)
 {
-    return state->hash_impl->update(state, data, size);
+    return s2n_hash->update(state, data, size);
 }
 
 int s2n_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size)
 {
-    return state->hash_impl->digest(state, out, size);
+    return s2n_hash->digest(state, out, size);
 }
 
 int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from)
 {
-    return from->hash_impl->copy(to, from);
+    return s2n_hash->copy(to, from);
 }
 
 int s2n_hash_reset(struct s2n_hash_state *state)
 {
-    return state->hash_impl->reset(state);
+    return s2n_hash->reset(state);
 }
 
 int s2n_hash_free(struct s2n_hash_state *state)
 {
-    return state->hash_impl->free(state);
+    return s2n_hash->free(state);
 }
