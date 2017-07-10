@@ -454,5 +454,6 @@ static int s2n_recv_client_max_frag_len(struct s2n_connection *conn, struct s2n_
         S2N_ERROR(S2N_ERR_INVALID_MAX_FRAG_LEN);
     }
     conn->max_fragment_length = mfl_code_to_length[mfl_code];
+    conn->max_outgoing_fragment_length = conn->max_fragment_length;
     return 0;
 }

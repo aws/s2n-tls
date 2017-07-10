@@ -211,6 +211,6 @@ int s2n_recv_server_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer
     if (max_fragment_length != mfl_code_to_length[conn->config->mfl_code]) {
         S2N_ERROR(S2N_ERR_MAX_FRAG_LEN_MISMATCH);
     }
-    
+
     return 0;
 }

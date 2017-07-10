@@ -662,14 +662,18 @@ const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uin
 
 int s2n_connection_prefer_throughput(struct s2n_connection *conn)
 {
-    conn->max_outgoing_fragment_length = S2N_LARGE_FRAGMENT_LENGTH;
+    if (!conn->max_fragment_length) {
+        conn->max_outgoing_fragment_length = S2N_LARGE_FRAGMENT_LENGTH;
+    }
 
     return 0;
 }
 
 int s2n_connection_prefer_low_latency(struct s2n_connection *conn)
 {
-    conn->max_outgoing_fragment_length = S2N_SMALL_FRAGMENT_LENGTH;
+    if (!conn->max_fragment_length) {
+        conn->max_outgoing_fragment_length = S2N_SMALL_FRAGMENT_LENGTH;
+    }
 
     return 0;
 }

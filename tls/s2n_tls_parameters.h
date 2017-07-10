@@ -154,4 +154,3 @@ static uint16_t mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_INVALID] =
     2048,                            /* S2N_TLS_MAX_FRAG_LEN_2048 */
     4096,                            /* S2N_TLS_MAX_FRAG_LEN_4096 */
 };
-
