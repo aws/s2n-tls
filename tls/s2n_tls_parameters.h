@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include <s2n.h>
+
 #include "crypto/s2n_hash.h"
 
 /* Codes from http://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-5 */
