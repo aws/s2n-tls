@@ -61,10 +61,13 @@ conn_set_handshake_type conn = conn'
         (handshake' : handshake) = {handshake_type = handshake_type'
                                    ,message_number = conn.handshake.message_number
                                    }
-        handshake_type' = NEGOTIATED || full_handshake || perfect_forward_secrecy || ocsp_status
+        handshake_type' = NEGOTIATED || full_handshake ||
+                          (if (full_handshake != 0) then
+                             perfect_forward_secrecy || ocsp_status
+                             else zero)
         full_handshake  = if (conn.is_caching_enabled && ~conn.resume_from_cache)
-                          then FULL_HANDSHAKE
-                          else zero
+                          then zero
+                          else FULL_HANDSHAKE
         perfect_forward_secrecy = if conn.key_exchange_eph
                                   then PERFECT_FORWARD_SECRECY
                                   else zero
