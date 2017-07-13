@@ -28,6 +28,8 @@
 
 #include "crypto/s2n_hmac.h"
 #include "crypto/s2n_hash.h"
+#include "crypto/s2n_openssl.h"
+#include "crypto/s2n_fips.h"
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
@@ -78,38 +80,210 @@ static int s2n_sslv3_prf(union s2n_prf_working_space *ws, struct s2n_blob *secre
     return 0;
 }
 
+static int s2n_evp_hmac_p_hash_new(union s2n_prf_working_space *ws)
+{
+    notnull_check(ws->tls.p_hash.evp_hmac.evp_digest.ctx = S2N_EVP_MD_CTX_NEW());
+    return 0;
+}
+
+static int s2n_evp_hmac_p_hash_digest_init(union s2n_prf_working_space *ws)
+{
+    notnull_check(ws->tls.p_hash.evp_hmac.evp_digest.md);
+    notnull_check(ws->tls.p_hash.evp_hmac.evp_digest.ctx);
+    notnull_check(ws->tls.p_hash.evp_hmac.mac_key);
+ 
+    /* Ignore the MD5 check when in FIPS mode to comply with the TLS 1.0 RFC */
+    EVP_MD_CTX_set_flags(ws->tls.p_hash.evp_hmac.evp_digest.ctx, EVP_MD_CTX_FLAG_NON_FIPS_ALLOW);
+
+    if (EVP_DigestSignInit(ws->tls.p_hash.evp_hmac.evp_digest.ctx, NULL, ws->tls.p_hash.evp_hmac.evp_digest.md, NULL, ws->tls.p_hash.evp_hmac.mac_key) == 0) {
+        S2N_ERROR(S2N_ERR_P_HASH_INIT_FAILED);
+    }
+
+    return 0;
+}
+
+static int s2n_evp_hmac_p_hash_init(union s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret)
+{
+    /* Initialize the message digest */
+    switch (alg) {
+    case S2N_HMAC_SSLv3_MD5:
+    case S2N_HMAC_MD5:
+        ws->tls.p_hash.evp_hmac.evp_digest.md = EVP_md5();
+        break;
+    case S2N_HMAC_SSLv3_SHA1:
+    case S2N_HMAC_SHA1:
+        ws->tls.p_hash.evp_hmac.evp_digest.md = EVP_sha1();
+        break;
+    case S2N_HMAC_SHA224:
+        ws->tls.p_hash.evp_hmac.evp_digest.md = EVP_sha224();
+        break;
+    case S2N_HMAC_SHA256:
+        ws->tls.p_hash.evp_hmac.evp_digest.md = EVP_sha256();
+        break;
+    case S2N_HMAC_SHA384:
+        ws->tls.p_hash.evp_hmac.evp_digest.md = EVP_sha384();
+        break;
+    case S2N_HMAC_SHA512:
+        ws->tls.p_hash.evp_hmac.evp_digest.md = EVP_sha512();
+        break;
+    default:
+        S2N_ERROR(S2N_ERR_P_HASH_INVALID_ALGORITHM);
+    }
+
+    /* Initialize the mac key using the provided secret */
+    notnull_check(ws->tls.p_hash.evp_hmac.mac_key = EVP_PKEY_new_mac_key(EVP_PKEY_HMAC, NULL, secret->data, secret->size));
+
+    /* Initialize the message digest context with the above message digest and mac key */
+    return s2n_evp_hmac_p_hash_digest_init(ws);
+}
+
+static int s2n_evp_hmac_p_hash_update(union s2n_prf_working_space *ws, const void *data, uint32_t size)
+{
+    if (EVP_DigestSignUpdate(ws->tls.p_hash.evp_hmac.evp_digest.ctx, data, (size_t)size) == 0) {
+        S2N_ERROR(S2N_ERR_P_HASH_UPDATE_FAILED);
+    }
+
+    return 0;
+}
+
+static int s2n_evp_hmac_p_hash_digest(union s2n_prf_working_space *ws, void *digest, uint32_t size)
+{
+    /* EVP_DigestSign API's require size_t data structures */
+    size_t digest_size = size;
+
+    if (EVP_DigestSignFinal(ws->tls.p_hash.evp_hmac.evp_digest.ctx, (unsigned char *)digest, &digest_size) == 0) {
+        S2N_ERROR(S2N_ERR_P_HASH_FINAL_FAILED);
+    }
+
+    return 0;
+}
+
+static int s2n_evp_hmac_p_hash_wipe(union s2n_prf_working_space *ws)
+{
+    if (S2N_EVP_MD_CTX_RESET(ws->tls.p_hash.evp_hmac.evp_digest.ctx) == 0) {
+        S2N_ERROR(S2N_ERR_P_HASH_WIPE_FAILED);
+    }
+
+    return 0;
+}
+
+static int s2n_evp_hmac_p_hash_reset(union s2n_prf_working_space *ws)
+{
+    GUARD(s2n_evp_hmac_p_hash_wipe(ws));
+
+    return s2n_evp_hmac_p_hash_digest_init(ws);
+}
+
+static int s2n_evp_hmac_p_hash_cleanup(union s2n_prf_working_space *ws)
+{
+    /* Prepare the workspace md_ctx for the next p_hash */
+    GUARD(s2n_evp_hmac_p_hash_wipe(ws));
+
+    /* Free mac key - PKEYs cannot be reused */
+    notnull_check(ws->tls.p_hash.evp_hmac.mac_key);
+    EVP_PKEY_free(ws->tls.p_hash.evp_hmac.mac_key);
+    ws->tls.p_hash.evp_hmac.mac_key = NULL;
+
+    return 0;
+}
+
+static int s2n_evp_hmac_p_hash_free(union s2n_prf_working_space *ws)
+{
+    notnull_check(ws->tls.p_hash.evp_hmac.evp_digest.ctx);
+    S2N_EVP_MD_CTX_FREE(ws->tls.p_hash.evp_hmac.evp_digest.ctx);
+    ws->tls.p_hash.evp_hmac.evp_digest.ctx = NULL;
+
+    return 0;
+}
+
+static int s2n_hmac_p_hash_new(union s2n_prf_working_space *ws)
+{
+    return 0;
+}
+
+static int s2n_hmac_p_hash_init(union s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret)
+{
+    return s2n_hmac_init(&ws->tls.p_hash.s2n_hmac, alg, secret->data, secret->size);
+}
+
+static int s2n_hmac_p_hash_update(union s2n_prf_working_space *ws, const void *data, uint32_t size)
+{
+    return s2n_hmac_update(&ws->tls.p_hash.s2n_hmac, data, size);
+}
+
+static int s2n_hmac_p_hash_digest(union s2n_prf_working_space *ws, void *digest, uint32_t size)
+{
+    return s2n_hmac_digest(&ws->tls.p_hash.s2n_hmac, digest, size);
+}
+
+static int s2n_hmac_p_hash_reset(union s2n_prf_working_space *ws)
+{
+    return s2n_hmac_reset(&ws->tls.p_hash.s2n_hmac);
+}
+
+static int s2n_hmac_p_hash_cleanup(union s2n_prf_working_space *ws)
+{
+    return 0;
+}
+
+static int s2n_hmac_p_hash_free(union s2n_prf_working_space *ws)
+{
+    return 0;
+}
+
+const struct s2n_p_hash_hmac s2n_evp_hmac = {
+    .new = &s2n_evp_hmac_p_hash_new,
+    .init = &s2n_evp_hmac_p_hash_init,
+    .update = &s2n_evp_hmac_p_hash_update,
+    .final = &s2n_evp_hmac_p_hash_digest,
+    .reset = &s2n_evp_hmac_p_hash_reset,
+    .cleanup = &s2n_evp_hmac_p_hash_cleanup,
+    .free = &s2n_evp_hmac_p_hash_free,
+};
+
+const struct s2n_p_hash_hmac s2n_hmac = {
+    .new = &s2n_hmac_p_hash_new,
+    .init = &s2n_hmac_p_hash_init,
+    .update = &s2n_hmac_p_hash_update,
+    .final = &s2n_hmac_p_hash_digest,
+    .reset = &s2n_hmac_p_hash_reset,
+    .cleanup = &s2n_hmac_p_hash_cleanup,
+    .free = &s2n_hmac_p_hash_free,
+};
+
 static int s2n_p_hash(union s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret,
                       struct s2n_blob *label, struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *out)
 {
-    struct s2n_hmac_state *hmac = &ws->tls.hmac;
     uint8_t digest_size;
     GUARD(s2n_hmac_digest_size(alg, &digest_size));
 
+    const struct s2n_p_hash_hmac *hmac = ws->tls.p_hash_hmac;
+
     /* First compute hmac(secret + A(0)) */
-    GUARD(s2n_hmac_init(hmac, alg, secret->data, secret->size));
-    GUARD(s2n_hmac_update(hmac, label->data, label->size));
-    GUARD(s2n_hmac_update(hmac, seed_a->data, seed_a->size));
+    GUARD(hmac->init(ws, alg, secret));
+    GUARD(hmac->update(ws, label->data, label->size));
+    GUARD(hmac->update(ws, seed_a->data, seed_a->size));
 
     if (seed_b) {
-        GUARD(s2n_hmac_update(hmac, seed_b->data, seed_b->size));
+        GUARD(hmac->update(ws, seed_b->data, seed_b->size));
     }
-    GUARD(s2n_hmac_digest(hmac, ws->tls.digest0, digest_size));
+    GUARD(hmac->final(ws, ws->tls.digest0, digest_size));
 
     uint32_t outputlen = out->size;
     uint8_t *output = out->data;
 
     while (outputlen) {
         /* Now compute hmac(secret + A(N - 1) + seed) */
-        GUARD(s2n_hmac_reset(hmac));
-        GUARD(s2n_hmac_update(hmac, ws->tls.digest0, digest_size));
+        GUARD(hmac->reset(ws));
+        GUARD(hmac->update(ws, ws->tls.digest0, digest_size));
 
         /* Add the label + seed and compute this round's A */
-        GUARD(s2n_hmac_update(hmac, label->data, label->size));
-        GUARD(s2n_hmac_update(hmac, seed_a->data, seed_a->size));
+        GUARD(hmac->update(ws, label->data, label->size));
+        GUARD(hmac->update(ws, seed_a->data, seed_a->size));
         if (seed_b) {
-            GUARD(s2n_hmac_update(hmac, seed_b->data, seed_b->size));
+            GUARD(hmac->update(ws, seed_b->data, seed_b->size));
         }
-        GUARD(s2n_hmac_digest(hmac, ws->tls.digest1, digest_size));
+        GUARD(hmac->final(ws, ws->tls.digest1, digest_size));
 
         uint32_t bytes_to_xor = MIN(outputlen, digest_size);
 
@@ -120,12 +294,32 @@ static int s2n_p_hash(union s2n_prf_working_space *ws, s2n_hmac_algorithm alg, s
         }
 
         /* Stash a digest of A(N), in A(N), for the next round */
-        GUARD(s2n_hmac_reset(hmac));
-        GUARD(s2n_hmac_update(hmac, ws->tls.digest0, digest_size));
-        GUARD(s2n_hmac_digest(hmac, ws->tls.digest0, digest_size));
+        GUARD(hmac->reset(ws));
+        GUARD(hmac->update(ws, ws->tls.digest0, digest_size));
+        GUARD(hmac->final(ws, ws->tls.digest0, digest_size));
     }
 
+    GUARD(hmac->cleanup(ws));
+
     return 0;
+}
+
+int s2n_prf_new(struct s2n_connection *conn)
+{
+    if (s2n_is_in_fips_mode()) {
+        /* When in FIPS mode, the EVP DigestSign API's must be used for the PRF */
+        conn->prf_space.tls.p_hash_hmac = &s2n_evp_hmac;
+    } else {
+        /* Aside from FIPS mode, the formally verified s2n_hmac implementation is used for the PRF */
+        conn->prf_space.tls.p_hash_hmac = &s2n_hmac;
+    }
+
+    return conn->prf_space.tls.p_hash_hmac->new(&conn->prf_space);
+}
+
+int s2n_prf_free(struct s2n_connection *conn)
+{
+    return conn->prf_space.tls.p_hash_hmac->free(&conn->prf_space);
 }
 
 static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label, struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *out)
