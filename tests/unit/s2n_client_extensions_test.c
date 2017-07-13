@@ -25,6 +25,7 @@
 
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
+#include "tls/s2n_tls_parameters.h"
 
 #define ZERO_TO_THIRTY_ONE  0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, \
                             0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
@@ -926,6 +927,126 @@ int main(int argc, char **argv)
         for (int i = 0; i < 2; i++) {
             EXPECT_SUCCESS(close(server_to_client[i]));
             EXPECT_SUCCESS(close(client_to_server[i]));
+        }
+    }
+
+    /* Client requests S2N_TLS_MAX_FRAG_LEN_1024 max fragment length */
+    {
+        struct s2n_connection *client_conn;
+        struct s2n_connection *server_conn;
+        struct s2n_config *server_config;
+        struct s2n_config *client_config;
+        int server_to_client[2];
+        int client_to_server[2];
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(pipe(server_to_client));
+        EXPECT_SUCCESS(pipe(client_to_server));
+        for (int i = 0; i < 2; i++) {
+           EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
+           EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
+        }
+
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        client_conn->actual_protocol_version = S2N_TLS12;
+        client_conn->server_protocol_version = S2N_TLS12;
+        client_conn->client_protocol_version = S2N_TLS12;
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
+
+        EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_max_fragment_length(client_config, S2N_TLS_MAX_FRAG_LEN_1024));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        server_conn->actual_protocol_version = S2N_TLS12;
+        server_conn->server_protocol_version = S2N_TLS12;
+        server_conn->client_protocol_version = S2N_TLS12;
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
+
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, certificate, private_key));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+        /* Preference should be ignored as TlS Max Fragment Length Extension is Set */
+        EXPECT_SUCCESS(s2n_connection_prefer_throughput(server_conn));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        EXPECT_EQUAL(server_conn->max_outgoing_fragment_length, mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_1024]);
+        EXPECT_EQUAL(server_conn->max_fragment_length, mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_1024]);
+
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
+
+        for (int i = 0; i < 2; i++) {
+           EXPECT_SUCCESS(close(server_to_client[i]));
+           EXPECT_SUCCESS(close(client_to_server[i]));
+        }
+    }
+
+    /* Client requests S2N_TLS_MAX_FRAG_LEN_INVALID max fragment length */
+    {
+        struct s2n_connection *client_conn;
+        struct s2n_connection *server_conn;
+        struct s2n_config *server_config;
+        struct s2n_config *client_config;
+        int server_to_client[2];
+        int client_to_server[2];
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(pipe(server_to_client));
+        EXPECT_SUCCESS(pipe(client_to_server));
+        for (int i = 0; i < 2; i++) {
+           EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
+           EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
+        }
+
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        client_conn->actual_protocol_version = S2N_TLS12;
+        client_conn->server_protocol_version = S2N_TLS12;
+        client_conn->client_protocol_version = S2N_TLS12;
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
+
+        EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_max_fragment_length(client_config, S2N_TLS_MAX_FRAG_LEN_INVALID));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        server_conn->actual_protocol_version = S2N_TLS12;
+        server_conn->server_protocol_version = S2N_TLS12;
+        server_conn->client_protocol_version = S2N_TLS12;
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
+
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, certificate, private_key));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* check that max_fragment_length did not get set due to invalid mfl_code */
+        EXPECT_EQUAL(server_conn->max_outgoing_fragment_length, S2N_DEFAULT_FRAGMENT_LENGTH);
+        EXPECT_EQUAL(server_conn->max_fragment_length, S2N_TLS_MAX_FRAG_LEN_EXT_NONE);
+
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
+
+        for (int i = 0; i < 2; i++) {
+           EXPECT_SUCCESS(close(server_to_client[i]));
+           EXPECT_SUCCESS(close(client_to_server[i]));
         }
     }
 

@@ -146,8 +146,9 @@ struct s2n_connection {
     /* Maximum outgoing fragment size for this connection. Does not limit
      * incoming record size.
      */
-    uint16_t max_outgoing_fragment_length; //TODO: Delete???
+    uint16_t max_outgoing_fragment_length;
 
+    /* Negotiated TLS extension Maximum fragment size */
     uint16_t max_fragment_length;
 
     /* Keep some accounting on each connection */

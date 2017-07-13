@@ -193,6 +193,7 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->server = &conn->initial;
     conn->client = &conn->initial;
     conn->max_outgoing_fragment_length = S2N_DEFAULT_FRAGMENT_LENGTH;
+    conn->max_fragment_length = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
     conn->handshake.handshake_type = INITIAL;
     conn->handshake.message_number = 0;
     conn->client_cert_auth_type = S2N_CERT_AUTH_NONE;
