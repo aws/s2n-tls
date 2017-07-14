@@ -24,5 +24,5 @@ mkdir -p saw && tar -xzf saw.tar.gz --strip-components=1 -C saw
 mkdir -p $INSTALL_DIR && mv saw/* $INSTALL_DIR
 
 clang --version
-$INSTALL_DIR/saw --version
+$INSTALL_DIR/bin/saw --version
 
