@@ -60,7 +60,7 @@ let setup_hash_state pstate = do {
     u0 <- crucible_fresh_var "u" (llvm_array 16 (llvm_int 64));
     num0 <- crucible_fresh_var "num" (llvm_int 32);
     md_len0 <- crucible_fresh_var "md_len" (llvm_int 32);
-    (_, pimpl) <- ptr_to_fresh "impl" (llvm_struct "struct.s2n_hash_implementation");
+    (_, pimpl) <- ptr_to_fresh "impl" (llvm_struct "struct.s2n_hash");
     crucible_points_to pstate
       (crucible_struct
         [ crucible_term alg0
