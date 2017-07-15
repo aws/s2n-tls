@@ -15,17 +15,17 @@ import s2n_advance_message
 // s2nRFCState (ACTIVE_STATE conn) r1 /\
 // s2nRFCState (ACTIVE_STATE (s2n_advance_message conn) r2)  /\
 // handshakeTransition r1 r2
-rfcSimulatesS2N : connection -> Bool
-rfcSimulatesS2N conn = 
+rfcSimulatesS2N : connection -> Parameters -> Bool
+rfcSimulatesS2N conn pars = 
    valid_connection conn ==>
-   or [rfcSimulatesS2N2 conn s1 s2 | s1 <- states, s2 <- states]
+   or [rfcSimulatesS2N2 conn pars s1 s2 | s1 <- states, s2 <- states]
    where states = [0 .. 23] // warning, 23 is a hardcoding of the maximum state number in the RFC state machine
 
-rfcSimulatesS2N2 : connection -> State -> State -> Bool
-rfcSimulatesS2N2 conn rfcPre rfcPost =
+rfcSimulatesS2N2 : connection -> Parameters -> State -> State -> Bool
+rfcSimulatesS2N2 conn pars rfcPre rfcPost =
    (s2nRFCState s2nPre rfcPre /\
     s2nRFCState s2nPost rfcPost /\
-    handshakeTransition rfcPre rfcPost) 
+    handshakeTransition pars rfcPre rfcPost) 
    where s2nPre  = ACTIVE_STATE conn
          s2nPost = ACTIVE_STATE (advance_message conn)
 
@@ -94,51 +94,89 @@ type Sender = [2]
 (both     : Sender) = 2
 (noSender : Sender) = 3
 
+// Key exchange algorithms
+type KeyExchange = [3]
+(DH_anon : KeyExchange) = 0
+(DHE_DSS : KeyExchange) = 1
+(DHE_RSA : KeyExchange) = 2
+(RSA     : KeyExchange) = 3
+(DH_DSS  : KeyExchange) = 4
+(DH_RSA  : KeyExchange) = 5
+
+// Protocol parameters that determine the transition to take in each state
+type Parameters = {keyExchange : KeyExchange //Negotiated key exchange algorithm
+                  ,sessionTicket : Bit
+                  ,renewSessionTicket : Bit //Whether the server decides to renew a session ticket
+                  ,sendCertificateStatus : Bit //Whether the server decides to send the certificate status message
+                  ,requestClientCert : Bit //Whether the server requests a certificate from the client
+                  ,includeSessionTicket : Bit //Whether the server includes a session ticket extension in SERVER_HELLO
+                  }
+
 // Handshake state transition relation per the RFCs
-handshakeTransition : State -> State -> Bool
-handshakeTransition old new =
-  or [ old == fst t /\ new == snd t | t <- valid_transitions]
-  where valid_transitions =
-          [(helloRequestSent, clientHelloSent)
-          ,(clientHelloSent, serverHelloSent)
-          ,(serverHelloSent, serverCertificateSent)
-          ,(serverHelloSent, serverKeyExchangeSent)
-          ,(serverCertificateSent, serverHelloDoneSent)
-          ,(serverCertificateSent, certificateRequestSent)
-          ,(serverCertificateSent, serverKeyExchangeSent)
-          ,(serverKeyExchangeSent, serverHelloDoneSent)
-          ,(serverKeyExchangeSent, certificateRequestSent)
-          ,(certificateRequestSent, serverHelloDoneSentCertRequested)
-          ,(serverHelloDoneSent, clientKeyExchangeSent)
-          ,(clientKeyExchangeSent, clientChangeCipherSpecSent)
-          ,(serverHelloDoneSentCertRequested, clientCertificateSent)
-          ,(clientCertificateSent, clientKeyExchangeSentCertSent)
-          ,(clientKeyExchangeSentCertSent, certificateVerifySent)
-          ,(certificateVerifySent, clientChangeCipherSpecSent)
-          ,(clientChangeCipherSpecSent, clientFinishedSent)
-          ,(clientFinishedSent, serverChangeCipherSpecSent)
-          ,(clientFinishedSent, serverNewSessionTicketSent)
-          ,(serverNewSessionTicketSent, serverChangeCipherSpecSent)
-          ,(serverChangeCipherSpecSent, serverFinishedSent)
-          ,(serverFinishedSent, applicationDataTransmission)
-          ,(serverHelloSent, serverNewSessionTicketSent)
-          ,(serverHelloSent, serverChangeCipherSpecWithTicketSent)
-          ,(serverNewSessionTicketSent, serverChangeCipherSpecWithTicketSent)
-          ,(serverChangeCipherSpecWithTicketSent, serverFinishedWithTicketSent)
-          ,(serverFinishedWithTicketSent, clientChangeCipherSpecWithTicketSent)
-          ,(clientChangeCipherSpecWithTicketSent, clientFinishedWithTicketSent)
-          ,(clientFinishedWithTicketSent, applicationDataTransmission)
-          ,(serverCertificateSent, serverCertificateStatusSent)
-          ,(serverCertificateStatusSent, serverHelloDoneSent)
-          ,(serverCertificateStatusSent, certificateRequestSent)
-          ,(serverCertificateStatusSent, serverKeyExchangeSent)
+handshakeTransition : Parameters -> State -> State -> Bool
+handshakeTransition params old new =
+  or [ old == from /\ new == to /\ p | (from, p, to) <- valid_transitions]
+  where noKE = params.keyExchange == RSA \/ params.keyExchange == DH_DSS \/ params.keyExchange == DH_RSA // key exchange algorithm does not require KeyExchange messages
+        valid_transitions =
+          [(helloRequestSent, True, clientHelloSent)
+          
+          ,(clientHelloSent,  True, serverHelloSent)
+          
+          ,(serverHelloSent, params.keyExchange != DH_anon /\ ~params.sessionTicket, serverCertificateSent)
+          ,(serverHelloSent, params.keyExchange == DH_anon /\ ~params.sessionTicket, serverKeyExchangeSent)
+          ,(serverHelloSent, params.sessionTicket /\ params.renewSessionTicket,  serverNewSessionTicketSent)
+          ,(serverHelloSent, params.sessionTicket /\ ~params.renewSessionTicket, serverChangeCipherSpecWithTicketSent)
+
+          ,(serverCertificateSent, noKE /\ ~params.requestClientCert /\ ~params.sendCertificateStatus, serverHelloDoneSent)
+          ,(serverCertificateSent, noKE /\ params.requestClientCert /\ ~params.sendCertificateStatus, certificateRequestSent)
+          ,(serverCertificateSent, ~noKE /\ ~params.sendCertificateStatus, serverKeyExchangeSent)
+          ,(serverCertificateSent, params.sendCertificateStatus,  serverCertificateStatusSent)
+
+          ,(serverKeyExchangeSent, ~params.requestClientCert, serverHelloDoneSent)
+          ,(serverKeyExchangeSent, params.requestClientCert, certificateRequestSent)
+
+          ,(certificateRequestSent, True, serverHelloDoneSentCertRequested)
+
+          ,(serverHelloDoneSent, True, clientKeyExchangeSent)
+
+          ,(clientKeyExchangeSent, True, clientChangeCipherSpecSent)
+
+          ,(serverHelloDoneSentCertRequested, True, clientCertificateSent)
+
+          ,(clientCertificateSent, True, clientKeyExchangeSentCertSent)
+
+          ,(clientKeyExchangeSentCertSent, True, certificateVerifySent)
+
+          ,(certificateVerifySent, True, clientChangeCipherSpecSent)
+
+          ,(clientChangeCipherSpecSent, True, clientFinishedSent)
+
+          ,(clientFinishedSent, ~params.includeSessionTicket, serverChangeCipherSpecSent)
+          ,(clientFinishedSent, params.includeSessionTicket, serverNewSessionTicketSent)
+          
+          ,(serverNewSessionTicketSent, True, serverChangeCipherSpecSent)
+          
+          ,(serverChangeCipherSpecSent, True, serverFinishedSent)
+          
+          ,(serverFinishedSent, True, applicationDataTransmission)
+          
+          ,(serverNewSessionTicketSent, True, serverChangeCipherSpecWithTicketSent)
+          
+          ,(serverChangeCipherSpecWithTicketSent, True, serverFinishedWithTicketSent)
+          
+          ,(serverFinishedWithTicketSent, True, clientChangeCipherSpecWithTicketSent)
+          
+          ,(clientChangeCipherSpecWithTicketSent, True, clientFinishedWithTicketSent)
+          
+          ,(clientFinishedWithTicketSent, True, applicationDataTransmission)
+
+          ,(serverCertificateStatusSent, noKE /\ ~params.requestClientCert, serverHelloDoneSent)
+          ,(serverCertificateStatusSent, noKE /\ params.requestClientCert, certificateRequestSent)
+          ,(serverCertificateStatusSent, ~noKE, serverKeyExchangeSent)
           ]
 
 fst (a, b) = a
 snd (a, b) = b
-
-prop_HandshakeTransitionEquiv : State -> State -> Bool
-prop_HandshakeTransitionEquiv old new = handshakeTransitionOld old new == handshakeTransition old new
 
 type Message = {messageType : MessageType
                ,protocol : Protocol
@@ -183,10 +221,6 @@ lookupDefault dict def key = fst (foldl find (def, False) dict)
            if found then (value, found)
            else if key == key' then (value', True)
                 else (value, found)
-
-prop_messageEquiv : State -> Bool
-prop_messageEquiv s = message s == messageOld s
-
 
 // relation between RFC and s2n handshake state machines
 s2nRFCState : handshake_action -> State -> Bool
@@ -240,69 +274,3 @@ s2nMessageType state =
            prot = (message state).protocol
 
 ERROR_MESSAGE = 10 // unused in current s2n
-
-// state transition relation (Old version)
-handshakeTransitionOld : State -> State -> Bool
-handshakeTransitionOld old new =
-    (old == helloRequestSent /\ new == clientHelloSent)
- \/ (old == clientHelloSent /\ new == serverHelloSent)
- \/ (old == serverHelloSent /\ new == serverCertificateSent)
- \/ (old == serverHelloSent /\ new == serverKeyExchangeSent)
- \/ (old == serverCertificateSent /\ new == serverHelloDoneSent)
- \/ (old == serverCertificateSent /\ new == certificateRequestSent)
- \/ (old == serverCertificateSent /\ new == serverKeyExchangeSent)
- \/ (old == serverKeyExchangeSent /\ new ==  serverHelloDoneSent)
- \/ (old == serverKeyExchangeSent /\ new == certificateRequestSent)
- \/ (old == certificateRequestSent /\ new == serverHelloDoneSentCertRequested)
- \/ (old == serverHelloDoneSent /\ new == clientKeyExchangeSent)
- \/ (old == clientKeyExchangeSent /\ new == clientChangeCipherSpecSent)
- \/ (old == serverHelloDoneSentCertRequested /\ new == clientCertificateSent)
- \/ (old == clientCertificateSent /\ new == clientKeyExchangeSentCertSent)
- \/ (old == clientKeyExchangeSentCertSent /\ new == certificateVerifySent)
- \/ (old == certificateVerifySent /\ new == clientChangeCipherSpecSent)
- \/ (old == clientChangeCipherSpecSent /\ new == clientFinishedSent)
- \/ (old == clientFinishedSent /\ new == serverChangeCipherSpecSent)
- \/ (old == clientFinishedSent /\ new == serverNewSessionTicketSent)
- \/ (old == serverNewSessionTicketSent /\ new == serverChangeCipherSpecSent)
- \/ (old == serverChangeCipherSpecSent /\ new == serverFinishedSent)
- \/ (old == serverFinishedSent /\ new == applicationDataTransmission)
-
- \/ (old == serverHelloSent /\ new == serverNewSessionTicketSent)
- \/ (old == serverHelloSent /\ new == serverChangeCipherSpecWithTicketSent)
- \/ (old == serverNewSessionTicketSent /\ new == serverChangeCipherSpecWithTicketSent)
- \/ (old == serverChangeCipherSpecWithTicketSent /\ new == serverFinishedWithTicketSent)
- \/ (old == serverFinishedWithTicketSent /\ new == clientChangeCipherSpecWithTicketSent)
- \/ (old == clientChangeCipherSpecWithTicketSent /\ new == clientFinishedWithTicketSent)
- \/ (old == clientFinishedWithTicketSent /\ new == applicationDataTransmission)
- 
- \/ (old == serverCertificateSent /\ new == serverCertificateStatusSent)
- \/ (old == serverCertificateStatusSent /\ new == serverHelloDoneSent)
- \/ (old == serverCertificateStatusSent /\ new == certificateRequestSent)
- \/ (old == serverCertificateStatusSent /\ new == serverKeyExchangeSent)
-
-messageOld : State -> Message
-messageOld state =
-           if state == helloRequestSent then mkMessage server handshake helloRequest
-      else if state == clientHelloSent then mkMessage client handshake clientHello
-      else if state == serverHelloSent then mkMessage server handshake serverHello
-      else if state == serverCertificateSent then mkMessage server handshake certificate
-      else if state == serverKeyExchangeSent then mkMessage server handshake serverKeyExchange
-      else if state == certificateRequestSent then mkMessage server handshake certificateRequest
-      else if state == serverHelloDoneSent \/ state == serverHelloDoneSentCertRequested
-           then mkMessage server handshake serverHelloDone
-      else if state == clientCertificateSent then mkMessage client handshake certificate
-      else if state == clientKeyExchangeSent \/ state == clientKeyExchangeSentCertSent
-           then mkMessage client handshake clientKeyExchange
-      else if state == certificateVerifySent then mkMessage client handshake certificateVerify
-      else if state == clientChangeCipherSpecSent then mkMessage client changeCipherSpec changeCipherSpecMessage
-      else if state == clientFinishedSent then mkMessage client handshake finished
-      else if state == serverChangeCipherSpecSent then mkMessage server changeCipherSpec changeCipherSpecMessage
-      else if state == serverFinishedSent then mkMessage server handshake finished
-      else if state == applicationDataTransmission then mkMessage both data applicationData
-      else if state == serverNewSessionTicketSent then mkMessage server handshake newSessionTicket
-      else if state == serverChangeCipherSpecWithTicketSent then mkMessage server changeCipherSpec changeCipherSpecMessage
-      else if state == serverFinishedWithTicketSent then mkMessage server handshake finished
-      else if state == clientChangeCipherSpecWithTicketSent then mkMessage client changeCipherSpec changeCipherSpecMessage
-      else if state == clientFinishedWithTicketSent then mkMessage client handshake finished
-      else if state == serverCertificateStatusSent then mkMessage server handshake certificateStatus
-      else mkMessage noSender data error
