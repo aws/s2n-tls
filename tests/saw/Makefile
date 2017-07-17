@@ -88,6 +88,7 @@ tmp/%.log : %.saw bitcode/all_llvm.bc tmp
 .PHONY : failure-tests
 failure-tests : bitcode
 	@${MAKE} clean-failure-logs
+	@${MAKE} failure_tests/tls_early_ccs.log
 	@${MAKE} failure_tests/sha_bad_magic_mod.log
 	@${MAKE} failure_tests/sha_msgchange.log
 
@@ -99,6 +100,11 @@ failure-tests : bitcode
 failure_tests/sha_%.log : bitcode/sha_%.bc
 	cp $< bitcode/all_llvm.bc
 	! saw verify_s2n_hmac_sha256.saw &> $@
+
+failure_tests/tls_%.log : bitcode/tls_%.bc
+	cp $< bitcode/all_llvm.bc
+	! saw handshake.saw &> $@
+
 
 # keeping track of the status to make sure that even if the make fails the patch still gets undone
 # we patch the s2n dir, build it with the top level s2n makefile, and
