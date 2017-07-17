@@ -33,7 +33,7 @@
 #define S2N_TLS_ALERT_DECRYPT_FAILED        21
 #define S2N_TLS_ALERT_RECORD_OVERFLOW       22
 #define S2N_TLS_ALERT_DECOMP_FAILED         30
-#define S2N_TLS_ALERT_HANDSHAKE_FAILED      40
+#define S2N_TLS_ALERT_HANDSHAKE_FAILURE     40
 #define S2N_TLS_ALERT_NO_CERTIFICATE        41
 #define S2N_TLS_ALERT_BAD_CERTIFICATE       42
 #define S2N_TLS_ALERT_UNSUPPORTED_CERT      43
@@ -114,11 +114,11 @@ int s2n_queue_writer_close_alert_warning(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_queue_reader_unsupported_protocol_version_alert(struct s2n_connection *conn)
+static int s2n_queue_reader_alert(struct s2n_connection *conn, uint8_t level, uint8_t error_code)
 {
     uint8_t alert[2];
-    alert[0] = S2N_TLS_ALERT_LEVEL_FATAL;
-    alert[1] = S2N_TLS_ALERT_PROTOCOL_VERSION;
+    alert[0] = level;
+    alert[1] = error_code;
 
     struct s2n_blob out = {.data = alert,.size = sizeof(alert) };
 
@@ -130,4 +130,14 @@ int s2n_queue_reader_unsupported_protocol_version_alert(struct s2n_connection *c
     GUARD(s2n_stuffer_write(&conn->reader_alert_out, &out));
 
     return 0;
+}
+
+int s2n_queue_reader_unsupported_protocol_version_alert(struct s2n_connection *conn)
+{
+    return s2n_queue_reader_alert(conn, S2N_TLS_ALERT_LEVEL_FATAL, S2N_TLS_ALERT_PROTOCOL_VERSION);
+}
+
+int s2n_queue_reader_handshake_failure_alert(struct s2n_connection *conn)
+{
+    return s2n_queue_reader_alert(conn, S2N_TLS_ALERT_LEVEL_FATAL, S2N_TLS_ALERT_HANDSHAKE_FAILURE);
 }

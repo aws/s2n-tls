@@ -30,6 +30,7 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_prf.h"
 
+#include "crypto/s2n_certificate.h"
 #include "crypto/s2n_cipher.h"
 
 #include "utils/s2n_compiler.h"
@@ -40,6 +41,45 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 
+/* Accept all RSA Certificates is unsafe and is only used in the s2n Client */
+int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context)
+{
+    struct s2n_blob cert_chain_blob = { .data = cert_chain_in, .size = cert_chain_len};
+    struct s2n_stuffer cert_chain_in_stuffer;
+    GUARD(s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob));
+    GUARD(s2n_stuffer_write(&cert_chain_in_stuffer, &cert_chain_blob));
+
+    uint32_t certificate_count = 0;
+    while (s2n_stuffer_data_available(&cert_chain_in_stuffer)) {
+        uint32_t certificate_size;
+
+        GUARD(s2n_stuffer_read_uint24(&cert_chain_in_stuffer, &certificate_size));
+
+        if (certificate_size == 0 || certificate_size > s2n_stuffer_data_available(&cert_chain_in_stuffer) ) {
+            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        }
+
+        struct s2n_blob asn1cert;
+        asn1cert.data = s2n_stuffer_raw_read(&cert_chain_in_stuffer, certificate_size);
+        asn1cert.size = certificate_size;
+        notnull_check(asn1cert.data);
+
+        /* Pull the public key from the first certificate */
+        if (certificate_count == 0) {
+            struct s2n_rsa_public_key *rsa_pub_key_out;
+            GUARD(s2n_cert_public_key_get_rsa(public_key_out, &rsa_pub_key_out));
+            /* Assume that the asn1cert is an RSA Cert */
+            GUARD(s2n_asn1der_to_rsa_public_key(rsa_pub_key_out, &asn1cert));
+            GUARD(s2n_cert_public_key_set_cert_type(public_key_out, S2N_CERT_TYPE_RSA_SIGN));
+        }
+
+        certificate_count++;
+    }
+
+    gte_check(certificate_count, 1);
+    return 0;
+}
+
 struct s2n_connection *s2n_connection_new(s2n_mode mode)
 {
     struct s2n_blob blob;
@@ -48,6 +88,18 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     GUARD_PTR(s2n_alloc(&blob, sizeof(struct s2n_connection)));
 
     GUARD_PTR(s2n_blob_zero(&blob));
+
+    /* Cast 'through' void to acknowledge that we are changing alignment,
+     * which is ok, as blob.data is always aligned.
+     */
+    conn = (struct s2n_connection *)(void *)blob.data;
+    conn->config = &s2n_default_config;
+
+    /* By default, only the client will authenticate the Server's Certificate. The Server does not request or
+     * authenticate any client certificates. */
+    conn->client_cert_auth_type = conn->config->client_cert_auth_type;
+    conn->verify_cert_chain_cb = conn->config->verify_cert_chain_cb;
+    conn->verify_cert_context = conn->config->verify_cert_context;
 
     if (mode == S2N_CLIENT) {
         /* At present s2n is not suitable for use in client mode, as it
@@ -59,24 +111,21 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
             GUARD_PTR(s2n_free(&blob));
             S2N_ERROR_PTR(S2N_ERR_CLIENT_MODE_DISABLED);
         }
+
+        conn->verify_cert_chain_cb = accept_all_rsa_certs;
     }
 
-    /* Cast 'through' void to acknowledge that we are changing alignment,
-     * which is ok, as blob.data is always aligned.
-     */
-    conn = (struct s2n_connection *)(void *)blob.data;
     conn->mode = mode;
     conn->blinding = S2N_BUILT_IN_BLINDING;
-    conn->config = &s2n_default_config;
     conn->close_notify_queued = 0;
     conn->session_id_len = 0;
-
     conn->send = NULL;
     conn->recv = NULL;
     conn->send_io_context = NULL;
     conn->recv_io_context = NULL;
     conn->managed_io = 0;
     conn->corked_io = 0;
+    conn->context = NULL;
 
     /* Allocate the fixed-size stuffers */
     blob.data = conn->alert_in_data;
@@ -100,6 +149,8 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     GUARD_PTR(s2n_session_key_alloc(&conn->secure.server_key));
     GUARD_PTR(s2n_session_key_alloc(&conn->initial.client_key));
     GUARD_PTR(s2n_session_key_alloc(&conn->initial.server_key));
+
+    GUARD_PTR(s2n_prf_new(conn));
 
     /* Initialize the growable stuffers. Zero length at first, but the resize
      * in _wipe will fix that
@@ -126,6 +177,47 @@ static int s2n_connection_free_keys(struct s2n_connection *conn)
     return 0;
 }
 
+static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n_config *config)
+{
+    /* Preserve the PRF state before zeroing the connection struct */
+    struct s2n_evp_hmac_state p_hash_evp_hmac = conn->prf_space.tls.p_hash.evp_hmac;
+    const struct s2n_p_hash_hmac *p_hash_hmac = conn->prf_space.tls.p_hash_hmac;
+
+    /* Zero the whole connection structure */
+    memset_check(conn, 0, sizeof(struct s2n_connection));
+
+    conn->send = NULL;
+    conn->recv = NULL;
+    conn->send_io_context = NULL;
+    conn->recv_io_context = NULL;
+    conn->mode = mode;
+    conn->config = config;
+    conn->prf_space.tls.p_hash.evp_hmac = p_hash_evp_hmac;
+    conn->prf_space.tls.p_hash_hmac = p_hash_hmac;
+    conn->close_notify_queued = 0;
+    conn->current_user_data_consumed = 0;
+    conn->initial.cipher_suite = &s2n_null_cipher_suite;
+    conn->secure.cipher_suite = &s2n_null_cipher_suite;
+    conn->server = &conn->initial;
+    conn->client = &conn->initial;
+    conn->max_outgoing_fragment_length = S2N_DEFAULT_FRAGMENT_LENGTH;
+    conn->handshake.handshake_type = INITIAL;
+    conn->handshake.message_number = 0;
+    conn->client_cert_auth_type = S2N_CERT_AUTH_NONE;
+    conn->verify_cert_chain_cb = deny_all_certs;
+    conn->verify_cert_context = NULL;
+    GUARD(s2n_hash_init(&conn->handshake.md5, S2N_HASH_MD5));
+    GUARD(s2n_hash_init(&conn->handshake.sha1, S2N_HASH_SHA1));
+    GUARD(s2n_hash_init(&conn->handshake.sha224, S2N_HASH_SHA224));
+    GUARD(s2n_hash_init(&conn->handshake.sha256, S2N_HASH_SHA256));
+    GUARD(s2n_hash_init(&conn->handshake.sha384, S2N_HASH_SHA384));
+    GUARD(s2n_hash_init(&conn->handshake.sha512, S2N_HASH_SHA512));
+    GUARD(s2n_hmac_init(&conn->client->client_record_mac, S2N_HMAC_NONE, NULL, 0));
+    GUARD(s2n_hmac_init(&conn->server->server_record_mac, S2N_HMAC_NONE, NULL, 0));
+
+    return 0;
+}
+
 static int s2n_connection_wipe_keys(struct s2n_connection *conn)
 {
     /* Destroy any keys - we call destroy on the object as that is where
@@ -138,10 +230,11 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     /* Free any server key received (we may not have completed a
      * handshake, so this may not have been free'd yet) */
     GUARD(s2n_rsa_public_key_free(&conn->secure.server_rsa_public_key));
+    GUARD(s2n_rsa_public_key_free(&conn->secure.client_rsa_public_key));
 
     GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
     GUARD(s2n_ecc_params_free(&conn->secure.server_ecc_params));
-
+    GUARD(s2n_free(&conn->secure.client_cert_chain));
     GUARD(s2n_free(&conn->ct_response));
 
     return 0;
@@ -197,6 +290,8 @@ int s2n_connection_free(struct s2n_connection *conn)
     GUARD(s2n_connection_wipe_keys(conn));
     GUARD(s2n_connection_free_keys(conn));
 
+    GUARD(s2n_prf_free(conn));
+
     GUARD(s2n_free(&conn->status_response));
     GUARD(s2n_stuffer_free(&conn->in));
     GUARD(s2n_stuffer_free(&conn->out));
@@ -215,11 +310,20 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
     return 0;
 }
 
+int s2n_connection_set_ctx(struct s2n_connection *conn, void *ctx)
+{
+    conn->context = ctx;
+    return 0;
+}
+
+void *s2n_connection_get_ctx(struct s2n_connection *conn)
+{
+    return conn->context;
+}
+
 int s2n_connection_wipe(struct s2n_connection *conn)
 {
-    /* First make a copy of everything we'd like to save, which isn't very
-     * much.
-     */
+    /* First make a copy of everything we'd like to save, which isn't very much. */
     int mode = conn->mode;
     struct s2n_config *config = conn->config;
     struct s2n_stuffer alert_in;
@@ -256,6 +360,9 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     /* Allocate memory for handling handshakes */
     GUARD(s2n_stuffer_resize(&conn->handshake.io, S2N_LARGE_RECORD_LENGTH));
 
+    /* Remove context associated with connection */
+    conn->context = NULL;
+
     /* Clone the stuffers */
     /* ignore gcc 4.7 address warnings because dest is allocated on the stack */
     /* pragma gcc diagnostic was added in gcc 4.6 */
@@ -278,32 +385,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
 #pragma GCC diagnostic pop
 #endif
 
-    /* Zero the whole connection structure */
-    memset_check(conn, 0, sizeof(struct s2n_connection));
-
-    conn->send = NULL;
-    conn->recv = NULL;
-    conn->send_io_context = NULL;
-    conn->recv_io_context = NULL;
-    conn->mode = mode;
-    conn->config = config;
-    conn->close_notify_queued = 0;
-    conn->current_user_data_consumed = 0;
-    conn->initial.cipher_suite = &s2n_null_cipher_suite;
-    conn->secure.cipher_suite = &s2n_null_cipher_suite;
-    conn->server = &conn->initial;
-    conn->client = &conn->initial;
-    conn->max_outgoing_fragment_length = S2N_DEFAULT_FRAGMENT_LENGTH;
-    conn->handshake.handshake_type = INITIAL;
-    conn->handshake.message_number = 0;
-    GUARD(s2n_hash_init(&conn->handshake.md5, S2N_HASH_MD5));
-    GUARD(s2n_hash_init(&conn->handshake.sha1, S2N_HASH_SHA1));
-    GUARD(s2n_hash_init(&conn->handshake.sha224, S2N_HASH_SHA224));
-    GUARD(s2n_hash_init(&conn->handshake.sha256, S2N_HASH_SHA256));
-    GUARD(s2n_hash_init(&conn->handshake.sha384, S2N_HASH_SHA384));
-    GUARD(s2n_hash_init(&conn->handshake.sha512, S2N_HASH_SHA512));
-    GUARD(s2n_hmac_init(&conn->client->client_record_mac, S2N_HMAC_NONE, NULL, 0));
-    GUARD(s2n_hmac_init(&conn->server->server_record_mac, S2N_HMAC_NONE, NULL, 0));
+    GUARD(s2n_connection_zero(conn, mode, config));
 
     memcpy_check(&conn->alert_in, &alert_in, sizeof(struct s2n_stuffer));
     memcpy_check(&conn->reader_alert_out, &reader_alert_out, sizeof(struct s2n_stuffer));
@@ -327,6 +409,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     else {
         /* For clients, also set actual_protocol_version.  Record generation uses that value for the initial */
         /* ClientHello record version. Not all servers ignore the record version in ClientHello. */
+        conn->verify_cert_chain_cb = accept_all_rsa_certs;
         conn->server_protocol_version = s2n_unknown_protocol_version;
         conn->client_protocol_version = s2n_highest_protocol_version;
         conn->actual_protocol_version = s2n_highest_protocol_version;
@@ -356,6 +439,20 @@ int s2n_connection_set_recv_cb(struct s2n_connection *conn, s2n_recv_fn recv)
 int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_send_fn send)
 {
     conn->send = send;
+    return 0;
+}
+
+int s2n_connection_set_cert_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type)
+{
+    conn->client_cert_auth_type = cert_auth_type;
+    return 0;
+}
+
+int s2n_connection_set_verify_cert_chain_cb(struct s2n_connection *conn, verify_cert_trust_chain *callback, void *context)
+{
+    notnull_check(callback);
+    conn->verify_cert_chain_cb = callback;
+    conn->verify_cert_context = context;
     return 0;
 }
 

@@ -19,9 +19,15 @@ TESTS=$(SRCS:.c=)
 VALGRIND_TESTS=$(SRCS:.c=_valgrind)
 CRYPTO_LDFLAGS = -L$(LIBCRYPTO_ROOT)/lib
 
+# Users can specify a subset of tests to be run, otherwise run all tests.
+ifeq (,$(strip ${UNIT_TESTS}))
+	UNIT_TESTS := ${TESTS}
+endif
+
 .PHONY : all
 .PRECIOUS : $(TESTS)
-all: run_tests
+
+all: $(UNIT_TESTS)
 
 include ../../s2n.mk
 
@@ -33,21 +39,12 @@ LIBS += -lm
 CFLAGS += -Wno-unreachable-code -I$(LIBCRYPTO_ROOT)/include/ -I../../ -I../../api/
 LDFLAGS += -L../../lib/ ${CRYPTO_LDFLAGS} -L../testlib/ -ltests2n -ls2n ${LIBS} ${CRYPTO_LIBS}
 
-ifeq (,$(strip ${UNIT_TESTS}))
-	UNIT_TESTS=${TESTS}
-endif
-
-$(TESTS)::
+$(UNIT_TESTS)::
 	@${CC} ${CFLAGS} -o $@ $@.c ${LDFLAGS} 2>&1
-
-run_tests:: $(TESTS)
-	@(for test in ${UNIT_TESTS} ; do\
-	  (\
-	    DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
-	    LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
-	    ./$$test; \
-	  ) & \
-	  done; wait)
+	@DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
+	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
+	LD_PRELOAD="../LD_PRELOAD/allocator_overrides.so" \
+	./$@
 
 .PHONY : valgrind
 valgrind: $(TESTS)

@@ -82,6 +82,12 @@ typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
 extern struct s2n_connection *s2n_connection_new(s2n_mode mode);
 extern int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *config);
 
+extern int s2n_connection_set_ctx(struct s2n_connection *conn, void *ctx);
+extern void *s2n_connection_get_ctx(struct s2n_connection *conn);
+
+typedef int s2n_client_hello_fn(struct s2n_connection *conn, void *ctx);
+extern int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_fn client_hello_callback, void *ctx);
+
 extern int s2n_connection_set_fd(struct s2n_connection *conn, int fd);
 extern int s2n_connection_set_read_fd(struct s2n_connection *conn, int readfd);
 extern int s2n_connection_set_write_fd(struct s2n_connection *conn, int writefd);
