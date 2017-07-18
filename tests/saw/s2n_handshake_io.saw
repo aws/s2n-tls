@@ -269,10 +269,15 @@ let s2n_connection_is_managed_corked_spec = do {
 let s2n_handshake_io_lowlevel = do {
     // Dependencies specifications/overrides
     print "Assuming specifications for dependencies";
+    print "s2n_socket_write_uncork";
     s2n_socket_write_uncork <- crucible_llvm_unsafe_assume_spec llvm "s2n_socket_write_uncork" s2n_socket_write_uncork_spec;
+    print "s2n_socket_write_cork";
     s2n_socket_write_cork <- crucible_llvm_unsafe_assume_spec llvm "s2n_socket_write_cork" s2n_socket_write_cork_spec;
+    print "s2n_socket_was_corked";
     s2n_socket_was_corked <- crucible_llvm_unsafe_assume_spec llvm "s2n_socket_was_corked" s2n_socket_was_corked_spec;
+    print "s2n_connection_is_managed_corked";
     s2n_connection_is_managed_corked <- crucible_llvm_unsafe_assume_spec llvm "s2n_connection_is_managed_corked" s2n_connection_is_managed_corked_spec;
+    print "s2n_is_caching_enabled";
     s2n_is_caching_enabled <- crucible_llvm_unsafe_assume_spec llvm "s2n_is_caching_enabled" s2n_is_caching_enabled_spec;
     let dependencies = [s2n_socket_write_uncork, s2n_socket_write_cork, s2n_socket_was_corked, s2n_connection_is_managed_corked];
 
