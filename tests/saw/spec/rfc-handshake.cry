@@ -129,6 +129,7 @@ connectionParameters conn params =
  /\ (conn.is_caching_enabled /\ ~conn.resume_from_cache) == params.sessionTicket
  /\ (~params.includeSessionTicket) // s2n server does not issue tickets at this time
  /\ (~params.renewSessionTicket) // s2n server does not issue tickets at this time
+ /\ (~params.requestClientCert) // s2n server does not sent CERTIFICATE_REQUEST messages at this time
 
 keyExchangeNonEphemeral : Parameters -> Bit
 keyExchangeNonEphemeral params = params.keyExchange == RSA \/ params.keyExchange == DH_DSS \/ params.keyExchange == DH_RSA // key exchange algorithm does not require KeyExchange messages
