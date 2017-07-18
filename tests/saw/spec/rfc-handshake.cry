@@ -136,15 +136,6 @@ keyExchangeNonEphemeral params = params.keyExchange == RSA \/ params.keyExchange
 keyExchangeEphemeral : Parameters -> Bit
 keyExchangeEphemeral params =  params.keyExchange == DHE_DSS \/ params.keyExchange == DHE_RSA
 
-// returns the first element of an array that satisfies a given
-// predicate. If none found, a provided default value is returned.
-find : {n, x} (fin n) => (x -> Bool) -> x -> [n]x -> x
-find p def xs = snd (foldl f (False, def) xs)
-   where f (found, y) next = if ~found /\ p next then (True, next) else (found, y)
-
-head : {n, x} [n+1]x -> x
-head (([a] : [1]x) # _) = a
-
 // Handshake state transition relation per the RFCs
 handshakeTransition : Parameters -> State -> State
 handshakeTransition params old =
@@ -208,8 +199,7 @@ handshakeTransition params old =
           ,(serverCertificateStatusSent, ~(keyExchangeNonEphemeral params), serverKeyExchangeSent)
           ]
 
-fst (a, b) = a
-snd (a, b) = b
+
 
 type Message = {messageType : MessageType
                ,protocol : Protocol

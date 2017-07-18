@@ -8,7 +8,36 @@ import Cryptol::Extras
 // for a given initial connection struct generate the
 // sequence of handshake_action's
 traceS2N : {n} (fin n) => connection -> [n]handshake_action
-traceS2N conn = take (map ACTIVE_STATE (iterate s2nTrans conn))
+traceS2N conn = normalizeAfterData (take (map ACTIVE_STATE (iterate s2nTrans conn)))
+
+traceS2N2 : {n} (fin n) => connection -> [n][32]
+traceS2N2 conn = take (map ACTIVE_MESSAGE (iterate s2nTrans conn))
+
+// make sure all the messages after the first APPLICATION_DATA are also APPLICATION_DATA
+normalizeAfterData : {n} (fin n) => [n]handshake_action -> [n]handshake_action
+normalizeAfterData hsas = map snd (tail (scanl f (False, dataMsg) hsas))
+    where f (found, acc) hsa = if hsa == dataMsg \/ found then (True, dataMsg)
+                               else (found, hsa)
+          dataMsg = mkAct TLS_APPLICATION_DATA 0 'B'
+
+// returns the first element of an array that satisfies a given
+// predicate. If none found, a provided default value is returned.
+find : {n, x} (fin n) => (x -> Bool) -> x -> [n]x -> x
+find p def xs = snd (foldl f (False, def) xs)
+   where f (found, y) next = if ~found /\ p next then (True, next) else (found, y)
+
+head : {n, x} [n+1]x -> x
+head (([a] : [1]x) # _) = a
+
+lookupDefault : {a, b, n} (fin n, Cmp a) => [n](a, b) -> b -> a -> b
+lookupDefault dict def key = fst (foldl f (def, False) dict)
+   where f (value, found) (key', value') =
+           if found then (value, found)
+           else if key == key' then (value', True)
+                else (value, found)
+
+fst (a, b) = a
+snd (a, b) = b
 
 // s2n state transition that incorporates both s2n_advance_message and
 // s2n_conn_set_handshake_type
