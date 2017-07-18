@@ -5,6 +5,20 @@
 module s2n_advance_message where
 import Cryptol::Extras
 
+// for a given initial connection struct generate the
+// sequence of handshake_action's
+traceS2N : {n} (fin n) => connection -> [n]handshake_action
+traceS2N conn = take (map ACTIVE_STATE (iterate s2nTrans conn))
+
+// s2n state transition that incorporates both s2n_advance_message and
+// s2n_conn_set_handshake_type
+s2nTrans : connection -> connection
+s2nTrans conn = conn''
+   where conn' = if helloState then conn_set_handshake_type conn else conn
+         conn'' = advance_message conn'
+         helloState = ACTIVE_MESSAGE conn == CLIENT_HELLO \/ ACTIVE_MESSAGE conn == SERVER_HELLO
+
+
 // Part of the s2n_connection struct that s2n_advance_message
 // uses. The names of the fields are the same as in C.
 type connection = {handshake : handshake
@@ -164,10 +178,14 @@ handshakes_fn handshk =
 // state machine)
 valid_handshake : handshake -> Bit
 valid_handshake hs = (handshakes_fn hs.handshake_type) != zero /\
-                     (implies (hs.message_number > 0) ((handshakes_fn hs.handshake_type)@(hs.message_number + 1) != 0))
+                     ((hs.message_number > 0) ==> ((handshakes_fn hs.handshake_type)@(hs.message_number + 1) != 0))
 
 valid_connection : connection -> Bit
 valid_connection conn = valid_handshake (conn.handshake)
+
+// tells if the connection struct is in a valid initial state
+initial_connection : connection -> Bit
+initial_connection conn = conn.handshake.handshake_type == INITIAL /\ conn.handshake.message_number == 0
 
 // Logical implication
 implies : Bit -> Bit -> Bit
