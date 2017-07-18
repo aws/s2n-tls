@@ -20,7 +20,7 @@ import s2n_advance_message
 rfcSimulatesS2N : {len} (fin len) => connection -> Parameters -> Bool
 rfcSimulatesS2N conn pars = 
    initial_connection conn /\ connectionParameters conn pars ==>
-   and (map (uncurry s2nRFCState) (zip (traceS2N `{n = len} conn) (traceRFC pars))) 
+   map rfc2S2N (traceRFC `{n = len} pars) == traceS2N `{n = len} conn
 
 // rfcSimulatesS2N2 : connection -> Parameters -> State -> State -> Bool
 // rfcSimulatesS2N2 conn pars rfcPre rfcPost =
@@ -34,8 +34,8 @@ rfcSimulatesS2N conn pars =
 
 // generate a sequence of states for the the RFC handshake state machine given
 // handshake parameters
-traceRFC : {n} (fin n) => Parameters -> [n]State
-traceRFC params = take (iterate (handshakeTransition params) helloRequestSent)
+traceRFC : {n} (fin n) => Parameters -> [n]Message
+traceRFC params = take (map message (iterate (handshakeTransition params) clientHelloSent))
 
 type State = [5]
 
@@ -126,7 +126,7 @@ connectionParameters conn params =
     conn.server_can_send_ocsp == params.sendCertificateStatus
  /\ ((conn.key_exchange_eph /\ keyExchangeEphemeral params) \/
      (~conn.key_exchange_eph /\ keyExchangeNonEphemeral params))
- /\ (conn.is_caching_enabled /\ conn.resume_from_cache) == params.sessionTicket
+ /\ (conn.is_caching_enabled /\ ~conn.resume_from_cache) == params.sessionTicket
  /\ (~params.includeSessionTicket) // s2n server does not issue tickets at this time
  /\ (~params.renewSessionTicket) // s2n server does not issue tickets at this time
 
@@ -248,22 +248,18 @@ message = lookupDefault messages (mkMessage noSender data error)
             ,(serverCertificateStatusSent, mkMessage server handshake certificateStatus)
             ]
 
-lookupDefault : {a, b, n} (fin n, Cmp a) => [n](a, b) -> b -> a -> b
-lookupDefault dict def key = fst (foldl f (def, False) dict)
-   where f (value, found) (key', value') =
-           if found then (value, found)
-           else if key == key' then (value', True)
-                else (value, found)
 
-// relation between RFC and s2n handshake state machines
-s2nRFCState : handshake_action -> State -> Bool
-s2nRFCState hsa rfcstate =
-   //same senders
-   (sender2writer (message rfcstate).sender == hsa.writer) /\
-   //same record type/protocol
-   (protocol2recordType (message rfcstate).protocol == hsa.record_type) /\
-   //same message type
-   (s2nMessageType rfcstate == hsa.message_type)
+
+// a mapping from RFC messages to s2n handshake_action's
+rfc2S2N : Message -> handshake_action
+rfc2S2N msg = {writer = sender2writer msg.sender
+              ,record_type = protocol2recordType msg.protocol
+              ,message_type = s2nMessageType msg
+              }
+
+// an equality relation between RFC and s2n messages
+msgRFCS2N : Message -> handshake_action -> Bool
+msgRFCS2N msg hsa = rfc2S2N msg == hsa
 
 // convert a specification representation of sender to a 'writer' character in s2n.
 sender2writer : Sender -> [8]
@@ -281,8 +277,8 @@ protocol2recordType = lookupDefault protocols TLS_APPLICATION_DATA
                      ,(data, TLS_APPLICATION_DATA)
                      ]
 
-s2nMessageType : State -> [8]
-s2nMessageType state =
+s2nMessageType : Message -> [8]
+s2nMessageType msg =
   if prot == handshake then (if mt == helloRequest then TLS_HELLO_REQUEST
                        else if mt == clientHello  then TLS_CLIENT_HELLO
                        else if mt == serverHello  then TLS_SERVER_HELLO
@@ -302,27 +298,32 @@ s2nMessageType state =
                        else ERROR_MESSAGE)
 
   else 0
-     where mt = (message state).messageType
-           send = (message state).sender
-           prot = (message state).protocol
+     where mt = msg.messageType
+           send = msg.sender
+           prot = msg.protocol
 
 ERROR_MESSAGE = 10 // unused in current s2n
 
 // ad-hoc tests
-// regression 3
+// bug1: NEGOTIATED | FULL | OCSP_STATUS
 conn1 = {corked = 0,
-        corked_io = 0,
-        handshake = {handshake_type = 0,
-                     message_number = 0},
-        is_caching_enabled = False,
-        key_exchange_eph = False,
-        mode = 0,
-        resume_from_cache = False,
-        server_can_send_ocsp = False}
+corked_io = 0,
+handshake = {handshake_type = 0,
+message_number = 0},
+is_caching_enabled = False,
+key_exchange_eph = False,
+mode = 0,
+resume_from_cache = False,
+server_can_send_ocsp = True}
 
 pars1 = {includeSessionTicket = False,
-        keyExchange = 4,
-        renewSessionTicket = False,
-        requestClientCert = False,
-        sendCertificateStatus = False,
-        sessionTicket = False}
+keyExchange = 3,
+renewSessionTicket = False,
+requestClientCert = False,
+sendCertificateStatus = True,
+sessionTicket = False}
+
+rfcTrace1 = traceRFC `{16} pars1
+rfcTrace1A = map rfc2S2N rfcTrace1
+
+s2nTrace1 = traceS2N `{16} conn1
