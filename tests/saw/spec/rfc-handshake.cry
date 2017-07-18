@@ -11,23 +11,31 @@ import s2n_advance_message
 // Main correctness property: a simulation of the S2N handshake state
 // machine by an RFC-derived state machine
 
-// \forall conn \in Connection. valid (conn) ==> \exists r1, r2 \in State.
+// \forall conn \in Connection. valid (conn).
+// \forall pars \in Parameters. conn `connectionParameters` pars. ==>
+// \exists r1, r2 \in State.
 // s2nRFCState (ACTIVE_STATE conn) r1 /\
 // s2nRFCState (ACTIVE_STATE (s2n_advance_message conn) r2)  /\
 // handshakeTransition r1 r2
-rfcSimulatesS2N : connection -> Parameters -> Bool
+rfcSimulatesS2N : {len} (fin len) => connection -> Parameters -> Bool
 rfcSimulatesS2N conn pars = 
-   valid_connection conn ==>
-   or [rfcSimulatesS2N2 conn pars s1 s2 | s1 <- states, s2 <- states]
-   where states = [0 .. 23] // warning, 23 is a hardcoding of the maximum state number in the RFC state machine
+   initial_connection conn /\ connectionParameters conn pars ==>
+   and (map (uncurry s2nRFCState) (zip (traceS2N `{n = len} conn) (traceRFC pars))) 
 
-rfcSimulatesS2N2 : connection -> Parameters -> State -> State -> Bool
-rfcSimulatesS2N2 conn pars rfcPre rfcPost =
-   (s2nRFCState s2nPre rfcPre /\
-    s2nRFCState s2nPost rfcPost /\
-    handshakeTransition pars rfcPre rfcPost) 
-   where s2nPre  = ACTIVE_STATE conn
-         s2nPost = ACTIVE_STATE (advance_message conn)
+// rfcSimulatesS2N2 : connection -> Parameters -> State -> State -> Bool
+// rfcSimulatesS2N2 conn pars rfcPre rfcPost =
+//    (s2nRFCState s2nPre rfcPre /\
+//     s2nRFCState s2nPost rfcPost /\
+//     handshakeTransition pars rfcPre rfcPost) 
+//    where s2nPre  = ACTIVE_STATE conn
+//          conn'   = if helloState then conn_set_handshake_type conn else conn
+//          s2nPost = ACTIVE_STATE (advance_message conn')
+//          
+
+// generate a sequence of states for the the RFC handshake state machine given
+// handshake parameters
+traceRFC : {n} (fin n) => Parameters -> [n]State
+traceRFC params = take (iterate (handshakeTransition params) helloRequestSent)
 
 type State = [5]
 
@@ -105,18 +113,43 @@ type KeyExchange = [3]
 
 // Protocol parameters that determine the transition to take in each state
 type Parameters = {keyExchange : KeyExchange //Negotiated key exchange algorithm
-                  ,sessionTicket : Bit
+                  ,sessionTicket : Bit // the client had a session ticket
                   ,renewSessionTicket : Bit //Whether the server decides to renew a session ticket
                   ,sendCertificateStatus : Bit //Whether the server decides to send the certificate status message
                   ,requestClientCert : Bit //Whether the server requests a certificate from the client
                   ,includeSessionTicket : Bit //Whether the server includes a session ticket extension in SERVER_HELLO
                   }
 
+// A relation between the s2n_connection struct and the parameters
+connectionParameters : connection -> Parameters -> Bit
+connectionParameters conn params =
+    conn.server_can_send_ocsp == params.sendCertificateStatus
+ /\ ((conn.key_exchange_eph /\ keyExchangeEphemeral params) \/
+     (~conn.key_exchange_eph /\ keyExchangeNonEphemeral params))
+ /\ (conn.is_caching_enabled /\ conn.resume_from_cache) == params.sessionTicket
+ /\ (~params.includeSessionTicket) // s2n server does not issue tickets at this time
+ /\ (~params.renewSessionTicket) // s2n server does not issue tickets at this time
+
+keyExchangeNonEphemeral : Parameters -> Bit
+keyExchangeNonEphemeral params = params.keyExchange == RSA \/ params.keyExchange == DH_DSS \/ params.keyExchange == DH_RSA // key exchange algorithm does not require KeyExchange messages
+
+keyExchangeEphemeral : Parameters -> Bit
+keyExchangeEphemeral params =  params.keyExchange == DHE_DSS \/ params.keyExchange == DHE_RSA
+
+// returns the first element of an array that satisfies a given
+// predicate. If none found, a provided default value is returned.
+find : {n, x} (fin n) => (x -> Bool) -> x -> [n]x -> x
+find p def xs = snd (foldl f (False, def) xs)
+   where f (found, y) next = if ~found /\ p next then (True, next) else (found, y)
+
+head : {n, x} [n+1]x -> x
+head (([a] : [1]x) # _) = a
+
 // Handshake state transition relation per the RFCs
-handshakeTransition : Parameters -> State -> State -> Bool
-handshakeTransition params old new =
-  or [ old == from /\ new == to /\ p | (from, p, to) <- valid_transitions]
-  where noKE = params.keyExchange == RSA \/ params.keyExchange == DH_DSS \/ params.keyExchange == DH_RSA // key exchange algorithm does not require KeyExchange messages
+handshakeTransition : Parameters -> State -> State
+handshakeTransition params old =
+  snd (find fst (True, old) [ (old == from /\ p, to) | (from, p, to) <- valid_transitions])
+  where  
         valid_transitions =
           [(helloRequestSent, True, clientHelloSent)
           
@@ -127,9 +160,9 @@ handshakeTransition params old new =
           ,(serverHelloSent, params.sessionTicket /\ params.renewSessionTicket,  serverNewSessionTicketSent)
           ,(serverHelloSent, params.sessionTicket /\ ~params.renewSessionTicket, serverChangeCipherSpecWithTicketSent)
 
-          ,(serverCertificateSent, noKE /\ ~params.requestClientCert /\ ~params.sendCertificateStatus, serverHelloDoneSent)
-          ,(serverCertificateSent, noKE /\ params.requestClientCert /\ ~params.sendCertificateStatus, certificateRequestSent)
-          ,(serverCertificateSent, ~noKE /\ ~params.sendCertificateStatus, serverKeyExchangeSent)
+          ,(serverCertificateSent, keyExchangeNonEphemeral params /\ ~params.requestClientCert /\ ~params.sendCertificateStatus, serverHelloDoneSent)
+          ,(serverCertificateSent, keyExchangeNonEphemeral params /\ params.requestClientCert /\ ~params.sendCertificateStatus, certificateRequestSent)
+          ,(serverCertificateSent, ~(keyExchangeNonEphemeral params) /\ ~params.sendCertificateStatus, serverKeyExchangeSent)
           ,(serverCertificateSent, params.sendCertificateStatus,  serverCertificateStatusSent)
 
           ,(serverKeyExchangeSent, ~params.requestClientCert, serverHelloDoneSent)
@@ -170,9 +203,9 @@ handshakeTransition params old new =
           
           ,(clientFinishedWithTicketSent, True, applicationDataTransmission)
 
-          ,(serverCertificateStatusSent, noKE /\ ~params.requestClientCert, serverHelloDoneSent)
-          ,(serverCertificateStatusSent, noKE /\ params.requestClientCert, certificateRequestSent)
-          ,(serverCertificateStatusSent, ~noKE, serverKeyExchangeSent)
+          ,(serverCertificateStatusSent, keyExchangeNonEphemeral params /\ ~params.requestClientCert, serverHelloDoneSent)
+          ,(serverCertificateStatusSent, keyExchangeNonEphemeral params /\ params.requestClientCert, certificateRequestSent)
+          ,(serverCertificateStatusSent, ~(keyExchangeNonEphemeral params), serverKeyExchangeSent)
           ]
 
 fst (a, b) = a
@@ -216,8 +249,8 @@ message = lookupDefault messages (mkMessage noSender data error)
             ]
 
 lookupDefault : {a, b, n} (fin n, Cmp a) => [n](a, b) -> b -> a -> b
-lookupDefault dict def key = fst (foldl find (def, False) dict)
-   where find (value, found) (key', value') =
+lookupDefault dict def key = fst (foldl f (def, False) dict)
+   where f (value, found) (key', value') =
            if found then (value, found)
            else if key == key' then (value', True)
                 else (value, found)
@@ -274,3 +307,22 @@ s2nMessageType state =
            prot = (message state).protocol
 
 ERROR_MESSAGE = 10 // unused in current s2n
+
+// ad-hoc tests
+// regression 3
+conn1 = {corked = 0,
+        corked_io = 0,
+        handshake = {handshake_type = 0,
+                     message_number = 0},
+        is_caching_enabled = False,
+        key_exchange_eph = False,
+        mode = 0,
+        resume_from_cache = False,
+        server_can_send_ocsp = False}
+
+pars1 = {includeSessionTicket = False,
+        keyExchange = 4,
+        renewSessionTicket = False,
+        requestClientCert = False,
+        sendCertificateStatus = False,
+        sessionTicket = False}
