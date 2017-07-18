@@ -58,7 +58,7 @@ type connection = {handshake : handshake
                   ,resume_from_cache : Bit
                   ,server_can_send_ocsp : Bit
                   ,key_exchange_eph : Bit
-                  ,client_auth_flag : Bit
+                  ,client_auth_flag : Bit //whether the server will request client cert
                   }
 
 type handshake = {handshake_type : [32]
