@@ -386,6 +386,7 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config,
 |------------|-------|--------|--------|--------|---------|-------------------|---------|------|-----|-----|-------|
 | "default"  |       |   X    |    X   |    X   |    X    |         X         |    X    |      |     |     |   X   |
 | "20170328" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |  X  |   X   |
+| "20170405" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |     |   X   |
 | "20170210" |       |   X    |    X   |    X   |    X    |         X         |    X    |      |     |     |   X   |
 | "20160824" |       |   X    |    X   |    X   |    X    |                   |    X    |      |     |     |   X   |
 | "20160804" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |     |   X   |
@@ -399,6 +400,8 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config,
 The "default" version is special in that it will be updated with future s2n changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change. 
 
 "20160411" follows the same general preference order as "default". The main difference is it has a CBC cipher suite at the top. This is to accomodate certain Java clients that have poor GCM implementations. Users of s2n who have found GCM to be hurting performance for their clients should consider this version.
+
+"20170405" is a FIPS compliant cipher suite preference list based on approved algorithms in the [FIPS 140-2 Annex A](http://csrc.nist.gov/publications/fips/fips140-2/fips1402annexa.pdf). Similarly to "20160411", this perference list has CBC cipher suites at the top to accomodate certain Java clients. Users of s2n who plan to enable FIPS mode should consider this version.
 
 s2n does not expose an API to control the order of preference for each ciphersuite or protocol version. s2n follows the following order:
 
@@ -512,6 +515,27 @@ should return 0 on success and -1 on error. The function is also required to
 implement a monotonic time source; the number of nanoseconds returned should
 never decrease between calls.
 
+### s2n\_config\_set\_client\_hello\_cb
+
+```c
+int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_fn client_hello_callback, void *ctx);
+```
+
+**s2n_config_set_client_hello_cb** allows the caller to set a callback function
+that will be called after ClientHello was parsed.
+
+```c
+typedef int s2n_client_hello_fn(struct s2n_connection *conn, void *ctx);
+```
+
+The callback function take as an input s2n connection, which received
+ClientHello and context provided in **s2n_config_set_client_hello_cb**. The
+callback can get any ClientHello infromation from the connection and use
+**s2n_connection_set_config** call to change the config of the connection.
+
+The callback can return 0 to continue handshake in s2n or it can return negative
+value to make s2n terminate handshake early with fatal handshake failure alert.
+
 ## Session Caching related calls
 
 s2n includes support for resuming from cached SSL/TLS session, provided 
@@ -591,6 +615,24 @@ int s2n_connection_set_config(struct s2n_connection *conn,
 **s2n_connection_set_config** Associates a configuration object with a
 connection. 
 
+### s2n\_connection\_set\_ctx
+
+```c
+int s2n_connection_set_ctx(struct s2n_connection *conn, void *ctx);
+```
+
+**s2n_connection_set_ctx** sets user defined context in **s2n_connection**
+object.
+
+### s2n\_connection\_get\_ctx
+
+```c
+void *s2n_connection_get_ctx(struct s2n_connection *conn);
+```
+
+**s2n_connection_get_ctx** gets user defined context from **s2n_connection**
+object.
+
 ### s2n\_connection\_set\_fd
 
 ```c
@@ -641,7 +683,7 @@ built-in blinding (set blinding to S2N_BUILT_IN_BLINDING) or self-service blindi
 ### s2n\_connection\_get\_delay
 
 ```c
-int64_t s2n_connection_get_delay(struct s2n_connection *conn);
+uint64_t s2n_connection_get_delay(struct s2n_connection *conn);
 ```
 
 **s2n_connection_get_delay** returns the number of nanoseconds an application

@@ -693,6 +693,7 @@ int main(int argc, char **argv)
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
         struct s2n_config *client_config;
+        const uint8_t *server_ocsp_reply;
         int server_to_client[2];
         int client_to_server[2];
         uint32_t length;
@@ -730,9 +731,13 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
-        /* Verify that the client didn't receive an OCSP response. */
-        EXPECT_NULL(s2n_connection_get_ocsp_response(client_conn, &length));
-        EXPECT_EQUAL(length, 0);
+        /* Verify that the client received an OCSP response. */
+        EXPECT_NOT_NULL(server_ocsp_reply = s2n_connection_get_ocsp_response(client_conn, &length));
+        EXPECT_EQUAL(length, sizeof(server_ocsp_status));
+
+        for (int i = 0; i < sizeof(server_ocsp_status); i++) {
+            EXPECT_EQUAL(server_ocsp_reply[i], server_ocsp_status[i]);
+        }
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 

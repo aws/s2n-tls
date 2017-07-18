@@ -72,29 +72,26 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
+    if (s2n_stuffer_data_available(in) >= 2) {
+        GUARD(s2n_stuffer_read_uint16(in, &extensions_size));
+
+        if (extensions_size > s2n_stuffer_data_available(in)) {
+            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        }
+
+        struct s2n_blob extensions;
+        extensions.size = extensions_size;
+        extensions.data = s2n_stuffer_raw_read(in, extensions.size);
+        notnull_check(extensions.data);
+
+        GUARD(s2n_server_extensions_recv(conn, &extensions));
+    }
+
     GUARD(s2n_conn_set_handshake_type(conn));
 
     if (IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type)) {
         GUARD(s2n_prf_key_expansion(conn));
     }
-
-    if (s2n_stuffer_data_available(in) < 2) {
-        /* No extensions */
-        return 0;
-    }
-
-    GUARD(s2n_stuffer_read_uint16(in, &extensions_size));
-
-    if (extensions_size > s2n_stuffer_data_available(in)) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
-
-    struct s2n_blob extensions;
-    extensions.size = extensions_size;
-    extensions.data = s2n_stuffer_raw_read(in, extensions.size);
-    notnull_check(extensions.data);
-
-    GUARD(s2n_server_extensions_recv(conn, &extensions));
 
     return 0;
 }

@@ -365,9 +365,7 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
 
 static int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    uint16_t size_of_all;
-    GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
-    if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all < 5) {
+    if (s2n_stuffer_data_available(extension) < 5) {
         /* Malformed length, ignore the extension */
         return 0;
     }

@@ -40,6 +40,9 @@ struct s2n_connection {
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
 
+    /* The user defined context associated with connection */
+    void *context;
+
     /* The send and receive callbacks don't have to be the same (e.g. two pipes) */
     s2n_send_fn *send;
     s2n_recv_fn *recv;
@@ -84,6 +87,11 @@ struct s2n_connection {
     uint8_t server_protocol_version;
     uint8_t actual_protocol_version;
     uint8_t actual_protocol_version_established;
+
+    /* Certificate Authentication and Verification Parameters */
+    s2n_cert_auth_type client_cert_auth_type;
+    verify_cert_trust_chain *verify_cert_chain_cb;
+    void *verify_cert_context;
 
     /* Our crypto parameters */
     struct s2n_crypto_parameters initial;
@@ -188,3 +196,9 @@ int s2n_connection_kill(struct s2n_connection *conn);
 /* Send/recv a stuffer to/from a connection */
 int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connection *conn, uint32_t len);
 int s2n_connection_recv_stuffer(struct s2n_stuffer *stuffer, struct s2n_connection *conn, uint32_t len);
+
+extern int s2n_connection_set_cert_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type);
+extern int s2n_connection_set_verify_cert_chain_cb(struct s2n_connection *conn, verify_cert_trust_chain *callback, void *context);
+
+int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
+int deny_all_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key, void *context);

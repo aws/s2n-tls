@@ -305,7 +305,9 @@ is_caching_enabled = False,
 key_exchange_eph = False,
 mode = 0,
 resume_from_cache = False,
-server_can_send_ocsp = True}
+server_can_send_ocsp = True,
+client_auth_flag = False
+}
 
 pars1 = {includeSessionTicket = False,
 keyExchange = 3,

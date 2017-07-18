@@ -58,6 +58,7 @@ type connection = {handshake : handshake
                   ,resume_from_cache : Bit
                   ,server_can_send_ocsp : Bit
                   ,key_exchange_eph : Bit
+                  ,client_auth_flag : Bit
                   }
 
 type handshake = {handshake_type : [32]
@@ -100,13 +101,14 @@ conn_set_handshake_type conn = conn'
                 ,is_caching_enabled = conn.is_caching_enabled
                 ,resume_from_cache = conn.resume_from_cache
                 ,server_can_send_ocsp = conn.server_can_send_ocsp
-                ,key_exchange_eph = conn.key_exchange_eph}
+                ,key_exchange_eph = conn.key_exchange_eph
+                ,client_auth_flag = conn.client_auth_flag}
         (handshake' : handshake) = {handshake_type = handshake_type'
                                    ,message_number = conn.handshake.message_number
                                    }
         handshake_type' = NEGOTIATED || full_handshake ||
                           (if (full_handshake != 0) then
-                             perfect_forward_secrecy || ocsp_status
+                             perfect_forward_secrecy || ocsp_status || client_auth
                              else zero)
         full_handshake  = if (conn.is_caching_enabled && ~conn.resume_from_cache)
                           then zero
@@ -116,6 +118,9 @@ conn_set_handshake_type conn = conn'
                                   else zero
         ocsp_status = if conn.server_can_send_ocsp
                       then OCSP_STATUS
+                      else zero
+        client_auth = if conn.client_auth_flag
+                      then CLIENT_AUTH
                       else zero
                                                      
 // This function models the update of the s2n_connection struct by the
@@ -130,6 +135,7 @@ advance_message conn = conn2
                 ,resume_from_cache = conn.resume_from_cache
                 ,server_can_send_ocsp = conn.server_can_send_ocsp
                 ,key_exchange_eph = conn.key_exchange_eph
+                ,client_auth_flag = conn.client_auth_flag
                 }
         (handshake2 : handshake) = {handshake_type = conn.handshake.handshake_type
                                    ,message_number = conn.handshake.message_number + 1
@@ -199,7 +205,24 @@ handshakes_fn handshk =
      CLIENT_FINISHED, SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED, APPLICATION_DATA] # zero else
    if handshk == (NEGOTIATED || FULL_HANDSHAKE || PERFECT_FORWARD_SECRECY || OCSP_STATUS || WITH_SESSION_TICKET) then [CLIENT_HELLO, SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS,
      SERVER_KEY, SERVER_HELLO_DONE, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED, 
-     SERVER_NEW_SESSION_TICKET, SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED, APPLICATION_DATA] # zero
+     SERVER_NEW_SESSION_TICKET, SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED, APPLICATION_DATA] # zero else
+   if handshk == (NEGOTIATED || FULL_HANDSHAKE || CLIENT_AUTH)
+     then [CLIENT_HELLO, SERVER_HELLO, SERVER_CERT, SERVER_CERT_REQ, SERVER_HELLO_DONE, CLIENT_CERT, CLIENT_KEY, CLIENT_CERT_VERIFY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+             SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
+             APPLICATION_DATA] # zero
+   else
+   if handshk ==  (NEGOTIATED || FULL_HANDSHAKE || PERFECT_FORWARD_SECRECY || CLIENT_AUTH) then [            CLIENT_HELLO,
+            SERVER_HELLO, SERVER_CERT, SERVER_KEY, SERVER_CERT_REQ, SERVER_HELLO_DONE,
+            CLIENT_CERT, CLIENT_KEY, CLIENT_CERT_VERIFY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+            SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
+            APPLICATION_DATA] # zero
+   else
+   if handshk == (NEGOTIATED || FULL_HANDSHAKE || PERFECT_FORWARD_SECRECY || OCSP_STATUS || CLIENT_AUTH) then
+   [CLIENT_HELLO,
+             SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS, SERVER_KEY, SERVER_CERT_REQ, SERVER_HELLO_DONE,
+             CLIENT_CERT, CLIENT_KEY, CLIENT_CERT_VERIFY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+             SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
+             APPLICATION_DATA] # zero
    else zero  
 
 // A predicate to tell whether a given handshake struct is valid
@@ -235,6 +258,9 @@ OCSP_STATUS : [32]
 OCSP_STATUS = zero # 0x08
 WITH_SESSION_TICKET : [32]
 WITH_SESSION_TICKET = zero # 0x20
+CLIENT_AUTH : [32]
+CLIENT_AUTH = zero # 0x10
+
 
 CLIENT_HELLO = 0
 SERVER_HELLO = 1

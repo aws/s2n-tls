@@ -66,9 +66,6 @@ struct s2n_handshake {
 #define INITIAL                     0x00
 #define NEGOTIATED                  0x01
 
-/* Resume is just "negotiated" */
-#define RESUME                      0x01
-
 /* Handshake is a full handshake  */
 #define FULL_HANDSHAKE              0x02
 #define IS_FULL_HANDSHAKE( type )   ( (type) & FULL_HANDSHAKE )
@@ -79,6 +76,9 @@ struct s2n_handshake {
 
 /* Handshake needs OCSP status message */
 #define OCSP_STATUS                 0x08
+
+/* Handshake should request a Client Certificate */
+#define CLIENT_AUTH                 0x10
 
 /* Session Resumption via session-tickets */
 #define WITH_SESSION_TICKET         0x20

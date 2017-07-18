@@ -67,6 +67,11 @@ int get_nanoseconds_since_epoch(void *data, uint64_t * nanoseconds)
 
 #endif
 
+int deny_all_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key, void *context)
+{
+    S2N_ERROR(S2N_ERR_CERT_UNTRUSTED);
+}
+
 struct s2n_config s2n_default_config = {
     .cert_and_key_pairs = NULL,
     .cipher_preferences = &cipher_preferences_20170210,
@@ -87,6 +92,8 @@ struct s2n_config *s2n_config_new(void)
     new_config->application_protocols.size = 0;
     new_config->status_request_type = S2N_STATUS_REQUEST_NONE;
     new_config->nanoseconds_since_epoch = get_nanoseconds_since_epoch;
+    new_config->client_hello_cb = NULL;
+    new_config->client_hello_cb_ctx = NULL;
     new_config->cache_store = NULL;
     new_config->cache_store_data = NULL;
     new_config->cache_retrieve = NULL;
@@ -94,6 +101,12 @@ struct s2n_config *s2n_config_new(void)
     new_config->cache_delete = NULL;
     new_config->cache_delete_data = NULL;
     new_config->ct_type = S2N_CT_SUPPORT_NONE;
+
+    /* By default, only the client will authenticate the Server's Certificate. The Server does not request or
+     * authenticate any client certificates. */
+    new_config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
+    new_config->verify_cert_chain_cb = deny_all_certs;
+    new_config->verify_cert_context = NULL;
 
     GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default"));
 
@@ -215,6 +228,8 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
     /* Allocate the memory for the chain and key struct */
     GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert_chain_and_key)));
     config->cert_and_key_pairs = (struct s2n_cert_chain_and_key *)(void *)mem.data;
+    config->cert_and_key_pairs->head = NULL;
+    config->cert_and_key_pairs->private_key.rsa = NULL;
     config->cert_and_key_pairs->ocsp_status.data = NULL;
     config->cert_and_key_pairs->ocsp_status.size = 0;
     config->cert_and_key_pairs->sct_list.data = NULL;
@@ -382,3 +397,10 @@ int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_t
     return 0;
 }
 
+int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_fn client_hello_cb, void *ctx)
+{
+    config->client_hello_cb = client_hello_cb;
+    config->client_hello_cb_ctx = ctx;
+
+    return 0;
+}
