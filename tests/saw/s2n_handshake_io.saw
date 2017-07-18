@@ -29,14 +29,14 @@ let fresh_ptr ty = do {
 };
 
 // conn->corked_io
-let conn_corked_io pconn = crucible_elem pconn 6;
+let conn_corked_io pconn = crucible_elem pconn 7;
 
 //conn->mode
-let conn_mode pconn = crucible_elem pconn 7;
+let conn_mode pconn = crucible_elem pconn 8;
 
 //conn->secure.cipher_suite->key_exchange_alg->flags
 let conn_secure_cipher_suite pconn = (crucible_elem
-        (crucible_elem pconn 19) 10);
+        (crucible_elem pconn 23) 11);
 
 let key_exchange_algorithm csuite =
     crucible_elem csuite 3;
@@ -45,7 +45,7 @@ let kea_flags kea =
     crucible_elem kea 0;
 
 //conn->status_type
-let conn_status_type pconn = crucible_elem pconn 45;
+let conn_status_type pconn = crucible_elem pconn 49;
 
 let conn_config pconn = crucible_elem pconn 0;
 let cert_key_pairs config = (crucible_elem config 1);
@@ -53,11 +53,14 @@ let cert_key_pairs config = (crucible_elem config 1);
 //conn->config->cert_and_key_pairs->sct_list.size
 let sct_list_size cert_and_key = crucible_elem (crucible_elem (cert_and_key)  3) 1; 
 
+//conn->client_cert_auth_type
+let cca_type pconn = crucible_elem pconn 19 ;
+
 //conn->handshake.handshake_type
-let conn_handshake_handshake_type pconn = crucible_elem (crucible_elem pconn 36) 9;
+let conn_handshake_handshake_type pconn = crucible_elem (crucible_elem pconn 40) 9;
 
 //conn->handshake.message_number
-let conn_handshake_message_number pconn = crucible_elem (crucible_elem pconn 36) 10;
+let conn_handshake_message_number pconn = crucible_elem (crucible_elem pconn 40) 10;
 
 corked <- crucible_declare_ghost_state "corked";
 // assume the socket is initially uncorked
@@ -82,6 +85,9 @@ let setup_connection = do {
 
    cork_val <- crucible_fresh_var "corked" (llvm_int 1);
    crucible_ghost_value corked cork_val;
+
+   cca <- crucible_fresh_var "cca" (llvm_int 32);
+   crucible_points_to (cca_type pconn) (crucible_term cca);
 
    cipher_suite <- crucible_alloc (llvm_struct "struct.s2n_cipher_suite");
    crucible_points_to (conn_secure_cipher_suite pconn)  cipher_suite;
@@ -112,9 +118,12 @@ let setup_connection = do {
 		                  ,handshake_type = handshake_type}
          	     ,corked    = cork_val
                      ,is_caching_enabled = False
-                     ,key_exchange_eph =(eph_flag && 2) != zero //TODO 2 might be wrong
-                     ,server_can_send_ocsp = (ocsp_flag == 1) && (status_size > 0)
+                     ,key_exchange_eph =(eph_flag && 2) != zero 
+                     ,server_can_send_ocsp =
+                            ((ocsp_flag == 1) && (status_size > 0)) ||
+                            ((mode == 1) && (ocsp_flag == 1))
                      ,resume_from_cache = False
+                     ,client_auth_flag = (cca != 0)
                      }
                   }}); 
 };
