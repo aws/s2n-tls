@@ -12,6 +12,7 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+#include "crypto/s2n_fips.h"
 
 #include "tls/s2n_cipher_suites.h"
 
@@ -21,18 +22,20 @@
 
 int s2n_init(void)
 {
-	GUARD(s2n_mem_init());
-	GUARD(s2n_rand_init());
-	GUARD(s2n_cipher_suites_init());
+    GUARD(s2n_fips_init());
+    GUARD(s2n_mem_init());
+    GUARD(s2n_rand_init());
+    GUARD(s2n_cipher_suites_init());
 
-	return 0;
+    return 0;
 }
 
 int s2n_cleanup(void)
 {
-	GUARD(s2n_cipher_suites_cleanup());
-	GUARD(s2n_rand_cleanup());
-	GUARD(s2n_mem_cleanup());
+    GUARD(s2n_cipher_suites_cleanup());
+    GUARD(s2n_rand_cleanup());
+    GUARD(s2n_mem_cleanup());
+    GUARD(s2n_fips_cleanup());
 
-	return 0;
+    return 0;
 }
