@@ -54,29 +54,33 @@ typedef enum {
     S2N_HASH_MD5_SHA1
 } s2n_hash_algorithm;
 
-union s2n_hash_digest {
-    union s2n_hash_low_level_digest {
+union s2n_hash_low_level_digest {
+    MD5_CTX md5;
+    SHA_CTX sha1;
+    SHA256_CTX sha224;
+    SHA256_CTX sha256;
+    SHA512_CTX sha384;
+    SHA512_CTX sha512;
+    struct {
         MD5_CTX md5;
         SHA_CTX sha1;
-        SHA256_CTX sha224;
-        SHA256_CTX sha256;
-        SHA512_CTX sha384;
-        SHA512_CTX sha512;
-        struct {
-            MD5_CTX md5;
-            SHA_CTX sha1;
-        } md5_sha1;
-    } low_level;
-    struct s2n_hash_evp_digest {
-        struct s2n_evp_digest primary;
-        struct s2n_evp_digest md5_secondary;
-    } evp;
+    } md5_sha1;
 };
+
+struct s2n_hash_evp_digest {
+    struct s2n_evp_digest evp;
+    /* Always store a secondary evp_digest to allow resetting a hash_state to MD5_SHA1 from another alg. */
+    struct s2n_evp_digest evp_md5_secondary;
+};
+
 
 struct s2n_hash_state {
     s2n_hash_algorithm alg;
     const struct s2n_hash *hash_impl;
-    union s2n_hash_digest digest;
+    union {
+        union s2n_hash_low_level_digest low_level;
+        struct s2n_hash_evp_digest high_level;
+    } digest;
 };
 
 struct s2n_hash {

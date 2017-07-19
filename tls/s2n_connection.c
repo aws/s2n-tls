@@ -128,11 +128,11 @@ static int s2n_connection_new_hmacs(struct s2n_connection *conn)
 {
     /* Allocate long-term memory for the Connection's HMAC states */
     GUARD(s2n_hmac_new(&conn->initial.client_record_mac));
-    GUARD(s2n_hmac_new(&conn->initial.client_record_mac_copy));
     GUARD(s2n_hmac_new(&conn->initial.server_record_mac));
+    GUARD(s2n_hmac_new(&conn->initial.record_mac_copy_workspace));
     GUARD(s2n_hmac_new(&conn->secure.client_record_mac));
-    GUARD(s2n_hmac_new(&conn->secure.client_record_mac_copy));
     GUARD(s2n_hmac_new(&conn->secure.server_record_mac));
+    GUARD(s2n_hmac_new(&conn->secure.record_mac_copy_workspace));
 
     return 0;
 }
@@ -141,11 +141,11 @@ static int s2n_connection_init_hmacs(struct s2n_connection *conn)
 {
     /* Initialize all of the Connection's HMAC states */
     GUARD(s2n_hmac_init(&conn->initial.client_record_mac, S2N_HMAC_NONE, NULL, 0));
-    GUARD(s2n_hmac_init(&conn->initial.client_record_mac_copy, S2N_HMAC_NONE, NULL, 0));
     GUARD(s2n_hmac_init(&conn->initial.server_record_mac, S2N_HMAC_NONE, NULL, 0));
+    GUARD(s2n_hmac_init(&conn->initial.record_mac_copy_workspace, S2N_HMAC_NONE, NULL, 0));
     GUARD(s2n_hmac_init(&conn->secure.client_record_mac, S2N_HMAC_NONE, NULL, 0));
-    GUARD(s2n_hmac_init(&conn->secure.client_record_mac_copy, S2N_HMAC_NONE, NULL, 0));
     GUARD(s2n_hmac_init(&conn->secure.server_record_mac, S2N_HMAC_NONE, NULL, 0));
+    GUARD(s2n_hmac_init(&conn->secure.record_mac_copy_workspace, S2N_HMAC_NONE, NULL, 0));
 
     return 0;
 }
@@ -328,11 +328,11 @@ static int s2n_connection_reset_hmacs(struct s2n_connection *conn)
 {
     /* Reset all of the Connection's HMAC states */
     GUARD(s2n_hmac_reset(&conn->initial.client_record_mac));
-    GUARD(s2n_hmac_reset(&conn->initial.client_record_mac_copy));
     GUARD(s2n_hmac_reset(&conn->initial.server_record_mac));
+    GUARD(s2n_hmac_reset(&conn->initial.record_mac_copy_workspace));
     GUARD(s2n_hmac_reset(&conn->secure.client_record_mac));
-    GUARD(s2n_hmac_reset(&conn->secure.client_record_mac_copy));
     GUARD(s2n_hmac_reset(&conn->secure.server_record_mac));
+    GUARD(s2n_hmac_reset(&conn->secure.record_mac_copy_workspace));
 
     return 0;
 }
@@ -405,11 +405,11 @@ static int s2n_connection_free_hmacs(struct s2n_connection *conn)
 {
     /* Free all of the Connection's HMAC states */
     GUARD(s2n_hmac_free(&conn->initial.client_record_mac));
-    GUARD(s2n_hmac_free(&conn->initial.client_record_mac_copy));
     GUARD(s2n_hmac_free(&conn->initial.server_record_mac));
+    GUARD(s2n_hmac_free(&conn->initial.record_mac_copy_workspace));
     GUARD(s2n_hmac_free(&conn->secure.client_record_mac));
-    GUARD(s2n_hmac_free(&conn->secure.client_record_mac_copy));
     GUARD(s2n_hmac_free(&conn->secure.server_record_mac));
+    GUARD(s2n_hmac_free(&conn->secure.record_mac_copy_workspace));
 
     return 0;
 }

@@ -46,8 +46,14 @@
  * complexity of attack for even a 1 microsecond timing leak (which
  * is quite large) by a factor of around 83 trillion.
  */
-int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, struct s2n_hmac_state *copy, struct s2n_blob *decrypted)
+int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, struct s2n_blob *decrypted)
 {
+    /* Set up MAC copy workspace */
+    struct s2n_hmac_state *copy = &conn->client->record_mac_copy_workspace;
+    if (conn->mode == S2N_CLIENT) {
+       copy = &conn->server->record_mac_copy_workspace;
+    }
+    
     uint8_t mac_digest_size;
     GUARD(s2n_hmac_digest_size(hmac->alg, &mac_digest_size));
 

@@ -40,6 +40,9 @@ int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
 
 static int s2n_low_level_hash_new(struct s2n_hash_state *state)
 {
+    /* s2n_hash_new will always call the corresponding implementation of the s2n_hash
+     * being used. For the s2n_low_level_hash implementation, new is a no-op.
+     */
     return 0;
 }
 
@@ -186,13 +189,16 @@ static int s2n_low_level_hash_reset(struct s2n_hash_state *state)
 
 static int s2n_low_level_hash_free(struct s2n_hash_state *state)
 {
+    /* s2n_hash_free will always call the corresponding implementation of the s2n_hash
+     * being used. For the s2n_low_level_hash implementation, free is a no-op.
+     */
     return 0;
 }
 
 static int s2n_evp_hash_new(struct s2n_hash_state *state)
 {
-    notnull_check(state->digest.evp.primary.ctx = S2N_EVP_MD_CTX_NEW());
-    notnull_check(state->digest.evp.md5_secondary.ctx = S2N_EVP_MD_CTX_NEW());
+    notnull_check(state->digest.high_level.evp.ctx = S2N_EVP_MD_CTX_NEW());
+    notnull_check(state->digest.high_level.evp_md5_secondary.ctx = S2N_EVP_MD_CTX_NEW());
 
     return 0;
 }
@@ -205,26 +211,26 @@ static int s2n_evp_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm al
         r = 1;
         break;
     case S2N_HASH_MD5:
-        r = EVP_DigestInit_ex(state->digest.evp.primary.ctx, EVP_md5(), NULL);
+        r = EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_md5(), NULL);
         break;
     case S2N_HASH_SHA1:
-        r = EVP_DigestInit_ex(state->digest.evp.primary.ctx, EVP_sha1(), NULL);
+        r = EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha1(), NULL);
         break;
     case S2N_HASH_SHA224:
-        r = EVP_DigestInit_ex(state->digest.evp.primary.ctx, EVP_sha224(), NULL);
+        r = EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha224(), NULL);
         break;
     case S2N_HASH_SHA256:
-        r = EVP_DigestInit_ex(state->digest.evp.primary.ctx, EVP_sha256(), NULL);
+        r = EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha256(), NULL);
         break;
     case S2N_HASH_SHA384:
-        r = EVP_DigestInit_ex(state->digest.evp.primary.ctx, EVP_sha384(), NULL);
+        r = EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha384(), NULL);
         break;
     case S2N_HASH_SHA512:
-        r = EVP_DigestInit_ex(state->digest.evp.primary.ctx, EVP_sha512(), NULL);
+        r = EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha512(), NULL);
         break;
     case S2N_HASH_MD5_SHA1:
-        r = EVP_DigestInit_ex(state->digest.evp.primary.ctx, EVP_sha1(), NULL);
-        r &= EVP_DigestInit_ex(state->digest.evp.md5_secondary.ctx, EVP_md5(), NULL);
+        r = EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha1(), NULL);
+        r &= EVP_DigestInit_ex(state->digest.high_level.evp_md5_secondary.ctx, EVP_md5(), NULL);
         break;
     default:
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
@@ -252,11 +258,11 @@ static int s2n_evp_hash_update(struct s2n_hash_state *state, const void *data, u
     case S2N_HASH_SHA256:
     case S2N_HASH_SHA384:
     case S2N_HASH_SHA512:
-        r = EVP_DigestUpdate(state->digest.evp.primary.ctx, data, size);
+        r = EVP_DigestUpdate(state->digest.high_level.evp.ctx, data, size);
         break;
     case S2N_HASH_MD5_SHA1:
-        r = EVP_DigestUpdate(state->digest.evp.primary.ctx, data, size);
-        r &= EVP_DigestUpdate(state->digest.evp.md5_secondary.ctx, data, size);
+        r = EVP_DigestUpdate(state->digest.high_level.evp.ctx, data, size);
+        r &= EVP_DigestUpdate(state->digest.high_level.evp_md5_secondary.ctx, data, size);
         break;
     default:
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
@@ -287,11 +293,11 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
     case S2N_HASH_SHA256:
     case S2N_HASH_SHA384:
     case S2N_HASH_SHA512:
-        r = EVP_DigestFinal_ex(state->digest.evp.primary.ctx, out, &digest_size);
+        r = EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, out, &digest_size);
         break;
     case S2N_HASH_MD5_SHA1:
-        r = EVP_DigestFinal_ex(state->digest.evp.primary.ctx, ((uint8_t *) out) + MD5_DIGEST_LENGTH, &digest_size);
-        r &= EVP_DigestFinal_ex(state->digest.evp.md5_secondary.ctx, out, &digest_size);
+        r = EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, ((uint8_t *) out) + MD5_DIGEST_LENGTH, &digest_size);
+        r &= EVP_DigestFinal_ex(state->digest.high_level.evp_md5_secondary.ctx, out, &digest_size);
         break;
     default:
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
@@ -317,11 +323,11 @@ static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
     case S2N_HASH_SHA256:
     case S2N_HASH_SHA384:
     case S2N_HASH_SHA512:
-        r = EVP_MD_CTX_copy_ex(to->digest.evp.primary.ctx, from->digest.evp.primary.ctx);
+        r = EVP_MD_CTX_copy_ex(to->digest.high_level.evp.ctx, from->digest.high_level.evp.ctx);
         break;
     case S2N_HASH_MD5_SHA1:
-        r = EVP_MD_CTX_copy_ex(to->digest.evp.primary.ctx, from->digest.evp.primary.ctx);
-        r &= EVP_MD_CTX_copy_ex(to->digest.evp.md5_secondary.ctx, from->digest.evp.md5_secondary.ctx);
+        r = EVP_MD_CTX_copy_ex(to->digest.high_level.evp.ctx, from->digest.high_level.evp.ctx);
+        r &= EVP_MD_CTX_copy_ex(to->digest.high_level.evp_md5_secondary.ctx, from->digest.high_level.evp_md5_secondary.ctx);
         break;
     default:
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
@@ -340,10 +346,10 @@ static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
 static int s2n_evp_hash_reset(struct s2n_hash_state *state)
 {
     int r;
-    r = S2N_EVP_MD_CTX_RESET(state->digest.evp.primary.ctx);
+    r = S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp.ctx);
     
     if (state->alg == S2N_HASH_MD5_SHA1) {
-        r &= S2N_EVP_MD_CTX_RESET(state->digest.evp.md5_secondary.ctx);
+        r &= S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp_md5_secondary.ctx);
     }
 
     if (r == 0) {
@@ -355,10 +361,10 @@ static int s2n_evp_hash_reset(struct s2n_hash_state *state)
 
 static int s2n_evp_hash_free(struct s2n_hash_state *state)
 {
-    S2N_EVP_MD_CTX_FREE(state->digest.evp.primary.ctx);
-    S2N_EVP_MD_CTX_FREE(state->digest.evp.md5_secondary.ctx);
-    state->digest.evp.primary.ctx = NULL;
-    state->digest.evp.md5_secondary.ctx = NULL;
+    S2N_EVP_MD_CTX_FREE(state->digest.high_level.evp.ctx);
+    S2N_EVP_MD_CTX_FREE(state->digest.high_level.evp_md5_secondary.ctx);
+    state->digest.high_level.evp.ctx = NULL;
+    state->digest.high_level.evp_md5_secondary.ctx = NULL;
 
     return 0;
 }
