@@ -27,46 +27,89 @@
 #include <errno.h>
 
 #include <s2n.h>
-#include "crypto/s2n_rsa.h"
-#include "stuffer/s2n_stuffer.h"
-#include "utils/s2n_safety.h"
+#include <openssl/rsa.h>
+#include <openssl/x509.h>
 
 /* Accept all RSA Certificates is unsafe and is only used in the s2n Client */
 int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context)
 {
-    struct s2n_blob cert_chain_blob = { .data = cert_chain_in, .size = cert_chain_len};
-    struct s2n_stuffer cert_chain_in_stuffer;
-    GUARD(s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob));
-    GUARD(s2n_stuffer_write(&cert_chain_in_stuffer, &cert_chain_blob));
 
+    uint32_t bytes_read = 0;
     uint32_t certificate_count = 0;
-    while (s2n_stuffer_data_available(&cert_chain_in_stuffer)) {
-        uint32_t certificate_size;
+    while (bytes_read != cert_chain_len) {
+        if (bytes_read > cert_chain_len) {
+            return -1;
+        }
+        //24 Bit Cert Length
+        uint32_t next_certificate_size = 0;
+        next_certificate_size |= cert_chain_in[bytes_read++] << 16;
+        next_certificate_size |= cert_chain_in[bytes_read++] << 8;
+        next_certificate_size |= cert_chain_in[bytes_read++];
 
-        GUARD(s2n_stuffer_read_uint24(&cert_chain_in_stuffer, &certificate_size));
 
-        if (certificate_size == 0 || certificate_size > s2n_stuffer_data_available(&cert_chain_in_stuffer) ) {
-            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        if (next_certificate_size == 0 || next_certificate_size > (cert_chain_len - bytes_read) ) {
+            return -1;
         }
 
-        struct s2n_blob asn1cert;
-        asn1cert.data = s2n_stuffer_raw_read(&cert_chain_in_stuffer, certificate_size);
-        asn1cert.size = certificate_size;
-        notnull_check(asn1cert.data);
+        uint8_t *asn1_cert_data = &cert_chain_in[bytes_read];
+        bytes_read += next_certificate_size;
 
         /* Pull the public key from the first certificate */
         if (certificate_count == 0) {
-            struct s2n_rsa_public_key *rsa_pub_key_out;
-            GUARD(s2n_cert_public_key_get_rsa(public_key_out, &rsa_pub_key_out));
+            struct s2n_rsa_public_key *s2n_rsa;
+            s2n_cert_public_key_get_rsa(public_key_out, &s2n_rsa);
+
             /* Assume that the asn1cert is an RSA Cert */
-            GUARD(s2n_asn1der_to_rsa_public_key(rsa_pub_key_out, &asn1cert));
-            GUARD(s2n_cert_public_key_set_cert_type(public_key_out, S2N_CERT_TYPE_RSA_SIGN));
+
+            uint8_t *cert_to_parse = asn1_cert_data;
+            X509 *cert = d2i_X509(NULL, (const unsigned char **)(void *)&cert_to_parse, next_certificate_size);
+
+            if (cert == NULL) {
+                return -1;
+            }
+
+            /* If cert parsing is successful, d2i_X509 increments *cert_to_parse to the byte following the parsed data */
+            uint32_t parsed_len = cert_to_parse - asn1_cert_data;
+
+            if (parsed_len != next_certificate_size) {
+                X509_free(cert);
+                return -1;
+            }
+
+            EVP_PKEY *public_key = X509_get_pubkey(cert);
+            X509_free(cert);
+
+            if (public_key == NULL) {
+                return -1;
+            }
+
+            if (EVP_PKEY_base_id(public_key) != EVP_PKEY_RSA) {
+                EVP_PKEY_free(public_key);
+                return -1;
+            }
+
+            RSA *openssl_rsa;
+            openssl_rsa = EVP_PKEY_get1_RSA(public_key);
+            if (openssl_rsa == NULL) {
+                EVP_PKEY_free(public_key);
+                return -1;
+            }
+
+            s2n_rsa_public_key_set_from_openssl(s2n_rsa, openssl_rsa);
+
+            EVP_PKEY_free(public_key);
+
+            s2n_cert_public_key_set_cert_type(public_key_out, S2N_CERT_TYPE_RSA_SIGN);
+
         }
 
         certificate_count++;
     }
 
-    gte_check(certificate_count, 1);
+    if (!(certificate_count > 1)) {
+        return -1;
+    }
+
     return 0;
 }
 

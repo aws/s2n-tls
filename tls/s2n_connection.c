@@ -26,6 +26,7 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_connection_evp_digests.h"
+#include "tls/s2n_handshake.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
@@ -125,8 +126,6 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     conn = (struct s2n_connection *)(void *)blob.data;
     conn->config = &s2n_default_config;
 
-
-
     if (mode == S2N_CLIENT) {
         /* At present s2n is not suitable for use in client mode, as it
          * does not perform any certificate validation. However it is useful
@@ -137,7 +136,9 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
             GUARD_PTR(s2n_free(&blob));
             S2N_ERROR_PTR(S2N_ERR_CLIENT_MODE_DISABLED);
         }
-        conn->config = &s2n_unsafe_client_config;
+        /* S2N does not have it's own x509 Certificate parser, so Client Mode should only be used for testing purposes.
+         * In Client mode, we skip Cert Validation and assume that all Server RSA x509 Certs are valid. */
+        conn->config = &s2n_unsafe_client_testing_config;
     }
 
     conn->mode = mode;
@@ -698,7 +699,9 @@ int s2n_connection_get_client_hello_version(struct s2n_connection *conn)
 
 int s2n_connection_did_handshake_negotiate_client_auth(struct s2n_connection *conn)
 {
-    if (conn->handshake.handshake_type & CLIENT_AUTH) {
+    if ((conn->handshake.handshake_type & CLIENT_AUTH)
+        && !(conn->closed)
+        && (APPLICATION_DATA == s2n_conn_get_current_message_type(conn))) {
         return 1;
     }
     return 0;

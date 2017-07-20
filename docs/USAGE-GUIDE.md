@@ -814,6 +814,14 @@ returns the protocol version used in the initial client hello message.
 Each version number value corresponds to the macros defined as **S2N_SSLv2**,
 **S2N_SSLv3**, **S2N_TLS10**, **S2N_TLS11** and **S2N_TLS12**.
 
+### s2n\_connection\_did\_handshake\_negotiate\_client\_auth
+
+```c
+int s2n_connection_did_handshake_negotiate_client_auth(struct s2n_connection *conn);
+```
+**s2n_connection_did_handshake_negotiate_client_auth** returns 1 if the handshake completed, the connection is not closed,
+and Client Auth was negotiated during the handshake.
+
 ### s2n\_get\_application\_protocol
 
 ```c

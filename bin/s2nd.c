@@ -417,7 +417,7 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    if(mutual_auth) {
+    if (mutual_auth) {
         s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED);
         s2n_config_set_verify_cert_chain_cb(config, &accept_all_rsa_certs, NULL);
     }
@@ -446,7 +446,7 @@ int main(int argc, char *const *argv)
 
         negotiate(conn);
 
-        if(mutual_auth) {
+        if (mutual_auth) {
             if(!s2n_connection_did_handshake_negotiate_client_auth(conn)) {
                 fprintf(stderr, "Error: Mutual Auth was required, but not negotiatied.\n");
                 return -1;

@@ -121,7 +121,7 @@ struct s2n_config s2n_default_config = {
 };
 
 /* This config should only used by the s2n_client for unit/integration testing purposes. */
-struct s2n_config s2n_unsafe_client_config = {
+struct s2n_config s2n_unsafe_client_testing_config = {
     .cert_and_key_pairs = NULL,
     .cipher_preferences = &cipher_preferences_20170210,
     .nanoseconds_since_epoch = get_nanoseconds_since_epoch,
