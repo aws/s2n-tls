@@ -336,7 +336,7 @@ static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
     if (r == 0) {
         S2N_ERROR(S2N_ERR_HASH_COPY_FAILED);
     }
-
+    to->hash_impl = from->hash_impl;
     to->alg = from->alg;
 
     return 0;
@@ -368,7 +368,7 @@ static int s2n_evp_hash_free(struct s2n_hash_state *state)
     return 0;
 }
 
-const struct s2n_hash s2n_low_level_hash = {
+static const struct s2n_hash s2n_low_level_hash = {
     .new = &s2n_low_level_hash_new,
     .init = &s2n_low_level_hash_init,
     .update = &s2n_low_level_hash_update,
@@ -378,7 +378,7 @@ const struct s2n_hash s2n_low_level_hash = {
     .free = &s2n_low_level_hash_free,
 };
 
-const struct s2n_hash s2n_evp_hash = {
+static const struct s2n_hash s2n_evp_hash = {
     .new = &s2n_evp_hash_new,
     .init = &s2n_evp_hash_init,
     .update = &s2n_evp_hash_update,
@@ -390,11 +390,21 @@ const struct s2n_hash s2n_evp_hash = {
 
 int s2n_hash_new(struct s2n_hash_state *state)
 {
-    return s2n_hash->new(state);
+    /* Set hash_impl on initial hash creation.
+     * When in FIPS mode, the EVP API's must be used for hashes.
+     */
+    s2n_is_in_fips_mode() ? (state->hash_impl = &s2n_evp_hash) : (state->hash_impl = &s2n_low_level_hash);
+
+    return state->hash_impl->new(state);
 }
 
 int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
 {
+    /* Ensure that hash_impl is set, as it may have been reset for s2n_hash_state on s2n_connection_wipe.
+     * When in FIPS mode, the EVP API's must be used for hashes.
+     */
+    s2n_is_in_fips_mode() ? (state->hash_impl = &s2n_evp_hash) : (state->hash_impl = &s2n_low_level_hash);
+
     if (s2n_is_in_fips_mode()) {
         /* Prevent MD5 hashes from being used when FIPS mode is set. Don't do this within
          * s2n_evp_hash_init as that may be used for non-FIPS at some point in the future.
@@ -408,30 +418,35 @@ int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
         }
     }
 
-    return s2n_hash->init(state, alg);
+    return state->hash_impl->init(state, alg);
 }
 
 int s2n_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size)
 {
-    return s2n_hash->update(state, data, size);
+    return state->hash_impl->update(state, data, size);
 }
 
 int s2n_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size)
 {
-    return s2n_hash->digest(state, out, size);
+    return state->hash_impl->digest(state, out, size);
 }
 
 int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from)
 {
-    return s2n_hash->copy(to, from);
+    return from->hash_impl->copy(to, from);
 }
 
 int s2n_hash_reset(struct s2n_hash_state *state)
 {
-    return s2n_hash->reset(state);
+    return state->hash_impl->reset(state);
 }
 
 int s2n_hash_free(struct s2n_hash_state *state)
 {
-    return s2n_hash->free(state);
+    /* Ensure that hash_impl is set, as it may have been reset for s2n_hash_state on s2n_connection_wipe.
+     * When in FIPS mode, the EVP API's must be used for hashes.
+     */
+    s2n_is_in_fips_mode() ? (state->hash_impl = &s2n_evp_hash) : (state->hash_impl = &s2n_low_level_hash);
+
+    return state->hash_impl->free(state);
 }

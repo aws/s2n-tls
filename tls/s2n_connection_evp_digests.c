@@ -13,10 +13,14 @@
  * permissions and limitations under the License.
  */
 
-#include "tls/s2n_connection_handles.h"
+#include "tls/s2n_connection_evp_digests.h"
 
 #include "utils/s2n_safety.h"
 
+/* On s2n_connection_wipe, save all pointers to OpenSSL EVP digest structs in a temporary
+ * s2n_connection_prf_handles struct to avoid re-allocation after zeroing the connection struct.
+ * Do not store any additional hash/HMAC state as it is unnecessary and excessive copying would impact performance.
+ */
 int s2n_connection_save_prf_state(struct s2n_connection_prf_handles *prf_handles, struct s2n_connection *conn)
 {
     /* Preserve only the handlers for TLS PRF p_hash pointers to avoid re-allocation */
@@ -28,6 +32,10 @@ int s2n_connection_save_prf_state(struct s2n_connection_prf_handles *prf_handles
     return 0;
 }
 
+/* On s2n_connection_wipe, save all pointers to OpenSSL EVP digest structs in a temporary
+ * s2n_connection_hash_handles struct to avoid re-allocation after zeroing the connection struct.
+ * Do not store any additional hash state as it is unnecessary and excessive copying would impact performance.
+ */
 int s2n_connection_save_hash_state(struct s2n_connection_hash_handles *hash_handles, struct s2n_connection *conn)
 {
     /* Preserve only the handlers for handshake hash state pointers to avoid re-allocation */
@@ -55,6 +63,10 @@ int s2n_connection_save_hash_state(struct s2n_connection_hash_handles *hash_hand
     return 0;
 }
 
+/* On s2n_connection_wipe, save all pointers to OpenSSL EVP digest structs in a temporary
+ * s2n_connection_hmac_handles struct to avoid re-allocation after zeroing the connection struct.
+ * Do not store any additional HMAC state as it is unnecessary and excessive copying would impact performance.
+ */
 int s2n_connection_save_hmac_state(struct s2n_connection_hmac_handles *hmac_handles, struct s2n_connection *conn)
 {
     /* Preserve only the handlers for initial client mac hmac state pointers to avoid re-allocation */
@@ -90,6 +102,10 @@ int s2n_connection_save_hmac_state(struct s2n_connection_hmac_handles *hmac_hand
     return 0;
 }
 
+/* On s2n_connection_wipe, restore all pointers to OpenSSL EVP digest structs after zeroing the connection struct
+ * to avoid re-allocation. Do not store any additional hash/HMAC state as it is unnecessary and excessive copying
+ * would impact performance.
+ */
 int s2n_connection_restore_prf_state(struct s2n_connection *conn, struct s2n_connection_prf_handles *prf_handles)
 {
     /* Restore s2n_connection handlers for TLS PRF p_hash */
@@ -101,6 +117,10 @@ int s2n_connection_restore_prf_state(struct s2n_connection *conn, struct s2n_con
     return 0;
 }
 
+/* On s2n_connection_wipe, restore all pointers to OpenSSL EVP digest structs after zeroing the connection struct
+ * to avoid re-allocation. Do not store any additional hash state as it is unnecessary and excessive copying
+ * would impact performance.
+ */
 int s2n_connection_restore_hash_state(struct s2n_connection *conn, struct s2n_connection_hash_handles *hash_handles)
 {
     /* Restore s2n_connection handlers for handshake hash states */
@@ -128,6 +148,10 @@ int s2n_connection_restore_hash_state(struct s2n_connection *conn, struct s2n_co
     return 0;
 }
 
+/* On s2n_connection_wipe, restore all pointers to OpenSSL EVP digest structs after zeroing the connection struct
+ * to avoid re-allocation. Do not store any additional HMAC state as it is unnecessary and excessive copying
+ * would impact performance.
+ */
 int s2n_connection_restore_hmac_state(struct s2n_connection *conn, struct s2n_connection_hmac_handles *hmac_handles)
 {
     /* Restore s2n_connection handlers for initial client record mac */

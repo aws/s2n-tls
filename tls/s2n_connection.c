@@ -25,7 +25,7 @@
 
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
-#include "tls/s2n_connection_handles.h"
+#include "tls/s2n_connection_evp_digests.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"

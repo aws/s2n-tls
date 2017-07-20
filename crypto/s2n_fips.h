@@ -15,6 +15,6 @@
 
 #pragma once
 
-extern int s2n_fips_init();
-extern int s2n_fips_cleanup();
-extern int s2n_is_in_fips_mode();
+extern int s2n_fips_init(void);
+extern int s2n_fips_cleanup(void);
+extern int s2n_is_in_fips_mode(void);

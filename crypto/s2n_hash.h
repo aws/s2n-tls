@@ -54,6 +54,7 @@ typedef enum {
     S2N_HASH_MD5_SHA1
 } s2n_hash_algorithm;
 
+/* The low_level_digest stores all OpenSSL structs that are alg-specific to be used with OpenSSL's low-level hash API's. */
 union s2n_hash_low_level_digest {
     MD5_CTX md5;
     SHA_CTX sha1;
@@ -67,14 +68,18 @@ union s2n_hash_low_level_digest {
     } md5_sha1;
 };
 
+/* The evp_digest stores all OpenSSL structs to be used with OpenSSL's EVP hash API's. */
 struct s2n_hash_evp_digest {
     struct s2n_evp_digest evp;
     /* Always store a secondary evp_digest to allow resetting a hash_state to MD5_SHA1 from another alg. */
     struct s2n_evp_digest evp_md5_secondary;
 };
 
-
+/* s2n_hash_state stores the s2n_hash implementation being used (low-level or EVP),
+ * the hash algorithm being used at the time, and either low_level or high_level (EVP) OpenSSL digest structs.
+ */
 struct s2n_hash_state {
+    const struct s2n_hash *hash_impl;
     s2n_hash_algorithm alg;
     union {
         union s2n_hash_low_level_digest low_level;
@@ -82,6 +87,9 @@ struct s2n_hash_state {
     } digest;
 };
 
+/* The s2n hash implementation is abstracted to allow for separate implementations, using
+ * either OpenSSL's low-level algorithm-specific API's or OpenSSL's EVP API's.
+ */
 struct s2n_hash {
     int (*new) (struct s2n_hash_state *state);
     int (*init) (struct s2n_hash_state *state, s2n_hash_algorithm alg);
@@ -91,12 +99,6 @@ struct s2n_hash {
     int (*reset) (struct s2n_hash_state *state);
     int (*free) (struct s2n_hash_state *state);
 };
-
-extern const struct s2n_hash s2n_low_level_hash;
-extern const struct s2n_hash s2n_evp_hash;
-
-/* Set during s2n_fips_init to either s2n_low_level_hash or s2n_evp_hash. */
-extern const struct s2n_hash *s2n_hash;
 
 extern int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out);
 extern int s2n_hash_new(struct s2n_hash_state *state);

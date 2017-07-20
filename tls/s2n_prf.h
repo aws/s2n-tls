@@ -35,6 +35,7 @@ struct p_hash_state {
 
 struct s2n_prf_working_space {
     struct {
+        const struct s2n_p_hash_hmac *p_hash_hmac_impl;
         struct p_hash_state p_hash;
         uint8_t digest0[S2N_MAX_DIGEST_LEN];
         uint8_t digest1[S2N_MAX_DIGEST_LEN];
@@ -59,12 +60,6 @@ struct s2n_p_hash_hmac {
     int (*cleanup) (struct s2n_prf_working_space *ws);
     int (*free) (struct s2n_prf_working_space *ws);
 };
-
-extern const struct s2n_p_hash_hmac s2n_evp_hmac;
-extern const struct s2n_p_hash_hmac s2n_hmac;
-
-/* Set during s2n_fips_init to either s2n_evp_hmac or s2n_hmac. */
-extern const struct s2n_p_hash_hmac *s2n_p_hash_hmac;
 
 #include "tls/s2n_connection.h"
 

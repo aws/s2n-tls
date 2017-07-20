@@ -237,7 +237,7 @@ static int s2n_hmac_p_hash_free(struct s2n_prf_working_space *ws)
     return s2n_hmac_free(&ws->tls.p_hash.s2n_hmac);
 }
 
-const struct s2n_p_hash_hmac s2n_evp_hmac = {
+static const struct s2n_p_hash_hmac s2n_evp_hmac = {
     .new = &s2n_evp_hmac_p_hash_new,
     .init = &s2n_evp_hmac_p_hash_init,
     .update = &s2n_evp_hmac_p_hash_update,
@@ -247,7 +247,7 @@ const struct s2n_p_hash_hmac s2n_evp_hmac = {
     .free = &s2n_evp_hmac_p_hash_free,
 };
 
-const struct s2n_p_hash_hmac s2n_hmac = {
+static const struct s2n_p_hash_hmac s2n_hmac = {
     .new = &s2n_hmac_p_hash_new,
     .init = &s2n_hmac_p_hash_init,
     .update = &s2n_hmac_p_hash_update,
@@ -263,7 +263,7 @@ static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, 
     uint8_t digest_size;
     GUARD(s2n_hmac_digest_size(alg, &digest_size));
 
-    const struct s2n_p_hash_hmac *hmac = s2n_p_hash_hmac;
+    const struct s2n_p_hash_hmac *hmac = ws->tls.p_hash_hmac_impl;
 
     /* First compute hmac(secret + A(0)) */
     GUARD(hmac->init(ws, alg, secret));
@@ -312,12 +312,22 @@ static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, 
 
 int s2n_prf_new(struct s2n_connection *conn)
 {
-    return s2n_p_hash_hmac->new(&conn->prf_space);
+    /* Set p_hash_hmac_impl on initial prf creation. 
+     * When in FIPS mode, the EVP API's must be used for the p_hash HMAC.
+     */
+    s2n_is_in_fips_mode() ? (conn->prf_space.tls.p_hash_hmac_impl = &s2n_evp_hmac) : (conn->prf_space.tls.p_hash_hmac_impl = &s2n_hmac);
+
+    return conn->prf_space.tls.p_hash_hmac_impl->new(&conn->prf_space);
 }
 
 int s2n_prf_free(struct s2n_connection *conn)
 {
-    return s2n_p_hash_hmac->free(&conn->prf_space);
+    /* Ensure that p_hash_hmac_impl is set, as it may have been reset for prf_space on s2n_connection_wipe. 
+     * When in FIPS mode, the EVP API's must be used for the p_hash HMAC.
+     */
+    s2n_is_in_fips_mode() ? (conn->prf_space.tls.p_hash_hmac_impl = &s2n_evp_hmac) : (conn->prf_space.tls.p_hash_hmac_impl = &s2n_hmac);
+
+    return conn->prf_space.tls.p_hash_hmac_impl->free(&conn->prf_space);
 }
 
 static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label, struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *out)
@@ -333,6 +343,11 @@ static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct 
      * outputs will be XORd just ass the TLS 1.0 and 1.1 RFCs require.
      */
     GUARD(s2n_blob_zero(out));
+
+    /* Ensure that p_hash_hmac_impl is set, as it may have been reset for prf_space on s2n_connection_wipe. 
+     * When in FIPS mode, the EVP API's must be used for the p_hash HMAC.
+     */
+    s2n_is_in_fips_mode() ? (conn->prf_space.tls.p_hash_hmac_impl = &s2n_evp_hmac) : (conn->prf_space.tls.p_hash_hmac_impl = &s2n_hmac);
 
     if (conn->actual_protocol_version == S2N_TLS12) {
         return s2n_p_hash(&conn->prf_space, conn->secure.cipher_suite->tls12_prf_alg, secret, label, seed_a, seed_b, out);

@@ -16,18 +16,10 @@
 #include <openssl/crypto.h>
 
 #include "crypto/s2n_fips.h"
-#include "crypto/s2n_hash.h"
-
-#include "tls/s2n_prf.h"
-
-/* Global declared in crypto/s2n_hash.h */
-const struct s2n_hash *s2n_hash;
-/* Global declared in tls/s2n_prf.h */
-const struct s2n_p_hash_hmac *s2n_p_hash_hmac;
 
 static int s2n_fips_mode = 0;
 
-int s2n_fips_init()
+int s2n_fips_init(void)
 {
 #ifdef OPENSSL_FIPS
     /* FIPS mode can be entered only if OPENSSL_FIPS is defined */
@@ -38,19 +30,10 @@ int s2n_fips_init()
     }
 #endif
 
-    if (s2n_is_in_fips_mode()) {
-        /* When in FIPS mode, the EVP API's must be used for hashes and the p_hash HMAC */
-        s2n_hash = &s2n_evp_hash;
-        s2n_p_hash_hmac = &s2n_evp_hmac;
-    } else {
-        s2n_hash = &s2n_low_level_hash;
-        s2n_p_hash_hmac = &s2n_hmac;
-    }
-
     return 0;
 }
 
-int s2n_fips_cleanup()
+int s2n_fips_cleanup(void)
 {
     s2n_fips_mode = 0;
 
@@ -58,7 +41,7 @@ int s2n_fips_cleanup()
 }
 
 /* Return 1 if FIPS mode is enabled, 0 otherwise. FIPS mode must be enabled prior to calling s2n_init(). */
-int s2n_is_in_fips_mode()
+int s2n_is_in_fips_mode(void)
 {
     if (s2n_fips_mode) {
         return 1;
