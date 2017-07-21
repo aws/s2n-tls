@@ -9,4 +9,4 @@ print "Verified the low-level->high-level cork-uncork simulation";
 prove abc {{ noDoubleCorkUncork }};
 print "Verified that double uncorking or corking cannot occur";
 print "Expecting failure when proving low-high simulation without the server mode assumption";
-prove abc {{ highLevelDoesNotSimulateLowLevel }};
+sat abc {{ ~highLevelDoesNotSimulateLowLevel }};
