@@ -161,26 +161,33 @@ int s2n_ecdsa_signature_size(const struct s2n_ecdsa_private_key *key)
     return ECDSA_size(key->eckey);
 }
 
-int s2n_ecdsa_keys_match(const struct s2n_ecdsa_public_key *pub_key, struct s2n_hash_state *state_in,
-                         const struct s2n_ecdsa_private_key *priv_key, struct s2n_hash_state *state_out)
+int s2n_ecdsa_keys_match(const struct s2n_ecdsa_public_key *pub_key, const struct s2n_ecdsa_private_key *priv_key)
 {
     uint8_t input[16];
     struct s2n_blob random_input;
     struct s2n_blob signature;
+    struct s2n_hash_state state_in, state_out;
 
     random_input.data = input;
     random_input.size = sizeof(input);
     GUARD(s2n_get_public_random_data(&random_input));
 
-    GUARD(s2n_hash_init(state_in, S2N_HASH_SHA1));
-    GUARD(s2n_hash_init(state_out, S2N_HASH_SHA1));
-    GUARD(s2n_hash_update(state_in, input, sizeof(input)));
-    GUARD(s2n_hash_update(state_out, input, sizeof(input)));
+    /* s2n_hash_new only allocates memory when using high-level EVP hashes, currently restricted to FIPS mode. */
+    GUARD(s2n_hash_new(&state_in));
+    GUARD(s2n_hash_new(&state_out));
+
+    GUARD(s2n_hash_init(&state_in, S2N_HASH_SHA1));
+    GUARD(s2n_hash_init(&state_out, S2N_HASH_SHA1));
+    GUARD(s2n_hash_update(&state_in, input, sizeof(input)));
+    GUARD(s2n_hash_update(&state_out, input, sizeof(input)));
 
     GUARD(s2n_alloc(&signature, s2n_ecdsa_signature_size(priv_key)));
     
-    GUARD(s2n_ecdsa_sign(priv_key, state_in, &signature));
-    GUARD(s2n_ecdsa_verify(pub_key, state_out, &signature));
+    GUARD(s2n_ecdsa_sign(priv_key, &state_in, &signature));
+    GUARD(s2n_ecdsa_verify(pub_key, &state_out, &signature));
+
+    GUARD(s2n_hash_free(&state_in));
+    GUARD(s2n_hash_free(&state_out));
 
     return 0;
 }

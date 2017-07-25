@@ -125,7 +125,6 @@ int main(int argc, char **argv)
     struct s2n_ecdsa_public_key pub_key;
     struct s2n_ecdsa_private_key priv_key;
     struct s2n_ecdsa_private_key unmatched_priv_key;
-    struct s2n_hash_state state_in, state_out;
 
     b.size = s2n_stuffer_data_available(&certificate_out);
     b.data = s2n_stuffer_raw_read(&certificate_out, b.size);
@@ -139,11 +138,8 @@ int main(int argc, char **argv)
     b.data = s2n_stuffer_raw_read(&unmatched_ecdsa_key_out, b.size);
     EXPECT_SUCCESS(s2n_asn1der_to_ecdsa_private_key(&unmatched_priv_key, &b));
 
-    EXPECT_SUCCESS(s2n_hash_new(&state_in));
-    EXPECT_SUCCESS(s2n_hash_new(&state_out));
-
     /* Verify that the public/private key pair match */
-    EXPECT_SUCCESS(s2n_ecdsa_keys_match(&pub_key, &state_in, &priv_key, &state_out));
+    EXPECT_SUCCESS(s2n_ecdsa_keys_match(&pub_key, &priv_key));
 
     /* Try signing and verification with ECDSA */
     uint8_t inputpad[] = "Hello world!";
@@ -177,7 +173,7 @@ int main(int argc, char **argv)
     /* Mismatched public/private key should fail verification */
     EXPECT_SUCCESS(s2n_alloc(&bad_signature, s2n_ecdsa_signature_size(&unmatched_priv_key)));
 
-    EXPECT_FAILURE(s2n_ecdsa_keys_match(&pub_key, &state_in, &unmatched_priv_key, &state_out));
+    EXPECT_FAILURE(s2n_ecdsa_keys_match(&pub_key, &unmatched_priv_key));
 
     EXPECT_SUCCESS(s2n_ecdsa_sign(&unmatched_priv_key, &hash_one, &bad_signature));
     EXPECT_FAILURE(s2n_ecdsa_verify(&pub_key, &hash_two, &bad_signature));
@@ -187,8 +183,6 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_ecdsa_public_key_free(&pub_key));
     EXPECT_SUCCESS(s2n_ecdsa_private_key_free(&priv_key));
     EXPECT_SUCCESS(s2n_ecdsa_private_key_free(&unmatched_priv_key));
-    EXPECT_SUCCESS(s2n_hash_free(&state_in));
-    EXPECT_SUCCESS(s2n_hash_free(&state_out));
     EXPECT_SUCCESS(s2n_hash_free(&hash_one));
     EXPECT_SUCCESS(s2n_hash_free(&hash_two));
     EXPECT_SUCCESS(s2n_stuffer_free(&certificate_in));

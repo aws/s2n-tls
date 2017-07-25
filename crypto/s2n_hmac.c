@@ -275,7 +275,7 @@ int s2n_hmac_digest_verify(const void *a, const void *b, uint32_t len)
 
 int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
 {
-    /* memcpy cannot be used on s2n_hmac_state as the underying s2n_hash implementation's
+    /* memcpy cannot be used on s2n_hmac_state as the underlying s2n_hash implementation's
      * copy must be used. This is enforced when the s2n_hash implementation is s2n_evp_hash.
      */
     to->alg = from->alg;
