@@ -63,8 +63,8 @@ let setup_hash_state pstate = do {
     (_, pimpl) <- ptr_to_fresh "impl" (llvm_struct "struct.s2n_hash");
     crucible_points_to pstate
       (crucible_struct
-        [ crucible_term alg0
-        , pimpl
+        [ pimpl
+        , crucible_term alg0
         , crucible_struct
           [ crucible_struct
             [ crucible_struct
