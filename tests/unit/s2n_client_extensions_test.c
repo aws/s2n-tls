@@ -1016,7 +1016,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_set_max_fragment_length(client_config, S2N_TLS_MAX_FRAG_LEN_INVALID));
+        EXPECT_FAILURE(s2n_config_set_max_fragment_length(client_config, S2N_TLS_MAX_FRAG_LEN_INVALID));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));

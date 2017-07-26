@@ -408,6 +408,10 @@ int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_f
 
 int s2n_config_set_max_fragment_length(struct s2n_config *config, uint8_t mfl_code)
 {
+    if (mfl_code >= S2N_TLS_MAX_FRAG_LEN_INVALID) {
+       S2N_ERROR(S2N_ERR_INVALID_MAX_FRAG_LEN);
+    }
+
     config->mfl_code = mfl_code;
 
     return 0;
