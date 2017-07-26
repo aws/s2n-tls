@@ -21,7 +21,6 @@
 
 import "HMAC_iterative.cry";
 import "Hashing.cry";
-load_crucible_llvm_module "../bitcode/all_llvm.bc";
 
 ////////////////////////////////////////////////////////////////
 // Generic Utilities.

@@ -21,6 +21,8 @@
 
 include "HMAC.saw";
 
+m <- llvm_load_module "../bitcode/all_llvm.bc";
+
 let json_string key_size msg_size function
     (cfg : { name            : String
              , hmac_alg        : Term
@@ -77,42 +79,42 @@ let verify_s2n_hmac
                     " ..."))))));
 
 
-  (t, hash_init_ov)   <- with_time (crucible_llvm_unsafe_assume_spec "s2n_hash_init" hash_init_spec);
+  (t, hash_init_ov)   <- with_time (crucible_llvm_unsafe_assume_spec m "s2n_hash_init" hash_init_spec);
 
   print_json "s2n_hash_init" cfg t key_size msg_size hash_init_ov;
 
 
-  (t, hash_digest_ov) <- with_time (crucible_llvm_unsafe_assume_spec "s2n_hash_digest" (hash_digest_spec (cfg.digest_size)));
+  (t, hash_digest_ov) <- with_time (crucible_llvm_unsafe_assume_spec m "s2n_hash_digest" (hash_digest_spec (cfg.digest_size)));
 
   print_json "s2n_hash_digest" cfg t key_size msg_size hash_digest_ov;
 
 
-  (t, hash_update_key_size_ov) <- with_time (crucible_llvm_unsafe_assume_spec "s2n_hash_update" (hash_update_spec key_size));
+  (t, hash_update_key_size_ov) <- with_time (crucible_llvm_unsafe_assume_spec m "s2n_hash_update" (hash_update_spec key_size));
 
   print_json "s2n_hash_update_key_size" cfg t key_size msg_size hash_update_key_size_ov;
 
 
-  (t, hash_update_block_size_ov)  <- with_time (crucible_llvm_unsafe_assume_spec "s2n_hash_update" (hash_update_spec cfg.block_size));
+  (t, hash_update_block_size_ov)  <- with_time (crucible_llvm_unsafe_assume_spec m "s2n_hash_update" (hash_update_spec cfg.block_size));
 
   print_json "s2n_hash_update_block_size" cfg t key_size msg_size hash_update_block_size_ov;
 
-  (t, hash_update_msg_size_ov)    <- with_time (crucible_llvm_unsafe_assume_spec "s2n_hash_update" (hash_update_spec msg_size));
+  (t, hash_update_msg_size_ov)    <- with_time (crucible_llvm_unsafe_assume_spec m "s2n_hash_update" (hash_update_spec msg_size));
 
   print_json "s2n_hash_update_msg_size" cfg t key_size msg_size hash_update_msg_size_ov;
 
-  (t, hash_update_digest_size_ov) <- with_time (crucible_llvm_unsafe_assume_spec "s2n_hash_update" (hash_update_spec cfg.digest_size));
+  (t, hash_update_digest_size_ov) <- with_time (crucible_llvm_unsafe_assume_spec m "s2n_hash_update" (hash_update_spec cfg.digest_size));
 
   print_json "s2n_hash_update_digest_size" cfg t key_size msg_size hash_update_digest_size_ov;
 
-  (t, hash_copy_ov) <- with_time (crucible_llvm_unsafe_assume_spec "s2n_hash_copy" hash_copy_spec);
+  (t, hash_copy_ov) <- with_time (crucible_llvm_unsafe_assume_spec m "s2n_hash_copy" hash_copy_spec);
 
   print_json "s2n_hash_copy" cfg t key_size msg_size hash_copy_ov;
 
-  (t, hash_reset_ov) <- with_time (crucible_llvm_unsafe_assume_spec "s2n_hash_reset" hash_reset_spec);
+  (t, hash_reset_ov) <- with_time (crucible_llvm_unsafe_assume_spec m "s2n_hash_reset" hash_reset_spec);
 
   print_json "s2n_hash_reset" cfg t key_size msg_size hash_reset_ov;
 
-  (t, hmac_digest_size_ov) <- with_time (crucible_llvm_unsafe_assume_spec "s2n_hmac_digest_size" (hmac_digest_size_spec cfg));
+  (t, hmac_digest_size_ov) <- with_time (crucible_llvm_unsafe_assume_spec m "s2n_hmac_digest_size" (hmac_digest_size_spec cfg));
 
   print_json "s2n_hmac_digest_size" cfg t key_size msg_size hmac_digest_size_ov;
 
@@ -129,17 +131,17 @@ let verify_s2n_hmac
     ];
 
   (t, hmac_init_ov) <-
-    with_time (crucible_llvm_verify "s2n_hmac_init"   hash_ovs true (hmac_init_spec key_size cfg) yices_hash_unint);
+    with_time (crucible_llvm_verify m "s2n_hmac_init"   hash_ovs true (hmac_init_spec key_size cfg) yices_hash_unint);
 
   print_json "s2n_hmac_init" cfg t key_size msg_size hmac_init_ov;
 
   (t, hmac_update_ov) <-
-    with_time (crucible_llvm_verify "s2n_hmac_update" hash_ovs true (hmac_update_spec msg_size cfg) yices_hash_unint);
+    with_time (crucible_llvm_verify m "s2n_hmac_update" hash_ovs true (hmac_update_spec msg_size cfg) yices_hash_unint);
 
   print_json "s2n_hmac_update" cfg t key_size msg_size hmac_update_ov;
 
   (t, hmac_digest_ov) <-
-    with_time (crucible_llvm_verify "s2n_hmac_digest" hash_ovs true (hmac_digest_spec cfg) yices_hash_unint);
+    with_time (crucible_llvm_verify m "s2n_hmac_digest" hash_ovs true (hmac_digest_spec cfg) yices_hash_unint);
 
   print_json "s2n_hmac_digest" cfg t key_size msg_size hmac_digest_ov;
 
