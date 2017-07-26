@@ -31,38 +31,48 @@ let fresh_ptr ty = do {
 };
 
 // conn->corked_io
-let conn_corked_io pconn = crucible_elem pconn 7;
+//let conn_corked_io pconn = crucible_elem pconn 7;
+let conn_corked_io pconn = crucible_field pconn "corked_io";
 
 //conn->mode
-let conn_mode pconn = crucible_elem pconn 8;
+//let conn_mode pconn = crucible_elem pconn 8;
+let conn_mode pconn = crucible_field pconn "mode";
 
 //conn->secure.cipher_suite->key_exchange_alg->flags
-let conn_secure_cipher_suite pconn = (crucible_elem
-        (crucible_elem pconn 23) 11);
+//let conn_secure_cipher_suite pconn = (crucible_elem (crucible_elem pconn 23) 11);
+let conn_secure_cipher_suite pconn = (crucible_field (crucible_field pconn "secure") "cipher_suite");
 
-let key_exchange_algorithm csuite =
-    crucible_elem csuite 3;
+//let key_exchange_algorithm csuite = crucible_elem csuite 3;
+let key_exchange_algorithm csuite = crucible_field csuite "key_exchange_alg";
 
-let kea_flags kea =
-    crucible_elem kea 0;
+//let kea_flags kea = crucible_elem kea 0;
+let kea_flags kea = crucible_field kea "flags";
 
 //conn->status_type
-let conn_status_type pconn = crucible_elem pconn 49;
+//let conn_status_type pconn = crucible_elem pconn 49;
+let conn_status_type pconn = crucible_field pconn "status_type";
 
-let conn_config pconn = crucible_elem pconn 0;
-let cert_key_pairs config = (crucible_elem config 1);
+//let conn_config pconn = crucible_elem pconn 0;
+let conn_config pconn = crucible_field pconn "config";
 
-//conn->config->cert_and_key_pairs->sct_list.size
-let sct_list_size cert_and_key = crucible_elem (crucible_elem (cert_and_key)  3) 1; 
+//let cert_key_pairs config = (crucible_elem config 1);
+let cert_key_pairs config = (crucible_field config "cert_and_key_pairs");
+
+//conn->config->cert_and_key_pairs->ocsp_status.size
+//let ocsp_status_size cert_and_key = crucible_elem (crucible_elem (cert_and_key)  3) 1;
+let ocsp_status_size cert_and_key = crucible_field (crucible_field (cert_and_key)  "ocsp_status") "size";
 
 //conn->client_cert_auth_type
-let cca_type pconn = crucible_elem pconn 19 ;
+//let cca_type pconn = crucible_elem pconn 19 ;
+let cca_type pconn = crucible_field pconn "client_cert_auth_type";
 
 //conn->handshake.handshake_type
-let conn_handshake_handshake_type pconn = crucible_elem (crucible_elem pconn 40) 9;
+//let conn_handshake_handshake_type pconn = crucible_elem (crucible_elem pconn 40) 9;
+let conn_handshake_handshake_type pconn = crucible_field (crucible_field pconn "handshake") "handshake_type";
 
 //conn->handshake.message_number
-let conn_handshake_message_number pconn = crucible_elem (crucible_elem pconn 40) 10;
+//let conn_handshake_message_number pconn = crucible_elem (crucible_elem pconn 40) 10;
+let conn_handshake_message_number pconn = crucible_field (crucible_field pconn "handshake") "message_number";
 
 corked <- crucible_declare_ghost_state "corked";
 // assume the socket is initially uncorked
@@ -107,7 +117,7 @@ let setup_connection = do {
    crucible_points_to (cert_key_pairs config) cak;
 
    status_size <- crucible_fresh_var "status_size" (llvm_int 32);
-   crucible_points_to (sct_list_size cak) (crucible_term status_size);
+   crucible_points_to (ocsp_status_size cak) (crucible_term status_size);
    crucible_equal (crucible_term status_size) (crucible_term {{zero : [32]}});
    
    ocsp_flag <- crucible_fresh_var "ocsp_flag" (llvm_int 32);
