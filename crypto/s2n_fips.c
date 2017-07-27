@@ -21,21 +21,14 @@ static int s2n_fips_mode = 0;
 
 int s2n_fips_init(void)
 {
+    s2n_fips_mode = 0;
+
 #ifdef OPENSSL_FIPS
     /* FIPS mode can be entered only if OPENSSL_FIPS is defined */
     if (FIPS_mode()) {
         s2n_fips_mode = 1;
-    } else {
-        s2n_fips_mode = 0;
     }
 #endif
-
-    return 0;
-}
-
-int s2n_fips_cleanup(void)
-{
-    s2n_fips_mode = 0;
 
     return 0;
 }
@@ -43,9 +36,5 @@ int s2n_fips_cleanup(void)
 /* Return 1 if FIPS mode is enabled, 0 otherwise. FIPS mode must be enabled prior to calling s2n_init(). */
 int s2n_is_in_fips_mode(void)
 {
-    if (s2n_fips_mode) {
-        return 1;
-    } else {
-        return 0;
-    }
+    return s2n_fips_mode;
 }

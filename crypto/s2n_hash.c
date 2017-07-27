@@ -283,6 +283,11 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
     GUARD(s2n_hash_digest_size(state->alg, &expected_digest_size));
     eq_check(digest_size, expected_digest_size);
 
+    /* Used for S2N_HASH_MD5_SHA1 case to specify the exact size of each digest. */
+    uint8_t sha1_digest_size;
+    unsigned int sha1_primary_digest_size;
+    unsigned int md5_secondary_digest_size;
+
     switch (state->alg) {
     case S2N_HASH_NONE:
         r = 1;
@@ -296,8 +301,12 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
         r = EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, out, &digest_size);
         break;
     case S2N_HASH_MD5_SHA1:
-        r = EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, ((uint8_t *) out) + MD5_DIGEST_LENGTH, &digest_size);
-        r &= EVP_DigestFinal_ex(state->digest.high_level.evp_md5_secondary.ctx, out, &digest_size);
+        GUARD(s2n_hash_digest_size(S2N_HASH_SHA1, &sha1_digest_size));
+        sha1_primary_digest_size = sha1_digest_size;
+        md5_secondary_digest_size = digest_size - sha1_primary_digest_size;
+
+        r = EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, ((uint8_t *) out) + MD5_DIGEST_LENGTH, &sha1_primary_digest_size);
+        r &= EVP_DigestFinal_ex(state->digest.high_level.evp_md5_secondary.ctx, out, &md5_secondary_digest_size);
         break;
     default:
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
@@ -388,12 +397,19 @@ static const struct s2n_hash s2n_evp_hash = {
     .free = &s2n_evp_hash_free,
 };
 
+static int s2n_hash_set_impl(struct s2n_hash_state *state)
+{
+    s2n_is_in_fips_mode() ? (state->hash_impl = &s2n_evp_hash) : (state->hash_impl = &s2n_low_level_hash);
+
+    return 0;
+}
+
 int s2n_hash_new(struct s2n_hash_state *state)
 {
     /* Set hash_impl on initial hash creation.
      * When in FIPS mode, the EVP API's must be used for hashes.
      */
-    s2n_is_in_fips_mode() ? (state->hash_impl = &s2n_evp_hash) : (state->hash_impl = &s2n_low_level_hash);
+    GUARD(s2n_hash_set_impl(state));
 
     return state->hash_impl->new(state);
 }
@@ -403,7 +419,7 @@ int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
     /* Ensure that hash_impl is set, as it may have been reset for s2n_hash_state on s2n_connection_wipe.
      * When in FIPS mode, the EVP API's must be used for hashes.
      */
-    s2n_is_in_fips_mode() ? (state->hash_impl = &s2n_evp_hash) : (state->hash_impl = &s2n_low_level_hash);
+    GUARD(s2n_hash_set_impl(state));
 
     if (s2n_is_in_fips_mode()) {
         /* Prevent MD5 hashes from being used when FIPS mode is set. Don't do this within
@@ -438,6 +454,11 @@ int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from)
 
 int s2n_hash_reset(struct s2n_hash_state *state)
 {
+    /* Ensure that hash_impl is set, as it may have been reset for s2n_hash_state on s2n_connection_wipe.
+     * When in FIPS mode, the EVP API's must be used for hashes.
+     */
+    GUARD(s2n_hash_set_impl(state));
+
     return state->hash_impl->reset(state);
 }
 
@@ -446,7 +467,7 @@ int s2n_hash_free(struct s2n_hash_state *state)
     /* Ensure that hash_impl is set, as it may have been reset for s2n_hash_state on s2n_connection_wipe.
      * When in FIPS mode, the EVP API's must be used for hashes.
      */
-    s2n_is_in_fips_mode() ? (state->hash_impl = &s2n_evp_hash) : (state->hash_impl = &s2n_low_level_hash);
+    GUARD(s2n_hash_set_impl(state));
 
     return state->hash_impl->free(state);
 }

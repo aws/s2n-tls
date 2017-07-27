@@ -35,7 +35,6 @@ int s2n_cleanup(void)
     GUARD(s2n_cipher_suites_cleanup());
     GUARD(s2n_rand_cleanup());
     GUARD(s2n_mem_cleanup());
-    GUARD(s2n_fips_cleanup());
 
     return 0;
 }

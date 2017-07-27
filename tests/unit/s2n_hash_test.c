@@ -189,7 +189,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
     }
 
-    /* Reference value from command line sha384sum */
+    /* Reference value from command line sha512sum */
     EXPECT_EQUAL(memcmp(output_pad, "32c07a0b3a3fd0dd8f28021b4eea1c19d871f4586316b394124f3c99fb68e59579e05039c3bd9aab9841214f1c132f7666eb8800f14be8b9b091a7dba32bfe6f", 64 * 2), 0);
 
     END_TEST();
