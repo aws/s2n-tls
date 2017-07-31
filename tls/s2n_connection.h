@@ -200,5 +200,5 @@ int s2n_connection_recv_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
 extern int s2n_connection_set_cert_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type);
 extern int s2n_connection_set_verify_cert_chain_cb(struct s2n_connection *conn, verify_cert_trust_chain *callback, void *context);
 
-int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
-int deny_all_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key, void *context);
+int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert *cert, void *context);
+int deny_all_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert *cert, void *context);

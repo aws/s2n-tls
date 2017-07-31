@@ -37,7 +37,7 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
-    struct s2n_cert_public_key public_key;
+    struct s2n_cert public_key;
     struct s2n_blob cert_chain;
     cert_chain.data = s2n_stuffer_raw_read(&conn->handshake.io, size_of_all_certificates);
     cert_chain.size = size_of_all_certificates;
@@ -55,6 +55,6 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
 
 int s2n_server_cert_send(struct s2n_connection *conn)
 {
-    GUARD(s2n_send_cert_chain(&conn->handshake.io, conn->server->server_cert_chain));
+    GUARD(s2n_send_cert_chain(&conn->handshake.io, &conn->server->server_cert_chain->cert_chain));
     return 0;
 }

@@ -18,43 +18,43 @@
 #include "crypto/s2n_certificate.h"
 #include "utils/s2n_safety.h"
 
-int s2n_cert_public_key_set_cert_type(struct s2n_cert_public_key *cert_pub_key, s2n_cert_type cert_type)
+int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_cert_type cert_type)
 {
-    notnull_check(cert_pub_key);
-    cert_pub_key->cert_type = cert_type;
+    notnull_check(cert);
+    cert->cert_type = cert_type;
 
     return 0;
 }
 
-int s2n_cert_public_key_set_rsa(struct s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key rsa)
+int s2n_cert_set_rsa(struct s2n_cert *cert, struct s2n_rsa_public_key rsa)
 {
-    notnull_check(cert_pub_key);
-    cert_pub_key->public_key.rsa = rsa;
+    notnull_check(cert);
+    cert->public_key.rsa = rsa;
 
     return 0;
 }
 
-int s2n_cert_public_key_get_rsa(struct s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key **rsa)
+int s2n_cert_get_rsa(struct s2n_cert *cert, struct s2n_rsa_public_key **rsa)
 {
-    notnull_check(cert_pub_key);
+    notnull_check(cert);
     notnull_check(rsa);
-    *rsa = &cert_pub_key->public_key.rsa;
+    *rsa = &cert->public_key.rsa;
 
     return 0;
 }
 
-int s2n_send_cert_chain(struct s2n_stuffer *out, struct s2n_cert_chain_and_key *chain)
+int s2n_send_cert_chain(struct s2n_stuffer *out, struct s2n_cert_chain *chain)
 {
     notnull_check(out);
     notnull_check(chain);
     GUARD(s2n_stuffer_write_uint24(out, chain->chain_size));
 
-    struct s2n_cert_chain *head = chain->head;
-    while (head) {
-        notnull_check(head);
-        GUARD(s2n_stuffer_write_uint24(out, head->cert.size));
-        GUARD(s2n_stuffer_write_bytes(out, head->cert.data, head->cert.size));
-        head = head->next;
+    struct s2n_cert *cur_cert = chain->head;
+    while (cur_cert) {
+        notnull_check(cur_cert); 
+        GUARD(s2n_stuffer_write_uint24(out, cur_cert->raw.size));
+        GUARD(s2n_stuffer_write_bytes(out, cur_cert->raw.data, cur_cert->raw.size));
+        cur_cert = cur_cert->next;
     }
 
     return 0;

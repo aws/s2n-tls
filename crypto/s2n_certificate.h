@@ -22,20 +22,6 @@
 
 #define S2N_MAX_SERVER_NAME 256
 
-struct s2n_cert_chain {
-    struct s2n_blob cert;
-    struct s2n_cert_chain *next;
-};
-
-struct s2n_cert_chain_and_key {
-    uint32_t chain_size;
-    struct s2n_cert_chain *head;
-    struct s2n_rsa_private_key private_key;
-    struct s2n_blob ocsp_status;
-    struct s2n_blob sct_list;
-    char server_name[S2N_MAX_SERVER_NAME];
-};
-
 /* RFC's that define below values:
  *  - https://tools.ietf.org/html/rfc5246#section-7.4.4
  *  - https://tools.ietf.org/search/rfc4492#section-5.5
@@ -53,30 +39,45 @@ typedef enum {
     S2N_CERT_TYPE_ECDSA_FIXED_ECDH = 66,
 } s2n_cert_type;
 
-struct s2n_cert_public_key {
+struct s2n_cert {
     s2n_cert_type cert_type;
     union {
         struct s2n_rsa_public_key rsa;
         /* TODO: Support other Public Key Types (Eg ECDSA) */
     } public_key;
+    struct s2n_blob raw;
+    struct s2n_cert *next;
+};
+
+struct s2n_cert_chain {
+    uint32_t chain_size;
+    struct s2n_cert *head;
+};
+
+struct s2n_cert_chain_and_key {
+    struct s2n_cert_chain cert_chain;
+    struct s2n_rsa_private_key private_key;
+    struct s2n_blob ocsp_status;
+    struct s2n_blob sct_list;
+    char server_name[S2N_MAX_SERVER_NAME];
 };
 
 typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED } s2n_cert_auth_type;
 
-/* Verifies the Certificate Chain of trust and places the leaf Certificate's Public Key in the public_key_out parameter.
+/* Verifies the certificate chain of trust and parses the leaf certificate into the cert_out parameter.
 *
-* Does not perform any hostname validation, which is still needed in order to completely validate a Certificate.
+* Does not perform any hostname validation, which is still needed in order to completely validate a certificate.
 *
-* @param cert_chain_in The DER formatted full chain of certificates recieved
-* @param public_key_out The public key that should be updated with the key extracted from the certificate
+* @param cert_chain_in The DER formatted full chain of certificates received
+* @param cert_out The cert that should be updated with the cert type and public key extracted from the certificate blob
 * @param context A pointer to any caller defined context data
 *
 * @return The function should return 0 if Certificate is trusted and public key extraction was successful, and less than
 *         0 if the Certificate is untrusted, or there was some other error.
 */
-typedef int verify_cert_trust_chain(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
+typedef int verify_cert_trust_chain(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert *cert_out, void *context);
 
-int s2n_send_cert_chain(struct s2n_stuffer *out, struct s2n_cert_chain_and_key *chain);
-int s2n_cert_public_key_set_cert_type(struct s2n_cert_public_key *cert_pub_key, s2n_cert_type cert_type);
-int s2n_cert_public_key_get_rsa(struct s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key **rsa);
-int s2n_cert_public_key_set_rsa(struct s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key rsa);
+int s2n_send_cert_chain(struct s2n_stuffer *out, struct s2n_cert_chain *chain);
+int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_cert_type cert_type);
+int s2n_cert_get_rsa(struct s2n_cert *cert_pub_key, struct s2n_rsa_public_key **rsa);
+int s2n_cert_set_rsa(struct s2n_cert *cert_pub_key, struct s2n_rsa_public_key rsa);
