@@ -78,6 +78,8 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
+    EXPECT_SUCCESS(s2n_hmac_new(&check_mac));
+
     EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, fixed_iv.data, fixed_iv.size));
     EXPECT_SUCCESS(s2n_get_urandom_data(&r));
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -348,6 +350,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
     /* Sequence number should wrap around */
     EXPECT_FAILURE(s2n_record_write(conn, TLS_APPLICATION_DATA, &empty_blob));
+
+    EXPECT_SUCCESS(s2n_hmac_free(&check_mac));
 
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
