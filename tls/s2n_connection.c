@@ -42,7 +42,8 @@
 #include "utils/s2n_mem.h"
 
 /* Accept all RSA Certificates is unsafe and is only used in the s2n Client */
-int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert *cert, void *context)
+int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_cert_type *cert_type, 
+                         s2n_cert_public_key *public_key_out, void *context)
 {
     struct s2n_blob cert_chain_blob = { .data = cert_chain_in, .size = cert_chain_len};
     struct s2n_stuffer cert_chain_in_stuffer;
@@ -67,10 +68,10 @@ int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct
         /* Pull the public key from the first certificate */
         if (certificate_count == 0) {
             struct s2n_rsa_public_key *rsa_pub_key_out;
-            GUARD(s2n_cert_get_rsa(cert, &rsa_pub_key_out));
+            GUARD(s2n_cert_public_key_get_rsa(public_key_out, &rsa_pub_key_out));
             /* Assume that the asn1cert is an RSA Cert */
             GUARD(s2n_asn1der_to_rsa_public_key(rsa_pub_key_out, &asn1cert));
-            GUARD(s2n_cert_set_cert_type(cert, S2N_CERT_TYPE_RSA_SIGN));
+            *cert_type = S2N_CERT_TYPE_RSA_SIGN;
         }
 
         certificate_count++;

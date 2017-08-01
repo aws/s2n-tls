@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 
+#include "crypto/s2n_pkey.h"
 #include "crypto/s2n_rsa.h"
 #include "stuffer/s2n_stuffer.h"
 
@@ -39,12 +40,12 @@ typedef enum {
     S2N_CERT_TYPE_ECDSA_FIXED_ECDH = 66,
 } s2n_cert_type;
 
+typedef struct s2n_pkey s2n_cert_public_key;
+typedef struct s2n_pkey s2n_cert_private_key;
+
 struct s2n_cert {
     s2n_cert_type cert_type;
-    union {
-        struct s2n_rsa_public_key rsa;
-        /* TODO: Support other Public Key Types (Eg ECDSA) */
-    } public_key;
+    s2n_cert_public_key public_key;
     struct s2n_blob raw;
     struct s2n_cert *next;
 };
@@ -69,15 +70,18 @@ typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED } s2n_cert_auth_type;
 * Does not perform any hostname validation, which is still needed in order to completely validate a certificate.
 *
 * @param cert_chain_in The DER formatted full chain of certificates received
-* @param cert_out The cert that should be updated with the cert type and public key extracted from the certificate blob
+* @param cert_chain_len The length of cert_chain_in. This is not the number of nodes in the chain.
+* @param cert_type The type of the leaf certificate. This should be set as part of the callback.
+* @param public_key_out The public key extracted from the certificate blob. This should be set as part of the callback.
 * @param context A pointer to any caller defined context data
 *
 * @return The function should return 0 if Certificate is trusted and public key extraction was successful, and less than
 *         0 if the Certificate is untrusted, or there was some other error.
 */
-typedef int verify_cert_trust_chain(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert *cert_out, void *context);
+typedef int verify_cert_trust_chain(uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_cert_type *cert_type, 
+                                    s2n_cert_public_key *public_key_out, void *context);
 
 int s2n_send_cert_chain(struct s2n_stuffer *out, struct s2n_cert_chain *chain);
 int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_cert_type cert_type);
-int s2n_cert_get_rsa(struct s2n_cert *cert_pub_key, struct s2n_rsa_public_key **rsa);
-int s2n_cert_set_rsa(struct s2n_cert *cert_pub_key, struct s2n_rsa_public_key rsa);
+int s2n_cert_public_key_get_rsa(s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key **rsa);
+int s2n_cert_public_key_set_rsa(s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key rsa);

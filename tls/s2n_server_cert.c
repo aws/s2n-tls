@@ -37,18 +37,19 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
-    struct s2n_cert public_key;
+    s2n_cert_public_key public_key;
+    s2n_cert_type cert_type;
     struct s2n_blob cert_chain;
     cert_chain.data = s2n_stuffer_raw_read(&conn->handshake.io, size_of_all_certificates);
     cert_chain.size = size_of_all_certificates;
 
-    GUARD(conn->verify_cert_chain_cb(cert_chain.data, cert_chain.size, &public_key, conn->verify_cert_context));
+    GUARD(conn->verify_cert_chain_cb(cert_chain.data, cert_chain.size, &cert_type, &public_key, conn->verify_cert_context));
 
-    if(public_key.cert_type != S2N_CERT_TYPE_RSA_SIGN) {
+    if(cert_type != S2N_CERT_TYPE_RSA_SIGN) {
         S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     }
 
-    conn->secure.server_rsa_public_key = public_key.public_key.rsa;
+    conn->secure.server_rsa_public_key = public_key.key.rsa;
 
     return 0;
 }

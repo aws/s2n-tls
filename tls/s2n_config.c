@@ -67,7 +67,8 @@ int get_nanoseconds_since_epoch(void *data, uint64_t * nanoseconds)
 
 #endif
 
-int deny_all_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert *cert, void *context)
+int deny_all_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_cert_type *cert_type, 
+                   s2n_cert_public_key *public_key, void *context)
 {
     S2N_ERROR(S2N_ERR_CERT_UNTRUSTED);
 }
