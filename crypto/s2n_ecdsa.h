@@ -42,4 +42,4 @@ extern int s2n_ecdsa_verify(const struct s2n_ecdsa_public_key *key, struct s2n_h
 
 extern int s2n_ecdsa_signature_size(const struct s2n_ecdsa_private_key *key);
 
-extern int s2n_ecdsa_keys_match(const struct s2n_ecdsa_public_key *pub_key, const struct s2n_ecdsa_private_key *priv_key); 
+extern int s2n_ecdsa_keys_match(const struct s2n_ecdsa_public_key *pub_key, const struct s2n_ecdsa_private_key *priv_key);
