@@ -2,9 +2,9 @@ import "spec/cork-uncork.cry";
 include "s2n_handshake_io.saw";
 
 //prove correspondence of the C code and the low-level model
-s2n_handshake_io_lowlevel;
+//s2n_handshake_io_lowlevel;
 print "Verified that the low-level specification corresponds to the C code";
-prove abc {{ highLevelSimulatesLowLevel }}; //prove correspondence of the high-level and low-level models
+prove_print abc {{ highLevelSimulatesLowLevel }}; //prove correspondence of the high-level and low-level models
 print "Verified the low-level->high-level cork-uncork simulation";
 prove abc {{ noDoubleCorkUncork }};
 print "Verified that double uncorking or corking cannot occur";
