@@ -1,5 +1,5 @@
 // Low level specifications for some of the functions and constants declared in tls/s2n_handshake_io.c
-import "spec/s2n_advance_message.cry";
+import "spec/s2n_handshake_io.cry";
 
 llvm <- llvm_load_module "bitcode/all_llvm.bc";
 //load_llvm_cfg llvm "s2n_advance_message";

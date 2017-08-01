@@ -2,7 +2,7 @@
 // function is s2n_advance_message, and we prove it's equivalence to its
 // counterpart in s2n_handshake_io.c
 
-module s2n_advance_message where
+module s2n_handshake_io where
 import Cryptol::Extras
 
 // for a given initial connection struct generate the

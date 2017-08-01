@@ -6,7 +6,7 @@
 module TLSHandshake where
 
 import Cryptol::Extras
-import s2n_advance_message
+import s2n_handshake_io
 
 // Main correctness property: a simulation of the S2N handshake state
 // machine by an RFC-derived state machine

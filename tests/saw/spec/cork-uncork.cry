@@ -15,7 +15,7 @@
 module CorkUncork where
 
 import Cryptol::Extras
-import s2n_advance_message
+import s2n_handshake_io
 
 type State = ([2], [2])
 (clientSender : [2]) = 0
