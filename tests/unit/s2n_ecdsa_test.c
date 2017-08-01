@@ -148,7 +148,10 @@ int main(int argc, char **argv)
     uint32_t maximum_signature_length = s2n_ecdsa_signature_size(&priv_key);
     
     EXPECT_SUCCESS(s2n_alloc(&signature, maximum_signature_length));
-    
+
+    EXPECT_SUCCESS(s2n_hash_new(&hash_one));
+    EXPECT_SUCCESS(s2n_hash_new(&hash_two));
+
     for (int i = 0; i < sizeof(supported_hash_algorithms) / sizeof(supported_hash_algorithms[0]); i++) {
         int hash_alg = supported_hash_algorithms[i];
         EXPECT_SUCCESS(s2n_hash_init(&hash_one, hash_alg));
@@ -162,6 +165,9 @@ int main(int argc, char **argv)
         
         EXPECT_SUCCESS(s2n_ecdsa_sign(&priv_key, &hash_one, &signature));
         EXPECT_SUCCESS(s2n_ecdsa_verify(&pub_key, &hash_two, &signature));
+
+        EXPECT_SUCCESS(s2n_hash_reset(&hash_one));
+        EXPECT_SUCCESS(s2n_hash_reset(&hash_two));
     }
             
     /* Mismatched public/private key should fail verification */
@@ -177,6 +183,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_ecdsa_public_key_free(&pub_key));
     EXPECT_SUCCESS(s2n_ecdsa_private_key_free(&priv_key));
     EXPECT_SUCCESS(s2n_ecdsa_private_key_free(&unmatched_priv_key));
+    EXPECT_SUCCESS(s2n_hash_free(&hash_one));
+    EXPECT_SUCCESS(s2n_hash_free(&hash_two));
     EXPECT_SUCCESS(s2n_stuffer_free(&certificate_in));
     EXPECT_SUCCESS(s2n_stuffer_free(&certificate_out));
     EXPECT_SUCCESS(s2n_stuffer_free(&ecdsa_key_in));

@@ -22,6 +22,12 @@
 
 static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12};
 
+int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
+{
+    GUARD(s2n_init());
+    return 0;
+}
+
 int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
     for(int version = 0; version < (sizeof(TLS_VERSIONS) / sizeof(TLS_VERSIONS[0])); version++){

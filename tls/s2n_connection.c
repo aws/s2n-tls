@@ -25,6 +25,7 @@
 
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_connection_evp_digests.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
@@ -77,6 +78,75 @@ int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct
     }
 
     gte_check(certificate_count, 1);
+
+    return 0;
+}
+
+static int s2n_connection_new_hashes(struct s2n_connection *conn)
+{
+    /* Allocate long-term memory for the Connection's hash states */
+    GUARD(s2n_hash_new(&conn->handshake.md5));
+    GUARD(s2n_hash_new(&conn->handshake.sha1));
+    GUARD(s2n_hash_new(&conn->handshake.sha224));
+    GUARD(s2n_hash_new(&conn->handshake.sha256));
+    GUARD(s2n_hash_new(&conn->handshake.sha384));
+    GUARD(s2n_hash_new(&conn->handshake.sha512));
+    GUARD(s2n_hash_new(&conn->handshake.md5_sha1));
+    GUARD(s2n_hash_new(&conn->handshake.sslv3_md5_copy));
+    GUARD(s2n_hash_new(&conn->handshake.sslv3_sha1_copy));
+    GUARD(s2n_hash_new(&conn->handshake.tls_hash_copy));
+    GUARD(s2n_hash_new(&conn->prf_space.ssl3.md5));
+    GUARD(s2n_hash_new(&conn->prf_space.ssl3.sha1));
+    GUARD(s2n_hash_new(&conn->initial.signature_hash));
+    GUARD(s2n_hash_new(&conn->secure.signature_hash));
+
+    return 0;
+}
+
+static int s2n_connection_init_hashes(struct s2n_connection *conn)
+{
+    /* Initialize all of the Connection's hash states */
+    GUARD(s2n_hash_init(&conn->handshake.md5, S2N_HASH_MD5));
+    GUARD(s2n_hash_init(&conn->handshake.sha1, S2N_HASH_SHA1));
+    GUARD(s2n_hash_init(&conn->handshake.sha224, S2N_HASH_SHA224));
+    GUARD(s2n_hash_init(&conn->handshake.sha256, S2N_HASH_SHA256));
+    GUARD(s2n_hash_init(&conn->handshake.sha384, S2N_HASH_SHA384));
+    GUARD(s2n_hash_init(&conn->handshake.sha512, S2N_HASH_SHA512));
+    GUARD(s2n_hash_init(&conn->handshake.md5_sha1, S2N_HASH_MD5_SHA1));
+    GUARD(s2n_hash_init(&conn->handshake.sslv3_md5_copy, S2N_HASH_MD5));
+    GUARD(s2n_hash_init(&conn->handshake.sslv3_sha1_copy, S2N_HASH_SHA1));
+    GUARD(s2n_hash_init(&conn->handshake.tls_hash_copy, S2N_HASH_NONE));
+    GUARD(s2n_hash_init(&conn->prf_space.ssl3.md5, S2N_HASH_MD5));
+    GUARD(s2n_hash_init(&conn->prf_space.ssl3.sha1, S2N_HASH_SHA1));
+    GUARD(s2n_hash_init(&conn->initial.signature_hash, S2N_HASH_NONE));
+    GUARD(s2n_hash_init(&conn->secure.signature_hash, S2N_HASH_NONE));
+
+    return 0;
+}
+
+static int s2n_connection_new_hmacs(struct s2n_connection *conn)
+{
+    /* Allocate long-term memory for the Connection's HMAC states */
+    GUARD(s2n_hmac_new(&conn->initial.client_record_mac));
+    GUARD(s2n_hmac_new(&conn->initial.server_record_mac));
+    GUARD(s2n_hmac_new(&conn->initial.record_mac_copy_workspace));
+    GUARD(s2n_hmac_new(&conn->secure.client_record_mac));
+    GUARD(s2n_hmac_new(&conn->secure.server_record_mac));
+    GUARD(s2n_hmac_new(&conn->secure.record_mac_copy_workspace));
+
+    return 0;
+}
+
+static int s2n_connection_init_hmacs(struct s2n_connection *conn)
+{
+    /* Initialize all of the Connection's HMAC states */
+    GUARD(s2n_hmac_init(&conn->initial.client_record_mac, S2N_HMAC_NONE, NULL, 0));
+    GUARD(s2n_hmac_init(&conn->initial.server_record_mac, S2N_HMAC_NONE, NULL, 0));
+    GUARD(s2n_hmac_init(&conn->initial.record_mac_copy_workspace, S2N_HMAC_NONE, NULL, 0));
+    GUARD(s2n_hmac_init(&conn->secure.client_record_mac, S2N_HMAC_NONE, NULL, 0));
+    GUARD(s2n_hmac_init(&conn->secure.server_record_mac, S2N_HMAC_NONE, NULL, 0));
+    GUARD(s2n_hmac_init(&conn->secure.record_mac_copy_workspace, S2N_HMAC_NONE, NULL, 0));
+
     return 0;
 }
 
@@ -150,7 +220,14 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     GUARD_PTR(s2n_session_key_alloc(&conn->initial.client_key));
     GUARD_PTR(s2n_session_key_alloc(&conn->initial.server_key));
 
+    /* Allocate long term hash and HMAC memory */
     GUARD_PTR(s2n_prf_new(conn));
+
+    GUARD_PTR(s2n_connection_new_hashes(conn));
+    GUARD_PTR(s2n_connection_init_hashes(conn));
+
+    GUARD_PTR(s2n_connection_new_hmacs(conn));
+    GUARD_PTR(s2n_connection_init_hmacs(conn));
 
     /* Initialize the growable stuffers. Zero length at first, but the resize
      * in _wipe will fix that
@@ -179,10 +256,6 @@ static int s2n_connection_free_keys(struct s2n_connection *conn)
 
 static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n_config *config)
 {
-    /* Preserve the PRF state before zeroing the connection struct */
-    struct s2n_evp_hmac_state p_hash_evp_hmac = conn->prf_space.tls.p_hash.evp_hmac;
-    const struct s2n_p_hash_hmac *p_hash_hmac = conn->prf_space.tls.p_hash_hmac;
-
     /* Zero the whole connection structure */
     memset_check(conn, 0, sizeof(struct s2n_connection));
 
@@ -192,8 +265,6 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->recv_io_context = NULL;
     conn->mode = mode;
     conn->config = config;
-    conn->prf_space.tls.p_hash.evp_hmac = p_hash_evp_hmac;
-    conn->prf_space.tls.p_hash_hmac = p_hash_hmac;
     conn->close_notify_queued = 0;
     conn->current_user_data_consumed = 0;
     conn->initial.cipher_suite = &s2n_null_cipher_suite;
@@ -206,14 +277,6 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->client_cert_auth_type = S2N_CERT_AUTH_NONE;
     conn->verify_cert_chain_cb = deny_all_certs;
     conn->verify_cert_context = NULL;
-    GUARD(s2n_hash_init(&conn->handshake.md5, S2N_HASH_MD5));
-    GUARD(s2n_hash_init(&conn->handshake.sha1, S2N_HASH_SHA1));
-    GUARD(s2n_hash_init(&conn->handshake.sha224, S2N_HASH_SHA224));
-    GUARD(s2n_hash_init(&conn->handshake.sha256, S2N_HASH_SHA256));
-    GUARD(s2n_hash_init(&conn->handshake.sha384, S2N_HASH_SHA384));
-    GUARD(s2n_hash_init(&conn->handshake.sha512, S2N_HASH_SHA512));
-    GUARD(s2n_hmac_init(&conn->client->client_record_mac, S2N_HMAC_NONE, NULL, 0));
-    GUARD(s2n_hmac_init(&conn->server->server_record_mac, S2N_HMAC_NONE, NULL, 0));
 
     return 0;
 }
@@ -236,6 +299,40 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     GUARD(s2n_ecc_params_free(&conn->secure.server_ecc_params));
     GUARD(s2n_free(&conn->secure.client_cert_chain));
     GUARD(s2n_free(&conn->ct_response));
+
+    return 0;
+}
+
+static int s2n_connection_reset_hashes(struct s2n_connection *conn)
+{
+    /* Reset all of the Connection's hash states */
+    GUARD(s2n_hash_reset(&conn->handshake.md5));
+    GUARD(s2n_hash_reset(&conn->handshake.sha1));
+    GUARD(s2n_hash_reset(&conn->handshake.sha224));
+    GUARD(s2n_hash_reset(&conn->handshake.sha256));
+    GUARD(s2n_hash_reset(&conn->handshake.sha384));
+    GUARD(s2n_hash_reset(&conn->handshake.sha512));
+    GUARD(s2n_hash_reset(&conn->handshake.md5_sha1));
+    GUARD(s2n_hash_reset(&conn->handshake.sslv3_md5_copy));
+    GUARD(s2n_hash_reset(&conn->handshake.sslv3_sha1_copy));
+    GUARD(s2n_hash_reset(&conn->handshake.tls_hash_copy));
+    GUARD(s2n_hash_reset(&conn->prf_space.ssl3.md5));
+    GUARD(s2n_hash_reset(&conn->prf_space.ssl3.sha1));
+    GUARD(s2n_hash_reset(&conn->initial.signature_hash));
+    GUARD(s2n_hash_reset(&conn->secure.signature_hash));
+
+    return 0;
+}
+
+static int s2n_connection_reset_hmacs(struct s2n_connection *conn)
+{
+    /* Reset all of the Connection's HMAC states */
+    GUARD(s2n_hmac_reset(&conn->initial.client_record_mac));
+    GUARD(s2n_hmac_reset(&conn->initial.server_record_mac));
+    GUARD(s2n_hmac_reset(&conn->initial.record_mac_copy_workspace));
+    GUARD(s2n_hmac_reset(&conn->secure.client_record_mac));
+    GUARD(s2n_hmac_reset(&conn->secure.server_record_mac));
+    GUARD(s2n_hmac_reset(&conn->secure.record_mac_copy_workspace));
 
     return 0;
 }
@@ -283,6 +380,40 @@ static int s2n_connection_wipe_io(struct s2n_connection *conn)
     return 0;
 }
 
+static int s2n_connection_free_hashes(struct s2n_connection *conn)
+{
+    /* Free all of the Connection's hash states */
+    GUARD(s2n_hash_free(&conn->handshake.md5));
+    GUARD(s2n_hash_free(&conn->handshake.sha1));
+    GUARD(s2n_hash_free(&conn->handshake.sha224));
+    GUARD(s2n_hash_free(&conn->handshake.sha256));
+    GUARD(s2n_hash_free(&conn->handshake.sha384));
+    GUARD(s2n_hash_free(&conn->handshake.sha512));
+    GUARD(s2n_hash_free(&conn->handshake.md5_sha1));
+    GUARD(s2n_hash_free(&conn->handshake.sslv3_md5_copy));
+    GUARD(s2n_hash_free(&conn->handshake.sslv3_sha1_copy));
+    GUARD(s2n_hash_free(&conn->handshake.tls_hash_copy));
+    GUARD(s2n_hash_free(&conn->prf_space.ssl3.md5));
+    GUARD(s2n_hash_free(&conn->prf_space.ssl3.sha1));
+    GUARD(s2n_hash_free(&conn->initial.signature_hash));
+    GUARD(s2n_hash_free(&conn->secure.signature_hash));
+
+    return 0;
+}
+
+static int s2n_connection_free_hmacs(struct s2n_connection *conn)
+{
+    /* Free all of the Connection's HMAC states */
+    GUARD(s2n_hmac_free(&conn->initial.client_record_mac));
+    GUARD(s2n_hmac_free(&conn->initial.server_record_mac));
+    GUARD(s2n_hmac_free(&conn->initial.record_mac_copy_workspace));
+    GUARD(s2n_hmac_free(&conn->secure.client_record_mac));
+    GUARD(s2n_hmac_free(&conn->secure.server_record_mac));
+    GUARD(s2n_hmac_free(&conn->secure.record_mac_copy_workspace));
+
+    return 0;
+}
+
 int s2n_connection_free(struct s2n_connection *conn)
 {
     struct s2n_blob blob;
@@ -291,6 +422,12 @@ int s2n_connection_free(struct s2n_connection *conn)
     GUARD(s2n_connection_free_keys(conn));
 
     GUARD(s2n_prf_free(conn));
+
+    GUARD(s2n_connection_reset_hashes(conn));
+    GUARD(s2n_connection_free_hashes(conn));
+
+    GUARD(s2n_connection_reset_hmacs(conn));
+    GUARD(s2n_connection_free_hmacs(conn));
 
     GUARD(s2n_free(&conn->status_response));
     GUARD(s2n_stuffer_free(&conn->in));
@@ -338,9 +475,15 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     struct s2n_session_key initial_server_key;
     struct s2n_session_key secure_client_key;
     struct s2n_session_key secure_server_key;
+    /* Parts of the PRF working space, hash states, and hmac states  will be wiped. Preserve structs to avoid reallocation */
+    struct s2n_connection_prf_handles prf_handles;
+    struct s2n_connection_hash_handles hash_handles;
+    struct s2n_connection_hmac_handles hmac_handles;
 
     /* Wipe all of the sensitive stuff */
     GUARD(s2n_connection_wipe_keys(conn));
+    GUARD(s2n_connection_reset_hashes(conn));
+    GUARD(s2n_connection_reset_hmacs(conn));
     GUARD(s2n_stuffer_wipe(&conn->alert_in));
     GUARD(s2n_stuffer_wipe(&conn->reader_alert_out));
     GUARD(s2n_stuffer_wipe(&conn->writer_alert_out));
@@ -381,6 +524,9 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     memcpy_check(&initial_server_key, &conn->initial.server_key, sizeof(struct s2n_session_key));
     memcpy_check(&secure_client_key, &conn->secure.client_key, sizeof(struct s2n_session_key));
     memcpy_check(&secure_server_key, &conn->secure.server_key, sizeof(struct s2n_session_key));
+    GUARD(s2n_connection_save_prf_state(&prf_handles, conn));
+    GUARD(s2n_connection_save_hash_state(&hash_handles, conn));
+    GUARD(s2n_connection_save_hmac_state(&hmac_handles, conn));
 #if S2N_GCC_VERSION_AT_LEAST(4,6,0)
 #pragma GCC diagnostic pop
 #endif
@@ -398,6 +544,13 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     memcpy_check(&conn->initial.server_key, &initial_server_key, sizeof(struct s2n_session_key));
     memcpy_check(&conn->secure.client_key, &secure_client_key, sizeof(struct s2n_session_key));
     memcpy_check(&conn->secure.server_key, &secure_server_key, sizeof(struct s2n_session_key));
+    GUARD(s2n_connection_restore_prf_state(conn, &prf_handles));
+    GUARD(s2n_connection_restore_hash_state(conn, &hash_handles));
+    GUARD(s2n_connection_restore_hmac_state(conn, &hmac_handles));
+
+    /* Re-initialize hash and hmac states */
+    GUARD(s2n_connection_init_hashes(conn));
+    GUARD(s2n_connection_init_hmacs(conn));
 
     if (conn->mode == S2N_SERVER) {
         /* Start with the highest protocol version so that the highest common protocol version can be selected */

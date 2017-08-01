@@ -1,2 +1,0 @@
-include "spec/HMAC_driver.saw";
-verify_s2n_hmac_at_several_key_and_msg_sizes none_cfg [1,10,100,200,300,400];

@@ -213,6 +213,11 @@ int main(int argc, char **argv)
     struct s2n_blob signature;
     struct s2n_hash_state tls10_one, tls10_two, tls12_one, tls12_two;
 
+    EXPECT_SUCCESS(s2n_hash_new(&tls10_one));
+    EXPECT_SUCCESS(s2n_hash_new(&tls10_two));
+    EXPECT_SUCCESS(s2n_hash_new(&tls12_one));
+    EXPECT_SUCCESS(s2n_hash_new(&tls12_two));
+
     EXPECT_SUCCESS(s2n_hash_init(&tls10_one, S2N_HASH_MD5_SHA1));
     EXPECT_SUCCESS(s2n_hash_init(&tls10_two, S2N_HASH_MD5_SHA1));
     EXPECT_SUCCESS(s2n_hash_init(&tls12_one, S2N_HASH_SHA1));
@@ -229,6 +234,11 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hash_update(&tls12_two, inputpad, sizeof(inputpad)));
     EXPECT_SUCCESS(s2n_rsa_sign(&priv_key, &tls12_one, &signature));
     EXPECT_SUCCESS(s2n_rsa_verify(&pub_key, &tls12_two, &signature));
+
+    EXPECT_SUCCESS(s2n_hash_free(&tls10_one));
+    EXPECT_SUCCESS(s2n_hash_free(&tls10_two));
+    EXPECT_SUCCESS(s2n_hash_free(&tls12_one));
+    EXPECT_SUCCESS(s2n_hash_free(&tls12_two));
 
     EXPECT_SUCCESS(s2n_config_free(config));
 
