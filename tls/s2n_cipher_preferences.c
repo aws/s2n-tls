@@ -231,25 +231,48 @@ const struct s2n_cipher_preferences cipher_preferences_20170405 = {
     .minimum_protocol_version = S2N_TLS10
 };
 
+/* Equivalent to cipher_suite_20160411 with 3DES removed.
+ * Make a CBC cipher #1 to avoid negotiating GCM with buggy Java clients. */
+struct s2n_cipher_suite *cipher_suites_20170718[] = {
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20170718 = {
+    .count = sizeof(cipher_suites_20170718) / sizeof(cipher_suites_20170718[0]),
+    .suites = cipher_suites_20170718,
+    .minimum_protocol_version = S2N_TLS10
+};
+
 struct {
     const char *version;
     const struct s2n_cipher_preferences *preferences;
 } selection[] = {
-    {
-    "default", &cipher_preferences_20170210}, {
-    "20140601", &cipher_preferences_20140601}, {
-    "20141001", &cipher_preferences_20141001}, {
-    "20150202", &cipher_preferences_20150202}, {
-    "20150214", &cipher_preferences_20150214}, {
-    "20150306", &cipher_preferences_20150306}, {
-    "20160411", &cipher_preferences_20160411}, {
-    "20160804", &cipher_preferences_20160804}, {
-    "20160824", &cipher_preferences_20160824}, {
-    "20170210", &cipher_preferences_20170210}, {
-    "20170328", &cipher_preferences_20170328}, {
-    "20170405", &cipher_preferences_20170405}, {
-    "test_all", &cipher_preferences_test_all}, {
-    NULL, NULL}
+    { "default", &cipher_preferences_20170210 },
+    { "20140601", &cipher_preferences_20140601 },
+    { "20141001", &cipher_preferences_20141001 },
+    { "20150202", &cipher_preferences_20150202 },
+    { "20150214", &cipher_preferences_20150214 },
+    { "20150306", &cipher_preferences_20150306 },
+    { "20160411", &cipher_preferences_20160411 },
+    { "20160804", &cipher_preferences_20160804 },
+    { "20160824", &cipher_preferences_20160824 },
+    { "20170210", &cipher_preferences_20170210 },
+    { "20170328", &cipher_preferences_20170328 },
+    { "20170405", &cipher_preferences_20170405 },
+    { "20170718", &cipher_preferences_20170718 },
+    { "test_all", &cipher_preferences_test_all },
+    { NULL, NULL }
 };
 
 int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version)
