@@ -32,42 +32,41 @@ writer2sender w = if w == 'C' then clientSender else
                   if w == 'S' then serverSender else
                                    appData
 
-corkAdapt : [1] -> [2]
-corkAdapt c = zero # c
-
 corkedFromConn : connection -> [2]
 corkedFromConn conn = if mode_writer conn.mode == (ACTIVE_STATE conn).writer then 1
                       else 0
 
+trace_advance_message : {n} (fin n) => connection -> [n]connection
+trace_advance_message conn = take (iterate advance_message conn)
+
+trace_corking : {n} (fin n, n >= 2) => State -> [n-1][8] -> [n]State
+trace_corking s writers = scanl cork_transition s writers
+
+getWriter : connection -> [8]
+getWriter conn = (ACTIVE_STATE conn).writer
+
 //if low level can make a step, then the high level can. If the low
 //level cannot make a step, then the high level can't also
-highLevelSimulatesLowLevel : connection -> Bit
-highLevelSimulatesLowLevel conn_old =
-   if (valid_handshake conn_old.handshake /\ conn_old.mode == S2N_SERVER /\ conn_old.corked_io == 1)
-   ///\ (conn_old.corked == corkedFromConn conn_old))
-   then state_new == (cork_transition state_old writer_new)
-   else True
-   where conn_new   = advance_message conn_old
-         writer_old = (ACTIVE_STATE conn_old).writer
-         writer_new = (ACTIVE_STATE conn_new).writer
-         state_old  = (writer2sender writer_old, conn_old.corked)
-         state_new  = (writer2sender writer_new, conn_new.corked)
-         input      = writer_new
+highLevelSimulatesLowLevel : {len} (fin len, len >= 2) => connection -> State -> Bit
+highLevelSimulatesLowLevel conn state =
+   initial_connection conn /\ conn.mode == S2N_SERVER /\ conn2state conn == state ==>
+   (map conn2state conn_trace) == (trace_corking `{n = len} state writers)
+   where (conn_trace : [len]connection) = trace_advance_message `{n = len} conn
+         writers = drop `{1} (map getWriter conn_trace)
+
+conn2state : connection -> State
+conn2state conn = (writer2sender (getWriter conn), conn.corked)
 
 // A (failing) simulation relation that omits the "only in server
 // mode" precondition.
 // We wrap this with negation to show that we can't do this proof without
 // the server-mode assumption
-highLevelDoesNotSimulateLowLevel : connection -> Bit
-highLevelDoesNotSimulateLowLevel conn_old = 
-   if (valid_handshake conn_old.handshake /\ conn_old.corked_io == 1 /\ (conn_old.corked == corkedFromConn conn_old)) then state_new == (cork_transition state_old writer_new)
-   else True
-   where conn_new   = advance_message conn_old
-         writer_old = (ACTIVE_STATE conn_old).writer
-         writer_new = (ACTIVE_STATE conn_new).writer
-         state_old  = (writer2sender writer_old, conn_old.corked)
-         state_new  = (writer2sender writer_new, conn_new.corked)
-         input      = writer_new
+highLevelDoesNotSimulateLowLevel :  {len} (fin len, len >= 2) => connection -> State -> Bit
+highLevelDoesNotSimulateLowLevel conn state =
+   initial_connection conn /\ conn2state conn == state ==>
+   (map conn2state conn_trace) == (trace_corking `{n = len} state writers)
+   where (conn_trace : [len]connection) = trace_advance_message `{n = len} conn
+         writers = drop `{1} (map getWriter conn_trace)
 
 // The abstract transition function for the cork/uncork state machine
 cork_transition : State -> [8] -> State
