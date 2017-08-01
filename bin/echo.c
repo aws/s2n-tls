@@ -33,7 +33,6 @@
 /* Accept all RSA Certificates is unsafe and is only used in the s2n Client */
 int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context)
 {
-
     uint32_t bytes_read = 0;
     uint32_t certificate_count = 0;
     while (bytes_read != cert_chain_len) {
@@ -106,7 +105,8 @@ int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct
         certificate_count++;
     }
 
-    if (!(certificate_count > 1)) {
+    // Allow Cert Chains of length 1 for Self-Signed Certs
+    if (certificate_count == 0) {
         return -1;
     }
 

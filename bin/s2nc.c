@@ -178,7 +178,10 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    s2n_config_set_verify_cert_chain_cb(config, accept_all_rsa_certs, NULL);
+    if (s2n_config_set_verify_cert_chain_cb(config, accept_all_rsa_certs, NULL) < 0) {
+        fprintf(stderr, "Error setting Cert Chain Callback '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        exit(1);
+    }
 
     if (alpn_protocols) {
         /* Count the number of commas, this tells us how many protocols there

@@ -699,9 +699,7 @@ int s2n_connection_get_client_hello_version(struct s2n_connection *conn)
 
 int s2n_connection_did_handshake_negotiate_client_auth(struct s2n_connection *conn)
 {
-    if ((conn->handshake.handshake_type & CLIENT_AUTH)
-        && !(conn->closed)
-        && (APPLICATION_DATA == s2n_conn_get_current_message_type(conn))) {
+    if ((conn->handshake.handshake_type & CLIENT_AUTH) && is_handshake_complete(conn)) {
         return 1;
     }
     return 0;
