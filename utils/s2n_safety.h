@@ -47,8 +47,18 @@ extern inline void* trace_memcpy_check(void *restrict to, const void *restrict f
 #define lt_check(n, max)  do { if ( (n) >= max ) { S2N_ERROR(S2N_ERR_SAFETY); } } while(0)
 #define eq_check(a, b)  do { if ( (a) != (b) ) { S2N_ERROR(S2N_ERR_SAFETY); } } while(0)
 #define ne_check(a, b)  do { if ( (a) == (b) ) { S2N_ERROR(S2N_ERR_SAFETY); } } while(0)
-#define inclusive_range_check( low, n, high )  gte_check(n, low); lte_check(n, high)
-#define exclusive_range_check( low, n, high )  gt_check(n, low); lt_check(n, high)
+#define inclusive_range_check( low, n, high )	\
+  do  {						\
+    __typeof (n) __tmp_n = n;			\
+    gte_check(__tmp_n, low);			\
+    lte_check(__tmp_n, high);			\
+  } while (0)
+#define exclusive_range_check( low, n, high )	\
+  do {						\
+    __typeof (n) __tmp_n = n;			\
+    gt_check(__tmp_n, low);			\
+    lt_check(__tmp_n, high);			\
+  } while (0)
 
 #define GUARD( x )      if ( (x) < 0 ) return -1
 #define GUARD_PTR( x )  if ( (x) < 0 ) return NULL
