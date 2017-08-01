@@ -92,7 +92,7 @@ exec : {n} (fin n) => [n][8] -> State
 exec writers = foldl cork_transition (clientSender, uncorked) writers
 
 // there is no uncorking or corking twice in a row
-noDoubleCorkUncork : [12][8] -> Bit
+noDoubleCorkUncork : [16][8] -> Bit
 noDoubleCorkUncork writers = and (map corkingInBounds (run writers))
 
 corkingInBounds : State -> Bit
