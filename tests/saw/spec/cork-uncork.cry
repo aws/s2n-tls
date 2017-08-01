@@ -35,7 +35,7 @@ writer2sender w = if w == 'C' then clientSender else
 corkAdapt : [1] -> [2]
 corkAdapt c = zero # c
 
-corkedFromConn : connection -> [1]
+corkedFromConn : connection -> [2]
 corkedFromConn conn = if mode_writer conn.mode == (ACTIVE_STATE conn).writer then 1
                       else 0
 
@@ -43,13 +43,15 @@ corkedFromConn conn = if mode_writer conn.mode == (ACTIVE_STATE conn).writer the
 //level cannot make a step, then the high level can't also
 highLevelSimulatesLowLevel : connection -> Bit
 highLevelSimulatesLowLevel conn_old =
-   if (valid_handshake conn_old.handshake /\ conn_old.mode == S2N_SERVER /\ conn_old.corked_io == 1 /\ (conn_old.corked == corkedFromConn conn_old)) then state_new == (cork_transition state_old writer_new)
+   if (valid_handshake conn_old.handshake /\ conn_old.mode == S2N_SERVER /\ conn_old.corked_io == 1)
+   ///\ (conn_old.corked == corkedFromConn conn_old))
+   then state_new == (cork_transition state_old writer_new)
    else True
    where conn_new   = advance_message conn_old
          writer_old = (ACTIVE_STATE conn_old).writer
          writer_new = (ACTIVE_STATE conn_new).writer
-         state_old  = (writer2sender writer_old, corkAdapt conn_old.corked)
-         state_new  = (writer2sender writer_new, corkAdapt conn_new.corked)
+         state_old  = (writer2sender writer_old, conn_old.corked)
+         state_new  = (writer2sender writer_new, conn_new.corked)
          input      = writer_new
 
 // A (failing) simulation relation that omits the "only in server
@@ -63,8 +65,8 @@ highLevelDoesNotSimulateLowLevel conn_old =
    where conn_new   = advance_message conn_old
          writer_old = (ACTIVE_STATE conn_old).writer
          writer_new = (ACTIVE_STATE conn_new).writer
-         state_old  = (writer2sender writer_old, corkAdapt conn_old.corked)
-         state_new  = (writer2sender writer_new, corkAdapt conn_new.corked)
+         state_old  = (writer2sender writer_old, conn_old.corked)
+         state_new  = (writer2sender writer_new, conn_new.corked)
          input      = writer_new
 
 // The abstract transition function for the cork/uncork state machine
