@@ -69,7 +69,12 @@ hmac_update_c_state_multi st msgs = states ! 0
     states = [st] # [hmac_update_c_state s msg | msg <- msgs | s <- states]
 
 hmac_c_state_multi_correct : { key_size, msg_size, msg_chunks }
-              ( 32 >= width msg_size, 64 >= width (8 * key_size), fin msg_chunks, 32 >= width (msg_chunks * msg_size) )
+              ( 32 >= width msg_size
+              , 64 >= width (8 * key_size)
+              , fin msg_chunks
+              , 32 >= width (msg_chunks * msg_size)
+              , 64 >= width (8 * (64 + msg_size * msg_chunks))
+              )
            => HMAC_c_state -> [key_size][8] -> [msg_chunks][msg_size][8] -> Bit
 property hmac_c_state_multi_correct st0 key msgs =
     hmacSHA256 key (join msgs) == hmac_c_state_multi st0 key msgs

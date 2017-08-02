@@ -91,7 +91,7 @@ static int s2n_sslv3_mac_digest(struct s2n_hmac_state *state, void *out, uint32_
     }
 
     GUARD(s2n_hash_digest(&state->inner, state->digest_pad, state->digest_size));
-    memcpy_check(&state->inner, &state->outer, sizeof(state->inner));
+    GUARD(s2n_hash_copy(&state->inner, &state->outer));
     GUARD(s2n_hash_update(&state->inner, state->digest_pad, state->digest_size));
 
     return s2n_hash_digest(&state->inner, out, size);
@@ -130,6 +130,15 @@ int s2n_hmac_hash_block_size(s2n_hmac_algorithm hmac_alg, uint16_t *block_size)
     default:
         S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
     }
+    return 0;
+}
+
+int s2n_hmac_new(struct s2n_hmac_state *state)
+{
+    GUARD(s2n_hash_new(&state->inner));
+    GUARD(s2n_hash_new(&state->inner_just_key));
+    GUARD(s2n_hash_new(&state->outer));
+
     return 0;
 }
 
@@ -243,11 +252,19 @@ int s2n_hmac_digest_two_compression_rounds(struct s2n_hmac_state *state, void *o
     return s2n_hash_update(&state->inner, state->xor_pad, state->hash_block_size);
 }
 
+int s2n_hmac_free(struct s2n_hmac_state *state)
+{
+    GUARD(s2n_hash_free(&state->inner));
+    GUARD(s2n_hash_free(&state->inner_just_key));
+    GUARD(s2n_hash_free(&state->outer));
+
+    return 0;
+}
+
 int s2n_hmac_reset(struct s2n_hmac_state *state)
 {
     state->currently_in_hash_block = 0;
-    memcpy_check(&state->inner, &state->inner_just_key, sizeof(state->inner));
-
+    GUARD(s2n_hash_copy(&state->inner, &state->inner_just_key));
     return 0;
 }
 
@@ -258,6 +275,21 @@ int s2n_hmac_digest_verify(const void *a, const void *b, uint32_t len)
 
 int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
 {
-    memcpy_check(to, from, sizeof(struct s2n_hmac_state));
+    /* memcpy cannot be used on s2n_hmac_state as the underlying s2n_hash implementation's
+     * copy must be used. This is enforced when the s2n_hash implementation is s2n_evp_hash.
+     */
+    to->alg = from->alg;
+    to->hash_block_size = from->hash_block_size;
+    to->currently_in_hash_block = from->currently_in_hash_block;
+    to->block_size = from->block_size;
+    to->digest_size = from->digest_size;
+
+    GUARD(s2n_hash_copy(&to->inner, &from->inner));
+    GUARD(s2n_hash_copy(&to->inner_just_key, &from->inner_just_key));
+    GUARD(s2n_hash_copy(&to->outer, &from->outer));
+
+    memcpy_check(to->xor_pad, from->xor_pad, sizeof(to->xor_pad));
+    memcpy_check(to->digest_pad, from->digest_pad, sizeof(to->digest_pad));
+
     return 0;
 }

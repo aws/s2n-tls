@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -15,11 +15,14 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <openssl/evp.h>
 
-#include "utils/s2n_blob.h"
+struct s2n_evp_digest {
+    const EVP_MD *md;
+    EVP_MD_CTX *ctx;
+};
 
-#include "crypto/s2n_hmac.h"
-
-extern int s2n_hkdf(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *salt,
-                    const struct s2n_blob *key, const struct s2n_blob *info, struct s2n_blob *output);
+struct s2n_signed_evp_digest {
+    struct s2n_evp_digest evp_digest;
+    EVP_PKEY *mac_key;
+};

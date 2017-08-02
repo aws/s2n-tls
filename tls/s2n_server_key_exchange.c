@@ -55,7 +55,6 @@ int s2n_server_key_recv(struct s2n_connection *conn)
 
 static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn)
 {
-    struct s2n_hash_state signature_hash;
     struct s2n_stuffer *in = &conn->handshake.io;
     struct s2n_blob ecdhparams;
     struct s2n_blob signature;
@@ -63,8 +62,6 @@ static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn)
 
     /* Read server ECDH params and calculate their hash */
     GUARD(s2n_ecc_read_ecc_params(&conn->secure.server_ecc_params, in, &ecdhparams));
-
-    GUARD(s2n_hash_init(&signature_hash, conn->secure.conn_hash_alg));
 
     if (conn->actual_protocol_version == S2N_TLS12) {
         uint8_t hash_algorithm;
@@ -89,12 +86,14 @@ static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn)
             S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }
 
-        GUARD(s2n_hash_init(&signature_hash, s2n_hash_tls_to_alg[hash_algorithm]));
+        GUARD(s2n_hash_init(&conn->secure.signature_hash, s2n_hash_tls_to_alg[hash_algorithm]));
+    } else {
+        GUARD(s2n_hash_init(&conn->secure.signature_hash, conn->secure.conn_hash_alg));
     }
 
-    GUARD(s2n_hash_update(&signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
-    GUARD(s2n_hash_update(&signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
-    GUARD(s2n_hash_update(&signature_hash, ecdhparams.data, ecdhparams.size));
+    GUARD(s2n_hash_update(&conn->secure.signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    GUARD(s2n_hash_update(&conn->secure.signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
+    GUARD(s2n_hash_update(&conn->secure.signature_hash, ecdhparams.data, ecdhparams.size));
 
     /* Verify the signature */
     GUARD(s2n_stuffer_read_uint16(in, &signature_length));
@@ -104,7 +103,7 @@ static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn)
 
     gt_check(signature_length, 0);
 
-    if (s2n_rsa_verify(&conn->secure.server_rsa_public_key, &signature_hash, &signature) < 0) {
+    if (s2n_rsa_verify(&conn->secure.server_rsa_public_key, &conn->secure.signature_hash, &signature) < 0) {
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
@@ -116,7 +115,6 @@ static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn)
 
 static int s2n_dhe_server_key_recv(struct s2n_connection *conn)
 {
-    struct s2n_hash_state signature_hash;
     struct s2n_stuffer *in = &conn->handshake.io;
     struct s2n_blob p, g, Ys, serverDHparams, signature;
     uint16_t p_length;
@@ -147,8 +145,6 @@ static int s2n_dhe_server_key_recv(struct s2n_connection *conn)
     /* Now we know the total size of the structure */
     serverDHparams.size = 2 + p_length + 2 + g_length + 2 + Ys_length;
 
-    GUARD(s2n_hash_init(&signature_hash, conn->secure.conn_hash_alg));
-
     if (conn->actual_protocol_version == S2N_TLS12) {
         uint8_t hash_algorithm;
         uint8_t signature_algorithm;
@@ -172,12 +168,14 @@ static int s2n_dhe_server_key_recv(struct s2n_connection *conn)
             S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }
 
-        GUARD(s2n_hash_init(&signature_hash, s2n_hash_tls_to_alg[hash_algorithm]));
+        GUARD(s2n_hash_init(&conn->secure.signature_hash, s2n_hash_tls_to_alg[hash_algorithm]));
+    } else {
+        GUARD(s2n_hash_init(&conn->secure.signature_hash, conn->secure.conn_hash_alg));
     }
 
-    GUARD(s2n_hash_update(&signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
-    GUARD(s2n_hash_update(&signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
-    GUARD(s2n_hash_update(&signature_hash, serverDHparams.data, serverDHparams.size));
+    GUARD(s2n_hash_update(&conn->secure.signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    GUARD(s2n_hash_update(&conn->secure.signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
+    GUARD(s2n_hash_update(&conn->secure.signature_hash, serverDHparams.data, serverDHparams.size));
 
     GUARD(s2n_stuffer_read_uint16(in, &signature_length));
     signature.size = signature_length;
@@ -186,7 +184,7 @@ static int s2n_dhe_server_key_recv(struct s2n_connection *conn)
 
     gt_check(signature_length, 0);
 
-    if (s2n_rsa_verify(&conn->secure.server_rsa_public_key, &signature_hash, &signature) < 0) {
+    if (s2n_rsa_verify(&conn->secure.server_rsa_public_key, &conn->secure.signature_hash, &signature) < 0) {
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
@@ -214,7 +212,6 @@ static int s2n_ecdhe_server_key_send(struct s2n_connection *conn)
 {
     struct s2n_blob signature;
     struct s2n_stuffer *out = &conn->handshake.io;
-    struct s2n_hash_state signature_hash;
     struct s2n_blob ecdhparams;
 
     /* Generate an ephemeral key and  */
@@ -229,10 +226,10 @@ static int s2n_ecdhe_server_key_send(struct s2n_connection *conn)
     }
 
     /* Add the random data to the hash */
-    GUARD(s2n_hash_init(&signature_hash, conn->secure.conn_hash_alg));
-    GUARD(s2n_hash_update(&signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
-    GUARD(s2n_hash_update(&signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
-    GUARD(s2n_hash_update(&signature_hash, ecdhparams.data, ecdhparams.size));
+    GUARD(s2n_hash_init(&conn->secure.signature_hash, conn->secure.conn_hash_alg));
+    GUARD(s2n_hash_update(&conn->secure.signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    GUARD(s2n_hash_update(&conn->secure.signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
+    GUARD(s2n_hash_update(&conn->secure.signature_hash, ecdhparams.data, ecdhparams.size));
 
     signature.size = s2n_rsa_private_encrypted_size(&conn->config->cert_and_key_pairs->private_key);
     GUARD(s2n_stuffer_write_uint16(out, signature.size));
@@ -240,7 +237,7 @@ static int s2n_ecdhe_server_key_send(struct s2n_connection *conn)
     signature.data = s2n_stuffer_raw_write(out, signature.size);
     notnull_check(signature.data);
 
-    if (s2n_rsa_sign(&conn->config->cert_and_key_pairs->private_key, &signature_hash, &signature) < 0) {
+    if (s2n_rsa_sign(&conn->config->cert_and_key_pairs->private_key, &conn->secure.signature_hash, &signature) < 0) {
         S2N_ERROR(S2N_ERR_DH_FAILED_SIGNING);
     }
 
@@ -251,7 +248,6 @@ static int s2n_dhe_server_key_send(struct s2n_connection *conn)
 {
     struct s2n_blob serverDHparams, signature;
     struct s2n_stuffer *out = &conn->handshake.io;
-    struct s2n_hash_state signature_hash;
 
     /* Duplicate the DH key from the config */
     GUARD(s2n_dh_params_copy(conn->config->dhparams, &conn->secure.server_dh_params));
@@ -267,10 +263,10 @@ static int s2n_dhe_server_key_send(struct s2n_connection *conn)
         GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_RSA));
     }
 
-    GUARD(s2n_hash_init(&signature_hash, conn->secure.conn_hash_alg));
-    GUARD(s2n_hash_update(&signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
-    GUARD(s2n_hash_update(&signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
-    GUARD(s2n_hash_update(&signature_hash, serverDHparams.data, serverDHparams.size));
+    GUARD(s2n_hash_init(&conn->secure.signature_hash, conn->secure.conn_hash_alg));
+    GUARD(s2n_hash_update(&conn->secure.signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    GUARD(s2n_hash_update(&conn->secure.signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
+    GUARD(s2n_hash_update(&conn->secure.signature_hash, serverDHparams.data, serverDHparams.size));
 
     signature.size = s2n_rsa_private_encrypted_size(&conn->config->cert_and_key_pairs->private_key);
     GUARD(s2n_stuffer_write_uint16(out, signature.size));
@@ -278,7 +274,7 @@ static int s2n_dhe_server_key_send(struct s2n_connection *conn)
     signature.data = s2n_stuffer_raw_write(out, signature.size);
     notnull_check(signature.data);
 
-    if (s2n_rsa_sign(&conn->config->cert_and_key_pairs->private_key, &signature_hash, &signature) < 0) {
+    if (s2n_rsa_sign(&conn->config->cert_and_key_pairs->private_key, &conn->secure.signature_hash, &signature) < 0) {
         S2N_ERROR(S2N_ERR_DH_FAILED_SIGNING);
     }
 

@@ -30,7 +30,7 @@
 #define MAX_OUTPUT_SIZE 82
 #define MAX_PSEUDO_RAND_KEY_SIZE 64
 
-int s2n_hkdf_extract(s2n_hmac_algorithm alg, const struct s2n_blob *salt, const struct s2n_blob *key, struct s2n_blob *pseudo_rand_key);
+int s2n_hkdf_extract(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *salt, const struct s2n_blob *key, struct s2n_blob *pseudo_rand_key);
 
 struct hkdf_test_vector {
     s2n_hmac_algorithm alg;
@@ -519,6 +519,8 @@ static struct hkdf_test_vector tests[] = {
 
 int main(int argc, char **argv)
 {
+    struct s2n_hmac_state hmac;
+
     uint8_t prk_pad[MAX_PSEUDO_RAND_KEY_SIZE];
     struct s2n_blob prk_result = { .data = prk_pad, .size = sizeof(prk_pad) };
 
@@ -529,6 +531,8 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
+    EXPECT_SUCCESS(s2n_hmac_new(&hmac));
+
     for (uint8_t i = 0; i < NUM_TESTS; i++) {
         struct hkdf_test_vector *test = &tests[i];
 
@@ -538,10 +542,10 @@ int main(int argc, char **argv)
         s2n_blob_init(&actual_prk_blob, test->pseudo_rand_key, test->prk_len);
         s2n_blob_init(&actual_output_blob, test->output, test->output_len);
 
-        EXPECT_SUCCESS(s2n_hkdf_extract(test->alg, &salt_blob, &in_key_blob, &prk_result));
+        EXPECT_SUCCESS(s2n_hkdf_extract(&hmac, test->alg, &salt_blob, &in_key_blob, &prk_result));
         EXPECT_EQUAL(memcmp(prk_pad, actual_prk_blob.data, actual_prk_blob.size), 0);
 
-        EXPECT_SUCCESS(s2n_hkdf(test->alg, &salt_blob, &in_key_blob, &info_blob, &out_result));
+        EXPECT_SUCCESS(s2n_hkdf(&hmac, test->alg, &salt_blob, &in_key_blob, &info_blob, &out_result));
         EXPECT_EQUAL(memcmp(output_pad, actual_output_blob.data, actual_output_blob.size), 0);
     }
 
@@ -555,8 +559,10 @@ int main(int argc, char **argv)
 
     s2n_hmac_algorithm alg = S2N_HMAC_SHA1;
 
-    EXPECT_FAILURE(s2n_hkdf(alg, &salt_blob, &in_key_blob, &info_blob, &error_out));
-    EXPECT_FAILURE(s2n_hkdf(alg, &salt_blob, &in_key_blob, &info_blob, &zero_out));
+    EXPECT_FAILURE(s2n_hkdf(&hmac, alg, &salt_blob, &in_key_blob, &info_blob, &error_out));
+    EXPECT_FAILURE(s2n_hkdf(&hmac, alg, &salt_blob, &in_key_blob, &info_blob, &zero_out));
+
+    EXPECT_SUCCESS(s2n_hmac_free(&hmac));
 
     END_TEST();
 }
