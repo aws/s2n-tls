@@ -570,7 +570,11 @@ The callback can return 0 to continue handshake in s2n or it can return negative
 value to make s2n terminate handshake early with fatal handshake failure alert.
 
 ## Client Auth Related calls
+Client Auth Related API's are not recommended for normal users. Use of these API's is discouraged.
 
+1. Using these API's requires users to: Complete full x509 parsing and hostname validation in the application layer
+2. Application knowledge of TLS code points for certificate types
+3. Application dependency on libcrypto to give a libcrypto RSA struct back to s2n
 
 ### s2n\_config\_set\_client\_auth\_type and s2n\_connection\_set\_client\_auth\_type
 ```c
