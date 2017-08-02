@@ -36,8 +36,8 @@ def try_gnutls_handshake(endpoint, port, priority_str):
     s2nd.stdout.readline()
 
     # Fire up gnutls-cli, use insecure since s2nd is using a dummy cert
-    gnutls_cli = subprocess.Popen(["gnutls-cli", "--priority=" + priority_str,"--insecure", "-p " + str(port), str(endpoint)], 
-                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    gnutls_cli = subprocess.Popen(["gnutls-cli", "--priority=" + priority_str,"--insecure", "--recordsize=" + "512",
+                                   "-p " + str(port), str(endpoint)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
     # Write the priority str towards s2nd. Prepend with the 's2n' string to make sure we don't accidently match something
     # in the gnutls-cli handshake output
