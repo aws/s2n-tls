@@ -1,6 +1,5 @@
 // Low level specifications for some of the functions and constants declared in tls/s2n_handshake_io.c
-
-import "spec/s2n_advance_message.cry";
+import "spec/s2n_handshake_io.cry";
 
 llvm <- llvm_load_module "bitcode/all_llvm.bc";
 //load_llvm_cfg llvm "s2n_advance_message";
@@ -86,7 +85,7 @@ let setup_connection = do {
    message_number <- crucible_fresh_var "message_number" (llvm_int 32);
    crucible_points_to (conn_handshake_message_number pconn) (crucible_term message_number);
 
-   cork_val <- crucible_fresh_var "corked" (llvm_int 1);
+   cork_val <- crucible_fresh_var "corked" (llvm_int 2);
    crucible_ghost_value corked cork_val;
 
    cca <- crucible_fresh_var "cca" (llvm_int 32);
@@ -228,24 +227,29 @@ let s2n_advance_message_spec = do {
 // such ghost state directly with the socket file descriptor.
 let s2n_socket_write_uncork_spec = do {
     pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
+    cork_val <- crucible_fresh_var "corked" (llvm_int 2);
+    crucible_ghost_value corked cork_val;
 
     crucible_execute_func [pconn];
 
-    crucible_ghost_value corked {{ 0 : [1] }};
+    crucible_ghost_value corked {{ cork_val - 1 }};
 
     crucible_return (crucible_term {{ 0 : [32] }});
 };
 
 // Specification for s2n_socket_write_cork. The relevant part is
-// that it sets the conn->corked materialized ghost field to 1 to
+// that it sets the corked ghost variable to 1 to
 // indicate that the socket has been corked. In the future we will associate
 // such ghost state directly with the socket file descriptor.
 let s2n_socket_write_cork_spec = do {
     pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
 
+    cork_val <- crucible_fresh_var "corked" (llvm_int 2);
+    crucible_ghost_value corked cork_val;
+
     crucible_execute_func [pconn];
 
-    crucible_ghost_value corked {{ 1 : [1] }};
+    crucible_ghost_value corked {{ cork_val + 1 }};
 
     crucible_return (crucible_term {{ 0 : [32] }});
 };
@@ -275,6 +279,9 @@ let s2n_connection_is_managed_corked_spec = do {
     crucible_return (crucible_term {{ 1 : [32] }});
 };
 
+let yices_debug = do {yices;
+                      print_goal;
+                     };
 
 let s2n_handshake_io_lowlevel = do {
     // Dependencies specifications/overrides
