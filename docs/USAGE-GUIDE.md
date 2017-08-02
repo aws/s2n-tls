@@ -819,8 +819,8 @@ Each version number value corresponds to the macros defined as **S2N_SSLv2**,
 ```c
 int s2n_connection_did_handshake_negotiate_client_auth(struct s2n_connection *conn);
 ```
-**s2n_connection_did_handshake_negotiate_client_auth** returns 1 if the handshake completed, the connection is not closed,
-and Client Auth was negotiated during the handshake.
+**s2n_connection_did_handshake_negotiate_client_auth** returns 1 if the handshake completed and Client Auth was 
+negotiated during the handshake.
 
 ### s2n\_get\_application\_protocol
 
