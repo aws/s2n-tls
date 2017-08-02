@@ -1,5 +1,4 @@
 import "spec/rfc-handshake.cry";
-import "spec/s2n_advance_message.cry";
 include "s2n_handshake_io.saw";
 
 //prove correspondence of the C code and the low-level model

@@ -6,7 +6,7 @@
 module TLSHandshake where
 
 import Cryptol::Extras
-import s2n_advance_message
+import s2n_handshake_io
 
 // Main correctness property: a simulation of the S2N handshake state
 // machine by an RFC-derived state machine
@@ -294,56 +294,3 @@ s2nMessageType msg =
            prot = msg.protocol
 
 ERROR_MESSAGE = 10 // unused in current s2n
-
-// ad-hoc tests
-// bug1: NEGOTIATED | FULL | OCSP_STATUS
-conn1 = {corked = 0,
-corked_io = 0,
-handshake = {handshake_type = 0,
-message_number = 0},
-is_caching_enabled = False,
-key_exchange_eph = False,
-mode = 0,
-resume_from_cache = False,
-server_can_send_ocsp = True,
-client_auth_flag = False
-}
-
-pars1 = {includeSessionTicket = False,
-keyExchange = 3,
-renewSessionTicket = False,
-requestClientCert = False,
-sendCertificateStatus = True,
-sessionTicket = False}
-
-rfcTrace1 = traceRFC `{16} pars1
-rfcTrace1A = map rfc2S2N rfcTrace1
-
-s2nTrace1 = traceS2N `{16} conn1
-
-//bug 2: missing CLIENT_AUTH | OCSP | FULL | NEGOTIATED
-
-conn2 = {client_auth_flag = True,
-corked = 0,
-corked_io = 0,
-handshake = {handshake_type = 0,
-message_number = 0},
-is_caching_enabled = False,
-key_exchange_eph = False,
-mode = 0,
-resume_from_cache = False,
-server_can_send_ocsp = True}
-
-pars2 = {includeSessionTicket = False,
-keyExchange = 4,
-renewSessionTicket = False,
-requestClientCert = True,
-sendCertificateStatus = True,
-sessionTicket = False}
-
-rfcTrace2 = traceRFC `{16} pars2
-rfcTrace2A = map rfc2S2N rfcTrace2
-
-s2nTrace2 = traceS2N `{16} conn2
-
-conn2' = conn_set_handshake_type conn2
