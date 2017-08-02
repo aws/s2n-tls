@@ -454,7 +454,7 @@ static int s2n_recv_client_max_frag_len(struct s2n_connection *conn, struct s2n_
         fprintf(stderr, "invalid Max Fragmentation Length requested, continuing TLS handshake with default length\n");
         return 0;
     }
-    conn->max_fragment_length = mfl_code_to_length[mfl_code];
-    conn->max_outgoing_fragment_length = conn->max_fragment_length;
+    conn->mfl_code = mfl_code;
+    conn->max_outgoing_fragment_length = mfl_code_to_length[mfl_code];
     return 0;
 }

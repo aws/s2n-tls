@@ -975,7 +975,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         EXPECT_EQUAL(server_conn->max_outgoing_fragment_length, mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_1024]);
-        EXPECT_EQUAL(server_conn->max_fragment_length, mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_1024]);
+        EXPECT_EQUAL(server_conn->mfl_code, S2N_TLS_MAX_FRAG_LEN_1024);
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
@@ -1034,7 +1034,7 @@ int main(int argc, char **argv)
 
         /* check that max_fragment_length did not get set due to invalid mfl_code */
         EXPECT_EQUAL(server_conn->max_outgoing_fragment_length, S2N_DEFAULT_FRAGMENT_LENGTH);
-        EXPECT_EQUAL(server_conn->max_fragment_length, S2N_TLS_MAX_FRAG_LEN_EXT_NONE);
+        EXPECT_EQUAL(server_conn->mfl_code, S2N_TLS_MAX_FRAG_LEN_EXT_NONE);
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 

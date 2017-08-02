@@ -148,8 +148,8 @@ struct s2n_connection {
      */
     uint16_t max_outgoing_fragment_length;
 
-    /* Negotiated TLS extension Maximum fragment size */
-    uint16_t max_fragment_length;
+    /* Negotiated TLS extension Maximum Fragment Length code */
+    uint8_t mfl_code;
 
     /* Keep some accounting on each connection */
     uint64_t wire_bytes_in;

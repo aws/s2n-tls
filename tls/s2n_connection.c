@@ -201,7 +201,7 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->server = &conn->initial;
     conn->client = &conn->initial;
     conn->max_outgoing_fragment_length = S2N_DEFAULT_FRAGMENT_LENGTH;
-    conn->max_fragment_length = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
+    conn->mfl_code = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
     conn->handshake.handshake_type = INITIAL;
     conn->handshake.message_number = 0;
     conn->client_cert_auth_type = S2N_CERT_AUTH_NONE;
@@ -673,7 +673,7 @@ const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uin
 
 int s2n_connection_prefer_throughput(struct s2n_connection *conn)
 {
-    if (!conn->max_fragment_length) {
+    if (!conn->mfl_code) {
         conn->max_outgoing_fragment_length = S2N_LARGE_FRAGMENT_LENGTH;
     }
 
@@ -682,7 +682,7 @@ int s2n_connection_prefer_throughput(struct s2n_connection *conn)
 
 int s2n_connection_prefer_low_latency(struct s2n_connection *conn)
 {
-    if (!conn->max_fragment_length) {
+    if (!conn->mfl_code) {
         conn->max_outgoing_fragment_length = S2N_SMALL_FRAGMENT_LENGTH;
     }
 

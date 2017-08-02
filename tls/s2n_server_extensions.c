@@ -54,8 +54,8 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     if (s2n_server_can_send_sct_list(conn)) {
         total_size += 4 + conn->config->cert_and_key_pairs->sct_list.size;
     }
-    if (conn->max_fragment_length) {
-        total_size += 6;
+    if (conn->mfl_code) {
+        total_size += 5;
     }
 
     if (total_size == 0) {
@@ -113,10 +113,10 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
                                       conn->config->cert_and_key_pairs->sct_list.size));
     }
 
-    if (conn->max_fragment_length) {
+    if (conn->mfl_code) {
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_MAX_FRAG_LEN));
-        GUARD(s2n_stuffer_write_uint16(out, sizeof(uint16_t)));
-        GUARD(s2n_stuffer_write_uint16(out, conn->max_fragment_length));
+        GUARD(s2n_stuffer_write_uint16(out, sizeof(uint8_t)));
+        GUARD(s2n_stuffer_write_uint8(out, conn->mfl_code));
     }
 
     return 0;
@@ -206,9 +206,9 @@ int s2n_recv_server_sct_list(struct s2n_connection *conn, struct s2n_stuffer *ex
 
 int s2n_recv_server_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    uint16_t max_fragment_length;
-    GUARD(s2n_stuffer_read_uint16(extension, &max_fragment_length));
-    if (max_fragment_length != mfl_code_to_length[conn->config->mfl_code]) {
+    uint8_t mfl_code;
+    GUARD(s2n_stuffer_read_uint8(extension, &mfl_code));
+    if (mfl_code != conn->config->mfl_code) {
         S2N_ERROR(S2N_ERR_MAX_FRAG_LEN_MISMATCH);
     }
 
