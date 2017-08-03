@@ -30,6 +30,9 @@
 
 #include <errno.h>
 
+#include <openssl/crypto.h>
+#include <openssl/err.h>
+
 #include <s2n.h>
 
 static char certificate_chain[] =
@@ -233,6 +236,8 @@ void usage()
     fprintf(stderr, "  -c [version_string]\n");
     fprintf(stderr, "  --ciphers [version_string]\n");
     fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
+    fprintf(stderr, "  --enter-fips-mode\n");
+    fprintf(stderr, "    Enter libcrypto's FIPS mode. The linked version of OpenSSL must be built with the FIPS module.\n");
     fprintf(stderr, "  -m\n");
     fprintf(stderr, "  --mutualAuth\n");
     fprintf(stderr, "    Request a Client Certificate. Any RSA Certificate will be accepted.\n");
@@ -261,6 +266,7 @@ int main(int argc, char *const *argv)
     const char *port = NULL;
 
     const char *cipher_prefs = "default";
+    int fips_mode = 0;
     int only_negotiate = 0;
     int prefer_throughput = 0;
     int prefer_low_latency = 0;
@@ -272,6 +278,7 @@ int main(int argc, char *const *argv)
         {"mutualAuth", no_argument, 0, 'm'},
         {"negotiate", no_argument, 0, 'n'},
         {"ciphers", required_argument, 0, 'c'},
+        {"enter-fips-mode", no_argument, 0, 'f'},
         {"negotiate", no_argument, 0, 'n'},
         {"prefer-low-latency", no_argument, 0, 'l'},
         {"prefer-throughput", no_argument, 0, 'p'},
@@ -288,6 +295,9 @@ int main(int argc, char *const *argv)
         switch (c) {
         case 'c':
             cipher_prefs = optarg;
+            break;
+        case 'f':
+            fips_mode = 1;
             break;
         case 'h':
             usage();
@@ -316,6 +326,11 @@ int main(int argc, char *const *argv)
 
     if (prefer_throughput && prefer_low_latency) {
         fprintf(stderr, "prefer-throughput and prefer-low-latency options are mutually exclusive\n");
+        exit(1);
+    }
+
+    if (fips_mode && mutual_auth) {
+        fprintf(stderr, "Mutual Auth cannot be enabled when s2n is in FIPS mode\n");
         exit(1);
     }
 
@@ -374,6 +389,21 @@ int main(int argc, char *const *argv)
     if (listen(sockfd, 1) == -1) {
         fprintf(stderr, "listen error: %s\n", strerror(errno));
         exit(1);
+    }
+
+    if (fips_mode) {
+#ifdef OPENSSL_FIPS
+        if (FIPS_mode_set(1) == 0) {
+            unsigned long fips_rc = ERR_get_error();
+            char ssl_error_buf[256]; // Openssl claims you need no more than 120 bytes for error strings
+            fprintf(stderr, "s2nd failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf));
+            exit(1);
+        }
+        printf("s2nd entered FIPS mode\n");
+#else
+        fprintf(stderr, "Error entering FIPS mode. s2nd is not linked with a FIPS-capable libcrypto.\n");
+        exit(1);
+#endif
     }
 
     if (s2n_init() < 0) {
