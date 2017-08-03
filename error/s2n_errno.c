@@ -113,7 +113,7 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_SHUTDOWN_RECORD_TYPE, "Non alert record received during s2n_shutdown()"},
     {S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO, "renegotiation_info should be empty"},
     {S2N_ERR_SEND_SIZE, "Retried s2n_send() size is invalid"},
-    {S2N_ERR_PRIVATE_KEY_CHECK, "Error calling RSA_check_key()"},
+    {S2N_ERR_PRIVATE_KEY_CHECK, "Invalid key"},
     {S2N_ERR_CIPHER_TYPE, "Unknown cipher type used"},
     {S2N_ERR_MAP_DUPLICATE, "Duplicate map key inserted"},
     {S2N_ERR_MAP_IMMUTABLE, "Attempt to update an immutable map"},

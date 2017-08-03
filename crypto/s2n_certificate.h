@@ -18,7 +18,7 @@
 #include <stdint.h>
 
 #include <s2n.h>
-#include "crypto/s2n_rsa.h"
+#include "crypto/s2n_pkey.h"
 #include "stuffer/s2n_stuffer.h"
 
 #define S2N_MAX_SERVER_NAME 256
@@ -31,7 +31,7 @@ struct s2n_cert_chain {
 struct s2n_cert_chain_and_key {
     uint32_t chain_size;
     struct s2n_cert_chain *head;
-    struct s2n_rsa_private_key private_key;
+    struct s2n_pkey private_key;
     struct s2n_blob ocsp_status;
     struct s2n_blob sct_list;
     char server_name[S2N_MAX_SERVER_NAME];
@@ -39,13 +39,10 @@ struct s2n_cert_chain_and_key {
 
 struct s2n_cert_public_key {
     s2n_cert_type cert_type;
-    union {
-        struct s2n_rsa_public_key rsa;
-        /* TODO: Support other Public Key Types (Eg ECDSA) */
-    } public_key;
+    struct s2n_pkey key;
 };
 
 int s2n_send_cert_chain(struct s2n_stuffer *out, struct s2n_cert_chain_and_key *chain);
 int s2n_cert_public_key_set_cert_type(struct s2n_cert_public_key *cert_pub_key, s2n_cert_type cert_type);
-int s2n_cert_public_key_get_rsa(struct s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key **rsa);
-int s2n_cert_public_key_set_rsa(struct s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key rsa);
+int s2n_cert_public_key_get_rsa(struct s2n_cert_public_key *cert_pub_key, s2n_rsa_public_key **rsa);
+int s2n_cert_public_key_set_rsa(struct s2n_cert_public_key *cert_pub_key, s2n_rsa_public_key rsa);

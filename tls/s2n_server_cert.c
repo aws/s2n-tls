@@ -52,7 +52,7 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
         S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     }
 
-    conn->secure.server_rsa_public_key = public_key.public_key.rsa;
+    conn->secure.server_public_key = public_key.key;
 
     return 0;
 }

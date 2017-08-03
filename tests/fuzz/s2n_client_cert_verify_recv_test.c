@@ -116,11 +116,11 @@ static char private_key[] =
 static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12};
 
 static struct s2n_config *server_config;
-static struct s2n_rsa_public_key public_key;
+static struct s2n_pkey public_key;
 
 static void s2n_fuzz_atexit()
 {
-    s2n_rsa_public_key_free(&public_key);
+    s2n_pkey_free(&public_key);
     s2n_config_free(server_config);
     s2n_cleanup();
 }
@@ -135,7 +135,7 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
     server_config = s2n_config_new();
     GUARD(s2n_config_add_cert_chain_and_key(server_config, certificate_chain, private_key));
 
-    GUARD(s2n_asn1der_to_rsa_public_key(&public_key, &server_config->cert_and_key_pairs->head->cert));
+    GUARD(s2n_asn1der_to_public_key(&public_key, &server_config->cert_and_key_pairs->head->cert));
     return 0;
 }
 
@@ -148,7 +148,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
         server_conn->actual_protocol_version = TLS_VERSIONS[version];
         server_conn->config->verify_cert_chain_cb = accept_all_rsa_certs;
         GUARD(s2n_stuffer_write_bytes(&server_conn->handshake.io, buf, len));
+<<<<<<< 7b9c88d29feac52be36b2707f3d802433f792f54
         server_conn->secure.client_rsa_public_key = public_key;
+=======
+        server_conn->secure.client_public_key.key.rsa_key.rsa = public_key.key.rsa_key.rsa;
+>>>>>>> Replace RSA references with generic s2n_pkey API
 
         /* Run Test
          * Do not use GUARD macro here since the connection memory hasn't been freed.
@@ -157,7 +161,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 
         /* Set the client_rsa_public_key so that it is not free'd during s2n_connection_free since it will be reused in
          * later fuzz tests  */
-        server_conn->secure.client_rsa_public_key.rsa = NULL;
+        server_conn->secure.client_public_key.key.rsa_key.rsa = NULL;
 
         /* Cleanup */
         GUARD(s2n_connection_free(server_conn));

@@ -25,6 +25,7 @@
 
 #include "crypto/s2n_dhe.h"
 #include "crypto/s2n_rsa.h"
+#include "crypto/s2n_pkey.h"
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
@@ -64,8 +65,8 @@ static int s2n_rsa_client_key_recv(struct s2n_connection *conn)
     conn->secure.rsa_premaster_secret[0] = client_protocol_version[0];
     conn->secure.rsa_premaster_secret[1] = client_protocol_version[1];
 
-    /* Set rsa_failed to 1 if s2n_rsa_decrypt returns anything other than zero */
-    conn->handshake.rsa_failed = !!s2n_rsa_decrypt(&conn->config->cert_and_key_pairs->private_key, &encrypted, &pms);
+    /* Set rsa_failed to 1 if s2n_pkey_decrypt returns anything other than zero */
+    conn->handshake.rsa_failed = !!s2n_pkey_decrypt(&conn->config->cert_and_key_pairs->private_key, &encrypted, &pms);
 
     /* Set rsa_failed to 1, if it isn't already, if the protocol version isn't what we expect */
     conn->handshake.rsa_failed |= !s2n_constant_time_equals(client_protocol_version, pms.data, S2N_TLS_PROTOCOL_VERSION_LEN);
@@ -184,7 +185,7 @@ static int s2n_rsa_client_key_send(struct s2n_connection *conn)
     /* Over-write the first two bytes with the client protocol version, per RFC2246 7.4.7.1 */
     memcpy_check(conn->secure.rsa_premaster_secret, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN);
 
-    int encrypted_size = s2n_rsa_public_encrypted_size(&conn->secure.server_rsa_public_key);
+    int encrypted_size = s2n_rsa_public_encrypted_size(&conn->secure.server_public_key.key.rsa_key);
     if (encrypted_size < 0 || encrypted_size > 0xffff) {
         S2N_ERROR(S2N_ERR_SIZE_MISMATCH);
     }
@@ -199,10 +200,10 @@ static int s2n_rsa_client_key_send(struct s2n_connection *conn)
     notnull_check(encrypted.data);
 
     /* Encrypt the secret and send it on */
-    GUARD(s2n_rsa_encrypt(&conn->secure.server_rsa_public_key, &pms, &encrypted));
+    GUARD(s2n_pkey_encrypt(&conn->secure.server_public_key, &pms, &encrypted));
 
     /* We don't need the key any more, so free it */
-    GUARD(s2n_rsa_public_key_free(&conn->secure.server_rsa_public_key));
+    GUARD(s2n_pkey_free(&conn->secure.server_public_key));
 
     /* Turn the pre-master secret into a master secret */
     GUARD(s2n_prf_master_secret(conn, &pms));

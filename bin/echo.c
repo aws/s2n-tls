@@ -55,7 +55,7 @@ s2n_cert_validation_code accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t c
 
         /* Pull the public key from the first certificate */
         if (certificate_count == 0) {
-            struct s2n_rsa_public_key *s2n_rsa;
+            s2n_rsa_public_key *s2n_rsa;
             if (s2n_cert_public_key_get_rsa(public_key_out, &s2n_rsa) < 0) {
                 return S2N_CERT_ERR_INVALID;
             }

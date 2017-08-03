@@ -103,12 +103,12 @@ static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn)
 
     gt_check(signature_length, 0);
 
-    if (s2n_rsa_verify(&conn->secure.server_rsa_public_key, &conn->secure.signature_hash, &signature) < 0) {
+    if (s2n_pkey_verify(&conn->secure.server_public_key, &conn->secure.signature_hash, &signature) < 0) {
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
     /* We don't need the key any more, so free it */
-    GUARD(s2n_rsa_public_key_free(&conn->secure.server_rsa_public_key));
+    GUARD(s2n_pkey_free(&conn->secure.server_public_key));
 
     return 0;
 }
@@ -184,12 +184,12 @@ static int s2n_dhe_server_key_recv(struct s2n_connection *conn)
 
     gt_check(signature_length, 0);
 
-    if (s2n_rsa_verify(&conn->secure.server_rsa_public_key, &conn->secure.signature_hash, &signature) < 0) {
+    if (s2n_pkey_verify(&conn->secure.server_public_key, &conn->secure.signature_hash, &signature) < 0) {
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
     /* We don't need the key any more, so free it */
-    GUARD(s2n_rsa_public_key_free(&conn->secure.server_rsa_public_key));
+    GUARD(s2n_pkey_free(&conn->secure.server_public_key));
 
     /* Copy the DH details */
     GUARD(s2n_dh_p_g_Ys_to_dh_params(&conn->secure.server_dh_params, &p, &g, &Ys));
@@ -231,13 +231,13 @@ static int s2n_ecdhe_server_key_send(struct s2n_connection *conn)
     GUARD(s2n_hash_update(&conn->secure.signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_hash_update(&conn->secure.signature_hash, ecdhparams.data, ecdhparams.size));
 
-    signature.size = s2n_rsa_private_encrypted_size(&conn->config->cert_and_key_pairs->private_key);
+    signature.size = s2n_rsa_private_encrypted_size(&conn->config->cert_and_key_pairs->private_key.key.rsa_key);
     GUARD(s2n_stuffer_write_uint16(out, signature.size));
 
     signature.data = s2n_stuffer_raw_write(out, signature.size);
     notnull_check(signature.data);
 
-    if (s2n_rsa_sign(&conn->config->cert_and_key_pairs->private_key, &conn->secure.signature_hash, &signature) < 0) {
+    if (s2n_pkey_sign(&conn->config->cert_and_key_pairs->private_key, &conn->secure.signature_hash, &signature) < 0) {
         S2N_ERROR(S2N_ERR_DH_FAILED_SIGNING);
     }
 
@@ -268,13 +268,13 @@ static int s2n_dhe_server_key_send(struct s2n_connection *conn)
     GUARD(s2n_hash_update(&conn->secure.signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_hash_update(&conn->secure.signature_hash, serverDHparams.data, serverDHparams.size));
 
-    signature.size = s2n_rsa_private_encrypted_size(&conn->config->cert_and_key_pairs->private_key);
+    signature.size = s2n_rsa_private_encrypted_size(&conn->config->cert_and_key_pairs->private_key.key.rsa_key);
     GUARD(s2n_stuffer_write_uint16(out, signature.size));
 
     signature.data = s2n_stuffer_raw_write(out, signature.size);
     notnull_check(signature.data);
 
-    if (s2n_rsa_sign(&conn->config->cert_and_key_pairs->private_key, &conn->secure.signature_hash, &signature) < 0) {
+    if (s2n_pkey_sign(&conn->config->cert_and_key_pairs->private_key, &conn->secure.signature_hash, &signature) < 0) {
         S2N_ERROR(S2N_ERR_DH_FAILED_SIGNING);
     }
 

@@ -55,10 +55,10 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
     switch (cert_public_key.cert_type) {
     /* s2n currently only supports RSA Certificates */
     case S2N_CERT_TYPE_RSA_SIGN:
-        notnull_check(cert_public_key.public_key.rsa.rsa);
+        s2n_rsa_check_key(&cert_public_key.key);
         conn->secure.client_cert_type = S2N_CERT_TYPE_RSA_SIGN;
         s2n_dup(&client_cert_chain, &conn->secure.client_cert_chain);
-        conn->secure.client_rsa_public_key.rsa = cert_public_key.public_key.rsa.rsa;
+        conn->secure.client_public_key = cert_public_key.key;
         break;
     default:
         S2N_ERROR(S2N_ERR_CERT_TYPE_UNSUPPORTED);

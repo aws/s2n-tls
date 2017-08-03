@@ -156,12 +156,14 @@ typedef enum {
     S2N_CERT_TYPE_ECDSA_FIXED_ECDH = 66,
 } s2n_cert_type;
 
-struct s2n_rsa_public_key;
+struct s2n_rsa_key;
+typedef struct s2n_rsa_key s2n_rsa_public_key;
+typedef struct s2n_rsa_key s2n_rsa_private_key;
 struct s2n_cert_public_key;
 
-extern int s2n_rsa_public_key_set_from_openssl(struct s2n_rsa_public_key *s2n_rsa, RSA *openssl_rsa);
+extern int s2n_rsa_public_key_set_from_openssl(s2n_rsa_public_key *s2n_rsa, RSA *openssl_rsa);
 extern int s2n_cert_public_key_set_cert_type(struct s2n_cert_public_key *cert_pub_key, s2n_cert_type cert_type);
-extern int s2n_cert_public_key_get_rsa(struct s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key **rsa);
+extern int s2n_cert_public_key_get_rsa(struct s2n_cert_public_key *cert_pub_key, s2n_rsa_public_key **rsa);
 
 /* Not intended for general consumption. Use at your own risk. */
 typedef s2n_cert_validation_code verify_cert_trust_chain_fn(uint8_t *der_cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);

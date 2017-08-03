@@ -106,11 +106,8 @@ extern int s2n_stuffer_read_token(struct s2n_stuffer *stuffer, struct s2n_stuffe
 extern int s2n_stuffer_skip_whitespace(struct s2n_stuffer *stuffer);
 extern int s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, const char *str);
 
-/* Read an RSA private key from a PEM encoded stuffer to an ASN1/DER encoded one */
-extern int s2n_stuffer_rsa_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1);
-
-/* Read an EC private key from a PEM encoded stuffer to an ASN1/DER encoded one */
-extern int s2n_stuffer_ec_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1);
+/* Read a private key from a PEM encoded stuffer to an ASN1/DER encoded one */
+extern int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1);
 
 /* Read a certificate  from a PEM encoded stuffer to an ASN1/DER encoded one */
 extern int s2n_stuffer_certificate_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1);
