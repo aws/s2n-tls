@@ -28,8 +28,8 @@ CRYPTO_LIBS = -lcrypto
 CC	:= $(CROSS_COMPILE)$(CC)
 AR	= $(CROSS_COMPILE)ar
 RANLIB	= $(CROSS_COMPILE)ranlib
-CLANG    ?= clang
-LLVMLINK ?= llvm-link
+CLANG    ?= clang-3.8
+LLVMLINK ?= llvm-link-3.8
 
 SOURCES = $(wildcard *.c *.h)
 CRUFT   = $(wildcard *.c~ *.h~ *.c.BAK *.h.BAK *.o *.a *.so *.dylib *.bc)
@@ -66,7 +66,7 @@ endif
 CFLAGS_LLVM = ${DEFAULT_CFLAGS} -emit-llvm -c -g -O1
 
 $(BITCODE_DIR)%.bc: %.c
-	clang $(CFLAGS_LLVM) -o $@ $< 
+	$(CLANG) $(CFLAGS_LLVM) -o $@ $< 
 
 
 INDENTOPTS = -npro -kr -i4 -ts4 -nut -sob -l180 -ss -ncs -cp1
