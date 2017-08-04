@@ -49,6 +49,22 @@ int s2n_stuffer_skip_whitespace(struct s2n_stuffer *s2n_stuffer)
     return skipped;
 }
 
+/* Skips the stuffer until the first instance of the target character or until there is no more data. */
+int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, char target)
+{
+    while (s2n_stuffer_data_available(stuffer) > 0) {
+        char c;
+        GUARD(s2n_stuffer_peek_char(stuffer, &c));
+        if (c == target) {
+            break;
+        }
+
+        stuffer->read_cursor++;
+    }
+
+    return 0;
+}
+
 int s2n_stuffer_read_token(struct s2n_stuffer *stuffer, struct s2n_stuffer *token, char delim)
 {
     int token_size = 0;

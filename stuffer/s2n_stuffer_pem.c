@@ -40,9 +40,12 @@ static int s2n_stuffer_data_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer
     uint8_t *field;
 
     GUARD(s2n_stuffer_init(&line, &line_blob));
-    GUARD(s2n_stuffer_read_token(pem, &line, '\n'));
 
-    /* Check that the line matches the header */
+    /* Skip all data before the start of the PEM headers */
+    GUARD(s2n_stuffer_skip_to_char(pem, '-'));
+
+    /* Check that the first none whitespace line matches the header */
+    GUARD(s2n_stuffer_read_token(pem, &line, '\n'));
     field = s2n_stuffer_raw_read(&line, sizeof(S2N_PEM_BEGIN_TOKEN) - 1);
     notnull_check(field);
     if (memcmp(field, S2N_PEM_BEGIN_TOKEN, sizeof(S2N_PEM_BEGIN_TOKEN) - 1)) {
@@ -98,6 +101,9 @@ static int s2n_stuffer_data_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer
     if (memcmp(field, S2N_PEM_LINE, sizeof(S2N_PEM_LINE) - 1)) {
         S2N_ERROR(S2N_ERR_INVALID_PEM);
     }
+
+    /* Skip trailing data before the next PEM headers */
+    GUARD(s2n_stuffer_skip_to_char(pem, '-'));
 
     return 0;
 }
