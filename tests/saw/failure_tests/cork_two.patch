@@ -1,0 +1,12 @@
+diff --git a/tls/s2n_handshake_io.c b/tls/s2n_handshake_io.c
+index fd9eb0d..11734ac 100644
+--- a/tls/s2n_handshake_io.c
++++ b/tls/s2n_handshake_io.c
+@@ -242,6 +242,7 @@ static int s2n_advance_message(struct s2n_connection *conn)
+         if (s2n_connection_is_managed_corked(conn)) {
+             /* Set TCP_CORK/NOPUSH */
+             GUARD(s2n_socket_write_cork(conn));
++            GUARD(s2n_socket_write_uncork(conn));
+         }
+ 
+         return 0;
