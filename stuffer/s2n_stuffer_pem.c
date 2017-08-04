@@ -26,6 +26,12 @@
 #define S2N_PEM_BEGIN_TOKEN (S2N_PEM_LINE "BEGIN ")
 #define S2N_PEM_END_TOKEN   (S2N_PEM_LINE "END ")
 
+#define S2N_PEM_PKCS1_RSA_PRIVATE_KEY       "RSA PRIVATE KEY"
+#define S2N_PEM_PKCS1_ECDSA_PRIVATE_KEY     "EC PRIVATE KEY"
+#define S2N_PEM_PKCS8_PRIVATE_KEY           "PRIVATE KEY"
+#define S2N_PEM_DH_PARAMETERS               "DH PARAMETERS"
+#define S2N_PEM_CERTIFICATE                 "CERTIFICATE"
+
 static int s2n_stuffer_data_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1, const char *keyword)
 {
     uint8_t linepad[S2N_PEM_LINE_LENGTH + 1];
@@ -98,34 +104,34 @@ static int s2n_stuffer_data_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer
 
 int s2n_stuffer_rsa_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1)
 {
-    const int rc = s2n_stuffer_data_from_pem(pem, asn1, "RSA PRIVATE KEY");
+    const int rc = s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_PKCS1_RSA_PRIVATE_KEY);
     if(!rc) {
         return 0;
     }
     /* PEM may be using the PKCS#8 format. Retry with "PRIVATE KEY" */
     s2n_stuffer_reread(pem);
     s2n_stuffer_reread(asn1);
-    return s2n_stuffer_data_from_pem(pem, asn1, "PRIVATE KEY");
+    return s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_PKCS8_PRIVATE_KEY);
 }
 
 int s2n_stuffer_ec_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1)
 {
-    const int rc = s2n_stuffer_data_from_pem(pem, asn1, "EC PRIVATE KEY");
+    const int rc = s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_PKCS1_ECDSA_PRIVATE_KEY);
     if(!rc) {
         return 0;
     }
     /* PEM may be using the PKCS#8 format. Retry with "PRIVATE KEY" */
     s2n_stuffer_reread(pem);
     s2n_stuffer_reread(asn1);
-    return s2n_stuffer_data_from_pem(pem, asn1, "PRIVATE KEY");
+    return s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_PKCS8_PRIVATE_KEY);
 }
 
 int s2n_stuffer_certificate_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1)
 {
-    return s2n_stuffer_data_from_pem(pem, asn1, "CERTIFICATE");
+    return s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_CERTIFICATE);
 }
 
 int s2n_stuffer_dhparams_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *pkcs3)
 {
-    return s2n_stuffer_data_from_pem(pem, pkcs3, "DH PARAMETERS");
+    return s2n_stuffer_data_from_pem(pem, pkcs3, S2N_PEM_DH_PARAMETERS);
 }
