@@ -23,6 +23,7 @@
 
 #include <s2n.h>
 
+#include "tls/s2n_tls.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_tls_parameters.h"

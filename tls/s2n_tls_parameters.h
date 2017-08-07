@@ -15,8 +15,6 @@
 
 #pragma once
 
-#include <s2n.h>
-
 #include "crypto/s2n_hash.h"
 
 /* Codes from http://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-5 */
@@ -139,20 +137,3 @@
 
 /* Handshake messages have their own header too */
 #define TLS_HANDSHAKE_HEADER_LENGTH   4
-
-/*
- * Convert max_fragment_length codes to length.
- * RFC 6066 says:
- *    enum{
- *        2^9(1), 2^10(2), 2^11(3), 2^12(4), (255)
- *    } MaxFragmentLength;
- * and we add 0 -> extension unused
- */
-static uint16_t mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_INVALID] =
-{
-    S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, /* S2N_TLS_MAX_FRAG_LEN_EXT_NONE */
-    512,                             /* S2N_TLS_MAX_FRAG_LEN_512  */
-    1024,                            /* S2N_TLS_MAX_FRAG_LEN_1024 */
-    2048,                            /* S2N_TLS_MAX_FRAG_LEN_2048 */
-    4096,                            /* S2N_TLS_MAX_FRAG_LEN_4096 */
-};

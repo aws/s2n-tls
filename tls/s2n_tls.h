@@ -62,6 +62,8 @@ extern int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_bl
 extern int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 extern int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *extensions);
 
+extern uint16_t mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_INVALID];
+
 #define s2n_server_can_send_ocsp(conn) ((conn)->status_type == S2N_STATUS_REQUEST_OCSP && \
         (conn)->config->cert_and_key_pairs && \
         (conn)->config->cert_and_key_pairs->ocsp_status.size > 0)
