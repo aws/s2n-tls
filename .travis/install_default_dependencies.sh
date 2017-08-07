@@ -46,8 +46,8 @@ if [[ "$TESTS" == "integration" ]]           && [[ ! -d "$PYTHON_INSTALL_DIR" ]]
 # Download and Install GnuTLS for integration tests
 if [[ "$TESTS" == "integration" ]]           && [[ ! -d "$GNUTLS_INSTALL_DIR" ]]; then mkdir -p $GNUTLS_INSTALL_DIR && .travis/install_gnutls.sh `mktemp -d` $GNUTLS_INSTALL_DIR $TRAVIS_OS_NAME > /dev/null ; fi
 
-# Install SAW and Z3 for formal verification
+# Install SAW, Z3, and Yices for formal verification
 if [[ "$SAW" == "true" ]]                    && [[ ! -d "$SAW_INSTALL_DIR" ]]; then
     mkdir -p $SAW_INSTALL_DIR && .travis/install_saw.sh `mktemp -d` $SAW_INSTALL_DIR > /dev/null ; fi
 if [[ "$SAW" == "true" ]]                    && [[ ! -d "$Z3_INSTALL_DIR" ]]; then
-    mkdir -p $Z3_INSTALL_DIR && .travis/install_z3.sh `mktemp -d` $Z3_INSTALL_DIR > /dev/null ; fi
+    mkdir -p $Z3_INSTALL_DIR && .travis/install_z3_yices.sh `mktemp -d` $Z3_INSTALL_DIR > /dev/null ; fi

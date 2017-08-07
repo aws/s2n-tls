@@ -5,7 +5,7 @@ cache:
     directories:
         # Cache test dependencies that would normally be re-compiled for every build.
         # This directory is unique for each entry of the build matrix per:
-        # https://docs.travis-ci.com/user/caching/#Caches-and-build-matrices
+        # https://docs.travis-ci.com/user/caching/#Caches-and-build-matrices 
         - test-deps
 
 addons:
@@ -31,46 +31,48 @@ env:
   # unoptimized routines. See https://www.openssl.org/docs/man1.1.0/crypto/OPENSSL_ia32cap.html
   - S2N_LIBCRYPTO=openssl-1.1.0 OPENSSL_ia32cap="~0x200000200000000" BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
   - S2N_LIBCRYPTO=openssl-1.1.0 LATEST_CLANG=true TESTS=fuzz
-  - TESTS=sawHMAC SAW_HMAC_TEST=md5    SAW=true GCC6_REQUIRED=false
-  - TESTS=sawHMAC SAW_HMAC_TEST=none   SAW=true GCC6_REQUIRED=false
-  - TESTS=sawHMAC SAW_HMAC_TEST=sha1   SAW=true GCC6_REQUIRED=false
-  - TESTS=sawHMAC SAW_HMAC_TEST=sha224 SAW=true GCC6_REQUIRED=false
-  - TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true GCC6_REQUIRED=false
-  - TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true GCC6_REQUIRED=false
-  - TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true GCC6_REQUIRED=false
-  - TESTS=sawDRBG                      SAW=true
-  - TESTS=sawHMACFailure               SAW=true
 
 matrix:
   exclude:
   - os: osx
     env: TESTS=ctverif
-  - os: osx
-    env: TESTS=sawHMAC SAW_HMAC_TEST=md5    SAW=true GCC6_REQUIRED=false
-  - os: osx
-    env: TESTS=sawHMAC SAW_HMAC_TEST=none   SAW=true GCC6_REQUIRED=false
-  - os: osx
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha1   SAW=true GCC6_REQUIRED=false
-  - os: osx
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha224 SAW=true GCC6_REQUIRED=false
-  - os: osx
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true GCC6_REQUIRED=false
-  - os: osx
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true GCC6_REQUIRED=false
-  - os: osx
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true GCC6_REQUIRED=false
-  - os: osx
-    env: S2N_LIBCRYPTO=openssl-1.1.0 LATEST_CLANG=true TESTS=fuzz
-  - os: osx
-    env: TESTS=sawDRBG                      SAW=true  GCC6_REQUIRED=false
-  - os: osx
-    env: TESTS=sawHMACFailure               SAW=true
   #This exception is because the test isn't finished yet, remove to turn on DRBG Saw tests
-  - env: TESTS=sawDRBG                      SAW=true
+  - env: TESTS=sawDRBG                      SAW=true GCC6_REQUIRED=false
+  include:
+  - os : linux
+    env : TESTS=sawHMAC SAW_HMAC_TEST=md5    SAW=true GCC6_REQUIRED=false
+    addons: &sawaddons
+      apt:
+        packages:
+          - clang-3.8
+          - llvm-3.8
+  - os : linux
+    env : TESTS=sawHMAC SAW_HMAC_TEST=sha1   SAW=true GCC6_REQUIRED=false
+    addons : *sawaddons
+  - os : linux
+    env : TESTS=sawHMAC SAW_HMAC_TEST=sha224 SAW=true GCC6_REQUIRED=false
+    addons : *sawaddons
+  - os : linux
+    env : TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true GCC6_REQUIRED=false
+    addons : *sawaddons
+  - os : linux
+    env : TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true GCC6_REQUIRED=false
+    addons : *sawaddons
+  - os : linux
+    env : TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true GCC6_REQUIRED=false
+    addons : *sawaddons
+  - os : linux
+    env : TESTS=tls SAW=true GCC6_REQUIRED=false
+    addons : *sawaddons    
+  - os : linux
+    env : TESTS=sawHMACFailure SAW=true
+    addons : *sawaddons    
   allow_failures:
     - os: osx
   fast_finish: true
 
+  
+  
 before_install:
   # Setup the cache directory paths
   - if [[ ! -d test-deps ]]; then mkdir test-deps ; fi
@@ -99,7 +101,7 @@ install:
   - if [[ "$GCC6_REQUIRED" == "true" ]]; then alias gcc=$(which gcc-6) ; fi
 
 before_script:
-  # Add all of our test dependencies to the PATH. Use Openssl 1.1.0 so the latest openssl is used for s_client
+  # Add all of our test dependencies to the PATH. Use Openssl 1.1.0 so the latest openssl is used for s_client 
   # integration tests.
   - export PATH=$PYTHON_INSTALL_DIR/bin:$OPENSSL_1_1_0_INSTALL_DIR/bin:$GNUTLS_INSTALL_DIR/bin:$SAW_INSTALL_DIR/bin:$Z3_INSTALL_DIR/bin:$SCAN_BUILD_INSTALL_DIR/bin:$PATH
   - export LD_LIBRARY_PATH=$OPENSSL_1_1_0_INSTALL_DIR/lib:$LD_LIBRARY_PATH; export DYLD_LIBRARY_PATH=$OPENSSL_1_1_0_INSTALL_DIR/lib:$LD_LIBRARY_PATH;
@@ -115,6 +117,7 @@ before_script:
   - rm -rf libcrypto-root && ln -s $LIBCRYPTO_ROOT libcrypto-root
   # Use prlimit to set the memlock limit to unlimited for linux. OSX is unlimited by default
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo -E $PRLIMIT_INSTALL_DIR/bin/prlimit --pid "$$" --memlock=unlimited:unlimited ; fi
+  - clang --version
 
 script:
   - if [[ "$BUILD_S2N" == "true" ]]; then .travis/run_cppcheck.sh $CPPCHECK_INSTALL_DIR; fi
@@ -126,5 +129,6 @@ script:
   - if [[ "$TESTS" == "fuzz" ]]; then export PATH=$LATEST_CLANG_INSTALL_DIR/bin:$PATH && make clean && make fuzz ; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "sawHMAC" ]]; then make -C tests/saw/ tmp/verify_s2n_hmac_$SAW_HMAC_TEST.log ; fi
   - if [[ "$TESTS" == "sawDRBG" ]]; then make -C tests/saw tmp/spec/DRBG/DRBG.log ; fi
+  - if [[ "$TESTS" == "tls" ]]; then make -C tests/saw tmp/handshake.log && make -C tests/saw tmp/cork-uncork.log ; fi
   - if [[ "$TESTS" == "sawHMACFailure" ]]; then make -C tests/saw failure-tests ; fi
   - if [[ "$TESTS" == "ctverif" ]]; then .travis/run_ctverif.sh $CTVERIF_INSTALL_DIR ; fi

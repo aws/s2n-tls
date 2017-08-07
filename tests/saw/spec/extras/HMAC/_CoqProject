@@ -1,0 +1,22 @@
+-Q ../../../../../../cryptol-semantics/src ""
+-Q ../../../../../../cryptol-semantics/verif ""
+
+../../../../../../cryptol-semantics/src/AST.v
+../../../../../../cryptol-semantics/src/Bitstream.v
+../../../../../../cryptol-semantics/src/Bitvectors.v
+../../../../../../cryptol-semantics/src/Builtins.v
+../../../../../../cryptol-semantics/src/BuiltinSem.v
+../../../../../../cryptol-semantics/src/BuiltinSyntax.v
+../../../../../../cryptol-semantics/src/Coqlib.v
+../../../../../../cryptol-semantics/src/Eager.v
+../../../../../../cryptol-semantics/src/EvalTac.v
+../../../../../../cryptol-semantics/src/Semantics.v
+../../../../../../cryptol-semantics/src/Utils.v
+../../../../../../cryptol-semantics/src/Values.v
+
+../../../../../../cryptol-semantics/verif/HMAC.v
+../../../../../../cryptol-semantics/verif/HMAC_lib.v
+Kinit_eval.v
+HMAC_verif.v
+HMAC_spec.v
+HMAC_specs_equiv.v
