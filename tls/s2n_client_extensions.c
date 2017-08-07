@@ -24,6 +24,7 @@
 
 #include "stuffer/s2n_stuffer.h"
 
+#include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 #include "tls/s2n_client_extensions.h"
