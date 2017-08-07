@@ -7,10 +7,8 @@
 // simulates the lower-level model of s2n_advance_message in Cryptol
 // and is verified in the SAW proof script.
 //
-
 // Finally, the property we want to prove is about not corking or
 // uncorking a socket twice in a row. It is encoded in 'noDoubleCorkUncork'.
-
 
 module CorkUncork where
 
@@ -25,8 +23,20 @@ type State = ([2], [2])
 (corked : [2]) = 1
 (uncorked : [2]) = 0
 
-//TODO: here we really need partial functions and check that only the
-//part we implement is actually used.
+// For any two related 'connection' and corking 'State' they produce related
+// corking traces.
+highLevelSimulatesLowLevel : {len} (fin len, len >= 2) => connection -> State -> Bit
+highLevelSimulatesLowLevel conn state =
+   initial_connection conn /\ conn.mode == S2N_SERVER /\ conn2state conn == state ==>
+   (map conn2state conn_trace) == (trace_corking `{n = len} state writers)
+   where (conn_trace : [len]connection) = trace_advance_message `{n = len} conn
+         writers = drop `{1} (map getWriter conn_trace)
+
+// Property of the high-level state machine:  there is no uncorking or corking
+// twice in a row
+noDoubleCorkUncork : [16][8] -> Bit
+noDoubleCorkUncork writers = and (map corkingInBounds (run writers))
+
 writer2sender : [8] -> [2]
 writer2sender w = if w == 'C' then clientSender else
                   if w == 'S' then serverSender else
@@ -44,15 +54,6 @@ trace_corking s writers = scanl cork_transition s writers
 
 getWriter : connection -> [8]
 getWriter conn = (ACTIVE_STATE conn).writer
-
-//if low level can make a step, then the high level can. If the low
-//level cannot make a step, then the high level can't also
-highLevelSimulatesLowLevel : {len} (fin len, len >= 2) => connection -> State -> Bit
-highLevelSimulatesLowLevel conn state =
-   initial_connection conn /\ conn.mode == S2N_SERVER /\ conn2state conn == state ==>
-   (map conn2state conn_trace) == (trace_corking `{n = len} state writers)
-   where (conn_trace : [len]connection) = trace_advance_message `{n = len} conn
-         writers = drop `{1} (map getWriter conn_trace)
 
 conn2state : connection -> State
 conn2state conn = (writer2sender (getWriter conn), conn.corked)
@@ -86,14 +87,6 @@ cork_transition (s, corking) c =
 // actions (new writers)
 run : {n} [n][8] -> [n+1]State
 run writers = scanl cork_transition (clientSender, uncorked) writers
-
-// returns the last state of the 
-exec : {n} (fin n) => [n][8] -> State
-exec writers = foldl cork_transition (clientSender, uncorked) writers
-
-// there is no uncorking or corking twice in a row
-noDoubleCorkUncork : [16][8] -> Bit
-noDoubleCorkUncork writers = and (map corkingInBounds (run writers))
 
 corkingInBounds : State -> Bit
 corkingInBounds (_, corking) = corking == corked \/ corking == uncorked

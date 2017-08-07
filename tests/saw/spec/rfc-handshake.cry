@@ -1,7 +1,5 @@
-// This module provides an specification of the
-// TLS 1.2 handshake message state machine according to RFCs 5246, 5077 and 6066 // (OCSP extension only). This
-// is an overapproximation because state transitions don't depend on
-// message contents --- and, in reality, they should.
+// This module provides an specification of the TLS 1.2 handshake message
+// state machine according to RFCs 5246, 5077 and 6066 (OCSP extension only).
 
 module TLSHandshake where
 
@@ -9,37 +7,22 @@ import Cryptol::Extras
 import s2n_handshake_io
 
 // Main correctness property: a simulation of the S2N handshake state
-// machine by an RFC-derived state machine
-
-// \forall conn \in Connection. valid (conn).
-// \forall pars \in Parameters. conn `connectionParameters` pars. ==>
-// \exists r1, r2 \in State.
-// s2nRFCState (ACTIVE_STATE conn) r1 /\
-// s2nRFCState (ACTIVE_STATE (s2n_advance_message conn) r2)  /\
-// handshakeTransition r1 r2
+// machine by an RFC-derived state machine. Every pair of related initial
+// 'connection' and 'Parameters' generates the same sequence of messages.
 rfcSimulatesS2N : {len} (fin len) => connection -> Parameters -> Bool
 rfcSimulatesS2N conn pars = 
    initial_connection conn /\ connectionParameters conn pars ==>
    map rfc2S2N (traceRFC `{n = len} pars) == traceS2N `{n = len} conn
 
-// rfcSimulatesS2N2 : connection -> Parameters -> State -> State -> Bool
-// rfcSimulatesS2N2 conn pars rfcPre rfcPost =
-//    (s2nRFCState s2nPre rfcPre /\
-//     s2nRFCState s2nPost rfcPost /\
-//     handshakeTransition pars rfcPre rfcPost) 
-//    where s2nPre  = ACTIVE_STATE conn
-//          conn'   = if helloState then conn_set_handshake_type conn else conn
-//          s2nPost = ACTIVE_STATE (advance_message conn')
-//          
-
-// generate a sequence of states for the the RFC handshake state machine given
+// Generate a sequence of states for the the RFC handshake state machine given
 // handshake parameters
 traceRFC : {n} (fin n) => Parameters -> [n]Message
 traceRFC params = take (map message (iterate (handshakeTransition params) clientHelloSent))
 
+// RFC Handshake states
 type State = [5]
 
-// states
+// Handshake states
 (helloRequestSent : State) = 0
 (clientHelloSent : State) = 1
 (serverHelloSent : State) = 2
@@ -72,7 +55,7 @@ type Protocol = [2]
 (alert : Protocol) = 2
 (data : Protocol) = 3
 
-//message types
+// TLS Message types
 type MessageType = [4]
 //handshake message types
 (helloRequest       : MessageType) = 0
@@ -95,7 +78,7 @@ type MessageType = [4]
 (applicationData : MessageType) = 0
 (error : MessageType) = 1
 
-// sender
+// Sender (data flow direction)
 type Sender = [2]
 (server   : Sender) = 0
 (client   : Sender) = 1
@@ -111,13 +94,24 @@ type KeyExchange = [3]
 (DH_DSS  : KeyExchange) = 4
 (DH_RSA  : KeyExchange) = 5
 
-// Protocol parameters that determine the transition to take in each state
-type Parameters = {keyExchange : KeyExchange //Negotiated key exchange algorithm
-                  ,sessionTicket : Bit // the client had a session ticket
-                  ,renewSessionTicket : Bit //Whether the server decides to renew a session ticket
-                  ,sendCertificateStatus : Bit //Whether the server decides to send the certificate status message
-                  ,requestClientCert : Bit //Whether the server requests a certificate from the client
-                  ,includeSessionTicket : Bit //Whether the server includes a session ticket extension in SERVER_HELLO
+// TLS protocol parameters that determine the transition to take in each state.
+// Some of these fields are set as a configuration to the end-point, while others
+// are determined from the messages send by the counterparty. We model both as
+// parameters since the state machine model reasons about both end-points.
+type Parameters = {keyExchange : KeyExchange
+                   //^ Negotiated key exchange algorithm
+                  ,sessionTicket : Bit
+                   //^ The client had a session ticket
+                  ,renewSessionTicket : Bit
+                   //^ Whether the server decides to renew a session ticket
+                  ,sendCertificateStatus : Bit
+                   //^ Whether the server decides to send the certificate status
+                   //  message
+                  ,requestClientCert : Bit
+                   //^ Whether the server requests a certificate from the client
+                  ,includeSessionTicket : Bit
+                   //^ Whether the server includes a session ticket extension in
+                   //  SERVER_HELLO
                   }
 
 // A relation between the s2n_connection struct and the parameters
@@ -131,17 +125,28 @@ connectionParameters conn params =
  /\ (~params.renewSessionTicket) // s2n server does not issue tickets at this time
  /\ conn.client_auth_flag == params.requestClientCert
 
+// A predicate that tells whether key-exchange is non-ephemeral (doesn't use
+// Diffie-Hellman key exchange). In this case the key exchange algorithm does not
+// require KeyExchange messages.
 keyExchangeNonEphemeral : Parameters -> Bit
-keyExchangeNonEphemeral params = params.keyExchange == RSA \/ params.keyExchange == DH_DSS \/ params.keyExchange == DH_RSA // key exchange algorithm does not require KeyExchange messages
+keyExchangeNonEphemeral params = params.keyExchange == RSA \/ params.keyExchange == DH_DSS \/ params.keyExchange == DH_RSA // 
 
+// A predicate that tells whether key-exchange is ephemeral (uses Diffie-Hellman
+// key exchange). In this case the key exchange algorithm does not require
+// KeyExchange messages.
 keyExchangeEphemeral : Parameters -> Bit
 keyExchangeEphemeral params =  params.keyExchange == DHE_DSS \/ params.keyExchange == DHE_RSA
 
-// Handshake state transition relation per the RFCs
+// Handshake state transition relation per the RFCs. Given handshake parameters
+// and a handshake state, return the next state. If there is no valid next state,
+// the state machine stutters (returns the previous state).
 handshakeTransition : Parameters -> State -> State
 handshakeTransition params old =
   snd (find fst (True, old) [ (old == from /\ p, to) | (from, p, to) <- valid_transitions])
-  where  
+  where // The encoding of the transition relation of the state machine is a triple
+        // (oldState, transitionCondition, newState) with the meaning "if we are
+        // in the oldState, the transitionCondition is True (for the given
+        // Parameters) then the next state is newState.
         valid_transitions =
           [(helloRequestSent, True, clientHelloSent)
           
@@ -200,8 +205,8 @@ handshakeTransition params old =
           ,(serverCertificateStatusSent, ~(keyExchangeNonEphemeral params), serverKeyExchangeSent)
           ]
 
-
-
+// Abstraction of the TLS message which records the protocol, message type and
+// direction
 type Message = {messageType : MessageType
                ,protocol : Protocol
                ,sender : Sender
@@ -210,7 +215,7 @@ type Message = {messageType : MessageType
 mkMessage : Sender -> Protocol -> MessageType -> Message
 mkMessage s p mt = {sender = s, protocol = p, messageType = mt}
 
-// Message sent in each state
+// Message sent in each handshake state
 message : State -> Message
 message = lookupDefault messages (mkMessage noSender data error)
     where messages =
@@ -259,7 +264,7 @@ sender2writer sndr = if sndr == server then 'S'
                 else if sndr == both   then 'B'
                 else                        'E'
 
-// convert protocol number to s2n TLS record type constant
+// Convert the RFC protocol number to s2n TLS record type constant
 protocol2recordType : Protocol -> [8]
 protocol2recordType = lookupDefault protocols TLS_APPLICATION_DATA
    where protocols = [(handshake, TLS_HANDSHAKE)
@@ -268,6 +273,7 @@ protocol2recordType = lookupDefault protocols TLS_APPLICATION_DATA
                      ,(data, TLS_APPLICATION_DATA)
                      ]
 
+// Returns the s2n message type for a given RFC Message
 s2nMessageType : Message -> [8]
 s2nMessageType msg =
   if prot == handshake then (if mt == helloRequest then TLS_HELLO_REQUEST

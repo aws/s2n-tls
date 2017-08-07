@@ -1,9 +1,64 @@
-// Low-level specification of the cork/uncork state machine. The main
-// function is s2n_advance_message, and we prove it's equivalence to its
+// Low-level specifications (model functions) of parts of tls/s2n_handshake_io.c.
+// The main function is s2n_advance_message, and we prove it's equivalence to its
 // counterpart in s2n_handshake_io.c
 
 module s2n_handshake_io where
 import Cryptol::Extras
+
+// This function modesl the update of the s2n_connection struct by the
+// s2n_conn_set_handshake_type function in s2n.
+conn_set_handshake_type : connection -> connection
+conn_set_handshake_type conn = conn'
+  where conn' = {handshake = handshake'
+                ,mode = conn.mode
+                ,corked_io = conn.corked_io
+                ,corked = conn.corked
+                ,is_caching_enabled = conn.is_caching_enabled
+                ,resume_from_cache = conn.resume_from_cache
+                ,server_can_send_ocsp = conn.server_can_send_ocsp
+                ,key_exchange_eph = conn.key_exchange_eph
+                ,client_auth_flag = conn.client_auth_flag}
+        (handshake' : handshake) = {handshake_type = handshake_type'
+                                   ,message_number = conn.handshake.message_number
+                                   }
+        handshake_type' = NEGOTIATED || full_handshake ||
+                          (if (full_handshake != 0) then
+                             perfect_forward_secrecy || ocsp_status || client_auth
+                             else zero)
+        full_handshake  = if (conn.is_caching_enabled && ~conn.resume_from_cache)
+                          then zero
+                          else FULL_HANDSHAKE
+        perfect_forward_secrecy = if conn.key_exchange_eph
+                                  then PERFECT_FORWARD_SECRECY
+                                  else zero
+        ocsp_status = if conn.server_can_send_ocsp
+                      then OCSP_STATUS
+                      else zero
+        client_auth = if conn.client_auth_flag
+                      then CLIENT_AUTH
+                      else zero
+                                                     
+// This function models the update of the s2n_connection struct by the
+// s2n_advance_message function in s2n.
+advance_message : connection -> connection
+advance_message conn = conn2
+  where conn2 = {handshake = handshake2
+                ,mode = conn.mode
+                ,corked_io = conn.corked_io
+                ,corked = cork2
+                ,is_caching_enabled = conn.is_caching_enabled
+                ,resume_from_cache = conn.resume_from_cache
+                ,server_can_send_ocsp = conn.server_can_send_ocsp
+                ,key_exchange_eph = conn.key_exchange_eph
+                ,client_auth_flag = conn.client_auth_flag
+                }
+        (handshake2 : handshake) = {handshake_type = conn.handshake.handshake_type
+                                   ,message_number = conn.handshake.message_number + 1
+                                   }
+        cork2 = if ((ACTIVE_STATE conn2).writer != (PREVIOUS_STATE conn2).writer)
+                then if (ACTIVE_STATE conn2).writer == mode_writer conn2.mode
+                     then s2n_cork conn else s2n_uncork conn
+                else conn.corked
 
 // for a given initial connection struct generate the
 // sequence of handshake_action's
@@ -13,7 +68,7 @@ traceS2N conn = normalizeAfterData (take (map ACTIVE_STATE (iterate s2nTrans con
 traceS2N2 : {n} (fin n) => connection -> [n][32]
 traceS2N2 conn = take (map ACTIVE_MESSAGE (iterate s2nTrans conn))
 
-// make sure all the messages after the first APPLICATION_DATA are also APPLICATION_DATA
+//Make sure all the messages after the first APPLICATION_DATA are also APPLICATION_DATA
 normalizeAfterData : {n} (fin n) => [n]handshake_action -> [n]handshake_action
 normalizeAfterData hsas = map snd (tail (scanl f (False, dataMsg) hsas))
     where f (found, acc) hsa = if hsa == dataMsg \/ found then (True, dataMsg)
@@ -46,7 +101,6 @@ s2nTrans conn = conn''
    where conn' = if helloState then conn_set_handshake_type conn else conn
          conn'' = advance_message conn'
          helloState = ACTIVE_MESSAGE conn == CLIENT_HELLO \/ ACTIVE_MESSAGE conn == SERVER_HELLO
-
 
 // Part of the s2n_connection struct that s2n_advance_message
 // uses. The names of the fields are the same as in C.
@@ -92,58 +146,7 @@ s2n_cork c = c.corked + 1
 s2n_uncork : connection -> [2]
 s2n_uncork c = c.corked - 1
 
-conn_set_handshake_type : connection -> connection
-conn_set_handshake_type conn = conn'
-  where conn' = {handshake = handshake'
-                ,mode = conn.mode
-                ,corked_io = conn.corked_io
-                ,corked = conn.corked
-                ,is_caching_enabled = conn.is_caching_enabled
-                ,resume_from_cache = conn.resume_from_cache
-                ,server_can_send_ocsp = conn.server_can_send_ocsp
-                ,key_exchange_eph = conn.key_exchange_eph
-                ,client_auth_flag = conn.client_auth_flag}
-        (handshake' : handshake) = {handshake_type = handshake_type'
-                                   ,message_number = conn.handshake.message_number
-                                   }
-        handshake_type' = NEGOTIATED || full_handshake ||
-                          (if (full_handshake != 0) then
-                             perfect_forward_secrecy || ocsp_status || client_auth
-                             else zero)
-        full_handshake  = if (conn.is_caching_enabled && ~conn.resume_from_cache)
-                          then zero
-                          else FULL_HANDSHAKE
-        perfect_forward_secrecy = if conn.key_exchange_eph
-                                  then PERFECT_FORWARD_SECRECY
-                                  else zero
-        ocsp_status = if conn.server_can_send_ocsp
-                      then OCSP_STATUS
-                      else zero
-        client_auth = if conn.client_auth_flag
-                      then CLIENT_AUTH
-                      else zero
-                                                     
-// This function models the update of the s2n_connection struct by the
-// s2n_advance_message function in s2n
-advance_message : connection -> connection
-advance_message conn = conn2
-  where conn2 = {handshake = handshake2
-                ,mode = conn.mode
-                ,corked_io = conn.corked_io
-                ,corked = cork2
-                ,is_caching_enabled = conn.is_caching_enabled
-                ,resume_from_cache = conn.resume_from_cache
-                ,server_can_send_ocsp = conn.server_can_send_ocsp
-                ,key_exchange_eph = conn.key_exchange_eph
-                ,client_auth_flag = conn.client_auth_flag
-                }
-        (handshake2 : handshake) = {handshake_type = conn.handshake.handshake_type
-                                   ,message_number = conn.handshake.message_number + 1
-                                   }
-        cork2 = if ((ACTIVE_STATE conn2).writer != (PREVIOUS_STATE conn2).writer)
-                then if (ACTIVE_STATE conn2).writer == mode_writer conn2.mode
-                     then s2n_cork conn else s2n_uncork conn
-                else conn.corked
+
 
 // this models the handshake_action struct (part of the handshake
 // state), but without the handler functions
@@ -159,6 +162,7 @@ mkAct r m w = {record_type = r, message_type = m, writer = w}
 state_machine : [16]handshake_action
 state_machine = [state_machine_fn m | m <- [0..15]]
 
+// Function that tells a handshake_action for a given state
 state_machine_fn : [4] -> handshake_action
 state_machine_fn m =
    if      m == CLIENT_HELLO then mkAct TLS_HANDSHAKE TLS_CLIENT_HELLO 'C'
@@ -183,6 +187,8 @@ state_machine_fn m =
 handshakes : [64][16][32]
 handshakes = [handshakes_fn h | h <- [0..63]]
 
+// A function that gives the handshake sequence for each valid handshake_type.
+// This is a sparse encoding of the handshakes array (which is sparse too).
 handshakes_fn : [32] -> [16][32]
 handshakes_fn handshk =
    if handshk == INITIAL then [CLIENT_HELLO, SERVER_HELLO] # zero else
@@ -239,7 +245,7 @@ valid_handshake hs = (handshakes_fn hs.handshake_type) != zero /\
 valid_connection : connection -> Bit
 valid_connection conn = valid_handshake (conn.handshake)
 
-// tells if the connection struct is in a valid initial state
+// Tells if the connection struct is in a valid initial state
 initial_connection : connection -> Bit
 initial_connection conn = conn.handshake.handshake_type == INITIAL /\ conn.handshake.message_number == 0
 
