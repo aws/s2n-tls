@@ -586,6 +586,18 @@ callback function takes three arguments: a pointer to abitrary data for use
 within the callback, a pointer to a key which can be used to delete the
 cached entry, and a 64 bit unsigned integer specifying the size of this key.
 
+### s2n\_config\_set\_max\_fragment\_length
+
+```c
+int s2n_config_set_max_fragment_length(struct s2n_config *config, uint8_t mfl_code);
+```
+
+**s2n_config_set_max_fragment_length** allows the caller to set a TLS Max
+Fragment Length extenstion that will be used to fragment outgoing messages.
+s2n currently do not reject over-the-max incoming fragments. The TLS negotiated
+max fragment length overrides the preference set by the
+**s2n_connection_prefer_throughput** and **s2n_connection_prefer_low_latency**.
+
 ## Connection-oriented functions
 
 ### s2n\_connection\_new
