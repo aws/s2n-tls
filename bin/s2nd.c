@@ -236,9 +236,11 @@ void usage()
     fprintf(stderr, "  --negotiate\n");
     fprintf(stderr, "    Only perform tls handshake and then shutdown the connection\n");
     fprintf(stderr, "  --prefer-low-latency\n");
-    fprintf(stderr, "    Prefer low latency by clamping maximum outgoing record size at 1500.");
+    fprintf(stderr, "    Prefer low latency by clamping maximum outgoing record size at 1500.\n");
     fprintf(stderr, "  --prefer-throughput\n");
-    fprintf(stderr, "    Prefer throughput by raising maximum outgoing record size to 16k");
+    fprintf(stderr, "    Prefer throughput by raising maximum outgoing record size to 16k\n");
+    fprintf(stderr, "  --enable-mfl\n");
+    fprintf(stderr, "    Accept client's TLS max fragment length extension request\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -258,6 +260,7 @@ int main(int argc, char *const *argv)
     int only_negotiate = 0;
     int prefer_throughput = 0;
     int prefer_low_latency = 0;
+    int enable_mfl = 0;
 
     static struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
@@ -265,6 +268,7 @@ int main(int argc, char *const *argv)
         {"negotiate", no_argument, 0, 'n'},
         {"prefer-low-latency", no_argument, 0, 'l'},
         {"prefer-throughput", no_argument, 0, 'p'},
+        {"enable-mfl", no_argument, 0, 'm'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
@@ -289,6 +293,9 @@ int main(int argc, char *const *argv)
             break;
         case 'p':
             prefer_throughput = 1;
+            break;
+        case 'm':
+            enable_mfl = 1;
             break;
         case '?':
         default:
@@ -398,6 +405,11 @@ int main(int argc, char *const *argv)
 
     if (s2n_config_set_cache_delete_callback(config, cache_delete, session_cache) < 0) {
         fprintf(stderr, "Error setting cache retrieve callback: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        exit(1);
+    }
+
+    if (enable_mfl && s2n_config_enable_server_max_fragment_length(config) < 0) {
+        fprintf(stderr, "Error enabling TLS max fragment length extension in server\n");
         exit(1);
     }
 

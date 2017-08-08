@@ -86,6 +86,7 @@ typedef enum { S2N_CT_SUPPORT_NONE = 0, S2N_CT_SUPPORT_REQUEST = 1 } s2n_ct_supp
 extern int s2n_config_set_ct_support_level(struct s2n_config *config, s2n_ct_support_level level);
 extern int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length);
 extern int s2n_config_set_max_fragment_length(struct s2n_config *config, uint8_t mfl_code);
+extern int s2n_config_enable_server_max_fragment_length(struct s2n_config *config);
 
 struct s2n_connection;
 typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;

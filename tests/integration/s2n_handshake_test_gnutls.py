@@ -30,7 +30,7 @@ from s2n_test_constants import *
 
 def try_gnutls_handshake(endpoint, port, priority_str):
     # Fire up s2nd
-    s2nd = subprocess.Popen(["../../bin/s2nd", "-c", "test_all", str(endpoint), str(port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    s2nd = subprocess.Popen(["../../bin/s2nd", "--enable-mfl", "-c", "test_all", str(endpoint), str(port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
     # Make sure it's running
     s2nd.stdout.readline()

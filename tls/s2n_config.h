@@ -52,6 +52,9 @@ struct s2n_config {
     void *verify_cert_context;
 
     uint8_t mfl_code;
+
+    /* if this is FALSE, server will ignore client's Max Fragment Length request */
+    int enable_server_mfl;
 };
 
 extern struct s2n_config s2n_default_config;
