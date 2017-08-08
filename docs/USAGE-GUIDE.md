@@ -715,8 +715,6 @@ or low latency. Connections prefering low latency will be encrypted using small
 record sizes that can be decrypted sooner by the recipient. Connections
 prefering throughput will use large record sizes that minimize overhead.
 
-Connections prefer low latency by default.
-
 ### s2n\_connection\_get\_wire\_bytes
 
 ```c

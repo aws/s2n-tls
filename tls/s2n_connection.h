@@ -145,6 +145,13 @@ struct s2n_connection {
 
     /* Maximum outgoing fragment size for this connection. Does not limit
      * incoming record size.
+     *
+     * This value is updated when:
+     *   1. s2n_connection_prefer_low_latency is set
+     *   2. s2n_connection_prefer_throughput is set
+     *   3. TLS Maximum Fragment Length extension sets mfl_code
+     *
+     * Default value: S2N_DEFAULT_FRAGMENT_LENGTH
      */
     uint16_t max_outgoing_fragment_length;
 

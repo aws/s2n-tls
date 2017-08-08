@@ -51,7 +51,7 @@ void usage()
     fprintf(stderr, "  --s,--status\n");
     fprintf(stderr, "    Request the OCSP status of the remote server certificate\n");
     fprintf(stderr, "  --mfl\n");
-    fprintf(stderr, "    Set max fragment length from: 512, 1024, 2048, 4096\n");
+    fprintf(stderr, "    Request max fragment length from: 512, 1024, 2048, 4096\n");
     fprintf(stderr, "\n");
     exit(1);
 }
@@ -248,16 +248,16 @@ int main(int argc, char *const *argv)
     if (mfl_value > 0) {
         switch(mfl_value) {
             case 512:
-                mfl_code = 1;
+                mfl_code = S2N_TLS_MAX_FRAG_LEN_512;
                 break;
             case 1024:
-                mfl_code = 2;
+                mfl_code = S2N_TLS_MAX_FRAG_LEN_1024;
                 break;
             case 2048:
-                mfl_code = 3;
+                mfl_code = S2N_TLS_MAX_FRAG_LEN_2048;
                 break;
             case 4096:
-                mfl_code = 4;
+                mfl_code = S2N_TLS_MAX_FRAG_LEN_4096;
                 break;
             default:
                 fprintf(stderr, "Invalid max fragment length value\n");
