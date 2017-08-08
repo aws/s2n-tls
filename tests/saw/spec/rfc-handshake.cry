@@ -118,24 +118,18 @@ type Parameters = {keyExchange : KeyExchange
 connectionParameters : connection -> Parameters -> Bit
 connectionParameters conn params =
     conn.server_can_send_ocsp == params.sendCertificateStatus
- /\ ((conn.key_exchange_eph /\ keyExchangeEphemeral params) \/
+ /\ ((conn.key_exchange_eph /\ ~keyExchangeNonEphemeral params /\ params.keyExchange != DH_anon) \/
      (~conn.key_exchange_eph /\ keyExchangeNonEphemeral params))
  /\ (conn.is_caching_enabled /\ ~conn.resume_from_cache) == params.sessionTicket
  /\ (~params.includeSessionTicket) // s2n server does not issue tickets at this time
  /\ (~params.renewSessionTicket) // s2n server does not issue tickets at this time
  /\ conn.client_auth_flag == params.requestClientCert
 
-// A predicate that tells whether key-exchange is non-ephemeral (doesn't use
-// Diffie-Hellman key exchange). In this case the key exchange algorithm does not
-// require KeyExchange messages.
+// A predicate that tells whether key-exchange is non-ephemeral and uses server certificate
+// data for exchanging a premaster secret (RFC 5246 7.4.3). In this case the key exchange
+// algorithm does not require KeyExchange messages.
 keyExchangeNonEphemeral : Parameters -> Bit
-keyExchangeNonEphemeral params = params.keyExchange == RSA \/ params.keyExchange == DH_DSS \/ params.keyExchange == DH_RSA // 
-
-// A predicate that tells whether key-exchange is ephemeral (uses Diffie-Hellman
-// key exchange). In this case the key exchange algorithm does not require
-// KeyExchange messages.
-keyExchangeEphemeral : Parameters -> Bit
-keyExchangeEphemeral params =  params.keyExchange == DHE_DSS \/ params.keyExchange == DHE_RSA
+keyExchangeNonEphemeral params = params.keyExchange == RSA \/ params.keyExchange == DH_DSS \/ params.keyExchange == DH_RSA
 
 // Handshake state transition relation per the RFCs. Given handshake parameters
 // and a handshake state, return the next state. If there is no valid next state,
