@@ -447,7 +447,7 @@ int main(int argc, char *const *argv)
         negotiate(conn);
 
         if (mutual_auth) {
-            if(!s2n_connection_is_client_authenticated(conn)) {
+            if(!s2n_connection_client_cert_used(conn)) {
                 fprintf(stderr, "Error: Mutual Auth was required, but not negotiatied.\n");
                 return -1;
             }

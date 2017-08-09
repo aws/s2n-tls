@@ -173,8 +173,8 @@ int main(int argc, char **argv)
         } while (client_blocked || server_blocked);
 
         /* Verify that both connections negotiated Mutual Auth */
-        EXPECT_TRUE(s2n_connection_is_client_authenticated(server_conn));
-        EXPECT_TRUE(s2n_connection_is_client_authenticated(client_conn));
+        EXPECT_TRUE(s2n_connection_client_cert_used(server_conn));
+        EXPECT_TRUE(s2n_connection_client_cert_used(client_conn));
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -249,8 +249,8 @@ int main(int argc, char **argv)
         } while (client_blocked || server_blocked);
 
         /* Verify that both connections negotiated Mutual Auth */
-        EXPECT_TRUE(s2n_connection_is_client_authenticated(server_conn));
-        EXPECT_TRUE(s2n_connection_is_client_authenticated(client_conn));
+        EXPECT_TRUE(s2n_connection_client_cert_used(server_conn));
+        EXPECT_TRUE(s2n_connection_client_cert_used(client_conn));
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -328,8 +328,8 @@ int main(int argc, char **argv)
         } while (client_blocked || server_blocked);
 
         /* Verify that both connections negotiated Mutual Auth */
-        EXPECT_TRUE(s2n_connection_is_client_authenticated(server_conn));
-        EXPECT_TRUE(s2n_connection_is_client_authenticated(client_conn));
+        EXPECT_TRUE(s2n_connection_client_cert_used(server_conn));
+        EXPECT_TRUE(s2n_connection_client_cert_used(client_conn));
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -408,8 +408,8 @@ int main(int argc, char **argv)
 
         EXPECT_EQUAL(failures, MAX_TRIES);
         /* Verify that NEITHER connections negotiated Mutual Auth */
-        EXPECT_FALSE(s2n_connection_is_client_authenticated(server_conn));
-        EXPECT_FALSE(s2n_connection_is_client_authenticated(client_conn));
+        EXPECT_FALSE(s2n_connection_client_cert_used(server_conn));
+        EXPECT_FALSE(s2n_connection_client_cert_used(client_conn));
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
