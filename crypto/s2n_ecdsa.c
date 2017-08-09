@@ -30,14 +30,15 @@
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_pkey.h"
 
-const struct s2n_pkey_ctx ecdsa_key_ctx = {
-    &s2n_ecdsa_sign,
-    &s2n_ecdsa_verify,
-    NULL, /* No function for encryption */
-    NULL, /* No function for decryption */
-    &s2n_ecdsa_keys_match,
-    &s2n_ecdsa_key_free
-};
+int s2n_ecdsa_pkey_init(struct s2n_pkey *pkey) {
+    pkey->sign = &s2n_ecdsa_sign;
+    pkey->verify = &s2n_ecdsa_verify;
+    pkey->encrypt = NULL; /* No function for encryption */
+    pkey->decrypt = NULL; /* No function for decryption */
+    pkey->match = &s2n_ecdsa_keys_match;
+    pkey->free = &s2n_ecdsa_key_free;
+    return 0;
+}
 
 int s2n_ecdsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, struct s2n_blob *signature)
 {

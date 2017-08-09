@@ -22,6 +22,60 @@
 
 #include "utils/s2n_safety.h"
 
+int s2n_pkey_zero(struct s2n_pkey *pkey) 
+{
+    pkey->sign = NULL;
+    pkey->verify = NULL;
+    pkey->encrypt = NULL;
+    pkey->decrypt = NULL;
+    pkey->match = NULL;
+    pkey->free = NULL;
+    return 0;
+}
+
+int s2n_pkey_sign(const struct s2n_pkey *pkey, struct s2n_hash_state *digest, struct s2n_blob *signature)
+{
+    notnull_check(pkey->sign);
+    
+    return pkey->sign(pkey, digest, signature);
+}
+
+int s2n_pkey_verify(const struct s2n_pkey *pkey, struct s2n_hash_state *digest, struct s2n_blob *signature)
+{
+    notnull_check(pkey->verify);
+    
+    return pkey->verify(pkey, digest, signature);
+}
+
+int s2n_pkey_encrypt(const struct s2n_pkey *pkey, struct s2n_blob *in, struct s2n_blob *out)
+{
+    notnull_check(pkey->encrypt);
+
+    return pkey->encrypt(pkey, in, out);
+}
+
+int s2n_pkey_decrypt(const struct s2n_pkey *pkey, struct s2n_blob *in, struct s2n_blob *out)
+{
+    notnull_check(pkey->decrypt);
+
+    return pkey->decrypt(pkey, in, out);
+}
+
+int s2n_pkey_match(const struct s2n_pkey *pub_key, const struct s2n_pkey *priv_key)
+{
+    notnull_check(pub_key->match);
+
+    return pub_key->match(pub_key, priv_key);
+}
+
+int s2n_pkey_free(struct s2n_pkey *pkey)
+{
+    if (pkey == NULL || pkey->free == NULL) {
+        return 0;
+    }
+    return pkey->free(pkey);
+}
+
 int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1der)
 {
     int ret;
@@ -45,12 +99,16 @@ int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1d
     /* Initialize s2n_pkey according to key type */
     switch (type) {
     case EVP_PKEY_RSA:
+        if ((ret = s2n_rsa_pkey_init(priv_key)) != 0) {
+            break;
+        }
         ret = s2n_pkey_to_rsa_private_key(&priv_key->key.rsa_key, pkey);
-        priv_key->ctx = &rsa_key_ctx;
         break;
     case EVP_PKEY_EC:
+        if ((ret = s2n_ecdsa_pkey_init(priv_key)) != 0) { 
+            break;
+        }
         ret = s2n_pkey_to_ecdsa_private_key(&priv_key->key.ecdsa_key, pkey);
-        priv_key->ctx = &ecdsa_key_ctx;
         break;
     default:
         EVP_PKEY_free(pkey);
@@ -91,12 +149,16 @@ int s2n_asn1der_to_public_key(struct s2n_pkey *pub_key, struct s2n_blob *asn1der
     
     switch (type) {
     case EVP_PKEY_RSA:
+        if ((ret = s2n_rsa_pkey_init(pub_key)) != 0) {
+            break;
+        }
         ret = s2n_pkey_to_rsa_public_key(&pub_key->key.rsa_key, pkey);
-        pub_key->ctx = &rsa_key_ctx;
         break;
     case EVP_PKEY_EC:
+        if ((ret = s2n_ecdsa_pkey_init(pub_key)) != 0) {
+            break;
+        }
         ret = s2n_pkey_to_ecdsa_public_key(&pub_key->key.ecdsa_key, pkey);
-        pub_key->ctx = &ecdsa_key_ctx;
         break;
     default:
         EVP_PKEY_free(pkey);
@@ -108,44 +170,3 @@ int s2n_asn1der_to_public_key(struct s2n_pkey *pub_key, struct s2n_blob *asn1der
     return ret;
 }
 
-int s2n_pkey_sign(const struct s2n_pkey *pkey, struct s2n_hash_state *digest, struct s2n_blob *signature)
-{
-    notnull_check(pkey->ctx->sign);
-    
-    return pkey->ctx->sign(pkey, digest, signature);
-}
-
-int s2n_pkey_verify(const struct s2n_pkey *pkey, struct s2n_hash_state *digest, struct s2n_blob *signature)
-{
-    notnull_check(pkey->ctx->verify);
-    
-    return pkey->ctx->verify(pkey, digest, signature);
-}
-
-int s2n_pkey_encrypt(const struct s2n_pkey *pkey, struct s2n_blob *in, struct s2n_blob *out)
-{
-    notnull_check(pkey->ctx->encrypt);
-
-    return pkey->ctx->encrypt(pkey, in, out);
-}
-
-int s2n_pkey_decrypt(const struct s2n_pkey *pkey, struct s2n_blob *in, struct s2n_blob *out)
-{
-    notnull_check(pkey->ctx->decrypt);
-
-    return pkey->ctx->decrypt(pkey, in, out);
-}
-
-int s2n_pkey_match(const struct s2n_pkey *pub_key, const struct s2n_pkey *priv_key)
-{
-    return pub_key->ctx->match(pub_key, priv_key);
-}
-
-int s2n_pkey_free(struct s2n_pkey *pkey)
-{
-    if (pkey == NULL || pkey->ctx == NULL) {
-        return 0;
-    }
-
-    return pkey->ctx->free(pkey);
-}

@@ -39,14 +39,15 @@ int s2n_rsa_public_key_set_from_openssl(s2n_rsa_public_key *s2n_rsa, RSA *openss
     return 0;
 }
 
-const struct s2n_pkey_ctx rsa_key_ctx = {
-    &s2n_rsa_sign,
-    &s2n_rsa_verify,
-    &s2n_rsa_encrypt,
-    &s2n_rsa_decrypt,
-    &s2n_rsa_keys_match,
-    &s2n_rsa_key_free
-};
+int s2n_rsa_pkey_init(struct s2n_pkey *pkey) {
+    pkey->sign = &s2n_rsa_sign;
+    pkey->verify = &s2n_rsa_verify;
+    pkey->encrypt = &s2n_rsa_encrypt;
+    pkey->decrypt = &s2n_rsa_decrypt;
+    pkey->match = &s2n_rsa_keys_match;
+    pkey->free = &s2n_rsa_key_free;
+    return 0;
+}
 
 int s2n_pkey_to_rsa_public_key(s2n_rsa_public_key *rsa_key, EVP_PKEY *pkey)
 {
