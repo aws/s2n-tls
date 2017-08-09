@@ -16,6 +16,7 @@
 #include <stdint.h>
 
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls_parameters.h"
 
 /* Highest version supported by s2n is TLS1.2 */
 uint8_t s2n_highest_protocol_version = S2N_TLS12;
@@ -31,7 +32,7 @@ uint8_t s2n_unknown_protocol_version = S2N_UNKNOWN_PROTOCOL_VERSION;
  */
 uint16_t mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_INVALID] =
 {
-    S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, /* S2N_TLS_MAX_FRAG_LEN_EXT_NONE */
+    S2N_DEFAULT_FRAGMENT_LENGTH,     /* S2N_TLS_MAX_FRAG_LEN_EXT_NONE */
     512,                             /* S2N_TLS_MAX_FRAG_LEN_512  */
     1024,                            /* S2N_TLS_MAX_FRAG_LEN_1024 */
     2048,                            /* S2N_TLS_MAX_FRAG_LEN_2048 */
