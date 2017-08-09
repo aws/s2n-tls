@@ -278,7 +278,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
         if (!s2n_resume_from_cache(conn)) {
             return 0;
         } else {
-            s2n_generate_new_client_session_id(conn);
+            GUARD(s2n_generate_new_client_session_id(conn));
         }
     }
 

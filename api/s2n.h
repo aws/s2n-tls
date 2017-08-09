@@ -124,6 +124,15 @@ extern int s2n_connection_free(struct s2n_connection *conn);
 extern int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked);
 
 typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED } s2n_cert_auth_type;
+typedef enum {
+    S2N_CERT_OK = 0,
+    S2N_CERT_ERR_UNTRUSTED = -1,
+    S2N_CERT_ERR_REVOKED = -2,
+    S2N_CERT_ERR_EXPIRED = -3,
+    S2N_CERT_ERR_TYPE_UNSUPPORTED = -4,
+    S2N_CERT_ERR_INVALID = -5,
+} s2n_cert_validation_code;
+
 extern int s2n_config_get_client_auth_type(struct s2n_config *config, s2n_cert_auth_type *client_auth_type);
 extern int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_type client_auth_type);
 extern int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type *client_auth_type);
@@ -155,7 +164,7 @@ extern int s2n_cert_public_key_set_cert_type(struct s2n_cert_public_key *cert_pu
 extern int s2n_cert_public_key_get_rsa(struct s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key **rsa);
 
 /* Not intended for general consumption. Use at your own risk. */
-typedef int verify_cert_trust_chain_fn(uint8_t *der_cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
+typedef s2n_cert_validation_code verify_cert_trust_chain_fn(uint8_t *der_cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
 
 extern int s2n_config_set_verify_cert_chain_cb(struct s2n_config *config, verify_cert_trust_chain_fn *callback, void *context);
 
@@ -165,7 +174,7 @@ extern int s2n_connection_get_client_protocol_version(struct s2n_connection *con
 extern int s2n_connection_get_server_protocol_version(struct s2n_connection *conn);
 extern int s2n_connection_get_actual_protocol_version(struct s2n_connection *conn);
 extern int s2n_connection_get_client_hello_version(struct s2n_connection *conn);
-extern int s2n_connection_did_handshake_negotiate_client_auth(struct s2n_connection *conn);
+extern int s2n_connection_is_client_authenticated(struct s2n_connection *conn);
 extern const char *s2n_connection_get_cipher(struct s2n_connection *conn);
 extern const char *s2n_connection_get_curve(struct s2n_connection *conn);
 extern int s2n_connection_get_alert(struct s2n_connection *conn);

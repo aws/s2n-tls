@@ -42,7 +42,11 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
     cert_chain.data = s2n_stuffer_raw_read(&conn->handshake.io, size_of_all_certificates);
     cert_chain.size = size_of_all_certificates;
 
-    GUARD(conn->config->verify_cert_chain_cb(cert_chain.data, cert_chain.size, &public_key, conn->config->verify_cert_context));
+    const s2n_cert_validation_code rc = conn->config->verify_cert_chain_cb(cert_chain.data, cert_chain.size, &public_key, conn->config->verify_cert_context);
+
+    if (rc != S2N_CERT_OK) {
+        S2N_ERROR(S2N_ERR_CERT_UNTRUSTED);
+    }
 
     if(public_key.cert_type != S2N_CERT_TYPE_RSA_SIGN) {
         S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);

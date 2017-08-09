@@ -73,41 +73,57 @@ int deny_all_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_c
 }
 
 /* Accept all RSA Certificates is unsafe and is only used in the s2n Client for testing purposes */
-int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context)
+s2n_cert_validation_code accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context)
 {
     struct s2n_blob cert_chain_blob = { .data = cert_chain_in, .size = cert_chain_len};
     struct s2n_stuffer cert_chain_in_stuffer;
-    GUARD(s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob));
-    GUARD(s2n_stuffer_write(&cert_chain_in_stuffer, &cert_chain_blob));
+    if (s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob) < 0) {
+        return S2N_CERT_ERR_INVALID;
+    }
+    if (s2n_stuffer_write(&cert_chain_in_stuffer, &cert_chain_blob) < 0) {
+        return S2N_CERT_ERR_INVALID;
+    }
 
     uint32_t certificate_count = 0;
     while (s2n_stuffer_data_available(&cert_chain_in_stuffer)) {
         uint32_t certificate_size;
 
-        GUARD(s2n_stuffer_read_uint24(&cert_chain_in_stuffer, &certificate_size));
+        if (s2n_stuffer_read_uint24(&cert_chain_in_stuffer, &certificate_size) < 0) {
+            return S2N_CERT_ERR_INVALID;
+        }
 
         if (certificate_size == 0 || certificate_size > s2n_stuffer_data_available(&cert_chain_in_stuffer) ) {
-            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+            return S2N_CERT_ERR_INVALID;
         }
 
         struct s2n_blob asn1cert;
         asn1cert.data = s2n_stuffer_raw_read(&cert_chain_in_stuffer, certificate_size);
         asn1cert.size = certificate_size;
-        notnull_check(asn1cert.data);
+        if (asn1cert.data == NULL) {
+            return S2N_CERT_ERR_INVALID;
+        }
 
         /* Pull the public key from the first certificate */
         if (certificate_count == 0) {
             struct s2n_rsa_public_key *rsa_pub_key_out;
-            GUARD(s2n_cert_public_key_get_rsa(public_key_out, &rsa_pub_key_out));
+            if (s2n_cert_public_key_get_rsa(public_key_out, &rsa_pub_key_out) < 0) {
+                return S2N_CERT_ERR_INVALID;
+            }
             /* Assume that the asn1cert is an RSA Cert */
-            GUARD(s2n_asn1der_to_rsa_public_key(rsa_pub_key_out, &asn1cert));
-            GUARD(s2n_cert_public_key_set_cert_type(public_key_out, S2N_CERT_TYPE_RSA_SIGN));
+            if (s2n_asn1der_to_rsa_public_key(rsa_pub_key_out, &asn1cert) < 0) {
+                return S2N_CERT_ERR_INVALID;
+            }
+            if (s2n_cert_public_key_set_cert_type(public_key_out, S2N_CERT_TYPE_RSA_SIGN) < 0){
+                return S2N_CERT_ERR_INVALID;
+            }
         }
 
         certificate_count++;
     }
 
-    gte_check(certificate_count, 1);
+    if (certificate_count < 1) {
+        return S2N_CERT_ERR_INVALID;
+    }
     return 0;
 }
 

@@ -31,13 +31,13 @@
 #include <openssl/x509.h>
 
 /* Accept all RSA Certificates is unsafe and is only used in the s2n Client */
-int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context)
+s2n_cert_validation_code accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context)
 {
     uint32_t bytes_read = 0;
     uint32_t certificate_count = 0;
     while (bytes_read != cert_chain_len) {
         if (bytes_read > cert_chain_len) {
-            return -1;
+            return S2N_CERT_ERR_INVALID;
         }
         //24 Bit Cert Length
         uint32_t next_certificate_size = 0;
@@ -47,7 +47,7 @@ int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct
 
 
         if (next_certificate_size == 0 || next_certificate_size > (cert_chain_len - bytes_read) ) {
-            return -1;
+            return S2N_CERT_ERR_INVALID;
         }
 
         uint8_t *asn1_cert_data = &cert_chain_in[bytes_read];
@@ -56,7 +56,9 @@ int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct
         /* Pull the public key from the first certificate */
         if (certificate_count == 0) {
             struct s2n_rsa_public_key *s2n_rsa;
-            s2n_cert_public_key_get_rsa(public_key_out, &s2n_rsa);
+            if (s2n_cert_public_key_get_rsa(public_key_out, &s2n_rsa) < 0) {
+                return S2N_CERT_ERR_INVALID;
+            }
 
             /* Assume that the asn1cert is an RSA Cert */
 
@@ -64,7 +66,7 @@ int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct
             X509 *cert = d2i_X509(NULL, (const unsigned char **)(void *)&cert_to_parse, next_certificate_size);
 
             if (cert == NULL) {
-                return -1;
+                return S2N_CERT_ERR_INVALID;
             }
 
             /* If cert parsing is successful, d2i_X509 increments *cert_to_parse to the byte following the parsed data */
@@ -72,42 +74,46 @@ int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct
 
             if (parsed_len != next_certificate_size) {
                 X509_free(cert);
-                return -1;
+                return S2N_CERT_ERR_INVALID;
             }
 
             EVP_PKEY *public_key = X509_get_pubkey(cert);
             X509_free(cert);
 
             if (public_key == NULL) {
-                return -1;
+                return S2N_CERT_ERR_INVALID;
             }
 
             if (EVP_PKEY_base_id(public_key) != EVP_PKEY_RSA) {
                 EVP_PKEY_free(public_key);
-                return -1;
+                return S2N_CERT_ERR_TYPE_UNSUPPORTED;
             }
 
             RSA *openssl_rsa;
             openssl_rsa = EVP_PKEY_get1_RSA(public_key);
             if (openssl_rsa == NULL) {
                 EVP_PKEY_free(public_key);
-                return -1;
+                return S2N_CERT_ERR_INVALID;
             }
 
-            s2n_rsa_public_key_set_from_openssl(s2n_rsa, openssl_rsa);
+            if (s2n_rsa_public_key_set_from_openssl(s2n_rsa, openssl_rsa) < 0) {
+                return S2N_CERT_ERR_INVALID;
+            }
 
             EVP_PKEY_free(public_key);
 
-            s2n_cert_public_key_set_cert_type(public_key_out, S2N_CERT_TYPE_RSA_SIGN);
+            if (s2n_cert_public_key_set_cert_type(public_key_out, S2N_CERT_TYPE_RSA_SIGN) < 0) {
+                return S2N_CERT_ERR_INVALID;
+            }
 
         }
 
         certificate_count++;
     }
 
-    // Allow Cert Chains of length 1 for Self-Signed Certs
+    // Allow Cert Chains of at least length 1 for Self-Signed Certs
     if (certificate_count == 0) {
-        return -1;
+        return S2N_CERT_ERR_INVALID;
     }
 
     return 0;
