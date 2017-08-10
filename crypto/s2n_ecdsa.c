@@ -42,8 +42,8 @@ int s2n_ecdsa_pkey_init(struct s2n_pkey *pkey) {
 
 int s2n_ecdsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
-    s2n_ecdsa_private_key key = priv->key.ecdsa_key;
-    notnull_check(key.eckey);
+    const s2n_ecdsa_private_key *key = &priv->key.ecdsa_key;
+    notnull_check(key->ec_key);
 
     uint8_t digest_length;
     GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
@@ -53,7 +53,7 @@ int s2n_ecdsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, s
     GUARD(s2n_hash_digest(digest, digest_out, digest_length));
 
     unsigned int signature_size = signature->size;
-    if (ECDSA_sign(0, digest_out, digest_length, signature->data, &signature_size, key.eckey) == 0) {
+    if (ECDSA_sign(0, digest_out, digest_length, signature->data, &signature_size, key->ec_key) == 0) {
         S2N_ERROR(S2N_ERR_SIGN);
     }
     if (signature_size > signature->size) {
@@ -68,8 +68,8 @@ int s2n_ecdsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, s
 
 int s2n_ecdsa_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
-    s2n_ecdsa_public_key key = pub->key.ecdsa_key;
-    notnull_check(key.eckey);
+    const s2n_ecdsa_public_key *key = &pub->key.ecdsa_key;
+    notnull_check(key->ec_key);
 
     uint8_t digest_length;
     GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
@@ -79,55 +79,13 @@ int s2n_ecdsa_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest, 
     GUARD(s2n_hash_digest(digest, digest_out, digest_length));
     
     /* ECDSA_verify ignores the first parameter */
-    if (ECDSA_verify(0, digest_out, digest_length, signature->data, signature->size, key.eckey) == 0) {
+    if (ECDSA_verify(0, digest_out, digest_length, signature->data, signature->size, key->ec_key) == 0) {
         S2N_ERROR(S2N_ERR_VERIFY_SIGNATURE);
     }
 
     GUARD(s2n_hash_reset(digest));
     
     return 0;
-}
-
-int s2n_pkey_to_ecdsa_private_key(s2n_ecdsa_private_key *ecdsa_key, EVP_PKEY *pkey)
-{
-    EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(pkey);
-    if (ec_key == NULL) {
-        S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
-    }
-    
-    if (!EC_KEY_check_key(ec_key)) {
-        EC_KEY_free(ec_key);
-        S2N_ERROR(S2N_ERR_PRIVATE_KEY_CHECK);
-    }
-
-    ecdsa_key->eckey = ec_key;
-    return 0;
-}
-
-int s2n_pkey_to_ecdsa_public_key(s2n_ecdsa_public_key *ecdsa_key, EVP_PKEY *pkey)
-{
-    EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(pkey);
-    if (ec_key == NULL) {
-        S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
-    }
-    
-    ecdsa_key->eckey = ec_key;
-    return 0;
-}
-
-int s2n_ecdsa_key_free(struct s2n_pkey *pkey)
-{
-    struct s2n_ecdsa_key ecdsa_key = pkey->key.ecdsa_key;
-    notnull_check(ecdsa_key.eckey);
-    EC_KEY_free(ecdsa_key.eckey);
-    return 0;
-}
-
-int s2n_ecdsa_signature_size(const s2n_ecdsa_private_key *key)
-{
-    notnull_check(key->eckey);
-
-    return ECDSA_size(key->eckey);
 }
 
 int s2n_ecdsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv) 
@@ -150,8 +108,8 @@ int s2n_ecdsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv
     GUARD(s2n_hash_update(&state_in, input, sizeof(input)));
     GUARD(s2n_hash_update(&state_out, input, sizeof(input)));
 
-    s2n_ecdsa_private_key priv_key = priv->key.ecdsa_key;
-    GUARD(s2n_alloc(&signature, s2n_ecdsa_signature_size(&priv_key)));
+    const s2n_ecdsa_private_key *priv_key = &priv->key.ecdsa_key;
+    GUARD(s2n_alloc(&signature, s2n_ecdsa_signature_size(priv_key)));
     
     GUARD(s2n_ecdsa_sign(priv, &state_in, &signature));
     GUARD(s2n_ecdsa_verify(pub, &state_out, &signature));
@@ -159,5 +117,52 @@ int s2n_ecdsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv
     GUARD(s2n_hash_free(&state_in));
     GUARD(s2n_hash_free(&state_out));
 
+    return 0;
+}
+
+int s2n_ecdsa_key_free(struct s2n_pkey *pkey)
+{
+    struct s2n_ecdsa_key *ecdsa_key = &pkey->key.ecdsa_key;
+    notnull_check(ecdsa_key->ec_key);
+    EC_KEY_free(ecdsa_key->ec_key);
+    return 0;
+}
+
+int s2n_ecdsa_signature_size(const s2n_ecdsa_private_key *key)
+{
+    notnull_check(key->ec_key);
+
+    return ECDSA_size(key->ec_key);
+}
+
+int s2n_pkey_to_ecdsa_private_key(s2n_ecdsa_private_key *ecdsa_key, EVP_PKEY *pkey)
+{
+    EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(pkey);
+    if (ec_key == NULL) {
+        S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
+    }
+    
+    if (!EC_KEY_check_key(ec_key)) {
+        EC_KEY_free(ec_key);
+        S2N_ERROR(S2N_ERR_KEY_CHECK);
+    }
+
+    ecdsa_key->ec_key = ec_key;
+    return 0;
+}
+
+int s2n_pkey_to_ecdsa_public_key(s2n_ecdsa_public_key *ecdsa_key, EVP_PKEY *pkey)
+{
+    EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(pkey);
+    if (ec_key == NULL) {
+        S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
+    }
+    
+    if (!EC_KEY_check_key(ec_key)) {
+        EC_KEY_free(ec_key);
+        S2N_ERROR(S2N_ERR_KEY_CHECK);
+    }
+    
+    ecdsa_key->ec_key = ec_key;
     return 0;
 }

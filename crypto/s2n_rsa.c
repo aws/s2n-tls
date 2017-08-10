@@ -70,7 +70,7 @@ int s2n_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *pkey)
     
     if (!RSA_check_key(rsa)) {
         RSA_free(rsa);
-        S2N_ERROR(S2N_ERR_PRIVATE_KEY_CHECK);
+        S2N_ERROR(S2N_ERR_KEY_CHECK);
     }
 
     rsa_key->rsa = rsa;

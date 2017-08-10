@@ -24,10 +24,11 @@
 
 #include "utils/s2n_blob.h"
 
+/* Forward declaration to avoid the circular dependency with s2n_pkey.h */
 struct s2n_pkey;
 
 struct s2n_ecdsa_key {
-    EC_KEY *eckey;
+    EC_KEY *ec_key;
 };
 
 typedef struct s2n_ecdsa_key s2n_ecdsa_public_key;
