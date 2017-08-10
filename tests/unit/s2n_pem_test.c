@@ -56,7 +56,6 @@ int main(int argc, char **argv)
 
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(config = s2n_config_new());
 
     for (int i = 0; i < (sizeof(valid_pem_pairs) / sizeof(valid_pem_pairs[0])); i++) {
         EXPECT_NOT_NULL(config = s2n_config_new());
