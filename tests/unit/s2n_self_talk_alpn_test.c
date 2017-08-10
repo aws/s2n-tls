@@ -47,32 +47,32 @@ int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
 int mock_client(int writefd, int readfd, const char **protocols, int count, const char *expected)
 {
     char buffer[0xffff];
-    struct s2n_connection *conn;
-    struct s2n_config *config;
+    struct s2n_connection *client_conn;
+    struct s2n_config *client_config;
     s2n_blocked_status blocked;
     int result = 0;
 
     /* Give the server a chance to listen */
     sleep(1);
 
-    conn = s2n_connection_new(S2N_CLIENT);
-    conn->server_protocol_version = S2N_TLS12;
-    conn->client_protocol_version = S2N_TLS12;
-    conn->actual_protocol_version = S2N_TLS12;
+    client_conn = s2n_connection_new(S2N_CLIENT);
+    client_config = s2n_config_new();
+    s2n_config_set_verify_cert_chain_cb(client_config, accept_all_rsa_certs, NULL);
+    s2n_config_set_protocol_preferences(client_config, protocols, count);
+    s2n_connection_set_config(client_conn, client_config);
+    client_conn->server_protocol_version = S2N_TLS12;
+    client_conn->client_protocol_version = S2N_TLS12;
+    client_conn->actual_protocol_version = S2N_TLS12;
 
-    config = s2n_config_new();
-    s2n_config_set_protocol_preferences(config, protocols, count);
-    s2n_connection_set_config(conn, config);
+    s2n_connection_set_read_fd(client_conn, readfd);
+    s2n_connection_set_write_fd(client_conn, writefd);
 
-    s2n_connection_set_read_fd(conn, readfd);
-    s2n_connection_set_write_fd(conn, writefd);
-
-    result = s2n_negotiate(conn, &blocked);
+    result = s2n_negotiate(client_conn, &blocked);
     if (result < 0) {
         result = 1;
     }
 
-    const char *got = s2n_get_application_protocol(conn);
+    const char *got = s2n_get_application_protocol(client_conn);
     if ((got != NULL && expected == NULL) ||
         (got == NULL && expected != NULL) ||
         (got != NULL && expected != NULL && strcmp(expected, got) != 0)) {
@@ -84,15 +84,15 @@ int mock_client(int writefd, int readfd, const char **protocols, int count, cons
             buffer[j] = 33;
         }
         
-        s2n_send(conn, buffer, i, &blocked);
+        s2n_send(client_conn, buffer, i, &blocked);
     }
     
     int shutdown_rc= -1;
     do {
-        shutdown_rc = s2n_shutdown(conn, &blocked);
+        shutdown_rc = s2n_shutdown(client_conn, &blocked);
     } while(shutdown_rc != 0);
 
-    s2n_connection_free(conn);
+    s2n_connection_free(client_conn);
 
     /* Give the server a chance to a void a sigpipe */
     sleep(1);

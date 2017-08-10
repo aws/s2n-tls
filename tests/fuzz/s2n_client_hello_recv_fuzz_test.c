@@ -22,9 +22,15 @@
 
 static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12};
 
+static void s2n_fuzz_atexit()
+{
+    s2n_cleanup();
+}
+
 int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 {
     GUARD(s2n_init());
+    GUARD(atexit(s2n_fuzz_atexit));
     return 0;
 }
 

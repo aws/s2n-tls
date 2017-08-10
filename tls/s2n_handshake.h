@@ -97,5 +97,6 @@ struct s2n_handshake {
     uint8_t rsa_failed;
 };
 
+extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
 extern int s2n_conn_set_handshake_type(struct s2n_connection *conn);
 extern int s2n_handshake_get_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg, struct s2n_hash_state *hash_state);

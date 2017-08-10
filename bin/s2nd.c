@@ -222,6 +222,7 @@ int cache_delete(void *ctx, const void *key, uint64_t key_size)
 
 extern int echo(struct s2n_connection *conn, int sockfd);
 extern int negotiate(struct s2n_connection *conn);
+extern int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
 
 void usage()
 {
@@ -232,6 +233,9 @@ void usage()
     fprintf(stderr, "  -c [version_string]\n");
     fprintf(stderr, "  --ciphers [version_string]\n");
     fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
+    fprintf(stderr, "  -m\n");
+    fprintf(stderr, "  --mutualAuth\n");
+    fprintf(stderr, "    Request a Client Certificate. Any RSA Certificate will be accepted.\n");
     fprintf(stderr, "  -n\n");
     fprintf(stderr, "  --negotiate\n");
     fprintf(stderr, "    Only perform tls handshake and then shutdown the connection\n");
@@ -258,9 +262,12 @@ int main(int argc, char *const *argv)
     int only_negotiate = 0;
     int prefer_throughput = 0;
     int prefer_low_latency = 0;
+    int mutual_auth = 0;
 
     static struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
+        {"mutualAuth", no_argument, 0, 'm'},
+        {"negotiate", no_argument, 0, 'n'},
         {"ciphers", required_argument, 0, 'c'},
         {"negotiate", no_argument, 0, 'n'},
         {"prefer-low-latency", no_argument, 0, 'l'},
@@ -270,7 +277,7 @@ int main(int argc, char *const *argv)
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hn", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmn", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -280,6 +287,9 @@ int main(int argc, char *const *argv)
             break;
         case 'h':
             usage();
+            break;
+        case 'm':
+            mutual_auth = 1;
             break;
         case 'n':
             only_negotiate = 1;
@@ -407,6 +417,11 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
+    if (mutual_auth) {
+        s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED);
+        s2n_config_set_verify_cert_chain_cb(config, &accept_all_rsa_certs, NULL);
+    }
+
     if (s2n_connection_set_config(conn, config) < 0) {
         fprintf(stderr, "Error setting configuration: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
@@ -430,6 +445,13 @@ int main(int argc, char *const *argv)
         }
 
         negotiate(conn);
+
+        if (mutual_auth) {
+            if(!s2n_connection_client_cert_used(conn)) {
+                fprintf(stderr, "Error: Mutual Auth was required, but not negotiatied.\n");
+                return -1;
+            }
+        }
 
         if (!only_negotiate) {
             echo(conn, fd);

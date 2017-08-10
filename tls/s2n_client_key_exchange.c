@@ -80,7 +80,7 @@ static int s2n_rsa_client_key_recv(struct s2n_connection *conn)
     GUARD(s2n_prf_key_expansion(conn));
 
     /* Save the master secret in the cache */
-    if (s2n_is_caching_enabled(conn->config)) {
+    if (s2n_allowed_to_cache_connection(conn)) {
         GUARD(s2n_store_to_cache(conn));
     }
 
@@ -110,7 +110,7 @@ static int s2n_dhe_client_key_recv(struct s2n_connection *conn)
     GUARD(s2n_prf_key_expansion(conn));
 
     /* Save the master secret in the cache */
-    if (s2n_is_caching_enabled(conn->config)) {
+    if (s2n_allowed_to_cache_connection(conn)) {
         GUARD(s2n_store_to_cache(conn));
     }
 
@@ -155,7 +155,7 @@ static int s2n_dhe_client_key_send(struct s2n_connection *conn)
     GUARD(s2n_prf_key_expansion(conn));
 
     /* Save the master secret in the cache */
-    if (s2n_is_caching_enabled(conn->config)) {
+    if (s2n_allowed_to_cache_connection(conn)) {
         GUARD(s2n_store_to_cache(conn));
     }
 
@@ -214,7 +214,7 @@ static int s2n_rsa_client_key_send(struct s2n_connection *conn)
     GUARD(s2n_prf_key_expansion(conn));
 
     /* Save the master secret in the cache */
-    if (s2n_is_caching_enabled(conn->config)) {
+    if (s2n_allowed_to_cache_connection(conn)) {
         GUARD(s2n_store_to_cache(conn));
     }
 

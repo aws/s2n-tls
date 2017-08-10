@@ -26,6 +26,7 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_connection_evp_digests.h"
+#include "tls/s2n_handshake.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
@@ -41,46 +42,6 @@
 #include "utils/s2n_timer.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
-
-/* Accept all RSA Certificates is unsafe and is only used in the s2n Client */
-int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context)
-{
-    struct s2n_blob cert_chain_blob = { .data = cert_chain_in, .size = cert_chain_len};
-    struct s2n_stuffer cert_chain_in_stuffer;
-    GUARD(s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob));
-    GUARD(s2n_stuffer_write(&cert_chain_in_stuffer, &cert_chain_blob));
-
-    uint32_t certificate_count = 0;
-    while (s2n_stuffer_data_available(&cert_chain_in_stuffer)) {
-        uint32_t certificate_size;
-
-        GUARD(s2n_stuffer_read_uint24(&cert_chain_in_stuffer, &certificate_size));
-
-        if (certificate_size == 0 || certificate_size > s2n_stuffer_data_available(&cert_chain_in_stuffer) ) {
-            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-        }
-
-        struct s2n_blob asn1cert;
-        asn1cert.data = s2n_stuffer_raw_read(&cert_chain_in_stuffer, certificate_size);
-        asn1cert.size = certificate_size;
-        notnull_check(asn1cert.data);
-
-        /* Pull the public key from the first certificate */
-        if (certificate_count == 0) {
-            struct s2n_rsa_public_key *rsa_pub_key_out;
-            GUARD(s2n_cert_public_key_get_rsa(public_key_out, &rsa_pub_key_out));
-            /* Assume that the asn1cert is an RSA Cert */
-            GUARD(s2n_asn1der_to_rsa_public_key(rsa_pub_key_out, &asn1cert));
-            GUARD(s2n_cert_public_key_set_cert_type(public_key_out, S2N_CERT_TYPE_RSA_SIGN));
-        }
-
-        certificate_count++;
-    }
-
-    gte_check(certificate_count, 1);
-
-    return 0;
-}
 
 static int s2n_connection_new_hashes(struct s2n_connection *conn)
 {
@@ -165,12 +126,6 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     conn = (struct s2n_connection *)(void *)blob.data;
     conn->config = &s2n_default_config;
 
-    /* By default, only the client will authenticate the Server's Certificate. The Server does not request or
-     * authenticate any client certificates. */
-    conn->client_cert_auth_type = conn->config->client_cert_auth_type;
-    conn->verify_cert_chain_cb = conn->config->verify_cert_chain_cb;
-    conn->verify_cert_context = conn->config->verify_cert_context;
-
     if (mode == S2N_CLIENT) {
         /* At present s2n is not suitable for use in client mode, as it
          * does not perform any certificate validation. However it is useful
@@ -181,8 +136,9 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
             GUARD_PTR(s2n_free(&blob));
             S2N_ERROR_PTR(S2N_ERR_CLIENT_MODE_DISABLED);
         }
-
-        conn->verify_cert_chain_cb = accept_all_rsa_certs;
+        /* S2N does not have it's own x509 Certificate parser, so Client Mode should only be used for testing purposes.
+         * In Client mode, we skip Cert Validation and assume that all Server RSA x509 Certs are valid. */
+        conn->config = &s2n_unsafe_client_testing_config;
     }
 
     conn->mode = mode;
@@ -274,9 +230,14 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->max_outgoing_fragment_length = S2N_DEFAULT_FRAGMENT_LENGTH;
     conn->handshake.handshake_type = INITIAL;
     conn->handshake.message_number = 0;
-    conn->client_cert_auth_type = S2N_CERT_AUTH_NONE;
-    conn->verify_cert_chain_cb = deny_all_certs;
-    conn->verify_cert_context = NULL;
+    GUARD(s2n_hash_init(&conn->handshake.md5, S2N_HASH_MD5));
+    GUARD(s2n_hash_init(&conn->handshake.sha1, S2N_HASH_SHA1));
+    GUARD(s2n_hash_init(&conn->handshake.sha224, S2N_HASH_SHA224));
+    GUARD(s2n_hash_init(&conn->handshake.sha256, S2N_HASH_SHA256));
+    GUARD(s2n_hash_init(&conn->handshake.sha384, S2N_HASH_SHA384));
+    GUARD(s2n_hash_init(&conn->handshake.sha512, S2N_HASH_SHA512));
+    GUARD(s2n_hmac_init(&conn->client->client_record_mac, S2N_HMAC_NONE, NULL, 0));
+    GUARD(s2n_hmac_init(&conn->server->server_record_mac, S2N_HMAC_NONE, NULL, 0));
 
     return 0;
 }
@@ -443,6 +404,8 @@ int s2n_connection_free(struct s2n_connection *conn)
 
 int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *config)
 {
+    notnull_check(conn);
+    notnull_check(config);
     conn->config = config;
     return 0;
 }
@@ -562,7 +525,6 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     else {
         /* For clients, also set actual_protocol_version.  Record generation uses that value for the initial */
         /* ClientHello record version. Not all servers ignore the record version in ClientHello. */
-        conn->verify_cert_chain_cb = accept_all_rsa_certs;
         conn->server_protocol_version = s2n_unknown_protocol_version;
         conn->client_protocol_version = s2n_highest_protocol_version;
         conn->actual_protocol_version = s2n_highest_protocol_version;
@@ -595,17 +557,37 @@ int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_send_fn send)
     return 0;
 }
 
-int s2n_connection_set_cert_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type)
+int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len)
 {
-    conn->client_cert_auth_type = cert_auth_type;
+    notnull_check(conn);
+    notnull_check(der_cert_chain_out);
+    notnull_check(cert_chain_len);
+    notnull_check(conn->secure.client_cert_chain.data);
+
+    *der_cert_chain_out = conn->secure.client_cert_chain.data;
+    *cert_chain_len = conn->secure.client_cert_chain.size;
+
     return 0;
 }
 
-int s2n_connection_set_verify_cert_chain_cb(struct s2n_connection *conn, verify_cert_trust_chain *callback, void *context)
+int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type *client_cert_auth_type)
 {
-    notnull_check(callback);
-    conn->verify_cert_chain_cb = callback;
-    conn->verify_cert_context = context;
+    notnull_check(conn);
+    notnull_check(client_cert_auth_type);
+
+    if(conn->client_cert_auth_type_overridden) {
+        *client_cert_auth_type = conn->client_cert_auth_type;
+    } else {
+        *client_cert_auth_type = conn->config->client_cert_auth_type;
+    }
+
+    return 0;
+}
+
+int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type client_cert_auth_type)
+{
+    conn->client_cert_auth_type_overridden = 1;
+    conn->client_cert_auth_type = client_cert_auth_type;
     return 0;
 }
 
@@ -713,6 +695,14 @@ int s2n_connection_get_actual_protocol_version(struct s2n_connection *conn)
 int s2n_connection_get_client_hello_version(struct s2n_connection *conn)
 {
     return conn->client_hello_version;
+}
+
+int s2n_connection_client_cert_used(struct s2n_connection *conn)
+{
+    if ((conn->handshake.handshake_type & CLIENT_AUTH) && is_handshake_complete(conn)) {
+        return 1;
+    }
+    return 0;
 }
 
 int s2n_connection_get_alert(struct s2n_connection *conn)

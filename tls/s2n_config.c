@@ -72,10 +72,78 @@ int deny_all_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_c
     S2N_ERROR(S2N_ERR_CERT_UNTRUSTED);
 }
 
+/* Accept all RSA Certificates is unsafe and is only used in the s2n Client for testing purposes */
+s2n_cert_validation_code accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context)
+{
+    struct s2n_blob cert_chain_blob = { .data = cert_chain_in, .size = cert_chain_len};
+    struct s2n_stuffer cert_chain_in_stuffer;
+    if (s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob) < 0) {
+        return S2N_CERT_ERR_INVALID;
+    }
+    if (s2n_stuffer_write(&cert_chain_in_stuffer, &cert_chain_blob) < 0) {
+        return S2N_CERT_ERR_INVALID;
+    }
+
+    uint32_t certificate_count = 0;
+    while (s2n_stuffer_data_available(&cert_chain_in_stuffer)) {
+        uint32_t certificate_size;
+
+        if (s2n_stuffer_read_uint24(&cert_chain_in_stuffer, &certificate_size) < 0) {
+            return S2N_CERT_ERR_INVALID;
+        }
+
+        if (certificate_size == 0 || certificate_size > s2n_stuffer_data_available(&cert_chain_in_stuffer) ) {
+            return S2N_CERT_ERR_INVALID;
+        }
+
+        struct s2n_blob asn1cert;
+        asn1cert.data = s2n_stuffer_raw_read(&cert_chain_in_stuffer, certificate_size);
+        asn1cert.size = certificate_size;
+        if (asn1cert.data == NULL) {
+            return S2N_CERT_ERR_INVALID;
+        }
+
+        /* Pull the public key from the first certificate */
+        if (certificate_count == 0) {
+            struct s2n_rsa_public_key *rsa_pub_key_out;
+            if (s2n_cert_public_key_get_rsa(public_key_out, &rsa_pub_key_out) < 0) {
+                return S2N_CERT_ERR_INVALID;
+            }
+            /* Assume that the asn1cert is an RSA Cert */
+            if (s2n_asn1der_to_rsa_public_key(rsa_pub_key_out, &asn1cert) < 0) {
+                return S2N_CERT_ERR_INVALID;
+            }
+            if (s2n_cert_public_key_set_cert_type(public_key_out, S2N_CERT_TYPE_RSA_SIGN) < 0){
+                return S2N_CERT_ERR_INVALID;
+            }
+        }
+
+        certificate_count++;
+    }
+
+    if (certificate_count < 1) {
+        return S2N_CERT_ERR_INVALID;
+    }
+    return 0;
+}
+
 struct s2n_config s2n_default_config = {
     .cert_and_key_pairs = NULL,
     .cipher_preferences = &cipher_preferences_20170210,
     .nanoseconds_since_epoch = get_nanoseconds_since_epoch,
+    .client_cert_auth_type = S2N_CERT_AUTH_NONE, /* Do not require the client to provide a Cert to the Server */
+    .verify_cert_chain_cb = deny_all_certs,
+    .verify_cert_context = NULL,
+};
+
+/* This config should only used by the s2n_client for unit/integration testing purposes. */
+struct s2n_config s2n_unsafe_client_testing_config = {
+    .cert_and_key_pairs = NULL,
+    .cipher_preferences = &cipher_preferences_20170210,
+    .nanoseconds_since_epoch = get_nanoseconds_since_epoch,
+    .client_cert_auth_type = S2N_CERT_AUTH_NONE,
+    .verify_cert_chain_cb = accept_all_rsa_certs,
+    .verify_cert_context = NULL,
 };
 
 struct s2n_config *s2n_config_new(void)
@@ -200,6 +268,32 @@ int s2n_config_set_protocol_preferences(struct s2n_config *config, const char *c
     config->application_protocols.size = size;
     config->application_protocols.data = s2n_stuffer_raw_read(&protocol_stuffer, size);
     notnull_check(config->application_protocols.data);
+
+    return 0;
+}
+
+int s2n_config_get_client_auth_type(struct s2n_config *config, s2n_cert_auth_type *client_auth_type)
+{
+    notnull_check(config);
+    notnull_check(client_auth_type);
+    *client_auth_type = config->client_cert_auth_type;
+    return 0;
+}
+
+int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_type client_auth_type)
+{
+    notnull_check(config);
+    config->client_cert_auth_type = client_auth_type;
+    return 0;
+}
+
+int s2n_config_set_verify_cert_chain_cb(struct s2n_config *config, verify_cert_trust_chain_fn *callback, void *context)
+{
+    notnull_check(config);
+    notnull_check(callback);
+
+    config->verify_cert_chain_cb = callback;
+    config->verify_cert_context = context;
 
     return 0;
 }
