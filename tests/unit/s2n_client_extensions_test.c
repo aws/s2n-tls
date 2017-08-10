@@ -1095,7 +1095,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
-        /* check that max_fragment_length did not get set due to invalid mfl_code */
+        /* check that max_fragment_length did not get set since enable_server_mfl is not set*/
         EXPECT_EQUAL(server_conn->max_outgoing_fragment_length, S2N_DEFAULT_FRAGMENT_LENGTH);
         EXPECT_EQUAL(server_conn->mfl_code, S2N_TLS_MAX_FRAG_LEN_EXT_NONE);
 

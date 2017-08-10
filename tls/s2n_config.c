@@ -102,6 +102,7 @@ struct s2n_config *s2n_config_new(void)
     new_config->cache_delete_data = NULL;
     new_config->ct_type = S2N_CT_SUPPORT_NONE;
     new_config->mfl_code = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
+    new_config->enable_server_mfl = 0;
 
     /* By default, only the client will authenticate the Server's Certificate. The Server does not request or
      * authenticate any client certificates. */
