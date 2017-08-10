@@ -359,4 +359,3 @@ int s2n_stuffer_copy(struct s2n_stuffer *from, struct s2n_stuffer *to, const uin
 
     return 0;
 }
-
