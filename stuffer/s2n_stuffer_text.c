@@ -59,7 +59,7 @@ int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, char target)
             break;
         }
 
-        stuffer->read_cursor++;
+        GUARD(s2n_stuffer_skip_read(stuffer, 1));
     }
 
     return 0;
