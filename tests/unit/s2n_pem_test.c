@@ -26,7 +26,7 @@ static const char *valid_pem_pairs[][2] = {
     { S2N_RSA_2048_PKCS8_CERT_CHAIN,          S2N_RSA_2048_PKCS8_KEY },
     { S2N_RSA_2048_PKCS1_CERT_CHAIN,          S2N_RSA_2048_PKCS1_KEY },
     { S2N_RSA_2048_PKCS1_LEAF_CERT,           S2N_RSA_2048_PKCS1_KEY },
-    /* PEMs with whitespace before/after entries are still valid */
+    /* PEMs with no-op data before/after entries are still valid */
     { S2N_LEAF_WHITESPACE_CERT_CHAIN,         S2N_RSA_2048_PKCS1_KEY },
     { S2N_INTERMEDIATE_WHITESPACE_CERT_CHAIN, S2N_RSA_2048_PKCS1_KEY },
     { S2N_ROOT_WHITESPACE_CERT_CHAIN,         S2N_RSA_2048_PKCS1_KEY },
