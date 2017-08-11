@@ -20,6 +20,8 @@
 #include <string.h>
 #include <stdio.h>
 
+#include <openssl/crypto.h>
+
 #include "error/s2n_errno.h"
 
 /* Macro definitions for calls that occur within BEGIN_TEST() and END_TEST() to preserve the SKIPPED test behavior
@@ -35,7 +37,12 @@
  * This is a very basic, but functional unit testing framework. All testing should
  * happen in main() and start with a BEGIN_TEST() and end with an END_TEST();
  */
+#ifdef S2N_TEST_IN_FIPS_MODE
+#define BEGIN_TEST() int test_count = 0; EXPECT_NOT_EQUAL_WITHOUT_COUNT(FIPS_mode_set(1), 0); EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());\
+                            { fprintf(stdout, "Running FIPS test %-50s ... ", __FILE__); }
+#else
 #define BEGIN_TEST() int test_count = 0; EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init()); { fprintf(stdout, "Running %-50s ... ", __FILE__); }
+#endif
 #define END_TEST()   EXPECT_SUCCESS_WITHOUT_COUNT(s2n_cleanup()); { if (isatty(fileno(stdout))) { \
                             if (test_count) { \
                                 fprintf(stdout, "\033[32;1mPASSED\033[0m %10d tests\n", test_count ); \

@@ -22,8 +22,19 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_resume.h"
 
-int s2n_is_caching_enabled(struct s2n_config *config)
+int s2n_allowed_to_cache_connection(struct s2n_connection *conn)
 {
+    s2n_cert_auth_type client_cert_auth_type;
+    GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
+
+    if(client_cert_auth_type != S2N_CERT_AUTH_NONE) {
+        /* We're unable to cache connections with a Client Cert since we currently don't serialize the Client Cert,
+         * which means that callers won't have access to the Client's Cert if the connection is resumed. */
+        return 0;
+    }
+
+    struct s2n_config *config = conn->config;
+
     /* Caching is enabled iff all of the caching callbacks are set */
     return config->cache_store && config->cache_retrieve && config->cache_delete;
 }
@@ -126,10 +137,12 @@ int s2n_store_to_cache(struct s2n_connection *conn)
     struct s2n_blob entry = {.data = data,.size = S2N_STATE_SIZE_IN_BYTES };
     struct s2n_stuffer to;
 
-    if (!s2n_is_caching_enabled(conn->config)) {
+    if (!s2n_allowed_to_cache_connection(conn)) {
         return -1;
     }
 
+    /* session_id_len should always be >0 since either the Client provided a SessionId or the Server generated a new
+     * one for the Client */
     if (conn->session_id_len == 0 || conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN) {
         return -1;
     }

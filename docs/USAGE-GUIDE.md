@@ -251,6 +251,29 @@ typedef enum { S2N_STATUS_REQUEST_NONE, S2N_STATUS_REQUEST_OCSP } s2n_status_req
 status request an S2N_CLIENT should make during the handshake. The only
 supported status request type is OCSP, **S2N_STATUS_REQUEST_OCSP**.
 
+
+```c
+typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED } s2n_cert_auth_type;
+```
+**s2n_cert_auth_type** is used to declare what type of client certificiate authentication to use.
+Currently the default for s2n is for neither the server side or the client side to use Client (aka Mutual) authentication.
+
+```c
+typedef enum {
+    S2N_CERT_TYPE_RSA_SIGN = 1,
+    S2N_CERT_TYPE_DSS_SIGN = 2,
+    S2N_CERT_TYPE_RSA_FIXED_DH = 3,
+    S2N_CERT_TYPE_DSS_FIXED_DH = 4,
+    S2N_CERT_TYPE_RSA_EPHEMERAL_DH_RESERVED = 5,
+    S2N_CERT_TYPE_DSS_EPHEMERAL_DH_RESERVED = 6,
+    S2N_CERT_TYPE_FORTEZZA_DMS_RESERVED = 20,
+    S2N_CERT_TYPE_ECDSA_SIGN = 64,
+    S2N_CERT_TYPE_RSA_FIXED_ECDH = 65,
+    S2N_CERT_TYPE_ECDSA_FIXED_ECDH = 66,
+} s2n_cert_type;
+```
+**s2n_cert_type** is used to define what type of Certificate was used in a connection.
+
 ## Opaque structures
 
 s2n defines two opaque structures that are used for managed objects. Because
@@ -265,6 +288,15 @@ struct s2n_connection;
 **s2n_config** structures are a configuration object, used by servers for
 holding cryptographic certificates, keys and preferences. **s2n_connection**
 structures are used to track each connection.
+
+
+```c
+struct s2n_rsa_public_key;
+struct s2n_cert_public_key;
+```
+
+**s2n_rsa_public_key** and **s2n_cert_public_key** can be used by consumers of s2n to get and set public keys through other API calls.
+
 
 ## Error handling
 
@@ -537,6 +569,57 @@ callback can get any ClientHello infromation from the connection and use
 The callback can return 0 to continue handshake in s2n or it can return negative
 value to make s2n terminate handshake early with fatal handshake failure alert.
 
+## Client Auth Related calls
+Client Auth Related API's are not recommended for normal users. Use of these API's is discouraged.
+
+1. Using these API's requires users to: Complete full x509 parsing and hostname validation in the application layer
+2. Application knowledge of TLS code points for certificate types
+3. Application dependency on libcrypto to give a libcrypto RSA struct back to s2n
+
+### s2n\_config\_set\_client\_auth\_type and s2n\_connection\_set\_client\_auth\_type
+```c
+int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_type cert_auth_type);
+int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type);
+```
+Sets whether or not a Client Certificate should be required to complete the TLS Connection.
+If this is set to **S2N_CERT_AUTH_REQUIRED** then a **verify_cert_trust_chain_fn** callback should be provided as well since the current
+default is for s2n to accept all RSA Certs on the client side, and deny all certs on the server side.
+
+
+### verify_cert_trust_chain_fn
+
+```c
+int verify_cert_trust_chain(uint8_t *der_cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
+```
+ - **der_cert_chain_in** The DER encoded full chain of certificates recieved
+ - **cert_chain_len** The length in bytes of the DER encoded Cert Chain
+ - **public_key_out** The public key that should be updated with the key extracted from the first certificate in the chain (the leaf Cert)
+ - **context** A pointer to any caller defined context data needed for the callback (Cert Trust Store, etc)
+ - **return Value** The function should return 0 if the Certificate Chain is trusted and public key extraction was successful, and less than 0 if any Certificate in the chain is untrusted, or there was some other error.
+
+**verify_cert_trust_chain_fn** defines a Callback Function Signature intended to be used only in special circumstances, and may be removed in a later release.
+Implementations should Verify the Certificate Chain of trust, and place the leaf Certificate's Public Key in the public_key_out parameter.
+They should not not perform any hostname validation, which is still needed in order to completely validate a Certificate.
+
+### Public Key API's
+```c
+int s2n_rsa_public_key_set_from_openssl(struct s2n_rsa_public_key *s2n_rsa, RSA *openssl_rsa);
+int s2n_cert_public_key_set_cert_type(struct s2n_cert_public_key *cert_pub_key, s2n_cert_type cert_type);
+int s2n_cert_public_key_get_rsa(struct s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key **rsa);
+int s2n_cert_public_key_set_rsa(struct s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key rsa);
+```
+**s2n_rsa_public_key** and **s2n_cert_public_key** are opaque structs. These API's are intended to be used by Implementations of **verify_cert_trust_chain_fn** to
+set the public keys found in the Certificate into **public_key_out**.
+
+### s2n_config_set_verify_cert_chain_cb and s2n_connection_set_verify_cert_chain_cb
+
+```c
+int s2n_config_set_verify_cert_chain_cb(struct s2n_config *config, verify_cert_trust_chain_fn *callback, void *context);
+int s2n_connection_set_verify_cert_chain_cb(struct s2n_connection *conn, verify_cert_trust_chain_fn *callback, void *context);
+```
+
+Sets the **verify_cert_trust_chain_fn** callback function and context that will be used when verifying Certificates for the connection.
+
 ## Session Caching related calls
 
 s2n includes support for resuming from cached SSL/TLS session, provided 
@@ -744,6 +827,14 @@ returns the protocol version used in the initial client hello message.
 
 Each version number value corresponds to the macros defined as **S2N_SSLv2**,
 **S2N_SSLv3**, **S2N_TLS10**, **S2N_TLS11** and **S2N_TLS12**.
+
+### s2n\_connection\_is\_client\_authenticated
+
+```c
+int s2n_connection_is_client_authenticated(struct s2n_connection *conn);
+```
+**s2n_connection_is_client_authenticated** returns 1 if the handshake completed and Client Auth was 
+negotiated during the handshake.
 
 ### s2n\_get\_application\_protocol
 

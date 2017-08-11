@@ -51,6 +51,7 @@
 #define S2N_TLS_CHACHA20_POLY1305_KEY_LEN         32
 #define S2N_TLS_CHACHA20_POLY1305_TAG_LEN         16
 
+/* RFC 5246 7.4.1.2 */
 #define S2N_TLS_SESSION_ID_MAX_LEN     32
 
 struct s2n_crypto_parameters {
@@ -77,8 +78,10 @@ struct s2n_crypto_parameters {
     uint8_t client_implicit_iv[S2N_TLS_MAX_IV_LEN];
     uint8_t server_implicit_iv[S2N_TLS_MAX_IV_LEN];
 
+    struct s2n_hash_state signature_hash;
     struct s2n_hmac_state client_record_mac;
     struct s2n_hmac_state server_record_mac;
+    struct s2n_hmac_state record_mac_copy_workspace;
     uint8_t client_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN];
     uint8_t server_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN];
 };

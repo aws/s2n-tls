@@ -58,6 +58,7 @@ void usage()
 
 extern int echo(struct s2n_connection *conn, int sockfd);
 extern int negotiate(struct s2n_connection *conn);
+extern int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
 
 int main(int argc, char *const *argv)
 {
@@ -173,6 +174,7 @@ int main(int argc, char *const *argv)
     }
 
     struct s2n_config *config = s2n_config_new();
+
     if (config == NULL) {
         fprintf(stderr, "Error getting new config: '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
@@ -180,6 +182,11 @@ int main(int argc, char *const *argv)
 
     if (s2n_config_set_status_request_type(config, type) < 0) {
         fprintf(stderr, "Error setting status request type: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        exit(1);
+    }
+
+    if (s2n_config_set_verify_cert_chain_cb(config, accept_all_rsa_certs, NULL) < 0) {
+        fprintf(stderr, "Error setting Cert Chain Callback '%s'\n", s2n_strerror(s2n_errno, "EN"));
         exit(1);
     }
 

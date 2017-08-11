@@ -200,7 +200,6 @@ static message_type_t handshakes[64][16] = {
              SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
              APPLICATION_DATA
      },
-
 };
 
 #define ACTIVE_MESSAGE( conn ) handshakes[ (conn)->handshake.handshake_type ][ (conn)->handshake.message_number ]
@@ -256,30 +255,39 @@ static int s2n_advance_message(struct s2n_connection *conn)
     return 0;
 }
 
+int s2n_generate_new_client_session_id(struct s2n_connection *conn)
+{
+    if (conn->mode == S2N_SERVER) {
+        struct s2n_blob session_id = { .data = conn->session_id, .size = S2N_TLS_SESSION_ID_MAX_LEN };
+
+        /* Generate a new session id */
+        GUARD(s2n_get_public_random_data(&session_id));
+        conn->session_id_len = S2N_TLS_SESSION_ID_MAX_LEN;
+    }
+    return 0;
+}
+
 int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 {
     /* A handshake type has been negotiated */
     conn->handshake.handshake_type = NEGOTIATED;
 
-    /* Only check cache for Session ID if Client Auth is not configured */
-    if (conn->client_cert_auth_type == S2N_CERT_AUTH_NONE && s2n_is_caching_enabled(conn->config)) {
+    /* If a TLS session is resumed, the Server should respond in its ServerHello with the same SessionId the Client
+     * sent in the ClientHello, otherwise the Server should respond with a new SessionId. */
+    if (s2n_allowed_to_cache_connection(conn)) {
         if (!s2n_resume_from_cache(conn)) {
             return 0;
-        }
-
-        if (conn->mode == S2N_SERVER) {
-            struct s2n_blob session_id = {.data = conn->session_id,.size = S2N_TLS_SESSION_ID_MAX_LEN };
-
-            /* Generate a new session id */
-            GUARD(s2n_get_public_random_data(&session_id));
-            conn->session_id_len = S2N_TLS_SESSION_ID_MAX_LEN;
+        } else {
+            GUARD(s2n_generate_new_client_session_id(conn));
         }
     }
 
     /* If we get this far, it's a full handshake */
     conn->handshake.handshake_type |= FULL_HANDSHAKE;
 
-    if(conn->client_cert_auth_type != S2N_CERT_AUTH_NONE) {
+    s2n_cert_auth_type client_cert_auth_type;
+    GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
+    if(client_cert_auth_type != S2N_CERT_AUTH_NONE) {
         conn->handshake.handshake_type |= CLIENT_AUTH;
     }
 
@@ -302,6 +310,7 @@ static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct 
     GUARD(s2n_hash_update(&conn->handshake.sha256, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.sha384, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.sha512, data->data, data->size));
+    GUARD(s2n_hash_update(&conn->handshake.md5_sha1, data->data, data->size));
 
     return 0;
 }
@@ -578,7 +587,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
         } else {
             *blocked = S2N_BLOCKED_ON_READ;
             if (handshake_read_io(conn) < 0) {
-                if (s2n_errno != S2N_ERR_BLOCKED && s2n_is_caching_enabled(conn->config) && conn->session_id_len) {
+                if (s2n_errno != S2N_ERR_BLOCKED && s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
                     conn->config->cache_delete(conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
                 }
 

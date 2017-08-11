@@ -7,8 +7,8 @@ Every test in this directory will be run as a Fuzz test for several minutes duri
     2. If the test ends with `*_negative_test.c` the test is expected to fail in some way or return a non-zero integer (hereafter referred to as a "Negative test").
 2. Strive to be deterministic (Eg. shouldn't depend on the time or on the output of a RNG). Each test should either always pass if a Positive Test, or always fail if a Negative Test.
 3. If a Positive Fuzz test, it should have a non-empty corpus directory with inputs that have a relatively high branch coverage.
-4. Have a function `int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)` that will pass `buf` to one of s2n's API's
-5. Optionally, if initialization is required, have a function `int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)` that will perform any initialization that will be run only once at startup.
+4. Have a function `int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)` that will perform any initialization that will be run only once at startup.
+5. Have a function `int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)` that will pass `buf` to one of s2n's API's
 
 ## Fuzz Test Directory Structure
 For a test with name `$TEST_NAME`, its files should be laid out with the following structure:

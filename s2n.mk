@@ -45,6 +45,11 @@ ifneq ($(NO_STACK_PROTECTOR), 1)
 DEFAULT_CFLAGS += -Wstack-protector -fstack-protector-all
 endif
 
+# Define S2N_TEST_IN_FIPS_MODE - to be used for testing when present.
+ifdef S2N_TEST_IN_FIPS_MODE
+    DEFAULT_CFLAGS += -DS2N_TEST_IN_FIPS_MODE
+endif
+
 CFLAGS += ${DEFAULT_CFLAGS}
 
 DEBUG_CFLAGS = -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls
@@ -61,7 +66,7 @@ ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)
 endif
 
 
-CFLAGS_LLVM = ${DEFAULT_CFLAGS} -fno-inline -emit-llvm -c
+CFLAGS_LLVM = ${DEFAULT_CFLAGS} -emit-llvm -c -O1
 
 $(BITCODE_DIR)%.bc: %.c
 	clang $(CFLAGS_LLVM) -o $@ $< 
