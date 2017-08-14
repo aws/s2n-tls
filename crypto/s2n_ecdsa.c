@@ -30,17 +30,7 @@
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_pkey.h"
 
-int s2n_ecdsa_pkey_init(struct s2n_pkey *pkey) {
-    pkey->sign = &s2n_ecdsa_sign;
-    pkey->verify = &s2n_ecdsa_verify;
-    pkey->encrypt = NULL; /* No function for encryption */
-    pkey->decrypt = NULL; /* No function for decryption */
-    pkey->match = &s2n_ecdsa_keys_match;
-    pkey->free = &s2n_ecdsa_key_free;
-    return 0;
-}
-
-int s2n_ecdsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, struct s2n_blob *signature)
+static int s2n_ecdsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
     const s2n_ecdsa_private_key *key = &priv->key.ecdsa_key;
     notnull_check(key->ec_key);
@@ -66,7 +56,7 @@ int s2n_ecdsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, s
     return 0;
 }
 
-int s2n_ecdsa_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest, struct s2n_blob *signature)
+static int s2n_ecdsa_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
     const s2n_ecdsa_public_key *key = &pub->key.ecdsa_key;
     notnull_check(key->ec_key);
@@ -88,7 +78,7 @@ int s2n_ecdsa_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest, 
     return 0;
 }
 
-int s2n_ecdsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv) 
+static int s2n_ecdsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv) 
 {
     uint8_t input[16];
     struct s2n_blob random_input;
@@ -120,7 +110,7 @@ int s2n_ecdsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv
     return 0;
 }
 
-int s2n_ecdsa_key_free(struct s2n_pkey *pkey)
+static int s2n_ecdsa_key_free(struct s2n_pkey *pkey)
 {
     struct s2n_ecdsa_key *ecdsa_key = &pkey->key.ecdsa_key;
     notnull_check(ecdsa_key->ec_key);
@@ -164,5 +154,15 @@ int s2n_pkey_to_ecdsa_public_key(s2n_ecdsa_public_key *ecdsa_key, EVP_PKEY *evp_
     }
     
     ecdsa_key->ec_key = ec_key;
+    return 0;
+}
+
+int s2n_ecdsa_pkey_init(struct s2n_pkey *pkey) {
+    pkey->sign = &s2n_ecdsa_sign;
+    pkey->verify = &s2n_ecdsa_verify;
+    pkey->encrypt = NULL; /* No function for encryption */
+    pkey->decrypt = NULL; /* No function for decryption */
+    pkey->match = &s2n_ecdsa_keys_match;
+    pkey->free = &s2n_ecdsa_key_free;
     return 0;
 }

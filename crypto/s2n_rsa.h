@@ -32,13 +32,6 @@ struct s2n_rsa_key {
 
 extern int s2n_rsa_pkey_init(struct s2n_pkey *pkey);
 
-extern int s2n_rsa_sign(const struct s2n_pkey *key, struct s2n_hash_state *digest, struct s2n_blob *signature);
-extern int s2n_rsa_verify(const struct s2n_pkey *key, struct s2n_hash_state *digest, struct s2n_blob *signature);
-extern int s2n_rsa_encrypt(const struct s2n_pkey *key, struct s2n_blob *in, struct s2n_blob *out);
-extern int s2n_rsa_decrypt(const struct s2n_pkey *key, struct s2n_blob *in, struct s2n_blob *out);
-extern int s2n_rsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv);
-extern int s2n_rsa_key_free(struct s2n_pkey *pkey);
-
 extern int s2n_rsa_public_encrypted_size(const s2n_rsa_public_key *key);
 extern int s2n_rsa_private_encrypted_size(const s2n_rsa_private_key *key);
 

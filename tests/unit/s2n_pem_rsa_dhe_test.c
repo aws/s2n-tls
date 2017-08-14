@@ -164,8 +164,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_free(config));
 
     EXPECT_SUCCESS(s2n_dh_params_free(&dh_params));
-    EXPECT_SUCCESS(s2n_rsa_key_free(&priv_key));
-    EXPECT_SUCCESS(s2n_rsa_key_free(&pub_key));
+    EXPECT_SUCCESS(s2n_pkey_free(&priv_key));
+    EXPECT_SUCCESS(s2n_pkey_free(&pub_key));
     EXPECT_SUCCESS(s2n_free(&signature));
     EXPECT_SUCCESS(s2n_stuffer_free(&certificate_in));
     EXPECT_SUCCESS(s2n_stuffer_free(&certificate_out));

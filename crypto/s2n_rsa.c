@@ -96,17 +96,7 @@ int s2n_hash_NID_type(s2n_hash_algorithm alg, int *out)
     return 0;
 }
 
-int s2n_rsa_pkey_init(struct s2n_pkey *pkey) {
-    pkey->sign = &s2n_rsa_sign;
-    pkey->verify = &s2n_rsa_verify;
-    pkey->encrypt = &s2n_rsa_encrypt;
-    pkey->decrypt = &s2n_rsa_decrypt;
-    pkey->match = &s2n_rsa_keys_match;
-    pkey->free = &s2n_rsa_key_free;
-    return 0;
-}
-
-int s2n_rsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, struct s2n_blob *signature)
+static int s2n_rsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
     uint8_t digest_length;
     int NID_type;
@@ -131,7 +121,7 @@ int s2n_rsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, str
     return 0;
 }
 
-int s2n_rsa_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest, struct s2n_blob *signature)
+static int s2n_rsa_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
     uint8_t digest_length;
     int NID_type;
@@ -151,7 +141,7 @@ int s2n_rsa_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest, st
     return 0;
 }
 
-int s2n_rsa_encrypt(const struct s2n_pkey *pub, struct s2n_blob *in, struct s2n_blob *out)
+static int s2n_rsa_encrypt(const struct s2n_pkey *pub, struct s2n_blob *in, struct s2n_blob *out)
 {
     const s2n_rsa_public_key *key = &pub->key.rsa_key;
     
@@ -167,7 +157,7 @@ int s2n_rsa_encrypt(const struct s2n_pkey *pub, struct s2n_blob *in, struct s2n_
     return 0;
 }
 
-int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, struct s2n_blob *out)
+static int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, struct s2n_blob *out)
 {
     unsigned char intermediate[4096];
     const s2n_rsa_private_key *key = &priv->key.rsa_key;
@@ -189,7 +179,7 @@ int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, struct s2n
     return 0;
 }
 
-int s2n_rsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv)
+static int s2n_rsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv)
 {
     uint8_t plain_inpad[36], plain_outpad[36], encpad[8192];
     struct s2n_blob plain_in, plain_out, enc;
@@ -219,7 +209,7 @@ int s2n_rsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv)
     return 0;
 }
 
-int s2n_rsa_key_free(struct s2n_pkey *pkey)
+static int s2n_rsa_key_free(struct s2n_pkey *pkey)
 {
     struct s2n_rsa_key *rsa_key = &pkey->key.rsa_key;
 
@@ -262,6 +252,16 @@ int s2n_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *evp_priv
     }
 
     rsa_key->rsa = rsa;
+    return 0;
+}
+
+int s2n_rsa_pkey_init(struct s2n_pkey *pkey) {
+    pkey->sign = &s2n_rsa_sign;
+    pkey->verify = &s2n_rsa_verify;
+    pkey->encrypt = &s2n_rsa_encrypt;
+    pkey->decrypt = &s2n_rsa_decrypt;
+    pkey->match = &s2n_rsa_keys_match;
+    pkey->free = &s2n_rsa_key_free;
     return 0;
 }
 
