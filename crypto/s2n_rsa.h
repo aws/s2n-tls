@@ -16,6 +16,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <s2n.h>
 
 #include <openssl/rsa.h>
 
