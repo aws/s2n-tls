@@ -39,54 +39,6 @@ int s2n_rsa_public_key_set_from_openssl(s2n_rsa_public_key *s2n_rsa, RSA *openss
     return 0;
 }
 
-int s2n_rsa_pkey_init(struct s2n_pkey *pkey) {
-    pkey->sign = &s2n_rsa_sign;
-    pkey->verify = &s2n_rsa_verify;
-    pkey->encrypt = &s2n_rsa_encrypt;
-    pkey->decrypt = &s2n_rsa_decrypt;
-    pkey->match = &s2n_rsa_keys_match;
-    pkey->free = &s2n_rsa_key_free;
-    return 0;
-}
-
-int s2n_pkey_to_rsa_public_key(s2n_rsa_public_key *rsa_key, EVP_PKEY *pkey)
-{
-    RSA *rsa = EVP_PKEY_get1_RSA(pkey);
-    if (rsa == NULL) {
-        S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
-    }
-    
-    rsa_key->rsa = rsa;
-    return 0;
-}
-
-int s2n_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *pkey)
-{
-
-    RSA *rsa = EVP_PKEY_get1_RSA(pkey);
-    if (rsa == NULL) {
-        S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
-    }
-    
-    if (!RSA_check_key(rsa)) {
-        RSA_free(rsa);
-        S2N_ERROR(S2N_ERR_KEY_CHECK);
-    }
-
-    rsa_key->rsa = rsa;
-    return 0;
-}
-
-int s2n_rsa_key_free(struct s2n_pkey *pkey)
-{
-    struct s2n_rsa_key *rsa_key = &pkey->key.rsa_key;
-
-    RSA_free(rsa_key->rsa);
-    rsa_key->rsa = NULL;
-    
-    return 0;
-}
-
 static int s2n_rsa_modulus_check(RSA *rsa)
 {
     /* RSA was made opaque starting in Openssl 1.1.0 */
@@ -101,7 +53,7 @@ static int s2n_rsa_modulus_check(RSA *rsa)
     return 0;
 }
 
-int s2n_rsa_public_encrypted_size(const s2n_rsa_public_key *key)
+static int s2n_rsa_encrypted_size(const struct s2n_rsa_key *key)
 {
     notnull_check(key->rsa);
     GUARD(s2n_rsa_modulus_check(key->rsa));
@@ -109,12 +61,14 @@ int s2n_rsa_public_encrypted_size(const s2n_rsa_public_key *key)
     return RSA_size(key->rsa);
 }
 
+int s2n_rsa_public_encrypted_size(const s2n_rsa_public_key *key)
+{
+    return s2n_rsa_encrypted_size(key);
+}
+
 int s2n_rsa_private_encrypted_size(const s2n_rsa_private_key *key)
 {
-    notnull_check(key->rsa);
-    GUARD(s2n_rsa_modulus_check(key->rsa));
-
-    return RSA_size(key->rsa);
+    return s2n_rsa_encrypted_size(key);
 }
 
 static int s2n_hash_alg_to_NID[] = {
@@ -139,6 +93,16 @@ int s2n_hash_NID_type(s2n_hash_algorithm alg, int *out)
     default:
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
+    return 0;
+}
+
+int s2n_rsa_pkey_init(struct s2n_pkey *pkey) {
+    pkey->sign = &s2n_rsa_sign;
+    pkey->verify = &s2n_rsa_verify;
+    pkey->encrypt = &s2n_rsa_encrypt;
+    pkey->decrypt = &s2n_rsa_decrypt;
+    pkey->match = &s2n_rsa_keys_match;
+    pkey->free = &s2n_rsa_key_free;
     return 0;
 }
 
@@ -255,6 +219,16 @@ int s2n_rsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv)
     return 0;
 }
 
+int s2n_rsa_key_free(struct s2n_pkey *pkey)
+{
+    struct s2n_rsa_key *rsa_key = &pkey->key.rsa_key;
+
+    RSA_free(rsa_key->rsa);
+    rsa_key->rsa = NULL;
+    
+    return 0;
+}
+
 int s2n_rsa_check_key(const struct s2n_pkey *pkey)
 {
     const struct s2n_rsa_key *rsa_key = &pkey->key.rsa_key;
@@ -262,3 +236,32 @@ int s2n_rsa_check_key(const struct s2n_pkey *pkey)
     GUARD(RSA_check_key(rsa_key->rsa));
     return 0;
 }
+
+int s2n_pkey_to_rsa_public_key(s2n_rsa_public_key *rsa_key, EVP_PKEY *evp_public_key)
+{
+    RSA *rsa = EVP_PKEY_get1_RSA(evp_public_key);
+    if (rsa == NULL) {
+        S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
+    }
+    
+    rsa_key->rsa = rsa;
+    return 0;
+}
+
+int s2n_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *evp_private_key)
+{
+
+    RSA *rsa = EVP_PKEY_get1_RSA(evp_private_key);
+    if (rsa == NULL) {
+        S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
+    }
+    
+    if (!RSA_check_key(rsa)) {
+        RSA_free(rsa);
+        S2N_ERROR(S2N_ERR_KEY_CHECK);
+    }
+
+    rsa_key->rsa = rsa;
+    return 0;
+}
+

@@ -159,6 +159,11 @@ typedef enum {
 struct s2n_rsa_key;
 typedef struct s2n_rsa_key s2n_rsa_public_key;
 typedef struct s2n_rsa_key s2n_rsa_private_key;
+
+struct s2n_ecdsa_key;
+typedef struct s2n_ecdsa_key s2n_ecdsa_public_key;
+typedef struct s2n_ecdsa_key s2n_ecdsa_private_key;
+
 struct s2n_cert_public_key;
 
 extern int s2n_rsa_public_key_set_from_openssl(s2n_rsa_public_key *s2n_rsa, RSA *openssl_rsa);

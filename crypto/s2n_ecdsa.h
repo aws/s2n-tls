@@ -31,9 +31,6 @@ struct s2n_ecdsa_key {
     EC_KEY *ec_key;
 };
 
-typedef struct s2n_ecdsa_key s2n_ecdsa_public_key;
-typedef struct s2n_ecdsa_key s2n_ecdsa_private_key;
-
 extern int s2n_ecdsa_pkey_init(struct s2n_pkey *pkey);
 
 extern int s2n_ecdsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, struct s2n_blob *signature);

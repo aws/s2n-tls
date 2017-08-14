@@ -135,9 +135,9 @@ int s2n_ecdsa_signature_size(const s2n_ecdsa_private_key *key)
     return ECDSA_size(key->ec_key);
 }
 
-int s2n_pkey_to_ecdsa_private_key(s2n_ecdsa_private_key *ecdsa_key, EVP_PKEY *pkey)
+int s2n_pkey_to_ecdsa_private_key(s2n_ecdsa_private_key *ecdsa_key, EVP_PKEY *evp_private_key)
 {
-    EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(pkey);
+    EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(evp_private_key);
     if (ec_key == NULL) {
         S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
     }
@@ -151,9 +151,9 @@ int s2n_pkey_to_ecdsa_private_key(s2n_ecdsa_private_key *ecdsa_key, EVP_PKEY *pk
     return 0;
 }
 
-int s2n_pkey_to_ecdsa_public_key(s2n_ecdsa_public_key *ecdsa_key, EVP_PKEY *pkey)
+int s2n_pkey_to_ecdsa_public_key(s2n_ecdsa_public_key *ecdsa_key, EVP_PKEY *evp_public_key)
 {
-    EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(pkey);
+    EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(evp_public_key);
     if (ec_key == NULL) {
         S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
     }

@@ -23,6 +23,7 @@
 
 #include "utils/s2n_blob.h"
 
+/* Forward declaration to avoid the circular dependency with s2n_pkey.h */
 struct s2n_pkey;
 
 struct s2n_rsa_key {
