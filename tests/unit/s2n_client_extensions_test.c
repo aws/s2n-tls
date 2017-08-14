@@ -929,7 +929,7 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Client requests 512, 1024, 2048, and 4096 max fragment lengths */
+    /* Client requests 512, 1024, 2048, and 4096 maximum fragment lengths */
     for (uint8_t mfl_code = S2N_TLS_MAX_FRAG_LEN_512; mfl_code < S2N_TLS_MAX_FRAG_LEN_INVALID; mfl_code++)
     {
         struct s2n_connection *client_conn;
@@ -970,7 +970,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain, private_key));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
-        /* Preference should be ignored as TlS Max Fragment Length Extension is Set */
+        /* Preference should be ignored as the TlS Maximum Fragment Length Extension is Set */
         EXPECT_SUCCESS(s2n_connection_prefer_throughput(server_conn));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -992,7 +992,7 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Client requests S2N_TLS_MAX_FRAG_LEN_INVALID max fragment length */
+    /* Client requests S2N_TLS_MAX_FRAG_LEN_INVALID maximum fragment length */
     {
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
@@ -1052,7 +1052,7 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Server ignores client's request of S2N_TLS_MAX_FRAG_LEN_2048 max fragment length when enable_server_mfl is not set*/
+    /* Server ignores client's request of S2N_TLS_MAX_FRAG_LEN_2048 maximum fragment length when enable_server_mfl is not set*/
     {
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
@@ -1093,7 +1093,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
-        /* check that max_fragment_length did not get set since enable_server_mfl is not set*/
+        /* check that max_fragment_length did not get set since enable_server_mfl is not set */
         EXPECT_EQUAL(server_conn->max_outgoing_fragment_length, S2N_DEFAULT_FRAGMENT_LENGTH);
         EXPECT_EQUAL(server_conn->mfl_code, S2N_TLS_MAX_FRAG_LEN_EXT_NONE);
 

@@ -244,7 +244,7 @@ void usage()
     fprintf(stderr, "  --prefer-throughput\n");
     fprintf(stderr, "    Prefer throughput by raising maximum outgoing record size to 16k\n");
     fprintf(stderr, "  --enable-mfl\n");
-    fprintf(stderr, "    Accept client's TLS max fragment length extension request\n");
+    fprintf(stderr, "    Accept client's TLS maximum fragment length extension request\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -419,7 +419,7 @@ int main(int argc, char *const *argv)
     }
 
     if (enable_mfl && s2n_config_enable_server_max_fragment_length(config) < 0) {
-        fprintf(stderr, "Error enabling TLS max fragment length extension in server\n");
+        fprintf(stderr, "Error enabling TLS maximum fragment length extension in server\n");
         exit(1);
     }
 

@@ -137,7 +137,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint16(out, 0));
     }
 
-    /* Write Max Fragmentation Length extension */
+    /* Write Maximum Fragmentation Length extension */
     if (conn->config->mfl_code != S2N_TLS_MAX_FRAG_LEN_EXT_NONE) {
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_MAX_FRAG_LEN));
         GUARD(s2n_stuffer_write_uint16(out, mfl_code_len));
@@ -450,14 +450,14 @@ static int s2n_recv_client_sct_list(struct s2n_connection *conn, struct s2n_stuf
 static int s2n_recv_client_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     if (!conn->config->enable_server_mfl) {
-        fprintf(stderr, "warning: Max Fragmentation Length not enabled in S2N server, continuing with default max\n");
+        fprintf(stderr, "warning: Maximum Fragmentation Length not enabled in S2N server, continuing with default max\n");
         return 0;
     }
 
     uint8_t mfl_code;
     GUARD(s2n_stuffer_read_uint8(extension, &mfl_code));
     if (mfl_code >= S2N_TLS_MAX_FRAG_LEN_INVALID || mfl_code_to_length[mfl_code] > S2N_TLS_MAXIMUM_FRAGMENT_LENGTH) {
-        fprintf(stderr, "warning: Invalid Max Fragmentation Length requested, continuing TLS handshake with default length\n");
+        fprintf(stderr, "warning: Invalid Maximum Fragmentation Length requested, continuing TLS handshake with default length\n");
         return 0;
     }
 
