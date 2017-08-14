@@ -148,11 +148,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
         server_conn->actual_protocol_version = TLS_VERSIONS[version];
         server_conn->config->verify_cert_chain_cb = accept_all_rsa_certs;
         GUARD(s2n_stuffer_write_bytes(&server_conn->handshake.io, buf, len));
-<<<<<<< 7b9c88d29feac52be36b2707f3d802433f792f54
-        server_conn->secure.client_rsa_public_key = public_key;
-=======
         server_conn->secure.client_public_key.key.rsa_key.rsa = public_key.key.rsa_key.rsa;
->>>>>>> Replace RSA references with generic s2n_pkey API
 
         /* Run Test
          * Do not use GUARD macro here since the connection memory hasn't been freed.
