@@ -157,7 +157,7 @@ struct s2n_connection {
      * This value is updated when:
      *   1. s2n_connection_prefer_low_latency is set
      *   2. s2n_connection_prefer_throughput is set
-     *   3. TLS Maximum Fragment Length extension sets mfl_code
+     *   3. TLS Maximum Fragment Length extension is negotiated
      *
      * Default value: S2N_DEFAULT_FRAGMENT_LENGTH
      */

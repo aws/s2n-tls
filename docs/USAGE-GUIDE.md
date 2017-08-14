@@ -675,11 +675,11 @@ cached entry, and a 64 bit unsigned integer specifying the size of this key.
 int s2n_config_set_max_fragment_length(struct s2n_config *config, uint8_t mfl_code);
 ```
 
-**s2n_config_set_max_fragment_length** allows the caller to set a TLS Max
-Fragment Length extenstion that will be used to fragment outgoing messages.
-s2n currently do not reject over-the-max incoming fragments. The TLS negotiated
-max fragment length overrides the preference set by the
-**s2n_connection_prefer_throughput** and **s2n_connection_prefer_low_latency**.
+**s2n_config_set_max_fragment_length** allows the caller to set a TLS Maximum
+Fragment Length extension that will be used to fragment outgoing messages.
+s2n currently does not reject fragments larger than the configured maximum when
+in server mode. The TLS negotiated maximum fragment length overrides the preference set
+by the **s2n_connection_prefer_throughput** and **s2n_connection_prefer_low_latency**.
 
 ## Connection-oriented functions
 
@@ -797,6 +797,8 @@ change the behavior of s2n when sending data to prefer either throughput
 or low latency. Connections prefering low latency will be encrypted using small
 record sizes that can be decrypted sooner by the recipient. Connections
 prefering throughput will use large record sizes that minimize overhead.
+
+-Connections are defaulted to 8k bytes.
 
 ### s2n\_connection\_get\_wire\_bytes
 
