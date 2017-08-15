@@ -182,21 +182,23 @@ def main():
                 return -1
 
     print("\n\tTesting handshakes with Max Fragment Length Extension")
-    threadpool = create_thread_pool()
-    port_offset = 0
-    results = []
-    for mfl_extension_test in [512, 1024, 2048, 4096]:
-        cipher = test_ciphers[0]
-        complete_priority_str = cipher.gnutls_priority_str + ":+VERS-TLS1.2:+" + ":+".join(permutation)
-        async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, S2N_TLS12, complete_priority_str, [], mfl_extension_test))
-        port_offset += 1
-        results.append(async_result)
+    for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
+        print("\n\tTesting Max Fragment Length Extension using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
+        threadpool = create_thread_pool()
+        port_offset = 0
+        results = []
+        for mfl_extension_test in [512, 1024, 2048, 4096]:
+            cipher = test_ciphers[0]
+            complete_priority_str = cipher.gnutls_priority_str + ":+" + S2N_PROTO_VERS_TO_GNUTLS[S2N_TLS10] + ":+" + ":+".join(permutation)
+            async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, ssl_version, complete_priority_str, [], mfl_extension_test))
+            port_offset += 1
+            results.append(async_result)
 
-    threadpool.close()
-    threadpool.join()
-    for async_result in results:
-        if async_result.get() != 0:
-            return -1
+        threadpool.close()
+        threadpool.join()
+        for async_result in results:
+            if async_result.get() != 0:
+                return -1
 
 
 if __name__ == "__main__":
