@@ -21,6 +21,7 @@ extern "C" {
 
 #include <sys/types.h>
 #include <stdint.h>
+#include <openssl/ossl_typ.h>
 
 #define S2N_MINIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION 2
 #define S2N_MAXIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION 3
@@ -122,12 +123,58 @@ extern int s2n_connection_wipe(struct s2n_connection *conn);
 extern int s2n_connection_free(struct s2n_connection *conn);
 extern int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked);
 
+typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED } s2n_cert_auth_type;
+typedef enum {
+    S2N_CERT_OK = 0,
+    S2N_CERT_ERR_UNTRUSTED = -1,
+    S2N_CERT_ERR_REVOKED = -2,
+    S2N_CERT_ERR_EXPIRED = -3,
+    S2N_CERT_ERR_TYPE_UNSUPPORTED = -4,
+    S2N_CERT_ERR_INVALID = -5,
+} s2n_cert_validation_code;
+
+extern int s2n_config_get_client_auth_type(struct s2n_config *config, s2n_cert_auth_type *client_auth_type);
+extern int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_type client_auth_type);
+extern int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type *client_auth_type);
+extern int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type client_auth_type);
+extern int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len);
+
+/* RFC's that define below values:
+ *  - https://tools.ietf.org/html/rfc5246#section-7.4.4
+ *  - https://tools.ietf.org/search/rfc4492#section-5.5
+ */
+typedef enum {
+    S2N_CERT_TYPE_RSA_SIGN = 1,
+    S2N_CERT_TYPE_DSS_SIGN = 2,
+    S2N_CERT_TYPE_RSA_FIXED_DH = 3,
+    S2N_CERT_TYPE_DSS_FIXED_DH = 4,
+    S2N_CERT_TYPE_RSA_EPHEMERAL_DH_RESERVED = 5,
+    S2N_CERT_TYPE_DSS_EPHEMERAL_DH_RESERVED = 6,
+    S2N_CERT_TYPE_FORTEZZA_DMS_RESERVED = 20,
+    S2N_CERT_TYPE_ECDSA_SIGN = 64,
+    S2N_CERT_TYPE_RSA_FIXED_ECDH = 65,
+    S2N_CERT_TYPE_ECDSA_FIXED_ECDH = 66,
+} s2n_cert_type;
+
+struct s2n_rsa_public_key;
+struct s2n_cert_public_key;
+
+extern int s2n_rsa_public_key_set_from_openssl(struct s2n_rsa_public_key *s2n_rsa, RSA *openssl_rsa);
+extern int s2n_cert_public_key_set_cert_type(struct s2n_cert_public_key *cert_pub_key, s2n_cert_type cert_type);
+extern int s2n_cert_public_key_get_rsa(struct s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key **rsa);
+
+/* Not intended for general consumption. Use at your own risk. */
+typedef s2n_cert_validation_code verify_cert_trust_chain_fn(uint8_t *der_cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
+
+extern int s2n_config_set_verify_cert_chain_cb(struct s2n_config *config, verify_cert_trust_chain_fn *callback, void *context);
+
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);
 extern uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn);
 extern int s2n_connection_get_client_protocol_version(struct s2n_connection *conn);
 extern int s2n_connection_get_server_protocol_version(struct s2n_connection *conn);
 extern int s2n_connection_get_actual_protocol_version(struct s2n_connection *conn);
 extern int s2n_connection_get_client_hello_version(struct s2n_connection *conn);
+extern int s2n_connection_client_cert_used(struct s2n_connection *conn);
 extern const char *s2n_connection_get_cipher(struct s2n_connection *conn);
 extern const char *s2n_connection_get_curve(struct s2n_connection *conn);
 extern int s2n_connection_get_alert(struct s2n_connection *conn);

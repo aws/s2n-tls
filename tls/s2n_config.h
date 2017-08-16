@@ -48,8 +48,12 @@ struct s2n_config {
     s2n_ct_support_level ct_type;
 
     s2n_cert_auth_type client_cert_auth_type;
-    verify_cert_trust_chain *verify_cert_chain_cb;
+    verify_cert_trust_chain_fn *verify_cert_chain_cb;
     void *verify_cert_context;
 };
 
 extern struct s2n_config s2n_default_config;
+extern struct s2n_config s2n_unsafe_client_testing_config;
+
+int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
+int deny_all_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key, void *context);

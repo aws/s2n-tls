@@ -51,6 +51,7 @@
 #define S2N_TLS_CHACHA20_POLY1305_KEY_LEN         32
 #define S2N_TLS_CHACHA20_POLY1305_TAG_LEN         16
 
+/* RFC 5246 7.4.1.2 */
 #define S2N_TLS_SESSION_ID_MAX_LEN     32
 
 struct s2n_crypto_parameters {
