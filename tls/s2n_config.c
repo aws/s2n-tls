@@ -23,6 +23,7 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
+#include "tls/s2n_tls_parameters.h"
 
 #if defined(__APPLE__) && defined(__MACH__)
 
@@ -505,7 +506,8 @@ int s2n_config_set_max_fragment_length(struct s2n_config *config, uint8_t mfl_co
 {
     notnull_check(config);
 
-    if (mfl_code >= S2N_TLS_MAX_FRAG_LEN_INVALID) {
+    if (mfl_code > S2N_TLS_MAX_FRAG_LEN_4096) {
+
         S2N_ERROR(S2N_ERR_INVALID_MAX_FRAG_LEN);
     }
 

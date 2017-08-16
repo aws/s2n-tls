@@ -101,6 +101,7 @@
 #define S2N_TLS_RECORD_HEADER_LENGTH    5
 #define S2N_TLS_MAXIMUM_FRAGMENT_LENGTH 16384
 #define S2N_TLS_MAXIMUM_RECORD_LENGTH   (S2N_TLS_MAXIMUM_FRAGMENT_LENGTH + S2N_TLS_RECORD_HEADER_LENGTH)
+#define S2N_TLS_MAX_FRAG_LEN_EXT_NONE   0
 
 /* The maximum size of an SSL2 message is 2^14 - 1, as neither of the first two
  * bits in the length field are usable. Per;

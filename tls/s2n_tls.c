@@ -30,7 +30,7 @@ uint8_t s2n_unknown_protocol_version = S2N_UNKNOWN_PROTOCOL_VERSION;
  *    } MaxFragmentLength;
  * and we add 0 -> extension unused
  */
-uint16_t mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_INVALID] =
+uint16_t mfl_code_to_length[5] =
 {
     S2N_DEFAULT_FRAGMENT_LENGTH,     /* S2N_TLS_MAX_FRAG_LEN_EXT_NONE */
     512,                             /* S2N_TLS_MAX_FRAG_LEN_512  */

@@ -23,6 +23,7 @@
 
 #include "error/s2n_errno.h"
 
+#include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_connection_evp_digests.h"

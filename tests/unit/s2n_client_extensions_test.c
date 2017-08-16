@@ -930,7 +930,7 @@ int main(int argc, char **argv)
     }
 
     /* Client requests 512, 1024, 2048, and 4096 maximum fragment lengths */
-    for (uint8_t mfl_code = S2N_TLS_MAX_FRAG_LEN_512; mfl_code < S2N_TLS_MAX_FRAG_LEN_INVALID; mfl_code++)
+    for (uint8_t mfl_code = S2N_TLS_MAX_FRAG_LEN_512; mfl_code <= S2N_TLS_MAX_FRAG_LEN_4096; mfl_code++)
     {
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
@@ -955,6 +955,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
+
         EXPECT_SUCCESS(s2n_config_set_max_fragment_length(client_config, mfl_code));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
@@ -992,7 +993,7 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Client requests S2N_TLS_MAX_FRAG_LEN_INVALID maximum fragment length */
+    /* Client requests invalid maximum fragment length */
     {
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
@@ -1017,7 +1018,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_FAILURE(s2n_config_set_max_fragment_length(client_config, S2N_TLS_MAX_FRAG_LEN_INVALID));
+        EXPECT_FAILURE(s2n_config_set_max_fragment_length(client_config, 5));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));

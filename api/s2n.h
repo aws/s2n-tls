@@ -68,12 +68,10 @@ typedef enum {
 } s2n_tls_extension_type;
 
 typedef enum {
-    S2N_TLS_MAX_FRAG_LEN_EXT_NONE,     /* don't use the extension */
-    S2N_TLS_MAX_FRAG_LEN_512,
-    S2N_TLS_MAX_FRAG_LEN_1024,
-    S2N_TLS_MAX_FRAG_LEN_2048,
-    S2N_TLS_MAX_FRAG_LEN_4096,
-    S2N_TLS_MAX_FRAG_LEN_INVALID,      /* first invalid mfl_code value */
+    S2N_TLS_MAX_FRAG_LEN_512 = 1,
+    S2N_TLS_MAX_FRAG_LEN_1024 = 2,
+    S2N_TLS_MAX_FRAG_LEN_2048 = 3,
+    S2N_TLS_MAX_FRAG_LEN_4096 = 4,
 } max_frag_len;
 
 extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem);
