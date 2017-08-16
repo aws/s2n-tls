@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -60,6 +60,20 @@ int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, char target)
         }
 
         GUARD(s2n_stuffer_skip_read(stuffer, 1));
+    }
+
+    return 0;
+}
+
+/* Read a line of text. Agnostic to LF or CR+LF line endings. */
+int s2n_stuffer_read_line(struct s2n_stuffer *stuffer, struct s2n_stuffer *token)
+{
+    /* Consume an LF terminated line */
+    GUARD(s2n_stuffer_read_token(stuffer, token, '\n'));
+
+    /* Snip off the carriage return if it's present */
+    if ((s2n_stuffer_data_available(token) > 0) && (token->blob.data[token->write_cursor] == '\r')) {
+        token->write_cursor--;
     }
 
     return 0;

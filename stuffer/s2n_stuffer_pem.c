@@ -34,8 +34,8 @@
 
 static int s2n_stuffer_data_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1, const char *keyword)
 {
-    uint8_t linepad[S2N_PEM_LINE_LENGTH + 1];
-    struct s2n_blob line_blob = {.data = linepad,.size = S2N_PEM_LINE_LENGTH + 1 };
+    uint8_t linepad[S2N_PEM_LINE_LENGTH + 2];
+    struct s2n_blob line_blob = { .data = linepad, .size = S2N_PEM_LINE_LENGTH + 2 };
     struct s2n_stuffer line;
     uint8_t *field;
 
@@ -67,7 +67,11 @@ static int s2n_stuffer_data_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer
     /* Get the actual base64 data */
     do {
         GUARD(s2n_stuffer_rewrite(&line));
-        GUARD(s2n_stuffer_read_token(pem, &line, '\n'));
+
+        /* Per RFC7468 Section 2: PEM parsers must handle different newline conventions.
+         * Support both LF and CR+LF.
+         */
+        GUARD(s2n_stuffer_read_line(pem, &line));
 
         char c;
         GUARD(s2n_stuffer_peek_char(&line, &c));

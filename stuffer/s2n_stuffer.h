@@ -103,6 +103,7 @@ extern int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuf
 #define s2n_stuffer_read_text( stuffer, c, n )  s2n_stuffer_read_bytes( (stuffer), (uint8_t *) (c), (n) )
 extern int s2n_stuffer_peek_char(struct s2n_stuffer *stuffer, char *c);
 extern int s2n_stuffer_read_token(struct s2n_stuffer *stuffer, struct s2n_stuffer *token, char delim);
+extern int s2n_stuffer_read_line(struct s2n_stuffer *stuffer, struct s2n_stuffer *token);
 extern int s2n_stuffer_skip_whitespace(struct s2n_stuffer *stuffer);
 extern int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, char target);
 extern int s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, const char *str);
