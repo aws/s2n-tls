@@ -36,7 +36,7 @@ struct s2n_hmac_state {
 
     uint16_t hash_block_size;
     uint32_t currently_in_hash_block;
-    uint16_t block_size;
+    uint16_t xor_pad_size;
     uint8_t digest_size;
 
     struct s2n_hash_state inner;

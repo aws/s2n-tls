@@ -64,21 +64,21 @@ static int s2n_sslv3_mac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm a
         hash_alg = S2N_HASH_SHA1;
     }
 
-    for (int i = 0; i < state->block_size; i++) {
+    for (int i = 0; i < state->xor_pad_size; i++) {
         state->xor_pad[i] = 0x36;
     }
 
     GUARD(s2n_hash_init(&state->inner_just_key, hash_alg));
     GUARD(s2n_hash_update(&state->inner_just_key, key, klen));
-    GUARD(s2n_hash_update(&state->inner_just_key, state->xor_pad, state->block_size));
+    GUARD(s2n_hash_update(&state->inner_just_key, state->xor_pad, state->xor_pad_size));
 
-    for (int i = 0; i < state->block_size; i++) {
+    for (int i = 0; i < state->xor_pad_size; i++) {
         state->xor_pad[i] = 0x5c;
     }
 
     GUARD(s2n_hash_init(&state->outer, hash_alg));
     GUARD(s2n_hash_update(&state->outer, key, klen));
-    GUARD(s2n_hash_update(&state->outer, state->xor_pad, state->block_size));
+    GUARD(s2n_hash_update(&state->outer, state->xor_pad, state->xor_pad_size));
 
     /* Copy inner_just_key to inner */
     return s2n_hmac_reset(state);
@@ -86,7 +86,7 @@ static int s2n_sslv3_mac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm a
 
 static int s2n_sslv3_mac_digest(struct s2n_hmac_state *state, void *out, uint32_t size)
 {
-    for (int i = 0; i < state->block_size; i++) {
+    for (int i = 0; i < state->xor_pad_size; i++) {
         state->xor_pad[i] = 0x5c;
     }
 
@@ -97,18 +97,18 @@ static int s2n_sslv3_mac_digest(struct s2n_hmac_state *state, void *out, uint32_
     return s2n_hash_digest(&state->inner, out, size);
 }
 
-int s2n_hmac_block_size(s2n_hmac_algorithm hmac_alg, uint16_t *block_size)
+int s2n_hmac_xor_pad_size(s2n_hmac_algorithm hmac_alg, uint16_t *xor_pad_size)
 {
     switch(hmac_alg) {
-    case S2N_HMAC_NONE:       *block_size = 64;   break;
-    case S2N_HMAC_MD5:        *block_size = 64;   break;
-    case S2N_HMAC_SHA1:       *block_size = 64;   break;
-    case S2N_HMAC_SHA224:     *block_size = 64;   break;
-    case S2N_HMAC_SHA256:     *block_size = 64;   break;
-    case S2N_HMAC_SHA384:     *block_size = 128;  break;
-    case S2N_HMAC_SHA512:     *block_size = 128;  break;
-    case S2N_HMAC_SSLv3_MD5:  *block_size = 48;   break;
-    case S2N_HMAC_SSLv3_SHA1: *block_size = 40;   break;
+    case S2N_HMAC_NONE:       *xor_pad_size = 64;   break;
+    case S2N_HMAC_MD5:        *xor_pad_size = 64;   break;
+    case S2N_HMAC_SHA1:       *xor_pad_size = 64;   break;
+    case S2N_HMAC_SHA224:     *xor_pad_size = 64;   break;
+    case S2N_HMAC_SHA256:     *xor_pad_size = 64;   break;
+    case S2N_HMAC_SHA384:     *xor_pad_size = 128;  break;
+    case S2N_HMAC_SHA512:     *xor_pad_size = 128;  break;
+    case S2N_HMAC_SSLv3_MD5:  *xor_pad_size = 48;   break;
+    case S2N_HMAC_SSLv3_SHA1: *xor_pad_size = 40;   break;
     default:
         S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
     }
@@ -149,10 +149,10 @@ int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const vo
 
     GUARD(s2n_hmac_hash_alg(alg, &hash_alg));
     GUARD(s2n_hmac_digest_size(alg, &state->digest_size));
-    GUARD(s2n_hmac_block_size(alg, &state->block_size));
+    GUARD(s2n_hmac_xor_pad_size(alg, &state->xor_pad_size));
     GUARD(s2n_hmac_hash_block_size(alg, &state->hash_block_size));
 
-    gte_check(sizeof(state->xor_pad), state->block_size);
+    gte_check(sizeof(state->xor_pad), state->xor_pad_size);
     gte_check(sizeof(state->digest_pad), state->digest_size);
 
     state->alg = alg;
@@ -165,7 +165,7 @@ int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const vo
     GUARD(s2n_hash_init(&state->outer, hash_alg));
 
     uint32_t copied = klen;
-    if (klen > state->block_size) {
+    if (klen > state->xor_pad_size) {
         GUARD(s2n_hash_update(&state->outer, key, klen));
         GUARD(s2n_hash_digest(&state->outer, state->digest_pad, state->digest_size));
 
@@ -178,14 +178,14 @@ int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const vo
     for (int i = 0; i < copied; i++) {
         state->xor_pad[i] ^= 0x36;
     }
-    for (int i = copied; i < state->block_size; i++) {
+    for (int i = copied; i < state->xor_pad_size; i++) {
         state->xor_pad[i] = 0x36;
     }
 
-    GUARD(s2n_hash_update(&state->inner_just_key, state->xor_pad, state->block_size));
+    GUARD(s2n_hash_update(&state->inner_just_key, state->xor_pad, state->xor_pad_size));
 
     /* 0x36 xor 0x5c == 0x6a */
-    for (int i = 0; i < state->block_size; i++) {
+    for (int i = 0; i < state->xor_pad_size; i++) {
         state->xor_pad[i] ^= 0x6a;
     }
 
@@ -216,7 +216,7 @@ int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
      * smaller number of cycles if the input is "small".
      */
     state->currently_in_hash_block += (4294949760 + size) % state->hash_block_size;
-    state->currently_in_hash_block %= state->block_size;
+    state->currently_in_hash_block %= state->hash_block_size;
 
     return s2n_hash_update(&state->inner, in, size);
 }
@@ -229,7 +229,7 @@ int s2n_hmac_digest(struct s2n_hmac_state *state, void *out, uint32_t size)
 
     GUARD(s2n_hash_digest(&state->inner, state->digest_pad, state->digest_size));
     GUARD(s2n_hash_reset(&state->outer));
-    GUARD(s2n_hash_update(&state->outer, state->xor_pad, state->block_size));
+    GUARD(s2n_hash_update(&state->outer, state->xor_pad, state->xor_pad_size));
     GUARD(s2n_hash_update(&state->outer, state->digest_pad, state->digest_size));
 
     return s2n_hash_digest(&state->outer, out, size);
@@ -237,6 +237,7 @@ int s2n_hmac_digest(struct s2n_hmac_state *state, void *out, uint32_t size)
 
 int s2n_hmac_digest_two_compression_rounds(struct s2n_hmac_state *state, void *out, uint32_t size)
 {
+    /* Do the "real" work of this function. */
     GUARD(s2n_hmac_digest(state, out, size));
 
     /* If there were 9 or more bytes of space left in the current hash block
@@ -249,6 +250,7 @@ int s2n_hmac_digest_two_compression_rounds(struct s2n_hmac_state *state, void *o
         return 0;
     }
 
+    /* No-op s2n_hash_update to normalize timing and guard against Lucky13. This does not affect the value of *out. */
     return s2n_hash_update(&state->inner, state->xor_pad, state->hash_block_size);
 }
 
@@ -281,7 +283,7 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
     to->alg = from->alg;
     to->hash_block_size = from->hash_block_size;
     to->currently_in_hash_block = from->currently_in_hash_block;
-    to->block_size = from->block_size;
+    to->xor_pad_size = from->xor_pad_size;
     to->digest_size = from->digest_size;
 
     GUARD(s2n_hash_copy(&to->inner, &from->inner));
