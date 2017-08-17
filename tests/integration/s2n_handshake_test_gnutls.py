@@ -29,23 +29,25 @@ from multiprocessing.pool import ThreadPool
 from s2n_test_constants import *
 
 def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test):
-    # Fire up s2nd
+
+    s2nd_cmd = ["../../bin/s2nd", "-c", "test_all", str(endpoint), str(port)]
+
     if mfl_extension_test:
-        s2nd = subprocess.Popen(["../../bin/s2nd", "--enable-mfl", "-c", "test_all", str(endpoint), str(port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-    else:
-        s2nd = subprocess.Popen(["../../bin/s2nd", "-c", "test_all", str(endpoint), str(port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        s2nd_cmd.append("--enable-mfl")
+
+    # Fire up s2nd
+    s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
     # Make sure it's running
     s2nd.stdout.readline()
 
-    # Fire up gnutls-cli, use insecure since s2nd is using a dummy cert
-    if mfl_extension_test:
-        gnutls_cli = subprocess.Popen(["gnutls-cli", "--priority=" + priority_str,"--insecure", "--recordsize=" + str(mfl_extension_test),
-                                       "-p " + str(port), str(endpoint)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-    else:
-        gnutls_cli = subprocess.Popen(["gnutls-cli", "--priority=" + priority_str,"--insecure",
-                                       "-p " + str(port), str(endpoint)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    gnutls_cmd = ["gnutls-cli", "--priority=" + priority_str,"--insecure", "-p " + str(port), str(endpoint)]
 
+    if mfl_extension_test:
+        gnutls_cmd.append("--recordsize=" + str(mfl_extension_test))
+
+    # Fire up gnutls-cli, use insecure since s2nd is using a dummy cert
+    gnutls_cli = subprocess.Popen(gnutls_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
     # Write the priority str towards s2nd. Prepend with the 's2n' string to make sure we don't accidently match something
     # in the gnutls-cli handshake output
