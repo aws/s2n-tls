@@ -502,7 +502,7 @@ int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_f
     return 0;
 }
 
-int s2n_config_set_max_fragment_length(struct s2n_config *config, uint8_t mfl_code)
+int s2n_config_send_max_fragment_length(struct s2n_config *config, max_frag_len mfl_code)
 {
     notnull_check(config);
 
@@ -516,7 +516,7 @@ int s2n_config_set_max_fragment_length(struct s2n_config *config, uint8_t mfl_co
     return 0;
 }
 
-int s2n_config_enable_server_max_fragment_length(struct s2n_config *config)
+int s2n_config_accept_max_fragment_length(struct s2n_config *config)
 {
     notnull_check(config);
 

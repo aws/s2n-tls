@@ -418,7 +418,7 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    if (enable_mfl && s2n_config_enable_server_max_fragment_length(config) < 0) {
+    if (enable_mfl && s2n_config_accept_max_fragment_length(config) < 0) {
         fprintf(stderr, "Error enabling TLS maximum fragment length extension in server\n");
         exit(1);
     }

@@ -272,7 +272,7 @@ int main(int argc, char *const *argv)
         }
     }
 
-    if (s2n_config_set_max_fragment_length(config, mfl_code) < 0) {
+    if (s2n_config_send_max_fragment_length(config, mfl_code) < 0) {
         fprintf(stderr, "Error setting maximum fragment length\n");
         exit(1);
     }
