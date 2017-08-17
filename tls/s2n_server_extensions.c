@@ -156,6 +156,7 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
             break;
         case TLS_EXTENSION_MAX_FRAG_LEN:
             GUARD(s2n_recv_server_max_frag_len(conn, &extension));
+            break;
         }
     }
 
