@@ -371,8 +371,17 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
         insert = &new_node->next;
     } while (s2n_stuffer_data_available(&chain_in_stuffer));
 
+    const uint32_t leftover_chain_amount = s2n_stuffer_data_available(&chain_in_stuffer);
     GUARD(s2n_stuffer_free(&chain_in_stuffer));
     GUARD(s2n_stuffer_free(&cert_out_stuffer));
+
+    /* Leftover data at this point means one of two things:
+     * A bug in s2n's PEM parsing OR a malformed PEM in the user's chain.
+     * Be conservative and fail instead of using a partial chain.
+     */
+    if (leftover_chain_amount > 0) {
+        S2N_ERROR(S2N_ERR_INVALID_PEM);
+    }
 
     config->cert_and_key_pairs->chain_size = chain_size;
 
