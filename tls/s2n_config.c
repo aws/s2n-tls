@@ -507,7 +507,6 @@ int s2n_config_send_max_fragment_length(struct s2n_config *config, max_frag_len 
     notnull_check(config);
 
     if (mfl_code > S2N_TLS_MAX_FRAG_LEN_4096) {
-
         S2N_ERROR(S2N_ERR_INVALID_MAX_FRAG_LEN);
     }
 
