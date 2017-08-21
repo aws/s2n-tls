@@ -449,7 +449,7 @@ static int s2n_recv_client_sct_list(struct s2n_connection *conn, struct s2n_stuf
 
 static int s2n_recv_client_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    if (!conn->config->enable_server_mfl) {
+    if (!conn->config->accept_mfl) {
         return 0;
     }
 

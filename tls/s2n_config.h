@@ -54,7 +54,7 @@ struct s2n_config {
     uint8_t mfl_code;
 
     /* if this is FALSE, server will ignore client's Maximum Fragment Length request */
-    int enable_server_mfl;
+    int accept_mfl;
 };
 
 extern struct s2n_config s2n_default_config;
