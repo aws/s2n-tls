@@ -72,7 +72,7 @@ typedef enum {
     S2N_TLS_MAX_FRAG_LEN_1024 = 2,
     S2N_TLS_MAX_FRAG_LEN_2048 = 3,
     S2N_TLS_MAX_FRAG_LEN_4096 = 4,
-} max_frag_len;
+} s2n_max_frag_len;
 
 extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem);
 
@@ -84,7 +84,7 @@ extern int s2n_config_set_status_request_type(struct s2n_config *config, s2n_sta
 typedef enum { S2N_CT_SUPPORT_NONE = 0, S2N_CT_SUPPORT_REQUEST = 1 } s2n_ct_support_level;
 extern int s2n_config_set_ct_support_level(struct s2n_config *config, s2n_ct_support_level level);
 extern int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length);
-extern int s2n_config_send_max_fragment_length(struct s2n_config *config, max_frag_len mfl_code);
+extern int s2n_config_send_max_fragment_length(struct s2n_config *config, s2n_max_frag_len mfl_code);
 extern int s2n_config_accept_max_fragment_length(struct s2n_config *config);
 
 struct s2n_connection;
