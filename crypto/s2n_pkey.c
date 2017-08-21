@@ -33,6 +33,21 @@ int s2n_pkey_zero(struct s2n_pkey *pkey)
     return 0;
 }
 
+int s2n_pkey_init_for_type(struct s2n_pkey *pkey, s2n_cert_type cert_type)
+{
+    switch(cert_type){
+    case S2N_CERT_TYPE_RSA_SIGN:
+        GUARD(s2n_rsa_pkey_init(pkey));
+        break;
+    case S2N_CERT_TYPE_ECDSA_SIGN:
+        GUARD(s2n_ecdsa_pkey_init(pkey));
+        break;
+    default:
+        S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
+    }
+    return 0;
+}
+
 int s2n_pkey_sign(const struct s2n_pkey *pkey, struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
     notnull_check(pkey->sign);
