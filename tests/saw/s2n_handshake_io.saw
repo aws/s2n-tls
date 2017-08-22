@@ -39,6 +39,9 @@ let ocsp_status_size cert_and_key =
 //conn->client_cert_auth_type
 let cca_type pconn = crucible_field pconn "client_cert_auth_type";
 
+//conn->client_cert_auth_type_overridden
+let cca_type_ov pconn = crucible_field pconn "client_cert_auth_type_overridden";
+
 //conn->handshake.handshake_type
 let conn_handshake_handshake_type pconn =
     crucible_field (crucible_field pconn "handshake") "handshake_type";
@@ -73,6 +76,10 @@ let setup_connection = do {
 
    cork_val <- crucible_fresh_var "corked" (llvm_int 2);
    crucible_ghost_value corked cork_val;
+
+   cca_ov <- crucible_fresh_var "cca_ov" (llvm_int 8);
+   crucible_points_to (cca_type_ov pconn) (crucible_term cca_ov);
+   crucible_equal (crucible_term cca_ov) (crucible_term {{1 : [8]}});
 
    cca <- crucible_fresh_var "cca" (llvm_int 32);
    crucible_points_to (cca_type pconn) (crucible_term cca);
@@ -137,6 +144,27 @@ let s2n_allowed_to_cache_connection_spec = do {
 
     crucible_execute_func [pconf];
     crucible_return (crucible_term {{ 0 : [32] }});
+};
+
+
+let s2n_connection_get_client_auth_type_spec = do{
+
+    pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
+    auth_type <- crucible_alloc (llvm_int 32);
+
+    cca_ov <- crucible_fresh_var "cca_ov" (llvm_int 8);
+    crucible_points_to (cca_type_ov pconn) (crucible_term cca_ov);
+    crucible_equal (crucible_term cca_ov) (crucible_term {{1 : [8]}});
+
+    cca <- crucible_fresh_var "cca" (llvm_int 32);
+    crucible_points_to (cca_type pconn) (crucible_term cca);
+
+    crucible_execute_func [pconn, auth_type];
+
+    crucible_points_to (auth_type) (crucible_term cca);
+
+    crucible_return (crucible_term {{ 0 : [32] }});
+
 };
 
 // Specification for s2n_conn_set_handshake_type that sets up simulation of it
@@ -287,10 +315,13 @@ let s2n_handshake_io_lowlevel = do {
     s2n_allowed_to_cache_connection <- crucible_llvm_unsafe_assume_spec llvm "s2n_allowed_to_cache_connection" s2n_allowed_to_cache_connection_spec;
     let dependencies = [s2n_socket_write_uncork, s2n_socket_write_cork, s2n_socket_was_corked, s2n_connection_is_managed_corked];
 
+
+    print "Proving correctness of get_auth_type";
+    auth_type_proof <- crucible_llvm_verify llvm "s2n_connection_get_client_auth_type" dependencies true s2n_connection_get_client_auth_type_spec yices;
     print "Proving correctness of s2n_advance_message";
     s2n_advance_message_proof <- crucible_llvm_verify llvm "s2n_advance_message" dependencies true s2n_advance_message_spec yices;
     print "Proving correctness of s2n_conn_set_handshake_type";
-    s2n_conn_set_handshake_type_proof <- crucible_llvm_verify llvm "s2n_conn_set_handshake_type" [s2n_allowed_to_cache_connection] true s2n_conn_set_handshake_type_spec yices;
+    s2n_conn_set_handshake_type_proof <- crucible_llvm_verify llvm "s2n_conn_set_handshake_type" [s2n_allowed_to_cache_connection, auth_type_proof] true s2n_conn_set_handshake_type_spec yices;
     print "done";
     return ();
 };
