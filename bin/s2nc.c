@@ -50,6 +50,8 @@ void usage()
     fprintf(stderr, "\n");
     fprintf(stderr, "  --s,--status\n");
     fprintf(stderr, "    Request the OCSP status of the remote server certificate\n");
+    fprintf(stderr, "  --mfl\n");
+    fprintf(stderr, "    Request maximum fragment length from: 512, 1024, 2048, 4096\n");
     fprintf(stderr, "\n");
     exit(1);
 }
@@ -65,6 +67,8 @@ int main(int argc, char *const *argv)
     /* Optional args */
     const char *alpn_protocols = NULL;
     const char *server_name = NULL;
+    uint16_t mfl_value = 0;
+    uint8_t mfl_code = 0;
     s2n_status_request_type type = S2N_STATUS_REQUEST_NONE;
     /* required args */
     const char *host = NULL;
@@ -77,7 +81,7 @@ int main(int argc, char *const *argv)
         {"help", no_argument, 0, 'h'},
         {"name", required_argument, 0, 'n'},
         {"status", no_argument, 0, 's'},
-
+        {"mfl", required_argument, 0, 'm'},
     };
     while (1) {
         int option_index = 0;
@@ -100,6 +104,9 @@ int main(int argc, char *const *argv)
             break;
         case 's':
             type = S2N_STATUS_REQUEST_OCSP;
+            break;
+        case 'm':
+            mfl_value = (uint16_t) atoi(optarg);
             break;
         case '?':
         default:
@@ -244,6 +251,31 @@ int main(int argc, char *const *argv)
     }
 
     struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+
+    if (mfl_value > 0) {
+        switch(mfl_value) {
+            case 512:
+                mfl_code = S2N_TLS_MAX_FRAG_LEN_512;
+                break;
+            case 1024:
+                mfl_code = S2N_TLS_MAX_FRAG_LEN_1024;
+                break;
+            case 2048:
+                mfl_code = S2N_TLS_MAX_FRAG_LEN_2048;
+                break;
+            case 4096:
+                mfl_code = S2N_TLS_MAX_FRAG_LEN_4096;
+                break;
+            default:
+                fprintf(stderr, "Invalid maximum fragment length value\n");
+                exit(1);
+        }
+    }
+
+    if (s2n_config_send_max_fragment_length(config, mfl_code) < 0) {
+        fprintf(stderr, "Error setting maximum fragment length\n");
+        exit(1);
+    }
 
     if (conn == NULL) {
         fprintf(stderr, "Error getting new connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
