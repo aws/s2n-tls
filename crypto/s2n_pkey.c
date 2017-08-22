@@ -93,7 +93,6 @@ int s2n_pkey_free(struct s2n_pkey *pkey)
 
 int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1der)
 {
-    int ret;
     uint8_t *key_to_parse = asn1der->data;
 
     /* Detect key type */
@@ -112,18 +111,19 @@ int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1d
     int type = EVP_PKEY_base_id(evp_private_key);
     
     /* Initialize s2n_pkey according to key type */
+    int ret;
     switch (type) {
     case EVP_PKEY_RSA:
         if ((ret = s2n_rsa_pkey_init(priv_key)) != 0) {
             break;
         }
-        ret = s2n_pkey_to_rsa_private_key(&priv_key->key.rsa_key, evp_private_key);
+        ret = s2n_evp_pkey_to_rsa_private_key(&priv_key->key.rsa_key, evp_private_key);
         break;
     case EVP_PKEY_EC:
         if ((ret = s2n_ecdsa_pkey_init(priv_key)) != 0) { 
             break;
         }
-        ret = s2n_pkey_to_ecdsa_private_key(&priv_key->key.ecdsa_key, evp_private_key);
+        ret = s2n_evp_pkey_to_ecdsa_private_key(&priv_key->key.ecdsa_key, evp_private_key);
         break;
     default:
         EVP_PKEY_free(evp_private_key);
@@ -167,13 +167,13 @@ int s2n_asn1der_to_public_key(struct s2n_pkey *pub_key, struct s2n_blob *asn1der
         if ((ret = s2n_rsa_pkey_init(pub_key)) != 0) {
             break;
         }
-        ret = s2n_pkey_to_rsa_public_key(&pub_key->key.rsa_key, evp_public_key);
+        ret = s2n_evp_pkey_to_rsa_public_key(&pub_key->key.rsa_key, evp_public_key);
         break;
     case EVP_PKEY_EC:
         if ((ret = s2n_ecdsa_pkey_init(pub_key)) != 0) {
             break;
         }
-        ret = s2n_pkey_to_ecdsa_public_key(&pub_key->key.ecdsa_key, evp_public_key);
+        ret = s2n_evp_pkey_to_ecdsa_public_key(&pub_key->key.ecdsa_key, evp_public_key);
         break;
     default:
         EVP_PKEY_free(evp_public_key);

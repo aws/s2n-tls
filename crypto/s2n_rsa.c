@@ -227,7 +227,7 @@ int s2n_rsa_check_key(const struct s2n_pkey *pkey)
     return 0;
 }
 
-int s2n_pkey_to_rsa_public_key(s2n_rsa_public_key *rsa_key, EVP_PKEY *evp_public_key)
+int s2n_evp_pkey_to_rsa_public_key(s2n_rsa_public_key *rsa_key, EVP_PKEY *evp_public_key)
 {
     RSA *rsa = EVP_PKEY_get1_RSA(evp_public_key);
     if (rsa == NULL) {
@@ -238,7 +238,7 @@ int s2n_pkey_to_rsa_public_key(s2n_rsa_public_key *rsa_key, EVP_PKEY *evp_public
     return 0;
 }
 
-int s2n_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *evp_private_key)
+int s2n_evp_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *evp_private_key)
 {
 
     RSA *rsa = EVP_PKEY_get1_RSA(evp_private_key);
