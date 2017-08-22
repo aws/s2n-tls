@@ -35,7 +35,7 @@ PROTO_VERS_TO_S_CLIENT_ARG = {
     S2N_TLS12 : "-tls1_2",
 }
 
-TEST_CERT_DIRECTORY="./test_certs/"
+TEST_CERT_DIRECTORY="../pems/"
 DEFAULT_CLIENT_CERT_PATH = TEST_CERT_DIRECTORY + "rsa_2048_sha256_client_cert.pem"
 DEFAULT_CLIENT_KEY_PATH = TEST_CERT_DIRECTORY + "rsa_2048_sha256_client_key.pem"
 
@@ -256,7 +256,7 @@ def resume_test(host, port, test_ciphers):
     return failed
 
 supported_sigs = ["RSA+SHA1", "RSA+SHA224", "RSA+SHA256", "RSA+SHA384", "RSA+SHA512"]
-unsupported_sigs = ["ECDSA+SHA256", "DSA+SHA384", "ECDSA+SHA512", "DSA+SHA1"]
+unsupported_sigs = ["ECDSA+SHA256", "ECDSA+SHA512"]
 
 def run_sigalg_test(host, port, cipher, ssl_version, permutation, use_client_auth):
     # Put some unsupported algs in front to make sure we gracefully skip them
@@ -374,7 +374,7 @@ def main():
     parser = argparse.ArgumentParser(description='Runs TLS server integration tests against s2nd using Openssl s_client')
     parser.add_argument('host', help='The host for s2nd to bind to')
     parser.add_argument('port', type=int, help='The port for s2nd to bind to')
-    parser.add_argument('--libcrypto', default='openssl-1.1.0', choices=['openssl-1.0.2', 'openssl-1.1.0', 'libressl'],
+    parser.add_argument('--libcrypto', default='openssl-1.1.0', choices=['openssl-1.0.2', 'openssl-1.1.0', 'openssl-1.1.x-master', 'libressl'],
             help="""The Libcrypto that s2n was built with. s2n supports different cipher suites depending on
                     libcrypto version. Defaults to openssl-1.1.0.""")
     args = parser.parse_args()

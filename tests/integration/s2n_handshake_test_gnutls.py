@@ -111,7 +111,7 @@ def main():
     parser = argparse.ArgumentParser(description='Runs TLS server integration tests against s2nd using gnutls-cli')
     parser.add_argument('host', help='The host for s2nd to bind to')
     parser.add_argument('port', type=int, help='The port for s2nd to bind to')
-    parser.add_argument('--libcrypto', default='openssl-1.1.0', choices=['openssl-1.0.2', 'openssl-1.1.0', 'libressl'],
+    parser.add_argument('--libcrypto', default='openssl-1.1.0', choices=['openssl-1.0.2', 'openssl-1.1.0', 'openssl-1.1.x-master', 'libressl'],
             help="""The Libcrypto that s2n was built with. s2n supports different cipher suites depending on
                     libcrypto version. Defaults to openssl-1.1.0.""")
     args = parser.parse_args()

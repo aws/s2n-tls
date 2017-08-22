@@ -70,9 +70,10 @@ LIBRESSL_TEST_CIPHERS = list(filter(lambda x: x.openssl_name != "ECDHE-RSA-CHACH
 # Dictionary to look up ciphers to use by libcrypto s2n is built with.
 # Libcrypto string will be an argument to test scripts.
 S2N_LIBCRYPTO_TO_TEST_CIPHERS = {
-    "openssl-1.1.0" : OPENSSL_1_1_0_TEST_CIPHERS,
-    "openssl-1.0.2" : OPENSSL_1_0_2_TEST_CIPHERS,
-    "libressl"      : LIBRESSL_TEST_CIPHERS,
+    "openssl-1.1.x-master"  : OPENSSL_1_1_0_TEST_CIPHERS,
+    "openssl-1.1.0"         : OPENSSL_1_1_0_TEST_CIPHERS,
+    "openssl-1.0.2"         : OPENSSL_1_0_2_TEST_CIPHERS,
+    "libressl"              : LIBRESSL_TEST_CIPHERS,
 }
 
 S2N_PROTO_VERS_TO_STR = {
