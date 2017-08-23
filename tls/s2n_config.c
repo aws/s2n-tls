@@ -23,6 +23,7 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
+#include "tls/s2n_tls_parameters.h"
 
 #if defined(__APPLE__) && defined(__MACH__)
 
@@ -169,6 +170,8 @@ struct s2n_config *s2n_config_new(void)
     new_config->cache_delete = NULL;
     new_config->cache_delete_data = NULL;
     new_config->ct_type = S2N_CT_SUPPORT_NONE;
+    new_config->mfl_code = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
+    new_config->accept_mfl = 0;
 
     /* By default, only the client will authenticate the Server's Certificate. The Server does not request or
      * authenticate any client certificates. */
@@ -371,8 +374,17 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
         insert = &new_node->next;
     } while (s2n_stuffer_data_available(&chain_in_stuffer));
 
+    const uint32_t leftover_chain_amount = s2n_stuffer_data_available(&chain_in_stuffer);
     GUARD(s2n_stuffer_free(&chain_in_stuffer));
     GUARD(s2n_stuffer_free(&cert_out_stuffer));
+
+    /* Leftover data at this point means one of two things:
+     * A bug in s2n's PEM parsing OR a malformed PEM in the user's chain.
+     * Be conservative and fail instead of using a partial chain.
+     */
+    if (leftover_chain_amount > 0) {
+        S2N_ERROR(S2N_ERR_INVALID_PEM);
+    }
 
     config->cert_and_key_pairs->chain_size = chain_size;
 
@@ -498,3 +510,26 @@ int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_f
 
     return 0;
 }
+
+int s2n_config_send_max_fragment_length(struct s2n_config *config, s2n_max_frag_len mfl_code)
+{
+    notnull_check(config);
+
+    if (mfl_code > S2N_TLS_MAX_FRAG_LEN_4096) {
+        S2N_ERROR(S2N_ERR_INVALID_MAX_FRAG_LEN);
+    }
+
+    config->mfl_code = mfl_code;
+
+    return 0;
+}
+
+int s2n_config_accept_max_fragment_length(struct s2n_config *config)
+{
+    notnull_check(config);
+
+    config->accept_mfl = 1;
+
+    return 0;
+}
+

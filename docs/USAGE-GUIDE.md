@@ -669,6 +669,28 @@ callback function takes three arguments: a pointer to abitrary data for use
 within the callback, a pointer to a key which can be used to delete the
 cached entry, and a 64 bit unsigned integer specifying the size of this key.
 
+### s2n\_config\_send\_max\_fragment\_length
+
+```c
+int s2n_config_send_max_fragment_length(struct s2n_config *config, uint8_t mfl_code);
+```
+
+**s2n_config_send_max_fragment_length** allows the caller to set a TLS Maximum
+Fragment Length extension that will be used to fragment outgoing messages.
+s2n currently does not reject fragments larger than the configured maximum when
+in server mode. The TLS negotiated maximum fragment length overrides the preference set
+by the **s2n_connection_prefer_throughput** and **s2n_connection_prefer_low_latency**.
+
+### s2n\_config\_accept\_max\_fragment\_length
+
+```c
+int s2n_config_accept_max_fragment_length(struct s2n_config *config);
+```
+
+**s2n_config_accept_max_fragment_length** allows the server to opt-in to accept
+client's TLS maximum fragment length extension requests.
+If this API is not called, and client requests the extension, server will ignore the
+request and continue TLS handshake with default maximum fragment length of 8k bytes
 ## Connection-oriented functions
 
 ### s2n\_connection\_new
@@ -786,7 +808,7 @@ or low latency. Connections prefering low latency will be encrypted using small
 record sizes that can be decrypted sooner by the recipient. Connections
 prefering throughput will use large record sizes that minimize overhead.
 
-Connections prefer low latency by default.
+-Connections default to an 8k outgoing maximum
 
 ### s2n\_connection\_get\_wire\_bytes
 

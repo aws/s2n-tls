@@ -28,16 +28,26 @@ import multiprocessing
 from multiprocessing.pool import ThreadPool
 from s2n_test_constants import *
 
-def try_gnutls_handshake(endpoint, port, priority_str):
+def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test):
+
+    s2nd_cmd = ["../../bin/s2nd", "-c", "test_all", str(endpoint), str(port)]
+
+    if mfl_extension_test:
+        s2nd_cmd.append("--enable-mfl")
+
     # Fire up s2nd
-    s2nd = subprocess.Popen(["../../bin/s2nd", "-c", "test_all", str(endpoint), str(port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
     # Make sure it's running
     s2nd.stdout.readline()
 
+    gnutls_cmd = ["gnutls-cli", "--priority=" + priority_str,"--insecure", "-p " + str(port), str(endpoint)]
+
+    if mfl_extension_test:
+        gnutls_cmd.append("--recordsize=" + str(mfl_extension_test))
+
     # Fire up gnutls-cli, use insecure since s2nd is using a dummy cert
-    gnutls_cli = subprocess.Popen(["gnutls-cli", "--priority=" + priority_str,"--insecure", "-p " + str(port), str(endpoint)], 
-                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    gnutls_cli = subprocess.Popen(gnutls_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
     # Write the priority str towards s2nd. Prepend with the 's2n' string to make sure we don't accidently match something
     # in the gnutls-cli handshake output
@@ -76,11 +86,13 @@ def try_gnutls_handshake(endpoint, port, priority_str):
 
     return 0
 
-def handshake(endpoint, port, cipher_name, ssl_version, priority_str, digests):
-    ret = try_gnutls_handshake(endpoint, port, priority_str)
+def handshake(endpoint, port, cipher_name, ssl_version, priority_str, digests, mfl_extension_test):
+    ret = try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test)
 
     prefix = ""
-    if len(digests) == 0:
+    if mfl_extension_test:
+        prefix = "MFL: %-10s Cipher: %-10s Vers: %-10s ... " % (mfl_extension_test, cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
+    elif len(digests) == 0:
         prefix = "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
     else:
         # strip the first nine bytes from each name ("RSA-SIGN-")
@@ -103,7 +115,7 @@ def handshake(endpoint, port, cipher_name, ssl_version, priority_str, digests):
 
 def create_thread_pool():
     threadpool_size = multiprocessing.cpu_count() * 2  #Multiply by 2 since performance improves slightly if CPU has hyperthreading
-    print("\tCreating ThreadPool of size: " + str(threadpool_size))
+    print("\n\tCreating ThreadPool of size: " + str(threadpool_size))
     threadpool = ThreadPool(processes=threadpool_size)
     return threadpool
 
@@ -111,7 +123,7 @@ def main():
     parser = argparse.ArgumentParser(description='Runs TLS server integration tests against s2nd using gnutls-cli')
     parser.add_argument('host', help='The host for s2nd to bind to')
     parser.add_argument('port', type=int, help='The port for s2nd to bind to')
-    parser.add_argument('--libcrypto', default='openssl-1.1.0', choices=['openssl-1.0.2', 'openssl-1.1.0', 'libressl'],
+    parser.add_argument('--libcrypto', default='openssl-1.1.0', choices=['openssl-1.0.2', 'openssl-1.1.0', 'openssl-1.1.x-master', 'libressl'],
             help="""The Libcrypto that s2n was built with. s2n supports different cipher suites depending on
                     libcrypto version. Defaults to openssl-1.1.0.""")
     args = parser.parse_args()
@@ -140,7 +152,7 @@ def main():
             # Add the SSL version to make the cipher priority string fully qualified
             complete_priority_str = cipher_priority_str + ":+" + S2N_PROTO_VERS_TO_GNUTLS[ssl_version] + ":+SIGN-ALL"
 
-            async_result = threadpool.apply_async(handshake, (host, port + port_offset, cipher_name, ssl_version, complete_priority_str, []))
+            async_result = threadpool.apply_async(handshake, (host, port + port_offset, cipher_name, ssl_version, complete_priority_str, [], 0))
             port_offset += 1
             results.append(async_result)
 
@@ -161,7 +173,7 @@ def main():
             # Try an ECDHE cipher suite and a DHE one
             for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or x.openssl_name == "DHE-RSA-AES128-GCM-SHA256", ALL_TEST_CIPHERS):
                 complete_priority_str = cipher.gnutls_priority_str + ":+VERS-TLS1.2:+" + ":+".join(permutation)
-                async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, S2N_TLS12, complete_priority_str, permutation))
+                async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, S2N_TLS12, complete_priority_str, permutation, 0))
                 port_offset += 1
                 results.append(async_result)
 
@@ -170,6 +182,26 @@ def main():
         for async_result in results:
             if async_result.get() != 0:
                 return -1
+
+    print("\n\tTesting handshakes with Max Fragment Length Extension")
+    for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
+        print("\n\tTesting Max Fragment Length Extension using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
+        threadpool = create_thread_pool()
+        port_offset = 0
+        results = []
+        for mfl_extension_test in [512, 1024, 2048, 4096]:
+            cipher = test_ciphers[0]
+            complete_priority_str = cipher.gnutls_priority_str + ":+" + S2N_PROTO_VERS_TO_GNUTLS[S2N_TLS10] + ":+" + ":+".join(permutation)
+            async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, ssl_version, complete_priority_str, [], mfl_extension_test))
+            port_offset += 1
+            results.append(async_result)
+
+        threadpool.close()
+        threadpool.join()
+        for async_result in results:
+            if async_result.get() != 0:
+                return -1
+
 
 if __name__ == "__main__":
     sys.exit(main())

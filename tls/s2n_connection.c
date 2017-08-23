@@ -23,6 +23,7 @@
 
 #include "error/s2n_errno.h"
 
+#include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_connection_evp_digests.h"
@@ -228,6 +229,7 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->server = &conn->initial;
     conn->client = &conn->initial;
     conn->max_outgoing_fragment_length = S2N_DEFAULT_FRAGMENT_LENGTH;
+    conn->mfl_code = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
     conn->handshake.handshake_type = INITIAL;
     conn->handshake.message_number = 0;
     GUARD(s2n_hash_init(&conn->handshake.md5, S2N_HASH_MD5));
@@ -815,14 +817,18 @@ const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uin
 
 int s2n_connection_prefer_throughput(struct s2n_connection *conn)
 {
-    conn->max_outgoing_fragment_length = S2N_LARGE_FRAGMENT_LENGTH;
+    if (!conn->mfl_code) {
+        conn->max_outgoing_fragment_length = S2N_LARGE_FRAGMENT_LENGTH;
+    }
 
     return 0;
 }
 
 int s2n_connection_prefer_low_latency(struct s2n_connection *conn)
 {
-    conn->max_outgoing_fragment_length = S2N_SMALL_FRAGMENT_LENGTH;
+    if (!conn->mfl_code) {
+        conn->max_outgoing_fragment_length = S2N_SMALL_FRAGMENT_LENGTH;
+    }
 
     return 0;
 }
