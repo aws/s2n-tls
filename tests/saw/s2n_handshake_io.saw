@@ -29,6 +29,9 @@ let conn_status_type pconn = crucible_field pconn "status_type";
 //let conn_config pconn = crucible_elem pconn 0;
 let conn_config pconn = crucible_field pconn "config";
 
+//conn->config -> client_cert_auth_type
+let config_cca_type config = (crucible_field config "client_cert_auth_type");
+
 //let cert_key_pairs config = (crucible_elem config 1);
 let cert_key_pairs config = (crucible_field config "cert_and_key_pairs");
 
@@ -79,7 +82,6 @@ let setup_connection = do {
 
    cca_ov <- crucible_fresh_var "cca_ov" (llvm_int 8);
    crucible_points_to (cca_type_ov pconn) (crucible_term cca_ov);
-   crucible_equal (crucible_term cca_ov) (crucible_term {{1 : [8]}});
 
    cca <- crucible_fresh_var "cca" (llvm_int 32);
    crucible_points_to (cca_type pconn) (crucible_term cca);
@@ -95,6 +97,9 @@ let setup_connection = do {
 
    config <- crucible_alloc (llvm_struct "struct.s2n_config");
    crucible_points_to (conn_config pconn) config;
+
+   config_cca <- crucible_fresh_var "config_cca" (llvm_int 32);
+   crucible_points_to (config_cca_type config) (crucible_term config_cca);
 
    cak <- crucible_alloc (llvm_struct "struct.s2n_cert_chain_and_key");
    crucible_points_to (cert_key_pairs config) cak;
@@ -118,7 +123,7 @@ let setup_connection = do {
                             ((ocsp_flag == 1) && (status_size > 0)) ||
                             ((mode == 1) && (ocsp_flag == 1))
                      ,resume_from_cache = False
-                     ,client_auth_flag = (cca != 0)
+                     ,client_auth_flag = (if cca_ov != 0 then cca != 0 else config_cca != 0)
                      }
                   }}); 
 };
@@ -154,14 +159,19 @@ let s2n_connection_get_client_auth_type_spec = do{
 
     cca_ov <- crucible_fresh_var "cca_ov" (llvm_int 8);
     crucible_points_to (cca_type_ov pconn) (crucible_term cca_ov);
-    crucible_equal (crucible_term cca_ov) (crucible_term {{1 : [8]}});
+
+    config <- crucible_alloc (llvm_struct "struct.s2n_config");
+    crucible_points_to (conn_config pconn) config;
+
+    config_cca <- crucible_fresh_var "config_cca" (llvm_int 32);
+    crucible_points_to (config_cca_type config) (crucible_term config_cca);
 
     cca <- crucible_fresh_var "cca" (llvm_int 32);
     crucible_points_to (cca_type pconn) (crucible_term cca);
 
     crucible_execute_func [pconn, auth_type];
 
-    crucible_points_to (auth_type) (crucible_term cca);
+    crucible_points_to (auth_type) (crucible_term {{if cca_ov != zero then cca else config_cca}});
 
     crucible_return (crucible_term {{ 0 : [32] }});
 
@@ -299,6 +309,10 @@ let yices_debug = do {yices;
                       print_goal;
                      };
 
+// Workaround for If then else on nat
+let equalNat_ite = core_axiom
+  "\\(x y z :: Nat) (b :: Bool) -> eq Bool (equalNat x (ite Nat b y z)) (ite Bool b (equalNat x y) (equalNat x z))";
+
 // Low-level correspondence proof. This is the entry point for this file.
 let s2n_handshake_io_lowlevel = do {
     // Dependencies specifications/overrides
@@ -317,7 +331,7 @@ let s2n_handshake_io_lowlevel = do {
 
 
     print "Proving correctness of get_auth_type";
-    auth_type_proof <- crucible_llvm_verify llvm "s2n_connection_get_client_auth_type" dependencies true s2n_connection_get_client_auth_type_spec yices;
+    auth_type_proof <- crucible_llvm_verify llvm "s2n_connection_get_client_auth_type" dependencies true s2n_connection_get_client_auth_type_spec (do {simplify (addsimp equalNat_ite basic_ss); yices;});
     print "Proving correctness of s2n_advance_message";
     s2n_advance_message_proof <- crucible_llvm_verify llvm "s2n_advance_message" dependencies true s2n_advance_message_spec yices;
     print "Proving correctness of s2n_conn_set_handshake_type";
