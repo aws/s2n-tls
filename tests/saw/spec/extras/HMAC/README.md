@@ -12,8 +12,7 @@ You can read more about the FCF proof of correctness for HMAC in
 [this paper](https://www.cs.princeton.edu/~appel/papers/verified-hmac.pdf)
 
 These files don't build by themselves, but rather require the
-[cryptol-semantics repository]
-(https://github.com/GaloisInc/cryptol-semantics) checked out and built
+[cryptol-semantics repository](https://github.com/GaloisInc/cryptol-semantics) checked out and built
 in the same directory as s2n.
 
 These is verification effort used Coq 8.6, if you use a different
