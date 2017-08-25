@@ -142,25 +142,11 @@ int s2n_hmac_new(struct s2n_hmac_state *state)
     return 0;
 }
 
-int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
+static int s2n_tls_mac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
 {
     s2n_hash_algorithm hash_alg;
-    state->currently_in_hash_block = 0;
-
     GUARD(s2n_hmac_hash_alg(alg, &hash_alg));
-    GUARD(s2n_hmac_digest_size(alg, &state->digest_size));
-    GUARD(s2n_hmac_block_size(alg, &state->block_size));
-    GUARD(s2n_hmac_hash_block_size(alg, &state->hash_block_size));
-
-    gte_check(sizeof(state->xor_pad), state->block_size);
-    gte_check(sizeof(state->digest_pad), state->digest_size);
-
-    state->alg = alg;
-
-    if (alg == S2N_HMAC_SSLv3_SHA1 || alg == S2N_HMAC_SSLv3_MD5) {
-        return s2n_sslv3_mac_init(state, alg, key, klen);
-    }
-
+  
     GUARD(s2n_hash_init(&state->inner_just_key, hash_alg));
     GUARD(s2n_hash_init(&state->outer, hash_alg));
 
@@ -190,6 +176,25 @@ int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const vo
     }
 
     return s2n_hmac_reset(state);
+}
+
+int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
+{
+    state->alg = alg;
+    GUARD(s2n_hmac_block_size(alg, &state->block_size));
+    state->currently_in_hash_block = 0;
+    GUARD(s2n_hmac_hash_block_size(alg, &state->hash_block_size));
+    GUARD(s2n_hmac_digest_size(alg, &state->digest_size));
+
+    gte_check(sizeof(state->xor_pad), state->block_size);
+    gte_check(sizeof(state->digest_pad), state->digest_size);
+
+
+    if (alg == S2N_HMAC_SSLv3_SHA1 || alg == S2N_HMAC_SSLv3_MD5) {
+        return s2n_sslv3_mac_init(state, alg, key, klen);
+    } else {
+        return s2n_tls_mac_init(state, alg, key, klen);
+    }
 }
 
 int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
