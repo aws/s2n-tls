@@ -142,7 +142,7 @@ int s2n_hmac_new(struct s2n_hmac_state *state)
     return 0;
 }
 
-static int s2n_tls_mac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
+static int s2n_tls_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
 {
     s2n_hash_algorithm hash_alg;
     GUARD(s2n_hmac_hash_alg(alg, &hash_alg));
@@ -195,7 +195,7 @@ int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const vo
     if (alg == S2N_HMAC_SSLv3_SHA1 || alg == S2N_HMAC_SSLv3_MD5) {
         return s2n_sslv3_mac_init(state, alg, key, klen);
     } else {
-        return s2n_tls_mac_init(state, alg, key, klen);
+        return s2n_tls_hmac_init(state, alg, key, klen);
     }
 }
 
