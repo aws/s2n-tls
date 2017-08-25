@@ -188,6 +188,8 @@ int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const vo
 
     gte_check(sizeof(state->xor_pad), state->block_size);
     gte_check(sizeof(state->digest_pad), state->digest_size);
+    /* key needs to be as large as the biggest block size */
+    gte_check(sizeof(state->xor_pad), state->hash_block_size);
 
 
     if (alg == S2N_HMAC_SSLv3_SHA1 || alg == S2N_HMAC_SSLv3_MD5) {
