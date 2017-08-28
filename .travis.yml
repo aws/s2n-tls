@@ -73,6 +73,8 @@ matrix:
     addons : *sawaddons    
   allow_failures:
     - os: osx
+    - env: S2N_LIBCRYPTO=openssl-1.1.x-master BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
+
   fast_finish: true
 
 before_install:
