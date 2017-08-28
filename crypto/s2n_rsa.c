@@ -212,6 +212,9 @@ static int s2n_rsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey 
 static int s2n_rsa_key_free(struct s2n_pkey *pkey)
 {
     struct s2n_rsa_key *rsa_key = &pkey->key.rsa_key;
+    if (rsa_key->rsa == NULL) {
+        return 0;
+    }
 
     RSA_free(rsa_key->rsa);
     rsa_key->rsa = NULL;

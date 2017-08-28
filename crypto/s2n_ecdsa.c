@@ -113,8 +113,13 @@ static int s2n_ecdsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pke
 static int s2n_ecdsa_key_free(struct s2n_pkey *pkey)
 {
     struct s2n_ecdsa_key *ecdsa_key = &pkey->key.ecdsa_key;
-    notnull_check(ecdsa_key->ec_key);
+    if (ecdsa_key->ec_key == NULL) {
+        return 0;
+    }
+    
     EC_KEY_free(ecdsa_key->ec_key);
+    ecdsa_key->ec_key = NULL;
+
     return 0;
 }
 
