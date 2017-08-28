@@ -101,6 +101,7 @@ struct s2n_hash {
 };
 
 extern int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out);
+extern int s2n_hash_is_available(s2n_hash_algorithm alg);
 extern int s2n_hash_new(struct s2n_hash_state *state);
 extern int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg);
 extern int s2n_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size);

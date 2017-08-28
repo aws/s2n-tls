@@ -53,3 +53,4 @@ struct s2n_config {
 };
 
 extern struct s2n_config s2n_default_config;
+extern struct s2n_config s2n_default_fips_config;

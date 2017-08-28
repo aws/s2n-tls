@@ -16,6 +16,7 @@
 #include "s2n_test.h"
 #include <s2n.h>
 
+#include "crypto/s2n_fips.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_cipher_preferences.h"
@@ -179,6 +180,12 @@ int main(int argc, char **argv)
 
 
     BEGIN_TEST();
+
+    /* s2n support for Mutual Auth when in FIPS mode is not yet implemented. */
+    if (s2n_is_in_fips_mode()) {
+        END_TEST();
+    }
+
     EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
 
     EXPECT_NOT_NULL(config = s2n_config_new());
