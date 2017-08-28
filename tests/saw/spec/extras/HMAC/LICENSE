@@ -1,4 +1,8 @@
-License for HMAC_spec.v:
+License for HMAC_spec.v only, all other files fall under the LICENSE in the root directory:
+
+Copyright (c) 2012-2015
+by Adam Petcher, and open-source licensed as follows:
+
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
