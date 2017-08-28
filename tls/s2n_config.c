@@ -106,7 +106,7 @@ s2n_cert_validation_code accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t c
         /* Pull the public key from the first certificate */
         if (certificate_count == 0) {
             /* Assume that the asn1cert is an RSA Cert */
-            if (s2n_asn1der_to_public_key(&public_key_out->key, &asn1cert) < 0) {
+            if (s2n_asn1der_to_public_key(&public_key_out->pkey, &asn1cert) < 0) {
                 return S2N_CERT_ERR_INVALID;
             }
             if (s2n_cert_public_key_set_cert_type(public_key_out, S2N_CERT_TYPE_RSA_SIGN) < 0){

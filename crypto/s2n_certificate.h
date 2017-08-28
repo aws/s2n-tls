@@ -39,7 +39,7 @@ struct s2n_cert_chain_and_key {
 
 struct s2n_cert_public_key {
     s2n_cert_type cert_type;
-    struct s2n_pkey key;
+    struct s2n_pkey pkey;
 };
 
 int s2n_send_cert_chain(struct s2n_stuffer *out, struct s2n_cert_chain_and_key *chain);
