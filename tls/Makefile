@@ -16,7 +16,15 @@
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
+BITCODE_DIR?=../tests/saw/bitcode/
+
+BCS_1=s2n_handshake_io.bc s2n_connection.bc
+BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
+
 .PHONY : all
 all: $(OBJS)
+
+.PHONY : bc
+bc: $(BCS)
 
 include ../s2n.mk
