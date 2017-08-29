@@ -22,7 +22,7 @@ int s2n_cert_public_key_set_cert_type(struct s2n_cert_public_key *cert_pub_key, 
 {
     notnull_check(cert_pub_key);
     cert_pub_key->cert_type = cert_type;
-    s2n_pkey_init_for_type(&cert_pub_key->pkey, cert_type);
+    s2n_pkey_setup_for_type(&cert_pub_key->pkey, cert_type);
     return 0;
 }
 

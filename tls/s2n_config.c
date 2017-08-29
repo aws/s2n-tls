@@ -324,7 +324,7 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
     config->cert_and_key_pairs->ocsp_status.size = 0;
     config->cert_and_key_pairs->sct_list.data = NULL;
     config->cert_and_key_pairs->sct_list.size = 0;
-    GUARD(s2n_pkey_zero(&config->cert_and_key_pairs->private_key));
+    GUARD(s2n_pkey_zero_init(&config->cert_and_key_pairs->private_key));
 
     /* Put the private key pem in a stuffer */
     GUARD(s2n_stuffer_alloc_ro_from_string(&key_in_stuffer, private_key_pem));
