@@ -254,7 +254,9 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     /* Free any server key received (we may not have completed a
      * handshake, so this may not have been free'd yet) */
     GUARD(s2n_pkey_free(&conn->secure.server_public_key));
+    GUARD(s2n_pkey_zero_init(&conn->secure.server_public_key));
     GUARD(s2n_pkey_free(&conn->secure.client_public_key));
+    GUARD(s2n_pkey_zero_init(&conn->secure.client_public_key));
 
     GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
     GUARD(s2n_ecc_params_free(&conn->secure.server_ecc_params));
