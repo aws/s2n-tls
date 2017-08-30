@@ -222,11 +222,10 @@ static int s2n_rsa_key_free(struct s2n_pkey *pkey)
     return 0;
 }
 
-int s2n_rsa_check_key(const struct s2n_pkey *pkey)
+int s2n_rsa_check_key_exists(const struct s2n_pkey *pkey)
 {
     const struct s2n_rsa_key *rsa_key = &pkey->key.rsa_key;
     notnull_check(rsa_key->rsa);
-    GUARD(RSA_check_key(rsa_key->rsa));
     return 0;
 }
 

@@ -56,7 +56,7 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
     switch (cert_public_key.cert_type) {
     /* s2n currently only supports RSA Certificates */
     case S2N_CERT_TYPE_RSA_SIGN:
-        s2n_rsa_check_key(&cert_public_key.pkey);
+        s2n_rsa_check_key_exists(&cert_public_key.pkey);
         conn->secure.client_cert_type = S2N_CERT_TYPE_RSA_SIGN;
         s2n_dup(&client_cert_chain, &conn->secure.client_cert_chain);
         conn->secure.client_public_key = cert_public_key.pkey;
