@@ -88,13 +88,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 
     /* Default our signature digest algorithms */
     conn->secure.conn_hash_alg = S2N_HASH_MD5_SHA1;
-    if (s2n_is_in_fips_mode()) {
-        /* FIPS does not allow the use of SHA1 for digital signatures.
-         * When in FIPS mode, default to SHA256 for the signature digest.
-         * See: https://wiki.openssl.org/index.php/FIPS_mode_and_TLS#A_quick_overview_of_TLS
-         */
-        conn->secure.conn_hash_alg = S2N_HASH_SHA256;
-    } else if (conn->actual_protocol_version == S2N_TLS12) {
+    if (conn->actual_protocol_version == S2N_TLS12 || s2n_is_in_fips_mode()) {
         conn->secure.conn_hash_alg = S2N_HASH_SHA1;
     }
 
@@ -192,13 +186,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
 
     /* Default our signature digest algorithm to SHA1. Will be used when verifying a client certificate. */
     conn->secure.conn_hash_alg = S2N_HASH_MD5_SHA1;
-    if (s2n_is_in_fips_mode()) {
-        /* FIPS does not allow the use of SHA1 for digital signatures.
-         * When in FIPS mode, default to SHA256 for the signature digest.
-         * See: https://wiki.openssl.org/index.php/FIPS_mode_and_TLS#A_quick_overview_of_TLS
-         */
-        conn->secure.conn_hash_alg = S2N_HASH_SHA256;
-    } else if (conn->actual_protocol_version == S2N_TLS12) {
+    if (conn->actual_protocol_version == S2N_TLS12 || s2n_is_in_fips_mode()) {
         conn->secure.conn_hash_alg = S2N_HASH_SHA1;
     }
 
