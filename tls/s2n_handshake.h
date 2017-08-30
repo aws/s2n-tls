@@ -55,11 +55,11 @@ struct s2n_handshake {
     struct s2n_hash_state sha512;
     struct s2n_hash_state md5_sha1;
 
-    /* Used for SSLv3 PRF */
-    struct s2n_hash_state sslv3_md5_copy;
-    struct s2n_hash_state sslv3_sha1_copy;
-    /*Used for TLS PRF */
-    struct s2n_hash_state tls_hash_copy;
+    /* Used for SSLv3, TLS 1.0, and TLS 1.1 PRFs */
+    struct s2n_hash_state prf_md5_hash_copy;
+    struct s2n_hash_state prf_sha1_hash_copy;
+    /*Used for TLS 1.2 PRF */
+    struct s2n_hash_state prf_tls12_hash_copy;
 
     uint8_t server_finished[S2N_SSL_FINISHED_LEN];
     uint8_t client_finished[S2N_SSL_FINISHED_LEN];
