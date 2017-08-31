@@ -71,6 +71,7 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_HASH_UPDATE_FAILED, "error updating hash"},
     {S2N_ERR_HASH_COPY_FAILED, "error copying hash"},
     {S2N_ERR_HASH_WIPE_FAILED, "error wiping hash"},
+    {S2N_ERR_ALLOW_MD5_FOR_FIPS_FAILED, "error allowing MD5 to be used when in FIPS mode"},
     {S2N_ERR_HMAC_INVALID_ALGORITHM, "invalid HMAC algorithm"},
     {S2N_ERR_HKDF_OUTPUT_SIZE, "invalid HKDF output size"},
     {S2N_ERR_PRF_INVALID_ALGORITHM, "invalid prf hash algorithm"},

@@ -19,7 +19,6 @@
 #include "tls/s2n_prf.h"
 
 #include "crypto/s2n_hash.h"
-#include "crypto/s2n_evp.h"
 
 struct s2n_connection_prf_handles {
     /* TLS PRF HMAC p_hash */

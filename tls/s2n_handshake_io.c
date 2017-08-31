@@ -306,10 +306,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
 static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data)
 {
-    if (s2n_hash_is_available(S2N_HASH_MD5)) {
-        /* The MD5 hash cannot be initialized when FIPS mode is set. */
-        GUARD(s2n_hash_update(&conn->handshake.md5, data->data, data->size));
-    }
+    GUARD(s2n_hash_update(&conn->handshake.md5, data->data, data->size));
 
     if (s2n_hash_is_available(S2N_HASH_MD5_SHA1)) {
         /* The MD5_SHA1 hash cannot be initialized when FIPS mode is set. */

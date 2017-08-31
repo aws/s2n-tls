@@ -97,7 +97,9 @@ static int s2n_evp_hmac_p_hash_digest_init(struct s2n_prf_working_space *ws)
     notnull_check(ws->tls.p_hash.evp_hmac.mac_key);
  
     /* Ignore the MD5 check when in FIPS mode to comply with the TLS 1.0 RFC */
-    EVP_MD_CTX_set_flags(ws->tls.p_hash.evp_hmac.evp_digest.ctx, EVP_MD_CTX_FLAG_NON_FIPS_ALLOW);
+    if (s2n_is_in_fips_mode()) {
+        GUARD(s2n_digest_allow_md5_for_fips(&ws->tls.p_hash.evp_hmac.evp_digest));
+    }
 
     if (EVP_DigestSignInit(ws->tls.p_hash.evp_hmac.evp_digest.ctx, NULL, ws->tls.p_hash.evp_hmac.evp_digest.md, NULL, ws->tls.p_hash.evp_hmac.mac_key) == 0) {
         S2N_ERROR(S2N_ERR_P_HASH_INIT_FAILED);
