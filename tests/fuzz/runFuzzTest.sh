@@ -52,8 +52,14 @@ else
     export LD_PRELOAD="$GLOBAL_OVERRIDES"
 fi
 
+FIPS_TEST_MSG=""
+if [ -n "${S2N_TEST_IN_FIPS_MODE}" ];
+then
+    FIPS_TEST_MSG=" FIPS test"
+fi
+
 ACTUAL_TEST_FAILURE=0
-printf "Running  %-40s for %5d sec with %2d threads... " ${TEST_NAME} ${FUZZ_TIMEOUT_SEC} ${NUM_CPU_THREADS}
+printf "Running %-s %-40s for %5d sec with %2d threads... " "${FIPS_TEST_MSG}" ${TEST_NAME} ${FUZZ_TIMEOUT_SEC} ${NUM_CPU_THREADS}
 ./${TEST_NAME} ${LIBFUZZER_ARGS} ./corpus/${TEST_NAME} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
 
 TEST_COUNT=`grep -o "stat::number_of_executed_units: [0-9]*" ${TEST_NAME}_output.txt | awk '{test_count += $2} END {print test_count}'`

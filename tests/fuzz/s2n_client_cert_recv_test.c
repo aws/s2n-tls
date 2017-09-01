@@ -21,6 +21,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <openssl/crypto.h>
+#include <openssl/err.h>
+
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_cipher_suites.h"
@@ -42,6 +45,16 @@ static void s2n_fuzz_atexit()
 
 int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 {
+#ifdef S2N_TEST_IN_FIPS_MODE
+    if (FIPS_mode_set(1) == 0) {
+        unsigned long fips_rc = ERR_get_error();
+        char ssl_error_buf[256]; // Openssl claims you need no more than 120 bytes for error strings
+        fprintf(stderr, "s2nd failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf));
+        return 1;
+    }
+    printf("s2nd entered FIPS mode\n");
+#endif
+
     GUARD(s2n_init());
     GUARD(atexit(s2n_fuzz_atexit));
     return 0;

@@ -33,7 +33,7 @@ env:
   - S2N_LIBCRYPTO=openssl-1.1.0 OPENSSL_ia32cap="~0x200000200000000" BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
   - S2N_LIBCRYPTO=openssl-1.1.x-master BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
   - S2N_LIBCRYPTO=openssl-1.1.0 LATEST_CLANG=true TESTS=fuzz
-
+  - S2N_LIBCRYPTO=openssl-1.0.2-fips LATEST_CLANG=true TESTS=fuzz
 
 matrix:
   exclude:
@@ -41,6 +41,8 @@ matrix:
     env: TESTS=ctverif
   - os: osx
     env: S2N_LIBCRYPTO=openssl-1.1.x-master BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
+  - os: osx
+    env: S2N_LIBCRYPTO=openssl-1.0.2-fips LATEST_CLANG=true TESTS=fuzz
   - os: osx
     env: S2N_LIBCRYPTO=openssl-1.0.2-fips BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
   #This exception is because the test isn't finished yet, remove to turn on DRBG Saw tests
