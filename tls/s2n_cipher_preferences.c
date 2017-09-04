@@ -254,6 +254,47 @@ const struct s2n_cipher_preferences cipher_preferences_20170718 = {
     .minimum_protocol_version = S2N_TLS10
 };
 
+/* Legacy hardware load balancer compatible ciphers.
+ * */
+struct s2n_cipher_suite *cipher_suites_20170901[] = {
+  &s2n_rsa_with_aes_128_cbc_sha,
+  &s2n_rsa_with_aes_256_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20170901 = {
+  .count = sizeof(cipher_suites_20170901) / sizeof(cipher_suites_20170901[0]),
+  .suites = cipher_suites_20170901,
+  .minimum_protocol_version = S2N_TLS10
+};
+
+/* Highend ciphers preference to support TLS 1.2 only.
+ * */
+struct s2n_cipher_suite *cipher_suites_20170902[] = {
+  &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+  &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20170902 = {
+  .count = sizeof(cipher_suites_20170902) / sizeof(cipher_suites_20170902[0]),
+  .suites = cipher_suites_20170902,
+  .minimum_protocol_version = S2N_TLS12
+};
+
+/* Legacy compatible ciphers preference.
+ * */
+struct s2n_cipher_suite *cipher_suites_20170903[] = {
+  &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+  &s2n_rsa_with_aes_128_gcm_sha256,
+  &s2n_rsa_with_aes_128_cbc_sha256,
+  &s2n_rsa_with_aes_128_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20170903 = {
+  .count = sizeof(cipher_suites_20170903) / sizeof(cipher_suites_20170903[0]),
+  .suites = cipher_suites_20170903,
+  .minimum_protocol_version = S2N_TLS10
+};
+
 struct {
     const char *version;
     const struct s2n_cipher_preferences *preferences;
@@ -271,6 +312,9 @@ struct {
     { "20170328", &cipher_preferences_20170328 },
     { "20170405", &cipher_preferences_20170405 },
     { "20170718", &cipher_preferences_20170718 },
+    { "20170901", &cipher_preferences_20170901 },
+    { "20170902", &cipher_preferences_20170902 },
+    { "20170903", &cipher_preferences_20170903 },
     { "test_all", &cipher_preferences_test_all },
     { NULL, NULL }
 };
