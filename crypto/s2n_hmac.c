@@ -20,6 +20,7 @@
 
 #include "crypto/s2n_hmac.h"
 #include "crypto/s2n_hash.h"
+#include "crypto/s2n_fips.h"
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
@@ -43,8 +44,6 @@ int s2n_hmac_hash_alg(s2n_hmac_algorithm hmac_alg, s2n_hash_algorithm *out)
     return 0;
 }
 
-
-
 int s2n_hmac_digest_size(s2n_hmac_algorithm hmac_alg, uint8_t *out)
 {
     s2n_hash_algorithm hash_alg;
@@ -53,8 +52,39 @@ int s2n_hmac_digest_size(s2n_hmac_algorithm hmac_alg, uint8_t *out)
     return 0;
 }
 
+/* Return 1 if hmac algorithm is available, 0 otherwise. */
+int s2n_hmac_is_available(s2n_hmac_algorithm hmac_alg)
+{
+    int is_available = 0;
+    switch(hmac_alg) {
+    case S2N_HMAC_MD5:
+    case S2N_HMAC_SSLv3_MD5:
+    case S2N_HMAC_SSLv3_SHA1:
+        /* Set is_available to 0 if in FIPS mode, as MD5/SSLv3 algs are not available in FIPS mode. */
+        is_available = !s2n_is_in_fips_mode();
+        break;
+    case S2N_HMAC_NONE:    
+    case S2N_HMAC_SHA1:
+    case S2N_HMAC_SHA224:
+    case S2N_HMAC_SHA256:
+    case S2N_HMAC_SHA384:
+    case S2N_HMAC_SHA512:
+        is_available = 1;
+        break;
+    default:
+        S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
+    }
+
+    return is_available;
+}
+
 static int s2n_sslv3_mac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
 {
+    if (!s2n_hmac_is_available(alg)) {
+        /* Prevent hmacs from being used if they are not available. */
+        S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
+    }
+    
     s2n_hash_algorithm hash_alg = S2N_HASH_NONE;
 
     if (alg == S2N_HMAC_SSLv3_MD5) {
@@ -144,6 +174,11 @@ int s2n_hmac_new(struct s2n_hmac_state *state)
 
 int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
 {
+    if (!s2n_hmac_is_available(alg)) {
+        /* Prevent hmacs from being used if they are not available. */
+        S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
+    }
+
     s2n_hash_algorithm hash_alg;
     state->currently_in_hash_block = 0;
 

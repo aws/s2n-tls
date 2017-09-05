@@ -17,6 +17,8 @@
 
 #include "error/s2n_errno.h"
 
+#include "crypto/s2n_fips.h"
+
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_config.h"
 
@@ -147,6 +149,12 @@ struct s2n_config s2n_unsafe_client_testing_config = {
     .verify_cert_context = NULL,
 };
 
+struct s2n_config s2n_default_fips_config = {
+    .cert_and_key_pairs = NULL,
+    .cipher_preferences = &cipher_preferences_20170405,
+    .nanoseconds_since_epoch = get_nanoseconds_since_epoch,
+};
+
 struct s2n_config *s2n_config_new(void)
 {
     struct s2n_blob allocator;
@@ -179,7 +187,11 @@ struct s2n_config *s2n_config_new(void)
     new_config->verify_cert_chain_cb = deny_all_certs;
     new_config->verify_cert_context = NULL;
 
-    GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default"));
+    if (s2n_is_in_fips_mode()) {
+        GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default_fips"));
+    } else {
+        GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default"));
+    }
 
     return new_config;
 }

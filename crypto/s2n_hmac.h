@@ -51,6 +51,7 @@ struct s2n_hmac_state {
 };
 
 extern int s2n_hmac_digest_size(s2n_hmac_algorithm alg, uint8_t *out);
+extern int s2n_hmac_is_available(s2n_hmac_algorithm alg);
 
 extern int s2n_hmac_new(struct s2n_hmac_state *state);
 extern int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen);

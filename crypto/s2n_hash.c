@@ -38,6 +38,31 @@ int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
     return 0;
 }
 
+/* Return 1 if hash algorithm is available, 0 otherwise. */
+int s2n_hash_is_available(s2n_hash_algorithm alg)
+{
+    int is_available = 0;
+    switch (alg) {
+    case S2N_HASH_MD5:
+    case S2N_HASH_MD5_SHA1:
+        /* Set is_available to 0 if in FIPS mode, as MD5 algs are not available in FIPS mode. */
+        is_available = !s2n_is_in_fips_mode();
+        break;
+    case S2N_HASH_NONE:
+    case S2N_HASH_SHA1:
+    case S2N_HASH_SHA224:
+    case S2N_HASH_SHA256:
+    case S2N_HASH_SHA384:
+    case S2N_HASH_SHA512:
+        is_available = 1;
+        break;
+    default:
+        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
+    }
+
+    return is_available;
+}
+
 static int s2n_low_level_hash_new(struct s2n_hash_state *state)
 {
     /* s2n_hash_new will always call the corresponding implementation of the s2n_hash
@@ -421,17 +446,9 @@ int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
      */
     GUARD(s2n_hash_set_impl(state));
 
-    if (s2n_is_in_fips_mode()) {
-        /* Prevent MD5 hashes from being used when FIPS mode is set. Don't do this within
-         * s2n_evp_hash_init as that may be used for non-FIPS at some point in the future.
-         */
-        switch (alg) {
-        case S2N_HASH_MD5:
-        case S2N_HASH_MD5_SHA1:
-            S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
-        default:
-            break;
-        }
+    if (!s2n_hash_is_available(alg)) {
+        /* Prevent hashes from being used if they are not available. */
+        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
 
     return state->hash_impl->init(state, alg);

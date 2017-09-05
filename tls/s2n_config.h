@@ -58,6 +58,7 @@ struct s2n_config {
 };
 
 extern struct s2n_config s2n_default_config;
+extern struct s2n_config s2n_default_fips_config;
 extern struct s2n_config s2n_unsafe_client_testing_config;
 
 int accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
