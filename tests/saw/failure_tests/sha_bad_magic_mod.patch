@@ -7,7 +7,7 @@ diff -r -u s2n/crypto/s2n_hmac.c s2n_break/crypto/s2n_hmac.c
       */
 -    state->currently_in_hash_block += (4294949760 + size) % state->hash_block_size;
 +    state->currently_in_hash_block += (4294949761 + size) % state->hash_block_size;
-     state->currently_in_hash_block %= state->block_size;
+     state->currently_in_hash_block %= state->hash_block_size;
 
      return s2n_hash_update(&state->inner, in, size);
 Binary files s2n/.git/index and s2n_break/.git/index differ
