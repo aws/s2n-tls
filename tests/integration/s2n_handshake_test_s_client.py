@@ -21,8 +21,6 @@ Openssl 1.1.0 removed SSLv3, 3DES, an RC4, so we won't have coverage there.
 import argparse
 import os
 import sys
-import time
-import socket
 import subprocess
 import itertools
 import multiprocessing
@@ -36,18 +34,15 @@ PROTO_VERS_TO_S_CLIENT_ARG = {
     S2N_TLS12 : "-tls1_2",
 }
 
-TEST_CERT_DIRECTORY="../pems/"
-DEFAULT_CLIENT_CERT_PATH = TEST_CERT_DIRECTORY + "rsa_2048_sha256_client_cert.pem"
-DEFAULT_CLIENT_KEY_PATH = TEST_CERT_DIRECTORY + "rsa_2048_sha256_client_key.pem"
+S_CLIENT_SUCCESSFUL_OCSP="OCSP Response Status: successful"
 
 def cleanup_processes(*processes):
     for p in processes:
         p.kill()
         p.wait()
 
-def try_handshake(endpoint, port, cipher, ssl_version, sig_algs=None, curves=None, resume=False,
-        prefer_low_latency=False, enter_fips_mode=False, client_auth=None, client_cert=DEFAULT_CLIENT_CERT_PATH,
-        client_key=DEFAULT_CLIENT_KEY_PATH):
+def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, ocsp=None, sig_algs=None, curves=None, resume=False,
+        prefer_low_latency=False, enter_fips_mode=False, client_auth=None, client_cert=DEFAULT_CLIENT_CERT_PATH, client_key=DEFAULT_CLIENT_KEY_PATH):
     """
     Attempt to handshake against s2nd listening on `endpoint` and `port` using Openssl s_client
 
@@ -55,19 +50,30 @@ def try_handshake(endpoint, port, cipher, ssl_version, sig_algs=None, curves=Non
     :param int port: port for s2nd to listen on
     :param str cipher: ciphers for Openssl s_client to offer. See https://www.openssl.org/docs/man1.0.2/apps/ciphers.html
     :param int ssl_version: SSL version for s_client to use
+    :param str server_cert: path to certificate for s2nd to use
+    :param str server_key: path to private key for s2nd to use
+    :param str ocsp: path to OCSP response file for stapling
     :param str sig_algs: Signature algorithms for s_client to offer
     :param str curves: Elliptic curves for s_client to offer
     :param bool resume: True if s_client should try to reconnect to s2nd and reuse the same TLS session. False for normal negotiation.
     :param bool prefer_low_latency: True if s2nd should use 1500 for max outgoing record size. False for default max.
     :param bool enter_fips_mode: True if s2nd should enter libcrypto's FIPS mode. Libcrypto must be built with a FIPS module to enter FIPS mode.
+    :param bool client_auth: True if the test should try and use client authentication
+    :param str client_cert: Path to the client's cert file
+    :param str client_key: Path to the client's private key file
     :return: 0 on successfully negotiation(s), -1 on failure
     """
     # Fire up s2nd
     s2nd_cmd = ["../../bin/s2nd"]
 
+    if server_cert is not None:
+        s2nd_cmd.extend(["--cert", server_cert])
+    if server_key is not None:
+        s2nd_cmd.extend(["--key", server_key])
+    if ocsp is not None:
+        s2nd_cmd.extend(["--ocsp", ocsp])
     if prefer_low_latency == True:
         s2nd_cmd.append("--prefer-low-latency")
-
     if client_auth is not None:
         s2nd_cmd.append("-m")
 
@@ -85,7 +91,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, sig_algs=None, curves=Non
     # Make sure it's running
     s2nd.stdout.readline()
 
-    s_client_cmd = ["openssl", "s_client", PROTO_VERS_TO_S_CLIENT_ARG[ssl_version], "-quiet",
+    s_client_cmd = ["openssl", "s_client", PROTO_VERS_TO_S_CLIENT_ARG[ssl_version],
             "-connect", str(endpoint) + ":" + str(port)]
     if cipher is not None:
         s_client_cmd.extend(["-cipher", cipher])
@@ -98,6 +104,8 @@ def try_handshake(endpoint, port, cipher, ssl_version, sig_algs=None, curves=Non
     if client_auth is not None:
         s_client_cmd.extend(["-key", client_key])
         s_client_cmd.extend(["-cert", client_cert])
+    if ocsp is not None:
+        s_client_cmd.append("-status")
 
     # Fire up s_client
     s_client = subprocess.Popen(s_client_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
@@ -109,10 +117,23 @@ def try_handshake(endpoint, port, cipher, ssl_version, sig_algs=None, curves=Non
             line = line.decode("utf-8").strip()
             if line.startswith("Resumed session"):
                 seperators += 1
+
             if seperators == 5:
                 break
 
         if seperators != 5:
+            cleanup_processes(s2nd, s_client)
+            return -1
+
+    # Validate that s_client accepted s2nd's stapled OCSP response
+    if ocsp is not None:
+        ocsp_success = False
+        for line in s_client.stdout:
+            line = line.decode("utf-8").strip()
+            if S_CLIENT_SUCCESSFUL_OCSP in line:
+                ocsp_success = True
+                break
+        if not ocsp_success:
             cleanup_processes(s2nd, s_client)
             return -1
 
@@ -136,7 +157,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, sig_algs=None, curves=Non
     s2nd.stdin.write((cipher + "\n").encode("utf-8"))
     s2nd.stdin.flush()
     found = 0
-    for line in range(0, 10):
+    for line in range(0, 512):
         output = s_client.stdout.readline().decode("utf-8")
         if output.strip() == cipher:
             found = 1
@@ -368,9 +389,9 @@ def elliptic_curve_fallback_test(host, port, fips_mode):
 
     return failed
 
-def handshake_fragmentation_test(host,port, fips_mode):
+def handshake_fragmentation_test(host, port, fips_mode):
     """
-    Tests negotation with s_client despite message fragmentation. Max record size is clamped to force s2n
+    Tests successful negotation with s_client despite message fragmentation. Max record size is clamped to force s2n
     to fragment the ServerCertifcate message.
     """
     print("\n\tRunning handshake fragmentation tests:")
@@ -388,6 +409,26 @@ def handshake_fragmentation_test(host,port, fips_mode):
             failed = 1
 
     failed = 0
+    return failed
+
+def ocsp_stapling_test(host, port, fips_mode):
+    """
+    Test s2n's server OCSP stapling capability
+    """
+    print("\n\tRunning OCSP stapling tests:")
+    failed = 0
+    for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
+        print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
+        # Cipher isn't relevant for this test, pick one available in all TLS versions
+        cipher_name = "ECDHE-RSA-AES128-SHA"
+
+        ret = try_handshake(host, port, cipher_name, ssl_version, enter_fips_mode=fips_mode, server_cert=TEST_OCSP_CERT, server_key=TEST_OCSP_KEY,
+                ocsp=TEST_OCSP_RESPONSE_FILE)
+        result_prefix = "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
+        print_result(result_prefix, ret)
+        if ret != 0:
+            failed = 1
+
     return failed
 
 def main():
@@ -419,7 +460,8 @@ def main():
     failed += sigalg_test(host, port, fips_mode, use_client_auth=True)
     failed += elliptic_curve_test(host, port, fips_mode)
     failed += elliptic_curve_fallback_test(host, port, fips_mode)
-    failed += handshake_fragmentation_test(host,port, fips_mode)
+    failed += handshake_fragmentation_test(host, port, fips_mode)
+    failed += ocsp_stapling_test(host, port, fips_mode)
     return failed
 
 if __name__ == "__main__":

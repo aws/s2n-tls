@@ -95,3 +95,13 @@ S2N_PROTO_VERS_TO_GNUTLS = {
     S2N_TLS12 : "VERS-TLS1.2",
 }
 
+TEST_CERT_DIRECTORY="../pems/"
+
+# cert, key, and ocsp response for OCSP stapling tests
+TEST_OCSP_CERT_DIRECTORY="../pems/ocsp/"
+TEST_OCSP_CERT=TEST_OCSP_CERT_DIRECTORY + "server_cert.pem"
+TEST_OCSP_KEY=TEST_OCSP_CERT_DIRECTORY + "server_key.pem"
+TEST_OCSP_RESPONSE_FILE=TEST_OCSP_CERT_DIRECTORY + "ocsp_response.der"
+
+DEFAULT_CLIENT_CERT_PATH = TEST_CERT_DIRECTORY + "rsa_2048_sha256_client_cert.pem"
+DEFAULT_CLIENT_KEY_PATH = TEST_CERT_DIRECTORY + "rsa_2048_sha256_client_key.pem"
