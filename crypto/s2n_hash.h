@@ -41,7 +41,7 @@
 
 #include <stdint.h>
 
-#define MAX_DIGEST_LENGTH SHA512_DIGEST_LENGTH
+#define S2N_MAX_DIGEST_LEN SHA512_DIGEST_LENGTH
 
 typedef enum {
     S2N_HASH_NONE,
