@@ -108,9 +108,9 @@ int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1d
         S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
     }
 
+    /* Initialize s2n_pkey according to key type */
     int type = EVP_PKEY_base_id(evp_private_key);
     
-    /* Initialize s2n_pkey according to key type */
     int ret;
     switch (type) {
     case EVP_PKEY_RSA:
@@ -137,7 +137,6 @@ int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1d
 
 int s2n_asn1der_to_public_key(struct s2n_pkey *pub_key, struct s2n_blob *asn1der)
 {
-    int ret;
     uint8_t *cert_to_parse = asn1der->data;
     
     X509 *cert = d2i_X509(NULL, (const unsigned char **)(void *)&cert_to_parse, asn1der->size);
@@ -162,6 +161,7 @@ int s2n_asn1der_to_public_key(struct s2n_pkey *pub_key, struct s2n_blob *asn1der
     /* Check for success in decoding certificate according to type */
     int type = EVP_PKEY_base_id(evp_public_key);
     
+    int ret;
     switch (type) {
     case EVP_PKEY_RSA:
         if ((ret = s2n_rsa_pkey_init(pub_key)) != 0) {
