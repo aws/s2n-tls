@@ -17,16 +17,29 @@
 
 #include "crypto/s2n_fips.h"
 
+#include "tls/s2n_tls_digest_preferences.h"
+
+#include "utils/s2n_blob.h"
+#include "utils/s2n_safety.h"
+
 static int s2n_fips_mode = 0;
+
+struct s2n_blob s2n_preferred_hashes;
 
 int s2n_fips_init(void)
 {
     s2n_fips_mode = 0;
+    GUARD(s2n_blob_init(&s2n_preferred_hashes,
+                        s2n_digest_hashes.all_preferences,
+                        sizeof(s2n_digest_hashes.all_preferences)));
 
 #ifdef OPENSSL_FIPS
     /* FIPS mode can be entered only if OPENSSL_FIPS is defined */
     if (FIPS_mode()) {
         s2n_fips_mode = 1;
+        GUARD(s2n_blob_init(&s2n_preferred_hashes,
+                            s2n_digest_hashes.fips_preferences,
+                            sizeof(s2n_digest_hashes.fips_preferences)));
     }
 #endif
 

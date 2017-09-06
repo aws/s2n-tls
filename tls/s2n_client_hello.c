@@ -17,6 +17,8 @@
 #include <time.h>
 #include <stdint.h>
 
+#include "crypto/s2n_fips.h"
+
 #include "error/s2n_errno.h"
 
 #include "tls/s2n_cipher_preferences.h"
@@ -58,6 +60,12 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
     conn->client_hello_version = conn->client_protocol_version;
     conn->actual_protocol_version = MIN(conn->client_protocol_version, conn->server_protocol_version);
 
+    /* s2n support for Mutual Auth when in FIPS mode is not yet implemented. */
+    if (s2n_is_in_fips_mode() && (conn->config->client_cert_auth_type == S2N_CERT_AUTH_REQUIRED)) {
+        GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
+        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+    }
+
     if (conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN || conn->session_id_len > s2n_stuffer_data_available(in)) {
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
@@ -80,7 +88,13 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 
     /* Default our signature digest algorithms */
     conn->secure.conn_hash_alg = S2N_HASH_MD5_SHA1;
-    if (conn->actual_protocol_version == S2N_TLS12) {
+    if (s2n_is_in_fips_mode()) {
+        /* FIPS does not allow the use of SHA1 for digital signatures.
+         * When in FIPS mode, default to SHA256 for the signature digest.
+         * See: https://wiki.openssl.org/index.php/FIPS_mode_and_TLS#A_quick_overview_of_TLS
+         */
+        conn->secure.conn_hash_alg = S2N_HASH_SHA256;
+    } else if (conn->actual_protocol_version == S2N_TLS12) {
         conn->secure.conn_hash_alg = S2N_HASH_SHA1;
     }
 
@@ -178,7 +192,13 @@ int s2n_client_hello_send(struct s2n_connection *conn)
 
     /* Default our signature digest algorithm to SHA1. Will be used when verifying a client certificate. */
     conn->secure.conn_hash_alg = S2N_HASH_MD5_SHA1;
-    if (conn->actual_protocol_version == S2N_TLS12) {
+    if (s2n_is_in_fips_mode()) {
+        /* FIPS does not allow the use of SHA1 for digital signatures.
+         * When in FIPS mode, default to SHA256 for the signature digest.
+         * See: https://wiki.openssl.org/index.php/FIPS_mode_and_TLS#A_quick_overview_of_TLS
+         */
+        conn->secure.conn_hash_alg = S2N_HASH_SHA256;
+    } else if (conn->actual_protocol_version == S2N_TLS12) {
         conn->secure.conn_hash_alg = S2N_HASH_SHA1;
     }
 

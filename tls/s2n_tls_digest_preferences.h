@@ -18,23 +18,17 @@
 
 #include "crypto/s2n_hash.h"
 
-/* Table to translate TLS numbers to s2n algorithms */
-static s2n_hash_algorithm s2n_hash_tls_to_alg[] = {
-    [TLS_HASH_ALGORITHM_MD5] = S2N_HASH_MD5,
-    [TLS_HASH_ALGORITHM_SHA1] = S2N_HASH_SHA1,
-    [TLS_HASH_ALGORITHM_SHA224] = S2N_HASH_SHA224,
-    [TLS_HASH_ALGORITHM_SHA256] = S2N_HASH_SHA256,
-    [TLS_HASH_ALGORITHM_SHA384] = S2N_HASH_SHA384,
-    [TLS_HASH_ALGORITHM_SHA512] = S2N_HASH_SHA512 };
+#include "utils/s2n_blob.h"
 
-/* Our own order of preference for signature hashes. No MD5 to avoid
- * SLOTH.
- */
-static uint8_t  s2n_preferred_hashes[] = {
-    TLS_HASH_ALGORITHM_SHA256,
-    TLS_HASH_ALGORITHM_SHA384,
-    TLS_HASH_ALGORITHM_SHA512,
-    TLS_HASH_ALGORITHM_SHA224,
-    TLS_HASH_ALGORITHM_SHA1 };
+extern const s2n_hash_algorithm s2n_hash_tls_to_alg[];
+extern const uint8_t s2n_hash_alg_to_tls[];
 
+struct s2n_digest_hash_preferences {
+    uint8_t all_preferences[5];
+    uint8_t fips_preferences[4];
+};
 
+extern struct s2n_digest_hash_preferences s2n_digest_hashes;
+
+/* Set during s2n_fips_init to either s2n_digest_hashes.all_preferences or s2n_digest_hashes.fips_preferences. */
+extern struct s2n_blob s2n_preferred_hashes;
