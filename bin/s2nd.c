@@ -338,7 +338,7 @@ int main(int argc, char *const *argv)
         {"negotiate", no_argument, 0, 'n'},
         {"ciphers", required_argument, 0, 'c'},
         {"enter-fips-mode", no_argument, 0, 'f'},
-        {"cert", required_argument, 0, 'f'},
+        {"cert", required_argument, 0, 'r'},
         {"key", required_argument, 0, 'k'},
         {"negotiate", no_argument, 0, 'n'},
         {"prefer-low-latency", no_argument, 0, 'l'},
@@ -364,7 +364,7 @@ int main(int argc, char *const *argv)
         case 'k':
             private_key_file = optarg;
             break;
-        case 'f':
+        case 'r':
             certificate_chain_file = optarg;
             break;
         case 'h':
