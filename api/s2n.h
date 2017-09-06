@@ -173,7 +173,7 @@ extern int s2n_cert_public_key_set_cert_type(struct s2n_cert_public_key *cert_pu
 extern int s2n_cert_public_key_get_rsa(struct s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key **rsa);
 
 /* Not intended for general consumption. Use at your own risk. */
-typedef s2n_cert_validation_code verify_cert_trust_chain_fn(uint8_t *der_cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
+typedef s2n_cert_validation_code verify_cert_trust_chain_fn(struct s2n_connection *conn, uint8_t *der_cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
 
 extern int s2n_config_set_verify_cert_chain_cb(struct s2n_config *config, verify_cert_trust_chain_fn *callback, void *context);
 

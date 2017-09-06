@@ -45,7 +45,7 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
     struct s2n_cert_public_key cert_public_key;
 
     /* Determine the Cert Type, Verify the Cert, and extract the Public Key */
-    const s2n_cert_validation_code rc = conn->config->verify_cert_chain_cb(client_cert_chain.data, client_cert_chain.size, &cert_public_key, conn->config->verify_cert_context);
+    const s2n_cert_validation_code rc = conn->config->verify_cert_chain_cb(conn, client_cert_chain.data, client_cert_chain.size, &cert_public_key, conn->config->verify_cert_context);
 
     if (rc != S2N_CERT_OK) {
         /* Don't use GUARD for verify_cert_chain_cb so that s2n_errno is set. */
