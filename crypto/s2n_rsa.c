@@ -180,9 +180,9 @@ int s2n_rsa_sign(struct s2n_rsa_private_key *key, struct s2n_hash_state *digest,
     int NID_type;
     GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
     GUARD(s2n_hash_NID_type(digest->alg, &NID_type));
-    lte_check(digest_length, MAX_DIGEST_LENGTH);
+    lte_check(digest_length, S2N_MAX_DIGEST_LEN);
 
-    uint8_t digest_out[MAX_DIGEST_LENGTH];
+    uint8_t digest_out[S2N_MAX_DIGEST_LEN];
     GUARD(s2n_hash_digest(digest, digest_out, digest_length));
 
     unsigned int signature_size = signature->size;
@@ -203,9 +203,9 @@ int s2n_rsa_verify(struct s2n_rsa_public_key *key, struct s2n_hash_state *digest
     int NID_type;
     GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
     GUARD(s2n_hash_NID_type(digest->alg, &NID_type));
-    lte_check(digest_length, MAX_DIGEST_LENGTH);
+    lte_check(digest_length, S2N_MAX_DIGEST_LEN);
 
-    uint8_t digest_out[MAX_DIGEST_LENGTH];
+    uint8_t digest_out[S2N_MAX_DIGEST_LEN];
     GUARD(s2n_hash_digest(digest, digest_out, digest_length));
 
     if (RSA_verify(NID_type, digest_out, digest_length, signature->data, signature->size, key->rsa) == 0) {

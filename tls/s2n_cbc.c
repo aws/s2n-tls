@@ -24,7 +24,6 @@
 #include "crypto/s2n_hmac.h"
 
 #include "tls/s2n_record.h"
-#include "tls/s2n_prf.h"
 
 /* A TLS CBC record looks like ..
  *
