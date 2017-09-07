@@ -589,8 +589,9 @@ default is for s2n to accept all RSA Certs on the client side, and deny all cert
 ### verify_cert_trust_chain_fn
 
 ```c
-int verify_cert_trust_chain(uint8_t *der_cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
+int verify_cert_trust_chain(struct s2n_connection *conn, uint8_t *der_cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
 ```
+ - **conn** The connection the certificate chain is validated for
  - **der_cert_chain_in** The DER encoded full chain of certificates recieved
  - **cert_chain_len** The length in bytes of the DER encoded Cert Chain
  - **public_key_out** The public key that should be updated with the key extracted from the first certificate in the chain (the leaf Cert)
@@ -599,7 +600,6 @@ int verify_cert_trust_chain(uint8_t *der_cert_chain_in, uint32_t cert_chain_len,
 
 **verify_cert_trust_chain_fn** defines a Callback Function Signature intended to be used only in special circumstances, and may be removed in a later release.
 Implementations should Verify the Certificate Chain of trust, and place the leaf Certificate's Public Key in the public_key_out parameter.
-They should not not perform any hostname validation, which is still needed in order to completely validate a Certificate.
 
 ### Public Key API's
 ```c

@@ -70,13 +70,17 @@ int get_nanoseconds_since_epoch(void *data, uint64_t * nanoseconds)
 
 #endif
 
-int deny_all_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key, void *context)
+int deny_all_certs(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key, void *context)
 {
     S2N_ERROR(S2N_ERR_CERT_UNTRUSTED);
 }
 
 /* Accept all RSA Certificates is unsafe and is only used in the s2n Client for testing purposes */
-s2n_cert_validation_code accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context)
+s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn,
+                                              uint8_t *cert_chain_in,
+                                              uint32_t cert_chain_len,
+                                              struct s2n_cert_public_key *public_key_out,
+                                              void *context)
 {
     struct s2n_blob cert_chain_blob = { .data = cert_chain_in, .size = cert_chain_len};
     struct s2n_stuffer cert_chain_in_stuffer;
