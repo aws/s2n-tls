@@ -591,7 +591,7 @@ default is for s2n to accept all RSA Certs on the client side, and deny all cert
 ```c
 int verify_cert_trust_chain(struct s2n_connection *conn, uint8_t *der_cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
 ```
- - **conn** The connection certificate chain is validated for
+ - **conn** The connection the certificate chain is validated for
  - **der_cert_chain_in** The DER encoded full chain of certificates recieved
  - **cert_chain_len** The length in bytes of the DER encoded Cert Chain
  - **public_key_out** The public key that should be updated with the key extracted from the first certificate in the chain (the leaf Cert)
