@@ -73,8 +73,6 @@ static int s2n_connection_init_hashes(struct s2n_connection *conn)
     
     if (s2n_hash_is_available(S2N_HASH_MD5)) {
         /* Only initialize hashes that use MD5 if available. */
-        GUARD(s2n_hash_init(&conn->handshake.md5, S2N_HASH_MD5));
-        GUARD(s2n_hash_init(&conn->handshake.prf_md5_hash_copy, S2N_HASH_MD5));
         GUARD(s2n_hash_init(&conn->prf_space.ssl3.md5, S2N_HASH_MD5));
     }
 
@@ -82,6 +80,17 @@ static int s2n_connection_init_hashes(struct s2n_connection *conn)
         /* Only initialize hashes that use MD5_SHA1 if available. */
         GUARD(s2n_hash_init(&conn->handshake.md5_sha1, S2N_HASH_MD5_SHA1));
     }
+
+    /* Allow MD5 for hash states that are used by the PRF. This is required
+     * to comply with the TLS 1.0 and 1.1 RFCs and is approved as per
+     * NIST Special Publication 800-52 Revision 1.
+     */
+    if (s2n_is_in_fips_mode()) {
+        GUARD(s2n_hash_allow_md5_for_fips(&conn->handshake.md5));
+        GUARD(s2n_hash_allow_md5_for_fips(&conn->handshake.prf_md5_hash_copy));
+    }
+    GUARD(s2n_hash_init(&conn->handshake.md5, S2N_HASH_MD5));
+    GUARD(s2n_hash_init(&conn->handshake.prf_md5_hash_copy, S2N_HASH_MD5));
 
     GUARD(s2n_hash_init(&conn->handshake.sha1, S2N_HASH_SHA1));
     GUARD(s2n_hash_init(&conn->handshake.sha224, S2N_HASH_SHA224));
