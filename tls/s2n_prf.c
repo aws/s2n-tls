@@ -317,7 +317,7 @@ int s2n_prf_new(struct s2n_connection *conn)
     /* Set p_hash_hmac_impl on initial prf creation. 
      * When in FIPS mode, the EVP API's must be used for the p_hash HMAC.
      */
-    s2n_is_in_fips_mode() ? (conn->prf_space.tls.p_hash_hmac_impl = &s2n_evp_hmac) : (conn->prf_space.tls.p_hash_hmac_impl = &s2n_hmac);
+    conn->prf_space.tls.p_hash_hmac_impl = s2n_is_in_fips_mode() ? &s2n_evp_hmac : &s2n_hmac;
 
     return conn->prf_space.tls.p_hash_hmac_impl->new(&conn->prf_space);
 }
