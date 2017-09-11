@@ -97,7 +97,9 @@ static int s2n_evp_hmac_p_hash_digest_init(struct s2n_prf_working_space *ws)
     notnull_check(ws->tls.p_hash.evp_hmac.mac_key);
  
     /* Ignore the MD5 check when in FIPS mode to comply with the TLS 1.0 RFC */
-    EVP_MD_CTX_set_flags(ws->tls.p_hash.evp_hmac.evp_digest.ctx, EVP_MD_CTX_FLAG_NON_FIPS_ALLOW);
+    if (s2n_is_in_fips_mode()) {
+        GUARD(s2n_digest_allow_md5_for_fips(&ws->tls.p_hash.evp_hmac.evp_digest));
+    }
 
     if (EVP_DigestSignInit(ws->tls.p_hash.evp_hmac.evp_digest.ctx, NULL, ws->tls.p_hash.evp_hmac.evp_digest.md, NULL, ws->tls.p_hash.evp_hmac.mac_key) == 0) {
         S2N_ERROR(S2N_ERR_P_HASH_INIT_FAILED);
@@ -425,9 +427,9 @@ static int s2n_sslv3_client_finished(struct s2n_connection *conn)
     uint8_t prefix[4] = { 0x43, 0x4c, 0x4e, 0x54 };
 
     lte_check(MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH, sizeof(conn->handshake.client_finished));
-    GUARD(s2n_hash_copy(&conn->handshake.sslv3_md5_copy, &conn->handshake.md5));
-    GUARD(s2n_hash_copy(&conn->handshake.sslv3_sha1_copy, &conn->handshake.sha1));
-    return s2n_sslv3_finished(conn, prefix, &conn->handshake.sslv3_md5_copy, &conn->handshake.sslv3_sha1_copy, conn->handshake.client_finished);
+    GUARD(s2n_hash_copy(&conn->handshake.prf_md5_hash_copy, &conn->handshake.md5));
+    GUARD(s2n_hash_copy(&conn->handshake.prf_sha1_hash_copy, &conn->handshake.sha1));
+    return s2n_sslv3_finished(conn, prefix, &conn->handshake.prf_md5_hash_copy, &conn->handshake.prf_sha1_hash_copy, conn->handshake.client_finished);
 }
 
 static int s2n_sslv3_server_finished(struct s2n_connection *conn)
@@ -435,9 +437,9 @@ static int s2n_sslv3_server_finished(struct s2n_connection *conn)
     uint8_t prefix[4] = { 0x53, 0x52, 0x56, 0x52 };
 
     lte_check(MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH, sizeof(conn->handshake.server_finished));
-    GUARD(s2n_hash_copy(&conn->handshake.sslv3_md5_copy, &conn->handshake.md5));
-    GUARD(s2n_hash_copy(&conn->handshake.sslv3_sha1_copy, &conn->handshake.sha1));
-    return s2n_sslv3_finished(conn, prefix, &conn->handshake.sslv3_md5_copy, &conn->handshake.sslv3_sha1_copy, conn->handshake.server_finished);
+    GUARD(s2n_hash_copy(&conn->handshake.prf_md5_hash_copy, &conn->handshake.md5));
+    GUARD(s2n_hash_copy(&conn->handshake.prf_sha1_hash_copy, &conn->handshake.sha1));
+    return s2n_sslv3_finished(conn, prefix, &conn->handshake.prf_md5_hash_copy, &conn->handshake.prf_sha1_hash_copy, conn->handshake.server_finished);
 }
 
 int s2n_prf_client_finished(struct s2n_connection *conn)
@@ -463,13 +465,13 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
     if (conn->actual_protocol_version == S2N_TLS12) {
         switch (conn->secure.cipher_suite->tls12_prf_alg) {
         case S2N_HMAC_SHA256:
-            GUARD(s2n_hash_copy(&conn->handshake.tls_hash_copy, &conn->handshake.sha256));
-            GUARD(s2n_hash_digest(&conn->handshake.tls_hash_copy, sha_digest, SHA256_DIGEST_LENGTH));
+            GUARD(s2n_hash_copy(&conn->handshake.prf_tls12_hash_copy, &conn->handshake.sha256));
+            GUARD(s2n_hash_digest(&conn->handshake.prf_tls12_hash_copy, sha_digest, SHA256_DIGEST_LENGTH));
             sha.size = SHA256_DIGEST_LENGTH;
             break;
         case S2N_HMAC_SHA384:
-            GUARD(s2n_hash_copy(&conn->handshake.tls_hash_copy, &conn->handshake.sha384));
-            GUARD(s2n_hash_digest(&conn->handshake.tls_hash_copy, sha_digest, SHA384_DIGEST_LENGTH));
+            GUARD(s2n_hash_copy(&conn->handshake.prf_tls12_hash_copy, &conn->handshake.sha384));
+            GUARD(s2n_hash_digest(&conn->handshake.prf_tls12_hash_copy, sha_digest, SHA384_DIGEST_LENGTH));
             sha.size = SHA384_DIGEST_LENGTH;
             break;
         default:
@@ -480,11 +482,11 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
         return s2n_prf(conn, &master_secret, &label, &sha, NULL, &client_finished);
     }
 
-    GUARD(s2n_hash_copy(&conn->handshake.sslv3_md5_copy, &conn->handshake.md5));
-    GUARD(s2n_hash_copy(&conn->handshake.sslv3_sha1_copy, &conn->handshake.sha1));
+    GUARD(s2n_hash_copy(&conn->handshake.prf_md5_hash_copy, &conn->handshake.md5));
+    GUARD(s2n_hash_copy(&conn->handshake.prf_sha1_hash_copy, &conn->handshake.sha1));
 
-    GUARD(s2n_hash_digest(&conn->handshake.sslv3_md5_copy, md5_digest, MD5_DIGEST_LENGTH));
-    GUARD(s2n_hash_digest(&conn->handshake.sslv3_sha1_copy, sha_digest, SHA_DIGEST_LENGTH));
+    GUARD(s2n_hash_digest(&conn->handshake.prf_md5_hash_copy, md5_digest, MD5_DIGEST_LENGTH));
+    GUARD(s2n_hash_digest(&conn->handshake.prf_sha1_hash_copy, sha_digest, SHA_DIGEST_LENGTH));
     md5.data = md5_digest;
     md5.size = MD5_DIGEST_LENGTH;
     sha.data = sha_digest;
@@ -516,13 +518,13 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
     if (conn->actual_protocol_version == S2N_TLS12) {
         switch (conn->secure.cipher_suite->tls12_prf_alg) {
         case S2N_HMAC_SHA256:
-            GUARD(s2n_hash_copy(&conn->handshake.tls_hash_copy, &conn->handshake.sha256));
-            GUARD(s2n_hash_digest(&conn->handshake.tls_hash_copy, sha_digest, SHA256_DIGEST_LENGTH));
+            GUARD(s2n_hash_copy(&conn->handshake.prf_tls12_hash_copy, &conn->handshake.sha256));
+            GUARD(s2n_hash_digest(&conn->handshake.prf_tls12_hash_copy, sha_digest, SHA256_DIGEST_LENGTH));
             sha.size = SHA256_DIGEST_LENGTH;
             break;
         case S2N_HMAC_SHA384:
-            GUARD(s2n_hash_copy(&conn->handshake.tls_hash_copy, &conn->handshake.sha384));
-            GUARD(s2n_hash_digest(&conn->handshake.tls_hash_copy, sha_digest, SHA384_DIGEST_LENGTH));
+            GUARD(s2n_hash_copy(&conn->handshake.prf_tls12_hash_copy, &conn->handshake.sha384));
+            GUARD(s2n_hash_digest(&conn->handshake.prf_tls12_hash_copy, sha_digest, SHA384_DIGEST_LENGTH));
             sha.size = SHA384_DIGEST_LENGTH;
             break;
         default:
@@ -533,11 +535,11 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
         return s2n_prf(conn, &master_secret, &label, &sha, NULL, &server_finished);
     }
 
-    GUARD(s2n_hash_copy(&conn->handshake.sslv3_md5_copy, &conn->handshake.md5));
-    GUARD(s2n_hash_copy(&conn->handshake.sslv3_sha1_copy, &conn->handshake.sha1));
+    GUARD(s2n_hash_copy(&conn->handshake.prf_md5_hash_copy, &conn->handshake.md5));
+    GUARD(s2n_hash_copy(&conn->handshake.prf_sha1_hash_copy, &conn->handshake.sha1));
 
-    GUARD(s2n_hash_digest(&conn->handshake.sslv3_md5_copy, md5_digest, MD5_DIGEST_LENGTH));
-    GUARD(s2n_hash_digest(&conn->handshake.sslv3_sha1_copy, sha_digest, SHA_DIGEST_LENGTH));
+    GUARD(s2n_hash_digest(&conn->handshake.prf_md5_hash_copy, md5_digest, MD5_DIGEST_LENGTH));
+    GUARD(s2n_hash_digest(&conn->handshake.prf_sha1_hash_copy, sha_digest, SHA_DIGEST_LENGTH));
     md5.data = md5_digest;
     md5.size = MD5_DIGEST_LENGTH;
     sha.data = sha_digest;

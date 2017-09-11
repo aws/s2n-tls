@@ -19,7 +19,6 @@
 #include "tls/s2n_prf.h"
 
 #include "crypto/s2n_hash.h"
-#include "crypto/s2n_evp.h"
 
 struct s2n_connection_prf_handles {
     /* TLS PRF HMAC p_hash */
@@ -40,9 +39,9 @@ struct s2n_connection_hash_handles {
     struct s2n_hash_evp_digest sha384;
     struct s2n_hash_evp_digest sha512;
     struct s2n_hash_evp_digest md5_sha1;
-    struct s2n_hash_evp_digest sslv3_md5_copy;
-    struct s2n_hash_evp_digest sslv3_sha1_copy;
-    struct s2n_hash_evp_digest tls_hash_copy;
+    struct s2n_hash_evp_digest prf_md5_hash_copy;
+    struct s2n_hash_evp_digest prf_sha1_hash_copy;
+    struct s2n_hash_evp_digest prf_tls12_hash_copy;
     struct s2n_hash_evp_digest prf_md5;
 
     /* SSLv3 PRF hash states */

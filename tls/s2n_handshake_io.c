@@ -20,6 +20,8 @@
 
 #include "error/s2n_errno.h"
 
+#include "crypto/s2n_fips.h"
+
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
@@ -304,13 +306,24 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
 static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data)
 {
+    /* The handshake MD5 hash state will fail the s2n_hash_is_available() check
+     * since MD5 is not permitted in FIPS mode. This check will not be used as
+     * the handshake MD5 hash state is specifically used by the TLS 1.0 and TLS 1.1
+     * PRF, which is required to comply with the TLS 1.0 and 1.1 RFCs and is approved
+     * as per NIST Special Publication 800-52 Revision 1.
+     */
     GUARD(s2n_hash_update(&conn->handshake.md5, data->data, data->size));
+
+    if (s2n_hash_is_available(S2N_HASH_MD5_SHA1)) {
+        /* The MD5_SHA1 hash cannot be initialized when FIPS mode is set. */
+        GUARD(s2n_hash_update(&conn->handshake.md5_sha1, data->data, data->size));
+    }
+
     GUARD(s2n_hash_update(&conn->handshake.sha1, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.sha224, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.sha256, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.sha384, data->data, data->size));
     GUARD(s2n_hash_update(&conn->handshake.sha512, data->data, data->size));
-    GUARD(s2n_hash_update(&conn->handshake.md5_sha1, data->data, data->size));
 
     return 0;
 }
@@ -577,13 +590,23 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
     }
 
     while (ACTIVE_STATE(conn).writer != 'B') {
-
         /* Flush any pending I/O or alert messages */
         GUARD(s2n_flush(conn, blocked));
 
         if (ACTIVE_STATE(conn).writer == this) {
             *blocked = S2N_BLOCKED_ON_WRITE;
-            GUARD(handshake_write_io(conn));
+            if (handshake_write_io(conn) < 0 && s2n_errno != S2N_ERR_BLOCKED) {
+                /* Non-retryable write error. The peer might have sent an alert. Try and read it. */
+                const int write_s2n_errno = s2n_errno;
+
+                if (handshake_read_io(conn) < 0 && s2n_errno == S2N_ERR_ALERT) {
+                    /* handshake_read_io has set s2n_errno */
+                    return -1;
+                } else {
+                    /* Let the write error take precedence if we didn't read an alert. */
+                    S2N_ERROR(write_s2n_errno);
+                }
+            }
         } else {
             *blocked = S2N_BLOCKED_ON_READ;
             if (handshake_read_io(conn) < 0) {

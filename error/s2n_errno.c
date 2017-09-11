@@ -71,6 +71,7 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_HASH_UPDATE_FAILED, "error updating hash"},
     {S2N_ERR_HASH_COPY_FAILED, "error copying hash"},
     {S2N_ERR_HASH_WIPE_FAILED, "error wiping hash"},
+    {S2N_ERR_ALLOW_MD5_FOR_FIPS_FAILED, "error allowing MD5 to be used when in FIPS mode"},
     {S2N_ERR_HMAC_INVALID_ALGORITHM, "invalid HMAC algorithm"},
     {S2N_ERR_HKDF_OUTPUT_SIZE, "invalid HKDF output size"},
     {S2N_ERR_PRF_INVALID_ALGORITHM, "invalid prf hash algorithm"},
@@ -129,6 +130,8 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_CERT_UNTRUSTED, "Certificate is untrusted"},
     {S2N_ERR_CERT_TYPE_UNSUPPORTED, "Certificate Type is unsupported"},
     {S2N_ERR_CANCELLED, "handshake was cancelled"},
+    {S2N_ERR_INVALID_MAX_FRAG_LEN, "invalid Maximum Fragmentation Length encountered"},
+    {S2N_ERR_MAX_FRAG_LEN_MISMATCH, "Negotiated Maximum Fragmentation Length from server does not match the requested length by client"},
 };
 
 const char *s2n_strerror(int error, const char *lang)

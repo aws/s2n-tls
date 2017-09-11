@@ -21,8 +21,11 @@
 
 #include <s2n.h>
 
+#include "crypto/s2n_fips.h"
+
 #include "error/s2n_errno.h"
 
+#include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_connection_evp_digests.h"
@@ -53,9 +56,9 @@ static int s2n_connection_new_hashes(struct s2n_connection *conn)
     GUARD(s2n_hash_new(&conn->handshake.sha384));
     GUARD(s2n_hash_new(&conn->handshake.sha512));
     GUARD(s2n_hash_new(&conn->handshake.md5_sha1));
-    GUARD(s2n_hash_new(&conn->handshake.sslv3_md5_copy));
-    GUARD(s2n_hash_new(&conn->handshake.sslv3_sha1_copy));
-    GUARD(s2n_hash_new(&conn->handshake.tls_hash_copy));
+    GUARD(s2n_hash_new(&conn->handshake.prf_md5_hash_copy));
+    GUARD(s2n_hash_new(&conn->handshake.prf_sha1_hash_copy));
+    GUARD(s2n_hash_new(&conn->handshake.prf_tls12_hash_copy));
     GUARD(s2n_hash_new(&conn->prf_space.ssl3.md5));
     GUARD(s2n_hash_new(&conn->prf_space.ssl3.sha1));
     GUARD(s2n_hash_new(&conn->initial.signature_hash));
@@ -67,17 +70,35 @@ static int s2n_connection_new_hashes(struct s2n_connection *conn)
 static int s2n_connection_init_hashes(struct s2n_connection *conn)
 {
     /* Initialize all of the Connection's hash states */
+    
+    if (s2n_hash_is_available(S2N_HASH_MD5)) {
+        /* Only initialize hashes that use MD5 if available. */
+        GUARD(s2n_hash_init(&conn->prf_space.ssl3.md5, S2N_HASH_MD5));
+    }
+
+    if (s2n_hash_is_available(S2N_HASH_MD5_SHA1)) {
+        /* Only initialize hashes that use MD5_SHA1 if available. */
+        GUARD(s2n_hash_init(&conn->handshake.md5_sha1, S2N_HASH_MD5_SHA1));
+    }
+
+    /* Allow MD5 for hash states that are used by the PRF. This is required
+     * to comply with the TLS 1.0 and 1.1 RFCs and is approved as per
+     * NIST Special Publication 800-52 Revision 1.
+     */
+    if (s2n_is_in_fips_mode()) {
+        GUARD(s2n_hash_allow_md5_for_fips(&conn->handshake.md5));
+        GUARD(s2n_hash_allow_md5_for_fips(&conn->handshake.prf_md5_hash_copy));
+    }
     GUARD(s2n_hash_init(&conn->handshake.md5, S2N_HASH_MD5));
+    GUARD(s2n_hash_init(&conn->handshake.prf_md5_hash_copy, S2N_HASH_MD5));
+
     GUARD(s2n_hash_init(&conn->handshake.sha1, S2N_HASH_SHA1));
     GUARD(s2n_hash_init(&conn->handshake.sha224, S2N_HASH_SHA224));
     GUARD(s2n_hash_init(&conn->handshake.sha256, S2N_HASH_SHA256));
     GUARD(s2n_hash_init(&conn->handshake.sha384, S2N_HASH_SHA384));
     GUARD(s2n_hash_init(&conn->handshake.sha512, S2N_HASH_SHA512));
-    GUARD(s2n_hash_init(&conn->handshake.md5_sha1, S2N_HASH_MD5_SHA1));
-    GUARD(s2n_hash_init(&conn->handshake.sslv3_md5_copy, S2N_HASH_MD5));
-    GUARD(s2n_hash_init(&conn->handshake.sslv3_sha1_copy, S2N_HASH_SHA1));
-    GUARD(s2n_hash_init(&conn->handshake.tls_hash_copy, S2N_HASH_NONE));
-    GUARD(s2n_hash_init(&conn->prf_space.ssl3.md5, S2N_HASH_MD5));
+    GUARD(s2n_hash_init(&conn->handshake.prf_tls12_hash_copy, S2N_HASH_NONE));
+    GUARD(s2n_hash_init(&conn->handshake.prf_sha1_hash_copy, S2N_HASH_SHA1));
     GUARD(s2n_hash_init(&conn->prf_space.ssl3.sha1, S2N_HASH_SHA1));
     GUARD(s2n_hash_init(&conn->initial.signature_hash, S2N_HASH_NONE));
     GUARD(s2n_hash_init(&conn->secure.signature_hash, S2N_HASH_NONE));
@@ -124,7 +145,12 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
      * which is ok, as blob.data is always aligned.
      */
     conn = (struct s2n_connection *)(void *)blob.data;
-    conn->config = &s2n_default_config;
+
+    if (s2n_is_in_fips_mode()) {
+        conn->config = &s2n_default_fips_config;
+    } else {
+        conn->config = &s2n_default_config;
+    }
 
     if (mode == S2N_CLIENT) {
         /* At present s2n is not suitable for use in client mode, as it
@@ -228,16 +254,9 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->server = &conn->initial;
     conn->client = &conn->initial;
     conn->max_outgoing_fragment_length = S2N_DEFAULT_FRAGMENT_LENGTH;
+    conn->mfl_code = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
     conn->handshake.handshake_type = INITIAL;
     conn->handshake.message_number = 0;
-    GUARD(s2n_hash_init(&conn->handshake.md5, S2N_HASH_MD5));
-    GUARD(s2n_hash_init(&conn->handshake.sha1, S2N_HASH_SHA1));
-    GUARD(s2n_hash_init(&conn->handshake.sha224, S2N_HASH_SHA224));
-    GUARD(s2n_hash_init(&conn->handshake.sha256, S2N_HASH_SHA256));
-    GUARD(s2n_hash_init(&conn->handshake.sha384, S2N_HASH_SHA384));
-    GUARD(s2n_hash_init(&conn->handshake.sha512, S2N_HASH_SHA512));
-    GUARD(s2n_hmac_init(&conn->client->client_record_mac, S2N_HMAC_NONE, NULL, 0));
-    GUARD(s2n_hmac_init(&conn->server->server_record_mac, S2N_HMAC_NONE, NULL, 0));
 
     return 0;
 }
@@ -276,9 +295,9 @@ static int s2n_connection_reset_hashes(struct s2n_connection *conn)
     GUARD(s2n_hash_reset(&conn->handshake.sha384));
     GUARD(s2n_hash_reset(&conn->handshake.sha512));
     GUARD(s2n_hash_reset(&conn->handshake.md5_sha1));
-    GUARD(s2n_hash_reset(&conn->handshake.sslv3_md5_copy));
-    GUARD(s2n_hash_reset(&conn->handshake.sslv3_sha1_copy));
-    GUARD(s2n_hash_reset(&conn->handshake.tls_hash_copy));
+    GUARD(s2n_hash_reset(&conn->handshake.prf_md5_hash_copy));
+    GUARD(s2n_hash_reset(&conn->handshake.prf_sha1_hash_copy));
+    GUARD(s2n_hash_reset(&conn->handshake.prf_tls12_hash_copy));
     GUARD(s2n_hash_reset(&conn->prf_space.ssl3.md5));
     GUARD(s2n_hash_reset(&conn->prf_space.ssl3.sha1));
     GUARD(s2n_hash_reset(&conn->initial.signature_hash));
@@ -353,9 +372,9 @@ static int s2n_connection_free_hashes(struct s2n_connection *conn)
     GUARD(s2n_hash_free(&conn->handshake.sha384));
     GUARD(s2n_hash_free(&conn->handshake.sha512));
     GUARD(s2n_hash_free(&conn->handshake.md5_sha1));
-    GUARD(s2n_hash_free(&conn->handshake.sslv3_md5_copy));
-    GUARD(s2n_hash_free(&conn->handshake.sslv3_sha1_copy));
-    GUARD(s2n_hash_free(&conn->handshake.tls_hash_copy));
+    GUARD(s2n_hash_free(&conn->handshake.prf_md5_hash_copy));
+    GUARD(s2n_hash_free(&conn->handshake.prf_sha1_hash_copy));
+    GUARD(s2n_hash_free(&conn->handshake.prf_tls12_hash_copy));
     GUARD(s2n_hash_free(&conn->prf_space.ssl3.md5));
     GUARD(s2n_hash_free(&conn->prf_space.ssl3.sha1));
     GUARD(s2n_hash_free(&conn->initial.signature_hash));
@@ -817,14 +836,18 @@ const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uin
 
 int s2n_connection_prefer_throughput(struct s2n_connection *conn)
 {
-    conn->max_outgoing_fragment_length = S2N_LARGE_FRAGMENT_LENGTH;
+    if (!conn->mfl_code) {
+        conn->max_outgoing_fragment_length = S2N_LARGE_FRAGMENT_LENGTH;
+    }
 
     return 0;
 }
 
 int s2n_connection_prefer_low_latency(struct s2n_connection *conn)
 {
-    conn->max_outgoing_fragment_length = S2N_SMALL_FRAGMENT_LENGTH;
+    if (!conn->mfl_code) {
+        conn->max_outgoing_fragment_length = S2N_SMALL_FRAGMENT_LENGTH;
+    }
 
     return 0;
 }

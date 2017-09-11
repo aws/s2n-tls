@@ -17,12 +17,15 @@
 
 #include "error/s2n_errno.h"
 
+#include "crypto/s2n_fips.h"
+
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_config.h"
 
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
+#include "tls/s2n_tls_parameters.h"
 
 #if defined(__APPLE__) && defined(__MACH__)
 
@@ -67,13 +70,17 @@ int get_nanoseconds_since_epoch(void *data, uint64_t * nanoseconds)
 
 #endif
 
-int deny_all_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key, void *context)
+int deny_all_certs(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key, void *context)
 {
     S2N_ERROR(S2N_ERR_CERT_UNTRUSTED);
 }
 
 /* Accept all RSA Certificates is unsafe and is only used in the s2n Client for testing purposes */
-s2n_cert_validation_code accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context)
+s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn,
+                                              uint8_t *cert_chain_in,
+                                              uint32_t cert_chain_len,
+                                              struct s2n_cert_public_key *public_key_out,
+                                              void *context)
 {
     struct s2n_blob cert_chain_blob = { .data = cert_chain_in, .size = cert_chain_len};
     struct s2n_stuffer cert_chain_in_stuffer;
@@ -142,6 +149,12 @@ struct s2n_config s2n_unsafe_client_testing_config = {
     .verify_cert_context = NULL,
 };
 
+struct s2n_config s2n_default_fips_config = {
+    .cert_and_key_pairs = NULL,
+    .cipher_preferences = &cipher_preferences_20170405,
+    .nanoseconds_since_epoch = get_nanoseconds_since_epoch,
+};
+
 struct s2n_config *s2n_config_new(void)
 {
     struct s2n_blob allocator;
@@ -165,6 +178,8 @@ struct s2n_config *s2n_config_new(void)
     new_config->cache_delete = NULL;
     new_config->cache_delete_data = NULL;
     new_config->ct_type = S2N_CT_SUPPORT_NONE;
+    new_config->mfl_code = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
+    new_config->accept_mfl = 0;
 
     /* By default, only the client will authenticate the Server's Certificate. The Server does not request or
      * authenticate any client certificates. */
@@ -172,7 +187,11 @@ struct s2n_config *s2n_config_new(void)
     new_config->verify_cert_chain_cb = deny_all_certs;
     new_config->verify_cert_context = NULL;
 
-    GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default"));
+    if (s2n_is_in_fips_mode()) {
+        GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default_fips"));
+    } else {
+        GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default"));
+    }
 
     return new_config;
 }
@@ -506,3 +525,26 @@ int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_f
 
     return 0;
 }
+
+int s2n_config_send_max_fragment_length(struct s2n_config *config, s2n_max_frag_len mfl_code)
+{
+    notnull_check(config);
+
+    if (mfl_code > S2N_TLS_MAX_FRAG_LEN_4096) {
+        S2N_ERROR(S2N_ERR_INVALID_MAX_FRAG_LEN);
+    }
+
+    config->mfl_code = mfl_code;
+
+    return 0;
+}
+
+int s2n_config_accept_max_fragment_length(struct s2n_config *config)
+{
+    notnull_check(config);
+
+    config->accept_mfl = 1;
+
+    return 0;
+}
+

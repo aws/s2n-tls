@@ -67,6 +67,13 @@ typedef enum {
     S2N_EXTENSION_CERTIFICATE_TRANSPARENCY = 18,
 } s2n_tls_extension_type;
 
+typedef enum {
+    S2N_TLS_MAX_FRAG_LEN_512 = 1,
+    S2N_TLS_MAX_FRAG_LEN_1024 = 2,
+    S2N_TLS_MAX_FRAG_LEN_2048 = 3,
+    S2N_TLS_MAX_FRAG_LEN_4096 = 4,
+} s2n_max_frag_len;
+
 extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem);
 
 extern int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem);
@@ -77,6 +84,8 @@ extern int s2n_config_set_status_request_type(struct s2n_config *config, s2n_sta
 typedef enum { S2N_CT_SUPPORT_NONE = 0, S2N_CT_SUPPORT_REQUEST = 1 } s2n_ct_support_level;
 extern int s2n_config_set_ct_support_level(struct s2n_config *config, s2n_ct_support_level level);
 extern int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length);
+extern int s2n_config_send_max_fragment_length(struct s2n_config *config, s2n_max_frag_len mfl_code);
+extern int s2n_config_accept_max_fragment_length(struct s2n_config *config);
 
 struct s2n_connection;
 typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
@@ -171,7 +180,7 @@ extern int s2n_cert_public_key_set_cert_type(struct s2n_cert_public_key *cert_pu
 extern int s2n_cert_public_key_get_rsa(struct s2n_cert_public_key *cert_pub_key, s2n_rsa_public_key **rsa);
 
 /* Not intended for general consumption. Use at your own risk. */
-typedef s2n_cert_validation_code verify_cert_trust_chain_fn(uint8_t *der_cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
+typedef s2n_cert_validation_code verify_cert_trust_chain_fn(struct s2n_connection *conn, uint8_t *der_cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
 
 extern int s2n_config_set_verify_cert_chain_cb(struct s2n_config *config, verify_cert_trust_chain_fn *callback, void *context);
 

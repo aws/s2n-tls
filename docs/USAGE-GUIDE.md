@@ -589,8 +589,9 @@ default is for s2n to accept all RSA Certs on the client side, and deny all cert
 ### verify_cert_trust_chain_fn
 
 ```c
-int verify_cert_trust_chain(uint8_t *der_cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
+int verify_cert_trust_chain(struct s2n_connection *conn, uint8_t *der_cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
 ```
+ - **conn** The connection the certificate chain is validated for
  - **der_cert_chain_in** The DER encoded full chain of certificates recieved
  - **cert_chain_len** The length in bytes of the DER encoded Cert Chain
  - **public_key_out** The public key that should be updated with the key extracted from the first certificate in the chain (the leaf Cert)
@@ -599,7 +600,6 @@ int verify_cert_trust_chain(uint8_t *der_cert_chain_in, uint32_t cert_chain_len,
 
 **verify_cert_trust_chain_fn** defines a Callback Function Signature intended to be used only in special circumstances, and may be removed in a later release.
 Implementations should Verify the Certificate Chain of trust, and place the leaf Certificate's Public Key in the public_key_out parameter.
-They should not not perform any hostname validation, which is still needed in order to completely validate a Certificate.
 
 ### Public Key API's
 ```c
@@ -669,6 +669,28 @@ callback function takes three arguments: a pointer to abitrary data for use
 within the callback, a pointer to a key which can be used to delete the
 cached entry, and a 64 bit unsigned integer specifying the size of this key.
 
+### s2n\_config\_send\_max\_fragment\_length
+
+```c
+int s2n_config_send_max_fragment_length(struct s2n_config *config, uint8_t mfl_code);
+```
+
+**s2n_config_send_max_fragment_length** allows the caller to set a TLS Maximum
+Fragment Length extension that will be used to fragment outgoing messages.
+s2n currently does not reject fragments larger than the configured maximum when
+in server mode. The TLS negotiated maximum fragment length overrides the preference set
+by the **s2n_connection_prefer_throughput** and **s2n_connection_prefer_low_latency**.
+
+### s2n\_config\_accept\_max\_fragment\_length
+
+```c
+int s2n_config_accept_max_fragment_length(struct s2n_config *config);
+```
+
+**s2n_config_accept_max_fragment_length** allows the server to opt-in to accept
+client's TLS maximum fragment length extension requests.
+If this API is not called, and client requests the extension, server will ignore the
+request and continue TLS handshake with default maximum fragment length of 8k bytes
 ## Connection-oriented functions
 
 ### s2n\_connection\_new
@@ -786,7 +808,7 @@ or low latency. Connections prefering low latency will be encrypted using small
 record sizes that can be decrypted sooner by the recipient. Connections
 prefering throughput will use large record sizes that minimize overhead.
 
-Connections prefer low latency by default.
+-Connections default to an 8k outgoing maximum
 
 ### s2n\_connection\_get\_wire\_bytes
 

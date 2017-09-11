@@ -33,7 +33,7 @@
 #include "crypto/s2n_pkey.h"
 
 /* Accept all RSA Certificates is unsafe and is only used in the s2n Client */
-s2n_cert_validation_code accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context)
+s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context)
 {
     uint32_t bytes_read = 0;
     uint32_t certificate_count = 0;

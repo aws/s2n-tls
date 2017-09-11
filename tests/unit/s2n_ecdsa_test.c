@@ -26,6 +26,7 @@
 
 #include "crypto/s2n_ecdsa.h"
 #include "crypto/s2n_ecc.h"
+#include "crypto/s2n_fips.h"
 
 static uint8_t unmatched_private_key[] =
     "-----BEGIN EC PRIVATE KEY-----\n"
@@ -123,6 +124,12 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < sizeof(supported_hash_algorithms) / sizeof(supported_hash_algorithms[0]); i++) {
         int hash_alg = supported_hash_algorithms[i];
+        
+        if (!s2n_hash_is_available(hash_alg)) {
+            /* Skip hash algorithms that are not available. */
+            continue;
+        }
+
         EXPECT_SUCCESS(s2n_hash_init(&hash_one, hash_alg));
         EXPECT_SUCCESS(s2n_hash_init(&hash_two, hash_alg));
 

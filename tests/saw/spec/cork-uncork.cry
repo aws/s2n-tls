@@ -1,0 +1,92 @@
+// This module contains a high-level model of the cork-uncork state
+// machine. This state machine only tracks the current sender (client,
+// server or both) and is driven by the new value of the 'writer' field
+// of the handshake state machine state (the 'handshake_action').
+//
+// It also contains a predicate that states the high-level model
+// simulates the lower-level model of s2n_advance_message in Cryptol
+// and is verified in the SAW proof script.
+//
+// Finally, the property we want to prove is about not corking or
+// uncorking a socket twice in a row. It is encoded in 'noDoubleCorkUncork'.
+
+module CorkUncork where
+
+import Cryptol::Extras
+import s2n_handshake_io
+
+type State = ([2], [2])
+(clientSender : [2]) = 0
+(serverSender : [2]) = 1
+(appData      : [2]) = 2
+
+(corked : [2]) = 1
+(uncorked : [2]) = 0
+
+// For any two related 'connection' and corking 'State' they produce related
+// corking traces.
+highLevelSimulatesLowLevel : {len} (fin len, len >= 2) => connection -> State -> Bit
+highLevelSimulatesLowLevel conn state =
+   initial_connection conn /\ conn.mode == S2N_SERVER /\ conn2state conn == state ==>
+   (map conn2state conn_trace) == (trace_corking `{n = len} state writers)
+   where (conn_trace : [len]connection) = trace_advance_message `{n = len} conn
+         writers = drop `{1} (map getWriter conn_trace)
+
+// Property of the high-level state machine:  there is no uncorking or corking
+// twice in a row
+noDoubleCorkUncork : [16][8] -> Bit
+noDoubleCorkUncork writers = and (map corkingInBounds (run writers))
+
+writer2sender : [8] -> [2]
+writer2sender w = if w == 'C' then clientSender else
+                  if w == 'S' then serverSender else
+                                   appData
+
+corkedFromConn : connection -> [2]
+corkedFromConn conn = if mode_writer conn.mode == (ACTIVE_STATE conn).writer then 1
+                      else 0
+
+trace_advance_message : {n} (fin n) => connection -> [n]connection
+trace_advance_message conn = take (iterate advance_message conn)
+
+trace_corking : {n} (fin n, n >= 2) => State -> [n-1][8] -> [n]State
+trace_corking s writers = scanl cork_transition s writers
+
+getWriter : connection -> [8]
+getWriter conn = (ACTIVE_STATE conn).writer
+
+conn2state : connection -> State
+conn2state conn = (writer2sender (getWriter conn), conn.corked)
+
+// A (failing) simulation relation that omits the "only in server
+// mode" precondition.
+// We wrap this with negation to show that we can't do this proof without
+// the server-mode assumption
+highLevelDoesNotSimulateLowLevel :  {len} (fin len, len >= 2) => connection -> State -> Bit
+highLevelDoesNotSimulateLowLevel conn state =
+   initial_connection conn /\ conn2state conn == state ==>
+   (map conn2state conn_trace) == (trace_corking `{n = len} state writers)
+   where (conn_trace : [len]connection) = trace_advance_message `{n = len} conn
+         writers = drop `{1} (map getWriter conn_trace)
+
+// The abstract transition function for the cork/uncork state machine
+cork_transition : State -> [8] -> State
+cork_transition (s, corking) c =
+  if (s == clientSender) then
+     if c == 'C' then (clientSender, corking)
+     else if c == 'S' then (serverSender, corking + 1)
+          else (appData, corking)
+  else if s == serverSender then
+     if c == 'C' then (clientSender, corking - 1)
+     else if c == 'S' then (serverSender, corking)
+          else (appData, corking - 1)
+  else (appData, corking)
+
+// generate a trace of states for the standard cork/uncork state //
+// machine (assumes socket is initially uncorked) given a list of input
+// actions (new writers)
+run : {n} [n][8] -> [n+1]State
+run writers = scanl cork_transition (clientSender, uncorked) writers
+
+corkingInBounds : State -> Bit
+corkingInBounds (_, corking) = corking == corked \/ corking == uncorked

@@ -37,9 +37,9 @@ static int s2n_ecdsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *di
 
     uint8_t digest_length;
     GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
-    lte_check(digest_length, MAX_DIGEST_LENGTH);
+    lte_check(digest_length, S2N_MAX_DIGEST_LEN);
 
-    uint8_t digest_out[MAX_DIGEST_LENGTH];
+    uint8_t digest_out[S2N_MAX_DIGEST_LEN];
     GUARD(s2n_hash_digest(digest, digest_out, digest_length));
 
     unsigned int signature_size = signature->size;
@@ -63,9 +63,9 @@ static int s2n_ecdsa_verify(const struct s2n_pkey *pub, struct s2n_hash_state *d
 
     uint8_t digest_length;
     GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
-    lte_check(digest_length, MAX_DIGEST_LENGTH);
+    lte_check(digest_length, S2N_MAX_DIGEST_LEN);
 
-    uint8_t digest_out[MAX_DIGEST_LENGTH];
+    uint8_t digest_out[S2N_MAX_DIGEST_LEN];
     GUARD(s2n_hash_digest(digest, digest_out, digest_length));
     
     /* ECDSA_verify ignores the first parameter */
