@@ -25,6 +25,8 @@
 
 #include <s2n.h>
 
+#include "crypto/s2n_fips.h"
+
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_cipher_preferences.h"
@@ -81,7 +83,7 @@ static int try_handshake(struct s2n_connection *server_conn, struct s2n_connecti
 
 int main(int argc, char **argv)
 {
-    struct s2n_config *server_config;
+    struct s2n_config *server_config, *client_config;
     const struct s2n_cipher_preferences *default_cipher_preferences;
     char *cert_chain_pem;
     char *private_key_pem;
@@ -101,6 +103,14 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain_pem, private_key_pem));
     EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
     EXPECT_NOT_NULL(default_cipher_preferences = server_config->cipher_preferences);
+
+    client_config = &s2n_unsafe_client_testing_config;
+    if (s2n_is_in_fips_mode()) {
+        /* Override default client config ciphers when in FIPS mode to ensure all FIPS
+         * default ciphers are tested.
+         */
+        EXPECT_NOT_NULL(client_config->cipher_preferences = default_cipher_preferences);
+    }
 
     /* Verify that a handshake succeeds for every available cipher in the default list. For unavailable ciphers,
      * make sure that we fail the handshake. */
@@ -137,6 +147,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
         client_conn->actual_protocol_version = S2N_TLS12;
