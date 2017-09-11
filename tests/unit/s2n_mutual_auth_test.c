@@ -93,6 +93,17 @@ int main(int argc, char **argv)
 
     /* s2n support for Mutual Auth when in FIPS mode is not yet implemented. */
     if (s2n_is_in_fips_mode()) {
+        /* Test Mutual Auth fails using s2n_config_set_client_auth_type */
+        EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_FAILURE(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED));
+        EXPECT_SUCCESS(s2n_config_free(config));
+
+        /* Test Mutual Auth fails using s2n_connection_set_client_auth_type */
+        struct s2n_connection *conn;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_FAILURE(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_REQUIRED));
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+
         END_TEST();
     }
 
