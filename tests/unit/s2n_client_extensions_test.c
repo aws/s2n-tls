@@ -63,41 +63,61 @@ extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *c
 static int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
 {
     int server_rc = -1;
-    s2n_blocked_status server_blocked;
     int client_rc = -1;
+    s2n_blocked_status server_blocked;
     s2n_blocked_status client_blocked;
+    int server_done = 0;
+    int client_done = 0;
 
-    int max_attempts = 10;
-    int num_attempts = 0;
     do {
-        num_attempts++;
-        if (client_rc == -1) {
-            client_rc = s2n_negotiate(client_conn, &client_blocked);
-        }
-        if (server_rc == -1) {
+        if (!server_done) {
+            s2n_errno = S2N_ERR_T_OK;
             server_rc = s2n_negotiate(server_conn, &server_blocked);
+            if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+                server_done = 1;
+            }
         }
-    } while ((server_blocked || client_blocked) && errno == EAGAIN && num_attempts < max_attempts);
+        if (!client_done) {
+            s2n_errno = S2N_ERR_T_OK;
+            client_rc = s2n_negotiate(client_conn, &client_blocked);
+            if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+                client_done = 1;
+            }
+        }
+    } while (!client_done || !server_done);
 
-    return (server_rc || client_rc);
+    int rc = (server_rc == 0 && client_rc == 0) ? 0 : -1;
+    return rc;
 }
 
 static int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
 {
     int server_rc = -1;
-    s2n_blocked_status server_blocked;
     int client_rc = -1;
+    s2n_blocked_status server_blocked;
     s2n_blocked_status client_blocked;
-    do {
-        if (server_rc == -1) {
-            server_rc = s2n_shutdown(server_conn, &server_blocked);
-        }
-        if (client_rc == -1) {
-            client_rc = s2n_shutdown(client_conn, &client_blocked);
-        }
-    } while ((server_blocked || client_blocked) && errno == EAGAIN);
+    int server_done = 0;
+    int client_done = 0;
 
-    return (server_rc || client_rc);
+    do {
+        if (!server_done) {
+            s2n_errno = S2N_ERR_T_OK;
+            server_rc = s2n_shutdown(server_conn, &server_blocked);
+            if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+                server_done = 1;
+            }
+        }
+        if (!client_done) {
+            s2n_errno = S2N_ERR_T_OK;
+            client_rc = s2n_shutdown(client_conn, &client_blocked);
+            if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+                client_done = 1;
+            }
+        }
+    } while (!client_done || !server_done);
+
+    int rc = (server_rc == 0 && client_rc == 0) ? 0 : -1;
+    return rc;
 }
 
 int main(int argc, char **argv)
@@ -957,6 +977,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_config = s2n_config_new());
 
         EXPECT_SUCCESS(s2n_config_send_max_fragment_length(client_config, mfl_code));
+        EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, accept_all_rsa_certs, NULL));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -1019,6 +1040,7 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_FAILURE(s2n_config_send_max_fragment_length(client_config, 5));
+        EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, accept_all_rsa_certs, NULL));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -1079,6 +1101,7 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_send_max_fragment_length(client_config, S2N_TLS_MAX_FRAG_LEN_2048));
+        EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, accept_all_rsa_certs, NULL));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
