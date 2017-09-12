@@ -29,6 +29,8 @@
 #include <s2n.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
+#include "crypto/s2n_rsa.h"
+#include "crypto/s2n_pkey.h"
 
 /* Accept all RSA Certificates is unsafe and is only used in the s2n Client */
 s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context)
@@ -55,13 +57,12 @@ s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn, uint8
 
         /* Pull the public key from the first certificate */
         if (certificate_count == 0) {
-            struct s2n_rsa_public_key *s2n_rsa;
+            s2n_rsa_public_key *s2n_rsa;
             if (s2n_cert_public_key_get_rsa(public_key_out, &s2n_rsa) < 0) {
                 return S2N_CERT_ERR_INVALID;
             }
 
             /* Assume that the asn1cert is an RSA Cert */
-
             uint8_t *cert_to_parse = asn1_cert_data;
             X509 *cert = d2i_X509(NULL, (const unsigned char **)(void *)&cert_to_parse, next_certificate_size);
 
@@ -105,7 +106,6 @@ s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn, uint8
             if (s2n_cert_public_key_set_cert_type(public_key_out, S2N_CERT_TYPE_RSA_SIGN) < 0) {
                 return S2N_CERT_ERR_INVALID;
             }
-
         }
 
         certificate_count++;

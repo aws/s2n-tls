@@ -89,34 +89,34 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_write(&unmatched_ecdsa_key_in, &b));
 
     EXPECT_SUCCESS(s2n_stuffer_certificate_from_pem(&certificate_in, &certificate_out));
-    EXPECT_SUCCESS(s2n_stuffer_ec_private_key_from_pem(&ecdsa_key_in, &ecdsa_key_out));
-    EXPECT_SUCCESS(s2n_stuffer_ec_private_key_from_pem(&unmatched_ecdsa_key_in, &unmatched_ecdsa_key_out));
+    EXPECT_SUCCESS(s2n_stuffer_private_key_from_pem(&ecdsa_key_in, &ecdsa_key_out));
+    EXPECT_SUCCESS(s2n_stuffer_private_key_from_pem(&unmatched_ecdsa_key_in, &unmatched_ecdsa_key_out));
 
-    struct s2n_ecdsa_public_key pub_key;
-    struct s2n_ecdsa_private_key priv_key;
-    struct s2n_ecdsa_private_key unmatched_priv_key;
+    struct s2n_pkey pub_key;
+    struct s2n_pkey priv_key;
+    struct s2n_pkey unmatched_priv_key;
 
     b.size = s2n_stuffer_data_available(&certificate_out);
     b.data = s2n_stuffer_raw_read(&certificate_out, b.size);
-    EXPECT_SUCCESS(s2n_asn1der_to_ecdsa_public_key(&pub_key, &b));
+    EXPECT_SUCCESS(s2n_asn1der_to_public_key(&pub_key, &b));
 
     b.size = s2n_stuffer_data_available(&ecdsa_key_out);
     b.data = s2n_stuffer_raw_read(&ecdsa_key_out, b.size);
-    EXPECT_SUCCESS(s2n_asn1der_to_ecdsa_private_key(&priv_key, &b));
-
+    EXPECT_SUCCESS(s2n_asn1der_to_private_key(&priv_key, &b));
+    
     b.size = s2n_stuffer_data_available(&unmatched_ecdsa_key_out);
     b.data = s2n_stuffer_raw_read(&unmatched_ecdsa_key_out, b.size);
-    EXPECT_SUCCESS(s2n_asn1der_to_ecdsa_private_key(&unmatched_priv_key, &b));
+    EXPECT_SUCCESS(s2n_asn1der_to_private_key(&unmatched_priv_key, &b));
 
     /* Verify that the public/private key pair match */
-    EXPECT_SUCCESS(s2n_ecdsa_keys_match(&pub_key, &priv_key));
+    EXPECT_SUCCESS(s2n_pkey_match(&pub_key, &priv_key));
 
     /* Try signing and verification with ECDSA */
     uint8_t inputpad[] = "Hello world!";
     struct s2n_blob signature, bad_signature;
     struct s2n_hash_state hash_one, hash_two;
-    uint32_t maximum_signature_length = s2n_ecdsa_signature_size(&priv_key);
-
+    uint32_t maximum_signature_length = s2n_ecdsa_signature_size(&priv_key.key.ecdsa_key);
+    
     EXPECT_SUCCESS(s2n_alloc(&signature, maximum_signature_length));
 
     EXPECT_SUCCESS(s2n_hash_new(&hash_one));
@@ -138,29 +138,32 @@ int main(int argc, char **argv)
 
         /* Reset signature size when we compute a new signature */
         signature.size = maximum_signature_length;
-
-        EXPECT_SUCCESS(s2n_ecdsa_sign(&priv_key, &hash_one, &signature));
-        EXPECT_SUCCESS(s2n_ecdsa_verify(&pub_key, &hash_two, &signature));
-
+        
+        EXPECT_SUCCESS(s2n_pkey_sign(&priv_key, &hash_one, &signature));
+        EXPECT_SUCCESS(s2n_pkey_verify(&pub_key, &hash_two, &signature));
+        
         EXPECT_SUCCESS(s2n_hash_reset(&hash_one));
         EXPECT_SUCCESS(s2n_hash_reset(&hash_two));
     }
 
     /* Mismatched public/private key should fail verification */
-    EXPECT_SUCCESS(s2n_alloc(&bad_signature, s2n_ecdsa_signature_size(&unmatched_priv_key)));
+    EXPECT_SUCCESS(s2n_alloc(&bad_signature, s2n_ecdsa_signature_size(&unmatched_priv_key.key.ecdsa_key)));
 
-    EXPECT_FAILURE(s2n_ecdsa_keys_match(&pub_key, &unmatched_priv_key));
+    EXPECT_FAILURE(s2n_pkey_match(&pub_key, &unmatched_priv_key));
 
-    EXPECT_SUCCESS(s2n_ecdsa_sign(&unmatched_priv_key, &hash_one, &bad_signature));
-    EXPECT_FAILURE(s2n_ecdsa_verify(&pub_key, &hash_two, &bad_signature));
-
+    EXPECT_SUCCESS(s2n_pkey_sign(&unmatched_priv_key, &hash_one, &bad_signature));
+    EXPECT_FAILURE(s2n_pkey_verify(&pub_key, &hash_two, &bad_signature));
+    
     EXPECT_SUCCESS(s2n_free(&signature));
     EXPECT_SUCCESS(s2n_free(&bad_signature));
-    EXPECT_SUCCESS(s2n_ecdsa_public_key_free(&pub_key));
-    EXPECT_SUCCESS(s2n_ecdsa_private_key_free(&priv_key));
-    EXPECT_SUCCESS(s2n_ecdsa_private_key_free(&unmatched_priv_key));
+    
     EXPECT_SUCCESS(s2n_hash_free(&hash_one));
     EXPECT_SUCCESS(s2n_hash_free(&hash_two));
+    
+    EXPECT_SUCCESS(s2n_pkey_free(&pub_key));
+    EXPECT_SUCCESS(s2n_pkey_free(&priv_key));
+    EXPECT_SUCCESS(s2n_pkey_free(&unmatched_priv_key));
+    
     EXPECT_SUCCESS(s2n_stuffer_free(&certificate_in));
     EXPECT_SUCCESS(s2n_stuffer_free(&certificate_out));
     EXPECT_SUCCESS(s2n_stuffer_free(&ecdsa_key_in));
