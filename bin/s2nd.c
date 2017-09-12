@@ -233,7 +233,7 @@ extern int negotiate(struct s2n_connection *conn);
 extern int accept_all_rsa_certs(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
 
 /* Caller is expected to free the memory returned. */
-static char *load_file_to_cstr(const char *path)
+static char *load_file_to_cstring(const char *path)
 {
     FILE *pem_file = fopen(path, "rb");
     if (!pem_file) {
@@ -321,9 +321,9 @@ int main(int argc, char *const *argv)
     const char *host = NULL;
     const char *port = NULL;
 
-    const char *certificate_chain_file = NULL;
-    const char *private_key_file = NULL;
-    const char *ocsp_response_file = NULL;
+    const char *certificate_chain_file_path = NULL;
+    const char *private_key_file_path = NULL;
+    const char *ocsp_response_file_path = NULL;
     const char *cipher_prefs = "default";
     int fips_mode = 0;
     int only_negotiate = 0;
@@ -362,10 +362,10 @@ int main(int argc, char *const *argv)
             fips_mode = 1;
             break;
         case 'k':
-            private_key_file = optarg;
+            private_key_file_path = optarg;
             break;
         case 'r':
-            certificate_chain_file = optarg;
+            certificate_chain_file_path = optarg;
             break;
         case 'h':
             usage();
@@ -386,7 +386,7 @@ int main(int argc, char *const *argv)
             enable_mfl = 1;
             break;
         case 'o':
-            ocsp_response_file = optarg;
+            ocsp_response_file_path = optarg;
             break;
         case '?':
         default:
@@ -492,19 +492,19 @@ int main(int argc, char *const *argv)
 
     char *certificate_chain;
     char *private_key;
-    if (certificate_chain_file) {
-        certificate_chain = load_file_to_cstr(certificate_chain_file);
+    if (certificate_chain_file_path) {
+        certificate_chain = load_file_to_cstring(certificate_chain_file_path);
         if (certificate_chain == NULL) {
-            fprintf(stderr, "Error loading certificate chain file: '%s'\n", certificate_chain_file);
+            fprintf(stderr, "Error loading certificate chain file: '%s'\n", certificate_chain_file_path);
         }
     } else {
         certificate_chain = default_certificate_chain;
     }
 
-    if (private_key_file) {
-        private_key = load_file_to_cstr(private_key_file);
+    if (private_key_file_path) {
+        private_key = load_file_to_cstring(private_key_file_path);
         if (private_key == NULL) {
-            fprintf(stderr, "Error loading private key file: '%s'\n", private_key_file);
+            fprintf(stderr, "Error loading private key file: '%s'\n", private_key_file_path);
         }
     } else {
         private_key = default_private_key;
@@ -515,16 +515,16 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    if (certificate_chain_file) {
+    if (certificate_chain_file_path) {
         free(certificate_chain);
     }
 
-    if (private_key_file) {
+    if (private_key_file_path) {
         free(private_key);
     }
 
-    if (ocsp_response_file) {
-        int fd = open(ocsp_response_file, O_RDONLY);
+    if (ocsp_response_file_path) {
+        int fd = open(ocsp_response_file_path, O_RDONLY);
         if (fd < 0) {
             fprintf(stderr, "Error opening OCSP response file: '%s'\n", strerror(errno));
             exit(1);
