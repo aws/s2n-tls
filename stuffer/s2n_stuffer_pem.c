@@ -14,7 +14,6 @@
  */
 
 #include <string.h>
-#include <stdio.h>
 #include "error/s2n_errno.h"
 
 #include "stuffer/s2n_stuffer.h"

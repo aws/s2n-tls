@@ -114,13 +114,15 @@ int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1d
     int ret;
     switch (type) {
     case EVP_PKEY_RSA:
-        if ((ret = s2n_rsa_pkey_init(priv_key)) != 0) {
+        ret = s2n_rsa_pkey_init(priv_key);
+        if (ret != 0) {
             break;
         }
         ret = s2n_evp_pkey_to_rsa_private_key(&priv_key->key.rsa_key, evp_private_key);
         break;
     case EVP_PKEY_EC:
-        if ((ret = s2n_ecdsa_pkey_init(priv_key)) != 0) { 
+        ret = s2n_ecdsa_pkey_init(priv_key);
+        if (ret != 0) {
             break;
         }
         ret = s2n_evp_pkey_to_ecdsa_private_key(&priv_key->key.ecdsa_key, evp_private_key);
@@ -164,13 +166,15 @@ int s2n_asn1der_to_public_key(struct s2n_pkey *pub_key, struct s2n_blob *asn1der
     int ret;
     switch (type) {
     case EVP_PKEY_RSA:
-        if ((ret = s2n_rsa_pkey_init(pub_key)) != 0) {
+        ret = s2n_rsa_pkey_init(pub_key);
+        if (ret != 0) {
             break;
         }
         ret = s2n_evp_pkey_to_rsa_public_key(&pub_key->key.rsa_key, evp_public_key);
         break;
     case EVP_PKEY_EC:
-        if ((ret = s2n_ecdsa_pkey_init(pub_key)) != 0) {
+        ret = s2n_ecdsa_pkey_init(pub_key);
+        if (ret != 0) {
             break;
         }
         ret = s2n_evp_pkey_to_ecdsa_public_key(&pub_key->key.ecdsa_key, evp_public_key);
