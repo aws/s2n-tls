@@ -343,7 +343,9 @@ def elliptic_curve_test(host, port, fips_mode):
             # Put some unsupported curves in front to make sure we gracefully skip them
             mixed_curves = unsupported_curves + list(permutation)
             mixed_curves_str = ':'.join(mixed_curves)
-            for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or x.openssl_name == "ECDHE-RSA-AES128-SHA256", ALL_TEST_CIPHERS):
+            for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or x.openssl_name == "ECDHE-RSA-AES128-SHA", ALL_TEST_CIPHERS):
+                if fips_mode and cipher.openssl_fips_compatible == False:
+                    continue
                 ret = try_handshake(host, port, cipher.openssl_name, S2N_TLS12, curves=mixed_curves_str, enter_fips_mode=fips_mode)
                 prefix = "Curves: %-40s Vers: %10s ... " % (':'.join(list(permutation)), S2N_PROTO_VERS_TO_STR[S2N_TLS12])
                 print_result(prefix, ret)
