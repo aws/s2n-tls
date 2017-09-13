@@ -136,13 +136,7 @@ static int MAX_NEGOTIATION_ATTEMPTS = 10;
 int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 {
 #ifdef S2N_TEST_IN_FIPS_MODE
-    if (FIPS_mode_set(1) == 0) {
-        unsigned long fips_rc = ERR_get_error();
-        char ssl_error_buf[256]; // Openssl claims you need no more than 120 bytes for error strings
-        fprintf(stderr, "s2nd failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf));
-        return 1;
-    }
-    printf("s2nd entered FIPS mode\n");
+    S2N_TEST_ENTER_FIPS_MODE();
 #endif
 
     GUARD(s2n_init());
