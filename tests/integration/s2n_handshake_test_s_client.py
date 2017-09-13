@@ -228,9 +228,11 @@ def handshake_test(host, port, test_ciphers, fips_mode, use_client_auth=None, us
 def client_auth_test(host, port, test_ciphers, fips_mode):
     failed = 0
 
+    print("\n\tRunning client auth tests:")
+
     if fips_mode:
-        print("\n\tSkipped - Client Auth not supported in FIPS mode")
-        return failed
+        print("\t\033[33;1mSKIPPED\033[0m - Client Auth not supported in FIPS mode")
+        return 0
 
     for filename in os.listdir(TEST_CERT_DIRECTORY):
         if "client_cert" in filename and "rsa" in filename:
@@ -290,11 +292,12 @@ def sigalg_test(host, port, fips_mode, use_client_auth=None):
     """
     failed = 0
 
-    if fips_mode and use_client_auth:
-        print("\tSkipping Client Auth sigalg_test since s2n is in FIPS mode")
-        return failed
-
     print("\n\tRunning signature algorithm tests:")
+
+    if fips_mode and use_client_auth:
+        print("\t\033[33;1mSKIPPED\033[0m - Client Auth not supported in FIPS mode")
+        return 0
+
     print("\tExpected supported:   " + str(supported_sigs))
     print("\tExpected unsupported: " + str(unsupported_sigs))
 
