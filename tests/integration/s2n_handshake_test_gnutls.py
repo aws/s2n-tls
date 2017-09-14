@@ -25,17 +25,22 @@ import socket
 import subprocess
 import itertools
 import multiprocessing
+from os import environ
 from multiprocessing.pool import ThreadPool
 from s2n_test_constants import *
 
-def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test):
+def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, enter_fips_mode=False):
+    # Fire up s2nd
+    s2nd_cmd = ["../../bin/s2nd", str(endpoint), str(port)]
+    s2nd_ciphers = "test_all"
 
-    s2nd_cmd = ["../../bin/s2nd", "-c", "test_all", str(endpoint), str(port)]
-
+    if enter_fips_mode == True:
+        s2nd_ciphers = "test_all_fips"
+        s2nd_cmd.append("--enter-fips-mode")
+    s2nd_cmd.append("-c")
+    s2nd_cmd.append(s2nd_ciphers)
     if mfl_extension_test:
         s2nd_cmd.append("--enable-mfl")
-
-    # Fire up s2nd
     s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
     # Make sure it's running
@@ -86,8 +91,8 @@ def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test):
 
     return 0
 
-def handshake(endpoint, port, cipher_name, ssl_version, priority_str, digests, mfl_extension_test):
-    ret = try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test)
+def handshake(endpoint, port, cipher_name, ssl_version, priority_str, digests, mfl_extension_test, fips_mode):
+    ret = try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, fips_mode)
 
     prefix = ""
     if mfl_extension_test:
@@ -123,7 +128,7 @@ def main():
     parser = argparse.ArgumentParser(description='Runs TLS server integration tests against s2nd using gnutls-cli')
     parser.add_argument('host', help='The host for s2nd to bind to')
     parser.add_argument('port', type=int, help='The port for s2nd to bind to')
-    parser.add_argument('--libcrypto', default='openssl-1.1.0', choices=['openssl-1.0.2', 'openssl-1.1.0', 'openssl-1.1.x-master', 'libressl'],
+    parser.add_argument('--libcrypto', default='openssl-1.1.0', choices=['openssl-1.0.2', 'openssl-1.0.2-fips', 'openssl-1.1.0', 'openssl-1.1.x-master', 'libressl'],
             help="""The Libcrypto that s2n was built with. s2n supports different cipher suites depending on
                     libcrypto version. Defaults to openssl-1.1.0.""")
     args = parser.parse_args()
@@ -133,8 +138,18 @@ def main():
     host = args.host
     port = args.port
 
+    fips_mode = False
+    if environ.get("S2N_TEST_IN_FIPS_MODE") is not None:
+        fips_mode = True
+        print("\nRunning s2nd in FIPS mode.")
+
     print("\nRunning GnuTLS handshake tests with: " + os.popen('gnutls-cli --version | grep -w gnutls-cli').read())
     for ssl_version in [S2N_SSLv3, S2N_TLS10, S2N_TLS11, S2N_TLS12]:
+
+        if ssl_version == S2N_SSLv3 and fips_mode == True:
+            # FIPS does not permit the use of SSLv3
+            continue
+
         print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
         threadpool = create_thread_pool()
         port_offset = 0
@@ -152,7 +167,7 @@ def main():
             # Add the SSL version to make the cipher priority string fully qualified
             complete_priority_str = cipher_priority_str + ":+" + S2N_PROTO_VERS_TO_GNUTLS[ssl_version] + ":+SIGN-ALL"
 
-            async_result = threadpool.apply_async(handshake, (host, port + port_offset, cipher_name, ssl_version, complete_priority_str, [], 0))
+            async_result = threadpool.apply_async(handshake, (host, port + port_offset, cipher_name, ssl_version, complete_priority_str, [], 0, fips_mode))
             port_offset += 1
             results.append(async_result)
 
@@ -173,7 +188,7 @@ def main():
             # Try an ECDHE cipher suite and a DHE one
             for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or x.openssl_name == "DHE-RSA-AES128-GCM-SHA256", ALL_TEST_CIPHERS):
                 complete_priority_str = cipher.gnutls_priority_str + ":+VERS-TLS1.2:+" + ":+".join(permutation)
-                async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, S2N_TLS12, complete_priority_str, permutation, 0))
+                async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, S2N_TLS12, complete_priority_str, permutation, 0, fips_mode))
                 port_offset += 1
                 results.append(async_result)
 
@@ -192,7 +207,7 @@ def main():
         for mfl_extension_test in [512, 1024, 2048, 4096]:
             cipher = test_ciphers[0]
             complete_priority_str = cipher.gnutls_priority_str + ":+" + S2N_PROTO_VERS_TO_GNUTLS[S2N_TLS10] + ":+" + ":+".join(permutation)
-            async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, ssl_version, complete_priority_str, [], mfl_extension_test))
+            async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, ssl_version, complete_priority_str, [], mfl_extension_test, fips_mode))
             port_offset += 1
             results.append(async_result)
 
