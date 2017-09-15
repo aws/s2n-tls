@@ -327,7 +327,7 @@ int s2n_prf_free(struct s2n_connection *conn)
     /* Ensure that p_hash_hmac_impl is set, as it may have been reset for prf_space on s2n_connection_wipe. 
      * When in FIPS mode, the EVP API's must be used for the p_hash HMAC.
      */
-    s2n_is_in_fips_mode() ? (conn->prf_space.tls.p_hash_hmac_impl = &s2n_evp_hmac) : (conn->prf_space.tls.p_hash_hmac_impl = &s2n_hmac);
+    conn->prf_space.tls.p_hash_hmac_impl = s2n_is_in_fips_mode() ? &s2n_evp_hmac : &s2n_hmac;
 
     return conn->prf_space.tls.p_hash_hmac_impl->free(&conn->prf_space);
 }
@@ -349,7 +349,7 @@ static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct 
     /* Ensure that p_hash_hmac_impl is set, as it may have been reset for prf_space on s2n_connection_wipe. 
      * When in FIPS mode, the EVP API's must be used for the p_hash HMAC.
      */
-    s2n_is_in_fips_mode() ? (conn->prf_space.tls.p_hash_hmac_impl = &s2n_evp_hmac) : (conn->prf_space.tls.p_hash_hmac_impl = &s2n_hmac);
+    conn->prf_space.tls.p_hash_hmac_impl = s2n_is_in_fips_mode() ? &s2n_evp_hmac : &s2n_hmac;
 
     if (conn->actual_protocol_version == S2N_TLS12) {
         return s2n_p_hash(&conn->prf_space, conn->secure.cipher_suite->tls12_prf_alg, secret, label, seed_a, seed_b, out);
