@@ -451,7 +451,7 @@ static const struct s2n_hash s2n_evp_hash = {
 
 static int s2n_hash_set_impl(struct s2n_hash_state *state)
 {
-    s2n_is_in_fips_mode() ? (state->hash_impl = &s2n_evp_hash) : (state->hash_impl = &s2n_low_level_hash);
+    state->hash_impl = s2n_is_in_fips_mode() ? &s2n_evp_hash : &s2n_low_level_hash;
 
     return 0;
 }
