@@ -320,8 +320,11 @@ static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct 
         GUARD(s2n_hash_update(&conn->handshake.sha1, data->data, data->size));
     }
 
-    if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_MD5) &&
-        s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA1)) {
+    const uint8_t md5_sha1_required = (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_MD5) &&
+                                       s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA1));
+
+    if (md5_sha1_required && s2n_hash_is_available(S2N_HASH_MD5_SHA1)) {
+        /* The MD5_SHA1 hash cannot be initialized when FIPS mode is set. */
         GUARD(s2n_hash_update(&conn->handshake.md5_sha1, data->data, data->size));
     }
 
