@@ -102,13 +102,13 @@ int s2n_handshake_get_hash_state(struct s2n_connection *conn, s2n_hash_algorithm
     return 0;
 }
 
-int s2n_handshake_require_all_hashes(struct s2n_connection *conn)
+int s2n_handshake_require_all_hashes(struct s2n_handshake *handshake)
 {
-    memset(conn->handshake.required_hash_algs, 1, sizeof(conn->handshake.required_hash_algs));
+    memset(handshake->required_hash_algs, 1, sizeof(handshake->required_hash_algs));
     return 0;
 }
 
-int s2n_handshake_require_hash(struct s2n_handshake *handshake, s2n_hash_algorithm hash_alg)
+static int s2n_handshake_require_hash(struct s2n_handshake *handshake, s2n_hash_algorithm hash_alg)
 {
     handshake->required_hash_algs[hash_alg] = 1;
     return 0;
@@ -120,7 +120,9 @@ uint8_t s2n_handshake_is_hash_required(struct s2n_handshake *handshake, s2n_hash
 }
 
 /* Update the required handshake hash algs depending on current handshake session state.
- * This function must called at the end of a handshake message handler.
+ * This function must called at the end of a handshake message handler. Additionally it must be called after the
+ * ClientHello or ServerHello is processed in client and server mode respectively. The relevant handshake parameters
+ * are not available until those messages are processed.
  */
 int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
 {
@@ -134,7 +136,7 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
 
     /* If client authentication is possible, all hashes are needed until we're past CLIENT_CERT_VERIFY. */
     if ((client_cert_auth_type != S2N_CERT_AUTH_NONE) && !client_cert_verify_done) {
-        GUARD(s2n_handshake_require_all_hashes(conn));
+        GUARD(s2n_handshake_require_all_hashes(&conn->handshake));
         return 0;
     }
 
