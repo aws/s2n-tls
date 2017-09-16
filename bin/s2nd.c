@@ -222,7 +222,7 @@ int cache_delete(void *ctx, const void *key, uint64_t key_size)
     return 0;
 }
 
-
+extern void print_s2n_error(const char *app_error);
 extern int echo(struct s2n_connection *conn, int sockfd);
 extern int negotiate(struct s2n_connection *conn);
 extern int accept_all_rsa_certs(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
@@ -407,55 +407,56 @@ int main(int argc, char *const *argv)
     }
 
     if (s2n_init() < 0) {
-        fprintf(stderr, "Error running s2n_init(): '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error running s2n_init()");
+        exit(1);
     }
 
     printf("Listening on %s:%s\n", host, port);
 
     struct s2n_config *config = s2n_config_new();
     if (!config) {
-        fprintf(stderr, "Error getting new s2n config: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error getting new s2n config");
         exit(1);
     }
 
     if (s2n_config_add_cert_chain_and_key(config, certificate_chain, private_key) < 0) {
-        fprintf(stderr, "Error getting certificate/key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error getting certificate/key");
         exit(1);
     }
 
     if (s2n_config_add_dhparams(config, dhparams) < 0) {
-        fprintf(stderr, "Error adding DH parameters: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error adding DH parameters");
         exit(1);
     }
 
     if (s2n_config_set_cipher_preferences(config, cipher_prefs) < 0) {
-        fprintf(stderr, "Error setting cipher prefs: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error setting cipher prefs");
         exit(1);
     }
 
     if (s2n_config_set_cache_store_callback(config, cache_store, session_cache) < 0) {
-        fprintf(stderr, "Error setting cache store callback: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error setting cache store callback");
         exit(1);
     }
 
     if (s2n_config_set_cache_retrieve_callback(config, cache_retrieve, session_cache) < 0) {
-        fprintf(stderr, "Error setting cache retrieve callback: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error setting cache retrieve callback");
         exit(1);
     }
 
     if (s2n_config_set_cache_delete_callback(config, cache_delete, session_cache) < 0) {
-        fprintf(stderr, "Error setting cache retrieve callback: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error setting cache retrieve callback");
         exit(1);
     }
 
     if (enable_mfl && s2n_config_accept_max_fragment_length(config) < 0) {
-        fprintf(stderr, "Error enabling TLS maximum fragment length extension in server\n");
+        print_s2n_error("Error enabling TLS maximum fragment length extension in server");
         exit(1);
     }
 
     struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
     if (!conn) {
-        fprintf(stderr, "Error getting new s2n connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error getting new s2n connection");
         exit(1);
     }
 
@@ -465,24 +466,24 @@ int main(int argc, char *const *argv)
     }
 
     if (s2n_connection_set_config(conn, config) < 0) {
-        fprintf(stderr, "Error setting configuration: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error setting configuration");
         exit(1);
     }
 
     if (prefer_throughput && s2n_connection_prefer_throughput(conn) < 0) {
-        fprintf(stderr, "Error setting prefer throughput: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error setting prefer throughput");
         exit(1);
     }
 
     if (prefer_low_latency && s2n_connection_prefer_low_latency(conn) < 0) {
-        fprintf(stderr, "Error setting prefer low latency: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error setting prefer low latency");
         exit(1);
     }
 
     int fd;
     while ((fd = accept(sockfd, ai->ai_addr, &ai->ai_addrlen)) > 0) {
         if (s2n_connection_set_fd(conn, fd) < 0) {
-            fprintf(stderr, "Error setting file descriptor: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+            print_s2n_error("Error setting file descriptor");
             exit(1);
         }
 
@@ -490,8 +491,8 @@ int main(int argc, char *const *argv)
 
         if (mutual_auth) {
             if(!s2n_connection_client_cert_used(conn)) {
-                fprintf(stderr, "Error: Mutual Auth was required, but not negotiatied.\n");
-                return -1;
+                print_s2n_error("Error: Mutual Auth was required, but not negotiatied");
+                exit(1);
             }
         }
 
@@ -505,18 +506,19 @@ int main(int argc, char *const *argv)
         close(fd);
 
         if (s2n_connection_wipe(conn) < 0) {
-            fprintf(stderr, "Error wiping connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+            print_s2n_error("Error wiping connection");
             exit(1);
         }
     }
 
     if (s2n_connection_free(conn) < 0) {
-        fprintf(stderr, "Error freeing connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error freeing connection");
         exit(1);
     }
 
     if (s2n_cleanup() < 0) {
-        fprintf(stderr, "Error running s2n_cleanup(): '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error running s2n_cleanup()");
+        exit(1);
     }
 
     return 0;
