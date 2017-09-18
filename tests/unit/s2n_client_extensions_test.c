@@ -73,14 +73,18 @@ static int s2n_negotiate_test_server_and_client(struct s2n_connection *server_co
         if (!server_done) {
             s2n_errno = S2N_ERR_T_OK;
             server_rc = s2n_negotiate(server_conn, &server_blocked);
-            if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+
+            if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED || client_done) {
+                /* Success, fatal error, or the peer is done and we're still blocked. */
                 server_done = 1;
             }
         }
         if (!client_done) {
             s2n_errno = S2N_ERR_T_OK;
             client_rc = s2n_negotiate(client_conn, &client_blocked);
-            if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+
+            if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED || server_done) {
+                /* Success, fatal error, or the peer is done and we're still blocked. */
                 client_done = 1;
             }
         }
@@ -103,14 +107,18 @@ static int s2n_shutdown_test_server_and_client(struct s2n_connection *server_con
         if (!server_done) {
             s2n_errno = S2N_ERR_T_OK;
             server_rc = s2n_shutdown(server_conn, &server_blocked);
-            if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+
+            if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED || client_done) {
+                /* Success, fatal error, or the peer is done and we're still blocked. */
                 server_done = 1;
             }
         }
         if (!client_done) {
             s2n_errno = S2N_ERR_T_OK;
             client_rc = s2n_shutdown(client_conn, &client_blocked);
-            if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+
+            if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED || server_done) {
+                /* Success, fatal error, or the peer is done and we're still blocked. */
                 client_done = 1;
             }
         }
