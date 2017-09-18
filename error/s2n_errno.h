@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 
 #include <s2n.h>
 
-/**
+/*
  * To easily retrieve error types, we split error values into two parts.
  * The upper 6 bits describe the error type and the lower bits describe the value within the category.
  * [ Error Type Bits(31-26) ][ Value Bits(25-0) ]
@@ -34,6 +34,10 @@
 #define S2N_ERR_T_INTERNAL_START S2N_ERR_T_INTERNAL << S2N_ERR_NUM_VALUE_BITS
 #define S2N_ERR_T_USAGE_START S2N_ERR_T_USAGE << S2N_ERR_NUM_VALUE_BITS
 
+/* Order of values in this enum is important. New error values should be placed at the end of their respective category.
+ * For example, a new TLS protocol related error belongs in the S2N_ERR_T_PROTO category. It should be placed
+ * immediately before S2N_ERR_T_INTERNAL_START(the first value of he next category).
+ */
 typedef enum {
     /* S2N_ERR_T_OK */
     S2N_ERR_OK = S2N_ERR_T_OK_START,
