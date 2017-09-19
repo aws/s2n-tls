@@ -29,6 +29,15 @@ BUILD_DIR=$1
 INSTALL_DIR=$2
 PLATFORM=$3
 
+if [ "$PLATFORM" == "linux" ]; then
+    CONFIGURE="./config -d"
+elif [ "$PLATFORM" == "osx" ]; then
+    CONFIGURE="./Configure darwin64-x86_64-cc"
+else
+    echo "Invalid platform! $PLATFORM"
+    usage
+fi
+
 # Install the FIPS object module in accordance with OpenSSL FIPS 140-2 Security Policy Annex A.
 #     https://www.openssl.org/docs/fips/SecurityPolicy-2.0.pdf
 # This installation is not FIPS compliant as we do not own the build system architecture.
@@ -43,7 +52,8 @@ rm openssl-fips-2.0.13.tar.gz
 cd openssl-fips-2.0.13
 mkdir ../OpensslFipsModule
 export FIPSDIR="`pwd`/../OpensslFipsModule"
-./config
+chmod +x ./Configure
+$CONFIGURE
 make
 sudo make install
 
@@ -52,15 +62,6 @@ curl -L https://www.openssl.org/source/openssl-1.0.2-latest.tar.gz > openssl-1.0
 tar -xzvf openssl-1.0.2.tar.gz
 rm openssl-1.0.2.tar.gz
 cd openssl-1.0.2*
-
-if [ "$PLATFORM" == "linux" ]; then
-    CONFIGURE="./config -d"
-elif [ "$PLATFORM" == "osx" ]; then
-    CONFIGURE="./Configure darwin64-x86_64-cc"
-else
-    echo "Invalid platform! $PLATFORM"
-    usage
-fi
 
 FIPS_OPTIONS="fips --with-fipsdir=$FIPSDIR shared"
 
