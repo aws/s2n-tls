@@ -420,7 +420,7 @@ def ocsp_stapling_test(host, port, fips_mode):
     for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
         print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
         # Cipher isn't relevant for this test, pick one available in all TLS versions
-        cipher_name = "ECDHE-RSA-AES128-SHA"
+        cipher_name = "AES256-SHA"
 
         ret = try_handshake(host, port, cipher_name, ssl_version, enter_fips_mode=fips_mode, server_cert=TEST_OCSP_CERT, server_key=TEST_OCSP_KEY,
                 ocsp=TEST_OCSP_RESPONSE_FILE)
