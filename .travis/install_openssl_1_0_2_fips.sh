@@ -32,6 +32,8 @@ PLATFORM=$3
 if [ "$PLATFORM" == "linux" ]; then
     CONFIGURE="./config -d"
 elif [ "$PLATFORM" == "osx" ]; then
+    echo "WARNING: FIPS and MacOS is not officially supported. This build should only be used for local debugging."
+    echo "See: http://openssl.6102.n7.nabble.com/Openssl-Fips-build-for-Mac-OSX-64-bit-td44716.html"
     CONFIGURE="./Configure darwin64-x86_64-cc"
 else
     echo "Invalid platform! $PLATFORM"
