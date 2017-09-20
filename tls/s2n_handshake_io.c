@@ -306,24 +306,43 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
 static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data)
 {
-    /* The handshake MD5 hash state will fail the s2n_hash_is_available() check
-     * since MD5 is not permitted in FIPS mode. This check will not be used as
-     * the handshake MD5 hash state is specifically used by the TLS 1.0 and TLS 1.1
-     * PRF, which is required to comply with the TLS 1.0 and 1.1 RFCs and is approved
-     * as per NIST Special Publication 800-52 Revision 1.
-     */
-    GUARD(s2n_hash_update(&conn->handshake.md5, data->data, data->size));
+    if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_MD5)) {
+        /* The handshake MD5 hash state will fail the s2n_hash_is_available() check
+         * since MD5 is not permitted in FIPS mode. This check will not be used as
+         * the handshake MD5 hash state is specifically used by the TLS 1.0 and TLS 1.1
+         * PRF, which is required to comply with the TLS 1.0 and 1.1 RFCs and is approved
+         * as per NIST Special Publication 800-52 Revision 1.
+         */
+        GUARD(s2n_hash_update(&conn->handshake.md5, data->data, data->size));
+    }
 
-    if (s2n_hash_is_available(S2N_HASH_MD5_SHA1)) {
+    if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA1)) {
+        GUARD(s2n_hash_update(&conn->handshake.sha1, data->data, data->size));
+    }
+
+    const uint8_t md5_sha1_required = (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_MD5) &&
+                                       s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA1));
+
+    if (md5_sha1_required && s2n_hash_is_available(S2N_HASH_MD5_SHA1)) {
         /* The MD5_SHA1 hash cannot be initialized when FIPS mode is set. */
         GUARD(s2n_hash_update(&conn->handshake.md5_sha1, data->data, data->size));
     }
 
-    GUARD(s2n_hash_update(&conn->handshake.sha1, data->data, data->size));
-    GUARD(s2n_hash_update(&conn->handshake.sha224, data->data, data->size));
-    GUARD(s2n_hash_update(&conn->handshake.sha256, data->data, data->size));
-    GUARD(s2n_hash_update(&conn->handshake.sha384, data->data, data->size));
-    GUARD(s2n_hash_update(&conn->handshake.sha512, data->data, data->size));
+    if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA224)) {
+        GUARD(s2n_hash_update(&conn->handshake.sha224, data->data, data->size));
+    }
+
+    if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA256)) {
+        GUARD(s2n_hash_update(&conn->handshake.sha256, data->data, data->size));
+    }
+
+    if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA384)) {
+        GUARD(s2n_hash_update(&conn->handshake.sha384, data->data, data->size));
+    }
+
+    if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA512)) {
+        GUARD(s2n_hash_update(&conn->handshake.sha512, data->data, data->size));
+    }
 
     return 0;
 }
@@ -560,7 +579,7 @@ static int handshake_read_io(struct s2n_connection *conn)
 
         /* Don't update handshake hashes until after the handler has executed since some handlers need to read the
          * hash values before they are updated. */
-        s2n_handshake_conn_update_hashes(conn);
+        GUARD(s2n_handshake_conn_update_hashes(conn));
 
         GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
