@@ -8,6 +8,17 @@ s2n is a C99 implementation of the TLS/SSL protocols that is designed to be simp
 [![Github forks](https://img.shields.io/github/forks/awslabs/s2n.svg)](https://github.com/awslabs/s2n/network)
 [![Github stars](https://img.shields.io/github/stars/awslabs/s2n.svg)](https://github.com/awslabs/s2n/stargazers)
 
+## Getting Started
+1. Fork s2n on GitHub
+2. Run the following commands on either Ubuntu or Mac OSX.
+```
+git clone https://github.com/${YOUR_GITHUB_ACCOUNT_NAME}/s2n.git
+cd s2n
+source .travis/s2n_setup_env.sh
+.travis/s2n_install_test_dependencies.sh
+.travis/s2n_travis_build.sh
+```
+
 ## Using s2n
 
 The s2n I/O APIs are designed to be intuitive to developers familiar with the widely-used POSIX I/O APIs, and s2n supports blocking, non-blocking, and full-duplex I/O. Additionally there are no locks or mutexes within s2n. 

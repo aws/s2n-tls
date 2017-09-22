@@ -83,66 +83,10 @@ matrix:
   fast_finish: true
 
 before_install:
-  # Setup the cache directory paths. Openssl 1.1.x-master is skipped because we want to build against the latest
-  # revision.
-  - if [[ ! -d test-deps ]]; then mkdir test-deps ; fi
-  - export BASE_S2N_DIR=`pwd`
-  - export PYTHON_INSTALL_DIR=`pwd`/test-deps/python
-  - export GNUTLS_INSTALL_DIR=`pwd`/test-deps/gnutls
-  - export PRLIMIT_INSTALL_DIR=`pwd`/test-deps/prlimit
-  - export SAW_INSTALL_DIR=`pwd`/test-deps/saw
-  - export Z3_INSTALL_DIR=`pwd`/test-deps/z3
-  - export LIBFUZZER_INSTALL_DIR=`pwd`/test-deps/libfuzzer
-  - export LATEST_CLANG_INSTALL_DIR=`pwd`/test-deps/clang
-  - export SCAN_BUILD_INSTALL_DIR=`pwd`/test-deps/scan-build
-  - export OPENSSL_1_1_0_INSTALL_DIR=`pwd`/test-deps/openssl-1.1.0
-  - export OPENSSL_1_0_2_INSTALL_DIR=`pwd`/test-deps/openssl-1.0.2
-  - export OPENSSL_1_0_2_FIPS_INSTALL_DIR=`pwd`/test-deps/openssl-1.0.2-fips
-  - export LIBRESSL_INSTALL_DIR=`pwd`/test-deps/libressl
-  - export CPPCHECK_INSTALL_DIR=`pwd`/test-deps/cppcheck
-  - export CTVERIF_INSTALL_DIR=`pwd`/test-deps/ctverif
-  # Keep this out of test-deps so that we always build the latest master
-  - export OPENSSL_1_1_X_MASTER_INSTALL_DIR=`mktemp -d`
+  - source .travis/s2n_setup_env.sh
 
-# Install missing test dependencies. If the install directory already exists, cached artifacts will be used
-# for that dependency.
 install:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then .travis/install_ubuntu_dependencies.sh ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then .travis/install_osx_dependencies.sh ; fi
-  - .travis/install_default_dependencies.sh
-    # Set GCC 6 as Default on both Ubuntu and OSX
-  - if [[ "$GCC6_REQUIRED" == "true" ]]; then alias gcc=$(which gcc-6) ; fi
-
-before_script:
-  # Add all of our test dependencies to the PATH. Use Openssl 1.1.0 so the latest openssl is used for s_client
-  # integration tests.
-  - export PATH=$PYTHON_INSTALL_DIR/bin:$OPENSSL_1_1_0_INSTALL_DIR/bin:$GNUTLS_INSTALL_DIR/bin:$SAW_INSTALL_DIR/bin:$Z3_INSTALL_DIR/bin:$SCAN_BUILD_INSTALL_DIR/bin:$PATH
-  - export LD_LIBRARY_PATH=$OPENSSL_1_1_0_INSTALL_DIR/lib:$LD_LIBRARY_PATH; export DYLD_LIBRARY_PATH=$OPENSSL_1_1_0_INSTALL_DIR/lib:$LD_LIBRARY_PATH;
-  # Select the libcrypto to build s2n against. If this is unset, default to the latest stable version(Openssl 1.1.0)
-  - if [[ -z $S2N_LIBCRYPTO ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_0_INSTALL_DIR ; fi
-  - if [[ "$S2N_LIBCRYPTO" == "openssl-1.1.0" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_0_INSTALL_DIR ; fi
-  - if [[ "$S2N_LIBCRYPTO" == "openssl-1.1.x-master" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_X_MASTER_INSTALL_DIR ; fi
-  - if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_0_2_INSTALL_DIR ; fi
-  - if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2-fips" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_0_2_FIPS_INSTALL_DIR ; export S2N_TEST_IN_FIPS_MODE=1 ; fi
-  - if [[ "$S2N_LIBCRYPTO" == "libressl" ]]; then export LIBCRYPTO_ROOT=$LIBRESSL_INSTALL_DIR ; fi
-  # Set the libfuzzer to use for fuzz tests
-  - export LIBFUZZER_ROOT=$LIBFUZZER_INSTALL_DIR
-  # Create a link to the selected libcrypto. This shouldn't be needed when LIBCRYPTO_ROOT is set, but some tests
-  # have the "libcrypto-root" directory path hardcoded.
-  - rm -rf libcrypto-root && ln -s $LIBCRYPTO_ROOT libcrypto-root
-  # Use prlimit to set the memlock limit to unlimited for linux. OSX is unlimited by default
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo -E $PRLIMIT_INSTALL_DIR/bin/prlimit --pid "$$" --memlock=unlimited:unlimited ; fi
-
+  - .travis/s2n_install_test_dependencies.sh
+  
 script:
-  - if [[ "$BUILD_S2N" == "true" ]]; then .travis/run_cppcheck.sh $CPPCHECK_INSTALL_DIR; fi
-  - if [[ "$BUILD_S2N" == "true" && "$TRAVIS_OS_NAME" == "linux" ]]; then .travis/run_kwstyle.sh ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "integration" ]]; then make -j 8   ; fi
-  # Build and run unit tests with scan-build for osx. scan-build bundle isn't available for linux
-  - if [[ "$TRAVIS_OS_NAME" == "osx" && "$TESTS" == "integration" ]]; then   scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/* ; [ "$STATUS" -eq "0" ] ; fi
-  - if [[ "$TESTS" == "integration" ]]; then make clean; make integration ; fi
-  - if [[ "$TESTS" == "fuzz" ]]; then export PATH=$LATEST_CLANG_INSTALL_DIR/bin:$PATH && make clean && make fuzz ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "sawHMAC" ]]; then make -C tests/saw/ tmp/verify_s2n_hmac_$SAW_HMAC_TEST.log ; fi
-  - if [[ "$TESTS" == "sawDRBG" ]]; then make -C tests/saw tmp/spec/DRBG/DRBG.log ; fi
-  - if [[ "$TESTS" == "tls" ]]; then make -C tests/saw tmp/handshake.log && make -C tests/saw tmp/cork-uncork.log ; fi
-  - if [[ "$TESTS" == "sawHMACFailure" ]]; then make -C tests/saw failure-tests ; fi
-  - if [[ "$TESTS" == "ctverif" ]]; then .travis/run_ctverif.sh $CTVERIF_INSTALL_DIR ; fi
+  - .travis/s2n_travis_build.sh

@@ -49,6 +49,6 @@ cd util-linux-2.25.2
     --without-ncurses \
     --prefix=$INSTALL_DIR || cat config.log
 
-make -j $NUM_CORES
-make install
+make -j $NUM_CORES > /dev/null
+make install > /dev/null
 
