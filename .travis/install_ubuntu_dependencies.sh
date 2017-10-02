@@ -15,6 +15,13 @@
 
 set -e
 
+sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+sudo apt-get update
+
+DEPENDENCIES="indent kwstyle"
+
+sudo apt-get install -y ${DEPENDENCIES}
+
 if [[ "$GCC6_REQUIRED" == "true" ]]; then
     sudo apt-get -y install gcc-6;
 fi

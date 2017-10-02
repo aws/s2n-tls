@@ -8,14 +8,6 @@ cache:
         # https://docs.travis-ci.com/user/caching/#Caches-and-build-matrices
         - test-deps
 
-addons:
-    apt:
-      sources:
-        - ubuntu-toolchain-r-test
-      packages:
-        - indent
-        - kwstyle
-
 osx_image: xcode8
 
 os:
