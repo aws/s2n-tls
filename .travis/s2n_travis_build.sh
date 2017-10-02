@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Use prlimit to set the memlock limit to unlimited for linux. OSX is unlimited by default
+if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo -E $PRLIMIT_INSTALL_DIR/bin/prlimit --pid "$$" --memlock=unlimited:unlimited ; fi
+
 if [[ "$BUILD_S2N" == "true" ]]; then .travis/run_cppcheck.sh $CPPCHECK_INSTALL_DIR; fi
 if [[ "$BUILD_S2N" == "true" && "$TRAVIS_OS_NAME" == "linux" ]]; then .travis/run_kwstyle.sh ; fi
 if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "integration" ]]; then make -j 8   ; fi

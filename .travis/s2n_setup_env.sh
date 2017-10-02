@@ -36,9 +36,6 @@ elif [[ "$unamestr" == 'Darwin' ]]; then
    : ${TRAVIS_OS_NAME:=osx}
 fi
 
-# Use prlimit to set the memlock limit to unlimited for linux. OSX is unlimited by default
-if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo -E $PRLIMIT_INSTALL_DIR/bin/prlimit --pid "$$" --memlock=unlimited:unlimited ; fi
-
 # Export all Env Variables
 export S2N_LIBCRYPTO
 export BUILD_S2N
