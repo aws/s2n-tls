@@ -15,7 +15,7 @@
 
 set -e
 
-sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
 sudo apt-get update
 
 DEPENDENCIES="indent kwstyle"
