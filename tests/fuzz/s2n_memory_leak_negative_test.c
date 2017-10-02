@@ -21,6 +21,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <openssl/crypto.h>
+#include <openssl/err.h>
+
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_cipher_suites.h"
@@ -132,6 +135,10 @@ static int MAX_NEGOTIATION_ATTEMPTS = 10;
 
 int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 {
+#ifdef S2N_TEST_IN_FIPS_MODE
+    S2N_TEST_ENTER_FIPS_MODE();
+#endif
+
     GUARD(s2n_init());
     GUARD(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
     return 0;

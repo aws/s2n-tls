@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -29,9 +29,17 @@
 #include <s2n.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
+#include "crypto/s2n_rsa.h"
+#include "crypto/s2n_pkey.h"
+
+void print_s2n_error(const char *app_error)
+{
+    fprintf(stderr, "%s: '%s' : '%s'\n", app_error, s2n_strerror(s2n_errno, "EN"),
+            s2n_strerror_debug(s2n_errno, "EN"));
+}
 
 /* Accept all RSA Certificates is unsafe and is only used in the s2n Client */
-s2n_cert_validation_code accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context)
+s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context)
 {
     uint32_t bytes_read = 0;
     uint32_t certificate_count = 0;
@@ -55,13 +63,12 @@ s2n_cert_validation_code accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t c
 
         /* Pull the public key from the first certificate */
         if (certificate_count == 0) {
-            struct s2n_rsa_public_key *s2n_rsa;
+            s2n_rsa_public_key *s2n_rsa;
             if (s2n_cert_public_key_get_rsa(public_key_out, &s2n_rsa) < 0) {
                 return S2N_CERT_ERR_INVALID;
             }
 
             /* Assume that the asn1cert is an RSA Cert */
-
             uint8_t *cert_to_parse = asn1_cert_data;
             X509 *cert = d2i_X509(NULL, (const unsigned char **)(void *)&cert_to_parse, next_certificate_size);
 
@@ -105,7 +112,6 @@ s2n_cert_validation_code accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t c
             if (s2n_cert_public_key_set_cert_type(public_key_out, S2N_CERT_TYPE_RSA_SIGN) < 0) {
                 return S2N_CERT_ERR_INVALID;
             }
-
         }
 
         certificate_count++;

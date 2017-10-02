@@ -17,6 +17,8 @@
 
 #include "error/s2n_errno.h"
 
+#include "crypto/s2n_fips.h"
+
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_config.h"
 
@@ -68,13 +70,17 @@ int get_nanoseconds_since_epoch(void *data, uint64_t * nanoseconds)
 
 #endif
 
-int deny_all_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key, void *context)
+int deny_all_certs(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key, void *context)
 {
     S2N_ERROR(S2N_ERR_CERT_UNTRUSTED);
 }
 
 /* Accept all RSA Certificates is unsafe and is only used in the s2n Client for testing purposes */
-s2n_cert_validation_code accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context)
+s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn,
+                                              uint8_t *cert_chain_in,
+                                              uint32_t cert_chain_len,
+                                              struct s2n_cert_public_key *public_key_out,
+                                              void *context)
 {
     struct s2n_blob cert_chain_blob = { .data = cert_chain_in, .size = cert_chain_len};
     struct s2n_stuffer cert_chain_in_stuffer;
@@ -106,12 +112,8 @@ s2n_cert_validation_code accept_all_rsa_certs(uint8_t *cert_chain_in, uint32_t c
 
         /* Pull the public key from the first certificate */
         if (certificate_count == 0) {
-            struct s2n_rsa_public_key *rsa_pub_key_out;
-            if (s2n_cert_public_key_get_rsa(public_key_out, &rsa_pub_key_out) < 0) {
-                return S2N_CERT_ERR_INVALID;
-            }
             /* Assume that the asn1cert is an RSA Cert */
-            if (s2n_asn1der_to_rsa_public_key(rsa_pub_key_out, &asn1cert) < 0) {
+            if (s2n_asn1der_to_public_key(&public_key_out->pkey, &asn1cert) < 0) {
                 return S2N_CERT_ERR_INVALID;
             }
             if (s2n_cert_public_key_set_cert_type(public_key_out, S2N_CERT_TYPE_RSA_SIGN) < 0){
@@ -147,6 +149,12 @@ struct s2n_config s2n_unsafe_client_testing_config = {
     .verify_cert_context = NULL,
 };
 
+struct s2n_config s2n_default_fips_config = {
+    .cert_and_key_pairs = NULL,
+    .cipher_preferences = &cipher_preferences_20170405,
+    .nanoseconds_since_epoch = get_nanoseconds_since_epoch,
+};
+
 struct s2n_config *s2n_config_new(void)
 {
     struct s2n_blob allocator;
@@ -179,7 +187,11 @@ struct s2n_config *s2n_config_new(void)
     new_config->verify_cert_chain_cb = deny_all_certs;
     new_config->verify_cert_context = NULL;
 
-    GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default"));
+    if (s2n_is_in_fips_mode()) {
+        GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default_fips"));
+    } else {
+        GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default"));
+    }
 
     return new_config;
 }
@@ -206,7 +218,7 @@ int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
             /* Free the node */
             GUARD(s2n_free(&n));
         }
-        GUARD(s2n_rsa_private_key_free(&config->cert_and_key_pairs->private_key));
+        GUARD(s2n_pkey_free(&config->cert_and_key_pairs->private_key));
         GUARD(s2n_free(&config->cert_and_key_pairs->ocsp_status));
         GUARD(s2n_free(&config->cert_and_key_pairs->sct_list));
     }
@@ -285,6 +297,13 @@ int s2n_config_get_client_auth_type(struct s2n_config *config, s2n_cert_auth_typ
 
 int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_type client_auth_type)
 {
+    if ((client_auth_type == S2N_CERT_AUTH_REQUIRED) && s2n_is_in_fips_mode()) {
+        /* s2n support for Client Auth when in FIPS mode is not yet implemented.
+         * When implemented, FIPS only permits Client Auth for TLS 1.2
+         */
+        S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_FIPS_MODE);
+    }
+
     notnull_check(config);
     config->client_cert_auth_type = client_auth_type;
     return 0;
@@ -325,24 +344,27 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
     /* Allocate the memory for the chain and key struct */
     GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert_chain_and_key)));
     config->cert_and_key_pairs = (struct s2n_cert_chain_and_key *)(void *)mem.data;
+    
     config->cert_and_key_pairs->head = NULL;
-    config->cert_and_key_pairs->private_key.rsa = NULL;
     config->cert_and_key_pairs->ocsp_status.data = NULL;
     config->cert_and_key_pairs->ocsp_status.size = 0;
     config->cert_and_key_pairs->sct_list.data = NULL;
     config->cert_and_key_pairs->sct_list.size = 0;
+    GUARD(s2n_pkey_zero_init(&config->cert_and_key_pairs->private_key));
 
     /* Put the private key pem in a stuffer */
     GUARD(s2n_stuffer_alloc_ro_from_string(&key_in_stuffer, private_key_pem));
     GUARD(s2n_stuffer_growable_alloc(&key_out_stuffer, strlen(private_key_pem)));
 
     /* Convert pem to asn1 and asn1 to the private key. Handles both PKCS#1 and PKCS#8 formats */
-    GUARD(s2n_stuffer_rsa_private_key_from_pem(&key_in_stuffer, &key_out_stuffer));
+    GUARD(s2n_stuffer_private_key_from_pem(&key_in_stuffer, &key_out_stuffer));
     GUARD(s2n_stuffer_free(&key_in_stuffer));
     key_blob.size = s2n_stuffer_data_available(&key_out_stuffer);
     key_blob.data = s2n_stuffer_raw_read(&key_out_stuffer, key_blob.size);
     notnull_check(key_blob.data);
-    GUARD(s2n_asn1der_to_rsa_private_key(&config->cert_and_key_pairs->private_key, &key_blob));
+    
+    /* Get key type and create appropriate key context */
+    GUARD(s2n_asn1der_to_private_key(&config->cert_and_key_pairs->private_key, &key_blob));
     GUARD(s2n_stuffer_free(&key_out_stuffer));
 
     /* Turn the chain into a stuffer */
@@ -389,10 +411,10 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
     config->cert_and_key_pairs->chain_size = chain_size;
 
     /* Validate the leaf cert's public key matches the provided private key */
-    struct s2n_rsa_public_key public_key;
-    GUARD(s2n_asn1der_to_rsa_public_key(&public_key, &config->cert_and_key_pairs->head->cert));
-    const int key_match_ret = s2n_rsa_keys_match(&public_key, &config->cert_and_key_pairs->private_key);
-    GUARD(s2n_rsa_public_key_free(&public_key));
+    struct s2n_pkey public_key;
+    GUARD(s2n_asn1der_to_public_key(&public_key, &config->cert_and_key_pairs->head->cert));
+    int key_match_ret = s2n_pkey_match(&public_key, &config->cert_and_key_pairs->private_key);
+    GUARD(s2n_pkey_free(&public_key));
     if (key_match_ret < 0) {
         /* s2n_errno already set */
         return -1;

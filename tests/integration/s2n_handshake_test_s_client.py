@@ -26,6 +26,7 @@ import socket
 import subprocess
 import itertools
 import multiprocessing
+from os import environ
 from multiprocessing.pool import ThreadPool
 from s2n_test_constants import *
 
@@ -45,7 +46,8 @@ def cleanup_processes(*processes):
         p.wait()
 
 def try_handshake(endpoint, port, cipher, ssl_version, sig_algs=None, curves=None, resume=False,
-        prefer_low_latency=False, client_auth=None, client_cert=DEFAULT_CLIENT_CERT_PATH, client_key=DEFAULT_CLIENT_KEY_PATH):
+        prefer_low_latency=False, enter_fips_mode=False, client_auth=None, client_cert=DEFAULT_CLIENT_CERT_PATH,
+        client_key=DEFAULT_CLIENT_KEY_PATH):
     """
     Attempt to handshake against s2nd listening on `endpoint` and `port` using Openssl s_client
 
@@ -57,10 +59,11 @@ def try_handshake(endpoint, port, cipher, ssl_version, sig_algs=None, curves=Non
     :param str curves: Elliptic curves for s_client to offer
     :param bool resume: True if s_client should try to reconnect to s2nd and reuse the same TLS session. False for normal negotiation.
     :param bool prefer_low_latency: True if s2nd should use 1500 for max outgoing record size. False for default max.
+    :param bool enter_fips_mode: True if s2nd should enter libcrypto's FIPS mode. Libcrypto must be built with a FIPS module to enter FIPS mode.
     :return: 0 on successfully negotiation(s), -1 on failure
     """
     # Fire up s2nd
-    s2nd_cmd = ["../../bin/s2nd", "-c", "test_all"]
+    s2nd_cmd = ["../../bin/s2nd"]
 
     if prefer_low_latency == True:
         s2nd_cmd.append("--prefer-low-latency")
@@ -69,6 +72,14 @@ def try_handshake(endpoint, port, cipher, ssl_version, sig_algs=None, curves=Non
         s2nd_cmd.append("-m")
 
     s2nd_cmd.extend([str(endpoint), str(port)])
+    
+    s2nd_ciphers = "test_all"
+    if enter_fips_mode == True:
+        s2nd_ciphers = "test_all_fips"
+        s2nd_cmd.append("--enter-fips-mode")
+    s2nd_cmd.append("-c")
+    s2nd_cmd.append(s2nd_ciphers)
+    
     s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
     # Make sure it's running
@@ -165,7 +176,7 @@ def create_thread_pool():
     threadpool = ThreadPool(processes=threadpool_size)
     return threadpool
 
-def run_handshake_test(host, port, ssl_version, cipher, use_client_auth, client_cert_path, client_key_path):
+def run_handshake_test(host, port, ssl_version, cipher, fips_mode, use_client_auth, client_cert_path, client_key_path):
     cipher_name = cipher.openssl_name
     cipher_vers = cipher.min_tls_vers
 
@@ -181,14 +192,13 @@ def run_handshake_test(host, port, ssl_version, cipher, use_client_auth, client_
     if (use_client_auth is not None) and (client_cert_path is not None):
         client_cert_str = cert_path_to_str(client_cert_path)
 
-    ret = try_handshake(host, port, cipher_name, ssl_version, client_auth=use_client_auth, client_cert=client_cert_path, client_key=client_key_path)
+    ret = try_handshake(host, port, cipher_name, ssl_version, enter_fips_mode=fips_mode, client_auth=use_client_auth, client_cert=client_cert_path, client_key=client_key_path)
     result_prefix = "Cipher: %-28s ClientCert: %-16s Vers: %-8s ... " % (cipher_name, client_cert_str, S2N_PROTO_VERS_TO_STR[ssl_version])
     print_result(result_prefix, ret)
     
     return ret
-    
 
-def handshake_test(host, port, test_ciphers, use_client_auth=None, use_client_cert=None, use_client_key=None):
+def handshake_test(host, port, test_ciphers, fips_mode, use_client_auth=None, use_client_cert=None, use_client_key=None):
     """
     Basic handshake tests using all valid combinations of supported cipher suites and TLS versions.
     """
@@ -202,8 +212,7 @@ def handshake_test(host, port, test_ciphers, use_client_auth=None, use_client_ce
         results = []
         
         for cipher in test_ciphers:
-
-            async_result = threadpool.apply_async(run_handshake_test, (host, port + port_offset, ssl_version, cipher, use_client_auth, use_client_cert, use_client_key))
+            async_result = threadpool.apply_async(run_handshake_test, (host, port + port_offset, ssl_version, cipher, fips_mode, use_client_auth, use_client_cert, use_client_key))
             port_offset += 1
             results.append(async_result)
 
@@ -216,19 +225,26 @@ def handshake_test(host, port, test_ciphers, use_client_auth=None, use_client_ce
     return failed
     
 
-def client_auth_test(host, port, test_ciphers):
+def client_auth_test(host, port, test_ciphers, fips_mode):
     failed = 0
+
+    print("\n\tRunning client auth tests:")
+
+    if fips_mode:
+        print("\t\033[33;1mSKIPPED\033[0m - Client Auth not supported in FIPS mode")
+        return 0
+
     for filename in os.listdir(TEST_CERT_DIRECTORY):
         if "client_cert" in filename and "rsa" in filename:
             client_cert_path = TEST_CERT_DIRECTORY + filename
             client_key_path = TEST_CERT_DIRECTORY + filename.replace("client_cert", "client_key")
-            ret = handshake_test(host, port, test_ciphers, use_client_auth=True, use_client_cert=client_cert_path, use_client_key=client_key_path)
+            ret = handshake_test(host, port, test_ciphers, fips_mode, use_client_auth=True, use_client_cert=client_cert_path, use_client_key=client_key_path)
             if ret is not 0:
                 failed += 1
                 
     return failed
 
-def resume_test(host, port, test_ciphers):
+def resume_test(host, port, test_ciphers, fips_mode):
     """
     Tests s2n's session resumption capability using all valid combinations of cipher suite and TLS version.
     """
@@ -247,7 +263,7 @@ def resume_test(host, port, test_ciphers):
             if ssl_version < cipher_vers:
                 continue
 
-            ret = try_handshake(host, port, cipher_name, ssl_version, resume=True)
+            ret = try_handshake(host, port, cipher_name, ssl_version, resume=True, enter_fips_mode=fips_mode)
             result_prefix = "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
             print_result(result_prefix, ret)
             if ret != 0:
@@ -258,31 +274,33 @@ def resume_test(host, port, test_ciphers):
 supported_sigs = ["RSA+SHA1", "RSA+SHA224", "RSA+SHA256", "RSA+SHA384", "RSA+SHA512"]
 unsupported_sigs = ["ECDSA+SHA256", "ECDSA+SHA512"]
 
-def run_sigalg_test(host, port, cipher, ssl_version, permutation, use_client_auth):
+def run_sigalg_test(host, port, cipher, ssl_version, permutation, fips_mode, use_client_auth):
     # Put some unsupported algs in front to make sure we gracefully skip them
     mixed_sigs = unsupported_sigs + list(permutation)
     mixed_sigs_str = ':'.join(mixed_sigs)
-    ret = try_handshake(host, port, cipher.openssl_name, ssl_version, sig_algs=mixed_sigs_str, client_auth=use_client_auth)
-    
+    ret = try_handshake(host, port, cipher.openssl_name, ssl_version, sig_algs=mixed_sigs_str, enter_fips_mode=fips_mode, client_auth=use_client_auth)
         
     # Trim the RSA part off for brevity. User should know we are only supported RSA at the moment.
     prefix = "Digests: %-35s ClientAuth: %-6s Vers: %-8s... " % (':'.join([x[4:] for x in permutation]), str(use_client_auth), S2N_PROTO_VERS_TO_STR[S2N_TLS12])
     print_result(prefix, ret)
     return ret
 
-def sigalg_test(host, port, use_client_auth=None):
-
+def sigalg_test(host, port, fips_mode, use_client_auth=None):
     """
     Acceptance test for supported signature algorithms. Tests all possible supported sigalgs with unsupported ones mixed in
     for noise.
     """
     failed = 0
-    
+
     print("\n\tRunning signature algorithm tests:")
+
+    if fips_mode and use_client_auth:
+        print("\t\033[33;1mSKIPPED\033[0m - Client Auth not supported in FIPS mode")
+        return 0
+
     print("\tExpected supported:   " + str(supported_sigs))
     print("\tExpected unsupported: " + str(unsupported_sigs))
-    
-    failed = 0
+
     for size in range(1, len(supported_sigs) + 1):
         print("\n\t\tTesting ciphers using signature preferences of size: " + str(size))
         threadpool = create_thread_pool()
@@ -293,7 +311,7 @@ def sigalg_test(host, port, use_client_auth=None):
             for cipher in ALL_TEST_CIPHERS:
                 # Try an ECDHE cipher suite and a DHE one
                 if(cipher.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or cipher.openssl_name == "DHE-RSA-AES128-GCM-SHA256"):
-                    async_result = threadpool.apply_async(run_sigalg_test, (host, port + portOffset, cipher, S2N_TLS12, permutation, use_client_auth))
+                    async_result = threadpool.apply_async(run_sigalg_test, (host, port + portOffset, cipher, S2N_TLS12, permutation, fips_mode, use_client_auth))
                     portOffset = portOffset + 1
                     results.append(async_result)
 
@@ -305,7 +323,7 @@ def sigalg_test(host, port, use_client_auth=None):
 
     return failed
 
-def elliptic_curve_test(host, port):
+def elliptic_curve_test(host, port, fips_mode):
     """
     Acceptance test for supported elliptic curves. Tests all possible supported curves with unsupported curves mixed in
     for noise.
@@ -326,14 +344,16 @@ def elliptic_curve_test(host, port):
             mixed_curves = unsupported_curves + list(permutation)
             mixed_curves_str = ':'.join(mixed_curves)
             for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or x.openssl_name == "ECDHE-RSA-AES128-SHA", ALL_TEST_CIPHERS):
-                ret = try_handshake(host, port, cipher.openssl_name, S2N_TLS12, curves=mixed_curves_str)
+                if fips_mode and cipher.openssl_fips_compatible == False:
+                    continue
+                ret = try_handshake(host, port, cipher.openssl_name, S2N_TLS12, curves=mixed_curves_str, enter_fips_mode=fips_mode)
                 prefix = "Curves: %-40s Vers: %10s ... " % (':'.join(list(permutation)), S2N_PROTO_VERS_TO_STR[S2N_TLS12])
                 print_result(prefix, ret)
                 if ret != 0:
                     failed = 1
     return failed
 
-def elliptic_curve_fallback_test(host, port):
+def elliptic_curve_fallback_test(host, port, fips_mode):
     """
     Tests graceful fallback when s2n doesn't support any curves offered by the client. A non-ecc suite should be
     negotiated.
@@ -341,14 +361,14 @@ def elliptic_curve_fallback_test(host, port):
     failed = 0
     # Make sure s2n can still negotiate a non-EC kx(AES256-GCM-SHA384) suite if we don't match anything on the client
     unsupported_curves = ["B-163", "K-409"]
-    ret = try_handshake(host, port, "ECDHE-RSA-AES128-SHA:AES256-GCM-SHA384", S2N_TLS12, curves=":".join(unsupported_curves))
+    ret = try_handshake(host, port, "ECDHE-RSA-AES128-SHA256:AES256-GCM-SHA384", S2N_TLS12, curves=":".join(unsupported_curves), enter_fips_mode=fips_mode)
     print_result("%-65s ... " % "Testing curve mismatch fallback", ret)
     if ret != 0:
         failed = 1
 
     return failed
 
-def handshake_fragmentation_test(host,port):
+def handshake_fragmentation_test(host,port, fips_mode):
     """
     Tests negotation with s_client despite message fragmentation. Max record size is clamped to force s2n
     to fragment the ServerCertifcate message.
@@ -357,11 +377,11 @@ def handshake_fragmentation_test(host,port):
     failed = 0
     for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
         print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
-        # Cipher isn't relevant for this test, pick one available in all TLS versions
-        cipher_name = "ECDHE-RSA-AES128-SHA"
+        # Cipher isn't relevant for this test, pick one available in all OpenSSL versions and all TLS versions
+        cipher_name = "AES256-SHA"
 
         # Low latency option indirectly forces fragmentation.
-        ret = try_handshake(host, port, cipher_name, ssl_version, prefer_low_latency=True)
+        ret = try_handshake(host, port, cipher_name, ssl_version, prefer_low_latency=True, enter_fips_mode=fips_mode)
         result_prefix = "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
         print_result(result_prefix, ret)
         if ret != 0:
@@ -374,7 +394,7 @@ def main():
     parser = argparse.ArgumentParser(description='Runs TLS server integration tests against s2nd using Openssl s_client')
     parser.add_argument('host', help='The host for s2nd to bind to')
     parser.add_argument('port', type=int, help='The port for s2nd to bind to')
-    parser.add_argument('--libcrypto', default='openssl-1.1.0', choices=['openssl-1.0.2', 'openssl-1.1.0', 'openssl-1.1.x-master', 'libressl'],
+    parser.add_argument('--libcrypto', default='openssl-1.1.0', choices=['openssl-1.0.2', 'openssl-1.0.2-fips', 'openssl-1.1.0', 'openssl-1.1.x-master', 'libressl'],
             help="""The Libcrypto that s2n was built with. s2n supports different cipher suites depending on
                     libcrypto version. Defaults to openssl-1.1.0.""")
     args = parser.parse_args()
@@ -384,17 +404,22 @@ def main():
     host = args.host
     port = args.port
 
+    fips_mode = False
+    if environ.get("S2N_TEST_IN_FIPS_MODE") is not None:
+        fips_mode = True
+        print("\nRunning s2nd in FIPS mode.")
+
     print("\nRunning tests with: " + os.popen('openssl version').read())
 
     failed = 0
-    failed += resume_test(host, port, test_ciphers)
-    failed += handshake_test(host, port, test_ciphers)
-    failed += client_auth_test(host, port, test_ciphers)
-    failed += sigalg_test(host, port)
-    failed += sigalg_test(host, port, use_client_auth=True)
-    failed += elliptic_curve_test(host, port)
-    failed += elliptic_curve_fallback_test(host, port)
-    failed += handshake_fragmentation_test(host,port)
+    failed += resume_test(host, port, test_ciphers, fips_mode)
+    failed += handshake_test(host, port, test_ciphers, fips_mode)
+    failed += client_auth_test(host, port, test_ciphers, fips_mode)
+    failed += sigalg_test(host, port, fips_mode)
+    failed += sigalg_test(host, port, fips_mode, use_client_auth=True)
+    failed += elliptic_curve_test(host, port, fips_mode)
+    failed += elliptic_curve_fallback_test(host, port, fips_mode)
+    failed += handshake_fragmentation_test(host,port, fips_mode)
     return failed
 
 if __name__ == "__main__":

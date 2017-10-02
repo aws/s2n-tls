@@ -1,0 +1,39 @@
+diff --git b/tls/s2n_handshake_io.c a/tls/s2n_handshake_io.c
+index fd9eb0d..267e486 100644
+--- b/tls/s2n_handshake_io.c
++++ a/tls/s2n_handshake_io.c
+@@ -134,7 +134,7 @@ static message_type_t handshakes[64][16] = {
+             APPLICATION_DATA
+     },
+ 
+-    [NEGOTIATED | FULL_HANDSHAKE | OCSP_STATUS ] ={
++    [NEGOTIATED | OCSP_STATUS ] ={
+             CLIENT_HELLO,
+             SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS, SERVER_HELLO_DONE,
+             CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+@@ -142,7 +142,7 @@ static message_type_t handshakes[64][16] = {
+             APPLICATION_DATA
+     },
+ 
+-    [NEGOTIATED | FULL_HANDSHAKE | OCSP_STATUS | WITH_SESSION_TICKET ] = {
++    [NEGOTIATED | OCSP_STATUS | WITH_SESSION_TICKET ] = {
+             CLIENT_HELLO,
+             SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS, SERVER_HELLO_DONE,
+             CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+@@ -183,15 +183,7 @@ static message_type_t handshakes[64][16] = {
+             CLIENT_CERT, CLIENT_KEY, CLIENT_CERT_VERIFY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+             SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
+             APPLICATION_DATA
+-     },
+-
+-     [NEGOTIATED | FULL_HANDSHAKE | OCSP_STATUS | CLIENT_AUTH] = {
+-            CLIENT_HELLO,
+-            SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS, SERVER_CERT_REQ, SERVER_HELLO_DONE,
+-            CLIENT_CERT, CLIENT_KEY, CLIENT_CERT_VERIFY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+-            SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
+-            APPLICATION_DATA
+-     },
++    },
+ 
+      [NEGOTIATED | FULL_HANDSHAKE | PERFECT_FORWARD_SECRECY | OCSP_STATUS | CLIENT_AUTH ] = {
+              CLIENT_HELLO,

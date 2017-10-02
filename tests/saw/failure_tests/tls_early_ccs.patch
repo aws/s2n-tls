@@ -1,0 +1,9 @@
+Binary files s2n/.git/index and s2n2/.git/index differ
+diff -p1 -Nur s2n/tls/s2n_handshake_io.c s2n2/tls/s2n_handshake_io.c
+--- s2n/tls/s2n_handshake_io.c	2017-07-14 15:29:09.806626239 -0700
++++ s2n2/tls/s2n_handshake_io.c	2017-07-19 11:17:13.347220835 -0700
+@@ -106,3 +106,3 @@ static message_type_t handshakes[64][16]
+             CLIENT_HELLO,
+-            SERVER_HELLO, SERVER_CERT, SERVER_HELLO_DONE,
++            SERVER_HELLO, CLIENT_CHANGE_CIPHER_SPEC, SERVER_CERT, SERVER_HELLO_DONE,
+             CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,

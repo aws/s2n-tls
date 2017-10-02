@@ -20,6 +20,7 @@
 #include <sys/poll.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <signal.h>
 #include <stdint.h>
 #include <fcntl.h>
 
@@ -144,6 +145,11 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, cert_chain_pem, private_key_pem));
     EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
+
+    /* For convenience, this test will intentionally try to write to closed pipes during shutdown. Ignore the signal to
+     * avoid exiting the process on SIGPIPE.
+     */
+    signal(SIGPIPE, SIG_IGN);
 
     /* Create a pipe */
     EXPECT_SUCCESS(pipe(server_to_client));

@@ -17,6 +17,7 @@
 
 #include "testlib/s2n_testlib.h"
 #include "stuffer/s2n_stuffer.h"
+#include "crypto/s2n_fips.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
 #include "utils/s2n_safety.h"
@@ -43,25 +44,93 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hmac_new(&copy));
     EXPECT_SUCCESS(s2n_hmac_new(&cmac));
 
-    /* Try MD5 */
-    uint8_t hmac_md5_size;
-    GUARD(s2n_hmac_digest_size(S2N_HMAC_MD5, &hmac_md5_size));
-    EXPECT_EQUAL(hmac_md5_size, 16);
-    EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_MD5, sekrit, strlen((char *)sekrit)));
-    EXPECT_SUCCESS(s2n_hmac_update(&hmac, hello, strlen((char *)hello)));
-    EXPECT_SUCCESS(s2n_hmac_digest(&hmac, digest_pad, 16));
+    if (s2n_hmac_is_available(S2N_HMAC_SSLv3_MD5)) {
+        /* Try SSLv3 MD5 */
+        uint8_t hmac_sslv3_md5_size;
+        GUARD(s2n_hmac_digest_size(S2N_HMAC_SSLv3_MD5, &hmac_sslv3_md5_size));
+        EXPECT_EQUAL(hmac_sslv3_md5_size, 16);
+        EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_SSLv3_MD5, sekrit, strlen((char *)sekrit)));
+        EXPECT_SUCCESS(s2n_hmac_update(&hmac, hello, strlen((char *)hello)));
+        EXPECT_SUCCESS(s2n_hmac_digest(&hmac, digest_pad, 16));
 
-    EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
-    for (int i = 0; i < 16; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
+        for (int i = 0; i < 16; i++) {
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        }
+
+        /* Reference value from Go */
+        EXPECT_EQUAL(memcmp(output_pad, "d4f0d06b9765de23e6c3e33a24c5ded0", 16 * 2), 0);
+
+        /* Test that a reset works */
+        EXPECT_SUCCESS(s2n_hmac_reset(&hmac));
+        EXPECT_SUCCESS(s2n_hmac_update(&hmac, hello, strlen((char *)hello)));
+        EXPECT_SUCCESS(s2n_hmac_digest(&hmac, digest_pad, 16));
+
+        EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
+        for (int i = 0; i < 16; i++) {
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        }
+
+        /* Reference value from Go */
+        EXPECT_EQUAL(memcmp(output_pad, "d4f0d06b9765de23e6c3e33a24c5ded0", 16 * 2), 0);
+
+        EXPECT_SUCCESS(s2n_hmac_reset(&hmac));
     }
 
-    /* Reference value from python */
-    EXPECT_EQUAL(memcmp(output_pad, "3ad68c53dc1a3cf35f6469877fae4585", 16 * 2), 0);
+    if (s2n_hmac_is_available(S2N_HMAC_SSLv3_SHA1)) {
+        /* Try SSLv3 SHA1 */
+        uint8_t hmac_sslv3_sha1_size;
+        GUARD(s2n_hmac_digest_size(S2N_HMAC_SSLv3_SHA1, &hmac_sslv3_sha1_size));
+        EXPECT_EQUAL(hmac_sslv3_sha1_size, 20);
+        EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_SSLv3_SHA1, sekrit, strlen((char *)sekrit)));
+        EXPECT_SUCCESS(s2n_hmac_update(&hmac, hello, strlen((char *)hello)));
+        EXPECT_SUCCESS(s2n_hmac_digest(&hmac, digest_pad, 20));
+
+        EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
+        for (int i = 0; i < 20; i++) {
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        }
+
+        /* Reference value from Go */
+        EXPECT_EQUAL(memcmp(output_pad, "b0c66179f6eb5a46b4b7c4fca84b3ea5161b7326", 20 * 2), 0);
+
+        /* Test that a reset works */
+        EXPECT_SUCCESS(s2n_hmac_reset(&hmac));
+        EXPECT_SUCCESS(s2n_hmac_update(&hmac, hello, strlen((char *)hello)));
+        EXPECT_SUCCESS(s2n_hmac_digest(&hmac, digest_pad, 20));
+
+        EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
+        for (int i = 0; i < 20; i++) {
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        }
+
+        /* Reference value from Go */
+        EXPECT_EQUAL(memcmp(output_pad, "b0c66179f6eb5a46b4b7c4fca84b3ea5161b7326", 20 * 2), 0);
+
+        EXPECT_SUCCESS(s2n_hmac_reset(&hmac));
+    }
+
+    if (s2n_hmac_is_available(S2N_HMAC_MD5)) {
+        /* Try MD5 */
+        uint8_t hmac_md5_size;
+        GUARD(s2n_hmac_digest_size(S2N_HMAC_MD5, &hmac_md5_size));
+        EXPECT_EQUAL(hmac_md5_size, 16);
+        EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_MD5, sekrit, strlen((char *)sekrit)));
+        EXPECT_SUCCESS(s2n_hmac_update(&hmac, hello, strlen((char *)hello)));
+        EXPECT_SUCCESS(s2n_hmac_digest(&hmac, digest_pad, 16));
+
+        EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
+        for (int i = 0; i < 16; i++) {
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        }
+
+        /* Reference value from python */
+        EXPECT_EQUAL(memcmp(output_pad, "3ad68c53dc1a3cf35f6469877fae4585", 16 * 2), 0);
+
+        EXPECT_SUCCESS(s2n_hmac_reset(&hmac));
+    }
 
     /* Try SHA1 */
-    EXPECT_SUCCESS(s2n_hmac_reset(&hmac));
-
     uint8_t hmac_sha1_size;
     GUARD(s2n_hmac_digest_size(S2N_HMAC_SHA1, &hmac_sha1_size));
     EXPECT_EQUAL(hmac_sha1_size, 20);
@@ -77,7 +146,6 @@ int main(int argc, char **argv)
 
     /* Reference value from python */
     EXPECT_EQUAL(memcmp(output_pad, "6d301861b599938eca94f6de917362886d97882f", 20 * 2), 0);
-
 
     /* Check the copy */
     EXPECT_SUCCESS(s2n_hmac_digest(&copy, digest_pad, 20));
@@ -217,71 +285,6 @@ int main(int argc, char **argv)
 
     /* Reference value from python */
     EXPECT_EQUAL(memcmp(output_pad, "0a834a1ed265042e2897405edb4fdd9818950cd5bea10b828f2fed45a1cb6dbd2107e4b04eb20f211998cd4e8c7e11ebdcb0103ac63882481e1bb8083d07f4be", 64 * 2), 0);
-
-    /* Try SSLv3 MD5 */
-    EXPECT_SUCCESS(s2n_hmac_new(&hmac));
-
-    uint8_t hmac_sslv3_md5_size;
-    GUARD(s2n_hmac_digest_size(S2N_HMAC_SSLv3_MD5, &hmac_sslv3_md5_size));
-    EXPECT_EQUAL(hmac_sslv3_md5_size, 16);
-    EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_SSLv3_MD5, sekrit, strlen((char *)sekrit)));
-    EXPECT_SUCCESS(s2n_hmac_update(&hmac, hello, strlen((char *)hello)));
-    EXPECT_SUCCESS(s2n_hmac_digest(&hmac, digest_pad, 16));
-
-    EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
-    for (int i = 0; i < 16; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
-    }
-
-    /* Reference value from Go */
-    EXPECT_EQUAL(memcmp(output_pad, "d4f0d06b9765de23e6c3e33a24c5ded0", 16 * 2), 0);
-
-    /* Test that a reset works */
-    EXPECT_SUCCESS(s2n_hmac_reset(&hmac));
-    EXPECT_SUCCESS(s2n_hmac_update(&hmac, hello, strlen((char *)hello)));
-    EXPECT_SUCCESS(s2n_hmac_digest(&hmac, digest_pad, 16));
-    EXPECT_SUCCESS(s2n_hmac_free(&hmac));
-
-    EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
-    for (int i = 0; i < 16; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
-    }
-
-    /* Reference value from Go */
-    EXPECT_EQUAL(memcmp(output_pad, "d4f0d06b9765de23e6c3e33a24c5ded0", 16 * 2), 0);
-
-    /* Try SSLv3 SHA1 */
-    EXPECT_SUCCESS(s2n_hmac_new(&hmac));
-
-    uint8_t hmac_sslv3_sha1_size;
-    GUARD(s2n_hmac_digest_size(S2N_HMAC_SSLv3_SHA1, &hmac_sslv3_sha1_size));
-    EXPECT_EQUAL(hmac_sslv3_sha1_size, 20);
-    EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_SSLv3_SHA1, sekrit, strlen((char *)sekrit)));
-    EXPECT_SUCCESS(s2n_hmac_update(&hmac, hello, strlen((char *)hello)));
-    EXPECT_SUCCESS(s2n_hmac_digest(&hmac, digest_pad, 20));
-
-    EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
-    for (int i = 0; i < 20; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
-    }
-
-    /* Reference value from Go */
-    EXPECT_EQUAL(memcmp(output_pad, "b0c66179f6eb5a46b4b7c4fca84b3ea5161b7326", 20 * 2), 0);
-
-    /* Test that a reset works */
-    EXPECT_SUCCESS(s2n_hmac_reset(&hmac));
-    EXPECT_SUCCESS(s2n_hmac_update(&hmac, hello, strlen((char *)hello)));
-    EXPECT_SUCCESS(s2n_hmac_digest(&hmac, digest_pad, 20));
-
-    EXPECT_SUCCESS(s2n_hmac_free(&hmac));
-
-    EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
-    for (int i = 0; i < 20; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
-    }
-
-    /* Reference value from Go */
-    EXPECT_EQUAL(memcmp(output_pad, "b0c66179f6eb5a46b4b7c4fca84b3ea5161b7326", 20 * 2), 0);
 
     END_TEST();
 }

@@ -300,23 +300,29 @@ struct s2n_cert_public_key;
 
 ## Error handling
 
+```
+const char *s2n_strerror(int error, const char *lang);
+const char *s2n_strerror_debug(int error, const char *lang);
+````
+
 s2n functions that return 'int' return 0 to indicate success and -1 to indicate
 failure. s2n functions that return pointer types return NULL in the case of
 failure. When an s2n function returns a failure, s2n_errno will be set to a value
-corresponding to the error. This error value can be translated into a string 
-explaining the error in English by calling s2n_strerror(s2n_errno, "EN"); 
+corresponding to the error. This error value can be translated into a string
+explaining the error in English by calling s2n_strerror(s2n_errno, "EN");
+A string containing internal debug information, including filename and line number, can be generated with `s2n_strerror_debug`
+This string is useful to include when reporting issues to the s2n development team.
 
 Example:
 
 ```
 if (s2n_config_set_cipher_preferences(config, prefs) < 0) {
-    printf("Setting cipher prefs failed! %s", (s2n_strerror(s2n_errno, "EN"));
+    printf("Setting cipher prefs failed! %s : %s", s2n_strerror(s2n_errno, "EN"), s2n_strerror_debug(s2n_errno, "EN"));
     return -1;
 }
 ```
 
 **NOTE**: To avoid possible confusion, s2n_errno should be cleared after processing an error: `s2n_errno = S2N_ERR_T_OK`
-
 
 ### Error categories
 
@@ -589,8 +595,9 @@ default is for s2n to accept all RSA Certs on the client side, and deny all cert
 ### verify_cert_trust_chain_fn
 
 ```c
-int verify_cert_trust_chain(uint8_t *der_cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
+int verify_cert_trust_chain(struct s2n_connection *conn, uint8_t *der_cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
 ```
+ - **conn** The connection the certificate chain is validated for
  - **der_cert_chain_in** The DER encoded full chain of certificates recieved
  - **cert_chain_len** The length in bytes of the DER encoded Cert Chain
  - **public_key_out** The public key that should be updated with the key extracted from the first certificate in the chain (the leaf Cert)
@@ -599,7 +606,6 @@ int verify_cert_trust_chain(uint8_t *der_cert_chain_in, uint32_t cert_chain_len,
 
 **verify_cert_trust_chain_fn** defines a Callback Function Signature intended to be used only in special circumstances, and may be removed in a later release.
 Implementations should Verify the Certificate Chain of trust, and place the leaf Certificate's Public Key in the public_key_out parameter.
-They should not not perform any hostname validation, which is still needed in order to completely validate a Certificate.
 
 ### Public Key API's
 ```c

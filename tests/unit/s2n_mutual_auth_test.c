@@ -20,6 +20,7 @@
 
 #include "testlib/s2n_testlib.h"
 
+#include "crypto/s2n_fips.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_cipher_preferences.h"
@@ -89,6 +90,23 @@ int main(int argc, char **argv)
     char *dhparams_pem;
 
     BEGIN_TEST();
+
+    /* s2n support for Mutual Auth when in FIPS mode is not yet implemented. */
+    if (s2n_is_in_fips_mode()) {
+        /* Test Mutual Auth fails using s2n_config_set_client_auth_type */
+        EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_FAILURE(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED));
+        EXPECT_SUCCESS(s2n_config_free(config));
+
+        /* Test Mutual Auth fails using s2n_connection_set_client_auth_type */
+        struct s2n_connection *conn;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_FAILURE(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_REQUIRED));
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+
+        END_TEST();
+    }
+
     EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));

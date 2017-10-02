@@ -57,6 +57,7 @@ extern int s2n_config_free_dhparams(struct s2n_config *config);
 extern int s2n_config_free_cert_chain_and_key(struct s2n_config *config);
 extern int s2n_config_set_nanoseconds_since_epoch_callback(struct s2n_config *config, int (*nanoseconds_since_epoch)(void *, uint64_t *), void * data);
 extern const char *s2n_strerror(int error, const char *lang);
+extern const char *s2n_strerror_debug(int error, const char *lang);
 
 extern int s2n_config_set_cache_store_callback(struct s2n_config *config, int (*cache_store)(void *, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data);
 extern int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, int (*cache_retrieve)(void *, const void *key, uint64_t key_size, void *value, uint64_t *value_size), void *data);
@@ -165,15 +166,22 @@ typedef enum {
     S2N_CERT_TYPE_ECDSA_FIXED_ECDH = 66,
 } s2n_cert_type;
 
-struct s2n_rsa_public_key;
+struct s2n_rsa_key;
+typedef struct s2n_rsa_key s2n_rsa_public_key;
+typedef struct s2n_rsa_key s2n_rsa_private_key;
+
+struct s2n_ecdsa_key;
+typedef struct s2n_ecdsa_key s2n_ecdsa_public_key;
+typedef struct s2n_ecdsa_key s2n_ecdsa_private_key;
+
 struct s2n_cert_public_key;
 
-extern int s2n_rsa_public_key_set_from_openssl(struct s2n_rsa_public_key *s2n_rsa, RSA *openssl_rsa);
+extern int s2n_rsa_public_key_set_from_openssl(s2n_rsa_public_key *s2n_rsa, RSA *openssl_rsa);
 extern int s2n_cert_public_key_set_cert_type(struct s2n_cert_public_key *cert_pub_key, s2n_cert_type cert_type);
-extern int s2n_cert_public_key_get_rsa(struct s2n_cert_public_key *cert_pub_key, struct s2n_rsa_public_key **rsa);
+extern int s2n_cert_public_key_get_rsa(struct s2n_cert_public_key *cert_pub_key, s2n_rsa_public_key **rsa);
 
 /* Not intended for general consumption. Use at your own risk. */
-typedef s2n_cert_validation_code verify_cert_trust_chain_fn(uint8_t *der_cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
+typedef s2n_cert_validation_code verify_cert_trust_chain_fn(struct s2n_connection *conn, uint8_t *der_cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
 
 extern int s2n_config_set_verify_cert_chain_cb(struct s2n_config *config, verify_cert_trust_chain_fn *callback, void *context);
 

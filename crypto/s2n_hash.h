@@ -41,17 +41,19 @@
 
 #include <stdint.h>
 
-#define MAX_DIGEST_LENGTH SHA512_DIGEST_LENGTH
+#define S2N_MAX_DIGEST_LEN SHA512_DIGEST_LENGTH
 
 typedef enum {
-    S2N_HASH_NONE,
+    S2N_HASH_NONE=0,
     S2N_HASH_MD5,
     S2N_HASH_SHA1,
     S2N_HASH_SHA224,
     S2N_HASH_SHA256,
     S2N_HASH_SHA384,
     S2N_HASH_SHA512,
-    S2N_HASH_MD5_SHA1
+    S2N_HASH_MD5_SHA1,
+    /* Don't add any hash algorithms below S2N_HASH_SENTINEL */
+    S2N_HASH_SENTINEL
 } s2n_hash_algorithm;
 
 /* The low_level_digest stores all OpenSSL structs that are alg-specific to be used with OpenSSL's low-level hash API's. */
@@ -92,6 +94,7 @@ struct s2n_hash_state {
  */
 struct s2n_hash {
     int (*new) (struct s2n_hash_state *state);
+    int (*allow_md5_for_fips) (struct s2n_hash_state *state);
     int (*init) (struct s2n_hash_state *state, s2n_hash_algorithm alg);
     int (*update) (struct s2n_hash_state *state, const void *data, uint32_t size);
     int (*digest) (struct s2n_hash_state *state, void *out, uint32_t size);
@@ -101,7 +104,9 @@ struct s2n_hash {
 };
 
 extern int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out);
+extern int s2n_hash_is_available(s2n_hash_algorithm alg);
 extern int s2n_hash_new(struct s2n_hash_state *state);
+extern int s2n_hash_allow_md5_for_fips(struct s2n_hash_state *state);
 extern int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg);
 extern int s2n_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size);
 extern int s2n_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size);
