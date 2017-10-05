@@ -188,6 +188,12 @@ struct s2n_connection {
 
     /* TLS extension data */
     char server_name[256];
+
+    /* The application protocol decided upon during the client hello.
+     * If ALPN is being used, then:
+     * In server mode, this will be set by the time client_hello_cb is invoked.
+     * In client mode, this will be set after is_handshake_complete(connection) is true.
+     */
     char application_protocol[256];
     /* s2n does not support renegotiation.
      * RFC5746 Section 4.3 suggests servers implement a minimal version of the
