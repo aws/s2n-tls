@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -16,13 +16,16 @@
 #include <netinet/tcp.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/ioctl.h>
+#include <sys/mman.h>
 #include <poll.h>
 #include <netdb.h>
 
 #include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <string.h>
 #include <signal.h>
 #include <stdio.h>
@@ -35,7 +38,7 @@
 
 #include <s2n.h>
 
-static char certificate_chain[] =
+static char default_certificate_chain[] =
     "-----BEGIN CERTIFICATE-----\n"
     "MIICrTCCAZUCAn7lMA0GCSqGSIb3DQEBCwUAMB4xHDAaBgNVBAMME3MyblRlc3RJ\n"
     "bnRlcm1lZGlhdGUwIBcNMTcwMjEyMDQxMzA5WhgPMjExNzAxMTkwNDEzMDlaMBgx\n"
@@ -92,7 +95,7 @@ static char certificate_chain[] =
     "e3r1R9CDhIo=\n"
     "-----END CERTIFICATE-----\n";
 
-static char private_key[] =
+static char default_private_key[] =
     "-----BEGIN PRIVATE KEY-----\n"
     "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDHZZ9R9bKwS28K\n"
     "gAzNnXHnKeQ/IRqMhcv1OoNpV28TMutajg+Nri42CsdLvQe2gEVSb9WAo81LmaQy\n"
@@ -128,7 +131,9 @@ static char dhparams[] =
     "Bbn6k0FQ7yMED6w5XWQKDC0z2m0FI/BPE3AjUfuPzEYGqTDf9zQZ2Lz4oAN90Sud\n"
     "luOoEhYR99cEbCn0T4eBvEf9IUtczXUZ/wj7gzGbGG07dLfT+CmCRJxCjhrosenJ\n"
     "gzucyS7jt1bobgU66JKkgMNm7hJY4/nhR5LWTCzZyzYQh2HM2Vk4K5ZqILpj/n0S\n"
-    "5JYTQ2PVhxP+Uu8+hICs/8VvM72DznjPZzufADipjC7CsQ4S6x/ecZluFtbb+ZTv\n" "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n" "-----END DH PARAMETERS-----\n";
+    "5JYTQ2PVhxP+Uu8+hICs/8VvM72DznjPZzufADipjC7CsQ4S6x/ecZluFtbb+ZTv\n"
+    "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n"
+    "-----END DH PARAMETERS-----\n";
 
 #define MAX_KEY_LEN 32
 #define MAX_VAL_LEN 255
@@ -227,6 +232,51 @@ extern int echo(struct s2n_connection *conn, int sockfd);
 extern int negotiate(struct s2n_connection *conn);
 extern int accept_all_rsa_certs(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
 
+/* Caller is expected to free the memory returned. */
+static char *load_file_to_cstring(const char *path)
+{
+    FILE *pem_file = fopen(path, "rb");
+    if (!pem_file) {
+       fprintf(stderr, "Failed to open file %s: '%s'\n", path, strerror(errno));
+       return NULL;
+    }
+
+    /* Make sure we can fit the pem into the output buffer */
+    if (fseek(pem_file, 0, SEEK_END) < 0) {
+        fprintf(stderr, "Failed calling fseek: '%s'\n", strerror(errno));
+        fclose(pem_file);
+        return NULL;
+    }
+
+    const long int pem_file_size = ftell(pem_file);
+    if (pem_file_size < 0) {
+        fprintf(stderr, "Failed calling ftell: '%s'\n", strerror(errno));
+        fclose(pem_file);
+        return NULL;
+    }
+
+    rewind(pem_file);
+
+    char *pem_out = malloc(pem_file_size + 1);
+    if (pem_out == NULL) {
+        fprintf(stderr, "Failed allocating memory\n");
+        fclose(pem_file);
+        return NULL;
+    }
+
+    if (fread(pem_out, sizeof(char), pem_file_size, pem_file) < pem_file_size) {
+        fprintf(stderr, "Failed reading file: '%s'\n", strerror(errno));
+        free(pem_out);
+        fclose(pem_file);
+        return NULL;
+    }
+
+    pem_out[pem_file_size] = '\0';
+    fclose(pem_file);
+
+    return pem_out;
+}
+
 void usage()
 {
     fprintf(stderr, "usage: s2nd [options] host port\n");
@@ -238,6 +288,10 @@ void usage()
     fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
     fprintf(stderr, "  --enter-fips-mode\n");
     fprintf(stderr, "    Enter libcrypto's FIPS mode. The linked version of OpenSSL must be built with the FIPS module.\n");
+    fprintf(stderr, "  --cert\n");
+    fprintf(stderr, "    Path to a PEM encoded certificate [chain]\n");
+    fprintf(stderr, "  --key\n");
+    fprintf(stderr, "    Path to a PEM encoded private key that matches cert.\n");
     fprintf(stderr, "  -m\n");
     fprintf(stderr, "  --mutualAuth\n");
     fprintf(stderr, "    Request a Client Certificate. Any RSA Certificate will be accepted.\n");
@@ -250,6 +304,8 @@ void usage()
     fprintf(stderr, "    Prefer throughput by raising maximum outgoing record size to 16k\n");
     fprintf(stderr, "  --enable-mfl\n");
     fprintf(stderr, "    Accept client's TLS maximum fragment length extension request\n");
+    fprintf(stderr, "  --ocsp\n");
+    fprintf(stderr, "    Path to a DER formatted OCSP response for stapling\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -265,6 +321,9 @@ int main(int argc, char *const *argv)
     const char *host = NULL;
     const char *port = NULL;
 
+    const char *certificate_chain_file_path = NULL;
+    const char *private_key_file_path = NULL;
+    const char *ocsp_response_file_path = NULL;
     const char *cipher_prefs = "default";
     int fips_mode = 0;
     int only_negotiate = 0;
@@ -279,10 +338,13 @@ int main(int argc, char *const *argv)
         {"negotiate", no_argument, 0, 'n'},
         {"ciphers", required_argument, 0, 'c'},
         {"enter-fips-mode", no_argument, 0, 'f'},
+        {"cert", required_argument, 0, 'r'},
+        {"key", required_argument, 0, 'k'},
         {"negotiate", no_argument, 0, 'n'},
         {"prefer-low-latency", no_argument, 0, 'l'},
         {"prefer-throughput", no_argument, 0, 'p'},
         {"enable-mfl", no_argument, 0, 'e'},
+        {"ocsp", required_argument, 0, 'o'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
@@ -298,6 +360,12 @@ int main(int argc, char *const *argv)
             break;
         case 'f':
             fips_mode = 1;
+            break;
+        case 'k':
+            private_key_file_path = optarg;
+            break;
+        case 'r':
+            certificate_chain_file_path = optarg;
             break;
         case 'h':
             usage();
@@ -316,6 +384,9 @@ int main(int argc, char *const *argv)
             break;
         case 'e':
             enable_mfl = 1;
+            break;
+        case 'o':
+            ocsp_response_file_path = optarg;
             break;
         case '?':
         default:
@@ -419,9 +490,59 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
+    char *certificate_chain;
+    char *private_key;
+    if (certificate_chain_file_path) {
+        certificate_chain = load_file_to_cstring(certificate_chain_file_path);
+        if (certificate_chain == NULL) {
+            fprintf(stderr, "Error loading certificate chain file: '%s'\n", certificate_chain_file_path);
+        }
+    } else {
+        certificate_chain = default_certificate_chain;
+    }
+
+    if (private_key_file_path) {
+        private_key = load_file_to_cstring(private_key_file_path);
+        if (private_key == NULL) {
+            fprintf(stderr, "Error loading private key file: '%s'\n", private_key_file_path);
+        }
+    } else {
+        private_key = default_private_key;
+    }
+
     if (s2n_config_add_cert_chain_and_key(config, certificate_chain, private_key) < 0) {
         print_s2n_error("Error getting certificate/key");
         exit(1);
+    }
+
+    if (certificate_chain_file_path) {
+        free(certificate_chain);
+    }
+
+    if (private_key_file_path) {
+        free(private_key);
+    }
+
+    if (ocsp_response_file_path) {
+        int fd = open(ocsp_response_file_path, O_RDONLY);
+        if (fd < 0) {
+            fprintf(stderr, "Error opening OCSP response file: '%s'\n", strerror(errno));
+            exit(1);
+        }
+
+        struct stat st;
+        if (fstat(fd, &st) < 0) {
+            fprintf(stderr, "Error fstat-ing OCSP response file: '%s'\n", strerror(errno));
+            exit(1);
+        }
+
+        uint8_t *ocsp_response = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+        if (s2n_config_set_extension_data(config, S2N_EXTENSION_OCSP_STAPLING, ocsp_response, st.st_size) < 0) {
+            fprintf(stderr, "Error adding ocsp response: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+            exit(1);
+        }
+
+        close(fd);
     }
 
     if (s2n_config_add_dhparams(config, dhparams) < 0) {
