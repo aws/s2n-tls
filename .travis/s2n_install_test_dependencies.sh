@@ -7,7 +7,7 @@ if [[ ! -d test-deps ]]; then
     mkdir test-deps ; 
 fi
 
-#Install & Run shell check before installing dependincies
+#Install & Run shell check before installing dependencies
 echo "Running ShellCheck..."
 .travis/install_shellcheck.sh
 .travis/run_shellcheck.sh

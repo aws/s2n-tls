@@ -17,7 +17,10 @@ set -e
 
 ALL_FUZZ_TEST_FILES=""
 
-for dir in $( find ./tests/fuzz/corpus -name "s2n_*_test" | sed 's/.*\///g' ); do
+# Disabling shellcheck warning as we won't allow spaces or glob characters in file names.
+# Refer https://github.com/koalaman/shellcheck/wiki/SC2044
+# shellcheck disable=SC2044
+for dir in $( find ./tests/fuzz/corpus -name "s2n_*_test" -type d -exec basename {} \; ); do
     ALL_FUZZ_TEST_FILES="$ALL_FUZZ_TEST_FILES $dir"
 done
 
