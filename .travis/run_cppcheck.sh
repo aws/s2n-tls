@@ -34,8 +34,8 @@ $CPPCHECK_EXECUTABLE --std=c99 --error-exitcode=-1 --quiet -j 8 --enable=all --s
 
 if [ $FAILED == 1 ];
 then
-	printf "\033[31;1mFAILED cppcheck\033[0m\n"
+	printf "\\033[31;1mFAILED cppcheck\\033[0m\\n"
 	exit -1
 else
-	printf "\033[32;1mPASSED cppcheck\033[0m\n"
+	printf "\\033[32;1mPASSED cppcheck\\033[0m\\n"
 fi

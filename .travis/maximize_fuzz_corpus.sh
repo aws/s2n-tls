@@ -17,7 +17,7 @@ set -e
 
 ALL_FUZZ_TEST_FILES=""
 
-for dir in $( ls ./tests/fuzz/corpus ); do
+for dir in $( find ./tests/fuzz/corpus -name "s2n_*_test" | sed 's/.*\///g' ); do
     ALL_FUZZ_TEST_FILES="$ALL_FUZZ_TEST_FILES $dir"
 done
 
@@ -28,26 +28,26 @@ export FUZZ_TESTS="$ALL_FUZZ_TEST_FILES"
 DONE=0
 while [ $DONE -ne 1 ]; do
     make fuzz;
-    NEW_CORPUS_FILES=`git ls-files --others --exclude-standard | (grep "tests/fuzz/corpus" || echo "")`
+    NEW_CORPUS_FILES=$(git ls-files --others --exclude-standard | (grep "tests/fuzz/corpus" || echo ""))
 
     if [[ -n "$NEW_CORPUS_FILES" ]]; then
         file_count=0
         for file in $NEW_CORPUS_FILES; do
-            printf "\033[32;1mFound new Corpus Input:\033[0m $file\n"
+            printf "\\033[32;1mFound new Corpus Input:\\033[0m %s\\n" "$file"
             file_count=$((file_count+1))
             git add "$file"
         done
 
-        FUZZ_TESTS_TO_RERUN=`echo "$NEW_CORPUS_FILES" | awk -F'/' '{print $4}' | sort | uniq`
+        FUZZ_TESTS_TO_RERUN=$(echo "$NEW_CORPUS_FILES" | awk -F'/' '{print $4}' | sort | uniq)
 
         export FUZZ_TESTS=""
         for test in $FUZZ_TESTS_TO_RERUN; do
             export FUZZ_TESTS="$FUZZ_TESTS $test"
         done
 
-        printf "Found \033[32;1m$file_count\033[0m new corpus inputs for Fuzz Tests: $FUZZ_TESTS\n"
+        printf "Found \\033[32;1m$file_count\\033[0m new corpus inputs for Fuzz Tests: %s\\n" "$FUZZ_TESTS"
     else
-        printf "\033[32;1mCorpus Maximized.\033[0m\n"
+        printf "\\033[32;1mCorpus Maximized.\\033[0m\\n"
         DONE=1
     fi
 done

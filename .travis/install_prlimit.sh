@@ -26,9 +26,9 @@ fi
 
 BUILD_DIR=$1
 INSTALL_DIR=$2
-NUM_CORES=`nproc`
+NUM_CORES=$(nproc)
 
-cd $BUILD_DIR
+cd "$BUILD_DIR"
 # Originally from: https://www.kernel.org/pub/linux/utils/util-linux/v2.25/util-linux-2.25.2.tar.gz
 curl https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-29_util-linux-2.25.2.tar.gz > util-linux-2.25.2.tar.gz
 tar -xzvf util-linux-2.25.2.tar.gz
@@ -47,8 +47,7 @@ cd util-linux-2.25.2
     --disable-makeinstall-chown \
     --without-systemdsystemunitdir \
     --without-ncurses \
-    --prefix=$INSTALL_DIR || cat config.log
+    --prefix="$INSTALL_DIR" || cat config.log
 
-make -j $NUM_CORES > /dev/null
+make -j "$NUM_CORES" > /dev/null
 make install > /dev/null
-

@@ -27,16 +27,16 @@ fi
 DOWNLOAD_DIR=$1
 INSTALL_DIR=$2
 
-mkdir -p $DOWNLOAD_DIR
-cd $DOWNLOAD_DIR
+mkdir -p "$DOWNLOAD_DIR"
+cd "$DOWNLOAD_DIR"
 
 #download z3 and yices
 curl https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/z3-2017-04-04-Ubuntu14.04-64 > z3
 curl https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/yices_smt2-linux-static-2017-06-21 > yices-smt2
 sudo chmod +x z3
 sudo chmod +x yices-smt2
-mkdir -p $INSTALL_DIR/bin
-mv z3 $INSTALL_DIR/bin
-mv yices-smt2 $INSTALL_DIR/bin
-$INSTALL_DIR/bin/z3 --version
-$INSTALL_DIR/bin/yices-smt2 --version
+mkdir -p "$INSTALL_DIR"/bin
+mv z3 "$INSTALL_DIR"/bin
+mv yices-smt2 "$INSTALL_DIR"/bin
+"$INSTALL_DIR"/bin/z3 --version
+"$INSTALL_DIR"/bin/yices-smt2 --version

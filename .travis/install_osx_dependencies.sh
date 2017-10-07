@@ -20,4 +20,4 @@ brew install gnu-indent
 brew install cppcheck
 
 # Download and Install Clang Scan-build for static analysis
-if [[ ! -d "$SCAN_BUILD_INSTALL_DIR" ]] && [[ "$TRAVIS_OS_NAME" == "osx" ]]; then .travis/install_scan-build.sh $SCAN_BUILD_INSTALL_DIR; fi
+if [[ ! -d "$SCAN_BUILD_INSTALL_DIR" ]] && [[ "$TRAVIS_OS_NAME" == "osx" ]]; then .travis/install_scan-build.sh "$SCAN_BUILD_INSTALL_DIR"; fi
