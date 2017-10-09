@@ -35,7 +35,7 @@ file(GLOB ERROR_SRC
     "error/*.c"
 )
 
-file(GLOB STUFFER_SOURCE
+file(GLOB STUFFER_SRC
     "stuffer/*.c"
 )
 
@@ -89,6 +89,10 @@ file(GLOB S2N_HEADERS
     ${TLS_SRC}
     ${UTILS_SRC}
  )
+
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
  
 add_library(s2nStatic STATIC ${S2N_HEADERS} ${S2N_SRC})
 add_library(s2nShared SHARED ${S2N_HEADERS} ${S2N_SRC})
@@ -107,8 +111,8 @@ target_compile_options(s2nShared PRIVATE -std=c99 -pedantic -Wall -Werror -Wimpl
 target_compile_definitions(s2nStatic PRIVATE -D_POSIX_C_SOURCE=200809L -D_FORTIFY_SOURCE=2)
 target_compile_definitions(s2nShared PRIVATE -D_POSIX_C_SOURCE=200809L -D_FORTIFY_SOURCE=2)
 
-target_compile_options(s2nStatic PUBLIC -fPIC -fgnu89-inline)    
-target_compile_options(s2nShared PUBLIC -fPIC -fgnu89-inline)
+target_compile_options(s2nStatic PUBLIC -fPIC)    
+target_compile_options(s2nShared PUBLIC -fPIC)
 
 if(NO_STACK_PROTECTOR)
     target_compile_options(s2nStatic PRIVATE -Wstack-protector -fstack-protector-all)
@@ -124,14 +128,14 @@ if(NOT LIBCRYPTO_ROOT)
     find_package(OpenSSL)   
     target_include_directories(s2nStatic PRIVATE ${OPENSSL_INCLUDE_DIR})
     target_include_directories(s2nShared PRIVATE ${OPENSSL_INCLUDE_DIR})
-    target_link_libraries(s2nStatic PRIVATE ${OS_LIBS} OpenSSL::Crypto)
-    target_link_libraries(s2nShared PRIVATE ${OS_LIBS} OpenSSL::Crypto)
+    target_link_libraries(s2nStatic PRIVATE ${OS_LIBS} PRIVATE OpenSSL::Crypto)
+    target_link_libraries(s2nShared PRIVATE ${OS_LIBS} PRIVATE OpenSSL::Crypto)
 else()
     target_include_directories(s2nStatic PRIVATE ${LIBCRYPTO_ROOT}/include)
     target_include_directories(s2nShared PRIVATE ${LIBCRYPTO_ROOT}/include)
     link_directories(${LIBCRYPTO_ROOT})
-    target_link_libraries(s2nStatic PRIVATE ${OS_LIBS} crypto)
-    target_link_libraries(s2nShared PRIVATE ${OS_LIBS} crypto)
+    target_link_libraries(s2nStatic PRIVATE ${OS_LIBS} PRIVATE crypto)
+    target_link_libraries(s2nShared PRIVATE ${OS_LIBS} PRIVATE crypto)
 endif()
 
 target_include_directories(s2nStatic PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
@@ -146,28 +150,31 @@ file(GLOB TESTLIB_HEADERS "tests/testlib/*.h")
 
 add_library(testss2n SHARED ${TESTLIB_HEADERS} ${TESTLIB_SRC})
 target_include_directories(testss2n PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests)
-target_link_libraries(testss2n PRIVATE s2nShared)
-# file(GLOB TEST_HDRS "tests/*.h")
-# file(GLOB TESTS ${TEST_HDRS} ${TEST_SRC})
-   
-# include_directories(${CMAKE_CURRENT_SOURCE_DIR}/tests)
-# add_executable(aws-io-tests ${TESTS} tests/event_loop_test.c)
-# target_link_libraries(aws-io-tests aws-io)
-# set_target_properties(aws-io-tests PROPERTIES LINKER_LANGUAGE C)
-# set_property(TARGET aws-io-tests PROPERTY C_STANDARD 99)
+target_link_libraries(testss2n PUBLIC s2nShared)
 
-#add_custom_command(TARGET aws-io-tests PRE_BUILD
-#        COMMAND ${CMAKE_COMMAND} -E copy_directory
-#        ${CMAKE_CURRENT_SOURCE_DIR}/tests/resources ${CMAKE_CURRENT_BINARY_DIR})
- 
-# include(CTest)
-# enable_testing()
- 
-# install (FILES ${AWS_IO_HEADERS} DESTINATION "include/aws/io")
-# install (
- #         TARGETS ${PROJECT_NAME}
- #         EXPORT "${PROJECT_NAME}-targets"
- #         ARCHIVE DESTINATION lib
- #         LIBRARY DESTINATION lib
- #         COMPONENT library     
- #)
+file (GLOB TEST_LD_PRELOAD "tests/LD_PRELOAD/*.c")
+add_library(allocator_overrides SHARED ${TEST_LD_PRELOAD})
+
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/tests/pems
+        DESTINATION ${CMAKE_BINARY_DIR})
+
+include(CTest)
+enable_testing()
+
+file(GLOB UNITTESTS_SRC "tests/unit/*.c")
+    foreach(test_case ${UNITTESTS_SRC})
+    string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
+    add_executable(${test_case_name} ${test_case})
+    target_link_libraries(${test_case_name} PRIVATE testss2n PRIVATE m pthread)
+    target_include_directories(${test_case_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/api)
+    target_include_directories(${test_case_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_include_directories(${test_case_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+    add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+   
+    set_property(
+    TEST
+        ${test_case_name}
+    PROPERTY
+        ENVIRONMENT LD_PRELOAD=${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/liballocator_overrides.so)
+
+endforeach(test_case)
