@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Clear the Travis Cache Weekly to ensure that any upstream breakages in test dependencies are caught
+if [[ "$TRAVIS_EVENT_TYPE" == "cron" ]]; then
+    sudo rm -rf ./test-deps
+fi
+
 # Install missing test dependencies. If the install directory already exists, cached artifacts will be used
 # for that dependency.
 
