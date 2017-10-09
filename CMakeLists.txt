@@ -89,10 +89,6 @@ file(GLOB S2N_HEADERS
     ${TLS_SRC}
     ${UTILS_SRC}
  )
-
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
  
 add_library(s2nStatic STATIC ${S2N_HEADERS} ${S2N_SRC})
 add_library(s2nShared SHARED ${S2N_HEADERS} ${S2N_SRC})
@@ -138,10 +134,10 @@ else()
     target_link_libraries(s2nShared PRIVATE ${OS_LIBS} PRIVATE crypto)
 endif()
 
-target_include_directories(s2nStatic PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories(s2nShared PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories(s2nStatic PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/api)
-target_include_directories(s2nShared PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/api)
+target_include_directories(s2nStatic PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<INSTALL_INTERFACE:include>)
+target_include_directories(s2nShared PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<INSTALL_INTERFACE:include>)
+target_include_directories(s2nStatic PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
+target_include_directories(s2nShared PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
 target_link_libraries(s2nStatic PRIVATE ${OS_LIBS} OpenSSL::Crypto)
 target_link_libraries(s2nShared PRIVATE ${OS_LIBS} OpenSSL::Crypto) 
 
@@ -149,14 +145,12 @@ file(GLOB TESTLIB_SRC "tests/testlib/*.c")
 file(GLOB TESTLIB_HEADERS "tests/testlib/*.h")
 
 add_library(testss2n SHARED ${TESTLIB_HEADERS} ${TESTLIB_SRC})
-target_include_directories(testss2n PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+target_include_directories(testss2n PUBLIC tests)
 target_link_libraries(testss2n PUBLIC s2nShared)
 
+#run unit tests
 file (GLOB TEST_LD_PRELOAD "tests/LD_PRELOAD/*.c")
 add_library(allocator_overrides SHARED ${TEST_LD_PRELOAD})
-
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/tests/pems
-        DESTINATION ${CMAKE_BINARY_DIR})
 
 include(CTest)
 enable_testing()
@@ -166,15 +160,34 @@ file(GLOB UNITTESTS_SRC "tests/unit/*.c")
     string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
     add_executable(${test_case_name} ${test_case})
     target_link_libraries(${test_case_name} PRIVATE testss2n PRIVATE m pthread)
-    target_include_directories(${test_case_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/api)
-    target_include_directories(${test_case_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-    target_include_directories(${test_case_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
-    add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+    target_include_directories(${test_case_name} PRIVATE api)
+    target_include_directories(${test_case_name} PRIVATE ./})
+    target_include_directories(${test_case_name} PRIVATE tests)
+    add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
    
     set_property(
     TEST
         ${test_case_name}
     PROPERTY
-        ENVIRONMENT LD_PRELOAD=${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/liballocator_overrides.so)
+        ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
 
 endforeach(test_case)
+
+#install the s2n files
+install (FILES ${API_HEADERS} DESTINATION "include/s2n/api")
+install (FILES ${CRYPTO_HEADERS} DESTINATION "include/s2n/crypto")
+install (FILES ${ERROR_HEADERS} DESTINATION "include/s2n/error")
+install (FILES ${STUFFER_HEADERS} DESTINATION "include/s2n/stuffer")
+install (FILES ${TLS_HEADERS} DESTINATION "include/s2n/tls")
+install (FILES ${UTILS_HEADERS} DESTINATION "include/s2n/utils")
+install (
+         TARGETS s2nStatic s2nShared
+         EXPORT "${PROJECT_NAME}-config"
+         ARCHIVE DESTINATION lib
+         LIBRARY DESTINATION lib
+         COMPONENT library     
+)
+
+export(TARGETS s2nStatic s2nShared FILE "s2n-config.cmake")
+#install the cmake finder
+install(EXPORT s2n-config DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/s2n/cmake/")
