@@ -1,6 +1,5 @@
 cmake_minimum_required (VERSION 3.0)
 project (s2n)
-
 ##header files
 file(GLOB API_HEADERS
      "api/*.h"
@@ -47,7 +46,7 @@ file(GLOB UTILS_SRC
     "utils/*.c"
 )
 
-##be nice to visutal studio users
+##be nice to visual studio users
 if(MSVC)
     source_group("Header Files\\s2n\\api" FILES ${API_HEADERS})
     source_group("Header Files\\s2n\\crypto" FILES ${CRYPTO_HEADERS})
@@ -90,63 +89,67 @@ file(GLOB S2N_HEADERS
     ${UTILS_SRC}
  )
  
-add_library(s2nStatic STATIC ${S2N_HEADERS} ${S2N_SRC})
-add_library(s2nShared SHARED ${S2N_HEADERS} ${S2N_SRC})
-set_target_properties(s2nStatic PROPERTIES OUTPUT_NAME s2n)
-set_target_properties(s2nShared PROPERTIES OUTPUT_NAME s2n)
+if(BUILD_SHARED_LIBS)
+    add_library(s2nShared SHARED ${S2N_HEADERS} ${S2N_SRC})
+    set_target_properties(s2nShared PROPERTIES OUTPUT_NAME s2n)
+    set_target_properties(s2nShared PROPERTIES LINKER_LANGUAGE C) 
+endif()
 
+add_library(s2nStatic STATIC ${S2N_HEADERS} ${S2N_SRC})
+set_target_properties(s2nStatic PROPERTIES OUTPUT_NAME s2n)
 set_target_properties(s2nStatic PROPERTIES LINKER_LANGUAGE C)
-set_target_properties(s2nShared PROPERTIES LINKER_LANGUAGE C) 
 
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
+if(BUILD_SHARED_LIBS)
+    target_compile_options(s2nShared PRIVATE -std=c99 -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security)
+    target_compile_definitions(s2nShared PRIVATE -D_POSIX_C_SOURCE=200809L -D_FORTIFY_SOURCE=2)
+    target_compile_options(s2nShared PUBLIC -fPIC)
+endif()
+
 target_compile_options(s2nStatic PRIVATE -std=c99 -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security)
-
-target_compile_options(s2nShared PRIVATE -std=c99 -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security)
-
 target_compile_definitions(s2nStatic PRIVATE -D_POSIX_C_SOURCE=200809L -D_FORTIFY_SOURCE=2)
-target_compile_definitions(s2nShared PRIVATE -D_POSIX_C_SOURCE=200809L -D_FORTIFY_SOURCE=2)
-
 target_compile_options(s2nStatic PUBLIC -fPIC)    
-target_compile_options(s2nShared PUBLIC -fPIC)
 
 if(NO_STACK_PROTECTOR)
     target_compile_options(s2nStatic PRIVATE -Wstack-protector -fstack-protector-all)
-    target_compile_options(s2nShared PRIVATE -Wstack-protector -fstack-protector-all)
+
+    if(BUILD_SHARED_LIBS)
+        target_compile_options(s2nShared PRIVATE -Wstack-protector -fstack-protector-all)
+    endif()
 endif()
 
 if(S2N_UNSAFE_FUZZING_MODE)
     target_compile_options(s2nStatic PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak)
-    target_compile_options(s2nShared PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak)
+
+    if(BUILD_SHARED_LIBS)
+        target_compile_options(s2nShared PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak)
+    endif()
 endif()
 
-if(NOT LIBCRYPTO_ROOT)
-    find_package(OpenSSL)   
-    target_include_directories(s2nStatic PRIVATE ${OPENSSL_INCLUDE_DIR})
-    target_include_directories(s2nShared PRIVATE ${OPENSSL_INCLUDE_DIR})
-    target_link_libraries(s2nStatic PRIVATE ${OS_LIBS} PRIVATE OpenSSL::Crypto)
-    target_link_libraries(s2nShared PRIVATE ${OS_LIBS} PRIVATE OpenSSL::Crypto)
-else()
-    target_include_directories(s2nStatic PRIVATE ${LIBCRYPTO_ROOT}/include)
-    target_include_directories(s2nShared PRIVATE ${LIBCRYPTO_ROOT}/include)
-    link_directories(${LIBCRYPTO_ROOT})
-    target_link_libraries(s2nStatic PRIVATE ${OS_LIBS} PRIVATE crypto)
-    target_link_libraries(s2nShared PRIVATE ${OS_LIBS} PRIVATE crypto)
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
+
+find_package(LibCrypto REQUIRED)
+target_link_libraries(s2nStatic PRIVATE LibCrypto::Crypto PRIVATE ${OS_LIBS})
+
+if(BUILD_SHARED_LIBS)
+    target_link_libraries(s2nShared PRIVATE LibCrypto::Crypto PRIVATE ${OS_LIBS})
+endif()
+
+if(BUILD_SHARED_LIBS)
+    target_include_directories(s2nShared PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<INSTALL_INTERFACE:include>)
+    target_include_directories(s2nShared PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
 endif()
 
 target_include_directories(s2nStatic PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<INSTALL_INTERFACE:include>)
-target_include_directories(s2nShared PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<INSTALL_INTERFACE:include>)
 target_include_directories(s2nStatic PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
-target_include_directories(s2nShared PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
-target_link_libraries(s2nStatic PRIVATE ${OS_LIBS} OpenSSL::Crypto)
-target_link_libraries(s2nShared PRIVATE ${OS_LIBS} OpenSSL::Crypto) 
 
 file(GLOB TESTLIB_SRC "tests/testlib/*.c")
 file(GLOB TESTLIB_HEADERS "tests/testlib/*.h")
 
-add_library(testss2n SHARED ${TESTLIB_HEADERS} ${TESTLIB_SRC})
+add_library(testss2n STATIC ${TESTLIB_HEADERS} ${TESTLIB_SRC})
 target_include_directories(testss2n PUBLIC tests)
-target_link_libraries(testss2n PUBLIC s2nShared)
+target_link_libraries(testss2n PUBLIC s2nStatic)
 
 #run unit tests
 file (GLOB TEST_LD_PRELOAD "tests/LD_PRELOAD/*.c")
@@ -161,7 +164,7 @@ file(GLOB UNITTESTS_SRC "tests/unit/*.c")
     add_executable(${test_case_name} ${test_case})
     target_link_libraries(${test_case_name} PRIVATE testss2n PRIVATE m pthread)
     target_include_directories(${test_case_name} PRIVATE api)
-    target_include_directories(${test_case_name} PRIVATE ./})
+    target_include_directories(${test_case_name} PRIVATE ./)
     target_include_directories(${test_case_name} PRIVATE tests)
     add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
    
@@ -173,6 +176,11 @@ file(GLOB UNITTESTS_SRC "tests/unit/*.c")
 
 endforeach(test_case)
 
+set(export_targets s2nStatic)
+if(BUILD_SHARED_LIBS)
+    set(export_targets s2nStatic s2nShared)
+endif()
+
 #install the s2n files
 install (FILES ${API_HEADERS} DESTINATION "include/s2n/api")
 install (FILES ${CRYPTO_HEADERS} DESTINATION "include/s2n/crypto")
@@ -181,13 +189,13 @@ install (FILES ${STUFFER_HEADERS} DESTINATION "include/s2n/stuffer")
 install (FILES ${TLS_HEADERS} DESTINATION "include/s2n/tls")
 install (FILES ${UTILS_HEADERS} DESTINATION "include/s2n/utils")
 install (
-         TARGETS s2nStatic s2nShared
+         TARGETS ${export_targets}
          EXPORT "${PROJECT_NAME}-config"
          ARCHIVE DESTINATION lib
          LIBRARY DESTINATION lib
          COMPONENT library     
 )
 
-export(TARGETS s2nStatic s2nShared FILE "s2n-config.cmake")
+export(TARGETS ${export_targets} FILE "s2n-config.cmake")
 #install the cmake finder
 install(EXPORT s2n-config DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/s2n/cmake/")
