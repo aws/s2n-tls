@@ -1,4 +1,4 @@
-# - Try to find boringssl include dirs and libraries
+# - Try to find LibCrypto include dirs and libraries
 #
 # Usage of this module as follows:
 #
