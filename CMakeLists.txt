@@ -137,18 +137,18 @@ if(BUILD_SHARED_LIBS)
 endif()
 
 if(BUILD_SHARED_LIBS)
-    target_include_directories(s2nShared PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<INSTALL_INTERFACE:include>)
+    target_include_directories(s2nShared PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
     target_include_directories(s2nShared PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
 endif()
 
-target_include_directories(s2nStatic PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<INSTALL_INTERFACE:include>)
+target_include_directories(s2nStatic PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(s2nStatic PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
 
 file(GLOB TESTLIB_SRC "tests/testlib/*.c")
 file(GLOB TESTLIB_HEADERS "tests/testlib/*.h")
 
 add_library(testss2n STATIC ${TESTLIB_HEADERS} ${TESTLIB_SRC})
-target_include_directories(testss2n PUBLIC tests)
+target_include_directories(testss2n PRIVATE tests)
 target_link_libraries(testss2n PUBLIC s2nStatic)
 
 #run unit tests
@@ -182,12 +182,8 @@ if(BUILD_SHARED_LIBS)
 endif()
 
 #install the s2n files
-install (FILES ${API_HEADERS} DESTINATION "include/s2n/api")
-install (FILES ${CRYPTO_HEADERS} DESTINATION "include/s2n/crypto")
-install (FILES ${ERROR_HEADERS} DESTINATION "include/s2n/error")
-install (FILES ${STUFFER_HEADERS} DESTINATION "include/s2n/stuffer")
-install (FILES ${TLS_HEADERS} DESTINATION "include/s2n/tls")
-install (FILES ${UTILS_HEADERS} DESTINATION "include/s2n/utils")
+install (FILES ${API_HEADERS} DESTINATION "include/")
+
 install (
          TARGETS ${export_targets}
          EXPORT "${PROJECT_NAME}-config"
