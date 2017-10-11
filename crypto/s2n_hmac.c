@@ -127,6 +127,43 @@ static int s2n_sslv3_mac_digest(struct s2n_hmac_state *state, void *out, uint32_
     return s2n_hash_digest(&state->inner, out, size);
 }
 
+
+static int s2n_tls_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
+{
+    s2n_hash_algorithm hash_alg;
+    GUARD(s2n_hmac_hash_alg(alg, &hash_alg));
+  
+    GUARD(s2n_hash_init(&state->inner_just_key, hash_alg));
+    GUARD(s2n_hash_init(&state->outer, hash_alg));
+
+    uint32_t copied = klen;
+    if (klen > state->xor_pad_size) {
+        GUARD(s2n_hash_update(&state->outer, key, klen));
+        GUARD(s2n_hash_digest(&state->outer, state->digest_pad, state->digest_size));
+
+        memcpy_check(state->xor_pad, state->digest_pad, state->digest_size);
+        copied = state->digest_size;
+    } else {
+        memcpy_check(state->xor_pad, key, klen);
+    }
+
+    for (int i = 0; i < copied; i++) {
+        state->xor_pad[i] ^= 0x36;
+    }
+    for (int i = copied; i < state->xor_pad_size; i++) {
+        state->xor_pad[i] = 0x36;
+    }
+
+    GUARD(s2n_hash_update(&state->inner_just_key, state->xor_pad, state->xor_pad_size));
+
+    /* 0x36 xor 0x5c == 0x6a */
+    for (int i = 0; i < state->xor_pad_size; i++) {
+        state->xor_pad[i] ^= 0x6a;
+    }
+
+    return s2n_hmac_reset(state);
+}
+
 int s2n_hmac_xor_pad_size(s2n_hmac_algorithm hmac_alg, uint16_t *xor_pad_size)
 {
     switch(hmac_alg) {
@@ -179,52 +216,25 @@ int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const vo
         S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
     }
 
-    s2n_hash_algorithm hash_alg;
-    state->currently_in_hash_block = 0;
 
-    GUARD(s2n_hmac_hash_alg(alg, &hash_alg));
-    GUARD(s2n_hmac_digest_size(alg, &state->digest_size));
-    GUARD(s2n_hmac_xor_pad_size(alg, &state->xor_pad_size));
+    
+    state->alg = alg;
     GUARD(s2n_hmac_hash_block_size(alg, &state->hash_block_size));
+    state->currently_in_hash_block = 0;
+    GUARD(s2n_hmac_xor_pad_size(alg, &state->xor_pad_size));
+    GUARD(s2n_hmac_digest_size(alg, &state->digest_size));
+
 
     gte_check(sizeof(state->xor_pad), state->xor_pad_size);
     gte_check(sizeof(state->digest_pad), state->digest_size);
-
-    state->alg = alg;
+    /* key needs to be as large as the biggest block size */
+    gte_check(sizeof(state->xor_pad), state->hash_block_size);
 
     if (alg == S2N_HMAC_SSLv3_SHA1 || alg == S2N_HMAC_SSLv3_MD5) {
         return s2n_sslv3_mac_init(state, alg, key, klen);
-    }
-
-    GUARD(s2n_hash_init(&state->inner_just_key, hash_alg));
-    GUARD(s2n_hash_init(&state->outer, hash_alg));
-
-    uint32_t copied = klen;
-    if (klen > state->xor_pad_size) {
-        GUARD(s2n_hash_update(&state->outer, key, klen));
-        GUARD(s2n_hash_digest(&state->outer, state->digest_pad, state->digest_size));
-
-        memcpy_check(state->xor_pad, state->digest_pad, state->digest_size);
-        copied = state->digest_size;
     } else {
-        memcpy_check(state->xor_pad, key, klen);
+        return s2n_tls_hmac_init(state, alg, key, klen);
     }
-
-    for (int i = 0; i < copied; i++) {
-        state->xor_pad[i] ^= 0x36;
-    }
-    for (int i = copied; i < state->xor_pad_size; i++) {
-        state->xor_pad[i] = 0x36;
-    }
-
-    GUARD(s2n_hash_update(&state->inner_just_key, state->xor_pad, state->xor_pad_size));
-
-    /* 0x36 xor 0x5c == 0x6a */
-    for (int i = 0; i < state->xor_pad_size; i++) {
-        state->xor_pad[i] ^= 0x6a;
-    }
-
-    return s2n_hmac_reset(state);
 }
 
 int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)

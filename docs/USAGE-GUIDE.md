@@ -492,7 +492,8 @@ preference, with most preferred protocol first, and of length
 **protocol_count**.  When acting as an **S2N_CLIENT** the protocol list is
 included in the Client Hello message as the ALPN extension.  As an
 **S2N_SERVER**, the list is used to negotiate a mutual application protocol
-with the client.
+with the client. After the negotiation for the connection has completed, the
+agreed upon protocol can be retrieved with [s2n_get_application_protocol](#s2n_get_application_protocol)
 
 ### s2n\_config\_set\_status\_request\_type
 
