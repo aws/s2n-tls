@@ -17,6 +17,7 @@
 
 #include <openssl/ecdsa.h>
 #include <stdint.h>
+#include <s2n.h>
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -24,22 +25,19 @@
 
 #include "utils/s2n_blob.h"
 
-struct s2n_ecdsa_public_key {
-    EC_KEY *eckey;
+/* Forward declaration to avoid the circular dependency with s2n_pkey.h */
+struct s2n_pkey;
+
+struct s2n_ecdsa_key {
+    EC_KEY *ec_key;
 };
 
-struct s2n_ecdsa_private_key {
-    EC_KEY *eckey;
-};
+typedef struct s2n_ecdsa_key s2n_ecdsa_public_key;
+typedef struct s2n_ecdsa_key s2n_ecdsa_private_key;
 
-extern int s2n_asn1der_to_ecdsa_public_key(struct s2n_ecdsa_public_key *key, struct s2n_blob *asn1der);
-extern int s2n_asn1der_to_ecdsa_private_key(struct s2n_ecdsa_private_key *key, struct s2n_blob *asn1der);
-extern int s2n_ecdsa_public_key_free(struct s2n_ecdsa_public_key *key);
-extern int s2n_ecdsa_private_key_free(struct s2n_ecdsa_private_key *key);
+extern int s2n_ecdsa_pkey_init(struct s2n_pkey *pkey);
 
-extern int s2n_ecdsa_sign(const struct s2n_ecdsa_private_key *key, struct s2n_hash_state *digest, struct s2n_blob *signature);
-extern int s2n_ecdsa_verify(const struct s2n_ecdsa_public_key *key, struct s2n_hash_state *digest, struct s2n_blob *signature);
+extern int s2n_ecdsa_signature_size(const s2n_ecdsa_private_key *key);
 
-extern int s2n_ecdsa_signature_size(const struct s2n_ecdsa_private_key *key);
-
-extern int s2n_ecdsa_keys_match(const struct s2n_ecdsa_public_key *pub_key, const struct s2n_ecdsa_private_key *priv_key); 
+extern int s2n_evp_pkey_to_ecdsa_public_key(s2n_ecdsa_public_key *ecdsa_key, EVP_PKEY *pkey);
+extern int s2n_evp_pkey_to_ecdsa_private_key(s2n_ecdsa_private_key *ecdsa_key, EVP_PKEY *pkey);

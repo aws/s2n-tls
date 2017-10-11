@@ -17,7 +17,11 @@
 #include <time.h>
 #include <stdint.h>
 
+#include "crypto/s2n_fips.h"
+
 #include "error/s2n_errno.h"
+
+#include "crypto/s2n_hash.h"
 
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
@@ -80,7 +84,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 
     /* Default our signature digest algorithms */
     conn->secure.conn_hash_alg = S2N_HASH_MD5_SHA1;
-    if (conn->actual_protocol_version == S2N_TLS12) {
+    if (conn->actual_protocol_version == S2N_TLS12 || s2n_is_in_fips_mode()) {
         conn->secure.conn_hash_alg = S2N_HASH_SHA1;
     }
 
@@ -118,6 +122,9 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 
     /* Set the handshake type */
     GUARD(s2n_conn_set_handshake_type(conn));
+
+    /* We've selected the cipher, update the required hashes for this connection */
+    GUARD(s2n_conn_update_required_handshake_hashes(conn));
 
     return 0;
 }
@@ -178,7 +185,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
 
     /* Default our signature digest algorithm to SHA1. Will be used when verifying a client certificate. */
     conn->secure.conn_hash_alg = S2N_HASH_MD5_SHA1;
-    if (conn->actual_protocol_version == S2N_TLS12) {
+    if (conn->actual_protocol_version == S2N_TLS12 || s2n_is_in_fips_mode()) {
         conn->secure.conn_hash_alg = S2N_HASH_SHA1;
     }
 

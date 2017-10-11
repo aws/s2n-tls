@@ -25,6 +25,7 @@
 #include "tls/s2n_cipher_suites.h"
 #include "stuffer/s2n_stuffer.h"
 #include "crypto/s2n_cipher.h"
+#include "crypto/s2n_fips.h"
 #include "utils/s2n_random.h"
 #include "crypto/s2n_hmac.h"
 #include "tls/s2n_record.h"
@@ -40,6 +41,11 @@ int main(int argc, char **argv)
     struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
 
     BEGIN_TEST();
+
+    if (s2n_is_in_fips_mode()) {
+        /* Skip when FIPS mode is set as FIPS mode does not support RC4 */
+        END_TEST();
+    }
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
     EXPECT_SUCCESS(s2n_get_urandom_data(&r));

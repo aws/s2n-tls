@@ -481,6 +481,35 @@ const struct s2n_cipher_preferences cipher_preferences_test_all = {
     .minimum_protocol_version = S2N_SSLv3
 };
 
+
+/* All of the cipher suites that s2n can negotiate when in FIPS mode,
+ * in order of IANA value. Exposed for the "test_all_fips" cipher preference list.
+ */
+static struct s2n_cipher_suite *s2n_all_fips_cipher_suites[] = {
+    &s2n_rsa_with_3des_ede_cbc_sha,                /* 0x00,0x0A */
+    &s2n_rsa_with_aes_128_cbc_sha,                 /* 0x00,0x2F */
+    &s2n_rsa_with_aes_256_cbc_sha,                 /* 0x00,0x35 */
+    &s2n_rsa_with_aes_128_cbc_sha256,              /* 0x00,0x3C */
+    &s2n_rsa_with_aes_256_cbc_sha256,              /* 0x00,0x3D */
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,          /* 0x00,0x67 */
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,          /* 0x00,0x6B */
+    &s2n_rsa_with_aes_128_gcm_sha256,              /* 0x00,0x9C */
+    &s2n_rsa_with_aes_256_gcm_sha384,              /* 0x00,0x9D */
+    &s2n_dhe_rsa_with_aes_128_gcm_sha256,          /* 0x00,0x9E */
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384,          /* 0x00,0x9F */
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,        /* 0xC0,0x27 */
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,        /* 0xC0,0x28 */
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,        /* 0xC0,0x2F */
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,        /* 0xC0,0x30 */
+};
+
+/* All supported FIPS ciphers. Exposed for integration testing. */
+const struct s2n_cipher_preferences cipher_preferences_test_all_fips = {
+    .count = sizeof(s2n_all_fips_cipher_suites) / sizeof(s2n_all_fips_cipher_suites[0]),
+    .suites = s2n_all_fips_cipher_suites,
+    .minimum_protocol_version = S2N_TLS10
+};
+
 /* Determines cipher suite availability and selects record algorithms */
 int s2n_cipher_suites_init(void)
 {

@@ -158,7 +158,7 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
             }
 
             /* If we get here, it's an error condition */
-            if (s2n_errno != S2N_ERR_BLOCKED && s2n_is_caching_enabled(conn->config) && conn->session_id_len) {
+            if (s2n_errno != S2N_ERR_BLOCKED && s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
                 conn->config->cache_delete(conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
             }
 

@@ -30,6 +30,9 @@
 
 #include <errno.h>
 
+#include <openssl/crypto.h>
+#include <openssl/err.h>
+
 #include <s2n.h>
 
 static char certificate_chain[] =
@@ -219,9 +222,10 @@ int cache_delete(void *ctx, const void *key, uint64_t key_size)
     return 0;
 }
 
-
+extern void print_s2n_error(const char *app_error);
 extern int echo(struct s2n_connection *conn, int sockfd);
 extern int negotiate(struct s2n_connection *conn);
+extern int accept_all_rsa_certs(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_cert_type *cert_type_out, s2n_cert_public_key *public_key_out, void *context);
 
 void usage()
 {
@@ -232,13 +236,20 @@ void usage()
     fprintf(stderr, "  -c [version_string]\n");
     fprintf(stderr, "  --ciphers [version_string]\n");
     fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
+    fprintf(stderr, "  --enter-fips-mode\n");
+    fprintf(stderr, "    Enter libcrypto's FIPS mode. The linked version of OpenSSL must be built with the FIPS module.\n");
+    fprintf(stderr, "  -m\n");
+    fprintf(stderr, "  --mutualAuth\n");
+    fprintf(stderr, "    Request a Client Certificate. Any RSA Certificate will be accepted.\n");
     fprintf(stderr, "  -n\n");
     fprintf(stderr, "  --negotiate\n");
     fprintf(stderr, "    Only perform tls handshake and then shutdown the connection\n");
     fprintf(stderr, "  --prefer-low-latency\n");
-    fprintf(stderr, "    Prefer low latency by clamping maximum outgoing record size at 1500.");
+    fprintf(stderr, "    Prefer low latency by clamping maximum outgoing record size at 1500.\n");
     fprintf(stderr, "  --prefer-throughput\n");
-    fprintf(stderr, "    Prefer throughput by raising maximum outgoing record size to 16k");
+    fprintf(stderr, "    Prefer throughput by raising maximum outgoing record size to 16k\n");
+    fprintf(stderr, "  --enable-mfl\n");
+    fprintf(stderr, "    Accept client's TLS maximum fragment length extension request\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -255,22 +266,29 @@ int main(int argc, char *const *argv)
     const char *port = NULL;
 
     const char *cipher_prefs = "default";
+    int fips_mode = 0;
     int only_negotiate = 0;
     int prefer_throughput = 0;
     int prefer_low_latency = 0;
+    int enable_mfl = 0;
+    int mutual_auth = 0;
 
     static struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
+        {"mutualAuth", no_argument, 0, 'm'},
+        {"negotiate", no_argument, 0, 'n'},
         {"ciphers", required_argument, 0, 'c'},
+        {"enter-fips-mode", no_argument, 0, 'f'},
         {"negotiate", no_argument, 0, 'n'},
         {"prefer-low-latency", no_argument, 0, 'l'},
         {"prefer-throughput", no_argument, 0, 'p'},
+        {"enable-mfl", no_argument, 0, 'e'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hn", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmn", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -278,8 +296,14 @@ int main(int argc, char *const *argv)
         case 'c':
             cipher_prefs = optarg;
             break;
+        case 'f':
+            fips_mode = 1;
+            break;
         case 'h':
             usage();
+            break;
+        case 'm':
+            mutual_auth = 1;
             break;
         case 'n':
             only_negotiate = 1;
@@ -290,6 +314,9 @@ int main(int argc, char *const *argv)
         case 'p':
             prefer_throughput = 1;
             break;
+        case 'e':
+            enable_mfl = 1;
+            break;
         case '?':
         default:
             usage();
@@ -299,6 +326,11 @@ int main(int argc, char *const *argv)
 
     if (prefer_throughput && prefer_low_latency) {
         fprintf(stderr, "prefer-throughput and prefer-low-latency options are mutually exclusive\n");
+        exit(1);
+    }
+
+    if (fips_mode && mutual_auth) {
+        fprintf(stderr, "Mutual Auth cannot be enabled when s2n is in FIPS mode\n");
         exit(1);
     }
 
@@ -359,77 +391,110 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
+    if (fips_mode) {
+#ifdef OPENSSL_FIPS
+        if (FIPS_mode_set(1) == 0) {
+            unsigned long fips_rc = ERR_get_error();
+            char ssl_error_buf[256]; // Openssl claims you need no more than 120 bytes for error strings
+            fprintf(stderr, "s2nd failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf));
+            exit(1);
+        }
+        printf("s2nd entered FIPS mode\n");
+#else
+        fprintf(stderr, "Error entering FIPS mode. s2nd is not linked with a FIPS-capable libcrypto.\n");
+        exit(1);
+#endif
+    }
+
     if (s2n_init() < 0) {
-        fprintf(stderr, "Error running s2n_init(): '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error running s2n_init()");
+        exit(1);
     }
 
     printf("Listening on %s:%s\n", host, port);
 
     struct s2n_config *config = s2n_config_new();
     if (!config) {
-        fprintf(stderr, "Error getting new s2n config: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error getting new s2n config");
         exit(1);
     }
 
     if (s2n_config_add_cert_chain_and_key(config, certificate_chain, private_key) < 0) {
-        fprintf(stderr, "Error getting certificate/key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error getting certificate/key");
         exit(1);
     }
 
     if (s2n_config_add_dhparams(config, dhparams) < 0) {
-        fprintf(stderr, "Error adding DH parameters: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error adding DH parameters");
         exit(1);
     }
 
     if (s2n_config_set_cipher_preferences(config, cipher_prefs) < 0) {
-        fprintf(stderr, "Error setting cipher prefs: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error setting cipher prefs");
         exit(1);
     }
 
     if (s2n_config_set_cache_store_callback(config, cache_store, session_cache) < 0) {
-        fprintf(stderr, "Error setting cache store callback: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error setting cache store callback");
         exit(1);
     }
 
     if (s2n_config_set_cache_retrieve_callback(config, cache_retrieve, session_cache) < 0) {
-        fprintf(stderr, "Error setting cache retrieve callback: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error setting cache retrieve callback");
         exit(1);
     }
 
     if (s2n_config_set_cache_delete_callback(config, cache_delete, session_cache) < 0) {
-        fprintf(stderr, "Error setting cache retrieve callback: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error setting cache retrieve callback");
+        exit(1);
+    }
+
+    if (enable_mfl && s2n_config_accept_max_fragment_length(config) < 0) {
+        print_s2n_error("Error enabling TLS maximum fragment length extension in server");
         exit(1);
     }
 
     struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
     if (!conn) {
-        fprintf(stderr, "Error getting new s2n connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error getting new s2n connection");
         exit(1);
     }
 
+    if (mutual_auth) {
+        s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED);
+        s2n_config_set_verify_cert_chain_cb(config, &accept_all_rsa_certs, NULL);
+    }
+
     if (s2n_connection_set_config(conn, config) < 0) {
-        fprintf(stderr, "Error setting configuration: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error setting configuration");
         exit(1);
     }
 
     if (prefer_throughput && s2n_connection_prefer_throughput(conn) < 0) {
-        fprintf(stderr, "Error setting prefer throughput: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error setting prefer throughput");
         exit(1);
     }
 
     if (prefer_low_latency && s2n_connection_prefer_low_latency(conn) < 0) {
-        fprintf(stderr, "Error setting prefer low latency: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error setting prefer low latency");
         exit(1);
     }
 
     int fd;
     while ((fd = accept(sockfd, ai->ai_addr, &ai->ai_addrlen)) > 0) {
         if (s2n_connection_set_fd(conn, fd) < 0) {
-            fprintf(stderr, "Error setting file descriptor: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+            print_s2n_error("Error setting file descriptor");
             exit(1);
         }
 
         negotiate(conn);
+
+        if (mutual_auth) {
+            if(!s2n_connection_client_cert_used(conn)) {
+                print_s2n_error("Error: Mutual Auth was required, but not negotiatied");
+                exit(1);
+            }
+        }
 
         if (!only_negotiate) {
             echo(conn, fd);
@@ -441,18 +506,19 @@ int main(int argc, char *const *argv)
         close(fd);
 
         if (s2n_connection_wipe(conn) < 0) {
-            fprintf(stderr, "Error wiping connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+            print_s2n_error("Error wiping connection");
             exit(1);
         }
     }
 
     if (s2n_connection_free(conn) < 0) {
-        fprintf(stderr, "Error freeing connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error freeing connection");
         exit(1);
     }
 
     if (s2n_cleanup() < 0) {
-        fprintf(stderr, "Error running s2n_cleanup(): '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error running s2n_cleanup()");
+        exit(1);
     }
 
     return 0;

@@ -43,18 +43,26 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
     notnull_check(client_cert_chain.data);
 
     s2n_cert_public_key public_key;
+    GUARD(s2n_pkey_zero_init(&public_key));
+    
     s2n_cert_type cert_type;
 
     /* Determine the Cert Type, Verify the Cert, and extract the Public Key */
-    GUARD(conn->verify_cert_chain_cb(client_cert_chain.data, client_cert_chain.size, &cert_type, &public_key, conn->verify_cert_context));
+    const s2n_cert_validation_code rc = conn->config->verify_cert_chain_cb(conn, client_cert_chain.data, client_cert_chain.size,
+            &cert_type, &public_key, conn->config->verify_cert_context);
+
+    if (rc != S2N_CERT_OK) {
+        /* Don't use GUARD for verify_cert_chain_cb so that s2n_errno is set. */
+        S2N_ERROR(S2N_ERR_CERT_UNTRUSTED);
+    }
 
     switch (cert_type) {
     /* s2n currently only supports RSA Certificates */
     case S2N_CERT_TYPE_RSA_SIGN:
-        notnull_check(public_key.key.rsa.rsa);
+        s2n_rsa_check_key_exists(&public_key);
         conn->secure.client_cert_type = S2N_CERT_TYPE_RSA_SIGN;
         s2n_dup(&client_cert_chain, &conn->secure.client_cert_chain);
-        conn->secure.client_rsa_public_key.rsa = public_key.key.rsa.rsa;
+        conn->secure.client_public_key = public_key;
         break;
     default:
         S2N_ERROR(S2N_ERR_CERT_TYPE_UNSUPPORTED);

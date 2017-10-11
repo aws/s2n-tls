@@ -23,6 +23,9 @@
 __thread int s2n_errno;
 __thread const char *s2n_debug_str;
 
+static const char *no_such_language = "Language is not supported for error translation";
+static const char *no_such_error = "Internal s2n error";
+
 struct s2n_error_translation {
     int errno_value;
     const char *str;
@@ -69,6 +72,9 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_HASH_INIT_FAILED, "error initializing hash"},
     {S2N_ERR_HASH_INVALID_ALGORITHM, "invalid hash algorithm"},
     {S2N_ERR_HASH_UPDATE_FAILED, "error updating hash"},
+    {S2N_ERR_HASH_COPY_FAILED, "error copying hash"},
+    {S2N_ERR_HASH_WIPE_FAILED, "error wiping hash"},
+    {S2N_ERR_ALLOW_MD5_FOR_FIPS_FAILED, "error allowing MD5 to be used when in FIPS mode"},
     {S2N_ERR_HMAC_INVALID_ALGORITHM, "invalid HMAC algorithm"},
     {S2N_ERR_HKDF_OUTPUT_SIZE, "invalid HKDF output size"},
     {S2N_ERR_PRF_INVALID_ALGORITHM, "invalid prf hash algorithm"},
@@ -95,6 +101,7 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_CLIENT_MODE, "operation not allowed in client mode"},
     {S2N_ERR_SERVER_NAME_TOO_LONG, "server name is too long"},
     {S2N_ERR_CLIENT_MODE_DISABLED, "client connections not allowed"},
+    {S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_FIPS_MODE, "Client Auth is not supported when in FIPS mode"},
     {S2N_ERR_HANDSHAKE_STATE, "Invalid handshake state encountered"},
     {S2N_ERR_FALLBACK_DETECTED, "TLS fallback detected"},
     {S2N_ERR_INVALID_CIPHER_PREFERENCES, "Invalid Cipher Preferences version"},
@@ -111,7 +118,7 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_SHUTDOWN_RECORD_TYPE, "Non alert record received during s2n_shutdown()"},
     {S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO, "renegotiation_info should be empty"},
     {S2N_ERR_SEND_SIZE, "Retried s2n_send() size is invalid"},
-    {S2N_ERR_PRIVATE_KEY_CHECK, "Error calling RSA_check_key()"},
+    {S2N_ERR_KEY_CHECK, "Invalid key"},
     {S2N_ERR_CIPHER_TYPE, "Unknown cipher type used"},
     {S2N_ERR_MAP_DUPLICATE, "Duplicate map key inserted"},
     {S2N_ERR_MAP_IMMUTABLE, "Attempt to update an immutable map"},
@@ -127,6 +134,8 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_CERT_UNTRUSTED, "Certificate is untrusted"},
     {S2N_ERR_CERT_TYPE_UNSUPPORTED, "Certificate Type is unsupported"},
     {S2N_ERR_CANCELLED, "handshake was cancelled"},
+    {S2N_ERR_INVALID_MAX_FRAG_LEN, "invalid Maximum Fragmentation Length encountered"},
+    {S2N_ERR_MAX_FRAG_LEN_MISMATCH, "Negotiated Maximum Fragmentation Length from server does not match the requested length by client"},
 };
 
 const char *s2n_strerror(int error, const char *lang)
@@ -136,7 +145,6 @@ const char *s2n_strerror(int error, const char *lang)
     }
 
     if (strcasecmp(lang, "EN")) {
-        const char *no_such_language = "Language is not supported for error translation";
         return no_such_language;
     }
 
@@ -146,8 +154,25 @@ const char *s2n_strerror(int error, const char *lang)
         }
     }
 
-    const char *no_such_error = "Internal s2n error";
     return no_such_error;
+}
+
+const char *s2n_strerror_debug(int error, const char *lang)
+{
+    if (lang == NULL) {
+        lang = "EN";
+    }
+
+    if (strcasecmp(lang, "EN")) {
+        return no_such_language;
+    }
+
+    /* No error, just return the no error string */
+    if (error == S2N_ERR_OK) {
+        return s2n_strerror(error, lang);
+    }
+
+    return s2n_debug_str;
 }
 
 int s2n_error_get_type(int error)

@@ -18,28 +18,20 @@
 #include "crypto/s2n_certificate.h"
 #include "utils/s2n_safety.h"
 
+int s2n_cert_public_key_set_rsa_from_openssl(s2n_cert_public_key *public_key, RSA *openssl_rsa)
+{
+    notnull_check(openssl_rsa);
+    notnull_check(public_key);
+    public_key->key.rsa_key.rsa = openssl_rsa;
+
+    return 0;
+}
+
 int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_cert_type cert_type)
 {
     notnull_check(cert);
     cert->cert_type = cert_type;
-
-    return 0;
-}
-
-int s2n_cert_public_key_set_rsa(s2n_cert_public_key *public_key, struct s2n_rsa_public_key rsa)
-{
-    notnull_check(public_key);
-    public_key->key.rsa = rsa;
-
-    return 0;
-}
-
-int s2n_cert_public_key_get_rsa(s2n_cert_public_key *public_key, struct s2n_rsa_public_key **rsa)
-{
-    notnull_check(public_key);
-    notnull_check(rsa);
-    *rsa = &public_key->key.rsa;
-
+    s2n_pkey_setup_for_type(&cert->public_key, cert_type);
     return 0;
 }
 

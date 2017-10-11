@@ -14,13 +14,34 @@
  */
 
 #include <stdint.h>
+
+#include <openssl/crypto.h>
+#include <openssl/err.h>
+
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
+#include "s2n_test.h"
 
 static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12};
+
+static void s2n_fuzz_atexit()
+{
+    s2n_cleanup();
+}
+
+int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
+{
+#ifdef S2N_TEST_IN_FIPS_MODE
+    S2N_TEST_ENTER_FIPS_MODE();
+#endif
+
+    GUARD(s2n_init());
+    GUARD(atexit(s2n_fuzz_atexit));
+    return 0;
+}
 
 int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {

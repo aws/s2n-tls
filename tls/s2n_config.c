@@ -17,12 +17,15 @@
 
 #include "error/s2n_errno.h"
 
+#include "crypto/s2n_fips.h"
+
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_config.h"
 
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
+#include "tls/s2n_tls_parameters.h"
 
 #if defined(__APPLE__) && defined(__MACH__)
 
@@ -67,15 +70,88 @@ int get_nanoseconds_since_epoch(void *data, uint64_t * nanoseconds)
 
 #endif
 
-int deny_all_certs(uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_cert_type *cert_type, 
+int deny_all_certs(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_cert_type *cert_type, 
                    s2n_cert_public_key *public_key, void *context)
 {
     S2N_ERROR(S2N_ERR_CERT_UNTRUSTED);
 }
 
+/* Accept all RSA Certificates is unsafe and is only used in the s2n Client for testing purposes */
+s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn,
+                                              uint8_t *cert_chain_in,
+                                              uint32_t cert_chain_len,
+                                              s2n_cert_type *cert_type_out,
+                                              s2n_cert_public_key *public_key_out,
+                                              void *context)
+{
+    struct s2n_blob cert_chain_blob = { .data = cert_chain_in, .size = cert_chain_len};
+    struct s2n_stuffer cert_chain_in_stuffer;
+    if (s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob) < 0) {
+        return S2N_CERT_ERR_INVALID;
+    }
+    if (s2n_stuffer_write(&cert_chain_in_stuffer, &cert_chain_blob) < 0) {
+        return S2N_CERT_ERR_INVALID;
+    }
+
+    uint32_t certificate_count = 0;
+    while (s2n_stuffer_data_available(&cert_chain_in_stuffer)) {
+        uint32_t certificate_size;
+
+        if (s2n_stuffer_read_uint24(&cert_chain_in_stuffer, &certificate_size) < 0) {
+            return S2N_CERT_ERR_INVALID;
+        }
+
+        if (certificate_size == 0 || certificate_size > s2n_stuffer_data_available(&cert_chain_in_stuffer) ) {
+            return S2N_CERT_ERR_INVALID;
+        }
+
+        struct s2n_blob asn1cert;
+        asn1cert.data = s2n_stuffer_raw_read(&cert_chain_in_stuffer, certificate_size);
+        asn1cert.size = certificate_size;
+        if (asn1cert.data == NULL) {
+            return S2N_CERT_ERR_INVALID;
+        }
+
+        /* Pull the public key from the first certificate */
+        if (certificate_count == 0) {
+            /* Assume that the asn1cert is an RSA Cert */
+            if (s2n_asn1der_to_public_key(public_key_out, &asn1cert) < 0) {
+                return S2N_CERT_ERR_INVALID;
+            }
+            *cert_type_out = S2N_CERT_TYPE_RSA_SIGN;
+        }
+
+        certificate_count++;
+    }
+
+    if (certificate_count < 1) {
+        return S2N_CERT_ERR_INVALID;
+    }
+    return 0;
+}
+
 struct s2n_config s2n_default_config = {
     .cert_and_key_pairs = NULL,
     .cipher_preferences = &cipher_preferences_20170210,
+    .nanoseconds_since_epoch = get_nanoseconds_since_epoch,
+    .client_cert_auth_type = S2N_CERT_AUTH_NONE, /* Do not require the client to provide a Cert to the Server */
+    .verify_cert_chain_cb = deny_all_certs,
+    .verify_cert_context = NULL,
+};
+
+/* This config should only used by the s2n_client for unit/integration testing purposes. */
+struct s2n_config s2n_unsafe_client_testing_config = {
+    .cert_and_key_pairs = NULL,
+    .cipher_preferences = &cipher_preferences_20170210,
+    .nanoseconds_since_epoch = get_nanoseconds_since_epoch,
+    .client_cert_auth_type = S2N_CERT_AUTH_NONE,
+    .verify_cert_chain_cb = accept_all_rsa_certs,
+    .verify_cert_context = NULL,
+};
+
+struct s2n_config s2n_default_fips_config = {
+    .cert_and_key_pairs = NULL,
+    .cipher_preferences = &cipher_preferences_20170405,
     .nanoseconds_since_epoch = get_nanoseconds_since_epoch,
 };
 
@@ -102,6 +178,8 @@ struct s2n_config *s2n_config_new(void)
     new_config->cache_delete = NULL;
     new_config->cache_delete_data = NULL;
     new_config->ct_type = S2N_CT_SUPPORT_NONE;
+    new_config->mfl_code = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
+    new_config->accept_mfl = 0;
 
     /* By default, only the client will authenticate the Server's Certificate. The Server does not request or
      * authenticate any client certificates. */
@@ -109,7 +187,11 @@ struct s2n_config *s2n_config_new(void)
     new_config->verify_cert_chain_cb = deny_all_certs;
     new_config->verify_cert_context = NULL;
 
-    GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default"));
+    if (s2n_is_in_fips_mode()) {
+        GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default_fips"));
+    } else {
+        GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default"));
+    }
 
     return new_config;
 }
@@ -136,7 +218,7 @@ int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
             /* Free the node */
             GUARD(s2n_free(&n));
         }
-        GUARD(s2n_rsa_private_key_free(&config->cert_and_key_pairs->private_key));
+        GUARD(s2n_pkey_free(&config->cert_and_key_pairs->private_key));
         GUARD(s2n_free(&config->cert_and_key_pairs->ocsp_status));
         GUARD(s2n_free(&config->cert_and_key_pairs->sct_list));
     }
@@ -205,6 +287,39 @@ int s2n_config_set_protocol_preferences(struct s2n_config *config, const char *c
     return 0;
 }
 
+int s2n_config_get_client_auth_type(struct s2n_config *config, s2n_cert_auth_type *client_auth_type)
+{
+    notnull_check(config);
+    notnull_check(client_auth_type);
+    *client_auth_type = config->client_cert_auth_type;
+    return 0;
+}
+
+int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_type client_auth_type)
+{
+    if ((client_auth_type == S2N_CERT_AUTH_REQUIRED) && s2n_is_in_fips_mode()) {
+        /* s2n support for Client Auth when in FIPS mode is not yet implemented.
+         * When implemented, FIPS only permits Client Auth for TLS 1.2
+         */
+        S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_FIPS_MODE);
+    }
+
+    notnull_check(config);
+    config->client_cert_auth_type = client_auth_type;
+    return 0;
+}
+
+int s2n_config_set_verify_cert_chain_cb(struct s2n_config *config, verify_cert_trust_chain_fn *callback, void *context)
+{
+    notnull_check(config);
+    notnull_check(callback);
+
+    config->verify_cert_chain_cb = callback;
+    config->verify_cert_context = context;
+
+    return 0;
+}
+
 int s2n_config_set_ct_support_level(struct s2n_config *config, s2n_ct_support_level type)
 {
     config->ct_type = type;
@@ -230,23 +345,26 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
     GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert_chain_and_key)));
     config->cert_and_key_pairs = (struct s2n_cert_chain_and_key *)(void *)mem.data;
     config->cert_and_key_pairs->cert_chain.head = NULL;
-    config->cert_and_key_pairs->private_key.rsa = NULL;
+    
     config->cert_and_key_pairs->ocsp_status.data = NULL;
     config->cert_and_key_pairs->ocsp_status.size = 0;
     config->cert_and_key_pairs->sct_list.data = NULL;
     config->cert_and_key_pairs->sct_list.size = 0;
+    GUARD(s2n_pkey_zero_init(&config->cert_and_key_pairs->private_key));
 
     /* Put the private key pem in a stuffer */
     GUARD(s2n_stuffer_alloc_ro_from_string(&key_in_stuffer, private_key_pem));
     GUARD(s2n_stuffer_growable_alloc(&key_out_stuffer, strlen(private_key_pem)));
 
     /* Convert pem to asn1 and asn1 to the private key. Handles both PKCS#1 and PKCS#8 formats */
-    GUARD(s2n_stuffer_rsa_private_key_from_pem(&key_in_stuffer, &key_out_stuffer));
+    GUARD(s2n_stuffer_private_key_from_pem(&key_in_stuffer, &key_out_stuffer));
     GUARD(s2n_stuffer_free(&key_in_stuffer));
     key_blob.size = s2n_stuffer_data_available(&key_out_stuffer);
     key_blob.data = s2n_stuffer_raw_read(&key_out_stuffer, key_blob.size);
     notnull_check(key_blob.data);
-    GUARD(s2n_asn1der_to_rsa_private_key(&config->cert_and_key_pairs->private_key, &key_blob));
+    
+    /* Get key type and create appropriate key context */
+    GUARD(s2n_asn1der_to_private_key(&config->cert_and_key_pairs->private_key, &key_blob));
     GUARD(s2n_stuffer_free(&key_out_stuffer));
 
     /* Turn the chain into a stuffer */
@@ -278,17 +396,25 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
         insert = &new_node->next;
     } while (s2n_stuffer_data_available(&chain_in_stuffer));
 
+    const uint32_t leftover_chain_amount = s2n_stuffer_data_available(&chain_in_stuffer);
     GUARD(s2n_stuffer_free(&chain_in_stuffer));
     GUARD(s2n_stuffer_free(&cert_out_stuffer));
 
+    /* Leftover data at this point means one of two things:
+     * A bug in s2n's PEM parsing OR a malformed PEM in the user's chain.
+     * Be conservative and fail instead of using a partial chain.
+     */
+    if (leftover_chain_amount > 0) {
+        S2N_ERROR(S2N_ERR_INVALID_PEM);
+    }
+    
     config->cert_and_key_pairs->cert_chain.chain_size = chain_size;
 
     /* Validate the leaf cert's public key matches the provided private key */
-    struct s2n_rsa_public_key public_key;
-    struct s2n_cert_chain cert_chain = config->cert_and_key_pairs->cert_chain;
-    GUARD(s2n_asn1der_to_rsa_public_key(&public_key, &cert_chain.head->raw));
-    const int key_match_ret = s2n_rsa_keys_match(&public_key, &config->cert_and_key_pairs->private_key);
-    GUARD(s2n_rsa_public_key_free(&public_key));
+    struct s2n_pkey public_key;
+    GUARD(s2n_asn1der_to_public_key(&public_key, &config->cert_and_key_pairs->cert_chain.head->raw));
+    int key_match_ret = s2n_pkey_match(&public_key, &config->cert_and_key_pairs->private_key);
+    GUARD(s2n_pkey_free(&public_key));
     if (key_match_ret < 0) {
         /* s2n_errno already set */
         return -1;
@@ -406,3 +532,26 @@ int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_f
 
     return 0;
 }
+
+int s2n_config_send_max_fragment_length(struct s2n_config *config, s2n_max_frag_len mfl_code)
+{
+    notnull_check(config);
+
+    if (mfl_code > S2N_TLS_MAX_FRAG_LEN_4096) {
+        S2N_ERROR(S2N_ERR_INVALID_MAX_FRAG_LEN);
+    }
+
+    config->mfl_code = mfl_code;
+
+    return 0;
+}
+
+int s2n_config_accept_max_fragment_length(struct s2n_config *config)
+{
+    notnull_check(config);
+
+    config->accept_mfl = 1;
+
+    return 0;
+}
+

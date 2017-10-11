@@ -93,6 +93,9 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         GUARD(s2n_prf_key_expansion(conn));
     }
 
+    /* We've selected the cipher, update the required hashes for this connection */
+    GUARD(s2n_conn_update_required_handshake_hashes(conn));
+
     return 0;
 }
 

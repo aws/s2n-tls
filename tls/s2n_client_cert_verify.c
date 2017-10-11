@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -54,11 +54,14 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
     switch (chosen_signature_alg) {
     /* s2n currently only supports RSA Signatures */
     case S2N_SIGNATURE_RSA:
-        GUARD(s2n_rsa_verify(&conn->secure.client_rsa_public_key, &hash_state, &signature));
+        GUARD(s2n_pkey_verify(&conn->secure.client_public_key, &hash_state, &signature));
         break;
     default:
         S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     }
+
+    /* Client certificate has been verified. Minimize required handshake hash algs */
+    GUARD(s2n_conn_update_required_handshake_hashes(conn));
 
     return 0;
 }
@@ -87,16 +90,19 @@ int s2n_client_cert_verify_send(struct s2n_connection *conn)
     switch (chosen_signature_alg) {
     /* s2n currently only supports RSA Signatures */
     case S2N_SIGNATURE_RSA:
-        signature.size = s2n_rsa_private_encrypted_size(&conn->config->cert_and_key_pairs->private_key);
+        signature.size = s2n_rsa_private_encrypted_size(&conn->config->cert_and_key_pairs->private_key.key.rsa_key);
         GUARD(s2n_stuffer_write_uint16(out, signature.size));
 
         signature.data = s2n_stuffer_raw_write(out, signature.size);
         notnull_check(signature.data);
-        GUARD(s2n_rsa_sign(&conn->config->cert_and_key_pairs->private_key, &hash_state, &signature));
+        GUARD(s2n_pkey_sign(&conn->config->cert_and_key_pairs->private_key, &hash_state, &signature));
         break;
     default:
         S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     }
+
+    /* Client certificate has been verified. Minimize required handshake hash algs */
+    GUARD(s2n_conn_update_required_handshake_hashes(conn));
 
     return 0;
 }

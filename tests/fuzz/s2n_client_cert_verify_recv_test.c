@@ -13,6 +13,9 @@
  * permissions and limitations under the License.
  */
 
+#include <openssl/crypto.h>
+#include <openssl/err.h>
+
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_cipher_suites.h"
@@ -116,17 +119,21 @@ static char private_key[] =
 static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12};
 
 static struct s2n_config *server_config;
-static struct s2n_rsa_public_key public_key;
+static struct s2n_pkey public_key;
 
 static void s2n_fuzz_atexit()
 {
-    s2n_rsa_public_key_free(&public_key);
+    s2n_pkey_free(&public_key);
     s2n_config_free(server_config);
     s2n_cleanup();
 }
 
 int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 {
+#ifdef S2N_TEST_IN_FIPS_MODE
+    S2N_TEST_ENTER_FIPS_MODE();
+#endif
+
     GUARD(s2n_init());
     GUARD(atexit(s2n_fuzz_atexit));
     GUARD(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
@@ -135,7 +142,7 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
     server_config = s2n_config_new();
     GUARD(s2n_config_add_cert_chain_and_key(server_config, certificate_chain, private_key));
 
-    GUARD(s2n_asn1der_to_rsa_public_key(&public_key, &server_config->cert_and_key_pairs->cert_chain.head->raw));
+    GUARD(s2n_asn1der_to_public_key(&public_key, &server_config->cert_and_key_pairs->cert_chain.head->raw));
     return 0;
 }
 
@@ -146,9 +153,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
         struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
         notnull_check(server_conn);
         server_conn->actual_protocol_version = TLS_VERSIONS[version];
-        server_conn->verify_cert_chain_cb = accept_all_rsa_certs;
+        server_conn->config->verify_cert_chain_cb = accept_all_rsa_certs;
         GUARD(s2n_stuffer_write_bytes(&server_conn->handshake.io, buf, len));
-        server_conn->secure.client_rsa_public_key.rsa = public_key.rsa;
+        server_conn->secure.client_public_key.key.rsa_key.rsa = public_key.key.rsa_key.rsa;
 
         /* Run Test
          * Do not use GUARD macro here since the connection memory hasn't been freed.
@@ -157,7 +164,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 
         /* Set the client_rsa_public_key so that it is not free'd during s2n_connection_free since it will be reused in
          * later fuzz tests  */
-        server_conn->secure.client_rsa_public_key.rsa = NULL;
+        server_conn->secure.client_public_key.key.rsa_key.rsa = NULL;
 
         /* Cleanup */
         GUARD(s2n_connection_free(server_conn));

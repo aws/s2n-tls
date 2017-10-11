@@ -28,6 +28,8 @@ CRYPTO_LIBS = -lcrypto
 CC	:= $(CROSS_COMPILE)$(CC)
 AR	= $(CROSS_COMPILE)ar
 RANLIB	= $(CROSS_COMPILE)ranlib
+CLANG    ?= clang-3.8
+LLVMLINK ?= llvm-link-3.8
 
 SOURCES = $(wildcard *.c *.h)
 CRUFT   = $(wildcard *.c~ *.h~ *.c.BAK *.h.BAK *.o *.a *.so *.dylib *.bc)
@@ -43,6 +45,11 @@ DEFAULT_CFLAGS = -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-su
 # libssp.
 ifneq ($(NO_STACK_PROTECTOR), 1)
 DEFAULT_CFLAGS += -Wstack-protector -fstack-protector-all
+endif
+
+# Define S2N_TEST_IN_FIPS_MODE - to be used for testing when present.
+ifdef S2N_TEST_IN_FIPS_MODE
+    DEFAULT_CFLAGS += -DS2N_TEST_IN_FIPS_MODE
 endif
 
 CFLAGS += ${DEFAULT_CFLAGS}
@@ -61,10 +68,10 @@ ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)
 endif
 
 
-CFLAGS_LLVM = ${DEFAULT_CFLAGS} -fno-inline -emit-llvm -c
+CFLAGS_LLVM = ${DEFAULT_CFLAGS} -emit-llvm -c -g -O1
 
 $(BITCODE_DIR)%.bc: %.c
-	clang $(CFLAGS_LLVM) -o $@ $< 
+	$(CLANG) $(CFLAGS_LLVM) -o $@ $< 
 
 
 INDENTOPTS = -npro -kr -i4 -ts4 -nut -sob -l180 -ss -ncs -cp1
