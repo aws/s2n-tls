@@ -81,15 +81,11 @@ static int try_handshake(struct s2n_connection *server_conn, struct s2n_connecti
     return 0;
 }
 
-int test_cipher_preferences(struct s2n_config *server_config) {
+int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config *client_config) {
     const struct s2n_cipher_preferences *cipher_preferences;
-    struct s2n_config *client_config;
 
     cipher_preferences = server_config->cipher_preferences;
     notnull_check(cipher_preferences);
-
-    client_config = s2n_fetch_unsafe_client_testing_config();
-    EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
     if (s2n_is_in_fips_mode()) {
         /* Override default client config ciphers when in FIPS mode to ensure all FIPS
@@ -176,7 +172,7 @@ int main(int argc, char **argv)
     
     // test_with_rsa_cert();
     {
-        struct s2n_config *server_config;
+        struct s2n_config *server_config, *client_config;
         char *cert_chain_pem;
         char *private_key_pem;
         char *dhparams_pem;
@@ -192,8 +188,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain_pem, private_key_pem));
         EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
+    
+        client_config = &s2n_unsafe_client_testing_config;
+        
+        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
-        EXPECT_SUCCESS(test_cipher_preferences(server_config));
+        EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         free(cert_chain_pem);
@@ -204,7 +204,7 @@ int main(int argc, char **argv)
 
     //    test_with_ecdsa_cert()
     {
-        struct s2n_config *server_config;
+        struct s2n_config *server_config, *client_config;
         char *cert_chain_pem;
         char *private_key_pem;
         char *dhparams_pem;
@@ -223,7 +223,11 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_all_ecdsa"));
 
-        //EXPECT_SUCCESS(test_cipher_preferences(server_config));
+        EXPECT_NOT_NULL(client_config = &s2n_unsafe_client_ecdsa_testing_config);
+
+        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_ECDSA_P384_PKCS1_CERT_CHAIN, NULL));
+        
+        EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         free(cert_chain_pem);
