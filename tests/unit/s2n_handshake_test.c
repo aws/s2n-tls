@@ -81,28 +81,12 @@ static int try_handshake(struct s2n_connection *server_conn, struct s2n_connecti
     return 0;
 }
 
-int main(int argc, char **argv)
-{
-    struct s2n_config *server_config, *client_config;
-    const struct s2n_cipher_preferences *default_cipher_preferences;
-    char *cert_chain_pem;
-    char *private_key_pem;
-    char *dhparams_pem;
+int test_cipher_preferences(struct s2n_config *server_config) {
+    const struct s2n_cipher_preferences *cipher_preferences;
+    struct s2n_config *client_config;
 
-    BEGIN_TEST();
-
-    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
-    EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-
-    EXPECT_NOT_NULL(server_config = s2n_config_new());
-    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain_pem, private_key_pem));
-    EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
-    EXPECT_NOT_NULL(default_cipher_preferences = server_config->cipher_preferences);
+    cipher_preferences = server_config->cipher_preferences;
+    notnull_check(cipher_preferences);
 
     client_config = s2n_fetch_unsafe_client_testing_config();
     EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
@@ -111,18 +95,19 @@ int main(int argc, char **argv)
         /* Override default client config ciphers when in FIPS mode to ensure all FIPS
          * default ciphers are tested.
          */
-        EXPECT_NOT_NULL(client_config->cipher_preferences = default_cipher_preferences);
+        client_config->cipher_preferences = cipher_preferences;
+        notnull_check(client_config->cipher_preferences);
     }
 
     /* Verify that a handshake succeeds for every available cipher in the default list. For unavailable ciphers,
      * make sure that we fail the handshake. */
-    for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
+    for (int cipher_idx = 0; cipher_idx < cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
         int server_to_client[2];
         int client_to_server[2];
-        struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
+        struct s2n_cipher_suite *cur_cipher = cipher_preferences->suites[cipher_idx];
         uint8_t expect_failure = 0;
 
         /* Expect failure if the libcrypto we're building with can't support the cipher */
@@ -133,54 +118,119 @@ int main(int argc, char **argv)
         /* Craft a cipher preference with a cipher_idx cipher
            NOTE: Its safe to use memcpy as the address of server_cipher_preferences
            will never be NULL */
-        memcpy(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
+        memcpy(&server_cipher_preferences, cipher_preferences, sizeof(server_cipher_preferences));
         server_cipher_preferences.count = 1;
         server_cipher_preferences.suites = &cur_cipher;
         server_config->cipher_preferences = &server_cipher_preferences;
 
         /* Create nonblocking pipes */
-        EXPECT_SUCCESS(pipe(server_to_client));
-        EXPECT_SUCCESS(pipe(client_to_server));
+        GUARD(pipe(server_to_client));
+        GUARD(pipe(client_to_server));
         for (int i = 0; i < 2; i++) {
-           EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
-           EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
+           ne_check(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
+           ne_check(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
         }
 
-        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
-        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+        client_conn = s2n_connection_new(S2N_CLIENT);
+        notnull_check(client_conn);
+        GUARD(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
+        GUARD(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
+        GUARD(s2n_connection_set_config(client_conn, client_config));
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
         client_conn->actual_protocol_version = S2N_TLS12;
 
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        server_conn = s2n_connection_new(S2N_SERVER);
+        notnull_check(server_conn);
+        GUARD(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
+        GUARD(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
+        GUARD(s2n_connection_set_config(server_conn, server_config));
         server_conn->server_protocol_version = S2N_TLS12;
         server_conn->client_protocol_version = S2N_TLS12;
         server_conn->actual_protocol_version = S2N_TLS12;
 
         if (!expect_failure) {
-            EXPECT_SUCCESS(try_handshake(server_conn, client_conn));
+            GUARD(try_handshake(server_conn, client_conn));
         } else {
-            EXPECT_FAILURE(try_handshake(server_conn, client_conn));
+            ne_check(try_handshake(server_conn, client_conn), -1);
         }
 
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        GUARD(s2n_connection_free(server_conn));
+        GUARD(s2n_connection_free(client_conn));
 
         for (int i = 0; i < 2; i++) {
-           EXPECT_SUCCESS(close(server_to_client[i]));
-           EXPECT_SUCCESS(close(client_to_server[i]));
+           GUARD(close(server_to_client[i]));
+           GUARD(close(client_to_server[i]));
         }
     }
 
-    EXPECT_SUCCESS(s2n_config_free(server_config));
-    free(cert_chain_pem);
-    free(private_key_pem);
-    free(dhparams_pem);
+    return 0;
+}
+
+int main(int argc, char **argv)
+{
+
+    BEGIN_TEST();
+
+    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
+    
+    // test_with_rsa_cert();
+    {
+        struct s2n_config *server_config;
+        char *cert_chain_pem;
+        char *private_key_pem;
+        char *dhparams_pem;
+
+        EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain_pem, private_key_pem));
+        EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
+
+        EXPECT_SUCCESS(test_cipher_preferences(server_config));
+
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+        free(cert_chain_pem);
+        free(private_key_pem);
+        free(dhparams_pem);
+
+    }
+
+    //    test_with_ecdsa_cert()
+    {
+        struct s2n_config *server_config;
+        char *cert_chain_pem;
+        char *private_key_pem;
+        char *dhparams_pem;
+
+        EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain_pem, private_key_pem));
+        EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
+
+        //EXPECT_SUCCESS(s2n_config_set_cipher_preferences("ecdsa_default"));
+
+        //EXPECT_SUCCESS(test_cipher_preferences(server_config));
+
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+        free(cert_chain_pem);
+        free(private_key_pem);
+        free(dhparams_pem);
+
+    }
 
     END_TEST();
     return 0;
