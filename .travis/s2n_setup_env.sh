@@ -79,3 +79,13 @@ rm -rf libcrypto-root && ln -s $LIBCRYPTO_ROOT libcrypto-root
 
 # Set the libfuzzer to use for fuzz tests
 export LIBFUZZER_ROOT=$LIBFUZZER_INSTALL_DIR
+
+echo "TRAVIS_OS_NAME=$TRAVIS_OS_NAME"
+echo "S2N_LIBCRYPTO=$S2N_LIBCRYPTO"
+echo "BUILD_S2N=$BUILD_S2N"
+echo "GCC6_REQUIRED=$GCC6_REQUIRED"
+echo "LATEST_CLANG=$LATEST_CLANG"
+echo "TESTS=$TESTS"
+echo "PATH=$PATH"
+echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+
