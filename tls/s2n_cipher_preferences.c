@@ -383,6 +383,7 @@ struct {
     { "20170718", &cipher_preferences_20170718 },
     { "test_all", &cipher_preferences_test_all },
     { "test_all_fips", &cipher_preferences_test_all_fips },
+    { "test_all_ecdsa", &cipher_preferences_test_all_ecdsa },
     { NULL, NULL }
 };
 

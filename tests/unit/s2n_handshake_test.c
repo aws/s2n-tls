@@ -221,7 +221,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain_pem, private_key_pem));
         EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
 
-        //EXPECT_SUCCESS(s2n_config_set_cipher_preferences("ecdsa_default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_all_ecdsa"));
 
         //EXPECT_SUCCESS(test_cipher_preferences(server_config));
 

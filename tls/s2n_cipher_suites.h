@@ -77,6 +77,8 @@ struct s2n_cipher_suite {
 
     const struct s2n_key_exchange_algorithm *key_exchange_alg;
 
+    const s2n_signature_algorithm signature_alg;
+
     /* Algorithms used for per-record security. Set in s2n_cipher_suites_init() */
     const struct s2n_record_algorithm *record_alg;
 
@@ -111,6 +113,7 @@ extern struct s2n_cipher_suite s2n_rsa_with_aes_128_gcm_sha256;
 extern struct s2n_cipher_suite s2n_rsa_with_aes_256_gcm_sha384;
 extern struct s2n_cipher_suite s2n_dhe_rsa_with_aes_128_gcm_sha256;
 extern struct s2n_cipher_suite s2n_dhe_rsa_with_aes_256_gcm_sha384;
+extern struct s2n_cipher_suite s2n_ecdhe_ecdsa_with_aes_128_cbc_sha;
 extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_3des_ede_cbc_sha;
 extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_128_cbc_sha;
 extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_256_cbc_sha;
