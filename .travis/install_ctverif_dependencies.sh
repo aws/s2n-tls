@@ -15,6 +15,8 @@
 
 set -e
 
+echo "Installing ctverif Dependencies..."
+
 #Figlet is required for ctverif printing
 sudo apt-get install -y figlet
 
@@ -44,9 +46,4 @@ sudo update-alternatives --install /usr/bin/llvm-link llvm-link /usr/bin/llvm-li
 sudo update-alternatives --install /usr/bin/llvm-dis llvm-dis /usr/bin/llvm-dis-3.9 20
 sudo pip install pyyaml psutil
 
-
-which python
-python --version
-pip install psutil
-
-
+echo "Installed ctverif Dependencies."

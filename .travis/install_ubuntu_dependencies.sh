@@ -26,13 +26,12 @@ if [[ "$GCC6_REQUIRED" == "true" ]]; then
     sudo apt-get -y install gcc-6;
 fi
 
+if [[ "$TESTS" == "ctverif" || "$TESTS" == "ALL" ]] ; then
+    .travis/install_ctverif_dependencies.sh ;
+    .travis/install_ctverif.sh $CTVERIF_INSTALL_DIR ; 
+fi
+
 # Download and Install prlimit for memlock
 if [[ ! -d "$PRLIMIT_INSTALL_DIR" ]] && [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     mkdir -p "$PRLIMIT_INSTALL_DIR" && sudo .travis/install_prlimit.sh "$(mktemp -d)" "$PRLIMIT_INSTALL_DIR"; 
 fi
-
-if [[ "$TESTS" == "ctverif" || "$TESTS" == "ALL" ]] ; then
-    .travis/install_ctverif_dependencies.sh ; fi
-
-if [[ "$TESTS" == "ctverif" || "$TESTS" == "ALL" ]] && [[ ! -d "$CTVERIF_INSTALL_DIR" ]]; then
-    mkdir -p "$CTVERIF_INSTALL_DIR" && .travis/install_ctverif.sh "$CTVERIF_INSTALL_DIR" > /dev/null ; fi
