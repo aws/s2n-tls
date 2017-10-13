@@ -210,7 +210,7 @@ static int s2n_ecdhe_server_key_send(struct s2n_connection *conn)
     GUARD(s2n_hash_update(&conn->secure.signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_hash_update(&conn->secure.signature_hash, ecdhparams.data, ecdhparams.size));
 
-    signature.size = s2n_rsa_private_encrypted_size(&conn->config->cert_and_key_pairs->private_key.key.rsa_key);
+    signature.size = s2n_pkey_size(&conn->config->cert_and_key_pairs->private_key);
     GUARD(s2n_stuffer_write_uint16(out, signature.size));
 
     signature.data = s2n_stuffer_raw_write(out, signature.size);
@@ -245,7 +245,7 @@ static int s2n_dhe_server_key_send(struct s2n_connection *conn)
     GUARD(s2n_hash_update(&conn->secure.signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_hash_update(&conn->secure.signature_hash, serverDHparams.data, serverDHparams.size));
 
-    signature.size = s2n_rsa_private_encrypted_size(&conn->config->cert_and_key_pairs->private_key.key.rsa_key);
+    signature.size = s2n_pkey_size(&conn->config->cert_and_key_pairs->private_key);
     GUARD(s2n_stuffer_write_uint16(out, signature.size));
 
     signature.data = s2n_stuffer_raw_write(out, signature.size);

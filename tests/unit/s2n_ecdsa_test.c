@@ -115,7 +115,7 @@ int main(int argc, char **argv)
     uint8_t inputpad[] = "Hello world!";
     struct s2n_blob signature, bad_signature;
     struct s2n_hash_state hash_one, hash_two;
-    uint32_t maximum_signature_length = s2n_ecdsa_signature_size(&priv_key.key.ecdsa_key);
+    uint32_t maximum_signature_length = s2n_pkey_signature_size(&priv_key);
     
     EXPECT_SUCCESS(s2n_alloc(&signature, maximum_signature_length));
 

@@ -48,6 +48,13 @@ int s2n_pkey_setup_for_type(struct s2n_pkey *pkey, s2n_cert_type cert_type)
     return 0;
 }
 
+int s2n_pkey_size(const struct s2n_pkey *pkey)
+{
+    notnull_check(pkey->size);
+
+    return pkey->size(pkey);
+}
+
 int s2n_pkey_sign(const struct s2n_pkey *pkey, struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
     notnull_check(pkey->sign);

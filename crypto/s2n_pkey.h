@@ -28,6 +28,7 @@ struct s2n_pkey {
         struct s2n_ecdsa_key ecdsa_key;
     } key;
 
+    int (*size)(const struct s2n_pkey *key);
     int (*sign)(const struct s2n_pkey *priv_key, struct s2n_hash_state *digest, struct s2n_blob *signature);
     int (*verify)(const struct s2n_pkey *pub_key, struct s2n_hash_state *digest, struct s2n_blob *signature);
     int (*encrypt)(const struct s2n_pkey *key, struct s2n_blob *in, struct s2n_blob *out);
@@ -39,6 +40,7 @@ struct s2n_pkey {
 extern int s2n_pkey_zero_init(struct s2n_pkey *pkey);
 extern int s2n_pkey_setup_for_type(struct s2n_pkey *pkey, s2n_cert_type cert_type);
 
+extern int s2n_pkey_size(const struct s2n_pkey *pkey);
 extern int s2n_pkey_sign(const struct s2n_pkey *pkey, struct s2n_hash_state *digest, struct s2n_blob *signature);
 extern int s2n_pkey_verify(const struct s2n_pkey *pkey, struct s2n_hash_state *digest, struct s2n_blob *signature);
 extern int s2n_pkey_encrypt(const struct s2n_pkey *pkey, struct s2n_blob *in, struct s2n_blob *out);

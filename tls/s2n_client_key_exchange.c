@@ -183,7 +183,7 @@ static int s2n_rsa_client_key_send(struct s2n_connection *conn)
     /* Over-write the first two bytes with the client protocol version, per RFC2246 7.4.7.1 */
     memcpy_check(conn->secure.rsa_premaster_secret, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN);
 
-    int encrypted_size = s2n_rsa_public_encrypted_size(&conn->secure.server_public_key.key.rsa_key);
+    int encrypted_size = s2n_pkey_size(&conn->secure.server_public_key);
     S2N_ERROR_IF(encrypted_size < 0 || encrypted_size > 0xffff, S2N_ERR_SIZE_MISMATCH);
 
     if (conn->actual_protocol_version > S2N_SSLv3) {
