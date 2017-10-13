@@ -27,6 +27,10 @@
 #include "utils/s2n_mem.h"
 #include "tls/s2n_tls_parameters.h"
 
+#include "openssl/x509v3.h"
+#include "openssl/pem.h"
+#include "openssl/err.h"
+
 #if defined(__APPLE__) && defined(__MACH__)
 
 #include <mach/clock.h>
@@ -49,6 +53,7 @@ int get_nanoseconds_since_epoch(void *data, uint64_t * nanoseconds)
 #else
 
 #include <time.h>
+#include <openssl/x509v3.h>
 
 #if defined(CLOCK_MONOTONIC_RAW)
 #define S2N_CLOCK CLOCK_MONOTONIC_RAW
@@ -69,6 +74,10 @@ int get_nanoseconds_since_epoch(void *data, uint64_t * nanoseconds)
 }
 
 #endif
+
+uint8_t default_verify_host(const char *host_name, size_t len, void *data) {
+    return 1;
+}
 
 int deny_all_certs(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key, void *context)
 {
@@ -130,6 +139,187 @@ s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn,
     return 0;
 }
 
+void clean_up_chain_stack(STACK_OF(X509) *sk) {
+    if(sk) {
+        X509 *cert = NULL;
+        while ((cert = sk_X509_pop(sk))) {
+            X509_free(cert);
+        }
+
+        sk_X509_free(sk);
+    }
+}
+
+uint8_t verify_host_information(struct s2n_config *config, X509 *public_cert)
+{
+    uint8_t verified = 0;
+    //host name checks here.
+    STACK_OF(GENERAL_NAME) *names_list = X509_get_ext_d2i(public_cert, NID_subject_alt_name, NULL, NULL);
+    GENERAL_NAME *current_name = NULL;
+    while (!verified && names_list && (current_name = sk_GENERAL_NAME_pop(names_list))) {
+        const char *name = (const char *) M_ASN1_STRING_data(current_name->d.ia5);
+        size_t name_len = (size_t) M_ASN1_STRING_length(current_name->d.ia5);
+
+        verified = config->verify_host(name, name_len, config->data_for_verify_host);
+    }
+
+    GENERAL_NAMES_free(names_list);
+
+    if(!verified) {
+        X509_NAME *subject_name = X509_get_subject_name(public_cert);
+        if (subject_name) {
+            int j = 0, i = -1;
+            while ((j = X509_NAME_get_index_by_NID(subject_name, NID_commonName, i)) >= 0) {
+                i = j;
+            }
+
+            if (i >= 0) {
+                ASN1_STRING *common_name =
+                        X509_NAME_ENTRY_get_data(X509_NAME_get_entry(subject_name, i));
+
+                if (common_name) {
+                    char peer_cn[255];
+                    memset(peer_cn, 0, sizeof(peer_cn));
+                    if (ASN1_STRING_type(common_name) == V_ASN1_UTF8STRING) {
+                        size_t len = (size_t) ASN1_STRING_length(common_name);
+                        //save space for the null terminator
+                        len = len > sizeof(peer_cn) - 1 ? sizeof(peer_cn) - 1 : len;
+
+                        memcpy(peer_cn, ASN1_STRING_data(common_name), len);
+                        verified = config->verify_host(peer_cn, len, config->data_for_verify_host);
+                    }
+                }
+            }
+            else {
+                return 0;
+            }
+        }
+    }
+
+    return verified;
+}
+
+s2n_cert_validation_code validate_rsa_certs(struct s2n_connection *conn,
+                                              uint8_t *cert_chain_in,
+                                              uint32_t cert_chain_len,
+                                              struct s2n_cert_public_key *public_key_out,
+                                              void *context)
+{
+    X509_STORE_CTX *ctx = NULL;
+    STACK_OF(X509) *sk = sk_X509_new_null();
+    X509 *last_in_chain;
+    X509 *public_key;
+
+    struct s2n_blob cert_chain_blob = { .data = cert_chain_in, .size = cert_chain_len};
+    struct s2n_stuffer cert_chain_in_stuffer;
+    if (s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob) < 0) {
+        return S2N_CERT_ERR_INVALID;
+    }
+    if (s2n_stuffer_write(&cert_chain_in_stuffer, &cert_chain_blob) < 0) {
+        return S2N_CERT_ERR_INVALID;
+    }
+
+    uint32_t certificate_count = 0;
+
+    s2n_cert_validation_code err_code = S2N_CERT_OK;
+
+    while (s2n_stuffer_data_available(&cert_chain_in_stuffer)) {
+        uint32_t certificate_size;
+
+        if (s2n_stuffer_read_uint24(&cert_chain_in_stuffer, &certificate_size) < 0) {
+            err_code = S2N_CERT_ERR_INVALID;
+            goto clean_up;
+        }
+
+        if (certificate_size == 0 || certificate_size > s2n_stuffer_data_available(&cert_chain_in_stuffer) ) {
+            err_code = S2N_CERT_ERR_INVALID;
+            goto clean_up;
+        }
+
+        struct s2n_blob asn1cert;
+        asn1cert.data = s2n_stuffer_raw_read(&cert_chain_in_stuffer, certificate_size);
+        asn1cert.size = certificate_size;
+        if (asn1cert.data == NULL) {
+            err_code = S2N_CERT_ERR_INVALID;
+            goto clean_up;
+        }
+
+        const uint8_t *data = asn1cert.data;
+        X509 *server_cert = d2i_X509(NULL, &data, asn1cert.size);
+
+        if(conn->config->trust_store) {
+
+            if(!server_cert) {
+                err_code = S2N_CERT_ERR_INVALID;
+                goto clean_up;
+            }
+
+            if(!sk_X509_push(sk, server_cert)) {
+                X509_free(server_cert);
+                err_code = S2N_CERT_ERR_INVALID;
+                goto clean_up;
+            }
+        }
+
+        /* Pull the public key from the first certificate */
+        if (certificate_count == 0) {
+            /* Assume that the asn1cert is an RSA Cert */
+            if (s2n_asn1der_to_public_key(&public_key_out->pkey, &asn1cert) < 0) {
+                err_code = S2N_CERT_ERR_INVALID;
+                goto clean_up;
+            }
+            if (s2n_cert_public_key_set_cert_type(public_key_out, S2N_CERT_TYPE_RSA_SIGN) < 0){
+                err_code = S2N_CERT_ERR_INVALID;
+                goto clean_up;
+            }
+
+            public_key = server_cert;
+        }
+
+        last_in_chain = server_cert;
+
+        certificate_count++;
+    }
+
+    if (certificate_count < 1) {
+        err_code = S2N_CERT_ERR_INVALID;
+        goto clean_up;
+    }
+
+    ctx = X509_STORE_CTX_new();
+    int op_code = X509_STORE_CTX_init(ctx, (X509_STORE *)conn->config->trust_store, last_in_chain, sk);
+
+    if(op_code <= 0) {
+        err_code = S2N_CERT_ERR_INVALID;
+        goto clean_up;
+    }
+
+    op_code = X509_verify_cert(ctx);
+
+    if (op_code <= 0) {
+        op_code = X509_STORE_CTX_get_error(ctx);
+
+        X509_STORE_CTX_cleanup(ctx);
+        err_code =  S2N_CERT_ERR_UNTRUSTED;
+        goto clean_up;
+    }
+
+    if(conn->config->verify_host && !verify_host_information(conn->config, public_key)) {
+        err_code =  S2N_CERT_ERR_UNTRUSTED;
+        goto clean_up;
+    }
+
+    //ocsp checks here.
+
+clean_up:
+    clean_up_chain_stack(sk);
+
+    if(ctx) {
+        X509_STORE_CTX_cleanup(ctx);
+    }
+    return err_code;
+}
+
 struct s2n_config s2n_default_config = {
     .cert_and_key_pairs = NULL,
     .cipher_preferences = &cipher_preferences_20170210,
@@ -137,6 +327,8 @@ struct s2n_config s2n_default_config = {
     .client_cert_auth_type = S2N_CERT_AUTH_NONE, /* Do not require the client to provide a Cert to the Server */
     .verify_cert_chain_cb = deny_all_certs,
     .verify_cert_context = NULL,
+    .verify_host = default_verify_host,
+    .data_for_verify_host = NULL,
 };
 
 /* This config should only used by the s2n_client for unit/integration testing purposes. */
@@ -145,14 +337,18 @@ struct s2n_config s2n_unsafe_client_testing_config = {
     .cipher_preferences = &cipher_preferences_20170210,
     .nanoseconds_since_epoch = get_nanoseconds_since_epoch,
     .client_cert_auth_type = S2N_CERT_AUTH_NONE,
-    .verify_cert_chain_cb = accept_all_rsa_certs,
+    .verify_cert_chain_cb = validate_rsa_certs,
     .verify_cert_context = NULL,
+    .verify_host = default_verify_host,
+    .data_for_verify_host = NULL,
 };
 
 struct s2n_config s2n_default_fips_config = {
     .cert_and_key_pairs = NULL,
     .cipher_preferences = &cipher_preferences_20170405,
     .nanoseconds_since_epoch = get_nanoseconds_since_epoch,
+    .verify_host = default_verify_host,
+    .data_for_verify_host = NULL,
 };
 
 struct s2n_config *s2n_config_new(void)
@@ -186,12 +382,16 @@ struct s2n_config *s2n_config_new(void)
     new_config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
     new_config->verify_cert_chain_cb = deny_all_certs;
     new_config->verify_cert_context = NULL;
+    new_config->verify_host = NULL;
+    new_config->data_for_verify_host = NULL;
 
     if (s2n_is_in_fips_mode()) {
         GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default_fips"));
     } else {
         GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default"));
     }
+
+    new_config->trust_store = NULL;
 
     return new_config;
 }
@@ -245,6 +445,10 @@ int s2n_config_free_dhparams(struct s2n_config *config)
 int s2n_config_free(struct s2n_config *config)
 {
     struct s2n_blob b = {.data = (uint8_t *) config,.size = sizeof(struct s2n_config) };
+
+    if(config->trust_store) {
+        X509_STORE_free((X509_STORE *)config->trust_store);
+    }
 
     GUARD(s2n_config_free_cert_chain_and_key(config));
     GUARD(s2n_config_free_dhparams(config));
@@ -333,6 +537,34 @@ int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_req
     config->status_request_type = type;
 
     return 0;
+}
+
+int s2n_config_set_verification_ca_file(struct s2n_config *config, const char *ca_file_pem) {
+    config->trust_store = X509_STORE_new();
+
+    BIO *store_file_bio = BIO_new_file(ca_file_pem, "r");
+
+    int err_code = 0;
+
+    if(store_file_bio) {
+        X509 *trust_cert = NULL;
+        while((trust_cert = PEM_read_bio_X509(store_file_bio, NULL, 0, NULL))) {
+            X509_STORE_add_cert((X509_STORE *) config->trust_store, trust_cert);
+        }
+
+        BIO_free(store_file_bio);
+        return 0;
+    }
+
+    if(store_file_bio) {
+        BIO_free(store_file_bio);
+    }
+
+    if(config->trust_store) {
+        X509_STORE_free((X509_STORE *)config->trust_store);
+        config->trust_store = NULL;
+    }
+    return err_code;
 }
 
 int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem)
@@ -458,6 +690,16 @@ int s2n_config_set_nanoseconds_since_epoch_callback(struct s2n_config *config, i
 
     config->nanoseconds_since_epoch = nanoseconds_since_epoch;
     config->data_for_nanoseconds_since_epoch = data;
+
+    return 0;
+}
+
+int s2n_config_set_verify_host_callback(struct s2n_config *config, uint8_t (*verify_host) (const char *host_name, size_t host_name_len, void *ctx), void *data)
+{
+    notnull_check(verify_host);
+
+    config->verify_host = verify_host;
+    config->data_for_verify_host = data;
 
     return 0;
 }

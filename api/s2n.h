@@ -76,7 +76,8 @@ typedef enum {
 } s2n_max_frag_len;
 
 extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem);
-
+extern int s2n_config_set_verification_ca_file(struct s2n_config *config, const char *ca_file_pem);
+extern int s2n_config_set_verify_host_callback(struct s2n_config *config, uint8_t (*verify_host) (const char *host_name, size_t host_name_len, void *ctx), void *data);
 extern int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem);
 extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
 extern int s2n_config_set_protocol_preferences(struct s2n_config *config, const char * const *protocols, int protocol_count);

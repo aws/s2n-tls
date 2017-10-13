@@ -50,10 +50,17 @@ struct s2n_config {
     verify_cert_trust_chain_fn *verify_cert_chain_cb;
     void *verify_cert_context;
 
+    /* Return TRUE if the host should be trusted, If FALSE this will likely be called again for every host/alternative name
+     * in the certificate. If any respond TRUE. If none return TRUE, the cert will be considered untrusted. */
+    uint8_t (*verify_host) (const char *host_name, size_t host_name_len, void *data);
+    void *data_for_verify_host;
+
     uint8_t mfl_code;
 
     /* if this is FALSE, server will ignore client's Maximum Fragment Length request */
     int accept_mfl;
+
+    void *trust_store;
 };
 
 extern struct s2n_config s2n_default_config;
