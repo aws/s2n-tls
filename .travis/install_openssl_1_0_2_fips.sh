@@ -14,7 +14,7 @@
 #
 
 set -e
-pushd `pwd`
+pushd "$(pwd)"
 
 usage() {
     echo "install_openssl_1_0_2_fips.sh build_dir install_dir travis_platform"
@@ -46,20 +46,21 @@ fi
 # It may only be used for testing purposes.
 #
 # There is no 'latest' download URL for the FIPS object modules
-cd $BUILD_DIR
+cd "$BUILD_DIR"
 # Originally from: http://www.openssl.org/source/openssl-fips-2.0.13.tar.gz
 curl https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-31_openssl-fips-2.0.13.tar.gz > openssl-fips-2.0.13.tar.gz
 gunzip -c openssl-fips-2.0.13.tar.gz | tar xf -
 rm openssl-fips-2.0.13.tar.gz
 cd openssl-fips-2.0.13
 mkdir ../OpensslFipsModule
-export FIPSDIR="`pwd`/../OpensslFipsModule"
+export FIPSDIR
+FIPSDIR="$(pwd)/../OpensslFipsModule"
 chmod +x ./Configure
 $CONFIGURE
 make
 sudo make install
 
-cd $BUILD_DIR
+cd "$BUILD_DIR"
 curl -L https://www.openssl.org/source/openssl-1.0.2-latest.tar.gz > openssl-1.0.2.tar.gz
 tar -xzvf openssl-1.0.2.tar.gz
 rm openssl-1.0.2.tar.gz
@@ -67,10 +68,10 @@ cd openssl-1.0.2*
 
 FIPS_OPTIONS="fips --with-fipsdir=$FIPSDIR shared"
 
-$CONFIGURE $FIPS_OPTIONS -g3 -fPIC no-libunbound no-gmp no-jpake no-krb5 no-md2 no-rc5 \
+"$CONFIGURE $FIPS_OPTIONS" -g3 -fPIC no-libunbound no-gmp no-jpake no-krb5 no-md2 no-rc5 \
          no-rfc3779 no-sctp no-ssl-trace no-store no-zlib no-hw no-mdc2 no-seed no-idea \
          enable-ec_nistp_64_gcc_128 no-camellia no-bf no-ripemd no-dsa no-ssl2 no-capieng -DSSL_FORBID_ENULL \
-         -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS --prefix=$INSTALL_DIR
+         -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS --prefix="$INSTALL_DIR"
 
 make depend
 make
@@ -79,3 +80,4 @@ sudo make install_sw
 popd
 
 exit 0
+

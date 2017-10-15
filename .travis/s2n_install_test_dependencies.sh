@@ -12,6 +12,12 @@ if [[ ! -d test-deps ]]; then
     mkdir test-deps ; 
 fi
 
+#Install & Run shell check before installing dependencies
+echo "Running ShellCheck..."
+.travis/install_shellcheck.sh
+.travis/run_shellcheck.sh
+echo "Shell Check is success."
+
 if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     .travis/install_ubuntu_dependencies.sh;
 fi
@@ -24,6 +30,5 @@ fi
 
 # Set GCC 6 as Default on both Ubuntu and OSX
 if [[ "$GCC6_REQUIRED" == "true" ]]; then
-    alias gcc=$(which gcc-6);
+    alias gcc="\$(which gcc-6)";
 fi
-
