@@ -111,6 +111,14 @@ static int failure_memcpy()
     return 0;
 }
 
+static int overlap_failure_memcpy()
+{
+    char src[1024]= {0};
+    memcpy_check(src + 512, src, 1024);
+
+    return 0;
+}
+
 static int success_inclusive_range()
 {
     inclusive_range_check(0, 0, 2);
@@ -179,6 +187,7 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(failure_lt());
     EXPECT_FAILURE(failure_notnull());
     EXPECT_FAILURE(failure_memcpy());
+    EXPECT_FAILURE(overlap_failure_memcpy());
     EXPECT_FAILURE(failure_inclusive_range_too_high());
     EXPECT_FAILURE(failure_inclusive_range_too_low());
     EXPECT_FAILURE(failure_exclusive_range_too_high());
