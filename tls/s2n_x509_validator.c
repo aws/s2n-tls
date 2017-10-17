@@ -27,6 +27,10 @@ void s2n_x509_trust_store_init(struct s2n_x509_trust_store *store) {
     store->trust_store = NULL;
 }
 
+uint8_t s2n_x509_trust_store_has_certs(struct s2n_x509_trust_store *store) {
+    return store->trust_store ? 1 : 0;
+}
+
 int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const char *ca_file) {
     s2n_x509_trust_store_cleanup(store);
 
@@ -61,8 +65,22 @@ static uint8_t default_verify_host(const char *host_name, size_t len, void *data
     return 1;
 }
 
+int s2n_x509_validator_init_no_checks(struct s2n_x509_validator *validator) {
+    validator->trust_store = NULL;
+    validator->verify_host_fn = NULL;
+    validator->validation_ctx = NULL;
+    validator->cert_chain = NULL;
+    validator->validate_certificates = 0;
+
+    validator->current_step = S2N_X509_NOT_STARTED;
+    return 0;
+}
+
 int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x509_trust_store *trust_store, verify_host verify_host_fn, void *verify_ctx) {
+    notnull_check(trust_store);
     validator->trust_store = trust_store;
+
+    validator->validate_certificates = 1;
 
     validator->verify_host_fn = default_verify_host;
 
@@ -72,7 +90,8 @@ int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x50
 
     validator->validation_ctx = verify_ctx;
 
-    if(validator->trust_store) {
+    validator->cert_chain = NULL;
+    if(validator->trust_store->trust_store) {
         validator->cert_chain = sk_X509_new_null();
     }
 
@@ -93,6 +112,7 @@ void s2n_x509_validator_cleanup(struct s2n_x509_validator *validator) {
     validator->trust_store = NULL;
     validator->verify_host_fn = NULL;
     validator->validation_ctx = NULL;
+    validator->validate_certificates = 0;
     validator->current_step = S2N_X509_NOT_STARTED;
 }
 
@@ -150,7 +170,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
                                              uint32_t cert_chain_len,
                                              struct s2n_cert_public_key *public_key_out) {
 
-    if(!validator->trust_store) {
+    if(validator->validate_certificates && !s2n_x509_trust_store_has_certs(validator->trust_store)) {
        return S2N_CERT_ERR_UNTRUSTED;
     }
 
@@ -193,9 +213,10 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
         }
 
         const uint8_t *data = asn1cert.data;
-        X509 *server_cert = d2i_X509(NULL, &data, asn1cert.size);
 
-        if(validator->trust_store) {
+        X509 *server_cert = NULL;
+        if(validator->validate_certificates) {
+            server_cert = d2i_X509(NULL, &data, asn1cert.size);
 
             if(!server_cert) {
                 err_code = S2N_CERT_ERR_INVALID;
@@ -234,14 +255,14 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
         goto clean_up;
     }
 
-    if (validator->verify_host_fn && !verify_host_information(validator, public_key)) {
+    if (validator->validate_certificates && validator->verify_host_fn && !verify_host_information(validator, public_key)) {
         err_code = S2N_CERT_ERR_UNTRUSTED;
         goto clean_up;
     }
 
-    if(validator->trust_store) {
+    if(validator->validate_certificates) {
         ctx = X509_STORE_CTX_new();
-        int op_code = X509_STORE_CTX_init(ctx, (X509_STORE *) validator->trust_store, last_in_chain, validator->cert_chain);
+        int op_code = X509_STORE_CTX_init(ctx, validator->trust_store->trust_store, last_in_chain, validator->cert_chain);
 
         if (op_code <= 0) {
             err_code = S2N_CERT_ERR_INVALID;
@@ -267,6 +288,10 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 }
 
 s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x509_validator *validator, const uint8_t *ocsp_response_raw, size_t ocsp_response_length) {
+    if(!validator->validate_certificates) {
+        return S2N_CERT_OK;
+    }
+
     OCSP_RESPONSE *ocsp_response = NULL;
     OCSP_BASICRESP *basic_response = NULL;
 

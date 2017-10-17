@@ -104,7 +104,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
     EXPECT_NOT_NULL(default_cipher_preferences = server_config->cipher_preferences);
 
-    client_config = &s2n_unsafe_client_testing_config;
+    client_config = s2n_fetch_unsafe_client_testing_config();
     EXPECT_SUCCESS(s2n_config_set_verification_ca_file(client_config, S2N_DEFAULT_TEST_CERT_CHAIN));//"/etc/ssl/certs/ca-certificates.crt"));
 
     if (s2n_is_in_fips_mode()) {

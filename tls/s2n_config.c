@@ -138,31 +138,107 @@ s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn,
     return 0;
 }
 
-struct s2n_config s2n_default_config = {
-    .cert_and_key_pairs = NULL,
-    .cipher_preferences = &cipher_preferences_20170210,
-    .nanoseconds_since_epoch = get_nanoseconds_since_epoch,
-    .client_cert_auth_type = S2N_CERT_AUTH_NONE, /* Do not require the client to provide a Cert to the Server */
-    .verify_cert_context = NULL,
-    .data_for_verify_host = NULL,
-};
+static uint8_t default_config_init = 0;
+static uint8_t unsafe_client_testing_config_init= 0;
+static uint8_t default_fips_config_init = 0;
+
+
+static struct s2n_config s2n_default_config;
 
 /* This config should only used by the s2n_client for unit/integration testing purposes. */
-struct s2n_config s2n_unsafe_client_testing_config = {
-    .cert_and_key_pairs = NULL,
-    .cipher_preferences = &cipher_preferences_20170210,
-    .nanoseconds_since_epoch = get_nanoseconds_since_epoch,
-    .client_cert_auth_type = S2N_CERT_AUTH_NONE,
-    .verify_cert_context = NULL,
-    .data_for_verify_host = NULL,
-};
+static struct s2n_config s2n_unsafe_client_testing_config;
 
-struct s2n_config s2n_default_fips_config = {
-    .cert_and_key_pairs = NULL,
-    .cipher_preferences = &cipher_preferences_20170405,
-    .nanoseconds_since_epoch = get_nanoseconds_since_epoch,
-    .data_for_verify_host = NULL,
-};
+static struct s2n_config s2n_default_fips_config;
+
+static int s2n_config_init(struct s2n_config *config) {
+    config->cert_and_key_pairs = NULL;
+    config->dhparams = NULL;
+    config->application_protocols.data = NULL;
+    config->application_protocols.size = 0;
+    config->status_request_type = S2N_STATUS_REQUEST_NONE;
+    config->nanoseconds_since_epoch = get_nanoseconds_since_epoch;
+    config->client_hello_cb = NULL;
+    config->client_hello_cb_ctx = NULL;
+    config->cache_store = NULL;
+    config->cache_store_data = NULL;
+    config->cache_retrieve = NULL;
+    config->cache_retrieve_data = NULL;
+    config->cache_delete = NULL;
+    config->cache_delete_data = NULL;
+    config->ct_type = S2N_CT_SUPPORT_NONE;
+    config->mfl_code = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
+    config->accept_mfl = 0;
+
+    /* By default, only the client will authenticate the Server's Certificate. The Server does not request or
+     * authenticate any client certificates. */
+    config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
+    config->verify_cert_chain_cb = deny_all_certs;
+    config->verify_cert_context = NULL;
+    config->verify_host = NULL;
+    config->data_for_verify_host = NULL;
+
+    if (s2n_is_in_fips_mode()) {
+        s2n_config_set_cipher_preferences(config, "default_fips");
+    } else {
+        s2n_config_set_cipher_preferences(config, "default");
+    }
+
+    s2n_x509_trust_store_init(&config->trust_store);
+
+    return 0;
+}
+
+static int s2n_config_cleanup(struct s2n_config *config) {
+    s2n_x509_trust_store_cleanup(&config->trust_store);
+
+    GUARD(s2n_config_free_cert_chain_and_key(config));
+    GUARD(s2n_config_free_dhparams(config));
+    GUARD(s2n_free(&config->application_protocols));
+
+    return 0;
+}
+
+struct s2n_config *s2n_fetch_default_config(void) {
+    if(!default_config_init) {
+        s2n_config_init(&s2n_default_config);
+        s2n_default_config.cert_and_key_pairs = NULL;
+        s2n_default_config.cipher_preferences = &cipher_preferences_20170210;
+        s2n_default_config.nanoseconds_since_epoch = get_nanoseconds_since_epoch;
+        s2n_default_config .client_cert_auth_type = S2N_CERT_AUTH_NONE; /* Do not require the client to provide a Cert to the Server */
+        s2n_default_config .data_for_verify_host = NULL;
+
+        default_config_init = 1;
+    }
+
+    return &s2n_default_config;
+}
+
+struct s2n_config *s2n_fetch_default_fips_config(void) {
+    if(!default_fips_config_init) {
+        s2n_config_init(&s2n_default_fips_config);
+        s2n_default_fips_config.cert_and_key_pairs = NULL;
+        s2n_default_fips_config.cipher_preferences = &cipher_preferences_20170405;
+        s2n_default_fips_config.nanoseconds_since_epoch = get_nanoseconds_since_epoch;
+
+        default_fips_config_init = 1;
+    }
+
+    return &s2n_default_fips_config;
+}
+
+struct s2n_config *s2n_fetch_unsafe_client_testing_config(void) {
+    if(!unsafe_client_testing_config_init) {
+        s2n_config_init(&s2n_unsafe_client_testing_config);
+        s2n_unsafe_client_testing_config.cert_and_key_pairs = NULL;
+        s2n_unsafe_client_testing_config.cipher_preferences = &cipher_preferences_20170210;
+        s2n_unsafe_client_testing_config.nanoseconds_since_epoch = get_nanoseconds_since_epoch;
+        s2n_unsafe_client_testing_config.client_cert_auth_type = S2N_CERT_AUTH_NONE;
+
+        unsafe_client_testing_config_init = 1;
+    }
+
+    return &s2n_unsafe_client_testing_config;
+}
 
 struct s2n_config *s2n_config_new(void)
 {
@@ -172,39 +248,7 @@ struct s2n_config *s2n_config_new(void)
     GUARD_PTR(s2n_alloc(&allocator, sizeof(struct s2n_config)));
 
     new_config = (struct s2n_config *)(void *)allocator.data;
-    new_config->cert_and_key_pairs = NULL;
-    new_config->dhparams = NULL;
-    new_config->application_protocols.data = NULL;
-    new_config->application_protocols.size = 0;
-    new_config->status_request_type = S2N_STATUS_REQUEST_NONE;
-    new_config->nanoseconds_since_epoch = get_nanoseconds_since_epoch;
-    new_config->client_hello_cb = NULL;
-    new_config->client_hello_cb_ctx = NULL;
-    new_config->cache_store = NULL;
-    new_config->cache_store_data = NULL;
-    new_config->cache_retrieve = NULL;
-    new_config->cache_retrieve_data = NULL;
-    new_config->cache_delete = NULL;
-    new_config->cache_delete_data = NULL;
-    new_config->ct_type = S2N_CT_SUPPORT_NONE;
-    new_config->mfl_code = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
-    new_config->accept_mfl = 0;
-
-    /* By default, only the client will authenticate the Server's Certificate. The Server does not request or
-     * authenticate any client certificates. */
-    new_config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
-    new_config->verify_cert_chain_cb = deny_all_certs;
-    new_config->verify_cert_context = NULL;
-    new_config->verify_host = NULL;
-    new_config->data_for_verify_host = NULL;
-
-    if (s2n_is_in_fips_mode()) {
-        GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default_fips"));
-    } else {
-        GUARD_PTR(s2n_config_set_cipher_preferences(new_config, "default"));
-    }
-
-    s2n_x509_trust_store_init(&new_config->trust_store);
+    s2n_config_init(new_config);
 
     return new_config;
 }
@@ -259,13 +303,7 @@ int s2n_config_free(struct s2n_config *config)
 {
     struct s2n_blob b = {.data = (uint8_t *) config,.size = sizeof(struct s2n_config) };
 
-
-    s2n_x509_trust_store_cleanup(&config->trust_store);
-
-
-    GUARD(s2n_config_free_cert_chain_and_key(config));
-    GUARD(s2n_config_free_dhparams(config));
-    GUARD(s2n_free(&config->application_protocols));
+    s2n_config_cleanup(config);
 
     GUARD(s2n_free(&b));
     return 0;

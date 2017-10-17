@@ -147,9 +147,9 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     conn = (struct s2n_connection *)(void *)blob.data;
 
     if (s2n_is_in_fips_mode()) {
-        s2n_connection_set_config(conn, &s2n_default_config);
+        s2n_connection_set_config(conn, s2n_fetch_default_fips_config());
     } else {
-        s2n_connection_set_config(conn, &s2n_default_config);
+        s2n_connection_set_config(conn, s2n_fetch_default_config());
     }
 
     if (mode == S2N_CLIENT) {
@@ -164,7 +164,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
         }
         /* S2N does not have it's own x509 Certificate parser, so Client Mode should only be used for testing purposes.
          * In Client mode, we skip Cert Validation and assume that all Server RSA x509 Certs are valid. */
-        s2n_connection_set_config(conn, &s2n_unsafe_client_testing_config);
+        s2n_connection_set_config(conn, s2n_fetch_unsafe_client_testing_config());
     }
 
     conn->mode = mode;
@@ -427,7 +427,13 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
     notnull_check(conn);
     notnull_check(config);
     conn->config = config;
-    s2n_x509_validator_init(&conn->x509_validator, &config->trust_store, config->verify_host, config->data_for_verify_host);
+    if(s2n_x509_trust_store_has_certs(&config->trust_store)) {
+        s2n_x509_validator_init(&conn->x509_validator, &config->trust_store, config->verify_host,
+                                config->data_for_verify_host);
+    }
+    else {
+        s2n_x509_validator_init_no_checks(&conn->x509_validator);
+    }
     return 0;
 }
 
