@@ -122,7 +122,8 @@ struct s2n_connection {
     enum { ENCRYPTED, PLAINTEXT } in_status;
 
     /* How much of the current user buffer have we already
-     * encrypted and have pending for the wire.
+     * encrypted and sent or have pending for the wire but have
+     * not acknowledged to the user.
      */
     ssize_t current_user_data_consumed;
 
