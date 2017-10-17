@@ -88,68 +88,39 @@ file(GLOB S2N_HEADERS
     ${TLS_SRC}
     ${UTILS_SRC}
  )
- 
-if(BUILD_SHARED_LIBS)
-    add_library(s2nShared SHARED ${S2N_HEADERS} ${S2N_SRC})
-    set_target_properties(s2nShared PROPERTIES OUTPUT_NAME s2n)
-    set_target_properties(s2nShared PROPERTIES LINKER_LANGUAGE C) 
-endif()
 
-add_library(s2nStatic STATIC ${S2N_HEADERS} ${S2N_SRC})
-set_target_properties(s2nStatic PROPERTIES OUTPUT_NAME s2n)
-set_target_properties(s2nStatic PROPERTIES LINKER_LANGUAGE C)
+add_library(s2n ${S2N_HEADERS} ${S2N_SRC})
+set_target_properties(s2n PROPERTIES LINKER_LANGUAGE C)
 
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
-if(BUILD_SHARED_LIBS)
-    target_compile_options(s2nShared PRIVATE -std=c99 -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security)
-    target_compile_definitions(s2nShared PRIVATE -D_POSIX_C_SOURCE=200809L -D_FORTIFY_SOURCE=2)
-    target_compile_options(s2nShared PUBLIC -fPIC)
-endif()
-
-target_compile_options(s2nStatic PRIVATE -std=c99 -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security)
-target_compile_definitions(s2nStatic PRIVATE -D_POSIX_C_SOURCE=200809L -D_FORTIFY_SOURCE=2)
-target_compile_options(s2nStatic PUBLIC -fPIC)    
+target_compile_options(s2n PRIVATE -pedantic -std=c99 -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security)
+target_compile_definitions(s2n PRIVATE -D_POSIX_C_SOURCE=200809L -D_FORTIFY_SOURCE=2)
+target_compile_options(s2n PUBLIC -fPIC)    
 
 if(NO_STACK_PROTECTOR)
-    target_compile_options(s2nStatic PRIVATE -Wstack-protector -fstack-protector-all)
-
-    if(BUILD_SHARED_LIBS)
-        target_compile_options(s2nShared PRIVATE -Wstack-protector -fstack-protector-all)
-    endif()
+    target_compile_options(s2n PRIVATE -Wstack-protector -fstack-protector-all)
 endif()
 
 if(S2N_UNSAFE_FUZZING_MODE)
-    target_compile_options(s2nStatic PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak)
-
-    if(BUILD_SHARED_LIBS)
-        target_compile_options(s2nShared PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak)
-    endif()
+    target_compile_options(s2n PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak)
 endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
 
 find_package(LibCrypto REQUIRED)
-target_link_libraries(s2nStatic PRIVATE LibCrypto::Crypto PRIVATE ${OS_LIBS})
+target_link_libraries(s2n PRIVATE LibCrypto::Crypto PRIVATE ${OS_LIBS})
 
-if(BUILD_SHARED_LIBS)
-    target_link_libraries(s2nShared PRIVATE LibCrypto::Crypto PRIVATE ${OS_LIBS})
-endif()
-
-if(BUILD_SHARED_LIBS)
-    target_include_directories(s2nShared PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-    target_include_directories(s2nShared PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
-endif()
-
-target_include_directories(s2nStatic PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-target_include_directories(s2nStatic PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
+target_include_directories(s2n PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+target_include_directories(s2n PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
 
 file(GLOB TESTLIB_SRC "tests/testlib/*.c")
 file(GLOB TESTLIB_HEADERS "tests/testlib/*.h")
 
-add_library(testss2n STATIC ${TESTLIB_HEADERS} ${TESTLIB_SRC})
+add_library(testss2n ${TESTLIB_HEADERS} ${TESTLIB_SRC})
 target_include_directories(testss2n PRIVATE tests)
-target_link_libraries(testss2n PUBLIC s2nStatic)
+target_compile_options(testss2n PRIVATE -std=c99)
+target_link_libraries(testss2n PUBLIC s2n)
 
 #run unit tests
 file (GLOB TEST_LD_PRELOAD "tests/LD_PRELOAD/*.c")
@@ -166,6 +137,7 @@ file(GLOB UNITTESTS_SRC "tests/unit/*.c")
     target_include_directories(${test_case_name} PRIVATE api)
     target_include_directories(${test_case_name} PRIVATE ./)
     target_include_directories(${test_case_name} PRIVATE tests)
+    target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -std=c99)
     add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
    
     set_property(
@@ -176,16 +148,11 @@ file(GLOB UNITTESTS_SRC "tests/unit/*.c")
 
 endforeach(test_case)
 
-set(export_targets s2nStatic)
-if(BUILD_SHARED_LIBS)
-    set(export_targets s2nStatic s2nShared)
-endif()
-
 #install the s2n files
 install (FILES ${API_HEADERS} DESTINATION "include/")
 
 install (
-         TARGETS ${export_targets}
+         TARGETS s2n
          EXPORT "${PROJECT_NAME}-config"
          ARCHIVE DESTINATION lib
          LIBRARY DESTINATION lib
