@@ -21,7 +21,10 @@
 #include "utils/s2n_blob.h"
 #include "api/s2n.h"
 
+#include "tls/s2n_x509_validator.h"
+
 struct s2n_cipher_preferences;
+
 
 struct s2n_config {
     struct s2n_dh_params *dhparams;
@@ -60,7 +63,7 @@ struct s2n_config {
     /* if this is FALSE, server will ignore client's Maximum Fragment Length request */
     int accept_mfl;
 
-    void *trust_store;
+    struct s2n_x509_trust_store trust_store;
 };
 
 extern struct s2n_config s2n_default_config;

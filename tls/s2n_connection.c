@@ -147,9 +147,9 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     conn = (struct s2n_connection *)(void *)blob.data;
 
     if (s2n_is_in_fips_mode()) {
-        conn->config = &s2n_default_fips_config;
+        s2n_connection_set_config(conn, &s2n_default_config);
     } else {
-        conn->config = &s2n_default_config;
+        s2n_connection_set_config(conn, &s2n_default_config);
     }
 
     if (mode == S2N_CLIENT) {
@@ -164,7 +164,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
         }
         /* S2N does not have it's own x509 Certificate parser, so Client Mode should only be used for testing purposes.
          * In Client mode, we skip Cert Validation and assume that all Server RSA x509 Certs are valid. */
-        conn->config = &s2n_unsafe_client_testing_config;
+        s2n_connection_set_config(conn, &s2n_unsafe_client_testing_config);
     }
 
     conn->mode = mode;
@@ -276,7 +276,7 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     GUARD(s2n_pkey_zero_init(&conn->secure.server_public_key));
     GUARD(s2n_pkey_free(&conn->secure.client_public_key));
     GUARD(s2n_pkey_zero_init(&conn->secure.client_public_key));
-
+    s2n_x509_validator_cleanup(&conn->x509_validator);
     GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
     GUARD(s2n_ecc_params_free(&conn->secure.server_ecc_params));
     GUARD(s2n_free(&conn->secure.client_cert_chain));
@@ -415,7 +415,6 @@ int s2n_connection_free(struct s2n_connection *conn)
     GUARD(s2n_stuffer_free(&conn->in));
     GUARD(s2n_stuffer_free(&conn->out));
     GUARD(s2n_stuffer_free(&conn->handshake.io));
-
     blob.data = (uint8_t *) conn;
     blob.size = sizeof(struct s2n_connection);
 
@@ -428,6 +427,7 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
     notnull_check(conn);
     notnull_check(config);
     conn->config = config;
+    s2n_x509_validator_init(&conn->x509_validator, &config->trust_store, config->verify_host, config->data_for_verify_host);
     return 0;
 }
 
@@ -516,6 +516,8 @@ int s2n_connection_wipe(struct s2n_connection *conn)
 #endif
 
     GUARD(s2n_connection_zero(conn, mode, config));
+
+    s2n_connection_set_config(conn, config);
 
     memcpy_check(&conn->alert_in, &alert_in, sizeof(struct s2n_stuffer));
     memcpy_check(&conn->reader_alert_out, &reader_alert_out, sizeof(struct s2n_stuffer));

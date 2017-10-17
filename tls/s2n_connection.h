@@ -25,6 +25,7 @@
 #include "tls/s2n_crypto.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_prf.h"
+#include "tls/s2n_x509_validator.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -210,6 +211,8 @@ struct s2n_connection {
     /* Certificate Transparency response data */
     s2n_ct_support_level ct_level_requested;
     struct s2n_blob ct_response;
+
+    struct s2n_x509_validator x509_validator;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);
