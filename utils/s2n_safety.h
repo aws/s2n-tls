@@ -24,7 +24,7 @@
 /* NULL check a pointer */
 #define notnull_check( ptr )           do { if ( (ptr) == NULL ) { S2N_ERROR(S2N_ERR_NULL); } } while(0)
 
-extern inline void* trace_memcpy_check(void *restrict to, const void *restrict from, size_t size, const char *debug_str)
+static inline void* trace_memcpy_check(void *restrict to, const void *restrict from, size_t size, const char *debug_str)
 {
     if (to == NULL || from == NULL) {
         s2n_errno = S2N_ERR_NULL;
