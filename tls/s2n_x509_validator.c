@@ -34,23 +34,33 @@ uint8_t s2n_x509_trust_store_has_certs(struct s2n_x509_trust_store *store) {
 int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const char *ca_file) {
     s2n_x509_trust_store_cleanup(store);
 
-    store->trust_store = X509_STORE_new();
-
     BIO *store_file_bio = BIO_new_file(ca_file, "r");
 
-    int err_code = 0;
+    int err_code = S2N_ERR_T_OK;
 
     if(store_file_bio) {
+        store->trust_store = X509_STORE_new();
         X509 *trust_cert = NULL;
+        uint8_t found_a_cert = 0;
         while((trust_cert = PEM_read_bio_X509(store_file_bio, NULL, 0, NULL))) {
             X509_STORE_add_cert(store->trust_store, trust_cert);
+            found_a_cert = 1;
+        }
+
+        if(!found_a_cert) {
+            err_code = S2N_ERR_T_USAGE;
         }
 
         BIO_free(store_file_bio);
-        return 0;
+    }
+    else {
+        err_code = S2N_ERR_T_IO;
     }
 
-    s2n_x509_trust_store_cleanup(store);
+    if(err_code) {
+        s2n_x509_trust_store_cleanup(store);
+    }
+
     return err_code;
 }
 
@@ -194,7 +204,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
     s2n_cert_validation_code err_code = S2N_CERT_OK;
 
     while (s2n_stuffer_data_available(&cert_chain_in_stuffer)) {
-        uint32_t certificate_size;
+        uint32_t certificate_size = 0;
 
         if (s2n_stuffer_read_uint24(&cert_chain_in_stuffer, &certificate_size) < 0) {
             err_code = S2N_CERT_ERR_INVALID;

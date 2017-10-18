@@ -26,27 +26,35 @@
 
 int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size)
 {
-    FILE *pem_file = fopen(pem_path, "rb");
-    if (!pem_file) {
+    long int file_length = 0;
+    int ret_val = s2n_read_test_file(pem_path, pem_out, max_size, &file_length);
+    pem_out[file_length] = '\0';
+
+    return ret_val;
+}
+
+int s2n_read_test_file(const char *path, char *out, long int max_size, long int *file_size)
+{
+    FILE *file = fopen(path, "rb");
+    if (!file) {
         S2N_ERROR(S2N_ERR_NULL);
     }
 
     // Make sure we can fit the pem into the output buffer
-    fseek(pem_file, 0, SEEK_END);
-    const long int pem_file_size = ftell(pem_file);
+    fseek(file, 0, SEEK_END);
+    *file_size = ftell(file);
     // one extra for the null byte
-    rewind(pem_file);
+    rewind(file);
 
-    if (max_size < (pem_file_size + 1)) {
+    if (max_size < (*file_size + 1)) {
         S2N_ERROR(S2N_ERR_NOMEM);
     }
 
-    if (fread(pem_out, sizeof(char), pem_file_size, pem_file) < pem_file_size) {
+    if (fread(out, sizeof(char), *file_size, file) < *file_size) {
         S2N_ERROR(S2N_ERR_IO);
     }
 
-    pem_out[pem_file_size] = '\0';
-    fclose(pem_file);
+    fclose(file);
 
     return 0;
 }

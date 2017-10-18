@@ -66,13 +66,17 @@ void s2n_print_connection(struct s2n_connection *conn, const char *marker);
 #define S2N_INVALID_TRAILER_KEY         "../pems/rsa_2048_invalid_trailer_key.pem"
 #define S2N_UNKNOWN_KEYWORD_KEY         "../pems/rsa_2048_unknown_keyword_key.pem"
 
+#define S2N_RSA_2048_PKCS1_CERT_CHAIN_DER   "../ders/rsa_2048_pkcs1_cert.der"
+
 #define S2N_DHPARAMS_2048 "../pems/dhparams_2048.pem"
 
 #define S2N_DEFAULT_TEST_CERT_CHAIN  S2N_RSA_2048_PKCS1_CERT_CHAIN
+#define S2N_DEFAULT_TEST_CERT_CHAIN_DER  S2N_RSA_2048_PKCS1_CERT_CHAIN_DER
 #define S2N_DEFAULT_TEST_PRIVATE_KEY S2N_RSA_2048_PKCS1_KEY
 
 #define S2N_DEFAULT_TEST_DHPARAMS S2N_DHPARAMS_2048
 
 /* Read a cert given a path into pem_out */
 int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size);
+int s2n_read_test_file(const char *path, char *out, long int max_size, long int *file_size);
 
