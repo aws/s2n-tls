@@ -50,8 +50,6 @@ struct s2n_config {
     s2n_ct_support_level ct_type;
 
     s2n_cert_auth_type client_cert_auth_type;
-    verify_cert_trust_chain_fn *verify_cert_chain_cb;
-    void *verify_cert_context;
 
     /* Return TRUE if the host should be trusted, If FALSE this will likely be called again for every host/alternative name
      * in the certificate. If any respond TRUE. If none return TRUE, the cert will be considered untrusted. */
@@ -64,11 +62,9 @@ struct s2n_config {
     int accept_mfl;
 
     struct s2n_x509_trust_store trust_store;
+    uint8_t check_ocsp;
 };
 
 extern struct s2n_config *s2n_fetch_default_config(void);
 extern struct s2n_config *s2n_fetch_default_fips_config(void);
 extern struct s2n_config *s2n_fetch_unsafe_client_testing_config(void);
-
-int accept_all_rsa_certs(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
-int deny_all_certs(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key, void *context);

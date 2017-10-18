@@ -71,16 +71,18 @@ int s2n_x509_validator_init_no_checks(struct s2n_x509_validator *validator) {
     validator->validation_ctx = NULL;
     validator->cert_chain = NULL;
     validator->validate_certificates = 0;
+    validator->check_stapled_ocsp = 0;
 
     validator->current_step = S2N_X509_NOT_STARTED;
     return 0;
 }
 
-int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x509_trust_store *trust_store, verify_host verify_host_fn, void *verify_ctx) {
+int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x509_trust_store *trust_store, uint8_t check_ocsp, verify_host verify_host_fn, void *verify_ctx) {
     notnull_check(trust_store);
     validator->trust_store = trust_store;
 
     validator->validate_certificates = 1;
+    validator->check_stapled_ocsp = check_ocsp;
 
     validator->verify_host_fn = default_verify_host;
 
@@ -288,7 +290,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 }
 
 s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x509_validator *validator, const uint8_t *ocsp_response_raw, size_t ocsp_response_length) {
-    if(!validator->validate_certificates) {
+    if(!validator->validate_certificates || !validator->check_stapled_ocsp) {
         return S2N_CERT_OK;
     }
 
@@ -321,9 +323,64 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
         goto clean_up;
     }
 
+    int i;
+
+    int certs_in_chain = sk_X509_num(validator->cert_chain);
+    int certs_in_ocsp = sk_X509_num(basic_response->certs);
+
+    if(certs_in_chain >= 2 && certs_in_ocsp >= 1) {
+        X509 *responder = sk_X509_value(basic_response->certs, certs_in_ocsp - 1);
+
+        for(i = 0; i < certs_in_chain; i++)
+        {
+            X509 *issuer = sk_X509_value(validator->cert_chain, i);
+            if (X509_check_issued(issuer, responder) == X509_V_OK)
+            {
+                if (!OCSP_basic_add1_cert(basic_response, issuer))
+                {
+                    ret_val = S2N_CERT_ERR_INVALID;
+                    goto clean_up;
+                }
+            }
+        }
+    }
+
     if(!OCSP_basic_verify(basic_response, validator->cert_chain, validator->trust_store->trust_store, 0)) {
         ret_val = S2N_CERT_ERR_EXPIRED;
         goto clean_up;
+    }
+
+    for(i = 0; i < OCSP_resp_count(basic_response); i++) {
+        int status_reason;
+        ASN1_GENERALIZEDTIME *revtime, *thisupd, *nextupd;
+
+        OCSP_SINGLERESP *single_response = OCSP_resp_get0(basic_response, i);
+        if(!single_response)
+            continue;
+
+        ocsp_status = OCSP_single_get0_status(single_response, &status_reason, &revtime,
+                                              &thisupd, &nextupd);
+
+        if(!OCSP_check_validity(thisupd, nextupd, 300L, -1L)) {
+            ret_val = S2N_CERT_ERR_EXPIRED;
+            goto clean_up;
+        }
+
+        switch(ocsp_status) {
+            case V_OCSP_CERTSTATUS_GOOD:
+                break;
+
+            case V_OCSP_CERTSTATUS_REVOKED:
+                ret_val = S2N_CERT_ERR_REVOKED;
+                goto clean_up;
+
+            case V_OCSP_CERTSTATUS_UNKNOWN:
+                ret_val = S2N_CERT_ERR_INVALID;
+                goto clean_up;
+            default:
+                ret_val = S2N_CERT_ERR_INVALID;
+                goto clean_up;
+        }
     }
 
     clean_up:

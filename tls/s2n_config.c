@@ -76,70 +76,9 @@ int get_nanoseconds_since_epoch(void *data, uint64_t * nanoseconds)
 
 #endif
 
-
-
-int deny_all_certs(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key, void *context)
-{
-    S2N_ERROR(S2N_ERR_CERT_UNTRUSTED);
-}
-
-/* Accept all RSA Certificates is unsafe and is only used in the s2n Client for testing purposes */
-s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn,
-                                              uint8_t *cert_chain_in,
-                                              uint32_t cert_chain_len,
-                                              struct s2n_cert_public_key *public_key_out,
-                                              void *context)
-{
-    struct s2n_blob cert_chain_blob = { .data = cert_chain_in, .size = cert_chain_len};
-    struct s2n_stuffer cert_chain_in_stuffer;
-    if (s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob) < 0) {
-        return S2N_CERT_ERR_INVALID;
-    }
-    if (s2n_stuffer_write(&cert_chain_in_stuffer, &cert_chain_blob) < 0) {
-        return S2N_CERT_ERR_INVALID;
-    }
-
-    uint32_t certificate_count = 0;
-    while (s2n_stuffer_data_available(&cert_chain_in_stuffer)) {
-        uint32_t certificate_size;
-
-        if (s2n_stuffer_read_uint24(&cert_chain_in_stuffer, &certificate_size) < 0) {
-            return S2N_CERT_ERR_INVALID;
-        }
-
-        if (certificate_size == 0 || certificate_size > s2n_stuffer_data_available(&cert_chain_in_stuffer) ) {
-            return S2N_CERT_ERR_INVALID;
-        }
-
-        struct s2n_blob asn1cert;
-        asn1cert.data = s2n_stuffer_raw_read(&cert_chain_in_stuffer, certificate_size);
-        asn1cert.size = certificate_size;
-        if (asn1cert.data == NULL) {
-            return S2N_CERT_ERR_INVALID;
-        }
-
-        /* Pull the public key from the first certificate */
-        if (certificate_count == 0) {
-            /* Assume that the asn1cert is an RSA Cert */
-            if (s2n_asn1der_to_public_key(&public_key_out->pkey, &asn1cert) < 0) {
-                return S2N_CERT_ERR_INVALID;
-            }
-            if (s2n_cert_public_key_set_cert_type(public_key_out, S2N_CERT_TYPE_RSA_SIGN) < 0){
-                return S2N_CERT_ERR_INVALID;
-            }
-        }
-
-        certificate_count++;
-    }
-
-    if (certificate_count < 1) {
-        return S2N_CERT_ERR_INVALID;
-    }
-    return 0;
-}
-
 static uint8_t default_config_init = 0;
-static uint8_t unsafe_client_testing_config_init= 0;
+static uint8_t unsafe_client_testing_config_init = 0;
+static uint8_t default_client_config_init = 0;
 static uint8_t default_fips_config_init = 0;
 
 
@@ -147,6 +86,8 @@ static struct s2n_config s2n_default_config;
 
 /* This config should only used by the s2n_client for unit/integration testing purposes. */
 static struct s2n_config s2n_unsafe_client_testing_config;
+
+static struct s2n_config default_client_config;
 
 static struct s2n_config s2n_default_fips_config;
 
@@ -172,10 +113,9 @@ static int s2n_config_init(struct s2n_config *config) {
     /* By default, only the client will authenticate the Server's Certificate. The Server does not request or
      * authenticate any client certificates. */
     config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
-    config->verify_cert_chain_cb = deny_all_certs;
-    config->verify_cert_context = NULL;
     config->verify_host = NULL;
     config->data_for_verify_host = NULL;
+    config->check_ocsp = 1;
 
     if (s2n_is_in_fips_mode()) {
         s2n_config_set_cipher_preferences(config, "default_fips");
@@ -190,6 +130,7 @@ static int s2n_config_init(struct s2n_config *config) {
 
 static int s2n_config_cleanup(struct s2n_config *config) {
     s2n_x509_trust_store_cleanup(&config->trust_store);
+    config->check_ocsp = 0;
 
     GUARD(s2n_config_free_cert_chain_and_key(config));
     GUARD(s2n_config_free_dhparams(config));
@@ -233,11 +174,26 @@ struct s2n_config *s2n_fetch_unsafe_client_testing_config(void) {
         s2n_unsafe_client_testing_config.cipher_preferences = &cipher_preferences_20170210;
         s2n_unsafe_client_testing_config.nanoseconds_since_epoch = get_nanoseconds_since_epoch;
         s2n_unsafe_client_testing_config.client_cert_auth_type = S2N_CERT_AUTH_NONE;
+        s2n_unsafe_client_testing_config.check_ocsp = 0;
 
         unsafe_client_testing_config_init = 1;
     }
 
     return &s2n_unsafe_client_testing_config;
+}
+
+struct s2n_config *s2n_fetch_default_client_config(void) {
+    if(!default_client_config_init) {
+        s2n_config_init(&default_client_config);
+        default_client_config.cert_and_key_pairs = NULL;
+        default_client_config.cipher_preferences = &cipher_preferences_20170210;
+        default_client_config.nanoseconds_since_epoch = get_nanoseconds_since_epoch;
+        default_client_config.client_cert_auth_type = S2N_CERT_AUTH_REQUIRED;
+
+        default_client_config_init = 1;
+    }
+
+    return &default_client_config;
 }
 
 struct s2n_config *s2n_config_new(void)
@@ -364,21 +320,23 @@ int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_typ
     return 0;
 }
 
-int s2n_config_set_verify_cert_chain_cb(struct s2n_config *config, verify_cert_trust_chain_fn *callback, void *context)
-{
-    notnull_check(config);
-    notnull_check(callback);
-
-    config->verify_cert_chain_cb = callback;
-    config->verify_cert_context = context;
-
-    return 0;
-}
-
 int s2n_config_set_ct_support_level(struct s2n_config *config, s2n_ct_support_level type)
 {
     config->ct_type = type;
 
+    return 0;
+}
+
+int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_verify_host_fn verify_host_fn, void *ctx) {
+    notnull_check(config);
+    config->verify_host = verify_host_fn;
+    config->data_for_verify_host = ctx;
+    return 0;
+}
+
+int s2n_config_set_check_stapled_ocsp_response(struct s2n_config *config, uint8_t check_ocsp) {
+    notnull_check(config);
+    config->check_ocsp = check_ocsp;
     return 0;
 }
 
@@ -517,16 +475,6 @@ int s2n_config_set_nanoseconds_since_epoch_callback(struct s2n_config *config, i
 
     config->nanoseconds_since_epoch = nanoseconds_since_epoch;
     config->data_for_nanoseconds_since_epoch = data;
-
-    return 0;
-}
-
-int s2n_config_set_verify_host_callback(struct s2n_config *config, uint8_t (*verify_host_fn) (const char *host_name, size_t host_name_len, void *ctx), void *data)
-{
-    notnull_check(verify_host_fn);
-
-    config->verify_host = verify_host_fn;
-    config->data_for_verify_host = data;
 
     return 0;
 }

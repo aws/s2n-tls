@@ -42,6 +42,7 @@ struct s2n_x509_validator {
 
     s2n_x509_validation_step current_step;
     uint8_t validate_certificates;
+    uint8_t check_stapled_ocsp;
     verify_host verify_host_fn;
     void *validation_ctx;
 };
@@ -52,7 +53,7 @@ int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const 
 void s2n_x509_trust_store_cleanup(struct s2n_x509_trust_store *store);
 
 int s2n_x509_validator_init_no_checks(struct s2n_x509_validator *validator);
-int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x509_trust_store *trust_store, verify_host verify_host_fn, void *verify_ctx);
+int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x509_trust_store *trust_store, uint8_t check_ocsp, verify_host verify_host_fn, void *verify_ctx);
 void s2n_x509_validator_cleanup(struct s2n_x509_validator *validator);
 
 s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, uint8_t *cert_chain_in,

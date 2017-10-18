@@ -426,14 +426,21 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
 {
     notnull_check(conn);
     notnull_check(config);
-    conn->config = config;
+
     if(s2n_x509_trust_store_has_certs(&config->trust_store)) {
-        s2n_x509_validator_init(&conn->x509_validator, &config->trust_store, config->verify_host,
+
+        s2n_x509_validator_init(&conn->x509_validator, &config->trust_store, config->check_ocsp, config->verify_host,
                                 config->data_for_verify_host);
     }
     else {
+        if(config->client_cert_auth_type == S2N_CERT_AUTH_REQUIRED) {
+            return S2N_ERR_T_USAGE;
+        }
+
         s2n_x509_validator_init_no_checks(&conn->x509_validator);
     }
+
+    conn->config = config;
     return 0;
 }
 

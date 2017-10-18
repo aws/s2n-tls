@@ -77,7 +77,11 @@ typedef enum {
 
 extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem);
 extern int s2n_config_set_verification_ca_file(struct s2n_config *config, const char *ca_file_pem);
-extern int s2n_config_set_verify_host_callback(struct s2n_config *config, uint8_t (*verify_host) (const char *host_name, size_t host_name_len, void *ctx), void *data);
+typedef uint8_t (*s2n_verify_host_fn) (const char *host_name, size_t host_name_len, void *data);
+
+extern int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_verify_host_fn, void *ctx);
+extern int s2n_config_set_check_stapled_ocsp_response(struct s2n_config *config, uint8_t check_ocsp);
+
 extern int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem);
 extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
 extern int s2n_config_set_protocol_preferences(struct s2n_config *config, const char * const *protocols, int protocol_count);
@@ -180,11 +184,6 @@ struct s2n_cert_public_key;
 extern int s2n_rsa_public_key_set_from_openssl(s2n_rsa_public_key *s2n_rsa, RSA *openssl_rsa);
 extern int s2n_cert_public_key_set_cert_type(struct s2n_cert_public_key *cert_pub_key, s2n_cert_type cert_type);
 extern int s2n_cert_public_key_get_rsa(struct s2n_cert_public_key *cert_pub_key, s2n_rsa_public_key **rsa);
-
-/* Not intended for general consumption. Use at your own risk. */
-typedef s2n_cert_validation_code verify_cert_trust_chain_fn(struct s2n_connection *conn, uint8_t *der_cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
-
-extern int s2n_config_set_verify_cert_chain_cb(struct s2n_config *config, verify_cert_trust_chain_fn *callback, void *context);
 
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);
 extern uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn);

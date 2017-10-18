@@ -158,7 +158,6 @@ int main(int argc, char **argv)
         struct s2n_config *client_config;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, accept_all_rsa_certs, NULL));
         client_conn->actual_protocol_version = S2N_TLS12;
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
@@ -220,7 +219,6 @@ int main(int argc, char **argv)
         struct s2n_config *client_config;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, accept_all_rsa_certs, NULL));
         client_conn->actual_protocol_version = S2N_TLS12;
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
@@ -597,7 +595,6 @@ int main(int argc, char **argv)
         struct s2n_config *client_config;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, accept_all_rsa_certs, NULL));;
         client_conn->actual_protocol_version = S2N_TLS12;
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
@@ -657,7 +654,6 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, accept_all_rsa_certs, NULL));
         client_conn->actual_protocol_version = S2N_TLS12;
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
@@ -721,7 +717,6 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_config_set_verification_ca_file(client_config, S2N_DEFAULT_TEST_CERT_CHAIN));
         client_conn->actual_protocol_version = S2N_TLS12;
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
@@ -790,7 +785,6 @@ int main(int argc, char **argv)
         struct s2n_config *client_config;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, accept_all_rsa_certs, NULL));
         client_conn->actual_protocol_version = S2N_TLS12;
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
@@ -850,7 +844,6 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, accept_all_rsa_certs, NULL));
         client_conn->actual_protocol_version = S2N_TLS12;
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
@@ -914,7 +907,6 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, accept_all_rsa_certs, NULL));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
         client_conn->actual_protocol_version = S2N_TLS12;
         client_conn->server_protocol_version = S2N_TLS12;
@@ -985,7 +977,6 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_config = s2n_config_new());
 
         EXPECT_SUCCESS(s2n_config_send_max_fragment_length(client_config, mfl_code));
-        EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, accept_all_rsa_certs, NULL));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -1048,7 +1039,6 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_FAILURE(s2n_config_send_max_fragment_length(client_config, 5));
-        EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, accept_all_rsa_certs, NULL));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -1109,7 +1099,6 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_send_max_fragment_length(client_config, S2N_TLS_MAX_FRAG_LEN_2048));
-        EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, accept_all_rsa_certs, NULL));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));

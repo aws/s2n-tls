@@ -57,7 +57,6 @@ int mock_client(int writefd, int readfd, const char **protocols, int count, cons
 
     client_conn = s2n_connection_new(S2N_CLIENT);
     client_config = s2n_config_new();
-    s2n_config_set_verify_cert_chain_cb(client_config, accept_all_rsa_certs, NULL);
     s2n_config_set_protocol_preferences(client_config, protocols, count);
     s2n_connection_set_config(client_conn, client_config);
     client_conn->server_protocol_version = S2N_TLS12;
