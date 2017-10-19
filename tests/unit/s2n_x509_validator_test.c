@@ -46,6 +46,38 @@ static uint32_t write_pem_file_to_stuffer_as_chain(struct s2n_stuffer *chain_out
     return chain_size;
 }
 
+struct host_verify_data {
+    const char *name;
+    uint8_t found_name;
+    uint8_t callback_invoked;
+};
+
+static uint8_t verify_host_reject_everything (const char *host_name, size_t host_name_len, void *data) {
+    struct host_verify_data *verify_data = (struct host_verify_data *)data;
+    verify_data->callback_invoked = 1;
+    return 0;
+}
+
+static uint8_t verify_host_accept_everything (const char *host_name, size_t host_name_len, void *data) {
+    struct host_verify_data *verify_data = (struct host_verify_data *)data;
+    verify_data->callback_invoked = 1;
+    return 1;
+}
+
+
+
+static uint8_t verify_host_verify_alt (const char *host_name, size_t host_name_len, void *data) {
+    struct host_verify_data *verify_data = (struct host_verify_data *)data;
+
+    verify_data->callback_invoked = 1;
+    if(!strcmp(host_name, verify_data->name)) {
+        verify_data->found_name = 1;
+        return 1;
+    }
+
+    return 0;
+}
+
 int main(int argc, char **argv) {
 
     BEGIN_TEST();
@@ -161,7 +193,7 @@ int main(int argc, char **argv) {
         s2n_x509_trust_store_cleanup(&trust_store);
     }
 
-    /* test validator in safe mode, with properly configured trust store, but the server's cert is not in the store. */
+    /* test validator in safe mode, with properly configured trust store, but the server's end-entity cert is invalid. */
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init(&trust_store);
@@ -171,7 +203,37 @@ int main(int argc, char **argv) {
         s2n_x509_validator_init(&validator, &trust_store, 1, NULL, NULL);
 
         uint8_t cert_chain_pem [S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN_CORRUPT, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        struct s2n_stuffer chain_stuffer;
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        //alter a random byte in the certificate to make it invalid.
+        chain_data[chain_len - 5] = (uint8_t)(chain_data[chain_len - 5] + 1);
+        struct s2n_cert_public_key public_key_out;
+        public_key_out.pkey.key.rsa_key.rsa = NULL;
+        int ret_val = s2n_x509_validator_validate_cert_chain(&validator, chain_data, chain_len, &public_key_out);
+        EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED, ret_val);
+        s2n_stuffer_free(&chain_stuffer);
+
+        EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
+        s2n_x509_validator_cleanup(&validator);
+        s2n_x509_trust_store_cleanup(&trust_store);
+    }
+
+    /* test validator in safe mode, with properly configured trust store, but host isn't trusted*/
+    {
+        struct s2n_x509_trust_store trust_store;
+        s2n_x509_trust_store_init(&trust_store);
+        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN));
+
+        struct host_verify_data verify_data = { .name = "127.0.0.1", .found_name = 0, .callback_invoked = 0,};
+
+        struct s2n_x509_validator validator;
+        s2n_x509_validator_init(&validator, &trust_store, 1, verify_host_reject_everything, &verify_data);
+
+        uint8_t cert_chain_pem [S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
         uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
@@ -182,8 +244,67 @@ int main(int argc, char **argv) {
         int ret_val = s2n_x509_validator_validate_cert_chain(&validator, chain_data, chain_len, &public_key_out);
         EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED, ret_val);
         s2n_stuffer_free(&chain_stuffer);
+        EXPECT_EQUAL(1, verify_data.callback_invoked);
+        EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
+        s2n_x509_validator_cleanup(&validator);
+        s2n_x509_trust_store_cleanup(&trust_store);
+    }
+
+    /* test validator in safe mode, with properly configured trust store. host name validation succeeds */
+    {
+        struct s2n_x509_trust_store trust_store;
+        s2n_x509_trust_store_init(&trust_store);
+        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN));
+
+        struct host_verify_data verify_data = { .name = "127.0.0.1", .found_name = 0, .callback_invoked = 0,};
+
+        struct s2n_x509_validator validator;
+        s2n_x509_validator_init(&validator, &trust_store, 1, verify_host_accept_everything, &verify_data);
+
+        uint8_t cert_chain_pem [S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        struct s2n_stuffer chain_stuffer;
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+
+        struct s2n_cert_public_key public_key_out;
+        public_key_out.pkey.key.rsa_key.rsa = NULL;
+        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_validator_validate_cert_chain(&validator, chain_data, chain_len, &public_key_out));
+        s2n_stuffer_free(&chain_stuffer);
+        EXPECT_EQUAL(1, verify_data.callback_invoked);
+        EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
+        s2n_x509_validator_cleanup(&validator);
+        s2n_x509_trust_store_cleanup(&trust_store);
+    }
+
+    /* test validator in safe mode, with properly configured trust store. host name via alternative name validation succeeds
+     * note: in this case, we don't have valid certs but it's enough to make sure we are properly pulling alternative names
+     * from the certificate. */
+    {
+        struct s2n_x509_trust_store trust_store;
+        s2n_x509_trust_store_init(&trust_store);
+        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN));
+
+        struct host_verify_data verify_data = { .name = "127.0.0.1", .found_name = 0, .callback_invoked = 0,};
+        struct s2n_x509_validator validator;
+        s2n_x509_validator_init(&validator, &trust_store, 1, verify_host_verify_alt, &verify_data);
+
+        uint8_t cert_chain_pem [S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_SHA256_CLIENT_CERT, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        struct s2n_stuffer chain_stuffer;
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+
+        struct s2n_cert_public_key public_key_out;
+        public_key_out.pkey.key.rsa_key.rsa = NULL;
+        EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED, s2n_x509_validator_validate_cert_chain(&validator, chain_data, chain_len, &public_key_out));
+        s2n_stuffer_free(&chain_stuffer);
 
         EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
+        EXPECT_EQUAL(1, verify_data.found_name);
+        EXPECT_EQUAL(1, verify_data.callback_invoked);
         s2n_x509_validator_cleanup(&validator);
         s2n_x509_trust_store_cleanup(&trust_store);
     }
