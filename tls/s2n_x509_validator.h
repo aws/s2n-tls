@@ -84,7 +84,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
  * Validates an ocsp response against the most recent certificate chain. Also verifies the timestamps on the response.
  */
 s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x509_validator *validator,
-                                                                                const uint8_t *ocsp_response, size_t size,
+                                                                                const uint8_t *ocsp_response, uint32_t size,
                                                                                 struct s2n_config *config);
 
 

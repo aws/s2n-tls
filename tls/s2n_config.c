@@ -20,17 +20,7 @@
 #include "crypto/s2n_fips.h"
 
 #include "tls/s2n_cipher_preferences.h"
-#include "tls/s2n_config.h"
-
-#include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
-#include "utils/s2n_mem.h"
-#include "tls/s2n_tls_parameters.h"
-
-#include "openssl/x509v3.h"
-#include "openssl/pem.h"
-#include "openssl/err.h"
-#include "openssl/ocsp.h"
 
 #if defined(__APPLE__) && defined(__MACH__)
 
@@ -54,7 +44,6 @@ int get_nanoseconds_since_epoch(void *data, uint64_t * nanoseconds)
 #else
 
 #include <time.h>
-#include <openssl/x509v3.h>
 
 #if defined(CLOCK_MONOTONIC_RAW)
 #define S2N_CLOCK CLOCK_MONOTONIC_RAW

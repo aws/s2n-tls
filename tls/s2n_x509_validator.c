@@ -305,7 +305,7 @@ s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, uin
 
 s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x509_validator *validator,
                                                                                 const uint8_t *ocsp_response_raw,
-                                                                                size_t ocsp_response_length,
+                                                                                uint32_t ocsp_response_length,
                                                                                 struct s2n_config *config) {
     if (!validator->validate_certificates || !validator->check_stapled_ocsp) {
         return S2N_CERT_OK;
