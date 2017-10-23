@@ -153,17 +153,13 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     }
 
     if (mode == S2N_CLIENT) {
-        /* At present s2n is not suitable for use in client mode, as it
-         * does not perform any certificate validation. However it is useful
-         * to use S2N in client mode for testing purposes. An environment
-         * variable is required to be set for the client mode to work.
-         */
+        /* we need to do more testing on our x.509 code. Until then use with caution */
         if (getenv("S2N_ENABLE_CLIENT_MODE") == NULL) {
             GUARD_PTR(s2n_free(&blob));
             S2N_ERROR_PTR(S2N_ERR_CLIENT_MODE_DISABLED);
         }
-        /* S2N does not have it's own x509 Certificate parser, so Client Mode should only be used for testing purposes.
-         * In Client mode, we skip Cert Validation and assume that all Server RSA x509 Certs are valid. */
+
+        /* For the moment, this still needs to be modified via s2n_connection_set_config() after this function is called. To use the secure configuration */
         s2n_connection_set_config(conn, s2n_fetch_unsafe_client_testing_config());
     }
 

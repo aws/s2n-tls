@@ -134,8 +134,8 @@ struct s2n_config *s2n_fetch_default_config(void) {
         s2n_default_config.cert_and_key_pairs = NULL;
         s2n_default_config.cipher_preferences = &cipher_preferences_20170210;
         s2n_default_config.nanoseconds_since_epoch = get_nanoseconds_since_epoch;
-        s2n_default_config .client_cert_auth_type = S2N_CERT_AUTH_NONE; /* Do not require the client to provide a Cert to the Server */
-        s2n_default_config .data_for_verify_host = NULL;
+        s2n_default_config.client_cert_auth_type = S2N_CERT_AUTH_NONE; /* Do not require the client to provide a Cert to the Server */
+        s2n_default_config.data_for_verify_host = NULL;
 
         default_config_init = 1;
     }
@@ -316,10 +316,10 @@ int s2n_config_set_ct_support_level(struct s2n_config *config, s2n_ct_support_le
     return 0;
 }
 
-int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_verify_host_fn verify_host_fn, void *ctx) {
+int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_verify_host_fn verify_host_fn, void *data) {
     notnull_check(config);
     config->verify_host = verify_host_fn;
-    config->data_for_verify_host = ctx;
+    config->data_for_verify_host = data;
     return 0;
 }
 

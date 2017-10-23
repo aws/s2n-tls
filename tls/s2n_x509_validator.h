@@ -72,7 +72,7 @@ void s2n_x509_validator_cleanup(struct s2n_x509_validator *validator);
 /**
  * Validates a certificate chain against the configured trust store, in safe mode, in unsafe mode, it will find the public cert
  * and return it but not validate the certificates. Alternative Names and Subject Name will be passed to the host verification callback.
- * The verification callback will be possiblycalled multiple times depending on how many names are found.
+ * The verification callback will be possibly called multiple times depending on how many names are found.
  * If any of those calls return TRUE, that stage of the validation will continue, otherwise once all names are tried and none matched as
  * trusted, the chain will be considered UNTRUSTED
  */

@@ -78,7 +78,6 @@ void s2n_print_connection(struct s2n_connection *conn, const char *marker);
 
 /* Read a cert given a path into pem_out */
 int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size);
-int s2n_read_test_file(const char *path, char *out, long int max_size, long int *file_size);
 
 int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn);
 int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn);

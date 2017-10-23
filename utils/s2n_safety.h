@@ -56,6 +56,8 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
     }                                                                       \
   } while(0)
 
+#define char_to_digit(c, d)  do { if(!isdigit(c)) { S2N_ERROR(S2N_ERR_SAFETY); } d = c - '0'; } while(0)
+
 /* Range check a number */
 #define gte_check(n, min)  do { if ( (n) < min ) { S2N_ERROR(S2N_ERR_SAFETY); } } while(0)
 #define lte_check(n, max)  do { if ( (n) > max ) { S2N_ERROR(S2N_ERR_SAFETY); } } while(0)

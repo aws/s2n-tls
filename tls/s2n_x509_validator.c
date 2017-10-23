@@ -122,12 +122,14 @@ void s2n_x509_validator_cleanup(struct s2n_x509_validator *validator) {
     validator->validate_certificates = 0;
 }
 
-//for each name in the cert. Iterate them. Call the callback. If one returns true, then consider it validated,
-//if none of them return true, the cert is considered invalid.
+/*
+ * For each name in the cert. Iterate them. Call the callback. If one returns true, then consider it validated,
+ * if none of them return true, the cert is considered invalid.
+ */
 static uint8_t verify_host_information(struct s2n_x509_validator *validator, X509 *public_cert) {
     uint8_t verified = 0;
 
-    //get each subject alternative name.
+    /* Check SubjectAltNames before CommonName as per RFC 6125 6.4.4 */
     STACK_OF(GENERAL_NAME) *names_list = X509_get_ext_d2i(public_cert, NID_subject_alt_name, NULL, NULL);
     GENERAL_NAME *current_name = NULL;
     while (!verified && names_list && (current_name = sk_GENERAL_NAME_pop(names_list))) {
@@ -139,18 +141,18 @@ static uint8_t verify_host_information(struct s2n_x509_validator *validator, X50
 
     GENERAL_NAMES_free(names_list);
 
-    //if none of those were valid, go to the subject name.
+    //if none of those were valid, go to the common name.
     if (!verified) {
         X509_NAME *subject_name = X509_get_subject_name(public_cert);
         if (subject_name) {
-            int j = 0, i = -1;
-            while ((j = X509_NAME_get_index_by_NID(subject_name, NID_commonName, i)) >= 0) {
-                i = j;
+            int next_idx = 0, curr_idx = -1;
+            while ((next_idx = X509_NAME_get_index_by_NID(subject_name, NID_commonName, curr_idx)) >= 0) {
+                curr_idx = next_idx;
             }
 
-            if (i >= 0) {
+            if (curr_idx >= 0) {
                 ASN1_STRING *common_name =
-                        X509_NAME_ENTRY_get_data(X509_NAME_get_entry(subject_name, i));
+                        X509_NAME_ENTRY_get_data(X509_NAME_get_entry(subject_name, curr_idx));
 
                 if (common_name) {
                     char peer_cn[255];
@@ -158,15 +160,12 @@ static uint8_t verify_host_information(struct s2n_x509_validator *validator, X50
                     memset_check(&peer_cn, 0, peer_cn_size);
                     if (ASN1_STRING_type(common_name) == V_ASN1_UTF8STRING) {
                         size_t len = (size_t) ASN1_STRING_length(common_name);
-                        //save space for the null terminator
-                        len = len > sizeof(peer_cn) - 1 ? sizeof(peer_cn) - 1 : len;
 
+                        lte_check(len, sizeof(peer_cn) - 1);
                         memcpy_check(peer_cn, ASN1_STRING_data(common_name), len);
                         verified = validator->verify_host_fn(peer_cn, len, validator->validation_ctx);
                     }
                 }
-            } else {
-                return 0;
             }
         }
     }

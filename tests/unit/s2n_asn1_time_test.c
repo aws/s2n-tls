@@ -21,7 +21,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    //October 20, 2017 3:09:11 PM GMT-07:00
+    /* October 20, 2017 3:09:11 PM GMT-07:00 */
     uint64_t expected_ns = 1508539878000000000;
 
     /* test GMT date parses */
@@ -85,5 +85,12 @@ int main(int argc, char **argv)
         tzset();
     }
 
+    /* test non digit character fails */
+    {
+        const char *time_str = "2017102B225118.999Z";
+        uint64_t timestamp = 0;
+        int err_code = s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp);
+        EXPECT_NOT_EQUAL(0, err_code);
+    }
     END_TEST();
 }

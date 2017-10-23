@@ -77,9 +77,10 @@ typedef enum {
 
 extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem);
 extern int s2n_config_set_verification_ca_file(struct s2n_config *config, const char *ca_file_pem);
-typedef uint8_t (*s2n_verify_host_fn) (const char *host_name, size_t host_name_len, void *data);
 
-extern int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_verify_host_fn, void *ctx);
+typedef uint8_t (*s2n_verify_host_fn) (const char *host_name, size_t host_name_len, void *data);
+extern int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_verify_host_fn, void *data);
+
 extern int s2n_config_set_check_stapled_ocsp_response(struct s2n_config *config, uint8_t check_ocsp);
 
 extern int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem);

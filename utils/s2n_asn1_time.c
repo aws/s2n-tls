@@ -14,6 +14,7 @@
  */
 
 #include "utils/s2n_asn1_time.h"
+#include "s2n_safety.h"
 
 #include <time.h>
 #include <ctype.h>
@@ -44,8 +45,8 @@ typedef enum parser_state {
 } parser_state;
 
 static inline long get_gmt_offset(struct tm *time) {
-//pulled directly from the GNU source.
-#ifdef    __USE_BSD
+
+#if defined(__USE_BSD)
     return time->tm_gmtoff;
 #else
     return time->__tm_gmtoff;
@@ -75,6 +76,7 @@ int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len,
     uint32_t current_pos = 0;
     uint8_t offset_negative = 0;
     uint8_t local_time_assumed = 1;
+    uint8_t current_digit = 0;
     long offset_hours = 0;
     long offset_minutes = 0;
 
@@ -86,74 +88,88 @@ int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len,
         char current_char = asn1_time[current_pos];
         switch (state) {
             case ON_YEAR_DIGIT_1:
-                time.tm_year = current_char - '0';
+                char_to_digit(current_char, current_digit);
+                time.tm_year = current_digit;
                 state = ON_YEAR_DIGIT_2;
                 current_pos++;
                 break;
             case ON_YEAR_DIGIT_2:
-                time.tm_year = time.tm_year * 10 + (current_char - '0');
+                char_to_digit(current_char, current_digit);
+                time.tm_year = time.tm_year * 10 + current_digit;
                 state = ON_YEAR_DIGIT_3;
                 current_pos++;
                 break;
             case ON_YEAR_DIGIT_3:
-                time.tm_year = time.tm_year * 10 + (current_char - '0');
+                char_to_digit(current_char, current_digit);
+                time.tm_year = time.tm_year * 10 + current_digit;
                 state = ON_YEAR_DIGIT_4;
                 current_pos++;
                 break;
             case ON_YEAR_DIGIT_4:
-                time.tm_year = time.tm_year * 10 + (current_char - '0');
+                char_to_digit(current_char, current_digit);
+                time.tm_year = time.tm_year * 10 + current_digit;
                 time.tm_year -= 1900;
                 state = ON_MONTH_DIGIT_1;
                 current_pos++;
                 break;
             case ON_MONTH_DIGIT_1:
-                time.tm_mon = current_char - '0';
+                char_to_digit(current_char, current_digit);
+                time.tm_mon = current_digit;
                 current_pos++;
                 state = ON_MONTH_DIGIT_2;
                 break;
             case ON_MONTH_DIGIT_2:
-                time.tm_mon = time.tm_mon * 10 + (current_char - '0');
+                char_to_digit(current_char, current_digit);
+                time.tm_mon = time.tm_mon * 10 + current_digit;
                 time.tm_mon -= 1;
                 current_pos++;
                 state = ON_DAY_DIGIT_1;
                 break;
             case ON_DAY_DIGIT_1:
-                time.tm_mday = current_char - '0';
+                char_to_digit(current_char, current_digit);
+                time.tm_mday = current_digit;
                 current_pos++;
                 state = ON_DAY_DIGIT_2;
                 break;
             case ON_DAY_DIGIT_2:
-                time.tm_mday = time.tm_mday * 10 + (current_char - '0');
+                char_to_digit(current_char, current_digit);
+                time.tm_mday = time.tm_mday * 10 + current_digit;
                 current_pos++;
                 state = ON_HOUR_DIGIT_1;
                 break;
             case ON_HOUR_DIGIT_1:
-                time.tm_hour = current_char - '0';
+                char_to_digit(current_char, current_digit);
+                time.tm_hour = current_digit;
                 current_pos++;
                 state = ON_HOUR_DIGIT_2;
                 break;
             case ON_HOUR_DIGIT_2:
-                time.tm_hour = time.tm_hour * 10 + (current_char - '0');
+                char_to_digit(current_char, current_digit);
+                time.tm_hour = time.tm_hour * 10 + current_digit;
                 current_pos++;
                 state = ON_MINUTE_DIGIT_1;
                 break;
             case ON_MINUTE_DIGIT_1:
-                time.tm_min = current_char - '0';
+                char_to_digit(current_char, current_digit);
+                time.tm_min = current_digit;
                 current_pos++;
                 state = ON_MINUTE_DIGIT_2;
                 break;
             case ON_MINUTE_DIGIT_2:
-                time.tm_min = time.tm_min * 10 + (current_char - '0');
+                char_to_digit(current_char, current_digit);
+                time.tm_min = time.tm_min * 10 + current_digit;
                 current_pos++;
                 state = ON_SECOND_DIGIT_1;
                 break;
             case ON_SECOND_DIGIT_1:
-                time.tm_sec = current_char - '0';
+                char_to_digit(current_char, current_digit);
+                time.tm_sec = current_digit;
                 current_pos++;
                 state = ON_SECOND_DIGIT_2;
                 break;
             case ON_SECOND_DIGIT_2:
-                time.tm_sec = time.tm_sec * 10 + (current_char - '0');
+                char_to_digit(current_char, current_digit);
+                time.tm_sec = time.tm_sec * 10 + current_digit;
                 current_pos++;
                 state = ON_SUBSECOND;
                 break;
@@ -181,22 +197,27 @@ int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len,
                 current_pos++;
                 break;
             case ON_OFFSET_HOURS_DIGIT_1:
-                offset_hours = current_char - '0';
+                char_to_digit(current_char, current_digit);
+                offset_hours = current_digit;
                 current_pos++;
                 state = ON_OFFSET_HOURS_DIGIT_2;
                 break;
             case ON_OFFSET_HOURS_DIGIT_2:
-                offset_hours = offset_hours * 10 + (current_char - '0');
+                char_to_digit(current_char, current_digit);
+                offset_hours = offset_hours * 10 + current_digit;
                 current_pos++;
                 state = ON_OFFSET_MINUTES_DIGIT_1;
                 break;
             case ON_OFFSET_MINUTES_DIGIT_1:
-                offset_minutes = current_char - '0';
+                char_to_digit(current_char, current_digit);
+                offset_minutes = current_digit;
                 current_pos++;
                 state = ON_OFFSET_MINUTES_DIGIT_2;
+                char_to_digit(current_char, current_digit);
                 break;
             case ON_OFFSET_MINUTES_DIGIT_2:
-                offset_minutes = offset_minutes * 10 + (current_char - '0');
+                char_to_digit(current_char, current_digit);
+                offset_minutes = offset_minutes * 10 + current_digit;
                 current_pos++;
                 state = FINISHED;
                 break;
@@ -211,8 +232,6 @@ int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len,
         //ASN1 + and - is in format HHMM. We need to convert it to seconds for the adjustment
         long gmt_offset = (offset_hours * 3600) + (offset_minutes * 60);
 
-        //go left to go right (it's a little backwards). Negative means that we need to ADD the offset
-        //positive means we need to subtract the offset.
         if (offset_negative) {
             gmt_offset = 0 - gmt_offset;
         }
