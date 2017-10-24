@@ -36,7 +36,7 @@ sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328
 
 #    echo "deb http://download.mono-project.com/repo/debian wheezy main" | sudo tee /etc/apt/sources.list.d/mono-xamarin.list
 sudo apt-get update
-sudo apt-get install -y "${DEPENDENCIES}"
+sudo apt-get install -y ${DEPENDENCIES}
 sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-3.7 20
 sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-3.7 20
 sudo update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-3.7 20
