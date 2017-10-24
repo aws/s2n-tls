@@ -1,5 +1,10 @@
 cmake_minimum_required (VERSION 3.0)
 project (s2n)
+
+set(INSTALL_LIB_DIR lib CACHE PATH "Installaction directory for libraries")
+set(INSTALL_INCLUDE_DIR include CACHE PATH "installaction directory for header files")
+set(INSTALL_CMAKE_DIR lib/cmake CACHE PATH "Installation directory for cmake files")
+
 ##header files
 file(GLOB API_HEADERS
      "api/*.h"
@@ -149,16 +154,44 @@ file(GLOB UNITTESTS_SRC "tests/unit/*.c")
 endforeach(test_case)
 
 #install the s2n files
-install (FILES ${API_HEADERS} DESTINATION "include/")
+set_target_properties(s2n PROPERTIES PUBLIC_HEADER "${API_HEADERS}")
 
 install (
          TARGETS s2n
-         EXPORT "${PROJECT_NAME}-config"
+         EXPORT "s2nTargets"
          ARCHIVE DESTINATION lib
          LIBRARY DESTINATION lib
-         COMPONENT library     
+         PUBLIC_HEADER DESTINATION "${INSTALL_INCLUDE_DIR}"
+         COMPONENT dev     
 )
 
-export(TARGETS ${export_targets} FILE "s2n-config.cmake")
+export(TARGETS s2n FILE "s2nTargets.cmake")
+export(PACKAGE s2n)
+
+if(LibCrypto_ROOT_DIR) 
+     set(NON_SYS_LIB_CRYPTO_ROOT "${LibCrypto_ROOT_DIR}")
+endif()
+
+#for build output
+set(CONF_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}")
+configure_file(s2nConfig.cmake.in "${CMAKE_BINARY_DIR}/s2nConfig.cmake" @ONLY)
+
+#for install output
+set(CONF_INCLUDE_DIRS "\${S2N_CMAKE_DIR}/${REL_INCLUDE_DIR}")
+configure_file(s2nConfig.cmake.in
+"${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/s2nConfig.cmake" @ONLY)
+
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/FindLibCrypto.cmake" DESTINATION "${CMAKE_BINARY_DIR}")
+file(RENAME "${CMAKE_BINARY_DIR}/FindLibCrypto.cmake" "${CMAKE_BINARY_DIR}/LibCryptoConfig.cmake")
+
+install(FILES 
+    "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/s2nConfig.cmake"
+    DESTINATION "${INSTALL_CMAKE_DIR}/s2n" COMPONENT dev)
+
+install(FILES
+    "${CMAKE_BINARY_DIR}/LibCryptoConfig.cmake"
+    DESTINATION "${INSTALL_CMAKE_DIR}/LibCrypto" COMPONENT dev)
+
 #install the cmake finder
-install(EXPORT s2n-config DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/s2n/cmake/")
+install(EXPORT s2nTargets DESTINATION "${INSTALL_CMAKE_DIR}/s2n" COMPONENT dev)
+
