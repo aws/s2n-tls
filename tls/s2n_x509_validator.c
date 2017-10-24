@@ -197,18 +197,16 @@ s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, uin
 
     uint32_t certificate_count = 0;
 
-    s2n_cert_validation_code err_code = S2N_CERT_OK;
+    s2n_cert_validation_code err_code = S2N_CERT_ERR_INVALID;
 
     while (s2n_stuffer_data_available(&cert_chain_in_stuffer)) {
         uint32_t certificate_size = 0;
 
         if (s2n_stuffer_read_uint24(&cert_chain_in_stuffer, &certificate_size) < 0) {
-            err_code = S2N_CERT_ERR_INVALID;
             goto clean_up;
         }
 
         if (certificate_size == 0 || certificate_size > s2n_stuffer_data_available(&cert_chain_in_stuffer)) {
-            err_code = S2N_CERT_ERR_INVALID;
             goto clean_up;
         }
 
@@ -216,7 +214,6 @@ s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, uin
         asn1cert.data = s2n_stuffer_raw_read(&cert_chain_in_stuffer, certificate_size);
         asn1cert.size = certificate_size;
         if (asn1cert.data == NULL) {
-            err_code = S2N_CERT_ERR_INVALID;
             goto clean_up;
         }
 
@@ -228,14 +225,12 @@ s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, uin
             server_cert = d2i_X509(NULL, &data, asn1cert.size);
 
             if (!server_cert) {
-                err_code = S2N_CERT_ERR_INVALID;
                 goto clean_up;
             }
 
             //add the cert to the chain.
             if (!sk_X509_push(validator->cert_chain, server_cert)) {
                 X509_free(server_cert);
-                err_code = S2N_CERT_ERR_INVALID;
                 goto clean_up;
             }
         }
@@ -244,11 +239,9 @@ s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, uin
         if (certificate_count == 0) {
             /* Assume that the asn1cert is an RSA Cert */
             if (s2n_asn1der_to_public_key(&public_key_out->pkey, &asn1cert) < 0) {
-                err_code = S2N_CERT_ERR_INVALID;
                 goto clean_up;
             }
             if (s2n_cert_public_key_set_cert_type(public_key_out, S2N_CERT_TYPE_RSA_SIGN) < 0) {
-                err_code = S2N_CERT_ERR_INVALID;
                 goto clean_up;
             }
 
@@ -261,7 +254,6 @@ s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, uin
     }
 
     if (certificate_count < 1) {
-        err_code = S2N_CERT_ERR_INVALID;
         goto clean_up;
     }
 
@@ -278,7 +270,6 @@ s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, uin
                                           validator->cert_chain);
 
         if (op_code <= 0) {
-            err_code = S2N_CERT_ERR_INVALID;
             goto clean_up;
         }
 
@@ -292,6 +283,8 @@ s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, uin
             goto clean_up;
         }
     }
+
+    err_code = S2N_CERT_OK;
 
     clean_up:
     if (ctx) {
@@ -313,29 +306,26 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
     OCSP_RESPONSE *ocsp_response = NULL;
     OCSP_BASICRESP *basic_response = NULL;
 
-    s2n_cert_validation_code ret_val = S2N_CERT_OK;
+    s2n_cert_validation_code ret_val = S2N_CERT_ERR_INVALID;
 
     if (!ocsp_response_raw) {
-        return S2N_CERT_ERR_INVALID;
+        return ret_val;
     }
 
     ocsp_response = d2i_OCSP_RESPONSE(NULL, &ocsp_response_raw, ocsp_response_length);
 
     if (!ocsp_response) {
-        ret_val = S2N_CERT_ERR_INVALID;
         goto clean_up;
     }
 
     int ocsp_status = OCSP_response_status(ocsp_response);
 
     if (ocsp_status != OCSP_RESPONSE_STATUS_SUCCESSFUL) {
-        ret_val = S2N_CERT_ERR_INVALID;
         goto clean_up;
     }
 
     basic_response = OCSP_response_get1_basic(ocsp_response);
     if (!basic_response) {
-        ret_val = S2N_CERT_ERR_INVALID;
         goto clean_up;
     }
 
@@ -353,7 +343,6 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
             X509 *issuer = sk_X509_value(validator->cert_chain, i);
             if (X509_check_issued(issuer, responder) == X509_V_OK) {
                 if (!OCSP_basic_add1_cert(basic_response, issuer)) {
-                    ret_val = S2N_CERT_ERR_INVALID;
                     goto clean_up;
                 }
             }
@@ -372,8 +361,9 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
         ASN1_GENERALIZEDTIME *revtime, *thisupd, *nextupd;
 
         OCSP_SINGLERESP *single_response = OCSP_resp_get0(basic_response, i);
-        if (!single_response)
-            continue;
+        if (!single_response) {
+            goto clean_up;
+        }
 
         ocsp_status = OCSP_single_get0_status(single_response, &status_reason, &revtime,
                                               &thisupd, &nextupd);
@@ -408,13 +398,13 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
                 goto clean_up;
 
             case V_OCSP_CERTSTATUS_UNKNOWN:
-                ret_val = S2N_CERT_ERR_INVALID;
                 goto clean_up;
             default:
-                ret_val = S2N_CERT_ERR_INVALID;
                 goto clean_up;
         }
     }
+
+    ret_val = S2N_CERT_OK;
 
     clean_up:
     if (basic_response) {

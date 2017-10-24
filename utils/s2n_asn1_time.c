@@ -63,7 +63,7 @@ static inline long get_current_timezone_offset(void) {
 
 int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len, uint64_t *ticks) {
 
-    //figure out if we are on something than UTC since timegm is not supported everywhere.
+    //figure out if we are on something other than UTC since timegm is not supported everywhere.
     long gmt_offset_current = get_current_timezone_offset();
 
     uint32_t str_len = len;
