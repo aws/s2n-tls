@@ -326,8 +326,8 @@ static int s2n_connection_free_io_contexts(struct s2n_connection *conn)
         return 0;
     }
 
-    struct s2n_blob send_io_blob;
-    struct s2n_blob recv_io_blob;
+    struct s2n_blob send_io_blob = {0};
+    struct s2n_blob recv_io_blob = {0};
 
     if (conn->send_io_context) {
         send_io_blob.data = (uint8_t *)conn->send_io_context;
@@ -398,7 +398,7 @@ static int s2n_connection_free_hmacs(struct s2n_connection *conn)
 
 int s2n_connection_free(struct s2n_connection *conn)
 {
-    struct s2n_blob blob;
+    struct s2n_blob blob = {0};
 
     GUARD(s2n_connection_wipe_keys(conn));
     GUARD(s2n_connection_free_keys(conn));
