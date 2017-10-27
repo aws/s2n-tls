@@ -20,7 +20,7 @@
 
 int s2n_timer_start(struct s2n_config *config, struct s2n_timer *timer)
 {
-    GUARD(config->high_res_clock(config->data_for_high_res_clock, &timer->time));
+    GUARD(config->monotonic_clock(config->data_for_high_res_clock, &timer->time));
 
     return 0;
 }
@@ -29,7 +29,7 @@ int s2n_timer_elapsed(struct s2n_config *config, struct s2n_timer *timer, uint64
 {
     uint64_t current_time;
 
-    GUARD(config->high_res_clock(config->data_for_high_res_clock, &current_time));
+    GUARD(config->monotonic_clock(config->data_for_high_res_clock, &current_time));
 
     *nanoseconds = current_time - timer->time;
 

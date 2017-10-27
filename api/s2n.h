@@ -58,8 +58,8 @@ extern int s2n_config_free_cert_chain_and_key(struct s2n_config *config);
 
 
 typedef int (*s2n_clock_time_nanoseconds) (void *, uint64_t *);
-extern int s2n_config_set_sys_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void * data);
-extern int s2n_config_set_high_res_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void * data);
+extern int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *data);
+extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *data);
 
 extern const char *s2n_strerror(int error, const char *lang);
 extern const char *s2n_strerror_debug(int error, const char *lang);

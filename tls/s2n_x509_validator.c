@@ -21,6 +21,17 @@
 #include "openssl/ocsp.h"
 #include "s2n_connection.h"
 
+/* one day, boringssl, may add ocsp stapling support, let's future proof this a bit, by grabbing a definition
+ * that would have to be there when they add support */
+#if defined(OPENSSL_IS_BORINGSSL) && !defined(OCSP_RESPONSE_STATUS_SUCCESSFUL)
+#define S2N_OCSP_STAPLING_SUPPORTED 0
+#else
+#define S2N_OCSP_STAPLING_SUPPORTED 1
+#endif /* defined(OPENSSL_IS_BORINGSSL) && !defined(OCSP_RESPONSE_STATUS_SUCCESSFUL) */
+
+uint8_t s2n_x509_ocsp_stapling_supported(void) {
+    return S2N_OCSP_STAPLING_SUPPORTED;
+}
 
 void s2n_x509_trust_store_init(struct s2n_x509_trust_store *store) {
     store->trust_store = NULL;
@@ -242,7 +253,7 @@ s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, str
         }
 
         uint64_t current_sys_time = 0;
-        conn->config->sys_clock(conn->config->data_for_sys_clock, &current_sys_time);
+        conn->config->wall_clock(conn->config->data_for_sys_clock, &current_sys_time);
 
         /* this wants seconds not nanoseconds */
         X509_STORE_CTX_set_time(ctx, 0, current_sys_time / 1000000000);
@@ -272,11 +283,16 @@ clean_up:
 s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x509_validator *validator,
                                                                                 struct s2n_connection *conn,
                                                                                 const uint8_t *ocsp_response_raw,
-                                                                                uint32_t ocsp_response_length
-) {
+                                                                                uint32_t ocsp_response_length) {
+
     if (!validator->validate_certificates || !validator->check_stapled_ocsp) {
         return S2N_CERT_OK;
     }
+
+#if !S2N_OCSP_STAPLING_SUPPORTED
+    /* Default to safety */
+    return S2N_CERT_UNTRUSTED;
+#else
 
     OCSP_RESPONSE *ocsp_response = NULL;
     OCSP_BASICRESP *basic_response = NULL;
@@ -355,7 +371,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
                                                                   (uint32_t) nextupd->length, &next_update);
 
         uint64_t current_time = 0;
-        int current_time_err = conn->config->sys_clock(conn->config->data_for_sys_clock, &current_time);
+        int current_time_err = conn->config->wall_clock(conn->config->data_for_sys_clock, &current_time);
 
         if (thisupd_err || nextupd_err || current_time_err) {
             ret_val = S2N_CERT_ERR_UNTRUSTED;
@@ -394,5 +410,6 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
     }
 
     return ret_val;
+#endif /* S2N_OCSP_STAPLING_SUPPORTED */
 }
 

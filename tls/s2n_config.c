@@ -53,7 +53,7 @@ int get_nanoseconds_since_epoch(void *data, uint64_t * nanoseconds)
 
 #define S2N_CLOCK_SYS CLOCK_REALTIME
 
-static int high_res_clock(void *data, uint64_t * nanoseconds)
+static int monotonic_clock(void *data, uint64_t *nanoseconds)
 {
     struct timespec current_time;
 
@@ -65,7 +65,7 @@ static int high_res_clock(void *data, uint64_t * nanoseconds)
     return 0;
 }
 
-static int sys_clock(void *data, uint64_t * nanoseconds)
+static int wall_clock(void *data, uint64_t *nanoseconds)
 {
     struct timespec current_time;
 
@@ -103,8 +103,8 @@ static int s2n_config_init(struct s2n_config *config) {
     config->dhparams = NULL;
     memset(&config->application_protocols, 0, sizeof(config->application_protocols));
     config->status_request_type = S2N_STATUS_REQUEST_NONE;
-    config->sys_clock = sys_clock;
-    config->high_res_clock = high_res_clock;
+    config->wall_clock = wall_clock;
+    config->monotonic_clock = monotonic_clock;
     config->verify_host = default_verify_host;
     config->data_for_verify_host = NULL;
     config->client_hello_cb = NULL;
@@ -325,6 +325,7 @@ int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_typ
 
 int s2n_config_set_ct_support_level(struct s2n_config *config, s2n_ct_support_level type)
 {
+    notnull_check(config);
     config->ct_type = type;
 
     return 0;
@@ -346,13 +347,25 @@ int s2n_config_set_check_stapled_ocsp_response(struct s2n_config *config, uint8_
 
 int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_request_type type)
 {
+    if(type == S2N_STATUS_REQUEST_OCSP && !s2n_x509_ocsp_stapling_supported()) {
+        return -1;
+    }
+
+    notnull_check(config);
     config->status_request_type = type;
 
     return 0;
 }
 
 int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_file_pem, const char *ca_dir) {
-    return s2n_x509_trust_store_from_ca_file(&config->trust_store, ca_file_pem, ca_dir);
+    notnull_check(config);
+    int err_code = s2n_x509_trust_store_from_ca_file(&config->trust_store, ca_file_pem, ca_dir);
+
+    if(!err_code) {
+        config->status_request_type = s2n_x509_ocsp_stapling_supported() ? S2N_STATUS_REQUEST_OCSP : S2N_STATUS_REQUEST_NONE;
+    }
+
+    return err_code;
 }
 
 int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem)
@@ -470,19 +483,19 @@ int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
     return 0;
 }
 
-extern int s2n_config_set_sys_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void * data) {
+extern int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *data) {
     notnull_check(clock_fn);
 
-    config->sys_clock = clock_fn;
+    config->wall_clock = clock_fn;
     config->data_for_sys_clock = data;
 
     return 0;
 }
 
-extern int s2n_config_set_high_res_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void * data) {
+extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *data) {
     notnull_check(clock_fn);
 
-    config->high_res_clock = clock_fn;
+    config->monotonic_clock = clock_fn;
     config->data_for_high_res_clock = data;
 
     return 0;

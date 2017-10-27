@@ -31,8 +31,8 @@ struct s2n_config {
     const struct s2n_cipher_preferences *cipher_preferences;
     struct s2n_blob application_protocols;
     s2n_status_request_type status_request_type;
-    s2n_clock_time_nanoseconds sys_clock;
-    s2n_clock_time_nanoseconds high_res_clock;
+    s2n_clock_time_nanoseconds wall_clock;
+    s2n_clock_time_nanoseconds monotonic_clock;
 
     void *data_for_sys_clock;
     void *data_for_high_res_clock;

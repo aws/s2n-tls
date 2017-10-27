@@ -212,6 +212,11 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
+    if (s2n_config_set_status_request_type(config, type) < 0) {
+        print_s2n_error("OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
+        exit(1);
+    }
+
     if(ca_file || ca_dir) {
         if(s2n_config_set_verification_ca_location(config, ca_file, ca_dir) < 0) {
             print_s2n_error("Error setting CA file for trust store.");
@@ -225,11 +230,6 @@ int main(int argc, char *const *argv)
         if(type == S2N_STATUS_REQUEST_OCSP) {
             s2n_config_set_check_stapled_ocsp_response(config, 1);
         }
-    }
-
-    if (s2n_config_set_status_request_type(config, type) < 0) {
-        print_s2n_error("Error setting status request type");
-        exit(1);
     }
 
     if (alpn_protocols) {

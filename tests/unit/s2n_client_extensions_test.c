@@ -550,8 +550,8 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Server doesn't support the OCSP extension. */
-    {
+    /* Server doesn't support the OCSP extension. We can't run this test if ocsp isn't supported by the client. */
+    if(s2n_x509_ocsp_stapling_supported()) {
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
@@ -612,8 +612,8 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Server and client support the OCSP extension. */
-    {
+    /* Server and client support the OCSP extension. Test only runs if ocsp stapled responses are supported by the client */
+    if(s2n_x509_ocsp_stapling_supported()) {
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;

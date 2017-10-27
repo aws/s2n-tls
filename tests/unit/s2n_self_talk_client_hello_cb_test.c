@@ -283,7 +283,7 @@ int main(int argc, char **argv)
     /* s2n_negotiate will fail, which ordinarily would delay with a sleep.
      * Remove the sleep and fake the delay with a mock time routine */
     EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
-    EXPECT_SUCCESS(s2n_config_set_high_res_clock(config, mock_nanoseconds_since_epoch, NULL));
+    EXPECT_SUCCESS(s2n_config_set_monotonic_clock(config, mock_nanoseconds_since_epoch, NULL));
 
     /* Set up the connection to read from the fd */
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));

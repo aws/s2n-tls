@@ -42,6 +42,9 @@ struct s2n_x509_validator {
     uint8_t check_stapled_ocsp;
 };
 
+/** Some libcrypto implementations do not support OCSP validation. Returns 1 if supported, 0 otherwise. */
+uint8_t s2n_x509_ocsp_stapling_supported(void);
+
 /** Initialize the trust store to empty defaults (no allocations happen here) */
 void s2n_x509_trust_store_init(struct s2n_x509_trust_store *store);
 

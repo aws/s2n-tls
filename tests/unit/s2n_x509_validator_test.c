@@ -240,8 +240,8 @@ int main(int argc, char **argv) {
         EXPECT_TRUE(chain_len > 0);
         uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
-        s2n_clock_time_nanoseconds old_clock = connection->config->sys_clock;
-        s2n_config_set_sys_clock(connection->config, fetch_expired_after_ocsp_timestamp, NULL);
+        s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
+        s2n_config_set_wall_clock(connection->config, fetch_expired_after_ocsp_timestamp, NULL);
 
         struct s2n_cert_public_key public_key_out;
         public_key_out.pkey.key.rsa_key.rsa = NULL;
@@ -249,7 +249,7 @@ int main(int argc, char **argv) {
                      s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
 
-        s2n_config_set_sys_clock(connection->config, old_clock, NULL);
+        s2n_config_set_wall_clock(connection->config, old_clock, NULL);
 
         EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
         s2n_connection_free(connection);
@@ -459,8 +459,8 @@ int main(int argc, char **argv) {
                      s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
 
-        s2n_clock_time_nanoseconds old_clock = connection->config->sys_clock;
-        s2n_config_set_sys_clock(connection->config, fetch_expired_after_ocsp_timestamp, NULL);
+        s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
+        s2n_config_set_wall_clock(connection->config, fetch_expired_after_ocsp_timestamp, NULL);
 
         struct s2n_stuffer ocsp_data_stuffer;
         EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_DER, S2N_MAX_TEST_PEM_SIZE));
@@ -469,7 +469,7 @@ int main(int argc, char **argv) {
         EXPECT_EQUAL(S2N_CERT_ERR_EXPIRED, s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
                                                                                           s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len),
                                                                                           ocsp_data_len));
-        s2n_config_set_sys_clock(connection->config, old_clock, NULL);
+        s2n_config_set_wall_clock(connection->config, old_clock, NULL);
         s2n_stuffer_free(&ocsp_data_stuffer);
         s2n_connection_free(connection);
         s2n_x509_validator_cleanup(&validator);
@@ -501,8 +501,8 @@ int main(int argc, char **argv) {
                      s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
 
-        s2n_clock_time_nanoseconds old_clock = connection->config->sys_clock;
-        s2n_config_set_sys_clock(connection->config, fetch_invalid_before_ocsp_timestamp, NULL);
+        s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
+        s2n_config_set_wall_clock(connection->config, fetch_invalid_before_ocsp_timestamp, NULL);
 
         struct s2n_stuffer ocsp_data_stuffer;
         EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_DER, S2N_MAX_TEST_PEM_SIZE));
@@ -512,7 +512,7 @@ int main(int argc, char **argv) {
                                                                                                   s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len),
                                                                                                   ocsp_data_len));
 
-        s2n_config_set_sys_clock(connection->config, old_clock, NULL);
+        s2n_config_set_wall_clock(connection->config, old_clock, NULL);
 
         s2n_stuffer_free(&ocsp_data_stuffer);
         s2n_connection_free(connection);
