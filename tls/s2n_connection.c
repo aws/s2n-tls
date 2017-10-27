@@ -167,6 +167,8 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     conn->blinding = S2N_BUILT_IN_BLINDING;
     conn->close_notify_queued = 0;
     conn->session_id_len = 0;
+    conn->verify_host_fn = NULL;
+    conn->data_for_verify_host = NULL;
     conn->send = NULL;
     conn->recv = NULL;
     conn->send_io_context = NULL;
@@ -253,6 +255,8 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->mfl_code = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
     conn->handshake.handshake_type = INITIAL;
     conn->handshake.message_number = 0;
+    conn->verify_host_fn = NULL;
+    conn->data_for_verify_host = NULL;
 
     return 0;
 }
@@ -425,12 +429,16 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
 
     if(s2n_x509_trust_store_has_certs(&config->trust_store)) {
 
-        s2n_x509_validator_init(&conn->x509_validator, &config->trust_store, config->check_ocsp, config->verify_host,
-                                config->data_for_verify_host);
+        s2n_x509_validator_init(&conn->x509_validator, &config->trust_store, config->check_ocsp);
+
+        if(!conn->verify_host_fn) {
+            conn->verify_host_fn = config->verify_host;
+            conn->data_for_verify_host = config->data_for_verify_host;
+        }
     }
     else {
         if(config->client_cert_auth_type == S2N_CERT_AUTH_REQUIRED) {
-            return S2N_ERR_T_USAGE;
+            return -1;
         }
 
         s2n_x509_validator_init_no_checks(&conn->x509_validator);
@@ -869,6 +877,15 @@ int s2n_connection_prefer_low_latency(struct s2n_connection *conn)
     if (!conn->mfl_code) {
         conn->max_outgoing_fragment_length = S2N_SMALL_FRAGMENT_LENGTH;
     }
+
+    return 0;
+}
+
+int s2n_connection_set_verify_host_callback(struct s2n_connection *conn, s2n_verify_host_fn verify_host_fn, void *data) {
+    notnull_check(conn);
+
+    conn->verify_host_fn = verify_host_fn;
+    conn->data_for_verify_host = data;
 
     return 0;
 }

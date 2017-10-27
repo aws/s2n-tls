@@ -24,6 +24,14 @@ int main(int argc, char **argv)
     /* October 20, 2017 3:09:11 PM GMT-07:00 */
     uint64_t expected_ns = 1508539878000000000;
 
+    /* test GMT date parses without the millis*/
+    {
+        const char *time_str = "20171020225118Z";
+        uint64_t timestamp = 0;
+        EXPECT_SUCCESS(s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp));
+        EXPECT_EQUAL(expected_ns, timestamp);
+    }
+
     /* test GMT date parses */
     {
         const char *time_str = "20171020225118.999Z";

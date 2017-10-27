@@ -69,6 +69,14 @@ void s2n_print_connection(struct s2n_connection *conn, const char *marker);
 #define S2N_INVALID_TRAILER_KEY         "../pems/rsa_2048_invalid_trailer_key.pem"
 #define S2N_UNKNOWN_KEYWORD_KEY         "../pems/rsa_2048_unknown_keyword_key.pem"
 
+/* OCSP Stapled Response Testing files */
+#define S2N_OCSP_SERVER_CERT            "../pems/ocsp/server_cert.pem"
+#define S2N_OCSP_SERVER_KEY             "../pems/ocsp/server_key.pem"
+#define S2N_OCSP_CA_CERT                "../pems/ocsp/ca_cert.pem"
+#define S2N_OCSP_CA_KEY                 "../pems/ocsp/ca_key.pem"
+#define S2N_OCSP_RESPONSE_DER           "../pems/ocsp/ocsp_response.der"
+#define S2N_OCSP_RESPONSE_CERT           "../pems/ocsp/ocsp_cert.pem"
+
 #define S2N_DHPARAMS_2048 "../pems/dhparams_2048.pem"
 
 #define S2N_DEFAULT_TEST_CERT_CHAIN  S2N_RSA_2048_PKCS1_CERT_CHAIN
@@ -99,13 +107,8 @@ static uint8_t server_ocsp_status[] = {
         0xc0, 0xa3, 0x29, 0x11, 0x61, 0x0b, 0x65, 0xdb, 0x14, 0x79, 0xb1, 0x7d, 0x8a, 0x57, 0x91, 0x59, 0xa4, 0xfc, 0x4c, 0x60, 0x4f, 0x3c, 0xc8, 0x31, 0x9b, 0x69, 0x70, 0xb9, 0xae, 0xed, 0xb1, 0xde, 0x58, 0x8d, 0x62, 0x30, 0xb4, 0x7b, 0x46, 0xf2, 0xda, 0x7b, 0xbb, 0x72, 0xcf, 0xf0, 0x47, 0x8b, 0x84,
 };
 
-static int fetch_valid_ocsp_timestamp(void *data, uint64_t *timestamp) {
-    *timestamp = 1425192404000000000;
-    return 0;
-}
-
 static int fetch_expired_after_ocsp_timestamp(void *data, uint64_t *timestamp) {
-    *timestamp = 1425192405000000001;
+    *timestamp = 7283958536000000000;
     return 0;
 }
 

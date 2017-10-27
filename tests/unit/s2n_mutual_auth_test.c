@@ -124,7 +124,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
     EXPECT_NOT_NULL(default_cipher_preferences = config->cipher_preferences);
 
-    EXPECT_SUCCESS(s2n_config_set_verification_ca_file(config, S2N_DEFAULT_TEST_CERT_CHAIN));
+    EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
 
     /* Verify that a handshake succeeds for every cipher in the default list. */

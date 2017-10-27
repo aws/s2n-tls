@@ -40,8 +40,6 @@ struct s2n_x509_validator {
 
     uint8_t validate_certificates;
     uint8_t check_stapled_ocsp;
-    verify_host verify_host_fn;
-    void *validation_ctx;
 };
 
 /** Initialize the trust store to empty defaults (no allocations happen here) */
@@ -52,7 +50,7 @@ uint8_t s2n_x509_trust_store_has_certs(struct s2n_x509_trust_store *store);
 
 /** Initialize trust store from a CA file. This will allocate memory, and load each cert in the file into the trust store
  *  Returns 0 on success, or S2N error codes on failure. */
-int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const char *ca_file);
+int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const char *ca_file, const char *path);
 
 /** Cleans up, and frees any underlying memory in the trust store. */
 void s2n_x509_trust_store_cleanup(struct s2n_x509_trust_store *store);
@@ -64,7 +62,7 @@ int s2n_x509_validator_init_no_checks(struct s2n_x509_validator *validator);
  *  the verify host callback to determine if a subject name or alternative name from the cert should be trusted.
  *  Returns 0 on success, and an S2N_ERR_* on failure.
  */
-int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x509_trust_store *trust_store, uint8_t check_ocsp, verify_host verify_host_fn, void *verify_ctx);
+int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x509_trust_store *trust_store, uint8_t check_ocsp);
 
 /** Cleans up underlying memory and data members. Struct can be reused afterwards. */
 void s2n_x509_validator_cleanup(struct s2n_x509_validator *validator);
@@ -76,16 +74,15 @@ void s2n_x509_validator_cleanup(struct s2n_x509_validator *validator);
  * If any of those calls return TRUE, that stage of the validation will continue, otherwise once all names are tried and none matched as
  * trusted, the chain will be considered UNTRUSTED
  */
-s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, uint8_t *cert_chain_in,
-                                            uint32_t cert_chain_len,
-                                            struct s2n_cert_public_key *public_key_out);
+s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
+                                                                uint8_t *cert_chain_in, uint32_t cert_chain_len,
+                                                                struct s2n_cert_public_key *public_key_out);
 
 /**
  * Validates an ocsp response against the most recent certificate chain. Also verifies the timestamps on the response.
  */
-s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x509_validator *validator,
-                                                                                const uint8_t *ocsp_response, uint32_t size,
-                                                                                struct s2n_config *config);
+s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x509_validator *validator,  struct s2n_connection *conn,
+                                                                                const uint8_t *ocsp_response, uint32_t size);
 
 
 

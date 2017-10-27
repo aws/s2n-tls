@@ -1,5 +1,10 @@
 cmake_minimum_required (VERSION 3.0)
 project (s2n)
+
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 ##header files
 file(GLOB API_HEADERS
      "api/*.h"
@@ -147,6 +152,16 @@ file(GLOB UNITTESTS_SRC "tests/unit/*.c")
         ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
 
 endforeach(test_case)
+
+add_executable(s2nc "bin/s2nc.c" "bin/echo.c")
+target_link_libraries(s2nc s2n)
+target_include_directories(s2nc PRIVATE api)
+target_compile_options(s2nc PRIVATE -std=c99 -D_POSIX_C_SOURCE=200112L)
+
+add_executable(s2nd "bin/s2nd.c" "bin/echo.c")
+target_link_libraries(s2nd s2n)
+target_include_directories(s2nd PRIVATE api)
+target_compile_options(s2nd PRIVATE -std=c99 -D_POSIX_C_SOURCE=20112L)
 
 #install the s2n files
 install (FILES ${API_HEADERS} DESTINATION "include/")

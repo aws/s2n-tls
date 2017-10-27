@@ -16,8 +16,6 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
-#include <fcntl.h>
-
 static uint32_t write_pem_file_to_stuffer_as_chain(struct s2n_stuffer *chain_out_stuffer, const char *pem_data) {
     struct s2n_stuffer chain_in_stuffer, cert_stuffer, temp_out_stuffer;
     s2n_stuffer_alloc_ro_from_string(&chain_in_stuffer, pem_data);
@@ -27,7 +25,6 @@ static uint32_t write_pem_file_to_stuffer_as_chain(struct s2n_stuffer *chain_out
     uint32_t chain_size = 0;
     do {
         s2n_stuffer_certificate_from_pem(&chain_in_stuffer, &cert_stuffer);
-
         uint32_t cert_len = s2n_stuffer_data_available(&cert_stuffer);
         uint8_t *raw_cert_data = s2n_stuffer_raw_read(&cert_stuffer, cert_len);
 
@@ -42,6 +39,23 @@ static uint32_t write_pem_file_to_stuffer_as_chain(struct s2n_stuffer *chain_out
     s2n_stuffer_free(&cert_stuffer);
     s2n_stuffer_free(&chain_in_stuffer);
     return chain_size;
+}
+
+static int read_file(struct s2n_stuffer *file_output, const char *path, uint32_t max_len) {
+    FILE *fd = fopen(path, "rb");
+    s2n_stuffer_alloc(file_output, max_len);
+
+    if(fd) {
+        char data[1024];
+        size_t r = 0;
+        while((r =fread(data, 1, sizeof(data), fd)) > 0) {
+            s2n_stuffer_write_bytes(file_output, data, r);
+        }
+        fclose(fd);
+        return s2n_stuffer_data_available(file_output) > 0;
+    }
+
+    return -1;
 }
 
 struct host_verify_data {
@@ -91,7 +105,7 @@ int main(int argc, char **argv) {
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init(&trust_store);
-        int err_code = s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN);
+        int err_code = s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL);
         EXPECT_EQUAL(0, err_code);
         EXPECT_TRUE(s2n_x509_trust_store_has_certs(&trust_store));
         s2n_x509_trust_store_cleanup(&trust_store);
@@ -101,8 +115,8 @@ int main(int argc, char **argv) {
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init(&trust_store);
-        int err_code = s2n_x509_trust_store_from_ca_file(&trust_store, "dskfjasdklfjsdkl");
-        EXPECT_EQUAL(S2N_ERR_T_IO, err_code);
+        int err_code = s2n_x509_trust_store_from_ca_file(&trust_store, "dskfjasdklfjsdkl", NULL);
+        EXPECT_EQUAL(-1, err_code);
         EXPECT_FALSE(s2n_x509_trust_store_has_certs(&trust_store));
         s2n_x509_trust_store_cleanup(&trust_store);
     }
@@ -111,16 +125,20 @@ int main(int argc, char **argv) {
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init(&trust_store);
-        int err_code = s2n_x509_trust_store_from_ca_file(&trust_store, S2N_INVALID_HEADER_KEY);
-        EXPECT_EQUAL(S2N_ERR_T_USAGE, err_code);
+        int err_code = s2n_x509_trust_store_from_ca_file(&trust_store, S2N_INVALID_HEADER_KEY, NULL);
+        EXPECT_EQUAL(-1, err_code);
         EXPECT_FALSE(s2n_x509_trust_store_has_certs(&trust_store));
         s2n_x509_trust_store_cleanup(&trust_store);
     }
+
+    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
 
     /* test validator in unsafe mode */
     {
         struct s2n_x509_validator validator;
         s2n_x509_validator_init_no_checks(&validator);
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         long int file_size = 0;
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -132,9 +150,10 @@ int main(int argc, char **argv) {
         struct s2n_cert_public_key public_key_out;
         public_key_out.pkey.key.rsa_key.rsa = NULL;
         EXPECT_EQUAL(S2N_ERR_T_OK,
-                     s2n_x509_validator_validate_cert_chain(&validator, chain_data, chain_len, &public_key_out));
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
         EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
+        s2n_connection_free(connection);
         s2n_x509_validator_cleanup(&validator);
     }
 
@@ -143,8 +162,11 @@ int main(int argc, char **argv) {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init(&trust_store);
 
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
+
         struct s2n_x509_validator validator;
-        s2n_x509_validator_init(&validator, &trust_store, 1, NULL, NULL);
+        s2n_x509_validator_init(&validator, &trust_store, 1);
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -156,11 +178,12 @@ int main(int argc, char **argv) {
         struct s2n_cert_public_key public_key_out;
         public_key_out.pkey.key.rsa_key.rsa = NULL;
         int err_code = 0;
-        err_code = s2n_x509_validator_validate_cert_chain(&validator, chain_data, chain_len, &public_key_out);
+        err_code = s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out);
         s2n_stuffer_free(&chain_stuffer);
 
         EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED, err_code);
         EXPECT_NULL(public_key_out.pkey.key.rsa_key.rsa);
+        s2n_connection_free(connection);
         s2n_x509_validator_cleanup(&validator);
         s2n_x509_trust_store_cleanup(&trust_store);
     }
@@ -169,10 +192,13 @@ int main(int argc, char **argv) {
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init(&trust_store);
-        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN));
+        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
         struct s2n_x509_validator validator;
-        s2n_x509_validator_init(&validator, &trust_store, 1, NULL, NULL);
+        s2n_x509_validator_init(&validator, &trust_store, 1);
+
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -184,10 +210,50 @@ int main(int argc, char **argv) {
         struct s2n_cert_public_key public_key_out;
         public_key_out.pkey.key.rsa_key.rsa = NULL;
         EXPECT_EQUAL(S2N_ERR_T_OK,
-                     s2n_x509_validator_validate_cert_chain(&validator, chain_data, chain_len, &public_key_out));
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
 
         EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
+        s2n_connection_free(connection);
+
+        s2n_x509_validator_cleanup(&validator);
+        s2n_x509_trust_store_cleanup(&trust_store);
+    }
+
+    /* test expired certificate fails */
+    {
+        struct s2n_x509_trust_store trust_store;
+        s2n_x509_trust_store_init(&trust_store);
+        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+
+        struct s2n_x509_validator validator;
+        s2n_x509_validator_init(&validator, &trust_store, 1);
+
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
+
+
+        uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        struct s2n_stuffer chain_stuffer;
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
+
+        s2n_clock_time_nanoseconds old_clock = connection->config->sys_clock;
+        s2n_config_set_sys_clock(connection->config, fetch_expired_after_ocsp_timestamp, NULL);
+
+        struct s2n_cert_public_key public_key_out;
+        public_key_out.pkey.key.rsa_key.rsa = NULL;
+        EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED,
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out));
+        s2n_stuffer_free(&chain_stuffer);
+
+        s2n_config_set_sys_clock(connection->config, old_clock, NULL);
+
+        EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
+        s2n_connection_free(connection);
+
         s2n_x509_validator_cleanup(&validator);
         s2n_x509_trust_store_cleanup(&trust_store);
     }
@@ -196,10 +262,13 @@ int main(int argc, char **argv) {
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init(&trust_store);
-        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN));
+        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
         struct s2n_x509_validator validator;
-        s2n_x509_validator_init(&validator, &trust_store, 1, NULL, NULL);
+        s2n_x509_validator_init(&validator, &trust_store, 1);
+
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -208,14 +277,15 @@ int main(int argc, char **argv) {
         EXPECT_TRUE(chain_len > 0);
         uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
         //alter a random byte in the certificate to make it invalid.
-        chain_data[chain_len - 5] = (uint8_t) (chain_data[chain_len - 5] + 1);
+        chain_data[500] = (uint8_t) (chain_data[500] << 2);
         struct s2n_cert_public_key public_key_out;
         public_key_out.pkey.key.rsa_key.rsa = NULL;
-        int ret_val = s2n_x509_validator_validate_cert_chain(&validator, chain_data, chain_len, &public_key_out);
+        int ret_val = s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out);
         EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED, ret_val);
         s2n_stuffer_free(&chain_stuffer);
 
         EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
+        s2n_connection_free(connection);
         s2n_x509_validator_cleanup(&validator);
         s2n_x509_trust_store_cleanup(&trust_store);
     }
@@ -224,12 +294,16 @@ int main(int argc, char **argv) {
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init(&trust_store);
-        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN));
+        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
         struct host_verify_data verify_data = {.name = "127.0.0.1", .found_name = 0, .callback_invoked = 0,};
 
         struct s2n_x509_validator validator;
-        s2n_x509_validator_init(&validator, &trust_store, 1, verify_host_reject_everything, &verify_data);
+        s2n_x509_validator_init(&validator, &trust_store, 1);
+
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_reject_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -240,11 +314,12 @@ int main(int argc, char **argv) {
 
         struct s2n_cert_public_key public_key_out;
         public_key_out.pkey.key.rsa_key.rsa = NULL;
-        int ret_val = s2n_x509_validator_validate_cert_chain(&validator, chain_data, chain_len, &public_key_out);
+        int ret_val = s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out);
         EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED, ret_val);
         s2n_stuffer_free(&chain_stuffer);
         EXPECT_EQUAL(1, verify_data.callback_invoked);
         EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
+        s2n_connection_free(connection);
         s2n_x509_validator_cleanup(&validator);
         s2n_x509_trust_store_cleanup(&trust_store);
     }
@@ -253,12 +328,16 @@ int main(int argc, char **argv) {
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init(&trust_store);
-        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN));
+        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
         struct host_verify_data verify_data = {.name = "127.0.0.1", .found_name = 0, .callback_invoked = 0,};
 
         struct s2n_x509_validator validator;
-        s2n_x509_validator_init(&validator, &trust_store, 1, verify_host_accept_everything, &verify_data);
+        s2n_x509_validator_init(&validator, &trust_store, 1);
+
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -270,10 +349,11 @@ int main(int argc, char **argv) {
         struct s2n_cert_public_key public_key_out;
         public_key_out.pkey.key.rsa_key.rsa = NULL;
         EXPECT_EQUAL(S2N_ERR_T_OK,
-                     s2n_x509_validator_validate_cert_chain(&validator, chain_data, chain_len, &public_key_out));
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
         EXPECT_EQUAL(1, verify_data.callback_invoked);
         EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
+        s2n_connection_free(connection);
         s2n_x509_validator_cleanup(&validator);
         s2n_x509_trust_store_cleanup(&trust_store);
     }
@@ -284,11 +364,15 @@ int main(int argc, char **argv) {
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init(&trust_store);
-        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN));
+        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
         struct host_verify_data verify_data = {.name = "127.0.0.1", .found_name = 0, .callback_invoked = 0,};
         struct s2n_x509_validator validator;
-        s2n_x509_validator_init(&validator, &trust_store, 1, verify_host_verify_alt, &verify_data);
+        s2n_x509_validator_init(&validator, &trust_store, 1);
+
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_verify_alt, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(
@@ -301,318 +385,183 @@ int main(int argc, char **argv) {
         struct s2n_cert_public_key public_key_out;
         public_key_out.pkey.key.rsa_key.rsa = NULL;
         EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED,
-                     s2n_x509_validator_validate_cert_chain(&validator, chain_data, chain_len, &public_key_out));
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
 
         EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
         EXPECT_EQUAL(1, verify_data.found_name);
         EXPECT_EQUAL(1, verify_data.callback_invoked);
+        s2n_connection_free(connection);
         s2n_x509_validator_cleanup(&validator);
         s2n_x509_trust_store_cleanup(&trust_store);
     }
 
-    //for OCSP, it's simpler to go through the whole handshake, so we don't have to worry about
-    // emulating signatures and crypto.
-    char *cert_chain;
-    char *private_key;
-
-    EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
-    EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
-
     /* Test valid OCSP date range */
     {
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
-        struct s2n_config *client_config;
-        const uint8_t *server_ocsp_reply;
-        int server_to_client[2];
-        int client_to_server[2];
-        uint32_t length;
+        struct s2n_x509_trust_store trust_store;
+        s2n_x509_trust_store_init(&trust_store);
+        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
 
-        /* Create nonblocking pipes */
-        EXPECT_SUCCESS(pipe(server_to_client));
-        EXPECT_SUCCESS(pipe(client_to_server));
-        for (int i = 0; i < 2; i++) {
-            EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
-            EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
-        }
+        struct s2n_x509_validator validator;
+        s2n_x509_validator_init(&validator, &trust_store, 1);
 
-        EXPECT_NOT_NULL(client_config = s2n_config_new());
-        s2n_config_set_check_stapled_ocsp_response(client_config, 1);
-        s2n_config_set_verification_ca_file(client_config, S2N_DEFAULT_TEST_CERT_CHAIN);
-        s2n_config_set_nanoseconds_since_epoch_callback(client_config, fetch_valid_ocsp_timestamp, NULL);
-        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        client_conn->actual_protocol_version = S2N_TLS12;
-        client_conn->server_protocol_version = S2N_TLS12;
-        client_conn->client_protocol_version = S2N_TLS12;
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
 
-        EXPECT_SUCCESS(s2n_config_set_status_request_type(client_config, S2N_STATUS_REQUEST_OCSP));
-        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+        uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        struct s2n_stuffer chain_stuffer;
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        server_conn->actual_protocol_version = S2N_TLS12;
-        server_conn->server_protocol_version = S2N_TLS12;
-        server_conn->client_protocol_version = S2N_TLS12;
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
+        struct s2n_cert_public_key public_key_out;
+        public_key_out.pkey.key.rsa_key.rsa = NULL;
+        EXPECT_EQUAL(S2N_ERR_T_OK,
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out));
+        s2n_stuffer_free(&chain_stuffer);
 
-        EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain, private_key));
-        EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, S2N_EXTENSION_OCSP_STAPLING, server_ocsp_status,
-                                                     sizeof(server_ocsp_status)));
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-
-        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-
-        /* Verify that the client received an OCSP response. */
-        EXPECT_NOT_NULL(server_ocsp_reply = s2n_connection_get_ocsp_response(client_conn, &length));
-        EXPECT_EQUAL(length, sizeof(server_ocsp_status));
-
-        for (int i = 0; i < sizeof(server_ocsp_status); i++) {
-            EXPECT_EQUAL(server_ocsp_reply[i], server_ocsp_status[i]);
-        }
-
-        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
-
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-
-        EXPECT_SUCCESS(s2n_config_free(server_config));
-        EXPECT_SUCCESS(s2n_config_free(client_config));
-
-        for (int i = 0; i < 2; i++) {
-            EXPECT_SUCCESS(close(server_to_client[i]));
-            EXPECT_SUCCESS(close(client_to_server[i]));
-        }
+        struct s2n_stuffer ocsp_data_stuffer;
+        EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_DER, S2N_MAX_TEST_PEM_SIZE));
+        uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
+        EXPECT_TRUE(ocsp_data_len > 0);
+        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
+                                                                                          s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len),
+                                                                                          ocsp_data_len));
+        s2n_stuffer_free(&ocsp_data_stuffer);
+        s2n_connection_free(connection);
+        s2n_x509_validator_cleanup(&validator);
+        s2n_x509_trust_store_cleanup(&trust_store);
     }
 
     /* Test invalid OCSP date range (after is off) */
     {
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
-        struct s2n_config *client_config;
-        const uint8_t *server_ocsp_reply;
-        int server_to_client[2];
-        int client_to_server[2];
-        uint32_t length;
+        struct s2n_x509_trust_store trust_store;
+        s2n_x509_trust_store_init(&trust_store);
+        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
 
-        /* Create nonblocking pipes */
-        EXPECT_SUCCESS(pipe(server_to_client));
-        EXPECT_SUCCESS(pipe(client_to_server));
-        for (int i = 0; i < 2; i++) {
-            EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
-            EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
-        }
+        struct s2n_x509_validator validator;
+        s2n_x509_validator_init(&validator, &trust_store, 1);
 
-        EXPECT_NOT_NULL(client_config = s2n_config_new());
-        s2n_config_set_check_stapled_ocsp_response(client_config, 1);
-        s2n_config_set_verification_ca_file(client_config, S2N_DEFAULT_TEST_CERT_CHAIN);
-        s2n_config_set_nanoseconds_since_epoch_callback(client_config, fetch_expired_after_ocsp_timestamp, NULL);
-        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        client_conn->actual_protocol_version = S2N_TLS12;
-        client_conn->server_protocol_version = S2N_TLS12;
-        client_conn->client_protocol_version = S2N_TLS12;
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
 
-        EXPECT_SUCCESS(s2n_config_set_status_request_type(client_config, S2N_STATUS_REQUEST_OCSP));
-        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+        uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        struct s2n_stuffer chain_stuffer;
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        server_conn->actual_protocol_version = S2N_TLS12;
-        server_conn->server_protocol_version = S2N_TLS12;
-        server_conn->client_protocol_version = S2N_TLS12;
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
+        struct s2n_cert_public_key public_key_out;
+        public_key_out.pkey.key.rsa_key.rsa = NULL;
+        EXPECT_EQUAL(S2N_ERR_T_OK,
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out));
+        s2n_stuffer_free(&chain_stuffer);
 
-        EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain, private_key));
-        EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, S2N_EXTENSION_OCSP_STAPLING, server_ocsp_status,
-                                                     sizeof(server_ocsp_status)));
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        s2n_clock_time_nanoseconds old_clock = connection->config->sys_clock;
+        s2n_config_set_sys_clock(connection->config, fetch_expired_after_ocsp_timestamp, NULL);
 
-        int error_code = s2n_negotiate_test_server_and_client(server_conn, client_conn);
-        EXPECT_EQUAL(-1, error_code);
-
-        /* Verify that the client received an OCSP response. */
-        EXPECT_NOT_NULL(server_ocsp_reply = s2n_connection_get_ocsp_response(client_conn, &length));
-        EXPECT_EQUAL(length, sizeof(server_ocsp_status));
-
-        for (int i = 0; i < sizeof(server_ocsp_status); i++) {
-            EXPECT_EQUAL(server_ocsp_reply[i], server_ocsp_status[i]);
-        }
-
-        s2n_shutdown_test_server_and_client(server_conn, client_conn);
-
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-
-        EXPECT_SUCCESS(s2n_config_free(server_config));
-        EXPECT_SUCCESS(s2n_config_free(client_config));
-
-        for (int i = 0; i < 2; i++) {
-            EXPECT_SUCCESS(close(server_to_client[i]));
-            EXPECT_SUCCESS(close(client_to_server[i]));
-        }
+        struct s2n_stuffer ocsp_data_stuffer;
+        EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_DER, S2N_MAX_TEST_PEM_SIZE));
+        uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
+        EXPECT_TRUE(ocsp_data_len > 0);
+        EXPECT_EQUAL(S2N_CERT_ERR_EXPIRED, s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
+                                                                                          s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len),
+                                                                                          ocsp_data_len));
+        s2n_config_set_sys_clock(connection->config, old_clock, NULL);
+        s2n_stuffer_free(&ocsp_data_stuffer);
+        s2n_connection_free(connection);
+        s2n_x509_validator_cleanup(&validator);
+        s2n_x509_trust_store_cleanup(&trust_store);
     }
 
-    /* Test invalid OCSP date range (this update is off) */
+    /* Test invalid OCSP date range (thisupdate is off) */
     {
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
-        struct s2n_config *client_config;
-        const uint8_t *server_ocsp_reply;
-        int server_to_client[2];
-        int client_to_server[2];
-        uint32_t length;
+        struct s2n_x509_trust_store trust_store;
+        s2n_x509_trust_store_init(&trust_store);
+        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
 
-        /* Create nonblocking pipes */
-        EXPECT_SUCCESS(pipe(server_to_client));
-        EXPECT_SUCCESS(pipe(client_to_server));
-        for (int i = 0; i < 2; i++) {
-            EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
-            EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
-        }
+        struct s2n_x509_validator validator;
+        s2n_x509_validator_init(&validator, &trust_store, 1);
 
-        EXPECT_NOT_NULL(client_config = s2n_config_new());
-        s2n_config_set_check_stapled_ocsp_response(client_config, 1);
-        s2n_config_set_verification_ca_file(client_config, S2N_DEFAULT_TEST_CERT_CHAIN);
-        s2n_config_set_nanoseconds_since_epoch_callback(client_config, fetch_invalid_before_ocsp_timestamp, NULL);
-        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        client_conn->actual_protocol_version = S2N_TLS12;
-        client_conn->server_protocol_version = S2N_TLS12;
-        client_conn->client_protocol_version = S2N_TLS12;
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
 
-        EXPECT_SUCCESS(s2n_config_set_status_request_type(client_config, S2N_STATUS_REQUEST_OCSP));
-        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+        uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        struct s2n_stuffer chain_stuffer;
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        server_conn->actual_protocol_version = S2N_TLS12;
-        server_conn->server_protocol_version = S2N_TLS12;
-        server_conn->client_protocol_version = S2N_TLS12;
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
+        struct s2n_cert_public_key public_key_out;
+        public_key_out.pkey.key.rsa_key.rsa = NULL;
+        EXPECT_EQUAL(S2N_ERR_T_OK,
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out));
+        s2n_stuffer_free(&chain_stuffer);
 
-        EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain, private_key));
-        EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, S2N_EXTENSION_OCSP_STAPLING, server_ocsp_status,
-                                                     sizeof(server_ocsp_status)));
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        s2n_clock_time_nanoseconds old_clock = connection->config->sys_clock;
+        s2n_config_set_sys_clock(connection->config, fetch_invalid_before_ocsp_timestamp, NULL);
 
-        int error_code = s2n_negotiate_test_server_and_client(server_conn, client_conn);
-        EXPECT_EQUAL(-1, error_code);
+        struct s2n_stuffer ocsp_data_stuffer;
+        EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_DER, S2N_MAX_TEST_PEM_SIZE));
+        uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
+        EXPECT_TRUE(ocsp_data_len > 0);
+        EXPECT_EQUAL(S2N_CERT_ERR_EXPIRED, s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
+                                                                                                  s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len),
+                                                                                                  ocsp_data_len));
 
-        /* Verify that the client received an OCSP response. */
-        EXPECT_NOT_NULL(server_ocsp_reply = s2n_connection_get_ocsp_response(client_conn, &length));
-        EXPECT_EQUAL(length, sizeof(server_ocsp_status));
+        s2n_config_set_sys_clock(connection->config, old_clock, NULL);
 
-        for (int i = 0; i < sizeof(server_ocsp_status); i++) {
-            EXPECT_EQUAL(server_ocsp_reply[i], server_ocsp_status[i]);
-        }
-
-        s2n_shutdown_test_server_and_client(server_conn, client_conn);
-
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-
-        EXPECT_SUCCESS(s2n_config_free(server_config));
-        EXPECT_SUCCESS(s2n_config_free(client_config));
-
-        for (int i = 0; i < 2; i++) {
-            EXPECT_SUCCESS(close(server_to_client[i]));
-            EXPECT_SUCCESS(close(client_to_server[i]));
-        }
+        s2n_stuffer_free(&ocsp_data_stuffer);
+        s2n_connection_free(connection);
+        s2n_x509_validator_cleanup(&validator);
+        s2n_x509_trust_store_cleanup(&trust_store);
     }
 
     /* Test valid OCSP date range, but the data itself is untrusted */
     {
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
-        struct s2n_config *client_config;
-        const uint8_t *server_ocsp_reply;
-        int server_to_client[2];
-        int client_to_server[2];
-        uint32_t length;
+        struct s2n_x509_trust_store trust_store;
+        s2n_x509_trust_store_init(&trust_store);
+        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
 
-        /* Create nonblocking pipes */
-        EXPECT_SUCCESS(pipe(server_to_client));
-        EXPECT_SUCCESS(pipe(client_to_server));
-        for (int i = 0; i < 2; i++) {
-            EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
-            EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
-        }
+        struct s2n_x509_validator validator;
+        s2n_x509_validator_init(&validator, &trust_store, 1);
 
-        EXPECT_NOT_NULL(client_config = s2n_config_new());
-        s2n_config_set_check_stapled_ocsp_response(client_config, 1);
-        s2n_config_set_verification_ca_file(client_config, S2N_DEFAULT_TEST_CERT_CHAIN);
-        s2n_config_set_nanoseconds_since_epoch_callback(client_config, fetch_valid_ocsp_timestamp, NULL);
-        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        client_conn->actual_protocol_version = S2N_TLS12;
-        client_conn->server_protocol_version = S2N_TLS12;
-        client_conn->client_protocol_version = S2N_TLS12;
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
 
-        EXPECT_SUCCESS(s2n_config_set_status_request_type(client_config, S2N_STATUS_REQUEST_OCSP));
-        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+        uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        struct s2n_stuffer chain_stuffer;
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        server_conn->actual_protocol_version = S2N_TLS12;
-        server_conn->server_protocol_version = S2N_TLS12;
-        server_conn->client_protocol_version = S2N_TLS12;
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
+        struct s2n_cert_public_key public_key_out;
+        public_key_out.pkey.key.rsa_key.rsa = NULL;
+        EXPECT_EQUAL(S2N_ERR_T_OK,
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out));
+        s2n_stuffer_free(&chain_stuffer);
 
-        EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain, private_key));
+        struct s2n_stuffer ocsp_data_stuffer;
+        EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_DER, S2N_MAX_TEST_PEM_SIZE));
+        uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
+        EXPECT_TRUE(ocsp_data_len > 0);
 
-        //flip a byte that would make the signature invalid.
-        uint8_t ocsp_flipped_byte = server_ocsp_status[800];
-        server_ocsp_status[800] = (uint8_t) (ocsp_flipped_byte + 1);
+        //flip a byte right in the middle of the cert.
+        uint8_t *raw_data = (uint8_t *)s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len);
+        raw_data[800] = (uint8_t) (raw_data[800] + 1);
 
-        EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, S2N_EXTENSION_OCSP_STAPLING, server_ocsp_status,
-                                                     sizeof(server_ocsp_status)));
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        EXPECT_EQUAL(S2N_CERT_ERR_EXPIRED, s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
+                                                                                                  raw_data,
+                                                                                                  ocsp_data_len));
 
-        int error_code = s2n_negotiate_test_server_and_client(server_conn, client_conn);
-        //put it back so when somebody adds a test next year, they aren't wondering why their ocsp data is invalid
-        server_ocsp_status[800] = ocsp_flipped_byte;
-        EXPECT_EQUAL(-1, error_code);
-
-        /* Verify that the client received an OCSP response. */
-        EXPECT_NOT_NULL(server_ocsp_reply = s2n_connection_get_ocsp_response(client_conn, &length));
-        EXPECT_EQUAL(length, sizeof(server_ocsp_status));
-
-        s2n_shutdown_test_server_and_client(server_conn, client_conn);
-
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-
-        EXPECT_SUCCESS(s2n_config_free(server_config));
-        EXPECT_SUCCESS(s2n_config_free(client_config));
-
-        for (int i = 0; i < 2; i++) {
-            EXPECT_SUCCESS(close(server_to_client[i]));
-            EXPECT_SUCCESS(close(client_to_server[i]));
-        }
+        s2n_stuffer_free(&ocsp_data_stuffer);
+        s2n_connection_free(connection);
+        s2n_x509_validator_cleanup(&validator);
+        s2n_x509_trust_store_cleanup(&trust_store);
     }
 
     END_TEST();

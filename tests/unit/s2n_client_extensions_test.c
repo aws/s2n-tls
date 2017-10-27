@@ -632,9 +632,7 @@ int main(int argc, char **argv)
         }
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        s2n_config_set_check_stapled_ocsp_response(client_config, 1);
-        s2n_config_set_verification_ca_file(client_config, S2N_DEFAULT_TEST_CERT_CHAIN);
-        s2n_config_set_nanoseconds_since_epoch_callback(client_config, fetch_valid_ocsp_timestamp, NULL);
+        s2n_config_set_check_stapled_ocsp_response(client_config, 0);
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         client_conn->actual_protocol_version = S2N_TLS12;
         client_conn->server_protocol_version = S2N_TLS12;

@@ -38,8 +38,7 @@ openssl ocsp -port 8889 -text -CA ca_cert.pem \                                 
       -rkey ocsp_key.pem \
       -rsigner ocsp_cert.pem \
       -nrequest 1 \
-      -ndays $(( 365 * 100 )) \
-      -resp_no_certs
+      -ndays $(( 365 * 100 ))
 ```
 
 ### Run the client and save the result to file

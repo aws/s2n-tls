@@ -48,9 +48,8 @@ int s2n_server_status_recv(struct s2n_connection *conn)
         memcpy_check(conn->status_response.data, status.data, status.size);
         conn->status_response.size = status.size;
 
-        return s2n_x509_validator_validate_cert_stapled_ocsp_response(&conn->x509_validator,
-                                                                      conn->status_response.data, conn->status_response.size,
-                                                                      conn->config);
+        return s2n_x509_validator_validate_cert_stapled_ocsp_response(&conn->x509_validator, conn,
+                                                                      conn->status_response.data, conn->status_response.size);
     }
 
     return 0;

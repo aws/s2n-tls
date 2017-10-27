@@ -46,21 +46,39 @@ int get_nanoseconds_since_epoch(void *data, uint64_t * nanoseconds)
 #include <time.h>
 
 #if defined(CLOCK_MONOTONIC_RAW)
-#define S2N_CLOCK CLOCK_MONOTONIC_RAW
+#define S2N_CLOCK_HW CLOCK_MONOTONIC_RAW
 #else
-#define S2N_CLOCK CLOCK_MONOTONIC
+#define S2N_CLOCK_HW CLOCK_MONOTONIC
 #endif
 
-int get_nanoseconds_since_epoch(void *data, uint64_t * nanoseconds)
+#define S2N_CLOCK_SYS CLOCK_REALTIME
+
+static int high_res_clock(void *data, uint64_t * nanoseconds)
 {
     struct timespec current_time;
 
-    GUARD(clock_gettime(S2N_CLOCK, &current_time));
+    GUARD(clock_gettime(S2N_CLOCK_HW, &current_time));
 
     *nanoseconds = current_time.tv_sec * 1000000000;
     *nanoseconds += current_time.tv_nsec;
 
     return 0;
+}
+
+static int sys_clock(void *data, uint64_t * nanoseconds)
+{
+    struct timespec current_time;
+
+    GUARD(clock_gettime(S2N_CLOCK_SYS, &current_time));
+
+    *nanoseconds = current_time.tv_sec * 1000000000;
+    *nanoseconds += current_time.tv_nsec;
+
+    return 0;
+}
+
+static uint8_t default_verify_host(const char *host_name, size_t len, void *data) {
+    return 1;
 }
 
 #endif
@@ -86,7 +104,10 @@ static int s2n_config_init(struct s2n_config *config) {
     config->application_protocols.data = NULL;
     config->application_protocols.size = 0;
     config->status_request_type = S2N_STATUS_REQUEST_NONE;
-    config->nanoseconds_since_epoch = get_nanoseconds_since_epoch;
+    config->sys_clock = sys_clock;
+    config->high_res_clock = high_res_clock;
+    config->verify_host = default_verify_host;
+    config->data_for_verify_host = NULL;
     config->client_hello_cb = NULL;
     config->client_hello_cb_ctx = NULL;
     config->cache_store = NULL;
@@ -102,8 +123,6 @@ static int s2n_config_init(struct s2n_config *config) {
     /* By default, only the client will authenticate the Server's Certificate. The Server does not request or
      * authenticate any client certificates. */
     config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
-    config->verify_host = NULL;
-    config->data_for_verify_host = NULL;
     config->check_ocsp = 1;
 
     if (s2n_is_in_fips_mode()) {
@@ -133,7 +152,6 @@ struct s2n_config *s2n_fetch_default_config(void) {
         s2n_config_init(&s2n_default_config);
         s2n_default_config.cert_and_key_pairs = NULL;
         s2n_default_config.cipher_preferences = &cipher_preferences_20170210;
-        s2n_default_config.nanoseconds_since_epoch = get_nanoseconds_since_epoch;
         s2n_default_config.client_cert_auth_type = S2N_CERT_AUTH_NONE; /* Do not require the client to provide a Cert to the Server */
         s2n_default_config.data_for_verify_host = NULL;
 
@@ -148,7 +166,6 @@ struct s2n_config *s2n_fetch_default_fips_config(void) {
         s2n_config_init(&s2n_default_fips_config);
         s2n_default_fips_config.cert_and_key_pairs = NULL;
         s2n_default_fips_config.cipher_preferences = &cipher_preferences_20170405;
-        s2n_default_fips_config.nanoseconds_since_epoch = get_nanoseconds_since_epoch;
 
         default_fips_config_init = 1;
     }
@@ -161,7 +178,6 @@ struct s2n_config *s2n_fetch_unsafe_client_testing_config(void) {
         s2n_config_init(&s2n_unsafe_client_testing_config);
         s2n_unsafe_client_testing_config.cert_and_key_pairs = NULL;
         s2n_unsafe_client_testing_config.cipher_preferences = &cipher_preferences_20170210;
-        s2n_unsafe_client_testing_config.nanoseconds_since_epoch = get_nanoseconds_since_epoch;
         s2n_unsafe_client_testing_config.client_cert_auth_type = S2N_CERT_AUTH_NONE;
         s2n_unsafe_client_testing_config.check_ocsp = 0;
 
@@ -176,7 +192,6 @@ struct s2n_config *s2n_fetch_default_client_config(void) {
         s2n_config_init(&default_client_config);
         default_client_config.cert_and_key_pairs = NULL;
         default_client_config.cipher_preferences = &cipher_preferences_20170210;
-        default_client_config.nanoseconds_since_epoch = get_nanoseconds_since_epoch;
         default_client_config.client_cert_auth_type = S2N_CERT_AUTH_REQUIRED;
 
         default_client_config_init = 1;
@@ -337,8 +352,8 @@ int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_req
     return 0;
 }
 
-int s2n_config_set_verification_ca_file(struct s2n_config *config, const char *ca_file_pem) {
-    return s2n_x509_trust_store_from_ca_file(&config->trust_store, ca_file_pem);
+int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_file_pem, const char *ca_dir) {
+    return s2n_x509_trust_store_from_ca_file(&config->trust_store, ca_file_pem, ca_dir);
 }
 
 int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem)
@@ -458,12 +473,20 @@ int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
     return 0;
 }
 
-int s2n_config_set_nanoseconds_since_epoch_callback(struct s2n_config *config, int (*nanoseconds_since_epoch) (void *, uint64_t *), void *data)
-{
-    notnull_check(nanoseconds_since_epoch);
+extern int s2n_config_set_sys_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void * data) {
+    notnull_check(clock_fn);
 
-    config->nanoseconds_since_epoch = nanoseconds_since_epoch;
-    config->data_for_nanoseconds_since_epoch = data;
+    config->sys_clock = clock_fn;
+    config->data_for_sys_clock = data;
+
+    return 0;
+}
+
+extern int s2n_config_set_high_res_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void * data) {
+    notnull_check(clock_fn);
+
+    config->high_res_clock = clock_fn;
+    config->data_for_high_res_clock = data;
 
     return 0;
 }

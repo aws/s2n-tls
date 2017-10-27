@@ -213,6 +213,13 @@ struct s2n_connection {
     struct s2n_blob ct_response;
 
     struct s2n_x509_validator x509_validator;
+
+    /* After a connection is created this is the verification function that should always be used. At init time,
+     * the config should be checked for a verify callback and each connection should default to that. However,
+     * from the user's perspective, it's sometimes simpler to manage state by attaching each validation function/data
+     * to the connection, instead of globally to a single config.*/
+    s2n_verify_host_fn verify_host_fn;
+    void *data_for_verify_host;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);

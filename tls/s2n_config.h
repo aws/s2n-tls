@@ -25,15 +25,17 @@
 
 struct s2n_cipher_preferences;
 
-
 struct s2n_config {
     struct s2n_dh_params *dhparams;
     struct s2n_cert_chain_and_key *cert_and_key_pairs;
     const struct s2n_cipher_preferences *cipher_preferences;
     struct s2n_blob application_protocols;
     s2n_status_request_type status_request_type;
-    int (*nanoseconds_since_epoch) (void *, uint64_t *);
-    void *data_for_nanoseconds_since_epoch;
+    s2n_clock_time_nanoseconds sys_clock;
+    s2n_clock_time_nanoseconds high_res_clock;
+
+    void *data_for_sys_clock;
+    void *data_for_high_res_clock;
 
     s2n_client_hello_fn *client_hello_cb;
     void *client_hello_cb_ctx;
