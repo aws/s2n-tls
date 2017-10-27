@@ -20,6 +20,7 @@
 : "${SCAN_BUILD_INSTALL_DIR:=$(pwd)/test-deps/scan-build}"
 : "${OPENSSL_1_1_0_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.1.0}"
 : "${OPENSSL_1_0_2_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.0.2}"
+: "${OPENSSL_1_0_2_FIPS_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.0.2-fips}"
 : "${LIBRESSL_INSTALL_DIR:=$(pwd)/test-deps/libressl}"
 : "${CPPCHECK_INSTALL_DIR:=$(pwd)/test-deps/cppcheck}"
 : "${CTVERIF_INSTALL_DIR:=$(pwd)/test-deps/ctverif}"
@@ -53,6 +54,7 @@ export LATEST_CLANG_INSTALL_DIR
 export SCAN_BUILD_INSTALL_DIR
 export OPENSSL_1_1_0_INSTALL_DIR
 export OPENSSL_1_0_2_INSTALL_DIR
+export OPENSSL_1_0_2_FIPS_INSTALL_DIR
 export LIBRESSL_INSTALL_DIR
 export CPPCHECK_INSTALL_DIR
 export CTVERIF_INSTALL_DIR

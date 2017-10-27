@@ -68,7 +68,7 @@ cd openssl-1.0.2*
 
 FIPS_OPTIONS="fips --with-fipsdir=$FIPSDIR shared"
 
-"$CONFIGURE $FIPS_OPTIONS" -g3 -fPIC no-libunbound no-gmp no-jpake no-krb5 no-md2 no-rc5 \
+$CONFIGURE $FIPS_OPTIONS -g3 -fPIC no-libunbound no-gmp no-jpake no-krb5 no-md2 no-rc5 \
          no-rfc3779 no-sctp no-ssl-trace no-store no-zlib no-hw no-mdc2 no-seed no-idea \
          enable-ec_nistp_64_gcc_128 no-camellia no-bf no-ripemd no-dsa no-ssl2 no-capieng -DSSL_FORBID_ENULL \
          -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS --prefix="$INSTALL_DIR"
