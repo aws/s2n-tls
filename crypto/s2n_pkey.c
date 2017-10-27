@@ -24,12 +24,14 @@
 
 int s2n_pkey_zero_init(struct s2n_pkey *pkey) 
 {
+    pkey->size = NULL;
     pkey->sign = NULL;
     pkey->verify = NULL;
     pkey->encrypt = NULL;
     pkey->decrypt = NULL;
     pkey->match = NULL;
     pkey->free = NULL;
+    pkey->check_key = NULL;
     return 0;
 }
 
@@ -46,6 +48,13 @@ int s2n_pkey_setup_for_type(struct s2n_pkey *pkey, s2n_cert_type cert_type)
         S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
     }
     return 0;
+}
+
+int s2n_pkey_check_key_exists(struct s2n_pkey *pkey)
+{
+    notnull_check(pkey->check_key);
+
+    return pkey->check_key(pkey);
 }
 
 int s2n_pkey_size(const struct s2n_pkey *pkey)

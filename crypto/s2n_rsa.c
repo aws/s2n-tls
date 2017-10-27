@@ -218,6 +218,7 @@ int s2n_rsa_pkey_init(struct s2n_pkey *pkey) {
     pkey->decrypt = &s2n_rsa_decrypt;
     pkey->match = &s2n_rsa_keys_match;
     pkey->free = &s2n_rsa_key_free;
+    pkey->check_key = &s2n_rsa_check_key_exists;
     return 0;
 }
 

@@ -124,6 +124,13 @@ static int s2n_ecdsa_key_free(struct s2n_pkey *pkey)
     return 0;
 }
 
+int s2n_ecdsa_check_key_exists(const struct s2n_pkey *pkey)
+{
+    const struct s2n_ecdsa_key *ecdsa_key = &pkey->key.ecdsa_key;
+    notnull_check(ecdsa_key->ec_key);
+    return 0;
+}
+
 int s2n_evp_pkey_to_ecdsa_private_key(s2n_ecdsa_private_key *ecdsa_key, EVP_PKEY *evp_private_key)
 {
     EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(evp_private_key);
@@ -160,5 +167,6 @@ int s2n_ecdsa_pkey_init(struct s2n_pkey *pkey) {
     pkey->decrypt = NULL; /* No function for decryption */
     pkey->match = &s2n_ecdsa_keys_match;
     pkey->free = &s2n_ecdsa_key_free;
+    pkey->check_key = &s2n_ecdsa_check_key_exists;
     return 0;
 }
