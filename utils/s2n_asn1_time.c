@@ -63,7 +63,7 @@ static inline long get_current_timezone_offset(void) {
 
 int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len, uint64_t *ticks) {
 
-    //figure out if we are on something other than UTC since timegm is not supported everywhere.
+    /* figure out if we are on something other than UTC since timegm is not supported everywhere. */
     long gmt_offset_current = get_current_timezone_offset();
 
     uint32_t str_len = len;
@@ -80,10 +80,10 @@ int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len,
     long offset_hours = 0;
     long offset_minutes = 0;
 
-    //this is just a standard state machine for ASN1 date format... nothing special.
-    //just do a character at a time and change the state per character encountered.
-    //when finished the above time structure should be filled in along with some
-    //crazy timezone info we'll need shortly afterwards.
+    /*this is just a standard state machine for ASN1 date format... nothing special.
+     *just do a character at a time and change the state per character encountered.
+     *when finished the above time structure should be filled in along with some
+     *crazy timezone info we'll need shortly afterwards.*/
     while (state < FINISHED && current_pos < str_len) {
         char current_char = asn1_time[current_pos];
         switch (state) {
@@ -229,22 +229,22 @@ int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len,
 
     if (state > ON_TIMEZONE && state < PARSE_ERROR) {
         time_t clock_data = 0;
-        //ASN1 + and - is in format HHMM. We need to convert it to seconds for the adjustment
+        /* ASN1 + and - is in format HHMM. We need to convert it to seconds for the adjustment */
         long gmt_offset = (offset_hours * 3600) + (offset_minutes * 60);
 
         if (offset_negative) {
             gmt_offset = 0 - gmt_offset;
         }
 
-        //if we detected UTC is being used (please always use UTC), we need to add the detected timezone on the local
-        //machine back to the offset.
+        /* if we detected UTC is being used (please always use UTC), we need to add the detected timezone on the local
+         * machine back to the offset. */
         if (!local_time_assumed) {
             gmt_offset -= gmt_offset_current;
         }
 
         clock_data = mktime(&time);
 
-        //convert to nanoseconds and add the timezone offset.
+        /* convert to nanoseconds and add the timezone offset. */
         if (clock_data > 0) {
             *ticks = ((uint64_t) clock_data - gmt_offset) * 1000000000;
             return 0;
@@ -253,3 +253,4 @@ int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len,
 
     return -1;
 }
+

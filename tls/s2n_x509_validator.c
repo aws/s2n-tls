@@ -187,14 +187,14 @@ s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, str
         const uint8_t *data = asn1cert.data;
 
         if (validator->validate_certificates) {
-            //the cert is der encoded, just convert it.
+            /* the cert is der encoded, just convert it. */
             server_cert = d2i_X509(NULL, &data, asn1cert.size);
 
             if (!server_cert) {
                 goto clean_up;
             }
 
-            //add the cert to the chain.
+            /* add the cert to the chain. */
             if (!sk_X509_push(validator->cert_chain, server_cert)) {
                 X509_free(server_cert);
                 goto clean_up;
@@ -327,13 +327,13 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
     }
 
     int ocsp_verify_err = OCSP_basic_verify(basic_response, validator->cert_chain, validator->trust_store->trust_store, 0);
-    //do the crypto checks on the response.
+    /* do the crypto checks on the response.*/
     if (!ocsp_verify_err) {
         ret_val = S2N_CERT_ERR_EXPIRED;
         goto clean_up;
     }
 
-    //for each response check the timestamps and the status.
+    /* for each response check the timestamps and the status. */
     for (i = 0; i < OCSP_resp_count(basic_response); i++) {
         int status_reason;
         ASN1_GENERALIZEDTIME *revtime, *thisupd, *nextupd;
@@ -395,3 +395,4 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
 
     return ret_val;
 }
+
