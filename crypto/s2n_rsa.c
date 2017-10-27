@@ -181,7 +181,7 @@ static int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, str
 
 static int s2n_rsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv)
 {
-    uint8_t plain_inpad[36], plain_outpad[36], encpad[8192];
+    uint8_t plain_inpad[36] = {0}, plain_outpad[36] = {0}, encpad[8192];
     struct s2n_blob plain_in, plain_out, enc;
 
     const s2n_rsa_public_key *pub_key = &pub->key.rsa_key;

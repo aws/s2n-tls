@@ -1,4 +1,5 @@
 #!/bin/bash
+#
 # Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
@@ -15,15 +16,5 @@
 
 set -e
 
-usage() {
-    echo "install_scan-build.sh install_dir"
-    exit 1
-}
+find ./.travis -type f -name '*.sh' -exec shellcheck {} \;
 
-if [ "$#" -ne "1" ]; then
-    usage
-fi
-INSTALL_DIR=$1
-# Originally from: http://clang-analyzer.llvm.org/downloads/checker-278.tar.bz2
-curl https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-29_clang-analyzer_checker.tar.bz2 > checker-278.tar.bz2
-mkdir -p "$INSTALL_DIR" && tar jxf checker-278.tar.bz2 --strip-components=1 -C "$INSTALL_DIR"

@@ -1,4 +1,4 @@
-#
+#!/bin/bash
 # Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
@@ -25,7 +25,7 @@ LIBCRYPTO_ROOT=$1
 BUILD_DIR=$2
 INSTALL_DIR=$3
 
-cd $BUILD_DIR
+cd "$BUILD_DIR"
 # Originally from: https://www.python.org/ftp/python/3.6.0/Python-3.6.0.tgz
 curl https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-29_Python-3.6.0.tgz > Python-3.6.0.tgz
 tar xzf Python-3.6.0.tgz
@@ -33,4 +33,3 @@ cd Python-3.6.0
  CPPFLAGS="-I$LIBCRYPTO_ROOT/include" LDFLAGS="-Wl,-rpath,$LIBCRYPTO_ROOT/lib -L$LIBCRYPTO_ROOT/lib" ./configure --prefix="$INSTALL_DIR"
 make
 make install
-

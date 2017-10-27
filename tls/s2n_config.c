@@ -101,8 +101,7 @@ static struct s2n_config s2n_default_fips_config;
 static int s2n_config_init(struct s2n_config *config) {
     config->cert_and_key_pairs = NULL;
     config->dhparams = NULL;
-    config->application_protocols.data = NULL;
-    config->application_protocols.size = 0;
+    memset(&config->application_protocols, 0, sizeof(config->application_protocols));
     config->status_request_type = S2N_STATUS_REQUEST_NONE;
     config->sys_clock = sys_clock;
     config->high_res_clock = high_res_clock;
@@ -367,10 +366,8 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
     config->cert_and_key_pairs = (struct s2n_cert_chain_and_key *)(void *)mem.data;
     
     config->cert_and_key_pairs->head = NULL;
-    config->cert_and_key_pairs->ocsp_status.data = NULL;
-    config->cert_and_key_pairs->ocsp_status.size = 0;
-    config->cert_and_key_pairs->sct_list.data = NULL;
-    config->cert_and_key_pairs->sct_list.size = 0;
+    memset(&config->cert_and_key_pairs->ocsp_status, 0, sizeof(config->cert_and_key_pairs->ocsp_status));
+    memset(&config->cert_and_key_pairs->sct_list, 0, sizeof(config->cert_and_key_pairs->sct_list));
     GUARD(s2n_pkey_zero_init(&config->cert_and_key_pairs->private_key));
 
     /* Put the private key pem in a stuffer */
@@ -447,7 +444,7 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
 int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
 {
     struct s2n_stuffer dhparams_in_stuffer, dhparams_out_stuffer;
-    struct s2n_blob dhparams_blob;
+    struct s2n_blob dhparams_blob = {0};
     struct s2n_blob mem;
 
     /* Allocate the memory for the chain and key struct */
