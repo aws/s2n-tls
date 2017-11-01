@@ -92,6 +92,7 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status * blocked)
 
 ssize_t s2n_send(struct s2n_connection * conn, const void *buf, ssize_t size, s2n_blocked_status * blocked)
 {
+    ssize_t user_data_sent;
     int max_payload_size;
 
     if (conn->closed) {
@@ -100,6 +101,9 @@ ssize_t s2n_send(struct s2n_connection * conn, const void *buf, ssize_t size, s2
 
     /* Flush any pending I/O */
     GUARD(s2n_flush(conn, blocked));
+
+    /* Acknowledge consumed and flushed user data as sent */
+    user_data_sent = conn->current_user_data_consumed;
 
     *blocked = S2N_BLOCKED_ON_WRITE;
 
@@ -142,7 +146,20 @@ ssize_t s2n_send(struct s2n_connection * conn, const void *buf, ssize_t size, s2
         conn->current_user_data_consumed += in.size;
 
         /* Send it */
-        GUARD(s2n_flush(conn, blocked));
+        if (s2n_flush(conn, blocked) < 0) {
+            if (s2n_errno == S2N_ERR_BLOCKED && user_data_sent > 0) {
+                /* We successfully sent >0 user bytes on the wire, but not the full requested payload
+                 * because we became blocked on I/O. Acknowledge the data sent. */
+
+                conn->current_user_data_consumed -= user_data_sent;
+                return user_data_sent;
+            } else {
+                return -1;
+            }
+        }
+
+        /* Acknowledge consumed and flushed user data as sent */
+        user_data_sent = conn->current_user_data_consumed;
     }
 
     /* If everything has been written, then there's no user data pending */
