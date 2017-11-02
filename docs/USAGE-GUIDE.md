@@ -9,14 +9,75 @@ cd s2n
 ```
 
 ## Building s2n with existing libcrypto
-
+### make Instructions
 To build s2n with an existing libcrypto installation, store its root folder in the
 `LIBCRYPTO_ROOT` environment variable.
 ```shell
 # /usr/local/ssl/lib should contain libcrypto.a
 LIBCRYPTO_ROOT=/usr/local/ssl make
 ```
+### CMake Instructions
 
+Throughout this document, there are instructions for setting a `LIBCRYPTO_ROOT` environment variable, or setting install prefixes to `s2n/lib-crypto-root`. If you 
+are using CMake that step is unnecessary. Just follow the instructions here to use any build of libcrypto.
+
+(Required): You need at least CMake version 3.0 to fully benefit from Modern CMake. See [this](https://www.youtube.com/watch?v=bsXLMQ6WgIk) for more information.
+
+(Optional): Set the CMake variable `LIBCRYPTO_ROOT_DIR` to any libcrypto build on your machine. If you do not,
+the default installation on your machine will be used.
+
+(Optional): Set the CMake variable `BUILD_SHARED_LIBS=ON` to build shared libraries. The default is static.
+ 
+We recommend an out-of-source build. Suppose you have a directory `s2n` which contains the s2n source code. At the same level
+we can create a directory called `s2n-build`
+
+For example, we can build and install shared libs using ninja as our build system, and the system libcrypto implementation.
+
+````shell
+mkdir s2n-build
+cd s2n-build
+cmake ../s2n -DBUILD_SHARED_LIBS=ON -GNinja
+ninja
+ninja test 
+sudo ninja install
+````
+
+For another example, we can prepare an Xcode project using static libs using a libcrypto implementation in the directory `$HOME/s2n-user/builds/libcrypto-impl`.
+
+````shell
+mkdir s2n-build
+cd s2n-build
+cmake ../s2n -DLIBCRYPTO_ROOT_DIR=$HOME/s2n-user/builds/libcrypto-impl -G "Xcode"
+# now open the project in Xcode and build from there, or use the Xcode CLI
+````
+
+Or, for unix style vanilla builds:
+
+````shell
+mkdir s2n-build
+cd s2n-build
+cmake ../s2n
+make
+make test
+sudo make install
+````
+
+### Consuming s2n via. CMake
+s2n ships with modern CMake finder scripts if CMake is used for the build. To take advantage of this from your CMake script, all you need to do to compile and link against s2n in your project is:
+
+````shell
+find_package(s2n)
+
+....
+
+target_link_libraries(yourExecutableOrLibrary s2n)
+````
+
+And when invoking CMake for your project, do one of three things:
+ 1. Append the `CMAKE_PREFIX_PATH` variable with the path to your s2n build.
+ 2. Set the `s2n_DIR` CMake variable
+ 3. If you have globally installed s2n, do nothing, it will automatically be found.
+ 
 ## Building s2n with OpenSSL-1.1.0
 
 To build s2n with OpenSSL-1.1.0, do the following:

@@ -40,14 +40,14 @@ else
     usage
 fi
 
-cd $GNUTLS_BUILD_DIR
+cd "$GNUTLS_BUILD_DIR"
 
 # libnettle is a dependency of GnuTLS
 # Originally from: https://ftp.gnu.org/gnu/nettle/nettle-3.3.tar.gz
 curl https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-29_nettle-3.3.tar.gz > nettle-3.3.tar.gz
 tar -xzf nettle-3.3.tar.gz
 cd nettle-3.3
-./configure --prefix=$GNUTLS_INSTALL_DIR/nettle
+./configure --prefix="$GNUTLS_INSTALL_DIR"/nettle
 make
 make install
 cd ..
@@ -64,6 +64,6 @@ cd gnutls-3.5.5
             HOGWEED_CFLAGS="-I$GNUTLS_INSTALL_DIR/nettle/include" \
             --without-p11-kit \
             --with-included-libtasn1 \
-            --prefix=$GNUTLS_INSTALL_DIR
+            --prefix="$GNUTLS_INSTALL_DIR"
 make
 make install

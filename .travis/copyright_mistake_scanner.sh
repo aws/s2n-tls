@@ -13,17 +13,9 @@
 # permissions and limitations under the License.
 #
 
-set -e
+#header checker for either copyright info and/or proper year
 
-usage() {
-    echo "install_scan-build.sh install_dir"
-    exit 1
-}
-
-if [ "$#" -ne "1" ]; then
-    usage
-fi
-INSTALL_DIR=$1
-# Originally from: http://clang-analyzer.llvm.org/downloads/checker-278.tar.bz2
-curl https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-29_clang-analyzer_checker.tar.bz2 > checker-278.tar.bz2
-mkdir -p "$INSTALL_DIR" && tar jxf checker-278.tar.bz2 --strip-components=1 -C "$INSTALL_DIR"
+YEAR=$(date +%Y)
+while IFS= read -r -d $'\0' file; do
+	grep -L "* Copyright $YEAR" $file | perl -ne 'print "File is missing copyright info: $_"'
+done < <(find . -type f -name '*.c' -o -name '*.h' -print0)

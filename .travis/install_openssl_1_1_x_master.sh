@@ -14,7 +14,7 @@
 #
 
 set -e
-pushd `pwd`
+pushd "$(pwd)"
 
 usage() {
     echo "install_openssl_1_1_x_master.sh build_dir install_dir travis_platform"
@@ -29,7 +29,7 @@ BUILD_DIR=$1
 INSTALL_DIR=$2
 PLATFORM=$3
 
-cd $BUILD_DIR
+cd "$BUILD_DIR"
 
 git clone https://github.com/openssl/openssl.git
 
@@ -50,7 +50,7 @@ $CONFIGURE -g3 -fPIC              \
          no-hw no-mdc2 no-seed no-idea enable-ec_nistp_64_gcc_128 no-camellia\
          no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng                  \
          -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS      \
-         --prefix=$INSTALL_DIR
+         --prefix="$INSTALL_DIR"
 
 make depend
 make

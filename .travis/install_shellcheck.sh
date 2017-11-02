@@ -1,4 +1,5 @@
 #!/bin/bash
+#
 # Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
@@ -16,14 +17,22 @@
 set -e
 
 usage() {
-    echo "install_scan-build.sh install_dir"
+    echo "install_shellcheck.sh travis_platform"
     exit 1
 }
 
-if [ "$#" -ne "1" ]; then
+if [ "$#" -ne "3" ]; then
     usage
 fi
-INSTALL_DIR=$1
-# Originally from: http://clang-analyzer.llvm.org/downloads/checker-278.tar.bz2
-curl https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-29_clang-analyzer_checker.tar.bz2 > checker-278.tar.bz2
-mkdir -p "$INSTALL_DIR" && tar jxf checker-278.tar.bz2 --strip-components=1 -C "$INSTALL_DIR"
+
+TRAVIS_PLATFORM=$1
+
+if [ "$TRAVIS_PLATFORM" == "linux" ]; then
+    sudo apt-get -qq install shellcheck -y
+elif [ "$TRAVIS_PLATFORM" == "osx" ]; then
+    # Installing an existing package is a "failure" in brew
+    brew install shellcheck || true ;
+else
+    echo "Invalid platform! $TRAVIS_PLATFORM"
+    usage
+fi

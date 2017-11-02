@@ -72,7 +72,7 @@ int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size)
 
     for (int i = 0; i < size; i++) {
         if (buffer[i] != expected_data[i]) {
-        return 1;
+            return 1;
         }
     }
 
@@ -171,18 +171,19 @@ int main(int argc, char **argv)
         int r = s2n_send(conn, ptr, remaining, &blocked);
         if (r < 0) {
             if (blocked) {
-                /* We reached a blocked state */
+                /* We reached a blocked state and made no forward progress last call */
                 break;
             }
             continue;
         }
-        
+        EXPECT_TRUE(r > 0);
         remaining -= r;
         ptr += r;
     }
-        
-    /* Remaining shouldn't have progressed at all */
-    EXPECT_EQUAL(remaining, data_size);
+
+    /* Remaining should be between data_size and 0 */
+    EXPECT_TRUE(remaining < data_size);
+    EXPECT_TRUE(remaining > 0);
 
     /* Wake the child process by sending it SIGCONT */
     EXPECT_SUCCESS(kill(pid, SIGCONT));
@@ -197,7 +198,7 @@ int main(int argc, char **argv)
         if (r < 0) {
             continue;
         }
-        
+        EXPECT_TRUE(r > 0);
         remaining -= r;
         ptr += r;
     }

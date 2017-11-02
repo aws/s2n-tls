@@ -16,9 +16,9 @@
 set -e
 
 make indent > /dev/null
-DIFF_LINE_COUNT=`git diff | wc -l`
+DIFF_LINE_COUNT=$(git diff | wc -l)
 
-if [ $DIFF_LINE_COUNT != 0 ]; then
+if [ "$DIFF_LINE_COUNT" != 0 ]; then
 	git diff
 	printf "\033[31;1mFAILED check_indent\033[0m\n"
 	exit -1
