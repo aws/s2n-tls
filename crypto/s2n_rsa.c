@@ -30,15 +30,6 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-int s2n_rsa_public_key_set_from_openssl(s2n_rsa_public_key *s2n_rsa, RSA *openssl_rsa)
-{
-    notnull_check(s2n_rsa);
-    notnull_check(openssl_rsa);
-    s2n_rsa->rsa = openssl_rsa;
-
-    return 0;
-}
-
 static int s2n_rsa_modulus_check(RSA *rsa)
 {
     /* RSA was made opaque starting in Openssl 1.1.0 */

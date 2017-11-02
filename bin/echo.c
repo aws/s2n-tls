@@ -39,7 +39,7 @@ void print_s2n_error(const char *app_error)
 }
 
 /* Accept all RSA Certificates is unsafe and is only used in the s2n Client */
-s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context)
+s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_cert_type *cert_type_out, s2n_cert_public_key *public_key_out, void *context)
 {
     uint32_t bytes_read = 0;
     uint32_t certificate_count = 0;
@@ -63,11 +63,6 @@ s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn, uint8
 
         /* Pull the public key from the first certificate */
         if (certificate_count == 0) {
-            s2n_rsa_public_key *s2n_rsa;
-            if (s2n_cert_public_key_get_rsa(public_key_out, &s2n_rsa) < 0) {
-                return S2N_CERT_ERR_INVALID;
-            }
-
             /* Assume that the asn1cert is an RSA Cert */
             uint8_t *cert_to_parse = asn1_cert_data;
             X509 *cert = d2i_X509(NULL, (const unsigned char **)(void *)&cert_to_parse, next_certificate_size);
@@ -98,20 +93,16 @@ s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn, uint8
 
             RSA *openssl_rsa;
             openssl_rsa = EVP_PKEY_get1_RSA(public_key);
-            if (openssl_rsa == NULL) {
-                EVP_PKEY_free(public_key);
-                return S2N_CERT_ERR_INVALID;
-            }
-
-            if (s2n_rsa_public_key_set_from_openssl(s2n_rsa, openssl_rsa) < 0) {
-                return S2N_CERT_ERR_INVALID;
-            }
-
             EVP_PKEY_free(public_key);
-
-            if (s2n_cert_public_key_set_cert_type(public_key_out, S2N_CERT_TYPE_RSA_SIGN) < 0) {
+            if (openssl_rsa == NULL) {
                 return S2N_CERT_ERR_INVALID;
             }
+
+            if (s2n_cert_public_key_set_rsa_from_openssl(public_key_out, openssl_rsa) < 0) {
+                return S2N_CERT_ERR_INVALID;
+            }
+
+            *cert_type_out = S2N_CERT_TYPE_RSA_SIGN;                            
         }
 
         certificate_count++;

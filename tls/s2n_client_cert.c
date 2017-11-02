@@ -42,25 +42,27 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
     client_cert_chain.data = s2n_stuffer_raw_read(in, client_cert_chain.size);
     notnull_check(client_cert_chain.data);
 
-    struct s2n_cert_public_key cert_public_key;
-    GUARD(s2n_pkey_zero_init(&cert_public_key.pkey));
+    s2n_cert_public_key public_key;
+    GUARD(s2n_pkey_zero_init(&public_key));
+    
+    s2n_cert_type cert_type;
 
     /* Determine the Cert Type, Verify the Cert, and extract the Public Key */
     const s2n_cert_validation_code rc = conn->config->verify_cert_chain_cb(conn, client_cert_chain.data, client_cert_chain.size,
-            &cert_public_key, conn->config->verify_cert_context);
+            &cert_type, &public_key, conn->config->verify_cert_context);
 
     if (rc != S2N_CERT_OK) {
         /* Don't use GUARD for verify_cert_chain_cb so that s2n_errno is set. */
         S2N_ERROR(S2N_ERR_CERT_UNTRUSTED);
     }
 
-    switch (cert_public_key.cert_type) {
+    switch (cert_type) {
     /* s2n currently only supports RSA Certificates */
     case S2N_CERT_TYPE_RSA_SIGN:
-        s2n_rsa_check_key_exists(&cert_public_key.pkey);
+        s2n_rsa_check_key_exists(&public_key);
         conn->secure.client_cert_type = S2N_CERT_TYPE_RSA_SIGN;
         s2n_dup(&client_cert_chain, &conn->secure.client_cert_chain);
-        conn->secure.client_public_key = cert_public_key.pkey;
+        conn->secure.client_public_key = public_key;
         break;
     default:
         S2N_ERROR(S2N_ERR_CERT_TYPE_UNSUPPORTED);
@@ -72,9 +74,9 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
 
 int s2n_client_cert_send(struct s2n_connection *conn)
 {
-    struct s2n_cert_chain_and_key *chain = conn->config->cert_and_key_pairs;
+    struct s2n_cert_chain_and_key *chain_and_key = conn->config->cert_and_key_pairs;
     /* TODO: Check that RSA is in conn->server_preferred_cert_types and conn->secure.client_cert_sig_algorithm */
 
-    GUARD(s2n_send_cert_chain(&conn->handshake.io, chain));
+    GUARD(s2n_send_cert_chain(&conn->handshake.io, &chain_and_key->cert_chain));
     return 0;
 }

@@ -37,28 +37,29 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
-    struct s2n_cert_public_key public_key;
+    s2n_cert_public_key public_key;
+    s2n_cert_type cert_type;
     struct s2n_blob cert_chain;
     cert_chain.data = s2n_stuffer_raw_read(&conn->handshake.io, size_of_all_certificates);
     cert_chain.size = size_of_all_certificates;
 
-    const s2n_cert_validation_code rc = conn->config->verify_cert_chain_cb(conn, cert_chain.data, cert_chain.size, &public_key, conn->config->verify_cert_context);
+    const s2n_cert_validation_code rc = conn->config->verify_cert_chain_cb(conn, cert_chain.data, cert_chain.size, &cert_type, &public_key, conn->config->verify_cert_context);
 
     if (rc != S2N_CERT_OK) {
         S2N_ERROR(S2N_ERR_CERT_UNTRUSTED);
     }
 
-    if(public_key.cert_type != S2N_CERT_TYPE_RSA_SIGN) {
+    if(cert_type != S2N_CERT_TYPE_RSA_SIGN) {
         S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     }
 
-    conn->secure.server_public_key = public_key.pkey;
+    conn->secure.server_public_key = public_key;
 
     return 0;
 }
 
 int s2n_server_cert_send(struct s2n_connection *conn)
 {
-    GUARD(s2n_send_cert_chain(&conn->handshake.io, conn->server->server_cert_chain));
+    GUARD(s2n_send_cert_chain(&conn->handshake.io, &conn->server->server_cert_chain->cert_chain));
     return 0;
 }
