@@ -43,7 +43,7 @@ int main(int argc, char **argv)
         }
 
         /* We should have exactly 25 cipher suites */
-        EXPECT_EQUAL(count, 25);
+        EXPECT_EQUAL(count, 26);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
