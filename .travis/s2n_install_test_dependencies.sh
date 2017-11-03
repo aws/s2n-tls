@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # Clear the Travis Cache Weekly to ensure that any upstream breakages in test dependencies are caught
 if [[ "$TRAVIS_EVENT_TYPE" == "cron" ]]; then
     sudo rm -rf ./test-deps
@@ -14,7 +16,7 @@ fi
 
 #Install & Run shell check before installing dependencies
 echo "Running ShellCheck..."
-.travis/install_shellcheck.sh
+.travis/install_shellcheck.sh "$TRAVIS_OS_NAME"
 .travis/run_shellcheck.sh
 echo "Shell Check is success."
 
@@ -32,3 +34,5 @@ fi
 if [[ "$GCC6_REQUIRED" == "true" ]]; then
     alias gcc="\$(which gcc-6)";
 fi
+
+echo "Success"
