@@ -2,9 +2,9 @@
 
 # Setup Default Build Config
 : "${S2N_LIBCRYPTO:=openssl-1.1.0}"
-: "${BUILD_S2N:=true}"
-: "${GCC6_REQUIRED:=true}"
-: "${LATEST_CLANG:=true}"
+: "${BUILD_S2N:=false}"
+: "${GCC6_REQUIRED:=false}"
+: "${LATEST_CLANG:=false}"
 : "${TESTS:=integration}"
 
 # Setup the Travis cache directory paths.
@@ -65,14 +65,19 @@ export TRAVIS_OS_NAME
 # Add all of our test dependencies to the PATH. Use Openssl 1.1.0 so the latest openssl is used for s_client
 # integration tests.
 export PATH=$PYTHON_INSTALL_DIR/bin:$OPENSSL_1_1_0_INSTALL_DIR/bin:$GNUTLS_INSTALL_DIR/bin:$SAW_INSTALL_DIR/bin:$Z3_INSTALL_DIR/bin:$SCAN_BUILD_INSTALL_DIR/bin:$LATEST_CLANG_INSTALL_DIR/bin:$PATH
-export LD_LIBRARY_PATH=$OPENSSL_1_1_0_INSTALL_DIR/lib:$LD_LIBRARY_PATH; export DYLD_LIBRARY_PATH=$OPENSSL_1_1_0_INSTALL_DIR/lib:$LD_LIBRARY_PATH;
+export LD_LIBRARY_PATH=$OPENSSL_1_1_0_INSTALL_DIR/lib:$LD_LIBRARY_PATH; 
+export DYLD_LIBRARY_PATH=$OPENSSL_1_1_0_INSTALL_DIR/lib:$LD_LIBRARY_PATH;
 
 # Select the libcrypto to build s2n against. If this is unset, default to the latest stable version(Openssl 1.1.0)
 if [[ -z $S2N_LIBCRYPTO ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_0_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "openssl-1.1.0" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_0_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "openssl-1.1.x-master" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_X_MASTER_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_0_2_INSTALL_DIR ; fi
-if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2-fips" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_0_2_FIPS_INSTALL_DIR ; export S2N_TEST_IN_FIPS_MODE=1 ; fi
+if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2-fips" ]]; then 
+    export LIBCRYPTO_ROOT=$OPENSSL_1_0_2_FIPS_INSTALL_DIR ; 
+    export S2N_TEST_IN_FIPS_MODE=1 ; 
+fi
+
 if [[ "$S2N_LIBCRYPTO" == "libressl" ]]; then export LIBCRYPTO_ROOT=$LIBRESSL_INSTALL_DIR ; fi
 
 # Create a link to the selected libcrypto. This shouldn't be needed when LIBCRYPTO_ROOT is set, but some tests
