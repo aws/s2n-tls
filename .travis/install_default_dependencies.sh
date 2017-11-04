@@ -41,7 +41,7 @@ fi
 
 # Download and Install the Openssl FIPS module and Openssl 1.0.2-fips
 if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2-fips" ]] && [[ ! -d "$OPENSSL_1_0_2_FIPS_INSTALL_DIR" ]]; then
-    .travis/install_openssl_1_0_2_fips.sh "$(mktemp -d)" "$OPENSSL_1_0_2_FIPS_INSTALL_DIR" "$TRAVIS_OS_NAME" > /dev/null ; fi
+    .travis/install_openssl_1_0_2_fips.sh "$(mktemp -d)" "$OPENSSL_1_0_2_FIPS_INSTALL_DIR" "$TRAVIS_OS_NAME" ; fi
 
 # Download and Install CppCheck
 if [[ "$BUILD_S2N" == "true" ]] && [[ ! -d "$CPPCHECK_INSTALL_DIR" ]]; then
