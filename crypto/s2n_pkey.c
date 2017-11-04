@@ -57,6 +57,7 @@ int s2n_pkey_sign(const struct s2n_pkey *pkey, struct s2n_hash_state *digest, st
 
 int s2n_pkey_verify(const struct s2n_pkey *pkey, struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
+    notnull_check(pkey);
     notnull_check(pkey->verify);
     
     return pkey->verify(pkey, digest, signature);
