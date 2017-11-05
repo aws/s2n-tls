@@ -280,10 +280,7 @@ int s2n_hmac_digest(struct s2n_hmac_state *state, void *out, uint32_t size)
     return s2n_hash_digest(&state->outer, out, size);
 }
 
-int s2n_hmac_digest_two_compression_rounds_impl(struct s2n_hash_state *copy,
-						struct s2n_hmac_state *state,
-						void *out,
-						uint32_t size)
+int s2n_hmac_digest_two_compression_rounds(struct s2n_hmac_state *state, void *out, uint32_t size)
 {
     /* Do the "real" work of this function. */
     GUARD(s2n_hmac_digest(state, out, size));
@@ -299,20 +296,7 @@ int s2n_hmac_digest_two_compression_rounds_impl(struct s2n_hash_state *copy,
     }
 
     /* No-op s2n_hash_update to normalize timing and guard against Lucky13. This does not affect the value of *out. */
-    return s2n_hash_update(copy, state->xor_pad, state->hash_block_size);
-}
-
-int s2n_hmac_digest_two_compression_rounds(struct s2n_hmac_state *state, void *out, uint32_t size)
-{
-
-    /* We cannot operate on a hash once it has been finalized.  Instead, make a copy so that
-     * our code balancing works on the copy */
-    struct s2n_hash_state copy;
-    GUARD(s2n_hash_copy(&copy, &state->inner));
-
-    int rval = s2n_hmac_digest_two_compression_rounds_impl(&copy,state,out,size);
-    GUARD(s2n_hash_free(&copy));
-    return rval;
+    return s2n_hash_update(&state->inner, state->xor_pad, state->hash_block_size);
 }
 
 int s2n_hmac_free(struct s2n_hmac_state *state)
