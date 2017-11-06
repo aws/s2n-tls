@@ -13,6 +13,8 @@
 # permissions and limitations under the License.
 #
 
+set -ex
+
 brew update
 brew tap homebrew/versions
 brew install gcc6

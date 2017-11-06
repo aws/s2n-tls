@@ -53,6 +53,12 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
         S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     }
 
+    /* We know it's an RSA Key, verify it isn't null. */
+    GUARD(s2n_rsa_check_key_exists(&public_key));
+
+    /* Init pkey function pointers for this Cert Type for when it will be verified. */
+    GUARD(s2n_pkey_setup_for_type(&public_key, cert_type));
+
     conn->secure.server_public_key = public_key;
 
     return 0;

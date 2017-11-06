@@ -13,7 +13,7 @@
 # permissions and limitations under the License.
 #
 
-set -e
+set -ex
 
 sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
 sudo apt-get update

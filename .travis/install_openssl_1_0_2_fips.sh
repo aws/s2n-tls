@@ -13,7 +13,7 @@
 # permissions and limitations under the License.
 #
 
-set -e
+set -ex
 pushd "$(pwd)"
 
 usage() {
@@ -53,8 +53,8 @@ gunzip -c openssl-fips-2.0.13.tar.gz | tar xf -
 rm openssl-fips-2.0.13.tar.gz
 cd openssl-fips-2.0.13
 mkdir ../OpensslFipsModule
-export FIPSDIR
 FIPSDIR="$(pwd)/../OpensslFipsModule"
+export FIPSDIR
 chmod +x ./Configure
 $CONFIGURE
 make

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 # Clear the Travis Cache Weekly to ensure that any upstream breakages in test dependencies are caught
 if [[ "$TRAVIS_EVENT_TYPE" == "cron" ]]; then
@@ -29,10 +29,5 @@ if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
 fi
 
 .travis/install_default_dependencies.sh
-
-# Set GCC 6 as Default on both Ubuntu and OSX
-if [[ "$GCC6_REQUIRED" == "true" ]]; then
-    alias gcc="\$(which gcc-6)";
-fi
 
 echo "Success"
