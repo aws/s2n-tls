@@ -26,17 +26,6 @@
 #include "utils/s2n_safety.h"
 
 
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
-{
-//#ifdef S2N_TEST_IN_FIPS_MODE
-//    S2N_TEST_ENTER_FIPS_MODE();
-//#endif
-//
-//    GUARD(s2n_init());
-//    GUARD(atexit(s2n_fuzz_atexit));
-    return 0;
-}
-
 int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
     struct s2n_stuffer in;
@@ -47,7 +36,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 
     s2n_stuffer_certificate_from_pem(&in, &out);
 
-    // Reset in and out buffers
+    /* Reset in and out buffers */
     GUARD(s2n_stuffer_reread(&in));
     GUARD(s2n_stuffer_wipe(&out));
 

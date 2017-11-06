@@ -79,7 +79,7 @@ then
         # Clean up LibFuzzer corpus files if the test is negative.
         rm -f leak-* crash-*
     else
-        if [ $MINIMIZE_FUZZ_CORPUS == 1 ];
+        if [ "$MINIMIZE_FUZZ_CORPUS" == "1" ];
         then
             # Make temp dir and move all corpus files to it
             tmpdir="$(mktemp -d)"
