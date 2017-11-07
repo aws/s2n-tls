@@ -110,8 +110,8 @@ static int s2n_sslv3_mac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm a
         state->xor_pad[i] = 0x5c;
     }
 
-    GUARD(s2n_hash_update(&state->outer, key, klen));
-    GUARD(s2n_hash_update(&state->outer, state->xor_pad, state->xor_pad_size));
+    GUARD(s2n_hash_update(&state->outer_just_key, key, klen));
+    GUARD(s2n_hash_update(&state->outer_just_key, state->xor_pad, state->xor_pad_size));
     memset(&state->xor_pad, 0, sizeof(state->xor_pad));
 
     /* Copy inner_just_key to inner */
@@ -121,10 +121,10 @@ static int s2n_sslv3_mac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm a
 static int s2n_sslv3_mac_digest(struct s2n_hmac_state *state, void *out, uint32_t size)
 {
     GUARD(s2n_hash_digest(&state->inner, state->digest_pad, state->digest_size));
-    GUARD(s2n_hash_copy(&state->inner, &state->outer));
-    GUARD(s2n_hash_update(&state->inner, state->digest_pad, state->digest_size));
+    GUARD(s2n_hash_copy(&state->outer, &state->outer_just_key));
+    GUARD(s2n_hash_update(&state->outer, state->digest_pad, state->digest_size));
 
-    return s2n_hash_digest(&state->inner, out, size);
+    return s2n_hash_digest(&state->outer, out, size);
 }
 
 
