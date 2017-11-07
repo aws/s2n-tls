@@ -116,10 +116,6 @@ static int s2n_sslv3_mac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm a
 
 static int s2n_sslv3_mac_digest(struct s2n_hmac_state *state, void *out, uint32_t size)
 {
-    for (int i = 0; i < state->xor_pad_size; i++) {
-        state->xor_pad[i] = 0x5c;
-    }
-
     GUARD(s2n_hash_digest(&state->inner, state->digest_pad, state->digest_size));
     GUARD(s2n_hash_copy(&state->inner, &state->outer));
     GUARD(s2n_hash_update(&state->inner, state->digest_pad, state->digest_size));
