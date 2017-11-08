@@ -11,11 +11,10 @@ cache:
 osx_image: xcode8
 
 os:
-  - osx
   - linux
 
 env:
-  - TESTS=ctverif
+#  - TESTS=ctverif
   - S2N_LIBCRYPTO=openssl-1.1.0 BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
   - S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
   - S2N_LIBCRYPTO=openssl-1.0.2-fips BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
@@ -39,35 +38,7 @@ matrix:
     env: S2N_LIBCRYPTO=openssl-1.0.2-fips BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
   #This exception is because the test isn't finished yet, remove to turn on DRBG Saw tests
   - env: TESTS=sawDRBG                      SAW=true
-  include:
-  - os : linux
-    env : TESTS=sawHMAC SAW_HMAC_TEST=md5    SAW=true GCC6_REQUIRED=false
-    addons: &sawaddons
-      apt:
-        packages:
-          - clang-3.8
-          - llvm-3.8
-  - os : linux
-    env : TESTS=sawHMAC SAW_HMAC_TEST=sha1   SAW=true GCC6_REQUIRED=false
-    addons : *sawaddons
-  - os : linux
-    env : TESTS=sawHMAC SAW_HMAC_TEST=sha224 SAW=true GCC6_REQUIRED=false
-    addons : *sawaddons
-  - os : linux
-    env : TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true GCC6_REQUIRED=false
-    addons : *sawaddons
-  - os : linux
-    env : TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true GCC6_REQUIRED=false
-    addons : *sawaddons
-  - os : linux
-    env : TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true GCC6_REQUIRED=false
-    addons : *sawaddons
-  - os : linux
-    env : TESTS=tls SAW=true GCC6_REQUIRED=false
-    addons : *sawaddons    
-  - os : linux
-    env : TESTS=sawHMACFailure SAW=true
-    addons : *sawaddons    
+ 
   allow_failures:
     - os: osx
     - env: S2N_LIBCRYPTO=openssl-1.1.x-master BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
