@@ -22,9 +22,7 @@
 
 struct s2n_connection_prf_handles {
     /* TLS PRF HMAC p_hash */
-    struct s2n_hash_evp_digest p_hash_s2n_hmac_inner;
-    struct s2n_hash_evp_digest p_hash_s2n_hmac_inner_just_key;
-    struct s2n_hash_evp_digest p_hash_s2n_hmac_outer;
+    struct s2n_hmac_evp_backup p_hash_s2n_hmac;
 
     /* TLS PRF EVP p_hash */
     struct s2n_evp_hmac_state p_hash_evp_hmac;
@@ -52,37 +50,14 @@ struct s2n_connection_hash_handles {
     struct s2n_hash_evp_digest secure_signature_hash;
 };
 
-/* s2n hmac state components from hash states within each hmac */
+/* Allocationg new EVP structs is expensive, so we back them up here and reuse them */
 struct s2n_connection_hmac_handles {
-    /* Initial client mac hmac states */
-    struct s2n_hash_evp_digest initial_client_mac_inner;
-    struct s2n_hash_evp_digest initial_client_mac_inner_just_key;
-    struct s2n_hash_evp_digest initial_client_mac_outer;
-
-    /* Initial client mac copy hmac states */
-    struct s2n_hash_evp_digest initial_client_mac_copy_inner;
-    struct s2n_hash_evp_digest initial_client_mac_copy_inner_just_key;
-    struct s2n_hash_evp_digest initial_client_mac_copy_outer;
-
-    /* Initial server mac hmac states */
-    struct s2n_hash_evp_digest initial_server_mac_inner;
-    struct s2n_hash_evp_digest initial_server_mac_inner_just_key;
-    struct s2n_hash_evp_digest initial_server_mac_outer;
-
-    /* Secure client mac hmac states */
-    struct s2n_hash_evp_digest secure_client_mac_inner;
-    struct s2n_hash_evp_digest secure_client_mac_inner_just_key;
-    struct s2n_hash_evp_digest secure_client_mac_outer;
-
-    /* Secure client mac copy hmac states */
-    struct s2n_hash_evp_digest secure_client_mac_copy_inner;
-    struct s2n_hash_evp_digest secure_client_mac_copy_inner_just_key;
-    struct s2n_hash_evp_digest secure_client_mac_copy_outer;
-
-    /* Secure server mac hmac states */
-    struct s2n_hash_evp_digest secure_server_mac_inner;
-    struct s2n_hash_evp_digest secure_server_mac_inner_just_key;
-    struct s2n_hash_evp_digest secure_server_mac_outer;
+    struct s2n_hmac_evp_backup initial_client;
+    struct s2n_hmac_evp_backup initial_client_copy;
+    struct s2n_hmac_evp_backup initial_server;
+    struct s2n_hmac_evp_backup secure_client;
+    struct s2n_hmac_evp_backup secure_client_copy;
+    struct s2n_hmac_evp_backup secure_server;
 };
 
 extern int s2n_connection_save_prf_state(struct s2n_connection_prf_handles *prf_handles, struct s2n_connection *conn);
