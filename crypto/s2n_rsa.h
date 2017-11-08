@@ -36,7 +36,5 @@ typedef struct s2n_rsa_key s2n_rsa_private_key;
 
 extern int s2n_rsa_pkey_init(struct s2n_pkey *pkey);
 
-extern int s2n_rsa_check_key_exists(const struct s2n_pkey *pkey);
-
 extern int s2n_evp_pkey_to_rsa_public_key(s2n_rsa_public_key *rsa_key, EVP_PKEY *pkey);
 extern int s2n_evp_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *pkey);

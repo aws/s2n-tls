@@ -124,7 +124,7 @@ static int s2n_ecdsa_key_free(struct s2n_pkey *pkey)
     return 0;
 }
 
-int s2n_ecdsa_check_key_exists(const struct s2n_pkey *pkey)
+static int s2n_ecdsa_check_key_exists(const struct s2n_pkey *pkey)
 {
     const struct s2n_ecdsa_key *ecdsa_key = &pkey->key.ecdsa_key;
     notnull_check(ecdsa_key->ec_key);
