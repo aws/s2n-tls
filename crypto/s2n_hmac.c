@@ -347,6 +347,7 @@ int s2n_hmac_save_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_
     backup->inner = hmac->inner.digest.high_level;
     backup->inner_just_key = hmac->inner_just_key.digest.high_level;
     backup->outer = hmac->outer.digest.high_level;
+    backup->outer_just_key = hmac->outer_just_key.digest.high_level;
     return 0;
 }
 
@@ -355,5 +356,6 @@ int s2n_hmac_restore_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s
     hmac->inner.digest.high_level = backup->inner;
     hmac->inner_just_key.digest.high_level = backup->inner_just_key;
     hmac->outer.digest.high_level = backup->outer;
+    hmac->outer_just_key.digest.high_level = backup->outer_just_key;
     return 0;
 }

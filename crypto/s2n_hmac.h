@@ -56,6 +56,7 @@ struct s2n_hmac_evp_backup {
     struct s2n_hash_evp_digest inner;
     struct s2n_hash_evp_digest inner_just_key;
     struct s2n_hash_evp_digest outer;
+    struct s2n_hash_evp_digest outer_just_key;
 };
 
 extern int s2n_hmac_digest_size(s2n_hmac_algorithm alg, uint8_t *out);
