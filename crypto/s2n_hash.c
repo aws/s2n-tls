@@ -364,20 +364,20 @@ static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
     case S2N_HASH_MD5:
         if (s2n_digest_is_md5_allowed_for_fips(&from->digest.high_level.evp)) {
             GUARD(s2n_hash_allow_md5_for_fips(to));
-        } /* fallthrough */
+        }
     case S2N_HASH_SHA1:
     case S2N_HASH_SHA224:
     case S2N_HASH_SHA256:
     case S2N_HASH_SHA384:
     case S2N_HASH_SHA512:
-        r = EVP_MD_CTX_copy(to->digest.high_level.evp.ctx, from->digest.high_level.evp.ctx);
+        r = EVP_MD_CTX_copy_ex(to->digest.high_level.evp.ctx, from->digest.high_level.evp.ctx);
         break;
     case S2N_HASH_MD5_SHA1:
         if (s2n_digest_is_md5_allowed_for_fips(&from->digest.high_level.evp)) {
             GUARD(s2n_hash_allow_md5_for_fips(to));
         }
-        r = EVP_MD_CTX_copy(to->digest.high_level.evp.ctx, from->digest.high_level.evp.ctx);
-        r &= EVP_MD_CTX_copy(to->digest.high_level.evp_md5_secondary.ctx, from->digest.high_level.evp_md5_secondary.ctx);
+        r = EVP_MD_CTX_copy_ex(to->digest.high_level.evp.ctx, from->digest.high_level.evp.ctx);
+        r &= EVP_MD_CTX_copy_ex(to->digest.high_level.evp_md5_secondary.ctx, from->digest.high_level.evp_md5_secondary.ctx);
         break;
     default:
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
