@@ -339,3 +339,23 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
 
     return 0;
 }
+
+
+/* Preserve the handlers for hmac state pointers to avoid re-allocation 
+ * Only valid if the HMAC is in EVP mode
+ */
+int s2n_hmac_save_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac)
+{
+    backup->inner = hmac->inner.digest.high_level;
+    backup->inner_just_key = hmac->inner_just_key.digest.high_level;
+    backup->outer = hmac->outer.digest.high_level;
+    return 0;
+}
+
+int s2n_hmac_restore_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac)
+{
+    hmac->inner.digest.high_level = backup->inner;
+    hmac->inner_just_key.digest.high_level = backup->inner_just_key;
+    hmac->outer.digest.high_level = backup->outer;
+    return 0;
+}

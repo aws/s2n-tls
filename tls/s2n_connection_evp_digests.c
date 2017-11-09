@@ -24,9 +24,7 @@
 int s2n_connection_save_prf_state(struct s2n_connection_prf_handles *prf_handles, struct s2n_connection *conn)
 {
     /* Preserve only the handlers for TLS PRF p_hash pointers to avoid re-allocation */
-    prf_handles->p_hash_s2n_hmac_inner = conn->prf_space.tls.p_hash.s2n_hmac.inner.digest.high_level;
-    prf_handles->p_hash_s2n_hmac_inner_just_key = conn->prf_space.tls.p_hash.s2n_hmac.inner_just_key.digest.high_level;
-    prf_handles->p_hash_s2n_hmac_outer = conn->prf_space.tls.p_hash.s2n_hmac.outer.digest.high_level;
+    GUARD(s2n_hmac_save_evp_hash_state(&prf_handles->p_hash_s2n_hmac, &conn->prf_space.tls.p_hash.s2n_hmac));
     prf_handles->p_hash_evp_hmac = conn->prf_space.tls.p_hash.evp_hmac;
 
     return 0;
@@ -69,36 +67,12 @@ int s2n_connection_save_hash_state(struct s2n_connection_hash_handles *hash_hand
  */
 int s2n_connection_save_hmac_state(struct s2n_connection_hmac_handles *hmac_handles, struct s2n_connection *conn)
 {
-    /* Preserve only the handlers for initial client mac hmac state pointers to avoid re-allocation */
-    hmac_handles->initial_client_mac_inner = conn->initial.client_record_mac.inner.digest.high_level;
-    hmac_handles->initial_client_mac_inner_just_key = conn->initial.client_record_mac.inner_just_key.digest.high_level;
-    hmac_handles->initial_client_mac_outer = conn->initial.client_record_mac.outer.digest.high_level;
-
-    /* Preserve only the handlers for initial server mac hmac state pointers to avoid re-allocation */
-    hmac_handles->initial_server_mac_inner = conn->initial.server_record_mac.inner.digest.high_level;
-    hmac_handles->initial_server_mac_inner_just_key = conn->initial.server_record_mac.inner_just_key.digest.high_level;
-    hmac_handles->initial_server_mac_outer = conn->initial.server_record_mac.outer.digest.high_level;
-
-    /* Preserve only the handlers for initial record mac copy hmac state pointers to avoid re-allocation */
-    hmac_handles->initial_client_mac_copy_inner = conn->initial.record_mac_copy_workspace.inner.digest.high_level;
-    hmac_handles->initial_client_mac_copy_inner_just_key = conn->initial.record_mac_copy_workspace.inner_just_key.digest.high_level;
-    hmac_handles->initial_client_mac_copy_outer = conn->initial.record_mac_copy_workspace.outer.digest.high_level;
-
-    /* Preserve only the handlers for secure client mac hmac state pointers to avoid re-allocation */
-    hmac_handles->secure_client_mac_inner = conn->secure.client_record_mac.inner.digest.high_level;
-    hmac_handles->secure_client_mac_inner_just_key = conn->secure.client_record_mac.inner_just_key.digest.high_level;
-    hmac_handles->secure_client_mac_outer = conn->secure.client_record_mac.outer.digest.high_level;
-
-    /* Preserve only the handlers for secure server mac hmac state pointers to avoid re-allocation */
-    hmac_handles->secure_server_mac_inner = conn->secure.server_record_mac.inner.digest.high_level;
-    hmac_handles->secure_server_mac_inner_just_key = conn->secure.server_record_mac.inner_just_key.digest.high_level;
-    hmac_handles->secure_server_mac_outer = conn->secure.server_record_mac.outer.digest.high_level;
-
-    /* Preserve only the handlers for secure record mac copy hmac state pointers to avoid re-allocation */
-    hmac_handles->secure_client_mac_copy_inner = conn->secure.record_mac_copy_workspace.inner.digest.high_level;
-    hmac_handles->secure_client_mac_copy_inner_just_key = conn->secure.record_mac_copy_workspace.inner_just_key.digest.high_level;
-    hmac_handles->secure_client_mac_copy_outer = conn->secure.record_mac_copy_workspace.outer.digest.high_level;
-
+    GUARD(s2n_hmac_save_evp_hash_state(&hmac_handles->initial_client, &conn->initial.client_record_mac));
+    GUARD(s2n_hmac_save_evp_hash_state(&hmac_handles->initial_server, &conn->initial.server_record_mac));
+    GUARD(s2n_hmac_save_evp_hash_state(&hmac_handles->initial_client_copy, &conn->initial.record_mac_copy_workspace));
+    GUARD(s2n_hmac_save_evp_hash_state(&hmac_handles->secure_client, &conn->secure.client_record_mac));
+    GUARD(s2n_hmac_save_evp_hash_state(&hmac_handles->secure_server, &conn->secure.server_record_mac));
+    GUARD(s2n_hmac_save_evp_hash_state(&hmac_handles->secure_client_copy, &conn->secure.record_mac_copy_workspace));
     return 0;
 }
 
@@ -109,9 +83,7 @@ int s2n_connection_save_hmac_state(struct s2n_connection_hmac_handles *hmac_hand
 int s2n_connection_restore_prf_state(struct s2n_connection *conn, struct s2n_connection_prf_handles *prf_handles)
 {
     /* Restore s2n_connection handlers for TLS PRF p_hash */
-    conn->prf_space.tls.p_hash.s2n_hmac.inner.digest.high_level = prf_handles->p_hash_s2n_hmac_inner;
-    conn->prf_space.tls.p_hash.s2n_hmac.inner_just_key.digest.high_level = prf_handles->p_hash_s2n_hmac_inner_just_key;
-    conn->prf_space.tls.p_hash.s2n_hmac.outer.digest.high_level = prf_handles->p_hash_s2n_hmac_outer;
+    GUARD(s2n_hmac_restore_evp_hash_state(&prf_handles->p_hash_s2n_hmac, &conn->prf_space.tls.p_hash.s2n_hmac));
     conn->prf_space.tls.p_hash.evp_hmac = prf_handles->p_hash_evp_hmac;
 
     return 0;
@@ -154,35 +126,11 @@ int s2n_connection_restore_hash_state(struct s2n_connection *conn, struct s2n_co
  */
 int s2n_connection_restore_hmac_state(struct s2n_connection *conn, struct s2n_connection_hmac_handles *hmac_handles)
 {
-    /* Restore s2n_connection handlers for initial client record mac */
-    conn->initial.client_record_mac.inner.digest.high_level = hmac_handles->initial_client_mac_inner;
-    conn->initial.client_record_mac.inner_just_key.digest.high_level = hmac_handles->initial_client_mac_inner_just_key;
-    conn->initial.client_record_mac.outer.digest.high_level = hmac_handles->initial_client_mac_outer;
-
-    /* Restore s2n_connection handlers for initial server record mac */
-    conn->initial.server_record_mac.inner.digest.high_level = hmac_handles->initial_server_mac_inner;
-    conn->initial.server_record_mac.inner_just_key.digest.high_level = hmac_handles->initial_server_mac_inner_just_key;
-    conn->initial.server_record_mac.outer.digest.high_level = hmac_handles->initial_server_mac_outer;
-
-    /* Restore s2n_connection handlers for initial record mac copy */
-    conn->initial.record_mac_copy_workspace.inner.digest.high_level = hmac_handles->initial_client_mac_copy_inner;
-    conn->initial.record_mac_copy_workspace.inner_just_key.digest.high_level = hmac_handles->initial_client_mac_copy_inner_just_key;
-    conn->initial.record_mac_copy_workspace.outer.digest.high_level = hmac_handles->initial_client_mac_copy_outer;
-
-    /* Restore s2n_connection handlers for secure client record mac */
-    conn->secure.client_record_mac.inner.digest.high_level = hmac_handles->secure_client_mac_inner;
-    conn->secure.client_record_mac.inner_just_key.digest.high_level = hmac_handles->secure_client_mac_inner_just_key;
-    conn->secure.client_record_mac.outer.digest.high_level = hmac_handles->secure_client_mac_outer;
-
-    /* Restore s2n_connection handlers for secure server record mac */
-    conn->secure.server_record_mac.inner.digest.high_level = hmac_handles->secure_server_mac_inner;
-    conn->secure.server_record_mac.inner_just_key.digest.high_level = hmac_handles->secure_server_mac_inner_just_key;
-    conn->secure.server_record_mac.outer.digest.high_level = hmac_handles->secure_server_mac_outer;
-
-    /* Restore s2n_connection handlers for secure record mac copy */
-    conn->secure.record_mac_copy_workspace.inner.digest.high_level = hmac_handles->secure_client_mac_copy_inner;
-    conn->secure.record_mac_copy_workspace.inner_just_key.digest.high_level = hmac_handles->secure_client_mac_copy_inner_just_key;
-    conn->secure.record_mac_copy_workspace.outer.digest.high_level = hmac_handles->secure_client_mac_copy_outer;
-
+    GUARD(s2n_hmac_restore_evp_hash_state(&hmac_handles->initial_client, &conn->initial.client_record_mac));
+    GUARD(s2n_hmac_restore_evp_hash_state(&hmac_handles->initial_server, &conn->initial.server_record_mac));
+    GUARD(s2n_hmac_restore_evp_hash_state(&hmac_handles->initial_client_copy, &conn->initial.record_mac_copy_workspace));
+    GUARD(s2n_hmac_restore_evp_hash_state(&hmac_handles->secure_client, &conn->secure.client_record_mac));
+    GUARD(s2n_hmac_restore_evp_hash_state(&hmac_handles->secure_server, &conn->secure.server_record_mac));
+    GUARD(s2n_hmac_restore_evp_hash_state(&hmac_handles->secure_client_copy, &conn->secure.record_mac_copy_workspace));
     return 0;
 }
