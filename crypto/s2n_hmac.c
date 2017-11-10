@@ -94,8 +94,7 @@ static int s2n_sslv3_mac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm a
     GUARD(s2n_hash_update(&state->outer_just_key, key, klen));
     GUARD(s2n_hash_update(&state->outer_just_key, state->xor_pad, state->xor_pad_size));
 
-    /* Copy inner_just_key to inner */
-    return s2n_hmac_reset(state);
+    return 0;
 }
 
 static int s2n_tls_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
