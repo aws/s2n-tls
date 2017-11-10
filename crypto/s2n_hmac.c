@@ -93,7 +93,6 @@ static int s2n_sslv3_mac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm a
 
     GUARD(s2n_hash_update(&state->outer_just_key, key, klen));
     GUARD(s2n_hash_update(&state->outer_just_key, state->xor_pad, state->xor_pad_size));
-    memset(&state->xor_pad, 0, sizeof(state->xor_pad));
 
     /* Copy inner_just_key to inner */
     return s2n_hmac_reset(state);
@@ -105,7 +104,6 @@ static int s2n_tls_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm al
     if (klen > state->xor_pad_size) {
         GUARD(s2n_hash_update(&state->outer, key, klen));
         GUARD(s2n_hash_digest(&state->outer, state->digest_pad, state->digest_size));
-
         memcpy_check(state->xor_pad, state->digest_pad, state->digest_size);
         copied = state->digest_size;
     } else {
@@ -127,9 +125,7 @@ static int s2n_tls_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm al
     }
 
     GUARD(s2n_hash_update(&state->outer_just_key, state->xor_pad, state->xor_pad_size));
-    memset(&state->xor_pad, 0, sizeof(state->xor_pad));
-
-    return s2n_hmac_reset(state);
+    return 0;
 }
 
 int s2n_hmac_xor_pad_size(s2n_hmac_algorithm hmac_alg, uint16_t *xor_pad_size)
@@ -209,6 +205,14 @@ int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const vo
     } else {
         GUARD(s2n_tls_hmac_init(state, alg, key, klen));
     }
+
+    /* Once we have updated the outer_just_key, don't need the key material in xor_pad, so wipe it.
+     * Since xor_pad is used as a source of bytes in s2n_hmac_digest_two_compression_rounds,
+     * this also prevents uninitilized bytes being used.
+     */
+    memset(&state->xor_pad, 0, sizeof(state->xor_pad));
+    GUARD(s2n_hmac_reset(state));
+
     return 0;
 }
 
