@@ -221,14 +221,14 @@ int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
 
     /* If there were cert and key pairs set, walk the chain and free the certs */
     if (config->cert_and_key_pairs) {
-        struct s2n_cert_chain *node = config->cert_and_key_pairs->head;
+        struct s2n_cert *node = config->cert_and_key_pairs->cert_chain.head;
         while (node) {
             struct s2n_blob n = {
                 .data = (uint8_t *) node,
-                .size = sizeof(struct s2n_cert_chain)
+                .size = sizeof(struct s2n_cert)
             };
             /* Free the cert */
-            GUARD(s2n_free(&node->cert));
+            GUARD(s2n_free(&node->raw));
             /* Advance to next */
             node = node->next;
             /* Free the node */
@@ -377,10 +377,15 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
     /* Allocate the memory for the chain and key struct */
     GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert_chain_and_key)));
     config->cert_and_key_pairs = (struct s2n_cert_chain_and_key *)(void *)mem.data;
-    
-    config->cert_and_key_pairs->head = NULL;
+    config->cert_and_key_pairs->cert_chain.head = NULL;
+
+    config->cert_and_key_pairs->ocsp_status.data = NULL;
+    config->cert_and_key_pairs->ocsp_status.size = 0;
+    config->cert_and_key_pairs->sct_list.data = NULL;
+    config->cert_and_key_pairs->sct_list.size = 0;
     memset(&config->cert_and_key_pairs->ocsp_status, 0, sizeof(config->cert_and_key_pairs->ocsp_status));
     memset(&config->cert_and_key_pairs->sct_list, 0, sizeof(config->cert_and_key_pairs->sct_list));
+
     GUARD(s2n_pkey_zero_init(&config->cert_and_key_pairs->private_key));
 
     /* Put the private key pem in a stuffer */
@@ -402,10 +407,10 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
     GUARD(s2n_stuffer_alloc_ro_from_string(&chain_in_stuffer, cert_chain_pem));
     GUARD(s2n_stuffer_growable_alloc(&cert_out_stuffer, 2048));
 
-    struct s2n_cert_chain **insert = &config->cert_and_key_pairs->head;
+    struct s2n_cert **insert = &config->cert_and_key_pairs->cert_chain.head;
     uint32_t chain_size = 0;
     do {
-        struct s2n_cert_chain *new_node;
+        struct s2n_cert *new_node;
 
         if (s2n_stuffer_certificate_from_pem(&chain_in_stuffer, &cert_out_stuffer) < 0) {
             if (chain_size == 0) {
@@ -414,14 +419,14 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
             break;
         }
 
-        GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert_chain)));
-        new_node = (struct s2n_cert_chain *)(void *)mem.data;
+        GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert)));
+        new_node = (struct s2n_cert *)(void *)mem.data;
 
-        GUARD(s2n_alloc(&new_node->cert, s2n_stuffer_data_available(&cert_out_stuffer)));
-        GUARD(s2n_stuffer_read(&cert_out_stuffer, &new_node->cert));
+        GUARD(s2n_alloc(&new_node->raw, s2n_stuffer_data_available(&cert_out_stuffer)));
+        GUARD(s2n_stuffer_read(&cert_out_stuffer, &new_node->raw));
 
         /* Additional 3 bytes for the length field in the protocol */
-        chain_size += new_node->cert.size + 3;
+        chain_size += new_node->raw.size + 3;
         new_node->next = NULL;
         *insert = new_node;
         insert = &new_node->next;
@@ -439,11 +444,11 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
         S2N_ERROR(S2N_ERR_INVALID_PEM);
     }
 
-    config->cert_and_key_pairs->chain_size = chain_size;
+    config->cert_and_key_pairs->cert_chain.chain_size = chain_size;
 
     /* Validate the leaf cert's public key matches the provided private key */
     struct s2n_pkey public_key;
-    GUARD(s2n_asn1der_to_public_key(&public_key, &config->cert_and_key_pairs->head->cert));
+    GUARD(s2n_asn1der_to_public_key(&public_key, &config->cert_and_key_pairs->cert_chain.head->raw));
     int key_match_ret = s2n_pkey_match(&public_key, &config->cert_and_key_pairs->private_key);
     GUARD(s2n_pkey_free(&public_key));
     if (key_match_ret < 0) {

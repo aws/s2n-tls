@@ -155,9 +155,8 @@ static uint8_t verify_host_information(struct s2n_x509_validator *validator, str
     return verified;
 }
 
-s2n_cert_validation_code
-s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn, uint8_t *cert_chain_in,
-                                       uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out) {
+s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn, uint8_t *cert_chain_in,
+                                       uint32_t cert_chain_len, s2n_cert_type *cert_type, struct s2n_pkey *public_key_out) {
 
     if (validator->validate_certificates && !s2n_x509_trust_store_has_certs(validator->trust_store)) {
         return S2N_CERT_ERR_UNTRUSTED;
@@ -217,12 +216,10 @@ s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, str
         /* Pull the public key from the first certificate */
         if (certificate_count == 0) {
             /* Assume that the asn1cert is an RSA Cert */
-            if (s2n_asn1der_to_public_key(&public_key_out->pkey, &asn1cert) < 0) {
+            if (s2n_asn1der_to_public_key(public_key_out, &asn1cert) < 0) {
                 goto clean_up;
             }
-            if (s2n_cert_public_key_set_cert_type(public_key_out, S2N_CERT_TYPE_RSA_SIGN) < 0) {
-                goto clean_up;
-            }
+            *cert_type = S2N_CERT_TYPE_RSA_SIGN;
         }
 
         certificate_count++;

@@ -19,11 +19,7 @@
 #include "error/s2n_errno.h"
 
 #include "tls/s2n_cipher_suites.h"
-#include "tls/s2n_connection.h"
-#include "tls/s2n_config.h"
 #include "tls/s2n_tls.h"
-
-#include "stuffer/s2n_stuffer.h"
 
 #include "utils/s2n_safety.h"
 
@@ -37,28 +33,35 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
-    struct s2n_cert_public_key public_key;
+    s2n_cert_public_key public_key;
+    s2n_cert_type cert_type;
     struct s2n_blob cert_chain;
     cert_chain.data = s2n_stuffer_raw_read(&conn->handshake.io, size_of_all_certificates);
     cert_chain.size = size_of_all_certificates;
 
-    const s2n_cert_validation_code rc = s2n_x509_validator_validate_cert_chain(&conn->x509_validator, conn, cert_chain.data, cert_chain.size, &public_key);
+    const s2n_cert_validation_code rc = s2n_x509_validator_validate_cert_chain(&conn->x509_validator, conn, cert_chain.data, cert_chain.size, &cert_type, &public_key);
 
     if (rc != S2N_CERT_OK) {
         S2N_ERROR(S2N_ERR_CERT_UNTRUSTED);
     }
 
-    if(public_key.cert_type != S2N_CERT_TYPE_RSA_SIGN) {
+    if(cert_type != S2N_CERT_TYPE_RSA_SIGN) {
         S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     }
 
-    conn->secure.server_public_key = public_key.pkey;
+    /* We know it's an RSA Key, verify it isn't null. */
+    GUARD(s2n_rsa_check_key_exists(&public_key));
+
+    /* Init pkey function pointers for this Cert Type for when it will be verified. */
+    GUARD(s2n_pkey_setup_for_type(&public_key, cert_type));
+
+    conn->secure.server_public_key = public_key;
 
     return 0;
 }
 
 int s2n_server_cert_send(struct s2n_connection *conn)
 {
-    GUARD(s2n_send_cert_chain(&conn->handshake.io, conn->server->server_cert_chain));
+    GUARD(s2n_send_cert_chain(&conn->handshake.io, &conn->server->server_cert_chain->cert_chain));
     return 0;
 }

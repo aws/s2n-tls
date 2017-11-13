@@ -147,12 +147,12 @@ int main(int argc, char **argv) {
         EXPECT_TRUE(chain_len > 0);
         uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
-        struct s2n_cert_public_key public_key_out;
-        public_key_out.pkey.key.rsa_key.rsa = NULL;
+        struct s2n_pkey public_key_out;
+        s2n_cert_type cert_type;
         EXPECT_EQUAL(S2N_ERR_T_OK,
-                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out));
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
-        EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
+        EXPECT_EQUAL(S2N_CERT_TYPE_RSA_SIGN, cert_type);
         s2n_connection_free(connection);
         s2n_x509_validator_wipe(&validator);
     }
@@ -175,14 +175,13 @@ int main(int argc, char **argv) {
         EXPECT_TRUE(chain_len > 0);
         uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
-        struct s2n_cert_public_key public_key_out;
-        public_key_out.pkey.key.rsa_key.rsa = NULL;
+        struct s2n_pkey public_key_out;
+        s2n_cert_type cert_type;
         int err_code = 0;
-        err_code = s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out);
+        err_code = s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out);
         s2n_stuffer_free(&chain_stuffer);
 
         EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED, err_code);
-        EXPECT_NULL(public_key_out.pkey.key.rsa_key.rsa);
         s2n_connection_free(connection);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
@@ -207,13 +206,12 @@ int main(int argc, char **argv) {
         EXPECT_TRUE(chain_len > 0);
         uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
-        struct s2n_cert_public_key public_key_out;
-        public_key_out.pkey.key.rsa_key.rsa = NULL;
+        struct s2n_pkey public_key_out;
+        s2n_cert_type cert_type;
         EXPECT_EQUAL(S2N_ERR_T_OK,
-                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out));
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
-
-        EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
+        EXPECT_EQUAL(S2N_CERT_TYPE_RSA_SIGN, cert_type);
         s2n_connection_free(connection);
 
         s2n_x509_validator_wipe(&validator);
@@ -243,15 +241,13 @@ int main(int argc, char **argv) {
         s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
         s2n_config_set_wall_clock(connection->config, fetch_expired_after_ocsp_timestamp, NULL);
 
-        struct s2n_cert_public_key public_key_out;
-        public_key_out.pkey.key.rsa_key.rsa = NULL;
+        struct s2n_pkey public_key_out;
+        s2n_cert_type cert_type;
         EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED,
-                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out));
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
 
         s2n_config_set_wall_clock(connection->config, old_clock, NULL);
-
-        EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
         s2n_connection_free(connection);
 
         s2n_x509_validator_wipe(&validator);
@@ -278,13 +274,12 @@ int main(int argc, char **argv) {
         uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
         //alter a random byte in the certificate to make it invalid.
         chain_data[500] = (uint8_t) (chain_data[500] << 2);
-        struct s2n_cert_public_key public_key_out;
-        public_key_out.pkey.key.rsa_key.rsa = NULL;
-        int ret_val = s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out);
+        struct s2n_pkey public_key_out;
+        s2n_cert_type cert_type;
+        int ret_val = s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out);
         EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED, ret_val);
         s2n_stuffer_free(&chain_stuffer);
 
-        EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
         s2n_connection_free(connection);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
@@ -312,13 +307,12 @@ int main(int argc, char **argv) {
         EXPECT_TRUE(chain_len > 0);
         uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
-        struct s2n_cert_public_key public_key_out;
-        public_key_out.pkey.key.rsa_key.rsa = NULL;
-        int ret_val = s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out);
+        struct s2n_pkey public_key_out;
+        s2n_cert_type cert_type;
+        int ret_val = s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out);
         EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED, ret_val);
         s2n_stuffer_free(&chain_stuffer);
         EXPECT_EQUAL(1, verify_data.callback_invoked);
-        EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
         s2n_connection_free(connection);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
@@ -346,13 +340,14 @@ int main(int argc, char **argv) {
         EXPECT_TRUE(chain_len > 0);
         uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
-        struct s2n_cert_public_key public_key_out;
-        public_key_out.pkey.key.rsa_key.rsa = NULL;
+        struct s2n_pkey public_key_out;
+        s2n_cert_type cert_type;
         EXPECT_EQUAL(S2N_ERR_T_OK,
-                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out));
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
         EXPECT_EQUAL(1, verify_data.callback_invoked);
-        EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
+        EXPECT_EQUAL(S2N_CERT_TYPE_RSA_SIGN, cert_type);
+
         s2n_connection_free(connection);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
@@ -382,15 +377,16 @@ int main(int argc, char **argv) {
         EXPECT_TRUE(chain_len > 0);
         uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
-        struct s2n_cert_public_key public_key_out;
-        public_key_out.pkey.key.rsa_key.rsa = NULL;
+        struct s2n_pkey public_key_out;
+        s2n_cert_type cert_type;
         EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED,
-                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out));
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
 
-        EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
         EXPECT_EQUAL(1, verify_data.found_name);
         EXPECT_EQUAL(1, verify_data.callback_invoked);
+        EXPECT_EQUAL(S2N_CERT_TYPE_RSA_SIGN, cert_type);
+
         s2n_connection_free(connection);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
@@ -415,10 +411,10 @@ int main(int argc, char **argv) {
         EXPECT_TRUE(chain_len > 0);
         uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
-        struct s2n_cert_public_key public_key_out;
-        public_key_out.pkey.key.rsa_key.rsa = NULL;
+        struct s2n_pkey public_key_out;
+        s2n_cert_type cert_type;
         EXPECT_EQUAL(S2N_ERR_T_OK,
-                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out));
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
 
         struct s2n_stuffer ocsp_data_stuffer;
@@ -453,10 +449,10 @@ int main(int argc, char **argv) {
         EXPECT_TRUE(chain_len > 0);
         uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
-        struct s2n_cert_public_key public_key_out;
-        public_key_out.pkey.key.rsa_key.rsa = NULL;
+        struct s2n_pkey public_key_out;
+        s2n_cert_type cert_type;
         EXPECT_EQUAL(S2N_ERR_T_OK,
-                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out));
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
 
         s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
@@ -495,10 +491,10 @@ int main(int argc, char **argv) {
         EXPECT_TRUE(chain_len > 0);
         uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
-        struct s2n_cert_public_key public_key_out;
-        public_key_out.pkey.key.rsa_key.rsa = NULL;
+        struct s2n_pkey public_key_out;
+        s2n_cert_type cert_type;
         EXPECT_EQUAL(S2N_ERR_T_OK,
-                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out));
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
 
         s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
@@ -539,10 +535,10 @@ int main(int argc, char **argv) {
         EXPECT_TRUE(chain_len > 0);
         uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
-        struct s2n_cert_public_key public_key_out;
-        public_key_out.pkey.key.rsa_key.rsa = NULL;
+        struct s2n_pkey public_key_out;
+        s2n_cert_type cert_type;
         EXPECT_EQUAL(S2N_ERR_T_OK,
-                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &public_key_out));
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
 
         struct s2n_stuffer ocsp_data_stuffer;

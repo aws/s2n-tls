@@ -78,8 +78,8 @@ void s2n_x509_validator_wipe(struct s2n_x509_validator *validator);
  * trusted, the chain will be considered UNTRUSTED
  */
 s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
-                                                                uint8_t *cert_chain_in, uint32_t cert_chain_len,
-                                                                struct s2n_cert_public_key *public_key_out);
+                                                                uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_cert_type *cert_type,
+                                                                struct s2n_pkey *public_key_out);
 
 /**
  * Validates an ocsp response against the most recent certificate chain. Also verifies the timestamps on the response.

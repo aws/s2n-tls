@@ -13,11 +13,15 @@
 # permissions and limitations under the License.
 #
 
+set -ex
+
 brew update
 brew tap homebrew/versions
 brew install gcc6
 brew install gnu-indent
 brew install cppcheck
+brew install pkg-config # for gnutls compilation
+brew install openssl # for python compilation with ssl
 
 # Download and Install Clang Scan-build for static analysis
 if [[ ! -d "$SCAN_BUILD_INSTALL_DIR" ]] && [[ "$TRAVIS_OS_NAME" == "osx" ]]; then .travis/install_scan-build.sh "$SCAN_BUILD_INSTALL_DIR"; fi

@@ -31,6 +31,9 @@ mkdir -p "$LIBFUZZER_DOWNLOAD_DIR"
 cd "$LIBFUZZER_DOWNLOAD_DIR"
 
 git clone https://chromium.googlesource.com/chromium/llvm-project/llvm/lib/Fuzzer
+cd Fuzzer
+git checkout 651ead
+cd ..
 
 echo "Compiling LibFuzzer..."
 clang++ -c -g -v -O2 -lstdc++ -std=c++11 Fuzzer/*.cpp -IFuzzer

@@ -116,10 +116,6 @@ static int s2n_sslv3_mac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm a
 
 static int s2n_sslv3_mac_digest(struct s2n_hmac_state *state, void *out, uint32_t size)
 {
-    for (int i = 0; i < state->xor_pad_size; i++) {
-        state->xor_pad[i] = 0x5c;
-    }
-
     GUARD(s2n_hash_digest(&state->inner, state->digest_pad, state->digest_size));
     GUARD(s2n_hash_copy(&state->inner, &state->outer));
     GUARD(s2n_hash_update(&state->inner, state->digest_pad, state->digest_size));
@@ -295,6 +291,9 @@ int s2n_hmac_digest_two_compression_rounds(struct s2n_hmac_state *state, void *o
         return 0;
     }
 
+    /* Can't reuse a hash after it has been finalized, so reset and push another block in */
+    GUARD(s2n_hash_reset(&state->inner));
+
     /* No-op s2n_hash_update to normalize timing and guard against Lucky13. This does not affect the value of *out. */
     return s2n_hash_update(&state->inner, state->xor_pad, state->hash_block_size);
 }
@@ -338,5 +337,25 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
     memcpy_check(to->xor_pad, from->xor_pad, sizeof(to->xor_pad));
     memcpy_check(to->digest_pad, from->digest_pad, sizeof(to->digest_pad));
 
+    return 0;
+}
+
+
+/* Preserve the handlers for hmac state pointers to avoid re-allocation 
+ * Only valid if the HMAC is in EVP mode
+ */
+int s2n_hmac_save_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac)
+{
+    backup->inner = hmac->inner.digest.high_level;
+    backup->inner_just_key = hmac->inner_just_key.digest.high_level;
+    backup->outer = hmac->outer.digest.high_level;
+    return 0;
+}
+
+int s2n_hmac_restore_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac)
+{
+    hmac->inner.digest.high_level = backup->inner;
+    hmac->inner_just_key.digest.high_level = backup->inner_just_key;
+    hmac->outer.digest.high_level = backup->outer;
     return 0;
 }

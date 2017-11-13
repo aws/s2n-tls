@@ -72,7 +72,7 @@ int s2n_stuffer_read_line(struct s2n_stuffer *stuffer, struct s2n_stuffer *token
     GUARD(s2n_stuffer_read_token(stuffer, token, '\n'));
 
     /* Snip off the carriage return if it's present */
-    if ((s2n_stuffer_data_available(token) > 0) && (token->blob.data[token->write_cursor] == '\r')) {
+    if ((s2n_stuffer_data_available(token) > 0) && (token->blob.data[(token->write_cursor - 1)] == '\r')) {
         token->write_cursor--;
     }
 
