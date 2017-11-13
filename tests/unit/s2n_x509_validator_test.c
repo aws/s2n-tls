@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
         int err_code = s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL);
         EXPECT_EQUAL(0, err_code);
         EXPECT_TRUE(s2n_x509_trust_store_has_certs(&trust_store));
-        s2n_x509_trust_store_cleanup(&trust_store);
+        s2n_x509_trust_store_wipe(&trust_store);
     }
 
     /* test trust store from non-existent PEM file */
@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
         int err_code = s2n_x509_trust_store_from_ca_file(&trust_store, "dskfjasdklfjsdkl", NULL);
         EXPECT_EQUAL(-1, err_code);
         EXPECT_FALSE(s2n_x509_trust_store_has_certs(&trust_store));
-        s2n_x509_trust_store_cleanup(&trust_store);
+        s2n_x509_trust_store_wipe(&trust_store);
     }
 
     /* test trust store from invalid PEM file */
@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
         int err_code = s2n_x509_trust_store_from_ca_file(&trust_store, S2N_INVALID_HEADER_KEY, NULL);
         EXPECT_EQUAL(-1, err_code);
         EXPECT_FALSE(s2n_x509_trust_store_has_certs(&trust_store));
-        s2n_x509_trust_store_cleanup(&trust_store);
+        s2n_x509_trust_store_wipe(&trust_store);
     }
 
     EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
@@ -154,7 +154,7 @@ int main(int argc, char **argv) {
         s2n_stuffer_free(&chain_stuffer);
         EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
         s2n_connection_free(connection);
-        s2n_x509_validator_cleanup(&validator);
+        s2n_x509_validator_wipe(&validator);
     }
 
     /* test validator in safe mode, but no configured trust store */
@@ -184,8 +184,8 @@ int main(int argc, char **argv) {
         EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED, err_code);
         EXPECT_NULL(public_key_out.pkey.key.rsa_key.rsa);
         s2n_connection_free(connection);
-        s2n_x509_validator_cleanup(&validator);
-        s2n_x509_trust_store_cleanup(&trust_store);
+        s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
     }
 
     /* test validator in safe mode, with properly configured trust store. */
@@ -216,8 +216,8 @@ int main(int argc, char **argv) {
         EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
         s2n_connection_free(connection);
 
-        s2n_x509_validator_cleanup(&validator);
-        s2n_x509_trust_store_cleanup(&trust_store);
+        s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
     }
 
     /* test expired certificate fails */
@@ -254,8 +254,8 @@ int main(int argc, char **argv) {
         EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
         s2n_connection_free(connection);
 
-        s2n_x509_validator_cleanup(&validator);
-        s2n_x509_trust_store_cleanup(&trust_store);
+        s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
     }
 
     /* test validator in safe mode, with properly configured trust store, but the server's end-entity cert is invalid. */
@@ -286,8 +286,8 @@ int main(int argc, char **argv) {
 
         EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
         s2n_connection_free(connection);
-        s2n_x509_validator_cleanup(&validator);
-        s2n_x509_trust_store_cleanup(&trust_store);
+        s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
     }
 
     /* test validator in safe mode, with properly configured trust store, but host isn't trusted*/
@@ -320,8 +320,8 @@ int main(int argc, char **argv) {
         EXPECT_EQUAL(1, verify_data.callback_invoked);
         EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
         s2n_connection_free(connection);
-        s2n_x509_validator_cleanup(&validator);
-        s2n_x509_trust_store_cleanup(&trust_store);
+        s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
     }
 
     /* test validator in safe mode, with properly configured trust store. host name validation succeeds */
@@ -354,8 +354,8 @@ int main(int argc, char **argv) {
         EXPECT_EQUAL(1, verify_data.callback_invoked);
         EXPECT_NOT_NULL(public_key_out.pkey.key.rsa_key.rsa);
         s2n_connection_free(connection);
-        s2n_x509_validator_cleanup(&validator);
-        s2n_x509_trust_store_cleanup(&trust_store);
+        s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
     }
 
     /* test validator in safe mode, with properly configured trust store. host name via alternative name validation succeeds
@@ -392,8 +392,8 @@ int main(int argc, char **argv) {
         EXPECT_EQUAL(1, verify_data.found_name);
         EXPECT_EQUAL(1, verify_data.callback_invoked);
         s2n_connection_free(connection);
-        s2n_x509_validator_cleanup(&validator);
-        s2n_x509_trust_store_cleanup(&trust_store);
+        s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
     }
 
     /* Test valid OCSP date range */
@@ -430,8 +430,8 @@ int main(int argc, char **argv) {
                                                                                           ocsp_data_len));
         s2n_stuffer_free(&ocsp_data_stuffer);
         s2n_connection_free(connection);
-        s2n_x509_validator_cleanup(&validator);
-        s2n_x509_trust_store_cleanup(&trust_store);
+        s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
     }
 
     /* Test invalid OCSP date range (after is off) */
@@ -472,8 +472,8 @@ int main(int argc, char **argv) {
         s2n_config_set_wall_clock(connection->config, old_clock, NULL);
         s2n_stuffer_free(&ocsp_data_stuffer);
         s2n_connection_free(connection);
-        s2n_x509_validator_cleanup(&validator);
-        s2n_x509_trust_store_cleanup(&trust_store);
+        s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
     }
 
     /* Test invalid OCSP date range (thisupdate is off) */
@@ -516,8 +516,8 @@ int main(int argc, char **argv) {
 
         s2n_stuffer_free(&ocsp_data_stuffer);
         s2n_connection_free(connection);
-        s2n_x509_validator_cleanup(&validator);
-        s2n_x509_trust_store_cleanup(&trust_store);
+        s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
     }
 
     /* Test valid OCSP date range, but the data itself is untrusted */
@@ -560,8 +560,8 @@ int main(int argc, char **argv) {
 
         s2n_stuffer_free(&ocsp_data_stuffer);
         s2n_connection_free(connection);
-        s2n_x509_validator_cleanup(&validator);
-        s2n_x509_trust_store_cleanup(&trust_store);
+        s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
     }
 
     END_TEST();

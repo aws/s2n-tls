@@ -21,7 +21,7 @@
 #include "openssl/ocsp.h"
 #include "s2n_connection.h"
 
-/* one day, boringssl, may add ocsp stapling support, let's future proof this a bit, by grabbing a definition
+/* one day, boringssl, may add ocsp stapling support. Let's future proof this a bit by grabbing a definition
  * that would have to be there when they add support */
 #if defined(OPENSSL_IS_BORINGSSL) && !defined(OCSP_RESPONSE_STATUS_SUCCESSFUL)
 #define S2N_OCSP_STAPLING_SUPPORTED 0
@@ -42,13 +42,15 @@ uint8_t s2n_x509_trust_store_has_certs(struct s2n_x509_trust_store *store) {
 }
 
 int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const char *ca_file, const char *path) {
-    s2n_x509_trust_store_cleanup(store);
 
-    store->trust_store = X509_STORE_new();
+    if(!store->trust_store) {
+        store->trust_store = X509_STORE_new();
+    }
+
     int err_code = X509_STORE_load_locations(store->trust_store, ca_file, path);
 
     if (!err_code) {
-        s2n_x509_trust_store_cleanup(store);
+        s2n_x509_trust_store_wipe(store);
         return -1;
     }
 
@@ -57,7 +59,7 @@ int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const 
     return 0;
 }
 
-void s2n_x509_trust_store_cleanup(struct s2n_x509_trust_store *store) {
+void s2n_x509_trust_store_wipe(struct s2n_x509_trust_store *store) {
     if (store->trust_store) {
         X509_STORE_free(store->trust_store);
         store->trust_store = NULL;
@@ -88,7 +90,7 @@ int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x50
     return 0;
 }
 
-void s2n_x509_validator_cleanup(struct s2n_x509_validator *validator) {
+void s2n_x509_validator_wipe(struct s2n_x509_validator *validator) {
     if (validator->cert_chain) {
         X509 *cert = NULL;
         while ((cert = sk_X509_pop(validator->cert_chain))) {

@@ -53,18 +53,21 @@ static inline long get_gmt_offset(struct tm *time) {
 #endif
 }
 
-static inline long get_current_timezone_offset(void) {
+static inline void get_current_timesettings(long *gmt_offset, int *is_dst) {
     struct tm time_ptr;
     time_t raw_time;
     time(&raw_time);
     localtime_r(&raw_time, &time_ptr);
-    return get_gmt_offset(&time_ptr);
+    *gmt_offset = get_gmt_offset(&time_ptr);
+    *is_dst = time_ptr.tm_isdst;
 }
 
 int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len, uint64_t *ticks) {
 
     /* figure out if we are on something other than UTC since timegm is not supported everywhere. */
-    long gmt_offset_current = get_current_timezone_offset();
+    long gmt_offset_current = 0;
+    int is_dst = 0;
+    get_current_timesettings(&gmt_offset_current, &is_dst);
 
     uint32_t str_len = len;
     parser_state state = ON_YEAR_DIGIT_1;
@@ -109,6 +112,10 @@ int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len,
                 char_to_digit(current_char, current_digit);
                 time.tm_year = time.tm_year * 10 + current_digit;
                 time.tm_year -= 1900;
+                if(time.tm_year < 0) {
+                    return -1;
+                }
+
                 state = ON_MONTH_DIGIT_1;
                 current_pos++;
                 break;
@@ -123,6 +130,11 @@ int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len,
                 time.tm_mon = time.tm_mon * 10 + current_digit;
                 time.tm_mon -= 1;
                 current_pos++;
+
+                if(time.tm_mon < 0 || time.tm_mon > 11) {
+                    return -1;
+                }
+
                 state = ON_DAY_DIGIT_1;
                 break;
             case ON_DAY_DIGIT_1:
@@ -135,6 +147,11 @@ int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len,
                 char_to_digit(current_char, current_digit);
                 time.tm_mday = time.tm_mday * 10 + current_digit;
                 current_pos++;
+
+                if(time.tm_mday < 0 || time.tm_mday > 31) {
+                    return -1;
+                }
+
                 state = ON_HOUR_DIGIT_1;
                 break;
             case ON_HOUR_DIGIT_1:
@@ -147,6 +164,11 @@ int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len,
                 char_to_digit(current_char, current_digit);
                 time.tm_hour = time.tm_hour * 10 + current_digit;
                 current_pos++;
+
+                if(time.tm_hour < 0 || time.tm_hour > 23) {
+                    return -1;
+                }
+
                 state = ON_MINUTE_DIGIT_1;
                 break;
             case ON_MINUTE_DIGIT_1:
@@ -160,6 +182,11 @@ int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len,
                 time.tm_min = time.tm_min * 10 + current_digit;
                 current_pos++;
                 state = ON_SECOND_DIGIT_1;
+
+                if(time.tm_min < 0 || time.tm_min > 59) {
+                    return -1;
+                }
+
                 break;
             case ON_SECOND_DIGIT_1:
                 char_to_digit(current_char, current_digit);
@@ -172,6 +199,11 @@ int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len,
                 time.tm_sec = time.tm_sec * 10 + current_digit;
                 current_pos++;
                 state = ON_SUBSECOND;
+
+                if(time.tm_sec < 0 || time.tm_sec > 59) {
+                    return -1;
+                }
+
                 break;
             case ON_SUBSECOND:
                 if (current_char == '.' || isdigit(current_char)) {
@@ -193,6 +225,9 @@ int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len,
                     offset_negative = 0;
                     state = ON_OFFSET_HOURS_DIGIT_1;
                 }
+                else {
+                    return -1;
+                }
 
                 current_pos++;
                 break;
@@ -207,6 +242,11 @@ int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len,
                 offset_hours = offset_hours * 10 + current_digit;
                 current_pos++;
                 state = ON_OFFSET_MINUTES_DIGIT_1;
+
+                if(offset_hours < 0 || offset_hours > 23) {
+                    return -1;
+                }
+
                 break;
             case ON_OFFSET_MINUTES_DIGIT_1:
                 char_to_digit(current_char, current_digit);
@@ -220,6 +260,11 @@ int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len,
                 offset_minutes = offset_minutes * 10 + current_digit;
                 current_pos++;
                 state = FINISHED;
+
+                if(offset_minutes < 0 || offset_minutes > 23) {
+                    return -1;
+                }
+
                 break;
             default:
                 state = PARSE_ERROR;
@@ -236,13 +281,15 @@ int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len,
             gmt_offset = 0 - gmt_offset;
         }
 
+        clock_data = mktime(&time);
+
         /* if we detected UTC is being used (please always use UTC), we need to add the detected timezone on the local
-         * machine back to the offset. */
+         * machine back to the offset. Also, the offset includes an offset for daylight savings time. When the time being parsed
+         * and the local time are on different sides of the dst barrier, the offset has to be adjusted to account for it. */
         if (!local_time_assumed) {
             gmt_offset -= gmt_offset_current;
+            gmt_offset -= time.tm_isdst != is_dst ? (time.tm_isdst - is_dst) * 3600 : 0;
         }
-
-        clock_data = mktime(&time);
 
         /* convert to nanoseconds and add the timezone offset. */
         if (clock_data > 0) {

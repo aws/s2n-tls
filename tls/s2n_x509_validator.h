@@ -56,7 +56,7 @@ uint8_t s2n_x509_trust_store_has_certs(struct s2n_x509_trust_store *store);
 int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const char *ca_file, const char *path);
 
 /** Cleans up, and frees any underlying memory in the trust store. */
-void s2n_x509_trust_store_cleanup(struct s2n_x509_trust_store *store);
+void s2n_x509_trust_store_wipe(struct s2n_x509_trust_store *store);
 
 /** Initialize the validator in unsafe mode. No validity checks for OCSP, host checks, or X.509 will be performed. */
 int s2n_x509_validator_init_no_checks(struct s2n_x509_validator *validator);
@@ -68,10 +68,10 @@ int s2n_x509_validator_init_no_checks(struct s2n_x509_validator *validator);
 int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x509_trust_store *trust_store, uint8_t check_ocsp);
 
 /** Cleans up underlying memory and data members. Struct can be reused afterwards. */
-void s2n_x509_validator_cleanup(struct s2n_x509_validator *validator);
+void s2n_x509_validator_wipe(struct s2n_x509_validator *validator);
 
 /**
- * Validates a certificate chain against the configured trust store, in safe mode, in unsafe mode, it will find the public cert
+ * Validates a certificate chain against the configured trust store in safe mode. In unsafe mode, it will find the public key
  * and return it but not validate the certificates. Alternative Names and Subject Name will be passed to the host verification callback.
  * The verification callback will be possibly called multiple times depending on how many names are found.
  * If any of those calls return TRUE, that stage of the validation will continue, otherwise once all names are tried and none matched as

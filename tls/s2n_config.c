@@ -136,7 +136,7 @@ static int s2n_config_init(struct s2n_config *config) {
 }
 
 static int s2n_config_cleanup(struct s2n_config *config) {
-    s2n_x509_trust_store_cleanup(&config->trust_store);
+    s2n_x509_trust_store_wipe(&config->trust_store);
     config->check_ocsp = 0;
 
     GUARD(s2n_config_free_cert_chain_and_key(config));

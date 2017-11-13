@@ -159,7 +159,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
             S2N_ERROR_PTR(S2N_ERR_CLIENT_MODE_DISABLED);
         }
 
-        /* For the moment, this still needs to be modified via s2n_connection_set_config() after this function is called. To use the secure configuration */
+        /* For the moment, this still needs to be modified via s2n_connection_set_config() after this function is called in order to use the secure configuration */
         s2n_connection_set_config(conn, s2n_fetch_unsafe_client_testing_config());
     }
 
@@ -234,7 +234,7 @@ static int s2n_connection_free_keys(struct s2n_connection *conn)
     return 0;
 }
 
-static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n_config *config)
+static int s2n_connection_zero(struct s2n_connection *conn, int mode)
 {
     /* Zero the whole connection structure */
     memset_check(conn, 0, sizeof(struct s2n_connection));
@@ -244,7 +244,7 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->send_io_context = NULL;
     conn->recv_io_context = NULL;
     conn->mode = mode;
-    conn->config = config;
+    conn->config = NULL;
     conn->close_notify_queued = 0;
     conn->current_user_data_consumed = 0;
     conn->initial.cipher_suite = &s2n_null_cipher_suite;
@@ -276,7 +276,7 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     GUARD(s2n_pkey_zero_init(&conn->secure.server_public_key));
     GUARD(s2n_pkey_free(&conn->secure.client_public_key));
     GUARD(s2n_pkey_zero_init(&conn->secure.client_public_key));
-    s2n_x509_validator_cleanup(&conn->x509_validator);
+    s2n_x509_validator_wipe(&conn->x509_validator);
     GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
     GUARD(s2n_ecc_params_free(&conn->secure.server_ecc_params));
     GUARD(s2n_free(&conn->secure.client_cert_chain));
@@ -532,7 +532,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
 #pragma GCC diagnostic pop
 #endif
 
-    GUARD(s2n_connection_zero(conn, mode, config));
+    GUARD(s2n_connection_zero(conn, mode));
 
     s2n_connection_set_config(conn, config);
 
