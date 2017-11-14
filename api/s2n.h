@@ -88,6 +88,7 @@ typedef uint8_t (*s2n_verify_host_fn) (const char *host_name, size_t host_name_l
 extern int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_verify_host_fn, void *data);
 
 extern int s2n_config_set_check_stapled_ocsp_response(struct s2n_config *config, uint8_t check_ocsp);
+extern int s2n_config_disable_x509_verification(struct s2n_config *config);
 
 extern int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem);
 extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);

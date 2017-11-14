@@ -123,6 +123,7 @@ static int s2n_config_init(struct s2n_config *config) {
      * authenticate any client certificates. */
     config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
     config->check_ocsp = 1;
+    config->disable_x509_validation = 0;
 
     if (s2n_is_in_fips_mode()) {
         s2n_config_set_cipher_preferences(config, "default_fips");
@@ -131,6 +132,7 @@ static int s2n_config_init(struct s2n_config *config) {
     }
 
     s2n_x509_trust_store_init(&config->trust_store);
+    s2n_x509_trust_store_from_system_defaults(&config->trust_store);
 
     return 0;
 }
@@ -179,6 +181,7 @@ struct s2n_config *s2n_fetch_unsafe_client_testing_config(void) {
         s2n_unsafe_client_testing_config.cipher_preferences = &cipher_preferences_20170210;
         s2n_unsafe_client_testing_config.client_cert_auth_type = S2N_CERT_AUTH_NONE;
         s2n_unsafe_client_testing_config.check_ocsp = 0;
+        s2n_unsafe_client_testing_config.disable_x509_validation = 1;
 
         unsafe_client_testing_config_init = 1;
     }
@@ -341,6 +344,12 @@ int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_verify_ho
 int s2n_config_set_check_stapled_ocsp_response(struct s2n_config *config, uint8_t check_ocsp) {
     notnull_check(config);
     config->check_ocsp = check_ocsp;
+    return 0;
+}
+
+int s2n_config_disable_x509_verification(struct s2n_config *config) {
+    s2n_x509_trust_store_wipe(&config->trust_store);
+    config->disable_x509_validation = 1;
     return 0;
 }
 

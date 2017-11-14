@@ -51,6 +51,9 @@ void s2n_x509_trust_store_init(struct s2n_x509_trust_store *store);
 /** Returns TRUE if the trust store has certificates installed, FALSE otherwise */
 uint8_t s2n_x509_trust_store_has_certs(struct s2n_x509_trust_store *store);
 
+/** Initializes the trust store to default system paths **/
+int s2n_x509_trust_store_from_system_defaults(struct s2n_x509_trust_store *store);
+
 /** Initialize trust store from a CA file. This will allocate memory, and load each cert in the file into the trust store
  *  Returns 0 on success, or S2N error codes on failure. */
 int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const char *ca_file, const char *path);

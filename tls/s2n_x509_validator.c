@@ -41,6 +41,23 @@ uint8_t s2n_x509_trust_store_has_certs(struct s2n_x509_trust_store *store) {
     return store->trust_store ? (uint8_t) 1 : (uint8_t) 0;
 }
 
+int s2n_x509_trust_store_from_system_defaults(struct s2n_x509_trust_store *store) {
+    if(!store->trust_store) {
+        store->trust_store = X509_STORE_new();
+    }
+
+    int err_code = X509_STORE_set_default_paths(store->trust_store);
+
+    if (!err_code) {
+        s2n_x509_trust_store_wipe(store);
+        return -1;
+    }
+
+    X509_STORE_set_flags(store->trust_store, X509_VP_FLAG_DEFAULT);
+
+    return 0;
+}
+
 int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const char *ca_file, const char *path) {
 
     if(!store->trust_store) {

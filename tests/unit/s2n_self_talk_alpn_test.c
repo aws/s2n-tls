@@ -58,6 +58,7 @@ int mock_client(int writefd, int readfd, const char **protocols, int count, cons
     client_conn = s2n_connection_new(S2N_CLIENT);
     client_config = s2n_config_new();
     s2n_config_set_protocol_preferences(client_config, protocols, count);
+    s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(client_conn, client_config);
     client_conn->server_protocol_version = S2N_TLS12;
     client_conn->client_protocol_version = S2N_TLS12;
@@ -85,13 +86,16 @@ int mock_client(int writefd, int readfd, const char **protocols, int count, cons
         
         s2n_send(client_conn, buffer, i, &blocked);
     }
-    
+
     int shutdown_rc= -1;
-    do {
-        shutdown_rc = s2n_shutdown(client_conn, &blocked);
-    } while(shutdown_rc != 0);
+    if(!result) {
+        do {
+            shutdown_rc = s2n_shutdown(client_conn, &blocked);
+        } while (shutdown_rc != 0);
+    }
 
     s2n_connection_free(client_conn);
+    s2n_config_free(client_config);
 
     /* Give the server a chance to a void a sigpipe */
     sleep(1);

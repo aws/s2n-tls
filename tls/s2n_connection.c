@@ -20,6 +20,7 @@
 #include <time.h>
 
 #include <s2n.h>
+#include <stdbool.h>
 
 #include "crypto/s2n_fips.h"
 
@@ -159,8 +160,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
             S2N_ERROR_PTR(S2N_ERR_CLIENT_MODE_DISABLED);
         }
 
-        /* For the moment, this still needs to be modified via s2n_connection_set_config() after this function is called in order to use the secure configuration */
-        s2n_connection_set_config(conn, s2n_fetch_unsafe_client_testing_config());
+        s2n_connection_set_config(conn, s2n_fetch_default_config());
     }
 
     conn->mode = mode;
@@ -427,7 +427,9 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
     notnull_check(conn);
     notnull_check(config);
 
-    if(s2n_x509_trust_store_has_certs(&config->trust_store)) {
+    int8_t server_mode_with_no_auth = conn->mode == S2N_SERVER && config->client_cert_auth_type == S2N_CERT_AUTH_NONE;
+
+    if(!config->disable_x509_validation && !server_mode_with_no_auth) {
 
         s2n_x509_validator_init(&conn->x509_validator, &config->trust_store, config->check_ocsp);
 

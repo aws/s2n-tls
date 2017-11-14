@@ -73,7 +73,10 @@ int main(int argc, char **argv)
 
         struct s2n_config *client_config;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
         client_conn->actual_protocol_version = S2N_TLS12;
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
@@ -106,6 +109,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
+
 
         for (int i = 0; i < 2; i++) {
            EXPECT_SUCCESS(close(server_to_client[i]));
@@ -134,7 +139,10 @@ int main(int argc, char **argv)
 
         struct s2n_config *client_config;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
         client_conn->actual_protocol_version = S2N_TLS12;
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
@@ -170,6 +178,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
+
         for (int i = 0; i < 2; i++) {
             EXPECT_SUCCESS(close(server_to_client[i]));
             EXPECT_SUCCESS(close(client_to_server[i]));
@@ -485,6 +495,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
+
         for (int i = 0; i < 2; i++) {
             EXPECT_SUCCESS(close(server_to_client[i]));
             EXPECT_SUCCESS(close(client_to_server[i]));
@@ -510,7 +521,10 @@ int main(int argc, char **argv)
 
         struct s2n_config *client_config;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
         client_conn->actual_protocol_version = S2N_TLS12;
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
@@ -543,6 +557,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
 
         for (int i = 0; i < 2; i++) {
            EXPECT_SUCCESS(close(server_to_client[i]));
@@ -569,7 +584,10 @@ int main(int argc, char **argv)
         }
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
         client_conn->actual_protocol_version = S2N_TLS12;
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
@@ -632,8 +650,10 @@ int main(int argc, char **argv)
         }
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        s2n_config_set_check_stapled_ocsp_response(client_config, 0);
+        EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
         client_conn->actual_protocol_version = S2N_TLS12;
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
@@ -701,7 +721,10 @@ int main(int argc, char **argv)
 
         struct s2n_config *client_config;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
         client_conn->actual_protocol_version = S2N_TLS12;
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
@@ -733,7 +756,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
 
+        EXPECT_SUCCESS(s2n_config_free(client_config));
         EXPECT_SUCCESS(s2n_config_free(server_config));
+
         for (int i = 0; i < 2; i++) {
             EXPECT_SUCCESS(close(server_to_client[i]));
             EXPECT_SUCCESS(close(client_to_server[i]));
@@ -760,7 +785,10 @@ int main(int argc, char **argv)
         }
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
         client_conn->actual_protocol_version = S2N_TLS12;
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
@@ -797,6 +825,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
+
         for (int i = 0; i < 2; i++) {
             EXPECT_SUCCESS(close(server_to_client[i]));
             EXPECT_SUCCESS(close(client_to_server[i]));
@@ -823,6 +853,8 @@ int main(int argc, char **argv)
         }
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
         client_conn->actual_protocol_version = S2N_TLS12;
@@ -860,6 +892,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
+
         for (int i = 0; i < 2; i++) {
             EXPECT_SUCCESS(close(server_to_client[i]));
             EXPECT_SUCCESS(close(client_to_server[i]));
@@ -892,6 +926,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
 
         EXPECT_SUCCESS(s2n_config_send_max_fragment_length(client_config, mfl_code));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
@@ -955,6 +991,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_FAILURE(s2n_config_send_max_fragment_length(client_config, 5));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
@@ -1015,6 +1053,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_SUCCESS(s2n_config_send_max_fragment_length(client_config, S2N_TLS_MAX_FRAG_LEN_2048));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 

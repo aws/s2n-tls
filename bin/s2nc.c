@@ -53,9 +53,11 @@ void usage()
     fprintf(stderr, "  --mfl\n");
     fprintf(stderr, "    Request maximum fragment length from: 512, 1024, 2048, 4096\n");
     fprintf(stderr, "  -f,--ca-file [file path]\n");
-    fprintf(stderr, "    Location of trust store CA file (PEM format).\n");
+    fprintf(stderr, "    Location of trust store CA file (PEM format). If neither -f or -d are specified. System defaults will be used.\n");
     fprintf(stderr, "  -d,--ca-dir [directory path]\n");
-    fprintf(stderr, "    Directory containing hashed trusted certs..\n");
+    fprintf(stderr, "    Directory containing hashed trusted certs. If neither -f or -d are specified. System defaults will be used.\n");
+    fprintf(stderr, "  -i,--insecure\n");
+    fprintf(stderr, "    Turns off certification validation altogether.\n");
     fprintf(stderr, "\n");
     exit(1);
 }
@@ -91,6 +93,7 @@ int main(int argc, char *const *argv)
     const char *ca_dir = NULL;
     uint16_t mfl_value = 0;
     uint8_t mfl_code = 0;
+    uint8_t insecure = 0;
     s2n_status_request_type type = S2N_STATUS_REQUEST_NONE;
     /* required args */
     const char *host = NULL;
@@ -107,10 +110,11 @@ int main(int argc, char *const *argv)
         {"mfl", required_argument, 0, 'm'},
         {"ca-file", required_argument, 0, 'f'},
         {"ca-dir", required_argument, 0, 'd'},
+        {"insecure", no_argument, 0, 'i'}
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "ea:hn:sf:d:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "ea:hn:sf:d:i", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -138,6 +142,9 @@ int main(int argc, char *const *argv)
             break;
         case 'd':
             ca_dir = optarg;
+            break;
+        case 'i':
+            insecure = 1;
             break;
         case '?':
         default:
@@ -230,6 +237,9 @@ int main(int argc, char *const *argv)
         if(type == S2N_STATUS_REQUEST_OCSP) {
             s2n_config_set_check_stapled_ocsp_response(config, 1);
         }
+    }
+    else if(insecure){
+        s2n_config_disable_x509_verification(config);
     }
 
     if (alpn_protocols) {
