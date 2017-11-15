@@ -5,3 +5,7 @@ unusedStructMember:utils/s2n_random.c
 // Message: [tests/unit/s2n_stuffer_text_test.c:28]: (style:variableScope) The scope of the variable 'text' can be reduced.
 // Reason: Don't error for being able to reduce scope of variables in tests
 variableScope:tests/unit/*
+
+// cppcheck Message: [tls/s2n_config.c:60]: (information:ConfigurationNotChecked) Skipping configuration 'CLOCK_MONOTONIC_RAW' since the value of 'CLOCK_MONOTONIC_RAW' is unknown. Use -D if you want to check it. You can use -U to skip it explicitly
+// Reason: There are many Config options that aren't checked by Cppcheck, and it warns for each. Ignore these so that they don't clutter the output.
+ConfigurationNotChecked:*
