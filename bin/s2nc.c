@@ -224,20 +224,22 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
+    if(s2n_config_set_verify_host_callback(config, verify_host, &verify_data) < 0) {
+        print_s2n_error("Error setting host name verification function.");
+    }
+
+    if(type == S2N_STATUS_REQUEST_OCSP) {
+        s2n_config_set_check_stapled_ocsp_response(config, 1);
+    }
+
+    verify_data.trusted_host = host;
+
     if(ca_file || ca_dir) {
         if(s2n_config_set_verification_ca_location(config, ca_file, ca_dir) < 0) {
             print_s2n_error("Error setting CA file for trust store.");
         }
-
-        verify_data.trusted_host = host;
-        if(s2n_config_set_verify_host_callback(config, verify_host, &verify_data) < 0) {
-            print_s2n_error("Error setting host name verification function.");
-        }
-
-        if(type == S2N_STATUS_REQUEST_OCSP) {
-            s2n_config_set_check_stapled_ocsp_response(config, 1);
-        }
     }
+
     else if(insecure){
         s2n_config_disable_x509_verification(config);
     }

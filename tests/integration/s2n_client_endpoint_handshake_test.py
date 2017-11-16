@@ -33,7 +33,8 @@ well_known_endpoints = [
     ]
 
 def print_result(result_prefix, return_code):
-    print(result_prefix, end='')
+    #for python 2.7 compatibility
+    print result_prefix,
     if return_code == 0:
         if sys.stdout.isatty():
             print("\033[32;1mPASSED\033[0m")
