@@ -17,7 +17,7 @@
 #include "testlib/s2n_testlib.h"
 
 static uint32_t write_pem_file_to_stuffer_as_chain(struct s2n_stuffer *chain_out_stuffer, const char *pem_data) {
-    struct s2n_stuffer chain_in_stuffer, cert_stuffer, temp_out_stuffer;
+    struct s2n_stuffer chain_in_stuffer, cert_stuffer;
     s2n_stuffer_alloc_ro_from_string(&chain_in_stuffer, pem_data);
     s2n_stuffer_growable_alloc(&cert_stuffer, 4096);
     s2n_stuffer_growable_alloc(chain_out_stuffer, 4096);
@@ -140,7 +140,6 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        long int file_size = 0;
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
         uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
