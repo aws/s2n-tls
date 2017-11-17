@@ -213,7 +213,7 @@ s2n also reads this for unit tests. Try `S2N_DONT_MLOCK=1 make` if you're having
 
 ## client mode
 
-At this time s2n does not perform certificate validation and client mode is
+At this time x509 certificate validation is undergoing further testing and client mode is
 disabled as a precaution. To enable client mode for testing and development,
 set the **S2N_ENABLE_CLIENT_MODE** environment variable.
 

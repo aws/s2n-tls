@@ -16,6 +16,18 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
+static int fetch_expired_after_ocsp_timestamp(void *data, uint64_t *timestamp) {
+    *timestamp = 7283958536000000000;
+    return 0;
+}
+
+
+static int fetch_invalid_before_ocsp_timestamp(void *data, uint64_t *timestamp) {
+    *timestamp = 1425019604000000000;
+    return 0;
+}
+
+
 static uint32_t write_pem_file_to_stuffer_as_chain(struct s2n_stuffer *chain_out_stuffer, const char *pem_data) {
     struct s2n_stuffer chain_in_stuffer, cert_stuffer;
     s2n_stuffer_alloc_ro_from_string(&chain_in_stuffer, pem_data);
@@ -49,7 +61,7 @@ static int read_file(struct s2n_stuffer *file_output, const char *path, uint32_t
         char data[1024];
         size_t r = 0;
         while((r =fread(data, 1, sizeof(data), fd)) > 0) {
-            s2n_stuffer_write_bytes(file_output, data, r);
+            s2n_stuffer_write_bytes(file_output, (const uint8_t *)data, (const uint32_t)r);
         }
         fclose(fd);
         return s2n_stuffer_data_available(file_output) > 0;
@@ -148,7 +160,7 @@ int main(int argc, char **argv) {
 
         struct s2n_pkey public_key_out;
         s2n_cert_type cert_type;
-        EXPECT_EQUAL(S2N_ERR_T_OK,
+        EXPECT_EQUAL(0,
                      s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
         EXPECT_EQUAL(S2N_CERT_TYPE_RSA_SIGN, cert_type);
@@ -190,7 +202,7 @@ int main(int argc, char **argv) {
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init(&trust_store);
-        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+        EXPECT_EQUAL(0, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
         struct s2n_x509_validator validator;
         s2n_x509_validator_init(&validator, &trust_store, 1);
@@ -207,7 +219,7 @@ int main(int argc, char **argv) {
 
         struct s2n_pkey public_key_out;
         s2n_cert_type cert_type;
-        EXPECT_EQUAL(S2N_ERR_T_OK,
+        EXPECT_EQUAL(0,
                      s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
         EXPECT_EQUAL(S2N_CERT_TYPE_RSA_SIGN, cert_type);
@@ -221,7 +233,7 @@ int main(int argc, char **argv) {
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init(&trust_store);
-        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+        EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
         struct s2n_x509_validator validator;
         s2n_x509_validator_init(&validator, &trust_store, 1);
@@ -257,7 +269,7 @@ int main(int argc, char **argv) {
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init(&trust_store);
-        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+        EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
         struct s2n_x509_validator validator;
         s2n_x509_validator_init(&validator, &trust_store, 1);
@@ -288,7 +300,7 @@ int main(int argc, char **argv) {
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init(&trust_store);
-        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+        EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
         struct host_verify_data verify_data = {.name = "127.0.0.1", .found_name = 0, .callback_invoked = 0,};
 
@@ -321,7 +333,7 @@ int main(int argc, char **argv) {
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init(&trust_store);
-        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+        EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
         struct host_verify_data verify_data = {.name = "127.0.0.1", .found_name = 0, .callback_invoked = 0,};
 
@@ -341,7 +353,7 @@ int main(int argc, char **argv) {
 
         struct s2n_pkey public_key_out;
         s2n_cert_type cert_type;
-        EXPECT_EQUAL(S2N_ERR_T_OK,
+        EXPECT_EQUAL(0,
                      s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
         EXPECT_EQUAL(1, verify_data.callback_invoked);
@@ -358,7 +370,7 @@ int main(int argc, char **argv) {
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init(&trust_store);
-        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+        EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
         struct host_verify_data verify_data = {.name = "127.0.0.1", .found_name = 0, .callback_invoked = 0,};
         struct s2n_x509_validator validator;
@@ -395,7 +407,7 @@ int main(int argc, char **argv) {
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init(&trust_store);
-        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
+        EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
 
         struct s2n_x509_validator validator;
         s2n_x509_validator_init(&validator, &trust_store, 1);
@@ -412,7 +424,7 @@ int main(int argc, char **argv) {
 
         struct s2n_pkey public_key_out;
         s2n_cert_type cert_type;
-        EXPECT_EQUAL(S2N_ERR_T_OK,
+        EXPECT_EQUAL(0,
                      s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
 
@@ -420,7 +432,7 @@ int main(int argc, char **argv) {
         EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_DER, S2N_MAX_TEST_PEM_SIZE));
         uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
         EXPECT_TRUE(ocsp_data_len > 0);
-        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
+        EXPECT_EQUAL(0, s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
                                                                                           s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len),
                                                                                           ocsp_data_len));
         s2n_stuffer_free(&ocsp_data_stuffer);
@@ -433,7 +445,7 @@ int main(int argc, char **argv) {
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init(&trust_store);
-        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
+        EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
 
         struct s2n_x509_validator validator;
         s2n_x509_validator_init(&validator, &trust_store, 1);
@@ -450,7 +462,7 @@ int main(int argc, char **argv) {
 
         struct s2n_pkey public_key_out;
         s2n_cert_type cert_type;
-        EXPECT_EQUAL(S2N_ERR_T_OK,
+        EXPECT_EQUAL(0,
                      s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
 
@@ -475,7 +487,7 @@ int main(int argc, char **argv) {
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init(&trust_store);
-        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
+        EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
 
         struct s2n_x509_validator validator;
         s2n_x509_validator_init(&validator, &trust_store, 1);
@@ -492,7 +504,7 @@ int main(int argc, char **argv) {
 
         struct s2n_pkey public_key_out;
         s2n_cert_type cert_type;
-        EXPECT_EQUAL(S2N_ERR_T_OK,
+        EXPECT_EQUAL(0,
                      s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
 
@@ -519,7 +531,7 @@ int main(int argc, char **argv) {
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init(&trust_store);
-        EXPECT_EQUAL(S2N_ERR_T_OK, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
+        EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
 
         struct s2n_x509_validator validator;
         s2n_x509_validator_init(&validator, &trust_store, 1);
@@ -536,7 +548,7 @@ int main(int argc, char **argv) {
 
         struct s2n_pkey public_key_out;
         s2n_cert_type cert_type;
-        EXPECT_EQUAL(S2N_ERR_T_OK,
+        EXPECT_EQUAL(0,
                      s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
 

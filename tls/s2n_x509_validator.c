@@ -13,13 +13,14 @@
  * permissions and limitations under the License.
  */
 
-#include <openssl/err.h>
 #include "tls/s2n_config.h"
 #include "utils/s2n_asn1_time.h"
 #include "utils/s2n_safety.h"
+#include "tls/s2n_connection.h"
 
 #include "openssl/ocsp.h"
-#include "s2n_connection.h"
+#include "openssl/err.h"
+#include "openssl/asn1.h"
 
 /* one day, boringssl, may add ocsp stapling support. Let's future proof this a bit by grabbing a definition
  * that would have to be there when they add support */
@@ -132,8 +133,8 @@ static uint8_t verify_host_information(struct s2n_x509_validator *validator, str
     STACK_OF(GENERAL_NAME) *names_list = X509_get_ext_d2i(public_cert, NID_subject_alt_name, NULL, NULL);
     GENERAL_NAME *current_name = NULL;
     while (!verified && names_list && (current_name = sk_GENERAL_NAME_pop(names_list))) {
-        const char *name = (const char *) M_ASN1_STRING_data(current_name->d.ia5);
-        size_t name_len = (size_t) M_ASN1_STRING_length(current_name->d.ia5);
+        const char *name = (const char *) ASN1_STRING_data(current_name->d.ia5);
+        size_t name_len = (size_t) ASN1_STRING_length(current_name->d.ia5);
 
         verified = conn->verify_host_fn(name, name_len, conn->data_for_verify_host);
     }
