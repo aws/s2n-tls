@@ -235,6 +235,7 @@ struct s2n_config *s2n_config_new(void)
 
 int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
 {
+
     struct s2n_blob b = {
         .data = (uint8_t *) config->cert_and_key_pairs,
         .size = sizeof(struct s2n_cert_chain_and_key)
@@ -384,6 +385,7 @@ int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_req
     return 0;
 }
 
+
 int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_file_pem, const char *ca_dir) {
     notnull_check(config);
     int err_code = s2n_x509_trust_store_from_ca_file(&config->trust_store, ca_file_pem, ca_dir);
@@ -395,40 +397,9 @@ int s2n_config_set_verification_ca_location(struct s2n_config *config, const cha
     return err_code;
 }
 
-int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem)
+int s2n_config_add_cert_chain(struct s2n_config *config, const char *cert_chain_pem)
 {
-    struct s2n_stuffer chain_in_stuffer, cert_out_stuffer, key_in_stuffer, key_out_stuffer;
-    struct s2n_blob key_blob;
-    struct s2n_blob mem;
-
-    /* Allocate the memory for the chain and key struct */
-    GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert_chain_and_key)));
-    config->cert_and_key_pairs = (struct s2n_cert_chain_and_key *)(void *)mem.data;
-    config->cert_and_key_pairs->cert_chain.head = NULL;
-
-    config->cert_and_key_pairs->ocsp_status.data = NULL;
-    config->cert_and_key_pairs->ocsp_status.size = 0;
-    config->cert_and_key_pairs->sct_list.data = NULL;
-    config->cert_and_key_pairs->sct_list.size = 0;
-    memset(&config->cert_and_key_pairs->ocsp_status, 0, sizeof(config->cert_and_key_pairs->ocsp_status));
-    memset(&config->cert_and_key_pairs->sct_list, 0, sizeof(config->cert_and_key_pairs->sct_list));
-
-    GUARD(s2n_pkey_zero_init(&config->cert_and_key_pairs->private_key));
-
-    /* Put the private key pem in a stuffer */
-    GUARD(s2n_stuffer_alloc_ro_from_string(&key_in_stuffer, private_key_pem));
-    GUARD(s2n_stuffer_growable_alloc(&key_out_stuffer, strlen(private_key_pem)));
-
-    /* Convert pem to asn1 and asn1 to the private key. Handles both PKCS#1 and PKCS#8 formats */
-    GUARD(s2n_stuffer_private_key_from_pem(&key_in_stuffer, &key_out_stuffer));
-    GUARD(s2n_stuffer_free(&key_in_stuffer));
-    key_blob.size = s2n_stuffer_data_available(&key_out_stuffer);
-    key_blob.data = s2n_stuffer_raw_read(&key_out_stuffer, key_blob.size);
-    notnull_check(key_blob.data);
-    
-    /* Get key type and create appropriate key context */
-    GUARD(s2n_asn1der_to_private_key(&config->cert_and_key_pairs->private_key, &key_blob));
-    GUARD(s2n_stuffer_free(&key_out_stuffer));
+    struct s2n_stuffer chain_in_stuffer, cert_out_stuffer;
 
     /* Turn the chain into a stuffer */
     GUARD(s2n_stuffer_alloc_ro_from_string(&chain_in_stuffer, cert_chain_pem));
@@ -441,11 +412,13 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
 
         if (s2n_stuffer_certificate_from_pem(&chain_in_stuffer, &cert_out_stuffer) < 0) {
             if (chain_size == 0) {
+                GUARD(s2n_stuffer_free(&chain_in_stuffer));
+                GUARD(s2n_stuffer_free(&cert_out_stuffer));
                 S2N_ERROR(S2N_ERR_NO_CERTIFICATE_IN_PEM);
             }
             break;
         }
-
+        struct s2n_blob mem;
         GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert)));
         new_node = (struct s2n_cert *)(void *)mem.data;
 
@@ -472,6 +445,54 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
     }
 
     config->cert_and_key_pairs->cert_chain.chain_size = chain_size;
+
+    return 0;
+}
+
+int s2n_config_add_private_key(struct s2n_config *config, const char *private_key_pem)
+{
+    struct s2n_stuffer key_in_stuffer, key_out_stuffer;
+    struct s2n_blob key_blob;
+
+    GUARD(s2n_pkey_zero_init(&config->cert_and_key_pairs->private_key));
+
+    /* Put the private key pem in a stuffer */
+    GUARD(s2n_stuffer_alloc_ro_from_string(&key_in_stuffer, private_key_pem));
+    GUARD(s2n_stuffer_growable_alloc(&key_out_stuffer, strlen(private_key_pem)));
+
+    /* Convert pem to asn1 and asn1 to the private key. Handles both PKCS#1 and PKCS#8 formats */
+    GUARD(s2n_stuffer_private_key_from_pem(&key_in_stuffer, &key_out_stuffer));
+    GUARD(s2n_stuffer_free(&key_in_stuffer));
+    key_blob.size = s2n_stuffer_data_available(&key_out_stuffer);
+    key_blob.data = s2n_stuffer_raw_read(&key_out_stuffer, key_blob.size);
+    notnull_check(key_blob.data);
+
+    /* Get key type and create appropriate key context */
+    GUARD(s2n_asn1der_to_private_key(&config->cert_and_key_pairs->private_key, &key_blob));
+    GUARD(s2n_stuffer_free(&key_out_stuffer));
+
+    return 0;
+}
+
+int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem)
+{
+    struct s2n_blob mem;
+
+    /* Allocate the memory for the chain and key struct */
+    GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert_chain_and_key)));
+    config->cert_and_key_pairs = (struct s2n_cert_chain_and_key *)(void *)mem.data;
+    config->cert_and_key_pairs->cert_chain.head = NULL;
+
+    config->cert_and_key_pairs->ocsp_status.data = NULL;
+    config->cert_and_key_pairs->ocsp_status.size = 0;
+    config->cert_and_key_pairs->sct_list.data = NULL;
+    config->cert_and_key_pairs->sct_list.size = 0;
+    memset(&config->cert_and_key_pairs->ocsp_status, 0, sizeof(config->cert_and_key_pairs->ocsp_status));
+    memset(&config->cert_and_key_pairs->sct_list, 0, sizeof(config->cert_and_key_pairs->sct_list));
+    GUARD(s2n_pkey_zero_init(&config->cert_and_key_pairs->private_key));
+
+    GUARD(s2n_config_add_cert_chain(config, cert_chain_pem));
+    GUARD(s2n_config_add_private_key(config, private_key_pem));
 
     /* Validate the leaf cert's public key matches the provided private key */
     struct s2n_pkey public_key;
