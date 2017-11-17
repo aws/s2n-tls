@@ -30,6 +30,13 @@
 #define S2N_OCSP_STAPLING_SUPPORTED 1
 #endif /* defined(OPENSSL_IS_BORINGSSL) && !defined(OCSP_RESPONSE_STATUS_SUCCESSFUL) */
 
+/* our friends at openssl love to make backwards incompatible changes */
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+#define OCSP_GET_CERTS(a) OCSP_resp_get0_certs(a)
+#else
+#define OCSP_GET_CERTS(a) a->certs
+#endif
+
 uint8_t s2n_x509_ocsp_stapling_supported(void) {
     return S2N_OCSP_STAPLING_SUPPORTED;
 }
@@ -340,10 +347,10 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
     int i;
 
     int certs_in_chain = sk_X509_num(validator->cert_chain);
-    int certs_in_ocsp = sk_X509_num(basic_response->certs);
+    int certs_in_ocsp = sk_X509_num(OCSP_GET_CERTS(basic_response));
 
     if (certs_in_chain >= 2 && certs_in_ocsp >= 1) {
-        X509 *responder = sk_X509_value(basic_response->certs, certs_in_ocsp - 1);
+        X509 *responder = sk_X509_value(OCSP_GET_CERTS(basic_response), certs_in_ocsp - 1);
 
         /*check to see if one of the certs in the chain is an issuer of the cert in the ocsp response.*/
         /*if so it needs to be added to the OCSP verification chain.*/
