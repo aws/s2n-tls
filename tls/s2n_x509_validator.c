@@ -31,7 +31,7 @@
 #endif /* defined(OPENSSL_IS_BORINGSSL) && !defined(OCSP_RESPONSE_STATUS_SUCCESSFUL) */
 
 /* our friends at openssl love to make backwards incompatible changes */
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+#if !defined(LIBRESSL_VERSION_NUMBER) && OPENSSL_VERSION_NUMBER >= 0x10100000L
 #define OCSP_GET_CERTS(a) OCSP_resp_get0_certs(a)
 #else
 #define OCSP_GET_CERTS(a) a->certs
