@@ -35,7 +35,7 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
-
+#include "s2n_test.h"
 
 static void s2n_fuzz_atexit()
 {
