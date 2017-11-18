@@ -182,7 +182,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 
     struct s2n_connection *client_conn;
     notnull_check(client_conn = s2n_connection_new(S2N_CLIENT));
-    s2n_connection_set_config(client_config);
+    GUARD(s2n_connection_set_config(client_conn, client_config));
     GUARD(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
     /* Write data to client out file descriptor so that it is received by the server */
