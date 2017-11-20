@@ -439,7 +439,7 @@ if (s2n_recv(conn, &blocked) < 0) {
 int s2n_init();
 ```
 
-**s2n_init** initializes the s2n library and should be called once in your application,
+**s2n_init** initializes the s2n library and should be called once per process,
 before any other s2n functions are called. Failure to call s2n_init() will result
 in errors from other s2n functions.
 
@@ -449,9 +449,8 @@ in errors from other s2n functions.
 int s2n_cleanup();
 ```
 
-**s2n_cleanup** cleans up any internal resources used by s2n. This function should be
-called from each thread or process that is created subsequent to calling **s2n_init**
-when that thread or process is done calling other s2n functions.
+**s2n_cleanup** cleans up any internal resources used by s2n. This function should be called
+once per process (after calling **s2n_init**), when that process is done calling other s2n functions.
 
 ## Configuration-oriented functions
 
