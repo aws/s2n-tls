@@ -13,9 +13,30 @@
 # permissions and limitations under the License.
 #
 
-#header checker for either copyright info and/or proper year
+set -e
 
-YEAR=$(date +%Y)
-while IFS= read -r -d $'\0' file; do
-	grep -L "* Copyright $YEAR" $file | perl -ne 'print "File is missing copyright info: $_"'
-done < <(find . -type f -name '*.c' -o -name '*.h' -print0)
+S2N_FILES=$(find "$PWD" -type f -name "s2n_*.[ch]")
+S2N_FILES+=" "
+S2N_FILES+=$(find "$PWD"/.travis/ -type f -name "*.sh")
+S2N_FILES+=" "
+S2N_FILES+=$(find "$PWD"/tests/ -type f -name "*.sh")
+
+FAILED=0
+
+for file in $S2N_FILES; do
+    # The word "Copyright" should appear at least once in the first 3 lines of every file
+    COUNT=`head -3 $file | grep "Copyright" | wc -l`;
+    if [ "$COUNT" == "0" ];
+    then
+        FAILED=1;
+        echo "Copyright Check Failed: $file";
+    fi
+done
+
+if [ $FAILED == 1 ];
+then
+    printf "\\033[31;1mFAILED Copyright Check\\033[0m\\n"
+    exit -1
+else
+    printf "\\033[32;1mPASSED Copyright Check\\033[0m\\n"
+fi
