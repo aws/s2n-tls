@@ -230,7 +230,12 @@ int cache_delete(void *ctx, const void *key, uint64_t key_size)
 extern void print_s2n_error(const char *app_error);
 extern int echo(struct s2n_connection *conn, int sockfd);
 extern int negotiate(struct s2n_connection *conn);
-extern s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_cert_type *cert_type_out, s2n_cert_public_key *public_key_out, void *context);
+extern s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn,
+        uint8_t *cert_chain_in,
+        uint32_t cert_chain_len,
+        s2n_cert_type *cert_type_out,
+        s2n_cert_public_key *public_key_out,
+        void *context);
 
 /* Caller is expected to free the memory returned. */
 static char *load_file_to_cstring(const char *path)
@@ -583,6 +588,7 @@ int main(int argc, char *const *argv)
 
     if (mutual_auth) {
         s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED);
+        /* Use an unsafe verification function until we support default x509 verification */
         s2n_config_set_verify_cert_chain_cb(config, &accept_all_rsa_certs, NULL);
     }
 
