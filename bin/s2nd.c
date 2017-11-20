@@ -305,6 +305,14 @@ void usage()
     fprintf(stderr, "    Accept client's TLS maximum fragment length extension request\n");
     fprintf(stderr, "  --ocsp\n");
     fprintf(stderr, "    Path to a DER formatted OCSP response for stapling\n");
+    fprintf(stderr, "  -t,--ca-file [file path]\n");
+    fprintf(stderr, "    Location of trust store CA file (PEM format). If neither -f or -d are specified. System defaults will be used.");
+    fprintf(stderr, "This option is only used if mutual auth is enabled.\n");
+    fprintf(stderr, "  -d,--ca-dir [directory path]\n");
+    fprintf(stderr, "    Directory containing hashed trusted certs. If neither -f or -d are specified. System defaults will be used.");
+    fprintf(stderr, "This option is only used if mutual auth is enabled.\n");
+    fprintf(stderr, "  -i,--insecure\n");
+    fprintf(stderr, "    Turns off certification validation altogether.\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -324,6 +332,9 @@ int main(int argc, char *const *argv)
     const char *private_key_file_path = NULL;
     const char *ocsp_response_file_path = NULL;
     const char *cipher_prefs = "default";
+    const char *ca_dir = NULL;
+    const char *ca_file = NULL;
+    int insecure = 0;
     int fips_mode = 0;
     int only_negotiate = 0;
     int prefer_throughput = 0;
@@ -344,6 +355,9 @@ int main(int argc, char *const *argv)
         {"prefer-throughput", no_argument, 0, 'p'},
         {"enable-mfl", no_argument, 0, 'e'},
         {"ocsp", required_argument, 0, 'o'},
+        {"ca-dir", required_argument, 0, 'd'},
+        {"ca-file", required_argument, 0, 't'},
+        {"insecure", no_argument, 0, 'i'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
@@ -386,6 +400,15 @@ int main(int argc, char *const *argv)
             break;
         case 'o':
             ocsp_response_file_path = optarg;
+            break;
+        case 'd':
+            ca_dir = optarg;
+            break;
+        case 't':
+            ca_file = optarg;
+            break;
+        case 'i':
+            insecure = 1;
             break;
         case '?':
         default:
@@ -582,6 +605,20 @@ int main(int argc, char *const *argv)
 
     if (mutual_auth) {
         s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED);
+
+        if(ca_dir || ca_file) {
+            if(s2n_config_set_verification_ca_location(config, ca_file, ca_dir) < 0) {
+                print_s2n_error("Error adding verify location");
+                exit(1);
+            }
+        }
+
+        if(insecure) {
+            if(s2n_config_disable_x509_verification(config) < 0) {
+                print_s2n_error("Error disabling X.509 validation");
+                exit(1);
+            }
+        }
     }
 
     if (s2n_connection_set_config(conn, config) < 0) {
