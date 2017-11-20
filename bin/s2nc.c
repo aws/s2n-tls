@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -59,7 +59,12 @@ void usage()
 extern void print_s2n_error(const char *app_error);
 extern int echo(struct s2n_connection *conn, int sockfd);
 extern int negotiate(struct s2n_connection *conn);
-extern s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_cert_type *cert_type_out, s2n_cert_public_key *public_key_out, void *context);
+extern s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn,
+        uint8_t *cert_chain_in,
+        uint32_t cert_chain_len,
+        s2n_cert_type *cert_type_out,
+        s2n_cert_public_key *public_key_out,
+        void *context);
 
 int main(int argc, char *const *argv)
 {

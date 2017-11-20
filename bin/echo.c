@@ -23,12 +23,11 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
-
 #include <errno.h>
-
 #include <s2n.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
+
 #include "crypto/s2n_rsa.h"
 #include "crypto/s2n_pkey.h"
 
@@ -36,84 +35,6 @@ void print_s2n_error(const char *app_error)
 {
     fprintf(stderr, "%s: '%s' : '%s'\n", app_error, s2n_strerror(s2n_errno, "EN"),
             s2n_strerror_debug(s2n_errno, "EN"));
-}
-
-/* Accept all RSA Certificates is unsafe and is only used in the s2n Client */
-s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_cert_type *cert_type_out, s2n_cert_public_key *public_key_out, void *context)
-{
-    uint32_t bytes_read = 0;
-    uint32_t certificate_count = 0;
-    while (bytes_read != cert_chain_len) {
-        if (bytes_read > cert_chain_len) {
-            return S2N_CERT_ERR_INVALID;
-        }
-        //24 Bit Cert Length
-        uint32_t next_certificate_size = 0;
-        next_certificate_size |= cert_chain_in[bytes_read++] << 16;
-        next_certificate_size |= cert_chain_in[bytes_read++] << 8;
-        next_certificate_size |= cert_chain_in[bytes_read++];
-
-
-        if (next_certificate_size == 0 || next_certificate_size > (cert_chain_len - bytes_read) ) {
-            return S2N_CERT_ERR_INVALID;
-        }
-
-        uint8_t *asn1_cert_data = &cert_chain_in[bytes_read];
-        bytes_read += next_certificate_size;
-
-        /* Pull the public key from the first certificate */
-        if (certificate_count == 0) {
-            /* Assume that the asn1cert is an RSA Cert */
-            uint8_t *cert_to_parse = asn1_cert_data;
-            X509 *cert = d2i_X509(NULL, (const unsigned char **)(void *)&cert_to_parse, next_certificate_size);
-
-            if (cert == NULL) {
-                return S2N_CERT_ERR_INVALID;
-            }
-
-            /* If cert parsing is successful, d2i_X509 increments *cert_to_parse to the byte following the parsed data */
-            uint32_t parsed_len = cert_to_parse - asn1_cert_data;
-
-            if (parsed_len != next_certificate_size) {
-                X509_free(cert);
-                return S2N_CERT_ERR_INVALID;
-            }
-
-            EVP_PKEY *public_key = X509_get_pubkey(cert);
-            X509_free(cert);
-
-            if (public_key == NULL) {
-                return S2N_CERT_ERR_INVALID;
-            }
-
-            if (EVP_PKEY_base_id(public_key) != EVP_PKEY_RSA) {
-                EVP_PKEY_free(public_key);
-                return S2N_CERT_ERR_TYPE_UNSUPPORTED;
-            }
-
-            RSA *openssl_rsa;
-            openssl_rsa = EVP_PKEY_get1_RSA(public_key);
-            EVP_PKEY_free(public_key);
-            if (openssl_rsa == NULL) {
-                return S2N_CERT_ERR_INVALID;
-            }
-
-            if (s2n_cert_public_key_set_rsa_from_openssl(public_key_out, openssl_rsa) < 0) {
-                return S2N_CERT_ERR_INVALID;
-            }
-
-            *cert_type_out = S2N_CERT_TYPE_RSA_SIGN;                            
-        }
-
-        certificate_count++;
-    }
-
-    // Allow Cert Chains of at least length 1 for Self-Signed Certs
-    if (certificate_count == 0) {
-        return S2N_CERT_ERR_INVALID;
-    }
-
-    return 0;
 }
 
 int negotiate(struct s2n_connection *conn)
