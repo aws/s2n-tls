@@ -46,7 +46,7 @@ def print_result(result_prefix, return_code):
             print("FAILED")
 
 def try_client_handshake(endpoint):
-    s2nc_cmd = ["strace ../../bin/s2nc", "-f ./trust-store/ca-bundle.crt", "-a", "http/1.1", str(endpoint)]
+    s2nc_cmd = ["strace", "../../bin/s2nc", "-f ./trust-store/ca-bundle.crt", "-a", "http/1.1", str(endpoint)]
 
     # Add S2N_ENABLE_CLIENT_MODE to env variables
     envVars = os.environ.copy()
