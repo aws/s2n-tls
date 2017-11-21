@@ -51,7 +51,7 @@ def try_client_handshake(endpoint):
     # Add S2N_ENABLE_CLIENT_MODE to env variables
     envVars = os.environ.copy()
     envVars["S2N_ENABLE_CLIENT_MODE"] = "1"
-    currentDir = os.path.realpath(__file__)
+    currentDir = os.path.dirname(os.path.realpath(__file__))
     print(s2nc_cmd)
     print("working directory of executable is:")
     print(currentDir)
