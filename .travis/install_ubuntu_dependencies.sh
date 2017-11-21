@@ -18,7 +18,7 @@ set -ex
 sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
 sudo apt-get update
 
-DEPENDENCIES="indent kwstyles strace"
+DEPENDENCIES="indent kwstyle strace"
 
 sudo apt-get install -y ${DEPENDENCIES}
 
