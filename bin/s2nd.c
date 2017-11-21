@@ -306,10 +306,10 @@ void usage()
     fprintf(stderr, "  --ocsp\n");
     fprintf(stderr, "    Path to a DER formatted OCSP response for stapling\n");
     fprintf(stderr, "  -t,--ca-file [file path]\n");
-    fprintf(stderr, "    Location of trust store CA file (PEM format). If neither -f or -d are specified. System defaults will be used.");
+    fprintf(stderr, "    Location of trust store CA file (PEM format). If neither -t or -d are specified. System defaults will be used.");
     fprintf(stderr, "This option is only used if mutual auth is enabled.\n");
     fprintf(stderr, "  -d,--ca-dir [directory path]\n");
-    fprintf(stderr, "    Directory containing hashed trusted certs. If neither -f or -d are specified. System defaults will be used.");
+    fprintf(stderr, "    Directory containing hashed trusted certs. If neither -t or -d are specified. System defaults will be used.");
     fprintf(stderr, "This option is only used if mutual auth is enabled.\n");
     fprintf(stderr, "  -i,--insecure\n");
     fprintf(stderr, "    Turns off certification validation altogether.\n");
@@ -363,7 +363,7 @@ int main(int argc, char *const *argv)
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hmn", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmnt:d:i", long_options, &option_index);
         if (c == -1) {
             break;
         }
