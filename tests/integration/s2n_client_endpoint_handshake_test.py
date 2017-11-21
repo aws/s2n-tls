@@ -46,13 +46,16 @@ def print_result(result_prefix, return_code):
             print("FAILED")
 
 def try_client_handshake(endpoint):
-    s2nc_cmd = ["strace", "../../bin/s2nc", "-f ./trust-store/ca-bundle.crt", "-a", "http/1.1", str(endpoint)]
+    s2nc_cmd = ["../../bin/s2nc", "-f ./trust-store/ca-bundle.crt", "-a", "http/1.1", str(endpoint)]
 
     # Add S2N_ENABLE_CLIENT_MODE to env variables
     envVars = os.environ.copy()
     envVars["S2N_ENABLE_CLIENT_MODE"] = "1"
+    currentDir = os.path.realpath(__file__)
     print(s2nc_cmd)
-    s2nc = subprocess.Popen(s2nc_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, env=envVars)
+    print("working directory of executable is:")
+    print(currentDir)
+    s2nc = subprocess.Popen(s2nc_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, env=envVars, cwd=currentDir)
 
     found = 0
     for line in range(0, 10):
