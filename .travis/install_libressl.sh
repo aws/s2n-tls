@@ -29,7 +29,7 @@ INSTALL_DIR=$2
 
 cd "$BUILD_DIR"
 # Originally from: https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-2.5.1.tar.gz
-curl https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-29_libressl-2.5.1.tar.gz > libressl-2.5.1.tar.gz
+curl --retry 3 https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-29_libressl-2.5.1.tar.gz --output libressl-2.5.1.tar.gz
 tar -xzvf libressl-2.5.1.tar.gz
 cd libressl-2.5.1
 ./configure --prefix="$INSTALL_DIR"
