@@ -30,7 +30,7 @@ INSTALL_DIR=$2
 PLATFORM=$3
 
 cd "$BUILD_DIR"
-curl -L https://www.openssl.org/source/openssl-1.1.0-latest.tar.gz > openssl-1.1.0.tar.gz
+curl --retry 3 -L https://www.openssl.org/source/openssl-1.1.0-latest.tar.gz --output openssl-1.1.0.tar.gz
 tar -xzvf openssl-1.1.0.tar.gz
 rm openssl-1.1.0.tar.gz
 cd openssl-1.1.0*

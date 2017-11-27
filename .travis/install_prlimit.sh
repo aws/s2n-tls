@@ -30,7 +30,7 @@ NUM_CORES=$(nproc)
 
 cd "$BUILD_DIR"
 # Originally from: https://www.kernel.org/pub/linux/utils/util-linux/v2.25/util-linux-2.25.2.tar.gz
-curl https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-29_util-linux-2.25.2.tar.gz > util-linux-2.25.2.tar.gz
+curl --retry 3 https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-29_util-linux-2.25.2.tar.gz --output util-linux-2.25.2.tar.gz
 tar -xzvf util-linux-2.25.2.tar.gz
 cd util-linux-2.25.2
 ./configure ADJTIME_PATH=/var/lib/hwclock/adjtime \
