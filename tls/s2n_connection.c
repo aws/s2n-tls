@@ -414,6 +414,8 @@ int s2n_connection_free(struct s2n_connection *conn)
     GUARD(s2n_connection_reset_hmacs(conn));
     GUARD(s2n_connection_free_hmacs(conn));
 
+    GUARD(s2n_connection_free_io_contexts(conn));
+    
     GUARD(s2n_free(&conn->status_response));
     GUARD(s2n_stuffer_free(&conn->in));
     GUARD(s2n_stuffer_free(&conn->out));
