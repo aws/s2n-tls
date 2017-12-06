@@ -18,7 +18,6 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
-/* Only Support Certificates signed using RSA. */
 static uint8_t s2n_cert_type_preference_list[] = {
     S2N_CERT_TYPE_RSA_SIGN,
     S2N_CERT_TYPE_ECDSA_SIGN

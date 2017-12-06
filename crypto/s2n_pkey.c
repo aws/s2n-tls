@@ -152,7 +152,7 @@ int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1d
     return ret;
 }
 
-int s2n_asn1der_to_public_key(struct s2n_pkey *pub_key, struct s2n_blob *asn1der)
+int s2n_asn1der_to_public_key_and_type(struct s2n_pkey *pub_key, s2n_cert_type *cert_type_out, struct s2n_blob *asn1der)
 {
     uint8_t *cert_to_parse = asn1der->data;
     
@@ -182,6 +182,7 @@ int s2n_asn1der_to_public_key(struct s2n_pkey *pub_key, struct s2n_blob *asn1der
             break;
         }
         ret = s2n_evp_pkey_to_rsa_public_key(&pub_key->key.rsa_key, evp_public_key);
+        *cert_type_out = S2N_CERT_TYPE_RSA_SIGN; 
         break;
     case EVP_PKEY_EC:
         ret = s2n_ecdsa_pkey_init(pub_key);
@@ -189,6 +190,7 @@ int s2n_asn1der_to_public_key(struct s2n_pkey *pub_key, struct s2n_blob *asn1der
             break;
         }
         ret = s2n_evp_pkey_to_ecdsa_public_key(&pub_key->key.ecdsa_key, evp_public_key);
+        *cert_type_out = S2N_CERT_TYPE_ECDSA_SIGN; 
         break;
     default:
         EVP_PKEY_free(evp_public_key);

@@ -117,7 +117,7 @@ int client_hello_swap_config(struct s2n_connection *conn, void *ctx)
     }
     client_hello_ctx = ctx;
 
-    /* Incremet counter to ensure that callback was invoked */
+    /* Increment counter to ensure that callback was invoked */
     client_hello_ctx->invoked++;
 
     /* Validate SNI extension */

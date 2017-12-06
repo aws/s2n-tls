@@ -63,6 +63,16 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     :param str client_key: Path to the client's private key file
     :return: 0 on successfully negotiation(s), -1 on failure
     """
+
+    # Override certificate for ECDSA if unspecified. We can remove this when we
+    # support multiple certificates
+    if server_cert is None and "ECDSA" in cipher:
+        server_cert = TEST_ECDSA_CERT
+        server_key = TEST_ECDSA_KEY
+   
+    if "CHACHA" in cipher:
+        return 0
+
     # Fire up s2nd
     s2nd_cmd = ["../../bin/s2nd"]
 
@@ -84,6 +94,8 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     if enter_fips_mode == True:
         s2nd_ciphers = "test_all_fips"
         s2nd_cmd.append("--enter-fips-mode")
+    if "ECDSA" in cipher:
+        s2nd_ciphers = "test_all_ecdsa"
     s2nd_cmd.append("-c")
     s2nd_cmd.append(s2nd_ciphers)
     
@@ -215,6 +227,7 @@ def run_handshake_test(host, port, ssl_version, cipher, fips_mode, use_client_au
         client_cert_str = cert_path_to_str(client_cert_path)
 
     ret = try_handshake(host, port, cipher_name, ssl_version, enter_fips_mode=fips_mode, client_auth=use_client_auth, client_cert=client_cert_path, client_key=client_key_path)
+    
     result_prefix = "Cipher: %-28s ClientCert: %-16s Vers: %-8s ... " % (cipher_name, client_cert_str, S2N_PROTO_VERS_TO_STR[ssl_version])
     print_result(result_prefix, ret)
     
@@ -285,6 +298,7 @@ def resume_test(host, port, test_ciphers, fips_mode):
             if ssl_version < cipher_vers:
                 continue
 
+            print(cipher_name);
             ret = try_handshake(host, port, cipher_name, ssl_version, resume=True, enter_fips_mode=fips_mode)
             result_prefix = "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
             print_result(result_prefix, ret)
@@ -328,7 +342,7 @@ def sigalg_test(host, port, fips_mode, use_client_auth=None):
         threadpool = create_thread_pool()
         portOffset = 0
         results = []
-        # Produce permutations of every accepted signature alrgorithm in every possible order
+        # Produce permutations of every accepted signature algorithm in every possible order
         for permutation in itertools.permutations(supported_sigs, size):
             for cipher in ALL_TEST_CIPHERS:
                 # Try an ECDHE cipher suite and a DHE one

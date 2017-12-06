@@ -39,8 +39,13 @@ def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, enter
         s2nd_cmd.append("--enter-fips-mode")
     s2nd_cmd.append("-c")
     s2nd_cmd.append(s2nd_ciphers)
+    if "ECDSA" in priority_str:
+        s2nd_ciphers = "test_all_ecdsa"
+        s2nd_cmd.extend(["--cert", TEST_ECDSA_CERT])
+        s2nd_cmd.extend(["--key", TEST_ECDSA_KEY])
     if mfl_extension_test:
         s2nd_cmd.append("--enable-mfl")
+    
     s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
     # Make sure it's running
@@ -50,7 +55,7 @@ def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, enter
 
     if mfl_extension_test:
         gnutls_cmd.append("--recordsize=" + str(mfl_extension_test))
-
+    
     # Fire up gnutls-cli, use insecure since s2nd is using a dummy cert
     gnutls_cli = subprocess.Popen(gnutls_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
@@ -177,16 +182,37 @@ def main():
             if async_result.get() != 0:
                 return -1
 
-    # Produce permutations of every accepted signature alrgorithm in every possible order
-    signatures = ["SIGN-RSA-SHA1", "SIGN-RSA-SHA224", "SIGN-RSA-SHA256", "SIGN-RSA-SHA384", "SIGN-RSA-SHA512"];
-    for size in range(1, len(signatures) + 1):
+    # Produce permutations of every accepted signature algorithm in every possible order
+    rsa_signatures = ["SIGN-RSA-SHA1", "SIGN-RSA-SHA224", "SIGN-RSA-SHA256", "SIGN-RSA-SHA384", "SIGN-RSA-SHA512"];
+    
+    for size in range(1, len(rsa_signatures) + 1):
         print("\n\tTesting ciphers using signature preferences of size: " + str(size))
         threadpool = create_thread_pool()
         port_offset = 0
         results = []
-        for permutation in itertools.permutations(signatures, size):
+        for permutation in itertools.permutations(rsa_signatures, size):
             # Try an ECDHE cipher suite and a DHE one
             for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or x.openssl_name == "DHE-RSA-AES128-GCM-SHA256", ALL_TEST_CIPHERS):
+                complete_priority_str = cipher.gnutls_priority_str + ":+VERS-TLS1.2:+" + ":+".join(permutation)
+                async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, S2N_TLS12, complete_priority_str, permutation, 0, fips_mode))
+                port_offset += 1
+                results.append(async_result)
+
+        threadpool.close()
+        threadpool.join()
+        for async_result in results:
+            if async_result.get() != 0:
+                return -1
+   
+    # Try ECDSA signature algorithm permutations. When we support multiple certificates, we can combine the RSA and ECDSA tests
+    ecdsa_signatures = ["SIGN-ECDSA-SHA1", "SIGN-ECDSA-SHA224", "SIGN-ECDSA-SHA256", "SIGN-ECDSA-SHA384", "SIGN-ECDSA-SHA512"];
+    for size in range(1, len(ecdsa_signatures) + 1):
+        print("\n\tTesting ciphers using ECDSA signature preferences of size: " + str(size))
+        threadpool = create_thread_pool()
+        port_offset = 0
+        results = []
+        for permutation in itertools.permutations(ecdsa_signatures, size):
+            for cipher in filter(lambda x: x.openssl_name == "ECDHE-ECDSA-AES128-SHA", ALL_TEST_CIPHERS):
                 complete_priority_str = cipher.gnutls_priority_str + ":+VERS-TLS1.2:+" + ":+".join(permutation)
                 async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, S2N_TLS12, complete_priority_str, permutation, 0, fips_mode))
                 port_offset += 1

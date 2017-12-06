@@ -44,6 +44,14 @@ typedef enum {
     APPLICATION_DATA
 } message_type_t;
 
+struct s2n_handshake_parameters {
+    /* Signature/hash algorithm pairs offered by the client in the signature_algorithms extension */
+    struct s2n_map *client_sig_hash_algs;
+
+    /* Signature/hash algorithm pairs offered by the server in the certificate request */
+    struct s2n_map *server_sig_hash_algs;
+};
+
 struct s2n_handshake {
     struct s2n_stuffer io;
 

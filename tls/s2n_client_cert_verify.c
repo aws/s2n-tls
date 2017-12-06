@@ -36,24 +36,21 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
     s2n_signature_algorithm chosen_signature_alg = S2N_SIGNATURE_RSA;
 
     if(conn->actual_protocol_version == S2N_TLS12){
-        int pairs_available = 1;
         /* Make sure the client is actually using one of the {sig,hash} pairs that we sent in the ClientCertificateRequest */
-        GUARD(s2n_choose_preferred_signature_hash_pair(in, pairs_available, &chosen_hash_alg, &chosen_signature_alg));
+        GUARD(s2n_get_supported_signature_hash_pair(in, &chosen_hash_alg, &chosen_signature_alg));
     }
-
     uint16_t signature_size;
     struct s2n_blob signature;
     GUARD(s2n_stuffer_read_uint16(in, &signature_size));
     signature.size = signature_size;
     signature.data = s2n_stuffer_raw_read(in, signature.size);
     notnull_check(signature.data);
-
     struct s2n_hash_state hash_state;
     GUARD(s2n_handshake_get_hash_state(conn, chosen_hash_alg, &hash_state));
 
     switch (chosen_signature_alg) {
-    /* s2n currently only supports RSA Signatures */
     case S2N_SIGNATURE_RSA:
+    case S2N_SIGNATURE_ECDSA:
         GUARD(s2n_pkey_verify(&conn->secure.client_public_key, &hash_state, &signature));
         break;
     default:

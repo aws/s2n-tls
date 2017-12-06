@@ -510,9 +510,13 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
     GUARD(s2n_config_add_cert_chain(config, cert_chain_pem));
     GUARD(s2n_config_add_private_key(config, private_key_pem));
 
-    /* Validate the leaf cert's public key matches the provided private key */
+    /* Parse the leaf cert for the public key and certificate type */
     struct s2n_pkey public_key;
-    GUARD(s2n_asn1der_to_public_key(&public_key, &config->cert_and_key_pairs->cert_chain.head->raw));
+    s2n_cert_type cert_type;
+    GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &cert_type, &config->cert_and_key_pairs->cert_chain.head->raw));
+    GUARD(s2n_cert_set_cert_type(config->cert_and_key_pairs->cert_chain.head, cert_type));
+
+    /* Validate the leaf cert's public key matches the provided private key */
     int key_match_ret = s2n_pkey_match(&public_key, &config->cert_and_key_pairs->private_key);
     GUARD(s2n_pkey_free(&public_key));
     if (key_match_ret < 0) {
@@ -663,3 +667,13 @@ int s2n_config_accept_max_fragment_length(struct s2n_config *config)
     return 0;
 }
 
+int s2n_config_get_cert_type(struct s2n_config *config, s2n_cert_type *cert_type)
+{
+    notnull_check(config);
+    notnull_check(config->cert_and_key_pairs);
+    notnull_check(config->cert_and_key_pairs->cert_chain.head);
+
+    *cert_type = config->cert_and_key_pairs->cert_chain.head->cert_type;
+    
+    return 0;
+}

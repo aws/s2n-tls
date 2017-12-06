@@ -257,7 +257,6 @@ static int s2n_advance_message(struct s2n_connection *conn)
 
     /* Actually advance the message number */
     conn->handshake.message_number++;
-
     /* If optimized io hasn't been enabled or if the caller started out with a corked socket,
      * we don't mess with it
      */
@@ -484,7 +483,7 @@ static int read_full_handshake_message(struct s2n_connection *conn, uint8_t * me
 
     /* We don't have the whole message, so we'll need to go again */
     GUARD(s2n_stuffer_reread(&conn->handshake.io));
-
+    
     return 1;
 }
 

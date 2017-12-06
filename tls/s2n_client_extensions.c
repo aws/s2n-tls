@@ -18,6 +18,7 @@
 
 #include "error/s2n_errno.h"
 
+#include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_tls_digest_preferences.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_connection.h"
@@ -27,9 +28,11 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_map.h"
 #include "tls/s2n_client_extensions.h"
 
 static int s2n_recv_client_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_elliptic_curves(struct s2n_connection *conn, struct s2n_stuffer *extension);
@@ -47,11 +50,12 @@ static int s2n_send_client_signature_algorithms_extension(struct s2n_connection 
      * the extension length field.
      */
     uint16_t preferred_hashes_len = sizeof(s2n_preferred_hashes) / sizeof(s2n_preferred_hashes[0]);
-    uint16_t preferred_hashes_size = preferred_hashes_len * 2;
+    uint16_t num_signature_algs = 2;;
+    uint16_t preferred_hash_sigalg_size = preferred_hashes_len * num_signature_algs * 2;
     uint16_t extension_len_field_size = 2;
 
-    GUARD(s2n_stuffer_write_uint16(out, extension_len_field_size + preferred_hashes_size));
-    GUARD(s2n_send_client_signature_algorithms(out));
+    GUARD(s2n_stuffer_write_uint16(out, extension_len_field_size + preferred_hash_sigalg_size));
+    GUARD(s2n_send_supported_signature_algorithms(out));
 
     return 0;
 }
@@ -62,7 +66,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 
     /* Signature algorithms */
     if (conn->actual_protocol_version == S2N_TLS12) {
-        total_size += (sizeof(s2n_preferred_hashes) * 2) + 6;
+        total_size += (sizeof(s2n_preferred_hashes) * 2 * 2) + 6;
     }
 
     uint16_t application_protocols_len = conn->config->application_protocols.size;
@@ -184,7 +188,7 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *pa
             GUARD(s2n_recv_client_server_name(conn, &extension));
             break;
         case TLS_EXTENSION_SIGNATURE_ALGORITHMS:
-            GUARD(s2n_recv_client_signature_algorithms(conn, &extension, &conn->secure.conn_hash_alg, &conn->secure.conn_sig_alg));
+            GUARD(s2n_recv_client_signature_algorithms(conn, &extension));
             break;
         case TLS_EXTENSION_ALPN:
             GUARD(s2n_recv_client_alpn(conn, &extension));
@@ -250,60 +254,38 @@ static int s2n_recv_client_server_name(struct s2n_connection *conn, struct s2n_s
     return 0;
 }
 
-int s2n_send_client_signature_algorithms(struct s2n_stuffer *out)
+static int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    /* The array of hashes and signature algorithms we support */
-    uint16_t preferred_hashes_len = sizeof(s2n_preferred_hashes) / sizeof(s2n_preferred_hashes[0]);
-    uint16_t preferred_hashes_size = preferred_hashes_len * 2;
-    GUARD(s2n_stuffer_write_uint16(out, preferred_hashes_size));
-
-    for (int i =  0; i < preferred_hashes_len; i++) {
-        GUARD(s2n_stuffer_write_uint8(out, s2n_preferred_hashes[i]));
-        GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_RSA));
-    }
-    return 0;
+    return s2n_recv_supported_signature_algorithms(conn, extension, &conn->handshake_params.client_sig_hash_algs);
 }
-
-int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *in, s2n_hash_algorithm *hash, s2n_signature_algorithm *sig)
+    
+int s2n_get_supported_signature_hash_pair(struct s2n_stuffer *in, s2n_hash_algorithm *hash_alg, s2n_signature_algorithm *signature_alg)
 {
-    uint16_t length_of_all_pairs;
-    GUARD(s2n_stuffer_read_uint16(in, &length_of_all_pairs));
-    if (length_of_all_pairs > s2n_stuffer_data_available(in)) {
-        /* Malformed length, ignore the extension */
-        return 0;
+    uint8_t hash_algorithm;
+    uint8_t signature_algorithm;
+
+    GUARD(s2n_stuffer_read_uint8(in, &hash_algorithm));
+    GUARD(s2n_stuffer_read_uint8(in, &signature_algorithm));
+    // TODO: Fix before submitting
+    if (signature_algorithm != TLS_SIGNATURE_ALGORITHM_RSA && signature_algorithm != TLS_SIGNATURE_ALGORITHM_ECDSA) {
+        S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     }
 
-    if (length_of_all_pairs % 2 || s2n_stuffer_data_available(in) % 2) {
-        /* Pairs occur in two byte lengths. Malformed length, ignore the extension. */
-        return 0;
-    }
-
-    int pairs_available = length_of_all_pairs / 2;
-    GUARD(s2n_choose_preferred_signature_hash_pair(in, pairs_available, hash, sig));
-
-    return 0;
-}
-
-int s2n_choose_preferred_signature_hash_pair(struct s2n_stuffer *in, int pairs_available,
-        s2n_hash_algorithm *hash_alg_out, s2n_signature_algorithm *signature_alg_out)
-{
-    uint8_t *their_hash_sig_pairs = s2n_stuffer_raw_read(in, pairs_available * 2);
-    notnull_check(their_hash_sig_pairs);
-
-    for(int our_hash_idx = 0; our_hash_idx < sizeof(s2n_preferred_hashes); our_hash_idx++) {
-        for(int their_sig_hash_idx = 0; their_sig_hash_idx < pairs_available; their_sig_hash_idx++){
-            uint8_t their_hash_alg = their_hash_sig_pairs[2 * their_sig_hash_idx];
-            uint8_t their_sig_alg = their_hash_sig_pairs[2 * their_sig_hash_idx + 1];
-
-            if(their_sig_alg == TLS_SIGNATURE_ALGORITHM_RSA && their_hash_alg == s2n_preferred_hashes[our_hash_idx]) {
-                *hash_alg_out = s2n_hash_tls_to_alg[their_hash_alg];
-                *signature_alg_out = their_sig_alg;
-                return 0;
-            }
+    int matched = 0;
+    for (int i = 0; i < sizeof(s2n_preferred_hashes); i++) {
+        if (s2n_preferred_hashes[i] == hash_algorithm) {
+            matched = 1;
+            break;
         }
     }
-
-    S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
+    if (matched) {
+        *signature_alg = signature_algorithm;
+        *hash_alg = s2n_hash_tls_to_alg[hash_algorithm];
+    } else {
+        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
+    }
+    
+    return matched;
 }
 
 static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension)

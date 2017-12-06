@@ -703,7 +703,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
         if (s2n_wire_ciphers_contain(ours, wire, count, cipher_suite_len)) {
             /* We have a match */
             struct s2n_cipher_suite *match = s2n_cipher_suite_from_wire(ours);
-
+            
             /* Skip the suite if we don't have an available implementation */
             if (!match->available) {
                 continue;
@@ -713,6 +713,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
             if (conn->config->dhparams == NULL && match->key_exchange_alg == &s2n_dhe) {
                 continue;
             }
+            
             /* Don't choose EC ciphers if the curve was not agreed upon. */
             if (conn->secure.server_ecc_params.negotiated_curve == NULL && (match->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC)) {
                 continue;

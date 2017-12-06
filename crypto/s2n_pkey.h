@@ -51,4 +51,4 @@ extern int s2n_pkey_match(const struct s2n_pkey *pub_key, const struct s2n_pkey 
 extern int s2n_pkey_free(struct s2n_pkey *pkey);
 
 extern int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1der);
-extern int s2n_asn1der_to_public_key(struct s2n_pkey *pub_key, struct s2n_blob *asn1der);
+extern int s2n_asn1der_to_public_key_and_type(struct s2n_pkey *pub_key, s2n_cert_type *cert_type, struct s2n_blob *asn1der);
