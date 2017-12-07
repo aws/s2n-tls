@@ -49,8 +49,40 @@ int s2n_stuffer_skip_whitespace(struct s2n_stuffer *s2n_stuffer)
     return skipped;
 }
 
+int s2n_stuffer_read_expected_str(struct s2n_stuffer *stuffer, const char *expected)
+{
+    void *actual = s2n_stuffer_raw_read(stuffer, strlen(expected));
+    notnull_check(actual);
+    if (memcmp(actual, expected, strlen(expected))) {
+        S2N_ERROR(S2N_ERR_STUFFER_NOT_FOUND);
+    }
+    return 0;
+}
+
+/* Read from stuffer until the target string is found, or until there is no more data. */
+int s2n_stuffer_skip_read_until(struct s2n_stuffer *stuffer, const char *target)
+{
+    int len = strlen(target);
+    while (s2n_stuffer_data_available(stuffer) >= len) {
+        GUARD(s2n_stuffer_skip_to_char(stuffer, target[0]));
+        char *actual = s2n_stuffer_raw_read(stuffer, len);
+        notnull_check(actual);
+
+        if (strncmp(actual, target, len) == 0){
+            return 0;
+        } else {
+            /* If string doesn't match, rewind stuffer to 1 byte after last read */
+            GUARD(s2n_stuffer_rewind_read(stuffer, len - 1));
+            continue;
+        }
+    }
+
+    return 0;
+
+}
+
 /* Skips the stuffer until the first instance of the target character or until there is no more data. */
-int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, char target)
+int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, const char target)
 {
     while (s2n_stuffer_data_available(stuffer) > 0) {
         char c;

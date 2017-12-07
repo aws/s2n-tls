@@ -20,7 +20,6 @@
 
 #include "utils/s2n_safety.h"
 
-#define S2N_PEM_LINE_LENGTH 64
 #define S2N_PEM_LINE         "-----"
 #define S2N_PEM_BEGIN_TOKEN (S2N_PEM_LINE "BEGIN ")
 #define S2N_PEM_END_TOKEN   (S2N_PEM_LINE "END ")
@@ -31,82 +30,76 @@
 #define S2N_PEM_DH_PARAMETERS               "DH PARAMETERS"
 #define S2N_PEM_CERTIFICATE                 "CERTIFICATE"
 
+static int s2n_stuffer_pem_read_encapsulation_line(struct s2n_stuffer *pem, const char* encap_marker, const char *keyword) {
+    /* Skip any number of Chars until "-----BEGIN " or "-----END " is reached */
+    GUARD(s2n_stuffer_skip_read_until(pem, encap_marker));
+
+    /* Ensure the keyword matches what's expected (Eg "CERTIFICATE", "PRIVATE KEY", etc) */
+    GUARD(s2n_stuffer_read_expected_str(pem, keyword));
+
+    /* Ensure 5 dashes after keyword */
+    GUARD(s2n_stuffer_read_expected_str(pem, S2N_PEM_LINE));
+
+    /* Skip newlines and other whitepsace that may be after the dashes */
+    GUARD(s2n_stuffer_skip_whitespace(pem));
+    return 0;
+}
+
+static int s2n_stuffer_pem_read_begin(struct s2n_stuffer *pem, const char *keyword)
+{
+    return s2n_stuffer_pem_read_encapsulation_line(pem, S2N_PEM_BEGIN_TOKEN, keyword);
+}
+
+static int s2n_stuffer_pem_read_end(struct s2n_stuffer *pem, const char *keyword)
+{
+    return s2n_stuffer_pem_read_encapsulation_line(pem, S2N_PEM_END_TOKEN, keyword);
+}
+
+static int s2n_stuffer_pem_read_contents(struct s2n_stuffer *pem, struct s2n_stuffer *asn1)
+{
+    uint8_t base64_buf[64] = { 0 };
+    struct s2n_blob base64__blob = { .data = base64_buf, .size = sizeof(base64_buf) };
+    struct s2n_stuffer base64_stuffer;
+    GUARD(s2n_stuffer_init(&base64_stuffer, &base64__blob));
+
+    while (1) {
+        char c;
+        /* Peek to see if the next char is a dash, meaning end of pem_contents */
+        GUARD(s2n_stuffer_peek_char(pem, &c));
+        if (c == '-') {
+            break;
+        } else {
+            /* Else, move read pointer forward by 1 byte since we will be consuming it. */
+             GUARD(s2n_stuffer_skip_read(pem, 1));
+        }
+
+         /* Skip non-base64 characters */
+        if (!s2n_is_base64_char(c)) {
+            continue;
+        }
+
+        /* Flush base64_stuffer to asn1 stuffer if we're out of space, and reset base64_stuffer read/write pointers */
+        if (s2n_stuffer_space_remaining(&base64_stuffer) == 0) {
+            GUARD(s2n_stuffer_read_base64(&base64_stuffer, asn1));
+            GUARD(s2n_stuffer_rewrite(&base64_stuffer));
+        }
+
+        /* Copy next char to base64_stuffer */
+        GUARD(s2n_stuffer_write_bytes(&base64_stuffer, (uint8_t *) &c, 1));
+
+    };
+
+    /* Flush any remaining bytes to asn1 */
+    GUARD(s2n_stuffer_read_base64(&base64_stuffer, asn1));
+
+    return 0;
+}
+
 static int s2n_stuffer_data_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1, const char *keyword)
 {
-    uint8_t linepad[S2N_PEM_LINE_LENGTH + 2];
-    struct s2n_blob line_blob = { .data = linepad, .size = S2N_PEM_LINE_LENGTH + 2 };
-    struct s2n_stuffer line;
-    uint8_t *field;
-
-    GUARD(s2n_stuffer_init(&line, &line_blob));
-
-    /* Skip all data before the start of the PEM headers */
-    GUARD(s2n_stuffer_skip_to_char(pem, '-'));
-
-    /* Check that the first none whitespace line matches the header */
-    GUARD(s2n_stuffer_read_token(pem, &line, '\n'));
-    field = s2n_stuffer_raw_read(&line, sizeof(S2N_PEM_BEGIN_TOKEN) - 1);
-    notnull_check(field);
-    if (memcmp(field, S2N_PEM_BEGIN_TOKEN, sizeof(S2N_PEM_BEGIN_TOKEN) - 1)) {
-        S2N_ERROR(S2N_ERR_INVALID_PEM);
-    }
-
-    field = s2n_stuffer_raw_read(&line, strlen(keyword));
-    notnull_check(field);
-    if (memcmp(field, keyword, strlen(keyword))) {
-        S2N_ERROR(S2N_ERR_INVALID_PEM);
-    }
-
-    field = s2n_stuffer_raw_read(&line, sizeof(S2N_PEM_LINE) - 1);
-    notnull_check(field);
-    if (memcmp(field, S2N_PEM_LINE, sizeof(S2N_PEM_LINE) - 1)) {
-        S2N_ERROR(S2N_ERR_INVALID_PEM);
-    }
-
-    /* Get the actual base64 data */
-    do {
-        GUARD(s2n_stuffer_rewrite(&line));
-
-        /* Per RFC7468 Section 2: PEM parsers must handle different newline conventions.
-         * Support both LF and CR+LF.
-         */
-        GUARD(s2n_stuffer_read_line(pem, &line));
-
-        char c;
-        GUARD(s2n_stuffer_peek_char(&line, &c));
-        if (c == '-') {
-            GUARD(s2n_stuffer_reread(&line));
-            break;
-        }
-
-        if (s2n_stuffer_read_base64(&line, asn1) < 0) {
-            GUARD(s2n_stuffer_reread(&line));
-            break;
-        }
-
-    } while (1);
-
-    /* Check that the line matches the trailer */
-    field = s2n_stuffer_raw_read(&line, sizeof(S2N_PEM_END_TOKEN) - 1);
-    notnull_check(field);
-    if (memcmp(field, S2N_PEM_END_TOKEN, sizeof(S2N_PEM_END_TOKEN) - 1)) {
-        S2N_ERROR(S2N_ERR_INVALID_PEM);
-    }
-
-    field = s2n_stuffer_raw_read(&line, strlen(keyword));
-    notnull_check(field);
-    if (memcmp(field, keyword, strlen(keyword))) {
-        S2N_ERROR(S2N_ERR_INVALID_PEM);
-    }
-
-    field = s2n_stuffer_raw_read(&line, sizeof(S2N_PEM_LINE) - 1);
-    notnull_check(field);
-    if (memcmp(field, S2N_PEM_LINE, sizeof(S2N_PEM_LINE) - 1)) {
-        S2N_ERROR(S2N_ERR_INVALID_PEM);
-    }
-
-    /* Skip trailing data before the next PEM headers */
-    GUARD(s2n_stuffer_skip_to_char(pem, '-'));
+    GUARD(s2n_stuffer_pem_read_begin(pem, keyword));
+    GUARD(s2n_stuffer_pem_read_contents(pem, asn1));
+    GUARD(s2n_stuffer_pem_read_end(pem, keyword));
 
     return 0;
 }

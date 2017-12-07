@@ -64,6 +64,31 @@ int main(int argc, char **argv)
         EXPECT_FAILURE(s2n_stuffer_read_char(&stuffer, &c));
     }
 
+    /* Check read_until, rewinding, and expecting */
+    {
+        /* Create a stuffer */
+        EXPECT_SUCCESS(s2n_blob_init(&token_blob, (uint8_t *)tokenpad, sizeof(tokenpad)));
+        EXPECT_SUCCESS(s2n_stuffer_init(&token, &token_blob));
+        EXPECT_SUCCESS(s2n_blob_init(&pad_blob, (uint8_t *)pad, sizeof(pad)));
+        EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &pad_blob));
+        EXPECT_SUCCESS(s2n_stuffer_write_text(&stuffer, text, sizeof(text)));
+
+        char target[] = "text";
+        char non_target[] = "someStringNotInStuffer";
+        EXPECT_SUCCESS(s2n_stuffer_skip_read_until(&stuffer, target));
+        EXPECT_EQUAL(stuffer.read_cursor, 21);
+        EXPECT_SUCCESS(s2n_stuffer_rewind_read(&stuffer, strlen(target)));
+        EXPECT_EQUAL(stuffer.read_cursor, 17);
+        EXPECT_SUCCESS(s2n_stuffer_read_expected_str(&stuffer, target));
+        EXPECT_EQUAL(stuffer.read_cursor, 21);
+        EXPECT_SUCCESS(s2n_stuffer_skip_read_until(&stuffer, target));
+        EXPECT_EQUAL(stuffer.read_cursor, 33);
+        EXPECT_FAILURE(s2n_stuffer_rewind_read(&stuffer, 99));
+        EXPECT_SUCCESS(s2n_stuffer_reread(&stuffer));
+        EXPECT_SUCCESS(s2n_stuffer_skip_read_until(&stuffer, non_target));
+        EXPECT_EQUAL(stuffer.read_cursor, stuffer.write_cursor - strlen(non_target) + 1);
+    }
+
     /* Check token reading */
     {
         /* Start a new buffer */
