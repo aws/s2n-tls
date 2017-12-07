@@ -20,7 +20,6 @@
 
 #include "utils/s2n_safety.h"
 
-#define S2N_PEM_LINE_LENGTH 64
 #define S2N_PEM_LINE         "-----"
 #define S2N_PEM_BEGIN_TOKEN (S2N_PEM_LINE "BEGIN ")
 #define S2N_PEM_END_TOKEN   (S2N_PEM_LINE "END ")
@@ -58,10 +57,10 @@ static int s2n_stuffer_pem_read_end(struct s2n_stuffer *pem, const char *keyword
 
 static int s2n_stuffer_pem_read_contents(struct s2n_stuffer *pem, struct s2n_stuffer *asn1)
 {
-    uint8_t linepad[64] = { 0 };
-    struct s2n_blob line_blob = { .data = linepad, .size = sizeof(linepad) };
-    struct s2n_stuffer base64_buf;
-    GUARD(s2n_stuffer_init(&base64_buf, &line_blob));
+    uint8_t base64_buf[64] = { 0 };
+    struct s2n_blob base64__blob = { .data = base64_buf, .size = sizeof(base64_buf) };
+    struct s2n_stuffer base64_stuffer;
+    GUARD(s2n_stuffer_init(&base64_stuffer, &base64__blob));
 
     while (1) {
         char c;
@@ -79,19 +78,19 @@ static int s2n_stuffer_pem_read_contents(struct s2n_stuffer *pem, struct s2n_stu
             continue;
         }
 
-        /* Flush base64_buf to asn1 stuffer if we're out of space, and reset base64_buf read/write pointers */
-        if (s2n_stuffer_space_remaining(&base64_buf) == 0) {
-            GUARD(s2n_stuffer_read_base64(&base64_buf, asn1));
-            GUARD(s2n_stuffer_rewrite(&base64_buf));
+        /* Flush base64_stuffer to asn1 stuffer if we're out of space, and reset base64_stuffer read/write pointers */
+        if (s2n_stuffer_space_remaining(&base64_stuffer) == 0) {
+            GUARD(s2n_stuffer_read_base64(&base64_stuffer, asn1));
+            GUARD(s2n_stuffer_rewrite(&base64_stuffer));
         }
 
-        /* Copy next char to base64_buf */
-        GUARD(s2n_stuffer_write_bytes(&base64_buf, (uint8_t *) &c, 1));
+        /* Copy next char to base64_stuffer */
+        GUARD(s2n_stuffer_write_bytes(&base64_stuffer, (uint8_t *) &c, 1));
 
     };
 
-   /* Flush any remaining bytes to asn1 */
-    GUARD(s2n_stuffer_read_base64(&base64_buf, asn1));
+    /* Flush any remaining bytes to asn1 */
+    GUARD(s2n_stuffer_read_base64(&base64_stuffer, asn1));
 
     return 0;
 }
