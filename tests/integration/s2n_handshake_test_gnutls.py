@@ -206,7 +206,7 @@ def main():
         results = []
         for mfl_extension_test in [512, 1024, 2048, 4096]:
             cipher = test_ciphers[0]
-            complete_priority_str = cipher.gnutls_priority_str + ":+" + S2N_PROTO_VERS_TO_GNUTLS[S2N_TLS10] + ":+" + ":+".join(permutation)
+            complete_priority_str = cipher.gnutls_priority_str + ":+" + S2N_PROTO_VERS_TO_GNUTLS[ssl_version] + ":+SIGN-ALL"
             async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, ssl_version, complete_priority_str, [], mfl_extension_test, fips_mode))
             port_offset += 1
             results.append(async_result)
