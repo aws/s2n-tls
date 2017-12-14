@@ -14,37 +14,46 @@
 #
 
 set -e
+set -x
 
 #Figlet is required for ctverif printing
 sudo apt-get install -y figlet
 
 #Install boogieman
-sudo gem install --pre bam-bam-boogieman
+#sudo gem install --pre bam-bam-boogieman
+git clone https://github.com/Qthan/bam-bam-boogieman.git -b cost-modeling
+cd bam-bam-boogieman
+bundle update
+bundle exec rake install
+cd ..
+which bam
+
 
 #Install the apt-get dependencies from the smack build script: this way they will still be there
 #when we get things from cache
 DEPENDENCIES="git cmake python-yaml python-psutil unzip wget python3-yaml"
-DEPENDENCIES+=" clang-3.7 llvm-3.7 mono-complete libz-dev libedit-dev"
-
-# Adding LLVM repository
-sudo add-apt-repository "deb http://llvm-apt.ecranbleu.org/apt/trusty/ llvm-toolchain-trusty-3.7 main"
-wget --no-verbose -O - http://llvm-apt.ecranbleu.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
+DEPENDENCIES+=" mono-complete libz-dev libedit-dev"
 
 # Adding MONO repository
-sudo add-apt-repository "deb http://download.mono-project.com/repo/debian wheezy main"
 sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
+echo "deb http://download.mono-project.com/repo/ubuntu trusty main" | sudo tee /etc/apt/sources.list.d/mono-official.list
 
-#    echo "deb http://download.mono-project.com/repo/debian wheezy main" | sudo tee /etc/apt/sources.list.d/mono-xamarin.list
 sudo apt-get update
 sudo apt-get install -y ${DEPENDENCIES}
-sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-3.7 20
-sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-3.7 20
-sudo update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-3.7 20
-sudo update-alternatives --install /usr/bin/llvm-link llvm-link /usr/bin/llvm-link-3.7 20
-sudo update-alternatives --install /usr/bin/llvm-dis llvm-dis /usr/bin/llvm-dis-3.7 20
 pip install pyyaml
+
+LLVM_SHORT_VERSION=3.9
+
+sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${LLVM_SHORT_VERSION} 30
+sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${LLVM_SHORT_VERSION} 30
+sudo update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-${LLVM_SHORT_VERSION} 30
+sudo update-alternatives --install /usr/bin/llvm-link llvm-link /usr/bin/llvm-link-${LLVM_SHORT_VERSION} 30
+sudo update-alternatives --install /usr/bin/llvm-dis llvm-dis /usr/bin/llvm-dis-${LLVM_SHORT_VERSION} 30
+
+
+clang --version
+clang-3.9 --version
 
 which python
 python --version
 pip install psutil
-

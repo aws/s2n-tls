@@ -1,0 +1,86 @@
+diff --git a/tests/sidewinder/working/s2n-cbc/tls/s2n_cbc.c b/tests/sidewinder/working/s2n-cbc/tls/s2n_cbc.c
+index b37efb0..077d214 100644
+--- a/tests/sidewinder/working/s2n-cbc/tls/s2n_cbc.c
++++ b/tests/sidewinder/working/s2n-cbc/tls/s2n_cbc.c
+@@ -25,6 +25,28 @@
+ 
+ #include "tls/s2n_record.h"
+ 
++#include <smack.h>
++#include <smack-contracts.h>
++#include "ct-verif.h"
++#include "sidewinder.h"
++
++/* Because of a bug in SMACK, when we try to specify the invarients for this loop in the main function, 
++ * SMACK crashes. Moving the code (unmodified) to this function sidesteps the bug. Michael Emmi has promissed
++ * a fix soon
++ */
++int double_loop(int old_mismatches, struct s2n_blob *decrypted, int check, int cutoff, int padding_length) {
++  __VERIFIER_assert(decrypted->size >= 0);
++  __VERIFIER_assert(decrypted->size <= 1024);
++  int mismatches = old_mismatches;
++  for (int i = 0, j = decrypted->size - 1 - check; i < check && j < decrypted->size; i++, j++) {
++    invariant(i <= check);
++    invariant(j == i + decrypted->size - check - 1);
++    uint8_t mask = ~(0xff << ((i >= cutoff) * 8));
++    mismatches |= (decrypted->data[j] ^ padding_length) & mask;
++  }
++  return mismatches;
++}
++
+ /* A TLS CBC record looks like ..
+  *
+  * [ Payload data ] [ HMAC ] [ Padding ] [ Padding length byte ]
+@@ -53,17 +75,20 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
+        copy = &conn->server->record_mac_copy_workspace;
+     }
+     
+-    uint8_t mac_digest_size;
+-    GUARD(s2n_hmac_digest_size(hmac->alg, &mac_digest_size));
++    uint8_t mac_digest_size = DIGEST_SIZE;;
++    //GUARD(s2n_hmac_digest_size(hmac->alg, &mac_digest_size));
+ 
+     /* The record has to be at least big enough to contain the MAC,
+      * plus the padding length byte */
+     gt_check(decrypted->size, mac_digest_size);
+ 
+     int payload_and_padding_size = decrypted->size - mac_digest_size;
++    __VERIFIER_assert(payload_and_padding_size <= MAX_SIZE - 20);
+ 
+     /* Determine what the padding length is */
+     uint8_t padding_length = decrypted->data[decrypted->size - 1];
++    __VERIFIER_assume(padding_length >= 0);
++    __VERIFIER_assume(padding_length <  256);
+ 
+     int payload_length = MAX(payload_and_padding_size - padding_length - 1, 0);
+ 
+@@ -82,20 +107,21 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
+     GUARD(s2n_hmac_update(copy, decrypted->data + payload_length + mac_digest_size, decrypted->size - payload_length - mac_digest_size - 1));
+ 
+     /* SSLv3 doesn't specify what the padding should actually be */
+-    if (conn->actual_protocol_version == S2N_SSLv3) {
+-        return 0 - mismatches;
+-    }
++    /* if (conn->actual_protocol_version == S2N_SSLv3) { */
++    /*     return 0 - mismatches; */
++    /* } */
+ 
+     /* Check the maximum amount that could theoretically be padding */
+     int check = MIN(255, (payload_and_padding_size - 1));
+ 
+     int cutoff = check - padding_length;
+-    for (int i = 0, j = decrypted->size - 1 - check; i < check && j < decrypted->size; i++, j++) {
+-        uint8_t mask = ~(0xff << ((i >= cutoff) * 8));
+-        mismatches |= (decrypted->data[j] ^ padding_length) & mask;
+-    }
++    mismatches = double_loop(mismatches, decrypted, check, cutoff, padding_length);
++    /* for (int i = 0, j = decrypted->size - 1 - check; i < check && j < decrypted->size; i++, j++) { */
++    /*     uint8_t mask = ~(0xff << ((i >= cutoff) * 8)); */
++    /*     mismatches |= (decrypted->data[j] ^ padding_length) & mask; */
++    /* } */
+ 
+-    GUARD(s2n_hmac_reset(copy));
++    /* GUARD(s2n_hmac_reset(copy)); */
+ 
+     if (mismatches) {
+         S2N_ERROR(S2N_ERR_CBC_VERIFY);

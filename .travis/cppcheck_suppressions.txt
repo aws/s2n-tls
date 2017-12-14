@@ -9,3 +9,11 @@ variableScope:tests/unit/*
 // cppcheck Message: [tls/s2n_config.c:60]: (information:ConfigurationNotChecked) Skipping configuration 'CLOCK_MONOTONIC_RAW' since the value of 'CLOCK_MONOTONIC_RAW' is unknown. Use -D if you want to check it. You can use -U to skip it explicitly
 // Reason: There are many Config options that aren't checked by Cppcheck, and it warns for each. Ignore these so that they don't clutter the output.
 ConfigurationNotChecked:*
+
+// cppcheck Message:  [tests/sidewinder/working/s2n-cbc/cbc.c:69]: (style:unassignedVariable) Variable 'data' is not assigned a value.
+// Reason: Value deliveratly left nondeterministic for sidewinder test purposes
+unassignedVariable:tests/sidewinder/working/s2n-cbc/cbc.c
+
+//  cppcheck Message:  [tests/sidewinder/working/s2n-cbc/stubs/s2n_hash.c:71]: (style:unsignedPositive) Unsigned variable 'size' can't be negative so it is unnecessary to test it.
+// Reason: Boogie uses unsigned integers, so the test is indeed necessary (for sidewinder purposes)
+unsignedPositive:tests/sidewinder/working/s2n-cbc/stubs/s2n_hash.c
