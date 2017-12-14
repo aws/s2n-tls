@@ -1,0 +1,109 @@
+diff --git a/tests/sidewinder/working/s2n-cbc/crypto/s2n_hmac.c b/tests/sidewinder/working/s2n-cbc/crypto/s2n_hmac.c
+index 3405781..3beeacf 100644
+--- a/tests/sidewinder/working/s2n-cbc/crypto/s2n_hmac.c
++++ b/tests/sidewinder/working/s2n-cbc/crypto/s2n_hmac.c
+@@ -26,6 +26,9 @@
+ #include "utils/s2n_blob.h"
+ #include "utils/s2n_mem.h"
+ 
++#include "smack.h"
++#include "sidewinder.h"
++
+ int s2n_hmac_hash_alg(s2n_hmac_algorithm hmac_alg, s2n_hash_algorithm *out)
+ {
+     switch(hmac_alg) {
+@@ -235,7 +238,7 @@ int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
+      * input. On some platforms, including Intel, the operation can take a
+      * smaller number of cycles if the input is "small".
+      */
+-    state->currently_in_hash_block += (4294949760 + size) % state->hash_block_size;
++    state->currently_in_hash_block += (size) % state->hash_block_size;
+     state->currently_in_hash_block %= state->hash_block_size;
+ 
+     return s2n_hash_update(&state->inner, in, size);
+@@ -311,30 +314,30 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
+     GUARD(s2n_hash_copy(&to->outer_just_key, &from->outer_just_key));
+ 
+ 
+-    memcpy_check(to->xor_pad, from->xor_pad, sizeof(to->xor_pad));
+-    memcpy_check(to->digest_pad, from->digest_pad, sizeof(to->digest_pad));
++    //memcpy_check(to->xor_pad, from->xor_pad, sizeof(to->xor_pad));
++    //memcpy_check(to->digest_pad, from->digest_pad, sizeof(to->digest_pad));
+ 
+     return 0;
+ }
+ 
+ 
+-/* Preserve the handlers for hmac state pointers to avoid re-allocation 
+- * Only valid if the HMAC is in EVP mode
+- */
+-int s2n_hmac_save_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac)
+-{
+-    backup->inner = hmac->inner.digest.high_level;
+-    backup->inner_just_key = hmac->inner_just_key.digest.high_level;
+-    backup->outer = hmac->outer.digest.high_level;
+-    backup->outer_just_key = hmac->outer_just_key.digest.high_level;
+-    return 0;
+-}
+-
+-int s2n_hmac_restore_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac)
+-{
+-    hmac->inner.digest.high_level = backup->inner;
+-    hmac->inner_just_key.digest.high_level = backup->inner_just_key;
+-    hmac->outer.digest.high_level = backup->outer;
+-    hmac->outer_just_key.digest.high_level = backup->outer_just_key;
+-    return 0;
+-}
++/* /\* Preserve the handlers for hmac state pointers to avoid re-allocation  */
++/*  * Only valid if the HMAC is in EVP mode */
++/*  *\/ */
++/* int s2n_hmac_save_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac) */
++/* { */
++/*     backup->inner = hmac->inner.digest.high_level; */
++/*     backup->inner_just_key = hmac->inner_just_key.digest.high_level; */
++/*     backup->outer = hmac->outer.digest.high_level; */
++/*     backup->outer_just_key = hmac->outer_just_key.digest.high_level; */
++/*     return 0; */
++/* } */
++
++/* int s2n_hmac_restore_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac) */
++/* { */
++/*     hmac->inner.digest.high_level = backup->inner; */
++/*     hmac->inner_just_key.digest.high_level = backup->inner_just_key; */
++/*     hmac->outer.digest.high_level = backup->outer; */
++/*     hmac->outer_just_key.digest.high_level = backup->outer_just_key; */
++/*     return 0; */
++/* } */
+diff --git a/tests/sidewinder/working/s2n-cbc/crypto/s2n_hmac.h b/tests/sidewinder/working/s2n-cbc/crypto/s2n_hmac.h
+index 7af7e61..e6382ce 100644
+--- a/tests/sidewinder/working/s2n-cbc/crypto/s2n_hmac.h
++++ b/tests/sidewinder/working/s2n-cbc/crypto/s2n_hmac.h
+@@ -52,12 +52,12 @@ struct s2n_hmac_state {
+     uint8_t digest_pad[SHA512_DIGEST_LENGTH];
+ };
+ 
+-struct s2n_hmac_evp_backup {
+-    struct s2n_hash_evp_digest inner;
+-    struct s2n_hash_evp_digest inner_just_key;
+-    struct s2n_hash_evp_digest outer;
+-    struct s2n_hash_evp_digest outer_just_key;
+-};
++/* struct s2n_hmac_evp_backup { */
++/*     struct s2n_hash_evp_digest inner; */
++/*     struct s2n_hash_evp_digest inner_just_key; */
++/*     struct s2n_hash_evp_digest outer; */
++/*     struct s2n_hash_evp_digest outer_just_key; */
++/* }; */
+ 
+ extern int s2n_hmac_digest_size(s2n_hmac_algorithm alg, uint8_t *out);
+ extern int s2n_hmac_is_available(s2n_hmac_algorithm alg);
+@@ -72,7 +72,7 @@ extern int s2n_hmac_digest_verify(const void *a, const void *b, uint32_t len);
+ extern int s2n_hmac_free(struct s2n_hmac_state *state);
+ extern int s2n_hmac_reset(struct s2n_hmac_state *state);
+ extern int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from);
+-extern int s2n_hmac_save_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac);
+-extern int s2n_hmac_restore_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac);
++//extern int s2n_hmac_save_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac);
++//extern int s2n_hmac_restore_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac);
+ 
+ 

@@ -12,8 +12,11 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+
 #pragma once
 
-//For compilation purposes, these annotations are no-ops 
-#define S2N_PUBLIC_INPUT(__a)
-#define S2N_INVARIENT(__a)
+#include <smack-contracts.h>
+#include "ct-verif.h"
+
+#define S2N_PUBLIC_INPUT( __a )  public_in(__SMACK_value( __a ))
+#define S2N_INVARIENT( __a ) invariant ( __a )

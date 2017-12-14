@@ -36,3 +36,9 @@ if [[ "$TESTS" == "ctverif" || "$TESTS" == "ALL" ]] ; then
 
 if [[ "$TESTS" == "ctverif" || "$TESTS" == "ALL" ]] && [[ ! -d "$CTVERIF_INSTALL_DIR" ]]; then
     mkdir -p "$CTVERIF_INSTALL_DIR" && .travis/install_ctverif.sh "$CTVERIF_INSTALL_DIR" > /dev/null ; fi
+
+if [[ "$TESTS" == "sidewinder" || "$TESTS" == "ALL" ]] ; then
+    .travis/install_sidewinder_dependencies.sh ; fi
+
+if [[ "$TESTS" == "sidewinder" || "$TESTS" == "ALL" ]] && [[ ! -d "$SIDEWINDER_INSTALL_DIR" ]]; then
+    mkdir -p "$SIDEWINDER_INSTALL_DIR" && .travis/install_sidewinder.sh "$SIDEWINDER_INSTALL_DIR" > /dev/null ; fi

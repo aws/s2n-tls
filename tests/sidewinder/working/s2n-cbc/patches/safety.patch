@@ -1,0 +1,48 @@
+diff --git a/tests/sidewinder/working/s2n-cbc/utils/s2n_safety.c b/tests/sidewinder/working/s2n-cbc/utils/s2n_safety.c
+index 3af0262..261285a 100644
+--- a/tests/sidewinder/working/s2n-cbc/utils/s2n_safety.c
++++ b/tests/sidewinder/working/s2n-cbc/utils/s2n_safety.c
+@@ -55,8 +55,8 @@ pid_t s2n_actual_getpid()
+  */
+ int s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, uint32_t len)
+ {
+-    S2N_PUBLIC_INPUT(a);
+-    S2N_PUBLIC_INPUT(b);
++  //S2N_PUBLIC_INPUT(a);
++  //S2N_PUBLIC_INPUT(b);
+     S2N_PUBLIC_INPUT(len);
+     
+     uint8_t xor = 0;
+diff --git a/tests/sidewinder/working/s2n-cbc/utils/s2n_safety.h b/tests/sidewinder/working/s2n-cbc/utils/s2n_safety.h
+index 704bb63..dc44360 100644
+--- a/tests/sidewinder/working/s2n-cbc/utils/s2n_safety.h
++++ b/tests/sidewinder/working/s2n-cbc/utils/s2n_safety.h
+@@ -21,6 +21,8 @@
+ 
+ #include "error/s2n_errno.h"
+ 
++void __VERIFIER_assume(int);
++
+ /* NULL check a pointer */
+ #define notnull_check( ptr )           do { if ( (ptr) == NULL ) { S2N_ERROR(S2N_ERR_NULL); } } while(0)
+ 
+@@ -58,8 +60,8 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
+ 
+ /* Range check a number */
+ #define gte_check(n, min)  do { if ( (n) < min ) { S2N_ERROR(S2N_ERR_SAFETY); } } while(0)
+-#define lte_check(n, max)  do { if ( (n) > max ) { S2N_ERROR(S2N_ERR_SAFETY); } } while(0)
+-#define gt_check(n, min)  do { if ( (n) <= min ) { S2N_ERROR(S2N_ERR_SAFETY); } } while(0)
++#define lte_check(n, max)  __VERIFIER_assume( (n) <= (max) )
++#define gt_check(n, min)   __VERIFIER_assume( (n) >  (min) )
+ #define lt_check(n, max)  do { if ( (n) >= max ) { S2N_ERROR(S2N_ERR_SAFETY); } } while(0)
+ #define eq_check(a, b)  do { if ( (a) != (b) ) { S2N_ERROR(S2N_ERR_SAFETY); } } while(0)
+ #define ne_check(a, b)  do { if ( (a) == (b) ) { S2N_ERROR(S2N_ERR_SAFETY); } } while(0)
+@@ -76,7 +78,7 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
+     lt_check(__tmp_n, high);                    \
+   } while (0)
+ 
+-#define GUARD( x )      if ( (x) < 0 ) return -1
++#define GUARD( x ) __VERIFIER_assume( (x) >= 0 )
+ #define GUARD_PTR( x )  if ( (x) < 0 ) return NULL
+ 
+ /**

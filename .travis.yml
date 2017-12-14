@@ -41,6 +41,14 @@ matrix:
   - env: TESTS=sawDRBG                      SAW=true
   include:
   - os : linux
+    env: TESTS=sidewinder
+    addons:
+      apt:
+        packages:
+          - clang-3.9
+          - llvm-3.9
+          - llvm-3.9-dev
+  - os : linux
     env : TESTS=sawHMAC SAW_HMAC_TEST=md5    SAW=true GCC6_REQUIRED=false
     addons: &sawaddons
       apt:
@@ -67,7 +75,7 @@ matrix:
     addons : *sawaddons    
   - os : linux
     env : TESTS=sawHMACFailure SAW=true
-    addons : *sawaddons    
+    addons : *sawaddons   
   allow_failures:
     - os: osx
     - env: S2N_LIBCRYPTO=openssl-1.1.x-master BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
