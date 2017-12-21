@@ -25,9 +25,10 @@
 #define S2N_PEM_END_TOKEN   (S2N_PEM_LINE "END ")
 
 #define S2N_PEM_PKCS1_RSA_PRIVATE_KEY       "RSA PRIVATE KEY"
-#define S2N_PEM_PKCS1_ECDSA_PRIVATE_KEY     "EC PRIVATE KEY"
+#define S2N_PEM_PKCS1_EC_PRIVATE_KEY        "EC PRIVATE KEY"
 #define S2N_PEM_PKCS8_PRIVATE_KEY           "PRIVATE KEY"
 #define S2N_PEM_DH_PARAMETERS               "DH PARAMETERS"
+#define S2N_PEM_EC_PARAMETERS               "EC PARAMETERS"
 #define S2N_PEM_CERTIFICATE                 "CERTIFICATE"
 
 static int s2n_stuffer_pem_read_encapsulation_line(struct s2n_stuffer *pem, const char* encap_marker, const char *keyword) {
@@ -114,7 +115,15 @@ int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer
     
     s2n_stuffer_reread(pem);
     s2n_stuffer_reread(asn1);
-    rc = s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_PKCS1_ECDSA_PRIVATE_KEY);
+
+    /* Try EC private key, skipping EC PARAMETERS if it exists. For now, only support standard curves. */
+    rc = s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_EC_PARAMETERS);
+    if (rc < 0) {
+        s2n_stuffer_reread(pem);
+    }
+    s2n_stuffer_wipe(asn1);
+    
+    rc = s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_PKCS1_EC_PRIVATE_KEY);
     if (!rc) {
         return rc;
     }
