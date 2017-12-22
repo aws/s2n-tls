@@ -23,7 +23,7 @@ include ../../s2n.mk
 
 CRUFT += $(wildcard *.so)
 
-LD_PRELOAD_CFLAGS = -Wno-unreachable-code -O0
+LD_PRELOAD_CFLAGS = -Wno-unreachable-code
 
 $(OVERRIDES)::
 	${CC} ${DEFAULT_CFLAGS} ${DEBUG_CFLAGS} ${LD_PRELOAD_CFLAGS} -shared -fPIC $@.c -o $@.so -ldl
