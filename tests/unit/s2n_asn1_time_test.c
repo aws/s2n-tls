@@ -146,7 +146,9 @@ int main(int argc, char **argv)
         timestamp = 0;
         EXPECT_SUCCESS(s2n_asn1_time_to_nano_since_epoch_ticks(non_dst_str, strlen(non_dst_str), &timestamp));
         EXPECT_EQUAL(non_dst_stamp, timestamp);
-        setenv("TZ", tz, 1);
+        if(tz) {
+            setenv("TZ", tz, 1);
+        }
         tzset();
     }
 

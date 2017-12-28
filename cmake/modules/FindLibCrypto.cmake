@@ -49,6 +49,7 @@ mark_as_advanced(
 )
 
 if(LibCrypto_FOUND)
+  message(STATUS "Libcrypto Include Dir: ${LibCrypto_INCLUDE_DIR}")
   if(NOT TARGET LibCrypto::Crypto AND
       (EXISTS "${LibCrypto_LIBRARY}")
       )

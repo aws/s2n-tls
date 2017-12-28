@@ -41,7 +41,6 @@ def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, enter
     s2nd_cmd.append(s2nd_ciphers)
     if mfl_extension_test:
         s2nd_cmd.append("--enable-mfl")
-        s2nd_cmd.append("-i")
     s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
     # Make sure it's running

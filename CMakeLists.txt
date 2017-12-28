@@ -164,7 +164,7 @@ target_compile_options(s2nc PRIVATE -std=c99 -D_POSIX_C_SOURCE=200112L)
 add_executable(s2nd "bin/s2nd.c" "bin/echo.c")
 target_link_libraries(s2nd s2n)
 target_include_directories(s2nd PRIVATE api)
-target_compile_options(s2nd PRIVATE -std=c99 -D_POSIX_C_SOURCE=20112L)
+target_compile_options(s2nd PRIVATE -std=c99 -D_POSIX_C_SOURCE=200112L)
 
 #install the s2n files
 set_target_properties(s2n PROPERTIES PUBLIC_HEADER "${API_HEADERS}")

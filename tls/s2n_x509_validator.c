@@ -18,9 +18,12 @@
 #include "utils/s2n_safety.h"
 #include "tls/s2n_connection.h"
 
-#include "openssl/ocsp.h"
 #include "openssl/err.h"
 #include "openssl/asn1.h"
+
+#if !defined(OPENSSL_IS_BORINGSSL)
+#include "openssl/ocsp.h"
+#endif
 
 /* one day, boringssl, may add ocsp stapling support. Let's future proof this a bit by grabbing a definition
  * that would have to be there when they add support */
@@ -79,7 +82,7 @@ int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const 
         return -1;
     }
 
-    X509_STORE_set_flags(store->trust_store, X509_VP_FLAG_DEFAULT);
+    X509_STORE_set_flags(store->trust_store, X509_VP_FLAG_DEFAULT | X509_V_FLAG_PARTIAL_CHAIN);
 
     return 0;
 }
@@ -226,7 +229,6 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
         if (validator->validate_certificates) {
             /* the cert is der encoded, just convert it. */
             server_cert = d2i_X509(NULL, &data, asn1cert.size);
-
             if (!server_cert) {
                 goto clean_up;
             }
@@ -254,6 +256,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
         goto clean_up;
     }
 
+
     if (validator->validate_certificates) {
         X509 *leaf = sk_X509_value(validator->cert_chain, 0);
         if(!leaf) {
@@ -276,6 +279,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
             goto clean_up;
         }
 
+
         uint64_t current_sys_time = 0;
         conn->config->wall_clock(conn->config->data_for_sys_clock, &current_sys_time);
 
@@ -289,7 +293,6 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
             err_code = S2N_CERT_ERR_UNTRUSTED;
             goto clean_up;
         }
-
     }
 
 
@@ -315,7 +318,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
 
 #if !S2N_OCSP_STAPLING_SUPPORTED
     /* Default to safety */
-    return S2N_CERT_UNTRUSTED;
+    return S2N_CERT_ERR_UNTRUSTED;
 #else
 
     OCSP_RESPONSE *ocsp_response = NULL;
