@@ -229,7 +229,7 @@ int main(int argc, char **argv) {
         s2n_x509_trust_store_wipe(&trust_store);
     }
 
-    /* test expired certificate fails */
+    /* test expired certificate fails as untrusted*/
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init(&trust_store);
