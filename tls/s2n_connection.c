@@ -424,6 +424,7 @@ int s2n_connection_free(struct s2n_connection *conn)
     blob.size = sizeof(struct s2n_connection);
 
     GUARD(s2n_free(&blob));
+    s2n_x509_validator_wipe(&conn->x509_validator);
     return 0;
 }
 

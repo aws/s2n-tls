@@ -82,7 +82,15 @@ int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const 
         return -1;
     }
 
-    X509_STORE_set_flags(store->trust_store, X509_VP_FLAG_DEFAULT | X509_V_FLAG_PARTIAL_CHAIN);
+    unsigned long flags = X509_VP_FLAG_DEFAULT;
+
+#if defined(X509_V_FLAG_PARTIAL_CHAIN)
+    flags |=  X509_V_FLAG_PARTIAL_CHAIN;
+#else
+    flags |= 0x80000;
+#endif
+
+    X509_STORE_set_flags(store->trust_store, flags);
 
     return 0;
 }
@@ -120,12 +128,8 @@ int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x50
 
 void s2n_x509_validator_wipe(struct s2n_x509_validator *validator) {
     if (validator->cert_chain) {
-        X509 *cert = NULL;
-        while ((cert = sk_X509_pop(validator->cert_chain))) {
-            X509_free(cert);
-        }
-
-        sk_X509_free(validator->cert_chain);
+        sk_X509_pop_free(validator->cert_chain, X509_free);
+        validator->cert_chain = NULL;
     }
 
     validator->trust_store = NULL;
