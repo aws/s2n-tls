@@ -434,6 +434,13 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
     notnull_check(conn);
     notnull_check(config);
 
+    if(conn->config == config) {
+        return 0;
+    }
+    else {
+        s2n_x509_validator_wipe(&conn->x509_validator);
+    }
+
     int8_t server_mode_with_no_auth = conn->mode == S2N_SERVER && config->client_cert_auth_type == S2N_CERT_AUTH_NONE;
 
     if(!config->disable_x509_validation && !server_mode_with_no_auth) {
