@@ -202,6 +202,24 @@ struct s2n_config *s2n_fetch_default_client_config(void) {
     return &default_client_config;
 }
 
+void s2n_wipe_static_configs(void) {
+    if(default_client_config_init) {
+        s2n_config_cleanup(&default_client_config);
+        default_client_config_init = 0;
+    }
+
+    if(unsafe_client_testing_config_init) {
+        s2n_config_cleanup(&s2n_unsafe_client_testing_config);
+        unsafe_client_testing_config_init = 0;
+    }
+
+
+    if(default_fips_config_init) {
+        s2n_config_cleanup(&s2n_default_fips_config);
+        default_fips_config_init = 0;
+    }
+}
+
 struct s2n_config *s2n_config_new(void)
 {
     struct s2n_blob allocator;

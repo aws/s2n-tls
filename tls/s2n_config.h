@@ -71,3 +71,5 @@ struct s2n_config {
 extern struct s2n_config *s2n_fetch_default_config(void);
 extern struct s2n_config *s2n_fetch_default_fips_config(void);
 extern struct s2n_config *s2n_fetch_unsafe_client_testing_config(void);
+
+extern void s2n_wipe_static_configs(void);
