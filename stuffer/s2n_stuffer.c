@@ -107,6 +107,15 @@ int s2n_stuffer_rewrite(struct s2n_stuffer *stuffer)
     return 0;
 }
 
+int s2n_stuffer_rewind_read(struct s2n_stuffer *stuffer, const uint32_t size)
+{
+    if(stuffer->read_cursor < size){
+        S2N_ERROR(S2N_ERR_STUFFER_OUT_OF_DATA);
+    }
+    stuffer->read_cursor -= size;
+    return 0;
+}
+
 int s2n_stuffer_reread(struct s2n_stuffer *stuffer)
 {
     stuffer->read_cursor = 0;

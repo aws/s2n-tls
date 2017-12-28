@@ -81,6 +81,7 @@ type HMAC_c_state =
   , inner                   : SHA512_c_state
   , inner_just_key          : SHA512_c_state
   , outer                   : SHA512_c_state
+  , outer_just_key          : SHA512_c_state
   , xor_pad                 : [128][8]
   , digest_pad              : [SHA512_DIGEST_LENGTH][8]
   }
@@ -193,7 +194,7 @@ hmac_init_c_state st0 alg key =
   , inner                   = inner
   , inner_just_key          = inner_just_key
   , outer                   = outer
-
+  , outer_just_key          = outer_just_key
   , xor_pad                 = xor_pad
   , digest_pad              = digest_pad
   }
@@ -209,8 +210,9 @@ hmac_init_c_state st0 alg key =
     inner_just_key = hash_update_c_state
       (hash_init_c_state st0.inner_just_key) ikey
     inner          = inner_just_key
-
-    xor_pad = okey # drop st0.xor_pad
+    outer_just_key = hash_update_c_state
+      (hash_init_c_state st0.outer_just_key) okey
+    xor_pad = zero //okey # drop st0.xor_pad
 
 
 hmac_update_c_state : {msg_size} (32 >= width msg_size) =>
@@ -228,6 +230,7 @@ hmac_update_c_state s m =
   , digest_size     = s.digest_size
   , inner_just_key  = s.inner_just_key
   , outer           = s.outer
+  , outer_just_key  = s.outer_just_key
   , xor_pad         = s.xor_pad
   , digest_pad      = s.digest_pad
   }
@@ -277,9 +280,7 @@ hmac_digest_c_state s = (sout, out)
     //outer = SHA256Update SHA256Init (okey # hin)
     //
     // with:
-    outer = hash_update_c_state
-      (hash_update_c_state (hash_init_c_state s.outer) okey)
-      hin
+    outer = hash_update_c_state s.outer_just_key hin
     inner = s.inner
 
     out = join (hash_digest_c_state outer)
@@ -287,7 +288,7 @@ hmac_digest_c_state s = (sout, out)
     sout : HMAC_c_state
     sout =
       { inner      = inner
-      , outer      = outer
+      , outer      = s.outer_just_key
       , digest_pad = digest_pad
 
       // Rest unchanged.
@@ -297,5 +298,6 @@ hmac_digest_c_state s = (sout, out)
       , block_size              = s.block_size
       , digest_size             = s.digest_size
       , inner_just_key          = s.inner_just_key
+      , outer_just_key          = s.outer_just_key
       , xor_pad                 = s.xor_pad
       }

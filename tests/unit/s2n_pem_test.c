@@ -33,6 +33,8 @@ static const char *valid_pem_pairs[][2] = {
     { S2N_ROOT_WHITESPACE_CERT_CHAIN,         S2N_RSA_2048_PKCS1_KEY },
     { S2N_TRAILING_WHITESPACE_CERT_CHAIN,     S2N_RSA_2048_PKCS1_KEY },
     { S2N_LEADING_COMMENT_TEXT_CERT_CHAIN,    S2N_RSA_2048_PKCS1_KEY },
+    { S2N_LONG_BASE64_LINES_CERT_CHAIN,       S2N_RSA_2048_PKCS1_KEY },
+    { S2N_MISSING_LINE_ENDINGS_CERT_CHAIN,    S2N_RSA_2048_PKCS1_KEY },
 };
 
 static const char *invalid_pem_pairs[][2] = {
@@ -55,13 +57,11 @@ int main(int argc, char **argv)
     char *private_key_pem;
 
     BEGIN_TEST();
-
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
 
     for (int i = 0; i < (sizeof(valid_pem_pairs) / sizeof(valid_pem_pairs[0])); i++) {
         EXPECT_NOT_NULL(config = s2n_config_new());
-
         EXPECT_SUCCESS(s2n_read_test_pem(valid_pem_pairs[i][0], cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(valid_pem_pairs[i][1], private_key_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, cert_chain_pem, private_key_pem));
@@ -70,7 +70,6 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < (sizeof(invalid_pem_pairs) / sizeof(invalid_pem_pairs[0])); i++) {
         EXPECT_NOT_NULL(config = s2n_config_new());
-
         EXPECT_SUCCESS(s2n_read_test_pem(invalid_pem_pairs[i][0], cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(invalid_pem_pairs[i][1], private_key_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_FAILURE(s2n_config_add_cert_chain_and_key(config, cert_chain_pem, private_key_pem));

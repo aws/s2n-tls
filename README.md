@@ -1,6 +1,6 @@
 <img src="docs/images/s2n_logo_github.png" alt="s2n">
 
-s2n is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority. It is released and licensed under the Apache Software License 2.0. 
+s2n is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority. It is released and licensed under the Apache License 2.0. 
 
 [![Build Status](https://img.shields.io/travis/awslabs/s2n.svg)](https://travis-ci.org/awslabs/s2n)
 [![Apache 2 License](https://img.shields.io/github/license/awslabs/s2n.svg)](http://aws.amazon.com/apache-2-0/)

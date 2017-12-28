@@ -62,6 +62,11 @@ static const uint8_t b64_inverse[256] = {
     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255
 };
 
+int s2n_is_base64_char(char c)
+{
+    return (b64_inverse[(uint8_t) c] != 255);
+}
+
 /**
  * NOTE:
  * In general, shift before masking. This avoids needing to worry about how the

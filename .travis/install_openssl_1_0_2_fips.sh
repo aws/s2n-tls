@@ -48,7 +48,7 @@ fi
 # There is no 'latest' download URL for the FIPS object modules
 cd "$BUILD_DIR"
 # Originally from: http://www.openssl.org/source/openssl-fips-2.0.13.tar.gz
-curl https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-31_openssl-fips-2.0.13.tar.gz > openssl-fips-2.0.13.tar.gz
+curl --retry 3 https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-31_openssl-fips-2.0.13.tar.gz --output openssl-fips-2.0.13.tar.gz
 gunzip -c openssl-fips-2.0.13.tar.gz | tar xf -
 rm openssl-fips-2.0.13.tar.gz
 cd openssl-fips-2.0.13
@@ -61,7 +61,7 @@ make
 sudo make install
 
 cd "$BUILD_DIR"
-curl -L https://www.openssl.org/source/openssl-1.0.2-latest.tar.gz > openssl-1.0.2.tar.gz
+curl --retry 3 -L https://www.openssl.org/source/openssl-1.0.2-latest.tar.gz --output openssl-1.0.2.tar.gz
 tar -xzvf openssl-1.0.2.tar.gz
 rm openssl-1.0.2.tar.gz
 cd openssl-1.0.2*
