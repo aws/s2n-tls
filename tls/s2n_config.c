@@ -131,7 +131,7 @@ static int s2n_config_init(struct s2n_config *config) {
         s2n_config_set_cipher_preferences(config, "default");
     }
 
-    s2n_x509_trust_store_init(&config->trust_store);
+    s2n_x509_trust_store_init_empty(&config->trust_store);
     s2n_x509_trust_store_from_system_defaults(&config->trust_store);
 
     return 0;
@@ -515,20 +515,20 @@ int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
     return 0;
 }
 
-extern int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *data) {
+extern int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx) {
     notnull_check(clock_fn);
 
     config->wall_clock = clock_fn;
-    config->data_for_sys_clock = data;
+    config->sys_clock_ctx = ctx;
 
     return 0;
 }
 
-extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *data) {
+extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx) {
     notnull_check(clock_fn);
 
     config->monotonic_clock = clock_fn;
-    config->data_for_high_res_clock = data;
+    config->monotonic_clock_ctx = ctx;
 
     return 0;
 }

@@ -34,8 +34,8 @@ struct s2n_config {
     s2n_clock_time_nanoseconds wall_clock;
     s2n_clock_time_nanoseconds monotonic_clock;
 
-    void *data_for_sys_clock;
-    void *data_for_high_res_clock;
+    void *sys_clock_ctx;
+    void *monotonic_clock_ctx;
 
     s2n_client_hello_fn *client_hello_cb;
     void *client_hello_cb_ctx;

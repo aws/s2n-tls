@@ -38,7 +38,7 @@ struct s2n_x509_validator {
     struct s2n_x509_trust_store *trust_store;
     STACK_OF(X509) *cert_chain;
 
-    uint8_t validate_certificates;
+    uint8_t skip_cert_validation;
     uint8_t check_stapled_ocsp;
 };
 
@@ -46,7 +46,7 @@ struct s2n_x509_validator {
 uint8_t s2n_x509_ocsp_stapling_supported(void);
 
 /** Initialize the trust store to empty defaults (no allocations happen here) */
-void s2n_x509_trust_store_init(struct s2n_x509_trust_store *store);
+void s2n_x509_trust_store_init_empty(struct s2n_x509_trust_store *store);
 
 /** Returns TRUE if the trust store has certificates installed, FALSE otherwise */
 uint8_t s2n_x509_trust_store_has_certs(struct s2n_x509_trust_store *store);
@@ -62,7 +62,7 @@ int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const 
 void s2n_x509_trust_store_wipe(struct s2n_x509_trust_store *store);
 
 /** Initialize the validator in unsafe mode. No validity checks for OCSP, host checks, or X.509 will be performed. */
-int s2n_x509_validator_init_no_checks(struct s2n_x509_validator *validator);
+int s2n_x509_validator_init_no_x509_validation(struct s2n_x509_validator *validator);
 
 /** Initialize the validator in safe mode. Will use trust store to validate x.509 cerficiates, ocsp responses, and will call
  *  the verify host callback to determine if a subject name or alternative name from the cert should be trusted.

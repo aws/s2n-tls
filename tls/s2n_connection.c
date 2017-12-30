@@ -441,23 +441,17 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         s2n_x509_validator_wipe(&conn->x509_validator);
     }
 
-    int8_t server_mode_with_no_auth = conn->mode == S2N_SERVER && config->client_cert_auth_type == S2N_CERT_AUTH_NONE;
+    int8_t dont_need_x509_validation = (conn->mode == S2N_SERVER) && (config->client_cert_auth_type == S2N_CERT_AUTH_NONE);
 
-    if(!config->disable_x509_validation && !server_mode_with_no_auth) {
-
-        s2n_x509_validator_init(&conn->x509_validator, &config->trust_store, config->check_ocsp);
-
+    if(config->disable_x509_validation || dont_need_x509_validation) {
+        GUARD(s2n_x509_validator_init_no_x509_validation(&conn->x509_validator));
+    }
+    else {
+        GUARD(s2n_x509_validator_init(&conn->x509_validator, &config->trust_store, config->check_ocsp));
         if(!conn->verify_host_fn) {
             conn->verify_host_fn = config->verify_host;
             conn->data_for_verify_host = config->data_for_verify_host;
         }
-    }
-    else {
-        if(config->client_cert_auth_type == S2N_CERT_AUTH_REQUIRED) {
-            return -1;
-        }
-
-        s2n_x509_validator_init_no_checks(&conn->x509_validator);
     }
 
     conn->config = config;

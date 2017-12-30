@@ -229,7 +229,9 @@ int main(int argc, char *const *argv)
     }
 
     if(type == S2N_STATUS_REQUEST_OCSP) {
-        s2n_config_set_check_stapled_ocsp_response(config, 1);
+        if(s2n_config_set_check_stapled_ocsp_response(config, 1)) {
+            print_s2n_error("OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
+        }
     }
 
     verify_data.trusted_host = host;

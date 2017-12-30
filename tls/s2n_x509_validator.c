@@ -44,7 +44,7 @@ uint8_t s2n_x509_ocsp_stapling_supported(void) {
     return S2N_OCSP_STAPLING_SUPPORTED;
 }
 
-void s2n_x509_trust_store_init(struct s2n_x509_trust_store *store) {
+void s2n_x509_trust_store_init_empty(struct s2n_x509_trust_store *store) {
     store->trust_store = NULL;
 }
 
@@ -82,6 +82,10 @@ int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const 
         return -1;
     }
 
+    /* It's a likely scenario if this function is called, a self-signed certificate is used, and that is was generated
+     * without a trust anchor. However if you call this function, the assumption is you trust ca_file or path and if a certificate
+     * is encountered that's in that path, it should be trusted. The following flag tells libcrypto to not care that the cert
+     * is missing a root anchor. */
     unsigned long flags = X509_VP_FLAG_DEFAULT;
 
 #if defined(X509_V_FLAG_PARTIAL_CHAIN)
@@ -102,10 +106,10 @@ void s2n_x509_trust_store_wipe(struct s2n_x509_trust_store *store) {
     }
 }
 
-int s2n_x509_validator_init_no_checks(struct s2n_x509_validator *validator) {
+int s2n_x509_validator_init_no_x509_validation(struct s2n_x509_validator *validator) {
     validator->trust_store = NULL;
     validator->cert_chain = NULL;
-    validator->validate_certificates = 0;
+    validator->skip_cert_validation = 1;
     validator->check_stapled_ocsp = 0;
 
     return 0;
@@ -115,7 +119,7 @@ int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x50
     notnull_check(trust_store);
     validator->trust_store = trust_store;
 
-    validator->validate_certificates = 1;
+    validator->skip_cert_validation = 0;
     validator->check_stapled_ocsp = check_ocsp;
 
     validator->cert_chain = NULL;
@@ -133,7 +137,7 @@ void s2n_x509_validator_wipe(struct s2n_x509_validator *validator) {
     }
 
     validator->trust_store = NULL;
-    validator->validate_certificates = 0;
+    validator->skip_cert_validation = 0;
 }
 
 /*
@@ -190,7 +194,7 @@ static uint8_t verify_host_information(struct s2n_x509_validator *validator, str
 s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn, uint8_t *cert_chain_in,
                                        uint32_t cert_chain_len, s2n_cert_type *cert_type, struct s2n_pkey *public_key_out) {
 
-    if (validator->validate_certificates && !s2n_x509_trust_store_has_certs(validator->trust_store)) {
+    if (!validator->skip_cert_validation && !s2n_x509_trust_store_has_certs(validator->trust_store)) {
         return S2N_CERT_ERR_UNTRUSTED;
     }
 
@@ -230,7 +234,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 
         const uint8_t *data = asn1cert.data;
 
-        if (validator->validate_certificates) {
+        if (!validator->skip_cert_validation) {
             /* the cert is der encoded, just convert it. */
             server_cert = d2i_X509(NULL, &data, asn1cert.size);
             if (!server_cert) {
@@ -261,7 +265,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
     }
 
 
-    if (validator->validate_certificates) {
+    if (!validator->skip_cert_validation) {
         X509 *leaf = sk_X509_value(validator->cert_chain, 0);
         if(!leaf) {
             err_code = S2N_CERT_ERR_INVALID;
@@ -285,7 +289,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 
 
         uint64_t current_sys_time = 0;
-        conn->config->wall_clock(conn->config->data_for_sys_clock, &current_sys_time);
+        conn->config->wall_clock(conn->config->sys_clock_ctx, &current_sys_time);
 
         /* this wants seconds not nanoseconds */
         X509_STORE_CTX_set_time(ctx, 0, current_sys_time / 1000000000);
@@ -316,7 +320,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
                                                                                 const uint8_t *ocsp_response_raw,
                                                                                 uint32_t ocsp_response_length) {
 
-    if (!validator->validate_certificates || !validator->check_stapled_ocsp) {
+    if (validator->skip_cert_validation || !validator->check_stapled_ocsp) {
         return S2N_CERT_OK;
     }
 
@@ -402,7 +406,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
                                                                   (uint32_t) nextupd->length, &next_update);
 
         uint64_t current_time = 0;
-        int current_time_err = conn->config->wall_clock(conn->config->data_for_sys_clock, &current_time);
+        int current_time_err = conn->config->wall_clock(conn->config->sys_clock_ctx, &current_time);
 
         if (thisupd_err || nextupd_err || current_time_err) {
             ret_val = S2N_CERT_ERR_UNTRUSTED;
