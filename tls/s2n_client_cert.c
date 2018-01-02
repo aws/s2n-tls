@@ -35,7 +35,14 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
 
     GUARD(s2n_stuffer_read_uint24(in, &client_cert_chain.size));
 
-    if (client_cert_chain.size > s2n_stuffer_data_available(in) || client_cert_chain.size == 0) {
+    if (client_cert_chain.size > s2n_stuffer_data_available(in)) {
+        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+    }
+
+    s2n_cert_auth_type client_cert_auth_type;
+    GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
+
+    if (client_cert_chain.size == 0 && client_cert_auth_type == S2N_CERT_AUTH_REQUIRED) {
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
