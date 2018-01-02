@@ -116,7 +116,11 @@ int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer
     s2n_stuffer_reread(pem);
     s2n_stuffer_reread(asn1);
 
-    /* Try EC private key, skipping EC PARAMETERS if it exists. For now, only support standard curves. */
+    /* By default, OpenSSL tools always generate both "EC PARAMETERS" and "EC PRIVATE
+     * KEY" PEM objects in the keyfile. Skip the first "EC PARAMETERS" object so that we're
+     * compatible with OpenSSL's default output, and since "EC PARAMETERS" is
+     * only needed for non-standard curves that aren't currently supported.
+     */
     rc = s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_EC_PARAMETERS);
     if (rc < 0) {
         s2n_stuffer_reread(pem);
