@@ -78,7 +78,7 @@ static int wall_clock(void *data, uint64_t *nanoseconds)
 }
 
 static uint8_t default_verify_host(const char *host_name, size_t len, void *data) {
-    return 1;
+    return 0;
 }
 
 #endif

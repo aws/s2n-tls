@@ -221,6 +221,7 @@ struct s2n_connection {
      * to the connection, instead of globally to a single config.*/
     s2n_verify_host_fn verify_host_fn;
     void *data_for_verify_host;
+    uint8_t verify_host_fn_overridden;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);

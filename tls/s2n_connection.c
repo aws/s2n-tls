@@ -159,8 +159,6 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
             GUARD_PTR(s2n_free(&blob));
             S2N_ERROR_PTR(S2N_ERR_CLIENT_MODE_DISABLED);
         }
-
-        s2n_connection_set_config(conn, s2n_fetch_default_config());
     }
 
     conn->mode = mode;
@@ -168,6 +166,8 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     conn->close_notify_queued = 0;
     conn->session_id_len = 0;
     conn->verify_host_fn = NULL;
+    conn->data_for_verify_host = NULL;
+    conn->verify_host_fn_overridden = 0;
     conn->data_for_verify_host = NULL;
     conn->send = NULL;
     conn->recv = NULL;
@@ -256,6 +256,7 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode)
     conn->handshake.handshake_type = INITIAL;
     conn->handshake.message_number = 0;
     conn->verify_host_fn = NULL;
+    conn->verify_host_fn_overridden = 0;
     conn->data_for_verify_host = NULL;
 
     return 0;
@@ -441,14 +442,20 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         s2n_x509_validator_wipe(&conn->x509_validator);
     }
 
-    int8_t dont_need_x509_validation = (conn->mode == S2N_SERVER) && (config->client_cert_auth_type == S2N_CERT_AUTH_NONE);
+    s2n_cert_auth_type auth_type = config->client_cert_auth_type;
+
+    if(conn->client_cert_auth_type_overridden) {
+        auth_type = conn->client_cert_auth_type;
+    }
+
+    int8_t dont_need_x509_validation = (conn->mode == S2N_SERVER) && (auth_type == S2N_CERT_AUTH_NONE);
 
     if(config->disable_x509_validation || dont_need_x509_validation) {
         GUARD(s2n_x509_validator_init_no_x509_validation(&conn->x509_validator));
     }
     else {
         GUARD(s2n_x509_validator_init(&conn->x509_validator, &config->trust_store, config->check_ocsp));
-        if(!conn->verify_host_fn) {
+        if(!conn->verify_host_fn_overridden) {
             conn->verify_host_fn = config->verify_host;
             conn->data_for_verify_host = config->data_for_verify_host;
         }
@@ -516,6 +523,9 @@ int s2n_connection_wipe(struct s2n_connection *conn)
 
     /* Remove context associated with connection */
     conn->context = NULL;
+    conn->verify_host_fn_overridden = 0;
+    conn->verify_host_fn = NULL;
+    conn->data_for_verify_host = NULL;
 
     /* Clone the stuffers */
     /* ignore gcc 4.7 address warnings because dest is allocated on the stack */
@@ -896,6 +906,7 @@ int s2n_connection_set_verify_host_callback(struct s2n_connection *conn, s2n_ver
 
     conn->verify_host_fn = verify_host_fn;
     conn->data_for_verify_host = data;
+    conn->verify_host_fn_overridden = 1;
 
     return 0;
 }

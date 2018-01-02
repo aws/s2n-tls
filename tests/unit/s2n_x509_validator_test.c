@@ -174,7 +174,10 @@ int main(int argc, char **argv) {
         s2n_x509_trust_store_init_empty(&trust_store);
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+
         EXPECT_NOT_NULL(connection);
+        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
 
         struct s2n_x509_validator validator;
         s2n_x509_validator_init(&validator, &trust_store, 1);
@@ -190,6 +193,7 @@ int main(int argc, char **argv) {
         s2n_cert_type cert_type;
         int err_code = s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len,
                                                               &cert_type, &public_key_out);
+        EXPECT_EQUAL(0, verify_data.callback_invoked);
         s2n_stuffer_free(&chain_stuffer);
 
         EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED, err_code);
@@ -210,6 +214,9 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
 
+        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
+
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
@@ -222,6 +229,7 @@ int main(int argc, char **argv) {
         EXPECT_EQUAL(S2N_CERT_OK,
                      s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
+        EXPECT_EQUAL(1, verify_data.callback_invoked);
         EXPECT_EQUAL(S2N_CERT_TYPE_RSA_SIGN, cert_type);
         s2n_connection_free(connection);
 
@@ -241,6 +249,8 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
 
+        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -258,6 +268,7 @@ int main(int argc, char **argv) {
                      s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
 
+        EXPECT_EQUAL(1, verify_data.callback_invoked);
         s2n_config_set_wall_clock(connection->config, old_clock, NULL);
         s2n_connection_free(connection);
 
@@ -277,6 +288,9 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
 
+        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
+
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
@@ -291,6 +305,7 @@ int main(int argc, char **argv) {
         EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED, ret_val);
         s2n_stuffer_free(&chain_stuffer);
 
+        EXPECT_EQUAL(1, verify_data.callback_invoked);
         s2n_connection_free(connection);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
@@ -415,6 +430,9 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
 
+        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
+
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
@@ -428,6 +446,7 @@ int main(int argc, char **argv) {
                      s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
 
+        EXPECT_EQUAL(1, verify_data.callback_invoked);
         struct s2n_stuffer ocsp_data_stuffer;
         EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_DER, S2N_MAX_TEST_PEM_SIZE));
         uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
@@ -453,6 +472,9 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
 
+        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
+
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
@@ -466,6 +488,7 @@ int main(int argc, char **argv) {
                      s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
 
+        EXPECT_EQUAL(1, verify_data.callback_invoked);
         s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
         s2n_config_set_wall_clock(connection->config, fetch_expired_after_ocsp_timestamp, NULL);
 
@@ -495,6 +518,9 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
 
+        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
+
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
@@ -508,6 +534,7 @@ int main(int argc, char **argv) {
                      s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
 
+        EXPECT_EQUAL(1, verify_data.callback_invoked);
         s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
         s2n_config_set_wall_clock(connection->config, fetch_invalid_before_ocsp_timestamp, NULL);
 
@@ -539,6 +566,9 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
 
+        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
+
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
@@ -552,6 +582,7 @@ int main(int argc, char **argv) {
                      s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
 
+        EXPECT_EQUAL(1, verify_data.callback_invoked);
         struct s2n_stuffer ocsp_data_stuffer;
         EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_DER, S2N_MAX_TEST_PEM_SIZE));
         uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);

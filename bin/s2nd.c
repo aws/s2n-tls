@@ -227,6 +227,15 @@ int cache_delete(void *ctx, const void *key, uint64_t key_size)
     return 0;
 }
 
+/*
+ * Since this is a server, and the mechanism for hostname verification is not defined for this use-case,
+ * allow any hostname through. If you are writing something with mutual auth and you have a scheme for verifying
+ * the client (e.g. a reverse DNS lookup), you would plug that in here.
+ */
+static uint8_t verify_host_fn(const char *host_name, size_t host_name_len, void *data) {
+    return 1;
+}
+
 extern void print_s2n_error(const char *app_error);
 extern int echo(struct s2n_connection *conn, int sockfd);
 extern int negotiate(struct s2n_connection *conn);
@@ -594,6 +603,11 @@ int main(int argc, char *const *argv)
 
     if (enable_mfl && s2n_config_accept_max_fragment_length(config) < 0) {
         print_s2n_error("Error enabling TLS maximum fragment length extension in server");
+        exit(1);
+    }
+
+    if (s2n_config_set_verify_host_callback(config, verify_host_fn, NULL)) {
+        print_s2n_error("Failure to set hostname verification callback.");
         exit(1);
     }
 
