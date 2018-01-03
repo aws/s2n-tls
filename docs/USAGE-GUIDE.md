@@ -642,21 +642,22 @@ Returns 0 on success and -1 on failure.
 
 ### s2n\_verify\_host\_fn
 ```c
-typedef uint8_t (*s2n_verify_host_fn) (const char *host_name, size_t host_name_len, void *data);
+typedef uint8_t (*s2n_verify_host_fn) (const char *host_name, size_t host_name_len, void *ctx);
 ```
 
 **s2n_verify_host_fn** is invoked (usually multiple times) during X.509 validation for each name encountered in the leaf certificate. 
 Return 1 to trust that hostname or 0 to not trust the hostname. If this function returns 1, then the certificate is considered trusted and that portion
 of the X.509 validation will succeed. If no hostname results in a 1 being returned, 
-the certificate will be untrusted and the validation will terminate immediately.
+the certificate will be untrusted and the validation will terminate immediately. The default behavior is to reject all host names found in a certificate
+if client mode or client authentication is being used..
 
 ### s2n\_config\_set\_verify\_host\_callback
 ```c
-int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_verify_host_fn, void *data);
+int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_verify_host_fn, void *ctx);
 ```
 
 **s2n_config_set_verify_host_callback** sets the callback to use for verifying that a hostname from an X.509 certificate 
-is trusted. By default, all certificates that are successfully validated will be trusted. To override this behavior, set this callback. 
+is trusted. By default, no certificate will be trusted. To override this behavior, set this callback. 
 See [s2n_verify_host_fn](#s2n_verify_host_fn) for details. This configuration will be inherited by default to new instances of **s2n_connection**. 
 If a separate callback for different connections using the same config is desired, see 
 [s2n_connection_set_verify_host_callback](#s2n_connection_set_verify_host_callback).
