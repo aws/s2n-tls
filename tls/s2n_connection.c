@@ -736,6 +736,9 @@ int s2n_connection_get_client_hello_version(struct s2n_connection *conn)
 int s2n_connection_client_cert_used(struct s2n_connection *conn)
 {
     if ((conn->handshake.handshake_type & CLIENT_AUTH) && is_handshake_complete(conn)) {
+        if (conn->handshake.handshake_type & NO_CLIENT_CERT) {
+            return 0;
+        }
         return 1;
     }
     return 0;

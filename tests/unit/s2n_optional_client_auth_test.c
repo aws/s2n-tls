@@ -17,69 +17,39 @@
 #include <s2n.h>
 
 #include <stdlib.h>
+#include <fcntl.h>
 
 #include "testlib/s2n_testlib.h"
 
 #include "crypto/s2n_fips.h"
-#include "tls/s2n_connection.h"
-#include "tls/s2n_handshake.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
-#include "utils/s2n_safety.h"
-
-int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
-{
-    struct s2n_stuffer *in_buf;
-    int n_read, n_avail;
-
-    if (buf == NULL) {
-        return 0;
-    }
-
-    in_buf = (struct s2n_stuffer *) io_context;
-    if (in_buf == NULL) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    // read the number of bytes requested or less if it isn't available
-    n_avail = s2n_stuffer_data_available(in_buf);
-    n_read = (len < n_avail) ? len : n_avail;
-
-    if (n_read == 0) {
-        errno = EAGAIN;
-        return -1;
-    }
-
-    s2n_stuffer_read_bytes(in_buf, buf, n_read);
-    return n_read;
-}
-
-int buffer_write(void *io_context, const uint8_t *buf, uint32_t len)
-{
-    struct s2n_stuffer *out;
-
-    if (buf == NULL) {
-        return 0;
-    }
-
-    out = (struct s2n_stuffer *) io_context;
-    if (out == NULL) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    if (s2n_stuffer_write_bytes(out, buf, len) < 0) {
-        errno = EAGAIN;
-        return -1;
-    }
-
-    return len;
-}
-
-extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
 
 static const int MAX_TRIES = 100;
+
+static int try_handshake(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
+{
+    int tries = 0;
+    s2n_blocked_status client_blocked;
+    s2n_blocked_status server_blocked;
+    do {
+        int rc;
+        rc = s2n_negotiate(client_conn, &client_blocked);
+        if (rc != 0 && (client_blocked && errno != EAGAIN)) {
+            return -1;
+        }
+        rc = s2n_negotiate(server_conn, &server_blocked);
+        if (rc != 0 && (server_blocked && errno != EAGAIN)) {
+            return -1;
+        }
+
+        tries += 1;
+        if (tries >= MAX_TRIES) {
+            return -1;
+        }
+    } while (client_blocked || server_blocked);
+    return 0;
+}
 
 int main(int argc, char **argv)
 {
@@ -92,14 +62,14 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    /* s2n support for Mutual Auth when in FIPS mode is not yet implemented. */
+    /* s2n support for mutual auth when in FIPS mode is not yet implemented. */
     if (s2n_is_in_fips_mode()) {
-        /* Test Mutual Auth fails using s2n_config_set_client_auth_type */
+        /* Test optional client auth fails using s2n_config_set_client_auth_type. */
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_FAILURE(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_OPTIONAL));
         EXPECT_SUCCESS(s2n_config_free(server_config));
 
-        /* Test Mutual Auth fails using s2n_connection_set_client_auth_type */
+        /* Test optional client auth fails using s2n_connection_set_client_auth_type. */
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_FAILURE(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_OPTIONAL));
@@ -113,10 +83,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
 
-    /*
-     * Setup the baseline config for the client and server
-     */
-
+    /* Setup baseline server config and certs. */
     EXPECT_NOT_NULL(server_config = s2n_config_new());
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -125,36 +92,35 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
     EXPECT_NOT_NULL(default_cipher_preferences = server_config->cipher_preferences);
 
+
     /*
-     * Test Mutual Auth using **s2n_config_set_client_auth_type** for both optional with a valid client cert provided
+     * Test optional client auth using **s2n_config_set_client_auth_type** with a valid client cert provided.
      */
 
     EXPECT_NOT_NULL(client_config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(client_config, cert_chain_pem, private_key_pem));
     EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, &accept_all_rsa_certs, NULL));
-    EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(server_config, &accept_all_rsa_certs, NULL));
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_OPTIONAL));
+
+    /* Server requires optional client auth and accepts the client cert. */
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_OPTIONAL));
+    EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(server_config, &accept_all_rsa_certs, NULL));
 
     /* Verify that a handshake succeeds for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        s2n_blocked_status client_blocked;
-        s2n_blocked_status server_blocked;
-        struct s2n_stuffer client_to_server;
-        struct s2n_stuffer server_to_client;
+        int client_to_server[2];
+        int server_to_client[2];
 
-        /* Craft a cipher preference with a cipher_idx cipher
-           NOTE: Its safe to use memcpy as the address of server_cipher_preferences
-           will never be NULL */
+        /* Craft a cipher preference with a cipher_idx cipher. */
         memcpy(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
         server_cipher_preferences.count = 1;
         struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
 
         if (!cur_cipher->available) {
-            /* Skip Ciphers that aren't supported with the linked libcrypto */
+            /* Skip ciphers that aren't supported with the linked libcrypto. */
             continue;
         }
 
@@ -162,82 +128,70 @@ int main(int argc, char **argv)
         client_config->cipher_preferences = &server_cipher_preferences;
         server_config->cipher_preferences = &server_cipher_preferences;
 
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        /* Create nonblocking pipes. */
+        EXPECT_SUCCESS(pipe(client_to_server));
+        EXPECT_SUCCESS(pipe(server_to_client));
+        for (int i = 0; i < 2; i++) {
+            EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
+            EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
+        }
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
-        /* Set up our I/O callbacks. Use stuffers for the "I/O context" */
-        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
-        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
-        /* Set Up Callbacks*/
-        EXPECT_SUCCESS(s2n_connection_set_recv_cb(client_conn, &buffer_read));
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(client_conn, &buffer_write));
-        EXPECT_SUCCESS(s2n_connection_set_recv_cb(server_conn, &buffer_read));
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(server_conn, &buffer_write));
+        /* Verify the handshake was successful. */
+        EXPECT_SUCCESS(try_handshake(server_conn, client_conn));
 
-        /* Set up Callback Contexts to use stuffers */
-        EXPECT_SUCCESS(s2n_connection_set_recv_ctx(client_conn, &server_to_client));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(client_conn, &client_to_server));
-        EXPECT_SUCCESS(s2n_connection_set_recv_ctx(server_conn, &client_to_server));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(server_conn, &server_to_client));
-
-        int tries = 0;
-        do {
-            int ret;
-            ret = s2n_negotiate(client_conn, &client_blocked);
-            EXPECT_TRUE(ret == 0 || (client_blocked && errno == EAGAIN));
-            ret = s2n_negotiate(server_conn, &server_blocked);
-            EXPECT_TRUE(ret == 0 || (server_blocked && errno == EAGAIN));
-            tries += 1;
-
-            if (tries >= MAX_TRIES) {
-               FAIL();
-            }
-        } while (client_blocked || server_blocked);
-
-        /* Verify that both connections negotiated Mutual Auth */
+        /* Verify that both connections negotiated mutual auth. */
         EXPECT_TRUE(s2n_connection_client_cert_used(server_conn));
         EXPECT_TRUE(s2n_connection_client_cert_used(client_conn));
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+
+        for (int i = 0; i < 2; i++) {
+           EXPECT_SUCCESS(close(server_to_client[i]));
+           EXPECT_SUCCESS(close(client_to_server[i]));
+        }
     }
 
     EXPECT_SUCCESS(s2n_config_free(client_config));
 
+
     /*
-     * Test Mutual Auth using **s2n_config_set_client_auth_type** for both optional with an invalid client cert
+     * Test optional client auth using **s2n_config_set_client_auth_type** with no client cert provided.
      */
 
     EXPECT_NOT_NULL(client_config = s2n_config_new());
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(client_config, cert_chain_pem, private_key_pem));
     EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, &accept_all_rsa_certs, NULL));
-    EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(server_config, &deny_all_certs, NULL));
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_OPTIONAL));
+
+    /* Server requires optional client auth and accepts the client cert. */
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_OPTIONAL));
+    EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(server_config, &accept_all_rsa_certs, NULL));
 
     /* Verify that a handshake succeeds for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        s2n_blocked_status client_blocked;
-        s2n_blocked_status server_blocked;
-        struct s2n_stuffer client_to_server;
-        struct s2n_stuffer server_to_client;
+        int client_to_server[2];
+        int server_to_client[2];
 
-        /* Craft a cipher preference with a cipher_idx cipher
-           NOTE: Its safe to use memcpy as the address of server_cipher_preferences
-           will never be NULL */
+        /* Craft a cipher preference with a cipher_idx cipher. */
         memcpy(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
         server_cipher_preferences.count = 1;
         struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
 
         if (!cur_cipher->available) {
-            /* Skip Ciphers that aren't supported with the linked libcrypto */
+            /* Skip ciphers that aren't supported with the linked libcrypto. */
             continue;
         }
 
@@ -245,87 +199,66 @@ int main(int argc, char **argv)
         client_config->cipher_preferences = &server_cipher_preferences;
         server_config->cipher_preferences = &server_cipher_preferences;
 
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        /* Create nonblocking pipes. */
+        EXPECT_SUCCESS(pipe(client_to_server));
+        EXPECT_SUCCESS(pipe(server_to_client));
+        for (int i = 0; i < 2; i++) {
+            EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
+            EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
+        }
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
-        /* Set up our I/O callbacks. Use stuffers for the "I/O context" */
-        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
-        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
-        /* Set Up Callbacks*/
-        EXPECT_SUCCESS(s2n_connection_set_recv_cb(client_conn, &buffer_read));
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(client_conn, &buffer_write));
-        EXPECT_SUCCESS(s2n_connection_set_recv_cb(server_conn, &buffer_read));
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(server_conn, &buffer_write));
+        /* Verify the handshake was successful. */
+        EXPECT_SUCCESS(try_handshake(server_conn, client_conn));
 
-        /* Set up Callback Contexts to use stuffers */
-        EXPECT_SUCCESS(s2n_connection_set_recv_ctx(client_conn, &server_to_client));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(client_conn, &client_to_server));
-        EXPECT_SUCCESS(s2n_connection_set_recv_ctx(server_conn, &client_to_server));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(server_conn, &server_to_client));
-
-        int tries = 0;
-        int failures = 0;
-        do {
-            int client_ret, server_ret;
-            client_ret = s2n_negotiate(client_conn, &client_blocked);
-            server_ret = s2n_negotiate(server_conn, &server_blocked);
-            tries += 1;
-
-            if (client_ret != 0 || server_ret != 0) {
-               failures ++;
-            }
-        } while ((client_blocked || server_blocked) && tries < MAX_TRIES);
-
-        EXPECT_EQUAL(failures, MAX_TRIES);
-        /* Verify that NEITHER connections negotiated Mutual Auth */
+        /* Verify that neither connection negotiated mutual auth. */
         EXPECT_FALSE(s2n_connection_client_cert_used(server_conn));
         EXPECT_FALSE(s2n_connection_client_cert_used(client_conn));
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
-
+    
     EXPECT_SUCCESS(s2n_config_free(client_config));
 
+
     /*
-     * Test Mutual Auth using **s2n_config_set_client_auth_type** for both optional with no client cert
+     * Test optional client auth using **s2n_connection_set_client_auth_type** with a valid client cert provided.
      */
 
     EXPECT_NOT_NULL(client_config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(client_config, cert_chain_pem, private_key_pem));
     EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, &accept_all_rsa_certs, NULL));
-    EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(server_config, &deny_all_certs, NULL));
-    EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_OPTIONAL));
-    EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_OPTIONAL));
+    EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_REQUIRED));
 
-    /*
-     * Test Mutual Auth using connection override of **s2n_config_set_client_auth_type**
-     */
-
+    /* Server requires no client auth but the connection will. */
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_NONE));
+    EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(server_config, &accept_all_rsa_certs, NULL));
 
     /* Verify that a handshake succeeds for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        s2n_blocked_status client_blocked;
-        s2n_blocked_status server_blocked;
-        struct s2n_stuffer client_to_server;
-        struct s2n_stuffer server_to_client;
+        int client_to_server[2];
+        int server_to_client[2];
 
-        /* Craft a cipher preference with a cipher_idx cipher
-           NOTE: Its safe to use memcpy as the address of server_cipher_preferences
-           will never be NULL */
+        /* Craft a cipher preference with a cipher_idx cipher. */
         memcpy(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
         server_cipher_preferences.count = 1;
         struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
 
         if (!cur_cipher->available) {
-            /* Skip Ciphers that aren't supported with the linked libcrypto */
+            /* Skip ciphers that aren't supported with the linked libcrypto. */
             continue;
         }
 
@@ -333,79 +266,76 @@ int main(int argc, char **argv)
         client_config->cipher_preferences = &server_cipher_preferences;
         server_config->cipher_preferences = &server_cipher_preferences;
 
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        /* Create nonblocking pipes. */
+        EXPECT_SUCCESS(pipe(client_to_server));
+        EXPECT_SUCCESS(pipe(server_to_client));
+        for (int i = 0; i < 2; i++) {
+            EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
+            EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
+        }
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
-        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_REQUIRED));
+        /* Override the config setting on the connection. */
         EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_REQUIRED));
 
-        /* Set up our I/O callbacks. Use stuffers for the "I/O context" */
-        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
-        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
-        /* Set Up Callbacks*/
-        EXPECT_SUCCESS(s2n_connection_set_recv_cb(client_conn, &buffer_read));
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(client_conn, &buffer_write));
-        EXPECT_SUCCESS(s2n_connection_set_recv_cb(server_conn, &buffer_read));
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(server_conn, &buffer_write));
+        /* Override the config setting on the connection. */
+        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_OPTIONAL));
 
-        /* Set up Callback Contexts to use stuffers */
-        EXPECT_SUCCESS(s2n_connection_set_recv_ctx(client_conn, &server_to_client));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(client_conn, &client_to_server));
-        EXPECT_SUCCESS(s2n_connection_set_recv_ctx(server_conn, &client_to_server));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(server_conn, &server_to_client));
+        /* Verify the handshake was successful. */
+        EXPECT_SUCCESS(try_handshake(server_conn, client_conn));
 
-        int tries = 0;
-        do {
-            int ret;
-            ret = s2n_negotiate(client_conn, &client_blocked);
-            EXPECT_TRUE(ret == 0 || (client_blocked && errno == EAGAIN));
-            ret = s2n_negotiate(server_conn, &server_blocked);
-            EXPECT_TRUE(ret == 0 || (server_blocked && errno == EAGAIN));
-            tries += 1;
-
-            if (tries >= MAX_TRIES) {
-               FAIL();
-            }
-        } while (client_blocked || server_blocked);
-
-        /* Verify that both connections negotiated Mutual Auth */
+        /* Verify that both connections negotiated mutual auth. */
         EXPECT_TRUE(s2n_connection_client_cert_used(server_conn));
         EXPECT_TRUE(s2n_connection_client_cert_used(client_conn));
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+
+        for (int i = 0; i < 2; i++) {
+           EXPECT_SUCCESS(close(server_to_client[i]));
+           EXPECT_SUCCESS(close(client_to_server[i]));
+        }
     }
 
+    EXPECT_SUCCESS(s2n_config_free(client_config));
+
+
     /*
-     * Test Mutual Auth using connection override of **s2n_config_set_client_auth_type** only on one side of the
-     * connection and verify that a connection is not established
+     * Test optional client auth using **s2n_connection_set_client_auth_type** with no client cert provided.
      */
 
-    EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_NONE));
+    EXPECT_NOT_NULL(client_config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, &accept_all_rsa_certs, NULL));
+    EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_REQUIRED));
+
+    /* Server requires client auth but the connection will allow an empty client cert. */
+    EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
+    EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(server_config, &accept_all_rsa_certs, NULL));
 
     /* Verify that a handshake succeeds for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        s2n_blocked_status client_blocked;
-        s2n_blocked_status server_blocked;
-        struct s2n_stuffer client_to_server;
-        struct s2n_stuffer server_to_client;
+        int client_to_server[2];
+        int server_to_client[2];
 
-        /* Craft a cipher preference with a cipher_idx cipher
-           NOTE: Its safe to use memcpy as the address of server_cipher_preferences
-           will never be NULL */
+        /* Craft a cipher preference with a cipher_idx cipher. */
         memcpy(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
         server_cipher_preferences.count = 1;
         struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
 
         if (!cur_cipher->available) {
-            /* Skip Ciphers that aren't supported with the linked libcrypto */
+            /* Skip ciphers that aren't supported with the linked libcrypto. */
             continue;
         }
 
@@ -413,54 +343,119 @@ int main(int argc, char **argv)
         client_config->cipher_preferences = &server_cipher_preferences;
         server_config->cipher_preferences = &server_cipher_preferences;
 
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        /* Create nonblocking pipes. */
+        EXPECT_SUCCESS(pipe(client_to_server));
+        EXPECT_SUCCESS(pipe(server_to_client));
+        for (int i = 0; i < 2; i++) {
+            EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
+            EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
+        }
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
-        /* Only set S2N_CERT_AUTH_REQUIRED on the server and not the client so that the connection fails */
-        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_REQUIRED));
+        /* Override the config setting on the connection. */
+        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_OPTIONAL));
 
-        /* Set up our I/O callbacks. Use stuffers for the "I/O context" */
-        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
-        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
-        /* Set Up Callbacks*/
-        EXPECT_SUCCESS(s2n_connection_set_recv_cb(client_conn, &buffer_read));
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(client_conn, &buffer_write));
-        EXPECT_SUCCESS(s2n_connection_set_recv_cb(server_conn, &buffer_read));
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(server_conn, &buffer_write));
+        /* Override the config setting on the connection. */
+        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_OPTIONAL));
 
-        /* Set up Callback Contexts to use stuffers */
-        EXPECT_SUCCESS(s2n_connection_set_recv_ctx(client_conn, &server_to_client));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(client_conn, &client_to_server));
-        EXPECT_SUCCESS(s2n_connection_set_recv_ctx(server_conn, &client_to_server));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(server_conn, &server_to_client));
+        /* Verify the handshake was successful. */
+        EXPECT_SUCCESS(try_handshake(server_conn, client_conn));
 
-        int tries = 0;
-        int failures = 0;
-        do {
-            int client_ret, server_ret;
-            client_ret = s2n_negotiate(client_conn, &client_blocked);
-            server_ret = s2n_negotiate(server_conn, &server_blocked);
-            tries += 1;
-
-            if (client_ret != 0 || server_ret != 0) {
-               failures ++;
-            }
-        } while ((client_blocked || server_blocked) && tries < MAX_TRIES);
-
-        EXPECT_EQUAL(failures, MAX_TRIES);
-        /* Verify that NEITHER connections negotiated Mutual Auth */
-        EXPECT_FALSE(s2n_connection_client_cert_used(client_conn));
+        /* Verify that neither connection negotiated mutual auth. */
         EXPECT_FALSE(s2n_connection_client_cert_used(server_conn));
+        EXPECT_FALSE(s2n_connection_client_cert_used(client_conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+
+        for (int i = 0; i < 2; i++) {
+           EXPECT_SUCCESS(close(server_to_client[i]));
+           EXPECT_SUCCESS(close(client_to_server[i]));
+        }
+    }
+
+    EXPECT_SUCCESS(s2n_config_free(client_config));
+
+
+    /*
+     * Test optional client auth using **s2n_config_set_client_auth_type** with an incorrect client
+     * cert provided fails negotiation, allowing the user to fatally kill the handshake if they want.
+     * https://tools.ietf.org/html/rfc5246#section-7.4.6
+     */
+
+    EXPECT_NOT_NULL(client_config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(client_config, cert_chain_pem, private_key_pem));
+    EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, &accept_all_rsa_certs, NULL));
+    EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_OPTIONAL));
+
+    /* Server requires optional client auth but will reject the client cert. */
+    EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_OPTIONAL));
+    EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(server_config, &deny_all_certs, NULL));
+
+    /* Verify that a handshake fails for every cipher in the default list. */
+    for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
+        struct s2n_cipher_preferences server_cipher_preferences;
+        struct s2n_connection *client_conn;
+        struct s2n_connection *server_conn;
+        int client_to_server[2];
+        int server_to_client[2];
+
+        /* Craft a cipher preference with a cipher_idx cipher. */
+        memcpy(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
+        server_cipher_preferences.count = 1;
+        struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
+
+        if (!cur_cipher->available) {
+            /* Skip ciphers that aren't supported with the linked libcrypto. */
+            continue;
+        }
+
+        server_cipher_preferences.suites = &cur_cipher;
+        client_config->cipher_preferences = &server_cipher_preferences;
+        server_config->cipher_preferences = &server_cipher_preferences;
+
+        /* Create nonblocking pipes. */
+        EXPECT_SUCCESS(pipe(client_to_server));
+        EXPECT_SUCCESS(pipe(server_to_client));
+        for (int i = 0; i < 2; i++) {
+            EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
+            EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
+        }
+
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
+
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
+
+        /* Verify the handshake failed. Blinding is disabled for the failure case to speed up tests. */
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+        EXPECT_FAILURE(try_handshake(server_conn, client_conn));
+
+        /* Verify that neither connection negotiated mutual auth. */
+        EXPECT_FALSE(s2n_connection_client_cert_used(server_conn));
+        EXPECT_FALSE(s2n_connection_client_cert_used(client_conn));
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
-
+    
     EXPECT_SUCCESS(s2n_config_free(client_config));
+
+
     EXPECT_SUCCESS(s2n_config_free(server_config));
     free(cert_chain_pem);
     free(private_key_pem);
