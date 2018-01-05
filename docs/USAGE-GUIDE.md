@@ -314,7 +314,7 @@ supported status request type is OCSP, **S2N_STATUS_REQUEST_OCSP**.
 
 
 ```c
-typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED } s2n_cert_auth_type;
+typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED, S2N_CERT_AUTH_OPTIONAL } s2n_cert_auth_type;
 ```
 **s2n_cert_auth_type** is used to declare what type of client certificiate authentication to use.
 Currently the default for s2n is for neither the server side or the client side to use Client (aka Mutual) authentication.
@@ -649,9 +649,11 @@ Client Auth Related API's are not recommended for normal users. Use of these API
 int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_type cert_auth_type);
 int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type);
 ```
-Sets whether or not a Client Certificate should be required to complete the TLS Connection.
-If this is set to **S2N_CERT_AUTH_REQUIRED** then a **verify_cert_trust_chain_fn** callback should be provided as well since the current
-default is for s2n to accept all RSA Certs on the client side, and deny all certs on the server side.
+Sets whether or not a Client Certificate should be required to complete the TLS Connection. If this is set to
+**S2N_CERT_AUTH_OPTIONAL** the server will request a client certificate but allow the client to not provide one.
+If this is set to **S2N_CERT_AUTH_REQUIRED** or **S2N_CERT_AUTH_OPTIONAL** then a **verify_cert_trust_chain_fn** callback should be provided as well since the current
+default is for s2n to accept all RSA Certs on the client side, and deny all certs on the server side. Rejecting a
+client certificate when using **S2N_CERT_AUTH_OPTIONAL** will terminate the handshake.
 
 
 ### verify_cert_trust_chain_fn
