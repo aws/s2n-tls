@@ -40,18 +40,26 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
 
     S2N_ERROR_IF(s2n_x509_validator_validate_cert_chain(&conn->x509_validator, conn, cert_chain.data,
                                                         cert_chain.size, &cert_type, &public_key) != S2N_CERT_OK, S2N_ERR_CERT_UNTRUSTED);
+    
+    s2n_signature_algorithm expected_sig_alg = conn->secure.cipher_suite->signature_alg;
 
     switch (cert_type) {
     case S2N_CERT_TYPE_RSA_SIGN:
+        if (expected_sig_alg != S2N_SIGNATURE_RSA) {
+            S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+        }
+        break;
     case S2N_CERT_TYPE_ECDSA_SIGN:
-        conn->secure.client_cert_type = cert_type;
-        s2n_pkey_setup_for_type(&public_key, cert_type);
+        if (expected_sig_alg != S2N_SIGNATURE_ECDSA) {
+            S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+        }
         break;
     default:
         S2N_ERROR(S2N_ERR_CERT_TYPE_UNSUPPORTED);
     }
     
-    // TODO: check that this matches the agreed upon signature algorithm
+    conn->secure.client_cert_type = cert_type;
+    s2n_pkey_setup_for_type(&public_key, cert_type);
     conn->secure.server_public_key = public_key;
 
     return 0;

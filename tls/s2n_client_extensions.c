@@ -50,7 +50,7 @@ static int s2n_send_client_signature_algorithms_extension(struct s2n_connection 
      * the extension length field.
      */
     uint16_t preferred_hashes_len = sizeof(s2n_preferred_hashes) / sizeof(s2n_preferred_hashes[0]);
-    uint16_t num_signature_algs = 2;;
+    uint16_t num_signature_algs = 2;
     uint16_t preferred_hash_sigalg_size = preferred_hashes_len * num_signature_algs * 2;
     uint16_t extension_len_field_size = 2;
 
@@ -63,10 +63,11 @@ static int s2n_send_client_signature_algorithms_extension(struct s2n_connection 
 int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     uint16_t total_size = 0;
+    uint16_t num_signature_algs = 2;
 
     /* Signature algorithms */
     if (conn->actual_protocol_version == S2N_TLS12) {
-        total_size += (sizeof(s2n_preferred_hashes) * 2 * 2) + 6;
+        total_size += (sizeof(s2n_preferred_hashes) * num_signature_algs * 2) + 6;
     }
 
     uint16_t application_protocols_len = conn->config->application_protocols.size;
@@ -266,7 +267,7 @@ int s2n_get_supported_signature_hash_pair(struct s2n_stuffer *in, s2n_hash_algor
 
     GUARD(s2n_stuffer_read_uint8(in, &hash_algorithm));
     GUARD(s2n_stuffer_read_uint8(in, &signature_algorithm));
-    // TODO: Fix before submitting
+    
     if (signature_algorithm != TLS_SIGNATURE_ALGORITHM_RSA && signature_algorithm != TLS_SIGNATURE_ALGORITHM_ECDSA) {
         S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     }

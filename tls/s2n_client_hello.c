@@ -36,7 +36,6 @@
 
 #include "stuffer/s2n_stuffer.h"
 
-#include "utils/s2n_map.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 

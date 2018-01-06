@@ -70,9 +70,6 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
         server_cert = TEST_ECDSA_CERT
         server_key = TEST_ECDSA_KEY
    
-    if "CHACHA" in cipher:
-        return 0
-
     # Fire up s2nd
     s2nd_cmd = ["../../bin/s2nd"]
 
@@ -298,7 +295,6 @@ def resume_test(host, port, test_ciphers, fips_mode):
             if ssl_version < cipher_vers:
                 continue
 
-            print(cipher_name);
             ret = try_handshake(host, port, cipher_name, ssl_version, resume=True, enter_fips_mode=fips_mode)
             result_prefix = "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
             print_result(result_prefix, ret)

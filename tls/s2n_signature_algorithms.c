@@ -59,7 +59,6 @@ int s2n_send_supported_signature_algorithms(struct s2n_stuffer *out)
     uint16_t preferred_hashes_len = sizeof(s2n_preferred_hashes) / sizeof(s2n_preferred_hashes[0]);
     uint16_t num_signature_algs = 2;;
     uint16_t preferred_hashes_size = preferred_hashes_len * num_signature_algs * 2;
-    //uint16_t preferred_hashes_size = preferred_hashes_len * 2;
     GUARD(s2n_stuffer_write_uint16(out, preferred_hashes_size));
 
     for (int i =  0; i < preferred_hashes_len; i++) {
@@ -92,7 +91,7 @@ int s2n_recv_supported_signature_algorithms(struct s2n_connection *conn, struct 
     uint8_t *hash_sig_pairs = s2n_stuffer_raw_read(in, pairs_available * 2);
     notnull_check(hash_sig_pairs);
 
-    /* Loop through the preferred hashes to try to favor the server's preference order */
+    /* Loop through the preferred hashes to try to favor the configured preference order */
     for(int hash_idx = 0; hash_idx < sizeof(s2n_preferred_hashes); hash_idx++) {
         for(int i = 0; i < pairs_available; i++) {
             uint8_t hash_alg = hash_sig_pairs[2 * i];
