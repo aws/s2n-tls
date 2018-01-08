@@ -24,22 +24,21 @@ if [ "$#" -ne "1" ]; then
     usage
 fi
 
-INSTALL_DIR=$1
+INSTALL_DIR="$1";
 
+if [[ ! -d "$INSTALL_DIR" ]]; then 
+    mkdir -p "$INSTALL_DIR" ; 
+fi
+
+echo "Installing Smack..."
 cd "$INSTALL_DIR"
-
-#install smack
 git clone https://github.com/smackers/smack.git -b develop
 cd smack/bin
-git checkout 45e1fc5
 ./build.sh
+source "$INSTALL_DIR/smack.environment"
+echo "Installed Smack"
 
-# Disabling ShellCheck using https://github.com/koalaman/shellcheck/wiki/Directive
-# Turn of Warning in one line as https://github.com/koalaman/shellcheck/wiki/SC1090
-# shellcheck disable=SC1090
-source "$INSTALL_DIR"/smack.environment
-
-#install ctverif
+echo "Installing ctverif..."
 cd "$INSTALL_DIR"
 git clone --depth 1 https://github.com/imdea-software/verifying-constant-time.git -b test-automation
-
+echo "Installed ctverif"
