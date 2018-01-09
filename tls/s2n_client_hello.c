@@ -26,6 +26,7 @@
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_client_hello.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
 
@@ -34,24 +35,107 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
-/* From RFC5246 A.4 */
-#define S2N_TLS_CLIENT_HELLO    1
+struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn) {
+    if (conn->client_hello.parsed != 1) {
+        return NULL;
+    }
 
-/* Per http://www-archive.mozilla.org/projects/security/pki/nss/ssl/draft02.html C.2 
- */
-#define S2N_SSL_CLIENT_HELLO    1
+    return &conn->client_hello;
+}
+
+uint32_t s2n_client_hello_get_raw_len(struct s2n_client_hello *ch) {
+    notnull_check(ch);
+
+    return ch->raw_message.blob.size;
+}
+
+static uint32_t min_size(struct s2n_blob *blob, uint32_t max_length) {
+    return blob->size < max_length ? blob->size : max_length;
+}
+
+uint32_t s2n_client_hello_get_raw_bytes(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length)
+{
+    notnull_check(ch);
+    notnull_check(out);
+
+    uint32_t len = min_size(&ch->raw_message.blob, max_length);
+
+    struct s2n_stuffer *raw_message = &ch->raw_message;
+    GUARD(s2n_stuffer_reread(raw_message));
+    GUARD(s2n_stuffer_read_bytes(raw_message, out, len));
+
+    return len;
+}
+
+uint32_t s2n_client_hello_get_cipher_suites(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length)
+{
+    notnull_check(ch);
+    notnull_check(out);
+    notnull_check(ch->cipher_suites.data);
+
+    uint32_t len = min_size(&ch->cipher_suites, max_length);
+
+    memcpy_check(out, &ch->cipher_suites.data, len);
+
+    return len;
+}
+
+uint32_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length)
+{
+    notnull_check(ch);
+    notnull_check(out);
+    notnull_check(ch->extensions.data);
+
+    uint32_t len = min_size(&ch->extensions, max_length);
+
+    memcpy_check(out, &ch->extensions.data, len);
+
+    return len;
+}
+
+int s2n_client_hello_free(struct s2n_client_hello *client_hello) {
+    notnull_check(client_hello);
+
+    GUARD(s2n_stuffer_free(&client_hello->raw_message));
+
+    /* These pointed to data in the raw_message stuffer,
+       so we don't need to free them */
+    client_hello->cipher_suites.data = NULL;
+    client_hello->extensions.data = NULL;
+
+    return 0;
+}
+
+int s2n_collect_client_hello(struct s2n_connection *conn, struct s2n_stuffer *source)
+{
+    notnull_check(conn);
+    notnull_check(source);
+
+    uint32_t size = s2n_stuffer_data_available(source);
+    if (size == 0) {
+        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+    }
+
+    struct s2n_client_hello *ch = &conn->client_hello;
+
+    GUARD(s2n_stuffer_resize(&ch->raw_message, size));
+    GUARD(s2n_stuffer_copy(source, &ch->raw_message, size));
+
+    return 0;
+}
 
 int s2n_client_hello_recv(struct s2n_connection *conn)
 {
-    struct s2n_stuffer *in = &conn->handshake.io;
-    uint8_t compression_methods;
-    uint16_t extensions_size;
-    uint16_t cipher_suites_length;
-    uint8_t *cipher_suites;
+    GUARD(s2n_collect_client_hello(conn, &conn->handshake.io));
+
+    /* Going forward, we parse the collected client hello */
+    struct s2n_client_hello *client_hello = &conn->client_hello;
+    struct s2n_stuffer *in = &client_hello->raw_message;
+
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
     GUARD(s2n_stuffer_read_bytes(in, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
-    GUARD(s2n_stuffer_read_bytes(in, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    GUARD(s2n_stuffer_erase_and_read_bytes(in, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_stuffer_read_uint8(in, &conn->session_id_len));
 
     conn->client_protocol_version = (client_protocol_version[0] * 10) + client_protocol_version[1];
@@ -68,16 +152,20 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 
     GUARD(s2n_stuffer_read_bytes(in, conn->session_id, conn->session_id_len));
 
+    uint16_t cipher_suites_length = 0;
     GUARD(s2n_stuffer_read_uint16(in, &cipher_suites_length));
     if (cipher_suites_length % S2N_TLS_CIPHER_SUITE_LEN) {
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
-    cipher_suites = s2n_stuffer_raw_read(in, cipher_suites_length);
-    notnull_check(cipher_suites);
+
+    client_hello->cipher_suites.size = cipher_suites_length;
+    client_hello->cipher_suites.data = s2n_stuffer_raw_read(in, cipher_suites_length);
+    notnull_check(client_hello->cipher_suites.data);
     /* Don't choose the cipher yet, read the extensions first */
 
-    GUARD(s2n_stuffer_read_uint8(in, &compression_methods));
-    GUARD(s2n_stuffer_skip_read(in, compression_methods));
+    uint8_t num_compression_methods = 0;
+    GUARD(s2n_stuffer_read_uint8(in, &num_compression_methods));
+    GUARD(s2n_stuffer_skip_read(in, num_compression_methods));
 
     /* This is going to be our default if the client has no preference. */
     conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
@@ -88,21 +176,24 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
         conn->secure.conn_hash_alg = S2N_HASH_SHA1;
     }
 
+    uint16_t extensions_length = 0;
     if (s2n_stuffer_data_available(in) >= 2) {
         /* Read extensions if they are present */
-        GUARD(s2n_stuffer_read_uint16(in, &extensions_size));
+        GUARD(s2n_stuffer_read_uint16(in, &extensions_length));
 
-        if (extensions_size > s2n_stuffer_data_available(in)) {
+        if (extensions_length > s2n_stuffer_data_available(in)) {
             S2N_ERROR(S2N_ERR_BAD_MESSAGE);
         }
 
-        struct s2n_blob extensions;
-        extensions.size = extensions_size;
-        extensions.data = s2n_stuffer_raw_read(in, extensions.size);
-        notnull_check(extensions.data);
+        client_hello->extensions.size = extensions_length;
+        client_hello->extensions.data = s2n_stuffer_raw_read(in, extensions_length);
+        notnull_check(client_hello->extensions.data);
 
-        GUARD(s2n_client_extensions_recv(conn, &extensions));
+        GUARD(s2n_client_extensions_recv(conn, &client_hello->extensions));
     }
+
+    /* Mark the collected client hello as available when parsing over and before the client hello callback */
+    client_hello->parsed = 1;
 
     if (conn->config->client_hello_cb) {
         if (conn->config->client_hello_cb(conn, conn->config->client_hello_cb_ctx) < 0) {
@@ -117,7 +208,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
     }
 
     /* Now choose the ciphers and the cert chain. */
-    GUARD(s2n_set_cipher_as_tls_server(conn, cipher_suites, cipher_suites_length / 2));
+    GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data, cipher_suites_length / 2));
     conn->server->server_cert_chain = conn->config->cert_and_key_pairs;
 
     /* Set the handshake type */
