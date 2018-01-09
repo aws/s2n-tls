@@ -133,7 +133,7 @@ extern int s2n_connection_wipe(struct s2n_connection *conn);
 extern int s2n_connection_free(struct s2n_connection *conn);
 extern int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked);
 
-typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED } s2n_cert_auth_type;
+typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED, S2N_CERT_AUTH_OPTIONAL } s2n_cert_auth_type;
 typedef enum {
     S2N_CERT_OK = 0,
     S2N_CERT_ERR_UNTRUSTED = -1,

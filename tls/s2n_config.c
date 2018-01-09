@@ -300,7 +300,7 @@ int s2n_config_get_client_auth_type(struct s2n_config *config, s2n_cert_auth_typ
 
 int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_type client_auth_type)
 {
-    if ((client_auth_type == S2N_CERT_AUTH_REQUIRED) && s2n_is_in_fips_mode()) {
+    if ((client_auth_type != S2N_CERT_AUTH_NONE) && s2n_is_in_fips_mode()) {
         /* s2n support for Client Auth when in FIPS mode is not yet implemented.
          * When implemented, FIPS only permits Client Auth for TLS 1.2
          */

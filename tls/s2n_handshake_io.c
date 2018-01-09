@@ -85,7 +85,7 @@ static struct s2n_handshake_action state_machine[] = {
 /* We support different ordering of TLS Handshake messages, depending on what is being negotiated. There's also a dummy "INITIAL" handshake
  * that everything starts out as until we know better.
  */
-static message_type_t handshakes[64][16] = {
+static message_type_t handshakes[128][16] = {
     [INITIAL] = {
             CLIENT_HELLO,
             SERVER_HELLO
@@ -179,10 +179,26 @@ static message_type_t handshakes[64][16] = {
              APPLICATION_DATA
      },
 
+     [NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH | NO_CLIENT_CERT ] = {
+             CLIENT_HELLO,
+             SERVER_HELLO, SERVER_CERT, SERVER_CERT_REQ, SERVER_HELLO_DONE,
+             CLIENT_CERT, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+             SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
+             APPLICATION_DATA
+     },
+
      [NEGOTIATED | FULL_HANDSHAKE | PERFECT_FORWARD_SECRECY | CLIENT_AUTH] = {
             CLIENT_HELLO,
             SERVER_HELLO, SERVER_CERT, SERVER_KEY, SERVER_CERT_REQ, SERVER_HELLO_DONE,
             CLIENT_CERT, CLIENT_KEY, CLIENT_CERT_VERIFY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+            SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
+            APPLICATION_DATA
+     },
+
+     [NEGOTIATED | FULL_HANDSHAKE | PERFECT_FORWARD_SECRECY | CLIENT_AUTH | NO_CLIENT_CERT ] = {
+            CLIENT_HELLO,
+            SERVER_HELLO, SERVER_CERT, SERVER_KEY, SERVER_CERT_REQ, SERVER_HELLO_DONE,
+            CLIENT_CERT, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
             SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
             APPLICATION_DATA
      },
@@ -195,10 +211,26 @@ static message_type_t handshakes[64][16] = {
             APPLICATION_DATA
      },
 
+     [NEGOTIATED | FULL_HANDSHAKE | OCSP_STATUS | CLIENT_AUTH | NO_CLIENT_CERT ] = {
+            CLIENT_HELLO,
+            SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS, SERVER_CERT_REQ, SERVER_HELLO_DONE,
+            CLIENT_CERT, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+            SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
+            APPLICATION_DATA
+     },
+
      [NEGOTIATED | FULL_HANDSHAKE | PERFECT_FORWARD_SECRECY | OCSP_STATUS | CLIENT_AUTH ] = {
              CLIENT_HELLO,
              SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS, SERVER_KEY, SERVER_CERT_REQ, SERVER_HELLO_DONE,
              CLIENT_CERT, CLIENT_KEY, CLIENT_CERT_VERIFY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+             SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
+             APPLICATION_DATA
+     },
+     
+     [NEGOTIATED | FULL_HANDSHAKE | PERFECT_FORWARD_SECRECY | OCSP_STATUS | CLIENT_AUTH | NO_CLIENT_CERT ] = {
+             CLIENT_HELLO,
+             SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS, SERVER_KEY, SERVER_CERT_REQ, SERVER_HELLO_DONE,
+             CLIENT_CERT, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
              SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
              APPLICATION_DATA
      },
@@ -301,6 +333,17 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
         conn->handshake.handshake_type |= OCSP_STATUS;
     }
 
+    return 0;
+}
+
+int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn) {
+    s2n_cert_auth_type client_cert_auth_type;
+    GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
+    if (client_cert_auth_type != S2N_CERT_AUTH_OPTIONAL) {
+        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+    }
+
+    conn->handshake.handshake_type |= NO_CLIENT_CERT;
     return 0;
 }
 

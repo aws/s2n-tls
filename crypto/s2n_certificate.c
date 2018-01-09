@@ -51,3 +51,9 @@ int s2n_send_cert_chain(struct s2n_stuffer *out, struct s2n_cert_chain *chain)
 
     return 0;
 }
+
+int s2n_send_empty_cert_chain(struct s2n_stuffer *out) {
+    notnull_check(out);
+    GUARD(s2n_stuffer_write_uint24(out, 0));
+    return 0;
+}
