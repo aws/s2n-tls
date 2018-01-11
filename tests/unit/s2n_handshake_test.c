@@ -148,7 +148,7 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
         if (!expect_failure) {
             GUARD(try_handshake(server_conn, client_conn));
         } else {
-            ne_check(try_handshake(server_conn, client_conn), -1);
+            eq_check(try_handshake(server_conn, client_conn), -1);
         }
 
         GUARD(s2n_connection_free(server_conn));
