@@ -305,6 +305,7 @@ void usage()
     fprintf(stderr, "    Only perform tls handshake and then shutdown the connection\n");
     fprintf(stderr, "  --parallelize\n");
     fprintf(stderr, "    Create a new Connection handler thread for each new connection. Useful for tests with lots of connections.\n");
+    fprintf(stderr, "    Warning: this option isn't compatible with TLS Resumption, since each thread gets its own Session cache.\n");
     fprintf(stderr, "  --prefer-low-latency\n");
     fprintf(stderr, "    Prefer low latency by clamping maximum outgoing record size at 1500.\n");
     fprintf(stderr, "  --prefer-throughput\n");
@@ -315,7 +316,8 @@ void usage()
     fprintf(stderr, "    Path to a DER formatted OCSP response for stapling\n");
     fprintf(stderr, "  -s\n");
     fprintf(stderr, "  --self-service-blinding\n");
-    fprintf(stderr, "    Don't introduce 10-30 second delays on TLS Handshake errors\n");
+    fprintf(stderr, "    Don't introduce 10-30 second delays on TLS Handshake errors. \n");
+    fprintf(stderr, "    Warning: this should only be used for testing since skipping blinding may allow timing side channels.\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
