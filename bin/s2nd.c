@@ -303,6 +303,9 @@ void usage()
     fprintf(stderr, "  -n\n");
     fprintf(stderr, "  --negotiate\n");
     fprintf(stderr, "    Only perform tls handshake and then shutdown the connection\n");
+    fprintf(stderr, "  --parallelize\n");
+    fprintf(stderr, "    Create a new Connection handler thread for each new connection. Useful for tests with lots of connections.\n");
+    fprintf(stderr, "    Warning: this option isn't compatible with TLS Resumption, since each thread gets its own Session cache.\n");
     fprintf(stderr, "  --prefer-low-latency\n");
     fprintf(stderr, "    Prefer low latency by clamping maximum outgoing record size at 1500.\n");
     fprintf(stderr, "  --prefer-throughput\n");
@@ -311,10 +314,92 @@ void usage()
     fprintf(stderr, "    Accept client's TLS maximum fragment length extension request\n");
     fprintf(stderr, "  --ocsp\n");
     fprintf(stderr, "    Path to a DER formatted OCSP response for stapling\n");
+    fprintf(stderr, "  -s\n");
+    fprintf(stderr, "  --self-service-blinding\n");
+    fprintf(stderr, "    Don't introduce 10-30 second delays on TLS Handshake errors. \n");
+    fprintf(stderr, "    Warning: this should only be used for testing since skipping blinding may allow timing side channels.\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
     exit(1);
+}
+
+
+struct conn_settings {
+    int mutual_auth;
+    int self_service_blinding;
+    int only_negotiate;
+    int prefer_throughput;
+    int prefer_low_latency;
+    int enable_mfl;
+};
+
+int handle_connection(int fd, struct s2n_config *config, struct conn_settings settings)
+{
+    struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+    if (!conn) {
+        print_s2n_error("Error getting new s2n connection");
+        return -1;
+    }
+
+    if (settings.self_service_blinding) {
+        s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING);
+    }
+
+    if (settings.mutual_auth) {
+        s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED);
+        /* Use an unsafe verification function until we support default x509 verification */
+        s2n_config_set_verify_cert_chain_cb(config, &accept_all_rsa_certs, NULL);
+    }
+
+    if (s2n_connection_set_config(conn, config) < 0) {
+        print_s2n_error("Error setting configuration");
+        return -1;
+    }
+
+    if (settings.prefer_throughput && s2n_connection_prefer_throughput(conn) < 0) {
+        print_s2n_error("Error setting prefer throughput");
+        return -1;
+    }
+
+    if (settings.prefer_low_latency && s2n_connection_prefer_low_latency(conn) < 0) {
+        print_s2n_error("Error setting prefer low latency");
+        return -1;
+    }
+
+     if (s2n_connection_set_fd(conn, fd) < 0) {
+        print_s2n_error("Error setting file descriptor");
+        return -1;
+    }
+
+    negotiate(conn);
+
+    if (settings.mutual_auth) {
+        if(!s2n_connection_client_cert_used(conn)) {
+            print_s2n_error("Error: Mutual Auth was required, but not negotiatied");
+            return -1;
+        }
+    }
+
+    if (!settings.only_negotiate) {
+        echo(conn, fd);
+    }
+
+    s2n_blocked_status blocked;
+    s2n_shutdown(conn, &blocked);
+
+    if (s2n_connection_wipe(conn) < 0) {
+        print_s2n_error("Error wiping connection");
+        return -1;
+    }
+
+    if (s2n_connection_free(conn) < 0) {
+        print_s2n_error("Error freeing connection");
+        return -1;
+    }
+    close(fd);
+
+    return 0;
 }
 
 int main(int argc, char *const *argv)
@@ -330,82 +415,88 @@ int main(int argc, char *const *argv)
     const char *private_key_file_path = NULL;
     const char *ocsp_response_file_path = NULL;
     const char *cipher_prefs = "default";
+    struct conn_settings conn_settings = { 0 };
     int fips_mode = 0;
-    int only_negotiate = 0;
-    int prefer_throughput = 0;
-    int prefer_low_latency = 0;
-    int enable_mfl = 0;
-    int mutual_auth = 0;
+    int parallelize = 0;
 
-    static struct option long_options[] = {
-        {"help", no_argument, 0, 'h'},
-        {"mutualAuth", no_argument, 0, 'm'},
-        {"negotiate", no_argument, 0, 'n'},
-        {"ciphers", required_argument, 0, 'c'},
-        {"enter-fips-mode", no_argument, 0, 'f'},
-        {"cert", required_argument, 0, 'r'},
-        {"key", required_argument, 0, 'k'},
-        {"negotiate", no_argument, 0, 'n'},
-        {"prefer-low-latency", no_argument, 0, 'l'},
-        {"prefer-throughput", no_argument, 0, 'p'},
-        {"enable-mfl", no_argument, 0, 'e'},
-        {"ocsp", required_argument, 0, 'o'},
+    struct option long_options[] = {
+        {"ciphers", required_argument, NULL, 'c'},
+        {"enable-mfl", no_argument, NULL, 'e'},
+        {"enter-fips-mode", no_argument, NULL, 'f'},
+        {"help", no_argument, NULL, 'h'},
+        {"key", required_argument, NULL, 'k'},
+        {"prefer-low-latency", no_argument, NULL, 'l'},
+        {"mutualAuth", no_argument, NULL, 'm'},
+        {"negotiate", no_argument, NULL, 'n'},
+        {"ocsp", required_argument, NULL, 'o'},
+        {"parallelize", no_argument, &parallelize, 1},
+        {"prefer-throughput", no_argument, NULL, 'p'},
+        {"cert", required_argument, NULL, 'r'},
+        {"self-service-blinding", no_argument, NULL, 's'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hmn", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmns", long_options, &option_index);
         if (c == -1) {
             break;
         }
+
         switch (c) {
+        case 0:
+            /* getopt_long() returns 0 if an option.flag is non-null (Eg "parallelize") */
+            break;
         case 'c':
             cipher_prefs = optarg;
+            break;
+        case 'e':
+            conn_settings.enable_mfl = 1;
             break;
         case 'f':
             fips_mode = 1;
             break;
-        case 'k':
-            private_key_file_path = optarg;
-            break;
-        case 'r':
-            certificate_chain_file_path = optarg;
-            break;
         case 'h':
             usage();
             break;
-        case 'm':
-            mutual_auth = 1;
-            break;
-        case 'n':
-            only_negotiate = 1;
+        case 'k':
+            private_key_file_path = optarg;
             break;
         case 'l':
-            prefer_low_latency = 1;
+            conn_settings.prefer_low_latency = 1;
             break;
-        case 'p':
-            prefer_throughput = 1;
+        case 'm':
+            conn_settings.mutual_auth = 1;
             break;
-        case 'e':
-            enable_mfl = 1;
+        case 'n':
+            conn_settings.only_negotiate = 1;
             break;
         case 'o':
             ocsp_response_file_path = optarg;
             break;
+        case 'p':
+            conn_settings.prefer_throughput = 1;
+            break;
+        case 'r':
+            certificate_chain_file_path = optarg;
+            break;
+        case 's':
+            conn_settings.self_service_blinding = 1;
+            break;
         case '?':
         default:
+            fprintf(stdout, "getopt_long returned: %d", c);
             usage();
             break;
         }
     }
 
-    if (prefer_throughput && prefer_low_latency) {
+    if (conn_settings.prefer_throughput && conn_settings.prefer_low_latency) {
         fprintf(stderr, "prefer-throughput and prefer-low-latency options are mutually exclusive\n");
         exit(1);
     }
 
-    if (fips_mode && mutual_auth) {
+    if (fips_mode && conn_settings.mutual_auth) {
         fprintf(stderr, "Mutual Auth cannot be enabled when s2n is in FIPS mode\n");
         exit(1);
     }
@@ -575,73 +666,41 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    if (enable_mfl && s2n_config_accept_max_fragment_length(config) < 0) {
+    if (conn_settings.enable_mfl && s2n_config_accept_max_fragment_length(config) < 0) {
         print_s2n_error("Error enabling TLS maximum fragment length extension in server");
         exit(1);
     }
 
-    struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
-    if (!conn) {
-        print_s2n_error("Error getting new s2n connection");
-        exit(1);
-    }
-
-    if (mutual_auth) {
-        s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED);
-        /* Use an unsafe verification function until we support default x509 verification */
-        s2n_config_set_verify_cert_chain_cb(config, &accept_all_rsa_certs, NULL);
-    }
-
-    if (s2n_connection_set_config(conn, config) < 0) {
-        print_s2n_error("Error setting configuration");
-        exit(1);
-    }
-
-    if (prefer_throughput && s2n_connection_prefer_throughput(conn) < 0) {
-        print_s2n_error("Error setting prefer throughput");
-        exit(1);
-    }
-
-    if (prefer_low_latency && s2n_connection_prefer_low_latency(conn) < 0) {
-        print_s2n_error("Error setting prefer low latency");
-        exit(1);
-    }
 
     int fd;
     while ((fd = accept(sockfd, ai->ai_addr, &ai->ai_addrlen)) > 0) {
-        if (s2n_connection_set_fd(conn, fd) < 0) {
-            print_s2n_error("Error setting file descriptor");
-            exit(1);
-        }
 
-        negotiate(conn);
+        if (!parallelize) {
+            int rc = handle_connection(fd, config, conn_settings);
+            close(fd);
+            if (rc < 0) {
+                exit(rc);
+            }
+        } else {
+            /* Fork Process, one for the Acceptor (parent), and another for the Handler (child). */
+            pid_t child_pid = fork();
 
-        if (mutual_auth) {
-            if(!s2n_connection_client_cert_used(conn)) {
-                print_s2n_error("Error: Mutual Auth was required, but not negotiatied");
+            if (child_pid == 0) {
+                /* This is the Child Handler Thread. We should handle the connection, then exit. */
+                int rc = handle_connection(fd, config, conn_settings);
+                close(fd);
+                _exit(rc);
+            } else if (child_pid == -1) {
+                print_s2n_error("Error calling fork(). Acceptor unable to start handler.");
                 exit(1);
+            } else {
+                /* This is the parent Acceptor Thread, continue listening for new connections */
+                continue;
             }
         }
 
-        if (!only_negotiate) {
-            echo(conn, fd);
-        }
-
-        s2n_blocked_status blocked;
-        s2n_shutdown(conn, &blocked);
-
-        close(fd);
-
-        if (s2n_connection_wipe(conn) < 0) {
-            print_s2n_error("Error wiping connection");
-            exit(1);
-        }
     }
 
-    if (s2n_connection_free(conn) < 0) {
-        print_s2n_error("Error freeing connection");
-        exit(1);
-    }
 
     if (s2n_cleanup() < 0) {
         print_s2n_error("Error running s2n_cleanup()");
