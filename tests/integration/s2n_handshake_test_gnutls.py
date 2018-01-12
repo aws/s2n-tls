@@ -193,6 +193,8 @@ def main():
         for permutation in itertools.permutations(rsa_signatures, size):
             # Try an ECDHE cipher suite and a DHE one
             for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or x.openssl_name == "DHE-RSA-AES128-GCM-SHA256", ALL_TEST_CIPHERS):
+                if fips_mode and cipher.openssl_fips_compatible == False:
+                    continue
                 complete_priority_str = cipher.gnutls_priority_str + ":+VERS-TLS1.2:+" + ":+".join(permutation)
                 async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, S2N_TLS12, complete_priority_str, permutation, 0, fips_mode))
                 port_offset += 1
@@ -213,6 +215,8 @@ def main():
         results = []
         for permutation in itertools.permutations(ecdsa_signatures, size):
             for cipher in filter(lambda x: x.openssl_name == "ECDHE-ECDSA-AES128-SHA", ALL_TEST_CIPHERS):
+                if fips_mode and cipher.openssl_fips_compatible == False:
+                    continue
                 complete_priority_str = cipher.gnutls_priority_str + ":+VERS-TLS1.2:+" + ":+".join(permutation)
                 async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, S2N_TLS12, complete_priority_str, permutation, 0, fips_mode))
                 port_offset += 1
