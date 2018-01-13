@@ -373,18 +373,6 @@ static int s2n_connection_wipe_io(struct s2n_connection *conn)
     return 0;
 }
 
-static int s2n_connection_wipe_handshake_params(struct s2n_connection *conn)
-{
-    if (conn->handshake_params.client_sig_hash_algs != NULL) {
-        GUARD(s2n_map_free(conn->handshake_params.client_sig_hash_algs));
-    }
-    if (conn->handshake_params.server_sig_hash_algs != NULL) {
-        GUARD(s2n_map_free(conn->handshake_params.server_sig_hash_algs));
-    }
-
-    return 0;
-}
-
 static int s2n_connection_free_hashes(struct s2n_connection *conn)
 {
     /* Free all of the Connection's hash states */
@@ -457,11 +445,19 @@ static int s2n_connection_free_handshake_params(struct s2n_connection *conn)
 {
     if (conn->handshake_params.client_sig_hash_algs != NULL) {
         GUARD(s2n_map_free(conn->handshake_params.client_sig_hash_algs));
+        conn->handshake_params.client_sig_hash_algs = NULL;
     }
     if (conn->handshake_params.server_sig_hash_algs != NULL) {
         GUARD(s2n_map_free(conn->handshake_params.server_sig_hash_algs));
+        conn->handshake_params.server_sig_hash_algs = NULL;
     }
 
+    return 0;
+}
+
+static int s2n_connection_wipe_handshake_params(struct s2n_connection *conn)
+{
+    s2n_connection_free_handshake_params(conn);
     return 0;
 }
 
