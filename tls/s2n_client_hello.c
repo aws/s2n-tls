@@ -43,17 +43,17 @@ struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *
     return &conn->client_hello;
 }
 
-uint32_t s2n_client_hello_get_raw_len(struct s2n_client_hello *ch) {
+static uint32_t min_size(struct s2n_blob *blob, uint32_t max_length) {
+    return blob->size < max_length ? blob->size : max_length;
+}
+
+uint32_t s2n_client_hello_get_raw_message_length(struct s2n_client_hello *ch) {
     notnull_check(ch);
 
     return ch->raw_message.blob.size;
 }
 
-static uint32_t min_size(struct s2n_blob *blob, uint32_t max_length) {
-    return blob->size < max_length ? blob->size : max_length;
-}
-
-uint32_t s2n_client_hello_get_raw_bytes(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length)
+uint32_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length)
 {
     notnull_check(ch);
     notnull_check(out);
@@ -67,6 +67,12 @@ uint32_t s2n_client_hello_get_raw_bytes(struct s2n_client_hello *ch, uint8_t *ou
     return len;
 }
 
+uint32_t s2n_client_hello_get_cipher_suites_length(struct s2n_client_hello *ch) {
+    notnull_check(ch);
+
+    return ch->cipher_suites.size;
+}
+
 uint32_t s2n_client_hello_get_cipher_suites(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length)
 {
     notnull_check(ch);
@@ -78,6 +84,12 @@ uint32_t s2n_client_hello_get_cipher_suites(struct s2n_client_hello *ch, uint8_t
     memcpy_check(out, &ch->cipher_suites.data, len);
 
     return len;
+}
+
+uint32_t s2n_client_hello_get_extensions_length(struct s2n_client_hello *ch) {
+    notnull_check(ch);
+
+    return ch->extensions.size;
 }
 
 uint32_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length)

@@ -136,7 +136,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain, private_key));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
-        /* Verify s2n_connection_get_client_hello returns null if ClientHello not yet processed */
+        /* Verify s2n_connection_get_client_hello returns null if client hello not yet processed */
         EXPECT_NULL(s2n_connection_get_client_hello(server_conn));
 
         /* Send the client hello message */
@@ -151,7 +151,7 @@ int main(int argc, char **argv)
 
         struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(server_conn);
 
-        /* Verify s2n_connection_get_client_hello returns handle to the s2n_client_hello on the connection */
+        /* Verify s2n_connection_get_client_hello returns the handle to the s2n_client_hello on the connection */
         EXPECT_EQUAL(client_hello, &server_conn->client_hello);
 
         uint8_t* collected_client_hello = client_hello->raw_message.blob.data;
@@ -171,24 +171,24 @@ int main(int argc, char **argv)
         memset_check(expected_client_hello + client_random_offset, 0, S2N_TLS_RANDOM_DATA_LEN);
         EXPECT_SUCCESS(memcmp(collected_client_hello, expected_client_hello, sent_client_hello_len));
 
-        /* Verify s2n_client_hello_get_raw_len returns the size of the send client hello */
-        EXPECT_EQUAL(s2n_client_hello_get_raw_len(client_hello), sent_client_hello_len);
+        /* Verify s2n_client_hello_get_raw_message_length correct */
+        EXPECT_EQUAL(s2n_client_hello_get_raw_message_length(client_hello), sent_client_hello_len);
 
         uint8_t* raw_ch_out;
 
-        /* Verify s2n_client_hello_get_raw_bytes retrieves the full message when its len <= max_len */
+        /* Verify s2n_client_hello_get_raw_message retrieves the full message when its len <= max_len */
         EXPECT_TRUE(collected_client_hello_len < S2N_LARGE_RECORD_LENGTH);
         EXPECT_NOT_NULL(raw_ch_out = malloc(S2N_LARGE_RECORD_LENGTH));
-        EXPECT_EQUAL(sent_client_hello_len, s2n_client_hello_get_raw_bytes(client_hello, raw_ch_out, S2N_LARGE_RECORD_LENGTH));
+        EXPECT_EQUAL(sent_client_hello_len, s2n_client_hello_get_raw_message(client_hello, raw_ch_out, S2N_LARGE_RECORD_LENGTH));
         EXPECT_SUCCESS(memcmp(raw_ch_out, expected_client_hello, sent_client_hello_len));
         free(raw_ch_out);
         raw_ch_out = NULL;
 
-        /* Verify s2n_client_hello_get_raw_bytes retrieves truncated message when its len > max_len */
+        /* Verify s2n_client_hello_get_raw_message retrieves truncated message when its len > max_len */
         EXPECT_TRUE(collected_client_hello_len > 0);
         uint32_t max_len = collected_client_hello_len - 1;
         EXPECT_NOT_NULL(raw_ch_out = malloc(max_len));
-        EXPECT_EQUAL(max_len, s2n_client_hello_get_raw_bytes(client_hello, raw_ch_out, max_len));
+        EXPECT_EQUAL(max_len, s2n_client_hello_get_raw_message(client_hello, raw_ch_out, max_len));
         EXPECT_SUCCESS(memcmp(raw_ch_out, expected_client_hello, max_len));
         free(raw_ch_out);
         raw_ch_out = NULL;
@@ -200,6 +200,9 @@ int main(int argc, char **argv)
 
         /* Verify collected cipher_suites correct */
         EXPECT_SUCCESS(memcmp(client_hello->cipher_suites.data, expected_cs, sizeof(expected_cs)));
+
+        /* Verify s2n_client_hello_get_cipher_suites_length correct */
+        EXPECT_EQUAL(s2n_client_hello_get_cipher_suites_length(client_hello), sizeof(expected_cs));
 
         /* Verify s2n_client_hello_get_cipher_suites correct */
         uint8_t* cs_out;
@@ -227,6 +230,9 @@ int main(int argc, char **argv)
 
         /* Verify collected extensions correct */
         EXPECT_SUCCESS(memcmp(client_hello->extensions.data, client_extensions, client_extensions_len));
+
+        /* Verify s2n_client_hello_get_extensions_length correct */
+        EXPECT_EQUAL(s2n_client_hello_get_extensions_length(client_hello), client_extensions_len);
 
         /* Verify s2n_client_hello_get_extensions correct */
         uint8_t* extensions_out;
