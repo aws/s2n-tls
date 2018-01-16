@@ -85,6 +85,11 @@ int s2n_recv_supported_signature_algorithms(struct s2n_connection *conn, struct 
         return 0;
     }
 
+    if (*sig_hash_algs_map != NULL ) {
+        /* If we've already created the signature algorithms map, then we've processed an extension or message twice */
+        return 0;
+    }
+
     *sig_hash_algs_map = s2n_map_new();
     int pairs_available = length_of_all_pairs / 2;
  
