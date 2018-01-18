@@ -27,7 +27,7 @@ source .travis/s2n_setup_env.sh
 ### Have a Question?
 If you have any questions about Submitting PR's, Opening Issues, s2n API usage, or something similar, we have a public chatroom available here to answer your questions: https://gitter.im/awslabs/s2n
 
-Otherwise, if you think you might have found a security impacting issue, please instead follow: https://aws.amazon.com/security/vulnerability-reporting/
+Otherwise, if you think you might have found a security impacting issue, please instead follow [our Security Notification Process.](#security-issue-notifications)
 
 ## Using s2n
 
