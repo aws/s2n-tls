@@ -33,6 +33,7 @@ which bam
 #when we get things from cache
 DEPENDENCIES="git cmake python-yaml python-psutil unzip wget python3-yaml"
 DEPENDENCIES+=" mono-complete libz-dev libedit-dev"
+DEPENDENCIES+=" clang-3.9 llvm-3.9 llvm-3.9-dev"
 
 # Adding MONO repository
 sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF

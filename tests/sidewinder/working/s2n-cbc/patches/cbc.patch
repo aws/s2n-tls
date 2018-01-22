@@ -17,7 +17,7 @@ index b37efb0..077d214 100644
 + */
 +int double_loop(int old_mismatches, struct s2n_blob *decrypted, int check, int cutoff, int padding_length) {
 +  __VERIFIER_assert(decrypted->size >= 0);
-+  __VERIFIER_assert(decrypted->size <= 1024);
++  __VERIFIER_assert(decrypted->size <= MAX_SIZE);
 +  int mismatches = old_mismatches;
 +  for (int i = 0, j = decrypted->size - 1 - check; i < check && j < decrypted->size; i++, j++) {
 +    invariant(i <= check);

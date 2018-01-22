@@ -41,7 +41,15 @@ struct s2n_hash_state {
   int currently_in_hash_block;
 };
 
-//SHA1
+/* SHA1
+ * These fields were determined from the SHA specification, augmented by
+ * analyzing SHA implementations. 
+ * PER_BLOCK_COST is the cost of a compression round.  Pessimistically assume 
+ * it is 1000 cycles/block, which is worse than real implementations (larger
+ * numbers here make lucky13 leakages look worse), and hence large is safer.
+ * PER_BYTE_COST is the cost of memcopy one byte that is already in cache,
+ * to a location already in cache.
+ */
 enum {
   PER_BLOCK_COST = 1000,
   PER_BYTE_COST = 1,
