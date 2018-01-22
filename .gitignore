@@ -18,3 +18,4 @@ clang-*
 fuzz_dependencies/*
 .travis/prlimit
 .travis/.libs/*
+test-deps/*
