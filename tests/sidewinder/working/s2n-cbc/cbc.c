@@ -29,7 +29,12 @@
 
 int simple_cbc_wrapper(int currently_in_hash_block, int mlocked, int size, int *xor_pad, int * digest_pad)
 {
-
+  /* Even after code balancing, there is a small remaining leakage, because s2n forces an extra hash-compression
+   * round by copying an extra hash block's worth of data into the hash.  This has extra cost of memcopy one
+   * hash block (of data already in cache).  This could potentially be reduced by finding a better way to trigger
+   * the extra hash-compression round.
+   * Note that the 68 here is in LLVM time model units, which roughly correspond to cycles
+   */
   __VERIFIER_ASSERT_MAX_LEAKAGE(68);
 
   public_in(__SMACK_value(currently_in_hash_block));
@@ -63,9 +68,11 @@ int simple_cbc_wrapper(int currently_in_hash_block, int mlocked, int size, int *
     .client = &client,
     .mode = S2N_SERVER
   };
-  
-  //struct s2n_hmac_state hmac_copy;
 
+  /* Data represents the decrypted data handed to the process.
+   * Intentionally left non-deterministic so that the proof can handle all possible values in the buffer
+   */
+   //cppcheck-suppress unassignedVariable
   int data[MAX_SIZE];
   public_in(__SMACK_value(size));
   __VERIFIER_assume(size >= 0);
