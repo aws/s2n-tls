@@ -910,6 +910,59 @@ returns the protocol version used in the initial client hello message.
 Each version number value corresponds to the macros defined as **S2N_SSLv2**,
 **S2N_SSLv3**, **S2N_TLS10**, **S2N_TLS11** and **S2N_TLS12**.
 
+### s2n\_connection\_get\_client\_hello
+
+```c
+struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn);
+```
+For a given s2n_connection, **s2n_connection_get_client_hello** returns a handle
+to the s2n_client_hello structure holding the client hello message sent by the client during the handshake.
+NULL is returned if the connection has not yet received and parsed the client hello.
+Earliest point during the handshake when this structure is available for use is in the client_hello_callback (see **s2n_config_set_client_hello_cb**).
+
+### s2n\_client\_hello\_get\_raw\_message
+
+```c
+uint32_t s2n_client_hello_get_raw_message_length(struct s2n_client_hello *ch);
+uint32_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
+```
+
+- **ch** The s2n_client_hello on the s2n_connection. The handle can be obtained using **s2n_connection_get_client_hello**.
+- **out** Pointer to a buffer into which the raw client hello bytes should be copied.
+- **max_length** Max number of bytes to copy into the **out** buffer.
+
+**s2n_client_hello_get_raw_message_length** returns the size of the ClientHello message received by the server; it can be used to allocate the **out** buffer.
+**s2n_client_hello_get_raw_message** copies **max_lenght** bytes of the ClientHello message into the **out** buffer and returns the number of bytes that were copied.
+The ClientHello instrumented using this function will have the Random bytes zero-ed out.
+
+### s2n\_client\_hello\_get\_cipher\_suites
+
+```c
+uint32_t s2n_client_hello_get_cipher_suites_length(struct s2n_client_hello *ch);
+uint32_t s2n_client_hello_get_cipher_suites(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
+```
+
+- **ch** The s2n_client_hello on the s2n_connection. The handle can be obtained using **s2n_connection_get_client_hello**.
+- **out** Pointer to a buffer into which the cipher_suites bytes should be copied.
+- **max_length** Max number of bytes to copy into the **out** buffer.
+
+**s2n_client_hello_get_cipher_suites_length** returns the number of bytes the cipher_suites takes on the ClientHello message received by the server; it can be used to allocate the **out** buffer.
+**s2n_client_hello_get_cipher_suites** copies into the **out** buffer **max_length** bytes of the cipher_suites on the ClienthHello and returns the number of bytes that were copied.
+
+### s2n\_client\_hello\_get\_extensions
+
+```c
+uint32_t s2n_client_hello_get_extensions_length(struct s2n_client_hello *ch);
+uint32_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
+```
+
+- **ch** The s2n_client_hello on the s2n_connection. The handle can be obtained using **s2n_connection_get_client_hello**.
+- **out** Pointer to a buffer into which the cipher_suites bytes should be copied.
+- **max_length** Max number of bytes to copy into the **out** buffer.
+
+**s2n_client_hello_get_extensions_length** returns the number of bytes the extensions take on the ClientHello message received by the server; it can be used to allocate the **out** buffer.
+**s2n_client_hello_get_extensions** copies into the **out** buffer **max_length** bytes of the extensions on the ClienthHello and returns the number of bytes that were copied.
+
 ### s2n\_connection\_is\_client\_authenticated
 
 ```c

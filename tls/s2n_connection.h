@@ -22,6 +22,7 @@
 
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_handshake.h"
+#include "tls/s2n_client_hello.h"
 #include "tls/s2n_crypto.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_prf.h"
@@ -173,8 +174,8 @@ struct s2n_connection {
 
     /* Is the connection open or closed ? We use C's only
      * atomic type as both the reader and the writer threads
-     * may declare a connection closed. 
-     * 
+     * may declare a connection closed.
+     *
      * A connection can be gracefully closed or hard-closed.
      * When gracefully closed the reader or the writer mark
      * the connection as closing, and then the writer will
@@ -198,7 +199,7 @@ struct s2n_connection {
     char application_protocol[256];
     /* s2n does not support renegotiation.
      * RFC5746 Section 4.3 suggests servers implement a minimal version of the
-     * renegotiation_info extension even if renegotiation is not supported. 
+     * renegotiation_info extension even if renegotiation is not supported.
      * Some clients may fail the handshake if a corresponding renegotiation_info
      * extension is not sent back by the server.
      */
@@ -211,6 +212,8 @@ struct s2n_connection {
     /* Certificate Transparency response data */
     s2n_ct_support_level ct_level_requested;
     struct s2n_blob ct_response;
+
+    struct s2n_client_hello client_hello;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);

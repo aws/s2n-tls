@@ -70,7 +70,7 @@ static int s2n_connection_new_hashes(struct s2n_connection *conn)
 static int s2n_connection_init_hashes(struct s2n_connection *conn)
 {
     /* Initialize all of the Connection's hash states */
-    
+
     if (s2n_hash_is_available(S2N_HASH_MD5)) {
         /* Only initialize hashes that use MD5 if available. */
         GUARD(s2n_hash_init(&conn->prf_space.ssl3.md5, S2N_HASH_MD5));
@@ -220,6 +220,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     GUARD_PTR(s2n_stuffer_init(&conn->header_in, &blob));
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->in, 0));
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->handshake.io, 0));
+    GUARD_PTR(s2n_stuffer_growable_alloc(&conn->client_hello.raw_message, 0));
     GUARD_PTR(s2n_connection_wipe(conn));
     GUARD_PTR(s2n_timer_start(conn->config, &conn->write_timer));
 
@@ -420,6 +421,7 @@ int s2n_connection_free(struct s2n_connection *conn)
     GUARD(s2n_stuffer_free(&conn->in));
     GUARD(s2n_stuffer_free(&conn->out));
     GUARD(s2n_stuffer_free(&conn->handshake.io));
+    GUARD(s2n_client_hello_free(&conn->client_hello));
 
     blob.data = (uint8_t *) conn;
     blob.size = sizeof(struct s2n_connection);
@@ -456,6 +458,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     struct s2n_stuffer reader_alert_out;
     struct s2n_stuffer writer_alert_out;
     struct s2n_stuffer handshake_io;
+    struct s2n_stuffer client_hello_raw_message;
     struct s2n_stuffer header_in;
     struct s2n_stuffer in;
     struct s2n_stuffer out;
@@ -477,6 +480,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     GUARD(s2n_stuffer_wipe(&conn->reader_alert_out));
     GUARD(s2n_stuffer_wipe(&conn->writer_alert_out));
     GUARD(s2n_stuffer_wipe(&conn->handshake.io));
+    GUARD(s2n_stuffer_wipe(&conn->client_hello.raw_message));
     GUARD(s2n_stuffer_wipe(&conn->header_in));
     GUARD(s2n_stuffer_wipe(&conn->in));
     GUARD(s2n_stuffer_wipe(&conn->out));
@@ -492,6 +496,9 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     /* Allocate memory for handling handshakes */
     GUARD(s2n_stuffer_resize(&conn->handshake.io, S2N_LARGE_RECORD_LENGTH));
 
+    /* Resize raw message buffer to max length */
+    GUARD(s2n_stuffer_resize(&conn->client_hello.raw_message, S2N_LARGE_RECORD_LENGTH));
+
     /* Remove context associated with connection */
     conn->context = NULL;
 
@@ -506,6 +513,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     memcpy_check(&reader_alert_out, &conn->reader_alert_out, sizeof(struct s2n_stuffer));
     memcpy_check(&writer_alert_out, &conn->writer_alert_out, sizeof(struct s2n_stuffer));
     memcpy_check(&handshake_io, &conn->handshake.io, sizeof(struct s2n_stuffer));
+    memcpy_check(&client_hello_raw_message, &conn->client_hello.raw_message, sizeof(struct s2n_stuffer));
     memcpy_check(&header_in, &conn->header_in, sizeof(struct s2n_stuffer));
     memcpy_check(&in, &conn->in, sizeof(struct s2n_stuffer));
     memcpy_check(&out, &conn->out, sizeof(struct s2n_stuffer));
@@ -526,6 +534,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     memcpy_check(&conn->reader_alert_out, &reader_alert_out, sizeof(struct s2n_stuffer));
     memcpy_check(&conn->writer_alert_out, &writer_alert_out, sizeof(struct s2n_stuffer));
     memcpy_check(&conn->handshake.io, &handshake_io, sizeof(struct s2n_stuffer));
+    memcpy_check(&conn->client_hello.raw_message, &client_hello_raw_message, sizeof(struct s2n_stuffer));
     memcpy_check(&conn->header_in, &header_in, sizeof(struct s2n_stuffer));
     memcpy_check(&conn->in, &in, sizeof(struct s2n_stuffer));
     memcpy_check(&conn->out, &out, sizeof(struct s2n_stuffer));
