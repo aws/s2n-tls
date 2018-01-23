@@ -23,7 +23,7 @@ else
     LIBS = -lpthread -ldl -lrt
 endif
 
-CRYPTO_LIBS = -lcrypto
+CRYPTO_LIBS = -Wl,-rpath=${LIBCRYPTO_ROOT}/lib -lcrypto
 
 CC	:= $(CROSS_COMPILE)$(CC)
 AR	= $(CROSS_COMPILE)ar
