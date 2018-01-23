@@ -179,10 +179,10 @@ let setup_hmac_state alg0 hash_block_size0 block_size0 digest_size0 = do {
     crucible_points_to (crucible_field pstate "currently_in_hash_block") (crucible_term currently_in_hash_block0);
     crucible_points_to (crucible_field pstate "xor_pad_size") (crucible_term block_size0);
     crucible_points_to (crucible_field pstate "digest_size") (crucible_term digest_size0);
-    inner0 <- setup_hash_state (crucible_field pstate "inner");
-    inner_just_key0 <- setup_hash_state (crucible_field pstate "inner_just_key");
-    outer_just_key0 <- setup_hash_state (crucible_field pstate "outer_just_key");
-    outer0 <- setup_hash_state (crucible_field pstate "outer");
+    (inner0, _) <- setup_hash_state (crucible_field pstate "inner");
+    (inner_just_key0, _) <- setup_hash_state (crucible_field pstate "inner_just_key");
+    (outer_just_key0, _) <- setup_hash_state (crucible_field pstate "outer_just_key");
+    (outer0, _) <- setup_hash_state (crucible_field pstate "outer");
     crucible_points_to (crucible_field pstate "xor_pad") (crucible_term xor_pad0);
     crucible_points_to (crucible_field pstate "digest_pad") (crucible_term digest_pad0);
 
