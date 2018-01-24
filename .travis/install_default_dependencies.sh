@@ -82,3 +82,8 @@ fi
 if [[ "$SAW" == "true" || "$TESTS" == "ALL" ]] && [[ ! -d "$Z3_INSTALL_DIR" ]]; then
     mkdir -p "$Z3_INSTALL_DIR" && .travis/install_z3_yices.sh "$(mktemp -d)" "$Z3_INSTALL_DIR" > /dev/null ;
 fi
+
+# Install SSLyze for all Integration Tests
+if [[ "$TESTS" == "integration" || "$TESTS" == "ALL" ]] ; then
+    .travis/install_sslyze.sh
+fi

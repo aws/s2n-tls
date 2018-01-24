@@ -176,9 +176,7 @@ int s2n_stuffer_erase_and_read(struct s2n_stuffer *stuffer, struct s2n_blob *out
     GUARD(s2n_stuffer_skip_read(stuffer, out->size));
 
     void *ptr = stuffer->blob.data + stuffer->read_cursor - out->size;
-    if (ptr == NULL) {
-        return -1;
-    }
+    notnull_check(ptr);
 
     memcpy_check(out->data, ptr, out->size);
     memset(ptr, 0, out->size);
@@ -194,6 +192,19 @@ int s2n_stuffer_read_bytes(struct s2n_stuffer *stuffer, uint8_t * data, uint32_t
     notnull_check(ptr);
 
     memcpy_check(data, ptr, size);
+
+    return 0;
+}
+
+int s2n_stuffer_erase_and_read_bytes(struct s2n_stuffer *stuffer, uint8_t * data, uint32_t size)
+{
+    GUARD(s2n_stuffer_skip_read(stuffer, size));
+
+    void *ptr = stuffer->blob.data + stuffer->read_cursor - size;
+    notnull_check(ptr);
+
+    memcpy_check(data, ptr, size);
+    memset(ptr, 0, size);
 
     return 0;
 }
@@ -235,9 +246,7 @@ int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t * data, c
     GUARD(s2n_stuffer_skip_write(stuffer, size));
 
     void *ptr = stuffer->blob.data + stuffer->write_cursor - size;
-    if (ptr == NULL) {
-        return -1;
-    }
+    notnull_check(ptr);
 
     if (ptr == data) {
         return 0;

@@ -314,7 +314,7 @@ supported status request type is OCSP, **S2N_STATUS_REQUEST_OCSP**.
 
 
 ```c
-typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED } s2n_cert_auth_type;
+typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED, S2N_CERT_AUTH_OPTIONAL } s2n_cert_auth_type;
 ```
 **s2n_cert_auth_type** is used to declare what type of client certificiate authentication to use.
 Currently the default for s2n is for neither the server side or the client side to use Client (aka Mutual) authentication.
@@ -714,9 +714,9 @@ Client Auth Related API's are not recommended for normal users. Use of these API
 int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_type cert_auth_type);
 int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type);
 ```
-Sets whether or not a Client Certificate should be required to complete the TLS Connection.
-If this is set to **S2N_CERT_AUTH_REQUIRED** then a **verify_cert_trust_chain_fn** callback should be provided as well since the current
-default is for s2n to accept all RSA Certs on the client side, and deny all certs on the server side.
+Sets whether or not a Client Certificate should be required to complete the TLS Connection. If this is set to
+**S2N_CERT_AUTH_OPTIONAL** the server will request a client certificate but allow the client to not provide one.
+Rejecting a client certificate when using **S2N_CERT_AUTH_OPTIONAL** will terminate the handshake.
 
 ### Public Key API's
 ```c
@@ -957,6 +957,59 @@ Since a configuration can (and should) be used for multiple connections, it may 
 this value on a per connection basis. For example, this may be based on a host header from an http request. In that case,
 calling this function will override the value inherited from the configuration. 
 See [s2n_verify_host_fn](#s2n_verify_host_fn) for details.
+
+### s2n\_connection\_get\_client\_hello
+
+```c
+struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn);
+```
+For a given s2n_connection, **s2n_connection_get_client_hello** returns a handle
+to the s2n_client_hello structure holding the client hello message sent by the client during the handshake.
+NULL is returned if the connection has not yet received and parsed the client hello.
+Earliest point during the handshake when this structure is available for use is in the client_hello_callback (see **s2n_config_set_client_hello_cb**).
+
+### s2n\_client\_hello\_get\_raw\_message
+
+```c
+uint32_t s2n_client_hello_get_raw_message_length(struct s2n_client_hello *ch);
+uint32_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
+```
+
+- **ch** The s2n_client_hello on the s2n_connection. The handle can be obtained using **s2n_connection_get_client_hello**.
+- **out** Pointer to a buffer into which the raw client hello bytes should be copied.
+- **max_length** Max number of bytes to copy into the **out** buffer.
+
+**s2n_client_hello_get_raw_message_length** returns the size of the ClientHello message received by the server; it can be used to allocate the **out** buffer.
+**s2n_client_hello_get_raw_message** copies **max_lenght** bytes of the ClientHello message into the **out** buffer and returns the number of bytes that were copied.
+The ClientHello instrumented using this function will have the Random bytes zero-ed out.
+
+### s2n\_client\_hello\_get\_cipher\_suites
+
+```c
+uint32_t s2n_client_hello_get_cipher_suites_length(struct s2n_client_hello *ch);
+uint32_t s2n_client_hello_get_cipher_suites(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
+```
+
+- **ch** The s2n_client_hello on the s2n_connection. The handle can be obtained using **s2n_connection_get_client_hello**.
+- **out** Pointer to a buffer into which the cipher_suites bytes should be copied.
+- **max_length** Max number of bytes to copy into the **out** buffer.
+
+**s2n_client_hello_get_cipher_suites_length** returns the number of bytes the cipher_suites takes on the ClientHello message received by the server; it can be used to allocate the **out** buffer.
+**s2n_client_hello_get_cipher_suites** copies into the **out** buffer **max_length** bytes of the cipher_suites on the ClienthHello and returns the number of bytes that were copied.
+
+### s2n\_client\_hello\_get\_extensions
+
+```c
+uint32_t s2n_client_hello_get_extensions_length(struct s2n_client_hello *ch);
+uint32_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
+```
+
+- **ch** The s2n_client_hello on the s2n_connection. The handle can be obtained using **s2n_connection_get_client_hello**.
+- **out** Pointer to a buffer into which the cipher_suites bytes should be copied.
+- **max_length** Max number of bytes to copy into the **out** buffer.
+
+**s2n_client_hello_get_extensions_length** returns the number of bytes the extensions take on the ClientHello message received by the server; it can be used to allocate the **out** buffer.
+**s2n_client_hello_get_extensions** copies into the **out** buffer **max_length** bytes of the extensions on the ClienthHello and returns the number of bytes that were copied.
 
 ### s2n\_connection\_is\_client\_authenticated
 

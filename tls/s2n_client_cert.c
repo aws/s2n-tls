@@ -35,8 +35,13 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
 
     GUARD(s2n_stuffer_read_uint24(in, &client_cert_chain.size));
 
-    if (client_cert_chain.size > s2n_stuffer_data_available(in) || client_cert_chain.size == 0) {
+    if (client_cert_chain.size > s2n_stuffer_data_available(in)) {
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+    }
+
+    if (client_cert_chain.size == 0) {
+        GUARD(s2n_conn_set_handshake_no_client_cert(conn));
+        return 0;
     }
 
     client_cert_chain.data = s2n_stuffer_raw_read(in, client_cert_chain.size);
@@ -77,6 +82,12 @@ int s2n_client_cert_send(struct s2n_connection *conn)
 {
     struct s2n_cert_chain_and_key *chain_and_key = conn->config->cert_and_key_pairs;
     /* TODO: Check that RSA is in conn->server_preferred_cert_types and conn->secure.client_cert_sig_algorithm */
+
+    if (chain_and_key == NULL) {
+        GUARD(s2n_conn_set_handshake_no_client_cert(conn));
+        GUARD(s2n_send_empty_cert_chain(&conn->handshake.io));
+        return 0;
+    }
 
     GUARD(s2n_send_cert_chain(&conn->handshake.io, &chain_and_key->cert_chain));
     return 0;

@@ -112,6 +112,15 @@ extern void *s2n_connection_get_ctx(struct s2n_connection *conn);
 typedef int s2n_client_hello_fn(struct s2n_connection *conn, void *ctx);
 extern int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_fn client_hello_callback, void *ctx);
 
+struct s2n_client_hello;
+extern struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn);
+extern uint32_t s2n_client_hello_get_raw_message_length(struct s2n_client_hello *ch);
+extern uint32_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
+extern uint32_t s2n_client_hello_get_cipher_suites_length(struct s2n_client_hello *ch);
+extern uint32_t s2n_client_hello_get_cipher_suites(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
+extern uint32_t s2n_client_hello_get_extensions_length(struct s2n_client_hello *ch);
+extern uint32_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
+
 extern int s2n_connection_set_fd(struct s2n_connection *conn, int fd);
 extern int s2n_connection_set_read_fd(struct s2n_connection *conn, int readfd);
 extern int s2n_connection_set_write_fd(struct s2n_connection *conn, int writefd);
@@ -149,7 +158,7 @@ extern int s2n_connection_wipe(struct s2n_connection *conn);
 extern int s2n_connection_free(struct s2n_connection *conn);
 extern int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked);
 
-typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED } s2n_cert_auth_type;
+typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED, S2N_CERT_AUTH_OPTIONAL } s2n_cert_auth_type;
 typedef enum {
     S2N_CERT_OK = 0,
     S2N_CERT_ERR_UNTRUSTED = -1,
