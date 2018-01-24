@@ -26,7 +26,7 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 
-#include <inttypes.h>
+#include <stdint.h>
 
 
 int s2n_hmac_hash_alg(s2n_hmac_algorithm hmac_alg, s2n_hash_algorithm *out)

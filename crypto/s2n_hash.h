@@ -118,4 +118,4 @@ extern int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from)
 extern int s2n_hash_reset(struct s2n_hash_state *state);
 extern int s2n_hash_free(struct s2n_hash_state *state);
 extern int s2n_hash_get_currently_in_hash_total(struct s2n_hash_state *state, uint64_t *out);
-extern int s2n_hash_get_currently_in_hash_block(struct s2n_hash_state *state, uint64_t *out);
+extern int s2n_hash_const_time_get_currently_in_hash_block(struct s2n_hash_state *state, uint64_t *out);
