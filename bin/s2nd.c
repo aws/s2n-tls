@@ -441,7 +441,6 @@ int main(int argc, char *const *argv)
     const char *private_key_file_path = NULL;
     const char *ocsp_response_file_path = NULL;
     const char *cipher_prefs = "default";
-    int insecure = 0;
     struct conn_settings conn_settings = { 0 };
     int fips_mode = 0;
     int parallelize = 0;
