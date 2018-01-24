@@ -291,12 +291,8 @@ int s2n_hmac_reset(struct s2n_hmac_state *state)
     
     uint64_t bytes_in_hash;
     GUARD(s2n_hash_get_currently_in_hash_total(&state->inner, &bytes_in_hash));
-    /* The length of the key is not private, so don't need to do tricky match here */
+    /* The length of the key is not private, so don't need to do tricky math here */
     state->currently_in_hash_block = bytes_in_hash % state->hash_block_size;
-    /* if( state->currently_in_hash_block != 0) { */
-    /*   fprintf(stderr,"\ncurrently in: %" PRId64 "\n", bytes_in_hash); */
-    /*   S2N_ERROR(S2N_ERR_KEY_MISMATCH); */
-    /* } */
     return 0;
 }
 
