@@ -26,6 +26,9 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 
+#include <stdint.h>
+
+
 int s2n_hmac_hash_alg(s2n_hmac_algorithm hmac_alg, s2n_hash_algorithm *out)
 {
     switch(hmac_alg) {
@@ -284,8 +287,12 @@ int s2n_hmac_free(struct s2n_hmac_state *state)
 
 int s2n_hmac_reset(struct s2n_hmac_state *state)
 {
-    state->currently_in_hash_block = 0;
     GUARD(s2n_hash_copy(&state->inner, &state->inner_just_key));
+    
+    uint64_t bytes_in_hash;
+    GUARD(s2n_hash_get_currently_in_hash_total(&state->inner, &bytes_in_hash));
+    /* The length of the key is not private, so don't need to do tricky math here */
+    state->currently_in_hash_block = bytes_in_hash % state->hash_block_size;
     return 0;
 }
 

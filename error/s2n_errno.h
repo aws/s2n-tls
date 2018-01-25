@@ -68,6 +68,7 @@ typedef enum {
     S2N_ERR_HASH_UPDATE_FAILED,
     S2N_ERR_HASH_COPY_FAILED,
     S2N_ERR_HASH_WIPE_FAILED,
+    S2N_ERR_HASH_NOT_READY,
     S2N_ERR_ALLOW_MD5_FOR_FIPS_FAILED,
     S2N_ERR_DECODE_CERTIFICATE,
     S2N_ERR_DECODE_PRIVATE_KEY,
@@ -165,3 +166,4 @@ extern __thread const char *s2n_debug_str;
 #define _S2N_ERROR( x )     do { s2n_debug_str = _S2N_DEBUG_LINE; s2n_errno = ( x ); } while (0)
 #define S2N_ERROR( x )      do { _S2N_ERROR( ( x ) ); return -1; } while (0)
 #define S2N_ERROR_PTR( x )  do { _S2N_ERROR( ( x ) ); return NULL; } while (0)
+#define S2N_ERROR_IF( cond , x ) do { if ( cond ) { S2N_ERROR( x ); }} while (0)
