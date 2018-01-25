@@ -25,7 +25,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <getopt.h>
-
+#include <strings.h>
 #include <errno.h>
 
 #include <s2n.h>
@@ -66,15 +66,15 @@ struct verify_data {
     const char *trusted_host;
 };
 
-static uint8_t verify_host(const char *host_name, size_t host_name_len, void *data) {
+static uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, void *data) {
     struct verify_data *verify_data = (struct verify_data *)data;
 
     char *offset = strstr(host_name, "*.");
     if(offset) {
-        return (uint8_t)(strstr(verify_data->trusted_host, offset + 2) != NULL);
+        return (uint8_t)(strcasecmp(verify_data->trusted_host, offset + 2) == 0);
     }
 
-    int equals = strcmp(host_name, verify_data->trusted_host);
+    int equals = strcasecmp(host_name, verify_data->trusted_host);
     return (uint8_t)(equals == 0);
 }
 
@@ -97,7 +97,7 @@ int main(int argc, char *const *argv)
     s2n_status_request_type type = S2N_STATUS_REQUEST_NONE;
     /* required args */
     const char *host = NULL;
-    struct verify_data verify_data;
+    struct verify_data unsafe_verify_data;
     const char *port = "443";
     int echo_input = 0;
 
@@ -224,25 +224,24 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    if(s2n_config_set_verify_host_callback(config, verify_host, &verify_data) < 0) {
+    if (s2n_config_set_verify_host_callback(config, unsafe_verify_host, &unsafe_verify_data) < 0) {
         print_s2n_error("Error setting host name verification function.");
     }
 
-    if(type == S2N_STATUS_REQUEST_OCSP) {
+    if (type == S2N_STATUS_REQUEST_OCSP) {
         if(s2n_config_set_check_stapled_ocsp_response(config, 1)) {
             print_s2n_error("OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
         }
     }
 
-    verify_data.trusted_host = host;
+    unsafe_verify_data.trusted_host = host;
 
-    if(ca_file || ca_dir) {
+    if (ca_file || ca_dir) {
         if(s2n_config_set_verification_ca_location(config, ca_file, ca_dir) < 0) {
             print_s2n_error("Error setting CA file for trust store.");
         }
     }
-
-    else if(insecure){
+    else if (insecure) {
         s2n_config_disable_x509_verification(config);
     }
 

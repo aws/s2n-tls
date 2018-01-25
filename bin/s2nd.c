@@ -232,7 +232,7 @@ int cache_delete(void *ctx, const void *key, uint64_t key_size)
  * allow any hostname through. If you are writing something with mutual auth and you have a scheme for verifying
  * the client (e.g. a reverse DNS lookup), you would plug that in here.
  */
-static uint8_t verify_host_fn(const char *host_name, size_t host_name_len, void *data) {
+static uint8_t unsafe_verify_host_fn(const char *host_name, size_t host_name_len, void *data) {
     return 1;
 }
 
@@ -709,7 +709,7 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    if (s2n_config_set_verify_host_callback(config, verify_host_fn, NULL)) {
+    if (s2n_config_set_verify_host_callback(config, unsafe_verify_host_fn, NULL)) {
         print_s2n_error("Failure to set hostname verification callback.");
         exit(1);
     }
