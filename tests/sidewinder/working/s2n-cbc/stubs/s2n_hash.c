@@ -155,3 +155,10 @@ int s2n_hash_free(struct s2n_hash_state *state)
 {
   return SUCCESS;
 }
+
+int s2n_hash_get_currently_in_hash_total(struct s2n_hash_state *state, uint64_t *out)
+{
+  *out = state->currently_in_hash_block;
+  return SUCCESS;
+}
+

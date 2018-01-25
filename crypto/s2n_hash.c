@@ -38,6 +38,26 @@ int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
     return 0;
 }
 
+/* NOTE: s2n_hash_const_time_get_currently_in_hash_block takes advantage of the fact that
+ * hash_block_size is a power of 2. This is true for all hashes we currently support
+ * If this ever becomes untrue, this would require fixing*/
+int s2n_hash_block_size(s2n_hash_algorithm alg, uint64_t *block_size)
+{
+    switch(alg) {
+    case S2N_HASH_NONE:       *block_size = 64;   break;
+    case S2N_HASH_MD5:        *block_size = 64;   break;
+    case S2N_HASH_SHA1:       *block_size = 64;   break;
+    case S2N_HASH_SHA224:     *block_size = 64;   break;
+    case S2N_HASH_SHA256:     *block_size = 64;   break;
+    case S2N_HASH_SHA384:     *block_size = 128;  break;
+    case S2N_HASH_SHA512:     *block_size = 128;  break;
+    case S2N_HASH_MD5_SHA1:   *block_size = 64;   break;
+    default:
+        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
+    }
+    return 0;
+}
+
 /* Return 1 if hash algorithm is available, 0 otherwise. */
 int s2n_hash_is_available(s2n_hash_algorithm alg)
 {
@@ -63,11 +83,19 @@ int s2n_hash_is_available(s2n_hash_algorithm alg)
     return is_available;
 }
 
+int s2n_hash_is_ready_for_input(struct s2n_hash_state *state)
+{
+  return state->is_ready_for_input;
+}
+
 static int s2n_low_level_hash_new(struct s2n_hash_state *state)
 {
     /* s2n_hash_new will always call the corresponding implementation of the s2n_hash
      * being used. For the s2n_low_level_hash implementation, new is a no-op.
      */
+
+    state->is_ready_for_input = 0;
+    state->currently_in_hash = 0;
     return 0;
 }
 
@@ -110,12 +138,16 @@ static int s2n_low_level_hash_init(struct s2n_hash_state *state, s2n_hash_algori
     }
 
     state->alg = alg;
+    state->is_ready_for_input = 1;
+    state->currently_in_hash = 0;
 
     return 0;
 }
 
 static int s2n_low_level_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size)
 {
+    S2N_ERROR_IF(!state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
+
     int r;
     switch (state->alg) {
     case S2N_HASH_NONE:
@@ -151,11 +183,15 @@ static int s2n_low_level_hash_update(struct s2n_hash_state *state, const void *d
         S2N_ERROR(S2N_ERR_HASH_UPDATE_FAILED);
     }
 
+    state->currently_in_hash += size;
+
     return 0;
 }
 
 static int s2n_low_level_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size)
 {
+    S2N_ERROR_IF(!state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
+
     int r;
     switch (state->alg) {
     case S2N_HASH_NONE:
@@ -198,6 +234,8 @@ static int s2n_low_level_hash_digest(struct s2n_hash_state *state, void *out, ui
         S2N_ERROR(S2N_ERR_HASH_DIGEST_FAILED);
     }
 
+    state->currently_in_hash = 0;
+    state->is_ready_for_input = 0;
     return 0;
 }
 
@@ -209,6 +247,7 @@ static int s2n_low_level_hash_copy(struct s2n_hash_state *to, struct s2n_hash_st
 
 static int s2n_low_level_hash_reset(struct s2n_hash_state *state)
 {
+    /* hash_init resets the ready_for_input and currently_in_hash fields */
     return s2n_low_level_hash_init(state, state->alg);
 }
 
@@ -217,6 +256,7 @@ static int s2n_low_level_hash_free(struct s2n_hash_state *state)
     /* s2n_hash_free will always call the corresponding implementation of the s2n_hash
      * being used. For the s2n_low_level_hash implementation, free is a no-op.
      */
+    state->is_ready_for_input = 0;
     return 0;
 }
 
@@ -224,6 +264,8 @@ static int s2n_evp_hash_new(struct s2n_hash_state *state)
 {
     notnull_check(state->digest.high_level.evp.ctx = S2N_EVP_MD_CTX_NEW());
     notnull_check(state->digest.high_level.evp_md5_secondary.ctx = S2N_EVP_MD_CTX_NEW());
+    state->is_ready_for_input = 0;
+    state->currently_in_hash = 0;
 
     return 0;
 }
@@ -276,12 +318,16 @@ static int s2n_evp_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm al
     }
 
     state->alg = alg;
+    state->is_ready_for_input = 1;
+    state->currently_in_hash = 0;
 
     return 0;
 }
 
 static int s2n_evp_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size)
 {
+    S2N_ERROR_IF(!state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
+
     int r;
     switch (state->alg) {
     case S2N_HASH_NONE:
@@ -307,11 +353,15 @@ static int s2n_evp_hash_update(struct s2n_hash_state *state, const void *data, u
         S2N_ERROR(S2N_ERR_HASH_UPDATE_FAILED);
     }
 
+    state->currently_in_hash += size;
+
     return 0;
 }
 
 static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size)
 {
+    S2N_ERROR_IF(!state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
+
     int r;
     unsigned int digest_size = size;
     uint8_t expected_digest_size;
@@ -351,6 +401,8 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
         S2N_ERROR(S2N_ERR_HASH_DIGEST_FAILED);
     }
 
+    state->currently_in_hash = 0;
+    state->is_ready_for_input = 0;
     return 0;
 }
 
@@ -388,6 +440,8 @@ static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
     }
     to->hash_impl = from->hash_impl;
     to->alg = from->alg;
+    to->is_ready_for_input = from->is_ready_for_input;
+    to->currently_in_hash = from->currently_in_hash;
 
     return 0;
 }
@@ -414,6 +468,7 @@ static int s2n_evp_hash_reset(struct s2n_hash_state *state)
         GUARD(s2n_hash_allow_md5_for_fips(state));
     }
 
+    /* hash_init resets the ready_for_input and currently_in_hash fields */
     return s2n_evp_hash_init(state, state->alg);
 }
 
@@ -423,7 +478,7 @@ static int s2n_evp_hash_free(struct s2n_hash_state *state)
     S2N_EVP_MD_CTX_FREE(state->digest.high_level.evp_md5_secondary.ctx);
     state->digest.high_level.evp.ctx = NULL;
     state->digest.high_level.evp_md5_secondary.ctx = NULL;
-
+    state->is_ready_for_input = 0;
     return 0;
 }
 
@@ -543,4 +598,26 @@ int s2n_hash_free(struct s2n_hash_state *state)
     notnull_check(state->hash_impl->free);
 
     return state->hash_impl->free(state);
+}
+
+int s2n_hash_get_currently_in_hash_total(struct s2n_hash_state *state, uint64_t *out)
+{
+    S2N_ERROR_IF(!state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
+
+    *out = state->currently_in_hash;
+    return 0;
+}
+
+
+/* Calculate, in constant time, the number of bytes currently in the hash_block */
+int s2n_hash_const_time_get_currently_in_hash_block(struct s2n_hash_state *state, uint64_t *out)
+{
+    S2N_ERROR_IF(!state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
+    uint64_t hash_block_size;
+    GUARD(s2n_hash_block_size(state->alg, &hash_block_size));
+
+    /* Requires that hash_block_size is a power of 2. This is true for all hashes we currently support
+     * If this ever becomes untrue, this would require fixing this*/
+    *out = state->currently_in_hash & (hash_block_size - 1);
+    return 0;
 }
