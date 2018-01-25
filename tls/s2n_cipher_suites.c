@@ -545,7 +545,7 @@ int s2n_cipher_suites_init(void)
         }
     }
 
-#if OPENSSL_VERSION_LESS_1_1
+#if !S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
     /*https://wiki.openssl.org/index.php/Manual:OpenSSL_add_all_algorithms(3)*/
     OpenSSL_add_all_algorithms();
 #else
@@ -565,8 +565,8 @@ int s2n_cipher_suites_cleanup(void)
         cur_suite->record_alg = NULL;
     }
 
-#if OPENSSL_VERSION_LESS_1_1
-    /*https://wiki.openssl.org/index.php/Manual:OpenSSL_add_all_algorithms(3)*/
+#if !S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
+     /*https://wiki.openssl.org/index.php/Manual:OpenSSL_add_all_algorithms(3)*/
     EVP_cleanup();
 
     /* per the reqs here https://www.openssl.org/docs/man1.1.0/crypto/OPENSSL_init_crypto.html we don't explicitly call

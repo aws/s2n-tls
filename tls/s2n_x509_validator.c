@@ -17,6 +17,7 @@
 #include "utils/s2n_asn1_time.h"
 #include "utils/s2n_safety.h"
 #include "tls/s2n_connection.h"
+#include "crypto/s2n_openssl.h"
 
 #include "openssl/err.h"
 #include "openssl/asn1.h"
@@ -34,10 +35,14 @@
 #endif /* defined(OPENSSL_IS_BORINGSSL) && !defined(OCSP_RESPONSE_STATUS_SUCCESSFUL) */
 
 /* our friends at openssl love to make backwards incompatible changes */
-#if !defined(LIBRESSL_VERSION_NUMBER) && OPENSSL_VERSION_NUMBER >= 0x10100000L
+#if !defined(LIBRESSL_VERSION_NUMBER) && S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
 #define OCSP_GET_CERTS(a) OCSP_resp_get0_certs(a)
 #else
 #define OCSP_GET_CERTS(a) a->certs
+#endif
+
+#ifndef X509_V_FLAG_PARTIAL_CHAIN
+#define X509_V_FLAG_PARTIAL_CHAIN 0x80000
 #endif
 
 uint8_t s2n_x509_ocsp_stapling_supported(void) {
@@ -87,13 +92,7 @@ int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const 
      * is encountered that's in that path, it should be trusted. The following flag tells libcrypto to not care that the cert
      * is missing a root anchor. */
     unsigned long flags = X509_VP_FLAG_DEFAULT;
-
-#if defined(X509_V_FLAG_PARTIAL_CHAIN)
     flags |=  X509_V_FLAG_PARTIAL_CHAIN;
-#else
-    flags |= 0x80000;
-#endif
-
     X509_STORE_set_flags(store->trust_store, flags);
 
     return 0;

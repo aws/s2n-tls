@@ -39,11 +39,7 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
     cert_chain.data = s2n_stuffer_raw_read(&conn->handshake.io, size_of_all_certificates);
     cert_chain.size = size_of_all_certificates;
 
-    const s2n_cert_validation_code rc = s2n_x509_validator_validate_cert_chain(&conn->x509_validator, conn, cert_chain.data, cert_chain.size, &cert_type, &public_key);
-
-    if (rc != S2N_CERT_OK) {
-        S2N_ERROR(S2N_ERR_CERT_UNTRUSTED);
-    }
+    S2N_ERROR_IF(s2n_x509_validator_validate_cert_chain(&conn->x509_validator, conn, cert_chain.data, cert_chain.size, &cert_type, &public_key) != S2N_CERT_OK, S2N_ERR_CERT_UNTRUSTED);
 
     if(cert_type != S2N_CERT_TYPE_RSA_SIGN) {
         S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
