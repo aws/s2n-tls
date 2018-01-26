@@ -43,7 +43,7 @@ int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size)
 
     client_conn = s2n_connection_new(S2N_CLIENT);
     client_config = s2n_config_new();
-    s2n_config_set_verify_cert_chain_cb(client_config, accept_all_rsa_certs, NULL);
+    s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(client_conn, client_config);
 
     s2n_connection_set_read_fd(client_conn, readfd);

@@ -20,6 +20,7 @@
 #include <time.h>
 
 #include <s2n.h>
+#include <stdbool.h>
 
 #include "crypto/s2n_fips.h"
 
@@ -147,30 +148,27 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     conn = (struct s2n_connection *)(void *)blob.data;
 
     if (s2n_is_in_fips_mode()) {
-        conn->config = &s2n_default_fips_config;
+        s2n_connection_set_config(conn, s2n_fetch_default_fips_config());
     } else {
-        conn->config = &s2n_default_config;
+        s2n_connection_set_config(conn, s2n_fetch_default_config());
     }
 
     if (mode == S2N_CLIENT) {
-        /* At present s2n is not suitable for use in client mode, as it
-         * does not perform any certificate validation. However it is useful
-         * to use S2N in client mode for testing purposes. An environment
-         * variable is required to be set for the client mode to work.
-         */
+        /* we need to do more testing on our x.509 code. Until then use with caution */
         if (getenv("S2N_ENABLE_CLIENT_MODE") == NULL) {
             GUARD_PTR(s2n_free(&blob));
             S2N_ERROR_PTR(S2N_ERR_CLIENT_MODE_DISABLED);
         }
-        /* S2N does not have it's own x509 Certificate parser, so Client Mode should only be used for testing purposes.
-         * In Client mode, we skip Cert Validation and assume that all Server RSA x509 Certs are valid. */
-        conn->config = &s2n_unsafe_client_testing_config;
     }
 
     conn->mode = mode;
     conn->blinding = S2N_BUILT_IN_BLINDING;
     conn->close_notify_queued = 0;
     conn->session_id_len = 0;
+    conn->verify_host_fn = NULL;
+    conn->data_for_verify_host = NULL;
+    conn->verify_host_fn_overridden = 0;
+    conn->data_for_verify_host = NULL;
     conn->send = NULL;
     conn->recv = NULL;
     conn->send_io_context = NULL;
@@ -247,7 +245,6 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->send_io_context = NULL;
     conn->recv_io_context = NULL;
     conn->mode = mode;
-    conn->config = config;
     conn->close_notify_queued = 0;
     conn->current_user_data_consumed = 0;
     conn->initial.cipher_suite = &s2n_null_cipher_suite;
@@ -258,6 +255,10 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->mfl_code = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
     conn->handshake.handshake_type = INITIAL;
     conn->handshake.message_number = 0;
+    conn->verify_host_fn = NULL;
+    conn->verify_host_fn_overridden = 0;
+    conn->data_for_verify_host = NULL;
+    s2n_connection_set_config(conn, config);
 
     return 0;
 }
@@ -280,7 +281,7 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     GUARD(s2n_pkey_zero_init(&conn->secure.server_public_key));
     GUARD(s2n_pkey_free(&conn->secure.client_public_key));
     GUARD(s2n_pkey_zero_init(&conn->secure.client_public_key));
-
+    s2n_x509_validator_wipe(&conn->x509_validator);
     GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
     GUARD(s2n_ecc_params_free(&conn->secure.server_ecc_params));
     GUARD(s2n_free(&conn->secure.client_cert_chain));
@@ -421,6 +422,7 @@ int s2n_connection_free(struct s2n_connection *conn)
     GUARD(s2n_stuffer_free(&conn->in));
     GUARD(s2n_stuffer_free(&conn->out));
     GUARD(s2n_stuffer_free(&conn->handshake.io));
+    s2n_x509_validator_wipe(&conn->x509_validator);
     GUARD(s2n_client_hello_free(&conn->client_hello));
 
     blob.data = (uint8_t *) conn;
@@ -434,6 +436,33 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
 {
     notnull_check(conn);
     notnull_check(config);
+
+    if (conn->config == config) {
+        return 0;
+    }
+    else {
+        s2n_x509_validator_wipe(&conn->x509_validator);
+    }
+
+    s2n_cert_auth_type auth_type = config->client_cert_auth_type;
+
+    if (conn->client_cert_auth_type_overridden) {
+        auth_type = conn->client_cert_auth_type;
+    }
+
+    int8_t dont_need_x509_validation = (conn->mode == S2N_SERVER) && (auth_type == S2N_CERT_AUTH_NONE);
+
+    if (config->disable_x509_validation || dont_need_x509_validation) {
+        GUARD(s2n_x509_validator_init_no_x509_validation(&conn->x509_validator));
+    }
+    else {
+        GUARD(s2n_x509_validator_init(&conn->x509_validator, &config->trust_store, config->check_ocsp));
+        if (!conn->verify_host_fn_overridden) {
+            conn->verify_host_fn = config->verify_host;
+            conn->data_for_verify_host = config->data_for_verify_host;
+        }
+    }
+
     conn->config = config;
     return 0;
 }
@@ -501,6 +530,9 @@ int s2n_connection_wipe(struct s2n_connection *conn)
 
     /* Remove context associated with connection */
     conn->context = NULL;
+    conn->verify_host_fn_overridden = 0;
+    conn->verify_host_fn = NULL;
+    conn->data_for_verify_host = NULL;
 
     /* Clone the stuffers */
     /* ignore gcc 4.7 address warnings because dest is allocated on the stack */
@@ -613,7 +645,7 @@ int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_au
     notnull_check(conn);
     notnull_check(client_cert_auth_type);
 
-    if(conn->client_cert_auth_type_overridden) {
+    if (conn->client_cert_auth_type_overridden) {
         *client_cert_auth_type = conn->client_cert_auth_type;
     } else {
         *client_cert_auth_type = conn->config->client_cert_auth_type;
@@ -879,6 +911,16 @@ int s2n_connection_prefer_low_latency(struct s2n_connection *conn)
     return 0;
 }
 
+int s2n_connection_set_verify_host_callback(struct s2n_connection *conn, s2n_verify_host_fn verify_host_fn, void *data) {
+    notnull_check(conn);
+
+    conn->verify_host_fn = verify_host_fn;
+    conn->data_for_verify_host = data;
+    conn->verify_host_fn_overridden = 1;
+
+    return 0;
+}
+
 int s2n_connection_recv_stuffer(struct s2n_stuffer *stuffer, struct s2n_connection *conn, uint32_t len)
 {
     notnull_check(conn->recv);
@@ -917,7 +959,7 @@ int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
   SEND:
     errno = 0;
     int w = conn->send(conn->send_io_context, stuffer->blob.data + stuffer->read_cursor, len);
-    if(w < 0) {
+    if (w < 0) {
         if (errno == EINTR) {
             goto SEND;
         }

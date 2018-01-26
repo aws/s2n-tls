@@ -104,7 +104,9 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
     EXPECT_NOT_NULL(default_cipher_preferences = server_config->cipher_preferences);
 
-    client_config = &s2n_unsafe_client_testing_config;
+    client_config = s2n_fetch_unsafe_client_testing_config();
+    EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+
     if (s2n_is_in_fips_mode()) {
         /* Override default client config ciphers when in FIPS mode to ensure all FIPS
          * default ciphers are tested.

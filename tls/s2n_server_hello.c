@@ -45,7 +45,7 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
 
     GUARD(s2n_stuffer_read_bytes(in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
 
-    conn->server_protocol_version = (protocol_version[0] * 10) + protocol_version[1];
+    conn->server_protocol_version = (uint8_t)(protocol_version[0] * 10) + protocol_version[1];
 
     if (conn->server_protocol_version < conn->config->cipher_preferences->minimum_protocol_version || conn->server_protocol_version > conn->client_protocol_version) {
         GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
@@ -117,8 +117,8 @@ int s2n_server_hello_send(struct s2n_connection *conn)
     notnull_check(r.data);
     GUARD(s2n_get_public_random_data(&r));
 
-    protocol_version[0] = conn->actual_protocol_version / 10;
-    protocol_version[1] = conn->actual_protocol_version % 10;
+    protocol_version[0] = (uint8_t)(conn->actual_protocol_version / 10);
+    protocol_version[1] = (uint8_t)(conn->actual_protocol_version % 10);
 
 
     GUARD(s2n_stuffer_write_bytes(out, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));

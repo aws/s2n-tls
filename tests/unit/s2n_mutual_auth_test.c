@@ -77,6 +77,17 @@ int buffer_write(void *io_context, const uint8_t *buf, uint32_t len)
     return len;
 }
 
+struct host_verify_data {
+    uint8_t callback_invoked;
+    uint8_t allow;
+};
+
+static uint8_t verify_host_fn(const char *host_name, size_t host_name_len, void *data) {
+    struct host_verify_data *verify_data = (struct host_verify_data *) data;
+    verify_data->callback_invoked = 1;
+    return verify_data->allow;
+}
+
 extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
 
 static const int MAX_TRIES = 100;
@@ -124,10 +135,14 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
     EXPECT_NOT_NULL(default_cipher_preferences = config->cipher_preferences);
 
-    EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(config, &accept_all_rsa_certs, NULL));
+    struct host_verify_data verify_data = {.allow = 1, .callback_invoked = 0};
+    EXPECT_SUCCESS(s2n_config_set_verify_host_callback(config, verify_host_fn, &verify_data));
+    EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+
 
     /* Verify that a handshake succeeds for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
+        verify_data.callback_invoked = 0;
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
@@ -152,13 +167,13 @@ int main(int argc, char **argv)
         config->cipher_preferences = &server_cipher_preferences;
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_REQUIRED));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_REQUIRED));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
-        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_REQUIRED));
-        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_REQUIRED));
 
         /* Set up our I/O callbacks. Use stuffers for the "I/O context" */
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
@@ -193,6 +208,7 @@ int main(int argc, char **argv)
         /* Verify that both connections negotiated Mutual Auth */
         EXPECT_TRUE(s2n_connection_client_cert_used(server_conn));
         EXPECT_TRUE(s2n_connection_client_cert_used(client_conn));
+        EXPECT_TRUE(verify_data.callback_invoked);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));

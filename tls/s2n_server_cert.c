@@ -19,11 +19,7 @@
 #include "error/s2n_errno.h"
 
 #include "tls/s2n_cipher_suites.h"
-#include "tls/s2n_connection.h"
-#include "tls/s2n_config.h"
 #include "tls/s2n_tls.h"
-
-#include "stuffer/s2n_stuffer.h"
 
 #include "utils/s2n_safety.h"
 
@@ -43,13 +39,10 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
     cert_chain.data = s2n_stuffer_raw_read(&conn->handshake.io, size_of_all_certificates);
     cert_chain.size = size_of_all_certificates;
 
-    const s2n_cert_validation_code rc = conn->config->verify_cert_chain_cb(conn, cert_chain.data, cert_chain.size, &cert_type, &public_key, conn->config->verify_cert_context);
+    S2N_ERROR_IF(s2n_x509_validator_validate_cert_chain(&conn->x509_validator, conn, cert_chain.data,
+                                                        cert_chain.size, &cert_type, &public_key) != S2N_CERT_OK, S2N_ERR_CERT_UNTRUSTED);
 
-    if (rc != S2N_CERT_OK) {
-        S2N_ERROR(S2N_ERR_CERT_UNTRUSTED);
-    }
-
-    if(cert_type != S2N_CERT_TYPE_RSA_SIGN) {
+    if (cert_type != S2N_CERT_TYPE_RSA_SIGN) {
         S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     }
 

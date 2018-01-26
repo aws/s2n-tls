@@ -213,7 +213,7 @@ s2n also reads this for unit tests. Try `S2N_DONT_MLOCK=1 make` if you're having
 
 ## client mode
 
-At this time s2n does not perform certificate validation and client mode is
+At this time x509 certificate validation is undergoing further testing and client mode is
 disabled as a precaution. To enable client mode for testing and development,
 set the **S2N_ENABLE_CLIENT_MODE** environment variable.
 
@@ -599,22 +599,87 @@ SignedCertificateTimestampList structure defined in that document.  See
 http://www.certificate-transparency.org/ for more information about Certificate
 Transparency.
 
-### s2n\_config\_set\_nanoseconds\_since\_epoch\_callback
+### s2n\_config\_set\_wall\_clock
 
 ```c
-int s2n_config_set_nanoseconds_since_epoch_callback(struct s2n_config *config, int (*nanoseconds_since_epoch)(void *, uint64_t *), void * data);
+int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *data);
 ```
 
-**s2n_config_set_nanoseconds_since_epoch_callback** allows the caller to set a
-callback function that will be used to get the time. The callback function
+**s2n_config_set_wall_clock** allows the caller to set a
+callback function that will be used to get the system time. The callback function
 takes two arguments; a pointer to abitrary data for use within the callback,
 and a pointer to a 64 bit unsigned integer. The first pointer will be set to
 the value of **data** which supplied by the caller when setting the callback.
 The integer pointed to by the second pointer should be set to the number of
 nanoseconds since the Unix epoch (Midnight, January 1st, 1970). The function
-should return 0 on success and -1 on error. The function is also required to 
-implement a monotonic time source; the number of nanoseconds returned should
-never decrease between calls.
+should return 0 on success and -1 on error. The default implementation, which uses the REALTIME clock,
+will be used if this callback is not manually set.
+
+### s2n\_config\_set\_monotonic\_clock
+
+```c
+int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *data);
+```
+
+**s2n_config_set_monotonic_clock** allows the caller to set a
+callback function that will be used to get monotonic time. The callback function
+takes two arguments; a pointer to abitrary data for use within the callback,
+and a pointer to a 64 bit unsigned integer. The first pointer will be set to
+the value of **data** which supplied by the caller when setting the callback.
+The integer pointed to by the second pointer should be an always increasing value. The function
+should return 0 on success and -1 on error. The default implementation, which uses the MONOTONIC clock,
+will be used if this callback is not manually set.
+
+### s2n\_config\_set\_verification\_ca\_location
+```c
+int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_file_pem, const char *ca_dir);
+```
+
+**s2n_config_set_verification_ca_location**  initializes the trust store from a CA file or directory 
+containing trusted certificates.  By default, the trust store will be initialized to the common locations 
+for the host operating system. Call this function to override that behavior.
+Returns 0 on success and -1 on failure.
+
+### s2n\_verify\_host\_fn
+```c
+typedef uint8_t (*s2n_verify_host_fn) (const char *host_name, size_t host_name_len, void *ctx);
+```
+
+**s2n_verify_host_fn** is invoked (usually multiple times) during X.509 validation for each name encountered in the leaf certificate. 
+Return 1 to trust that hostname or 0 to not trust the hostname. If this function returns 1, then the certificate is considered trusted and that portion
+of the X.509 validation will succeed. If no hostname results in a 1 being returned, 
+the certificate will be untrusted and the validation will terminate immediately. The default behavior is to reject all host names found in a certificate
+if client mode or client authentication is being used..
+
+### s2n\_config\_set\_verify\_host\_callback
+```c
+int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_verify_host_fn, void *ctx);
+```
+
+**s2n_config_set_verify_host_callback** sets the callback to use for verifying that a hostname from an X.509 certificate 
+is trusted. By default, no certificate will be trusted. To override this behavior, set this callback. 
+See [s2n_verify_host_fn](#s2n_verify_host_fn) for details. This configuration will be inherited by default to new instances of **s2n_connection**. 
+If a separate callback for different connections using the same config is desired, see 
+[s2n_connection_set_verify_host_callback](#s2n_connection_set_verify_host_callback).
+
+### s2n\_config\_set\_check\_stapled\_ocsp\_response
+
+```c
+int s2n_config_set_check_stapled_ocsp_response(struct s2n_config *config, uint8_t check_ocsp);
+```
+
+**s2n_config_set_check_stapled_ocsp_response** toggles whether or not to validate stapled OCSP responses. 1 means OCSP responses
+will be validated when they are encountered, while 0 means this step will be skipped. The default value is 1 if the underlying
+libCrypto implementation supports OCSP.  Returns 0 on success and -1 on failure.
+
+### s2n\_config\_disable\_x509\_verification
+
+```c
+int s2n_config_disable_x509_verification(struct s2n_config *config);
+```
+
+**s2n_config_disable_x509_verification** turns off all X.509 validation during the negotiation phase of the connection. This should only be used
+for testing or debugging purposes.
 
 ### s2n\_config\_set\_client\_hello\_cb
 
@@ -651,25 +716,7 @@ int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_au
 ```
 Sets whether or not a Client Certificate should be required to complete the TLS Connection. If this is set to
 **S2N_CERT_AUTH_OPTIONAL** the server will request a client certificate but allow the client to not provide one.
-If this is set to **S2N_CERT_AUTH_REQUIRED** or **S2N_CERT_AUTH_OPTIONAL** then a **verify_cert_trust_chain_fn** callback should be provided as well since the current
-default is for s2n to accept all RSA Certs on the client side, and deny all certs on the server side. Rejecting a
-client certificate when using **S2N_CERT_AUTH_OPTIONAL** will terminate the handshake.
-
-
-### verify_cert_trust_chain_fn
-
-```c
-int verify_cert_trust_chain(struct s2n_connection *conn, uint8_t *der_cert_chain_in, uint32_t cert_chain_len, struct s2n_cert_public_key *public_key_out, void *context);
-```
- - **conn** The connection the certificate chain is validated for
- - **der_cert_chain_in** The DER encoded full chain of certificates recieved
- - **cert_chain_len** The length in bytes of the DER encoded Cert Chain
- - **public_key_out** The public key that should be updated with the key extracted from the first certificate in the chain (the leaf Cert)
- - **context** A pointer to any caller defined context data needed for the callback (Cert Trust Store, etc)
- - **return Value** The function should return 0 if the Certificate Chain is trusted and public key extraction was successful, and less than 0 if any Certificate in the chain is untrusted, or there was some other error.
-
-**verify_cert_trust_chain_fn** defines a Callback Function Signature intended to be used only in special circumstances, and may be removed in a later release.
-Implementations should Verify the Certificate Chain of trust, and place the leaf Certificate's Public Key in the public_key_out parameter.
+Rejecting a client certificate when using **S2N_CERT_AUTH_OPTIONAL** will terminate the handshake.
 
 ### Public Key API's
 ```c
@@ -680,15 +727,6 @@ int s2n_cert_public_key_set_rsa(struct s2n_cert_public_key *cert_pub_key, struct
 ```
 **s2n_rsa_public_key** and **s2n_cert_public_key** are opaque structs. These API's are intended to be used by Implementations of **verify_cert_trust_chain_fn** to
 set the public keys found in the Certificate into **public_key_out**.
-
-### s2n_config_set_verify_cert_chain_cb and s2n_connection_set_verify_cert_chain_cb
-
-```c
-int s2n_config_set_verify_cert_chain_cb(struct s2n_config *config, verify_cert_trust_chain_fn *callback, void *context);
-int s2n_connection_set_verify_cert_chain_cb(struct s2n_connection *conn, verify_cert_trust_chain_fn *callback, void *context);
-```
-
-Sets the **verify_cert_trust_chain_fn** callback function and context that will be used when verifying Certificates for the connection.
 
 ## Session Caching related calls
 
@@ -909,6 +947,16 @@ returns the protocol version used in the initial client hello message.
 
 Each version number value corresponds to the macros defined as **S2N_SSLv2**,
 **S2N_SSLv3**, **S2N_TLS10**, **S2N_TLS11** and **S2N_TLS12**.
+
+### s2n\_connection\_set\_verify\_host\_callback
+```c
+int s2n_connection_set_verify_host_callback(struct s2n_connection *config, s2n_verify_host_fn host_fn, void *data);
+```
+Every connection inherits the value of **s2n_verify_host_fn** from it's instance of **s2n_config**. 
+Since a configuration can (and should) be used for multiple connections, it may be useful to override 
+this value on a per connection basis. For example, this may be based on a host header from an http request. In that case,
+calling this function will override the value inherited from the configuration. 
+See [s2n_verify_host_fn](#s2n_verify_host_fn) for details.
 
 ### s2n\_connection\_get\_client\_hello
 

@@ -510,6 +510,18 @@ const struct s2n_cipher_preferences cipher_preferences_test_all_fips = {
     .minimum_protocol_version = S2N_TLS10
 };
 
+/**
+ * openssl with OPENSSL_VERSION_NUMBER < 0x10100003L made data type details unavailable
+ * libressl use openssl with data type details available, but mandatorily set
+ * OPENSSL_VERSION_NUMBER = 0x20000000L, insane!
+ * https://github.com/aws/aws-sdk-cpp/pull/507/commits/2c99f1fe0c4b4683280caeb161538d4724d6a179
+ */
+#if defined(LIBRESSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER == 0x20000000L)
+#undef OPENSSL_VERSION_NUMBER
+#define OPENSSL_VERSION_NUMBER 0x1000107fL
+#endif
+#define OPENSSL_VERSION_LESS_1_1 (OPENSSL_VERSION_NUMBER < 0x10100003L)
+
 /* Determines cipher suite availability and selects record algorithms */
 int s2n_cipher_suites_init(void)
 {
@@ -533,6 +545,13 @@ int s2n_cipher_suites_init(void)
         }
     }
 
+#if !S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
+    /*https://wiki.openssl.org/index.php/Manual:OpenSSL_add_all_algorithms(3)*/
+    OpenSSL_add_all_algorithms();
+#else
+    OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CRYPTO_STRINGS | OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL);
+#endif
+
     return 0;
 }
 
@@ -545,6 +564,14 @@ int s2n_cipher_suites_cleanup(void)
         cur_suite->available = 0;
         cur_suite->record_alg = NULL;
     }
+
+#if !S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
+     /*https://wiki.openssl.org/index.php/Manual:OpenSSL_add_all_algorithms(3)*/
+    EVP_cleanup();
+
+    /* per the reqs here https://www.openssl.org/docs/man1.1.0/crypto/OPENSSL_init_crypto.html we don't explicitly call
+     * cleanup in later versions */
+#endif
 
     return 0;
 }

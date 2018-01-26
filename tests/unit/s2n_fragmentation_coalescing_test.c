@@ -394,6 +394,8 @@ void interleaved_fragmented_warning_alert(int write_fd)
 int main(int argc, char **argv)
 {
     struct s2n_connection *conn;
+    struct s2n_config *config;
+
     s2n_blocked_status blocked;
     int status;
     pid_t pid;
@@ -402,7 +404,13 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
+
+    EXPECT_NOT_NULL(config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
+    EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(config, 0));
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+    EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
     conn->server_protocol_version = S2N_TLS12;
     conn->client_protocol_version = S2N_TLS12;
     conn->actual_protocol_version = S2N_TLS12;
@@ -627,6 +635,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(p[0]));
 
     EXPECT_SUCCESS(s2n_connection_free(conn));
+    EXPECT_SUCCESS(s2n_config_free(config));
 
     END_TEST();
 }

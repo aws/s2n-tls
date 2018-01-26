@@ -21,6 +21,8 @@
 #include "utils/s2n_blob.h"
 #include "api/s2n.h"
 
+#include "tls/s2n_x509_validator.h"
+
 struct s2n_cipher_preferences;
 
 struct s2n_config {
@@ -29,8 +31,11 @@ struct s2n_config {
     const struct s2n_cipher_preferences *cipher_preferences;
     struct s2n_blob application_protocols;
     s2n_status_request_type status_request_type;
-    int (*nanoseconds_since_epoch) (void *, uint64_t *);
-    void *data_for_nanoseconds_since_epoch;
+    s2n_clock_time_nanoseconds wall_clock;
+    s2n_clock_time_nanoseconds monotonic_clock;
+
+    void *sys_clock_ctx;
+    void *monotonic_clock_ctx;
 
     s2n_client_hello_fn *client_hello_cb;
     void *client_hello_cb_ctx;
@@ -47,29 +52,24 @@ struct s2n_config {
     s2n_ct_support_level ct_type;
 
     s2n_cert_auth_type client_cert_auth_type;
-    verify_cert_trust_chain_fn *verify_cert_chain_cb;
-    void *verify_cert_context;
+
+    /* Return TRUE if the host should be trusted, If FALSE this will likely be called again for every host/alternative name
+     * in the certificate. If any respond TRUE. If none return TRUE, the cert will be considered untrusted. */
+    uint8_t (*verify_host) (const char *host_name, size_t host_name_len, void *data);
+    void *data_for_verify_host;
 
     uint8_t mfl_code;
 
     /* if this is FALSE, server will ignore client's Maximum Fragment Length request */
     int accept_mfl;
+
+    struct s2n_x509_trust_store trust_store;
+    uint8_t check_ocsp;
+    uint8_t disable_x509_validation;
 };
 
-extern struct s2n_config s2n_default_config;
-extern struct s2n_config s2n_default_fips_config;
-extern struct s2n_config s2n_unsafe_client_testing_config;
+extern struct s2n_config *s2n_fetch_default_config(void);
+extern struct s2n_config *s2n_fetch_default_fips_config(void);
+extern struct s2n_config *s2n_fetch_unsafe_client_testing_config(void);
 
-s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn,
-        uint8_t *cert_chain_in,
-        uint32_t cert_chain_len,
-        s2n_cert_type *cert_type_out,
-        s2n_cert_public_key *public_key_out,
-        void *context);
-
-s2n_cert_validation_code deny_all_certs(struct s2n_connection *conn,
-        uint8_t *cert_chain_in,
-        uint32_t cert_chain_len,
-        s2n_cert_type *cert_type_out,
-        s2n_cert_public_key *public_key_out,
-        void *context);
+extern void s2n_wipe_static_configs(void);

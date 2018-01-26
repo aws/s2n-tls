@@ -230,6 +230,7 @@ void send_messages(int write_fd, uint8_t *server_hello, uint32_t server_hello_le
 int main(int argc, char **argv)
 {
     struct s2n_connection *conn;
+    struct s2n_config *config;
     s2n_blocked_status blocked;
     int status;
     pid_t pid;
@@ -239,6 +240,9 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+    EXPECT_NOT_NULL(config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
+    EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
     /* Test a good certificate list */
 
@@ -527,6 +531,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
     EXPECT_EQUAL(status, 0);
     EXPECT_SUCCESS(close(p[0]));
+    EXPECT_SUCCESS(s2n_config_free(config));
 
     END_TEST();
 }

@@ -76,6 +76,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
         s2nd_cmd.append("--prefer-low-latency")
     if client_auth is not None:
         s2nd_cmd.append("-m")
+        s2nd_cmd.extend(["-t", client_cert])
 
     s2nd_cmd.extend([str(endpoint), str(port)])
     

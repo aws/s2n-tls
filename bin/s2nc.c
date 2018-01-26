@@ -25,7 +25,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <getopt.h>
-
+#include <strings.h>
 #include <errno.h>
 
 #include <s2n.h>
@@ -48,23 +48,39 @@ void usage()
     fprintf(stderr, "  --name [server name]\n");
     fprintf(stderr, "    Sets the SNI server name header for this client.  If not specified, the host value is used.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  --s,--status\n");
+    fprintf(stderr, "  -s,--status\n");
     fprintf(stderr, "    Request the OCSP status of the remote server certificate\n");
     fprintf(stderr, "  --mfl\n");
     fprintf(stderr, "    Request maximum fragment length from: 512, 1024, 2048, 4096\n");
+    fprintf(stderr, "  -f,--ca-file [file path]\n");
+    fprintf(stderr, "    Location of trust store CA file (PEM format). If neither -f or -d are specified. System defaults will be used.\n");
+    fprintf(stderr, "  -d,--ca-dir [directory path]\n");
+    fprintf(stderr, "    Directory containing hashed trusted certs. If neither -f or -d are specified. System defaults will be used.\n");
+    fprintf(stderr, "  -i,--insecure\n");
+    fprintf(stderr, "    Turns off certification validation altogether.\n");
     fprintf(stderr, "\n");
     exit(1);
+}
+
+struct verify_data {
+    const char *trusted_host;
+};
+
+static uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, void *data) {
+    struct verify_data *verify_data = (struct verify_data *)data;
+
+    char *offset = strstr(host_name, "*.");
+    if (offset) {
+        return (uint8_t)(strcasecmp(verify_data->trusted_host, offset + 2) == 0);
+    }
+
+    int equals = strcasecmp(host_name, verify_data->trusted_host);
+    return (uint8_t)(equals == 0);
 }
 
 extern void print_s2n_error(const char *app_error);
 extern int echo(struct s2n_connection *conn, int sockfd);
 extern int negotiate(struct s2n_connection *conn);
-extern s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn,
-        uint8_t *cert_chain_in,
-        uint32_t cert_chain_len,
-        s2n_cert_type *cert_type_out,
-        s2n_cert_public_key *public_key_out,
-        void *context);
 
 int main(int argc, char *const *argv)
 {
@@ -73,11 +89,15 @@ int main(int argc, char *const *argv)
     /* Optional args */
     const char *alpn_protocols = NULL;
     const char *server_name = NULL;
+    const char *ca_file = NULL;
+    const char *ca_dir = NULL;
     uint16_t mfl_value = 0;
     uint8_t mfl_code = 0;
+    uint8_t insecure = 0;
     s2n_status_request_type type = S2N_STATUS_REQUEST_NONE;
     /* required args */
     const char *host = NULL;
+    struct verify_data unsafe_verify_data;
     const char *port = "443";
     int echo_input = 0;
 
@@ -88,10 +108,13 @@ int main(int argc, char *const *argv)
         {"name", required_argument, 0, 'n'},
         {"status", no_argument, 0, 's'},
         {"mfl", required_argument, 0, 'm'},
+        {"ca-file", required_argument, 0, 'f'},
+        {"ca-dir", required_argument, 0, 'd'},
+        {"insecure", no_argument, 0, 'i'}
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "a:hn:s", long_options, &option_index);
+        int c = getopt_long(argc, argv, "ea:hn:sf:d:i", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -113,6 +136,15 @@ int main(int argc, char *const *argv)
             break;
         case 'm':
             mfl_value = (uint16_t) atoi(optarg);
+            break;
+        case 'f':
+            ca_file = optarg;
+            break;
+        case 'd':
+            ca_dir = optarg;
+            break;
+        case 'i':
+            insecure = 1;
             break;
         case '?':
         default:
@@ -188,13 +220,29 @@ int main(int argc, char *const *argv)
     }
 
     if (s2n_config_set_status_request_type(config, type) < 0) {
-        print_s2n_error("Error setting status request type");
+        print_s2n_error("OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
         exit(1);
     }
 
-    if (s2n_config_set_verify_cert_chain_cb(config, accept_all_rsa_certs, NULL) < 0) {
-        print_s2n_error("Error setting Cert Chain Callback");
-        exit(1);
+    if (s2n_config_set_verify_host_callback(config, unsafe_verify_host, &unsafe_verify_data) < 0) {
+        print_s2n_error("Error setting host name verification function.");
+    }
+
+    if (type == S2N_STATUS_REQUEST_OCSP) {
+        if(s2n_config_set_check_stapled_ocsp_response(config, 1)) {
+            print_s2n_error("OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
+        }
+    }
+
+    unsafe_verify_data.trusted_host = host;
+
+    if (ca_file || ca_dir) {
+        if (s2n_config_set_verification_ca_location(config, ca_file, ca_dir) < 0) {
+            print_s2n_error("Error setting CA file for trust store.");
+        }
+    }
+    else if (insecure) {
+        s2n_config_disable_x509_verification(config);
     }
 
     if (alpn_protocols) {

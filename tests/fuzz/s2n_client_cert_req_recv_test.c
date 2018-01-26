@@ -51,9 +51,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
     for(int i = 0; i < sizeof(TLS_VERSIONS); i++){
         /* Setup */
+        struct s2n_config *client_config = s2n_config_new();
+        s2n_config_disable_x509_verification(client_config);
         struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
         notnull_check(client_conn);
         client_conn->actual_protocol_version = TLS_VERSIONS[i];
+        s2n_connection_set_config(client_conn, client_config);
         GUARD(s2n_stuffer_write_bytes(&client_conn->handshake.io, buf, len));
 
         /* Run Test
@@ -63,6 +66,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 
         /* Cleanup */
         GUARD(s2n_connection_free(client_conn));
+        GUARD(s2n_config_free(client_config));
     }
 
     return 0;

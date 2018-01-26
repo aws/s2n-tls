@@ -99,12 +99,12 @@ int main(int argc, char **argv)
 
     EXPECT_NOT_NULL(client_config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(client_config, cert_chain_pem, private_key_pem));
-    EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, &accept_all_rsa_certs, NULL));
+    EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_OPTIONAL));
 
     /* Server requires optional client auth and accepts the client cert. */
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_OPTIONAL));
-    EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(server_config, &accept_all_rsa_certs, NULL));
+    EXPECT_SUCCESS(s2n_config_disable_x509_verification(server_config));
 
     /* Verify that a handshake succeeds for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
@@ -170,12 +170,12 @@ int main(int argc, char **argv)
      */
 
     EXPECT_NOT_NULL(client_config = s2n_config_new());
-    EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, &accept_all_rsa_certs, NULL));
+    EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_OPTIONAL));
 
     /* Server requires optional client auth and accepts the client cert. */
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_OPTIONAL));
-    EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(server_config, &accept_all_rsa_certs, NULL));
+    EXPECT_SUCCESS(s2n_config_disable_x509_verification(server_config));
 
     /* Verify that a handshake succeeds for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
@@ -237,12 +237,12 @@ int main(int argc, char **argv)
 
     EXPECT_NOT_NULL(client_config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(client_config, cert_chain_pem, private_key_pem));
-    EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, &accept_all_rsa_certs, NULL));
+    EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_REQUIRED));
 
     /* Server requires no client auth but the connection will. */
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_NONE));
-    EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(server_config, &accept_all_rsa_certs, NULL));
+    EXPECT_SUCCESS(s2n_config_disable_x509_verification(server_config));
 
     /* Verify that a handshake succeeds for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
@@ -314,12 +314,12 @@ int main(int argc, char **argv)
      */
 
     EXPECT_NOT_NULL(client_config = s2n_config_new());
-    EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, &accept_all_rsa_certs, NULL));
+    EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_REQUIRED));
 
     /* Server requires client auth but the connection will allow an empty client cert. */
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
-    EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(server_config, &accept_all_rsa_certs, NULL));
+    EXPECT_SUCCESS(s2n_config_disable_x509_verification(server_config));
 
     /* Verify that a handshake succeeds for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
@@ -394,12 +394,19 @@ int main(int argc, char **argv)
 
     EXPECT_NOT_NULL(client_config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(client_config, cert_chain_pem, private_key_pem));
-    EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(client_config, &accept_all_rsa_certs, NULL));
+    EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_OPTIONAL));
 
-    /* Server requires optional client auth but will reject the client cert. */
+    /* Server requires optional client auth but will reject the client cert. We need to reset the config, to turn validation back on*/
+    s2n_config_free(server_config);
+    server_config = s2n_config_new();
+    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain_pem, private_key_pem));
+    EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
+    EXPECT_NOT_NULL(default_cipher_preferences = server_config->cipher_preferences);
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_OPTIONAL));
-    EXPECT_SUCCESS(s2n_config_set_verify_cert_chain_cb(server_config, &deny_all_certs, NULL));
 
     /* Verify that a handshake fails for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {

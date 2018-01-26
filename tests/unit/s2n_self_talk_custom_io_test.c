@@ -92,7 +92,7 @@ int mock_client(int writefd, int readfd)
 
     conn = s2n_connection_new(S2N_CLIENT);
     client_config = s2n_config_new();
-    s2n_config_set_verify_cert_chain_cb(client_config, accept_all_rsa_certs, NULL);
+    s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(conn, client_config);
 
     // Unlike the server, the client just passes ownership of I/O to s2n

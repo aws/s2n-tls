@@ -35,6 +35,7 @@ struct client_hello_context {
 int mock_client(int writefd, int readfd, int expect_failure)
 {
     struct s2n_connection *conn;
+    struct s2n_config *config;
     s2n_blocked_status blocked;
     int result = 0;
     int rc = 0;
@@ -43,6 +44,9 @@ int mock_client(int writefd, int readfd, int expect_failure)
     sleep(1);
 
     conn = s2n_connection_new(S2N_CLIENT);
+    config = s2n_config_new();
+    s2n_config_disable_x509_verification(config);
+    s2n_connection_set_config(conn, config);
     conn->server_protocol_version = S2N_TLS12;
     conn->client_protocol_version = S2N_TLS12;
     conn->actual_protocol_version = S2N_TLS12;
@@ -79,6 +83,7 @@ int mock_client(int writefd, int readfd, int expect_failure)
     }
 
     s2n_connection_free(conn);
+    s2n_config_free(config);
 
     /* Give the server a chance to a void a sigpipe */
     sleep(1);
@@ -283,7 +288,7 @@ int main(int argc, char **argv)
     /* s2n_negotiate will fail, which ordinarily would delay with a sleep.
      * Remove the sleep and fake the delay with a mock time routine */
     EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
-    EXPECT_SUCCESS(s2n_config_set_nanoseconds_since_epoch_callback(config, mock_nanoseconds_since_epoch, NULL));
+    EXPECT_SUCCESS(s2n_config_set_monotonic_clock(config, mock_nanoseconds_since_epoch, NULL));
 
     /* Set up the connection to read from the fd */
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));

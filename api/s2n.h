@@ -55,7 +55,12 @@ extern struct s2n_config *s2n_config_new(void);
 extern int s2n_config_free(struct s2n_config *config);
 extern int s2n_config_free_dhparams(struct s2n_config *config);
 extern int s2n_config_free_cert_chain_and_key(struct s2n_config *config);
-extern int s2n_config_set_nanoseconds_since_epoch_callback(struct s2n_config *config, int (*nanoseconds_since_epoch)(void *, uint64_t *), void * data);
+
+
+typedef int (*s2n_clock_time_nanoseconds) (void *, uint64_t *);
+extern int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx);
+extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx);
+
 extern const char *s2n_strerror(int error, const char *lang);
 extern const char *s2n_strerror_debug(int error, const char *lang);
 
@@ -76,6 +81,14 @@ typedef enum {
 } s2n_max_frag_len;
 
 extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem);
+extern int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_file_pem, const char *ca_dir);
+
+typedef uint8_t (*s2n_verify_host_fn) (const char *host_name, size_t host_name_len, void *data);
+/* will be inherited by s2n_connection. If s2n_connection specifies a callback, that callback will be used for that connection. */
+extern int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_verify_host_fn, void *data);
+
+extern int s2n_config_set_check_stapled_ocsp_response(struct s2n_config *config, uint8_t check_ocsp);
+extern int s2n_config_disable_x509_verification(struct s2n_config *config);
 
 extern int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem);
 extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
@@ -122,6 +135,9 @@ extern int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_send_fn s
 
 extern int s2n_connection_prefer_throughput(struct s2n_connection *conn);
 extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn);
+
+/* If you don't want to use the configuration wide callback, you can set this per connection and it will be honored. */
+extern int s2n_connection_set_verify_host_callback(struct s2n_connection *config, s2n_verify_host_fn host_fn, void *data);
 
 typedef enum { S2N_BUILT_IN_BLINDING, S2N_SELF_SERVICE_BLINDING } s2n_blinding;
 extern int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blinding);
@@ -180,11 +196,6 @@ typedef struct s2n_pkey s2n_cert_public_key;
 typedef struct s2n_pkey s2n_cert_private_key;
 
 extern int s2n_cert_public_key_set_rsa_from_openssl(s2n_cert_public_key *cert_pub_key, RSA *openssl_rsa);
-
-/* Not intended for general consumption. Use at your own risk. */
-typedef s2n_cert_validation_code verify_cert_trust_chain_fn(struct s2n_connection *conn, uint8_t *der_cert_chain_in, uint32_t cert_chain_len, s2n_cert_type *cert_type, s2n_cert_public_key *public_key_out, void *context);
-
-extern int s2n_config_set_verify_cert_chain_cb(struct s2n_config *config, verify_cert_trust_chain_fn *callback, void *context);
 
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);
 extern uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn);

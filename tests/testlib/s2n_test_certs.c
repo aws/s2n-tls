@@ -50,3 +50,4 @@ int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size)
 
     return 0;
 }
+

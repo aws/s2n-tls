@@ -43,6 +43,7 @@ void s2n_print_connection(struct s2n_connection *conn, const char *marker);
  */
 #define S2N_RSA_2048_PKCS8_CERT_CHAIN   "../pems/rsa_2048_pkcs8_cert.pem"
 #define S2N_RSA_2048_PKCS1_CERT_CHAIN   "../pems/rsa_2048_pkcs1_cert.pem"
+
 #define S2N_RSA_2048_PKCS1_LEAF_CERT    "../pems/rsa_2048_pkcs1_leaf.pem"
 #define S2N_ECDSA_P384_PKCS1_CERT_CHAIN "../pems/ecdsa_p384_pkcs1_cert.pem"
 #define S2N_RSA_CERT_CHAIN_CRLF         "../pems/rsa_2048_pkcs1_cert_crlf.pem"
@@ -50,6 +51,8 @@ void s2n_print_connection(struct s2n_connection *conn, const char *marker);
 #define S2N_ECDSA_P384_PKCS1_KEY        "../pems/ecdsa_p384_pkcs1_key.pem"
 #define S2N_RSA_2048_PKCS1_KEY          "../pems/rsa_2048_pkcs1_key.pem"
 #define S2N_RSA_2048_PKCS8_KEY          "../pems/rsa_2048_pkcs8_key.pem"
+
+#define S2N_RSA_2048_SHA256_CLIENT_CERT "../pems/rsa_2048_sha256_client_cert.pem"
 
 /* "Strangely" formatted PEMs that should still parse successfully */
 #define S2N_LEAF_WHITESPACE_CERT_CHAIN         "../pems/rsa_2048_leaf_whitespace_cert.pem"
@@ -70,6 +73,14 @@ void s2n_print_connection(struct s2n_connection *conn, const char *marker);
 #define S2N_INVALID_TRAILER_KEY         "../pems/rsa_2048_invalid_trailer_key.pem"
 #define S2N_UNKNOWN_KEYWORD_KEY         "../pems/rsa_2048_unknown_keyword_key.pem"
 
+/* OCSP Stapled Response Testing files */
+#define S2N_OCSP_SERVER_CERT            "../pems/ocsp/server_cert.pem"
+#define S2N_OCSP_SERVER_KEY             "../pems/ocsp/server_key.pem"
+#define S2N_OCSP_CA_CERT                "../pems/ocsp/ca_cert.pem"
+#define S2N_OCSP_CA_KEY                 "../pems/ocsp/ca_key.pem"
+#define S2N_OCSP_RESPONSE_DER           "../pems/ocsp/ocsp_response.der"
+#define S2N_OCSP_RESPONSE_CERT           "../pems/ocsp/ocsp_cert.pem"
+
 #define S2N_DHPARAMS_2048 "../pems/dhparams_2048.pem"
 
 #define S2N_DEFAULT_TEST_CERT_CHAIN  S2N_RSA_2048_PKCS1_CERT_CHAIN
@@ -80,3 +91,5 @@ void s2n_print_connection(struct s2n_connection *conn, const char *marker);
 /* Read a cert given a path into pem_out */
 int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size);
 
+int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn);
+int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn);

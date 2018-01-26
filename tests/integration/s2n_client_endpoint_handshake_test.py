@@ -33,7 +33,7 @@ well_known_endpoints = [
     ]
 
 def print_result(result_prefix, return_code):
-    print(result_prefix, end='')
+    print(result_prefix, end="")
     if return_code == 0:
         if sys.stdout.isatty():
             print("\033[32;1mPASSED\033[0m")
@@ -46,13 +46,13 @@ def print_result(result_prefix, return_code):
             print("FAILED")
 
 def try_client_handshake(endpoint):
-    s2nc_cmd = ["../../bin/s2nc", "-a", "http/1.1", str(endpoint)]
+    s2nc_cmd = ["../../bin/s2nc", "-f",  "./trust-store/ca-bundle.crt", "-a", "http/1.1", str(endpoint)]
 
     # Add S2N_ENABLE_CLIENT_MODE to env variables
     envVars = os.environ.copy()
     envVars["S2N_ENABLE_CLIENT_MODE"] = "1"
-
-    s2nc = subprocess.Popen(s2nc_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, env=envVars)
+    currentDir = os.path.dirname(os.path.realpath(__file__))
+    s2nc = subprocess.Popen(s2nc_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, env=envVars, cwd=currentDir)
 
     found = 0
     for line in range(0, 10):
@@ -104,3 +104,4 @@ def main(argv):
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
+

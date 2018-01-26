@@ -176,8 +176,13 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     GUARD(s2n_connection_set_write_fd(server_conn, -1));
 
     /* Set up Client Connection */
+    struct s2n_config *client_config = s2n_config_new();
+    notnull_check(client_config);
+    s2n_config_disable_x509_verification(client_config);
+
     struct s2n_connection *client_conn;
     notnull_check(client_conn = s2n_connection_new(S2N_CLIENT));
+    GUARD(s2n_connection_set_config(client_conn, client_config));
     GUARD(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
     /* Write data to client out file descriptor so that it is received by the server */
@@ -206,6 +211,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     GUARD(s2n_config_free(server_config));
     GUARD(s2n_connection_free(server_conn));
     GUARD(s2n_connection_free(client_conn));
+    GUARD(s2n_config_free(client_config));
 
     return 0;
 }

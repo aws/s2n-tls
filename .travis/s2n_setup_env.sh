@@ -35,7 +35,7 @@
 : "${OPENSSL_1_1_0_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.1.0}"
 : "${OPENSSL_1_0_2_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.0.2}"
 : "${OPENSSL_1_0_2_FIPS_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.0.2-fips}"
-: "${LIBRESSL_INSTALL_DIR:=$(pwd)/test-deps/libressl}"
+: "${LIBRESSL_INSTALL_DIR:=$(pwd)/test-deps/libressl-2.6.4}"
 : "${CPPCHECK_INSTALL_DIR:=$(pwd)/test-deps/cppcheck}"
 : "${CTVERIF_INSTALL_DIR:=$(pwd)/test-deps/ctverif}"
 : "${SIDEWINDER_INSTALL_DIR:=$(pwd)/test-deps/sidewinder}"

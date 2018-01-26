@@ -48,7 +48,7 @@ static int s2n_serialize_resumption_state(struct s2n_connection *conn, struct s2
     }
 
     /* Get the time */
-    GUARD(conn->config->nanoseconds_since_epoch(conn->config->data_for_nanoseconds_since_epoch, &now));
+    GUARD(conn->config->monotonic_clock(conn->config->monotonic_clock_ctx, &now));
 
     /* Write the entry */
     GUARD(s2n_stuffer_write_uint8(to, S2N_SERIALIZED_FORMAT_VERSION));
@@ -86,7 +86,7 @@ static int s2n_deserialize_resumption_state(struct s2n_connection *conn, struct 
         return -1;
     }
 
-    GUARD(conn->config->nanoseconds_since_epoch(conn->config->data_for_nanoseconds_since_epoch, &now));
+    GUARD(conn->config->monotonic_clock(conn->config->monotonic_clock_ctx, &now));
 
     GUARD(s2n_stuffer_read_uint64(from, &then));
     if (then > now) {

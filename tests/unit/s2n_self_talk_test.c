@@ -35,12 +35,16 @@ void mock_client(int writefd, int readfd)
 {
     char buffer[0xffff];
     struct s2n_connection *conn;
+    struct s2n_config *config;
     s2n_blocked_status blocked;
 
     /* Give the server a chance to listen */
     sleep(1);
 
     conn = s2n_connection_new(S2N_CLIENT);
+    config = s2n_config_new();
+    s2n_config_disable_x509_verification(config);
+    s2n_connection_set_config(conn, config);
     conn->server_protocol_version = S2N_TLS12;
     conn->client_protocol_version = S2N_TLS12;
     conn->actual_protocol_version = S2N_TLS12;
@@ -64,6 +68,7 @@ void mock_client(int writefd, int readfd)
     }
 
     s2n_connection_free(conn);
+    s2n_config_free(config);
 
     /* Give the server a chance to a void a sigpipe */
     sleep(1);

@@ -227,15 +227,18 @@ int cache_delete(void *ctx, const void *key, uint64_t key_size)
     return 0;
 }
 
+/*
+ * Since this is a server, and the mechanism for hostname verification is not defined for this use-case,
+ * allow any hostname through. If you are writing something with mutual auth and you have a scheme for verifying
+ * the client (e.g. a reverse DNS lookup), you would plug that in here.
+ */
+static uint8_t unsafe_verify_host_fn(const char *host_name, size_t host_name_len, void *data) {
+    return 1;
+}
+
 extern void print_s2n_error(const char *app_error);
 extern int echo(struct s2n_connection *conn, int sockfd);
 extern int negotiate(struct s2n_connection *conn);
-extern s2n_cert_validation_code accept_all_rsa_certs(struct s2n_connection *conn,
-        uint8_t *cert_chain_in,
-        uint32_t cert_chain_len,
-        s2n_cert_type *cert_type_out,
-        s2n_cert_public_key *public_key_out,
-        void *context);
 
 /* Caller is expected to free the memory returned. */
 static char *load_file_to_cstring(const char *path)
@@ -318,6 +321,14 @@ void usage()
     fprintf(stderr, "  --self-service-blinding\n");
     fprintf(stderr, "    Don't introduce 10-30 second delays on TLS Handshake errors. \n");
     fprintf(stderr, "    Warning: this should only be used for testing since skipping blinding may allow timing side channels.\n");
+    fprintf(stderr, "  -t,--ca-file [file path]\n");
+    fprintf(stderr, "    Location of trust store CA file (PEM format). If neither -t or -d are specified. System defaults will be used.");
+    fprintf(stderr, "    This option is only used if mutual auth is enabled.\n");
+    fprintf(stderr, "  -d,--ca-dir [directory path]\n");
+    fprintf(stderr, "    Directory containing hashed trusted certs. If neither -t or -d are specified. System defaults will be used.");
+    fprintf(stderr, "    This option is only used if mutual auth is enabled.\n");
+    fprintf(stderr, "  -i,--insecure\n");
+    fprintf(stderr, "    Turns off certification validation altogether.\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -332,6 +343,9 @@ struct conn_settings {
     int prefer_throughput;
     int prefer_low_latency;
     int enable_mfl;
+    const char *ca_dir;
+    const char *ca_file;
+    int insecure;
 };
 
 int handle_connection(int fd, struct s2n_config *config, struct conn_settings settings)
@@ -348,8 +362,20 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
 
     if (settings.mutual_auth) {
         s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED);
-        /* Use an unsafe verification function until we support default x509 verification */
-        s2n_config_set_verify_cert_chain_cb(config, &accept_all_rsa_certs, NULL);
+
+        if (settings.ca_dir || settings.ca_file) {
+            if (s2n_config_set_verification_ca_location(config, settings.ca_file, settings.ca_dir) < 0) {
+                print_s2n_error("Error adding verify location");
+                exit(1);
+            }
+        }
+
+        if (settings.insecure) {
+            if (s2n_config_disable_x509_verification(config) < 0) {
+                print_s2n_error("Error disabling X.509 validation");
+                exit(1);
+            }
+        }
     }
 
     if (s2n_connection_set_config(conn, config) < 0) {
@@ -375,7 +401,7 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
     negotiate(conn);
 
     if (settings.mutual_auth) {
-        if(!s2n_connection_client_cert_used(conn)) {
+        if (!s2n_connection_client_cert_used(conn)) {
             print_s2n_error("Error: Mutual Auth was required, but not negotiatied");
             return -1;
         }
@@ -433,12 +459,15 @@ int main(int argc, char *const *argv)
         {"prefer-throughput", no_argument, NULL, 'p'},
         {"cert", required_argument, NULL, 'r'},
         {"self-service-blinding", no_argument, NULL, 's'},
+        {"ca-dir", required_argument, 0, 'd'},
+        {"ca-file", required_argument, 0, 't'},
+        {"insecure", no_argument, 0, 'i'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hmns", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmnst:d:i", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -483,6 +512,15 @@ int main(int argc, char *const *argv)
         case 's':
             conn_settings.self_service_blinding = 1;
             break;
+        case 'd':
+            conn_settings.ca_dir = optarg;
+            break;
+        case 't':
+            conn_settings.ca_file = optarg;
+            break;
+        case 'i':
+            conn_settings.insecure = 1;
+                break;
         case '?':
         default:
             fprintf(stdout, "getopt_long returned: %d", c);
@@ -668,6 +706,11 @@ int main(int argc, char *const *argv)
 
     if (conn_settings.enable_mfl && s2n_config_accept_max_fragment_length(config) < 0) {
         print_s2n_error("Error enabling TLS maximum fragment length extension in server");
+        exit(1);
+    }
+
+    if (s2n_config_set_verify_host_callback(config, unsafe_verify_host_fn, NULL)) {
+        print_s2n_error("Failure to set hostname verification callback.");
         exit(1);
     }
 
