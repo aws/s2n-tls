@@ -58,7 +58,7 @@ uint8_t s2n_x509_trust_store_has_certs(struct s2n_x509_trust_store *store) {
 }
 
 int s2n_x509_trust_store_from_system_defaults(struct s2n_x509_trust_store *store) {
-    if(!store->trust_store) {
+    if (!store->trust_store) {
         store->trust_store = X509_STORE_new();
     }
 
@@ -76,7 +76,7 @@ int s2n_x509_trust_store_from_system_defaults(struct s2n_x509_trust_store *store
 
 int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const char *ca_file, const char *path) {
 
-    if(!store->trust_store) {
+    if (!store->trust_store) {
         store->trust_store = X509_STORE_new();
     }
 
@@ -266,12 +266,12 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 
     if (!validator->skip_cert_validation) {
         X509 *leaf = sk_X509_value(validator->cert_chain, 0);
-        if(!leaf) {
+        if (!leaf) {
             err_code = S2N_CERT_ERR_INVALID;
             goto clean_up;
         }
 
-        if(conn->verify_host_fn && !verify_host_information(validator, conn, leaf)) {
+        if (conn->verify_host_fn && !verify_host_information(validator, conn, leaf)) {
             err_code = S2N_CERT_ERR_UNTRUSTED;
             goto clean_up;
         }

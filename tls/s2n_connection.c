@@ -437,7 +437,7 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
     notnull_check(conn);
     notnull_check(config);
 
-    if(conn->config == config) {
+    if (conn->config == config) {
         return 0;
     }
     else {
@@ -446,18 +446,18 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
 
     s2n_cert_auth_type auth_type = config->client_cert_auth_type;
 
-    if(conn->client_cert_auth_type_overridden) {
+    if (conn->client_cert_auth_type_overridden) {
         auth_type = conn->client_cert_auth_type;
     }
 
     int8_t dont_need_x509_validation = (conn->mode == S2N_SERVER) && (auth_type == S2N_CERT_AUTH_NONE);
 
-    if(config->disable_x509_validation || dont_need_x509_validation) {
+    if (config->disable_x509_validation || dont_need_x509_validation) {
         GUARD(s2n_x509_validator_init_no_x509_validation(&conn->x509_validator));
     }
     else {
         GUARD(s2n_x509_validator_init(&conn->x509_validator, &config->trust_store, config->check_ocsp));
-        if(!conn->verify_host_fn_overridden) {
+        if (!conn->verify_host_fn_overridden) {
             conn->verify_host_fn = config->verify_host;
             conn->data_for_verify_host = config->data_for_verify_host;
         }
@@ -645,7 +645,7 @@ int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_au
     notnull_check(conn);
     notnull_check(client_cert_auth_type);
 
-    if(conn->client_cert_auth_type_overridden) {
+    if (conn->client_cert_auth_type_overridden) {
         *client_cert_auth_type = conn->client_cert_auth_type;
     } else {
         *client_cert_auth_type = conn->config->client_cert_auth_type;
@@ -959,7 +959,7 @@ int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
   SEND:
     errno = 0;
     int w = conn->send(conn->send_io_context, stuffer->blob.data + stuffer->read_cursor, len);
-    if(w < 0) {
+    if (w < 0) {
         if (errno == EINTR) {
             goto SEND;
         }

@@ -93,7 +93,7 @@ static parser_state process_state(parser_state state, char current_char, struct 
             char_to_digit(current_char, args->current_digit);
             args->time.tm_year = args->time.tm_year * 10 + args->current_digit;
             args->time.tm_year -= 1900;
-            if(args->time.tm_year < 0) {
+            if (args->time.tm_year < 0) {
                 return PARSE_ERROR;
             }
 
@@ -107,7 +107,7 @@ static parser_state process_state(parser_state state, char current_char, struct 
             args->time.tm_mon = args->time.tm_mon * 10 + args->current_digit;
             args->time.tm_mon -= 1;
 
-            if(args->time.tm_mon < 0 || args->time.tm_mon > 11) {
+            if (args->time.tm_mon < 0 || args->time.tm_mon > 11) {
                 return PARSE_ERROR;
             }
 
@@ -120,7 +120,7 @@ static parser_state process_state(parser_state state, char current_char, struct 
             char_to_digit(current_char, args->current_digit);
             args->time.tm_mday = args->time.tm_mday * 10 + args->current_digit;
 
-            if(args->time.tm_mday < 0 || args->time.tm_mday > 31) {
+            if (args->time.tm_mday < 0 || args->time.tm_mday > 31) {
                 return PARSE_ERROR;
             }
 
@@ -133,7 +133,7 @@ static parser_state process_state(parser_state state, char current_char, struct 
             char_to_digit(current_char, args->current_digit);
             args->time.tm_hour = args->time.tm_hour * 10 + args->current_digit;
 
-            if(args->time.tm_hour < 0 || args->time.tm_hour > 23) {
+            if (args->time.tm_hour < 0 || args->time.tm_hour > 23) {
                 return PARSE_ERROR;
             }
 
@@ -146,7 +146,7 @@ static parser_state process_state(parser_state state, char current_char, struct 
             char_to_digit(current_char, args->current_digit);
             args->time.tm_min = args->time.tm_min * 10 + args->current_digit;
 
-            if(args->time.tm_min < 0 || args->time.tm_min > 59) {
+            if (args->time.tm_min < 0 || args->time.tm_min > 59) {
                 return PARSE_ERROR;
             }
 
@@ -159,7 +159,7 @@ static parser_state process_state(parser_state state, char current_char, struct 
             char_to_digit(current_char, args->current_digit);
             args->time.tm_sec = args->time.tm_sec * 10 + args->current_digit;
 
-            if(args->time.tm_sec < 0 || args->time.tm_sec > 59) {
+            if (args->time.tm_sec < 0 || args->time.tm_sec > 59) {
                 return PARSE_ERROR;
             }
 
@@ -192,7 +192,7 @@ static parser_state process_state(parser_state state, char current_char, struct 
             char_to_digit(current_char, args->current_digit);
             args->offset_hours = args->offset_hours * 10 + args->current_digit;
 
-            if(args->offset_hours < 0 || args->offset_hours > 23) {
+            if (args->offset_hours < 0 || args->offset_hours > 23) {
                 return PARSE_ERROR;
             }
 
@@ -205,7 +205,7 @@ static parser_state process_state(parser_state state, char current_char, struct 
             char_to_digit(current_char, args->current_digit);
             args->offset_minutes = args->offset_minutes * 10 + args->current_digit;
 
-            if(args->offset_minutes < 0 || args->offset_minutes > 23) {
+            if (args->offset_minutes < 0 || args->offset_minutes > 23) {
                 return PARSE_ERROR;
             }
 
@@ -245,7 +245,7 @@ int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len,
     }
 
     /* state on subsecond means no timezone info was found and we assume local time */
-    if(state == FINISHED || state == ON_SUBSECOND) {
+    if (state == FINISHED || state == ON_SUBSECOND) {
 
         time_t clock_data = 0;
         /* ASN1 + and - is in format HHMM. We need to convert it to seconds for the adjustment */

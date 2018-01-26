@@ -363,15 +363,15 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
     if (settings.mutual_auth) {
         s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED);
 
-        if(settings.ca_dir || settings.ca_file) {
-            if(s2n_config_set_verification_ca_location(config, settings.ca_file, settings.ca_dir) < 0) {
+        if (settings.ca_dir || settings.ca_file) {
+            if (s2n_config_set_verification_ca_location(config, settings.ca_file, settings.ca_dir) < 0) {
                 print_s2n_error("Error adding verify location");
                 exit(1);
             }
         }
 
-        if(settings.insecure) {
-            if(s2n_config_disable_x509_verification(config) < 0) {
+        if (settings.insecure) {
+            if (s2n_config_disable_x509_verification(config) < 0) {
                 print_s2n_error("Error disabling X.509 validation");
                 exit(1);
             }
@@ -401,7 +401,7 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
     negotiate(conn);
 
     if (settings.mutual_auth) {
-        if(!s2n_connection_client_cert_used(conn)) {
+        if (!s2n_connection_client_cert_used(conn)) {
             print_s2n_error("Error: Mutual Auth was required, but not negotiatied");
             return -1;
         }

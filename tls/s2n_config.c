@@ -149,7 +149,7 @@ static int s2n_config_cleanup(struct s2n_config *config) {
 }
 
 struct s2n_config *s2n_fetch_default_config(void) {
-    if(!default_config_init) {
+    if (!default_config_init) {
         s2n_config_init(&s2n_default_config);
         s2n_default_config.cert_and_key_pairs = NULL;
         s2n_default_config.cipher_preferences = &cipher_preferences_20170210;
@@ -163,7 +163,7 @@ struct s2n_config *s2n_fetch_default_config(void) {
 }
 
 struct s2n_config *s2n_fetch_default_fips_config(void) {
-    if(!default_fips_config_init) {
+    if (!default_fips_config_init) {
         s2n_config_init(&s2n_default_fips_config);
         s2n_default_fips_config.cert_and_key_pairs = NULL;
         s2n_default_fips_config.cipher_preferences = &cipher_preferences_20170405;
@@ -175,7 +175,7 @@ struct s2n_config *s2n_fetch_default_fips_config(void) {
 }
 
 struct s2n_config *s2n_fetch_unsafe_client_testing_config(void) {
-    if(!unsafe_client_testing_config_init) {
+    if (!unsafe_client_testing_config_init) {
         s2n_config_init(&s2n_unsafe_client_testing_config);
         s2n_unsafe_client_testing_config.cert_and_key_pairs = NULL;
         s2n_unsafe_client_testing_config.cipher_preferences = &cipher_preferences_20170210;
@@ -190,7 +190,7 @@ struct s2n_config *s2n_fetch_unsafe_client_testing_config(void) {
 }
 
 struct s2n_config *s2n_fetch_default_client_config(void) {
-    if(!default_client_config_init) {
+    if (!default_client_config_init) {
         s2n_config_init(&default_client_config);
         default_client_config.cert_and_key_pairs = NULL;
         default_client_config.cipher_preferences = &cipher_preferences_20170210;
@@ -203,18 +203,18 @@ struct s2n_config *s2n_fetch_default_client_config(void) {
 }
 
 void s2n_wipe_static_configs(void) {
-    if(default_client_config_init) {
+    if (default_client_config_init) {
         s2n_config_cleanup(&default_client_config);
         default_client_config_init = 0;
     }
 
-    if(unsafe_client_testing_config_init) {
+    if (unsafe_client_testing_config_init) {
         s2n_config_cleanup(&s2n_unsafe_client_testing_config);
         unsafe_client_testing_config_init = 0;
     }
 
 
-    if(default_fips_config_init) {
+    if (default_fips_config_init) {
         s2n_config_cleanup(&s2n_default_fips_config);
         default_fips_config_init = 0;
     }
@@ -374,7 +374,7 @@ int s2n_config_disable_x509_verification(struct s2n_config *config) {
 
 int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_request_type type)
 {
-    if(type == S2N_STATUS_REQUEST_OCSP && !s2n_x509_ocsp_stapling_supported()) {
+    if (type == S2N_STATUS_REQUEST_OCSP && !s2n_x509_ocsp_stapling_supported()) {
         return -1;
     }
 
@@ -388,7 +388,7 @@ int s2n_config_set_verification_ca_location(struct s2n_config *config, const cha
     notnull_check(config);
     int err_code = s2n_x509_trust_store_from_ca_file(&config->trust_store, ca_file_pem, ca_dir);
 
-    if(!err_code) {
+    if (!err_code) {
         config->status_request_type = s2n_x509_ocsp_stapling_supported() ? S2N_STATUS_REQUEST_OCSP : S2N_STATUS_REQUEST_NONE;
     }
 

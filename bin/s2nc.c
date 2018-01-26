@@ -70,7 +70,7 @@ static uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, v
     struct verify_data *verify_data = (struct verify_data *)data;
 
     char *offset = strstr(host_name, "*.");
-    if(offset) {
+    if (offset) {
         return (uint8_t)(strcasecmp(verify_data->trusted_host, offset + 2) == 0);
     }
 
@@ -237,7 +237,7 @@ int main(int argc, char *const *argv)
     unsafe_verify_data.trusted_host = host;
 
     if (ca_file || ca_dir) {
-        if(s2n_config_set_verification_ca_location(config, ca_file, ca_dir) < 0) {
+        if (s2n_config_set_verification_ca_location(config, ca_file, ca_dir) < 0) {
             print_s2n_error("Error setting CA file for trust store.");
         }
     }
