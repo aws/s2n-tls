@@ -46,7 +46,7 @@ typedef enum parser_state {
 
 static inline long get_gmt_offset(struct tm *time) {
 
-#if defined(__USE_BSD)
+#if defined(__USE_BSD) || defined(__APPLE__) && defined(__MACH__)
     return time->tm_gmtoff;
 #else
     return time->__tm_gmtoff;
