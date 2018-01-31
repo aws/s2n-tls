@@ -85,12 +85,16 @@ def print_result(result_prefix, return_code):
 def check_sslyze_results(scan_output_location):
     json_obj = json.load(open(scan_output_location))
     scan_time = json_obj["total_scan_time"]
-    robot_result = json_obj["accepted_targets"][0]["commands_results"]["robot"]["robot_result_enum"]
+    robot_result = json_obj["accepted_targets"][0]["commands_results"]["robot"]
+
+    if("error_message" in robot_result):
+        print_result("SSLyze Error: " + robot_result["error_message"] + " ", 1)
+        return 1
     
     failures = 0
     robot_attack_failure = 0
     
-    if(robot_result != "NOT_VULNERABLE_NO_ORACLE"):
+    if(robot_result["robot_result_enum"] != "NOT_VULNERABLE_NO_ORACLE"):
         robot_attack_failure = 1
         failures += 1
     
