@@ -101,7 +101,8 @@ static int s2n_evp_hmac_p_hash_digest_init(struct s2n_prf_working_space *ws)
         GUARD(s2n_digest_allow_md5_for_fips(&ws->tls.p_hash.evp_hmac.evp_digest));
     }
 
-    S2N_ERROR_IF(EVP_DigestSignInit(ws->tls.p_hash.evp_hmac.evp_digest.ctx, NULL, ws->tls.p_hash.evp_hmac.evp_digest.md, NULL, ws->tls.p_hash.evp_hmac.mac_key) == 0, S2N_ERR_P_HASH_INIT_FAILED);
+    S2N_ERROR_IF(EVP_DigestSignInit(ws->tls.p_hash.evp_hmac.evp_digest.ctx, NULL, ws->tls.p_hash.evp_hmac.evp_digest.md, NULL, ws->tls.p_hash.evp_hmac.mac_key) == 0,
+		 S2N_ERR_P_HASH_INIT_FAILED);
 
     return 0;
 }
