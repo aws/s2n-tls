@@ -136,7 +136,7 @@ int s2n_collect_client_hello(struct s2n_connection *conn, struct s2n_stuffer *so
     return 0;
 }
 
-int s2n_client_hello_recv(struct s2n_connection *conn)
+static int s2n_parse_client_hello(struct s2n_connection *conn)
 {
     GUARD(s2n_collect_client_hello(conn, &conn->handshake.io));
 
@@ -200,19 +200,21 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
         client_hello->extensions.size = extensions_length;
         client_hello->extensions.data = s2n_stuffer_raw_read(in, extensions_length);
         notnull_check(client_hello->extensions.data);
+    }
 
+    return 0;
+}
+
+static int s2n_process_client_hello(struct s2n_connection *conn)
+{
+    struct s2n_client_hello *client_hello = &conn->client_hello;
+
+    if (client_hello->extensions.size > 0) {
         GUARD(s2n_client_extensions_recv(conn, &client_hello->extensions));
     }
 
-    /* Mark the collected client hello as available when parsing over and before the client hello callback */
+    /* Mark the collected client hello as available */
     client_hello->parsed = 1;
-
-    if (conn->config->client_hello_cb) {
-        if (conn->config->client_hello_cb(conn, conn->config->client_hello_cb_ctx) < 0) {
-            GUARD(s2n_queue_reader_handshake_failure_alert(conn));
-            S2N_ERROR(S2N_ERR_CANCELLED);
-        }
-    }
 
     if (conn->client_protocol_version < conn->config->cipher_preferences->minimum_protocol_version) {
         GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
@@ -220,7 +222,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
     }
 
     /* Now choose the ciphers and the cert chain. */
-    GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data, cipher_suites_length / 2));
+    GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
     conn->server->server_cert_chain = conn->config->cert_and_key_pairs;
 
     /* Set the handshake type */
@@ -228,6 +230,26 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 
     /* We've selected the cipher, update the required hashes for this connection */
     GUARD(s2n_conn_update_required_handshake_hashes(conn));
+
+    return 0;
+}
+
+int s2n_client_hello_recv(struct s2n_connection *conn)
+{
+    /* Parse client hello */
+    GUARD(s2n_parse_client_hello(conn));
+
+    /* Call client_hello_cb if exists, letting application to modify s2n_connection or swap s2n_config */
+    if (conn->config->client_hello_cb) {
+        if (conn->config->client_hello_cb(conn, conn->config->client_hello_cb_ctx) < 0) {
+            GUARD(s2n_queue_reader_handshake_failure_alert(conn));
+            S2N_ERROR(S2N_ERR_CANCELLED);
+        }
+    }
+
+    /* Client hello is parsed and config is finalized.
+     * Negotiate protocol version, cipher suite, ALPN, select a cert, etc. */
+    GUARD(s2n_process_client_hello(conn));
 
     return 0;
 }

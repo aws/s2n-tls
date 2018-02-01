@@ -69,7 +69,9 @@ extern int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, int
 extern int s2n_config_set_cache_delete_callback(struct s2n_config *config, int (*cache_delete)(void *, const void *key, uint64_t key_size), void *data);
 
 typedef enum {
+    S2N_EXTENSION_SERVER_NAME = 0,
     S2N_EXTENSION_OCSP_STAPLING = 5,
+    S2N_EXTENSION_ALPN = 16,
     S2N_EXTENSION_CERTIFICATE_TRANSPARENCY = 18,
 } s2n_tls_extension_type;
 
@@ -120,6 +122,8 @@ extern uint32_t s2n_client_hello_get_cipher_suites_length(struct s2n_client_hell
 extern uint32_t s2n_client_hello_get_cipher_suites(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
 extern uint32_t s2n_client_hello_get_extensions_length(struct s2n_client_hello *ch);
 extern uint32_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
+extern uint32_t s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type);
+extern uint32_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type, uint8_t *out, uint32_t max_length);
 
 extern int s2n_connection_set_fd(struct s2n_connection *conn, int fd);
 extern int s2n_connection_set_read_fd(struct s2n_connection *conn, int readfd);

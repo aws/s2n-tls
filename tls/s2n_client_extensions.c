@@ -226,6 +226,64 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
     return 0;
 }
 
+uint32_t s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type)
+{
+    notnull_check(ch);
+    notnull_check(ch->extensions.data);
+
+    struct s2n_stuffer in;
+    GUARD(s2n_stuffer_init(&in, &ch->extensions));
+    GUARD(s2n_stuffer_write(&in, &ch->extensions));
+
+    while (s2n_stuffer_data_available(&in)) {
+        uint16_t ext_type, ext_size;
+
+        GUARD(s2n_stuffer_read_uint16(&in, &ext_type));
+        GUARD(s2n_stuffer_read_uint16(&in, &ext_size));
+
+        if (extension_type == ext_type) {
+            return ext_size;
+        }
+
+        /* Move the pointer ahead */
+        s2n_stuffer_raw_read(&in, ext_size);
+    }
+
+    return 0;
+}
+
+uint32_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type, uint8_t *out, uint32_t max_length)
+{
+    notnull_check(ch);
+    notnull_check(out);
+    notnull_check(ch->extensions.data);
+
+    struct s2n_stuffer in;
+    GUARD(s2n_stuffer_init(&in, &ch->extensions));
+    GUARD(s2n_stuffer_write(&in, &ch->extensions));
+
+    while (s2n_stuffer_data_available(&in)) {
+        struct s2n_blob ext;
+        uint16_t ext_type, ext_size;
+
+        GUARD(s2n_stuffer_read_uint16(&in, &ext_type));
+        GUARD(s2n_stuffer_read_uint16(&in, &ext_size));
+
+        ext.size = ext_size;
+        lte_check(ext_size, s2n_stuffer_data_available(&in));
+        ext.data = s2n_stuffer_raw_read(&in, ext.size);
+        notnull_check(ext.data);
+
+        if (extension_type == ext_type) {
+            uint32_t len = ext.size < max_length ? ext.size : max_length;
+            memcpy_check(out, ext.data, len);
+            return len;
+        }
+    }
+
+    return 0;
+}
+
 static int s2n_recv_client_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     uint16_t size_of_all;
