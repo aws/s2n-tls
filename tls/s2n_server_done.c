@@ -24,9 +24,7 @@
 
 int s2n_server_done_recv(struct s2n_connection *conn)
 {
-    if (s2n_stuffer_data_available(&conn->handshake.io)) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(s2n_stuffer_data_available(&conn->handshake.io), S2N_ERR_BAD_MESSAGE);
 
     return 0;
 }

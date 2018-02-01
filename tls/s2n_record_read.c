@@ -38,9 +38,7 @@ int s2n_sslv2_record_header_parse(struct s2n_connection *conn, uint8_t * record_
 {
     struct s2n_stuffer *in = &conn->header_in;
 
-    if (s2n_stuffer_data_available(in) < S2N_TLS_RECORD_HEADER_LENGTH) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(s2n_stuffer_data_available(in) < S2N_TLS_RECORD_HEADER_LENGTH, S2N_ERR_BAD_MESSAGE);
 
     GUARD(s2n_stuffer_read_uint16(in, fragment_length));
 
@@ -61,9 +59,7 @@ int s2n_record_header_parse(struct s2n_connection *conn, uint8_t * content_type,
 {
     struct s2n_stuffer *in = &conn->header_in;
 
-    if (s2n_stuffer_data_available(in) < S2N_TLS_RECORD_HEADER_LENGTH) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(s2n_stuffer_data_available(in) < S2N_TLS_RECORD_HEADER_LENGTH, S2N_ERR_BAD_MESSAGE);
 
     GUARD(s2n_stuffer_read_uint8(in, content_type));
 
@@ -82,9 +78,7 @@ int s2n_record_header_parse(struct s2n_connection *conn, uint8_t * content_type,
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
-    if (conn->actual_protocol_version_established && conn->actual_protocol_version != version) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(conn->actual_protocol_version_established && conn->actual_protocol_version != version, S2N_ERR_BAD_MESSAGE);
 
     GUARD(s2n_stuffer_read_uint16(in, fragment_length));
 

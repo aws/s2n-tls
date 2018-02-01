@@ -603,9 +603,7 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
 {
     /* See if the cipher is one we support */
     conn->secure.cipher_suite = s2n_cipher_suite_from_wire(wire);
-    if (conn->secure.cipher_suite == NULL) {
-        S2N_ERROR(S2N_ERR_CIPHER_NOT_SUPPORTED);
-    }
+    S2N_ERROR_IF(conn->secure.cipher_suite == NULL, S2N_ERR_CIPHER_NOT_SUPPORTED);
 
     return 0;
 }

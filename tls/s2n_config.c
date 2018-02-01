@@ -312,9 +312,7 @@ int s2n_config_set_protocol_preferences(struct s2n_config *config, const char *c
         size_t length = strlen(protocols[i]);
         uint8_t protocol[255];
 
-        if (length > 255 || (s2n_stuffer_data_available(&protocol_stuffer) + length + 1) > 65535) {
-            S2N_ERROR(S2N_ERR_APPLICATION_PROTOCOL_TOO_LONG);
-        }
+        S2N_ERROR_IF(length > 255 || (s2n_stuffer_data_available(&protocol_stuffer) + length + 1) > 65535, S2N_ERR_APPLICATION_PROTOCOL_TOO_LONG);
         memcpy_check(protocol, protocols[i], length);
         GUARD(s2n_stuffer_write_uint8(&protocol_stuffer, length));
         GUARD(s2n_stuffer_write_bytes(&protocol_stuffer, protocol, length));
@@ -443,9 +441,7 @@ int s2n_config_add_cert_chain_from_stuffer(struct s2n_config *config, struct s2n
      * A bug in s2n's PEM parsing OR a malformed PEM in the user's chain.
      * Be conservative and fail instead of using a partial chain.
      */
-    if (s2n_stuffer_data_available(chain_in_stuffer) > 0) {
-        S2N_ERROR(S2N_ERR_INVALID_PEM);
-    }
+    S2N_ERROR_IF(s2n_stuffer_data_available(chain_in_stuffer) > 0, S2N_ERR_INVALID_PEM);
     config->cert_and_key_pairs->cert_chain.chain_size = chain_size;
 
     return 0;
@@ -642,9 +638,7 @@ int s2n_config_send_max_fragment_length(struct s2n_config *config, s2n_max_frag_
 {
     notnull_check(config);
 
-    if (mfl_code > S2N_TLS_MAX_FRAG_LEN_4096) {
-        S2N_ERROR(S2N_ERR_INVALID_MAX_FRAG_LEN);
-    }
+    S2N_ERROR_IF(mfl_code > S2N_TLS_MAX_FRAG_LEN_4096, S2N_ERR_INVALID_MAX_FRAG_LEN);
 
     config->mfl_code = mfl_code;
 
