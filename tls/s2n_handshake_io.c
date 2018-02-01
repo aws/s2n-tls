@@ -557,6 +557,7 @@ static int handshake_read_io(struct s2n_connection *conn)
      * contain several messages.
      */
     S2N_ERROR_IF(record_type == TLS_APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
+    if(record_type == TLS_CHANGE_CIPHER_SPEC) {
         S2N_ERROR_IF(s2n_stuffer_data_available(&conn->in) != 1, S2N_ERR_BAD_MESSAGE);
 
         GUARD(s2n_stuffer_copy(&conn->in, &conn->handshake.io, s2n_stuffer_data_available(&conn->in)));
