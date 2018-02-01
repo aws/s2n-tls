@@ -130,9 +130,7 @@ static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key
      */
     int ctrl_ret = EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_AEAD_TLS1_AAD, S2N_TLS12_AAD_LEN, ctrl_buf);
 
-    if (ctrl_ret < 0) {
-        S2N_ERROR(S2N_ERR_INITIAL_HMAC);
-    }
+    S2N_ERROR_IF(ctrl_ret < 0, S2N_ERR_INITIAL_HMAC);
 
     *extra = ctrl_ret;
     return 0;
@@ -142,13 +140,9 @@ static int s2n_composite_cipher_aes_sha_encrypt(struct s2n_session_key *key, str
 {
     eq_check(out->size, in->size);
 
-    if (EVP_EncryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data) == 0) {
-        S2N_ERROR(S2N_ERR_KEY_INIT);
-    }
+    S2N_ERROR_IF(EVP_EncryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data) == 0, S2N_ERR_KEY_INIT);
 
-    if (EVP_Cipher(key->evp_cipher_ctx, out->data, in->data, in->size) == 0) {
-        S2N_ERROR(S2N_ERR_ENCRYPT);
-    }
+    S2N_ERROR_IF(EVP_Cipher(key->evp_cipher_ctx, out->data, in->data, in->size) == 0, S2N_ERR_ENCRYPT);
 
     return 0;
 }
@@ -157,13 +151,9 @@ static int s2n_composite_cipher_aes_sha_decrypt(struct s2n_session_key *key, str
 {
     eq_check(out->size, in->size);
 
-    if (EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data) == 0) {
-        S2N_ERROR(S2N_ERR_KEY_INIT);
-    }
+    S2N_ERROR_IF(EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data) == 0, S2N_ERR_KEY_INIT);
 
-    if (EVP_Cipher(key->evp_cipher_ctx, out->data, in->data, in->size) == 0) {
-        S2N_ERROR(S2N_ERR_DECRYPT);
-    }
+    S2N_ERROR_IF(EVP_Cipher(key->evp_cipher_ctx, out->data, in->data, in->size) == 0, S2N_ERR_DECRYPT);
 
     return 0;
 }

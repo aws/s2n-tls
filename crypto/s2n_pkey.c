@@ -98,9 +98,7 @@ int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1d
 
     /* Detect key type */
     EVP_PKEY *evp_private_key = d2i_AutoPrivateKey(NULL, (const unsigned char **)(void *)&key_to_parse, asn1der->size);
-    if (evp_private_key == NULL) {
-        S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
-    }
+    S2N_ERROR_IF(evp_private_key == NULL, S2N_ERR_DECODE_PRIVATE_KEY);
     
     /* If key parsing is successful, d2i_AutoPrivateKey increments *key_to_parse to the byte following the parsed data */
     uint32_t parsed_len = key_to_parse - asn1der->data;
@@ -143,9 +141,7 @@ int s2n_asn1der_to_public_key(struct s2n_pkey *pub_key, struct s2n_blob *asn1der
     uint8_t *cert_to_parse = asn1der->data;
     
     X509 *cert = d2i_X509(NULL, (const unsigned char **)(void *)&cert_to_parse, asn1der->size);
-    if (cert == NULL) {
-        S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
-    }
+    S2N_ERROR_IF(cert == NULL, S2N_ERR_DECODE_CERTIFICATE);
     
     /* If cert parsing is successful, d2i_X509 increments *cert_to_parse to the byte following the parsed data */
     uint32_t parsed_len = cert_to_parse - asn1der->data;
@@ -157,9 +153,7 @@ int s2n_asn1der_to_public_key(struct s2n_pkey *pub_key, struct s2n_blob *asn1der
     EVP_PKEY *evp_public_key = X509_get_pubkey(cert);
     X509_free(cert);
 
-    if (evp_public_key == NULL) {
-        S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
-    }
+    S2N_ERROR_IF(evp_public_key == NULL, S2N_ERR_DECODE_CERTIFICATE);
 
     /* Check for success in decoding certificate according to type */
     int type = EVP_PKEY_base_id(evp_public_key);

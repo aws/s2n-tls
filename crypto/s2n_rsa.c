@@ -101,12 +101,8 @@ static int s2n_rsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *dige
     GUARD(s2n_hash_digest(digest, digest_out, digest_length));
 
     unsigned int signature_size = signature->size;
-    if (RSA_sign(NID_type, digest_out, digest_length, signature->data, &signature_size, key->rsa) == 0) {
-        S2N_ERROR(S2N_ERR_SIGN);
-    }
-    if (signature_size > signature->size) {
-        S2N_ERROR(S2N_ERR_SIZE_MISMATCH);
-    }
+    S2N_ERROR_IF(RSA_sign(NID_type, digest_out, digest_length, signature->data, &signature_size, key->rsa) == 0, S2N_ERR_SIGN);
+    S2N_ERROR_IF(signature_size > signature->size, S2N_ERR_SIZE_MISMATCH);
     signature->size = signature_size;
 
     return 0;
@@ -125,9 +121,7 @@ static int s2n_rsa_verify(const struct s2n_pkey *pub, struct s2n_hash_state *dig
     uint8_t digest_out[S2N_MAX_DIGEST_LEN];
     GUARD(s2n_hash_digest(digest, digest_out, digest_length));
 
-    if (RSA_verify(NID_type, digest_out, digest_length, signature->data, signature->size, key->rsa) == 0) {
-        S2N_ERROR(S2N_ERR_VERIFY_SIGNATURE);
-    }
+    S2N_ERROR_IF(RSA_verify(NID_type, digest_out, digest_length, signature->data, signature->size, key->rsa) == 0, S2N_ERR_VERIFY_SIGNATURE);
 
     return 0;
 }
@@ -136,14 +130,10 @@ static int s2n_rsa_encrypt(const struct s2n_pkey *pub, struct s2n_blob *in, stru
 {
     const s2n_rsa_public_key *key = &pub->key.rsa_key;
     
-    if (out->size < s2n_rsa_public_encrypted_size(key)) {
-        S2N_ERROR(S2N_ERR_NOMEM);
-    }
+    S2N_ERROR_IF(out->size < s2n_rsa_public_encrypted_size(key), S2N_ERR_NOMEM);
 
     int r = RSA_public_encrypt(in->size, (unsigned char *)in->data, (unsigned char *)out->data, key->rsa, RSA_PKCS1_PADDING);
-    if (r != out->size) {
-        S2N_ERROR(S2N_ERR_SIZE_MISMATCH);
-    }
+    S2N_ERROR_IF(r != out->size, S2N_ERR_SIZE_MISMATCH);
 
     return 0;
 }
@@ -153,19 +143,13 @@ static int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, str
     unsigned char intermediate[4096];
     const s2n_rsa_private_key *key = &priv->key.rsa_key;
 
-    if (s2n_rsa_private_encrypted_size(key) > sizeof(intermediate)) {
-        S2N_ERROR(S2N_ERR_NOMEM);
-    }
+    S2N_ERROR_IF(s2n_rsa_private_encrypted_size(key) > sizeof(intermediate), S2N_ERR_NOMEM);
 
-    if (out->size > sizeof(intermediate)) {
-        S2N_ERROR(S2N_ERR_NOMEM);
-    }
+    S2N_ERROR_IF(out->size > sizeof(intermediate), S2N_ERR_NOMEM);
 
     int r = RSA_private_decrypt(in->size, (unsigned char *)in->data, intermediate, key->rsa, RSA_PKCS1_PADDING);
     GUARD(s2n_constant_time_copy_or_dont(out->data, intermediate, out->size, r != out->size));
-    if (r != out->size) {
-        S2N_ERROR(S2N_ERR_SIZE_MISMATCH);
-    }
+    S2N_ERROR_IF(r != out->size, S2N_ERR_SIZE_MISMATCH);
 
     return 0;
 }
@@ -193,9 +177,7 @@ static int s2n_rsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey 
     plain_out.size = sizeof(plain_outpad);
     GUARD(s2n_rsa_decrypt(priv, &enc, &plain_out));
 
-    if (memcmp(plain_in.data, plain_out.data, plain_in.size)) {
-        S2N_ERROR(S2N_ERR_KEY_MISMATCH);
-    }
+    S2N_ERROR_IF(memcmp(plain_in.data, plain_out.data, plain_in.size), S2N_ERR_KEY_MISMATCH);
 
     return 0;
 }
@@ -223,9 +205,7 @@ int s2n_rsa_check_key_exists(const struct s2n_pkey *pkey)
 int s2n_evp_pkey_to_rsa_public_key(s2n_rsa_public_key *rsa_key, EVP_PKEY *evp_public_key)
 {
     RSA *rsa = EVP_PKEY_get1_RSA(evp_public_key);
-    if (rsa == NULL) {
-        S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
-    }
+    S2N_ERROR_IF(rsa == NULL, S2N_ERR_DECODE_CERTIFICATE);
     
     rsa_key->rsa = rsa;
     return 0;
@@ -235,9 +215,7 @@ int s2n_evp_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *evp_
 {
 
     RSA *rsa = EVP_PKEY_get1_RSA(evp_private_key);
-    if (rsa == NULL) {
-        S2N_ERROR(S2N_ERR_DECODE_PRIVATE_KEY);
-    }
+    S2N_ERROR_IF(rsa == NULL, S2N_ERR_DECODE_PRIVATE_KEY);
     
     if (!RSA_check_key(rsa)) {
         RSA_free(rsa);
