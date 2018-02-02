@@ -19,6 +19,15 @@
 
 #include <openssl/x509v3.h>
 
+typedef enum {
+    S2N_CERT_OK = 0,
+    S2N_CERT_ERR_UNTRUSTED = -1,
+    S2N_CERT_ERR_REVOKED = -2,
+    S2N_CERT_ERR_EXPIRED = -3,
+    S2N_CERT_ERR_TYPE_UNSUPPORTED = -4,
+    S2N_CERT_ERR_INVALID = -5,
+} s2n_cert_validation_code;
+
 /** Return TRUE for trusted, FALSE for untrusted **/
 typedef uint8_t (*verify_host) (const char *host_name, size_t host_name_len, void *data);
 struct s2n_connection;

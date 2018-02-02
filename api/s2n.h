@@ -159,14 +159,6 @@ extern int s2n_connection_free(struct s2n_connection *conn);
 extern int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked);
 
 typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED, S2N_CERT_AUTH_OPTIONAL } s2n_cert_auth_type;
-typedef enum {
-    S2N_CERT_OK = 0,
-    S2N_CERT_ERR_UNTRUSTED = -1,
-    S2N_CERT_ERR_REVOKED = -2,
-    S2N_CERT_ERR_EXPIRED = -3,
-    S2N_CERT_ERR_TYPE_UNSUPPORTED = -4,
-    S2N_CERT_ERR_INVALID = -5,
-} s2n_cert_validation_code;
 
 extern int s2n_config_get_client_auth_type(struct s2n_config *config, s2n_cert_auth_type *client_auth_type);
 extern int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_type client_auth_type);

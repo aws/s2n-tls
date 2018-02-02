@@ -145,21 +145,26 @@ void s2n_x509_validator_wipe(struct s2n_x509_validator *validator) {
  */
 static uint8_t verify_host_information(struct s2n_x509_validator *validator, struct s2n_connection *conn, X509 *public_cert) {
     uint8_t verified = 0;
+    uint8_t san_found = 0;
 
     /* Check SubjectAltNames before CommonName as per RFC 6125 6.4.4 */
     STACK_OF(GENERAL_NAME) *names_list = X509_get_ext_d2i(public_cert, NID_subject_alt_name, NULL, NULL);
     GENERAL_NAME *current_name = NULL;
     while (!verified && names_list && (current_name = sk_GENERAL_NAME_pop(names_list))) {
-        const char *name = (const char *) ASN1_STRING_data(current_name->d.ia5);
-        size_t name_len = (size_t) ASN1_STRING_length(current_name->d.ia5);
+        if (current_name->type == GEN_DNS) {
+            san_found = 1;
 
-        verified = conn->verify_host_fn(name, name_len, conn->data_for_verify_host);
+            const char *name = (const char *) ASN1_STRING_data(current_name->d.ia5);
+            size_t name_len = (size_t) ASN1_STRING_length(current_name->d.ia5);
+
+            verified = conn->verify_host_fn(name, name_len, conn->data_for_verify_host);
+        }
     }
 
     GENERAL_NAMES_free(names_list);
 
-    /* if none of those were valid, go to the common name. */
-    if (!verified) {
+    /* if no SubjectAltNames of type DNS found, go to the common name. */
+    if (!san_found) {
         X509_NAME *subject_name = X509_get_subject_name(public_cert);
         if (subject_name) {
             int next_idx = 0, curr_idx = -1;

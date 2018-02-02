@@ -418,6 +418,86 @@ int main(int argc, char **argv) {
         s2n_x509_trust_store_wipe(&trust_store);
     }
 
+    /* test validator in safe mode, with properly configured trust store. host name via alternative name validation fails, and
+     * no Common Name validation happens as DNS alternative name is present. note: in this case, we don't have valid certs but
+     * it's enough to make sure we are properly validating alternative names and common name.*/
+    {
+        struct s2n_x509_trust_store trust_store;
+        s2n_x509_trust_store_init_empty(&trust_store);
+        EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+
+        /* Name matches CN on certificate (CN=localhost), but no match in alternative names */
+        struct host_verify_data verify_data = {.name = "localhost", .found_name = 0, .callback_invoked = 0,};
+        struct s2n_x509_validator validator;
+        s2n_x509_validator_init(&validator, &trust_store, 1);
+
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_verify_alt, &verify_data));
+
+        uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(
+                s2n_read_test_pem(S2N_RSA_2048_SHA256_CLIENT_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        struct s2n_stuffer chain_stuffer;
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
+
+        struct s2n_pkey public_key_out;
+        s2n_cert_type cert_type;
+        EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED,
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
+        s2n_stuffer_free(&chain_stuffer);
+
+        EXPECT_EQUAL(0, verify_data.found_name);
+        EXPECT_EQUAL(1, verify_data.callback_invoked);
+        EXPECT_EQUAL(S2N_CERT_TYPE_RSA_SIGN, cert_type);
+
+        s2n_connection_free(connection);
+        s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
+    }
+
+    /* test validator in safe mode, with properly configured trust store. host name via common name validation succeds,
+     * non-dns alternative names are ignored. note: in this case, we don't have valid certs but it's enough to make sure
+     * we are properly validating alternative names and common name.*/
+    {
+        struct s2n_x509_trust_store trust_store;
+        s2n_x509_trust_store_init_empty(&trust_store);
+        EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+
+        /* Name matches CN on certificate (CN=localhost) */
+        struct host_verify_data verify_data = {.name = "localhost", .found_name = 0, .callback_invoked = 0,};
+        struct s2n_x509_validator validator;
+        s2n_x509_validator_init(&validator, &trust_store, 1);
+
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_verify_alt, &verify_data));
+
+        uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(
+                s2n_read_test_pem(S2N_RSA_2048_SHA256_NO_DNS_SANS, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        struct s2n_stuffer chain_stuffer;
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
+
+        struct s2n_pkey public_key_out;
+        s2n_cert_type cert_type;
+        EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED,
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
+        s2n_stuffer_free(&chain_stuffer);
+
+        EXPECT_EQUAL(1, verify_data.found_name);
+        EXPECT_EQUAL(1, verify_data.callback_invoked);
+        EXPECT_EQUAL(S2N_CERT_TYPE_RSA_SIGN, cert_type);
+
+        s2n_connection_free(connection);
+        s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
+    }
+
     /* Test valid OCSP date range */
     {
         struct s2n_x509_trust_store trust_store;
