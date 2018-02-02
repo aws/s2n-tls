@@ -83,17 +83,11 @@ static int s2n_check_p_g_dh_params(struct s2n_dh_params *dh_params)
     notnull_check(g);
     notnull_check(p);
 
-    if (DH_size(dh_params->dh) < S2N_MIN_DH_PRIME_SIZE_BYTES) {
-        S2N_ERROR(S2N_ERR_DH_PARAMS_CREATE);
-    }
+    S2N_ERROR_IF(DH_size(dh_params->dh) < S2N_MIN_DH_PRIME_SIZE_BYTES, S2N_ERR_DH_PARAMS_CREATE);
 
-    if (BN_is_zero(g)) {
-        S2N_ERROR(S2N_ERR_DH_PARAMS_CREATE);
-    }
+    S2N_ERROR_IF(BN_is_zero(g), S2N_ERR_DH_PARAMS_CREATE);
 
-    if (BN_is_zero(p)) {
-        S2N_ERROR(S2N_ERR_DH_PARAMS_CREATE);
-    }
+    S2N_ERROR_IF(BN_is_zero(p), S2N_ERR_DH_PARAMS_CREATE);
 
     return 0;
 }
@@ -104,9 +98,7 @@ static int s2n_check_pub_key_dh_params(struct s2n_dh_params *dh_params)
 
     notnull_check(pub_key);
 
-    if (BN_is_zero(pub_key)) {
-        S2N_ERROR(S2N_ERR_DH_PARAMS_CREATE);
-    }
+    S2N_ERROR_IF(BN_is_zero(pub_key), S2N_ERR_DH_PARAMS_CREATE);
 
     return 0;
 }
@@ -172,9 +164,7 @@ int s2n_pkcs3_to_dh_params(struct s2n_dh_params *dh_params, struct s2n_blob *pkc
 int s2n_dh_p_g_Ys_to_dh_params(struct s2n_dh_params *server_dh_params, struct s2n_blob *p, struct s2n_blob *g, struct s2n_blob *Ys)
 {
     server_dh_params->dh = DH_new();
-    if (server_dh_params->dh == NULL) {
-        S2N_ERROR(S2N_ERR_DH_PARAMS_CREATE);
-    }
+    S2N_ERROR_IF(server_dh_params->dh == NULL, S2N_ERR_DH_PARAMS_CREATE);
 
     GUARD(s2n_set_p_g_Ys_dh_params(server_dh_params, p, g, Ys));
     GUARD(s2n_check_all_dh_params(server_dh_params));
@@ -203,23 +193,17 @@ int s2n_dh_params_to_p_g_Ys(struct s2n_dh_params *server_dh_params, struct s2n_s
     GUARD(s2n_stuffer_write_uint16(out, p_size));
     p = s2n_stuffer_raw_write(out, p_size);
     notnull_check(p);
-    if (BN_bn2bin(bn_p, p) != p_size) {
-        S2N_ERROR(S2N_ERR_DH_SERIALIZING);
-    }
+    S2N_ERROR_IF(BN_bn2bin(bn_p, p) != p_size, S2N_ERR_DH_SERIALIZING);
 
     GUARD(s2n_stuffer_write_uint16(out, g_size));
     g = s2n_stuffer_raw_write(out, g_size);
     notnull_check(g);
-    if (BN_bn2bin(bn_g, g) != g_size) {
-        S2N_ERROR(S2N_ERR_DH_SERIALIZING);
-    }
+    S2N_ERROR_IF(BN_bn2bin(bn_g, g) != g_size, S2N_ERR_DH_SERIALIZING);
 
     GUARD(s2n_stuffer_write_uint16(out, Ys_size));
     Ys = s2n_stuffer_raw_write(out, Ys_size);
     notnull_check(Ys);
-    if (BN_bn2bin(bn_Ys, Ys) != Ys_size) {
-        S2N_ERROR(S2N_ERR_DH_SERIALIZING);
-    }
+    S2N_ERROR_IF(BN_bn2bin(bn_Ys, Ys) != Ys_size, S2N_ERR_DH_SERIALIZING);
 
     output->size = p_size + 2 + g_size + 2 + Ys_size + 2;
 
@@ -305,13 +289,9 @@ int s2n_dh_params_check(struct s2n_dh_params *params)
 {
     int codes = 0;
 
-    if (DH_check(params->dh, &codes) == 0) {
-        S2N_ERROR(S2N_ERR_DH_PARAMETER_CHECK);
-    }
+    S2N_ERROR_IF(DH_check(params->dh, &codes) == 0, S2N_ERR_DH_PARAMETER_CHECK);
 
-    if (codes != 0) {
-        S2N_ERROR(S2N_ERR_DH_PARAMETER_CHECK);
-    }
+    S2N_ERROR_IF(codes != 0, S2N_ERR_DH_PARAMETER_CHECK);
 
     return 0;
 }
@@ -321,9 +301,7 @@ int s2n_dh_params_copy(struct s2n_dh_params *from, struct s2n_dh_params *to)
     GUARD(s2n_check_p_g_dh_params(from));
 
     to->dh = DHparams_dup(from->dh);
-    if (to->dh == NULL) {
-        S2N_ERROR(S2N_ERR_DH_COPYING_PARAMETERS);
-    }
+    S2N_ERROR_IF(to->dh == NULL, S2N_ERR_DH_COPYING_PARAMETERS);
 
     return 0;
 }
@@ -332,9 +310,7 @@ int s2n_dh_generate_ephemeral_key(struct s2n_dh_params *dh_params)
 {
     GUARD(s2n_check_p_g_dh_params(dh_params));
 
-    if (DH_generate_key(dh_params->dh) == 0) {
-        S2N_ERROR(S2N_ERR_DH_GENERATING_PARAMETERS);
-    }
+    S2N_ERROR_IF(DH_generate_key(dh_params->dh) == 0, S2N_ERR_DH_GENERATING_PARAMETERS);
 
     return 0;
 }

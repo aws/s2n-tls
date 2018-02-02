@@ -61,9 +61,7 @@ static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn)
         GUARD(s2n_stuffer_read_uint8(in, &hash_algorithm));
         GUARD(s2n_stuffer_read_uint8(in, &signature_algorithm));
 
-        if (signature_algorithm != TLS_SIGNATURE_ALGORITHM_RSA) {
-            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-        }
+        S2N_ERROR_IF(signature_algorithm != TLS_SIGNATURE_ALGORITHM_RSA, S2N_ERR_BAD_MESSAGE);
 
         int matched = 0;
         for (int i = 0; i < sizeof(s2n_preferred_hashes); i++) {
@@ -73,9 +71,7 @@ static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn)
             }
         }
 
-        if (!matched) {
-            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-        }
+        S2N_ERROR_IF(!matched, S2N_ERR_BAD_MESSAGE);
 
         GUARD(s2n_hash_init(&conn->secure.signature_hash, s2n_hash_tls_to_alg[hash_algorithm]));
     } else {
@@ -94,9 +90,7 @@ static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn)
 
     gt_check(signature_length, 0);
 
-    if (s2n_pkey_verify(&conn->secure.server_public_key, &conn->secure.signature_hash, &signature) < 0) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(s2n_pkey_verify(&conn->secure.server_public_key, &conn->secure.signature_hash, &signature) < 0, S2N_ERR_BAD_MESSAGE);
 
     /* We don't need the key any more, so free it */
     GUARD(s2n_pkey_free(&conn->secure.server_public_key));
@@ -143,9 +137,7 @@ static int s2n_dhe_server_key_recv(struct s2n_connection *conn)
         GUARD(s2n_stuffer_read_uint8(in, &hash_algorithm));
         GUARD(s2n_stuffer_read_uint8(in, &signature_algorithm));
 
-        if (signature_algorithm != TLS_SIGNATURE_ALGORITHM_RSA) {
-            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-        }
+        S2N_ERROR_IF(signature_algorithm != TLS_SIGNATURE_ALGORITHM_RSA, S2N_ERR_BAD_MESSAGE);
 
         int matched = 0;
         for (int i = 0; i < sizeof(s2n_preferred_hashes); i++) {
@@ -155,9 +147,7 @@ static int s2n_dhe_server_key_recv(struct s2n_connection *conn)
             }
         }
 
-        if (!matched) {
-            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-        }
+        S2N_ERROR_IF(!matched, S2N_ERR_BAD_MESSAGE);
 
         GUARD(s2n_hash_init(&conn->secure.signature_hash, s2n_hash_tls_to_alg[hash_algorithm]));
     } else {
@@ -175,9 +165,7 @@ static int s2n_dhe_server_key_recv(struct s2n_connection *conn)
 
     gt_check(signature_length, 0);
 
-    if (s2n_pkey_verify(&conn->secure.server_public_key, &conn->secure.signature_hash, &signature) < 0) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(s2n_pkey_verify(&conn->secure.server_public_key, &conn->secure.signature_hash, &signature) < 0, S2N_ERR_BAD_MESSAGE);
 
     /* We don't need the key any more, so free it */
     GUARD(s2n_pkey_free(&conn->secure.server_public_key));
@@ -228,9 +216,7 @@ static int s2n_ecdhe_server_key_send(struct s2n_connection *conn)
     signature.data = s2n_stuffer_raw_write(out, signature.size);
     notnull_check(signature.data);
 
-    if (s2n_pkey_sign(&conn->config->cert_and_key_pairs->private_key, &conn->secure.signature_hash, &signature) < 0) {
-        S2N_ERROR(S2N_ERR_DH_FAILED_SIGNING);
-    }
+    S2N_ERROR_IF(s2n_pkey_sign(&conn->config->cert_and_key_pairs->private_key, &conn->secure.signature_hash, &signature) < 0, S2N_ERR_DH_FAILED_SIGNING);
 
     return 0;
 }
@@ -265,9 +251,7 @@ static int s2n_dhe_server_key_send(struct s2n_connection *conn)
     signature.data = s2n_stuffer_raw_write(out, signature.size);
     notnull_check(signature.data);
 
-    if (s2n_pkey_sign(&conn->config->cert_and_key_pairs->private_key, &conn->secure.signature_hash, &signature) < 0) {
-        S2N_ERROR(S2N_ERR_DH_FAILED_SIGNING);
-    }
+    S2N_ERROR_IF(s2n_pkey_sign(&conn->config->cert_and_key_pairs->private_key, &conn->secure.signature_hash, &signature) < 0, S2N_ERR_DH_FAILED_SIGNING);
 
     return 0;
 }

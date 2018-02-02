@@ -57,9 +57,7 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
     GUARD(s2n_stuffer_read_bytes(in, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_stuffer_read_uint8(in, &session_id_len));
 
-    if (session_id_len > S2N_TLS_SESSION_ID_MAX_LEN) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(session_id_len > S2N_TLS_SESSION_ID_MAX_LEN, S2N_ERR_BAD_MESSAGE);
 
     conn->session_id_len = session_id_len;
     GUARD(s2n_stuffer_read_bytes(in, session_id, session_id_len));
@@ -68,16 +66,12 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
     GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
     GUARD(s2n_stuffer_read_uint8(in, &compression_method));
 
-    if (compression_method != S2N_TLS_COMPRESSION_METHOD_NULL) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(compression_method != S2N_TLS_COMPRESSION_METHOD_NULL, S2N_ERR_BAD_MESSAGE);
 
     if (s2n_stuffer_data_available(in) >= 2) {
         GUARD(s2n_stuffer_read_uint16(in, &extensions_size));
 
-        if (extensions_size > s2n_stuffer_data_available(in)) {
-            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-        }
+        S2N_ERROR_IF(extensions_size > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
 
         struct s2n_blob extensions;
         extensions.size = extensions_size;

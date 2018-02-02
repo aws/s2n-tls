@@ -357,9 +357,7 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
         while (s2n_stuffer_data_available(&client_protos)) {
             uint8_t client_length;
             GUARD(s2n_stuffer_read_uint8(&client_protos, &client_length));
-            if (client_length > s2n_stuffer_data_available(&client_protos)) {
-                S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-            }
+            S2N_ERROR_IF(client_length > s2n_stuffer_data_available(&client_protos), S2N_ERR_BAD_MESSAGE);
             if (client_length != length) {
                 GUARD(s2n_stuffer_skip_read(&client_protos, client_length));
             } else {
@@ -431,9 +429,7 @@ static int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struc
     /* RFC5746 Section 3.2: The renegotiated_connection field is of zero length for the initial handshake. */
     uint8_t renegotiated_connection_len;
     GUARD(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
-    if (s2n_stuffer_data_available(extension) || renegotiated_connection_len) {
-        S2N_ERROR(S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
-    }
+    S2N_ERROR_IF(s2n_stuffer_data_available(extension) || renegotiated_connection_len, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
 
     conn->secure_renegotiation = 1;
     return 0;

@@ -27,9 +27,7 @@
 
 int s2n_handshake_write_header(struct s2n_connection *conn, uint8_t message_type)
 {
-    if (s2n_stuffer_data_available(&conn->handshake.io)) {
-        S2N_ERROR(S2N_ERR_HANDSHAKE_STATE);
-    }
+    S2N_ERROR_IF(s2n_stuffer_data_available(&conn->handshake.io), S2N_ERR_HANDSHAKE_STATE);
 
     /* Write the message header */
     GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, message_type));
@@ -44,9 +42,7 @@ int s2n_handshake_write_header(struct s2n_connection *conn, uint8_t message_type
 int s2n_handshake_finish_header(struct s2n_connection *conn)
 {
     uint16_t length = s2n_stuffer_data_available(&conn->handshake.io);
-    if (length < TLS_HANDSHAKE_HEADER_LENGTH) {
-        S2N_ERROR(S2N_ERR_SIZE_MISMATCH);
-    }
+    S2N_ERROR_IF(length < TLS_HANDSHAKE_HEADER_LENGTH, S2N_ERR_SIZE_MISMATCH);
 
     uint16_t payload = length - TLS_HANDSHAKE_HEADER_LENGTH;
 
@@ -61,9 +57,7 @@ int s2n_handshake_finish_header(struct s2n_connection *conn)
 
 int s2n_handshake_parse_header(struct s2n_connection *conn, uint8_t * message_type, uint32_t * length)
 {
-    if (s2n_stuffer_data_available(&conn->handshake.io) < TLS_HANDSHAKE_HEADER_LENGTH) {
-        S2N_ERROR(S2N_ERR_SIZE_MISMATCH);
-    }
+    S2N_ERROR_IF(s2n_stuffer_data_available(&conn->handshake.io) < TLS_HANDSHAKE_HEADER_LENGTH, S2N_ERR_SIZE_MISMATCH);
 
     /* read the message header */
     GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, message_type));

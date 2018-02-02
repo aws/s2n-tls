@@ -69,9 +69,7 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
     void *data;
     if (!use_mlock) {
         data = realloc(b->data, size);
-        if (!data) {
-            S2N_ERROR(S2N_ERR_ALLOC);
-        }
+        S2N_ERROR_IF(!data, S2N_ERR_ALLOC);
 
         b->data = data;
         b->size = size;
@@ -81,9 +79,7 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
 
     /* Page aligned allocation required for mlock */
     uint32_t allocate = page_size * (((size - 1) / page_size) + 1);
-    if (posix_memalign(&data, page_size, allocate)) {
-        S2N_ERROR(S2N_ERR_ALLOC);
-    }
+    S2N_ERROR_IF(posix_memalign(&data, page_size, allocate), S2N_ERR_ALLOC);
 
     if (b->size) {
         memcpy_check(data, b->data, b->size);
@@ -122,9 +118,7 @@ int s2n_free(struct s2n_blob *b)
     b->size = 0;
     b->allocated = 0;
 
-    if (munlock_rc < 0) {
-        S2N_ERROR(S2N_ERR_MUNLOCK);
-    }
+    S2N_ERROR_IF(munlock_rc < 0, S2N_ERR_MUNLOCK);
     b->mlocked = 0;
 
     return 0;

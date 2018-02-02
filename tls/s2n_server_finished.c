@@ -38,9 +38,7 @@ int s2n_server_finished_recv(struct s2n_connection *conn)
     uint8_t *their_version = s2n_stuffer_raw_read(&conn->handshake.io, length);
     notnull_check(their_version);
 
-    if (!s2n_constant_time_equals(our_version, their_version, length)) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(!s2n_constant_time_equals(our_version, their_version, length), S2N_ERR_BAD_MESSAGE);
 
     return 0;
 }

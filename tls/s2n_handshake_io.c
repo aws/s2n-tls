@@ -339,9 +339,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn) {
     s2n_cert_auth_type client_cert_auth_type;
     GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
-    if (client_cert_auth_type != S2N_CERT_AUTH_OPTIONAL) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(client_cert_auth_type != S2N_CERT_AUTH_OPTIONAL, S2N_ERR_BAD_MESSAGE);
 
     conn->handshake.handshake_type |= NO_CLIENT_CERT;
     return 0;
@@ -471,9 +469,7 @@ static int read_full_handshake_message(struct s2n_connection *conn, uint8_t * me
     uint32_t handshake_message_length;
     GUARD(s2n_handshake_parse_header(conn, message_type, &handshake_message_length));
 
-    if (handshake_message_length > S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(handshake_message_length > S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH, S2N_ERR_BAD_MESSAGE);
 
     uint32_t bytes_to_take = handshake_message_length - s2n_stuffer_data_available(&conn->handshake.io);
     bytes_to_take = MIN(bytes_to_take, s2n_stuffer_data_available(&conn->in));
@@ -513,9 +509,7 @@ static int s2n_handshake_conn_update_hashes(struct s2n_connection *conn)
 
 static int s2n_handshake_handle_sslv2(struct s2n_connection *conn)
 {
-    if (ACTIVE_MESSAGE(conn) != CLIENT_HELLO) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(ACTIVE_MESSAGE(conn) != CLIENT_HELLO, S2N_ERR_BAD_MESSAGE);
 
     /* Add the message to our handshake hashes */
     struct s2n_blob hashed = {.data = conn->header_in.blob.data + 2,.size = 3 };
@@ -562,12 +556,9 @@ static int handshake_read_io(struct s2n_connection *conn)
     /* Now we have a record, but it could be a partial fragment of a message, or it might
      * contain several messages.
      */
-    if (record_type == TLS_APPLICATION_DATA) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    } else if (record_type == TLS_CHANGE_CIPHER_SPEC) {
-        if (s2n_stuffer_data_available(&conn->in) != 1) {
-            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-        }
+    S2N_ERROR_IF(record_type == TLS_APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
+    if(record_type == TLS_CHANGE_CIPHER_SPEC) {
+        S2N_ERROR_IF(s2n_stuffer_data_available(&conn->in) != 1, S2N_ERR_BAD_MESSAGE);
 
         GUARD(s2n_stuffer_copy(&conn->in, &conn->handshake.io, s2n_stuffer_data_available(&conn->in)));
         GUARD(ACTIVE_STATE(conn).handler[conn->mode] (conn));
@@ -613,9 +604,7 @@ static int handshake_read_io(struct s2n_connection *conn)
             return 0;
         }
 
-        if (handshake_message_type != ACTIVE_STATE(conn).message_type) {
-            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-        }
+        S2N_ERROR_IF(handshake_message_type != ACTIVE_STATE(conn).message_type, S2N_ERR_BAD_MESSAGE);
 
         /* Call the relevant handler */
         r = ACTIVE_STATE(conn).handler[conn->mode] (conn);

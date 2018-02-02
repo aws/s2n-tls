@@ -79,14 +79,10 @@ int s2n_stuffer_alloc_ro_from_fd(struct s2n_stuffer *stuffer, int rfd)
 {
     struct stat st;
 
-    if (fstat(rfd, &st) < 0) {
-        S2N_ERROR(S2N_ERR_FSTAT);
-    }
+    S2N_ERROR_IF(fstat(rfd, &st) < 0, S2N_ERR_FSTAT);
 
     stuffer->blob.data = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, rfd, 0);
-    if (stuffer->blob.data == MAP_FAILED) {
-        S2N_ERROR(S2N_ERR_MMAP);
-    }
+    S2N_ERROR_IF(stuffer->blob.data == MAP_FAILED, S2N_ERR_MMAP);
 
     stuffer->blob.size = st.st_size;
 
