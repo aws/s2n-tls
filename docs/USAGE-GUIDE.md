@@ -685,8 +685,9 @@ for testing or debugging purposes.
 int s2n_config_set_max_cert_chain_depth(struct s2n_config *config, uint16_t max_depth);
 ```
 
-**s2n_config_set_max_cert_chain_depth** sets the maximum allowed depth of a cert chain used for X509 validation. The default value is 4. If this limit
-is exceeded, validation will fail if s2n_config_disable_x509_verification() has not been called.
+**s2n_config_set_max_cert_chain_depth** sets the maximum allowed depth of a cert chain used for X509 validation. The default value is 7. If this limit
+is exceeded, validation will fail if s2n_config_disable_x509_verification() has not been called. 0 is an illegal value and will return an error. 
+1 means only a root certificate will be used.
 
 ### s2n\_config\_set\_client\_hello\_cb
 

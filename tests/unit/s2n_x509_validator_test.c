@@ -192,6 +192,19 @@ int main(int argc, char **argv) {
         s2n_x509_validator_wipe(&validator);
     }
 
+    /*/* test validator in safe mode, but no configured trust store */
+    {
+        struct s2n_x509_trust_store trust_store;
+        s2n_x509_trust_store_init_empty(&trust_store);
+
+        struct s2n_x509_validator validator;
+        s2n_x509_validator_init(&validator, &trust_store, 1);
+        EXPECT_EQUAL(-1, s2n_x509_validator_set_max_chain_depth(&validator, 0));
+
+        s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
+    }
+
     /* test validator in safe mode, but no configured trust store */
     {
         struct s2n_x509_trust_store trust_store;

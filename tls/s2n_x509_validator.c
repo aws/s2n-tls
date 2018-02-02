@@ -45,7 +45,7 @@
 #define X509_V_FLAG_PARTIAL_CHAIN 0x80000
 #endif
 
-#define DEFAULT_MAX_CHAIN_DEPTH 4
+#define DEFAULT_MAX_CHAIN_DEPTH 7
 
 uint8_t s2n_x509_ocsp_stapling_supported(void) {
     return S2N_OCSP_STAPLING_SUPPORTED;
@@ -145,8 +145,13 @@ void s2n_x509_validator_wipe(struct s2n_x509_validator *validator) {
 
 int s2n_x509_validator_set_max_chain_depth(struct s2n_x509_validator *validator, uint16_t max_depth) {
     notnull_check(validator);
-    validator->max_chain_depth = max_depth;
-    return 0;
+
+    if (max_depth > 0) {
+        validator->max_chain_depth = max_depth;
+        return 0;
+    }
+
+    return -1;
 }
 
 /*
