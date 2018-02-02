@@ -41,7 +41,6 @@ int mock_client(int writefd, int readfd, int expect_failure)
     int rc = 0;
     const char *protocols[] = { "http/2", "http/1.1" };
 
-
     /* Give the server a chance to listen */
     sleep(1);
 

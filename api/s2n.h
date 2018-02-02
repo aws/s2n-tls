@@ -71,7 +71,6 @@ extern int s2n_config_set_cache_delete_callback(struct s2n_config *config, int (
 typedef enum {
     S2N_EXTENSION_SERVER_NAME = 0,
     S2N_EXTENSION_OCSP_STAPLING = 5,
-    S2N_EXTENSION_ALPN = 16,
     S2N_EXTENSION_CERTIFICATE_TRANSPARENCY = 18,
 } s2n_tls_extension_type;
 
