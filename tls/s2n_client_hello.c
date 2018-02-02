@@ -124,9 +124,7 @@ int s2n_collect_client_hello(struct s2n_connection *conn, struct s2n_stuffer *so
     notnull_check(source);
 
     uint32_t size = s2n_stuffer_data_available(source);
-    if (size == 0) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(size == 0, S2N_ERR_BAD_MESSAGE);
 
     struct s2n_client_hello *ch = &conn->client_hello;
 
@@ -158,17 +156,13 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
     conn->client_hello_version = conn->client_protocol_version;
     conn->actual_protocol_version = MIN(conn->client_protocol_version, conn->server_protocol_version);
 
-    if (conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN || conn->session_id_len > s2n_stuffer_data_available(in)) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN || conn->session_id_len > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
 
     GUARD(s2n_stuffer_read_bytes(in, conn->session_id, conn->session_id_len));
 
     uint16_t cipher_suites_length = 0;
     GUARD(s2n_stuffer_read_uint16(in, &cipher_suites_length));
-    if (cipher_suites_length % S2N_TLS_CIPHER_SUITE_LEN) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(cipher_suites_length % S2N_TLS_CIPHER_SUITE_LEN, S2N_ERR_BAD_MESSAGE);
 
     client_hello->cipher_suites.size = cipher_suites_length;
     client_hello->cipher_suites.data = s2n_stuffer_raw_read(in, cipher_suites_length);
@@ -193,9 +187,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
         /* Read extensions if they are present */
         GUARD(s2n_stuffer_read_uint16(in, &extensions_length));
 
-        if (extensions_length > s2n_stuffer_data_available(in)) {
-            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-        }
+        S2N_ERROR_IF(extensions_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
 
         client_hello->extensions.size = extensions_length;
         client_hello->extensions.data = s2n_stuffer_raw_read(in, extensions_length);
@@ -314,25 +306,19 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     /* We start 5 bytes into the record */
     GUARD(s2n_stuffer_read_uint16(in, &cipher_suites_length));
 
-    if (cipher_suites_length % S2N_SSLv2_CIPHER_SUITE_LEN) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(cipher_suites_length % S2N_SSLv2_CIPHER_SUITE_LEN, S2N_ERR_BAD_MESSAGE);
 
     GUARD(s2n_stuffer_read_uint16(in, &session_id_length));
 
     GUARD(s2n_stuffer_read_uint16(in, &challenge_length));
 
-    if (challenge_length > S2N_TLS_RANDOM_DATA_LEN) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(challenge_length > S2N_TLS_RANDOM_DATA_LEN, S2N_ERR_BAD_MESSAGE);
 
     cipher_suites = s2n_stuffer_raw_read(in, cipher_suites_length);
     notnull_check(cipher_suites);
     GUARD(s2n_set_cipher_as_sslv2_server(conn, cipher_suites, cipher_suites_length / S2N_SSLv2_CIPHER_SUITE_LEN));
 
-    if (session_id_length > s2n_stuffer_data_available(in)) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(session_id_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
     if (session_id_length > 0 && session_id_length <= S2N_TLS_SESSION_ID_MAX_LEN) {
         GUARD(s2n_stuffer_read_bytes(in, conn->session_id, session_id_length));
         conn->session_id_len = (uint8_t) session_id_length;

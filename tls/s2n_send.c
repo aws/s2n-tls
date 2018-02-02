@@ -95,9 +95,7 @@ ssize_t s2n_send(struct s2n_connection * conn, const void *buf, ssize_t size, s2
     ssize_t user_data_sent;
     int max_payload_size;
 
-    if (conn->closed) {
-        S2N_ERROR(S2N_ERR_CLOSED);
-    }
+    S2N_ERROR_IF(conn->closed, S2N_ERR_CLOSED);
 
     /* Flush any pending I/O */
     GUARD(s2n_flush(conn, blocked));
@@ -121,9 +119,7 @@ ssize_t s2n_send(struct s2n_connection * conn, const void *buf, ssize_t size, s2
     }
 
     /* Defensive check against an invalid retry */
-    if (conn->current_user_data_consumed > size) {
-        S2N_ERROR(S2N_ERR_SEND_SIZE);
-    }
+    S2N_ERROR_IF(conn->current_user_data_consumed > size, S2N_ERR_SEND_SIZE);
 
     /* Now write the data we were asked to send this round */
     while (size - conn->current_user_data_consumed) {

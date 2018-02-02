@@ -70,9 +70,7 @@ static int s2n_map_embiggen(struct s2n_map *map, uint32_t capacity)
     struct s2n_blob mem;
     struct s2n_map tmp;
 
-    if (map->immutable) {
-        S2N_ERROR(S2N_ERR_MAP_IMMUTABLE);
-    }
+    S2N_ERROR_IF(map->immutable, S2N_ERR_MAP_IMMUTABLE);
 
     GUARD(s2n_alloc(&mem, (capacity * sizeof(struct s2n_map_entry))));
     GUARD(s2n_blob_zero(&mem));
@@ -129,9 +127,7 @@ struct s2n_map *s2n_map_new()
 
 int s2n_map_add(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *value)
 {
-    if (map->immutable) {
-        S2N_ERROR(S2N_ERR_MAP_IMMUTABLE);
-    }
+    S2N_ERROR_IF(map->immutable, S2N_ERR_MAP_IMMUTABLE);
 
     if (map->capacity < (map->size * 2)) {
         /* Embiggen the map */
@@ -169,9 +165,7 @@ int s2n_map_complete(struct s2n_map *map)
 
 int s2n_map_lookup(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *value)
 {
-    if (!map->immutable) {
-        S2N_ERROR(S2N_ERR_MAP_MUTABLE);
-    }
+    S2N_ERROR_IF(!map->immutable, S2N_ERR_MAP_MUTABLE);
 
     uint32_t slot = s2n_map_slot(map, key);
 

@@ -35,9 +35,7 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
 
     GUARD(s2n_stuffer_read_uint24(in, &client_cert_chain.size));
 
-    if (client_cert_chain.size > s2n_stuffer_data_available(in)) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(client_cert_chain.size > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
 
     if (client_cert_chain.size == 0) {
         GUARD(s2n_conn_set_handshake_no_client_cert(conn));

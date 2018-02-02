@@ -29,9 +29,7 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
 
     GUARD(s2n_stuffer_read_uint24(&conn->handshake.io, &size_of_all_certificates));
 
-    if (size_of_all_certificates > s2n_stuffer_data_available(&conn->handshake.io) || size_of_all_certificates < 3) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(size_of_all_certificates > s2n_stuffer_data_available(&conn->handshake.io) || size_of_all_certificates < 3, S2N_ERR_BAD_MESSAGE);
 
     s2n_cert_public_key public_key;
     s2n_cert_type cert_type;
@@ -42,9 +40,7 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
     S2N_ERROR_IF(s2n_x509_validator_validate_cert_chain(&conn->x509_validator, conn, cert_chain.data,
                                                         cert_chain.size, &cert_type, &public_key) != S2N_CERT_OK, S2N_ERR_CERT_UNTRUSTED);
 
-    if (cert_type != S2N_CERT_TYPE_RSA_SIGN) {
-        S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
-    }
+    S2N_ERROR_IF(cert_type != S2N_CERT_TYPE_RSA_SIGN, S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
 
     /* We know it's an RSA Key, verify it isn't null. */
     GUARD(s2n_rsa_check_key_exists(&public_key));

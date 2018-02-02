@@ -27,9 +27,7 @@ static uint8_t s2n_stream_cipher_null_available()
 
 static int s2n_stream_cipher_null_endecrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out)
 {
-    if (out->data < in->data) {
-        S2N_ERROR(S2N_ERR_SIZE_MISMATCH);
-    }
+    S2N_ERROR_IF(out->data < in->data, S2N_ERR_SIZE_MISMATCH);
 
     if (in->data != out->data) {
         memcpy_check(in->data, out->data, out->size);

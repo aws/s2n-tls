@@ -787,9 +787,7 @@ int s2n_connection_client_cert_used(struct s2n_connection *conn)
 
 int s2n_connection_get_alert(struct s2n_connection *conn)
 {
-    if (s2n_stuffer_data_available(&conn->alert_in) != 2) {
-        S2N_ERROR(S2N_ERR_NO_ALERT);
-    }
+    S2N_ERROR_IF(s2n_stuffer_data_available(&conn->alert_in) != 2, S2N_ERR_NO_ALERT);
 
     uint8_t alert_code = 0;
     GUARD(s2n_stuffer_read_uint8(&conn->alert_in, &alert_code));
@@ -800,14 +798,10 @@ int s2n_connection_get_alert(struct s2n_connection *conn)
 
 int s2n_set_server_name(struct s2n_connection *conn, const char *server_name)
 {
-    if (conn->mode != S2N_CLIENT) {
-        S2N_ERROR(S2N_ERR_CLIENT_MODE);
-    }
+    S2N_ERROR_IF(conn->mode != S2N_CLIENT, S2N_ERR_CLIENT_MODE);
 
     int len = strlen(server_name);
-    if (len > 255) {
-        S2N_ERROR(S2N_ERR_SERVER_NAME_TOO_LONG);
-    }
+    S2N_ERROR_IF(len > 255, S2N_ERR_SERVER_NAME_TOO_LONG);
 
     memcpy_check(conn->server_name, server_name, len);
 

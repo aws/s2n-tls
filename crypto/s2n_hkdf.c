@@ -56,9 +56,7 @@ static int s2n_hkdf_expand(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, 
         total_rounds++;
     }
 
-    if (total_rounds > MAX_HKDF_ROUNDS || total_rounds == 0) {
-        S2N_ERROR(S2N_ERR_HKDF_OUTPUT_SIZE);
-    }
+    S2N_ERROR_IF(total_rounds > MAX_HKDF_ROUNDS || total_rounds == 0, S2N_ERR_HKDF_OUTPUT_SIZE);
 
     for (uint32_t curr_round = 1; curr_round <= total_rounds; curr_round++) {
         uint32_t cat_len;

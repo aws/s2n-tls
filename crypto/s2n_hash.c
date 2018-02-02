@@ -133,9 +133,7 @@ static int s2n_low_level_hash_init(struct s2n_hash_state *state, s2n_hash_algori
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
 
-    if (r == 0) {
-        S2N_ERROR(S2N_ERR_HASH_INIT_FAILED);
-    }
+    S2N_ERROR_IF(r == 0, S2N_ERR_HASH_INIT_FAILED);
 
     state->alg = alg;
     state->is_ready_for_input = 1;
@@ -179,9 +177,7 @@ static int s2n_low_level_hash_update(struct s2n_hash_state *state, const void *d
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
 
-    if (r == 0) {
-        S2N_ERROR(S2N_ERR_HASH_UPDATE_FAILED);
-    }
+    S2N_ERROR_IF(r == 0, S2N_ERR_HASH_UPDATE_FAILED);
 
     state->currently_in_hash += size;
 
@@ -230,9 +226,7 @@ static int s2n_low_level_hash_digest(struct s2n_hash_state *state, void *out, ui
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
 
-    if (r == 0) {
-        S2N_ERROR(S2N_ERR_HASH_DIGEST_FAILED);
-    }
+    S2N_ERROR_IF(r == 0, S2N_ERR_HASH_DIGEST_FAILED);
 
     state->currently_in_hash = 0;
     state->is_ready_for_input = 0;
@@ -313,9 +307,7 @@ static int s2n_evp_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm al
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
 
-    if (r == 0) {
-        S2N_ERROR(S2N_ERR_HASH_INIT_FAILED);
-    }
+    S2N_ERROR_IF(r == 0, S2N_ERR_HASH_INIT_FAILED);
 
     state->alg = alg;
     state->is_ready_for_input = 1;
@@ -349,9 +341,7 @@ static int s2n_evp_hash_update(struct s2n_hash_state *state, const void *data, u
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
 
-    if (r == 0) {
-        S2N_ERROR(S2N_ERR_HASH_UPDATE_FAILED);
-    }
+    S2N_ERROR_IF(r == 0, S2N_ERR_HASH_UPDATE_FAILED);
 
     state->currently_in_hash += size;
 
@@ -397,9 +387,7 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
 
-    if (r == 0) {
-        S2N_ERROR(S2N_ERR_HASH_DIGEST_FAILED);
-    }
+    S2N_ERROR_IF(r == 0, S2N_ERR_HASH_DIGEST_FAILED);
 
     state->currently_in_hash = 0;
     state->is_ready_for_input = 0;
@@ -435,9 +423,7 @@ static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
 
-    if (r == 0) {
-        S2N_ERROR(S2N_ERR_HASH_COPY_FAILED);
-    }
+    S2N_ERROR_IF(r == 0, S2N_ERR_HASH_COPY_FAILED);
     to->hash_impl = from->hash_impl;
     to->alg = from->alg;
     to->is_ready_for_input = from->is_ready_for_input;
@@ -460,9 +446,7 @@ static int s2n_evp_hash_reset(struct s2n_hash_state *state)
         r &= S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp_md5_secondary.ctx);
     }
 
-    if (r == 0) {
-        S2N_ERROR(S2N_ERR_HASH_WIPE_FAILED);
-    }
+    S2N_ERROR_IF(r == 0, S2N_ERR_HASH_WIPE_FAILED);
 
     if (reset_md5_for_fips) {
         GUARD(s2n_hash_allow_md5_for_fips(state));
