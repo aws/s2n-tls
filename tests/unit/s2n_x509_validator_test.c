@@ -192,7 +192,7 @@ int main(int argc, char **argv) {
         s2n_x509_validator_wipe(&validator);
     }
 
-    /*/* test validator in safe mode, but no configured trust store */
+    /* test validator in safe mode, but no configured trust store */
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init_empty(&trust_store);

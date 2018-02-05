@@ -384,9 +384,14 @@ int s2n_config_disable_x509_verification(struct s2n_config *config)
 
 int s2n_config_set_max_cert_chain_depth(struct s2n_config *config, uint16_t max_depth) {
     notnull_check(config);
-    config->max_verify_cert_chain_depth = max_depth;
-    config->max_verify_cert_chain_depth_set = 1;
-    return 0;
+
+    if (max_depth > 0) {
+        config->max_verify_cert_chain_depth = max_depth;
+        config->max_verify_cert_chain_depth_set = 1;
+        return 0;
+    }
+
+    return -1;
 }
 
 
