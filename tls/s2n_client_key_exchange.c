@@ -42,9 +42,7 @@ static int s2n_rsa_client_key_recv(struct s2n_connection *conn)
         GUARD(s2n_stuffer_read_uint16(in, &length));
     }
 
-    if (length > s2n_stuffer_data_available(in)) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
 
     /* Keep a copy of the client protocol version in wire format */
     client_protocol_version[0] = conn->client_protocol_version / 10;
@@ -186,9 +184,7 @@ static int s2n_rsa_client_key_send(struct s2n_connection *conn)
     memcpy_check(conn->secure.rsa_premaster_secret, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN);
 
     int encrypted_size = s2n_rsa_public_encrypted_size(&conn->secure.server_public_key.key.rsa_key);
-    if (encrypted_size < 0 || encrypted_size > 0xffff) {
-        S2N_ERROR(S2N_ERR_SIZE_MISMATCH);
-    }
+    S2N_ERROR_IF(encrypted_size < 0 || encrypted_size > 0xffff, S2N_ERR_SIZE_MISMATCH);
 
     if (conn->actual_protocol_version > S2N_SSLv3) {
         GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, encrypted_size));

@@ -97,9 +97,7 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
 
     GUARD(s2n_hmac_reset(copy));
 
-    if (mismatches) {
-        S2N_ERROR(S2N_ERR_CBC_VERIFY);
-    }
+    S2N_ERROR_IF(mismatches, S2N_ERR_CBC_VERIFY);
 
     return 0;
 }

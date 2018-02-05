@@ -90,11 +90,11 @@ then
         fi
         
         if [ "$TESTS_PER_SEC" -lt $MIN_TEST_PER_SEC ]; then
-            printf "\033[31;1mWARNING!\033[0m ${TEST_NAME} is only ${TESTS_PER_SEC} tests/sec, which is below ${MIN_TEST_PER_SEC}/sec! Fuzz tests are more effective at higher rates.\n\n"
+            printf "\033[33;1mWARNING!\033[0m ${TEST_NAME} is only ${TESTS_PER_SEC} tests/sec, which is below ${MIN_TEST_PER_SEC}/sec! Fuzz tests are more effective at higher rates.\n\n"
         fi
 
         if [ "$BRANCH_COVERAGE" -lt $MIN_BRANCHES_COVERED ]; then
-            printf "\033[31;1mWARNING!\033[0m ${TEST_NAME} only covers ${BRANCH_COVERAGE} branches, which is below ${MIN_BRANCHES_COVERED} branches! This is likely a bug.\n"
+            printf "\033[33;1mWARNING!\033[0m ${TEST_NAME} only covers ${BRANCH_COVERAGE} branches, which is below ${MIN_BRANCHES_COVERED} branches! This is likely a bug.\n"
             exit -1;
         fi
     fi

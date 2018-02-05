@@ -55,10 +55,6 @@ static int wall_clock(void *data, uint64_t *nanoseconds)
     return 0;
 }
 
-static uint8_t default_verify_host(const char *host_name, size_t len, void *data) {
-    return 0;
-}
-
 static uint8_t default_config_init = 0;
 static uint8_t unsafe_client_testing_config_init = 0;
 static uint8_t default_client_config_init = 0;
@@ -74,14 +70,15 @@ static struct s2n_config default_client_config;
 
 static struct s2n_config s2n_default_fips_config;
 
-static int s2n_config_init(struct s2n_config *config) {
+static int s2n_config_init(struct s2n_config *config)
+{
     config->cert_and_key_pairs = NULL;
     config->dhparams = NULL;
     memset(&config->application_protocols, 0, sizeof(config->application_protocols));
     config->status_request_type = S2N_STATUS_REQUEST_NONE;
     config->wall_clock = wall_clock;
     config->monotonic_clock = monotonic_clock;
-    config->verify_host = default_verify_host;
+    config->verify_host = NULL;
     config->data_for_verify_host = NULL;
     config->client_hello_cb = NULL;
     config->client_hello_cb_ctx = NULL;
@@ -113,7 +110,8 @@ static int s2n_config_init(struct s2n_config *config) {
     return 0;
 }
 
-static int s2n_config_cleanup(struct s2n_config *config) {
+static int s2n_config_cleanup(struct s2n_config *config)
+{
     s2n_x509_trust_store_wipe(&config->trust_store);
     config->check_ocsp = 0;
 
@@ -138,7 +136,8 @@ struct s2n_config *s2n_fetch_default_config(void) {
     return &s2n_default_config;
 }
 
-struct s2n_config *s2n_fetch_default_fips_config(void) {
+struct s2n_config *s2n_fetch_default_fips_config(void)
+{
     if (!default_fips_config_init) {
         s2n_config_init(&s2n_default_fips_config);
         s2n_default_fips_config.cert_and_key_pairs = NULL;
@@ -150,7 +149,8 @@ struct s2n_config *s2n_fetch_default_fips_config(void) {
     return &s2n_default_fips_config;
 }
 
-struct s2n_config *s2n_fetch_unsafe_client_testing_config(void) {
+struct s2n_config *s2n_fetch_unsafe_client_testing_config(void)
+{
     if (!unsafe_client_testing_config_init) {
         s2n_config_init(&s2n_unsafe_client_testing_config);
         s2n_unsafe_client_testing_config.cert_and_key_pairs = NULL;
@@ -165,7 +165,8 @@ struct s2n_config *s2n_fetch_unsafe_client_testing_config(void) {
     return &s2n_unsafe_client_testing_config;
 }
 
-struct s2n_config *s2n_fetch_default_client_config(void) {
+struct s2n_config *s2n_fetch_default_client_config(void)
+{
     if (!default_client_config_init) {
         s2n_config_init(&default_client_config);
         default_client_config.cert_and_key_pairs = NULL;
@@ -211,6 +212,7 @@ struct s2n_config *s2n_config_new(void)
 
 int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
 {
+
     struct s2n_blob b = {
         .data = (uint8_t *) config->cert_and_key_pairs,
         .size = sizeof(struct s2n_cert_chain_and_key)
@@ -281,9 +283,7 @@ int s2n_config_set_protocol_preferences(struct s2n_config *config, const char *c
         size_t length = strlen(protocols[i]);
         uint8_t protocol[255];
 
-        if (length > 255 || (s2n_stuffer_data_available(&protocol_stuffer) + length + 1) > 65535) {
-            S2N_ERROR(S2N_ERR_APPLICATION_PROTOCOL_TOO_LONG);
-        }
+        S2N_ERROR_IF(length > 255 || (s2n_stuffer_data_available(&protocol_stuffer) + length + 1) > 65535, S2N_ERR_APPLICATION_PROTOCOL_TOO_LONG);
         memcpy_check(protocol, protocols[i], length);
         GUARD(s2n_stuffer_write_uint8(&protocol_stuffer, length));
         GUARD(s2n_stuffer_write_bytes(&protocol_stuffer, protocol, length));
@@ -328,20 +328,23 @@ int s2n_config_set_ct_support_level(struct s2n_config *config, s2n_ct_support_le
     return 0;
 }
 
-int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_verify_host_fn verify_host_fn, void *data) {
+int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_verify_host_fn verify_host_fn, void *data)
+{
     notnull_check(config);
     config->verify_host = verify_host_fn;
     config->data_for_verify_host = data;
     return 0;
 }
 
-int s2n_config_set_check_stapled_ocsp_response(struct s2n_config *config, uint8_t check_ocsp) {
+int s2n_config_set_check_stapled_ocsp_response(struct s2n_config *config, uint8_t check_ocsp)
+{
     notnull_check(config);
     config->check_ocsp = check_ocsp;
     return 0;
 }
 
-int s2n_config_disable_x509_verification(struct s2n_config *config) {
+int s2n_config_disable_x509_verification(struct s2n_config *config)
+{
     s2n_x509_trust_store_wipe(&config->trust_store);
     config->disable_x509_validation = 1;
     return 0;
@@ -360,7 +363,8 @@ int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_req
     return 0;
 }
 
-int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_file_pem, const char *ca_dir) {
+int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_file_pem, const char *ca_dir)
+{
     notnull_check(config);
     int err_code = s2n_x509_trust_store_from_ca_file(&config->trust_store, ca_file_pem, ca_dir);
 
@@ -371,23 +375,66 @@ int s2n_config_set_verification_ca_location(struct s2n_config *config, const cha
     return err_code;
 }
 
-int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem)
+int s2n_config_add_cert_chain_from_stuffer(struct s2n_config *config, struct s2n_stuffer *chain_in_stuffer)
 {
-    struct s2n_stuffer chain_in_stuffer, cert_out_stuffer, key_in_stuffer, key_out_stuffer;
+    struct s2n_stuffer cert_out_stuffer;
+    GUARD(s2n_stuffer_growable_alloc(&cert_out_stuffer, 2048));
+
+    struct s2n_cert **insert = &config->cert_and_key_pairs->cert_chain.head;
+    uint32_t chain_size = 0;
+    do {
+        struct s2n_cert *new_node;
+
+        if (s2n_stuffer_certificate_from_pem(chain_in_stuffer, &cert_out_stuffer) < 0) {
+            if (chain_size == 0) {
+                GUARD(s2n_stuffer_free(&cert_out_stuffer));
+                S2N_ERROR(S2N_ERR_NO_CERTIFICATE_IN_PEM);
+            }
+            break;
+        }
+        struct s2n_blob mem;
+        GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert)));
+        new_node = (struct s2n_cert *)(void *)mem.data;
+
+        GUARD(s2n_alloc(&new_node->raw, s2n_stuffer_data_available(&cert_out_stuffer)));
+        GUARD(s2n_stuffer_read(&cert_out_stuffer, &new_node->raw));
+
+        /* Additional 3 bytes for the length field in the protocol */
+        chain_size += new_node->raw.size + 3;
+        new_node->next = NULL;
+        *insert = new_node;
+        insert = &new_node->next;
+    } while (s2n_stuffer_data_available(chain_in_stuffer));
+
+    GUARD(s2n_stuffer_free(&cert_out_stuffer));
+
+    /* Leftover data at this point means one of two things:
+     * A bug in s2n's PEM parsing OR a malformed PEM in the user's chain.
+     * Be conservative and fail instead of using a partial chain.
+     */
+    S2N_ERROR_IF(s2n_stuffer_data_available(chain_in_stuffer) > 0, S2N_ERR_INVALID_PEM);
+    config->cert_and_key_pairs->cert_chain.chain_size = chain_size;
+
+    return 0;
+}
+
+int s2n_config_add_cert_chain(struct s2n_config *config, const char *cert_chain_pem)
+{
+    struct s2n_stuffer chain_in_stuffer;
+
+    /* Turn the chain into a stuffer */
+    GUARD(s2n_stuffer_alloc_ro_from_string(&chain_in_stuffer, cert_chain_pem));
+    int rc = s2n_config_add_cert_chain_from_stuffer(config, &chain_in_stuffer);
+
+    GUARD(s2n_stuffer_free(&chain_in_stuffer));
+
+    return rc;
+}
+
+int s2n_config_add_private_key(struct s2n_config *config, const char *private_key_pem)
+{
+    struct s2n_stuffer key_in_stuffer, key_out_stuffer;
     struct s2n_blob key_blob;
-    struct s2n_blob mem;
-
-    /* Allocate the memory for the chain and key struct */
-    GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert_chain_and_key)));
-    config->cert_and_key_pairs = (struct s2n_cert_chain_and_key *)(void *)mem.data;
-    config->cert_and_key_pairs->cert_chain.head = NULL;
-
-    config->cert_and_key_pairs->ocsp_status.data = NULL;
-    config->cert_and_key_pairs->ocsp_status.size = 0;
-    config->cert_and_key_pairs->sct_list.data = NULL;
-    config->cert_and_key_pairs->sct_list.size = 0;
-    memset(&config->cert_and_key_pairs->ocsp_status, 0, sizeof(config->cert_and_key_pairs->ocsp_status));
-    memset(&config->cert_and_key_pairs->sct_list, 0, sizeof(config->cert_and_key_pairs->sct_list));
 
     GUARD(s2n_pkey_zero_init(&config->cert_and_key_pairs->private_key));
 
@@ -401,53 +448,29 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
     key_blob.size = s2n_stuffer_data_available(&key_out_stuffer);
     key_blob.data = s2n_stuffer_raw_read(&key_out_stuffer, key_blob.size);
     notnull_check(key_blob.data);
-    
+
     /* Get key type and create appropriate key context */
     GUARD(s2n_asn1der_to_private_key(&config->cert_and_key_pairs->private_key, &key_blob));
     GUARD(s2n_stuffer_free(&key_out_stuffer));
 
-    /* Turn the chain into a stuffer */
-    GUARD(s2n_stuffer_alloc_ro_from_string(&chain_in_stuffer, cert_chain_pem));
-    GUARD(s2n_stuffer_growable_alloc(&cert_out_stuffer, 2048));
+    return 0;
+}
 
-    struct s2n_cert **insert = &config->cert_and_key_pairs->cert_chain.head;
-    uint32_t chain_size = 0;
-    do {
-        struct s2n_cert *new_node;
+int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem)
+{
+    struct s2n_blob mem;
 
-        if (s2n_stuffer_certificate_from_pem(&chain_in_stuffer, &cert_out_stuffer) < 0) {
-            if (chain_size == 0) {
-                S2N_ERROR(S2N_ERR_NO_CERTIFICATE_IN_PEM);
-            }
-            break;
-        }
+    /* Allocate the memory for the chain and key struct */
+    GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert_chain_and_key)));
+    config->cert_and_key_pairs = (struct s2n_cert_chain_and_key *)(void *)mem.data;
+    config->cert_and_key_pairs->cert_chain.head = NULL;
 
-        GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert)));
-        new_node = (struct s2n_cert *)(void *)mem.data;
+    memset(&config->cert_and_key_pairs->ocsp_status, 0, sizeof(config->cert_and_key_pairs->ocsp_status));
+    memset(&config->cert_and_key_pairs->sct_list, 0, sizeof(config->cert_and_key_pairs->sct_list));
+    GUARD(s2n_pkey_zero_init(&config->cert_and_key_pairs->private_key));
 
-        GUARD(s2n_alloc(&new_node->raw, s2n_stuffer_data_available(&cert_out_stuffer)));
-        GUARD(s2n_stuffer_read(&cert_out_stuffer, &new_node->raw));
-
-        /* Additional 3 bytes for the length field in the protocol */
-        chain_size += new_node->raw.size + 3;
-        new_node->next = NULL;
-        *insert = new_node;
-        insert = &new_node->next;
-    } while (s2n_stuffer_data_available(&chain_in_stuffer));
-
-    const uint32_t leftover_chain_amount = s2n_stuffer_data_available(&chain_in_stuffer);
-    GUARD(s2n_stuffer_free(&chain_in_stuffer));
-    GUARD(s2n_stuffer_free(&cert_out_stuffer));
-
-    /* Leftover data at this point means one of two things:
-     * A bug in s2n's PEM parsing OR a malformed PEM in the user's chain.
-     * Be conservative and fail instead of using a partial chain.
-     */
-    if (leftover_chain_amount > 0) {
-        S2N_ERROR(S2N_ERR_INVALID_PEM);
-    }
-
-    config->cert_and_key_pairs->cert_chain.chain_size = chain_size;
+    GUARD(s2n_config_add_cert_chain(config, cert_chain_pem));
+    GUARD(s2n_config_add_private_key(config, private_key_pem));
 
     /* Validate the leaf cert's public key matches the provided private key */
     struct s2n_pkey public_key;
@@ -491,7 +514,8 @@ int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
     return 0;
 }
 
-extern int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx) {
+extern int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx)
+{
     notnull_check(clock_fn);
 
     config->wall_clock = clock_fn;
@@ -500,7 +524,8 @@ extern int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_n
     return 0;
 }
 
-extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx) {
+extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx)
+{
     notnull_check(clock_fn);
 
     config->monotonic_clock = clock_fn;
@@ -584,9 +609,7 @@ int s2n_config_send_max_fragment_length(struct s2n_config *config, s2n_max_frag_
 {
     notnull_check(config);
 
-    if (mfl_code > S2N_TLS_MAX_FRAG_LEN_4096) {
-        S2N_ERROR(S2N_ERR_INVALID_MAX_FRAG_LEN);
-    }
+    S2N_ERROR_IF(mfl_code > S2N_TLS_MAX_FRAG_LEN_4096, S2N_ERR_INVALID_MAX_FRAG_LEN);
 
     config->mfl_code = mfl_code;
 

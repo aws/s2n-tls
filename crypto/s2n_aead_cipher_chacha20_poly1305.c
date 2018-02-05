@@ -48,9 +48,7 @@ static int s2n_aead_chacha20_poly1305_encrypt(struct s2n_session_key *key, struc
     eq_check(iv->size, S2N_TLS_CHACHA20_POLY1305_IV_LEN);
 
     /* Initialize the IV */
-    if (EVP_EncryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data) != 1) {
-        S2N_ERROR(S2N_ERR_KEY_INIT);
-    }
+    S2N_ERROR_IF(EVP_EncryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data) != 1, S2N_ERR_KEY_INIT);
 
     /* Adjust our buffer pointers to account for the explicit IV and TAG lengths */
     int in_len = in->size - S2N_TLS_CHACHA20_POLY1305_TAG_LEN;
@@ -58,24 +56,16 @@ static int s2n_aead_chacha20_poly1305_encrypt(struct s2n_session_key *key, struc
 
     int out_len;
     /* Specify the AAD */
-    if (EVP_EncryptUpdate(key->evp_cipher_ctx, NULL, &out_len, aad->data, aad->size) != 1) {
-        S2N_ERROR(S2N_ERR_ENCRYPT);
-    }
+    S2N_ERROR_IF(EVP_EncryptUpdate(key->evp_cipher_ctx, NULL, &out_len, aad->data, aad->size) != 1, S2N_ERR_ENCRYPT);
 
     /* Encrypt the data */
-    if (EVP_EncryptUpdate(key->evp_cipher_ctx, out->data, &out_len, in->data, in_len) != 1) {
-        S2N_ERROR(S2N_ERR_ENCRYPT);
-    }
+    S2N_ERROR_IF(EVP_EncryptUpdate(key->evp_cipher_ctx, out->data, &out_len, in->data, in_len) != 1, S2N_ERR_ENCRYPT);
 
     /* Finalize */
-    if (EVP_EncryptFinal_ex(key->evp_cipher_ctx, out->data, &out_len) != 1) {
-        S2N_ERROR(S2N_ERR_ENCRYPT);
-    }
+    S2N_ERROR_IF(EVP_EncryptFinal_ex(key->evp_cipher_ctx, out->data, &out_len) != 1, S2N_ERR_ENCRYPT);
 
     /* write the tag */
-    if (EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_AEAD_GET_TAG, S2N_TLS_CHACHA20_POLY1305_TAG_LEN, tag_data) != 1) {
-        S2N_ERROR(S2N_ERR_ENCRYPT);
-    }
+    S2N_ERROR_IF(EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_AEAD_GET_TAG, S2N_TLS_CHACHA20_POLY1305_TAG_LEN, tag_data) != 1, S2N_ERR_ENCRYPT);
 
     return 0;
 #else
@@ -91,24 +81,18 @@ static int s2n_aead_chacha20_poly1305_decrypt(struct s2n_session_key *key, struc
     eq_check(iv->size, S2N_TLS_CHACHA20_POLY1305_IV_LEN);
 
     /* Initialize the IV */
-    if (EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data) != 1) {
-        S2N_ERROR(S2N_ERR_KEY_INIT);
-    }
+    S2N_ERROR_IF(EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data) != 1, S2N_ERR_KEY_INIT);
 
     /* Adjust our buffer pointers to account for the explicit IV and TAG lengths */
     int in_len = in->size - S2N_TLS_CHACHA20_POLY1305_TAG_LEN;
     uint8_t *tag_data = in->data + in->size - S2N_TLS_CHACHA20_POLY1305_TAG_LEN;
 
     /* Set the TAG */
-    if (EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_GCM_SET_TAG, S2N_TLS_CHACHA20_POLY1305_TAG_LEN, tag_data) == 0) {
-        S2N_ERROR(S2N_ERR_DECRYPT);
-    }
+    S2N_ERROR_IF(EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_GCM_SET_TAG, S2N_TLS_CHACHA20_POLY1305_TAG_LEN, tag_data) == 0, S2N_ERR_DECRYPT);
 
     int out_len;
     /* Specify the AAD */
-    if (EVP_DecryptUpdate(key->evp_cipher_ctx, NULL, &out_len, aad->data, aad->size) != 1) {
-        S2N_ERROR(S2N_ERR_DECRYPT);
-    }
+    S2N_ERROR_IF(EVP_DecryptUpdate(key->evp_cipher_ctx, NULL, &out_len, aad->data, aad->size) != 1, S2N_ERR_DECRYPT);
 
     int evp_decrypt_rc = 1;
     /* Decrypt the data, but don't short circuit tag verification. EVP_Decrypt* return 0 on failure, 1 for success. */
@@ -117,9 +101,7 @@ static int s2n_aead_chacha20_poly1305_decrypt(struct s2n_session_key *key, struc
     /* Verify the tag */
     evp_decrypt_rc &= EVP_DecryptFinal_ex(key->evp_cipher_ctx, out->data, &out_len);
 
-    if (evp_decrypt_rc != 1) {
-        S2N_ERROR(S2N_ERR_DECRYPT);
-    }
+    S2N_ERROR_IF(evp_decrypt_rc != 1, S2N_ERR_DECRYPT);
 
     return 0;
 #else
@@ -132,15 +114,11 @@ static int s2n_aead_chacha20_poly1305_set_encryption_key(struct s2n_session_key 
 #ifdef S2N_CHACHA20_POLY1305_AVAILABLE
     eq_check(in->size, S2N_TLS_CHACHA20_POLY1305_KEY_LEN);
 
-    if (EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_chacha20_poly1305(), NULL, NULL, NULL) != 1) {
-        S2N_ERROR(S2N_ERR_KEY_INIT);
-    }
+    S2N_ERROR_IF(EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_chacha20_poly1305(), NULL, NULL, NULL) != 1, S2N_ERR_KEY_INIT);
 
     EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_AEAD_SET_IVLEN, S2N_TLS_CHACHA20_POLY1305_IV_LEN, NULL);
 
-    if (EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, in->data, NULL) != 1) {
-        S2N_ERROR(S2N_ERR_KEY_INIT);
-    }
+    S2N_ERROR_IF(EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, in->data, NULL) != 1, S2N_ERR_KEY_INIT);
 
     return 0;
 #else
@@ -153,15 +131,11 @@ static int s2n_aead_chacha20_poly1305_set_decryption_key(struct s2n_session_key 
 #ifdef S2N_CHACHA20_POLY1305_AVAILABLE
     eq_check(in->size, S2N_TLS_CHACHA20_POLY1305_KEY_LEN);
 
-    if (EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_chacha20_poly1305(), NULL, NULL, NULL) != 1) {
-        S2N_ERROR(S2N_ERR_KEY_INIT);
-    }
+    S2N_ERROR_IF(EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_chacha20_poly1305(), NULL, NULL, NULL) != 1, S2N_ERR_KEY_INIT);
 
     EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_AEAD_SET_IVLEN, S2N_TLS_CHACHA20_POLY1305_IV_LEN, NULL);
 
-    if (EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, in->data, NULL) != 1) {
-        S2N_ERROR(S2N_ERR_KEY_INIT);
-    }
+    S2N_ERROR_IF(EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, in->data, NULL) != 1, S2N_ERR_KEY_INIT);
 
     return 0;
 #else

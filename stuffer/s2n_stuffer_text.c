@@ -53,9 +53,7 @@ int s2n_stuffer_read_expected_str(struct s2n_stuffer *stuffer, const char *expec
 {
     void *actual = s2n_stuffer_raw_read(stuffer, strlen(expected));
     notnull_check(actual);
-    if (memcmp(actual, expected, strlen(expected))) {
-        S2N_ERROR(S2N_ERR_STUFFER_NOT_FOUND);
-    }
+    S2N_ERROR_IF(memcmp(actual, expected, strlen(expected)), S2N_ERR_STUFFER_NOT_FOUND);
     return 0;
 }
 

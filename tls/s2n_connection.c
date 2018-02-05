@@ -17,6 +17,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <time.h>
 
 #include <s2n.h>
@@ -401,6 +402,40 @@ static int s2n_connection_free_hmacs(struct s2n_connection *conn)
     return 0;
 }
 
+static uint8_t s2n_default_verify_host(const char *host_name, size_t len, void *data)
+{
+    /* if present, match server_name of the connection using rules
+     * outlined in RFC6125 6.4. */
+
+    struct s2n_connection *conn = data;
+
+    if (conn->server_name[0] == '\0') {
+        return 0;
+    }
+
+    /* complete match */
+    if (strlen(conn->server_name) == len &&
+            strncasecmp(conn->server_name, host_name, len) == 0) {
+        return 1;
+    }
+
+    /* match 1 level of wildcard */
+    if (len > 2 && host_name[0] == '*' && host_name[1] == '.') {
+        const char *suffix = strchr(conn->server_name, '.');
+
+        if (suffix == NULL) {
+            return 0;
+        }
+
+        if (strlen(suffix) == len - 1 &&
+                strncasecmp(suffix, host_name + 1, len - 1) == 0) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 int s2n_connection_free(struct s2n_connection *conn)
 {
     struct s2n_blob blob = {0};
@@ -458,8 +493,13 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
     else {
         GUARD(s2n_x509_validator_init(&conn->x509_validator, &config->trust_store, config->check_ocsp));
         if (!conn->verify_host_fn_overridden) {
-            conn->verify_host_fn = config->verify_host;
-            conn->data_for_verify_host = config->data_for_verify_host;
+            if (config->verify_host != NULL) {
+                conn->verify_host_fn = config->verify_host;
+                conn->data_for_verify_host = config->data_for_verify_host;
+            } else {
+                conn->verify_host_fn = s2n_default_verify_host;
+                conn->data_for_verify_host = conn;
+            }
         }
     }
 
@@ -787,9 +827,7 @@ int s2n_connection_client_cert_used(struct s2n_connection *conn)
 
 int s2n_connection_get_alert(struct s2n_connection *conn)
 {
-    if (s2n_stuffer_data_available(&conn->alert_in) != 2) {
-        S2N_ERROR(S2N_ERR_NO_ALERT);
-    }
+    S2N_ERROR_IF(s2n_stuffer_data_available(&conn->alert_in) != 2, S2N_ERR_NO_ALERT);
 
     uint8_t alert_code = 0;
     GUARD(s2n_stuffer_read_uint8(&conn->alert_in, &alert_code));
@@ -800,14 +838,10 @@ int s2n_connection_get_alert(struct s2n_connection *conn)
 
 int s2n_set_server_name(struct s2n_connection *conn, const char *server_name)
 {
-    if (conn->mode != S2N_CLIENT) {
-        S2N_ERROR(S2N_ERR_CLIENT_MODE);
-    }
+    S2N_ERROR_IF(conn->mode != S2N_CLIENT, S2N_ERR_CLIENT_MODE);
 
     int len = strlen(server_name);
-    if (len > 255) {
-        S2N_ERROR(S2N_ERR_SERVER_NAME_TOO_LONG);
-    }
+    S2N_ERROR_IF(len > 255, S2N_ERR_SERVER_NAME_TOO_LONG);
 
     memcpy_check(conn->server_name, server_name, len);
 

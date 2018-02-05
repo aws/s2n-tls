@@ -165,9 +165,7 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
             return -1;
         }
 
-        if (isSSLv2) {
-            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-        }
+        S2N_ERROR_IF(isSSLv2, S2N_ERR_BAD_MESSAGE);
 
         if (record_type != TLS_APPLICATION_DATA) {
             if (record_type == TLS_ALERT) {
@@ -217,13 +215,9 @@ int s2n_recv_close_notify(struct s2n_connection *conn, s2n_blocked_status * bloc
 
     GUARD(s2n_read_full_record(conn, &record_type, &isSSLv2));
 
-    if (isSSLv2) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(isSSLv2, S2N_ERR_BAD_MESSAGE);
 
-    if (record_type != TLS_ALERT) {
-        S2N_ERROR(S2N_ERR_SHUTDOWN_RECORD_TYPE);
-    }
+    S2N_ERROR_IF(record_type != TLS_ALERT, S2N_ERR_SHUTDOWN_RECORD_TYPE);
 
     /* Only succeeds for an incoming close_notify alert */
     GUARD(s2n_process_alert_fragment(conn));

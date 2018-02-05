@@ -32,9 +32,7 @@ int s2n_server_ccs_recv(struct s2n_connection *conn)
     uint8_t type;
 
     GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &type));
-    if (type != CHANGE_CIPHER_SPEC_TYPE) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(type != CHANGE_CIPHER_SPEC_TYPE, S2N_ERR_BAD_MESSAGE);
 
     /* Zero the sequence number */
     struct s2n_blob seq = {.data = conn->secure.server_sequence_number,.size = S2N_TLS_SEQUENCE_NUM_LEN };

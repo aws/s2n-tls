@@ -41,9 +41,7 @@ int s2n_client_ccs_recv(struct s2n_connection *conn)
     conn->client = &conn->secure;
 
     GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &type));
-    if (type != CHANGE_CIPHER_SPEC_TYPE) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(type != CHANGE_CIPHER_SPEC_TYPE, S2N_ERR_BAD_MESSAGE);
 
     /* Flush any partial alert messages that were pending */
     GUARD(s2n_stuffer_wipe(&conn->alert_in));

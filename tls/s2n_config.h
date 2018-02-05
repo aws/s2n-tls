@@ -73,3 +73,7 @@ extern struct s2n_config *s2n_fetch_default_fips_config(void);
 extern struct s2n_config *s2n_fetch_unsafe_client_testing_config(void);
 
 extern void s2n_wipe_static_configs(void);
+extern int s2n_config_add_cert_chain_from_stuffer(struct s2n_config *config, struct s2n_stuffer *chain_in_stuffer);
+extern int s2n_config_add_cert_chain(struct s2n_config *config, const char *cert_chain_pem);
+extern int s2n_config_add_private_key(struct s2n_config *config, const char *private_key_pem);
+
