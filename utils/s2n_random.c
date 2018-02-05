@@ -287,6 +287,14 @@ int s2n_rand_cleanup(void)
     return 0;
 }
 
+int s2n_rand_cleanup_thread(void)
+{
+    GUARD(s2n_drbg_wipe(&per_thread_private_drbg));
+    GUARD(s2n_drbg_wipe(&per_thread_public_drbg));
+
+    return 0;
+}
+
 int s2n_cpu_supports_rdrand()
 {
 #if ((defined(__x86_64__) || defined(__i386__)) && (defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4,3,0)))

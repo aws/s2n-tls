@@ -450,8 +450,18 @@ int s2n_cleanup();
 ```
 
 **s2n_cleanup** cleans up any internal resources used by s2n. This function should be
-called from each thread or process that is created subsequent to calling **s2n_init**
-when that thread or process is done calling other s2n functions.
+called from each process that is created subsequent to calling **s2n_init**
+when that process is done calling other s2n functions.
+
+### s2n\_cleanup\_thread
+
+```c
+int s2n_cleanup_thread();
+```
+
+**s2n_cleanup_thread** cleans up any thread local storage that may be
+associated with it and should be called when any thread which invokes s2n
+functions is done.
 
 ## Configuration-oriented functions
 

@@ -107,6 +107,7 @@ int mock_client(int writefd, int readfd)
     s2n_shutdown(conn, &blocked);
     s2n_connection_free(conn);
     s2n_config_free(client_config);
+    s2n_cleanup_thread();
     s2n_cleanup();
 
     _exit(0);
@@ -225,6 +226,11 @@ int main(int argc, char **argv)
     free(cert_chain_pem);
     free(private_key_pem);
     free(dhparams_pem);
+
+    /* Call cleanup thread here, even though it is redundant due to the
+     * subsequent s2n_cleanup, however we want to ensure that a double
+     * invocation doesn't result in an error */
+    s2n_cleanup_thread();
 
     END_TEST();
 

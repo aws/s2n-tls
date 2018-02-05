@@ -39,3 +39,11 @@ int s2n_cleanup(void)
 
     return 0;
 }
+
+int s2n_cleanup_thread(void)
+{
+    GUARD(s2n_rand_cleanup_thread());
+
+    return 0;
+}
+

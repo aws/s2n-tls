@@ -51,6 +51,7 @@ struct s2n_config;
 
 extern int s2n_init(void);
 extern int s2n_cleanup(void);
+extern int s2n_cleanup_thread(void);
 extern struct s2n_config *s2n_config_new(void);
 extern int s2n_config_free(struct s2n_config *config);
 extern int s2n_config_free_dhparams(struct s2n_config *config);
