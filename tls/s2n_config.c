@@ -77,11 +77,6 @@ static int wall_clock(void *data, uint64_t *nanoseconds)
     return 0;
 }
 
-static uint8_t default_verify_host(const char *host_name, size_t len, void *data)
-{
-    return 0;
-}
-
 #endif
 
 static uint8_t default_config_init = 0;
@@ -107,7 +102,7 @@ static int s2n_config_init(struct s2n_config *config)
     config->status_request_type = S2N_STATUS_REQUEST_NONE;
     config->wall_clock = wall_clock;
     config->monotonic_clock = monotonic_clock;
-    config->verify_host = default_verify_host;
+    config->verify_host = NULL;
     config->data_for_verify_host = NULL;
     config->client_hello_cb = NULL;
     config->client_hello_cb_ctx = NULL;
