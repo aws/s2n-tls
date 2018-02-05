@@ -36,27 +36,20 @@
 
 int s2n_record_parse_stream(struct s2n_connection *conn)
 {
-    struct s2n_blob iv;
     struct s2n_blob en;
-    struct s2n_blob aad;
     uint8_t content_type;
     uint16_t fragment_length;
-    uint8_t ivpad[S2N_TLS_MAX_IV_LEN];
-    uint8_t aad_gen[S2N_TLS_MAX_AAD_LEN] = { 0 };
-    uint8_t aad_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
 
     uint8_t *sequence_number = conn->client->client_sequence_number;
     struct s2n_hmac_state *mac = &conn->client->client_record_mac;
     struct s2n_session_key *session_key = &conn->client->client_key;
     const struct s2n_cipher_suite *cipher_suite = conn->client->cipher_suite;
-    uint8_t *implicit_iv = conn->client->client_implicit_iv;
 
     if (conn->mode == S2N_CLIENT) {
         sequence_number = conn->server->server_sequence_number;
         mac = &conn->server->server_record_mac;
         session_key = &conn->server->server_key;
         cipher_suite = conn->server->cipher_suite;
-        implicit_iv = conn->server->server_implicit_iv;
     }
 
     GUARD(s2n_record_header_parse(conn, &content_type, &fragment_length));

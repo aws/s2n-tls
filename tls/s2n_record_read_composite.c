@@ -38,12 +38,9 @@ int s2n_record_parse_composite(struct s2n_connection *conn)
 {
     struct s2n_blob iv;
     struct s2n_blob en;
-    struct s2n_blob aad;
     uint8_t content_type;
     uint16_t fragment_length;
     uint8_t ivpad[S2N_TLS_MAX_IV_LEN];
-    uint8_t aad_gen[S2N_TLS_MAX_AAD_LEN] = { 0 };
-    uint8_t aad_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
 
     uint8_t *sequence_number = conn->client->client_sequence_number;
     struct s2n_hmac_state *mac = &conn->client->client_record_mac;
@@ -66,22 +63,10 @@ int s2n_record_parse_composite(struct s2n_connection *conn)
     notnull_check(header);
 
     uint16_t encrypted_length = fragment_length;
-    if (cipher_suite->record_alg->cipher->type == S2N_CBC) {
-        iv.data = implicit_iv;
-        iv.size = cipher_suite->record_alg->cipher->io.cbc.record_iv_size;
-        lte_check(cipher_suite->record_alg->cipher->io.cbc.record_iv_size, S2N_TLS_MAX_IV_LEN);
-
-        /* For TLS >= 1.1 the IV is in the packet */
-        if (conn->actual_protocol_version > S2N_TLS10) {
-            GUARD(s2n_stuffer_read(&conn->in, &iv));
-            gte_check(encrypted_length, iv.size);
-            encrypted_length -= iv.size;
-        }
-    } else if (cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
-        /* Don't reduce encrypted length for explicit IV, composite decrypt expects it */
-        iv.data = implicit_iv;
-        iv.size = cipher_suite->record_alg->cipher->io.comp.record_iv_size;
-    }
+    /* Don't reduce encrypted length for explicit IV, composite decrypt expects it */
+    iv.data = implicit_iv;
+    iv.size = cipher_suite->record_alg->cipher->io.comp.record_iv_size;
+    
 
     en.size = encrypted_length;
     en.data = s2n_stuffer_raw_read(&conn->in, en.size);
@@ -97,37 +82,34 @@ int s2n_record_parse_composite(struct s2n_connection *conn)
     /* Compute non-payload parts of the MAC(seq num, type, proto vers, fragment length) for composite ciphers.
      * Composite "decrypt" will MAC the actual payload data.
      */
-    if (cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
-        /* In the decrypt case, this outputs the MAC digest length:
-         * https://github.com/openssl/openssl/blob/master/crypto/evp/e_aes_cbc_hmac_sha1.c#L842 */
-        int mac_size = 0;
-        GUARD(cipher_suite->record_alg->cipher->io.comp.initial_hmac(session_key, sequence_number, content_type, conn->actual_protocol_version,
-                                                                     payload_length, &mac_size));
+    /* In the decrypt case, this outputs the MAC digest length:
+     * https://github.com/openssl/openssl/blob/master/crypto/evp/e_aes_cbc_hmac_sha1.c#L842 */
+    int mac_size = 0;
+    GUARD(cipher_suite->record_alg->cipher->io.comp.initial_hmac(session_key, sequence_number, content_type, conn->actual_protocol_version,
+								 payload_length, &mac_size));
 
-        gte_check(payload_length, mac_size);
-        payload_length -= mac_size;
-        /* Adjust payload_length for explicit IV */
-        if (conn->actual_protocol_version > S2N_TLS10) {
-            payload_length -= cipher_suite->record_alg->cipher->io.comp.record_iv_size;
-        }
+    gte_check(payload_length, mac_size);
+    payload_length -= mac_size;
+    /* Adjust payload_length for explicit IV */
+    if (conn->actual_protocol_version > S2N_TLS10) {
+      payload_length -= cipher_suite->record_alg->cipher->io.comp.record_iv_size;
     }
 
     /* Decrypt stuff! */
+    ne_check(en.size, 0);
+    eq_check(en.size % iv.size,  0);
 
-            ne_check(en.size, 0);
-            eq_check(en.size % iv.size,  0);
+    /* Copy the last encrypted block to be the next IV */
+    memcpy_check(ivpad, en.data + en.size - iv.size, iv.size);
 
-            /* Copy the last encrypted block to be the next IV */
-            memcpy_check(ivpad, en.data + en.size - iv.size, iv.size);
+    /* This will: Skip the explicit IV(if applicable), decrypt the payload, verify the MAC and padding. */
+    GUARD((cipher_suite->record_alg->cipher->io.comp.decrypt(session_key, &iv, &en, &en)));
 
-            /* This will: Skip the explicit IV(if applicable), decrypt the payload, verify the MAC and padding. */
-            GUARD((cipher_suite->record_alg->cipher->io.comp.decrypt(session_key, &iv, &en, &en)));
-
-            memcpy_check(implicit_iv, ivpad, iv.size);
+    memcpy_check(implicit_iv, ivpad, iv.size);
 
     /* Subtract the padding length */
-        gt_check(en.size, 0);
-        payload_length -= (en.data[en.size - 1] + 1);
+    gt_check(en.size, 0);
+    payload_length -= (en.data[en.size - 1] + 1);
 
 
     struct s2n_blob seq = {.data = sequence_number,.size = S2N_TLS_SEQUENCE_NUM_LEN };
