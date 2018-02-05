@@ -45,6 +45,7 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_FSTAT, "error calling fstat"},
     {S2N_ERR_OPEN, "error calling open"},
     {S2N_ERR_MMAP, "error calling mmap"},
+    {S2N_ERR_ATEXIT, "error calling atexit"},
     {S2N_ERR_NULL, "NULL pointer encountered"},
     {S2N_ERR_CLOSED, "connection is closed"},
     {S2N_ERR_SAFETY, "a safety check failed"},

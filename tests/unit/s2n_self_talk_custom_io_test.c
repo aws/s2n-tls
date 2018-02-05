@@ -107,7 +107,6 @@ int mock_client(int writefd, int readfd)
     s2n_shutdown(conn, &blocked);
     s2n_connection_free(conn);
     s2n_config_free(client_config);
-    s2n_cleanup_thread();
     s2n_cleanup();
 
     _exit(0);
@@ -162,6 +161,12 @@ int main(int argc, char **argv)
         /* This is the child process, close the read end of the pipe */
         EXPECT_SUCCESS(close(client_to_server[0]));
         EXPECT_SUCCESS(close(server_to_client[1]));
+
+        /* Free the config */
+        EXPECT_SUCCESS(s2n_config_free(config));
+        free(cert_chain_pem);
+        free(private_key_pem);
+        free(dhparams_pem);
 
         /* Run the client */
         mock_client(client_to_server[1], server_to_client[0]);
@@ -220,6 +225,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
     /* Clean up */
+    EXPECT_SUCCESS(s2n_stuffer_free(&in));
+    EXPECT_SUCCESS(s2n_stuffer_free(&out));
     EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
     EXPECT_EQUAL(status, 0);
     EXPECT_SUCCESS(s2n_config_free(config));
@@ -227,10 +234,7 @@ int main(int argc, char **argv)
     free(private_key_pem);
     free(dhparams_pem);
 
-    /* Call cleanup thread here, even though it is redundant due to the
-     * subsequent s2n_cleanup, however we want to ensure that a double
-     * invocation doesn't result in an error */
-    s2n_cleanup_thread();
+    s2n_cleanup();
 
     END_TEST();
 

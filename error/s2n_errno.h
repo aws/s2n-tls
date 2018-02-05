@@ -97,6 +97,7 @@ typedef enum {
     S2N_ERR_FSTAT,
     S2N_ERR_OPEN,
     S2N_ERR_MMAP,
+    S2N_ERR_ATEXIT,
     S2N_ERR_NOMEM,
     S2N_ERR_NULL,
     S2N_ERR_SAFETY,
