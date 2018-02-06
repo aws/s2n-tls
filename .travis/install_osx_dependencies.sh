@@ -20,7 +20,6 @@ function brew_install_if_not_installed () {
 }
 
 brew update
-brew tap homebrew/versions
 
 brew_install_if_not_installed gcc6
 brew_install_if_not_installed gnu-indent
