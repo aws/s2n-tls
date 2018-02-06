@@ -44,12 +44,12 @@ typedef enum parser_state {
     PARSE_ERROR
 } parser_state;
 
-static inline long get_gmt_offset(struct tm *time) {
+static inline long get_gmt_offset(struct tm *t) {
 
 #if defined(__USE_BSD)
-    return time->tm_gmtoff;
+    return t->tm_gmtoff;
 #else
-    return time->__tm_gmtoff;
+    return t->__tm_gmtoff;
 #endif
 }
 

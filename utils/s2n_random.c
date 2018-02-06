@@ -269,8 +269,6 @@ int s2n_rand_cleanup(void)
 {
     S2N_ERROR_IF(entropy_fd == -1, S2N_ERR_NOT_INITIALIZED);
 
-    GUARD(s2n_drbg_wipe(&per_thread_private_drbg));
-    GUARD(s2n_drbg_wipe(&per_thread_public_drbg));
     GUARD(close(entropy_fd));
     entropy_fd = -1;
 
@@ -283,6 +281,14 @@ int s2n_rand_cleanup(void)
         ENGINE_cleanup();
     }
 #endif
+
+    return 0;
+}
+
+int s2n_rand_cleanup_thread(void)
+{
+    GUARD(s2n_drbg_wipe(&per_thread_private_drbg));
+    GUARD(s2n_drbg_wipe(&per_thread_public_drbg));
 
     return 0;
 }
