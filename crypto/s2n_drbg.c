@@ -159,10 +159,12 @@ int s2n_drbg_wipe(struct s2n_drbg *drbg)
 {
     struct s2n_blob state = {.data = (void *)drbg,.size = sizeof(struct s2n_drbg) };
 
-    S2N_ERROR_IF(EVP_CIPHER_CTX_cleanup(drbg->ctx) != 1, S2N_ERR_DRBG);
+    if (drbg->ctx) {
+        S2N_ERROR_IF(EVP_CIPHER_CTX_cleanup(drbg->ctx) != 1, S2N_ERR_DRBG);
 
-    EVP_CIPHER_CTX_free(drbg->ctx);
-    drbg->ctx = NULL;
+        EVP_CIPHER_CTX_free(drbg->ctx);
+        drbg->ctx = NULL;
+    }
 
     GUARD(s2n_blob_zero(&state));
 

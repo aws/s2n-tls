@@ -20,6 +20,8 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
+static void s2n_cleanup_atexit(void);
+
 int s2n_init(void)
 {
     GUARD(s2n_fips_init());
@@ -27,15 +29,24 @@ int s2n_init(void)
     GUARD(s2n_rand_init());
     GUARD(s2n_cipher_suites_init());
 
+    S2N_ERROR_IF(atexit(s2n_cleanup_atexit) != 0, S2N_ERR_ATEXIT);
+
     return 0;
 }
 
 int s2n_cleanup(void)
 {
-    GUARD(s2n_cipher_suites_cleanup());
-    GUARD(s2n_rand_cleanup());
-    GUARD(s2n_mem_cleanup());
-    s2n_wipe_static_configs();
+    GUARD(s2n_rand_cleanup_thread());
 
     return 0;
 }
+
+static void s2n_cleanup_atexit(void)
+{
+    s2n_rand_cleanup_thread();
+    s2n_cipher_suites_cleanup();
+    s2n_rand_cleanup();
+    s2n_mem_cleanup();
+    s2n_wipe_static_configs();
+}
+

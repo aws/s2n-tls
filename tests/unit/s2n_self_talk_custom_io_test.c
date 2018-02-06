@@ -162,6 +162,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(close(client_to_server[0]));
         EXPECT_SUCCESS(close(server_to_client[1]));
 
+        /* Free the config */
+        EXPECT_SUCCESS(s2n_config_free(config));
+        free(cert_chain_pem);
+        free(private_key_pem);
+        free(dhparams_pem);
+
         /* Run the client */
         mock_client(client_to_server[1], server_to_client[0]);
     }
@@ -219,12 +225,16 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
     /* Clean up */
+    EXPECT_SUCCESS(s2n_stuffer_free(&in));
+    EXPECT_SUCCESS(s2n_stuffer_free(&out));
     EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
     EXPECT_EQUAL(status, 0);
     EXPECT_SUCCESS(s2n_config_free(config));
     free(cert_chain_pem);
     free(private_key_pem);
     free(dhparams_pem);
+
+    s2n_cleanup();
 
     END_TEST();
 
