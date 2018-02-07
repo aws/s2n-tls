@@ -14,6 +14,7 @@
  */
 
 #include <strings.h>
+#include <time.h>
 
 #include "error/s2n_errno.h"
 
@@ -21,29 +22,6 @@
 
 #include "tls/s2n_cipher_preferences.h"
 #include "utils/s2n_safety.h"
-
-#if defined(__APPLE__) && defined(__MACH__)
-
-#include <mach/clock.h>
-#include <mach/mach.h>
-#include <mach/mach_time.h>
-
-int get_nanoseconds_since_epoch(void *data, uint64_t * nanoseconds)
-{
-    mach_timebase_info_data_t conversion_factor;
-
-    GUARD(mach_timebase_info(&conversion_factor));
-
-    *nanoseconds = mach_absolute_time();
-    *nanoseconds *= conversion_factor.numer;
-    *nanoseconds /= conversion_factor.denom;
-
-    return 0;
-}
-
-#else
-
-#include <time.h>
 
 #if defined(CLOCK_MONOTONIC_RAW)
 #define S2N_CLOCK_HW CLOCK_MONOTONIC_RAW
@@ -76,8 +54,6 @@ static int wall_clock(void *data, uint64_t *nanoseconds)
 
     return 0;
 }
-
-#endif
 
 static uint8_t default_config_init = 0;
 static uint8_t unsafe_client_testing_config_init = 0;

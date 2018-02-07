@@ -15,31 +15,12 @@
 
 #pragma once
 
-#if defined(__APPLE__) && defined(__MACH__)
-
-#define COMMON_DIGEST_FOR_OPENSSL
-#include <CommonCrypto/CommonDigest.h>
-#define SHA1 CC_SHA1
-#define SHA224 CC_SHA224
-#define SHA256 CC_SHA256
-#define SHA384 CC_SHA384
-#define SHA512 CC_SHA512
-
-#include <CommonCrypto/CommonHMAC.h>
-#define HMAC CCHmac
-
-#else
+#include <stdint.h>
 
 #include <openssl/md5.h>
 #include <openssl/sha.h>
 
-#endif
-
 #include "crypto/s2n_evp.h"
-
-#include <openssl/evp.h>
-
-#include <stdint.h>
 
 #define S2N_MAX_DIGEST_LEN SHA512_DIGEST_LENGTH
 
