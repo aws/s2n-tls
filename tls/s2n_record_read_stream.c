@@ -34,31 +34,22 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
 
-int s2n_record_parse_stream(struct s2n_connection *conn)
+#include "tls/s2n_record_read.h"
+
+int s2n_record_parse_stream(const struct s2n_cipher_suite *cipher_suite,
+			    struct s2n_connection *conn,
+			    uint8_t content_type,
+			    uint16_t encrypted_length,
+			    uint8_t *implicit_iv,
+			    struct s2n_hmac_state *mac,
+			    uint8_t *sequence_number,
+			    struct s2n_session_key *session_key)
 {
     struct s2n_blob en;
-    uint8_t content_type;
-    uint16_t fragment_length;
-
-    uint8_t *sequence_number = conn->client->client_sequence_number;
-    struct s2n_hmac_state *mac = &conn->client->client_record_mac;
-    struct s2n_session_key *session_key = &conn->client->client_key;
-    const struct s2n_cipher_suite *cipher_suite = conn->client->cipher_suite;
-
-    if (conn->mode == S2N_CLIENT) {
-        sequence_number = conn->server->server_sequence_number;
-        mac = &conn->server->server_record_mac;
-        session_key = &conn->server->server_key;
-        cipher_suite = conn->server->cipher_suite;
-    }
-
-    GUARD(s2n_record_header_parse(conn, &content_type, &fragment_length));
 
     /* Add the header to the HMAC */
     uint8_t *header = s2n_stuffer_raw_read(&conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH);
     notnull_check(header);
-
-    uint16_t encrypted_length = fragment_length;
 
     en.size = encrypted_length;
     en.data = s2n_stuffer_raw_read(&conn->in, en.size);
@@ -92,7 +83,6 @@ int s2n_record_parse_stream(struct s2n_connection *conn)
     struct s2n_blob seq = {.data = sequence_number,.size = S2N_TLS_SEQUENCE_NUM_LEN };
     GUARD(s2n_increment_sequence_number(&seq));
 
-
     /* MAC check for streaming ciphers - no padding */
     GUARD(s2n_hmac_update(mac, en.data, payload_length));
 
@@ -105,7 +95,6 @@ int s2n_record_parse_stream(struct s2n_connection *conn)
       S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
     
-
     /* O.k., we've successfully read and decrypted the record, now we need to align the stuffer
      * for reading the plaintext data.
      */

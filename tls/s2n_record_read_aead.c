@@ -34,32 +34,21 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
 
-int s2n_record_parse_aead(struct s2n_connection *conn)
+int s2n_record_parse_aead(const struct s2n_cipher_suite *cipher_suite,
+			  struct s2n_connection *conn,
+			  uint8_t content_type,
+			  uint16_t encrypted_length,
+			  uint8_t *implicit_iv,
+			  struct s2n_hmac_state *mac,
+			  uint8_t *sequence_number,
+			  struct s2n_session_key *session_key)
 {
     struct s2n_blob iv;
     struct s2n_blob en;
     struct s2n_blob aad;
-    uint8_t content_type;
-    uint16_t fragment_length;
     uint8_t aad_gen[S2N_TLS_MAX_AAD_LEN] = { 0 };
     uint8_t aad_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
-
-    uint8_t *sequence_number = conn->client->client_sequence_number;
-    struct s2n_session_key *session_key = &conn->client->client_key;
-    const struct s2n_cipher_suite *cipher_suite = conn->client->cipher_suite;
-    uint8_t *implicit_iv = conn->client->client_implicit_iv;
-
-    if (conn->mode == S2N_CLIENT) {
-        sequence_number = conn->server->server_sequence_number;
-        session_key = &conn->server->server_key;
-        cipher_suite = conn->server->cipher_suite;
-        implicit_iv = conn->server->server_implicit_iv;
-    }
-
-    GUARD(s2n_record_header_parse(conn, &content_type, &fragment_length));
-
-    uint16_t encrypted_length = fragment_length;
-
+\
     en.size = encrypted_length;
     en.data = s2n_stuffer_raw_read(&conn->in, en.size);
     notnull_check(en.data);
@@ -115,7 +104,6 @@ int s2n_record_parse_aead(struct s2n_connection *conn)
     ne_check(en.size, 0);
 
     GUARD(cipher_suite->record_alg->cipher->io.aead.decrypt(session_key, &iv, &aad, &en, &en));
-
     struct s2n_blob seq = {.data = sequence_number,.size = S2N_TLS_SEQUENCE_NUM_LEN };
     GUARD(s2n_increment_sequence_number(&seq));
 

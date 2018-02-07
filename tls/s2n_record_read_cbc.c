@@ -22,47 +22,36 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
-#include "tls/s2n_crypto.h"
+#include "tls/s2n_record_read.h"
 
 #include "stuffer/s2n_stuffer.h"
 
-#include "crypto/s2n_sequence.h"
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_hmac.h"
+#include "crypto/s2n_sequence.h"
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
 
-int s2n_record_parse_cbc(struct s2n_connection *conn)
+
+int s2n_record_parse_cbc(const struct s2n_cipher_suite *cipher_suite,
+			 struct s2n_connection *conn,
+			 uint8_t content_type,
+			 uint16_t encrypted_length,
+			 uint8_t *implicit_iv,
+			 struct s2n_hmac_state *mac,
+			 uint8_t *sequence_number,
+			 struct s2n_session_key *session_key)
 {
     struct s2n_blob iv;
     struct s2n_blob en;
-    uint8_t content_type;
-    uint16_t fragment_length;
     uint8_t ivpad[S2N_TLS_MAX_IV_LEN];
-
-    uint8_t *sequence_number = conn->client->client_sequence_number;
-    struct s2n_hmac_state *mac = &conn->client->client_record_mac;
-    struct s2n_session_key *session_key = &conn->client->client_key;
-    const struct s2n_cipher_suite *cipher_suite = conn->client->cipher_suite;
-    uint8_t *implicit_iv = conn->client->client_implicit_iv;
-
-    if (conn->mode == S2N_CLIENT) {
-        sequence_number = conn->server->server_sequence_number;
-        mac = &conn->server->server_record_mac;
-        session_key = &conn->server->server_key;
-        cipher_suite = conn->server->cipher_suite;
-        implicit_iv = conn->server->server_implicit_iv;
-    }
-
-    GUARD(s2n_record_header_parse(conn, &content_type, &fragment_length));
-
+    
     /* Add the header to the HMAC */
     uint8_t *header = s2n_stuffer_raw_read(&conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH);
     notnull_check(header);
 
-    uint16_t encrypted_length = fragment_length;
     iv.data = implicit_iv;
     iv.size = cipher_suite->record_alg->cipher->io.cbc.record_iv_size;
     lte_check(cipher_suite->record_alg->cipher->io.cbc.record_iv_size, S2N_TLS_MAX_IV_LEN);

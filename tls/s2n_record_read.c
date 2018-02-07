@@ -20,7 +20,6 @@
 #include "error/s2n_errno.h"
 
 #include "tls/s2n_cipher_suites.h"
-#include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_crypto.h"
 
@@ -33,6 +32,8 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
+
+#include "tls/s2n_record_read.h"
 
 int s2n_sslv2_record_header_parse(struct s2n_connection *conn, uint8_t * record_type, uint8_t * client_protocol_version, uint16_t * fragment_length)
 {
@@ -73,11 +74,8 @@ int s2n_record_header_parse(struct s2n_connection *conn, uint8_t * content_type,
      * for ClientHello.
      *
      * https://tools.ietf.org/html/rfc5246#appendix-E.1 */
-    if (tls_major_version < S2N_MINIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION
-        || S2N_MAXIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION < tls_major_version) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
-
+    S2N_ERROR_IF(tls_major_version < S2N_MINIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION, S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(S2N_MAXIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION < tls_major_version, S2N_ERR_BAD_MESSAGE);
     S2N_ERROR_IF(conn->actual_protocol_version_established && conn->actual_protocol_version != version, S2N_ERR_BAD_MESSAGE);
 
     GUARD(s2n_stuffer_read_uint16(in, fragment_length));
@@ -86,33 +84,43 @@ int s2n_record_header_parse(struct s2n_connection *conn, uint8_t * content_type,
      * Openssl 1.0.1, so we don't check if the fragment length is >
      * S2N_TLS_MAXIMUM_FRAGMENT_LENGTH. The on-the-wire max is 65k 
      */
-
     GUARD(s2n_stuffer_reread(in));
 
     return 0;
 }
 
-int s2n_record_parse_aead(struct s2n_connection *conn);
-int s2n_record_parse_cbc(struct s2n_connection *conn);
-int s2n_record_parse_composite(struct s2n_connection *conn);
-int s2n_record_parse_stream(struct s2n_connection *conn);
-
 int s2n_record_parse(struct s2n_connection *conn)
 {
-    const struct s2n_cipher_suite *cipher_suite = (conn->mode == S2N_CLIENT) ? conn->server->cipher_suite : conn->client->cipher_suite;
+    const struct s2n_cipher_suite *cipher_suite = conn->client->cipher_suite;
+    uint8_t *implicit_iv = conn->client->client_implicit_iv;
+    struct s2n_hmac_state *mac = &conn->client->client_record_mac;
+    uint8_t *sequence_number = conn->client->client_sequence_number;
+    struct s2n_session_key *session_key = &conn->client->client_key;
+
+    if (conn->mode == S2N_CLIENT) {
+        cipher_suite = conn->server->cipher_suite;
+	implicit_iv = conn->server->server_implicit_iv;
+        mac = &conn->server->server_record_mac;
+        sequence_number = conn->server->server_sequence_number;
+        session_key = &conn->server->server_key;
+    }
+
+    uint8_t content_type;
+    uint16_t encrypted_length;
+    GUARD(s2n_record_header_parse(conn, &content_type, &encrypted_length));
     
     switch (cipher_suite->record_alg->cipher->type) {
     case S2N_AEAD:
-      GUARD(s2n_record_parse_aead(conn));
+      GUARD(s2n_record_parse_aead(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
       break;
     case S2N_CBC:
-      GUARD(s2n_record_parse_cbc(conn));
+      GUARD(s2n_record_parse_cbc(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
       break;
     case S2N_COMPOSITE:
-      GUARD(s2n_record_parse_composite(conn));
+      GUARD(s2n_record_parse_composite(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
       break;
     case S2N_STREAM:
-      GUARD(s2n_record_parse_stream(conn));
+      GUARD(s2n_record_parse_stream(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
       break;
     default:
       S2N_ERROR(S2N_ERR_CIPHER_TYPE);
