@@ -29,7 +29,11 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-int s2n_sslv2_record_header_parse(struct s2n_connection *conn, uint8_t * record_type, uint8_t * client_protocol_version, uint16_t * fragment_length)
+int s2n_sslv2_record_header_parse(
+    struct s2n_connection *conn,
+    uint8_t * record_type,
+    uint8_t * client_protocol_version,
+    uint16_t * fragment_length)
 {
     struct s2n_stuffer *in = &conn->header_in;
 
@@ -50,7 +54,10 @@ int s2n_sslv2_record_header_parse(struct s2n_connection *conn, uint8_t * record_
     return 0;
 }
 
-int s2n_record_header_parse(struct s2n_connection *conn, uint8_t * content_type, uint16_t * fragment_length)
+int s2n_record_header_parse(
+    struct s2n_connection *conn,
+    uint8_t * content_type,
+    uint16_t * fragment_length)
 {
     struct s2n_stuffer *in = &conn->header_in;
 
@@ -93,7 +100,7 @@ int s2n_record_parse(struct s2n_connection *conn)
 
     if (conn->mode == S2N_CLIENT) {
         cipher_suite = conn->server->cipher_suite;
-	implicit_iv = conn->server->server_implicit_iv;
+        implicit_iv = conn->server->server_implicit_iv;
         mac = &conn->server->server_record_mac;
         sequence_number = conn->server->server_sequence_number;
         session_key = &conn->server->server_key;
@@ -102,24 +109,24 @@ int s2n_record_parse(struct s2n_connection *conn)
     uint8_t content_type;
     uint16_t encrypted_length;
     GUARD(s2n_record_header_parse(conn, &content_type, &encrypted_length));
-    
+
     switch (cipher_suite->record_alg->cipher->type) {
     case S2N_AEAD:
-      GUARD(s2n_record_parse_aead(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
-      break;
+        GUARD(s2n_record_parse_aead(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+        break;
     case S2N_CBC:
-      GUARD(s2n_record_parse_cbc(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
-      break;
+        GUARD(s2n_record_parse_cbc(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+        break;
     case S2N_COMPOSITE:
-      GUARD(s2n_record_parse_composite(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
-      break;
+        GUARD(s2n_record_parse_composite(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+        break;
     case S2N_STREAM:
-      GUARD(s2n_record_parse_stream(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
-      break;
+        GUARD(s2n_record_parse_stream(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+        break;
     default:
-      S2N_ERROR(S2N_ERR_CIPHER_TYPE);
-      break;
+        S2N_ERROR(S2N_ERR_CIPHER_TYPE);
+        break;
     }
-    
+
     return 0;
 }

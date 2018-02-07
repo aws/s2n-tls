@@ -29,24 +29,25 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-int s2n_record_parse_composite(const struct s2n_cipher_suite *cipher_suite,
-			       struct s2n_connection *conn,
-			       uint8_t content_type,
-			       uint16_t encrypted_length,
-			       uint8_t *implicit_iv,
-			       struct s2n_hmac_state *mac,
-			       uint8_t *sequence_number,
-			       struct s2n_session_key *session_key)
+int s2n_record_parse_composite(
+    const struct s2n_cipher_suite *cipher_suite,
+    struct s2n_connection *conn,
+    uint8_t content_type,
+    uint16_t encrypted_length,
+    uint8_t * implicit_iv,
+    struct s2n_hmac_state *mac,
+    uint8_t * sequence_number,
+    struct s2n_session_key *session_key)
 {
     /* Don't reduce encrypted length for explicit IV, composite decrypt expects it */
-    struct s2n_blob iv = {.data = implicit_iv, .size = cipher_suite->record_alg->cipher->io.comp.record_iv_size};
+    struct s2n_blob iv = {.data = implicit_iv,.size = cipher_suite->record_alg->cipher->io.comp.record_iv_size };
     uint8_t ivpad[S2N_TLS_MAX_IV_LEN];
 
     /* Add the header to the HMAC */
     uint8_t *header = s2n_stuffer_raw_read(&conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH);
     notnull_check(header);
 
-    struct s2n_blob en = {.size = encrypted_length, .data = s2n_stuffer_raw_read(&conn->in, encrypted_length)};
+    struct s2n_blob en = {.size = encrypted_length,.data = s2n_stuffer_raw_read(&conn->in, encrypted_length) };
     notnull_check(en.data);
 
     uint16_t payload_length = encrypted_length;
@@ -62,19 +63,18 @@ int s2n_record_parse_composite(const struct s2n_cipher_suite *cipher_suite,
     /* In the decrypt case, this outputs the MAC digest length:
      * https://github.com/openssl/openssl/blob/master/crypto/evp/e_aes_cbc_hmac_sha1.c#L842 */
     int mac_size = 0;
-    GUARD(cipher_suite->record_alg->cipher->io.comp.initial_hmac(session_key, sequence_number, content_type, conn->actual_protocol_version,
-								 payload_length, &mac_size));
+    GUARD(cipher_suite->record_alg->cipher->io.comp.initial_hmac(session_key, sequence_number, content_type, conn->actual_protocol_version, payload_length, &mac_size));
 
     gte_check(payload_length, mac_size);
     payload_length -= mac_size;
     /* Adjust payload_length for explicit IV */
     if (conn->actual_protocol_version > S2N_TLS10) {
-      payload_length -= cipher_suite->record_alg->cipher->io.comp.record_iv_size;
+        payload_length -= cipher_suite->record_alg->cipher->io.comp.record_iv_size;
     }
 
     /* Decrypt stuff! */
     ne_check(en.size, 0);
-    eq_check(en.size % iv.size,  0);
+    eq_check(en.size % iv.size, 0);
 
     /* Copy the last encrypted block to be the next IV */
     memcpy_check(ivpad, en.data + en.size - iv.size, iv.size);

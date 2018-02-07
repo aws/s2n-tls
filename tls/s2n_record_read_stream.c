@@ -29,21 +29,21 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-
-int s2n_record_parse_stream(const struct s2n_cipher_suite *cipher_suite,
-			    struct s2n_connection *conn,
-			    uint8_t content_type,
-			    uint16_t encrypted_length,
-			    uint8_t *implicit_iv,
-			    struct s2n_hmac_state *mac,
-			    uint8_t *sequence_number,
-			    struct s2n_session_key *session_key)
+int s2n_record_parse_stream(
+    const struct s2n_cipher_suite *cipher_suite,
+    struct s2n_connection *conn,
+    uint8_t content_type,
+    uint16_t encrypted_length,
+    uint8_t * implicit_iv,
+    struct s2n_hmac_state *mac,
+    uint8_t * sequence_number,
+    struct s2n_session_key *session_key)
 {
     /* Add the header to the HMAC */
     uint8_t *header = s2n_stuffer_raw_read(&conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH);
     notnull_check(header);
 
-    struct s2n_blob en = {.size = encrypted_length, .data = s2n_stuffer_raw_read(&conn->in, encrypted_length)};
+    struct s2n_blob en = {.size = encrypted_length,.data = s2n_stuffer_raw_read(&conn->in, encrypted_length) };
     notnull_check(en.data);
 
     uint16_t payload_length = encrypted_length;
@@ -80,10 +80,10 @@ int s2n_record_parse_stream(const struct s2n_cipher_suite *cipher_suite,
     GUARD(s2n_hmac_digest(mac, check_digest, mac_digest_size));
 
     if (s2n_hmac_digest_verify(en.data + payload_length, check_digest, mac_digest_size) < 0) {
-      GUARD(s2n_stuffer_wipe(&conn->in));
-      S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        GUARD(s2n_stuffer_wipe(&conn->in));
+        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
-    
+
     /* O.k., we've successfully read and decrypted the record, now we need to align the stuffer
      * for reading the plaintext data.
      */
