@@ -45,21 +45,15 @@ int s2n_record_parse_composite(const struct s2n_cipher_suite *cipher_suite,
 			       uint8_t *sequence_number,
 			       struct s2n_session_key *session_key)
 {
-    struct s2n_blob iv;
-    struct s2n_blob en;
+    /* Don't reduce encrypted length for explicit IV, composite decrypt expects it */
+    struct s2n_blob iv = {.data = implicit_iv, .size = cipher_suite->record_alg->cipher->io.comp.record_iv_size};
     uint8_t ivpad[S2N_TLS_MAX_IV_LEN];
 
     /* Add the header to the HMAC */
     uint8_t *header = s2n_stuffer_raw_read(&conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH);
     notnull_check(header);
 
-    /* Don't reduce encrypted length for explicit IV, composite decrypt expects it */
-    iv.data = implicit_iv;
-    iv.size = cipher_suite->record_alg->cipher->io.comp.record_iv_size;
-    
-
-    en.size = encrypted_length;
-    en.data = s2n_stuffer_raw_read(&conn->in, en.size);
+    struct s2n_blob en = {.size = encrypted_length, .data = s2n_stuffer_raw_read(&conn->in, encrypted_length)};
     notnull_check(en.data);
 
     uint16_t payload_length = encrypted_length;

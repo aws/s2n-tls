@@ -43,25 +43,17 @@ int s2n_record_parse_aead(const struct s2n_cipher_suite *cipher_suite,
 			  uint8_t *sequence_number,
 			  struct s2n_session_key *session_key)
 {
-    struct s2n_blob iv;
-    struct s2n_blob en;
-    struct s2n_blob aad;
     uint8_t aad_gen[S2N_TLS_MAX_AAD_LEN] = { 0 };
-    uint8_t aad_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
-\
-    en.size = encrypted_length;
-    en.data = s2n_stuffer_raw_read(&conn->in, en.size);
+    struct s2n_blob aad = {.data = aad_gen, .size = sizeof(aad_gen)};
+    
+    struct s2n_blob en = {.size = encrypted_length, .data = s2n_stuffer_raw_read(&conn->in, encrypted_length)};
     notnull_check(en.data);
-
-    uint16_t payload_length = encrypted_length;
-
     /* In AEAD mode, the explicit IV is in the record */
     gte_check(en.size, cipher_suite->record_alg->cipher->io.aead.record_iv_size);
 
+    uint8_t aad_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
+    struct s2n_blob iv = {.data = aad_iv, .size = sizeof(aad_iv)};
     struct s2n_stuffer iv_stuffer;
-    iv.data = aad_iv;
-    iv.size = sizeof(aad_iv);
-
     GUARD(s2n_stuffer_init(&iv_stuffer, &iv));
 
     if (cipher_suite->record_alg->flags & S2N_TLS12_AES_GCM_AEAD_NONCE) {
@@ -83,9 +75,7 @@ int s2n_record_parse_aead(const struct s2n_cipher_suite *cipher_suite,
     /* Set the IV size to the amount of data written */
     iv.size = s2n_stuffer_data_available(&iv_stuffer);
 
-    aad.data = aad_gen;
-    aad.size = sizeof(aad_gen);
-
+    uint16_t payload_length = encrypted_length;
     /* remove the AEAD overhead from the record size */
     gte_check(payload_length, cipher_suite->record_alg->cipher->io.aead.record_iv_size + cipher_suite->record_alg->cipher->io.aead.tag_size);
     payload_length -= cipher_suite->record_alg->cipher->io.aead.record_iv_size;

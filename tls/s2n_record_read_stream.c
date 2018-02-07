@@ -45,14 +45,11 @@ int s2n_record_parse_stream(const struct s2n_cipher_suite *cipher_suite,
 			    uint8_t *sequence_number,
 			    struct s2n_session_key *session_key)
 {
-    struct s2n_blob en;
-
     /* Add the header to the HMAC */
     uint8_t *header = s2n_stuffer_raw_read(&conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH);
     notnull_check(header);
 
-    en.size = encrypted_length;
-    en.data = s2n_stuffer_raw_read(&conn->in, en.size);
+    struct s2n_blob en = {.size = encrypted_length, .data = s2n_stuffer_raw_read(&conn->in, encrypted_length)};
     notnull_check(en.data);
 
     uint16_t payload_length = encrypted_length;
@@ -61,8 +58,6 @@ int s2n_record_parse_stream(const struct s2n_cipher_suite *cipher_suite,
 
     gte_check(payload_length, mac_digest_size);
     payload_length -= mac_digest_size;
-
- 
 
     /* Decrypt stuff! */
     GUARD(cipher_suite->record_alg->cipher->io.stream.decrypt(session_key, &en, &en));
