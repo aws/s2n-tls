@@ -43,7 +43,7 @@ static int s2n_ecdsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *di
     GUARD(s2n_hash_digest(digest, digest_out, digest_length));
 
     unsigned int signature_size = signature->size;
-    S2N_ERROR_IF(ECDSA_sign(0, digest_out, digest_length, signature->data, &signature_size, key->ec_key) == 0, S2N_ERR_SIGN);
+    GUARD_OSSL(ECDSA_sign(0, digest_out, digest_length, signature->data, &signature_size, key->ec_key), S2N_ERR_SIGN);
     S2N_ERROR_IF(signature_size > signature->size, S2N_ERR_SIZE_MISMATCH);
     signature->size = signature_size;
 
@@ -65,7 +65,7 @@ static int s2n_ecdsa_verify(const struct s2n_pkey *pub, struct s2n_hash_state *d
     GUARD(s2n_hash_digest(digest, digest_out, digest_length));
     
     /* ECDSA_verify ignores the first parameter */
-    S2N_ERROR_IF(ECDSA_verify(0, digest_out, digest_length, signature->data, signature->size, key->ec_key) == 0, S2N_ERR_VERIFY_SIGNATURE);
+    GUARD_OSSL(ECDSA_verify(0, digest_out, digest_length, signature->data, signature->size, key->ec_key), S2N_ERR_VERIFY_SIGNATURE);
 
     GUARD(s2n_hash_reset(digest));
     

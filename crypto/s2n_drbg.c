@@ -27,7 +27,7 @@
 static int s2n_drbg_block_encrypt(EVP_CIPHER_CTX * ctx, uint8_t in[S2N_DRBG_BLOCK_SIZE], uint8_t out[S2N_DRBG_BLOCK_SIZE])
 {
     int len = S2N_DRBG_BLOCK_SIZE;
-    S2N_ERROR_IF(EVP_EncryptUpdate(ctx, out, &len, in, S2N_DRBG_BLOCK_SIZE) != 1, S2N_ERR_DRBG);
+    GUARD_OSSL(EVP_EncryptUpdate(ctx, out, &len, in, S2N_DRBG_BLOCK_SIZE), S2N_ERR_DRBG);
     eq_check(len, S2N_DRBG_BLOCK_SIZE);
 
     return 0;
@@ -74,7 +74,7 @@ static int s2n_drbg_update(struct s2n_drbg *drbg, struct s2n_blob *provided_data
     }
 
     /* Update the key and value */
-    S2N_ERROR_IF(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_128_ecb(), NULL, temp, NULL) != 1, S2N_ERR_DRBG);
+    GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_128_ecb(), NULL, temp, NULL), S2N_ERR_DRBG);
 
     memcpy_check(drbg->v, temp + S2N_DRBG_BLOCK_SIZE, S2N_DRBG_BLOCK_SIZE);
 
@@ -119,7 +119,7 @@ int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization
     (void)EVP_CIPHER_CTX_init(drbg->ctx);
 
     /* Start off with zeroed key, per 10.2.1.3.1 item 5 */
-    S2N_ERROR_IF(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_128_ecb(), NULL, drbg->v, NULL) != 1, S2N_ERR_DRBG);
+    GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_128_ecb(), NULL, drbg->v, NULL), S2N_ERR_DRBG);
 
     /* Copy the personalization string */
     GUARD(s2n_blob_zero(&ps));
@@ -160,7 +160,7 @@ int s2n_drbg_wipe(struct s2n_drbg *drbg)
     struct s2n_blob state = {.data = (void *)drbg,.size = sizeof(struct s2n_drbg) };
 
     if (drbg->ctx) {
-        S2N_ERROR_IF(EVP_CIPHER_CTX_cleanup(drbg->ctx) != 1, S2N_ERR_DRBG);
+        GUARD_OSSL(EVP_CIPHER_CTX_cleanup(drbg->ctx), S2N_ERR_DRBG);
 
         EVP_CIPHER_CTX_free(drbg->ctx);
         drbg->ctx = NULL;

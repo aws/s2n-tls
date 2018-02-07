@@ -84,9 +84,7 @@ static int s2n_check_p_g_dh_params(struct s2n_dh_params *dh_params)
     notnull_check(p);
 
     S2N_ERROR_IF(DH_size(dh_params->dh) < S2N_MIN_DH_PRIME_SIZE_BYTES, S2N_ERR_DH_PARAMS_CREATE);
-
     S2N_ERROR_IF(BN_is_zero(g), S2N_ERR_DH_PARAMS_CREATE);
-
     S2N_ERROR_IF(BN_is_zero(p), S2N_ERR_DH_PARAMS_CREATE);
 
     return 0;
@@ -289,8 +287,7 @@ int s2n_dh_params_check(struct s2n_dh_params *params)
 {
     int codes = 0;
 
-    S2N_ERROR_IF(DH_check(params->dh, &codes) == 0, S2N_ERR_DH_PARAMETER_CHECK);
-
+    GUARD_OSSL(DH_check(params->dh, &codes), S2N_ERR_DH_PARAMETER_CHECK);
     S2N_ERROR_IF(codes != 0, S2N_ERR_DH_PARAMETER_CHECK);
 
     return 0;
@@ -310,7 +307,7 @@ int s2n_dh_generate_ephemeral_key(struct s2n_dh_params *dh_params)
 {
     GUARD(s2n_check_p_g_dh_params(dh_params));
 
-    S2N_ERROR_IF(DH_generate_key(dh_params->dh) == 0, S2N_ERR_DH_GENERATING_PARAMETERS);
+    GUARD_OSSL(DH_generate_key(dh_params->dh), S2N_ERR_DH_GENERATING_PARAMETERS);
 
     return 0;
 }
