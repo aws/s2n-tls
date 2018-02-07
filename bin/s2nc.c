@@ -264,20 +264,20 @@ int main(int argc, char *const *argv)
         }
 
         const char *next = alpn_protocols;
-        int index = 0;
+        int idx = 0;
         int length = 0;
         ptr = alpn_protocols;
         while (*ptr) {
             if (*ptr == ',') {
-                protocols[index] = malloc(length + 1);
-                if (!protocols[index]) {
+                protocols[idx] = malloc(length + 1);
+                if (!protocols[idx]) {
                     fprintf(stderr, "Error allocating memory\n");
                     exit(1);
                 }
-                memcpy(protocols[index], next, length);
-                protocols[index][length] = '\0';
+                memcpy(protocols[idx], next, length);
+                protocols[idx][length] = '\0';
                 length = 0;
-                index++;
+                idx++;
                 ptr++;
                 next = ptr;
             } else {
@@ -286,13 +286,13 @@ int main(int argc, char *const *argv)
             }
         }
         if (ptr != next) {
-            protocols[index] = malloc(length + 1);
-            if (!protocols[index]) {
+            protocols[idx] = malloc(length + 1);
+            if (!protocols[idx]) {
                 fprintf(stderr, "Error allocating memory\n");
                 exit(1);
             }
-            memcpy(protocols[index], next, length);
-            protocols[index][length] = '\0';
+            memcpy(protocols[idx], next, length);
+            protocols[idx][length] = '\0';
         }
         if (s2n_config_set_protocol_preferences(config, (const char *const *)protocols, protocol_count) < 0) {
             print_s2n_error("Failed to set protocol preferences");
