@@ -92,19 +92,26 @@ int s2n_record_header_parse(struct s2n_connection *conn, uint8_t * content_type,
     return 0;
 }
 
+int s2n_record_parse_aead(struct s2n_connection *conn);
+int s2n_record_parse_cbc(struct s2n_connection *conn);
+int s2n_record_parse_composite(struct s2n_connection *conn);
+int s2n_record_parse_stream(struct s2n_connection *conn);
+
 int s2n_record_parse(struct s2n_connection *conn)
 {
+    const struct s2n_cipher_suite *cipher_suite = (conn->mode == S2N_CLIENT) ? conn->server->cipher_suite : conn->client->cipher_suite;
+    
     switch (cipher_suite->record_alg->cipher->type) {
-    case S2N_STREAM:
-      GUARD(s2n_record_parse_stream(conn));
+    case S2N_AEAD:
+      GUARD(s2n_record_parse_aead(conn));
       break;
     case S2N_CBC:
-      GUARD(s2n_record_parse_stream(conn));
-      break;
-    case S2N_AEAD:
-      GUARD(s2n_record_parse_stream(conn));
+      GUARD(s2n_record_parse_cbc(conn));
       break;
     case S2N_COMPOSITE:
+      GUARD(s2n_record_parse_composite(conn));
+      break;
+    case S2N_STREAM:
       GUARD(s2n_record_parse_stream(conn));
       break;
     default:
