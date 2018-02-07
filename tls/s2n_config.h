@@ -66,6 +66,8 @@ struct s2n_config {
     struct s2n_x509_trust_store trust_store;
     uint8_t check_ocsp;
     uint8_t disable_x509_validation;
+    uint16_t max_verify_cert_chain_depth;
+    uint8_t max_verify_cert_chain_depth_set;
 };
 
 extern struct s2n_config *s2n_fetch_default_config(void);

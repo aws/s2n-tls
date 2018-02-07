@@ -89,6 +89,7 @@ extern int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_ve
 
 extern int s2n_config_set_check_stapled_ocsp_response(struct s2n_config *config, uint8_t check_ocsp);
 extern int s2n_config_disable_x509_verification(struct s2n_config *config);
+extern int s2n_config_set_max_cert_chain_depth(struct s2n_config *config, uint16_t max_depth);
 
 extern int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem);
 extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);

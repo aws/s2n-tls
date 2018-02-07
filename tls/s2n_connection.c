@@ -501,6 +501,10 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
                 conn->data_for_verify_host = conn;
             }
         }
+
+        if (config->max_verify_cert_chain_depth_set) {
+            GUARD(s2n_x509_validator_set_max_chain_depth(&conn->x509_validator, config->max_verify_cert_chain_depth));
+        }
     }
 
     conn->config = config;

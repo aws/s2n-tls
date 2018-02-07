@@ -45,6 +45,8 @@
 #define X509_V_FLAG_PARTIAL_CHAIN 0x80000
 #endif
 
+#define DEFAULT_MAX_CHAIN_DEPTH 7
+
 uint8_t s2n_x509_ocsp_stapling_supported(void) {
     return S2N_OCSP_STAPLING_SUPPORTED;
 }
@@ -110,6 +112,7 @@ int s2n_x509_validator_init_no_x509_validation(struct s2n_x509_validator *valida
     validator->cert_chain = NULL;
     validator->skip_cert_validation = 1;
     validator->check_stapled_ocsp = 0;
+    validator->max_chain_depth = DEFAULT_MAX_CHAIN_DEPTH;
 
     return 0;
 }
@@ -120,6 +123,7 @@ int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x50
 
     validator->skip_cert_validation = 0;
     validator->check_stapled_ocsp = check_ocsp;
+    validator->max_chain_depth = DEFAULT_MAX_CHAIN_DEPTH;
 
     validator->cert_chain = NULL;
     if (validator->trust_store->trust_store) {
@@ -137,6 +141,17 @@ void s2n_x509_validator_wipe(struct s2n_x509_validator *validator) {
 
     validator->trust_store = NULL;
     validator->skip_cert_validation = 0;
+}
+
+int s2n_x509_validator_set_max_chain_depth(struct s2n_x509_validator *validator, uint16_t max_depth) {
+    notnull_check(validator);
+
+    if (max_depth > 0) {
+        validator->max_chain_depth = max_depth;
+        return 0;
+    }
+
+    return -1;
 }
 
 /*
@@ -195,8 +210,9 @@ static uint8_t verify_host_information(struct s2n_x509_validator *validator, str
     return verified;
 }
 
-s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn, uint8_t *cert_chain_in,
-                                       uint32_t cert_chain_len, s2n_cert_type *cert_type, struct s2n_pkey *public_key_out) {
+s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
+                                                                uint8_t *cert_chain_in, uint32_t cert_chain_len,
+                                                                s2n_cert_type *cert_type, struct s2n_pkey *public_key_out) {
 
     if (!validator->skip_cert_validation && !s2n_x509_trust_store_has_certs(validator->trust_store)) {
         return S2N_CERT_ERR_UNTRUSTED;
@@ -218,7 +234,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
     s2n_cert_validation_code err_code = S2N_CERT_ERR_INVALID;
     X509 *server_cert = NULL;
 
-    while (s2n_stuffer_data_available(&cert_chain_in_stuffer)) {
+    while (s2n_stuffer_data_available(&cert_chain_in_stuffer) && certificate_count < validator->max_chain_depth) {
         uint32_t certificate_size = 0;
 
         if (s2n_stuffer_read_uint24(&cert_chain_in_stuffer, &certificate_size) < 0) {
@@ -264,6 +280,12 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
         certificate_count++;
     }
 
+    /* if this occurred we exceeded validator->max_chain_depth */
+    if (!validator->skip_cert_validation && s2n_stuffer_data_available(&cert_chain_in_stuffer)) {
+        err_code = S2N_CERT_ERR_MAX_CHAIN_DEPTH_EXCEEDED;
+        goto clean_up;
+    }
+
     if (certificate_count < 1) {
         goto clean_up;
     }
@@ -290,6 +312,9 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
         if (op_code <= 0) {
             goto clean_up;
         }
+
+        X509_VERIFY_PARAM *param = X509_STORE_CTX_get0_param(ctx);
+        X509_VERIFY_PARAM_set_depth(param, validator->max_chain_depth);
 
 
         uint64_t current_sys_time = 0;

@@ -97,6 +97,8 @@ static int s2n_config_init(struct s2n_config *config)
     config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
     config->check_ocsp = 1;
     config->disable_x509_validation = 0;
+    config->max_verify_cert_chain_depth = 0;
+    config->max_verify_cert_chain_depth_set = 0;
 
     if (s2n_is_in_fips_mode()) {
         s2n_config_set_cipher_preferences(config, "default_fips");
@@ -345,9 +347,22 @@ int s2n_config_set_check_stapled_ocsp_response(struct s2n_config *config, uint8_
 
 int s2n_config_disable_x509_verification(struct s2n_config *config)
 {
+    notnull_check(config);
     s2n_x509_trust_store_wipe(&config->trust_store);
     config->disable_x509_validation = 1;
     return 0;
+}
+
+int s2n_config_set_max_cert_chain_depth(struct s2n_config *config, uint16_t max_depth) {
+    notnull_check(config);
+
+    if (max_depth > 0) {
+        config->max_verify_cert_chain_depth = max_depth;
+        config->max_verify_cert_chain_depth_set = 1;
+        return 0;
+    }
+
+    return -1;
 }
 
 

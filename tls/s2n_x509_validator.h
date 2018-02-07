@@ -26,6 +26,7 @@ typedef enum {
     S2N_CERT_ERR_EXPIRED = -3,
     S2N_CERT_ERR_TYPE_UNSUPPORTED = -4,
     S2N_CERT_ERR_INVALID = -5,
+    S2N_CERT_ERR_MAX_CHAIN_DEPTH_EXCEEDED = -6
 } s2n_cert_validation_code;
 
 /** Return TRUE for trusted, FALSE for untrusted **/
@@ -49,6 +50,7 @@ struct s2n_x509_validator {
 
     uint8_t skip_cert_validation;
     uint8_t check_stapled_ocsp;
+    uint16_t max_chain_depth;
 };
 
 /** Some libcrypto implementations do not support OCSP validation. Returns 1 if supported, 0 otherwise. */
@@ -78,6 +80,11 @@ int s2n_x509_validator_init_no_x509_validation(struct s2n_x509_validator *valida
  *  Returns 0 on success, and an S2N_ERR_* on failure.
  */
 int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x509_trust_store *trust_store, uint8_t check_ocsp);
+
+/**
+ * Sets the maximum depth for a cert chain that can be used at validation.
+ */
+int s2n_x509_validator_set_max_chain_depth(struct s2n_x509_validator *validator, uint16_t max_depth);
 
 /** Cleans up underlying memory and data members. Struct can be reused afterwards. */
 void s2n_x509_validator_wipe(struct s2n_x509_validator *validator);
