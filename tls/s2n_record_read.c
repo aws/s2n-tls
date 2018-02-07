@@ -13,10 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include <errno.h>
-#include <stdint.h>
-#include <time.h>
-
 #include "crypto/s2n_sequence.h"
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_hmac.h"
@@ -28,11 +24,9 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_crypto.h"
-#include "tls/s2n_record.h"
 #include "tls/s2n_record_read.h"
 
 #include "utils/s2n_safety.h"
-#include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
 
 int s2n_sslv2_record_header_parse(struct s2n_connection *conn, uint8_t * record_type, uint8_t * client_protocol_version, uint16_t * fragment_length)

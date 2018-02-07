@@ -13,10 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include <errno.h>
-#include <stdint.h>
-#include <time.h>
-
 #include "crypto/s2n_sequence.h"
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_hmac.h"
@@ -32,7 +28,6 @@
 #include "tls/s2n_record_read.h"
 
 #include "utils/s2n_safety.h"
-#include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
 
 int s2n_record_parse_aead(const struct s2n_cipher_suite *cipher_suite,
