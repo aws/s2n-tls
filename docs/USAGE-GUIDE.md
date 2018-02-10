@@ -1007,7 +1007,7 @@ uint32_t s2n_client_hello_get_cipher_suites(struct s2n_client_hello *ch, uint8_t
 ### s2n\_client\_hello\_get\_extensions
 
 ```c
-uint32_t  _length(struct s2n_client_hello *ch);
+uint32_t  s2n_client_hello_get_extensions_length(struct s2n_client_hello *ch);
 uint32_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
 ```
 
@@ -1021,8 +1021,8 @@ uint32_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *o
 ### s2n\_client\_hello\_get\_extension
 
 ```c
-int _length(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type);
-int _by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type, uint8_t *out, uint32_t max_length);
+int s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type);
+int s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type, uint8_t *out, uint32_t max_length);
 ```
 
 - **ch** The s2n_client_hello on the s2n_connection. The handle can be obtained using **s2n_connection_get_client_hello**.
