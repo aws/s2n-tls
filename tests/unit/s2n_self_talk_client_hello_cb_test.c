@@ -24,9 +24,6 @@
 
 #include <s2n.h>
 
-#include "tls/s2n_connection.h"
-#include "tls/s2n_handshake.h"
-
 struct client_hello_context {
     int invoked;
     struct s2n_config *config;
@@ -39,7 +36,7 @@ int mock_client(int writefd, int readfd, int expect_failure)
     s2n_blocked_status blocked;
     int result = 0;
     int rc = 0;
-    const char *protocols[] = { "http/2", "http/1.1" };
+    const char *protocols[] = { "h2", "http/1.1" };
 
     /* Give the server a chance to listen */
     sleep(1);
@@ -113,6 +110,7 @@ int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
 int client_hello_swap_config(struct s2n_connection *conn, void *ctx)
 {
     struct client_hello_context *client_hello_ctx;
+    struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(conn);
 
     if (ctx == NULL) {
         return -1;
@@ -134,13 +132,13 @@ int client_hello_swap_config(struct s2n_connection *conn, void *ctx)
             'e', 'x', 'a', 'm', 'p', 'l', 'e', '.', 'c', 'o', 'm'};
 
     /* Get SNI extension from client hello */
-    uint32_t len = s2n_client_hello_get_extension_length(&conn->client_hello, S2N_EXTENSION_SERVER_NAME);
+    uint32_t len = s2n_client_hello_get_extension_length(client_hello, S2N_EXTENSION_SERVER_NAME);
     if (len != 16) {
         return -1;
     }
 
     uint8_t ser_name[16] = {0};
-    if (s2n_client_hello_get_extension_by_id(&conn->client_hello, S2N_EXTENSION_SERVER_NAME, ser_name, len) <= 0) {
+    if (s2n_client_hello_get_extension_by_id(client_hello, S2N_EXTENSION_SERVER_NAME, ser_name, len) <= 0) {
         return -1;
     }
 
@@ -202,7 +200,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(swap_config, cert_chain_pem, private_key_pem));
 
     /* Add application protocols to swapped config */
-    const char *protocols[] = { "http/2" };
+    const char *protocols[] = { "h2" };
     EXPECT_SUCCESS(s2n_config_set_protocol_preferences(swap_config, protocols, 1));
 
     /* Prepare context */
