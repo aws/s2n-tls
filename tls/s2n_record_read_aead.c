@@ -27,8 +27,9 @@
 #include "tls/s2n_record.h"
 #include "tls/s2n_record_read.h"
 
-#include "utils/s2n_safety.h"
+#include "utils/s2n_annotations.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_safety.h"
 
 int s2n_record_parse_aead(
     const struct s2n_cipher_suite *cipher_suite,
@@ -63,6 +64,7 @@ int s2n_record_parse_aead(
         GUARD(s2n_stuffer_write_bytes(&iv_stuffer, four_zeroes, 4));
         GUARD(s2n_stuffer_write_bytes(&iv_stuffer, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
         for (int i = 0; i < cipher_suite->record_alg->cipher->io.aead.fixed_iv_size; i++) {
+	    S2N_INVARIENT(i <= cipher_suite->record_alg->cipher->io.aead.fixed_iv_size);
             aad_iv[i] = aad_iv[i] ^ implicit_iv[i];
         }
     } else {
