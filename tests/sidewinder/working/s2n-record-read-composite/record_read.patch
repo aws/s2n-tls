@@ -1,0 +1,20 @@
+--- /Users/dsn/github/s2n/tls/s2n_record_read_composite.c	2018-02-09 10:26:56.000000000 -0500
++++ tls/s2n_record_read_composite.c	2018-02-12 15:05:26.000000000 -0500
+@@ -29,6 +29,8 @@
+ #include "utils/s2n_safety.h"
+ #include "utils/s2n_blob.h"
+ 
++extern int g_padding_length;
++
+ int s2n_record_parse_composite(
+     const struct s2n_cipher_suite *cipher_suite,
+     struct s2n_connection *conn,
+@@ -86,6 +88,8 @@
+ 
+     /* Subtract the padding length */
+     gt_check(en.size, 0);
++    //After hmac verification padding_length is declassified
++    en.data[en.size - 1] = g_padding_length;
+     payload_length -= (en.data[en.size - 1] + 1);
+ 
+     struct s2n_blob seq = {.data = sequence_number,.size = S2N_TLS_SEQUENCE_NUM_LEN };
