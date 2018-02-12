@@ -48,29 +48,6 @@ int s2n_record_parse_aead(
 #define MAX_SIZE 1024
 #define TAG_SIZE 16
 
-int decrypt_cbc(struct s2n_session_key *session_key,
-		struct s2n_blob* iv,
-		struct s2n_blob* in,
-		struct s2n_blob* out)
-
-{
-  int size = in->size;
-  __VERIFIER_ASSUME_LEAKAGE(size * DECRYPT_COST);
-  out->data = malloc(size);
-  return 0;
-}
-
-int decrypt_stream(struct s2n_session_key *session_key,
-		   struct s2n_blob* in,
-		   struct s2n_blob* out)
-
-{
-  int size = in->size;
-  __VERIFIER_ASSUME_LEAKAGE(size * DECRYPT_COST);
-  out->data = malloc(size);
-  return 0;
-}
-
 int decrypt_aead(struct s2n_session_key *session_key,
 		struct s2n_blob* iv,
 		struct s2n_blob* aad,
@@ -84,36 +61,21 @@ int decrypt_aead(struct s2n_session_key *session_key,
   return 0;
 }
 
-
 int s2n_increment_sequence_number(uint8_t * sequence_number){
   __VERIFIER_ASSUME_LEAKAGE(0);
   return 0;
 }
 
-int g_padding_length;
-
-int s2n_record_parse_wrapper(int payload_length,
-			     int *xor_pad,
-			     int * digest_pad,
-			     int packet_size,
+int s2n_record_parse_wrapper(int *xor_pad,
+			     int *digest_pad,
 			     int padding_length,
 			     int encrypted_length,
 			     uint8_t content_type,
 			     int flags
 )
 {
-  __VERIFIER_ASSERT_MAX_LEAKAGE(100);
-  __VERIFIER_assume(packet_size > 0);
-  __VERIFIER_assume(packet_size < MAX_SIZE);
-  __VERIFIER_assume(payload_length > 0);
-  __VERIFIER_assume(payload_length <= packet_size);
+  __VERIFIER_ASSERT_MAX_LEAKAGE(10);
   __VERIFIER_assume(encrypted_length > 0);
-  __VERIFIER_assume(encrypted_length <= packet_size);
-  __VERIFIER_assume(padding_length >= 0);
-  __VERIFIER_assume(padding_length < 256);
-  __VERIFIER_assume(padding_length < payload_length);
-  public_in(__SMACK_value(packet_size));
-  public_in(__SMACK_value(payload_length));
   public_in(__SMACK_value(padding_length));
   public_in(__SMACK_value(encrypted_length));
   public_in(__SMACK_value(flags));
@@ -133,7 +95,6 @@ int s2n_record_parse_wrapper(int payload_length,
     .outer_just_key.alg = S2N_HASH_SHA1,
     .outer_just_key.currently_in_hash_block = 0,
      .xor_pad = *xor_pad,
-    //xor_pad is an array
     .digest_pad = *digest_pad
   };
 
@@ -155,7 +116,9 @@ int s2n_record_parse_wrapper(int payload_length,
     .record_alg = &record_algorithm,
   };
 
+  //cppcheck-suppress unassignedVariable
   uint8_t data1[MAX_SIZE];
+  //cppcheck-suppress unassignedVariable
   uint8_t data2[MAX_SIZE];
   
   struct s2n_connection conn = {
@@ -182,6 +145,5 @@ int s2n_record_parse_wrapper(int payload_length,
   struct s2n_session_key session_key;
   uint8_t implicit_iv[S2N_TLS_MAX_IV_LEN];
 
-  g_padding_length = padding_length;
   return s2n_record_parse_aead(&cipher_suite, &conn, content_type, encrypted_length, implicit_iv, &hmac, sequence_number, &session_key);
 }
