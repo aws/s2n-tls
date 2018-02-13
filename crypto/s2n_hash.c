@@ -146,7 +146,7 @@ static int s2n_low_level_hash_update(struct s2n_hash_state *state, const void *d
     case S2N_HASH_NONE:
         break;
     case S2N_HASH_MD5:
-      GUARD_OSSL(MD5_Update(&state->digest.low_level.md5, data, size), S2N_ERR_HASH_UPDATE_FAILED);
+        GUARD_OSSL(MD5_Update(&state->digest.low_level.md5, data, size), S2N_ERR_HASH_UPDATE_FAILED);
         break;
     case S2N_HASH_SHA1:
         GUARD_OSSL(SHA1_Update(&state->digest.low_level.sha1, data, size), S2N_ERR_HASH_UPDATE_FAILED);
@@ -384,7 +384,7 @@ static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
     case S2N_HASH_SHA256:
     case S2N_HASH_SHA384:
     case S2N_HASH_SHA512:
-      GUARD_OSSL(EVP_MD_CTX_copy_ex(to->digest.high_level.evp.ctx, from->digest.high_level.evp.ctx), S2N_ERR_HASH_COPY_FAILED);
+        GUARD_OSSL(EVP_MD_CTX_copy_ex(to->digest.high_level.evp.ctx, from->digest.high_level.evp.ctx), S2N_ERR_HASH_COPY_FAILED);
         break;
     case S2N_HASH_MD5_SHA1:
         if (s2n_digest_is_md5_allowed_for_fips(&from->digest.high_level.evp)) {
@@ -415,7 +415,7 @@ static int s2n_evp_hash_reset(struct s2n_hash_state *state)
     GUARD_OSSL(S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp.ctx), S2N_ERR_HASH_WIPE_FAILED);
     
     if (state->alg == S2N_HASH_MD5_SHA1) {
-      GUARD_OSSL(S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp_md5_secondary.ctx), S2N_ERR_HASH_WIPE_FAILED);
+        GUARD_OSSL(S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp_md5_secondary.ctx), S2N_ERR_HASH_WIPE_FAILED);
     }
 
     if (reset_md5_for_fips) {

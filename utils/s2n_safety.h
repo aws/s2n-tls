@@ -84,7 +84,7 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
 /* TODO: use the OSSL error code in error reporting https://github.com/awslabs/s2n/issues/705 */
 #define GUARD_OSSL( x , errcode )			\
   do {							\
-  if (( x ) == 0) {					\
+  if (( x ) != 1) {					\
     S2N_ERROR( errcode );				\
   }							\
   } while (0)
