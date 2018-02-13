@@ -24,7 +24,7 @@ static int s2n_array_enlarge(struct s2n_array *array, uint32_t capacity)
     notnull_check(array);
     size_t array_elements_size = array->element_size * array->num_of_elements;
 
-    struct s2n_blob mem = {.data = array->elements, .size = array_elements_size, .allocated = 0 };
+    struct s2n_blob mem = {.data = array->elements, .size = array_elements_size, .allocated = array_elements_size};
 
     GUARD(s2n_realloc(&mem, array->element_size * capacity));
 
