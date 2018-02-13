@@ -62,8 +62,8 @@ which llvm2bpl || echo "can't find llvm2bpl"
 which clang
 clang --version
 
-runSingleTest("s2n-cbc")
-runSingleTest("s2n-record-read-aead")
-runSingleTest("s2n-record-read-cbc")
-runSingleTest("s2n-record-read-composite")
-runSingleTest("s2n-record-read-stream")
+runSingleTest "s2n-cbc"
+runSingleTest "s2n-record-read-aead"
+runSingleTest "s2n-record-read-cbc"
+runSingleTest "s2n-record-read-composite"
+runSingleTest "s2n-record-read-stream"
