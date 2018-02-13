@@ -254,12 +254,121 @@ const struct s2n_cipher_preferences cipher_preferences_20170718 = {
     .minimum_protocol_version = S2N_TLS10
 };
 
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_2015_04[] = {
+    /* &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256, */
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256, */
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha, */
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384, */
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384, */
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha, */
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_3des_ede_cbc_sha,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_2015_04 = {
+    .count = sizeof(cipher_suites_elb_security_policy_2015_04) / sizeof(cipher_suites_elb_security_policy_2015_04[0]),
+    .suites = cipher_suites_elb_security_policy_2015_04,
+    .minimum_protocol_version = S2N_TLS10
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_2016_08[] = {
+    /* &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256, */
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256, */
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha, */
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384, */
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384, */
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha, */
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_2016_08 = {
+    .count = sizeof(cipher_suites_elb_security_policy_2016_08) / sizeof(cipher_suites_elb_security_policy_2016_08[0]),
+    .suites = cipher_suites_elb_security_policy_2016_08,
+    .minimum_protocol_version = S2N_TLS10
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls_1_2_2017_01[] = {
+    /* &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256, */
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256, */
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384, */
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384, */
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls_1_2_2017_01 = {
+    .count = sizeof(cipher_suites_elb_security_policy_tls_1_2_2017_01) / sizeof(cipher_suites_elb_security_policy_tls_1_2_2017_01[0]),
+    .suites = cipher_suites_elb_security_policy_tls_1_2_2017_01,
+    .minimum_protocol_version = S2N_TLS12
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls_1_1_2017_01[] = {
+    /* &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256, */
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256 */
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha, */
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384, */
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384, */
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha, */
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls_1_1_2017_01 = {
+    .count = sizeof(cipher_suites_elb_security_policy_tls_1_1_2017_01) / sizeof(cipher_suites_elb_security_policy_tls_1_1_2017_01[0]),
+    .suites = cipher_suites_elb_security_policy_tls_1_1_2017_01,
+    .minimum_protocol_version = S2N_TLS11
+};
+
 struct {
     const char *version;
     const struct s2n_cipher_preferences *preferences;
 } selection[] = {
     { "default", &cipher_preferences_20170210 },
     { "default_fips", &cipher_preferences_20170405},
+    { "ELBSecurityPolicy-TLS-1-0-2015-04", &elb_security_policy_2015_04},
+    /* Not a mistake. TLS-1-0-2015-05 and 2016-08 are equivalent */
+    { "ELBSecurityPolicy-TLS-1-0-2015-05", &elb_security_policy_2016_08},
+    { "ELBSecurityPolicy-2016-08", &elb_security_policy_2016_08},
+    { "ELBSecurityPolicy-TLS-1-1-2017-01", &elb_security_policy_tls_1_1_2017_01},
+    { "ELBSecurityPolicy-TLS-1-2-2017-01", &elb_security_policy_tls_1_2_2017_01},
     { "20140601", &cipher_preferences_20140601 },
     { "20141001", &cipher_preferences_20141001 },
     { "20150202", &cipher_preferences_20150202 },
