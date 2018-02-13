@@ -351,7 +351,7 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
     case S2N_HASH_SHA256:
     case S2N_HASH_SHA384:
     case S2N_HASH_SHA512:
-      GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, out, &digest_size), S2N_ERR_HASH_DIGEST_FAILED);
+        GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, out, &digest_size), S2N_ERR_HASH_DIGEST_FAILED);
         break;
     case S2N_HASH_MD5_SHA1:
         GUARD(s2n_hash_digest_size(S2N_HASH_SHA1, &sha1_digest_size));
