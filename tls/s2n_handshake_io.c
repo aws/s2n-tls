@@ -483,7 +483,7 @@ static int read_full_handshake_message(struct s2n_connection *conn, uint8_t * me
 
     /* We don't have the whole message, so we'll need to go again */
     GUARD(s2n_stuffer_reread(&conn->handshake.io));
-    
+ 
     return 1;
 }
 

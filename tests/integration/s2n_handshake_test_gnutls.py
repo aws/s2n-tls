@@ -55,7 +55,7 @@ def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, enter
 
     if mfl_extension_test:
         gnutls_cmd.append("--recordsize=" + str(mfl_extension_test))
-    
+ 
     # Fire up gnutls-cli, use insecure since s2nd is using a dummy cert
     gnutls_cli = subprocess.Popen(gnutls_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 

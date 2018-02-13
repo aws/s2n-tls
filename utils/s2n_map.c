@@ -135,7 +135,7 @@ int s2n_map_add(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *valu
     }
 
     uint32_t slot = s2n_map_slot(map, key);
-    
+ 
     /* Linear probing until we find an empty slot */
     while(map->table[slot].key.size) {
         if (key->size != map->table[slot].key.size ||
