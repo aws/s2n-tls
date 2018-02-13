@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -41,6 +41,13 @@ int main(int argc, char **argv)
         elements[i].first = i;
         elements[i].second = 'a' + i;
     }
+
+    /* Verify add and get elements with null array */
+    EXPECT_NULL(s2n_array_add(NULL));
+    EXPECT_NULL(s2n_array_get(NULL, 0));
+
+    /* Verify freeing null array */
+    EXPECT_FAILURE(s2n_array_free(NULL));
 
     EXPECT_NOT_NULL(array = s2n_array_new(element_size));
 

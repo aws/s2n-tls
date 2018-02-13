@@ -1007,7 +1007,7 @@ uint32_t s2n_client_hello_get_cipher_suites(struct s2n_client_hello *ch, uint8_t
 ### s2n\_client\_hello\_get\_extensions
 
 ```c
-uint32_t  s2n_client_hello_get_extensions_length(struct s2n_client_hello *ch);
+uint32_t s2n_client_hello_get_extensions_length(struct s2n_client_hello *ch);
 uint32_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
 ```
 

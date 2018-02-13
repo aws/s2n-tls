@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -19,26 +19,21 @@
 
 #define S2N_INITIAL_ARRAY_SIZE 16
 
-static int s2n_array_embiggen(struct s2n_array *array, uint32_t capacity)
+static int s2n_array_enlarge(struct s2n_array *array, uint32_t capacity)
 {
-    struct s2n_blob mem;
-    void *tmp = array->elements;
+    notnull_check(array);
+    size_t array_elements_size = array->element_size * array->num_of_elements;
 
-    GUARD(s2n_alloc(&mem, array->element_size * capacity));
-    GUARD(s2n_blob_zero(&mem));
+    struct s2n_blob mem = {.data = array->elements, .size = array_elements_size, .allocated = 0 };
 
-    size_t size = array->element_size * array->num_of_elements;
+    GUARD(s2n_realloc(&mem, array->element_size * capacity));
 
+    /* Zero the extened part */
+    memset_check(mem.data + array_elements_size, 0, mem.size - array_elements_size);
+
+    /* Update array capacity and elements */
     array->capacity = capacity;
     array->elements = (void *) mem.data;
-
-    /* Copy and free exisiting elements for non-empty array */
-    if (size != 0) {
-        memcpy_check(mem.data, (uint8_t *) tmp, size);
-        mem.data = (void *) tmp;
-        mem.size = size;
-        GUARD(s2n_free(&mem));
-    }
 
     return 0;
 }
@@ -56,21 +51,23 @@ struct s2n_array *s2n_array_new(size_t element_size)
     array->element_size = element_size;
     array->elements = NULL;
 
-    GUARD_PTR(s2n_array_embiggen(array, S2N_INITIAL_ARRAY_SIZE));
+    GUARD_PTR(s2n_array_enlarge(array, S2N_INITIAL_ARRAY_SIZE));
 
     return array;
 }
 
 void *s2n_array_add(struct s2n_array *array)
 {
-    void *element;
-
-    if (array->num_of_elements >= array->capacity) {
-        /* Embiggen the array */
-        GUARD_PTR(s2n_array_embiggen(array, array->capacity * 2));
+    if (array == NULL) {
+        return NULL;
     }
 
-    element = (uint8_t *) array->elements + array->element_size * array->num_of_elements;
+    if (array->num_of_elements >= array->capacity) {
+        /* Enlarge the array */
+        GUARD_PTR(s2n_array_enlarge(array, array->capacity * 2));
+    }
+
+    void *element = (uint8_t *) array->elements + array->element_size * array->num_of_elements;
     array->num_of_elements++;
 
     return element;
@@ -78,6 +75,10 @@ void *s2n_array_add(struct s2n_array *array)
 
 void *s2n_array_get(struct s2n_array *array, uint32_t index)
 {
+    if (array == NULL) {
+        return NULL;
+    }
+
     void *element = NULL;
 
     if (index < array->num_of_elements) {
@@ -89,6 +90,7 @@ void *s2n_array_get(struct s2n_array *array, uint32_t index)
 
 int s2n_array_free(struct s2n_array *array)
 {
+    notnull_check(array);
     struct s2n_blob mem;
 
     /* Free the elements */

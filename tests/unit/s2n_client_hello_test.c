@@ -154,7 +154,7 @@ int main(int argc, char **argv)
 
         uint8_t *ext_data;
         EXPECT_NOT_NULL(ext_data = malloc(server_name_extension_len));
-        /* Verify we don't get extension and it's when client hello is not yet processes */
+        /* Verify we don't get extension and it's length when client hello is not yet processed */
         EXPECT_FAILURE(s2n_client_hello_get_extension_length(s2n_connection_get_client_hello(server_conn), S2N_EXTENSION_SERVER_NAME));
         EXPECT_FAILURE(s2n_client_hello_get_extension_by_id(s2n_connection_get_client_hello(server_conn), S2N_EXTENSION_SERVER_NAME, ext_data, server_name_extension_len));
         free(ext_data);
@@ -291,7 +291,7 @@ int main(int argc, char **argv)
         free(ext_data);
         ext_data = NULL;
 
-        /* Verify get extension and its length calls for a non-existing extension type */
+        /* Verify get extension and it's length calls for a non-existing extension type */
         EXPECT_EQUAL(s2n_client_hello_get_extension_length(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY), 0);
         EXPECT_NOT_NULL(ext_data = malloc(server_name_extension_len));
         EXPECT_EQUAL(s2n_client_hello_get_extension_by_id(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, ext_data, server_name_extension_len), 0);
