@@ -62,7 +62,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_map_add(map, &key, &val));
     }
 
-    /* Try inserting some duplicates */
+    /* Try adding some duplicates */
     for (int i = 0; i < 10; i++) {
         EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", i));
         EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", i));
@@ -75,6 +75,19 @@ int main(int argc, char **argv)
         EXPECT_FAILURE(s2n_map_add(map, &key, &val));
     }
 
+    /* Try replacing some entries */
+    for (int i = 0; i < 10; i++) {
+        EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", i));
+        EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", i+1));
+
+        key.data = (void *) keystr;
+        key.size = strlen(keystr) + 1;
+        val.data = (void *) valstr;
+        val.size = strlen(valstr) + 1;
+
+        EXPECT_SUCCESS(s2n_map_put(map, &key, &val));
+    }
+    
     /* Try a lookup before the map is complete: should fail */
     EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", 1));
     EXPECT_FAILURE(s2n_map_lookup(map, &key, &val));
@@ -96,8 +109,15 @@ int main(int argc, char **argv)
     /* Check for equivalence */
     for (int i = 0; i < 8192; i++) {
 
-        EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", i));
-        EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", i));
+        if (i >= 10) {
+            EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", i));
+            EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", i));
+        }
+        else {
+            // The first 10 entries were overwritten with i+1
+            EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", i));
+            EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", i+1));
+        }
 
         key.data = (void *) keystr;
         key.size = strlen(keystr) + 1;
@@ -106,7 +126,6 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(memcmp(val.data, valstr, strlen(valstr) + 1));
     }
-
 
     /* Check for a key that shouldn't be there */
     EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", 8193));

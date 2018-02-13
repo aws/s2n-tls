@@ -112,7 +112,7 @@ int s2n_recv_supported_signature_algorithms(struct s2n_connection *conn, struct 
 
                 struct s2n_blob sig_alg_key = {.data = (uint8_t *)&s, .size = sizeof(s2n_signature_algorithm)};
                 struct s2n_blob hash_alg_val = {.data = (uint8_t *)&h, .size = sizeof(s2n_hash_algorithm)};
-                GUARD(s2n_map_offer(*sig_hash_algs_map, &sig_alg_key, &hash_alg_val));
+                GUARD(s2n_map_put(*sig_hash_algs_map, &sig_alg_key, &hash_alg_val));
             }
         }
     }
