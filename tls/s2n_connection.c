@@ -177,6 +177,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     conn->managed_io = 0;
     conn->corked_io = 0;
     conn->context = NULL;
+    conn->cipher_pref_override = NULL;
 
     /* Allocate the fixed-size stuffers */
     blob.data = conn->alert_in_data;
@@ -683,6 +684,20 @@ int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **
 
     *der_cert_chain_out = conn->secure.client_cert_chain.data;
     *cert_chain_len = conn->secure.client_cert_chain.size;
+
+    return 0;
+}
+
+int s2n_connection_get_cipher_preferences(struct s2n_connection *conn, const struct s2n_cipher_preferences **cipher_preferences)
+{
+    notnull_check(conn);
+    notnull_check(cipher_preferences);
+
+    if(conn->cipher_pref_override != NULL) {
+        *cipher_preferences = conn->cipher_pref_override;
+    } else {
+        *cipher_preferences = conn->config->cipher_preferences;
+    }
 
     return 0;
 }
