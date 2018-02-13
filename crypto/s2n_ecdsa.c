@@ -30,7 +30,7 @@
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_pkey.h"
 
-int s2n_ecdsa_signature_size(const struct s2n_pkey *pkey)
+int s2n_ecdsa_der_signature_size(const struct s2n_pkey *pkey)
 {
     const struct s2n_ecdsa_key *ecdsa_key = &pkey->key.ecdsa_key;
     notnull_check(ecdsa_key->ec_key);
@@ -100,7 +100,7 @@ static int s2n_ecdsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pke
     GUARD(s2n_hash_update(&state_in, input, sizeof(input)));
     GUARD(s2n_hash_update(&state_out, input, sizeof(input)));
 
-    GUARD(s2n_alloc(&signature, s2n_ecdsa_signature_size(priv)));
+    GUARD(s2n_alloc(&signature, s2n_ecdsa_der_signature_size(priv)));
     
     GUARD(s2n_ecdsa_sign(priv, &state_in, &signature));
     GUARD(s2n_ecdsa_verify(pub, &state_out, &signature));
@@ -160,7 +160,7 @@ int s2n_evp_pkey_to_ecdsa_public_key(s2n_ecdsa_public_key *ecdsa_key, EVP_PKEY *
 }
 
 int s2n_ecdsa_pkey_init(struct s2n_pkey *pkey) {
-    pkey->size = &s2n_ecdsa_signature_size;
+    pkey->size = &s2n_ecdsa_der_signature_size;
     pkey->sign = &s2n_ecdsa_sign;
     pkey->verify = &s2n_ecdsa_verify;
     pkey->encrypt = NULL; /* No function for encryption */
