@@ -151,7 +151,6 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
             if (strcmp(actual_cipher, expected_cipher->name) != 0){
                 return -1;
             }
-
         } else {
             eq_check(try_handshake(server_conn, client_conn), -1);
         }
