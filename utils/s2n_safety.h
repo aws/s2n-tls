@@ -81,6 +81,14 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
 #define GUARD( x )      if ( (x) < 0 ) return -1
 #define GUARD_PTR( x )  if ( (x) < 0 ) return NULL
 
+/* TODO: use the OSSL error code in error reporting https://github.com/awslabs/s2n/issues/705 */
+#define GUARD_OSSL( x , errcode )			\
+  do {							\
+  if (( x ) != 1) {					\
+    S2N_ERROR( errcode );				\
+  }							\
+  } while (0)
+
 /**
  * Get the process id
  *

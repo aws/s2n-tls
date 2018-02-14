@@ -101,8 +101,8 @@ static int s2n_evp_hmac_p_hash_digest_init(struct s2n_prf_working_space *ws)
         GUARD(s2n_digest_allow_md5_for_fips(&ws->tls.p_hash.evp_hmac.evp_digest));
     }
 
-    S2N_ERROR_IF(EVP_DigestSignInit(ws->tls.p_hash.evp_hmac.evp_digest.ctx, NULL, ws->tls.p_hash.evp_hmac.evp_digest.md, NULL, ws->tls.p_hash.evp_hmac.mac_key) == 0,
-		 S2N_ERR_P_HASH_INIT_FAILED);
+    GUARD_OSSL(EVP_DigestSignInit(ws->tls.p_hash.evp_hmac.evp_digest.ctx, NULL, ws->tls.p_hash.evp_hmac.evp_digest.md, NULL, ws->tls.p_hash.evp_hmac.mac_key),
+	       S2N_ERR_P_HASH_INIT_FAILED);
 
     return 0;
 }
@@ -144,7 +144,7 @@ static int s2n_evp_hmac_p_hash_init(struct s2n_prf_working_space *ws, s2n_hmac_a
 
 static int s2n_evp_hmac_p_hash_update(struct s2n_prf_working_space *ws, const void *data, uint32_t size)
 {
-    S2N_ERROR_IF(EVP_DigestSignUpdate(ws->tls.p_hash.evp_hmac.evp_digest.ctx, data, (size_t)size) == 0, S2N_ERR_P_HASH_UPDATE_FAILED);
+    GUARD_OSSL(EVP_DigestSignUpdate(ws->tls.p_hash.evp_hmac.evp_digest.ctx, data, (size_t)size), S2N_ERR_P_HASH_UPDATE_FAILED);
 
     return 0;
 }
@@ -154,14 +154,14 @@ static int s2n_evp_hmac_p_hash_digest(struct s2n_prf_working_space *ws, void *di
     /* EVP_DigestSign API's require size_t data structures */
     size_t digest_size = size;
 
-    S2N_ERROR_IF(EVP_DigestSignFinal(ws->tls.p_hash.evp_hmac.evp_digest.ctx, (unsigned char *)digest, &digest_size) == 0, S2N_ERR_P_HASH_FINAL_FAILED);
+    GUARD_OSSL(EVP_DigestSignFinal(ws->tls.p_hash.evp_hmac.evp_digest.ctx, (unsigned char *)digest, &digest_size), S2N_ERR_P_HASH_FINAL_FAILED);
 
     return 0;
 }
 
 static int s2n_evp_hmac_p_hash_wipe(struct s2n_prf_working_space *ws)
 {
-    S2N_ERROR_IF(S2N_EVP_MD_CTX_RESET(ws->tls.p_hash.evp_hmac.evp_digest.ctx) == 0, S2N_ERR_P_HASH_WIPE_FAILED);
+  GUARD_OSSL(S2N_EVP_MD_CTX_RESET(ws->tls.p_hash.evp_hmac.evp_digest.ctx), S2N_ERR_P_HASH_WIPE_FAILED);
 
     return 0;
 }

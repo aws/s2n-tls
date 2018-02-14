@@ -84,9 +84,7 @@ static int s2n_check_p_g_dh_params(struct s2n_dh_params *dh_params)
     notnull_check(p);
 
     S2N_ERROR_IF(DH_size(dh_params->dh) < S2N_MIN_DH_PRIME_SIZE_BYTES, S2N_ERR_DH_PARAMS_CREATE);
-
     S2N_ERROR_IF(BN_is_zero(g), S2N_ERR_DH_PARAMS_CREATE);
-
     S2N_ERROR_IF(BN_is_zero(p), S2N_ERR_DH_PARAMS_CREATE);
 
     return 0;
@@ -110,17 +108,13 @@ static int s2n_set_p_g_Ys_dh_params(struct s2n_dh_params *dh_params, struct s2n_
     BIGNUM *bn_Ys = BN_bin2bn((const unsigned char *)Ys->data, Ys->size, NULL);
 
     #if S2N_OPENSSL_VERSION_AT_LEAST(1,1,0) && !defined(LIBRESSL_VERSION_NUMBER)
-        if (DH_set0_pqg(dh_params->dh, bn_p, NULL, bn_g) == 0) {
-            /* Per https://www.openssl.org/docs/man1.1.0/crypto/DH_get0_pqg.html:
-             * values that have been passed in should not be freed directly after this function has been called
-             */
-            S2N_ERROR(S2N_ERR_DH_PARAMS_CREATE);
-        }
-
-        if (DH_set0_key(dh_params->dh, bn_Ys, NULL) == 0) {
-            /* Same as DH_set0_pqg */
-            S2N_ERROR(S2N_ERR_DH_PARAMS_CREATE);
-        }
+       /* Per https://www.openssl.org/docs/man1.1.0/crypto/DH_get0_pqg.html:
+	* values that have been passed in should not be freed directly after this function has been called
+	*/
+        GUARD_OSSL(DH_set0_pqg(dh_params->dh, bn_p, NULL, bn_g), S2N_ERR_DH_PARAMS_CREATE);
+        
+	/* Same as DH_set0_pqg */
+        GUARD_OSSL(DH_set0_key(dh_params->dh, bn_Ys, NULL), S2N_ERR_DH_PARAMS_CREATE);
     #else
         dh_params->dh->p = bn_p;
         dh_params->dh->g = bn_g;
@@ -289,8 +283,7 @@ int s2n_dh_params_check(struct s2n_dh_params *params)
 {
     int codes = 0;
 
-    S2N_ERROR_IF(DH_check(params->dh, &codes) == 0, S2N_ERR_DH_PARAMETER_CHECK);
-
+    GUARD_OSSL(DH_check(params->dh, &codes), S2N_ERR_DH_PARAMETER_CHECK);
     S2N_ERROR_IF(codes != 0, S2N_ERR_DH_PARAMETER_CHECK);
 
     return 0;
@@ -310,7 +303,7 @@ int s2n_dh_generate_ephemeral_key(struct s2n_dh_params *dh_params)
 {
     GUARD(s2n_check_p_g_dh_params(dh_params));
 
-    S2N_ERROR_IF(DH_generate_key(dh_params->dh) == 0, S2N_ERR_DH_GENERATING_PARAMETERS);
+    GUARD_OSSL(DH_generate_key(dh_params->dh), S2N_ERR_DH_GENERATING_PARAMETERS);
 
     return 0;
 }

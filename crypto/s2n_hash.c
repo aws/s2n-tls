@@ -101,39 +101,35 @@ static int s2n_low_level_hash_new(struct s2n_hash_state *state)
 
 static int s2n_low_level_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
 {
-    int r;
     switch (alg) {
     case S2N_HASH_NONE:
-        r = 1;
         break;
     case S2N_HASH_MD5:
-        r = MD5_Init(&state->digest.low_level.md5);
+        GUARD_OSSL(MD5_Init(&state->digest.low_level.md5), S2N_ERR_HASH_INIT_FAILED);
         break;
     case S2N_HASH_SHA1:
-        r = SHA1_Init(&state->digest.low_level.sha1);
+        GUARD_OSSL(SHA1_Init(&state->digest.low_level.sha1), S2N_ERR_HASH_INIT_FAILED);
         break;
     case S2N_HASH_SHA224:
-        r = SHA224_Init(&state->digest.low_level.sha224);
+        GUARD_OSSL(SHA224_Init(&state->digest.low_level.sha224), S2N_ERR_HASH_INIT_FAILED);
         break;
     case S2N_HASH_SHA256:
-        r = SHA256_Init(&state->digest.low_level.sha256);
+        GUARD_OSSL(SHA256_Init(&state->digest.low_level.sha256), S2N_ERR_HASH_INIT_FAILED);
         break;
     case S2N_HASH_SHA384:
-        r = SHA384_Init(&state->digest.low_level.sha384);
+        GUARD_OSSL(SHA384_Init(&state->digest.low_level.sha384), S2N_ERR_HASH_INIT_FAILED);
         break;
     case S2N_HASH_SHA512:
-        r = SHA512_Init(&state->digest.low_level.sha512);
+        GUARD_OSSL(SHA512_Init(&state->digest.low_level.sha512), S2N_ERR_HASH_INIT_FAILED);
         break;
     case S2N_HASH_MD5_SHA1:
-        r = SHA1_Init(&state->digest.low_level.md5_sha1.sha1);
-        r &= MD5_Init(&state->digest.low_level.md5_sha1.md5);
+        GUARD_OSSL(SHA1_Init(&state->digest.low_level.md5_sha1.sha1), S2N_ERR_HASH_INIT_FAILED);;
+        GUARD_OSSL(MD5_Init(&state->digest.low_level.md5_sha1.md5), S2N_ERR_HASH_INIT_FAILED);;
         break;
 
     default:
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
-
-    S2N_ERROR_IF(r == 0, S2N_ERR_HASH_INIT_FAILED);
 
     state->alg = alg;
     state->is_ready_for_input = 1;
@@ -146,38 +142,34 @@ static int s2n_low_level_hash_update(struct s2n_hash_state *state, const void *d
 {
     S2N_ERROR_IF(!state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
 
-    int r;
     switch (state->alg) {
     case S2N_HASH_NONE:
-        r = 1;
         break;
     case S2N_HASH_MD5:
-        r = MD5_Update(&state->digest.low_level.md5, data, size);
+        GUARD_OSSL(MD5_Update(&state->digest.low_level.md5, data, size), S2N_ERR_HASH_UPDATE_FAILED);
         break;
     case S2N_HASH_SHA1:
-        r = SHA1_Update(&state->digest.low_level.sha1, data, size);
+        GUARD_OSSL(SHA1_Update(&state->digest.low_level.sha1, data, size), S2N_ERR_HASH_UPDATE_FAILED);
         break;
     case S2N_HASH_SHA224:
-        r = SHA224_Update(&state->digest.low_level.sha224, data, size);
+        GUARD_OSSL(SHA224_Update(&state->digest.low_level.sha224, data, size), S2N_ERR_HASH_UPDATE_FAILED);
         break;
     case S2N_HASH_SHA256:
-        r = SHA256_Update(&state->digest.low_level.sha256, data, size);
+        GUARD_OSSL(SHA256_Update(&state->digest.low_level.sha256, data, size), S2N_ERR_HASH_UPDATE_FAILED);
         break;
     case S2N_HASH_SHA384:
-        r = SHA384_Update(&state->digest.low_level.sha384, data, size);
+        GUARD_OSSL(SHA384_Update(&state->digest.low_level.sha384, data, size), S2N_ERR_HASH_UPDATE_FAILED);
         break;
     case S2N_HASH_SHA512:
-        r = SHA512_Update(&state->digest.low_level.sha512, data, size);
+        GUARD_OSSL(SHA512_Update(&state->digest.low_level.sha512, data, size), S2N_ERR_HASH_UPDATE_FAILED);
         break;
     case S2N_HASH_MD5_SHA1:
-        r = SHA1_Update(&state->digest.low_level.md5_sha1.sha1, data, size);
-        r &= MD5_Update(&state->digest.low_level.md5_sha1.md5, data, size);
+        GUARD_OSSL(SHA1_Update(&state->digest.low_level.md5_sha1.sha1, data, size), S2N_ERR_HASH_UPDATE_FAILED);
+        GUARD_OSSL(MD5_Update(&state->digest.low_level.md5_sha1.md5, data, size), S2N_ERR_HASH_UPDATE_FAILED);
         break;
     default:
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
-
-    S2N_ERROR_IF(r == 0, S2N_ERR_HASH_UPDATE_FAILED);
 
     state->currently_in_hash += size;
 
@@ -188,45 +180,41 @@ static int s2n_low_level_hash_digest(struct s2n_hash_state *state, void *out, ui
 {
     S2N_ERROR_IF(!state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
 
-    int r;
     switch (state->alg) {
     case S2N_HASH_NONE:
-        r = 1;
         break;
     case S2N_HASH_MD5:
         eq_check(size, MD5_DIGEST_LENGTH);
-        r = MD5_Final(out, &state->digest.low_level.md5);
+	GUARD_OSSL(MD5_Final(out, &state->digest.low_level.md5), S2N_ERR_HASH_DIGEST_FAILED);
         break;
     case S2N_HASH_SHA1:
         eq_check(size, SHA_DIGEST_LENGTH);
-        r = SHA1_Final(out, &state->digest.low_level.sha1);
+        GUARD_OSSL(SHA1_Final(out, &state->digest.low_level.sha1), S2N_ERR_HASH_DIGEST_FAILED);
         break;
     case S2N_HASH_SHA224:
         eq_check(size, SHA224_DIGEST_LENGTH);
-        r = SHA224_Final(out, &state->digest.low_level.sha224);
+        GUARD_OSSL(SHA224_Final(out, &state->digest.low_level.sha224), S2N_ERR_HASH_DIGEST_FAILED);
         break;
     case S2N_HASH_SHA256:
         eq_check(size, SHA256_DIGEST_LENGTH);
-        r = SHA256_Final(out, &state->digest.low_level.sha256);
+        GUARD_OSSL(SHA256_Final(out, &state->digest.low_level.sha256), S2N_ERR_HASH_DIGEST_FAILED);
         break;
     case S2N_HASH_SHA384:
         eq_check(size, SHA384_DIGEST_LENGTH);
-        r = SHA384_Final(out, &state->digest.low_level.sha384);
+        GUARD_OSSL(SHA384_Final(out, &state->digest.low_level.sha384), S2N_ERR_HASH_DIGEST_FAILED);
         break;
     case S2N_HASH_SHA512:
         eq_check(size, SHA512_DIGEST_LENGTH);
-        r = SHA512_Final(out, &state->digest.low_level.sha512);
+        GUARD_OSSL(SHA512_Final(out, &state->digest.low_level.sha512), S2N_ERR_HASH_DIGEST_FAILED);
         break;
     case S2N_HASH_MD5_SHA1:
         eq_check(size, MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH);
-        r = SHA1_Final(((uint8_t *) out) + MD5_DIGEST_LENGTH, &state->digest.low_level.md5_sha1.sha1);
-        r &= MD5_Final(out, &state->digest.low_level.md5_sha1.md5);
+        GUARD_OSSL(SHA1_Final(((uint8_t *) out) + MD5_DIGEST_LENGTH, &state->digest.low_level.md5_sha1.sha1), S2N_ERR_HASH_DIGEST_FAILED);
+        GUARD_OSSL(MD5_Final(out, &state->digest.low_level.md5_sha1.md5), S2N_ERR_HASH_DIGEST_FAILED);
         break;
     default:
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
-
-    S2N_ERROR_IF(r == 0, S2N_ERR_HASH_DIGEST_FAILED);
 
     state->currently_in_hash = 0;
     state->is_ready_for_input = 0;
@@ -276,38 +264,34 @@ static int s2n_evp_hash_allow_md5_for_fips(struct s2n_hash_state *state)
 
 static int s2n_evp_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
 {
-    int r;
     switch (alg) {
     case S2N_HASH_NONE:
-        r = 1;
         break;
     case S2N_HASH_MD5:
-        r = EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_md5(), NULL);
+        GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_md5(), NULL), S2N_ERR_HASH_INIT_FAILED);
         break;
     case S2N_HASH_SHA1:
-        r = EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha1(), NULL);
+      GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha1(), NULL), S2N_ERR_HASH_INIT_FAILED);
         break;
     case S2N_HASH_SHA224:
-        r = EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha224(), NULL);
+        GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha224(), NULL), S2N_ERR_HASH_INIT_FAILED);
         break;
     case S2N_HASH_SHA256:
-        r = EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha256(), NULL);
+        GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha256(), NULL), S2N_ERR_HASH_INIT_FAILED);
         break;
     case S2N_HASH_SHA384:
-        r = EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha384(), NULL);
+        GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha384(), NULL), S2N_ERR_HASH_INIT_FAILED);
         break;
     case S2N_HASH_SHA512:
-        r = EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha512(), NULL);
+        GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha512(), NULL), S2N_ERR_HASH_INIT_FAILED);
         break;
     case S2N_HASH_MD5_SHA1:
-        r = EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha1(), NULL);
-        r &= EVP_DigestInit_ex(state->digest.high_level.evp_md5_secondary.ctx, EVP_md5(), NULL);
+        GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha1(), NULL), S2N_ERR_HASH_INIT_FAILED);
+        GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp_md5_secondary.ctx, EVP_md5(), NULL), S2N_ERR_HASH_INIT_FAILED);
         break;
     default:
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
-
-    S2N_ERROR_IF(r == 0, S2N_ERR_HASH_INIT_FAILED);
 
     state->alg = alg;
     state->is_ready_for_input = 1;
@@ -320,10 +304,8 @@ static int s2n_evp_hash_update(struct s2n_hash_state *state, const void *data, u
 {
     S2N_ERROR_IF(!state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
 
-    int r;
     switch (state->alg) {
     case S2N_HASH_NONE:
-        r = 1;
         break;
     case S2N_HASH_MD5:
     case S2N_HASH_SHA1:
@@ -331,17 +313,15 @@ static int s2n_evp_hash_update(struct s2n_hash_state *state, const void *data, u
     case S2N_HASH_SHA256:
     case S2N_HASH_SHA384:
     case S2N_HASH_SHA512:
-        r = EVP_DigestUpdate(state->digest.high_level.evp.ctx, data, size);
+        GUARD_OSSL(EVP_DigestUpdate(state->digest.high_level.evp.ctx, data, size), S2N_ERR_HASH_UPDATE_FAILED);
         break;
     case S2N_HASH_MD5_SHA1:
-        r = EVP_DigestUpdate(state->digest.high_level.evp.ctx, data, size);
-        r &= EVP_DigestUpdate(state->digest.high_level.evp_md5_secondary.ctx, data, size);
+        GUARD_OSSL(EVP_DigestUpdate(state->digest.high_level.evp.ctx, data, size), S2N_ERR_HASH_UPDATE_FAILED);
+        GUARD_OSSL(EVP_DigestUpdate(state->digest.high_level.evp_md5_secondary.ctx, data, size), S2N_ERR_HASH_UPDATE_FAILED);
         break;
     default:
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
-
-    S2N_ERROR_IF(r == 0, S2N_ERR_HASH_UPDATE_FAILED);
 
     state->currently_in_hash += size;
 
@@ -352,7 +332,6 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
 {
     S2N_ERROR_IF(!state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
 
-    int r;
     unsigned int digest_size = size;
     uint8_t expected_digest_size;
     GUARD(s2n_hash_digest_size(state->alg, &expected_digest_size));
@@ -365,7 +344,6 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
 
     switch (state->alg) {
     case S2N_HASH_NONE:
-        r = 1;
         break;
     case S2N_HASH_MD5:
     case S2N_HASH_SHA1:
@@ -373,21 +351,19 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
     case S2N_HASH_SHA256:
     case S2N_HASH_SHA384:
     case S2N_HASH_SHA512:
-        r = EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, out, &digest_size);
+        GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, out, &digest_size), S2N_ERR_HASH_DIGEST_FAILED);
         break;
     case S2N_HASH_MD5_SHA1:
         GUARD(s2n_hash_digest_size(S2N_HASH_SHA1, &sha1_digest_size));
         sha1_primary_digest_size = sha1_digest_size;
         md5_secondary_digest_size = digest_size - sha1_primary_digest_size;
 
-        r = EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, ((uint8_t *) out) + MD5_DIGEST_LENGTH, &sha1_primary_digest_size);
-        r &= EVP_DigestFinal_ex(state->digest.high_level.evp_md5_secondary.ctx, out, &md5_secondary_digest_size);
+        GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, ((uint8_t *) out) + MD5_DIGEST_LENGTH, &sha1_primary_digest_size), S2N_ERR_HASH_DIGEST_FAILED);
+        GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp_md5_secondary.ctx, out, &md5_secondary_digest_size), S2N_ERR_HASH_DIGEST_FAILED);
         break;
     default:
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
-
-    S2N_ERROR_IF(r == 0, S2N_ERR_HASH_DIGEST_FAILED);
 
     state->currently_in_hash = 0;
     state->is_ready_for_input = 0;
@@ -396,10 +372,8 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
 
 static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from)
 {
-    int r;
     switch (from->alg) {
     case S2N_HASH_NONE:
-        r = 1;
         break;
     case S2N_HASH_MD5:
         if (s2n_digest_is_md5_allowed_for_fips(&from->digest.high_level.evp)) {
@@ -410,20 +384,19 @@ static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
     case S2N_HASH_SHA256:
     case S2N_HASH_SHA384:
     case S2N_HASH_SHA512:
-        r = EVP_MD_CTX_copy_ex(to->digest.high_level.evp.ctx, from->digest.high_level.evp.ctx);
+        GUARD_OSSL(EVP_MD_CTX_copy_ex(to->digest.high_level.evp.ctx, from->digest.high_level.evp.ctx), S2N_ERR_HASH_COPY_FAILED);
         break;
     case S2N_HASH_MD5_SHA1:
         if (s2n_digest_is_md5_allowed_for_fips(&from->digest.high_level.evp)) {
             GUARD(s2n_hash_allow_md5_for_fips(to));
         }
-        r = EVP_MD_CTX_copy_ex(to->digest.high_level.evp.ctx, from->digest.high_level.evp.ctx);
-        r &= EVP_MD_CTX_copy_ex(to->digest.high_level.evp_md5_secondary.ctx, from->digest.high_level.evp_md5_secondary.ctx);
+	GUARD_OSSL(EVP_MD_CTX_copy_ex(to->digest.high_level.evp.ctx, from->digest.high_level.evp.ctx), S2N_ERR_HASH_COPY_FAILED);
+	GUARD_OSSL(EVP_MD_CTX_copy_ex(to->digest.high_level.evp_md5_secondary.ctx, from->digest.high_level.evp_md5_secondary.ctx), S2N_ERR_HASH_COPY_FAILED);
         break;
     default:
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
 
-    S2N_ERROR_IF(r == 0, S2N_ERR_HASH_COPY_FAILED);
     to->hash_impl = from->hash_impl;
     to->alg = from->alg;
     to->is_ready_for_input = from->is_ready_for_input;
@@ -439,14 +412,11 @@ static int s2n_evp_hash_reset(struct s2n_hash_state *state)
         reset_md5_for_fips = 1;
     }
 
-    int r;
-    r = S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp.ctx);
+    GUARD_OSSL(S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp.ctx), S2N_ERR_HASH_WIPE_FAILED);
     
     if (state->alg == S2N_HASH_MD5_SHA1) {
-        r &= S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp_md5_secondary.ctx);
+        GUARD_OSSL(S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp_md5_secondary.ctx), S2N_ERR_HASH_WIPE_FAILED);
     }
-
-    S2N_ERROR_IF(r == 0, S2N_ERR_HASH_WIPE_FAILED);
 
     if (reset_md5_for_fips) {
         GUARD(s2n_hash_allow_md5_for_fips(state));

@@ -101,7 +101,7 @@ static int s2n_rsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *dige
     GUARD(s2n_hash_digest(digest, digest_out, digest_length));
 
     unsigned int signature_size = signature->size;
-    S2N_ERROR_IF(RSA_sign(NID_type, digest_out, digest_length, signature->data, &signature_size, key->rsa) == 0, S2N_ERR_SIGN);
+    GUARD_OSSL(RSA_sign(NID_type, digest_out, digest_length, signature->data, &signature_size, key->rsa), S2N_ERR_SIGN);
     S2N_ERROR_IF(signature_size > signature->size, S2N_ERR_SIZE_MISMATCH);
     signature->size = signature_size;
 
@@ -121,7 +121,7 @@ static int s2n_rsa_verify(const struct s2n_pkey *pub, struct s2n_hash_state *dig
     uint8_t digest_out[S2N_MAX_DIGEST_LEN];
     GUARD(s2n_hash_digest(digest, digest_out, digest_length));
 
-    S2N_ERROR_IF(RSA_verify(NID_type, digest_out, digest_length, signature->data, signature->size, key->rsa) == 0, S2N_ERR_VERIFY_SIGNATURE);
+    GUARD_OSSL(RSA_verify(NID_type, digest_out, digest_length, signature->data, signature->size, key->rsa), S2N_ERR_VERIFY_SIGNATURE);
 
     return 0;
 }
@@ -144,7 +144,6 @@ static int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, str
     const s2n_rsa_private_key *key = &priv->key.rsa_key;
 
     S2N_ERROR_IF(s2n_rsa_private_encrypted_size(key) > sizeof(intermediate), S2N_ERR_NOMEM);
-
     S2N_ERROR_IF(out->size > sizeof(intermediate), S2N_ERR_NOMEM);
 
     int r = RSA_private_decrypt(in->size, (unsigned char *)in->data, intermediate, key->rsa, RSA_PKCS1_PADDING);
