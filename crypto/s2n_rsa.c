@@ -118,10 +118,9 @@ static int s2n_rsa_verify(const struct s2n_pkey *pub, struct s2n_hash_state *dig
 
 static int s2n_rsa_encrypt(const struct s2n_pkey *pub, struct s2n_blob *in, struct s2n_blob *out)
 {
-    const s2n_rsa_public_key *key = &pub->key.rsa_key;
-    
-    S2N_ERROR_IF(out->size < s2n_rsa_encrypted_size(key), S2N_ERR_NOMEM);
+    S2N_ERROR_IF(out->size < s2n_rsa_encrypted_size(pub), S2N_ERR_NOMEM);
 
+    const s2n_rsa_public_key *key = &pub->key.rsa_key;
     int r = RSA_public_encrypt(in->size, (unsigned char *)in->data, (unsigned char *)out->data, key->rsa, RSA_PKCS1_PADDING);
     S2N_ERROR_IF(r != out->size, S2N_ERR_SIZE_MISMATCH);
 
@@ -132,7 +131,7 @@ static int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, str
 {
     unsigned char intermediate[4096];
 
-    S2N_ERROR_IF(s2n_rsa_private_encrypted_size(key) > sizeof(intermediate), S2N_ERR_NOMEM);
+    S2N_ERROR_IF(s2n_rsa_encrypted_size(priv) > sizeof(intermediate), S2N_ERR_NOMEM);
     S2N_ERROR_IF(out->size > sizeof(intermediate), S2N_ERR_NOMEM);
 
     const s2n_rsa_private_key *key = &priv->key.rsa_key;

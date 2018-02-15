@@ -13,21 +13,25 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_tls_digest_preferences.h"
 #include "tls/s2n_signature_algorithms.h"
 
-int s2n_set_signature_and_hash_algorithm(struct s2n_connection *conn, struct s2n_map *supported_sig_hash_algs, s2n_hash_algorithm *hash, s2n_signature_algorithm *sig)
+int s2n_set_signature_hash_pair_from_preference_list(struct s2n_connection *conn, struct s2n_map *sig_hash_algs, s2n_hash_algorithm *hash, s2n_signature_algorithm *sig)
 {
+    /* This function could be called in two places: after receiving the
+     * ClientHello and parsing the extensions and cipher suites, and after
+     * receiving the CertificateRequest which includes supported signature/hash
+     * pairs. In both cases, the cipher suite will have been set */
+    s2n_authentication_method cipher_suite_auth_method = conn->secure.cipher_suite->auth_method;
+    
     /* Default our signature digest algorithms. For TLS 1.2 this default is different and may be 
      * overridden by the signature_algorithms extension. If the server chooses an ECDHE_ECDSA 
      * cipher suite, this will be overridden to SHA1. 
      */
     s2n_hash_algorithm hash_alg_chosen = S2N_HASH_MD5_SHA1;
     s2n_signature_algorithm sig_alg_chosen = S2N_SIGNATURE_RSA;
-    
-    s2n_cert_type cert_type;
-    GUARD(s2n_config_get_cert_type(conn->config, &cert_type));
-    if (cert_type == S2N_CERT_TYPE_ECDSA_SIGN) {
+    if (cipher_suite_auth_method == S2N_AUTHENTICATION_ECDSA) {
         sig_alg_chosen = S2N_SIGNATURE_ECDSA;
         hash_alg_chosen = S2N_HASH_SHA1;
     }
@@ -36,12 +40,12 @@ int s2n_set_signature_and_hash_algorithm(struct s2n_connection *conn, struct s2n
         hash_alg_chosen = S2N_HASH_SHA1;
     }
     
-    if (supported_sig_hash_algs != NULL) {
+    if (sig_hash_algs != NULL) {
         /* Just set hash_alg_chosen because sig_alg_chosen was set above based on cert type */
         struct s2n_blob val;
         struct s2n_blob sig_alg_key = {.data = (uint8_t *)&sig_alg_chosen, .size = sizeof(s2n_signature_algorithm)};
         
-        int ret = s2n_map_lookup(supported_sig_hash_algs, &sig_alg_key, &val);
+        int ret = s2n_map_lookup(sig_hash_algs, &sig_alg_key, &val);
         if (ret > 0) {
             s2n_hash_algorithm *h = (s2n_hash_algorithm *)(void *)val.data;
             hash_alg_chosen = *h; 
@@ -51,6 +55,45 @@ int s2n_set_signature_and_hash_algorithm(struct s2n_connection *conn, struct s2n
     *hash = hash_alg_chosen;
     *sig = sig_alg_chosen;
     return 0;
+}
+
+int s2n_get_signature_hash_pair_if_supported(struct s2n_stuffer *in, s2n_hash_algorithm *hash_alg, s2n_signature_algorithm *signature_alg)
+{
+    uint8_t hash_algorithm;
+    uint8_t signature_algorithm;
+
+    GUARD(s2n_stuffer_read_uint8(in, &hash_algorithm));
+    GUARD(s2n_stuffer_read_uint8(in, &signature_algorithm));
+    
+    /* This function checks that the s2n_hash_algorithm and s2n_signature_algorithm sent in
+     * the stuffer is supported by the library's preference list before returning them 
+     */
+    int sig_alg_matched = 0;
+    for (int i = 0; i < sizeof(s2n_preferred_signature_algorithms); i++) {
+        if(s2n_preferred_signature_algorithms[i] == signature_algorithm) {
+            sig_alg_matched = 1;
+        }
+    }
+    if (sig_alg_matched) {
+        *signature_alg = signature_algorithm;
+    } else {
+        S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    }
+
+    int hash_matched = 0;
+    for (int j = 0; j < sizeof(s2n_preferred_hashes); j++) {
+        if (s2n_preferred_hashes[j] == hash_algorithm) {
+            hash_matched = 1;
+            break;
+        }
+    }
+    if (hash_matched) {
+        *hash_alg = s2n_hash_tls_to_alg[hash_algorithm];
+    } else {
+        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
+    }
+    
+    return hash_matched;
 }
 
 int s2n_send_supported_signature_algorithms(struct s2n_stuffer *out)

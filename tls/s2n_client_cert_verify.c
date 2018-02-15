@@ -17,10 +17,9 @@
 
 #include "error/s2n_errno.h"
 
-#include "tls/s2n_client_extensions.h"
-#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_config.h"
+#include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_tls.h"
 
 #include "stuffer/s2n_stuffer.h"
@@ -37,7 +36,7 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
 
     if(conn->actual_protocol_version == S2N_TLS12){
         /* Make sure the client is actually using one of the {sig,hash} pairs that we sent in the ClientCertificateRequest */
-        GUARD(s2n_get_supported_signature_hash_pair(in, &chosen_hash_alg, &chosen_signature_alg));
+        GUARD(s2n_get_signature_hash_pair_if_supported(in, &chosen_hash_alg, &chosen_signature_alg));
     }
     uint16_t signature_size;
     struct s2n_blob signature;

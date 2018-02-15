@@ -224,7 +224,7 @@ static int s2n_process_client_hello(struct s2n_connection *conn)
     conn->server->server_cert_chain = conn->config->cert_and_key_pairs;
 
     /* And set the signature and hash algorithm used for key exchange signatures */
-    GUARD(s2n_set_signature_and_hash_algorithm(conn, conn->handshake_params.client_sig_hash_algs, &conn->secure.conn_hash_alg, &conn->secure.conn_sig_alg));
+    GUARD(s2n_set_signature_hash_pair_from_preference_list(conn, conn->handshake_params.client_sig_hash_algs, &conn->secure.conn_hash_alg, &conn->secure.conn_sig_alg));
 
     /* Set the handshake type */
     GUARD(s2n_conn_set_handshake_type(conn));

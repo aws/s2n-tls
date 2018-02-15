@@ -17,7 +17,6 @@
 
 #include "crypto/s2n_certificate.h"
 #include "error/s2n_errno.h"
-#include "tls/s2n_client_extensions.h"
 #include "tls/s2n_client_cert_preferences.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
@@ -39,7 +38,7 @@ int s2n_client_cert_req_recv(struct s2n_connection *conn)
 
         s2n_hash_algorithm chosen_hash_algorithm;
         s2n_signature_algorithm chosen_signature_algorithm;
-        GUARD(s2n_set_signature_and_hash_algorithm(conn, conn->handshake_params.server_sig_hash_algs, &chosen_hash_algorithm, &chosen_signature_algorithm));
+        GUARD(s2n_set_signature_hash_pair_from_preference_list(conn, conn->handshake_params.server_sig_hash_algs, &chosen_hash_algorithm, &chosen_signature_algorithm));
         conn->secure.client_cert_hash_algorithm = chosen_hash_algorithm;
         conn->secure.client_cert_sig_alg = chosen_signature_algorithm;
     }

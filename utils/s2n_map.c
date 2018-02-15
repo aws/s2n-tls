@@ -135,7 +135,7 @@ int s2n_map_add(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *valu
     }
 
     uint32_t slot = s2n_map_slot(map, key);
- 
+
     /* Linear probing until we find an empty slot */
     while(map->table[slot].key.size) {
         if (key->size != map->table[slot].key.size ||
@@ -168,7 +168,7 @@ int s2n_map_put(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *valu
     }
 
     uint32_t slot = s2n_map_slot(map, key);
-    
+
     /* Linear probing until we find an empty slot */
     while(map->table[slot].key.size) {
         if (key->size != map->table[slot].key.size ||
@@ -179,7 +179,7 @@ int s2n_map_put(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *valu
         }
 
         /* We found a duplicate key that will be overwritten */
-        GUARD(s2n_free(&map->table[slot].key));        
+        GUARD(s2n_free(&map->table[slot].key));
         GUARD(s2n_free(&map->table[slot].value));
         map->size--;
         break;
@@ -204,7 +204,7 @@ int s2n_map_lookup(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *v
     S2N_ERROR_IF(!map->immutable, S2N_ERR_MAP_MUTABLE);
 
     uint32_t slot = s2n_map_slot(map, key);
-    
+
     while(map->table[slot].key.size) {
         if (key->size != map->table[slot].key.size ||
             memcmp(key->data,  map->table[slot].key.data, key->size)) {

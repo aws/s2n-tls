@@ -19,8 +19,8 @@
 
 #include "tls/s2n_tls_digest_preferences.h"
 #include "tls/s2n_cipher_suites.h"
-#include "tls/s2n_client_extensions.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_signature_algorithms.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -58,7 +58,7 @@ static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn)
     if (conn->actual_protocol_version == S2N_TLS12) {
         s2n_hash_algorithm hash_algorithm;
         s2n_signature_algorithm signature_algorithm;
-        int matched = s2n_get_supported_signature_hash_pair(in, &hash_algorithm, &signature_algorithm);
+        int matched = s2n_get_signature_hash_pair_if_supported(in, &hash_algorithm, &signature_algorithm);
 
         S2N_ERROR_IF(!matched, S2N_ERR_BAD_MESSAGE);
 
@@ -119,7 +119,7 @@ static int s2n_dhe_server_key_recv(struct s2n_connection *conn)
     if (conn->actual_protocol_version == S2N_TLS12) {
         s2n_hash_algorithm hash_algorithm;
         s2n_signature_algorithm signature_algorithm;
-        int matched = s2n_get_supported_signature_hash_pair(in, &hash_algorithm, &signature_algorithm);
+        int matched = s2n_get_signature_hash_pair_if_supported(in, &hash_algorithm, &signature_algorithm);
 
         S2N_ERROR_IF(!matched, S2N_ERR_BAD_MESSAGE);
 

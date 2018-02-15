@@ -18,13 +18,9 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "crypto/s2n_signature.h"
-#include "stuffer/s2n_stuffer.h"
-#include "tls/s2n_connection.h"
+#include "utils/s2n_blob.h"
 
 struct s2n_client_hello_parsed_extension {
 	uint16_t extension_type;
 	struct s2n_blob extension;
 };
-
-extern int s2n_get_supported_signature_hash_pair(struct s2n_stuffer *in, s2n_hash_algorithm *hash_alg, s2n_signature_algorithm *signature_alg);

@@ -189,7 +189,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain_pem, private_key_pem));
         EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
     
-        client_config = &s2n_unsafe_client_testing_config;
+        client_config = s2n_fetch_unsafe_client_testing_config();
         
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
@@ -223,7 +223,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_all_ecdsa"));
 
-        EXPECT_NOT_NULL(client_config = &s2n_unsafe_client_ecdsa_testing_config);
+        EXPECT_NOT_NULL(client_config = s2n_fetch_unsafe_client_ecdsa_testing_config());
 
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_ECDSA_P384_PKCS1_CERT_CHAIN, NULL));
         
