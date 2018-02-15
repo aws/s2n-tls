@@ -76,6 +76,62 @@ int s2n_x509_trust_store_from_system_defaults(struct s2n_x509_trust_store *store
     return 0;
 }
 
+int s2n_x509_trust_store_add_pem(struct s2n_x509_trust_store *store, const char *pem)
+{
+    notnull_check(store);
+    notnull_check(pem);
+
+    if (!store->trust_store) {
+        store->trust_store = X509_STORE_new();
+    }
+
+    s2n_error err = S2N_ERR_OK;
+
+    struct s2n_stuffer pem_in_stuffer;
+    GUARD(s2n_stuffer_alloc_ro_from_string(&pem_in_stuffer, pem));
+    struct s2n_stuffer der_out_stuffer;
+    GUARD(s2n_stuffer_growable_alloc(&der_out_stuffer, 2048));
+
+    uint32_t chain_size = 0;
+    do {
+
+        if (s2n_stuffer_certificate_from_pem(&pem_in_stuffer, &der_out_stuffer) < 0) {
+            if (chain_size == 0) {
+                err = S2N_ERR_NO_CERTIFICATE_IN_PEM;
+                goto clean_up;
+            }
+            break;
+        }
+
+        struct s2n_blob next_cert;
+        GUARD(s2n_alloc(&next_cert, s2n_stuffer_data_available(&der_out_stuffer)));
+        GUARD(s2n_stuffer_read(&der_out_stuffer, &next_cert));
+
+        const uint8_t *data = next_cert.data;
+        uint32_t len = next_cert.size;
+        X509 *ca_cert = d2i_X509(NULL, &data, len);
+        GUARD(s2n_free(&next_cert));
+
+        if (ca_cert == NULL) {
+            err = S2N_ERR_DECODE_CERTIFICATE;
+            goto clean_up;
+        }
+
+        X509_STORE_add_cert(store->trust_store, ca_cert);
+        X509_free(ca_cert);
+    } while (s2n_stuffer_data_available(&pem_in_stuffer));
+
+    clean_up:
+        GUARD(s2n_stuffer_free(&pem_in_stuffer));
+        GUARD(s2n_stuffer_free(&der_out_stuffer));
+
+    if (err != S2N_ERR_OK){
+        S2N_ERROR(err);
+    }
+
+    return 0;
+}
+
 int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const char *ca_file, const char *path) {
 
     if (!store->trust_store) {
