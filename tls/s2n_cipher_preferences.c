@@ -22,7 +22,6 @@
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 
-
 /* s2n's list of cipher suites, in order of preference, as of 2014-06-01 */
 struct s2n_cipher_suite *cipher_suites_20140601[] = {
     &s2n_dhe_rsa_with_aes_128_cbc_sha256,
