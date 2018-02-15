@@ -408,7 +408,6 @@ int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem
     GUARD(s2n_x509_trust_store_add_pem(&config->trust_store, pem));
 
     return 0;
-
 }
 
 int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_pem_filename, const char *ca_dir)
