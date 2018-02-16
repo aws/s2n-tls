@@ -69,7 +69,7 @@ int s2n_get_signature_hash_pair_if_supported(struct s2n_stuffer *in, s2n_hash_al
      * the stuffer is supported by the library's preference list before returning them 
      */
     int sig_alg_matched = 0;
-    for (int i = 0; i < sizeof(s2n_preferred_signature_algorithms); i++) {
+    for (int i = 0; i < sizeof(s2n_preferred_signature_algorithms) / sizeof(s2n_preferred_signature_algorithms[0]); i++) {
         if(s2n_preferred_signature_algorithms[i] == signature_algorithm) {
             sig_alg_matched = 1;
         }
@@ -81,7 +81,7 @@ int s2n_get_signature_hash_pair_if_supported(struct s2n_stuffer *in, s2n_hash_al
     }
 
     int hash_matched = 0;
-    for (int j = 0; j < sizeof(s2n_preferred_hashes); j++) {
+    for (int j = 0; j < sizeof(s2n_preferred_hashes) / sizeof(s2n_preferred_hashes[0]); j++) {
         if (s2n_preferred_hashes[j] == hash_algorithm) {
             hash_matched = 1;
             break;
@@ -100,7 +100,7 @@ int s2n_send_supported_signature_algorithms(struct s2n_stuffer *out)
 {
     /* The array of hashes and signature algorithms we support */
     uint16_t preferred_hashes_len = sizeof(s2n_preferred_hashes) / sizeof(s2n_preferred_hashes[0]);
-    uint16_t num_signature_algs = 2;;
+    uint16_t num_signature_algs = 2;
     uint16_t preferred_hashes_size = preferred_hashes_len * num_signature_algs * 2;
     GUARD(s2n_stuffer_write_uint16(out, preferred_hashes_size));
 
