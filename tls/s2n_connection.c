@@ -519,6 +519,9 @@ int s2n_connection_wipe(struct s2n_connection *conn)
 
     GUARD(s2n_free(&conn->status_response));
 
+    /* Remove parsed extensions array from client_hello */
+    GUARD(s2n_client_hello_free_parsed_extensions(&conn->client_hello));
+
     /* Allocate or resize to their original sizes */
     GUARD(s2n_stuffer_resize(&conn->in, S2N_LARGE_FRAGMENT_LENGTH));
 
@@ -560,8 +563,6 @@ int s2n_connection_wipe(struct s2n_connection *conn)
 #pragma GCC diagnostic pop
 #endif
 
-    /* Remove parsed extensions array from client_hello beforing zeroing connection */
-    GUARD(s2n_client_hello_free_parsed_extensions(&conn->client_hello));
     GUARD(s2n_connection_zero(conn, mode, config));
 
     memcpy_check(&conn->alert_in, &alert_in, sizeof(struct s2n_stuffer));

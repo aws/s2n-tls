@@ -126,9 +126,9 @@ int s2n_client_hello_free_parsed_extensions(struct s2n_client_hello *client_hell
 {
     notnull_check(client_hello);
     if (client_hello->parsed_extensions != NULL) {
-        s2n_array_free(client_hello->parsed_extensions);
+        GUARD(s2n_array_free(client_hello->parsed_extensions));
+        client_hello->parsed_extensions = NULL;
     }
-    client_hello->parsed_extensions = NULL;
     return 0;
 }
 
