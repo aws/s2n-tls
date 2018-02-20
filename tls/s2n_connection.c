@@ -46,7 +46,6 @@
 #include "utils/s2n_socket.h"
 #include "utils/s2n_timer.h"
 #include "utils/s2n_blob.h"
-#include "utils/s2n_map.h"
 #include "utils/s2n_mem.h"
 
 static int s2n_connection_new_hashes(struct s2n_connection *conn)
@@ -178,8 +177,6 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     conn->managed_io = 0;
     conn->corked_io = 0;
     conn->context = NULL;
-    conn->handshake_params.client_sig_hash_algs = NULL;
-    conn->handshake_params.server_sig_hash_algs = NULL;
 
     /* Allocate the fixed-size stuffers */
     blob.data = conn->alert_in_data;
@@ -257,8 +254,6 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->client = &conn->initial;
     conn->max_outgoing_fragment_length = S2N_DEFAULT_FRAGMENT_LENGTH;
     conn->mfl_code = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
-    conn->handshake_params.client_sig_hash_algs = NULL;
-    conn->handshake_params.server_sig_hash_algs = NULL;
     conn->handshake.handshake_type = INITIAL;
     conn->handshake.message_number = 0;
     conn->verify_host_fn = NULL;
@@ -441,26 +436,6 @@ static uint8_t s2n_default_verify_host(const char *host_name, size_t len, void *
     return 0;
 }
 
-static int s2n_connection_free_handshake_params(struct s2n_connection *conn)
-{
-    if (conn->handshake_params.client_sig_hash_algs != NULL) {
-        GUARD(s2n_map_free(conn->handshake_params.client_sig_hash_algs));
-        conn->handshake_params.client_sig_hash_algs = NULL;
-    }
-    if (conn->handshake_params.server_sig_hash_algs != NULL) {
-        GUARD(s2n_map_free(conn->handshake_params.server_sig_hash_algs));
-        conn->handshake_params.server_sig_hash_algs = NULL;
-    }
-
-    return 0;
-}
-
-static int s2n_connection_wipe_handshake_params(struct s2n_connection *conn)
-{
-    s2n_connection_free_handshake_params(conn);
-    return 0;
-}
-
 int s2n_connection_free(struct s2n_connection *conn)
 {
     struct s2n_blob blob = {0};
@@ -484,8 +459,6 @@ int s2n_connection_free(struct s2n_connection *conn)
     GUARD(s2n_stuffer_free(&conn->handshake.io));
     s2n_x509_validator_wipe(&conn->x509_validator);
     GUARD(s2n_client_hello_free(&conn->client_hello));
-
-    GUARD(s2n_connection_free_handshake_params(conn));
 
     blob.data = (uint8_t *) conn;
     blob.size = sizeof(struct s2n_connection);
@@ -588,8 +561,6 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     /* Wipe the I/O-related info and restore the original socket if necessary */
     GUARD(s2n_connection_wipe_io(conn));
 
-    GUARD(s2n_connection_wipe_handshake_params(conn));
-    
     GUARD(s2n_free(&conn->status_response));
 
     /* Remove parsed extensions array from client_hello */

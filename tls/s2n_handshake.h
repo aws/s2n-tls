@@ -19,6 +19,7 @@
 #include <s2n.h>
 
 #include "tls/s2n_crypto.h"
+#include "tls/s2n_tls_parameters.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -45,11 +46,15 @@ typedef enum {
 } message_type_t;
 
 struct s2n_handshake_parameters {
-    /* Signature/hash algorithm pairs offered by the client in the signature_algorithms extension */
-    struct s2n_map *client_sig_hash_algs;
+    /* Signature/hash algorithm pairs offered by the client in the signature_algorithms extension.
+     * 
+     * Stored as a matrix from signature algorithm to hash algorithm. 
+     * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-16 
+     */
+    uint8_t client_sig_hash_algs[TLS_SIGNATURE_ALGORITHM_COUNT][TLS_HASH_ALGORITHM_COUNT];
 
     /* Signature/hash algorithm pairs offered by the server in the certificate request */
-    struct s2n_map *server_sig_hash_algs;
+    uint8_t server_sig_hash_algs[TLS_SIGNATURE_ALGORITHM_COUNT][TLS_HASH_ALGORITHM_COUNT];
 };
 
 struct s2n_handshake {

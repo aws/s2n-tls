@@ -22,6 +22,7 @@
 #include "tls/s2n_tls_digest_preferences.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_client_extensions.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -256,7 +257,7 @@ static int s2n_recv_client_server_name(struct s2n_connection *conn, struct s2n_s
 
 static int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    return s2n_recv_supported_signature_algorithms(conn, extension, &conn->handshake_params.client_sig_hash_algs);
+    return s2n_recv_supported_signature_algorithms(conn, extension, conn->handshake_params.client_sig_hash_algs);
 }
 
 static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension)
