@@ -62,10 +62,10 @@ uint8_t s2n_x509_trust_store_has_certs(struct s2n_x509_trust_store *store) {
 int s2n_x509_trust_store_from_system_defaults(struct s2n_x509_trust_store *store) {
     if (!store->trust_store) {
         store->trust_store = X509_STORE_new();
+        notnull_check(store->trust_store);
     }
 
     int err_code = X509_STORE_set_default_paths(store->trust_store);
-
     if (!err_code) {
         s2n_x509_trust_store_wipe(store);
         return -1;
@@ -80,10 +80,10 @@ int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const 
 
     if (!store->trust_store) {
         store->trust_store = X509_STORE_new();
+        notnull_check(store->trust_store);
     }
 
     int err_code = X509_STORE_load_locations(store->trust_store, ca_file, path);
-
     if (!err_code) {
         s2n_x509_trust_store_wipe(store);
         return -1;
