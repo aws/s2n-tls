@@ -107,19 +107,28 @@ uint32_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *o
     return len;
 }
 
-int s2n_client_hello_free(struct s2n_client_hello *client_hello) {
+int s2n_client_hello_free(struct s2n_client_hello *client_hello)
+{
     notnull_check(client_hello);
 
     GUARD(s2n_stuffer_free(&client_hello->raw_message));
+    GUARD(s2n_client_hello_free_parsed_extensions(client_hello));
 
     /* These pointed to data in the raw_message stuffer,
        so we don't need to free them */
     client_hello->cipher_suites.data = NULL;
     client_hello->extensions.data = NULL;
+
+    return 0;
+}
+
+int s2n_client_hello_free_parsed_extensions(struct s2n_client_hello *client_hello)
+{
+    notnull_check(client_hello);
     if (client_hello->parsed_extensions != NULL) {
         s2n_array_free(client_hello->parsed_extensions);
     }
-
+    client_hello->parsed_extensions = NULL;
     return 0;
 }
 
@@ -238,7 +247,6 @@ static int s2n_process_client_hello(struct s2n_connection *conn)
 
 static int s2n_parsed_extensions_compare(const void *p, const void *q)
 {
-
     const struct s2n_client_hello_parsed_extension *left = (const struct s2n_client_hello_parsed_extension *) p;
     const struct s2n_client_hello_parsed_extension *right = (const struct s2n_client_hello_parsed_extension *) q;
 
@@ -459,7 +467,7 @@ int s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_ex
     struct s2n_client_hello_parsed_extension *parsed_extension = s2n_client_hello_get_parsed_extension(ch->parsed_extensions, extension_type);
 
     if (parsed_extension != NULL) {
-        uint32_t len = parsed_extension->extension.size < max_length ? parsed_extension->extension.size : max_length;
+        uint32_t len = min_size(&parsed_extension->extension, max_length);
         memcpy_check(out, parsed_extension->extension.data, len);
         return len;
     }

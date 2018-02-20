@@ -37,6 +37,7 @@ struct s2n_client_hello {
 };
 
 int s2n_client_hello_free(struct s2n_client_hello *client_hello);
+int s2n_client_hello_free_parsed_extensions(struct s2n_client_hello *client_hello);
 
 extern struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn);
 

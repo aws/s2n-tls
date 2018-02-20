@@ -321,6 +321,8 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client_hello->extensions.size, 0);
         EXPECT_NULL(client_hello->extensions.data);
 
+        /* Verify parsed extesions array in client hello is cleared */
+        EXPECT_NULL(client_hello->parsed_extensions);
 
         /* Verify the connection is successfully reused after connection_wipe */
 
