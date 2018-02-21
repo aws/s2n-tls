@@ -581,8 +581,15 @@ is set in the **s2n_config** object, effectively clearing existing data.
 
 ```c
     typedef enum {
+      S2N_EXTENSION_SERVER_NAME = 0,
+      S2N_EXTENSION_MAX_FRAG_LEN = 1,
       S2N_EXTENSION_OCSP_STAPLING = 5,
-      S2N_EXTENSION_CERTIFICATE_TRANSPARENCY = 18
+      S2N_EXTENSION_ELLIPTIC_CURVES = 10,
+      S2N_EXTENSION_EC_POINT_FORMATS = 11,
+      S2N_EXTENSION_SIGNATURE_ALGORITHMS = 13,
+      S2N_EXTENSION_ALPN = 16,
+      S2N_EXTENSION_CERTIFICATE_TRANSPARENCY = 18,
+      S2N_EXTENSION_RENEGOTIATION_INFO = 65281,
     } s2n_tls_extension_type;
 ```
 
@@ -1018,6 +1025,21 @@ uint32_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *o
 
 **s2n_client_hello_get_extensions_length** returns the number of bytes the extensions take on the ClientHello message received by the server; it can be used to allocate the **out** buffer.
 **s2n_client_hello_get_extensions** copies into the **out** buffer **max_length** bytes of the extensions on the ClienthHello and returns the number of bytes that were copied.
+
+### s2n\_client\_hello\_get\_extension
+
+```c
+int s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type);
+int s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type, uint8_t *out, uint32_t max_length);
+```
+
+- **ch** The s2n_client_hello on the s2n_connection. The handle can be obtained using **s2n_connection_get_client_hello**.
+- **s2n_tls_extension_type** Enum [s2n_tls_extension_type](#s2n\_config\_set\_extension\_data) lists all supported extension types.
+- **out** Pointer to a buffer into which the extension bytes should be copied.
+- **max_length** Max number of bytes to copy into the **out** buffer.
+
+**s2n_client_hello_get_extension_length** returns the number of bytes the given extension type takes on the ClientHello message received by the server; it can be used to allocate the **out** buffer.
+**s2n_client_hello_get_extension_by_id** copies into the **out** buffer **max_length** bytes of a given extension type on the ClienthHello and returns the number of bytes that were copied.
 
 ### s2n\_connection\_is\_client\_authenticated
 

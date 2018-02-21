@@ -72,6 +72,19 @@ int main(int argc, char **argv)
             /* First server name, matches sent_server_name */
             's', 'v', 'r',
         };
+
+        uint8_t server_name_extension[] = {
+            /* Server names len */
+            0x00, 0x06,
+            /* First server name type - host name */
+            0x00,
+            /* First server name len */
+            0x00, 0x03,
+            /* First server name, matches sent_server_name */
+            's', 'v', 'r',
+        };
+        int server_name_extension_len = sizeof(server_name_extension);
+
         int client_extensions_len = sizeof(client_extensions);
         uint8_t client_hello_prefix[] = {
             /* Protocol version TLS 1.2 */
@@ -138,6 +151,14 @@ int main(int argc, char **argv)
 
         /* Verify s2n_connection_get_client_hello returns null if client hello not yet processed */
         EXPECT_NULL(s2n_connection_get_client_hello(server_conn));
+
+        uint8_t *ext_data;
+        EXPECT_NOT_NULL(ext_data = malloc(server_name_extension_len));
+        /* Verify we don't get extension and it's length when client hello is not yet processed */
+        EXPECT_FAILURE(s2n_client_hello_get_extension_length(s2n_connection_get_client_hello(server_conn), S2N_EXTENSION_SERVER_NAME));
+        EXPECT_FAILURE(s2n_client_hello_get_extension_by_id(s2n_connection_get_client_hello(server_conn), S2N_EXTENSION_SERVER_NAME, ext_data, server_name_extension_len));
+        free(ext_data);
+        ext_data = NULL;
 
         /* Send the client hello message */
         EXPECT_EQUAL(write(client_to_server[1], record_header, sizeof(record_header)), sizeof(record_header));
@@ -255,6 +276,28 @@ int main(int argc, char **argv)
         free(extensions_out);
         extensions_out = NULL;
 
+        /* Verify server name extension and it's length are returned correctly */
+        EXPECT_EQUAL(s2n_client_hello_get_extension_length(client_hello, S2N_EXTENSION_SERVER_NAME), server_name_extension_len);
+        EXPECT_NOT_NULL(ext_data = malloc(server_name_extension_len));
+        EXPECT_EQUAL(s2n_client_hello_get_extension_by_id(client_hello, S2N_EXTENSION_SERVER_NAME, ext_data, server_name_extension_len), server_name_extension_len);
+        EXPECT_SUCCESS(memcmp(ext_data, server_name_extension, server_name_extension_len));
+        free(ext_data);
+        ext_data = NULL;
+
+        /* Verify server name extension is truncated if extension_size > max_len */
+        EXPECT_NOT_NULL(ext_data = malloc(server_name_extension_len - 1));
+        EXPECT_EQUAL(s2n_client_hello_get_extension_by_id(client_hello, S2N_EXTENSION_SERVER_NAME, ext_data, server_name_extension_len - 1), server_name_extension_len - 1);
+        EXPECT_SUCCESS(memcmp(ext_data, server_name_extension, server_name_extension_len - 1));
+        free(ext_data);
+        ext_data = NULL;
+
+        /* Verify get extension and it's length calls for a non-existing extension type */
+        EXPECT_EQUAL(s2n_client_hello_get_extension_length(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY), 0);
+        EXPECT_NOT_NULL(ext_data = malloc(server_name_extension_len));
+        EXPECT_EQUAL(s2n_client_hello_get_extension_by_id(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, ext_data, server_name_extension_len), 0);
+        free(ext_data);
+        ext_data = NULL;
+
         /* Not a real tls client but make sure we block on its close_notify */
         int shutdown_rc = s2n_shutdown(server_conn, &server_blocked);
         EXPECT_EQUAL(shutdown_rc, -1);
@@ -278,6 +321,8 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client_hello->extensions.size, 0);
         EXPECT_NULL(client_hello->extensions.data);
 
+        /* Verify parsed extesions array in client hello is cleared */
+        EXPECT_NULL(client_hello->parsed_extensions);
 
         /* Verify the connection is successfully reused after connection_wipe */
 

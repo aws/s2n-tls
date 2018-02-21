@@ -20,6 +20,8 @@
 
 #include "stuffer/s2n_stuffer.h"
 
+#include "utils/s2n_array.h"
+
 struct s2n_client_hello {
     struct s2n_stuffer raw_message;
 
@@ -29,11 +31,13 @@ struct s2n_client_hello {
      */
     struct s2n_blob cipher_suites;
     struct s2n_blob extensions;
+    struct s2n_array *parsed_extensions;
 
     unsigned int parsed:1;
 };
 
 int s2n_client_hello_free(struct s2n_client_hello *client_hello);
+int s2n_client_hello_free_parsed_extensions(struct s2n_client_hello *client_hello);
 
 extern struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn);
 

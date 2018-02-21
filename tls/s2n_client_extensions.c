@@ -169,30 +169,17 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     return 0;
 }
 
-int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *extensions)
+int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *parsed_extensions)
 {
-    struct s2n_stuffer in;
+    for (int i = 0; i < parsed_extensions->num_of_elements; i++) {
+        struct s2n_client_hello_parsed_extension *parsed_extension = s2n_array_get(parsed_extensions, i);
+        notnull_check(parsed_extension);
 
-    GUARD(s2n_stuffer_init(&in, extensions));
-    GUARD(s2n_stuffer_write(&in, extensions));
-
-    while (s2n_stuffer_data_available(&in)) {
-        struct s2n_blob ext;
-        uint16_t extension_type, extension_size;
         struct s2n_stuffer extension;
+        GUARD(s2n_stuffer_init(&extension, &parsed_extension->extension));
+        GUARD(s2n_stuffer_write(&extension, &parsed_extension->extension));
 
-        GUARD(s2n_stuffer_read_uint16(&in, &extension_type));
-        GUARD(s2n_stuffer_read_uint16(&in, &extension_size));
-
-        ext.size = extension_size;
-        lte_check(extension_size, s2n_stuffer_data_available(&in));
-        ext.data = s2n_stuffer_raw_read(&in, ext.size);
-        notnull_check(ext.data);
-
-        GUARD(s2n_stuffer_init(&extension, &ext));
-        GUARD(s2n_stuffer_write(&extension, &ext));
-
-        switch (extension_type) {
+        switch (parsed_extension->extension_type) {
         case TLS_EXTENSION_SERVER_NAME:
             GUARD(s2n_recv_client_server_name(conn, &extension));
             break;

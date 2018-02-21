@@ -16,6 +16,7 @@
 #include <sys/param.h>
 #include <time.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "crypto/s2n_fips.h"
 
@@ -29,6 +30,7 @@
 #include "tls/s2n_client_hello.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_client_extensions.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -105,16 +107,28 @@ uint32_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *o
     return len;
 }
 
-int s2n_client_hello_free(struct s2n_client_hello *client_hello) {
+int s2n_client_hello_free(struct s2n_client_hello *client_hello)
+{
     notnull_check(client_hello);
 
     GUARD(s2n_stuffer_free(&client_hello->raw_message));
+    GUARD(s2n_client_hello_free_parsed_extensions(client_hello));
 
     /* These pointed to data in the raw_message stuffer,
        so we don't need to free them */
     client_hello->cipher_suites.data = NULL;
     client_hello->extensions.data = NULL;
 
+    return 0;
+}
+
+int s2n_client_hello_free_parsed_extensions(struct s2n_client_hello *client_hello)
+{
+    notnull_check(client_hello);
+    if (client_hello->parsed_extensions != NULL) {
+        GUARD(s2n_array_free(client_hello->parsed_extensions));
+        client_hello->parsed_extensions = NULL;
+    }
     return 0;
 }
 
@@ -134,7 +148,7 @@ int s2n_collect_client_hello(struct s2n_connection *conn, struct s2n_stuffer *so
     return 0;
 }
 
-int s2n_client_hello_recv(struct s2n_connection *conn)
+static int s2n_parse_client_hello(struct s2n_connection *conn)
 {
     GUARD(s2n_collect_client_hello(conn, &conn->handshake.io));
 
@@ -192,18 +206,17 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
         client_hello->extensions.size = extensions_length;
         client_hello->extensions.data = s2n_stuffer_raw_read(in, extensions_length);
         notnull_check(client_hello->extensions.data);
-
-        GUARD(s2n_client_extensions_recv(conn, &client_hello->extensions));
     }
 
-    /* Mark the collected client hello as available when parsing over and before the client hello callback */
-    client_hello->parsed = 1;
+    return 0;
+}
 
-    if (conn->config->client_hello_cb) {
-        if (conn->config->client_hello_cb(conn, conn->config->client_hello_cb_ctx) < 0) {
-            GUARD(s2n_queue_reader_handshake_failure_alert(conn));
-            S2N_ERROR(S2N_ERR_CANCELLED);
-        }
+static int s2n_process_client_hello(struct s2n_connection *conn)
+{
+    struct s2n_client_hello *client_hello = &conn->client_hello;
+
+    if (client_hello->parsed_extensions != NULL && client_hello->parsed_extensions->num_of_elements > 0) {
+        GUARD(s2n_client_extensions_recv(conn, client_hello->parsed_extensions));
     }
 
     if (conn->client_protocol_version < conn->config->cipher_preferences->minimum_protocol_version) {
@@ -212,7 +225,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
     }
 
     /* Now choose the ciphers and the cert chain. */
-    GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data, cipher_suites_length / 2));
+    GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
     conn->server->server_cert_chain = conn->config->cert_and_key_pairs;
 
     /* Set the handshake type */
@@ -220,6 +233,73 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 
     /* We've selected the cipher, update the required hashes for this connection */
     GUARD(s2n_conn_update_required_handshake_hashes(conn));
+
+    return 0;
+}
+
+static int s2n_parsed_extensions_compare(const void *p, const void *q)
+{
+    const struct s2n_client_hello_parsed_extension *left = (const struct s2n_client_hello_parsed_extension *) p;
+    const struct s2n_client_hello_parsed_extension *right = (const struct s2n_client_hello_parsed_extension *) q;
+
+    return left->extension_type - right->extension_type;
+}
+
+static int s2n_populate_client_hello_extensions(struct s2n_client_hello *ch)
+{
+    if (ch->parsed_extensions == NULL) {
+        notnull_check(ch->parsed_extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension)));
+    }
+
+    struct s2n_stuffer in;
+
+    GUARD(s2n_stuffer_init(&in, &ch->extensions));
+    GUARD(s2n_stuffer_write(&in, &ch->extensions));
+
+    while (s2n_stuffer_data_available(&in)) {
+        uint16_t ext_size, ext_type;
+
+        GUARD(s2n_stuffer_read_uint16(&in, &ext_type));
+        GUARD(s2n_stuffer_read_uint16(&in, &ext_size));
+
+        struct s2n_client_hello_parsed_extension *parsed_extension = s2n_array_add(ch->parsed_extensions);
+        notnull_check(parsed_extension);
+
+        parsed_extension->extension_type = ext_type;
+        parsed_extension->extension.size = ext_size;
+
+        lte_check(ext_size, s2n_stuffer_data_available(&in));
+        parsed_extension->extension.data = s2n_stuffer_raw_read(&in, ext_size);
+        notnull_check(parsed_extension->extension.data);
+    }
+
+    /* Sort extensions by extension type */
+    qsort(ch->parsed_extensions->elements, ch->parsed_extensions->num_of_elements, ch->parsed_extensions->element_size, s2n_parsed_extensions_compare);
+
+    return 0;
+}
+
+int s2n_client_hello_recv(struct s2n_connection *conn)
+{
+    /* Parse client hello */
+    GUARD(s2n_parse_client_hello(conn));
+
+    GUARD(s2n_populate_client_hello_extensions(&conn->client_hello));
+
+    /* Mark the collected client hello as available when parsing is done and before the client hello callback */
+    conn->client_hello.parsed = 1;
+
+    /* Call client_hello_cb if exists, letting application to modify s2n_connection or swap s2n_config */
+    if (conn->config->client_hello_cb) {
+        if (conn->config->client_hello_cb(conn, conn->config->client_hello_cb_ctx) < 0) {
+            GUARD(s2n_queue_reader_handshake_failure_alert(conn));
+            S2N_ERROR(S2N_ERR_CANCELLED);
+        }
+    }
+
+    /* Client hello is parsed and config is finalized.
+     * Negotiate protocol version, cipher suite, ALPN, select a cert, etc. */
+    GUARD(s2n_process_client_hello(conn));
 
     return 0;
 }
@@ -337,6 +417,46 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
 
     conn->server->server_cert_chain = conn->config->cert_and_key_pairs;
     GUARD(s2n_conn_set_handshake_type(conn));
+
+    return 0;
+}
+
+static void *s2n_client_hello_get_parsed_extension(struct s2n_array *parsed_extensions, s2n_tls_extension_type extension_type)
+{
+    struct s2n_client_hello_parsed_extension search;
+    search.extension_type = extension_type;
+
+    return bsearch(&search, parsed_extensions->elements, parsed_extensions->num_of_elements,
+            parsed_extensions->element_size, s2n_parsed_extensions_compare);
+}
+
+int s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type)
+{
+    notnull_check(ch);
+    notnull_check(ch->parsed_extensions);
+
+    struct s2n_client_hello_parsed_extension *parsed_extension = s2n_client_hello_get_parsed_extension(ch->parsed_extensions, extension_type);
+
+    if (parsed_extension != NULL) {
+        return parsed_extension->extension.size;
+    }
+
+    return 0;
+}
+
+int s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type, uint8_t *out, uint32_t max_length)
+{
+    notnull_check(ch);
+    notnull_check(out);
+    notnull_check(ch->parsed_extensions);
+
+    struct s2n_client_hello_parsed_extension *parsed_extension = s2n_client_hello_get_parsed_extension(ch->parsed_extensions, extension_type);
+
+    if (parsed_extension != NULL) {
+        uint32_t len = min_size(&parsed_extension->extension, max_length);
+        memcpy_check(out, parsed_extension->extension.data, len);
+        return len;
+    }
 
     return 0;
 }

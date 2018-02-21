@@ -24,9 +24,6 @@
 
 #include <s2n.h>
 
-#include "tls/s2n_connection.h"
-#include "tls/s2n_handshake.h"
-
 struct client_hello_context {
     int invoked;
     struct s2n_config *config;
@@ -39,12 +36,14 @@ int mock_client(int writefd, int readfd, int expect_failure)
     s2n_blocked_status blocked;
     int result = 0;
     int rc = 0;
+    const char *protocols[] = { "h2", "http/1.1" };
 
     /* Give the server a chance to listen */
     sleep(1);
 
     conn = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
+    s2n_config_set_protocol_preferences(config, protocols, 2);
     s2n_config_disable_x509_verification(config);
     s2n_connection_set_config(conn, config);
     conn->server_protocol_version = S2N_TLS12;
@@ -111,7 +110,7 @@ int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
 int client_hello_swap_config(struct s2n_connection *conn, void *ctx)
 {
     struct client_hello_context *client_hello_ctx;
-    const char *server_name;
+    struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(conn);
 
     if (ctx == NULL) {
         return -1;
@@ -121,9 +120,29 @@ int client_hello_swap_config(struct s2n_connection *conn, void *ctx)
     /* Incremet counter to ensure that callback was invoked */
     client_hello_ctx->invoked++;
 
-    /* Validate that we have server name */
-    server_name = s2n_get_server_name(conn);
-    if (server_name == NULL || strcmp(server_name, "example.com") != 0) {
+    /* Validate SNI extension */
+    uint8_t expected_server_name[] = {
+            /* Server names len */
+            0x00, 0x0E,
+            /* Server name type - host name */
+            0x00,
+            /* First server name len */
+            0x00, 0x0B,
+            /* First server name, matches sent_server_name */
+            'e', 'x', 'a', 'm', 'p', 'l', 'e', '.', 'c', 'o', 'm'};
+
+    /* Get SNI extension from client hello */
+    uint32_t len = s2n_client_hello_get_extension_length(client_hello, S2N_EXTENSION_SERVER_NAME);
+    if (len != 16) {
+        return -1;
+    }
+
+    uint8_t ser_name[16] = {0};
+    if (s2n_client_hello_get_extension_by_id(client_hello, S2N_EXTENSION_SERVER_NAME, ser_name, len) <= 0) {
+        return -1;
+    }
+
+    if (memcmp(ser_name, expected_server_name, len) != 0) {
         return -1;
     }
 
@@ -180,6 +199,10 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(swap_config, cert_chain_pem, private_key_pem));
 
+    /* Add application protocols to swapped config */
+    const char *protocols[] = { "h2" };
+    EXPECT_SUCCESS(s2n_config_set_protocol_preferences(swap_config, protocols, 1));
+
     /* Prepare context */
     client_hello_ctx.invoked = 0;
     client_hello_ctx.config = swap_config;
@@ -222,8 +245,8 @@ int main(int argc, char **argv)
     /* Ensure that callback was invoked */
     EXPECT_EQUAL(client_hello_ctx.invoked, 1);
 
-    /* Expect NULL negotiated protocol */
-    EXPECT_EQUAL(s2n_get_application_protocol(conn), NULL);
+    /* Expect most preferred negotiated protocol */
+    EXPECT_STRING_EQUAL(s2n_get_application_protocol(conn), protocols[0]);
 
     for (int i = 1; i < 0xffff; i += 100) {
         char * ptr = buffer;
