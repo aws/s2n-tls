@@ -233,6 +233,9 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 
     s2n_cert_validation_code err_code = S2N_CERT_ERR_INVALID;
     X509 *server_cert = NULL;
+ 
+    struct s2n_pkey public_key;
+    s2n_pkey_zero_init(&public_key);
 
     while (s2n_stuffer_data_available(&cert_chain_in_stuffer) && certificate_count < validator->max_chain_depth) {
         uint32_t certificate_size = 0;
@@ -271,7 +274,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
         /* Pull the public key from the first certificate */
         if (certificate_count == 0) {
             /* Assume that the asn1cert is an RSA Cert */
-            if (s2n_asn1der_to_public_key(public_key_out, &asn1cert) < 0) {
+            if (s2n_asn1der_to_public_key(&public_key, &asn1cert) < 0) {
                 goto clean_up;
             }
             *cert_type = S2N_CERT_TYPE_RSA_SIGN;
@@ -333,11 +336,16 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
     }
 
 
+    *public_key_out = public_key;
     err_code = S2N_CERT_OK;
 
 clean_up:
     if (ctx) {
         X509_STORE_CTX_cleanup(ctx);
+    }
+
+    if (err_code != S2N_CERT_OK) {
+        s2n_pkey_free(&public_key);
     }
 
     s2n_stuffer_free(&cert_chain_in_stuffer);
