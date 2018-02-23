@@ -34,11 +34,11 @@ int s2n_client_cert_req_recv(struct s2n_connection *conn)
     GUARD(s2n_recv_client_cert_preferences(in, &conn->secure.client_cert_type));
 
     if(conn->actual_protocol_version == S2N_TLS12){
-        s2n_recv_supported_signature_algorithms(conn, in, conn->handshake_params.server_sig_hash_algs);
+        s2n_recv_supported_signature_algorithms(conn, in, &conn->handshake_params.server_sig_hash_algs);
 
         s2n_hash_algorithm chosen_hash_algorithm;
         s2n_signature_algorithm chosen_signature_algorithm;
-        GUARD(s2n_set_signature_hash_pair_from_preference_list(conn, conn->handshake_params.server_sig_hash_algs, &chosen_hash_algorithm, &chosen_signature_algorithm));
+        GUARD(s2n_set_signature_hash_pair_from_preference_list(conn, &conn->handshake_params.server_sig_hash_algs, &chosen_hash_algorithm, &chosen_signature_algorithm));
         conn->secure.client_cert_hash_algorithm = chosen_hash_algorithm;
         conn->secure.client_cert_sig_alg = chosen_signature_algorithm;
     }

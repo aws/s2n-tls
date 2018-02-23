@@ -17,30 +17,28 @@
 
 #include <s2n.h>
 
-#include "crypto/s2n_certificate.h"
-#include "crypto/s2n_fips.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_signature.h"
 
-#include "error/s2n_errno.h"
-
 #include "stuffer/s2n_stuffer.h"
 
-#include "tls/s2n_config.h"
-#include "tls/s2n_connection.h"
-#include "tls/s2n_signature_algorithms.h"
+struct s2n_connection;
 
-#include "utils/s2n_map.h"
-#include "utils/s2n_safety.h"
+struct s2n_sig_hash_alg_pairs {
+    /* A matrix representing signature and hash algorithm pairs mapped by the
+     * algorithms' TLS values defined here:
+     * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-16 
+     */
+    uint8_t matrix[TLS_SIGNATURE_ALGORITHM_COUNT][TLS_HASH_ALGORITHM_COUNT];
+};
 
 static const s2n_signature_algorithm s2n_preferred_signature_algorithms[] = {
     S2N_SIGNATURE_RSA,
     S2N_SIGNATURE_ECDSA
 };
 
-extern int s2n_set_signature_hash_pair_from_preference_list(struct s2n_connection *conn, uint8_t sig_hash_algs[TLS_SIGNATURE_ALGORITHM_COUNT][TLS_HASH_ALGORITHM_COUNT], 
+extern int s2n_set_signature_hash_pair_from_preference_list(struct s2n_connection *conn, struct s2n_sig_hash_alg_pairs *sig_hash_algs, 
                                                             s2n_hash_algorithm *hash, s2n_signature_algorithm *sig);
 extern int s2n_get_signature_hash_pair_if_supported(struct s2n_stuffer *in, s2n_hash_algorithm *hash_alg, s2n_signature_algorithm *signature_alg);
 extern int s2n_send_supported_signature_algorithms(struct s2n_stuffer *out);
-extern int s2n_recv_supported_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *in, 
-                                                    uint8_t sig_hash_algs[TLS_SIGNATURE_ALGORITHM_COUNT][TLS_HASH_ALGORITHM_COUNT]);
+extern int s2n_recv_supported_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *in, struct s2n_sig_hash_alg_pairs *sig_hash_algs); 

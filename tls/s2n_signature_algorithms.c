@@ -13,11 +13,32 @@
  * permissions and limitations under the License.
  */
 
+#include "crypto/s2n_fips.h"
+#include "error/s2n_errno.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_tls_digest_preferences.h"
 #include "tls/s2n_signature_algorithms.h"
+#include "utils/s2n_safety.h"
 
-int s2n_set_signature_hash_pair_from_preference_list(struct s2n_connection *conn, uint8_t sig_hash_algs[TLS_SIGNATURE_ALGORITHM_COUNT][TLS_HASH_ALGORITHM_COUNT], 
+static int s2n_sig_hash_algs_pairs_set(struct s2n_sig_hash_alg_pairs *sig_hash_algs, uint8_t sig_alg, uint8_t hash_alg)
+{
+    S2N_ERROR_IF(hash_alg >= TLS_HASH_ALGORITHM_COUNT, S2N_ERR_HASH_INVALID_ALGORITHM);
+    S2N_ERROR_IF(sig_alg >= TLS_SIGNATURE_ALGORITHM_COUNT, S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    
+    sig_hash_algs->matrix[sig_alg][hash_alg] = 1;
+    
+    return 0;
+}
+
+static int s2n_sig_hash_alg_pairs_get(struct s2n_sig_hash_alg_pairs *sig_hash_algs, uint8_t sig_alg, uint8_t hash_alg)
+{
+    S2N_ERROR_IF(hash_alg >= TLS_HASH_ALGORITHM_COUNT, S2N_ERR_HASH_INVALID_ALGORITHM);
+    S2N_ERROR_IF(sig_alg >= TLS_SIGNATURE_ALGORITHM_COUNT, S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+
+    return sig_hash_algs->matrix[sig_alg][hash_alg];
+}
+
+int s2n_set_signature_hash_pair_from_preference_list(struct s2n_connection *conn, struct s2n_sig_hash_alg_pairs *sig_hash_algs, 
                                                         s2n_hash_algorithm *hash, s2n_signature_algorithm *sig)
 {
     /* This function could be called in two places: after receiving the
@@ -43,7 +64,7 @@ int s2n_set_signature_hash_pair_from_preference_list(struct s2n_connection *conn
 
     /* Override default if there were signature/hash pairs available for this signature algorithm */
     for(int i = 0; i < sizeof(s2n_preferred_hashes) / sizeof(s2n_preferred_hashes[0]); i++) {
-        if (sig_hash_algs[sig_alg_chosen][s2n_preferred_hashes[i]] == 1) {
+        if (s2n_sig_hash_alg_pairs_get(sig_hash_algs, sig_alg_chosen, s2n_preferred_hashes[i]) == 1) {
             /* Just set hash_alg_chosen because sig_alg_chosen was set above based on cert type */
             hash_alg_chosen = s2n_hash_tls_to_alg[s2n_preferred_hashes[i]];
         }
@@ -51,6 +72,7 @@ int s2n_set_signature_hash_pair_from_preference_list(struct s2n_connection *conn
 
     *hash = hash_alg_chosen;
     *sig = sig_alg_chosen;
+    
     return 0;
 }
 
@@ -111,8 +133,7 @@ int s2n_send_supported_signature_algorithms(struct s2n_stuffer *out)
     return 0;
 }
 
-int s2n_recv_supported_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *in, 
-                                            uint8_t sig_hash_algs[TLS_SIGNATURE_ALGORITHM_COUNT][TLS_HASH_ALGORITHM_COUNT])
+int s2n_recv_supported_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *in, struct s2n_sig_hash_alg_pairs *sig_hash_algs)
 {
     uint16_t length_of_all_pairs;
     GUARD(s2n_stuffer_read_uint16(in, &length_of_all_pairs));
@@ -137,11 +158,8 @@ int s2n_recv_supported_signature_algorithms(struct s2n_connection *conn, struct 
         uint8_t hash_alg = hash_sig_pairs[2 * i];
         uint8_t sig_alg = hash_sig_pairs[2 * i + 1];
 
-        S2N_ERROR_IF(hash_alg >= TLS_HASH_ALGORITHM_COUNT, S2N_ERR_HASH_INVALID_ALGORITHM);
-        S2N_ERROR_IF(sig_alg >= TLS_SIGNATURE_ALGORITHM_COUNT, S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
-
-        sig_hash_algs[sig_alg][hash_alg] = 1;
+        s2n_sig_hash_algs_pairs_set(sig_hash_algs, sig_alg, hash_alg);
     }
-
+    
     return 0;
 }
