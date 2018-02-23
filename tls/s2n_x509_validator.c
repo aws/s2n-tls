@@ -339,7 +339,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 
 clean_up:
     if (ctx) {
-        X509_STORE_CTX_cleanup(ctx);
+        X509_STORE_CTX_free(ctx);
     }
 
     if (err_code != S2N_CERT_OK) {
