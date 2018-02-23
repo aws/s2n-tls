@@ -323,6 +323,130 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Client sends duplicate server name extension */
+    {
+        struct s2n_connection *server_conn;
+        struct s2n_config *server_config;
+        s2n_blocked_status server_blocked;
+        int server_to_client[2];
+        int client_to_server[2];
+
+        uint8_t client_extensions[] = {
+            /* Extension type TLS_EXTENSION_SERVER_NAME */
+            0x00, 0x00,
+            /* Extension size */
+            0x00, 0x0C,
+            /* All server names len */
+            0x00, 0x0A,
+            /* First server name type - host name */
+            0x00,
+            /* First server name len */
+            0x00, 0x03,
+            /* First server name, matches sent_server_name */
+            's', 'v', 'r',
+            /* Second server name type - host name */
+            0x00,
+            /* Second server name len */
+            0x00, 0x01,
+            /* Second server name */
+            0xFF,
+            /* And all that again... */
+            /* Extension type TLS_EXTENSION_SERVER_NAME */
+            0x00, 0x00,
+            /* Extension size */
+            0x00, 0x0C,
+            /* All server names len */
+            0x00, 0x0A,
+            /* First server name type - host name */
+            0x00,
+            /* First server name len */
+            0x00, 0x03,
+            /* First server name, matches sent_server_name */
+            's', 'v', 'r',
+            /* Second server name type - host name */
+            0x00,
+            /* Second server name len */
+            0x00, 0x01,
+            /* Second server name */
+            0xFF,
+        };
+        int client_extensions_len = sizeof(client_extensions);
+        uint8_t client_hello_message[] = {
+            /* Protocol version TLS 1.2 */
+            0x03, 0x03,
+            /* Client random */
+            ZERO_TO_THIRTY_ONE,
+            /* SessionID len - 32 bytes */
+            0x20,
+            /* Session ID */
+            ZERO_TO_THIRTY_ONE,
+            /* Cipher suites len */
+            0x00, 0x02,
+            /* Cipher suite - TLS_RSA_WITH_AES_128_CBC_SHA256 */
+            0x00, 0x3C,
+            /* Compression methods len */
+            0x01,
+            /* Compression method - none */
+            0x00,
+            /* Extensions len */
+            (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
+        };
+        int body_len = sizeof(client_hello_message) + client_extensions_len;
+        uint8_t message_header[] = {
+            /* Handshake message type CLIENT HELLO */
+            0x01,
+            /* Body len */
+            (body_len >> 16) & 0xff, (body_len >> 8) & 0xff, (body_len & 0xff),
+        };
+        int message_len = sizeof(message_header) + body_len;
+        uint8_t record_header[] = {
+            /* Record type HANDSHAKE */
+            0x16,
+            /* Protocol version TLS 1.2 */
+            0x03, 0x03,
+            /* Message len */
+            (message_len >> 8) & 0xff, (message_len & 0xff),
+        };
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(pipe(server_to_client));
+        EXPECT_SUCCESS(pipe(client_to_server));
+        for (int i = 0; i < 2; i++) {
+            EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
+            EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
+        }
+
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
+
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain, private_key));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+        /* Send the client hello */
+        EXPECT_EQUAL(write(client_to_server[1], record_header, sizeof(record_header)), sizeof(record_header));
+        EXPECT_EQUAL(write(client_to_server[1], message_header, sizeof(message_header)), sizeof(message_header));
+        EXPECT_EQUAL(write(client_to_server[1], client_hello_message, sizeof(client_hello_message)), sizeof(client_hello_message));
+        EXPECT_EQUAL(write(client_to_server[1], client_extensions, sizeof(client_extensions)), sizeof(client_extensions));
+
+        /* Verify that we fail for duplicated extension type Bad Message */
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+        s2n_negotiate(server_conn, &server_blocked);
+        EXPECT_EQUAL(s2n_errno, S2N_ERR_BAD_MESSAGE);
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+
+        for (int i = 0; i < 2; i++) {
+            EXPECT_SUCCESS(close(server_to_client[i]));
+            EXPECT_SUCCESS(close(client_to_server[i]));
+        }
+    }
+
     /* Client sends a valid initial renegotiation_info */
     {
         struct s2n_connection *server_conn;
