@@ -29,8 +29,10 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_client_hello.h"
 #include "tls/s2n_alerts.h"
+#include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_client_extensions.h"
+#include "tls/s2n_tls_digest_preferences.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -182,19 +184,12 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     client_hello->cipher_suites.data = s2n_stuffer_raw_read(in, cipher_suites_length);
     notnull_check(client_hello->cipher_suites.data);
     /* Don't choose the cipher yet, read the extensions first */
-
     uint8_t num_compression_methods = 0;
     GUARD(s2n_stuffer_read_uint8(in, &num_compression_methods));
     GUARD(s2n_stuffer_skip_read(in, num_compression_methods));
 
     /* This is going to be our default if the client has no preference. */
     conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
-
-    /* Default our signature digest algorithms */
-    conn->secure.conn_hash_alg = S2N_HASH_MD5_SHA1;
-    if (conn->actual_protocol_version == S2N_TLS12 || s2n_is_in_fips_mode()) {
-        conn->secure.conn_hash_alg = S2N_HASH_SHA1;
-    }
 
     uint16_t extensions_length = 0;
     if (s2n_stuffer_data_available(in) >= 2) {
@@ -228,6 +223,8 @@ static int s2n_process_client_hello(struct s2n_connection *conn)
     GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
     conn->server->server_cert_chain = conn->config->cert_and_key_pairs;
 
+    /* And set the signature and hash algorithm used for key exchange signatures */
+    GUARD(s2n_set_signature_hash_pair_from_preference_list(conn, &conn->handshake_params.client_sig_hash_algs, &conn->secure.conn_hash_alg, &conn->secure.conn_sig_alg));
     /* Set the handshake type */
     GUARD(s2n_conn_set_handshake_type(conn));
 

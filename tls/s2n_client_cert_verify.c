@@ -17,10 +17,9 @@
 
 #include "error/s2n_errno.h"
 
-#include "tls/s2n_client_extensions.h"
-#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_config.h"
+#include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_tls.h"
 
 #include "stuffer/s2n_stuffer.h"
@@ -36,24 +35,21 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
     s2n_signature_algorithm chosen_signature_alg = S2N_SIGNATURE_RSA;
 
     if(conn->actual_protocol_version == S2N_TLS12){
-        int pairs_available = 1;
         /* Make sure the client is actually using one of the {sig,hash} pairs that we sent in the ClientCertificateRequest */
-        GUARD(s2n_choose_preferred_signature_hash_pair(in, pairs_available, &chosen_hash_alg, &chosen_signature_alg));
+        GUARD(s2n_get_signature_hash_pair_if_supported(in, &chosen_hash_alg, &chosen_signature_alg));
     }
-
     uint16_t signature_size;
     struct s2n_blob signature;
     GUARD(s2n_stuffer_read_uint16(in, &signature_size));
     signature.size = signature_size;
     signature.data = s2n_stuffer_raw_read(in, signature.size);
     notnull_check(signature.data);
-
     struct s2n_hash_state hash_state;
     GUARD(s2n_handshake_get_hash_state(conn, chosen_hash_alg, &hash_state));
 
     switch (chosen_signature_alg) {
-    /* s2n currently only supports RSA Signatures */
     case S2N_SIGNATURE_RSA:
+    case S2N_SIGNATURE_ECDSA:
         GUARD(s2n_pkey_verify(&conn->secure.client_public_key, &hash_state, &signature));
         break;
     default:
@@ -90,7 +86,7 @@ int s2n_client_cert_verify_send(struct s2n_connection *conn)
     switch (chosen_signature_alg) {
     /* s2n currently only supports RSA Signatures */
     case S2N_SIGNATURE_RSA:
-        signature.size = s2n_rsa_private_encrypted_size(&conn->config->cert_and_key_pairs->private_key.key.rsa_key);
+        signature.size = s2n_pkey_size(&conn->config->cert_and_key_pairs->private_key);
         GUARD(s2n_stuffer_write_uint16(out, signature.size));
 
         signature.data = s2n_stuffer_raw_write(out, signature.size);

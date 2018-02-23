@@ -103,10 +103,11 @@ int main(int argc, char **argv)
 
     struct s2n_pkey priv_key;
     struct s2n_pkey pub_key;
+    s2n_cert_type cert_type;
 
     b.size = s2n_stuffer_data_available(&certificate_out);
     b.data = s2n_stuffer_raw_read(&certificate_out, b.size);
-    EXPECT_SUCCESS(s2n_asn1der_to_public_key(&pub_key, &b));
+    EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&pub_key, &cert_type, &b));
 
     b.size = s2n_stuffer_data_available(&rsa_key_out);
     b.data = s2n_stuffer_raw_read(&rsa_key_out, b.size);
@@ -130,7 +131,7 @@ int main(int argc, char **argv)
     struct s2n_blob signature;
     struct s2n_hash_state tls10_one, tls10_two, tls12_one, tls12_two;
 
-    EXPECT_SUCCESS(s2n_alloc(&signature, s2n_rsa_public_encrypted_size(&pub_key.key.rsa_key)));
+    EXPECT_SUCCESS(s2n_alloc(&signature, s2n_pkey_size(&pub_key)));
     
     if (s2n_hash_is_available(S2N_HASH_MD5_SHA1)) {
         /* TLS 1.0 use of RSA with DHE is not permitted when FIPS mode is set */

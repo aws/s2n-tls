@@ -39,7 +39,7 @@ static const uint8_t s2n_hash_alg_to_tls[] = {
 /* Our own order of preference for signature hashes. No MD5 to avoid
  * SLOTH.
  */
-static uint8_t s2n_preferred_hashes[] = {
+static const uint8_t s2n_preferred_hashes[] = {
     TLS_HASH_ALGORITHM_SHA256,
     TLS_HASH_ALGORITHM_SHA384,
     TLS_HASH_ALGORITHM_SHA512,

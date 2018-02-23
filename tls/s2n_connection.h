@@ -151,6 +151,9 @@ struct s2n_connection {
     /* Determines if we're currently sending or receiving in s2n_shutdown */
     unsigned int close_notify_queued:1;
 
+    /* Contains parameters needed during the handshake phase */
+    struct s2n_handshake_parameters handshake_params;
+
     /* Our handshake state machine */
     struct s2n_handshake handshake;
 

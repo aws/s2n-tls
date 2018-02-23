@@ -37,7 +37,5 @@ typedef struct s2n_ecdsa_key s2n_ecdsa_private_key;
 
 extern int s2n_ecdsa_pkey_init(struct s2n_pkey *pkey);
 
-extern int s2n_ecdsa_signature_size(const s2n_ecdsa_private_key *key);
-
 extern int s2n_evp_pkey_to_ecdsa_public_key(s2n_ecdsa_public_key *ecdsa_key, EVP_PKEY *pkey);
 extern int s2n_evp_pkey_to_ecdsa_private_key(s2n_ecdsa_private_key *ecdsa_key, EVP_PKEY *pkey);

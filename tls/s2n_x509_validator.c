@@ -273,11 +273,9 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 
         /* Pull the public key from the first certificate */
         if (certificate_count == 0) {
-            /* Assume that the asn1cert is an RSA Cert */
-            if (s2n_asn1der_to_public_key(&public_key, &asn1cert) < 0) {
+            if (s2n_asn1der_to_public_key_and_type(&public_key, cert_type, &asn1cert) < 0) {
                 goto clean_up;
             }
-            *cert_type = S2N_CERT_TYPE_RSA_SIGN;
         }
 
         certificate_count++;
