@@ -158,7 +158,7 @@ int s2n_x509_validator_set_max_chain_depth(struct s2n_x509_validator *validator,
  * For each name in the cert. Iterate them. Call the callback. If one returns true, then consider it validated,
  * if none of them return true, the cert is considered invalid.
  */
-static uint8_t verify_host_information(struct s2n_x509_validator *validator, struct s2n_connection *conn, X509 *public_cert) {
+static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator, struct s2n_connection *conn, X509 *public_cert) {
     uint8_t verified = 0;
     uint8_t san_found = 0;
 
@@ -299,7 +299,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
             goto clean_up;
         }
 
-        if (conn->verify_host_fn && !verify_host_information(validator, conn, leaf)) {
+        if (conn->verify_host_fn && !s2n_verify_host_information(validator, conn, leaf)) {
             err_code = S2N_CERT_ERR_UNTRUSTED;
             goto clean_up;
         }
