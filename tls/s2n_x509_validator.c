@@ -166,7 +166,7 @@ static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator,
     STACK_OF(GENERAL_NAME) *names_list = X509_get_ext_d2i(public_cert, NID_subject_alt_name, NULL, NULL);
     int n = sk_GENERAL_NAME_num(names_list);
     for (int i = 0; i < n && !verified; i++) {
-        GENERAL_NAME *current_name = sk_GENERAL_NAME_value(names_list, i);;
+        GENERAL_NAME *current_name = sk_GENERAL_NAME_value(names_list, i);
         if (current_name->type == GEN_DNS) {
             san_found = 1;
 
