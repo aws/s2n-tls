@@ -270,6 +270,7 @@ int main(int argc, char **argv)
         send_messages(p[1], server_hello_message, sizeof(server_hello_message), good_certificate_list, sizeof(good_certificate_list));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
         _exit(0);
     }
 
@@ -318,6 +319,7 @@ int main(int argc, char **argv)
         send_messages(p[1], server_hello_message, sizeof(server_hello_message), empty_certificate_list, sizeof(empty_certificate_list));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
         _exit(0);
     }
 
@@ -366,6 +368,7 @@ int main(int argc, char **argv)
         send_messages(p[1], server_hello_message, sizeof(server_hello_message), empty_certificate, sizeof(empty_certificate));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
         _exit(0);
     }
 
@@ -414,6 +417,7 @@ int main(int argc, char **argv)
         send_messages(p[1], server_hello_message, sizeof(server_hello_message), certificate_list_too_large, sizeof(certificate_list_too_large));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
         _exit(0);
     }
 
@@ -462,6 +466,7 @@ int main(int argc, char **argv)
         send_messages(p[1], server_hello_message, sizeof(server_hello_message), certificate_too_large, sizeof(certificate_too_large));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
         _exit(0);
     }
 
@@ -510,6 +515,7 @@ int main(int argc, char **argv)
         send_messages(p[1], server_hello_message, sizeof(server_hello_message), certificate_list_too_large, sizeof(certificate_list_too_large));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
         _exit(0);
     }
 
@@ -531,6 +537,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
     EXPECT_EQUAL(status, 0);
     EXPECT_SUCCESS(close(p[0]));
+    EXPECT_SUCCESS(s2n_connection_free(conn));
     EXPECT_SUCCESS(s2n_config_free(config));
 
     END_TEST();

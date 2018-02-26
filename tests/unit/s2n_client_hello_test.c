@@ -305,7 +305,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->close_notify_queued, 1);
 
          /* Wipe connection */
-        s2n_connection_wipe(server_conn);
+        EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
 
         /* Verify connection_wipe resized the s2n_client_hello.raw_message stuffer */
         EXPECT_NOT_NULL(client_hello->raw_message.blob.data);
@@ -333,6 +333,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
+        /* Recreate config */
+        EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));

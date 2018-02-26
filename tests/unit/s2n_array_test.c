@@ -90,5 +90,7 @@ int main(int argc, char **argv)
     /* Done with the array, make sure it can be freed */
     EXPECT_SUCCESS(s2n_array_free(array));
 
+    EXPECT_SUCCESS(s2n_free(&mem));
+
     END_TEST();
 }
