@@ -409,7 +409,7 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
     return 0;
 }
 
-int s2n_conn_set_cipher_preferences(struct s2n_connection *conn, const char *version)
+int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version)
 {
     GUARD(s2n_find_cipher_pref_from_version(version, &conn->cipher_pref_override));
     return 0;
