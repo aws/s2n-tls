@@ -1,0 +1,36 @@
+--- /Users/dsn/github/s2n/utils/s2n_safety.c	2018-02-01 17:51:30.000000000 -0500
++++ utils/s2n_safety.c	2018-02-09 10:28:30.000000000 -0500
+@@ -39,6 +39,16 @@
+ #endif
+ }
+ 
++void * my_memset ( void * ptr, int value, size_t num ){
++  uint8_t* p = (uint8_t*)(ptr);
++  __VERIFIER_assert(num >= 0);
++  for(int i =0; i < num; ++i) {
++    S2N_INVARIENT(i <= num);
++    p[i] = value;
++  }
++}
++
++
+ /**
+  * Given arrays "a" and "b" of length "len", determine whether they
+  * hold equal contents.
+@@ -55,14 +65,12 @@
+  */
+ int s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, uint32_t len)
+ {
+-    S2N_PUBLIC_INPUT(a);
+-    S2N_PUBLIC_INPUT(b);
++  //S2N_PUBLIC_INPUT(a);
++  //S2N_PUBLIC_INPUT(b);
+     S2N_PUBLIC_INPUT(len);
+     
+     uint8_t xor = 0;
+     for (int i = 0; i < len; i++) {
+-        /* Invariants must hold for each execution of the loop
+-	 * and at loop exit, hence the <= */ 
+         S2N_INVARIENT(i <= len);
+         xor |= a[i] ^ b[i];
+     }

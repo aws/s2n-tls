@@ -21,6 +21,26 @@ usage() {
     exit 1
 }
 
+runSingleTest() {
+    cd "${BASE_S2N_DIR}/tests/sidewinder/working/${1}"
+    ./copy_as_needed.sh
+    make clean
+
+    #run the test.  We expect both to pass, and none to fail
+    FAILED=0
+    EXPECTED_PASS=1
+    EXPECTED_FAIL=0
+    make 2>&1 | ../../count_success.pl $EXPECTED_PASS $EXPECTED_FAIL || FAILED=1
+
+    if [ $FAILED == 1 ];
+    then
+	printf "\\033[31;1mFAILED ctverif\\033[0m\\n"
+	exit -1
+    else
+	printf "\\033[32;1mPASSED ctverif\\033[0m\\n"
+    fi
+}
+
 if [ "$#" -ne "1" ]; then
     usage
 fi
@@ -42,20 +62,8 @@ which llvm2bpl || echo "can't find llvm2bpl"
 which clang
 clang --version
 
-cd "${BASE_S2N_DIR}/tests/sidewinder/working/s2n-cbc"
-./copy_as_needed.sh
-make clean
-
-#run the test.  We expect both to pass, and none to fail
-FAILED=0
-EXPECTED_PASS=1
-EXPECTED_FAIL=0
-make 2>&1 | ../../count_success.pl $EXPECTED_PASS $EXPECTED_FAIL || FAILED=1
-
-if [ $FAILED == 1 ];
-then
-	printf "\\033[31;1mFAILED ctverif\\033[0m\\n"
-	exit -1
-else
-	printf "\\033[32;1mPASSED ctverif\\033[0m\\n"
-fi
+runSingleTest "s2n-cbc"
+runSingleTest "s2n-record-read-aead"
+runSingleTest "s2n-record-read-cbc"
+runSingleTest "s2n-record-read-composite"
+runSingleTest "s2n-record-read-stream"

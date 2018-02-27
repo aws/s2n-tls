@@ -14,9 +14,6 @@
  */
 
 #include <sys/param.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
 
 #include "error/s2n_errno.h"
 
