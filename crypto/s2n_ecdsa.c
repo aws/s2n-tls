@@ -108,6 +108,7 @@ static int s2n_ecdsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pke
     int rc = 0;
     goto cleanup;
 
+    //cppcheck-suppress unusedLabel
 failed:
     rc = -1;
 
