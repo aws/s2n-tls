@@ -87,6 +87,8 @@ int mock_client(int writefd, int readfd, int expect_failure)
     /* Give the server a chance to a void a sigpipe */
     sleep(1);
 
+    s2n_cleanup();
+
     _exit(result);
 }
 

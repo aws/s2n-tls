@@ -329,5 +329,7 @@ int main(int argc, char **argv)
         }
     }
 
+    EXPECT_SUCCESS(s2n_connection_free(conn));
+
     END_TEST();
 }

@@ -84,31 +84,40 @@ static int s2n_ecdsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pke
 {
     uint8_t input[16];
     struct s2n_blob random_input;
-    struct s2n_blob signature;
-    struct s2n_hash_state state_in, state_out;
+    struct s2n_blob signature = { 0 };
+    struct s2n_hash_state state_in = { 0 }, state_out = { 0 };
 
     random_input.data = input;
     random_input.size = sizeof(input);
-    GUARD(s2n_get_public_random_data(&random_input));
+    GUARD_GOTO(s2n_get_public_random_data(&random_input), failed);
 
     /* s2n_hash_new only allocates memory when using high-level EVP hashes, currently restricted to FIPS mode. */
-    GUARD(s2n_hash_new(&state_in));
-    GUARD(s2n_hash_new(&state_out));
+    GUARD_GOTO(s2n_hash_new(&state_in), failed);
+    GUARD_GOTO(s2n_hash_new(&state_out), failed);
 
-    GUARD(s2n_hash_init(&state_in, S2N_HASH_SHA1));
-    GUARD(s2n_hash_init(&state_out, S2N_HASH_SHA1));
-    GUARD(s2n_hash_update(&state_in, input, sizeof(input)));
-    GUARD(s2n_hash_update(&state_out, input, sizeof(input)));
+    GUARD_GOTO(s2n_hash_init(&state_in, S2N_HASH_SHA1), failed);
+    GUARD_GOTO(s2n_hash_init(&state_out, S2N_HASH_SHA1), failed);
+    GUARD_GOTO(s2n_hash_update(&state_in, input, sizeof(input)), failed);
+    GUARD_GOTO(s2n_hash_update(&state_out, input, sizeof(input)), failed);
 
-    GUARD(s2n_alloc(&signature, s2n_ecdsa_der_signature_size(priv)));
-    
-    GUARD(s2n_ecdsa_sign(priv, &state_in, &signature));
-    GUARD(s2n_ecdsa_verify(pub, &state_out, &signature));
+    GUARD_GOTO(s2n_alloc(&signature, s2n_ecdsa_der_signature_size(priv)), failed);
 
-    GUARD(s2n_hash_free(&state_in));
-    GUARD(s2n_hash_free(&state_out));
+    GUARD_GOTO(s2n_ecdsa_sign(priv, &state_in, &signature), failed);
+    GUARD_GOTO(s2n_ecdsa_verify(pub, &state_out, &signature), failed);
 
-    return 0;
+    int rc = 0;
+    goto cleanup;
+
+    //cppcheck-suppress unusedLabel
+failed:
+    rc = -1;
+
+cleanup:
+    s2n_hash_free(&state_in);
+    s2n_hash_free(&state_out);
+    s2n_free(&signature);
+
+    return rc;
 }
 
 static int s2n_ecdsa_key_free(struct s2n_pkey *pkey)

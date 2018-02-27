@@ -433,6 +433,7 @@ int main(int argc, char **argv)
 
         /* Write the fragmented hello message */
         fragmented_message(p[1]);
+        EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_connection_free(conn));
         _exit(0);
     }
@@ -479,6 +480,7 @@ int main(int argc, char **argv)
         /* Write the fragmented hello message */
         coalesced_message(p[1]);
         EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
         _exit(0);
     }
 
@@ -524,6 +526,7 @@ int main(int argc, char **argv)
         /* Write the fragmented hello message */
         interleaved_message(p[1]);
         EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
         _exit(0);
     }
 
@@ -569,6 +572,7 @@ int main(int argc, char **argv)
         /* Write the fragmented hello message */
         interleaved_fragmented_warning_alert(p[1]);
         EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
         _exit(0);
     }
 
@@ -614,6 +618,7 @@ int main(int argc, char **argv)
         /* Write the fragmented hello message */
         interleaved_fragmented_fatal_alert(p[1]);
         EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
         _exit(0);
     }
 

@@ -253,5 +253,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_free(&nist_reference_returned_bits));
     EXPECT_SUCCESS(s2n_stuffer_free(&nist_reference_values));
 
+    EXPECT_SUCCESS(s2n_config_free(config));
+
     END_TEST();
 }

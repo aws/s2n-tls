@@ -31,6 +31,13 @@
 #include "tls/s2n_record.h"
 #include "tls/s2n_prf.h"
 
+static int destroy_server_keys(struct s2n_connection *server_conn)
+{
+    GUARD(server_conn->initial.cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial.server_key));
+    GUARD(server_conn->initial.cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial.client_key));
+    return 0;
+}
+
 static int setup_server_keys(struct s2n_connection *server_conn, struct s2n_blob *key)
 {
     GUARD(server_conn->initial.cipher_suite->record_alg->cipher->init(&server_conn->initial.server_key));
@@ -77,6 +84,7 @@ int main(int argc, char **argv)
         conn->server = &conn->initial;
         conn->client = &conn->initial;
         conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
+        EXPECT_SUCCESS(destroy_server_keys(conn));
         EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
         EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
@@ -126,6 +134,7 @@ int main(int argc, char **argv)
         conn->client_protocol_version = S2N_TLS12;
         conn->actual_protocol_version = S2N_TLS12;
         conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
+        EXPECT_SUCCESS(destroy_server_keys(conn));
         EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
         EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
@@ -152,6 +161,7 @@ int main(int argc, char **argv)
             conn->client_protocol_version = S2N_TLS12;
             conn->actual_protocol_version = S2N_TLS12;
             conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
+            EXPECT_SUCCESS(destroy_server_keys(conn));
             EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
             EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
@@ -176,6 +186,7 @@ int main(int argc, char **argv)
             conn->client_protocol_version = S2N_TLS12;
             conn->actual_protocol_version = S2N_TLS12;
             conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
+            EXPECT_SUCCESS(destroy_server_keys(conn));
             EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
             EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
@@ -200,6 +211,7 @@ int main(int argc, char **argv)
             conn->client_protocol_version = S2N_TLS12;
             conn->actual_protocol_version = S2N_TLS12;
             conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
+            EXPECT_SUCCESS(destroy_server_keys(conn));
             EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
             EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
@@ -217,8 +229,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
         }
     }
-    EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->destroy_key(&conn->initial.server_key));
-    EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->destroy_key(&conn->initial.client_key));
+    EXPECT_SUCCESS(destroy_server_keys(conn));
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
     /* test the AES256 cipher */
@@ -238,6 +249,7 @@ int main(int argc, char **argv)
         conn->client_protocol_version = S2N_TLS12;
         conn->actual_protocol_version = S2N_TLS12;
         conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_gcm;
+        EXPECT_SUCCESS(destroy_server_keys(conn));
         EXPECT_SUCCESS(setup_server_keys(conn, &aes256));
         conn->actual_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
@@ -287,6 +299,7 @@ int main(int argc, char **argv)
         conn->client_protocol_version = S2N_TLS12;
         conn->actual_protocol_version = S2N_TLS12;
         conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_gcm;
+        EXPECT_SUCCESS(destroy_server_keys(conn));
         EXPECT_SUCCESS(setup_server_keys(conn, &aes256));
         conn->actual_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
@@ -314,6 +327,7 @@ int main(int argc, char **argv)
             conn->client_protocol_version = S2N_TLS12;
             conn->actual_protocol_version = S2N_TLS12;
             conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_gcm;
+            EXPECT_SUCCESS(destroy_server_keys(conn));
             EXPECT_SUCCESS(setup_server_keys(conn, &aes256));
             conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
@@ -339,6 +353,7 @@ int main(int argc, char **argv)
             conn->client_protocol_version = S2N_TLS12;
             conn->actual_protocol_version = S2N_TLS12;
             conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_gcm;
+            EXPECT_SUCCESS(destroy_server_keys(conn));
             EXPECT_SUCCESS(setup_server_keys(conn, &aes256));
             conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
@@ -364,6 +379,7 @@ int main(int argc, char **argv)
             conn->client_protocol_version = S2N_TLS12;
             conn->actual_protocol_version = S2N_TLS12;
             conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_gcm;
+            EXPECT_SUCCESS(destroy_server_keys(conn));
             EXPECT_SUCCESS(setup_server_keys(conn, &aes256));
             conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
@@ -382,8 +398,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
         }
     }
-    EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->destroy_key(&conn->initial.server_key));
-    EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->destroy_key(&conn->initial.client_key));
+    EXPECT_SUCCESS(destroy_server_keys(conn));
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
     END_TEST();
