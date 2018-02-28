@@ -22,10 +22,8 @@
 
 static int s2n_sig_hash_algs_pairs_set(struct s2n_sig_hash_alg_pairs *sig_hash_algs, uint8_t sig_alg, uint8_t hash_alg)
 {
-    /* The RFC requires these values to be between 0 and 255 */
-    S2N_ERROR_IF(hash_alg > 255, S2N_ERR_HASH_INVALID_ALGORITHM);
-    S2N_ERROR_IF(sig_alg > 255, S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
-
+    /* Skip unknown or unsupported values. If we receive any of these in the signature_algorithms extension 
+     * or CertificateRequest, we can ignore them and fall back to using the default signature-hash algorithm combination */
     if (hash_alg < TLS_HASH_ALGORITHM_COUNT && sig_alg < TLS_SIGNATURE_ALGORITHM_COUNT) {
         sig_hash_algs->matrix[sig_alg][hash_alg] = 1;
     }
