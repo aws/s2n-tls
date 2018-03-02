@@ -41,11 +41,11 @@ int s2n_client_hello_free_parsed_extensions(struct s2n_client_hello *client_hell
 
 extern struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn);
 
-extern uint32_t s2n_client_hello_get_raw_message_length(struct s2n_client_hello *ch);
-extern uint32_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
+extern ssize_t s2n_client_hello_get_raw_message_length(struct s2n_client_hello *ch);
+extern ssize_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
 
-extern uint32_t s2n_client_hello_get_cipher_suites_length(struct s2n_client_hello *ch);
-extern uint32_t s2n_client_hello_get_cipher_suites(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
+extern ssize_t s2n_client_hello_get_cipher_suites_length(struct s2n_client_hello *ch);
+extern ssize_t s2n_client_hello_get_cipher_suites(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
 
-extern uint32_t s2n_client_hello_get_extensions_length(struct s2n_client_hello *ch);
-extern uint32_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
+extern ssize_t s2n_client_hello_get_extensions_length(struct s2n_client_hello *ch);
+extern ssize_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);

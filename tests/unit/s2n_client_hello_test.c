@@ -374,6 +374,24 @@ int main(int argc, char **argv)
         free(sent_client_hello);
     }
 
+    /* Client hello api with NULL inputs */
+    {
+        uint32_t len = 128;
+        uint8_t *out;
+        EXPECT_NOT_NULL(out = malloc(len));
+
+        EXPECT_FAILURE(s2n_client_hello_get_raw_message_length(NULL));
+        EXPECT_FAILURE(s2n_client_hello_get_raw_message(NULL, out, len));
+        EXPECT_FAILURE(s2n_client_hello_get_cipher_suites_length(NULL));
+        EXPECT_FAILURE(s2n_client_hello_get_cipher_suites(NULL, out, len));
+        EXPECT_FAILURE(s2n_client_hello_get_extensions_length(NULL));
+        EXPECT_FAILURE(s2n_client_hello_get_extensions(NULL, out, len));
+        EXPECT_FAILURE(s2n_client_hello_get_extension_length(NULL, S2N_EXTENSION_SERVER_NAME));
+        EXPECT_FAILURE(s2n_client_hello_get_extension_by_id(NULL, S2N_EXTENSION_SERVER_NAME, out, len));
+        free(out);
+        out = NULL;
+    }
+
     free(cert_chain);
     free(private_key);
     END_TEST();

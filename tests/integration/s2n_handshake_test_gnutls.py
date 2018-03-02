@@ -169,6 +169,10 @@ def main():
             if ssl_version < cipher_vers:
                 continue
 
+            # gnutls-cli always adds tls extensions to client hello, add NO_EXTENSIONS flag for SSLv3 to avoid that
+            if ssl_version == S2N_SSLv3:
+                cipher_priority_str = cipher_priority_str + ":%NO_EXTENSIONS"
+
             # Add the SSL version to make the cipher priority string fully qualified
             complete_priority_str = cipher_priority_str + ":+" + S2N_PROTO_VERS_TO_GNUTLS[ssl_version] + ":+SIGN-ALL"
 

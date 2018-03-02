@@ -51,13 +51,13 @@ static uint32_t min_size(struct s2n_blob *blob, uint32_t max_length) {
     return blob->size < max_length ? blob->size : max_length;
 }
 
-uint32_t s2n_client_hello_get_raw_message_length(struct s2n_client_hello *ch) {
+ssize_t s2n_client_hello_get_raw_message_length(struct s2n_client_hello *ch) {
     notnull_check(ch);
 
     return ch->raw_message.blob.size;
 }
 
-uint32_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length)
+ssize_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length)
 {
     notnull_check(ch);
     notnull_check(out);
@@ -71,13 +71,13 @@ uint32_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *
     return len;
 }
 
-uint32_t s2n_client_hello_get_cipher_suites_length(struct s2n_client_hello *ch) {
+ssize_t s2n_client_hello_get_cipher_suites_length(struct s2n_client_hello *ch) {
     notnull_check(ch);
 
     return ch->cipher_suites.size;
 }
 
-uint32_t s2n_client_hello_get_cipher_suites(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length)
+ssize_t s2n_client_hello_get_cipher_suites(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length)
 {
     notnull_check(ch);
     notnull_check(out);
@@ -90,13 +90,13 @@ uint32_t s2n_client_hello_get_cipher_suites(struct s2n_client_hello *ch, uint8_t
     return len;
 }
 
-uint32_t s2n_client_hello_get_extensions_length(struct s2n_client_hello *ch) {
+ssize_t s2n_client_hello_get_extensions_length(struct s2n_client_hello *ch) {
     notnull_check(ch);
 
     return ch->extensions.size;
 }
 
-uint32_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length)
+ssize_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length)
 {
     notnull_check(ch);
     notnull_check(out);
@@ -247,6 +247,11 @@ static int s2n_parsed_extensions_compare(const void *p, const void *q)
 
 static int s2n_populate_client_hello_extensions(struct s2n_client_hello *ch)
 {
+    if (ch->extensions.size == 0) {
+        /* Client hello with no extensions, might be SSLv3, exit early */
+        return 0;
+    }
+
     if (ch->parsed_extensions == NULL) {
         notnull_check(ch->parsed_extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension)));
     }
@@ -444,7 +449,7 @@ static void *s2n_client_hello_get_parsed_extension(struct s2n_array *parsed_exte
             parsed_extensions->element_size, s2n_parsed_extensions_compare);
 }
 
-int s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type)
+ssize_t s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type)
 {
     notnull_check(ch);
     notnull_check(ch->parsed_extensions);
@@ -458,7 +463,7 @@ int s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_tls_e
     return 0;
 }
 
-int s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type, uint8_t *out, uint32_t max_length)
+ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type, uint8_t *out, uint32_t max_length)
 {
     notnull_check(ch);
     notnull_check(out);
