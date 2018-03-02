@@ -122,14 +122,14 @@ extern int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_
 
 struct s2n_client_hello;
 extern struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn);
-extern uint32_t s2n_client_hello_get_raw_message_length(struct s2n_client_hello *ch);
-extern uint32_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
-extern uint32_t s2n_client_hello_get_cipher_suites_length(struct s2n_client_hello *ch);
-extern uint32_t s2n_client_hello_get_cipher_suites(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
-extern uint32_t s2n_client_hello_get_extensions_length(struct s2n_client_hello *ch);
-extern uint32_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
-extern int s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type);
-extern int s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type, uint8_t *out, uint32_t max_length);
+extern ssize_t s2n_client_hello_get_raw_message_length(struct s2n_client_hello *ch);
+extern ssize_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
+extern ssize_t s2n_client_hello_get_cipher_suites_length(struct s2n_client_hello *ch);
+extern ssize_t s2n_client_hello_get_cipher_suites(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
+extern ssize_t s2n_client_hello_get_extensions_length(struct s2n_client_hello *ch);
+extern ssize_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
+extern ssize_t s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type);
+extern ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type, uint8_t *out, uint32_t max_length);
 
 extern int s2n_connection_set_fd(struct s2n_connection *conn, int fd);
 extern int s2n_connection_set_read_fd(struct s2n_connection *conn, int readfd);
