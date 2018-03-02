@@ -39,6 +39,9 @@ void usage()
     fprintf(stderr, "  -a [protocols]\n");
     fprintf(stderr, "  --alpn [protocols]\n");
     fprintf(stderr, "    Sets the application protocols supported by this client, as a comma separated list.\n");
+    fprintf(stderr, "  -c [version_string]\n");
+    fprintf(stderr, "  --ciphers [version_string]\n");
+    fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
     fprintf(stderr, "  -e\n");
     fprintf(stderr, "  --echo\n");
     fprintf(stderr, "    Listen to stdin after TLS Connection is established and echo it to the Server\n");
@@ -96,6 +99,7 @@ int main(int argc, char *const *argv)
     uint8_t insecure = 0;
     s2n_status_request_type type = S2N_STATUS_REQUEST_NONE;
     /* required args */
+    const char *cipher_prefs = "default";
     const char *host = NULL;
     struct verify_data unsafe_verify_data;
     const char *port = "443";
@@ -103,6 +107,7 @@ int main(int argc, char *const *argv)
 
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
+        {"ciphers", required_argument, 0, 'c'},
         {"echo", required_argument, 0, 'e'},
         {"help", no_argument, 0, 'h'},
         {"name", required_argument, 0, 'n'},
@@ -114,13 +119,16 @@ int main(int argc, char *const *argv)
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "ea:hn:sf:d:i", long_options, &option_index);
+        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:i", long_options, &option_index);
         if (c == -1) {
             break;
         }
         switch (c) {
         case 'a':
             alpn_protocols = optarg;
+            break;
+        case 'c':
+            cipher_prefs = optarg;
             break;
         case 'e':
             echo_input = 1;
@@ -216,6 +224,11 @@ int main(int argc, char *const *argv)
 
     if (config == NULL) {
         print_s2n_error("Error getting new config");
+        exit(1);
+    }
+
+    if (s2n_config_set_cipher_preferences(config, cipher_prefs) < 0) {
+        print_s2n_error("Error setting cipher prefs");
         exit(1);
     }
 
