@@ -129,14 +129,14 @@ int s2n_x509_trust_store_add_pem(struct s2n_x509_trust_store *store, const char 
     return 0;
 }
 
-int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const char *ca_file, const char *path) {
+int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const char *ca_pem_filename, const char *ca_dir) {
 
     if (!store->trust_store) {
         store->trust_store = X509_STORE_new();
         notnull_check(store->trust_store);
     }
 
-    int err_code = X509_STORE_load_locations(store->trust_store, ca_file, path);
+    int err_code = X509_STORE_load_locations(store->trust_store, ca_pem_filename, ca_dir);
     if (!err_code) {
         s2n_x509_trust_store_wipe(store);
         return -1;
