@@ -696,9 +696,12 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
         conn->secure_renegotiation = 1;
     }
 
+    const struct s2n_cipher_preferences *cipher_preferences;
+    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
+
     /* s2n supports only server order */
-    for (int i = 0; i < conn->config->cipher_preferences->count; i++) {
-        const uint8_t *ours = conn->config->cipher_preferences->suites[i]->iana_value;
+    for (int i = 0; i < cipher_preferences->count; i++) {
+        const uint8_t *ours = cipher_preferences->suites[i]->iana_value;
 
         if (s2n_wire_ciphers_contain(ours, wire, count, cipher_suite_len)) {
             /* We have a match */

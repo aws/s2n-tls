@@ -20,6 +20,7 @@
 #include "tls/s2n_config.h"
 
 #include "error/s2n_errno.h"
+#include "utils/s2n_safety.h"
 
 /* s2n's list of cipher suites, in order of preference, as of 2014-06-01 */
 struct s2n_cipher_suite *cipher_suites_20140601[] = {
@@ -387,15 +388,30 @@ struct {
     { NULL, NULL }
 };
 
-int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version)
+int s2n_find_cipher_pref_from_version(const char *version, const struct s2n_cipher_preferences **cipher_preferences)
 {
+    notnull_check(version);
+    notnull_check(cipher_preferences);
+
     for (int i = 0; selection[i].version != NULL; i++) {
         if (!strcasecmp(version, selection[i].version)) {
-            config->cipher_preferences = selection[i].preferences;
+            *cipher_preferences = selection[i].preferences;
             return 0;
         }
     }
 
     S2N_ERROR(S2N_ERR_INVALID_CIPHER_PREFERENCES);
+}
+
+int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version)
+{
+    GUARD(s2n_find_cipher_pref_from_version(version, &config->cipher_preferences));
+    return 0;
+}
+
+int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version)
+{
+    GUARD(s2n_find_cipher_pref_from_version(version, &conn->cipher_pref_override));
+    return 0;
 }
 

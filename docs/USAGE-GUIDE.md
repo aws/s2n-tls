@@ -878,6 +878,16 @@ file-descriptor should be active and connected. s2n also supports setting the
 read and write file-descriptors to different values (for pipes or other unusual
 types of I/O).
 
+## s2n\_connection\_set\_cipher\_preferences
+
+```c
+int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);
+```
+
+**s2n_connection_set_cipher_preferences** sets the cipher preference override for the
+s2n_connection. Calling this function is not necessary unless you want to set the
+cipher preferences on the connection to something different than what is in the s2n_config.
+
 ### s2n\_set\_server\_name
 
 ```c

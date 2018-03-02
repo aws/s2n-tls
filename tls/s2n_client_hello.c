@@ -214,7 +214,10 @@ static int s2n_process_client_hello(struct s2n_connection *conn)
         GUARD(s2n_client_extensions_recv(conn, client_hello->parsed_extensions));
     }
 
-    if (conn->client_protocol_version < conn->config->cipher_preferences->minimum_protocol_version) {
+    const struct s2n_cipher_preferences *cipher_preferences;
+    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
+
+    if (conn->client_protocol_version < cipher_preferences->minimum_protocol_version) {
         GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
@@ -336,12 +339,15 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     GUARD(s2n_stuffer_copy(&client_random, out, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_stuffer_write_uint8(out, session_id_len));
 
+    const struct s2n_cipher_preferences *cipher_preferences;
+    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
+
     /* Find the number of available suites in the preference list. Some ciphers may be unavailable if s2n is built
      * with an older libcrypto
      */
     uint16_t num_available_suites = 0;
-    for (int i = 0; i < conn->config->cipher_preferences->count; i++) {
-        if (conn->config->cipher_preferences->suites[i]->available) {
+    for (int i = 0; i < cipher_preferences->count; i++) {
+        if (cipher_preferences->suites[i]->available) {
             num_available_suites++;
         }
     }
@@ -350,9 +356,9 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     GUARD(s2n_stuffer_write_uint16(out, num_available_suites * S2N_TLS_CIPHER_SUITE_LEN));
 
     /* Now, write the IANA values every available cipher suite in our list */
-    for (int i = 0; i < conn->config->cipher_preferences->count; i++ ) {
-        if (conn->config->cipher_preferences->suites[i]->available) {
-            GUARD(s2n_stuffer_write_bytes(out, conn->config->cipher_preferences->suites[i]->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
+    for (int i = 0; i < cipher_preferences->count; i++ ) {
+        if (cipher_preferences->suites[i]->available) {
+            GUARD(s2n_stuffer_write_bytes(out, cipher_preferences->suites[i]->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
         }
     }
 
@@ -381,7 +387,10 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     uint16_t challenge_length;
     uint8_t *cipher_suites;
 
-    if (conn->client_protocol_version < conn->config->cipher_preferences->minimum_protocol_version || conn->client_protocol_version > conn->server_protocol_version) {
+    const struct s2n_cipher_preferences *cipher_preferences;
+    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
+
+    if (conn->client_protocol_version < cipher_preferences->minimum_protocol_version || conn->client_protocol_version > conn->server_protocol_version) {
         GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }

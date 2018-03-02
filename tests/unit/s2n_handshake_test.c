@@ -101,13 +101,15 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
+        server_conn = s2n_connection_new(S2N_SERVER);
+        notnull_check(server_conn);
         int server_to_client[2];
         int client_to_server[2];
-        struct s2n_cipher_suite *cur_cipher = cipher_preferences->suites[cipher_idx];
+        struct s2n_cipher_suite *expected_cipher = cipher_preferences->suites[cipher_idx];
         uint8_t expect_failure = 0;
 
         /* Expect failure if the libcrypto we're building with can't support the cipher */
-        if (!cur_cipher->available) {
+        if (!expected_cipher->available) {
             expect_failure = 1;
         }
 
@@ -116,8 +118,8 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
            will never be NULL */
         memcpy(&server_cipher_preferences, cipher_preferences, sizeof(server_cipher_preferences));
         server_cipher_preferences.count = 1;
-        server_cipher_preferences.suites = &cur_cipher;
-        server_config->cipher_preferences = &server_cipher_preferences;
+        server_cipher_preferences.suites = &expected_cipher;
+        server_conn->cipher_pref_override = &server_cipher_preferences;
 
         /* Create nonblocking pipes */
         GUARD(pipe(server_to_client));
@@ -136,8 +138,6 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
         client_conn->client_protocol_version = S2N_TLS12;
         client_conn->actual_protocol_version = S2N_TLS12;
 
-        server_conn = s2n_connection_new(S2N_SERVER);
-        notnull_check(server_conn);
         GUARD(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
         GUARD(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
         GUARD(s2n_connection_set_config(server_conn, server_config));
@@ -147,6 +147,10 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
 
         if (!expect_failure) {
             GUARD(try_handshake(server_conn, client_conn));
+            const char* actual_cipher = s2n_connection_get_cipher(server_conn);
+            if (strcmp(actual_cipher, expected_cipher->name) != 0){
+                return -1;
+            }
         } else {
             eq_check(try_handshake(server_conn, client_conn), -1);
         }

@@ -47,7 +47,10 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
 
     conn->server_protocol_version = (uint8_t)(protocol_version[0] * 10) + protocol_version[1];
 
-    if (conn->server_protocol_version < conn->config->cipher_preferences->minimum_protocol_version || conn->server_protocol_version > conn->client_protocol_version) {
+    const struct s2n_cipher_preferences *cipher_preferences;
+    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
+
+    if (conn->server_protocol_version < cipher_preferences->minimum_protocol_version || conn->server_protocol_version > conn->client_protocol_version) {
         GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
