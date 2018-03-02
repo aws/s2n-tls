@@ -273,6 +273,14 @@ static int s2n_populate_client_hello_extensions(struct s2n_client_hello *ch)
     /* Sort extensions by extension type */
     qsort(ch->parsed_extensions->elements, ch->parsed_extensions->num_of_elements, ch->parsed_extensions->element_size, s2n_parsed_extensions_compare);
 
+    /* check for duplicates, we start at index 1 and compare current with
+     * previous extension type, as we are ordered on that field */
+    for (uint32_t n = 1; n < ch->parsed_extensions->num_of_elements; n++) {
+        uint16_t t1 = ((struct s2n_client_hello_parsed_extension *)(ch->parsed_extensions->elements))[n].extension_type;
+        uint16_t t0 = ((struct s2n_client_hello_parsed_extension *)(ch->parsed_extensions->elements))[n - 1].extension_type;
+        S2N_ERROR_IF(t0 == t1, S2N_ERR_BAD_MESSAGE);
+    }
+
     return 0;
 }
 
