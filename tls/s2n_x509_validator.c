@@ -76,14 +76,67 @@ int s2n_x509_trust_store_from_system_defaults(struct s2n_x509_trust_store *store
     return 0;
 }
 
-int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const char *ca_file, const char *path) {
+int s2n_x509_trust_store_add_pem(struct s2n_x509_trust_store *store, const char *pem)
+{
+    notnull_check(store);
+    notnull_check(pem);
+
+    if (!store->trust_store) {
+        store->trust_store = X509_STORE_new();
+    }
+
+    s2n_error err = S2N_ERR_DECODE_CERTIFICATE;
+
+    struct s2n_stuffer pem_in_stuffer;
+    struct s2n_stuffer der_out_stuffer;
+    struct s2n_blob next_cert;
+
+    GUARD_GOTO(s2n_stuffer_alloc_ro_from_string(&pem_in_stuffer, pem), clean_up);
+    GUARD_GOTO(s2n_stuffer_growable_alloc(&der_out_stuffer, 2048), clean_up);
+
+    do {
+        GUARD_GOTO(s2n_stuffer_certificate_from_pem(&pem_in_stuffer, &der_out_stuffer), clean_up);
+        GUARD_GOTO(s2n_alloc(&next_cert, s2n_stuffer_data_available(&der_out_stuffer)), clean_up);
+        GUARD_GOTO(s2n_stuffer_read(&der_out_stuffer, &next_cert), clean_up);
+
+        const uint8_t *data = next_cert.data;
+        X509 *ca_cert = d2i_X509(NULL, &data, next_cert.size);
+        if (ca_cert == NULL) {
+            goto clean_up;
+        }
+
+        int rc = X509_STORE_add_cert(store->trust_store, ca_cert);
+        X509_free(ca_cert);
+
+        if (rc != 1) {
+            goto clean_up;
+        }
+
+        GUARD_GOTO(s2n_free(&next_cert), clean_up);
+    } while (s2n_stuffer_data_available(&pem_in_stuffer));
+
+    err = S2N_ERR_OK;
+
+    clean_up:
+        GUARD(s2n_stuffer_free(&pem_in_stuffer));
+        GUARD(s2n_stuffer_free(&der_out_stuffer));
+        GUARD(s2n_free(&next_cert));
+
+    if (err != S2N_ERR_OK){
+        S2N_ERROR(err);
+    }
+
+    return 0;
+}
+
+int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const char *ca_pem_filename, const char *ca_dir) {
 
     if (!store->trust_store) {
         store->trust_store = X509_STORE_new();
         notnull_check(store->trust_store);
     }
 
-    int err_code = X509_STORE_load_locations(store->trust_store, ca_file, path);
+    int err_code = X509_STORE_load_locations(store->trust_store, ca_pem_filename, ca_dir);
     if (!err_code) {
         s2n_x509_trust_store_wipe(store);
         return -1;

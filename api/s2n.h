@@ -88,7 +88,8 @@ typedef enum {
 } s2n_max_frag_len;
 
 extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem);
-extern int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_file_pem, const char *ca_dir);
+extern int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_pem_filename, const char *ca_dir);
+extern int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem);
 
 typedef uint8_t (*s2n_verify_host_fn) (const char *host_name, size_t host_name_len, void *data);
 /* will be inherited by s2n_connection. If s2n_connection specifies a callback, that callback will be used for that connection. */

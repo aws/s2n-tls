@@ -401,10 +401,19 @@ int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_req
     return 0;
 }
 
-int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_file_pem, const char *ca_dir)
+int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem){
+    notnull_check(config);
+    notnull_check(pem);
+
+    GUARD(s2n_x509_trust_store_add_pem(&config->trust_store, pem));
+
+    return 0;
+}
+
+int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_pem_filename, const char *ca_dir)
 {
     notnull_check(config);
-    int err_code = s2n_x509_trust_store_from_ca_file(&config->trust_store, ca_file_pem, ca_dir);
+    int err_code = s2n_x509_trust_store_from_ca_file(&config->trust_store, ca_pem_filename, ca_dir);
 
     if (!err_code) {
         config->status_request_type = s2n_x509_ocsp_stapling_supported() ? S2N_STATUS_REQUEST_OCSP : S2N_STATUS_REQUEST_NONE;

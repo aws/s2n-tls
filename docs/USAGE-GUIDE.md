@@ -639,13 +639,20 @@ will be used if this callback is not manually set.
 
 ### s2n\_config\_set\_verification\_ca\_location
 ```c
-int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_file_pem, const char *ca_dir);
+int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_pem_filename, const char *ca_dir);
 ```
 
 **s2n_config_set_verification_ca_location**  initializes the trust store from a CA file or directory 
 containing trusted certificates.  By default, the trust store will be initialized to the common locations 
 for the host operating system. Call this function to override that behavior.
 Returns 0 on success and -1 on failure.
+
+### s2n\_config\_add\_pem\_to\_trust\_store
+```c
+int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem);
+```
+
+**s2n_config_add_pem_to_trust_store**  Initialize trust store from a PEM. This will allocate memory, and load PEM into the Trust Store
 
 ### s2n\_verify\_host\_fn
 ```c
