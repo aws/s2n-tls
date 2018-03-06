@@ -305,14 +305,19 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
     /* A handshake type has been negotiated */
     conn->handshake.handshake_type = NEGOTIATED;
 
-    /* If a TLS session is resumed, the Server should respond in its ServerHello with the same SessionId the Client
-     * sent in the ClientHello, otherwise the Server should respond with a new SessionId. */
     if (s2n_allowed_to_cache_connection(conn)) {
+        /* If a TLS session is resumed, the Server should respond in its ServerHello with the same SessionId the
+         * Client sent in the ClientHello, otherwise the Server should respond with a new SessionId. */
         if (!s2n_resume_from_cache(conn)) {
             return 0;
         } else {
             GUARD(s2n_generate_new_client_session_id(conn));
         }
+    } else {
+        /* Per RFC5246 7.4.1.3: The server may return an empty session_id to indicate that the session will not be
+         * cached and therefore cannot be resumed. However some clients don't handle empty session ids in
+         * ServerHello well, so instead of removing generate a new id. */
+        GUARD(s2n_generate_new_client_session_id(conn));
     }
 
     /* If we get this far, it's a full handshake */
