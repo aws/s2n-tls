@@ -29,6 +29,7 @@
 
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_client_extensions.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_connection_evp_digests.h"
 #include "tls/s2n_handshake.h"
@@ -872,6 +873,23 @@ int s2n_set_server_name(struct s2n_connection *conn, const char *server_name)
 
 const char *s2n_get_server_name(struct s2n_connection *conn)
 {
+    notnull_check_ptr(conn);
+
+    if (strlen(conn->server_name) != 0) {
+        return conn->server_name;
+    }
+
+    /* server name is not yet obtained from client hello, get it now */
+    struct s2n_client_hello_parsed_extension parsed_extension;
+
+    GUARD_PTR(s2n_client_hello_get_parsed_extension(conn->client_hello.parsed_extensions, S2N_EXTENSION_SERVER_NAME, &parsed_extension));
+
+    struct s2n_stuffer extension;
+    GUARD_PTR(s2n_stuffer_init(&extension, &parsed_extension.extension));
+    GUARD_PTR(s2n_stuffer_write(&extension, &parsed_extension.extension));
+
+    GUARD_PTR(s2n_recv_client_server_name(conn, &extension));
+
     if (strlen(conn->server_name) == 0) {
         return NULL;
     }

@@ -295,6 +295,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_client_hello_get_extension_length(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY), 0);
         EXPECT_NOT_NULL(ext_data = malloc(server_name_extension_len));
         EXPECT_EQUAL(s2n_client_hello_get_extension_by_id(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, ext_data, server_name_extension_len), 0);
+        EXPECT_EQUAL(s2n_errno, S2N_ERR_NULL);
         free(ext_data);
         ext_data = NULL;
 

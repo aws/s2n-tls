@@ -31,7 +31,6 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_map.h"
 
-static int s2n_recv_client_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension);
@@ -218,8 +217,13 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *pa
     return 0;
 }
 
-static int s2n_recv_client_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension)
+int s2n_recv_client_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
+    if (strlen(conn->server_name) != 0) {
+        /* already parsed server name extension, exist early */
+        return 0;
+    }
+
     uint16_t size_of_all;
     uint8_t server_name_type;
     uint16_t server_name_len;
