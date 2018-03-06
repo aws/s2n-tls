@@ -305,15 +305,14 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
     /* A handshake type has been negotiated */
     conn->handshake.handshake_type = NEGOTIATED;
 
-    /* If a TLS session is resumed, the Server should respond in its ServerHello with the same SessionId the Client
-     * sent in the ClientHello, otherwise the Server should respond with a new SessionId. */
-    if (s2n_allowed_to_cache_connection(conn)) {
-        if (!s2n_resume_from_cache(conn)) {
-            return 0;
-        } else {
-            GUARD(s2n_generate_new_client_session_id(conn));
-        }
+    /* If a TLS session is resumed, the Server should respond in its ServerHello with the same SessionId the
+     * Client sent in the ClientHello. */
+    if (s2n_allowed_to_cache_connection(conn) && !s2n_resume_from_cache(conn)) {
+        return 0;
     }
+
+    /* If we're doing full handshake, generate a new session id. */
+    GUARD(s2n_generate_new_client_session_id(conn));
 
     /* If we get this far, it's a full handshake */
     conn->handshake.handshake_type |= FULL_HANDSHAKE;

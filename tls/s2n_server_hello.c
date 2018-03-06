@@ -38,7 +38,6 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
     uint8_t compression_method;
-    uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN];
     uint8_t session_id_len;
     uint16_t extensions_size;
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
@@ -63,7 +62,7 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
     S2N_ERROR_IF(session_id_len > S2N_TLS_SESSION_ID_MAX_LEN, S2N_ERR_BAD_MESSAGE);
 
     conn->session_id_len = session_id_len;
-    GUARD(s2n_stuffer_read_bytes(in, session_id, session_id_len));
+    GUARD(s2n_stuffer_read_bytes(in, conn->session_id, session_id_len));
     uint8_t *cipher_suite_wire = s2n_stuffer_raw_read(in, S2N_TLS_CIPHER_SUITE_LEN);
     notnull_check(cipher_suite_wire);
     GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
