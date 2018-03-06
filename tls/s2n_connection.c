@@ -888,7 +888,7 @@ const char *s2n_get_server_name(struct s2n_connection *conn)
     GUARD_PTR(s2n_stuffer_init(&extension, &parsed_extension.extension));
     GUARD_PTR(s2n_stuffer_write(&extension, &parsed_extension.extension));
 
-    GUARD_PTR(s2n_recv_client_server_name(conn, &extension));
+    GUARD_PTR(s2n_parse_client_hello_server_name(conn, &extension));
 
     if (strlen(conn->server_name) == 0) {
         return NULL;

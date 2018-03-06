@@ -185,7 +185,7 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *pa
 
         switch (parsed_extension->extension_type) {
         case TLS_EXTENSION_SERVER_NAME:
-            GUARD(s2n_recv_client_server_name(conn, &extension));
+            GUARD(s2n_parse_client_hello_server_name(conn, &extension));
             break;
         case TLS_EXTENSION_SIGNATURE_ALGORITHMS:
             GUARD(s2n_recv_client_signature_algorithms(conn, &extension));
@@ -217,10 +217,10 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *pa
     return 0;
 }
 
-int s2n_recv_client_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension)
+int s2n_parse_client_hello_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     if (strlen(conn->server_name) != 0) {
-        /* already parsed server name extension, exist early */
+        /* already parsed server name extension, exit early */
         return 0;
     }
 
