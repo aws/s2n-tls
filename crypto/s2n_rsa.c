@@ -200,11 +200,6 @@ int s2n_evp_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *evp_
     RSA *rsa = EVP_PKEY_get1_RSA(evp_private_key);
     S2N_ERROR_IF(rsa == NULL, S2N_ERR_DECODE_PRIVATE_KEY);
     
-    if (!RSA_check_key(rsa)) {
-        RSA_free(rsa);
-        S2N_ERROR(S2N_ERR_KEY_CHECK);
-    }
-
     rsa_key->rsa = rsa;
     return 0;
 }

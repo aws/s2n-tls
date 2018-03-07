@@ -145,11 +145,6 @@ int s2n_evp_pkey_to_ecdsa_private_key(s2n_ecdsa_private_key *ecdsa_key, EVP_PKEY
     EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(evp_private_key);
     S2N_ERROR_IF(ec_key == NULL, S2N_ERR_DECODE_PRIVATE_KEY);
     
-    if (!EC_KEY_check_key(ec_key)) {
-        EC_KEY_free(ec_key);
-        S2N_ERROR(S2N_ERR_KEY_CHECK);
-    }
-
     ecdsa_key->ec_key = ec_key;
     return 0;
 }
@@ -158,11 +153,6 @@ int s2n_evp_pkey_to_ecdsa_public_key(s2n_ecdsa_public_key *ecdsa_key, EVP_PKEY *
 {
     EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(evp_public_key);
     S2N_ERROR_IF(ec_key == NULL, S2N_ERR_DECODE_CERTIFICATE);
-    
-    if (!EC_KEY_check_key(ec_key)) {
-        EC_KEY_free(ec_key);
-        S2N_ERROR(S2N_ERR_KEY_CHECK);
-    }
     
     ecdsa_key->ec_key = ec_key;
     return 0;
