@@ -875,7 +875,7 @@ const char *s2n_get_server_name(struct s2n_connection *conn)
 {
     notnull_check_ptr(conn);
 
-    if (strlen(conn->server_name) != 0) {
+    if (conn->server_name[0]) {
         return conn->server_name;
     }
 
@@ -890,7 +890,7 @@ const char *s2n_get_server_name(struct s2n_connection *conn)
 
     GUARD_PTR(s2n_parse_client_hello_server_name(conn, &extension));
 
-    if (strlen(conn->server_name) == 0) {
+    if (!conn->server_name[0]) {
         return NULL;
     }
 

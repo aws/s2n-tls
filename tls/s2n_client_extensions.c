@@ -219,7 +219,7 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *pa
 
 int s2n_parse_client_hello_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    if (strlen(conn->server_name) != 0) {
+    if (conn->server_name[0]) {
         /* already parsed server name extension, exit early */
         return 0;
     }
