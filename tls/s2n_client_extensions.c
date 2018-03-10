@@ -31,7 +31,6 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_map.h"
 
-static int s2n_recv_client_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension);
@@ -186,7 +185,7 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *pa
 
         switch (parsed_extension->extension_type) {
         case TLS_EXTENSION_SERVER_NAME:
-            GUARD(s2n_recv_client_server_name(conn, &extension));
+            GUARD(s2n_parse_client_hello_server_name(conn, &extension));
             break;
         case TLS_EXTENSION_SIGNATURE_ALGORITHMS:
             GUARD(s2n_recv_client_signature_algorithms(conn, &extension));
@@ -218,8 +217,13 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *pa
     return 0;
 }
 
-static int s2n_recv_client_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension)
+int s2n_parse_client_hello_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
+    if (conn->server_name[0]) {
+        /* already parsed server name extension, exit early */
+        return 0;
+    }
+
     uint16_t size_of_all;
     uint8_t server_name_type;
     uint16_t server_name_len;

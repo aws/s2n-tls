@@ -440,13 +440,22 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     return 0;
 }
 
-static void *s2n_client_hello_get_parsed_extension(struct s2n_array *parsed_extensions, s2n_tls_extension_type extension_type)
+int s2n_client_hello_get_parsed_extension(struct s2n_array *parsed_extensions, s2n_tls_extension_type extension_type,
+        struct s2n_client_hello_parsed_extension *parsed_extension)
 {
+    notnull_check(parsed_extensions);
+
     struct s2n_client_hello_parsed_extension search;
     search.extension_type = extension_type;
 
-    return bsearch(&search, parsed_extensions->elements, parsed_extensions->num_of_elements,
+    struct s2n_client_hello_parsed_extension *result_extension = bsearch(&search, parsed_extensions->elements, parsed_extensions->num_of_elements,
             parsed_extensions->element_size, s2n_parsed_extensions_compare);
+
+    notnull_check(result_extension);
+
+    parsed_extension->extension_type = result_extension->extension_type;
+    parsed_extension->extension = result_extension->extension;
+    return 0;
 }
 
 ssize_t s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type)
@@ -454,13 +463,13 @@ ssize_t s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_t
     notnull_check(ch);
     notnull_check(ch->parsed_extensions);
 
-    struct s2n_client_hello_parsed_extension *parsed_extension = s2n_client_hello_get_parsed_extension(ch->parsed_extensions, extension_type);
+    struct s2n_client_hello_parsed_extension parsed_extension;
 
-    if (parsed_extension != NULL) {
-        return parsed_extension->extension.size;
+    if (s2n_client_hello_get_parsed_extension(ch->parsed_extensions, extension_type, &parsed_extension)) {
+        return 0;
     }
 
-    return 0;
+    return parsed_extension.extension.size;
 }
 
 ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type, uint8_t *out, uint32_t max_length)
@@ -469,13 +478,13 @@ ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tl
     notnull_check(out);
     notnull_check(ch->parsed_extensions);
 
-    struct s2n_client_hello_parsed_extension *parsed_extension = s2n_client_hello_get_parsed_extension(ch->parsed_extensions, extension_type);
+    struct s2n_client_hello_parsed_extension parsed_extension;
 
-    if (parsed_extension != NULL) {
-        uint32_t len = min_size(&parsed_extension->extension, max_length);
-        memcpy_check(out, parsed_extension->extension.data, len);
-        return len;
+    if (s2n_client_hello_get_parsed_extension(ch->parsed_extensions, extension_type, &parsed_extension)) {
+        return 0;
     }
 
-    return 0;
+    uint32_t len = min_size(&parsed_extension.extension, max_length);
+    memcpy_check(out, parsed_extension.extension.data, len);
+    return len;
 }

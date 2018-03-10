@@ -113,6 +113,8 @@ int client_hello_swap_config(struct s2n_connection *conn, void *ctx)
 {
     struct client_hello_context *client_hello_ctx;
     struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(conn);
+    const char *sent_server_name = "example.com";
+    const char *received_server_name;
 
     if (ctx == NULL) {
         return -1;
@@ -141,6 +143,12 @@ int client_hello_swap_config(struct s2n_connection *conn, void *ctx)
 
     uint8_t ser_name[16] = {0};
     if (s2n_client_hello_get_extension_by_id(client_hello, S2N_EXTENSION_SERVER_NAME, ser_name, len) <= 0) {
+        return -1;
+    }
+
+    /* Verify correct server name is returned. */
+    received_server_name = s2n_get_server_name(conn);
+    if (received_server_name == NULL || strcmp(received_server_name, sent_server_name)) {
         return -1;
     }
 
@@ -243,6 +251,10 @@ int main(int argc, char **argv)
 
     /* Negotiate the handshake. */
     EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
+
+    /* Server name and error are as expected with null connection */
+    EXPECT_NULL(s2n_get_server_name(NULL));
+    EXPECT_EQUAL(s2n_errno, S2N_ERR_NULL);
 
     /* Ensure that callback was invoked */
     EXPECT_EQUAL(client_hello_ctx.invoked, 1);

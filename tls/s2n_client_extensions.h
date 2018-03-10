@@ -24,3 +24,7 @@ struct s2n_client_hello_parsed_extension {
 	uint16_t extension_type;
 	struct s2n_blob extension;
 };
+
+extern int s2n_client_hello_get_parsed_extension(struct s2n_array *parsed_extensions, s2n_tls_extension_type extension_type,
+        struct s2n_client_hello_parsed_extension *parsed_extension);
+extern int s2n_parse_client_hello_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension);
