@@ -101,7 +101,7 @@ def check_sslyze_results(scan_output_location):
     print_result("ROBOT Attack Regression Test... ", robot_attack_failure)
     
     print("\nSSLyze Results Location: " + scan_output_location)
-    print("SSLyze Scan Time: %0.2f seconds\n" % scan_time)
+    print("SSLyze Scan Time: %0.2f seconds\n" % float(scan_time))
     
     return failures
 
