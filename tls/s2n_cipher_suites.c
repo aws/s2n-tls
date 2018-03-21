@@ -365,6 +365,19 @@ struct s2n_cipher_suite s2n_ecdhe_ecdsa_with_aes_128_cbc_sha = /* 0xC0,0x09 */ {
     .minimum_required_tls_version = S2N_TLS10,
 };
 
+struct s2n_cipher_suite s2n_ecdhe_ecdsa_with_aes_256_cbc_sha = /* 0xC0,0x0A */ {
+    .available = 0,
+    .name = "ECDHE-ECDSA-AES256-SHA",
+    .iana_value = { TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA },
+    .key_exchange_alg = &s2n_ecdhe,
+    .auth_method = S2N_AUTHENTICATION_ECDSA,
+    .record_alg = NULL,
+    .all_record_algs = { &s2n_record_alg_aes256_sha_composite, &s2n_record_alg_aes256_sha },
+    .num_record_algs = 2,
+    .tls12_prf_alg = S2N_HMAC_SHA256,
+    .minimum_required_tls_version = S2N_TLS10,
+};
+
 struct s2n_cipher_suite s2n_ecdhe_rsa_with_3des_ede_cbc_sha = /* 0xC0,0x12 */ {
     .available = 0,
     .name = "ECDHE-RSA-DES-CBC3-SHA",
@@ -404,6 +417,32 @@ struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_256_cbc_sha = /* 0xC0,0x14 */ {
     .minimum_required_tls_version = S2N_TLS10,
 };
 
+struct s2n_cipher_suite s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256 = /* 0xC0,0x23 */ {
+    .available = 0,
+    .name = "ECDHE-ECDSA-AES128-SHA256",
+    .iana_value = { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 },
+    .key_exchange_alg = &s2n_ecdhe,
+    .auth_method = S2N_AUTHENTICATION_ECDSA,
+    .record_alg = NULL,
+    .all_record_algs = { &s2n_record_alg_aes128_sha256_composite, &s2n_record_alg_aes128_sha256 },
+    .num_record_algs = 2,
+    .tls12_prf_alg = S2N_HMAC_SHA256,
+    .minimum_required_tls_version = S2N_TLS12,
+};
+
+struct s2n_cipher_suite s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384 = /* 0xC0,0x24 */ {
+    .available = 0,
+    .name = "ECDHE-ECDSA-AES256-SHA384",
+    .iana_value = { TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384 },
+    .key_exchange_alg = &s2n_ecdhe,
+    .auth_method = S2N_AUTHENTICATION_ECDSA,
+    .record_alg = NULL,
+    .all_record_algs = { &s2n_record_alg_aes256_sha384 },
+    .num_record_algs = 1,
+    .tls12_prf_alg = S2N_HMAC_SHA384,
+    .minimum_required_tls_version = S2N_TLS12,
+};
+
 struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_128_cbc_sha256 = /* 0xC0,0x27 */ {
     .available = 0,
     .name = "ECDHE-RSA-AES128-SHA256",
@@ -425,6 +464,32 @@ struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_256_cbc_sha384 = /* 0xC0,0x28 */ 
     .auth_method = S2N_AUTHENTICATION_RSA,
     .record_alg = NULL,
     .all_record_algs = { &s2n_record_alg_aes256_sha384 },
+    .num_record_algs = 1,
+    .tls12_prf_alg = S2N_HMAC_SHA384,
+    .minimum_required_tls_version = S2N_TLS12,
+};
+
+struct s2n_cipher_suite s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256 = /* 0xC0,0x2B */ {
+    .available = 0,
+    .name = "ECDHE-ECDSA-AES128-GCM-SHA256",
+    .iana_value = { TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 },
+    .key_exchange_alg = &s2n_ecdhe,
+    .auth_method = S2N_AUTHENTICATION_ECDSA,
+    .record_alg = NULL,
+    .all_record_algs = { &s2n_record_alg_aes128_gcm },
+    .num_record_algs = 1,
+    .tls12_prf_alg = S2N_HMAC_SHA256,
+    .minimum_required_tls_version = S2N_TLS12,
+};
+
+struct s2n_cipher_suite s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384 = /* 0xC0,0x2C */ {
+    .available = 0,
+    .name = "ECDHE-ECDSA-AES256-GCM-SHA384",
+    .iana_value = { TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 },
+    .key_exchange_alg = &s2n_ecdhe,
+    .auth_method = S2N_AUTHENTICATION_ECDSA,
+    .record_alg = NULL,
+    .all_record_algs = { &s2n_record_alg_aes256_gcm },
     .num_record_algs = 1,
     .tls12_prf_alg = S2N_HMAC_SHA384,
     .minimum_required_tls_version = S2N_TLS12,
@@ -503,11 +568,16 @@ static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
     &s2n_dhe_rsa_with_aes_128_gcm_sha256,          /* 0x00,0x9E */
     &s2n_dhe_rsa_with_aes_256_gcm_sha384,          /* 0x00,0x9F */
     &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,         /* 0xC0,0x09 */
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,         /* 0xC0,0x0A */
     &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,          /* 0xC0,0x12 */
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha,           /* 0xC0,0x13 */
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha,           /* 0xC0,0x14 */
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,      /* 0xC0,0x23 */
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,      /* 0xC0,0x24 */
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,        /* 0xC0,0x27 */
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,        /* 0xC0,0x28 */
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,      /* 0xC0,0x2B */
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,      /* 0xC0,0x2C */
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,        /* 0xC0,0x2F */
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,        /* 0xC0,0x30 */
     &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,  /* 0xCC,0xA8 */
@@ -536,8 +606,12 @@ static struct s2n_cipher_suite *s2n_all_fips_cipher_suites[] = {
     &s2n_rsa_with_aes_256_gcm_sha384,              /* 0x00,0x9D */
     &s2n_dhe_rsa_with_aes_128_gcm_sha256,          /* 0x00,0x9E */
     &s2n_dhe_rsa_with_aes_256_gcm_sha384,          /* 0x00,0x9F */
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,      /* 0xC0,0x23 */
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,      /* 0xC0,0x24 */
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,        /* 0xC0,0x27 */
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,        /* 0xC0,0x28 */
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,      /* 0xC0,0x2B */
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,      /* 0xC0,0x2C */
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,        /* 0xC0,0x2F */
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,        /* 0xC0,0x30 */
 };
@@ -554,6 +628,11 @@ const struct s2n_cipher_preferences cipher_preferences_test_all_fips = {
  */
 static struct s2n_cipher_suite *s2n_all_ecdsa_cipher_suites[] = {
     &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,         /* 0xC0,0x09 */
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,         /* 0xC0,0x0A */
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,      /* 0xC0,0x23 */
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,      /* 0xC0,0x24 */
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,      /* 0xC0,0x2B */
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,      /* 0xC0,0x2C */
 };
 
 /* All supported ECDSA cipher suites. Exposed for integration testing. */
