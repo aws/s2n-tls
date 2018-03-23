@@ -15,7 +15,7 @@
 set -e
 
 pip install --user --upgrade pip setuptools
-pip install --user --upgrade nassl sslyze
+pip install --user --upgrade nassl sslyze==1.4.0
 
 which sslyze
 sslyze --version
