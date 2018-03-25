@@ -113,7 +113,7 @@ int s2n_get_signature_hash_pair_if_supported(struct s2n_stuffer *in, s2n_hash_al
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
 
-    return hash_matched;
+    return 0;
 }
 
 int s2n_send_supported_signature_algorithms(struct s2n_stuffer *out)

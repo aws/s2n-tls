@@ -58,9 +58,7 @@ static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn)
     if (conn->actual_protocol_version == S2N_TLS12) {
         s2n_hash_algorithm hash_algorithm;
         s2n_signature_algorithm signature_algorithm;
-        int matched = s2n_get_signature_hash_pair_if_supported(in, &hash_algorithm, &signature_algorithm);
-
-        S2N_ERROR_IF(!matched, S2N_ERR_BAD_MESSAGE);
+        GUARD(s2n_get_signature_hash_pair_if_supported(in, &hash_algorithm, &signature_algorithm));
 
         GUARD(s2n_hash_init(&conn->secure.signature_hash, hash_algorithm));
     } else {
@@ -119,9 +117,7 @@ static int s2n_dhe_server_key_recv(struct s2n_connection *conn)
     if (conn->actual_protocol_version == S2N_TLS12) {
         s2n_hash_algorithm hash_algorithm;
         s2n_signature_algorithm signature_algorithm;
-        int matched = s2n_get_signature_hash_pair_if_supported(in, &hash_algorithm, &signature_algorithm);
-
-        S2N_ERROR_IF(!matched, S2N_ERR_BAD_MESSAGE);
+        GUARD(s2n_get_signature_hash_pair_if_supported(in, &hash_algorithm, &signature_algorithm));
 
         GUARD(s2n_hash_init(&conn->secure.signature_hash, hash_algorithm));
     } else {
