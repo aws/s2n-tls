@@ -213,5 +213,23 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_constant_time_equals(b, e, sizeof(a)), 1);
     }
 
+    uint8_t x[1];
+    uint8_t y[1];
+
+    for (int i = 0; i < 256; i++) {
+        for (int j = 0; j < 256; j++) {
+           x[0] = i;
+           y[0] = j;
+
+           int expected = 0;
+
+           if (i == j) {
+                expected = 1;
+           }
+
+           EXPECT_EQUAL(s2n_constant_time_equals(x, y, sizeof(x)), expected);
+        }
+    }
+
     END_TEST();
 }
