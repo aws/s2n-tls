@@ -30,10 +30,9 @@ INSTALL_DIR=$2
 PLATFORM=$3
 
 cd "$BUILD_DIR"
-curl --retry 3 -L https://www.openssl.org/source/openssl-1.0.2-latest.tar.gz --output openssl-1.0.2.tar.gz
-tar -xzvf openssl-1.0.2.tar.gz
-rm openssl-1.0.2.tar.gz
-cd openssl-1.0.2*
+curl --retry 3 -L https://github.com/openssl/openssl/archive/OpenSSL_1_0_2-stable.zip --output openssl-OpenSSL_1_0_2-stable.zip
+unzip openssl-OpenSSL_1_0_2-stable.zip
+cd openssl-OpenSSL_1_0_2-stable
 
 if [ "$PLATFORM" == "linux" ]; then
     CONFIGURE="./config -d"
