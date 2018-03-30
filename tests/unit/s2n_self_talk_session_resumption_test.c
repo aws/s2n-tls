@@ -22,15 +22,105 @@
 #include <stdint.h>
 
 #include <s2n.h>
+#include <errno.h>
 
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 
-static const char SESSION_ID[] = "0123456789abcdef0123456789abcdef";
+
+#define MAX_KEY_LEN 32
+#define MAX_VAL_LEN 255
+
 static const char MSG[] = "Test";
+
+struct session_cache_entry {
+    uint8_t key[MAX_KEY_LEN];
+    uint8_t key_len;
+    uint8_t value[MAX_VAL_LEN];
+    uint8_t value_len;
+};
+
+struct session_cache_entry session_cache[256];
+
+int cache_store(void *ctx, uint64_t ttl, const void *key, uint64_t key_size, const void *value, uint64_t value_size)
+{
+    struct session_cache_entry *cache = ctx;
+
+    if (key_size == 0 || key_size > MAX_KEY_LEN) {
+        return -1;
+    }
+    if (value_size == 0 || value_size > MAX_VAL_LEN) {
+        return -1;
+    }
+
+    uint8_t index = ((const uint8_t *)key)[0];
+
+    memcpy(cache[index].key, key, key_size);
+    memcpy(cache[index].value, value, value_size);
+
+    cache[index].key_len = key_size;
+    cache[index].value_len = value_size;
+
+    return 0;
+}
+
+int cache_retrieve(void *ctx, const void *key, uint64_t key_size, void *value, uint64_t * value_size)
+{
+    struct session_cache_entry *cache = ctx;
+
+    if (key_size == 0 || key_size > MAX_KEY_LEN) {
+        return -1;
+    }
+
+    uint8_t index = ((const uint8_t *)key)[0];
+
+    if (cache[index].key_len != key_size) {
+        return -1;
+    }
+
+    if (memcmp(cache[index].key, key, key_size)) {
+        return -1;
+    }
+
+    if (*value_size < cache[index].value_len) {
+        return -1;
+    }
+
+    *value_size = cache[index].value_len;
+    memcpy(value, cache[index].value, cache[index].value_len);
+
+    return 0;
+}
+
+int cache_delete(void *ctx, const void *key, uint64_t key_size)
+{
+    struct session_cache_entry *cache = ctx;
+
+    if (key_size == 0 || key_size > MAX_KEY_LEN) {
+        return -1;
+    }
+
+    uint8_t index = ((const uint8_t *)key)[0];
+
+    if (cache[index].key_len != key_size) {
+        return -1;
+    }
+
+    if (memcmp(cache[index].key, key, key_size)) {
+        return -1;
+    }
+
+    cache[index].key_len = 0;
+    cache[index].value_len = 0;
+
+    return 0;
+}
 
 void mock_client(int writefd, int readfd)
 {
+    size_t serialized_session_state_length = 0;
+    uint8_t serialized_session_state[256] = { 0 };
+
     struct s2n_connection *conn;
     struct s2n_config *config;
     s2n_blocked_status blocked;
@@ -39,37 +129,108 @@ void mock_client(int writefd, int readfd)
     /* Give the server a chance to listen */
     sleep(1);
 
+    /* Initial handshake */
     conn = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
     s2n_config_disable_x509_verification(config);
     s2n_connection_set_config(conn, config);
-    conn->server_protocol_version = S2N_TLS12;
     conn->client_protocol_version = S2N_TLS12;
-    conn->actual_protocol_version = S2N_TLS12;
 
     s2n_connection_set_read_fd(conn, readfd);
     s2n_connection_set_write_fd(conn, writefd);
-
-    /* Set non-empty session id to indicate that we want to try to resume session */
-    memcpy(conn->session_id, SESSION_ID, S2N_TLS_SESSION_ID_MAX_LEN);
-    conn->session_id_len = S2N_TLS_SESSION_ID_MAX_LEN;
 
     if (s2n_negotiate(conn, &blocked) != 0) {
         result = 1;
     }
 
-    /* Now ensure that we got a new session id since server forced full handshake */
-    if (memcmp(conn->session_id, SESSION_ID, S2N_TLS_SESSION_ID_MAX_LEN) == 0) {
+    /* Make sure we did a full handshake */
+    if (!IS_FULL_HANDSHAKE(conn->handshake.handshake_type)) {
         result = 2;
     }
 
-    if (s2n_send(conn, MSG, sizeof(MSG), &blocked) != sizeof(MSG)) {
+    /* Save session state from the connection */
+    memset(serialized_session_state, 0, sizeof(serialized_session_state));
+    serialized_session_state_length = s2n_connection_get_session_length(conn);
+    if (s2n_connection_get_session(conn, serialized_session_state, serialized_session_state_length) != serialized_session_state_length) {
         result = 3;
+    }
+
+    if (s2n_send(conn, MSG, sizeof(MSG), &blocked) != sizeof(MSG)) {
+        result = 4;
     }
 
     int shutdown_rc = -1;
     while(shutdown_rc != 0) {
         shutdown_rc = s2n_shutdown(conn, &blocked);
+    }
+
+    s2n_connection_free(conn);
+    s2n_config_free(config);
+
+    /* Give the server a chance to a void a sigpipe */
+    sleep(1);
+
+    /* Session resumption */
+    conn = s2n_connection_new(S2N_CLIENT);
+    config = s2n_config_new();
+    s2n_config_disable_x509_verification(config);
+    s2n_connection_set_config(conn, config);
+    conn->client_protocol_version = S2N_TLS12;
+
+    s2n_connection_set_read_fd(conn, readfd);
+    s2n_connection_set_write_fd(conn, writefd);
+
+    /* Set session state on client connection */
+    if (s2n_connection_set_session(conn, serialized_session_state, serialized_session_state_length) < 0) {
+        result = 5;
+    }
+
+    if (s2n_negotiate(conn, &blocked) != 0) {
+        result = 6;
+    }
+
+    /* Make sure we did a abbreviated handshake */
+    if (!IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type)) {
+        result = 7;
+    }
+
+    if (s2n_send(conn, MSG, sizeof(MSG), &blocked) != sizeof(MSG)) {
+        result = 8;
+    }
+
+    shutdown_rc = -1;
+    while(shutdown_rc != 0) {
+        shutdown_rc = s2n_shutdown(conn, &blocked);
+    }
+
+    s2n_connection_free(conn);
+    s2n_config_free(config);
+
+    /* Give the server a chance to a void a sigpipe */
+    sleep(1);
+
+    /* Session resumption with bad session state */
+    conn = s2n_connection_new(S2N_CLIENT);
+    config = s2n_config_new();
+    s2n_config_disable_x509_verification(config);
+    s2n_connection_set_config(conn, config);
+    conn->client_protocol_version = S2N_TLS12;
+
+    s2n_connection_set_read_fd(conn, readfd);
+    s2n_connection_set_write_fd(conn, writefd);
+
+    /* Change the protocol version in session state */
+    serialized_session_state[35] = 30;
+    if (s2n_connection_set_session(conn, serialized_session_state, serialized_session_state_length) < 0) {
+        result = 9;
+    }
+
+    if (s2n_negotiate(conn, &blocked) == 0) {
+        result = 10;
+    }
+
+    if (s2n_errno != S2N_ERR_BAD_MESSAGE) {
+        result = 11;
     }
 
     s2n_connection_free(conn);
@@ -92,6 +253,9 @@ int main(int argc, char **argv)
     int client_to_server[2];
     char *cert_chain_pem;
     char *private_key_pem;
+    char buffer[256];
+    int bytes_read;
+    int shutdown_rc = -1;
 
     BEGIN_TEST();
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -118,43 +282,118 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(client_to_server[1]));
     EXPECT_SUCCESS(close(server_to_client[0]));
 
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-    conn->server_protocol_version = S2N_TLS12;
-    conn->client_protocol_version = S2N_TLS12;
-    conn->actual_protocol_version = S2N_TLS12;
+    /* Initial handshake */
+    {
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        conn->server_protocol_version = S2N_TLS12;
 
-    EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_NOT_NULL(config = s2n_config_new());
 
-    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, cert_chain_pem, private_key_pem));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, cert_chain_pem, private_key_pem));
 
-    EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+        EXPECT_SUCCESS(s2n_config_set_cache_store_callback(config, cache_store, session_cache));
+        EXPECT_SUCCESS(s2n_config_set_cache_retrieve_callback(config, cache_retrieve, session_cache));
+        EXPECT_SUCCESS(s2n_config_set_cache_delete_callback(config, cache_delete, session_cache));
 
-    /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
-    EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-    /* Negotiate the handshake. */
-    EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
+        /* Set up the connection to read from the fd */
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
 
-    /* Ensure the message was deivered */
-    char buffer[256];
-    int bytes_read;
-    EXPECT_SUCCESS(bytes_read = s2n_recv(conn, buffer, sizeof(buffer), &blocked));
-    EXPECT_EQUAL(bytes_read, sizeof(MSG));
-    EXPECT_EQUAL(memcmp(buffer, MSG, sizeof(MSG)), 0);
+        /* Negotiate the handshake. */
+        EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
 
-    /* Shutdown handshake */
-    int shutdown_rc = -1;
-    do {
-        shutdown_rc = s2n_shutdown(conn, &blocked);
-        EXPECT_TRUE(shutdown_rc == 0 || (errno == EAGAIN && blocked));
-    } while(shutdown_rc != 0);
+        /* Make sure we did a full handshake */
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(conn->handshake.handshake_type));
 
-    EXPECT_SUCCESS(s2n_connection_free(conn));
+        /* Ensure the message was deivered */
 
-    EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(bytes_read = s2n_recv(conn, buffer, sizeof(buffer), &blocked));
+        EXPECT_EQUAL(bytes_read, sizeof(MSG));
+        EXPECT_EQUAL(memcmp(buffer, MSG, sizeof(MSG)), 0);
+
+        /* Shutdown handshake */
+        do {
+            shutdown_rc = s2n_shutdown(conn, &blocked);
+            EXPECT_TRUE(shutdown_rc == 0 || (errno == EAGAIN && blocked));
+        } while(shutdown_rc != 0);
+
+        /* Clean up */
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
+    }
+
+    /* Session resumption */
+    {
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        conn->server_protocol_version = S2N_TLS12;
+
+        EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, cert_chain_pem, private_key_pem));
+        EXPECT_SUCCESS(s2n_config_set_cache_store_callback(config, cache_store, session_cache));
+        EXPECT_SUCCESS(s2n_config_set_cache_retrieve_callback(config, cache_retrieve, session_cache));
+        EXPECT_SUCCESS(s2n_config_set_cache_delete_callback(config, cache_delete, session_cache));
+
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        /* Set up the connection to read from the fd */
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
+
+        /* Negotiate the handshake. */
+        EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
+
+        /* Make sure we did a abbreviated handshake */
+        EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type));
+
+        /* Ensure the message was deivered */
+        memset(buffer, 0, sizeof(buffer));
+        EXPECT_SUCCESS(bytes_read = s2n_recv(conn, buffer, sizeof(buffer), &blocked));
+        EXPECT_EQUAL(bytes_read, sizeof(MSG));
+        EXPECT_EQUAL(memcmp(buffer, MSG, sizeof(MSG)), 0);
+
+        /* Shutdown handshake */
+        shutdown_rc = -1;
+        do {
+            shutdown_rc = s2n_shutdown(conn, &blocked);
+            EXPECT_TRUE(shutdown_rc == 0 || (errno == EAGAIN && blocked));
+        } while(shutdown_rc != 0);
+
+        /* Clean up */
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
+    }
+
+    /* Session resumption with bad session state on client side */
+    {
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        conn->server_protocol_version = S2N_TLS12;
+
+        EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, cert_chain_pem, private_key_pem));
+        EXPECT_SUCCESS(s2n_config_set_cache_store_callback(config, cache_store, session_cache));
+        EXPECT_SUCCESS(s2n_config_set_cache_retrieve_callback(config, cache_retrieve, session_cache));
+        EXPECT_SUCCESS(s2n_config_set_cache_delete_callback(config, cache_delete, session_cache));
+
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        /* Set up the connection to read from the fd */
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
+
+        s2n_negotiate(conn, &blocked);
+
+        /* Clean up */
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
+    }
+
+    /* Close the pipes */
+    EXPECT_SUCCESS(close(client_to_server[0]));
+    EXPECT_SUCCESS(close(server_to_client[1]));
 
     /* Clean up */
     EXPECT_EQUAL(waitpid(-1, &status, 0), pid);

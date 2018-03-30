@@ -166,6 +166,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     conn->mode = mode;
     conn->blinding = S2N_BUILT_IN_BLINDING;
     conn->close_notify_queued = 0;
+    conn->client_session_resumed = 0;
     conn->session_id_len = 0;
     conn->verify_host_fn = NULL;
     conn->data_for_verify_host = NULL;
@@ -249,6 +250,7 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->recv_io_context = NULL;
     conn->mode = mode;
     conn->close_notify_queued = 0;
+    conn->client_session_resumed = 0;
     conn->current_user_data_consumed = 0;
     conn->initial.cipher_suite = &s2n_null_cipher_suite;
     conn->secure.cipher_suite = &s2n_null_cipher_suite;

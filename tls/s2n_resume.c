@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#include <s2n.h>
+
 #include "stuffer/s2n_stuffer.h"
 
 #include "utils/s2n_safety.h"
@@ -102,6 +104,73 @@ static int s2n_deserialize_resumption_state(struct s2n_connection *conn, struct 
     return 0;
 }
 
+static int s2n_client_serialize_resumption_state(struct s2n_connection *conn, struct s2n_stuffer *to)
+{
+    /* Serialize session id */
+    GUARD(s2n_stuffer_write_uint8(to, S2N_STATE_WITH_SESSION_ID));
+    GUARD(s2n_stuffer_write_uint8(to, conn->session_id_len));
+    GUARD(s2n_stuffer_write_bytes(to, conn->session_id, conn->session_id_len));
+
+    /* Serialize session state */
+    GUARD(s2n_serialize_resumption_state(conn, to));
+
+    return 0;
+}
+
+static int s2n_client_deserialize_session_state(struct s2n_connection *conn, struct s2n_stuffer *from)
+{
+    uint8_t session_id_len;
+    GUARD(s2n_stuffer_read_uint8(from, &session_id_len));
+
+    if (session_id_len > S2N_TLS_SESSION_ID_MAX_LEN || session_id_len > s2n_stuffer_data_available(from)) {
+        return -1;
+    }
+
+    conn->session_id_len = session_id_len;
+    GUARD(s2n_stuffer_read_bytes(from, conn->session_id, session_id_len));
+
+    if (s2n_stuffer_data_available(from) < S2N_STATE_SIZE_IN_BYTES) {
+        return -1;
+    }
+
+    uint8_t format;
+    uint64_t then;
+
+    GUARD(s2n_stuffer_read_uint8(from, &format));
+    if (format != S2N_SERIALIZED_FORMAT_VERSION) {
+        return -1;
+    }
+
+    GUARD(s2n_stuffer_read_uint8(from, &conn->actual_protocol_version));
+
+    uint8_t *cipher_suite_wire = s2n_stuffer_raw_read(from, S2N_TLS_CIPHER_SUITE_LEN);
+    notnull_check(cipher_suite_wire);
+    GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
+
+    GUARD(s2n_stuffer_read_uint64(from, &then));
+
+    /* Last but not least, put the master secret in place */
+    GUARD(s2n_stuffer_read_bytes(from, conn->secure.master_secret, S2N_TLS_SECRET_LEN));
+
+    return 0;
+}
+
+static int s2n_client_deserialize_resumption_state(struct s2n_connection *conn, struct s2n_stuffer *from)
+{
+    uint8_t format;
+    GUARD(s2n_stuffer_read_uint8(from, &format));
+
+    switch (format) {
+    case S2N_STATE_WITH_SESSION_ID:
+        GUARD(s2n_client_deserialize_session_state(conn, from));
+        break;
+    default:
+        return -1;
+    }
+
+    return 0;
+}
+
 int s2n_resume_from_cache(struct s2n_connection *conn)
 {
     uint8_t data[S2N_STATE_SIZE_IN_BYTES] = { 0 };
@@ -154,4 +223,59 @@ int s2n_store_to_cache(struct s2n_connection *conn)
     conn->config->cache_store(conn->config->cache_store_data, S2N_TLS_SESSION_CACHE_TTL, conn->session_id, conn->session_id_len, entry.data, entry.size);
 
     return 0;
+}
+
+int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *session, size_t length)
+{
+
+    notnull_check(conn);
+    notnull_check(session);
+
+    struct s2n_blob session_data;
+    GUARD(s2n_alloc(&session_data, length));
+    memcpy_check(session_data.data, session, length);
+
+    struct s2n_stuffer from;
+    GUARD(s2n_stuffer_init(&from, &session_data));
+    GUARD(s2n_stuffer_write(&from, &session_data));
+
+    GUARD(s2n_client_deserialize_resumption_state(conn, &from));
+
+    GUARD(s2n_free(&session_data));
+
+    return 0;
+}
+
+int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, size_t max_length)
+{
+    notnull_check(conn);
+    notnull_check(session);
+
+    uint32_t len = s2n_connection_get_session_length(conn);
+
+    if (max_length < len) {
+        return -1;
+    }
+
+    struct s2n_blob serailized_data;
+    GUARD(s2n_alloc(&serailized_data, len));
+    GUARD(s2n_blob_zero(&serailized_data));
+
+    struct s2n_stuffer to;
+    GUARD(s2n_stuffer_init(&to, &serailized_data));
+
+    GUARD(s2n_client_serialize_resumption_state(conn, &to));
+
+    memcpy_check(session, serailized_data.data, len);
+    GUARD(s2n_free(&serailized_data));
+
+    return len;
+}
+
+ssize_t s2n_connection_get_session_length(struct s2n_connection *conn)
+{
+    /* Since we only support session ids for now, return length as: "format + session_id_len + session_id + session state",
+     * needs to be updated once session tickets support is added.
+     */
+    return 1 + 1 + conn->session_id_len + S2N_STATE_SIZE_IN_BYTES;
 }

@@ -86,6 +86,9 @@ struct s2n_connection {
     uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN];
     uint8_t session_id_len;
 
+    /* Session resumption indicator on client side */
+    unsigned int client_session_resumed:1;
+
     /* The version advertised by the client, by the
      * server, and the actual version we are currently
      * speaking. */

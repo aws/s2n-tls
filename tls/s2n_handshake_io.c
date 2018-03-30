@@ -311,6 +311,10 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
         return 0;
     }
 
+    if (conn->mode == S2N_CLIENT && conn->client_session_resumed == 1) {
+        return 0;
+    }
+
     /* If we're doing full handshake, generate a new session id. */
     GUARD(s2n_generate_new_client_session_id(conn));
 
