@@ -210,7 +210,7 @@ int main(int argc, char *const *argv)
     freeaddrinfo(ai_list);
 
     if (connected == 0) {
-        fprintf(stderr, "Failed to connect to %s:%s\n", argv[1], port);
+        fprintf(stderr, "Failed to connect to %s:%s\n", host, port);
         close(sockfd);
         exit(1);
     }
@@ -369,7 +369,7 @@ int main(int argc, char *const *argv)
     int ret = negotiate(conn);
 
     if (ret != 0) {
-        print_s2n_error("Error During Negotiation");
+        /* Error is printed in negotiate */
         return -1;
     }
 
@@ -386,6 +386,8 @@ int main(int argc, char *const *argv)
         print_s2n_error("Error calling s2n_shutdown");
         exit(1);
     }
+
+    close(sockfd);
 
     if (s2n_connection_free(conn) < 0) {
         print_s2n_error("Error freeing connection");

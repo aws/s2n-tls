@@ -42,7 +42,8 @@ int negotiate(struct s2n_connection *conn)
     s2n_blocked_status blocked;
     do {
         if (s2n_negotiate(conn, &blocked) < 0) {
-            fprintf(stderr, "Failed to negotiate: '%s' %d\n", s2n_strerror(s2n_errno, "EN"), s2n_connection_get_alert(conn));
+            fprintf(stderr, "Failed to negotiate: '%s'. %s\n", s2n_strerror(s2n_errno, "EN"), s2n_strerror_debug(s2n_errno, "EN"));
+            fprintf(stderr, "Alert: %d\n", s2n_connection_get_alert(conn));
             return -1;
         }
     } while (blocked);
@@ -116,8 +117,6 @@ int echo(struct s2n_connection *conn, int sockfd)
             do {
                 bytes_read = s2n_recv(conn, buffer, 10240, &blocked);
                 if (bytes_read == 0) {
-                    /* Connection has been closed */
-                    s2n_connection_wipe(conn);
                     return 0;
                 }
                 if (bytes_read < 0) {
@@ -166,6 +165,23 @@ int echo(struct s2n_connection *conn, int sockfd)
                 bytes_available -= bytes_written;
                 buf_ptr += bytes_written;
             } while (bytes_available || blocked);
+        }
+        if (readers[1].revents & POLLHUP) {
+            /* The stdin pipe hanged up, and we've handled all read from it above */
+            return 0;
+        }
+        if (readers[0].revents & (POLLERR | POLLHUP | POLLNVAL)) {
+            fprintf(stderr, "Error polling from socket: err=%d hup=%d nval=%d\n",
+                    (readers[0].revents & POLLERR ) ? 1 : 0,
+                    (readers[0].revents & POLLHUP ) ? 1 : 0,
+                    (readers[0].revents & POLLNVAL ) ? 1 : 0);
+            return -1;
+        }
+        if (readers[1].revents & (POLLERR | POLLNVAL)) {
+            fprintf(stderr, "Error polling from socket: err=%d nval=%d\n",
+                    (readers[1].revents & POLLERR ) ? 1 : 0,
+                    (readers[1].revents & POLLNVAL ) ? 1 : 0);
+            return -1;
         }
     }
     if (p < 0 && errno == EINTR) {
