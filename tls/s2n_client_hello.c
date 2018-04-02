@@ -374,12 +374,6 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     /* Write the extensions */
     GUARD(s2n_client_extensions_send(conn, out));
 
-    /* Default our signature digest algorithm to SHA1. Will be used when verifying a client certificate. */
-    conn->secure.conn_hash_alg = S2N_HASH_MD5_SHA1;
-    if (conn->actual_protocol_version == S2N_TLS12 || s2n_is_in_fips_mode()) {
-        conn->secure.conn_hash_alg = S2N_HASH_SHA1;
-    }
-
     return 0;
 }
 
