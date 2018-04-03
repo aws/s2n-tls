@@ -18,6 +18,8 @@
 #include <s2n.h>
 #include <time.h>
 
+#include "crypto/s2n_fips.h"
+
 #include "error/s2n_errno.h"
 
 #include "tls/s2n_cipher_preferences.h"
@@ -91,6 +93,14 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
 
     /* We've selected the cipher, update the required hashes for this connection */
     GUARD(s2n_conn_update_required_handshake_hashes(conn));
+
+    /* Default our signature digest algorithm to SHA1. Will be used when verifying a client certificate. */
+    conn->secure.conn_hash_alg = S2N_HASH_SHA1;
+    if (conn->actual_protocol_version < S2N_TLS12 && !s2n_is_in_fips_mode()
+            && conn->secure.cipher_suite->auth_method == S2N_AUTHENTICATION_RSA) {
+        /* TLS prior to 1.2 defaults to MD5 SHA1 hash if authentication is RSA */
+        conn->secure.conn_hash_alg = S2N_HASH_MD5_SHA1;
+    }
 
     return 0;
 }
