@@ -167,7 +167,7 @@ void mock_client(int writefd, int readfd)
     s2n_connection_free(conn);
     s2n_config_free(config);
 
-    /* Give the server a chance to a void a sigpipe */
+    /* Give the server a chance to avoid sigpipe */
     sleep(1);
 
     /* Session resumption */
@@ -206,7 +206,7 @@ void mock_client(int writefd, int readfd)
     s2n_connection_free(conn);
     s2n_config_free(config);
 
-    /* Give the server a chance to a void a sigpipe */
+    /* Give the server a chance to avoid sigpipe */
     sleep(1);
 
     /* Session resumption with bad session state */
@@ -236,7 +236,7 @@ void mock_client(int writefd, int readfd)
     s2n_connection_free(conn);
     s2n_config_free(config);
 
-    /* Give the server a chance to a void a sigpipe */
+    /* Give the server a chance to avoid sigpipe */
     sleep(1);
 
     _exit(result);
