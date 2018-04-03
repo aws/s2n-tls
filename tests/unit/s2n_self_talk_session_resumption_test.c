@@ -309,8 +309,7 @@ int main(int argc, char **argv)
         /* Make sure we did a full handshake */
         EXPECT_TRUE(IS_FULL_HANDSHAKE(conn->handshake.handshake_type));
 
-        /* Ensure the message was deivered */
-
+        /* Ensure the message was delivered */
         EXPECT_SUCCESS(bytes_read = s2n_recv(conn, buffer, sizeof(buffer), &blocked));
         EXPECT_EQUAL(bytes_read, sizeof(MSG));
         EXPECT_EQUAL(memcmp(buffer, MSG, sizeof(MSG)), 0);
@@ -349,7 +348,7 @@ int main(int argc, char **argv)
         /* Make sure we did a abbreviated handshake */
         EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type));
 
-        /* Ensure the message was deivered */
+        /* Ensure the message was delivered */
         memset(buffer, 0, sizeof(buffer));
         EXPECT_SUCCESS(bytes_read = s2n_recv(conn, buffer, sizeof(buffer), &blocked));
         EXPECT_EQUAL(bytes_read, sizeof(MSG));
@@ -384,7 +383,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
 
-        s2n_negotiate(conn, &blocked);
+        /* Verify we failed to negotiate */
+        EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
         /* Clean up */
         EXPECT_SUCCESS(s2n_connection_free(conn));
