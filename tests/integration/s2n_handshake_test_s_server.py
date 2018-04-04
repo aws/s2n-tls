@@ -182,7 +182,7 @@ def handshake_test(host, port, test_ciphers):
     """
     Basic handshake tests using all valid combinations of supported cipher suites and TLS versions.
     """
-    print("\n\tRunning handshake tests:")
+    print("\n\tRunning s2n Client handshake tests:")
 
     failed = 0
     for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
@@ -228,7 +228,7 @@ def sigalg_test(host, port):
     """
     failed = 0
 
-    print("\n\tRunning signature algorithm tests:")
+    print("\n\tRunning s2n Client signature algorithm tests:")
     print("\tExpected supported:   " + str(supported_sigs))
     print("\tExpected unsupported: " + str(unsupported_sigs))
 
@@ -262,7 +262,7 @@ def elliptic_curve_test(host, port):
     """
     supported_curves = ["P-256", "P-384"]
     unsupported_curves = ["B-163", "K-409"]
-    print("\n\tRunning elliptic curve tests:")
+    print("\n\tRunning s2n Client elliptic curve tests:")
     print("\tExpected supported:   " + str(supported_curves))
     print("\tExpected unsupported: " + str(unsupported_curves))
 
@@ -298,7 +298,7 @@ def main():
     host = args.host
     port = args.port
 
-    print("\nRunning tests with: " + os.popen('openssl version').read())
+    print("\nRunning s2n Client tests with: " + os.popen('openssl version').read())
 
     failed = 0
     failed += handshake_test(host, port, test_ciphers)
