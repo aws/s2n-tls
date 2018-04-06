@@ -122,7 +122,8 @@ static int s2n_client_deserialize_session_state(struct s2n_connection *conn, str
     uint8_t session_id_len;
     GUARD(s2n_stuffer_read_uint8(from, &session_id_len));
 
-    if (session_id_len > S2N_TLS_SESSION_ID_MAX_LEN || session_id_len > s2n_stuffer_data_available(from)) {
+    if (session_id_len == 0 || session_id_len > S2N_TLS_SESSION_ID_MAX_LEN
+        || session_id_len > s2n_stuffer_data_available(from)) {
         return -1;
     }
 
@@ -230,20 +231,29 @@ int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *sessi
 
     notnull_check(conn);
     notnull_check(session);
+    int ret_val = 0;
 
     struct s2n_blob session_data;
     GUARD(s2n_alloc(&session_data, length));
-    memcpy_check(session_data.data, session, length);
+    memcpy(session_data.data, session, length);
 
     struct s2n_stuffer from;
-    GUARD(s2n_stuffer_init(&from, &session_data));
-    GUARD(s2n_stuffer_write(&from, &session_data));
 
-    GUARD(s2n_client_deserialize_resumption_state(conn, &from));
+    ret_val = s2n_stuffer_init(&from, &session_data);
+    if (ret_val) {
+        goto clean_up;
+    }
 
+    ret_val = s2n_stuffer_write(&from, &session_data);
+    if (ret_val) {
+        goto clean_up;
+    }
+
+    ret_val = s2n_client_deserialize_resumption_state(conn, &from);
+
+clean_up:
     GUARD(s2n_free(&session_data));
-
-    return 0;
+    return ret_val;
 }
 
 int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, size_t max_length)
@@ -258,16 +268,13 @@ int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, si
     }
 
     struct s2n_blob serailized_data;
-    GUARD(s2n_alloc(&serailized_data, len));
+    serailized_data.data = session;
+    serailized_data.size = len;
     GUARD(s2n_blob_zero(&serailized_data));
 
     struct s2n_stuffer to;
     GUARD(s2n_stuffer_init(&to, &serailized_data));
-
     GUARD(s2n_client_serialize_resumption_state(conn, &to));
-
-    memcpy_check(session, serailized_data.data, len);
-    GUARD(s2n_free(&serailized_data));
 
     return len;
 }
