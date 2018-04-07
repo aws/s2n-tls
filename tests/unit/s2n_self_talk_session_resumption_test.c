@@ -158,12 +158,21 @@ void mock_client(int writefd, int readfd)
         result = 3;
     }
 
-    if (s2n_connection_get_session(conn, serialized_session_state, serialized_session_state_length) != serialized_session_state_length) {
+    /* Send very low session buffer size and see that you can get an error */
+    if (s2n_connection_get_session(conn, serialized_session_state, 1) == 0) {
         result = 4;
     }
 
-    if (s2n_send(conn, MSG, sizeof(MSG), &blocked) != sizeof(MSG)) {
+    if (s2n_errno != S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG) {
         result = 5;
+    }
+
+    if (s2n_connection_get_session(conn, serialized_session_state, serialized_session_state_length) != serialized_session_state_length) {
+        result = 6;
+    }
+
+    if (s2n_send(conn, MSG, sizeof(MSG), &blocked) != sizeof(MSG)) {
+        result = 7;
     }
 
     int shutdown_rc = -1;
@@ -183,20 +192,20 @@ void mock_client(int writefd, int readfd)
 
     /* Set session state on client connection */
     if (s2n_connection_set_session(conn, serialized_session_state, serialized_session_state_length) < 0) {
-        result = 6;
+        result = 8;
     }
 
     if (s2n_negotiate(conn, &blocked) != 0) {
-        result = 7;
+        result = 9;
     }
 
     /* Make sure we did a abbreviated handshake */
     if (!IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type)) {
-        result = 8;
+        result = 10;
     }
 
     if (s2n_send(conn, MSG, sizeof(MSG), &blocked) != sizeof(MSG)) {
-        result = 9;
+        result = 11;
     }
 
     shutdown_rc = -1;
@@ -217,26 +226,30 @@ void mock_client(int writefd, int readfd)
     /* Change the format of the session state and check we cannot deserialize it */
     serialized_session_state[0] = 3;
     if (s2n_connection_set_session(conn, serialized_session_state, serialized_session_state_length) == 0) {
-        result = 10;
+        result = 12;
+    }
+
+    if (s2n_errno != S2N_ERR_INVALID_SERIALIZED_SESSION_STATE) {
+        result = 13;
     }
 
     serialized_session_state[0] = 0;
     /* Change the protocol version (36th byte) in session state */
     if (serialized_session_state_length < 36) {
-        result = 11;
+        result = 14;
     }
 
     serialized_session_state[35] = 30;
     if (s2n_connection_set_session(conn, serialized_session_state, serialized_session_state_length) < 0) {
-        result = 12;
+        result = 15;
     }
 
     if (s2n_negotiate(conn, &blocked) == 0) {
-        result = 13;
+        result = 16;
     }
 
     if (s2n_errno != S2N_ERR_BAD_MESSAGE) {
-        result = 14;
+        result = 17;
     }
 
     s2n_connection_free(conn);

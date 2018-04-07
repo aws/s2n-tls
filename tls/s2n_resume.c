@@ -124,14 +124,14 @@ static int s2n_client_deserialize_session_state(struct s2n_connection *conn, str
 
     if (session_id_len == 0 || session_id_len > S2N_TLS_SESSION_ID_MAX_LEN
         || session_id_len > s2n_stuffer_data_available(from)) {
-        return -1;
+        S2N_ERROR(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
     }
 
     conn->session_id_len = session_id_len;
     GUARD(s2n_stuffer_read_bytes(from, conn->session_id, session_id_len));
 
     if (s2n_stuffer_data_available(from) < S2N_STATE_SIZE_IN_BYTES) {
-        return -1;
+        S2N_ERROR(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
     }
 
     uint8_t format;
@@ -139,7 +139,7 @@ static int s2n_client_deserialize_session_state(struct s2n_connection *conn, str
 
     GUARD(s2n_stuffer_read_uint8(from, &format));
     if (format != S2N_SERIALIZED_FORMAT_VERSION) {
-        return -1;
+        S2N_ERROR(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
     }
 
     GUARD(s2n_stuffer_read_uint8(from, &conn->actual_protocol_version));
@@ -166,7 +166,7 @@ static int s2n_client_deserialize_resumption_state(struct s2n_connection *conn, 
         GUARD(s2n_client_deserialize_session_state(conn, from));
         break;
     default:
-        return -1;
+        S2N_ERROR(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
     }
 
     return 0;
@@ -238,18 +238,15 @@ int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *sessi
     memcpy(session_data.data, session, length);
 
     struct s2n_stuffer from;
+    GUARD_GOTO(s2n_stuffer_init(&from, &session_data), failed);
+    GUARD_GOTO(s2n_stuffer_write(&from, &session_data), failed);
+    GUARD_GOTO(s2n_client_deserialize_resumption_state(conn, &from), failed);
 
-    ret_val = s2n_stuffer_init(&from, &session_data);
-    if (ret_val) {
-        goto clean_up;
-    }
+    ret_val = 0;
+    goto clean_up;
 
-    ret_val = s2n_stuffer_write(&from, &session_data);
-    if (ret_val) {
-        goto clean_up;
-    }
-
-    ret_val = s2n_client_deserialize_resumption_state(conn, &from);
+failed:
+    ret_val = -1;
 
 clean_up:
     GUARD(s2n_free(&session_data));
@@ -263,9 +260,7 @@ int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, si
 
     uint32_t len = s2n_connection_get_session_length(conn);
 
-    if (max_length < len) {
-        return -1;
-    }
+    S2N_ERROR_IF(len > max_length, S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG);
 
     struct s2n_blob serailized_data;
     serailized_data.data = session;
