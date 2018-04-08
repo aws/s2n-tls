@@ -138,7 +138,7 @@ void mock_client(int writefd, int readfd)
     s2n_connection_set_read_fd(conn, readfd);
     s2n_connection_set_write_fd(conn, writefd);
 
-    /* change the session id */
+    /* Set the session id to ensure we're able to fallback to full handshake if session is not in server cache */
     memcpy(conn->session_id, SESSION_ID, S2N_TLS_SESSION_ID_MAX_LEN);
     conn->session_id_len = S2N_TLS_SESSION_ID_MAX_LEN;
 
@@ -306,8 +306,6 @@ int main(int argc, char **argv)
     /* Initial handshake */
     {
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        conn->server_protocol_version = S2N_TLS12;
-
         EXPECT_NOT_NULL(config = s2n_config_new());
 
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -348,8 +346,6 @@ int main(int argc, char **argv)
     /* Session resumption */
     {
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        conn->server_protocol_version = S2N_TLS12;
-
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
         /* Set up the connection to read from the fd */
@@ -382,8 +378,6 @@ int main(int argc, char **argv)
     /* Session resumption with bad session state on client side */
     {
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        conn->server_protocol_version = S2N_TLS12;
-
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
         /* Set up the connection to read from the fd */

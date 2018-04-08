@@ -245,6 +245,7 @@ int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *sessi
     ret_val = 0;
     goto clean_up;
 
+    // cppcheck-suppress unusedLabel
 failed:
     ret_val = -1;
 
