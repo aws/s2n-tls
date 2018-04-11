@@ -1112,6 +1112,24 @@ const char * s2n_connection_get_curve(struct s2n_connection *conn);
 
 **s2n_connection_get_curve** returns a string indicating the elliptic curve used during ECDHE key exchange. The string "NONE" is returned if no curve has was used.
 
+### Session State Related calls
+
+```c
+int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *session, size_t length);
+int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, size_t max_length);
+ssize_t s2n_connection_get_session_length(struct s2n_connection *conn);
+```
+
+- **session** session will contain serialized session related information needed to resume handshake.
+- **length** length of the serialized session state.
+- **max_length** Max number of bytes to copy into the **session** buffer.
+
+**s2n_connection_set_session** de-serializes the session state and updates the connection accrodingly.
+
+**s2n_connection_get_session** serializes the session state from connection and copies into the **session** buffer and returns the number of bytes that were copied.
+
+**s2n_connection_get_session_length** returns number of bytes needed to store serailized session state; it can be used to allocate the **session** buffer.
+
 ### s2n\_connection\_wipe
 
 ```c

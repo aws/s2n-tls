@@ -43,34 +43,53 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
     uint8_t session_id_len;
     uint16_t extensions_size;
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
+    uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN];
+    uint8_t actual_protocol_version;
 
     GUARD(s2n_stuffer_read_bytes(in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
+    GUARD(s2n_stuffer_read_bytes(in, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
+
+    GUARD(s2n_stuffer_read_uint8(in, &session_id_len));
+    S2N_ERROR_IF(session_id_len > S2N_TLS_SESSION_ID_MAX_LEN, S2N_ERR_BAD_MESSAGE);
+    GUARD(s2n_stuffer_read_bytes(in, session_id, session_id_len));
+
+    uint8_t *cipher_suite_wire = s2n_stuffer_raw_read(in, S2N_TLS_CIPHER_SUITE_LEN);
+    notnull_check(cipher_suite_wire);
+
+    GUARD(s2n_stuffer_read_uint8(in, &compression_method));
+    S2N_ERROR_IF(compression_method != S2N_TLS_COMPRESSION_METHOD_NULL, S2N_ERR_BAD_MESSAGE);
 
     conn->server_protocol_version = (uint8_t)(protocol_version[0] * 10) + protocol_version[1];
-
     const struct s2n_cipher_preferences *cipher_preferences;
     GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
 
-    if (conn->server_protocol_version < cipher_preferences->minimum_protocol_version || conn->server_protocol_version > conn->client_protocol_version) {
+    if (conn->server_protocol_version < cipher_preferences->minimum_protocol_version
+            || conn->server_protocol_version > conn->client_protocol_version) {
         GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
-    conn->actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
+
+    actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
+
+    /* Use the session state if server sent same session id as client sent in client hello */
+    if (session_id_len != 0  && session_id_len == conn->session_id_len
+            && !memcmp(session_id, conn->session_id, session_id_len)) {
+        /* check if the resumed session state is valid */
+        S2N_ERROR_IF(conn->actual_protocol_version != actual_protocol_version, S2N_ERR_BAD_MESSAGE);
+        S2N_ERROR_IF(memcmp(conn->secure.cipher_suite->iana_value, cipher_suite_wire, S2N_TLS_CIPHER_SUITE_LEN) != 0, S2N_ERR_BAD_MESSAGE);
+
+        /* Session is resumed */
+        conn->client_session_resumed = 1;
+    } else {
+        conn->session_id_len = session_id_len;
+        memcpy_check(conn->session_id, session_id, session_id_len);
+        conn->actual_protocol_version = actual_protocol_version;
+        GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
+        /* Erase master secret which might have been set for session resumption */
+        memset_check((uint8_t *)conn->secure.master_secret, 0, S2N_TLS_SECRET_LEN);
+    }
+
     conn->actual_protocol_version_established = 1;
-
-    GUARD(s2n_stuffer_read_bytes(in, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
-    GUARD(s2n_stuffer_read_uint8(in, &session_id_len));
-
-    S2N_ERROR_IF(session_id_len > S2N_TLS_SESSION_ID_MAX_LEN, S2N_ERR_BAD_MESSAGE);
-
-    conn->session_id_len = session_id_len;
-    GUARD(s2n_stuffer_read_bytes(in, conn->session_id, session_id_len));
-    uint8_t *cipher_suite_wire = s2n_stuffer_raw_read(in, S2N_TLS_CIPHER_SUITE_LEN);
-    notnull_check(cipher_suite_wire);
-    GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
-    GUARD(s2n_stuffer_read_uint8(in, &compression_method));
-
-    S2N_ERROR_IF(compression_method != S2N_TLS_COMPRESSION_METHOD_NULL, S2N_ERR_BAD_MESSAGE);
 
     if (s2n_stuffer_data_available(in) >= 2) {
         GUARD(s2n_stuffer_read_uint16(in, &extensions_size));

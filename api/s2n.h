@@ -178,6 +178,10 @@ extern int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_
 extern int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type client_auth_type);
 extern int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len);
 
+extern int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *session, size_t length);
+extern int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, size_t max_length);
+extern ssize_t s2n_connection_get_session_length(struct s2n_connection *conn);
+
 /* RFC's that define below values:
  *  - https://tools.ietf.org/html/rfc5246#section-7.4.4
  *  - https://tools.ietf.org/search/rfc4492#section-5.5
