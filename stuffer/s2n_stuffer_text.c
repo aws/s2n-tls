@@ -108,7 +108,7 @@ int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, const char target)
     return 0;
 }
 
-/* Skips an expected character in the stuffer up to max_skip_count times */
+/* Skips an expected character in the stuffer between min and max times */
 int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expected, int min, int max)
 {
     int skipped = 0;
