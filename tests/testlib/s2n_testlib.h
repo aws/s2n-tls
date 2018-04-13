@@ -75,6 +75,8 @@ void s2n_print_connection(struct s2n_connection *conn, const char *marker);
 #define S2N_INVALID_HEADER_KEY          "../pems/rsa_2048_invalid_header_key.pem"
 #define S2N_INVALID_TRAILER_KEY         "../pems/rsa_2048_invalid_trailer_key.pem"
 #define S2N_UNKNOWN_KEYWORD_KEY         "../pems/rsa_2048_unknown_keyword_key.pem"
+#define S2N_WEIRD_DASHES_CERT_CHAIN     "../pems/rsa_2048_weird_dashes_cert.pem"
+#define S2N_NO_DASHES_CERT_CHAIN        "../pems/rsa_2048_no_dashes_cert.pem"
 
 /* OCSP Stapled Response Testing files */
 #define S2N_OCSP_SERVER_CERT            "../pems/ocsp/server_cert.pem"
