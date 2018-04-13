@@ -128,6 +128,8 @@ let setup_connection = do {
                   }}); 
 };
 
+
+
 // This function checks that the values of the state_machine array are what we
 // expect. 'sm' is the pointer to the beginning of the array, 'ixt' is the term
 // representing the index in the array.
@@ -262,6 +264,16 @@ let s2n_socket_write_uncork_spec = do {
     crucible_return (crucible_term {{ 0 : [32] }});
 };
 
+// Specification for s2n_generate_new_client_session_id. This is essentially
+// a noop function that returns 0 from the perspective of our current proof
+let s2n_generate_new_client_session_id_spec = do {
+    pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
+   
+    crucible_execute_func [pconn];
+
+    crucible_return (crucible_term {{ 0 : [32] }});
+};
+
 // Specification for s2n_socket_write_cork. The relevant part is
 // that it increments the 'corked' ghost variable to 1 to
 // indicate that the socket has been corked.
@@ -325,6 +337,8 @@ let s2n_handshake_io_lowlevel = do {
     s2n_socket_was_corked <- crucible_llvm_unsafe_assume_spec llvm "s2n_socket_was_corked" s2n_socket_was_corked_spec;
     print "s2n_connection_is_managed_corked";
     s2n_connection_is_managed_corked <- crucible_llvm_unsafe_assume_spec llvm "s2n_connection_is_managed_corked" s2n_connection_is_managed_corked_spec;
+    print "s2n_generate_new_client_session_id";
+    s2n_generate_new_client_session_id <- crucible_llvm_unsafe_assume_spec llvm "s2n_generate_new_client_session_id" s2n_generate_new_client_session_id_spec;    
     print "s2n_allowed_to_cache_connection";
     s2n_allowed_to_cache_connection <- crucible_llvm_unsafe_assume_spec llvm "s2n_allowed_to_cache_connection" s2n_allowed_to_cache_connection_spec;
     let dependencies = [s2n_socket_write_uncork, s2n_socket_write_cork, s2n_socket_was_corked, s2n_connection_is_managed_corked];
@@ -335,7 +349,7 @@ let s2n_handshake_io_lowlevel = do {
     print "Proving correctness of s2n_advance_message";
     s2n_advance_message_proof <- crucible_llvm_verify llvm "s2n_advance_message" dependencies true s2n_advance_message_spec yices;
     print "Proving correctness of s2n_conn_set_handshake_type";
-    s2n_conn_set_handshake_type_proof <- crucible_llvm_verify llvm "s2n_conn_set_handshake_type" [s2n_allowed_to_cache_connection, auth_type_proof] true s2n_conn_set_handshake_type_spec yices;
+    s2n_conn_set_handshake_type_proof <- crucible_llvm_verify llvm "s2n_conn_set_handshake_type" [s2n_allowed_to_cache_connection, auth_type_proof, s2n_generate_new_client_session_id] true s2n_conn_set_handshake_type_spec yices;
     print "done";
     return ();
 };
