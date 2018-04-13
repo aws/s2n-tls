@@ -282,3 +282,9 @@ ssize_t s2n_connection_get_session_length(struct s2n_connection *conn)
      */
     return 1 + 1 + conn->session_id_len + S2N_STATE_SIZE_IN_BYTES;
 }
+
+int s2n_connection_is_session_resumed(struct s2n_connection *conn)
+{
+    return IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type);
+}
+

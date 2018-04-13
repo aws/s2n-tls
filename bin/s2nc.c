@@ -61,6 +61,8 @@ void usage()
     fprintf(stderr, "    Directory containing hashed trusted certs. If neither -f or -d are specified. System defaults will be used.\n");
     fprintf(stderr, "  -i,--insecure\n");
     fprintf(stderr, "    Turns off certification validation altogether.\n");
+    fprintf(stderr, "  -r,--reconnect\n");
+    fprintf(stderr, "    Drop and re-make the connection with the same Session-ID\n");
     fprintf(stderr, "\n");
     exit(1);
 }
@@ -89,6 +91,8 @@ int main(int argc, char *const *argv)
 {
     struct addrinfo hints, *ai_list, *ai;
     int r, sockfd = 0;
+    ssize_t session_state_length = 0;
+    uint8_t *session_state = NULL;
     /* Optional args */
     const char *alpn_protocols = NULL;
     const char *server_name = NULL;
@@ -97,6 +101,7 @@ int main(int argc, char *const *argv)
     uint16_t mfl_value = 0;
     uint8_t mfl_code = 0;
     uint8_t insecure = 0;
+    int reconnect = 0;
     s2n_status_request_type type = S2N_STATUS_REQUEST_NONE;
     /* required args */
     const char *cipher_prefs = "default";
@@ -115,11 +120,12 @@ int main(int argc, char *const *argv)
         {"mfl", required_argument, 0, 'm'},
         {"ca-file", required_argument, 0, 'f'},
         {"ca-dir", required_argument, 0, 'd'},
-        {"insecure", no_argument, 0, 'i'}
+        {"insecure", no_argument, 0, 'i'},
+        {"reconnect", no_argument, 0, 'r'}
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:i", long_options, &option_index);
+        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:ir", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -154,6 +160,9 @@ int main(int argc, char *const *argv)
         case 'i':
             insecure = 1;
             break;
+        case 'r':
+            reconnect = 5;
+            break;
         case '?':
         default:
             usage();
@@ -186,102 +195,118 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    if ((r = getaddrinfo(host, port, &hints, &ai_list)) != 0) {
-        fprintf(stderr, "error: %s\n", gai_strerror(r));
-        exit(1);
-    }
-
-    int connected = 0;
-    for (ai = ai_list; ai != NULL; ai = ai->ai_next) {
-        if ((sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) == -1) {
-            continue;
-        }
-
-        if (connect(sockfd, ai->ai_addr, ai->ai_addrlen) == -1) {
-            close(sockfd);
-            continue;
-        }
-
-        connected = 1;
-        /* connect() succeeded */
-        break;
-    }
-
-    freeaddrinfo(ai_list);
-
-    if (connected == 0) {
-        fprintf(stderr, "Failed to connect to %s:%s\n", host, port);
-        close(sockfd);
-        exit(1);
-    }
-
     if (s2n_init() < 0) {
         print_s2n_error("Error running s2n_init()");
         exit(1);
     }
 
-    struct s2n_config *config = s2n_config_new();
-
-    if (config == NULL) {
-        print_s2n_error("Error getting new config");
+    if ((r = getaddrinfo(host, port, &hints, &ai_list)) != 0) {
+        fprintf(stderr, "error: %s\n", gai_strerror(r));
         exit(1);
     }
 
-    if (s2n_config_set_cipher_preferences(config, cipher_prefs) < 0) {
-        print_s2n_error("Error setting cipher prefs");
-        exit(1);
-    }
-
-    if (s2n_config_set_status_request_type(config, type) < 0) {
-        print_s2n_error("OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
-        exit(1);
-    }
-
-    if (s2n_config_set_verify_host_callback(config, unsafe_verify_host, &unsafe_verify_data) < 0) {
-        print_s2n_error("Error setting host name verification function.");
-    }
-
-    if (type == S2N_STATUS_REQUEST_OCSP) {
-        if(s2n_config_set_check_stapled_ocsp_response(config, 1)) {
-            print_s2n_error("OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
-        }
-    }
-
-    unsafe_verify_data.trusted_host = host;
-
-    if (ca_file || ca_dir) {
-        if (s2n_config_set_verification_ca_location(config, ca_file, ca_dir) < 0) {
-            print_s2n_error("Error setting CA file for trust store.");
-        }
-    }
-    else if (insecure) {
-        s2n_config_disable_x509_verification(config);
-    }
-
-    if (alpn_protocols) {
-        /* Count the number of commas, this tells us how many protocols there
-           are in the list */
-        const char *ptr = alpn_protocols;
-        int protocol_count = 1;
-        while (*ptr) {
-            if (*ptr == ',') {
-                protocol_count++;
+    do {
+        int connected = 0;
+        for (ai = ai_list; ai != NULL; ai = ai->ai_next) {
+            if ((sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) == -1) {
+                continue;
             }
-            ptr++;
+
+            if (connect(sockfd, ai->ai_addr, ai->ai_addrlen) == -1) {
+                close(sockfd);
+                continue;
+            }
+
+            connected = 1;
+            /* connect() succeeded */
+            break;
         }
 
-        char **protocols = malloc(sizeof(char *) * protocol_count);
-        if (!protocols) {
-            fprintf(stderr, "Error allocating memory\n");
+        if (connected == 0) {
+            fprintf(stderr, "Failed to connect to %s:%s\n", host, port);
+            close(sockfd);
             exit(1);
         }
 
-        const char *next = alpn_protocols;
-        int idx = 0;
-        int length = 0;
-        ptr = alpn_protocols;
-        while (*ptr) {
-            if (*ptr == ',') {
+        struct s2n_config *config = s2n_config_new();
+
+        if (config == NULL) {
+            print_s2n_error("Error getting new config");
+            exit(1);
+        }
+
+        if (s2n_config_set_cipher_preferences(config, cipher_prefs) < 0) {
+            print_s2n_error("Error setting cipher prefs");
+            exit(1);
+        }
+
+        if (s2n_config_set_status_request_type(config, type) < 0) {
+            print_s2n_error("OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
+            exit(1);
+        }
+
+        if (s2n_config_set_verify_host_callback(config, unsafe_verify_host, &unsafe_verify_data) < 0) {
+            print_s2n_error("Error setting host name verification function.");
+        }
+
+        if (type == S2N_STATUS_REQUEST_OCSP) {
+            if(s2n_config_set_check_stapled_ocsp_response(config, 1)) {
+                print_s2n_error("OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
+            }
+        }
+
+        unsafe_verify_data.trusted_host = host;
+
+        if (ca_file || ca_dir) {
+            if (s2n_config_set_verification_ca_location(config, ca_file, ca_dir) < 0) {
+                print_s2n_error("Error setting CA file for trust store.");
+            }
+        }
+        else if (insecure) {
+            s2n_config_disable_x509_verification(config);
+        }
+
+        if (alpn_protocols) {
+            /* Count the number of commas, this tells us how many protocols there
+               are in the list */
+            const char *ptr = alpn_protocols;
+            int protocol_count = 1;
+            while (*ptr) {
+                if (*ptr == ',') {
+                    protocol_count++;
+                }
+                ptr++;
+            }
+
+            char **protocols = malloc(sizeof(char *) * protocol_count);
+            if (!protocols) {
+                fprintf(stderr, "Error allocating memory\n");
+                exit(1);
+            }
+
+            const char *next = alpn_protocols;
+            int idx = 0;
+            int length = 0;
+            ptr = alpn_protocols;
+            while (*ptr) {
+                if (*ptr == ',') {
+                    protocols[idx] = malloc(length + 1);
+                    if (!protocols[idx]) {
+                        fprintf(stderr, "Error allocating memory\n");
+                        exit(1);
+                    }
+                    memcpy(protocols[idx], next, length);
+                    protocols[idx][length] = '\0';
+                    length = 0;
+                    idx++;
+                    ptr++;
+                    next = ptr;
+                } else {
+                    length++;
+                    ptr++;
+                }
+            }
+            if (ptr != next) {
                 protocols[idx] = malloc(length + 1);
                 if (!protocols[idx]) {
                     fprintf(stderr, "Error allocating memory\n");
@@ -289,120 +314,124 @@ int main(int argc, char *const *argv)
                 }
                 memcpy(protocols[idx], next, length);
                 protocols[idx][length] = '\0';
-                length = 0;
-                idx++;
-                ptr++;
-                next = ptr;
-            } else {
-                length++;
-                ptr++;
             }
-        }
-        if (ptr != next) {
-            protocols[idx] = malloc(length + 1);
-            if (!protocols[idx]) {
-                fprintf(stderr, "Error allocating memory\n");
+            if (s2n_config_set_protocol_preferences(config, (const char *const *)protocols, protocol_count) < 0) {
+                print_s2n_error("Failed to set protocol preferences");
                 exit(1);
             }
-            memcpy(protocols[idx], next, length);
-            protocols[idx][length] = '\0';
+            while (protocol_count) {
+                protocol_count--;
+                free(protocols[protocol_count]);
+            }
+            free(protocols);
         }
-        if (s2n_config_set_protocol_preferences(config, (const char *const *)protocols, protocol_count) < 0) {
-            print_s2n_error("Failed to set protocol preferences");
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+
+        if (mfl_value > 0) {
+            switch(mfl_value) {
+                case 512:
+                    mfl_code = S2N_TLS_MAX_FRAG_LEN_512;
+                    break;
+                case 1024:
+                    mfl_code = S2N_TLS_MAX_FRAG_LEN_1024;
+                    break;
+                case 2048:
+                    mfl_code = S2N_TLS_MAX_FRAG_LEN_2048;
+                    break;
+                case 4096:
+                    mfl_code = S2N_TLS_MAX_FRAG_LEN_4096;
+                    break;
+                default:
+                    fprintf(stderr, "Invalid maximum fragment length value\n");
+                    exit(1);
+            }
+        }
+
+        if (s2n_config_send_max_fragment_length(config, mfl_code) < 0) {
+            print_s2n_error("Error setting maximum fragment length");
             exit(1);
         }
-        while (protocol_count) {
-            protocol_count--;
-            free(protocols[protocol_count]);
+
+        if (conn == NULL) {
+            print_s2n_error("Error getting new connection");
+            exit(1);
         }
-        free(protocols);
-    }
 
-    struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        if (s2n_connection_set_config(conn, config) < 0) {
+            print_s2n_error("Error setting configuration");
+            exit(1);
+        }
 
-    if (mfl_value > 0) {
-        switch(mfl_value) {
-            case 512:
-                mfl_code = S2N_TLS_MAX_FRAG_LEN_512;
-                break;
-            case 1024:
-                mfl_code = S2N_TLS_MAX_FRAG_LEN_1024;
-                break;
-            case 2048:
-                mfl_code = S2N_TLS_MAX_FRAG_LEN_2048;
-                break;
-            case 4096:
-                mfl_code = S2N_TLS_MAX_FRAG_LEN_4096;
-                break;
-            default:
-                fprintf(stderr, "Invalid maximum fragment length value\n");
+        if (s2n_set_server_name(conn, server_name) < 0) {
+            print_s2n_error("Error setting server name");
+            exit(1);
+        }
+
+        if (s2n_connection_set_fd(conn, sockfd) < 0) {
+            print_s2n_error("Error setting file descriptor");
+            exit(1);
+        }
+
+        /* Update session state in connection if exists */
+        if (session_state_length > 0 && s2n_connection_set_session(conn, session_state, session_state_length) < 0) {
+            print_s2n_error("Error setting session state in connection");
+            exit(1);
+        }
+
+        /* See echo.c */
+        int ret = negotiate(conn);
+
+        if (ret != 0) {
+            /* Error is printed in negotiate */
+            return -1;
+        }
+
+        printf("Connected to %s:%s\n", host, port);
+
+        /* Save session state from connection if reconnect is enabled */
+        if (reconnect > 0) {
+            if (!s2n_connection_get_session_id(conn)) {
+                printf("Endpoint sent empty session id so cannot resume session\n");
                 exit(1);
+            }
+            free(session_state);
+            session_state_length = s2n_connection_get_session_length(conn);
+            session_state = calloc(session_state_length, sizeof(uint8_t));
+            if (s2n_connection_get_session(conn, session_state, session_state_length) != session_state_length) {
+                print_s2n_error("Error getting serialized session state");
+                exit(1);
+            }
         }
-    }
 
-    if (s2n_config_send_max_fragment_length(config, mfl_code) < 0) {
-        print_s2n_error("Error setting maximum fragment length");
-        exit(1);
-    }
+        if (echo_input == 1) {
+            echo(conn, sockfd);
+        }
 
-    if (conn == NULL) {
-        print_s2n_error("Error getting new connection");
-        exit(1);
-    }
+        s2n_blocked_status blocked;
+        s2n_shutdown(conn, &blocked);
 
-    if (s2n_connection_set_config(conn, config) < 0) {
-        print_s2n_error("Error setting configuration");
-        exit(1);
-    }
+        if (s2n_connection_free(conn) < 0) {
+            print_s2n_error("Error freeing connection");
+            exit(1);
+        }
 
-    if (s2n_set_server_name(conn, server_name) < 0) {
-        print_s2n_error("Error setting server name");
-        exit(1);
-    }
+        if (s2n_config_free(config) < 0) {
+            print_s2n_error("Error freeing configuration");
+            exit(1);
+        }
 
-    if (s2n_connection_set_fd(conn, sockfd) < 0) {
-        print_s2n_error("Error setting file descriptor");
-        exit(1);
-    }
+        close(sockfd);
+        reconnect--;
 
-    /* See echo.c */
-    int ret = negotiate(conn);
-
-    if (ret != 0) {
-        /* Error is printed in negotiate */
-        return -1;
-    }
-
-    printf("Connected to %s:%s\n", host, port);
-
-    if (echo_input != 1) {
-        return 0;
-    }
-
-    echo(conn, sockfd);
-
-    s2n_blocked_status blocked;
-    if (s2n_shutdown(conn, &blocked) < 0) {
-        print_s2n_error("Error calling s2n_shutdown");
-        exit(1);
-    }
-
-    close(sockfd);
-
-    if (s2n_connection_free(conn) < 0) {
-        print_s2n_error("Error freeing connection");
-        exit(1);
-    }
-
-    if (s2n_config_free(config) < 0) {
-        print_s2n_error("Error freeing configuration");
-        exit(1);
-    }
+    } while (reconnect >= 0);
 
     if (s2n_cleanup() < 0) {
         print_s2n_error("Error running s2n_cleanup()");
         exit(1);
     }
 
+    free(session_state);
+    freeaddrinfo(ai_list);
     return 0;
 }
