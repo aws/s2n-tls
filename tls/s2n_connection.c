@@ -908,13 +908,10 @@ const char *s2n_get_application_protocol(struct s2n_connection *conn)
     return conn->application_protocol;
 }
 
-const uint8_t *s2n_connection_get_session_id(struct s2n_connection *conn)
+ssize_t s2n_connection_get_session_id_length(struct s2n_connection *conn)
 {
-    if (conn->session_id_len == 0) {
-        return NULL;
-    }
-
-    return conn->session_id;
+    notnull_check(conn);
+    return conn->session_id_len;
 }
 
 int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blinding)

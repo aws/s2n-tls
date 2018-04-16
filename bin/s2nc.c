@@ -87,6 +87,123 @@ extern void print_s2n_error(const char *app_error);
 extern int echo(struct s2n_connection *conn, int sockfd);
 extern int negotiate(struct s2n_connection *conn);
 
+static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs, s2n_status_request_type type,
+    struct verify_data *unsafe_verify_data, const char *host, const char *alpn_protocols, uint16_t mfl_value) {
+
+    if (config == NULL) {
+        print_s2n_error("Error getting new config");
+        exit(1);
+    }
+
+    if (s2n_config_set_cipher_preferences(config, cipher_prefs) < 0) {
+        print_s2n_error("Error setting cipher prefs");
+        exit(1);
+    }
+
+    if (s2n_config_set_status_request_type(config, type) < 0) {
+        print_s2n_error("OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
+        exit(1);
+    }
+
+    if (s2n_config_set_verify_host_callback(config, unsafe_verify_host, unsafe_verify_data) < 0) {
+        print_s2n_error("Error setting host name verification function.");
+    }
+
+    if (type == S2N_STATUS_REQUEST_OCSP) {
+        if(s2n_config_set_check_stapled_ocsp_response(config, 1)) {
+            print_s2n_error("OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
+        }
+    }
+
+    unsafe_verify_data->trusted_host = host;
+
+    if (alpn_protocols) {
+        /* Count the number of commas, this tells us how many protocols there
+           are in the list */
+        const char *ptr = alpn_protocols;
+        int protocol_count = 1;
+        while (*ptr) {
+            if (*ptr == ',') {
+                protocol_count++;
+            }
+            ptr++;
+        }
+
+        char **protocols = malloc(sizeof(char *) * protocol_count);
+        if (!protocols) {
+            fprintf(stderr, "Error allocating memory\n");
+            exit(1);
+        }
+
+        const char *next = alpn_protocols;
+        int idx = 0;
+        int length = 0;
+        ptr = alpn_protocols;
+        while (*ptr) {
+            if (*ptr == ',') {
+                protocols[idx] = malloc(length + 1);
+                if (!protocols[idx]) {
+                    fprintf(stderr, "Error allocating memory\n");
+                    exit(1);
+                }
+                memcpy(protocols[idx], next, length);
+                protocols[idx][length] = '\0';
+                length = 0;
+                idx++;
+                ptr++;
+                next = ptr;
+            } else {
+                length++;
+                ptr++;
+            }
+        }
+        if (ptr != next) {
+            protocols[idx] = malloc(length + 1);
+            if (!protocols[idx]) {
+                fprintf(stderr, "Error allocating memory\n");
+                exit(1);
+            }
+            memcpy(protocols[idx], next, length);
+            protocols[idx][length] = '\0';
+        }
+        if (s2n_config_set_protocol_preferences(config, (const char *const *)protocols, protocol_count) < 0) {
+            print_s2n_error("Failed to set protocol preferences");
+            exit(1);
+        }
+        while (protocol_count) {
+            protocol_count--;
+            free(protocols[protocol_count]);
+        }
+        free(protocols);
+    }
+
+    uint8_t mfl_code = 0;
+    if (mfl_value > 0) {
+        switch(mfl_value) {
+            case 512:
+                mfl_code = S2N_TLS_MAX_FRAG_LEN_512;
+                break;
+            case 1024:
+                mfl_code = S2N_TLS_MAX_FRAG_LEN_1024;
+                break;
+            case 2048:
+                mfl_code = S2N_TLS_MAX_FRAG_LEN_2048;
+                break;
+            case 4096:
+                mfl_code = S2N_TLS_MAX_FRAG_LEN_4096;
+                break;
+            default:
+                fprintf(stderr, "Invalid maximum fragment length value\n");
+                exit(1);
+        }
+    }
+
+    if (s2n_config_send_max_fragment_length(config, mfl_code) < 0) {
+        print_s2n_error("Error setting maximum fragment length");
+        exit(1);
+    }
+}
+
 int main(int argc, char *const *argv)
 {
     struct addrinfo hints, *ai_list, *ai;
@@ -99,7 +216,6 @@ int main(int argc, char *const *argv)
     const char *ca_file = NULL;
     const char *ca_dir = NULL;
     uint16_t mfl_value = 0;
-    uint8_t mfl_code = 0;
     uint8_t insecure = 0;
     int reconnect = 0;
     s2n_status_request_type type = S2N_STATUS_REQUEST_NONE;
@@ -224,38 +340,11 @@ int main(int argc, char *const *argv)
 
         if (connected == 0) {
             fprintf(stderr, "Failed to connect to %s:%s\n", host, port);
-            close(sockfd);
             exit(1);
         }
 
         struct s2n_config *config = s2n_config_new();
-
-        if (config == NULL) {
-            print_s2n_error("Error getting new config");
-            exit(1);
-        }
-
-        if (s2n_config_set_cipher_preferences(config, cipher_prefs) < 0) {
-            print_s2n_error("Error setting cipher prefs");
-            exit(1);
-        }
-
-        if (s2n_config_set_status_request_type(config, type) < 0) {
-            print_s2n_error("OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
-            exit(1);
-        }
-
-        if (s2n_config_set_verify_host_callback(config, unsafe_verify_host, &unsafe_verify_data) < 0) {
-            print_s2n_error("Error setting host name verification function.");
-        }
-
-        if (type == S2N_STATUS_REQUEST_OCSP) {
-            if(s2n_config_set_check_stapled_ocsp_response(config, 1)) {
-                print_s2n_error("OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
-            }
-        }
-
-        unsafe_verify_data.trusted_host = host;
+        setup_s2n_config(config, cipher_prefs, type, &unsafe_verify_data, host, alpn_protocols, mfl_value);
 
         if (ca_file || ca_dir) {
             if (s2n_config_set_verification_ca_location(config, ca_file, ca_dir) < 0) {
@@ -266,92 +355,7 @@ int main(int argc, char *const *argv)
             s2n_config_disable_x509_verification(config);
         }
 
-        if (alpn_protocols) {
-            /* Count the number of commas, this tells us how many protocols there
-               are in the list */
-            const char *ptr = alpn_protocols;
-            int protocol_count = 1;
-            while (*ptr) {
-                if (*ptr == ',') {
-                    protocol_count++;
-                }
-                ptr++;
-            }
-
-            char **protocols = malloc(sizeof(char *) * protocol_count);
-            if (!protocols) {
-                fprintf(stderr, "Error allocating memory\n");
-                exit(1);
-            }
-
-            const char *next = alpn_protocols;
-            int idx = 0;
-            int length = 0;
-            ptr = alpn_protocols;
-            while (*ptr) {
-                if (*ptr == ',') {
-                    protocols[idx] = malloc(length + 1);
-                    if (!protocols[idx]) {
-                        fprintf(stderr, "Error allocating memory\n");
-                        exit(1);
-                    }
-                    memcpy(protocols[idx], next, length);
-                    protocols[idx][length] = '\0';
-                    length = 0;
-                    idx++;
-                    ptr++;
-                    next = ptr;
-                } else {
-                    length++;
-                    ptr++;
-                }
-            }
-            if (ptr != next) {
-                protocols[idx] = malloc(length + 1);
-                if (!protocols[idx]) {
-                    fprintf(stderr, "Error allocating memory\n");
-                    exit(1);
-                }
-                memcpy(protocols[idx], next, length);
-                protocols[idx][length] = '\0';
-            }
-            if (s2n_config_set_protocol_preferences(config, (const char *const *)protocols, protocol_count) < 0) {
-                print_s2n_error("Failed to set protocol preferences");
-                exit(1);
-            }
-            while (protocol_count) {
-                protocol_count--;
-                free(protocols[protocol_count]);
-            }
-            free(protocols);
-        }
-
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
-
-        if (mfl_value > 0) {
-            switch(mfl_value) {
-                case 512:
-                    mfl_code = S2N_TLS_MAX_FRAG_LEN_512;
-                    break;
-                case 1024:
-                    mfl_code = S2N_TLS_MAX_FRAG_LEN_1024;
-                    break;
-                case 2048:
-                    mfl_code = S2N_TLS_MAX_FRAG_LEN_2048;
-                    break;
-                case 4096:
-                    mfl_code = S2N_TLS_MAX_FRAG_LEN_4096;
-                    break;
-                default:
-                    fprintf(stderr, "Invalid maximum fragment length value\n");
-                    exit(1);
-            }
-        }
-
-        if (s2n_config_send_max_fragment_length(config, mfl_code) < 0) {
-            print_s2n_error("Error setting maximum fragment length");
-            exit(1);
-        }
 
         if (conn == NULL) {
             print_s2n_error("Error getting new connection");
@@ -391,7 +395,7 @@ int main(int argc, char *const *argv)
 
         /* Save session state from connection if reconnect is enabled */
         if (reconnect > 0) {
-            if (!s2n_connection_get_session_id(conn)) {
+            if (s2n_connection_get_session_id_length(conn) <= 0) {
                 printf("Endpoint sent empty session id so cannot resume session\n");
                 exit(1);
             }

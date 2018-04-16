@@ -1118,7 +1118,7 @@ const char * s2n_connection_get_curve(struct s2n_connection *conn);
 int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *session, size_t length);
 int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, size_t max_length);
 ssize_t s2n_connection_get_session_length(struct s2n_connection *conn);
-const uint8_t *s2n_connection_get_session_id(struct s2n_connection *conn);
+ssize_t s2n_connection_get_session_id_length(struct s2n_connection *conn);
 int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 ```
 
@@ -1132,7 +1132,7 @@ int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 
 **s2n_connection_get_session_length** returns number of bytes needed to store serailized session state; it can be used to allocate the **session** buffer.
 
-**s2n_connection_get_session_id** returns session id from the connection if exists else returns null.
+**s2n_connection_get_session_id_length** returns session id length from the connection.
 
 **s2n_connection_is_session_resumed** checks if the handshake is abbreviated or not.
 
