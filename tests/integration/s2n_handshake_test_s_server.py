@@ -41,7 +41,7 @@ def cleanup_processes(*processes):
         p.wait()
 
 
-def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, sig_algs=None, curves=None, dh_params=None):
+def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, sig_algs=None, curves=None, dh_params=None, resume=False):
     """
     Attempt to handshake against Openssl s_server listening on `endpoint` and `port` using s2nc
 
@@ -54,12 +54,13 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     :param str sig_algs: Signature algorithms for Openssl s_server to accept
     :param str curves: Elliptic curves for Openssl s_server to accept
     :param str dh_params: path to DH params for Openssl s_server to use
+    :param bool resume: if s2n client has to use reconnect option
     :return: 0 on successfully negotiation(s), -1 on failure
     """
 
     # Override certificate for ECDSA if unspecified. We can remove this when we
     # support multiple certificates
-    if server_cert is None and "ECDSA" in cipher:
+    if server_cert is None and cipher is not None and "ECDSA" in cipher:
         server_cert = TEST_ECDSA_CERT
         server_key = TEST_ECDSA_KEY
 
@@ -105,8 +106,10 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
         return -1
 
     # Fire up s2nc
-    s2nc_cmd = ["../../bin/s2nc"]
-    s2nc_cmd.extend(["-c", "test_all", "-i", str(endpoint), str(port)])
+    s2nc_cmd = ["../../bin/s2nc", "-c", "test_all", "-i"]
+    if resume:
+        s2nc_cmd.append("-r")
+    s2nc_cmd.extend([str(endpoint), str(port)])
 
     envVars = os.environ.copy()
     envVars["S2N_ENABLE_CLIENT_MODE"] = "1"
@@ -115,11 +118,22 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
 
     # Read from s2nc until we get successful connection message
     found = 0
-    for line in range(0, 10):
-        output = s2nc.stdout.readline().decode("utf-8")
-        if output.strip() == "Connected to {}:{}".format(endpoint, port):
-            found = 1
-            break
+    seperators = 0
+    if resume:
+        for line in s2nc.stdout:
+            line = line.decode("utf-8").strip()
+            if line.startswith("Resumed session"):
+                seperators += 1
+
+            if seperators == 5:
+                found = 1
+                break
+    else:
+        for line in range(0, 10):
+            output = s2nc.stdout.readline().decode("utf-8")
+            if output.strip() == "Connected to {}:{}".format(endpoint, port):
+                found = 1
+                break
 
     cleanup_processes(s2nc, s_server)
 
@@ -204,6 +218,20 @@ def handshake_test(host, port, test_ciphers):
 
     return failed
 
+def handshake_resumption_test(host, port):
+    """
+    Basic handshake tests for session resumption.
+    """
+    print("\n\tRunning s2n Client session resumption tests:")
+    failed = 0
+    for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
+        ret = try_handshake(host, port, None, ssl_version, resume=True)
+        prefix = "Session Resumption for: %-40s ... " % (S2N_PROTO_VERS_TO_STR[ssl_version])
+        print_result(prefix, ret)
+        if ret != 0:
+            failed = 1
+
+    return failed
 
 supported_sigs = ["RSA+SHA1", "RSA+SHA224", "RSA+SHA256", "RSA+SHA384", "RSA+SHA512"]
 unsupported_sigs = ["ECDSA+SHA256", "ECDSA+SHA512"]
@@ -302,6 +330,7 @@ def main():
 
     failed = 0
     failed += handshake_test(host, port, test_ciphers)
+    failed += handshake_resumption_test(host, port)
     failed += sigalg_test(host, port)
     failed += elliptic_curve_test(host, port)
     return failed

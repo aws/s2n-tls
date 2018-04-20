@@ -92,6 +92,9 @@ int negotiate(struct s2n_connection *conn)
     }
 
     printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
+    if (s2n_connection_is_session_resumed(conn)) {
+        printf("Resumed session\n");
+    }
 
     return 0;
 }
