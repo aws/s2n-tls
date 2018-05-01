@@ -358,6 +358,34 @@ const struct s2n_cipher_preferences elb_security_policy_tls_1_1_2017_01 = {
     .minimum_protocol_version = S2N_TLS11
 };
 
+struct s2n_cipher_suite *cipher_suites_cloudfront_upstream[] = {
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_3des_ede_cbc_sha,
+    &s2n_rsa_with_rc4_128_md5
+};
+
+const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream = {
+    .count = sizeof(cipher_suites_cloudfront_upstream) / sizeof(cipher_suites_cloudfront_upstream[0]),
+    .suites = cipher_suites_cloudfront_upstream,
+    .minimum_protocol_version = S2N_SSLv3
+};
+
 struct {
     const char *version;
     const struct s2n_cipher_preferences *preferences;
@@ -370,6 +398,7 @@ struct {
     { "ELBSecurityPolicy-2016-08", &elb_security_policy_2016_08},
     { "ELBSecurityPolicy-TLS-1-1-2017-01", &elb_security_policy_tls_1_1_2017_01},
     { "ELBSecurityPolicy-TLS-1-2-2017-01", &elb_security_policy_tls_1_2_2017_01},
+    { "CloudFront-Upstream", &cipher_preferences_cloudfront_upstream },
     { "20140601", &cipher_preferences_20140601 },
     { "20141001", &cipher_preferences_20141001 },
     { "20150202", &cipher_preferences_20150202 },

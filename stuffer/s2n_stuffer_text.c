@@ -29,6 +29,19 @@ int s2n_stuffer_peek_char(struct s2n_stuffer *s2n_stuffer, char *c)
     return r;
 }
 
+/* Peeks in stuffer to see if expected string is present. */
+int s2n_stuffer_peek_check_for_str(struct s2n_stuffer *s2n_stuffer, const char *expected)
+{
+    int orig_read_pos = s2n_stuffer->read_cursor;
+    int rc = s2n_stuffer_read_expected_str(s2n_stuffer, expected);
+    s2n_stuffer->read_cursor = orig_read_pos;
+
+    if (rc == 0) {
+        return 1;
+    }
+    return 0;
+}
+
 int s2n_stuffer_skip_whitespace(struct s2n_stuffer *s2n_stuffer)
 {
     int skipped = 0;
@@ -93,6 +106,24 @@ int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, const char target)
     }
 
     return 0;
+}
+
+/* Skips an expected character in the stuffer between min and max times */
+int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expected, int min, int max)
+{
+    int skipped = 0;
+    while (stuffer->read_cursor < stuffer->write_cursor && skipped < max) {
+        if (stuffer->blob.data[stuffer->read_cursor] == expected){
+            stuffer->read_cursor += 1;
+            skipped += 1;
+        } else {
+            break;
+        }
+    }
+
+    S2N_ERROR_IF(skipped < min, S2N_ERR_STUFFER_NOT_FOUND);
+
+    return skipped;
 }
 
 /* Read a line of text. Agnostic to LF or CR+LF line endings. */
