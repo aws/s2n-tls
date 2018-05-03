@@ -328,6 +328,8 @@ void usage()
     fprintf(stderr, "    This option is only used if mutual auth is enabled.\n");
     fprintf(stderr, "  -i,--insecure\n");
     fprintf(stderr, "    Turns off certification validation altogether.\n");
+    fprintf(stderr, "  -T,--no-session-tickets\n");
+    fprintf(stderr, "    Do not support session tickets for resumption.\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -342,6 +344,7 @@ struct conn_settings {
     int prefer_throughput;
     int prefer_low_latency;
     int enable_mfl;
+    int no_session_tickets;
     const char *ca_dir;
     const char *ca_file;
     int insecure;
@@ -461,12 +464,13 @@ int main(int argc, char *const *argv)
         {"ca-dir", required_argument, 0, 'd'},
         {"ca-file", required_argument, 0, 't'},
         {"insecure", no_argument, 0, 'i'},
+        {"no-session-tickets", no_argument, 0, 'T'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hmnst:d:i", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmnst:d:i:T", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -519,7 +523,10 @@ int main(int argc, char *const *argv)
             break;
         case 'i':
             conn_settings.insecure = 1;
-                break;
+            break;
+        case 'T':
+            conn_settings.no_session_tickets = 1;
+            break;
         case '?':
         default:
             fprintf(stdout, "getopt_long returned: %d", c);
@@ -713,6 +720,25 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
+    if (conn_settings.no_session_tickets) {
+        if (s2n_config_disable_session_tickets(config) < 0) {
+            fprintf(stderr, "Error disabling session tickets: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+            exit(1);
+        }
+    } else {
+        /* Key initialization */
+        const unsigned char tick_key_name[16] = "2016.07.26.15\0";
+
+        uint8_t tick_key[32] = {0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf, 0x0d, 0xdc,
+                0x3f, 0x0d, 0xc4, 0x7b, 0xba, 0x63, 0x90, 0xb6, 0xc7, 0x3b,
+                0xb5, 0x0f, 0x9c, 0x31, 0x22, 0xec, 0x84, 0x4a, 0xd7, 0xc2,
+                0xb3, 0xe5 };
+
+        if (s2n_config_add_ticket_crypto_key(config, tick_key_name, sizeof(tick_key_name), tick_key, sizeof(tick_key)) != 0) {
+            fprintf(stderr, "Error adding ticket key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+            exit(1);
+        }
+    }
 
     int fd;
     while ((fd = accept(sockfd, ai->ai_addr, &ai->ai_addrlen)) > 0) {

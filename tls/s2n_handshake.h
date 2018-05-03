@@ -106,6 +106,7 @@ struct s2n_handshake {
 
 /* Session Resumption via session-tickets */
 #define WITH_SESSION_TICKET         0x20
+#define IS_ISSUING_NEW_SESSION_TICKET( type )   ( (type) & WITH_SESSION_TICKET )
 
     /* Which handshake message number are we processing */
     int message_number;

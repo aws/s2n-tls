@@ -57,6 +57,7 @@ int mock_client(int writefd, int readfd, const char **protocols, int count, cons
 
     client_conn = s2n_connection_new(S2N_CLIENT);
     client_config = s2n_config_new();
+    s2n_config_disable_session_tickets(client_config);
     s2n_config_set_protocol_preferences(client_config, protocols, count);
     s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(client_conn, client_config);

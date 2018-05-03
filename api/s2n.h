@@ -110,6 +110,15 @@ extern int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_exte
 extern int s2n_config_send_max_fragment_length(struct s2n_config *config, s2n_max_frag_len mfl_code);
 extern int s2n_config_accept_max_fragment_length(struct s2n_config *config);
 
+extern int s2n_config_set_session_state_lifetime(struct s2n_config *config, uint64_t lifetime_in_nanos);
+
+extern int s2n_config_disable_session_tickets(struct s2n_config *config);
+extern int s2n_config_set_ticket_valid_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_nanos);
+extern int s2n_config_set_ticket_semi_valid_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_nanos);
+extern int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
+                                            const uint8_t *name, uint32_t name_len,
+                                            uint8_t *key, uint32_t key_len);
+
 struct s2n_connection;
 typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
 extern struct s2n_connection *s2n_connection_new(s2n_mode mode);

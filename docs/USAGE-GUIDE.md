@@ -1112,9 +1112,11 @@ const char * s2n_connection_get_curve(struct s2n_connection *conn);
 
 **s2n_connection_get_curve** returns a string indicating the elliptic curve used during ECDHE key exchange. The string "NONE" is returned if no curve has was used.
 
-### Session State Related calls
+### Session Resumption Related calls
 
 ```c
+int s2n_config_set_session_state_lifetime(struct s2n_config *config, uint64_t lifetime_in_nanos);
+
 int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *session, size_t length);
 int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, size_t max_length);
 ssize_t s2n_connection_get_session_length(struct s2n_connection *conn);
@@ -1122,19 +1124,45 @@ ssize_t s2n_connection_get_session_id_length(struct s2n_connection *conn);
 int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 ```
 
-- **session** session will contain serialized session related information needed to resume handshake.
+- **lifetime_in_nanos** lifetime of the cached session state required to resume a handshake
+- **session** session will contain serialized session related information needed to resume handshake either using session id or session ticket.
 - **length** length of the serialized session state.
 - **max_length** Max number of bytes to copy into the **session** buffer.
 
-**s2n_connection_set_session** de-serializes the session state and updates the connection accrodingly.
+**s2n_config_set_session_state_lifetime** sets the lifetime of the cached session state. The default value is 21 seconds.
+
+**s2n_connection_set_session** de-serializes the session state and updates the connection accordingly.
 
 **s2n_connection_get_session** serializes the session state from connection and copies into the **session** buffer and returns the number of bytes that were copied.
 
-**s2n_connection_get_session_length** returns number of bytes needed to store serailized session state; it can be used to allocate the **session** buffer.
+**s2n_connection_get_session_length** returns number of bytes needed to store serialized session state; it can be used to allocate the **session** buffer.
 
 **s2n_connection_get_session_id_length** returns session id length from the connection.
 
 **s2n_connection_is_session_resumed** checks if the handshake is abbreviated or not.
+
+### Session Ticket Specific calls
+
+```c
+int s2n_config_disable_session_tickets(struct s2n_config *config);
+int s2n_config_set_ticket_valid_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_nanos);
+int s2n_config_set_ticket_semi_valid_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_nanos);
+int s2n_config_add_ticket_crypto_key(struct s2n_config *config, const uint8_t *name, uint32_t name_len, uint8_t *key, uint32_t key_len);
+```
+
+- **name** name of the session ticket key that should be randomly generated to avoid collisions
+- **name_len** length of session ticket key name
+- **key** key used to perform encryption/decryption of session ticket
+- **key_len** length of the session ticket key
+
+**s2n_config_disable_session_tickets** disables session resumption using session ticket
+
+**s2n_config_set_ticket_valid_key_lifetime** sets how long the session ticket keys are considered **valid** on the server side. The default value is 2 hours. If a key is in **valid** state, then it will be used for both encryption and decryption of the tickets on the server side.
+
+**s2n_config_set_ticket_semi_valid_key_lifetime** sets how long the session ticket keys are considered **semi-valid** on the server side. The default value is 13 hours. If a key is in **semi-valid** state, then it will be used just for decryption of already assigned tickets on the server side. The session will resume and the server will issue a new session ticket encrypted using a valid key.
+
+**s2n_config_add_ticket_crypto_key** adds session ticket key on the server side. It would be ideal to add new keys after every (valid_key_lifetime_in_nanos/2) nanos because
+this will allow for gradual and linear transition of a key from valid to semi-valid state.
 
 ### s2n\_connection\_wipe
 

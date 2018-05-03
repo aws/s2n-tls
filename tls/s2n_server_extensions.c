@@ -32,6 +32,7 @@ static int s2n_recv_server_alpn(struct s2n_connection *conn, struct s2n_stuffer 
 static int s2n_recv_server_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_server_sct_list(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_server_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_recv_server_session_ticket_ext(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
@@ -56,6 +57,9 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     }
     if (conn->mfl_code) {
         total_size += 5;
+    }
+    if (s2n_server_sending_nst(conn)) {
+        total_size += 4;
     }
 
     if (total_size == 0) {
@@ -119,6 +123,12 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint8(out, conn->mfl_code));
     }
 
+    /* Write session ticket extension */
+    if (s2n_server_sending_nst(conn)) {
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SESSION_TICKET));
+        GUARD(s2n_stuffer_write_uint16(out, 0));
+    }
+
     return 0;
 }
 
@@ -156,6 +166,9 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
             break;
         case TLS_EXTENSION_MAX_FRAG_LEN:
             GUARD(s2n_recv_server_max_frag_len(conn, &extension));
+            break;
+        case TLS_EXTENSION_SESSION_TICKET:
+            GUARD(s2n_recv_server_session_ticket_ext(conn, &extension));
             break;
         }
     }
@@ -210,6 +223,13 @@ int s2n_recv_server_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer
     uint8_t mfl_code;
     GUARD(s2n_stuffer_read_uint8(extension, &mfl_code));
     S2N_ERROR_IF(mfl_code != conn->config->mfl_code, S2N_ERR_MAX_FRAG_LEN_MISMATCH);
+
+    return 0;
+}
+
+int s2n_recv_server_session_ticket_ext(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    conn->session_ticket_status = S2N_EXPECTING_NEW_TICKET;
 
     return 0;
 }

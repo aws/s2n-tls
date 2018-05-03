@@ -46,6 +46,8 @@ extern int s2n_client_cert_verify_recv(struct s2n_connection *conn);
 extern int s2n_client_cert_verify_send(struct s2n_connection *conn);
 extern int s2n_client_ccs_send(struct s2n_connection *conn);
 extern int s2n_client_ccs_recv(struct s2n_connection *conn);
+extern int s2n_server_nst_send(struct s2n_connection *conn);
+extern int s2n_server_nst_recv(struct s2n_connection *conn);
 extern int s2n_server_ccs_send(struct s2n_connection *conn);
 extern int s2n_server_ccs_recv(struct s2n_connection *conn);
 extern int s2n_client_finished_send(struct s2n_connection *conn);
@@ -75,3 +77,6 @@ extern uint16_t mfl_code_to_length[5];
         (conn)->config->cert_and_key_pairs && \
         (conn)->config->cert_and_key_pairs->sct_list.size > 0)
 
+#define s2n_server_sending_nst(conn) ((conn)->config->use_tickets && \
+        ((conn)->session_ticket_status == S2N_EXPECTING_NEW_TICKET || \
+         (conn)->session_ticket_status == S2N_RENEW_TICKET))
