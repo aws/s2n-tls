@@ -210,7 +210,7 @@ def create_thread_pool():
     threadpool = ThreadPool(processes=threadpool_size)
     return threadpool
 
-def run_handshake_test(host, port, ssl_version, cipher, fips_mode, use_client_auth, client_cert_path, client_key_path):
+def run_handshake_test(host, port, ssl_version, cipher, fips_mode, no_ticket, use_client_auth, client_cert_path, client_key_path):
     cipher_name = cipher.openssl_name
     cipher_vers = cipher.min_tls_vers
 
@@ -226,14 +226,14 @@ def run_handshake_test(host, port, ssl_version, cipher, fips_mode, use_client_au
     if (use_client_auth is not None) and (client_cert_path is not None):
         client_cert_str = cert_path_to_str(client_cert_path)
 
-    ret = try_handshake(host, port, cipher_name, ssl_version, enter_fips_mode=fips_mode, client_auth=use_client_auth, client_cert=client_cert_path, client_key=client_key_path)
+    ret = try_handshake(host, port, cipher_name, ssl_version, no_ticket=no_ticket, enter_fips_mode=fips_mode, client_auth=use_client_auth, client_cert=client_cert_path, client_key=client_key_path)
     
     result_prefix = "Cipher: %-28s ClientCert: %-16s Vers: %-8s ... " % (cipher_name, client_cert_str, S2N_PROTO_VERS_TO_STR[ssl_version])
     print_result(result_prefix, ret)
     
     return ret
 
-def handshake_test(host, port, test_ciphers, fips_mode, use_client_auth=None, use_client_cert=None, use_client_key=None):
+def handshake_test(host, port, test_ciphers, fips_mode, no_ticket=False, use_client_auth=None, use_client_cert=None, use_client_key=None):
     """
     Basic handshake tests using all valid combinations of supported cipher suites and TLS versions.
     """
@@ -247,7 +247,7 @@ def handshake_test(host, port, test_ciphers, fips_mode, use_client_auth=None, us
         results = []
         
         for cipher in test_ciphers:
-            async_result = threadpool.apply_async(run_handshake_test, (host, port + port_offset, ssl_version, cipher, fips_mode, use_client_auth, use_client_cert, use_client_key))
+            async_result = threadpool.apply_async(run_handshake_test, (host, port + port_offset, ssl_version, cipher, fips_mode, no_ticket, use_client_auth, use_client_cert, use_client_key))
             port_offset += 1
             results.append(async_result)
 
@@ -273,7 +273,7 @@ def client_auth_test(host, port, test_ciphers, fips_mode):
         if "client_cert" in filename and "rsa" in filename:
             client_cert_path = TEST_CERT_DIRECTORY + filename
             client_key_path = TEST_CERT_DIRECTORY + filename.replace("client_cert", "client_key")
-            ret = handshake_test(host, port, test_ciphers, fips_mode, use_client_auth=True, use_client_cert=client_cert_path, use_client_key=client_key_path)
+            ret = handshake_test(host, port, test_ciphers, fips_mode, no_ticket=True, use_client_auth=True, use_client_cert=client_cert_path, use_client_key=client_key_path)
             if ret is not 0:
                 failed += 1
                 
@@ -336,18 +336,18 @@ def resume_using_session_id_test(host, port, test_ciphers, fips_mode):
 supported_sigs = ["RSA+SHA1", "RSA+SHA224", "RSA+SHA256", "RSA+SHA384", "RSA+SHA512"]
 unsupported_sigs = ["ECDSA+SHA256", "ECDSA+SHA512"]
 
-def run_sigalg_test(host, port, cipher, ssl_version, permutation, fips_mode, use_client_auth):
+def run_sigalg_test(host, port, cipher, ssl_version, permutation, fips_mode, use_client_auth, no_ticket):
     # Put some unsupported algs in front to make sure we gracefully skip them
     mixed_sigs = unsupported_sigs + list(permutation)
     mixed_sigs_str = ':'.join(mixed_sigs)
-    ret = try_handshake(host, port, cipher.openssl_name, ssl_version, sig_algs=mixed_sigs_str, enter_fips_mode=fips_mode, client_auth=use_client_auth)
+    ret = try_handshake(host, port, cipher.openssl_name, ssl_version, sig_algs=mixed_sigs_str, no_ticket=no_ticket, enter_fips_mode=fips_mode, client_auth=use_client_auth)
         
     # Trim the RSA part off for brevity. User should know we are only supported RSA at the moment.
     prefix = "Digests: %-35s ClientAuth: %-6s Vers: %-8s... " % (':'.join([x[4:] for x in permutation]), str(use_client_auth), S2N_PROTO_VERS_TO_STR[S2N_TLS12])
     print_result(prefix, ret)
     return ret
 
-def sigalg_test(host, port, fips_mode, use_client_auth=None):
+def sigalg_test(host, port, fips_mode, use_client_auth=None, no_ticket=False):
     """
     Acceptance test for supported signature algorithms. Tests all possible supported sigalgs with unsupported ones mixed in
     for noise.
@@ -373,7 +373,7 @@ def sigalg_test(host, port, fips_mode, use_client_auth=None):
             for cipher in ALL_TEST_CIPHERS:
                 # Try an ECDHE cipher suite and a DHE one
                 if(cipher.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or cipher.openssl_name == "DHE-RSA-AES128-GCM-SHA256"):
-                    async_result = threadpool.apply_async(run_sigalg_test, (host, port + portOffset, cipher, S2N_TLS12, permutation, fips_mode, use_client_auth))
+                    async_result = threadpool.apply_async(run_sigalg_test, (host, port + portOffset, cipher, S2N_TLS12, permutation, fips_mode, use_client_auth, no_ticket))
                     portOffset = portOffset + 1
                     results.append(async_result)
 
@@ -499,7 +499,7 @@ def main():
     failed += handshake_test(host, port, test_ciphers, fips_mode)
     failed += client_auth_test(host, port, test_ciphers, fips_mode)
     failed += sigalg_test(host, port, fips_mode)
-    failed += sigalg_test(host, port, fips_mode, use_client_auth=True)
+    failed += sigalg_test(host, port, fips_mode, use_client_auth=True, no_ticket=True)
     failed += elliptic_curve_test(host, port, fips_mode)
     failed += elliptic_curve_fallback_test(host, port, fips_mode)
     failed += handshake_fragmentation_test(host, port, fips_mode)

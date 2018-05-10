@@ -20,17 +20,20 @@
 #include "stuffer/s2n_stuffer.h"
 
 #define S2N_SERIALIZED_FORMAT_VERSION   1
-#define S2N_STATE_LIFETIME_IN_NANOS     21600000000
+#define S2N_STATE_LIFETIME_IN_NANOS     54000000000000      /* 15 hours */
 #define S2N_STATE_SIZE_IN_BYTES         (1 + 8 + 1 + S2N_TLS_CIPHER_SUITE_LEN + S2N_TLS_SECRET_LEN)
 #define S2N_TLS_SESSION_CACHE_TTL       (6 * 60 * 60)
 #define S2N_TICKET_KEY_NAME_LEN         16
 #define S2N_TICKET_AAD_IMPLICIT_LEN     12
 #define S2N_TICKET_AAD_LEN              (S2N_TICKET_AAD_IMPLICIT_LEN + S2N_TICKET_KEY_NAME_LEN)
 #define S2N_AES256_KEY_LEN              32
-#define ONE_NANOS                       1000000000
+#define ONE_SEC_IN_NANOS                1000000000
 #define S2N_TICKET_SIZE_IN_BYTES        (S2N_TICKET_KEY_NAME_LEN + S2N_TLS_GCM_IV_LEN + S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN)
 #define S2N_TICKET_VALID_KEY_LIFETIME_IN_NANOS        7200000000000     /* 2 hours */
 #define S2N_TICKET_SEMI_VALID_KEY_LIFETIME_IN_NANOS   46800000000000    /* 13 hours */
+#define S2N_STATE_FORMAT_LEN            1
+#define S2N_TICKET_LIFETIME_HINT_LEN    4
+#define S2N_SESSION_TICKET_SIZE_LEN     2
 
 struct s2n_connection;
 struct s2n_config;
@@ -47,6 +50,7 @@ struct s2n_ticket_key_weight {
     uint8_t key_index;
 };
 
+extern struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint8_t *name);
 extern int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *to);
 extern int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *from);
 extern int s2n_verify_unique_ticket_key(struct s2n_config *config, uint8_t *hash, uint16_t *insert_index);

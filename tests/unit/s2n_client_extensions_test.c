@@ -90,7 +90,6 @@ int main(int argc, char **argv)
 
         struct s2n_config *client_config;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_disable_session_tickets(client_config));
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -157,7 +156,6 @@ int main(int argc, char **argv)
 
         struct s2n_config *client_config;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_disable_session_tickets(client_config));
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -664,7 +662,6 @@ int main(int argc, char **argv)
 
         struct s2n_config *client_config;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_disable_session_tickets(client_config));
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -728,7 +725,6 @@ int main(int argc, char **argv)
         }
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_disable_session_tickets(client_config));
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -795,7 +791,6 @@ int main(int argc, char **argv)
         }
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_disable_session_tickets(client_config));
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -867,7 +862,6 @@ int main(int argc, char **argv)
 
         struct s2n_config *client_config;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_disable_session_tickets(client_config));
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -932,7 +926,6 @@ int main(int argc, char **argv)
         }
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_disable_session_tickets(client_config));
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -1001,7 +994,6 @@ int main(int argc, char **argv)
         }
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_disable_session_tickets(client_config));
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -1075,7 +1067,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_disable_session_tickets(client_config));
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
 
@@ -1141,7 +1132,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_disable_session_tickets(client_config));
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_FAILURE(s2n_config_send_max_fragment_length(client_config, 5));
@@ -1204,7 +1194,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_disable_session_tickets(client_config));
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_SUCCESS(s2n_config_send_max_fragment_length(client_config, S2N_TLS_MAX_FRAG_LEN_2048));

@@ -132,7 +132,6 @@ void mock_client(int writefd, int readfd)
     /* Initial handshake */
     conn = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
-    s2n_config_disable_session_tickets(config);
     s2n_config_disable_x509_verification(config);
     s2n_connection_set_config(conn, config);
 
@@ -188,7 +187,6 @@ void mock_client(int writefd, int readfd)
 
     /* Session resumption */
     conn = s2n_connection_new(S2N_CLIENT);
-    s2n_config_disable_session_tickets(conn->config);
     s2n_connection_set_read_fd(conn, readfd);
     s2n_connection_set_write_fd(conn, writefd);
 

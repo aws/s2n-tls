@@ -521,9 +521,9 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         }
     }
 
-    /* We do not support handshakes with CLIENT_AUTH and WITH_SESSION_TICKET */
     if (config->use_tickets && auth_type != S2N_CERT_AUTH_NONE) {
-        config->use_tickets = 0;
+        /* s2n does not support handshakes with CLIENT_AUTH and WITH_SESSION_TICKET */
+        S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_TICKET_MODE);
     }
 
     conn->config = config;
@@ -746,6 +746,11 @@ int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_au
          * When implemented, FIPS only permits Client Auth for TLS 1.2
          */
         S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_FIPS_MODE);
+    }
+
+    if ((client_cert_auth_type != S2N_CERT_AUTH_NONE) && conn->config->use_tickets) {
+        /* s2n does not support handshakes with CLIENT_AUTH and WITH_SESSION_TICKET */
+        S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_TICKET_MODE);
     }
 
     conn->client_cert_auth_type_overridden = 1;

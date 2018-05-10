@@ -111,7 +111,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     if resume:
         s2nc_cmd.append("-r")
     if no_ticket:
-        s2nc_cmd.append("-t")
+        s2nc_cmd.append("-T")
     s2nc_cmd.extend([str(endpoint), str(port)])
 
     envVars = os.environ.copy()

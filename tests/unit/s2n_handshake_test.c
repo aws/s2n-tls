@@ -195,7 +195,6 @@ int main(int argc, char **argv)
     
         client_config = s2n_fetch_unsafe_client_testing_config();
 
-        EXPECT_SUCCESS(s2n_config_disable_session_tickets(client_config));
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
         EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config));
@@ -230,7 +229,6 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(client_config = s2n_fetch_unsafe_client_ecdsa_testing_config());
 
-        EXPECT_SUCCESS(s2n_config_disable_session_tickets(client_config));
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_ECDSA_P384_PKCS1_CERT_CHAIN, NULL));
         
         EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config));

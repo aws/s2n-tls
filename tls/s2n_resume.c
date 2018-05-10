@@ -299,8 +299,8 @@ int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, si
 
     uint32_t len = s2n_connection_get_session_length(conn);
 
-    if (!len) {
-        return len;
+    if (len == 0) {
+        return 0;
     }
 
     S2N_ERROR_IF(len > max_length, S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG);
@@ -319,14 +319,12 @@ int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, si
 
 ssize_t s2n_connection_get_session_length(struct s2n_connection *conn)
 {
-    /* Session resumption using session id: "format (0) + session_id_len + session_id + session state"
-     * or
-     * Session resumption using session ticket "format (1) + ticket_lifetime_hint + session_ticket_len + session_ticket + session state"
-     */
+    /* Session resumption using session ticket "format (1) + ticket_lifetime_hint + session_ticket_len + session_ticket + session state" */
     if (conn->config->use_tickets && conn->client_ticket.size > 0) {
-        return 1 + 4 + 2 + conn->client_ticket.size + S2N_STATE_SIZE_IN_BYTES;
+        return S2N_STATE_FORMAT_LEN + S2N_TICKET_LIFETIME_HINT_LEN + S2N_SESSION_TICKET_SIZE_LEN + conn->client_ticket.size + S2N_STATE_SIZE_IN_BYTES;
     } else if (conn->session_id_len > 0) {
-        return 1 + 1 + conn->session_id_len + S2N_STATE_SIZE_IN_BYTES;
+        /* Session resumption using session id: "format (0) + session_id_len + session_id + session state" */
+        return S2N_STATE_FORMAT_LEN + 1 + conn->session_id_len + S2N_STATE_SIZE_IN_BYTES;
     } else {
         return 0;
     }
@@ -344,13 +342,14 @@ int s2n_connection_is_session_resumed(struct s2n_connection *conn)
 int s2n_compute_weight_of_valid_keys(struct s2n_config *config,
                                      uint8_t *valid_ticket_keys_index,
                                      uint8_t num_valid_keys,
-                                     uint64_t now) {
+                                     uint64_t now)
+{
     double total_weight = 0;
     struct s2n_ticket_key_weight ticket_keys_weight[S2N_MAX_TICKET_KEYS];
 
     /* Compute weight of valid keys */
     for (int i = 0; i < num_valid_keys; i++) {
-        uint64_t key_expire_time = config->ticket_keys[valid_ticket_keys_index[i]].expiration_in_nanos;
+        uint64_t key_expire_time =((struct s2n_ticket_key *) s2n_array_get(config->ticket_keys, valid_ticket_keys_index[i]))->expiration_in_nanos;
 
         /* The % of encryption using this key is linearly increasing */
         if (now < key_expire_time - config->semi_valid_key_lifetime_in_nanos - (config->valid_key_lifetime_in_nanos / 2)) {
@@ -382,7 +381,7 @@ int s2n_compute_weight_of_valid_keys(struct s2n_config *config,
         }
     }
 
-    return -1;
+    S2N_ERROR(S2N_ERR_VALID_KEY_SELECTION_FAILED);
 }
 
 /* This function is used in s2n_encrypt_session_ticket in order for s2n to
@@ -394,13 +393,14 @@ struct s2n_ticket_key *s2n_get_valid_ticket_key(struct s2n_config *config)
     uint8_t num_valid_keys = 0;
     uint8_t valid_ticket_keys_index[S2N_MAX_TICKET_KEYS];
 
-    for (int i = config->num_prepped_ticket_keys - 1; i >= 0; i--) {
-        uint64_t key_intro_time = config->ticket_keys[i].expiration_in_nanos
+    for (int i = config->ticket_keys->num_of_elements - 1; i >= 0; i--) {
+        uint64_t key_intro_time = ((struct s2n_ticket_key *)s2n_array_get(config->ticket_keys, i))->expiration_in_nanos
                                     - config->semi_valid_key_lifetime_in_nanos - config->valid_key_lifetime_in_nanos;
 
         GUARD_PTR(config->monotonic_clock(config->monotonic_clock_ctx, &now));
 
-        if (key_intro_time < now && now < config->ticket_keys[i].expiration_in_nanos - config->semi_valid_key_lifetime_in_nanos) {
+        if (key_intro_time < now
+                && now < ((struct s2n_ticket_key *) s2n_array_get(config->ticket_keys, i))->expiration_in_nanos - config->semi_valid_key_lifetime_in_nanos) {
             valid_ticket_keys_index[num_valid_keys] = i;
             num_valid_keys++;
         } else {
@@ -412,38 +412,38 @@ struct s2n_ticket_key *s2n_get_valid_ticket_key(struct s2n_config *config)
     }
 
     if (num_valid_keys == 0) {
-        return NULL;
+        S2N_ERROR_PTR(S2N_ERR_NO_VALID_TICKET_KEY);
     }
 
     if (num_valid_keys == 1) {
-        return &config->ticket_keys[valid_ticket_keys_index[0]];
+        return s2n_array_get(config->ticket_keys, valid_ticket_keys_index[0]);
     }
 
-    int8_t index = s2n_compute_weight_of_valid_keys(config, valid_ticket_keys_index, num_valid_keys, now);
-    if (index != -1) {
-        return &config->ticket_keys[index];
-    }
+    int8_t index;
+    GUARD_PTR(index = s2n_compute_weight_of_valid_keys(config, valid_ticket_keys_index, num_valid_keys, now));
 
-    return NULL;
+    return s2n_array_get(config->ticket_keys, index);
 }
 
 /* This function is used in s2n_decrypt_session_ticket in order for s2n to
  * find the matching key that was used for encryption.
  */
-struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, uint8_t name[S2N_TICKET_KEY_NAME_LEN]) {
+struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint8_t *name)
+{
     uint64_t now;
 
-    for (int i = 0; i < config->num_prepped_ticket_keys; i++) {
-        if (memcmp(config->ticket_keys[i].key_name, name, S2N_TICKET_KEY_NAME_LEN) == 0) {
+    for (int i = 0; i < config->ticket_keys->num_of_elements; i++) {
+        if (memcmp(((struct s2n_ticket_key *)s2n_array_get(config->ticket_keys, i))->key_name, name, S2N_TICKET_KEY_NAME_LEN) == 0) {
             GUARD_PTR(config->monotonic_clock(config->monotonic_clock_ctx, &now));
 
-            if (now >= config->ticket_keys[i].expiration_in_nanos) {
+            /* Check to see if the key has expired */
+            if (now >= ((struct s2n_ticket_key *)s2n_array_get(config->ticket_keys, i))->expiration_in_nanos) {
                 s2n_config_wipe_expired_ticket_crypto_keys(config, i);
 
                 return NULL;
             }
 
-            return &config->ticket_keys[i];
+            return s2n_array_get(config->ticket_keys, i);
         }
     }
 
@@ -525,10 +525,8 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
 
     key = s2n_find_ticket_key(conn->config, key_name);
 
-    /* Key no longer valid; do full handshake with NST */
-    if (!key) {
-        return -1;
-    }
+    /* Key has expired; do full handshake with NST */
+    S2N_ERROR_IF(!key, S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND);
 
     GUARD(s2n_stuffer_read(from, &iv));
 
@@ -585,10 +583,10 @@ int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t
         goto end;
     }
 
-    for (int i = 0; i < config->num_prepped_ticket_keys; i++) {
+    for (int i = 0; i < config->ticket_keys->num_of_elements; i++) {
         GUARD(config->monotonic_clock(config->monotonic_clock_ctx, &now));
 
-        if (now >= config->ticket_keys[i].expiration_in_nanos) {
+        if (now >= ((struct s2n_ticket_key *) s2n_array_get(config->ticket_keys, i))->expiration_in_nanos) {
             expired_keys_index[num_of_expired_keys] = i;
             num_of_expired_keys++;
         }
@@ -596,10 +594,7 @@ int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t
 
     end:
         for (int j = 0; j < num_of_expired_keys; j++) {
-            for (int i = expired_keys_index[j] - j; i < config->num_prepped_ticket_keys; i++) {
-                config->ticket_keys[i] = config->ticket_keys[i + 1];
-            }
-            config->num_prepped_ticket_keys--;
+            s2n_array_delete(config->ticket_keys, expired_keys_index[j] - j);
         }
 
     return 0;
@@ -607,12 +602,12 @@ int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t
 
 int s2n_verify_unique_ticket_key(struct s2n_config *config, uint8_t *hash, uint16_t *insert_index) {
     int low = 0;
-    int top = config->total_used_ticket_keys - 1;
+    int top = config->ticket_key_hashes->num_of_elements - 1;
 
     /* Binary search */
     while (low <= top) {
         int mid = low + ((top - low) / 2);
-        int m = memcmp(config->ticket_key_hashes[mid], hash, SHA_DIGEST_LENGTH);
+        int m = memcmp((uint8_t *) s2n_array_get(config->ticket_key_hashes, mid), hash, SHA_DIGEST_LENGTH);
 
         if (m == 0) {
             return -1;

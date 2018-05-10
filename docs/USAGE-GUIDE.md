@@ -1115,7 +1115,7 @@ const char * s2n_connection_get_curve(struct s2n_connection *conn);
 ### Session Resumption Related calls
 
 ```c
-int s2n_config_set_session_state_lifetime(struct s2n_config *config, uint64_t lifetime_in_nanos);
+int s2n_config_set_session_state_lifetime(struct s2n_config *config, uint32_t lifetime_in_secs);
 
 int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *session, size_t length);
 int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, size_t max_length);
@@ -1124,16 +1124,16 @@ ssize_t s2n_connection_get_session_id_length(struct s2n_connection *conn);
 int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 ```
 
-- **lifetime_in_nanos** lifetime of the cached session state required to resume a handshake
+- **lifetime_in_secs** lifetime of the cached session state required to resume a handshake
 - **session** session will contain serialized session related information needed to resume handshake either using session id or session ticket.
 - **length** length of the serialized session state.
 - **max_length** Max number of bytes to copy into the **session** buffer.
 
-**s2n_config_set_session_state_lifetime** sets the lifetime of the cached session state. The default value is 21 seconds.
+**s2n_config_set_session_state_lifetime** sets the lifetime of the cached session state. The default value is 15 hours.
 
 **s2n_connection_set_session** de-serializes the session state and updates the connection accordingly.
 
-**s2n_connection_get_session** serializes the session state from connection and copies into the **session** buffer and returns the number of bytes that were copied.
+**s2n_connection_get_session** serializes the session state from connection and copies into the **session** buffer and returns the number of bytes that were copied. If the first byte in **session** is true, then the next 4 bytes will contain the session ticket lifetime hint in seconds.
 
 **s2n_connection_get_session_length** returns number of bytes needed to store serialized session state; it can be used to allocate the **session** buffer.
 
@@ -1145,8 +1145,8 @@ int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 
 ```c
 int s2n_config_disable_session_tickets(struct s2n_config *config);
-int s2n_config_set_ticket_valid_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_nanos);
-int s2n_config_set_ticket_semi_valid_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_nanos);
+int s2n_config_set_ticket_valid_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
+int s2n_config_set_ticket_semi_valid_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
 int s2n_config_add_ticket_crypto_key(struct s2n_config *config, const uint8_t *name, uint32_t name_len, uint8_t *key, uint32_t key_len);
 ```
 

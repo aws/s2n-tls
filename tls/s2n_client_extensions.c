@@ -92,6 +92,10 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         total_size += 5;
     }
     if (conn->config->use_tickets) {
+        if (client_ticket_len != 0 && conn->client_ticket.data == NULL) {
+            S2N_ERROR(S2N_ERR_INVALID_SESSION_TICKET_EXTENSION);
+        }
+
         total_size += 4 + client_ticket_len;
     }
 
@@ -158,11 +162,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     if (conn->config->use_tickets) {
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SESSION_TICKET));
         GUARD(s2n_stuffer_write_uint16(out, client_ticket_len));
-
-        /* Check to see if user set a ticket */
-        if (conn->client_ticket.data != NULL) {
-            GUARD(s2n_stuffer_write(out, &conn->client_ticket));
-        }
+        GUARD(s2n_stuffer_write(out, &conn->client_ticket));
     }
 
     /*

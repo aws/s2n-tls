@@ -43,7 +43,6 @@ void mock_client(int writefd, int readfd)
 
     conn = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
-    s2n_config_disable_session_tickets(config);
     s2n_config_disable_x509_verification(config);
     s2n_connection_set_config(conn, config);
     conn->server_protocol_version = S2N_TLS12;

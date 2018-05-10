@@ -135,6 +135,13 @@ static char dhparams[] =
     "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n"
     "-----END DH PARAMETERS-----\n";
 
+const unsigned char tick_key_name[16] = "2016.07.26.15\0";
+
+uint8_t tick_key[32] = {0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf, 0x0d, 0xdc,
+                        0x3f, 0x0d, 0xc4, 0x7b, 0xba, 0x63, 0x90, 0xb6, 0xc7, 0x3b,
+                        0xb5, 0x0f, 0x9c, 0x31, 0x22, 0xec, 0x84, 0x4a, 0xd7, 0xc2,
+                        0xb3, 0xe5 };
+
 #define MAX_KEY_LEN 32
 #define MAX_VAL_LEN 255
 
@@ -720,20 +727,13 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    if (conn_settings.no_session_tickets) {
-        if (s2n_config_disable_session_tickets(config) < 0) {
-            fprintf(stderr, "Error disabling session tickets: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+    if (!conn_settings.no_session_tickets) {
+        if (s2n_config_set_session_tickets_onoff(config, 1) < 0) {
+            fprintf(stderr, "Error enabling session tickets: '%s'\n", s2n_strerror(s2n_errno, "EN"));
             exit(1);
         }
-    } else {
+
         /* Key initialization */
-        const unsigned char tick_key_name[16] = "2016.07.26.15\0";
-
-        uint8_t tick_key[32] = {0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf, 0x0d, 0xdc,
-                0x3f, 0x0d, 0xc4, 0x7b, 0xba, 0x63, 0x90, 0xb6, 0xc7, 0x3b,
-                0xb5, 0x0f, 0x9c, 0x31, 0x22, 0xec, 0x84, 0x4a, 0xd7, 0xc2,
-                0xb3, 0xe5 };
-
         if (s2n_config_add_ticket_crypto_key(config, tick_key_name, sizeof(tick_key_name), tick_key, sizeof(tick_key)) != 0) {
             fprintf(stderr, "Error adding ticket key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
             exit(1);

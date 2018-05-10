@@ -56,6 +56,8 @@ extern int s2n_config_free(struct s2n_config *config);
 extern int s2n_config_free_dhparams(struct s2n_config *config);
 extern int s2n_config_free_cert_chain_and_key(struct s2n_config *config);
 
+extern int s2n_config_init_session_ticket_keys(struct s2n_config *config);
+extern int s2n_config_free_session_ticket_keys(struct s2n_config *config);
 
 typedef int (*s2n_clock_time_nanoseconds) (void *, uint64_t *);
 extern int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx);
@@ -110,11 +112,11 @@ extern int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_exte
 extern int s2n_config_send_max_fragment_length(struct s2n_config *config, s2n_max_frag_len mfl_code);
 extern int s2n_config_accept_max_fragment_length(struct s2n_config *config);
 
-extern int s2n_config_set_session_state_lifetime(struct s2n_config *config, uint64_t lifetime_in_nanos);
+extern int s2n_config_set_session_state_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
 
-extern int s2n_config_disable_session_tickets(struct s2n_config *config);
-extern int s2n_config_set_ticket_valid_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_nanos);
-extern int s2n_config_set_ticket_semi_valid_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_nanos);
+extern int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enabled);
+extern int s2n_config_set_ticket_valid_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
+extern int s2n_config_set_ticket_semi_valid_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
 extern int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
                                             const uint8_t *name, uint32_t name_len,
                                             uint8_t *key, uint32_t key_len);

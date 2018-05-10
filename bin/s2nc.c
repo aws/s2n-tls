@@ -63,7 +63,7 @@ void usage()
     fprintf(stderr, "    Turns off certification validation altogether.\n");
     fprintf(stderr, "  -r,--reconnect\n");
     fprintf(stderr, "    Drop and re-make the connection using Session ticket. If session ticket is disabled, then re-make the connection using Session-ID \n");
-    fprintf(stderr, "  -t,--no-session-tickets \n");
+    fprintf(stderr, "  -T,--no-session-tickets \n");
     fprintf(stderr, "    Do not support session tickets for resumption.\n");
     fprintf(stderr, "\n");
     exit(1);
@@ -241,11 +241,11 @@ int main(int argc, char *const *argv)
         {"ca-dir", required_argument, 0, 'd'},
         {"insecure", no_argument, 0, 'i'},
         {"reconnect", no_argument, 0, 'r'},
-        {"no-session-tickets", no_argument, 0, 't'}
+        {"no-session-tickets", no_argument, 0, 'T'}
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:irt", long_options, &option_index);
+        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:irT", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -283,7 +283,7 @@ int main(int argc, char *const *argv)
         case 'r':
             reconnect = 5;
             break;
-        case 't':
+        case 'T':
             no_ticket = 1;
             break;
         case '?':
@@ -362,8 +362,8 @@ int main(int argc, char *const *argv)
             s2n_config_disable_x509_verification(config);
         }
 
-        if (no_ticket) {
-            s2n_config_disable_session_tickets(config);
+        if (!no_ticket) {
+            s2n_config_set_session_tickets_onoff(config, 1);
         }
 
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);

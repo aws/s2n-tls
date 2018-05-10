@@ -96,9 +96,9 @@ static int s2n_config_init(struct s2n_config *config)
     config->mfl_code = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
     config->accept_mfl = 0;
     config->session_state_lifetime_in_nanos = S2N_STATE_LIFETIME_IN_NANOS;
-    config->use_tickets = 1;
-    config->num_prepped_ticket_keys = 0;
-    config->total_used_ticket_keys = 0;
+    config->use_tickets = 0;
+    config->ticket_keys = NULL;
+    config->ticket_key_hashes = NULL;
     config->valid_key_lifetime_in_nanos = S2N_TICKET_VALID_KEY_LIFETIME_IN_NANOS;
     config->semi_valid_key_lifetime_in_nanos = S2N_TICKET_SEMI_VALID_KEY_LIFETIME_IN_NANOS;
 
@@ -127,6 +127,7 @@ static int s2n_config_cleanup(struct s2n_config *config)
     s2n_x509_trust_store_wipe(&config->trust_store);
     config->check_ocsp = 0;
 
+    GUARD(s2n_config_free_session_ticket_keys(config));
     GUARD(s2n_config_free_cert_chain_and_key(config));
     GUARD(s2n_config_free_dhparams(config));
     GUARD(s2n_free(&config->application_protocols));
@@ -242,6 +243,32 @@ struct s2n_config *s2n_config_new(void)
     return new_config;
 }
 
+int s2n_config_init_session_ticket_keys(struct s2n_config *config)
+{
+    if (config->ticket_keys == NULL) {
+        notnull_check(config->ticket_keys = s2n_array_new(sizeof(struct s2n_ticket_key)));
+    }
+
+    if (config->ticket_key_hashes == NULL) {
+        notnull_check(config->ticket_key_hashes = s2n_array_new(SHA_DIGEST_LENGTH));
+    }
+
+    return 0;
+}
+
+int s2n_config_free_session_ticket_keys(struct s2n_config *config)
+{
+    if (config->ticket_keys != NULL) {
+        GUARD(s2n_array_free(config->ticket_keys));
+    }
+
+    if (config->ticket_key_hashes != NULL) {
+        GUARD(s2n_array_free(config->ticket_key_hashes));
+    }
+
+    return 0;
+}
+
 int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
 {
 
@@ -345,6 +372,11 @@ int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_typ
          * When implemented, FIPS only permits Client Auth for TLS 1.2
          */
         S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_FIPS_MODE);
+    }
+
+    if ((client_auth_type != S2N_CERT_AUTH_NONE) && config->use_tickets) {
+        /* s2n does not support handshakes with CLIENT_AUTH and WITH_SESSION_TICKET */
+        S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_TICKET_MODE);
     }
 
     notnull_check(config);
@@ -695,29 +727,49 @@ int s2n_config_get_cert_type(struct s2n_config *config, s2n_cert_type *cert_type
 }
 
 int s2n_config_set_session_state_lifetime(struct s2n_config *config,
-                                          uint64_t lifetime_in_nanos)
+                                          uint64_t lifetime_in_secs)
 {
-    config->session_state_lifetime_in_nanos = lifetime_in_nanos;
+    notnull_check(config);
+
+    config->session_state_lifetime_in_nanos = (lifetime_in_secs * ONE_SEC_IN_NANOS);
     return 0;
 }
 
-int s2n_config_disable_session_tickets(struct s2n_config *config)
+int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enabled)
 {
-    config->use_tickets = 0;
+    notnull_check(config);
+
+    if ((config->client_cert_auth_type != S2N_CERT_AUTH_NONE) && enabled) {
+        /* s2n does not support handshakes with CLIENT_AUTH and WITH_SESSION_TICKET */
+        S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_TICKET_MODE);
+    }
+
+    config->use_tickets = enabled;
+
+    if (enabled) {
+        s2n_config_init_session_ticket_keys(config);
+    } else {
+        s2n_config_free_session_ticket_keys(config);
+    }
+
     return 0;
 }
 
 int s2n_config_set_ticket_valid_key_lifetime(struct s2n_config *config,
-                                             uint64_t lifetime_in_nanos)
+                                             uint64_t lifetime_in_secs)
 {
-    config->valid_key_lifetime_in_nanos = lifetime_in_nanos;
+    notnull_check(config);
+
+    config->valid_key_lifetime_in_nanos = (lifetime_in_secs * ONE_SEC_IN_NANOS);
     return 0;
 }
 
 int s2n_config_set_ticket_semi_valid_key_lifetime(struct s2n_config *config,
-                                                  uint64_t lifetime_in_nanos)
+                                                  uint64_t lifetime_in_secs)
 {
-    config->semi_valid_key_lifetime_in_nanos = lifetime_in_nanos;
+    notnull_check(config);
+
+    config->semi_valid_key_lifetime_in_nanos = (lifetime_in_secs * ONE_SEC_IN_NANOS);
     return 0;
 }
 
@@ -725,11 +777,21 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
                                      const uint8_t *name, uint32_t name_len,
                                      uint8_t *key, uint32_t key_len)
 {
+    notnull_check(config);
+    notnull_check(name);
+    notnull_check(key);
+
+    if (!config->use_tickets) {
+        return 0;
+    }
+
     GUARD(s2n_config_wipe_expired_ticket_crypto_keys(config, -1));
 
-    if (config->num_prepped_ticket_keys >= S2N_MAX_TICKET_KEYS) {
-        return -1;
-    }
+    S2N_ERROR_IF(key_len == 0, S2N_ERR_INVALID_TICKET_KEY_LENGTH);
+
+    S2N_ERROR_IF(s2n_find_ticket_key(config, name) || name_len == 0 || name_len > S2N_TICKET_KEY_NAME_LEN, S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH);
+
+    S2N_ERROR_IF(config->ticket_keys->num_of_elements >= S2N_MAX_TICKET_KEYS, S2N_ERR_TICKET_KEY_LIMIT);
 
     uint64_t now;
     uint16_t insert_index = 0;
@@ -759,14 +821,16 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     GUARD(s2n_hash_update(&hash, out_key.data, out_key.size));
     GUARD(s2n_hash_digest(&hash, hash_output, SHA_DIGEST_LENGTH));
 
+    if (config->ticket_key_hashes->num_of_elements >= S2N_MAX_TICKET_KEY_HASHES) {
+        GUARD(s2n_array_free(config->ticket_key_hashes));
+        notnull_check(config->ticket_key_hashes = s2n_array_new(SHA_DIGEST_LENGTH));
+    }
+
     GUARD(s2n_verify_unique_ticket_key(config, hash_output, &insert_index));
 
     /* Insert hash key into a sorted array at known index */
-    for (int i = config->total_used_ticket_keys - 1; i >= insert_index; i--) {
-        memcpy_check(config->ticket_key_hashes[i + 1], config->ticket_key_hashes[i], SHA_DIGEST_LENGTH);
-    }
-    memcpy_check(config->ticket_key_hashes[insert_index], hash_output, SHA_DIGEST_LENGTH);
-    config->total_used_ticket_keys = (config->total_used_ticket_keys + 1) % S2N_MAX_TICKET_KEY_HASHES;
+    struct uint8_t *hash_element = s2n_array_insert(config->ticket_key_hashes, insert_index);
+    memcpy_check(hash_element, hash_output, SHA_DIGEST_LENGTH);
 
     memcpy_check(session_ticket_key->key_name, name, S2N_TICKET_KEY_NAME_LEN);
     memcpy_check(session_ticket_key->aes_key, out_key.data, S2N_AES256_KEY_LEN);
@@ -777,8 +841,8 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     session_ticket_key->expiration_in_nanos = now + config->valid_key_lifetime_in_nanos + config->semi_valid_key_lifetime_in_nanos;
 
     /* Keys are stored from oldest to newest */
-    config->ticket_keys[config->num_prepped_ticket_keys] = *session_ticket_key;
-    config->num_prepped_ticket_keys++;
+    struct s2n_ticket_key *ticket_key_element = s2n_array_add(config->ticket_keys);
+    memcpy_check(ticket_key_element, session_ticket_key, sizeof(struct s2n_ticket_key));
 
     return 0;
 }

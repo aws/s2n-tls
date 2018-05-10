@@ -51,7 +51,7 @@ int s2n_server_nst_send(struct s2n_connection *conn)
     uint8_t data[S2N_TICKET_SIZE_IN_BYTES];
     struct s2n_blob entry = { .data = data, .size = sizeof(data) };
     struct s2n_stuffer to;
-    uint32_t lifetime_hint_in_secs = (conn->config->valid_key_lifetime_in_nanos + conn->config->semi_valid_key_lifetime_in_nanos) / ONE_NANOS;
+    uint32_t lifetime_hint_in_secs = (conn->config->valid_key_lifetime_in_nanos + conn->config->semi_valid_key_lifetime_in_nanos) / ONE_SEC_IN_NANOS;
 
     /* When server changes it's mind mid handshake send lifetime hint and session ticket length as zero */
     if (!conn->config->use_tickets) {
@@ -61,8 +61,8 @@ int s2n_server_nst_send(struct s2n_connection *conn)
         return 0;
     }
 
-    if (conn->session_ticket_status != S2N_EXPECTING_NEW_TICKET && conn->session_ticket_status != S2N_RENEW_TICKET) {
-        return -1;
+    if (!s2n_server_sending_nst(conn)) {
+        S2N_ERROR(S2N_ERR_SENDING_NST);
     }
 
     GUARD(s2n_stuffer_init(&to, &entry));

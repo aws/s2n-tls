@@ -26,7 +26,7 @@
 
 #define S2N_MAX_SERVER_NAME 256
 #define S2N_MAX_TICKET_KEYS 48
-#define S2N_MAX_TICKET_KEY_HASHES 50000 /* 1 MB stores 50,000 key hashes, which lasts about 5.7 years */
+#define S2N_MAX_TICKET_KEY_HASHES 10000 /* 0.2MB */
 
 struct s2n_cipher_preferences;
 
@@ -48,10 +48,8 @@ struct s2n_config {
     uint64_t session_state_lifetime_in_nanos;
 
     uint8_t use_tickets;
-    struct s2n_ticket_key ticket_keys[S2N_MAX_TICKET_KEYS];
-    uint8_t num_prepped_ticket_keys;
-    uint8_t ticket_key_hashes[S2N_MAX_TICKET_KEY_HASHES][SHA_DIGEST_LENGTH];
-    uint16_t total_used_ticket_keys;
+    struct s2n_array *ticket_keys;
+    struct s2n_array *ticket_key_hashes;
     uint64_t valid_key_lifetime_in_nanos;
     uint64_t semi_valid_key_lifetime_in_nanos;
 
