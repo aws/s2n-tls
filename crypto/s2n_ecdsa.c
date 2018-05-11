@@ -83,7 +83,7 @@ static int s2n_ecdsa_verify(const struct s2n_pkey *pub, struct s2n_hash_state *d
 static int s2n_ecdsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv) 
 {
     uint8_t input[16];
-    struct s2n_blob random_input;
+    struct s2n_blob random_input = {0};
     struct s2n_blob signature = { 0 };
     struct s2n_hash_state state_in = { 0 }, state_out = { 0 };
 

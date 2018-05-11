@@ -51,7 +51,7 @@ int s2n_record_parse_aead(
 
     uint8_t aad_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
     struct s2n_blob iv = {.data = aad_iv,.size = sizeof(aad_iv) };
-    struct s2n_stuffer iv_stuffer;
+    struct s2n_stuffer iv_stuffer = {{0}};
     GUARD(s2n_stuffer_init(&iv_stuffer, &iv));
 
     if (cipher_suite->record_alg->flags & S2N_TLS12_AES_GCM_AEAD_NONCE) {
@@ -80,7 +80,7 @@ int s2n_record_parse_aead(
     payload_length -= cipher_suite->record_alg->cipher->io.aead.record_iv_size;
     payload_length -= cipher_suite->record_alg->cipher->io.aead.tag_size;
 
-    struct s2n_stuffer ad_stuffer;
+    struct s2n_stuffer ad_stuffer = {{0}};
     GUARD(s2n_stuffer_init(&ad_stuffer, &aad));
     GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, payload_length, &ad_stuffer));
 

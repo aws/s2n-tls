@@ -53,7 +53,7 @@ static inline long get_gmt_offset(struct tm *t) {
 }
 
 static inline void get_current_timesettings(long *gmt_offset, int *is_dst) {
-    struct tm time_ptr;
+    struct tm time_ptr = {0};
     time_t raw_time;
     time(&raw_time);
     localtime_r(&raw_time, &time_ptr);
