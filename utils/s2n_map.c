@@ -24,31 +24,11 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_map.h"
+#include "utils/s2n_map_internal.h"
 
 #include <s2n.h>
 
 #define S2N_INITIAL_TABLE_SIZE 1024
-
-struct s2n_map_entry {
-    struct s2n_blob key;
-    struct s2n_blob value;
-};
-
-struct s2n_map {
-    /* The total capacity of the table, in number of elements. */
-    uint32_t capacity;
-
-    /* The total number of elements currently in the table. Used for measuring the load factor */
-    uint32_t size;
-
-    /* Once a map has been looked up, it is considered immutable */
-    int      immutable;
-
-    /* Pointer to the hash-table, should be capacity * sizeof(struct s2n_map_entry) */
-    struct s2n_map_entry *table;
-
-    struct s2n_hash_state sha256;
-};
 
 static int s2n_map_slot(struct s2n_map *map, struct s2n_blob *key, uint32_t *slot)
 {

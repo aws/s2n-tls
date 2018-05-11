@@ -61,15 +61,6 @@ static inline void get_current_timesettings(long *gmt_offset, int *is_dst) {
     *is_dst = time_ptr.tm_isdst;
 }
 
-struct parser_args {
-    uint8_t offset_negative;
-    uint8_t local_time_assumed;
-    uint8_t current_digit;
-    long offset_hours;
-    long offset_minutes;
-    struct tm time;
-};
-
 /* this is just a standard state machine for ASN1 date format... nothing special.
  * just do a character at a time and change the state per character encountered.
  * when finished the above time structure should be filled in along with some
