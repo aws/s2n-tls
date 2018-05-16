@@ -342,7 +342,9 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     GUARD(s2n_stuffer_write_bytes(out, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
     GUARD(s2n_stuffer_copy(&client_random, out, S2N_TLS_RANDOM_DATA_LEN));
 
-    /* Generate session id for old clients with bug that can't handle empty value in session id.*/
+    /* Generate client session id when empty so that when server sends
+     * an empty session id it is because it doesn't support session resumption
+     */
     if (conn->session_id_len == 0 && conn->config->use_tickets) {
         struct s2n_blob session_id = { .data = conn->session_id, .size = S2N_TLS_SESSION_ID_MAX_LEN };
 

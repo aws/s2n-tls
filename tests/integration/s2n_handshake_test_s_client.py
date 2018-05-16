@@ -279,11 +279,15 @@ def client_auth_test(host, port, test_ciphers, fips_mode):
                 
     return failed
 
-def resume_using_session_ticket_test(host, port, test_ciphers, fips_mode):
+def resume_test(host, port, test_ciphers, fips_mode, no_ticket=False):
     """
     Tests s2n's session resumption capability using all valid combinations of cipher suite and TLS version.
     """
-    print("\n\tRunning resumption tests using session ticket:")
+    if no_ticket:
+        print("\n\tRunning resumption tests using session id:")
+    else:
+        print("\n\tRunning resumption tests using session ticket:")
+
     failed = 0
     for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
         print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
@@ -298,34 +302,7 @@ def resume_using_session_ticket_test(host, port, test_ciphers, fips_mode):
             if ssl_version < cipher_vers:
                 continue
 
-            ret = try_handshake(host, port, cipher_name, ssl_version, resume=True, enter_fips_mode=fips_mode)
-            result_prefix = "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
-            print_result(result_prefix, ret)
-            if ret != 0:
-                failed = 1
-
-    return failed
-
-def resume_using_session_id_test(host, port, test_ciphers, fips_mode):
-    """
-    Tests s2n's session resumption capability using all valid combinations of cipher suite and TLS version.
-    """
-    print("\n\tRunning resumption tests using session id:")
-    failed = 0
-    for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
-        print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
-        for cipher in test_ciphers:
-            cipher_name = cipher.openssl_name
-            cipher_vers = cipher.min_tls_vers
-
-            # Skip the cipher if openssl can't test it. 3DES/RC4 are disabled by default in 1.1.0
-            if not cipher.openssl_1_1_0_compatible:
-                continue
-
-            if ssl_version < cipher_vers:
-                continue
-
-            ret = try_handshake(host, port, cipher_name, ssl_version, resume=True, no_ticket=True, enter_fips_mode=fips_mode)
+            ret = try_handshake(host, port, cipher_name, ssl_version, resume=True, no_ticket=no_ticket, enter_fips_mode=fips_mode)
             result_prefix = "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
             print_result(result_prefix, ret)
             if ret != 0:
@@ -494,8 +471,8 @@ def main():
     print("\nRunning tests with: " + os.popen('openssl version').read())
 
     failed = 0
-    failed += resume_using_session_id_test(host, port, test_ciphers, fips_mode)
-    failed += resume_using_session_ticket_test(host, port, test_ciphers, fips_mode)
+    failed += resume_test(host, port, test_ciphers, fips_mode, no_ticket=True)
+    failed += resume_test(host, port, test_ciphers, fips_mode)
     failed += handshake_test(host, port, test_ciphers, fips_mode)
     failed += client_auth_test(host, port, test_ciphers, fips_mode)
     failed += sigalg_test(host, port, fips_mode)

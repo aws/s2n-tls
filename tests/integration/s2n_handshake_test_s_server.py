@@ -221,29 +221,18 @@ def handshake_test(host, port, test_ciphers):
 
     return failed
 
-def handshake_resumption_using_session_ticket_test(host, port):
+def handshake_resumption_test(host, port, no_ticket=False):
     """
     Basic handshake tests for session resumption.
     """
-    print("\n\tRunning s2n Client session resumption using session ticket tests:")
+    if no_ticket:
+        print("\n\tRunning s2n Client session resumption using session id tests:")
+    else:
+        print("\n\tRunning s2n Client session resumption using session ticket tests:")
+
     failed = 0
     for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
-        ret = try_handshake(host, port, None, ssl_version, resume=True)
-        prefix = "Session Resumption for: %-40s ... " % (S2N_PROTO_VERS_TO_STR[ssl_version])
-        print_result(prefix, ret)
-        if ret != 0:
-            failed = 1
-
-    return failed
-
-def handshake_resumption_using_session_id_test(host, port):
-    """
-    Basic handshake tests for session resumption.
-    """
-    print("\n\tRunning s2n Client session resumption using session id tests:")
-    failed = 0
-    for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
-        ret = try_handshake(host, port, None, ssl_version, resume=True, no_ticket=True)
+        ret = try_handshake(host, port, None, ssl_version, resume=True, no_ticket=no_ticket)
         prefix = "Session Resumption for: %-40s ... " % (S2N_PROTO_VERS_TO_STR[ssl_version])
         print_result(prefix, ret)
         if ret != 0:
@@ -348,8 +337,8 @@ def main():
 
     failed = 0
     failed += handshake_test(host, port, test_ciphers)
-    failed += handshake_resumption_using_session_ticket_test(host, port) 
-    failed += handshake_resumption_using_session_id_test(host, port)
+    failed += handshake_resumption_test(host, port, no_ticket=True)
+    failed += handshake_resumption_test(host, port)
     failed += sigalg_test(host, port)
     failed += elliptic_curve_test(host, port)
     return failed

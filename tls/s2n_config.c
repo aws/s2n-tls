@@ -375,8 +375,8 @@ int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_typ
     }
 
     if ((client_auth_type != S2N_CERT_AUTH_NONE) && config->use_tickets) {
-        /* s2n does not support handshakes with CLIENT_AUTH and WITH_SESSION_TICKET */
-        S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_TICKET_MODE);
+        /* s2n does not support handshakes with CLIENT_AUTH when in session resumption mode */
+        S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_RESUMPTION_MODE);
     }
 
     notnull_check(config);
@@ -740,8 +740,8 @@ int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enab
     notnull_check(config);
 
     if ((config->client_cert_auth_type != S2N_CERT_AUTH_NONE) && enabled) {
-        /* s2n does not support handshakes with CLIENT_AUTH and WITH_SESSION_TICKET */
-        S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_TICKET_MODE);
+        /* s2n does not support handshakes with CLIENT_AUTH when in session resumption mode */
+        S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_RESUMPTION_MODE);
     }
 
     config->use_tickets = enabled;

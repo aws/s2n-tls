@@ -141,7 +141,7 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_MAX_FRAG_LEN_MISMATCH, "Negotiated Maximum Fragmentation Length from server does not match the requested length by client"},
     {S2N_ERR_INVALID_SERIALIZED_SESSION_STATE, "Serialized session state is not in valid format"},
     {S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG, "Serialized session state is too long"},
-    {S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_TICKET_MODE, "Client Auth is not supported when resumption using session ticket is enabled"},
+    {S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_RESUMPTION_MODE, "Client Auth is not supported in session resumption mode"},
     {S2N_ERR_INVALID_TICKET_KEY_LENGTH, "Session ticket key length cannot be zero"},
     {S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH, "Session ticket key name should be unique and the name length cannot be zero"},
     {S2N_ERR_TICKET_KEY_LIMIT, "Limit reached for unexpired session ticket keys"},

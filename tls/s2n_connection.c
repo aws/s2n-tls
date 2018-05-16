@@ -522,8 +522,8 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
     }
 
     if (config->use_tickets && auth_type != S2N_CERT_AUTH_NONE) {
-        /* s2n does not support handshakes with CLIENT_AUTH and WITH_SESSION_TICKET */
-        S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_TICKET_MODE);
+        /* s2n does not support handshakes with CLIENT_AUTH when in session resumption mode */
+        S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_RESUMPTION_MODE);
     }
 
     conn->config = config;
@@ -749,8 +749,8 @@ int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_au
     }
 
     if ((client_cert_auth_type != S2N_CERT_AUTH_NONE) && conn->config->use_tickets) {
-        /* s2n does not support handshakes with CLIENT_AUTH and WITH_SESSION_TICKET */
-        S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_TICKET_MODE);
+        /* s2n does not support handshakes with CLIENT_AUTH when in session resumption mode */
+        S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_RESUMPTION_MODE);
     }
 
     conn->client_cert_auth_type_overridden = 1;

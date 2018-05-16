@@ -306,9 +306,6 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
     conn->handshake.handshake_type = NEGOTIATED;
 
     if (conn->config->use_tickets) {
-        /* First we attempt to resume with session tickets, then we fallback
-         * to attempting to resume with session caching (if enabled).
-         */
         if (conn->session_ticket_status == S2N_ATTEMPT_DECRYPT_TICKET) {
             if (!s2n_decrypt_session_ticket(conn, &conn->client_ticket_to_decrypt)) {
                 return 0;
@@ -322,10 +319,13 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
         }
     }
 
-    /* If a TLS session is resumed, the Server should respond in its ServerHello with the same SessionId the
-     * Client sent in the ClientHello. */
-    if (s2n_allowed_to_cache_connection(conn) && !s2n_resume_from_cache(conn)) {
-        return 0;
+    /* If a session ticket is presented by the client, then skip lookup in Session ID server cache */
+    if (!(conn->mode == S2N_SERVER && conn->config->use_tickets && conn->session_ticket_status == S2N_RENEW_TICKET)) {
+        /* If a TLS session is resumed, the Server should respond in its ServerHello with the same SessionId the
+         * Client sent in the ClientHello. */
+        if (s2n_allowed_to_cache_connection(conn) && !s2n_resume_from_cache(conn)) {
+            return 0;
+        }
     }
 
     if (conn->mode == S2N_CLIENT && conn->client_session_resumed == 1) {

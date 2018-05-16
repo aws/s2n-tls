@@ -335,8 +335,8 @@ void usage()
     fprintf(stderr, "    This option is only used if mutual auth is enabled.\n");
     fprintf(stderr, "  -i,--insecure\n");
     fprintf(stderr, "    Turns off certification validation altogether.\n");
-    fprintf(stderr, "  -T,--no-session-tickets\n");
-    fprintf(stderr, "    Do not support session tickets for resumption.\n");
+    fprintf(stderr, "  -T,--no-session-ticket\n");
+    fprintf(stderr, "    Disable session ticket for resumption.\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -351,7 +351,7 @@ struct conn_settings {
     int prefer_throughput;
     int prefer_low_latency;
     int enable_mfl;
-    int no_session_tickets;
+    int no_session_ticket;
     const char *ca_dir;
     const char *ca_file;
     int insecure;
@@ -471,7 +471,7 @@ int main(int argc, char *const *argv)
         {"ca-dir", required_argument, 0, 'd'},
         {"ca-file", required_argument, 0, 't'},
         {"insecure", no_argument, 0, 'i'},
-        {"no-session-tickets", no_argument, 0, 'T'},
+        {"no-session-ticket", no_argument, 0, 'T'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
@@ -532,7 +532,7 @@ int main(int argc, char *const *argv)
             conn_settings.insecure = 1;
             break;
         case 'T':
-            conn_settings.no_session_tickets = 1;
+            conn_settings.no_session_ticket = 1;
             break;
         case '?':
         default:
@@ -727,7 +727,7 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    if (!conn_settings.no_session_tickets) {
+    if (!conn_settings.no_session_ticket) {
         if (s2n_config_set_session_tickets_onoff(config, 1) < 0) {
             fprintf(stderr, "Error enabling session tickets: '%s'\n", s2n_strerror(s2n_errno, "EN"));
             exit(1);
