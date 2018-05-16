@@ -29,8 +29,9 @@ if [[ ! -d test-deps ]]; then
 fi
 
 #Install & Run shell check before installing dependencies
-echo "Running ShellCheck..."
+echo "Installing ShellCheck..."
 .travis/install_shellcheck.sh "$TRAVIS_OS_NAME"
+echo "Running ShellCheck..."
 .travis/run_shellcheck.sh
 echo "Shell Check is success."
 
