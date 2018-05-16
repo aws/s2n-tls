@@ -1118,6 +1118,8 @@ const char * s2n_connection_get_curve(struct s2n_connection *conn);
 int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *session, size_t length);
 int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, size_t max_length);
 ssize_t s2n_connection_get_session_length(struct s2n_connection *conn);
+ssize_t s2n_connection_get_session_id_length(struct s2n_connection *conn);
+int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 ```
 
 - **session** session will contain serialized session related information needed to resume handshake.
@@ -1129,6 +1131,10 @@ ssize_t s2n_connection_get_session_length(struct s2n_connection *conn);
 **s2n_connection_get_session** serializes the session state from connection and copies into the **session** buffer and returns the number of bytes that were copied.
 
 **s2n_connection_get_session_length** returns number of bytes needed to store serailized session state; it can be used to allocate the **session** buffer.
+
+**s2n_connection_get_session_id_length** returns session id length from the connection.
+
+**s2n_connection_is_session_resumed** checks if the handshake is abbreviated or not.
 
 ### s2n\_connection\_wipe
 

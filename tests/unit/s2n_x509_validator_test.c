@@ -1112,5 +1112,14 @@ int main(int argc, char **argv) {
         s2n_x509_trust_store_wipe(&trust_store);
     }
 
+    /* Test trust store in a configuration can handle invalid PEM without crashing */
+    {
+        struct s2n_config *cfg = s2n_config_new();
+        s2n_config_add_pem_to_trust_store(cfg, "");
+        s2n_config_free(cfg);
+        /* Expect no crash. */
+    }
+
+
     END_TEST();
 }
