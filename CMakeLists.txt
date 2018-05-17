@@ -121,6 +121,7 @@ target_link_libraries(s2n PRIVATE LibCrypto::Crypto PRIVATE ${OS_LIBS})
 
 target_include_directories(s2n PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(s2n PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
+target_include_directories(s2n PUBLIC $<TARGET_PROPERTY:LibCrypto::Crypto,INTERFACE_INCLUDE_DIRECTORIES>)
 
 file(GLOB TESTLIB_SRC "tests/testlib/*.c")
 file(GLOB TESTLIB_HEADERS "tests/testlib/*.h")
