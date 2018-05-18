@@ -92,10 +92,6 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         total_size += 5;
     }
     if (conn->config->use_tickets) {
-        if (client_ticket_len != 0 && conn->client_ticket.data == NULL) {
-            S2N_ERROR(S2N_ERR_INVALID_SESSION_TICKET_EXTENSION);
-        }
-
         total_size += 4 + client_ticket_len;
     }
 
@@ -433,7 +429,7 @@ static int s2n_recv_client_session_ticket_ext(struct s2n_connection *conn, struc
     }
 
     if (s2n_stuffer_data_available(extension) == 0) {
-        conn->session_ticket_status = S2N_EXPECTING_NEW_TICKET;
+        conn->session_ticket_status = S2N_NEW_TICKET;
         return 0;
     }
 

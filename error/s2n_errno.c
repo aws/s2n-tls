@@ -145,7 +145,6 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_INVALID_TICKET_KEY_LENGTH, "Session ticket key length cannot be zero"},
     {S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH, "Session ticket key name should be unique and the name length cannot be zero"},
     {S2N_ERR_TICKET_KEY_LIMIT, "Limit reached for unexpired session ticket keys"},
-    {S2N_ERR_INVALID_SESSION_TICKET_EXTENSION, "Invalid client session ticket"},
     {S2N_ERR_NO_VALID_TICKET_KEY, "No key in valid state is available to encrypt session ticket"},
     {S2N_ERR_VALID_KEY_SELECTION_FAILED, "Failed to select a valid session ticket key from multiple valid keys"},
     {S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND, "Key used in already assigned session ticket not found for decryption"},

@@ -56,9 +56,6 @@ extern int s2n_config_free(struct s2n_config *config);
 extern int s2n_config_free_dhparams(struct s2n_config *config);
 extern int s2n_config_free_cert_chain_and_key(struct s2n_config *config);
 
-extern int s2n_config_init_session_ticket_keys(struct s2n_config *config);
-extern int s2n_config_free_session_ticket_keys(struct s2n_config *config);
-
 typedef int (*s2n_clock_time_nanoseconds) (void *, uint64_t *);
 extern int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx);
 extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx);

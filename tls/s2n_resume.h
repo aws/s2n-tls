@@ -42,7 +42,7 @@ struct s2n_ticket_key {
     unsigned char key_name[S2N_TICKET_KEY_NAME_LEN];
     uint8_t aes_key[S2N_AES256_KEY_LEN];
     uint8_t implicit_aad[S2N_TICKET_AAD_IMPLICIT_LEN];
-    uint64_t expiration_in_nanos;
+    uint64_t intro_timestamp;
 };
 
 struct s2n_ticket_key_weight {

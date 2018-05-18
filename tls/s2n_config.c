@@ -260,10 +260,12 @@ int s2n_config_free_session_ticket_keys(struct s2n_config *config)
 {
     if (config->ticket_keys != NULL) {
         GUARD(s2n_array_free(config->ticket_keys));
+        config->ticket_keys = NULL;
     }
 
     if (config->ticket_key_hashes != NULL) {
         GUARD(s2n_array_free(config->ticket_key_hashes));
+        config->ticket_key_hashes = NULL;
     }
 
     return 0;
@@ -744,6 +746,10 @@ int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enab
         S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_RESUMPTION_MODE);
     }
 
+    if (config->use_tickets == enabled) {
+        return 0;
+    }
+
     config->use_tickets = enabled;
 
     if (enabled) {
@@ -838,7 +844,7 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     memcpy_check(session_ticket_key->implicit_aad, out_key.data, S2N_TICKET_AAD_IMPLICIT_LEN);
 
     GUARD(config->monotonic_clock(config->monotonic_clock_ctx, &now));
-    session_ticket_key->expiration_in_nanos = now + config->valid_key_lifetime_in_nanos + config->semi_valid_key_lifetime_in_nanos;
+    session_ticket_key->intro_timestamp = now;
 
     /* Keys are stored from oldest to newest */
     struct s2n_ticket_key *ticket_key_element = s2n_array_add(config->ticket_keys);

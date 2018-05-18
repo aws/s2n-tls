@@ -229,7 +229,7 @@ int s2n_recv_server_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer
 
 int s2n_recv_server_session_ticket_ext(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    conn->session_ticket_status = S2N_EXPECTING_NEW_TICKET;
+    conn->session_ticket_status = S2N_NEW_TICKET;
 
     return 0;
 }

@@ -349,15 +349,14 @@ int s2n_compute_weight_of_valid_keys(struct s2n_config *config,
 
     /* Compute weight of valid keys */
     for (int i = 0; i < num_valid_keys; i++) {
-        uint64_t key_expire_time =((struct s2n_ticket_key *) s2n_array_get(config->ticket_keys, valid_ticket_keys_index[i]))->expiration_in_nanos;
+        uint64_t key_intro_time =((struct s2n_ticket_key *) s2n_array_get(config->ticket_keys, valid_ticket_keys_index[i]))->intro_timestamp;
+        uint64_t key_encryption_peak_time = key_intro_time + (config->valid_key_lifetime_in_nanos / 2);
 
         /* The % of encryption using this key is linearly increasing */
-        if (now < key_expire_time - config->semi_valid_key_lifetime_in_nanos - (config->valid_key_lifetime_in_nanos / 2)) {
-            uint64_t key_intro_time = key_expire_time - config->semi_valid_key_lifetime_in_nanos - config->valid_key_lifetime_in_nanos;
+        if (now < key_encryption_peak_time) {
             ticket_keys_weight[i].key_weight = now - key_intro_time;
         } else {
             /* The % of encryption using this key is linearly decreasing */
-            uint64_t key_encryption_peak_time = key_expire_time - config->semi_valid_key_lifetime_in_nanos - (config->valid_key_lifetime_in_nanos / 2);
             ticket_keys_weight[i].key_weight = (config->valid_key_lifetime_in_nanos / 2) - (now - key_encryption_peak_time);
         }
 
@@ -394,13 +393,12 @@ struct s2n_ticket_key *s2n_get_valid_ticket_key(struct s2n_config *config)
     uint8_t valid_ticket_keys_index[S2N_MAX_TICKET_KEYS];
 
     for (int i = config->ticket_keys->num_of_elements - 1; i >= 0; i--) {
-        uint64_t key_intro_time = ((struct s2n_ticket_key *)s2n_array_get(config->ticket_keys, i))->expiration_in_nanos
-                                    - config->semi_valid_key_lifetime_in_nanos - config->valid_key_lifetime_in_nanos;
+        uint64_t key_intro_time = ((struct s2n_ticket_key *)s2n_array_get(config->ticket_keys, i))->intro_timestamp;
 
         GUARD_PTR(config->monotonic_clock(config->monotonic_clock_ctx, &now));
 
         if (key_intro_time < now
-                && now < ((struct s2n_ticket_key *) s2n_array_get(config->ticket_keys, i))->expiration_in_nanos - config->semi_valid_key_lifetime_in_nanos) {
+                && now < key_intro_time + config->valid_key_lifetime_in_nanos) {
             valid_ticket_keys_index[num_valid_keys] = i;
             num_valid_keys++;
         } else {
@@ -437,7 +435,8 @@ struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint
             GUARD_PTR(config->monotonic_clock(config->monotonic_clock_ctx, &now));
 
             /* Check to see if the key has expired */
-            if (now >= ((struct s2n_ticket_key *)s2n_array_get(config->ticket_keys, i))->expiration_in_nanos) {
+            if (now >= ((struct s2n_ticket_key *)s2n_array_get(config->ticket_keys, i))->intro_timestamp +
+                                config->valid_key_lifetime_in_nanos + config->semi_valid_key_lifetime_in_nanos) {
                 s2n_config_wipe_expired_ticket_crypto_keys(config, i);
 
                 return NULL;
@@ -557,8 +556,8 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
     /* If the key is in semi-valid state, then a new key is assigned
      * for the ticket.
      */
-    if (now >= key->expiration_in_nanos - conn->config->semi_valid_key_lifetime_in_nanos) {
-        conn->session_ticket_status = S2N_RENEW_TICKET;
+    if (now >= key->intro_timestamp + conn->config->valid_key_lifetime_in_nanos) {
+        conn->session_ticket_status = S2N_NEW_TICKET;
         conn->handshake.handshake_type |= WITH_SESSION_TICKET;
 
         return 0;
@@ -586,7 +585,8 @@ int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t
     for (int i = 0; i < config->ticket_keys->num_of_elements; i++) {
         GUARD(config->monotonic_clock(config->monotonic_clock_ctx, &now));
 
-        if (now >= ((struct s2n_ticket_key *) s2n_array_get(config->ticket_keys, i))->expiration_in_nanos) {
+        if (now >= ((struct s2n_ticket_key *)s2n_array_get(config->ticket_keys, i))->intro_timestamp +
+                            config->valid_key_lifetime_in_nanos + config->semi_valid_key_lifetime_in_nanos) {
             expired_keys_index[num_of_expired_keys] = i;
             num_of_expired_keys++;
         }

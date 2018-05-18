@@ -311,48 +311,50 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
                 return 0;
             }
 
-            conn->session_ticket_status = S2N_RENEW_TICKET;
+            conn->session_ticket_status = S2N_NEW_TICKET;
+            conn->handshake.handshake_type |= WITH_SESSION_TICKET;
+
+            /* If a session ticket is presented by the client, then skip lookup in Session ID server cache */
+            goto skip_cache_lookup;
         }
 
-        if (conn->session_ticket_status == S2N_EXPECTING_NEW_TICKET || conn->session_ticket_status == S2N_RENEW_TICKET) {
+        if (conn->session_ticket_status == S2N_NEW_TICKET) {
             conn->handshake.handshake_type |= WITH_SESSION_TICKET;
         }
     }
 
-    /* If a session ticket is presented by the client, then skip lookup in Session ID server cache */
-    if (!(conn->mode == S2N_SERVER && conn->config->use_tickets && conn->session_ticket_status == S2N_RENEW_TICKET)) {
-        /* If a TLS session is resumed, the Server should respond in its ServerHello with the same SessionId the
-         * Client sent in the ClientHello. */
-        if (s2n_allowed_to_cache_connection(conn) && !s2n_resume_from_cache(conn)) {
-            return 0;
-        }
-    }
-
-    if (conn->mode == S2N_CLIENT && conn->client_session_resumed == 1) {
+    /* If a TLS session is resumed, the Server should respond in its ServerHello with the same SessionId the
+     * Client sent in the ClientHello. */
+    if (s2n_allowed_to_cache_connection(conn) && !s2n_resume_from_cache(conn)) {
         return 0;
     }
 
-    /* If we're doing full handshake, generate a new session id. */
-    GUARD(s2n_generate_new_client_session_id(conn));
+    skip_cache_lookup:
+        if (conn->mode == S2N_CLIENT && conn->client_session_resumed == 1) {
+            return 0;
+        }
 
-    /* If we get this far, it's a full handshake */
-    conn->handshake.handshake_type |= FULL_HANDSHAKE;
+        /* If we're doing full handshake, generate a new session id. */
+        GUARD(s2n_generate_new_client_session_id(conn));
 
-    s2n_cert_auth_type client_cert_auth_type;
-    GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
-    if(client_cert_auth_type != S2N_CERT_AUTH_NONE) {
-        conn->handshake.handshake_type |= CLIENT_AUTH;
-    }
+        /* If we get this far, it's a full handshake */
+        conn->handshake.handshake_type |= FULL_HANDSHAKE;
 
-    if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_EPH) {
-        conn->handshake.handshake_type |= PERFECT_FORWARD_SECRECY;
-    }
+        s2n_cert_auth_type client_cert_auth_type;
+        GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
+        if(client_cert_auth_type != S2N_CERT_AUTH_NONE) {
+            conn->handshake.handshake_type |= CLIENT_AUTH;
+        }
 
-    if (s2n_server_can_send_ocsp(conn) || s2n_server_sent_ocsp(conn)) {
-        conn->handshake.handshake_type |= OCSP_STATUS;
-    }
+        if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_EPH) {
+            conn->handshake.handshake_type |= PERFECT_FORWARD_SECRECY;
+        }
 
-    return 0;
+        if (s2n_server_can_send_ocsp(conn) || s2n_server_sent_ocsp(conn)) {
+            conn->handshake.handshake_type |= OCSP_STATUS;
+        }
+
+        return 0;
 }
 
 int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn) {

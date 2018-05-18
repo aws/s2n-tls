@@ -78,5 +78,4 @@ extern uint16_t mfl_code_to_length[5];
         (conn)->config->cert_and_key_pairs->sct_list.size > 0)
 
 #define s2n_server_sending_nst(conn) ((conn)->config->use_tickets && \
-        ((conn)->session_ticket_status == S2N_EXPECTING_NEW_TICKET || \
-         (conn)->session_ticket_status == S2N_RENEW_TICKET))
+        (conn)->session_ticket_status == S2N_NEW_TICKET)
