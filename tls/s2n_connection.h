@@ -42,9 +42,8 @@
 
 typedef enum {
     S2N_NO_TICKET = 0,
-    S2N_ATTEMPT_DECRYPT_TICKET,
-    S2N_NEW_TICKET,
-    S2N_RECEIVED_VALID_TICKET
+    S2N_DECRYPT_TICKET,
+    S2N_NEW_TICKET
 } s2n_session_ticket_status;
 
 struct s2n_connection {

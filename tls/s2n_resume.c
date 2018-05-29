@@ -563,8 +563,6 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
         return 0;
     }
 
-    conn->session_ticket_status = S2N_RECEIVED_VALID_TICKET;
-
     return 0;
 }
 

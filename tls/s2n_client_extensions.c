@@ -434,7 +434,7 @@ static int s2n_recv_client_session_ticket_ext(struct s2n_connection *conn, struc
     }
 
     if (s2n_stuffer_data_available(extension) == S2N_TICKET_SIZE_IN_BYTES) {
-        conn->session_ticket_status = S2N_ATTEMPT_DECRYPT_TICKET;
+        conn->session_ticket_status = S2N_DECRYPT_TICKET;
         GUARD(s2n_stuffer_copy(extension, &conn->client_ticket_to_decrypt, S2N_TICKET_SIZE_IN_BYTES));
     }
 
