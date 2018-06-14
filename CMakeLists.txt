@@ -103,8 +103,12 @@ set_target_properties(s2n PROPERTIES LINKER_LANGUAGE C)
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
 target_compile_options(s2n PRIVATE -pedantic -std=c99 -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security)
-target_compile_definitions(s2n PRIVATE -D_POSIX_C_SOURCE=200809L -D_FORTIFY_SOURCE=2)
 target_compile_options(s2n PUBLIC -fPIC)
+
+target_compile_definitions(s2n PRIVATE -D_POSIX_C_SOURCE=200809L)
+if(CMAKE_BUILD_TYPE MATCHES Release)
+    target_compile_definitions(s2n PRIVATE -D_FORTIFY_SOURCE=2)
+endif()
 
 if(NO_STACK_PROTECTOR)
     target_compile_options(s2n PRIVATE -Wstack-protector -fstack-protector-all)
