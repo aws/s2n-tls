@@ -1147,13 +1147,14 @@ int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 int s2n_config_disable_session_tickets(struct s2n_config *config);
 int s2n_config_set_ticket_valid_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
 int s2n_config_set_ticket_semi_valid_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
-int s2n_config_add_ticket_crypto_key(struct s2n_config *config, const uint8_t *name, uint32_t name_len, uint8_t *key, uint32_t key_len);
+int s2n_config_add_ticket_crypto_key(struct s2n_config *config, const uint8_t *name, uint32_t name_len, uint8_t *key, uint32_t key_len, uint64_t intro_time_in_seconds_from_epoch);
 ```
 
 - **name** name of the session ticket key that should be randomly generated to avoid collisions
 - **name_len** length of session ticket key name
 - **key** key used to perform encryption/decryption of session ticket
 - **key_len** length of the session ticket key
+- **intro_time_in_seconds_from_epoch** time at which the session ticket key is introduced. If this is 0, then intro_time_in_seconds_from_epoch will be computed for you.
 
 **s2n_config_disable_session_tickets** disables session resumption using session ticket
 

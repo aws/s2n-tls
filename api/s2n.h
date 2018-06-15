@@ -116,7 +116,8 @@ extern int s2n_config_set_ticket_valid_key_lifetime(struct s2n_config *config, u
 extern int s2n_config_set_ticket_semi_valid_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
 extern int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
                                             const uint8_t *name, uint32_t name_len,
-                                            uint8_t *key, uint32_t key_len);
+                                            uint8_t *key, uint32_t key_len,
+                                            uint64_t intro_time_in_seconds_from_epoch);
 
 struct s2n_connection;
 typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;

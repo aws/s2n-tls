@@ -734,7 +734,7 @@ int main(int argc, char *const *argv)
         }
 
         /* Key initialization */
-        if (s2n_config_add_ticket_crypto_key(config, tick_key_name, sizeof(tick_key_name), tick_key, sizeof(tick_key)) != 0) {
+        if (s2n_config_add_ticket_crypto_key(config, tick_key_name, sizeof(tick_key_name), tick_key, sizeof(tick_key), 0) != 0) {
             fprintf(stderr, "Error adding ticket key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
             exit(1);
         }

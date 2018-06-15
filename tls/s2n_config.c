@@ -781,7 +781,8 @@ int s2n_config_set_ticket_semi_valid_key_lifetime(struct s2n_config *config,
 
 int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
                                      const uint8_t *name, uint32_t name_len,
-                                     uint8_t *key, uint32_t key_len)
+                                     uint8_t *key, uint32_t key_len,
+                                     uint64_t intro_time_in_seconds_from_epoch)
 {
     notnull_check(config);
     notnull_check(name);
@@ -843,8 +844,12 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     out_key.data = output_pad + S2N_AES256_KEY_LEN;
     memcpy_check(session_ticket_key->implicit_aad, out_key.data, S2N_TICKET_AAD_IMPLICIT_LEN);
 
-    GUARD(config->monotonic_clock(config->monotonic_clock_ctx, &now));
-    session_ticket_key->intro_timestamp = now;
+    if (intro_time_in_seconds_from_epoch == 0) {
+        GUARD(config->monotonic_clock(config->monotonic_clock_ctx, &now));
+        session_ticket_key->intro_timestamp = now;
+    } else {
+        session_ticket_key->intro_timestamp = (intro_time_in_seconds_from_epoch * ONE_SEC_IN_NANOS);
+    }
 
     /* Keys are stored from oldest to newest */
     struct s2n_ticket_key *ticket_key_element = s2n_array_add(config->ticket_keys);
