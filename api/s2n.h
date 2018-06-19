@@ -201,6 +201,56 @@ typedef enum {
     S2N_CERT_TYPE_ECDSA_FIXED_ECDH = 66,
 } s2n_cert_type;
 
+typedef enum {
+    S2N_TLS_VERSION_SSLv2 = 20,
+    S2N_TLS_VERSION_SSLv3 = 30,
+    S2N_TLS_VERSION_TLS10 = 31,
+    S2N_TLS_VERSION_TLS11 = 32,
+    S2N_TLS_VERSION_TLS12 = 33,
+} s2n_tls_version_type;
+
+typedef enum {
+    S2N_RSA_WITH_RC4_128_MD5 = 0,
+    S2N_RSA_WITH_RC4_128_SHA,
+    S2N_RSA_WITH_3DES_EDE_CBC_SHA,
+    S2N_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
+    S2N_RSA_WITH_AES_128_CBC_SHA,
+    S2N_DHE_RSA_WITH_AES_128_CBC_SHA,
+    S2N_RSA_WITH_AES_256_CBC_SHA,
+    S2N_DHE_RSA_WITH_AES_256_CBC_SHA,
+    S2N_RSA_WITH_AES_128_CBC_SHA256,
+    S2N_RSA_WITH_AES_256_CBC_SHA256,
+    S2N_DHE_RSA_WITH_AES_128_CBC_SHA256,
+    S2N_DHE_RSA_WITH_AES_256_CBC_SHA256,
+    S2N_RSA_WITH_AES_128_GCM_SHA256,
+    S2N_RSA_WITH_AES_256_GCM_SHA384,
+    S2N_DHE_RSA_WITH_AES_128_GCM_SHA256,
+    S2N_DHE_RSA_WITH_AES_256_GCM_SHA384,
+    S2N_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+    S2N_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+    S2N_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+    S2N_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+    S2N_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+    S2N_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+    S2N_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384,
+    S2N_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+    S2N_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
+    S2N_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+    S2N_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+    S2N_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+    S2N_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+    S2N_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+    S2N_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+} s2n_cipher_suite_type;
+
+struct s2n_cipher_preferences;
+
+extern int s2n_config_set_custom_cipher_preferences(struct s2n_config *config, struct s2n_cipher_preferences *cipher_preferences);
+extern int s2n_cipher_preferences_set_cipher_suites(struct s2n_cipher_preferences *cipher_preferences, const s2n_cipher_suite_type *ciphers, size_t ciphers_count);
+extern int s2n_cipher_preferences_set_min_tls_version(struct s2n_cipher_preferences *cipher_preferences, s2n_tls_version_type min_tls_version);
+extern struct s2n_cipher_preferences *s2n_cipher_preferences_new();
+extern int s2n_cipher_preferences_free(struct s2n_cipher_preferences *cipher_preferences);
+
 struct s2n_pkey;
 typedef struct s2n_pkey s2n_cert_public_key;
 typedef struct s2n_pkey s2n_cert_private_key;

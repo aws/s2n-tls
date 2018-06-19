@@ -335,15 +335,66 @@ typedef enum {
 ```
 **s2n_cert_type** is used to define what type of Certificate was used in a connection.
 
+
+```c
+typedef enum {
+    S2N_TLS_VERSION_SSLv2 = 20,
+    S2N_TLS_VERSION_SSLv3 = 30,
+    S2N_TLS_VERSION_TLS10 = 31,
+    S2N_TLS_VERSION_TLS11 = 32,
+    S2N_TLS_VERSION_TLS12 = 33,
+} s2n_tls_version;
+```
+**s2n_tls_version_type** is used to define SSL/TLS versions suppported by s2n. Note s2n has only limited supported for SSLv2, it is not used sending and receiving encrypted data but does accept SSL2.0 hello messages.
+
+```c
+typedef enum {
+    S2N_RSA_WITH_RC4_128_MD5 = 0,
+    S2N_RSA_WITH_RC4_128_SHA,
+    S2N_RSA_WITH_3DES_EDE_CBC_SHA,
+    S2N_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
+    S2N_RSA_WITH_AES_128_CBC_SHA,
+    S2N_DHE_RSA_WITH_AES_128_CBC_SHA,
+    S2N_RSA_WITH_AES_256_CBC_SHA,
+    S2N_DHE_RSA_WITH_AES_256_CBC_SHA,
+    S2N_RSA_WITH_AES_128_CBC_SHA256,
+    S2N_RSA_WITH_AES_256_CBC_SHA256,
+    S2N_DHE_RSA_WITH_AES_128_CBC_SHA256,
+    S2N_DHE_RSA_WITH_AES_256_CBC_SHA256,
+    S2N_RSA_WITH_AES_128_GCM_SHA256,
+    S2N_RSA_WITH_AES_256_GCM_SHA384,
+    S2N_DHE_RSA_WITH_AES_128_GCM_SHA256,
+    S2N_DHE_RSA_WITH_AES_256_GCM_SHA384,
+    S2N_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+    S2N_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+    S2N_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+    S2N_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+    S2N_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+    S2N_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+    S2N_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384,
+    S2N_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+    S2N_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
+    S2N_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+    S2N_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+    S2N_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+    S2N_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+    S2N_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+    S2N_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+} s2n_cipher_suite_type;
+
+```
+**s2n_cipher_suite_type** is used to define the supported cipher suites by s2n.
+
 ## Opaque structures
 
-s2n defines two opaque structures that are used for managed objects. Because
+s2n defines three opaque structures that are used for managed objects. Because
 these structures are opaque, they can only be safely referenced indirectly through
 pointers and their sizes may change with future versions of s2n.
 
 ```c
 struct s2n_config;
 struct s2n_connection;
+struct s2n_cipher_preferences;
 ```
 
 **s2n_config** structures are a configuration object, used by servers for
@@ -512,6 +563,13 @@ underlying encrpyt/decrypt functions are not available in older versions.
 2. Always use forward secrecy where possible. Prefer ECDHE over DHE. 
 3. Prefer encryption ciphers in the following order: AES128, AES256, ChaCha20, 3DES, RC4.
 4. Prefer record authentication modes in the following order: GCM, Poly1305, SHA256, SHA1, MD5.
+
+### s2n\_config\_set\_custom\_cipher\_preferences
+```c
+int s2n_config_set_custom_cipher_preferences(struct s2n_config *config, struct s2n_cipher_preferences *cipher_preferences);
+```
+
+**s2n_config_set_custom_cipher_preferences** sets the cipher perferences on a **s2n_config** object. **cipher_preferences** contains the supported cipher suites and minimum tls versions. See [Cipher Preference Related Calls](#cipher-preference-related-calls) for creating the **cipher_preferences** object
 
 ### s2n\_config\_add\_cert\_chain\_and\_key
 
@@ -1135,6 +1193,25 @@ int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 **s2n_connection_get_session_id_length** returns session id length from the connection.
 
 **s2n_connection_is_session_resumed** checks if the handshake is abbreviated or not.
+
+### Cipher Preference Related calls
+```c
+int s2n_cipher_preferences_set_cipher_suites(struct s2n_cipher_preferences *cipher_preferences, const s2n_cipher_suite_type *ciphers, size_t ciphers_count);
+int s2n_cipher_preferences_set_min_tls_version(struct s2n_cipher_preferences *cipher_preferences, s2n_tls_version_type min_tls_version);
+struct s2n_cipher_preferences *s2n_cipher_preferences_new();
+int s2n_cipher_preferences_free(struct s2n_cipher_preferences *cipher_preferences);
+```
+
+- **cipher_preferences** Cipher preference object which contains supported cipher suites and minimum tls version.
+- **ciphers** List of [s2n_cipher_suite_type](#enums) enum that needs to be configured.
+- **ciphers_count** Number of configuring cipher suites.
+- **min_tls_version** minimum tls version [s2n_tls_version_type](#enums) enum to be used during handshake.
+
+**s2n_cipher_preferences_set_cipher_suites** Add the list of cipher suites to **s2n_cipher_preferences** object that are to be used while performing a handshake.
+**s2n_cipher_preferences_set_min_tls_version** Sets minimum tls version to be used during the handshake.
+**s2n_cipher_preferences_new** API to create a new **cipher_preferences** object, it is the reponsibility of the user to free it once it is finished using.
+Also use **s2n_cipher_preferences_set_cipher_suites** and **s2n_cipher_preferences_set_min_tls_version** to populate values as required.
+**s2n_cipher_preferences_free** API to free **cipher_preferences**.
 
 ### s2n\_connection\_wipe
 

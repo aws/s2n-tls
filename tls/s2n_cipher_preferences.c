@@ -548,3 +548,63 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
     return 0;
 }
 
+struct s2n_cipher_preferences *s2n_cipher_preferences_new()
+{
+    struct s2n_blob allocator;
+    GUARD_PTR(s2n_alloc(&allocator, sizeof(struct s2n_cipher_preferences)));
+    struct s2n_cipher_preferences *new_cipher_preferences = (struct s2n_cipher_preferences *)(void *)allocator.data;
+
+    return new_cipher_preferences;
+}
+
+int s2n_cipher_preferences_free(struct s2n_cipher_preferences *cipher_preferences)
+{
+    if (cipher_preferences == NULL) {
+        return 0;
+    }
+
+    struct s2n_blob b = {
+        .data = (uint8_t *) cipher_preferences->suites,
+        .size = cipher_preferences->count * sizeof(struct s2n_cipher_suite *)
+    };
+    GUARD(s2n_free(&b));
+
+    struct s2n_blob c = {
+        .data = (uint8_t *) cipher_preferences,
+        .size = sizeof(struct s2n_cipher_preferences)
+    };
+
+    GUARD(s2n_free(&c));
+
+    return 0;
+}
+
+int s2n_cipher_preferences_set_cipher_suites(struct s2n_cipher_preferences *cipher_preferences, const s2n_cipher_suite_type *ciphers, size_t ciphers_count)
+{
+    notnull_check(cipher_preferences);
+
+    if (ciphers_count == 0) {
+        return 0;
+    }
+
+    notnull_check(ciphers);
+
+    /* allocate memory for array of suites */
+    struct s2n_blob allocator;
+    GUARD(s2n_alloc(&allocator, ciphers_count * sizeof(struct s2n_cipher_suite *)));
+    cipher_preferences->suites = (struct s2n_cipher_suite **)(void *)allocator.data;
+
+    for (int i = 0; i < ciphers_count; i++) {
+        cipher_preferences->suites[i] = s2n_all_cipher_suites[ciphers[i]];
+    }
+
+    cipher_preferences->count = ciphers_count;
+    return 0;
+}
+
+int s2n_cipher_preferences_set_min_tls_version(struct s2n_cipher_preferences *cipher_preferences, s2n_tls_version_type min_tls_version)
+{
+    notnull_check(cipher_preferences);
+    cipher_preferences->minimum_protocol_version = min_tls_version;
+    return 0;
+}

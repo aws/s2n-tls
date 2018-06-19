@@ -548,9 +548,11 @@ struct s2n_cipher_suite s2n_dhe_rsa_with_chacha20_poly1305_sha256 = /* 0xCC,0xAA
 };
 
 /* All of the cipher suites that s2n negotiates, in order of IANA value.
- * Exposed for the "test_all" cipher preference list.
+ * Make sure this order is consistent with the s2n_cipher_suite_type enums defined in s2n.h,
+ * as it used to set up cipher suites from enums. This is also exposed for
+ * the "test_all" cipher preference list.
  */
-static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
+struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
     &s2n_rsa_with_rc4_128_md5,                     /* 0x00,0x04 */
     &s2n_rsa_with_rc4_128_sha,                     /* 0x00,0x05 */
     &s2n_rsa_with_3des_ede_cbc_sha,                /* 0x00,0x0A */

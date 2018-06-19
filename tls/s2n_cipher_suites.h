@@ -134,6 +134,8 @@ extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
 extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_chacha20_poly1305_sha256;
 extern struct s2n_cipher_suite s2n_dhe_rsa_with_chacha20_poly1305_sha256;
 
+extern struct s2n_cipher_suite *s2n_all_cipher_suites[];
+
 extern int s2n_cipher_suites_init(void);
 extern int s2n_cipher_suites_cleanup(void);
 extern struct s2n_cipher_suite *s2n_cipher_suite_from_wire(const uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN]);

@@ -686,3 +686,11 @@ int s2n_config_get_cert_type(struct s2n_config *config, s2n_cert_type *cert_type
     
     return 0;
 }
+
+int s2n_config_set_custom_cipher_preferences(struct s2n_config *config, struct s2n_cipher_preferences *cipher_preferences)
+{
+    notnull_check(config);
+    notnull_check(cipher_preferences);
+    config->cipher_preferences = cipher_preferences;
+    return 0;
+}
