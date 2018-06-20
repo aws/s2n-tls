@@ -207,6 +207,10 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
     return bytes_read;
 }
 
+uint32_t s2n_peek(struct s2n_connection *conn) {
+    return s2n_stuffer_data_available(&conn->in);
+}
+
 int s2n_recv_close_notify(struct s2n_connection *conn, s2n_blocked_status * blocked)
 {
     uint8_t record_type;
