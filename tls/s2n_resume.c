@@ -401,11 +401,6 @@ struct s2n_ticket_key *s2n_get_valid_ticket_key(struct s2n_config *config)
                 && now < key_intro_time + config->valid_key_lifetime_in_nanos) {
             valid_ticket_keys_index[num_valid_keys] = i;
             num_valid_keys++;
-        } else {
-            /* We are traversing from newest to oldest keys. As soon as we find a key
-             * that is not valid, break because every key after that will not be valid.
-             */
-            break;
         }
     }
 

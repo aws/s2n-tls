@@ -220,7 +220,7 @@ int main(int argc, char *const *argv)
     uint16_t mfl_value = 0;
     uint8_t insecure = 0;
     int reconnect = 0;
-    uint8_t no_session_ticket = 0;
+    uint8_t session_ticket = 1;
     s2n_status_request_type type = S2N_STATUS_REQUEST_NONE;
     /* required args */
     const char *cipher_prefs = "default";
@@ -284,7 +284,7 @@ int main(int argc, char *const *argv)
             reconnect = 5;
             break;
         case 'T':
-            no_session_ticket = 1;
+            session_ticket = 0;
             break;
         case '?':
         default:
@@ -362,7 +362,7 @@ int main(int argc, char *const *argv)
             s2n_config_disable_x509_verification(config);
         }
 
-        if (!no_session_ticket) {
+        if (session_ticket) {
             s2n_config_set_session_tickets_onoff(config, 1);
         }
 
@@ -406,7 +406,7 @@ int main(int argc, char *const *argv)
 
         /* Save session state from connection if reconnect is enabled */
         if (reconnect > 0) {
-            if (no_session_ticket && s2n_connection_get_session_id_length(conn) <= 0) {
+            if (!session_ticket && s2n_connection_get_session_id_length(conn) <= 0) {
                 printf("Endpoint sent empty session id so cannot resume session\n");
                 exit(1);
             }

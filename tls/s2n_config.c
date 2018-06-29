@@ -851,7 +851,6 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
         session_ticket_key->intro_timestamp = (intro_time_in_seconds_from_epoch * ONE_SEC_IN_NANOS);
     }
 
-    /* Keys are stored from oldest to newest */
     struct s2n_ticket_key *ticket_key_element = s2n_array_add(config->ticket_keys);
     memcpy_check(ticket_key_element, session_ticket_key, sizeof(struct s2n_ticket_key));
 

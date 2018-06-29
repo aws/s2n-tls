@@ -1154,7 +1154,7 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config, const uint8_t *n
 - **name_len** length of session ticket key name
 - **key** key used to perform encryption/decryption of session ticket
 - **key_len** length of the session ticket key
-- **intro_time_in_seconds_from_epoch** time at which the session ticket key is introduced. If this is 0, then intro_time_in_seconds_from_epoch will be computed for you.
+- **intro_time_in_seconds_from_epoch** time at which the session ticket key is introduced. If this is 0, then intro_time_in_seconds_from_epoch is set to now.
 
 **s2n_config_disable_session_tickets** disables session resumption using session ticket
 
