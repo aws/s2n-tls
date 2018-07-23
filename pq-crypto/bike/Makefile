@@ -1,5 +1,5 @@
 #
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -14,24 +14,31 @@
 #
 .DEFAULT_GOAL := all
 
-INTERNAL_LIBS += sike/libsike_p503.a
-INTERNAL_LIBS += bike/libbike1_l1.a
+include ../../s2n.mk
+
+# BIKE version and security level
+CFLAGS += -DBIKE1=1 -DPARAM64=1
+
+#WA for GCC 4.8.5 bug.
+CFLAGS += -Wno-missing-braces -Wno-missing-field-initializers
+
+# BIKE casts raw char arrays to an internal key representation for safety and convenience and safety in bike1_l1_kem.c
+FLAGS_TO_REMOVE := -Wcast-qual -Wstack-protector
+
+FINAL_CFLAGS := $(filter-out $(FLAGS_TO_REMOVE),$(CFLAGS))
+
+CFLAGS = $(FINAL_CFLAGS)
 
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
 .PHONY : all
-all: libs2n_pq_crypto.so
+all: libbike1_l1.a
 
-libs2n_pq_crypto.so: ${OBJS}
-	$(MAKE) -C bike
-	$(MAKE) -C sike
-	${CC} -shared -o libs2n_pq_crypto.so ${OBJS} -Wl,--whole-archive ${INTERNAL_LIBS} -Wl,--no-whole-archive -L../../ ${CFLAGS} ${LDFLAGS} -lm
-
-include ../s2n.mk
+libbike1_l1.a: ${OBJS}
+	$(AR) cru libbike1_l1.a ${OBJS}
+	$(RANLIB) libbike1_l1.a
 
 .PHONY : clean
 clean:
-	${MAKE} -C bike clean
-	${MAKE} -C sike clean
 	${MAKE} decruft

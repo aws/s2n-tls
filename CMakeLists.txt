@@ -80,6 +80,8 @@ else()
     set(OS_LIBS pthread dl rt)
 endif()
 
+add_subdirectory(pq-crypto/bike)
+
 file(GLOB S2N_HEADERS
     ${API_HEADERS}
     ${CRYPTO_HEADERS}
