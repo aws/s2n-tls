@@ -12,6 +12,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 #
+
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
@@ -20,6 +21,7 @@ BCS1=$(addprefix $(BITCODE_DIR), $(BCS_11))
 
 .PHONY : all
 all: $(OBJS)
+	$(MAKE) -C bike
 	$(MAKE) -C sike
 
 .PHONY : bc
@@ -36,6 +38,7 @@ run-lcov: lcov
 
 .PHONY : clean
 clean: decruft
+	${MAKE} -C bike decruft
 	${MAKE} -C sike decruft
 
 include ../s2n.mk
