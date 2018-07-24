@@ -256,18 +256,18 @@ const struct s2n_cipher_preferences cipher_preferences_20170718 = {
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_2015_04[] = {
-    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256, */
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256, */
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha, */
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
-    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384, */
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384, */
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha, */
     &s2n_rsa_with_aes_128_gcm_sha256,
     &s2n_rsa_with_aes_128_cbc_sha256,
     &s2n_rsa_with_aes_128_cbc_sha,
@@ -284,18 +284,18 @@ const struct s2n_cipher_preferences elb_security_policy_2015_04 = {
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_2016_08[] = {
-    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256, */
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256, */
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha, */
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
-    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384, */
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384, */
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha, */
     &s2n_rsa_with_aes_128_gcm_sha256,
     &s2n_rsa_with_aes_128_cbc_sha256,
     &s2n_rsa_with_aes_128_cbc_sha,
@@ -311,13 +311,13 @@ const struct s2n_cipher_preferences elb_security_policy_2016_08 = {
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls_1_2_2017_01[] = {
-    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256, */
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256, */
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384, */
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384, */
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
     &s2n_rsa_with_aes_128_gcm_sha256,
     &s2n_rsa_with_aes_128_cbc_sha256,
@@ -332,18 +332,18 @@ const struct s2n_cipher_preferences elb_security_policy_tls_1_2_2017_01 = {
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls_1_1_2017_01[] = {
-    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256, */
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256, */
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha, */
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
-    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384, */
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384, */
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha, */
     &s2n_rsa_with_aes_128_gcm_sha256,
     &s2n_rsa_with_aes_128_cbc_sha256,
     &s2n_rsa_with_aes_128_cbc_sha,
@@ -359,18 +359,18 @@ const struct s2n_cipher_preferences elb_security_policy_tls_1_1_2017_01 = {
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls_1_2_ext_2018_06[] = {
-    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256, */
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256, */
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha, */
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
-    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384, */
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384, */
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha, */
     &s2n_rsa_with_aes_128_gcm_sha256,
     &s2n_rsa_with_aes_128_cbc_sha256,
     &s2n_rsa_with_aes_128_cbc_sha,
@@ -386,18 +386,18 @@ const struct s2n_cipher_preferences elb_security_policy_tls_1_2_ext_2018_06 = {
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_fs_2018_06[] = {
-    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256, */
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256, */
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    /* &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha, */
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
-    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384, */
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384, */
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    /* &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha, */
 };
 
 const struct s2n_cipher_preferences elb_security_policy_fs_2018_06 = {
