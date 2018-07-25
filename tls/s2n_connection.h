@@ -183,6 +183,9 @@ struct s2n_connection {
      */
     uint16_t max_outgoing_fragment_length;
 
+    /* The number of bytes to send before changing the record size. If this value > 0 then dynamic TLS record size is enabled. Otherwise, the feature is disabled (default). */
+    uint32_t dynamic_record_resize_threshold;
+
     /* Negotiated TLS extension Maximum Fragment Length code */
     uint8_t mfl_code;
 
