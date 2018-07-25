@@ -133,6 +133,9 @@
 #define S2N_SMALL_RECORD_LENGTH (1500 - 20 - 20 - 20)
 #define S2N_SMALL_FRAGMENT_LENGTH (S2N_SMALL_RECORD_LENGTH - S2N_TLS_RECORD_HEADER_LENGTH)
 
+/* Pre-caculated payload size for dynamic record size. 1500 - 40 (IPv6) - 60 (TCP header + options) - 69 (TLS overhead worst case) */
+#define S2N_SMALL_PAYLOAD_LENGTH (1500 - 40 - 60 -69)
+
 /* Testing in the wild has found 8k max record sizes give a good balance of low latency
  * and throughput.
  */

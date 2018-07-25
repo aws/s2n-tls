@@ -124,7 +124,12 @@ ssize_t s2n_send(struct s2n_connection * conn, const void *buf, ssize_t size, s2
     /* Now write the data we were asked to send this round */
     while (size - conn->current_user_data_consumed) {
         struct s2n_blob in = {.data = ((uint8_t *)(uintptr_t) buf) + conn->current_user_data_consumed };
-        in.size = MIN(size - conn->current_user_data_consumed, max_payload_size);
+        /*if dynamic record size is enabled, send small payload until number of outgoing bytes reach threshold*/
+        if (conn->current_user_data_consumed < (ssize_t)conn->dynamic_record_resize_threshold && S2N_SMALL_PAYLOAD_LENGTH < max_payload_size) {
+            in.size = MIN(size - conn->current_user_data_consumed, S2N_SMALL_PAYLOAD_LENGTH);
+        } else {
+            in.size = MIN(size - conn->current_user_data_consumed, max_payload_size);
+        }
 
         /* Don't split messages in server mode for interoperability with naive clients.
          * Some clients may have expectations based on the amount of content in the first record.
