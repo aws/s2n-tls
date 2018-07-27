@@ -335,40 +335,40 @@ int s2n_connection_is_session_resumed(struct s2n_connection *conn)
     return IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type);
 }
 
-/* This function is used in s2n_get_valid_ticket_key to compute the weight
- * of the keys and to choose a single key from all of the valid keys.
+/* This function is used in s2n_get_ticket_encrypt_decrypt_key to compute the weight
+ * of the keys and to choose a single key from all of the encrypt-decrypt keys.
  * Higher the weight of the key, higher the probability of being picked.
  */
-int s2n_compute_weight_of_valid_keys(struct s2n_config *config,
-                                     uint8_t *valid_ticket_keys_index,
-                                     uint8_t num_valid_keys,
-                                     uint64_t now)
+int s2n_compute_weight_of_encrypt_decrypt_keys(struct s2n_config *config,
+                                               uint8_t *encrypt_decrypt_keys_index,
+                                               uint8_t num_encrypt_decrypt_keys,
+                                               uint64_t now)
 {
     double total_weight = 0;
     struct s2n_ticket_key_weight ticket_keys_weight[S2N_MAX_TICKET_KEYS];
 
-    /* Compute weight of valid keys */
-    for (int i = 0; i < num_valid_keys; i++) {
-        uint64_t key_intro_time =((struct s2n_ticket_key *) s2n_array_get(config->ticket_keys, valid_ticket_keys_index[i]))->intro_timestamp;
-        uint64_t key_encryption_peak_time = key_intro_time + (config->valid_key_lifetime_in_nanos / 2);
+    /* Compute weight of encrypt-decrypt keys */
+    for (int i = 0; i < num_encrypt_decrypt_keys; i++) {
+        uint64_t key_intro_time =((struct s2n_ticket_key *) s2n_array_get(config->ticket_keys, encrypt_decrypt_keys_index[i]))->intro_timestamp;
+        uint64_t key_encryption_peak_time = key_intro_time + (config->encrypt_decrypt_key_lifetime_in_nanos / 2);
 
         /* The % of encryption using this key is linearly increasing */
         if (now < key_encryption_peak_time) {
             ticket_keys_weight[i].key_weight = now - key_intro_time;
         } else {
             /* The % of encryption using this key is linearly decreasing */
-            ticket_keys_weight[i].key_weight = (config->valid_key_lifetime_in_nanos / 2) - (now - key_encryption_peak_time);
+            ticket_keys_weight[i].key_weight = (config->encrypt_decrypt_key_lifetime_in_nanos / 2) - (now - key_encryption_peak_time);
         }
 
-        ticket_keys_weight[i].key_index = valid_ticket_keys_index[i];
+        ticket_keys_weight[i].key_index = encrypt_decrypt_keys_index[i];
         total_weight += ticket_keys_weight[i].key_weight;
     }
 
     /* Pick a random number in [0, 1). Using 53 bits (IEEE 754 double-precision floats). */
     double random = s2n_public_random(pow(2, 53)) / pow(2, 53);
 
-    /* Compute cumulative weight of valid keys */
-    for (int i = 0; i < num_valid_keys; i++) {
+    /* Compute cumulative weight of encrypt-decrypt keys */
+    for (int i = 0; i < num_encrypt_decrypt_keys; i++) {
         ticket_keys_weight[i].key_weight = ticket_keys_weight[i].key_weight / total_weight;
 
         if (i > 0) {
@@ -380,17 +380,17 @@ int s2n_compute_weight_of_valid_keys(struct s2n_config *config,
         }
     }
 
-    S2N_ERROR(S2N_ERR_VALID_KEY_SELECTION_FAILED);
+    S2N_ERROR(S2N_ERR_ENCRYPT_DECRYPT_KEY_SELECTION_FAILED);
 }
 
 /* This function is used in s2n_encrypt_session_ticket in order for s2n to
- * choose a valid encryption key from all of the keys added to config
+ * choose a key in encrypt-decrypt state from all of the keys added to config
  */
-struct s2n_ticket_key *s2n_get_valid_ticket_key(struct s2n_config *config)
+struct s2n_ticket_key *s2n_get_ticket_encrypt_decrypt_key(struct s2n_config *config)
 {
     uint64_t now;
-    uint8_t num_valid_keys = 0;
-    uint8_t valid_ticket_keys_index[S2N_MAX_TICKET_KEYS];
+    uint8_t num_encrypt_decrypt_keys = 0;
+    uint8_t encrypt_decrypt_keys_index[S2N_MAX_TICKET_KEYS];
 
     for (int i = config->ticket_keys->num_of_elements - 1; i >= 0; i--) {
         uint64_t key_intro_time = ((struct s2n_ticket_key *)s2n_array_get(config->ticket_keys, i))->intro_timestamp;
@@ -398,22 +398,22 @@ struct s2n_ticket_key *s2n_get_valid_ticket_key(struct s2n_config *config)
         GUARD_PTR(config->monotonic_clock(config->monotonic_clock_ctx, &now));
 
         if (key_intro_time < now
-                && now < key_intro_time + config->valid_key_lifetime_in_nanos) {
-            valid_ticket_keys_index[num_valid_keys] = i;
-            num_valid_keys++;
+                && now < key_intro_time + config->encrypt_decrypt_key_lifetime_in_nanos) {
+            encrypt_decrypt_keys_index[num_encrypt_decrypt_keys] = i;
+            num_encrypt_decrypt_keys++;
         }
     }
 
-    if (num_valid_keys == 0) {
-        S2N_ERROR_PTR(S2N_ERR_NO_VALID_TICKET_KEY);
+    if (num_encrypt_decrypt_keys == 0) {
+        S2N_ERROR_PTR(S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
     }
 
-    if (num_valid_keys == 1) {
-        return s2n_array_get(config->ticket_keys, valid_ticket_keys_index[0]);
+    if (num_encrypt_decrypt_keys == 1) {
+        return s2n_array_get(config->ticket_keys, encrypt_decrypt_keys_index[0]);
     }
 
     int8_t index;
-    GUARD_PTR(index = s2n_compute_weight_of_valid_keys(config, valid_ticket_keys_index, num_valid_keys, now));
+    GUARD_PTR(index = s2n_compute_weight_of_encrypt_decrypt_keys(config, encrypt_decrypt_keys_index, num_encrypt_decrypt_keys, now));
 
     return s2n_array_get(config->ticket_keys, index);
 }
@@ -431,7 +431,7 @@ struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint
 
             /* Check to see if the key has expired */
             if (now >= ((struct s2n_ticket_key *)s2n_array_get(config->ticket_keys, i))->intro_timestamp +
-                                config->valid_key_lifetime_in_nanos + config->semi_valid_key_lifetime_in_nanos) {
+                                config->encrypt_decrypt_key_lifetime_in_nanos + config->decrypt_key_lifetime_in_nanos) {
                 s2n_config_wipe_expired_ticket_crypto_keys(config, i);
 
                 return NULL;
@@ -461,10 +461,10 @@ int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
     struct s2n_blob state_blob = { .data = s_data, .size = sizeof(s_data) };
     struct s2n_stuffer state;
 
-    key = s2n_get_valid_ticket_key(conn->config);
+    key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
 
-    /* No keys loaded by the user or the keys are either in semi-valid or expired state */
-    S2N_ERROR_IF(!key, S2N_ERR_NO_VALID_TICKET_KEY);
+    /* No keys loaded by the user or the keys are either in decrypt-only or expired state */
+    S2N_ERROR_IF(!key, S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
 
     GUARD(s2n_stuffer_write_bytes(to, key->key_name, S2N_TICKET_KEY_NAME_LEN));
 
@@ -548,10 +548,10 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
     uint64_t now;
     GUARD(conn->config->monotonic_clock(conn->config->monotonic_clock_ctx, &now));
 
-    /* If the key is in semi-valid state, then a new key is assigned
+    /* If the key is in decrypt-only state, then a new key is assigned
      * for the ticket.
      */
-    if (now >= key->intro_timestamp + conn->config->valid_key_lifetime_in_nanos) {
+    if (now >= key->intro_timestamp + conn->config->encrypt_decrypt_key_lifetime_in_nanos) {
         conn->session_ticket_status = S2N_NEW_TICKET;
         conn->handshake.handshake_type |= WITH_SESSION_TICKET;
 
@@ -579,7 +579,7 @@ int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t
         GUARD(config->monotonic_clock(config->monotonic_clock_ctx, &now));
 
         if (now >= ((struct s2n_ticket_key *)s2n_array_get(config->ticket_keys, i))->intro_timestamp +
-                            config->valid_key_lifetime_in_nanos + config->semi_valid_key_lifetime_in_nanos) {
+                            config->encrypt_decrypt_key_lifetime_in_nanos + config->decrypt_key_lifetime_in_nanos) {
             expired_keys_index[num_of_expired_keys] = i;
             num_of_expired_keys++;
         }
@@ -587,7 +587,7 @@ int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t
 
     end:
         for (int j = 0; j < num_of_expired_keys; j++) {
-            s2n_array_delete(config->ticket_keys, expired_keys_index[j] - j);
+            s2n_array_remove(config->ticket_keys, expired_keys_index[j] - j);
         }
 
     return 0;

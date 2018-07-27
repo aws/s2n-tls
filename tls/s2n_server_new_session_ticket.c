@@ -51,7 +51,7 @@ int s2n_server_nst_send(struct s2n_connection *conn)
     uint8_t data[S2N_TICKET_SIZE_IN_BYTES];
     struct s2n_blob entry = { .data = data, .size = sizeof(data) };
     struct s2n_stuffer to;
-    uint32_t lifetime_hint_in_secs = (conn->config->valid_key_lifetime_in_nanos + conn->config->semi_valid_key_lifetime_in_nanos) / ONE_SEC_IN_NANOS;
+    uint32_t lifetime_hint_in_secs = (conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos) / ONE_SEC_IN_NANOS;
 
     /* When server changes it's mind mid handshake send lifetime hint and session ticket length as zero */
     if (!conn->config->use_tickets) {

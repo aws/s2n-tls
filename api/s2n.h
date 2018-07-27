@@ -112,8 +112,8 @@ extern int s2n_config_accept_max_fragment_length(struct s2n_config *config);
 extern int s2n_config_set_session_state_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
 
 extern int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enabled);
-extern int s2n_config_set_ticket_valid_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
-extern int s2n_config_set_ticket_semi_valid_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
+extern int s2n_config_set_ticket_encrypt_decrypt_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
+extern int s2n_config_set_ticket_decrypt_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
 extern int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
                                             const uint8_t *name, uint32_t name_len,
                                             uint8_t *key, uint32_t key_len,

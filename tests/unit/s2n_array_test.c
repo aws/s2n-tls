@@ -98,8 +98,8 @@ int main(int argc, char **argv)
 
     /* Get the inserted element */
     struct array_element *inserted_element = s2n_array_get(array, 16);
-    EXPECT_EQUAL(inserted_element->first, 20);
-    EXPECT_EQUAL(inserted_element->second, 'a' + 20);
+    EXPECT_EQUAL(inserted_element->first, insert_element->first);
+    EXPECT_EQUAL(inserted_element->second, insert_element->second);
 
     /* Get the element after the inserted element */
     struct array_element *after_inserted_element = s2n_array_get(array, 17);
@@ -107,7 +107,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(after_inserted_element->second, elements[16].second);
 
     /* Delete element from given index */
-    EXPECT_SUCCESS(s2n_array_delete(array, 0));
+    EXPECT_SUCCESS(s2n_array_remove(array, 0));
 
     /* Validate array parameters */
     EXPECT_EQUAL(array->capacity, 32);

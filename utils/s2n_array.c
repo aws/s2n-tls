@@ -109,7 +109,7 @@ void *s2n_array_insert(struct s2n_array *array, uint32_t index)
     return element;
 }
 
-int s2n_array_delete(struct s2n_array *array, uint32_t index)
+int s2n_array_remove(struct s2n_array *array, uint32_t index)
 {
     notnull_check(array);
 
@@ -118,6 +118,11 @@ int s2n_array_delete(struct s2n_array *array, uint32_t index)
                  (array->num_of_elements - index - 1) * array->element_size);
 
     array->num_of_elements--;
+
+    /* After shifting, zero the last element */
+    memset_check((uint8_t *) array->elements + array->element_size * array->num_of_elements,
+                  0,
+                  array->element_size);
 
     return 0;
 }

@@ -99,8 +99,8 @@ static int s2n_config_init(struct s2n_config *config)
     config->use_tickets = 0;
     config->ticket_keys = NULL;
     config->ticket_key_hashes = NULL;
-    config->valid_key_lifetime_in_nanos = S2N_TICKET_VALID_KEY_LIFETIME_IN_NANOS;
-    config->semi_valid_key_lifetime_in_nanos = S2N_TICKET_SEMI_VALID_KEY_LIFETIME_IN_NANOS;
+    config->encrypt_decrypt_key_lifetime_in_nanos = S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS;
+    config->decrypt_key_lifetime_in_nanos = S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS;
 
     /* By default, only the client will authenticate the Server's Certificate. The Server does not request or
      * authenticate any client certificates. */
@@ -761,21 +761,21 @@ int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enab
     return 0;
 }
 
-int s2n_config_set_ticket_valid_key_lifetime(struct s2n_config *config,
+int s2n_config_set_ticket_encrypt_decrypt_key_lifetime(struct s2n_config *config,
                                              uint64_t lifetime_in_secs)
 {
     notnull_check(config);
 
-    config->valid_key_lifetime_in_nanos = (lifetime_in_secs * ONE_SEC_IN_NANOS);
+    config->encrypt_decrypt_key_lifetime_in_nanos = (lifetime_in_secs * ONE_SEC_IN_NANOS);
     return 0;
 }
 
-int s2n_config_set_ticket_semi_valid_key_lifetime(struct s2n_config *config,
+int s2n_config_set_ticket_decrypt_key_lifetime(struct s2n_config *config,
                                                   uint64_t lifetime_in_secs)
 {
     notnull_check(config);
 
-    config->semi_valid_key_lifetime_in_nanos = (lifetime_in_secs * ONE_SEC_IN_NANOS);
+    config->decrypt_key_lifetime_in_nanos = (lifetime_in_secs * ONE_SEC_IN_NANOS);
     return 0;
 }
 

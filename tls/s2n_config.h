@@ -50,8 +50,8 @@ struct s2n_config {
     uint8_t use_tickets;
     struct s2n_array *ticket_keys;
     struct s2n_array *ticket_key_hashes;
-    uint64_t valid_key_lifetime_in_nanos;
-    uint64_t semi_valid_key_lifetime_in_nanos;
+    uint64_t encrypt_decrypt_key_lifetime_in_nanos;
+    uint64_t decrypt_key_lifetime_in_nanos;
 
     /* If caching is being used, these must all be set */
     int (*cache_store) (void *data, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size);

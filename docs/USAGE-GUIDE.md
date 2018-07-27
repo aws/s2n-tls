@@ -1144,26 +1144,27 @@ int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 ### Session Ticket Specific calls
 
 ```c
-int s2n_config_disable_session_tickets(struct s2n_config *config);
-int s2n_config_set_ticket_valid_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
-int s2n_config_set_ticket_semi_valid_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
+int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enabled);
+int s2n_config_set_ticket_encrypt_decrypt_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
+int s2n_config_set_ticket_decrypt_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
 int s2n_config_add_ticket_crypto_key(struct s2n_config *config, const uint8_t *name, uint32_t name_len, uint8_t *key, uint32_t key_len, uint64_t intro_time_in_seconds_from_epoch);
 ```
 
+- **enabled** when set to 0 will disable session resumption using session ticket
 - **name** name of the session ticket key that should be randomly generated to avoid collisions
 - **name_len** length of session ticket key name
 - **key** key used to perform encryption/decryption of session ticket
 - **key_len** length of the session ticket key
 - **intro_time_in_seconds_from_epoch** time at which the session ticket key is introduced. If this is 0, then intro_time_in_seconds_from_epoch is set to now.
 
-**s2n_config_disable_session_tickets** disables session resumption using session ticket
+**s2n_config_set_session_tickets_onoff** enables and disables session resumption using session ticket
 
-**s2n_config_set_ticket_valid_key_lifetime** sets how long the session ticket keys are considered **valid** on the server side. The default value is 2 hours. If a key is in **valid** state, then it will be used for both encryption and decryption of the tickets on the server side.
+**s2n_config_set_ticket_encrypt_decrypt_key_lifetime** sets how long a session ticket key will be in a state where it can be used for both encryption and decryption of tickets on the server side. The default value is 2 hours.
 
-**s2n_config_set_ticket_semi_valid_key_lifetime** sets how long the session ticket keys are considered **semi-valid** on the server side. The default value is 13 hours. If a key is in **semi-valid** state, then it will be used just for decryption of already assigned tickets on the server side. The session will resume and the server will issue a new session ticket encrypted using a valid key.
+**s2n_config_set_ticket_decrypt_key_lifetime** sets how long a session ticket key will be in a state where it can used just for decryption of already assigned tickets on the server side. Once decrypted, the session will resume and the server will issue a new session ticket encrypted using a key in encrypt-decrypt state. The default value is 13 hours.
 
-**s2n_config_add_ticket_crypto_key** adds session ticket key on the server side. It would be ideal to add new keys after every (valid_key_lifetime_in_nanos/2) nanos because
-this will allow for gradual and linear transition of a key from valid to semi-valid state.
+**s2n_config_add_ticket_crypto_key** adds session ticket key on the server side. It would be ideal to add new keys after every (encrypt_decrypt_key_lifetime_in_nanos/2) nanos because
+this will allow for gradual and linear transition of a key from encrypt-decrypt state to decrypt-only state.
 
 ### s2n\_connection\_wipe
 

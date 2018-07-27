@@ -135,7 +135,7 @@ static char dhparams[] =
     "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n"
     "-----END DH PARAMETERS-----\n";
 
-const unsigned char ticket_key_name[16] = "2016.07.26.15\0";
+uint8_t ticket_key_name[16] = "2016.07.26.15\0";
 
 uint8_t default_ticket_key[32] = {0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf, 0x0d, 0xdc,
                                   0x3f, 0x0d, 0xc4, 0x7b, 0xba, 0x63, 0x90, 0xb6, 0xc7, 0x3b,
@@ -741,27 +741,34 @@ int main(int argc, char *const *argv)
         }
 
         /* Key initialization */
-        char *st_key;
+        uint8_t *st_key;
         uint32_t st_key_length;
+
         if (session_ticket_key_file_path) {
-            st_key = load_file_to_cstring(session_ticket_key_file_path);
-            if (st_key == NULL) {
-                fprintf(stderr, "Error loading session ticket key file: '%s'\n", session_ticket_key_file_path);
+            int fd = open(session_ticket_key_file_path, O_RDONLY);
+            if (fd < 0) {
+                fprintf(stderr, "Error opening session ticket key file: '%s'\n", strerror(errno));
+                exit(1);
             }
 
-            st_key_length = strlen(st_key);
+            struct stat st;
+            if (fstat(fd, &st) < 0) {
+                fprintf(stderr, "Error fstat-ing session ticket key file: '%s'\n", strerror(errno));
+                exit(1);
+            }
+
+            st_key = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+            st_key_length = st.st_size;
+
+            close(fd);
         } else {
-            st_key = (char *)default_ticket_key;
-            st_key_length = sizeof(default_ticket_key);
+            st_key = default_ticket_key;
+            st_key_length = strlen((char *)default_ticket_key);
         }
 
-        if (s2n_config_add_ticket_crypto_key(config, ticket_key_name, sizeof(ticket_key_name), (uint8_t *)st_key, st_key_length, 0) != 0) {
+        if (s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name), st_key, st_key_length, 0) != 0) {
             fprintf(stderr, "Error adding ticket key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
             exit(1);
-        }
-
-        if (session_ticket_key_file_path) {
-            free(st_key);
         }
     }
 

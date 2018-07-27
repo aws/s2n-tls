@@ -329,30 +329,30 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
         return 0;
     }
 
-    skip_cache_lookup:
-        if (conn->mode == S2N_CLIENT && conn->client_session_resumed == 1) {
-            return 0;
-        }
+skip_cache_lookup:
+    if (conn->mode == S2N_CLIENT && conn->client_session_resumed == 1) {
+        return 0;
+    }
 
-        /* If we're doing full handshake, generate a new session id. */
-        GUARD(s2n_generate_new_client_session_id(conn));
+    /* If we're doing full handshake, generate a new session id. */
+    GUARD(s2n_generate_new_client_session_id(conn));
 
-        /* If we get this far, it's a full handshake */
-        conn->handshake.handshake_type |= FULL_HANDSHAKE;
+    /* If we get this far, it's a full handshake */
+    conn->handshake.handshake_type |= FULL_HANDSHAKE;
 
-        s2n_cert_auth_type client_cert_auth_type;
-        GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
-        if(client_cert_auth_type != S2N_CERT_AUTH_NONE) {
-            conn->handshake.handshake_type |= CLIENT_AUTH;
-        }
+    s2n_cert_auth_type client_cert_auth_type;
+    GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
+    if(client_cert_auth_type != S2N_CERT_AUTH_NONE) {
+        conn->handshake.handshake_type |= CLIENT_AUTH;
+    }
 
-        if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_EPH) {
-            conn->handshake.handshake_type |= PERFECT_FORWARD_SECRECY;
-        }
+    if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_EPH) {
+        conn->handshake.handshake_type |= PERFECT_FORWARD_SECRECY;
+    }
 
-        if (s2n_server_can_send_ocsp(conn) || s2n_server_sent_ocsp(conn)) {
-            conn->handshake.handshake_type |= OCSP_STATUS;
-        }
+    if (s2n_server_can_send_ocsp(conn) || s2n_server_sent_ocsp(conn)) {
+        conn->handshake.handshake_type |= OCSP_STATUS;
+    }
 
         return 0;
 }
