@@ -15,21 +15,23 @@
 #ifndef __BIKE1_L1_KEM_H_INCLUDED__
 #define __BIKE1_L1_KEM_H_INCLUDED__
 
+#include "../pq-utils.h"
+
 ////////////////////////////////////////////////////////////////
 //The three APIs below (keypair, enc, dec) are defined by NIST:
 ////////////////////////////////////////////////////////////////
 // Keygenerate - pk is the public key
 //               sk is the private key
-int BIKE1_L1_crypto_kem_keypair(unsigned char *pk, unsigned char *sk);
+int BIKE1_L1_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk);
 
 //Encapsulate - pk is the public key,
 //              ct is a key encapsulation message (ciphertext),
 //              ss is the shared secret.
-int BIKE1_L1_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsigned char *pk);
+int BIKE1_L1_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN  const unsigned char *pk);
 
 //Decapsulate - ct is a key encapsulation message (ciphertext),
 //              sk is the private key,
 //              ss is the shared secret
-int BIKE1_L1_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, const unsigned char *sk);
+int BIKE1_L1_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk);
 
 #endif //__BIKE1_L1_KEM_H_INCLUDED__

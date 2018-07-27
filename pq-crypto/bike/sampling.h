@@ -37,8 +37,8 @@
 
 #include "openssl_utils.h"
 #include "aes_ctr_prf.h"
-
-extern int s2n_openssl_compat_rand(unsigned char *buf, int num);
+#include "types.h"
+#include "../pq-random.h"
 
 enum _seeds_purpose
 {
@@ -49,9 +49,14 @@ enum _seeds_purpose
 
 typedef enum _seeds_purpose seeds_purpose_t;
 
-_INLINE_ void get_seeds(OUT double_seed_t* seeds, seeds_purpose_t seeds_type __attribute__((unused)) )
+_INLINE_ int get_seeds(OUT double_seed_t* seeds, seeds_purpose_t seeds_type __attribute__((unused)) )
 {
-    s2n_openssl_compat_rand(seeds->u.v.s1.u.raw, sizeof(double_seed_t));
+    // s2n uses 1 for success and 0 for failure
+    if(get_random_bytes(seeds->u.v.s1.u.raw, sizeof(double_seed_t)) == 1) {
+        return SUCCESS;
+    } else {
+        return E_FAIL_TO_GET_SEED;
+    }
 }
 
 typedef enum 

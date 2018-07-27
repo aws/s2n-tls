@@ -2,6 +2,8 @@ project(bike1-l1)
 
 file(GLOB BIKE_HEADERS
     "*.h"
+    "../pq-random.h"
+    "../pq-utils.h"
 )
 
 file(GLOB BIKE_SOURCE

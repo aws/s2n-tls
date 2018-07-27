@@ -179,7 +179,7 @@ int BIKE1_L1_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
     aes_ctr_prf_state_t h_prf_state = {0};
 
     //Get the entropy seeds.
-    get_seeds(&seeds, KEYGEN_SEEDS);
+    CHECK_STATUS(get_seeds(&seeds, KEYGEN_SEEDS));
 
     // sk = (h0, h1)
     uint8_t * h0 = l_sk->u.v.val0;
@@ -261,7 +261,7 @@ int BIKE1_L1_crypto_kem_enc(OUT unsigned char *ct,
     aes_ctr_prf_state_t e_prf_state = {0};
 
     //Get the entropy seeds.
-    get_seeds(&seeds, ENCAPS_SEEDS);
+    CHECK_STATUS(get_seeds(&seeds, ENCAPS_SEEDS));
 
     // error vector:
     uint8_t e[N_SIZE] = {0};

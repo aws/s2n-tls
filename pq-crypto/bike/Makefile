@@ -22,7 +22,7 @@ CFLAGS += -DBIKE1=1 -DPARAM64=1
 #WA for GCC 4.8.5 bug.
 CFLAGS += -Wno-missing-braces -Wno-missing-field-initializers
 
-# BIKE casts raw char arrays to an internal key representation for safety and convenience and safety in bike1_l1_kem.c
+# BIKE casts raw char arrays to an internal key representation for safety and convenience in bike1_l1_kem.c
 FLAGS_TO_REMOVE := -Wcast-qual -Wstack-protector
 
 FINAL_CFLAGS := $(filter-out $(FLAGS_TO_REMOVE),$(CFLAGS))

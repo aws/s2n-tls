@@ -36,6 +36,7 @@
 #define __TYPES_H_INCLUDED__
 
 #include "defs.h"
+#include "../pq-utils.h"
 #include <stdint.h>
 
 typedef struct uint128_s
@@ -47,10 +48,6 @@ typedef struct uint128_s
         uint64_t qwords[2];
     } u;
 } uint128_t;
-
-//For clarity of the code.
-#define IN
-#define OUT
 
 //Bit manipulations
 #define BIT(len) (1ULL << (len))
@@ -136,7 +133,8 @@ enum _status
     E_ERROR_WEIGHT_IS_NOT_T          = 7,
     E_DECODING_FAILURE               = 8,
     E_AES_CTR_PRF_INIT_FAIL          = 9,
-    E_AES_OVER_USED                  = 10
+    E_AES_OVER_USED                  = 10,
+    E_FAIL_TO_GET_SEED               = 11
 };
 
 typedef enum _status status_t;

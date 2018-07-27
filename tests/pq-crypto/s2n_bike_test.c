@@ -14,7 +14,7 @@
  */
 
 #include "s2n_test.h"
-
+#include "crypto/s2n_fips.h"
 #include "pq-crypto/bike/bike1_l1_kem.h"
 
 #define bike1_l1_length_secret_key 2542
@@ -46,7 +46,10 @@ int main(int argc, char **argv)
 
 
     BEGIN_TEST();
-
+    // BIKE is not supported in FIPS mode
+    if (s2n_is_in_fips_mode()) {
+        END_TEST();
+    }
     EXPECT_SUCCESS(BIKE1_L1_crypto_kem_keypair(publicKey, privateKey));
     EXPECT_SUCCESS(BIKE1_L1_crypto_kem_enc(encryptedSecret, clientSharedSecretPlaintext, publicKey));
     EXPECT_SUCCESS(BIKE1_L1_crypto_kem_dec(serverSharedSecretPlaintext, encryptedSecret, privateKey));
