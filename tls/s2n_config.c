@@ -110,6 +110,8 @@ static int s2n_config_init(struct s2n_config *config)
     config->disable_x509_validation = 0;
     config->max_verify_cert_chain_depth = 0;
     config->max_verify_cert_chain_depth_set = 0;
+    config->keylog_cb = NULL;
+    config->keylog_cb_ctx = NULL;
 
     if (s2n_is_in_fips_mode()) {
         s2n_config_set_cipher_preferences(config, "default_fips");
@@ -557,6 +559,14 @@ int s2n_config_accept_max_fragment_length(struct s2n_config *config)
     config->accept_mfl = 1;
 
     return 0;
+}
+
+int s2n_config_set_keylog_cb(struct s2n_config *config, s2n_keylog_callback_fn keylog_callback, void *ctx)
+{
+        config->keylog_cb = keylog_callback;
+        config->keylog_cb_ctx = ctx;
+
+        return 0;
 }
 
 int s2n_config_set_session_state_lifetime(struct s2n_config *config,
