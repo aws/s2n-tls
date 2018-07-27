@@ -16,7 +16,7 @@
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 TESTS=$(SRCS:.c=)
-VALGRIND_TESTS=$(SRCS:.c=.valgrind)
+VALGRIND_TESTS=$(SRCS:.c=_valgrind)
 CRYPTO_LDFLAGS = -L$(LIBCRYPTO_ROOT)/lib
 
 # Users can specify a subset of tests to be run, otherwise run all tests.
@@ -32,27 +32,22 @@ all: $(UNIT_TESTS)
 include ../../s2n.mk
 
 CRUFT += $(wildcard *_test)
-LIBS += -lm
+
+# Use the version of bike compiled with the nist random number generator and not the s2n default
+LIBS += -lm -lbike1_l1 -ltests2n -ls2n
 
 # Suppress the unreachable code warning, because tests involve what should be
 # unreachable code
-CFLAGS += -Wno-unreachable-code -I$(LIBCRYPTO_ROOT)/include/ -I../../ -I../../api/ -I../../pq-crypto/
-LDFLAGS += -L../../lib/ ${CRYPTO_LDFLAGS} -L../testlib/ -L../../pq-crypto/bike/ ${LIBS} ${CRYPTO_LIBS}
+CFLAGS += -g -Wno-unreachable-code -I$(LIBCRYPTO_ROOT)/include/ -I../../ -I../../api/
+LDFLAGS += -L../../lib/ -L../../pq-crypto/ ${CRYPTO_LDFLAGS} -L../testlib/ -L../../pq-crypto/bike/ ${LIBS} ${CRYPTO_LIBS}
 
 $(UNIT_TESTS)::
 	@${CC} ${CFLAGS} -o $@ $@.c ${LDFLAGS} 2>&1
 	@DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
-	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
+	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH:../../pq-crypto/bike/" \
 	LD_PRELOAD="../LD_PRELOAD/allocator_overrides.so" \
 	./$@
 
-$(VALGRIND_TESTS)::
-	@${CC} ${CFLAGS} -o $(@:.valgrind=) $(@:.valgrind=.c) ${LDFLAGS} 2>&1
-	@DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
-	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
-	S2N_VALGRIND=1 \
-	valgrind --leak-check=full --run-libc-freeres=no -q --error-exitcode=9 --gen-suppressions=all --log-fd=2 --num-callers=40 --leak-resolution=high --undef-value-errors=no --trace-children=yes --suppressions=valgrind.suppressions \
-	./$(@:.valgrind=)
-
 .PHONY : valgrind
-valgrind: $(VALGRIND_TESTS)
+valgrind: $(TESTS)
+	(for test in *_test ; do DYLD_LIBRARY_PATH="../../lib/:../testlib/:$$DYLD_LIBRARY_PATH" LD_LIBRARY_PATH="../../lib/:../testlib/:$$LD_LIBRARY_PATH" valgrind --leak-check=full --run-libc-freeres=no -q --error-exitcode=0 --gen-suppressions=all --log-fd=2 --num-callers=40 --leak-resolution=high --log-file=$$test-valgrind.log --undef-value-errors=no --trace-children=yes ./$$test; done )
