@@ -16,6 +16,7 @@
 #include <sys/param.h>
 
 #include <errno.h>
+#include <stdio.h>
 #include <s2n.h>
 
 #include "error/s2n_errno.h"
@@ -1077,6 +1078,51 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
     return 0;
 }
 
+static int s2n_write_keylog(struct s2n_connection *conn)
+{
+    if (!conn->config->keylog_cb) {
+            return 0;
+    }
+
+    const size_t keylog_line_max_length = sizeof("CLIENT_RANDOM ") + 2 * sizeof(conn->secure.client_random) +
+        2 * sizeof(conn->secure.master_secret) + 2;
+
+    DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
+    GUARD(s2n_stuffer_alloc(&stuffer, keylog_line_max_length));
+
+    const uint8_t prefix[] = "CLIENT_RANDOM ";
+    GUARD(s2n_stuffer_write_bytes(&stuffer, prefix, sizeof(prefix) - 1));
+
+    for (size_t i = 0; i < sizeof(conn->secure.client_random); i++) {
+        uint8_t unibble = conn->secure.client_random[i] >> 4;
+        uint8_t lnibble = conn->secure.client_random[i] & 15;
+        unibble += (unibble < 10) ? '0' : ('a' - 10);
+        lnibble += (lnibble < 10) ? '0' : ('a' - 10);
+
+        GUARD(s2n_stuffer_write_uint8(&stuffer, unibble));
+        GUARD(s2n_stuffer_write_uint8(&stuffer, lnibble));
+    }
+
+    GUARD(s2n_stuffer_write_uint8(&stuffer, ' '));
+
+    for (size_t i = 0; i < sizeof(conn->secure.master_secret); i++) {
+        uint8_t unibble = conn->secure.master_secret[i] >> 4;
+        uint8_t lnibble = conn->secure.master_secret[i] & 15;
+        unibble += (unibble < 10) ? '0' : ('a' - 10);
+        lnibble += (lnibble < 10) ? '0' : ('a' - 10);
+
+        s2n_stuffer_write_uint8(&stuffer, unibble);
+        s2n_stuffer_write_uint8(&stuffer, lnibble);
+    }
+    GUARD(s2n_stuffer_write_uint8(&stuffer, 0));
+
+    const char *line = (const char *)stuffer.blob.data;
+
+    conn->config->keylog_cb(conn, line, conn->config->keylog_cb_ctx);
+
+    return 0;
+}
+
 int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
 {
     errno = 0;
@@ -1142,6 +1188,9 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
             GUARD(s2n_stuffer_resize(&conn->handshake.io, 0));
         }
     }
+
+    /* Failure to write the keylog is not an error */
+    s2n_write_keylog(conn);
 
     *blocked = S2N_NOT_BLOCKED;
 

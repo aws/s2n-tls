@@ -163,6 +163,9 @@ extern int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
                                             uint8_t *key, uint32_t key_len,
                                             uint64_t intro_time_in_seconds_from_epoch);
 
+typedef void s2n_keylog_callback_fn(struct s2n_connection *conn, const char *line, void *ctx);
+extern int s2n_config_set_keylog_cb(struct s2n_config *config, s2n_keylog_callback_fn keylog_callback, void *ctx);
+
 typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
 extern struct s2n_connection *s2n_connection_new(s2n_mode mode);
 extern int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *config);

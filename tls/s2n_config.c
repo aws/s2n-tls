@@ -122,6 +122,8 @@ static int s2n_config_init(struct s2n_config *config)
     config->max_verify_cert_chain_depth = 0;
     config->max_verify_cert_chain_depth_set = 0;
     config->cert_tiebreak_cb = NULL;
+    config->keylog_cb = NULL;
+    config->keylog_cb_ctx = NULL;
 
     GUARD(s2n_config_setup_default(config));
     if (s2n_is_tls13_enabled()) {
@@ -644,6 +646,16 @@ int s2n_config_accept_max_fragment_length(struct s2n_config *config)
     notnull_check(config);
 
     config->accept_mfl = 1;
+
+    return 0;
+}
+
+int s2n_config_set_keylog_cb(struct s2n_config *config, s2n_keylog_callback_fn keylog_callback, void *ctx)
+{
+    notnull_check(config);
+
+    config->keylog_cb = keylog_callback;
+    config->keylog_cb_ctx = ctx;
 
     return 0;
 }

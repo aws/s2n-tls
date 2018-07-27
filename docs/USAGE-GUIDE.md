@@ -813,6 +813,19 @@ Sets whether or not a should terminate connection on WARNING alert from peer. `a
 - `S2N_ALERT_FAIL_ON_WARNINGS` - default behavior: s2n will terminate conneciton if peer sends WARNING alert.
 - `S2N_ALERT_IGNORE_WARNINGS` - with the exception of `close_notify` s2n will ignore all WARNING alerts and keep communicating with its peer.
 
+### s2n\_set\_keylog\_cb
+
+```c
+typedef void s2n_keylog_callback_fn(struct s2n_connection *conn, const char *line, void *ctx);
+extern int s2n_config_set_keylog_cb(struct s2n_config *config, s2n_keylog_callback_fn keylog_callback, void *ctx);
+```
+
+**s2n_set_keylog_cb** allows the caller to set a callback function that will be
+called after each handshake and that will receive a key log line suitable for use
+with any [NSS Key Log Format](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format)
+compatible tool like Wireshark. Implementations should write the `line`, followed
+by a new line, to a log file.
+
 ## Certificate-related functions
 
 ### s2n\_cert\_chain\_and\_key\_new
