@@ -50,7 +50,7 @@ struct s2n_map {
     struct s2n_hash_state sha256;
 };
 
-static uint32_t s2n_map_slot(struct s2n_map *map, struct s2n_blob *key)
+static int s2n_map_slot(struct s2n_map *map, struct s2n_blob *key, uint32_t *slot)
 {
     union {
         uint8_t u8[32];
@@ -62,7 +62,8 @@ static uint32_t s2n_map_slot(struct s2n_map *map, struct s2n_blob *key)
 
     GUARD(s2n_hash_reset(&map->sha256));
 
-    return digest.u32[0] % map->capacity;
+    *slot = digest.u32[0] % map->capacity;
+    return 0;
 }
 
 static int s2n_map_embiggen(struct s2n_map *map, uint32_t capacity)
@@ -134,7 +135,8 @@ int s2n_map_add(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *valu
         GUARD(s2n_map_embiggen(map, map->capacity * 2));
     }
 
-    uint32_t slot = s2n_map_slot(map, key);
+    uint32_t slot;
+    GUARD(s2n_map_slot(map, key, &slot));
 
     /* Linear probing until we find an empty slot */
     while(map->table[slot].key.size) {
@@ -167,7 +169,8 @@ int s2n_map_put(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *valu
         GUARD(s2n_map_embiggen(map, map->capacity * 2));
     }
 
-    uint32_t slot = s2n_map_slot(map, key);
+    uint32_t slot;
+    GUARD(s2n_map_slot(map, key, &slot));
 
     /* Linear probing until we find an empty slot */
     while(map->table[slot].key.size) {
@@ -203,7 +206,8 @@ int s2n_map_lookup(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *v
 {
     S2N_ERROR_IF(!map->immutable, S2N_ERR_MAP_MUTABLE);
 
-    uint32_t slot = s2n_map_slot(map, key);
+    uint32_t slot;
+    GUARD(s2n_map_slot(map, key, &slot));
 
     while(map->table[slot].key.size) {
         if (key->size != map->table[slot].key.size ||

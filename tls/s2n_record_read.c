@@ -56,8 +56,8 @@ int s2n_sslv2_record_header_parse(
 
 int s2n_record_header_parse(
     struct s2n_connection *conn,
-    uint8_t * content_type,
-    uint16_t * fragment_length)
+    uint8_t *content_type,
+    uint16_t *fragment_length)
 {
     struct s2n_stuffer *in = &conn->header_in;
 
@@ -68,22 +68,21 @@ int s2n_record_header_parse(
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
     GUARD(s2n_stuffer_read_bytes(in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
 
-    uint8_t version = (protocol_version[0] * 10) + protocol_version[1];
+    const uint8_t version = (protocol_version[0] * 10) + protocol_version[1];
+    /* https://tools.ietf.org/html/rfc5246#appendix-E.1 states that servers must accept any value {03,XX} as the record
+     * layer version number for the first TLS record. There is some ambiguity here because the client does not know
+     * what version to use in the record header prior to receiving the ServerHello. Some client implmentations may use
+     * a garbage value(not {03,XX}) in the ClientHello.
+     * Choose to be lenient to these clients. After protocol negotiation, we will enforce that all record versions
+     * match the negotiated version.
+     */
 
-    uint8_t tls_major_version = protocol_version[0];
-    /* TLS servers compliant with this specification MUST accept any value {03,XX} as the record layer version number
-     * for ClientHello.
-     *
-     * https://tools.ietf.org/html/rfc5246#appendix-E.1 */
-    S2N_ERROR_IF(tls_major_version < S2N_MINIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION, S2N_ERR_BAD_MESSAGE);
-    S2N_ERROR_IF(S2N_MAXIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION < tls_major_version, S2N_ERR_BAD_MESSAGE);
     S2N_ERROR_IF(conn->actual_protocol_version_established && conn->actual_protocol_version != version, S2N_ERR_BAD_MESSAGE);
-
     GUARD(s2n_stuffer_read_uint16(in, fragment_length));
 
     /* Some servers send fragments that are above the maximum length.  (e.g.
      * Openssl 1.0.1, so we don't check if the fragment length is >
-     * S2N_TLS_MAXIMUM_FRAGMENT_LENGTH. The on-the-wire max is 65k 
+     * S2N_TLS_MAXIMUM_FRAGMENT_LENGTH. The on-the-wire max is 65k
      */
     GUARD(s2n_stuffer_reread(in));
 

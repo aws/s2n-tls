@@ -165,6 +165,7 @@ typedef enum { S2N_NOT_BLOCKED = 0, S2N_BLOCKED_ON_READ, S2N_BLOCKED_ON_WRITE } 
 extern int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked);
 extern ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ssize_t size, s2n_blocked_status *blocked);
 extern ssize_t s2n_recv(struct s2n_connection *conn,  void *buf, ssize_t size, s2n_blocked_status *blocked);
+extern uint32_t s2n_peek(struct s2n_connection *conn);
 
 extern int s2n_connection_wipe(struct s2n_connection *conn);
 extern int s2n_connection_free(struct s2n_connection *conn);
@@ -177,6 +178,12 @@ extern int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_a
 extern int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type *client_auth_type);
 extern int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type client_auth_type);
 extern int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len);
+
+extern int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *session, size_t length);
+extern int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, size_t max_length);
+extern ssize_t s2n_connection_get_session_length(struct s2n_connection *conn);
+extern ssize_t s2n_connection_get_session_id_length(struct s2n_connection *conn);
+extern int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 
 /* RFC's that define below values:
  *  - https://tools.ietf.org/html/rfc5246#section-7.4.4

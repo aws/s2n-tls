@@ -65,7 +65,21 @@ struct s2n_connection {
     /* Is this connection using CORK/SO_RCVLOWAT optimizations? Only valid when the connection is using
      * managed_io
      */
-    unsigned int corked_io:1;
+    unsigned corked_io:1;
+
+    /* Session resumption indicator on client side */
+    unsigned client_session_resumed:1;
+
+    /* Determines if we're currently sending or receiving in s2n_shutdown */
+    unsigned close_notify_queued:1;
+
+    /* s2n does not support renegotiation.
+     * RFC5746 Section 4.3 suggests servers implement a minimal version of the
+     * renegotiation_info extension even if renegotiation is not supported.
+     * Some clients may fail the handshake if a corresponding renegotiation_info
+     * extension is not sent back by the server.
+     */
+    unsigned secure_renegotiation:1;
 
     /* Is this connection a client or a server connection */
     s2n_mode mode;
@@ -151,9 +165,6 @@ struct s2n_connection {
     struct s2n_stuffer reader_alert_out;
     struct s2n_stuffer writer_alert_out;
 
-    /* Determines if we're currently sending or receiving in s2n_shutdown */
-    unsigned int close_notify_queued:1;
-
     /* Contains parameters needed during the handshake phase */
     struct s2n_handshake_parameters handshake_params;
 
@@ -204,13 +215,6 @@ struct s2n_connection {
      * In client mode, this will be set after is_handshake_complete(connection) is true.
      */
     char application_protocol[256];
-    /* s2n does not support renegotiation.
-     * RFC5746 Section 4.3 suggests servers implement a minimal version of the
-     * renegotiation_info extension even if renegotiation is not supported.
-     * Some clients may fail the handshake if a corresponding renegotiation_info
-     * extension is not sent back by the server.
-     */
-    unsigned int secure_renegotiation:1;
 
     /* OCSP stapling response data */
     s2n_status_request_type status_type;

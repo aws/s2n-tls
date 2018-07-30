@@ -322,7 +322,6 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_stuffer client_random;
     struct s2n_blob b, r;
-    uint8_t session_id_len = 0;
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
     b.data = conn->secure.client_random;
@@ -342,7 +341,11 @@ int s2n_client_hello_send(struct s2n_connection *conn)
 
     GUARD(s2n_stuffer_write_bytes(out, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
     GUARD(s2n_stuffer_copy(&client_random, out, S2N_TLS_RANDOM_DATA_LEN));
-    GUARD(s2n_stuffer_write_uint8(out, session_id_len));
+
+    GUARD(s2n_stuffer_write_uint8(out, conn->session_id_len));
+    if (conn->session_id_len > 0) {
+        GUARD(s2n_stuffer_write_bytes(out, conn->session_id, conn->session_id_len));
+    }
 
     const struct s2n_cipher_preferences *cipher_preferences;
     GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
@@ -373,12 +376,6 @@ int s2n_client_hello_send(struct s2n_connection *conn)
 
     /* Write the extensions */
     GUARD(s2n_client_extensions_send(conn, out));
-
-    /* Default our signature digest algorithm to SHA1. Will be used when verifying a client certificate. */
-    conn->secure.conn_hash_alg = S2N_HASH_MD5_SHA1;
-    if (conn->actual_protocol_version == S2N_TLS12 || s2n_is_in_fips_mode()) {
-        conn->secure.conn_hash_alg = S2N_HASH_SHA1;
-    }
 
     return 0;
 }

@@ -265,8 +265,8 @@ int main(int argc, char **argv)
         uint8_t record_header[] = {
             /* Record type HANDSHAKE */
             0x16,
-            /* Protocol version TLS 1.2 */
-            0x03, 0x03,
+            /* Protocol version garbage value. s2n should still accept this. */
+            0x01, 0x01,
             /* Message len */
             (message_len >> 8) & 0xff, (message_len & 0xff),
         };

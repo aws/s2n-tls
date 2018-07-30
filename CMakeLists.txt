@@ -32,7 +32,7 @@ file(GLOB TLS_HEADERS
 file(GLOB UTILS_HEADERS
     "utils/*.h"
 )
- 
+
  ##source files
  file(GLOB CRYPTO_SRC
      "crypto/*.c"
@@ -71,7 +71,7 @@ if(MSVC)
 endif()
 
 if(APPLE)
-    set(OS_LIBS c pthread)        
+    set(OS_LIBS c pthread)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
     set(OS_LIBS thr)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "NetBSD")
@@ -79,7 +79,7 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "NetBSD")
 else()
     set(OS_LIBS pthread dl rt)
 endif()
- 
+
 file(GLOB S2N_HEADERS
     ${API_HEADERS}
     ${CRYPTO_HEADERS}
@@ -88,7 +88,7 @@ file(GLOB S2N_HEADERS
     ${TLS_HEADERS}
     ${UTILS_HEADERS}
  )
- 
+
  file(GLOB S2N_SRC
     ${CRYPTO_SRC}
     ${ERROR_SRC}
@@ -103,8 +103,12 @@ set_target_properties(s2n PROPERTIES LINKER_LANGUAGE C)
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
 target_compile_options(s2n PRIVATE -pedantic -std=c99 -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security)
-target_compile_definitions(s2n PRIVATE -D_POSIX_C_SOURCE=200809L -D_FORTIFY_SOURCE=2)
-target_compile_options(s2n PUBLIC -fPIC)    
+target_compile_options(s2n PUBLIC -fPIC)
+
+target_compile_definitions(s2n PRIVATE -D_POSIX_C_SOURCE=200809L)
+if(CMAKE_BUILD_TYPE MATCHES Release)
+    target_compile_definitions(s2n PRIVATE -D_FORTIFY_SOURCE=2)
+endif()
 
 if(NO_STACK_PROTECTOR)
     target_compile_options(s2n PRIVATE -Wstack-protector -fstack-protector-all)
@@ -121,6 +125,7 @@ target_link_libraries(s2n PRIVATE LibCrypto::Crypto PRIVATE ${OS_LIBS})
 
 target_include_directories(s2n PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(s2n PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
+target_include_directories(s2n PUBLIC $<TARGET_PROPERTY:LibCrypto::Crypto,INTERFACE_INCLUDE_DIRECTORIES>)
 
 file(GLOB TESTLIB_SRC "tests/testlib/*.c")
 file(GLOB TESTLIB_HEADERS "tests/testlib/*.h")
@@ -147,7 +152,7 @@ file(GLOB UNITTESTS_SRC "tests/unit/*.c")
     target_include_directories(${test_case_name} PRIVATE tests)
     target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -std=c99)
     add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
-   
+
     set_property(
     TEST
         ${test_case_name}
@@ -175,13 +180,13 @@ install (
          ARCHIVE DESTINATION lib
          LIBRARY DESTINATION lib
          PUBLIC_HEADER DESTINATION "${INSTALL_INCLUDE_DIR}"
-         COMPONENT dev     
+         COMPONENT dev
 )
 
 export(TARGETS s2n FILE "s2nTargets.cmake")
 export(PACKAGE s2n)
 
-if(LibCrypto_ROOT_DIR) 
+if(LibCrypto_ROOT_DIR)
      set(NON_SYS_LIB_CRYPTO_ROOT "${LibCrypto_ROOT_DIR}")
 endif()
 
@@ -197,7 +202,7 @@ configure_file(s2nConfig.cmake.in
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/FindLibCrypto.cmake" DESTINATION "${CMAKE_BINARY_DIR}")
 file(RENAME "${CMAKE_BINARY_DIR}/FindLibCrypto.cmake" "${CMAKE_BINARY_DIR}/LibCryptoConfig.cmake")
 
-install(FILES 
+install(FILES
     "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/s2nConfig.cmake"
     DESTINATION "${INSTALL_CMAKE_DIR}/s2n" COMPONENT dev)
 

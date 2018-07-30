@@ -24,6 +24,11 @@
 #define S2N_STATE_SIZE_IN_BYTES         (1 + 8 + 1 + S2N_TLS_CIPHER_SUITE_LEN + S2N_TLS_SECRET_LEN)
 #define S2N_TLS_SESSION_CACHE_TTL       (6 * 60 * 60)
 
+typedef enum {
+	S2N_STATE_WITH_SESSION_ID = 0,
+	S2N_STATE_WITH_SESSION_TICKET
+} s2n_client_tls_session_state_format;
+
 extern int s2n_allowed_to_cache_connection(struct s2n_connection *conn);
 extern int s2n_resume_from_cache(struct s2n_connection *conn);
 extern int s2n_store_to_cache(struct s2n_connection *conn);
