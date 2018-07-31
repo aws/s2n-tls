@@ -17,44 +17,25 @@
 #include "crypto/s2n_fips.h"
 #include "pq-crypto/bike/bike1_l1_kem.h"
 
-#define bike1_l1_length_secret_key 2542
-#define bike1_l1_length_public_key 2542
-#define bike1_l1_length_ciphertext 2542
-#define bike1_l1_length_shared_secret 32
-
-uint32_t constant_time_compare(const uint8_t* a,
-                  const uint8_t* b,
-                  const uint32_t size)
-{
-    volatile uint8_t res = 0;
-
-    for(uint32_t i=0; i < size; ++i)
-    {
-        res |= (a[i] ^ b[i]);
-    }
-
-    return (res == 0);
-}
 
 int main(int argc, char **argv)
 {
-    unsigned char publicKey[bike1_l1_length_public_key];
-    unsigned char privateKey[bike1_l1_length_secret_key];
-    unsigned char clientSharedSecretPlaintext[bike1_l1_length_shared_secret];
-    unsigned char serverSharedSecretPlaintext[bike1_l1_length_shared_secret];
-    unsigned char encryptedSecret[bike1_l1_length_ciphertext];
-
+    unsigned char publicKey[BIKE1_L1_PUBLIC_KEY_BYTES];
+    unsigned char privateKey[BIKE1_L1_SECRET_KEY_BYTES];
+    unsigned char clientSharedSecretPlaintext[BIKE1_L1_SHARED_SECRET_BYTES];
+    unsigned char serverSharedSecretPlaintext[BIKE1_L1_SHARED_SECRET_BYTES];
+    unsigned char encryptedSecret[BIKE1_L1_CIPHERTEXT_BYTES];
 
     BEGIN_TEST();
     // BIKE is not supported in FIPS mode
     if (s2n_is_in_fips_mode()) {
         END_TEST();
     }
+
     EXPECT_SUCCESS(BIKE1_L1_crypto_kem_keypair(publicKey, privateKey));
     EXPECT_SUCCESS(BIKE1_L1_crypto_kem_enc(encryptedSecret, clientSharedSecretPlaintext, publicKey));
     EXPECT_SUCCESS(BIKE1_L1_crypto_kem_dec(serverSharedSecretPlaintext, encryptedSecret, privateKey));
-    EXPECT_TRUE(constant_time_compare(serverSharedSecretPlaintext, clientSharedSecretPlaintext, bike1_l1_length_shared_secret));
-    EXPECT_FALSE(constant_time_compare(privateKey, publicKey, bike1_l1_length_public_key));
+    EXPECT_BYTEARRAY_EQUAL(serverSharedSecretPlaintext, clientSharedSecretPlaintext, BIKE1_L1_SHARED_SECRET_BYTES);
 
     END_TEST();
 }

@@ -35,10 +35,9 @@
 #ifndef _SAMPLE_H_
 #define _SAMPLE_H_
 
+#include "../pq-random.h"
 #include "openssl_utils.h"
 #include "aes_ctr_prf.h"
-#include "types.h"
-#include "../pq-random.h"
 
 enum _seeds_purpose
 {
@@ -51,8 +50,8 @@ typedef enum _seeds_purpose seeds_purpose_t;
 
 _INLINE_ int get_seeds(OUT double_seed_t* seeds, seeds_purpose_t seeds_type __attribute__((unused)) )
 {
-    // s2n uses 1 for success and 0 for failure
-    if(get_random_bytes(seeds->u.v.s1.u.raw, sizeof(double_seed_t)) == 1) {
+    // pq-random uses 0 for success and negative values for failure
+    if (get_random_bytes(seeds->u.v.s1.u.raw, sizeof(double_seed_t)) == 0) {
         return SUCCESS;
     } else {
         return E_FAIL_TO_GET_SEED;

@@ -58,6 +58,7 @@ libs:
 
 .PHONY : bin
 bin: libs
+	$(MAKE) -C pq-crypto
 	$(MAKE) -C bin
 
 .PHONY : integration
