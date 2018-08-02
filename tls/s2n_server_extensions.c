@@ -124,15 +124,15 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 
 int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *extensions)
 {
-    struct s2n_stuffer in;
+    struct s2n_stuffer in = {{0}};
 
     GUARD(s2n_stuffer_init(&in, extensions));
     GUARD(s2n_stuffer_write(&in, extensions));
 
     while (s2n_stuffer_data_available(&in)) {
-        struct s2n_blob ext;
+        struct s2n_blob ext = {0};
         uint16_t extension_type, extension_size;
-        struct s2n_stuffer extension;
+        struct s2n_stuffer extension = {{0}};
 
         GUARD(s2n_stuffer_read_uint16(&in, &extension_type));
         GUARD(s2n_stuffer_read_uint16(&in, &extension_size));

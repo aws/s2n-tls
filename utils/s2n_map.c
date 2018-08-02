@@ -24,31 +24,11 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_map.h"
+#include "utils/s2n_map_internal.h"
 
 #include <s2n.h>
 
 #define S2N_INITIAL_TABLE_SIZE 1024
-
-struct s2n_map_entry {
-    struct s2n_blob key;
-    struct s2n_blob value;
-};
-
-struct s2n_map {
-    /* The total capacity of the table, in number of elements. */
-    uint32_t capacity;
-
-    /* The total number of elements currently in the table. Used for measuring the load factor */
-    uint32_t size;
-
-    /* Once a map has been looked up, it is considered immutable */
-    int      immutable;
-
-    /* Pointer to the hash-table, should be capacity * sizeof(struct s2n_map_entry) */
-    struct s2n_map_entry *table;
-
-    struct s2n_hash_state sha256;
-};
 
 static int s2n_map_slot(struct s2n_map *map, struct s2n_blob *key, uint32_t *slot)
 {
@@ -68,8 +48,8 @@ static int s2n_map_slot(struct s2n_map *map, struct s2n_blob *key, uint32_t *slo
 
 static int s2n_map_embiggen(struct s2n_map *map, uint32_t capacity)
 {
-    struct s2n_blob mem;
-    struct s2n_map tmp;
+    struct s2n_blob mem = {0};
+    struct s2n_map tmp = {0};
 
     S2N_ERROR_IF(map->immutable, S2N_ERR_MAP_IMMUTABLE);
 
@@ -107,7 +87,7 @@ static int s2n_map_embiggen(struct s2n_map *map, uint32_t capacity)
 
 struct s2n_map *s2n_map_new()
 {
-    struct s2n_blob mem;
+    struct s2n_blob mem = {0};
     struct s2n_map *map;
 
     GUARD_PTR(s2n_alloc(&mem, sizeof(struct s2n_map)));
@@ -229,7 +209,7 @@ int s2n_map_lookup(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *v
 
 int s2n_map_free(struct s2n_map *map)
 {
-    struct s2n_blob mem;
+    struct s2n_blob mem = {0};
 
     /* Free the keys and values */
     for (int i = 0; i < map->capacity; i++) {

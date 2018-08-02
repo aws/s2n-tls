@@ -422,7 +422,7 @@ static int handshake_write_io(struct s2n_connection *conn)
     }
 
     /* Write the handshake data to records in fragment sized chunks */
-    struct s2n_blob out;
+    struct s2n_blob out = {0};
     while (s2n_stuffer_data_available(&conn->handshake.io) > 0) {
         int max_payload_size;
         GUARD((max_payload_size = s2n_record_max_write_payload_size(conn)));
@@ -505,7 +505,7 @@ static int s2n_handshake_conn_update_hashes(struct s2n_connection *conn)
     GUARD(s2n_stuffer_reread(&conn->handshake.io));
     GUARD(s2n_handshake_parse_header(conn, &message_type, &handshake_message_length));
 
-    struct s2n_blob handshake_record;
+    struct s2n_blob handshake_record = {0};
     handshake_record.data = conn->handshake.io.blob.data;
     handshake_record.size = TLS_HANDSHAKE_HEADER_LENGTH + handshake_message_length;
     notnull_check(handshake_record.data);
