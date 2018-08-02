@@ -87,10 +87,9 @@ int s2n_x509_trust_store_add_pem(struct s2n_x509_trust_store *store, const char 
         store->trust_store = X509_STORE_new();
     }
 
-
     _cleanup_(s2n_stuffer_free) struct s2n_stuffer pem_in_stuffer = {{0}};
     _cleanup_(s2n_stuffer_free)struct s2n_stuffer der_out_stuffer = {{0}};
-    _cleanup_(s2n_free) struct s2n_blob next_cert = { 0 };
+    _cleanup_(s2n_free) struct s2n_blob next_cert = {0};
 
     GUARD(s2n_stuffer_alloc_ro_from_string(&pem_in_stuffer, pem));
     GUARD(s2n_stuffer_growable_alloc(&der_out_stuffer, 2048));
