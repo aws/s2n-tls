@@ -34,4 +34,6 @@ int s2n_dup(struct s2n_blob *from, struct s2n_blob *to);
   }							    \
   struct __useless_struct_to_allow_trailing_semicolon__
 
-#define _cleanup_(x) __attribute__((cleanup(x)))
+#define DEFER_CLEANUP(_thealloc, _thecleanup) \
+   __attribute__((cleanup(_thecleanup))) _thealloc
+

@@ -87,9 +87,9 @@ int s2n_x509_trust_store_add_pem(struct s2n_x509_trust_store *store, const char 
         store->trust_store = X509_STORE_new();
     }
 
-    _cleanup_(s2n_stuffer_free) struct s2n_stuffer pem_in_stuffer = {{0}};
-    _cleanup_(s2n_stuffer_free)struct s2n_stuffer der_out_stuffer = {{0}};
-    _cleanup_(s2n_free) struct s2n_blob next_cert = {0};
+    DEFER_CLEANUP(struct s2n_stuffer pem_in_stuffer = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer der_out_stuffer = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_blob next_cert = {0}, s2n_free);
 
     GUARD(s2n_stuffer_alloc_ro_from_string(&pem_in_stuffer, pem));
     GUARD(s2n_stuffer_growable_alloc(&der_out_stuffer, 2048));
@@ -100,7 +100,7 @@ int s2n_x509_trust_store_add_pem(struct s2n_x509_trust_store *store, const char 
         GUARD(s2n_stuffer_read(&der_out_stuffer, &next_cert));
 
         const uint8_t *data = next_cert.data;
-        _cleanup_(X509_freep) X509 *ca_cert = d2i_X509(NULL, &data, next_cert.size);
+	DEFER_CLEANUP(X509 *ca_cert = d2i_X509(NULL, &data, next_cert.size), X509_freep);
 	S2N_ERROR_IF(ca_cert == NULL, S2N_ERR_DECODE_CERTIFICATE);
 
         GUARD_OSSL(X509_STORE_add_cert(store->trust_store, ca_cert), S2N_ERR_DECODE_CERTIFICATE);
