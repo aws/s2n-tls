@@ -25,3 +25,13 @@ int s2n_alloc(struct s2n_blob *b, uint32_t size);
 int s2n_realloc(struct s2n_blob *b, uint32_t size);
 int s2n_free(struct s2n_blob *b);
 int s2n_dup(struct s2n_blob *from, struct s2n_blob *to);
+
+
+#define DEFINE_TRIVIAL_CLEANUP_FUNC(type, func)             \
+  static inline void func##p(type *p) {			    \
+    if (p && *p)					    \
+      func(*p);						    \
+  }							    \
+  struct __useless_struct_to_allow_trailing_semicolon__
+
+#define _cleanup_(x) __attribute__((cleanup(x)))
