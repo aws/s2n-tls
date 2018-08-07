@@ -111,7 +111,8 @@ let setup_connection = do {
    ocsp_flag <- crucible_fresh_var "ocsp_flag" (llvm_int 32);
    crucible_points_to (conn_status_type pconn) (crucible_term ocsp_flag);
 
- 
+   let client_cert_auth_type = {{ if cca_ov != 0 then cca else config_cca }};
+
    return (pconn, {{ {corked_io = corked_io
                      ,mode      = mode
                      ,handshake = {message_number = message_number
@@ -123,8 +124,9 @@ let setup_connection = do {
                             ((ocsp_flag == 1) && (status_size > 0)) ||
                             ((mode == 1) && (ocsp_flag == 1))
                      ,resume_from_cache = False
-                     ,client_auth_flag = (if cca_ov != 0 then cca != 0 else config_cca != 0)
-                     }
+                     ,client_auth_flag = if mode == S2N_CLIENT then client_cert_auth_type == 1 else 
+                                            if mode == S2N_SERVER then client_cert_auth_type != 0 else False
+                     }                  
                   }}); 
 };
 

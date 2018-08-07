@@ -87,9 +87,9 @@ int s2n_x509_trust_store_add_pem(struct s2n_x509_trust_store *store, const char 
 
     s2n_error err = S2N_ERR_DECODE_CERTIFICATE;
 
-    struct s2n_stuffer pem_in_stuffer;
-    struct s2n_stuffer der_out_stuffer;
-    struct s2n_blob next_cert = { 0 };
+    struct s2n_stuffer pem_in_stuffer = {{0}};
+    struct s2n_stuffer der_out_stuffer = {{0}};
+    struct s2n_blob next_cert = {0};
 
     GUARD_GOTO(s2n_stuffer_alloc_ro_from_string(&pem_in_stuffer, pem), clean_up);
     GUARD_GOTO(s2n_stuffer_growable_alloc(&der_out_stuffer, 2048), clean_up);
@@ -282,7 +282,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
     X509_STORE_CTX *ctx = NULL;
 
     struct s2n_blob cert_chain_blob = {.data = cert_chain_in, .size = cert_chain_len};
-    struct s2n_stuffer cert_chain_in_stuffer;
+    struct s2n_stuffer cert_chain_in_stuffer = {{0}};
     if (s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob) < 0) {
         return S2N_CERT_ERR_INVALID;
     }
@@ -295,7 +295,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
     s2n_cert_validation_code err_code = S2N_CERT_ERR_INVALID;
     X509 *server_cert = NULL;
  
-    struct s2n_pkey public_key;
+    struct s2n_pkey public_key = {{{0}}};
     s2n_pkey_zero_init(&public_key);
 
     while (s2n_stuffer_data_available(&cert_chain_in_stuffer) && certificate_count < validator->max_chain_depth) {
@@ -309,7 +309,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
             goto clean_up;
         }
 
-        struct s2n_blob asn1cert;
+        struct s2n_blob asn1cert = {0};
         asn1cert.data = s2n_stuffer_raw_read(&cert_chain_in_stuffer, certificate_size);
         asn1cert.size = certificate_size;
         if (asn1cert.data == NULL) {

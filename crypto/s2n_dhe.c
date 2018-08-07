@@ -206,7 +206,7 @@ int s2n_dh_params_to_p_g_Ys(struct s2n_dh_params *server_dh_params, struct s2n_s
 
 int s2n_dh_compute_shared_secret_as_client(struct s2n_dh_params *server_dh_params, struct s2n_stuffer *Yc_out, struct s2n_blob *shared_key)
 {
-    struct s2n_dh_params client_params;
+    struct s2n_dh_params client_params = {0};
     uint8_t *client_pub_key;
     uint16_t client_pub_key_size;
     int shared_key_size;

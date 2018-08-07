@@ -89,7 +89,7 @@ static int s2n_rsa_client_key_recv(struct s2n_connection *conn)
 static int s2n_dhe_client_key_recv(struct s2n_connection *conn)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
-    struct s2n_blob shared_key;
+    struct s2n_blob shared_key = {0};
 
     /* Get the shared key */
     if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC) {
@@ -135,7 +135,7 @@ int s2n_client_key_recv(struct s2n_connection *conn)
 static int s2n_dhe_client_key_send(struct s2n_connection *conn)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
-    struct s2n_blob shared_key;
+    struct s2n_blob shared_key = {0};
 
     if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC) {
         GUARD(s2n_ecc_compute_shared_secret_as_client(&conn->secure.server_ecc_params, out, &shared_key));
@@ -174,7 +174,7 @@ static int s2n_rsa_client_key_send(struct s2n_connection *conn)
     client_protocol_version[0] = conn->client_protocol_version / 10;
     client_protocol_version[1] = conn->client_protocol_version % 10;
 
-    struct s2n_blob pms;
+    struct s2n_blob pms = {0};
     pms.data = conn->secure.rsa_premaster_secret;
     pms.size = S2N_TLS_SECRET_LEN;
 
@@ -190,7 +190,7 @@ static int s2n_rsa_client_key_send(struct s2n_connection *conn)
         GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, encrypted_size));
     }
 
-    struct s2n_blob encrypted;
+    struct s2n_blob encrypted = {0};
     encrypted.data = s2n_stuffer_raw_write(&conn->handshake.io, encrypted_size);
     encrypted.size = encrypted_size;
     notnull_check(encrypted.data);

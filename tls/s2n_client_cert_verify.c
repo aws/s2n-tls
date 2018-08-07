@@ -39,12 +39,12 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
         GUARD(s2n_get_signature_hash_pair_if_supported(in, &chosen_hash_alg, &chosen_signature_alg));
     }
     uint16_t signature_size;
-    struct s2n_blob signature;
+    struct s2n_blob signature = {0};
     GUARD(s2n_stuffer_read_uint16(in, &signature_size));
     signature.size = signature_size;
     signature.data = s2n_stuffer_raw_read(in, signature.size);
     notnull_check(signature.data);
-    struct s2n_hash_state hash_state;
+    struct s2n_hash_state hash_state = {0};
     GUARD(s2n_handshake_get_hash_state(conn, chosen_hash_alg, &hash_state));
 
     switch (chosen_signature_alg) {
@@ -78,10 +78,10 @@ int s2n_client_cert_verify_send(struct s2n_connection *conn)
         GUARD(s2n_stuffer_write_uint8(out, (uint8_t) chosen_signature_alg));
     }
 
-    struct s2n_hash_state hash_state;
+    struct s2n_hash_state hash_state = {0};
     GUARD(s2n_handshake_get_hash_state(conn, chosen_hash_alg, &hash_state));
 
-    struct s2n_blob signature;
+    struct s2n_blob signature = {0};
 
     switch (chosen_signature_alg) {
     /* s2n currently only supports RSA Signatures */

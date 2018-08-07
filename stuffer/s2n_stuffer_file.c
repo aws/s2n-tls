@@ -77,7 +77,7 @@ int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, int wfd, uint32_t len)
 
 int s2n_stuffer_alloc_ro_from_fd(struct s2n_stuffer *stuffer, int rfd)
 {
-    struct stat st;
+    struct stat st = {0};
 
     S2N_ERROR_IF(fstat(rfd, &st) < 0, S2N_ERR_FSTAT);
 

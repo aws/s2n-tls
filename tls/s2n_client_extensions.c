@@ -110,7 +110,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         /* Name type - host name, RFC3546 */
         GUARD(s2n_stuffer_write_uint8(out, 0));
 
-        struct s2n_blob server_name;
+        struct s2n_blob server_name = {0};
         server_name.data = (uint8_t *) conn->server_name;
         server_name.size = server_name_len;
         GUARD(s2n_stuffer_write_uint16(out, server_name_len));
@@ -179,7 +179,7 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *pa
         struct s2n_client_hello_parsed_extension *parsed_extension = s2n_array_get(parsed_extensions, i);
         notnull_check(parsed_extension);
 
-        struct s2n_stuffer extension;
+        struct s2n_stuffer extension = {{0}};
         GUARD(s2n_stuffer_init(&extension, &parsed_extension->extension));
         GUARD(s2n_stuffer_write(&extension, &parsed_extension->extension));
 
@@ -267,8 +267,8 @@ static int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, str
 static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     uint16_t size_of_all;
-    struct s2n_stuffer client_protos;
-    struct s2n_stuffer server_protos;
+    struct s2n_stuffer client_protos = {{0}};
+    struct s2n_stuffer server_protos = {{0}};
 
     if (!conn->config->application_protocols.size) {
         /* No protocols configured, nothing to do */
@@ -341,7 +341,7 @@ static int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2
 static int s2n_recv_client_elliptic_curves(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     uint16_t size_of_all;
-    struct s2n_blob proposed_curves;
+    struct s2n_blob proposed_curves = {0};
 
     GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
     if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all % 2) {
