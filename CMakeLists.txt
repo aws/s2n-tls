@@ -8,6 +8,8 @@ set(INSTALL_LIB_DIR lib CACHE PATH "Installaction directory for libraries")
 set(INSTALL_INCLUDE_DIR include CACHE PATH "installaction directory for header files")
 set(INSTALL_CMAKE_DIR lib/cmake CACHE PATH "Installation directory for cmake files")
 
+option(BUILD_TESTING "Build tests" ON)
+
 ##header files
 file(GLOB API_HEADERS
      "api/*.h"
@@ -127,39 +129,41 @@ target_include_directories(s2n PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_D
 target_include_directories(s2n PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
 target_include_directories(s2n PUBLIC $<TARGET_PROPERTY:LibCrypto::Crypto,INTERFACE_INCLUDE_DIRECTORIES>)
 
-file(GLOB TESTLIB_SRC "tests/testlib/*.c")
-file(GLOB TESTLIB_HEADERS "tests/testlib/*.h")
+if(BUILD_TESTING)
+	file(GLOB TESTLIB_SRC "tests/testlib/*.c")
+	file(GLOB TESTLIB_HEADERS "tests/testlib/*.h")
 
-add_library(testss2n ${TESTLIB_HEADERS} ${TESTLIB_SRC})
-target_include_directories(testss2n PRIVATE tests)
-target_compile_options(testss2n PRIVATE -std=c99)
-target_link_libraries(testss2n PUBLIC s2n)
+	add_library(testss2n ${TESTLIB_HEADERS} ${TESTLIB_SRC})
+	target_include_directories(testss2n PRIVATE tests)
+	target_compile_options(testss2n PRIVATE -std=c99)
+	target_link_libraries(testss2n PUBLIC s2n)
 
-#run unit tests
-file (GLOB TEST_LD_PRELOAD "tests/LD_PRELOAD/*.c")
-add_library(allocator_overrides SHARED ${TEST_LD_PRELOAD})
+	#run unit tests
+	file (GLOB TEST_LD_PRELOAD "tests/LD_PRELOAD/*.c")
+	add_library(allocator_overrides SHARED ${TEST_LD_PRELOAD})
 
-include(CTest)
-enable_testing()
+	include(CTest)
+	enable_testing()
 
-file(GLOB UNITTESTS_SRC "tests/unit/*.c")
-    foreach(test_case ${UNITTESTS_SRC})
-    string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
-    add_executable(${test_case_name} ${test_case})
-    target_link_libraries(${test_case_name} PRIVATE testss2n PRIVATE m pthread)
-    target_include_directories(${test_case_name} PRIVATE api)
-    target_include_directories(${test_case_name} PRIVATE ./)
-    target_include_directories(${test_case_name} PRIVATE tests)
-    target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -std=c99)
-    add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
+	file(GLOB UNITTESTS_SRC "tests/unit/*.c")
+	foreach(test_case ${UNITTESTS_SRC})
+		string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
+		add_executable(${test_case_name} ${test_case})
+		target_link_libraries(${test_case_name} PRIVATE testss2n PRIVATE m pthread)
+		target_include_directories(${test_case_name} PRIVATE api)
+		target_include_directories(${test_case_name} PRIVATE ./)
+		target_include_directories(${test_case_name} PRIVATE tests)
+		target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -std=c99)
+		add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
 
-    set_property(
-    TEST
-        ${test_case_name}
-    PROPERTY
-        ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
+		set_property(
+			TEST
+			${test_case_name}
+			PROPERTY
+			ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
 
-endforeach(test_case)
+	endforeach(test_case)
+endif()
 
 add_executable(s2nc "bin/s2nc.c" "bin/echo.c")
 target_link_libraries(s2nc s2n)
