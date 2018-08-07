@@ -257,7 +257,6 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->server = &conn->initial;
     conn->client = &conn->initial;
     conn->max_outgoing_fragment_length = S2N_DEFAULT_FRAGMENT_LENGTH;
-    conn->dynamic_record_resize_threshold = 0;
     conn->mfl_code = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
     conn->handshake.handshake_type = INITIAL;
     conn->handshake.message_number = 0;
@@ -990,15 +989,6 @@ int s2n_connection_prefer_low_latency(struct s2n_connection *conn)
     if (!conn->mfl_code) {
         conn->max_outgoing_fragment_length = S2N_SMALL_FRAGMENT_LENGTH;
     }
-
-    return 0;
-}
-
-int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uint32_t resize_threshold)
-{
-    notnull_check(conn);
-
-    conn->dynamic_record_resize_threshold = resize_threshold;
 
     return 0;
 }
