@@ -16,21 +16,15 @@
 set -ex
 
 sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-sudo add-apt-repository ppa:deadsnakes/ppa -y
 sudo apt-get update
 
-DEPENDENCIES="unzip make indent kwstyle python3.6 libssl-dev"
+DEPENDENCIES="indent kwstyle"
 
 sudo apt-get install -y ${DEPENDENCIES}
 
 if [[ "$GCC6_REQUIRED" == "true" ]]; then
     sudo apt-get -y install gcc-6;
 fi
-
-#Installing pip with get-pip.py
-curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-python get-pip.py
-rm get-pip.py
 
 # Download and Install prlimit for memlock
 if [[ ! -d "$PRLIMIT_INSTALL_DIR" ]] && [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
