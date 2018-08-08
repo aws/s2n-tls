@@ -54,6 +54,22 @@ file(GLOB UTILS_SRC
     "utils/*.c"
 )
 
+file(GLOB PQ_CRYPTO_HEADERS
+    "pq-crypto/*.h"
+)
+
+file(GLOB PQ_CRYPTO_SRC
+    "pq-crypto/*.c"
+)
+
+file(GLOB BIKE_HEADERS
+    "pq-crypto/bike/*.h"
+)
+
+file(GLOB BIKE_SRC
+    "pq-crypto/bike/*.c"
+)
+
 ##be nice to visual studio users
 if(MSVC)
     source_group("Header Files\\s2n\\api" FILES ${API_HEADERS})
@@ -79,8 +95,6 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "NetBSD")
 else()
     set(OS_LIBS pthread dl rt)
 endif()
-
-add_subdirectory(pq-crypto/bike)
 
 file(GLOB S2N_HEADERS
     ${API_HEADERS}

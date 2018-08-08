@@ -33,12 +33,12 @@ include ../../s2n.mk
 
 CRUFT += $(wildcard *_test)
 # Use the version of bike compiled with the nist random number generator and not the s2n default
-LIBS += -lm -lbike1_l1_nist_known_answer_rng -ltests2n -ls2n
+LIBS += -lm -lbike1_l1 -ltests2n -ls2n
 
 # Suppress the unreachable code warning, because tests involve what should be
 # unreachable code
 CFLAGS += -g -Wno-unreachable-code -I$(LIBCRYPTO_ROOT)/include/ -I../../ -I../../api/
-LDFLAGS += -L../../lib/ ${CRYPTO_LDFLAGS} -L../testlib/ -L../../pq-crypto/bike/ ${LIBS} ${CRYPTO_LIBS}
+LDFLAGS += -L../../lib/ -L../../pq-crypto/ ${CRYPTO_LDFLAGS} -L../testlib/ -L../../pq-crypto/bike/ ${LIBS} ${CRYPTO_LIBS}
 
 $(UNIT_TESTS)::
 	@${CC} ${CFLAGS} -o $@ $@.c ${LDFLAGS} 2>&1

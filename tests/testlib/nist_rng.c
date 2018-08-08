@@ -147,8 +147,10 @@ randombytes_init(unsigned char *entropy_input,
 }
 
 int
-randombytes(unsigned char *x, unsigned long long xlen)
+randombytes(struct s2n_blob *blob)
 {
+    unsigned char *x = blob->data;
+    unsigned long long xlen = blob->size;
     unsigned char   block[16];
     int             i = 0;
     

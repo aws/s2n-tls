@@ -35,7 +35,7 @@
 #ifndef _SAMPLE_H_
 #define _SAMPLE_H_
 
-#include "../pq-random.h"
+#include "pq-crypto/pq-random.h"
 #include "openssl_utils.h"
 #include "aes_ctr_prf.h"
 

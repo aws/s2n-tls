@@ -24,6 +24,7 @@
 #include "crypto/s2n_fips.h"
 #include "pq-crypto/bike/bike1_l1_kem.h"
 #include "testlib/nist_rng.h"
+#include "pq-crypto/pq-random.h"
 
 #define MAX_MARKER_LEN 50
 
@@ -37,6 +38,9 @@ int main(int argc, char **argv, char **envp) {
     if (s2n_is_in_fips_mode()) {
         END_TEST();
     }
+
+    // Flip pq-random over to nist RNG to ensure KAT values match
+    EXPECT_SUCCESS(initialize_pq_crypto_generator(&randombytes));
 
     char request_file_name[] = "PQCkemKAT_BIKE1-Level1_2542.rsp";
     FILE *request_file = fopen(request_file_name, "r");

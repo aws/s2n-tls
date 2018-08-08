@@ -1,5 +1,9 @@
 /*
+<<<<<<< HEAD
  * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+=======
+ * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+>>>>>>> Use initialize_pq_crypto_generator in pq-random to switch between s2n and nist rng
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.

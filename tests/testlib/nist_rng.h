@@ -6,6 +6,7 @@
 #define rng_h
 
 #include <stdio.h>
+#include "../../utils/s2n_blob.h"
 
 #define RNG_SUCCESS      0
 #define RNG_BAD_MAXLEN  -1
@@ -47,6 +48,6 @@ randombytes_init(unsigned char *entropy_input,
                  int security_strength);
 
 int
-randombytes(unsigned char *x, unsigned long long xlen);
+randombytes(struct s2n_blob *blob);
 
 #endif /* rng_h */
