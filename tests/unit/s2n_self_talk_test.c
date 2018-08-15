@@ -54,13 +54,28 @@ void mock_client(int writefd, int readfd)
 
     s2n_negotiate(conn, &blocked);
 
-    for (int i = 1; i < 0xffff; i += 100) {
+    int i;
+    for (i = 1; i < 0xffff - 100; i += 100) {
         for (int j = 0; j < i; j++) {
             buffer[j] = 33;
         }
-
         s2n_send(conn, buffer, i, &blocked);
     }
+
+    i += 100;
+    for (int j = 0; j < i; j++) {
+        buffer[j] = 33;
+    }
+
+    uint16_t timeout = 1;
+    s2n_connection_set_dynamic_record_threshold(conn, i / 2, timeout);
+    /* Simulate timeout second conneciton inactivity*/
+    sleep(1);
+    /* Active application bytes consumed is reset to 0 in before writing data. */
+    /* Its value should equal to bytes written after writing */
+    ssize_t bytes_written = s2n_send(conn, buffer, i, &blocked);
+    if (bytes_written != conn->active_application_bytes_consumed)
+        exit(0);
 
     int shutdown_rc = -1;
     while(shutdown_rc != 0) {
