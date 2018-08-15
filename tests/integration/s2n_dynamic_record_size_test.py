@@ -103,7 +103,7 @@ def try_dynamic_record(endpoint, port, cipher, ssl_version, threshold, server_ce
     if not found:
         server_error = s_server.stderr.read().decode("utf-8")
         if "no cipher match" in server_error:
-            print ("Skipped unsupported cipher: {}".format(cipher))
+            # print ("Skipped unsupported cipher: {}".format(cipher))
             return -2
 
         sys.stderr.write("Failed to start s_server: {}\nSTDERR: {}\n".format(" ".join(s_server_cmd), server_error))
@@ -111,7 +111,7 @@ def try_dynamic_record(endpoint, port, cipher, ssl_version, threshold, server_ce
         return -1
 
     # Fire up s2nc
-    print("\n\tRunning s2n dynamic record size tests with threshold:", threshold)
+    # print("\n\tRunning s2n dynamic record size tests with threshold:", threshold)
     s2nc_cmd = ["../../bin/s2nc", "-e", "-D", str(threshold), "-t", "1", "-c", "test_all", "-i"]
     s2nc_cmd.extend([str(endpoint), str(port)])
 
@@ -166,11 +166,13 @@ def run_test(host, port, ssl_version, cipher, threshold):
     # Skip no cipher match error
     if ret != -2: 
         failed += ret
-        print("\nAnalyzing tcpdump results for cipher {}".format(cipher_name))
+        # print("\nAnalyzing tcpdump results for cipher {}".format(cipher_name))
         # Case 1: first half of application data is optimized for latency
         failed += analyze_latency_dump(tcpdump.stdout)
         # Case 2: second half of application data is optimize for throughput
         failed += analyze_throughput_dump(tcpdump.stdout)
+        result_prefix = "Cipher: %-28s Vers: %-8s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
+        print_result(result_prefix, failed)
 
     subprocess.call(["sudo", "killall", "-9", "tcpdump"])
     tcpdump.wait()
@@ -204,7 +206,7 @@ def analyze_latency_dump(stream):
     mss_pos = first_line.find("mss")
     mss_str = first_line[mss_pos : mss_pos + 10]
     mss = mss_str[4 : mss_str.find(',')]
-    print("mss={}".format(mss))
+    # print("mss={}".format(mss))
     
     for line in range(0, 18):
         output = stream.readline().decode("utf-8").strip()
@@ -272,13 +274,13 @@ def main():
     subprocess.call(["sudo", "ifconfig", "lo", "mtu", "1500"])    
     
     failed = 0
-    
+    print("\n\tRunning s2n dynamic record size tests\n\t")
     failed += test(host, port, test_ciphers, int(file_size / 2))
 
     # Recover localhost MTU
     subprocess.call(["sudo", "ifconfig", "lo", "mtu", local_mtu])
 
-    print_result("TLS dynamic record size test " , failed)
+    # print_result("TLS dynamic record size test " , failed)
 
     return failed
 
