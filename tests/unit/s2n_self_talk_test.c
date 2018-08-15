@@ -62,7 +62,6 @@ void mock_client(int writefd, int readfd)
         s2n_send(conn, buffer, i, &blocked);
     }
 
-    i += 100;
     for (int j = 0; j < i; j++) {
         buffer[j] = 33;
     }
