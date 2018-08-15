@@ -68,8 +68,8 @@ void mock_client(int writefd, int readfd)
         buffer[j] = 33;
     }
 
-    /* Simulate timeout second conneciton inactivity and tolerate 50 ms difference */
-    usleep(1000000 * timeout + 50000);
+    /* Simulate timeout + 1 seconds conneciton inactivity */
+    sleep(timeout + 1);
     /* Active application bytes consumed is reset to 0 in before writing data. */
     /* Its value should equal to bytes written after writing */
     ssize_t bytes_written = s2n_send(conn, buffer, i, &blocked);
