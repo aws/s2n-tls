@@ -18,8 +18,6 @@
 #include "testlib/s2n_testlib.h"
 
 #include <sys/wait.h>
-/* Use usleep */
-#define _XOPEN_SOURCE 500
 #include <unistd.h>
 #include <stdint.h>
 

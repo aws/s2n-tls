@@ -14,7 +14,9 @@
  */
 
 #pragma once
-
+/* Use usleep */
+#define _BSD_SOURCE 1
+#define _XOPEN_SOURCE 500
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
