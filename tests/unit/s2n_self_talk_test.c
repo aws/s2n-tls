@@ -18,6 +18,8 @@
 #include "testlib/s2n_testlib.h"
 
 #include <sys/wait.h>
+/* Use usleep */
+#define _XOPEN_SOURCE 500
 #include <unistd.h>
 #include <stdint.h>
 
@@ -68,8 +70,8 @@ void mock_client(int writefd, int readfd)
         buffer[j] = 33;
     }
 
-    /* Simulate timeout + 1 seconds conneciton inactivity */
-    sleep(timeout + 1);
+    /* Simulate timeout second conneciton inactivity and tolerate 50 ms error */
+    usleep(1000000 * timeout + 50000);
     /* Active application bytes consumed is reset to 0 in before writing data. */
     /* Its value should equal to bytes written after writing */
     ssize_t bytes_written = s2n_send(conn, buffer, i, &blocked);
