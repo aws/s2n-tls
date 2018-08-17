@@ -154,6 +154,9 @@
 #define S2N_LARGE_RECORD_LENGTH S2N_TLS_MAXIMUM_RECORD_LENGTH
 #define S2N_LARGE_FRAGMENT_LENGTH S2N_TLS_MAXIMUM_FRAGMENT_LENGTH
 
+/* Cap dynamic record resize threshold to 8M */
+#define S2N_TLS_MAX_RESIZE_THRESHOLD (1024 * 1024 * 8)
+
 /* Put a 64k cap on the size of any handshake message */
 #define S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH (64 * 1024)
 

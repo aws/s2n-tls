@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/param.h>
 #include <unistd.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -1002,7 +1003,7 @@ int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uin
 {
     notnull_check(conn);
 
-    conn->dynamic_record_resize_threshold = resize_threshold;
+    conn->dynamic_record_resize_threshold = MIN(resize_threshold, S2N_TLS_MAX_RESIZE_THRESHOLD);
     conn->dynamic_record_timeout_threshold = timeout_threshold;
     return 0;
 }
