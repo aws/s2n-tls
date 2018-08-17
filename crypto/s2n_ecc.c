@@ -50,7 +50,7 @@ int s2n_ecc_generate_ephemeral_key(struct s2n_ecc_params *server_ecc_params)
 int s2n_ecc_write_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2n_stuffer *out, struct s2n_blob *written)
 {
     uint8_t point_len;
-    struct s2n_blob point;
+    struct s2n_blob point = {0};
 
     /* Remember when the written data starts */
     written->data = s2n_stuffer_raw_write(out, 0);
@@ -123,7 +123,7 @@ int s2n_ecc_read_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2n
 int s2n_ecc_compute_shared_secret_as_server(struct s2n_ecc_params *server_ecc_params, struct s2n_stuffer *Yc_in, struct s2n_blob *shared_key)
 {
     uint8_t client_public_len;
-    struct s2n_blob client_public_blob;
+    struct s2n_blob client_public_blob = {0};
     EC_POINT *client_public;
     int rc;
 
@@ -222,7 +222,7 @@ static int s2n_ecc_write_point_data_snug(const EC_POINT * point, const EC_GROUP 
 static int s2n_ecc_write_point_with_length(const EC_POINT * point, const EC_GROUP * group, struct s2n_stuffer *out)
 {
     uint8_t point_len;
-    struct s2n_blob point_blob;
+    struct s2n_blob point_blob = {0};
 
     GUARD(s2n_ecc_calculate_point_length(point, group, &point_len));
 
@@ -258,7 +258,7 @@ static int s2n_ecc_compute_shared_secret(EC_KEY * own_key, const EC_POINT * peer
 
 int s2n_ecc_find_supported_curve(struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **found)
 {
-    struct s2n_stuffer iana_ids_in;
+    struct s2n_stuffer iana_ids_in = {{0}};
 
     GUARD(s2n_stuffer_init(&iana_ids_in, iana_ids));
     GUARD(s2n_stuffer_write(&iana_ids_in, iana_ids));

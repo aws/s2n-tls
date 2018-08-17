@@ -33,7 +33,7 @@
 
 static int monotonic_clock(void *data, uint64_t *nanoseconds)
 {
-    struct timespec current_time;
+    struct timespec current_time = {0};
 
     GUARD(clock_gettime(S2N_CLOCK_HW, &current_time));
 
@@ -45,7 +45,7 @@ static int monotonic_clock(void *data, uint64_t *nanoseconds)
 
 static int wall_clock(void *data, uint64_t *nanoseconds)
 {
-    struct timespec current_time;
+    struct timespec current_time = {0};
 
     GUARD(clock_gettime(S2N_CLOCK_SYS, &current_time));
 
@@ -62,16 +62,16 @@ static uint8_t default_client_config_init = 0;
 static uint8_t default_fips_config_init = 0;
 
 
-static struct s2n_config s2n_default_config;
+static struct s2n_config s2n_default_config = {0};
 
 /* This config should only used by the s2n_client for unit/integration testing purposes. */
-static struct s2n_config s2n_unsafe_client_testing_config;
+static struct s2n_config s2n_unsafe_client_testing_config = {0};
 
-static struct s2n_config s2n_unsafe_client_ecdsa_testing_config;
+static struct s2n_config s2n_unsafe_client_ecdsa_testing_config = {0};
 
-static struct s2n_config default_client_config;
+static struct s2n_config default_client_config = {0};
 
-static struct s2n_config s2n_default_fips_config;
+static struct s2n_config s2n_default_fips_config = {0};
 
 static int s2n_config_init(struct s2n_config *config)
 {
@@ -224,7 +224,7 @@ void s2n_wipe_static_configs(void) {
 
 struct s2n_config *s2n_config_new(void)
 {
-    struct s2n_blob allocator;
+    struct s2n_blob allocator = {0};
     struct s2n_config *new_config;
 
     GUARD_PTR(s2n_alloc(&allocator, sizeof(struct s2n_config)));
@@ -294,7 +294,7 @@ int s2n_config_free(struct s2n_config *config)
 
 int s2n_config_set_protocol_preferences(struct s2n_config *config, const char *const *protocols, int protocol_count)
 {
-    struct s2n_stuffer protocol_stuffer;
+    struct s2n_stuffer protocol_stuffer = {{0}};
 
     GUARD(s2n_free(&config->application_protocols));
 
@@ -424,7 +424,7 @@ int s2n_config_set_verification_ca_location(struct s2n_config *config, const cha
 
 int s2n_config_add_cert_chain_from_stuffer(struct s2n_config *config, struct s2n_stuffer *chain_in_stuffer)
 {
-    struct s2n_stuffer cert_out_stuffer;
+    struct s2n_stuffer cert_out_stuffer = {{0}};
     GUARD(s2n_stuffer_growable_alloc(&cert_out_stuffer, 2048));
 
     struct s2n_cert **insert = &config->cert_and_key_pairs->cert_chain.head;
@@ -439,7 +439,7 @@ int s2n_config_add_cert_chain_from_stuffer(struct s2n_config *config, struct s2n
             }
             break;
         }
-        struct s2n_blob mem;
+        struct s2n_blob mem = {0};
         GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert)));
         new_node = (struct s2n_cert *)(void *)mem.data;
 
@@ -467,7 +467,7 @@ int s2n_config_add_cert_chain_from_stuffer(struct s2n_config *config, struct s2n
 
 int s2n_config_add_cert_chain(struct s2n_config *config, const char *cert_chain_pem)
 {
-    struct s2n_stuffer chain_in_stuffer;
+    struct s2n_stuffer chain_in_stuffer = {{0}};
 
     /* Turn the chain into a stuffer */
     GUARD(s2n_stuffer_alloc_ro_from_string(&chain_in_stuffer, cert_chain_pem));
@@ -481,7 +481,7 @@ int s2n_config_add_cert_chain(struct s2n_config *config, const char *cert_chain_
 int s2n_config_add_private_key(struct s2n_config *config, const char *private_key_pem)
 {
     struct s2n_stuffer key_in_stuffer, key_out_stuffer;
-    struct s2n_blob key_blob;
+    struct s2n_blob key_blob = {0};
 
     GUARD(s2n_pkey_zero_init(&config->cert_and_key_pairs->private_key));
 
@@ -505,7 +505,7 @@ int s2n_config_add_private_key(struct s2n_config *config, const char *private_ke
 
 int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem)
 {
-    struct s2n_blob mem;
+    struct s2n_blob mem = {0};
 
     /* Allocate the memory for the chain and key struct */
     GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert_chain_and_key)));
@@ -520,7 +520,7 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
     GUARD(s2n_config_add_private_key(config, private_key_pem));
 
     /* Parse the leaf cert for the public key and certificate type */
-    struct s2n_pkey public_key;
+    struct s2n_pkey public_key = {{{0}}};
     s2n_cert_type cert_type;
     GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &cert_type, &config->cert_and_key_pairs->cert_chain.head->raw));
     GUARD(s2n_cert_set_cert_type(config->cert_and_key_pairs->cert_chain.head, cert_type));
@@ -540,7 +540,7 @@ int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
 {
     struct s2n_stuffer dhparams_in_stuffer, dhparams_out_stuffer;
     struct s2n_blob dhparams_blob = {0};
-    struct s2n_blob mem;
+    struct s2n_blob mem = {0};
 
     /* Allocate the memory for the chain and key struct */
     GUARD(s2n_alloc(&mem, sizeof(struct s2n_dh_params)));

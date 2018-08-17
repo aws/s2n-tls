@@ -31,7 +31,7 @@
 int s2n_client_cert_recv(struct s2n_connection *conn)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
-    struct s2n_blob client_cert_chain;
+    struct s2n_blob client_cert_chain = {0};
 
     GUARD(s2n_stuffer_read_uint24(in, &client_cert_chain.size));
 

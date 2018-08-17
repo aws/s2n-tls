@@ -663,7 +663,7 @@ int main(int argc, char *const *argv)
             exit(1);
         }
 
-        struct stat st;
+        struct stat st = {0};
         if (fstat(fd, &st) < 0) {
             fprintf(stderr, "Error fstat-ing OCSP response file: '%s'\n", strerror(errno));
             exit(1);

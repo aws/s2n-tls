@@ -40,7 +40,7 @@ static int s2n_array_enlarge(struct s2n_array *array, uint32_t capacity)
 
 struct s2n_array *s2n_array_new(size_t element_size)
 {
-    struct s2n_blob mem;
+    struct s2n_blob mem = {0};
     struct s2n_array *array;
 
     GUARD_PTR(s2n_alloc(&mem, sizeof(struct s2n_array)));
@@ -91,7 +91,7 @@ void *s2n_array_get(struct s2n_array *array, uint32_t index)
 int s2n_array_free(struct s2n_array *array)
 {
     notnull_check(array);
-    struct s2n_blob mem;
+    struct s2n_blob mem = {0};
 
     /* Free the elements */
     mem.data = (void *) array->elements;
