@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
 #include <unistd.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -1002,8 +1001,9 @@ int s2n_connection_prefer_low_latency(struct s2n_connection *conn)
 int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uint32_t resize_threshold, uint16_t timeout_threshold)
 {
     notnull_check(conn);
+    S2N_ERROR_IF(resize_threshold > S2N_TLS_MAX_RESIZE_THRESHOLD, S2N_ERR_INVALID_DYNAMIC_THRESHOLD);
 
-    conn->dynamic_record_resize_threshold = MIN(resize_threshold, S2N_TLS_MAX_RESIZE_THRESHOLD);
+    conn->dynamic_record_resize_threshold = resize_threshold;
     conn->dynamic_record_timeout_threshold = timeout_threshold;
     return 0;
 }
