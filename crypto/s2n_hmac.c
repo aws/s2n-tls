@@ -266,11 +266,7 @@ int s2n_hmac_digest_two_compression_rounds(struct s2n_hmac_state *state, void *o
      *
      * 17 bytes if the block size is 128.
      */
-    uint8_t space_left = 9;
-    if (state->block_size == 128) {
-        space_left = 17;
-    }
-
+    const uint8_t space_left = (state->hash_block_size == 128) ? 17 : 9;
     if (state->currently_in_hash_block > (state->hash_block_size - space_left)) {
         return 0;
     }
