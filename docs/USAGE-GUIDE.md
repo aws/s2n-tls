@@ -117,7 +117,6 @@ setarch i386 ./config -fPIC no-shared     \
 ```
 
 ## Building s2n with OpenSSL-1.0.2
-```
 
 To build s2n with OpenSSL-1.0.2, do the following:
 

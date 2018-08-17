@@ -325,20 +325,21 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
     struct s2n_stuffer stuffer = {{0}};
     union {
         uint64_t u64;
+#if defined(__i386__)
         struct {
             /* since we check first that we're on intel, we can safely assume little endian. */
-            uint32_t uLow;
-            uint32_t uHigh;
+            uint32_t u_low;
+            uint32_t u_high;
         } i386_fields;
+#endif /* defined(__i386__) */
         uint8_t u8[8];
     } output;
 
     GUARD(s2n_stuffer_init(&stuffer, out));
     while ((space_remaining = s2n_stuffer_space_remaining(&stuffer))) {
         int success = 0;
+        output.u64 = 0;
 
-        output.i386_fields.uLow = 0;
-        output.i386_fields.uHigh = 0;
         for (int tries = 0; tries < 10; tries++) {
 #if defined(__i386__)
             int success_high = 0, success_low = 0;
@@ -360,7 +361,6 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
                 break;
             }
         }
-
 
         if (!success) {
             return -1;
