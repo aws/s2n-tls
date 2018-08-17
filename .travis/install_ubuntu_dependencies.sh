@@ -16,10 +16,9 @@
 set -ex
 
 sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-sudo add-apt-repository ppa:deadsnakes/ppa -y
 sudo apt-get update
 
-DEPENDENCIES="unzip make indent kwstyle python3.6 python-pip libssl-dev"
+DEPENDENCIES="unzip make indent kwstyle libssl-dev"
 
 sudo apt-get install -y ${DEPENDENCIES}
 
