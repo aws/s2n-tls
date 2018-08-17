@@ -343,11 +343,11 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
         for (int tries = 0; tries < 10; tries++) {
 #if defined(__i386__)
             int success_high = 0, success_low = 0;
-            __asm__ __volatile__(".byte 0x48;\n" ".byte 0x0f;\n" ".byte 0xc7;\n" ".byte 0xf0;\n" "adcl $0x00, %%ebx;\n":"=b"(success_low), "=a"(output.i386_fields.uLow)
+            __asm__ __volatile__(".byte 0x48;\n" ".byte 0x0f;\n" ".byte 0xc7;\n" ".byte 0xf0;\n" "adcl $0x00, %%ebx;\n":"=b"(success_low), "=a"(output.i386_fields.u_low)
                                  :"b"(0)
                                  :"cc");
 
-            __asm__ __volatile__(".byte 0x48;\n" ".byte 0x0f;\n" ".byte 0xc7;\n" ".byte 0xf0;\n" "adcl $0x00, %%ebx;\n":"=b"(success_high), "=a"(output.i386_fields.uHigh)
+            __asm__ __volatile__(".byte 0x48;\n" ".byte 0x0f;\n" ".byte 0xc7;\n" ".byte 0xf0;\n" "adcl $0x00, %%ebx;\n":"=b"(success_high), "=a"(output.i386_fields.u_high)
                                 :"b"(0)
                                 :"cc");
             success = success_high & success_low;
