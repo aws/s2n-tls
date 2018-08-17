@@ -325,23 +325,42 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
     struct s2n_stuffer stuffer = {{0}};
     union {
         uint64_t u64;
+        struct {
+            /* since we check first that we're on intel, we can safely assume little endian. */
+            uint32_t uLow;
+            uint32_t uHigh;
+        } i386_fields;
         uint8_t u8[8];
     } output;
 
     GUARD(s2n_stuffer_init(&stuffer, out));
-
     while ((space_remaining = s2n_stuffer_space_remaining(&stuffer))) {
         int success = 0;
 
+        output.i386_fields.uLow = 0;
+        output.i386_fields.uHigh = 0;
         for (int tries = 0; tries < 10; tries++) {
-            __asm__ __volatile__(".byte 0x48;\n" ".byte 0x0f;\n" ".byte 0xc7;\n" ".byte 0xf0;\n" "adcl $0x00, %%ebx;\n":"=b"(success), "=a"(output.u64)
+#if defined(__i386__)
+            int success_high = 0, success_low = 0;
+            __asm__ __volatile__(".byte 0x48;\n" ".byte 0x0f;\n" ".byte 0xc7;\n" ".byte 0xf0;\n" "adcl $0x00, %%ebx;\n":"=b"(success_low), "=a"(output.i386_fields.uLow)
                                  :"b"(0)
                                  :"cc");
+
+            __asm__ __volatile__(".byte 0x48;\n" ".byte 0x0f;\n" ".byte 0xc7;\n" ".byte 0xf0;\n" "adcl $0x00, %%ebx;\n":"=b"(success_high), "=a"(output.i386_fields.uHigh)
+                                :"b"(0)
+                                :"cc");
+            success = success_high & success_low;
+#else
+            __asm__ __volatile__(".byte 0x48;\n" ".byte 0x0f;\n" ".byte 0xc7;\n" ".byte 0xf0;\n" "adcl $0x00, %%ebx;\n":"=b"(success), "=a"(output.u64)
+            :"b"(0)
+            :"cc");
+#endif /* defined(__i386__) */
 
             if (success) {
                 break;
             }
         }
+
 
         if (!success) {
             return -1;
