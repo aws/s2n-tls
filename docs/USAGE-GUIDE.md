@@ -952,9 +952,9 @@ prefering throughput will use large record sizes that minimize overhead.
 -Connections default to an 8k outgoing maximum
 
 **s2n_connection_set_dynamic_record_threshold**
-provides a smooth transition from **s2n_connection_prefer_low_latency** to **s2n_connection_prefer_throughput**
-s2n uses small TLS records that fit into a single TCP segment for the resize_threshold bytes (cap to 8M) of data
-and reset record size back to a single segment after timeout_threshold seconds of inactivity
+provides a smooth transition from **s2n_connection_prefer_low_latency** to **s2n_connection_prefer_throughput**.
+**s2n_send** uses small TLS records that fit into a single TCP segment for the resize_threshold bytes (cap to 8M) of data
+and reset record size back to a single segment after timeout_threshold seconds of inactivity.
 
 ### s2n\_connection\_get\_wire\_bytes
 
