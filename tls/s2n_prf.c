@@ -360,7 +360,7 @@ static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct 
 int s2n_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret)
 {
     struct s2n_blob client_random, server_random, master_secret;
-    struct s2n_blob label;
+    struct s2n_blob label = {0};
     uint8_t master_secret_label[] = "master secret";
 
     client_random.data = conn->secure.client_random;
@@ -441,8 +441,8 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
     uint8_t md5_digest[MD5_DIGEST_LENGTH];
     uint8_t sha_digest[SHA384_DIGEST_LENGTH];
     uint8_t client_finished_label[] = "client finished";
-    struct s2n_blob client_finished;
-    struct s2n_blob label;
+    struct s2n_blob client_finished = {0};
+    struct s2n_blob label = {0};
 
     if (conn->actual_protocol_version == S2N_SSLv3) {
         return s2n_sslv3_client_finished(conn);
@@ -494,8 +494,8 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
     uint8_t md5_digest[MD5_DIGEST_LENGTH];
     uint8_t sha_digest[SHA384_DIGEST_LENGTH];
     uint8_t server_finished_label[] = "server finished";
-    struct s2n_blob server_finished;
-    struct s2n_blob label;
+    struct s2n_blob server_finished = {0};
+    struct s2n_blob label = {0};
 
     if (conn->actual_protocol_version == S2N_SSLv3) {
         return s2n_sslv3_server_finished(conn);
@@ -543,7 +543,7 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
 
 static int s2n_prf_make_client_key(struct s2n_connection *conn, struct s2n_stuffer *key_material)
 {
-    struct s2n_blob client_key;
+    struct s2n_blob client_key = {0};
     client_key.size = conn->secure.cipher_suite->record_alg->cipher->key_material_size;
     client_key.data = s2n_stuffer_raw_read(key_material, client_key.size);
     notnull_check(client_key.data);
@@ -559,7 +559,7 @@ static int s2n_prf_make_client_key(struct s2n_connection *conn, struct s2n_stuff
 
 static int s2n_prf_make_server_key(struct s2n_connection *conn, struct s2n_stuffer *key_material)
 {
-    struct s2n_blob server_key;
+    struct s2n_blob server_key = {0};
     server_key.size = conn->secure.cipher_suite->record_alg->cipher->key_material_size;
     server_key.data = s2n_stuffer_raw_read(key_material, server_key.size);
 
@@ -587,7 +587,7 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     out.data = key_block;
     out.size = sizeof(key_block);
 
-    struct s2n_stuffer key_material;
+    struct s2n_stuffer key_material = {{0}};
     GUARD(s2n_prf(conn, &master_secret, &label, &server_random, &client_random, &out));
     GUARD(s2n_stuffer_init(&key_material, &out));
     GUARD(s2n_stuffer_write(&key_material, &out));
