@@ -105,6 +105,16 @@ make install
 cd ../../
 make
 ```
+# Note for 32-bit builds.
+The previous instructions work fine with only a few tweaks to your config command. Example:
+```shell
+setarch i386 ./config -fPIC no-shared     \
+        -m32 no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
+        no-hw no-mdc2 no-seed no-idea no-camellia\
+        no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng     \
+        -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS   \
+        --prefix=`pwd`/../../libcrypto-root/
+```
 
 ## Building s2n with OpenSSL-1.0.2
 
