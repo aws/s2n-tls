@@ -34,7 +34,7 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
     GUARD(s2n_pkey_zero_init(&public_key));
 
     s2n_cert_type cert_type;
-    struct s2n_blob cert_chain;
+    struct s2n_blob cert_chain = {0};
     cert_chain.data = s2n_stuffer_raw_read(&conn->handshake.io, size_of_all_certificates);
     cert_chain.size = size_of_all_certificates;
 

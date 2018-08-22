@@ -242,6 +242,8 @@ static message_type_t handshakes[128][16] = {
 #define ACTIVE_STATE( conn ) state_machine[ ACTIVE_MESSAGE( (conn) ) ]
 #define PREVIOUS_STATE( conn ) state_machine[ PREVIOUS_MESSAGE( (conn) ) ]
 
+#define EXPECTED_MESSAGE_TYPE( conn ) ACTIVE_STATE( conn ).message_type
+
 /* Used in our test cases */
 message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn)
 {
@@ -342,7 +344,12 @@ skip_cache_lookup:
 
     s2n_cert_auth_type client_cert_auth_type;
     GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
-    if(client_cert_auth_type != S2N_CERT_AUTH_NONE) {
+
+    if (conn->mode == S2N_CLIENT && client_cert_auth_type == S2N_CERT_AUTH_REQUIRED) {
+        /* If we're a client, and Client Auth is REQUIRED, then the Client must expect the CLIENT_CERT_REQ Message */
+        conn->handshake.handshake_type |= CLIENT_AUTH;
+    } else if (conn->mode == S2N_SERVER && client_cert_auth_type != S2N_CERT_AUTH_NONE) {
+        /* If we're a server, and Client Auth is REQUIRED or OPTIONAL, then the server must send the CLIENT_CERT_REQ Message*/
         conn->handshake.handshake_type |= CLIENT_AUTH;
     }
 
@@ -434,7 +441,7 @@ static int handshake_write_io(struct s2n_connection *conn)
     }
 
     /* Write the handshake data to records in fragment sized chunks */
-    struct s2n_blob out;
+    struct s2n_blob out = {0};
     while (s2n_stuffer_data_available(&conn->handshake.io) > 0) {
         int max_payload_size;
         GUARD((max_payload_size = s2n_record_max_write_payload_size(conn)));
@@ -517,7 +524,7 @@ static int s2n_handshake_conn_update_hashes(struct s2n_connection *conn)
     GUARD(s2n_stuffer_reread(&conn->handshake.io));
     GUARD(s2n_handshake_parse_header(conn, &message_type, &handshake_message_length));
 
-    struct s2n_blob handshake_record;
+    struct s2n_blob handshake_record = {0};
     handshake_record.data = conn->handshake.io.blob.data;
     handshake_record.size = TLS_HANDSHAKE_HEADER_LENGTH + handshake_message_length;
     notnull_check(handshake_record.data);
@@ -611,8 +618,8 @@ static int handshake_read_io(struct s2n_connection *conn)
     /* Record is a handshake message */
     while (s2n_stuffer_data_available(&conn->in)) {
         int r;
-        uint8_t handshake_message_type;
-        GUARD((r = read_full_handshake_message(conn, &handshake_message_type)));
+        uint8_t actual_handshake_message_type;
+        GUARD((r = read_full_handshake_message(conn, &actual_handshake_message_type)));
 
         /* Do we need more data? */
         if (r == 1) {
@@ -625,7 +632,19 @@ static int handshake_read_io(struct s2n_connection *conn)
             return 0;
         }
 
-        S2N_ERROR_IF(handshake_message_type != ACTIVE_STATE(conn).message_type, S2N_ERR_BAD_MESSAGE);
+        s2n_cert_auth_type client_cert_auth_type;
+        GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
+
+        /* If we're a Client, and received a ClientCertRequest message instead of a ServerHelloDone, and ClientAuth
+         * is set to optional, then switch the State Machine that we're using to expect the ClientCertRequest. */
+        if(conn->mode == S2N_CLIENT
+                && client_cert_auth_type == S2N_CERT_AUTH_OPTIONAL
+                && actual_handshake_message_type == TLS_CLIENT_CERT_REQ
+                && EXPECTED_MESSAGE_TYPE(conn) == TLS_SERVER_HELLO_DONE) {
+            conn->handshake.handshake_type |= CLIENT_AUTH;
+        }
+
+        S2N_ERROR_IF(actual_handshake_message_type != EXPECTED_MESSAGE_TYPE(conn), S2N_ERR_BAD_MESSAGE);
 
         /* Call the relevant handler */
         r = ACTIVE_STATE(conn).handler[conn->mode] (conn);

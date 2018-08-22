@@ -23,7 +23,7 @@ are using CMake that step is unnecessary. Just follow the instructions here to u
 
 (Required): You need at least CMake version 3.0 to fully benefit from Modern CMake. See [this](https://www.youtube.com/watch?v=bsXLMQ6WgIk) for more information.
 
-(Optional): Set the CMake variable `LIBCRYPTO_ROOT_DIR` to any libcrypto build on your machine. If you do not,
+(Optional): Set the CMake variable `LibCrypto_ROOT_DIR` to any libcrypto build on your machine. If you do not,
 the default installation on your machine will be used.
 
 (Optional): Set the CMake variable `BUILD_SHARED_LIBS=ON` to build shared libraries. The default is static.
@@ -47,7 +47,7 @@ For another example, we can prepare an Xcode project using static libs using a l
 ````shell
 mkdir s2n-build
 cd s2n-build
-cmake ../s2n -DLIBCRYPTO_ROOT_DIR=$HOME/s2n-user/builds/libcrypto-impl -G "Xcode"
+cmake ../s2n -DLibCrypto_ROOT_DIR=$HOME/s2n-user/builds/libcrypto-impl -G "Xcode"
 # now open the project in Xcode and build from there, or use the Xcode CLI
 ````
 
@@ -104,6 +104,16 @@ make install
 # Build s2n
 cd ../../
 make
+```
+# Note for 32-bit builds.
+The previous instructions work fine with only a few tweaks to your config command. Example:
+```shell
+setarch i386 ./config -fPIC no-shared     \
+        -m32 no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
+        no-hw no-mdc2 no-seed no-idea no-camellia\
+        no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng     \
+        -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS   \
+        --prefix=`pwd`/../../libcrypto-root/
 ```
 
 ## Building s2n with OpenSSL-1.0.2
@@ -1262,6 +1272,16 @@ do {
     bytes_read += r;
 } while (blocked != S2N_NOT_BLOCKED);
 ```
+
+### s2n\_peek
+
+```c
+uint32_t s2n_peek(struct s2n_connection *conn);
+```
+
+**s2n_peek** allows users of S2N to peek inside the data buffer of an S2N connection to see if there more data to be read without actually reading it. This is useful when using select() on the underlying S2N file descriptor with a message based application layer protocol. As a single call to s2n_recv may read all data off the underlying file descriptor, select() will be unable to tell you there if there is more application data ready for processing already loaded into the S2N buffer. s2n_peek can then be used to determine if s2n_recv needs to be called before more data comes in on the raw fd.
+
+
 
 ### s2n\_connection\_set\_send\_cb
 

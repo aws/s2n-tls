@@ -48,8 +48,8 @@ int s2n_server_key_recv(struct s2n_connection *conn)
 static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
-    struct s2n_blob ecdhparams;
-    struct s2n_blob signature;
+    struct s2n_blob ecdhparams = {0};
+    struct s2n_blob signature = {0};
     uint16_t signature_length;
 
     /* Read server ECDH params and calculate their hash */
@@ -160,7 +160,7 @@ int s2n_server_key_send(struct s2n_connection *conn)
 static int s2n_ecdhe_server_key_send(struct s2n_connection *conn)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
-    struct s2n_blob ecdhparams;
+    struct s2n_blob ecdhparams = {0};
 
     /* Generate an ephemeral key and  */
     GUARD(s2n_ecc_generate_ephemeral_key(&conn->secure.server_ecc_params));
@@ -215,7 +215,7 @@ static int s2n_dhe_server_key_send(struct s2n_connection *conn)
 
 static int s2n_write_signature_blob(struct s2n_stuffer *out, const struct s2n_pkey *priv_key, struct s2n_hash_state *digest)
 {
-    struct s2n_blob signature;
+    struct s2n_blob signature = {0};
     
     /* Leave signature length blank for now until we're done signing */
     uint16_t sig_len = 0;
