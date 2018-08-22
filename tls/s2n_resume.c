@@ -493,11 +493,12 @@ int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
     return 0;
 }
 
-int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *from)
+int s2n_decrypt_session_ticket(struct s2n_connection *conn)
 {
     struct s2n_ticket_key *key;
     struct s2n_session_key aes_ticket_key;
     struct s2n_blob aes_key_blob;
+    struct s2n_stuffer *from;
 
     uint8_t key_name[S2N_TICKET_KEY_NAME_LEN];
 
@@ -515,6 +516,7 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
     uint8_t en_data[S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN];
     struct s2n_blob en_blob = { .data = en_data, .size = sizeof(en_data) };
 
+    from = &conn->client_ticket_to_decrypt;
     GUARD(s2n_stuffer_read_bytes(from, key_name, S2N_TICKET_KEY_NAME_LEN));
 
     key = s2n_find_ticket_key(conn->config, key_name);
@@ -593,7 +595,8 @@ int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t
     return 0;
 }
 
-int s2n_verify_unique_ticket_key(struct s2n_config *config, uint8_t *hash, uint16_t *insert_index) {
+int s2n_verify_unique_ticket_key(struct s2n_config *config, uint8_t *hash, uint16_t *insert_index)
+{
     int low = 0;
     int top = config->ticket_key_hashes->num_of_elements - 1;
 
