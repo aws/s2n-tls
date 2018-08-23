@@ -121,10 +121,29 @@ ssize_t s2n_send(struct s2n_connection * conn, const void *buf, ssize_t size, s2
     /* Defensive check against an invalid retry */
     S2N_ERROR_IF(conn->current_user_data_consumed > size, S2N_ERR_SEND_SIZE);
 
+    if (conn->dynamic_record_timeout_threshold > 0) {
+        uint64_t elapsed;
+        GUARD(s2n_timer_elapsed(conn->config, &conn->write_timer, &elapsed));
+        /* Reset record size back to a single segment after threshold seconds of inactivity */
+        if (elapsed - conn->last_write_elapsed > (uint64_t) conn->dynamic_record_timeout_threshold * 1000000000) {
+            conn->active_application_bytes_consumed = 0;
+        }
+        conn->last_write_elapsed = elapsed;
+    }
+
     /* Now write the data we were asked to send this round */
     while (size - conn->current_user_data_consumed) {
         struct s2n_blob in = {.data = ((uint8_t *)(uintptr_t) buf) + conn->current_user_data_consumed };
         in.size = MIN(size - conn->current_user_data_consumed, max_payload_size);
+        /* If dynamic record size is enabled,
+         * use small TLS records that fit into a single TCP segment for the threshold bytes of data     
+         */
+        if (conn->active_application_bytes_consumed < (uint64_t) conn->dynamic_record_resize_threshold) {
+            int min_payload_size = s2n_record_min_write_payload_size(conn);
+            if (min_payload_size < in.size) {
+                in.size = min_payload_size; 
+            }
+        }
 
         /* Don't split messages in server mode for interoperability with naive clients.
          * Some clients may have expectations based on the amount of content in the first record.
@@ -140,6 +159,7 @@ ssize_t s2n_send(struct s2n_connection * conn, const void *buf, ssize_t size, s2
         GUARD(s2n_stuffer_rewrite(&conn->out));
         GUARD(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
         conn->current_user_data_consumed += in.size;
+        conn->active_application_bytes_consumed += in.size;
 
         /* Send it */
         if (s2n_flush(conn, blocked) < 0) {
