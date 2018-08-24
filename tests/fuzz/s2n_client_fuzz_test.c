@@ -133,7 +133,7 @@ static int MAX_NEGOTIATION_ATTEMPTS = 10;
 int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
 {
     struct s2n_stuffer *in_buf;
-    int n_read, n_avail;
+    size_t n_read, n_avail;
 
     if (buf == NULL) {
         return 0;
@@ -154,12 +154,15 @@ int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
         return -1;
     }
 
-    s2n_stuffer_read_bytes(in_buf, buf, n_read);
-    return n_read;
+    s2n_stuffer_read_bytes(in_buf, buf, (int)n_read);
+    return (int)n_read;
 }
 
 int buffer_write(void *io_context, const uint8_t *buf, uint32_t len)
 {
+    (void)io_context;
+    (void)buf;
+    (void)len;
     return len;
 }
 
@@ -173,6 +176,8 @@ static void s2n_server_fuzz_atexit()
 
 int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 {
+    (void)buf;
+    (void)len;
     GUARD(s2n_init());
     GUARD(atexit(s2n_server_fuzz_atexit));
     GUARD(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));

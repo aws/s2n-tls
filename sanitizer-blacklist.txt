@@ -1,0 +1,2 @@
+# add functions that you don't want sanitizer checks in the next line in the format of 'fun:<fun_name>'. Only do this
+# if you are absolutely certain it's correct, otherwise just fix the bug.

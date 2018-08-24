@@ -130,6 +130,8 @@ static void s2n_fuzz_atexit()
 
 int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 {
+    (void)buf;
+    (void)len;
 #ifdef S2N_TEST_IN_FIPS_MODE
     S2N_TEST_ENTER_FIPS_MODE();
 #endif
@@ -150,7 +152,7 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 
 int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
-    for(int version = 0; version < sizeof(TLS_VERSIONS); version++){
+    for(size_t version = 0; version < sizeof(TLS_VERSIONS); version++){
         /* Setup */
         struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
         notnull_check(server_conn);

@@ -39,6 +39,8 @@ static void s2n_client_cert_req_recv_fuzz_atexit()
 
 int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 {
+    (void)buf;
+    (void)len;
     GUARD(s2n_init());
     GUARD(atexit(s2n_client_cert_req_recv_fuzz_atexit));
     GUARD(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
@@ -49,7 +51,7 @@ static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12};
 
 int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
-    for(int i = 0; i < sizeof(TLS_VERSIONS); i++){
+    for(size_t i = 0; i < sizeof(TLS_VERSIONS); i++){
         /* Setup */
         struct s2n_config *client_config = s2n_config_new();
         s2n_config_disable_x509_verification(client_config);

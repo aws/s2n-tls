@@ -25,6 +25,7 @@
 
 time_t time (time_t *__timer)
 {
+    (void)__timer;
     /* Always assume the time is zero when fuzzing the server, this is to ensure that Fuzz tests are deterministic and
      * don't depend on the time the test was run.
      */
@@ -35,12 +36,21 @@ time_t time (time_t *__timer)
 int RSA_verify(int dtype, const unsigned char *m, unsigned int m_len,
                  const unsigned char *sigbuf, unsigned int siglen, RSA *rsa)
 {
+    (void)dtype;
+    (void)m;
+    (void)m_len;
+    (void)sigbuf;
+    (void)siglen;
+    (void)rsa;
     /* Always assume that the RSA_verify function passes */
     return 1;
 }
 
 int s2n_constant_time_equals(const uint8_t *a, const uint8_t *b, uint32_t len)
 {
+    (void)a;
+    (void)b;
+    (void)len;
     /* Allow all signatures checked with s2n_constant_time_equals to always pass verification even if they are invalid
      * in order to aid code coverage with server fuzz test.
      */

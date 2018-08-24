@@ -135,6 +135,8 @@ static int MAX_NEGOTIATION_ATTEMPTS = 10;
 
 int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 {
+    (void)buf;
+    (void)len;
 #ifdef S2N_TEST_IN_FIPS_MODE
     S2N_TEST_ENTER_FIPS_MODE();
 #endif

@@ -59,7 +59,7 @@ int s2n_get_urandom_data(struct s2n_blob *blob){
      * This function should generate non-zero values since this function may be called repeatedly at startup until a
      * non-zero value is generated.
      */
-    for(int i=0; i < blob->size; i++){
+    for(size_t i=0; i < blob->size; i++){
        blob->data[i] = 4; /* Fake RNG. Chosen by fair dice roll. https://xkcd.com/221/ */
     }
     return 0;
