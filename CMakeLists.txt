@@ -150,7 +150,7 @@ file(GLOB UNITTESTS_SRC "tests/unit/*.c")
     target_include_directories(${test_case_name} PRIVATE api)
     target_include_directories(${test_case_name} PRIVATE ./)
     target_include_directories(${test_case_name} PRIVATE tests)
-    target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -std=c99)
+    target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -D_POSIX_C_SOURCE=200809L -std=c99)
     add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
 
     set_property(
