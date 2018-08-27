@@ -19,6 +19,7 @@
 
 #include <sys/wait.h>
 #include <unistd.h>
+#include <time.h>
 #include <stdint.h>
 
 #include <s2n.h>
@@ -54,12 +55,31 @@ void mock_client(int writefd, int readfd)
 
     s2n_negotiate(conn, &blocked);
 
-    for (int i = 1; i < 0xffff; i += 100) {
+    uint16_t timeout = 1;
+    s2n_connection_set_dynamic_record_threshold(conn, 0x7fff, timeout);
+    int i;
+    for (i = 1; i < 0xffff - 100; i += 100) {
         for (int j = 0; j < i; j++) {
             buffer[j] = 33;
         }
-
         s2n_send(conn, buffer, i, &blocked);
+    }
+
+    for (int j = 0; j < i; j++) {
+        buffer[j] = 33;
+    }
+
+    /* Simulate timeout second conneciton inactivity and tolerate 50 ms error */
+    struct timespec sleep_time = {.tv_sec = timeout, .tv_nsec = 50000000};
+    int r;
+    do {
+        r = nanosleep(&sleep_time, &sleep_time);
+    } while (r != 0);
+    /* Active application bytes consumed is reset to 0 in before writing data. */
+    /* Its value should equal to bytes written after writing */
+    ssize_t bytes_written = s2n_send(conn, buffer, i, &blocked);
+    if (bytes_written != conn->active_application_bytes_consumed) {
+        exit(0);
     }
 
     int shutdown_rc = -1;

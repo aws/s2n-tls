@@ -18,7 +18,7 @@ set -ex
 sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
 sudo apt-get update
 
-DEPENDENCIES="indent kwstyle cmake3"
+DEPENDENCIES="indent kwstyle cmake3 tcpdump"
 
 sudo apt-get install -y ${DEPENDENCIES}
 
