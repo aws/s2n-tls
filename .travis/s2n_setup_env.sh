@@ -19,7 +19,7 @@
 : "${BUILD_S2N:=false}"
 : "${GCC6_REQUIRED:=false}"
 : "${LATEST_CLANG:=false}"
-; "${USE_CMAKE:=true}"
+: "${USE_CMAKE:=true}"
 : "${TESTS:=integration}"
 
 # Setup the Travis cache directory paths.
