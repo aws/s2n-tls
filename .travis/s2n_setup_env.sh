@@ -19,6 +19,7 @@
 : "${BUILD_S2N:=false}"
 : "${GCC6_REQUIRED:=false}"
 : "${LATEST_CLANG:=false}"
+; "${USE_CMAKE:=true}"
 : "${TESTS:=integration}"
 
 # Setup the Travis cache directory paths.
@@ -57,6 +58,7 @@ export S2N_LIBCRYPTO
 export BUILD_S2N
 export GCC6_REQUIRED
 export LATEST_CLANG
+export USE_CMAKE
 export TESTS
 export BASE_S2N_DIR
 export PYTHON_INSTALL_DIR

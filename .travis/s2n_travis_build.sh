@@ -44,12 +44,42 @@ if [[ "$TRAVIS_OS_NAME" == "osx" && "$TESTS" == "integration" ]]; then
     scan-build --status-bugs -o /tmp/scan-build make -j8; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/* ; [ "$STATUS" -eq "0" ]; 
 fi
 
-if [[ "$TESTS" == "ALL" || "$TESTS" == "integration" ]]; then make clean; make integration ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "fuzz" ]]; then (make clean && make fuzz) ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMAC" ]] && [[ "$TRAVIS_OS_NAME" == "linux" ]]; then make -C tests/saw/ tmp/"verify_s2n_hmac_$SAW_HMAC_TEST".log ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "sawDRBG" ]]; then make -C tests/saw tmp/spec/DRBG/DRBG.log ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "tls" ]]; then (make -C tests/saw tmp/handshake.log && make -C tests/saw tmp/cork-uncork.log) ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMACFailure" ]]; then make -C tests/saw failure-tests ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "ctverif" ]]; then .travis/run_ctverif.sh "$CTVERIF_INSTALL_DIR" ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "sidewinder" ]]; then .travis/run_sidewinder.sh "$SIDEWINDER_INSTALL_DIR" ; fi
-
+if [[ "$USE_CMAKE" == "true" ]]; then
+    if [ -z ${LIBCRYPTO_ROOT+x} ]; then
+        LIBCRYPTO_CMAKE_ARG = ""
+    else
+        LIBCRYPTO_CMAKE_ARG = "$LIBCRYPTO_ROOT"
+    fi
+    mkdir build;
+    cd build;
+    if [[ "$TESTS" == "ALL"]]; then
+        rm -rf ./*
+        cmake $LIBCRYPTO_CMAKE_ARG ../;
+        make -j 8;
+        make test;
+    fi
+    if [[ "$TESTS" == "ALL" || "$TESTS" == "integration" ]];
+    then
+        rm -rf ./*
+        cmake $LIBCRYPTO_CMAKE_ARG -DRUN_INTEGRATION_TESTS=ON -DS2ND_HOST="127.0.0.1" -DS2ND_PORT="8888" -DS2N_LIBCRYPTO="$S2N_LIBCRYPTO" ../;
+        make -j 8
+        make test;
+    fi
+    if [[ "$TESTS" == "fuzz" ]];
+    then
+        rm -rf ./*
+        export CC=clang;
+        cmake $LIBCRYPTO_CMAKE_ARG -DBUILD_FOR_FUZZ_TESTING=ON ../;
+        make -j 8
+        make test;
+    fi
+else
+    if [[ "$TESTS" == "ALL" || "$TESTS" == "integration" ]]; then make clean; make integration ; fi
+    if [[ "$TESTS" == "ALL" || "$TESTS" == "fuzz" ]]; then (make clean && make fuzz) ; fi
+    if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMAC" ]] && [[ "$TRAVIS_OS_NAME" == "linux" ]]; then make -C tests/saw/ tmp/"verify_s2n_hmac_$SAW_HMAC_TEST".log ; fi
+    if [[ "$TESTS" == "ALL" || "$TESTS" == "sawDRBG" ]]; then make -C tests/saw tmp/spec/DRBG/DRBG.log ; fi
+    if [[ "$TESTS" == "ALL" || "$TESTS" == "tls" ]]; then (make -C tests/saw tmp/handshake.log && make -C tests/saw tmp/cork-uncork.log) ; fi
+    if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMACFailure" ]]; then make -C tests/saw failure-tests ; fi
+    if [[ "$TESTS" == "ALL" || "$TESTS" == "ctverif" ]]; then .travis/run_ctverif.sh "$CTVERIF_INSTALL_DIR" ; fi
+    if [[ "$TESTS" == "ALL" || "$TESTS" == "sidewinder" ]]; then .travis/run_sidewinder.sh "$SIDEWINDER_INSTALL_DIR" ; fi
+fi

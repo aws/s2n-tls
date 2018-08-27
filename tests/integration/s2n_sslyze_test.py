@@ -31,7 +31,7 @@ def cleanup_processes(*processes):
         p.kill()
         p.wait()
 
-def run_sslyze_scan(endpoint, port, scan_output_location, enter_fips_mode=False):
+def run_sslyze_scan(s2nd_path, endpoint, port, scan_output_location, enter_fips_mode=False):
     """
     Run SSLyze scan against s2nd listening on `endpoint` and `port`
 
@@ -42,7 +42,7 @@ def run_sslyze_scan(endpoint, port, scan_output_location, enter_fips_mode=False)
     :return: 0 on successfully negotiation(s), -1 on failure
     """
     
-    s2nd_cmd = ["../../bin/s2nd"]
+    s2nd_cmd = [s2nd_path]
     s2nd_cmd.extend([str(endpoint), str(port), "-n", "-s", "--parallelize"])
     
     s2nd_ciphers = "test_all"
@@ -105,11 +105,11 @@ def check_sslyze_results(scan_output_location):
     
     return failures
 
-def run_sslyze_test(host, port, fips_mode):
+def run_sslyze_test(s2nd_path, host, port, fips_mode):
     seconds_since_epoch = str(int(time.time()))
     scan_output_location = "/tmp/sslyze_output_%s.json" % seconds_since_epoch
     
-    run_sslyze_scan(host, port, scan_output_location, fips_mode)
+    run_sslyze_scan(s2nd_path, host, port, scan_output_location, fips_mode)
     failed = check_sslyze_results(scan_output_location)
     
     os.remove(scan_output_location)
@@ -120,6 +120,7 @@ def main():
     parser = argparse.ArgumentParser(description='Runs SSLyze scan against s2nd')
     parser.add_argument('host', help='The host for s2nd to bind to')
     parser.add_argument('port', type=int, help='The port for s2nd to bind to')
+    parser.add_argument('bin_path', help='the bin directory where s2nc and s2nd are located', default='../../bin')
     parser.add_argument('--libcrypto', default='openssl-1.1.0', choices=['openssl-1.0.2', 'openssl-1.0.2-fips', 'openssl-1.1.0', 'openssl-1.1.x-master', 'libressl'],
             help="""The Libcrypto that s2n was built with. s2n supports different cipher suites depending on
                     libcrypto version. Defaults to openssl-1.1.0.""")
@@ -128,6 +129,7 @@ def main():
     # Retrieve the test ciphers to use based on the libcrypto version s2n was built with
     host = args.host
     port = args.port
+    s2nd_path = args.bin_path + "/s2nd"
 
     fips_mode = False
     if environ.get("S2N_TEST_IN_FIPS_MODE") is not None:
@@ -136,7 +138,7 @@ def main():
 
     print("\n\tRunning SSLyze tests with: " + os.popen('openssl version').read())
 
-    return run_sslyze_test(host, port, fips_mode)
+    return run_sslyze_test(s2nd_path, host, port, fips_mode)
 
 
 if __name__ == "__main__":

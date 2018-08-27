@@ -41,10 +41,10 @@ def cleanup_processes(*processes):
         p.wait()
 
 
-def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, sig_algs=None, curves=None, dh_params=None, resume=False):
+def try_handshake(s2nc_path, endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, sig_algs=None, curves=None, dh_params=None, resume=False):
     """
     Attempt to handshake against Openssl s_server listening on `endpoint` and `port` using s2nc
-
+    :param str s2nc_path: path to the s2nc executable
     :param int endpoint: endpoint for Openssl s_server to listen on
     :param int port: port for Openssl s_server to listen on
     :param str cipher: ciphers for Openssl s_server to use. See https://www.openssl.org/docs/man1.0.2/apps/ciphers.html
@@ -106,7 +106,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
         return -1
 
     # Fire up s2nc
-    s2nc_cmd = ["../../bin/s2nc", "-c", "test_all", "-i"]
+    s2nc_cmd = [s2nc_path, "-c", "test_all", "-i"]
     if resume:
         s2nc_cmd.append("-r")
     s2nc_cmd.extend([str(endpoint), str(port)])
@@ -173,7 +173,7 @@ def create_thread_pool():
     return threadpool
 
 
-def run_handshake_test(host, port, ssl_version, cipher):
+def run_handshake_test(s2nc_path, host, port, ssl_version, cipher):
     cipher_name = cipher.openssl_name
     cipher_vers = cipher.min_tls_vers
 
@@ -184,7 +184,7 @@ def run_handshake_test(host, port, ssl_version, cipher):
     if ssl_version < cipher_vers:
         return 0
 
-    ret = try_handshake(host, port, cipher_name, ssl_version)
+    ret = try_handshake(s2nc_path, host, port, cipher_name, ssl_version)
 
     result_prefix = "Cipher: %-28s Vers: %-8s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
     print_result(result_prefix, ret)
@@ -192,7 +192,7 @@ def run_handshake_test(host, port, ssl_version, cipher):
     return ret
 
 
-def handshake_test(host, port, test_ciphers):
+def handshake_test(s2nc_path, host, port, test_ciphers):
     """
     Basic handshake tests using all valid combinations of supported cipher suites and TLS versions.
     """
@@ -206,7 +206,7 @@ def handshake_test(host, port, test_ciphers):
         results = []
 
         for cipher in test_ciphers:
-            async_result = threadpool.apply_async(run_handshake_test, (host, port + port_offset, ssl_version, cipher))
+            async_result = threadpool.apply_async(run_handshake_test, (s2nc_path, host, port + port_offset, ssl_version, cipher))
             port_offset += 1
             results.append(async_result)
 
@@ -218,14 +218,14 @@ def handshake_test(host, port, test_ciphers):
 
     return failed
 
-def handshake_resumption_test(host, port):
+def handshake_resumption_test(s2nc_path, host, port):
     """
     Basic handshake tests for session resumption.
     """
     print("\n\tRunning s2n Client session resumption tests:")
     failed = 0
     for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
-        ret = try_handshake(host, port, None, ssl_version, resume=True)
+        ret = try_handshake(s2nc_path, host, port, None, ssl_version, resume=True)
         prefix = "Session Resumption for: %-40s ... " % (S2N_PROTO_VERS_TO_STR[ssl_version])
         print_result(prefix, ret)
         if ret != 0:
@@ -237,11 +237,11 @@ supported_sigs = ["RSA+SHA1", "RSA+SHA224", "RSA+SHA256", "RSA+SHA384", "RSA+SHA
 unsupported_sigs = ["ECDSA+SHA256", "ECDSA+SHA512"]
 
 
-def run_sigalg_test(host, port, cipher, ssl_version, permutation):
+def run_sigalg_test(s2nc_path, host, port, cipher, ssl_version, permutation):
     # Put some unsupported algs in front to make sure we gracefully skip them
     mixed_sigs = unsupported_sigs + list(permutation)
     mixed_sigs_str = ':'.join(mixed_sigs)
-    ret = try_handshake(host, port, cipher.openssl_name, ssl_version, sig_algs=mixed_sigs_str)
+    ret = try_handshake(s2nc_path, host, port, cipher.openssl_name, ssl_version, sig_algs=mixed_sigs_str)
 
     # Trim the RSA part off for brevity. User should know we are only supported RSA at the moment.
     prefix = "Digests: %-35s Vers: %-8s... " % (':'.join([x[4:] for x in permutation]), S2N_PROTO_VERS_TO_STR[S2N_TLS12])
@@ -249,7 +249,7 @@ def run_sigalg_test(host, port, cipher, ssl_version, permutation):
     return ret
 
 
-def sigalg_test(host, port):
+def sigalg_test(s2nc_path, host, port):
     """
     Acceptance test for supported signature algorithms. Tests all possible supported sigalgs with unsupported ones mixed in
     for noise.
@@ -270,7 +270,7 @@ def sigalg_test(host, port):
             for cipher in ALL_TEST_CIPHERS:
                 # Try an ECDHE cipher suite and a DHE one
                 if cipher.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or cipher.openssl_name == "DHE-RSA-AES128-GCM-SHA256":
-                    async_result = threadpool.apply_async(run_sigalg_test, (host, port + portOffset, cipher, S2N_TLS12, permutation))
+                    async_result = threadpool.apply_async(run_sigalg_test, (s2nc_path, host, port + portOffset, cipher, S2N_TLS12, permutation))
                     portOffset = portOffset + 1
                     results.append(async_result)
 
@@ -283,7 +283,7 @@ def sigalg_test(host, port):
     return failed
 
 
-def elliptic_curve_test(host, port):
+def elliptic_curve_test(s2nc_path, host, port):
     """
     Acceptance test for supported elliptic curves. Tests all possible supported curves with unsupported curves mixed in
     for noise.
@@ -304,7 +304,7 @@ def elliptic_curve_test(host, port):
             mixed_curves = unsupported_curves + list(permutation)
             mixed_curves_str = ':'.join(mixed_curves)
             for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or x.openssl_name == "ECDHE-RSA-AES128-SHA", ALL_TEST_CIPHERS):
-                ret = try_handshake(host, port, cipher.openssl_name, S2N_TLS12, curves=mixed_curves_str)
+                ret = try_handshake(s2nc_path, host, port, cipher.openssl_name, S2N_TLS12, curves=mixed_curves_str)
                 prefix = "Curves: %-40s Vers: %10s ... " % (':'.join(list(permutation)), S2N_PROTO_VERS_TO_STR[S2N_TLS12])
                 print_result(prefix, ret)
                 if ret != 0:
@@ -316,6 +316,8 @@ def main():
     parser = argparse.ArgumentParser(description='Runs TLS server integration tests against Openssl s_server using s2nc')
     parser.add_argument('host', help='The host for s2nc to connect to')
     parser.add_argument('port', type=int, help='The port for s_server to bind to')
+    parser.add_argument('bin_path', help='The path for the bin directory containing s2nc', default='../../bin')
+
     parser.add_argument('--libcrypto', default='openssl-1.1.0', choices=['openssl-1.0.2', 'openssl-1.0.2-fips', 'openssl-1.1.0', 'openssl-1.1.x-master', 'libressl'],
             help="""The Libcrypto that s2n was built with. s2n supports different cipher suites depending on
                     libcrypto version. Defaults to openssl-1.1.0.""")
@@ -325,14 +327,15 @@ def main():
     test_ciphers = S2N_LIBCRYPTO_TO_TEST_CIPHERS[args.libcrypto]
     host = args.host
     port = args.port
+    s2nc_path = args.bin_path + "/s2nc"
 
     print("\nRunning s2n Client tests with: " + os.popen('openssl version').read())
 
     failed = 0
-    failed += handshake_test(host, port, test_ciphers)
-    failed += handshake_resumption_test(host, port)
-    failed += sigalg_test(host, port)
-    failed += elliptic_curve_test(host, port)
+    failed += handshake_test(s2nc_path, host, port, test_ciphers)
+    failed += handshake_resumption_test(s2nc_path, host, port)
+    failed += sigalg_test(s2nc_path, host, port)
+    failed += elliptic_curve_test(s2nc_path, host, port)
     return failed
 
 

@@ -1,7 +1,6 @@
 cmake_minimum_required (VERSION 3.0)
 project(s2n C)
 
-
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -12,6 +11,11 @@ set(INSTALL_CMAKE_DIR lib/cmake CACHE PATH "Installation directory for cmake fil
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+option(BUILD_FOR_FUZZ_TESTING "The build is exclusively for fuzz tests. No unit or integration tests will
+                               be built or run if this option is turned on." OFF)
+option(RUN_INTEGRATION_TESTS "Runs integration tests as part of the test target. To use this option, you also need to set
+                              the S2ND_HOST, S2ND_PORT, and S2N_LIB_CRYPTO arguments." OFF)
 
 include(S2nCFlags)
 include(S2nSanitizers)
@@ -62,6 +66,13 @@ file(GLOB UTILS_SRC
     "utils/*.c"
 )
 
+include(S2nLibFuzzer)
+
+if (BUILD_FOR_FUZZ_TESTING)
+    set(ENABLE_FUZZ_TESTS ON)
+    set(ENABLE_SANITIZERS ON)
+endif()
+
 ##be nice to visual studio users
 if(MSVC)
     source_group("Header Files\\s2n\\api" FILES ${API_HEADERS})
@@ -110,6 +121,10 @@ add_library(s2n ${S2N_HEADERS} ${S2N_SRC})
 s2n_set_common_properties(${CMAKE_PROJECT_NAME} NO_WEXTRA)
 s2n_add_sanitizers(${CMAKE_PROJECT_NAME} BLACKLIST "sanitizer-blacklist.txt")
 
+if (ENABLE_FUZZ_TESTS)
+    s2n_add_sanitizers(s2n SANITIZERS "${${CMAKE_PROJECT_NAME}_SANITIZERS};fuzzer")
+endif()
+
 find_package(LibCrypto REQUIRED)
 target_link_libraries(s2n PRIVATE LibCrypto::Crypto PRIVATE ${OS_LIBS})
 
@@ -122,7 +137,13 @@ file(GLOB TESTLIB_HEADERS "tests/testlib/*.h")
 
 add_library(testss2n ${TESTLIB_HEADERS} ${TESTLIB_SRC})
 target_include_directories(testss2n PRIVATE tests)
-target_compile_options(testss2n PRIVATE -std=c99)
+s2n_set_common_properties(testss2n NO_WEXTRA)
+s2n_add_sanitizers(testss2n BLACKLIST "sanitizer-blacklist.txt")
+
+if (ENABLE_FUZZ_TESTS)
+    s2n_add_sanitizers(testss2n SANITIZERS "${${CMAKE_PROJECT_NAME}_SANITIZERS};fuzzer")
+endif()
+
 target_link_libraries(testss2n PUBLIC s2n)
 
 #run unit tests
@@ -132,40 +153,65 @@ add_library(allocator_overrides SHARED ${TEST_LD_PRELOAD})
 include(CTest)
 enable_testing()
 
-include(S2nLibFuzzer)
-#
-#file(GLOB UNITTESTS_SRC "tests/unit/*.c")
-#    foreach(test_case ${UNITTESTS_SRC})
-#    string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
-#    add_executable(${test_case_name} ${test_case})
-#    target_link_libraries(${test_case_name} PRIVATE testss2n PRIVATE m pthread)
-#    target_include_directories(${test_case_name} PRIVATE api)
-#    target_include_directories(${test_case_name} PRIVATE ./)
-#    target_include_directories(${test_case_name} PRIVATE tests)
-#    s2n_set_common_properties(${test_case_name} NO_WEXTRA NO_PEDANTIC)
-#    s2n_add_sanitizers(${test_case_name} ${${CMAKE_PROJECT_NAME}_SANITIZERS})
-#    add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
+if (NOT ENABLE_FUZZ_TESTS)
+    file(GLOB UNITTESTS_SRC "tests/unit/*.c")
+    foreach(test_case ${UNITTESTS_SRC})
+        string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
+        add_executable(${test_case_name} ${test_case})
+        target_link_libraries(${test_case_name} PRIVATE testss2n PRIVATE m pthread)
+        target_include_directories(${test_case_name} PRIVATE api)
+        target_include_directories(${test_case_name} PRIVATE ./)
+        target_include_directories(${test_case_name} PRIVATE tests)
+        s2n_set_common_properties(${test_case_name} NO_WEXTRA NO_PEDANTIC)
+        s2n_add_sanitizers(${test_case_name} SANITIZERS ${${CMAKE_PROJECT_NAME}_SANITIZERS})
+        add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}>
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
 
-#    set_property(
-#    TEST
-#        ${test_case_name}
-#    PROPERTY
-#        ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
-#
-#endforeach(test_case)
+        set_property(
+        TEST
+            ${test_case_name}
+        PROPERTY
+            ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
 
-file(GLOB FUZZTESTS_SRC "tests/fuzz/*.c")
-s2n_add_fuzz_tests("${FUZZTESTS_SRC}" "")
+    endforeach(test_case)
+    add_executable(s2nc "bin/s2nc.c" "bin/echo.c")
+    s2n_set_common_properties(s2nc NO_WEXTRA NO_PEDANTIC)
+    target_link_libraries(s2nc s2n)
+    target_include_directories(s2nc PRIVATE api)
 
-add_executable(s2nc "bin/s2nc.c" "bin/echo.c")
-s2n_set_common_properties(s2nc NO_WEXTRA NO_PEDANTIC)
-target_link_libraries(s2nc s2n)
-target_include_directories(s2nc PRIVATE api)
+    add_executable(s2nd "bin/s2nd.c" "bin/echo.c")
+    s2n_set_common_properties(s2nd NO_WEXTRA NO_PEDANTIC)
+    target_link_libraries(s2nd s2n)
+    target_include_directories(s2nd PRIVATE api)
 
-add_executable(s2nd "bin/s2nd.c" "bin/echo.c")
-s2n_set_common_properties(s2nd NO_WEXTRA NO_PEDANTIC)
-target_link_libraries(s2nd s2n)
-target_include_directories(s2nd PRIVATE api)
+    if (RUN_INTEGRATION_TESTS)
+        file(GLOB INTEGTESTS_SRC "tests/integration/*.py")
+        foreach(integ_test_case ${INTEGTESTS_SRC})
+            get_filename_component(integ_test_name ${integ_test_case} NAME_WE)
+
+            add_test(NAME ${integ_test_name}
+                    COMMAND python3 ${integ_test_case} --libcrypto ${S2N_LIBCRYPTO} ${S2ND_HOST} ${S2ND_PORT} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration)
+
+            set_property(
+                    TEST
+                    ${integ_test_name}
+                    PROPERTY
+                    ENVIRONMENT DYLD_LIBRARY_PATH="${CMAKE_LIBRARY_OUTPUT_DIRECTORY}:${CMAKE_INSTALL_PREFIX}/lib:$$DYLD_LIBRARY_PATH")
+            set_property(
+                    TEST
+                    ${integ_test_name}
+                    PROPERTY
+                    ENVIRONMENT LD_LIBRARY_PATH="${CMAKE_LIBRARY_OUTPUT_DIRECTORY}:${CMAKE_INSTALL_PREFIX}/lib:$$LD_LIBRARY_PATH")
+
+        endforeach(integ_test_case)
+    endif()
+
+else()
+    file(GLOB FUZZTESTS_SRC "tests/fuzz/*.c")
+    s2n_add_fuzz_tests("${FUZZTESTS_SRC}" "")
+endif()
+
 
 #install the s2n files
 set_target_properties(s2n PROPERTIES PUBLIC_HEADER "${API_HEADERS}")

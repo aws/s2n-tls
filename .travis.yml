@@ -26,6 +26,10 @@ env:
   - S2N_LIBCRYPTO=openssl-1.1.x-master BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
   - S2N_LIBCRYPTO=openssl-1.1.0 LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=120
   - S2N_LIBCRYPTO=openssl-1.0.2-fips LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=120
+  - S2N_LIBCRYPTO=openssl-1.1.0 BUILD_S2N=true TESTS=integration USE_CMAKE=true
+  - S2N_LIBCRYPTO=openssl-1.1.0 BUILD_S2N=true TESTS=fuzz USE_CMAKE=true
+  - S2N_LIBCRYPTO=openssl-1.1.0 BUILD_S2N=true TESTS=ALL USE_CMAKE=true
+
 
 matrix:
   exclude:

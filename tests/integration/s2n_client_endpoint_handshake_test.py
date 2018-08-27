@@ -13,6 +13,7 @@
 # permissions and limitations under the License.
 #
 
+import argparse
 import os
 import sys
 import time
@@ -32,6 +33,9 @@ well_known_endpoints = [
     "yahoo.com",
     ]
 
+s2nc_path = "../../bin/s2nc"
+s2nd_path = "../../bin/s2nd"
+
 def print_result(result_prefix, return_code):
     print(result_prefix, end="")
     if return_code == 0:
@@ -46,8 +50,7 @@ def print_result(result_prefix, return_code):
             print("FAILED")
 
 def try_client_handshake(endpoint):
-    s2nc_cmd = ["../../bin/s2nc", "-f",  "./trust-store/ca-bundle.crt", "-a", "http/1.1", str(endpoint)]
-
+    s2nc_cmd = [s2nc_path, "-f",  "./trust-store/ca-bundle.crt", "-a", "http/1.1", str(endpoint)]
     # Add S2N_ENABLE_CLIENT_MODE to env variables
     envVars = os.environ.copy()
     envVars["S2N_ENABLE_CLIENT_MODE"] = "1"
@@ -91,12 +94,20 @@ def well_known_endpoints_test():
     return failed
 
 def main(argv):
-    if len(argv) < 2:
-        print("s2n_handshake_test_s_client.py host port")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description='Runs TLS server integration tests against s2nd using gnutls-cli')
+    parser.add_argument('--libcrypto', default='openssl-1.1.0', choices=['openssl-1.0.2', 'openssl-1.0.2-fips', 'openssl-1.1.0', 'openssl-1.1.x-master', 'libressl'],
+                    help="""The Libcrypto that s2n was built with. s2n supports different cipher suites depending on
+                    libcrypto version. Defaults to openssl-1.1.0.""")
+    parser.add_argument('host', help='The host for s2nd to bind to', default='')
+    parser.add_argument('port', type=int, help='The port for s2nd to bind to', default='')
+    parser.add_argument('bin_dir', help='the bin directory where s2nc and s2nd are located', default='../../bin')
+    args = parser.parse_args()
 
-    host = argv[0]
-    port = argv[1]
+    if args.bin_dir:
+        global s2nc_path
+        global s2nd_path
+        s2nc_path = args.bin_dir + "/s2nc"
+        s2nd_path = args.bin_dir + "/s2nd"
 
     failed = 0
     failed += well_known_endpoints_test()
