@@ -52,7 +52,7 @@ if [[ "$USE_CMAKE" == "true" ]]; then
     fi
     mkdir build;
     cd build;
-    if [[ "$TESTS" == "ALL"]]; then
+    if [[ "$TESTS" == "ALL" ]]; then
         rm -rf ./*
         cmake $LIBCRYPTO_CMAKE_ARG ../;
         make -j 8;
