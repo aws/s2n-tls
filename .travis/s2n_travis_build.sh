@@ -45,10 +45,9 @@ if [[ "$TRAVIS_OS_NAME" == "osx" && "$TESTS" == "integration" ]]; then
 fi
 
 if [[ "$USE_CMAKE" == "true" ]]; then
-    if [ -z ${LIBCRYPTO_ROOT+x} ]; then
-        LIBCRYPTO_CMAKE_ARG = ""
-    else
-        LIBCRYPTO_CMAKE_ARG = "$LIBCRYPTO_ROOT"
+    LIBCRYPTO_CMAKE_ARG=""
+    if ! [ -z ${LIBCRYPTO_ROOT+x} ]; then
+        LIBCRYPTO_CMAKE_ARG="-DLibCrypto_ROOT_DIR=$LIBCRYPTO_ROOT"
     fi
     mkdir build;
     cd build;
