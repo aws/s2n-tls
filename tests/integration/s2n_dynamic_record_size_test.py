@@ -163,19 +163,24 @@ def run_test(host, port, ssl_version, cipher, threshold):
     tcpdump = subprocess.Popen(tcpdump_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     ret = try_dynamic_record(host, port, cipher_name, ssl_version, threshold)
+    # wait for pipe ready
+    sleep(1)
+    subprocess.call(["sudo", "killall", "-9", "tcpdump"])
+    out = tcpdump.communicate()[0].decode("utf-8")
+    if out == '':
+        return 1
+    out_array = out.split('\n')
     # Skip no cipher match error
     if ret != -2: 
         failed += ret
+    if 0 == ret:
         # print("\nAnalyzing tcpdump results for cipher {}".format(cipher_name))
         # Case 1: first half of application data is optimized for latency
-        failed += analyze_latency_dump(tcpdump.stdout)
+        failed += analyze_latency_dump(out_array)
         # Case 2: second half of application data is optimize for throughput
-        failed += analyze_throughput_dump(tcpdump.stdout)
+        failed += analyze_throughput_dump(out_array)
         result_prefix = "Cipher: %-28s Vers: %-8s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
         print_result(result_prefix, failed)
-
-    subprocess.call(["sudo", "killall", "-9", "tcpdump"])
-    tcpdump.wait()
 
     return failed
 
@@ -183,7 +188,7 @@ def run_test(host, port, ssl_version, cipher, threshold):
 def test(host, port, test_ciphers, threshold):
     failed = 0
     ssl_version = S2N_TLS12
-    # Get the first testable cipher
+
     for cipher in test_ciphers:
         cipher_vers = cipher.min_tls_vers
         if not cipher.openssl_1_1_0_compatible:
@@ -197,9 +202,9 @@ def test(host, port, test_ciphers, threshold):
 
     return failed
 
-def analyze_latency_dump(stream):
+def analyze_latency_dump(array):
     failed = 0
-    first_line = stream.readline().decode("utf-8")
+    first_line = array[0]
     if ("mss" not in first_line):
         return 1
 
@@ -208,8 +213,8 @@ def analyze_latency_dump(stream):
     mss = mss_str[4 : mss_str.find(',')]
     # print("mss={}".format(mss))
     
-    for line in range(0, 18):
-        output = stream.readline().decode("utf-8").strip()
+    for i in range(0, 18):
+        output = array[i]
         # print(output)
         pos = output.find("length")
         if pos < 0:
@@ -222,11 +227,11 @@ def analyze_latency_dump(stream):
 
     return failed
 
-def analyze_throughput_dump(stream):
+def analyze_throughput_dump(array):
     failed = 1
 
-    for line in range(0, 18):
-        output = stream.readline().decode("utf-8").strip()
+    for i in range(18, 36):
+        output = array[i]
         # print(output)
         pos = output.find("length")
         if pos < 0:
