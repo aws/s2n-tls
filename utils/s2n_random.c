@@ -308,12 +308,7 @@ int s2n_cpu_supports_rdrand()
     return 0;
 }
 
-/* Due to the need to support some older assemblers,
- * we cannot use either the compiler intrinsics or
- * the RDRAND assembly mnemonic. For this reason,
- * we're using the opcode directly (0F C7/6). This
- * stores the result in eax.
- *
+/*
  * volatile is important to prevent the compiler from
  * re-ordering or optimizing the use of RDRAND.
  */
@@ -337,24 +332,27 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
 
     GUARD(s2n_stuffer_init(&stuffer, out));
     while ((space_remaining = s2n_stuffer_space_remaining(&stuffer))) {
-        int success = 0;
+        unsigned char success = 0;
         output.u64 = 0;
 
         for (int tries = 0; tries < 10; tries++) {
+            /* yeah I'm not buying the whole "we can't use the pneumonic name instead of the opt-code,
+             * we're already using a C99 compiler for Zeus sake. */
 #if defined(__i386__)
-            int success_high = 0, success_low = 0;
-            __asm__ __volatile__(".byte 0x48;\n" ".byte 0x0f;\n" ".byte 0xc7;\n" ".byte 0xf0;\n" "adcl $0x00, %%ebx;\n":"=b"(success_low), "=a"(output.i386_fields.u_low)
-                                 :"b"(0)
+            unsigned char success_high = 0, success_low = 0;
+
+            __asm__ __volatile__("rdrand %0;\n" "setc %1;\n": "=r"(output.i386_fields.u_low), "=qm"(success_low)
+                                 :"r"(0)
                                  :"cc");
 
-            __asm__ __volatile__(".byte 0x48;\n" ".byte 0x0f;\n" ".byte 0xc7;\n" ".byte 0xf0;\n" "adcl $0x00, %%ebx;\n":"=b"(success_high), "=a"(output.i386_fields.u_high)
-                                :"b"(0)
+            __asm__ __volatile__("rdrand %0;\n" "setc %1;\n": "=r"(output.i386_fields.u_high), "=qm"(success_high)
+                                :"r"(0)
                                 :"cc");
             success = success_high & success_low;
 #else
-            __asm__ __volatile__(".byte 0x48;\n" ".byte 0x0f;\n" ".byte 0xc7;\n" ".byte 0xf0;\n" "adcl $0x00, %%ebx;\n":"=b"(success), "=a"(output.u64)
-            :"b"(0)
-            :"cc");
+            __asm__ __volatile__("rdrand %0;\n" "setc %1;\n": "=r"(output.u64), "=qm"(success)
+                                :"r"(0)
+                                :"cc");
 #endif /* defined(__i386__) */
 
             if (success) {
