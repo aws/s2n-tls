@@ -100,14 +100,14 @@ def main(argv):
                     libcrypto version. Defaults to openssl-1.1.0.""")
     parser.add_argument('host', help='The host for s2nd to bind to', default='')
     parser.add_argument('port', type=int, help='The port for s2nd to bind to', default='')
-    parser.add_argument('bin_dir', help='the bin directory where s2nc and s2nd are located', default='../../bin')
+    parser.add_argument('bin_path', help='the bin directory where s2nc and s2nd are located', default='../../bin')
     args = parser.parse_args()
 
     if args.bin_dir:
         global s2nc_path
         global s2nd_path
-        s2nc_path = args.bin_dir + "/s2nc"
-        s2nd_path = args.bin_dir + "/s2nd"
+        s2nc_path = args.bin_path + "/s2nc"
+        s2nd_path = args.bin_path + "/s2nd"
 
     failed = 0
     failed += well_known_endpoints_test()

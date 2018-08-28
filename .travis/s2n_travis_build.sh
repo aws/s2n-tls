@@ -57,7 +57,7 @@ if [[ "$USE_CMAKE" == "true" ]]; then
         make -j 8;
         make test;
     fi
-    if [[ "$TESTS" == "ALL" || "$TESTS" == "integration" ]];
+    if [[ "$TESTS" == "integration" ]];
     then
         rm -rf ./*
         cmake $LIBCRYPTO_CMAKE_ARG -DRUN_INTEGRATION_TESTS=ON -DS2ND_HOST="127.0.0.1" -DS2ND_PORT="8888" -DS2N_LIBCRYPTO="$S2N_LIBCRYPTO" ../;

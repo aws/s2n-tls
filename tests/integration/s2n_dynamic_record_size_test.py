@@ -42,7 +42,7 @@ def cleanup_processes(*processes):
         p.wait()
 
 
-def try_dynamic_record(endpoint, port, cipher, ssl_version, threshold, server_cert=None, server_key=None, sig_algs=None, curves=None, dh_params=None):
+def try_dynamic_record(s2nc_path, endpoint, port, cipher, ssl_version, threshold, server_cert=None, server_key=None, sig_algs=None, curves=None, dh_params=None):
     """
     Attempt to handshake against Openssl s_server listening on `endpoint` and `port` using s2nc
 
@@ -112,7 +112,7 @@ def try_dynamic_record(endpoint, port, cipher, ssl_version, threshold, server_ce
 
     # Fire up s2nc
     # print("\n\tRunning s2n dynamic record size tests with threshold:", threshold)
-    s2nc_cmd = ["../../bin/s2nc", "-e", "-D", str(threshold), "-t", "1", "-c", "test_all", "-i"]
+    s2nc_cmd = [s2nc_path, "-e", "-D", str(threshold), "-t", "1", "-c", "test_all", "-i"]
     s2nc_cmd.extend([str(endpoint), str(port)])
 
     envVars = os.environ.copy()
@@ -154,7 +154,7 @@ def print_result(result_prefix, return_code):
 
     print(result_prefix + suffix)
 
-def run_test(host, port, ssl_version, cipher, threshold):
+def run_test(s2nc_path, host, port, ssl_version, cipher, threshold):
     cipher_name = cipher.openssl_name
 
     failed = 0
@@ -162,7 +162,7 @@ def run_test(host, port, ssl_version, cipher, threshold):
     tcpdump_cmd = ["sudo", "tcpdump", "-i", "lo", "-n", tcpdump_filter] 
     tcpdump = subprocess.Popen(tcpdump_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    ret = try_dynamic_record(host, port, cipher_name, ssl_version, threshold)
+    ret = try_dynamic_record(s2nc_path, host, port, cipher_name, ssl_version, threshold)
     # Skip no cipher match error
     if ret != -2: 
         failed += ret
@@ -180,7 +180,7 @@ def run_test(host, port, ssl_version, cipher, threshold):
     return failed
 
 
-def test(host, port, test_ciphers, threshold):
+def test(s2nc_path, host, port, test_ciphers, threshold):
     failed = 0
     ssl_version = S2N_TLS12
     # Get the first testable cipher
@@ -190,7 +190,7 @@ def test(host, port, test_ciphers, threshold):
             continue
         if ssl_version < cipher_vers:
             continue
-        result = run_test(host, port, ssl_version, cipher, threshold)
+        result = run_test(s2nc_path, host, port, ssl_version, cipher, threshold)
         if result != 0:
             failed += 1
             break
@@ -257,17 +257,20 @@ def get_local_mtu():
 
 def main():
     parser = argparse.ArgumentParser(description='Runs TLS server integration tests against Openssl s_server using s2nc')
+    parser.add_argument('--libcrypto', default='openssl-1.1.0', choices=['openssl-1.0.2', 'openssl-1.0.2-fips', 'openssl-1.1.0', 'openssl-1.1.x-master', 'libressl'],
+                        help="""The Libcrypto that s2n was built with. s2n supports different cipher suites depending on
+                    libcrypto version. Defaults to openssl-1.1.0.""")
     parser.add_argument('host', help='The host for s2nc to connect to')
     parser.add_argument('port', type=int, help='The port for s_server to bind to')
-    parser.add_argument('--libcrypto', default='openssl-1.1.0', choices=['openssl-1.0.2', 'openssl-1.0.2-fips', 'openssl-1.1.0', 'openssl-1.1.x-master', 'libressl'],
-            help="""The Libcrypto that s2n was built with. s2n supports different cipher suites depending on
-                    libcrypto version. Defaults to openssl-1.1.0.""")
+    parser.add_argument('bin_path', help='the bin directory where s2nc and s2nd are located', default='../../bin')
+
     args = parser.parse_args()
 
     # Retrieve the test ciphers to use based on the libcrypto version s2n was built with
     test_ciphers = S2N_LIBCRYPTO_TO_TEST_CIPHERS[args.libcrypto]    
     host = args.host
     port = args.port
+    s2nc_path = args.bin_path + "/s2nc"
 
     local_mtu = get_local_mtu()
     # Simulate common MTU 1500
@@ -275,7 +278,7 @@ def main():
     
     failed = 0
     print("\n\tRunning s2n dynamic record size tests\n\t")
-    failed += test(host, port, test_ciphers, int(file_size / 2))
+    failed += test(s2nc_path, host, port, test_ciphers, int(file_size / 2))
 
     # Recover localhost MTU
     subprocess.call(["sudo", "ifconfig", "lo", "mtu", local_mtu])
