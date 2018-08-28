@@ -204,13 +204,14 @@ def test(host, port, test_ciphers, threshold):
 
 def analyze_latency_dump(array):
     failed = 0
+    mss = 1460
     first_line = array[0]
-    if ("mss" not in first_line):
-        return 1
-
-    mss_pos = first_line.find("mss")
-    mss_str = first_line[mss_pos : mss_pos + 10]
-    mss = mss_str[4 : mss_str.find(',')]
+    if ("mss" in first_line):
+        mss_pos = first_line.find("mss")
+        mss_str = first_line[mss_pos : mss_pos + 10]
+        mss = mss_str[4 : mss_str.find(',')]
+    else:
+        print ("use default mss")
     # print("mss={}".format(mss))
     
     for i in range(0, 18):
