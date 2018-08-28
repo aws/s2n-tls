@@ -204,12 +204,12 @@ def test(host, port, test_ciphers, threshold):
 
 def analyze_latency_dump(array):
     failed = 0
-    mss = 1460
+    mss = get_local_mtu() - 40
     first_line = array[0]
     if ("mss" in first_line):
         mss_pos = first_line.find("mss")
         mss_str = first_line[mss_pos : mss_pos + 10]
-        mss = mss_str[4 : mss_str.find(',')]
+        mss = int(mss_str[4 : mss_str.find(',')])
     else:
         print ("use default mss")
     # print("mss={}".format(mss))
@@ -222,7 +222,7 @@ def analyze_latency_dump(array):
             continue
         length = output[pos + 6 : len(output)]
         # Tcp package size should always <= mss
-        if length > mss:
+        if int(length) > mss:
             failed = 1
             break
 
@@ -258,7 +258,7 @@ def get_local_mtu():
             break
 
     p.wait()
-    return mtu
+    return int(mtu)
 
 
 def main():
@@ -284,7 +284,7 @@ def main():
     failed += test(host, port, test_ciphers, int(file_size / 2))
 
     # Recover localhost MTU
-    subprocess.call(["sudo", "ifconfig", "lo", "mtu", local_mtu])
+    subprocess.call(["sudo", "ifconfig", "lo", "mtu", str(local_mtu)])
 
     # print_result("TLS dynamic record size test " , failed)
 
