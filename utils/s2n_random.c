@@ -336,7 +336,7 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
         output.u64 = 0;
 
         for (int tries = 0; tries < 10; tries++) {
-            /* yeah I'm not buying the whole "we can't use the pneumonic name instead of the opt-code,
+            /* yeah I'm not buying the whole "we can't use the mnemonic name instead of the opt-code,
              * we're already using a C99 compiler for Zeus sake. */
 #if defined(__i386__)
             unsigned char success_high = 0, success_low = 0;
