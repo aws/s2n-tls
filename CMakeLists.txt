@@ -154,26 +154,26 @@ include(CTest)
 enable_testing()
 
 if (NOT ENABLE_FUZZ_TESTS)
-    file(GLOB UNITTESTS_SRC "tests/unit/*.c")
-    foreach(test_case ${UNITTESTS_SRC})
-        string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
-        add_executable(${test_case_name} ${test_case})
-        target_link_libraries(${test_case_name} PRIVATE testss2n PRIVATE m pthread)
-        target_include_directories(${test_case_name} PRIVATE api)
-        target_include_directories(${test_case_name} PRIVATE ./)
-        target_include_directories(${test_case_name} PRIVATE tests)
-        s2n_set_common_properties(${test_case_name} NO_WEXTRA NO_PEDANTIC)
-        s2n_add_sanitizers(${test_case_name} SANITIZERS ${${CMAKE_PROJECT_NAME}_SANITIZERS})
-        add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}>
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
-
-        set_property(
-        TEST
-            ${test_case_name}
-        PROPERTY
-            ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
-
-    endforeach(test_case)
+#    file(GLOB UNITTESTS_SRC "tests/unit/*.c")
+#    foreach(test_case ${UNITTESTS_SRC})
+#        string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
+#        add_executable(${test_case_name} ${test_case})
+#        target_link_libraries(${test_case_name} PRIVATE testss2n PRIVATE m pthread)
+#        target_include_directories(${test_case_name} PRIVATE api)
+#        target_include_directories(${test_case_name} PRIVATE ./)
+#        target_include_directories(${test_case_name} PRIVATE tests)
+#        s2n_set_common_properties(${test_case_name} NO_WEXTRA NO_PEDANTIC)
+#        s2n_add_sanitizers(${test_case_name} SANITIZERS ${${CMAKE_PROJECT_NAME}_SANITIZERS})
+#        add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}>
+#                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
+#
+#        set_property(
+#        TEST
+#            ${test_case_name}
+#        PROPERTY
+#            ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
+#
+#    endforeach(test_case)
     add_executable(s2nc "bin/s2nc.c" "bin/echo.c")
     s2n_set_common_properties(s2nc NO_WEXTRA NO_PEDANTIC)
     target_link_libraries(s2nc s2n)
@@ -197,12 +197,12 @@ if (NOT ENABLE_FUZZ_TESTS)
                     TEST
                     ${integ_test_name}
                     PROPERTY
-                    ENVIRONMENT DYLD_LIBRARY_PATH="${CMAKE_LIBRARY_OUTPUT_DIRECTORY}:${CMAKE_INSTALL_PREFIX}/lib:$$DYLD_LIBRARY_PATH")
+                    ENVIRONMENT DYLD_LIBRARY_PATH="${CMAKE_LIBRARY_OUTPUT_DIRECTORY}:${CMAKE_INSTALL_PREFIX}/lib:$DYLD_LIBRARY_PATH")
             set_property(
                     TEST
                     ${integ_test_name}
                     PROPERTY
-                    ENVIRONMENT LD_LIBRARY_PATH="${CMAKE_LIBRARY_OUTPUT_DIRECTORY}:${CMAKE_INSTALL_PREFIX}/lib:$$LD_LIBRARY_PATH")
+                    ENVIRONMENT LD_LIBRARY_PATH="${CMAKE_LIBRARY_OUTPUT_DIRECTORY}:${CMAKE_INSTALL_PREFIX}/lib:$LD_LIBRARY_PATH")
 
         endforeach(integ_test_case)
     endif()

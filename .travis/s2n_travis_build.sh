@@ -55,22 +55,22 @@ if [[ "$USE_CMAKE" == "true" ]]; then
         rm -rf ./*
         cmake $LIBCRYPTO_CMAKE_ARG ../;
         make -j 8;
-        make test;
+        ctest -VV --output-on-failure;
     fi
     if [[ "$TESTS" == "integration" ]];
     then
         rm -rf ./*
         cmake $LIBCRYPTO_CMAKE_ARG -DRUN_INTEGRATION_TESTS=ON -DS2ND_HOST="127.0.0.1" -DS2ND_PORT="8888" -DS2N_LIBCRYPTO="$S2N_LIBCRYPTO" ../;
         make -j 8
-        make test;
+        ctest -VV --output-on-failure;
     fi
     if [[ "$TESTS" == "fuzz" ]];
     then
         rm -rf ./*
-        export CC=clang;
+        export CC=$LATEST_CLANG_INSTALL_DIR/bin/clang;
         cmake $LIBCRYPTO_CMAKE_ARG -DBUILD_FOR_FUZZ_TESTING=ON ../;
         make -j 8
-        make test;
+        ctest -VV --output-on-failure;
     fi
 else
     if [[ "$TESTS" == "ALL" || "$TESTS" == "integration" ]]; then make clean; make integration ; fi

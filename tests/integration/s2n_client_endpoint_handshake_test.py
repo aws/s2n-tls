@@ -103,7 +103,7 @@ def main(argv):
     parser.add_argument('bin_path', help='the bin directory where s2nc and s2nd are located', default='../../bin')
     args = parser.parse_args()
 
-    if args.bin_dir:
+    if args.bin_path:
         global s2nc_path
         global s2nd_path
         s2nc_path = args.bin_path + "/s2nc"
