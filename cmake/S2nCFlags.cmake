@@ -59,23 +59,8 @@ function(s2n_set_common_properties target)
         list(APPEND S2N_C_DEFINES -D_FORTIFY_SOURCE=2)
     endif()
 
-    if(NO_STACK_PROTECTOR)
-        target_compile_options(s2n PRIVATE -Wstack-protector -fstack-protector-all)
-    endif()
-
-    if(S2N_UNSAFE_FUZZING_MODE)
-        target_compile_options(s2n PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak)
-    endif()
-
-
-    if(BUILD_SHARED_LIBS AND WIN32)
-        set(EXPORT_DEFINE ${target})
-        string(TOUPPER ${EXPORT_DEFINE} EXPORT_DEFINE)
-        string(REGEX REPLACE "S2N-C-" "AWS-" EXPORT_DEFINE ${EXPORT_DEFINE})
-        string(REPLACE "-" "_" EXPORT_DEFINE ${EXPORT_DEFINE})
-
-        list(APPEND S2N_C_DEFINES -DUSE_IMPORT_EXPORT)
-        list(APPEND S2N_C_DEFINES -D${EXPORT_DEFINE}_EXPORTS)
+    if(NOT NO_STACK_PROTECTOR)
+        target_compile_options(${target} PRIVATE -Wstack-protector -fstack-protector-all)
     endif()
 
     target_compile_options(${target} PRIVATE ${S2N_C_FLAGS})

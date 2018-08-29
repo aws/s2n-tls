@@ -14,8 +14,12 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 option(BUILD_FOR_FUZZ_TESTING "The build is exclusively for fuzz tests. No unit or integration tests will
                                be built or run if this option is turned on." OFF)
-option(RUN_INTEGRATION_TESTS "Runs integration tests as part of the test target. To use this option, you also need to set
-                              the S2ND_HOST, S2ND_PORT, and S2N_LIB_CRYPTO arguments." OFF)
+option(RUN_INTEGRATION_TESTS  "Runs integration tests as part of the test target. To use this option, you also need to set
+                               the S2ND_HOST, S2ND_PORT, and S2N_LIB_CRYPTO arguments." OFF)
+set(S2ND_HOST 127.0.0.1 CACHE STRING  "Host to use for s2nd tests.")
+set(S2ND_PORT 88888 CACHE STRING  "Port to use for s2nd tests.")
+set(S2N_LIBCRYPTO openssl-1.1.0 CACHE STRING "openssl version to test against.")
+option(RUN_UNIT_TESTS "Runs unit tests as part of the build." ON)
 
 include(S2nCFlags)
 include(S2nSanitizers)
@@ -69,6 +73,7 @@ file(GLOB UTILS_SRC
 include(S2nLibFuzzer)
 
 if (BUILD_FOR_FUZZ_TESTING)
+    set(BUILD_SHARED_LIBS ON)
     set(ENABLE_FUZZ_TESTS ON)
     set(ENABLE_SANITIZERS ON)
 endif()
@@ -116,26 +121,50 @@ file(GLOB S2N_HEADERS
     ${UTILS_SRC}
  )
 
-add_library(s2n ${S2N_HEADERS} ${S2N_SRC})
+find_package(LibCrypto REQUIRED)
+add_library(${CMAKE_PROJECT_NAME} ${S2N_HEADERS} ${S2N_SRC})
 
 s2n_set_common_properties(${CMAKE_PROJECT_NAME} NO_WEXTRA)
 s2n_add_sanitizers(${CMAKE_PROJECT_NAME} BLACKLIST "sanitizer-blacklist.txt")
 
-if (ENABLE_FUZZ_TESTS)
-    s2n_add_sanitizers(s2n SANITIZERS "${${CMAKE_PROJECT_NAME}_SANITIZERS};fuzzer")
-endif()
-
 find_package(LibCrypto REQUIRED)
 target_link_libraries(s2n PRIVATE LibCrypto::Crypto PRIVATE ${OS_LIBS})
 
-target_include_directories(s2n PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-target_include_directories(s2n PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
-target_include_directories(s2n PUBLIC $<TARGET_PROPERTY:LibCrypto::Crypto,INTERFACE_INCLUDE_DIRECTORIES>)
+target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
+target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC $<TARGET_PROPERTY:LibCrypto::Crypto,INTERFACE_INCLUDE_DIRECTORIES>)
+
+s2n_set_common_properties(${CMAKE_PROJECT_NAME} NO_WEXTRA)
+s2n_add_sanitizers(${CMAKE_PROJECT_NAME} BLACKLIST "sanitizer-blacklist.txt")
+
+if (NOT BUILD_SHARED_LIBS)
+    message("Since s2n needs dynamic links for LD_PRELOAD overrides, we still have to build in shared mode for testing.")
+    set(TEST_S2N_TARGET s2n_shared)
+    add_library(${TEST_S2N_TARGET} SHARED ${S2N_HEADERS} ${S2N_SRC})
+    s2n_set_common_properties(${TEST_S2N_TARGET} NO_WEXTRA)
+    s2n_add_sanitizers(${TEST_S2N_TARGET} BLACKLIST "sanitizer-blacklist.txt")
+
+    find_package(LibCrypto REQUIRED)
+    target_link_libraries(${TEST_S2N_TARGET} PRIVATE LibCrypto::Crypto PRIVATE ${OS_LIBS})
+
+    target_include_directories(${TEST_S2N_TARGET} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+    target_include_directories(${TEST_S2N_TARGET} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
+    target_include_directories(${TEST_S2N_TARGET} PUBLIC $<TARGET_PROPERTY:LibCrypto::Crypto,INTERFACE_INCLUDE_DIRECTORIES>)
+
+    s2n_set_common_properties(${TEST_S2N_TARGET} NO_WEXTRA)
+    s2n_add_sanitizers(${TEST_S2N_TARGET} BLACKLIST "sanitizer-blacklist.txt")
+else()
+    set(TEST_S2N_TARGET s2n)
+endif()
+
+if (ENABLE_FUZZ_TESTS)
+    s2n_add_sanitizers(${TEST_S2N_TARGET} SANITIZERS "${${CMAKE_PROJECT_NAME}_SANITIZERS};fuzzer")
+endif()
 
 file(GLOB TESTLIB_SRC "tests/testlib/*.c")
 file(GLOB TESTLIB_HEADERS "tests/testlib/*.h")
 
-add_library(testss2n ${TESTLIB_HEADERS} ${TESTLIB_SRC})
+add_library(testss2n SHARED ${TESTLIB_HEADERS} ${TESTLIB_SRC})
 target_include_directories(testss2n PRIVATE tests)
 s2n_set_common_properties(testss2n NO_WEXTRA)
 s2n_add_sanitizers(testss2n BLACKLIST "sanitizer-blacklist.txt")
@@ -144,7 +173,7 @@ if (ENABLE_FUZZ_TESTS)
     s2n_add_sanitizers(testss2n SANITIZERS "${${CMAKE_PROJECT_NAME}_SANITIZERS};fuzzer")
 endif()
 
-target_link_libraries(testss2n PUBLIC s2n)
+target_link_libraries(testss2n PUBLIC ${TEST_S2N_TARGET})
 
 #run unit tests
 file (GLOB TEST_LD_PRELOAD "tests/LD_PRELOAD/*.c")
@@ -154,26 +183,28 @@ include(CTest)
 enable_testing()
 
 if (NOT ENABLE_FUZZ_TESTS)
-#    file(GLOB UNITTESTS_SRC "tests/unit/*.c")
-#    foreach(test_case ${UNITTESTS_SRC})
-#        string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
-#        add_executable(${test_case_name} ${test_case})
-#        target_link_libraries(${test_case_name} PRIVATE testss2n PRIVATE m pthread)
-#        target_include_directories(${test_case_name} PRIVATE api)
-#        target_include_directories(${test_case_name} PRIVATE ./)
-#        target_include_directories(${test_case_name} PRIVATE tests)
-#        s2n_set_common_properties(${test_case_name} NO_WEXTRA NO_PEDANTIC)
-#        s2n_add_sanitizers(${test_case_name} SANITIZERS ${${CMAKE_PROJECT_NAME}_SANITIZERS})
-#        add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}>
-#                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
-#
-#        set_property(
-#        TEST
-#            ${test_case_name}
-#        PROPERTY
-#            ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
-#
-#    endforeach(test_case)
+    if (RUN_UNIT_TESTS)
+        file(GLOB UNITTESTS_SRC "tests/unit/*.c")
+        foreach(test_case ${UNITTESTS_SRC})
+            string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
+            add_executable(${test_case_name} ${test_case})
+            target_link_libraries(${test_case_name} PRIVATE testss2n PRIVATE m pthread)
+            target_include_directories(${test_case_name} PRIVATE api)
+            target_include_directories(${test_case_name} PRIVATE ./)
+            target_include_directories(${test_case_name} PRIVATE tests)
+            s2n_set_common_properties(${test_case_name} NO_WEXTRA NO_PEDANTIC)
+            s2n_add_sanitizers(${test_case_name} SANITIZERS ${${CMAKE_PROJECT_NAME}_SANITIZERS})
+            add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}>
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
+
+            set_property(
+            TEST
+                ${test_case_name}
+            PROPERTY
+                ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
+        endforeach(test_case)
+    endif()
+
     add_executable(s2nc "bin/s2nc.c" "bin/echo.c")
     s2n_set_common_properties(s2nc NO_WEXTRA NO_PEDANTIC)
     target_link_libraries(s2nc s2n)
@@ -214,10 +245,10 @@ endif()
 
 
 #install the s2n files
-set_target_properties(s2n PROPERTIES PUBLIC_HEADER "${API_HEADERS}")
+set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES PUBLIC_HEADER "${API_HEADERS}")
 
 install (
-         TARGETS s2n
+         TARGETS ${CMAKE_PROJECT_NAME}
          EXPORT "s2nTargets"
          ARCHIVE DESTINATION lib
          LIBRARY DESTINATION lib
@@ -225,8 +256,8 @@ install (
          COMPONENT dev
 )
 
-export(TARGETS s2n FILE "s2nTargets.cmake")
-export(PACKAGE s2n)
+export(TARGETS ${CMAKE_PROJECT_NAME} FILE "s2nTargets.cmake")
+export(PACKAGE ${CMAKE_PROJECT_NAME})
 
 if(LibCrypto_ROOT_DIR)
      set(NON_SYS_LIB_CRYPTO_ROOT "${LibCrypto_ROOT_DIR}")

@@ -103,7 +103,7 @@ def try_dynamic_record(s2nc_path, endpoint, port, cipher, ssl_version, threshold
     if not found:
         server_error = s_server.stderr.read().decode("utf-8")
         if "no cipher match" in server_error:
-            # print ("Skipped unsupported cipher: {}".format(cipher))
+            print ("Skipped unsupported cipher: {}".format(cipher))
             return -2
 
         sys.stderr.write("Failed to start s_server: {}\nSTDERR: {}\n".format(" ".join(s_server_cmd), server_error))
@@ -164,7 +164,7 @@ def run_test(s2nc_path, host, port, ssl_version, cipher, threshold):
 
     ret = try_dynamic_record(s2nc_path, host, port, cipher_name, ssl_version, threshold)
     # Skip no cipher match error
-    if ret != -2: 
+    if ret != -2:
         failed += ret
         # print("\nAnalyzing tcpdump results for cipher {}".format(cipher_name))
         # Case 1: first half of application data is optimized for latency
@@ -200,6 +200,8 @@ def test(s2nc_path, host, port, test_ciphers, threshold):
 def analyze_latency_dump(stream):
     failed = 0
     first_line = stream.readline().decode("utf-8")
+    print(first_line)
+
     if ("mss" not in first_line):
         return 1
 

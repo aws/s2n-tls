@@ -44,8 +44,8 @@ UBSAN_OPTIONS+="print_stacktrace=1"
 NUM_CPU_THREADS=`nproc`
 LIBFUZZER_ARGS+="-timeout=5 -max_len=4096 -print_final_stats=1 -jobs=${NUM_CPU_THREADS} -workers=${NUM_CPU_THREADS} -max_total_time=${FUZZ_TIMEOUT_SEC}"
 
-TEST_SPECIFIC_OVERRIDES="../lib/lib${TEST_NAME}_overrides.so"
-GLOBAL_OVERRIDES="../lib/libglobal_overrides.so"
+TEST_SPECIFIC_OVERRIDES="`pwd`/../lib/lib${TEST_NAME}_overrides.so"
+GLOBAL_OVERRIDES="`pwd`/../lib/libglobal_overrides.so"
 
 if [ -e $TEST_SPECIFIC_OVERRIDES ];
 then
@@ -61,7 +61,7 @@ then
 fi
 
 # Make directory if it doesn't exist
-mkdir -p "corpus/${TEST_NAME}"
+mkdir -p "./corpus/${TEST_NAME}"
 
 ACTUAL_TEST_FAILURE=0
 CORPUS_DIR="./corpus/${TEST_NAME}"

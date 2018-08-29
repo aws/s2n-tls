@@ -49,22 +49,17 @@ function(s2n_add_fuzz_tests fuzz_files other_files)
 
             set(FUZZ_BINARY_NAME ${TEST_FILE_NAME})
             add_executable(${FUZZ_BINARY_NAME} ${test_file} ${other_files})
-            target_link_libraries(${FUZZ_BINARY_NAME} PRIVATE ${CMAKE_PROJECT_NAME} PRIVATE testss2n PRIVATE m pthread)
+            target_link_libraries(${FUZZ_BINARY_NAME} PRIVATE ${TEST_S2N_TARGET} PRIVATE testss2n PRIVATE m pthread)
             target_include_directories(${FUZZ_BINARY_NAME} PRIVATE api)
             target_include_directories(${FUZZ_BINARY_NAME} PRIVATE ./)
             target_include_directories(${FUZZ_BINARY_NAME} PRIVATE tests)
             s2n_set_common_properties(${FUZZ_BINARY_NAME})
-            s2n_add_sanitizers(${FUZZ_BINARY_NAME} SANITIZERS "${${CMAKE_PROJECT_NAME}_SANITIZERS};fuzzer")
+            s2n_add_sanitizers(${FUZZ_BINARY_NAME} SANITIZERS "${${TEST_S2N_TARGET}_SANITIZERS};fuzzer")
             target_include_directories(${FUZZ_BINARY_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
             add_test(NAME ${TEST_FILE_NAME} COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/runFuzzTest_out_of_source.sh ${TEST_FILE_NAME} ${FUZZ_TESTS_MAX_TIME}
                     WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
-            #set_property(
-            #        TEST
-            #        ${TEST_FILE_NAME}
-            #        PROPERTY
-            #        ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
         endforeach()
     endif()
 endfunction()

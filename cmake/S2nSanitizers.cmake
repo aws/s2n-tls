@@ -47,7 +47,7 @@ endfunction()
 
 # This function enables sanitizers on the given target
 # Options:
-#  SANITIZERS: The list of sanitizers to enable. Defaults to address;undefined
+#  SANITIZERS: The list of sanitizers to enable. Defaults to address;undefined;leak
 #  BLACKLIST: The blacklist file to use (passed to -fsanitizer-blacklist=)
 function(s2n_add_sanitizers target)
     set(oneValueArgs BLACKLIST)
@@ -58,7 +58,7 @@ function(s2n_add_sanitizers target)
         check_c_compiler_flag(-fsanitize= HAS_SANITIZERS)
         if(HAS_SANITIZERS)
             if(NOT SANITIZER_SANITIZERS)
-                set(SANITIZER_SANITIZERS "address;undefined")
+                set(SANITIZER_SANITIZERS "address;undefined;leak")
             endif()
 
             foreach(sanitizer IN LISTS SANITIZER_SANITIZERS)
