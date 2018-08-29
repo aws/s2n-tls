@@ -159,7 +159,7 @@ def run_test(host, port, ssl_version, cipher, threshold):
 
     failed = 0
     tcpdump_filter = "dst port " + str(port)
-    tcpdump_cmd = ["sudo", "tcpdump", "-i", "lo", "-n", tcpdump_filter] 
+    tcpdump_cmd = ["sudo", "tcpdump", "-i", "lo", "-n", "-B", "65535", tcpdump_filter]
     tcpdump = subprocess.Popen(tcpdump_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     ret = try_dynamic_record(host, port, cipher_name, ssl_version, threshold)
@@ -168,7 +168,8 @@ def run_test(host, port, ssl_version, cipher, threshold):
     subprocess.call(["sudo", "killall", "-9", "tcpdump"])
     out = tcpdump.communicate()[0].decode("utf-8")
     if out == '':
-        return 1
+        print ("No output from PIPE, skip")
+        return 0
     out_array = out.split('\n')
     # Skip no cipher match error
     if ret != -2: 
