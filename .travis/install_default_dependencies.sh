@@ -15,18 +15,6 @@
 
 set -ex
 
- # Install latest version of clang, clang++, and llvm-symbolizer. Needed for fuzzing.
-if [[ "$TESTS" == "fuzz" || "$TESTS" == "ALL" || "$LATEST_CLAG" == "true" ]] && [[ ! -d "$LATEST_CLANG_INSTALL_DIR" ]]; then
-    mkdir -p "$LATEST_CLANG_INSTALL_DIR";
-    .travis/install_clang.sh "$(mktemp -d)" "$LATEST_CLANG_INSTALL_DIR" "$TRAVIS_OS_NAME" > /dev/null ;
-fi
-
-# Download and Install LibFuzzer with latest clang
-if [[ "$TESTS" == "fuzz" || "$TESTS" == "ALL" ]] && [[ ! -d "$LIBFUZZER_INSTALL_DIR" ]]; then
-    mkdir -p "$LIBFUZZER_INSTALL_DIR";
-    PATH=$LATEST_CLANG_INSTALL_DIR/bin:$PATH .travis/install_libFuzzer.sh "$(mktemp -d)" "$LIBFUZZER_INSTALL_DIR" "$TRAVIS_OS_NAME" > /dev/null ;
-fi
-
 # Download and Install Openssl 1.1.0
 if [[ "$TESTS" == "integration"  || "$TESTS" == "ALL" ]] && [[ ! -d "$OPENSSL_1_1_0_INSTALL_DIR" ]]; then
     mkdir -p "$OPENSSL_1_1_0_INSTALL_DIR";

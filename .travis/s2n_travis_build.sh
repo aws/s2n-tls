@@ -67,7 +67,7 @@ if [[ "$USE_CMAKE" == "true" ]]; then
     if [[ "$TESTS" == "fuzz" ]];
     then
         rm -rf ./*
-        export CC=$LATEST_CLANG_INSTALL_DIR/bin/clang;
+        export CC=clang-6.0;
         cmake $LIBCRYPTO_CMAKE_ARG -DBUILD_FOR_FUZZ_TESTING=ON ../;
         make -j 8
         ctest -VV --output-on-failure;

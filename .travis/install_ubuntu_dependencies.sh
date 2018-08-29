@@ -15,12 +15,14 @@
 
 set -ex
 
+wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+sudo apt-add-repository "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-6.0 main"
 sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-sudo apt-get update
+sudo apt-get update -y
 
-DEPENDENCIES="indent kwstyle cmake3 tcpdump"
+DEPENDENCIES="indent kwstyle cmake3 tcpdump clang-6.0"
 
-sudo apt-get install -y ${DEPENDENCIES}
+sudo apt-get install -yf ${DEPENDENCIES}
 
 if [[ "$GCC6_REQUIRED" == "true" ]]; then
     sudo apt-get -y install gcc-6;

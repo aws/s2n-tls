@@ -31,7 +31,6 @@
 : "${SAW_INSTALL_DIR:=$(pwd)/test-deps/saw}"
 : "${Z3_INSTALL_DIR:=$(pwd)/test-deps/z3}"
 : "${LIBFUZZER_INSTALL_DIR:=$(pwd)/test-deps/libfuzzer}"
-: "${LATEST_CLANG_INSTALL_DIR:=$(pwd)/test-deps/clang}"
 : "${SCAN_BUILD_INSTALL_DIR:=$(pwd)/test-deps/scan-build}"
 : "${OPENSSL_1_1_0_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.1.0}"
 : "${OPENSSL_1_0_2_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.0.2}"
@@ -67,7 +66,6 @@ export PRLIMIT_INSTALL_DIR
 export SAW_INSTALL_DIR
 export Z3_INSTALL_DIR
 export LIBFUZZER_INSTALL_DIR
-export LATEST_CLANG_INSTALL_DIR
 export SCAN_BUILD_INSTALL_DIR
 export OPENSSL_1_1_0_INSTALL_DIR
 export OPENSSL_1_0_2_INSTALL_DIR
@@ -82,7 +80,7 @@ export TRAVIS_OS_NAME
 
 # Add all of our test dependencies to the PATH. Use Openssl 1.1.0 so the latest openssl is used for s_client
 # integration tests.
-export PATH=$PYTHON_INSTALL_DIR/bin:$OPENSSL_1_1_0_INSTALL_DIR/bin:$GNUTLS_INSTALL_DIR/bin:$SAW_INSTALL_DIR/bin:$Z3_INSTALL_DIR/bin:$SCAN_BUILD_INSTALL_DIR/bin:$LATEST_CLANG_INSTALL_DIR/bin:$PATH
+export PATH=$PYTHON_INSTALL_DIR/bin:$OPENSSL_1_1_0_INSTALL_DIR/bin:$GNUTLS_INSTALL_DIR/bin:$SAW_INSTALL_DIR/bin:$Z3_INSTALL_DIR/bin:$SCAN_BUILD_INSTALL_DIR/bin:$PATH
 export LD_LIBRARY_PATH=$OPENSSL_1_1_0_INSTALL_DIR/lib:$LD_LIBRARY_PATH; 
 export DYLD_LIBRARY_PATH=$OPENSSL_1_1_0_INSTALL_DIR/lib:$LD_LIBRARY_PATH;
 
