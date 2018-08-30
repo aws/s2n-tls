@@ -711,12 +711,14 @@ int s2n_connection_get_protocol_preferences(struct s2n_connection *conn, struct 
     notnull_check(conn);
     notnull_check(protocol_preferences);
 
+    *protocol_preferences = NULL;
     if (conn->application_protocols_overridden.size > 0) {
         *protocol_preferences = &conn->application_protocols_overridden;
     } else {
         *protocol_preferences = &conn->config->application_protocols;
     }
 
+    notnull_check(*protocol_preferences);
     return 0;
 }
 

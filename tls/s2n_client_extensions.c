@@ -69,9 +69,8 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         total_size += (sizeof(s2n_preferred_hashes) * num_signature_algs * 2) + 6;
     }
 
-    struct s2n_blob *app_protocols = NULL;
+    struct s2n_blob *app_protocols;
     GUARD(s2n_connection_get_protocol_preferences(conn, &app_protocols));
-    notnull_check(app_protocols);
 
     uint16_t application_protocols_len = app_protocols->size;
     uint16_t server_name_len = strlen(conn->server_name);
@@ -274,9 +273,8 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
     struct s2n_stuffer client_protos = {{0}};
     struct s2n_stuffer server_protos = {{0}};
 
-    struct s2n_blob *app_protocols = NULL;
+    struct s2n_blob *app_protocols;
     GUARD(s2n_connection_get_protocol_preferences(conn, &app_protocols));
-    notnull_check(app_protocols);
 
     if (!app_protocols->size) {
         /* No protocols configured, nothing to do */
