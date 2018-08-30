@@ -141,6 +141,7 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_MAX_FRAG_LEN_MISMATCH, "Negotiated Maximum Fragmentation Length from server does not match the requested length by client"},
     {S2N_ERR_INVALID_SERIALIZED_SESSION_STATE, "Serialized session state is not in valid format"},
     {S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG, "Serialized session state is too long"},
+    {S2N_ERR_INVALID_DYNAMIC_THRESHOLD, "invalid dynamic record threshold"}
 };
 
 const char *s2n_strerror(int error, const char *lang)

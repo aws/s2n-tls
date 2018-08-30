@@ -16,6 +16,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
+#include <sys/param.h>
 #include <poll.h>
 #include <netdb.h>
 
@@ -63,6 +64,10 @@ void usage()
     fprintf(stderr, "    Turns off certification validation altogether.\n");
     fprintf(stderr, "  -r,--reconnect\n");
     fprintf(stderr, "    Drop and re-make the connection with the same Session-ID\n");
+    fprintf(stderr, "  -D,--dynamic\n");
+    fprintf(stderr, "    Set dynamic record resize threshold\n");
+    fprintf(stderr, "  -t,--timeout\n");
+    fprintf(stderr, "    Set dynamic record timeout threshold\n");
     fprintf(stderr, "\n");
     exit(1);
 }
@@ -219,6 +224,8 @@ int main(int argc, char *const *argv)
     uint8_t insecure = 0;
     int reconnect = 0;
     s2n_status_request_type type = S2N_STATUS_REQUEST_NONE;
+    uint32_t dyn_rec_threshold = 0;
+    uint8_t dyn_rec_timeout = 0;
     /* required args */
     const char *cipher_prefs = "default";
     const char *host = NULL;
@@ -237,11 +244,13 @@ int main(int argc, char *const *argv)
         {"ca-file", required_argument, 0, 'f'},
         {"ca-dir", required_argument, 0, 'd'},
         {"insecure", no_argument, 0, 'i'},
-        {"reconnect", no_argument, 0, 'r'}
+        {"reconnect", no_argument, 0, 'r'},
+        {"Dynamic", required_argument, 0, 'D'},
+        {"timeout", required_argument, 0, 't'},
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:ir", long_options, &option_index);
+        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:D:t:ir", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -278,6 +287,15 @@ int main(int argc, char *const *argv)
             break;
         case 'r':
             reconnect = 5;
+            break;
+        case 't':
+            dyn_rec_timeout = (uint8_t) MIN(255, atoi(optarg));
+            break;
+        case 'D':
+            dyn_rec_threshold = strtoul(optarg, 0, 10);
+            if (errno == ERANGE) {
+              dyn_rec_threshold = 0;      
+            }
             break;
         case '?':
         default:
@@ -406,6 +424,10 @@ int main(int argc, char *const *argv)
                 print_s2n_error("Error getting serialized session state");
                 exit(1);
             }
+        }
+
+        if (dyn_rec_threshold > 0 && dyn_rec_timeout > 0) {
+            s2n_connection_set_dynamic_record_threshold(conn, dyn_rec_threshold, dyn_rec_timeout);
         }
 
         if (echo_input == 1) {

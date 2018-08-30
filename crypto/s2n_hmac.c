@@ -259,12 +259,15 @@ int s2n_hmac_digest_two_compression_rounds(struct s2n_hmac_state *state, void *o
     GUARD(s2n_hmac_digest(state, out, size));
 
     /* If there were 9 or more bytes of space left in the current hash block
-     * then the serialized length, plus an 0x80 byte, will have fit in that block. 
-     * If there were fewer than 9 then adding the length will have caused an extra 
+     * then the serialized length, plus an 0x80 byte, will have fit in that block.
+     * If there were fewer than 9 then adding the length will have caused an extra
      * compression block round. This digest function always does two compression rounds,
      * even if there is no need for the second.
+     *
+     * 17 bytes if the block size is 128.
      */
-    if (state->currently_in_hash_block > (state->hash_block_size - 9)) {
+    const uint8_t space_left = (state->hash_block_size == 128) ? 17 : 9;
+    if (state->currently_in_hash_block > (state->hash_block_size - space_left)) {
         return 0;
     }
 
