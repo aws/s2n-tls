@@ -69,7 +69,11 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         total_size += (sizeof(s2n_preferred_hashes) * num_signature_algs * 2) + 6;
     }
 
-    uint16_t application_protocols_len = conn->config->application_protocols.size;
+    struct s2n_blob *app_protocols = NULL;
+    GUARD(s2n_connection_get_protocol_preferences(conn, &app_protocols));
+    notnull_check(app_protocols);
+
+    uint16_t application_protocols_len = app_protocols->size;
     uint16_t server_name_len = strlen(conn->server_name);
     uint16_t mfl_code_len = sizeof(conn->config->mfl_code);
 
@@ -122,7 +126,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_ALPN));
         GUARD(s2n_stuffer_write_uint16(out, application_protocols_len + 2));
         GUARD(s2n_stuffer_write_uint16(out, application_protocols_len));
-        GUARD(s2n_stuffer_write(out, &conn->config->application_protocols));
+        GUARD(s2n_stuffer_write(out, app_protocols));
     }
 
     if (conn->config->status_request_type != S2N_STATUS_REQUEST_NONE) {
@@ -270,8 +274,11 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
     struct s2n_stuffer client_protos = {{0}};
     struct s2n_stuffer server_protos = {{0}};
 
+    struct s2n_blob *app_protocols = NULL;
+    GUARD(s2n_connection_get_protocol_preferences(conn, &app_protocols));
+    notnull_check(app_protocols);
 
-    if (!conn->config->application_protocols.size) {
+    if (!app_protocols->size) {
         /* No protocols configured, nothing to do */
         return 0;
     }
@@ -291,8 +298,8 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
     /* Find a matching protocol */
     GUARD(s2n_stuffer_init(&client_protos, &application_protocols));
     GUARD(s2n_stuffer_write(&client_protos, &application_protocols));
-    GUARD(s2n_stuffer_init(&server_protos, &conn->config->application_protocols));
-    GUARD(s2n_stuffer_write(&server_protos, &conn->config->application_protocols));
+    GUARD(s2n_stuffer_init(&server_protos, app_protocols));
+    GUARD(s2n_stuffer_write(&server_protos, app_protocols));
 
     while (s2n_stuffer_data_available(&server_protos)) {
         uint8_t length;
