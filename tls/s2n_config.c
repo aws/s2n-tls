@@ -292,37 +292,6 @@ int s2n_config_free(struct s2n_config *config)
     return 0;
 }
 
-int s2n_config_set_protocol_preferences(struct s2n_config *config, const char *const *protocols, int protocol_count)
-{
-    struct s2n_stuffer protocol_stuffer = {{0}};
-
-    GUARD(s2n_free(&config->application_protocols));
-
-    if (protocols == NULL || protocol_count == 0) {
-        /* NULL value indicates no preference, so nothing to do */
-        return 0;
-    }
-
-    GUARD(s2n_stuffer_growable_alloc(&protocol_stuffer, 256));
-    for (int i = 0; i < protocol_count; i++) {
-        size_t length = strlen(protocols[i]);
-        uint8_t protocol[255];
-
-        S2N_ERROR_IF(length > 255 || (s2n_stuffer_data_available(&protocol_stuffer) + length + 1) > 65535, S2N_ERR_APPLICATION_PROTOCOL_TOO_LONG);
-        memcpy_check(protocol, protocols[i], length);
-        GUARD(s2n_stuffer_write_uint8(&protocol_stuffer, length));
-        GUARD(s2n_stuffer_write_bytes(&protocol_stuffer, protocol, length));
-    }
-
-    uint32_t size = s2n_stuffer_data_available(&protocol_stuffer);
-    /* config->application_protocols blob now owns this data */
-    config->application_protocols.size = size;
-    config->application_protocols.data = s2n_stuffer_raw_read(&protocol_stuffer, size);
-    notnull_check(config->application_protocols.data);
-
-    return 0;
-}
-
 int s2n_config_get_client_auth_type(struct s2n_config *config, s2n_cert_auth_type *client_auth_type)
 {
     notnull_check(config);
