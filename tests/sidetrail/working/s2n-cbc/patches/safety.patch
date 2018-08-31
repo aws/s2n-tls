@@ -1,7 +1,7 @@
-diff --git a/tests/sidewinder/working/s2n-cbc/utils/s2n_safety.c b/tests/sidewinder/working/s2n-cbc/utils/s2n_safety.c
+diff --git a/tests/sidetrail/working/s2n-cbc/utils/s2n_safety.c b/tests/sidetrail/working/s2n-cbc/utils/s2n_safety.c
 index 3af0262..261285a 100644
---- a/tests/sidewinder/working/s2n-cbc/utils/s2n_safety.c
-+++ b/tests/sidewinder/working/s2n-cbc/utils/s2n_safety.c
+--- a/tests/sidetrail/working/s2n-cbc/utils/s2n_safety.c
++++ b/tests/sidetrail/working/s2n-cbc/utils/s2n_safety.c
 @@ -55,8 +55,8 @@ pid_t s2n_actual_getpid()
   */
  int s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, uint32_t len)
@@ -13,10 +13,10 @@ index 3af0262..261285a 100644
      S2N_PUBLIC_INPUT(len);
      
      uint8_t xor = 0;
-diff --git a/tests/sidewinder/working/s2n-cbc/utils/s2n_safety.h b/tests/sidewinder/working/s2n-cbc/utils/s2n_safety.h
+diff --git a/tests/sidetrail/working/s2n-cbc/utils/s2n_safety.h b/tests/sidetrail/working/s2n-cbc/utils/s2n_safety.h
 index 704bb63..dc44360 100644
---- a/tests/sidewinder/working/s2n-cbc/utils/s2n_safety.h
-+++ b/tests/sidewinder/working/s2n-cbc/utils/s2n_safety.h
+--- a/tests/sidetrail/working/s2n-cbc/utils/s2n_safety.h
++++ b/tests/sidetrail/working/s2n-cbc/utils/s2n_safety.h
 @@ -21,6 +21,8 @@
 
  #include "error/s2n_errno.h"

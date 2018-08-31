@@ -25,7 +25,7 @@
 #include <smack.h>
 #include <smack-contracts.h>
 #include "ct-verif.h"
-#include "sidewinder.h"
+#include "sidetrail.h"
 
 int simple_cbc_wrapper(int currently_in_hash_block, int mlocked, int size, int *xor_pad, int * digest_pad)
 {

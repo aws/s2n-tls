@@ -1,13 +1,13 @@
-diff --git a/tests/sidewinder/working/s2n-cbc/crypto/s2n_hmac.c b/tests/sidewinder/working/s2n-cbc/crypto/s2n_hmac.c
+diff --git a/tests/sidetrail/working/s2n-cbc/crypto/s2n_hmac.c b/tests/sidetrail/working/s2n-cbc/crypto/s2n_hmac.c
 index 3405781..3beeacf 100644
---- a/tests/sidewinder/working/s2n-cbc/crypto/s2n_hmac.c
-+++ b/tests/sidewinder/working/s2n-cbc/crypto/s2n_hmac.c
+--- a/tests/sidetrail/working/s2n-cbc/crypto/s2n_hmac.c
++++ b/tests/sidetrail/working/s2n-cbc/crypto/s2n_hmac.c
 @@ -26,6 +26,9 @@
  #include "utils/s2n_blob.h"
  #include "utils/s2n_mem.h"
  
 +#include "smack.h"
-+#include "sidewinder.h"
++#include "sidetrail.h"
 +
  int s2n_hmac_hash_alg(s2n_hmac_algorithm hmac_alg, s2n_hash_algorithm *out)
  {
@@ -74,10 +74,10 @@ index 3405781..3beeacf 100644
 +/*     hmac->outer_just_key.digest.high_level = backup->outer_just_key; */
 +/*     return 0; */
 +/* } */
-diff --git a/tests/sidewinder/working/s2n-cbc/crypto/s2n_hmac.h b/tests/sidewinder/working/s2n-cbc/crypto/s2n_hmac.h
+diff --git a/tests/sidetrail/working/s2n-cbc/crypto/s2n_hmac.h b/tests/sidetrail/working/s2n-cbc/crypto/s2n_hmac.h
 index 7af7e61..e6382ce 100644
---- a/tests/sidewinder/working/s2n-cbc/crypto/s2n_hmac.h
-+++ b/tests/sidewinder/working/s2n-cbc/crypto/s2n_hmac.h
+--- a/tests/sidetrail/working/s2n-cbc/crypto/s2n_hmac.h
++++ b/tests/sidetrail/working/s2n-cbc/crypto/s2n_hmac.h
 @@ -52,12 +52,12 @@ struct s2n_hmac_state {
      uint8_t digest_pad[SHA512_DIGEST_LENGTH];
  };

@@ -26,13 +26,13 @@
 #include <smack.h>
 #include <smack-contracts.h>
 #include "ct-verif.h"
-#include "sidewinder.h"
+#include "sidetrail.h"
 #include "utils/s2n_safety.h"
 #include "tls/s2n_cipher_suites.h"
 #include "utils/s2n_blob.h"
 #include "crypto/s2n_cipher.h"
 
-int s2n_record_parse_composite(
+int s2n_record_parse_stream(
     const struct s2n_cipher_suite *cipher_suite,
     struct s2n_connection *conn,
     uint8_t content_type,
@@ -42,23 +42,13 @@ int s2n_record_parse_composite(
     uint8_t * sequence_number,
     struct s2n_session_key *session_key);
 
-
 #define DECRYPT_COST 10
 #define IV_SIZE 16
 #define MAX_SIZE 1024
 
-//Extra is actually mac_size
-int initial_hmac(struct s2n_session_key *key, uint8_t *sequence_number, uint8_t content_type, uint16_t protocol_version,
-		 uint16_t payload_and_eiv_len, int *extra)
-{
-  *extra = DIGEST_SIZE;
-  return 0;
-}
-
-int decrypt_comp(struct s2n_session_key *session_key,
-		struct s2n_blob* iv,
-		struct s2n_blob* in,
-		struct s2n_blob* out)
+int decrypt_stream(struct s2n_session_key *session_key,
+		   struct s2n_blob* in,
+		   struct s2n_blob* out)
 
 {
   int size = in->size;
@@ -75,7 +65,7 @@ int s2n_increment_sequence_number(uint8_t * sequence_number){
 int g_padding_length;
 
 int s2n_record_parse_wrapper(int *xor_pad,
-			     int *digest_pad,
+			     int * digest_pad,
 			     int padding_length,
 			     int encrypted_length,
 			     uint8_t content_type
@@ -106,15 +96,14 @@ int s2n_record_parse_wrapper(int *xor_pad,
     .digest_pad = *digest_pad
   };
 
-  struct s2n_cipher comp_cipher = {
-    .type = S2N_COMPOSITE,
-    .io.comp.decrypt = decrypt_comp,
-    .io.comp.record_iv_size = IV_SIZE,
-    .io.comp.initial_hmac = initial_hmac,
+  
+  struct s2n_cipher stream_cipher = {
+    .type = S2N_STREAM,
+    .io.cbc.decrypt = decrypt_stream,
   };
   
   struct s2n_record_algorithm record_algorithm = {
-    .cipher = &comp_cipher,
+    .cipher = &stream_cipher,
   };
   
   struct s2n_cipher_suite cipher_suite = {
@@ -151,5 +140,5 @@ int s2n_record_parse_wrapper(int *xor_pad,
   uint8_t implicit_iv[S2N_TLS_MAX_IV_LEN];
 
   g_padding_length = padding_length;
-  return s2n_record_parse_composite(&cipher_suite, &conn, content_type, encrypted_length, implicit_iv, &hmac, sequence_number, &session_key);
+  return s2n_record_parse_stream(&cipher_suite, &conn, content_type, encrypted_length, implicit_iv, &hmac, sequence_number, &session_key);
 }
