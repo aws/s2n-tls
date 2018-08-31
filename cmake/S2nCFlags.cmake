@@ -29,9 +29,7 @@ function(s2n_set_common_properties target)
         list(APPEND S2N_C_FLAGS -pedantic -std=c99 -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts
                 -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations
                 -Wno-unknown-pragmas -Wformat-security)
-        if (NOT BUILD_SHARED_LIBS AND NOT ${target} STREQUALS s2n-shared)
-            list(APPEND S2N_PUBLIC_C_FLAGS -fPIC)
-        endif()
+        list(APPEND S2N_PUBLIC_C_FLAGS -fPIC)
 
         if(NOT SET_PROPERTIES_NO_WEXTRA)
             list(APPEND S2N_C_FLAGS -Wextra)

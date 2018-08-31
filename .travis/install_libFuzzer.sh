@@ -25,17 +25,20 @@ fi
 
 LIBFUZZER_DOWNLOAD_DIR=$1
 LIBFUZZER_INSTALL_DIR=$2
-PLATFORM=$3
+export PLATFORM=$3
 
-mkdir -p $LIBFUZZER_DOWNLOAD_DIR
-cd $LIBFUZZER_DOWNLOAD_DIR
+mkdir -p "$LIBFUZZER_DOWNLOAD_DIR"
+cd "$LIBFUZZER_DOWNLOAD_DIR"
 
 git clone https://chromium.googlesource.com/chromium/llvm-project/llvm/lib/Fuzzer
+cd Fuzzer
+git checkout 651ead
+cd ..
 
 echo "Compiling LibFuzzer..."
 clang++ -c -g -v -O2 -lstdc++ -std=c++11 Fuzzer/*.cpp -IFuzzer
 ar ruv libFuzzer.a Fuzzer*.o
 
 echo "Copying libFuzzer.a to $LIBFUZZER_INSTALL_DIR"
-mkdir -p $LIBFUZZER_INSTALL_DIR/lib && cp libFuzzer.a $LIBFUZZER_INSTALL_DIR/lib
+mkdir -p "$LIBFUZZER_INSTALL_DIR"/lib && cp libFuzzer.a "$LIBFUZZER_INSTALL_DIR"/lib
 
