@@ -326,10 +326,6 @@ int main(int argc, char **argv)
     /* Create a pipe */
     EXPECT_SUCCESS(pipe(server_to_client));
     EXPECT_SUCCESS(pipe(client_to_server));
-    for (int i = 0; i < 2; i++) {
-        EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
-        EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
-    }
 
     /* Create a child process */
     pid = fork();
@@ -357,17 +353,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
     EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
 
-    /* s2n_negotiate will fail, which ordinarily would delay with a sleep. 
-     * Remove the sleep and fake the delay with a mock time routine */
-    EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
-    EXPECT_SUCCESS(s2n_config_set_monotonic_clock(config, mock_nanoseconds_since_epoch, NULL));
-
     /* Negotiate the handshake. */
-    int negotiate_rc;
-    do {
-        negotiate_rc = s2n_negotiate(conn, &blocked);
-    } while(errno == EAGAIN && blocked);
-    EXPECT_TRUE(negotiate_rc == -1 && s2n_errno == S2N_ERR_NO_APPLICATION_PROTOCOL);
+    EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
 
     /* Expect NULL negotiated protocol */
     EXPECT_EQUAL(s2n_get_application_protocol(conn), NULL);

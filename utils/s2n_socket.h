@@ -47,3 +47,4 @@ extern int s2n_socket_write_uncork(struct s2n_connection *conn);
 extern int s2n_socket_set_read_size(struct s2n_connection *conn, int size);
 extern int s2n_socket_read(void *io_context, uint8_t *buf, uint32_t len);
 extern int s2n_socket_write(void *io_context, const uint8_t *buf, uint32_t len);
+extern int s2n_socket_is_ipv6(int fd, uint8_t *ipv6);
