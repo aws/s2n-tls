@@ -308,12 +308,7 @@ int s2n_cpu_supports_rdrand()
     return 0;
 }
 
-/* Due to the need to support some older assemblers,
- * we cannot use either the compiler intrinsics or
- * the RDRAND assembly mnemonic. For this reason,
- * we're using the opcode directly (0F C7/6). This
- * stores the result in eax.
- *
+/*
  * volatile is important to prevent the compiler from
  * re-ordering or optimizing the use of RDRAND.
  */
@@ -337,24 +332,38 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
 
     GUARD(s2n_stuffer_init(&stuffer, out));
     while ((space_remaining = s2n_stuffer_space_remaining(&stuffer))) {
-        int success = 0;
+        unsigned char success = 0;
         output.u64 = 0;
 
         for (int tries = 0; tries < 10; tries++) {
+            /* yeah I'm not buying the whole "we can't use the mnemonic name instead of the opt-code,
+             * we're already using a C99 compiler for Zeus sake.
+             * the following is taken directly from the intel manual:
+             * https://software.intel.com/en-us/articles/intel-digital-random-number-generator-drng-software-implementation-guide
+             * section 4.2 */
 #if defined(__i386__)
-            int success_high = 0, success_low = 0;
-            __asm__ __volatile__(".byte 0x48;\n" ".byte 0x0f;\n" ".byte 0xc7;\n" ".byte 0xf0;\n" "adcl $0x00, %%ebx;\n":"=b"(success_low), "=a"(output.i386_fields.u_low)
-                                 :"b"(0)
-                                 :"cc");
+            unsigned char success_high = 0, success_low = 0;
 
-            __asm__ __volatile__(".byte 0x48;\n" ".byte 0x0f;\n" ".byte 0xc7;\n" ".byte 0xf0;\n" "adcl $0x00, %%ebx;\n":"=b"(success_high), "=a"(output.i386_fields.u_high)
-                                :"b"(0)
+            /* execute the rdrand instruction, store the result in a general purpose register (it's assigned to
+             * output.i386_fields.u_low). Check the carry bit, which will be set on success_low.
+             * Then clober the register and reset the carry bit. */
+            __asm__ __volatile__("rdrand %0;\n" "setc %1;\n": "=r"(output.i386_fields.u_low), "=qm"(success_low)
+                                 :"r"(0)
+                                 :"cc");
+            /* execute the rdrand instruction, store the result in a general purpose register (it's assigned to
+             * output.i386_fields.u_high). Check the carry bit, which will be set on success_high.
+             * Then clober the register and reset the carry bit. */
+            __asm__ __volatile__("rdrand %0;\n" "setc %1;\n": "=r"(output.i386_fields.u_high), "=qm"(success_high)
+                                :"r"(0)
                                 :"cc");
             success = success_high & success_low;
 #else
-            __asm__ __volatile__(".byte 0x48;\n" ".byte 0x0f;\n" ".byte 0xc7;\n" ".byte 0xf0;\n" "adcl $0x00, %%ebx;\n":"=b"(success), "=a"(output.u64)
-            :"b"(0)
-            :"cc");
+            /* execute the rdrand instruction, store the result in a general purpose register (it's assigned to
+             * output.u64). Check the carry bit, which will be set on success. Then clober the register and reset
+             * the carry bit. */
+            __asm__ __volatile__("rdrand %0;\n" "setc %1;\n": "=r"(output.u64), "=qm"(success)
+                                :"r"(0)
+                                :"cc");
 #endif /* defined(__i386__) */
 
             if (success) {
