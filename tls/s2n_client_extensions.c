@@ -286,6 +286,7 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
     struct s2n_stuffer client_protos = {{0}};
     struct s2n_stuffer server_protos = {{0}};
 
+
     if (!conn->config->application_protocols.size) {
         /* No protocols configured, nothing to do */
         return 0;
@@ -311,9 +312,9 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
 
     while (s2n_stuffer_data_available(&server_protos)) {
         uint8_t length;
-        uint8_t protocol[255];
+        uint8_t server_protocol[255];
         GUARD(s2n_stuffer_read_uint8(&server_protos, &length));
-        GUARD(s2n_stuffer_read_bytes(&server_protos, protocol, length));
+        GUARD(s2n_stuffer_read_bytes(&server_protos, server_protocol, length));
 
         while (s2n_stuffer_data_available(&client_protos)) {
             uint8_t client_length;
@@ -324,7 +325,7 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
             } else {
                 uint8_t client_protocol[255];
                 GUARD(s2n_stuffer_read_bytes(&client_protos, client_protocol, client_length));
-                if (memcmp(client_protocol, protocol, client_length) == 0) {
+                if (memcmp(client_protocol, server_protocol, client_length) == 0) {
                     memcpy_check(conn->application_protocol, client_protocol, client_length);
                     conn->application_protocol[client_length] = '\0';
                     return 0;
@@ -334,8 +335,7 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
 
         GUARD(s2n_stuffer_reread(&client_protos));
     }
-
-    S2N_ERROR(S2N_ERR_NO_APPLICATION_PROTOCOL);
+    return 0;
 }
 
 static int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension)

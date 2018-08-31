@@ -950,6 +950,7 @@ using self-service blinding should pause before calling close() or shutdown().
 ```c
 int s2n_connection_prefer_throughput(struct s2n_connection *conn);
 int s2n_connection_prefer_low_latency(struct s2n_connection *conn);
+int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uint32_t resize_threshold, uint16_t timeout_threshold);
 ```
 
 **s2n_connection_prefer_throughput** and **s2n_connection_prefer_low_latency**
@@ -959,6 +960,11 @@ record sizes that can be decrypted sooner by the recipient. Connections
 prefering throughput will use large record sizes that minimize overhead.
 
 -Connections default to an 8k outgoing maximum
+
+**s2n_connection_set_dynamic_record_threshold**
+provides a smooth transition from **s2n_connection_prefer_low_latency** to **s2n_connection_prefer_throughput**.
+**s2n_send** uses small TLS records that fit into a single TCP segment for the resize_threshold bytes (cap to 8M) of data
+and reset record size back to a single segment after timeout_threshold seconds of inactivity.
 
 ### s2n\_connection\_get\_wire\_bytes
 

@@ -155,6 +155,7 @@ extern int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_send_fn s
 
 extern int s2n_connection_prefer_throughput(struct s2n_connection *conn);
 extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn);
+extern int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uint32_t resize_threshold, uint16_t timeout_threshold);
 
 /* If you don't want to use the configuration wide callback, you can set this per connection and it will be honored. */
 extern int s2n_connection_set_verify_host_callback(struct s2n_connection *config, s2n_verify_host_fn host_fn, void *data);

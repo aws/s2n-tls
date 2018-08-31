@@ -87,6 +87,9 @@ struct s2n_connection {
      */
     unsigned secure_renegotiation:1;
 
+     /* whether the connection address is ipv6 or not */
+    unsigned ipv6:1;
+
     /* Is this connection a client or a server connection */
     s2n_mode mode;
 
@@ -95,6 +98,9 @@ struct s2n_connection {
 
     /* A timer to measure the time between record writes */
     struct s2n_timer write_timer;
+
+    /* last written time */
+    uint64_t last_write_elapsed;
 
     /* When fatal errors occurs, s2n imposes a pause before
      * the connection is closed. If non-zero, this value tracks
@@ -188,6 +194,17 @@ struct s2n_connection {
      * Default value: S2N_DEFAULT_FRAGMENT_LENGTH
      */
     uint16_t max_outgoing_fragment_length;
+
+    /* The number of bytes to send before changing the record size. 
+     * If this value > 0 then dynamic TLS record size is enabled. Otherwise, the feature is disabled (default). 
+     */
+    uint32_t dynamic_record_resize_threshold;
+
+    /* Reset record size back to a single segment after threshold seconds of inactivity */
+    uint16_t dynamic_record_timeout_threshold;
+
+    /* number of bytes consumed during application activity */
+    uint64_t active_application_bytes_consumed;
 
     /* Negotiated TLS extension Maximum Fragment Length code */
     uint8_t mfl_code;

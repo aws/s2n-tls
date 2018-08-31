@@ -799,6 +799,11 @@ int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
      */
     GUARD(s2n_socket_write_snapshot(conn));
 
+    uint8_t ipv6;
+    if (0 == s2n_socket_is_ipv6(wfd, &ipv6)) {
+        conn->ipv6 = (ipv6 ? 1 : 0);
+    }
+
     return 0;
 }
 
@@ -1015,6 +1020,16 @@ int s2n_connection_prefer_low_latency(struct s2n_connection *conn)
         conn->max_outgoing_fragment_length = S2N_SMALL_FRAGMENT_LENGTH;
     }
 
+    return 0;
+}
+
+int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uint32_t resize_threshold, uint16_t timeout_threshold)
+{
+    notnull_check(conn);
+    S2N_ERROR_IF(resize_threshold > S2N_TLS_MAX_RESIZE_THRESHOLD, S2N_ERR_INVALID_DYNAMIC_THRESHOLD);
+
+    conn->dynamic_record_resize_threshold = resize_threshold;
+    conn->dynamic_record_timeout_threshold = timeout_threshold;
     return 0;
 }
 
