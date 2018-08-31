@@ -194,7 +194,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
     
         client_config = s2n_fetch_unsafe_client_testing_config();
-
+        
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
         EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config));

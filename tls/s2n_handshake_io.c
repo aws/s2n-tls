@@ -361,7 +361,7 @@ skip_cache_lookup:
         conn->handshake.handshake_type |= OCSP_STATUS;
     }
 
-        return 0;
+    return 0;
 }
 
 int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn) {

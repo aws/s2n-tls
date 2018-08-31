@@ -796,9 +796,9 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
 
     S2N_ERROR_IF(key_len == 0, S2N_ERR_INVALID_TICKET_KEY_LENGTH);
 
-    S2N_ERROR_IF(s2n_find_ticket_key(config, name) || name_len == 0 || name_len > S2N_TICKET_KEY_NAME_LEN, S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH);
-
     S2N_ERROR_IF(config->ticket_keys->num_of_elements >= S2N_MAX_TICKET_KEYS, S2N_ERR_TICKET_KEY_LIMIT);
+
+    S2N_ERROR_IF(name_len == 0 || name_len > S2N_TICKET_KEY_NAME_LEN || s2n_find_ticket_key(config, name), S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH);
 
     uint64_t now;
     uint16_t insert_index = 0;

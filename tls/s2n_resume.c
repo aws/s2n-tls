@@ -587,10 +587,10 @@ int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t
         }
     }
 
-    end:
-        for (int j = 0; j < num_of_expired_keys; j++) {
-            s2n_array_remove(config->ticket_keys, expired_keys_index[j] - j);
-        }
+end:
+    for (int j = 0; j < num_of_expired_keys; j++) {
+        s2n_array_remove(config->ticket_keys, expired_keys_index[j] - j);
+    }
 
     return 0;
 }
