@@ -15,7 +15,7 @@
 
 #include <smack.h>
 #include "ct-verif.h"
-#include "../sidewinder.h"
+#include "../sidetrail.h"
 
 #define MAX_LEAKAGE_DIFFERENCE  68
 
