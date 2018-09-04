@@ -454,9 +454,9 @@ int main(int argc, char *const *argv)
     const char *session_ticket_key_file_path = NULL;
     const char *cipher_prefs = "default";
     struct conn_settings conn_settings = { 0 };
-    conn_settings.session_ticket = 1;
     int fips_mode = 0;
     int parallelize = 0;
+    conn_settings.session_ticket = 1;
 
     struct option long_options[] = {
         {"ciphers", required_argument, NULL, 'c'},

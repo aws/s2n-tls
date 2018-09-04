@@ -294,6 +294,7 @@ int main(int argc, char *const *argv)
             break;
         case 'T':
             session_ticket = 0;
+            break;
         case 't':
             dyn_rec_timeout = (uint8_t) MIN(255, atoi(optarg));
             break;
