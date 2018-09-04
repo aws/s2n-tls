@@ -71,7 +71,10 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         total_size += (sizeof(s2n_preferred_hashes) * num_signature_algs * 2) + 6;
     }
 
-    uint16_t application_protocols_len = conn->config->application_protocols.size;
+    struct s2n_blob *client_app_protocols;
+    GUARD(s2n_connection_get_protocol_preferences(conn, &client_app_protocols));
+
+    uint16_t application_protocols_len = client_app_protocols->size;
     uint16_t server_name_len = strlen(conn->server_name);
     uint16_t mfl_code_len = sizeof(conn->config->mfl_code);
     uint16_t client_ticket_len = conn->client_ticket.size;
@@ -128,7 +131,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_ALPN));
         GUARD(s2n_stuffer_write_uint16(out, application_protocols_len + 2));
         GUARD(s2n_stuffer_write_uint16(out, application_protocols_len));
-        GUARD(s2n_stuffer_write(out, &conn->config->application_protocols));
+        GUARD(s2n_stuffer_write(out, client_app_protocols));
     }
 
     if (conn->config->status_request_type != S2N_STATUS_REQUEST_NONE) {
@@ -286,8 +289,10 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
     struct s2n_stuffer client_protos = {{0}};
     struct s2n_stuffer server_protos = {{0}};
 
+    struct s2n_blob *server_app_protocols;
+    GUARD(s2n_connection_get_protocol_preferences(conn, &server_app_protocols));
 
-    if (!conn->config->application_protocols.size) {
+    if (!server_app_protocols->size) {
         /* No protocols configured, nothing to do */
         return 0;
     }
@@ -298,17 +303,17 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
         return 0;
     }
 
-    struct s2n_blob application_protocols = {
+    struct s2n_blob client_app_protocols = {
         .data = s2n_stuffer_raw_read(extension, size_of_all),
         .size = size_of_all
     };
-    notnull_check(application_protocols.data);
+    notnull_check(client_app_protocols.data);
 
     /* Find a matching protocol */
-    GUARD(s2n_stuffer_init(&client_protos, &application_protocols));
-    GUARD(s2n_stuffer_write(&client_protos, &application_protocols));
-    GUARD(s2n_stuffer_init(&server_protos, &conn->config->application_protocols));
-    GUARD(s2n_stuffer_write(&server_protos, &conn->config->application_protocols));
+    GUARD(s2n_stuffer_init(&client_protos, &client_app_protocols));
+    GUARD(s2n_stuffer_write(&client_protos, &client_app_protocols));
+    GUARD(s2n_stuffer_init(&server_protos, server_app_protocols));
+    GUARD(s2n_stuffer_write(&server_protos, server_app_protocols));
 
     while (s2n_stuffer_data_available(&server_protos)) {
         uint8_t length;

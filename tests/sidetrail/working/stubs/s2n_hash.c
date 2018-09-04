@@ -19,7 +19,7 @@
 #include "../error/s2n_errno.h"
 #include <smack.h>
 #include "ct-verif.h"
-#include "../sidewinder.h"
+#include "../sidetrail.h"
 
 int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
 {

@@ -1,7 +1,7 @@
-diff --git a/tests/sidewinder/working/s2n-cbc/tls/s2n_cbc.c b/tests/sidewinder/working/s2n-cbc/tls/s2n_cbc.c
+diff --git a/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c b/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c
 index b37efb0..077d214 100644
---- a/tests/sidewinder/working/s2n-cbc/tls/s2n_cbc.c
-+++ b/tests/sidewinder/working/s2n-cbc/tls/s2n_cbc.c
+--- a/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c
++++ b/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c
 @@ -25,6 +25,28 @@
  
  #include "tls/s2n_record.h"
@@ -9,7 +9,7 @@ index b37efb0..077d214 100644
 +#include <smack.h>
 +#include <smack-contracts.h>
 +#include "ct-verif.h"
-+#include "sidewinder.h"
++#include "sidetrail.h"
 +
 +/* Because of a bug in SMACK, when we try to specify the invarients for this loop in the main function, 
 + * SMACK crashes. Moving the code (unmodified) to this function sidesteps the bug. Michael Emmi has promissed

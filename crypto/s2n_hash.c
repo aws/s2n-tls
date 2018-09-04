@@ -16,10 +16,28 @@
 #include "error/s2n_errno.h"
 
 #include "crypto/s2n_hash.h"
+#include "crypto/s2n_hmac.h"
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_fips.h"
 
 #include "utils/s2n_safety.h"
+
+int s2n_hash_hmac_alg(s2n_hash_algorithm hash_alg, s2n_hmac_algorithm *out)
+{
+    switch(hash_alg) {
+    case S2N_HASH_NONE:       *out = S2N_HMAC_NONE;   break;
+    case S2N_HASH_MD5:        *out = S2N_HMAC_MD5;    break;
+    case S2N_HASH_SHA1:       *out = S2N_HMAC_SHA1;   break;
+    case S2N_HASH_SHA224:     *out = S2N_HMAC_SHA224; break;
+    case S2N_HASH_SHA256:     *out = S2N_HMAC_SHA256; break;
+    case S2N_HASH_SHA384:     *out = S2N_HMAC_SHA384; break;
+    case S2N_HASH_SHA512:     *out = S2N_HMAC_SHA512; break;
+    case S2N_HASH_MD5_SHA1:   /* Fall through ... */
+    default:
+        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
+    }
+    return 0;
+}
 
 int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
 {

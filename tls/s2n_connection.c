@@ -473,6 +473,7 @@ int s2n_connection_free(struct s2n_connection *conn)
     GUARD(s2n_stuffer_free(&conn->handshake.io));
     s2n_x509_validator_wipe(&conn->x509_validator);
     GUARD(s2n_client_hello_free(&conn->client_hello));
+    GUARD(s2n_free(&conn->application_protocols_overridden));
 
     blob.data = (uint8_t *) conn;
     blob.size = sizeof(struct s2n_connection);
@@ -722,6 +723,22 @@ int s2n_connection_get_cipher_preferences(struct s2n_connection *conn, const str
         *cipher_preferences = conn->config->cipher_preferences;
     }
 
+    return 0;
+}
+
+int s2n_connection_get_protocol_preferences(struct s2n_connection *conn, struct s2n_blob **protocol_preferences)
+{
+    notnull_check(conn);
+    notnull_check(protocol_preferences);
+
+    *protocol_preferences = NULL;
+    if (conn->application_protocols_overridden.size > 0) {
+        *protocol_preferences = &conn->application_protocols_overridden;
+    } else {
+        *protocol_preferences = &conn->config->application_protocols;
+    }
+
+    notnull_check(*protocol_preferences);
     return 0;
 }
 

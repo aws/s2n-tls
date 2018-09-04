@@ -11,7 +11,7 @@
  
  #include "error/s2n_errno.h"
 +#include "s2n_annotations.h"
-+#include "sidewinder.h"
++#include "sidetrail.h"
 +
 +void __VERIFIER_assume(int);
 +void *memcpy(void *str1, const void *str2, size_t n);
