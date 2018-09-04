@@ -62,6 +62,7 @@ struct s2n_hmac_evp_backup {
 extern int s2n_hmac_digest_size(s2n_hmac_algorithm alg, uint8_t *out);
 extern int s2n_hmac_is_available(s2n_hmac_algorithm alg);
 extern int s2n_hmac_hash_alg(s2n_hmac_algorithm hmac_alg, s2n_hash_algorithm *out);
+extern int s2n_hash_hmac_alg(s2n_hash_algorithm hash_alg, s2n_hmac_algorithm *out);
 
 extern int s2n_hmac_new(struct s2n_hmac_state *state);
 extern int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen);
