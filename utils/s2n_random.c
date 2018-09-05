@@ -336,34 +336,37 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
         output.u64 = 0;
 
         for (int tries = 0; tries < 10; tries++) {
-            /* yeah I'm not buying the whole "we can't use the mnemonic name instead of the opt-code,
-             * we're already using a C99 compiler for Zeus sake.
-             * the following is taken directly from the intel manual:
-             * https://software.intel.com/en-us/articles/intel-digital-random-number-generator-drng-software-implementation-guide
-             * section 4.2 */
 #if defined(__i386__)
+            /* execute the rdrand instruction, store the result in a general purpose register (it's assigned to
+            * output.i386_fields.u_low). Check the carry bit, which will be set on success. Then clober the register and reset
+            * the carry bit. Due to needing to support an ancient assembler we use the opcode syntax.
+            * the %b1 is to force compilers to use c1 instead of ecx.
+            * Here's a description of how the opcode is encoded:
+            * 0x0fc7 (rdrand)
+            * 0xf0 (store the result in eax).
+            */
             unsigned char success_high = 0, success_low = 0;
-
-            /* execute the rdrand instruction, store the result in a general purpose register (it's assigned to
-             * output.i386_fields.u_low). Check the carry bit, which will be set on success_low.
-             * Then clober the register and reset the carry bit. */
-            __asm__ __volatile__("rdrand %0;\n" "setc %1;\n": "=r"(output.i386_fields.u_low), "=qm"(success_low)
-                                 :"r"(0)
+            __asm__ __volatile__(".byte 0x0f, 0xc7, 0xf0;\n" "setc %b1;\n": "=a"(output.i386_fields.u_low), "=qm"(success_low)
+                                 :
                                  :"cc");
-            /* execute the rdrand instruction, store the result in a general purpose register (it's assigned to
-             * output.i386_fields.u_high). Check the carry bit, which will be set on success_high.
-             * Then clober the register and reset the carry bit. */
-            __asm__ __volatile__("rdrand %0;\n" "setc %1;\n": "=r"(output.i386_fields.u_high), "=qm"(success_high)
-                                :"r"(0)
-                                :"cc");
+
+            __asm__ __volatile__(".byte 0x0f, 0xc7, 0xf0;\n" "setc %b1;\n": "=a"(output.i386_fields.u_high), "=qm"(success_high)
+                                 :
+                                 :"cc");
+
             success = success_high & success_low;
 #else
             /* execute the rdrand instruction, store the result in a general purpose register (it's assigned to
-             * output.u64). Check the carry bit, which will be set on success. Then clober the register and reset
-             * the carry bit. */
-            __asm__ __volatile__("rdrand %0;\n" "setc %1;\n": "=r"(output.u64), "=qm"(success)
-                                :"r"(0)
-                                :"cc");
+            * output.u64). Check the carry bit, which will be set on success. Then clober the carry bit.
+            * Due to needing to support an ancient assembler we use the opcode syntax.
+            * the %b1 is to force compilers to use c1 instead of ecx.
+            * Here's a description of how the opcode is encoded:
+            * 0x48 (pick a 64-bit register it does more too, but that's all that matters there)
+            * 0x0fc7 (rdrand)
+            * 0xf0 (store the result in rax). */
+            __asm__ __volatile__(".byte 0x48, 0x0f, 0xc7, 0xf0;\n" "setc %b1;\n": "=a"(output.u64), "=qm"(success)
+            :
+            :"cc");
 #endif /* defined(__i386__) */
 
             if (success) {
