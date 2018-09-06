@@ -29,6 +29,7 @@
 #include "crypto/s2n_hmac.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_prf.h"
+#include "tls/s2n_kem_core.h"
 
 /* Mock block cipher that does nothing */
 int mock_block_endecrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)

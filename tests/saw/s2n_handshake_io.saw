@@ -95,7 +95,7 @@ let setup_connection = do {
    cipher_suite <- crucible_alloc (llvm_struct "struct.s2n_cipher_suite");
    crucible_points_to (conn_secure_cipher_suite pconn)  cipher_suite;
 
-   kea <- crucible_alloc (llvm_struct "struct.s2n_key_exchange_algorithm");
+   kea <- crucible_alloc (llvm_struct "struct.s2n_kem_core");
    crucible_points_to (key_exchange_algorithm cipher_suite) kea;
 
    eph_flag <- crucible_fresh_var "eph_flag" (llvm_int 16);

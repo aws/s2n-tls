@@ -28,6 +28,7 @@
 #include "tls/s2n_resume.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_kem_core.h"
 
 #include "stuffer/s2n_stuffer.h"
 
