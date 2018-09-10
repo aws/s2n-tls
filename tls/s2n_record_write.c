@@ -62,9 +62,9 @@ static uint16_t overhead(struct s2n_connection *conn)
     return extra;
 }
 
-int s2n_record_max_write_payload_size(struct s2n_connection *conn)
+int s2n_record_rounded_write_payload_size(struct s2n_connection *conn, uint16_t size_without_overhead) 
 {
-    uint16_t max_fragment_size = conn->max_outgoing_fragment_length;
+    uint16_t max_fragment_size = size_without_overhead;
     struct s2n_crypto_parameters *active = conn->server;
 
     if (conn->mode == S2N_CLIENT) {
@@ -83,6 +83,18 @@ int s2n_record_max_write_payload_size(struct s2n_connection *conn)
     }
 
     return max_fragment_size - overhead(conn);
+}
+
+int s2n_record_max_write_payload_size(struct s2n_connection *conn)
+{
+    return s2n_record_rounded_write_payload_size(conn, conn->max_outgoing_fragment_length);
+}
+
+int s2n_record_min_write_payload_size(struct s2n_connection *conn)
+{
+    uint16_t min_outgoing_fragement_length = ETH_MTU - (conn->ipv6 ? IP_V6_HEADER_LENGTH : IP_V4_HEADER_LENGTH) 
+        - TCP_HEADER_LENGTH - TCP_OPTIONS_LENGTH - S2N_TLS_RECORD_HEADER_LENGTH;
+    return s2n_record_rounded_write_payload_size(conn, min_outgoing_fragement_length);
 }
 
 int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in)
@@ -174,7 +186,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
 
     /* If we're AEAD, write the sequence number as an IV, and generate the AAD */
     if (cipher_suite->record_alg->cipher->type == S2N_AEAD) {
-        struct s2n_stuffer iv_stuffer;
+        struct s2n_stuffer iv_stuffer = {{0}};
         iv.data = aad_iv;
         iv.size = sizeof(aad_iv);
         GUARD(s2n_stuffer_init(&iv_stuffer, &iv));
@@ -202,7 +214,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
         aad.data = aad_gen;
         aad.size = sizeof(aad_gen);
 
-        struct s2n_stuffer ad_stuffer;
+        struct s2n_stuffer ad_stuffer = {{0}};
         GUARD(s2n_stuffer_init(&ad_stuffer, &aad));
         GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &ad_stuffer));
     } else if (cipher_suite->record_alg->cipher->type == S2N_CBC || cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
@@ -273,7 +285,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     }
 
     /* Do the encryption */
-    struct s2n_blob en;
+    struct s2n_blob en = {0};
     en.size = encrypted_length;
     en.data = s2n_stuffer_raw_write(&conn->out, en.size);
     notnull_check(en.data);

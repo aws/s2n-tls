@@ -69,7 +69,10 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         total_size += (sizeof(s2n_preferred_hashes) * num_signature_algs * 2) + 6;
     }
 
-    uint16_t application_protocols_len = conn->config->application_protocols.size;
+    struct s2n_blob *client_app_protocols;
+    GUARD(s2n_connection_get_protocol_preferences(conn, &client_app_protocols));
+
+    uint16_t application_protocols_len = client_app_protocols->size;
     uint16_t server_name_len = strlen(conn->server_name);
     uint16_t mfl_code_len = sizeof(conn->config->mfl_code);
 
@@ -110,7 +113,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         /* Name type - host name, RFC3546 */
         GUARD(s2n_stuffer_write_uint8(out, 0));
 
-        struct s2n_blob server_name;
+        struct s2n_blob server_name = {0};
         server_name.data = (uint8_t *) conn->server_name;
         server_name.size = server_name_len;
         GUARD(s2n_stuffer_write_uint16(out, server_name_len));
@@ -122,7 +125,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_ALPN));
         GUARD(s2n_stuffer_write_uint16(out, application_protocols_len + 2));
         GUARD(s2n_stuffer_write_uint16(out, application_protocols_len));
-        GUARD(s2n_stuffer_write(out, &conn->config->application_protocols));
+        GUARD(s2n_stuffer_write(out, client_app_protocols));
     }
 
     if (conn->config->status_request_type != S2N_STATUS_REQUEST_NONE) {
@@ -179,7 +182,7 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *pa
         struct s2n_client_hello_parsed_extension *parsed_extension = s2n_array_get(parsed_extensions, i);
         notnull_check(parsed_extension);
 
-        struct s2n_stuffer extension;
+        struct s2n_stuffer extension = {{0}};
         GUARD(s2n_stuffer_init(&extension, &parsed_extension->extension));
         GUARD(s2n_stuffer_write(&extension, &parsed_extension->extension));
 
@@ -267,10 +270,13 @@ static int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, str
 static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     uint16_t size_of_all;
-    struct s2n_stuffer client_protos;
-    struct s2n_stuffer server_protos;
+    struct s2n_stuffer client_protos = {{0}};
+    struct s2n_stuffer server_protos = {{0}};
 
-    if (!conn->config->application_protocols.size) {
+    struct s2n_blob *server_app_protocols;
+    GUARD(s2n_connection_get_protocol_preferences(conn, &server_app_protocols));
+
+    if (!server_app_protocols->size) {
         /* No protocols configured, nothing to do */
         return 0;
     }
@@ -281,23 +287,23 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
         return 0;
     }
 
-    struct s2n_blob application_protocols = {
+    struct s2n_blob client_app_protocols = {
         .data = s2n_stuffer_raw_read(extension, size_of_all),
         .size = size_of_all
     };
-    notnull_check(application_protocols.data);
+    notnull_check(client_app_protocols.data);
 
     /* Find a matching protocol */
-    GUARD(s2n_stuffer_init(&client_protos, &application_protocols));
-    GUARD(s2n_stuffer_write(&client_protos, &application_protocols));
-    GUARD(s2n_stuffer_init(&server_protos, &conn->config->application_protocols));
-    GUARD(s2n_stuffer_write(&server_protos, &conn->config->application_protocols));
+    GUARD(s2n_stuffer_init(&client_protos, &client_app_protocols));
+    GUARD(s2n_stuffer_write(&client_protos, &client_app_protocols));
+    GUARD(s2n_stuffer_init(&server_protos, server_app_protocols));
+    GUARD(s2n_stuffer_write(&server_protos, server_app_protocols));
 
     while (s2n_stuffer_data_available(&server_protos)) {
         uint8_t length;
-        uint8_t protocol[255];
+        uint8_t server_protocol[255];
         GUARD(s2n_stuffer_read_uint8(&server_protos, &length));
-        GUARD(s2n_stuffer_read_bytes(&server_protos, protocol, length));
+        GUARD(s2n_stuffer_read_bytes(&server_protos, server_protocol, length));
 
         while (s2n_stuffer_data_available(&client_protos)) {
             uint8_t client_length;
@@ -308,7 +314,7 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
             } else {
                 uint8_t client_protocol[255];
                 GUARD(s2n_stuffer_read_bytes(&client_protos, client_protocol, client_length));
-                if (memcmp(client_protocol, protocol, client_length) == 0) {
+                if (memcmp(client_protocol, server_protocol, client_length) == 0) {
                     memcpy_check(conn->application_protocol, client_protocol, client_length);
                     conn->application_protocol[client_length] = '\0';
                     return 0;
@@ -318,8 +324,7 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
 
         GUARD(s2n_stuffer_reread(&client_protos));
     }
-
-    S2N_ERROR(S2N_ERR_NO_APPLICATION_PROTOCOL);
+    return 0;
 }
 
 static int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension)
@@ -341,7 +346,7 @@ static int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2
 static int s2n_recv_client_elliptic_curves(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     uint16_t size_of_all;
-    struct s2n_blob proposed_curves;
+    struct s2n_blob proposed_curves = {0};
 
     GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
     if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all % 2) {

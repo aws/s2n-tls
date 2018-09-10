@@ -114,7 +114,7 @@ static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key
 {
     uint8_t ctrl_buf[S2N_TLS12_AAD_LEN];
     struct s2n_blob ctrl_blob = { .data = ctrl_buf, .size = S2N_TLS12_AAD_LEN };
-    struct s2n_stuffer ctrl_stuffer;
+    struct s2n_stuffer ctrl_stuffer = {{0}};
     GUARD(s2n_stuffer_init(&ctrl_stuffer, &ctrl_blob));
 
     GUARD(s2n_stuffer_write_bytes(&ctrl_stuffer, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));

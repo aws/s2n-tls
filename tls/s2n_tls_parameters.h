@@ -106,6 +106,18 @@
 #define TLS_EC_CURVE_SECP_256_R1           23
 #define TLS_EC_CURVE_SECP_384_R1           24
 
+/* Ethernet maximum transmission unit (MTU)
+ * MTU is usually associated with the Ethernet protocol,
+ * where a 1500-byte packet is the largest allowed in it
+ */
+#define ETH_MTU 1500
+
+#define IP_V4_HEADER_LENGTH 20
+#define IP_V6_HEADER_LENGTH 40
+
+#define TCP_HEADER_LENGTH 20
+#define TCP_OPTIONS_LENGTH 40
+
 /* The maximum size of a TLS record is 16389 bytes. This is;  1 byte for content
  * type, 2 bytes for the protocol version, 2 bytes for the length field,
  * and then up to 2^14 for the encrypted+compressed payload data.
@@ -141,6 +153,9 @@
 
 #define S2N_LARGE_RECORD_LENGTH S2N_TLS_MAXIMUM_RECORD_LENGTH
 #define S2N_LARGE_FRAGMENT_LENGTH S2N_TLS_MAXIMUM_FRAGMENT_LENGTH
+
+/* Cap dynamic record resize threshold to 8M */
+#define S2N_TLS_MAX_RESIZE_THRESHOLD (1024 * 1024 * 8)
 
 /* Put a 64k cap on the size of any handshake message */
 #define S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH (64 * 1024)

@@ -81,6 +81,9 @@ struct s2n_connection {
      */
     unsigned secure_renegotiation:1;
 
+     /* whether the connection address is ipv6 or not */
+    unsigned ipv6:1;
+
     /* Is this connection a client or a server connection */
     s2n_mode mode;
 
@@ -89,6 +92,9 @@ struct s2n_connection {
 
     /* A timer to measure the time between record writes */
     struct s2n_timer write_timer;
+
+    /* last written time */
+    uint64_t last_write_elapsed;
 
     /* When fatal errors occurs, s2n imposes a pause before
      * the connection is closed. If non-zero, this value tracks
@@ -183,6 +189,17 @@ struct s2n_connection {
      */
     uint16_t max_outgoing_fragment_length;
 
+    /* The number of bytes to send before changing the record size. 
+     * If this value > 0 then dynamic TLS record size is enabled. Otherwise, the feature is disabled (default). 
+     */
+    uint32_t dynamic_record_resize_threshold;
+
+    /* Reset record size back to a single segment after threshold seconds of inactivity */
+    uint16_t dynamic_record_timeout_threshold;
+
+    /* number of bytes consumed during application activity */
+    uint64_t active_application_bytes_consumed;
+
     /* Negotiated TLS extension Maximum Fragment Length code */
     uint8_t mfl_code;
 
@@ -235,6 +252,9 @@ struct s2n_connection {
     s2n_verify_host_fn verify_host_fn;
     void *data_for_verify_host;
     uint8_t verify_host_fn_overridden;
+
+    /* application protocols overridden */
+    struct s2n_blob application_protocols_overridden;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);
@@ -247,6 +267,7 @@ int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
 int s2n_connection_recv_stuffer(struct s2n_stuffer *stuffer, struct s2n_connection *conn, uint32_t len);
 
 extern int s2n_connection_get_cipher_preferences(struct s2n_connection *conn, const struct s2n_cipher_preferences **cipher_preferences);
+extern int s2n_connection_get_protocol_preferences(struct s2n_connection *conn, struct s2n_blob **protocol_preferences);
 extern int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type);
 extern int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type *client_cert_auth_type);
 extern int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len);

@@ -137,7 +137,7 @@ static int s2n_connection_init_hmacs(struct s2n_connection *conn)
 
 struct s2n_connection *s2n_connection_new(s2n_mode mode)
 {
-    struct s2n_blob blob;
+    struct s2n_blob blob = {0};
     struct s2n_connection *conn;
 
     GUARD_PTR(s2n_alloc(&blob, sizeof(struct s2n_connection)));
@@ -463,6 +463,7 @@ int s2n_connection_free(struct s2n_connection *conn)
     GUARD(s2n_stuffer_free(&conn->handshake.io));
     s2n_x509_validator_wipe(&conn->x509_validator);
     GUARD(s2n_client_hello_free(&conn->client_hello));
+    GUARD(s2n_free(&conn->application_protocols_overridden));
 
     blob.data = (uint8_t *) conn;
     blob.size = sizeof(struct s2n_connection);
@@ -531,23 +532,23 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     /* First make a copy of everything we'd like to save, which isn't very much. */
     int mode = conn->mode;
     struct s2n_config *config = conn->config;
-    struct s2n_stuffer alert_in;
-    struct s2n_stuffer reader_alert_out;
-    struct s2n_stuffer writer_alert_out;
-    struct s2n_stuffer handshake_io;
-    struct s2n_stuffer client_hello_raw_message;
-    struct s2n_stuffer header_in;
-    struct s2n_stuffer in;
-    struct s2n_stuffer out;
+    struct s2n_stuffer alert_in = {{0}};
+    struct s2n_stuffer reader_alert_out = {{0}};
+    struct s2n_stuffer writer_alert_out = {{0}};
+    struct s2n_stuffer handshake_io = {{0}};
+    struct s2n_stuffer client_hello_raw_message = {{0}};
+    struct s2n_stuffer header_in = {{0}};
+    struct s2n_stuffer in = {{0}};
+    struct s2n_stuffer out = {{0}};
     /* Session keys will be wiped. Preserve structs to avoid reallocation */
-    struct s2n_session_key initial_client_key;
-    struct s2n_session_key initial_server_key;
-    struct s2n_session_key secure_client_key;
-    struct s2n_session_key secure_server_key;
+    struct s2n_session_key initial_client_key = {0};
+    struct s2n_session_key initial_server_key = {0};
+    struct s2n_session_key secure_client_key = {0};
+    struct s2n_session_key secure_server_key = {0};
     /* Parts of the PRF working space, hash states, and hmac states  will be wiped. Preserve structs to avoid reallocation */
-    struct s2n_connection_prf_handles prf_handles;
-    struct s2n_connection_hash_handles hash_handles;
-    struct s2n_connection_hmac_handles hmac_handles;
+    struct s2n_connection_prf_handles prf_handles = {{{{0}}}};
+    struct s2n_connection_hash_handles hash_handles = {{{0}}};
+    struct s2n_connection_hmac_handles hmac_handles = {{{{0}}}};
 
     /* Wipe all of the sensitive stuff */
     GUARD(s2n_connection_wipe_keys(conn));
@@ -566,6 +567,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     GUARD(s2n_connection_wipe_io(conn));
 
     GUARD(s2n_free(&conn->status_response));
+    GUARD(s2n_free(&conn->application_protocols_overridden));
 
     /* Remove parsed extensions array from client_hello */
     GUARD(s2n_client_hello_free_parsed_extensions(&conn->client_hello));
@@ -705,6 +707,22 @@ int s2n_connection_get_cipher_preferences(struct s2n_connection *conn, const str
     return 0;
 }
 
+int s2n_connection_get_protocol_preferences(struct s2n_connection *conn, struct s2n_blob **protocol_preferences)
+{
+    notnull_check(conn);
+    notnull_check(protocol_preferences);
+
+    *protocol_preferences = NULL;
+    if (conn->application_protocols_overridden.size > 0) {
+        *protocol_preferences = &conn->application_protocols_overridden;
+    } else {
+        *protocol_preferences = &conn->config->application_protocols;
+    }
+
+    notnull_check(*protocol_preferences);
+    return 0;
+}
+
 int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type *client_cert_auth_type)
 {
     notnull_check(conn);
@@ -735,7 +753,7 @@ int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_au
 
 int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
 {
-    struct s2n_blob ctx_mem;
+    struct s2n_blob ctx_mem = {0};
     struct s2n_socket_read_io_context *peer_socket_ctx;
 
     GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_read_io_context)));
@@ -757,7 +775,7 @@ int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
 
 int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
 {
-    struct s2n_blob ctx_mem;
+    struct s2n_blob ctx_mem = {0};
     struct s2n_socket_write_io_context *peer_socket_ctx;
 
     GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_write_io_context)));
@@ -773,6 +791,11 @@ int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
      * Take the snapshot in case optimized io is enabled after setting the fd.
      */
     GUARD(s2n_socket_write_snapshot(conn));
+
+    uint8_t ipv6;
+    if (0 == s2n_socket_is_ipv6(wfd, &ipv6)) {
+        conn->ipv6 = (ipv6 ? 1 : 0);
+    }
 
     return 0;
 }
@@ -882,11 +905,11 @@ const char *s2n_get_server_name(struct s2n_connection *conn)
     }
 
     /* server name is not yet obtained from client hello, get it now */
-    struct s2n_client_hello_parsed_extension parsed_extension;
+    struct s2n_client_hello_parsed_extension parsed_extension = {0};
 
     GUARD_PTR(s2n_client_hello_get_parsed_extension(conn->client_hello.parsed_extensions, S2N_EXTENSION_SERVER_NAME, &parsed_extension));
 
-    struct s2n_stuffer extension;
+    struct s2n_stuffer extension = {{0}};
     GUARD_PTR(s2n_stuffer_init(&extension, &parsed_extension.extension));
     GUARD_PTR(s2n_stuffer_write(&extension, &parsed_extension.extension));
 
@@ -990,6 +1013,16 @@ int s2n_connection_prefer_low_latency(struct s2n_connection *conn)
         conn->max_outgoing_fragment_length = S2N_SMALL_FRAGMENT_LENGTH;
     }
 
+    return 0;
+}
+
+int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uint32_t resize_threshold, uint16_t timeout_threshold)
+{
+    notnull_check(conn);
+    S2N_ERROR_IF(resize_threshold > S2N_TLS_MAX_RESIZE_THRESHOLD, S2N_ERR_INVALID_DYNAMIC_THRESHOLD);
+
+    conn->dynamic_record_resize_threshold = resize_threshold;
+    conn->dynamic_record_timeout_threshold = timeout_threshold;
     return 0;
 }
 

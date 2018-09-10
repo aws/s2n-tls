@@ -105,6 +105,16 @@ make install
 cd ../../
 make
 ```
+# Note for 32-bit builds.
+The previous instructions work fine with only a few tweaks to your config command. Example:
+```shell
+setarch i386 ./config -fPIC no-shared     \
+        -m32 no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
+        no-hw no-mdc2 no-seed no-idea no-camellia\
+        no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng     \
+        -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS   \
+        --prefix=`pwd`/../../libcrypto-root/
+```
 
 ## Building s2n with OpenSSL-1.0.2
 
@@ -895,6 +905,17 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
 s2n_connection. Calling this function is not necessary unless you want to set the
 cipher preferences on the connection to something different than what is in the s2n_config.
 
+
+## s2n\_connection\_set\_protocol\_preferences
+
+```c
+int s2n_connection_set_protocol_preferences(struct s2n_connection *conn, const char * const *protocols, int protocol_count);
+```
+
+**s2n_connection_set_protocol_preferences** sets the protocol preference override for the
+s2n_connection. Calling this function is not necessary unless you want to set the
+protocol preferences on the connection to something different than what is in the s2n_config.
+
 ### s2n\_set\_server\_name
 
 ```c
@@ -940,6 +961,7 @@ using self-service blinding should pause before calling close() or shutdown().
 ```c
 int s2n_connection_prefer_throughput(struct s2n_connection *conn);
 int s2n_connection_prefer_low_latency(struct s2n_connection *conn);
+int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uint32_t resize_threshold, uint16_t timeout_threshold);
 ```
 
 **s2n_connection_prefer_throughput** and **s2n_connection_prefer_low_latency**
@@ -949,6 +971,11 @@ record sizes that can be decrypted sooner by the recipient. Connections
 prefering throughput will use large record sizes that minimize overhead.
 
 -Connections default to an 8k outgoing maximum
+
+**s2n_connection_set_dynamic_record_threshold**
+provides a smooth transition from **s2n_connection_prefer_low_latency** to **s2n_connection_prefer_throughput**.
+**s2n_send** uses small TLS records that fit into a single TCP segment for the resize_threshold bytes (cap to 8M) of data
+and reset record size back to a single segment after timeout_threshold seconds of inactivity.
 
 ### s2n\_connection\_get\_wire\_bytes
 

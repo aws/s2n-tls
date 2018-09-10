@@ -146,6 +146,7 @@ extern int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_send_fn s
 
 extern int s2n_connection_prefer_throughput(struct s2n_connection *conn);
 extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn);
+extern int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uint32_t resize_threshold, uint16_t timeout_threshold);
 
 /* If you don't want to use the configuration wide callback, you can set this per connection and it will be honored. */
 extern int s2n_connection_set_verify_host_callback(struct s2n_connection *config, s2n_verify_host_fn host_fn, void *data);
@@ -155,6 +156,7 @@ extern int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding
 extern uint64_t s2n_connection_get_delay(struct s2n_connection *conn);
 
 extern int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);
+extern int s2n_connection_set_protocol_preferences(struct s2n_connection *conn, const char * const *protocols, int protocol_count);
 extern int s2n_set_server_name(struct s2n_connection *conn, const char *server_name);
 extern const char *s2n_get_server_name(struct s2n_connection *conn);
 extern const char *s2n_get_application_protocol(struct s2n_connection *conn);
