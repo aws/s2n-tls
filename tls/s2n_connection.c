@@ -567,6 +567,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     GUARD(s2n_connection_wipe_io(conn));
 
     GUARD(s2n_free(&conn->status_response));
+    GUARD(s2n_free(&conn->application_protocols_overridden));
 
     /* Remove parsed extensions array from client_hello */
     GUARD(s2n_client_hello_free_parsed_extensions(&conn->client_hello));
