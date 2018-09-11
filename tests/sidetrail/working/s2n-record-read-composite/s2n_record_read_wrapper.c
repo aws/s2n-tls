@@ -26,13 +26,13 @@
 #include <smack.h>
 #include <smack-contracts.h>
 #include "ct-verif.h"
-#include "sidewinder.h"
+#include "sidetrail.h"
 #include "utils/s2n_safety.h"
 #include "tls/s2n_cipher_suites.h"
 #include "utils/s2n_blob.h"
 #include "crypto/s2n_cipher.h"
 
-int s2n_record_parse_cbc(
+int s2n_record_parse_composite(
     const struct s2n_cipher_suite *cipher_suite,
     struct s2n_connection *conn,
     uint8_t content_type,
@@ -46,7 +46,16 @@ int s2n_record_parse_cbc(
 #define DECRYPT_COST 10
 #define IV_SIZE 16
 #define MAX_SIZE 1024
-int decrypt_cbc(struct s2n_session_key *session_key,
+
+//Extra is actually mac_size
+int initial_hmac(struct s2n_session_key *key, uint8_t *sequence_number, uint8_t content_type, uint16_t protocol_version,
+		 uint16_t payload_and_eiv_len, int *extra)
+{
+  *extra = DIGEST_SIZE;
+  return 0;
+}
+
+int decrypt_comp(struct s2n_session_key *session_key,
 		struct s2n_blob* iv,
 		struct s2n_blob* in,
 		struct s2n_blob* out)
@@ -72,7 +81,7 @@ int s2n_record_parse_wrapper(int *xor_pad,
 			     uint8_t content_type
 )
 {
-  __VERIFIER_ASSERT_MAX_LEAKAGE(100);
+  __VERIFIER_ASSERT_MAX_LEAKAGE(0);
   __VERIFIER_assume(encrypted_length > 0);
   __VERIFIER_assume(padding_length >= 0);
   __VERIFIER_assume(padding_length < 256);
@@ -93,24 +102,25 @@ int s2n_record_parse_wrapper(int *xor_pad,
     .outer.currently_in_hash_block = 0,
     .outer_just_key.alg = S2N_HASH_SHA1,
     .outer_just_key.currently_in_hash_block = 0,
-     .xor_pad = *xor_pad,
+    .xor_pad = *xor_pad,
     .digest_pad = *digest_pad
   };
 
-  
-  struct s2n_cipher cbc_cipher = {
-    .type = S2N_CBC,
-    .io.cbc.decrypt = decrypt_cbc,
+  struct s2n_cipher comp_cipher = {
+    .type = S2N_COMPOSITE,
+    .io.comp.decrypt = decrypt_comp,
+    .io.comp.record_iv_size = IV_SIZE,
+    .io.comp.initial_hmac = initial_hmac,
   };
   
   struct s2n_record_algorithm record_algorithm = {
-    .cipher = &cbc_cipher,
+    .cipher = &comp_cipher,
   };
   
   struct s2n_cipher_suite cipher_suite = {
     .record_alg = &record_algorithm,
   };
-  
+
   //cppcheck-suppress unassignedVariable
   uint8_t data1[MAX_SIZE];
   //cppcheck-suppress unassignedVariable
@@ -141,5 +151,5 @@ int s2n_record_parse_wrapper(int *xor_pad,
   uint8_t implicit_iv[S2N_TLS_MAX_IV_LEN];
 
   g_padding_length = padding_length;
-  return s2n_record_parse_cbc(&cipher_suite, &conn, content_type, encrypted_length, implicit_iv, &hmac, sequence_number, &session_key);
+  return s2n_record_parse_composite(&cipher_suite, &conn, content_type, encrypted_length, implicit_iv, &hmac, sequence_number, &session_key);
 }

@@ -46,13 +46,13 @@ Side channels are notoriously difficult to defend against, since code with a sid
 
 Formal proofs are also useful because they help prevent regressions.  If a code change causes a timing side-channel to be introduced, the proof will fail, and the developer will be notified before the bug goes to production.
 
-## How does Sidewinder prove the correctness of code blinding countermeasures
+## How does SideTrail prove the correctness of code blinding countermeasures
 
 ### High level overview
-A program has a timing side channel if the amount of time needed to execute it depends on the value of a secret input to the program. Sidewinder take a program, annotates every instruction with its runtime cost, and then generates a mathematical formula which symbolically represents the cost of executing the program given an input.  Sidewinder then asks an automated theorem prover, called a Satisfiability Modulo Theories (SMT) solver, if there is a pair of secret inputs to the program that would take different amounts of time to process.  The SMT solver, using clever heuristics, exhaustively searches the state of all possible program inputs, and either returns a proof that there is no timing side-channel, or an example of a pair of inputs that lead to a timing channel, along with the estimated leakage.
+A program has a timing side channel if the amount of time needed to execute it depends on the value of a secret input to the program. SideTrail take a program, annotates every instruction with its runtime cost, and then generates a mathematical formula which symbolically represents the cost of executing the program given an input.  SideTrail then asks an automated theorem prover, called a Satisfiability Modulo Theories (SMT) solver, if there is a pair of secret inputs to the program that would take different amounts of time to process.  The SMT solver, using clever heuristics, exhaustively searches the state of all possible program inputs, and either returns a proof that there is no timing side-channel, or an example of a pair of inputs that lead to a timing channel, along with the estimated leakage.
 
 ### User annotations
-In addition to the standard assert()/assume()/ annotations supported through SMACK There are several annotations supported by Sidewinder, which allow the user to pass information to the Sidewinder proof
+In addition to the standard assert()/assume()/ annotations supported through SMACK There are several annotations supported by SideTrail, which allow the user to pass information to the SideTrail proof
 1. __VERIFIER_ASSUME_LEAKAGE(arg): When the timing-modeling transformation encounters this call, it increments the leakage tracking variables by "arg"
 2. S2N_PUBLIC_INPUT(arg): the argument given here is taken to be public. All other variables are assumed private by default.
 3. S2N_INVARIENT(arg): asserts that the given argument is an invariant of the loop, and as such holds on each execution of the loop, and at loop exit.
@@ -62,8 +62,8 @@ In addition to the standard assert()/assume()/ annotations supported through SMA
 
 Mathematically, a program `P(secret, public)` has runtime `Time(P(secret,public))`. A program has a timing side-channel of delta if `|Time(P(secret_1,public)) - Time(P(secret_2,public))| = delta`.  If we can represent `Time(P(secret,public))` as a mathematical formula, we can use a theorem prover to mathematically prove that the timing leakage of the program, for all choices of `secret_1, secret_2`, is less than `delta`. 
 
-Sidewinder proceeds in several steps:
-1. Compile the code to llvm bitcode - this allows Sidewinder to accurately represent the effect of compiler optimizations on runtime
+SideTrail proceeds in several steps:
+1. Compile the code to llvm bitcode - this allows SideTrail to accurately represent the effect of compiler optimizations on runtime
 2. Use LLVM's timing model to associate every bitcode operation with a timing cost
 3. Use SMACK to compile the annotated LLVM code to BoogiePL (this represents `(P(secret,public))` in the above formula
 4. Use bam-bam-boogieman to
@@ -91,7 +91,7 @@ take a look at the .travis scripts in this repo.
 ### Execute the test
 
 ```
-cd tests/sidewinder/working/s2n-cbc
+cd tests/sidetrail/working/s2n-cbc
 ./clean.sh
 ./run.sh
 
