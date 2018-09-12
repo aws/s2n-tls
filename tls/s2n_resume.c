@@ -111,7 +111,6 @@ static int s2n_client_serialize_resumption_state(struct s2n_connection *conn, st
     /* Serialize session ticket */
    if (conn->config->use_tickets && conn->client_ticket.size > 0) {
        GUARD(s2n_stuffer_write_uint8(to, S2N_STATE_WITH_SESSION_TICKET));
-       GUARD(s2n_stuffer_write_uint32(to, conn->ticket_lifetime_hint));
        GUARD(s2n_stuffer_write_uint16(to, conn->client_ticket.size));
        GUARD(s2n_stuffer_write(to, &conn->client_ticket));
    } else {
@@ -175,8 +174,6 @@ static int s2n_client_deserialize_with_session_id(struct s2n_connection *conn, s
 
 static int s2n_client_deserialize_with_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *from)
 {
-    GUARD(s2n_stuffer_read_uint32(from, &conn->ticket_lifetime_hint));
-
     uint16_t session_ticket_len;
     GUARD(s2n_stuffer_read_uint16(from, &session_ticket_len));
 
@@ -317,11 +314,23 @@ int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, si
     return len;
 }
 
+int s2n_connection_get_session_ticket_lifetime_hint(struct s2n_connection *conn)
+{
+    notnull_check(conn);
+
+    /* Session resumption using session ticket */
+    if (conn->config->use_tickets && conn->client_ticket.size > 0) {
+        return conn->ticket_lifetime_hint;
+    } else {
+        return -1;
+    }
+}
+
 ssize_t s2n_connection_get_session_length(struct s2n_connection *conn)
 {
-    /* Session resumption using session ticket "format (1) + ticket_lifetime_hint + session_ticket_len + session_ticket + session state" */
+    /* Session resumption using session ticket "format (1) + session_ticket_len + session_ticket + session state" */
     if (conn->config->use_tickets && conn->client_ticket.size > 0) {
-        return S2N_STATE_FORMAT_LEN + S2N_TICKET_LIFETIME_HINT_LEN + S2N_SESSION_TICKET_SIZE_LEN + conn->client_ticket.size + S2N_STATE_SIZE_IN_BYTES;
+        return S2N_STATE_FORMAT_LEN + S2N_SESSION_TICKET_SIZE_LEN + conn->client_ticket.size + S2N_STATE_SIZE_IN_BYTES;
     } else if (conn->session_id_len > 0) {
         /* Session resumption using session id: "format (0) + session_id_len + session_id + session state" */
         return S2N_STATE_FORMAT_LEN + 1 + conn->session_id_len + S2N_STATE_SIZE_IN_BYTES;

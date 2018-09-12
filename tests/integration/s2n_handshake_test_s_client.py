@@ -96,7 +96,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
         s2nd_ciphers = "test_all_ecdsa"
     s2nd_cmd.append("-c")
     s2nd_cmd.append(s2nd_ciphers)
-    if no_ticket == True:
+    if no_ticket:
         s2nd_cmd.append("-T")
     
     s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)

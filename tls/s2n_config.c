@@ -722,16 +722,16 @@ int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enab
     config->use_tickets = enabled;
 
     if (enabled) {
-        s2n_config_init_session_ticket_keys(config);
+        GUARD(s2n_config_init_session_ticket_keys(config));
     } else {
-        s2n_config_free_session_ticket_keys(config);
+        GUARD(s2n_config_free_session_ticket_keys(config));
     }
 
     return 0;
 }
 
 int s2n_config_set_ticket_encrypt_decrypt_key_lifetime(struct s2n_config *config,
-                                             uint64_t lifetime_in_secs)
+                                                       uint64_t lifetime_in_secs)
 {
     notnull_check(config);
 
@@ -740,7 +740,7 @@ int s2n_config_set_ticket_encrypt_decrypt_key_lifetime(struct s2n_config *config
 }
 
 int s2n_config_set_ticket_decrypt_key_lifetime(struct s2n_config *config,
-                                                  uint64_t lifetime_in_secs)
+                                               uint64_t lifetime_in_secs)
 {
     notnull_check(config);
 

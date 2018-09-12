@@ -32,6 +32,9 @@
 #include <getopt.h>
 
 #include <errno.h>
+#include <error.h>
+
+#include <error/s2n_errno.h>
 
 #include <openssl/crypto.h>
 #include <openssl/err.h>
@@ -748,17 +751,19 @@ int main(int argc, char *const *argv)
         if (session_ticket_key_file_path) {
             int fd = open(session_ticket_key_file_path, O_RDONLY);
             if (fd < 0) {
-                fprintf(stderr, "Error opening session ticket key file: '%s'\n", strerror(errno));
+                error(1, errno, "Error opening session ticket key file");
                 exit(1);
             }
 
             struct stat st;
             if (fstat(fd, &st) < 0) {
-                fprintf(stderr, "Error fstat-ing session ticket key file: '%s'\n", strerror(errno));
+                error(1, errno, "Error fstat-ing session ticket key file");
                 exit(1);
             }
 
             st_key = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+            S2N_ERROR_IF(st_key == MAP_FAILED, S2N_ERR_MMAP);
+
             st_key_length = st.st_size;
 
             close(fd);

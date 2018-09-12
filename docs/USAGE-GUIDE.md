@@ -1146,6 +1146,7 @@ int s2n_config_set_session_state_lifetime(struct s2n_config *config, uint32_t li
 
 int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *session, size_t length);
 int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, size_t max_length);
+int s2n_connection_get_session_ticket_lifetime_hint(struct s2n_connection *conn);
 ssize_t s2n_connection_get_session_length(struct s2n_connection *conn);
 ssize_t s2n_connection_get_session_id_length(struct s2n_connection *conn);
 int s2n_connection_is_session_resumed(struct s2n_connection *conn);
@@ -1160,7 +1161,9 @@ int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 
 **s2n_connection_set_session** de-serializes the session state and updates the connection accordingly.
 
-**s2n_connection_get_session** serializes the session state from connection and copies into the **session** buffer and returns the number of bytes that were copied. If the first byte in **session** is 1, then the next 4 bytes will contain the session ticket lifetime hint in seconds.
+**s2n_connection_get_session** serializes the session state from connection and copies into the **session** buffer and returns the number of bytes that were copied. If the first byte in **session** is 1, then the next 2 bytes will contain the session ticket length, followed by session ticket and session state. If the first byte in **session** is 0, then the next byte will contain session id length, followed by session id and session state.
+
+**s2n_connection_get_session_ticket_lifetime_hint** returns the session ticket lifetime hint in seconds from the server or -1 when session ticket was not used for resumption.
 
 **s2n_connection_get_session_length** returns number of bytes needed to store serialized session state; it can be used to allocate the **session** buffer.
 
