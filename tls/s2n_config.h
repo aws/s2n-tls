@@ -26,7 +26,7 @@
 
 #define S2N_MAX_SERVER_NAME 256
 #define S2N_MAX_TICKET_KEYS 48
-#define S2N_MAX_TICKET_KEY_HASHES 10000 /* 0.2MB */
+#define S2N_MAX_TICKET_KEY_HASHES 500 /* 10KB */
 
 struct s2n_cipher_preferences;
 
