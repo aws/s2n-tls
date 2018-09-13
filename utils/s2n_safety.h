@@ -47,6 +47,15 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
     }                                                                       \
   } while(0)
 
+#define memcpy_check_ptr( d, s, n )                                         \
+  do {                                                                      \
+    __typeof( n ) __tmp_n = ( n );                                          \
+    if ( __tmp_n ) {                                                        \
+      void *r = trace_memcpy_check( (d), (s) , (__tmp_n), _S2N_DEBUG_LINE); \
+      if (r == NULL) { return NULL; }                                       \
+    }                                                                       \
+  } while(0)
+
 #define memset_check( d, c, n )                                             \
   do {                                                                      \
     __typeof( n ) __tmp_n = ( n );                                          \

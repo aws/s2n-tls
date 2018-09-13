@@ -32,6 +32,9 @@
 #include <getopt.h>
 
 #include <errno.h>
+#include <error.h>
+
+#include <error/s2n_errno.h>
 
 #include <openssl/crypto.h>
 #include <openssl/err.h>
@@ -134,6 +137,13 @@ static char dhparams[] =
     "5JYTQ2PVhxP+Uu8+hICs/8VvM72DznjPZzufADipjC7CsQ4S6x/ecZluFtbb+ZTv\n"
     "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n"
     "-----END DH PARAMETERS-----\n";
+
+uint8_t ticket_key_name[16] = "2016.07.26.15\0";
+
+uint8_t default_ticket_key[32] = {0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf, 0x0d, 0xdc,
+                                  0x3f, 0x0d, 0xc4, 0x7b, 0xba, 0x63, 0x90, 0xb6, 0xc7, 0x3b,
+                                  0xb5, 0x0f, 0x9c, 0x31, 0x22, 0xec, 0x84, 0x4a, 0xd7, 0xc2,
+                                  0xb3, 0xe5 };
 
 #define MAX_KEY_LEN 32
 #define MAX_VAL_LEN 255
@@ -328,6 +338,10 @@ void usage()
     fprintf(stderr, "    This option is only used if mutual auth is enabled.\n");
     fprintf(stderr, "  -i,--insecure\n");
     fprintf(stderr, "    Turns off certification validation altogether.\n");
+    fprintf(stderr, "  --stk-file\n");
+    fprintf(stderr, "    Location of key file used for encryption and decryption of session ticket.\n");
+    fprintf(stderr, "  -T,--no-session-ticket\n");
+    fprintf(stderr, "    Disable session ticket for resumption.\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -342,6 +356,7 @@ struct conn_settings {
     int prefer_throughput;
     int prefer_low_latency;
     int enable_mfl;
+    int session_ticket;
     const char *ca_dir;
     const char *ca_file;
     int insecure;
@@ -439,10 +454,12 @@ int main(int argc, char *const *argv)
     const char *certificate_chain_file_path = NULL;
     const char *private_key_file_path = NULL;
     const char *ocsp_response_file_path = NULL;
+    const char *session_ticket_key_file_path = NULL;
     const char *cipher_prefs = "default";
     struct conn_settings conn_settings = { 0 };
     int fips_mode = 0;
     int parallelize = 0;
+    conn_settings.session_ticket = 1;
 
     struct option long_options[] = {
         {"ciphers", required_argument, NULL, 'c'},
@@ -461,12 +478,14 @@ int main(int argc, char *const *argv)
         {"ca-dir", required_argument, 0, 'd'},
         {"ca-file", required_argument, 0, 't'},
         {"insecure", no_argument, 0, 'i'},
+        {"stk-file", required_argument, 0, 'a'},
+        {"no-session-ticket", no_argument, 0, 'T'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hmnst:d:i", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmnst:d:i:T", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -519,7 +538,13 @@ int main(int argc, char *const *argv)
             break;
         case 'i':
             conn_settings.insecure = 1;
-                break;
+            break;
+        case 'a':
+            session_ticket_key_file_path = optarg;
+            break;
+        case 'T':
+            conn_settings.session_ticket = 0;
+            break;
         case '?':
         default:
             fprintf(stdout, "getopt_long returned: %d", c);
@@ -713,6 +738,45 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
+    if (conn_settings.session_ticket) {
+        if (s2n_config_set_session_tickets_onoff(config, 1) < 0) {
+            fprintf(stderr, "Error enabling session tickets: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+            exit(1);
+        }
+
+        /* Key initialization */
+        uint8_t *st_key;
+        uint32_t st_key_length;
+
+        if (session_ticket_key_file_path) {
+            int fd = open(session_ticket_key_file_path, O_RDONLY);
+            if (fd < 0) {
+                error(1, errno, "Error opening session ticket key file");
+                exit(1);
+            }
+
+            struct stat st;
+            if (fstat(fd, &st) < 0) {
+                error(1, errno, "Error fstat-ing session ticket key file");
+                exit(1);
+            }
+
+            st_key = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+            S2N_ERROR_IF(st_key == MAP_FAILED, S2N_ERR_MMAP);
+
+            st_key_length = st.st_size;
+
+            close(fd);
+        } else {
+            st_key = default_ticket_key;
+            st_key_length = strlen((char *)default_ticket_key);
+        }
+
+        if (s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name), st_key, st_key_length, 0) != 0) {
+            fprintf(stderr, "Error adding ticket key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+            exit(1);
+        }
+    }
 
     int fd;
     while ((fd = accept(sockfd, ai->ai_addr, &ai->ai_addrlen)) > 0) {

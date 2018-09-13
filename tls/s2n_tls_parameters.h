@@ -70,6 +70,7 @@
 #define TLS_EXTENSION_ALPN                 16
 #define TLS_EXTENSION_SCT_LIST             18
 #define TLS_EXTENSION_RENEGOTIATION_INFO   65281
+#define TLS_EXTENSION_SESSION_TICKET       35
 
 /* TLS Signature Algorithms - RFC 5246 7.4.1.4.1*/
 #define TLS_SIGNATURE_ALGORITHM_ANONYMOUS   0

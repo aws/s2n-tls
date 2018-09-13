@@ -40,6 +40,12 @@
 
 #define is_handshake_complete(conn) (APPLICATION_DATA == s2n_conn_get_current_message_type(conn))
 
+typedef enum {
+    S2N_NO_TICKET = 0,
+    S2N_DECRYPT_TICKET,
+    S2N_NEW_TICKET
+} s2n_session_ticket_status;
+
 struct s2n_connection {
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
@@ -252,6 +258,15 @@ struct s2n_connection {
     s2n_verify_host_fn verify_host_fn;
     void *data_for_verify_host;
     uint8_t verify_host_fn_overridden;
+
+    /* Session ticket data */
+    s2n_session_ticket_status session_ticket_status;
+    struct s2n_blob client_ticket;
+    uint32_t ticket_lifetime_hint;
+
+    /* Session ticket extension from client to attempt to decrypt as the server. */
+    uint8_t ticket_ext_data[S2N_TICKET_SIZE_IN_BYTES];
+    struct s2n_stuffer client_ticket_to_decrypt;
 
     /* application protocols overridden */
     struct s2n_blob application_protocols_overridden;

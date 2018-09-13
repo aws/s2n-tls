@@ -87,6 +87,9 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
         /* Erase master secret which might have been set for session resumption */
         memset_check((uint8_t *)conn->secure.master_secret, 0, S2N_TLS_SECRET_LEN);
+
+        /* Erase client session ticket which might have been set for session resumption */
+        conn->client_ticket.size = 0;
     }
 
     conn->actual_protocol_version_established = 1;
