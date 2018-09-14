@@ -1118,7 +1118,7 @@ during the handshake.  If no status response is received, NULL is returned.
 int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);
 ```
 
-**s2n_connection_is_ocsp_stapled** returns 1 if OCSP response was send (if connection is in S2N_SERVER mode) or received (if connection is in S2N_CLIENT mode) during handshake, otherwise it returns 0.
+**s2n_connection_is_ocsp_stapled** returns 1 if OCSP response was sent (if connection is in S2N_SERVER mode) or received (if connection is in S2N_CLIENT mode) during handshake, otherwise it returns 0.
 
 ### s2n\_connection\_get\_alert
 
