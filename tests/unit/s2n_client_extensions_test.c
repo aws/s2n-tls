@@ -688,7 +688,11 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
+        /* Verify that the server didn't send an OCSP response. */
+        EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(server_conn), 0);
+
         /* Verify that the client didn't receive an OCSP response. */
+        EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(client_conn), 0);
         EXPECT_NULL(s2n_connection_get_ocsp_response(client_conn, &length));
         EXPECT_EQUAL(length, 0);
 
@@ -753,7 +757,11 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
+        /* Verify that the server didn't send an OCSP response. */
+        EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(server_conn), 0);
+
         /* Verify that the client didn't receive an OCSP response. */
+        EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(client_conn), 0);
         EXPECT_NULL(s2n_connection_get_ocsp_response(client_conn, &length));
         EXPECT_EQUAL(length, 0);
 
@@ -820,7 +828,11 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
+        /* Verify that the server sent an OCSP response. */
+        EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(server_conn), 1);
+
         /* Verify that the client received an OCSP response. */
+        EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(client_conn), 1);
         EXPECT_NOT_NULL(server_ocsp_reply = s2n_connection_get_ocsp_response(client_conn, &length));
         EXPECT_EQUAL(length, sizeof(server_ocsp_status));
 

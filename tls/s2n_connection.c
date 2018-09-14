@@ -1015,9 +1015,7 @@ int s2n_connection_kill(struct s2n_connection *conn)
 
 const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uint32_t * length)
 {
-    if (!length) {
-        return NULL;
-    }
+    notnull_check_ptr(length);
 
     *length = conn->status_response.size;
     return conn->status_response.data;

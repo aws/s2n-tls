@@ -196,6 +196,7 @@ extern int s2n_connection_get_session_ticket_lifetime_hint(struct s2n_connection
 extern ssize_t s2n_connection_get_session_length(struct s2n_connection *conn);
 extern ssize_t s2n_connection_get_session_id_length(struct s2n_connection *conn);
 extern int s2n_connection_is_session_resumed(struct s2n_connection *conn);
+extern int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);
 
 /* RFC's that define below values:
  *  - https://tools.ietf.org/html/rfc5246#section-7.4.4
