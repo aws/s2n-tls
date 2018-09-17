@@ -341,7 +341,14 @@ ssize_t s2n_connection_get_session_length(struct s2n_connection *conn)
 
 int s2n_connection_is_session_resumed(struct s2n_connection *conn)
 {
-    return IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type);
+    notnull_check(conn);
+    return IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type) ? 1 : 0;
+}
+
+int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn)
+{
+    notnull_check(conn);
+    return IS_OCSP_STAPLED(conn->handshake.handshake_type) ? 1 : 0;
 }
 
 /* This function is used in s2n_get_ticket_encrypt_decrypt_key to compute the weight

@@ -1112,6 +1112,14 @@ const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uin
 **s2n_connection_get_ocsp_response** returns the OCSP response sent by a server
 during the handshake.  If no status response is received, NULL is returned.
 
+### s2n\_connection\_is\_ocsp\_stapled
+
+```c
+int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);
+```
+
+**s2n_connection_is_ocsp_stapled** returns 1 if OCSP response was sent (if connection is in S2N_SERVER mode) or received (if connection is in S2N_CLIENT mode) during handshake, otherwise it returns 0.
+
 ### s2n\_connection\_get\_alert
 
 ```c
@@ -1169,7 +1177,7 @@ int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 
 **s2n_connection_get_session_id_length** returns session id length from the connection.
 
-**s2n_connection_is_session_resumed** checks if the handshake is abbreviated or not.
+**s2n_connection_is_session_resumed** returns 1 if the handshake was abbreviated, otherwise returns 0.
 
 ### Session Ticket Specific calls
 
