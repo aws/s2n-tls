@@ -38,7 +38,7 @@ int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
 {
     struct timespec current_time;
 
-    clock_gettime(CLOCK_MONOTONIC_RAW, &current_time);
+    clock_gettime(S2N_CLOCK_HW, &current_time);
 
     *nanoseconds = current_time.tv_sec * 1000000000;
     *nanoseconds += current_time.tv_nsec;
