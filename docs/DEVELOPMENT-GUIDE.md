@@ -137,6 +137,18 @@ the macro will set s2n_errno correctly, as well as some useful debug strings, an
 
 *Note*: In general, C preprocessor Macros with embedded control flow are a bad idea, but GUARD, S2N_ERROR and the safety checkers are so thoroughly used throughout s2n that it should be a clear and idiomatic pattern, almost forming a small domain specific language. 
 
+### Cleanup On Error
+As discussed below, s2n rarely allocates resources, and so has nothing to clean up on error.  For cases where functions do allocate resources which must be cleaned up, s2n offers two macros:
+
+```c
+#define GUARD_GOTO( x , label ) if ( (x) < 0 ) goto label
+#define DEFER_CLEANUP(_thealloc, _thecleanup)  __attribute__((cleanup(_thecleanup))) _thealloc
+```
+
+`GUARD_GOTO( x , label )` does traditional "goto" style cleanup: if the function `x` returns an error, control is transfered to label `label`.  It is the responsibility of the code at `label` to cleanup any resources, and then return `-1`.
+
+`DEFER_CLEANUP(_thealloc, _thecleanup)` is a more failsafe way of ensuring that resources are cleaned up, using the ` __attribute__((cleanup())` destructor mechanism available in modern C compilers.  When the variable declared in `_thealloc` goes out of scope, the cleanup function `_thecleanup` is automatically called.  This guarantees that resources will be cleaned up, no matter how the function exits.
+
 ### Control flow and the state machine
 
 Branches can be a source of cognitive load, as they ask the reader to follow a path of thinking, while also remembering that there is another path to be explored. When branches are nested they can often lead to impossible to grasp combinatorial explosions. s2n tries to systematically reduce the number of branches used in the code in several ways. 
