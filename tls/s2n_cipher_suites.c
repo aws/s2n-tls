@@ -891,7 +891,9 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
 
             /* Don't immediately choose a cipher the client shouldn't be able to support */
             if (conn->client_protocol_version < match->minimum_required_tls_version) {
-                higher_vers_match = match;
+                if (!higher_vers_match) {
+                    higher_vers_match = match;
+                }
                 continue;
             }
 
@@ -901,7 +903,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
     }
 
     /* Settle for a cipher with a higher required proto version, if it was set */
-    if (higher_vers_match != NULL) {
+    if (higher_vers_match) {
         conn->secure.cipher_suite = higher_vers_match;
         return 0;
     }
