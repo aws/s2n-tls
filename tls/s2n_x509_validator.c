@@ -47,6 +47,8 @@
 
 #define DEFAULT_MAX_CHAIN_DEPTH 7
 
+DEFINE_TRIVIAL_CLEANUP_FUNC(X509*, X509_free);
+
 uint8_t s2n_x509_ocsp_stapling_supported(void) {
     return S2N_OCSP_STAPLING_SUPPORTED;
 }
@@ -85,46 +87,24 @@ int s2n_x509_trust_store_add_pem(struct s2n_x509_trust_store *store, const char 
         store->trust_store = X509_STORE_new();
     }
 
-    s2n_error err = S2N_ERR_DECODE_CERTIFICATE;
+    DEFER_CLEANUP(struct s2n_stuffer pem_in_stuffer = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer der_out_stuffer = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_blob next_cert = {0}, s2n_free);
 
-    struct s2n_stuffer pem_in_stuffer = {{0}};
-    struct s2n_stuffer der_out_stuffer = {{0}};
-    struct s2n_blob next_cert = {0};
-
-    GUARD_GOTO(s2n_stuffer_alloc_ro_from_string(&pem_in_stuffer, pem), clean_up);
-    GUARD_GOTO(s2n_stuffer_growable_alloc(&der_out_stuffer, 2048), clean_up);
+    GUARD(s2n_stuffer_alloc_ro_from_string(&pem_in_stuffer, pem));
+    GUARD(s2n_stuffer_growable_alloc(&der_out_stuffer, 2048));
 
     do {
-        GUARD_GOTO(s2n_stuffer_certificate_from_pem(&pem_in_stuffer, &der_out_stuffer), clean_up);
-        GUARD_GOTO(s2n_alloc(&next_cert, s2n_stuffer_data_available(&der_out_stuffer)), clean_up);
-        GUARD_GOTO(s2n_stuffer_read(&der_out_stuffer, &next_cert), clean_up);
+        GUARD(s2n_stuffer_certificate_from_pem(&pem_in_stuffer, &der_out_stuffer));
+        GUARD(s2n_alloc(&next_cert, s2n_stuffer_data_available(&der_out_stuffer)));
+        GUARD(s2n_stuffer_read(&der_out_stuffer, &next_cert));
 
         const uint8_t *data = next_cert.data;
-        X509 *ca_cert = d2i_X509(NULL, &data, next_cert.size);
-        if (ca_cert == NULL) {
-            goto clean_up;
-        }
+        DEFER_CLEANUP(X509 *ca_cert = d2i_X509(NULL, &data, next_cert.size), X509_freep);
+        S2N_ERROR_IF(ca_cert == NULL, S2N_ERR_DECODE_CERTIFICATE);
 
-        int rc = X509_STORE_add_cert(store->trust_store, ca_cert);
-        X509_free(ca_cert);
-
-        if (rc != 1) {
-            goto clean_up;
-        }
-
-        GUARD_GOTO(s2n_free(&next_cert), clean_up);
+        GUARD_OSSL(X509_STORE_add_cert(store->trust_store, ca_cert), S2N_ERR_DECODE_CERTIFICATE);
     } while (s2n_stuffer_data_available(&pem_in_stuffer));
-
-    err = S2N_ERR_OK;
-
-    clean_up:
-        GUARD(s2n_stuffer_free(&pem_in_stuffer));
-        GUARD(s2n_stuffer_free(&der_out_stuffer));
-        GUARD(s2n_free(&next_cert));
-
-    if (err != S2N_ERR_OK){
-        S2N_ERROR(err);
-    }
 
     return 0;
 }

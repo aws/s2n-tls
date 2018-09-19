@@ -1,0 +1,86 @@
+/*
+ * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License").
+ * You may not use this file except in compliance with the License.
+ * A copy of the License is located at
+ *
+ *  http://aws.amazon.com/apache2.0
+ *
+ * or in the "license" file accompanying this file. This file is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ * express or implied. See the License for the specific language governing
+ * permissions and limitations under the License.
+ */
+
+#include "s2n_test.h"
+
+#include <sys/wait.h>
+#include <s2n.h>
+#include <stdbool.h>
+
+#include "utils/s2n_mem.h"
+
+struct foo
+{
+  int x;
+  int y;
+};
+
+int foo_cleanup_calls;
+
+void foo_free(struct foo* p){
+  foo_cleanup_calls++;
+}
+
+DEFINE_TRIVIAL_CLEANUP_FUNC(struct foo*, foo_free);
+
+int check_cleanup_obj_on_fn_exit()
+{
+  DEFER_CLEANUP(struct foo x = {0}, foo_free);
+  return 0;
+}
+
+int check_cleanup_pointer_on_fn_exit()
+{
+  struct foo thefoo= {0};
+  DEFER_CLEANUP(struct foo* foop = &thefoo, foo_freep);
+  return 0;
+}
+
+//check that our macros don't cleanup null objects
+int check_dont_cleanup_null_on_fn_exit()
+{
+  DEFER_CLEANUP(struct foo* foop = NULL, foo_freep);
+  return 0;
+}
+
+//This test checks that the compiler correctly implements deferred cleanup
+int main()
+{
+  BEGIN_TEST();
+  int expected_cleanup_count = 0;
+
+  //check that the cleanup functions are called on each loop exit
+  for (int i = 0; i < 10; ++i) {
+    DEFER_CLEANUP(struct foo x = {i}, foo_free);
+    EXPECT_EQUAL(foo_cleanup_calls, expected_cleanup_count);
+    expected_cleanup_count++;
+  }
+  
+  EXPECT_EQUAL(foo_cleanup_calls, expected_cleanup_count);
+
+  EXPECT_SUCCESS(check_cleanup_obj_on_fn_exit());
+  expected_cleanup_count++;
+  EXPECT_EQUAL(foo_cleanup_calls, expected_cleanup_count);
+
+  EXPECT_SUCCESS(check_cleanup_pointer_on_fn_exit());
+  expected_cleanup_count++;
+  EXPECT_EQUAL(foo_cleanup_calls, expected_cleanup_count);
+
+  EXPECT_SUCCESS(check_dont_cleanup_null_on_fn_exit());
+  //don't increment expected_cleanup_count
+  EXPECT_EQUAL(foo_cleanup_calls, expected_cleanup_count);
+
+  END_TEST();
+}
