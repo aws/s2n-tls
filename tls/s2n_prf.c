@@ -595,37 +595,25 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     GUARD(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.client_key));
     GUARD(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.server_key));
 
-    /* What's our hmac algorithm? */
-    s2n_hmac_algorithm hmac_alg = conn->secure.cipher_suite->record_alg->hmac_alg;
-    if (conn->actual_protocol_version == S2N_SSLv3) {
-        if (hmac_alg == S2N_HMAC_SHA1) {
-            hmac_alg = S2N_HMAC_SSLv3_SHA1;
-        } else if (hmac_alg == S2N_HMAC_MD5) {
-            hmac_alg = S2N_HMAC_SSLv3_MD5;
-        } else {
-            S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
-        }
-    }
-
     /* Check that we have a valid MAC and key size */
     uint8_t mac_size;
     if (conn->secure.cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
         mac_size = conn->secure.cipher_suite->record_alg->cipher->io.comp.mac_key_size;
     } else {
-        GUARD(s2n_hmac_digest_size(hmac_alg, &mac_size));
+        GUARD(s2n_hmac_digest_size(conn->secure.cipher_suite->record_alg->hmac_alg, &mac_size));
     }
 
     /* Seed the client MAC */
     uint8_t *client_mac_write_key = s2n_stuffer_raw_read(&key_material, mac_size);
     notnull_check(client_mac_write_key);
     GUARD(s2n_hmac_reset(&conn->secure.client_record_mac));
-    GUARD(s2n_hmac_init(&conn->secure.client_record_mac, hmac_alg, client_mac_write_key, mac_size));
+    GUARD(s2n_hmac_init(&conn->secure.client_record_mac, conn->secure.cipher_suite->record_alg->hmac_alg, client_mac_write_key, mac_size));
 
     /* Seed the server MAC */
     uint8_t *server_mac_write_key = s2n_stuffer_raw_read(&key_material, mac_size);
     notnull_check(server_mac_write_key);
     GUARD(s2n_hmac_reset(&conn->secure.server_record_mac));
-    GUARD(s2n_hmac_init(&conn->secure.server_record_mac, hmac_alg, server_mac_write_key, mac_size));
+    GUARD(s2n_hmac_init(&conn->secure.server_record_mac, conn->secure.cipher_suite->record_alg->hmac_alg, server_mac_write_key, mac_size));
 
     /* Make the client key */
     GUARD(s2n_prf_make_client_key(conn, &key_material));
