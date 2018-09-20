@@ -32,7 +32,6 @@
 #include <getopt.h>
 
 #include <errno.h>
-#include <error.h>
 
 #include <error/s2n_errno.h>
 
@@ -751,13 +750,13 @@ int main(int argc, char *const *argv)
         if (session_ticket_key_file_path) {
             int fd = open(session_ticket_key_file_path, O_RDONLY);
             if (fd < 0) {
-                error(1, errno, "Error opening session ticket key file");
+                print_s2n_error("Error opening session ticket key file");
                 exit(1);
             }
 
             struct stat st;
             if (fstat(fd, &st) < 0) {
-                error(1, errno, "Error fstat-ing session ticket key file");
+                print_s2n_error("Error fstat-ing session ticket key file");
                 exit(1);
             }
 
