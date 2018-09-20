@@ -229,6 +229,7 @@ extern int s2n_connection_get_actual_protocol_version(struct s2n_connection *con
 extern int s2n_connection_get_client_hello_version(struct s2n_connection *conn);
 extern int s2n_connection_client_cert_used(struct s2n_connection *conn);
 extern const char *s2n_connection_get_cipher(struct s2n_connection *conn);
+extern int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, const char *version);
 extern const char *s2n_connection_get_curve(struct s2n_connection *conn);
 extern int s2n_connection_get_alert(struct s2n_connection *conn);
 
