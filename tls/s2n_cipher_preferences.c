@@ -621,7 +621,7 @@ int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, 
     for (int i = 0; i < preferences->count; ++i) {
         if (0 == strcmp(preferences->suites[i]->name, conn->secure.cipher_suite->name) &&
             /* make sure we dont use a tls version lower than that configured by the version */
-            conn->secure.cipher_suite->minimum_required_tls_version >= preferences->suites[i]->minimum_required_tls_version) {
+            s2n_connection_get_actual_protocol_version(conn) >= preferences->suites[i]->minimum_required_tls_version) {
             return 0;
         }
     }
