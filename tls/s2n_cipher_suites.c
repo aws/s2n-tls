@@ -820,6 +820,12 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
     conn->secure.cipher_suite = s2n_cipher_suite_from_wire(wire);
     S2N_ERROR_IF(conn->secure.cipher_suite == NULL, S2N_ERR_CIPHER_NOT_SUPPORTED);
 
+    /* For SSLv3 use SSLv3-specific ciphers */
+    if (conn->actual_protocol_version == S2N_SSLv3) {
+        conn->secure.cipher_suite = conn->secure.cipher_suite->sslv3_cipher_suite;
+        notnull_check(conn->secure.cipher_suite);
+    }
+
     return 0;
 }
 
