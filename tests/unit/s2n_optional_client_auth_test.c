@@ -62,22 +62,6 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    /* s2n support for mutual auth when in FIPS mode is not yet implemented. */
-    if (s2n_is_in_fips_mode()) {
-        /* Test optional client auth fails using s2n_config_set_client_auth_type. */
-        EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_FAILURE(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_OPTIONAL));
-        EXPECT_SUCCESS(s2n_config_free(server_config));
-
-        /* Test optional client auth fails using s2n_connection_set_client_auth_type. */
-        struct s2n_connection *conn;
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_FAILURE(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_OPTIONAL));
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-
-        END_TEST();
-    }
-
     EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));

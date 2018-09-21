@@ -374,7 +374,10 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
     }
 
     if (settings.mutual_auth) {
-        s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED);
+        if (s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED) < 0) {
+            print_s2n_error("Error setting client auth type");
+            exit(1);
+        }
 
         if (settings.ca_dir || settings.ca_file) {
             if (s2n_config_set_verification_ca_location(config, settings.ca_file, settings.ca_dir) < 0) {
@@ -554,11 +557,6 @@ int main(int argc, char *const *argv)
 
     if (conn_settings.prefer_throughput && conn_settings.prefer_low_latency) {
         fprintf(stderr, "prefer-throughput and prefer-low-latency options are mutually exclusive\n");
-        exit(1);
-    }
-
-    if (fips_mode && conn_settings.mutual_auth) {
-        fprintf(stderr, "Mutual Auth cannot be enabled when s2n is in FIPS mode\n");
         exit(1);
     }
 
