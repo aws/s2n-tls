@@ -138,6 +138,7 @@ int main(int argc, char **argv)
 
     EXPECT_EQUAL(memcmp(output_buf, expected_expanded, sizeof(output_buf)), 0);
 
+    EXPECT_SUCCESS(s2n_hmac_free(&throwaway));
     EXPECT_SUCCESS(s2n_hmac_free(&hmac));
     EXPECT_SUCCESS(s2n_hash_free(&transcript_hash));
     EXPECT_SUCCESS(s2n_hash_free(&transcript_hash_snapshot));
