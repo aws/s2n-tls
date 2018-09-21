@@ -618,10 +618,13 @@ int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, 
     const struct s2n_cipher_preferences *preferences;
     GUARD(s2n_find_cipher_pref_from_version(version, &preferences));
 
+    /* make sure we dont use a tls version lower than that configured by the version */
+    if (s2n_connection_get_actual_protocol_version(conn) < preferences->minimum_protocol_version) {
+        return 0;
+    }
+
     for (int i = 0; i < preferences->count; ++i) {
-        if (0 == strcmp(preferences->suites[i]->name, conn->secure.cipher_suite->name) &&
-            /* make sure we dont use a tls version lower than that configured by the version */
-            s2n_connection_get_actual_protocol_version(conn) >= preferences->suites[i]->minimum_required_tls_version) {
+        if (0 == strcmp(preferences->suites[i]->name, conn->secure.cipher_suite->name)) {
             return 1;
         }
     }
