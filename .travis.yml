@@ -75,6 +75,8 @@ matrix:
     - env: S2N_LIBCRYPTO=openssl-1.1.x-master BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
     # Optional until we resolve broken remote dependency: https://github.com/awslabs/s2n/pull/615
     - env: TESTS=ctverif
+    # Optional until https://github.com/awslabs/s2n/issues/821 is fixed
+    - env: S2N_LIBCRYPTO=openssl-1.0.2-fips BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
 
   fast_finish: true
 
