@@ -15,7 +15,7 @@
 
 #include <strings.h>
 #include <stdint.h>
-
+#include <s2n.h>
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_config.h"
 
@@ -174,6 +174,16 @@ struct s2n_cipher_suite *cipher_suites_20170210[] = {
     &s2n_rsa_with_aes_128_gcm_sha256,
     &s2n_rsa_with_aes_128_cbc_sha256,
     &s2n_rsa_with_aes_128_cbc_sha
+};
+
+struct s2n_cipher_suite *cipher_suites_null[] = {
+    &s2n_null_cipher_suite
+};
+
+const struct s2n_cipher_preferences cipher_preferences_null = {
+    .count = sizeof(cipher_suites_null) / sizeof(cipher_suites_null[0]),
+    .suites = cipher_suites_null,
+    .minimum_protocol_version = S2N_TLS10
 };
 
 const struct s2n_cipher_preferences cipher_preferences_20170210 = {
@@ -568,6 +578,7 @@ struct {
     { "test_all", &cipher_preferences_test_all },
     { "test_all_fips", &cipher_preferences_test_all_fips },
     { "test_all_ecdsa", &cipher_preferences_test_all_ecdsa },
+    { "null", &cipher_preferences_null },
     { NULL, NULL }
 };
 
@@ -598,3 +609,25 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
     return 0;
 }
 
+int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, const char *version)
+{
+    notnull_check(conn);
+    notnull_check(version);
+    notnull_check(conn->secure.cipher_suite);
+
+    const struct s2n_cipher_preferences *preferences;
+    GUARD(s2n_find_cipher_pref_from_version(version, &preferences));
+
+    /* make sure we dont use a tls version lower than that configured by the version */
+    if (s2n_connection_get_actual_protocol_version(conn) < preferences->minimum_protocol_version) {
+        return 0;
+    }
+
+    for (int i = 0; i < preferences->count; ++i) {
+        if (0 == strcmp(preferences->suites[i]->name, conn->secure.cipher_suite->name)) {
+            return 1;
+        }
+    }
+
+    return 0;
+}

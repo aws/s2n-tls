@@ -136,11 +136,17 @@ int main(int argc, char **argv)
         const uint8_t cipher_count = sizeof(wire_ciphers) / S2N_TLS_CIPHER_SUITE_LEN;
         EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers, cipher_count));
         EXPECT_EQUAL(conn->secure_renegotiation, 0);
+        conn->actual_protocol_version = S2N_TLS10;
+        EXPECT_EQUAL(1, s2n_connection_is_valid_for_cipher_preferences(conn, "test_all")); 
+        EXPECT_EQUAL(0, s2n_connection_is_valid_for_cipher_preferences(conn, "null"));
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
         const uint8_t cipher_count_renegotiation = sizeof(wire_ciphers_renegotiation) / S2N_TLS_CIPHER_SUITE_LEN;
         EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_renegotiation, cipher_count_renegotiation));
         EXPECT_EQUAL(conn->secure_renegotiation, 1);
+        conn->actual_protocol_version = S2N_TLS12;
+        EXPECT_EQUAL(1, s2n_connection_is_valid_for_cipher_preferences(conn, "test_all")); 
+        EXPECT_EQUAL(-1, s2n_connection_is_valid_for_cipher_preferences(conn, "not_exist"));
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
         const uint8_t cipher_count_fallback = sizeof(wire_ciphers_fallback) / S2N_TLS_CIPHER_SUITE_LEN;
@@ -148,6 +154,9 @@ int main(int argc, char **argv)
         conn->client_protocol_version = S2N_TLS11;
         EXPECT_FAILURE(s2n_set_cipher_as_tls_server(conn, wire_ciphers_fallback, cipher_count_fallback));
         EXPECT_EQUAL(conn->secure_renegotiation, 0);
+        conn->actual_protocol_version = S2N_TLS11;
+        EXPECT_EQUAL(1, s2n_connection_is_valid_for_cipher_preferences(conn, "null"));
+        EXPECT_EQUAL(0, s2n_connection_is_valid_for_cipher_preferences(conn, "CloudFront-TLS-1-2-2018"));
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));

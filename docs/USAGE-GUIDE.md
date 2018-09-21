@@ -895,6 +895,19 @@ file-descriptor should be active and connected. s2n also supports setting the
 read and write file-descriptors to different values (for pipes or other unusual
 types of I/O).
 
+## s2n\_connection\_is\_valid\_for\_cipher\_preferences
+
+```c
+int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, const char *version);
+```
+
+**s2n_connection_is_valid_for_cipher_preferences** checks if the cipher used by current connection
+is supported by a given cipher preferences. It returns 
+-  1 if the connection satisfies the cipher suite 
+-  0 if it does not
+- -1 on any other errors
+
+
 ## s2n\_connection\_set\_cipher\_preferences
 
 ```c
