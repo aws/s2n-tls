@@ -73,10 +73,15 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
         GUARD(s2n_stuffer_copy(&conn->in, &conn->alert_in, bytes_to_read));
 
         if (s2n_stuffer_data_available(&conn->alert_in) == 2) {
-            conn->closed = 1;
 
             /* Close notifications are handled as shutdowns */
             if (conn->alert_in_data[1] == S2N_TLS_ALERT_CLOSE_NOTIFY) {
+                conn->closed = 1;
+                return 0;
+            }
+
+            /* Ignore warning-level alerts */
+            if (conn->alert_in_data[0] == S2N_TLS_ALERT_LEVEL_WARNING) {
                 return 0;
             }
 
@@ -85,7 +90,8 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
                 conn->config->cache_delete(conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
             }
 
-            /* All other alerts are treated as fatal errors (even warnings) */
+            /* All other alerts are treated as fatal errors */
+            conn->closed = 1;
             S2N_ERROR(S2N_ERR_ALERT);
         }
     }
