@@ -622,9 +622,9 @@ int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, 
         if (0 == strcmp(preferences->suites[i]->name, conn->secure.cipher_suite->name) &&
             /* make sure we dont use a tls version lower than that configured by the version */
             s2n_connection_get_actual_protocol_version(conn) >= preferences->suites[i]->minimum_required_tls_version) {
-            return 0;
+            return 1;
         }
     }
 
-    S2N_ERROR(S2N_ERR_INVALID_CIPHER_PREFERENCES);
+    return 0;
 }
