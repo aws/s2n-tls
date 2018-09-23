@@ -339,10 +339,6 @@ int s2n_config_get_client_auth_type(struct s2n_config *config, s2n_cert_auth_typ
 
 int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_type client_auth_type)
 {
-    if ((client_auth_type != S2N_CERT_AUTH_NONE) && config->use_tickets) {
-        /* s2n does not support handshakes with CLIENT_AUTH when in session resumption mode */
-        S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_RESUMPTION_MODE);
-    }
     notnull_check(config);
     config->client_cert_auth_type = client_auth_type;
     return 0;
@@ -719,11 +715,6 @@ int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enab
 {
     notnull_check(config);
 
-    if ((config->client_cert_auth_type != S2N_CERT_AUTH_NONE) && enabled) {
-        /* s2n does not support handshakes with CLIENT_AUTH when in session resumption mode */
-        S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_RESUMPTION_MODE);
-    }
-
     if (config->use_tickets == enabled) {
         return 0;
     }
@@ -786,7 +777,7 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     struct s2n_blob salt = { .size = 0 };
     struct s2n_blob info = { .size = 0 };
 
-    struct s2n_blob allocator;
+    struct s2n_blob allocator = {0};
     struct s2n_ticket_key *session_ticket_key;
 
     GUARD(s2n_alloc(&allocator, sizeof(struct s2n_ticket_key)));
@@ -829,8 +820,8 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
         session_ticket_key->intro_timestamp = (intro_time_in_seconds_from_epoch * ONE_SEC_IN_NANOS);
     }
 
-    struct s2n_ticket_key *ticket_key_element = s2n_array_add(config->ticket_keys);
-    memcpy_check(ticket_key_element, session_ticket_key, sizeof(struct s2n_ticket_key));
+    GUARD(s2n_config_add_key_in_sorted_array(config, session_ticket_key));
+    GUARD(s2n_free(&allocator));
 
     return 0;
 }

@@ -351,6 +351,23 @@ int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn)
     return IS_OCSP_STAPLED(conn->handshake.handshake_type) ? 1 : 0;
 }
 
+int s2n_config_is_encrypt_decrypt_key_available(struct s2n_config *config)
+{
+    uint64_t now;
+    GUARD(config->monotonic_clock(config->monotonic_clock_ctx, &now));
+
+    for (int i = config->ticket_keys->num_of_elements - 1; i >= 0; i--) {
+        uint64_t key_intro_time = ((struct s2n_ticket_key *)s2n_array_get(config->ticket_keys, i))->intro_timestamp;
+
+        if (key_intro_time < now
+                && now < key_intro_time + config->encrypt_decrypt_key_lifetime_in_nanos) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 /* This function is used in s2n_get_ticket_encrypt_decrypt_key to compute the weight
  * of the keys and to choose a single key from all of the encrypt-decrypt keys.
  * Higher the weight of the key, higher the probability of being picked.
@@ -570,10 +587,13 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn)
      * for the ticket.
      */
     if (now >= key->intro_timestamp + conn->config->encrypt_decrypt_key_lifetime_in_nanos) {
-        conn->session_ticket_status = S2N_NEW_TICKET;
-        conn->handshake.handshake_type |= WITH_SESSION_TICKET;
+        /* Check if a key in encrypt-decrypt state is available */
+        if (s2n_config_is_encrypt_decrypt_key_available(conn->config) == 1) {
+            conn->session_ticket_status = S2N_NEW_TICKET;
+            conn->handshake.handshake_type |= WITH_SESSION_TICKET;
 
-        return 0;
+            return 0;
+        }
     }
 
     return 0;
@@ -631,5 +651,28 @@ int s2n_verify_unique_ticket_key(struct s2n_config *config, uint8_t *hash, uint1
     }
 
     *insert_index = low;
+    return 0;
+}
+
+int s2n_config_add_key_in_sorted_array(struct s2n_config *config, struct s2n_ticket_key *key)
+{
+    int low = 0;
+    int top = config->ticket_keys->num_of_elements - 1;
+
+    /* Binary search */
+    while (low <= top) {
+        int mid = low + ((top - low) / 2);
+
+        if (((struct s2n_ticket_key *)s2n_array_get(config->ticket_keys, mid))->intro_timestamp <= key->intro_timestamp) {
+            low = mid + 1;
+        } else {
+            top = mid - 1;
+        }
+    }
+
+    /* Keys are stored from oldest to newest */
+    struct s2n_ticket_key *ticket_key_element = s2n_array_insert(config->ticket_keys, low);
+    memcpy_check(ticket_key_element, key, sizeof(struct s2n_ticket_key));
+
     return 0;
 }
