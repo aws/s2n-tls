@@ -623,8 +623,9 @@ int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, 
         return 0;
     }
 
+    struct s2n_cipher_suite *cipher = conn->secure.cipher_suite;
     for (int i = 0; i < preferences->count; ++i) {
-        if (0 == strcmp(preferences->suites[i]->name, conn->secure.cipher_suite->name)) {
+        if (0 == memcmp(preferences->suites[i]->iana_value, cipher->iana_value, S2N_TLS_CIPHER_SUITE_LEN)) {
             return 1;
         }
     }
