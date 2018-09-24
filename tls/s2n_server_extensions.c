@@ -28,6 +28,7 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
+static int s2n_recv_server_renegotiation_info_ext(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_server_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_server_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_server_sct_list(struct s2n_connection *conn, struct s2n_stuffer *extension);
@@ -155,6 +156,9 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
         GUARD(s2n_stuffer_write(&extension, &ext));
 
         switch (extension_type) {
+        case TLS_EXTENSION_RENEGOTIATION_INFO:
+            GUARD(s2n_recv_server_renegotiation_info_ext(conn, &extension));
+            break;
         case TLS_EXTENSION_ALPN:
             GUARD(s2n_recv_server_alpn(conn, &extension));
             break;
@@ -173,6 +177,20 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
         }
     }
 
+    return 0;
+}
+
+int s2n_recv_server_renegotiation_info_ext(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    /* RFC5746 Section 3.4: The client MUST then verify that the length of
+     * the "renegotiated_connection" field is zero, and if it is not, MUST
+     * abort the handshake. */
+    uint8_t renegotiated_connection_len;
+    GUARD(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
+    S2N_ERROR_IF(s2n_stuffer_data_available(extension), S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
+    S2N_ERROR_IF(renegotiated_connection_len, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
+
+    conn->secure_renegotiation = 1;
     return 0;
 }
 
