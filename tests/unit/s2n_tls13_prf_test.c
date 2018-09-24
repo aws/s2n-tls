@@ -99,6 +99,7 @@ int main(int argc, char **argv)
     }
 
     EXPECT_SUCCESS(s2n_hash_new(&transcript_hash));
+    EXPECT_SUCCESS(s2n_hash_new(&transcript_hash_snapshot));
     EXPECT_SUCCESS(s2n_hash_init(&transcript_hash, S2N_HASH_SHA256));
     EXPECT_SUCCESS(s2n_hash_copy(&transcript_hash_snapshot, &transcript_hash));
     EXPECT_SUCCESS(s2n_hash_digest(&transcript_hash_snapshot, digest_buf, SHA256_DIGEST_LENGTH));
@@ -119,6 +120,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_blob_init(&output, output_buf, sizeof(output_buf)));
 
     struct s2n_hmac_state throwaway;
+    EXPECT_SUCCESS(s2n_hmac_new(&throwaway));
 
     /* Validate the early secret */
     EXPECT_SUCCESS(s2n_hkdf_extract(&throwaway, S2N_HMAC_SHA256, &salt, &ikm, &secret));
@@ -136,6 +138,7 @@ int main(int argc, char **argv)
 
     EXPECT_EQUAL(memcmp(output_buf, expected_expanded, sizeof(output_buf)), 0);
 
+    EXPECT_SUCCESS(s2n_hmac_free(&throwaway));
     EXPECT_SUCCESS(s2n_hmac_free(&hmac));
     EXPECT_SUCCESS(s2n_hash_free(&transcript_hash));
     EXPECT_SUCCESS(s2n_hash_free(&transcript_hash_snapshot));
