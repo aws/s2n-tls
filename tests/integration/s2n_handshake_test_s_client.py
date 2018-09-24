@@ -265,10 +265,6 @@ def client_auth_test(host, port, test_ciphers, fips_mode):
 
     print("\n\tRunning client auth tests:")
 
-    if fips_mode:
-        print("\t\033[33;1mSKIPPED\033[0m - Client Auth not supported in FIPS mode")
-        return 0
-
     for filename in os.listdir(TEST_CERT_DIRECTORY):
         if "client_cert" in filename and "rsa" in filename:
             client_cert_path = TEST_CERT_DIRECTORY + filename
@@ -332,11 +328,6 @@ def sigalg_test(host, port, fips_mode, use_client_auth=None, no_ticket=False):
     failed = 0
 
     print("\n\tRunning signature algorithm tests:")
-
-    if fips_mode and use_client_auth:
-        print("\t\033[33;1mSKIPPED\033[0m - Client Auth not supported in FIPS mode")
-        return 0
-
     print("\tExpected supported:   " + str(supported_sigs))
     print("\tExpected unsupported: " + str(unsupported_sigs))
 
