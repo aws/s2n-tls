@@ -149,7 +149,8 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_ENCRYPT_DECRYPT_KEY_SELECTION_FAILED, "Failed to select a key from keys in encrypt-decrypt state"},
     {S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND, "Key used in already assigned session ticket not found for decryption"},
     {S2N_ERR_SENDING_NST, "Error in session ticket status encountered before sending NST"},
-    {S2N_ERR_INVALID_DYNAMIC_THRESHOLD, "invalid dynamic record threshold"}
+    {S2N_ERR_INVALID_DYNAMIC_THRESHOLD, "invalid dynamic record threshold"},
+    {S2N_ERR_INVALID_ARGUMENT, "invalid argument provided into a function call"},
 };
 
 const char *s2n_strerror(int error, const char *lang)

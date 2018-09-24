@@ -734,6 +734,14 @@ callback can get any ClientHello infromation from the connection and use
 The callback can return 0 to continue handshake in s2n or it can return negative
 value to make s2n terminate handshake early with fatal handshake failure alert.
 
+### s2n\_config\_set\_alert\_behavior
+```c
+int s2n_config_set_alert_behavior(struct s2n_config *config, s2n_alert_behavior alert_behavior);
+```
+Sets whether or not a should terminate connection on WARNING alert from peer. `alert_behavior` can take the following values:
+- `S2N_ALERT_FAIL_ON_WARNINGS` - default behavior: s2n will terminate conneciton if peer sends WARNING alert.
+- `S2N_ALERT_IGNORE_WARNINGS` - with the exception of `close_notify` s2n will ignore all WARNING alerts and keep communicating with its peer.
+
 ## Client Auth Related calls
 Client Auth Related API's are not recommended for normal users. Use of these API's is discouraged.
 
