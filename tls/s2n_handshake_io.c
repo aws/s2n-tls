@@ -392,8 +392,12 @@ static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct 
     const uint8_t md5_sha1_required = (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_MD5) &&
                                        s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA1));
 
-    if (md5_sha1_required && s2n_hash_is_available(S2N_HASH_MD5_SHA1)) {
-        /* The MD5_SHA1 hash cannot be initialized when FIPS mode is set. */
+    if (md5_sha1_required) {
+        /* The MD5_SHA1 hash can still be used for TLS 1.0 and 1.1 in FIPS mode for 
+         * the handshake hashes. This will only be used for the signature check in the
+         * CertificateVerify message and the PRF. NIST SP 800-52r1 approves use
+         * of MD5_SHA1 for these use cases (see footnotes 15 and 20, and section
+         * 3.3.2) */
         GUARD(s2n_hash_update(&conn->handshake.md5_sha1, data->data, data->size));
     }
 
