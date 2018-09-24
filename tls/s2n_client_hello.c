@@ -369,6 +369,8 @@ int s2n_client_hello_send(struct s2n_connection *conn)
             num_available_suites++;
         }
     }
+    /* Include TLS_EMPTY_RENEGOTIATION_INFO_SCSV */
+    num_available_suites++;
 
     /* Write size of the list of available ciphers */
     GUARD(s2n_stuffer_write_uint16(out, num_available_suites * S2N_TLS_CIPHER_SUITE_LEN));
@@ -379,6 +381,9 @@ int s2n_client_hello_send(struct s2n_connection *conn)
             GUARD(s2n_stuffer_write_bytes(out, cipher_preferences->suites[i]->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
         }
     }
+    /* Lastly, write TLS_EMPTY_RENEGOTIATION_INFO_SCSV so that server knows it's an initial handshake (RFC5746 Section 3.4) */
+    uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
+    GUARD(s2n_stuffer_write_bytes(out, renegotiation_info_scsv, S2N_TLS_CIPHER_SUITE_LEN));
 
     /* Zero compression methods */
     GUARD(s2n_stuffer_write_uint8(out, 1));
