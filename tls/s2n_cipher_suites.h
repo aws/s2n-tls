@@ -78,7 +78,7 @@ struct s2n_cipher_suite {
 
     /* Cipher name in Openssl format */
     const char *name;
-    const uint8_t iana_value[2];
+    const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN];
 
     const struct s2n_key_exchange_algorithm *key_exchange_alg;
 
