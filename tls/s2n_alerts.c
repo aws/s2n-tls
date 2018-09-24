@@ -80,8 +80,9 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
                 return 0;
             }
 
-            /* Ignore warning-level alerts */
-            if (conn->alert_in_data[0] == S2N_TLS_ALERT_LEVEL_WARNING) {
+            /* Ignore warning-level alerts if we're in warning-tolerant mode */
+            if (conn->config->alert_behavior == S2N_ALERT_IGNORE_WARNINGS &&
+                    conn->alert_in_data[0] == S2N_TLS_ALERT_LEVEL_WARNING) {
                 return 0;
             }
 

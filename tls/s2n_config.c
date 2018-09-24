@@ -94,6 +94,7 @@ static int s2n_config_init(struct s2n_config *config)
     config->cache_delete_data = NULL;
     config->ct_type = S2N_CT_SUPPORT_NONE;
     config->mfl_code = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
+    config->alert_behavior = S2N_ALERT_FAIL_ON_WARNINGS;
     config->accept_mfl = 0;
     config->session_state_lifetime_in_nanos = S2N_STATE_LIFETIME_IN_NANOS;
     config->use_tickets = 0;
@@ -359,6 +360,22 @@ int s2n_config_set_ct_support_level(struct s2n_config *config, s2n_ct_support_le
 {
     notnull_check(config);
     config->ct_type = type;
+
+    return 0;
+}
+
+int s2n_config_set_alert_behavior(struct s2n_config *config, s2n_alert_behavior alert_behavior)
+{
+    notnull_check(config);
+
+    switch (alert_behavior) {
+        case S2N_ALERT_FAIL_ON_WARNINGS:
+        case S2N_ALERT_IGNORE_WARNINGS:
+            config->alert_behavior = alert_behavior;
+            break;
+        default:
+            S2N_ERROR(S2N_ERR_INVALID_ARGUMENT);
+    }
 
     return 0;
 }

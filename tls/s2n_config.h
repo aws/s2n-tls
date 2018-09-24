@@ -67,6 +67,8 @@ struct s2n_config {
 
     s2n_cert_auth_type client_cert_auth_type;
 
+    s2n_alert_behavior alert_behavior;
+
     /* Return TRUE if the host should be trusted, If FALSE this will likely be called again for every host/alternative name
      * in the certificate. If any respond TRUE. If none return TRUE, the cert will be considered untrusted. */
     uint8_t (*verify_host) (const char *host_name, size_t host_name_len, void *data);
