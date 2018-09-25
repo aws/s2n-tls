@@ -65,6 +65,9 @@ struct s2n_handshake {
     struct s2n_hash_state sha512;
     struct s2n_hash_state md5_sha1;
 
+    /* A copy of the handshake messages hash used to validate the CertificateVerify message */
+    struct s2n_hash_state ccv_hash_copy;
+
     /* Used for SSLv3, TLS 1.0, and TLS 1.1 PRFs */
     struct s2n_hash_state prf_md5_hash_copy;
     struct s2n_hash_state prf_sha1_hash_copy;

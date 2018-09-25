@@ -46,11 +46,12 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
     notnull_check(signature.data);
     struct s2n_hash_state hash_state = {0};
     GUARD(s2n_handshake_get_hash_state(conn, chosen_hash_alg, &hash_state));
-
+    GUARD(s2n_hash_copy(&conn->handshake.ccv_hash_copy, &hash_state));
+    
     switch (chosen_signature_alg) {
     case S2N_SIGNATURE_RSA:
     case S2N_SIGNATURE_ECDSA:
-        GUARD(s2n_pkey_verify(&conn->secure.client_public_key, &hash_state, &signature));
+        GUARD(s2n_pkey_verify(&conn->secure.client_public_key, &conn->handshake.ccv_hash_copy, &signature));
         break;
     default:
         S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);

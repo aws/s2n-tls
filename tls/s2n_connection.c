@@ -60,6 +60,7 @@ static int s2n_connection_new_hashes(struct s2n_connection *conn)
     GUARD(s2n_hash_new(&conn->handshake.sha384));
     GUARD(s2n_hash_new(&conn->handshake.sha512));
     GUARD(s2n_hash_new(&conn->handshake.md5_sha1));
+    GUARD(s2n_hash_new(&conn->handshake.ccv_hash_copy));
     GUARD(s2n_hash_new(&conn->handshake.prf_md5_hash_copy));
     GUARD(s2n_hash_new(&conn->handshake.prf_sha1_hash_copy));
     GUARD(s2n_hash_new(&conn->handshake.prf_tls12_hash_copy));
@@ -80,10 +81,6 @@ static int s2n_connection_init_hashes(struct s2n_connection *conn)
         GUARD(s2n_hash_init(&conn->prf_space.ssl3.md5, S2N_HASH_MD5));
     }
 
-    if (s2n_hash_is_available(S2N_HASH_MD5_SHA1)) {
-        /* Only initialize hashes that use MD5_SHA1 if available. */
-        GUARD(s2n_hash_init(&conn->handshake.md5_sha1, S2N_HASH_MD5_SHA1));
-    }
 
     /* Allow MD5 for hash states that are used by the PRF. This is required
      * to comply with the TLS 1.0 and 1.1 RFCs and is approved as per
@@ -92,15 +89,24 @@ static int s2n_connection_init_hashes(struct s2n_connection *conn)
     if (s2n_is_in_fips_mode()) {
         GUARD(s2n_hash_allow_md5_for_fips(&conn->handshake.md5));
         GUARD(s2n_hash_allow_md5_for_fips(&conn->handshake.prf_md5_hash_copy));
+        
+        /* Do not check s2n_hash_is_available before initialization. Allow MD5 and 
+         * SHA-1 for both fips and non-fips mode. This is required to perform the
+         * signature checks in the CertificateVerify message in TLS 1.0 and TLS 1.1. 
+         * This is approved per Nist SP 800-52r1.*/
+        GUARD(s2n_hash_allow_md5_for_fips(&conn->handshake.md5_sha1));
     }
+    
     GUARD(s2n_hash_init(&conn->handshake.md5, S2N_HASH_MD5));
     GUARD(s2n_hash_init(&conn->handshake.prf_md5_hash_copy, S2N_HASH_MD5));
+    GUARD(s2n_hash_init(&conn->handshake.md5_sha1, S2N_HASH_MD5_SHA1));
 
     GUARD(s2n_hash_init(&conn->handshake.sha1, S2N_HASH_SHA1));
     GUARD(s2n_hash_init(&conn->handshake.sha224, S2N_HASH_SHA224));
     GUARD(s2n_hash_init(&conn->handshake.sha256, S2N_HASH_SHA256));
     GUARD(s2n_hash_init(&conn->handshake.sha384, S2N_HASH_SHA384));
     GUARD(s2n_hash_init(&conn->handshake.sha512, S2N_HASH_SHA512));
+    GUARD(s2n_hash_init(&conn->handshake.ccv_hash_copy, S2N_HASH_NONE));
     GUARD(s2n_hash_init(&conn->handshake.prf_tls12_hash_copy, S2N_HASH_NONE));
     GUARD(s2n_hash_init(&conn->handshake.prf_sha1_hash_copy, S2N_HASH_SHA1));
     GUARD(s2n_hash_init(&conn->prf_space.ssl3.sha1, S2N_HASH_SHA1));
@@ -314,6 +320,7 @@ static int s2n_connection_reset_hashes(struct s2n_connection *conn)
     GUARD(s2n_hash_reset(&conn->handshake.sha384));
     GUARD(s2n_hash_reset(&conn->handshake.sha512));
     GUARD(s2n_hash_reset(&conn->handshake.md5_sha1));
+    GUARD(s2n_hash_reset(&conn->handshake.ccv_hash_copy));
     GUARD(s2n_hash_reset(&conn->handshake.prf_md5_hash_copy));
     GUARD(s2n_hash_reset(&conn->handshake.prf_sha1_hash_copy));
     GUARD(s2n_hash_reset(&conn->handshake.prf_tls12_hash_copy));
@@ -391,6 +398,7 @@ static int s2n_connection_free_hashes(struct s2n_connection *conn)
     GUARD(s2n_hash_free(&conn->handshake.sha384));
     GUARD(s2n_hash_free(&conn->handshake.sha512));
     GUARD(s2n_hash_free(&conn->handshake.md5_sha1));
+    GUARD(s2n_hash_free(&conn->handshake.ccv_hash_copy));
     GUARD(s2n_hash_free(&conn->handshake.prf_md5_hash_copy));
     GUARD(s2n_hash_free(&conn->handshake.prf_sha1_hash_copy));
     GUARD(s2n_hash_free(&conn->handshake.prf_tls12_hash_copy));
@@ -759,13 +767,6 @@ int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_au
 
 int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type client_cert_auth_type)
 {
-    if ((client_cert_auth_type != S2N_CERT_AUTH_NONE) && s2n_is_in_fips_mode()) {
-        /* s2n support for Client Auth when in FIPS mode is not yet implemented.
-         * When implemented, FIPS only permits Client Auth for TLS 1.2
-         */
-        S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_FIPS_MODE);
-    }
-
     if ((client_cert_auth_type != S2N_CERT_AUTH_NONE) && conn->config->use_tickets) {
         /* s2n does not support handshakes with CLIENT_AUTH when in session resumption mode */
         S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_RESUMPTION_MODE);

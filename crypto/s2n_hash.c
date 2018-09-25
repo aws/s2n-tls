@@ -277,6 +277,7 @@ static int s2n_evp_hash_allow_md5_for_fips(struct s2n_hash_state *state)
      * outside of the TLS 1.0 and 1.1 PRF when in FIPS mode. When needed, this must
      * be called prior to s2n_hash_init().
      */
+    GUARD(s2n_digest_allow_md5_for_fips(&state->digest.high_level.evp_md5_secondary));
     return s2n_digest_allow_md5_for_fips(&state->digest.high_level.evp);
 }
 
@@ -426,7 +427,7 @@ static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
 static int s2n_evp_hash_reset(struct s2n_hash_state *state)
 {
     int reset_md5_for_fips = 0;
-    if ((state->alg == S2N_HASH_MD5) && s2n_digest_is_md5_allowed_for_fips(&state->digest.high_level.evp)) {
+    if ((state->alg == S2N_HASH_MD5 || state->alg == S2N_HASH_MD5_SHA1) && s2n_digest_is_md5_allowed_for_fips(&state->digest.high_level.evp)) {
         reset_md5_for_fips = 1;
     }
 
@@ -439,7 +440,6 @@ static int s2n_evp_hash_reset(struct s2n_hash_state *state)
     if (reset_md5_for_fips) {
         GUARD(s2n_hash_allow_md5_for_fips(state));
     }
-
     /* hash_init resets the ready_for_input and currently_in_hash fields */
     return s2n_evp_hash_init(state, state->alg);
 }
@@ -515,7 +515,7 @@ int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
     GUARD(s2n_hash_set_impl(state));
 
     if (s2n_hash_is_available(alg) ||
-       ((alg == S2N_HASH_MD5) && s2n_digest_is_md5_allowed_for_fips(&state->digest.high_level.evp))) {
+       ((alg == S2N_HASH_MD5 || alg == S2N_HASH_MD5_SHA1) && s2n_digest_is_md5_allowed_for_fips(&state->digest.high_level.evp))) {
         /* s2n will continue to initialize an "unavailable" hash when s2n is in FIPS mode and
          * FIPS is forcing the hash to be made available.
          */
