@@ -953,6 +953,17 @@ ssize_t s2n_connection_get_session_id_length(struct s2n_connection *conn)
     return conn->session_id_len;
 }
 
+int s2n_connection_get_session_id(struct s2n_connection *conn, uint8_t *session_id)
+{
+    notnull_check(conn);
+    notnull_check(session_id);
+
+    uint32_t session_id_len = s2n_connection_get_session_id_length(conn);
+    memcpy_check(session_id, conn->session_id, session_id_len);
+
+    return session_id_len;
+}
+
 int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blinding)
 {
     conn->blinding = blinding;
