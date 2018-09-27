@@ -68,6 +68,12 @@ struct s2n_connection {
      * default socket-based I/O set by s2n */
     uint8_t managed_io;
 
+    /* Is this connection blocked on some other connections/events, e.g. ssl
+     * handshake depends on a session cache that must be fetched from
+     * non-localhost
+     */
+    unsigned block_on_other_events:1;
+
     /* Is this connection using CORK/SO_RCVLOWAT optimizations? Only valid when the connection is using
      * managed_io
      */
