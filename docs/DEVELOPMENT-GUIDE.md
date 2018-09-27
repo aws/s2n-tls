@@ -340,21 +340,22 @@ Borrowing another trick from functional programming, the state machine for handl
 
 ```c
 static struct s2n_handshake_action state_machine[] = {
-    /*Message type  Handshake type       Writer S2N_SERVER                S2N_CLIENT                   handshake.state              */
-    {TLS_HANDSHAKE, TLS_CLIENT_HELLO,      'C', {s2n_client_hello_recv,    s2n_client_hello_send}},    /* CLIENT_HELLO              */
-    {TLS_HANDSHAKE, TLS_SERVER_HELLO,      'S', {s2n_server_hello_send,    s2n_server_hello_recv}},    /* SERVER_HELLO              */
-    {TLS_HANDSHAKE, TLS_SERVER_CERT,       'S', {s2n_server_cert_send,     s2n_server_cert_recv}},     /* SERVER_CERT               */
-    {TLS_HANDSHAKE, TLS_SERVER_KEY,        'S', {s2n_server_key_send,      s2n_server_key_recv}},      /* SERVER_KEY                */
-    {TLS_HANDSHAKE, TLS_SERVER_CERT_REQ,   'S', {NULL,                     NULL}},                     /* SERVER_CERT_REQ           */
-    {TLS_HANDSHAKE, TLS_SERVER_HELLO_DONE, 'S', {s2n_server_done_send,     s2n_server_done_recv}},     /* SERVER_HELLO_DONE         */
-    {TLS_HANDSHAKE, TLS_CLIENT_CERT,       'C', {NULL,                     NULL}},                     /* CLIENT_CERT               */
-    {TLS_HANDSHAKE, TLS_CLIENT_KEY,        'C', {s2n_client_key_recv,      s2n_client_key_send}},      /* CLIENT_KEY                */
-    {TLS_HANDSHAKE, TLS_CLIENT_CERT_VERIFY,'C', {NULL,                     NULL}},                     /* CLIENT_CERT_VERIFY        */
-    {TLS_CHANGE_CIPHER_SPEC, 0,            'C', {s2n_client_ccs_recv,      s2n_client_ccs_send}},      /* CLIENT_CHANGE_CIPHER_SPEC */
-    {TLS_HANDSHAKE, TLS_CLIENT_FINISHED,   'C', {s2n_client_finished_recv, s2n_client_finished_send}}, /* CLIENT_FINISHED           */
-    {TLS_CHANGE_CIPHER_SPEC, 0,            'S', {s2n_server_ccs_send,      s2n_server_ccs_recv}},      /* SERVER_CHANGE_CIPHER_SPEC */
-    {TLS_HANDSHAKE, TLS_SERVER_FINISHED,   'S', {s2n_server_finished_send, s2n_server_finished_recv}}, /* SERVER_FINISHED           */
-    {TLS_APPLICATION_DATA, 0,              'B', {NULL, NULL}}    /* HANDSHAKE_OVER            */
+    /*Message type  Handshake type             Writer S2N_SERVER                S2N_CLIENT                      handshake.state              */
+    {TLS_HANDSHAKE, TLS_CLIENT_HELLO,          'C', {s2n_client_hello_recv,    s2n_client_hello_send}},        /* CLIENT_HELLO              */
+    {TLS_HANDSHAKE, TLS_SERVER_SESSION_LOOKUP, 'A', {s2n_server_session_lookup, s2n_handshake_dummy_handler}}, /* SERVER_SESSION_LOOKUP  */
+    {TLS_HANDSHAKE, TLS_SERVER_HELLO,          'S', {s2n_server_hello_send,    s2n_server_hello_recv}},        /* SERVER_HELLO              */
+    {TLS_HANDSHAKE, TLS_SERVER_CERT,           'S', {s2n_server_cert_send,     s2n_server_cert_recv}},         /* SERVER_CERT               */
+    {TLS_HANDSHAKE, TLS_SERVER_KEY,            'S', {s2n_server_key_send,      s2n_server_key_recv}},          /* SERVER_KEY                */
+    {TLS_HANDSHAKE, TLS_SERVER_CERT_REQ,       'S', {NULL,                     NULL}},                         /* SERVER_CERT_REQ           */
+    {TLS_HANDSHAKE, TLS_SERVER_HELLO_DONE,     'S', {s2n_server_done_send,     s2n_server_done_recv}},         /* SERVER_HELLO_DONE         */
+    {TLS_HANDSHAKE, TLS_CLIENT_CERT,           'C', {NULL,                     NULL}},                         /* CLIENT_CERT               */
+    {TLS_HANDSHAKE, TLS_CLIENT_KEY,            'C', {s2n_client_key_recv,      s2n_client_key_send}},          /* CLIENT_KEY                */
+    {TLS_HANDSHAKE, TLS_CLIENT_CERT_VERIFY,    'C', {NULL,                     NULL}},                         /* CLIENT_CERT_VERIFY        */
+    {TLS_CHANGE_CIPHER_SPEC, 0,                'C', {s2n_client_ccs_recv,      s2n_client_ccs_send}},          /* CLIENT_CHANGE_CIPHER_SPEC */
+    {TLS_HANDSHAKE, TLS_CLIENT_FINISHED,       'C', {s2n_client_finished_recv, s2n_client_finished_send}},     /* CLIENT_FINISHED           */
+    {TLS_CHANGE_CIPHER_SPEC, 0,                'S', {s2n_server_ccs_send,      s2n_server_ccs_recv}},          /* SERVER_CHANGE_CIPHER_SPEC */
+    {TLS_HANDSHAKE, TLS_SERVER_FINISHED,       'S', {s2n_server_finished_send, s2n_server_finished_recv}},     /* SERVER_FINISHED           */
+    {TLS_APPLICATION_DATA, 0,                  'B', {NULL, NULL}}    /* HANDSHAKE_OVER            */
 };
 ```
 
@@ -392,6 +393,9 @@ sig_atomic_t closed;
 ```
 
 'closing' is an atomic, but even if it were not it can only be changed from 0 to 1, so an over-write is harmless. Every time a TLS record is fully-written, s2n_send() checks to see if closing is set to 1. If it is then the reader or writer alert message will be sent (writer takes priority, if both are present) and the connection will be closed. Once the closed is 1, no more I/O may be sent or received on the connection.
+
+### block and unblock the TLS state machine by application data
+Sometimes the state machine might be blocked on application side data. For example, when server is processing client hello, it might need to fetch session data from a remote cache server. In such a case, the state machine should be able to exit with the return code of -1 and s2n_blocked_status of S2N_BLOCKED_ON_APPLICATION_DATA, so that it won't block other s2n connections. We use the Writer flag of 'A' to indicate that state is to wait and handle application data. The state handlers should return 1 to indicate the state is still blocked by application data; it should return 0 when applcaition data is available and successfully processed, and -1 otherwise. If you need to add such a state into the state machine, the only job is to define server and client side state handlers, and use 'A' as the Wrtier flag. You may use the s2n_handshake_dummy_handler(s2n_conn) if the server or client does not need to worry about application side data. It is a good idea to use a callback which can be implemented by application code. For more details, see the SERVER_SESSION_LOOKUP state, its handlers, and the cache related callbacks. 
 
 ## s2n and entropy
 

@@ -39,7 +39,9 @@ int s2n_pkey_setup_for_type(struct s2n_pkey *pkey, s2n_cert_type cert_type)
 {
     switch(cert_type){
     case S2N_CERT_TYPE_RSA_SIGN:
+        //printf("OMG ss2n_pkey_setup_for_type \n");
         GUARD(s2n_rsa_pkey_init(pkey));
+        //printf("OMG ss2n_pkey_setup_for_type passed \n");
         break;
     case S2N_CERT_TYPE_ECDSA_SIGN:
         GUARD(s2n_ecdsa_pkey_init(pkey));
@@ -67,7 +69,6 @@ int s2n_pkey_size(const struct s2n_pkey *pkey)
 int s2n_pkey_sign(const struct s2n_pkey *pkey, struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
     notnull_check(pkey->sign);
-    
     return pkey->sign(pkey, digest, signature);
 }
 
@@ -75,7 +76,6 @@ int s2n_pkey_verify(const struct s2n_pkey *pkey, struct s2n_hash_state *digest, 
 {
     notnull_check(pkey);
     notnull_check(pkey->verify);
-    
     return pkey->verify(pkey, digest, signature);
 }
 
@@ -129,6 +129,7 @@ int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1d
     int ret;
     switch (type) {
     case EVP_PKEY_RSA:
+        //printf("OMG s2n_asnlder_to_proivate_key \n");
         ret = s2n_rsa_pkey_init(priv_key);
         if (ret != 0) {
             break;
@@ -177,6 +178,7 @@ int s2n_asn1der_to_public_key_and_type(struct s2n_pkey *pub_key, s2n_cert_type *
     int ret;
     switch (type) {
     case EVP_PKEY_RSA:
+        //printf("OMG s2n_asn1der_to_public_key_and_type\n");
         ret = s2n_rsa_pkey_init(pub_key);
         if (ret != 0) {
             break;

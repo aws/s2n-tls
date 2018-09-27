@@ -45,6 +45,9 @@ let config_use_tickets config = (crucible_field config "use_tickets");
 //conn->session_ticket_status
 let conn_session_ticket_status pconn = (crucible_field pconn "session_ticket_status");
 
+//conn->block_on_other_events
+let conn_block_on_other_events pconn = crucible_field pconn "block_on_other_events";
+
 //conn->client_cert_auth_type
 let cca_type pconn = crucible_field pconn "client_cert_auth_type";
 

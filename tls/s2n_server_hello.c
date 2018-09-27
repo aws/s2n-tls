@@ -107,7 +107,11 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         GUARD(s2n_server_extensions_recv(conn, &extensions));
     }
 
-    GUARD(s2n_conn_set_handshake_type(conn));
+    int r = s2n_conn_set_handshake_type(conn);
+    GUARD(r);
+    if (r == 1) {
+        return r;
+    }
 
     if (IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type)) {
         GUARD(s2n_prf_key_expansion(conn));
@@ -124,6 +128,7 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         conn->secure.conn_hash_alg = S2N_HASH_MD5_SHA1;
     }
 
+    //printf("OMG server hello recv passed for mode 1\n");
     return 0;
 }
 
