@@ -21,6 +21,8 @@
 
 #include "utils/s2n_mem.h"
 
+#define S2N_UNUSED(x) do { (void) x; } while (0)
+
 struct foo
 {
   int x;
@@ -38,6 +40,7 @@ DEFINE_TRIVIAL_CLEANUP_FUNC(struct foo*, foo_free);
 int check_cleanup_obj_on_fn_exit()
 {
   DEFER_CLEANUP(struct foo x = {0}, foo_free);
+  S2N_UNUSED(x);
   return 0;
 }
 
@@ -45,6 +48,8 @@ int check_cleanup_pointer_on_fn_exit()
 {
   struct foo thefoo= {0};
   DEFER_CLEANUP(struct foo* foop = &thefoo, foo_freep);
+  S2N_UNUSED(thefoo);
+  S2N_UNUSED(foop);
   return 0;
 }
 
@@ -52,6 +57,7 @@ int check_cleanup_pointer_on_fn_exit()
 int check_dont_cleanup_null_on_fn_exit()
 {
   DEFER_CLEANUP(struct foo* foop = NULL, foo_freep);
+  S2N_UNUSED(foop);
   return 0;
 }
 
@@ -64,10 +70,11 @@ int main()
   //check that the cleanup functions are called on each loop exit
   for (int i = 0; i < 10; ++i) {
     DEFER_CLEANUP(struct foo x = {i}, foo_free);
+    S2N_UNUSED(x);
     EXPECT_EQUAL(foo_cleanup_calls, expected_cleanup_count);
     expected_cleanup_count++;
   }
-  
+
   EXPECT_EQUAL(foo_cleanup_calls, expected_cleanup_count);
 
   EXPECT_SUCCESS(check_cleanup_obj_on_fn_exit());
