@@ -300,19 +300,21 @@ int s2n_server_session_lookup(struct s2n_connection *conn)
 
 int s2n_client_hello_recv(struct s2n_connection *conn)
 {
-    /* Parse client hello */
-    GUARD(s2n_parse_client_hello(conn));
+    if (!conn->block_on_other_events) {
+        /* Parse client hello */
+        GUARD(s2n_parse_client_hello(conn));
 
-    GUARD(s2n_populate_client_hello_extensions(&conn->client_hello));
+        GUARD(s2n_populate_client_hello_extensions(&conn->client_hello));
 
-    /* Mark the collected client hello as available when parsing is done and before the client hello callback */
-    conn->client_hello.parsed = 1;
+        /* Mark the collected client hello as available when parsing is done and before the client hello callback */
+        conn->client_hello.parsed = 1;
 
-    /* Call client_hello_cb if exists, letting application to modify s2n_connection or swap s2n_config */
-    if (conn->config->client_hello_cb) {
-        if (conn->config->client_hello_cb(conn, conn->config->client_hello_cb_ctx) < 0) {
-            GUARD(s2n_queue_reader_handshake_failure_alert(conn));
-            S2N_ERROR(S2N_ERR_CANCELLED);
+        /* Call client_hello_cb if exists, letting application to modify s2n_connection or swap s2n_config */
+        if (conn->config->client_hello_cb) {
+            if (conn->config->client_hello_cb(conn, conn->config->client_hello_cb_ctx) < 0) {
+                GUARD(s2n_queue_reader_handshake_failure_alert(conn));
+                S2N_ERROR(S2N_ERR_CANCELLED);
+            }
         }
     }
 
