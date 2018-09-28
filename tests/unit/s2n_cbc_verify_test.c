@@ -124,6 +124,11 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
+    /* Valgrind affects execution timing, making this test unreliable */
+    if (getenv("S2N_VALGRIND") != NULL) {
+        END_TEST();
+    }
+
     EXPECT_SUCCESS(s2n_hmac_new(&check_mac));
     EXPECT_SUCCESS(s2n_hmac_new(&record_mac));
 
