@@ -144,3 +144,26 @@ int s2n_array_free(struct s2n_array *array)
 
     return 0;
 }
+
+int s2n_array_binary_search(int low, int top, struct s2n_array *array, void *element,
+                            int (*comparator)(void*, void*))
+{
+    notnull_check(array);
+    notnull_check(element);
+
+    while (low <= top) {
+        int mid = low + ((top - low) / 2);
+        int m = comparator(s2n_array_get(array, mid), element);
+
+        if (m == 0) {
+            return -1;
+        } else if (m > 0) {
+            top = mid - 1;
+        } else if (m < 0) {
+            low = mid + 1;
+        }
+    }
+
+    /* Return the index at which element is to be inserted */
+    return low;
+}

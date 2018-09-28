@@ -434,7 +434,7 @@ static int s2n_recv_client_session_ticket_ext(struct s2n_connection *conn, struc
     }
 
     /* s2n server does not support session ticket with CLIENT_AUTH enabled */
-    if (s2n_connection_is_client_auth_enabled(conn)) {
+    if (s2n_connection_is_client_auth_enabled(conn) > 0) {
         return 0;
     }
 

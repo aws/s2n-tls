@@ -1115,13 +1115,10 @@ const uint8_t *s2n_connection_get_sct_list(struct s2n_connection *conn, uint32_t
     return conn->ct_response.data;
 }
 
-int s2n_connection_is_client_auth_enabled(const struct s2n_connection *s2n_connection)
+int s2n_connection_is_client_auth_enabled(struct s2n_connection *s2n_connection)
 {
-    s2n_cert_auth_type auth_type = s2n_connection->config->client_cert_auth_type;
-
-    if (s2n_connection->client_cert_auth_type_overridden) {
-        auth_type = s2n_connection->client_cert_auth_type;
-    }
+    s2n_cert_auth_type auth_type;
+    GUARD(s2n_connection_get_client_auth_type(s2n_connection, &auth_type));
 
     return (auth_type != S2N_CERT_AUTH_NONE);
 }

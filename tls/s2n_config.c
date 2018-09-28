@@ -777,9 +777,8 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     struct s2n_blob salt = { .size = 0 };
     struct s2n_blob info = { .size = 0 };
 
-    struct s2n_blob allocator = {0};
     struct s2n_ticket_key *session_ticket_key;
-
+    DEFER_CLEANUP(struct s2n_blob allocator = {0}, s2n_free);
     GUARD(s2n_alloc(&allocator, sizeof(struct s2n_ticket_key)));
     session_ticket_key = (struct s2n_ticket_key *) (void *) allocator.data;
 
@@ -823,7 +822,6 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     }
 
     GUARD(s2n_config_store_ticket_key(config, session_ticket_key));
-    GUARD(s2n_free(&allocator));
 
     return 0;
 }
