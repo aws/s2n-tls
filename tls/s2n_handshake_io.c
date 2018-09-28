@@ -313,8 +313,10 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
                 return 0;
             }
 
-            conn->session_ticket_status = S2N_NEW_TICKET;
-            conn->handshake.handshake_type |= WITH_SESSION_TICKET;
+            if (s2n_config_is_encrypt_decrypt_key_available(conn->config) == 1) {
+                conn->session_ticket_status = S2N_NEW_TICKET;
+                conn->handshake.handshake_type |= WITH_SESSION_TICKET;
+            }
 
             /* If a session ticket is presented by the client, then skip lookup in Session ID server cache */
             goto skip_cache_lookup;

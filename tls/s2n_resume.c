@@ -28,12 +28,9 @@
 
 int s2n_allowed_to_cache_connection(struct s2n_connection *conn)
 {
-    s2n_cert_auth_type client_cert_auth_type;
-    GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
-
-    if(client_cert_auth_type != S2N_CERT_AUTH_NONE) {
-        /* We're unable to cache connections with a Client Cert since we currently don't serialize the Client Cert,
-         * which means that callers won't have access to the Client's Cert if the connection is resumed. */
+    /* We're unable to cache connections with a Client Cert since we currently don't serialize the Client Cert,
+     * which means that callers won't have access to the Client's Cert if the connection is resumed. */
+    if (s2n_connection_is_client_auth_enabled(conn) > 0) {
         return 0;
     }
 
@@ -351,6 +348,23 @@ int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn)
     return IS_OCSP_STAPLED(conn->handshake.handshake_type) ? 1 : 0;
 }
 
+int s2n_config_is_encrypt_decrypt_key_available(struct s2n_config *config)
+{
+    uint64_t now;
+    GUARD(config->monotonic_clock(config->monotonic_clock_ctx, &now));
+
+    for (int i = config->ticket_keys->num_of_elements - 1; i >= 0; i--) {
+        uint64_t key_intro_time = ((struct s2n_ticket_key *)s2n_array_get(config->ticket_keys, i))->intro_timestamp;
+
+        if (key_intro_time < now
+                && now < key_intro_time + config->encrypt_decrypt_key_lifetime_in_nanos) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 /* This function is used in s2n_get_ticket_encrypt_decrypt_key to compute the weight
  * of the keys and to choose a single key from all of the encrypt-decrypt keys.
  * Higher the weight of the key, higher the probability of being picked.
@@ -570,10 +584,13 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn)
      * for the ticket.
      */
     if (now >= key->intro_timestamp + conn->config->encrypt_decrypt_key_lifetime_in_nanos) {
-        conn->session_ticket_status = S2N_NEW_TICKET;
-        conn->handshake.handshake_type |= WITH_SESSION_TICKET;
+        /* Check if a key in encrypt-decrypt state is available */
+        if (s2n_config_is_encrypt_decrypt_key_available(conn->config) == 1) {
+            conn->session_ticket_status = S2N_NEW_TICKET;
+            conn->handshake.handshake_type |= WITH_SESSION_TICKET;
 
-        return 0;
+            return 0;
+        }
     }
 
     return 0;
@@ -611,25 +628,51 @@ end:
     return 0;
 }
 
+int s2n_verify_unique_ticket_key_comparator(void *a, void *b)
+{
+    return memcmp((uint8_t *) a, (uint8_t *) b, SHA_DIGEST_LENGTH);
+}
+
 int s2n_verify_unique_ticket_key(struct s2n_config *config, uint8_t *hash, uint16_t *insert_index)
 {
-    int low = 0;
-    int top = config->ticket_key_hashes->num_of_elements - 1;
+    int result = s2n_array_binary_search(0,
+                                         config->ticket_key_hashes->num_of_elements - 1,
+                                         config->ticket_key_hashes,
+                                         hash,
+                                         s2n_verify_unique_ticket_key_comparator);
 
-    /* Binary search */
-    while (low <= top) {
-        int mid = low + ((top - low) / 2);
-        int m = memcmp((uint8_t *) s2n_array_get(config->ticket_key_hashes, mid), hash, SHA_DIGEST_LENGTH);
-
-        if (m == 0) {
-            return -1;
-        } else if (m > 0) {
-            top = mid - 1;
-        } else if (m < 0) {
-            low = mid + 1;
-        }
+    if (result == -1) {
+        return result;
     }
 
-    *insert_index = low;
+    *insert_index = result;
     return 0;
+}
+
+int s2n_config_store_ticket_key_comparator(void *a, void *b)
+{
+    if (((struct s2n_ticket_key *) a)->intro_timestamp >= ((struct s2n_ticket_key *) b)->intro_timestamp) {
+        return 1;
+    } else {
+        return -1;
+    }
+}
+
+int s2n_config_store_ticket_key(struct s2n_config *config, struct s2n_ticket_key *key)
+{
+    int index = s2n_array_binary_search(0,
+                                        config->ticket_keys->num_of_elements - 1,
+                                        config->ticket_keys,
+                                        key,
+                                        s2n_config_store_ticket_key_comparator);
+
+    if (index != -1) {
+        /* Keys are stored from oldest to newest */
+        struct s2n_ticket_key *ticket_key_element = s2n_array_insert(config->ticket_keys, index);
+        memcpy_check(ticket_key_element, key, sizeof(struct s2n_ticket_key));
+
+        return 0;
+    }
+
+    return -1;
 }

@@ -530,11 +530,6 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         }
     }
 
-    if (config->use_tickets && auth_type != S2N_CERT_AUTH_NONE) {
-        /* s2n does not support handshakes with CLIENT_AUTH when in session resumption mode */
-        S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_RESUMPTION_MODE);
-    }
-
     conn->config = config;
     return 0;
 }
@@ -767,11 +762,6 @@ int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_au
 
 int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type client_cert_auth_type)
 {
-    if ((client_cert_auth_type != S2N_CERT_AUTH_NONE) && conn->config->use_tickets) {
-        /* s2n does not support handshakes with CLIENT_AUTH when in session resumption mode */
-        S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_RESUMPTION_MODE);
-    }
-
     conn->client_cert_auth_type_overridden = 1;
     conn->client_cert_auth_type = client_cert_auth_type;
     return 0;
@@ -1123,4 +1113,12 @@ const uint8_t *s2n_connection_get_sct_list(struct s2n_connection *conn, uint32_t
 
     *length = conn->ct_response.size;
     return conn->ct_response.data;
+}
+
+int s2n_connection_is_client_auth_enabled(struct s2n_connection *s2n_connection)
+{
+    s2n_cert_auth_type auth_type;
+    GUARD(s2n_connection_get_client_auth_type(s2n_connection, &auth_type));
+
+    return (auth_type != S2N_CERT_AUTH_NONE);
 }

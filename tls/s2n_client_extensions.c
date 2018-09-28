@@ -433,7 +433,12 @@ static int s2n_recv_client_session_ticket_ext(struct s2n_connection *conn, struc
         return 0;
     }
 
-    if (s2n_stuffer_data_available(extension) == 0) {
+    /* s2n server does not support session ticket with CLIENT_AUTH enabled */
+    if (s2n_connection_is_client_auth_enabled(conn) > 0) {
+        return 0;
+    }
+
+    if (s2n_stuffer_data_available(extension) == 0 && s2n_config_is_encrypt_decrypt_key_available(conn->config) == 1) {
         conn->session_ticket_status = S2N_NEW_TICKET;
         return 0;
     }

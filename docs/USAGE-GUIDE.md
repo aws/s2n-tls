@@ -1181,7 +1181,8 @@ ssize_t s2n_connection_get_session_id_length(struct s2n_connection *conn);
 int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 ```
 
-- **lifetime_in_secs** lifetime of the cached session state required to resume a handshake
+- **lifetime_in_secs** lifetime of the cached session state required to resume a
+handshake.
 - **session** session will contain serialized session related information needed to resume handshake either using session id or session ticket.
 - **length** length of the serialized session state.
 - **max_length** Max number of bytes to copy into the **session** buffer.
