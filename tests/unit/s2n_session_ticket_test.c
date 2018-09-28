@@ -577,7 +577,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, strlen((char *)ticket_key_name1), ticket_key1, strlen((char *)ticket_key1), 0));
 
         /* Try adding the same key, but with a different name */
-        EXPECT_EQUAL(1, s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, strlen((char *)ticket_key_name2), ticket_key1, strlen((char *)ticket_key1), 0));
+        EXPECT_EQUAL(-1, s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, strlen((char *)ticket_key_name2), ticket_key1, strlen((char *)ticket_key1), 0));
+        EXPECT_EQUAL(s2n_errno, S2N_ERR_TICKET_KEY_NOT_UNIQUE);
 
         /* Try adding a different key, but with the same name */
         EXPECT_EQUAL(-1, s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, strlen((char *)ticket_key_name1), ticket_key2, strlen((char *)ticket_key2), 0));
@@ -607,8 +608,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name3, strlen((char *)ticket_key_name3), ticket_key3, strlen((char *)ticket_key3), 0));
 
         /* Try adding the expired keys */
-        EXPECT_EQUAL(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, strlen((char *)ticket_key_name2), ticket_key2, strlen((char *)ticket_key2), 0), 1);
-        EXPECT_EQUAL(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, strlen((char *)ticket_key_name1), ticket_key1, strlen((char *)ticket_key1), 0), 1);
+        EXPECT_EQUAL(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, strlen((char *)ticket_key_name2), ticket_key2, strlen((char *)ticket_key2), 0), -1);
+        EXPECT_EQUAL(s2n_errno, S2N_ERR_TICKET_KEY_NOT_UNIQUE);
+        EXPECT_EQUAL(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, strlen((char *)ticket_key_name1), ticket_key1, strlen((char *)ticket_key1), 0), -1);
+        EXPECT_EQUAL(s2n_errno, S2N_ERR_TICKET_KEY_NOT_UNIQUE);
 
         /* Verify that the config has only one unexpired key */
         EXPECT_BYTEARRAY_EQUAL(s2n_array_get(server_config->ticket_keys, 0), ticket_key_name3, strlen((char *)ticket_key_name3));

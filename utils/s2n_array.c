@@ -156,6 +156,7 @@ int s2n_array_binary_search(int low, int top, struct s2n_array *array, void *ele
         int m = comparator(s2n_array_get(array, mid), element);
 
         if (m == 0) {
+            /* Return -1 when a match is found */
             return -1;
         } else if (m > 0) {
             top = mid - 1;

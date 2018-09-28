@@ -630,7 +630,7 @@ end:
 
 int s2n_verify_unique_ticket_key_comparator(void *a, void *b)
 {
-    return (memcmp((uint8_t *) a, (uint8_t *) b, SHA_DIGEST_LENGTH));
+    return memcmp((uint8_t *) a, (uint8_t *) b, SHA_DIGEST_LENGTH);
 }
 
 int s2n_verify_unique_ticket_key(struct s2n_config *config, uint8_t *hash, uint16_t *insert_index)
@@ -651,10 +651,11 @@ int s2n_verify_unique_ticket_key(struct s2n_config *config, uint8_t *hash, uint1
 
 int s2n_config_store_ticket_key_comparator(void *a, void *b)
 {
-    if (((struct s2n_ticket_key *) a)->intro_timestamp >= ((struct s2n_ticket_key *) b)->intro_timestamp)
+    if (((struct s2n_ticket_key *) a)->intro_timestamp >= ((struct s2n_ticket_key *) b)->intro_timestamp) {
         return 1;
-    else
+    } else {
         return -1;
+    }
 }
 
 int s2n_config_store_ticket_key(struct s2n_config *config, struct s2n_ticket_key *key)

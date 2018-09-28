@@ -143,6 +143,7 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG, "Serialized session state is too long"},
     {S2N_ERR_INVALID_TICKET_KEY_LENGTH, "Session ticket key length cannot be zero"},
     {S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH, "Session ticket key name should be unique and the name length cannot be zero"},
+    {S2N_ERR_TICKET_KEY_NOT_UNIQUE, "Cannot add session ticket key because it was added before"},
     {S2N_ERR_TICKET_KEY_LIMIT, "Limit reached for unexpired session ticket keys"},
     {S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY, "No key in encrypt-decrypt state is available to encrypt session ticket"},
     {S2N_ERR_ENCRYPT_DECRYPT_KEY_SELECTION_FAILED, "Failed to select a key from keys in encrypt-decrypt state"},
