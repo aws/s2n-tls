@@ -99,9 +99,9 @@ void *s2n_array_insert(struct s2n_array *array, uint32_t index)
         GUARD_PTR(s2n_array_enlarge(array, array->capacity * 2));
     }
 
-    memcpy_check_ptr((uint8_t *) array->elements + array->element_size * (index + 1),
-                     (uint8_t *) array->elements + array->element_size * index,
-                     (array->num_of_elements - index) * array->element_size);
+    memmove((uint8_t *) array->elements + array->element_size * (index + 1),
+            (uint8_t *) array->elements + array->element_size * index,
+            (array->num_of_elements - index) * array->element_size);
 
     void *element = (uint8_t *) array->elements + array->element_size * index;
     array->num_of_elements++;
@@ -113,9 +113,9 @@ int s2n_array_remove(struct s2n_array *array, uint32_t index)
 {
     notnull_check(array);
 
-    memcpy_check((uint8_t *) array->elements + array->element_size * index,
-                 (uint8_t *) array->elements + array->element_size * (index + 1),
-                 (array->num_of_elements - index - 1) * array->element_size);
+    memmove((uint8_t *) array->elements + array->element_size * index,
+            (uint8_t *) array->elements + array->element_size * (index + 1),
+            (array->num_of_elements - index - 1) * array->element_size);
 
     array->num_of_elements--;
 

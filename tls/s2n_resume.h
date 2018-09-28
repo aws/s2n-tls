@@ -56,7 +56,7 @@ extern int s2n_decrypt_session_ticket(struct s2n_connection *conn);
 extern int s2n_config_is_encrypt_decrypt_key_available(struct s2n_config *config);
 extern int s2n_verify_unique_ticket_key(struct s2n_config *config, uint8_t *hash, uint16_t *insert_index);
 extern int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t expired_key_index);
-extern int s2n_config_add_key_in_sorted_array(struct s2n_config *config, struct s2n_ticket_key *key);
+extern int s2n_config_store_ticket_key(struct s2n_config *config, struct s2n_ticket_key *key);
 
 typedef enum {
     S2N_STATE_WITH_SESSION_ID = 0,

@@ -802,7 +802,9 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
         notnull_check(config->ticket_key_hashes = s2n_array_new(SHA_DIGEST_LENGTH));
     }
 
-    GUARD(s2n_verify_unique_ticket_key(config, hash_output, &insert_index));
+    if (s2n_verify_unique_ticket_key(config, hash_output, &insert_index) < 0) {
+        return 1;
+    }
 
     /* Insert hash key into a sorted array at known index */
     struct uint8_t *hash_element = s2n_array_insert(config->ticket_key_hashes, insert_index);
@@ -820,7 +822,7 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
         session_ticket_key->intro_timestamp = (intro_time_in_seconds_from_epoch * ONE_SEC_IN_NANOS);
     }
 
-    GUARD(s2n_config_add_key_in_sorted_array(config, session_ticket_key));
+    GUARD(s2n_config_store_ticket_key(config, session_ticket_key));
     GUARD(s2n_free(&allocator));
 
     return 0;

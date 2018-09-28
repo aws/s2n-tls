@@ -98,7 +98,7 @@ int main(int argc, char **argv)
      * 13) Scenario 2: Client sends empty ST and server has multiple encrypt-decrypt keys to choose from for encrypting NST.
      * 14) Testing s2n_config_set_ticket_encrypt_decrypt_key_lifetime and s2n_config_set_ticket_decrypt_key_lifetime calls.
      * 15) Add keys out of order and pre-emptively add a key.
-     * 16) Try handshake with CLIENT_AUTH and WITH_SESSION_TICKET in server mode.
+     * 16) Handshake with client auth and session ticket enabled.
      */
 
     BEGIN_TEST();
@@ -577,7 +577,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, strlen((char *)ticket_key_name1), ticket_key1, strlen((char *)ticket_key1), 0));
 
         /* Try adding the same key, but with a different name */
-        EXPECT_EQUAL(-1, s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, strlen((char *)ticket_key_name2), ticket_key1, strlen((char *)ticket_key1), 0));
+        EXPECT_EQUAL(1, s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, strlen((char *)ticket_key_name2), ticket_key1, strlen((char *)ticket_key1), 0));
 
         /* Try adding a different key, but with the same name */
         EXPECT_EQUAL(-1, s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, strlen((char *)ticket_key_name1), ticket_key2, strlen((char *)ticket_key2), 0));
@@ -607,8 +607,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name3, strlen((char *)ticket_key_name3), ticket_key3, strlen((char *)ticket_key3), 0));
 
         /* Try adding the expired keys */
-        EXPECT_EQUAL(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, strlen((char *)ticket_key_name2), ticket_key2, strlen((char *)ticket_key2), 0), -1);
-        EXPECT_EQUAL(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, strlen((char *)ticket_key_name1), ticket_key1, strlen((char *)ticket_key1), 0), -1);
+        EXPECT_EQUAL(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, strlen((char *)ticket_key_name2), ticket_key2, strlen((char *)ticket_key2), 0), 1);
+        EXPECT_EQUAL(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, strlen((char *)ticket_key_name1), ticket_key1, strlen((char *)ticket_key1), 0), 1);
 
         /* Verify that the config has only one unexpired key */
         EXPECT_BYTEARRAY_EQUAL(s2n_array_get(server_config->ticket_keys, 0), ticket_key_name3, strlen((char *)ticket_key_name3));
@@ -872,20 +872,18 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
     }
 
-    /* Try handshake with CLIENT_AUTH and WITH_SESSION_TICKET in server mode */
+    /* Handshake with client auth and session ticket enabled */
     {
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
 
-        /* Client can have session ticket when mutual auth is optional or required */
+        /* Client has session ticket and mutual auth enabled */
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_config, 1));
         EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_OPTIONAL));
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
-
-        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_OPTIONAL));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
@@ -895,18 +893,17 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
+        /* Server has session ticket and mutual auth enabled */
         EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_OPTIONAL));
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
-
-        /* Server does not support handshakes with CLIENT_AUTH when in session resumption mode */
-        EXPECT_FAILURE(s2n_connection_set_config(server_conn, server_config));
-
-        /* Disable mutual authentication */
-        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_NONE));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* Verify that the server did a full handshake and did not issue NST since client
+         * auth is enabled in server mode */
         EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn->handshake.handshake_type));
+        EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
