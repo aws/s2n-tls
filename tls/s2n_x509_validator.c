@@ -22,6 +22,8 @@
 #include "openssl/err.h"
 #include "openssl/asn1.h"
 
+#include "crypto/s2n_openssl_x509.h"
+
 #if !defined(OPENSSL_IS_BORINGSSL)
 #include "openssl/ocsp.h"
 #endif
@@ -46,9 +48,6 @@
 #endif
 
 #define DEFAULT_MAX_CHAIN_DEPTH 7
-
-DEFINE_TRIVIAL_CLEANUP_FUNC(X509*, X509_free);
-DEFINE_TRIVIAL_CLEANUP_FUNC(X509_STORE_CTX*, X509_STORE_CTX_free);
 
 uint8_t s2n_x509_ocsp_stapling_supported(void) {
     return S2N_OCSP_STAPLING_SUPPORTED;
@@ -102,7 +101,7 @@ int s2n_x509_trust_store_add_pem(struct s2n_x509_trust_store *store, const char 
         GUARD(s2n_stuffer_read(&der_out_stuffer, &next_cert));
 
         const uint8_t *data = next_cert.data;
-        DEFER_CLEANUP(X509 *ca_cert = d2i_X509(NULL, &data, next_cert.size), X509_freep);
+        DEFER_CLEANUP(X509 *ca_cert = d2i_X509(NULL, &data, next_cert.size), X509_free_pointer);
         S2N_ERROR_IF(ca_cert == NULL, S2N_ERR_DECODE_CERTIFICATE);
 
         GUARD_OSSL(X509_STORE_add_cert(store->trust_store, ca_cert), S2N_ERR_DECODE_CERTIFICATE);
@@ -261,7 +260,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
         return S2N_CERT_ERR_UNTRUSTED;
     }
 
-    DEFER_CLEANUP(X509_STORE_CTX *ctx = NULL, X509_STORE_CTX_freep);
+    DEFER_CLEANUP(X509_STORE_CTX *ctx = NULL, X509_STORE_CTX_free_pointer);
 
     struct s2n_blob cert_chain_blob = {.data = cert_chain_in, .size = cert_chain_len};
     DEFER_CLEANUP(struct s2n_stuffer cert_chain_in_stuffer = {{0}}, s2n_stuffer_free);

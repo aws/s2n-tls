@@ -23,6 +23,7 @@
 #include "testlib/s2n_testlib.h"
 #include "stuffer/s2n_stuffer.h"
 #include "crypto/s2n_hkdf.h"
+#include "utils/s2n_safety.h"
 
 /*
  * Test vectors from https://datatracker.ietf.org/doc/draft-ietf-tls-tls13-vectors/?include_text=1

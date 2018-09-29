@@ -20,6 +20,7 @@
 #include <stdbool.h>
 
 #include "utils/s2n_mem.h"
+#include "utils/s2n_safety.h"
 
 #define S2N_UNUSED(x) do { (void) x; } while (0)
 
@@ -35,7 +36,7 @@ void foo_free(struct foo* p){
   foo_cleanup_calls++;
 }
 
-DEFINE_TRIVIAL_CLEANUP_FUNC(struct foo*, foo_free);
+DEFINE_POINTER_CLEANUP_FUNC(struct foo*, foo_free);
 
 int check_cleanup_obj_on_fn_exit()
 {
@@ -47,7 +48,7 @@ int check_cleanup_obj_on_fn_exit()
 int check_cleanup_pointer_on_fn_exit()
 {
   struct foo thefoo= {0};
-  DEFER_CLEANUP(struct foo* foop = &thefoo, foo_freep);
+  DEFER_CLEANUP(struct foo* foop = &thefoo, foo_free_pointer);
   S2N_UNUSED(thefoo);
   S2N_UNUSED(foop);
   return 0;
@@ -56,7 +57,7 @@ int check_cleanup_pointer_on_fn_exit()
 //check that our macros don't cleanup null objects
 int check_dont_cleanup_null_on_fn_exit()
 {
-  DEFER_CLEANUP(struct foo* foop = NULL, foo_freep);
+  DEFER_CLEANUP(struct foo* foop = NULL, foo_free_pointer);
   S2N_UNUSED(foop);
   return 0;
 }
