@@ -7,9 +7,6 @@ print "Loaded bitcode via Crucible";
 
 // References to various components of the connection state:
 
-//conn->block_on_other_events
-let conn_block_on_other_events pconn = crucible_field pconn "block_on_other_events";
-
 //conn->corked_io
 let conn_corked_io pconn = crucible_field pconn "corked_io";
 
@@ -47,6 +44,9 @@ let config_use_tickets config = (crucible_field config "use_tickets");
 
 //conn->session_ticket_status
 let conn_session_ticket_status pconn = (crucible_field pconn "session_ticket_status");
+
+//conn->block_on_other_events
+let conn_block_on_other_events pconn = crucible_field pconn "block_on_other_events";
 
 //conn->client_cert_auth_type
 let cca_type pconn = crucible_field pconn "client_cert_auth_type";
@@ -376,7 +376,7 @@ let s2n_handshake_io_lowlevel = do {
     print "Proving correctness of get_auth_type";
     auth_type_proof <- crucible_llvm_verify llvm "s2n_connection_get_client_auth_type" dependencies true s2n_connection_get_client_auth_type_spec (do {simplify (addsimp equalNat_ite basic_ss); yices;});
     print "Proving correctness of s2n_advance_message";
-    // s2n_advance_message_proof <- crucible_llvm_verify llvm "s2n_advance_message" dependencies true s2n_advance_message_spec yices;
+    s2n_advance_message_proof <- crucible_llvm_verify llvm "s2n_advance_message" dependencies true s2n_advance_message_spec yices;
     print "Proving correctness of s2n_conn_set_handshake_type";
     s2n_conn_set_handshake_type_proof <- crucible_llvm_verify llvm "s2n_conn_set_handshake_type" [s2n_allowed_to_cache_connection, auth_type_proof, s2n_generate_new_client_session_id, s2n_decrypt_session_ticket] true s2n_conn_set_handshake_type_spec yices;
     print "done";
