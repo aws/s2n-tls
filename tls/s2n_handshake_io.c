@@ -327,11 +327,8 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
     /* If a TLS session is resumed, the Server should respond in its ServerHello with the same SessionId the
      * Client sent in the ClientHello. */
-    if (s2n_allowed_to_cache_connection(conn)) {
-        int r = s2n_resume_from_cache(conn);
-        if (r == 1 || r == 0) {
-            return r;
-        }
+    if (s2n_allowed_to_cache_connection(conn) && !s2n_resume_from_cache(conn)) {
+        return 0;
     }
 
 skip_cache_lookup:
@@ -582,44 +579,6 @@ static int handshake_read_io(struct s2n_connection *conn)
     uint8_t record_type;
     int isSSLv2;
 
-    if (conn->block_on_other_events) {
-        /* We first run the current state handler again to see if we can move
-         * forward. Since each state might have different situations, we check
-         * each state one by one
-         */
-        if (ACTIVE_STATE(conn).message_type == TLS_CLIENT_HELLO && ACTIVE_STATE(conn).writer == 'C' && conn->mode == S2N_SERVER) {
-            /* If it is in Client_Hello state and it is from server side and the
-             * writer is client, the handler is client_hello_recv()
-             */
-            int r = ACTIVE_STATE(conn).handler[conn->mode] (conn);
-
-            if (r == 0) {
-                /* if r == 0, then we advance the state machine */
-                GUARD(s2n_handshake_conn_update_hashes(conn));
-                GUARD(s2n_stuffer_wipe(&conn->handshake.io));
-                conn->block_on_other_events = 0;
-                GUARD(s2n_advance_message(conn));
-                goto done;
-            }
-
-            if (r == 1) {
-                /* if r == 1, it means we are still blocked */
-                GUARD(s2n_stuffer_wipe(&conn->header_in));
-                GUARD(s2n_stuffer_wipe(&conn->in));
-                conn->in_status = ENCRYPTED;
-                return r;
-            }
-
-            if (r < 0) {
-                /* if r == -1, we kill the connection */
-                GUARD(s2n_handshake_conn_update_hashes(conn));
-                GUARD(s2n_stuffer_wipe(&conn->handshake.io));
-                GUARD(s2n_connection_kill(conn));
-                return r;
-            }
-        }
-    }
-
     GUARD(s2n_read_full_record(conn, &record_type, &isSSLv2));
 
     if (isSSLv2) {
@@ -694,13 +653,6 @@ static int handshake_read_io(struct s2n_connection *conn)
         /* Call the relevant handler */
         r = ACTIVE_STATE(conn).handler[conn->mode] (conn);
 
-        if (r == 1) {
-            GUARD(s2n_stuffer_wipe(&conn->header_in));
-            GUARD(s2n_stuffer_wipe(&conn->in));
-            conn->in_status = ENCRYPTED;
-            return r;
-        }
-
         /* Don't update handshake hashes until after the handler has executed since some handlers need to read the
          * hash values before they are updated. */
         GUARD(s2n_handshake_conn_update_hashes(conn));
@@ -716,8 +668,6 @@ static int handshake_read_io(struct s2n_connection *conn)
         /* Advance the state machine */
         GUARD(s2n_advance_message(conn));
     }
-
-done:
 
     /* We're done with the record, wipe it */
     GUARD(s2n_stuffer_wipe(&conn->header_in));
@@ -754,18 +704,12 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
             }
         } else {
             *blocked = S2N_BLOCKED_ON_READ;
-            int r = handshake_read_io(conn);
-            if (r < 0) {
+            if (handshake_read_io(conn) < 0) {
                 if (s2n_errno != S2N_ERR_BLOCKED && s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
                     conn->config->cache_delete(conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
                 }
 
                 return -1;
-            }
-
-            if (r == 1) {
-                *blocked = S2N_BLOCKED_ON_OTHER_EVENTS;
-                S2N_ERROR(S2N_ERR_BLOCKED);
             }
         }
 
