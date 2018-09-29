@@ -82,6 +82,9 @@ static inline int s2n_defend_if_forked(void)
     struct s2n_blob private = {.data = s2n_private_drbg,.size = sizeof(s2n_private_drbg) };
 
     if (zero_if_forked == 0) {
+        /* Clean up the old drbg first */
+        GUARD(s2n_rand_cleanup_thread());
+        /* Instantiate the new ones */
         GUARD(s2n_drbg_instantiate(&per_thread_public_drbg, &public));
         GUARD(s2n_drbg_instantiate(&per_thread_private_drbg, &private));
         zero_if_forked = 1;
