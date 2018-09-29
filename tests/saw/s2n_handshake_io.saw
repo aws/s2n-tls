@@ -7,6 +7,9 @@ print "Loaded bitcode via Crucible";
 
 // References to various components of the connection state:
 
+//conn->block_on_other_events
+let conn_block_on_other_events pconn = crucible_field pconn "block_on_other_events";
+
 //conn->corked_io
 let conn_corked_io pconn = crucible_field pconn "corked_io";
 
