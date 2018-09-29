@@ -178,7 +178,7 @@ static int s2n_client_deserialize_with_session_ticket(struct s2n_connection *con
         S2N_ERROR(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
     }
 
-    GUARD(s2n_alloc(&conn->client_ticket, session_ticket_len));
+    GUARD(s2n_realloc(&conn->client_ticket, session_ticket_len));
     GUARD(s2n_stuffer_read(from, &conn->client_ticket));
 
     GUARD(s2n_client_deserialize_session_state(conn, from));

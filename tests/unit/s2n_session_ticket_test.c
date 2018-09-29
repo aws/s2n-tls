@@ -51,7 +51,6 @@ int main(int argc, char **argv)
 {
     char *cert_chain;
     char *private_key;
-    char *dummy_ptr;
     struct s2n_connection *client_conn;
     struct s2n_connection *server_conn;
     struct s2n_config *client_config;
@@ -108,7 +107,6 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
 
-    EXPECT_NOT_NULL(dummy_ptr = malloc(sizeof(char)));
     EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
     EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
 
