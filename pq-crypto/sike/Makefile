@@ -14,21 +14,26 @@
 #
 .DEFAULT_GOAL := all
 
-INTERNAL_LIBS += sike/libsike_p503.a
+include ../../s2n.mk
 
-SRCS=$(wildcard *.c)
+# BIKE casts raw char arrays to an internal key representation for safety and convenience in bike1_l1_kem.c
+FLAGS_TO_REMOVE := -pedantic
+
+FINAL_CFLAGS := $(filter-out $(FLAGS_TO_REMOVE),$(CFLAGS))
+
+CFLAGS=$(FINAL_CFLAGS)
+CFLAGS+=-I../../
+
+SRCS=fp_generic.c P503.c sike_p503_kem.c fips202.c
 OBJS=$(SRCS:.c=.o)
 
 .PHONY : all
-all: libs2n_pq_crypto.so
+all: libsike_p503.a
 
-libs2n_pq_crypto.so: ${OBJS}
-	$(MAKE) -C sike
-	${CC} -shared -o libs2n_pq_crypto.so ${OBJS} -Wl,--whole-archive ${INTERNAL_LIBS} -Wl,--no-whole-archive -L../../ ${CFLAGS} ${LDFLAGS} -lm
-
-include ../s2n.mk
+libsike_p503.a: ${OBJS}
+	$(AR) cru libsike_p503.a ${OBJS}
+	$(RANLIB) libsike_p503.a
 
 .PHONY : clean
 clean:
-	${MAKE} -C sike clean
 	${MAKE} decruft

@@ -23,7 +23,6 @@ endif
 .PHONY : all
 all: libs
 	${MAKE} -C unit
-	$(MAKE) -C pq-crypto
 	@echo "\033[1m ${COMPILE_INFO} \033[0;39m"
 
 .PHONY : valgrind
@@ -52,4 +51,3 @@ clean:
 	${MAKE} -C unit decruft
 	${MAKE} -C fuzz decruft
 	${MAKE} -C saw decruft
-	${MAKE} -C pq-crypto decruft

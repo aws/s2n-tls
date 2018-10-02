@@ -54,22 +54,6 @@ file(GLOB UTILS_SRC
     "utils/*.c"
 )
 
-file(GLOB PQ_CRYPTO_HEADERS
-    "pq-crypto/*.h"
-)
-
-file(GLOB PQ_CRYPTO_SRC
-    "pq-crypto/*.c"
-)
-
-file(GLOB BIKE_HEADERS
-    "pq-crypto/bike/*.h"
-)
-
-file(GLOB BIKE_SRC
-    "pq-crypto/bike/*.c"
-)
-
 ##be nice to visual studio users
 if(MSVC)
     source_group("Header Files\\s2n\\api" FILES ${API_HEADERS})
@@ -103,15 +87,15 @@ file(GLOB S2N_HEADERS
     ${STUFFER_HEADERS}
     ${TLS_HEADERS}
     ${UTILS_HEADERS}
- )
+)
 
- file(GLOB S2N_SRC
+file(GLOB S2N_SRC
     ${CRYPTO_SRC}
     ${ERROR_SRC}
     ${STUFFER_SRC}
     ${TLS_SRC}
     ${UTILS_SRC}
- )
+)
 
 add_library(${CMAKE_PROJECT_NAME} ${S2N_HEADERS} ${S2N_SRC})
 set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C)
@@ -144,10 +128,20 @@ target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAK
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC $<TARGET_PROPERTY:LibCrypto::Crypto,INTERFACE_INCLUDE_DIRECTORIES>)
 
-add_library(bike1-l1 ${BIKE_HEADERS} ${PQ_CRYPTO_HEADERS} ${UTILS} ${BIKE_SRC} ${PQ_CRYPTO_SRC})
-target_compile_options(bike1-l1 PUBLIC -std=c99 -Wno-missing-braces -Wno-missing-field-initializers -DBIKE1=1 -DPARAM64=1)
-target_include_directories(bike1-l1 PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+#######################################
+#   Begin  PQ-Crypto 
+#######################################
+option (USE_S2N_PQ_CRYTPO "Use S2N default Post Quantum crypto library" ON) 
 
+if (USE_S2N_PQ_CRYTPO)
+    include_directories ("${PROJECT_SOURCE_DIR}/pq-crypto")
+    add_subdirectory (pq-crypto)
+    set (EXTRA_LIBS ${EXTRA_LIBS} s2n_pq_crypto)
+endif (USE_S2N_PQ_CRYTPO)
+
+#######################################
+#   end PQ-Crypto 
+#######################################
 
 file(GLOB TESTLIB_SRC "tests/testlib/*.c")
 file(GLOB TESTLIB_HEADERS "tests/testlib/*.h" "tests/s2n_test.h")
@@ -164,12 +158,12 @@ add_library(allocator_overrides SHARED ${TEST_LD_PRELOAD})
 include(CTest)
 enable_testing()
 
-file(GLOB UNITTESTS_SRC "tests/unit/*.c" "tests/pq-crypto/*.c")
-    foreach(test_case ${UNITTESTS_SRC})
+file(GLOB UNITTESTS_SRC "tests/unit/*.c")
+foreach(test_case ${UNITTESTS_SRC})
     string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
 
     add_executable(${test_case_name} ${test_case})
-    target_link_libraries(${test_case_name} PRIVATE testss2n PRIVATE m pthread PRIVATE bike1-l1)
+    target_link_libraries(${test_case_name} PRIVATE testss2n ${EXTRA_LIBS} PRIVATE m pthread)
     target_include_directories(${test_case_name} PRIVATE api)
     target_include_directories(${test_case_name} PRIVATE ./)
     target_include_directories(${test_case_name} PRIVATE tests)
