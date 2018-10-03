@@ -26,11 +26,14 @@ env:
   - S2N_LIBCRYPTO=openssl-1.1.x-master BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
   - S2N_LIBCRYPTO=openssl-1.1.0 LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=120
   - S2N_LIBCRYPTO=openssl-1.0.2-fips LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=120
+  - S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=valgrind GCC6_REQUIRED=true
 
 matrix:
   exclude:
   - os: osx
     env: TESTS=ctverif
+  - os: osx
+    env: S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=valgrind GCC6_REQUIRED=true
   - os: osx
     env: S2N_LIBCRYPTO=openssl-1.1.x-master BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
   - os: osx
