@@ -37,7 +37,7 @@ int s2n_server_nst_recv(struct s2n_connection *conn) {
     GUARD(s2n_stuffer_read_uint16(&conn->handshake.io, &session_ticket_len));
 
     if (session_ticket_len > 0) {
-        GUARD(s2n_alloc(&conn->client_ticket, session_ticket_len));
+        GUARD(s2n_realloc(&conn->client_ticket, session_ticket_len));
 
         GUARD(s2n_stuffer_read(&conn->handshake.io, &conn->client_ticket));
     }

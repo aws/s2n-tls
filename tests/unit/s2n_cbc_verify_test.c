@@ -124,6 +124,11 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
+    /* Valgrind affects execution timing, making this test unreliable */
+    if (getenv("S2N_VALGRIND") != NULL) {
+        END_TEST();
+    }
+
     EXPECT_SUCCESS(s2n_hmac_new(&check_mac));
     EXPECT_SUCCESS(s2n_hmac_new(&record_mac));
 
@@ -265,7 +270,7 @@ int main(int argc, char **argv)
         hi = mac_median + (mac_stddev / 2);
 
         if ((int64_t) pad_median < lo || (int64_t) pad_median > hi) {
-            printf("\n\nRecord size: %dMAC Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n"
+            printf("\n\nRecord size: %d\nMAC Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n"
                    "PAD Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n\n", 
                     i, mac_median, mac_avg, mac_stddev, pad_median, pad_avg, pad_stddev);
             FAIL();

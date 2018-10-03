@@ -333,6 +333,7 @@ int main(int argc, char **argv) {
         EXPECT_EQUAL(1, verify_data.callback_invoked);
         EXPECT_EQUAL(S2N_CERT_TYPE_RSA_SIGN, cert_type);
         s2n_connection_free(connection);
+        s2n_pkey_free(&public_key_out);
 
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
@@ -602,6 +603,7 @@ int main(int argc, char **argv) {
         s2n_stuffer_free(&chain_stuffer);
         EXPECT_EQUAL(1, verify_data.callback_invoked);
         EXPECT_EQUAL(S2N_CERT_TYPE_RSA_SIGN, cert_type);
+        s2n_pkey_free(&public_key_out);
 
         s2n_connection_free(connection);
         s2n_x509_validator_wipe(&validator);
@@ -811,6 +813,7 @@ int main(int argc, char **argv) {
         EXPECT_EQUAL(S2N_CERT_OK,
                      s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &cert_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
+        s2n_pkey_free(&public_key_out);
 
         EXPECT_EQUAL(1, verify_data.callback_invoked);
         struct s2n_stuffer ocsp_data_stuffer;

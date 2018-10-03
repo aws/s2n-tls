@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -15,13 +15,8 @@
 
 #pragma once
 
-#include "utils/s2n_blob.h"
+#include <openssl/evp.h>
 
-#include <stdint.h>
+#include "utils/s2n_safety.h"
 
-int s2n_mem_init(void);
-int s2n_mem_cleanup(void);
-int s2n_alloc(struct s2n_blob *b, uint32_t size);
-int s2n_realloc(struct s2n_blob *b, uint32_t size);
-int s2n_free(struct s2n_blob *b);
-int s2n_dup(struct s2n_blob *from, struct s2n_blob *to);
+DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY*, EVP_PKEY_free);

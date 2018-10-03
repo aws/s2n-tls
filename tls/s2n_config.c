@@ -339,10 +339,6 @@ int s2n_config_get_client_auth_type(struct s2n_config *config, s2n_cert_auth_typ
 
 int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_type client_auth_type)
 {
-    if ((client_auth_type != S2N_CERT_AUTH_NONE) && config->use_tickets) {
-        /* s2n does not support handshakes with CLIENT_AUTH when in session resumption mode */
-        S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_RESUMPTION_MODE);
-    }
     notnull_check(config);
     config->client_cert_auth_type = client_auth_type;
     return 0;
@@ -443,7 +439,7 @@ int s2n_config_set_verification_ca_location(struct s2n_config *config, const cha
 
 int s2n_config_add_cert_chain_from_stuffer(struct s2n_config *config, struct s2n_stuffer *chain_in_stuffer)
 {
-    struct s2n_stuffer cert_out_stuffer = {{0}};
+    DEFER_CLEANUP(struct s2n_stuffer cert_out_stuffer = {{0}}, s2n_stuffer_free);
     GUARD(s2n_stuffer_growable_alloc(&cert_out_stuffer, 2048));
 
     struct s2n_cert **insert = &config->cert_and_key_pairs->cert_chain.head;
@@ -453,7 +449,6 @@ int s2n_config_add_cert_chain_from_stuffer(struct s2n_config *config, struct s2n
 
         if (s2n_stuffer_certificate_from_pem(chain_in_stuffer, &cert_out_stuffer) < 0) {
             if (chain_size == 0) {
-                GUARD(s2n_stuffer_free(&cert_out_stuffer));
                 S2N_ERROR(S2N_ERR_NO_CERTIFICATE_IN_PEM);
             }
             break;
@@ -471,8 +466,6 @@ int s2n_config_add_cert_chain_from_stuffer(struct s2n_config *config, struct s2n
         *insert = new_node;
         insert = &new_node->next;
     } while (s2n_stuffer_data_available(chain_in_stuffer));
-
-    GUARD(s2n_stuffer_free(&cert_out_stuffer));
 
     /* Leftover data at this point means one of two things:
      * A bug in s2n's PEM parsing OR a malformed PEM in the user's chain.
@@ -499,7 +492,8 @@ int s2n_config_add_cert_chain(struct s2n_config *config, const char *cert_chain_
 
 int s2n_config_add_private_key(struct s2n_config *config, const char *private_key_pem)
 {
-    struct s2n_stuffer key_in_stuffer, key_out_stuffer;
+    DEFER_CLEANUP(struct s2n_stuffer key_in_stuffer = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer key_out_stuffer = {{0}}, s2n_stuffer_free);
     struct s2n_blob key_blob = {0};
 
     GUARD(s2n_pkey_zero_init(&config->cert_and_key_pairs->private_key));
@@ -510,14 +504,12 @@ int s2n_config_add_private_key(struct s2n_config *config, const char *private_ke
 
     /* Convert pem to asn1 and asn1 to the private key. Handles both PKCS#1 and PKCS#8 formats */
     GUARD(s2n_stuffer_private_key_from_pem(&key_in_stuffer, &key_out_stuffer));
-    GUARD(s2n_stuffer_free(&key_in_stuffer));
     key_blob.size = s2n_stuffer_data_available(&key_out_stuffer);
     key_blob.data = s2n_stuffer_raw_read(&key_out_stuffer, key_blob.size);
     notnull_check(key_blob.data);
 
     /* Get key type and create appropriate key context */
     GUARD(s2n_asn1der_to_private_key(&config->cert_and_key_pairs->private_key, &key_blob));
-    GUARD(s2n_stuffer_free(&key_out_stuffer));
 
     return 0;
 }
@@ -539,25 +531,21 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
     GUARD(s2n_config_add_private_key(config, private_key_pem));
 
     /* Parse the leaf cert for the public key and certificate type */
-    struct s2n_pkey public_key = {{{0}}};
+    DEFER_CLEANUP(struct s2n_pkey public_key = {{{0}}}, s2n_pkey_free);
     s2n_cert_type cert_type;
     GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &cert_type, &config->cert_and_key_pairs->cert_chain.head->raw));
     GUARD(s2n_cert_set_cert_type(config->cert_and_key_pairs->cert_chain.head, cert_type));
 
     /* Validate the leaf cert's public key matches the provided private key */
-    int key_match_ret = s2n_pkey_match(&public_key, &config->cert_and_key_pairs->private_key);
-    GUARD(s2n_pkey_free(&public_key));
-    if (key_match_ret < 0) {
-        /* s2n_errno already set */
-        return -1;
-    }
+    GUARD(s2n_pkey_match(&public_key, &config->cert_and_key_pairs->private_key));
 
     return 0;
 }
 
 int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
 {
-    struct s2n_stuffer dhparams_in_stuffer, dhparams_out_stuffer;
+    DEFER_CLEANUP(struct s2n_stuffer dhparams_in_stuffer = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer dhparams_out_stuffer = {{0}}, s2n_stuffer_free);
     struct s2n_blob dhparams_blob = {0};
     struct s2n_blob mem = {0};
 
@@ -571,15 +559,11 @@ int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
     /* Convert pem to asn1 and asn1 to the private key */
     GUARD(s2n_stuffer_dhparams_from_pem(&dhparams_in_stuffer, &dhparams_out_stuffer));
 
-    GUARD(s2n_stuffer_free(&dhparams_in_stuffer));
-
     dhparams_blob.size = s2n_stuffer_data_available(&dhparams_out_stuffer);
     dhparams_blob.data = s2n_stuffer_raw_read(&dhparams_out_stuffer, dhparams_blob.size);
     notnull_check(dhparams_blob.data);
 
     GUARD(s2n_pkcs3_to_dh_params(config->dhparams, &dhparams_blob));
-
-    GUARD(s2n_free(&dhparams_blob));
 
     return 0;
 }
@@ -719,11 +703,6 @@ int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enab
 {
     notnull_check(config);
 
-    if ((config->client_cert_auth_type != S2N_CERT_AUTH_NONE) && enabled) {
-        /* s2n does not support handshakes with CLIENT_AUTH when in session resumption mode */
-        S2N_ERROR(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_RESUMPTION_MODE);
-    }
-
     if (config->use_tickets == enabled) {
         return 0;
     }
@@ -786,19 +765,17 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     struct s2n_blob salt = { .size = 0 };
     struct s2n_blob info = { .size = 0 };
 
-    struct s2n_blob allocator;
     struct s2n_ticket_key *session_ticket_key;
-
+    DEFER_CLEANUP(struct s2n_blob allocator = {0}, s2n_free);
     GUARD(s2n_alloc(&allocator, sizeof(struct s2n_ticket_key)));
     session_ticket_key = (struct s2n_ticket_key *) (void *) allocator.data;
 
-    struct s2n_hmac_state hmac;
+    DEFER_CLEANUP(struct s2n_hmac_state hmac = {0}, s2n_hmac_free);
 
     GUARD(s2n_hmac_new(&hmac));
     GUARD(s2n_hkdf(&hmac, S2N_HMAC_SHA256, &salt, &in_key, &info, &out_key));
-    GUARD(s2n_hmac_free(&hmac));
 
-    struct s2n_hash_state hash = { 0 };
+    DEFER_CLEANUP(struct s2n_hash_state hash = {0}, s2n_hash_free);
     uint8_t hash_output[SHA_DIGEST_LENGTH];
 
     GUARD(s2n_hash_new(&hash));
@@ -811,7 +788,7 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
         notnull_check(config->ticket_key_hashes = s2n_array_new(SHA_DIGEST_LENGTH));
     }
 
-    GUARD(s2n_verify_unique_ticket_key(config, hash_output, &insert_index));
+    S2N_ERROR_IF(s2n_verify_unique_ticket_key(config, hash_output, &insert_index) < 0, S2N_ERR_TICKET_KEY_NOT_UNIQUE);
 
     /* Insert hash key into a sorted array at known index */
     struct uint8_t *hash_element = s2n_array_insert(config->ticket_key_hashes, insert_index);
@@ -829,8 +806,7 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
         session_ticket_key->intro_timestamp = (intro_time_in_seconds_from_epoch * ONE_SEC_IN_NANOS);
     }
 
-    struct s2n_ticket_key *ticket_key_element = s2n_array_add(config->ticket_keys);
-    memcpy_check(ticket_key_element, session_ticket_key, sizeof(struct s2n_ticket_key));
+    GUARD(s2n_config_store_ticket_key(config, session_ticket_key));
 
     return 0;
 }

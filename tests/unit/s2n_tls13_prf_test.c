@@ -23,6 +23,7 @@
 #include "testlib/s2n_testlib.h"
 #include "stuffer/s2n_stuffer.h"
 #include "crypto/s2n_hkdf.h"
+#include "utils/s2n_safety.h"
 
 /*
  * Test vectors from https://datatracker.ietf.org/doc/draft-ietf-tls-tls13-vectors/?include_text=1
@@ -49,16 +50,16 @@ int main(int argc, char **argv)
     char expected_secret_hex_in[] ="33ad0a1c607ec03b09e6cd9893680ce210adf300aa1f2660e1b22e10f170f92a";
     char expected_expanded_hex_in[] ="6f2615a108c702c5678f54fc9dbab69716c076189c48250cebeac3576c3611ba";
 
-    struct s2n_stuffer client_handshake_message_in;
-    struct s2n_stuffer server_handshake_message_in;
-    struct s2n_stuffer expected_secret_in;
-    struct s2n_stuffer expected_expanded_in;
-    
+    DEFER_CLEANUP(struct s2n_stuffer client_handshake_message_in = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer server_handshake_message_in = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer expected_secret_in = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer expected_expanded_in = {{0}}, s2n_stuffer_free);
+
     char client_handshake_message[ sizeof(client_handshake_message_hex_in) / 2 ] = { 0 };
     char server_handshake_message[ sizeof(server_handshake_message_hex_in) / 2 ] = { 0 };
     char expected_secret[ sizeof(expected_secret_hex_in) / 2 ] = { 0 };
     char expected_expanded[ sizeof(expected_expanded_hex_in) / 2 ] = { 0 };
-       
+
     uint8_t digest_buf[SHA256_DIGEST_LENGTH];
     uint8_t secret_buf[SHA256_DIGEST_LENGTH];
     struct s2n_blob digest;
@@ -130,9 +131,9 @@ int main(int argc, char **argv)
     uint8_t label_buf[] = "derived";
     struct s2n_blob label = { 0 };
     EXPECT_SUCCESS(s2n_blob_init(&label, label_buf, sizeof(label_buf) - 1));
-    
+
     struct s2n_hmac_state hmac = {0};
-    
+
     EXPECT_SUCCESS(s2n_hmac_new(&hmac));
     EXPECT_SUCCESS(s2n_hkdf_expand_label(&hmac, S2N_HMAC_SHA256, &secret, &label, &digest, &output));
 

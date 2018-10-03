@@ -25,6 +25,7 @@
 #include <s2n.h>
 
 #include "utils/s2n_random.h"
+#include "utils/s2n_safety.h"
 
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
@@ -78,9 +79,12 @@ int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size)
 
     free(buffer);
     s2n_connection_free(client_conn);
+    s2n_config_free(client_config);
 
     /* Give the server a chance to a void a sigpipe */
     sleep(1);
+
+    s2n_cleanup();
 
     return 0;
 }
@@ -113,15 +117,12 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
 
     const uint32_t data_size = 10000000;
-    uint8_t *data = malloc(data_size);
-    EXPECT_NOT_NULL(data);
-
     /* Get some random data to send/receive */
-    struct s2n_blob blob;
-    blob.data = data;
-    blob.size = data_size;
+    DEFER_CLEANUP(struct s2n_blob blob = {0}, s2n_free);
+    s2n_alloc(&blob, data_size);
+
     EXPECT_SUCCESS(s2n_get_urandom_data(&blob));
-    
+
     /* Create a pipe */
     EXPECT_SUCCESS(pipe(server_to_client));
     EXPECT_SUCCESS(pipe(client_to_server));
@@ -134,9 +135,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(close(server_to_client[1]));
 
         /* Run the client */
-        const int client_rc = mock_client(client_to_server[1], server_to_client[0], data, data_size);
+        const int client_rc = mock_client(client_to_server[1], server_to_client[0], blob.data, data_size);
 
-        free(data);
         _exit(client_rc);
     }
 
@@ -166,7 +166,7 @@ int main(int argc, char **argv)
     /* Try to all 10MB of data, should be enough to fill PIPEBUF, so
        we'll get blocked at some point */
     uint32_t remaining = data_size;
-    uint8_t *ptr = data;
+    uint8_t *ptr = blob.data;
     while (remaining) {
         int r = s2n_send(conn, ptr, remaining, &blocked);
         if (r < 0) {
@@ -214,8 +214,6 @@ int main(int argc, char **argv)
     free(private_key_pem);
     free(dhparams_pem);
     END_TEST();
-
-    free(data);
 
     return 0;
 }

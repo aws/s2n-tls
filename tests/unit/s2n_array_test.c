@@ -18,13 +18,24 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_array.h"
 
+struct array_element {
+    int first;
+    char second;
+};
+
+int s2n_binary_search_comparator(void *a, void *b)
+{
+    if (((struct array_element *) a)->first > ((struct array_element *) b)->first) {
+        return 1;
+    } else if ((((struct array_element *) a)->first < ((struct array_element *) b)->first)) {
+        return -1;
+    } else {
+        return 0;
+    }
+}
+
 int main(int argc, char **argv)
 {
-    struct array_element {
-        int first;
-        char second;
-    };
-
     struct s2n_array *array;
     int num_of_elements = 17;
     int element_size = sizeof(struct array_element);
@@ -117,6 +128,23 @@ int main(int argc, char **argv)
     struct array_element *after_removed_element = s2n_array_get(array, 0);
     EXPECT_EQUAL(after_removed_element->first, elements[1].first);
     EXPECT_EQUAL(after_removed_element->second, elements[1].second);
+
+    /* Validate struct with same member value already exists using binary search */
+    struct array_element find_element = { 10 , 'a' + 10};
+    EXPECT_EQUAL(-1, s2n_array_binary_search(0,
+                                             array->num_of_elements - 1,
+                                             array,
+                                             &find_element,
+                                             s2n_binary_search_comparator));
+
+    /* Find insert index of a struct based on increasing order of one of it's members */
+    struct array_element add_largest_element = { 25 , 'a' + 25};
+    int index = array->num_of_elements;
+    EXPECT_EQUAL(index, s2n_array_binary_search(0,
+                                                array->num_of_elements - 1,
+                                                array,
+                                                &add_largest_element,
+                                                s2n_binary_search_comparator));
 
     /* Done with the array, make sure it can be freed */
     EXPECT_SUCCESS(s2n_array_free(array));
