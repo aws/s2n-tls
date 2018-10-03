@@ -31,7 +31,7 @@ struct s2n_error_translation {
     const char *str;
 };
 
-struct s2n_error_translation EN[] = {
+struct s2n_error_translation S2N_ERROR_EN[] = {
     {S2N_ERR_OK, "no error"},
     {S2N_ERR_IO, "underlying I/O operation failed, check system errno"},
     {S2N_ERR_BLOCKED, "underlying I/O operation would block"},

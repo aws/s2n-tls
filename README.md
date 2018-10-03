@@ -5,6 +5,7 @@ s2n is a C99 implementation of the TLS/SSL protocols that is designed to be simp
 [![Build Status](https://img.shields.io/travis/awslabs/s2n.svg)](https://travis-ci.org/awslabs/s2n)
 [![Apache 2 License](https://img.shields.io/github/license/awslabs/s2n.svg)](http://aws.amazon.com/apache-2-0/)
 [![C99](https://img.shields.io/badge/language-C99-blue.svg)](http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf)
+[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/awslabs/s2n.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/awslabs/s2n/context:cpp)
 [![Github forks](https://img.shields.io/github/forks/awslabs/s2n.svg)](https://github.com/awslabs/s2n/network)
 [![Github stars](https://img.shields.io/github/stars/awslabs/s2n.svg)](https://github.com/awslabs/s2n/stargazers)
 [![Join the chat at https://gitter.im/awslabs/s2n](https://badges.gitter.im/awslabs/s2n.svg)](https://gitter.im/awslabs/s2n?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
