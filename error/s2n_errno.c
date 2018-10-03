@@ -163,9 +163,9 @@ const char *s2n_strerror(int error, const char *lang)
         return no_such_language;
     }
 
-    for (int i = 0; i < (sizeof(EN) / sizeof(struct s2n_error_translation)); i++) {
-        if (EN[i].errno_value == error) {
-            return EN[i].str;
+    for (int i = 0; i < (sizeof(S2N_ERROR_EN) / sizeof(struct s2n_error_translation)); i++) {
+        if (S2N_ERROR_EN[i].errno_value == error) {
+            return S2N_ERROR_EN[i].str;
         }
     }
 
