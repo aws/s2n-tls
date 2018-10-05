@@ -37,16 +37,16 @@ if [[ "$GCC6_REQUIRED" == "true" ]]; then
     alias gcc=$(which gcc-6);
 fi
 
-if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "integration" ]]; then
+if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "valgrind" ]]; then
     # For linux make a build with debug symbols and run valgrind
     # We have to output something every 9 minutes, as some test may run longer than 10 minutes
     # and will not produce any output
     while sleep 9m; do echo "=====[ $SECONDS seconds still running ]====="; done &
     S2N_DEBUG=true make -j 8 valgrind
     kill %1
+fi
 
-    # Clean build with debug symbols and rebuild
-    make clean
+if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "integration" ]]; then
     make -j 8
 fi
 
