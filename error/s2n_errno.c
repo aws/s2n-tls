@@ -26,132 +26,249 @@ __thread const char *s2n_debug_str;
 static const char *no_such_language = "Language is not supported for error translation";
 static const char *no_such_error = "Internal s2n error";
 
-struct s2n_error_translation {
-    int errno_value;
-    const char *str;
-};
-
-struct s2n_error_translation S2N_ERROR_EN[] = {
-    {S2N_ERR_OK, "no error"},
-    {S2N_ERR_IO, "underlying I/O operation failed, check system errno"},
-    {S2N_ERR_BLOCKED, "underlying I/O operation would block"},
-    {S2N_ERR_KEY_INIT, "error initializing encryption key"},
-    {S2N_ERR_ENCRYPT, "error encrypting data"},
-    {S2N_ERR_DECRYPT, "error decrypting data"},
-    {S2N_ERR_MADVISE, "error calling madvise"},
-    {S2N_ERR_ALLOC, "error allocating memory"},
-    {S2N_ERR_MLOCK, "error calling mlock (Did you run prlimit?)"},
-    {S2N_ERR_MUNLOCK, "error calling munlock"},
-    {S2N_ERR_FSTAT, "error calling fstat"},
-    {S2N_ERR_OPEN, "error calling open"},
-    {S2N_ERR_MMAP, "error calling mmap"},
-    {S2N_ERR_ATEXIT, "error calling atexit"},
-    {S2N_ERR_NULL, "NULL pointer encountered"},
-    {S2N_ERR_CLOSED, "connection is closed"},
-    {S2N_ERR_SAFETY, "a safety check failed"},
-    {S2N_ERR_NOT_INITIALIZED, "s2n not initialized"},
-    {S2N_ERR_RANDOM_UNINITIALIZED, "s2n entropy not initialized"},
-    {S2N_ERR_OPEN_RANDOM, "error opening urandom"},
-    {S2N_ERR_RESIZE_STATIC_STUFFER, "cannot resize a static stuffer"},
-    {S2N_ERR_RESIZE_TAINTED_STUFFER, "cannot resize a tainted stuffer"},
-    {S2N_ERR_STUFFER_OUT_OF_DATA, "stuffer is out of data"},
-    {S2N_ERR_STUFFER_IS_FULL, "stuffer is full"},
-    {S2N_ERR_STUFFER_NOT_FOUND, "stuffer expected bytes were not found"},
-    {S2N_ERR_INVALID_BASE64, "invalid base64 encountered"},
-    {S2N_ERR_INVALID_PEM, "invalid PEM encountered"},
-    {S2N_ERR_DH_COPYING_PARAMETERS, "error copying Diffie-Hellman parameters"},
-    {S2N_ERR_DH_COPYING_PUBLIC_KEY, "error copying Diffie-Hellman public key"},
-    {S2N_ERR_DH_GENERATING_PARAMETERS, "error generating Diffie-Hellman parameters"},
-    {S2N_ERR_DH_PARAMS_CREATE, "error creating Diffie-Hellman parameters"},
-    {S2N_ERR_DH_SERIALIZING, "error serializing Diffie-Hellman parameters"},
-    {S2N_ERR_DH_SHARED_SECRET, "error computing Diffie-Hellman shared secret"},
-    {S2N_ERR_DH_WRITING_PUBLIC_KEY, "error writing Diffie-Hellman public key"},
-    {S2N_ERR_DH_FAILED_SIGNING, "error signing Diffie-Hellman values"},
-    {S2N_ERR_DH_TOO_SMALL, "Diffie-Hellman parameters are too small"},
-    {S2N_ERR_DH_PARAMETER_CHECK, "Diffie-Hellman parameter check failed"},
-    {S2N_ERR_INVALID_PKCS3, "invalid PKCS3 encountered"},
-    {S2N_ERR_HASH_DIGEST_FAILED, "failed to create hash digest"},
-    {S2N_ERR_HASH_INIT_FAILED, "error initializing hash"},
-    {S2N_ERR_HASH_INVALID_ALGORITHM, "invalid hash algorithm"},
-    {S2N_ERR_HASH_UPDATE_FAILED, "error updating hash"},
-    {S2N_ERR_HASH_COPY_FAILED, "error copying hash"},
-    {S2N_ERR_HASH_WIPE_FAILED, "error wiping hash"},
-    {S2N_ERR_HASH_NOT_READY, "hash not in a valid state for the attempted operation"},
-    {S2N_ERR_ALLOW_MD5_FOR_FIPS_FAILED, "error allowing MD5 to be used when in FIPS mode"},
-    {S2N_ERR_HMAC_INVALID_ALGORITHM, "invalid HMAC algorithm"},
-    {S2N_ERR_HKDF_OUTPUT_SIZE, "invalid HKDF output size"},
-    {S2N_ERR_PRF_INVALID_ALGORITHM, "invalid prf hash algorithm"},
-    {S2N_ERR_P_HASH_INVALID_ALGORITHM, "invalid p_hash algorithm"},
-    {S2N_ERR_P_HASH_INIT_FAILED, "error initializing p_hash"},
-    {S2N_ERR_P_HASH_UPDATE_FAILED, "error updating p_hash"},
-    {S2N_ERR_P_HASH_FINAL_FAILED, "error creating p_hash digest"},
-    {S2N_ERR_P_HASH_WIPE_FAILED, "error wiping p_hash"},
-    {S2N_ERR_SIZE_MISMATCH, "size mismatch"},
-    {S2N_ERR_DECODE_CERTIFICATE, "error decoding certificate"},
-    {S2N_ERR_DECODE_PRIVATE_KEY, "error decoding private key"},
-    {S2N_ERR_KEY_MISMATCH, "public and private key do not match"},
-    {S2N_ERR_NOMEM, "no memory"},
-    {S2N_ERR_SIGN, "error signing data"},
-    {S2N_ERR_VERIFY_SIGNATURE, "error verifying signature"},
-    {S2N_ERR_ALERT_PRESENT, "TLS alert is already pending"},
-    {S2N_ERR_ALERT, "TLS alert received"},
-    {S2N_ERR_CBC_VERIFY, "Failed CBC verification"},
-    {S2N_ERR_CIPHER_NOT_SUPPORTED, "Cipher is not supported"},
-    {S2N_ERR_BAD_MESSAGE, "Bad message encountered"},
-    {S2N_ERR_INVALID_SIGNATURE_ALGORITHM, "Invalid signature algorithm"},
-    {S2N_ERR_NO_CERTIFICATE_IN_PEM, "No certificate in PEM"},
-    {S2N_ERR_NO_ALERT, "No Alert present"},
-    {S2N_ERR_CLIENT_MODE, "operation not allowed in client mode"},
-    {S2N_ERR_SERVER_NAME_TOO_LONG, "server name is too long"},
-    {S2N_ERR_CLIENT_MODE_DISABLED, "client connections not allowed"},
-    {S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_FIPS_MODE, "Client Auth is not supported when in FIPS mode"},
-    {S2N_ERR_HANDSHAKE_STATE, "Invalid handshake state encountered"},
-    {S2N_ERR_FALLBACK_DETECTED, "TLS fallback detected"},
-    {S2N_ERR_INVALID_CIPHER_PREFERENCES, "Invalid Cipher Preferences version"},
-    {S2N_ERR_APPLICATION_PROTOCOL_TOO_LONG, "Application protocol name is too long"},
-    {S2N_ERR_NO_APPLICATION_PROTOCOL, "No supported application protocol to negotiate"},
-    {S2N_ERR_DRBG, "Error using Deterministic Random Bit Generator"},
-    {S2N_ERR_DRBG_REQUEST_SIZE, "Request for too much entropy"},
-    {S2N_ERR_ECDHE_GEN_KEY, "Failed to generate an ECDHE key"},
-    {S2N_ERR_ECDHE_SHARED_SECRET, "Error computing ECDHE shared secret"},
-    {S2N_ERR_ECDHE_UNSUPPORTED_CURVE, "Unsupported EC curve was presented during an ECDHE handshake"},
-    {S2N_ERR_ECDHE_SERIALIZING, "Error serializing ECDHE public"},
-    {S2N_ERR_SHUTDOWN_PAUSED, "s2n_shutdown() called while paused"},
-    {S2N_ERR_SHUTDOWN_CLOSED, "Peer closed before sending their close_notify"},
-    {S2N_ERR_SHUTDOWN_RECORD_TYPE, "Non alert record received during s2n_shutdown()"},
-    {S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO, "renegotiation_info should be empty"},
-    {S2N_ERR_SEND_SIZE, "Retried s2n_send() size is invalid"},
-    {S2N_ERR_KEY_CHECK, "Invalid key"},
-    {S2N_ERR_CIPHER_TYPE, "Unknown cipher type used"},
-    {S2N_ERR_MAP_DUPLICATE, "Duplicate map key inserted"},
-    {S2N_ERR_MAP_IMMUTABLE, "Attempt to update an immutable map"},
-    {S2N_ERR_MAP_MUTABLE, "Attempt to lookup a mutable map"},
-    {S2N_ERR_INITIAL_HMAC, "error calling EVP_CIPHER_CTX_ctrl for composite cbc cipher"},
-    {S2N_ERR_RECORD_LIMIT, "TLS record limit reached"},
-    {S2N_ERR_CORK_SET_ON_UNMANAGED, "Attempt to set connection cork management on unmanaged IO"},
-    {S2N_ERR_UNRECOGNIZED_EXTENSION, "TLS extension not recognized" },
-    {S2N_ERR_INVALID_SCT_LIST, "SCT list is invalid" },
-    {S2N_ERR_INVALID_OCSP_RESPONSE, "OCSP response is invalid" },
-    {S2N_ERR_INVALID_NONCE_TYPE, "Invalid AEAD nonce type"},
-    {S2N_ERR_UNIMPLEMENTED, "Unimplemented feature"},
-    {S2N_ERR_CERT_UNTRUSTED, "Certificate is untrusted"},
-    {S2N_ERR_CERT_TYPE_UNSUPPORTED, "Certificate Type is unsupported"},
-    {S2N_ERR_CANCELLED, "handshake was cancelled"},
-    {S2N_ERR_INVALID_MAX_FRAG_LEN, "invalid Maximum Fragmentation Length encountered"},
-    {S2N_ERR_MAX_FRAG_LEN_MISMATCH, "Negotiated Maximum Fragmentation Length from server does not match the requested length by client"},
-    {S2N_ERR_INVALID_SERIALIZED_SESSION_STATE, "Serialized session state is not in valid format"},
-    {S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG, "Serialized session state is too long"},
-    {S2N_ERR_INVALID_TICKET_KEY_LENGTH, "Session ticket key length cannot be zero"},
-    {S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH, "Session ticket key name should be unique and the name length cannot be zero"},
-    {S2N_ERR_TICKET_KEY_NOT_UNIQUE, "Cannot add session ticket key because it was added before"},
-    {S2N_ERR_TICKET_KEY_LIMIT, "Limit reached for unexpired session ticket keys"},
-    {S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY, "No key in encrypt-decrypt state is available to encrypt session ticket"},
-    {S2N_ERR_ENCRYPT_DECRYPT_KEY_SELECTION_FAILED, "Failed to select a key from keys in encrypt-decrypt state"},
-    {S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND, "Key used in already assigned session ticket not found for decryption"},
-    {S2N_ERR_SENDING_NST, "Error in session ticket status encountered before sending NST"},
-    {S2N_ERR_INVALID_DYNAMIC_THRESHOLD, "invalid dynamic record threshold"},
-    {S2N_ERR_INVALID_ARGUMENT, "invalid argument provided into a function call"},
-};
+const char *s2n_error_en(s2n_error error) {
+  switch(error) {
+    case S2N_ERR_OK:
+      return "no error";
+    case S2N_ERR_IO:
+      return "underlying I/O operation failed, check system errno";
+    case S2N_ERR_CLOSED:
+      return "connection is closed";
+    case S2N_ERR_BLOCKED:
+      return "underlying I/O operation would block";
+    case S2N_ERR_ALERT:
+      return "TLS alert received";
+    case S2N_ERR_ENCRYPT:
+      return "error encrypting data";
+    case S2N_ERR_DECRYPT:
+      return "error decrypting data";
+    case S2N_ERR_BAD_MESSAGE:
+      return "Bad message encountered";
+    case S2N_ERR_KEY_INIT:
+      return "error initializing encryption key";
+    case S2N_ERR_DH_SERIALIZING:
+      return "error serializing Diffie-Hellman parameters";
+    case S2N_ERR_DH_SHARED_SECRET:
+      return "error computing Diffie-Hellman shared secret";
+    case S2N_ERR_DH_WRITING_PUBLIC_KEY:
+      return "error writing Diffie-Hellman public key";
+    case S2N_ERR_DH_FAILED_SIGNING:
+      return "error signing Diffie-Hellman values";
+    case S2N_ERR_DH_COPYING_PARAMETERS:
+      return "error copying Diffie-Hellman parameters";
+    case S2N_ERR_DH_GENERATING_PARAMETERS:
+      return "error generating Diffie-Hellman parameters";
+    case S2N_ERR_CIPHER_NOT_SUPPORTED:
+      return "Cipher is not supported";
+    case S2N_ERR_NO_APPLICATION_PROTOCOL:
+      return "No supported application protocol to negotiate";
+    case S2N_ERR_FALLBACK_DETECTED:
+      return "TLS fallback detected";
+    case S2N_ERR_HASH_DIGEST_FAILED:
+      return "failed to create hash digest";
+    case S2N_ERR_HASH_INIT_FAILED:
+      return "error initializing hash";
+    case S2N_ERR_HASH_UPDATE_FAILED:
+      return "error updating hash";
+    case S2N_ERR_HASH_COPY_FAILED:
+      return "error copying hash";
+    case S2N_ERR_HASH_WIPE_FAILED:
+      return "error wiping hash";
+    case S2N_ERR_HASH_NOT_READY:
+      return "hash not in a valid state for the attempted operation";
+    case S2N_ERR_ALLOW_MD5_FOR_FIPS_FAILED:
+      return "error allowing MD5 to be used when in FIPS mode";
+    case S2N_ERR_DECODE_CERTIFICATE:
+      return "error decoding certificate";
+    case S2N_ERR_DECODE_PRIVATE_KEY:
+      return "error decoding private key";
+    case S2N_ERR_INVALID_SIGNATURE_ALGORITHM:
+      return "Invalid signature algorithm";
+    case S2N_ERR_CBC_VERIFY:
+      return "Failed CBC verification";
+    case S2N_ERR_DH_COPYING_PUBLIC_KEY:
+      return "error copying Diffie-Hellman public key";
+    case S2N_ERR_SIGN:
+      return "error signing data";
+    case S2N_ERR_VERIFY_SIGNATURE:
+      return "error verifying signature";
+    case S2N_ERR_ECDHE_GEN_KEY:
+      return "Failed to generate an ECDHE key";
+    case S2N_ERR_ECDHE_SHARED_SECRET:
+      return "Error computing ECDHE shared secret";
+    case S2N_ERR_ECDHE_UNSUPPORTED_CURVE:
+      return "Unsupported EC curve was presented during an ECDHE handshake";
+    case S2N_ERR_ECDHE_SERIALIZING:
+      return "Error serializing ECDHE public";
+    case S2N_ERR_SHUTDOWN_RECORD_TYPE:
+      return "Non alert record received during s2n_shutdown()";
+    case S2N_ERR_SHUTDOWN_CLOSED:
+      return "Peer closed before sending their close_notify";
+    case S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO:
+      return "renegotiation_info should be empty";
+    case S2N_ERR_RECORD_LIMIT:
+      return "TLS record limit reached";
+    case S2N_ERR_CERT_UNTRUSTED:
+      return "Certificate is untrusted";
+    case S2N_ERR_CERT_TYPE_UNSUPPORTED:
+      return "Certificate Type is unsupported";
+    case S2N_ERR_INVALID_MAX_FRAG_LEN:
+      return "invalid Maximum Fragmentation Length encountered";
+    case S2N_ERR_MAX_FRAG_LEN_MISMATCH:
+      return "Negotiated Maximum Fragmentation Length from server does not match the requested length by client";
+    case S2N_ERR_MADVISE:
+      return "error calling madvise";
+    case S2N_ERR_ALLOC:
+      return "error allocating memory";
+    case S2N_ERR_MLOCK:
+      return "error calling mlock (Did you run prlimit?)";
+    case S2N_ERR_MUNLOCK:
+      return "error calling munlock";
+    case S2N_ERR_FSTAT:
+      return "error calling fstat";
+    case S2N_ERR_OPEN:
+      return "error calling open";
+    case S2N_ERR_MMAP:
+      return "error calling mmap";
+    case S2N_ERR_ATEXIT:
+      return "error calling atexit";
+    case S2N_ERR_NOMEM:
+      return "no memory";
+    case S2N_ERR_NULL:
+      return "NULL pointer encountered";
+    case S2N_ERR_SAFETY:
+      return "a safety check failed";
+    case S2N_ERR_NOT_INITIALIZED:
+      return "s2n not initialized";
+    case S2N_ERR_RANDOM_UNINITIALIZED:
+      return "s2n entropy not initialized";
+    case S2N_ERR_OPEN_RANDOM:
+      return "error opening urandom";
+    case S2N_ERR_RESIZE_STATIC_STUFFER:
+      return "cannot resize a static stuffer";
+    case S2N_ERR_RESIZE_TAINTED_STUFFER:
+      return "cannot resize a tainted stuffer";
+    case S2N_ERR_STUFFER_OUT_OF_DATA:
+      return "stuffer is out of data";
+    case S2N_ERR_STUFFER_IS_FULL:
+      return "stuffer is full";
+    case S2N_ERR_STUFFER_NOT_FOUND:
+      return "stuffer expected bytes were not found";
+    case S2N_ERR_HASH_INVALID_ALGORITHM:
+      return "invalid hash algorithm";
+    case S2N_ERR_PRF_INVALID_ALGORITHM:
+      return "invalid prf hash algorithm";
+    case S2N_ERR_P_HASH_INVALID_ALGORITHM:
+      return "invalid p_hash algorithm";
+    case S2N_ERR_P_HASH_INIT_FAILED:
+      return "error initializing p_hash";
+    case S2N_ERR_P_HASH_UPDATE_FAILED:
+      return "error updating p_hash";
+    case S2N_ERR_P_HASH_FINAL_FAILED:
+      return "error creating p_hash digest";
+    case S2N_ERR_P_HASH_WIPE_FAILED:
+      return "error wiping p_hash";
+    case S2N_ERR_HMAC_INVALID_ALGORITHM:
+      return "invalid HMAC algorithm";
+    case S2N_ERR_HKDF_OUTPUT_SIZE:
+      return "invalid HKDF output size";
+    case S2N_ERR_ALERT_PRESENT:
+      return "TLS alert is already pending";
+    case S2N_ERR_HANDSHAKE_STATE:
+      return "Invalid handshake state encountered";
+    case S2N_ERR_SHUTDOWN_PAUSED:
+      return "s2n_shutdown() called while paused";
+    case S2N_ERR_SIZE_MISMATCH:
+      return "size mismatch";
+    case S2N_ERR_DRBG:
+      return "Error using Deterministic Random Bit Generator";
+    case S2N_ERR_DRBG_REQUEST_SIZE:
+      return "Request for too much entropy";
+    case S2N_ERR_KEY_CHECK:
+      return "Invalid key";
+    case S2N_ERR_CIPHER_TYPE:
+      return "Unknown cipher type used";
+    case S2N_ERR_MAP_DUPLICATE:
+      return "Duplicate map key inserted";
+    case S2N_ERR_MAP_IMMUTABLE:
+      return "Attempt to update an immutable map";
+    case S2N_ERR_MAP_MUTABLE:
+      return "Attempt to lookup a mutable map";
+    case S2N_ERR_INITIAL_HMAC:
+      return "error calling EVP_CIPHER_CTX_ctrl for composite cbc cipher";
+    case S2N_ERR_INVALID_NONCE_TYPE:
+      return "Invalid AEAD nonce type";
+    case S2N_ERR_UNIMPLEMENTED:
+      return "Unimplemented feature";
+    case S2N_ERR_NO_ALERT:
+      return "No Alert present";
+    case S2N_ERR_CLIENT_MODE:
+      return "operation not allowed in client mode";
+    case S2N_ERR_CLIENT_MODE_DISABLED:
+      return "client connections not allowed";
+    case S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_FIPS_MODE:
+      return "Client Auth is not supported when in FIPS mode";
+    case S2N_ERR_INVALID_BASE64:
+      return "invalid base64 encountered";
+    case S2N_ERR_INVALID_PEM:
+      return "invalid PEM encountered";
+    case S2N_ERR_DH_PARAMS_CREATE:
+      return "error creating Diffie-Hellman parameters";
+    case S2N_ERR_DH_TOO_SMALL:
+      return "Diffie-Hellman parameters are too small";
+    case S2N_ERR_DH_PARAMETER_CHECK:
+      return "Diffie-Hellman parameter check failed";
+    case S2N_ERR_INVALID_PKCS3:
+      return "invalid PKCS3 encountered";
+    case S2N_ERR_NO_CERTIFICATE_IN_PEM:
+      return "No certificate in PEM";
+    case S2N_ERR_SERVER_NAME_TOO_LONG:
+      return "server name is too long";
+    case S2N_ERR_INVALID_CIPHER_PREFERENCES:
+      return "Invalid Cipher Preferences version";
+    case S2N_ERR_APPLICATION_PROTOCOL_TOO_LONG:
+      return "Application protocol name is too long";
+    case S2N_ERR_KEY_MISMATCH:
+      return "public and private key do not match";
+    case S2N_ERR_SEND_SIZE:
+      return "Retried s2n_send() size is invalid";
+    case S2N_ERR_CORK_SET_ON_UNMANAGED:
+      return "Attempt to set connection cork management on unmanaged IO";
+    case S2N_ERR_UNRECOGNIZED_EXTENSION:
+      return "TLS extension not recognized";
+    case S2N_ERR_INVALID_SCT_LIST:
+      return "SCT list is invalid";
+    case S2N_ERR_INVALID_OCSP_RESPONSE:
+      return "OCSP response is invalid";
+    case S2N_ERR_CANCELLED:
+      return "handshake was cancelled";
+    case S2N_ERR_INVALID_SERIALIZED_SESSION_STATE:
+      return "Serialized session state is not in valid format";
+    case S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG:
+      return "Serialized session state is too long";
+    case S2N_ERR_INVALID_TICKET_KEY_LENGTH:
+      return "Session ticket key length cannot be zero";
+    case S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH:
+      return "Session ticket key name should be unique and the name length cannot be zero";
+    case S2N_ERR_TICKET_KEY_NOT_UNIQUE:
+      return "Cannot add session ticket key because it was added before";
+    case S2N_ERR_TICKET_KEY_LIMIT:
+      return "Limit reached for unexpired session ticket keys";
+    case S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY:
+      return "No key in encrypt-decrypt state is available to encrypt session ticket";
+    case S2N_ERR_ENCRYPT_DECRYPT_KEY_SELECTION_FAILED:
+      return "Failed to select a key from keys in encrypt-decrypt state";
+    case S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND:
+      return "Key used in already assigned session ticket not found for decryption";
+    case S2N_ERR_SENDING_NST:
+      return "Error in session ticket status encountered before sending NST";
+    case S2N_ERR_INVALID_DYNAMIC_THRESHOLD:
+      return "invalid dynamic record threshold";
+    case S2N_ERR_INVALID_ARGUMENT:
+      return "invalid argument provided into a function call";
+  }
+  return no_such_error;
+}
 
 const char *s2n_strerror(int error, const char *lang)
 {
@@ -163,13 +280,7 @@ const char *s2n_strerror(int error, const char *lang)
         return no_such_language;
     }
 
-    for (int i = 0; i < (sizeof(S2N_ERROR_EN) / sizeof(struct s2n_error_translation)); i++) {
-        if (S2N_ERROR_EN[i].errno_value == error) {
-            return S2N_ERROR_EN[i].str;
-        }
-    }
-
-    return no_such_error;
+    return s2n_error_en(error);
 }
 
 const char *s2n_strerror_debug(int error, const char *lang)
