@@ -25,6 +25,7 @@ extern uint8_t s2n_unknown_protocol_version;
 extern int s2n_flush(struct s2n_connection *conn, s2n_blocked_status * more);
 extern int s2n_client_hello_send(struct s2n_connection *conn);
 extern int s2n_client_hello_recv(struct s2n_connection *conn);
+extern int s2n_client_hello_recv_new(struct s2n_connection *conn);
 extern int s2n_sslv2_client_hello_recv(struct s2n_connection *conn);
 extern int s2n_server_hello_send(struct s2n_connection *conn);
 extern int s2n_server_hello_recv(struct s2n_connection *conn);
