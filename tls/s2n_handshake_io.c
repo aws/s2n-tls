@@ -624,8 +624,8 @@ static int handshake_handle_app_data(struct s2n_connection *conn) {
 
 done:    
     /* We're done with the record, wipe it */
-    GUARD(s2n_stuffer_wipe(&conn->header_in));
-    GUARD(s2n_stuffer_wipe(&conn->in));
+    //GUARD(s2n_stuffer_wipe(&conn->header_in));
+    //GUARD(s2n_stuffer_wipe(&conn->in));
     conn->in_status = ENCRYPTED;
 
     return 0;
