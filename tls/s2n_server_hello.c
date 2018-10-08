@@ -128,6 +128,7 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         conn->secure.conn_hash_alg = S2N_HASH_MD5_SHA1;
     }
 
+    //printf("OMG server hello recv passed for mode 1\n");
     return 0;
 }
 

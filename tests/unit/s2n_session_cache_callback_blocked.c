@@ -360,7 +360,7 @@ int main(int argc, char **argv)
          * connection/event from the lock
          */
         EXPECT_EQUAL(r, -1);
-        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_OTHER_EVENTS);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_DATA);
         EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
 
         /* Make sure we did a full handshake */
@@ -397,7 +397,7 @@ int main(int argc, char **argv)
          * connection/event from the lock
          */
         EXPECT_EQUAL(r, -1);
-        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_OTHER_EVENTS);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_DATA);
         EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
 
         /* Make sure we did a abbreviated handshake */
