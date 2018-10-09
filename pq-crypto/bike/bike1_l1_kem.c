@@ -32,329 +32,478 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-#include "stdio.h"
-#include "string.h"
+#include <string.h>
 
 #include "bike1_l1_kem.h"
-#include "parallel_hash.h"
-#include "openssl_utils.h"
-#include "decode.h"
 #include "sampling.h"
-#include "aes_ctr_prf.h"
-#include "conversions.h"
+#include "parallel_hash.h"
+#include "decode.h"
+#include "gf2x.h"
 
-_INLINE_ status_t encrypt(OUT ct_t* ct,
-        IN const uint8_t* e,
-        IN const uint8_t* ep __attribute__ ((__unused__)) ,
-        IN const pk_t* pk,
-        IN const seed_t* seed)
+#if (BIKE_VER == 1)
+_INLINE_ status_t encrypt(OUT ct_t *ct,
+                          IN const pk_t *pk,
+                          IN const seed_t *seed,
+                          IN const split_e_t *splitted_e)
 {
     status_t res = SUCCESS;
+    padded_r_t m = {0};
+    dbl_pad_ct_t p_ct;
 
-#ifndef BIKE2
-    uint8_t c0[R_SIZE] = {0};
-#endif
-    uint8_t c1[R_SIZE] = {0};
+    // Pad the public key
+    const pad_pk_t p_pk = {{.u.v.val = PTRV(pk)[0], .u.v.pad = {0}},
+                           {.u.v.val = PTRV(pk)[1], .u.v.pad = {0}}};
 
-    uint8_t e0[R_SIZE] = {0};
-    uint8_t e1[R_SIZE] = {0};
+    DMSG("    Sampling m.\n");
+    GUARD(sample_uniform_r_bits(VAL(m).raw, seed, NO_RESTRICTION), res, EXIT);
 
-    ossl_split_polynomial(e0, e1, e);
+    EDMSG("m:  "); print((uint64_t*)VAL(m).raw, R_BITS);
 
-#ifdef BIKE1
-    // ct = (m*pk0 + e0, m*pk1 + e1)
-    uint8_t m[R_SIZE] = {0};
-    sample_uniform_r_bits(m, seed, NO_RESTRICTION);
-    cyclic_product(c0, m, pk->u.v.val0);
-    cyclic_product(c1, m, pk->u.v.val1);
-    ossl_add(ct->u.v.val0, c0, e0);
-    ossl_add(ct->u.v.val1, c1, e1);
-#else
-#ifdef BIKE2
-	UNUSED(seed);
-    // ct = (e1*pk1 + e0)
-    cyclic_product(c1, e1, pk->u.v.val1);
-    ossl_add(ct->u.v.val0, c1, e0);
-    for (uint32_t i = 0; i < R_SIZE; i++)
-        ct->u.v.val1[i] = 0;
-#else
-#ifdef BIKE3
-    UNUSED(seed);
-    // ct = (e1*pk0 + e_extra, e1*pk1 + e0)
-    cyclic_product(c0, e1, pk->u.v.val0);
-    cyclic_product(c1, e1, pk->u.v.val1);
-    ossl_add(ct->u.v.val0, c0, ep);
-    ossl_add(ct->u.v.val1, c1, e0);
-#endif
-#endif
-#endif
+    DMSG("    Calculating the ciphertext.\n");
 
-    EDMSG("c0: "); print((uint64_t*)ct->u.v.val0, R_BITS);
-    EDMSG("c1: "); print((uint64_t*)ct->u.v.val1, R_BITS);
+    gf2x_mod_mul(p_ct[0].u.qw, m.u.qw, p_pk[0].u.qw);
+    gf2x_mod_mul(p_ct[1].u.qw, m.u.qw, p_pk[1].u.qw);
+
+    DMSG("    Addding Error to the ciphertext.\n");
+
+    gf2x_add(VAL(p_ct[0]).raw, VAL(p_ct[0]).raw, PTRV(splitted_e)[0].raw, R_SIZE);
+    gf2x_add(VAL(p_ct[1]).raw, VAL(p_ct[1]).raw, PTRV(splitted_e)[1].raw, R_SIZE);
+
+    // Copy the data outside
+    PTRV(ct)[0] = VAL(p_ct[0]);
+    PTRV(ct)[1] = VAL(p_ct[1]);
+
+EXIT:
+    EDMSG("c0: "); print((uint64_t*)PTRV(ct)[0].raw, R_BITS);
+    EDMSG("c1: "); print((uint64_t*)PTRV(ct)[1].raw, R_BITS);
+
+    secure_clean(VAL(m).raw, sizeof(m));
+    secure_clean(VAL(p_ct[0]).raw, sizeof(p_ct));
 
     return res;
 }
 
-
-//Generate the Shared Secret (K(e))
-_INLINE_ status_t get_ss(OUT ss_t* out, IN uint8_t* e)
+_INLINE_ status_t calc_pk(OUT pk_t *pk,
+                          IN const seed_t *g_seed,
+                          IN const pad_sk_t p_sk)
 {
     status_t res = SUCCESS;
 
+    // Must intialized padding to zero!!
+    padded_r_t g = {.u.v.pad = {0}};
+    GUARD(sample_uniform_r_bits(VAL(g).raw, g_seed, MUST_BE_ODD), res, EXIT);
+    
+    EDMSG("g:  "); print((uint64_t*)VAL(g).raw, R_BITS);
+    
+    // PK is dbl padded because modmul require scratch space for the multiplication result
+    dbl_pad_pk_t p_pk = {0};
+
+    // Calculate (g0, g1) = (g*h1, g*h0)
+    gf2x_mod_mul(p_pk[0].u.qw, g.u.qw, p_sk[1].u.qw);
+    gf2x_mod_mul(p_pk[1].u.qw, g.u.qw, p_sk[0].u.qw);
+
+    // Copy the data outside
+    PTRV(pk)[0] = VAL(p_pk[0]);
+    PTRV(pk)[1] = VAL(p_pk[1]);
+
+EXIT:
+    EDMSG("g0: "); print((uint64_t *) PTRV(pk)[0].raw, R_BITS);
+    EDMSG("g1: "); print((uint64_t *) PTRV(pk)[1].raw, R_BITS);
+
+    secure_clean(VAL(g).raw, sizeof(g));
+
+    return res;
+}
+
+#endif
+
+#if BIKE_VER==2
+_INLINE_ void encrypt(OUT ct_t *ct,
+                      IN const pk_t *pk,
+                      IN const split_e_t *splitted_e)
+{
+    //Pad the public key
+    const pad_pk_t p_pk = {{.v.val = *pk, .v.pad = {0}}};
+    dbl_pad_ct_t p_ct;
+
+    cyclic_product(VAL(p_ct).raw, PTRV(splitted_e)[1].raw, VAL(p_pk).raw);
+    gf2x_add(VAL(p_ct).raw, VAL(p_ct).raw, PTRV(splitted_e)[0].raw, R_SIZE);
+    
+    *ct = VAL(p_ct);
+    EDMSG("c:  "); print((uint64_t*)ct->raw, R_BITS);
+}
+
+_INLINE_ void calc_pk(OUT pk_t *pk, IN OUT sk_t *sk)
+{
+    r_t inv;
+    
+    mod_inv(inv.raw, PTR(sk).bin[0].raw);
+    cyclic_product(pk->raw, PTR(sk).bin[1].raw, inv.raw);
+
+    PTR(sk).pk = *pk;
+
+    EDMSG("g0: "); print((uint64_t*)pk->raw, R_BITS);
+
+    secure_clean(inv.raw, sizeof(r_t));
+}
+
+#if BATCH_SIZE > 1
+typedef struct batch_ctx_s
+{
+    uint32_t cnt;
+    padded_r_t h0[BATCH_SIZE];
+    compressed_idx_dv_t sk_wlist[BATCH_SIZE];
+    r_t tmp1[BATCH_SIZE];
+    r_t tmp0[BATCH_SIZE];
+    r_t inv;
+} batch_ctx_t;
+
+_INLINE_ status_t init_batch(IN OUT aes_ctr_prf_state_t *h_prf_state,
+                             IN OUT batch_ctx_t *ctx)
+{
+    status_t res = SUCCESS;
+
+    if(ctx->cnt != 0)
+    {
+        //Already initialized.
+        return res;
+    }
+
+    //First time - Init ad calc.
+    for(uint32_t i=0 ; i < BATCH_SIZE ; ++i)
+    {
+        GUARD(generate_sparse_fake_rep(ctx->h0[i].qw, 
+                                       ctx->sk_wlist[i].val,
+                                       sizeof(ctx->h0[i].val),
+                                       h_prf_state), res, EXIT);
+    }
+
+    ctx->tmp0[0] = ctx->h0[0].val;
+
+    for(uint32_t i = 1 ; i < BATCH_SIZE ; ++i)
+    {
+        cyclic_product(ctx->tmp0[i].raw, 
+                    ctx->tmp0[i-1].raw, 
+                    ctx->h0[i].val.raw);
+    }
+
+    mod_inv(ctx->tmp1[BATCH_SIZE-1].raw, ctx->tmp0[BATCH_SIZE-1].raw);
+
+    for(uint32_t i = (BATCH_SIZE - 2) ; i >= 1 ; i--)
+    {
+        cyclic_product(ctx->tmp1[i].raw, 
+                    ctx->tmp1[i+1].raw, 
+                    ctx->h0[i+1].val.raw);
+    }
+
+EXIT:
+
+    return res;
+}
+
+_INLINE_ void get_batch_keys(OUT pk_t *pk, 
+                             IN OUT sk_t *sk, 
+                             IN OUT batch_ctx_t *ctx)
+{
+    //Set the private key.
+    sk->bin[0] = ctx->h0[ctx->cnt].val;
+    sk->wlist[0] = ctx->sk_wlist[ctx->cnt];
+
+    if(ctx->cnt == 0)
+    {
+        cyclic_product(ctx->inv.raw, 
+                    ctx->tmp1[1].raw, 
+                    ctx->h0[1].val.raw);
+    }
+    else
+    {
+        cyclic_product(ctx->inv.raw, 
+                    ctx->tmp1[ctx->cnt].raw, 
+                    ctx->tmp0[ctx->cnt-1].raw);
+    }
+   
+    //Set the public key.
+    cyclic_product(pk->raw, sk->bin[1].raw, ctx->inv.raw);
+
+    EDMSG("g0: "); print((uint64_t*)pk->raw, R_BITS);
+    
+    //Increment the counter
+    ctx->cnt = (ctx->cnt+1) % BATCH_SIZE;
+}
+
+#endif
+
+#endif
+
+#if BIKE_VER==3
+_INLINE_ status_t encrypt(OUT ct_t *ct,
+                          IN const pk_t *pk,
+                          IN const split_e_t *splitted_e,
+                          IN OUT aes_ctr_prf_state_t *e_prf_state)
+{
+    compressed_idx_t_t dummy;
+    padded_r_t e_extra;
+    status_t res;
+
+    GUARD(generate_sparse_rep(e_extra.u.qw, dummy.val, T1/2, 
+                              R_BITS, sizeof(e_extra), e_prf_state), res, EXIT);
+
+    // ct = (e1*pk0 + e_extra, e1*pk1 + e0)
+    cyclic_product(PTRV(ct)[0].raw, PTRV(splitted_e)[1].raw, PTRV(pk)[0].raw);
+    cyclic_product(PTRV(ct)[1].raw, PTRV(splitted_e)[1].raw, PTRV(pk)[1].raw);
+    gf2x_add(PTRV(ct)[0].raw, PTRV(ct)[0].raw, VAL(e_extra).raw, R_SIZE);
+    gf2x_add(PTRV(ct)[1].raw, PTRV(ct)[1].raw, PTRV(splitted_e)[0].raw, R_SIZE);
+
+    EDMSG("c0: "); print((uint64_t*)PTRV(ct)[0].raw, R_BITS);
+    EDMSG("c1: "); print((uint64_t*)PTRV(ct)[1].raw, R_BITS);
+
+EXIT:
+    EDMSG("c0: "); print((uint64_t*)PTRV(ct)[0].raw, R_BITS);
+    EDMSG("c1: "); print((uint64_t*)PTRV(ct)[1].raw, R_BITS);
+
+    secure_clean(e_extra.u.raw, sizeof(e_extra));
+
+    return res;    
+}
+
+_INLINE_ status_t calc_pk(OUT pk_t *pk,
+                          IN const seed_t *g_seed,
+                          IN OUT sk_t *sk)
+{
+    status_t res = SUCCESS;
+    r_t tmp1;
+
+    // pk = (h1 + g*h0, g)
+    padded_r_t g = {.u.v.pad = {0}};
+    GUARD(sample_uniform_r_bits(VAL(g).raw, g_seed, NO_RESTRICTION), res, EXIT);
+
+    cyclic_product(tmp1.raw, VAL(g).raw, PTR(sk).bin[0].raw);
+    gf2x_add(PTRV(pk)[0].raw, tmp1.raw, PTR(sk).bin[1].raw, R_SIZE);
+
+    // Copy g to pk[1]
+    PTRV(pk)[1] = VAL(g);
+    
+    // Store the pk for later use
+    PTR(sk).pk = *pk;
+    
+EXIT:
+    EDMSG("g0: "); print((uint64_t*)pk->val[0].raw, R_BITS);
+    EDMSG("g1: "); print((uint64_t*)pk->val[1].raw, R_BITS);
+
+    secure_clean(g.u.raw, sizeof(g));
+    secure_clean(tmp1.raw, sizeof(tmp1));
+
+    return res;
+}
+
+#endif
+
+// Generate the Shared Secret (K(e))
+_INLINE_ void get_ss(OUT ss_t *out, IN const e_t *e)
+{
     DMSG("    Enter get_ss.\n");
 
-    sha384_hash_t hash = {0};
+    // Calculate the hash
+    sha_hash_t hash = {0};
+    parallel_hash(&hash, e->raw, sizeof(*e));
 
-    //Calculate the hash.
-    parallel_hash(&hash, e, N_SIZE);
+    // Truncate the final hash into K by copying only the LSBs
+    memcpy(out->raw, hash.u.raw, sizeof(*out));
 
-    //Truncate the final hash into K.
-    //By copying only the LSBs
-    for(uint32_t i = 0; i < sizeof(ss_t); i++)
-    {
-        out->raw[i] = hash.u.raw[i];
-    }
-
+    secure_clean(hash.u.raw, sizeof(hash));
     DMSG("    Exit get_ss.\n");
-    return res;
-}
-
-// transpose a row into a column:
-_INLINE_ void transpose(uint8_t col[R_BITS], uint8_t row[R_BITS])
-{
-    col[0] = row[0];
-    for (uint64_t i = 1; i < R_BITS ; ++i)
-    {
-        col[i] = row[(R_BITS) - i];
-    }
-}
-
-_INLINE_ status_t compute_syndrome(OUT syndrome_t* syndrome,
-        IN const ct_t* ct,
-        IN const sk_t* sk)
-{
-    status_t res = SUCCESS;
-    uint8_t s_tmp_bytes[R_BITS] = {0};
-    uint8_t s0[R_SIZE] = {0};
-
-#ifdef BIKE1
-    // BIKE-1 syndrome: s = h0*c0 + h1*c1:
-    cyclic_product(s0, sk->u.v.val0, ct->u.v.val0);
-    uint8_t s1[R_SIZE] = {0};
-    cyclic_product(s1, sk->u.v.val1, ct->u.v.val1);
-    ossl_add(s0, s0, s1);
-#else
-#ifdef BIKE2
-    // BIKE-2 syndrome: s = c0*h0
-    cyclic_product(s0, sk->u.v.val0, ct->u.v.val0);
-#else
-#ifdef BIKE3
-    // BIKE3 syndrome: s = c0 + c1*h0
-    cyclic_product(s0, ct->u.v.val1, sk->u.v.val0);
-    ossl_add(s0, s0, ct->u.v.val0);
-#endif
-#endif
-#endif
-
-    //Store the syndrome in a bit array
-    convertByteToBinary(s_tmp_bytes, s0, R_BITS);
-    transpose(syndrome->raw, s_tmp_bytes);
-
-    return res;
 }
 
 ////////////////////////////////////////////////////////////////
-//The three APIs below (keypair, enc, dec) are defined by NIST:
+//The three APIs below (keygeneration, encapsulate, decapsulate) are defined by NIST:
 //In addition there are two KAT versions of this API as defined.
 ////////////////////////////////////////////////////////////////
 int BIKE1_L1_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
 {
-    //Convert to this implementation types
-    sk_t* l_sk = (sk_t*)sk;
-    pk_t* l_pk = (pk_t*)pk;
+    // Convert to this implementation types
+    sk_t *l_sk = (sk_t *)sk;
+    pk_t *l_pk = (pk_t *)pk;
+    
     status_t res = SUCCESS;
 
-    //For NIST DRBG_CTR.
+    // For DRBG and AES_PRF
     double_seed_t seeds = {0};
     aes_ctr_prf_state_t h_prf_state = {0};
+    
+    // Get the entrophy seeds
+    GUARD(get_seeds(&seeds, KEYGEN_SEEDS), res, EXIT);
 
-    //Get the entropy seeds.
-    CHECK_STATUS(get_seeds(&seeds, KEYGEN_SEEDS));
-
-    // sk = (h0, h1)
-    uint8_t * h0 = l_sk->u.v.val0;
-    uint8_t * h1 = l_sk->u.v.val1;
-
-    DMSG("  Enter BIKE1_L1_crypto_kem_keypair.\n");
+    DMSG("  Enter crypto_kem_keypair.\n");
     DMSG("    Calculating the secret key.\n");
 
-#ifdef BIKE1
-    uint8_t g[R_SIZE] = {0};
-#endif
-#ifdef BIKE2
-    uint8_t inv_h0[R_SIZE];
-#endif
-#ifdef BIKE3
-    uint8_t tmp1[R_SIZE] = {0};
-	uint8_t * g = l_pk->u.v.val1;
-#endif
-
-    //Both h0 and h1 use the same context
+    // Both h0 and h1 use the same context
     init_aes_ctr_prf_state(&h_prf_state, MAX_AES_INVOKATION, &seeds.u.v.s1);
+    
+    // Padded for internal use
+    // We don't want to send the padded data outside to save BW.
+    pad_sk_t p_sk = {0};
 
-    res = generate_sparse_rep(h0, DV, R_BITS, &h_prf_state); CHECK_STATUS(res);
-    res = generate_sparse_rep(h1, DV, R_BITS, &h_prf_state); CHECK_STATUS(res);
+    // Make sure that the wlists are zeroed for the KATs.
+    memset(l_sk, 0, sizeof(sk_t));
+
+#if BATCH_SIZE > 1
+    static batch_ctx_t batch_ctx = {.cnt = 0};
+    GUARD(init_batch(&h_prf_state, &batch_ctx), res, EXIT);
+#else
+    GUARD(generate_sparse_fake_rep(p_sk[0].u.qw, PTR(l_sk).wlist[0].val, 
+                                   sizeof(p_sk[0]), &h_prf_state), res, EXIT);
+    
+    // Copy data
+    PTR(l_sk).bin[0] = VAL(p_sk[0]);
+#endif
+    GUARD(generate_sparse_fake_rep(p_sk[1].u.qw, PTR(l_sk).wlist[1].val, 
+                                   sizeof(p_sk[1]), &h_prf_state), res, EXIT);
+
+    // Copy data
+    PTR(l_sk).bin[1] = VAL(p_sk[1]);
 
     DMSG("    Calculating the public key.\n");
 
-#ifdef BIKE1
-    //  pk = (g*h1, g*h0)
-    res = sample_uniform_r_bits(g, &seeds.u.v.s2, MUST_BE_ODD);  CHECK_STATUS(res);
-
-    cyclic_product(l_pk->u.v.val0, g, h1); CHECK_STATUS(res);
-    cyclic_product(l_pk->u.v.val1, g, h0); CHECK_STATUS(res);
-#else
-#ifdef BIKE2
-    // pk = (1, h1*h0^(-1))
-	memset(l_pk->u.v.val0, 0, R_SIZE);
-    l_pk->u.v.val0[0] = 1; //assume all elements initialized with 0
-    ossl_mod_inv(inv_h0, h0);
-    cyclic_product(l_pk->u.v.val1, h1, inv_h0);
-#else
-#ifdef BIKE3
-    // pk = (h1 + g*h0, g)
-    res = sample_uniform_r_bits(g, &seeds.u.v.s2, MUST_BE_ODD);  CHECK_STATUS(res);
-    cyclic_product(tmp1, g, h0);
-    ossl_add(l_pk->u.v.val0, tmp1, h1);
+#if BIKE_VER==1
+    GUARD(calc_pk(l_pk, &seeds.u.v.s2, p_sk), res, EXIT);
+#elif (BIKE_VER == 2)
+  #if (BATCH_SIZE > 1)
+    get_batch_keys(l_pk, l_sk, &batch_ctx);
+  #else
+    calc_pk(l_pk, l_sk);
+  #endif
+#elif (BIKE_VER == 3)
+    GUARD(calc_pk(l_pk, &seeds.u.v.s2, l_sk), res, EXIT);
 #endif
-#endif
-#endif
-
-    EDMSG("h0: "); print((uint64_t*)l_sk->u.v.val0, R_BITS);
-    EDMSG("h1: "); print((uint64_t*)l_sk->u.v.val1, R_BITS);
-    EDMSG("g0: "); print((uint64_t*)l_pk->u.v.val0, R_BITS);
-    EDMSG("g1: "); print((uint64_t*)l_pk->u.v.val1, R_BITS);
 
 EXIT:
-    DMSG("  Exit BIKE1_L1_crypto_kem_keypair.\n");
+
+    EDMSG("h0: "); print((uint64_t*)&PTR(l_sk).bin[0], R_BITS);
+    EDMSG("h1: "); print((uint64_t*)&PTR(l_sk).bin[1], R_BITS);
+    EDMSG("h0c:"); print((uint64_t*)&PTR(l_sk).wlist[0], SIZEOF_BITS(compressed_idx_dv_t));
+    EDMSG("h1c:"); print((uint64_t*)&PTR(l_sk).wlist[1], SIZEOF_BITS(compressed_idx_dv_t));
+
+    finalize_aes_ctr_prf(&h_prf_state);
+    secure_clean(seeds.u.v.s1.u.raw, sizeof(seeds));
+    secure_clean((uint8_t *)&h_prf_state, sizeof(h_prf_state));
+    secure_clean(VAL(p_sk[0]).raw, sizeof(p_sk));
+
+    DMSG("  Exit crypto_kem_keypair.\n");
     return res;
 }
 
-//Encapsulate - pk is the public key,
-//              ct is a key encapsulation message (ciphertext),
-//              ss is the shared secret.
+// Encapsulate - pk is the public key,
+//               ct is a key encapsulation message (ciphertext),
+//               ss is the shared secret.
 int BIKE1_L1_crypto_kem_enc(OUT unsigned char *ct,
-        OUT unsigned char *ss,
-        IN  const unsigned char *pk)
+                            OUT unsigned char *ss,
+                            IN  const unsigned char *pk)
 {
-    DMSG("  Enter BIKE1_L1_crypto_kem_enc.\n");
+    DMSG("  Enter crypto_kem_enc.\n");
 
     status_t res = SUCCESS;
 
-    //Convert to these implementation types
-    const pk_t* l_pk = (pk_t*)pk;
-    ct_t* l_ct = (ct_t*)ct;
-    ss_t* l_ss = (ss_t*)ss;
+    // Convert to this implementation types
+    const pk_t *l_pk = (const pk_t *)pk;
+    ct_t *l_ct = (ct_t *)ct;
+    ss_t *l_ss = (ss_t *)ss;
+    padded_e_t e = {0};
 
-    //For NIST DRBG_CTR.
+    // For NIST DRBG_CTR
     double_seed_t seeds = {0};
     aes_ctr_prf_state_t e_prf_state = {0};
 
-    //Get the entropy seeds.
-    CHECK_STATUS(get_seeds(&seeds, ENCAPS_SEEDS));
+    // Get the entrophy seeds
+    GUARD(get_seeds(&seeds, ENCAPS_SEEDS), res, EXIT);
 
-    // error vector:
-    uint8_t e[N_SIZE] = {0};
-#ifdef BIKE3
-    uint8_t e_extra[R_SIZE]={0};
-#endif
-
-    //random data generator;
+    // Random data generator
     // Using first seed
     init_aes_ctr_prf_state(&e_prf_state, MAX_AES_INVOKATION, &seeds.u.v.s1);
 
     DMSG("    Generating error.\n");
-    res = generate_sparse_rep(e, T1, N_BITS, &e_prf_state); CHECK_STATUS(res);
+    compressed_idx_t_t dummy;
+    GUARD(generate_sparse_rep(e.u.qw, dummy.val, T1, N_BITS, sizeof(e), &e_prf_state), res, EXIT);
 
-#ifdef BIKE3
-    res = generate_sparse_rep(e_extra, T1/2, R_BITS, &e_prf_state);
-#endif
+    EDMSG("e:  "); print((uint64_t*)VAL(e).raw, sizeof(e)*8);
 
-    // computing ct = enc(pk, e)
+    // Split e into e0 and e1. Initialization is done in split_e
+    split_e_t splitted_e;
+    split_e(&splitted_e, &VAL(e));
+    
+    EDMSG("e0: "); print((uint64_t*)VAL(splitted_e)[0].raw, R_BITS);
+    EDMSG("e1: "); print((uint64_t*)VAL(splitted_e)[1].raw, R_BITS);
+
+    // Computing ct = enc(pk, e)
     // Using second seed
     DMSG("    Encrypting.\n");
-#ifdef BIKE3
-    res = encrypt(l_ct, e, e_extra, l_pk, &seeds.u.v.s2);             	CHECK_STATUS(res);
-#else
-    res = encrypt(l_ct, e, 0, l_pk, &seeds.u.v.s2);             	CHECK_STATUS(res);
+#if   BIKE_VER==1
+    GUARD(encrypt(l_ct, l_pk, &seeds.u.v.s2, &splitted_e), res, EXIT);
+#elif BIKE_VER==2
+    encrypt(l_ct, l_pk, &splitted_e);
+#elif BIKE_VER==3
+    GUARD(encrypt(l_ct, l_pk, &splitted_e, &e_prf_state), res, EXIT);
 #endif
 
     DMSG("    Generating shared secret.\n");
-    res = get_ss(l_ss, e);                                  CHECK_STATUS(res);
-
-    EDMSG("ss: "); print((uint64_t*)l_ss->raw, sizeof(*l_ss)*8);
+    get_ss(l_ss, &VAL(e));
 
 EXIT:
+    EDMSG("ss: "); print((uint64_t*)l_ss->raw, SIZEOF_BITS(*l_ss));
 
-    DMSG("  Exit BIKE1_L1_crypto_kem_enc.\n");
+    finalize_aes_ctr_prf(&e_prf_state);
+    secure_clean(seeds.u.v.s1.u.raw, sizeof(seeds));
+    secure_clean(VAL(e).raw, sizeof(e));
+    secure_clean((uint8_t *)&e_prf_state, sizeof(e_prf_state));
+    secure_clean(VAL(splitted_e)[0].raw, sizeof(splitted_e));
+
+    DMSG("  Exit crypto_kem_enc.\n");
     return res;
 }
 
-//Decapsulate - ct is a key encapsulation message (ciphertext),
-//              sk is the private key,
-//              ss is the shared secret
+// Decapsulate - ct is a key encapsulation message (ciphertext),
+//               sk is the private key,
+//               ss is the shared secret
 int BIKE1_L1_crypto_kem_dec(OUT unsigned char *ss,
-        IN const unsigned char *ct,
-        IN const unsigned char *sk)
+                            IN const unsigned char *ct,
+                            IN const unsigned char *sk)
 {
-    DMSG("  Enter BIKE1_L1_crypto_kem_dec.\n");
+    DMSG("  Enter crypto_kem_dec.\n");
+        
     status_t res = SUCCESS;
 
-    //Convert to this implementation types
-    const sk_t* l_sk = (sk_t*)sk;
-    const ct_t* l_ct = (ct_t*)ct;
-    ss_t* l_ss = (ss_t*)ss;
-
-    DMSG("  Converting to compact rep.\n");
-    uint32_t h0_compact[DV] = {0};
-    uint32_t h1_compact[DV] = {0};
-    convert2compact(h0_compact, l_sk->u.v.val0);
-    convert2compact(h1_compact, l_sk->u.v.val1);
-
+    // Convert to this implementation types
+    const sk_t *l_sk = (const sk_t *)sk;
+    const ct_t *l_ct = (const ct_t *)ct;
+    ss_t *l_ss = (ss_t *)ss;
+    
+    // Force zero initialization
+    syndrome_t syndrome = {0};
+    e_t e = {0};
+    
     DMSG("  Computing s.\n");
-    syndrome_t syndrome;
-    uint8_t e[R_BITS*2] = {0};
-    uint8_t eBytes[N_SIZE] = {0};
-    int rc;
-    uint32_t u = 0; // For BIKE-1 and BIKE-2, u = 0 (i.e. syndrome must become a zero-vector)
-    res = compute_syndrome(&syndrome, l_ct, l_sk); CHECK_STATUS(res);
+    compute_syndrome(&syndrome, l_ct, l_sk);
 
     DMSG("  Decoding.\n");
-#ifdef BIKE3
-    u = T1/2; // For BIKE-3, u = t/2
-#endif
-    rc = decode(e, syndrome.raw, h0_compact, h1_compact, u);
 
-    if (rc == 0)
-    {
-        DMSG("    Decoding result: success\n");
-    }
-    else
+    if (decode(&e, &syndrome, l_ct, l_sk, U_ERR) != 0)
     {
         DMSG("    Decoding result: failure!\n");
+        ERR(E_DECODING_FAILURE, res, EXIT);
     }
 
-    // checking if error weight is exactly t:
-    if (getHammingWeight(e, 2*R_BITS) != T1)
+    // Check if the error weight equals T1
+    if (count_ones(e.raw, sizeof(e)) != T1)
     {
-        MSG("Error weight is not t\n");
+        MSG("    Error weight is not t\n");
+        ERR(E_ERROR_WEIGHT_IS_NOT_T, res, EXIT);
     }
 
-    convertBinaryToByte(eBytes, e, 2*R_BITS);
-    res = get_ss(l_ss, eBytes);                CHECK_STATUS(res);
+    get_ss(l_ss, &e);
 
 EXIT:
+    secure_clean(syndrome.u.raw, sizeof(syndrome));
+    secure_clean(e.raw, sizeof(e));
 
-    DMSG("  Exit BIKE1_L1_crypto_kem_dec.\n");
+    DMSG("  Exit crypto_kem_dec.\n");
     return res;
 }

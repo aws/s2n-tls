@@ -1,298 +1,474 @@
-/******************************************************************************
- * BIKE -- Bit Flipping Key Encapsulation
- *
- * Copyright (c) 2017 Nir Drucker, Shay Gueron, Rafael Misoczki, Tobias Oder, Tim Gueneysu
- * (drucker.nir@gmail.com, shay.gueron@gmail.com, rafael.misoczki@intel.com, tobias.oder@rub.de, tim.gueneysu@rub.de)
- *
- * This decoder is the decoder used by CAKE. But with the thresholds used by BIKE's decoder.
- * 
- * Permission to use this code for BIKE is granted.
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * * Redistributions of source code must retain the above copyright notice,
- *   this list of conditions and the following disclaimer.
- *
- * * Redistributions in binary form must reproduce the above copyright
- *   notice, this list of conditions and the following disclaimer in the
- *   documentation and/or other materials provided with the distribution.
- *
- * * The names of the contributors may not be used to endorse or promote
- *   products derived from this software without specific prior written
- *   permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHORS ""AS IS"" AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS CORPORATION OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ******************************************************************************/
+/***************************************************************************
+* Additional implementation of "BIKE: Bit Flipping Key Encapsulation". 
+* Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+*
+* Written by Nir Drucker and Shay Gueron
+* AWS Cryptographic Algorithms Group
+* (ndrucker@amazon.com, gueron@amazon.com)
+*
+* The license is detailed in the file LICENSE.txt, and applies to this file.
+*
+* The optimizations are based on the description developed in the paper: 
+* N. Drucker, S. Gueron, 
+* "A toolbox for software optimization of QC-MDPC code-based cryptosystems", 
+* ePrint (2017).
+* The decoder (in decoder/decoder.c) algorithm is the algorithm included in
+* the early submission of CAKE (due to N. Sandrier and R Misoczki).
+*
+* ***************************************************************************/
 
+#include <string.h>
 #include "decode.h"
 #include "utilities.h"
+#include "gf2x.h"
 
-#include "sampling.h"
-#include "aes_ctr_prf.h"
+// Decoding (bit-flipping) parameter
+#define MAX_IT 25
 
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
+////////////////////////////////////////////////////////////////////////////////
+// Defined in decode.S file
+void compute_counter_of_unsat(OUT uint8_t upc[N_BITS],
+                              IN const uint8_t s[R_BITS],
+                              IN const compressed_idx_dv_t* inv_h0_compressed,
+                              IN const compressed_idx_dv_t* inv_h1_compressed);
 
-// count number of 1's in tmp:
-uint32_t getHammingWeight(const uint8_t tmp[R_BITS], const uint32_t length)
+void recompute(OUT syndrome_t* s,
+               IN const uint32_t num_positions,
+               IN const uint32_t positions[R_BITS],
+               IN const compressed_idx_dv_t* h_compressed);
+
+void convert_to_redundant_rep(OUT uint8_t* out, 
+                              IN const uint8_t * in, 
+                              IN const uint64_t len);
+
+////////////////////////////////////////////////////////////////////////////////
+
+typedef ALIGN(16) struct decode_ctx_s
 {
-    uint32_t count = 0;
-    for (uint32_t i = 0; i < length; i++)
-    {
-        count+=tmp[i];
+    // Count the number of unsatisfied parity-checks:
+#ifdef AVX512
+    ALIGN(16) uint8_t upc[N_QDQWORDS_BITS];
+#else
+    ALIGN(16) uint8_t upc[N_DDQWORDS_BITS];
+#endif
+    
+#ifdef CONSTANT_TIME
+    e_t black_e;
+    e_t gray_e;
+#else
+    // Black positions are the positions involved in more than "threshold" UPC
+    uint32_t black_pos[N0][R_BITS];
+    uint32_t num_black_pos[N0];
+    
+    // Gray positions are the positions involved in more than (threashold - delta) UPC
+    uint32_t gray_pos [N0][R_BITS];
+    uint32_t num_gray_pos [N0];
+
+    uint32_t unflip_pos[N0][R_BITS];
+    uint32_t num_unflip_pos[N0];
+
+    uint32_t gray_pos_to_flip[N0][R_BITS]; 
+    uint32_t num_gray_pos_to_flip[N0];
+#endif
+    int delta;
+    uint32_t threshold;
+} decode_ctx_t;
+
+void split_e(OUT split_e_t* split_e, IN const e_t* e)
+{
+    // Copy lower bytes (e0)
+    memcpy(PTRV(split_e)[0].raw, e->raw, R_SIZE);
+
+    // Now load second value
+    for (uint32_t i = R_SIZE; i < N_SIZE; ++i) {
+        PTRV(split_e)
+        [1].raw[i - R_SIZE] = ((e->raw[i] << LAST_R_BYTE_TRAIL) |
+                               (e->raw[i - 1] >> LAST_R_BYTE_LEAD));
     }
 
-    return count;
+    // Fix corner case
+    if (N_SIZE < 2UL * R_SIZE) {
+        PTRV(split_e)[1].raw[R_SIZE - 1] = (e->raw[N_SIZE - 1] >> LAST_R_BYTE_LEAD);
+    }
+
+    // Fix last value
+    PTRV(split_e)[0].raw[R_SIZE - 1] &= LAST_R_BYTE_MASK;
+    PTRV(split_e)[1].raw[R_SIZE - 1] &= LAST_R_BYTE_MASK;
 }
 
-uint32_t get_predefined_threshold_var(const uint8_t s[R_BITS])
+// Transpose a row into a column
+_INLINE_ void transpose(OUT red_r_t *col, 
+                        IN const red_r_t *row)
 {
-    // compute syndrome weight:
-    uint32_t syndromeWeight = getHammingWeight(s, R_BITS);
+    col->raw[0] = row->raw[0];
+    for (uint64_t i = 1; i < R_BITS ; ++i)
+    {
+        col->raw[i] = row->raw[(R_BITS) - i];
+    }
+}
 
-    // set threshold according to syndrome weight:
-    uint32_t threshold = ceil(VAR_TH_FCT(syndromeWeight));
+void compute_syndrome(OUT syndrome_t* syndrome,
+                      IN const ct_t* ct,
+                      IN const sk_t* sk)
+{
+    pad_sk_t pad_sk = {{.u.v.val = PTR(sk).bin[0]}, {.u.v.val = PTR(sk).bin[1]}};
+
+    // gf2x_mod_mul requires the values to be 64bit padded and extra (dbl) space for the results
+    dbl_pad_syndrome_t pad_s;
+
+#if BIKE_VER == 1
+    pad_ct_t pad_ct = {{.u.v.val = PTRV(ct)[0]}, {.u.v.val = PTRV(ct)[1]}};
+
+    // Compute s = c0*h0 + c1*h1:
+    gf2x_mod_mul(pad_s[0].u.qw, pad_ct[0].u.qw, pad_sk[0].u.qw);
+    gf2x_mod_mul(pad_s[1].u.qw, pad_ct[1].u.qw, pad_sk[1].u.qw);
+
+    gf2x_add(VAL(pad_s[0]).raw, VAL(pad_s[0]).raw, VAL(pad_s[1]).raw, R_SIZE);
+
+#elif BIKE_VER == 2
+    pad_ct_t pad_ct = {.u.v.val = *ct};
+    gf2x_mod_mul(pad_s[0].u.qw, pad_ct.u.qw, pad_sk[0].u.qw);
+
+#elif BIKE_VER == 3
+    // BIKE3 syndrome: s = c0 + c1*h0
+    // NTL is better in this case
+    cyclic_product(VAL(pad_s[0]).raw, PTRV(ct)[1].raw, VAL(pad_sk[0]).raw);
+    gf2x_add(VAL(pad_s[0]).raw, VAL(pad_s[0]).raw, PTRV(ct)[0].raw, R_SIZE);
+#endif
+
+    // Converting to redunandt representation and then transposing the value
+    red_r_t s_tmp_bytes = {0};
+    convert_to_redundant_rep(s_tmp_bytes.raw, VAL(pad_s[0]).raw, sizeof(s_tmp_bytes));
+    transpose(&PTR(syndrome).dup1, &s_tmp_bytes);
+
+    secure_clean(pad_s[0].u.raw, sizeof(pad_s));
+    secure_clean(pad_sk[0].u.raw, sizeof(pad_sk));
+#if (BIKE_VER != 3)
+    secure_clean((uint8_t *) &pad_ct, sizeof(pad_ct));
+#endif
+}
+
+_INLINE_ uint32_t get_threshold(IN const red_r_t *s)
+{
+    const uint32_t syndrome_weight = count_ones(s->raw, R_BITS);
+
+#if BIKE_VER==3
+  #if   LEVEL==1
+    const uint32_t threshold = (13.209 + 0.0060515 * (syndrome_weight));
+  #elif LEVEL==3
+    const uint32_t threshold = (15.561 + 0.0046692 * (syndrome_weight));
+  #elif LEVEL==5
+    const uint32_t threshold = (17.061 + 0.0038459 * (syndrome_weight));
+  #endif
+#else
+  #if   LEVEL==1
+    const uint32_t threshold = (13.530 + 0.0069721 * (syndrome_weight));
+  #elif LEVEL==3
+    const uint32_t threshold = (15.932 + 0.0052936 * (syndrome_weight));
+  #elif LEVEL==5
+    const uint32_t threshold = (17.489 + 0.0043536 * (syndrome_weight));
+  #endif
+#endif
 
     DMSG("    Thresold: %d\n", threshold);
     return threshold;
 }
 
-static void recompute_syndrome(uint8_t s[R_BITS],
-                               const uint32_t numPositions,
-                               const uint32_t positions[N_BITS],
-                               const uint32_t h0_compact[DV],
-                               const uint32_t h1_compact[DV])
+#ifdef CONSTANT_TIME
+void recompute_syndrome(OUT syndrome_t *syndrome,
+                       IN const ct_t *ct,
+                       IN const sk_t *sk,
+                       IN const e_t *e)
 {
-    for (uint32_t i = 0; i < numPositions; i++)
+     // Split e into e0 and e1. Initialization is done in split_e
+    split_e_t splitted_e;
+    split_e(&splitted_e, e);
+
+#if BIKE_VER == 1
+    ct_t tmp_ct = *ct;
+
+    // Adapt the ciphertext
+    gf2x_add(VAL(tmp_ct)[0].raw, VAL(tmp_ct)[0].raw, VAL(splitted_e)[0].raw, R_SIZE);
+    gf2x_add(VAL(tmp_ct)[1].raw, VAL(tmp_ct)[1].raw, VAL(splitted_e)[1].raw, R_SIZE);
+
+#elif BIKE_VER == 2
+    ct_t tmp_ct;
+
+    // Adapt the ciphertext with e1
+    cyclic_product(tmp_ct.raw, VAL(splitted_e)[1].raw, PTR(sk).pk.raw);
+    gf2x_add(tmp_ct.raw, tmp_ct.raw, ct->raw, R_SIZE);
+
+    // Adapt the ciphertext with e0
+    gf2x_add(tmp_ct.raw, tmp_ct.raw, VAL(splitted_e)[0].raw, R_SIZE);
+
+#elif BIKE_VER == 3
+    ct_t tmp_ct;
+
+    // Adapt the ciphertext with e1
+    cyclic_product(VAL(tmp_ct)[0].raw, VAL(splitted_e)[1].raw, PTR(sk).pk.u.v.val[0].raw);
+    cyclic_product(VAL(tmp_ct)[1].raw, VAL(splitted_e)[1].raw, PTR(sk).pk.u.v.val[1].raw);
+    gf2x_add(VAL(tmp_ct)[0].raw, VAL(tmp_ct)[0].raw, PTRV(ct)[0].raw, R_SIZE);
+    gf2x_add(VAL(tmp_ct)[1].raw, VAL(tmp_ct)[1].raw, PTRV(ct)[1].raw, R_SIZE);
+
+    // Adapt the ciphertext with e0
+    gf2x_add(VAL(tmp_ct)[1].raw, VAL(tmp_ct)[1].raw, VAL(splitted_e)[0].raw, R_SIZE);
+#endif
+
+    // Recompute the syndromee
+    compute_syndrome(syndrome, &tmp_ct, sk);
+
+    secure_clean(splitted_e.u.raw, sizeof(splitted_e));
+}
+
+///////////////////////////////////////////////////////////
+// Find_error1/2 are defined in ASM files
+//////////////////////////////////////////////////////////
+extern void find_error1(IN OUT e_t *e,
+                        OUT e_t *black_e,
+                        OUT e_t *gray_e,
+                        IN const uint8_t *upc,
+                        IN const uint32_t black_th,
+                        IN const uint32_t gray_th);
+
+extern void find_error2(IN OUT e_t *e,
+                        OUT e_t *pos_e,
+                        IN const uint8_t *upc,
+                        IN const uint32_t threshold);
+
+_INLINE_ void fix_error1(IN OUT syndrome_t *s,
+                         IN OUT e_t *e, 
+                         IN OUT decode_ctx_t *ctx,
+                         IN const sk_t *sk,
+                         IN const ct_t *ct)
+{
+    find_error1(e, &ctx->black_e, &ctx->gray_e, 
+                ctx->upc, 
+                ctx->threshold, 
+                ctx->threshold - ctx->delta + 1);
+
+    recompute_syndrome(s, ct, sk, e);
+}
+
+_INLINE_ void fix_black_error(IN OUT syndrome_t *s,
+                              IN OUT e_t *e, 
+                              IN OUT decode_ctx_t *ctx,
+                              IN const sk_t *sk,
+                              IN const ct_t *ct)
+{
+    find_error2(e, &ctx->black_e, ctx->upc, ((DV+1)/2)+1);
+    recompute_syndrome(s, ct, sk, e);
+}
+
+_INLINE_ void fix_gray_error(IN OUT syndrome_t *s,
+                             IN OUT e_t *e, 
+                             IN OUT decode_ctx_t *ctx,
+                             IN const sk_t *sk,
+                             IN const ct_t *ct)
+{
+    find_error2(e, &ctx->gray_e, ctx->upc, ((DV+1)/2)+1);
+    recompute_syndrome(s, ct, sk, e);
+}
+
+#else
+
+_INLINE_ void update_e(IN OUT e_t *e, 
+                       IN const uint32_t pos, 
+                       IN const uint8_t part)
+{
+    const uint32_t transpose_pos = (pos == 0 ? 0 : (R_BITS - pos)) + (part*R_BITS);
+    const uint32_t byte_pos = (transpose_pos >> 3);
+    const uint32_t bit_pos = (transpose_pos & 0x7);
+
+    e->raw[byte_pos] ^= BIT(bit_pos);
+    EDMSG("      flipping position: %u transpose %u byte_pos %u\n", (uint32_t)(pos + (part*R_BITS)), transpose_pos, byte_pos);
+}
+
+_INLINE_ void fix_error1(IN OUT syndrome_t *s,
+                         IN OUT e_t *e, 
+                         IN OUT decode_ctx_t *ctx,
+                         IN const sk_t *sk,
+                         IN const ct_t *ct)
+{
+    BIKE_UNUSED(ct);
+
+    for (uint64_t j = 0; j < N0; j++)
     {
-        uint32_t pos = positions[i];
-        if (pos < R_BITS)
+        ctx->num_black_pos[j] = 0;
+        ctx->num_gray_pos[j] = 0;
+
+        for (uint64_t i = 0; i < R_BITS; i++)
         {
-            for (uint32_t j = 0; j < DV; j++)
+            if (ctx->upc[i + (j*R_BITS)] >= ctx->threshold)
             {
-                if (h0_compact[j] <= pos) 
-                {
-                    s[pos - h0_compact[j]] ^= 1;
-                }
-                else 
-                {
-                    s[R_BITS - h0_compact[j] +  pos] ^= 1;
-                }
+                ctx->black_pos[j][ctx->num_black_pos[j]++] = i;
+                update_e(e, i, j);
+            }
+            else if(ctx->upc[i + (j*R_BITS)] > ctx->threshold - ctx->delta) 
+            {
+                ctx->gray_pos[j][ctx->num_gray_pos[j]++] = i;
             }
         }
-        else
+
+        recompute(s, ctx->num_black_pos[j], ctx->black_pos[j], &PTR(sk).wlist[j]);
+    }
+    
+}
+
+_INLINE_ void fix_black_error(IN OUT syndrome_t *s,
+                              IN OUT e_t *e, 
+                              IN OUT decode_ctx_t *ctx,
+                              IN const sk_t *sk,
+                              IN const ct_t *ct)
+{
+    BIKE_UNUSED(ct);
+
+    for (uint64_t j = 0; j < N0; j++)
+    {
+        ctx->num_unflip_pos[j] = 0;
+        for (uint64_t i = 0; i < ctx->num_black_pos[j]; i++)
         {
-            pos = pos - R_BITS;
-            for (uint32_t j = 0; j < DV; j++)
+            uint32_t pos = ctx->black_pos[j][i];
+
+            if (ctx->upc[pos + (j * R_BITS)] > (DV + 1) / 2)
             {
-                if (h1_compact[j] <= pos)
-                    s[pos - h1_compact[j]] ^= 1;
-                else
-                    s[R_BITS - h1_compact[j] + pos] ^= 1;
+                ctx->unflip_pos[j][ctx->num_unflip_pos[j]++] = pos;
+                update_e(e, pos, j);
             }
         }
+        recompute(s, ctx->num_unflip_pos[j], ctx->unflip_pos[j], &PTR(sk).wlist[j]);
     }
 }
 
-void compute_counter_of_unsat(uint8_t unsat_counter[N_BITS],
-        const uint8_t s[R_BITS],
-        const uint32_t h0_compact[DV],
-        const uint32_t h1_compact[DV])
+_INLINE_ void fix_gray_error(IN OUT syndrome_t *s,
+                             IN OUT e_t *e, 
+                             IN OUT decode_ctx_t *ctx,
+                             IN const sk_t *sk,
+                             IN const ct_t *ct)
 {
-    uint8_t unsat_counter2[N_BITS*2] = {0};
-    uint32_t h1_compact2[DV] = {0};
+    BIKE_UNUSED(ct);
 
-    for (uint32_t i = 0; i < DV; i++)
+    for (uint64_t j = 0; j < N0; j++)
     {
-        h1_compact2[i] = N_BITS + h1_compact[i];
-    }
-
-    for (uint32_t i = 0; i < R_BITS; i++)
-    {
-        if (!s[i])
+        ctx->num_gray_pos_to_flip[j] = 0;
+        for (uint64_t i = 0; i < ctx->num_gray_pos[j]; i++)
         {
-            continue; 
+            uint32_t pos = ctx->gray_pos[j][i];
+            if (ctx->upc[pos + (j * R_BITS)] > (DV + 1) / 2)
+            {
+                ctx->gray_pos_to_flip[j][ctx->num_gray_pos_to_flip[j]++] = pos;
+                update_e(e, pos, j);
+            }
         }
-
-        for (uint32_t j = 0; j < DV; j++)
-        {
-            unsat_counter2[h0_compact[j] + i]++;
-            unsat_counter2[h1_compact2[j] + i]++;
-        }
-    }
-
-    for (uint32_t i = 0; i < R_BITS; i++)
-    {
-        unsat_counter[i] = unsat_counter2[i] + unsat_counter2[R_BITS+i];
-        unsat_counter[R_BITS+i] = \
-                unsat_counter2[N_BITS+i] + unsat_counter2[N_BITS+R_BITS+i];
+        recompute(s, ctx->num_gray_pos_to_flip[j], ctx->gray_pos_to_flip[j], &PTR(sk).wlist[j]);
     }
 }
 
-int decode(uint8_t e[R_BITS*2],
-           uint8_t s_original[R_BITS],
-           uint32_t h0_compact[DV],
-           uint32_t h1_compact[DV],
-           uint32_t u)
+#endif
+
+int decode(OUT e_t *e,
+           OUT syndrome_t *s,
+           IN const ct_t *ct,
+           IN const sk_t *sk,
+           IN const uint32_t u)
 {
     int code_ret = -1;
+    syndrome_t original_s;
 
-    int delta = MAX_DELTA;
-    uint8_t s[R_BITS] = {0};
-    memcpy(s, s_original, R_BITS);
-
-    int iter = 0;
-    while (delta >= 0)
+#ifdef CONSTANT_TIME
+    decode_ctx_t ctx = {0};
+#else
+    // No need to init (performance)
+    decode_ctx_t ctx;
+    BIKE_UNUSED(ct);
+#endif
+    
+    ALIGN(16) compressed_idx_dv_t inv_h_compressed[N0] = {0};
+    for (uint64_t i = 0; i < FAKE_DV; i++)
     {
-        for (; iter < MAX_IT; iter++)
-        {
-            DMSG("    delta: %d\n", delta);
-            DMSG("    Iteration: %d\n", iter);
-            DMSG("    Weight of e: %d\n", getHammingWeight(e, N_BITS));
-            DMSG("    Weight of syndrome: %d\n", getHammingWeights(s, R_BITS));
-            
-            // count the number of unsatisfied parity-checks:
-            uint8_t unsat_counter[N_BITS] = {0};
-            compute_counter_of_unsat(unsat_counter, s, h0_compact, h1_compact);
+        inv_h_compressed[0].val[i].val = R_BITS - PTR(sk).wlist[0].val[i].val;
+        inv_h_compressed[1].val[i].val = R_BITS - PTR(sk).wlist[1].val[i].val; 
 
-            // defining the threshold:
-            int threshold = get_predefined_threshold_var(s);
-            DMSG("    Threshold type: %d value: %d\n", THRESHOLD_TECHNIQUE, threshold);
-
-            // we call black positions the positions involved in more than "threshold" unsatisfied parity-checks:
-            uint32_t numBlackPositions = 0;
-            uint32_t blackPositions[N_BITS] = {0}; // TODO: the size of blackPositions vector can be much smaller
-    
-            // we call gray positions the positions involved in more than (threashold - delta) unsat. parity-checks:
-            uint32_t numGrayPositions = 0;
-            uint32_t grayPositions[N_BITS] = {0}; // TODO: the size of grayPositions vector can be much smaller
-            
-            // Decoding Step I: flipping all black positions:
-            for (uint64_t i = 0; i < N_BITS; i++)
-            {
-                if (unsat_counter[i] >= threshold)
-                {
-                    blackPositions[numBlackPositions++] = i;
-                    uint32_t posError = i;
-                    if (i != 0 && i != R_BITS)
-                    {
-                        // the position in e is adjusted because syndrome is transposed
-                        posError = (i > R_BITS) ? ((N_BITS - i)+R_BITS) : (R_BITS - i); 
-                    }
-                    e[posError] ^= 1; 
-    
-                    DMSG("      flipping black position: %d\n", posError);
-    
-                } else if(unsat_counter[i] > threshold - delta) {
-                    grayPositions[numGrayPositions++] = i;
-                }
-            }
-    
-            // Decoding Step I: recompute syndrome:
-            recompute_syndrome(s, numBlackPositions, blackPositions, h0_compact, h1_compact);
-    
-            // Decoding Step I: check if syndrome is 0 (successful decoding):
-            if (getHammingWeight(s, R_BITS) <= u)
-            {
-                code_ret = 0;
-                DMSG("    Weight of syndrome: 0\n");
-                break;
-            }
-    
-            // recompute counter of unsat. parity checks:
-            compute_counter_of_unsat(unsat_counter, s, h0_compact, h1_compact);
-    
-            // Decoding Step II: Unflip positions that still have high number of unsatisfied parity-checks associated:  
-            uint32_t positionsToUnflip[N_BITS] = {0}; // TODO: the size of positionsToUnflip vector can be much smaller
-            uint32_t numUnflippedPositions = 0;
-            
-            for (uint32_t i = 0; i < numBlackPositions; i++)
-            {
-                uint32_t pos = blackPositions[i];
-                if (unsat_counter[pos] > (DV+1)/2)
-                {
-                    positionsToUnflip[numUnflippedPositions++] = pos;
-                    uint32_t posError  = pos;
-                    if (pos != 0 && pos != R_BITS)
-                    {
-                        // the position in e is adjusted because syndrome is transposed
-                        posError = (pos > R_BITS) ? ((N_BITS - pos)+R_BITS) : (R_BITS - pos); 
-                    }
-                    e[posError] ^= 1; 
-                    //MSG("      unflipping black position: %d\n", posError);
-                }
-            }
-
-            // Decoding Step II: recompute syndrome:
-            recompute_syndrome(s, numUnflippedPositions, positionsToUnflip, h0_compact, h1_compact);
-
-            // Decoding Step II: check if syndrome is 0 (successful decoding):
-            if (getHammingWeight(s, R_BITS) <= u)
-            {
-                code_ret = 0;
-                DMSG("    Weight of syndrome: 0\n");
-                break;
-            }
-
-            // recomputing counter of unsat. parity checks:
-            compute_counter_of_unsat(unsat_counter, s, h0_compact, h1_compact);
-
-            // Decoding Step III: Flip all gray positions associated to high number of unsatisfied parity-checks: 
-            uint32_t grayPositionsToFlip[N_BITS] = {0}; // TODO: the size of grayPositionsToFlip vector can be much smaller
-            uint32_t numGrayPositionsToFlip = 0;
-
-            for (uint32_t i = 0; i < numGrayPositions; i++)
-            {
-                uint32_t pos = grayPositions[i];
-                if (unsat_counter[pos] > (DV+1)/2)
-                {
-                    grayPositionsToFlip[numGrayPositionsToFlip++] = pos;
-                    uint32_t posError  = pos;
-                    if (pos != 0 && pos != R_BITS)
-                    {
-                        // the position in e is adjusted because syndrome is transposed
-                        posError = (pos > R_BITS) ? ((N_BITS - pos)+R_BITS) : (R_BITS - pos); 
-                    }
-                    e[posError] ^= 1; 
-                    //MSG("      flipping gray position: %d\n", posError);
-                }
-            }
-
-            // Decoding Step III: recompute syndrome:
-            recompute_syndrome(s, numGrayPositionsToFlip, grayPositionsToFlip, h0_compact, h1_compact);
-
-            // Decoding Step III: check if syndrome is 0 (successful decoding):
-            if (getHammingWeight(s, R_BITS) <= u)
-            {
-                code_ret = 0;
-                DMSG("    Weight of syndrome: 0\n");
-                break;
-            }
-        }
-        if (getHammingWeight(s, R_BITS) <= u) {
-            break;
-        } else {
-            delta--;
-            iter = 0;
-            
-            for (uint64_t i = 0; i < N_BITS; i++)
-            {
-                e[i] = 0; 
-            }
-            memcpy(s, s_original, R_BITS);
-       }
+#ifdef CONSTANT_TIME
+        inv_h_compressed[0].val[i].used = PTR(sk).wlist[0].val[i].used;
+        inv_h_compressed[1].val[i].used = PTR(sk).wlist[1].val[i].used;
+#endif
     }
+
+    original_s.u.v.dup1 = PTR(s).dup1;
+
+    for(ctx.delta = MAX_DELTA; 
+       (ctx.delta >= 0) && (count_ones(PTR(s).dup1.raw, sizeof(PTR(s).dup1)) > u); 
+        ctx.delta--)
+    {
+        // Reset the error
+        memset(e, 0, sizeof(*e));
+        
+        // Reset the syndrom
+        PTR(s).dup1 = original_s.u.v.dup1;
+        PTR(s).dup2 = original_s.u.v.dup1;
+
+        for (uint32_t iter = 0; iter < MAX_IT; iter++)
+        {
+            DMSG("    Iteration: %d\n", iter);
+            DMSG("    Weight of e: %lu\n", count_ones(e->raw, sizeof(*e)));
+            DMSG("    Weight of syndrome: %lu\n", count_ones(PTR(s).dup1.raw, sizeof(PTR(s).dup1)));
+
+            compute_counter_of_unsat(ctx.upc, s->u.raw, &inv_h_compressed[0], &inv_h_compressed[1]);
+
+            ctx.threshold = get_threshold(&PTR(s).dup1);
+            fix_error1(s, e, &ctx, sk, ct);
+
+            // Decoding Step I: check if syndrome is 0 (successful decoding)
+            if (count_ones(PTR(s).dup1.raw, sizeof(PTR(s).dup1)) <= u)
+            {
+                code_ret = 0;
+                break;
+            }
+
+            DMSG("    Weight of e: %lu\n", count_ones(e->raw, sizeof(*e)));
+            DMSG("    Weight of syndrome: %lu\n", count_ones(PTR(s).dup1.raw, sizeof(PTR(s).dup1)));
+
+            // Make sure both duplication are the same!
+            memcpy(PTR(s).dup2.raw, PTR(s).dup1.raw, sizeof(PTR(s).dup1));
+
+            // Recompute the UPC
+            compute_counter_of_unsat(ctx.upc, s->u.raw, &inv_h_compressed[0], &inv_h_compressed[1]);
+
+            // Decoding Step II: Unflip positions that still have high number of UPC associated
+            fix_black_error(s, e, &ctx, sk, ct);
+            
+            DMSG("    Weight of e: %lu\n", count_ones(e->raw, sizeof(*e)));
+            DMSG("    Weight of syndrome: %lu\n", count_ones(PTR(s).dup1.raw, sizeof(PTR(s).dup1)));
+
+            // Decoding Step II: Check if syndrome is 0 (successful decoding)
+            if (count_ones(PTR(s).dup1.raw, sizeof(PTR(s).dup1)) <= u)
+            {
+                code_ret = 0;
+                break;
+            }
+
+            // Make sure both duplication are the same!
+            memcpy(PTR(s).dup2.raw, PTR(s).dup1.raw, sizeof(PTR(s).dup1));
+
+            // Recompute UPC
+            compute_counter_of_unsat(ctx.upc, s->u.raw, &inv_h_compressed[0], &inv_h_compressed[1]);
+    
+            // Decoding Step III: Flip all gray positions associated to high number of UPC 
+            fix_gray_error(s, e, &ctx, sk, ct);
+        
+            // Decoding Step III: Check for successful decoding
+            if (count_ones(PTR(s).dup1.raw, sizeof(PTR(s).dup1)) <= u)
+            {
+                code_ret = 0;
+                break;
+            }
+            
+            // Make sure both duplication are the same!
+            memcpy(PTR(s).dup2.raw, PTR(s).dup1.raw, sizeof(PTR(s).dup1));
+        }
+    }
+    
+    DMSG("    Weight of syndrome: 0\n");
 
     return code_ret;
 }

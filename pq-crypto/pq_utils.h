@@ -1,9 +1,5 @@
 /*
-<<<<<<< HEAD
  * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-=======
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
->>>>>>> Add common random number interface for use by PQ crypto libraries. Fix other issues from clang build and FIPS openssl build
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
