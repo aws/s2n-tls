@@ -27,6 +27,7 @@ import multiprocessing
 from os import environ
 from multiprocessing.pool import ThreadPool
 from s2n_test_constants import *
+from time import sleep
 
 PROTO_VERS_TO_S_CLIENT_ARG = {
     S2N_TLS10 : "-tls1",
@@ -35,6 +36,15 @@ PROTO_VERS_TO_S_CLIENT_ARG = {
 }
 
 S_CLIENT_SUCCESSFUL_OCSP="OCSP Response Status: successful"
+
+def communicate_processes(*processes):
+    outs = []
+    for p in processes:
+        p.kill()
+        out = p.communicate()[0].decode("utf-8").split('\n')
+        outs.append(out)
+
+    return outs
 
 def cleanup_processes(*processes):
     for p in processes:
@@ -102,7 +112,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
     # Make sure it's running
-    s2nd.stdout.readline()
+    sleep(0.1)
 
     s_client_cmd = ["openssl", "s_client", PROTO_VERS_TO_S_CLIENT_ARG[ssl_version],
             "-connect", str(endpoint) + ":" + str(port)]
@@ -169,18 +179,22 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     # Write the cipher name from s2n
     s2nd.stdin.write((cipher + "\n").encode("utf-8"))
     s2nd.stdin.flush()
+    sleep(0.1)
+    outs = communicate_processes(s2nd, s_client)
+    c_out = outs[1]
+    if '' == c_out:
+        print ("No output from client PIPE, skip")
+        return 0
+
     found = 0
-    for line in range(0, 512):
-        output = s_client.stdout.readline().decode("utf-8")
+    for line in range(0, len(c_out)):
+        output = c_out[line]
         if output.strip() == cipher:
             found = 1
             break
 
     if found == 0:
-        cleanup_processes(s2nd, s_client)
         return -1
-
-    cleanup_processes(s2nd, s_client)
 
     return 0
 
