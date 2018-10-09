@@ -2,12 +2,20 @@ file(GLOB GENERAL_HEADERS
     "*.h"
 )
 
+file(GLOB BIKE_HEADERS
+    "bike/*.h"
+)
+
 file(GLOB SIKE_HEADERS
     "sike/*.h"
 )
 
 file(GLOB GENERAL_SRC
     "*.c"
+)
+
+file(GLOB BIKE_SRC
+    "bike/*.c"
 )
 
 # The SIKE code #includes .c files directly, including all sike/*.c breaks the build due to duplicates
@@ -20,20 +28,24 @@ file(GLOB SIKE_SRC
 
 file(GLOB S2N_PQ_CRYPTO_HEADERS
     ${GENERAL_HEADERS}
+    ${BIKE_HEADERS}
     ${SIKE_HEADERS}
 )
 
 file(GLOB S2N_PQ_CRYPTO_SRC
     ${GENERAL_SRC}
+    ${BIKE_SRC}
     ${SIKE_SRC}
 )
 
 ##be nice to visual studio users
 if(MSVC)
     source_group("Header Files\\pq-crypto\\general" FILES ${GENERAL_HEADERS})
+    source_group("Header Files\\pq-crypto\\bike" FILES ${BIKE_HEADERS})
     source_group("Header Files\\pq-crypto\\sike" FILES ${SIKE_HEADERS})
 
     source_group("Source Files\\pq-crypto\\general" FILES ${GENERAL_SRC})
+    source_group("Source Files\\pq-crypto\\bike" FILES ${BIKE_SRC})
     source_group("Source Files\\pq-crypto\\sike" FILES ${SIKE_SRC})
 endif()
 

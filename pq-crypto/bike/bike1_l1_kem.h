@@ -37,7 +37,7 @@ int BIKE1_L1_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN  co
 // Return 0 for success and !0 for failures. See types.h for failure codes
 int BIKE1_L1_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk);
 
-#define BIKE1_L1_SECRET_KEY_BYTES  2542
+#define BIKE1_L1_SECRET_KEY_BYTES  4670
 #define BIKE1_L1_PUBLIC_KEY_BYTES  2542
 #define BIKE1_L1_CIPHERTEXT_BYTES 2542
 #define BIKE1_L1_SHARED_SECRET_BYTES 32

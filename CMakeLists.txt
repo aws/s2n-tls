@@ -54,22 +54,6 @@ file(GLOB UTILS_SRC
     "utils/*.c"
 )
 
-file(GLOB PQ_CRYPTO_HEADERS
-    "pq-crypto/*.h"
-)
-
-file(GLOB PQ_CRYPTO_SRC
-    "pq-crypto/*.c"
-)
-
-file(GLOB BIKE_HEADERS
-    "pq-crypto/bike/*.h"
-)
-
-file(GLOB BIKE_SRC
-    "pq-crypto/bike/*.c"
-)
-
 ##be nice to visual studio users
 if(MSVC)
     source_group("Header Files\\s2n\\api" FILES ${API_HEADERS})
@@ -145,7 +129,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAK
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC $<TARGET_PROPERTY:LibCrypto::Crypto,INTERFACE_INCLUDE_DIRECTORIES>)
 
 #######################################
-#   Begin  PQ-Crypto 
+#   Begin  PQ-Crypto
 #######################################
 option (USE_S2N_PQ_CRYTPO "Use S2N default Post Quantum crypto library" ON) 
 
@@ -160,7 +144,7 @@ endif (USE_S2N_PQ_CRYTPO)
 #######################################
 
 file(GLOB TESTLIB_SRC "tests/testlib/*.c")
-file(GLOB TESTLIB_HEADERS "tests/testlib/*.h" "tests/s2n_test.h")
+file(GLOB TESTLIB_HEADERS "tests/testlib/*.h")
 
 add_library(testss2n ${TESTLIB_HEADERS} ${TESTLIB_SRC})
 target_include_directories(testss2n PRIVATE tests)
@@ -191,6 +175,7 @@ foreach(test_case ${UNITTESTS_SRC})
         ${test_case_name}
     PROPERTY
         ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
+
 endforeach(test_case)
 
 add_executable(s2nc "bin/s2nc.c" "bin/echo.c")
@@ -236,4 +221,3 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}-config.cmake"
 install(FILES "cmake/modules/FindLibCrypto.cmake"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/"
         COMPONENT Development)
-

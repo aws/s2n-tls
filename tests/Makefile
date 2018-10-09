@@ -23,7 +23,6 @@ endif
 .PHONY : all
 all: libs
 	${MAKE} -C unit
-	${MAKE} -C bike_known_answer
 	@echo "\033[1m ${COMPILE_INFO} \033[0;39m"
 
 .PHONY : valgrind
@@ -52,4 +51,3 @@ clean: decruft
 	${MAKE} -C unit clean
 	${MAKE} -C fuzz clean
 	${MAKE} -C saw decruft
-	${MAKE} -C bike_known_answer decruft
