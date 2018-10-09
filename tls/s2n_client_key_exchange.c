@@ -30,7 +30,23 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
 
-static int calculate_keys(struct s2n_connection *conn, struct s2n_blob *shared_key);
+static int calculate_keys(struct s2n_connection *conn, struct s2n_blob *shared_key)
+{
+    /* Turn the pre-master secret into a master secret */
+    GUARD(s2n_prf_master_secret(conn, shared_key));
+    /* Erase the pre-master secret */
+    GUARD(s2n_blob_zero(shared_key));
+    if (shared_key->allocated) {
+        GUARD(s2n_free(shared_key));
+    }
+    /* Expand the keys */
+    GUARD(s2n_prf_key_expansion(conn));
+    /* Save the master secret in the cache */
+    if (s2n_allowed_to_cache_connection(conn)) {
+        GUARD(s2n_store_to_cache(conn));
+    }
+    return 0;
+}
 
 int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
@@ -100,6 +116,7 @@ int s2n_client_key_recv(struct s2n_connection *conn)
     const struct s2n_key_exchange_algorithm *kem_core = conn->secure.cipher_suite->key_exchange_alg;
     struct s2n_blob shared_key = {0};
 
+    notnull_check(kem_core->client_key_recv);
     GUARD(kem_core->client_key_recv(conn, &shared_key));
     GUARD(calculate_keys(conn, &shared_key));
     return 0;
@@ -164,25 +181,8 @@ int s2n_client_key_send(struct s2n_connection *conn)
     const struct s2n_key_exchange_algorithm *kem_core = conn->secure.cipher_suite->key_exchange_alg;
     struct s2n_blob shared_key = {0};
 
+    notnull_check(kem_core->client_key_send);
     GUARD(kem_core->client_key_send(conn, &shared_key));
     GUARD(calculate_keys(conn, &shared_key));
-    return 0;
-}
-
-static int calculate_keys(struct s2n_connection *conn, struct s2n_blob *shared_key)
-{
-    /* Turn the pre-master secret into a master secret */
-    GUARD(s2n_prf_master_secret(conn, shared_key));
-    /* Erase the pre-master secret */
-    GUARD(s2n_blob_zero(shared_key));
-    if (shared_key->allocated) {
-        GUARD(s2n_free(shared_key));
-    }
-    /* Expand the keys */
-    GUARD(s2n_prf_key_expansion(conn));
-    /* Save the master secret in the cache */
-    if (s2n_allowed_to_cache_connection(conn)) {
-        GUARD(s2n_store_to_cache(conn));
-    }
     return 0;
 }

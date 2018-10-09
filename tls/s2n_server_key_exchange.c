@@ -39,6 +39,7 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     struct s2n_blob data_to_sign = {0};
 
     /* Read and process the KEM data */
+    notnull_check(kem_core->server_key_recv);
     GUARD(kem_core->server_key_recv(conn, &data_to_sign));
 
     /* Add common signature data */
@@ -72,7 +73,7 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_ecdhe_server_key_recv(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
+int s2n_ecdhe_server_recv_params(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
 
@@ -81,7 +82,7 @@ int s2n_ecdhe_server_key_recv(struct s2n_connection *conn, struct s2n_blob *data
     return 0;
 }
 
-int s2n_dhe_server_key_recv(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
+int s2n_dhe_server_recv_params(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
     struct s2n_blob p, g, Ys;
@@ -125,6 +126,7 @@ int s2n_server_key_send(struct s2n_connection *conn)
     struct s2n_blob data_to_sign = {0};
 
     /* Call the negotiated key exchange method to send it's data */
+    notnull_check(kem_core->server_key_send);
     GUARD(kem_core->server_key_send(conn, &data_to_sign));
 
     /* Add common signature data */
@@ -146,7 +148,7 @@ int s2n_server_key_send(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_ecdhe_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
+int s2n_ecdhe_server_send_params(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
 
@@ -158,7 +160,7 @@ int s2n_ecdhe_server_key_send(struct s2n_connection *conn, struct s2n_blob *data
     return 0;
 }
 
-int s2n_dhe_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
+int s2n_dhe_server_send_params(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
 
@@ -198,12 +200,12 @@ static int s2n_write_signature_blob(struct s2n_stuffer *out, const struct s2n_pk
 }
 
 // The server should never receive an RSA key during the key exchange
-int s2n_rsa_server_key_recv(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
+int s2n_rsa_server_recv_key(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
 {
     S2N_ERROR(S2N_ERR_HANDSHAKE_STATE);
 }
 // The server should never send an additional RSA key during the key exchange
-int s2n_rsa_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
+int s2n_rsa_server_send_key(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
 {
     S2N_ERROR(S2N_ERR_HANDSHAKE_STATE);
 }
