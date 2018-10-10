@@ -52,10 +52,6 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status * blocked)
 
     if (conn->closing) {
         conn->closed = 1;
-        /* Delay wiping for close_notify. s2n_shutdown() needs to wait for peer's close_notify */
-        if (!conn->close_notify_queued) {
-            GUARD(s2n_connection_wipe(conn));
-        }
     }
     GUARD(s2n_stuffer_rewrite(&conn->out));
 
