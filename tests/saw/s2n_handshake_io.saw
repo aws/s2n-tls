@@ -254,7 +254,7 @@ let s2n_advance_message_spec = do {
     // handshake/cork-uncork state machine is equivalent to the one in
     // s2n
     crucible_points_to (crucible_global "handshakes") (crucible_term {{ handshakes }});
-    let messages = [ {{CLIENT_HELLO : [4]}}, {{SERVER_SESSION_LOOKUP : [4]}}, {{SERVER_HELLO : [4]}}, {{SERVER_CERT : [4]}}, {{SERVER_NEW_SESSION_TICKET : [4]}}, {{SERVER_CERT_STATUS : [4]}}, {{SERVER_KEY : [4]}}, {{SERVER_CERT : [4]}}, {{SERVER_CERT_REQ : [4]}}, {{SERVER_HELLO_DONE : [4]}}, {{CLIENT_CERT : [4]}}, {{CLIENT_KEY : [4]}}, {{CLIENT_CERT_VERIFY : [4]}}, {{CLIENT_CHANGE_CIPHER_SPEC : [4]}}, {{SERVER_FINISHED : [4]}}, {{APPLICATION_DATA : [4]}}];
+    let messages = [ {{CLIENT_HELLO : [4]}}, {{SERVER_HELLO : [4]}}, {{SERVER_CERT : [4]}}, {{SERVER_NEW_SESSION_TICKET : [4]}}, {{SERVER_CERT_STATUS : [4]}}, {{SERVER_KEY : [4]}}, {{SERVER_CERT : [4]}}, {{SERVER_CERT_REQ : [4]}}, {{SERVER_HELLO_DONE : [4]}}, {{CLIENT_CERT : [4]}}, {{CLIENT_KEY : [4]}}, {{CLIENT_CERT_VERIFY : [4]}}, {{CLIENT_CHANGE_CIPHER_SPEC : [4]}}, {{SERVER_FINISHED : [4]}}, {{APPLICATION_DATA : [4]}}];
 
     for messages (verify_state_machine_elem (crucible_global "state_machine"));
     // assert that s2n_advance_message returns 0 (true if the 4
