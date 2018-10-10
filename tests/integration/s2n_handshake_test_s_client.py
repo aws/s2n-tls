@@ -166,29 +166,34 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
             cleanup_processes(s2nd, s_client)
             return -1
 
-    # Write the cipher name towards s2n
-    s_client.stdin.write((cipher + "\n").encode("utf-8"))
+    # Write the cipher name towards s2n server
+    msg = (cipher + "\n").encode("utf-8")
+    s_client.stdin.write(msg)
     s_client.stdin.flush()
 
-    # Read it
+    # Write the cipher name from s2n server to client
+    s2nd.stdin.write(msg)
+    s2nd.stdin.flush()
+
+    sleep(0.1)
+    outs = communicate_processes(s_client, s2nd)
+    s_out = outs[1]
+    if '' == s_out:
+        print ("No output from client PIPE, skip")
+        return 0
+
+    # Analyze server output
     found = 0
-    for line in range(0, 10):
-        output = s2nd.stdout.readline().decode("utf-8")
+    for line in range(0, len(s_out)):
+        output = s_out[line]
         if output.strip() == cipher:
             found = 1
             break
 
     if found == 0:
-        cleanup_processes(s2nd, s_client)
+        print ("No cipher output from server")
         return -1
 
-    # Write the cipher name from s2n
-    # s2nd.stdin.write((cipher + "\n").encode("utf-8"))
-    # s2nd.stdin.flush()
-
-    communicate_process(s2nd, (cipher + "\n"))
-
-    outs = communicate_processes(s_client)
     c_out = outs[0]
     if '' == c_out:
         print ("No output from client PIPE, skip")
@@ -202,6 +207,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
             break
 
     if found == 0:
+        print ("No cipher output from client")
         return -1
 
     return 0
