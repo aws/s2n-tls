@@ -1,5 +1,5 @@
 //Entry point for the TLS Handshake state machine correctness proofs
-// import "spec/rfc-handshake.cry";
+import "spec/rfc-handshake.cry";
 include "s2n_handshake_io.saw";
 
 //prove correspondence of the C code and the low-level model
