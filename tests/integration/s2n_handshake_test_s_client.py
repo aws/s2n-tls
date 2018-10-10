@@ -154,18 +154,6 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
             cleanup_processes(s2nd, s_client)
             return -1
 
-    # Validate that s_client accepted s2nd's stapled OCSP response
-    if ocsp is not None:
-        ocsp_success = False
-        for line in s_client.stdout:
-            line = line.decode("utf-8").strip()
-            if S_CLIENT_SUCCESSFUL_OCSP in line:
-                ocsp_success = True
-                break
-        if not ocsp_success:
-            cleanup_processes(s2nd, s_client)
-            return -1
-
     # Write the cipher name towards s2n server
     msg = (cipher + "\n").encode("utf-8")
     s_client.stdin.write(msg)
@@ -175,12 +163,32 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     s2nd.stdin.write(msg)
     s2nd.stdin.flush()
 
+
     sleep(0.1)
     outs = communicate_processes(s_client, s2nd)
     s_out = outs[1]
     if '' == s_out:
         print ("No output from client PIPE, skip")
         return 0
+
+    c_out = outs[0]
+    if '' == c_out:
+        print ("No output from client PIPE, skip")
+        return 0
+    s_out_len = len (s_out)
+    c_out_len = len (c_out)
+    # Validate that s_client accepted s2nd's stapled OCSP response
+    c_line = 0
+    if ocsp is not None:
+        ocsp_success = False
+        for i in range(0, c_out_len):
+            line = c_out[i].strip()
+            c_line = i
+            if S_CLIENT_SUCCESSFUL_OCSP in line:
+                ocsp_success = True
+                break
+        if not ocsp_success:
+            return -1
 
     # Analyze server output
     found = 0
@@ -194,13 +202,8 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
         print ("No cipher output from server")
         return -1
 
-    c_out = outs[0]
-    if '' == c_out:
-        print ("No output from client PIPE, skip")
-        return 0
-
     found = 0
-    for line in range(0, len(c_out)):
+    for line in range(c_line, c_out_len):
         output = c_out[line]
         if output.strip() == cipher:
             found = 1
