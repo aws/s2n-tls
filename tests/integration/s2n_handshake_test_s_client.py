@@ -24,6 +24,7 @@ import sys
 import subprocess
 import itertools
 import multiprocessing
+import threading
 from os import environ
 from multiprocessing.pool import ThreadPool
 from s2n_test_constants import *
@@ -36,6 +37,11 @@ PROTO_VERS_TO_S_CLIENT_ARG = {
 }
 
 S_CLIENT_SUCCESSFUL_OCSP="OCSP Response Status: successful"
+
+def communicate_process(p, input):
+    t = threading.Timer(0.1, p.kill)
+    t.start()
+    return p.communicate(input.encode("utf-8"))[0].decode("utf-8").split('\n')
 
 def communicate_processes(*processes):
     outs = []
@@ -177,11 +183,13 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
         return -1
 
     # Write the cipher name from s2n
-    s2nd.stdin.write((cipher + "\n").encode("utf-8"))
-    s2nd.stdin.flush()
-    sleep(0.1)
-    outs = communicate_processes(s2nd, s_client)
-    c_out = outs[1]
+    # s2nd.stdin.write((cipher + "\n").encode("utf-8"))
+    # s2nd.stdin.flush()
+
+    communicate_process(s2nd, (cipher + "\n"))
+
+    outs = communicate_processes(s_client)
+    c_out = outs[0]
     if '' == c_out:
         print ("No output from client PIPE, skip")
         return 0
