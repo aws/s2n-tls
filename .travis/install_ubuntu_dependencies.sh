@@ -16,7 +16,7 @@
 set -ex
 
 sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-sudo apt-get update
+sudo apt-get update -o Acquire::CompressionTypes::Order::=gz
 
 DEPENDENCIES="unzip make indent kwstyle libssl-dev tcpdump valgrind"
 
@@ -28,7 +28,7 @@ fi
 
 # Download and Install prlimit for memlock
 if [[ ! -d "$PRLIMIT_INSTALL_DIR" ]] && [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-    mkdir -p "$PRLIMIT_INSTALL_DIR" && sudo .travis/install_prlimit.sh "$(mktemp -d)" "$PRLIMIT_INSTALL_DIR"; 
+    mkdir -p "$PRLIMIT_INSTALL_DIR" && sudo .travis/install_prlimit.sh "$(mktemp -d)" "$PRLIMIT_INSTALL_DIR";
 fi
 
 if [[ "$TESTS" == "ctverif" || "$TESTS" == "ALL" ]] ; then
