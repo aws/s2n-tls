@@ -160,7 +160,7 @@ mkAct r m w = {record_type = r, message_type = m, writer = w}
 
 // A model of the handshake states (array state_machine in C)
 state_machine : [16]handshake_action
-state_machine = [state_machine_fn m | m <- [0..16]]
+state_machine = [state_machine_fn m | m <- [0..15]]
 
 // Function that tells a handshake_action for a given state
 state_machine_fn : [5] -> handshake_action
