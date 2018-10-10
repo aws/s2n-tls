@@ -28,7 +28,7 @@
  */
 int s2n_dhe_server_recv_params(struct s2n_connection *conn, struct s2n_blob *data_to_verify);
 int s2n_ecdhe_server_recv_params(struct s2n_connection *conn, struct s2n_blob *data_to_verify);
-int s2n_rsa_server_recv_key(struct s2n_connection *conn, struct s2n_blob *data_to_recv);
+int s2n_rsa_server_recv_key(struct s2n_connection *conn, struct s2n_blob *data_to_verify);
 
 /*
  * The below methods are used to perform the specific key exchange algorithm including writing data to the connection.

@@ -32,7 +32,7 @@ struct s2n_key_exchange_algorithm {
     /* OR'ed S2N_KEY_EXCHANGE_* flags */
     uint16_t flags;
 
-    int (*server_key_recv)(struct s2n_connection *conn, struct s2n_blob *data_to_sign);
+    int (*server_key_recv)(struct s2n_connection *conn, struct s2n_blob *data_to_verify);
     int (*server_key_send)(struct s2n_connection *conn, struct s2n_blob *data_to_sign);
     int (*client_key_recv)(struct s2n_connection *conn, struct s2n_blob *shared_key);
     int (*client_key_send)(struct s2n_connection *conn, struct s2n_blob *shared_key);
