@@ -160,10 +160,10 @@ mkAct r m w = {record_type = r, message_type = m, writer = w}
 
 // A model of the handshake states (array state_machine in C)
 state_machine : [16]handshake_action
-state_machine = [state_machine_fn m | m <- [0..15]]
+state_machine = [state_machine_fn m | m <- [0..16]]
 
 // Function that tells a handshake_action for a given state
-state_machine_fn : [4] -> handshake_action
+state_machine_fn : [5] -> handshake_action
 state_machine_fn m =
   if      m == CLIENT_HELLO then mkAct TLS_HANDSHAKE TLS_CLIENT_HELLO 'C'
   else if m == SERVER_SESSION_LOOKUP then mkAct TLS_HANDSHAKE TLS_SERVER_SESSION_LOOKUP 'A'
