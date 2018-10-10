@@ -139,20 +139,8 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     # Fire up s_client
     s_client = subprocess.Popen(s_client_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
-    # Validate that s_client resumes successfully against s2nd
-    if resume is True:
-        seperators = 0
-        for line in s2nd.stdout:
-            line = line.decode("utf-8").strip()
-            if line.startswith("Resumed session"):
-                seperators += 1
-
-            if seperators == 5:
-                break
-
-        if seperators != 5:
-            cleanup_processes(s2nd, s_client)
-            return -1
+    # Wait for resumption
+    sleep(0.1)
 
     # Write the cipher name towards s2n server
     msg = (cipher + "\n").encode("utf-8")
@@ -163,38 +151,60 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     s2nd.stdin.write(msg)
     s2nd.stdin.flush()
 
-
+    # Wait for pipe ready
     sleep(0.1)
+
     outs = communicate_processes(s_client, s2nd)
     s_out = outs[1]
+    # print (s_out)
     if '' == s_out:
         print ("No output from client PIPE, skip")
         return 0
 
     c_out = outs[0]
+    # print (c_out)
     if '' == c_out:
         print ("No output from client PIPE, skip")
         return 0
     s_out_len = len (s_out)
     c_out_len = len (c_out)
+
+    # Validate that s_client resumes successfully against s2nd
+    s_line = 0
+    if resume is True:
+        seperators = 0
+        for i in range(0, s_out_len):
+            s_line = i
+            output = s_out[i].strip()
+            if output.startswith("Resumed session"):
+                seperators += 1
+
+            if seperators == 5:
+                break
+
+        if seperators != 5:
+            print ("Validate resumes failed")
+            return -1
+
     # Validate that s_client accepted s2nd's stapled OCSP response
     c_line = 0
     if ocsp is not None:
         ocsp_success = False
         for i in range(0, c_out_len):
-            line = c_out[i].strip()
             c_line = i
-            if S_CLIENT_SUCCESSFUL_OCSP in line:
+            output = c_out[i].strip()
+            if S_CLIENT_SUCCESSFUL_OCSP in output:
                 ocsp_success = True
                 break
         if not ocsp_success:
+            print ("Validate OCSP failed")
             return -1
 
     # Analyze server output
     found = 0
-    for line in range(0, len(s_out)):
-        output = s_out[line]
-        if output.strip() == cipher:
+    for i in range(s_line, s_out_len):
+        output = s_out[i].strip()
+        if output == cipher:
             found = 1
             break
 
@@ -203,9 +213,9 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
         return -1
 
     found = 0
-    for line in range(c_line, c_out_len):
-        output = c_out[line]
-        if output.strip() == cipher:
+    for i in range(c_line, c_out_len):
+        output = c_out[i].strip()
+        if output == cipher:
             found = 1
             break
 
