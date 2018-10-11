@@ -147,13 +147,14 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     s_client.stdin.write(msg)
     s_client.stdin.flush()
 
+    # Wait for pipe ready for write
+    sleep(0.1)
     # Write the cipher name from s2n server to client
     s2nd.stdin.write(msg)
     s2nd.stdin.flush()
 
-    # Wait for pipe ready
+    # Wait for pipe ready for read
     sleep(0.1)
-
     outs = communicate_processes(s_client, s2nd)
     s_out = outs[1]
     # print (s_out)
