@@ -113,11 +113,11 @@ int s2n_ecdhe_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shar
 
 int s2n_client_key_recv(struct s2n_connection *conn)
 {
-    const struct s2n_key_exchange_algorithm *kem_core = conn->secure.cipher_suite->key_exchange_alg;
+    const struct s2n_key_exchange_algorithm *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
     struct s2n_blob shared_key = {0};
 
-    notnull_check(kem_core->client_key_recv);
-    GUARD(kem_core->client_key_recv(conn, &shared_key));
+    notnull_check(key_exchange->client_key_recv);
+    GUARD(key_exchange->client_key_recv(conn, &shared_key));
     GUARD(calculate_keys(conn, &shared_key));
     return 0;
 }
@@ -178,11 +178,11 @@ int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
 
 int s2n_client_key_send(struct s2n_connection *conn)
 {
-    const struct s2n_key_exchange_algorithm *kem_core = conn->secure.cipher_suite->key_exchange_alg;
+    const struct s2n_key_exchange_algorithm *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
     struct s2n_blob shared_key = {0};
 
-    notnull_check(kem_core->client_key_send);
-    GUARD(kem_core->client_key_send(conn, &shared_key));
+    notnull_check(key_exchange->client_key_send);
+    GUARD(key_exchange->client_key_send(conn, &shared_key));
     GUARD(calculate_keys(conn, &shared_key));
     return 0;
 }

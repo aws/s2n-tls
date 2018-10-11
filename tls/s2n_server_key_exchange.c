@@ -34,13 +34,13 @@ static int s2n_write_signature_blob(struct s2n_stuffer *out, const struct s2n_pk
 int s2n_server_key_recv(struct s2n_connection *conn)
 {
     struct s2n_hash_state *signature_hash = &conn->secure.signature_hash;
-    const struct s2n_key_exchange_algorithm *kem_core = conn->secure.cipher_suite->key_exchange_alg;
+    const struct s2n_key_exchange_algorithm *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
     struct s2n_stuffer *in = &conn->handshake.io;
     struct s2n_blob data_to_sign = {0};
 
-    /* Read and process the KEM data */
-    notnull_check(kem_core->server_key_recv);
-    GUARD(kem_core->server_key_recv(conn, &data_to_sign));
+    /* Read and process the KEX data */
+    notnull_check(key_exchange->server_key_recv);
+    GUARD(key_exchange->server_key_recv(conn, &data_to_sign));
 
     /* Add common signature data */
     if (conn->actual_protocol_version == S2N_TLS12) {
@@ -54,7 +54,7 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     GUARD(s2n_hash_update(signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_hash_update(signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
 
-    /* Add KEM specific data */
+    /* Add KEX specific data */
     GUARD(s2n_hash_update(signature_hash, data_to_sign.data, data_to_sign.size));
 
     /* Verify the signature */
@@ -121,13 +121,13 @@ int s2n_dhe_server_recv_params(struct s2n_connection *conn, struct s2n_blob *dat
 int s2n_server_key_send(struct s2n_connection *conn)
 {
     struct s2n_hash_state *signature_hash = &conn->secure.signature_hash;
-    const struct s2n_key_exchange_algorithm *kem_core = conn->secure.cipher_suite->key_exchange_alg;
+    const struct s2n_key_exchange_algorithm *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_blob data_to_sign = {0};
 
     /* Call the negotiated key exchange method to send it's data */
-    notnull_check(kem_core->server_key_send);
-    GUARD(kem_core->server_key_send(conn, &data_to_sign));
+    notnull_check(key_exchange->server_key_send);
+    GUARD(key_exchange->server_key_send(conn, &data_to_sign));
 
     /* Add common signature data */
     if (conn->actual_protocol_version == S2N_TLS12) {
@@ -140,7 +140,7 @@ int s2n_server_key_send(struct s2n_connection *conn)
     GUARD(s2n_hash_update(signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_hash_update(signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
 
-    /* Add KEM specific data to the hash */
+    /* Add KEX specific data to the hash */
     GUARD(s2n_hash_update(signature_hash, data_to_sign.data, data_to_sign.size));
 
     /* Sign and write the signature */
