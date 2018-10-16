@@ -60,7 +60,10 @@
 
 typedef digit_t felm_t[NWORDS_FIELD];                                 // Datatype for representing 503-bit field elements (512-bit max.)
 typedef digit_t dfelm_t[2*NWORDS_FIELD];                              // Datatype for representing double-precision 2x503-bit field elements (512-bit max.) 
-typedef felm_t  f2elm_t[2];                                           // Datatype for representing quadratic extension field elements GF(p503^2)
+typedef struct felm_s
+{
+    felm_t e[2];
+} f2elm_t; // Datatype for representing quadratic extension field elements GF(p503^2)
 typedef f2elm_t publickey_t[3];                                       // Datatype for representing public keys equivalent to three GF(p503^2) elements
         
 typedef struct { f2elm_t X; f2elm_t Z; } point_proj;                  // Point representation in projective XZ Montgomery coordinates.
@@ -181,43 +184,43 @@ void fpinv503_chain_mont(felm_t a);
 /************ GF(p^2) arithmetic functions *************/
     
 // Copy of a GF(p503^2) element, c = a
-void fp2copy503(const f2elm_t a, f2elm_t c);
+void fp2copy503(const f2elm_t *a, f2elm_t *c);
 
 // Zeroing a GF(p503^2) element, a = 0
-void fp2zero503(f2elm_t a);
+void fp2zero503(f2elm_t *a);
 
 // GF(p503^2) negation, a = -a in GF(p503^2)
-void fp2neg503(f2elm_t a);
+void fp2neg503(f2elm_t *a);
 
 // GF(p503^2) addition, c = a+b in GF(p503^2)
-extern void fp2add503(const f2elm_t a, const f2elm_t b, f2elm_t c);           
+extern void fp2add503(const f2elm_t *a, const f2elm_t *b, f2elm_t *c);           
 
 // GF(p503^2) subtraction, c = a-b in GF(p503^2)
-extern void fp2sub503(const f2elm_t a, const f2elm_t b, f2elm_t c); 
+extern void fp2sub503(const f2elm_t *a, const f2elm_t *b, f2elm_t *c); 
 
 // GF(p503^2) division by two, c = a/2  in GF(p503^2) 
-void fp2div2_503(const f2elm_t a, f2elm_t c);
+void fp2div2_503(const f2elm_t *a, f2elm_t *c);
 
 // Modular correction, a = a in GF(p503^2)
-void fp2correction503(f2elm_t a);
+void fp2correction503(f2elm_t *a);
             
 // GF(p503^2) squaring using Montgomery arithmetic, c = a^2 in GF(p503^2)
-void fp2sqr503_mont(const f2elm_t a, f2elm_t c);
+void fp2sqr503_mont(const f2elm_t *a, f2elm_t *c);
  
 // GF(p503^2) multiplication using Montgomery arithmetic, c = a*b in GF(p503^2)
-void fp2mul503_mont(const f2elm_t a, const f2elm_t b, f2elm_t c);
+void fp2mul503_mont(const f2elm_t *a, const f2elm_t *b, f2elm_t *c);
     
 // Conversion of a GF(p503^2) element to Montgomery representation
-void to_fp2mont(const f2elm_t a, f2elm_t mc);
+void to_fp2mont(const f2elm_t *a, f2elm_t *mc);
 
 // Conversion of a GF(p503^2) element from Montgomery representation to standard representation
-void from_fp2mont(const f2elm_t ma, f2elm_t c);
+void from_fp2mont(const f2elm_t *ma, f2elm_t *c);
 
 // GF(p503^2) inversion using Montgomery arithmetic, a = (a0-i*a1)/(a0^2+a1^2)
-void fp2inv503_mont(f2elm_t a);
+void fp2inv503_mont(f2elm_t *a);
 
 // GF(p503^2) inversion, a = (a0-i*a1)/(a0^2+a1^2), GF(p503) inversion done using the binary GCD 
-void fp2inv503_mont_bingcd(f2elm_t a);
+void fp2inv503_mont_bingcd(f2elm_t *a);
 
 // n-way Montgomery inversion
 void mont_n_way_inv(const f2elm_t* vec, const int n, f2elm_t* out);
@@ -225,43 +228,43 @@ void mont_n_way_inv(const f2elm_t* vec, const int n, f2elm_t* out);
 /************ Elliptic curve and isogeny functions *************/
 
 // Computes the j-invariant of a Montgomery curve with projective constant.
-void j_inv(const f2elm_t A, const f2elm_t C, f2elm_t jinv);
+void j_inv(const f2elm_t *A, const f2elm_t *C, f2elm_t *jinv);
 
 // Simultaneous doubling and differential addition.
-void xDBLADD(point_proj_t P, point_proj_t Q, const f2elm_t xPQ, const f2elm_t A24);
+void xDBLADD(point_proj_t P, point_proj_t Q, const f2elm_t *xPQ, const f2elm_t *A24);
 
 // Doubling of a Montgomery point in projective coordinates (X:Z).
-void xDBL(const point_proj_t P, point_proj_t Q, const f2elm_t A24plus, const f2elm_t C24);
+void xDBL(const point_proj_t P, point_proj_t Q, const f2elm_t *A24plus, const f2elm_t *C24);
 
 // Computes [2^e](X:Z) on Montgomery curve with projective constant via e repeated doublings.
-void xDBLe(const point_proj_t P, point_proj_t Q, const f2elm_t A24plus, const f2elm_t C24, const int e);
+void xDBLe(const point_proj_t P, point_proj_t Q, const f2elm_t *A24plus, const f2elm_t *C24, const int e);
 
 // Differential addition.
-void xADD(point_proj_t P, const point_proj_t Q, const f2elm_t xPQ);
+void xADD(point_proj_t P, const point_proj_t Q, const f2elm_t *xPQ);
 
 // Computes the corresponding 4-isogeny of a projective Montgomery point (X4:Z4) of order 4.
-void get_4_isog(const point_proj_t P, f2elm_t A24plus, f2elm_t C24, f2elm_t* coeff);
+void get_4_isog(const point_proj_t P, f2elm_t *A24plus, f2elm_t *C24, f2elm_t* coeff);
 
 // Evaluates the isogeny at the point (X:Z) in the domain of the isogeny.
 void eval_4_isog(point_proj_t P, f2elm_t* coeff);
 
 // Tripling of a Montgomery point in projective coordinates (X:Z).
-void xTPL(const point_proj_t P, point_proj_t Q, const f2elm_t A24minus, const f2elm_t A24plus);
+void xTPL(const point_proj_t P, point_proj_t Q, const f2elm_t *A24minus, const f2elm_t *A24plus);
 
 // Computes [3^e](X:Z) on Montgomery curve with projective constant via e repeated triplings.
-void xTPLe(const point_proj_t P, point_proj_t Q, const f2elm_t A24minus, const f2elm_t A24plus, const int e);
+void xTPLe(const point_proj_t P, point_proj_t Q, const f2elm_t *A24minus, const f2elm_t *A24plus, const int e);
 
 // Computes the corresponding 3-isogeny of a projective Montgomery point (X3:Z3) of order 3.
-void get_3_isog(const point_proj_t P, f2elm_t A24minus, f2elm_t A24plus, f2elm_t* coeff);
+void get_3_isog(const point_proj_t P, f2elm_t *A24minus, f2elm_t *A24plus, f2elm_t* coeff);
 
 // Computes the 3-isogeny R=phi(X:Z), given projective point (X3:Z3) of order 3 on a Montgomery curve and a point P with coefficients given in coeff.
 void eval_3_isog(point_proj_t Q, const f2elm_t* coeff);
 
 // 3-way simultaneous inversion
-void inv_3_way(f2elm_t z1, f2elm_t z2, f2elm_t z3);
+void inv_3_way(f2elm_t *z1, f2elm_t *z2, f2elm_t *z3);
 
 // Given the x-coordinates of P, Q, and R, returns the value A corresponding to the Montgomery curve E_A: y^2=x^3+A*x^2+x such that R=Q-P on E_A.
-void get_A(const f2elm_t xP, const f2elm_t xQ, const f2elm_t xR, f2elm_t A);
+void get_A(const f2elm_t *xP, const f2elm_t *xQ, const f2elm_t *xR, f2elm_t *A);
 
 
 #endif

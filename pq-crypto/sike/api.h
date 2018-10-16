@@ -43,27 +43,27 @@ void random_mod_order_B(unsigned char* random_digits);
 // Alice's ephemeral public key generation
 // Input:  a private key PrivateKeyA in the range [0, 2^250 - 1], stored in 32 bytes. 
 // Output: the public key PublicKeyA consisting of 3 GF(p503^2) elements encoded in 378 bytes.
-int EphemeralKeyGeneration_A(const unsigned char* PrivateKeyA, unsigned char* PublicKeyA);
+int EphemeralKeyGeneration_A(const digit_t* PrivateKeyA, unsigned char* PublicKeyA);
 
 // Bob's ephemeral key-pair generation
 // It produces a private key PrivateKeyB and computes the public key PublicKeyB.
 // The private key is an integer in the range [0, 2^Floor(Log(2,3^159)) - 1], stored in 32 bytes. 
 // The public key consists of 3 GF(p503^2) elements encoded in 378 bytes.
-int EphemeralKeyGeneration_B(const unsigned char* PrivateKeyB, unsigned char* PublicKeyB);
+int EphemeralKeyGeneration_B(const digit_t* PrivateKeyB, unsigned char* PublicKeyB);
 
 // Alice's ephemeral shared secret computation
 // It produces a shared secret key SharedSecretA using her secret key PrivateKeyA and Bob's public key PublicKeyB
 // Inputs: Alice's PrivateKeyA is an integer in the range [0, 2^250 - 1], stored in 32 bytes. 
 //         Bob's PublicKeyB consists of 3 GF(p503^2) elements encoded in 378 bytes.
 // Output: a shared secret SharedSecretA that consists of one element in GF(p503^2) encoded in 126 bytes.
-int EphemeralSecretAgreement_A(const unsigned char* PrivateKeyA, const unsigned char* PublicKeyB, unsigned char* SharedSecretA);
+int EphemeralSecretAgreement_A(const digit_t* PrivateKeyA, const unsigned char* PublicKeyB, unsigned char* SharedSecretA);
 
 // Bob's ephemeral shared secret computation
 // It produces a shared secret key SharedSecretB using his secret key PrivateKeyB and Alice's public key PublicKeyA
 // Inputs: Bob's PrivateKeyB is an integer in the range [0, 2^Floor(Log(2,3^159)) - 1], stored in 32 bytes. 
 //         Alice's PublicKeyA consists of 3 GF(p503^2) elements encoded in 378 bytes.
 // Output: a shared secret SharedSecretB that consists of one element in GF(p503^2) encoded in 126 bytes.
-int EphemeralSecretAgreement_B(const unsigned char* PrivateKeyB, const unsigned char* PublicKeyA, unsigned char* SharedSecretB);
+int EphemeralSecretAgreement_B(const digit_t* PrivateKeyB, const unsigned char* PublicKeyA, unsigned char* SharedSecretB);
 
 
 // Encoding of keys for KEX-based isogeny system "SIDHp503" (wire format):

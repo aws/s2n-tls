@@ -19,9 +19,9 @@ include ../../s2n.mk
 # BIKE casts raw char arrays to an internal key representation for safety and convenience in bike1_l1_kem.c
 FLAGS_TO_REMOVE := -pedantic
 
-FINAL_CFLAGS := $(filter-out $(FLAGS_TO_REMOVE),$(CFLAGS))
+#WA for GCC 4.8.5 bug.
+CFLAGS += -Wno-missing-braces -Wno-missing-field-initializers
 
-CFLAGS=$(FINAL_CFLAGS)
 CFLAGS+=-I../../
 
 SRCS=fp_generic.c P503.c sike_p503_kem.c fips202.c

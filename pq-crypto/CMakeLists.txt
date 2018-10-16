@@ -56,8 +56,7 @@ include_directories ("${PROJECT_SOURCE_DIR}")
 
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
-# We intentionally do not use -pedantic here because this will make SIKE compilation failed (TODO: fix)
-target_compile_options(s2n_pq_crypto PRIVATE -std=c99 -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security)
+target_compile_options(s2n_pq_crypto PRIVATE -std=c99 -Wall -Werror -pedantic -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security)
 target_compile_options(s2n_pq_crypto PUBLIC -fPIC)
 
 # Copied from parent CmakeLists.txt

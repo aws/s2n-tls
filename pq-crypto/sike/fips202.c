@@ -388,13 +388,13 @@ static void keccak_squeezeblocks(unsigned char *h, unsigned long long int nblock
 
 void shake128_absorb(uint64_t *s, const unsigned char *input, unsigned int inputByteLen)
 {
-	keccak_absorb(s, SHAKE128_RATE, input, inputByteLen, 0x1F);
+    keccak_absorb(s, SHAKE128_RATE, input, inputByteLen, 0x1F);
 }
 
 
 void shake128_squeezeblocks(unsigned char *output, unsigned long long nblocks, uint64_t *s)
 {
-	keccak_squeezeblocks(output, nblocks, s, SHAKE128_RATE);
+    keccak_squeezeblocks(output, nblocks, s, SHAKE128_RATE);
 }
 
 
@@ -481,13 +481,13 @@ void cshake128_simple(unsigned char *output, unsigned long long outlen, uint16_t
 
 void shake256_absorb(uint64_t *s, const unsigned char *input, unsigned int inputByteLen)
 {
-	keccak_absorb(s, SHAKE256_RATE, input, inputByteLen, 0x1F);
+    keccak_absorb(s, SHAKE256_RATE, input, inputByteLen, 0x1F);
 }
 
 
 void shake256_squeezeblocks(unsigned char *output, unsigned long long nblocks, uint64_t *s)
 {
-	keccak_squeezeblocks(output, nblocks, s, SHAKE256_RATE);
+    keccak_squeezeblocks(output, nblocks, s, SHAKE256_RATE);
 }
 
 

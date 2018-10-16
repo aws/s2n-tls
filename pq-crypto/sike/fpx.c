@@ -30,7 +30,7 @@ void to_mont(const felm_t a, felm_t mc)
   // mc = a*R^2*R^(-1) mod p = a*R mod p, where a in [0, p-1].
   // The Montgomery constant R^2 mod p is the global value "Montgomery_R2". 
 
-    fpmul_mont(a, (digit_t*)&Montgomery_R2, mc);
+    fpmul_mont(a, (const digit_t*)&Montgomery_R2, mc);
 }
 
 
@@ -85,52 +85,52 @@ void fpinv_mont(felm_t a)
 }
 
 
-void fp2copy(const f2elm_t a, f2elm_t c)
+void fp2copy(const f2elm_t *a, f2elm_t *c)
 { // Copy a GF(p^2) element, c = a.
-    fpcopy(a[0], c[0]);
-    fpcopy(a[1], c[1]);
+    fpcopy(a->e[0], c->e[0]);
+    fpcopy(a->e[1], c->e[1]);
 }
 
 
-void fp2zero(f2elm_t a)
+void fp2zero(f2elm_t *a)
 { // Zero a GF(p^2) element, a = 0.
-    fpzero(a[0]);
-    fpzero(a[1]);
+    fpzero(a->e[0]);
+    fpzero(a->e[1]);
 }
 
 
-void fp2neg(f2elm_t a)
+void fp2neg(f2elm_t *a)
 { // GF(p^2) negation, a = -a in GF(p^2).
-    fpneg(a[0]);
-    fpneg(a[1]);
+    fpneg(a->e[0]);
+    fpneg(a->e[1]);
 }
 
 
-__inline void fp2add(const f2elm_t a, const f2elm_t b, f2elm_t c)           
+__inline void fp2add(const f2elm_t *a, const f2elm_t *b, f2elm_t *c)           
 { // GF(p^2) addition, c = a+b in GF(p^2).
-    fpadd(a[0], b[0], c[0]);
-    fpadd(a[1], b[1], c[1]);
+    fpadd(a->e[0], b->e[0], c->e[0]);
+    fpadd(a->e[1], b->e[1], c->e[1]);
 }
 
 
-__inline void fp2sub(const f2elm_t a, const f2elm_t b, f2elm_t c)          
+__inline void fp2sub(const f2elm_t *a, const f2elm_t *b, f2elm_t *c)          
 { // GF(p^2) subtraction, c = a-b in GF(p^2).
-    fpsub(a[0], b[0], c[0]);
-    fpsub(a[1], b[1], c[1]);
+    fpsub(a->e[0], b->e[0], c->e[0]);
+    fpsub(a->e[1], b->e[1], c->e[1]);
 }
 
 
-void fp2div2(const f2elm_t a, f2elm_t c)          
+void fp2div2(const f2elm_t *a, f2elm_t *c)          
 { // GF(p^2) division by two, c = a/2  in GF(p^2).
-    fpdiv2(a[0], c[0]);
-    fpdiv2(a[1], c[1]);
+    fpdiv2(a->e[0], c->e[0]);
+    fpdiv2(a->e[1], c->e[1]);
 }
 
 
-void fp2correction(f2elm_t a)
+void fp2correction(f2elm_t *a)
 { // Modular correction, a = a in GF(p^2).
-    fpcorrection(a[0]);
-    fpcorrection(a[1]);
+    fpcorrection(a->e[0]);
+    fpcorrection(a->e[1]);
 }
 
 
@@ -148,21 +148,21 @@ __inline static void mp_addfastx2(const digit_t* a, const digit_t* b, digit_t* c
 }
 
 
-void fp2sqr_mont(const f2elm_t a, f2elm_t c)
+void fp2sqr_mont(const f2elm_t *a, f2elm_t *c)
 { // GF(p^2) squaring using Montgomery arithmetic, c = a^2 in GF(p^2).
   // Inputs: a = a0+a1*i, where a0, a1 are in [0, 2*p-1] 
   // Output: c = c0+c1*i, where c0, c1 are in [0, 2*p-1] 
     felm_t t1, t2, t3;
     
-    mp_addfast(a[0], a[1], t1);                      // t1 = a0+a1 
-    fpsub(a[0], a[1], t2);                           // t2 = a0-a1
-    mp_addfast(a[0], a[0], t3);                      // t3 = 2a0
-    fpmul_mont(t1, t2, c[0]);                        // c0 = (a0+a1)(a0-a1)
-    fpmul_mont(t3, a[1], c[1]);                      // c1 = 2a0*a1
+    mp_addfast(a->e[0], a->e[1], t1);                      // t1 = a0+a1 
+    fpsub(a->e[0], a->e[1], t2);                           // t2 = a0-a1
+    mp_addfast(a->e[0], a->e[0], t3);                      // t3 = 2a0
+    fpmul_mont(t1, t2, c->e[0]);                        // c0 = (a0+a1)(a0-a1)
+    fpmul_mont(t3, a->e[1], c->e[1]);                      // c1 = 2a0*a1
 }
 
 
-__inline unsigned int mp_sub(const digit_t* a, const digit_t* b, digit_t* c, const unsigned int nwords)
+unsigned int mp_sub(const digit_t* a, const digit_t* b, digit_t* c, const unsigned int nwords)
 { // Multiprecision subtraction, c = a-b, where lng(a) = lng(b) = nwords. Returns the borrow bit.
     unsigned int i, borrow = 0;
 
@@ -178,11 +178,11 @@ __inline static digit_t mp_subfast(const digit_t* a, const digit_t* b, digit_t* 
 { // Multiprecision subtraction, c = a-b, where lng(a) = lng(b) = 2*NWORDS_FIELD. 
   // If c < 0 then returns mask = 0xFF..F, else mask = 0x00..0 
 
-	return (0 - (digit_t)mp_sub(a, b, c, 2*NWORDS_FIELD));
+    return (0 - (digit_t)mp_sub(a, b, c, 2*NWORDS_FIELD));
 }
 
 
-void fp2mul_mont(const f2elm_t a, const f2elm_t b, f2elm_t c)
+void fp2mul_mont(const f2elm_t *a, const f2elm_t *b, f2elm_t *c)
 { // GF(p^2) multiplication using Montgomery arithmetic, c = a*b in GF(p^2).
   // Inputs: a = a0+a1*i and b = b0+b1*i, where a0, a1, b0, b1 are in [0, 2*p-1] 
   // Output: c = c0+c1*i, where c0, c1 are in [0, 2*p-1] 
@@ -191,19 +191,19 @@ void fp2mul_mont(const f2elm_t a, const f2elm_t b, f2elm_t c)
     digit_t mask;
     unsigned int i, borrow = 0;
     
-    mp_mul(a[0], b[0], tt1, NWORDS_FIELD);           // tt1 = a0*b0
-    mp_mul(a[1], b[1], tt2, NWORDS_FIELD);           // tt2 = a1*b1
-    mp_addfast(a[0], a[1], t1);                      // t1 = a0+a1
-    mp_addfast(b[0], b[1], t2);                      // t2 = b0+b1
+    mp_mul(a->e[0], b->e[0], tt1, NWORDS_FIELD);           // tt1 = a0*b0
+    mp_mul(a->e[1], b->e[1], tt2, NWORDS_FIELD);           // tt2 = a1*b1
+    mp_addfast(a->e[0], a->e[1], t1);                      // t1 = a0+a1
+    mp_addfast(b->e[0], b->e[1], t2);                      // t2 = b0+b1
     mask = mp_subfast(tt1, tt2, tt3);                // tt3 = a0*b0 - a1*b1. If tt3 < 0 then mask = 0xFF..F, else if tt3 >= 0 then mask = 0x00..0
     for (i = 0; i < NWORDS_FIELD; i++) {
         ADDC(borrow, tt3[NWORDS_FIELD+i], ((const digit_t*)PRIME)[i] & mask, borrow, tt3[NWORDS_FIELD+i]);
     }
-    rdc_mont(tt3, c[0]);                             // c[0] = a0*b0 - a1*b1
+    rdc_mont(tt3, c->e[0]);                             // c[0] = a0*b0 - a1*b1
     mp_addfastx2(tt1, tt2, tt1);                     // tt1 = a0*b0 + a1*b1
     mp_mul(t1, t2, tt2, NWORDS_FIELD);               // tt2 = (a0+a1)*(b0+b1)
-	mp_subfast(tt2, tt1, tt2);                       // tt2 = (a0+a1)*(b0+b1) - a0*b0 - a1*b1 
-    rdc_mont(tt2, c[1]);                             // c[1] = (a0+a1)*(b0+b1) - a0*b0 - a1*b1 
+    mp_subfast(tt2, tt1, tt2);                       // tt2 = (a0+a1)*(b0+b1) - a0*b0 - a1*b1 
+    rdc_mont(tt2, c->e[1]);                             // c[1] = (a0+a1)*(b0+b1) - a0*b0 - a1*b1 
 }
 
 
@@ -310,39 +310,39 @@ void fpinv_chain_mont(felm_t a)
 }
 
 
-void fp2inv_mont(f2elm_t a)
+void fp2inv_mont(f2elm_t *a)
 {// GF(p^2) inversion using Montgomery arithmetic, a = (a0-i*a1)/(a0^2+a1^2).
     f2elm_t t1;
 
-    fpsqr_mont(a[0], t1[0]);                         // t10 = a0^2
-    fpsqr_mont(a[1], t1[1]);                         // t11 = a1^2
-    fpadd(t1[0], t1[1], t1[0]);                      // t10 = a0^2+a1^2
-    fpinv_mont(t1[0]);                               // t10 = (a0^2+a1^2)^-1
-    fpneg(a[1]);                                     // a = a0-i*a1
-    fpmul_mont(a[0], t1[0], a[0]);
-    fpmul_mont(a[1], t1[0], a[1]);                   // a = (a0-i*a1)*(a0^2+a1^2)^-1
+    fpsqr_mont(a->e[0], t1.e[0]);                         // t10 = a0^2
+    fpsqr_mont(a->e[1], t1.e[1]);                         // t11 = a1^2
+    fpadd(t1.e[0], t1.e[1], t1.e[0]);                      // t10 = a0^2+a1^2
+    fpinv_mont(t1.e[0]);                               // t10 = (a0^2+a1^2)^-1
+    fpneg(a->e[1]);                                     // a = a0-i*a1
+    fpmul_mont(a->e[0], t1.e[0], a->e[0]);
+    fpmul_mont(a->e[1], t1.e[0], a->e[1]);                   // a = (a0-i*a1)*(a0^2+a1^2)^-1
 }
 
 
-void to_fp2mont(const f2elm_t a, f2elm_t mc)
+void to_fp2mont(const f2elm_t *a, f2elm_t *mc)
 { // Conversion of a GF(p^2) element to Montgomery representation,
   // mc_i = a_i*R^2*R^(-1) = a_i*R in GF(p^2). 
 
-    to_mont(a[0], mc[0]);
-    to_mont(a[1], mc[1]);
+    to_mont(a->e[0], mc->e[0]);
+    to_mont(a->e[1], mc->e[1]);
 }
 
 
-void from_fp2mont(const f2elm_t ma, f2elm_t c)
+void from_fp2mont(const f2elm_t *ma, f2elm_t *c)
 { // Conversion of a GF(p^2) element from Montgomery representation to standard representation,
   // c_i = ma_i*R^(-1) = a_i in GF(p^2).
 
-    from_mont(ma[0], c[0]);
-    from_mont(ma[1], c[1]);
+    from_mont(ma->e[0], c->e[0]);
+    from_mont(ma->e[1], c->e[1]);
 }
 
 
-__inline unsigned int mp_add(const digit_t* a, const digit_t* b, digit_t* c, const unsigned int nwords)
+unsigned int mp_add(const digit_t* a, const digit_t* b, digit_t* c, const unsigned int nwords)
 { // Multiprecision addition, c = a+b, where lng(a) = lng(b) = nwords. Returns the carry bit.
     unsigned int i, carry = 0;
         
