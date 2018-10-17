@@ -24,19 +24,9 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_kem_core.h"
 #include "utils/s2n_safety.h"
 
-const struct s2n_key_exchange_algorithm s2n_rsa = {
-    .flags = 0,
-};
-
-const struct s2n_key_exchange_algorithm s2n_dhe = {
-    .flags = S2N_KEY_EXCHANGE_DH | S2N_KEY_EXCHANGE_EPH,
-};
-
-const struct s2n_key_exchange_algorithm s2n_ecdhe = {
-    .flags = S2N_KEY_EXCHANGE_DH | S2N_KEY_EXCHANGE_EPH | S2N_KEY_EXCHANGE_ECC,
-};
 
 const struct s2n_record_algorithm s2n_record_alg_null = {
     .cipher = &s2n_null_cipher,
