@@ -60,7 +60,8 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     /* Verify the signature */
     uint16_t signature_length;
     GUARD(s2n_stuffer_read_uint16(in, &signature_length));
-    struct s2n_blob signature = {.size = signature_length, .data = s2n_stuffer_raw_read(in, signature.size)};
+
+    struct s2n_blob signature = {.size = signature_length, .data = s2n_stuffer_raw_read(in, signature_length)};
     notnull_check(signature.data);
     gt_check(signature_length, 0);
 

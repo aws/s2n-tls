@@ -70,8 +70,7 @@ int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
     shared_key->data = conn->secure.rsa_premaster_secret;
     shared_key->size = S2N_TLS_SECRET_LEN;
 
-    uint32_t encrypted_size = s2n_stuffer_data_available(in);
-    struct s2n_blob encrypted = {.size = encrypted_size, .data = s2n_stuffer_raw_read(in, length)};
+    struct s2n_blob encrypted = {.size = length, .data = s2n_stuffer_raw_read(in, length)};
 
     notnull_check(encrypted.data);
     gt_check(encrypted.size, 0);
