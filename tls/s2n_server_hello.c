@@ -128,12 +128,13 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         conn->secure.conn_hash_alg = S2N_HASH_MD5_SHA1;
     }
 
-    //printf("OMG server hello recv passed for mode 1\n");
     return 0;
 }
 
 int s2n_server_hello_send(struct s2n_connection *conn)
 {
+    GUARD(s2n_conn_update_required_handshake_hashes(conn));
+
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_stuffer server_random = {{0}};
     struct s2n_blob b, r;

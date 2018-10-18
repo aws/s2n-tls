@@ -152,7 +152,6 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
         break;
     }
     }
-    //printf("OMG s2n_conn_update_required_handshake_hashes passed for mode of %d\n", conn->mode);
 
     return 0;
 }
