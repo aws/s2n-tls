@@ -275,7 +275,8 @@ int main(int argc, char **argv)
     char buffer[256];
     int bytes_read;
     int shutdown_rc = -1;
-    uint8_t *session_id = NULL;
+    uint8_t session_id_from_server[32];
+    uint8_t session_id_from_client[32];
 
     BEGIN_TEST();
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -324,6 +325,11 @@ int main(int argc, char **argv)
         /* Negotiate the handshake. */
         EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
 
+        /* Make sure the get_session_id and get_session_id_length APIs are
+         * working as expected */
+        EXPECT_EQUAL(s2n_connection_get_session_id_length(conn), 32);
+        EXPECT_EQUAL(s2n_connection_get_session_id(conn, session_id_from_server, 32), s2n_connection_get_session_id_length(conn));
+
         /* Make sure we did a full handshake */
         EXPECT_TRUE(IS_FULL_HANDSHAKE(conn->handshake.handshake_type));
 
@@ -357,9 +363,10 @@ int main(int argc, char **argv)
         /* Make sure the get_session_id and get_session_id_length APIs are
          * working as expected */
         EXPECT_EQUAL(s2n_connection_get_session_id_length(conn), 32);
-        session_id = malloc(s2n_connection_get_session_id_length(conn) + 1);
-        EXPECT_EQUAL(s2n_connection_get_session_id(conn, session_id), s2n_connection_get_session_id_length(conn));
-        free(session_id);
+        EXPECT_EQUAL(s2n_connection_get_session_id(conn, session_id_from_client, 32), s2n_connection_get_session_id_length(conn));
+        for (int i = 0; i < 32; i++) {
+            EXPECT_EQUAL(session_id_from_client[i], session_id_from_server[i]);
+        }
 
         /* Make sure we did a abbreviated handshake */
         EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type));

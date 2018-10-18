@@ -963,12 +963,15 @@ ssize_t s2n_connection_get_session_id_length(struct s2n_connection *conn)
     return conn->session_id_len;
 }
 
-int s2n_connection_get_session_id(struct s2n_connection *conn, uint8_t *session_id)
+int s2n_connection_get_session_id(struct s2n_connection *conn, uint8_t *session_id, size_t max_length)
 {
     notnull_check(conn);
     notnull_check(session_id);
 
     uint32_t session_id_len = s2n_connection_get_session_id_length(conn);
+
+    S2N_ERROR_IF(session_id_len > max_length, S2N_ERR_SESSION_ID_TOO_LONG);
+
     memcpy_check(session_id, conn->session_id, session_id_len);
 
     return session_id_len;
