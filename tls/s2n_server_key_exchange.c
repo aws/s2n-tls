@@ -58,11 +58,9 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     GUARD(s2n_hash_update(signature_hash, data_to_sign.data, data_to_sign.size));
 
     /* Verify the signature */
-    struct s2n_blob signature = {0};
     uint16_t signature_length;
     GUARD(s2n_stuffer_read_uint16(in, &signature_length));
-    signature.size = signature_length;
-    signature.data = s2n_stuffer_raw_read(in, signature.size);
+    struct s2n_blob signature = {.size = signature_length, .data = s2n_stuffer_raw_read(in, signature.size)};
     notnull_check(signature.data);
     gt_check(signature_length, 0);
 
@@ -85,7 +83,7 @@ int s2n_ecdhe_server_recv_params(struct s2n_connection *conn, struct s2n_blob *d
 int s2n_dhe_server_recv_params(struct s2n_connection *conn, struct s2n_blob *data_to_verify)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
-    struct s2n_blob p, g, Ys;
+    struct s2n_blob p, g, Ys = {0};
     uint16_t p_length;
     uint16_t g_length;
     uint16_t Ys_length;
