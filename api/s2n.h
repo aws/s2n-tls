@@ -197,7 +197,7 @@ extern int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *sess
 extern int s2n_connection_get_session_ticket_lifetime_hint(struct s2n_connection *conn);
 extern ssize_t s2n_connection_get_session_length(struct s2n_connection *conn);
 extern ssize_t s2n_connection_get_session_id_length(struct s2n_connection *conn);
-extern int s2n_connection_get_session_id(struct s2n_connection *conn, uint8_t *session_id);
+extern int s2n_connection_get_session_id(struct s2n_connection *conn, uint8_t *session_id, size_t max_length);
 extern int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 extern int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);
 
