@@ -38,11 +38,6 @@ PROTO_VERS_TO_S_CLIENT_ARG = {
 
 S_CLIENT_SUCCESSFUL_OCSP="OCSP Response Status: successful"
 
-def communicate_process(p, input):
-    t = threading.Timer(0.1, p.kill)
-    t.start()
-    return p.communicate(input.encode("utf-8"))[0].decode("utf-8").split('\n')
-
 def communicate_processes(*processes):
     outs = []
     for p in processes:
@@ -157,13 +152,11 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     sleep(0.1)
     outs = communicate_processes(s_client, s2nd)
     s_out = outs[1]
-    # print (s_out)
     if '' == s_out:
         print ("No output from client PIPE, skip")
         return 0
 
     c_out = outs[0]
-    # print (c_out)
     if '' == c_out:
         print ("No output from client PIPE, skip")
         return 0
