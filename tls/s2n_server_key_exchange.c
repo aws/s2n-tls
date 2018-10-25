@@ -20,6 +20,7 @@
 #include "tls/s2n_tls_digest_preferences.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_kex.h"
 #include "tls/s2n_signature_algorithms.h"
 
 #include "stuffer/s2n_stuffer.h"
@@ -34,13 +35,12 @@ static int s2n_write_signature_blob(struct s2n_stuffer *out, const struct s2n_pk
 int s2n_server_key_recv(struct s2n_connection *conn)
 {
     struct s2n_hash_state *signature_hash = &conn->secure.signature_hash;
-    const struct s2n_key_exchange_algorithm *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
+    const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
     struct s2n_stuffer *in = &conn->handshake.io;
-    struct s2n_blob data_to_sign = {0};
+    struct s2n_blob data_to_verify = {0};
 
     /* Read and process the KEX data */
-    notnull_check(key_exchange->server_key_recv);
-    GUARD(key_exchange->server_key_recv(conn, &data_to_sign));
+    GUARD(s2n_kex_server_key_recv(key_exchange, conn, &data_to_verify));
 
     /* Add common signature data */
     if (conn->actual_protocol_version == S2N_TLS12) {
@@ -55,7 +55,7 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     GUARD(s2n_hash_update(signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
 
     /* Add KEX specific data */
-    GUARD(s2n_hash_update(signature_hash, data_to_sign.data, data_to_sign.size));
+    GUARD(s2n_hash_update(signature_hash, data_to_verify.data, data_to_verify.size));
 
     /* Verify the signature */
     uint16_t signature_length;
@@ -72,6 +72,7 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     return 0;
 }
 
+
 int s2n_ecdhe_server_recv_params(struct s2n_connection *conn, struct s2n_blob *data_to_verify)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
@@ -84,7 +85,6 @@ int s2n_ecdhe_server_recv_params(struct s2n_connection *conn, struct s2n_blob *d
 int s2n_dhe_server_recv_params(struct s2n_connection *conn, struct s2n_blob *data_to_verify)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
-    struct s2n_blob p, g, Ys = {0};
     uint16_t p_length;
     uint16_t g_length;
     uint16_t Ys_length;
@@ -95,18 +95,15 @@ int s2n_dhe_server_recv_params(struct s2n_connection *conn, struct s2n_blob *dat
 
     /* Read each of the three elements in */
     GUARD(s2n_stuffer_read_uint16(in, &p_length));
-    p.size = p_length;
-    p.data = s2n_stuffer_raw_read(in, p.size);
+    struct s2n_blob p = { .size = p_length, .data = s2n_stuffer_raw_read(in, p_length)};
     notnull_check(p.data);
 
     GUARD(s2n_stuffer_read_uint16(in, &g_length));
-    g.size = g_length;
-    g.data = s2n_stuffer_raw_read(in, g.size);
+    struct s2n_blob g = {.size = g_length, .data = s2n_stuffer_raw_read(in, g_length)};
     notnull_check(g.data);
 
     GUARD(s2n_stuffer_read_uint16(in, &Ys_length));
-    Ys.size = Ys_length;
-    Ys.data = s2n_stuffer_raw_read(in, Ys.size);
+    struct s2n_blob Ys = {.size = Ys_length, .data = s2n_stuffer_raw_read(in, Ys_length)};
     notnull_check(Ys.data);
 
     /* Now we know the total size of the structure */
@@ -120,13 +117,12 @@ int s2n_dhe_server_recv_params(struct s2n_connection *conn, struct s2n_blob *dat
 int s2n_server_key_send(struct s2n_connection *conn)
 {
     struct s2n_hash_state *signature_hash = &conn->secure.signature_hash;
-    const struct s2n_key_exchange_algorithm *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
+    const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_blob data_to_sign = {0};
 
     /* Call the negotiated key exchange method to send it's data */
-    notnull_check(key_exchange->server_key_send);
-    GUARD(key_exchange->server_key_send(conn, &data_to_sign));
+    GUARD(s2n_kex_server_key_send(key_exchange, conn, &data_to_sign));
 
     /* Add common signature data */
     if (conn->actual_protocol_version == S2N_TLS12) {

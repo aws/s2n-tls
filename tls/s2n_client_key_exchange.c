@@ -19,6 +19,7 @@
 
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_kex.h"
 #include "tls/s2n_resume.h"
 
 #include "stuffer/s2n_stuffer.h"
@@ -71,7 +72,6 @@ int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
     shared_key->size = S2N_TLS_SECRET_LEN;
 
     struct s2n_blob encrypted = {.size = length, .data = s2n_stuffer_raw_read(in, length)};
-
     notnull_check(encrypted.data);
     gt_check(encrypted.size, 0);
 
@@ -112,11 +112,11 @@ int s2n_ecdhe_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shar
 
 int s2n_client_key_recv(struct s2n_connection *conn)
 {
-    const struct s2n_key_exchange_algorithm *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
+    const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
     struct s2n_blob shared_key = {0};
 
-    notnull_check(key_exchange->client_key_recv);
-    GUARD(key_exchange->client_key_recv(conn, &shared_key));
+    GUARD(s2n_kex_client_key_recv(key_exchange, conn, &shared_key));
+
     GUARD(calculate_keys(conn, &shared_key));
     return 0;
 }
@@ -177,11 +177,11 @@ int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
 
 int s2n_client_key_send(struct s2n_connection *conn)
 {
-    const struct s2n_key_exchange_algorithm *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
+    const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
     struct s2n_blob shared_key = {0};
 
-    notnull_check(key_exchange->client_key_send);
-    GUARD(key_exchange->client_key_send(conn, &shared_key));
+    GUARD(s2n_kex_client_key_send(key_exchange, conn, &shared_key));
+
     GUARD(calculate_keys(conn, &shared_key));
     return 0;
 }
