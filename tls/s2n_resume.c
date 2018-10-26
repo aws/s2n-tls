@@ -600,7 +600,6 @@ int s2n_encrypt_session_cache(struct s2n_connection *conn, uint8_t *in, uint8_t 
 
     uint8_t s_data[S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = { 0 };
     struct s2n_blob state_blob = { .data = in, .size =  S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN};
-    struct s2n_stuffer state;
 
     key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
 
@@ -608,7 +607,6 @@ int s2n_encrypt_session_cache(struct s2n_connection *conn, uint8_t *in, uint8_t 
     S2N_ERROR_IF(!key, S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
 
     GUARD(s2n_get_public_random_data(&iv));
-    memcpy_check(iv_c, iv_data, S2N_TLS_GCM_IV_LEN));
 
     s2n_blob_init(&aes_key_blob, key->aes_key, S2N_AES256_KEY_LEN);
     notnull_check(aes_ticket_key.evp_cipher_ctx = EVP_CIPHER_CTX_new());
@@ -624,7 +622,7 @@ int s2n_encrypt_session_cache(struct s2n_connection *conn, uint8_t *in, uint8_t 
 
     GUARD(s2n_aes256_gcm.io.aead.encrypt(&aes_ticket_key, &iv, &aad_blob, &state_blob, &state_blob));
 
-    memcpy_check(out, key->key_name, S2N_TICKET_KEY_NAME_LEN)
+    memcpy_check(out, key->key_name, S2N_TICKET_KEY_NAME_LEN);
     out += S2N_TICKET_KEY_NAME_LEN;
     memcpy_check(out, iv_data, S2N_TLS_GCM_IV_LEN);
     out += S2N_TLS_GCM_IV_LEN;
@@ -636,12 +634,11 @@ int s2n_encrypt_session_cache(struct s2n_connection *conn, uint8_t *in, uint8_t 
     return 0;
 }
 
-int s2n_decrypt_session_cache(struct s2n_connection *conn, uint8_t *in, utin8_t *out)
+int s2n_decrypt_session_cache(struct s2n_connection *conn, uint8_t *in, uint8_t *out)
 {
     struct s2n_ticket_key *key;
     struct s2n_session_key aes_ticket_key;
     struct s2n_blob aes_key_blob;
-    struct s2n_stuffer *from;
 
     uint8_t key_name[S2N_TICKET_KEY_NAME_LEN];
 
@@ -652,10 +649,6 @@ int s2n_decrypt_session_cache(struct s2n_connection *conn, uint8_t *in, utin8_t 
     struct s2n_blob aad_blob = { .data = aad_data, .size = sizeof(aad_data) };
     struct s2n_stuffer aad;
 
-    uint8_t s_data[S2N_STATE_SIZE_IN_BYTES] = { 0 };
-    struct s2n_blob state_blob = { .data = s_data, .size = sizeof(s_data) };
-    struct s2n_stuffer state;
-
     uint8_t en_data[S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN];
     struct s2n_blob en_blob = { .data = en_data, .size = sizeof(en_data) };
 
@@ -663,14 +656,12 @@ int s2n_decrypt_session_cache(struct s2n_connection *conn, uint8_t *in, utin8_t 
     in += S2N_TICKET_KEY_NAME_LEN;
     memcpy_check(iv_data, in, S2N_TLS_GCM_IV_LEN);
     in += S2N_TLS_GCM_IV_LEN;
-    memcpy_check(s_data, in, S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN);
+    memcpy_check(en_data, in, S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN);
 
     key = s2n_find_ticket_key(conn->config, key_name);
 
     /* Key has expired; do full handshake with NST */
     S2N_ERROR_IF(!key, S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND);
-
-    GUARD(s2n_stuffer_read(from, &iv));
 
     s2n_blob_init(&aes_key_blob, key->aes_key, S2N_AES256_KEY_LEN);
     notnull_check(aes_ticket_key.evp_cipher_ctx = EVP_CIPHER_CTX_new());
@@ -680,8 +671,6 @@ int s2n_decrypt_session_cache(struct s2n_connection *conn, uint8_t *in, utin8_t 
     GUARD(s2n_stuffer_init(&aad, &aad_blob));
     GUARD(s2n_stuffer_write_bytes(&aad, key->implicit_aad, S2N_TICKET_AAD_IMPLICIT_LEN));
     GUARD(s2n_stuffer_write_bytes(&aad, key->key_name, S2N_TICKET_KEY_NAME_LEN));
-
-    GUARD(s2n_stuffer_read(from, &en_blob));
 
     GUARD(s2n_aes256_gcm.io.aead.decrypt(&aes_ticket_key, &iv, &aad_blob, &en_blob, &en_blob));
 
