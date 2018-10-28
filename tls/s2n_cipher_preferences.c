@@ -543,6 +543,41 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2018 =
     .minimum_protocol_version = S2N_TLS12
 };
 
+struct s2n_cipher_suite *cipher_suites_kms_tls_1_0_2018_10[] = {
+        &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+        &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+        &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+        &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+        &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+        &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,
+        &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+        &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+        &s2n_dhe_rsa_with_aes_256_cbc_sha,
+        &s2n_dhe_rsa_with_aes_128_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_0_2018_10 = {
+        .count = sizeof(cipher_suites_kms_tls_1_0_2018_10) / sizeof(cipher_suites_kms_tls_1_0_2018_10[0]),
+        .suites = cipher_suites_kms_tls_1_0_2018_10,
+        .minimum_protocol_version = S2N_TLS10
+};
+
+struct s2n_cipher_suite *cipher_suites_kms_fips_tls_1_2_2018_10[] = {
+        &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+        &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+        &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+        &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+        &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+        &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_kms_fips_tls_1_2_2018_10 = {
+        .count = sizeof(cipher_suites_kms_fips_tls_1_2_2018_10) / sizeof(cipher_suites_kms_fips_tls_1_2_2018_10[0]),
+        .suites = cipher_suites_kms_fips_tls_1_2_2018_10,
+        .minimum_protocol_version = S2N_TLS12
+
+};
+
 struct {
     const char *version;
     const struct s2n_cipher_preferences *preferences;
@@ -563,6 +598,8 @@ struct {
     { "CloudFront-TLS-1-0-2016", &cipher_preferences_cloudfront_tls_1_0_2016 },
     { "CloudFront-TLS-1-1-2016", &cipher_preferences_cloudfront_tls_1_1_2016 },
     { "CloudFront-TLS-1-2-2018", &cipher_preferences_cloudfront_tls_1_2_2018 },
+    { "KMS-TLS-1-0-2018-10", &cipher_preferences_kms_tls_1_0_2018_10 },
+    { "KMS-FIPS-TLS-1-2-2018-10", &cipher_preferences_kms_fips_tls_1_2_2018_10 },
     { "20140601", &cipher_preferences_20140601 },
     { "20141001", &cipher_preferences_20141001 },
     { "20150202", &cipher_preferences_20150202 },
