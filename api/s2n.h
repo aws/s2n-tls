@@ -64,7 +64,7 @@ extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_t
 extern const char *s2n_strerror(int error, const char *lang);
 extern const char *s2n_strerror_debug(int error, const char *lang);
 
-extern int s2n_config_set_cache_store_callback(struct s2n_config *config, int (*cache_store)(struct s2n_connection *conn, void *, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data);
+extern int s2n_config_set_cache_store_callback(struct s2n_config *config, int (*cache_store)(struct s2n_connection *conn, void *, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, void *value, uint64_t value_size), void *data);
 extern int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, int (*cache_retrieve)(struct s2n_connection *conn, void *, const void *key, uint64_t key_size, void *value, uint64_t *value_size), void *data);
 extern int s2n_config_set_cache_delete_callback(struct s2n_config *config, int (*cache_delete)(struct s2n_connection *conn,  void *, const void *key, uint64_t key_size), void *data);
 
@@ -199,6 +199,9 @@ extern ssize_t s2n_connection_get_session_length(struct s2n_connection *conn);
 extern ssize_t s2n_connection_get_session_id_length(struct s2n_connection *conn);
 extern int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 extern int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);
+
+extern int s2n_encrypt_session_cache(struct s2n_connection *conn, uint8_t *in, uint8_t *out); 
+extern int s2n_decrypt_session_cache(struct s2n_connection *conn, uint8_t *in, uint8_t *out); 
 
 /* RFC's that define below values:
  *  - https://tools.ietf.org/html/rfc5246#section-7.4.4
