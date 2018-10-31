@@ -54,7 +54,7 @@ struct s2n_config {
     uint64_t decrypt_key_lifetime_in_nanos;
 
     /* If caching is being used, these must all be set */
-    int (*cache_store) (struct s2n_connection *conn, void *data, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, void *value, uint64_t value_size);
+    int (*cache_store) (struct s2n_connection *conn, void *data, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size);
     void *cache_store_data;
 
     int (*cache_retrieve) (struct s2n_connection *conn, void *data, const void *key, uint64_t key_size, void *value, uint64_t * value_size);
@@ -91,7 +91,6 @@ extern struct s2n_config *s2n_fetch_default_fips_config(void);
 extern struct s2n_config *s2n_fetch_unsafe_client_testing_config(void);
 extern struct s2n_config *s2n_fetch_unsafe_client_ecdsa_testing_config(void);
 
-extern int s2n_config_init_session_ticket_keys(struct s2n_config *config);
 extern int s2n_config_free_session_ticket_keys(struct s2n_config *config);
 
 extern void s2n_wipe_static_configs(void);

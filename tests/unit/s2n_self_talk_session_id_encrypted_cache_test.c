@@ -43,7 +43,7 @@ struct session_cache_entry {
 
 struct session_cache_entry session_cache[256];
 
-int cache_store2(struct s2n_connection *conn, void *ctx, uint64_t ttl, const void *key, uint64_t key_size, void *value, uint64_t value_size)
+int cache_store(struct s2n_connection *conn, void *ctx, uint64_t ttl, const void *key, uint64_t key_size, const void *value, uint64_t value_size)
 {
     struct session_cache_entry *cache = ctx;
 
@@ -56,8 +56,9 @@ int cache_store2(struct s2n_connection *conn, void *ctx, uint64_t ttl, const voi
 
     uint8_t index = ((const uint8_t *)key)[0];
 
-    uint8_t out[S2N_TICKET_KEY_NAME_LEN + S2N_TLS_GCM_IV_LEN + S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN];
-    if (s2n_encrypt_session_cache(conn, (uint8_t *)value, out) != 0) {
+    uint8_t out[S2N_TICKET_KEY_NAME_LEN + S2N_TLS_GCM_IV_LEN + 
+                S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN];
+    if (s2n_encrypt_session_cache(conn, (const uint8_t *)value, out) != 0) {
         return -1;
     }
 
@@ -66,68 +67,6 @@ int cache_store2(struct s2n_connection *conn, void *ctx, uint64_t ttl, const voi
 
     cache[index].key_len = key_size;
     cache[index].value_len = S2N_TICKET_KEY_NAME_LEN + S2N_TLS_GCM_IV_LEN + S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN;
-
-    return 0;
-}
-
-int cache_store(struct s2n_connection *conn, void *ctx, uint64_t ttl, const void *key, uint64_t key_size, void *value, uint64_t value_size)
-{
-    struct session_cache_entry *cache = ctx;
-
-    if (key_size == 0 || key_size > MAX_KEY_LEN) {
-        return -1;
-    }
-    if (value_size == 0 || value_size > MAX_VAL_LEN) {
-        return -1;
-    }
-
-    uint8_t index = ((const uint8_t *)key)[0];
-
-    uint8_t out[S2N_TICKET_KEY_NAME_LEN + S2N_TLS_GCM_IV_LEN + S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN];
-    if (s2n_encrypt_session_cache(conn, (uint8_t *)value, out) != 0) {
-        return -1;
-    }
-
-    memcpy(cache[index].key, key, key_size);
-    memcpy(cache[index].value, value, value_size);
-
-    cache[index].key_len = key_size;
-    cache[index].value_len = value_size;
-
-    return 0;
-}
-
-int cache_retrieve2(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t * value_size)
-{
-    struct session_cache_entry *cache = ctx;
-
-    if (key_size == 0 || key_size > MAX_KEY_LEN) {
-        return -1;
-    }
-
-    uint8_t index = ((const uint8_t *)key)[0];
-
-    if (cache[index].key_len != key_size) {
-        return -1;
-    }
-
-    if (memcmp(cache[index].key, key, key_size)) {
-        return -1;
-    }
-
-    if (*value_size < cache[index].value_len) {
-        return -1;
-    }
-
-    uint8_t in[S2N_TICKET_KEY_NAME_LEN + S2N_TLS_GCM_IV_LEN + S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN];
-
-    memcpy(in, cache[index].value, cache[index].value_len);
-
-    if (s2n_decrypt_session_cache(conn, in, (uint8_t *)value) != 0) {
-        return -1;
-    }
-
-    *value_size = S2N_TICKET_KEY_NAME_LEN;
 
     return 0;
 }
@@ -150,12 +89,15 @@ int cache_retrieve(struct s2n_connection *conn, void *ctx, const void *key, uint
         return -1;
     }
 
-    if (*value_size < cache[index].value_len) {
+    uint8_t in[S2N_TICKET_KEY_NAME_LEN + S2N_TLS_GCM_IV_LEN + S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN];
+
+    memcpy(in, cache[index].value, cache[index].value_len);
+
+    if (s2n_decrypt_session_cache(conn, in, (uint8_t *)value) != 0) {
         return -1;
     }
 
-    *value_size = cache[index].value_len;
-    memcpy(value, cache[index].value, cache[index].value_len);
+    *value_size = S2N_STATE_SIZE_IN_BYTES;
 
     return 0;
 }
@@ -218,6 +160,12 @@ void mock_client(int writefd, int readfd)
     /* Initial handshake */
     conn = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
+    
+    if (s2n_config_init_session_ticket_keys(config) != 0) {
+        sleep(1);
+        result = -1;
+        _exit(result);
+    }
 
     /* Add one aes key */
     config->monotonic_clock(config->monotonic_clock_ctx, &now);
@@ -421,15 +369,17 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, cert_chain_pem, private_key_pem));
 
+        EXPECT_SUCCESS(s2n_config_set_cache_store_callback(config, cache_store, session_cache));
+        EXPECT_SUCCESS(s2n_config_set_cache_retrieve_callback(config, cache_retrieve, session_cache));
+        EXPECT_SUCCESS(s2n_config_set_cache_delete_callback(config, cache_delete, session_cache));
+
+        GUARD(s2n_config_init_session_ticket_keys(config));
+
         /* Add one ST key */
         GUARD(config->monotonic_clock(config->monotonic_clock_ctx, &now));
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name1, strlen((char *)ticket_key_name1), ticket_key1, strlen((char *)ticket_key1), now/ONE_SEC_IN_NANOS)); 
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name2, strlen((char *)ticket_key_name2), ticket_key2, strlen((char *)ticket_key2), now/ONE_SEC_IN_NANOS)); 
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name3, strlen((char *)ticket_key_name3), ticket_key3, strlen((char *)ticket_key3), now/ONE_SEC_IN_NANOS)); 
-
-        EXPECT_SUCCESS(s2n_config_set_cache_store_callback(config, cache_store, session_cache));
-        EXPECT_SUCCESS(s2n_config_set_cache_retrieve_callback(config, cache_retrieve, session_cache));
-        EXPECT_SUCCESS(s2n_config_set_cache_delete_callback(config, cache_delete, session_cache));
 
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 

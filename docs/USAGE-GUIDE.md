@@ -1180,6 +1180,8 @@ int s2n_connection_get_session_ticket_lifetime_hint(struct s2n_connection *conn)
 ssize_t s2n_connection_get_session_length(struct s2n_connection *conn);
 ssize_t s2n_connection_get_session_id_length(struct s2n_connection *conn);
 int s2n_connection_is_session_resumed(struct s2n_connection *conn);
+int s2n_encrypt_session_cache(struct s2n_connection *conn, const uint8_t *session, uint8_t *out);
+int s2n_decrypt_session_cache(struct s2n_connection *conn, const uint8_t *encrypted_session, uint8_t *out);
 ```
 
 - **lifetime_in_secs** lifetime of the cached session state required to resume a
@@ -1202,9 +1204,14 @@ handshake.
 
 **s2n_connection_is_session_resumed** returns 1 if the handshake was abbreviated, otherwise returns 0.
 
+**s2n_encrypt_session_cache** returns 0 if the raw session data is successfully encrypted, -1 otherwise. (const uint8_t *session) is the original unencrypted session data, (uint8_t *out) is the encrypted output bytes, including (in the exact order) aes key name, iv, and the encrypted session data itself. The size of out is S2N_TICKET_KEY_NAME_LEN + S2N_TLS_GCM_IV_LEN + S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN, which should be allocated before calling this function. Note that this function and **s2n_decrypt_session_cache** below use the same aes key from session ticket, so s2n_config_init_session_ticket_keys and s2n_config_add_ticket_crypto_key might need to be called in order to add keys into s2n_config. 
+
+**s2n_decrypt_session_cache** returns 0 if the encrypted_session is successfully decrypted, -1 otherwise. 
+
 ### Session Ticket Specific calls
 
 ```c
+int s2n_config_init_session_ticket_keys(struct s2n_config *config);
 int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enabled);
 int s2n_config_set_ticket_encrypt_decrypt_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
 int s2n_config_set_ticket_decrypt_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
@@ -1217,6 +1224,8 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config, const uint8_t *n
 - **key** key used to perform encryption/decryption of session ticket
 - **key_len** length of the session ticket key
 - **intro_time_in_seconds_from_epoch** time at which the session ticket key is introduced. If this is 0, then intro_time_in_seconds_from_epoch is set to now.
+
+**s2n_config_init_session_ticket_keys** initialize the aes session ticket key in s2n_config.
 
 **s2n_config_set_session_tickets_onoff** enables and disables session resumption using session ticket
 

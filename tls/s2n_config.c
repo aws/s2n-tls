@@ -590,7 +590,7 @@ extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_t
 
 int s2n_config_set_cache_store_callback(struct s2n_config *config, 
         int (*cache_store) (struct s2n_connection *conn, void *, uint64_t ttl_in_seconds, 
-            const void *key, uint64_t key_size, void *value, uint64_t value_size), void *data)
+            const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data)
 {
     notnull_check(cache_store);
 
@@ -746,7 +746,8 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     notnull_check(name);
     notnull_check(key);
 
-    if (!config->use_tickets) {
+    /* both session ticket and session cache encryption/decryption can use the same key mechanism */
+    if (!config->use_tickets && !(config->cache_store && config->cache_retrieve && config->cache_delete)) {
         return 0;
     }
 
