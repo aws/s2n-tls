@@ -97,6 +97,9 @@ file(GLOB S2N_HEADERS
     ${UTILS_SRC}
  )
 
+set_source_files_properties("tls/s2n_connection_serialize.c" PROPERTIES
+                            COMPILE_FLAGS "-std=c11")
+
 add_library(s2n ${S2N_HEADERS} ${S2N_SRC})
 set_target_properties(s2n PROPERTIES LINKER_LANGUAGE C)
 
