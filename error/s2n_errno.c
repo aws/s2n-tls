@@ -134,6 +134,8 @@ struct s2n_error_translation S2N_ERROR_EN[] = {
     {S2N_ERR_INVALID_OCSP_RESPONSE, "OCSP response is invalid" },
     {S2N_ERR_INVALID_NONCE_TYPE, "Invalid AEAD nonce type"},
     {S2N_ERR_UNIMPLEMENTED, "Unimplemented feature"},
+    {S2N_ERR_READ, "error calling read"},
+    {S2N_ERR_WRITE, "error calling write"},
     {S2N_ERR_CERT_UNTRUSTED, "Certificate is untrusted"},
     {S2N_ERR_CERT_TYPE_UNSUPPORTED, "Certificate Type is unsupported"},
     {S2N_ERR_CANCELLED, "handshake was cancelled"},
