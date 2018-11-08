@@ -31,10 +31,11 @@ static int reader_blob_check(const struct s2n_blob* blob,
 ssize_t s2n_conn_serialize_to(struct s2n_connection* conn,
                               void* addr, size_t size)
 {
-  if (addr == NULL) return -1;
-  if (size < sizeof(struct s2n_connection)) return -1;
+  notnull_check(addr);
+  // must have at least size of connection bytes
+  gte_check(size, sizeof(struct s2n_connection));
   // wholesale copy the connection
-  memcpy(addr, conn, sizeof(struct s2n_connection));
+  memcpy_check(addr, conn, sizeof(struct s2n_connection));
   // sanitize the destination
   struct s2n_connection* dst = (struct s2n_connection*) addr;
   // set to NULL for initial, otherwise its secure
@@ -48,6 +49,7 @@ ssize_t s2n_conn_serialize_to(struct s2n_connection* conn,
   // the writer points to the end of the connection struct
   // NOTE that since the struct is well aligned, so is the writer
   uint8_t* writer = &((uint8_t*) addr)[total_bytes];
+  
   // start serializing stuffers and blobs
   GUARD(blob_write(&conn->in.blob, &writer, &total_bytes));
   GUARD(blob_write(&conn->out.blob, &writer, &total_bytes));
@@ -58,10 +60,9 @@ ssize_t s2n_conn_serialize_to(struct s2n_connection* conn,
 struct s2n_connection* s2n_conn_deserialize_from(
                           struct s2n_config* config,
                           const void*  addr,
-                          const size_t size,
-                          size_t*      consumed_size)
+                          const size_t size)
 {
-  // if there is not enough room for the connection, exit immediately
+  // if there is not enough room for a connection, exit immediately
   if (size < sizeof(struct s2n_connection)) return NULL;
   
   // pointers to start and end of serialized area
@@ -119,7 +120,5 @@ struct s2n_connection* s2n_conn_deserialize_from(
     "WARNING: s2n_connection did not deserialize all bytes (%zu vs %zu)\n",
     reader - reader_begin, reader_end - reader_begin);
   }
-  // set the consumed bytes and return the deserialized connection
-  *consumed_size = reader - reader_begin;
   return conn;
 }
