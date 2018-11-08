@@ -90,9 +90,9 @@ static int s2n_connection_init_hashes(struct s2n_connection *conn)
         GUARD(s2n_hash_allow_md5_for_fips(&conn->handshake.md5));
         GUARD(s2n_hash_allow_md5_for_fips(&conn->handshake.prf_md5_hash_copy));
         
-        /* Do not check s2n_hash_is_available before initialization. Allow MD5 and 
+        /* Do not check s2n_hash_is_available before initialization. Allow MD5 and
          * SHA-1 for both fips and non-fips mode. This is required to perform the
-         * signature checks in the CertificateVerify message in TLS 1.0 and TLS 1.1. 
+         * signature checks in the CertificateVerify message in TLS 1.0 and TLS 1.1.
          * This is approved per Nist SP 800-52r1.*/
         GUARD(s2n_hash_allow_md5_for_fips(&conn->handshake.md5_sha1));
     }
@@ -1121,4 +1121,9 @@ int s2n_connection_is_client_auth_enabled(struct s2n_connection *s2n_connection)
     GUARD(s2n_connection_get_client_auth_type(s2n_connection, &auth_type));
 
     return (auth_type != S2N_CERT_AUTH_NONE);
+}
+
+int s2n_connection_handshake_complete(struct s2n_connection* conn)
+{
+  return is_handshake_complete(conn);
 }
