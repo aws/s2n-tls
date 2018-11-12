@@ -6,7 +6,13 @@
 
 static int blob_extract(struct s2n_blob* this, const uint8_t** reader)
 {
-  GUARD(s2n_alloc(this, this->allocated));
+  // s2n_alloc will initialize the blob, which we dont want,
+  // while s2n_realloc depends on having an existing buffer
+  // solution: use a temporary blob to allocate the new buffer
+  struct s2n_blob temp;
+  s2n_alloc(&temp, this->allocated);
+  this->data = temp.data;
+  // now restore blob from storage area
   memcpy_check(this->data, *reader, this->size);
   *reader += this->size;
   return 0;
@@ -115,7 +121,12 @@ struct s2n_connection* s2n_conn_deserialize_from(
   GUARD_PTR(blob_extract(&conn->out.blob, &reader));
   
   // warn on not consuming all bytes
-  if (reader != reader_end) {
+  if (reader > reader_end) {
+    fprintf(stderr,
+    "WARNING: s2n_connection deserialized too many bytes (%zu vs %zu)\n",
+    reader - reader_begin, reader_end - reader_begin);
+  }
+  else if (reader < reader_end) {
     fprintf(stderr,
     "WARNING: s2n_connection did not deserialize all bytes (%zu vs %zu)\n",
     reader - reader_begin, reader_end - reader_begin);
