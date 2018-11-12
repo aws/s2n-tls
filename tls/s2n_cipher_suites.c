@@ -410,7 +410,7 @@ struct s2n_cipher_suite s2n_ecdhe_ecdsa_with_aes_128_cbc_sha = /* 0xC0,0x09 */ {
     .num_record_algs = 2,
     .sslv3_record_alg = &s2n_record_alg_aes128_sslv3_sha,
     .tls12_prf_alg = S2N_HMAC_SHA256,
-    .minimum_required_tls_version = S2N_TLS10,
+    .minimum_required_tls_version = S2N_SSLv3,
 };
 
 struct s2n_cipher_suite s2n_ecdhe_ecdsa_with_aes_256_cbc_sha = /* 0xC0,0x0A */ {
@@ -424,7 +424,7 @@ struct s2n_cipher_suite s2n_ecdhe_ecdsa_with_aes_256_cbc_sha = /* 0xC0,0x0A */ {
     .num_record_algs = 2,
     .sslv3_record_alg = &s2n_record_alg_aes256_sslv3_sha,
     .tls12_prf_alg = S2N_HMAC_SHA256,
-    .minimum_required_tls_version = S2N_TLS10,
+    .minimum_required_tls_version = S2N_SSLv3,
 };
 
 struct s2n_cipher_suite s2n_ecdhe_rsa_with_3des_ede_cbc_sha = /* 0xC0,0x12 */ {
@@ -438,7 +438,7 @@ struct s2n_cipher_suite s2n_ecdhe_rsa_with_3des_ede_cbc_sha = /* 0xC0,0x12 */ {
     .num_record_algs = 1,
     .sslv3_record_alg = &s2n_record_alg_3des_sslv3_sha,
     .tls12_prf_alg = S2N_HMAC_SHA256,
-    .minimum_required_tls_version = S2N_TLS10,
+    .minimum_required_tls_version = S2N_SSLv3,
 };
 
 struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_128_cbc_sha = /* 0xC0,0x13 */ {
@@ -452,7 +452,7 @@ struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_128_cbc_sha = /* 0xC0,0x13 */ {
     .num_record_algs = 2,
     .sslv3_record_alg = &s2n_record_alg_aes128_sslv3_sha,
     .tls12_prf_alg = S2N_HMAC_SHA256,
-    .minimum_required_tls_version = S2N_TLS10,
+    .minimum_required_tls_version = S2N_SSLv3,
 };
 
 struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_256_cbc_sha = /* 0xC0,0x14 */ {
@@ -466,7 +466,7 @@ struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_256_cbc_sha = /* 0xC0,0x14 */ {
     .num_record_algs = 2,
     .sslv3_record_alg = &s2n_record_alg_aes256_sslv3_sha,
     .tls12_prf_alg = S2N_HMAC_SHA256,
-    .minimum_required_tls_version = S2N_TLS10,
+    .minimum_required_tls_version = S2N_SSLv3,
 };
 
 struct s2n_cipher_suite s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256 = /* 0xC0,0x23 */ {
