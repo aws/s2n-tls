@@ -86,6 +86,8 @@ struct s2n_connection {
      * extension is not sent back by the server.
      */
     unsigned secure_renegotiation:1;
+    /* Was the EC point formats sent by the client */
+    unsigned ec_point_formats:1;
 
      /* whether the connection address is ipv6 or not */
     unsigned ipv6:1;

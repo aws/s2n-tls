@@ -39,7 +39,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 {
     uint16_t total_size = 0;
 
-    uint8_t application_protocol_len = strlen(conn->application_protocol);
+    const uint8_t application_protocol_len = strlen(conn->application_protocol);
 
     if (application_protocol_len) {
         total_size += 7 + application_protocol_len;
@@ -50,9 +50,11 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     if (conn->secure_renegotiation) {
         total_size += 5;
     }
-    if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC) {
+
+    if (s2n_server_can_send_ec_point_formats(conn)) {
         total_size += 6;
     }
+
     if (s2n_server_can_send_sct_list(conn)) {
         total_size += 4 + conn->config->cert_and_key_pairs->sct_list.size;
     }
@@ -74,7 +76,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
      * is equivalent to allowing only the uncompressed point format. Let's send the
      * extension in case clients(Openssl 1.0.0) don't honor the implied behavior.
      */
-    if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC)  {
+    if (s2n_server_can_send_ec_point_formats(conn))  {
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_EC_POINT_FORMATS));
         /* Total extension length */
         GUARD(s2n_stuffer_write_uint16(out, 2));
