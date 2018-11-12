@@ -387,6 +387,7 @@ static int s2n_recv_client_ec_point_formats(struct s2n_connection *conn, struct 
      * Only uncompressed points are supported by the server and the client must include it in
      * the extension. Just skip the extension.
      */
+    conn->ec_point_formats = 1;
     return 0;
 }
 
