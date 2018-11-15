@@ -908,7 +908,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
 {
     /* Only one cert chain for now */
     notnull_check(conn->config->cert_and_key_pairs);
-    struct s2n_cert *leaf_cert = conn->config->cert_and_key_pairs->cert_chain.head;
+    struct s2n_cert *leaf_cert = conn->config->cert_and_key_pairs->cert_chain->head;
 
     uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
     struct s2n_cipher_suite *higher_vers_match = NULL;

@@ -91,7 +91,9 @@ typedef enum {
     S2N_TLS_MAX_FRAG_LEN_4096 = 4,
 } s2n_max_frag_len;
 
+struct s2n_cert_chain_and_key;
 extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem);
+extern int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair);
 extern int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_pem_filename, const char *ca_dir);
 extern int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem);
 
@@ -112,6 +114,9 @@ typedef enum { S2N_CT_SUPPORT_NONE = 0, S2N_CT_SUPPORT_REQUEST = 1 } s2n_ct_supp
 extern int s2n_config_set_ct_support_level(struct s2n_config *config, s2n_ct_support_level level);
 typedef enum { S2N_ALERT_FAIL_ON_WARNINGS = 0, S2N_ALERT_IGNORE_WARNINGS = 1 } s2n_alert_behavior;
 extern int s2n_config_set_alert_behavior(struct s2n_config *config, s2n_alert_behavior alert_behavior);
+extern int s2n_config_set_cert_extension_data(struct s2n_config *config, 
+                                              struct s2n_cert_chain_and_key *updated_chain_and_key, 
+                                              s2n_tls_extension_type type, const uint8_t *data, uint32_t length);
 extern int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length);
 extern int s2n_config_send_max_fragment_length(struct s2n_config *config, s2n_max_frag_len mfl_code);
 extern int s2n_config_accept_max_fragment_length(struct s2n_config *config);
@@ -227,6 +232,10 @@ typedef struct s2n_pkey s2n_cert_public_key;
 typedef struct s2n_pkey s2n_cert_private_key;
 
 extern int s2n_cert_public_key_set_rsa_from_openssl(s2n_cert_public_key *cert_pub_key, RSA *openssl_rsa);
+
+extern struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void);
+extern int s2n_cert_chain_and_key_init(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem, const char *private_key_pem);
+extern int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key);
 
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);
 extern uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn);

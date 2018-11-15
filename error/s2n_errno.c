@@ -132,6 +132,7 @@ struct s2n_error_translation S2N_ERROR_EN[] = {
     {S2N_ERR_UNRECOGNIZED_EXTENSION, "TLS extension not recognized" },
     {S2N_ERR_INVALID_SCT_LIST, "SCT list is invalid" },
     {S2N_ERR_INVALID_OCSP_RESPONSE, "OCSP response is invalid" },
+    {S2N_ERR_UPDATING_EXTENSION, "Updating extension data failed" },
     {S2N_ERR_INVALID_NONCE_TYPE, "Invalid AEAD nonce type"},
     {S2N_ERR_UNIMPLEMENTED, "Unimplemented feature"},
     {S2N_ERR_READ, "error calling read"},

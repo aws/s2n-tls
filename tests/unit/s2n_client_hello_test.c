@@ -57,6 +57,7 @@ int main(int argc, char **argv)
         int client_to_server[2];
         uint8_t* sent_client_hello;
         uint8_t* expected_client_hello;
+        struct s2n_cert_chain_and_key *chain_and_key;
 
         uint8_t client_extensions[] = {
             /* Extension type TLS_EXTENSION_SERVER_NAME */
@@ -146,7 +147,9 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain, private_key));
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_init(chain_and_key, cert_chain, private_key));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         /* Verify s2n_connection_get_client_hello returns null if client hello not yet processed */
@@ -335,11 +338,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
         /* Recreate config */
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain, private_key));
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_init(chain_and_key, cert_chain, private_key));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
        /* Re-send the client hello message */
@@ -364,6 +370,8 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->close_notify_queued, 1);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         for (int i = 0; i < 2; i++) {

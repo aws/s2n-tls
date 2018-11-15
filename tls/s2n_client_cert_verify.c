@@ -91,12 +91,12 @@ int s2n_client_cert_verify_send(struct s2n_connection *conn)
     switch (chosen_signature_alg) {
     /* s2n currently only supports RSA Signatures */
     case S2N_SIGNATURE_RSA:
-        signature.size = s2n_pkey_size(&conn->config->cert_and_key_pairs->private_key);
+        signature.size = s2n_pkey_size(conn->config->cert_and_key_pairs->private_key);
         GUARD(s2n_stuffer_write_uint16(out, signature.size));
 
         signature.data = s2n_stuffer_raw_write(out, signature.size);
         notnull_check(signature.data);
-        GUARD(s2n_pkey_sign(&conn->config->cert_and_key_pairs->private_key, &conn->handshake.ccv_hash_copy, &signature));
+        GUARD(s2n_pkey_sign(conn->config->cert_and_key_pairs->private_key, &conn->handshake.ccv_hash_copy, &signature));
         break;
     default:
         S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
