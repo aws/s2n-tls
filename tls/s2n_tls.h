@@ -66,6 +66,10 @@ extern int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_bl
 
 extern uint16_t mfl_code_to_length[5];
 
+#define s2n_server_can_send_ec_point_formats(conn) \
+        (((conn)->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC) && \
+        (conn)->ec_point_formats)
+
 #define s2n_server_can_send_ocsp(conn) ((conn)->status_type == S2N_STATUS_REQUEST_OCSP && \
         (conn)->config->cert_and_key_pairs && \
         (conn)->config->cert_and_key_pairs->ocsp_status.size > 0)
