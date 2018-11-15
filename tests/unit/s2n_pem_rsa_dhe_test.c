@@ -66,6 +66,7 @@ int main(int argc, char **argv)
     char *cert_chain_pem;
     char *private_key_pem;
     char *dhparams_pem;
+    struct s2n_cert_chain_and_key *chain_and_key;
 
     BEGIN_TEST();
 
@@ -84,6 +85,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_LEAF_CERT, leaf_cert_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_init(chain_and_key, cert_chain_pem, private_key_pem));
 
     b.data = (uint8_t *) leaf_cert_pem;
     b.size = strlen(leaf_cert_pem) + 1;
@@ -117,7 +120,7 @@ int main(int argc, char **argv)
 
     struct s2n_config *config;
     EXPECT_NOT_NULL(config = s2n_config_new());
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, cert_chain_pem, private_key_pem));
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
     struct s2n_dh_params dh_params;
     b.size = s2n_stuffer_data_available(&dhparams_out);
@@ -165,11 +168,13 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hash_free(&tls12_one));
     EXPECT_SUCCESS(s2n_hash_free(&tls12_two));
 
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_config_free(config));
 
     /* Mismatched public/private key should fail */
     EXPECT_NOT_NULL(config = s2n_config_new());
-    EXPECT_FAILURE(s2n_config_add_cert_chain_and_key(config, cert_chain_pem, (char *)unmatched_private_key));
+    EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+    EXPECT_FAILURE(s2n_cert_chain_and_key_init(chain_and_key, cert_chain_pem, (char *)unmatched_private_key));
     EXPECT_SUCCESS(s2n_config_free(config));
 
     EXPECT_SUCCESS(s2n_dh_params_free(&dh_params));

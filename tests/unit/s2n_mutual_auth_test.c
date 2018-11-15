@@ -99,6 +99,7 @@ int main(int argc, char **argv)
     char *cert_chain_pem;
     char *private_key_pem;
     char *dhparams_pem;
+    struct s2n_cert_chain_and_key *chain_and_key;
 
     BEGIN_TEST();
 
@@ -115,7 +116,9 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, cert_chain_pem, private_key_pem));
+    EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_init(chain_and_key, cert_chain_pem, private_key_pem));
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
     EXPECT_NOT_NULL(default_cipher_preferences = config->cipher_preferences);
 
@@ -441,6 +444,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&client_to_server));
     }
 
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_config_free(config));
     free(cert_chain_pem);
     free(private_key_pem);

@@ -272,6 +272,7 @@ int main(int argc, char **argv)
     int client_to_server[2];
     char *cert_chain_pem;
     char *private_key_pem;
+    struct s2n_cert_chain_and_key *chain_and_key;
     char buffer[256];
     int bytes_read;
     int shutdown_rc = -1;
@@ -310,7 +311,9 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, cert_chain_pem, private_key_pem));
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_init(chain_and_key, cert_chain_pem, private_key_pem));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
         EXPECT_SUCCESS(s2n_config_set_cache_store_callback(config, cache_store_callback, session_cache));
         EXPECT_SUCCESS(s2n_config_set_cache_retrieve_callback(config, cache_retrieve_callback, session_cache));
@@ -411,6 +414,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
     EXPECT_EQUAL(status, 0);
 
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     free(cert_chain_pem);
     free(private_key_pem);
 
