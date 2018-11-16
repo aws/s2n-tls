@@ -21,7 +21,7 @@
 struct s2n_kex {
     uint8_t is_ephemeral;
 
-    int (*get_extension_size)(const struct s2n_connection *conn);
+    int (*get_server_extension_size)(const struct s2n_connection *conn);
     int (*write_server_extensions)(const struct s2n_connection *conn, struct s2n_stuffer *out);
     int (*connection_supported)(const struct s2n_connection *conn);
     int (*server_key_recv)(struct s2n_connection *conn, struct s2n_blob *data_to_verify);

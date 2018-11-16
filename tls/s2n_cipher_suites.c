@@ -21,9 +21,6 @@
 #include "crypto/s2n_openssl.h"
 
 #include "tls/s2n_cipher_preferences.h"
-#include "tls/s2n_cipher_suites.h"
-#include "tls/s2n_client_key_exchange.h"
-#include "tls/s2n_server_key_exchange.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_kex.h"
 #include "utils/s2n_safety.h"

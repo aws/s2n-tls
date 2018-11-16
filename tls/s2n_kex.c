@@ -20,7 +20,7 @@
 #include "utils/s2n_safety.h"
 #include "s2n_tls.h"
 
-static int get_ecc_extension_size(const struct s2n_connection *conn)
+static int get_server_ecc_extension_size(const struct s2n_connection *conn)
 {
     if (s2n_server_can_send_ec_point_formats(conn)){
         return 6;
@@ -39,7 +39,7 @@ static int get_no_extension_size(const struct s2n_connection *conn)
  * is equivalent to allowing only the uncompressed point format. Let's send the
  * extension in case clients(Openssl 1.0.0) don't honor the implied behavior.
  */
-static int write_ecc_extension(const struct s2n_connection *conn, struct s2n_stuffer *out)
+static int write_server_ecc_extension(const struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     if (s2n_server_can_send_ec_point_formats(conn)) {
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_EC_POINT_FORMATS));
@@ -55,57 +55,63 @@ static int write_ecc_extension(const struct s2n_connection *conn, struct s2n_stu
     return 0;
 }
 
-static int no_extension(const struct s2n_connection *conn, struct s2n_stuffer *out)
+static int write_no_extension(const struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     return 0;
 }
 
-static int check_dh(const struct s2n_connection *conn)
+static int check_rsa_key(const struct s2n_connection *conn)
+{
+    return conn->config->cert_and_key_pairs != NULL;
+}
+
+static int check_dhe(const struct s2n_connection *conn)
 {
     return conn->config->dhparams != NULL;
 }
 
-static int check_ecc(const struct s2n_connection *conn)
+static int check_ecdhe(const struct s2n_connection *conn)
 {
     return conn->secure.server_ecc_params.negotiated_curve != NULL;
 }
 
 const struct s2n_kex s2n_rsa = {
         .is_ephemeral = 0,
-        .get_extension_size = &get_no_extension_size,
-        .write_server_extensions = &no_extension,
-        .server_key_recv = &s2n_rsa_server_recv_key,
-        .server_key_send = &s2n_rsa_server_send_key,
+        .get_server_extension_size = &get_no_extension_size,
+        .write_server_extensions = &write_no_extension,
+        .connection_supported = &check_rsa_key,
+        .server_key_recv = &s2n_rsa_server_key_recv,
+        .server_key_send = &s2n_rsa_server_key_send,
         .client_key_recv = &s2n_rsa_client_key_recv,
         .client_key_send = &s2n_rsa_client_key_send,
 };
 
 const struct s2n_kex s2n_dhe = {
         .is_ephemeral = 1,
-        .get_extension_size = &get_no_extension_size,
-        .write_server_extensions = &no_extension,
-        .connection_supported = &check_dh,
-        .server_key_recv = &s2n_dhe_server_recv_params,
-        .server_key_send = &s2n_dhe_server_send_params,
+        .get_server_extension_size = &get_no_extension_size,
+        .write_server_extensions = &write_no_extension,
+        .connection_supported = &check_dhe,
+        .server_key_recv = &s2n_dhe_server_key_recv,
+        .server_key_send = &s2n_dhe_server_key_send,
         .client_key_recv = &s2n_dhe_client_key_recv,
         .client_key_send = &s2n_dhe_client_key_send,
 };
 
 const struct s2n_kex s2n_ecdhe = {
         .is_ephemeral = 1,
-        .get_extension_size = &get_ecc_extension_size,
-        .write_server_extensions = &write_ecc_extension,
-        .connection_supported = &check_ecc,
-        .server_key_recv = &s2n_ecdhe_server_recv_params,
-        .server_key_send = &s2n_ecdhe_server_send_params,
+        .get_server_extension_size = &get_server_ecc_extension_size,
+        .write_server_extensions = &write_server_ecc_extension,
+        .connection_supported = &check_ecdhe,
+        .server_key_recv = &s2n_ecdhe_server_key_recv,
+        .server_key_send = &s2n_ecdhe_server_key_send,
         .client_key_recv = &s2n_ecdhe_client_key_recv,
         .client_key_send = &s2n_ecdhe_client_key_send,
 };
 
 int s2n_kex_server_extension_size(const struct s2n_kex *kex, struct s2n_connection *conn)
 {
-    notnull_check(kex->get_extension_size);
-    return kex->get_extension_size(conn);
+    notnull_check(kex->get_server_extension_size);
+    return kex->get_server_extension_size(conn);
 }
 
 int s2n_kex_write_server_extension(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -116,8 +122,8 @@ int s2n_kex_write_server_extension(const struct s2n_kex *kex, struct s2n_connect
 
 int s2n_kex_supported(const struct s2n_kex *kex, struct s2n_connection *conn)
 {
-    notnull_check(kex->connection_supported);
-    return kex->connection_supported(conn);
+    // Don't return -1 from notnull_check because that might allow a improperly configured kex to be marked as "supported"
+    return kex->connection_supported != NULL && kex->connection_supported(conn);
 }
 
 int s2n_kex_is_ephemeral(const struct s2n_kex *kex)

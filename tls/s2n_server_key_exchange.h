@@ -17,6 +17,7 @@
 
 #include "tls/s2n_connection.h"
 #include "utils/s2n_blob.h"
+
 /*
  * The below methods are used to perform the specific key exchange algorithm including reading data from the connection.
  * They are to be used by the client to handle receiving the server's portion of the key exchange. They are not
@@ -26,9 +27,9 @@
  * data_to_verify: out parameter that is the data required to be added to the signature hash to be used for verifying
  * the data
  */
-int s2n_dhe_server_recv_params(struct s2n_connection *conn, struct s2n_blob *data_to_verify);
-int s2n_ecdhe_server_recv_params(struct s2n_connection *conn, struct s2n_blob *data_to_verify);
-int s2n_rsa_server_recv_key(struct s2n_connection *conn, struct s2n_blob *data_to_verify);
+int s2n_dhe_server_key_recv(struct s2n_connection *conn, struct s2n_blob *data_to_verify);
+int s2n_ecdhe_server_key_recv(struct s2n_connection *conn, struct s2n_blob *data_to_verify);
+int s2n_rsa_server_key_recv(struct s2n_connection *conn, struct s2n_blob *data_to_verify);
 
 /*
  * The below methods are used to perform the specific key exchange algorithm including writing data to the connection.
@@ -38,6 +39,6 @@ int s2n_rsa_server_recv_key(struct s2n_connection *conn, struct s2n_blob *data_t
  * conn: in parameter which is the current connection
  * data_to_sign: out parameter that is the data required to be added to the signature hash to be used for signing
  */
-int s2n_dhe_server_send_params(struct s2n_connection *conn, struct s2n_blob *data_to_sign);
-int s2n_ecdhe_server_send_params(struct s2n_connection *conn, struct s2n_blob *data_to_sign);
-int s2n_rsa_server_send_key(struct s2n_connection *conn, struct s2n_blob *data_to_sign);
+int s2n_dhe_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_to_sign);
+int s2n_ecdhe_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_to_sign);
+int s2n_rsa_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_to_sign);

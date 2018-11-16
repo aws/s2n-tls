@@ -73,7 +73,7 @@ int s2n_server_key_recv(struct s2n_connection *conn)
 }
 
 
-int s2n_ecdhe_server_recv_params(struct s2n_connection *conn, struct s2n_blob *data_to_verify)
+int s2n_ecdhe_server_key_recv(struct s2n_connection *conn, struct s2n_blob *data_to_verify)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
 
@@ -82,7 +82,7 @@ int s2n_ecdhe_server_recv_params(struct s2n_connection *conn, struct s2n_blob *d
     return 0;
 }
 
-int s2n_dhe_server_recv_params(struct s2n_connection *conn, struct s2n_blob *data_to_verify)
+int s2n_dhe_server_key_recv(struct s2n_connection *conn, struct s2n_blob *data_to_verify)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
     uint16_t p_length;
@@ -114,6 +114,12 @@ int s2n_dhe_server_recv_params(struct s2n_connection *conn, struct s2n_blob *dat
     return 0;
 }
 
+// The client should never receive an additional RSA key during RSA key exchange
+int s2n_rsa_server_key_recv(struct s2n_connection *conn, struct s2n_blob *data_to_verify)
+{
+    S2N_ERROR(S2N_ERR_HANDSHAKE_STATE);
+}
+
 int s2n_server_key_send(struct s2n_connection *conn)
 {
     struct s2n_hash_state *signature_hash = &conn->secure.signature_hash;
@@ -143,7 +149,7 @@ int s2n_server_key_send(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_ecdhe_server_send_params(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
+int s2n_ecdhe_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
 
@@ -155,7 +161,7 @@ int s2n_ecdhe_server_send_params(struct s2n_connection *conn, struct s2n_blob *d
     return 0;
 }
 
-int s2n_dhe_server_send_params(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
+int s2n_dhe_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
 
@@ -168,6 +174,12 @@ int s2n_dhe_server_send_params(struct s2n_connection *conn, struct s2n_blob *dat
     /* Write it out and calculate the data to sign later */
     GUARD(s2n_dh_params_to_p_g_Ys(&conn->secure.server_dh_params, out, data_to_sign));
     return 0;
+}
+
+// The server should never send an additional RSA key during RSA key exchange
+int s2n_rsa_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
+{
+    S2N_ERROR(S2N_ERR_HANDSHAKE_STATE);
 }
 
 static int s2n_write_signature_blob(struct s2n_stuffer *out, const struct s2n_pkey *priv_key, struct s2n_hash_state *digest)
@@ -192,15 +204,4 @@ static int s2n_write_signature_blob(struct s2n_stuffer *out, const struct s2n_pk
     GUARD(s2n_stuffer_write_uint16(out, signature.size));
     GUARD(s2n_stuffer_skip_write(out, signature.size));
     return 0;
-}
-
-// The client should never receive an additional RSA key during RSA key exchange
-int s2n_rsa_server_recv_key(struct s2n_connection *conn, struct s2n_blob *data_to_verify)
-{
-    S2N_ERROR(S2N_ERR_HANDSHAKE_STATE);
-}
-// The server should never send an additional RSA key during RSA key exchange
-int s2n_rsa_server_send_key(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
-{
-    S2N_ERROR(S2N_ERR_HANDSHAKE_STATE);
 }
