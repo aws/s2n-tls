@@ -7,32 +7,22 @@
 # Variables used by this module, they can change the default behaviour and need
 # to be set before calling find_package:
 #
-#  LibCrypto_ROOT_DIR        Set this variable to the root installation of
-#                            anything using libcrypto if the module has problems finding the
-#                            proper installation path.
-#
 # Variables defined by this module:
 #
 #  LibCrypto_FOUND             System has libcrypto, include and library dirs found
 #  LibCrypto_INCLUDE_DIR       The crypto include directories.
 #  LibCrypto_LIBRARY    The crypto library.
-
-find_path(LibCrypto_ROOT_DIR
-        NAMES include/openssl/crypto.h 
-        HINTS ${LibCrypto_ROOT_DIR}
-        )
-
 find_path(LibCrypto_INCLUDE_DIR
         NAMES openssl/crypto.h
-        HINTS ${LibCrypto_ROOT_DIR}/include
+        HINTS ${CMAKE_INSTALL_PREFIX}/include
         )
 
 find_library(LibCrypto_LIBRARY
         NAMES libcrypto.a libcrypto.so
-        HINTS ${LibCrypto_ROOT_DIR}/build/crypto
-        ${LibCrypto_ROOT_DIR}/build
-        ${LibCrypto_ROOT_DIR}
-        ${LibCrypto_ROOT_DIR}/lib 
+        HINTS ${CMAKE_INSTALL_PREFIX}/build/crypto
+        ${CMAKE_INSTALL_PREFIX}/build
+        ${CMAKE_INSTALL_PREFIX}
+        ${CMAKE_INSTALL_PREFIX}/lib
        )
 
 
