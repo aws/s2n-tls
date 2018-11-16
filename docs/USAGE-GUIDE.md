@@ -23,7 +23,7 @@ are using CMake that step is unnecessary. Just follow the instructions here to u
 
 (Required): You need at least CMake version 3.0 to fully benefit from Modern CMake. See [this](https://www.youtube.com/watch?v=bsXLMQ6WgIk) for more information.
 
-(Optional): Set the CMake variable `LibCrypto_ROOT_DIR` to any libcrypto build on your machine. If you do not,
+(Optional): Set the CMake variable `CMAKE_INSTALL_PREFIX` to the location libcrypto is installed to. If you do not,
 the default installation on your machine will be used.
 
 (Optional): Set the CMake variable `BUILD_SHARED_LIBS=ON` to build shared libraries. The default is static.
@@ -47,7 +47,7 @@ For another example, we can prepare an Xcode project using static libs using a l
 ````shell
 mkdir s2n-build
 cd s2n-build
-cmake ../s2n -DLibCrypto_ROOT_DIR=$HOME/s2n-user/builds/libcrypto-impl -G "Xcode"
+cmake ../s2n -DCMAKE_INSTALL_PREFIX=$HOME/s2n-user/builds/libcrypto-impl -G "Xcode"
 # now open the project in Xcode and build from there, or use the Xcode CLI
 ````
 
@@ -70,13 +70,12 @@ find_package(s2n)
 
 ....
 
-target_link_libraries(yourExecutableOrLibrary s2n)
+target_link_libraries(yourExecutableOrLibrary AWS::s2n)
 ````
 
-And when invoking CMake for your project, do one of three things:
- 1. Append the `CMAKE_PREFIX_PATH` variable with the path to your s2n build.
- 2. Set the `s2n_DIR` CMake variable
- 3. If you have globally installed s2n, do nothing, it will automatically be found.
+And when invoking CMake for your project, do one of two things:
+ 1. Set the `CMAKE_INSTALL_PREFIX` variable with the path to your s2n build.
+ 2. If you have globally installed s2n, do nothing, it will automatically be found.
  
 ## Building s2n with OpenSSL-1.1.0
 
