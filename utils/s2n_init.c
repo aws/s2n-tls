@@ -31,6 +31,13 @@ int s2n_init(void)
 
     S2N_ERROR_IF(atexit(s2n_cleanup_atexit) != 0, S2N_ERR_ATEXIT);
 
+    /* these functions do lazy init. Avoid the race conditions and just do it here. */
+    if (s2n_is_in_fips_mode()) {
+        s2n_fetch_default_fips_config();
+    } else {
+        s2n_fetch_default_config();
+    }
+
     return 0;
 }
 
