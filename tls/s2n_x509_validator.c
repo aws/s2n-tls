@@ -360,7 +360,8 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
         conn->config->wall_clock(conn->config->sys_clock_ctx, &current_sys_time);
 
         /* this wants seconds not nanoseconds */
-        X509_STORE_CTX_set_time(ctx, 0, current_sys_time / 1000000000);
+        time_t current_time = (time_t)(current_sys_time / 1000000000);
+        X509_STORE_CTX_set_time(ctx, 0, current_time);
 
         op_code = X509_verify_cert(ctx);
 
