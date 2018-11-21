@@ -38,7 +38,7 @@ static int monotonic_clock(void *data, uint64_t *nanoseconds)
 
     GUARD(clock_gettime(S2N_CLOCK_HW, &current_time));
 
-    *nanoseconds = current_time.tv_sec * 1000000000;
+    *nanoseconds = (uint64_t)current_time.tv_sec * 1000000000ull;
     *nanoseconds += current_time.tv_nsec;
 
     return 0;
@@ -50,7 +50,7 @@ static int wall_clock(void *data, uint64_t *nanoseconds)
 
     GUARD(clock_gettime(S2N_CLOCK_SYS, &current_time));
 
-    *nanoseconds = current_time.tv_sec * 1000000000;
+    *nanoseconds = (uint64_t)current_time.tv_sec * 1000000000ull;
     *nanoseconds += current_time.tv_nsec;
 
     return 0;
