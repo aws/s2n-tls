@@ -834,23 +834,28 @@ int s2n_connection_use_corked_io(struct s2n_connection *conn)
     return 0;
 }
 
-uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection * conn)
+uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn)
 {
     return conn->wire_bytes_in;
 }
 
-uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection * conn)
+uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn)
 {
     return conn->wire_bytes_out;
 }
 
 const char *s2n_connection_get_cipher(struct s2n_connection *conn)
 {
+    notnull_check_ptr(conn);
+    notnull_check_ptr(conn->secure.cipher_suite);
+
     return conn->secure.cipher_suite->name;
 }
 
 const char *s2n_connection_get_curve(struct s2n_connection *conn)
 {
+    notnull_check_ptr(conn);
+
     if (!conn->secure.server_ecc_params.negotiated_curve) {
         return "NONE";
     }
@@ -860,26 +865,36 @@ const char *s2n_connection_get_curve(struct s2n_connection *conn)
 
 int s2n_connection_get_client_protocol_version(struct s2n_connection *conn)
 {
+    notnull_check(conn);
+
     return conn->client_protocol_version;
 }
 
 int s2n_connection_get_server_protocol_version(struct s2n_connection *conn)
 {
+    notnull_check(conn);
+
     return conn->server_protocol_version;
 }
 
 int s2n_connection_get_actual_protocol_version(struct s2n_connection *conn)
 {
+    notnull_check(conn);
+
     return conn->actual_protocol_version;
 }
 
 int s2n_connection_get_client_hello_version(struct s2n_connection *conn)
 {
+    notnull_check(conn);
+
     return conn->client_hello_version;
 }
 
 int s2n_connection_client_cert_used(struct s2n_connection *conn)
 {
+    notnull_check(conn);
+
     if ((conn->handshake.handshake_type & CLIENT_AUTH) && is_handshake_complete(conn)) {
         if (conn->handshake.handshake_type & NO_CLIENT_CERT) {
             return 0;
@@ -891,6 +906,8 @@ int s2n_connection_client_cert_used(struct s2n_connection *conn)
 
 int s2n_connection_get_alert(struct s2n_connection *conn)
 {
+    notnull_check(conn);
+
     S2N_ERROR_IF(s2n_stuffer_data_available(&conn->alert_in) != 2, S2N_ERR_NO_ALERT);
 
     uint8_t alert_code = 0;
@@ -902,6 +919,9 @@ int s2n_connection_get_alert(struct s2n_connection *conn)
 
 int s2n_set_server_name(struct s2n_connection *conn, const char *server_name)
 {
+    notnull_check(conn);
+    notnull_check(server_name);
+
     S2N_ERROR_IF(conn->mode != S2N_CLIENT, S2N_ERR_CLIENT_MODE);
 
     int len = strlen(server_name);
@@ -940,6 +960,8 @@ const char *s2n_get_server_name(struct s2n_connection *conn)
 
 const char *s2n_get_application_protocol(struct s2n_connection *conn)
 {
+    notnull_check_ptr(conn);
+
     if (strlen(conn->application_protocol) == 0) {
         return NULL;
     }
@@ -955,14 +977,16 @@ ssize_t s2n_connection_get_session_id_length(struct s2n_connection *conn)
 
 int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blinding)
 {
+    notnull_check(conn);
     conn->blinding = blinding;
+
     return 0;
 }
 
 #define ONE_S  INT64_C(1000000000)
 #define TEN_S  INT64_C(10000000000)
 
-uint64_t s2n_connection_get_delay(struct s2n_connection * conn)
+uint64_t s2n_connection_get_delay(struct s2n_connection *conn)
 {
     if (!conn->delay) {
         return 0;
@@ -980,6 +1004,8 @@ uint64_t s2n_connection_get_delay(struct s2n_connection * conn)
 
 int s2n_connection_kill(struct s2n_connection *conn)
 {
+    notnull_check(conn);
+
     conn->closed = 1;
 
     /* Delay between 10 and 30 seconds in nanoseconds */
@@ -1006,6 +1032,7 @@ int s2n_connection_kill(struct s2n_connection *conn)
 
 const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uint32_t * length)
 {
+    notnull_check_ptr(conn);
     notnull_check_ptr(length);
 
     *length = conn->status_response.size;
@@ -1014,6 +1041,8 @@ const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uin
 
 int s2n_connection_prefer_throughput(struct s2n_connection *conn)
 {
+    notnull_check(conn);
+
     if (!conn->mfl_code) {
         conn->max_outgoing_fragment_length = S2N_LARGE_FRAGMENT_LENGTH;
     }
@@ -1023,6 +1052,8 @@ int s2n_connection_prefer_throughput(struct s2n_connection *conn)
 
 int s2n_connection_prefer_low_latency(struct s2n_connection *conn)
 {
+    notnull_check(conn);
+
     if (!conn->mfl_code) {
         conn->max_outgoing_fragment_length = S2N_SMALL_FRAGMENT_LENGTH;
     }
@@ -1078,6 +1109,7 @@ int s2n_connection_recv_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
 
 int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connection *conn, uint32_t len)
 {
+    notnull_check(conn);
     notnull_check(conn->send);
     /* Make sure we even have the data */
     GUARD(s2n_stuffer_skip_read(stuffer, len));
@@ -1102,6 +1134,8 @@ int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection)
 {
+    notnull_check(s2n_connection);
+
     return (s2n_connection->managed_io && s2n_connection->corked_io);
 }
 
