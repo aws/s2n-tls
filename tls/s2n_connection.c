@@ -534,6 +534,12 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
     return 0;
 }
 
+struct s2n_config *s2n_connection_get_config(struct s2n_connection* conn)
+{
+  notnull_check_ptr(conn);
+  return conn->config;
+}
+
 int s2n_connection_set_ctx(struct s2n_connection *conn, void *ctx)
 {
     conn->context = ctx;
