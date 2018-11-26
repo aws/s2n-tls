@@ -123,12 +123,12 @@ struct s2n_connection* s2n_conn_deserialize_from(
   // warn on not consuming all bytes
   if (reader > reader_end) {
     fprintf(stderr,
-    "WARNING: s2n_connection deserialized too many bytes (%zu vs %zu)\n",
+    "WARNING: s2n_connection deserialized too many bytes (%td vs %td)\n",
     reader - reader_begin, reader_end - reader_begin);
   }
   else if (reader < reader_end) {
     fprintf(stderr,
-    "WARNING: s2n_connection did not deserialize all bytes (%zu vs %zu)\n",
+    "WARNING: s2n_connection did not deserialize all bytes (%td vs %td)\n",
     reader - reader_begin, reader_end - reader_begin);
   }
   return conn;
