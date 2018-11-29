@@ -147,6 +147,7 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS12;
         EXPECT_EQUAL(1, s2n_connection_is_valid_for_cipher_preferences(conn, "test_all")); 
         EXPECT_EQUAL(-1, s2n_connection_is_valid_for_cipher_preferences(conn, "not_exist"));
+        EXPECT_EQUAL(1, s2n_connection_is_valid_for_cipher_preferences(conn, "CloudFront-TLS-1-2-2019"));
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
         const uint8_t cipher_count_fallback = sizeof(wire_ciphers_fallback) / S2N_TLS_CIPHER_SUITE_LEN;
@@ -157,6 +158,7 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS11;
         EXPECT_EQUAL(1, s2n_connection_is_valid_for_cipher_preferences(conn, "null"));
         EXPECT_EQUAL(0, s2n_connection_is_valid_for_cipher_preferences(conn, "CloudFront-TLS-1-2-2018"));
+        EXPECT_EQUAL(0, s2n_connection_is_valid_for_cipher_preferences(conn, "CloudFront-TLS-1-2-2019"));
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
