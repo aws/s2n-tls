@@ -279,7 +279,7 @@ static int s2n_advance_message(struct s2n_connection *conn)
     }
 
     /* Are we changing I/O directions */
-    if (ACTIVE_STATE(conn).writer == PREVIOUS_STATE(conn).writer) {
+    if (ACTIVE_STATE(conn).writer == PREVIOUS_STATE(conn).writer || ACTIVE_STATE(conn).writer == 'A') {
         return 0;
     }
 
