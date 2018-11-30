@@ -190,7 +190,7 @@ state_machine = [state_machine_fn m | m <- [0..16]]
 state_machine_fn : [4] -> handshake_action
 state_machine_fn m =
   if      m == CLIENT_HELLO then mkAct TLS_HANDSHAKE TLS_CLIENT_HELLO 'C'
- // else if m == SERVER_SESSION_LOOKUP then mkAct TLS_HANDSHAKE TLS_SERVER_SESSION_LOOKUP 'A'
+  else if m == SERVER_SESSION_LOOKUP then mkAct TLS_HANDSHAKE TLS_SERVER_SESSION_LOOKUP 'A'
   else if m == SERVER_HELLO then mkAct TLS_HANDSHAKE TLS_SERVER_HELLO 'S'
   else if m == SERVER_NEW_SESSION_TICKET then mkAct TLS_HANDSHAKE TLS_SERVER_NEW_SESSION_TICKET 'S'
   else if m == SERVER_CERT then mkAct TLS_HANDSHAKE TLS_SERVER_CERT 'S'
