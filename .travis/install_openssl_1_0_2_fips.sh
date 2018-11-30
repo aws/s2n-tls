@@ -61,10 +61,9 @@ make
 sudo make install
 
 cd "$BUILD_DIR"
-# Pull from a specific commit since an ECDSA PEM parsing bug was introduced into the branch
-curl --retry 3 -L https://github.com/openssl/openssl/archive/6a815969776e3329fdffcc12c77e047e3a15be78.zip --output openssl-OpenSSL_1_0_2-stable.zip
+curl --retry 3 -L https://github.com/openssl/openssl/archive/OpenSSL_1_0_2-stable.zip --output openssl-OpenSSL_1_0_2-stable.zip
 unzip openssl-OpenSSL_1_0_2-stable.zip
-cd openssl-6a815969776e3329fdffcc12c77e047e3a15be78
+cd openssl-OpenSSL_1_0_2-stable
 
 FIPS_OPTIONS="fips --with-fipsdir=$FIPSDIR shared"
 
