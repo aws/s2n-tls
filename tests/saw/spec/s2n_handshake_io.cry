@@ -56,7 +56,8 @@ advance_message conn = conn2
                                    ,message_number = conn.handshake.message_number + 1
                                    }
         cork2 = if ((ACTIVE_STATE conn2).writer != (PREVIOUS_STATE conn2).writer
-                && (ACTIVE_STATE conn2).writer != 'A')
+                && (ACTIVE_STATE conn2).writer != 'A' && (PREVIOUS_STATE
+                    conn2).writer != 'A')
                 then if (ACTIVE_STATE conn2).writer == mode_writer conn2.mode
                      then s2n_cork conn else s2n_uncork conn
                 else conn.corked
