@@ -543,6 +543,19 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2018 =
     .minimum_protocol_version = S2N_TLS12
 };
 
+struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_2_2019[] = {
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384
+};
+
+const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2019 = {
+    .count = sizeof(cipher_suites_cloudfront_tls_1_2_2019) / sizeof(cipher_suites_cloudfront_tls_1_2_2019[0]),
+    .suites = cipher_suites_cloudfront_tls_1_2_2019,
+    .minimum_protocol_version = S2N_TLS12
+};
+
 struct s2n_cipher_suite *cipher_suites_kms_tls_1_0_2018_10[] = {
         &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
         &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
@@ -598,6 +611,7 @@ struct {
     { "CloudFront-TLS-1-0-2016", &cipher_preferences_cloudfront_tls_1_0_2016 },
     { "CloudFront-TLS-1-1-2016", &cipher_preferences_cloudfront_tls_1_1_2016 },
     { "CloudFront-TLS-1-2-2018", &cipher_preferences_cloudfront_tls_1_2_2018 },
+    { "CloudFront-TLS-1-2-2019", &cipher_preferences_cloudfront_tls_1_2_2019 },
     { "KMS-TLS-1-0-2018-10", &cipher_preferences_kms_tls_1_0_2018_10 },
     { "KMS-FIPS-TLS-1-2-2018-10", &cipher_preferences_kms_fips_tls_1_2_2018_10 },
     { "20140601", &cipher_preferences_20140601 },
