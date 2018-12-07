@@ -42,7 +42,7 @@ struct session_cache_entry {
 
 struct session_cache_entry session_cache[256];
 
-int cache_store(struct s2n_connection *conn, void *ctx, uint64_t ttl, const void *key, uint64_t key_size, const void *value, uint64_t value_size)
+int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, const void *key, uint64_t key_size, const void *value, uint64_t value_size)
 {
     struct session_cache_entry *cache = ctx;
 
@@ -64,7 +64,7 @@ int cache_store(struct s2n_connection *conn, void *ctx, uint64_t ttl, const void
     return 0;
 }
 
-int cache_retrieve(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t * value_size)
+int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t * value_size)
 {
     struct session_cache_entry *cache = ctx;
 
@@ -92,7 +92,7 @@ int cache_retrieve(struct s2n_connection *conn, void *ctx, const void *key, uint
     return 0;
 }
 
-int cache_delete(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size)
+int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size)
 {
     struct session_cache_entry *cache = ctx;
 
@@ -312,9 +312,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, cert_chain_pem, private_key_pem));
 
-        EXPECT_SUCCESS(s2n_config_set_cache_store_callback(config, cache_store, session_cache));
-        EXPECT_SUCCESS(s2n_config_set_cache_retrieve_callback(config, cache_retrieve, session_cache));
-        EXPECT_SUCCESS(s2n_config_set_cache_delete_callback(config, cache_delete, session_cache));
+        EXPECT_SUCCESS(s2n_config_set_cache_store_callback(config, cache_store_callback, session_cache));
+        EXPECT_SUCCESS(s2n_config_set_cache_retrieve_callback(config, cache_retrieve_callback, session_cache));
+        EXPECT_SUCCESS(s2n_config_set_cache_delete_callback(config, cache_delete_callback, session_cache));
 
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 

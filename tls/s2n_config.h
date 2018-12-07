@@ -54,13 +54,13 @@ struct s2n_config {
     uint64_t decrypt_key_lifetime_in_nanos;
 
     /* If caching is being used, these must all be set */
-    int (*cache_store) (struct s2n_connection *conn, void *data, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size);
+    cache_store cache_store;
     void *cache_store_data;
 
-    int (*cache_retrieve) (struct s2n_connection *conn, void *data, const void *key, uint64_t key_size, void *value, uint64_t * value_size);
+    cache_retrieve cache_retrieve;
     void *cache_retrieve_data;
 
-    int (*cache_delete) (struct s2n_connection *conn, void *data, const void *key, uint64_t key_size);
+    cache_delete cache_delete;
     void *cache_delete_data;
 
     s2n_ct_support_level ct_type;
