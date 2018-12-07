@@ -16,20 +16,31 @@
 #pragma once
 
 #include "tls/s2n_connection.h"
+#include "tls/s2n_kex.h"
 #include "utils/s2n_blob.h"
 
 /*
- * The below methods are used to perform the specific key exchange algorithm including reading data from the connection.
- * They are to be used by the client to handle receiving the server's portion of the key exchange. They are not
+ * The below methods are used to read in the specific key exchange messages from the connection. They take no action on
+ * the data and rely on the caller to verify the data.
+ * conn: in parameter which is the current connection
+ * data_to_verify: out parameter that is the data required to be added to the signature hash to be used for verifying the data
+ * kex_data: out parameter that is the temporary, unverified key exchange data, this must be passed to the corresponding parse method
+ */
+int s2n_dhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify, union s2n_kex_server_data *kex_data);
+int s2n_ecdhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify, union s2n_kex_server_data *kex_data);
+int s2n_rsa_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify, union s2n_kex_server_data *kex_data);
+
+/*
+ * The below methods are used to parse the specific key exchange data, it does not read data from the connection.
+ * They are to be used by the client to handle parsing the server's portion of the key exchange. They are not
  * responsible for verifying the response or reading the signature from the connection.
  *
  * conn: in parameter which is the current connection
- * data_to_verify: out parameter that is the data required to be added to the signature hash to be used for verifying
- * the data
+ * kex_data: in parameter that is the verified key exchange data to be used
  */
-int s2n_dhe_server_key_recv(struct s2n_connection *conn, struct s2n_blob *data_to_verify);
-int s2n_ecdhe_server_key_recv(struct s2n_connection *conn, struct s2n_blob *data_to_verify);
-int s2n_rsa_server_key_recv(struct s2n_connection *conn, struct s2n_blob *data_to_verify);
+int s2n_dhe_server_key_recv_parse_data(struct s2n_connection *conn, union s2n_kex_server_data *kex_data);
+int s2n_ecdhe_server_key_recv_parse_data(struct s2n_connection *conn, union s2n_kex_server_data *kex_data);
+int s2n_rsa_server_key_recv_parse_data(struct s2n_connection *conn, union s2n_kex_server_data *kex_data);
 
 /*
  * The below methods are used to perform the specific key exchange algorithm including writing data to the connection.

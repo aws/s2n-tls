@@ -15,16 +15,18 @@
 
 #pragma once
 
+
 #include <stdint.h>
 #include <s2n.h>
 
-#include "tls/s2n_crypto.h"
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_tls_parameters.h"
 
 #include "stuffer/s2n_stuffer.h"
 
 #include "crypto/s2n_hash.h"
+
+#include "tls/s2n_crypto.h"
 
 /* This is the list of message types that we support */
 typedef enum {

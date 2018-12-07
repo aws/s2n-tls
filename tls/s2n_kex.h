@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 #include "tls/s2n_connection.h"
+#include "tls/s2n_kex_data.h"
 
 struct s2n_kex {
     uint8_t is_ephemeral;
@@ -24,7 +25,8 @@ struct s2n_kex {
     int (*get_server_extension_size)(const struct s2n_connection *conn);
     int (*write_server_extensions)(const struct s2n_connection *conn, struct s2n_stuffer *out);
     int (*connection_supported)(const struct s2n_connection *conn);
-    int (*server_key_recv)(struct s2n_connection *conn, struct s2n_blob *data_to_verify);
+    int (*server_key_recv_read_data)(struct s2n_connection *conn, struct s2n_blob *data_to_verify, union s2n_kex_server_data *kex_data);
+    int (*server_key_recv_parse_data)(struct s2n_connection *conn, union s2n_kex_server_data *kex_data);
     int (*server_key_send)(struct s2n_connection *conn, struct s2n_blob *data_to_sign);
     int (*client_key_recv)(struct s2n_connection *conn, struct s2n_blob *shared_key);
     int (*client_key_send)(struct s2n_connection *conn, struct s2n_blob *shared_key);
@@ -39,7 +41,8 @@ extern int s2n_kex_write_server_extension(const struct s2n_kex *kex, struct s2n_
 extern int s2n_kex_supported(const struct s2n_kex *kex, struct s2n_connection *conn);
 extern int s2n_kex_is_ephemeral(const struct s2n_kex *kex);
 
-extern int s2n_kex_server_key_recv(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *data_to_verify);
+extern int s2n_kex_server_key_recv_read_data(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *data_to_verify, union s2n_kex_server_data *kex_data);
+extern int s2n_kex_server_key_recv_parse_data(const struct s2n_kex *kex, struct s2n_connection *conn, union s2n_kex_server_data *kex_data);
 extern int s2n_kex_server_key_send(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *data_to_sign);
 extern int s2n_kex_client_key_recv(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key);
 extern int s2n_kex_client_key_send(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key);

@@ -80,7 +80,8 @@ const struct s2n_kex s2n_rsa = {
         .get_server_extension_size = &get_no_extension_size,
         .write_server_extensions = &write_no_extension,
         .connection_supported = &check_rsa_key,
-        .server_key_recv = &s2n_rsa_server_key_recv,
+        .server_key_recv_read_data = &s2n_rsa_server_key_recv_read_data,
+        .server_key_recv_parse_data = &s2n_rsa_server_key_recv_parse_data,
         .server_key_send = &s2n_rsa_server_key_send,
         .client_key_recv = &s2n_rsa_client_key_recv,
         .client_key_send = &s2n_rsa_client_key_send,
@@ -91,7 +92,8 @@ const struct s2n_kex s2n_dhe = {
         .get_server_extension_size = &get_no_extension_size,
         .write_server_extensions = &write_no_extension,
         .connection_supported = &check_dhe,
-        .server_key_recv = &s2n_dhe_server_key_recv,
+        .server_key_recv_read_data = &s2n_dhe_server_key_recv_read_data,
+        .server_key_recv_parse_data = &s2n_dhe_server_key_recv_parse_data,
         .server_key_send = &s2n_dhe_server_key_send,
         .client_key_recv = &s2n_dhe_client_key_recv,
         .client_key_send = &s2n_dhe_client_key_send,
@@ -102,7 +104,8 @@ const struct s2n_kex s2n_ecdhe = {
         .get_server_extension_size = &get_server_ecc_extension_size,
         .write_server_extensions = &write_server_ecc_extension,
         .connection_supported = &check_ecdhe,
-        .server_key_recv = &s2n_ecdhe_server_key_recv,
+        .server_key_recv_read_data = &s2n_ecdhe_server_key_recv_read_data,
+        .server_key_recv_parse_data = &s2n_ecdhe_server_key_recv_parse_data,
         .server_key_send = &s2n_ecdhe_server_key_send,
         .client_key_recv = &s2n_ecdhe_client_key_recv,
         .client_key_send = &s2n_ecdhe_client_key_send,
@@ -131,10 +134,16 @@ int s2n_kex_is_ephemeral(const struct s2n_kex *kex)
     return kex->is_ephemeral;
 }
 
-int s2n_kex_server_key_recv(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *data_to_verify)
+int s2n_kex_server_key_recv_parse_data(const struct s2n_kex *kex, struct s2n_connection *conn, union s2n_kex_server_data *kex_data)
 {
-    notnull_check(kex->server_key_recv);
-    return kex->server_key_recv(conn, data_to_verify);
+    notnull_check(kex->server_key_recv_parse_data);
+    return kex->server_key_recv_parse_data(conn, kex_data);
+}
+
+int s2n_kex_server_key_recv_read_data(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *data_to_verify, union s2n_kex_server_data *kex_data)
+{
+    notnull_check(kex->server_key_recv_read_data);
+    return kex->server_key_recv_read_data(conn, data_to_verify, kex_data);
 }
 
 int s2n_kex_server_key_send(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *data_to_sign)

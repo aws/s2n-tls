@@ -39,8 +39,9 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     struct s2n_stuffer *in = &conn->handshake.io;
     struct s2n_blob data_to_verify = {0};
 
-    /* Read and process the KEX data */
-    GUARD(s2n_kex_server_key_recv(key_exchange, conn, &data_to_verify));
+    /* Read the KEX data */
+    union s2n_kex_server_data kex_data = {{{0}}};
+    GUARD(s2n_kex_server_key_recv_read_data(key_exchange, conn, &data_to_verify, &kex_data));
 
     /* Add common signature data */
     if (conn->actual_protocol_version == S2N_TLS12) {
@@ -69,22 +70,34 @@ int s2n_server_key_recv(struct s2n_connection *conn)
 
     /* We don't need the key any more, so free it */
     GUARD(s2n_pkey_free(&conn->secure.server_public_key));
+
+    /* Parse the KEX data into whatever form needed and save it to the connection object */
+    GUARD(s2n_kex_server_key_recv_parse_data(key_exchange, conn, &kex_data));
+
     return 0;
 }
 
-
-int s2n_ecdhe_server_key_recv(struct s2n_connection *conn, struct s2n_blob *data_to_verify)
+int s2n_ecdhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify, union s2n_kex_server_data *kex_data)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
 
     /* Read server ECDH params and calculate their hash */
-    GUARD(s2n_ecc_read_ecc_params(&conn->secure.server_ecc_params, in, data_to_verify));
+    GUARD(s2n_ecc_read_ecc_params(in, data_to_verify, &kex_data->ecdhe_data));
     return 0;
 }
 
-int s2n_dhe_server_key_recv(struct s2n_connection *conn, struct s2n_blob *data_to_verify)
+int s2n_ecdhe_server_key_recv_parse_data(struct s2n_connection *conn, union s2n_kex_server_data *kex_data)
+{
+    /* Read server ECDH params and calculate their hash */
+    GUARD(s2n_ecc_parse_ecc_params(&conn->secure.server_ecc_params, &kex_data->ecdhe_data));
+    return 0;
+}
+
+int s2n_dhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify, union s2n_kex_server_data *kex_data)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
+    struct s2n_dh_server_data *dhe_data = &kex_data->dh_data;
+
     uint16_t p_length;
     uint16_t g_length;
     uint16_t Ys_length;
@@ -95,27 +108,42 @@ int s2n_dhe_server_key_recv(struct s2n_connection *conn, struct s2n_blob *data_t
 
     /* Read each of the three elements in */
     GUARD(s2n_stuffer_read_uint16(in, &p_length));
-    struct s2n_blob p = { .size = p_length, .data = s2n_stuffer_raw_read(in, p_length)};
-    notnull_check(p.data);
+    dhe_data->p.size = p_length;
+    dhe_data->p.data = s2n_stuffer_raw_read(in, p_length);
+    notnull_check(dhe_data->p.data);
 
     GUARD(s2n_stuffer_read_uint16(in, &g_length));
-    struct s2n_blob g = {.size = g_length, .data = s2n_stuffer_raw_read(in, g_length)};
-    notnull_check(g.data);
+    dhe_data->g.size = g_length;
+    dhe_data->g.data = s2n_stuffer_raw_read(in, g_length);
+    notnull_check(dhe_data->g.data);
 
     GUARD(s2n_stuffer_read_uint16(in, &Ys_length));
-    struct s2n_blob Ys = {.size = Ys_length, .data = s2n_stuffer_raw_read(in, Ys_length)};
-    notnull_check(Ys.data);
+    dhe_data->Ys.size = Ys_length;
+    dhe_data->Ys.data = s2n_stuffer_raw_read(in, Ys_length);
+    notnull_check(dhe_data->Ys.data);
 
     /* Now we know the total size of the structure */
     data_to_verify->size = 2 + p_length + 2 + g_length + 2 + Ys_length;
 
+    return 0;
+}
+
+int s2n_dhe_server_key_recv_parse_data(struct s2n_connection *conn, union s2n_kex_server_data *kex_data)
+{
+    struct s2n_dh_server_data dhe_data = kex_data->dh_data;
+
     /* Copy the DH details */
-    GUARD(s2n_dh_p_g_Ys_to_dh_params(&conn->secure.server_dh_params, &p, &g, &Ys));
+    GUARD(s2n_dh_p_g_Ys_to_dh_params(&conn->secure.server_dh_params, &dhe_data.p, &dhe_data.g, &dhe_data.Ys));
     return 0;
 }
 
 // The client should never receive an additional RSA key during RSA key exchange
-int s2n_rsa_server_key_recv(struct s2n_connection *conn, struct s2n_blob *data_to_verify)
+int s2n_rsa_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify, union s2n_kex_server_data *kex_data)
+{
+    S2N_ERROR(S2N_ERR_HANDSHAKE_STATE);
+}
+
+int s2n_rsa_server_key_recv_parse_data(struct s2n_connection *conn, union s2n_kex_server_data *kex_data)
 {
     S2N_ERROR(S2N_ERR_HANDSHAKE_STATE);
 }

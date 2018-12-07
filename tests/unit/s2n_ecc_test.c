@@ -38,7 +38,10 @@ int main(int argc, char **argv)
         /* Server sends the public */
         EXPECT_SUCCESS(s2n_ecc_write_ecc_params(&server_params, &wire, &ecdh_params_sent));
         /* Client reads the public */
-        EXPECT_SUCCESS(s2n_ecc_read_ecc_params(&client_params, &wire, &ecdh_params_received));
+        struct s2n_ecdhe_server_data ecdhe_data = {{0}};
+        EXPECT_SUCCESS(s2n_ecc_read_ecc_params(&wire, &ecdh_params_received, &ecdhe_data));
+        EXPECT_SUCCESS(s2n_ecc_parse_ecc_params(&client_params, &ecdhe_data));
+
         /* The client got the curve */
         EXPECT_EQUAL(client_params.negotiated_curve, server_params.negotiated_curve);
 
@@ -59,6 +62,4 @@ int main(int argc, char **argv)
     }
 
     END_TEST();
-    return 0;
 }
-

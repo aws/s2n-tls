@@ -22,6 +22,7 @@
 #include <stdint.h>
 
 #include "tls/s2n_tls_parameters.h"
+#include "tls/s2n_kex.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
 
@@ -76,46 +77,51 @@ int s2n_ecc_write_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2
     return 0;
 }
 
-int s2n_ecc_read_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2n_stuffer *in, struct s2n_blob *read)
+int s2n_ecc_read_ecc_params(struct s2n_stuffer *in, struct s2n_blob *data_to_verify, struct s2n_ecdhe_server_data *data)
 {
     uint8_t curve_type;
     uint8_t point_length;
-    struct s2n_blob point_blob, curve_blob;
-    EC_POINT *point;
 
     /* Remember where we started reading the data */
-    read->data = s2n_stuffer_raw_read(in, 0);
-    notnull_check(read->data);
+    data_to_verify->data = s2n_stuffer_raw_read(in, 0);
+    notnull_check(data_to_verify->data);
 
     /* Read the curve */
     GUARD(s2n_stuffer_read_uint8(in, &curve_type));
     S2N_ERROR_IF(curve_type != TLS_EC_CURVE_TYPE_NAMED, S2N_ERR_BAD_MESSAGE);
-    curve_blob.data = s2n_stuffer_raw_read(in, 2);
-    notnull_check(curve_blob.data);
+    data->curve_blob.size = 2;
+    data->curve_blob.data = s2n_stuffer_raw_read(in, 2);
+    notnull_check(data->curve_blob.data);
 
-    curve_blob.size = 2;
+    /* Read the point */
+    GUARD(s2n_stuffer_read_uint8(in, &point_length));
+    data->point_blob.size = point_length;
+    data->point_blob.data = s2n_stuffer_raw_read(in, point_length);
+    notnull_check(data->point_blob.data);
+
+    data_to_verify->size = 3 + (1 + point_length);
+
+    return 0;
+}
+
+int s2n_ecc_parse_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2n_ecdhe_server_data *data)
+{
+    EC_POINT *point;
+
     /* Verify that the client supports the server curve */
-    S2N_ERROR_IF(s2n_ecc_find_supported_curve(&curve_blob, &server_ecc_params->negotiated_curve) != 0, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    S2N_ERROR_IF(s2n_ecc_find_supported_curve(&data->curve_blob, &server_ecc_params->negotiated_curve) != 0, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
     /* Create a key to store the server public point */
     server_ecc_params->ec_key = EC_KEY_new_by_curve_name(server_ecc_params->negotiated_curve->libcrypto_nid);
     S2N_ERROR_IF(server_ecc_params->ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
-    /* Read the point */
-    GUARD(s2n_stuffer_read_uint8(in, &point_length));
-    point_blob.size = point_length;
-    point_blob.data = s2n_stuffer_raw_read(in, point_blob.size);
-    notnull_check(point_blob.data);
-
     /* Parse and store the server public point */
-    point = s2n_ecc_blob_to_point(&point_blob, server_ecc_params->ec_key);
+    point = s2n_ecc_blob_to_point(&data->point_blob, server_ecc_params->ec_key);
     S2N_ERROR_IF(point == NULL, S2N_ERR_BAD_MESSAGE);
     if (EC_KEY_set_public_key(server_ecc_params->ec_key, point) != 1) {
         EC_POINT_free(point);
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
     EC_POINT_free(point);
-
-    read->size = 3 + (1 + point_length);
 
     return 0;
 }
