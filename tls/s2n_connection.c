@@ -958,7 +958,7 @@ int s2n_connection_get_session_id(struct s2n_connection *conn, uint8_t *session_
     notnull_check(conn);
     notnull_check(session_id);
 
-    uint32_t session_id_len = s2n_connection_get_session_id_length(conn);
+    size_t  session_id_len = s2n_connection_get_session_id_length(conn);
 
     S2N_ERROR_IF(session_id_len > max_length, S2N_ERR_SESSION_ID_TOO_LONG);
 
