@@ -776,7 +776,8 @@ the caller sets (and implements) three callback functions.
 ### s2n\_config\_set\_cache\_store\_callback
 
 ```c
-int s2n_config_set_cache_store_callback(struct s2n_config *config, int (*cache_store)(struct s2n_connection *conn, void *, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data);
+int s2n_config_set_cache_store_callback(struct s2n_config *config, int
+        (*cache_store_callback)(struct s2n_connection *conn, void *, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data);
 ```
 
 **s2n_config_set_cache_store_callback** allows the caller to set a callback
@@ -791,7 +792,8 @@ and a 64 bit unsigned integer specified the size of this value.
 ### s2n\_config\_set\_cache\_retrieve\_callback
 
 ```c
-int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, int (*cache_retrieve)(struct s2n_connection *conn, void *, const void *key, uint64_t key_size, void *value, uint64_t *value_size), void *data)
+int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, int
+        (*cache_retrieve_callback)(struct s2n_connection *conn, void *, const void *key, uint64_t key_size, void *value, uint64_t *value_size), void *data)
 ```
 
 **s2n_config_set_cache_retrieve_callback** allows the caller to set a callback
@@ -808,7 +810,8 @@ data returned. If there is insufficient space, -1 should be returned.
 ### s2n\_config\_set\_cache\_delete\_callback
 
 ```c
-int s2n_config_set_cache_delete_callback(struct s2n_config *config, int (*cache_delete))(struct s2n_connection *conn, void *, const void *key, uint64_t key_size), void *data);
+int s2n_config_set_cache_delete_callback(struct s2n_config *config, int
+        (*cache_delete_callback))(struct s2n_connection *conn, void *, const void *key, uint64_t key_size), void *data);
 ```
 
 **s2n_config_set_cache_delete_callback** allows the caller to set a callback
