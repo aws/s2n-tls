@@ -604,7 +604,7 @@ extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_t
     return 0;
 }
 
-int s2n_config_set_cache_store_callback(struct s2n_config *config, cache_store cache_store_callback, void *data)
+int s2n_config_set_cache_store_callback(struct s2n_config *config, s2n_cache_store_callback cache_store_callback, void *data)
 {
     notnull_check(cache_store_callback);
 
@@ -614,7 +614,7 @@ int s2n_config_set_cache_store_callback(struct s2n_config *config, cache_store c
     return 0;
 }
 
-int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, cache_retrieve cache_retrieve_callback, void *data)
+int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, s2n_cache_retrieve_callback cache_retrieve_callback, void *data)
 {
     notnull_check(cache_retrieve_callback);
 
@@ -624,7 +624,7 @@ int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, cache_retr
     return 0;
 }
 
-int s2n_config_set_cache_delete_callback(struct s2n_config *config, cache_delete cache_delete_callback, void *data)
+int s2n_config_set_cache_delete_callback(struct s2n_config *config, s2n_cache_delete_callback cache_delete_callback, void *data)
 {
     notnull_check(cache_delete_callback);
 
