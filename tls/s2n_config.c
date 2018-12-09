@@ -588,34 +588,31 @@ extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_t
     return 0;
 }
 
-int s2n_config_set_cache_store_callback(struct s2n_config *config,
-                                        int (*cache_store) (void *, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size),
-                                        void *data)
+int s2n_config_set_cache_store_callback(struct s2n_config *config, s2n_cache_store_callback cache_store_callback, void *data)
 {
-    notnull_check(cache_store);
+    notnull_check(cache_store_callback);
 
-    config->cache_store = cache_store;
+    config->cache_store = cache_store_callback;
     config->cache_store_data = data;
 
     return 0;
 }
 
-int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, int (*cache_retrieve) (void *, const void *key, uint64_t key_size, void *value, uint64_t * value_size),
-                                           void *data)
+int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, s2n_cache_retrieve_callback cache_retrieve_callback, void *data)
 {
-    notnull_check(cache_retrieve);
+    notnull_check(cache_retrieve_callback);
 
-    config->cache_retrieve = cache_retrieve;
+    config->cache_retrieve = cache_retrieve_callback;
     config->cache_retrieve_data = data;
 
     return 0;
 }
 
-int s2n_config_set_cache_delete_callback(struct s2n_config *config, int (*cache_delete) (void *, const void *key, uint64_t key_size), void *data)
+int s2n_config_set_cache_delete_callback(struct s2n_config *config, s2n_cache_delete_callback cache_delete_callback, void *data)
 {
-    notnull_check(cache_delete);
+    notnull_check(cache_delete_callback);
 
-    config->cache_delete = cache_delete;
+    config->cache_delete = cache_delete_callback;
     config->cache_delete_data = data;
 
     return 0;

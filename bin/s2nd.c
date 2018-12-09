@@ -156,7 +156,7 @@ struct session_cache_entry {
 
 struct session_cache_entry session_cache[256];
 
-int cache_store(void *ctx, uint64_t ttl, const void *key, uint64_t key_size, const void *value, uint64_t value_size)
+int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, const void *key, uint64_t key_size, const void *value, uint64_t value_size)
 {
     struct session_cache_entry *cache = ctx;
 
@@ -178,7 +178,7 @@ int cache_store(void *ctx, uint64_t ttl, const void *key, uint64_t key_size, con
     return 0;
 }
 
-int cache_retrieve(void *ctx, const void *key, uint64_t key_size, void *value, uint64_t * value_size)
+int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t * value_size)
 {
     struct session_cache_entry *cache = ctx;
 
@@ -211,7 +211,7 @@ int cache_retrieve(void *ctx, const void *key, uint64_t key_size, void *value, u
     return 0;
 }
 
-int cache_delete(void *ctx, const void *key, uint64_t key_size)
+int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size)
 {
     struct session_cache_entry *cache = ctx;
 
@@ -710,17 +710,17 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    if (s2n_config_set_cache_store_callback(config, cache_store, session_cache) < 0) {
+    if (s2n_config_set_cache_store_callback(config, cache_store_callback, session_cache) < 0) {
         print_s2n_error("Error setting cache store callback");
         exit(1);
     }
 
-    if (s2n_config_set_cache_retrieve_callback(config, cache_retrieve, session_cache) < 0) {
+    if (s2n_config_set_cache_retrieve_callback(config, cache_retrieve_callback, session_cache) < 0) {
         print_s2n_error("Error setting cache retrieve callback");
         exit(1);
     }
 
-    if (s2n_config_set_cache_delete_callback(config, cache_delete, session_cache) < 0) {
+    if (s2n_config_set_cache_delete_callback(config, cache_delete_callback, session_cache) < 0) {
         print_s2n_error("Error setting cache retrieve callback");
         exit(1);
     }

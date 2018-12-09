@@ -48,6 +48,7 @@ typedef enum {
 extern int s2n_error_get_type(int error);
 
 struct s2n_config;
+struct s2n_connection;
 
 extern int s2n_init(void);
 extern int s2n_cleanup(void);
@@ -57,15 +58,19 @@ extern int s2n_config_free_dhparams(struct s2n_config *config);
 extern int s2n_config_free_cert_chain_and_key(struct s2n_config *config);
 
 typedef int (*s2n_clock_time_nanoseconds) (void *, uint64_t *);
+typedef int (*s2n_cache_retrieve_callback) (struct s2n_connection *conn, void *, const void *key, uint64_t key_size, void *value, uint64_t *value_size);
+typedef int (*s2n_cache_store_callback) (struct s2n_connection *conn, void *, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size);
+typedef int (*s2n_cache_delete_callback) (struct s2n_connection *conn,  void *, const void *key, uint64_t key_size);
+
 extern int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx);
 extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx);
 
 extern const char *s2n_strerror(int error, const char *lang);
 extern const char *s2n_strerror_debug(int error, const char *lang);
 
-extern int s2n_config_set_cache_store_callback(struct s2n_config *config, int (*cache_store)(void *, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data);
-extern int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, int (*cache_retrieve)(void *, const void *key, uint64_t key_size, void *value, uint64_t *value_size), void *data);
-extern int s2n_config_set_cache_delete_callback(struct s2n_config *config, int (*cache_delete)(void *, const void *key, uint64_t key_size), void *data);
+extern int s2n_config_set_cache_store_callback(struct s2n_config *config, s2n_cache_store_callback cache_store_callback, void *data);
+extern int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, s2n_cache_retrieve_callback cache_retrieve_callback, void *data);
+extern int s2n_config_set_cache_delete_callback(struct s2n_config *config, s2n_cache_delete_callback cache_delete_callback, void *data);
 
 typedef enum {
     S2N_EXTENSION_SERVER_NAME = 0,
@@ -121,7 +126,6 @@ extern int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
                                             uint8_t *key, uint32_t key_len,
                                             uint64_t intro_time_in_seconds_from_epoch);
 
-struct s2n_connection;
 typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
 extern struct s2n_connection *s2n_connection_new(s2n_mode mode);
 extern int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *config);
