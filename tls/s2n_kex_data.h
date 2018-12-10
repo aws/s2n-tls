@@ -22,7 +22,7 @@ struct s2n_ecdhe_server_data {
     struct s2n_blob curve_blob;
 };
 
-struct s2n_dh_server_data {
+struct s2n_dhe_server_data {
     struct s2n_blob p;
     struct s2n_blob g;
     struct s2n_blob Ys;
@@ -30,5 +30,5 @@ struct s2n_dh_server_data {
 
 union s2n_kex_server_data {
     struct s2n_ecdhe_server_data ecdhe_data;
-    struct s2n_dh_server_data dh_data;
+    struct s2n_dhe_server_data dhe_data;
 };

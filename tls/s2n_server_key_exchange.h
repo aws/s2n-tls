@@ -24,7 +24,7 @@
  * the data and rely on the caller to verify the data.
  * conn: in parameter which is the current connection
  * data_to_verify: out parameter that is the data required to be added to the signature hash to be used for verifying the data
- * kex_data: out parameter that is the temporary, unverified key exchange data, this must be passed to the corresponding parse method
+ * kex_data: out parameter that is the temporary, unverified key exchange data, this will be passed to the corresponding parse method
  */
 int s2n_dhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify, union s2n_kex_server_data *kex_data);
 int s2n_ecdhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify, union s2n_kex_server_data *kex_data);

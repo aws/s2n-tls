@@ -96,7 +96,7 @@ int s2n_ecdhe_server_key_recv_parse_data(struct s2n_connection *conn, union s2n_
 int s2n_dhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify, union s2n_kex_server_data *kex_data)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
-    struct s2n_dh_server_data *dhe_data = &kex_data->dh_data;
+    struct s2n_dhe_server_data *dhe_data = &kex_data->dhe_data;
 
     uint16_t p_length;
     uint16_t g_length;
@@ -130,7 +130,7 @@ int s2n_dhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_bl
 
 int s2n_dhe_server_key_recv_parse_data(struct s2n_connection *conn, union s2n_kex_server_data *kex_data)
 {
-    struct s2n_dh_server_data dhe_data = kex_data->dh_data;
+    struct s2n_dhe_server_data dhe_data = kex_data->dhe_data;
 
     /* Copy the DH details */
     GUARD(s2n_dh_p_g_Ys_to_dh_params(&conn->secure.server_dh_params, &dhe_data.p, &dhe_data.g, &dhe_data.Ys));

@@ -99,15 +99,14 @@ int s2n_ecc_read_ecc_params(struct s2n_stuffer *in, struct s2n_blob *data_to_ver
     data->point_blob.data = s2n_stuffer_raw_read(in, point_length);
     notnull_check(data->point_blob.data);
 
-    data_to_verify->size = 3 + (1 + point_length);
+    // 1 byte for curve type, 2 for the curve data, 1 for the point length, and point_length for the point
+    data_to_verify->size = (1 + 2) + (1 + point_length);
 
     return 0;
 }
 
 int s2n_ecc_parse_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2n_ecdhe_server_data *data)
 {
-    EC_POINT *point;
-
     /* Verify that the client supports the server curve */
     S2N_ERROR_IF(s2n_ecc_find_supported_curve(&data->curve_blob, &server_ecc_params->negotiated_curve) != 0, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
     /* Create a key to store the server public point */
@@ -115,7 +114,7 @@ int s2n_ecc_parse_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2
     S2N_ERROR_IF(server_ecc_params->ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
     /* Parse and store the server public point */
-    point = s2n_ecc_blob_to_point(&data->point_blob, server_ecc_params->ec_key);
+    EC_POINT *point = s2n_ecc_blob_to_point(&data->point_blob, server_ecc_params->ec_key);
     S2N_ERROR_IF(point == NULL, S2N_ERR_BAD_MESSAGE);
     if (EC_KEY_set_public_key(server_ecc_params->ec_key, point) != 1) {
         EC_POINT_free(point);
