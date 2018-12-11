@@ -18,6 +18,7 @@ type State = ([2], [2])
 (clientSender : [2]) = 0
 (serverSender : [2]) = 1
 (appData      : [2]) = 2
+(sessionLookup: [2]) = 3
 
 (corked : [2]) = 1
 (uncorked : [2]) = 0
@@ -33,12 +34,31 @@ highLevelSimulatesLowLevel conn state =
 
 // Property of the high-level state machine:  there is no uncorking or corking
 // twice in a row
+// This is not true for arbitrary sequences of writers, as for example a server
+// could transition S->A->S and cork twice.  However, we do not have such
+// a sequence possible given the handshake sequences
 noDoubleCorkUncork : [16][8] -> Bit
-noDoubleCorkUncork writers = and (map corkingInBounds (run writers))
+noDoubleCorkUncork writers =
+  possible_writers writers ==>
+  and (map corkingInBounds (run writers))
+
+possible_writers writers =  and [ok w w' | w <- writers | w' <- tail writers] where
+   ok w w' =    (w  == 'A' ==> w' != 'C') // no A->C
+             /\ (w  == 'S' ==> w' != 'A') // no S->A
+
+// We can confirm that every sequence in the handshakes table implies a possible_writers
+// sequence:
+writersArePossible : {len} (fin len, len >= 2) => connection -> Bit
+writersArePossible conn =
+   possible_writers writers
+   where (conn_trace : [len]connection) = trace_advance_message `{n = len} conn
+         writers = map getWriter conn_trace
+
 
 writer2sender : [8] -> [2]
 writer2sender w = if w == 'C' then clientSender else
                   if w == 'S' then serverSender else
+                  if w == 'A' then sessionLookup else
                                    appData
 
 corkedFromConn : connection -> [2]
@@ -69,16 +89,24 @@ highLevelDoesNotSimulateLowLevel conn state =
          writers = drop `{1} (map getWriter conn_trace)
 
 // The abstract transition function for the cork/uncork state machine
+
 cork_transition : State -> [8] -> State
 cork_transition (s, corking) c =
   if (s == clientSender) then
      if c == 'C' then (clientSender, corking)
-     else if c == 'S' then (serverSender, corking + 1)
-          else (appData, corking)
+      | c == 'S' then (serverSender, corking + 1)
+      | c == 'A' then (sessionLookup, corking)
+                 else (appData, corking)
   else if s == serverSender then
      if c == 'C' then (clientSender, corking - 1)
-     else if c == 'S' then (serverSender, corking)
-          else (appData, corking - 1)
+      | c == 'S' then (serverSender, corking)
+      | c == 'A' then (sessionLookup, corking)
+                 else (appData, corking - 1)
+  else if s == sessionLookup then
+     if c == 'C' then (clientSender, corking)
+      | c == 'S' then (serverSender, corking + 1)
+      | c == 'A' then (sessionLookup, corking)
+                 else (appData, corking)
   else (appData, corking)
 
 // generate a trace of states for the standard cork/uncork state //
