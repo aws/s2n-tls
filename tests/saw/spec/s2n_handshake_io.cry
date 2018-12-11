@@ -65,6 +65,21 @@ advance_message conn = conn2
 traceS2N : {n} (fin n) => connection -> [n]handshake_action
 traceS2N conn = normalizeAfterData (take (map ACTIVE_STATE (iterate s2nTrans conn)))
 
+// for a given initial connection struct generate the
+// sequence of handshake_actions, omitting any that are
+// application waits ('A' writer).
+// Actually, we only drop the first 'A'; we know there is only one possible in
+// the existing state machines, and if we drop all the proof does not terminate.
+traceS2N_NoWait : {n} (fin n) => connection -> [n]handshake_action
+traceS2N_NoWait conn = normalizeAfterData (take (dropWait (map ACTIVE_STATE (iterate s2nTrans conn))))
+  where
+    dropWait: [inf]handshake_action -> [inf]handshake_action
+    dropWait ([x] # xs) =
+       if x.writer == 'A'
+       then xs // should be "dropWait xs", see comments above
+       else [x] # dropWait xs
+
+
 traceS2N2 : {n} (fin n) => connection -> [n][32]
 traceS2N2 conn = take (map ACTIVE_MESSAGE (iterate s2nTrans conn))
 
@@ -74,6 +89,15 @@ normalizeAfterData hsas = map snd (tail (scanl f (False, dataMsg) hsas))
     where f (found, acc) hsa = if hsa == dataMsg \/ found then (True, dataMsg)
                                else (found, hsa)
           dataMsg = mkAct TLS_APPLICATION_DATA 0 'B'
+
+// match actions, but drop any with an 'A' writer from the second trace
+tracesMatchExcludingWaits: {n} (fin n, width n>=1) => [n]handshake_action -> [n]handshake_action -> Bit
+tracesMatchExcludingWaits xs ys = go 0 0 where
+  go: [width n] -> [width n] -> Bit
+  go i j = if i >= `n then True
+            | j >= `n then True
+            | (ys@j).writer == 'A' then go i (j+1)
+            else (xs@i == ys@j /\ go (i+1) (j+1))
 
 // returns the first element of an array that satisfies a given
 // predicate. If none found, a provided default value is returned.
