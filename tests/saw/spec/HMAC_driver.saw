@@ -59,6 +59,11 @@ let print_json fn cfg t key_size msg_size ov = do {
   print str;
 };
 
+let s2n_is_in_fips_mode_spec = do {
+  crucible_execute_func [];
+  crucible_return (crucible_term {{0:[32]}});
+  };
+
 let verify_s2n_hmac
       key_size
       msg_size
@@ -78,6 +83,7 @@ let verify_s2n_hmac
         (str_concat (show msg_size)
                     " ..."))))));
 
+  s2n_is_in_fips_mode_ov <- crucible_llvm_unsafe_assume_spec m "s2n_is_in_fips_mode" s2n_is_in_fips_mode_spec;
 
   (t, hash_init_ov)   <- with_time (crucible_llvm_unsafe_assume_spec m "s2n_hash_init" hash_init_spec);
 
@@ -124,7 +130,7 @@ let verify_s2n_hmac
 
 
   let hash_ovs =
-    [ hash_init_ov
+    [ s2n_is_in_fips_mode_ov, hash_init_ov
     , hash_update_key_size_ov
     , hash_update_block_size_ov
     , hash_update_msg_size_ov
