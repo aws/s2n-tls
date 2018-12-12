@@ -115,7 +115,6 @@ hash_update_c_state :
 hash_update_c_state = sha256_update_sha512_c_state
 //hash_update_c_state = undefined
 
-
 hash_digest_c_state :
   {digest_size} (fin digest_size) => hash_digest_ty digest_size
 // To support any digest length, we pad and truncate as necessary.
