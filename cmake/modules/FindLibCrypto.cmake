@@ -17,13 +17,23 @@ find_path(LibCrypto_INCLUDE_DIR
         HINTS ${CMAKE_INSTALL_PREFIX}/include
         )
 
-find_library(LibCrypto_LIBRARY
-        NAMES libcrypto.so libcrypto.a
-        HINTS ${CMAKE_INSTALL_PREFIX}/build/crypto
-        ${CMAKE_INSTALL_PREFIX}/build
-        ${CMAKE_INSTALL_PREFIX}
-        ${CMAKE_INSTALL_PREFIX}/lib
-       )
+if (BUILD_SHARED_LIBS)
+    find_library(LibCrypto_LIBRARY
+            NAMES libcrypto.so libcrypto.a
+            HINTS ${CMAKE_INSTALL_PREFIX}/build/crypto
+            ${CMAKE_INSTALL_PREFIX}/build
+            ${CMAKE_INSTALL_PREFIX}
+            ${CMAKE_INSTALL_PREFIX}/lib
+    )
+else()
+    find_library(LibCrypto_LIBRARY
+            NAMES libcrypto.a libcrypto.so
+            HINTS ${CMAKE_INSTALL_PREFIX}/build/crypto
+            ${CMAKE_INSTALL_PREFIX}/build
+            ${CMAKE_INSTALL_PREFIX}
+            ${CMAKE_INSTALL_PREFIX}/lib
+    )
+endif()
 
 
 include(FindPackageHandleStandardArgs)
