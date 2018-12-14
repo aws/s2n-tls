@@ -44,10 +44,12 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
     signature.size = signature_size;
     signature.data = s2n_stuffer_raw_read(in, signature.size);
     notnull_check(signature.data);
+
+    /* Use a copy of the hash state since the verify digest computation may modify the running hash state we need later. */
     struct s2n_hash_state hash_state = {0};
     GUARD(s2n_handshake_get_hash_state(conn, chosen_hash_alg, &hash_state));
     GUARD(s2n_hash_copy(&conn->handshake.ccv_hash_copy, &hash_state));
-    
+
     switch (chosen_signature_alg) {
     case S2N_SIGNATURE_RSA:
     case S2N_SIGNATURE_ECDSA:
@@ -79,8 +81,10 @@ int s2n_client_cert_verify_send(struct s2n_connection *conn)
         GUARD(s2n_stuffer_write_uint8(out, (uint8_t) chosen_signature_alg));
     }
 
+    /* Use a copy of the hash state since the verify digest computation may modify the running hash state we need later. */
     struct s2n_hash_state hash_state = {0};
     GUARD(s2n_handshake_get_hash_state(conn, chosen_hash_alg, &hash_state));
+    GUARD(s2n_hash_copy(&conn->handshake.ccv_hash_copy, &hash_state));
 
     struct s2n_blob signature = {0};
 
@@ -92,7 +96,7 @@ int s2n_client_cert_verify_send(struct s2n_connection *conn)
 
         signature.data = s2n_stuffer_raw_write(out, signature.size);
         notnull_check(signature.data);
-        GUARD(s2n_pkey_sign(&conn->config->cert_and_key_pairs->private_key, &hash_state, &signature));
+        GUARD(s2n_pkey_sign(&conn->config->cert_and_key_pairs->private_key, &conn->handshake.ccv_hash_copy, &signature));
         break;
     default:
         S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
