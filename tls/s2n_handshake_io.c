@@ -71,7 +71,7 @@ static int s2n_handshake_dummy_handler(struct s2n_connection *conn) {
  */
 static struct s2n_handshake_action state_machine[] = {
     /* message_type_t           = {Record type   Message type     Writer S2N_SERVER                S2N_CLIENT }  */
-    [CLIENT_HELLO]              = {TLS_HANDSHAKE, TLS_CLIENT_HELLO, 'C', {s2n_client_hello_recv_new, s2n_client_hello_send}}, 
+    [CLIENT_HELLO]              = {TLS_HANDSHAKE, TLS_CLIENT_HELLO, 'C', {s2n_client_hello_recv, s2n_client_hello_send}}, 
     [SERVER_SESSION_LOOKUP]     = {TLS_HANDSHAKE, TLS_SERVER_SESSION_LOOKUP, 'A', {s2n_server_session_lookup, s2n_handshake_dummy_handler}},
     [SERVER_HELLO]              = {TLS_HANDSHAKE, TLS_SERVER_HELLO, 'S', {s2n_server_hello_send, s2n_server_hello_recv}}, 
     [SERVER_NEW_SESSION_TICKET] = {TLS_HANDSHAKE, TLS_SERVER_NEW_SESSION_TICKET,'S', {s2n_server_nst_send, s2n_server_nst_recv}},
@@ -279,8 +279,7 @@ static int s2n_advance_message(struct s2n_connection *conn)
     }
 
     /* Are we changing I/O directions */
-    if (ACTIVE_STATE(conn).writer == PREVIOUS_STATE(conn).writer ||
-        ACTIVE_STATE(conn).writer == 'A') {
+    if (ACTIVE_STATE(conn).writer == PREVIOUS_STATE(conn).writer || ACTIVE_STATE(conn).writer == 'A' || PREVIOUS_STATE(conn).writer == 'A') {
         return 0;
     }
 
@@ -601,7 +600,6 @@ static int handshake_handle_app_data(struct s2n_connection *conn) {
 
     if (r == 0) {
         /* if r == 0, then we advance the state machine */
-        //GUARD(s2n_handshake_conn_update_hashes(conn));
         GUARD(s2n_stuffer_wipe(&conn->handshake.io));
         GUARD(s2n_advance_message(conn));
         goto done;
@@ -609,15 +607,11 @@ static int handshake_handle_app_data(struct s2n_connection *conn) {
 
     if (r == 1) {
         /* if r == 1, it means we are still blocked */
-        //GUARD(s2n_stuffer_wipe(&conn->header_in));
-        //GUARD(s2n_stuffer_wipe(&conn->in));
-        //conn->in_status = ENCRYPTED;
         return r;
     }
 
     if (r < 0) {
         /* if r == -1, we kill the connection */
-        //GUARD(s2n_handshake_conn_update_hashes(conn));
         GUARD(s2n_stuffer_wipe(&conn->handshake.io));
         GUARD(s2n_connection_kill(conn));
         return r;
@@ -625,8 +619,6 @@ static int handshake_handle_app_data(struct s2n_connection *conn) {
 
 done:    
     /* We're done with the record, wipe it */
-    GUARD(s2n_stuffer_wipe(&conn->header_in));
-    GUARD(s2n_stuffer_wipe(&conn->in));
     conn->in_status = ENCRYPTED;
 
     return 0;
@@ -752,9 +744,6 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
     while (ACTIVE_STATE(conn).writer != 'B') {
         /* Flush any pending I/O or alert messages */
         GUARD(s2n_flush(conn, blocked));
-
-        //printf("OMG the mode is %d\n", conn->mode);
-        //printf("OMG the writer flag is %c\n", ACTIVE_STATE(conn).writer);
 
         if (ACTIVE_STATE(conn).writer == 'A') {
             /* We are in a state that is blocked on application data */
