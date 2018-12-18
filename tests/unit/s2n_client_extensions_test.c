@@ -592,7 +592,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(server_config));
         
         /* Clear pipe since negotiation failed mid-handshake */
-        read(server_to_client[0], buf, sizeof(buf));
+        EXPECT_SUCCESS(read(server_to_client[0], buf, sizeof(buf)));
     }
 
     /* Client doesn't use the OCSP extension. */

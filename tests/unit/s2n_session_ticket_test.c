@@ -923,6 +923,7 @@ int main(int argc, char **argv)
        EXPECT_SUCCESS(close(client_to_server[i]));
     }
 
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     free(cert_chain);
     free(private_key);
     END_TEST();
