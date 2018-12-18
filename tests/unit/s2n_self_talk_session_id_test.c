@@ -364,9 +364,7 @@ int main(int argc, char **argv)
          * working as expected */
         EXPECT_EQUAL(s2n_connection_get_session_id_length(conn), MAX_KEY_LEN);
         EXPECT_EQUAL(s2n_connection_get_session_id(conn, session_id_from_client, MAX_KEY_LEN), s2n_connection_get_session_id_length(conn));
-        for (int i = 0; i < MAX_KEY_LEN; i++) {
-            EXPECT_EQUAL(session_id_from_client[i], session_id_from_server[i]);
-        }
+        EXPECT_EQUAL(0, memcmp(session_id_from_client, session_id_from_server, MAX_KEY_LEN));
 
         /* Make sure we did a abbreviated handshake */
         EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type));
