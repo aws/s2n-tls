@@ -100,7 +100,8 @@ int s2n_cert_chain_and_key_set_cert_chain(struct s2n_cert_chain_and_key *cert_an
 
 int s2n_cert_chain_and_key_set_private_key(struct s2n_cert_chain_and_key *cert_and_key, const char *private_key_pem)
 {
-    struct s2n_stuffer key_in_stuffer, key_out_stuffer;
+    DEFER_CLEANUP(struct s2n_stuffer key_in_stuffer = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer key_out_stuffer = {{0}}, s2n_stuffer_free);
     struct s2n_blob key_blob = {0};
 
     GUARD(s2n_pkey_zero_init(cert_and_key->private_key));
@@ -111,14 +112,12 @@ int s2n_cert_chain_and_key_set_private_key(struct s2n_cert_chain_and_key *cert_a
 
     /* Convert pem to asn1 and asn1 to the private key. Handles both PKCS#1 and PKCS#8 formats */
     GUARD(s2n_stuffer_private_key_from_pem(&key_in_stuffer, &key_out_stuffer));
-    GUARD(s2n_stuffer_free(&key_in_stuffer));
     key_blob.size = s2n_stuffer_data_available(&key_out_stuffer);
     key_blob.data = s2n_stuffer_raw_read(&key_out_stuffer, key_blob.size);
     notnull_check(key_blob.data);
 
     /* Get key type and create appropriate key context */
     GUARD(s2n_asn1der_to_private_key(cert_and_key->private_key, &key_blob));
-    GUARD(s2n_stuffer_free(&key_out_stuffer));
 
     return 0;
 }
@@ -152,6 +151,8 @@ struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void)
     GUARD_PTR(s2n_alloc(&mem, sizeof(struct s2n_cert_chain_and_key)));
     chain_and_key = (struct s2n_cert_chain_and_key *)(void *)mem.data;
     
+    chain_and_key->cert_chain = NULL;
+    chain_and_key->private_key = NULL;
     memset(&chain_and_key->ocsp_status, 0, sizeof(chain_and_key->ocsp_status));
     memset(&chain_and_key->sct_list, 0, sizeof(chain_and_key->sct_list));
     
@@ -176,7 +177,7 @@ int s2n_cert_chain_and_key_init(struct s2n_cert_chain_and_key *chain_and_key, co
     GUARD(s2n_cert_chain_and_key_set_private_key(chain_and_key, private_key_pem));
 
     /* Parse the leaf cert for the public key and certificate type */
-    struct s2n_pkey public_key = {{{0}}};
+    DEFER_CLEANUP(struct s2n_pkey public_key = {{{0}}}, s2n_pkey_free);
     s2n_cert_type cert_type;
     GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &cert_type, &chain_and_key->cert_chain->head->raw));
     GUARD(s2n_cert_set_cert_type(chain_and_key->cert_chain->head, cert_type));
@@ -221,12 +222,14 @@ int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key)
     };
     GUARD(s2n_free(&c));
 
-    struct s2n_blob k = {
-	.data = (uint8_t *) cert_and_key->private_key,
-	.size = sizeof(s2n_cert_private_key)
-    }; 
-    GUARD(s2n_pkey_free(cert_and_key->private_key));
-    GUARD(s2n_free(&k));
+    if (cert_and_key->private_key) {
+        struct s2n_blob k = {
+            .data = (uint8_t *) cert_and_key->private_key,
+            .size = sizeof(s2n_cert_private_key)
+        }; 
+        GUARD(s2n_pkey_free(cert_and_key->private_key));
+        GUARD(s2n_free(&k));
+    }
  
     GUARD(s2n_free(&cert_and_key->ocsp_status));
     GUARD(s2n_free(&cert_and_key->sct_list));

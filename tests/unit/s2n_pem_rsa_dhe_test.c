@@ -175,6 +175,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
     EXPECT_FAILURE(s2n_cert_chain_and_key_init(chain_and_key, cert_chain_pem, (char *)unmatched_private_key));
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_config_free(config));
 
     EXPECT_SUCCESS(s2n_dh_params_free(&dh_params));
