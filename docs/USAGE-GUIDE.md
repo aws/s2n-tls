@@ -802,7 +802,11 @@ pointer to a memory location where the value should be stored,
 and a pointer to a 64 bit unsigned integer specifing the size of this value.
 Initially *value_size will be set to the amount of space allocated for
 the value, the callback should set *value_size to the actual size of the
-data returned. If there is insufficient space, -1 should be returned.
+data returned. If there is insufficient space, -1 should be returned. If
+the callback is blocked by some other connections/events, 1 should be returned
+and the ssl handshake state machine will stay in the current state until
+the callback is unblocked. Note that for cache_store and cache_delete, we don't
+yet support this feature.
 
 ### s2n\_config\_set\_cache\_delete\_callback
 

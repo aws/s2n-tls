@@ -272,6 +272,12 @@ struct s2n_connection {
 
     /* application protocols overridden */
     struct s2n_blob application_protocols_overridden;
+
+    /* Is this connection blocked on some other connections/events, e.g. ssl
+     * handshake depends on a session cache that must be fetched from
+     * non-localhost
+     */
+    unsigned block_on_other_events:1;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);

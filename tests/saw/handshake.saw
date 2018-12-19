@@ -9,5 +9,6 @@ s2n_handshake_io_lowlevel;
 print "Verified that the low-level specification corresponds to the C code";
 //prove of simulation of the low-level specification by the high-level specification. Is also the correctness property.
 print "Checking proof that the RFC simulates our Cryptol s2n spec";
-prove_print abc {{ rfcSimulatesS2N `{16} }};
+// prove_print z3 {{ rfcSimulatesS2N `{16} }}; // some versions of SAW fail
+prove_print z3 {{ rfcSimulatesS2N_alt `{16} }};
 print "Proved simulation of the s2n handshake state machine by the RFC-derived state machine";

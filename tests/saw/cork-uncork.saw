@@ -10,6 +10,7 @@ prove_print abc {{ highLevelSimulatesLowLevel `{16} }};
 print "Verified the low-level->high-level cork-uncork simulation";
 //prove no-double-uncork property for server mode
 prove_print abc {{ noDoubleCorkUncork }};
+prove_print abc {{ writersArePossible `{16} }};
 print "Verified that double uncorking or corking cannot occur in server mode";
 //(for the record) evidence that a double uncork can occur in client mode
 print "Expecting failure when proving low-high simulation without the server mode assumption";

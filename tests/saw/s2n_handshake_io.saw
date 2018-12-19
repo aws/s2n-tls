@@ -45,6 +45,9 @@ let config_use_tickets config = (crucible_field config "use_tickets");
 //conn->session_ticket_status
 let conn_session_ticket_status pconn = (crucible_field pconn "session_ticket_status");
 
+//conn->block_on_other_events
+let conn_block_on_other_events pconn = crucible_field pconn "block_on_other_events";
+
 //conn->client_cert_auth_type
 let cca_type pconn = crucible_field pconn "client_cert_auth_type";
 
@@ -214,7 +217,7 @@ let s2n_conn_set_handshake_type_spec = do {
     // of the post-state of the s2n_connection struct. In this case only handshake
     // type should change
     let conn' = {{ conn_set_handshake_type conn }};
-    //crucible_ghost_value corked {{ conn'.corked }};
+    crucible_ghost_value corked {{ conn'.corked }};
     crucible_points_to (conn_handshake_handshake_type pconn) (crucible_term {{ conn'.handshake.handshake_type }});
 
     // assert that s2n_advance_message returns 0 (true if the 4
@@ -251,7 +254,7 @@ let s2n_advance_message_spec = do {
     // handshake/cork-uncork state machine is equivalent to the one in
     // s2n
     crucible_points_to (crucible_global "handshakes") (crucible_term {{ handshakes }});
-    let messages = [ {{CLIENT_HELLO : [4]}}, {{SERVER_HELLO : [4]}}, {{SERVER_CERT : [4]}}, {{SERVER_NEW_SESSION_TICKET : [4]}}, {{SERVER_CERT_STATUS : [4]}}, {{SERVER_KEY : [4]}}, {{SERVER_CERT : [4]}}, {{SERVER_CERT_REQ : [4]}}, {{SERVER_HELLO_DONE : [4]}}, {{CLIENT_CERT : [4]}}, {{CLIENT_KEY : [4]}}, {{CLIENT_CERT_VERIFY : [4]}}, {{CLIENT_CHANGE_CIPHER_SPEC : [4]}}, {{SERVER_FINISHED : [4]}}, {{APPLICATION_DATA : [4]}}];
+    let messages = [ {{CLIENT_HELLO : [4]}}, {{SERVER_HELLO : [4]}}, {{SERVER_CERT : [4]}}, {{SERVER_NEW_SESSION_TICKET : [4]}}, {{SERVER_CERT_STATUS : [4]}}, {{SERVER_KEY : [4]}}, {{SERVER_CERT : [4]}}, {{SERVER_CERT_REQ : [4]}}, {{SERVER_HELLO_DONE : [4]}}, {{CLIENT_CERT : [4]}}, {{CLIENT_KEY : [4]}}, {{CLIENT_CERT_VERIFY : [4]}}, {{CLIENT_CHANGE_CIPHER_SPEC : [4]}}, {{SERVER_FINISHED : [4]}}, {{APPLICATION_DATA : [4]}}, {{SERVER_SESSION_LOOKUP:[5]}}];
 
     for messages (verify_state_machine_elem (crucible_global "state_machine"));
     // assert that s2n_advance_message returns 0 (true if the 4
@@ -347,7 +350,7 @@ let yices_debug = do {yices;
 
 // Workaround for If then else on nat
 let equalNat_ite = core_axiom
-  "\\(x y z :: Nat) (b :: Bool) -> eq Bool (equalNat x (ite Nat b y z)) (ite Bool b (equalNat x y) (equalNat x z))";
+  "\\(x y z : Nat) (b : Bool) -> eq Bool (equalNat x (ite Nat b y z)) (ite Bool b (equalNat x y) (equalNat x z))";
 
 // Low-level correspondence proof. This is the entry point for this file.
 let s2n_handshake_io_lowlevel = do {
@@ -368,7 +371,6 @@ let s2n_handshake_io_lowlevel = do {
     print "s2n_decrypt_session_ticket";
     s2n_decrypt_session_ticket <- crucible_llvm_unsafe_assume_spec llvm "s2n_decrypt_session_ticket" s2n_decrypt_session_ticket_spec;
     let dependencies = [s2n_socket_write_uncork, s2n_socket_write_cork, s2n_socket_was_corked, s2n_connection_is_managed_corked];
-
 
     print "Proving correctness of get_auth_type";
     auth_type_proof <- crucible_llvm_verify llvm "s2n_connection_get_client_auth_type" dependencies true s2n_connection_get_client_auth_type_spec (do {simplify (addsimp equalNat_ite basic_ss); yices;});
