@@ -1179,8 +1179,9 @@ int s2n_config_set_session_state_lifetime(struct s2n_config *config, uint32_t li
 int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *session, size_t length);
 int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, size_t max_length);
 int s2n_connection_get_session_ticket_lifetime_hint(struct s2n_connection *conn);
-ssize_t s2n_connection_get_session_length(struct s2n_connection *conn);
-ssize_t s2n_connection_get_session_id_length(struct s2n_connection *conn);
+int s2n_connection_get_session_length(struct s2n_connection *conn);
+int s2n_connection_get_session_id_length(struct s2n_connection *conn);
+int s2n_connection_get_session_id(struct s2n_connection *conn, uint8_t *session_id, size_t max_length);
 int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 ```
 
@@ -1201,6 +1202,8 @@ handshake.
 **s2n_connection_get_session_length** returns number of bytes needed to store serialized session state; it can be used to allocate the **session** buffer.
 
 **s2n_connection_get_session_id_length** returns session id length from the connection.
+
+**s2n_connection_get_session_id** get the session id from the connection and copies into the **session_id** buffer and returns the number of bytes that were copied.
 
 **s2n_connection_is_session_resumed** returns 1 if the handshake was abbreviated, otherwise returns 0.
 

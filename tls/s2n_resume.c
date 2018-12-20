@@ -280,7 +280,7 @@ int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, si
     notnull_check(conn);
     notnull_check(session);
 
-    uint32_t len = s2n_connection_get_session_length(conn);
+    int len = s2n_connection_get_session_length(conn);
 
     if (len == 0) {
         return 0;
@@ -312,7 +312,7 @@ int s2n_connection_get_session_ticket_lifetime_hint(struct s2n_connection *conn)
     }
 }
 
-ssize_t s2n_connection_get_session_length(struct s2n_connection *conn)
+int s2n_connection_get_session_length(struct s2n_connection *conn)
 {
     /* Session resumption using session ticket "format (1) + session_ticket_len + session_ticket + session state" */
     if (conn->config->use_tickets && conn->client_ticket.size > 0) {
