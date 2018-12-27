@@ -456,7 +456,6 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_OPTIONAL));
 
     /* Server requires optional client auth but will reject the client cert. We need to reset the config, to turn validation back on*/
-    //EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_config_free(server_config));
     EXPECT_NOT_NULL(server_config = s2n_config_new());
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
