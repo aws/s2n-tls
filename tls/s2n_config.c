@@ -428,16 +428,11 @@ int s2n_config_set_verification_ca_location(struct s2n_config *config, const cha
     return err_code;
 }
 
-int s2n_config_add_cert_chain_from_stuffer(struct s2n_config *config, struct s2n_stuffer *chain_in_stuffer)
-{
-    GUARD(s2n_create_cert_chain_from_stuffer(config->cert_and_key_pairs->cert_chain, chain_in_stuffer));
-    return 0;
-}
-
 /* Deprecated. Superseded by s2n_config_add_cert_chain_and_key_to_store */
 int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem)
 {
-    struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new();
+    struct s2n_cert_chain_and_key *chain_and_key;
+    notnull_check(chain_and_key = s2n_cert_chain_and_key_new());
     GUARD(s2n_cert_chain_and_key_init(chain_and_key, cert_chain_pem, private_key_pem));
     GUARD(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     config->default_cert_and_key_pair = chain_and_key;    
@@ -447,15 +442,11 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
 
 int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
 {
-    struct s2n_blob mem = {0};
-
     /* Allocate the memory for the chain and key struct */
-    GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert_chain_and_key)));
-    config->cert_and_key_pairs = (struct s2n_cert_chain_and_key *)(void *)mem.data;
+    struct s2n_cert_chain_and_key *chain_and_key;
+    notnull_check(chain_and_key = s2n_cert_chain_and_key_new());
+    config->cert_and_key_pairs = chain_and_key;
     
-    memset(&config->cert_and_key_pairs->ocsp_status, 0, sizeof(config->cert_and_key_pairs->ocsp_status));
-    memset(&config->cert_and_key_pairs->sct_list, 0, sizeof(config->cert_and_key_pairs->sct_list));
-
     config->cert_and_key_pairs->cert_chain = cert_key_pair->cert_chain;
     config->cert_and_key_pairs->private_key = cert_key_pair->private_key;
 
