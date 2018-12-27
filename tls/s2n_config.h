@@ -32,7 +32,9 @@ struct s2n_cipher_preferences;
 
 struct s2n_config {
     struct s2n_dh_params *dhparams;
-    /* Used until we can deprecate s2n_config_add_cert_chain_and_key */
+    /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
+     * used to release memory allocated only in the deprecated API that the application 
+     * does not have a reference to. */
     struct s2n_cert_chain_and_key *default_cert_and_key_pair;
     struct s2n_cert_chain_and_key *cert_and_key_pairs;
     const struct s2n_cipher_preferences *cipher_preferences;
