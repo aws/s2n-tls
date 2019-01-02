@@ -226,7 +226,6 @@ int s2n_resume_from_cache(struct s2n_connection *conn)
     GUARD(r);
 
     if (r == 1) {
-        conn->block_on_other_events = 1;
         return r;
     }
 
