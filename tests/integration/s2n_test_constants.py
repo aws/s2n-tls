@@ -64,6 +64,7 @@ ALL_TEST_CIPHERS = [
 ]
 
 # Expected preferences for SignatureAlgorithms in GnuTLS priority string format
+# See https://github.com/awslabs/s2n/blob/master/tls/s2n_tls_digest_preferences.h
 EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS = [
     "SIGN-RSA-SHA256",
     "SIGN-RSA-SHA384",

@@ -33,6 +33,11 @@ from s2n_test_constants import *
 # A container to make passing the return values from an attempted handshake more convenient
 HANDSHAKE_RC = collections.namedtuple('HANDSHAKE_RC', 'handshake_success gnutls_stdout')
 
+# Helper to print just the SHA256 portion of SIGN-RSA-SHA256
+def sigalg_str_from_list(sigalgs):
+    # strip the first nine bytes from each name for "SIGN-RSA", 11 for "SIGN-ECDSA"
+    return ":".join(x[9:] if x.startswith("SIGN-RSA") else x[11:] for x in sigalgs)
+
 def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, enter_fips_mode=False):
     # Fire up s2nd
     s2nd_cmd = ["../../bin/s2nd", str(endpoint), str(port)]
@@ -107,18 +112,18 @@ def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, enter
     s2nd.wait()
     return HANDSHAKE_RC(True, gnutls_initial_stdout_str)
 
-def handshake(endpoint, port, cipher_name, ssl_version, priority_str, digests, mfl_extension_test, fips_mode):
+def handshake(endpoint, port, cipher_name, ssl_version, priority_str, digests, mfl_extension_test, fips_mode,
+        other_prefix=None):
     ret = try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, fips_mode)
 
-    prefix = ""
+    prefix = other_prefix or ""
     if mfl_extension_test:
-        prefix = "MFL: %-10s Cipher: %-10s Vers: %-10s ... " % (mfl_extension_test, cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
+        prefix += "MFL: %-10s Cipher: %-10s Vers: %-10s ... " % (mfl_extension_test, cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
     elif len(digests) == 0:
-        prefix = "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
+        prefix += "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
     else:
-        # strip the first nine bytes from each name ("RSA-SIGN-")
-        digest_string = ':'.join([x[9:] for x in digests])
-        prefix = "Digests: %-40s Vers: %-10s ... " % (digest_string, S2N_PROTO_VERS_TO_STR[ssl_version])
+        # strip the first nine bytes from each name for "SIGN-RSA", 11 for "SIGN-ECDSA"
+        prefix += "Digests: %-40s Vers: %-10s ... " % (sigalg_str_from_list(digests), S2N_PROTO_VERS_TO_STR[ssl_version])
 
     suffix = ""
     if ret.handshake_success == True:
@@ -251,19 +256,21 @@ def main():
                 continue
             # To find the Nth preferred signature algorithm, generate a priority string with ALL sigalgs then subtract any
             # higher preference sigalgs we've already found.
-            sig_algs_to_remove = ":!".join(EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS[:i])
+            current_preferences_found = EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS[:i]
+            sig_algs_to_remove = ":!".join(current_preferences_found)
             sig_algs = "SIGN-ALL"
             if len(sig_algs_to_remove) > 0:
                 sig_algs += ":!" + sig_algs_to_remove
             priority_str = cipher.gnutls_priority_str + ":+VERS-TLS1.2:+" + sig_algs
-            print("The priority str: " + priority_str)
-            rc = handshake(host, port, cipher.openssl_name, S2N_TLS12, priority_str, [], 0, fips_mode)
+            rc = handshake(host, port, cipher.openssl_name, S2N_TLS12, priority_str, [], 0, fips_mode, "Preferences found: %-40s "
+                    % (sigalg_str_from_list(current_preferences_found)))
             if rc.handshake_success == False:
-                print("Failed to negotiate " + EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS[i] + " as expected!")
+                print("Failed to negotiate " + EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS[i] + " as expected! Priority string: "
+                        + priority_str)
                 return -1
             negotiated_sigalg_line = [line for line in rc.gnutls_stdout.split('\n') if "Server Signature" in line]
             if len(negotiated_sigalg_line) == 0:
-                print("Failed to find negotiated sig alg in gnutls-cli output!")
+                print("Failed to find negotiated sig alg in gnutls-cli output! Priority string: " + priority_str)
                 return -1
 
             # The gnutls-cli output is for sigalgs is of the format "Server Signature : $SIGALG"
@@ -272,7 +279,8 @@ def main():
             negotiated_sigalg = "SIGN-" + negotiated_sigalg_line[0].split(":")[1].strip()
             if negotiated_sigalg != EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS[i]:
                 print("Failed to negotiate the expected sigalg! Expected " + EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS[i]
-                        + " Got: " + negotiated_sigalg + " at position " + str(i) + " in the preference list")
+                        + " Got: " + negotiated_sigalg + " at position " + str(i) + " in the preference list" +
+                        " Priority string: " + priority_str)
                 return -1
 
     print("\n\tTesting ECDSA Signature Algorithm preferences")
@@ -283,19 +291,21 @@ def main():
                 continue
             # To find the Nth preferred signature algorithm, generate a priority string with ALL sigalgs then subtract any
             # higher preference sigalgs we've already found.
-            sig_algs_to_remove = ":!".join(EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS[:i])
+            current_preferences_found = EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS[:i]
+            sig_algs_to_remove = ":!".join(current_preferences_found)
             sig_algs = "SIGN-ALL"
             if len(sig_algs_to_remove) > 0:
                 sig_algs += ":!" + sig_algs_to_remove
             priority_str = cipher.gnutls_priority_str + ":+VERS-TLS1.2:+" + sig_algs
-            print("The priority str: " + priority_str)
-            rc = handshake(host, port, cipher.openssl_name, S2N_TLS12, priority_str, [], 0, fips_mode)
+            rc = handshake(host, port, cipher.openssl_name, S2N_TLS12, priority_str, [], 0, fips_mode, "Preferences found: %-40s "
+                    % (sigalg_str_from_list(current_preferences_found)))
             if rc.handshake_success == False:
-                print("Failed to negotiate " + EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS[i] + " as expected!")
+                print("Failed to negotiate " + EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS[i] + " as expected! Priority string: " +
+                        priority_str)
                 return -1
             negotiated_sigalg_line = [line for line in rc.gnutls_stdout.split('\n') if "Server Signature" in line]
             if len(negotiated_sigalg_line) == 0:
-                print("Failed to find negotiated sig alg in gnutls-cli output!")
+                print("Failed to find negotiated sig alg in gnutls-cli output! Priority string: " + priority_str)
                 return -1
 
             # The gnutls-cli output is for sigalgs is of the format "Server Signature : $SIGALG"
@@ -304,7 +314,8 @@ def main():
             negotiated_sigalg = "SIGN-" + negotiated_sigalg_line[0].split(":")[1].strip()
             if negotiated_sigalg != EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS[i]:
                 print("Failed to negotiate the expected sigalg! Expected " + EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS[i]
-                        + " Got: " + negotiated_sigalg + " at position " + str(i) + " in the preference list")
+                        + " Got: " + negotiated_sigalg + " at position " + str(i) + " in the preference list" +
+                        " Priority string: " + priority_str)
                 return -1
 
 
