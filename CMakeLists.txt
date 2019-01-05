@@ -208,6 +208,6 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}-config.cmake"
         COMPONENT Development)
 
 install(FILES "cmake/modules/FindLibCrypto.cmake"
-        DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/cmake/"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/"
         COMPONENT Development)
 
