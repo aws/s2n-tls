@@ -146,20 +146,25 @@ enable_testing()
 file(GLOB UNITTESTS_SRC "tests/unit/*.c")
     foreach(test_case ${UNITTESTS_SRC})
     string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
-    add_executable(${test_case_name} ${test_case})
-    target_link_libraries(${test_case_name} PRIVATE testss2n PRIVATE m pthread)
-    target_include_directories(${test_case_name} PRIVATE api)
-    target_include_directories(${test_case_name} PRIVATE ./)
-    target_include_directories(${test_case_name} PRIVATE tests)
-    target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -D_POSIX_C_SOURCE=200809L -std=c99)
-    add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
+    
+    #s2n_cbc_verify_test uses inline asm which will break non-intel builds.
+    if (NOT (${test_case_name} STREQUAL "s2n_cbc_verify_test"))
+        add_executable(${test_case_name} ${test_case})
+        target_link_libraries(${test_case_name} PRIVATE testss2n PRIVATE m pthread)
+        target_include_directories(${test_case_name} PRIVATE api)
+        target_include_directories(${test_case_name} PRIVATE ./)
+        target_include_directories(${test_case_name} PRIVATE tests)
+        target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -D_POSIX_C_SOURCE=200809L -std=c99)
+        add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
 
-    set_property(
-    TEST
-        ${test_case_name}
-    PROPERTY
-        ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
-
+        set_property(
+        TEST
+            ${test_case_name}
+        PROPERTY
+            ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
+    else()
+        message("Skipping test: ${test_case}, because it is not architecture independent.")
+    endif()
 endforeach(test_case)
 
 add_executable(s2nc "bin/s2nc.c" "bin/echo.c")
@@ -173,14 +178,20 @@ target_include_directories(s2nd PRIVATE api)
 target_compile_options(s2nd PRIVATE -std=c99 -D_POSIX_C_SOURCE=200112L)
 
 #install the s2n files
-install(FILES ${API_HEADERS} DESTINATION "include/")
+install(FILES ${API_HEADERS} DESTINATION "include/" COMPONENT Development)
+
+if (UNIX AND NOT APPLE)
+    include(GNUInstallDirs)
+elseif(NOT DEFINED CMAKE_INSTALL_LIBDIR)
+    set(CMAKE_INSTALL_LIBDIR "lib")
+endif()
 
 install(
         TARGETS ${CMAKE_PROJECT_NAME}
         EXPORT ${CMAKE_PROJECT_NAME}-targets
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-        RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Development
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime
+        RUNTIME DESTINATION bin COMPONENT Runtime
 )
 
 configure_file("cmake/${CMAKE_PROJECT_NAME}-config.cmake"
@@ -188,12 +199,15 @@ configure_file("cmake/${CMAKE_PROJECT_NAME}-config.cmake"
         @ONLY)
 
 install(EXPORT "${CMAKE_PROJECT_NAME}-targets"
-        DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/${CMAKE_PROJECT_NAME}/cmake/"
-        NAMESPACE AWS::)
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/${CMAKE_PROJECT_NAME}/cmake/"
+        NAMESPACE AWS::
+        COMPONENT Development)
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}-config.cmake"
-        DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/${CMAKE_PROJECT_NAME}/cmake/")
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/${CMAKE_PROJECT_NAME}/cmake/"
+        COMPONENT Development)
 
 install(FILES "cmake/modules/FindLibCrypto.cmake"
-        DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/cmake/")
+        DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/cmake/"
+        COMPONENT Development)
 
