@@ -150,7 +150,7 @@ file(GLOB UNITTESTS_SRC "tests/unit/*.c")
     #s2n_cbc_verify_test uses inline asm which will break non-intel builds.
     if (NOT (${test_case_name} STREQUAL "s2n_cbc_verify_test"))
         add_executable(${test_case_name} ${test_case})
-        target_link_libraries(${test_case_name} PRIVATE testss2n PRIVATE m pthread)
+        target_link_libraries(${test_case_name} PRIVATE testss2n PRIVATE m ${OS_LIBS})
         target_include_directories(${test_case_name} PRIVATE api)
         target_include_directories(${test_case_name} PRIVATE ./)
         target_include_directories(${test_case_name} PRIVATE tests)
