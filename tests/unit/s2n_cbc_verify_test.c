@@ -107,11 +107,13 @@ static void summarize(uint64_t *list, int n, uint64_t *count, uint64_t *avg, uin
     }
 }
 
+#if defined(__x86_64__) || defined(__i386__)
 inline static uint64_t rdtsc(){
     unsigned int bot, top;
     __asm__ __volatile__ ("rdtsc" : "=a" (bot), "=d" (top));
     return ((uint64_t) top << 32) | bot;
 }
+#endif /* defined(__x86_64__) || defined(__i386__) */
 
 int main(int argc, char **argv)
 {
@@ -123,6 +125,7 @@ int main(int argc, char **argv)
     struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
 
     BEGIN_TEST();
+#if defined(__x86_64__) || defined(__i386__)
 
     /* Valgrind affects execution timing, making this test unreliable */
     if (getenv("S2N_VALGRIND") != NULL) {
@@ -281,5 +284,6 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hmac_free(&record_mac));
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
+#endif /* defined(__x86_64__) || defined(__i386__) */
     END_TEST();
 }

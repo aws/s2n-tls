@@ -122,7 +122,7 @@ endif()
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
 
 find_package(LibCrypto REQUIRED)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE LibCrypto::Crypto PRIVATE ${OS_LIBS} m)
+target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC LibCrypto::Crypto ${OS_LIBS} m)
 
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
@@ -146,25 +146,20 @@ enable_testing()
 file(GLOB UNITTESTS_SRC "tests/unit/*.c")
     foreach(test_case ${UNITTESTS_SRC})
     string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
-    
-    #s2n_cbc_verify_test uses inline asm which will break non-intel builds.
-    if (NOT (${test_case_name} STREQUAL "s2n_cbc_verify_test"))
-        add_executable(${test_case_name} ${test_case})
-        target_link_libraries(${test_case_name} PRIVATE testss2n PRIVATE m ${OS_LIBS})
-        target_include_directories(${test_case_name} PRIVATE api)
-        target_include_directories(${test_case_name} PRIVATE ./)
-        target_include_directories(${test_case_name} PRIVATE tests)
-        target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -D_POSIX_C_SOURCE=200809L -std=c99)
-        add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
 
-        set_property(
-        TEST
-            ${test_case_name}
-        PROPERTY
-            ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
-    else()
-        message("Skipping test: ${test_case}, because it is not architecture independent.")
-    endif()
+    add_executable(${test_case_name} ${test_case})
+    target_link_libraries(${test_case_name} PRIVATE testss2n m)
+    target_include_directories(${test_case_name} PRIVATE api)
+    target_include_directories(${test_case_name} PRIVATE ./)
+    target_include_directories(${test_case_name} PRIVATE tests)
+    target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -D_POSIX_C_SOURCE=200809L -std=c99)
+    add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
+
+    set_property(
+    TEST
+        ${test_case_name}
+    PROPERTY
+        ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
 endforeach(test_case)
 
 add_executable(s2nc "bin/s2nc.c" "bin/echo.c")
