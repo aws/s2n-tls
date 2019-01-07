@@ -252,12 +252,14 @@ def main():
     print("\n\tTesting RSA Signature Algorithm preferences")
     print("\n\tExpected preference order: " + ",".join(EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS))
     for i in range(0, len(EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS)):
+        # To find the Nth preferred signature algorithm, generate a priority string with ALL sigalgs then subtract any
+        # higher preference sigalgs we've already found.
+        current_preferences_found = EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS[:i]
+        # We expect to negotiate sigalg at preference i if previous i - 1 sigalgs are removed.
+        expected_sigalg = EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS[i]
         for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-SHA", ALL_TEST_CIPHERS):
             if fips_mode and cipher.openssl_fips_compatible == False:
                 continue
-            # To find the Nth preferred signature algorithm, generate a priority string with ALL sigalgs then subtract any
-            # higher preference sigalgs we've already found.
-            current_preferences_found = EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS[:i]
             sig_algs_to_remove = ":!".join(current_preferences_found)
             sig_algs = "SIGN-ALL"
             if len(sig_algs_to_remove) > 0:
@@ -266,7 +268,7 @@ def main():
             rc = handshake(host, port, cipher.openssl_name, S2N_TLS12, priority_str, [], 0, fips_mode, "Preferences found: %-40s "
                     % (sigalg_str_from_list(current_preferences_found)))
             if rc.handshake_success == False:
-                print("Failed to negotiate " + EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS[i] + " as expected! Priority string: "
+                print("Failed to negotiate " + expected_sigalg + " as expected! Priority string: "
                         + priority_str)
                 return -1
             negotiated_sigalg_line = [line for line in rc.gnutls_stdout.split('\n') if "Server Signature" in line]
@@ -278,8 +280,8 @@ def main():
             # Confusingly, $SIGALG is in GnuTLS priority string format with the "SIGN" part of the string removed.
             # Restore it to this string for comparison with existing list.
             negotiated_sigalg = "SIGN-" + negotiated_sigalg_line[0].split(":")[1].strip()
-            if negotiated_sigalg != EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS[i]:
-                print("Failed to negotiate the expected sigalg! Expected " + EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS[i]
+            if negotiated_sigalg != expected_sigalg:
+                print("Failed to negotiate the expected sigalg! Expected " + expected_sigalg
                         + " Got: " + negotiated_sigalg + " at position " + str(i) + " in the preference list" +
                         " Priority string: " + priority_str)
                 return -1
@@ -287,12 +289,14 @@ def main():
     print("\n\tTesting ECDSA Signature Algorithm preferences")
     print("\n\tExpected preference order: " + ",".join(EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS))
     for i in range(0, len(EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS)):
+        # To find the Nth preferred signature algorithm, generate a priority string with ALL sigalgs then subtract any
+        # higher preference sigalgs we've already found.
+        current_preferences_found = EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS[:i]
+        # We expect to negotiate sigalg at preference i if previous i - 1 sigalgs are removed.
+        expected_sigalg = EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS[i]
         for cipher in filter(lambda x: x.openssl_name == "ECDHE-ECDSA-AES128-SHA", ALL_TEST_CIPHERS):
             if fips_mode and cipher.openssl_fips_compatible == False:
                 continue
-            # To find the Nth preferred signature algorithm, generate a priority string with ALL sigalgs then subtract any
-            # higher preference sigalgs we've already found.
-            current_preferences_found = EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS[:i]
             sig_algs_to_remove = ":!".join(current_preferences_found)
             sig_algs = "SIGN-ALL"
             if len(sig_algs_to_remove) > 0:
@@ -301,7 +305,7 @@ def main():
             rc = handshake(host, port, cipher.openssl_name, S2N_TLS12, priority_str, [], 0, fips_mode, "Preferences found: %-40s "
                     % (sigalg_str_from_list(current_preferences_found)))
             if rc.handshake_success == False:
-                print("Failed to negotiate " + EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS[i] + " as expected! Priority string: " +
+                print("Failed to negotiate " + expected_sigalg + " as expected! Priority string: " +
                         priority_str)
                 return -1
             negotiated_sigalg_line = [line for line in rc.gnutls_stdout.split('\n') if "Server Signature" in line]
@@ -313,8 +317,8 @@ def main():
             # Confusingly, $SIGALG is in GnuTLS priority string format with the "SIGN" part of the string removed.
             # Restore it to this string for comparison with existing list.
             negotiated_sigalg = "SIGN-" + negotiated_sigalg_line[0].split(":")[1].strip()
-            if negotiated_sigalg != EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS[i]:
-                print("Failed to negotiate the expected sigalg! Expected " + EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS[i]
+            if negotiated_sigalg != expected_sigalg:
+                print("Failed to negotiate the expected sigalg! Expected " + expected_sigalg
                         + " Got: " + negotiated_sigalg + " at position " + str(i) + " in the preference list" +
                         " Priority string: " + priority_str)
                 return -1
