@@ -33,7 +33,11 @@
 #include "tls/s2n_record.h"
 #include "tls/s2n_prf.h"
 
-
+/*
+ * disable everything in this file if the compiler target isn't Intel x86 or x86_64. There's inline asm
+ * that can't really be replaced with an analog for other architectures.
+ */
+#if defined(__x86_64__) || defined(__i386__)
 /* qsort() u64s numerically */
 static int u64cmp (const void * left, const void * right)
 {
@@ -107,7 +111,6 @@ static void summarize(uint64_t *list, int n, uint64_t *count, uint64_t *avg, uin
     }
 }
 
-#if defined(__x86_64__) || defined(__i386__)
 inline static uint64_t rdtsc(){
     unsigned int bot, top;
     __asm__ __volatile__ ("rdtsc" : "=a" (bot), "=d" (top));
@@ -125,6 +128,10 @@ int main(int argc, char **argv)
     struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
 
     BEGIN_TEST();
+/*
+ * disable everything in this test if the compiler target isn't Intel x86 or x86_64. There's inline asm
+ * that can't really be replaced with an analog for other architectures.
+ */
 #if defined(__x86_64__) || defined(__i386__)
 
     /* Valgrind affects execution timing, making this test unreliable */
