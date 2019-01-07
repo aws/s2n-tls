@@ -73,6 +73,7 @@ def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, enter
     for line in range(0 , 100):
         output = gnutls_cli.stdout.readline().decode("utf-8")
         gnutls_initial_stdout_str += output + "\n"
+        # Once we see this string, we have read enough output to determine which signature algorithm was used
         if "Simple Client Mode" in output:
             break
 
