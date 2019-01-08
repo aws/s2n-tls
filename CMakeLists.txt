@@ -122,7 +122,7 @@ endif()
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
 
 find_package(LibCrypto REQUIRED)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE LibCrypto::Crypto PRIVATE ${OS_LIBS} m)
+target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC LibCrypto::Crypto ${OS_LIBS} m)
 
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
@@ -146,8 +146,9 @@ enable_testing()
 file(GLOB UNITTESTS_SRC "tests/unit/*.c")
     foreach(test_case ${UNITTESTS_SRC})
     string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
+
     add_executable(${test_case_name} ${test_case})
-    target_link_libraries(${test_case_name} PRIVATE testss2n PRIVATE m pthread)
+    target_link_libraries(${test_case_name} PRIVATE testss2n m)
     target_include_directories(${test_case_name} PRIVATE api)
     target_include_directories(${test_case_name} PRIVATE ./)
     target_include_directories(${test_case_name} PRIVATE tests)
@@ -159,7 +160,6 @@ file(GLOB UNITTESTS_SRC "tests/unit/*.c")
         ${test_case_name}
     PROPERTY
         ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
-
 endforeach(test_case)
 
 add_executable(s2nc "bin/s2nc.c" "bin/echo.c")
@@ -173,14 +173,20 @@ target_include_directories(s2nd PRIVATE api)
 target_compile_options(s2nd PRIVATE -std=c99 -D_POSIX_C_SOURCE=200112L)
 
 #install the s2n files
-install(FILES ${API_HEADERS} DESTINATION "include/")
+install(FILES ${API_HEADERS} DESTINATION "include/" COMPONENT Development)
+
+if (UNIX AND NOT APPLE)
+    include(GNUInstallDirs)
+elseif(NOT DEFINED CMAKE_INSTALL_LIBDIR)
+    set(CMAKE_INSTALL_LIBDIR "lib")
+endif()
 
 install(
         TARGETS ${CMAKE_PROJECT_NAME}
         EXPORT ${CMAKE_PROJECT_NAME}-targets
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-        RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Development
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime
+        RUNTIME DESTINATION bin COMPONENT Runtime
 )
 
 configure_file("cmake/${CMAKE_PROJECT_NAME}-config.cmake"
@@ -188,12 +194,15 @@ configure_file("cmake/${CMAKE_PROJECT_NAME}-config.cmake"
         @ONLY)
 
 install(EXPORT "${CMAKE_PROJECT_NAME}-targets"
-        DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/${CMAKE_PROJECT_NAME}/cmake/"
-        NAMESPACE AWS::)
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/${CMAKE_PROJECT_NAME}/cmake/"
+        NAMESPACE AWS::
+        COMPONENT Development)
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}-config.cmake"
-        DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/${CMAKE_PROJECT_NAME}/cmake/")
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/${CMAKE_PROJECT_NAME}/cmake/"
+        COMPONENT Development)
 
 install(FILES "cmake/modules/FindLibCrypto.cmake"
-        DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/cmake/")
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/"
+        COMPONENT Development)
 

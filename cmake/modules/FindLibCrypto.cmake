@@ -14,23 +14,39 @@
 #  LibCrypto_LIBRARY    The crypto library.
 find_path(LibCrypto_INCLUDE_DIR
         NAMES openssl/crypto.h
-        HINTS ${CMAKE_INSTALL_PREFIX}/include
+        HINTS
+            ${CMAKE_PREFIX_PATH}/include 
+            ${CMAKE_INSTALL_PREFIX}/include
         )
 
 if (BUILD_SHARED_LIBS)
     find_library(LibCrypto_LIBRARY
             NAMES libcrypto.so libcrypto.a
-            HINTS ${CMAKE_INSTALL_PREFIX}/build/crypto
+            HINTS
+            ${CMAKE_PREFIX_PATH}/build/crypto
+            ${CMAKE_PREFIX_PATH}/build
+            ${CMAKE_PREFIX_PATH}
+            ${CMAKE_PREFIX_PATH}/lib64
+            ${CMAKE_PREFIX_PATH}/lib 
+            ${CMAKE_INSTALL_PREFIX}/build/crypto
             ${CMAKE_INSTALL_PREFIX}/build
             ${CMAKE_INSTALL_PREFIX}
+            ${CMAKE_INSTALL_PREFIX}/lib64
             ${CMAKE_INSTALL_PREFIX}/lib
     )
 else()
     find_library(LibCrypto_LIBRARY
             NAMES libcrypto.a libcrypto.so
-            HINTS ${CMAKE_INSTALL_PREFIX}/build/crypto
+            HINTS 
+            ${CMAKE_PREFIX_PATH}/build/crypto
+            ${CMAKE_PREFIX_PATH}/build
+            ${CMAKE_PREFIX_PATH}
+            ${CMAKE_PREFIX_PATH}/lib64
+            ${CMAKE_PREFIX_PATH}/lib   
+            ${CMAKE_INSTALL_PREFIX}/build/crypto
             ${CMAKE_INSTALL_PREFIX}/build
             ${CMAKE_INSTALL_PREFIX}
+            ${CMAKE_INSTALL_PREFIX}/lib64
             ${CMAKE_INSTALL_PREFIX}/lib
     )
 endif()
