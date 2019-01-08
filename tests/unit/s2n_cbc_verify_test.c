@@ -120,6 +120,12 @@ inline static uint64_t rdtsc(){
 
 int main(int argc, char **argv)
 {
+    BEGIN_TEST();
+/*
+ * disable everything in this test if the compiler target isn't Intel x86 or x86_64. There's inline asm
+ * that can't really be replaced with an analog for other architectures.
+ */
+#if defined(__x86_64__) || defined(__i386__)
     struct s2n_connection *conn;
     uint8_t mac_key[] = "sample mac key";
     uint8_t fragment[S2N_SMALL_FRAGMENT_LENGTH];
@@ -127,12 +133,6 @@ int main(int argc, char **argv)
     struct s2n_hmac_state check_mac, record_mac;
     struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
 
-    BEGIN_TEST();
-/*
- * disable everything in this test if the compiler target isn't Intel x86 or x86_64. There's inline asm
- * that can't really be replaced with an analog for other architectures.
- */
-#if defined(__x86_64__) || defined(__i386__)
 
     /* Valgrind affects execution timing, making this test unreliable */
     if (getenv("S2N_VALGRIND") != NULL) {
