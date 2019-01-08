@@ -1,5 +1,5 @@
 #
-# Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ Simple handshake tests using gnutls-cli
 """
 
 import argparse
+import collections
 import os
 import sys
 import ssl
@@ -28,6 +29,14 @@ import multiprocessing
 from os import environ
 from multiprocessing.pool import ThreadPool
 from s2n_test_constants import *
+
+# A container to make passing the return values from an attempted handshake more convenient
+HANDSHAKE_RC = collections.namedtuple('HANDSHAKE_RC', 'handshake_success gnutls_stdout')
+
+# Helper to print just the SHA256 portion of SIGN-RSA-SHA256
+def sigalg_str_from_list(sigalgs):
+    # strip the first nine bytes from each name for "SIGN-RSA", 11 for "SIGN-ECDSA"
+    return ":".join(x[9:] if x.startswith("SIGN-RSA") else x[11:] for x in sigalgs)
 
 def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, enter_fips_mode=False):
     # Fire up s2nd
@@ -57,7 +66,16 @@ def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, enter
         gnutls_cmd.append("--recordsize=" + str(mfl_extension_test))
  
     # Fire up gnutls-cli, use insecure since s2nd is using a dummy cert
-    gnutls_cli = subprocess.Popen(gnutls_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    gnutls_cli = subprocess.Popen(gnutls_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    # Save the initial output of gnutls-cli to parse the negotiated handshake parameters later
+    gnutls_initial_stdout_str = ""
+    for line in range(0 , 100):
+        output = gnutls_cli.stdout.readline().decode("utf-8")
+        gnutls_initial_stdout_str += output + "\n"
+        # Once we see this string, we have read enough output to determine which signature algorithm was used
+        if "Simple Client Mode" in output:
+            break
 
     # Write the priority str towards s2nd. Prepend with the 's2n' string to make sure we don't accidently match something
     # in the gnutls-cli handshake output
@@ -74,7 +92,7 @@ def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, enter
             break
 
     if found == 0:
-        return -1
+        return HANDSHAKE_RC(False, gnutls_initial_stdout_str)
 
     # Write the cipher name from s2n
     s2nd.stdin.write((written_str + "\n").encode("utf-8"))
@@ -87,30 +105,29 @@ def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, enter
             break
 
     if found == 0:
-        return -1
+        return HANDSHAKE_RC(False, gnutls_initial_stdout_str)
 
     gnutls_cli.kill()
     gnutls_cli.wait()
     s2nd.kill()
     s2nd.wait()
+    return HANDSHAKE_RC(True, gnutls_initial_stdout_str)
 
-    return 0
-
-def handshake(endpoint, port, cipher_name, ssl_version, priority_str, digests, mfl_extension_test, fips_mode):
+def handshake(endpoint, port, cipher_name, ssl_version, priority_str, digests, mfl_extension_test, fips_mode,
+        other_prefix=None):
     ret = try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, fips_mode)
 
-    prefix = ""
+    prefix = other_prefix or ""
     if mfl_extension_test:
-        prefix = "MFL: %-10s Cipher: %-10s Vers: %-10s ... " % (mfl_extension_test, cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
+        prefix += "MFL: %-10s Cipher: %-10s Vers: %-10s ... " % (mfl_extension_test, cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
     elif len(digests) == 0:
-        prefix = "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
+        prefix += "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
     else:
-        # strip the first nine bytes from each name ("RSA-SIGN-")
-        digest_string = ':'.join([x[9:] for x in digests])
-        prefix = "Digests: %-40s Vers: %-10s ... " % (digest_string, S2N_PROTO_VERS_TO_STR[ssl_version])
+        # strip the first nine bytes from each name for "SIGN-RSA", 11 for "SIGN-ECDSA"
+        prefix += "Digests: %-40s Vers: %-10s ... " % (sigalg_str_from_list(digests), S2N_PROTO_VERS_TO_STR[ssl_version])
 
     suffix = ""
-    if ret == 0:
+    if ret.handshake_success == True:
         if sys.stdout.isatty():
             suffix = "\033[32;1mPASSED\033[0m"
         else:
@@ -183,18 +200,16 @@ def main():
         threadpool.close()
         threadpool.join()
         for async_result in results:
-            if async_result.get() != 0:
+            if async_result.get().handshake_success == False:
                 return -1
 
     # Produce permutations of every accepted signature algorithm in every possible order
-    rsa_signatures = ["SIGN-RSA-SHA1", "SIGN-RSA-SHA224", "SIGN-RSA-SHA256", "SIGN-RSA-SHA384", "SIGN-RSA-SHA512"];
-    
-    for size in range(1, len(rsa_signatures) + 1):
-        print("\n\tTesting ciphers using signature preferences of size: " + str(size))
+    for size in range(1, len(EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS) + 1):
+        print("\n\tTesting ciphers using RSA signature preferences of size: " + str(size))
         threadpool = create_thread_pool()
         port_offset = 0
         results = []
-        for permutation in itertools.permutations(rsa_signatures, size):
+        for permutation in itertools.permutations(EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS, size):
             # Try an ECDHE cipher suite and a DHE one
             for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or x.openssl_name == "DHE-RSA-AES128-GCM-SHA256", ALL_TEST_CIPHERS):
                 if fips_mode and cipher.openssl_fips_compatible == False:
@@ -207,17 +222,16 @@ def main():
         threadpool.close()
         threadpool.join()
         for async_result in results:
-            if async_result.get() != 0:
+            if async_result.get().handshake_success == False:
                 return -1
-   
+
     # Try ECDSA signature algorithm permutations. When we support multiple certificates, we can combine the RSA and ECDSA tests
-    ecdsa_signatures = ["SIGN-ECDSA-SHA1", "SIGN-ECDSA-SHA224", "SIGN-ECDSA-SHA256", "SIGN-ECDSA-SHA384", "SIGN-ECDSA-SHA512"];
-    for size in range(1, len(ecdsa_signatures) + 1):
+    for size in range(1, len(EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS) + 1):
         print("\n\tTesting ciphers using ECDSA signature preferences of size: " + str(size))
         threadpool = create_thread_pool()
         port_offset = 0
         results = []
-        for permutation in itertools.permutations(ecdsa_signatures, size):
+        for permutation in itertools.permutations(EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS, size):
             for cipher in filter(lambda x: x.openssl_name == "ECDHE-ECDSA-AES128-SHA", ALL_TEST_CIPHERS):
                 if fips_mode and cipher.openssl_fips_compatible == False:
                     continue
@@ -229,8 +243,86 @@ def main():
         threadpool.close()
         threadpool.join()
         for async_result in results:
-            if async_result.get() != 0:
+            if async_result.get().handshake_success == False:
                 return -1
+
+    # Test that s2n's server Signature Algorithm preferences are as expected.
+    # This is a brittle test that must be kept in sync with the signature algorithm preference lists in the core code,
+    # but made manageable by rarity of signature algorithm preference updates.
+    print("\n\tTesting RSA Signature Algorithm preferences")
+    print("\n\tExpected preference order: " + ",".join(EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS))
+    for i in range(0, len(EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS)):
+        # To find the Nth preferred signature algorithm, generate a priority string with ALL sigalgs then subtract any
+        # higher preference sigalgs we've already found.
+        current_preferences_found = EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS[:i]
+        # We expect to negotiate sigalg at preference i if previous i - 1 sigalgs are removed.
+        expected_sigalg = EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS[i]
+        for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-SHA", ALL_TEST_CIPHERS):
+            if fips_mode and cipher.openssl_fips_compatible == False:
+                continue
+            sig_algs_to_remove = ":!".join(current_preferences_found)
+            sig_algs = "SIGN-ALL"
+            if len(sig_algs_to_remove) > 0:
+                sig_algs += ":!" + sig_algs_to_remove
+            priority_str = cipher.gnutls_priority_str + ":+VERS-TLS1.2:+" + sig_algs
+            rc = handshake(host, port, cipher.openssl_name, S2N_TLS12, priority_str, [], 0, fips_mode, "Preferences found: %-40s "
+                    % (sigalg_str_from_list(current_preferences_found)))
+            if rc.handshake_success == False:
+                print("Failed to negotiate " + expected_sigalg + " as expected! Priority string: "
+                        + priority_str)
+                return -1
+            negotiated_sigalg_line = [line for line in rc.gnutls_stdout.split('\n') if "Server Signature" in line]
+            if len(negotiated_sigalg_line) == 0:
+                print("Failed to find negotiated sig alg in gnutls-cli output! Priority string: " + priority_str)
+                return -1
+
+            # The gnutls-cli output is for sigalgs is of the format "Server Signature : $SIGALG"
+            # Confusingly, $SIGALG is in GnuTLS priority string format with the "SIGN" part of the string removed.
+            # Restore it to this string for comparison with existing list.
+            negotiated_sigalg = "SIGN-" + negotiated_sigalg_line[0].split(":")[1].strip()
+            if negotiated_sigalg != expected_sigalg:
+                print("Failed to negotiate the expected sigalg! Expected " + expected_sigalg
+                        + " Got: " + negotiated_sigalg + " at position " + str(i) + " in the preference list" +
+                        " Priority string: " + priority_str)
+                return -1
+
+    print("\n\tTesting ECDSA Signature Algorithm preferences")
+    print("\n\tExpected preference order: " + ",".join(EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS))
+    for i in range(0, len(EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS)):
+        # To find the Nth preferred signature algorithm, generate a priority string with ALL sigalgs then subtract any
+        # higher preference sigalgs we've already found.
+        current_preferences_found = EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS[:i]
+        # We expect to negotiate sigalg at preference i if previous i - 1 sigalgs are removed.
+        expected_sigalg = EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS[i]
+        for cipher in filter(lambda x: x.openssl_name == "ECDHE-ECDSA-AES128-SHA", ALL_TEST_CIPHERS):
+            if fips_mode and cipher.openssl_fips_compatible == False:
+                continue
+            sig_algs_to_remove = ":!".join(current_preferences_found)
+            sig_algs = "SIGN-ALL"
+            if len(sig_algs_to_remove) > 0:
+                sig_algs += ":!" + sig_algs_to_remove
+            priority_str = cipher.gnutls_priority_str + ":+VERS-TLS1.2:+" + sig_algs
+            rc = handshake(host, port, cipher.openssl_name, S2N_TLS12, priority_str, [], 0, fips_mode, "Preferences found: %-40s "
+                    % (sigalg_str_from_list(current_preferences_found)))
+            if rc.handshake_success == False:
+                print("Failed to negotiate " + expected_sigalg + " as expected! Priority string: " +
+                        priority_str)
+                return -1
+            negotiated_sigalg_line = [line for line in rc.gnutls_stdout.split('\n') if "Server Signature" in line]
+            if len(negotiated_sigalg_line) == 0:
+                print("Failed to find negotiated sig alg in gnutls-cli output! Priority string: " + priority_str)
+                return -1
+
+            # The gnutls-cli output is for sigalgs is of the format "Server Signature : $SIGALG"
+            # Confusingly, $SIGALG is in GnuTLS priority string format with the "SIGN" part of the string removed.
+            # Restore it to this string for comparison with existing list.
+            negotiated_sigalg = "SIGN-" + negotiated_sigalg_line[0].split(":")[1].strip()
+            if negotiated_sigalg != expected_sigalg:
+                print("Failed to negotiate the expected sigalg! Expected " + expected_sigalg
+                        + " Got: " + negotiated_sigalg + " at position " + str(i) + " in the preference list" +
+                        " Priority string: " + priority_str)
+                return -1
+
 
     print("\n\tTesting handshakes with Max Fragment Length Extension")
     for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
@@ -248,9 +340,8 @@ def main():
         threadpool.close()
         threadpool.join()
         for async_result in results:
-            if async_result.get() != 0:
+            if async_result.get().handshake_success == False:
                 return -1
-
 
 if __name__ == "__main__":
     sys.exit(main())
