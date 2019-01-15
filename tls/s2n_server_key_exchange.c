@@ -40,7 +40,7 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     struct s2n_blob data_to_verify = {0};
 
     /* Read the KEX data */
-    union s2n_kex_server_data kex_data = {{{0}}};
+    union s2n_kex_raw_server_data kex_data = {{{0}}};
     GUARD(s2n_kex_server_key_recv_read_data(key_exchange, conn, &data_to_verify, &kex_data));
 
     /* Add common signature data */
@@ -77,26 +77,24 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_ecdhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify, union s2n_kex_server_data *kex_data)
+int s2n_ecdhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify, union s2n_kex_raw_server_data *raw_server_data)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
 
-    /* Read server ECDH params and calculate their hash */
-    GUARD(s2n_ecc_read_ecc_params(in, data_to_verify, &kex_data->ecdhe_data));
+    GUARD(s2n_ecc_read_ecc_params(in, data_to_verify, &raw_server_data->ecdhe_data));
     return 0;
 }
 
-int s2n_ecdhe_server_key_recv_parse_data(struct s2n_connection *conn, union s2n_kex_server_data *kex_data)
+int s2n_ecdhe_server_key_recv_parse_data(struct s2n_connection *conn, union s2n_kex_raw_server_data *raw_server_data)
 {
-    /* Read server ECDH params and calculate their hash */
-    GUARD(s2n_ecc_parse_ecc_params(&conn->secure.server_ecc_params, &kex_data->ecdhe_data));
+    GUARD(s2n_ecc_parse_ecc_params(&conn->secure.server_ecc_params, &raw_server_data->ecdhe_data));
     return 0;
 }
 
-int s2n_dhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify, union s2n_kex_server_data *kex_data)
+int s2n_dhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify, union s2n_kex_raw_server_data *raw_server_data)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
-    struct s2n_dhe_server_data *dhe_data = &kex_data->dhe_data;
+    struct s2n_dhe_raw_server_points *dhe_data = &raw_server_data->dhe_data;
 
     uint16_t p_length;
     uint16_t g_length;
@@ -128,24 +126,13 @@ int s2n_dhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_bl
     return 0;
 }
 
-int s2n_dhe_server_key_recv_parse_data(struct s2n_connection *conn, union s2n_kex_server_data *kex_data)
+int s2n_dhe_server_key_recv_parse_data(struct s2n_connection *conn, union s2n_kex_raw_server_data *raw_server_data)
 {
-    struct s2n_dhe_server_data dhe_data = kex_data->dhe_data;
+    struct s2n_dhe_raw_server_points dhe_data = raw_server_data->dhe_data;
 
     /* Copy the DH details */
     GUARD(s2n_dh_p_g_Ys_to_dh_params(&conn->secure.server_dh_params, &dhe_data.p, &dhe_data.g, &dhe_data.Ys));
     return 0;
-}
-
-// The client should never receive an additional RSA key during RSA key exchange
-int s2n_rsa_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify, union s2n_kex_server_data *kex_data)
-{
-    S2N_ERROR(S2N_ERR_HANDSHAKE_STATE);
-}
-
-int s2n_rsa_server_key_recv_parse_data(struct s2n_connection *conn, union s2n_kex_server_data *kex_data)
-{
-    S2N_ERROR(S2N_ERR_HANDSHAKE_STATE);
 }
 
 int s2n_server_key_send(struct s2n_connection *conn)
@@ -202,12 +189,6 @@ int s2n_dhe_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_t
     /* Write it out and calculate the data to sign later */
     GUARD(s2n_dh_params_to_p_g_Ys(&conn->secure.server_dh_params, out, data_to_sign));
     return 0;
-}
-
-// The server should never send an additional RSA key during RSA key exchange
-int s2n_rsa_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
-{
-    S2N_ERROR(S2N_ERR_HANDSHAKE_STATE);
 }
 
 static int s2n_write_signature_blob(struct s2n_stuffer *out, const struct s2n_pkey *priv_key, struct s2n_hash_state *digest)
