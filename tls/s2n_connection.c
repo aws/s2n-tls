@@ -38,6 +38,7 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_prf.h"
 #include "tls/s2n_resume.h"
+#include "tls/s2n_kem.h"
 
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_cipher.h"
@@ -269,6 +270,8 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->current_user_data_consumed = 0;
     conn->initial.cipher_suite = &s2n_null_cipher_suite;
     conn->secure.cipher_suite = &s2n_null_cipher_suite;
+    conn->initial.kem_params.negotiated_kem = NULL;
+    conn->secure.kem_params.negotiated_kem = NULL;
     conn->server = &conn->initial;
     conn->client = &conn->initial;
     conn->max_outgoing_fragment_length = S2N_DEFAULT_FRAGMENT_LENGTH;
@@ -304,6 +307,7 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     s2n_x509_validator_wipe(&conn->x509_validator);
     GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
     GUARD(s2n_ecc_params_free(&conn->secure.server_ecc_params));
+    GUARD(s2n_kem_wipe_keys(&conn->secure.kem_params));
     GUARD(s2n_free(&conn->secure.client_cert_chain));
     GUARD(s2n_free(&conn->ct_response));
 

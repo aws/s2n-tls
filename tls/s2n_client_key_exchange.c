@@ -17,6 +17,7 @@
 
 #include "error/s2n_errno.h"
 
+#include "tls/s2n_kem.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_kex.h"
@@ -110,6 +111,24 @@ int s2n_ecdhe_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shar
     return 0;
 }
 
+int s2n_kem_client_recv_key(struct s2n_connection *conn, struct s2n_blob *shared_key)
+{
+    struct s2n_stuffer *in = &conn->handshake.io;
+    const struct s2n_kem *kem = conn->secure.kem_params.negotiated_kem;
+    uint16_t ciphertext_length;
+
+    GUARD(s2n_stuffer_read_uint16(in, &ciphertext_length));
+    S2N_ERROR_IF(ciphertext_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
+    struct s2n_blob ciphertext = {.size = ciphertext_length, .data = s2n_stuffer_raw_read(in, ciphertext_length)};
+    notnull_check(ciphertext.data);
+
+    s2n_kem_decrypt_shared_secret(kem, &conn->secure.kem_params, shared_key, &ciphertext);
+
+    GUARD(s2n_free(&conn->secure.kem_params.private_key));
+
+    return 0;
+}
+
 int s2n_client_key_recv(struct s2n_connection *conn)
 {
     const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
@@ -172,6 +191,21 @@ int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
 
     /* We don't need the key any more, so free it */
     GUARD(s2n_pkey_free(&conn->secure.server_public_key));
+    return 0;
+}
+
+int s2n_kem_client_send_key(struct s2n_connection *conn, struct s2n_blob *shared_key)
+{
+    struct s2n_stuffer *out = &conn->handshake.io;
+    const struct s2n_kem *kem = conn->secure.kem_params.negotiated_kem;
+
+    struct s2n_blob ciphertext = {0};
+    s2n_kem_generate_shared_secret(kem, &conn->secure.kem_params, shared_key, &ciphertext);
+
+
+    GUARD(s2n_stuffer_write_uint16(out, ciphertext.size));
+    GUARD(s2n_stuffer_write(out, &ciphertext));
+    GUARD(s2n_free(&ciphertext));
     return 0;
 }
 

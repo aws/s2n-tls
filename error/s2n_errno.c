@@ -117,6 +117,7 @@ struct s2n_error_translation S2N_ERROR_EN[] = {
     {S2N_ERR_ECDHE_SHARED_SECRET, "Error computing ECDHE shared secret"},
     {S2N_ERR_ECDHE_UNSUPPORTED_CURVE, "Unsupported EC curve was presented during an ECDHE handshake"},
     {S2N_ERR_ECDHE_SERIALIZING, "Error serializing ECDHE public"},
+    {S2N_ERR_KEM_UNSUPPORTED_PARAMS, "Unsupported KEM params was presented during a handshake that uses a KEM"},
     {S2N_ERR_SHUTDOWN_PAUSED, "s2n_shutdown() called while paused"},
     {S2N_ERR_SHUTDOWN_CLOSED, "Peer closed before sending their close_notify"},
     {S2N_ERR_SHUTDOWN_RECORD_TYPE, "Non alert record received during s2n_shutdown()"},
