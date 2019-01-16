@@ -629,6 +629,7 @@ struct {
     { "test_all", &cipher_preferences_test_all },
     { "test_all_fips", &cipher_preferences_test_all_fips },
     { "test_all_ecdsa", &cipher_preferences_test_all_ecdsa },
+    { "test_ecdsa_priority", &cipher_preferences_test_ecdsa_priority },
     { "null", &cipher_preferences_null },
     { NULL, NULL }
 };
