@@ -834,8 +834,40 @@ static int s2n_wire_ciphers_contain(const uint8_t * match, const uint8_t * wire,
     return 0;
 }
 
+static int s2n_cipher_is_compatible_with_cert(struct s2n_cipher_suite *cipher, struct s2n_cert *cert, uint8_t *compatibility_out)
+{
+    *compatibility_out = 0;
+
+    notnull_check(cert);
+    /* Verify cert type with cipher authentication method */
+    switch (cert->cert_type) {
+        case S2N_CERT_TYPE_RSA_SIGN:
+            if (cipher->auth_method == S2N_AUTHENTICATION_RSA) {
+                *compatibility_out = 1;
+            }
+            break;
+        case S2N_CERT_TYPE_ECDSA_SIGN:
+            if (cipher->auth_method == S2N_AUTHENTICATION_ECDSA) {
+                *compatibility_out = 1;
+            }
+            break;
+        default:
+            /* Match error from s2n_pkey_setup_for_type ? */
+            S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
+            break;
+    }
+
+    return 0;
+}
+
 static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire, uint32_t count, uint32_t cipher_suite_len)
 {
+    /* Only one cert chain for now */
+    notnull_check(conn);
+    notnull_check(conn->config);
+    notnull_check(conn->config->cert_and_key_pairs);
+    struct s2n_cert *head_cert = conn->config->cert_and_key_pairs->cert_chain.head;
+
     uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
     struct s2n_cipher_suite *higher_vers_match = NULL;
 
@@ -862,6 +894,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
     /* s2n supports only server order */
     for (int i = 0; i < cipher_preferences->count; i++) {
         const uint8_t *ours = cipher_preferences->suites[i]->iana_value;
+        uint8_t cert_compatibilty = 0;
 
         if (s2n_wire_ciphers_contain(ours, wire, count, cipher_suite_len)) {
             /* We have a match */
@@ -870,6 +903,12 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
             /* If connection is for SSLv3, use SSLv3 version of suites */
             if (conn->client_protocol_version == S2N_SSLv3) {
                 match = match->sslv3_cipher_suite;
+            }
+
+            /* Skip the suite if it is not compatible with the given certificate */
+            GUARD(s2n_cipher_is_compatible_with_cert(match, head_cert, &cert_compatibilty));
+            if (!cert_compatibilty) {
+                continue;
             }
 
             /* Skip the suite if we don't have an available implementation */
