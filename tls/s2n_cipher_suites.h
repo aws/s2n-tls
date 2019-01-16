@@ -28,15 +28,6 @@
 #define S2N_KEY_EXCHANGE_EPH      0x02  /* Ephemeral key exchange */
 #define S2N_KEY_EXCHANGE_ECC      0x04  /* Elliptic curve cryptography */
 
-struct s2n_key_exchange_algorithm {
-    /* OR'ed S2N_KEY_EXCHANGE_* flags */
-    uint16_t flags;
-};
-
-extern const struct s2n_key_exchange_algorithm s2n_rsa;
-extern const struct s2n_key_exchange_algorithm s2n_dhe;
-extern const struct s2n_key_exchange_algorithm s2n_ecdhe;
-
 typedef enum {
     S2N_AUTHENTICATION_RSA = 0,
     S2N_AUTHENTICATION_ECDSA
@@ -80,7 +71,7 @@ struct s2n_cipher_suite {
     const char *name;
     const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN];
 
-    const struct s2n_key_exchange_algorithm *key_exchange_alg;
+    const struct s2n_kex *key_exchange_alg;
 
     const s2n_authentication_method auth_method;
 

@@ -28,6 +28,7 @@
 #include "tls/s2n_resume.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_kex.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -355,7 +356,7 @@ skip_cache_lookup:
         conn->handshake.handshake_type |= CLIENT_AUTH;
     }
 
-    if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_EPH) {
+    if (s2n_kex_is_ephemeral(conn->secure.cipher_suite->key_exchange_alg)) {
         conn->handshake.handshake_type |= PERFECT_FORWARD_SECRECY;
     }
 

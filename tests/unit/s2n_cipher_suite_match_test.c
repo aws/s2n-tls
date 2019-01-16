@@ -14,6 +14,7 @@
  */
 
 #include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 
 #include <string.h>
 
@@ -32,6 +33,14 @@ int main(int argc, char **argv)
         int count;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
+        char *cert_chain;
+        char *private_key;
+        EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(conn->config, cert_chain, private_key));
+
         count = 0;
         for (int i = 0; i < 0xffff; i++) {
             wire[0] = (i >> 8);
@@ -46,6 +55,9 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(count, 32);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
+        free(private_key);
+        free(cert_chain);
+
     }
 
     /* Test server cipher selection and scsv detection */

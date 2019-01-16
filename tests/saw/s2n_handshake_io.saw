@@ -20,8 +20,8 @@ let conn_secure_cipher_suite pconn =
 //let key_exchange_algorithm csuite = crucible_elem csuite 3;
 let key_exchange_algorithm csuite = crucible_field csuite "key_exchange_alg";
 
-//let kea_flags kea = crucible_elem kea 0;
-let kea_flags kea = crucible_field kea "flags";
+let kea_is_ephemeral kea = crucible_elem kea 0;
+//let kea_is_ephemeral kea = crucible_field kea "is_ephemeral";
 
 //conn->status_type
 let conn_status_type pconn = crucible_field pconn "status_type";
@@ -95,11 +95,11 @@ let setup_connection = do {
    cipher_suite <- crucible_alloc (llvm_struct "struct.s2n_cipher_suite");
    crucible_points_to (conn_secure_cipher_suite pconn)  cipher_suite;
 
-   kea <- crucible_alloc (llvm_struct "struct.s2n_key_exchange_algorithm");
+   kea <- crucible_alloc (llvm_struct "struct.s2n_kex");
    crucible_points_to (key_exchange_algorithm cipher_suite) kea;
 
-   eph_flag <- crucible_fresh_var "eph_flag" (llvm_int 16);
-   crucible_points_to (kea_flags kea) (crucible_term eph_flag);
+   eph_flag <- crucible_fresh_var "eph_flag" (llvm_int 8);
+   crucible_points_to (kea_is_ephemeral kea) (crucible_term eph_flag);
 
    config <- crucible_alloc (llvm_struct "struct.s2n_config");
    crucible_points_to (conn_config pconn) config;
@@ -132,7 +132,7 @@ let setup_connection = do {
 		                  ,handshake_type = handshake_type}
          	     ,corked    = cork_val
                      ,is_caching_enabled = False
-                     ,key_exchange_eph =(eph_flag && 2) != zero 
+                     ,key_exchange_eph = eph_flag != zero
                      ,server_can_send_ocsp =
                             ((ocsp_flag == 1) && (status_size > 0)) ||
                             ((mode == 1) && (ocsp_flag == 1))

@@ -21,22 +21,10 @@
 #include "crypto/s2n_openssl.h"
 
 #include "tls/s2n_cipher_preferences.h"
-#include "tls/s2n_cipher_suites.h"
-#include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_kex.h"
 #include "utils/s2n_safety.h"
 
-const struct s2n_key_exchange_algorithm s2n_rsa = {
-    .flags = 0,
-};
-
-const struct s2n_key_exchange_algorithm s2n_dhe = {
-    .flags = S2N_KEY_EXCHANGE_DH | S2N_KEY_EXCHANGE_EPH,
-};
-
-const struct s2n_key_exchange_algorithm s2n_ecdhe = {
-    .flags = S2N_KEY_EXCHANGE_DH | S2N_KEY_EXCHANGE_EPH | S2N_KEY_EXCHANGE_ECC,
-};
 
 const struct s2n_record_algorithm s2n_record_alg_null = {
     .cipher = &s2n_null_cipher,
@@ -889,13 +877,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
                 continue;
             }
 
-            /* Don't choose DHE key exchange if it's not configured. */
-            if (conn->config->dhparams == NULL && match->key_exchange_alg == &s2n_dhe) {
-                continue;
-            }
-
-            /* Don't choose EC ciphers if the curve was not agreed upon. */
-            if (conn->secure.server_ecc_params.negotiated_curve == NULL && (match->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC)) {
+            if (!s2n_kex_supported(match->key_exchange_alg, conn)) {
                 continue;
             }
 
