@@ -16,8 +16,11 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
+#include "testlib/s2n_testlib.h"
+
 #include <string.h>
 
+#include "crypto/s2n_ecc.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 
@@ -63,6 +66,8 @@ int main(int argc, char **argv)
     /* Test server cipher selection and scsv detection */
     {
         struct s2n_connection *conn;
+        struct s2n_config *server_config;
+
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
         uint8_t wire_ciphers[] = {
@@ -90,6 +95,7 @@ int main(int argc, char **argv)
             TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
             TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
         };
+        const uint8_t cipher_count = sizeof(wire_ciphers) / S2N_TLS_CIPHER_SUITE_LEN;
 
         uint8_t wire_ciphers_fallback[] = {
             TLS_RSA_WITH_RC4_128_MD5,
@@ -117,6 +123,7 @@ int main(int argc, char **argv)
             TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
             TLS_FALLBACK_SCSV, /* At the end to verify it isn't missed */
         };
+        const uint8_t cipher_count_fallback = sizeof(wire_ciphers_fallback) / S2N_TLS_CIPHER_SUITE_LEN;
 
         uint8_t wire_ciphers_renegotiation[] = {
             TLS_RSA_WITH_RC4_128_MD5,
@@ -144,8 +151,28 @@ int main(int argc, char **argv)
             TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
             TLS_EMPTY_RENEGOTIATION_INFO_SCSV, /* At the end to verify it isn't missed */
         };
+        const uint8_t cipher_count_renegotiation = sizeof(wire_ciphers_renegotiation) / S2N_TLS_CIPHER_SUITE_LEN;
 
-        const uint8_t cipher_count = sizeof(wire_ciphers) / S2N_TLS_CIPHER_SUITE_LEN;
+        /* Only two ciphers for testing RSA vs ECDSA. */
+        uint8_t wire_ciphers_with_ecdsa[] = {
+            TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+            TLS_RSA_WITH_AES_128_CBC_SHA256,
+        };
+        const uint8_t cipher_count_ecdsa = sizeof(wire_ciphers_with_ecdsa) / S2N_TLS_CIPHER_SUITE_LEN;
+
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+
+        /* Set RSA CERT in s2n_config */
+        char *rsa_cert_chain_pem;
+        char *rsa_private_key_pem;
+        EXPECT_NOT_NULL(rsa_cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_NOT_NULL(rsa_private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, rsa_cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, rsa_private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, rsa_cert_chain_pem, rsa_private_key_pem));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
+
+        /* TEST RSA */
         EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers, cipher_count));
         EXPECT_EQUAL(conn->secure_renegotiation, 0);
         conn->actual_protocol_version = S2N_TLS10;
@@ -153,7 +180,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(0, s2n_connection_is_valid_for_cipher_preferences(conn, "null"));
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-        const uint8_t cipher_count_renegotiation = sizeof(wire_ciphers_renegotiation) / S2N_TLS_CIPHER_SUITE_LEN;
+        /* TEST RENEGOTIATION */
         EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_renegotiation, cipher_count_renegotiation));
         EXPECT_EQUAL(conn->secure_renegotiation, 1);
         conn->actual_protocol_version = S2N_TLS12;
@@ -161,7 +188,6 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(-1, s2n_connection_is_valid_for_cipher_preferences(conn, "not_exist"));
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-        const uint8_t cipher_count_fallback = sizeof(wire_ciphers_fallback) / S2N_TLS_CIPHER_SUITE_LEN;
         /* Simulate a TLSv11 client to trigger the fallback error */
         conn->client_protocol_version = S2N_TLS11;
         EXPECT_FAILURE(s2n_set_cipher_as_tls_server(conn, wire_ciphers_fallback, cipher_count_fallback));
@@ -172,6 +198,55 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(0, s2n_connection_is_valid_for_cipher_preferences(conn, "CloudFront-TLS-1-2-2019"));
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
+        /* TEST RSA cipher chosen when ECDSA cipher is at top */
+        s2n_connection_set_cipher_preferences(conn, "test_ecdsa_priority");
+        /* Assume default for negotiated curve. */
+        /* Shouldn't be necessary unless the test fails, but we want the failure to be obvious. */
+        conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
+        const uint8_t expected_rsa_wire_choice[] = { TLS_RSA_WITH_AES_128_CBC_SHA256 };
+        EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
+        EXPECT_EQUAL(conn->secure_renegotiation, 0);
+        EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_rsa_wire_choice));
+        EXPECT_SUCCESS(s2n_connection_wipe(conn));
+
+        /* Clean+free to setup for ECDSA tests */
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+        free(rsa_cert_chain_pem);
+        free(rsa_private_key_pem);
+
+        /* Set ECDSA CERT in s2n_config */
+        char *ecdsa_cert_chain_pem;
+        char *ecdsa_private_key_pem;
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_NOT_NULL(ecdsa_cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_NOT_NULL(ecdsa_private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, ecdsa_cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, ecdsa_private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, ecdsa_cert_chain_pem, ecdsa_private_key_pem));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
+
+        /* TEST ECDSA */
+        s2n_connection_set_cipher_preferences(conn, "test_all_ecdsa");
+        const uint8_t expected_ecdsa_wire_choice[] = { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 };
+        /* Assume default for negotiated curve. */
+        conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
+        EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
+        EXPECT_EQUAL(conn->secure_renegotiation, 0);
+        EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_ecdsa_wire_choice));
+        EXPECT_SUCCESS(s2n_connection_wipe(conn));
+
+        /* TEST ECDSA cipher chosen when RSA cipher is at top */
+        s2n_connection_set_cipher_preferences(conn, "test_all");
+        /* Assume default for negotiated curve. */
+        conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
+        EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
+        EXPECT_EQUAL(conn->secure_renegotiation, 0);
+        EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_ecdsa_wire_choice));
+        EXPECT_SUCCESS(s2n_connection_wipe(conn));
+
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+        free(ecdsa_cert_chain_pem);
+        free(ecdsa_private_key_pem);
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 

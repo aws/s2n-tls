@@ -702,9 +702,54 @@ static struct s2n_cipher_suite *s2n_all_ecdsa_cipher_suites[] = {
 
 /* All supported ECDSA cipher suites. Exposed for integration testing. */
 const struct s2n_cipher_preferences cipher_preferences_test_all_ecdsa = {
-    .count = sizeof(s2n_all_ecdsa_cipher_suites) / sizeof(s2n_all_fips_cipher_suites[0]),
+    .count = sizeof(s2n_all_ecdsa_cipher_suites) / sizeof(s2n_all_ecdsa_cipher_suites[0]),
     .suites = s2n_all_ecdsa_cipher_suites,
     .minimum_protocol_version = S2N_TLS10
+};
+
+/* All ECDSA cipher suites first, then the rest of the supported ciphers that s2n can negotiate.
+ * Exposed for the "test_ecdsa_priority" cipher preference list.
+ */
+static struct s2n_cipher_suite *s2n_ecdsa_priority_cipher_suites[] = {
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,         /* 0xC0,0x09 */
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,         /* 0xC0,0x0A */
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,      /* 0xC0,0x23 */
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,      /* 0xC0,0x24 */
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,      /* 0xC0,0x2B */
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,      /* 0xC0,0x2C */
+    &s2n_rsa_with_rc4_128_md5,                     /* 0x00,0x04 */
+    &s2n_rsa_with_rc4_128_sha,                     /* 0x00,0x05 */
+    &s2n_rsa_with_3des_ede_cbc_sha,                /* 0x00,0x0A */
+    &s2n_dhe_rsa_with_3des_ede_cbc_sha,            /* 0x00,0x16 */
+    &s2n_rsa_with_aes_128_cbc_sha,                 /* 0x00,0x2F */
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,             /* 0x00,0x33 */
+    &s2n_rsa_with_aes_256_cbc_sha,                 /* 0x00,0x35 */
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,             /* 0x00,0x39 */
+    &s2n_rsa_with_aes_128_cbc_sha256,              /* 0x00,0x3C */
+    &s2n_rsa_with_aes_256_cbc_sha256,              /* 0x00,0x3D */
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,          /* 0x00,0x67 */
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,          /* 0x00,0x6B */
+    &s2n_rsa_with_aes_128_gcm_sha256,              /* 0x00,0x9C */
+    &s2n_rsa_with_aes_256_gcm_sha384,              /* 0x00,0x9D */
+    &s2n_dhe_rsa_with_aes_128_gcm_sha256,          /* 0x00,0x9E */
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384,          /* 0x00,0x9F */
+    &s2n_ecdhe_rsa_with_rc4_128_sha,               /* 0xC0,0x11 */
+    &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,          /* 0xC0,0x12 */
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,           /* 0xC0,0x13 */
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,           /* 0xC0,0x14 */
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,        /* 0xC0,0x27 */
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,        /* 0xC0,0x28 */
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,        /* 0xC0,0x2F */
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,        /* 0xC0,0x30 */
+    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,  /* 0xCC,0xA8 */
+    &s2n_dhe_rsa_with_chacha20_poly1305_sha256,    /* 0xCC,0xAA */
+};
+
+/* All cipher suites, but with ECDSA priority. Exposed for integration testing. */
+const struct s2n_cipher_preferences cipher_preferences_test_ecdsa_priority = {
+    .count = sizeof(s2n_ecdsa_priority_cipher_suites) / sizeof(s2n_ecdsa_priority_cipher_suites[0]),
+    .suites = s2n_ecdsa_priority_cipher_suites,
+    .minimum_protocol_version = S2N_SSLv3
 };
 
 /* Determines cipher suite availability and selects record algorithms */
@@ -834,8 +879,37 @@ static int s2n_wire_ciphers_contain(const uint8_t * match, const uint8_t * wire,
     return 0;
 }
 
+static int s2n_cipher_is_compatible_with_cert(struct s2n_cipher_suite *cipher, struct s2n_cert *cert, uint8_t *compatibility_out)
+{
+    *compatibility_out = 0;
+
+    /* Verify cert type with cipher authentication method */
+    switch (cert->cert_type) {
+        case S2N_CERT_TYPE_RSA_SIGN:
+            if (cipher->auth_method == S2N_AUTHENTICATION_RSA) {
+                *compatibility_out = 1;
+            }
+            break;
+        case S2N_CERT_TYPE_ECDSA_SIGN:
+            if (cipher->auth_method == S2N_AUTHENTICATION_ECDSA) {
+                *compatibility_out = 1;
+            }
+            break;
+        default:
+            /* Match error from s2n_pkey_setup_for_type ? */
+            S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
+            break;
+    }
+
+    return 0;
+}
+
 static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire, uint32_t count, uint32_t cipher_suite_len)
 {
+    /* Only one cert chain for now */
+    notnull_check(conn->config->cert_and_key_pairs);
+    struct s2n_cert *leaf_cert = conn->config->cert_and_key_pairs->cert_chain.head;
+
     uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
     struct s2n_cipher_suite *higher_vers_match = NULL;
 
@@ -870,6 +944,13 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
             /* If connection is for SSLv3, use SSLv3 version of suites */
             if (conn->client_protocol_version == S2N_SSLv3) {
                 match = match->sslv3_cipher_suite;
+            }
+
+            /* Skip the suite if it is not compatible with the given certificate */
+            uint8_t cert_compatibilty = 0;
+            GUARD(s2n_cipher_is_compatible_with_cert(match, leaf_cert, &cert_compatibilty));
+            if (!cert_compatibilty) {
+                continue;
             }
 
             /* Skip the suite if we don't have an available implementation */
