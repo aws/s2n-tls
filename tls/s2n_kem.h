@@ -19,7 +19,6 @@
 #include "tls/s2n_kem_params.h"
 
 struct s2n_kem {
-    const int kem_type;
     uint8_t kem_extension_id;
     const uint16_t publicKeySize;
     const uint16_t privateKeySize;

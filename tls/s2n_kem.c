@@ -64,7 +64,7 @@ int s2n_kem_find_supported_named_kem(struct s2n_blob *client_kem_names, const st
             uint8_t kem_name;
             GUARD(s2n_stuffer_read_uint8(&kem_name_in, &kem_name));
 
-            if (candidate_server_kem_name.kem_type == kem_name) {
+            if (candidate_server_kem_name.kem_extension_id == kem_name) {
                 *matching_kem = supported_kems + i;
                 return 0;
             }
