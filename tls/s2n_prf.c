@@ -252,8 +252,8 @@ static const struct s2n_p_hash_hmac s2n_hmac = {
     .free = &s2n_hmac_p_hash_free,
 };
 
-static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret,
-                      struct s2n_blob *label, struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *out)
+static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret, struct s2n_blob *label,
+                      struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
 {
     uint8_t digest_size;
     GUARD(s2n_hmac_digest_size(alg, &digest_size));
@@ -267,6 +267,9 @@ static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, 
 
     if (seed_b) {
         GUARD(hmac->update(ws, seed_b->data, seed_b->size));
+    }
+    if (seed_c) {
+        GUARD(hmac->update(ws, seed_c->data, seed_c->size));
     }
     GUARD(hmac->final(ws, ws->tls.digest0, digest_size));
 
@@ -283,6 +286,9 @@ static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, 
         GUARD(hmac->update(ws, seed_a->data, seed_a->size));
         if (seed_b) {
             GUARD(hmac->update(ws, seed_b->data, seed_b->size));
+        }
+        if (seed_c) {
+            GUARD(hmac->update(ws, seed_c->data, seed_c->size));
         }
         GUARD(hmac->final(ws, ws->tls.digest1, digest_size));
 
@@ -325,7 +331,8 @@ int s2n_prf_free(struct s2n_connection *conn)
     return conn->prf_space.tls.p_hash_hmac_impl->free(&conn->prf_space);
 }
 
-static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label, struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *out)
+static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label, struct s2n_blob *seed_a,
+                   struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
 {
     if (conn->actual_protocol_version == S2N_SSLv3) {
         return s2n_sslv3_prf(&conn->prf_space, secret, seed_a, seed_b, out);
@@ -345,19 +352,20 @@ static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct 
     conn->prf_space.tls.p_hash_hmac_impl = s2n_is_in_fips_mode() ? &s2n_evp_hmac : &s2n_hmac;
 
     if (conn->actual_protocol_version == S2N_TLS12) {
-        return s2n_p_hash(&conn->prf_space, conn->secure.cipher_suite->tls12_prf_alg, secret, label, seed_a, seed_b, out);
+        return s2n_p_hash(&conn->prf_space, conn->secure.cipher_suite->tls12_prf_alg, secret, label, seed_a, seed_b,
+                          seed_c, out);
     }
 
     struct s2n_blob half_secret = {.data = secret->data,.size = (secret->size + 1) / 2 };
 
-    GUARD(s2n_p_hash(&conn->prf_space, S2N_HMAC_MD5, &half_secret, label, seed_a, seed_b, out));
+    GUARD(s2n_p_hash(&conn->prf_space, S2N_HMAC_MD5, &half_secret, label, seed_a, seed_b, seed_c, out));
     half_secret.data += secret->size - half_secret.size;
-    GUARD(s2n_p_hash(&conn->prf_space, S2N_HMAC_SHA1, &half_secret, label, seed_a, seed_b, out));
+    GUARD(s2n_p_hash(&conn->prf_space, S2N_HMAC_SHA1, &half_secret, label, seed_a, seed_b, seed_c, out));
 
     return 0;
 }
 
-int s2n_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret)
+int s2n_tls_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret)
 {
     struct s2n_blob client_random, server_random, master_secret;
     struct s2n_blob label = {0};
@@ -372,7 +380,28 @@ int s2n_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaste
     label.data = master_secret_label;
     label.size = sizeof(master_secret_label) - 1;
 
-    return s2n_prf(conn, premaster_secret, &label, &client_random, &server_random, &master_secret);
+    return s2n_prf(conn, premaster_secret, &label, &client_random, &server_random, NULL, &master_secret);
+}
+
+int s2n_hybrid_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret)
+{
+    struct s2n_blob client_random, server_random, master_secret;
+
+    struct s2n_blob label = {0};
+    uint8_t master_secret_label[] = "hybrid master secret";
+
+    client_random.data = conn->secure.client_random;
+    client_random.size = sizeof(conn->secure.client_random);
+    server_random.data = conn->secure.server_random;
+    server_random.size = sizeof(conn->secure.server_random);
+    master_secret.data = conn->secure.master_secret;
+    master_secret.size = sizeof(conn->secure.master_secret);
+    label.data = master_secret_label;
+    label.size = sizeof(master_secret_label) - 1;
+
+    int result = s2n_prf(conn, premaster_secret, &label, &client_random, &server_random, &conn->secure.client_key_exchange_message, &master_secret);
+
+    return result;
 }
 
 static int s2n_sslv3_finished(struct s2n_connection *conn, uint8_t prefix[4], struct s2n_hash_state *md5, struct s2n_hash_state *sha1, uint8_t * out)
@@ -472,7 +501,7 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
         }
 
         sha.data = sha_digest;
-        return s2n_prf(conn, &master_secret, &label, &sha, NULL, &client_finished);
+        return s2n_prf(conn, &master_secret, &label, &sha, NULL, NULL, &client_finished);
     }
 
     GUARD(s2n_hash_copy(&conn->handshake.prf_md5_hash_copy, &conn->handshake.md5));
@@ -485,7 +514,7 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
     sha.data = sha_digest;
     sha.size = SHA_DIGEST_LENGTH;
 
-    return s2n_prf(conn, &master_secret, &label, &md5, &sha, &client_finished);
+    return s2n_prf(conn, &master_secret, &label, &md5, &sha, NULL, &client_finished);
 }
 
 int s2n_prf_server_finished(struct s2n_connection *conn)
@@ -525,7 +554,7 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
         }
 
         sha.data = sha_digest;
-        return s2n_prf(conn, &master_secret, &label, &sha, NULL, &server_finished);
+        return s2n_prf(conn, &master_secret, &label, &sha, NULL, NULL, &server_finished);
     }
 
     GUARD(s2n_hash_copy(&conn->handshake.prf_md5_hash_copy, &conn->handshake.md5));
@@ -538,7 +567,7 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
     sha.data = sha_digest;
     sha.size = SHA_DIGEST_LENGTH;
 
-    return s2n_prf(conn, &master_secret, &label, &md5, &sha, &server_finished);
+    return s2n_prf(conn, &master_secret, &label, &md5, &sha, NULL, &server_finished);
 }
 
 static int s2n_prf_make_client_key(struct s2n_connection *conn, struct s2n_stuffer *key_material)
@@ -588,7 +617,7 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     out.size = sizeof(key_block);
 
     struct s2n_stuffer key_material = {{0}};
-    GUARD(s2n_prf(conn, &master_secret, &label, &server_random, &client_random, &out));
+    GUARD(s2n_prf(conn, &master_secret, &label, &server_random, &client_random, NULL, &out));
     GUARD(s2n_stuffer_init(&key_material, &out));
     GUARD(s2n_stuffer_write(&key_material, &out));
 
