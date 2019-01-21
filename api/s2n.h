@@ -114,9 +114,6 @@ typedef enum { S2N_CT_SUPPORT_NONE = 0, S2N_CT_SUPPORT_REQUEST = 1 } s2n_ct_supp
 extern int s2n_config_set_ct_support_level(struct s2n_config *config, s2n_ct_support_level level);
 typedef enum { S2N_ALERT_FAIL_ON_WARNINGS = 0, S2N_ALERT_IGNORE_WARNINGS = 1 } s2n_alert_behavior;
 extern int s2n_config_set_alert_behavior(struct s2n_config *config, s2n_alert_behavior alert_behavior);
-extern int s2n_config_set_cert_extension_data(struct s2n_config *config, 
-                                              struct s2n_cert_chain_and_key *updated_chain_and_key, 
-                                              s2n_tls_extension_type type, const uint8_t *data, uint32_t length);
 extern int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length);
 extern int s2n_config_send_max_fragment_length(struct s2n_config *config, s2n_max_frag_len mfl_code);
 extern int s2n_config_accept_max_fragment_length(struct s2n_config *config);

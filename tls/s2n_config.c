@@ -270,22 +270,6 @@ int s2n_config_free_session_ticket_keys(struct s2n_config *config)
 
 int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
 {
-
-    if (config->cert_and_key_pairs) {
-        struct s2n_blob b = {
-            .data = (uint8_t *) config->cert_and_key_pairs,
-            .size = sizeof(struct s2n_cert_chain_and_key)
-        };
-
-        GUARD(s2n_free(&config->cert_and_key_pairs->ocsp_status));
-        GUARD(s2n_free(&config->cert_and_key_pairs->sct_list));
-
-        /* Freeing the cert chain nodes and private key are the responsibility of
-         * the application by calling s2n_cert_chain_and_key_free. */
-        
-        GUARD(s2n_free(&b));
-    }
-
     /* Free the default cert_chain_and_key since the application has no reference
      * to it. This is necessary until s2n_config_add_cert_chain_and_key is deprecated. */
     if (config->default_cert_and_key_pair != NULL) {
@@ -442,17 +426,8 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
 
 int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
 {
-    /* Allocate the memory for the chain and key struct */
-    struct s2n_cert_chain_and_key *chain_and_key;
-    notnull_check(chain_and_key = s2n_cert_chain_and_key_new());
-    config->cert_and_key_pairs = chain_and_key;
-    
-    config->cert_and_key_pairs->cert_chain = cert_key_pair->cert_chain;
-    config->cert_and_key_pairs->private_key = cert_key_pair->private_key;
+    config->cert_and_key_pairs = cert_key_pair;
 
-    GUARD(s2n_dup(&cert_key_pair->ocsp_status, &config->cert_and_key_pairs->ocsp_status));
-    GUARD(s2n_dup(&cert_key_pair->sct_list, &config->cert_and_key_pairs->sct_list));
-    
     return 0;
 }
 
@@ -532,20 +507,11 @@ int s2n_config_set_cache_delete_callback(struct s2n_config *config, s2n_cache_de
     return 0;
 }
 
-int s2n_config_set_cert_extension_data(struct s2n_config *config, struct s2n_cert_chain_and_key *updated_chain_and_key, 
-        s2n_tls_extension_type type, const uint8_t *data, uint32_t length)
+int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length)
 {
     notnull_check(config);
     struct s2n_cert_chain_and_key *config_chain_and_key = config->cert_and_key_pairs;
     notnull_check(config_chain_and_key);
-    notnull_check(updated_chain_and_key);
-    
-    /* Make sure we're updating the correct cert chain and key. This will be more complex 
-     * when we add support for multiple certificates */
-    if (config_chain_and_key->cert_chain != updated_chain_and_key->cert_chain ||
-            config_chain_and_key->private_key != updated_chain_and_key->private_key) {
-        S2N_ERROR(S2N_ERR_UPDATING_EXTENSION);
-    }
     
     switch (type) {
         case S2N_EXTENSION_CERTIFICATE_TRANSPARENCY:
@@ -559,12 +525,8 @@ int s2n_config_set_cert_extension_data(struct s2n_config *config, struct s2n_cer
         default:
             S2N_ERROR(S2N_ERR_UNRECOGNIZED_EXTENSION);
     }
+    
     return 0;
-}
-
-int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length)
-{
-    return s2n_config_set_cert_extension_data(config, config->cert_and_key_pairs, type, data, length);
 }
 
 int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_fn client_hello_cb, void *ctx)
