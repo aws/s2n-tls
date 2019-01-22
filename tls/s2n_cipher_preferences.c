@@ -176,6 +176,79 @@ struct s2n_cipher_suite *cipher_suites_20170210[] = {
     &s2n_rsa_with_aes_128_cbc_sha
 };
 
+
+/* Same as 20160411, but with ChaCha20 added as 1st in Preference List */
+struct s2n_cipher_suite *cipher_suites_20190122[] = {
+        &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
+        &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+        &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+        &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+        &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+        &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+        &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+        &s2n_rsa_with_aes_128_cbc_sha,
+        &s2n_rsa_with_aes_128_gcm_sha256,
+        &s2n_rsa_with_aes_256_gcm_sha384,
+        &s2n_rsa_with_aes_128_cbc_sha256,
+        &s2n_rsa_with_aes_256_cbc_sha,
+        &s2n_rsa_with_aes_256_cbc_sha256,
+        &s2n_rsa_with_3des_ede_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20190122 = {
+    .count = sizeof(cipher_suites_20190122) / sizeof(cipher_suites_20190122[0]),
+    .suites = cipher_suites_20190122,
+    .minimum_protocol_version = S2N_TLS10
+};
+
+/* Same as 20160804, but with ChaCha20 added as 2nd in Preference List */
+struct s2n_cipher_suite *cipher_suites_20190121[] = {
+        &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+        &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+        &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
+        &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+        &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+        &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+        &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+        &s2n_rsa_with_aes_128_gcm_sha256,
+        &s2n_rsa_with_aes_256_gcm_sha384,
+        &s2n_rsa_with_aes_128_cbc_sha,
+        &s2n_rsa_with_aes_128_cbc_sha256,
+        &s2n_rsa_with_aes_256_cbc_sha,
+        &s2n_rsa_with_aes_256_cbc_sha256,
+        &s2n_rsa_with_3des_ede_cbc_sha
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20190121 = {
+    .count = sizeof(cipher_suites_20190121) / sizeof(cipher_suites_20190121[0]),
+    .suites = cipher_suites_20190121,
+    .minimum_protocol_version = S2N_TLS10
+};
+
+/* Same as 20160411, but with ChaCha20 in 3rd Place after CBC and GCM */
+struct s2n_cipher_suite *cipher_suites_20190120[] = {
+        &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+        &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+        &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+        &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
+        &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+        &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+        &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+        &s2n_rsa_with_aes_128_cbc_sha,
+        &s2n_rsa_with_aes_128_gcm_sha256,
+        &s2n_rsa_with_aes_256_gcm_sha384,
+        &s2n_rsa_with_aes_128_cbc_sha256,
+        &s2n_rsa_with_aes_256_cbc_sha,
+        &s2n_rsa_with_aes_256_cbc_sha256,
+        &s2n_rsa_with_3des_ede_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20190120 = {
+    .count = sizeof(cipher_suites_20190120) / sizeof(cipher_suites_20190120[0]),
+    .suites = cipher_suites_20190120,
+    .minimum_protocol_version = S2N_TLS10
+};
+
 struct s2n_cipher_suite *cipher_suites_null[] = {
     &s2n_null_cipher_suite
 };
@@ -626,6 +699,9 @@ struct {
     { "20170328", &cipher_preferences_20170328 },
     { "20170405", &cipher_preferences_20170405 },
     { "20170718", &cipher_preferences_20170718 },
+    { "20190120", &cipher_preferences_20190120 },
+    { "20190121", &cipher_preferences_20190121 },
+    { "20190122", &cipher_preferences_20190122 },
     { "test_all", &cipher_preferences_test_all },
     { "test_all_fips", &cipher_preferences_test_all_fips },
     { "test_all_ecdsa", &cipher_preferences_test_all_ecdsa },
