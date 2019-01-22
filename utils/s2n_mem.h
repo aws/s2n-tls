@@ -19,6 +19,8 @@
 
 #include <stdint.h>
 
+#define _IS_BIG_ENDIAN (!*(unsigned char *)&(uint16_t){1})
+
 int s2n_mem_init(void);
 int s2n_mem_cleanup(void);
 int s2n_alloc(struct s2n_blob *b, uint32_t size);

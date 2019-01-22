@@ -30,6 +30,27 @@
 
 struct s2n_cipher_preferences;
 
+/* struct used to carry back the decrypt output for RSA handshake or signed hash signature for DHE/ECDHE handshake */
+struct s2n_external_ctx {
+  /* Flag to indicate status of external request (decrypt for RSA or sign for DHE/ECDHE). The possible status are:
+   *   0 - external request has not been invoked yet;
+   *   1 - external request has been invoked but not result has come back yet;
+   *   2 - external request has completed and output is copied to the byte array result.
+   *   3 - external request has completed but error occurred.
+   */
+  uint8_t status;
+
+  /* The 1st to the 4th byte (Big Endian) is a uint32_t which is the size of the byte array that contains the output or
+   * signature. From the 5th byte till the end will be the actual output or signature.
+   */
+  uint8_t *result;
+
+  /* Temporary io used ot carry ephemeral from SERVER_KEY_EXTERNAL to SERVER_KEY so that we don't need to write data to
+   * the handshake io in SERVER_KEY_EXTERNAL which will cause handshake error in the receive functions due to incomplete data.
+   */
+  struct s2n_stuffer ephemeral_key_io;
+};
+
 struct s2n_config {
     struct s2n_dh_params *dhparams;
     struct s2n_cert_chain_and_key *cert_and_key_pairs;
@@ -84,6 +105,22 @@ struct s2n_config {
     uint8_t disable_x509_validation;
     uint16_t max_verify_cert_chain_depth;
     uint8_t max_verify_cert_chain_depth_set;
+
+    rsa_decrypt_async_fn external_rsa_decrypt;
+    dhe_sign_async_fn external_dhe_sign;
+
+    /* Byte array used to carry back the decrypt result for RSA handshake
+     *   The first byte will be used as flag to indicate status, the status are:
+     *      1:  external rsa decrypt has been called but not result has come back yet;
+     *      2:  external rsa decrypt has completed the request and the decrypted pre-master secret is copied to to this
+     *          byte array.
+     *      3:  external rsa decrypt has completed the request but error occurred.
+     *   The 2nd to the 5th byte (Big Endian) will be a uint32_t which is the size of decrypted pre-master secret.
+     *   From the 6th byte till the end will be the decrypted pre-master secret.
+     *   The total length of this byte array is 54 = 1 + 5 + S2N_TLS_SECRET_LEN (48)*/
+    void *external_rsa_ctx;
+
+    struct s2n_external_ctx external_dhe_ctx;
 };
 
 extern struct s2n_config *s2n_fetch_default_config(void);

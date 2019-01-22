@@ -529,6 +529,10 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
 
     GUARD(s2n_config_add_cert_chain(config, cert_chain_pem));
     GUARD(s2n_config_add_private_key(config, private_key_pem));
+    config->external_rsa_decrypt = NULL;
+    config->external_rsa_ctx = NULL;
+    config->external_dhe_sign = NULL;
+    config->external_dhe_ctx.result = NULL;
 
     /* Parse the leaf cert for the public key and certificate type */
     DEFER_CLEANUP(struct s2n_pkey public_key = {{{0}}}, s2n_pkey_free);
@@ -538,6 +542,38 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
 
     /* Validate the leaf cert's public key matches the provided private key */
     GUARD(s2n_pkey_match(&public_key, &config->cert_and_key_pairs->private_key));
+
+    return 0;
+}
+
+int s2n_config_add_cert_chain_with_external_decrypt(struct s2n_config *config,
+                                                    const char *cert_chain_pem,
+                                                    rsa_decrypt_async_fn external_rsa_decrypt,
+                                                    dhe_sign_async_fn  external_dhe_sign)
+{
+    struct s2n_blob mem = {0};
+
+    /* Allocate the memory for the chain and key struct */
+    GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert_chain_and_key)));
+    config->cert_and_key_pairs = (struct s2n_cert_chain_and_key *)(void *)mem.data;
+    config->cert_and_key_pairs->cert_chain.head = NULL;
+
+    memset(&config->cert_and_key_pairs->ocsp_status, 0, sizeof(config->cert_and_key_pairs->ocsp_status));
+    memset(&config->cert_and_key_pairs->sct_list, 0, sizeof(config->cert_and_key_pairs->sct_list));
+    GUARD(s2n_pkey_zero_init(&config->cert_and_key_pairs->private_key));
+
+    GUARD(s2n_config_add_cert_chain(config, cert_chain_pem));
+    config->external_rsa_decrypt = external_rsa_decrypt;
+    config->external_rsa_ctx = NULL;
+    config->external_dhe_sign = external_dhe_sign;
+    config->external_dhe_ctx.status = 0;
+    config->external_dhe_ctx.result = NULL;
+
+    /* Parse the leaf cert for the public key and certificate type */
+    DEFER_CLEANUP(struct s2n_pkey public_key = {{{0}}}, s2n_pkey_free);
+    s2n_cert_type cert_type;
+    GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &cert_type, &config->cert_and_key_pairs->cert_chain.head->raw));
+    GUARD(s2n_cert_set_cert_type(config->cert_and_key_pairs->cert_chain.head, cert_type));
 
     return 0;
 }
