@@ -29,11 +29,16 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
 
+static int s2n_ecdhe_server_key_send_external(struct s2n_connection *conn);
+static int s2n_dhe_server_key_send_external(struct s2n_connection *conn);
 static int s2n_ecdhe_server_key_recv(struct s2n_connection *conn);
 static int s2n_dhe_server_key_recv(struct s2n_connection *conn);
 static int s2n_ecdhe_server_key_send(struct s2n_connection *conn);
 static int s2n_dhe_server_key_send(struct s2n_connection *conn);
+static int s2n_write_io_with_external_result(struct s2n_connection *conn);
 static int s2n_write_signature_blob(struct s2n_stuffer *out, const struct s2n_pkey *priv_key, struct s2n_hash_state *digest);
+static int s2n_reset_external_ctx(struct s2n_external_ctx *ctx);
+static int s2n_sign_external(dhe_sign_async_fn external_sign_fn, s2n_hash_algorithm hash_algorithm, struct s2n_hash_state *hash_state, uint8_t *status, uint8_t **result);
 
 int s2n_server_key_recv(struct s2n_connection *conn)
 {
@@ -146,6 +151,125 @@ static int s2n_dhe_server_key_recv(struct s2n_connection *conn)
     return 0;
 }
 
+int s2n_server_key_send_external(struct s2n_connection *conn)
+{
+    notnull_check(conn);
+    notnull_check(conn->config);
+
+    if (NULL == conn->config->external_dhe_sign) {
+        return 0;
+    }
+
+    switch(conn->config->external_dhe_ctx.status) {
+        /* external signing has not been invoked yet */
+        case 0: {
+            if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC) {
+                GUARD(s2n_ecdhe_server_key_send_external(conn));
+            } else {
+                GUARD(s2n_dhe_server_key_send_external(conn));
+            }
+
+            /* Return '1' to indicate we are waiting for the result now */
+            return 1;
+        }
+        /* external signing has been invoked and we are waiting for the result. Return '1' to indicate that */
+        case 1: {
+            return 1;
+        }
+        /* external signing has returned the result. Proceed by returning '0' */
+        case 2: {
+            return 0;
+        }
+        /* error occurred with the external signing */
+        case 3: {
+            /* free the ctx */
+            s2n_reset_external_ctx(&(conn->config->external_dhe_ctx));
+            S2N_ERROR(S2N_ERR_EXTERNAL_FAILURE);
+        }
+        /* the status is not anything we expected. Something went wrong. */
+        default: {
+            /* free the ctx */
+            s2n_reset_external_ctx(&(conn->config->external_dhe_ctx));
+            S2N_ERROR(S2N_ERR_EXTERNAL_CTX_STATUS_INVALID);
+        }
+    }
+}
+
+static int s2n_sign_external(dhe_sign_async_fn external_sign_fn, s2n_hash_algorithm hash_algorithm, struct s2n_hash_state *hash_state, uint8_t *status, uint8_t **result)
+{
+    // prepare the digest_out blob
+    uint32_t digest_out_length = S2N_MAX_DIGEST_LEN;
+    struct s2n_blob digest_out;
+    s2n_alloc(&digest_out, digest_out_length);
+
+    uint8_t digest_size;
+    GUARD(s2n_hash_digest_size(hash_algorithm, &digest_size));
+    GUARD(s2n_hash_digest(hash_state, digest_out.data, digest_size));
+
+    *status = 1;
+    external_sign_fn(status, result, (uint8_t)hash_algorithm, digest_out.data);
+
+    s2n_free(&digest_out);
+
+    return 0;
+}
+
+static int s2n_ecdhe_server_key_send_external(struct s2n_connection *conn)
+{
+    struct s2n_blob ecdhparams = {0};
+    struct s2n_stuffer *out = &conn->config->external_dhe_ctx.ephemeral_key_io;
+    s2n_stuffer_growable_alloc(out, 1024);
+
+    /* Generate an ephemeral key and  */
+    GUARD(s2n_ecc_generate_ephemeral_key(&conn->secure.server_ecc_params));
+
+    /* Write it out and calculate the hash */
+    GUARD(s2n_ecc_write_ecc_params(&conn->secure.server_ecc_params, out, &ecdhparams));
+
+    /* Add the random data to the hash */
+    GUARD(s2n_hash_init(&conn->secure.signature_hash, conn->secure.conn_hash_alg));
+    GUARD(s2n_hash_update(&conn->secure.signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    GUARD(s2n_hash_update(&conn->secure.signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
+    GUARD(s2n_hash_update(&conn->secure.signature_hash, ecdhparams.data, ecdhparams.size));
+
+    GUARD(s2n_sign_external(conn->config->external_dhe_sign,
+                            conn->secure.signature_hash.alg,
+                            &(conn->secure.signature_hash),
+                            &(conn->config->external_dhe_ctx.status),
+                            &(conn->config->external_dhe_ctx.result)));
+
+    return 0;
+}
+
+static int s2n_dhe_server_key_send_external(struct s2n_connection *conn)
+{
+    struct s2n_blob serverDHparams;
+    struct s2n_stuffer *out = &conn->config->external_dhe_ctx.ephemeral_key_io;
+    s2n_stuffer_growable_alloc(out, 1024);
+
+    /* Duplicate the DH key from the config */
+    GUARD(s2n_dh_params_copy(conn->config->dhparams, &conn->secure.server_dh_params));
+
+    /* Generate an ephemeral key */
+    GUARD(s2n_dh_generate_ephemeral_key(&conn->secure.server_dh_params));
+
+    /* Write it out */
+    GUARD(s2n_dh_params_to_p_g_Ys(&conn->secure.server_dh_params, out, &serverDHparams));
+
+    GUARD(s2n_hash_init(&conn->secure.signature_hash, conn->secure.conn_hash_alg));
+    GUARD(s2n_hash_update(&conn->secure.signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    GUARD(s2n_hash_update(&conn->secure.signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
+    GUARD(s2n_hash_update(&conn->secure.signature_hash, serverDHparams.data, serverDHparams.size));
+
+    GUARD(s2n_sign_external(conn->config->external_dhe_sign,
+                            conn->secure.signature_hash.alg,
+                            &(conn->secure.signature_hash),
+                            &(conn->config->external_dhe_ctx.status),
+                            &(conn->config->external_dhe_ctx.result)));
+
+    return 0;
+}
+
 int s2n_server_key_send(struct s2n_connection *conn)
 {
     if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC) {
@@ -159,6 +283,11 @@ int s2n_server_key_send(struct s2n_connection *conn)
 
 static int s2n_ecdhe_server_key_send(struct s2n_connection *conn)
 {
+    /* if its external signing, just need to write the io with the external signing result */
+    if (conn->config->external_dhe_sign) {
+        return s2n_write_io_with_external_result(conn);
+    }
+
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_blob ecdhparams = {0};
 
@@ -186,6 +315,11 @@ static int s2n_ecdhe_server_key_send(struct s2n_connection *conn)
 
 static int s2n_dhe_server_key_send(struct s2n_connection *conn)
 {
+    /* if its external signing, just need to write the io with the external signing result */
+    if (conn->config->external_dhe_sign) {
+        return s2n_write_io_with_external_result(conn);
+    }
+
     struct s2n_blob serverDHparams;
     struct s2n_stuffer *out = &conn->handshake.io;
 
@@ -209,7 +343,42 @@ static int s2n_dhe_server_key_send(struct s2n_connection *conn)
     GUARD(s2n_hash_update(&conn->secure.signature_hash, serverDHparams.data, serverDHparams.size));
 
     GUARD(s2n_write_signature_blob(out, &conn->config->cert_and_key_pairs->private_key, &conn->secure.signature_hash));
-    
+
+    return 0;
+}
+
+static int s2n_write_io_with_external_result(struct s2n_connection *conn)
+{
+    struct s2n_stuffer *out = &conn->handshake.io;
+
+    /* The ephemeral key has already been generated */
+    struct s2n_stuffer *ephemeral_key = &conn->config->external_dhe_ctx.ephemeral_key_io;
+    GUARD(s2n_stuffer_copy(ephemeral_key, out, ephemeral_key->write_cursor));
+
+    if (conn->actual_protocol_version == S2N_TLS12) {
+        GUARD(s2n_stuffer_write_uint8(out, s2n_hash_alg_to_tls[ conn->secure.conn_hash_alg ]));
+        GUARD(s2n_stuffer_write_uint8(out, conn->secure.conn_sig_alg));
+    }
+
+    uint8_t *result = conn->config->external_dhe_ctx.result;
+    notnull_check(result);
+    uint32_t size = (result[0] << 24) | (result[1] << 16) | (result[2] << 8) | (result[3]);
+    GUARD(s2n_stuffer_write_uint16(out, size));
+    GUARD(s2n_stuffer_write_bytes(out, (result + 4), size));
+
+    /* free the ctx */
+    s2n_reset_external_ctx(&(conn->config->external_dhe_ctx));
+
+    return 0;
+}
+
+static int s2n_reset_external_ctx(struct s2n_external_ctx *ctx)
+{
+    notnull_check(ctx);
+    free(ctx->result);
+    ctx->result = NULL;
+    ctx->status = 0;
+    s2n_stuffer_free(&(ctx->ephemeral_key_io));
     return 0;
 }
 
