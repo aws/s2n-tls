@@ -122,7 +122,7 @@ int s2n_kem_client_recv_key(struct s2n_connection *conn, struct s2n_blob *shared
     struct s2n_blob ciphertext = {.size = ciphertext_length, .data = s2n_stuffer_raw_read(in, ciphertext_length)};
     notnull_check(ciphertext.data);
 
-    s2n_kem_decrypt_shared_secret(kem, &conn->secure.kem_params, shared_key, &ciphertext);
+    GUARD(s2n_kem_decrypt_shared_secret(kem, &conn->secure.kem_params, shared_key, &ciphertext));
 
     GUARD(s2n_free(&conn->secure.kem_params.private_key));
 
@@ -200,7 +200,7 @@ int s2n_kem_client_send_key(struct s2n_connection *conn, struct s2n_blob *shared
     const struct s2n_kem *kem = conn->secure.kem_params.negotiated_kem;
 
     struct s2n_blob ciphertext = {0};
-    s2n_kem_generate_shared_secret(kem, &conn->secure.kem_params, shared_key, &ciphertext);
+    GUARD(s2n_kem_generate_shared_secret(kem, &conn->secure.kem_params, shared_key, &ciphertext));
 
 
     GUARD(s2n_stuffer_write_uint16(out, ciphertext.size));

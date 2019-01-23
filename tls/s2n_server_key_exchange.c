@@ -150,7 +150,7 @@ int s2n_kem_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_bl
     // the server sends the named KEM again and this must match what was agreed upon during server hello
     uint8_t named_kem;
     GUARD(s2n_stuffer_read_uint8(in, &named_kem));
-    eq_check(named_kem, kem->kem_extension_id); //
+    eq_check(named_kem, kem->kem_extension_id);
 
     GUARD(s2n_stuffer_read_uint16(in, &key_length));
     S2N_ERROR_IF(key_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
@@ -159,10 +159,7 @@ int s2n_kem_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_bl
     notnull_check(kem_data->raw_public_key.data);
     kem_data->raw_public_key.size = key_length;
 
-    // 1 byte for the kem_extension_id
-    // 2 bytes for the key_length
-    // and however long the key actually was
-    data_to_verify->size = 1 + 2 + key_length;
+    data_to_verify->size = KEM_EXTENSION_BYTES + KEM_PUBLIC_KEY_BYTES + key_length;
 
     return 0;
 }
@@ -236,7 +233,7 @@ int s2n_kem_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_t
     struct s2n_stuffer *out = &conn->handshake.io;
     const struct s2n_kem *kem = conn->secure.kem_params.negotiated_kem;
 
-    s2n_kem_generate_key_pair(kem, &conn->secure.kem_params);
+    GUARD(s2n_kem_generate_key_pair(kem, &conn->secure.kem_params));
 
     data_to_sign->data = s2n_stuffer_raw_write(out, 0);
     notnull_check(data_to_sign->data);
@@ -245,10 +242,7 @@ int s2n_kem_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_t
     GUARD(s2n_stuffer_write_uint16(out, conn->secure.kem_params.public_key.size));
     GUARD(s2n_stuffer_write(out, &conn->secure.kem_params.public_key));
 
-    // 1 byte for the kem_extension_id
-    // 2 bytes for the public key length
-    // and however long the key actually was
-    data_to_sign->size = 1 + 2 +  conn->secure.kem_params.public_key.size;
+    data_to_sign->size = KEM_EXTENSION_BYTES + KEM_PUBLIC_KEY_BYTES +  conn->secure.kem_params.public_key.size;
     GUARD(s2n_free(&conn->secure.kem_params.public_key));
 
     return 0;

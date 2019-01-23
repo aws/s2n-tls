@@ -18,6 +18,9 @@
 #include <stdint.h>
 #include "tls/s2n_kem_params.h"
 
+#define KEM_EXTENSION_BYTES 1
+#define KEM_PUBLIC_KEY_BYTES 2
+
 struct s2n_kem {
     uint8_t kem_extension_id;
     const uint16_t publicKeySize;
