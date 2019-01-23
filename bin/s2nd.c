@@ -666,7 +666,7 @@ int main(int argc, char *const *argv)
     }
 
     struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new();
-    if (s2n_cert_chain_and_key_init(chain_and_key, certificate_chain, private_key) < 0) {
+    if (s2n_cert_chain_and_key_load_pem(chain_and_key, certificate_chain, private_key) < 0) {
         print_s2n_error("Error getting certificate/key");
         exit(1);
     }
