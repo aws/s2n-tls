@@ -417,7 +417,7 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
 {
     struct s2n_cert_chain_and_key *chain_and_key;
     notnull_check(chain_and_key = s2n_cert_chain_and_key_new());
-    GUARD(s2n_cert_chain_and_key_init(chain_and_key, cert_chain_pem, private_key_pem));
+    GUARD(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
     GUARD(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     config->default_cert_and_key_pair = chain_and_key;    
 

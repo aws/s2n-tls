@@ -159,7 +159,7 @@ struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void)
     return chain_and_key;
 }
 
-int s2n_cert_chain_and_key_init(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem, const char *private_key_pem)
+int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem, const char *private_key_pem)
 {
     struct s2n_blob cert_chain_mem, pkey_mem;
 
