@@ -147,12 +147,20 @@ int s2n_cert_chain_and_key_set_sct_list(struct s2n_cert_chain_and_key *chain_and
 struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void)
 {
     struct s2n_cert_chain_and_key *chain_and_key;
-    struct s2n_blob mem;
-    GUARD_PTR(s2n_alloc(&mem, sizeof(struct s2n_cert_chain_and_key)));
-    chain_and_key = (struct s2n_cert_chain_and_key *)(void *)mem.data;
+    struct s2n_blob chain_and_key_mem, cert_chain_mem, pkey_mem;
     
-    chain_and_key->cert_chain = NULL;
-    chain_and_key->private_key = NULL;
+    GUARD_PTR(s2n_alloc(&chain_and_key_mem, sizeof(struct s2n_cert_chain_and_key)));
+    chain_and_key = (struct s2n_cert_chain_and_key *)(void *)chain_and_key_mem.data;
+    
+    /* Allocate the memory for the chain and key */
+    GUARD_PTR(s2n_alloc(&cert_chain_mem, sizeof(struct s2n_cert_chain)));
+    chain_and_key->cert_chain = (struct s2n_cert_chain *)(void *)cert_chain_mem.data;
+    
+    GUARD_PTR(s2n_alloc(&pkey_mem, sizeof(s2n_cert_private_key)));
+    chain_and_key->private_key = (s2n_cert_private_key *)(void *)pkey_mem.data;
+
+    chain_and_key->cert_chain->head = NULL;
+    GUARD_PTR(s2n_pkey_zero_init(chain_and_key->private_key));
     memset(&chain_and_key->ocsp_status, 0, sizeof(chain_and_key->ocsp_status));
     memset(&chain_and_key->sct_list, 0, sizeof(chain_and_key->sct_list));
     
@@ -161,18 +169,9 @@ struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void)
 
 int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem, const char *private_key_pem)
 {
-    struct s2n_blob cert_chain_mem, pkey_mem;
 
-    /* Allocate the memory for the chain and key */
-    GUARD(s2n_alloc(&cert_chain_mem, sizeof(struct s2n_cert_chain)));
-    chain_and_key->cert_chain = (struct s2n_cert_chain *)(void *)cert_chain_mem.data;
-    
-    GUARD(s2n_alloc(&pkey_mem, sizeof(s2n_cert_private_key)));
-    chain_and_key->private_key = (s2n_cert_private_key *)(void *)pkey_mem.data;
+    notnull_check(chain_and_key);
 
-    chain_and_key->cert_chain->head = NULL;
-    GUARD(s2n_pkey_zero_init(chain_and_key->private_key));
-    
     GUARD(s2n_cert_chain_and_key_set_cert_chain(chain_and_key, chain_pem));
     GUARD(s2n_cert_chain_and_key_set_private_key(chain_and_key, private_key_pem));
 

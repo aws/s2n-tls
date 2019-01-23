@@ -86,12 +86,7 @@ static int s2n_parse_cert_chain(struct s2n_stuffer *in)
 {
     struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new();
     
-    struct s2n_blob cert_chain_mem;
-
     /* Allocate the memory for the chain and key */
-    GUARD(s2n_alloc(&cert_chain_mem, sizeof(struct s2n_cert_chain)));
-    chain_and_key->cert_chain = (struct s2n_cert_chain *)(void *)cert_chain_mem.data;
-    chain_and_key->cert_chain->head = NULL;
     s2n_create_cert_chain_from_stuffer(chain_and_key->cert_chain, in);
 
     struct s2n_cert *next = chain_and_key->cert_chain->head;
