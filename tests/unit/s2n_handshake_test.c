@@ -194,6 +194,9 @@ int get_private_key_pem(struct s2n_pkey* pkey, const char *pem_path) {
     return 0;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+/* Wcast_qual ignored here for the unit test. However in production code, the const should be honored by the external function*/
 int external_rsa_decrypt(uint8_t *ctx, const uint8_t *encrypted_data, uint32_t encrypted_data_length, const char *pem_path) {
     /* Get key type and create appropriate key context */
     DEFER_CLEANUP(struct s2n_pkey pkey = {{{0}}}, s2n_pkey_free);
@@ -215,6 +218,7 @@ int external_rsa_decrypt(uint8_t *ctx, const uint8_t *encrypted_data, uint32_t e
 
     return 0;
 }
+#pragma GCC diagnostic pop
 
 int external_rsa_default_decrypt(uint8_t *ctx, const uint8_t *encrypted_data, uint32_t encrypted_data_length)
 {
