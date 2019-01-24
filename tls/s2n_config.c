@@ -77,7 +77,7 @@ static struct s2n_config s2n_default_fips_config = {0};
 
 static int s2n_config_init(struct s2n_config *config)
 {
-    config->default_cert_and_key_pair = NULL;
+    config->cert_allocated = 0;
     config->cert_and_key_pairs = NULL;
     config->dhparams = NULL;
     memset(&config->application_protocols, 0, sizeof(config->application_protocols));
@@ -270,10 +270,10 @@ int s2n_config_free_session_ticket_keys(struct s2n_config *config)
 
 int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
 {
-    /* Free the default cert_chain_and_key since the application has no reference
+    /* Free the cert_chain_and_key since the application has no reference
      * to it. This is necessary until s2n_config_add_cert_chain_and_key is deprecated. */
-    if (config->default_cert_and_key_pair != NULL) {
-        GUARD(s2n_cert_chain_and_key_free(config->default_cert_and_key_pair));
+    if (config->cert_allocated) {
+        GUARD(s2n_cert_chain_and_key_free(config->cert_and_key_pairs));
     }
 
     return 0;
@@ -419,7 +419,7 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
     notnull_check(chain_and_key = s2n_cert_chain_and_key_new());
     GUARD(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
     GUARD(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-    config->default_cert_and_key_pair = chain_and_key;    
+    config->cert_allocated = 1;
 
     return 0;
 }
