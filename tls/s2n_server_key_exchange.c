@@ -143,17 +143,18 @@ int s2n_kem_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_bl
     const struct s2n_kem *kem = conn->secure.kem_params.negotiated_kem;
     uint16_t key_length;
 
-    /* Keep a copy to the start of the whole structure for the signature check */
+    // Keep a copy to the start of the whole structure for the signature check
     data_to_verify->data = s2n_stuffer_raw_read(in, 0);
     notnull_check(data_to_verify->data);
 
-    // the server sends the named KEM again and this must match what was agreed upon during server hello
-    uint8_t named_kem;
-    GUARD(s2n_stuffer_read_uint8(in, &named_kem));
-    eq_check(named_kem, kem->kem_extension_id);
+    // the server sends the KEM ID again and this must match what was agreed upon during server hello
+    uint8_t kem_id;
+    GUARD(s2n_stuffer_read_uint8(in, &kem_id));
+    eq_check(kem_id, kem->kem_extension_id);
 
     GUARD(s2n_stuffer_read_uint16(in, &key_length));
     S2N_ERROR_IF(key_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(key_length != conn->secure.kem_params.negotiated_kem->publicKeySize, S2N_ERR_BAD_MESSAGE);
 
     kem_data->raw_public_key.data = s2n_stuffer_raw_read(in, key_length);
     notnull_check(kem_data->raw_public_key.data);
@@ -233,12 +234,12 @@ int s2n_kem_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_t
     struct s2n_stuffer *out = &conn->handshake.io;
     const struct s2n_kem *kem = conn->secure.kem_params.negotiated_kem;
 
-    GUARD(s2n_kem_generate_key_pair(kem, &conn->secure.kem_params));
+    GUARD(s2n_kem_generate_keypair(&conn->secure.kem_params));
 
     data_to_sign->data = s2n_stuffer_raw_write(out, 0);
     notnull_check(data_to_sign->data);
 
-    GUARD(s2n_stuffer_write_uint8(out, (uint8_t) kem->kem_extension_id));
+    GUARD(s2n_stuffer_write_uint8(out, kem->kem_extension_id));
     GUARD(s2n_stuffer_write_uint16(out, conn->secure.kem_params.public_key.size));
     GUARD(s2n_stuffer_write(out, &conn->secure.kem_params.public_key));
 

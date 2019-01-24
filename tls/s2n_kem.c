@@ -20,8 +20,9 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
 
-int s2n_kem_generate_key_pair(const struct s2n_kem *kem, struct s2n_kem_params *kem_params)
+int s2n_kem_generate_keypair(struct s2n_kem_params *kem_params)
 {
+    const struct s2n_kem *kem = kem_params->negotiated_kem;
     notnull_check(kem->generate_keypair);
     GUARD(s2n_alloc(&kem_params->public_key, kem->publicKeySize));
     GUARD(s2n_alloc(&kem_params->private_key, kem->privateKeySize));
@@ -29,25 +30,28 @@ int s2n_kem_generate_key_pair(const struct s2n_kem *kem, struct s2n_kem_params *
     return 0;
 }
 
-int s2n_kem_generate_shared_secret(const struct s2n_kem *kem, struct s2n_kem_params *kem_params,
-                                   struct s2n_blob *shared_secret, struct s2n_blob *ciphertext)
+int s2n_kem_generate_shared_secret(struct s2n_kem_params *kem_params, struct s2n_blob *shared_secret,
+                                   struct s2n_blob *ciphertext)
 {
-    notnull_check(kem->encrypt);
+    const struct s2n_kem *kem = kem_params->negotiated_kem;
+    notnull_check(kem->encapsulate);
+    notnull_check(kem_params->public_key.data);
     GUARD(s2n_alloc(shared_secret, kem->sharedSecretKeySize));
     GUARD(s2n_alloc(ciphertext, kem->ciphertextSize));
-    GUARD(kem->encrypt(ciphertext->data, shared_secret->data, kem_params->public_key.data));
+    GUARD(kem->encapsulate(ciphertext->data, shared_secret->data, kem_params->public_key.data));
     return 0;
 }
 
-int s2n_kem_decrypt_shared_secret(const struct s2n_kem *kem, struct s2n_kem_params *kem_params,
-                                  struct s2n_blob *shared_secret, struct s2n_blob *ciphertext)
+int s2n_kem_decapsulate_shared_secret(struct s2n_kem_params *kem_params, struct s2n_blob *shared_secret,
+                                      const struct s2n_blob *ciphertext)
 {
-    notnull_check(kem->decrypt);
+    const struct s2n_kem *kem = kem_params->negotiated_kem;
+    notnull_check(kem->decapsulate);
     notnull_check(kem_params->private_key.data);
     eq_check(kem->ciphertextSize, ciphertext->size);
 
     GUARD(s2n_alloc(shared_secret, kem->sharedSecretKeySize));
-    GUARD(kem->decrypt(shared_secret->data, ciphertext->data, kem_params->private_key.data));
+    GUARD(kem->decapsulate(shared_secret->data, ciphertext->data, kem_params->private_key.data));
     return 0;
 }
 

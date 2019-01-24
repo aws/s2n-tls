@@ -81,8 +81,8 @@ struct s2n_kem s2n_test_kem = {
         .sharedSecretKeySize = TEST_SHARED_SECRET_LENGTH,
         .ciphertextSize = TEST_CIPHERTEXT_LENGTH,
         .generate_keypair = &s2n_test_generate_keypair,
-        .encrypt = &s2n_test_encrypt,
-        .decrypt = &s2n_test_decrypt,
+        .encapsulate = &s2n_test_encrypt,
+        .decapsulate = &s2n_test_decrypt,
 };
 
 struct s2n_kex s2n_test_kem_kex = {

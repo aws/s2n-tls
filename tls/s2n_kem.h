@@ -28,17 +28,17 @@ struct s2n_kem {
     const uint16_t sharedSecretKeySize;
     const uint16_t ciphertextSize;
     int (*generate_keypair)(unsigned char *public_key, unsigned char *private_key);
-    int (*encrypt)(unsigned char *ciphertext, unsigned char *shared_secret,  const unsigned char *public_key);
-    int (*decrypt)(unsigned char *shared_secret, const unsigned char *ciphertext, const unsigned char *private_key);
+    int (*encapsulate)(unsigned char *ciphertext, unsigned char *shared_secret,  const unsigned char *public_key);
+    int (*decapsulate)(unsigned char *shared_secret, const unsigned char *ciphertext, const unsigned char *private_key);
 };
 
-extern int s2n_kem_generate_key_pair(const struct s2n_kem *kem, struct s2n_kem_params *kem_params);
+extern int s2n_kem_generate_keypair(struct s2n_kem_params *kem_params);
 
-extern int s2n_kem_generate_shared_secret(const struct s2n_kem *kem, struct s2n_kem_params *kem_params,
-                                          struct s2n_blob *shared_secret, struct s2n_blob *ciphertext);
+extern int s2n_kem_generate_shared_secret(struct s2n_kem_params *kem_params, struct s2n_blob *shared_secret,
+                                          struct s2n_blob *ciphertext);
 
-extern int s2n_kem_decrypt_shared_secret(const struct s2n_kem *kem, struct s2n_kem_params *kem_params,
-                                         struct s2n_blob *shared_secret, struct s2n_blob *ciphertext);
+extern int s2n_kem_decapsulate_shared_secret(struct s2n_kem_params *kem_params, struct s2n_blob *shared_secret,
+                                             const struct s2n_blob *ciphertext);
 
 extern int s2n_kem_find_supported_named_kem(struct s2n_blob *client_kem_names, const struct s2n_kem supported_kems[], const int num_supported_kems,
                                      const struct s2n_kem **matching_kem);
