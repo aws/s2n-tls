@@ -442,6 +442,16 @@ if (s2n_recv(conn, &blocked) < 0) {
 
 ## Initialization and teardown
 
+### s2n\_get\_openssl\_version
+
+```c
+unsigned long s2n_get_openssl_version();
+```
+
+**s2n_get_openssl_version** returns the version number of OpenSSL that s2n was compiled with. It can be used by 
+applications to validate at runtime that the versions of s2n and Openssl that they have loaded are correct.
+
+
 ### s2n\_init
 
 ```c

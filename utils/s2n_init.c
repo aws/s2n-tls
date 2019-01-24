@@ -20,7 +20,14 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
+#include "openssl/opensslv.h"
+
 static void s2n_cleanup_atexit(void);
+
+unsigned long s2n_get_openssl_version()
+{
+    return OPENSSL_VERSION_NUMBER;
+}
 
 int s2n_init(void)
 {
