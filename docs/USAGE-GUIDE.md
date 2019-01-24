@@ -346,7 +346,7 @@ typedef enum {
 
 ## Opaque structures
 
-s2n defines two opaque structures that are used for managed objects. Because
+s2n defines several opaque structures that are used for managed objects. Because
 these structures are opaque, they can only be safely referenced indirectly through
 pointers and their sizes may change with future versions of s2n.
 
@@ -522,6 +522,7 @@ underlying encrpyt/decrypt functions are not available in older versions.
 3. Prefer encryption ciphers in the following order: AES128, AES256, ChaCha20, 3DES, RC4.
 4. Prefer record authentication modes in the following order: GCM, Poly1305, SHA256, SHA1, MD5.
 
+
 ### s2n\_config\_add\_cert\_chain\_and\_key
 
 ```c
@@ -537,6 +538,15 @@ certificate-chain/key pair may be associated with a config.
 **cert_chain_pem** should be a PEM encoded certificate chain, with the first
 certificate in the chain being your servers certificate. **private_key_pem**
 should be a PEM encoded private key corresponding to the server certificate.
+
+### s2n\_config\_add\_cert\_chain\_and\_key\_to\_store
+
+```c
+int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, 
+                                               struct s2n_cert_chain_and_key *cert_key_pair);
+```
+
+**s2n_config_add_cert_chain_and_key_to_store** is the preferred method of associating a certificate chain and private key pair with an **s2n_config** object. At present, this may only be called once for each config object. It is not recommended to free or modify the **cert_key_pair** as any subsequent changes will be reflected in the config.
 
 ### s2n\_config\_add\_dhparams
 
@@ -740,6 +750,34 @@ int s2n_config_set_alert_behavior(struct s2n_config *config, s2n_alert_behavior 
 Sets whether or not a should terminate connection on WARNING alert from peer. `alert_behavior` can take the following values:
 - `S2N_ALERT_FAIL_ON_WARNINGS` - default behavior: s2n will terminate conneciton if peer sends WARNING alert.
 - `S2N_ALERT_IGNORE_WARNINGS` - with the exception of `close_notify` s2n will ignore all WARNING alerts and keep communicating with its peer.
+
+## Certificate-related functions
+
+### s2n\_cert\_chain\_and\_key\_new
+
+```c
+struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void);
+```
+**s2n_cert_chain_and_key_new** returns a new object used to represent a certificate-chain/key pair. This object can be associated with many config objects.
+
+### s2n\_cert\_chain\_and\_key\_free
+
+```c
+int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key);
+```
+**s2n_cert_chain_and_key_free** frees the memory associated with an **s2n_cert_chain_and_key** object.
+
+### s2n\_cert\_chain\_and\_key\_load\_pem
+
+```c
+int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem, const char *private_key_pem);
+```
+
+**s2n_cert_chain_and_key_load_pem** associates a certificate chain and private key with an **s2n_cert_chain_and_key** object. 
+
+**cert_chain_pem** should be a PEM encoded certificate chain, with the first
+certificate in the chain being your leaf certificate. **private_key_pem**
+should be a PEM encoded private key corresponding to the leaf certificate.
 
 ## Client Auth Related calls
 Client Auth Related API's are not recommended for normal users. Use of these API's is discouraged.
