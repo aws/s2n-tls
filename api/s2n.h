@@ -50,6 +50,7 @@ extern int s2n_error_get_type(int error);
 struct s2n_config;
 struct s2n_connection;
 
+extern unsigned long s2n_get_openssl_version();
 extern int s2n_init(void);
 extern int s2n_cleanup(void);
 extern struct s2n_config *s2n_config_new(void);
