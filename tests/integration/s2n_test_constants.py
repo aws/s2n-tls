@@ -60,6 +60,7 @@ ALL_TEST_CIPHERS = [
     S2N_CIPHER("ECDHE-RSA-AES128-GCM-SHA256", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-RSA:+AES-128-GCM:+AEAD", S2N_TLS12, True, True),
     S2N_CIPHER("ECDHE-RSA-AES256-GCM-SHA384", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-RSA:+AES-256-GCM:+AEAD", S2N_TLS12, True, True),
     S2N_CIPHER("ECDHE-RSA-CHACHA20-POLY1305", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-RSA:+CHACHA20-POLY1305:+AEAD", S2N_TLS12, True, False),
+    S2N_CIPHER("ECDHE-ECDSA-CHACHA20-POLY1305", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-ECDSA:+CHACHA20-POLY1305:+AEAD", S2N_TLS12, True, False),
     S2N_CIPHER("DHE-RSA-CHACHA20-POLY1305", S2N_GNUTLS_PRIORITY_PREFIX + ":+DHE-RSA:+CHACHA20-POLY1305:+AEAD", S2N_TLS12, True, False),
 ]
 
@@ -86,15 +87,14 @@ OPENSSL_1_1_0_TEST_CIPHERS = ALL_TEST_CIPHERS
 
 # Test ciphers to use when s2n is built with Openssl 1.0.2 libcrypto. 1.0.2 does not have the
 # ChaCha20-Poly1305 cipher.
-OPENSSL_1_0_2_TEST_CIPHERS = list(filter(lambda x: x.openssl_name != "ECDHE-RSA-CHACHA20-POLY1305" and x.openssl_name != "DHE-RSA-CHACHA20-POLY1305", ALL_TEST_CIPHERS))
-
+OPENSSL_1_0_2_TEST_CIPHERS = list(filter(lambda x: "CHACHA20" not in x.openssl_name, ALL_TEST_CIPHERS))
 
 # Test ciphers to use when s2n is built with Openssl 1.0.2 libcrypto that is linked with a FIPS module.
 OPENSSL_1_0_2_FIPS_TEST_CIPHERS = list(filter(lambda x: x.openssl_fips_compatible == True, ALL_TEST_CIPHERS))
 
 # Test ciphers to use when s2n is built with LibreSSL libcrypto. s2n does not implement the
 # ChaCha20-Poly1305 cipher offered by LibreSSL.
-LIBRESSL_TEST_CIPHERS = list(filter(lambda x: x.openssl_name != "ECDHE-RSA-CHACHA20-POLY1305" and x.openssl_name != "DHE-RSA-CHACHA20-POLY1305", ALL_TEST_CIPHERS))
+LIBRESSL_TEST_CIPHERS = list(filter(lambda x: "CHACHA20" not in x.openssl_name, ALL_TEST_CIPHERS))
 
 # Dictionary to look up ciphers to use by libcrypto s2n is built with.
 # Libcrypto string will be an argument to test scripts.
