@@ -516,7 +516,6 @@ static int read_full_handshake_message(struct s2n_connection *conn, uint8_t * me
     }
 
     uint32_t handshake_message_length;
-    //printf("OMG read_full_handshake_message \n");
     GUARD(s2n_handshake_parse_header(conn, message_type, &handshake_message_length));
 
     S2N_ERROR_IF(handshake_message_length > S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH, S2N_ERR_BAD_MESSAGE);
@@ -544,7 +543,6 @@ static int s2n_handshake_conn_update_hashes(struct s2n_connection *conn)
     uint32_t handshake_message_length;
 
     GUARD(s2n_stuffer_reread(&conn->handshake.io));
-    //printf("OMG rs2n_handshake_conn_update_hashes \n");
     GUARD(s2n_handshake_parse_header(conn, &message_type, &handshake_message_length));
 
     struct s2n_blob handshake_record = {0};
@@ -619,9 +617,6 @@ static int handshake_handle_app_data(struct s2n_connection *conn) {
     }
 
 done:    
-    /* We're done with the record, wipe it */
-    //GUARD(s2n_stuffer_wipe(&conn->header_in));
-    //GUARD(s2n_stuffer_wipe(&conn->in));
     conn->in_status = ENCRYPTED;
 
     return 0;
