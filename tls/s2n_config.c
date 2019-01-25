@@ -78,7 +78,8 @@ static struct s2n_config s2n_default_fips_config = {0};
 static int s2n_config_init(struct s2n_config *config)
 {
     config->cert_allocated = 0;
-    config->cert_and_key_pairs = NULL;
+    config->num_certificates = 0;
+    memset(config->cert_and_key_pairs, 0, sizeof(struct s2n_cert_chain_and_key *) * S2N_MAX_CERTIFICATES);
     config->dhparams = NULL;
     memset(&config->application_protocols, 0, sizeof(config->application_protocols));
     config->status_request_type = S2N_STATUS_REQUEST_NONE;
@@ -273,7 +274,7 @@ int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
     /* Free the cert_chain_and_key since the application has no reference
      * to it. This is necessary until s2n_config_add_cert_chain_and_key is deprecated. */
     if (config->cert_allocated) {
-        GUARD(s2n_cert_chain_and_key_free(config->cert_and_key_pairs));
+        GUARD(s2n_cert_chain_and_key_free(config->cert_and_key_pairs[0]));
     }
 
     return 0;
@@ -426,7 +427,12 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
 
 int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
 {
-    config->cert_and_key_pairs = cert_key_pair;
+    if (config->num_certificates == S2N_MAX_CERTIFICATES) {
+        S2N_ERROR(S2N_ERR_INVALID_ARGUMENT);
+    }
+
+    config->cert_and_key_pairs[config->num_certificates] = cert_key_pair;
+    config->num_certificates++;
 
     return 0;
 }
@@ -510,7 +516,7 @@ int s2n_config_set_cache_delete_callback(struct s2n_config *config, s2n_cache_de
 int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length)
 {
     notnull_check(config);
-    struct s2n_cert_chain_and_key *config_chain_and_key = config->cert_and_key_pairs;
+    struct s2n_cert_chain_and_key *config_chain_and_key = config->cert_and_key_pairs[0];
     notnull_check(config_chain_and_key);
     
     switch (type) {
@@ -554,18 +560,6 @@ int s2n_config_accept_max_fragment_length(struct s2n_config *config)
 
     config->accept_mfl = 1;
 
-    return 0;
-}
-
-int s2n_config_get_cert_type(struct s2n_config *config, s2n_cert_type *cert_type)
-{
-    notnull_check(config);
-    notnull_check(config->cert_and_key_pairs);
-    notnull_check(config->cert_and_key_pairs->cert_chain);
-    notnull_check(config->cert_and_key_pairs->cert_chain->head);
-
-    *cert_type = config->cert_and_key_pairs->cert_chain->head->cert_type;
-    
     return 0;
 }
 

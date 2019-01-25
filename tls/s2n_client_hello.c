@@ -223,8 +223,6 @@ static int s2n_process_client_hello(struct s2n_connection *conn)
     }
 
     /* Now choose the ciphers and the cert chain. */
-    /* For now, set the only cert we have configured. */
-    conn->handshake_params.chain_and_key = conn->config->cert_and_key_pairs;
     GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
 
     /* And set the signature and hash algorithm used for key exchange signatures */
@@ -425,9 +423,6 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     GUARD(s2n_stuffer_read_uint16(in, &challenge_length));
 
     S2N_ERROR_IF(challenge_length > S2N_TLS_RANDOM_DATA_LEN, S2N_ERR_BAD_MESSAGE);
-
-    /* For now, set the only cert we have configured. */
-    conn->handshake_params.chain_and_key = conn->config->cert_and_key_pairs;
 
     cipher_suites = s2n_stuffer_raw_read(in, cipher_suites_length);
     notnull_check(cipher_suites);

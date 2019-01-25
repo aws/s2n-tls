@@ -28,7 +28,9 @@
 
 static int s2n_set_cert_chain_as_client(struct s2n_connection *conn)
 {
-    conn->handshake_params.chain_and_key = conn->config->cert_and_key_pairs;
+    if (conn->config->num_certificates > 0) {
+        conn->handshake_params.chain_and_key = conn->config->cert_and_key_pairs[0];
+    }
 
     return 0;
 }

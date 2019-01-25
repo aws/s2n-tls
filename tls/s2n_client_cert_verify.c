@@ -94,7 +94,6 @@ int s2n_client_cert_verify_send(struct s2n_connection *conn)
     case S2N_SIGNATURE_RSA:
         signature.size = s2n_pkey_size(cert_chain_and_key->private_key);
         GUARD(s2n_stuffer_write_uint16(out, signature.size));
-
         signature.data = s2n_stuffer_raw_write(out, signature.size);
         notnull_check(signature.data);
         GUARD(s2n_pkey_sign(cert_chain_and_key->private_key, &conn->handshake.ccv_hash_copy, &signature));

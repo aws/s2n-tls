@@ -665,12 +665,23 @@ int main(int argc, char *const *argv)
         private_key = default_private_key;
     }
 
+    struct s2n_cert_chain_and_key *default_chain_and_key = s2n_cert_chain_and_key_new();
+    if (s2n_cert_chain_and_key_load_pem(default_chain_and_key, default_certificate_chain, default_private_key) < 0) {
+        print_s2n_error("Error getting certificate/key");
+        exit(1);
+    }
+
+    if (s2n_config_add_cert_chain_and_key_to_store(config, default_chain_and_key) < 0) {
+        print_s2n_error("Error setting certificate/key");
+        exit(1);
+    }
+
     struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new();
     if (s2n_cert_chain_and_key_load_pem(chain_and_key, certificate_chain, private_key) < 0) {
         print_s2n_error("Error getting certificate/key");
         exit(1);
     }
-    
+
     if (s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key) < 0) {
         print_s2n_error("Error setting certificate/key");
         exit(1);
