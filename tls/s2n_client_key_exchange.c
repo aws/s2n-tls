@@ -301,7 +301,7 @@ int s2n_client_key_recv(struct s2n_connection *conn)
 int s2n_client_key_external(struct s2n_connection *conn)
 {
     if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_DH) {
-        //ToDo, DHE not implemented yet.
+        /* Nothing to do for DHE at this time. */
         return 0;
     } else {
         if (conn->config->external_rsa_decrypt) {
