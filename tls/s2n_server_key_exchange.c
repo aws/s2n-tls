@@ -160,7 +160,7 @@ int s2n_server_key_send(struct s2n_connection *conn)
     GUARD(s2n_hash_update(signature_hash, data_to_sign.data, data_to_sign.size));
 
     /* Sign and write the signature */
-    GUARD(s2n_write_signature_blob(out, conn->config->cert_and_key_pairs->private_key, signature_hash));
+    GUARD(s2n_write_signature_blob(out, conn->handshake_params.chain_and_key->private_key, signature_hash));
     return 0;
 }
 

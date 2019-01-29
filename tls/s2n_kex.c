@@ -62,7 +62,7 @@ static int write_no_extension(const struct s2n_connection *conn, struct s2n_stuf
 
 static int check_rsa_key(const struct s2n_connection *conn)
 {
-    return conn->config->cert_and_key_pairs != NULL;
+    return conn->handshake_params.chain_and_key != NULL;
 }
 
 static int check_dhe(const struct s2n_connection *conn)

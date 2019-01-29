@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -223,8 +223,9 @@ static int s2n_process_client_hello(struct s2n_connection *conn)
     }
 
     /* Now choose the ciphers and the cert chain. */
+    /* For now, set the only cert we have configured. */
+    conn->handshake_params.chain_and_key = conn->config->cert_and_key_pairs;
     GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
-    conn->server->server_cert_chain = conn->config->cert_and_key_pairs;
 
     /* And set the signature and hash algorithm used for key exchange signatures */
     GUARD(s2n_set_signature_hash_pair_from_preference_list(conn, &conn->handshake_params.client_sig_hash_algs, &conn->secure.conn_hash_alg, &conn->secure.conn_sig_alg));
@@ -425,6 +426,9 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
 
     S2N_ERROR_IF(challenge_length > S2N_TLS_RANDOM_DATA_LEN, S2N_ERR_BAD_MESSAGE);
 
+    /* For now, set the only cert we have configured. */
+    conn->handshake_params.chain_and_key = conn->config->cert_and_key_pairs;
+
     cipher_suites = s2n_stuffer_raw_read(in, cipher_suites_length);
     notnull_check(cipher_suites);
     GUARD(s2n_set_cipher_as_sslv2_server(conn, cipher_suites, cipher_suites_length / S2N_SSLv2_CIPHER_SUITE_LEN));
@@ -446,7 +450,6 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
 
     GUARD(s2n_stuffer_read(in, &b));
 
-    conn->server->server_cert_chain = conn->config->cert_and_key_pairs;
     GUARD(s2n_conn_set_handshake_type(conn));
 
     return 0;
