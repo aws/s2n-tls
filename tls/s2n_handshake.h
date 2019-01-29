@@ -52,6 +52,9 @@ struct s2n_handshake_parameters {
 
     /* Signature/hash algorithm pairs offered by the server in the certificate request */
     struct s2n_sig_hash_alg_pairs server_sig_hash_algs;
+
+    /* The cert chain we will send the peer. */
+    struct s2n_cert_chain_and_key *chain_and_key;
 };
 
 struct s2n_handshake {

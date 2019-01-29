@@ -921,11 +921,12 @@ static int s2n_cipher_is_compatible_with_cert(struct s2n_cipher_suite *cipher, s
     return 0;
 }
 
-static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire, uint32_t count, uint32_t cipher_suite_len)
+static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
 {
-    /* Only one cert chain for now */
+    /* Only one cert chain for now. */
     notnull_check(conn->config->cert_and_key_pairs);
-    struct s2n_cert *leaf_cert = conn->config->cert_and_key_pairs->cert_chain->head;
+    conn->handshake_params.chain_and_key = conn->config->cert_and_key_pairs;
+    struct s2n_cert *leaf_cert = conn->handshake_params.chain_and_key->cert_chain->head;
 
     uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
     struct s2n_cipher_suite *higher_vers_match = NULL;
