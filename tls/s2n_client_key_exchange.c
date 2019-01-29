@@ -114,14 +114,14 @@ int s2n_ecdhe_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shar
 int s2n_kem_client_recv_key(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
-    uint16_t ciphertext_length;
+    kem_ciphertext_key_size ciphertext_length;
 
     GUARD(s2n_stuffer_read_uint16(in, &ciphertext_length));
     S2N_ERROR_IF(ciphertext_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
     const struct s2n_blob ciphertext = {.size = ciphertext_length, .data = s2n_stuffer_raw_read(in, ciphertext_length)};
     notnull_check(ciphertext.data);
 
-    GUARD(s2n_kem_decapsulate_shared_secret(&conn->secure.kem_params, shared_key, &ciphertext));
+    GUARD(s2n_kem_decapsulate(&conn->secure.kem_params, shared_key, &ciphertext));
 
     GUARD(s2n_free(&conn->secure.kem_params.private_key));
 
@@ -198,7 +198,7 @@ int s2n_kem_client_send_key(struct s2n_connection *conn, struct s2n_blob *shared
     struct s2n_stuffer *out = &conn->handshake.io;
 
     struct s2n_blob ciphertext = {0};
-    GUARD(s2n_kem_generate_shared_secret(&conn->secure.kem_params, shared_key, &ciphertext));
+    GUARD(s2n_kem_encapsulate(&conn->secure.kem_params, shared_key, &ciphertext));
 
 
     GUARD(s2n_stuffer_write_uint16(out, ciphertext.size));

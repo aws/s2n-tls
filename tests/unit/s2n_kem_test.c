@@ -51,10 +51,10 @@ int s2n_test_decrypt(unsigned char *shared_secret, const unsigned char *cipherte
 }
 
 const struct s2n_kem s2n_test_kem = {
-        .publicKeySize = TEST_PUBLIC_KEY_LENGTH,
-        .privateKeySize = TEST_PRIVATE_KEY_LENGTH,
-        .sharedSecretKeySize = TEST_SHARED_SECRET_LENGTH,
-        .ciphertextSize = TEST_CIPHERTEXT_LENGTH,
+        .public_key_length = TEST_PUBLIC_KEY_LENGTH,
+        .private_key_length = TEST_PRIVATE_KEY_LENGTH,
+        .shared_secret_key_length = TEST_SHARED_SECRET_LENGTH,
+        .ciphertext_length = TEST_CIPHERTEXT_LENGTH,
         .generate_keypair = &s2n_test_generate_keypair,
         .encapsulate = &s2n_test_encrypt,
         .decapsulate = &s2n_test_decrypt,
@@ -63,6 +63,14 @@ const struct s2n_kem s2n_test_kem = {
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    {
+        // regression test for network parsing data of expected sizes
+        EXPECT_EQUAL(sizeof(kem_extension_size), 1);
+        EXPECT_EQUAL(sizeof(kem_public_key_size), 2);
+        EXPECT_EQUAL(sizeof(kem_private_key_size), 2);
+        EXPECT_EQUAL(sizeof(kem_shared_secret_size), 2);
+        EXPECT_EQUAL(sizeof(kem_ciphertext_key_size), 2);
+    }
     {
         struct s2n_kem_params server_params = {0};
         server_params.negotiated_kem = &s2n_test_kem;
@@ -82,7 +90,7 @@ int main(int argc, char **argv)
         struct s2n_blob client_shared_secret = {0};
         struct s2n_blob ciphertext = {0};
         EXPECT_SUCCESS(
-                s2n_kem_generate_shared_secret(&client_params, &client_shared_secret, &ciphertext));
+                s2n_kem_encapsulate(&client_params, &client_shared_secret, &ciphertext));
         EXPECT_EQUAL(TEST_SHARED_SECRET_LENGTH, client_shared_secret.size);
         EXPECT_EQUAL(TEST_CIPHERTEXT_LENGTH, ciphertext.size);
         EXPECT_BYTEARRAY_EQUAL(TEST_SHARED_SECRET, client_shared_secret.data, TEST_SHARED_SECRET_LENGTH);
@@ -90,7 +98,7 @@ int main(int argc, char **argv)
 
         struct s2n_blob server_shared_secret = {0};
         EXPECT_SUCCESS(
-                s2n_kem_decapsulate_shared_secret(&server_params, &server_shared_secret, &ciphertext));
+                s2n_kem_decapsulate(&server_params, &server_shared_secret, &ciphertext));
         EXPECT_EQUAL(TEST_SHARED_SECRET_LENGTH, server_shared_secret.size);
         EXPECT_BYTEARRAY_EQUAL(TEST_SHARED_SECRET, server_shared_secret.data, TEST_SHARED_SECRET_LENGTH);
 
@@ -116,16 +124,16 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_blob_init(&clientKemBlob, clientKems, 4));
 
         struct s2n_kem only02[] = {kem02};
-        EXPECT_SUCCESS(s2n_kem_find_supported_named_kem(&clientKemBlob, only02, 1, &negotiated_kem));
+        EXPECT_SUCCESS(s2n_kem_find_supported_kem(&clientKemBlob, only02, 1, &negotiated_kem));
         EXPECT_EQUAL(negotiated_kem->kem_extension_id, kem02.kem_extension_id);
 
         struct s2n_kem onlyff[] = {kemff};
         negotiated_kem = NULL;
-        EXPECT_FAILURE(s2n_kem_find_supported_named_kem(&clientKemBlob, onlyff, 1, &negotiated_kem));
+        EXPECT_FAILURE(s2n_kem_find_supported_kem(&clientKemBlob, onlyff, 1, &negotiated_kem));
         EXPECT_NULL(negotiated_kem);
 
         struct s2n_kem server_order_test[] = {kemff, kembc, kem03};
-        EXPECT_SUCCESS(s2n_kem_find_supported_named_kem(&clientKemBlob, server_order_test, 3, &negotiated_kem));
+        EXPECT_SUCCESS(s2n_kem_find_supported_kem(&clientKemBlob, server_order_test, 3, &negotiated_kem));
         EXPECT_EQUAL(negotiated_kem->kem_extension_id, kembc.kem_extension_id);
     }
 

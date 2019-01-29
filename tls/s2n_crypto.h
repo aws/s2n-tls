@@ -26,7 +26,7 @@
 #include "crypto/s2n_dhe.h"
 #include "crypto/s2n_ecc.h"
 
-#include "tls/s2n_kem_params.h"
+#include "tls/s2n_kem.h"
 
 #define S2N_TLS_SECRET_LEN             48
 #define S2N_TLS_RANDOM_DATA_LEN        32

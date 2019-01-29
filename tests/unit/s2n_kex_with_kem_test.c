@@ -39,17 +39,10 @@ const uint8_t TEST_SHARED_SECRET[] = {0x04, 0x04, 0x04, 0x04};
 #define TEST_CIPHERTEXT_LENGTH 0x0005
 const uint8_t TEST_CIPHERTEXT[] = {0x05, 0x05, 0x05, 0x05, 0x05};
 
-// The server send key message is defined as:
-// 1 byte for KEM ID
-// 2 bytes for public key length
-// the public key
-const int TEST_SERVER_SEND_KEY_MESSAGE_LENGTH = 1 + 2 + 2;
+const int TEST_SERVER_SEND_KEY_MESSAGE_LENGTH = sizeof(kem_extension_size) + sizeof(kem_public_key_size) + TEST_PUBLIC_KEY_LENGTH;
 const uint8_t TEST_SERVER_SEND_KEY_MESSAGE[] = {0xab, 0x00, 0x02, 0x02, 0x02};
 
-// The client send key message is defined as:
-// 2 bytes for ciphertext length
-// The ciphertext
-const int TEST_CLIENT_SEND_KEY_MESSAGE_LENGTH = 7;
+const int TEST_CLIENT_SEND_KEY_MESSAGE_LENGTH = sizeof(kem_ciphertext_key_size) + TEST_CIPHERTEXT_LENGTH;
 const uint8_t TEST_CLIENT_SEND_KEY_MESSAGE[] = {0x00, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05};
 
 
@@ -76,10 +69,10 @@ int s2n_test_decrypt(unsigned char *shared_secret, const unsigned char *cipherte
 
 struct s2n_kem s2n_test_kem = {
         .kem_extension_id = KEM_ID,
-        .publicKeySize = TEST_PUBLIC_KEY_LENGTH,
-        .privateKeySize = TEST_PRIVATE_KEY_LENGTH,
-        .sharedSecretKeySize = TEST_SHARED_SECRET_LENGTH,
-        .ciphertextSize = TEST_CIPHERTEXT_LENGTH,
+        .public_key_length = TEST_PUBLIC_KEY_LENGTH,
+        .private_key_length = TEST_PRIVATE_KEY_LENGTH,
+        .shared_secret_key_length = TEST_SHARED_SECRET_LENGTH,
+        .ciphertext_length = TEST_CIPHERTEXT_LENGTH,
         .generate_keypair = &s2n_test_generate_keypair,
         .encapsulate = &s2n_test_encrypt,
         .decapsulate = &s2n_test_decrypt,

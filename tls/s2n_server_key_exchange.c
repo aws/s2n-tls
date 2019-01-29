@@ -141,35 +141,33 @@ int s2n_kem_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_bl
     struct s2n_kem_raw_server_params *kem_data = &raw_server_data->kem_data;
     struct s2n_stuffer *in = &conn->handshake.io;
     const struct s2n_kem *kem = conn->secure.kem_params.negotiated_kem;
-    uint16_t key_length;
+    kem_public_key_size key_length;
 
     // Keep a copy to the start of the whole structure for the signature check
     data_to_verify->data = s2n_stuffer_raw_read(in, 0);
     notnull_check(data_to_verify->data);
 
     // the server sends the KEM ID again and this must match what was agreed upon during server hello
-    uint8_t kem_id;
+    kem_extension_size kem_id;
     GUARD(s2n_stuffer_read_uint8(in, &kem_id));
     eq_check(kem_id, kem->kem_extension_id);
 
     GUARD(s2n_stuffer_read_uint16(in, &key_length));
     S2N_ERROR_IF(key_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
-    S2N_ERROR_IF(key_length != conn->secure.kem_params.negotiated_kem->publicKeySize, S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(key_length != conn->secure.kem_params.negotiated_kem->public_key_length, S2N_ERR_BAD_MESSAGE);
 
     kem_data->raw_public_key.data = s2n_stuffer_raw_read(in, key_length);
     notnull_check(kem_data->raw_public_key.data);
     kem_data->raw_public_key.size = key_length;
 
-    data_to_verify->size = KEM_EXTENSION_BYTES + KEM_PUBLIC_KEY_BYTES + key_length;
+    data_to_verify->size = sizeof(kem_extension_size) + sizeof(kem_public_key_size) + key_length;
 
     return 0;
 }
 
 int s2n_kem_server_key_recv_parse_data(struct s2n_connection *conn, union s2n_kex_raw_server_data *raw_server_data)
 {
-    struct s2n_kem_raw_server_params *kem_data = &raw_server_data->kem_data;
-    conn->secure.kem_params.public_key.data = kem_data->raw_public_key.data;
-    conn->secure.kem_params.public_key.size = kem_data->raw_public_key.size;
+    s2n_dup(&raw_server_data->kem_data.raw_public_key, &conn->secure.kem_params.public_key);
     return 0;
 }
 
@@ -243,7 +241,7 @@ int s2n_kem_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_t
     GUARD(s2n_stuffer_write_uint16(out, conn->secure.kem_params.public_key.size));
     GUARD(s2n_stuffer_write(out, &conn->secure.kem_params.public_key));
 
-    data_to_sign->size = KEM_EXTENSION_BYTES + KEM_PUBLIC_KEY_BYTES +  conn->secure.kem_params.public_key.size;
+    data_to_sign->size = sizeof(kem_extension_size) + sizeof(kem_public_key_size) +  conn->secure.kem_params.public_key.size;
     GUARD(s2n_free(&conn->secure.kem_params.public_key));
 
     return 0;
