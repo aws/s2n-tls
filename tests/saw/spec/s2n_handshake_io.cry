@@ -217,7 +217,7 @@ handshakes = [handshakes_fn h | h <- [0..127]]
 
 // A function that gives the handshake sequence for each valid handshake_type.
 // This is a sparse encoding of the handshakes array (which is sparse too).
-handshakes_fn : [32] -> [16][32]
+handshakes_fn : [32] -> [32][32]
 handshakes_fn handshk =
   if handshk == INITIAL then [CLIENT_HELLO, SERVER_SESSION_LOOKUP, SERVER_HELLO] # zero else
   if handshk == (NEGOTIATED) 
