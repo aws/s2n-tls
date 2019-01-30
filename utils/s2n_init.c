@@ -24,7 +24,7 @@
 
 static void s2n_cleanup_atexit(void);
 
-unsigned long s2n_get_openssl_version()
+unsigned long s2n_get_openssl_version(void)
 {
     return OPENSSL_VERSION_NUMBER;
 }
