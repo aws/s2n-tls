@@ -212,7 +212,7 @@ state_machine_fn m =
   else zero
 
 // A model of the handshake state machine (array handshakes in C)
-handshakes : [128][32][32]
+handshakes : [256][32][32]
 handshakes = [handshakes_fn h | h <- [0..255]]
 
 // A function that gives the handshake sequence for each valid handshake_type.
