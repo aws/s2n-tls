@@ -82,6 +82,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
         EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
+        conn->actual_protocol_version_established = 1;
         conn->server_protocol_version = S2N_TLS12;
         conn->client_protocol_version = S2N_TLS12;
         conn->actual_protocol_version = S2N_TLS12;
@@ -131,6 +132,7 @@ int main(int argc, char **argv)
 
         /* Start over */
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
+        conn->actual_protocol_version_established = 1;
         conn->server_protocol_version = S2N_TLS12;
         conn->client_protocol_version = S2N_TLS12;
         conn->actual_protocol_version = S2N_TLS12;
@@ -146,10 +148,23 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
         /* Tamper the protocol version in the header, and ensure decryption fails, as we use this in the AAD */
-        conn->in.blob.data[2] = 2;
+        EXPECT_EQUAL(conn->header_in.blob.data[0], TLS_APPLICATION_DATA);
+        conn->header_in.blob.data[0] ^= 1; // Flip a bit in the content_type of the TLS Record Header
+
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
+        EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA ^ 1);
+
+        /**
+         * We are trying to test the case when the Additional Authenticated Data in AEAD ciphers is tampered with.
+         *
+         * AEAD Ciphers authenticate several fields, including the TLS Record content_type, so this should fail since
+         * we flipped a bit. See s2n_aead_aad_init() for which fields are added to the additional authenticated data.
+         *
+         * We can't flip the TLS Protocol Version bits here because s2n_record_header_parse() will error before we
+         * attempt decryption with ChaCha because the Protocol version doesn't match "conn->actual_protocol_version".
+         */
         EXPECT_FAILURE(s2n_record_parse(conn));
-        EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
+
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
@@ -159,6 +174,7 @@ int main(int argc, char **argv)
         /* Tamper with the TAG and ensure decryption fails */
         for (int j = 0; j < S2N_TLS_CHACHA20_POLY1305_TAG_LEN; j++) {
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
+            conn->actual_protocol_version_established = 1;
             conn->server_protocol_version = S2N_TLS12;
             conn->client_protocol_version = S2N_TLS12;
             conn->actual_protocol_version = S2N_TLS12;
@@ -185,6 +201,7 @@ int main(int argc, char **argv)
         /* Tamper with the ciphertext and ensure decryption fails */
         for (int j = 0; j < i - S2N_TLS_CHACHA20_POLY1305_TAG_LEN; j++) {
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
+            conn->actual_protocol_version_established = 1;
             conn->server_protocol_version = S2N_TLS12;
             conn->client_protocol_version = S2N_TLS12;
             conn->actual_protocol_version = S2N_TLS12;
