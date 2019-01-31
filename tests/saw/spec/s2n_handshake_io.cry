@@ -212,8 +212,8 @@ state_machine_fn m =
   else zero
 
 // A model of the handshake state machine (array handshakes in C)
-handshakes : [256][32][32]
-handshakes = [handshakes_fn h | h <- [0..255]]
+handshakes : [128][32][32]
+handshakes = [handshakes_fn h | h <- [0..127]]
 
 // A function that gives the handshake sequence for each valid handshake_type.
 // This is a sparse encoding of the handshakes array (which is sparse too).
