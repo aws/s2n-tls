@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -39,6 +39,8 @@
 #include <openssl/err.h>
 
 #include <s2n.h>
+
+#define MAX_CERTIFICATES 2
 
 static char default_certificate_chain[] =
     "-----BEGIN CERTIFICATE-----\n"
@@ -240,7 +242,8 @@ int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *ke
  * allow any hostname through. If you are writing something with mutual auth and you have a scheme for verifying
  * the client (e.g. a reverse DNS lookup), you would plug that in here.
  */
-static uint8_t unsafe_verify_host_fn(const char *host_name, size_t host_name_len, void *data) {
+static uint8_t unsafe_verify_host_fn(const char *host_name, size_t host_name_len, void *data)
+{
     return 1;
 }
 
@@ -305,9 +308,9 @@ void usage()
     fprintf(stderr, "  --enter-fips-mode\n");
     fprintf(stderr, "    Enter libcrypto's FIPS mode. The linked version of OpenSSL must be built with the FIPS module.\n");
     fprintf(stderr, "  --cert\n");
-    fprintf(stderr, "    Path to a PEM encoded certificate [chain]\n");
+    fprintf(stderr, "    Path to a PEM encoded certificate [chain]. Option can be repeated to load multiple certs.\n");
     fprintf(stderr, "  --key\n");
-    fprintf(stderr, "    Path to a PEM encoded private key that matches cert.\n");
+    fprintf(stderr, "    Path to a PEM encoded private key that matches cert. Option can be repeated to load multiple certs.\n");
     fprintf(stderr, "  -m\n");
     fprintf(stderr, "  --mutualAuth\n");
     fprintf(stderr, "    Request a Client Certificate. Any RSA Certificate will be accepted.\n");
@@ -453,11 +456,19 @@ int main(int argc, char *const *argv)
     const char *host = NULL;
     const char *port = NULL;
 
-    const char *certificate_chain_file_path = NULL;
-    const char *private_key_file_path = NULL;
     const char *ocsp_response_file_path = NULL;
     const char *session_ticket_key_file_path = NULL;
     const char *cipher_prefs = "default";
+
+    /* The certificates provided by the user. If there are none provided, we will use the hardcoded default cert.
+     * The associated private key for each cert will be at the same index in private_keys. If the user mixes up the
+     * order of --cert --key for a given cert/key pair, s2n will fail to load the cert and s2nd will exit.
+     */
+    int num_user_certificates = 0;
+    int num_user_private_keys = 0;
+    const char *certificates[MAX_CERTIFICATES] = { 0 };
+    const char *private_keys[MAX_CERTIFICATES] = { 0 };
+
     struct conn_settings conn_settings = { 0 };
     int fips_mode = 0;
     int parallelize = 0;
@@ -509,7 +520,12 @@ int main(int argc, char *const *argv)
             usage();
             break;
         case 'k':
-            private_key_file_path = optarg;
+            if (num_user_private_keys == MAX_CERTIFICATES) {
+                fprintf(stderr, "Cannot support more than %d certificates!\n", MAX_CERTIFICATES);
+                exit(1);
+            }
+            private_keys[num_user_private_keys] = load_file_to_cstring(optarg);
+            num_user_private_keys++;
             break;
         case 'l':
             conn_settings.prefer_low_latency = 1;
@@ -527,7 +543,12 @@ int main(int argc, char *const *argv)
             conn_settings.prefer_throughput = 1;
             break;
         case 'r':
-            certificate_chain_file_path = optarg;
+            if (num_user_certificates == MAX_CERTIFICATES) {
+                fprintf(stderr, "Cannot support more than %d certificates!\n", MAX_CERTIFICATES);
+                exit(1);
+            }
+            certificates[num_user_certificates] = load_file_to_cstring(optarg);
+            num_user_certificates++;
             break;
         case 's':
             conn_settings.self_service_blinding = 1;
@@ -645,54 +666,31 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    char *certificate_chain;
-    char *private_key;
-    if (certificate_chain_file_path) {
-        certificate_chain = load_file_to_cstring(certificate_chain_file_path);
-        if (certificate_chain == NULL) {
-            fprintf(stderr, "Error loading certificate chain file: '%s'\n", certificate_chain_file_path);
-        }
+    if (num_user_certificates != num_user_private_keys) {
+        fprintf(stderr, "Mismatched certificate(%d) and private key(%d) count!\n", num_user_certificates, num_user_private_keys);
+        exit(1);
+    }
+
+    int num_certificates = 0;
+    if (num_user_certificates == 0) {
+        certificates[0] = default_certificate_chain;
+        private_keys[0] = default_private_key;
+        num_certificates = 1;
     } else {
-        certificate_chain = default_certificate_chain;
+        num_certificates = num_user_certificates;
     }
 
-    if (private_key_file_path) {
-        private_key = load_file_to_cstring(private_key_file_path);
-        if (private_key == NULL) {
-            fprintf(stderr, "Error loading private key file: '%s'\n", private_key_file_path);
+    for (int i = 0; i < num_certificates; i++) {
+        struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new();
+        if (s2n_cert_chain_and_key_load_pem(chain_and_key, certificates[i], private_keys[i]) < 0) {
+            print_s2n_error("Error getting certificate/key");
+            exit(1);
         }
-    } else {
-        private_key = default_private_key;
-    }
 
-    struct s2n_cert_chain_and_key *default_chain_and_key = s2n_cert_chain_and_key_new();
-    if (s2n_cert_chain_and_key_load_pem(default_chain_and_key, default_certificate_chain, default_private_key) < 0) {
-        print_s2n_error("Error getting certificate/key");
-        exit(1);
-    }
-
-    if (s2n_config_add_cert_chain_and_key_to_store(config, default_chain_and_key) < 0) {
-        print_s2n_error("Error setting certificate/key");
-        exit(1);
-    }
-
-    struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new();
-    if (s2n_cert_chain_and_key_load_pem(chain_and_key, certificate_chain, private_key) < 0) {
-        print_s2n_error("Error getting certificate/key");
-        exit(1);
-    }
-
-    if (s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key) < 0) {
-        print_s2n_error("Error setting certificate/key");
-        exit(1);
-    }
-
-    if (certificate_chain_file_path) {
-        free(certificate_chain);
-    }
-
-    if (private_key_file_path) {
-        free(private_key);
+        if (s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key) < 0) {
+            print_s2n_error("Error setting certificate/key");
+            exit(1);
+        }
     }
 
     if (ocsp_response_file_path) {
