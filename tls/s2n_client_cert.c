@@ -76,7 +76,7 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
 
 int s2n_client_cert_send(struct s2n_connection *conn)
 {
-    struct s2n_cert_chain_and_key *chain_and_key = conn->handshake_params.chain_and_key;
+    struct s2n_cert_chain_and_key *chain_and_key = conn->handshake_params.our_chain_and_key;
     /* TODO: Check that RSA is in conn->server_preferred_cert_types and conn->secure.client_cert_sig_algorithm */
 
     if (chain_and_key == NULL) {

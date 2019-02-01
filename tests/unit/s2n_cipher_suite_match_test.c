@@ -280,7 +280,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
             EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
-            EXPECT_EQUAL(conn->handshake_params.chain_and_key, ecdsa_cert);
+            EXPECT_EQUAL(conn->handshake_params.our_chain_and_key, ecdsa_cert);
             EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_wire_choice));
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
         }
@@ -293,7 +293,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
             EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
-            EXPECT_EQUAL(conn->handshake_params.chain_and_key, rsa_cert);
+            EXPECT_EQUAL(conn->handshake_params.our_chain_and_key, rsa_cert);
             EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_wire_choice));
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
         }
@@ -309,7 +309,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
             EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
-            EXPECT_EQUAL(conn->handshake_params.chain_and_key, rsa_cert);
+            EXPECT_EQUAL(conn->handshake_params.our_chain_and_key, rsa_cert);
             EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_wire_choice));
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
         }
@@ -324,7 +324,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
             EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
-            EXPECT_EQUAL(conn->handshake_params.chain_and_key, ecdsa_cert);
+            EXPECT_EQUAL(conn->handshake_params.our_chain_and_key, ecdsa_cert);
             EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_wire_choice));
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
         }
@@ -339,7 +339,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
             EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers, cipher_count));
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
-            EXPECT_EQUAL(conn->handshake_params.chain_and_key, rsa_cert);
+            EXPECT_EQUAL(conn->handshake_params.our_chain_and_key, rsa_cert);
             EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_wire_choice));
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
         }
@@ -354,7 +354,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
             EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_only_ecdsa, cipher_count_only_ecdsa));
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
-            EXPECT_EQUAL(conn->handshake_params.chain_and_key, ecdsa_cert);
+            EXPECT_EQUAL(conn->handshake_params.our_chain_and_key, ecdsa_cert);
             EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_wire_choice));
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
         }
@@ -374,7 +374,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
             EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_rsa_fallback, cipher_count_rsa_fallback));
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
-            EXPECT_EQUAL(conn->handshake_params.chain_and_key, rsa_cert);
+            EXPECT_EQUAL(conn->handshake_params.our_chain_and_key, rsa_cert);
             EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_wire_choice));
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
         }

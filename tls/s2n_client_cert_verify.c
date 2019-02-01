@@ -88,7 +88,7 @@ int s2n_client_cert_verify_send(struct s2n_connection *conn)
 
     struct s2n_blob signature = {0};
 
-    struct s2n_cert_chain_and_key *cert_chain_and_key = conn->handshake_params.chain_and_key;
+    struct s2n_cert_chain_and_key *cert_chain_and_key = conn->handshake_params.our_chain_and_key;
     switch (chosen_signature_alg) {
     /* s2n currently only supports RSA Signatures */
     case S2N_SIGNATURE_RSA:

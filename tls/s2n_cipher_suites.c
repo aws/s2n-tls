@@ -963,7 +963,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
 
     /* s2n supports only server order */
     for (int i = 0; i < cipher_preferences->count; i++) {
-        conn->handshake_params.chain_and_key = NULL;
+        conn->handshake_params.our_chain_and_key = NULL;
         const uint8_t *ours = cipher_preferences->suites[i]->iana_value;
 
         if (s2n_wire_ciphers_contain(ours, wire, count, cipher_suite_len)) {
@@ -976,8 +976,8 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
             }
 
             /* Skip the suite if it is not compatible with any certificates */
-            conn->handshake_params.chain_and_key = s2n_get_compatible_cert_chain_and_key(conn, match);
-            if (!conn->handshake_params.chain_and_key) {
+            conn->handshake_params.our_chain_and_key = s2n_get_compatible_cert_chain_and_key(conn, match);
+            if (!conn->handshake_params.our_chain_and_key) {
                 continue;
             }
 
@@ -1006,7 +1006,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
     /* Settle for a cipher with a higher required proto version, if it was set */
     if (higher_vers_match) {
         conn->secure.cipher_suite = higher_vers_match;
-        conn->handshake_params.chain_and_key = s2n_get_compatible_cert_chain_and_key(conn, higher_vers_match);
+        conn->handshake_params.our_chain_and_key = s2n_get_compatible_cert_chain_and_key(conn, higher_vers_match);
         return 0;
     }
 
