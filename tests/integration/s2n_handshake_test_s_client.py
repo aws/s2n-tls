@@ -39,6 +39,7 @@ PROTO_VERS_TO_S_CLIENT_ARG = {
 
 S_CLIENT_SUCCESSFUL_OCSP="OCSP Response Status: successful"
 S_CLIENT_NEGOTIATED_CIPHER_PREFIX="Cipher    : "
+S_CLIENT_HOSTNAME_MISMATCH="verify error:num=62:Hostname mismatch"
 
 def communicate_processes(*processes):
     outs = []
@@ -125,6 +126,18 @@ def find_expected_cipher(expected_cipher, s_client_out):
     print("Failed to find " + expected_cipher + " in s_client output")
     return -1
 
+def validate_hostname(s_client_out):
+    """
+    Make sure that s_client did not error on hostname mismatch.
+    This function is only valid if s_client output was invoked with "-verify_hostname" argument
+    """
+    s_client_out_len = len(s_client_out)
+    for line in s_client_out.splitlines():
+        if S_CLIENT_HOSTNAME_MISMATCH in line:
+            print("Server certificate hostname did not match client server_name")
+            return 1
+    return 0
+
 def read_process_output_until(process, marker):
     output = ""
 
@@ -136,10 +149,10 @@ def read_process_output_until(process, marker):
 
     return output
 
-def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, server_cert_key_list=None, server_cipher_pref=None,
-        ocsp=None, sig_algs=None, curves=None, resume=False, no_ticket=False, prefer_low_latency=False, enter_fips_mode=False,
-        client_auth=None, client_cert=DEFAULT_CLIENT_CERT_PATH, client_key=DEFAULT_CLIENT_KEY_PATH,
-        expected_cipher=None):
+def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_hostname=False, server_cert=None, server_key=None,
+        server_cert_key_list=None, server_cipher_pref=None, ocsp=None, sig_algs=None, curves=None, resume=False, no_ticket=False,
+        prefer_low_latency=False, enter_fips_mode=False, client_auth=None, client_cert=DEFAULT_CLIENT_CERT_PATH,
+        client_key=DEFAULT_CLIENT_KEY_PATH, expected_cipher=None):
     """
     Attempt to handshake against s2nd listening on `endpoint` and `port` using Openssl s_client
 
@@ -147,6 +160,8 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     :param int port: port for s2nd to listen on
     :param str cipher: ciphers for Openssl s_client to offer. See https://www.openssl.org/docs/man1.0.2/apps/ciphers.html
     :param int ssl_version: SSL version for s_client to use
+    :param str server_name: server_name value for s_client to send
+    :param bool strict_hostname: whether s_client should strictly check to see if server certificate matches the server_name
     :param str server_cert: path to certificate for s2nd to use
     :param str server_key: path to private key for s2nd to use
     :param list server_cert_key_list: a list of (cert_path, key_path) tuples for multicert tests.
@@ -224,9 +239,13 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
         s_client_cmd.extend(["-cert", client_cert])
     if ocsp is not None:
         s_client_cmd.append("-status")
+    if server_name is not None:
+        s_client_cmd.extend(["-servername", server_name])
+        if strict_hostname is True:
+            s_client_cmd.extend(["-verify_hostname", server_name])
 
     # Fire up s_client
-    s_client = subprocess.Popen(s_client_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    s_client = subprocess.Popen(s_client_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     s_client_out = ""
     s2nd_out = ""
@@ -275,6 +294,10 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
 
     if expected_cipher is not None:
         if find_expected_cipher(expected_cipher, s_client_out) != 0:
+            return -1
+
+    if strict_hostname is True:
+        if validate_hostname(s_client_out) != 0:
             return -1
 
     return 0
@@ -578,12 +601,12 @@ def cert_type_cipher_match_test(host, port):
 
     return failed
 
-def multiple_cert_test(host, port):
+def multiple_cert_type_test(host, port):
     """
     Test s2n server's ability to correctly choose ciphers and serve the correct cert depending on the auth type for a
     given cipher.
     """
-    print("\n\tRunning multicert test:")
+    print("\n\tRunning multiple server cert type test:")
 
     # Basic handshake with ECDSA cert + RSA cert
     for cipher in ["ECDHE-ECDSA-AES128-SHA", "ECDHE-RSA-AES128-GCM-SHA256"]:
@@ -637,6 +660,26 @@ def multiple_cert_test(host, port):
 
     return 0
 
+def multiple_cert_domain_name_test(host, port):
+    '''
+    Test s2n server's ability to select the correct certificate based on the client ServerName extension.
+    '''
+    print("\n\tRunning multiple server cert domain name test:")
+
+    ALL_TEST_SNI_CERTS = [(test_case[0],test_case[1]) for test_case in SNI_CERT_TEST_CASES  ]
+
+    for test_case in SNI_CERT_TEST_CASES:
+        # Verify the correct certificate is served for each valid domain
+        for domain_name in test_case[2]:
+            ret = try_handshake(host, port, "ECDHE-RSA-AES128-SHA", S2N_TLS12, server_name=domain_name,
+                    strict_hostname=True, server_cert_key_list=ALL_TEST_SNI_CERTS)
+            result_prefix = "server_name: %-50s cert: %-50s" % (domain_name, test_case[0])
+            print_result(result_prefix, ret)
+            if ret != 0:
+                return ret
+
+    return 0
+
 def main():
     parser = argparse.ArgumentParser(description='Runs TLS server integration tests against s2nd using Openssl s_client')
     parser.add_argument('host', help='The host for s2nd to bind to')
@@ -670,7 +713,9 @@ def main():
     failed += handshake_fragmentation_test(host, port, fips_mode)
     failed += ocsp_stapling_test(host, port, fips_mode)
     failed += cert_type_cipher_match_test(host, port)
-    failed += multiple_cert_test(host, port)
+    failed += multiple_cert_type_test(host, port)
+    failed += multiple_cert_domain_name_test(host, port)
+
     return failed
 
 if __name__ == "__main__":

@@ -31,7 +31,7 @@
  * This will increase once we support more lookup methods(server_name). Since this value is
  * a factor in memory footprint, the application will also need a way to control the max.
  */
-#define S2N_MAX_CERTIFICATES 2
+#define S2N_MAX_CERTIFICATES 50
 
 struct s2n_cipher_preferences;
 

@@ -137,3 +137,28 @@ TEST_OCSP_RESPONSE_FILE=TEST_OCSP_CERT_DIRECTORY + "ocsp_response.der"
 
 DEFAULT_CLIENT_CERT_PATH = TEST_CERT_DIRECTORY + "rsa_2048_sha256_client_cert.pem"
 DEFAULT_CLIENT_KEY_PATH = TEST_CERT_DIRECTORY + "rsa_2048_sha256_client_key.pem"
+
+TEST_SNI_CERT_DIRECTORY="../pems/sni/"
+# Server certificates used to test matching domain names client with server_name
+SNI_CERT_TEST_CASES = [
+    # ( certificate_path, private_key_path, valid_domain_names )
+    (TEST_SNI_CERT_DIRECTORY + "alligator_cert.pem", TEST_SNI_CERT_DIRECTORY + "alligator_key.pem", ["www.alligator.com"]),
+    (TEST_SNI_CERT_DIRECTORY + "beaver_cert.pem", TEST_SNI_CERT_DIRECTORY + "beaver_key.pem", ["www.beaver.com"]),
+    # Certificate with many valid SANs
+    (TEST_SNI_CERT_DIRECTORY + "many_animal_sans_rsa_cert.pem", TEST_SNI_CERT_DIRECTORY + "many_animal_sans_rsa_key.pem",
+        ["www.catfish.com",
+         "www.dolphin.com",
+         "www.elephant.com",
+         "www.falcon.com",
+         "www.gorilla.com",
+         "www.horse.com",
+         "www.impala.com",
+         # "Simple hostname"
+         "Jackal",
+         "k.e.e.l.b.i.l.l.e.d.t.o.u.c.a.n",
+         # SAN on this cert is actually "ladybug.ladybug"
+         # Verify case insensitivity works as expected.
+         "LADYBUG.LADYBUG",
+         "com.penguin.macaroni"
+        ]),
+]

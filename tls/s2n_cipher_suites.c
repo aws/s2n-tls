@@ -934,10 +934,10 @@ static int s2n_cipher_is_compatible_with_cert(struct s2n_cipher_suite *cipher, s
     return 0;
 }
 
-static struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(struct s2n_connection *conn, struct s2n_cipher_suite *cipher_suite)
+static struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(struct s2n_cert_chain_and_key **certs, int num_certificates, struct s2n_cipher_suite *cipher_suite)
 {
-    for (int i = 0; i < conn->config->num_certificates; i++) {
-        struct s2n_cert_chain_and_key *cert_chain_and_key = conn->config->cert_and_key_pairs[i];
+    for (int i = 0; i < num_certificates; i++) {
+        struct s2n_cert_chain_and_key *cert_chain_and_key = certs[i];
         struct s2n_cert *leaf_cert = cert_chain_and_key->cert_chain->head;
         uint8_t cert_compatibility = 0;
         GUARD_PTR(s2n_cipher_is_compatible_with_cert(cipher_suite, leaf_cert, &cert_compatibility));
@@ -947,6 +947,16 @@ static struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(stru
     }
 
     return NULL;
+}
+
+static struct s2n_cert_chain_and_key *s2n_conn_get_compatible_cert_chain_and_key(struct s2n_connection *conn, struct s2n_cipher_suite *cipher_suite)
+{
+    if (conn->handshake_params.num_sni_matching_certs > 0) {
+        return s2n_get_compatible_cert_chain_and_key(conn->handshake_params.sni_matching_certs, conn->handshake_params.num_sni_matching_certs, cipher_suite);
+    } else {
+        /* We don't have any name matches. Use the first certificate that works with the key type. */
+        return s2n_get_compatible_cert_chain_and_key(conn->config->cert_and_key_pairs, conn->config->num_certificates, cipher_suite);
+    }
 }
 
 static int s2n_set_cipher_and_cert_as_server(struct s2n_connection *conn, uint8_t * wire, uint32_t count, uint32_t cipher_suite_len)
@@ -990,7 +1000,7 @@ static int s2n_set_cipher_and_cert_as_server(struct s2n_connection *conn, uint8_
             }
 
             /* Skip the suite if it is not compatible with any certificates */
-            conn->handshake_params.our_chain_and_key = s2n_get_compatible_cert_chain_and_key(conn, match);
+            conn->handshake_params.our_chain_and_key = s2n_conn_get_compatible_cert_chain_and_key(conn, match);
             if (!conn->handshake_params.our_chain_and_key) {
                 continue;
             }

@@ -26,6 +26,8 @@
 
 #include "crypto/s2n_hash.h"
 
+#define s2n_conn_received_server_name(conn) conn->server_name[0] != 0
+
 /* This is the list of message types that we support */
 typedef enum {
     CLIENT_HELLO=0,
@@ -55,6 +57,27 @@ struct s2n_handshake_parameters {
 
     /* The cert chain we will send the peer. */
     struct s2n_cert_chain_and_key *our_chain_and_key;
+
+    /* The subset of certificates that match the server_name presented in the ClientHello.
+     * In the case of multiple certificates matching a server_name, s2n will prefer certificates
+     * in FIFO order based on calls to s2n_config_add_cert_chain_and_key_to_store
+     *
+     * Example:
+     *    - Assume certA is added to s2n_config via s2n_config_add_cert_chain_and_key_to_store
+     *    - Next certB is added.
+     *    - if certA matches www.foo.com and certB matches www.foo.com, s2n will prefer certA
+     *
+     * Note that in addition to domain matching, the key type for the certificate must also be
+     * suitable for a negotiation in order to be selected.
+     *
+     * Example:
+     *    - Assume certA and certB match server_name www.foo.com
+     *    - certA is ECDSA and certB is RSA.
+     *    - Client only supports RSA ciphers
+     *    - certB will be selected.
+     */
+    unsigned int num_sni_matching_certs;
+    struct s2n_cert_chain_and_key *sni_matching_certs[S2N_MAX_CERTIFICATES];
 };
 
 struct s2n_handshake {
@@ -129,3 +152,5 @@ extern int s2n_handshake_require_all_hashes(struct s2n_handshake *handshake);
 extern uint8_t s2n_handshake_is_hash_required(struct s2n_handshake *handshake, s2n_hash_algorithm hash_alg);
 extern int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn);
 extern int s2n_handshake_get_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg, struct s2n_hash_state *hash_state);
+extern int s2n_conn_find_name_matching_certs(struct s2n_connection *conn);
+
