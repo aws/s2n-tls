@@ -14,10 +14,14 @@
  */
 
 #include <s2n.h>
+#include <openssl/x509v3.h>
+#include <openssl/pem.h>
+#include <strings.h>
 
 #include "crypto/s2n_certificate.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
+
 
 int s2n_cert_public_key_set_rsa_from_openssl(s2n_cert_public_key *public_key, RSA *openssl_rsa)
 {
@@ -163,8 +167,28 @@ struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void)
     GUARD_PTR(s2n_pkey_zero_init(chain_and_key->private_key));
     memset(&chain_and_key->ocsp_status, 0, sizeof(chain_and_key->ocsp_status));
     memset(&chain_and_key->sct_list, 0, sizeof(chain_and_key->sct_list));
-    
+    chain_and_key->x509_cert = NULL;
+
     return chain_and_key;
+}
+
+static int s2n_cert_chain_and_key_set_x509(struct s2n_cert_chain_and_key *chain_and_key, void *chain_pem)
+{
+    BIO *membio = BIO_new_mem_buf(chain_pem, -1);
+    if (!membio) {
+        S2N_ERROR(S2N_ERR_ALLOC);
+    }
+
+    /* Assume leaf is first */
+    X509 *cert = PEM_read_bio_X509(membio, NULL, 0, NULL);
+    if (!cert) {
+        BIO_free(membio);
+        S2N_ERROR(S2N_ERR_INVALID_PEM);
+    }
+
+    chain_and_key->x509_cert = cert;
+    BIO_free(membio);
+    return 0;
 }
 
 int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem, const char *private_key_pem)
@@ -183,6 +207,9 @@ int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key
 
     /* Validate the leaf cert's public key matches the provided private key */
     GUARD(s2n_pkey_match(&public_key, chain_and_key->private_key));
+
+    /* TODO this will be removed once we add native hostname comparison to s2n. */
+    GUARD(s2n_cert_chain_and_key_set_x509(chain_and_key, (void *)(uintptr_t)chain_pem));
 
     return 0;
 }
@@ -213,7 +240,10 @@ int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key)
         GUARD(s2n_pkey_free(cert_and_key->private_key));
         GUARD(s2n_free_object((uint8_t **)&cert_and_key->private_key, sizeof(s2n_cert_private_key)));
     }
- 
+
+    if (cert_and_key->x509_cert) {
+        X509_free(cert_and_key->x509_cert);
+    }
     GUARD(s2n_free(&cert_and_key->ocsp_status));
     GUARD(s2n_free(&cert_and_key->sct_list));
 
@@ -229,7 +259,7 @@ int s2n_send_cert_chain(struct s2n_stuffer *out, struct s2n_cert_chain *chain)
 
     struct s2n_cert *cur_cert = chain->head;
     while (cur_cert) {
-        notnull_check(cur_cert); 
+        notnull_check(cur_cert);
         GUARD(s2n_stuffer_write_uint24(out, cur_cert->raw.size));
         GUARD(s2n_stuffer_write_bytes(out, cur_cert->raw.data, cur_cert->raw.size));
         cur_cert = cur_cert->next;
@@ -238,8 +268,57 @@ int s2n_send_cert_chain(struct s2n_stuffer *out, struct s2n_cert_chain *chain)
     return 0;
 }
 
-int s2n_send_empty_cert_chain(struct s2n_stuffer *out) {
+int s2n_send_empty_cert_chain(struct s2n_stuffer *out)
+{
     notnull_check(out);
     GUARD(s2n_stuffer_write_uint24(out, 0));
     return 0;
 }
+
+static int s2n_does_cert_san_match_hostname(X509 *cert, const char *hostname)
+{
+    GENERAL_NAMES *san_names = NULL;
+    if (!(san_names = X509_get_ext_d2i(cert, NID_subject_alt_name, NULL, NULL))) {
+        /* No SAN extension */
+        return 0;
+    }
+
+    const int hostname_len = strnlen(hostname, S2N_MAX_SERVER_NAME);
+    const int num_san_names = sk_GENERAL_NAME_num(san_names);
+    for (int i = 0; i < num_san_names; i++) {
+        GENERAL_NAME *san_name = sk_GENERAL_NAME_value(san_names, i);
+        if (!san_name) {
+            continue;
+        }
+
+        /* we only care about DNS entries */
+        if (san_name->type == GEN_DNS) {
+            unsigned char *san_str = NULL;
+            const int san_str_len = ASN1_STRING_to_UTF8(&san_str, san_name->d.dNSName);
+            if (san_str_len < 0) {
+                /* Some error parsing the SAN, skip the match and don't free memory. */
+                continue;
+            }
+
+            const int match = !!((hostname_len == san_str_len) && (strncasecmp(hostname, (const char *) san_str, san_str_len) == 0));
+            OPENSSL_free(san_str);
+            if (match) {
+                sk_GENERAL_NAME_pop_free(san_names, GENERAL_NAME_free);
+                return 1;
+            }
+        }
+    }
+
+    sk_GENERAL_NAME_pop_free(san_names, GENERAL_NAME_free);
+    return 0;
+}
+
+int s2n_cert_chain_and_key_matches_name(struct s2n_cert_chain_and_key *chain_and_key, const char *name)
+{
+    if (s2n_does_cert_san_match_hostname(chain_and_key->x509_cert, name)) {
+        return 1;
+    }
+
+    return 0;
+}
+

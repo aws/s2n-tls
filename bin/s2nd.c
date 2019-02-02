@@ -41,7 +41,7 @@
 #include <s2n.h>
 #include "common.h"
 
-#define MAX_CERTIFICATES 2
+#define MAX_CERTIFICATES 50
 
 static char default_certificate_chain[] =
     "-----BEGIN CERTIFICATE-----\n"
