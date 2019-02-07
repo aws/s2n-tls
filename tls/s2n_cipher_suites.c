@@ -940,6 +940,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
 {
     uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
     struct s2n_cipher_suite *higher_vers_match = NULL;
+    struct s2n_cert_chain_and_key *higher_vers_cert = NULL;
 
     /* RFC 7507 - If client is attempting to negotiate a TLS Version that is lower than the highest supported server
      * version, and the client cipher list contains TLS_FALLBACK_SCSV, then the server must abort the connection since
@@ -994,6 +995,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
             if (conn->client_protocol_version < match->minimum_required_tls_version) {
                 if (!higher_vers_match) {
                     higher_vers_match = match;
+                    higher_vers_cert = conn->handshake_params.our_chain_and_key;
                 }
                 continue;
             }
@@ -1006,7 +1008,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
     /* Settle for a cipher with a higher required proto version, if it was set */
     if (higher_vers_match) {
         conn->secure.cipher_suite = higher_vers_match;
-        conn->handshake_params.our_chain_and_key = s2n_get_compatible_cert_chain_and_key(conn, higher_vers_match);
+        conn->handshake_params.our_chain_and_key = higher_vers_cert;
         return 0;
     }
 
