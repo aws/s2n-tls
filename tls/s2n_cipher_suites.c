@@ -936,7 +936,7 @@ static struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(stru
     return NULL;
 }
 
-static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire, uint32_t count, uint32_t cipher_suite_len)
+static int s2n_set_cipher_and_cert_as_server(struct s2n_connection *conn, uint8_t * wire, uint32_t count, uint32_t cipher_suite_len)
 {
     uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
     struct s2n_cipher_suite *higher_vers_match = NULL;
@@ -1015,12 +1015,12 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
     S2N_ERROR(S2N_ERR_CIPHER_NOT_SUPPORTED);
 }
 
-int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count)
+int s2n_set_cipher_and_cert_as_sslv2_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count)
 {
-    return s2n_set_cipher_as_server(conn, wire, count, S2N_SSLv2_CIPHER_SUITE_LEN);
+    return s2n_set_cipher_and_cert_as_server(conn, wire, count, S2N_SSLv2_CIPHER_SUITE_LEN);
 }
 
-int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count)
+int s2n_set_cipher_and_cert_as_tls_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count)
 {
-    return s2n_set_cipher_as_server(conn, wire, count, S2N_TLS_CIPHER_SUITE_LEN);
+    return s2n_set_cipher_and_cert_as_server(conn, wire, count, S2N_TLS_CIPHER_SUITE_LEN);
 }
