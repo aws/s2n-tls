@@ -131,6 +131,9 @@ struct s2n_connection {
     struct s2n_crypto_parameters *client;
     struct s2n_crypto_parameters *server;
 
+    /* Contains parameters needed during the handshake phase */
+    struct s2n_handshake_parameters handshake_params;
+
     /* The PRF needs some storage elements to work with */
     struct s2n_prf_working_space prf_space;
 
@@ -178,9 +181,6 @@ struct s2n_connection {
     uint8_t writer_alert_out_data[S2N_ALERT_LENGTH];
     struct s2n_stuffer reader_alert_out;
     struct s2n_stuffer writer_alert_out;
-
-    /* Contains parameters needed during the handshake phase */
-    struct s2n_handshake_parameters handshake_params;
 
     /* Our handshake state machine */
     struct s2n_handshake handshake;

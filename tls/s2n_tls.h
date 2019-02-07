@@ -70,15 +70,15 @@ extern uint16_t mfl_code_to_length[5];
         ((conn)->ec_point_formats)
 
 #define s2n_server_can_send_ocsp(conn) ((conn)->status_type == S2N_STATUS_REQUEST_OCSP && \
-        (conn)->config->cert_and_key_pairs && \
-        (conn)->config->cert_and_key_pairs->ocsp_status.size > 0)
+        (conn)->handshake_params.our_chain_and_key && \
+        (conn)->handshake_params.our_chain_and_key->ocsp_status.size > 0)
 
 #define s2n_server_sent_ocsp(conn) ((conn)->mode == S2N_CLIENT && \
         (conn)->status_type == S2N_STATUS_REQUEST_OCSP)
 
 #define s2n_server_can_send_sct_list(conn) ((conn)->ct_level_requested == S2N_CT_SUPPORT_REQUEST && \
-        (conn)->config->cert_and_key_pairs && \
-        (conn)->config->cert_and_key_pairs->sct_list.size > 0)
+        (conn)->handshake_params.our_chain_and_key && \
+        (conn)->handshake_params.our_chain_and_key->sct_list.size > 0)
 
 #define s2n_server_sending_nst(conn) ((conn)->config->use_tickets && \
         (conn)->session_ticket_status == S2N_NEW_TICKET)

@@ -921,14 +921,26 @@ static int s2n_cipher_is_compatible_with_cert(struct s2n_cipher_suite *cipher, s
     return 0;
 }
 
-static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire, uint32_t count, uint32_t cipher_suite_len)
+static struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(struct s2n_connection *conn, struct s2n_cipher_suite *cipher_suite)
 {
-    /* Only one cert chain for now */
-    notnull_check(conn->config->cert_and_key_pairs);
-    struct s2n_cert *leaf_cert = conn->config->cert_and_key_pairs->cert_chain->head;
+    for (int i = 0; i < conn->config->num_certificates; i++) {
+        struct s2n_cert_chain_and_key *cert_chain_and_key = conn->config->cert_and_key_pairs[i];
+        struct s2n_cert *leaf_cert = cert_chain_and_key->cert_chain->head;
+        uint8_t cert_compatibility = 0;
+        GUARD_PTR(s2n_cipher_is_compatible_with_cert(cipher_suite, leaf_cert, &cert_compatibility));
+        if (cert_compatibility) {
+            return cert_chain_and_key;
+        }
+    }
 
+    return NULL;
+}
+
+static int s2n_set_cipher_and_cert_as_server(struct s2n_connection *conn, uint8_t * wire, uint32_t count, uint32_t cipher_suite_len)
+{
     uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
     struct s2n_cipher_suite *higher_vers_match = NULL;
+    struct s2n_cert_chain_and_key *higher_vers_cert = NULL;
 
     /* RFC 7507 - If client is attempting to negotiate a TLS Version that is lower than the highest supported server
      * version, and the client cipher list contains TLS_FALLBACK_SCSV, then the server must abort the connection since
@@ -952,6 +964,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
 
     /* s2n supports only server order */
     for (int i = 0; i < cipher_preferences->count; i++) {
+        conn->handshake_params.our_chain_and_key = NULL;
         const uint8_t *ours = cipher_preferences->suites[i]->iana_value;
 
         if (s2n_wire_ciphers_contain(ours, wire, count, cipher_suite_len)) {
@@ -963,10 +976,9 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
                 match = match->sslv3_cipher_suite;
             }
 
-            /* Skip the suite if it is not compatible with the given certificate */
-            uint8_t cert_compatibilty = 0;
-            GUARD(s2n_cipher_is_compatible_with_cert(match, leaf_cert, &cert_compatibilty));
-            if (!cert_compatibilty) {
+            /* Skip the suite if it is not compatible with any certificates */
+            conn->handshake_params.our_chain_and_key = s2n_get_compatible_cert_chain_and_key(conn, match);
+            if (!conn->handshake_params.our_chain_and_key) {
                 continue;
             }
 
@@ -983,6 +995,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
             if (conn->client_protocol_version < match->minimum_required_tls_version) {
                 if (!higher_vers_match) {
                     higher_vers_match = match;
+                    higher_vers_cert = conn->handshake_params.our_chain_and_key;
                 }
                 continue;
             }
@@ -995,18 +1008,19 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
     /* Settle for a cipher with a higher required proto version, if it was set */
     if (higher_vers_match) {
         conn->secure.cipher_suite = higher_vers_match;
+        conn->handshake_params.our_chain_and_key = higher_vers_cert;
         return 0;
     }
 
     S2N_ERROR(S2N_ERR_CIPHER_NOT_SUPPORTED);
 }
 
-int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count)
+int s2n_set_cipher_and_cert_as_sslv2_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count)
 {
-    return s2n_set_cipher_as_server(conn, wire, count, S2N_SSLv2_CIPHER_SUITE_LEN);
+    return s2n_set_cipher_and_cert_as_server(conn, wire, count, S2N_SSLv2_CIPHER_SUITE_LEN);
 }
 
-int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count)
+int s2n_set_cipher_and_cert_as_tls_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count)
 {
-    return s2n_set_cipher_as_server(conn, wire, count, S2N_TLS_CIPHER_SUITE_LEN);
+    return s2n_set_cipher_and_cert_as_server(conn, wire, count, S2N_TLS_CIPHER_SUITE_LEN);
 }

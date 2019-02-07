@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -24,9 +24,14 @@
 #include "tls/s2n_x509_validator.h"
 #include "tls/s2n_resume.h"
 
-#define S2N_MAX_SERVER_NAME 256
 #define S2N_MAX_TICKET_KEYS 48
 #define S2N_MAX_TICKET_KEY_HASHES 500 /* 10KB */
+
+/* This is 2 to match the number of certificate types s2n supports(RSA, ECDSA)
+ * This will increase once we support more lookup methods(server_name). Since this value is
+ * a factor in memory footprint, the application will also need a way to control the max.
+ */
+#define S2N_MAX_CERTIFICATES 2
 
 struct s2n_cipher_preferences;
 
@@ -36,7 +41,8 @@ struct s2n_config {
      * used to release memory allocated only in the deprecated API that the application 
      * does not have a reference to. */
     unsigned cert_allocated:1;
-    struct s2n_cert_chain_and_key *cert_and_key_pairs;
+    unsigned int num_certificates;
+    struct s2n_cert_chain_and_key *cert_and_key_pairs[S2N_MAX_CERTIFICATES];
     const struct s2n_cipher_preferences *cipher_preferences;
     struct s2n_blob application_protocols;
     s2n_status_request_type status_request_type;

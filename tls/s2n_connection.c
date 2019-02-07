@@ -498,9 +498,13 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
     if (conn->config == config) {
         return 0;
     }
-    else {
-        s2n_x509_validator_wipe(&conn->x509_validator);
+
+    /* We only support one client certificate */
+    if (config->num_certificates > 1 && conn->mode == S2N_CLIENT) {
+        S2N_ERROR(S2N_ERR_TOO_MANY_CERTIFICATES);
     }
+
+    s2n_x509_validator_wipe(&conn->x509_validator);
 
     s2n_cert_auth_type auth_type = config->client_cert_auth_type;
 
