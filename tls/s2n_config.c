@@ -428,7 +428,7 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
 int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
 {
     if (config->num_certificates == S2N_MAX_CERTIFICATES) {
-        S2N_ERROR(S2N_ERR_INVALID_ARGUMENT);
+        S2N_ERROR(S2N_ERR_TOO_MANY_CERTIFICATES);
     }
 
     config->cert_and_key_pairs[config->num_certificates] = cert_key_pair;
