@@ -131,7 +131,7 @@ int main(int argc, char **argv)
     EXPECT_BYTEARRAY_EQUAL(TEST_PUBLIC_KEY, client_conn->secure.kem_params.public_key.data, TEST_PUBLIC_KEY_LENGTH);
 
     // Part 3: Client calls send_key
-    struct s2n_blob client_shared_key = {0};
+    DEFER_CLEANUP(struct s2n_blob client_shared_key = {0}, s2n_free);
     EXPECT_SUCCESS(s2n_kem_client_key_send(client_conn, &client_shared_key));
     EXPECT_BYTEARRAY_EQUAL(TEST_SHARED_SECRET, client_shared_key.data, TEST_SHARED_SECRET_LENGTH);
     struct s2n_blob client_key_message = {.size = TEST_CLIENT_SEND_KEY_MESSAGE_LENGTH, .data = s2n_stuffer_raw_read(&client_conn->handshake.io, TEST_CLIENT_SEND_KEY_MESSAGE_LENGTH)};
@@ -141,15 +141,11 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &client_key_message));
 
     // Part 4: Call client key recv
-    struct s2n_blob server_shared_key = {0};
+    DEFER_CLEANUP(struct s2n_blob server_shared_key = {0}, s2n_free);
     EXPECT_SUCCESS(s2n_kem_client_key_recv(server_conn, &server_shared_key));
     EXPECT_BYTEARRAY_EQUAL(TEST_SHARED_SECRET, server_shared_key.data, TEST_SHARED_SECRET_LENGTH);
 
     EXPECT_SUCCESS(s2n_connection_free(client_conn));
     EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    // This would be handled by client/server key exchange methods which were skipped
-    EXPECT_SUCCESS(s2n_free(&server_shared_key));
-    EXPECT_SUCCESS(s2n_free(&client_shared_key));
-
     END_TEST();
 }

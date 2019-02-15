@@ -88,9 +88,9 @@ int main(int argc, char **argv)
         GUARD(s2n_alloc(&client_params.public_key, TEST_PUBLIC_KEY_LENGTH));
         memset(client_params.public_key.data, TEST_PUBLIC_KEY_LENGTH, TEST_PUBLIC_KEY_LENGTH);
 
-        struct s2n_blob client_shared_secret = {0};
+        DEFER_CLEANUP(struct s2n_blob client_shared_secret = {0}, s2n_free);
         GUARD(s2n_alloc(&client_shared_secret, TEST_SHARED_SECRET_LENGTH));
-        struct s2n_blob ciphertext = {0};
+        DEFER_CLEANUP(struct s2n_blob ciphertext = {0}, s2n_free);
         GUARD(s2n_alloc(&ciphertext, TEST_CIPHERTEXT_LENGTH));
 
         EXPECT_SUCCESS(s2n_kem_encapsulate(&client_params, &client_shared_secret, &ciphertext));
@@ -99,15 +99,12 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(TEST_SHARED_SECRET, client_shared_secret.data, TEST_SHARED_SECRET_LENGTH);
         EXPECT_BYTEARRAY_EQUAL(TEST_CIPHERTEXT, ciphertext.data, TEST_CIPHERTEXT_LENGTH);
 
-        struct s2n_blob server_shared_secret = {0};
+        DEFER_CLEANUP(struct s2n_blob server_shared_secret = {0}, s2n_free);
         GUARD(s2n_alloc(&server_shared_secret, TEST_SHARED_SECRET_LENGTH));
         EXPECT_SUCCESS(s2n_kem_decapsulate(&server_params, &server_shared_secret, &ciphertext));
         EXPECT_EQUAL(TEST_SHARED_SECRET_LENGTH, server_shared_secret.size);
         EXPECT_BYTEARRAY_EQUAL(TEST_SHARED_SECRET, server_shared_secret.data, TEST_SHARED_SECRET_LENGTH);
 
-        EXPECT_SUCCESS(s2n_free(&client_shared_secret));
-        EXPECT_SUCCESS(s2n_free(&server_shared_secret));
-        EXPECT_SUCCESS(s2n_free(&ciphertext));
         EXPECT_SUCCESS(s2n_free(&client_params.public_key));
         EXPECT_SUCCESS(s2n_free(&server_params.public_key));
         EXPECT_SUCCESS(s2n_free(&server_params.private_key));
