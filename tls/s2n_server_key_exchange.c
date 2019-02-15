@@ -232,17 +232,23 @@ int s2n_kem_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_t
     struct s2n_stuffer *out = &conn->handshake.io;
     const struct s2n_kem *kem = conn->secure.kem_params.negotiated_kem;
 
-    GUARD(s2n_kem_generate_keypair(&conn->secure.kem_params));
-
     data_to_sign->data = s2n_stuffer_raw_write(out, 0);
     notnull_check(data_to_sign->data);
 
     GUARD(s2n_stuffer_write_uint8(out, kem->kem_extension_id));
-    GUARD(s2n_stuffer_write_uint16(out, conn->secure.kem_params.public_key.size));
-    GUARD(s2n_stuffer_write(out, &conn->secure.kem_params.public_key));
+    GUARD(s2n_stuffer_write_uint16(out, kem->public_key_length));
+
+    // The public key is not needed after this method, write it straight to the stuffer
+    conn->secure.kem_params.public_key.data = s2n_stuffer_raw_write(out, kem->public_key_length);
+    notnull_check(conn->secure.kem_params.public_key.data);
+    conn->secure.kem_params.public_key.size = kem->public_key_length;
+
+    // The private key is needed for client_key_recv and must be saved
+    GUARD(s2n_alloc(&conn->secure.kem_params.private_key, kem->private_key_length));
+
+    GUARD(s2n_kem_generate_keypair(&conn->secure.kem_params));
 
     data_to_sign->size = sizeof(kem_extension_size) + sizeof(kem_public_key_size) +  conn->secure.kem_params.public_key.size;
-    GUARD(s2n_free(&conn->secure.kem_params.public_key));
 
     return 0;
 }

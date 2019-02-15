@@ -111,18 +111,21 @@ int s2n_ecdhe_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shar
     return 0;
 }
 
-int s2n_kem_client_recv_key(struct s2n_connection *conn, struct s2n_blob *shared_key)
+int s2n_kem_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
     kem_ciphertext_key_size ciphertext_length;
 
     GUARD(s2n_stuffer_read_uint16(in, &ciphertext_length));
     S2N_ERROR_IF(ciphertext_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(ciphertext_length != conn->secure.kem_params.negotiated_kem->ciphertext_length, S2N_ERR_BAD_MESSAGE);
     const struct s2n_blob ciphertext = {.size = ciphertext_length, .data = s2n_stuffer_raw_read(in, ciphertext_length)};
     notnull_check(ciphertext.data);
 
+    GUARD(s2n_alloc(shared_key, conn->secure.kem_params.negotiated_kem->shared_secret_key_length));
     GUARD(s2n_kem_decapsulate(&conn->secure.kem_params, shared_key, &ciphertext));
 
+    GUARD(s2n_blob_zero(&conn->secure.kem_params.private_key));
     GUARD(s2n_free(&conn->secure.kem_params.private_key));
 
     return 0;
@@ -193,17 +196,22 @@ int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
     return 0;
 }
 
-int s2n_kem_client_send_key(struct s2n_connection *conn, struct s2n_blob *shared_key)
+int s2n_kem_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
+    const struct s2n_kem *kem = conn->secure.kem_params.negotiated_kem;
 
-    struct s2n_blob ciphertext = {0};
+    GUARD(s2n_stuffer_write_uint16(out, kem->ciphertext_length));
+
+    // The ciphertext is not needed after this method, write it straight to the stuffer
+    struct s2n_blob ciphertext = {.data = s2n_stuffer_raw_write(out, kem->ciphertext_length), .size = kem->ciphertext_length};
+    notnull_check(ciphertext.data);
+
+    // Need to return shared key to caller
+    GUARD(s2n_alloc(shared_key, kem->shared_secret_key_length));
+
     GUARD(s2n_kem_encapsulate(&conn->secure.kem_params, shared_key, &ciphertext));
 
-
-    GUARD(s2n_stuffer_write_uint16(out, ciphertext.size));
-    GUARD(s2n_stuffer_write(out, &ciphertext));
-    GUARD(s2n_free(&ciphertext));
     return 0;
 }
 

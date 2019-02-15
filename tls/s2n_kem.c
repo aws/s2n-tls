@@ -24,8 +24,13 @@ int s2n_kem_generate_keypair(struct s2n_kem_params *kem_params)
 {
     const struct s2n_kem *kem = kem_params->negotiated_kem;
     notnull_check(kem->generate_keypair);
-    GUARD(s2n_alloc(&kem_params->public_key, kem->public_key_length));
-    GUARD(s2n_alloc(&kem_params->private_key, kem->private_key_length));
+
+    eq_check(kem_params->public_key.size, kem->public_key_length);
+    notnull_check(kem_params->public_key.data);
+
+    eq_check(kem_params->private_key.size, kem->private_key_length);
+    notnull_check(kem_params->private_key.data);
+
     GUARD(kem->generate_keypair(kem_params->public_key.data, kem_params->private_key.data));
     return 0;
 }
@@ -35,9 +40,16 @@ int s2n_kem_encapsulate(const struct s2n_kem_params *kem_params, struct s2n_blob
 {
     const struct s2n_kem *kem = kem_params->negotiated_kem;
     notnull_check(kem->encapsulate);
+
+    eq_check(kem_params->public_key.size, kem->public_key_length);
     notnull_check(kem_params->public_key.data);
-    GUARD(s2n_alloc(shared_secret, kem->shared_secret_key_length));
-    GUARD(s2n_alloc(ciphertext, kem->ciphertext_length));
+
+    eq_check(shared_secret->size, kem->shared_secret_key_length);
+    notnull_check(shared_secret->data);
+
+    eq_check(ciphertext->size, kem->ciphertext_length);
+    notnull_check(ciphertext->data);
+
     GUARD(kem->encapsulate(ciphertext->data, shared_secret->data, kem_params->public_key.data));
     return 0;
 }
@@ -47,10 +59,13 @@ int s2n_kem_decapsulate(const struct s2n_kem_params *kem_params, struct s2n_blob
 {
     const struct s2n_kem *kem = kem_params->negotiated_kem;
     notnull_check(kem->decapsulate);
-    notnull_check(kem_params->private_key.data);
-    eq_check(kem->ciphertext_length, ciphertext->size);
 
-    GUARD(s2n_alloc(shared_secret, kem->shared_secret_key_length));
+    eq_check(kem_params->private_key.size, kem->private_key_length);
+    notnull_check(kem_params->private_key.data);
+
+    eq_check(ciphertext->size, kem->ciphertext_length);
+    notnull_check(ciphertext->data);
+
     GUARD(kem->decapsulate(shared_secret->data, ciphertext->data, kem_params->private_key.data));
     return 0;
 }
@@ -85,6 +100,7 @@ int s2n_kem_find_supported_kem(struct s2n_blob *client_kem_ids, const struct s2n
 int s2n_kem_wipe_keys(struct s2n_kem_params *kem_params)
 {
     if (kem_params != NULL){
+        GUARD(s2n_blob_zero(&kem_params->private_key));
         if (kem_params->private_key.allocated) {
             GUARD(s2n_free(&kem_params->private_key));
         }
