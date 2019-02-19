@@ -77,10 +77,9 @@ const char *test_vectors[][7]= {
 
 int multi_convert_hex_to_bytes(uint8_t *output, const char **input, int num_strings)
 {
-
     int output_index = 0;
     for (int i = 0; i < num_strings; i++) {
-        struct s2n_stuffer stuffer_in = {{0}};
+        DEFER_CLEANUP(struct s2n_stuffer stuffer_in = {{0}}, s2n_stuffer_free);
 
         GUARD(s2n_stuffer_alloc_ro_from_string(&stuffer_in, input[i]));
         int num_bytes = strlen(input[i]) / 2;
@@ -90,7 +89,6 @@ int multi_convert_hex_to_bytes(uint8_t *output, const char **input, int num_stri
             output[output_index] = c;
             output_index++;
         }
-        GUARD(s2n_stuffer_free(&stuffer_in));
     }
     return 0;
 }
@@ -121,16 +119,16 @@ int main(int argc, char **argv)
         const char *client_key_exchange_message_2 = test_vectors[i][5];
         const char *expected_master_secret_hex_in = test_vectors[i][6];
 
-        struct s2n_blob classic_pms = {0};
+        DEFER_CLEANUP(struct s2n_blob classic_pms = {0}, s2n_free);
         EXPECT_SUCCESS(s2n_alloc(&classic_pms, strlen(premaster_classic_secret_hex_in) / 2));
         EXPECT_SUCCESS(convert_hex_to_bytes(classic_pms.data, premaster_classic_secret_hex_in));
 
-        struct s2n_blob kem_pms = {0};
+        DEFER_CLEANUP(struct s2n_blob kem_pms = {0}, s2n_free);
         EXPECT_SUCCESS(s2n_alloc(&kem_pms, strlen(premaster_kem_secret_hex_in) / 2));
         EXPECT_SUCCESS(convert_hex_to_bytes(kem_pms.data, premaster_kem_secret_hex_in));
 
         // In teh future the hybrid_kex client_key_send (client side) and client_key_receive (server side) will concatenate the two parts
-        struct s2n_blob combined_pms = {0};
+        DEFER_CLEANUP(struct s2n_blob combined_pms = {0}, s2n_free);
         EXPECT_SUCCESS(s2n_alloc(&combined_pms, classic_pms.size + kem_pms.size));
         struct s2n_stuffer combined_stuffer = {{0}};
         s2n_stuffer_init(&combined_stuffer, &combined_pms);
@@ -151,9 +149,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_hybrid_prf_master_secret(conn, &combined_pms));
 
         EXPECT_BYTEARRAY_EQUAL(expected_master_secret, conn->secure.master_secret, S2N_TLS_SECRET_LEN);
-        EXPECT_SUCCESS(s2n_free(&classic_pms));
-        EXPECT_SUCCESS(s2n_free(&kem_pms));
-        EXPECT_SUCCESS(s2n_free(&combined_pms));
         EXPECT_SUCCESS(s2n_free(&conn->secure.client_key_exchange_message));
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }

@@ -35,7 +35,8 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 
-static int s2n_sslv3_prf(struct s2n_prf_working_space *ws, struct s2n_blob *secret, struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *out)
+static int s2n_sslv3_prf(struct s2n_prf_working_space *ws, struct s2n_blob *secret, struct s2n_blob *seed_a,
+        struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
 {
     struct s2n_hash_state *md5 = &ws->ssl3.md5;
     struct s2n_hash_state *sha1 = &ws->ssl3.sha1;
@@ -57,6 +58,9 @@ static int s2n_sslv3_prf(struct s2n_prf_working_space *ws, struct s2n_blob *secr
 
         if (seed_b) {
             GUARD(s2n_hash_update(sha1, seed_b->data, seed_b->size));
+            if (seed_c) {
+                GUARD(s2n_hash_update(sha1, seed_c->data, seed_c->size));
+            }
         }
 
         GUARD(s2n_hash_digest(sha1, ws->ssl3.sha1_digest, sizeof(ws->ssl3.sha1_digest)));
@@ -102,7 +106,7 @@ static int s2n_evp_hmac_p_hash_digest_init(struct s2n_prf_working_space *ws)
     }
 
     GUARD_OSSL(EVP_DigestSignInit(ws->tls.p_hash.evp_hmac.evp_digest.ctx, NULL, ws->tls.p_hash.evp_hmac.evp_digest.md, NULL, ws->tls.p_hash.evp_hmac.mac_key),
-	       S2N_ERR_P_HASH_INIT_FAILED);
+           S2N_ERR_P_HASH_INIT_FAILED);
 
     return 0;
 }
@@ -267,9 +271,9 @@ static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, 
 
     if (seed_b) {
         GUARD(hmac->update(ws, seed_b->data, seed_b->size));
-    }
-    if (seed_c) {
-        GUARD(hmac->update(ws, seed_c->data, seed_c->size));
+        if (seed_c) {
+            GUARD(hmac->update(ws, seed_c->data, seed_c->size));
+        }
     }
     GUARD(hmac->final(ws, ws->tls.digest0, digest_size));
 
@@ -286,10 +290,11 @@ static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, 
         GUARD(hmac->update(ws, seed_a->data, seed_a->size));
         if (seed_b) {
             GUARD(hmac->update(ws, seed_b->data, seed_b->size));
+            if (seed_c) {
+                GUARD(hmac->update(ws, seed_c->data, seed_c->size));
+            }
         }
-        if (seed_c) {
-            GUARD(hmac->update(ws, seed_c->data, seed_c->size));
-        }
+
         GUARD(hmac->final(ws, ws->tls.digest1, digest_size));
 
         uint32_t bytes_to_xor = MIN(outputlen, digest_size);
@@ -334,8 +339,12 @@ int s2n_prf_free(struct s2n_connection *conn)
 static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label, struct s2n_blob *seed_a,
                    struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
 {
+    /* seed_a is always required, seed_b is optional, if seed_c is provided seed_b must also be provided */
+    S2N_ERROR_IF(seed_a == NULL, S2N_ERR_PRF_INVALID_SEED);
+    S2N_ERROR_IF(seed_b == NULL && seed_c != NULL, S2N_ERR_PRF_INVALID_SEED);
+
     if (conn->actual_protocol_version == S2N_SSLv3) {
-        return s2n_sslv3_prf(&conn->prf_space, secret, seed_a, seed_b, out);
+        return s2n_sslv3_prf(&conn->prf_space, secret, seed_a, seed_b, seed_c, out);
     }
 
     /* We zero the out blob because p_hash works by XOR'ing with the existing
@@ -367,41 +376,26 @@ static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct 
 
 int s2n_tls_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret)
 {
-    struct s2n_blob client_random, server_random, master_secret;
-    struct s2n_blob label = {0};
-    uint8_t master_secret_label[] = "master secret";
+    struct s2n_blob client_random = {.size = sizeof(conn->secure.client_random), .data = conn->secure.client_random};
+    struct s2n_blob server_random = {.size = sizeof(conn->secure.server_random), .data = conn->secure.server_random};
+    struct s2n_blob master_secret = {.size = sizeof(conn->secure.master_secret), .data = conn->secure.master_secret};
 
-    client_random.data = conn->secure.client_random;
-    client_random.size = sizeof(conn->secure.client_random);
-    server_random.data = conn->secure.server_random;
-    server_random.size = sizeof(conn->secure.server_random);
-    master_secret.data = conn->secure.master_secret;
-    master_secret.size = sizeof(conn->secure.master_secret);
-    label.data = master_secret_label;
-    label.size = sizeof(master_secret_label) - 1;
+    uint8_t master_secret_label[] = "master secret";
+    struct s2n_blob label = {.size = sizeof(master_secret_label) - 1, .data = master_secret_label};
 
     return s2n_prf(conn, premaster_secret, &label, &client_random, &server_random, NULL, &master_secret);
 }
 
 int s2n_hybrid_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret)
 {
-    struct s2n_blob client_random, server_random, master_secret;
+    struct s2n_blob client_random = {.size = sizeof(conn->secure.client_random), .data = conn->secure.client_random};
+    struct s2n_blob server_random = {.size = sizeof(conn->secure.server_random), .data = conn->secure.server_random};
+    struct s2n_blob master_secret = {.size = sizeof(conn->secure.master_secret), .data = conn->secure.master_secret};
 
-    struct s2n_blob label = {0};
     uint8_t master_secret_label[] = "hybrid master secret";
+    struct s2n_blob label = {.size = sizeof(master_secret_label) - 1, .data = master_secret_label};
 
-    client_random.data = conn->secure.client_random;
-    client_random.size = sizeof(conn->secure.client_random);
-    server_random.data = conn->secure.server_random;
-    server_random.size = sizeof(conn->secure.server_random);
-    master_secret.data = conn->secure.master_secret;
-    master_secret.size = sizeof(conn->secure.master_secret);
-    label.data = master_secret_label;
-    label.size = sizeof(master_secret_label) - 1;
-
-    int result = s2n_prf(conn, premaster_secret, &label, &client_random, &server_random, &conn->secure.client_key_exchange_message, &master_secret);
-
-    return result;
+    return s2n_prf(conn, premaster_secret, &label, &client_random, &server_random, &conn->secure.client_key_exchange_message, &master_secret);
 }
 
 static int s2n_sslv3_finished(struct s2n_connection *conn, uint8_t prefix[4], struct s2n_hash_state *md5, struct s2n_hash_state *sha1, uint8_t * out)
