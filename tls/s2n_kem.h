@@ -30,7 +30,7 @@ struct s2n_kem {
     const kem_private_key_size private_key_length;
     const kem_shared_secret_size shared_secret_key_length;
     const kem_ciphertext_key_size ciphertext_length;
-    // NIST API defines all OUT parameters first then IN parameters
+    /* NIST Post Quantum KEM submissions require the following API for compatibility */
     int (*generate_keypair)(unsigned char *public_key_out, unsigned char *private_key_out);
     int (*encapsulate)(unsigned char *ciphertext_out, unsigned char *shared_secret_out,  const unsigned char *public_key_in);
     int (*decapsulate)(unsigned char *shared_secret_out, const unsigned char *ciphertext_in, const unsigned char *private_key_in);
@@ -50,7 +50,7 @@ extern int s2n_kem_encapsulate(const struct s2n_kem_keypair *kem_keys, struct s2
 extern int s2n_kem_decapsulate(const struct s2n_kem_keypair *kem_params, struct s2n_blob *shared_secret,
                                const struct s2n_blob *ciphertext);
 
-extern int s2n_kem_find_supported_kem(struct s2n_blob *client_kem_names, const struct s2n_kem *supported_kems,
-                                      const int num_supported_kems, const struct s2n_kem **matching_kem);
+extern int s2n_kem_find_supported_kem(const struct s2n_blob *client_kem_names, const struct s2n_kem *server_supported_kems,
+                                      const int num_server_supported_kems, const struct s2n_kem **matching_kem);
 
 extern int s2n_kem_free(struct s2n_kem_keypair *kem_keys);

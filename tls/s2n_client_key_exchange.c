@@ -200,7 +200,7 @@ int s2n_kem_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
 
     GUARD(s2n_stuffer_write_uint16(out, kem->ciphertext_length));
 
-    // The ciphertext is not needed after this method, write it straight to the stuffer
+    /* The ciphertext is not needed after this method, write it straight to the stuffer */
     struct s2n_blob ciphertext = {.data = s2n_stuffer_raw_write(out, kem->ciphertext_length), .size = kem->ciphertext_length};
     notnull_check(ciphertext.data);
 

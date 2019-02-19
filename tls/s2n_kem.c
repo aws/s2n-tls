@@ -22,13 +22,14 @@
 
 int s2n_kem_generate_keypair(struct s2n_kem_keypair *kem_keys)
 {
+    notnull_check(kem_keys);
     const struct s2n_kem *kem = kem_keys->negotiated_kem;
     notnull_check(kem->generate_keypair);
 
     eq_check(kem_keys->public_key.size, kem->public_key_length);
     notnull_check(kem_keys->public_key.data);
 
-    // The private key is needed for client_key_recv and must be saved
+    /* The private key is needed for client_key_recv and must be saved */
     GUARD(s2n_alloc(&kem_keys->private_key, kem->private_key_length));
 
     GUARD(kem->generate_keypair(kem_keys->public_key.data, kem_keys->private_key.data));
@@ -38,6 +39,7 @@ int s2n_kem_generate_keypair(struct s2n_kem_keypair *kem_keys)
 int s2n_kem_encapsulate(const struct s2n_kem_keypair *kem_keys, struct s2n_blob *shared_secret,
                         struct s2n_blob *ciphertext)
 {
+    notnull_check(kem_keys);
     const struct s2n_kem *kem = kem_keys->negotiated_kem;
     notnull_check(kem->encapsulate);
 
@@ -56,6 +58,7 @@ int s2n_kem_encapsulate(const struct s2n_kem_keypair *kem_keys, struct s2n_blob 
 int s2n_kem_decapsulate(const struct s2n_kem_keypair *kem_keys, struct s2n_blob *shared_secret,
                         const struct s2n_blob *ciphertext)
 {
+    notnull_check(kem_keys);
     const struct s2n_kem *kem = kem_keys->negotiated_kem;
     notnull_check(kem->decapsulate);
 
@@ -71,29 +74,22 @@ int s2n_kem_decapsulate(const struct s2n_kem_keypair *kem_keys, struct s2n_blob 
     return 0;
 }
 
-int s2n_kem_find_supported_kem(struct s2n_blob *client_kem_ids, const struct s2n_kem *supported_kems,
-                               const int num_supported_kems, const struct s2n_kem **matching_kem)
+int s2n_kem_find_supported_kem(const struct s2n_blob *client_kem_ids, const struct s2n_kem *server_supported_kems,
+                               const int num_server_supported_kems, const struct s2n_kem **matching_kem)
 {
-    struct s2n_stuffer kem_name_in = {{0}};
-
-    GUARD(s2n_stuffer_init(&kem_name_in, client_kem_ids));
-    GUARD(s2n_stuffer_write(&kem_name_in, client_kem_ids));
-
-    for (int i = 0; i < num_supported_kems; i++) {
-        const struct s2n_kem candidate_server_kem_name = supported_kems[i];
+    for (int i = 0; i < num_server_supported_kems; i++) {
+        const struct s2n_kem candidate_server_kem_name = server_supported_kems[i];
         for (int j = 0; j < client_kem_ids->size; j++) {
-            kem_extension_size kem_id;
-            GUARD(s2n_stuffer_read_uint8(&kem_name_in, &kem_id));
+            const kem_extension_size candidate_client_kem_id = client_kem_ids->data[j];
 
-            if (candidate_server_kem_name.kem_extension_id == kem_id) {
-                *matching_kem = &supported_kems[i];
+            if (candidate_server_kem_name.kem_extension_id == candidate_client_kem_id) {
+                *matching_kem = &server_supported_kems[i];
                 return 0;
             }
         }
-        GUARD(s2n_stuffer_reread(&kem_name_in));
     }
 
-    // Nothing found
+    /* Nothing found */
     S2N_ERROR(S2N_ERR_KEM_UNSUPPORTED_PARAMS);
     return 0;
 }

@@ -143,11 +143,11 @@ int s2n_kem_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_bl
     const struct s2n_kem *kem = conn->secure.s2n_kem_keys.negotiated_kem;
     kem_public_key_size key_length;
 
-    // Keep a copy to the start of the whole structure for the signature check
+    /* Keep a copy to the start of the whole structure for the signature check */
     data_to_verify->data = s2n_stuffer_raw_read(in, 0);
     notnull_check(data_to_verify->data);
 
-    // the server sends the KEM ID again and this must match what was agreed upon during server hello
+    /* the server sends the KEM ID again and this must match what was agreed upon during server hello */
     kem_extension_size kem_id;
     GUARD(s2n_stuffer_read_uint8(in, &kem_id));
     eq_check(kem_id, kem->kem_extension_id);
@@ -238,7 +238,7 @@ int s2n_kem_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_t
     GUARD(s2n_stuffer_write_uint8(out, kem->kem_extension_id));
     GUARD(s2n_stuffer_write_uint16(out, kem->public_key_length));
 
-    // The public key is not needed after this method, write it straight to the stuffer
+    /* The public key is not needed after this method, write it straight to the stuffer */
     struct s2n_blob *public_key = &conn->secure.s2n_kem_keys.public_key;
     public_key->data = s2n_stuffer_raw_write(out, kem->public_key_length);
     notnull_check(public_key->data);

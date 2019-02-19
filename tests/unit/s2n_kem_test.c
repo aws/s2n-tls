@@ -64,7 +64,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
     {
-        // regression test for network parsing data of expected sizes
+        /* Regression test for network parsing data of expected sizes */
         EXPECT_EQUAL(sizeof(kem_extension_size), 1);
         EXPECT_EQUAL(sizeof(kem_public_key_size), 2);
         EXPECT_EQUAL(sizeof(kem_private_key_size), 2);
@@ -83,7 +83,7 @@ int main(int argc, char **argv)
 
         struct s2n_kem_keypair client_kem_keypair = {0};
         client_kem_keypair.negotiated_kem = &s2n_test_kem;
-        // This would be handled by client/server key exchange methods which isn't being tested
+        /* This would be handled by client/server key exchange methods which isn't being tested */
         GUARD(s2n_alloc(&client_kem_keypair.public_key, TEST_PUBLIC_KEY_LENGTH));
         memset(client_kem_keypair.public_key.data, TEST_PUBLIC_KEY_LENGTH, TEST_PUBLIC_KEY_LENGTH);
 
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
         struct s2n_kem kembc = {.kem_extension_id = 0xbc};
         struct s2n_kem kemff = {.kem_extension_id = 0xff};
 
-        // In the order of the client which is ignored
+        /* In the order of the client preference which is ignored by the s2n server */
         uint8_t clientKems[] = {kem03.kem_extension_id, kem0a.kem_extension_id, kembc.kem_extension_id, kem02.kem_extension_id};
         struct s2n_blob  clientKemBlob = {0};
         EXPECT_SUCCESS(s2n_blob_init(&clientKemBlob, clientKems, 4));

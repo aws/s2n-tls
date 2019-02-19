@@ -95,7 +95,6 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
 
-
     struct s2n_connection *client_conn;
     struct s2n_connection *server_conn;
 
@@ -108,7 +107,7 @@ int main(int argc, char **argv)
     server_conn->secure.s2n_kem_keys.negotiated_kem = &s2n_test_kem;
     server_conn->secure.cipher_suite = &s2n_test_suite;
 
-    // Part 1: Server calls send_key
+    /* Part 1: Server calls send_key */
     struct s2n_blob data_to_sign = {0};
     EXPECT_SUCCESS(s2n_kem_server_key_send(server_conn, &data_to_sign));
     EXPECT_EQUAL(data_to_sign.size, TEST_SERVER_SEND_KEY_MESSAGE_LENGTH);
@@ -118,10 +117,10 @@ int main(int argc, char **argv)
     struct s2n_blob server_key_message = {.size = TEST_SERVER_SEND_KEY_MESSAGE_LENGTH, .data = s2n_stuffer_raw_read(&server_conn->handshake.io, TEST_SERVER_SEND_KEY_MESSAGE_LENGTH)};
     EXPECT_BYTEARRAY_EQUAL(TEST_SERVER_SEND_KEY_MESSAGE, server_key_message.data, TEST_SERVER_SEND_KEY_MESSAGE_LENGTH);
 
-    // Part 1.1: feed that to the client
+    /* Part 1.1: feed that to the client */
     s2n_stuffer_write(&client_conn->handshake.io, &server_key_message);
 
-    // Part 2: Client calls recv_read and recv_parse
+    /* Part 2: Client calls recv_read and recv_parse */
     union s2n_kex_raw_server_data raw_parms = {{{0}}};
     struct s2n_blob data_to_verify = {0};
     EXPECT_SUCCESS(s2n_kem_server_key_recv_read_data(client_conn, &data_to_verify, &raw_parms));
@@ -130,17 +129,17 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(TEST_PUBLIC_KEY_LENGTH, client_conn->secure.s2n_kem_keys.public_key.size);
     EXPECT_BYTEARRAY_EQUAL(TEST_PUBLIC_KEY, client_conn->secure.s2n_kem_keys.public_key.data, TEST_PUBLIC_KEY_LENGTH);
 
-    // Part 3: Client calls send_key
+    /* Part 3: Client calls send_key */
     DEFER_CLEANUP(struct s2n_blob client_shared_key = {0}, s2n_free);
     EXPECT_SUCCESS(s2n_kem_client_key_send(client_conn, &client_shared_key));
     EXPECT_BYTEARRAY_EQUAL(TEST_SHARED_SECRET, client_shared_key.data, TEST_SHARED_SECRET_LENGTH);
     struct s2n_blob client_key_message = {.size = TEST_CLIENT_SEND_KEY_MESSAGE_LENGTH, .data = s2n_stuffer_raw_read(&client_conn->handshake.io, TEST_CLIENT_SEND_KEY_MESSAGE_LENGTH)};
     EXPECT_BYTEARRAY_EQUAL(TEST_CLIENT_SEND_KEY_MESSAGE, client_key_message.data, TEST_CLIENT_SEND_KEY_MESSAGE_LENGTH);
 
-    // Part 3.1: Send that back to the server
+    /* Part 3.1: Send that back to the server */
     EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &client_key_message));
 
-    // Part 4: Call client key recv
+    /* Part 4: Call client key recv */
     DEFER_CLEANUP(struct s2n_blob server_shared_key = {0}, s2n_free);
     EXPECT_SUCCESS(s2n_kem_client_key_recv(server_conn, &server_shared_key));
     EXPECT_BYTEARRAY_EQUAL(TEST_SHARED_SECRET, server_shared_key.data, TEST_SHARED_SECRET_LENGTH);
