@@ -72,42 +72,38 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(sizeof(kem_ciphertext_key_size), 2);
     }
     {
-        struct s2n_kem_params server_params = {0};
-        server_params.negotiated_kem = &s2n_test_kem;
-        EXPECT_SUCCESS(s2n_alloc(&server_params.public_key, TEST_PUBLIC_KEY_LENGTH));
-        EXPECT_SUCCESS(s2n_alloc(&server_params.private_key, TEST_PRIVATE_KEY_LENGTH));
-        EXPECT_SUCCESS(s2n_kem_generate_keypair(&server_params));
-        EXPECT_EQUAL(TEST_PUBLIC_KEY_LENGTH, server_params.public_key.size);
-        EXPECT_EQUAL(TEST_PRIVATE_KEY_LENGTH, server_params.private_key.size);
-        EXPECT_BYTEARRAY_EQUAL(TEST_PUBLIC_KEY, server_params.public_key.data, TEST_PUBLIC_KEY_LENGTH);
-        EXPECT_BYTEARRAY_EQUAL(TEST_PRIVATE_KEY, server_params.private_key.data, TEST_PRIVATE_KEY_LENGTH);
+        struct s2n_kem_keypair server_kem_keypair = {0};
+        server_kem_keypair.negotiated_kem = &s2n_test_kem;
+        EXPECT_SUCCESS(s2n_alloc(&server_kem_keypair.public_key, TEST_PUBLIC_KEY_LENGTH));
+        EXPECT_SUCCESS(s2n_kem_generate_keypair(&server_kem_keypair));
+        EXPECT_EQUAL(TEST_PUBLIC_KEY_LENGTH, server_kem_keypair.public_key.size);
+        EXPECT_EQUAL(TEST_PRIVATE_KEY_LENGTH, server_kem_keypair.private_key.size);
+        EXPECT_BYTEARRAY_EQUAL(TEST_PUBLIC_KEY, server_kem_keypair.public_key.data, TEST_PUBLIC_KEY_LENGTH);
+        EXPECT_BYTEARRAY_EQUAL(TEST_PRIVATE_KEY, server_kem_keypair.private_key.data, TEST_PRIVATE_KEY_LENGTH);
 
-        struct s2n_kem_params client_params = {0};
-        client_params.negotiated_kem = &s2n_test_kem;
+        struct s2n_kem_keypair client_kem_keypair = {0};
+        client_kem_keypair.negotiated_kem = &s2n_test_kem;
         // This would be handled by client/server key exchange methods which isn't being tested
-        GUARD(s2n_alloc(&client_params.public_key, TEST_PUBLIC_KEY_LENGTH));
-        memset(client_params.public_key.data, TEST_PUBLIC_KEY_LENGTH, TEST_PUBLIC_KEY_LENGTH);
+        GUARD(s2n_alloc(&client_kem_keypair.public_key, TEST_PUBLIC_KEY_LENGTH));
+        memset(client_kem_keypair.public_key.data, TEST_PUBLIC_KEY_LENGTH, TEST_PUBLIC_KEY_LENGTH);
 
         DEFER_CLEANUP(struct s2n_blob client_shared_secret = {0}, s2n_free);
-        GUARD(s2n_alloc(&client_shared_secret, TEST_SHARED_SECRET_LENGTH));
         DEFER_CLEANUP(struct s2n_blob ciphertext = {0}, s2n_free);
         GUARD(s2n_alloc(&ciphertext, TEST_CIPHERTEXT_LENGTH));
 
-        EXPECT_SUCCESS(s2n_kem_encapsulate(&client_params, &client_shared_secret, &ciphertext));
+        EXPECT_SUCCESS(s2n_kem_encapsulate(&client_kem_keypair, &client_shared_secret, &ciphertext));
         EXPECT_EQUAL(TEST_SHARED_SECRET_LENGTH, client_shared_secret.size);
         EXPECT_EQUAL(TEST_CIPHERTEXT_LENGTH, ciphertext.size);
         EXPECT_BYTEARRAY_EQUAL(TEST_SHARED_SECRET, client_shared_secret.data, TEST_SHARED_SECRET_LENGTH);
         EXPECT_BYTEARRAY_EQUAL(TEST_CIPHERTEXT, ciphertext.data, TEST_CIPHERTEXT_LENGTH);
 
         DEFER_CLEANUP(struct s2n_blob server_shared_secret = {0}, s2n_free);
-        GUARD(s2n_alloc(&server_shared_secret, TEST_SHARED_SECRET_LENGTH));
-        EXPECT_SUCCESS(s2n_kem_decapsulate(&server_params, &server_shared_secret, &ciphertext));
+        EXPECT_SUCCESS(s2n_kem_decapsulate(&server_kem_keypair, &server_shared_secret, &ciphertext));
         EXPECT_EQUAL(TEST_SHARED_SECRET_LENGTH, server_shared_secret.size);
         EXPECT_BYTEARRAY_EQUAL(TEST_SHARED_SECRET, server_shared_secret.data, TEST_SHARED_SECRET_LENGTH);
 
-        EXPECT_SUCCESS(s2n_free(&client_params.public_key));
-        EXPECT_SUCCESS(s2n_free(&server_params.public_key));
-        EXPECT_SUCCESS(s2n_free(&server_params.private_key));
+        EXPECT_SUCCESS(s2n_kem_free(&server_kem_keypair));
+        EXPECT_SUCCESS(s2n_kem_free(&client_kem_keypair));
     }
     {
         const struct s2n_kem *negotiated_kem = NULL;

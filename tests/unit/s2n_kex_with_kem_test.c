@@ -102,10 +102,10 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
     EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
-    client_conn->secure.kem_params.negotiated_kem = &s2n_test_kem;
+    client_conn->secure.s2n_kem_keys.negotiated_kem = &s2n_test_kem;
     client_conn->secure.cipher_suite = &s2n_test_suite;
 
-    server_conn->secure.kem_params.negotiated_kem = &s2n_test_kem;
+    server_conn->secure.s2n_kem_keys.negotiated_kem = &s2n_test_kem;
     server_conn->secure.cipher_suite = &s2n_test_suite;
 
     // Part 1: Server calls send_key
@@ -113,8 +113,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_kem_server_key_send(server_conn, &data_to_sign));
     EXPECT_EQUAL(data_to_sign.size, TEST_SERVER_SEND_KEY_MESSAGE_LENGTH);
 
-    EXPECT_EQUAL(TEST_PRIVATE_KEY_LENGTH, server_conn->secure.kem_params.private_key.size);
-    EXPECT_BYTEARRAY_EQUAL(TEST_PRIVATE_KEY, server_conn->secure.kem_params.private_key.data, TEST_PRIVATE_KEY_LENGTH);
+    EXPECT_EQUAL(TEST_PRIVATE_KEY_LENGTH, server_conn->secure.s2n_kem_keys.private_key.size);
+    EXPECT_BYTEARRAY_EQUAL(TEST_PRIVATE_KEY, server_conn->secure.s2n_kem_keys.private_key.data, TEST_PRIVATE_KEY_LENGTH);
     struct s2n_blob server_key_message = {.size = TEST_SERVER_SEND_KEY_MESSAGE_LENGTH, .data = s2n_stuffer_raw_read(&server_conn->handshake.io, TEST_SERVER_SEND_KEY_MESSAGE_LENGTH)};
     EXPECT_BYTEARRAY_EQUAL(TEST_SERVER_SEND_KEY_MESSAGE, server_key_message.data, TEST_SERVER_SEND_KEY_MESSAGE_LENGTH);
 
@@ -127,8 +127,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_kem_server_key_recv_read_data(client_conn, &data_to_verify, &raw_parms));
     EXPECT_EQUAL(data_to_verify.size, TEST_SERVER_SEND_KEY_MESSAGE_LENGTH);
     EXPECT_SUCCESS(s2n_kem_server_key_recv_parse_data(client_conn, &raw_parms));
-    EXPECT_EQUAL(TEST_PUBLIC_KEY_LENGTH, client_conn->secure.kem_params.public_key.size);
-    EXPECT_BYTEARRAY_EQUAL(TEST_PUBLIC_KEY, client_conn->secure.kem_params.public_key.data, TEST_PUBLIC_KEY_LENGTH);
+    EXPECT_EQUAL(TEST_PUBLIC_KEY_LENGTH, client_conn->secure.s2n_kem_keys.public_key.size);
+    EXPECT_BYTEARRAY_EQUAL(TEST_PUBLIC_KEY, client_conn->secure.s2n_kem_keys.public_key.data, TEST_PUBLIC_KEY_LENGTH);
 
     // Part 3: Client calls send_key
     DEFER_CLEANUP(struct s2n_blob client_shared_key = {0}, s2n_free);

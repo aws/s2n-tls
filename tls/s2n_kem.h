@@ -25,31 +25,32 @@ typedef uint16_t kem_shared_secret_size;
 typedef uint16_t kem_ciphertext_key_size;
 
 struct s2n_kem {
-    kem_extension_size kem_extension_id;
+    const kem_extension_size kem_extension_id;
     const kem_public_key_size public_key_length;
     const kem_private_key_size private_key_length;
     const kem_shared_secret_size shared_secret_key_length;
     const kem_ciphertext_key_size ciphertext_length;
-    int (*generate_keypair)(unsigned char *public_key, unsigned char *private_key);
-    int (*encapsulate)(unsigned char *ciphertext, unsigned char *shared_secret,  const unsigned char *public_key);
-    int (*decapsulate)(unsigned char *shared_secret, const unsigned char *ciphertext, const unsigned char *private_key);
+    // NIST API defines all OUT parameters first then IN parameters
+    int (*generate_keypair)(unsigned char *public_key_out, unsigned char *private_key_out);
+    int (*encapsulate)(unsigned char *ciphertext_out, unsigned char *shared_secret_out,  const unsigned char *public_key_in);
+    int (*decapsulate)(unsigned char *shared_secret_out, const unsigned char *ciphertext_in, const unsigned char *private_key_in);
 };
 
-struct s2n_kem_params {
+struct s2n_kem_keypair {
     const struct s2n_kem *negotiated_kem;
     struct s2n_blob public_key;
     struct s2n_blob private_key;
 };
 
-extern int s2n_kem_generate_keypair(struct s2n_kem_params *kem_params);
+extern int s2n_kem_generate_keypair(struct s2n_kem_keypair *kem_keys);
 
-extern int s2n_kem_encapsulate(const struct s2n_kem_params *kem_params, struct s2n_blob *shared_secret,
+extern int s2n_kem_encapsulate(const struct s2n_kem_keypair *kem_keys, struct s2n_blob *shared_secret,
                                struct s2n_blob *ciphertext);
 
-extern int s2n_kem_decapsulate(const struct s2n_kem_params *kem_params, struct s2n_blob *shared_secret,
+extern int s2n_kem_decapsulate(const struct s2n_kem_keypair *kem_params, struct s2n_blob *shared_secret,
                                const struct s2n_blob *ciphertext);
 
 extern int s2n_kem_find_supported_kem(struct s2n_blob *client_kem_names, const struct s2n_kem *supported_kems,
                                       const int num_supported_kems, const struct s2n_kem **matching_kem);
 
-extern int s2n_kem_wipe_keys(struct s2n_kem_params *kem_params);
+extern int s2n_kem_free(struct s2n_kem_keypair *kem_keys);
