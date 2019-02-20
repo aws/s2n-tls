@@ -17,6 +17,7 @@
 
 #include "error/s2n_errno.h"
 
+#include "tls/s2n_kem.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_kex.h"
@@ -110,6 +111,23 @@ int s2n_ecdhe_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shar
     return 0;
 }
 
+int s2n_kem_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared_key)
+{
+    struct s2n_stuffer *in = &conn->handshake.io;
+    kem_ciphertext_key_size ciphertext_length;
+
+    GUARD(s2n_stuffer_read_uint16(in, &ciphertext_length));
+    S2N_ERROR_IF(ciphertext_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
+
+    const struct s2n_blob ciphertext = {.size = ciphertext_length, .data = s2n_stuffer_raw_read(in, ciphertext_length)};
+    notnull_check(ciphertext.data);
+
+    GUARD(s2n_kem_decapsulate(&conn->secure.s2n_kem_keys, shared_key, &ciphertext));
+
+    GUARD(s2n_kem_free(&conn->secure.s2n_kem_keys));
+    return 0;
+}
+
 int s2n_client_key_recv(struct s2n_connection *conn)
 {
     const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
@@ -172,6 +190,22 @@ int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
 
     /* We don't need the key any more, so free it */
     GUARD(s2n_pkey_free(&conn->secure.server_public_key));
+    return 0;
+}
+
+int s2n_kem_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared_key)
+{
+    struct s2n_stuffer *out = &conn->handshake.io;
+    const struct s2n_kem *kem = conn->secure.s2n_kem_keys.negotiated_kem;
+
+    GUARD(s2n_stuffer_write_uint16(out, kem->ciphertext_length));
+
+    /* The ciphertext is not needed after this method, write it straight to the stuffer */
+    struct s2n_blob ciphertext = {.data = s2n_stuffer_raw_write(out, kem->ciphertext_length), .size = kem->ciphertext_length};
+    notnull_check(ciphertext.data);
+
+    GUARD(s2n_kem_encapsulate(&conn->secure.s2n_kem_keys, shared_key, &ciphertext));
+    GUARD(s2n_kem_free(&conn->secure.s2n_kem_keys));
     return 0;
 }
 

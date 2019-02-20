@@ -26,6 +26,7 @@
 #include "crypto/s2n_dhe.h"
 #include "crypto/s2n_ecc.h"
 
+#include "tls/s2n_kem.h"
 
 #define S2N_TLS_SECRET_LEN             48
 #define S2N_TLS_RANDOM_DATA_LEN        32
@@ -59,6 +60,7 @@ struct s2n_crypto_parameters {
     struct s2n_pkey client_public_key;
     struct s2n_dh_params server_dh_params;
     struct s2n_ecc_params server_ecc_params;
+    struct s2n_kem_keypair s2n_kem_keys;
     s2n_hash_algorithm conn_hash_alg;
     s2n_signature_algorithm conn_sig_alg;
     struct s2n_blob client_cert_chain;
