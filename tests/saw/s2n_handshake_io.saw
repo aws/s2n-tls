@@ -20,8 +20,8 @@ let conn_secure_cipher_suite pconn =
 //let key_exchange_algorithm csuite = crucible_elem csuite 3;
 let key_exchange_algorithm csuite = crucible_field csuite "key_exchange_alg";
 
-//let kea_flags kea = crucible_elem kea 0;
-let kea_flags kea = crucible_field kea "flags";
+let kea_is_ephemeral kea = crucible_elem kea 0;
+//let kea_is_ephemeral kea = crucible_field kea "is_ephemeral";
 
 //conn->status_type
 let conn_status_type pconn = crucible_field pconn "status_type";
@@ -32,10 +32,7 @@ let conn_config pconn = crucible_field pconn "config";
 //conn->config -> client_cert_auth_type
 let config_cca_type config = (crucible_field config "client_cert_auth_type");
 
-//let cert_key_pairs config = (crucible_elem config 1);
-let cert_key_pairs config = (crucible_field config "cert_and_key_pairs");
-
-//conn->config->cert_and_key_pairs->ocsp_status.size
+//conn->handshake_params.our_chain_and_key->ocsp_status.size
 let ocsp_status_size cert_and_key =
     crucible_field (crucible_field (cert_and_key) "ocsp_status") "size";
 
@@ -58,6 +55,10 @@ let conn_handshake_handshake_type pconn =
 //conn->handshake.message_number
 let conn_handshake_message_number pconn =
     crucible_field (crucible_field pconn "handshake") "message_number";
+
+//conn->handshake_params.our_chain_and_key
+let conn_chain_and_key pconn =
+    crucible_field (crucible_field pconn "handshake_params") "our_chain_and_key";
 
 // Ghost state that represents the number of times the connection write socket
 // has been corked/uncorked. 
@@ -95,11 +96,11 @@ let setup_connection = do {
    cipher_suite <- crucible_alloc (llvm_struct "struct.s2n_cipher_suite");
    crucible_points_to (conn_secure_cipher_suite pconn)  cipher_suite;
 
-   kea <- crucible_alloc (llvm_struct "struct.s2n_key_exchange_algorithm");
+   kea <- crucible_alloc (llvm_struct "struct.s2n_kex");
    crucible_points_to (key_exchange_algorithm cipher_suite) kea;
 
-   eph_flag <- crucible_fresh_var "eph_flag" (llvm_int 16);
-   crucible_points_to (kea_flags kea) (crucible_term eph_flag);
+   eph_flag <- crucible_fresh_var "eph_flag" (llvm_int 8);
+   crucible_points_to (kea_is_ephemeral kea) (crucible_term eph_flag);
 
    config <- crucible_alloc (llvm_struct "struct.s2n_config");
    crucible_points_to (conn_config pconn) config;
@@ -108,7 +109,7 @@ let setup_connection = do {
    crucible_points_to (config_cca_type config) (crucible_term config_cca);
 
    cak <- crucible_alloc (llvm_struct "struct.s2n_cert_chain_and_key");
-   crucible_points_to (cert_key_pairs config) cak;
+   crucible_points_to (conn_chain_and_key pconn) cak;
 
    status_size <- crucible_fresh_var "status_size" (llvm_int 32);
    crucible_points_to (ocsp_status_size cak) (crucible_term status_size);
@@ -132,7 +133,7 @@ let setup_connection = do {
 		                  ,handshake_type = handshake_type}
          	     ,corked    = cork_val
                      ,is_caching_enabled = False
-                     ,key_exchange_eph =(eph_flag && 2) != zero 
+                     ,key_exchange_eph = eph_flag != zero
                      ,server_can_send_ocsp =
                             ((ocsp_flag == 1) && (status_size > 0)) ||
                             ((mode == 1) && (ocsp_flag == 1))

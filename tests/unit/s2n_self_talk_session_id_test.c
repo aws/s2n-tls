@@ -42,7 +42,7 @@ struct session_cache_entry {
 
 struct session_cache_entry session_cache[256];
 
-int cache_store(void *ctx, uint64_t ttl, const void *key, uint64_t key_size, const void *value, uint64_t value_size)
+int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, const void *key, uint64_t key_size, const void *value, uint64_t value_size)
 {
     struct session_cache_entry *cache = ctx;
 
@@ -64,7 +64,7 @@ int cache_store(void *ctx, uint64_t ttl, const void *key, uint64_t key_size, con
     return 0;
 }
 
-int cache_retrieve(void *ctx, const void *key, uint64_t key_size, void *value, uint64_t * value_size)
+int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t * value_size)
 {
     struct session_cache_entry *cache = ctx;
 
@@ -92,7 +92,7 @@ int cache_retrieve(void *ctx, const void *key, uint64_t key_size, void *value, u
     return 0;
 }
 
-int cache_delete(void *ctx, const void *key, uint64_t key_size)
+int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size)
 {
     struct session_cache_entry *cache = ctx;
 
@@ -272,11 +272,12 @@ int main(int argc, char **argv)
     int client_to_server[2];
     char *cert_chain_pem;
     char *private_key_pem;
+    struct s2n_cert_chain_and_key *chain_and_key;
     char buffer[256];
     int bytes_read;
     int shutdown_rc = -1;
-
-
+    uint8_t session_id_from_server[MAX_KEY_LEN];
+    uint8_t session_id_from_client[MAX_KEY_LEN];
 
     BEGIN_TEST();
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -310,11 +311,13 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, cert_chain_pem, private_key_pem));
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
-        EXPECT_SUCCESS(s2n_config_set_cache_store_callback(config, cache_store, session_cache));
-        EXPECT_SUCCESS(s2n_config_set_cache_retrieve_callback(config, cache_retrieve, session_cache));
-        EXPECT_SUCCESS(s2n_config_set_cache_delete_callback(config, cache_delete, session_cache));
+        EXPECT_SUCCESS(s2n_config_set_cache_store_callback(config, cache_store_callback, session_cache));
+        EXPECT_SUCCESS(s2n_config_set_cache_retrieve_callback(config, cache_retrieve_callback, session_cache));
+        EXPECT_SUCCESS(s2n_config_set_cache_delete_callback(config, cache_delete_callback, session_cache));
 
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -324,6 +327,11 @@ int main(int argc, char **argv)
 
         /* Negotiate the handshake. */
         EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
+
+        /* Make sure the get_session_id and get_session_id_length APIs are
+         * working as expected */
+        EXPECT_EQUAL(s2n_connection_get_session_id_length(conn), MAX_KEY_LEN);
+        EXPECT_EQUAL(s2n_connection_get_session_id(conn, session_id_from_server, MAX_KEY_LEN), s2n_connection_get_session_id_length(conn));
 
         /* Make sure we did a full handshake */
         EXPECT_TRUE(IS_FULL_HANDSHAKE(conn->handshake.handshake_type));
@@ -354,6 +362,12 @@ int main(int argc, char **argv)
 
         /* Negotiate the handshake. */
         EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
+
+        /* Make sure the get_session_id and get_session_id_length APIs are
+         * working as expected */
+        EXPECT_EQUAL(s2n_connection_get_session_id_length(conn), MAX_KEY_LEN);
+        EXPECT_EQUAL(s2n_connection_get_session_id(conn, session_id_from_client, MAX_KEY_LEN), s2n_connection_get_session_id_length(conn));
+        EXPECT_EQUAL(0, memcmp(session_id_from_client, session_id_from_server, MAX_KEY_LEN));
 
         /* Make sure we did a abbreviated handshake */
         EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type));
@@ -400,6 +414,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
     EXPECT_EQUAL(status, 0);
 
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     free(cert_chain_pem);
     free(private_key_pem);
 

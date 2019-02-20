@@ -48,7 +48,9 @@ typedef enum {
 extern int s2n_error_get_type(int error);
 
 struct s2n_config;
+struct s2n_connection;
 
+extern unsigned long s2n_get_openssl_version(void);
 extern int s2n_init(void);
 extern int s2n_cleanup(void);
 extern struct s2n_config *s2n_config_new(void);
@@ -57,15 +59,19 @@ extern int s2n_config_free_dhparams(struct s2n_config *config);
 extern int s2n_config_free_cert_chain_and_key(struct s2n_config *config);
 
 typedef int (*s2n_clock_time_nanoseconds) (void *, uint64_t *);
+typedef int (*s2n_cache_retrieve_callback) (struct s2n_connection *conn, void *, const void *key, uint64_t key_size, void *value, uint64_t *value_size);
+typedef int (*s2n_cache_store_callback) (struct s2n_connection *conn, void *, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size);
+typedef int (*s2n_cache_delete_callback) (struct s2n_connection *conn,  void *, const void *key, uint64_t key_size);
+
 extern int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx);
 extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx);
 
 extern const char *s2n_strerror(int error, const char *lang);
 extern const char *s2n_strerror_debug(int error, const char *lang);
 
-extern int s2n_config_set_cache_store_callback(struct s2n_config *config, int (*cache_store)(void *, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data);
-extern int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, int (*cache_retrieve)(void *, const void *key, uint64_t key_size, void *value, uint64_t *value_size), void *data);
-extern int s2n_config_set_cache_delete_callback(struct s2n_config *config, int (*cache_delete)(void *, const void *key, uint64_t key_size), void *data);
+extern int s2n_config_set_cache_store_callback(struct s2n_config *config, s2n_cache_store_callback cache_store_callback, void *data);
+extern int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, s2n_cache_retrieve_callback cache_retrieve_callback, void *data);
+extern int s2n_config_set_cache_delete_callback(struct s2n_config *config, s2n_cache_delete_callback cache_delete_callback, void *data);
 
 typedef enum {
     S2N_EXTENSION_SERVER_NAME = 0,
@@ -86,7 +92,13 @@ typedef enum {
     S2N_TLS_MAX_FRAG_LEN_4096 = 4,
 } s2n_max_frag_len;
 
+struct s2n_cert_chain_and_key;
+extern struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void);
+extern int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem, const char *private_key_pem);
+extern int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key);
 extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem);
+extern int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair);
+
 extern int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_pem_filename, const char *ca_dir);
 extern int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem);
 
@@ -121,7 +133,6 @@ extern int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
                                             uint8_t *key, uint32_t key_len,
                                             uint64_t intro_time_in_seconds_from_epoch);
 
-struct s2n_connection;
 typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
 extern struct s2n_connection *s2n_connection_new(s2n_mode mode);
 extern int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *config);
@@ -195,8 +206,9 @@ extern int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uin
 extern int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *session, size_t length);
 extern int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, size_t max_length);
 extern int s2n_connection_get_session_ticket_lifetime_hint(struct s2n_connection *conn);
-extern ssize_t s2n_connection_get_session_length(struct s2n_connection *conn);
-extern ssize_t s2n_connection_get_session_id_length(struct s2n_connection *conn);
+extern int s2n_connection_get_session_length(struct s2n_connection *conn);
+extern int s2n_connection_get_session_id_length(struct s2n_connection *conn);
+extern int s2n_connection_get_session_id(struct s2n_connection *conn, uint8_t *session_id, size_t max_length);
 extern int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 extern int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);
 

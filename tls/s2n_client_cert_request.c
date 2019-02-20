@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -26,6 +26,14 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
+static int s2n_set_cert_chain_as_client(struct s2n_connection *conn)
+{
+    if (conn->config->num_certificates > 0) {
+        conn->handshake_params.our_chain_and_key = conn->config->cert_and_key_pairs[0];
+    }
+
+    return 0;
+}
 
 int s2n_client_cert_req_recv(struct s2n_connection *conn)
 {
@@ -49,6 +57,12 @@ int s2n_client_cert_req_recv(struct s2n_connection *conn)
      * Don't fail just yet as we still may succeed if we provide
      * right certificate or if ClientAuth is optional. */
     GUARD(s2n_stuffer_skip_read(in, cert_authorities_len));
+
+    /* In the future we may have more advanced logic to match a set of configured certificates against
+     * The cert authorities extension and the signature algorithms advertised.
+     * For now, this will just set the only certificate configured.
+     */
+    GUARD(s2n_set_cert_chain_as_client(conn));
 
     return 0;
 }

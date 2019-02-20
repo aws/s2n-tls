@@ -38,6 +38,7 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_prf.h"
 #include "tls/s2n_resume.h"
+#include "tls/s2n_kem.h"
 
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_cipher.h"
@@ -269,6 +270,8 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->current_user_data_consumed = 0;
     conn->initial.cipher_suite = &s2n_null_cipher_suite;
     conn->secure.cipher_suite = &s2n_null_cipher_suite;
+    conn->initial.s2n_kem_keys.negotiated_kem = NULL;
+    conn->secure.s2n_kem_keys.negotiated_kem = NULL;
     conn->server = &conn->initial;
     conn->client = &conn->initial;
     conn->max_outgoing_fragment_length = S2N_DEFAULT_FRAGMENT_LENGTH;
@@ -304,6 +307,7 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     s2n_x509_validator_wipe(&conn->x509_validator);
     GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
     GUARD(s2n_ecc_params_free(&conn->secure.server_ecc_params));
+    GUARD(s2n_kem_free(&conn->secure.s2n_kem_keys));
     GUARD(s2n_free(&conn->secure.client_cert_chain));
     GUARD(s2n_free(&conn->ct_response));
 
@@ -498,9 +502,13 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
     if (conn->config == config) {
         return 0;
     }
-    else {
-        s2n_x509_validator_wipe(&conn->x509_validator);
+
+    /* We only support one client certificate */
+    if (config->num_certificates > 1 && conn->mode == S2N_CLIENT) {
+        S2N_ERROR(S2N_ERR_TOO_MANY_CERTIFICATES);
     }
+
+    s2n_x509_validator_wipe(&conn->x509_validator);
 
     s2n_cert_auth_type auth_type = config->client_cert_auth_type;
 
@@ -969,10 +977,24 @@ const char *s2n_get_application_protocol(struct s2n_connection *conn)
     return conn->application_protocol;
 }
 
-ssize_t s2n_connection_get_session_id_length(struct s2n_connection *conn)
+int s2n_connection_get_session_id_length(struct s2n_connection *conn)
 {
     notnull_check(conn);
     return conn->session_id_len;
+}
+
+int s2n_connection_get_session_id(struct s2n_connection *conn, uint8_t *session_id, size_t max_length)
+{
+    notnull_check(conn);
+    notnull_check(session_id);
+
+    int session_id_len = s2n_connection_get_session_id_length(conn);
+
+    S2N_ERROR_IF(session_id_len > max_length, S2N_ERR_SESSION_ID_TOO_LONG);
+
+    memcpy_check(session_id, conn->session_id, session_id_len);
+
+    return session_id_len;
 }
 
 int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blinding)

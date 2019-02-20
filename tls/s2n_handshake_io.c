@@ -28,6 +28,7 @@
 #include "tls/s2n_resume.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_kex.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -355,7 +356,7 @@ skip_cache_lookup:
         conn->handshake.handshake_type |= CLIENT_AUTH;
     }
 
-    if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_EPH) {
+    if (s2n_kex_is_ephemeral(conn->secure.cipher_suite->key_exchange_alg)) {
         conn->handshake.handshake_type |= PERFECT_FORWARD_SECRECY;
     }
 
@@ -711,7 +712,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
             *blocked = S2N_BLOCKED_ON_READ;
             if (handshake_read_io(conn) < 0) {
                 if (s2n_errno != S2N_ERR_BLOCKED && s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
-                    conn->config->cache_delete(conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
+                    conn->config->cache_delete(conn, conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
                 }
 
                 return -1;

@@ -82,10 +82,11 @@ matrix:
   fast_finish: true
 
 before_install:
+  - apt-key list
   - source .travis/s2n_setup_env.sh
 
 install:
-  - .travis/s2n_install_test_dependencies.sh
+  - travis_retry .travis/s2n_install_test_dependencies.sh
   
 script:
   - .travis/s2n_travis_build.sh

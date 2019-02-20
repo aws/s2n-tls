@@ -27,8 +27,8 @@
 int s2n_server_status_send(struct s2n_connection *conn)
 {
     GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, (uint8_t) S2N_STATUS_REQUEST_OCSP));
-    GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, conn->config->cert_and_key_pairs->ocsp_status.size));
-    GUARD(s2n_stuffer_write(&conn->handshake.io, &conn->config->cert_and_key_pairs->ocsp_status));
+    GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, conn->handshake_params.our_chain_and_key->ocsp_status.size));
+    GUARD(s2n_stuffer_write(&conn->handshake.io, &conn->handshake_params.our_chain_and_key->ocsp_status));
 
     return 0;
 }

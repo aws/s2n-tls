@@ -30,7 +30,6 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
-#include "utils/s2n_map.h"
 
 static int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension);

@@ -139,6 +139,7 @@ int main(int argc, char **argv)
     int client_to_server[2];
     char *cert_chain_pem;
     char *private_key_pem;
+    struct s2n_cert_chain_and_key *chain_and_key;
     BEGIN_TEST();
 
     /* Ignore SIGPIPE */
@@ -150,11 +151,13 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
 
     /* Test that we ignore Warning Alerts in S2N_ALERT_IGNORE_WARNINGS mode */
     {
         EXPECT_NOT_NULL(config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, cert_chain_pem, private_key_pem));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
         /* Create a pipe */
         EXPECT_SUCCESS(pipe(server_to_client));
@@ -222,7 +225,7 @@ int main(int argc, char **argv)
     /* Test that we don't ignore Fatal Alerts in S2N_ALERT_IGNORE_WARNINGS mode */
     {
         EXPECT_NOT_NULL(config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, cert_chain_pem, private_key_pem));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
         /* Create a pipe */
         EXPECT_SUCCESS(pipe(server_to_client));
@@ -272,7 +275,7 @@ int main(int argc, char **argv)
     /* Test that we don't ignore Warning Alerts in S2N_ALERT_FAIL_ON_WARNINGS mode */
     {
         EXPECT_NOT_NULL(config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, cert_chain_pem, private_key_pem));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
         /* Create a pipe */
         EXPECT_SUCCESS(pipe(server_to_client));
@@ -320,6 +323,7 @@ int main(int argc, char **argv)
     }
 
     /* Shutdown */
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     free(cert_chain_pem);
     free(private_key_pem);
 

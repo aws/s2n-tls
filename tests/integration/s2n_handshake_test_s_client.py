@@ -1,5 +1,5 @@
 #
-# Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -52,8 +52,9 @@ def cleanup_processes(*processes):
         p.kill()
         p.wait()
 
-def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, ocsp=None, sig_algs=None, curves=None, resume=False, no_ticket=False,
-        prefer_low_latency=False, enter_fips_mode=False, client_auth=None, client_cert=DEFAULT_CLIENT_CERT_PATH, client_key=DEFAULT_CLIENT_KEY_PATH):
+def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, server_cert_key_list=None, server_cipher_pref=None,
+        ocsp=None, sig_algs=None, curves=None, resume=False, no_ticket=False, prefer_low_latency=False, enter_fips_mode=False,
+        client_auth=None, client_cert=DEFAULT_CLIENT_CERT_PATH, client_key=DEFAULT_CLIENT_KEY_PATH):
     """
     Attempt to handshake against s2nd listening on `endpoint` and `port` using Openssl s_client
 
@@ -63,6 +64,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     :param int ssl_version: SSL version for s_client to use
     :param str server_cert: path to certificate for s2nd to use
     :param str server_key: path to private key for s2nd to use
+    :param list server_cert_key_list: a list of (cert_path, key_path) tuples for multicert tests.
     :param str ocsp: path to OCSP response file for stapling
     :param str sig_algs: Signature algorithms for s_client to offer
     :param str curves: Elliptic curves for s_client to offer
@@ -78,10 +80,10 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
 
     # Override certificate for ECDSA if unspecified. We can remove this when we
     # support multiple certificates
-    if server_cert is None and "ECDSA" in cipher:
+    if server_cert is None and server_cert_key_list is None and "ECDSA" in cipher:
         server_cert = TEST_ECDSA_CERT
         server_key = TEST_ECDSA_KEY
-   
+
     # Fire up s2nd
     s2nd_cmd = ["../../bin/s2nd"]
 
@@ -89,6 +91,12 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
         s2nd_cmd.extend(["--cert", server_cert])
     if server_key is not None:
         s2nd_cmd.extend(["--key", server_key])
+    if server_cert_key_list is not None:
+        for cert_key_path in server_cert_key_list:
+            cert_path = cert_key_path[0]
+            key_path = cert_key_path[1]
+            s2nd_cmd.extend(["--cert", cert_path])
+            s2nd_cmd.extend(["--key", key_path])
     if ocsp is not None:
         s2nd_cmd.extend(["--ocsp", ocsp])
     if prefer_low_latency == True:
@@ -100,11 +108,11 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     s2nd_cmd.extend([str(endpoint), str(port)])
     
     s2nd_ciphers = "test_all"
+    if server_cipher_pref is not None:
+        s2nd_ciphers = server_cipher_pref
     if enter_fips_mode == True:
         s2nd_ciphers = "test_all_fips"
         s2nd_cmd.append("--enter-fips-mode")
-    if "ECDSA" in cipher:
-        s2nd_ciphers = "test_all_ecdsa"
     s2nd_cmd.append("-c")
     s2nd_cmd.append(s2nd_ciphers)
     if no_ticket:
@@ -475,6 +483,93 @@ def ocsp_stapling_test(host, port, fips_mode):
 
     return failed
 
+def cert_type_cipher_match_test(host, port):
+    """
+    Test s2n server's ability to correctly choose ciphers. (Especially RSA vs ECDSA)
+    """
+    print("\n\tRunning cipher matching tests:")
+    failed = 0
+
+    cipher = "ALL"
+    supported_curves = "P-256:P-384"
+
+    # Handshake with RSA cert + ECDSApriority server cipher pref (must skip ecdsa ciphers)
+    rsa_ret = try_handshake(host, port, cipher, S2N_TLS12, curves=supported_curves,
+            server_cipher_pref="test_ecdsa_priority")
+    result_prefix = "Cert Type: rsa    Server Pref: ecdsa priority.  Vers: TLSv1.2 ... "
+    print_result(result_prefix, rsa_ret)
+    if rsa_ret != 0:
+        failed = 1
+
+    # Handshake with ECDSA cert + RSA priority server cipher prefs (must skip rsa ciphers)
+    ecdsa_ret = try_handshake(host, port, cipher, S2N_TLS12, curves=supported_curves,
+            server_cert=TEST_ECDSA_CERT, server_key=TEST_ECDSA_KEY, server_cipher_pref="test_all")
+    result_prefix = "Cert Type: ecdsa  Server Pref: rsa priority.  Vers: TLSv1.2 ... "
+    print_result(result_prefix, ecdsa_ret)
+    if ecdsa_ret != 0:
+        failed = 1
+
+    return failed
+
+def multiple_cert_test(host, port):
+    """
+    Test s2n server's ability to correctly choose ciphers and serve the correct cert depending on the auth type for a
+    given cipher.
+    """
+    print("\n\tRunning multicert test:")
+
+    # Basic handshake with ECDSA cert + RSA cert
+    for cipher in ["ECDHE-ECDSA-AES128-SHA", "ECDHE-RSA-AES128-GCM-SHA256"]:
+        supported_curves = "P-256:P-384"
+        server_prefs = "test_all"
+        ret = try_handshake(host, port, cipher, S2N_TLS12, curves=supported_curves,
+                server_cert_key_list=[(TEST_RSA_CERT, TEST_RSA_KEY),(TEST_ECDSA_CERT, TEST_ECDSA_KEY)],
+                server_cipher_pref=server_prefs)
+        result_prefix = "Certs: [RSA, ECDSA]  Client Prefs " + cipher + " Server Pref: " + server_prefs + " Vers: TLSv1.2 ... "
+        print_result(result_prefix, ret)
+        if ret != 0:
+            return ret
+
+    # Handshake with ECDSA + RSA cert but no ecdsa ciphers configured on the server
+    for cipher in ["ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-GCM-SHA256", "AES128-SHA"]:
+        supported_curves = "P-256:P-384"
+        server_prefs = "20170210"
+        ret = try_handshake(host, port, cipher, S2N_TLS12, curves=supported_curves,
+                server_cert_key_list=[(TEST_RSA_CERT, TEST_RSA_KEY),(TEST_ECDSA_CERT, TEST_ECDSA_KEY)],
+                server_cipher_pref=server_prefs)
+        result_prefix = "Certs: [RSA, ECDSA]  Client Prefs " + cipher + " Server Pref: " + server_prefs + " Vers: TLSv1.2 ... "
+        print_result(result_prefix, ret)
+        if ret != 0:
+            return ret
+
+    # Handshake with ECDSA + RSA cert but no rsa ciphers configured on the server
+    for cipher in ["ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-GCM-SHA256", "ECDHE-ECDSA-AES256-SHA"]:
+        supported_curves = "P-256:P-384"
+        server_prefs = "test_all_ecdsa"
+        ret = try_handshake(host, port, cipher, S2N_TLS12, curves=supported_curves,
+                server_cert_key_list=[(TEST_RSA_CERT, TEST_RSA_KEY),(TEST_ECDSA_CERT, TEST_ECDSA_KEY)],
+                server_cipher_pref=server_prefs)
+        result_prefix = "Certs: [RSA, ECDSA]  Client Prefs " + cipher + " Server Pref: " + server_prefs + " Vers: TLSv1.2 ... "
+        print_result(result_prefix, ret)
+        if ret != 0:
+            return ret
+
+    # Handshake with ECDSA + RSA cert but no overlapping ecc curves for ECDHE kx.
+    # s2n should fallback to a cipher with RSA kx.
+    for cipher in ["ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-GCM-SHA256:AES128-SHA", "ECDHE-ECDSA-AES256-SHA:AES128-SHA"]:
+        # Assume this is a curve s2n does not support
+        supported_curves = "P-521"
+        server_prefs = "test_all"
+        ret = try_handshake(host, port, cipher, S2N_TLS12, curves=supported_curves,
+                server_cert_key_list=[(TEST_RSA_CERT, TEST_RSA_KEY),(TEST_ECDSA_CERT, TEST_ECDSA_KEY)],
+                server_cipher_pref=server_prefs)
+        result_prefix = "Certs: [RSA, ECDSA]  Client Prefs " + cipher + " Server Pref: " + server_prefs + " Vers: TLSv1.2 ... "
+        print_result(result_prefix, ret)
+        if ret != 0:
+            return ret
+
+    return 0
+
 def main():
     parser = argparse.ArgumentParser(description='Runs TLS server integration tests against s2nd using Openssl s_client')
     parser.add_argument('host', help='The host for s2nd to bind to')
@@ -507,6 +602,8 @@ def main():
     failed += elliptic_curve_fallback_test(host, port, fips_mode)
     failed += handshake_fragmentation_test(host, port, fips_mode)
     failed += ocsp_stapling_test(host, port, fips_mode)
+    failed += cert_type_cipher_match_test(host, port)
+    failed += multiple_cert_test(host, port)
     return failed
 
 if __name__ == "__main__":

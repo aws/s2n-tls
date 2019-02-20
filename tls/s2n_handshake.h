@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -52,6 +52,9 @@ struct s2n_handshake_parameters {
 
     /* Signature/hash algorithm pairs offered by the server in the certificate request */
     struct s2n_sig_hash_alg_pairs server_sig_hash_algs;
+
+    /* The cert chain we will send the peer. */
+    struct s2n_cert_chain_and_key *our_chain_and_key;
 };
 
 struct s2n_handshake {

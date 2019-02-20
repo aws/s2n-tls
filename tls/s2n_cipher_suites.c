@@ -21,22 +21,10 @@
 #include "crypto/s2n_openssl.h"
 
 #include "tls/s2n_cipher_preferences.h"
-#include "tls/s2n_cipher_suites.h"
-#include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_kex.h"
 #include "utils/s2n_safety.h"
 
-const struct s2n_key_exchange_algorithm s2n_rsa = {
-    .flags = 0,
-};
-
-const struct s2n_key_exchange_algorithm s2n_dhe = {
-    .flags = S2N_KEY_EXCHANGE_DH | S2N_KEY_EXCHANGE_EPH,
-};
-
-const struct s2n_key_exchange_algorithm s2n_ecdhe = {
-    .flags = S2N_KEY_EXCHANGE_DH | S2N_KEY_EXCHANGE_EPH | S2N_KEY_EXCHANGE_ECC,
-};
 
 const struct s2n_record_algorithm s2n_record_alg_null = {
     .cipher = &s2n_null_cipher,
@@ -609,6 +597,20 @@ struct s2n_cipher_suite s2n_ecdhe_rsa_with_chacha20_poly1305_sha256 = /* 0xCC,0x
     .minimum_required_tls_version = S2N_TLS12,
 };
 
+struct s2n_cipher_suite s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256 = /* 0xCC,0xA9 */ {
+    .available = 0,
+    .name = "ECDHE-ECDSA-CHACHA20-POLY1305",
+    .iana_value = { TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 },
+    .key_exchange_alg = &s2n_ecdhe,
+    .auth_method = S2N_AUTHENTICATION_ECDSA,
+    .record_alg = NULL,
+    .all_record_algs = { &s2n_record_alg_chacha20_poly1305 },
+    .num_record_algs = 1,
+    .sslv3_record_alg = NULL,
+    .tls12_prf_alg = S2N_HMAC_SHA256,
+    .minimum_required_tls_version = S2N_TLS12,
+};
+
 struct s2n_cipher_suite s2n_dhe_rsa_with_chacha20_poly1305_sha256 = /* 0xCC,0xAA */ {
     .available = 0,
     .name = "DHE-RSA-CHACHA20-POLY1305",
@@ -627,38 +629,39 @@ struct s2n_cipher_suite s2n_dhe_rsa_with_chacha20_poly1305_sha256 = /* 0xCC,0xAA
  * Exposed for the "test_all" cipher preference list.
  */
 static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
-    &s2n_rsa_with_rc4_128_md5,                     /* 0x00,0x04 */
-    &s2n_rsa_with_rc4_128_sha,                     /* 0x00,0x05 */
-    &s2n_rsa_with_3des_ede_cbc_sha,                /* 0x00,0x0A */
-    &s2n_dhe_rsa_with_3des_ede_cbc_sha,            /* 0x00,0x16 */
-    &s2n_rsa_with_aes_128_cbc_sha,                 /* 0x00,0x2F */
-    &s2n_dhe_rsa_with_aes_128_cbc_sha,             /* 0x00,0x33 */
-    &s2n_rsa_with_aes_256_cbc_sha,                 /* 0x00,0x35 */
-    &s2n_dhe_rsa_with_aes_256_cbc_sha,             /* 0x00,0x39 */
-    &s2n_rsa_with_aes_128_cbc_sha256,              /* 0x00,0x3C */
-    &s2n_rsa_with_aes_256_cbc_sha256,              /* 0x00,0x3D */
-    &s2n_dhe_rsa_with_aes_128_cbc_sha256,          /* 0x00,0x67 */
-    &s2n_dhe_rsa_with_aes_256_cbc_sha256,          /* 0x00,0x6B */
-    &s2n_rsa_with_aes_128_gcm_sha256,              /* 0x00,0x9C */
-    &s2n_rsa_with_aes_256_gcm_sha384,              /* 0x00,0x9D */
-    &s2n_dhe_rsa_with_aes_128_gcm_sha256,          /* 0x00,0x9E */
-    &s2n_dhe_rsa_with_aes_256_gcm_sha384,          /* 0x00,0x9F */
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,         /* 0xC0,0x09 */
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,         /* 0xC0,0x0A */
-    &s2n_ecdhe_rsa_with_rc4_128_sha,               /* 0xC0,0x11 */
-    &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,          /* 0xC0,0x12 */
-    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,           /* 0xC0,0x13 */
-    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,           /* 0xC0,0x14 */
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,      /* 0xC0,0x23 */
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,      /* 0xC0,0x24 */
-    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,        /* 0xC0,0x27 */
-    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,        /* 0xC0,0x28 */
-    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,      /* 0xC0,0x2B */
-    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,      /* 0xC0,0x2C */
-    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,        /* 0xC0,0x2F */
-    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,        /* 0xC0,0x30 */
-    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,  /* 0xCC,0xA8 */
-    &s2n_dhe_rsa_with_chacha20_poly1305_sha256,    /* 0xCC,0xAA */
+    &s2n_rsa_with_rc4_128_md5,                      /* 0x00,0x04 */
+    &s2n_rsa_with_rc4_128_sha,                      /* 0x00,0x05 */
+    &s2n_rsa_with_3des_ede_cbc_sha,                 /* 0x00,0x0A */
+    &s2n_dhe_rsa_with_3des_ede_cbc_sha,             /* 0x00,0x16 */
+    &s2n_rsa_with_aes_128_cbc_sha,                  /* 0x00,0x2F */
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,              /* 0x00,0x33 */
+    &s2n_rsa_with_aes_256_cbc_sha,                  /* 0x00,0x35 */
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,              /* 0x00,0x39 */
+    &s2n_rsa_with_aes_128_cbc_sha256,               /* 0x00,0x3C */
+    &s2n_rsa_with_aes_256_cbc_sha256,               /* 0x00,0x3D */
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,           /* 0x00,0x67 */
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,           /* 0x00,0x6B */
+    &s2n_rsa_with_aes_128_gcm_sha256,               /* 0x00,0x9C */
+    &s2n_rsa_with_aes_256_gcm_sha384,               /* 0x00,0x9D */
+    &s2n_dhe_rsa_with_aes_128_gcm_sha256,           /* 0x00,0x9E */
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384,           /* 0x00,0x9F */
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,          /* 0xC0,0x09 */
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,          /* 0xC0,0x0A */
+    &s2n_ecdhe_rsa_with_rc4_128_sha,                /* 0xC0,0x11 */
+    &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,           /* 0xC0,0x12 */
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,            /* 0xC0,0x13 */
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,            /* 0xC0,0x14 */
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,       /* 0xC0,0x23 */
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,       /* 0xC0,0x24 */
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,         /* 0xC0,0x27 */
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,         /* 0xC0,0x28 */
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,       /* 0xC0,0x2B */
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,       /* 0xC0,0x2C */
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,         /* 0xC0,0x2F */
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,         /* 0xC0,0x30 */
+    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,   /* 0xCC,0xA8 */
+    &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256, /* 0xCC,0xA9 */
+    &s2n_dhe_rsa_with_chacha20_poly1305_sha256,     /* 0xCC,0xAA */
 };
 
 /* All supported ciphers. Exposed for integration testing. */
@@ -704,19 +707,66 @@ const struct s2n_cipher_preferences cipher_preferences_test_all_fips = {
  * value. Exposed for the "test_all_ecdsa" cipher preference list.
  */
 static struct s2n_cipher_suite *s2n_all_ecdsa_cipher_suites[] = {
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,         /* 0xC0,0x09 */
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,         /* 0xC0,0x0A */
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,      /* 0xC0,0x23 */
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,      /* 0xC0,0x24 */
-    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,      /* 0xC0,0x2B */
-    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,      /* 0xC0,0x2C */
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,          /* 0xC0,0x09 */
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,          /* 0xC0,0x0A */
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,       /* 0xC0,0x23 */
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,       /* 0xC0,0x24 */
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,       /* 0xC0,0x2B */
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,       /* 0xC0,0x2C */
+    &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256, /* 0xCC,0xA9 */
 };
 
 /* All supported ECDSA cipher suites. Exposed for integration testing. */
 const struct s2n_cipher_preferences cipher_preferences_test_all_ecdsa = {
-    .count = sizeof(s2n_all_ecdsa_cipher_suites) / sizeof(s2n_all_fips_cipher_suites[0]),
+    .count = sizeof(s2n_all_ecdsa_cipher_suites) / sizeof(s2n_all_ecdsa_cipher_suites[0]),
     .suites = s2n_all_ecdsa_cipher_suites,
     .minimum_protocol_version = S2N_TLS10
+};
+
+/* All ECDSA cipher suites first, then the rest of the supported ciphers that s2n can negotiate.
+ * Exposed for the "test_ecdsa_priority" cipher preference list.
+ */
+static struct s2n_cipher_suite *s2n_ecdsa_priority_cipher_suites[] = {
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,          /* 0xC0,0x09 */
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,          /* 0xC0,0x0A */
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,       /* 0xC0,0x23 */
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,       /* 0xC0,0x24 */
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,       /* 0xC0,0x2B */
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,       /* 0xC0,0x2C */
+    &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256, /* 0xCC,0xA9 */
+    &s2n_rsa_with_rc4_128_md5,                      /* 0x00,0x04 */
+    &s2n_rsa_with_rc4_128_sha,                      /* 0x00,0x05 */
+    &s2n_rsa_with_3des_ede_cbc_sha,                 /* 0x00,0x0A */
+    &s2n_dhe_rsa_with_3des_ede_cbc_sha,             /* 0x00,0x16 */
+    &s2n_rsa_with_aes_128_cbc_sha,                  /* 0x00,0x2F */
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,              /* 0x00,0x33 */
+    &s2n_rsa_with_aes_256_cbc_sha,                  /* 0x00,0x35 */
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,              /* 0x00,0x39 */
+    &s2n_rsa_with_aes_128_cbc_sha256,               /* 0x00,0x3C */
+    &s2n_rsa_with_aes_256_cbc_sha256,               /* 0x00,0x3D */
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,           /* 0x00,0x67 */
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,           /* 0x00,0x6B */
+    &s2n_rsa_with_aes_128_gcm_sha256,               /* 0x00,0x9C */
+    &s2n_rsa_with_aes_256_gcm_sha384,               /* 0x00,0x9D */
+    &s2n_dhe_rsa_with_aes_128_gcm_sha256,           /* 0x00,0x9E */
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384,           /* 0x00,0x9F */
+    &s2n_ecdhe_rsa_with_rc4_128_sha,                /* 0xC0,0x11 */
+    &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,           /* 0xC0,0x12 */
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,            /* 0xC0,0x13 */
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,            /* 0xC0,0x14 */
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,         /* 0xC0,0x27 */
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,         /* 0xC0,0x28 */
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,         /* 0xC0,0x2F */
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,         /* 0xC0,0x30 */
+    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,   /* 0xCC,0xA8 */
+    &s2n_dhe_rsa_with_chacha20_poly1305_sha256,     /* 0xCC,0xAA */
+};
+
+/* All cipher suites, but with ECDSA priority. Exposed for integration testing. */
+const struct s2n_cipher_preferences cipher_preferences_test_ecdsa_priority = {
+    .count = sizeof(s2n_ecdsa_priority_cipher_suites) / sizeof(s2n_ecdsa_priority_cipher_suites[0]),
+    .suites = s2n_ecdsa_priority_cipher_suites,
+    .minimum_protocol_version = S2N_SSLv3
 };
 
 /* Determines cipher suite availability and selects record algorithms */
@@ -846,10 +896,51 @@ static int s2n_wire_ciphers_contain(const uint8_t * match, const uint8_t * wire,
     return 0;
 }
 
-static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire, uint32_t count, uint32_t cipher_suite_len)
+static int s2n_cipher_is_compatible_with_cert(struct s2n_cipher_suite *cipher, struct s2n_cert *cert, uint8_t *compatibility_out)
+{
+    *compatibility_out = 0;
+
+    /* Verify cert type with cipher authentication method */
+    switch (cert->cert_type) {
+        case S2N_CERT_TYPE_RSA_SIGN:
+            if (cipher->auth_method == S2N_AUTHENTICATION_RSA) {
+                *compatibility_out = 1;
+            }
+            break;
+        case S2N_CERT_TYPE_ECDSA_SIGN:
+            if (cipher->auth_method == S2N_AUTHENTICATION_ECDSA) {
+                *compatibility_out = 1;
+            }
+            break;
+        default:
+            /* Match error from s2n_pkey_setup_for_type ? */
+            S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
+            break;
+    }
+
+    return 0;
+}
+
+static struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(struct s2n_connection *conn, struct s2n_cipher_suite *cipher_suite)
+{
+    for (int i = 0; i < conn->config->num_certificates; i++) {
+        struct s2n_cert_chain_and_key *cert_chain_and_key = conn->config->cert_and_key_pairs[i];
+        struct s2n_cert *leaf_cert = cert_chain_and_key->cert_chain->head;
+        uint8_t cert_compatibility = 0;
+        GUARD_PTR(s2n_cipher_is_compatible_with_cert(cipher_suite, leaf_cert, &cert_compatibility));
+        if (cert_compatibility) {
+            return cert_chain_and_key;
+        }
+    }
+
+    return NULL;
+}
+
+static int s2n_set_cipher_and_cert_as_server(struct s2n_connection *conn, uint8_t * wire, uint32_t count, uint32_t cipher_suite_len)
 {
     uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
     struct s2n_cipher_suite *higher_vers_match = NULL;
+    struct s2n_cert_chain_and_key *higher_vers_cert = NULL;
 
     /* RFC 7507 - If client is attempting to negotiate a TLS Version that is lower than the highest supported server
      * version, and the client cipher list contains TLS_FALLBACK_SCSV, then the server must abort the connection since
@@ -873,6 +964,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
 
     /* s2n supports only server order */
     for (int i = 0; i < cipher_preferences->count; i++) {
+        conn->handshake_params.our_chain_and_key = NULL;
         const uint8_t *ours = cipher_preferences->suites[i]->iana_value;
 
         if (s2n_wire_ciphers_contain(ours, wire, count, cipher_suite_len)) {
@@ -884,18 +976,18 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
                 match = match->sslv3_cipher_suite;
             }
 
+            /* Skip the suite if it is not compatible with any certificates */
+            conn->handshake_params.our_chain_and_key = s2n_get_compatible_cert_chain_and_key(conn, match);
+            if (!conn->handshake_params.our_chain_and_key) {
+                continue;
+            }
+
             /* Skip the suite if we don't have an available implementation */
             if (!match->available) {
                 continue;
             }
 
-            /* Don't choose DHE key exchange if it's not configured. */
-            if (conn->config->dhparams == NULL && match->key_exchange_alg == &s2n_dhe) {
-                continue;
-            }
-
-            /* Don't choose EC ciphers if the curve was not agreed upon. */
-            if (conn->secure.server_ecc_params.negotiated_curve == NULL && (match->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC)) {
+            if (!s2n_kex_supported(match->key_exchange_alg, conn)) {
                 continue;
             }
 
@@ -903,6 +995,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
             if (conn->client_protocol_version < match->minimum_required_tls_version) {
                 if (!higher_vers_match) {
                     higher_vers_match = match;
+                    higher_vers_cert = conn->handshake_params.our_chain_and_key;
                 }
                 continue;
             }
@@ -915,18 +1008,19 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
     /* Settle for a cipher with a higher required proto version, if it was set */
     if (higher_vers_match) {
         conn->secure.cipher_suite = higher_vers_match;
+        conn->handshake_params.our_chain_and_key = higher_vers_cert;
         return 0;
     }
 
     S2N_ERROR(S2N_ERR_CIPHER_NOT_SUPPORTED);
 }
 
-int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count)
+int s2n_set_cipher_and_cert_as_sslv2_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count)
 {
-    return s2n_set_cipher_as_server(conn, wire, count, S2N_SSLv2_CIPHER_SUITE_LEN);
+    return s2n_set_cipher_and_cert_as_server(conn, wire, count, S2N_SSLv2_CIPHER_SUITE_LEN);
 }
 
-int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count)
+int s2n_set_cipher_and_cert_as_tls_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count)
 {
-    return s2n_set_cipher_as_server(conn, wire, count, S2N_TLS_CIPHER_SUITE_LEN);
+    return s2n_set_cipher_and_cert_as_server(conn, wire, count, S2N_TLS_CIPHER_SUITE_LEN);
 }
