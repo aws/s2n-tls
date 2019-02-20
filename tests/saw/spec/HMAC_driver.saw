@@ -123,11 +123,41 @@ let verify_s2n_hmac
   print_json "hash_get_currently_in_hash_total" cfg t key_size msg_size hash_get_currently_in_hash_total_ov;
 
 
-  let hash_ovs =
+  // Use different overrides for hmac_init, hmac_update, and hmac_digest
+  // to avoid the case where saw chooses the wrong one.
+  //let hash_ovs =
+  //  [ hash_init_ov
+  //  , hash_update_key_size_ov
+  //  , hash_update_block_size_ov
+  //  , hash_update_msg_size_ov
+  //  , hash_update_digest_size_ov
+  //  , hash_digest_ov
+  //  , hash_copy_ov
+  //  , hash_reset_ov
+  //  , hmac_digest_size_ov
+  //  , hash_get_currently_in_hash_total_ov
+  //  ];
+  let hash_ovs0 =
     [ hash_init_ov
     , hash_update_key_size_ov
     , hash_update_block_size_ov
+    , hash_digest_ov
+    , hash_copy_ov
+    , hash_reset_ov
+    , hmac_digest_size_ov
+    , hash_get_currently_in_hash_total_ov
+    ];
+  let hash_ovs1 =
+    [ hash_init_ov
     , hash_update_msg_size_ov
+    , hash_digest_ov
+    , hash_copy_ov
+    , hash_reset_ov
+    , hmac_digest_size_ov
+    , hash_get_currently_in_hash_total_ov
+    ];
+  let hash_ovs2 =
+    [ hash_init_ov
     , hash_update_digest_size_ov
     , hash_digest_ov
     , hash_copy_ov
@@ -137,17 +167,17 @@ let verify_s2n_hmac
     ];
 
   (t, hmac_init_ov) <-
-    with_time (crucible_llvm_verify m "s2n_hmac_init"   hash_ovs true (hmac_init_spec key_size cfg) yices_hash_unint);
+    with_time (crucible_llvm_verify m "s2n_hmac_init"   hash_ovs0 true (hmac_init_spec key_size cfg) yices_hash_unint);
 
   print_json "s2n_hmac_init" cfg t key_size msg_size hmac_init_ov;
 
   (t, hmac_update_ov) <-
-    with_time (crucible_llvm_verify m "s2n_hmac_update" hash_ovs true (hmac_update_spec msg_size cfg) yices_hash_unint);
+    with_time (crucible_llvm_verify m "s2n_hmac_update" hash_ovs1 true (hmac_update_spec msg_size cfg) yices_hash_unint);
 
   print_json "s2n_hmac_update" cfg t key_size msg_size hmac_update_ov;
 
   (t, hmac_digest_ov) <-
-    with_time (crucible_llvm_verify m "s2n_hmac_digest" hash_ovs true (hmac_digest_spec cfg) yices_hash_unint);
+    with_time (crucible_llvm_verify m "s2n_hmac_digest" hash_ovs2 true (hmac_digest_spec cfg) yices_hash_unint);
 
   print_json "s2n_hmac_digest" cfg t key_size msg_size hmac_digest_ov;
 
