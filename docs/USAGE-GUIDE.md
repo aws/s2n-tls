@@ -500,21 +500,22 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config,
 
 **s2n_config_set_cipher_preferences** sets the ciphersuite and protocol versions. The currently supported versions are;
 
-|    version | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | AES-CBC | ChaCha20-Poly1305 | AES-GCM | 3DES | RC4 | DHE | ECDHE |
-|------------|-------|--------|--------|--------|---------|-------------------|---------|------|-----|-----|-------|
-| "default"  |       |   X    |    X   |    X   |    X    |         X         |    X    |      |     |     |   X   |
-| "20170718" |       |   X    |    X   |    X   |    X    |                   |    X    |      |     |     |   X   |
-| "20170405" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |     |   X   |
-| "20170328" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |  X  |   X   |
-| "20170210" |       |   X    |    X   |    X   |    X    |         X         |    X    |      |     |     |   X   |
-| "20160824" |       |   X    |    X   |    X   |    X    |                   |    X    |      |     |     |   X   |
-| "20160804" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |     |   X   |
-| "20160411" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |     |   X   |
-| "20150306" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |     |   X   |
-| "20150214" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |  X  |       |
-| "20150202" |       |   X    |    X   |    X   |    X    |                   |         |  X   |     |  X  |       |
-| "20141001" |       |   X    |    X   |    X   |    X    |                   |         |  X   |  X  |  X  |       |
-| "20140601" |   X   |   X    |    X   |    X   |    X    |                   |         |  X   |  X  |  X  |       |
+|    version | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | AES-CBC | ChaCha20-Poly1305 | ECDSA | AES-GCM | 3DES | RC4 | DHE | ECDHE |
+|------------|-------|--------|--------|--------|---------|-------------------|-------|---------|------|-----|-----|-------|
+| "default"  |       |   X    |    X   |    X   |    X    |         X         |       |    X    |      |     |     |   X   |
+| "20190214" |       |   X    |    X   |    X   |    X    |                   |   X   |    X    |  X   |     |  X  |   X   |
+| "20170718" |       |   X    |    X   |    X   |    X    |                   |       |    X    |      |     |     |   X   |
+| "20170405" |       |   X    |    X   |    X   |    X    |                   |       |    X    |  X   |     |     |   X   |
+| "20170328" |       |   X    |    X   |    X   |    X    |                   |       |    X    |  X   |     |  X  |   X   |
+| "20170210" |       |   X    |    X   |    X   |    X    |         X         |       |    X    |      |     |     |   X   |
+| "20160824" |       |   X    |    X   |    X   |    X    |                   |       |    X    |      |     |     |   X   |
+| "20160804" |       |   X    |    X   |    X   |    X    |                   |       |    X    |  X   |     |     |   X   |
+| "20160411" |       |   X    |    X   |    X   |    X    |                   |       |    X    |  X   |     |     |   X   |
+| "20150306" |       |   X    |    X   |    X   |    X    |                   |       |    X    |  X   |     |     |   X   |
+| "20150214" |       |   X    |    X   |    X   |    X    |                   |       |    X    |  X   |     |  X  |       |
+| "20150202" |       |   X    |    X   |    X   |    X    |                   |       |         |  X   |     |  X  |       |
+| "20141001" |       |   X    |    X   |    X   |    X    |                   |       |         |  X   |  X  |  X  |       |
+| "20140601" |   X   |   X    |    X   |    X   |    X    |                   |       |         |  X   |  X  |  X  |       |
 
 The "default" version is special in that it will be updated with future s2n changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change. 
 
