@@ -37,6 +37,7 @@ extern const struct s2n_cipher_preferences cipher_preferences_20170210;
 extern const struct s2n_cipher_preferences cipher_preferences_20170328;
 extern const struct s2n_cipher_preferences cipher_preferences_20170405;
 extern const struct s2n_cipher_preferences cipher_preferences_20170718;
+extern const struct s2n_cipher_preferences cipher_preferences_20190214;
 extern const struct s2n_cipher_preferences cipher_preferences_test_all;
 extern const struct s2n_cipher_preferences cipher_preferences_test_all_fips;
 extern const struct s2n_cipher_preferences cipher_preferences_test_all_ecdsa;
