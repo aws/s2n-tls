@@ -168,25 +168,25 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
     return 0;
 }
 
-int get_private_key_pem(struct s2n_pkey* pkey, const char *pem_path) {
+int get_private_key(struct s2n_pkey* pkey, const char *pem_path) {
     char *private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE);
     notnull_check(private_key_pem);
     GUARD(s2n_read_test_pem(pem_path, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
 
-    /* Put the private key pem in a stuffer */
+    // Put the private key pem in a stuffer
     DEFER_CLEANUP(struct s2n_stuffer key_in_stuffer = {{0}}, s2n_stuffer_free);
     DEFER_CLEANUP(struct s2n_stuffer key_out_stuffer = {{0}}, s2n_stuffer_free);
     GUARD(s2n_stuffer_alloc_ro_from_string(&key_in_stuffer, private_key_pem));
     GUARD(s2n_stuffer_growable_alloc(&key_out_stuffer, strlen(private_key_pem)));
 
-    /* Convert pem to asn1 and asn1 to the private key. Handles both PKCS#1 and PKCS#8 formats */
+    // Convert pem to asn1 and asn1 to the private key. Handles both PKCS#1 and PKCS#8 formats
     struct s2n_blob key_blob = {0};
     GUARD(s2n_stuffer_private_key_from_pem(&key_in_stuffer, &key_out_stuffer));
     key_blob.size = s2n_stuffer_data_available(&key_out_stuffer);
     key_blob.data = s2n_stuffer_raw_read(&key_out_stuffer, key_blob.size);
     notnull_check(key_blob.data);
 
-    /* Get key type and create appropriate key context */
+    // Get key type and create appropriate key context
     GUARD(s2n_pkey_zero_init(pkey));
     GUARD(s2n_asn1der_to_private_key(pkey, &key_blob));
 
@@ -194,28 +194,37 @@ int get_private_key_pem(struct s2n_pkey* pkey, const char *pem_path) {
     return 0;
 }
 
+int read_private_key_pem(char *private_key_pem, uint32_t *private_key_pem_length, const char *pem_path) {
+  notnull_check(private_key_pem);
+  GUARD(s2n_read_test_pem(pem_path, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+
+  *private_key_pem_length = strlen(private_key_pem);
+  gte_check(*private_key_pem_length, 0);
+
+  // the last character should be '/0'
+  private_key_pem[*private_key_pem_length - 1] = '\0';
+
+  return 0;
+}
+
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-qual"
-/* Wcast_qual ignored here for the unit test. However in production code, the const should be honored by the external function*/
+#pragma GCC diagnostic ignored "-Wincompatible-pointer-types-discards-qualifiers"
+/* -Wincompatible-pointer-types-discards-qualifiers ignored here for the unit test.
+ * However in production code, the const should be honored by the external function*/
 int external_rsa_decrypt(uint8_t *ctx, const uint8_t *encrypted_data, uint32_t encrypted_data_length, const char *pem_path) {
-    /* Get key type and create appropriate key context */
-    DEFER_CLEANUP(struct s2n_pkey pkey = {{{0}}}, s2n_pkey_free);
-    GUARD(get_private_key_pem(&pkey, pem_path));
+    uint32_t private_key_pem_length = 0;
+    char *private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE);
+    GUARD(read_private_key_pem(private_key_pem, &private_key_pem_length, pem_path));
+    notnull_check(private_key_pem);
+    gte_check(private_key_pem_length, 0);
 
-    /* decrypt */
-    struct s2n_blob in = {0};
-    in.data = (uint8_t*)encrypted_data;
-    in.size = encrypted_data_length;
-
-    struct s2n_blob out = {0};
-    out.size = S2N_TLS_SECRET_LEN;
-    out.data = &ctx[5];
-
-    if (0 != s2n_pkey_decrypt(&pkey, &in, &out))
-        return -1;
+    if (0 != s2n_decrypt_with_key(private_key_pem, private_key_pem_length, encrypted_data, encrypted_data_length, &ctx[5], S2N_TLS_SECRET_LEN)) {
+      return -1;
+    }
 
     ctx[0] = 2;
 
+    free(private_key_pem);
     return 0;
 }
 #pragma GCC diagnostic pop
@@ -253,7 +262,7 @@ int external_dhe_sign(uint8_t *status, uint8_t **result, uint8_t hash_algorithm,
 
     // create key
     DEFER_CLEANUP(struct s2n_pkey pkey = {{{0}}}, s2n_pkey_free);
-    GUARD(get_private_key_pem(&pkey, pem_path));
+    GUARD(get_private_key(&pkey, pem_path));
 
     // get the certificate type
     int32_t cert_type = -1;

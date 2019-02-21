@@ -242,6 +242,8 @@ extern int s2n_config_add_cert_chain_with_external_decrypt(struct s2n_config *co
                                                            const char *cert_chain_pem,
                                                            rsa_decrypt_async_fn external_rsa_decrypt,
                                                            dhe_sign_async_fn external_dhe_sign);
+extern int s2n_decrypt_with_key(const char *key, uint32_t key_length, uint8_t *in, uint32_t in_length, uint8_t *out, uint32_t out_length);
+
 
 #ifdef __cplusplus
 }
