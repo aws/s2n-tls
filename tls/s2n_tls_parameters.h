@@ -58,6 +58,16 @@
 #define TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256  0xCC, 0xA9
 #define TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256      0xCC, 0xAA
 
+/* TLS Hybrid post-quantum definitions from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-00 */
+#define TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 0xFF, 0x04
+#define TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 0xFF, 0x08
+
+#define BIKE_PARAMETER_EXTENSION_TYPE 0xFE01
+#define SIKE_PARAMETER_EXTENSION_TYPE 0xFE02
+
+#define BIKE1r1_Level1 1
+#define SIKEp503r1_KEM 1
+
 /* From https://tools.ietf.org/html/rfc7507 */
 #define TLS_FALLBACK_SCSV                   0x56, 0x00
 #define TLS_EMPTY_RENEGOTIATION_INFO_SCSV   0x00, 0xff
