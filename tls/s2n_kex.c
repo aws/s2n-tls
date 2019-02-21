@@ -75,6 +75,50 @@ static int check_ecdhe(const struct s2n_connection *conn)
     return conn->secure.server_ecc_params.negotiated_curve != NULL;
 }
 
+static int check_kem(const struct s2n_connection *conn)
+{
+    return conn->secure.s2n_kem_keys.negotiated_kem != NULL;
+}
+
+static int check_hybrid(const struct s2n_connection *conn)
+{
+    const struct s2n_kex *kex = conn->secure.cipher_suite->key_exchange_alg;
+    const struct s2n_kex *hybrid_kex_1 = *kex->hybrid;
+    const struct s2n_kex *hybrid_kex_2 = hybrid_kex_1 + 1;
+    return s2n_kex_supported(hybrid_kex_1, conn) && s2n_kex_supported(hybrid_kex_2, conn);
+}
+
+static int write_server_hybrid_extensions(const struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    const struct s2n_kex *kex = conn->secure.cipher_suite->key_exchange_alg;
+    const struct s2n_kex *hybrid_kex_1 = *kex->hybrid;
+    const struct s2n_kex *hybrid_kex_2 = hybrid_kex_1 + 1;
+    GUARD(s2n_kex_write_server_extension(hybrid_kex_1, conn, out));
+    GUARD(s2n_kex_write_server_extension(hybrid_kex_2, conn, out));
+    return 0;
+}
+
+static int get_server_hybrid_extensions_size(const struct s2n_connection *conn)
+{
+    const struct s2n_kex *kex = conn->secure.cipher_suite->key_exchange_alg;
+    const struct s2n_kex *hybrid_kex_1 = *kex->hybrid;
+    const struct s2n_kex *hybrid_kex_2 = hybrid_kex_1 + 1;
+    return s2n_kex_server_extension_size(hybrid_kex_1, conn) + s2n_kex_server_extension_size(hybrid_kex_2, conn);
+}
+
+static const struct s2n_kex s2n_sike = {
+        .is_ephemeral = 1,
+        .get_server_extension_size = &get_no_extension_size,
+        .write_server_extensions = &write_no_extension,
+        .connection_supported = &check_kem,
+        .server_key_recv_read_data = &s2n_kem_server_key_recv_read_data,
+        .server_key_recv_parse_data = &s2n_kem_server_key_recv_parse_data,
+        .server_key_send = &s2n_kem_server_key_send,
+        .client_key_recv = &s2n_kem_client_key_recv,
+        .client_key_send = &s2n_kem_client_key_send,
+
+};
+
 const struct s2n_kex s2n_rsa = {
         .is_ephemeral = 0,
         .get_server_extension_size = &get_no_extension_size,
@@ -85,6 +129,7 @@ const struct s2n_kex s2n_rsa = {
         .server_key_send = NULL,
         .client_key_recv = &s2n_rsa_client_key_recv,
         .client_key_send = &s2n_rsa_client_key_send,
+        .prf = &s2n_tls_prf_master_secret,
 };
 
 const struct s2n_kex s2n_dhe = {
@@ -97,6 +142,7 @@ const struct s2n_kex s2n_dhe = {
         .server_key_send = &s2n_dhe_server_key_send,
         .client_key_recv = &s2n_dhe_client_key_recv,
         .client_key_send = &s2n_dhe_client_key_send,
+        .prf = &s2n_tls_prf_master_secret,
 };
 
 const struct s2n_kex s2n_ecdhe = {
@@ -109,23 +155,39 @@ const struct s2n_kex s2n_ecdhe = {
         .server_key_send = &s2n_ecdhe_server_key_send,
         .client_key_recv = &s2n_ecdhe_client_key_recv,
         .client_key_send = &s2n_ecdhe_client_key_send,
+        .prf = &s2n_tls_prf_master_secret,
 };
 
-int s2n_kex_server_extension_size(const struct s2n_kex *kex, struct s2n_connection *conn)
+
+const struct s2n_kex s2n_hybrid_ecdhe_sike = {
+        .is_ephemeral = 1,
+        .hybrid = {&s2n_ecdhe, &s2n_sike},
+        .get_server_extension_size = &get_server_hybrid_extensions_size,
+        .write_server_extensions = &write_server_hybrid_extensions,
+        .connection_supported = &check_hybrid,
+        .server_key_recv_read_data = &s2n_hybrid_server_key_recv_read_data,
+        .server_key_recv_parse_data = &s2n_hybrid_server_key_recv_parse_data,
+        .server_key_send = &s2n_hybrid_server_key_send,
+        .client_key_recv = &s2n_hybrid_client_key_recv,
+        .client_key_send = &s2n_hybrid_client_key_send,
+        .prf = &s2n_hybrid_prf_master_secret,
+};
+
+int s2n_kex_server_extension_size(const struct s2n_kex *kex, const struct s2n_connection *conn)
 {
     notnull_check(kex->get_server_extension_size);
     return kex->get_server_extension_size(conn);
 }
 
-int s2n_kex_write_server_extension(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_stuffer *out)
+int s2n_kex_write_server_extension(const struct s2n_kex *kex, const struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     notnull_check(kex->write_server_extensions);
     return kex->write_server_extensions(conn, out);
 }
 
-int s2n_kex_supported(const struct s2n_kex *kex, struct s2n_connection *conn)
+int s2n_kex_supported(const struct s2n_kex *kex, const struct s2n_connection *conn)
 {
-    // Don't return -1 from notnull_check because that might allow a improperly configured kex to be marked as "supported"
+    /* Don't return -1 from notnull_check because that might allow a improperly configured kex to be marked as "supported" */
     return kex->connection_supported != NULL && kex->connection_supported(conn);
 }
 
@@ -134,13 +196,13 @@ int s2n_kex_is_ephemeral(const struct s2n_kex *kex)
     return kex->is_ephemeral;
 }
 
-int s2n_kex_server_key_recv_parse_data(const struct s2n_kex *kex, struct s2n_connection *conn, union s2n_kex_raw_server_data *raw_server_data)
+int s2n_kex_server_key_recv_parse_data(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_kex_raw_server_data *raw_server_data)
 {
     notnull_check(kex->server_key_recv_parse_data);
     return kex->server_key_recv_parse_data(conn, raw_server_data);
 }
 
-int s2n_kex_server_key_recv_read_data(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *data_to_verify, union s2n_kex_raw_server_data *raw_server_data)
+int s2n_kex_server_key_recv_read_data(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *data_to_verify, struct s2n_kex_raw_server_data *raw_server_data)
 {
     notnull_check(kex->server_key_recv_read_data);
     return kex->server_key_recv_read_data(conn, data_to_verify, raw_server_data);
@@ -162,4 +224,10 @@ int s2n_kex_client_key_send(const struct s2n_kex *kex, struct s2n_connection *co
 {
     notnull_check(kex->client_key_send);
     return kex->client_key_send(conn, shared_key);
+}
+
+int s2n_kex_tls_prf(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *premaster_secret)
+{
+    notnull_check(kex->prf);
+    return kex->prf(conn, premaster_secret);
 }
