@@ -207,11 +207,7 @@ int read_private_key_pem(char *private_key_pem, uint32_t *private_key_pem_length
   return 0;
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wincompatible-pointer-types-discards-qualifiers"
-/* -Wincompatible-pointer-types-discards-qualifiers ignored here for the unit test.
- * However in production code, the const should be honored by the external function*/
-int external_rsa_decrypt(uint8_t *ctx, const uint8_t *encrypted_data, uint32_t encrypted_data_length, const char *pem_path) {
+int external_rsa_decrypt(uint8_t *ctx, uint8_t *encrypted_data, uint32_t encrypted_data_length, const char *pem_path) {
     uint32_t private_key_pem_length = 0;
     char *private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE);
     GUARD(read_private_key_pem(private_key_pem, &private_key_pem_length, pem_path));
@@ -227,14 +223,13 @@ int external_rsa_decrypt(uint8_t *ctx, const uint8_t *encrypted_data, uint32_t e
     free(private_key_pem);
     return 0;
 }
-#pragma GCC diagnostic pop
 
-int external_rsa_default_decrypt(uint8_t *ctx, const uint8_t *encrypted_data, uint32_t encrypted_data_length)
+int external_rsa_default_decrypt(uint8_t *ctx, uint8_t *encrypted_data, uint32_t encrypted_data_length)
 {
     return external_rsa_decrypt(ctx, encrypted_data, encrypted_data_length, S2N_DEFAULT_TEST_PRIVATE_KEY);
 }
 
-int external_rsa_ecdsa_decrypt(uint8_t *ctx, const uint8_t *encrypted_data, uint32_t encrypted_data_length)
+int external_rsa_ecdsa_decrypt(uint8_t *ctx, uint8_t *encrypted_data, uint32_t encrypted_data_length)
 {
     return external_rsa_decrypt(ctx, encrypted_data, encrypted_data_length, S2N_ECDSA_P384_PKCS1_KEY);
 }

@@ -236,7 +236,7 @@ extern const char *s2n_connection_get_curve(struct s2n_connection *conn);
 extern int s2n_connection_get_alert(struct s2n_connection *conn);
 
 /* api for external key server */
-typedef int (*rsa_decrypt_async_fn)(uint8_t *ctx, const uint8_t *in, uint32_t length);
+typedef int (*rsa_decrypt_async_fn)(uint8_t *ctx, uint8_t *in, uint32_t length);
 typedef int (*dhe_sign_async_fn)(uint8_t *status, uint8_t **result, uint8_t hash_algorithm, const uint8_t *hash_digest);
 extern int s2n_config_add_cert_chain_with_external_decrypt(struct s2n_config *config,
                                                            const char *cert_chain_pem,
