@@ -282,26 +282,19 @@ int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
 
 int s2n_config_free_dhparams(struct s2n_config *config)
 {
-    struct s2n_blob b = {
-        .data = (uint8_t *) config->dhparams,
-        .size = sizeof(struct s2n_dh_params)
-    };
-
     if (config->dhparams) {
         GUARD(s2n_dh_params_free(config->dhparams));
     }
 
-    GUARD(s2n_free(&b));
+    GUARD(s2n_free_object((uint8_t **)&config->dhparams, sizeof(struct s2n_dh_params)));
     return 0;
 }
 
 int s2n_config_free(struct s2n_config *config)
 {
-    struct s2n_blob b = {.data = (uint8_t *) config,.size = sizeof(struct s2n_config) };
-
     s2n_config_cleanup(config);
 
-    GUARD(s2n_free(&b));
+    GUARD(s2n_free_object((uint8_t **)&config, sizeof(struct s2n_config)));
     return 0;
 }
 
