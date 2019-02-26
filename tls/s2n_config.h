@@ -118,9 +118,9 @@ struct s2n_config {
      *   The 2nd to the 5th byte (Big Endian) will be a uint32_t which is the size of decrypted pre-master secret.
      *   From the 6th byte till the end will be the decrypted pre-master secret.
      *   The total length of this byte array is 54 = 1 + 5 + S2N_TLS_SECRET_LEN (48)*/
-    void *external_rsa_ctx;
+    //void *external_rsa_ctx;
 
-    struct s2n_external_ctx external_dhe_ctx;
+    //struct s2n_external_ctx external_dhe_ctx;
 };
 
 extern struct s2n_config *s2n_fetch_default_config(void);

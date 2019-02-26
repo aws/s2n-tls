@@ -68,47 +68,33 @@ static int s2n_rsa_client_key_recv_with_external_decrypt(struct s2n_connection *
     notnull_check(conn);
     notnull_check(conn->config);
     notnull_check(conn->config->external_rsa_decrypt);
+    eq_check(S2N_EXTERNAL_NOT_INVOKED, conn->external_ctx.pre_master_key_status);
+    eq_check(NULL, conn->external_ctx.pre_master_key);
+    eq_check(0, conn->external_ctx.pre_master_key_size);
 
     /* Keep a copy of the client protocol version in wire format */
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
     client_protocol_version[0] = conn->client_protocol_version / 10;
     client_protocol_version[1] = conn->client_protocol_version % 10;
 
-    /* Get pointer to the external rsa context*/
-    uint8_t *ctx_ptr = ((uint8_t *) (conn->config->external_rsa_ctx));
-    if (NULL != ctx_ptr)
-        return 0;
-
     /* If the external rsa context is null, it means the external rsa decrypt has not been invoked yet. We will then:
      *  - instantiate the external rsa context,
      *  - invoke the external rsa decrypt
-     *  - set the status flag in the external rsa context to 1 which indicates we are waiting for the external decrypt to return. */
+     *  - set the status flag in the external rsa context to S2N_EXTERNAL_INVOKED which indicates we are waiting for the external decrypt to return. */
 
     /* Allocate memory for the external context */
-    conn->config->external_rsa_ctx = malloc(1 + 5 + S2N_TLS_SECRET_LEN);
-    ctx_ptr = ((uint8_t *) (conn->config->external_rsa_ctx));
-    S2N_ERROR_IF(NULL == ctx_ptr, S2N_ERR_ALLOC);
+    conn->external_ctx.pre_master_key = malloc(S2N_TLS_SECRET_LEN);
+    conn->external_ctx.pre_master_key_size = S2N_TLS_SECRET_LEN;
+    S2N_ERROR_IF(NULL == conn->external_ctx.pre_master_key, S2N_ERR_ALLOC);
 
     /* set the status to in progress */
-    ctx_ptr[0] = 1;
+    conn->external_ctx.pre_master_key_status = S2N_EXTERNAL_INVOKED;
 
     /* set the size of the payload */
-    uint32_t s2n_tls_secret_len = S2N_TLS_SECRET_LEN;
-    if (_IS_BIG_ENDIAN) {
-        ctx_ptr[1] = ((uint8_t*)&s2n_tls_secret_len)[0];
-        ctx_ptr[2] = ((uint8_t*)&s2n_tls_secret_len)[1];
-        ctx_ptr[3] = ((uint8_t*)&s2n_tls_secret_len)[2];
-        ctx_ptr[4] = ((uint8_t*)&s2n_tls_secret_len)[3];
-    } else {
-        ctx_ptr[1] = ((uint8_t*)&s2n_tls_secret_len)[3];
-        ctx_ptr[2] = ((uint8_t*)&s2n_tls_secret_len)[2];
-        ctx_ptr[3] = ((uint8_t*)&s2n_tls_secret_len)[1];
-        ctx_ptr[4] = ((uint8_t*)&s2n_tls_secret_len)[0];
-    }
 
     /* set the client protocol version */
-    ctx_ptr[5] = client_protocol_version[0];
-    ctx_ptr[6] = client_protocol_version[1];
+    conn->external_ctx.pre_master_key[0] = client_protocol_version[0];
+    conn->external_ctx.pre_master_key[1] = client_protocol_version[1];
 
     struct s2n_stuffer *in = &conn->handshake.io;
 
@@ -138,7 +124,11 @@ static int s2n_rsa_client_key_recv_with_external_decrypt(struct s2n_connection *
     conn->secure.rsa_premaster_secret[1] = client_protocol_version[1];
 
     /* Invoke the external decrypt */
-    GUARD(conn->config->external_rsa_decrypt(conn->config->external_rsa_ctx, encrypted.data, encrypted.size));
+    GUARD(conn->config->external_rsa_decrypt((int32_t*)(&conn->external_ctx.pre_master_key_status),
+      conn->external_ctx.pre_master_key_size,
+      conn->external_ctx.pre_master_key,
+      encrypted.data,
+      encrypted.size));
 
     return 0;
 }
@@ -219,56 +209,59 @@ static int s2n_dhe_client_key_recv(struct s2n_connection *conn)
     return 0;
 }
 
+static int s2n_free_external_ctx_pre_master_key(struct s2n_connection *conn)
+{
+    notnull_check(conn);
+    free(conn->external_ctx.pre_master_key);
+    conn->external_ctx.pre_master_key = NULL;
+    conn->external_ctx.pre_master_key_size = 0;
+    
+    return 0;
+}
+
 static int s2n_rsa_client_key_external(struct s2n_connection *conn)
 {
     notnull_check(conn);
     notnull_check(conn->config);
     notnull_check(conn->config->external_rsa_decrypt);
+    notnull_check(conn->external_ctx.pre_master_key);
 
     /* Keep a copy of the client protocol version in wire format */
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
     client_protocol_version[0] = conn->client_protocol_version / 10;
     client_protocol_version[1] = conn->client_protocol_version % 10;
 
-    /* Get pointer to the external rsa context*/
-    uint8_t *ctx_ptr = ((uint8_t *) (conn->config->external_rsa_ctx));
-    notnull_check(ctx_ptr);
-
     /* get the status of the external decryption of this connection */
-    uint8_t external_decrypt_status = ctx_ptr[0];
-    switch (external_decrypt_status) {
+    switch (conn->external_ctx.pre_master_key_status) {
             /* external rsa decrypt has already been invoked and we are just waiting for the result. Return '1' to indicate that */
-        case 1: {
+        case S2N_EXTERNAL_INVOKED: {
             return 1;
         }
             /* external rsa decrypt has returned the result. Let's proceed to generate the master secret */
-        case 2: {
+        case S2N_EXTERNAL_RETURNED: {
             /* verify the size of the array */
-            uint32_t size = (ctx_ptr[1] << 24) | (ctx_ptr[2] << 16) | (ctx_ptr[3] << 8) | (ctx_ptr[4]);
-            eq_check(size, S2N_TLS_SECRET_LEN);
+            eq_check(S2N_TLS_SECRET_LEN, conn->external_ctx.pre_master_key_size);
 
             /* verify the client protocol version */
             /* The pre-master key is of 48 bytes and is generated at the client side by concatenating the 2 bytes protocol
              * version and 46 bytes of random data. The whole 48 bytes are encrypted by the server's RSA public key. */
-            eq_check(client_protocol_version[0], ctx_ptr[5]);
-            eq_check(client_protocol_version[1], ctx_ptr[6]);
+            eq_check(client_protocol_version[0], conn->external_ctx.pre_master_key[0]);
+            eq_check(client_protocol_version[1], conn->external_ctx.pre_master_key[1]);
 
             /* copy the result back */
-            memcpy_check(conn->secure.rsa_premaster_secret, &ctx_ptr[5], size);
+            memcpy_check(conn->secure.rsa_premaster_secret, conn->external_ctx.pre_master_key, conn->external_ctx.pre_master_key_size);
 
             /* free the memory of the context */
-            free(ctx_ptr);
-            conn->config->external_rsa_ctx = NULL;
+            GUARD(s2n_free_external_ctx_pre_master_key(conn));
 
             return s2n_gen_master_secret(conn);
         }
             /* external rsa decrypt has completed the request but error occurred */
-        case 3: {
+        case S2N_EXTERNAL_ERROR: {
             conn->handshake.rsa_failed = 1;
 
             /* free the memory of the context */
-            free(ctx_ptr);
-            conn->config->external_rsa_ctx = NULL;
+            GUARD(s2n_free_external_ctx_pre_master_key(conn));
 
             S2N_ERROR(S2N_ERR_EXTERNAL_FAILURE);
         }
@@ -277,8 +270,7 @@ static int s2n_rsa_client_key_external(struct s2n_connection *conn)
             conn->handshake.rsa_failed = 1;
 
             /* free the memory of the context */
-            free(ctx_ptr);
-            conn->config->external_rsa_ctx = NULL;
+            GUARD(s2n_free_external_ctx_pre_master_key(conn));
 
             S2N_ERROR(S2N_ERR_EXTERNAL_CTX_STATUS_INVALID);
     }

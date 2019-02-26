@@ -142,6 +142,73 @@ static int s2n_connection_init_hmacs(struct s2n_connection *conn)
     return 0;
 }
 
+/**
+ * Initialize the external context
+ * @param conn  S2N connection which owns the external context
+ * @return      Return 0 if succeeded. Otherwise return 1.
+ * @note        ephemeral_key_io of the context will be initialized with size 0.
+ */
+static int s2n_connection_init_external_ctx(struct s2n_connection *conn)
+{
+    conn->external_ctx.pre_master_key_status    = S2N_EXTERNAL_NOT_INVOKED;
+    conn->external_ctx.sign_status              = S2N_EXTERNAL_NOT_INVOKED;
+    conn->external_ctx.pre_master_key_size      = 0;
+    conn->external_ctx.signed_hash_size         = 0;
+    conn->external_ctx.pre_master_key           = NULL;
+    conn->external_ctx.signed_hash              = NULL;
+    GUARD(s2n_stuffer_growable_alloc(&conn->external_ctx.ephemeral_key_io, 0));
+
+    return 0;
+}
+
+static int s2n_connection_wipe_external_ctx(struct s2n_connection *conn)
+{
+    /* wipe the pre-master key memory buffer */
+    if (NULL != conn->external_ctx.pre_master_key)
+    {
+      memset_check(conn->external_ctx.pre_master_key, 0, conn->external_ctx.pre_master_key_size);
+    }
+    conn->external_ctx.pre_master_key_status = S2N_EXTERNAL_NOT_INVOKED;
+
+    /* wipe the signed hash memory buffer */
+    if (NULL != conn->external_ctx.signed_hash)
+    {
+      memset_check(conn->external_ctx.signed_hash, 0, conn->external_ctx.signed_hash_size);
+    }
+    conn->external_ctx.sign_status = S2N_EXTERNAL_NOT_INVOKED;
+
+    /* release the ephemeral key */
+    s2n_stuffer_wipe(&(conn->external_ctx.ephemeral_key_io));
+
+    return 0;
+}
+
+static int s2n_connection_free_external_ctx(struct s2n_connection *conn)
+{
+    /* release the pre-master key memory buffer */
+    if (NULL != conn->external_ctx.pre_master_key)
+    {
+      free(conn->external_ctx.pre_master_key);
+      conn->external_ctx.pre_master_key = NULL;
+    }
+    conn->external_ctx.pre_master_key_status  = S2N_EXTERNAL_NOT_INVOKED;
+    conn->external_ctx.pre_master_key_size    = 0;
+
+    /* release the signed hash memory buffer */
+    if (NULL != conn->external_ctx.signed_hash)
+    {
+      free(conn->external_ctx.signed_hash);
+      conn->external_ctx.signed_hash = NULL;
+    }
+    conn->external_ctx.sign_status      = S2N_EXTERNAL_NOT_INVOKED;
+    conn->external_ctx.signed_hash_size = 0;
+
+    /* release the ephemeral key */
+    s2n_stuffer_free(&(conn->external_ctx.ephemeral_key_io));
+
+    return 0;
+}
+
 struct s2n_connection *s2n_connection_new(s2n_mode mode)
 {
     struct s2n_blob blob = {0};
@@ -238,6 +305,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->in, 0));
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->handshake.io, 0));
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->client_hello.raw_message, 0));
+    GUARD_PTR(s2n_connection_init_external_ctx(conn));
     GUARD_PTR(s2n_connection_wipe(conn));
     GUARD_PTR(s2n_timer_start(conn->config, &conn->write_timer));
 
@@ -483,6 +551,8 @@ int s2n_connection_free(struct s2n_connection *conn)
     GUARD(s2n_client_hello_free(&conn->client_hello));
     GUARD(s2n_free(&conn->application_protocols_overridden));
 
+    GUARD(s2n_connection_free_external_ctx(conn));
+
     blob.data = (uint8_t *) conn;
     blob.size = sizeof(struct s2n_connection);
 
@@ -675,6 +745,9 @@ int s2n_connection_wipe(struct s2n_connection *conn)
         conn->client_protocol_version = s2n_highest_protocol_version;
         conn->actual_protocol_version = s2n_highest_protocol_version;
     }
+
+    /* wipe external context */
+    GUARD(s2n_connection_wipe_external_ctx(conn));
 
     return 0;
 }

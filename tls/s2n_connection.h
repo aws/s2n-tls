@@ -46,6 +46,38 @@ typedef enum {
     S2N_NEW_TICKET
 } s2n_session_ticket_status;
 
+typedef enum {
+    S2N_EXTERNAL_NOT_INVOKED = 0, //external request has not been invoked yet;
+    S2N_EXTERNAL_INVOKED,         //external request has been invoked but not result has come back yet;
+    S2N_EXTERNAL_RETURNED,        //external request has completed and output is copied to the byte array result;
+    S2N_EXTERNAL_ERROR            //external request has completed but error occurred.
+} s2n_external_key_server_status;
+
+struct s2n_ext_ctx {
+  /* status of the call to external key server for rsa key exchange */
+  s2n_external_key_server_status pre_master_key_status;
+
+  /* size of the byte array that contains the pre-master key */
+  uint32_t pre_master_key_size;
+
+  /* byte array contains the pre-master key or signature. */
+  uint8_t *pre_master_key;
+
+  /* status of the call to external key server for signing hash (DH key exchange) */
+  s2n_external_key_server_status sign_status;
+
+  /* size of the byte array that contains the signed hash */
+  uint32_t signed_hash_size;
+
+  /* byte array contains the signed hash. */
+  uint8_t *signed_hash;
+
+  /* Temporary io used ot carry ephemeral from SERVER_KEY_EXTERNAL to SERVER_KEY so that we don't need to write data to
+   * the handshake io in SERVER_KEY_EXTERNAL which will cause handshake error in the receive functions due to incomplete data.
+   */
+  struct s2n_stuffer ephemeral_key_io;
+};
+
 struct s2n_connection {
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
@@ -55,6 +87,9 @@ struct s2n_connection {
 
     /* The user defined context associated with connection */
     void *context;
+
+    /* The user defined context for communication with external key server */
+    struct s2n_ext_ctx external_ctx;
 
     /* The send and receive callbacks don't have to be the same (e.g. two pipes) */
     s2n_send_fn *send;

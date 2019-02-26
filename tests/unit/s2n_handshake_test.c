@@ -207,34 +207,34 @@ int read_private_key_pem(char *private_key_pem, uint32_t *private_key_pem_length
   return 0;
 }
 
-int external_rsa_decrypt(uint8_t *ctx, uint8_t *encrypted_data, uint32_t encrypted_data_length, const char *pem_path) {
+int external_rsa_decrypt(int32_t *status, uint32_t* result_size, uint8_t *result, uint8_t *in, uint32_t in_length, const char *pem_path) {
     uint32_t private_key_pem_length = 0;
     char *private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE);
     GUARD(read_private_key_pem(private_key_pem, &private_key_pem_length, pem_path));
     notnull_check(private_key_pem);
     gte_check(private_key_pem_length, 0);
 
-    if (0 != s2n_decrypt_with_key(private_key_pem, private_key_pem_length, encrypted_data, encrypted_data_length, &ctx[5], S2N_TLS_SECRET_LEN)) {
+    if (0 != s2n_decrypt_with_key(private_key_pem, private_key_pem_length, in, in_length, result, result_size)) {
       return -1;
     }
 
-    ctx[0] = 2;
+    *status = 2;
 
     free(private_key_pem);
     return 0;
 }
 
-int external_rsa_default_decrypt(uint8_t *ctx, uint8_t *encrypted_data, uint32_t encrypted_data_length)
+int external_rsa_default_decrypt(int32_t *status, uint32_t result_size, uint8_t *result, uint8_t *in, uint32_t in_length)
 {
-    return external_rsa_decrypt(ctx, encrypted_data, encrypted_data_length, S2N_DEFAULT_TEST_PRIVATE_KEY);
+    return external_rsa_decrypt(status, result_size, result, in, in_length, S2N_DEFAULT_TEST_PRIVATE_KEY);
 }
 
-int external_rsa_ecdsa_decrypt(uint8_t *ctx, uint8_t *encrypted_data, uint32_t encrypted_data_length)
+int external_rsa_ecdsa_decrypt(int32_t *status, uint32_t result_size, uint8_t *result, uint8_t *in, uint32_t in_length)
 {
-    return external_rsa_decrypt(ctx, encrypted_data, encrypted_data_length, S2N_ECDSA_P384_PKCS1_KEY);
+    return external_rsa_decrypt(status, result_size, result, in, in_length, S2N_ECDSA_P384_PKCS1_KEY);
 }
 
-int external_dhe_sign(uint8_t *status, uint8_t **result, uint8_t hash_algorithm, const uint8_t* hash_digest, const char *pem_path)
+int external_dhe_sign(int32_t *status, uint32_t *result_size, uint8_t **result, uint8_t hash_algorithm, const uint8_t* hash_digest, const char *pem_path)
 {
     // status should not be null and should has value of 1 meaning external request made and currently waiting for result.
     notnull_check(status);
@@ -294,21 +294,11 @@ int external_dhe_sign(uint8_t *status, uint8_t **result, uint8_t hash_algorithm,
     signature.size = signature_size;
 
     // copy signature to the result
-    *result = malloc(signature.size + 4);
+    *result = malloc(signature.size);
 
-    if (_IS_BIG_ENDIAN) {
-        (*result)[0] = ((uint8_t*)&signature_size)[0];
-        (*result)[1] = ((uint8_t*)&signature_size)[1];
-        (*result)[2] = ((uint8_t*)&signature_size)[2];
-        (*result)[3] = ((uint8_t*)&signature_size)[3];
-    } else {
-        (*result)[0] = ((uint8_t*)&signature_size)[3];
-        (*result)[1] = ((uint8_t*)&signature_size)[2];
-        (*result)[2] = ((uint8_t*)&signature_size)[1];
-        (*result)[3] = ((uint8_t*)&signature_size)[0];
-    }
+    *result_size = signature_size;
 
-    memcpy_check((*result + 4), signature.data, signature_size);
+    memcpy_check(*result, signature.data, signature_size);
     *status = 2;
 
     // free local memory

@@ -530,9 +530,7 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
     GUARD(s2n_config_add_cert_chain(config, cert_chain_pem));
     GUARD(s2n_config_add_private_key(config, private_key_pem));
     config->external_rsa_decrypt = NULL;
-    config->external_rsa_ctx = NULL;
     config->external_dhe_sign = NULL;
-    config->external_dhe_ctx.result = NULL;
 
     /* Parse the leaf cert for the public key and certificate type */
     DEFER_CLEANUP(struct s2n_pkey public_key = {{{0}}}, s2n_pkey_free);
@@ -564,10 +562,7 @@ int s2n_config_add_cert_chain_with_external_decrypt(struct s2n_config *config,
 
     GUARD(s2n_config_add_cert_chain(config, cert_chain_pem));
     config->external_rsa_decrypt = external_rsa_decrypt;
-    config->external_rsa_ctx = NULL;
     config->external_dhe_sign = external_dhe_sign;
-    config->external_dhe_ctx.status = 0;
-    config->external_dhe_ctx.result = NULL;
 
     /* Parse the leaf cert for the public key and certificate type */
     DEFER_CLEANUP(struct s2n_pkey public_key = {{{0}}}, s2n_pkey_free);
