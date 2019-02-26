@@ -85,8 +85,8 @@ static inline int s2n_defend_if_forked(void)
         /* Clean up the old drbg first */
         GUARD(s2n_rand_cleanup_thread());
         /* Instantiate the new ones */
-        GUARD(s2n_drbg_instantiate(&per_thread_public_drbg, &public));
-        GUARD(s2n_drbg_instantiate(&per_thread_private_drbg, &private));
+        GUARD(s2n_new_aes128_drbg(&per_thread_public_drbg, &public));
+        GUARD(s2n_new_aes128_drbg(&per_thread_private_drbg, &private));
         zero_if_forked = 1;
     }
 

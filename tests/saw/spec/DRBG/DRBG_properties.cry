@@ -4,7 +4,7 @@ import AES
 import DRBG
 
 
-nist_reference_entropy_hex = [
+nist_aes128_reference_entropy_hex = [
   0x528ccd2d6c143800a34ad33e7f153cfaceaa2411abbaf4bfcfe9796898d0ece6
 , 0x478fd1eaa7ed293294d370979b0f0f1948d5a3161b12eeebf2cf6bd1bf059adf
 , 0x036bf1173977b323f60c6f0f603d9c50835b2afca8347dfb24e8f66604444951
@@ -51,7 +51,7 @@ nist_reference_entropy_hex = [
 , 0x9dfd31e3adc822b675c0a9c8702df12de4c3354ccdb5389ed481d910b3dbb51a
 , 0x2a1b1519d22d40ef4ec23c6d97dc148cfe171fb5f8b1c305ec6d8e83a1ef9064 ]
 
-nist_reference_personalization_strings_hex = [
+nist_aes128_reference_personalization_strings_hex = [
   0x07ca7a007b53f014d7f10461d6c97b5c8b0c502d3461d583f99efec69f121cd2
 , 0x99f2d501dd183f5657d8b8061bf4f0988de3bc2719f41281cf08d9bcc99f0dcb
 , 0x617d6463eaf3849e13b89a7f9805edff3ea1f0aa7ad71e7de7af3481bfeba7f5
@@ -68,7 +68,7 @@ nist_reference_personalization_strings_hex = [
 , 0x2c4e73ad2597b027dd04c6056db1189b7a0d8e9fece52237cb7fc2511509c4eb
 , 0x717c4de30c0ac7b831807cb1fcf4ab37f1734683a723d183fcfe5fc8a4c6c7e5 ]
 
-nist_reference_values_hex = [
+nist_aes128_reference_values_hex = [
   0x462eaef2ff6d82aec55f451776700e4c, 0x010cd7c293306adbe9798f2f65bdfb01, 0xf6f808dd7e199b3ce8497d63515092df
 , 0x1e574e0a9b220668776a109ecec959f5, 0xf47380b9e6d8ce485a5bb9f890331f89, 0xf2b475b29ed8aca7f3a69477212153e3
 , 0xd63aa6ddf10dfb6934b7a745456f2056, 0x29c05402d0dd6ff1d171c523e6066b3d, 0xfb15e2dfd607439797e29f9ea9a24788
@@ -85,7 +85,7 @@ nist_reference_values_hex = [
 , 0xa022dfed4c805b8f2c15d81693edfb53, 0x9d4f527ab03ff0c4abe7e442572fc0bb, 0x5fc9cb9e3cd694c6b08bb99256062814
 , 0xfaa46432da44e336bd782edd85ccfa83, 0xc17b86c7fd8e5a2131f515fb0ab62c9b, 0x619ff6d15579a1cb4bc9c96f6be8f4e5]
 
-nist_reference_returned_bits_hex  =[
+nist_aes128_reference_returned_bits_hex  =[
   0xbba1ef50b4bad288897f02ac2706ee1e01488dcbe9b3d8a637921f5e788faed3b23db63d590ceaa7607a2179192bea9aeaa85d048e7e108fee666dc646af5f0e
 , 0xb9ecf5521d38f9212578f9dd32af38089b45812ca96e661fc8e1be0b2f4b54215f52c9c93a6f76efee4521cb316378403108a6bf2724fdc93bc4d2db60a2de83
 , 0xce4bec8241dd1ce12d7fa18bd1a3188b43892392b7dcae7228a851afef9c9728c587167b6df28c895a67af35b6fd84ad076efcd70d1c59c49fa7c0f7ed87bc82
@@ -102,21 +102,21 @@ nist_reference_returned_bits_hex  =[
 , 0x7c41adf941656cfb9f24409d6cc4d578d43930b3e23ec801a59c53d999401bc0cb3e5b8797b2770a8a8f51ff594b7b17d9e694d5e36644508d16cb2554057adc
 , 0xac054570b081cf53b39b0a2faa21ee9b554c05ff9055843ac0eb9031d1de324701ad4cf2875623e0bf4184de4aea20070be1cb586880ac87fbb7e414b4b128d0]
 
-drbg = drbg_instantiate (nist_reference_entropy_hex @ 0) (nist_reference_personalization_strings_hex @ 0)
+drbg = drbg_instantiate (nist_aes128_reference_entropy_hex @ 0) (nist_aes128_reference_personalization_strings_hex @ 0)
 
 test_drbg : [8] -> Bit
 test_drbg n =
-  bits_out == nist_reference_returned_bits_hex @ n &&
-  drbg1.v == nist_reference_values_hex @ (3 * n) &&
-  drbg2.v == nist_reference_values_hex @ (3 * n + 1) &&
-  drbg3.v == nist_reference_values_hex @ (3 * n + 2)
+  bits_out == nist_aes128_reference_returned_bits_hex @ n &&
+  drbg1.v == nist_aes128_reference_values_hex @ (3 * n) &&
+  drbg2.v == nist_aes128_reference_values_hex @ (3 * n + 1) &&
+  drbg3.v == nist_aes128_reference_values_hex @ (3 * n + 2)
   where
-    drbg1 = drbg_instantiate (nist_reference_entropy_hex @ (3*n))
-                             (nist_reference_personalization_strings_hex @ n)
+    drbg1 = drbg_instantiate (nist_aes128_reference_entropy_hex @ (3*n))
+                             (nist_aes128_reference_personalization_strings_hex @ n)
     ((bits1, drbg2) : ([512], s2n_drbg)) =
-      drbg_generate drbg1 (nist_reference_entropy_hex @ (3 * n + 1)) True
+      drbg_generate drbg1 (nist_aes128_reference_entropy_hex @ (3 * n + 1)) True
     ((bits_out, drbg3) : ([512], s2n_drbg)) =
-      drbg_generate drbg2 (nist_reference_entropy_hex @ (3 * n + 2)) True
+      drbg_generate drbg2 (nist_aes128_reference_entropy_hex @ (3 * n + 2)) True
 
 property drbg_tests_pass =
   ~zero == [ test_drbg n | n <- [0 .. 14] ]
