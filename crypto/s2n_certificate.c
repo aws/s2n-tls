@@ -193,47 +193,31 @@ int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key)
         return 0;
     }
 
-    struct s2n_blob b = {
-        .data = (uint8_t *) cert_and_key,
-        .size = sizeof(struct s2n_cert_chain_and_key)
-    };
-
     /* Walk the chain and free the certs */
     if (cert_and_key->cert_chain) {
         struct s2n_cert *node = cert_and_key->cert_chain->head;
         while (node) {
-            struct s2n_blob n = {
-                .data = (uint8_t *) node,
-                .size = sizeof(struct s2n_cert)
-            };
             /* Free the cert */
             GUARD(s2n_free(&node->raw));
-            /* Advance to next */
-            node = node->next;
+            /* update head so it won't point to freed memory */
+            cert_and_key->cert_chain->head = node->next;
             /* Free the node */
-            GUARD(s2n_free(&n));
+            GUARD(s2n_free_object((uint8_t **)&node, sizeof(struct s2n_cert)));
+            node = cert_and_key->cert_chain->head;
         }
+
+        GUARD(s2n_free_object((uint8_t **)&cert_and_key->cert_chain, sizeof(struct s2n_cert_chain)));
     }
-    
-    struct s2n_blob c = {
-	.data = (uint8_t *) cert_and_key->cert_chain,
-	.size = sizeof(struct s2n_cert_chain)
-    };
-    GUARD(s2n_free(&c));
 
     if (cert_and_key->private_key) {
-        struct s2n_blob k = {
-            .data = (uint8_t *) cert_and_key->private_key,
-            .size = sizeof(s2n_cert_private_key)
-        }; 
         GUARD(s2n_pkey_free(cert_and_key->private_key));
-        GUARD(s2n_free(&k));
+        GUARD(s2n_free_object((uint8_t **)&cert_and_key->private_key, sizeof(s2n_cert_private_key)));
     }
  
     GUARD(s2n_free(&cert_and_key->ocsp_status));
     GUARD(s2n_free(&cert_and_key->sct_list));
 
-    GUARD(s2n_free(&b));
+    GUARD(s2n_free_object((uint8_t **)&cert_and_key, sizeof(struct s2n_cert_chain_and_key)));
     return 0;
 }
 

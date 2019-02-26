@@ -69,11 +69,7 @@ static int s2n_map_embiggen(struct s2n_map *map, uint32_t capacity)
             GUARD(s2n_free(&map->table[i].value));
         }
     }
-
-    /* Free the old memory */
-    mem.data = (void *) map->table;
-    mem.size = map->capacity * sizeof(struct s2n_map_entry);
-    GUARD(s2n_free(&mem));
+    GUARD(s2n_free_object((uint8_t **)&map->table, map->capacity * sizeof(struct s2n_map_entry)));
 
     /* Clone the temporary map */
     map->capacity = tmp.capacity;
@@ -209,8 +205,6 @@ int s2n_map_lookup(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *v
 
 int s2n_map_free(struct s2n_map *map)
 {
-    struct s2n_blob mem = {0};
-
     /* Free the keys and values */
     for (int i = 0; i < map->capacity; i++) {
         if (map->table[i].key.size) {
@@ -222,14 +216,10 @@ int s2n_map_free(struct s2n_map *map)
     GUARD(s2n_hash_free(&map->sha256));
 
     /* Free the table */
-    mem.data = (void *) map->table;
-    mem.size = map->capacity * sizeof(struct s2n_map_entry);
-    GUARD(s2n_free(&mem));
+    GUARD(s2n_free_object((uint8_t **)&map->table, map->capacity * sizeof(struct s2n_map_entry)));
 
     /* And finally the map */
-    mem.data = (void *) map;
-    mem.size = sizeof(struct s2n_map);
-    GUARD(s2n_free(&mem));
+    GUARD(s2n_free_object((uint8_t **)&map, sizeof(struct s2n_map)));
 
     return 0;
 }
