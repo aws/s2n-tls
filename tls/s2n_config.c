@@ -257,13 +257,11 @@ int s2n_config_init_session_ticket_keys(struct s2n_config *config)
 int s2n_config_free_session_ticket_keys(struct s2n_config *config)
 {
     if (config->ticket_keys != NULL) {
-        GUARD(s2n_array_free(config->ticket_keys));
-        config->ticket_keys = NULL;
+        GUARD(s2n_array_free_p(&config->ticket_keys));
     }
 
     if (config->ticket_key_hashes != NULL) {
-        GUARD(s2n_array_free(config->ticket_key_hashes));
-        config->ticket_key_hashes = NULL;
+        GUARD(s2n_array_free_p(&config->ticket_key_hashes));
     }
 
     return 0;
@@ -650,7 +648,7 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     GUARD(s2n_hash_digest(&hash, hash_output, SHA_DIGEST_LENGTH));
 
     if (config->ticket_key_hashes->num_of_elements >= S2N_MAX_TICKET_KEY_HASHES) {
-        GUARD(s2n_array_free(config->ticket_key_hashes));
+        GUARD(s2n_array_free_p(&config->ticket_key_hashes));
         notnull_check(config->ticket_key_hashes = s2n_array_new(SHA_DIGEST_LENGTH));
     }
 

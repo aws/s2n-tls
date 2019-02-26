@@ -827,9 +827,7 @@ int s2n_cipher_suites_cleanup(void)
 
         /* Release custom SSLv3 cipher suites */
         if (cur_suite->sslv3_cipher_suite != cur_suite) {
-            struct s2n_cipher_suite *sslv3_suite = cur_suite->sslv3_cipher_suite;
-            struct s2n_blob sslv3_suite_mem = {.data = (uint8_t *) sslv3_suite, .size = sizeof(struct s2n_cipher_suite)};
-            GUARD(s2n_free(&sslv3_suite_mem));
+            GUARD(s2n_free_object((uint8_t **)&cur_suite->sslv3_cipher_suite, sizeof(struct s2n_cipher_suite)));
         }
         cur_suite->sslv3_cipher_suite = NULL;
     }
