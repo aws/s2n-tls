@@ -27,7 +27,7 @@ static int s2n_sig_hash_algs_pairs_set(struct s2n_sig_hash_alg_pairs *sig_hash_a
     if (hash_alg < TLS_HASH_ALGORITHM_COUNT && sig_alg < TLS_SIGNATURE_ALGORITHM_COUNT) {
         sig_hash_algs->matrix[sig_alg][hash_alg] = 1;
     }
-    
+
     return 0;
 }
 
@@ -68,12 +68,13 @@ int s2n_set_signature_hash_pair_from_preference_list(struct s2n_connection *conn
         if (s2n_sig_hash_alg_pairs_get(sig_hash_algs, sig_alg_chosen, s2n_preferred_hashes[i]) == 1) {
             /* Just set hash_alg_chosen because sig_alg_chosen was set above based on cert type */
             hash_alg_chosen = s2n_hash_tls_to_alg[s2n_preferred_hashes[i]];
+            break;
         }
     }
 
     *hash = hash_alg_chosen;
     *sig = sig_alg_chosen;
-    
+
     return 0;
 }
 

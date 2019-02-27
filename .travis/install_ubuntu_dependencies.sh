@@ -16,9 +16,9 @@
 set -ex
 
 sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-sudo apt-get update
+sudo apt-get update -o Acquire::CompressionTypes::Order::=gz
 
-DEPENDENCIES="indent kwstyle"
+DEPENDENCIES="unzip make indent kwstyle libssl-dev tcpdump valgrind"
 
 sudo apt-get install -y ${DEPENDENCIES}
 
@@ -28,7 +28,7 @@ fi
 
 # Download and Install prlimit for memlock
 if [[ ! -d "$PRLIMIT_INSTALL_DIR" ]] && [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-    mkdir -p "$PRLIMIT_INSTALL_DIR" && sudo .travis/install_prlimit.sh "$(mktemp -d)" "$PRLIMIT_INSTALL_DIR"; 
+    mkdir -p "$PRLIMIT_INSTALL_DIR" && sudo .travis/install_prlimit.sh "$(mktemp -d)" "$PRLIMIT_INSTALL_DIR";
 fi
 
 if [[ "$TESTS" == "ctverif" || "$TESTS" == "ALL" ]] ; then
@@ -37,8 +37,8 @@ if [[ "$TESTS" == "ctverif" || "$TESTS" == "ALL" ]] ; then
 if [[ "$TESTS" == "ctverif" || "$TESTS" == "ALL" ]] && [[ ! -d "$CTVERIF_INSTALL_DIR" ]]; then
     mkdir -p "$CTVERIF_INSTALL_DIR" && .travis/install_ctverif.sh "$CTVERIF_INSTALL_DIR" > /dev/null ; fi
 
-if [[ "$TESTS" == "sidewinder" || "$TESTS" == "ALL" ]] ; then
-    .travis/install_sidewinder_dependencies.sh ; fi
+if [[ "$TESTS" == "sidetrail" || "$TESTS" == "ALL" ]] ; then
+    .travis/install_sidetrail_dependencies.sh ; fi
 
-if [[ "$TESTS" == "sidewinder" || "$TESTS" == "ALL" ]] && [[ ! -d "$SIDEWINDER_INSTALL_DIR" ]]; then
-    mkdir -p "$SIDEWINDER_INSTALL_DIR" && .travis/install_sidewinder.sh "$SIDEWINDER_INSTALL_DIR" > /dev/null ; fi
+if [[ "$TESTS" == "sidetrail" || "$TESTS" == "ALL" ]] && [[ ! -d "$SIDETRAIL_INSTALL_DIR" ]]; then
+    mkdir -p "$SIDETRAIL_INSTALL_DIR" && .travis/install_sidetrail.sh "$SIDETRAIL_INSTALL_DIR" > /dev/null ; fi

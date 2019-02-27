@@ -1,11 +1,11 @@
-#SAW tests for s2n
+# SAW tests for s2n
 
 This repository contains specifications of the various parts of the HMAC
 algorithm used in TLS along with SAW scripts to prove the s2n implementation of
 this algorithm equivalent to the spec.
 
 
-##The tests
+## The tests
 
 Currently this directory houses a test that compares the s2n
 implementation of HMAC with a cryptol spec of the same. There are 3
@@ -37,7 +37,7 @@ instructions for how automated solvers can be used to prove this
 equivalence. When run with the command `saw HMAC.saw`, this file loads
 in the other two and proves the HMAC files equivalent.
 
-##The build
+## The build
 
 Running the saw tests will require a SAW executable, which must be
 able to find the Z3 prover on the path. Future examples might require

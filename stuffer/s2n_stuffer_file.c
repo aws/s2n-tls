@@ -35,17 +35,14 @@ int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, int rfd, uint32_t len)
     /* "undo" the skip write */
     stuffer->write_cursor -= len;
 
-  READ:
-    errno = 0;
-    int r = read(rfd, stuffer->blob.data + stuffer->write_cursor, len);
-    if (r < 0) {
-        if (errno == EINTR) {
-            goto READ;
-        }
-        return -1;
-    }
+    int r = 0;
+    do {
+        errno = 0;
+        r = read(rfd, stuffer->blob.data + stuffer->write_cursor, len);
+        S2N_ERROR_IF(r < 0 && errno != EINTR, S2N_ERR_READ);
+    } while (r < 0);
 
-    /* Record just how many bytes we have written */
+      /* Record just how many bytes we have written */
     stuffer->write_cursor += r;
     stuffer->wiped = 0;
 
@@ -60,15 +57,12 @@ int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, int wfd, uint32_t len)
     /* "undo" the skip read */
     stuffer->read_cursor -= len;
 
-  WRITE:
-    errno = 0;
-    int w = write(wfd, stuffer->blob.data + stuffer->read_cursor, len);
-    if (w < 0) {
-        if (errno == EINTR) {
-            goto WRITE;
-        }
-        return -1;
-    }
+    int w = 0;
+    do {
+        errno = 0;
+        w = write(wfd, stuffer->blob.data + stuffer->read_cursor, len);
+        S2N_ERROR_IF (w < 0 && errno != EINTR, S2N_ERR_WRITE);
+    } while (w < 0);
 
     stuffer->read_cursor += w;
 
@@ -77,7 +71,7 @@ int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, int wfd, uint32_t len)
 
 int s2n_stuffer_alloc_ro_from_fd(struct s2n_stuffer *stuffer, int rfd)
 {
-    struct stat st;
+    struct stat st = {0};
 
     S2N_ERROR_IF(fstat(rfd, &st) < 0, S2N_ERR_FSTAT);
 
@@ -93,14 +87,11 @@ int s2n_stuffer_alloc_ro_from_file(struct s2n_stuffer *stuffer, const char *file
 {
     int fd;
 
-  OPEN:
-    fd = open(file, O_RDONLY);
-    if (fd < 0) {
-        if (errno == EINTR) {
-            goto OPEN;
-        }
-        S2N_ERROR(S2N_ERR_OPEN);
-    }
+    do {
+        errno = 0;
+        fd = open(file, O_RDONLY);
+        S2N_ERROR_IF(fd < 0 && errno != EINTR, S2N_ERR_OPEN);
+    } while (fd < 0);
 
     int r = s2n_stuffer_alloc_ro_from_fd(stuffer, fd);
 

@@ -3,7 +3,6 @@
 // counterpart in s2n_handshake_io.c
 
 module s2n_handshake_io where
-import Cryptol::Extras
 
 // This function modesl the update of the s2n_connection struct by the
 // s2n_conn_set_handshake_type function in s2n.

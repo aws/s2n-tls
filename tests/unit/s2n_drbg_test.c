@@ -233,11 +233,6 @@ int main(int argc, char **argv)
     }
     EXPECT_SUCCESS(s2n_timer_reset(config, &timer, &urandom_nanoseconds));
 
-    /* Confirm that the DRBG is faster than urandom when rdrand is enabled */
-    if (s2n_cpu_supports_rdrand()) {
-        EXPECT_TRUE(drbg_nanoseconds < urandom_nanoseconds);
-    }
-
     /* NOTE: s2n_random_test also includes monobit tests for this DRBG */
 
     /* the DRBG state is 128 bytes, test that we can get more than that */

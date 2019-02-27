@@ -16,6 +16,16 @@
 #pragma once
 
 #include <stdint.h>
+#include <time.h>
+
+struct parser_args {
+    uint8_t offset_negative;
+    uint8_t local_time_assumed;
+    uint8_t current_digit;
+    long offset_hours;
+    long offset_minutes;
+    struct tm time;
+};
 
 /**
  * Converts an asn1 formatted time string to ticks since epoch in nanoseconds.

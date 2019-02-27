@@ -40,12 +40,15 @@ extern const struct s2n_cipher_preferences cipher_preferences_20170718;
 extern const struct s2n_cipher_preferences cipher_preferences_test_all;
 extern const struct s2n_cipher_preferences cipher_preferences_test_all_fips;
 extern const struct s2n_cipher_preferences cipher_preferences_test_all_ecdsa;
+extern const struct s2n_cipher_preferences cipher_preferences_test_ecdsa_priority;
 
 /* See https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html */
 extern const struct s2n_cipher_preferences elb_security_policy_2015_04;
 extern const struct s2n_cipher_preferences elb_security_policy_2016_08;
 extern const struct s2n_cipher_preferences elb_security_policy_tls_1_2_2017_01;
 extern const struct s2n_cipher_preferences elb_security_policy_tls_1_1_2017_01;
+extern const struct s2n_cipher_preferences elb_security_policy_tls_1_2_ext_2018_06;
+extern const struct s2n_cipher_preferences elb_security_policy_fs_2018_06;
 
 extern int s2n_find_cipher_pref_from_version(const char *version, const struct s2n_cipher_preferences **cipher_preferences);
 extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);

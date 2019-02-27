@@ -25,6 +25,7 @@
 #include <s2n.h>
 
 #include "utils/s2n_random.h"
+#include "utils/s2n_safety.h"
 
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
@@ -78,9 +79,12 @@ int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size)
 
     free(buffer);
     s2n_connection_free(client_conn);
+    s2n_config_free(client_config);
 
     /* Give the server a chance to a void a sigpipe */
     sleep(1);
+
+    s2n_cleanup();
 
     return 0;
 }
@@ -97,6 +101,7 @@ int main(int argc, char **argv)
     char *cert_chain_pem;
     char *private_key_pem;
     char *dhparams_pem;
+    struct s2n_cert_chain_and_key *chain_and_key;
 
     BEGIN_TEST();
 
@@ -108,20 +113,19 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, cert_chain_pem, private_key_pem));
+    EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
 
     const uint32_t data_size = 10000000;
-    uint8_t *data = malloc(data_size);
-    EXPECT_NOT_NULL(data);
-
     /* Get some random data to send/receive */
-    struct s2n_blob blob;
-    blob.data = data;
-    blob.size = data_size;
+    DEFER_CLEANUP(struct s2n_blob blob = {0}, s2n_free);
+    s2n_alloc(&blob, data_size);
+
     EXPECT_SUCCESS(s2n_get_urandom_data(&blob));
-    
+
     /* Create a pipe */
     EXPECT_SUCCESS(pipe(server_to_client));
     EXPECT_SUCCESS(pipe(client_to_server));
@@ -134,9 +138,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(close(server_to_client[1]));
 
         /* Run the client */
-        const int client_rc = mock_client(client_to_server[1], server_to_client[0], data, data_size);
+        const int client_rc = mock_client(client_to_server[1], server_to_client[0], blob.data, data_size);
 
-        free(data);
         _exit(client_rc);
     }
 
@@ -166,7 +169,7 @@ int main(int argc, char **argv)
     /* Try to all 10MB of data, should be enough to fill PIPEBUF, so
        we'll get blocked at some point */
     uint32_t remaining = data_size;
-    uint8_t *ptr = data;
+    uint8_t *ptr = blob.data;
     while (remaining) {
         int r = s2n_send(conn, ptr, remaining, &blocked);
         if (r < 0) {
@@ -210,12 +213,11 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
     EXPECT_EQUAL(status, 0);
     EXPECT_SUCCESS(s2n_config_free(config));
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     free(cert_chain_pem);
     free(private_key_pem);
     free(dhparams_pem);
     END_TEST();
-
-    free(data);
 
     return 0;
 }

@@ -37,7 +37,18 @@ if [[ "$GCC6_REQUIRED" == "true" ]]; then
     alias gcc=$(which gcc-6);
 fi
 
-if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "integration" ]]; then make -j 8   ; fi
+if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "valgrind" ]]; then
+    # For linux make a build with debug symbols and run valgrind
+    # We have to output something every 9 minutes, as some test may run longer than 10 minutes
+    # and will not produce any output
+    while sleep 9m; do echo "=====[ $SECONDS seconds still running ]====="; done &
+    S2N_DEBUG=true make -j 8 valgrind
+    kill %1
+fi
+
+if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "integration" ]]; then
+    make -j 8
+fi
 
 # Build and run unit tests with scan-build for osx. scan-build bundle isn't available for linux
 if [[ "$TRAVIS_OS_NAME" == "osx" && "$TESTS" == "integration" ]]; then  
@@ -51,5 +62,5 @@ if [[ "$TESTS" == "ALL" || "$TESTS" == "sawDRBG" ]]; then make -C tests/saw tmp/
 if [[ "$TESTS" == "ALL" || "$TESTS" == "tls" ]]; then (make -C tests/saw tmp/handshake.log && make -C tests/saw tmp/cork-uncork.log) ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMACFailure" ]]; then make -C tests/saw failure-tests ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "ctverif" ]]; then .travis/run_ctverif.sh "$CTVERIF_INSTALL_DIR" ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "sidewinder" ]]; then .travis/run_sidewinder.sh "$SIDEWINDER_INSTALL_DIR" ; fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "sidetrail" ]]; then .travis/run_sidetrail.sh "$SIDETRAIL_INSTALL_DIR" ; fi
 

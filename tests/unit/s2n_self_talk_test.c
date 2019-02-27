@@ -19,6 +19,7 @@
 
 #include <sys/wait.h>
 #include <unistd.h>
+#include <time.h>
 #include <stdint.h>
 
 #include <s2n.h>
@@ -54,12 +55,31 @@ void mock_client(int writefd, int readfd)
 
     s2n_negotiate(conn, &blocked);
 
-    for (int i = 1; i < 0xffff; i += 100) {
+    uint16_t timeout = 1;
+    s2n_connection_set_dynamic_record_threshold(conn, 0x7fff, timeout);
+    int i;
+    for (i = 1; i < 0xffff - 100; i += 100) {
         for (int j = 0; j < i; j++) {
             buffer[j] = 33;
         }
-
         s2n_send(conn, buffer, i, &blocked);
+    }
+
+    for (int j = 0; j < i; j++) {
+        buffer[j] = 33;
+    }
+
+    /* Simulate timeout second conneciton inactivity and tolerate 50 ms error */
+    struct timespec sleep_time = {.tv_sec = timeout, .tv_nsec = 50000000};
+    int r;
+    do {
+        r = nanosleep(&sleep_time, &sleep_time);
+    } while (r != 0);
+    /* Active application bytes consumed is reset to 0 in before writing data. */
+    /* Its value should equal to bytes written after writing */
+    ssize_t bytes_written = s2n_send(conn, buffer, i, &blocked);
+    if (bytes_written != conn->active_application_bytes_consumed) {
+        exit(0);
     }
 
     int shutdown_rc = -1;
@@ -88,6 +108,7 @@ int main(int argc, char **argv)
     char *cert_chain_pem;
     char *private_key_pem;
     char *dhparams_pem;
+    struct s2n_cert_chain_and_key *chain_and_key;
 
     BEGIN_TEST();
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -126,7 +147,9 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_read_test_pem(certificate_paths[cert], cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
             EXPECT_SUCCESS(s2n_read_test_pem(private_key_paths[cert], private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, cert_chain_pem, private_key_pem));
+            EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
             if (is_dh_key_exchange) {
                 EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
                 EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
@@ -166,7 +189,7 @@ int main(int argc, char **argv)
             } while(shutdown_rc != 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
             EXPECT_SUCCESS(s2n_config_free(config));
 
             /* Clean up */

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -223,8 +223,7 @@ static int s2n_process_client_hello(struct s2n_connection *conn)
     }
 
     /* Now choose the ciphers and the cert chain. */
-    GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
-    conn->server->server_cert_chain = conn->config->cert_and_key_pairs;
+    GUARD(s2n_set_cipher_and_cert_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
 
     /* And set the signature and hash algorithm used for key exchange signatures */
     GUARD(s2n_set_signature_hash_pair_from_preference_list(conn, &conn->handshake_params.client_sig_hash_algs, &conn->secure.conn_hash_alg, &conn->secure.conn_sig_alg));
@@ -256,7 +255,7 @@ static int s2n_populate_client_hello_extensions(struct s2n_client_hello *ch)
         notnull_check(ch->parsed_extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension)));
     }
 
-    struct s2n_stuffer in;
+    struct s2n_stuffer in = {{0}};
 
     GUARD(s2n_stuffer_init(&in, &ch->extensions));
     GUARD(s2n_stuffer_write(&in, &ch->extensions));
@@ -320,7 +319,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 int s2n_client_hello_send(struct s2n_connection *conn)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
-    struct s2n_stuffer client_random;
+    struct s2n_stuffer client_random = {{0}};
     struct s2n_blob b, r;
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
@@ -342,6 +341,16 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     GUARD(s2n_stuffer_write_bytes(out, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
     GUARD(s2n_stuffer_copy(&client_random, out, S2N_TLS_RANDOM_DATA_LEN));
 
+    /* Generate client session id when empty so that when server sends
+     * an empty session id it is because it doesn't support session resumption
+     */
+    if (conn->session_id_len == 0 && conn->config->use_tickets) {
+        struct s2n_blob session_id = { .data = conn->session_id, .size = S2N_TLS_SESSION_ID_MAX_LEN };
+
+        GUARD(s2n_get_public_random_data(&session_id));
+        conn->session_id_len = S2N_TLS_SESSION_ID_MAX_LEN;
+    }
+
     GUARD(s2n_stuffer_write_uint8(out, conn->session_id_len));
     if (conn->session_id_len > 0) {
         GUARD(s2n_stuffer_write_bytes(out, conn->session_id, conn->session_id_len));
@@ -359,6 +368,8 @@ int s2n_client_hello_send(struct s2n_connection *conn)
             num_available_suites++;
         }
     }
+    /* Include TLS_EMPTY_RENEGOTIATION_INFO_SCSV */
+    num_available_suites++;
 
     /* Write size of the list of available ciphers */
     GUARD(s2n_stuffer_write_uint16(out, num_available_suites * S2N_TLS_CIPHER_SUITE_LEN));
@@ -369,6 +380,9 @@ int s2n_client_hello_send(struct s2n_connection *conn)
             GUARD(s2n_stuffer_write_bytes(out, cipher_preferences->suites[i]->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
         }
     }
+    /* Lastly, write TLS_EMPTY_RENEGOTIATION_INFO_SCSV so that server knows it's an initial handshake (RFC5746 Section 3.4) */
+    uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
+    GUARD(s2n_stuffer_write_bytes(out, renegotiation_info_scsv, S2N_TLS_CIPHER_SUITE_LEN));
 
     /* Zero compression methods */
     GUARD(s2n_stuffer_write_uint8(out, 1));
@@ -412,7 +426,7 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
 
     cipher_suites = s2n_stuffer_raw_read(in, cipher_suites_length);
     notnull_check(cipher_suites);
-    GUARD(s2n_set_cipher_as_sslv2_server(conn, cipher_suites, cipher_suites_length / S2N_SSLv2_CIPHER_SUITE_LEN));
+    GUARD(s2n_set_cipher_and_cert_as_sslv2_server(conn, cipher_suites, cipher_suites_length / S2N_SSLv2_CIPHER_SUITE_LEN));
 
     S2N_ERROR_IF(session_id_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
     if (session_id_length > 0 && session_id_length <= S2N_TLS_SESSION_ID_MAX_LEN) {
@@ -422,7 +436,7 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
         GUARD(s2n_stuffer_skip_read(in, session_id_length));
     }
 
-    struct s2n_blob b;
+    struct s2n_blob b = {0};
     b.data = conn->secure.client_random;
     b.size = S2N_TLS_RANDOM_DATA_LEN;
 
@@ -431,7 +445,6 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
 
     GUARD(s2n_stuffer_read(in, &b));
 
-    conn->server->server_cert_chain = conn->config->cert_and_key_pairs;
     GUARD(s2n_conn_set_handshake_type(conn));
 
     return 0;
@@ -442,7 +455,7 @@ int s2n_client_hello_get_parsed_extension(struct s2n_array *parsed_extensions, s
 {
     notnull_check(parsed_extensions);
 
-    struct s2n_client_hello_parsed_extension search;
+    struct s2n_client_hello_parsed_extension search = {0};
     search.extension_type = extension_type;
 
     struct s2n_client_hello_parsed_extension *result_extension = bsearch(&search, parsed_extensions->elements, parsed_extensions->num_of_elements,
@@ -460,7 +473,7 @@ ssize_t s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_t
     notnull_check(ch);
     notnull_check(ch->parsed_extensions);
 
-    struct s2n_client_hello_parsed_extension parsed_extension;
+    struct s2n_client_hello_parsed_extension parsed_extension = {0};
 
     if (s2n_client_hello_get_parsed_extension(ch->parsed_extensions, extension_type, &parsed_extension)) {
         return 0;
@@ -475,7 +488,7 @@ ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tl
     notnull_check(out);
     notnull_check(ch->parsed_extensions);
 
-    struct s2n_client_hello_parsed_extension parsed_extension;
+    struct s2n_client_hello_parsed_extension parsed_extension = {0};
 
     if (s2n_client_hello_get_parsed_extension(ch->parsed_extensions, extension_type, &parsed_extension)) {
         return 0;

@@ -56,6 +56,10 @@ CFLAGS += ${DEFAULT_CFLAGS}
 
 DEBUG_CFLAGS = -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls
 
+ifdef S2N_DEBUG
+	CFLAGS += ${DEBUG_CFLAGS}
+endif
+
 FUZZ_CFLAGS = -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak
 
 ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)

@@ -33,6 +33,8 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
 
+extern uint8_t s2n_unknown_protocol_version;
+
 /* How much overhead does the IV, MAC, TAG and padding bytes introduce ? */
 static uint16_t overhead(struct s2n_connection *conn)
 {
@@ -62,9 +64,9 @@ static uint16_t overhead(struct s2n_connection *conn)
     return extra;
 }
 
-int s2n_record_max_write_payload_size(struct s2n_connection *conn)
+int s2n_record_rounded_write_payload_size(struct s2n_connection *conn, uint16_t size_without_overhead) 
 {
-    uint16_t max_fragment_size = conn->max_outgoing_fragment_length;
+    uint16_t max_fragment_size = size_without_overhead;
     struct s2n_crypto_parameters *active = conn->server;
 
     if (conn->mode == S2N_CLIENT) {
@@ -85,12 +87,43 @@ int s2n_record_max_write_payload_size(struct s2n_connection *conn)
     return max_fragment_size - overhead(conn);
 }
 
+int s2n_record_max_write_payload_size(struct s2n_connection *conn)
+{
+    return s2n_record_rounded_write_payload_size(conn, conn->max_outgoing_fragment_length);
+}
+
+int s2n_record_min_write_payload_size(struct s2n_connection *conn)
+{
+    uint16_t min_outgoing_fragement_length = ETH_MTU - (conn->ipv6 ? IP_V6_HEADER_LENGTH : IP_V4_HEADER_LENGTH) 
+        - TCP_HEADER_LENGTH - TCP_OPTIONS_LENGTH - S2N_TLS_RECORD_HEADER_LENGTH;
+    return s2n_record_rounded_write_payload_size(conn, min_outgoing_fragement_length);
+}
+
+int s2n_record_write_protocol_version(struct s2n_connection *conn)
+{
+    uint8_t record_protocol_version = conn->actual_protocol_version;
+    if (conn->server_protocol_version == s2n_unknown_protocol_version) {
+        /* Some legacy TLS implementations can't handle records with protocol version higher than TLS1.0.
+         * To provide maximum compatibility, send record version as TLS1.0 if server protocol version isn't
+         * established yet, which happens only during ClientHello message. Note, this has no effect on
+         * protocol version in ClientHello, so we're still able to negotiate protocol versions above TLS1.0 */
+        record_protocol_version = MIN(record_protocol_version, S2N_TLS10);
+    }
+
+    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
+    protocol_version[0] = record_protocol_version / 10;
+    protocol_version[1] = record_protocol_version % 10;
+
+    GUARD(s2n_stuffer_write_bytes(&conn->out, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
+
+    return 0;
+}
+
 int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in)
 {
     struct s2n_blob out, iv, aad;
     uint8_t padding = 0;
     uint16_t block_size = 0;
-    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
     uint8_t aad_gen[S2N_TLS_MAX_AAD_LEN] = { 0 };
     uint8_t aad_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
 
@@ -134,10 +167,8 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     GUARD(s2n_hmac_update(mac, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
 
     /* Now that we know the length, start writing the record */
-    protocol_version[0] = conn->actual_protocol_version / 10;
-    protocol_version[1] = conn->actual_protocol_version % 10;
     GUARD(s2n_stuffer_write_uint8(&conn->out, content_type));
-    GUARD(s2n_stuffer_write_bytes(&conn->out, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
+    GUARD(s2n_record_write_protocol_version(conn));
 
     /* First write a header that has the payload length, this is for the MAC */
     GUARD(s2n_stuffer_write_uint16(&conn->out, data_bytes_to_take));
@@ -174,7 +205,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
 
     /* If we're AEAD, write the sequence number as an IV, and generate the AAD */
     if (cipher_suite->record_alg->cipher->type == S2N_AEAD) {
-        struct s2n_stuffer iv_stuffer;
+        struct s2n_stuffer iv_stuffer = {{0}};
         iv.data = aad_iv;
         iv.size = sizeof(aad_iv);
         GUARD(s2n_stuffer_init(&iv_stuffer, &iv));
@@ -202,7 +233,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
         aad.data = aad_gen;
         aad.size = sizeof(aad_gen);
 
-        struct s2n_stuffer ad_stuffer;
+        struct s2n_stuffer ad_stuffer = {{0}};
         GUARD(s2n_stuffer_init(&ad_stuffer, &aad));
         GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &ad_stuffer));
     } else if (cipher_suite->record_alg->cipher->type == S2N_CBC || cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
@@ -273,7 +304,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     }
 
     /* Do the encryption */
-    struct s2n_blob en;
+    struct s2n_blob en = {0};
     en.size = encrypted_length;
     en.data = s2n_stuffer_raw_write(&conn->out, en.size);
     notnull_check(en.data);

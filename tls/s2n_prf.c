@@ -360,7 +360,7 @@ static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct 
 int s2n_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret)
 {
     struct s2n_blob client_random, server_random, master_secret;
-    struct s2n_blob label;
+    struct s2n_blob label = {0};
     uint8_t master_secret_label[] = "master secret";
 
     client_random.data = conn->secure.client_random;
@@ -441,8 +441,8 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
     uint8_t md5_digest[MD5_DIGEST_LENGTH];
     uint8_t sha_digest[SHA384_DIGEST_LENGTH];
     uint8_t client_finished_label[] = "client finished";
-    struct s2n_blob client_finished;
-    struct s2n_blob label;
+    struct s2n_blob client_finished = {0};
+    struct s2n_blob label = {0};
 
     if (conn->actual_protocol_version == S2N_SSLv3) {
         return s2n_sslv3_client_finished(conn);
@@ -494,8 +494,8 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
     uint8_t md5_digest[MD5_DIGEST_LENGTH];
     uint8_t sha_digest[SHA384_DIGEST_LENGTH];
     uint8_t server_finished_label[] = "server finished";
-    struct s2n_blob server_finished;
-    struct s2n_blob label;
+    struct s2n_blob server_finished = {0};
+    struct s2n_blob label = {0};
 
     if (conn->actual_protocol_version == S2N_SSLv3) {
         return s2n_sslv3_server_finished(conn);
@@ -543,7 +543,7 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
 
 static int s2n_prf_make_client_key(struct s2n_connection *conn, struct s2n_stuffer *key_material)
 {
-    struct s2n_blob client_key;
+    struct s2n_blob client_key = {0};
     client_key.size = conn->secure.cipher_suite->record_alg->cipher->key_material_size;
     client_key.data = s2n_stuffer_raw_read(key_material, client_key.size);
     notnull_check(client_key.data);
@@ -559,7 +559,7 @@ static int s2n_prf_make_client_key(struct s2n_connection *conn, struct s2n_stuff
 
 static int s2n_prf_make_server_key(struct s2n_connection *conn, struct s2n_stuffer *key_material)
 {
-    struct s2n_blob server_key;
+    struct s2n_blob server_key = {0};
     server_key.size = conn->secure.cipher_suite->record_alg->cipher->key_material_size;
     server_key.data = s2n_stuffer_raw_read(key_material, server_key.size);
 
@@ -587,7 +587,7 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     out.data = key_block;
     out.size = sizeof(key_block);
 
-    struct s2n_stuffer key_material;
+    struct s2n_stuffer key_material = {{0}};
     GUARD(s2n_prf(conn, &master_secret, &label, &server_random, &client_random, &out));
     GUARD(s2n_stuffer_init(&key_material, &out));
     GUARD(s2n_stuffer_write(&key_material, &out));
@@ -595,37 +595,25 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     GUARD(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.client_key));
     GUARD(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.server_key));
 
-    /* What's our hmac algorithm? */
-    s2n_hmac_algorithm hmac_alg = conn->secure.cipher_suite->record_alg->hmac_alg;
-    if (conn->actual_protocol_version == S2N_SSLv3) {
-        if (hmac_alg == S2N_HMAC_SHA1) {
-            hmac_alg = S2N_HMAC_SSLv3_SHA1;
-        } else if (hmac_alg == S2N_HMAC_MD5) {
-            hmac_alg = S2N_HMAC_SSLv3_MD5;
-        } else {
-            S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
-        }
-    }
-
     /* Check that we have a valid MAC and key size */
     uint8_t mac_size;
     if (conn->secure.cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
         mac_size = conn->secure.cipher_suite->record_alg->cipher->io.comp.mac_key_size;
     } else {
-        GUARD(s2n_hmac_digest_size(hmac_alg, &mac_size));
+        GUARD(s2n_hmac_digest_size(conn->secure.cipher_suite->record_alg->hmac_alg, &mac_size));
     }
 
     /* Seed the client MAC */
     uint8_t *client_mac_write_key = s2n_stuffer_raw_read(&key_material, mac_size);
     notnull_check(client_mac_write_key);
     GUARD(s2n_hmac_reset(&conn->secure.client_record_mac));
-    GUARD(s2n_hmac_init(&conn->secure.client_record_mac, hmac_alg, client_mac_write_key, mac_size));
+    GUARD(s2n_hmac_init(&conn->secure.client_record_mac, conn->secure.cipher_suite->record_alg->hmac_alg, client_mac_write_key, mac_size));
 
     /* Seed the server MAC */
     uint8_t *server_mac_write_key = s2n_stuffer_raw_read(&key_material, mac_size);
     notnull_check(server_mac_write_key);
     GUARD(s2n_hmac_reset(&conn->secure.server_record_mac));
-    GUARD(s2n_hmac_init(&conn->secure.server_record_mac, hmac_alg, server_mac_write_key, mac_size));
+    GUARD(s2n_hmac_init(&conn->secure.server_record_mac, conn->secure.cipher_suite->record_alg->hmac_alg, server_mac_write_key, mac_size));
 
     /* Make the client key */
     GUARD(s2n_prf_make_client_key(conn, &key_material));

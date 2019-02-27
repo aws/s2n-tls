@@ -45,7 +45,7 @@ typedef enum parser_state {
 } parser_state;
 
 static inline long get_gmt_offset(struct tm *t) {
-#if defined(__USE_BSD) || defined(__APPLE__) && defined(__MACH__)
+#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__APPLE__) && defined(__MACH__)
     return t->tm_gmtoff;
 #else
     return t->__tm_gmtoff;
@@ -53,22 +53,13 @@ static inline long get_gmt_offset(struct tm *t) {
 }
 
 static inline void get_current_timesettings(long *gmt_offset, int *is_dst) {
-    struct tm time_ptr;
+    struct tm time_ptr = {0};
     time_t raw_time;
     time(&raw_time);
     localtime_r(&raw_time, &time_ptr);
     *gmt_offset = get_gmt_offset(&time_ptr);
     *is_dst = time_ptr.tm_isdst;
 }
-
-struct parser_args {
-    uint8_t offset_negative;
-    uint8_t local_time_assumed;
-    uint8_t current_digit;
-    long offset_hours;
-    long offset_minutes;
-    struct tm time;
-};
 
 /* this is just a standard state machine for ASN1 date format... nothing special.
  * just do a character at a time and change the state per character encountered.

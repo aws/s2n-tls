@@ -22,6 +22,8 @@ int main(int argc, char **argv)
     struct s2n_connection *conn;
     int ctx;
 
+    struct s2n_connection *conn_null = NULL;
+
     BEGIN_TEST();
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -35,6 +37,9 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(s2n_connection_get_ctx(conn), NULL);
 
     EXPECT_SUCCESS(s2n_connection_free(conn));
+
+    /* Verify that we don't assume nonnull input and seg fault */
+    EXPECT_NULL(s2n_connection_get_cipher(conn_null));
 
     END_TEST();
 }

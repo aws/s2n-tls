@@ -158,11 +158,11 @@ uint8_t heartbeat_message[] = {
 };
 
 uint8_t warning_alert[] = {       /* warning: user cancelled */
-    0x02, 0x5a
+    0x01, 0x5a
 };
 
 uint8_t fatal_alert[] = {       /* Fatal: unexpected message */
-    0x01, 0x0a
+    0x02, 0x0a
 };
 
 extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);

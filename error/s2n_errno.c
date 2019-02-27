@@ -31,7 +31,7 @@ struct s2n_error_translation {
     const char *str;
 };
 
-struct s2n_error_translation EN[] = {
+struct s2n_error_translation S2N_ERROR_EN[] = {
     {S2N_ERR_OK, "no error"},
     {S2N_ERR_IO, "underlying I/O operation failed, check system errno"},
     {S2N_ERR_BLOCKED, "underlying I/O operation would block"},
@@ -104,6 +104,7 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_CLIENT_MODE, "operation not allowed in client mode"},
     {S2N_ERR_SERVER_NAME_TOO_LONG, "server name is too long"},
     {S2N_ERR_CLIENT_MODE_DISABLED, "client connections not allowed"},
+    {S2N_ERR_TOO_MANY_CERTIFICATES, "Too many certificates configured"},
     {S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_FIPS_MODE, "Client Auth is not supported when in FIPS mode"},
     {S2N_ERR_HANDSHAKE_STATE, "Invalid handshake state encountered"},
     {S2N_ERR_FALLBACK_DETECTED, "TLS fallback detected"},
@@ -116,6 +117,7 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_ECDHE_SHARED_SECRET, "Error computing ECDHE shared secret"},
     {S2N_ERR_ECDHE_UNSUPPORTED_CURVE, "Unsupported EC curve was presented during an ECDHE handshake"},
     {S2N_ERR_ECDHE_SERIALIZING, "Error serializing ECDHE public"},
+    {S2N_ERR_KEM_UNSUPPORTED_PARAMS, "Unsupported KEM params was presented during a handshake that uses a KEM"},
     {S2N_ERR_SHUTDOWN_PAUSED, "s2n_shutdown() called while paused"},
     {S2N_ERR_SHUTDOWN_CLOSED, "Peer closed before sending their close_notify"},
     {S2N_ERR_SHUTDOWN_RECORD_TYPE, "Non alert record received during s2n_shutdown()"},
@@ -132,8 +134,11 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_UNRECOGNIZED_EXTENSION, "TLS extension not recognized" },
     {S2N_ERR_INVALID_SCT_LIST, "SCT list is invalid" },
     {S2N_ERR_INVALID_OCSP_RESPONSE, "OCSP response is invalid" },
+    {S2N_ERR_UPDATING_EXTENSION, "Updating extension data failed" },
     {S2N_ERR_INVALID_NONCE_TYPE, "Invalid AEAD nonce type"},
     {S2N_ERR_UNIMPLEMENTED, "Unimplemented feature"},
+    {S2N_ERR_READ, "error calling read"},
+    {S2N_ERR_WRITE, "error calling write"},
     {S2N_ERR_CERT_UNTRUSTED, "Certificate is untrusted"},
     {S2N_ERR_CERT_TYPE_UNSUPPORTED, "Certificate Type is unsupported"},
     {S2N_ERR_CANCELLED, "handshake was cancelled"},
@@ -141,6 +146,18 @@ struct s2n_error_translation EN[] = {
     {S2N_ERR_MAX_FRAG_LEN_MISMATCH, "Negotiated Maximum Fragmentation Length from server does not match the requested length by client"},
     {S2N_ERR_INVALID_SERIALIZED_SESSION_STATE, "Serialized session state is not in valid format"},
     {S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG, "Serialized session state is too long"},
+    {S2N_ERR_SESSION_ID_TOO_LONG, "Session id is too long"},
+    {S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_RESUMPTION_MODE, "Client Auth is not supported in session resumption mode"},
+    {S2N_ERR_INVALID_TICKET_KEY_LENGTH, "Session ticket key length cannot be zero"},
+    {S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH, "Session ticket key name should be unique and the name length cannot be zero"},
+    {S2N_ERR_TICKET_KEY_NOT_UNIQUE, "Cannot add session ticket key because it was added before"},
+    {S2N_ERR_TICKET_KEY_LIMIT, "Limit reached for unexpired session ticket keys"},
+    {S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY, "No key in encrypt-decrypt state is available to encrypt session ticket"},
+    {S2N_ERR_ENCRYPT_DECRYPT_KEY_SELECTION_FAILED, "Failed to select a key from keys in encrypt-decrypt state"},
+    {S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND, "Key used in already assigned session ticket not found for decryption"},
+    {S2N_ERR_SENDING_NST, "Error in session ticket status encountered before sending NST"},
+    {S2N_ERR_INVALID_DYNAMIC_THRESHOLD, "invalid dynamic record threshold"},
+    {S2N_ERR_INVALID_ARGUMENT, "invalid argument provided into a function call"},
 };
 
 const char *s2n_strerror(int error, const char *lang)
@@ -153,9 +170,9 @@ const char *s2n_strerror(int error, const char *lang)
         return no_such_language;
     }
 
-    for (int i = 0; i < (sizeof(EN) / sizeof(struct s2n_error_translation)); i++) {
-        if (EN[i].errno_value == error) {
-            return EN[i].str;
+    for (int i = 0; i < (sizeof(S2N_ERROR_EN) / sizeof(struct s2n_error_translation)); i++) {
+        if (S2N_ERROR_EN[i].errno_value == error) {
+            return S2N_ERROR_EN[i].str;
         }
     }
 

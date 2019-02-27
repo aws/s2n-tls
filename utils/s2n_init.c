@@ -20,7 +20,14 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
+#include "openssl/opensslv.h"
+
 static void s2n_cleanup_atexit(void);
+
+unsigned long s2n_get_openssl_version(void)
+{
+    return OPENSSL_VERSION_NUMBER;
+}
 
 int s2n_init(void)
 {
@@ -30,6 +37,13 @@ int s2n_init(void)
     GUARD(s2n_cipher_suites_init());
 
     S2N_ERROR_IF(atexit(s2n_cleanup_atexit) != 0, S2N_ERR_ATEXIT);
+
+    /* these functions do lazy init. Avoid the race conditions and just do it here. */
+    if (s2n_is_in_fips_mode()) {
+        s2n_fetch_default_fips_config();
+    } else {
+        s2n_fetch_default_config();
+    }
 
     return 0;
 }
@@ -44,7 +58,6 @@ int s2n_cleanup(void)
 static void s2n_cleanup_atexit(void)
 {
     s2n_rand_cleanup_thread();
-    s2n_cipher_suites_cleanup();
     s2n_rand_cleanup();
     s2n_mem_cleanup();
     s2n_wipe_static_configs();

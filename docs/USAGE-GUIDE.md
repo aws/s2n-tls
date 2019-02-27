@@ -23,7 +23,7 @@ are using CMake that step is unnecessary. Just follow the instructions here to u
 
 (Required): You need at least CMake version 3.0 to fully benefit from Modern CMake. See [this](https://www.youtube.com/watch?v=bsXLMQ6WgIk) for more information.
 
-(Optional): Set the CMake variable `LIBCRYPTO_ROOT_DIR` to any libcrypto build on your machine. If you do not,
+(Optional): Set the CMake variable `CMAKE_INSTALL_PREFIX` to the location libcrypto is installed to. If you do not,
 the default installation on your machine will be used.
 
 (Optional): Set the CMake variable `BUILD_SHARED_LIBS=ON` to build shared libraries. The default is static.
@@ -47,7 +47,7 @@ For another example, we can prepare an Xcode project using static libs using a l
 ````shell
 mkdir s2n-build
 cd s2n-build
-cmake ../s2n -DLIBCRYPTO_ROOT_DIR=$HOME/s2n-user/builds/libcrypto-impl -G "Xcode"
+cmake ../s2n -DCMAKE_INSTALL_PREFIX=$HOME/s2n-user/builds/libcrypto-impl -G "Xcode"
 # now open the project in Xcode and build from there, or use the Xcode CLI
 ````
 
@@ -70,13 +70,12 @@ find_package(s2n)
 
 ....
 
-target_link_libraries(yourExecutableOrLibrary s2n)
+target_link_libraries(yourExecutableOrLibrary AWS::s2n)
 ````
 
-And when invoking CMake for your project, do one of three things:
- 1. Append the `CMAKE_PREFIX_PATH` variable with the path to your s2n build.
- 2. Set the `s2n_DIR` CMake variable
- 3. If you have globally installed s2n, do nothing, it will automatically be found.
+And when invoking CMake for your project, do one of two things:
+ 1. Set the `CMAKE_INSTALL_PREFIX` variable with the path to your s2n build.
+ 2. If you have globally installed s2n, do nothing, it will automatically be found.
  
 ## Building s2n with OpenSSL-1.1.0
 
@@ -104,6 +103,16 @@ make install
 # Build s2n
 cd ../../
 make
+```
+# Note for 32-bit builds.
+The previous instructions work fine with only a few tweaks to your config command. Example:
+```shell
+setarch i386 ./config -fPIC no-shared     \
+        -m32 no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
+        no-hw no-mdc2 no-seed no-idea no-camellia\
+        no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng     \
+        -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS   \
+        --prefix=`pwd`/../../libcrypto-root/
 ```
 
 ## Building s2n with OpenSSL-1.0.2
@@ -337,7 +346,7 @@ typedef enum {
 
 ## Opaque structures
 
-s2n defines two opaque structures that are used for managed objects. Because
+s2n defines several opaque structures that are used for managed objects. Because
 these structures are opaque, they can only be safely referenced indirectly through
 pointers and their sizes may change with future versions of s2n.
 
@@ -433,6 +442,16 @@ if (s2n_recv(conn, &blocked) < 0) {
 
 ## Initialization and teardown
 
+### s2n\_get\_openssl\_version
+
+```c
+unsigned long s2n_get_openssl_version();
+```
+
+**s2n_get_openssl_version** returns the version number of OpenSSL that s2n was compiled with. It can be used by 
+applications to validate at runtime that the versions of s2n and Openssl that they have loaded are correct.
+
+
 ### s2n\_init
 
 ```c
@@ -513,6 +532,7 @@ underlying encrpyt/decrypt functions are not available in older versions.
 3. Prefer encryption ciphers in the following order: AES128, AES256, ChaCha20, 3DES, RC4.
 4. Prefer record authentication modes in the following order: GCM, Poly1305, SHA256, SHA1, MD5.
 
+
 ### s2n\_config\_add\_cert\_chain\_and\_key
 
 ```c
@@ -528,6 +548,15 @@ certificate-chain/key pair may be associated with a config.
 **cert_chain_pem** should be a PEM encoded certificate chain, with the first
 certificate in the chain being your servers certificate. **private_key_pem**
 should be a PEM encoded private key corresponding to the server certificate.
+
+### s2n\_config\_add\_cert\_chain\_and\_key\_to\_store
+
+```c
+int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, 
+                                               struct s2n_cert_chain_and_key *cert_key_pair);
+```
+
+**s2n_config_add_cert_chain_and_key_to_store** is the preferred method of associating a certificate chain and private key pair with an **s2n_config** object. At present, this may only be called once for each config object. It is not recommended to free or modify the **cert_key_pair** as any subsequent changes will be reflected in the config.
 
 ### s2n\_config\_add\_dhparams
 
@@ -724,6 +753,42 @@ callback can get any ClientHello infromation from the connection and use
 The callback can return 0 to continue handshake in s2n or it can return negative
 value to make s2n terminate handshake early with fatal handshake failure alert.
 
+### s2n\_config\_set\_alert\_behavior
+```c
+int s2n_config_set_alert_behavior(struct s2n_config *config, s2n_alert_behavior alert_behavior);
+```
+Sets whether or not a should terminate connection on WARNING alert from peer. `alert_behavior` can take the following values:
+- `S2N_ALERT_FAIL_ON_WARNINGS` - default behavior: s2n will terminate conneciton if peer sends WARNING alert.
+- `S2N_ALERT_IGNORE_WARNINGS` - with the exception of `close_notify` s2n will ignore all WARNING alerts and keep communicating with its peer.
+
+## Certificate-related functions
+
+### s2n\_cert\_chain\_and\_key\_new
+
+```c
+struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void);
+```
+**s2n_cert_chain_and_key_new** returns a new object used to represent a certificate-chain/key pair. This object can be associated with many config objects.
+
+### s2n\_cert\_chain\_and\_key\_free
+
+```c
+int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key);
+```
+**s2n_cert_chain_and_key_free** frees the memory associated with an **s2n_cert_chain_and_key** object.
+
+### s2n\_cert\_chain\_and\_key\_load\_pem
+
+```c
+int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem, const char *private_key_pem);
+```
+
+**s2n_cert_chain_and_key_load_pem** associates a certificate chain and private key with an **s2n_cert_chain_and_key** object. 
+
+**cert_chain_pem** should be a PEM encoded certificate chain, with the first
+certificate in the chain being your leaf certificate. **private_key_pem**
+should be a PEM encoded private key corresponding to the leaf certificate.
+
 ## Client Auth Related calls
 Client Auth Related API's are not recommended for normal users. Use of these API's is discouraged.
 
@@ -758,30 +823,32 @@ the caller sets (and implements) three callback functions.
 ### s2n\_config\_set\_cache\_store\_callback
 
 ```c
-int s2n_config_set_cache_store_callback(struct s2n_config *config, int (*cache_store)(void *, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data);
+int s2n_config_set_cache_store_callback(struct s2n_config *config, int
+        (*cache_store_callback)(struct s2n_connection *conn, void *, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size), void *data);
 ```
 
 **s2n_config_set_cache_store_callback** allows the caller to set a callback
 function that will be used to store SSL session data in a cache. The callback
-function takes six arguments: a pointer to abitrary data for use within the
-callback, a 64-bit unsigned integer specifying the number of seconds the
-session data may be stored for, a pointer to a key which can be used to
-retrieve the cached entry, a 64 bit unsigned integer specifying the size of
-this key, a pointer to a value which should be stored, and a 64 bit unsigned
-integer specified the size of this value.
+function takes seven arguments: a pointer to the s2n_connection object, 
+a pointer to abitrary data for use within the callback, a 64-bit unsigned integer 
+specifying the number of seconds the session data may be stored for, a pointer 
+to a key which can be used to retrieve the cached entry, a 64 bit unsigned 
+integer specifying the size of this key, a pointer to a value which should be stored,
+and a 64 bit unsigned integer specified the size of this value.
 
 ### s2n\_config\_set\_cache\_retrieve\_callback
 
 ```c
-int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, int (*cache_retrieve)(void *, const void *key, uint64_t key_size, void *value, uint64_t *value_size), void *data)
+int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, int
+        (*cache_retrieve_callback)(struct s2n_connection *conn, void *, const void *key, uint64_t key_size, void *value, uint64_t *value_size), void *data)
 ```
 
 **s2n_config_set_cache_retrieve_callback** allows the caller to set a callback
 function that will be used to retrieve SSL session data from a cache. The
-callback function takes five arguments: a pointer to abitrary data for use
-within the callback, a pointer to a key which can be used to retrieve the
-cached entry, a 64 bit unsigned integer specifying the size of this key, a
-pointer to a memory location where the value should be stored,
+callback function takes six arguments: a pointer to the s2n_connection object, 
+a pointer to abitrary data for use within the callback, a pointer to a key which 
+can be used to retrieve the cached entry, a 64 bit unsigned integer specifying 
+the size of this key, a pointer to a memory location where the value should be stored,
 and a pointer to a 64 bit unsigned integer specifing the size of this value.
 Initially *value_size will be set to the amount of space allocated for
 the value, the callback should set *value_size to the actual size of the
@@ -790,14 +857,16 @@ data returned. If there is insufficient space, -1 should be returned.
 ### s2n\_config\_set\_cache\_delete\_callback
 
 ```c
-int s2n_config_set_cache_delete_callback(struct s2n_config *config, int (*cache_delete))(void *, const void *key, uint64_t key_size), void *data);
+int s2n_config_set_cache_delete_callback(struct s2n_config *config, int
+        (*cache_delete_callback))(struct s2n_connection *conn, void *, const void *key, uint64_t key_size), void *data);
 ```
 
 **s2n_config_set_cache_delete_callback** allows the caller to set a callback
 function that will be used to delete SSL session data from a cache. The
-callback function takes three arguments: a pointer to abitrary data for use
-within the callback, a pointer to a key which can be used to delete the
-cached entry, and a 64 bit unsigned integer specifying the size of this key.
+callback function takes four arguments: a pointer to s2n_connection object, 
+a pointer to abitrary data for use within the callback, a pointer to a key 
+which can be used to delete the cached entry, and a 64 bit unsigned integer 
+specifying the size of this key.
 
 ### s2n\_config\_send\_max\_fragment\_length
 
@@ -885,6 +954,19 @@ file-descriptor should be active and connected. s2n also supports setting the
 read and write file-descriptors to different values (for pipes or other unusual
 types of I/O).
 
+## s2n\_connection\_is\_valid\_for\_cipher\_preferences
+
+```c
+int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, const char *version);
+```
+
+**s2n_connection_is_valid_for_cipher_preferences** checks if the cipher used by current connection
+is supported by a given cipher preferences. It returns 
+-  1 if the connection satisfies the cipher suite 
+-  0 if it does not
+- -1 on any other errors
+
+
 ## s2n\_connection\_set\_cipher\_preferences
 
 ```c
@@ -894,6 +976,17 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
 **s2n_connection_set_cipher_preferences** sets the cipher preference override for the
 s2n_connection. Calling this function is not necessary unless you want to set the
 cipher preferences on the connection to something different than what is in the s2n_config.
+
+
+## s2n\_connection\_set\_protocol\_preferences
+
+```c
+int s2n_connection_set_protocol_preferences(struct s2n_connection *conn, const char * const *protocols, int protocol_count);
+```
+
+**s2n_connection_set_protocol_preferences** sets the protocol preference override for the
+s2n_connection. Calling this function is not necessary unless you want to set the
+protocol preferences on the connection to something different than what is in the s2n_config.
 
 ### s2n\_set\_server\_name
 
@@ -940,6 +1033,7 @@ using self-service blinding should pause before calling close() or shutdown().
 ```c
 int s2n_connection_prefer_throughput(struct s2n_connection *conn);
 int s2n_connection_prefer_low_latency(struct s2n_connection *conn);
+int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uint32_t resize_threshold, uint16_t timeout_threshold);
 ```
 
 **s2n_connection_prefer_throughput** and **s2n_connection_prefer_low_latency**
@@ -949,6 +1043,11 @@ record sizes that can be decrypted sooner by the recipient. Connections
 prefering throughput will use large record sizes that minimize overhead.
 
 -Connections default to an 8k outgoing maximum
+
+**s2n_connection_set_dynamic_record_threshold**
+provides a smooth transition from **s2n_connection_prefer_low_latency** to **s2n_connection_prefer_throughput**.
+**s2n_send** uses small TLS records that fit into a single TCP segment for the resize_threshold bytes (cap to 8M) of data
+and reset record size back to a single segment after timeout_threshold seconds of inactivity.
 
 ### s2n\_connection\_get\_wire\_bytes
 
@@ -1085,6 +1184,14 @@ const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uin
 **s2n_connection_get_ocsp_response** returns the OCSP response sent by a server
 during the handshake.  If no status response is received, NULL is returned.
 
+### s2n\_connection\_is\_ocsp\_stapled
+
+```c
+int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);
+```
+
+**s2n_connection_is_ocsp_stapled** returns 1 if OCSP response was sent (if connection is in S2N_SERVER mode) or received (if connection is in S2N_CLIENT mode) during handshake, otherwise it returns 0.
+
 ### s2n\_connection\_get\_alert
 
 ```c
@@ -1112,29 +1219,66 @@ const char * s2n_connection_get_curve(struct s2n_connection *conn);
 
 **s2n_connection_get_curve** returns a string indicating the elliptic curve used during ECDHE key exchange. The string "NONE" is returned if no curve has was used.
 
-### Session State Related calls
+### Session Resumption Related calls
 
 ```c
+int s2n_config_set_session_state_lifetime(struct s2n_config *config, uint32_t lifetime_in_secs);
+
 int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *session, size_t length);
 int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, size_t max_length);
-ssize_t s2n_connection_get_session_length(struct s2n_connection *conn);
-ssize_t s2n_connection_get_session_id_length(struct s2n_connection *conn);
+int s2n_connection_get_session_ticket_lifetime_hint(struct s2n_connection *conn);
+int s2n_connection_get_session_length(struct s2n_connection *conn);
+int s2n_connection_get_session_id_length(struct s2n_connection *conn);
+int s2n_connection_get_session_id(struct s2n_connection *conn, uint8_t *session_id, size_t max_length);
 int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 ```
 
-- **session** session will contain serialized session related information needed to resume handshake.
+- **lifetime_in_secs** lifetime of the cached session state required to resume a
+handshake.
+- **session** session will contain serialized session related information needed to resume handshake either using session id or session ticket.
 - **length** length of the serialized session state.
 - **max_length** Max number of bytes to copy into the **session** buffer.
 
-**s2n_connection_set_session** de-serializes the session state and updates the connection accrodingly.
+**s2n_config_set_session_state_lifetime** sets the lifetime of the cached session state. The default value is 15 hours.
 
-**s2n_connection_get_session** serializes the session state from connection and copies into the **session** buffer and returns the number of bytes that were copied.
+**s2n_connection_set_session** de-serializes the session state and updates the connection accordingly.
 
-**s2n_connection_get_session_length** returns number of bytes needed to store serailized session state; it can be used to allocate the **session** buffer.
+**s2n_connection_get_session** serializes the session state from connection and copies into the **session** buffer and returns the number of bytes that were copied. If the first byte in **session** is 1, then the next 2 bytes will contain the session ticket length, followed by session ticket and session state. If the first byte in **session** is 0, then the next byte will contain session id length, followed by session id and session state.
+
+**s2n_connection_get_session_ticket_lifetime_hint** returns the session ticket lifetime hint in seconds from the server or -1 when session ticket was not used for resumption.
+
+**s2n_connection_get_session_length** returns number of bytes needed to store serialized session state; it can be used to allocate the **session** buffer.
 
 **s2n_connection_get_session_id_length** returns session id length from the connection.
 
-**s2n_connection_is_session_resumed** checks if the handshake is abbreviated or not.
+**s2n_connection_get_session_id** get the session id from the connection and copies into the **session_id** buffer and returns the number of bytes that were copied.
+
+**s2n_connection_is_session_resumed** returns 1 if the handshake was abbreviated, otherwise returns 0.
+
+### Session Ticket Specific calls
+
+```c
+int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enabled);
+int s2n_config_set_ticket_encrypt_decrypt_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
+int s2n_config_set_ticket_decrypt_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
+int s2n_config_add_ticket_crypto_key(struct s2n_config *config, const uint8_t *name, uint32_t name_len, uint8_t *key, uint32_t key_len, uint64_t intro_time_in_seconds_from_epoch);
+```
+
+- **enabled** when set to 0 will disable session resumption using session ticket
+- **name** name of the session ticket key that should be randomly generated to avoid collisions
+- **name_len** length of session ticket key name
+- **key** key used to perform encryption/decryption of session ticket
+- **key_len** length of the session ticket key
+- **intro_time_in_seconds_from_epoch** time at which the session ticket key is introduced. If this is 0, then intro_time_in_seconds_from_epoch is set to now.
+
+**s2n_config_set_session_tickets_onoff** enables and disables session resumption using session ticket
+
+**s2n_config_set_ticket_encrypt_decrypt_key_lifetime** sets how long a session ticket key will be in a state where it can be used for both encryption and decryption of tickets on the server side. The default value is 2 hours.
+
+**s2n_config_set_ticket_decrypt_key_lifetime** sets how long a session ticket key will be in a state where it can used just for decryption of already assigned tickets on the server side. Once decrypted, the session will resume and the server will issue a new session ticket encrypted using a key in encrypt-decrypt state. The default value is 13 hours.
+
+**s2n_config_add_ticket_crypto_key** adds session ticket key on the server side. It would be ideal to add new keys after every (encrypt_decrypt_key_lifetime_in_nanos/2) nanos because
+this will allow for gradual and linear transition of a key from encrypt-decrypt state to decrypt-only state.
 
 ### s2n\_connection\_wipe
 
@@ -1232,6 +1376,16 @@ do {
     bytes_read += r;
 } while (blocked != S2N_NOT_BLOCKED);
 ```
+
+### s2n\_peek
+
+```c
+uint32_t s2n_peek(struct s2n_connection *conn);
+```
+
+**s2n_peek** allows users of S2N to peek inside the data buffer of an S2N connection to see if there more data to be read without actually reading it. This is useful when using select() on the underlying S2N file descriptor with a message based application layer protocol. As a single call to s2n_recv may read all data off the underlying file descriptor, select() will be unable to tell you there if there is more application data ready for processing already loaded into the S2N buffer. s2n_peek can then be used to determine if s2n_recv needs to be called before more data comes in on the raw fd.
+
+
 
 ### s2n\_connection\_set\_send\_cb
 
