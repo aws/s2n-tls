@@ -37,6 +37,7 @@ PROTO_VERS_TO_S_CLIENT_ARG = {
 }
 
 S_CLIENT_SUCCESSFUL_OCSP="OCSP Response Status: successful"
+S_CLIENT_NEGOTIATED_CIPHER_PREFIX="Cipher    : "
 
 def communicate_processes(*processes):
     outs = []
@@ -52,9 +53,87 @@ def cleanup_processes(*processes):
         p.kill()
         p.wait()
 
+def validate_data_transfer(expected_data, s_client_out, s2nd_out):
+    """
+    Verify that the application data written between s_client and s2nd is encrypted and decrypted successfuly.
+    """
+    found = 0
+    s2nd_out_len = len(s2nd_out)
+    s_client_out_len = len(s_client_out)
+    for i in range(0, s2nd_out_len):
+        output = s2nd_out[i].strip()
+        if output == expected_data:
+            found = 1
+            break
+
+    if found == 0:
+        print ("Did not find " + expected_data + " in output from s2nd")
+        return -1
+
+    found = 0
+    for i in range(0, s_client_out_len):
+        output = s_client_out[i].strip()
+        if output == expected_data:
+            found = 1
+            break
+
+    if found == 0:
+        print ("Did not find " + expected_data + " in output from s_client")
+        return -1
+
+    return 0
+
+def validate_resume(s2nd_out):
+    """
+    Verify that s2nd properly resumes sessions.
+    """
+    seperators = 0
+    s2nd_out_len = len(s2nd_out)
+    for i in range(0, s2nd_out_len):
+        output = s2nd_out[i].strip()
+        if output.startswith("Resumed session"):
+            seperators += 1
+
+        if seperators == 5:
+            break
+
+    if seperators != 5:
+        print ("Validate resumption failed")
+        return -1
+
+    return 0
+
+def validate_ocsp(s_client_out):
+    """
+    Verify that stapled OCSP response is accepted by s_client.
+    """
+    s_client_out_len = len(s_client_out)
+    for i in range(0, s_client_out_len):
+        output = s_client_out[i].strip()
+        if S_CLIENT_SUCCESSFUL_OCSP in output:
+            return 0
+            break
+    print ("Validate OCSP failed")
+    return -1
+
+def find_expected_cipher(expected_cipher, s_client_out):
+    """
+    Make sure s_client and s2nd negotiate the cipher suite we expect
+    """
+    s_client_out_len = len(s_client_out)
+    full_expected_string = S_CLIENT_NEGOTIATED_CIPHER_PREFIX + expected_cipher
+    for i in range(0, s_client_out_len):
+        output = s_client_out[i].strip()
+        if full_expected_string in output:
+            return 0
+            break
+    print("Failed to find " + expected_cipher + " in s_client output")
+    return -1
+
 def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, server_cert_key_list=None, server_cipher_pref=None,
         ocsp=None, sig_algs=None, curves=None, resume=False, no_ticket=False, prefer_low_latency=False, enter_fips_mode=False,
-        client_auth=None, client_cert=DEFAULT_CLIENT_CERT_PATH, client_key=DEFAULT_CLIENT_KEY_PATH):
+        client_auth=None, client_cert=DEFAULT_CLIENT_CERT_PATH, client_key=DEFAULT_CLIENT_KEY_PATH,
+        expected_cipher=None):
     """
     Attempt to handshake against s2nd listening on `endpoint` and `port` using Openssl s_client
 
@@ -75,6 +154,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     :param bool client_auth: True if the test should try and use client authentication
     :param str client_cert: Path to the client's cert file
     :param str client_key: Path to the client's private key file
+    :param str expected_cipher: the cipher we expect to negotiate
     :return: 0 on successfully negotiation(s), -1 on failure
     """
 
@@ -106,7 +186,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
         s2nd_cmd.extend(["-t", client_cert])
 
     s2nd_cmd.extend([str(endpoint), str(port)])
-    
+
     s2nd_ciphers = "test_all"
     if server_cipher_pref is not None:
         s2nd_ciphers = server_cipher_pref
@@ -117,7 +197,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     s2nd_cmd.append(s2nd_ciphers)
     if no_ticket:
         s2nd_cmd.append("-T")
-    
+
     s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
     # Make sure it's running
@@ -159,71 +239,30 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     # Wait for pipe ready for read
     sleep(0.1)
     outs = communicate_processes(s_client, s2nd)
-    s_out = outs[1]
-    if '' == s_out:
+    s2nd_out = outs[1]
+    if '' == s2nd_out:
         print ("No output from client PIPE, skip")
         return 0
 
-    c_out = outs[0]
-    if '' == c_out:
+    s_client_out = outs[0]
+    if '' == s_client_out:
         print ("No output from client PIPE, skip")
         return 0
-    s_out_len = len (s_out)
-    c_out_len = len (c_out)
 
-    # Validate that s_client resumes successfully against s2nd
-    s_line = 0
+    if validate_data_transfer(cipher, s_client_out, s2nd_out) != 0:
+        return -1
+
     if resume is True:
-        seperators = 0
-        for i in range(0, s_out_len):
-            s_line = i
-            output = s_out[i].strip()
-            if output.startswith("Resumed session"):
-                seperators += 1
-
-            if seperators == 5:
-                break
-
-        if seperators != 5:
-            print ("Validate resumes failed")
+        if validate_resume(s2nd_out) != 0:
             return -1
 
-    # Validate that s_client accepted s2nd's stapled OCSP response
-    c_line = 0
     if ocsp is not None:
-        ocsp_success = False
-        for i in range(0, c_out_len):
-            c_line = i
-            output = c_out[i].strip()
-            if S_CLIENT_SUCCESSFUL_OCSP in output:
-                ocsp_success = True
-                break
-        if not ocsp_success:
-            print ("Validate OCSP failed")
+        if validate_ocsp(s_client_out) != 0:
             return -1
 
-    # Analyze server output
-    found = 0
-    for i in range(s_line, s_out_len):
-        output = s_out[i].strip()
-        if output == cipher:
-            found = 1
-            break
-
-    if found == 0:
-        print ("No cipher output from server")
-        return -1
-
-    found = 0
-    for i in range(c_line, c_out_len):
-        output = c_out[i].strip()
-        if output == cipher:
-            found = 1
-            break
-
-    if found == 0:
-        print ("No cipher output from client")
-        return -1
+    if expected_cipher is not None:
+        if find_expected_cipher(expected_cipher, s_client_out) != 0:
+            return -1
 
     return 0
 
