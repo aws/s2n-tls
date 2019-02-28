@@ -37,7 +37,7 @@ static int s2n_ecdhe_server_key_send(struct s2n_connection *conn);
 static int s2n_dhe_server_key_send(struct s2n_connection *conn);
 static int s2n_write_io_with_external_result(struct s2n_connection *conn);
 static int s2n_write_signature_blob(struct s2n_stuffer *out, const struct s2n_pkey *priv_key, struct s2n_hash_state *digest);
-static int s2n_sign_external(dhe_sign_async_fn external_sign_fn, s2n_hash_algorithm hash_algorithm, struct s2n_hash_state *hash_state, uint8_t *status, uint8_t **result);
+static int s2n_sign_external(dhe_sign_async_fn external_sign_fn, s2n_hash_algorithm hash_algorithm, struct s2n_hash_state *hash_state, int32_t *status, uint32_t *result_size, uint8_t **result);
 
 int s2n_server_key_recv(struct s2n_connection *conn)
 {
@@ -153,7 +153,9 @@ static int s2n_dhe_server_key_recv(struct s2n_connection *conn)
 static int s2n_free_external_ctx_signed_hash(struct s2n_connection *conn)
 {
     notnull_check(conn);
-    free(conn->external_ctx.signed_hash);
+    struct s2n_blob mem = {0};
+    GUARD(s2n_blob_init(&mem, conn->external_ctx.signed_hash, conn->external_ctx.signed_hash_size));
+    GUARD(s2n_free(&mem));
     conn->external_ctx.signed_hash = NULL;
     conn->external_ctx.signed_hash_size = 0;
 
@@ -204,7 +206,7 @@ int s2n_server_key_send_external(struct s2n_connection *conn)
     }
 }
 
-static int s2n_sign_external(dhe_sign_async_fn external_sign_fn, s2n_hash_algorithm hash_algorithm, struct s2n_hash_state *hash_state, int32_t *status, uint8_t **result)
+static int s2n_sign_external(dhe_sign_async_fn external_sign_fn, s2n_hash_algorithm hash_algorithm, struct s2n_hash_state *hash_state, int32_t *status, uint32_t *result_size, uint8_t **result)
 {
     // prepare the digest_out blob
     uint32_t digest_out_length = S2N_MAX_DIGEST_LEN;
@@ -216,7 +218,7 @@ static int s2n_sign_external(dhe_sign_async_fn external_sign_fn, s2n_hash_algori
     GUARD(s2n_hash_digest(hash_state, digest_out.data, digest_size));
 
     *status = 1;
-    external_sign_fn(status, result, (uint8_t)hash_algorithm, digest_out.data);
+    external_sign_fn(status, result_size, result, (uint8_t)hash_algorithm, digest_out.data);
 
     s2n_free(&digest_out);
 
@@ -227,7 +229,7 @@ static int s2n_ecdhe_server_key_send_external(struct s2n_connection *conn)
 {
     struct s2n_blob ecdhparams = {0};
     struct s2n_stuffer *out = &conn->external_ctx.ephemeral_key_io;
-    s2n_stuffer_resize(out, 1024);
+    s2n_stuffer_alloc(out, 1024);
 
     /* Generate an ephemeral key and  */
     GUARD(s2n_ecc_generate_ephemeral_key(&conn->secure.server_ecc_params));
@@ -244,7 +246,8 @@ static int s2n_ecdhe_server_key_send_external(struct s2n_connection *conn)
     GUARD(s2n_sign_external(conn->config->external_dhe_sign,
                             conn->secure.signature_hash.alg,
                             &(conn->secure.signature_hash),
-                            &(conn->external_ctx.sign_status),
+                            (int32_t*)&(conn->external_ctx.sign_status),
+                            &(conn->external_ctx.signed_hash_size),
                             &(conn->external_ctx.signed_hash)));
 
     return 0;
@@ -253,8 +256,8 @@ static int s2n_ecdhe_server_key_send_external(struct s2n_connection *conn)
 static int s2n_dhe_server_key_send_external(struct s2n_connection *conn)
 {
     struct s2n_blob serverDHparams;
-    struct s2n_stuffer *out = &conn->config->external_dhe_ctx.ephemeral_key_io;
-    s2n_stuffer_growable_alloc(out, 1024);
+    struct s2n_stuffer *out = &conn->external_ctx.ephemeral_key_io;
+    s2n_stuffer_alloc(out, 1024);
 
     /* Duplicate the DH key from the config */
     GUARD(s2n_dh_params_copy(conn->config->dhparams, &conn->secure.server_dh_params));
@@ -273,8 +276,9 @@ static int s2n_dhe_server_key_send_external(struct s2n_connection *conn)
     GUARD(s2n_sign_external(conn->config->external_dhe_sign,
                             conn->secure.signature_hash.alg,
                             &(conn->secure.signature_hash),
-                            &(conn->config->external_dhe_ctx.status),
-                            &(conn->config->external_dhe_ctx.result)));
+                            (int32_t*)&(conn->external_ctx.sign_status),
+                            &(conn->external_ctx.signed_hash_size),
+                            &(conn->external_ctx.signed_hash)));
 
     return 0;
 }

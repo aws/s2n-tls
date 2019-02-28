@@ -207,7 +207,7 @@ int read_private_key_pem(char *private_key_pem, uint32_t *private_key_pem_length
   return 0;
 }
 
-int external_rsa_decrypt(int32_t *status, uint32_t* result_size, uint8_t *result, uint8_t *in, uint32_t in_length, const char *pem_path) {
+int external_rsa_decrypt(int32_t *status, uint32_t result_size, uint8_t *result, uint8_t *in, uint32_t in_length, const char *pem_path) {
     uint32_t private_key_pem_length = 0;
     char *private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE);
     GUARD(read_private_key_pem(private_key_pem, &private_key_pem_length, pem_path));
@@ -294,11 +294,12 @@ int external_dhe_sign(int32_t *status, uint32_t *result_size, uint8_t **result, 
     signature.size = signature_size;
 
     // copy signature to the result
-    *result = malloc(signature.size);
+    struct s2n_blob mem = {0};
+    s2n_alloc(&mem, signature.size);
+    memcpy_check(mem.data, signature.data, signature.size);
 
-    *result_size = signature_size;
-
-    memcpy_check(*result, signature.data, signature_size);
+    *result = mem.data;
+    *result_size = mem.size;
     *status = 2;
 
     // free local memory
@@ -307,14 +308,14 @@ int external_dhe_sign(int32_t *status, uint32_t *result_size, uint8_t **result, 
     return 0;
 }
 
-int external_dhe_default_sign(uint8_t *status, uint8_t **result, uint8_t hash_algorithm, const uint8_t* hash_digest)
+int external_dhe_default_sign(int32_t *status, uint32_t* result_size, uint8_t **result, uint8_t hash_algorithm, const uint8_t *hash_digest)
 {
-    return external_dhe_sign(status, result, hash_algorithm, hash_digest, S2N_DEFAULT_TEST_PRIVATE_KEY);
+    return external_dhe_sign(status, result_size, result, hash_algorithm, hash_digest, S2N_DEFAULT_TEST_PRIVATE_KEY);
 }
 
-int external_dhe_ecdsa_sign(uint8_t *status, uint8_t **result, uint8_t hash_algorithm, const uint8_t* hash_digest)
+int external_dhe_ecdsa_sign(int32_t *status, uint32_t* result_size, uint8_t **result, uint8_t hash_algorithm, const uint8_t *hash_digest)
 {
-    return external_dhe_sign(status, result, hash_algorithm, hash_digest, S2N_ECDSA_P384_PKCS1_KEY);
+    return external_dhe_sign(status, result_size, result, hash_algorithm, hash_digest, S2N_ECDSA_P384_PKCS1_KEY);
 }
 
 int main(int argc, char **argv)

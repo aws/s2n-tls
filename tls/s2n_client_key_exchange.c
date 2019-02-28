@@ -83,8 +83,10 @@ static int s2n_rsa_client_key_recv_with_external_decrypt(struct s2n_connection *
      *  - set the status flag in the external rsa context to S2N_EXTERNAL_INVOKED which indicates we are waiting for the external decrypt to return. */
 
     /* Allocate memory for the external context */
-    conn->external_ctx.pre_master_key = malloc(S2N_TLS_SECRET_LEN);
-    conn->external_ctx.pre_master_key_size = S2N_TLS_SECRET_LEN;
+    struct s2n_blob mem = {0};
+    GUARD(s2n_alloc(&mem, S2N_TLS_SECRET_LEN));
+    conn->external_ctx.pre_master_key = mem.data;
+    conn->external_ctx.pre_master_key_size = mem.size;
     S2N_ERROR_IF(NULL == conn->external_ctx.pre_master_key, S2N_ERR_ALLOC);
 
     /* set the status to in progress */
@@ -212,10 +214,12 @@ static int s2n_dhe_client_key_recv(struct s2n_connection *conn)
 static int s2n_free_external_ctx_pre_master_key(struct s2n_connection *conn)
 {
     notnull_check(conn);
-    free(conn->external_ctx.pre_master_key);
+    struct s2n_blob mem = {0};
+    GUARD(s2n_blob_init(&mem, conn->external_ctx.pre_master_key, conn->external_ctx.pre_master_key_size));
+    GUARD(s2n_free(&mem));
     conn->external_ctx.pre_master_key = NULL;
     conn->external_ctx.pre_master_key_size = 0;
-    
+
     return 0;
 }
 

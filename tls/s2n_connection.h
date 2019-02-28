@@ -47,10 +47,10 @@ typedef enum {
 } s2n_session_ticket_status;
 
 typedef enum {
-    S2N_EXTERNAL_NOT_INVOKED = 0, //external request has not been invoked yet;
-    S2N_EXTERNAL_INVOKED,         //external request has been invoked but not result has come back yet;
-    S2N_EXTERNAL_RETURNED,        //external request has completed and output is copied to the byte array result;
-    S2N_EXTERNAL_ERROR            //external request has completed but error occurred.
+    S2N_EXTERNAL_NOT_INVOKED  = 0,  //external request has not been invoked yet;
+    S2N_EXTERNAL_INVOKED      = 1,  //external request has been invoked but not result has come back yet;
+    S2N_EXTERNAL_RETURNED     = 2,  //external request has completed and output is copied to the byte array result;
+    S2N_EXTERNAL_ERROR        = 3   //external request has completed but error occurred.
 } s2n_external_key_server_status;
 
 struct s2n_ext_ctx {
