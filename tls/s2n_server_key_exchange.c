@@ -37,7 +37,8 @@ static int s2n_ecdhe_server_key_send(struct s2n_connection *conn);
 static int s2n_dhe_server_key_send(struct s2n_connection *conn);
 static int s2n_write_io_with_external_result(struct s2n_connection *conn);
 static int s2n_write_signature_blob(struct s2n_stuffer *out, const struct s2n_pkey *priv_key, struct s2n_hash_state *digest);
-static int s2n_sign_external(dhe_sign_async_fn external_sign_fn, s2n_hash_algorithm hash_algorithm, struct s2n_hash_state *hash_state, int32_t *status, uint32_t *result_size, uint8_t **result);
+static int s2n_sign_external(dhe_sign_async_fn external_sign_fn, s2n_hash_algorithm hash_algorithm,
+                             struct s2n_hash_state *hash_state, int32_t *status, uint32_t *result_size, uint8_t **result);
 
 int s2n_server_key_recv(struct s2n_connection *conn)
 {
@@ -206,7 +207,8 @@ int s2n_server_key_send_external(struct s2n_connection *conn)
     }
 }
 
-static int s2n_sign_external(dhe_sign_async_fn external_sign_fn, s2n_hash_algorithm hash_algorithm, struct s2n_hash_state *hash_state, int32_t *status, uint32_t *result_size, uint8_t **result)
+static int s2n_sign_external(dhe_sign_async_fn external_sign_fn, s2n_hash_algorithm hash_algorithm,
+    struct s2n_hash_state *hash_state, int32_t *status, uint32_t *result_size, uint8_t **result)
 {
     // prepare the digest_out blob
     uint32_t digest_out_length = S2N_MAX_DIGEST_LEN;
