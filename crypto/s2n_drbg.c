@@ -24,6 +24,9 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
 
+#define s2n_drbg_key_size(drgb) EVP_CIPHER_CTX_key_length((drbg)->ctx)
+#define s2n_drbg_seed_size(drgb) (S2N_DRBG_BLOCK_SIZE + s2n_drbg_key_size(drgb))
+
 static int s2n_drbg_block_encrypt(EVP_CIPHER_CTX * ctx, uint8_t in[S2N_DRBG_BLOCK_SIZE], uint8_t out[S2N_DRBG_BLOCK_SIZE])
 {
     int len = S2N_DRBG_BLOCK_SIZE;
@@ -61,7 +64,7 @@ static int s2n_drbg_bits(struct s2n_drbg *drbg, struct s2n_blob *out)
 
 static int s2n_drbg_update(struct s2n_drbg *drbg, struct s2n_blob *provided_data)
 {
-    uint8_t temp[S2N_MAX_SEED_SIZE];
+    uint8_t temp[S2N_DRBG_MAX_SEED_SIZE];
     struct s2n_blob temp_blob = {.data = temp,.size = s2n_drbg_seed_size(drgb) };
 
     eq_check(provided_data->size, s2n_drbg_seed_size(drbg));
@@ -83,7 +86,7 @@ static int s2n_drbg_update(struct s2n_drbg *drbg, struct s2n_blob *provided_data
 
 static int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
 {
-    uint8_t seed[S2N_MAX_SEED_SIZE] = {0};
+    uint8_t seed[S2N_DRBG_MAX_SEED_SIZE] = {0};
     struct s2n_blob blob = {.data = seed,.size = s2n_drbg_seed_size(drbg) };
     lte_check(ps->size, blob.size);
 
@@ -105,21 +108,35 @@ static int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
     return 0;
 }
 
-static int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string)
+int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string, const enum s2n_drbg_mode mode)
 {
-    lte_check(s2n_drbg_key_size(drbg), S2N_DRBG_MAX_KEY_SIZE);
-    lte_check(s2n_drbg_seed_size(drbg), S2N_MAX_SEED_SIZE);
+    drbg->ctx = EVP_CIPHER_CTX_new();
+    S2N_ERROR_IF(!drbg->ctx, S2N_ERR_DRBG);
+
+#if (S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0))
+    GUARD_OSSL(EVP_CIPHER_CTX_init(drbg->ctx), S2N_ERR_DRBG);
+#else
+    EVP_CIPHER_CTX_init(drbg->ctx);
+#endif
 
     static const uint8_t zero_key[S2N_DRBG_MAX_KEY_SIZE] = {0};
     struct s2n_blob value = {.data = drbg->v,.size = sizeof(drbg->v) };
-    uint8_t ps_prefix[S2N_MAX_SEED_SIZE] = {0};
-    struct s2n_blob ps = {.data = ps_prefix,.size = s2n_drbg_seed_size(drbg) };
-
-    /* Start off with zeroed data, per 10.2.1.3.1 item 4 */
+    /* Start off with zeroed data, per 10.2.1.3.1 item 4 and 5 */
     GUARD(s2n_blob_zero(&value));
 
-    /* Start off with zeroed key, per 10.2.1.3.1 item 5 */
-    GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, NULL, NULL, zero_key, NULL), S2N_ERR_DRBG);
+    if (mode == S2N_AES_128_CTR_NO_DF_PR) {
+        GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_128_ecb(), NULL, zero_key, NULL), S2N_ERR_DRBG);
+    } else if (mode == S2N_AES_256_CTR_NO_DF_PR) {
+        GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_256_ecb(), NULL, zero_key, NULL), S2N_ERR_DRBG);
+    } else {
+        S2N_ERROR(S2N_ERR_DRBG);
+    }
+
+    lte_check(s2n_drbg_key_size(drbg), S2N_DRBG_MAX_KEY_SIZE);
+    lte_check(s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
+
+    uint8_t ps_prefix[S2N_DRBG_MAX_SEED_SIZE] = {0};
+    struct s2n_blob ps = {.data = ps_prefix,.size = s2n_drbg_seed_size(drbg) };
 
     /* Copy the personalization string */
     GUARD(s2n_blob_zero(&ps));
@@ -136,27 +153,9 @@ static int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personal
     return 0;
 }
 
-int s2n_new_aes128_drbg(struct s2n_drbg *drbg, struct s2n_blob *personalization_string)
-{
-    drbg->ctx = EVP_CIPHER_CTX_new();
-    S2N_ERROR_IF(!drbg->ctx, S2N_ERR_DRBG);
-    (void)EVP_CIPHER_CTX_init(drbg->ctx);
-    GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_128_ecb(), NULL, NULL, NULL), S2N_ERR_DRBG);
-    return s2n_drbg_instantiate(drbg, personalization_string);
-}
-
-int s2n_new_aes256_drbg(struct s2n_drbg *drbg, struct s2n_blob *personalization_string)
-{
-    drbg->ctx = EVP_CIPHER_CTX_new();
-    S2N_ERROR_IF(!drbg->ctx, S2N_ERR_DRBG);
-    (void)EVP_CIPHER_CTX_init(drbg->ctx);
-    GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_256_ecb(), NULL, NULL, NULL), S2N_ERR_DRBG);
-    return s2n_drbg_instantiate(drbg, personalization_string);
-}
-
 int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob)
 {
-    uint8_t all_zeros[S2N_MAX_SEED_SIZE] = {0};
+    uint8_t all_zeros[S2N_DRBG_MAX_SEED_SIZE] = {0};
     struct s2n_blob zeros = {.data = all_zeros,.size = s2n_drbg_seed_size(drbg) };
     S2N_ERROR_IF(blob->size > S2N_DRBG_GENERATE_LIMIT, S2N_ERR_DRBG_REQUEST_SIZE);
 

@@ -22,17 +22,13 @@
 
 #define S2N_DRBG_BLOCK_SIZE 16
 #define S2N_DRBG_MAX_KEY_SIZE 32
-#define S2N_MAX_SEED_SIZE (S2N_DRBG_BLOCK_SIZE + S2N_DRBG_MAX_KEY_SIZE)
+#define S2N_DRBG_MAX_SEED_SIZE (S2N_DRBG_BLOCK_SIZE + S2N_DRBG_MAX_KEY_SIZE)
 
 /* The maximum size of any one request: from NIST SP800-90A 10.2.1 Table 3 */
 #define S2N_DRBG_GENERATE_LIMIT 8192
 
 /* We reseed after 2^35 bytes have been generated: from NIST SP800-90A 10.2.1 Table 3 */
 #define S2N_DRBG_RESEED_LIMIT   34359738368
-
-#define s2n_drbg_key_size(drgb) EVP_CIPHER_CTX_key_length((drbg)->ctx)
-#define s2n_drbg_seed_size(drgb) (S2N_DRBG_BLOCK_SIZE + s2n_drbg_key_size(drgb))
-
 
 struct s2n_drbg {
     /* Track how many bytes have been used */
@@ -56,16 +52,23 @@ struct s2n_drbg {
     uint32_t generation;
 };
 
+/*
+ * S2N_AES_128_CTR_NO_DF_PR is a deterministic random bit generator using AES 128 in counter mode (AES_128_CTR). It does not
+ * use a derivation function (NO_DF) on the seed but does have prediction resistance (PR).
+ *
+ * S2N_AES_256_CTR_NO_DF_PR is a deterministic random bit generator using AES 256 in counter mode (AES_128_CTR). It does not
+ * use a derivation function on the seed but does have prediction resistance.
+ */
+enum s2n_drbg_mode {S2N_AES_128_CTR_NO_DF_PR, S2N_AES_256_CTR_NO_DF_PR};
+
 /* Per NIST SP 800-90C 6.3
  *
  * s2n's DRBG does provide prediction resistance
  * and does not support the additional_input parameter (which per 800-90C may be zero).
  *
-  * The security strength provided by s2n's DRBG is either 128 or 256 bits depending on if
-  * s2n_new_aes128_drbg or s2n_new_aes256_drbg is called.
+  * The security strength provided by s2n's DRBG is either 128 or 256 bits depending on the s2n_drbg_mode passed in.
  */
-extern int s2n_new_aes128_drbg(struct s2n_drbg *drbg, struct s2n_blob *personalization_string);
-extern int s2n_new_aes256_drbg(struct s2n_drbg *drbg, struct s2n_blob *personalization_string);
+extern int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string, const enum s2n_drbg_mode mode);
 extern int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *returned_bits);
 extern int s2n_drbg_wipe(struct s2n_drbg *drbg);
 extern int s2n_drbg_bytes_used(struct s2n_drbg *drbg);

@@ -273,6 +273,54 @@ int nist_fake_256_urandom_data(struct s2n_blob *blob)
     return 0;
 }
 
+int check_drgb_version(enum s2n_drbg_mode mode, int (*generator)(struct s2n_blob *), int personalization_size,
+        const char personalization_hex[], const char reference_values_hex[], const char returned_bits_hex[]) {
+
+    DEFER_CLEANUP(struct s2n_stuffer personalization = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer returned_bits = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer reference_values = {{0}}, s2n_stuffer_free);
+    GUARD(s2n_stuffer_alloc_ro_from_hex_string(&personalization, personalization_hex));
+    GUARD(s2n_stuffer_alloc_ro_from_hex_string(&returned_bits, returned_bits_hex));
+    GUARD(s2n_stuffer_alloc_ro_from_hex_string(&reference_values, reference_values_hex));
+    for (int i = 0; i < 14; i++) {
+        uint8_t ps[S2N_DRBG_MAX_SEED_SIZE] = {0};
+        struct s2n_drbg nist_drbg = {.entropy_generator = generator};
+        struct s2n_blob personalization_string = {.data = ps, .size = personalization_size};
+        /* Read the next personalization string */
+        GUARD(s2n_stuffer_read(&personalization, &personalization_string));
+
+        /* Instantiate the DRBG */
+        GUARD(s2n_drbg_instantiate(&nist_drbg, &personalization_string, mode));
+
+        uint8_t nist_v[16];
+
+        GUARD(s2n_stuffer_read_bytes(&reference_values, nist_v, sizeof(nist_v)));
+        eq_check(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)), 0);
+
+        /* Generate 512 bits (FIRST CALL) */
+        uint8_t out[64];
+        struct s2n_blob generated = {.data = out, .size = 64 };
+        GUARD(s2n_drbg_generate(&nist_drbg, &generated));
+
+        GUARD(s2n_stuffer_read_bytes(&reference_values, nist_v, sizeof(nist_v)));
+        eq_check(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)), 0);
+
+        /* Generate another 512 bits (SECOND CALL) */
+        GUARD(s2n_drbg_generate(&nist_drbg, &generated));
+
+        GUARD(s2n_stuffer_read_bytes(&reference_values, nist_v, sizeof(nist_v)));
+        eq_check(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)), 0);
+
+        uint8_t nist_returned_bits[64];
+        GUARD(s2n_stuffer_read_bytes(&returned_bits, nist_returned_bits,
+                                     sizeof(nist_returned_bits)));
+        eq_check(memcmp(nist_returned_bits, out, sizeof(nist_returned_bits)), 0);
+
+        GUARD(s2n_drbg_wipe(&nist_drbg));
+    }
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -280,109 +328,24 @@ int main(int argc, char **argv)
     /* Open /dev/urandom */
     EXPECT_TRUE(entropy_fd = open("/dev/urandom", O_RDONLY));
 
-    {
-        /* Check everything against the NIST AES 128 vectors */
-        DEFER_CLEANUP(struct s2n_stuffer nist_aes128_reference_personalization_strings = {{0}}, s2n_stuffer_free);
-        DEFER_CLEANUP(struct s2n_stuffer nist_aes128_reference_returned_bits = {{0}}, s2n_stuffer_free);
-        DEFER_CLEANUP(struct s2n_stuffer nist_aes128_reference_values = {{0}}, s2n_stuffer_free);
-        EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&nist_aes128_reference_entropy, nist_aes128_reference_entropy_hex));
-        EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&nist_aes128_reference_personalization_strings, nist_aes128_reference_personalization_strings_hex));
-        EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&nist_aes128_reference_returned_bits, nist_aes128_reference_returned_bits_hex));
-        EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&nist_aes128_reference_values, nist_aes128_reference_values_hex));
-        for (int i = 0; i < 14; i++) {
-            uint8_t ps[32] = {0};
-            struct s2n_drbg nist_drbg = {.entropy_generator = nist_fake_128_urandom_data};
-            struct s2n_blob personalization_string = {.data = ps, .size = 32};
-            /* Read the next personalization string */
-            EXPECT_SUCCESS(s2n_stuffer_read(&nist_aes128_reference_personalization_strings, &personalization_string));
+    /* Check everything against the NIST AES 128 vectors */
+    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&nist_aes128_reference_entropy, nist_aes128_reference_entropy_hex));
+    EXPECT_SUCCESS(check_drgb_version(S2N_AES_128_CTR_NO_DF_PR, &nist_fake_128_urandom_data, 32, nist_aes128_reference_personalization_strings_hex,
+                       nist_aes128_reference_values_hex, nist_aes128_reference_returned_bits_hex));
 
-            /* Instantiate the DRBG */
-            EXPECT_SUCCESS(s2n_new_aes128_drbg(&nist_drbg, &personalization_string));
+    /* Check everything against the NIST AES 256 vectors */
+    DEFER_CLEANUP(struct s2n_stuffer temp1 = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer temp2 = {{0}}, s2n_stuffer_free);
+    /* Combine nist_aes256_reference_entropy_hex_part1 and nist_aes256_reference_entropy_hex_part2 to avoid C99
+     * string length limit. */
+    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&temp1, nist_aes256_reference_entropy_hex_part1));
+    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&temp2, nist_aes256_reference_entropy_hex_part2));
+    EXPECT_SUCCESS(s2n_stuffer_alloc(&nist_aes256_reference_entropy, temp1.write_cursor + temp2.write_cursor));
+    EXPECT_SUCCESS(s2n_stuffer_copy(&temp1, &nist_aes256_reference_entropy, temp1.write_cursor));
+    EXPECT_SUCCESS(s2n_stuffer_copy(&temp2, &nist_aes256_reference_entropy, temp2.write_cursor));
 
-            uint8_t nist_v[16];
-
-            GUARD(s2n_stuffer_read_bytes(&nist_aes128_reference_values, nist_v, sizeof(nist_v)));
-            EXPECT_TRUE(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)) == 0);
-
-            /* Generate 512 bits (FIRST CALL) */
-            uint8_t out[64];
-            struct s2n_blob generated = {.data = out, .size = 64};
-            EXPECT_SUCCESS(s2n_drbg_generate(&nist_drbg, &generated));
-
-            GUARD(s2n_stuffer_read_bytes(&nist_aes128_reference_values, nist_v, sizeof(nist_v)));
-            EXPECT_TRUE(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)) == 0);
-
-            /* Generate another 512 bits (SECOND CALL) */
-            EXPECT_SUCCESS(s2n_drbg_generate(&nist_drbg, &generated));
-
-            GUARD(s2n_stuffer_read_bytes(&nist_aes128_reference_values, nist_v, sizeof(nist_v)));
-            EXPECT_TRUE(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)) == 0);
-
-            uint8_t nist_returned_bits[64];
-            GUARD(s2n_stuffer_read_bytes(&nist_aes128_reference_returned_bits, nist_returned_bits,
-                                         sizeof(nist_returned_bits)));
-            EXPECT_TRUE(memcmp(nist_returned_bits, out, sizeof(nist_returned_bits)) == 0);
-
-            EXPECT_SUCCESS(s2n_drbg_wipe(&nist_drbg));
-        }
-    }
-
-    {
-        /* Check everything against the NIST AES 256 vectors */
-        DEFER_CLEANUP(struct s2n_stuffer temp1 = {{0}}, s2n_stuffer_free);
-        DEFER_CLEANUP(struct s2n_stuffer temp2 = {{0}}, s2n_stuffer_free);
-        DEFER_CLEANUP(struct s2n_stuffer nist_aes256_reference_personalization_strings = {{0}}, s2n_stuffer_free);
-        DEFER_CLEANUP(struct s2n_stuffer nist_aes256_reference_returned_bits = {{0}}, s2n_stuffer_free);
-        DEFER_CLEANUP(struct s2n_stuffer nist_aes256_reference_values = {{0}}, s2n_stuffer_free);
-
-        /* Combine nist_aes256_reference_entropy_hex_part1 and nist_aes256_reference_entropy_hex_part2 to avoid C99
-         * string length limit. */
-        EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&temp1, nist_aes256_reference_entropy_hex_part1));
-        EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&temp2, nist_aes256_reference_entropy_hex_part2));
-        EXPECT_SUCCESS(s2n_stuffer_alloc(&nist_aes256_reference_entropy, temp1.write_cursor + temp2.write_cursor));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&temp1, &nist_aes256_reference_entropy, temp1.write_cursor));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&temp2, &nist_aes256_reference_entropy, temp2.write_cursor));
-        EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&nist_aes256_reference_personalization_strings, nist_aes256_reference_personalization_strings_hex));
-        EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&nist_aes256_reference_returned_bits, nist_aes256_reference_returned_bits_hex));
-        EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&nist_aes256_reference_values, nist_aes256_reference_values_hex));
-
-        for (int i = 0; i < 14; i++) {
-            uint8_t ps[48] = {0};
-            struct s2n_drbg nist_drbg = {.entropy_generator = nist_fake_256_urandom_data};
-            struct s2n_blob personalization_string = {.data = ps, .size = 48};
-            /* Read the next personalization string */
-            EXPECT_SUCCESS(s2n_stuffer_read(&nist_aes256_reference_personalization_strings, &personalization_string));
-
-            /* Instantiate the DRBG */
-            EXPECT_SUCCESS(s2n_new_aes256_drbg(&nist_drbg, &personalization_string));
-
-            uint8_t nist_v[16];
-
-            GUARD(s2n_stuffer_read_bytes(&nist_aes256_reference_values, nist_v, sizeof(nist_v)));
-            EXPECT_TRUE(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)) == 0);
-
-            /* Generate 512 bits (FIRST CALL) */
-            uint8_t out[64];
-            struct s2n_blob generated = {.data = out, .size = 64};
-            EXPECT_SUCCESS(s2n_drbg_generate(&nist_drbg, &generated));
-
-            GUARD(s2n_stuffer_read_bytes(&nist_aes256_reference_values, nist_v, sizeof(nist_v)));
-            EXPECT_TRUE(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)) == 0);
-
-            /* Generate another 512 bits (SECOND CALL) */
-            EXPECT_SUCCESS(s2n_drbg_generate(&nist_drbg, &generated));
-
-            GUARD(s2n_stuffer_read_bytes(&nist_aes256_reference_values, nist_v, sizeof(nist_v)));
-            EXPECT_TRUE(memcmp(nist_v, nist_drbg.v, sizeof(nist_drbg.v)) == 0);
-
-            uint8_t nist_returned_bits[64];
-            GUARD(s2n_stuffer_read_bytes(&nist_aes256_reference_returned_bits, nist_returned_bits,
-                                         sizeof(nist_returned_bits)));
-            EXPECT_TRUE(memcmp(nist_returned_bits, out, sizeof(nist_returned_bits)) == 0);
-
-            EXPECT_SUCCESS(s2n_drbg_wipe(&nist_drbg));
-        }
-    }
+    EXPECT_SUCCESS(check_drgb_version(S2N_AES_256_CTR_NO_DF_PR, &nist_fake_256_urandom_data, 48, nist_aes256_reference_personalization_strings_hex,
+                       nist_aes256_reference_values_hex, nist_aes256_reference_returned_bits_hex));
 
     uint8_t data[256] = {0};
     struct s2n_drbg aes128_drbg = {0};
@@ -393,8 +356,8 @@ int main(int argc, char **argv)
     uint64_t aes256_drbg_nanoseconds;
     uint64_t urandom_nanoseconds;
 
-    EXPECT_SUCCESS(s2n_new_aes128_drbg(&aes128_drbg, &blob));
-    EXPECT_SUCCESS(s2n_new_aes256_drbg(&aes256_drbg, &blob));
+    EXPECT_SUCCESS(s2n_drbg_instantiate(&aes128_drbg, &blob, S2N_AES_128_CTR_NO_DF_PR));
+    EXPECT_SUCCESS(s2n_drbg_instantiate(&aes256_drbg, &blob, S2N_AES_256_CTR_NO_DF_PR));
 
     struct s2n_config *config;
     EXPECT_NOT_NULL(config = s2n_config_new());
