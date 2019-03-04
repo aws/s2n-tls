@@ -514,7 +514,7 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config,
 | "20150306" |       |   X    |    X   |    X   |    X    |                   |       |    X    |  X   |     |     |   X   |
 | "20150214" |       |   X    |    X   |    X   |    X    |                   |       |    X    |  X   |     |  X  |       |
 | "20150202" |       |   X    |    X   |    X   |    X    |                   |       |         |  X   |     |  X  |       |
-| "201.1.11" |       |   X    |    X   |    X   |    X    |                   |       |         |  X   |  X  |  X  |       |
+| "20141001" |       |   X    |    X   |    X   |    X    |                   |       |         |  X   |  X  |  X  |       |
 | "20140601" |   X   |   X    |    X   |    X   |    X    |                   |       |         |  X   |  X  |  X  |       |
 
 The "default" version is special in that it will be updated with future s2n changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change. 
