@@ -1,5 +1,5 @@
 #
-# Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -24,9 +24,11 @@ import sys
 import subprocess
 import itertools
 import multiprocessing
+import threading
 from os import environ
 from multiprocessing.pool import ThreadPool
 from s2n_test_constants import *
+from time import sleep
 
 PROTO_VERS_TO_S_CLIENT_ARG = {
     S2N_TLS10 : "-tls1",
@@ -35,14 +37,103 @@ PROTO_VERS_TO_S_CLIENT_ARG = {
 }
 
 S_CLIENT_SUCCESSFUL_OCSP="OCSP Response Status: successful"
+S_CLIENT_NEGOTIATED_CIPHER_PREFIX="Cipher    : "
+
+def communicate_processes(*processes):
+    outs = []
+    for p in processes:
+        p.kill()
+        out = p.communicate()[0].decode("utf-8").split('\n')
+        outs.append(out)
+
+    return outs
 
 def cleanup_processes(*processes):
     for p in processes:
         p.kill()
         p.wait()
 
-def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, ocsp=None, sig_algs=None, curves=None, resume=False,
-        prefer_low_latency=False, enter_fips_mode=False, client_auth=None, client_cert=DEFAULT_CLIENT_CERT_PATH, client_key=DEFAULT_CLIENT_KEY_PATH):
+def validate_data_transfer(expected_data, s_client_out, s2nd_out):
+    """
+    Verify that the application data written between s_client and s2nd is encrypted and decrypted successfuly.
+    """
+    found = 0
+    s2nd_out_len = len(s2nd_out)
+    s_client_out_len = len(s_client_out)
+    for i in range(0, s2nd_out_len):
+        output = s2nd_out[i].strip()
+        if output == expected_data:
+            found = 1
+            break
+
+    if found == 0:
+        print ("Did not find " + expected_data + " in output from s2nd")
+        return -1
+
+    found = 0
+    for i in range(0, s_client_out_len):
+        output = s_client_out[i].strip()
+        if output == expected_data:
+            found = 1
+            break
+
+    if found == 0:
+        print ("Did not find " + expected_data + " in output from s_client")
+        return -1
+
+    return 0
+
+def validate_resume(s2nd_out):
+    """
+    Verify that s2nd properly resumes sessions.
+    """
+    seperators = 0
+    s2nd_out_len = len(s2nd_out)
+    for i in range(0, s2nd_out_len):
+        output = s2nd_out[i].strip()
+        if output.startswith("Resumed session"):
+            seperators += 1
+
+        if seperators == 5:
+            break
+
+    if seperators != 5:
+        print ("Validate resumption failed")
+        return -1
+
+    return 0
+
+def validate_ocsp(s_client_out):
+    """
+    Verify that stapled OCSP response is accepted by s_client.
+    """
+    s_client_out_len = len(s_client_out)
+    for i in range(0, s_client_out_len):
+        output = s_client_out[i].strip()
+        if S_CLIENT_SUCCESSFUL_OCSP in output:
+            return 0
+            break
+    print ("Validate OCSP failed")
+    return -1
+
+def find_expected_cipher(expected_cipher, s_client_out):
+    """
+    Make sure s_client and s2nd negotiate the cipher suite we expect
+    """
+    s_client_out_len = len(s_client_out)
+    full_expected_string = S_CLIENT_NEGOTIATED_CIPHER_PREFIX + expected_cipher
+    for i in range(0, s_client_out_len):
+        output = s_client_out[i].strip()
+        if full_expected_string in output:
+            return 0
+            break
+    print("Failed to find " + expected_cipher + " in s_client output")
+    return -1
+
+def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, server_cert_key_list=None, server_cipher_pref=None,
+        ocsp=None, sig_algs=None, curves=None, resume=False, no_ticket=False, prefer_low_latency=False, enter_fips_mode=False,
+        client_auth=None, client_cert=DEFAULT_CLIENT_CERT_PATH, client_key=DEFAULT_CLIENT_KEY_PATH,
+        expected_cipher=None):
     """
     Attempt to handshake against s2nd listening on `endpoint` and `port` using Openssl s_client
 
@@ -52,24 +143,27 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     :param int ssl_version: SSL version for s_client to use
     :param str server_cert: path to certificate for s2nd to use
     :param str server_key: path to private key for s2nd to use
+    :param list server_cert_key_list: a list of (cert_path, key_path) tuples for multicert tests.
     :param str ocsp: path to OCSP response file for stapling
     :param str sig_algs: Signature algorithms for s_client to offer
     :param str curves: Elliptic curves for s_client to offer
     :param bool resume: True if s_client should try to reconnect to s2nd and reuse the same TLS session. False for normal negotiation.
+    :param bool no_ticket: True if s2n server should not use session ticket to resume the same TLS session.
     :param bool prefer_low_latency: True if s2nd should use 1500 for max outgoing record size. False for default max.
     :param bool enter_fips_mode: True if s2nd should enter libcrypto's FIPS mode. Libcrypto must be built with a FIPS module to enter FIPS mode.
     :param bool client_auth: True if the test should try and use client authentication
     :param str client_cert: Path to the client's cert file
     :param str client_key: Path to the client's private key file
+    :param str expected_cipher: the cipher we expect to negotiate
     :return: 0 on successfully negotiation(s), -1 on failure
     """
 
     # Override certificate for ECDSA if unspecified. We can remove this when we
     # support multiple certificates
-    if server_cert is None and "ECDSA" in cipher:
+    if server_cert is None and server_cert_key_list is None and "ECDSA" in cipher:
         server_cert = TEST_ECDSA_CERT
         server_key = TEST_ECDSA_KEY
-   
+
     # Fire up s2nd
     s2nd_cmd = ["../../bin/s2nd"]
 
@@ -77,6 +171,12 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
         s2nd_cmd.extend(["--cert", server_cert])
     if server_key is not None:
         s2nd_cmd.extend(["--key", server_key])
+    if server_cert_key_list is not None:
+        for cert_key_path in server_cert_key_list:
+            cert_path = cert_key_path[0]
+            key_path = cert_key_path[1]
+            s2nd_cmd.extend(["--cert", cert_path])
+            s2nd_cmd.extend(["--key", key_path])
     if ocsp is not None:
         s2nd_cmd.extend(["--ocsp", ocsp])
     if prefer_low_latency == True:
@@ -86,20 +186,22 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
         s2nd_cmd.extend(["-t", client_cert])
 
     s2nd_cmd.extend([str(endpoint), str(port)])
-    
+
     s2nd_ciphers = "test_all"
+    if server_cipher_pref is not None:
+        s2nd_ciphers = server_cipher_pref
     if enter_fips_mode == True:
         s2nd_ciphers = "test_all_fips"
         s2nd_cmd.append("--enter-fips-mode")
-    if "ECDSA" in cipher:
-        s2nd_ciphers = "test_all_ecdsa"
     s2nd_cmd.append("-c")
     s2nd_cmd.append(s2nd_ciphers)
-    
+    if no_ticket:
+        s2nd_cmd.append("-T")
+
     s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
     # Make sure it's running
-    s2nd.stdout.readline()
+    sleep(0.1)
 
     s_client_cmd = ["openssl", "s_client", PROTO_VERS_TO_S_CLIENT_ARG[ssl_version],
             "-connect", str(endpoint) + ":" + str(port)]
@@ -120,64 +222,47 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     # Fire up s_client
     s_client = subprocess.Popen(s_client_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
-    # Validate that s_client resumes successfully against s2nd
-    if resume is True:
-        seperators = 0
-        for line in s2nd.stdout:
-            line = line.decode("utf-8").strip()
-            if line.startswith("Resumed session"):
-                seperators += 1
+    # Wait for resumption
+    sleep(0.1)
 
-            if seperators == 5:
-                break
-
-        if seperators != 5:
-            cleanup_processes(s2nd, s_client)
-            return -1
-
-    # Validate that s_client accepted s2nd's stapled OCSP response
-    if ocsp is not None:
-        ocsp_success = False
-        for line in s_client.stdout:
-            line = line.decode("utf-8").strip()
-            if S_CLIENT_SUCCESSFUL_OCSP in line:
-                ocsp_success = True
-                break
-        if not ocsp_success:
-            cleanup_processes(s2nd, s_client)
-            return -1
-
-    # Write the cipher name towards s2n
-    s_client.stdin.write((cipher + "\n").encode("utf-8"))
+    # Write the cipher name towards s2n server
+    msg = (cipher + "\n").encode("utf-8")
+    s_client.stdin.write(msg)
     s_client.stdin.flush()
 
-    # Read it
-    found = 0
-    for line in range(0, 10):
-        output = s2nd.stdout.readline().decode("utf-8")
-        if output.strip() == cipher:
-            found = 1
-            break
-
-    if found == 0:
-        cleanup_processes(s2nd, s_client)
-        return -1
-
-    # Write the cipher name from s2n
-    s2nd.stdin.write((cipher + "\n").encode("utf-8"))
+    # Wait for pipe ready for write
+    sleep(0.1)
+    # Write the cipher name from s2n server to client
+    s2nd.stdin.write(msg)
     s2nd.stdin.flush()
-    found = 0
-    for line in range(0, 512):
-        output = s_client.stdout.readline().decode("utf-8")
-        if output.strip() == cipher:
-            found = 1
-            break
 
-    if found == 0:
-        cleanup_processes(s2nd, s_client)
+    # Wait for pipe ready for read
+    sleep(0.1)
+    outs = communicate_processes(s_client, s2nd)
+    s2nd_out = outs[1]
+    if '' == s2nd_out:
+        print ("No output from client PIPE, skip")
+        return 0
+
+    s_client_out = outs[0]
+    if '' == s_client_out:
+        print ("No output from client PIPE, skip")
+        return 0
+
+    if validate_data_transfer(cipher, s_client_out, s2nd_out) != 0:
         return -1
 
-    cleanup_processes(s2nd, s_client)
+    if resume is True:
+        if validate_resume(s2nd_out) != 0:
+            return -1
+
+    if ocsp is not None:
+        if validate_ocsp(s_client_out) != 0:
+            return -1
+
+    if expected_cipher is not None:
+        if find_expected_cipher(expected_cipher, s_client_out) != 0:
+            return -1
 
     return 0
 
@@ -207,7 +292,7 @@ def create_thread_pool():
     threadpool = ThreadPool(processes=threadpool_size)
     return threadpool
 
-def run_handshake_test(host, port, ssl_version, cipher, fips_mode, use_client_auth, client_cert_path, client_key_path):
+def run_handshake_test(host, port, ssl_version, cipher, fips_mode, no_ticket, use_client_auth, client_cert_path, client_key_path):
     cipher_name = cipher.openssl_name
     cipher_vers = cipher.min_tls_vers
 
@@ -223,14 +308,14 @@ def run_handshake_test(host, port, ssl_version, cipher, fips_mode, use_client_au
     if (use_client_auth is not None) and (client_cert_path is not None):
         client_cert_str = cert_path_to_str(client_cert_path)
 
-    ret = try_handshake(host, port, cipher_name, ssl_version, enter_fips_mode=fips_mode, client_auth=use_client_auth, client_cert=client_cert_path, client_key=client_key_path)
+    ret = try_handshake(host, port, cipher_name, ssl_version, no_ticket=no_ticket, enter_fips_mode=fips_mode, client_auth=use_client_auth, client_cert=client_cert_path, client_key=client_key_path)
     
     result_prefix = "Cipher: %-28s ClientCert: %-16s Vers: %-8s ... " % (cipher_name, client_cert_str, S2N_PROTO_VERS_TO_STR[ssl_version])
     print_result(result_prefix, ret)
     
     return ret
 
-def handshake_test(host, port, test_ciphers, fips_mode, use_client_auth=None, use_client_cert=None, use_client_key=None):
+def handshake_test(host, port, test_ciphers, fips_mode, no_ticket=False, use_client_auth=None, use_client_cert=None, use_client_key=None):
     """
     Basic handshake tests using all valid combinations of supported cipher suites and TLS versions.
     """
@@ -244,7 +329,7 @@ def handshake_test(host, port, test_ciphers, fips_mode, use_client_auth=None, us
         results = []
         
         for cipher in test_ciphers:
-            async_result = threadpool.apply_async(run_handshake_test, (host, port + port_offset, ssl_version, cipher, fips_mode, use_client_auth, use_client_cert, use_client_key))
+            async_result = threadpool.apply_async(run_handshake_test, (host, port + port_offset, ssl_version, cipher, fips_mode, no_ticket, use_client_auth, use_client_cert, use_client_key))
             port_offset += 1
             results.append(async_result)
 
@@ -262,25 +347,25 @@ def client_auth_test(host, port, test_ciphers, fips_mode):
 
     print("\n\tRunning client auth tests:")
 
-    if fips_mode:
-        print("\t\033[33;1mSKIPPED\033[0m - Client Auth not supported in FIPS mode")
-        return 0
-
     for filename in os.listdir(TEST_CERT_DIRECTORY):
         if "client_cert" in filename and "rsa" in filename:
             client_cert_path = TEST_CERT_DIRECTORY + filename
             client_key_path = TEST_CERT_DIRECTORY + filename.replace("client_cert", "client_key")
-            ret = handshake_test(host, port, test_ciphers, fips_mode, use_client_auth=True, use_client_cert=client_cert_path, use_client_key=client_key_path)
+            ret = handshake_test(host, port, test_ciphers, fips_mode, no_ticket=True, use_client_auth=True, use_client_cert=client_cert_path, use_client_key=client_key_path)
             if ret is not 0:
                 failed += 1
                 
     return failed
 
-def resume_test(host, port, test_ciphers, fips_mode):
+def resume_test(host, port, test_ciphers, fips_mode, no_ticket=False):
     """
     Tests s2n's session resumption capability using all valid combinations of cipher suite and TLS version.
     """
-    print("\n\tRunning resumption tests:")
+    if no_ticket:
+        print("\n\tRunning resumption tests using session id:")
+    else:
+        print("\n\tRunning resumption tests using session ticket:")
+
     failed = 0
     for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
         print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
@@ -295,7 +380,7 @@ def resume_test(host, port, test_ciphers, fips_mode):
             if ssl_version < cipher_vers:
                 continue
 
-            ret = try_handshake(host, port, cipher_name, ssl_version, resume=True, enter_fips_mode=fips_mode)
+            ret = try_handshake(host, port, cipher_name, ssl_version, resume=True, no_ticket=no_ticket, enter_fips_mode=fips_mode)
             result_prefix = "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
             print_result(result_prefix, ret)
             if ret != 0:
@@ -306,18 +391,18 @@ def resume_test(host, port, test_ciphers, fips_mode):
 supported_sigs = ["RSA+SHA1", "RSA+SHA224", "RSA+SHA256", "RSA+SHA384", "RSA+SHA512"]
 unsupported_sigs = ["ECDSA+SHA256", "ECDSA+SHA512"]
 
-def run_sigalg_test(host, port, cipher, ssl_version, permutation, fips_mode, use_client_auth):
+def run_sigalg_test(host, port, cipher, ssl_version, permutation, fips_mode, use_client_auth, no_ticket):
     # Put some unsupported algs in front to make sure we gracefully skip them
     mixed_sigs = unsupported_sigs + list(permutation)
     mixed_sigs_str = ':'.join(mixed_sigs)
-    ret = try_handshake(host, port, cipher.openssl_name, ssl_version, sig_algs=mixed_sigs_str, enter_fips_mode=fips_mode, client_auth=use_client_auth)
+    ret = try_handshake(host, port, cipher.openssl_name, ssl_version, sig_algs=mixed_sigs_str, no_ticket=no_ticket, enter_fips_mode=fips_mode, client_auth=use_client_auth)
         
     # Trim the RSA part off for brevity. User should know we are only supported RSA at the moment.
     prefix = "Digests: %-35s ClientAuth: %-6s Vers: %-8s... " % (':'.join([x[4:] for x in permutation]), str(use_client_auth), S2N_PROTO_VERS_TO_STR[S2N_TLS12])
     print_result(prefix, ret)
     return ret
 
-def sigalg_test(host, port, fips_mode, use_client_auth=None):
+def sigalg_test(host, port, fips_mode, use_client_auth=None, no_ticket=False):
     """
     Acceptance test for supported signature algorithms. Tests all possible supported sigalgs with unsupported ones mixed in
     for noise.
@@ -325,11 +410,6 @@ def sigalg_test(host, port, fips_mode, use_client_auth=None):
     failed = 0
 
     print("\n\tRunning signature algorithm tests:")
-
-    if fips_mode and use_client_auth:
-        print("\t\033[33;1mSKIPPED\033[0m - Client Auth not supported in FIPS mode")
-        return 0
-
     print("\tExpected supported:   " + str(supported_sigs))
     print("\tExpected unsupported: " + str(unsupported_sigs))
 
@@ -343,7 +423,7 @@ def sigalg_test(host, port, fips_mode, use_client_auth=None):
             for cipher in ALL_TEST_CIPHERS:
                 # Try an ECDHE cipher suite and a DHE one
                 if(cipher.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or cipher.openssl_name == "DHE-RSA-AES128-GCM-SHA256"):
-                    async_result = threadpool.apply_async(run_sigalg_test, (host, port + portOffset, cipher, S2N_TLS12, permutation, fips_mode, use_client_auth))
+                    async_result = threadpool.apply_async(run_sigalg_test, (host, port + portOffset, cipher, S2N_TLS12, permutation, fips_mode, use_client_auth, no_ticket))
                     portOffset = portOffset + 1
                     results.append(async_result)
 
@@ -442,6 +522,93 @@ def ocsp_stapling_test(host, port, fips_mode):
 
     return failed
 
+def cert_type_cipher_match_test(host, port):
+    """
+    Test s2n server's ability to correctly choose ciphers. (Especially RSA vs ECDSA)
+    """
+    print("\n\tRunning cipher matching tests:")
+    failed = 0
+
+    cipher = "ALL"
+    supported_curves = "P-256:P-384"
+
+    # Handshake with RSA cert + ECDSApriority server cipher pref (must skip ecdsa ciphers)
+    rsa_ret = try_handshake(host, port, cipher, S2N_TLS12, curves=supported_curves,
+            server_cipher_pref="test_ecdsa_priority")
+    result_prefix = "Cert Type: rsa    Server Pref: ecdsa priority.  Vers: TLSv1.2 ... "
+    print_result(result_prefix, rsa_ret)
+    if rsa_ret != 0:
+        failed = 1
+
+    # Handshake with ECDSA cert + RSA priority server cipher prefs (must skip rsa ciphers)
+    ecdsa_ret = try_handshake(host, port, cipher, S2N_TLS12, curves=supported_curves,
+            server_cert=TEST_ECDSA_CERT, server_key=TEST_ECDSA_KEY, server_cipher_pref="test_all")
+    result_prefix = "Cert Type: ecdsa  Server Pref: rsa priority.  Vers: TLSv1.2 ... "
+    print_result(result_prefix, ecdsa_ret)
+    if ecdsa_ret != 0:
+        failed = 1
+
+    return failed
+
+def multiple_cert_test(host, port):
+    """
+    Test s2n server's ability to correctly choose ciphers and serve the correct cert depending on the auth type for a
+    given cipher.
+    """
+    print("\n\tRunning multicert test:")
+
+    # Basic handshake with ECDSA cert + RSA cert
+    for cipher in ["ECDHE-ECDSA-AES128-SHA", "ECDHE-RSA-AES128-GCM-SHA256"]:
+        supported_curves = "P-256:P-384"
+        server_prefs = "test_all"
+        ret = try_handshake(host, port, cipher, S2N_TLS12, curves=supported_curves,
+                server_cert_key_list=[(TEST_RSA_CERT, TEST_RSA_KEY),(TEST_ECDSA_CERT, TEST_ECDSA_KEY)],
+                server_cipher_pref=server_prefs)
+        result_prefix = "Certs: [RSA, ECDSA]  Client Prefs " + cipher + " Server Pref: " + server_prefs + " Vers: TLSv1.2 ... "
+        print_result(result_prefix, ret)
+        if ret != 0:
+            return ret
+
+    # Handshake with ECDSA + RSA cert but no ecdsa ciphers configured on the server
+    for cipher in ["ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-GCM-SHA256", "AES128-SHA"]:
+        supported_curves = "P-256:P-384"
+        server_prefs = "20170210"
+        ret = try_handshake(host, port, cipher, S2N_TLS12, curves=supported_curves,
+                server_cert_key_list=[(TEST_RSA_CERT, TEST_RSA_KEY),(TEST_ECDSA_CERT, TEST_ECDSA_KEY)],
+                server_cipher_pref=server_prefs)
+        result_prefix = "Certs: [RSA, ECDSA]  Client Prefs " + cipher + " Server Pref: " + server_prefs + " Vers: TLSv1.2 ... "
+        print_result(result_prefix, ret)
+        if ret != 0:
+            return ret
+
+    # Handshake with ECDSA + RSA cert but no rsa ciphers configured on the server
+    for cipher in ["ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-GCM-SHA256", "ECDHE-ECDSA-AES256-SHA"]:
+        supported_curves = "P-256:P-384"
+        server_prefs = "test_all_ecdsa"
+        ret = try_handshake(host, port, cipher, S2N_TLS12, curves=supported_curves,
+                server_cert_key_list=[(TEST_RSA_CERT, TEST_RSA_KEY),(TEST_ECDSA_CERT, TEST_ECDSA_KEY)],
+                server_cipher_pref=server_prefs)
+        result_prefix = "Certs: [RSA, ECDSA]  Client Prefs " + cipher + " Server Pref: " + server_prefs + " Vers: TLSv1.2 ... "
+        print_result(result_prefix, ret)
+        if ret != 0:
+            return ret
+
+    # Handshake with ECDSA + RSA cert but no overlapping ecc curves for ECDHE kx.
+    # s2n should fallback to a cipher with RSA kx.
+    for cipher in ["ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-GCM-SHA256:AES128-SHA", "ECDHE-ECDSA-AES256-SHA:AES128-SHA"]:
+        # Assume this is a curve s2n does not support
+        supported_curves = "P-521"
+        server_prefs = "test_all"
+        ret = try_handshake(host, port, cipher, S2N_TLS12, curves=supported_curves,
+                server_cert_key_list=[(TEST_RSA_CERT, TEST_RSA_KEY),(TEST_ECDSA_CERT, TEST_ECDSA_KEY)],
+                server_cipher_pref=server_prefs)
+        result_prefix = "Certs: [RSA, ECDSA]  Client Prefs " + cipher + " Server Pref: " + server_prefs + " Vers: TLSv1.2 ... "
+        print_result(result_prefix, ret)
+        if ret != 0:
+            return ret
+
+    return 0
+
 def main():
     parser = argparse.ArgumentParser(description='Runs TLS server integration tests against s2nd using Openssl s_client')
     parser.add_argument('host', help='The host for s2nd to bind to')
@@ -464,15 +631,18 @@ def main():
     print("\nRunning tests with: " + os.popen('openssl version').read())
 
     failed = 0
+    failed += resume_test(host, port, test_ciphers, fips_mode, no_ticket=True)
     failed += resume_test(host, port, test_ciphers, fips_mode)
     failed += handshake_test(host, port, test_ciphers, fips_mode)
     failed += client_auth_test(host, port, test_ciphers, fips_mode)
     failed += sigalg_test(host, port, fips_mode)
-    failed += sigalg_test(host, port, fips_mode, use_client_auth=True)
+    failed += sigalg_test(host, port, fips_mode, use_client_auth=True, no_ticket=True)
     failed += elliptic_curve_test(host, port, fips_mode)
     failed += elliptic_curve_fallback_test(host, port, fips_mode)
     failed += handshake_fragmentation_test(host, port, fips_mode)
     failed += ocsp_stapling_test(host, port, fips_mode)
+    failed += cert_type_cipher_match_test(host, port)
+    failed += multiple_cert_test(host, port)
     return failed
 
 if __name__ == "__main__":

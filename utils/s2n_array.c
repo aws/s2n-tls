@@ -88,20 +88,85 @@ void *s2n_array_get(struct s2n_array *array, uint32_t index)
     return element;
 }
 
-int s2n_array_free(struct s2n_array *array)
+void *s2n_array_insert(struct s2n_array *array, uint32_t index)
+{
+    if (array == NULL) {
+        return NULL;
+    }
+
+    if (array->num_of_elements >= array->capacity) {
+        /* Enlarge the array */
+        GUARD_PTR(s2n_array_enlarge(array, array->capacity * 2));
+    }
+
+    memmove((uint8_t *) array->elements + array->element_size * (index + 1),
+            (uint8_t *) array->elements + array->element_size * index,
+            (array->num_of_elements - index) * array->element_size);
+
+    void *element = (uint8_t *) array->elements + array->element_size * index;
+    array->num_of_elements++;
+
+    return element;
+}
+
+int s2n_array_remove(struct s2n_array *array, uint32_t index)
 {
     notnull_check(array);
-    struct s2n_blob mem = {0};
 
-    /* Free the elements */
-    mem.data = (void *) array->elements;
-    mem.size = array->capacity * array->element_size;
-    GUARD(s2n_free(&mem));
+    memmove((uint8_t *) array->elements + array->element_size * index,
+            (uint8_t *) array->elements + array->element_size * (index + 1),
+            (array->num_of_elements - index - 1) * array->element_size);
 
-    /* And finally the array */
-    mem.data = (void *) array;
-    mem.size = sizeof(struct s2n_array);
-    GUARD(s2n_free(&mem));
+    array->num_of_elements--;
+
+    /* After shifting, zero the last element */
+    memset_check((uint8_t *) array->elements + array->element_size * array->num_of_elements,
+                  0,
+                  array->element_size);
 
     return 0;
+}
+
+int s2n_array_free_p(struct s2n_array **parray)
+{
+    notnull_check(parray);
+    struct s2n_array *array = *parray;
+
+    notnull_check(array);
+    /* Free the elements */
+    GUARD(s2n_free_object((uint8_t **)&array->elements, array->capacity * array->element_size));
+
+    /* And finally the array */
+    GUARD(s2n_free_object((uint8_t **)parray, sizeof(struct s2n_array)));
+
+    return 0;
+}
+
+int s2n_array_free(struct s2n_array *array)
+{
+    return s2n_array_free_p(&array);
+}
+
+int s2n_array_binary_search(int low, int top, struct s2n_array *array, void *element,
+                            int (*comparator)(void*, void*))
+{
+    notnull_check(array);
+    notnull_check(element);
+
+    while (low <= top) {
+        int mid = low + ((top - low) / 2);
+        int m = comparator(s2n_array_get(array, mid), element);
+
+        if (m == 0) {
+            /* Return -1 when a match is found */
+            return -1;
+        } else if (m > 0) {
+            top = mid - 1;
+        } else if (m < 0) {
+            low = mid + 1;
+        }
+    }
+
+    /* Return the index at which element is to be inserted */
+    return low;
 }

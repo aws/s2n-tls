@@ -63,7 +63,9 @@ void usage()
     fprintf(stderr, "  -i,--insecure\n");
     fprintf(stderr, "    Turns off certification validation altogether.\n");
     fprintf(stderr, "  -r,--reconnect\n");
-    fprintf(stderr, "    Drop and re-make the connection with the same Session-ID\n");
+    fprintf(stderr, "    Drop and re-make the connection using Session ticket. If session ticket is disabled, then re-make the connection using Session-ID \n");
+    fprintf(stderr, "  -T,--no-session-ticket \n");
+    fprintf(stderr, "    Disable session ticket for resumption.\n");
     fprintf(stderr, "  -D,--dynamic\n");
     fprintf(stderr, "    Set dynamic record resize threshold\n");
     fprintf(stderr, "  -t,--timeout\n");
@@ -223,6 +225,7 @@ int main(int argc, char *const *argv)
     uint16_t mfl_value = 0;
     uint8_t insecure = 0;
     int reconnect = 0;
+    uint8_t session_ticket = 1;
     s2n_status_request_type type = S2N_STATUS_REQUEST_NONE;
     uint32_t dyn_rec_threshold = 0;
     uint8_t dyn_rec_timeout = 0;
@@ -245,12 +248,13 @@ int main(int argc, char *const *argv)
         {"ca-dir", required_argument, 0, 'd'},
         {"insecure", no_argument, 0, 'i'},
         {"reconnect", no_argument, 0, 'r'},
+        {"no-session-ticket", no_argument, 0, 'T'},
         {"Dynamic", required_argument, 0, 'D'},
         {"timeout", required_argument, 0, 't'},
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:D:t:ir", long_options, &option_index);
+        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:D:t:irT", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -287,6 +291,9 @@ int main(int argc, char *const *argv)
             break;
         case 'r':
             reconnect = 5;
+            break;
+        case 'T':
+            session_ticket = 0;
             break;
         case 't':
             dyn_rec_timeout = (uint8_t) MIN(255, atoi(optarg));
@@ -373,6 +380,10 @@ int main(int argc, char *const *argv)
             s2n_config_disable_x509_verification(config);
         }
 
+        if (session_ticket) {
+            s2n_config_set_session_tickets_onoff(config, 1);
+        }
+
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
 
         if (conn == NULL) {
@@ -413,7 +424,7 @@ int main(int argc, char *const *argv)
 
         /* Save session state from connection if reconnect is enabled */
         if (reconnect > 0) {
-            if (s2n_connection_get_session_id_length(conn) <= 0) {
+            if (!session_ticket && s2n_connection_get_session_id_length(conn) <= 0) {
                 printf("Endpoint sent empty session id so cannot resume session\n");
                 exit(1);
             }

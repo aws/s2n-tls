@@ -74,6 +74,7 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
         b->data = data;
         b->size = size;
         b->allocated = size;
+        b->mlocked = 0;
         return 0;
     }
 
@@ -122,6 +123,26 @@ int s2n_free(struct s2n_blob *b)
     b->mlocked = 0;
 
     return 0;
+}
+
+int s2n_free_object(uint8_t **p_data, uint32_t size)
+{
+    struct s2n_blob b = {0};
+    notnull_check(p_data);
+
+    if (*p_data == NULL) {
+        return 0;
+    }
+
+    b.data = *p_data;
+    b.size = size;
+    b.mlocked = use_mlock;
+
+    /* s2n_free() will call free() even if it returns error.
+    ** This makes sure *p_data is not used after free() */
+    *p_data = NULL;
+
+    return s2n_free(&b);
 }
 
 int s2n_dup(struct s2n_blob *from, struct s2n_blob *to)

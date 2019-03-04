@@ -16,7 +16,7 @@
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 TESTS=$(SRCS:.c=)
-VALGRIND_TESTS=$(SRCS:.c=_valgrind)
+VALGRIND_TESTS=$(SRCS:.c=.valgrind)
 CRYPTO_LDFLAGS = -L$(LIBCRYPTO_ROOT)/lib
 
 # Users can specify a subset of tests to be run, otherwise run all tests.
@@ -46,6 +46,13 @@ $(UNIT_TESTS)::
 	LD_PRELOAD="../LD_PRELOAD/allocator_overrides.so" \
 	./$@
 
+$(VALGRIND_TESTS)::
+	@${CC} ${CFLAGS} -o $(@:.valgrind=) $(@:.valgrind=.c) ${LDFLAGS} 2>&1
+	@DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
+	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
+	S2N_VALGRIND=1 \
+	valgrind --leak-check=full --run-libc-freeres=no -q --error-exitcode=9 --gen-suppressions=all --log-fd=2 --num-callers=40 --leak-resolution=high --undef-value-errors=no --trace-children=yes --suppressions=valgrind.suppressions \
+	./$(@:.valgrind=)
+
 .PHONY : valgrind
-valgrind: $(TESTS)
-	(for test in *_test ; do DYLD_LIBRARY_PATH="../../lib/:../testlib/:$$DYLD_LIBRARY_PATH" LD_LIBRARY_PATH="../../lib/:../testlib/:$$LD_LIBRARY_PATH" valgrind --leak-check=full --run-libc-freeres=no -q --error-exitcode=0 --gen-suppressions=all --log-fd=2 --num-callers=40 --leak-resolution=high --log-file=$$test-valgrind.log --undef-value-errors=no --trace-children=yes ./$$test; done )
+valgrind: $(VALGRIND_TESTS)

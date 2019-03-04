@@ -21,6 +21,7 @@
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_kex.h"
 #include "tls/s2n_cipher_suites.h"
 
 #include "stuffer/s2n_stuffer.h"
@@ -28,16 +29,18 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
+static int s2n_recv_server_renegotiation_info_ext(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_server_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_server_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_server_sct_list(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_server_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_recv_server_session_ticket_ext(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     uint16_t total_size = 0;
 
-    uint8_t application_protocol_len = strlen(conn->application_protocol);
+    const uint8_t application_protocol_len = strlen(conn->application_protocol);
 
     if (application_protocol_len) {
         total_size += 7 + application_protocol_len;
@@ -48,14 +51,17 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     if (conn->secure_renegotiation) {
         total_size += 5;
     }
-    if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC) {
-        total_size += 6;
-    }
+
+    total_size += s2n_kex_server_extension_size(conn->secure.cipher_suite->key_exchange_alg, conn);
+
     if (s2n_server_can_send_sct_list(conn)) {
-        total_size += 4 + conn->config->cert_and_key_pairs->sct_list.size;
+        total_size += 4 + conn->handshake_params.our_chain_and_key->sct_list.size;
     }
     if (conn->mfl_code) {
         total_size += 5;
+    }
+    if (s2n_server_sending_nst(conn)) {
+        total_size += 4;
     }
 
     if (total_size == 0) {
@@ -64,22 +70,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 
     GUARD(s2n_stuffer_write_uint16(out, total_size));
 
-    /* Write the Supported Points Format extension.
-     * RFC 4492 section 5.2 states that the absence of this extension in the Server Hello
-     * is equivalent to allowing only the uncompressed point format. Let's send the
-     * extension in case clients(Openssl 1.0.0) don't honor the implied behavior.
-     */
-    if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_ECC)  {
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_EC_POINT_FORMATS));
-        /* Total extension length */
-        GUARD(s2n_stuffer_write_uint16(out, 2));
-        /* Format list length */
-        GUARD(s2n_stuffer_write_uint8(out, 1));
-        /* Only uncompressed format is supported. Interoperability shouldn't be an issue:
-         * RFC 4492 Section 5.1.2: Implementations must support it for all of their curves.
-         */
-        GUARD(s2n_stuffer_write_uint8(out, TLS_EC_FORMAT_UNCOMPRESSED));
-    }
+    GUARD(s2n_kex_write_server_extension(conn->secure.cipher_suite->key_exchange_alg, conn, out));
 
     /* Write the renegotiation_info extension */
     if (conn->secure_renegotiation) {
@@ -108,15 +99,21 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     /* Write Signed Certificate Timestamp extension */
     if (s2n_server_can_send_sct_list(conn)) {
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SCT_LIST));
-        GUARD(s2n_stuffer_write_uint16(out, conn->config->cert_and_key_pairs->sct_list.size));
-        GUARD(s2n_stuffer_write_bytes(out, conn->config->cert_and_key_pairs->sct_list.data,
-                                      conn->config->cert_and_key_pairs->sct_list.size));
+        GUARD(s2n_stuffer_write_uint16(out, conn->handshake_params.our_chain_and_key->sct_list.size));
+        GUARD(s2n_stuffer_write_bytes(out, conn->handshake_params.our_chain_and_key->sct_list.data,
+                                      conn->handshake_params.our_chain_and_key->sct_list.size));
     }
 
     if (conn->mfl_code) {
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_MAX_FRAG_LEN));
         GUARD(s2n_stuffer_write_uint16(out, sizeof(uint8_t)));
         GUARD(s2n_stuffer_write_uint8(out, conn->mfl_code));
+    }
+
+    /* Write session ticket extension */
+    if (s2n_server_sending_nst(conn)) {
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SESSION_TICKET));
+        GUARD(s2n_stuffer_write_uint16(out, 0));
     }
 
     return 0;
@@ -145,6 +142,9 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
         GUARD(s2n_stuffer_write(&extension, &ext));
 
         switch (extension_type) {
+        case TLS_EXTENSION_RENEGOTIATION_INFO:
+            GUARD(s2n_recv_server_renegotiation_info_ext(conn, &extension));
+            break;
         case TLS_EXTENSION_ALPN:
             GUARD(s2n_recv_server_alpn(conn, &extension));
             break;
@@ -157,9 +157,26 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
         case TLS_EXTENSION_MAX_FRAG_LEN:
             GUARD(s2n_recv_server_max_frag_len(conn, &extension));
             break;
+        case TLS_EXTENSION_SESSION_TICKET:
+            GUARD(s2n_recv_server_session_ticket_ext(conn, &extension));
+            break;
         }
     }
 
+    return 0;
+}
+
+int s2n_recv_server_renegotiation_info_ext(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    /* RFC5746 Section 3.4: The client MUST then verify that the length of
+     * the "renegotiated_connection" field is zero, and if it is not, MUST
+     * abort the handshake. */
+    uint8_t renegotiated_connection_len;
+    GUARD(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
+    S2N_ERROR_IF(s2n_stuffer_data_available(extension), S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
+    S2N_ERROR_IF(renegotiated_connection_len, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
+
+    conn->secure_renegotiation = 1;
     return 0;
 }
 
@@ -210,6 +227,13 @@ int s2n_recv_server_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer
     uint8_t mfl_code;
     GUARD(s2n_stuffer_read_uint8(extension, &mfl_code));
     S2N_ERROR_IF(mfl_code != conn->config->mfl_code, S2N_ERR_MAX_FRAG_LEN_MISMATCH);
+
+    return 0;
+}
+
+int s2n_recv_server_session_ticket_ext(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    conn->session_ticket_status = S2N_NEW_TICKET;
 
     return 0;
 }

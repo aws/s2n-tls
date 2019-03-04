@@ -40,6 +40,12 @@
 
 #define is_handshake_complete(conn) (APPLICATION_DATA == s2n_conn_get_current_message_type(conn))
 
+typedef enum {
+    S2N_NO_TICKET = 0,
+    S2N_DECRYPT_TICKET,
+    S2N_NEW_TICKET
+} s2n_session_ticket_status;
+
 struct s2n_connection {
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
@@ -80,6 +86,8 @@ struct s2n_connection {
      * extension is not sent back by the server.
      */
     unsigned secure_renegotiation:1;
+    /* Was the EC point formats sent by the client */
+    unsigned ec_point_formats:1;
 
      /* whether the connection address is ipv6 or not */
     unsigned ipv6:1;
@@ -122,6 +130,9 @@ struct s2n_connection {
     /* Which set is the client/server actually using? */
     struct s2n_crypto_parameters *client;
     struct s2n_crypto_parameters *server;
+
+    /* Contains parameters needed during the handshake phase */
+    struct s2n_handshake_parameters handshake_params;
 
     /* The PRF needs some storage elements to work with */
     struct s2n_prf_working_space prf_space;
@@ -170,9 +181,6 @@ struct s2n_connection {
     uint8_t writer_alert_out_data[S2N_ALERT_LENGTH];
     struct s2n_stuffer reader_alert_out;
     struct s2n_stuffer writer_alert_out;
-
-    /* Contains parameters needed during the handshake phase */
-    struct s2n_handshake_parameters handshake_params;
 
     /* Our handshake state machine */
     struct s2n_handshake handshake;
@@ -253,11 +261,21 @@ struct s2n_connection {
     void *data_for_verify_host;
     uint8_t verify_host_fn_overridden;
 
+    /* Session ticket data */
+    s2n_session_ticket_status session_ticket_status;
+    struct s2n_blob client_ticket;
+    uint32_t ticket_lifetime_hint;
+
+    /* Session ticket extension from client to attempt to decrypt as the server. */
+    uint8_t ticket_ext_data[S2N_TICKET_SIZE_IN_BYTES];
+    struct s2n_stuffer client_ticket_to_decrypt;
+
     /* application protocols overridden */
     struct s2n_blob application_protocols_overridden;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);
+int s2n_connection_is_client_auth_enabled(struct s2n_connection *s2n_connection);
 
 /* Kill a bad connection */
 int s2n_connection_kill(struct s2n_connection *conn);

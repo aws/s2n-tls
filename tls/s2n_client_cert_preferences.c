@@ -29,7 +29,7 @@ int s2n_recv_client_cert_preferences(struct s2n_stuffer *in, s2n_cert_type *chos
     /* Iterate through our preference list from most to least preferred, and return the first match that we find. */
     for (int our_cert_pref_idx = 0; our_cert_pref_idx < sizeof(s2n_cert_type_preference_list); our_cert_pref_idx++) {
         for (int their_cert_idx = 0; their_cert_idx < cert_types_len; their_cert_idx++) {
-            if(their_cert_type_pref_list[their_cert_idx] == s2n_cert_type_preference_list[our_cert_pref_idx]){
+            if (their_cert_type_pref_list[their_cert_idx] == s2n_cert_type_preference_list[our_cert_pref_idx]) {
                 *chosen_cert_type_out = s2n_cert_type_preference_list[our_cert_pref_idx];
                 return 0;
             }

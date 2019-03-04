@@ -23,13 +23,13 @@
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_client_extensions.h"
+#include "tls/s2n_resume.h"
 
 #include "stuffer/s2n_stuffer.h"
 
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
-#include "utils/s2n_map.h"
 
 static int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension);
@@ -39,6 +39,7 @@ static int s2n_recv_client_ec_point_formats(struct s2n_connection *conn, struct 
 static int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_sct_list(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_recv_client_session_ticket_ext(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 static int s2n_send_client_signature_algorithms_extension(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
@@ -75,6 +76,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     uint16_t application_protocols_len = client_app_protocols->size;
     uint16_t server_name_len = strlen(conn->server_name);
     uint16_t mfl_code_len = sizeof(conn->config->mfl_code);
+    uint16_t client_ticket_len = conn->client_ticket.size;
 
     if (server_name_len) {
         total_size += 9 + server_name_len;
@@ -90,6 +92,9 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     }
     if (conn->config->mfl_code != S2N_TLS_MAX_FRAG_LEN_EXT_NONE) {
         total_size += 5;
+    }
+    if (conn->config->use_tickets) {
+        total_size += 4 + client_ticket_len;
     }
 
     /* Write ECC extensions: Supported Curves and Supported Point Formats */
@@ -149,6 +154,13 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_MAX_FRAG_LEN));
         GUARD(s2n_stuffer_write_uint16(out, mfl_code_len));
         GUARD(s2n_stuffer_write_uint8(out, conn->config->mfl_code));
+    }
+
+    /* Write Session Tickets extension */
+    if (conn->config->use_tickets) {
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SESSION_TICKET));
+        GUARD(s2n_stuffer_write_uint16(out, client_ticket_len));
+        GUARD(s2n_stuffer_write(out, &conn->client_ticket));
     }
 
     /*
@@ -213,6 +225,9 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *pa
             break;
         case TLS_EXTENSION_MAX_FRAG_LEN:
             GUARD(s2n_recv_client_max_frag_len(conn, &extension));
+            break;
+        case TLS_EXTENSION_SESSION_TICKET:
+            GUARD(s2n_recv_client_session_ticket_ext(conn, &extension));
             break;
         }
     }
@@ -371,6 +386,7 @@ static int s2n_recv_client_ec_point_formats(struct s2n_connection *conn, struct 
      * Only uncompressed points are supported by the server and the client must include it in
      * the extension. Just skip the extension.
      */
+    conn->ec_point_formats = 1;
     return 0;
 }
 
@@ -407,5 +423,30 @@ static int s2n_recv_client_max_frag_len(struct s2n_connection *conn, struct s2n_
 
     conn->mfl_code = mfl_code;
     conn->max_outgoing_fragment_length = mfl_code_to_length[mfl_code];
+    return 0;
+}
+
+static int s2n_recv_client_session_ticket_ext(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    if (conn->config->use_tickets != 1) {
+        /* Ignore the extension. */
+        return 0;
+    }
+
+    /* s2n server does not support session ticket with CLIENT_AUTH enabled */
+    if (s2n_connection_is_client_auth_enabled(conn) > 0) {
+        return 0;
+    }
+
+    if (s2n_stuffer_data_available(extension) == 0 && s2n_config_is_encrypt_decrypt_key_available(conn->config) == 1) {
+        conn->session_ticket_status = S2N_NEW_TICKET;
+        return 0;
+    }
+
+    if (s2n_stuffer_data_available(extension) == S2N_TICKET_SIZE_IN_BYTES) {
+        conn->session_ticket_status = S2N_DECRYPT_TICKET;
+        GUARD(s2n_stuffer_copy(extension, &conn->client_ticket_to_decrypt, S2N_TICKET_SIZE_IN_BYTES));
+    }
+
     return 0;
 }
