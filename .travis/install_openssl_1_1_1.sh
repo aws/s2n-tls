@@ -17,7 +17,7 @@ set -ex
 pushd "$(pwd)"
 
 usage() {
-    echo "install_openssl_1_1_0.sh build_dir install_dir travis_platform"
+    echo "install_openssl_1_1_1.sh build_dir install_dir travis_platform"
     exit 1
 }
 
@@ -30,9 +30,9 @@ INSTALL_DIR=$2
 PLATFORM=$3
 
 cd "$BUILD_DIR"
-curl --retry 3 -L https://github.com/openssl/openssl/archive/OpenSSL_1_1_0-stable.zip --output OpenSSL_1_1_0-stable.zip
-unzip OpenSSL_1_1_0-stable.zip
-cd openssl-OpenSSL_1_1_0-stable
+curl --retry 3 -L https://github.com/openssl/openssl/archive/OpenSSL_1_1_1-stable.zip --output OpenSSL_1_1_1-stable.zip
+unzip OpenSSL_1_1_1-stable.zip
+cd openssl-OpenSSL_1_1_1-stable
 
 if [ "$PLATFORM" == "linux" ]; then
     CONFIGURE="./config -d"
