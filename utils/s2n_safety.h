@@ -114,6 +114,11 @@ extern int s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, uint32
 /* Copy src to dst, or don't copy it, in constant time */
 extern int s2n_constant_time_copy_or_dont(const uint8_t * dst, const uint8_t * src, uint32_t len, uint8_t dont);
 
+/* If src contains valid PKCS#1 v1.5 padding of exactly expectlen bytes, decode
+ * it into dst, otherwise leave dst alone, in constant time.
+ * Always returns zero. */
+extern int s2n_constant_time_pkcs1_unpad_or_dont(uint8_t * dst, const uint8_t * src, uint32_t srclen, uint32_t expectlen);
+
 /* Runs _thecleanup function on _thealloc once _thealloc went out of scope */
 #define DEFER_CLEANUP(_thealloc, _thecleanup) \
    __attribute__((cleanup(_thecleanup))) _thealloc

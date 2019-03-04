@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -17,14 +17,23 @@
 
 #include "utils/s2n_blob.h"
 
-#include <stdint.h>
+struct s2n_ecdhe_raw_server_params {
+    struct s2n_blob point_blob;
+    struct s2n_blob curve_blob;
+};
 
-#define _IS_BIG_ENDIAN (!*(unsigned char *)&(uint16_t){1})
+struct s2n_dhe_raw_server_points {
+    struct s2n_blob p;
+    struct s2n_blob g;
+    struct s2n_blob Ys;
+};
 
-int s2n_mem_init(void);
-int s2n_mem_cleanup(void);
-int s2n_alloc(struct s2n_blob *b, uint32_t size);
-int s2n_realloc(struct s2n_blob *b, uint32_t size);
-int s2n_free(struct s2n_blob *b);
-int s2n_free_object(uint8_t **p_data, uint32_t size);
-int s2n_dup(struct s2n_blob *from, struct s2n_blob *to);
+struct s2n_kem_raw_server_params {
+    struct s2n_blob raw_public_key;
+};
+
+union s2n_kex_raw_server_data {
+    struct s2n_ecdhe_raw_server_params ecdhe_data;
+    struct s2n_dhe_raw_server_points dhe_data;
+    struct s2n_kem_raw_server_params kem_data;
+};

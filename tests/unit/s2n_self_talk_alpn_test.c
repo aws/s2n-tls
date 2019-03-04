@@ -118,6 +118,7 @@ int main(int argc, char **argv)
     char *cert_chain_pem;
     char *private_key_pem;
     char *dhparams_pem;
+    struct s2n_cert_chain_and_key *chain_and_key;
 
     const char *protocols[] = { "http/1.1", "spdy/3.1", "h2" };
     const int protocols_size = sizeof(protocols) / sizeof(protocols[0]);
@@ -134,9 +135,11 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
 
     EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, protocols_size));
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, cert_chain_pem, private_key_pem));
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
 
     /** Test no client ALPN request */
@@ -419,6 +422,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_EQUAL(status, 0);
 
     EXPECT_SUCCESS(s2n_config_free(config));
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     free(cert_chain_pem);
     free(private_key_pem);
     free(dhparams_pem);

@@ -35,5 +35,6 @@ extern void *s2n_array_add(struct s2n_array *array);
 extern void *s2n_array_get(struct s2n_array *array, uint32_t index);
 extern void *s2n_array_insert(struct s2n_array *array, uint32_t index);
 extern int s2n_array_remove(struct s2n_array *array, uint32_t index);
+extern int s2n_array_free_p(struct s2n_array **parray);
 extern int s2n_array_free(struct s2n_array *array);
 extern int s2n_array_binary_search(int low, int top, struct s2n_array *array, void *element, int (*comparator)(void*, void*));

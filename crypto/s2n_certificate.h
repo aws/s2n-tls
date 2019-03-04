@@ -36,14 +36,18 @@ struct s2n_cert_chain {
 };
 
 struct s2n_cert_chain_and_key {
-    struct s2n_cert_chain cert_chain;
-    s2n_cert_private_key private_key;
+    struct s2n_cert_chain *cert_chain;
+    s2n_cert_private_key *private_key;
     struct s2n_blob ocsp_status;
     struct s2n_blob sct_list;
     char server_name[S2N_MAX_SERVER_NAME];
 };
 
+int s2n_cert_chain_and_key_set_ocsp_data(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length);
+int s2n_cert_chain_and_key_set_sct_list(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length);
+
+int s2n_cert_public_key_set_rsa_from_openssl(s2n_cert_public_key *cert_pub_key, RSA *rsa);
+int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_cert_type cert_type);
 int s2n_send_cert_chain(struct s2n_stuffer *out, struct s2n_cert_chain *chain);
 int s2n_send_empty_cert_chain(struct s2n_stuffer *out);
-int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_cert_type cert_type);
-int s2n_cert_public_key_set_rsa_from_openssl(s2n_cert_public_key *cert_pub_key, RSA *rsa);
+int s2n_create_cert_chain_from_stuffer(struct s2n_cert_chain *cert_chain_out, struct s2n_stuffer *chain_in_stuffer);

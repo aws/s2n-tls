@@ -28,6 +28,7 @@
 #include "tls/s2n_resume.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_kex.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -79,7 +80,7 @@ static struct s2n_handshake_action state_machine[] = {
     [SERVER_NEW_SESSION_TICKET] = {TLS_HANDSHAKE, TLS_SERVER_NEW_SESSION_TICKET,'S', {s2n_server_nst_send, s2n_server_nst_recv}},
     [SERVER_CERT]               = {TLS_HANDSHAKE, TLS_SERVER_CERT, 'S', {s2n_server_cert_send, s2n_server_cert_recv}},
     [SERVER_CERT_STATUS]        = {TLS_HANDSHAKE, TLS_SERVER_CERT_STATUS, 'S', {s2n_server_status_send, s2n_server_status_recv}},
-    [SERVER_KEY_EXTERNAL]       = {TLS_HANDSHAKE, TLS_SERVER_KEY_EXTERNAL, 'A', {s2n_server_key_send_external, s2n_handshake_dummy_handler}},
+    [SERVER_KEY_EXTERNAL]       = {TLS_HANDSHAKE, TLS_SERVER_KEY_EXTERNAL, 'A', {s2n_server_key_external, s2n_handshake_dummy_handler}},
     [SERVER_KEY]                = {TLS_HANDSHAKE, TLS_SERVER_KEY, 'S', {s2n_server_key_send, s2n_server_key_recv}},
     [SERVER_CERT_REQ]           = {TLS_HANDSHAKE, TLS_CLIENT_CERT_REQ, 'S', {s2n_client_cert_req_send, s2n_client_cert_req_recv}},
     [SERVER_HELLO_DONE]         = {TLS_HANDSHAKE, TLS_SERVER_HELLO_DONE, 'S', {s2n_server_done_send, s2n_server_done_recv}}, 
@@ -374,7 +375,7 @@ skip_cache_lookup:
         conn->handshake.handshake_type |= CLIENT_AUTH;
     }
 
-    if (conn->secure.cipher_suite->key_exchange_alg->flags & S2N_KEY_EXCHANGE_EPH) {
+    if (s2n_kex_is_ephemeral(conn->secure.cipher_suite->key_exchange_alg)) {
         conn->handshake.handshake_type |= PERFECT_FORWARD_SECRECY;
     }
 
@@ -756,7 +757,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
             int r = handshake_handle_app_data(conn);
             if (r < 0) {
                 if (s2n_errno != S2N_ERR_BLOCKED && s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
-                    conn->config->cache_delete(conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
+                    conn->config->cache_delete(conn, conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
                 }
                 return -1;
             }
@@ -792,7 +793,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
             int r = handshake_read_io(conn);
             if (r < 0) {
                 if (s2n_errno != S2N_ERR_BLOCKED && s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
-                    conn->config->cache_delete(conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
+                    conn->config->cache_delete(conn, conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
                 }
 
                 return -1;

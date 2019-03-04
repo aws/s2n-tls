@@ -166,11 +166,14 @@ int s2n_get_urandom_data(struct s2n_blob *blob)
     return 0;
 }
 
-int64_t s2n_public_random(int64_t max)
+/*
+ * Return a random number in the range [0, bound)
+ */
+int64_t s2n_public_random(int64_t bound)
 {
     uint64_t r;
 
-    gt_check(max, 0);
+    gt_check(bound, 0);
 
     while (1) {
         struct s2n_blob blob = {.data = (void *)&r, sizeof(r) };
@@ -184,13 +187,13 @@ int64_t s2n_public_random(int64_t max)
          * r == 257 is out of range.
          *
          * To de-bias the dice, we discard values of r that are higher
-         * that the highest multiple of 'max' an int can support. If
-         * max is a uint, then in the worst case we discard 50% - 1 r's.
-         * But since 'max' is an int and INT_MAX is <= UINT_MAX / 2,
+         * that the highest multiple of 'bound' an int can support. If
+         * bound is a uint, then in the worst case we discard 50% - 1 r's.
+         * But since 'bound' is an int and INT_MAX is <= UINT_MAX / 2,
          * in the worst case we discard 25% - 1 r's.
          */
-        if (r < (UINT64_MAX - (UINT64_MAX % max))) {
-            return r % max;
+        if (r < (UINT64_MAX - (UINT64_MAX % bound))) {
+            return r % bound;
         }
     }
 }

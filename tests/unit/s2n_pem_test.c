@@ -59,6 +59,7 @@ int main(int argc, char **argv)
     struct s2n_config *config;
     char *cert_chain_pem;
     char *private_key_pem;
+    struct s2n_cert_chain_and_key *chain_and_key;
 
     BEGIN_TEST();
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -68,20 +69,22 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_SUCCESS(s2n_read_test_pem(valid_pem_pairs[i][0], cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(valid_pem_pairs[i][1], private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(config, cert_chain_pem, private_key_pem));
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         EXPECT_SUCCESS(s2n_config_free(config));
     }
 
     for (int i = 0; i < (sizeof(invalid_pem_pairs) / sizeof(invalid_pem_pairs[0])); i++) {
-        EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_SUCCESS(s2n_read_test_pem(invalid_pem_pairs[i][0], cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(invalid_pem_pairs[i][1], private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_FAILURE(s2n_config_add_cert_chain_and_key(config, cert_chain_pem, private_key_pem));
-        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+        EXPECT_FAILURE(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     }
 
     free(cert_chain_pem);
     free(private_key_pem);
     END_TEST();
 }
-
