@@ -70,6 +70,10 @@ matrix:
   - os : linux
     env : TESTS=sawHMACFailure SAW=true
     addons : *sawaddons   
+  allow_failures:
+    - os: osx
+    # Optional until we resolve broken remote dependency: https://github.com/awslabs/s2n/pull/615
+    - env: TESTS=ctverif
 
   fast_finish: true
 
