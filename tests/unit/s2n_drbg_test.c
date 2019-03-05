@@ -273,7 +273,7 @@ int nist_fake_256_urandom_data(struct s2n_blob *blob)
     return 0;
 }
 
-int check_drgb_version(enum s2n_drbg_mode mode, int (*generator)(struct s2n_blob *), int personalization_size,
+int check_drgb_version(s2n_drbg_mode mode, int (*generator)(struct s2n_blob *), int personalization_size,
         const char personalization_hex[], const char reference_values_hex[], const char returned_bits_hex[]) {
 
     DEFER_CLEANUP(struct s2n_stuffer personalization = {{0}}, s2n_stuffer_free);
@@ -382,9 +382,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_get_urandom_data(&blob));
     }
     EXPECT_SUCCESS(s2n_timer_reset(config, &timer, &urandom_nanoseconds));
-
-    printf("\nTime to generate 32 MB of random data per DRBG in nanoseconds\nAES 128 CTR: %"PRId64 "\nAES 256 CTR: %" PRId64" \nurandom:     %" PRId64" \n",
-            aes128_drbg_nanoseconds, aes256_drbg_nanoseconds, urandom_nanoseconds);
 
     /* NOTE: s2n_random_test also includes monobit tests for this DRBG */
 

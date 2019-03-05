@@ -64,8 +64,7 @@ static int s2n_drbg_bits(struct s2n_drbg *drbg, struct s2n_blob *out)
 
 static int s2n_drbg_update(struct s2n_drbg *drbg, struct s2n_blob *provided_data)
 {
-    uint8_t temp[S2N_DRBG_MAX_SEED_SIZE];
-    struct s2n_blob temp_blob = {.data = temp,.size = s2n_drbg_seed_size(drgb) };
+    s2n_stack_blob(temp_blob, s2n_drbg_seed_size(drgb), S2N_DRBG_MAX_SEED_SIZE);
 
     eq_check(provided_data->size, s2n_drbg_seed_size(drbg));
 
@@ -73,22 +72,20 @@ static int s2n_drbg_update(struct s2n_drbg *drbg, struct s2n_blob *provided_data
 
     /* XOR in the provided data */
     for (int i = 0; i < provided_data->size; i++) {
-        temp[i] ^= provided_data->data[i];
+        temp_blob.data[i] ^= provided_data->data[i];
     }
 
     /* Update the key and value */
-    GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, NULL, NULL, temp, NULL), S2N_ERR_DRBG);
+    GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, NULL, NULL, temp_blob.data, NULL), S2N_ERR_DRBG);
 
-    memcpy_check(drbg->v, temp + s2n_drbg_key_size(drbg), S2N_DRBG_BLOCK_SIZE);
+    memcpy_check(drbg->v, temp_blob.data + s2n_drbg_key_size(drbg), S2N_DRBG_BLOCK_SIZE);
 
     return 0;
 }
 
 static int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
 {
-    uint8_t seed[S2N_DRBG_MAX_SEED_SIZE] = {0};
-    struct s2n_blob blob = {.data = seed,.size = s2n_drbg_seed_size(drbg) };
-    lte_check(ps->size, blob.size);
+    s2n_stack_blob(blob, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
 
     if (drbg->entropy_generator) {
         GUARD(drbg->entropy_generator(&blob));
@@ -108,26 +105,17 @@ static int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
     return 0;
 }
 
-int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string, const enum s2n_drbg_mode mode)
+int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string, const s2n_drbg_mode mode)
 {
     drbg->ctx = EVP_CIPHER_CTX_new();
     S2N_ERROR_IF(!drbg->ctx, S2N_ERR_DRBG);
 
-#if (S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0))
-    GUARD_OSSL(EVP_CIPHER_CTX_init(drbg->ctx), S2N_ERR_DRBG);
-#else
-    EVP_CIPHER_CTX_init(drbg->ctx);
-#endif
-
-    static const uint8_t zero_key[S2N_DRBG_MAX_KEY_SIZE] = {0};
-    struct s2n_blob value = {.data = drbg->v,.size = sizeof(drbg->v) };
-    /* Start off with zeroed data, per 10.2.1.3.1 item 4 and 5 */
-    GUARD(s2n_blob_zero(&value));
+    s2n_evp_ctx_init(drbg->ctx);
 
     if (mode == S2N_AES_128_CTR_NO_DF_PR) {
-        GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_128_ecb(), NULL, zero_key, NULL), S2N_ERR_DRBG);
+        GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_128_ecb(), NULL, NULL, NULL), S2N_ERR_DRBG);
     } else if (mode == S2N_AES_256_CTR_NO_DF_PR) {
-        GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_256_ecb(), NULL, zero_key, NULL), S2N_ERR_DRBG);
+        GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_256_ecb(), NULL, NULL, NULL), S2N_ERR_DRBG);
     } else {
         S2N_ERROR(S2N_ERR_DRBG);
     }
@@ -135,10 +123,15 @@ int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization
     lte_check(s2n_drbg_key_size(drbg), S2N_DRBG_MAX_KEY_SIZE);
     lte_check(s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
 
-    uint8_t ps_prefix[S2N_DRBG_MAX_SEED_SIZE] = {0};
-    struct s2n_blob ps = {.data = ps_prefix,.size = s2n_drbg_seed_size(drbg) };
+    static const uint8_t zero_key[S2N_DRBG_MAX_KEY_SIZE] = {0};
+    struct s2n_blob value = {.data = drbg->v,.size = sizeof(drbg->v) };
+
+    /* Start off with zeroed data, per 10.2.1.3.1 item 4 and 5 */
+    GUARD(s2n_blob_zero(&value));
+    GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, NULL, NULL, zero_key, NULL), S2N_ERR_DRBG);
 
     /* Copy the personalization string */
+    s2n_stack_blob(ps, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
     GUARD(s2n_blob_zero(&ps));
 
     memcpy_check(ps.data, personalization_string->data, MIN(ps.size, personalization_string->size));
@@ -155,8 +148,8 @@ int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization
 
 int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob)
 {
-    uint8_t all_zeros[S2N_DRBG_MAX_SEED_SIZE] = {0};
-    struct s2n_blob zeros = {.data = all_zeros,.size = s2n_drbg_seed_size(drbg) };
+    s2n_stack_blob(zeros, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
+
     S2N_ERROR_IF(blob->size > S2N_DRBG_GENERATE_LIMIT, S2N_ERR_DRBG_REQUEST_SIZE);
 
     /* If either the entropy generator is set, for prediction resistance,
