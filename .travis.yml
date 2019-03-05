@@ -73,6 +73,7 @@ matrix:
   allow_failures:
     - os: osx
     # Optional until we resolve broken remote dependency: https://github.com/awslabs/s2n/pull/615
+    - env: S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
     - env: TESTS=ctverif
 
   fast_finish: true
