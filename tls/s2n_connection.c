@@ -532,6 +532,8 @@ int s2n_connection_free(struct s2n_connection *conn)
 
     GUARD(s2n_connection_free_io_contexts(conn));
 
+    GUARD(s2n_connection_free_external_ctx(conn));
+
     GUARD(s2n_free(&conn->client_ticket));
     GUARD(s2n_free(&conn->status_response));
     GUARD(s2n_stuffer_free(&conn->in));
@@ -541,8 +543,6 @@ int s2n_connection_free(struct s2n_connection *conn)
     GUARD(s2n_client_hello_free(&conn->client_hello));
     GUARD(s2n_free(&conn->application_protocols_overridden));
     GUARD(s2n_free_object((uint8_t **)&conn, sizeof(struct s2n_connection)));
-
-    GUARD(s2n_connection_free_external_ctx(conn));
 
     return 0;
 }

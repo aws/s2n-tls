@@ -62,24 +62,11 @@ int s2n_free_external_ctx_pre_master_key(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_dhe_client_key_external(struct s2n_connection* conn, struct s2n_blob* shared_key)
-{
-    /* Nothing to do for DHE at this time. */
-    return 0;
-}
-
-int s2n_ecdhe_client_key_external(struct s2n_connection* conn, struct s2n_blob* shared_key)
-{
-    /* Nothing to do for DHE at this time. */
-    return 0;
-}
-
 int s2n_rsa_client_key_external(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
     notnull_check(conn);
     notnull_check(conn->config);
     notnull_check(conn->config->external_rsa_decrypt);
-    notnull_check(conn->external_ctx.pre_master_key);
 
     /* Keep a copy of the client protocol version in wire format */
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
@@ -109,8 +96,12 @@ int s2n_rsa_client_key_external(struct s2n_connection *conn, struct s2n_blob *sh
             shared_key->data = conn->secure.rsa_premaster_secret;
             shared_key->size = S2N_TLS_SECRET_LEN;
 
+            /* ready to calculate the shared key now, will move forward to the next state */
+            GUARD(calculate_keys(conn, shared_key));
+
             /* free the memory of the context */
             GUARD(s2n_free_external_ctx_pre_master_key(conn));
+            return 0;
         }
         /* external rsa decrypt has completed the request but error occurred */
         case S2N_EXTERNAL_ERROR: {
@@ -121,15 +112,30 @@ int s2n_rsa_client_key_external(struct s2n_connection *conn, struct s2n_blob *sh
 
             S2N_ERROR(S2N_ERR_EXTERNAL_FAILURE);
         }
-        default:
+        default: {
             /* the status is not anything we expected. Something went wrong and need ot set rsa_failed to 1. */
             conn->handshake.rsa_failed = 1;
 
-        /* free the memory of the context */
-        GUARD(s2n_free_external_ctx_pre_master_key(conn));
+            /* free the memory of the context */
+            GUARD(s2n_free_external_ctx_pre_master_key(conn));
 
-        S2N_ERROR(S2N_ERR_EXTERNAL_CTX_STATUS_INVALID);
+            S2N_ERROR(S2N_ERR_EXTERNAL_CTX_STATUS_INVALID);
+        }
     }
+
+    return -1;
+}
+
+int s2n_ecdhe_client_key_external(struct s2n_connection* conn, struct s2n_blob* shared_key)
+{
+    /* Nothing to do for ECDHE at this state. */
+    return 0;
+}
+
+int s2n_dhe_client_key_external(struct s2n_connection* conn, struct s2n_blob* shared_key)
+{
+    /* Nothing to do for DHE at this state. */
+    return 0;
 }
 
 int s2n_client_key_external(struct s2n_connection *conn)
@@ -144,7 +150,6 @@ int s2n_client_key_external(struct s2n_connection *conn)
 
     GUARD(s2n_kex_client_key_external(key_exchange, conn, &shared_key));
 
-    GUARD(calculate_keys(conn, &shared_key));
     return 0;
 }
 
@@ -226,7 +231,7 @@ int s2n_rsa_client_key_recv_with_external_decrypt(struct s2n_connection *conn)
 
 int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
-    /* check if external TLS key server is expected to be used*/
+    /* check if external TLS key server is expected to be used */
     if (conn->config->external_rsa_decrypt) {
         s2n_rsa_client_key_recv_with_external_decrypt(conn);
         /* shared key will be calculated in the next state, not need at this time. */

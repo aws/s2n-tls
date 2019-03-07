@@ -47,6 +47,7 @@ extern int s2n_kex_server_key_recv_read_data(const struct s2n_kex *kex, struct s
         union s2n_kex_raw_server_data *raw_server_data);
 extern int s2n_kex_server_key_recv_parse_data(const struct s2n_kex *kex, struct s2n_connection *conn, union s2n_kex_raw_server_data *raw_server_data);
 extern int s2n_kex_server_key_send(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *data_to_sign);
+extern int s2n_kex_server_key_external(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *data_to_sign);
 extern int s2n_kex_client_key_external(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key);
 extern int s2n_kex_client_key_recv(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key);
 extern int s2n_kex_client_key_send(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key);

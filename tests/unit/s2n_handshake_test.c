@@ -52,7 +52,7 @@ static int try_handshake(struct s2n_connection *server_conn, struct s2n_connecti
         }
 
         tries += 1;
-        if (tries == 10) {
+        if (tries == 5) {
             return -1;
         }
     } while (client_blocked || server_blocked);
@@ -366,6 +366,7 @@ int main(int argc, char **argv)
         struct s2n_config *server_config, *client_config;
         char *cert_chain_pem;
         char *dhparams_pem;
+        struct s2n_cert_chain_and_key *chain_and_key;
 
         EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
         EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -374,7 +375,10 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_with_external_decrypt(server_config, cert_chain_pem, external_rsa_default_decrypt, external_dhe_default_sign));
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+        EXPECT_SUCCESS(s2n_cert_chain_load_pem(chain_and_key, cert_chain_pem));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_with_external_decrypt(server_config, chain_and_key, external_rsa_default_decrypt, external_dhe_default_sign));
+        EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
 
         client_config = s2n_fetch_unsafe_client_testing_config();
 
@@ -382,6 +386,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config));
 
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         EXPECT_SUCCESS(s2n_config_free(server_config));
         free(cert_chain_pem);
         free(dhparams_pem);
@@ -425,11 +430,12 @@ int main(int argc, char **argv)
 
     }
 
-    //    test with external ecdsa cert decrypt and signing
+    //    test with external ecdsa cert decrypt and signing, note that private_key_pem is not needed for setting up the config
     {
         struct s2n_config *server_config, *client_config;
         char *cert_chain_pem;
         char *dhparams_pem;
+        struct s2n_cert_chain_and_key *chain_and_key;
 
         EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
         EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -438,7 +444,9 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_with_external_decrypt(server_config, cert_chain_pem, external_rsa_ecdsa_decrypt, external_dhe_ecdsa_sign));
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+        EXPECT_SUCCESS(s2n_cert_chain_load_pem(chain_and_key, cert_chain_pem));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_with_external_decrypt(server_config, chain_and_key, external_rsa_ecdsa_decrypt, external_dhe_ecdsa_sign));
         EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
 
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_all_ecdsa"));
@@ -449,6 +457,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config));
 
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         EXPECT_SUCCESS(s2n_config_free(server_config));
         free(cert_chain_pem);
         free(dhparams_pem);

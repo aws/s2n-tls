@@ -187,6 +187,22 @@ int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key
     return 0;
 }
 
+int s2n_cert_chain_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem)
+{
+
+    notnull_check(chain_and_key);
+
+    GUARD(s2n_cert_chain_and_key_set_cert_chain(chain_and_key, chain_pem));
+
+    /* Parse the leaf cert for the public key and certificate type */
+    DEFER_CLEANUP(struct s2n_pkey public_key = {{{0}}}, s2n_pkey_free);
+    s2n_cert_type cert_type;
+    GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &cert_type, &chain_and_key->cert_chain->head->raw));
+    GUARD(s2n_cert_set_cert_type(chain_and_key->cert_chain->head, cert_type));
+
+    return 0;
+}
+
 int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key)
 {
     if (cert_and_key == NULL) {
