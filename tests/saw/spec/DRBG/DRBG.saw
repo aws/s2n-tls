@@ -288,6 +288,8 @@ cipher_new_ov <- crucible_llvm_unsafe_assume_spec m "EVP_CIPHER_CTX_new" cipher_
 
 cipher_free_ov <- crucible_llvm_unsafe_assume_spec m "EVP_CIPHER_CTX_free" cipher_free_spec;
 
+cipher_cleanup_ov <- crucible_llvm_unsafe_assume_spec m "EVP_CIPHER_CTX_cleanup" cipher_cleanup_spec;
+
 encryptInit_ov <- crucible_llvm_unsafe_assume_spec m "EVP_EncryptInit_ex"
     encryptInit_spec;
 
@@ -308,7 +310,7 @@ zero_ov_drbg <- crucible_llvm_verify m "s2n_blob_zero" [] false (blob_zero_spec 
 
 inc_ov <- crucible_llvm_verify m "s2n_increment_sequence_number" [] false increment_sequence_number_spec yices;
 
-crucible_llvm_verify m "s2n_drbg_wipe" [cipher_free_ov, zero_ov_drbg] false wipe_spec yices;
+crucible_llvm_verify m "s2n_drbg_wipe" [cipher_free_ov, cipher_cleanup_ov, zero_ov_drbg] false wipe_spec yices;
 
 crucible_llvm_verify m "s2n_drbg_bytes_used" [] false bytes_used_spec yices;
 
