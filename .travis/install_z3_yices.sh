@@ -30,10 +30,6 @@ INSTALL_DIR=$2
 mkdir -p "$DOWNLOAD_DIR"
 cd "$DOWNLOAD_DIR"
 
-sudo add-apt-repository ppa:sri-csl/formal-methods
-sudo apt-get update
-sudo apt-get install yices2
-
 #download z3 and yices
 curl --retry 3 http://yices.csl.sri.com/releases/2.6.1/yices-2.6.1-x86_64-pc-linux-gnu-static-gmp.tar.gz --output yices.tar.gz
 tar -xf yices.tar.gz
