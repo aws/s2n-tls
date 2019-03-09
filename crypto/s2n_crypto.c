@@ -15,6 +15,7 @@
 
 #include <s2n.h>
 #include "utils/s2n_safety.h"
+#include "utils/s2n_mem.h"
 #include "stuffer/s2n_stuffer.h"
 #include "crypto/s2n_pkey.h"
 
@@ -77,9 +78,68 @@ int s2n_decrypt_with_key(const char *key, uint32_t key_length, uint8_t *in, uint
   out_blob.size = out_length;
 
   // decrypt
-  if (0 != s2n_pkey_decrypt(&pkey, &in_blob, &out_blob)) {
-    return -1;
-  }
+  GUARD(s2n_pkey_decrypt(&pkey, &in_blob, &out_blob));
+
+  return 0;
+}
+
+/**
+ *
+ * @param[in]  key              Byte array contains the private key. Note that it should end with '/0'
+ * @param[in]  key_length       Length of the key byte array, expected to be positive number
+ * @param[in]  hash_algorithm   Hash algorithm used for the hash
+ * @param[in]  in               Byte array contains the hash to be signed
+ * @param[in]  in_length        Length of the hash
+ * @param[out] out              Buffer to hold the signature, the memory is allocated by @ref malloc(size_t) and is
+ *                              expected to be released by the caller using @ref free(void*)
+ * @param[out] out_length       Length of the signature
+ * @return                      Return 0 if succeeded, otherwise return -1
+ * @note                        The memory of the signature buffer is allocated by this function and expected to be
+ *                              released by the caller. This is because the size is only determined at the actual
+ *                              signing step and cannot be known before the functionn call.
+ */
+int s2n_sign_with_key(const char *key, uint32_t key_length, uint8_t hash_algorithm, uint8_t *in, uint32_t in_length, uint8_t **out, uint32_t *out_length)
+{
+  // the pointers cannot be null
+  notnull_check(key);
+  notnull_check(in);
+  notnull_check(out);
+  notnull_check(out_length);
+
+  // the length should be positive
+  gte_check(key_length, 0);
+  gte_check(in_length, 0);
+
+  // the last byte of the key should be a null byte
+  eq_check('\0', key[key_length - 1]);
+
+  // Get key type and create appropriate key context
+  DEFER_CLEANUP(struct s2n_pkey pkey = {{{0}}}, s2n_pkey_free);
+  GUARD(get_private_key_pem(&pkey, key, key_length));
+
+  struct s2n_blob in_blob = {0};
+  in_blob.data = in;
+  in_blob.size = in_length;
+
+  // Prepare the signature blob
+  struct s2n_blob signature = {0};
+  uint32_t maximum_signature_length = s2n_pkey_size(&pkey);
+  GUARD(s2n_alloc(&signature, maximum_signature_length));
+
+  // get NID type
+  int32_t nid_type;
+  GUARD(s2n_hash_NID_type((s2n_hash_algorithm)hash_algorithm, &nid_type));
+
+  // sign
+  GUARD(s2n_pkey_sign_blob(&pkey, &in_blob, nid_type, &signature));
+
+  // copy signature to the result
+  *out_length = signature.size;
+  *out = malloc(signature.size);
+  memcpy_check(*out, signature.data, signature.size);
+
+  // free local memory
+  s2n_free(&signature);
 
   return 0;
 }

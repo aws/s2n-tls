@@ -250,12 +250,13 @@ extern int s2n_connection_get_alert(struct s2n_connection *conn);
 
 /* api for external key server */
 typedef int (*rsa_decrypt_async_fn)(int32_t *status, uint32_t result_size, uint8_t *result, uint8_t *in, uint32_t in_length);
-typedef int (*dhe_sign_async_fn)(int32_t *status, uint32_t* result_size, uint8_t **result, uint8_t hash_algorithm, const uint8_t *hash_digest);
+typedef int (*dhe_sign_async_fn)(int32_t *status, uint32_t* result_size, uint8_t **result, uint8_t hash_algorithm, uint8_t *hash_digest, uint32_t hash_digest_length);
 extern int s2n_config_add_cert_chain_with_external_decrypt(struct s2n_config *config,
                                                            struct s2n_cert_chain_and_key *cert_key_pair,
                                                            rsa_decrypt_async_fn external_rsa_decrypt,
                                                            dhe_sign_async_fn  external_dhe_sign);
 extern int s2n_decrypt_with_key(const char *key, uint32_t key_length, uint8_t *in, uint32_t in_length, uint8_t *out, uint32_t out_length);
+extern int s2n_sign_with_key(const char *key, uint32_t key_length, uint8_t hash_algorithm, uint8_t *in, uint32_t in_length, uint8_t **out, uint32_t *out_length);
 
 
 #ifdef __cplusplus

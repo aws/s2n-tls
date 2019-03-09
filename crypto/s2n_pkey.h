@@ -30,6 +30,7 @@ struct s2n_pkey {
 
     int (*size)(const struct s2n_pkey *key);
     int (*sign)(const struct s2n_pkey *priv_key, struct s2n_hash_state *digest, struct s2n_blob *signature);
+    int (*sign_blob)(const struct s2n_pkey *priv_key, struct s2n_blob *digest_blob, int NID_type, struct s2n_blob *signature);
     int (*verify)(const struct s2n_pkey *pub_key, struct s2n_hash_state *digest, struct s2n_blob *signature);
     int (*encrypt)(const struct s2n_pkey *key, struct s2n_blob *in, struct s2n_blob *out);
     int (*decrypt)(const struct s2n_pkey *key, struct s2n_blob *in, struct s2n_blob *out);
@@ -44,6 +45,7 @@ extern int s2n_pkey_check_key_exists(const struct s2n_pkey *pkey);
 
 extern int s2n_pkey_size(const struct s2n_pkey *pkey);
 extern int s2n_pkey_sign(const struct s2n_pkey *pkey, struct s2n_hash_state *digest, struct s2n_blob *signature);
+extern int s2n_pkey_sign_blob(const struct s2n_pkey *pkey, struct s2n_blob *digest_blob, int NID_type, struct s2n_blob *signature);
 extern int s2n_pkey_verify(const struct s2n_pkey *pkey, struct s2n_hash_state *digest, struct s2n_blob *signature);
 extern int s2n_pkey_encrypt(const struct s2n_pkey *pkey, struct s2n_blob *in, struct s2n_blob *out);
 extern int s2n_pkey_decrypt(const struct s2n_pkey *pkey, struct s2n_blob *in, struct s2n_blob *out);

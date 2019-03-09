@@ -232,6 +232,7 @@ int s2n_server_key_external(struct s2n_connection *conn)
             uint8_t digest_size;
             GUARD(s2n_hash_digest_size(signature_hash->alg, &digest_size));
             GUARD(s2n_hash_digest(signature_hash, digest_out.data, digest_size));
+            digest_out.size = digest_size;
 
             conn->external_ctx.sign_status = S2N_EXTERNAL_INVOKED;
             conn->config->external_dhe_sign(
@@ -239,7 +240,8 @@ int s2n_server_key_external(struct s2n_connection *conn)
               &(conn->external_ctx.signed_hash_size),
               &(conn->external_ctx.signed_hash),
               (uint8_t)signature_hash->alg,
-              digest_out.data);
+              digest_out.data,
+              digest_out.size);
 
             s2n_free(&digest_out);
 
@@ -426,7 +428,5 @@ static int s2n_write_signature_blob(struct s2n_stuffer *out, const struct s2n_pk
 
     GUARD(s2n_stuffer_write_uint16(out, signature.size));
     GUARD(s2n_stuffer_skip_write(out, signature.size));
-
     return 0;
 }
-

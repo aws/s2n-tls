@@ -24,7 +24,6 @@
 #include <stdlib.h>
 
 #include <s2n.h>
-#include <crypto/s2n_pkey.h>
 
 #include "crypto/s2n_fips.h"
 
@@ -168,32 +167,6 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
     return 0;
 }
 
-int get_private_key(struct s2n_pkey* pkey, const char *pem_path) {
-    char *private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE);
-    notnull_check(private_key_pem);
-    GUARD(s2n_read_test_pem(pem_path, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-
-    // Put the private key pem in a stuffer
-    DEFER_CLEANUP(struct s2n_stuffer key_in_stuffer = {{0}}, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_stuffer key_out_stuffer = {{0}}, s2n_stuffer_free);
-    GUARD(s2n_stuffer_alloc_ro_from_string(&key_in_stuffer, private_key_pem));
-    GUARD(s2n_stuffer_growable_alloc(&key_out_stuffer, strlen(private_key_pem)));
-
-    // Convert pem to asn1 and asn1 to the private key. Handles both PKCS#1 and PKCS#8 formats
-    struct s2n_blob key_blob = {0};
-    GUARD(s2n_stuffer_private_key_from_pem(&key_in_stuffer, &key_out_stuffer));
-    key_blob.size = s2n_stuffer_data_available(&key_out_stuffer);
-    key_blob.data = s2n_stuffer_raw_read(&key_out_stuffer, key_blob.size);
-    notnull_check(key_blob.data);
-
-    // Get key type and create appropriate key context
-    GUARD(s2n_pkey_zero_init(pkey));
-    GUARD(s2n_asn1der_to_private_key(pkey, &key_blob));
-
-    free(private_key_pem);
-    return 0;
-}
-
 int read_private_key_pem(char *private_key_pem, uint32_t *private_key_pem_length, const char *pem_path) {
   notnull_check(private_key_pem);
   GUARD(s2n_read_test_pem(pem_path, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -214,9 +187,7 @@ int external_rsa_decrypt(int32_t *status, uint32_t result_size, uint8_t *result,
     notnull_check(private_key_pem);
     gte_check(private_key_pem_length, 0);
 
-    if (0 != s2n_decrypt_with_key(private_key_pem, private_key_pem_length, in, in_length, result, result_size)) {
-      return -1;
-    }
+    GUARD(s2n_decrypt_with_key(private_key_pem, private_key_pem_length, in, in_length, result, result_size));
 
     *status = 2;
 
@@ -234,88 +205,30 @@ int external_rsa_ecdsa_decrypt(int32_t *status, uint32_t result_size, uint8_t *r
     return external_rsa_decrypt(status, result_size, result, in, in_length, S2N_ECDSA_P384_PKCS1_KEY);
 }
 
-int external_dhe_sign(int32_t *status, uint32_t *result_size, uint8_t **result, uint8_t hash_algorithm, const uint8_t* hash_digest, const char *pem_path)
+int external_dhe_sign(int32_t *status, uint32_t *result_size, uint8_t **result, uint8_t hash_algorithm, uint8_t* hash_digest, uint32_t hash_digest_size, const char *pem_path)
 {
-    // status should not be null and should has value of 1 meaning external request made and currently waiting for result.
-    notnull_check(status);
-    eq_check(1, *status);
+    uint32_t private_key_pem_length = 0;
+    char *private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE);
+    GUARD(read_private_key_pem(private_key_pem, &private_key_pem_length, pem_path));
+    notnull_check(private_key_pem);
+    gte_check(private_key_pem_length, 0);
 
-    // result should be null because it's need to be populated by this function
-    eq_check(NULL, *result);
+    GUARD(s2n_sign_with_key(private_key_pem, private_key_pem_length, hash_algorithm, hash_digest, hash_digest_size, result, result_size));
 
-    // hash algorithm should be an enum between S2N_HASH_NONE(0) and S2N_HASH_SENTINEL
-    gte_check(hash_algorithm, (uint8_t)S2N_HASH_NONE);
-    lte_check(hash_algorithm, (uint8_t)S2N_HASH_SENTINEL);
-
-    // hash_digest should not be empty (it should be a array of size S2N_MAX_DIGEST_LEN)
-    notnull_check(hash_digest);
-
-    // get the hash digest length
-    uint8_t digest_length;
-    GUARD(s2n_hash_digest_size((s2n_hash_algorithm)hash_algorithm, &digest_length));
-    lte_check(digest_length, S2N_MAX_DIGEST_LEN);
-
-    // create key
-    DEFER_CLEANUP(struct s2n_pkey pkey = {{{0}}}, s2n_pkey_free);
-    GUARD(get_private_key(&pkey, pem_path));
-
-    // get the certificate type
-    int32_t cert_type = -1;
-    if (NULL != pkey.encrypt) {
-        cert_type = 0;  //RSA
-    } else if (NULL != pkey.key.ecdsa_key.ec_key) {
-        cert_type = 1;  //EC
-    }
-
-    // Prepare the signature blob
-    struct s2n_blob signature = {0};
-    uint32_t maximum_signature_length = s2n_pkey_size(&pkey);
-    GUARD(s2n_alloc(&signature, maximum_signature_length));
-    uint32_t signature_size = signature.size;
-
-    int nid_type;
-    switch (cert_type)
-    {
-        case 0:
-            //RSA
-            GUARD(s2n_hash_NID_type((s2n_hash_algorithm)hash_algorithm, &nid_type));
-            GUARD_OSSL(RSA_sign(nid_type, hash_digest, digest_length, signature.data, &signature_size, pkey.key.rsa_key.rsa), S2N_ERR_SIGN);
-            break;
-        case 1:
-            //ECDSA
-            GUARD_OSSL(ECDSA_sign(0, hash_digest, digest_length, signature.data, &signature_size, pkey.key.ecdsa_key.ec_key), S2N_ERR_SIGN);
-            break;
-        default:
-            S2N_ERROR(S2N_ERR_EXTERNAL_CERT_TYPE_INVALID);
-            break;
-    }
-
-    S2N_ERROR_IF(signature_size > signature.size, S2N_ERR_SIZE_MISMATCH);
-    signature.size = signature_size;
-
-    // copy signature to the result
-    struct s2n_blob mem = {0};
-    s2n_alloc(&mem, signature.size);
-    memcpy_check(mem.data, signature.data, signature.size);
-
-    *result = mem.data;
-    *result_size = mem.size;
     *status = 2;
 
-    // free local memory
-    s2n_free(&signature);
-
+    free(private_key_pem);
     return 0;
 }
 
-int external_dhe_default_sign(int32_t *status, uint32_t* result_size, uint8_t **result, uint8_t hash_algorithm, const uint8_t *hash_digest)
+int external_dhe_default_sign(int32_t *status, uint32_t* result_size, uint8_t **result, uint8_t hash_algorithm, uint8_t *hash_digest, uint32_t hash_digest_size)
 {
-    return external_dhe_sign(status, result_size, result, hash_algorithm, hash_digest, S2N_DEFAULT_TEST_PRIVATE_KEY);
+    return external_dhe_sign(status, result_size, result, hash_algorithm, hash_digest, hash_digest_size, S2N_DEFAULT_TEST_PRIVATE_KEY);
 }
 
-int external_dhe_ecdsa_sign(int32_t *status, uint32_t* result_size, uint8_t **result, uint8_t hash_algorithm, const uint8_t *hash_digest)
+int external_dhe_ecdsa_sign(int32_t *status, uint32_t* result_size, uint8_t **result, uint8_t hash_algorithm, uint8_t *hash_digest, uint32_t hash_digest_size)
 {
-    return external_dhe_sign(status, result_size, result, hash_algorithm, hash_digest, S2N_ECDSA_P384_PKCS1_KEY);
+    return external_dhe_sign(status, result_size, result, hash_algorithm, hash_digest, hash_digest_size, S2N_ECDSA_P384_PKCS1_KEY);
 }
 
 int main(int argc, char **argv)

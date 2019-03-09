@@ -38,23 +38,35 @@ int s2n_ecdsa_der_signature_size(const struct s2n_pkey *pkey)
     return ECDSA_size(ecdsa_key->ec_key);
 }
 
-static int s2n_ecdsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, struct s2n_blob *signature)
+/* Note that NID_type is not needed for ecdsa */
+static int s2n_ecdsa_sign_blob(const struct s2n_pkey *priv, struct s2n_blob *digest_blob, int NID_type, struct s2n_blob *signature)
 {
+
     const s2n_ecdsa_private_key *key = &priv->key.ecdsa_key;
     notnull_check(key->ec_key);
 
+    unsigned int signature_size = signature->size;
+    GUARD_OSSL(ECDSA_sign(0, digest_blob->data, digest_blob->size, signature->data, &signature_size, key->ec_key), S2N_ERR_SIGN);
+    S2N_ERROR_IF(signature_size > signature->size, S2N_ERR_SIZE_MISMATCH);
+    signature->size = signature_size;
+
+    return 0;
+}
+
+static int s2n_ecdsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, struct s2n_blob *signature)
+{
     uint8_t digest_length;
     GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
     lte_check(digest_length, S2N_MAX_DIGEST_LEN);
 
-    uint8_t digest_out[S2N_MAX_DIGEST_LEN];
-    GUARD(s2n_hash_digest(digest, digest_out, digest_length));
+    struct s2n_blob digest_blob = {0};
+    GUARD(s2n_alloc(&digest_blob, S2N_MAX_DIGEST_LEN));
+    GUARD(s2n_hash_digest(digest, digest_blob.data, digest_length));
+    digest_blob.size = digest_length;
 
-    unsigned int signature_size = signature->size;
-    GUARD_OSSL(ECDSA_sign(0, digest_out, digest_length, signature->data, &signature_size, key->ec_key), S2N_ERR_SIGN);
-    S2N_ERROR_IF(signature_size > signature->size, S2N_ERR_SIZE_MISMATCH);
-    signature->size = signature_size;
+    GUARD(s2n_ecdsa_sign_blob(priv, &digest_blob, 0, signature));
 
+    GUARD(s2n_free(&digest_blob));
     GUARD(s2n_hash_reset(digest));
     
     return 0;
@@ -150,6 +162,7 @@ int s2n_evp_pkey_to_ecdsa_public_key(s2n_ecdsa_public_key *ecdsa_key, EVP_PKEY *
 int s2n_ecdsa_pkey_init(struct s2n_pkey *pkey) {
     pkey->size = &s2n_ecdsa_der_signature_size;
     pkey->sign = &s2n_ecdsa_sign;
+    pkey->sign_blob = &s2n_ecdsa_sign_blob;
     pkey->verify = &s2n_ecdsa_verify;
     pkey->encrypt = NULL; /* No function for encryption */
     pkey->decrypt = NULL; /* No function for decryption */

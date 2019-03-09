@@ -73,6 +73,12 @@ int s2n_pkey_sign(const struct s2n_pkey *pkey, struct s2n_hash_state *digest, st
     return pkey->sign(pkey, digest, signature);
 }
 
+int s2n_pkey_sign_blob(const struct s2n_pkey *pkey, struct s2n_blob *digest_blob, int NID_type, struct s2n_blob *signature)
+{
+    notnull_check(pkey->sign_blob);
+    return pkey->sign_blob(pkey, digest_blob, NID_type, signature);
+}
+
 int s2n_pkey_verify(const struct s2n_pkey *pkey, struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
     notnull_check(pkey);
@@ -130,7 +136,6 @@ int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1d
     int ret;
     switch (type) {
     case EVP_PKEY_RSA:
-        //printf("OMG s2n_asnlder_to_proivate_key \n");
         ret = s2n_rsa_pkey_init(priv_key);
         if (ret != 0) {
             break;
@@ -175,7 +180,6 @@ int s2n_asn1der_to_public_key_and_type(struct s2n_pkey *pub_key, s2n_cert_type *
     int ret;
     switch (type) {
     case EVP_PKEY_RSA:
-        //printf("OMG s2n_asn1der_to_public_key_and_type\n");
         ret = s2n_rsa_pkey_init(pub_key);
         if (ret != 0) {
             break;

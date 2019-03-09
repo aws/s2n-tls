@@ -26,6 +26,7 @@
 #include "crypto/s2n_pkey.h"
 
 #include "utils/s2n_blob.h"
+#include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
@@ -77,6 +78,17 @@ static int s2n_rsa_encrypted_size(const struct s2n_pkey *key)
     return RSA_size(rsa_key->rsa);
 }
 
+static int s2n_rsa_sign_blob(const struct s2n_pkey *priv, struct s2n_blob *digest_blob, int NID_type, struct s2n_blob *signature)
+{
+    const s2n_rsa_private_key *key = &priv->key.rsa_key;
+    unsigned int signature_size = signature->size;
+    GUARD_OSSL(RSA_sign(NID_type, digest_blob->data, digest_blob->size, signature->data, &signature_size, key->rsa), S2N_ERR_SIGN);
+    S2N_ERROR_IF(signature_size > signature->size, S2N_ERR_SIZE_MISMATCH);
+    signature->size = signature_size;
+
+    return 0;
+}
+
 static int s2n_rsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
     uint8_t digest_length;
@@ -85,15 +97,14 @@ static int s2n_rsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *dige
     GUARD(s2n_hash_NID_type(digest->alg, &NID_type));
     lte_check(digest_length, S2N_MAX_DIGEST_LEN);
 
-    const s2n_rsa_private_key *key = &priv->key.rsa_key;
+    struct s2n_blob digest_blob = {0};
+    GUARD(s2n_alloc(&digest_blob, S2N_MAX_DIGEST_LEN));
+    GUARD(s2n_hash_digest(digest, digest_blob.data, digest_length));
+    digest_blob.size = digest_length;
 
-    uint8_t digest_out[S2N_MAX_DIGEST_LEN];
-    GUARD(s2n_hash_digest(digest, digest_out, digest_length));
+    GUARD(s2n_rsa_sign_blob(priv, &digest_blob, NID_type, signature));
 
-    unsigned int signature_size = signature->size;
-    GUARD_OSSL(RSA_sign(NID_type, digest_out, digest_length, signature->data, &signature_size, key->rsa), S2N_ERR_SIGN);
-    S2N_ERROR_IF(signature_size > signature->size, S2N_ERR_SIZE_MISMATCH);
-    signature->size = signature_size;
+    GUARD(s2n_free(&digest_blob));
 
     return 0;
 }
@@ -212,6 +223,7 @@ int s2n_evp_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *evp_
 int s2n_rsa_pkey_init(struct s2n_pkey *pkey) {
     pkey->size = &s2n_rsa_encrypted_size;
     pkey->sign = &s2n_rsa_sign;
+    pkey->sign_blob = &s2n_rsa_sign_blob;
     pkey->verify = &s2n_rsa_verify;
     pkey->encrypt = &s2n_rsa_encrypt;
     pkey->decrypt = &s2n_rsa_decrypt;
