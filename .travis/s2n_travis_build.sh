@@ -46,7 +46,7 @@ if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "valgrind" ]]; then
     kill %1
 fi
 
-if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "integration" ]]; then
+if [[ "$TRAVIS_OS_NAME" == "linux" && (("$TESTS" == "integration") || ("$TESTS" == "unit")) ]]; then
     make -j 8
 fi
 
@@ -64,3 +64,12 @@ if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMACFailure" ]]; then make -C tests/s
 if [[ "$TESTS" == "ALL" || "$TESTS" == "ctverif" ]]; then .travis/run_ctverif.sh "$CTVERIF_INSTALL_DIR" ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sidetrail" ]]; then .travis/run_sidetrail.sh "$SIDETRAIL_INSTALL_DIR" ; fi
 
+# Upload Code Coverage Information to CodeCov.io
+if [[ -n "$CODECOV_IO_UPLOAD" ]]; then
+    # Generate *.gcov files that can be picked up by the CodeCov.io Bash helper script. Don't run lcov or genhtml 
+    # since those will delete .gcov files as they're processed.
+    make run-gcov;
+
+    # Upload coverage metrics to codecov.io site
+    bash <(curl -s https://codecov.io/bash) -F ${TESTS};
+fi
