@@ -5,6 +5,11 @@
 *.so
 *~
 *.dSYM
+*.gcda
+*.gcno
+*.gcov
+*.info
+coverage/html/*
 libcrypto-build/*
 libcrypto-root/*
 tests/integration/__pycache__

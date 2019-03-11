@@ -18,7 +18,7 @@ set -ex
 sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
 sudo apt-get update -o Acquire::CompressionTypes::Order::=gz
 
-DEPENDENCIES="unzip make indent kwstyle libssl-dev tcpdump valgrind"
+DEPENDENCIES="unzip make indent kwstyle libssl-dev tcpdump valgrind lcov m4 nettle-dev nettle-bin pkg-config gcc g++ zlibc zlib1g-dev python-pip"
 
 sudo apt-get install -y ${DEPENDENCIES}
 

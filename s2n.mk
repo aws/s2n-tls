@@ -32,14 +32,22 @@ CLANG    ?= clang-3.8
 LLVMLINK ?= llvm-link-3.8
 
 SOURCES = $(wildcard *.c *.h)
-CRUFT   = $(wildcard *.c~ *.h~ *.c.BAK *.h.BAK *.o *.a *.so *.dylib *.bc)
+CRUFT   = $(wildcard *.c~ *.h~ *.c.BAK *.h.BAK *.o *.a *.so *.dylib *.bc *.gcov *.gcda *.gcno *.info)
 INDENT  = $(shell (if indent --version 2>&1 | grep GNU > /dev/null; then echo indent ; elif gindent --version 2>&1 | grep GNU > /dev/null; then echo gindent; else echo true ; fi ))
 
 DEFAULT_CFLAGS = -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized \
                  -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -fPIC \
                  -std=c99 -D_POSIX_C_SOURCE=200809L -O2 -I$(LIBCRYPTO_ROOT)/include/ \
                  -I../api/ -I../ -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security \
-                 -D_FORTIFY_SOURCE=2 -fgnu89-inline
+                 -D_FORTIFY_SOURCE=2 -fgnu89-inline 
+
+COVERAGE_CFLAGS = -fprofile-arcs -ftest-coverage
+COVERAGE_LDFLAGS = --coverage
+
+ifdef S2N_COVERAGE
+    DEFAULT_CFLAGS += ${COVERAGE_CFLAGS}
+    LIBS += ${COVERAGE_LDFLAGS}
+endif
 
 # Add a flag to disable stack protector for alternative libcs without
 # libssp.
@@ -83,6 +91,15 @@ INDENTOPTS = -npro -kr -i4 -ts4 -nut -sob -l180 -ss -ncs -cp1
 .PHONY : indentsource
 indentsource:
 	( for source in ${SOURCES} ; do ${INDENT} ${INDENTOPTS} $$source; done )
+	
+.PHONY : gcov
+gcov: 
+	( for source in ${SOURCES} ; do gcov $$source;  done )
+
+.PHONY : lcov
+lcov: 
+	lcov --capture --directory . --base-directory=${S2N_ROOT} --output ./coverage.info
+
 
 .PHONY : decruft
 decruft:
