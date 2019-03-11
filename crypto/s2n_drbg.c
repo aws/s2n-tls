@@ -27,6 +27,8 @@
 #define s2n_drbg_key_size(drgb) EVP_CIPHER_CTX_key_length((drbg)->ctx)
 #define s2n_drbg_seed_size(drgb) (S2N_DRBG_BLOCK_SIZE + s2n_drbg_key_size(drgb))
 
+static int s2n_enable_dangerous_drbg_modes = 0;
+
 static int s2n_drbg_block_encrypt(EVP_CIPHER_CTX * ctx, uint8_t in[S2N_DRBG_BLOCK_SIZE], uint8_t out[S2N_DRBG_BLOCK_SIZE])
 {
     int len = S2N_DRBG_BLOCK_SIZE;
@@ -107,6 +109,7 @@ static int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
 
 int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string, const s2n_drbg_mode mode)
 {
+    S2N_ERROR_IF(mode == S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR && !s2n_enable_dangerous_drbg_modes, S2N_ERR_DRBG);
     drbg->ctx = EVP_CIPHER_CTX_new();
     S2N_ERROR_IF(!drbg->ctx, S2N_ERR_DRBG);
 
@@ -114,7 +117,7 @@ int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization
 
     if (mode == S2N_AES_128_CTR_NO_DF_PR) {
         GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_128_ecb(), NULL, NULL, NULL), S2N_ERR_DRBG);
-    } else if (mode == S2N_AES_256_CTR_NO_DF_PR) {
+    } else if (mode == S2N_AES_256_CTR_NO_DF_PR || mode == S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR) {
         GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_256_ecb(), NULL, NULL, NULL), S2N_ERR_DRBG);
     } else {
         S2N_ERROR(S2N_ERR_DRBG);
@@ -139,9 +142,15 @@ int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization
     /* Seed / update the DRBG */
     GUARD(s2n_drbg_seed(drbg, &ps));
 
-    /* After initial seeding, pivot to RDRAND if available and not overridden */
-    if (drbg->entropy_generator == NULL && s2n_cpu_supports_rdrand()) {
-        drbg->entropy_generator = s2n_get_rdrand_data;
+    if (mode == S2N_AES_128_CTR_NO_DF_PR || mode == S2N_AES_256_CTR_NO_DF_PR) {
+        /* After initial seeding, pivot to RDRAND if available and not overridden */
+        if (drbg->entropy_generator == NULL && s2n_cpu_supports_rdrand()) {
+            drbg->entropy_generator = s2n_get_rdrand_data;
+        }
+    } else if (mode == S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR && s2n_enable_dangerous_drbg_modes) {
+        drbg->entropy_generator = NULL;
+    } else {
+        S2N_ERROR(S2N_ERR_DRBG);
     }
     return 0;
 }
@@ -184,4 +193,10 @@ int s2n_drbg_wipe(struct s2n_drbg *drbg)
 int s2n_drbg_bytes_used(struct s2n_drbg *drbg)
 {
     return drbg->bytes_used;
+}
+
+int s2n_drbg_enable_dangerous_modes()
+{
+    s2n_enable_dangerous_drbg_modes = 1;
+    return 0;
 }
