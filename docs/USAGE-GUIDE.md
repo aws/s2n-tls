@@ -77,20 +77,20 @@ And when invoking CMake for your project, do one of two things:
  1. Set the `CMAKE_INSTALL_PREFIX` variable with the path to your s2n build.
  2. If you have globally installed s2n, do nothing, it will automatically be found.
  
-## Building s2n with OpenSSL-1.1.0
+## Building s2n with OpenSSL-1.1.1
 
-To build s2n with OpenSSL-1.1.0, do the following:
+To build s2n with OpenSSL-1.1.1, do the following:
 
 ```shell
 # We keep the build artifacts in the -build directory
 cd libcrypto-build
 
 # Download the latest version of OpenSSL
-curl -LO https://www.openssl.org/source/openssl-1.1.0-latest.tar.gz
-tar -xzvf openssl-1.1.0-latest.tar.gz
+curl -LO https://www.openssl.org/source/openssl-1.1.1-latest.tar.gz
+tar -xzvf openssl-1.1.1-latest.tar.gz
 
-# Build openssl libcrypto  (NOTE: check directory name 1.1.0-latest unpacked as)
-cd openssl-1.1.0e
+# Build openssl libcrypto  (NOTE: check directory name 1.1.1-latest unpacked as)
+cd openssl-1.1.1b
 ./config -fPIC no-shared              \
          no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
          no-hw no-mdc2 no-seed no-idea enable-ec_nistp_64_gcc_128 no-camellia\
@@ -500,21 +500,22 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config,
 
 **s2n_config_set_cipher_preferences** sets the ciphersuite and protocol versions. The currently supported versions are;
 
-|    version | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | AES-CBC | ChaCha20-Poly1305 | AES-GCM | 3DES | RC4 | DHE | ECDHE |
-|------------|-------|--------|--------|--------|---------|-------------------|---------|------|-----|-----|-------|
-| "default"  |       |   X    |    X   |    X   |    X    |         X         |    X    |      |     |     |   X   |
-| "20170718" |       |   X    |    X   |    X   |    X    |                   |    X    |      |     |     |   X   |
-| "20170405" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |     |   X   |
-| "20170328" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |  X  |   X   |
-| "20170210" |       |   X    |    X   |    X   |    X    |         X         |    X    |      |     |     |   X   |
-| "20160824" |       |   X    |    X   |    X   |    X    |                   |    X    |      |     |     |   X   |
-| "20160804" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |     |   X   |
-| "20160411" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |     |   X   |
-| "20150306" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |     |   X   |
-| "20150214" |       |   X    |    X   |    X   |    X    |                   |    X    |  X   |     |  X  |       |
-| "20150202" |       |   X    |    X   |    X   |    X    |                   |         |  X   |     |  X  |       |
-| "20141001" |       |   X    |    X   |    X   |    X    |                   |         |  X   |  X  |  X  |       |
-| "20140601" |   X   |   X    |    X   |    X   |    X    |                   |         |  X   |  X  |  X  |       |
+|    version | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | AES-CBC | ChaCha20-Poly1305 | ECDSA | AES-GCM | 3DES | RC4 | DHE | ECDHE |
+|------------|-------|--------|--------|--------|---------|-------------------|-------|---------|------|-----|-----|-------|
+| "default"  |       |   X    |    X   |    X   |    X    |         X         |       |    X    |      |     |     |   X   |
+| "20190214" |       |   X    |    X   |    X   |    X    |                   |   X   |    X    |  X   |     |  X  |   X   |
+| "20170718" |       |   X    |    X   |    X   |    X    |                   |       |    X    |      |     |     |   X   |
+| "20170405" |       |   X    |    X   |    X   |    X    |                   |       |    X    |  X   |     |     |   X   |
+| "20170328" |       |   X    |    X   |    X   |    X    |                   |       |    X    |  X   |     |  X  |   X   |
+| "20170210" |       |   X    |    X   |    X   |    X    |         X         |       |    X    |      |     |     |   X   |
+| "20160824" |       |   X    |    X   |    X   |    X    |                   |       |    X    |      |     |     |   X   |
+| "20160804" |       |   X    |    X   |    X   |    X    |                   |       |    X    |  X   |     |     |   X   |
+| "20160411" |       |   X    |    X   |    X   |    X    |                   |       |    X    |  X   |     |     |   X   |
+| "20150306" |       |   X    |    X   |    X   |    X    |                   |       |    X    |  X   |     |     |   X   |
+| "20150214" |       |   X    |    X   |    X   |    X    |                   |       |    X    |  X   |     |  X  |       |
+| "20150202" |       |   X    |    X   |    X   |    X    |                   |       |         |  X   |     |  X  |       |
+| "20141001" |       |   X    |    X   |    X   |    X    |                   |       |         |  X   |  X  |  X  |       |
+| "20140601" |   X   |   X    |    X   |    X   |    X    |                   |       |         |  X   |  X  |  X  |       |
 
 The "default" version is special in that it will be updated with future s2n changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change. 
 
@@ -524,7 +525,7 @@ The "default" version is special in that it will be updated with future s2n chan
 
 s2n does not expose an API to control the order of preference for each ciphersuite or protocol version. s2n follows the following order:
 
-*NOTE*: All ChaCha20-Poly1305 cipher suites will not be available if s2n is not built with an Openssl 1.1.0 libcrypto. The
+*NOTE*: All ChaCha20-Poly1305 cipher suites will not be available if s2n is not built with an Openssl 1.1.1 libcrypto. The
 underlying encrpyt/decrypt functions are not available in older versions.
 
 1. Always prefer the highest protocol version supported

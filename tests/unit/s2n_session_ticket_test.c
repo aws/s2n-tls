@@ -28,17 +28,13 @@
 #define S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS    (S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS) / ONE_SEC_IN_NANOS
 #define S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES     S2N_STATE_FORMAT_LEN + S2N_SESSION_TICKET_SIZE_LEN
 
-#if defined(CLOCK_MONOTONIC_RAW)
-#define S2N_CLOCK_HW CLOCK_MONOTONIC_RAW
-#else
-#define S2N_CLOCK_HW CLOCK_MONOTONIC
-#endif
+#define S2N_CLOCK_SYS CLOCK_REALTIME
 
 int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
 {
     struct timespec current_time;
 
-    clock_gettime(S2N_CLOCK_HW, &current_time);
+    clock_gettime(S2N_CLOCK_SYS, &current_time);
 
     *nanoseconds = current_time.tv_sec * 1000000000;
     *nanoseconds += current_time.tv_nsec;
@@ -144,7 +140,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
 
         /* Add one ST key */
-        GUARD(server_config->monotonic_clock(server_config->monotonic_clock_ctx, &now));
+        GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, strlen((char *)ticket_key_name1), ticket_key1, strlen((char *)ticket_key1), now/ONE_SEC_IN_NANOS));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
@@ -297,7 +293,7 @@ int main(int argc, char **argv)
 
         /* Add a mock delay such that key 1 moves to decrypt-only state */
         uint64_t mock_delay = server_config->encrypt_decrypt_key_lifetime_in_nanos;
-        EXPECT_SUCCESS(s2n_config_set_monotonic_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
 
         /* Add a second ST key */
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, strlen((char *)ticket_key_name2), ticket_key2, strlen((char *)ticket_key2), 0));
@@ -364,7 +360,7 @@ int main(int argc, char **argv)
 
         /* Add a mock delay such that key 1 moves to decrypt-only state */
         uint64_t mock_delay = server_config->encrypt_decrypt_key_lifetime_in_nanos;
-        EXPECT_SUCCESS(s2n_config_set_monotonic_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
@@ -476,7 +472,7 @@ int main(int argc, char **argv)
 
         /* Add a mock delay such that the key used to encrypt ST expires */
         uint64_t mock_delay = server_config->decrypt_key_lifetime_in_nanos + server_config->encrypt_decrypt_key_lifetime_in_nanos;
-        EXPECT_SUCCESS(s2n_config_set_monotonic_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
 
         /* Add a second ST key */
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, strlen((char *)ticket_key_name2), ticket_key2, strlen((char *)ticket_key2), 0));
@@ -603,7 +599,7 @@ int main(int argc, char **argv)
 
         /* Add a mock delay such that the first two keys expire */
         uint64_t mock_delay = server_config->decrypt_key_lifetime_in_nanos + server_config->encrypt_decrypt_key_lifetime_in_nanos;
-        EXPECT_SUCCESS(s2n_config_set_monotonic_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
 
         /* Add a third ST key */
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name3, strlen((char *)ticket_key_name3), ticket_key3, strlen((char *)ticket_key3), 0));
@@ -651,7 +647,7 @@ int main(int argc, char **argv)
 
         /* Add a mock delay such that the first key is close to it's encryption peak */
         uint64_t mock_delay = (server_config->encrypt_decrypt_key_lifetime_in_nanos / 2) - ONE_SEC_IN_NANOS;
-        EXPECT_SUCCESS(s2n_config_set_monotonic_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
 
         /* Add two more ST keys */
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, strlen((char *)ticket_key_name2), ticket_key2, strlen((char *)ticket_key2), 0));
@@ -709,14 +705,14 @@ int main(int argc, char **argv)
 
         /* Add second key when the first key is very close to it's encryption peak */
         uint64_t mock_delay = (server_config->encrypt_decrypt_key_lifetime_in_nanos / 2) - ONE_SEC_IN_NANOS;
-        EXPECT_SUCCESS(s2n_config_set_monotonic_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, strlen((char *)ticket_key_name2), ticket_key2, strlen((char *)ticket_key2), 0));
 
         /* Add third key when the second key is very close to it's encryption peak and
          * the first key is about to transition from encrypt-decrypt state to decrypt-only state
          */
         mock_delay = server_config->encrypt_decrypt_key_lifetime_in_nanos - ONE_SEC_IN_NANOS;
-        EXPECT_SUCCESS(s2n_config_set_monotonic_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name3, strlen((char *)ticket_key_name3), ticket_key3, strlen((char *)ticket_key3), 0));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
@@ -778,14 +774,14 @@ int main(int argc, char **argv)
 
         /* Add second key when the first key is very close to it's encryption peak */
         uint64_t mock_delay = (server_config->encrypt_decrypt_key_lifetime_in_nanos / 2) - ONE_SEC_IN_NANOS;
-        EXPECT_SUCCESS(s2n_config_set_monotonic_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, strlen((char *)ticket_key_name2), ticket_key2, strlen((char *)ticket_key2), 0));
 
         /* Add third key when the second key is very close to it's encryption peak and
          * the first key is about to transition from encrypt-decrypt state to decrypt-only state
          */
         mock_delay = server_config->encrypt_decrypt_key_lifetime_in_nanos - ONE_SEC_IN_NANOS;
-        EXPECT_SUCCESS(s2n_config_set_monotonic_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name3, strlen((char *)ticket_key_name3), ticket_key3, strlen((char *)ticket_key3), 0));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
@@ -836,7 +832,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
 
         /* Add a key. After 1 hour it will be considered an encrypt-decrypt key. */
-        GUARD(server_config->monotonic_clock(server_config->monotonic_clock_ctx, &now));
+        GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, strlen((char *)ticket_key_name1), ticket_key1, strlen((char *)ticket_key1), (now/ONE_SEC_IN_NANOS) + 3600));
 
         /* Add a key. After 1 hour it will reach it's peak */
@@ -847,7 +843,7 @@ int main(int argc, char **argv)
 
         /* Add a mock delay such that negotiation happens after 1 hour */
         uint64_t mock_delay = (server_config->encrypt_decrypt_key_lifetime_in_nanos / 2) - ONE_SEC_IN_NANOS;
-        EXPECT_SUCCESS(s2n_config_set_monotonic_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
