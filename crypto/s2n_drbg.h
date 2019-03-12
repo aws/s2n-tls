@@ -46,10 +46,8 @@ struct s2n_drbg {
      */
     int (*entropy_generator) (struct s2n_blob *);
 
-    /* Also used only by the unit tests: which generation of the DRBG is this.
-     * This number is incremented every time we reseed.
-     */
-    uint32_t generation;
+    /* Indicate if the DRBG instance offers prediction resistance and should reseed after every call */
+    uint8_t use_prediction_resistance;
 };
 
 /*
