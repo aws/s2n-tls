@@ -245,7 +245,12 @@ int s2n_server_key_external(struct s2n_connection *conn)
 
             s2n_free(&digest_out);
 
-            /* Return '1' to indicate we are waiting for the result now */
+            if (conn->external_ctx.sign_status == S2N_EXTERNAL_RETURNED) {
+                /* Proceed by return '0' if the external_dhe_sign is a blocking function and the signed_has is already ready now. */
+                return 0;
+            }
+
+            /* Return '1' to indicate we are waiting for the result, e.g. the external_dhe_sign is asynchronous */
             return 1;
         }
         /* external signing has been invoked and we are waiting for the result. Return '1' to indicate that */
