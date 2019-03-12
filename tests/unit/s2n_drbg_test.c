@@ -396,6 +396,14 @@ int check_drgb_version(s2n_drbg_mode mode, int (*generator)(struct s2n_blob *), 
                                      sizeof(nist_returned_bits)));
         eq_check(memcmp(nist_returned_bits, out, sizeof(nist_returned_bits)), 0);
 
+        if (mode == S2N_AES_128_CTR_NO_DF_PR || mode == S2N_AES_256_CTR_NO_DF_PR){
+            eq_check(nist_drbg.generation, 3);
+        } else if (mode == S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR) {
+            eq_check(nist_drbg.generation, 1);
+        } else {
+            S2N_ERROR(S2N_ERR_DRBG);
+        }
+
         GUARD(s2n_drbg_wipe(&nist_drbg));
     }
     return 0;
@@ -463,6 +471,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_drbg_generate(&aes128_drbg, &blob));
     }
     EXPECT_SUCCESS(s2n_timer_reset(config, &timer, &aes128_drbg_nanoseconds));
+    EXPECT_EQUAL(aes128_drbg.generation, 500001);
 
     /* Use the AES256 DRBG with prediction resistance for 32MB of data */
     EXPECT_SUCCESS(s2n_timer_start(config, &timer));
@@ -470,6 +479,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_drbg_generate(&aes256_pr_drbg, &blob));
     }
     EXPECT_SUCCESS(s2n_timer_reset(config, &timer, &aes256_pr_drbg_nanoseconds));
+    EXPECT_EQUAL(aes256_pr_drbg.generation, 500001);
 
     /* Use the AES256 DRBG without prediction resistance for 32MB of data */
     EXPECT_SUCCESS(s2n_timer_start(config, &timer));
@@ -477,6 +487,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_drbg_generate(&aes256_no_pr_drbg, &blob));
     }
     EXPECT_SUCCESS(s2n_timer_reset(config, &timer, &aes256_no_pr_drbg_nanoseconds));
+    EXPECT_EQUAL(aes256_no_pr_drbg.generation, 1);
 
     /* Use urandom for 32MB of data */
     EXPECT_SUCCESS(s2n_timer_start(config, &timer));
@@ -493,6 +504,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_drbg_generate(&aes256_pr_drbg, &blob));
         EXPECT_SUCCESS(s2n_drbg_generate(&aes256_no_pr_drbg, &blob));
     }
+    EXPECT_EQUAL(aes128_drbg.generation, 500011);
+    EXPECT_EQUAL(aes256_pr_drbg.generation, 500011);
+    EXPECT_EQUAL(aes256_no_pr_drbg.generation, 1);
 
     EXPECT_SUCCESS(s2n_drbg_wipe(&aes128_drbg));
     EXPECT_SUCCESS(s2n_drbg_wipe(&aes256_pr_drbg));

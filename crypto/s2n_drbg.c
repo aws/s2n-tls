@@ -102,6 +102,8 @@ static int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
     GUARD(s2n_drbg_update(drbg, &blob));
 
     drbg->bytes_used = 0;
+    drbg->generation += 1;
+
     return 0;
 }
 
