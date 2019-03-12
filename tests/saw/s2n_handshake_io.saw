@@ -353,6 +353,7 @@ let yices_debug = do {yices;
 let equalNat_ite = core_axiom
   "\\(x y z : Nat) (b : Bool) -> eq Bool (equalNat x (ite Nat b y z)) (ite Bool b (equalNat x y) (equalNat x z))";
 
+
 // Low-level correspondence proof. This is the entry point for this file.
 let s2n_handshake_io_lowlevel = do {
     // Dependencies specifications/overrides
@@ -374,11 +375,11 @@ let s2n_handshake_io_lowlevel = do {
     let dependencies = [s2n_socket_write_uncork, s2n_socket_write_cork, s2n_socket_was_corked, s2n_connection_is_managed_corked];
 
     print "Proving correctness of get_auth_type";
-    auth_type_proof <- crucible_llvm_verify llvm "s2n_connection_get_client_auth_type" dependencies true s2n_connection_get_client_auth_type_spec (do {simplify (addsimp equalNat_ite basic_ss); yices;});
+    auth_type_proof <- crucible_llvm_verify llvm "s2n_connection_get_client_auth_type" dependencies false s2n_connection_get_client_auth_type_spec (do {simplify (addsimp equalNat_ite basic_ss); yices;});
     print "Proving correctness of s2n_advance_message";
-    s2n_advance_message_proof <- crucible_llvm_verify llvm "s2n_advance_message" dependencies true s2n_advance_message_spec yices;
+    s2n_advance_message_proof <- crucible_llvm_verify llvm "s2n_advance_message" dependencies false s2n_advance_message_spec yices;
     print "Proving correctness of s2n_conn_set_handshake_type";
-    s2n_conn_set_handshake_type_proof <- crucible_llvm_verify llvm "s2n_conn_set_handshake_type" [s2n_allowed_to_cache_connection, auth_type_proof, s2n_generate_new_client_session_id, s2n_decrypt_session_ticket] true s2n_conn_set_handshake_type_spec yices;
+    s2n_conn_set_handshake_type_proof <- crucible_llvm_verify llvm "s2n_conn_set_handshake_type" [s2n_allowed_to_cache_connection, auth_type_proof, s2n_generate_new_client_session_id, s2n_decrypt_session_ticket] false s2n_conn_set_handshake_type_spec yices;
     print "done";
     return ();
 };
