@@ -32,7 +32,7 @@
 #include "testlib/s2n_testlib.h"
 
 
-/* Test vectors are taken from http://csrc.nist.gov/groups/STM/cavp/documents/drbg/drbgtestvectors.zip
+/* Test vectors are taken from https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/drbg/drbgtestvectors.zip
  * - drbgvectors_pr_true/CTR_DRBG.txt :
  * [AES-128 no df]
  * [PredictionResistance = True]
@@ -144,7 +144,7 @@ const char nist_aes128_reference_returned_bits_hex[] =
 "7c41adf941656cfb9f24409d6cc4d578d43930b3e23ec801a59c53d999401bc0cb3e5b8797b2770a8a8f51ff594b7b17d9e694d5e36644508d16cb2554057adc"
 "ac054570b081cf53b39b0a2faa21ee9b554c05ff9055843ac0eb9031d1de324701ad4cf2875623e0bf4184de4aea20070be1cb586880ac87fbb7e414b4b128d0";
 
-/* Test vectors are taken from http://csrc.nist.gov/groups/STM/cavp/documents/drbg/drbgtestvectors.zip
+/* Test vectors are taken from https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/drbg/drbgtestvectors.zip
  * - drbgvectors_pr_true/CTR_DRBG.txt :
  * [AES-256 no df]
  * [PredictionResistance = True]
@@ -255,7 +255,7 @@ const char nist_aes256_reference_returned_bits_hex[] =
 "6553c630a07ddf7dc2110c3aa3c5ac0c488a0345e07571cd71df115ba37ea4676935be72a6033aeca7ac6fcce5654dae38f5777b5cff34b156539b42ed6dc93c"
 "ed703d9273bb9462ac400ee8d587ea3c4d6c27aa014defcb6ca6fe885272bcb4b6ba0822f42941071bf635b41d997c631b680d91b23ee48351041dc274900821";
 
-/* Test vectors are taken from http://csrc.nist.gov/groups/STM/cavp/documents/drbg/drbgtestvectors.zip
+/* Test vectors are taken from https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/drbg/drbgtestvectors.zip
  * - drbgvectors_no_reseed/CTR_DRBG.txt :
  * [AES-256 no df]
  * [PredictionResistance = False]
