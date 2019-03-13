@@ -40,3 +40,9 @@
 #else
 #define s2n_evp_ctx_init(ctx) EVP_CIPHER_CTX_init(ctx)
 #endif
+
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_FIPS) && !defined(LIBRESSL_VERSION_NUMBER)
+#define S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND 1
+#else
+#define S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND 0
+#endif
