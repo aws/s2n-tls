@@ -198,38 +198,6 @@ int64_t s2n_public_random(int64_t bound)
     }
 }
 
-#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_FIPS) && !defined(LIBRESSL_VERSION_NUMBER)
-
-int s2n_openssl_compat_rand(unsigned char *buf, int num)
-{
-    struct s2n_blob out = {.data = buf,.size = num };
-
-    if (s2n_get_private_random_data(&out) < 0) {
-        return 0;
-    }
-    return 1;
-}
-
-int s2n_openssl_compat_status(void)
-{
-    return 1;
-}
-
-int s2n_openssl_compat_init(ENGINE * unused)
-{
-    return 1;
-}
-
-RAND_METHOD s2n_openssl_rand_method = {
-    .seed = NULL,
-    .bytes = s2n_openssl_compat_rand,
-    .cleanup = NULL,
-    .add = NULL,
-    .pseudorand = s2n_openssl_compat_rand,
-    .status = s2n_openssl_compat_status
-};
-#endif
-
 int s2n_rand_init(void)
 {
   OPEN:
@@ -251,23 +219,9 @@ int s2n_rand_init(void)
 #endif
 
     GUARD(s2n_defend_if_forked());
-
-#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_FIPS) && !defined(LIBRESSL_VERSION_NUMBER)
-    /* Create an engine */
-    ENGINE *e = ENGINE_new();
-    if (e == NULL ||
-        ENGINE_set_id(e, "s2n_rand") != 1 ||
-        ENGINE_set_name(e, "s2n entropy generator") != 1 ||
-        ENGINE_set_flags(e, ENGINE_FLAGS_NO_REGISTER_ALL) != 1 ||
-        ENGINE_set_init_function(e, s2n_openssl_compat_init) != 1 || ENGINE_set_RAND(e, &s2n_openssl_rand_method) != 1 || ENGINE_add(e) != 1 || ENGINE_free(e) != 1) {
-        S2N_ERROR(S2N_ERR_OPEN_RANDOM);
-    }
-
-    /* Use that engine for rand() */
-    e = ENGINE_by_id("s2n_rand");
-    S2N_ERROR_IF(e == NULL || ENGINE_init(e) != 1 || ENGINE_set_default(e, ENGINE_METHOD_RAND) != 1 || ENGINE_free(e) != 1, S2N_ERR_OPEN_RANDOM);
+#if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
+    GUARD(s2n_setup_crypto_random_engine(&s2n_openssl_rand_method));
 #endif
-
     return 0;
 }
 
@@ -278,7 +232,7 @@ int s2n_rand_cleanup(void)
     GUARD(close(entropy_fd));
     entropy_fd = -1;
 
-#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_FIPS) && !defined(LIBRESSL_VERSION_NUMBER)
+#if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
     /* Cleanup our rand ENGINE in libcrypto */
     ENGINE *rand_engine = ENGINE_by_id("s2n_rand");
     if (rand_engine) {

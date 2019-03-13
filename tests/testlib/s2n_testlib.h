@@ -17,7 +17,10 @@
 
 #include <stdint.h>
 
+#include "crypto/s2n_drbg.h"
+
 #include "stuffer/s2n_stuffer.h"
+
 #include "tls/s2n_connection.h"
 
 /* Read and write hex */
@@ -33,6 +36,8 @@ extern int s2n_stuffer_write_uint16_hex(struct s2n_stuffer *stuffer, uint16_t u)
 extern int s2n_stuffer_write_uint32_hex(struct s2n_stuffer *stuffer, uint32_t u);
 extern int s2n_stuffer_write_uint64_hex(struct s2n_stuffer *stuffer, uint64_t u);
 extern int s2n_stuffer_alloc_ro_from_hex_string(struct s2n_stuffer *stuffer, const char *str);
+
+extern int s2n_set_openssl_rng_seed(const char *str, const s2n_drbg_mode drbg_mode);
 
 void s2n_print_connection(struct s2n_connection *conn, const char *marker);
 

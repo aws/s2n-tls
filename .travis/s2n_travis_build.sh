@@ -18,7 +18,7 @@ set -ex
 
 
 if [[ "$BUILD_S2N" == "true" ]]; then
-    .travis/run_cppcheck.sh "$CPPCHECK_INSTALL_DIR";
+#    .travis/run_cppcheck.sh "$CPPCHECK_INSTALL_DIR";
     .travis/copyright_mistake_scanner.sh;
 fi
 

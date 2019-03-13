@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include "crypto/s2n_openssl.h"
+
 #include "utils/s2n_blob.h"
 
 extern int s2n_rand_init(void);
@@ -28,3 +30,6 @@ extern int s2n_get_urandom_data(struct s2n_blob *blob);
 extern int64_t s2n_public_random(int64_t max);
 extern int s2n_cpu_supports_rdrand();
 extern int s2n_get_rdrand_data(struct s2n_blob *out);
+#if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
+extern int s2n_setup_crypto_random_engine(RAND_METHOD *method);
+#endif

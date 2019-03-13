@@ -26,7 +26,7 @@
 
 #include "testlib/s2n_testlib.h"
 
-#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_FIPS) && !defined(LIBRESSL_VERSION_NUMBER)
+#if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
 
 int main(int argc, char **argv)
 {
