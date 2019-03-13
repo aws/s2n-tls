@@ -1,5 +1,5 @@
 #
-# Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -15,9 +15,6 @@
 .DEFAULT_GOAL := all
 
 include ../../s2n.mk
-
-# BIKE casts raw char arrays to an internal key representation for safety and convenience in bike1_l1_kem.c
-FLAGS_TO_REMOVE := -pedantic
 
 #WA for GCC 4.8.5 bug.
 CFLAGS += -Wno-missing-braces -Wno-missing-field-initializers

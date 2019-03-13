@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -14,7 +14,8 @@
  */
 #include <sys/param.h>
 
-#include "pq-random.h"
+#include "pq-crypto/pq-random.h"
+
 #include "utils/s2n_mem.h"
 
 

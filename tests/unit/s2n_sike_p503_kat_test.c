@@ -18,23 +18,45 @@
  */
 
 #include "s2n_test.h"
-#include "s2n_nist_kats.h"
+#include "crypto/s2n_drbg.h"
 #include "pq-crypto/sike/sike_p503_kem.h"
 #include "pq-crypto/pq-random.h"
+#include "tests/unit/s2n_nist_kats.h"
+#include "utils/s2n_mem.h"
+#include "utils/s2n_safety.h"
 
 #define RSP_FILE_NAME "kats/sike_p503.kat"
+
+struct s2n_blob kat_entropy_blob = {0};
+
+int kat_entropy(struct s2n_blob *blob)
+{
+    eq_check(blob->size, kat_entropy_blob.size);
+    blob->data = kat_entropy_blob.data;
+    return 0;
+}
+
+struct s2n_drbg kat_drbg = {.entropy_generator = &kat_entropy};
+
+static int kat_get_random_bytes(struct s2n_blob *blob)
+{
+    GUARD(s2n_drbg_generate(&kat_drbg, blob));
+    return 0;
+}
 
 int main(int argc, char **argv, char **envp) {
     BEGIN_TEST();
 
     // Flip pq-random over to nist RNG to ensure KAT values match
-    EXPECT_SUCCESS(initialize_pq_crypto_generator(&randombytes));
+    EXPECT_SUCCESS(initialize_pq_crypto_generator(&kat_get_random_bytes));
+    /* SIKE knwon answers were generated with an AES_256_CTR_NO_DF_NO_PR DRBG */
+    EXPECT_SUCCESS(s2n_drbg_enable_dangerous_modes());
 
     FILE *kat_file = fopen(RSP_FILE_NAME, "r");
     EXPECT_NOT_NULL(kat_file);
 
     int count;
-    uint8_t seed[48];
+    EXPECT_SUCCESS(s2n_alloc(&kat_entropy_blob, 48));
 
     // Client side variables
     uint8_t ct[SIKE_P503_CIPHERTEXT_BYTES];
@@ -51,6 +73,8 @@ int main(int argc, char **argv, char **envp) {
     uint8_t ct_answer[SIKE_P503_CIPHERTEXT_BYTES];
     uint8_t shared_secret_answer[SIKE_P503_SHARED_SECRET_BYTES];
 
+    s2n_stack_blob(persoanlization_string, 48, 48);
+
     for (uint32_t i = 0; i < NUM_OF_KATS; i++) {
         // Verify test index
         EXPECT_SUCCESS(FindMarker(kat_file, "count = "));
@@ -58,8 +82,8 @@ int main(int argc, char **argv, char **envp) {
         EXPECT_EQUAL(count, i);
 
         // Set the NIST rng to the same state the response file was created with
-        EXPECT_SUCCESS(ReadHex(kat_file, seed, 48, "seed = "));
-        randombytes_init(seed, NULL, 256);
+        EXPECT_SUCCESS(ReadHex(kat_file, kat_entropy_blob.data, 48, "seed = "));
+        EXPECT_SUCCESS(s2n_drbg_instantiate(&kat_drbg, &persoanlization_string, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
 
         ////////////////////////////////////
         //      Run the prtocol

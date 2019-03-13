@@ -22,7 +22,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include "testlib/nist_rng.h"
 
 #define MAX_MARKER_LEN 50
 #define NUM_OF_KATS 100
