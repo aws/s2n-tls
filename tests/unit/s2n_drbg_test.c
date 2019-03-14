@@ -435,13 +435,6 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(check_drgb_version(S2N_AES_256_CTR_NO_DF_PR, &nist_fake_256_urandom_data, 48, nist_aes256_reference_personalization_strings_hex,
                        nist_aes256_reference_values_hex, nist_aes256_reference_returned_bits_hex));
 
-    /* Before enabling dangerous drbg modes attempting to use S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR should fail */
-    s2n_stack_blob(personalization_string, 64, 64);
-    struct s2n_drbg failing_drbg = {0};
-    EXPECT_FAILURE(s2n_drbg_instantiate(&failing_drbg, &personalization_string, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
-
-    EXPECT_SUCCESS(s2n_drbg_enable_dangerous_modes());
-
     /* Check everything against the NIST AES 256 vectors with no prediction resistance */
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&nist_aes256_no_pr_reference_entropy, nist_aes256_no_pr_reference_entropy_hex));
     EXPECT_SUCCESS(check_drgb_version(S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR, &nist_fake_256_no_pr_urandom_data, 48, nist_aes256_no_pr_reference_personalization_strings_hex,

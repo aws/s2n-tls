@@ -305,6 +305,7 @@ int s2n_rand_cleanup_thread(void)
  */
 int s2n_set_private_drbg_for_test(struct s2n_drbg drbg)
 {
+    S2N_ERROR_IF(!S2N_IN_UNIT_TEST, S2N_ERR_NOT_IN_UNIT_TEST);
     GUARD(s2n_drbg_wipe(&per_thread_private_drbg));
 
     per_thread_private_drbg = drbg;
