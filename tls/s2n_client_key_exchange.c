@@ -224,7 +224,8 @@ int s2n_rsa_client_key_recv_with_external_decrypt(struct s2n_connection *conn)
                                              conn->external_ctx.pre_master_key_size,
                                              conn->external_ctx.pre_master_key,
                                              encrypted.data,
-                                             encrypted.size));
+                                             encrypted.size,
+                                             conn->context));
 
     return 0;
 }

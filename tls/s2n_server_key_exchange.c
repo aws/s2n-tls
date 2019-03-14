@@ -201,58 +201,52 @@ int s2n_server_key_external(struct s2n_connection *conn)
         return 0;
     }
 
-    switch(conn->external_ctx.sign_status) {
-        /* external signing has not been invoked yet */
-        case S2N_EXTERNAL_NOT_INVOKED: {
-            struct s2n_hash_state *signature_hash = &conn->secure.signature_hash;
-            struct s2n_stuffer *out = &conn->external_ctx.ephemeral_key_io;
-            struct s2n_blob data_to_sign = {0};
+    if (S2N_EXTERNAL_NOT_INVOKED == conn->external_ctx.sign_status) {
+        /* Invoke the external sign function if it has not be called yet */
+        struct s2n_hash_state *signature_hash = &conn->secure.signature_hash;
+        struct s2n_stuffer *out = &conn->external_ctx.ephemeral_key_io;
+        struct s2n_blob data_to_sign = {0};
 
-            /* Call the negotiated key exchange method calculate data to sign it's data */
-            GUARD(s2n_kex_server_key_external(key_exchange, conn, &data_to_sign));
+        /* Call the negotiated key exchange method calculate data to sign it's data */
+        GUARD(s2n_kex_server_key_external(key_exchange, conn, &data_to_sign));
 
-            /* Add common signature data */
-            if (conn->actual_protocol_version == S2N_TLS12) {
-                GUARD(s2n_stuffer_write_uint8(out, s2n_hash_alg_to_tls[ conn->secure.conn_hash_alg ]));
-                GUARD(s2n_stuffer_write_uint8(out, conn->secure.conn_sig_alg));
-            }
-
-            /* Add the random data to the hash */
-            GUARD(s2n_hash_init(signature_hash, conn->secure.conn_hash_alg));
-            GUARD(s2n_hash_update(signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
-            GUARD(s2n_hash_update(signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
-
-            /* Add KEX specific data to the hash */
-            GUARD(s2n_hash_update(signature_hash, data_to_sign.data, data_to_sign.size));
-
-            /* prepare the digest_out blob */
-            struct s2n_blob digest_out;
-            s2n_alloc(&digest_out, S2N_MAX_DIGEST_LEN);
-
-            uint8_t digest_size;
-            GUARD(s2n_hash_digest_size(signature_hash->alg, &digest_size));
-            GUARD(s2n_hash_digest(signature_hash, digest_out.data, digest_size));
-            digest_out.size = digest_size;
-
-            conn->external_ctx.sign_status = S2N_EXTERNAL_INVOKED;
-            conn->config->external_dhe_sign(
-              (int32_t*)&(conn->external_ctx.sign_status),
-              &(conn->external_ctx.signed_hash_size),
-              &(conn->external_ctx.signed_hash),
-              (uint8_t)signature_hash->alg,
-              digest_out.data,
-              digest_out.size);
-
-            s2n_free(&digest_out);
-
-            if (conn->external_ctx.sign_status == S2N_EXTERNAL_RETURNED) {
-                /* Proceed by return '0' if the external_dhe_sign is a blocking function and the signed_has is already ready now. */
-                return 0;
-            }
-
-            /* Return '1' to indicate we are waiting for the result, e.g. the external_dhe_sign is asynchronous */
-            return 1;
+        /* Add common signature data */
+        if (conn->actual_protocol_version == S2N_TLS12) {
+          GUARD(s2n_stuffer_write_uint8(out, s2n_hash_alg_to_tls[ conn->secure.conn_hash_alg ]));
+          GUARD(s2n_stuffer_write_uint8(out, conn->secure.conn_sig_alg));
         }
+
+        /* Add the random data to the hash */
+        GUARD(s2n_hash_init(signature_hash, conn->secure.conn_hash_alg));
+        GUARD(s2n_hash_update(signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
+        GUARD(s2n_hash_update(signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
+
+        /* Add KEX specific data to the hash */
+        GUARD(s2n_hash_update(signature_hash, data_to_sign.data, data_to_sign.size));
+
+        /* prepare the digest_out blob */
+        struct s2n_blob digest_out;
+        s2n_alloc(&digest_out, S2N_MAX_DIGEST_LEN);
+
+        uint8_t digest_size;
+        GUARD(s2n_hash_digest_size(signature_hash->alg, &digest_size));
+        GUARD(s2n_hash_digest(signature_hash, digest_out.data, digest_size));
+        digest_out.size = digest_size;
+
+        conn->external_ctx.sign_status = S2N_EXTERNAL_INVOKED;
+        conn->config->external_dhe_sign(
+          (int32_t*)&(conn->external_ctx.sign_status),
+          &(conn->external_ctx.signed_hash_size),
+          &(conn->external_ctx.signed_hash),
+          (uint8_t)signature_hash->alg,
+          digest_out.data,
+          digest_out.size,
+          conn->context);
+
+        s2n_free(&digest_out);
+    }
+
+    switch(conn->external_ctx.sign_status) {
         /* external signing has been invoked and we are waiting for the result. Return '1' to indicate that */
         case S2N_EXTERNAL_INVOKED: {
             return 1;

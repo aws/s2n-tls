@@ -195,12 +195,14 @@ int external_rsa_decrypt(int32_t *status, uint32_t result_size, uint8_t *result,
     return 0;
 }
 
-int external_rsa_default_decrypt(int32_t *status, uint32_t result_size, uint8_t *result, uint8_t *in, uint32_t in_length)
+int external_rsa_default_decrypt(int32_t *status, uint32_t result_size, uint8_t *result, uint8_t *in, uint32_t in_length,
+                                 void *customer_ctx)
 {
     return external_rsa_decrypt(status, result_size, result, in, in_length, S2N_DEFAULT_TEST_PRIVATE_KEY);
 }
 
-int external_rsa_ecdsa_decrypt(int32_t *status, uint32_t result_size, uint8_t *result, uint8_t *in, uint32_t in_length)
+int external_rsa_ecdsa_decrypt(int32_t *status, uint32_t result_size, uint8_t *result, uint8_t *in, uint32_t in_length,
+                               void *customer_ctx)
 {
     return external_rsa_decrypt(status, result_size, result, in, in_length, S2N_ECDSA_P384_PKCS1_KEY);
 }
@@ -221,12 +223,14 @@ int external_dhe_sign(int32_t *status, uint32_t *result_size, uint8_t **result, 
     return 0;
 }
 
-int external_dhe_default_sign(int32_t *status, uint32_t* result_size, uint8_t **result, uint8_t hash_algorithm, uint8_t *hash_digest, uint32_t hash_digest_size)
+int external_dhe_default_sign(int32_t *status, uint32_t* result_size, uint8_t **result, uint8_t hash_algorithm,
+                              uint8_t *hash_digest, uint32_t hash_digest_size, void *customer_ctx)
 {
     return external_dhe_sign(status, result_size, result, hash_algorithm, hash_digest, hash_digest_size, S2N_DEFAULT_TEST_PRIVATE_KEY);
 }
 
-int external_dhe_ecdsa_sign(int32_t *status, uint32_t* result_size, uint8_t **result, uint8_t hash_algorithm, uint8_t *hash_digest, uint32_t hash_digest_size)
+int external_dhe_ecdsa_sign(int32_t *status, uint32_t* result_size, uint8_t **result, uint8_t hash_algorithm,
+                            uint8_t *hash_digest, uint32_t hash_digest_size, void *customer_ctx)
 {
     return external_dhe_sign(status, result_size, result, hash_algorithm, hash_digest, hash_digest_size, S2N_ECDSA_P384_PKCS1_KEY);
 }
