@@ -36,7 +36,7 @@ int kat_entropy(struct s2n_blob *blob)
     return 0;
 }
 
-struct s2n_drbg kat_drbg = {.entropy_generator = &kat_entropy};
+struct s2n_drbg kat_drbg = {0};
 
 static int kat_get_random_bytes(struct s2n_blob *blob)
 {
@@ -83,6 +83,7 @@ int main(int argc, char **argv, char **envp) {
 
         // Set the NIST rng to the same state the response file was created with
         EXPECT_SUCCESS(ReadHex(kat_file, kat_entropy_blob.data, 48, "seed = "));
+        kat_drbg.entropy_generator = &kat_entropy;
         EXPECT_SUCCESS(s2n_drbg_instantiate(&kat_drbg, &persoanlization_string, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
 
         ////////////////////////////////////
@@ -116,6 +117,7 @@ int main(int argc, char **argv, char **envp) {
         EXPECT_BYTEARRAY_EQUAL(sk_answer, sk, SIKE_P503_SECRET_KEY_BYTES);
         EXPECT_BYTEARRAY_EQUAL(ct_answer, ct, SIKE_P503_CIPHERTEXT_BYTES);
         EXPECT_BYTEARRAY_EQUAL(shared_secret_answer, server_shared_secret, SIKE_P503_SHARED_SECRET_BYTES);
+        EXPECT_SUCCESS(s2n_drbg_wipe(&kat_drbg));
     }
 
     fclose(kat_file);
