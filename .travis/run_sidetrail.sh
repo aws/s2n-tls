@@ -52,7 +52,7 @@ SMACK_DIR="${1}/smack"
 
 # Disabling ShellCheck using https://github.com/koalaman/shellcheck/wiki/Directive
 # Turn of Warning in one line as https://github.com/koalaman/shellcheck/wiki/SC1090
-shellcheck disable=SC1090
+# shellcheck disable=SC1090
 source "${INSTALL_DIR}/smack.environment"
 export PATH="${SMACK_DIR}/bin:${SMACK_DIR}/build:${PATH}"
 #Test that they are really there
