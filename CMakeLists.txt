@@ -163,7 +163,7 @@ foreach(test_case ${UNITTESTS_SRC})
     string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
 
     add_executable(${test_case_name} ${test_case})
-    target_link_libraries(${test_case_name} PRIVATE testss2n ${EXTRA_LIBS} PRIVATE m pthread)
+    target_link_libraries(${test_case_name} PRIVATE testss2n ${EXTRA_LIBS} m pthread)
     target_include_directories(${test_case_name} PRIVATE api)
     target_include_directories(${test_case_name} PRIVATE ./)
     target_include_directories(${test_case_name} PRIVATE tests)

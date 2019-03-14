@@ -17,7 +17,7 @@
 include ../../s2n.mk
 
 #WA for GCC 4.8.5 bug.
-CFLAGS += -Wno-missing-braces -Wno-missing-field-initializers
+CFLAGS += -Wno-missing-braces
 
 CFLAGS+=-I../../
 

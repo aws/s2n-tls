@@ -2,10 +2,6 @@ file(GLOB GENERAL_HEADERS
     "*.h"
 )
 
-file(GLOB BIKE_HEADERS
-    "bike/*.h"
-)
-
 file(GLOB SIKE_HEADERS
     "sike/*.h"
 )
@@ -14,10 +10,7 @@ file(GLOB GENERAL_SRC
     "*.c"
 )
 
-file(GLOB BIKE_SRC
-    "bike/*.c"
-)
-
+# The SIKE code #includes .c files directly, including all sike/*.c breaks the build due to duplicates
 file(GLOB SIKE_SRC
     "sike/fp_generic.c"
     "sike/P503.c"
@@ -27,24 +20,20 @@ file(GLOB SIKE_SRC
 
 file(GLOB S2N_PQ_CRYPTO_HEADERS
     ${GENERAL_HEADERS}
-    ${BIKE_HEADERS}
     ${SIKE_HEADERS}
 )
 
 file(GLOB S2N_PQ_CRYPTO_SRC
     ${GENERAL_SRC}
-    ${BIKE_SRC}
     ${SIKE_SRC}
 )
 
 ##be nice to visual studio users
 if(MSVC)
     source_group("Header Files\\pq-crypto\\general" FILES ${GENERAL_HEADERS})
-    source_group("Header Files\\pq-crypto\\bike" FILES ${BIKE_HEADERS})
     source_group("Header Files\\pq-crypto\\sike" FILES ${SIKE_HEADERS})
 
     source_group("Source Files\\pq-crypto\\general" FILES ${GENERAL_SRC})
-    source_group("Source Files\\pq-crypto\\bike" FILES ${BIKE_SRC})
     source_group("Source Files\\pq-crypto\\sike" FILES ${SIKE_SRC})
 endif()
 
@@ -56,7 +45,9 @@ include_directories ("${PROJECT_SOURCE_DIR}")
 
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
-target_compile_options(s2n_pq_crypto PRIVATE -std=c99 -Wall -Werror -pedantic -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security)
+target_compile_options(s2n_pq_crypto PRIVATE -pedantic -std=c99 -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts
+        -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
+        -Wno-missing-braces)
 target_compile_options(s2n_pq_crypto PUBLIC -fPIC)
 
 # Copied from parent CmakeLists.txt
