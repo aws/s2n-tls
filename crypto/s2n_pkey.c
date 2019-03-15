@@ -40,9 +40,7 @@ int s2n_pkey_setup_for_type(struct s2n_pkey *pkey, s2n_cert_type cert_type)
 {
     switch(cert_type){
     case S2N_CERT_TYPE_RSA_SIGN:
-        //printf("OMG ss2n_pkey_setup_for_type \n");
         GUARD(s2n_rsa_pkey_init(pkey));
-        //printf("OMG ss2n_pkey_setup_for_type passed \n");
         break;
     case S2N_CERT_TYPE_ECDSA_SIGN:
         GUARD(s2n_ecdsa_pkey_init(pkey));
@@ -70,6 +68,7 @@ int s2n_pkey_size(const struct s2n_pkey *pkey)
 int s2n_pkey_sign(const struct s2n_pkey *pkey, struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
     notnull_check(pkey->sign);
+
     return pkey->sign(pkey, digest, signature);
 }
 

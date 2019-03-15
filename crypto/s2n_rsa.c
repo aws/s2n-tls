@@ -81,6 +81,12 @@ static int s2n_rsa_encrypted_size(const struct s2n_pkey *key)
 static int s2n_rsa_sign_blob(const struct s2n_pkey *priv, struct s2n_blob *digest_blob, int NID_type, struct s2n_blob *signature)
 {
     const s2n_rsa_private_key *key = &priv->key.rsa_key;
+    notnull_check(key->rsa);
+
+    /* According to https://www.openssl.org/docs/man1.1.0/man3/RSA_sign.html the buffer that will holds the signature
+     * needs to have at least RSA_size(rsa) bytes */
+    gte_check(signature->size, RSA_size(key->rsa));
+
     unsigned int signature_size = signature->size;
     GUARD_OSSL(RSA_sign(NID_type, digest_blob->data, digest_blob->size, signature->data, &signature_size, key->rsa), S2N_ERR_SIGN);
     S2N_ERROR_IF(signature_size > signature->size, S2N_ERR_SIZE_MISMATCH);
@@ -97,14 +103,12 @@ static int s2n_rsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *dige
     GUARD(s2n_hash_NID_type(digest->alg, &NID_type));
     lte_check(digest_length, S2N_MAX_DIGEST_LEN);
 
-    struct s2n_blob digest_blob = {0};
+    DEFER_CLEANUP(struct s2n_blob digest_blob = {0}, s2n_free);
     GUARD(s2n_alloc(&digest_blob, S2N_MAX_DIGEST_LEN));
     GUARD(s2n_hash_digest(digest, digest_blob.data, digest_length));
     digest_blob.size = digest_length;
 
     GUARD(s2n_rsa_sign_blob(priv, &digest_blob, NID_type, signature));
-
-    GUARD(s2n_free(&digest_blob));
 
     return 0;
 }

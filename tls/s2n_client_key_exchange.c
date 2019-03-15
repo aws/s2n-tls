@@ -53,10 +53,7 @@ static int calculate_keys(struct s2n_connection *conn, struct s2n_blob *shared_k
 int s2n_free_external_ctx_pre_master_key(struct s2n_connection *conn)
 {
     notnull_check(conn);
-    struct s2n_blob mem = {0};
-    GUARD(s2n_blob_init(&mem, conn->external_ctx.pre_master_key, conn->external_ctx.pre_master_key_size));
-    GUARD(s2n_free(&mem));
-    conn->external_ctx.pre_master_key = NULL;
+    s2n_free_object(&(conn->external_ctx.pre_master_key), conn->external_ctx.pre_master_key_size);
     conn->external_ctx.pre_master_key_size = 0;
 
     return 0;

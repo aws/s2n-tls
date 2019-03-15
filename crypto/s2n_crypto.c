@@ -19,7 +19,7 @@
 #include "stuffer/s2n_stuffer.h"
 #include "crypto/s2n_pkey.h"
 
-int get_private_key_pem(struct s2n_pkey* pkey, const char *private_key_pem, uint32_t private_key_pem_length) {
+int s2n_get_private_key_pem(struct s2n_pkey *pkey, const char *private_key_pem, uint32_t private_key_pem_length) {
   /* Put the private key pem in a stuffer */
   DEFER_CLEANUP(struct s2n_stuffer key_in_stuffer = {{0}}, s2n_stuffer_free);
   DEFER_CLEANUP(struct s2n_stuffer key_out_stuffer = {{0}}, s2n_stuffer_free);
@@ -52,32 +52,28 @@ int get_private_key_pem(struct s2n_pkey* pkey, const char *private_key_pem, uint
  */
 int s2n_decrypt_with_key(const char *key, uint32_t key_length, uint8_t *in, uint32_t in_length, uint8_t *out, uint32_t out_length)
 {
-  // the pointers cannot be null
+  /* the pointers cannot be null */
   notnull_check(key);
   notnull_check(in);
   notnull_check(out);
 
-  // the length should be positive
+  /* the length should be positive */
   gte_check(key_length, 0);
   gte_check(in_length, 0);
   gte_check(out_length, 0);
 
-  // the last byte of the key should be a null byte
+  /* the last byte of the key should be a null byte */
   eq_check('\0', key[key_length - 1]);
 
-  // Get key type and create appropriate key context
+  /* Get key type and create appropriate key context */
   DEFER_CLEANUP(struct s2n_pkey pkey = {{{0}}}, s2n_pkey_free);
-  GUARD(get_private_key_pem(&pkey, key, key_length));
+  GUARD(s2n_get_private_key_pem(&pkey, key, key_length));
 
-  struct s2n_blob in_blob = {0};
-  in_blob.data = in;
-  in_blob.size = in_length;
+  struct s2n_blob in_blob = { .data = in, .size = in_length };
 
-  struct s2n_blob out_blob = {0};
-  out_blob.data = out;
-  out_blob.size = out_length;
+  struct s2n_blob out_blob = { .data = out, .size = out_length };
 
-  // decrypt
+  /* decrypt */
   GUARD(s2n_pkey_decrypt(&pkey, &in_blob, &out_blob));
 
   return 0;
@@ -96,50 +92,45 @@ int s2n_decrypt_with_key(const char *key, uint32_t key_length, uint8_t *in, uint
  * @return                      Return 0 if succeeded, otherwise return -1
  * @note                        The memory of the signature buffer is allocated by this function and expected to be
  *                              released by the caller. This is because the size is only determined at the actual
- *                              signing step and cannot be known before the functionn call.
+ *                              signing step and cannot be known before the function call.
  */
 int s2n_sign_with_key(const char *key, uint32_t key_length, uint8_t hash_algorithm, uint8_t *in, uint32_t in_length, uint8_t **out, uint32_t *out_length)
 {
-  // the pointers cannot be null
+  /* the pointers cannot be null */
   notnull_check(key);
   notnull_check(in);
   notnull_check(out);
   notnull_check(out_length);
 
-  // the length should be positive
+  /* the length should be positive */
   gte_check(key_length, 0);
   gte_check(in_length, 0);
 
-  // the last byte of the key should be a null byte
+  /* the last byte of the key should be a null byte */
   eq_check('\0', key[key_length - 1]);
 
-  // Get key type and create appropriate key context
+  /* Get key type and create appropriate key context */
   DEFER_CLEANUP(struct s2n_pkey pkey = {{{0}}}, s2n_pkey_free);
-  GUARD(get_private_key_pem(&pkey, key, key_length));
+  GUARD(s2n_get_private_key_pem(&pkey, key, key_length));
 
-  struct s2n_blob in_blob = {0};
-  in_blob.data = in;
-  in_blob.size = in_length;
+  struct s2n_blob in_blob = {.data = in, .size = in_length};
 
-  // Prepare the signature blob
-  struct s2n_blob signature = {0};
+  /* Prepare the signature blob */
+  DEFER_CLEANUP(struct s2n_blob signature = {0}, s2n_free);
   uint32_t maximum_signature_length = s2n_pkey_size(&pkey);
   GUARD(s2n_alloc(&signature, maximum_signature_length));
 
-  // get NID type
+  /* get NID type */
   int32_t nid_type;
   GUARD(s2n_hash_NID_type((s2n_hash_algorithm)hash_algorithm, &nid_type));
 
-  // sign
+  /* sign */
   GUARD(s2n_pkey_sign_blob(&pkey, &in_blob, nid_type, &signature));
 
-  // copy signature to the result
+  /* copy signature to the result */
   *out_length = signature.size;
   *out = malloc(signature.size);
   memcpy_check(*out, signature.data, signature.size);
-
-  // free local memory
-  s2n_free(&signature);
 
   return 0;
 }

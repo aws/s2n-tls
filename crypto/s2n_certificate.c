@@ -189,7 +189,6 @@ int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key
 
 int s2n_cert_chain_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem)
 {
-
     notnull_check(chain_and_key);
 
     GUARD(s2n_cert_chain_and_key_set_cert_chain(chain_and_key, chain_pem));
@@ -199,6 +198,9 @@ int s2n_cert_chain_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const 
     s2n_cert_type cert_type;
     GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &cert_type, &chain_and_key->cert_chain->head->raw));
     GUARD(s2n_cert_set_cert_type(chain_and_key->cert_chain->head, cert_type));
+
+    /* Make sure the private key is reset to */
+    GUARD(s2n_pkey_zero_init(chain_and_key->private_key));
 
     return 0;
 }

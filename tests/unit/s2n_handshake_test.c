@@ -168,16 +168,16 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
 }
 
 int read_private_key_pem(char *private_key_pem, uint32_t *private_key_pem_length, const char *pem_path) {
-  notnull_check(private_key_pem);
-  GUARD(s2n_read_test_pem(pem_path, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+    notnull_check(private_key_pem);
+    GUARD(s2n_read_test_pem(pem_path, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
 
-  *private_key_pem_length = strlen(private_key_pem);
-  gte_check(*private_key_pem_length, 0);
+    *private_key_pem_length = strlen(private_key_pem);
+    gte_check(*private_key_pem_length, 0);
 
-  // the last character should be '/0'
-  private_key_pem[*private_key_pem_length - 1] = '\0';
+    // the last character should be '/0'
+    private_key_pem[*private_key_pem_length - 1] = '\0';
 
-  return 0;
+    return 0;
 }
 
 int external_rsa_decrypt(int32_t *status, uint32_t result_size, uint8_t *result, uint8_t *in, uint32_t in_length, const char *pem_path) {
