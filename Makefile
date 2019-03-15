@@ -20,8 +20,8 @@ ifndef LIBCRYPTO_ROOT
 	export LIBCRYPTO_ROOT = $(shell echo "`pwd`/libcrypto-root")
 endif
 
-export S2N_ROOT=`pwd`
-export COVERAGE_DIR = $(shell echo "`pwd`/coverage")
+export S2N_ROOT=$(shell pwd)
+export COVERAGE_DIR = $(shell echo "${S2N_ROOT}/coverage")
 DIRS=$(wildcard */)
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
@@ -90,18 +90,33 @@ fuzz-linux : bin
 	$(MAKE) -C tests fuzz
 
 .PHONY : coverage
-coverage: 
-	lcov -c -i -d ${S2N_ROOT} -o ${COVERAGE_DIR}/all_coverage.info
-	$(MAKE) -C bin gcov lcov
-	$(MAKE) -C crypto gcov lcov
-	$(MAKE) -C error gcov lcov
-	$(MAKE) -C stuffer gcov lcov
-	$(MAKE) -C tests gcov lcov
-	$(MAKE) -C tls gcov lcov
-	$(MAKE) -C utils gcov lcov
+coverage: run-gcov run-lcov run-genhtml
+
+.PHONY : run-gcov
+run-gcov:
+	$(MAKE) -C bin gcov
+	$(MAKE) -C crypto gcov
+	$(MAKE) -C error gcov
+	$(MAKE) -C stuffer gcov
+	$(MAKE) -C tests gcov
+	$(MAKE) -C tls gcov
+	$(MAKE) -C utils gcov
+
+.PHONY : run-lcov
+run-lcov:
+	$(MAKE) -C bin lcov
+	$(MAKE) -C crypto lcov
+	$(MAKE) -C error lcov
+	$(MAKE) -C stuffer lcov
+	$(MAKE) -C tests lcov
+	$(MAKE) -C tls lcov
+	$(MAKE) -C utils lcov
 	lcov -a crypto/coverage.info -a error/coverage.info -a stuffer/coverage.info -a tls/coverage.info -a utils/coverage.info --output ${COVERAGE_DIR}/all_coverage.info
+
+.PHONY : run-genhtml
+run-genhtml:
 	genhtml -o ${COVERAGE_DIR}/html ${COVERAGE_DIR}/all_coverage.info
-	
+
 
 .PHONY : indent
 indent:

@@ -32,7 +32,7 @@ CLANG    ?= clang-3.8
 LLVMLINK ?= llvm-link-3.8
 
 SOURCES = $(wildcard *.c *.h)
-CRUFT   = $(wildcard *.c~ *.h~ *.c.BAK *.h.BAK *.o *.a *.so *.dylib *.bc *.gcov *.gcda *.gcno *.info)
+CRUFT   = $(wildcard *.c~ *.h~ *.c.BAK *.h.BAK *.o *.a *.so *.dylib *.bc *.gcov *.gcda *.gcno *.info *.profraw *.tmp)
 INDENT  = $(shell (if indent --version 2>&1 | grep GNU > /dev/null; then echo indent ; elif gindent --version 2>&1 | grep GNU > /dev/null; then echo gindent; else echo true ; fi ))
 
 DEFAULT_CFLAGS = -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized \
@@ -69,16 +69,28 @@ ifdef S2N_DEBUG
 endif
 
 FUZZ_CFLAGS = -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak
+LLVM_GCOV_MARKER_FILE=${COVERAGE_DIR}/use-llvm-gcov.tmp
 
 ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)
     # Override compiler to clang if fuzzing, since gcc does not support as many sanitizer flags as clang
     CC=clang
+
+    # Create a marker file so that later invocations of make can pick the right COV_TOOL by default
+    $(shell touch "${LLVM_GCOV_MARKER_FILE}")
 
     # Turn on debugging and fuzzing flags when S2N_UNSAFE_FUZZING_MODE is enabled to give detailed stack traces in case
     # an error occurs while fuzzing.
     CFLAGS += ${DEFAULT_CFLAGS} ${DEBUG_CFLAGS} ${FUZZ_CFLAGS}
 endif
 
+# If COV_TOOL isn't set, pick a default COV_TOOL depending on if the LLVM Marker File was created.
+ifndef COV_TOOL
+	ifneq ("$(wildcard $(LLVM_GCOV_MARKER_FILE))","")
+		COV_TOOL=llvm-gcov.sh
+	else
+		COV_TOOL=gcov
+	endif
+endif
 
 CFLAGS_LLVM = ${DEFAULT_CFLAGS} -emit-llvm -c -g -O1
 
@@ -94,11 +106,11 @@ indentsource:
 	
 .PHONY : gcov
 gcov: 
-	( for source in ${SOURCES} ; do gcov $$source;  done )
+	( for source in ${SOURCES} ; do $(COV_TOOL) $$source;  done )
 
 .PHONY : lcov
 lcov: 
-	lcov --capture --directory . --base-directory=${S2N_ROOT} --output ./coverage.info
+	lcov --capture --directory . --gcov-tool $(COV_TOOL) --output ./coverage.info
 
 
 .PHONY : decruft

@@ -56,3 +56,9 @@ $(VALGRIND_TESTS)::
 
 .PHONY : valgrind
 valgrind: $(VALGRIND_TESTS)
+
+
+.PHONY : clean
+clean: decruft
+	@$(foreach test, $(TESTS), rm -f -- "${test}";)
+

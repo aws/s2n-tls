@@ -9,6 +9,8 @@
 *.gcno
 *.gcov
 *.info
+*.profraw
+*.tmp
 coverage/html/*
 libcrypto-build/*
 libcrypto-root/*

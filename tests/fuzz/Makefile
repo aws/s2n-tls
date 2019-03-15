@@ -61,5 +61,5 @@ run_tests:: $(TESTS) ld-preload
 	)
 
 .PHONY : clean
-clean:
+clean: decruft
 	${MAKE} -C LD_PRELOAD decruft
