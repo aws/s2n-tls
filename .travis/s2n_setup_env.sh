@@ -15,7 +15,7 @@
 
 
 # Setup Default Build Config
-: "${S2N_LIBCRYPTO:=openssl-1.1.0}"
+: "${S2N_LIBCRYPTO:=openssl-1.1.1}"
 : "${BUILD_S2N:=false}"
 : "${GCC6_REQUIRED:=false}"
 : "${LATEST_CLANG:=false}"
@@ -32,7 +32,7 @@
 : "${LIBFUZZER_INSTALL_DIR:=$(pwd)/test-deps/libfuzzer}"
 : "${LATEST_CLANG_INSTALL_DIR:=$(pwd)/test-deps/clang}"
 : "${SCAN_BUILD_INSTALL_DIR:=$(pwd)/test-deps/scan-build}"
-: "${OPENSSL_1_1_0_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.1.0}"
+: "${OPENSSL_1_1_1_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.1.1}"
 : "${OPENSSL_1_0_2_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.0.2}"
 : "${OPENSSL_1_0_2_FIPS_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.0.2-fips}"
 : "${LIBRESSL_INSTALL_DIR:=$(pwd)/test-deps/libressl-2.6.4}"
@@ -40,9 +40,6 @@
 : "${CTVERIF_INSTALL_DIR:=$(pwd)/test-deps/ctverif}"
 : "${SIDETRAIL_INSTALL_DIR:=$(pwd)/test-deps/sidetrail}"
 : "${FUZZ_TIMEOUT_SEC:=10}"
-
-# Openssl 1.1.x-master is not added to Travis cache because we want to build against the latest
-: "${OPENSSL_1_1_X_MASTER_INSTALL_DIR:=$(mktemp -d)}"
 
 # Set TRAVIS_OS_NAME (if it isn't set) in case we're not running on Travis
 unamestr=$(uname)
@@ -67,7 +64,7 @@ export Z3_INSTALL_DIR
 export LIBFUZZER_INSTALL_DIR
 export LATEST_CLANG_INSTALL_DIR
 export SCAN_BUILD_INSTALL_DIR
-export OPENSSL_1_1_0_INSTALL_DIR
+export OPENSSL_1_1_1_INSTALL_DIR
 export OPENSSL_1_0_2_INSTALL_DIR
 export OPENSSL_1_0_2_FIPS_INSTALL_DIR
 export LIBRESSL_INSTALL_DIR
@@ -78,16 +75,15 @@ export OPENSSL_1_1_X_MASTER_INSTALL_DIR
 export FUZZ_TIMEOUT_SEC
 export TRAVIS_OS_NAME
 
-# Add all of our test dependencies to the PATH. Use Openssl 1.1.0 so the latest openssl is used for s_client
+# Add all of our test dependencies to the PATH. Use Openssl 1.1.1 so the latest openssl is used for s_client
 # integration tests.
-export PATH=$PYTHON_INSTALL_DIR/bin:$OPENSSL_1_1_0_INSTALL_DIR/bin:$GNUTLS_INSTALL_DIR/bin:$SAW_INSTALL_DIR/bin:$Z3_INSTALL_DIR/bin:$SCAN_BUILD_INSTALL_DIR/bin:$LATEST_CLANG_INSTALL_DIR/bin:$PATH
-export LD_LIBRARY_PATH=$OPENSSL_1_1_0_INSTALL_DIR/lib:$LD_LIBRARY_PATH; 
-export DYLD_LIBRARY_PATH=$OPENSSL_1_1_0_INSTALL_DIR/lib:$LD_LIBRARY_PATH;
+export PATH=$PYTHON_INSTALL_DIR/bin:$OPENSSL_1_1_1_INSTALL_DIR/bin:$GNUTLS_INSTALL_DIR/bin:$SAW_INSTALL_DIR/bin:$Z3_INSTALL_DIR/bin:$SCAN_BUILD_INSTALL_DIR/bin:$LATEST_CLANG_INSTALL_DIR/bin:$PATH
+export LD_LIBRARY_PATH=$OPENSSL_1_1_1_INSTALL_DIR/lib:$LD_LIBRARY_PATH; 
+export DYLD_LIBRARY_PATH=$OPENSSL_1_1_1_INSTALL_DIR/lib:$LD_LIBRARY_PATH;
 
-# Select the libcrypto to build s2n against. If this is unset, default to the latest stable version(Openssl 1.1.0)
-if [[ -z $S2N_LIBCRYPTO ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_0_INSTALL_DIR ; fi
-if [[ "$S2N_LIBCRYPTO" == "openssl-1.1.0" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_0_INSTALL_DIR ; fi
-if [[ "$S2N_LIBCRYPTO" == "openssl-1.1.x-master" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_X_MASTER_INSTALL_DIR ; fi
+# Select the libcrypto to build s2n against. If this is unset, default to the latest stable version(Openssl 1.1.1)
+if [[ -z $S2N_LIBCRYPTO ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_1_INSTALL_DIR ; fi
+if [[ "$S2N_LIBCRYPTO" == "openssl-1.1.1" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_1_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_0_2_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2-fips" ]]; then 
     export LIBCRYPTO_ROOT=$OPENSSL_1_0_2_FIPS_INSTALL_DIR ; 

@@ -16,6 +16,7 @@
 #include <openssl/rc4.h>
 
 #include "crypto/s2n_cipher.h"
+#include "crypto/s2n_openssl.h"
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
@@ -67,7 +68,7 @@ static int s2n_stream_cipher_rc4_set_decryption_key(struct s2n_session_key *key,
 
 static int s2n_stream_cipher_rc4_init(struct s2n_session_key *key)
 {
-    EVP_CIPHER_CTX_init(key->evp_cipher_ctx);
+    s2n_evp_ctx_init(key->evp_cipher_ctx);
 
     return 0;
 }

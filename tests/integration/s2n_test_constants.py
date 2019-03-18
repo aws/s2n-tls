@@ -20,9 +20,9 @@ S2N_TLS10 = 31
 S2N_TLS11 = 32
 S2N_TLS12 = 33
 
-# namedtuple makes iterating through ciphers across client libraries easier. The openssl_1_1_0_compatible flag is for
+# namedtuple makes iterating through ciphers across client libraries easier. The openssl_1_1_1_compatible flag is for
 # s_client tests. s_client won't be able to use those ciphers.
-S2N_CIPHER = collections.namedtuple('S2N_CIPHER', 'openssl_name gnutls_priority_str min_tls_vers openssl_1_1_0_compatible openssl_fips_compatible')
+S2N_CIPHER = collections.namedtuple('S2N_CIPHER', 'openssl_name gnutls_priority_str min_tls_vers openssl_1_1_1_compatible openssl_fips_compatible')
 
 # Specifying a single cipher suite in GnuTLS requires specifying a "priority string" that removes all cipher suites,
 # and then adds each algorithm(kx,auth,enc,mac) for a given suite. See https://www.gnutls.org/manual/html_node/Priority-Strings.html
@@ -82,8 +82,8 @@ EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS = [
     "SIGN-ECDSA-SHA1",
 ]
 
-# Test ciphers to use when s2n built with Openssl 1.1.0 libcrypto. All ciphers should be available.
-OPENSSL_1_1_0_TEST_CIPHERS = ALL_TEST_CIPHERS
+# Test ciphers to use when s2n built with Openssl 1.1.1 libcrypto. All ciphers should be available.
+OPENSSL_1_1_1_TEST_CIPHERS = ALL_TEST_CIPHERS
 
 # Test ciphers to use when s2n is built with Openssl 1.0.2 libcrypto. 1.0.2 does not have the
 # ChaCha20-Poly1305 cipher.
@@ -99,8 +99,7 @@ LIBRESSL_TEST_CIPHERS = list(filter(lambda x: "CHACHA20" not in x.openssl_name, 
 # Dictionary to look up ciphers to use by libcrypto s2n is built with.
 # Libcrypto string will be an argument to test scripts.
 S2N_LIBCRYPTO_TO_TEST_CIPHERS = {
-    "openssl-1.1.x-master"  : OPENSSL_1_1_0_TEST_CIPHERS,
-    "openssl-1.1.0"         : OPENSSL_1_1_0_TEST_CIPHERS,
+    "openssl-1.1.1"         : OPENSSL_1_1_1_TEST_CIPHERS,
     "openssl-1.0.2"         : OPENSSL_1_0_2_TEST_CIPHERS,
     "openssl-1.0.2-fips"    : OPENSSL_1_0_2_FIPS_TEST_CIPHERS,
     "libressl"              : LIBRESSL_TEST_CIPHERS,

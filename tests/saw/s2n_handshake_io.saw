@@ -205,7 +205,7 @@ let s2n_conn_set_handshake_type_spec = do {
     // we assume that the handshake struct denotes a valid handshake state
     // (e.g. it will not index out of bounds in the state transition array
     // "handshakes")
-    crucible_precond {{ valid_handshake conn.handshake }};
+    crucible_precond {{ valid_connection conn }};
 
     // symbolically execute s2n_advance_message
     crucible_execute_func [pconn];
@@ -233,7 +233,7 @@ let s2n_advance_message_spec = do {
     // we assume that the handshake struct denotes a valid handshake state
     // (e.g. it will not index out of bounds in the state transition array
     // "handshakes")
-    crucible_precond {{ valid_handshake conn.handshake }};
+    crucible_precond {{ valid_connection conn }};
 
     // symbolically execute s2n_advance_message
     crucible_execute_func [pconn];
@@ -255,7 +255,7 @@ let s2n_advance_message_spec = do {
     // handshake/cork-uncork state machine is equivalent to the one in
     // s2n
     crucible_points_to (crucible_global "handshakes") (crucible_term {{ handshakes }});
-    let messages = [ {{CLIENT_HELLO : [4]}}, {{SERVER_HELLO : [4]}}, {{SERVER_CERT : [4]}}, {{SERVER_NEW_SESSION_TICKET : [4]}}, {{SERVER_CERT_STATUS : [4]}}, {{SERVER_KEY : [4]}}, {{SERVER_CERT : [4]}}, {{SERVER_CERT_REQ : [4]}}, {{SERVER_HELLO_DONE : [4]}}, {{CLIENT_CERT : [4]}}, {{CLIENT_KEY : [4]}}, {{CLIENT_CERT_VERIFY : [4]}}, {{CLIENT_CHANGE_CIPHER_SPEC : [4]}}, {{SERVER_FINISHED : [4]}}, {{APPLICATION_DATA : [4]}}, {{SERVER_SESSION_LOOKUP:[5]}}];
+    let messages = [ {{CLIENT_HELLO : [5]}}, {{SERVER_HELLO : [5]}}, {{SERVER_CERT : [5]}}, {{SERVER_NEW_SESSION_TICKET : [5]}}, {{SERVER_CERT_STATUS : [5]}}, {{SERVER_KEY_EXTERNAL : [5]}}, {{SERVER_KEY : [5]}}, {{SERVER_CERT : [5]}}, {{SERVER_CERT_REQ : [5]}}, {{SERVER_HELLO_DONE : [5]}}, {{CLIENT_CERT : [5]}}, {{CLIENT_KEY : [5]}}, {{CLIENT_KEY_EXTERNAL : [5]}}, {{CLIENT_CERT_VERIFY : [5]}}, {{CLIENT_CHANGE_CIPHER_SPEC : [5]}}, {{SERVER_FINISHED : [5]}}, {{APPLICATION_DATA : [5]}}, {{SERVER_SESSION_LOOKUP : [5]}}];
 
     for messages (verify_state_machine_elem (crucible_global "state_machine"));
     // assert that s2n_advance_message returns 0 (true if the 4
@@ -353,6 +353,7 @@ let yices_debug = do {yices;
 let equalNat_ite = core_axiom
   "\\(x y z : Nat) (b : Bool) -> eq Bool (equalNat x (ite Nat b y z)) (ite Bool b (equalNat x y) (equalNat x z))";
 
+
 // Low-level correspondence proof. This is the entry point for this file.
 let s2n_handshake_io_lowlevel = do {
     // Dependencies specifications/overrides
@@ -374,11 +375,11 @@ let s2n_handshake_io_lowlevel = do {
     let dependencies = [s2n_socket_write_uncork, s2n_socket_write_cork, s2n_socket_was_corked, s2n_connection_is_managed_corked];
 
     print "Proving correctness of get_auth_type";
-    auth_type_proof <- crucible_llvm_verify llvm "s2n_connection_get_client_auth_type" dependencies true s2n_connection_get_client_auth_type_spec (do {simplify (addsimp equalNat_ite basic_ss); yices;});
+    auth_type_proof <- crucible_llvm_verify llvm "s2n_connection_get_client_auth_type" dependencies false s2n_connection_get_client_auth_type_spec (do {simplify (addsimp equalNat_ite basic_ss); yices;});
     print "Proving correctness of s2n_advance_message";
-    s2n_advance_message_proof <- crucible_llvm_verify llvm "s2n_advance_message" dependencies true s2n_advance_message_spec yices;
+    s2n_advance_message_proof <- crucible_llvm_verify llvm "s2n_advance_message" dependencies false s2n_advance_message_spec yices;
     print "Proving correctness of s2n_conn_set_handshake_type";
-    s2n_conn_set_handshake_type_proof <- crucible_llvm_verify llvm "s2n_conn_set_handshake_type" [s2n_allowed_to_cache_connection, auth_type_proof, s2n_generate_new_client_session_id, s2n_decrypt_session_ticket] true s2n_conn_set_handshake_type_spec yices;
+    s2n_conn_set_handshake_type_proof <- crucible_llvm_verify llvm "s2n_conn_set_handshake_type" [s2n_allowed_to_cache_connection, auth_type_proof, s2n_generate_new_client_session_id, s2n_decrypt_session_ticket] false s2n_conn_set_handshake_type_spec yices;
     print "done";
     return ();
 };

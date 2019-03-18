@@ -16,10 +16,10 @@
 S2ND_PORT=8888
 S2ND_HOST=127.0.0.1
 
-# If the libcrypto that s2n was built with is not specified, assume latest(1.1.0).
+# If the libcrypto that s2n was built with is not specified, assume latest(1.1.1).
 # Required to determine the cipher suites to use in integration tests.
 ifndef S2N_LIBCRYPTO
-	export S2N_LIBCRYPTO="openssl-1.1.0"
+	export S2N_LIBCRYPTO="openssl-1.1.1"
 endif
 
 .PHONY : all

@@ -21,8 +21,14 @@ struct s2n_blob {
     uint8_t *data;
     uint32_t size;
     uint32_t allocated;
-    unsigned int mlocked:1;
+    uint8_t mlocked;
 };
 
 extern int s2n_blob_init(struct s2n_blob *b, uint8_t * data, uint32_t size);
 extern int s2n_blob_zero(struct s2n_blob *b);
+
+#define s2n_stack_blob(name, requested_size, maximum)                               \
+    size_t name ## _requested_size = (requested_size);                              \
+    uint8_t name ## _buf[(maximum)] = {0};                                          \
+    lte_check(name ## _requested_size, (maximum));                                  \
+    struct s2n_blob name = {.data = name ## _buf, .size = name ## _requested_size}

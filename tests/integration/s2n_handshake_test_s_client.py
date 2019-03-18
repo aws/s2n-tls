@@ -296,8 +296,8 @@ def run_handshake_test(host, port, ssl_version, cipher, fips_mode, no_ticket, us
     cipher_name = cipher.openssl_name
     cipher_vers = cipher.min_tls_vers
 
-    # Skip the cipher if openssl can't test it. 3DES/RC4 are disabled by default in 1.1.0
-    if not cipher.openssl_1_1_0_compatible:
+    # Skip the cipher if openssl can't test it. 3DES/RC4 are disabled by default in 1.1.1
+    if not cipher.openssl_1_1_1_compatible:
         return 0
 
     if ssl_version < cipher_vers:
@@ -373,8 +373,8 @@ def resume_test(host, port, test_ciphers, fips_mode, no_ticket=False):
             cipher_name = cipher.openssl_name
             cipher_vers = cipher.min_tls_vers
 
-            # Skip the cipher if openssl can't test it. 3DES/RC4 are disabled by default in 1.1.0
-            if not cipher.openssl_1_1_0_compatible:
+            # Skip the cipher if openssl can't test it. 3DES/RC4 are disabled by default in 1.1.1
+            if not cipher.openssl_1_1_1_compatible:
                 continue
 
             if ssl_version < cipher_vers:
@@ -613,9 +613,9 @@ def main():
     parser = argparse.ArgumentParser(description='Runs TLS server integration tests against s2nd using Openssl s_client')
     parser.add_argument('host', help='The host for s2nd to bind to')
     parser.add_argument('port', type=int, help='The port for s2nd to bind to')
-    parser.add_argument('--libcrypto', default='openssl-1.1.0', choices=['openssl-1.0.2', 'openssl-1.0.2-fips', 'openssl-1.1.0', 'openssl-1.1.x-master', 'libressl'],
+    parser.add_argument('--libcrypto', default='openssl-1.1.1', choices=['openssl-1.0.2', 'openssl-1.0.2-fips', 'openssl-1.1.1', 'libressl'],
             help="""The Libcrypto that s2n was built with. s2n supports different cipher suites depending on
-                    libcrypto version. Defaults to openssl-1.1.0.""")
+                    libcrypto version. Defaults to openssl-1.1.1.""")
     args = parser.parse_args()
 
     # Retrieve the test ciphers to use based on the libcrypto version s2n was built with
