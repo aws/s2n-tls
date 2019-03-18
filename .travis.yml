@@ -39,7 +39,9 @@ matrix:
     env: S2N_LIBCRYPTO=openssl-1.0.2-fips BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
   include:
   - os : linux
-    env: TESTS=sidetrail
+    env: TESTS=sidetrail PART=1
+  - os : linux
+    env: TESTS=sidetrail PART=2
   - os : linux
     env : TESTS=sawHMAC SAW_HMAC_TEST=md5    SAW=true GCC6_REQUIRED=false
     addons: &sawaddons
