@@ -28,7 +28,7 @@ if [[ "$TESTS" == "fuzz" || "$TESTS" == "ALL" ]] && [[ ! -d "$LIBFUZZER_INSTALL_
 fi
 
 # Download and Install Openssl 1.1.1
-if [[ "$TESTS" == "integration"  || "$TESTS" == "ALL" ]] && [[ ! -d "$OPENSSL_1_1_1_INSTALL_DIR" ]]; then
+if [[ "$S2N_LIBCRYPTO" == "openssl-1.1.1" ]] && [[ ! -d "$OPENSSL_1_1_1_INSTALL_DIR" ]]; then
     mkdir -p "$OPENSSL_1_1_1_INSTALL_DIR";
     .travis/install_openssl_1_1_1.sh "$(mktemp -d)" "$OPENSSL_1_1_1_INSTALL_DIR" "$TRAVIS_OS_NAME" > /dev/null ;
 fi
