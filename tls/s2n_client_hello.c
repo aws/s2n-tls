@@ -260,7 +260,7 @@ static int s2n_populate_client_hello_extensions(struct s2n_client_hello *ch)
     return 0;
 }
 
-int s2n_server_session_lookup(struct s2n_connection *conn)
+int s2n_process_client_hello(struct s2n_connection *conn)
 {
     /* Client hello is parsed and config is finalized.
      * Negotiate protocol version, cipher suite, ALPN, select a cert, etc. */

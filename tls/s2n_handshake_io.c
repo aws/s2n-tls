@@ -75,7 +75,7 @@ static int s2n_handshake_dummy_handler(struct s2n_connection *conn) {
 static struct s2n_handshake_action state_machine[] = {
     /* message_type_t           = {Record type   Message type     Writer S2N_SERVER                S2N_CLIENT }  */
     [CLIENT_HELLO]              = {TLS_HANDSHAKE, TLS_CLIENT_HELLO, 'C', {s2n_client_hello_recv, s2n_client_hello_send}},
-    [SERVER_SESSION_LOOKUP]     = {TLS_HANDSHAKE, TLS_SERVER_SESSION_LOOKUP, 'A', {s2n_server_session_lookup, s2n_handshake_dummy_handler}},
+    [SERVER_SESSION_LOOKUP]     = {TLS_HANDSHAKE, TLS_SERVER_SESSION_LOOKUP, 'A', {s2n_process_client_hello, s2n_handshake_dummy_handler}},
     [SERVER_HELLO]              = {TLS_HANDSHAKE, TLS_SERVER_HELLO, 'S', {s2n_server_hello_send, s2n_server_hello_recv}}, 
     [SERVER_NEW_SESSION_TICKET] = {TLS_HANDSHAKE, TLS_SERVER_NEW_SESSION_TICKET,'S', {s2n_server_nst_send, s2n_server_nst_recv}},
     [SERVER_CERT]               = {TLS_HANDSHAKE, TLS_SERVER_CERT, 'S', {s2n_server_cert_send, s2n_server_cert_recv}},
@@ -601,7 +601,7 @@ static int s2n_handshake_handle_sslv2(struct s2n_connection *conn)
  * successfully processed and state machine advanced; -1 to indicate an error and 
  * the connection been killed
  */
-static int handshake_handle_app_data(struct s2n_connection *conn) {
+static int s2n_handshake_handle_app_data(struct s2n_connection *conn) {
     int r = ACTIVE_STATE(conn).handler[conn->mode] (conn);
 
     if (r == 0) {
@@ -752,9 +752,9 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
 
         if (ACTIVE_STATE(conn).writer == 'A') {
             /* We are in a state that is blocked on application data */
-            *blocked = S2N_BLOCKED_ON_APPLICATION_DATA;
+            *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
 
-            int r = handshake_handle_app_data(conn);
+            int r = s2n_handshake_handle_app_data(conn);
             if (r < 0) {
                 if (s2n_errno != S2N_ERR_BLOCKED && s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
                     conn->config->cache_delete(conn, conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
@@ -802,7 +802,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
             }
 
             if (r == 1) {
-                *blocked = S2N_BLOCKED_ON_APPLICATION_DATA;
+                *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
                 S2N_ERROR(S2N_ERR_BLOCKED);
             }
         }

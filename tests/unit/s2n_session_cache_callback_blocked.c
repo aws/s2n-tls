@@ -125,24 +125,6 @@ int cache_delete(struct s2n_connection *conn, void *ctx, const void *key, uint64
     return 0;
 }
 
-int cache_retrieve_blocked(void *ctx, const void *key, uint64_t key_size, void *value, uint64_t * value_size) {
-    int *count = ctx;
-    if (*count == 1) {
-        *count = 0;
-        return 1;
-    }
-
-    return 0;
-}
-
-int cache_store_blocked(void *ctx, uint64_t ttl, const void *key, uint64_t key_size, const void *value, uint64_t value_size) {
-    return 0;
-}
-
-int cache_delete_blocked(void *ctx, const void *key, uint64_t key_size) {
-    return 0;
-}
-
 void mock_client(int writefd, int readfd)
 {
     size_t serialized_session_state_length = 0;
@@ -337,9 +319,6 @@ int main(int argc, char **argv)
 
     /* initial handshake */
     {
-        int *count = malloc(sizeof(int));
-        *count = 1;
-        
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -360,7 +339,7 @@ int main(int argc, char **argv)
          * connection/event from the lock
          */
         EXPECT_EQUAL(r, -1);
-        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_DATA);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
         EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
 
         /* Make sure we did a full handshake */
@@ -379,7 +358,6 @@ int main(int argc, char **argv)
 
         /* Clean up */
         EXPECT_SUCCESS(s2n_connection_free(conn));
-        free(count);
     }
 
     /* Session resumption */
@@ -397,7 +375,7 @@ int main(int argc, char **argv)
          * connection/event from the lock
          */
         EXPECT_EQUAL(r, -1);
-        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_DATA);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
         EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
 
         /* Make sure we did a abbreviated handshake */
