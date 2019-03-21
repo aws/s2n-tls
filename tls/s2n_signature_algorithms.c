@@ -144,8 +144,9 @@ int s2n_recv_supported_signature_algorithms(struct s2n_connection *conn, struct 
         return 0;
     }
 
-    if (length_of_all_pairs % 2 || s2n_stuffer_data_available(in) % 2) {
-        /* Pairs occur in two byte lengths. Malformed length, ignore the extension. */
+    if (length_of_all_pairs % 2) {
+        /* Pairs occur in two byte lengths. Malformed length, ignore the extension and skip ahead */
+        GUARD(s2n_stuffer_skip_read(in, length_of_all_pairs));
         return 0;
     }
 
