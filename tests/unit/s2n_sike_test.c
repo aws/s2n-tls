@@ -27,19 +27,10 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(
-		SIKE_P503_crypto_kem_keypair(pub_key, priv_key)
-	);
-    
-	EXPECT_SUCCESS(
-		SIKE_P503_crypto_kem_enc(ciphertext, c_shared_secret, pub_key)
-	);
-    
-	EXPECT_SUCCESS(
-		SIKE_P503_crypto_kem_dec(s_shared_secret, ciphertext, priv_key)
-	);
-
-	EXPECT_BYTEARRAY_EQUAL(s_shared_secret, c_shared_secret, SIKE_P503_SHARED_SECRET_BYTES);
+    EXPECT_SUCCESS(SIKE_P503_crypto_kem_keypair(pub_key, priv_key));
+    EXPECT_SUCCESS(SIKE_P503_crypto_kem_enc(ciphertext, c_shared_secret, pub_key));
+    EXPECT_SUCCESS(SIKE_P503_crypto_kem_dec(s_shared_secret, ciphertext, priv_key));
+    EXPECT_BYTEARRAY_EQUAL(s_shared_secret, c_shared_secret, SIKE_P503_SHARED_SECRET_BYTES);
 
     END_TEST();
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -41,21 +41,21 @@ static inline int FindMarker(FILE *infile, const char *marker)
 
     for ( i=0; i<len; i++ ) {
         if ( (line[i] = fgetc(infile)) == EOF ) {
-            return 0;
+            return -1;
         }
     }
     line[len] = '\0';
 
     while ( 1 ) {
         if ( !strncmp(line, marker, len) ) {
-            return 1;
+            return 0;
         }
 
         for ( i=0; i<len-1; i++ ) {
             line[i] = line[i+1];
         }
         if ( (line[len-1] = fgetc(infile)) == EOF ) {
-            return 0;
+            return -1;
         }
         line[len] = '\0';
     }
@@ -73,14 +73,14 @@ static inline int ReadHex(FILE *infile, uint8_t *buf, uint32_t len, const char *
     if (0 == len) 
     {
         buf[0] = 0x00;
-        return 1;
+        return 0;
     }
 
     memset(buf, 0x00, len);
 
-    if (!FindMarker(infile, str)) 
+    if (FindMarker(infile, str) == -1)
     {
-        return 0;
+        return -1;
     }
 
     while ((ch = fgetc(infile)) != EOF) 
@@ -118,5 +118,5 @@ static inline int ReadHex(FILE *infile, uint8_t *buf, uint32_t len, const char *
         buf[len - 1] = (buf[len - 1] << 4) | ich;
     }
  
-    return 1;
+    return 0;
 }

@@ -40,7 +40,7 @@ CFLAGS += -Wno-unreachable-code -I$(LIBCRYPTO_ROOT)/include/ -I../../ -I../../ap
 LDFLAGS += -L../../lib/ ${CRYPTO_LDFLAGS} -L../testlib/ -L../../pq-crypto ${LIBS} ${CRYPTO_LIBS}
 
 $(UNIT_TESTS)::
-	${CC} ${CFLAGS} -o $@ $@.c ${LDFLAGS} 2>&1
+	@${CC} ${CFLAGS} -o $@ $@.c ${LDFLAGS} 2>&1
 	@DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:../../pq-crypto:$$LD_LIBRARY_PATH" \
 	LD_PRELOAD="../LD_PRELOAD/allocator_overrides.so" \

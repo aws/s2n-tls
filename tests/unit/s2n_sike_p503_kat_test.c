@@ -87,7 +87,7 @@ int main(int argc, char **argv, char **envp) {
         EXPECT_SUCCESS(s2n_drbg_instantiate(&kat_drbg, &persoanlization_string, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
 
         ////////////////////////////////////
-        //      Run the prtocol
+        //      Run the protocol
         ////////////////////////////////////
 
         // Generate the public/private key pair
