@@ -28,15 +28,6 @@
 #define S2N_KEY_EXCHANGE_EPH      0x02  /* Ephemeral key exchange */
 #define S2N_KEY_EXCHANGE_ECC      0x04  /* Elliptic curve cryptography */
 
-struct s2n_key_exchange_algorithm {
-    /* OR'ed S2N_KEY_EXCHANGE_* flags */
-    uint16_t flags;
-};
-
-extern const struct s2n_key_exchange_algorithm s2n_rsa;
-extern const struct s2n_key_exchange_algorithm s2n_dhe;
-extern const struct s2n_key_exchange_algorithm s2n_ecdhe;
-
 typedef enum {
     S2N_AUTHENTICATION_RSA = 0,
     S2N_AUTHENTICATION_ECDSA
@@ -78,9 +69,9 @@ struct s2n_cipher_suite {
 
     /* Cipher name in Openssl format */
     const char *name;
-    const uint8_t iana_value[2];
+    const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN];
 
-    const struct s2n_key_exchange_algorithm *key_exchange_alg;
+    const struct s2n_kex *key_exchange_alg;
 
     const s2n_authentication_method auth_method;
 
@@ -90,6 +81,10 @@ struct s2n_cipher_suite {
     /* List of all possible record alg implementations in descending priority */
     const struct s2n_record_algorithm *all_record_algs[S2N_MAX_POSSIBLE_RECORD_ALGS];
     const uint8_t num_record_algs;
+
+    /* SSLv3 utilizes HMAC differently from TLS */
+    const struct s2n_record_algorithm *sslv3_record_alg;
+    struct s2n_cipher_suite *sslv3_cipher_suite;
 
     /* RFC 5426(TLS1.2) allows cipher suite defined PRFs. Cipher suites defined in and before TLS1.2 will use
      * P_hash with SHA256 when TLS1.2 is negotiated.
@@ -133,10 +128,12 @@ extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_128_gcm_sha256;
 extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
 extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_chacha20_poly1305_sha256;
 extern struct s2n_cipher_suite s2n_dhe_rsa_with_chacha20_poly1305_sha256;
+extern struct s2n_cipher_suite s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256;
+extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_rc4_128_sha;
 
 extern int s2n_cipher_suites_init(void);
 extern int s2n_cipher_suites_cleanup(void);
 extern struct s2n_cipher_suite *s2n_cipher_suite_from_wire(const uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN]);
 extern int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN]);
-extern int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);
-extern int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);
+extern int s2n_set_cipher_and_cert_as_sslv2_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);
+extern int s2n_set_cipher_and_cert_as_tls_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);

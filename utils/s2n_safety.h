@@ -47,6 +47,15 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
     }                                                                       \
   } while(0)
 
+#define memcpy_check_ptr( d, s, n )                                         \
+  do {                                                                      \
+    __typeof( n ) __tmp_n = ( n );                                          \
+    if ( __tmp_n ) {                                                        \
+      void *r = trace_memcpy_check( (d), (s) , (__tmp_n), _S2N_DEBUG_LINE); \
+      if (r == NULL) { return NULL; }                                       \
+    }                                                                       \
+  } while(0)
+
 #define memset_check( d, c, n )                                             \
   do {                                                                      \
     __typeof( n ) __tmp_n = ( n );                                          \
@@ -84,11 +93,11 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
 #define GUARD_PTR( x )          if ( (x) < 0 ) return NULL
 
 /* TODO: use the OSSL error code in error reporting https://github.com/awslabs/s2n/issues/705 */
-#define GUARD_OSSL( x , errcode )			\
-  do {							\
-  if (( x ) != 1) {					\
-    S2N_ERROR( errcode );				\
-  }							\
+#define GUARD_OSSL( x , errcode )               \
+  do {                                          \
+  if (( x ) != 1) {                             \
+    S2N_ERROR( errcode );                       \
+  }                                             \
   } while (0)
 
 /**
@@ -104,3 +113,23 @@ extern int s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, uint32
 
 /* Copy src to dst, or don't copy it, in constant time */
 extern int s2n_constant_time_copy_or_dont(const uint8_t * dst, const uint8_t * src, uint32_t len, uint8_t dont);
+
+/* If src contains valid PKCS#1 v1.5 padding of exactly expectlen bytes, decode
+ * it into dst, otherwise leave dst alone, in constant time.
+ * Always returns zero. */
+extern int s2n_constant_time_pkcs1_unpad_or_dont(uint8_t * dst, const uint8_t * src, uint32_t srclen, uint32_t expectlen);
+
+/* Runs _thecleanup function on _thealloc once _thealloc went out of scope */
+#define DEFER_CLEANUP(_thealloc, _thecleanup) \
+   __attribute__((cleanup(_thecleanup))) _thealloc
+
+/* Creates cleanup function for pointers from function func which accepts a pointer.
+ * This is useful for DEFER_CLEANUP as it passes &_thealloc into _thecleanup function,
+ * so if _thealloc is a pointer _thecleanup will receive a pointer to a pointer.*/
+#define DEFINE_POINTER_CLEANUP_FUNC(type, func)             \
+  static inline void func##_pointer(type *p) {              \
+    if (p && *p)                                            \
+      func(*p);                                             \
+  }                                                         \
+  struct __useless_struct_to_allow_trailing_semicolon__
+

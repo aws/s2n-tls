@@ -36,7 +36,7 @@ all : run_tests
 
 include ../../s2n.mk
 
-CRUFT += $(wildcard *_test) $(wildcard fuzz-*.log) $(wildcard *_test_output.txt) $(wildcard LD_PRELOAD/*.so)
+CRUFT += $(wildcard *_test) $(wildcard fuzz-*.log) $(wildcard *_test_output.txt) $(wildcard *_test_results.txt) $(wildcard LD_PRELOAD/*.so)
 LIBS += -lm
 
 CFLAGS += -Wno-unreachable-code -O0 -I$(LIBCRYPTO_ROOT)/include/ -I../../ -I../../api/
@@ -61,5 +61,5 @@ run_tests:: $(TESTS) ld-preload
 	)
 
 .PHONY : clean
-clean:
+clean: decruft
 	${MAKE} -C LD_PRELOAD decruft

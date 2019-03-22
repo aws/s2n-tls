@@ -41,7 +41,7 @@ def cleanup_processes(*processes):
         p.wait()
 
 
-def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, sig_algs=None, curves=None, dh_params=None, resume=False):
+def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, sig_algs=None, curves=None, dh_params=None, resume=False, no_ticket=False):
     """
     Attempt to handshake against Openssl s_server listening on `endpoint` and `port` using s2nc
 
@@ -55,6 +55,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     :param str curves: Elliptic curves for Openssl s_server to accept
     :param str dh_params: path to DH params for Openssl s_server to use
     :param bool resume: if s2n client has to use reconnect option
+    :param bool no_ticket: if s2n client has to not use session ticket
     :return: 0 on successfully negotiation(s), -1 on failure
     """
 
@@ -109,6 +110,8 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     s2nc_cmd = ["../../bin/s2nc", "-c", "test_all", "-i"]
     if resume:
         s2nc_cmd.append("-r")
+    if no_ticket:
+        s2nc_cmd.append("-T")
     s2nc_cmd.extend([str(endpoint), str(port)])
 
     envVars = os.environ.copy()
@@ -177,8 +180,8 @@ def run_handshake_test(host, port, ssl_version, cipher):
     cipher_name = cipher.openssl_name
     cipher_vers = cipher.min_tls_vers
 
-    # Skip the cipher if openssl can't test it. 3DES/RC4 are disabled by default in 1.1.0
-    if not cipher.openssl_1_1_0_compatible:
+    # Skip the cipher if openssl can't test it. 3DES/RC4 are disabled by default in 1.1.1
+    if not cipher.openssl_1_1_1_compatible:
         return 0
 
     if ssl_version < cipher_vers:
@@ -218,14 +221,18 @@ def handshake_test(host, port, test_ciphers):
 
     return failed
 
-def handshake_resumption_test(host, port):
+def handshake_resumption_test(host, port, no_ticket=False):
     """
     Basic handshake tests for session resumption.
     """
-    print("\n\tRunning s2n Client session resumption tests:")
+    if no_ticket:
+        print("\n\tRunning s2n Client session resumption using session id tests:")
+    else:
+        print("\n\tRunning s2n Client session resumption using session ticket tests:")
+
     failed = 0
     for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
-        ret = try_handshake(host, port, None, ssl_version, resume=True)
+        ret = try_handshake(host, port, None, ssl_version, resume=True, no_ticket=no_ticket)
         prefix = "Session Resumption for: %-40s ... " % (S2N_PROTO_VERS_TO_STR[ssl_version])
         print_result(prefix, ret)
         if ret != 0:
@@ -316,9 +323,9 @@ def main():
     parser = argparse.ArgumentParser(description='Runs TLS server integration tests against Openssl s_server using s2nc')
     parser.add_argument('host', help='The host for s2nc to connect to')
     parser.add_argument('port', type=int, help='The port for s_server to bind to')
-    parser.add_argument('--libcrypto', default='openssl-1.1.0', choices=['openssl-1.0.2', 'openssl-1.0.2-fips', 'openssl-1.1.0', 'openssl-1.1.x-master', 'libressl'],
+    parser.add_argument('--libcrypto', default='openssl-1.1.1', choices=['openssl-1.0.2', 'openssl-1.0.2-fips', 'openssl-1.1.1', 'libressl'],
             help="""The Libcrypto that s2n was built with. s2n supports different cipher suites depending on
-                    libcrypto version. Defaults to openssl-1.1.0.""")
+                    libcrypto version. Defaults to openssl-1.1.1.""")
     args = parser.parse_args()
 
     # Retrieve the test ciphers to use based on the libcrypto version s2n was built with
@@ -330,6 +337,7 @@ def main():
 
     failed = 0
     failed += handshake_test(host, port, test_ciphers)
+    failed += handshake_resumption_test(host, port, no_ticket=True)
     failed += handshake_resumption_test(host, port)
     failed += sigalg_test(host, port)
     failed += elliptic_curve_test(host, port)

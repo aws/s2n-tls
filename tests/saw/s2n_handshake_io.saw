@@ -20,8 +20,8 @@ let conn_secure_cipher_suite pconn =
 //let key_exchange_algorithm csuite = crucible_elem csuite 3;
 let key_exchange_algorithm csuite = crucible_field csuite "key_exchange_alg";
 
-//let kea_flags kea = crucible_elem kea 0;
-let kea_flags kea = crucible_field kea "flags";
+let kea_is_ephemeral kea = crucible_elem kea 0;
+//let kea_is_ephemeral kea = crucible_field kea "is_ephemeral";
 
 //conn->status_type
 let conn_status_type pconn = crucible_field pconn "status_type";
@@ -32,12 +32,15 @@ let conn_config pconn = crucible_field pconn "config";
 //conn->config -> client_cert_auth_type
 let config_cca_type config = (crucible_field config "client_cert_auth_type");
 
-//let cert_key_pairs config = (crucible_elem config 1);
-let cert_key_pairs config = (crucible_field config "cert_and_key_pairs");
-
-//conn->config->cert_and_key_pairs->ocsp_status.size
+//conn->handshake_params.our_chain_and_key->ocsp_status.size
 let ocsp_status_size cert_and_key =
     crucible_field (crucible_field (cert_and_key) "ocsp_status") "size";
+
+//conn->config->use_tickets
+let config_use_tickets config = (crucible_field config "use_tickets");
+
+//conn->session_ticket_status
+let conn_session_ticket_status pconn = (crucible_field pconn "session_ticket_status");
 
 //conn->client_cert_auth_type
 let cca_type pconn = crucible_field pconn "client_cert_auth_type";
@@ -52,6 +55,10 @@ let conn_handshake_handshake_type pconn =
 //conn->handshake.message_number
 let conn_handshake_message_number pconn =
     crucible_field (crucible_field pconn "handshake") "message_number";
+
+//conn->handshake_params.our_chain_and_key
+let conn_chain_and_key pconn =
+    crucible_field (crucible_field pconn "handshake_params") "our_chain_and_key";
 
 // Ghost state that represents the number of times the connection write socket
 // has been corked/uncorked. 
@@ -89,11 +96,11 @@ let setup_connection = do {
    cipher_suite <- crucible_alloc (llvm_struct "struct.s2n_cipher_suite");
    crucible_points_to (conn_secure_cipher_suite pconn)  cipher_suite;
 
-   kea <- crucible_alloc (llvm_struct "struct.s2n_key_exchange_algorithm");
+   kea <- crucible_alloc (llvm_struct "struct.s2n_kex");
    crucible_points_to (key_exchange_algorithm cipher_suite) kea;
 
-   eph_flag <- crucible_fresh_var "eph_flag" (llvm_int 16);
-   crucible_points_to (kea_flags kea) (crucible_term eph_flag);
+   eph_flag <- crucible_fresh_var "eph_flag" (llvm_int 8);
+   crucible_points_to (kea_is_ephemeral kea) (crucible_term eph_flag);
 
    config <- crucible_alloc (llvm_struct "struct.s2n_config");
    crucible_points_to (conn_config pconn) config;
@@ -102,12 +109,19 @@ let setup_connection = do {
    crucible_points_to (config_cca_type config) (crucible_term config_cca);
 
    cak <- crucible_alloc (llvm_struct "struct.s2n_cert_chain_and_key");
-   crucible_points_to (cert_key_pairs config) cak;
+   crucible_points_to (conn_chain_and_key pconn) cak;
 
    status_size <- crucible_fresh_var "status_size" (llvm_int 32);
    crucible_points_to (ocsp_status_size cak) (crucible_term status_size);
    crucible_equal (crucible_term status_size) (crucible_term {{zero : [32]}});
-   
+
+   use_tickets <- crucible_fresh_var "use_tickets" (llvm_int 8);
+   crucible_points_to (config_use_tickets config) (crucible_term use_tickets);
+   crucible_equal (crucible_term use_tickets) (crucible_term {{zero : [8]}});
+
+   session_ticket_status <- crucible_fresh_var "session_ticket_status" (llvm_int 32);
+   crucible_points_to (conn_session_ticket_status pconn) (crucible_term session_ticket_status);
+
    ocsp_flag <- crucible_fresh_var "ocsp_flag" (llvm_int 32);
    crucible_points_to (conn_status_type pconn) (crucible_term ocsp_flag);
 
@@ -119,7 +133,7 @@ let setup_connection = do {
 		                  ,handshake_type = handshake_type}
          	     ,corked    = cork_val
                      ,is_caching_enabled = False
-                     ,key_exchange_eph =(eph_flag && 2) != zero 
+                     ,key_exchange_eph = eph_flag != zero
                      ,server_can_send_ocsp =
                             ((ocsp_flag == 1) && (status_size > 0)) ||
                             ((mode == 1) && (ocsp_flag == 1))
@@ -276,6 +290,15 @@ let s2n_generate_new_client_session_id_spec = do {
     crucible_return (crucible_term {{ 0 : [32] }});
 };
 
+// Specification for s2n_decrypt_session_ticket_spec. This is essentially
+// a noop function that returns 0 from the perspective of our current proof
+let s2n_decrypt_session_ticket_spec = do {
+    pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
+
+    crucible_execute_func [pconn];
+    crucible_return (crucible_term {{ 0 : [32] }});
+};
+
 // Specification for s2n_socket_write_cork. The relevant part is
 // that it increments the 'corked' ghost variable to 1 to
 // indicate that the socket has been corked.
@@ -343,6 +366,8 @@ let s2n_handshake_io_lowlevel = do {
     s2n_generate_new_client_session_id <- crucible_llvm_unsafe_assume_spec llvm "s2n_generate_new_client_session_id" s2n_generate_new_client_session_id_spec;    
     print "s2n_allowed_to_cache_connection";
     s2n_allowed_to_cache_connection <- crucible_llvm_unsafe_assume_spec llvm "s2n_allowed_to_cache_connection" s2n_allowed_to_cache_connection_spec;
+    print "s2n_decrypt_session_ticket";
+    s2n_decrypt_session_ticket <- crucible_llvm_unsafe_assume_spec llvm "s2n_decrypt_session_ticket" s2n_decrypt_session_ticket_spec;
     let dependencies = [s2n_socket_write_uncork, s2n_socket_write_cork, s2n_socket_was_corked, s2n_connection_is_managed_corked];
 
 
@@ -351,7 +376,7 @@ let s2n_handshake_io_lowlevel = do {
     print "Proving correctness of s2n_advance_message";
     s2n_advance_message_proof <- crucible_llvm_verify llvm "s2n_advance_message" dependencies true s2n_advance_message_spec yices;
     print "Proving correctness of s2n_conn_set_handshake_type";
-    s2n_conn_set_handshake_type_proof <- crucible_llvm_verify llvm "s2n_conn_set_handshake_type" [s2n_allowed_to_cache_connection, auth_type_proof, s2n_generate_new_client_session_id] true s2n_conn_set_handshake_type_spec yices;
+    s2n_conn_set_handshake_type_proof <- crucible_llvm_verify llvm "s2n_conn_set_handshake_type" [s2n_allowed_to_cache_connection, auth_type_proof, s2n_generate_new_client_session_id, s2n_decrypt_session_ticket] true s2n_conn_set_handshake_type_spec yices;
     print "done";
     return ();
 };

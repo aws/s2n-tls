@@ -18,6 +18,7 @@
 #include "error/s2n_errno.h"
 
 #include "crypto/s2n_cipher.h"
+#include "crypto/s2n_openssl.h"
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
@@ -99,7 +100,7 @@ int s2n_cbc_cipher_aes256_set_encryption_key(struct s2n_session_key *key, struct
 
 static int s2n_cbc_cipher_aes_init(struct s2n_session_key *key)
 {
-    EVP_CIPHER_CTX_init(key->evp_cipher_ctx);
+    s2n_evp_ctx_init(key->evp_cipher_ctx);
 
     return 0;
 }

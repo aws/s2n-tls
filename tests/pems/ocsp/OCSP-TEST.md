@@ -33,20 +33,35 @@ From the current directory:
 
 ### Run the server
 ```
+# With nextUpdate
 openssl ocsp -port 8889 -text -CA ca_cert.pem \                                                                                                                                                             ocsp_test ✭ ✱ ◼
       -index certs.txt \
       -rkey ocsp_key.pem \
       -rsigner ocsp_cert.pem \
       -nrequest 1 \
       -ndays $(( 365 * 100 ))
+
+# Without nextUpdate
+openssl ocsp -port 8890 -text -CA ca_cert.pem \                                                                                                                                                             ocsp_test ✭ ✱ ◼
+      -index certs.txt \
+      -rkey ocsp_key.pem \
+      -rsigner ocsp_cert.pem \
+      -nrequest 1
 ```
 
 ### Run the client and save the result to file
 ```
+# With nextUpdate
 openssl ocsp -CAfile ca_cert.pem \                                                                                                                                                                          ocsp_test ✭ ✱ ◼
       -url http://127.0.0.1:8889 \
       -issuer ca_cert.pem \
       -verify_other ocsp_cert.pem \
       -cert server_cert.pem -respout ocsp_response.der
+# Without nextUpdate
+openssl ocsp -CAfile ca_cert.pem \                                                                                                                                                                          ocsp_test ✭ ✱ ◼
+      -url http://127.0.0.1:8890 \
+      -issuer ca_cert.pem \
+      -verify_other ocsp_cert.pem \
+      -cert server_cert.pem -respout ocsp_response_no_next_update.der
 ```
 

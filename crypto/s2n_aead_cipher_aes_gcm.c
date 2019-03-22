@@ -148,7 +148,7 @@ static int s2n_aead_cipher_aes256_gcm_set_decryption_key(struct s2n_session_key 
 
 static int s2n_aead_cipher_aes_gcm_init(struct s2n_session_key *key)
 {
-    EVP_CIPHER_CTX_init(key->evp_cipher_ctx);
+    s2n_evp_ctx_init(key->evp_cipher_ctx);
 
     return 0;
 }

@@ -130,7 +130,6 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
     struct s2n_blob out = {.data = (uint8_t *) buf };
 
     if (conn->closed) {
-        GUARD(s2n_connection_wipe(conn));
         return 0;
     }
 
@@ -144,7 +143,6 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
             if (s2n_errno == S2N_ERR_CLOSED) {
                 *blocked = S2N_NOT_BLOCKED;
                 if (!bytes_read) {
-                    GUARD(s2n_connection_wipe(conn));
                     return 0;
                 } else {
                     return bytes_read;
@@ -159,7 +157,7 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
 
             /* If we get here, it's an error condition */
             if (s2n_errno != S2N_ERR_BLOCKED && s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
-                conn->config->cache_delete(conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
+                conn->config->cache_delete(conn, conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
             }
 
             return -1;

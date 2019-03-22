@@ -20,9 +20,9 @@ S2N_TLS10 = 31
 S2N_TLS11 = 32
 S2N_TLS12 = 33
 
-# namedtuple makes iterating through ciphers across client libraries easier. The openssl_1_1_0_compatible flag is for
+# namedtuple makes iterating through ciphers across client libraries easier. The openssl_1_1_1_compatible flag is for
 # s_client tests. s_client won't be able to use those ciphers.
-S2N_CIPHER = collections.namedtuple('S2N_CIPHER', 'openssl_name gnutls_priority_str min_tls_vers openssl_1_1_0_compatible openssl_fips_compatible')
+S2N_CIPHER = collections.namedtuple('S2N_CIPHER', 'openssl_name gnutls_priority_str min_tls_vers openssl_1_1_1_compatible openssl_fips_compatible')
 
 # Specifying a single cipher suite in GnuTLS requires specifying a "priority string" that removes all cipher suites,
 # and then adds each algorithm(kx,auth,enc,mac) for a given suite. See https://www.gnutls.org/manual/html_node/Priority-Strings.html
@@ -33,10 +33,10 @@ ALL_TEST_CIPHERS = [
     S2N_CIPHER("RC4-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+RSA:+ARCFOUR-128:+SHA1", S2N_SSLv3, False, False),
     S2N_CIPHER("DES-CBC3-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+RSA:+3DES-CBC:+SHA1", S2N_SSLv3, False, True),
     S2N_CIPHER("EDH-RSA-DES-CBC3-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+DHE-RSA:+3DES-CBC:+SHA1", S2N_SSLv3, False, False),
-    S2N_CIPHER("AES128-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+RSA:+AES-128-CBC:+SHA1", S2N_TLS10, True, True),
-    S2N_CIPHER("DHE-RSA-AES128-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+DHE-RSA:+AES-128-CBC:+SHA1", S2N_TLS10, True, False),
-    S2N_CIPHER("AES256-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+RSA:+AES-256-CBC:+SHA1", S2N_TLS10, True, True),
-    S2N_CIPHER("DHE-RSA-AES256-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+DHE-RSA:+AES-256-CBC:+SHA1", S2N_TLS10, True, False),
+    S2N_CIPHER("AES128-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+RSA:+AES-128-CBC:+SHA1", S2N_SSLv3, True, True),
+    S2N_CIPHER("DHE-RSA-AES128-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+DHE-RSA:+AES-128-CBC:+SHA1", S2N_SSLv3, True, False),
+    S2N_CIPHER("AES256-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+RSA:+AES-256-CBC:+SHA1", S2N_SSLv3, True, True),
+    S2N_CIPHER("DHE-RSA-AES256-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+DHE-RSA:+AES-256-CBC:+SHA1", S2N_SSLv3, True, False),
     S2N_CIPHER("AES128-SHA256", S2N_GNUTLS_PRIORITY_PREFIX + ":+RSA:+AES-128-CBC:+SHA256", S2N_TLS12, True, True),
     S2N_CIPHER("AES256-SHA256", S2N_GNUTLS_PRIORITY_PREFIX + ":+RSA:+AES-256-CBC:+SHA256", S2N_TLS12, True, True),
     S2N_CIPHER("DHE-RSA-AES128-SHA256", S2N_GNUTLS_PRIORITY_PREFIX + ":+DHE-RSA:+AES-128-CBC:+SHA256", S2N_TLS12, True, True),
@@ -45,43 +45,61 @@ ALL_TEST_CIPHERS = [
     S2N_CIPHER("AES256-GCM-SHA384", S2N_GNUTLS_PRIORITY_PREFIX + ":+RSA:+AES-256-GCM:+AEAD", S2N_TLS12, True, True),
     S2N_CIPHER("DHE-RSA-AES128-GCM-SHA256", S2N_GNUTLS_PRIORITY_PREFIX + ":+DHE-RSA:+AES-128-GCM:+AEAD", S2N_TLS12, True, True),
     S2N_CIPHER("DHE-RSA-AES256-GCM-SHA384", S2N_GNUTLS_PRIORITY_PREFIX + ":+DHE-RSA:+AES-256-GCM:+AEAD", S2N_TLS12, True, True),
-    S2N_CIPHER("ECDHE-ECDSA-AES128-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-ECDSA:+AES-128-CBC:+SHA1", S2N_TLS10, True, False),
-    S2N_CIPHER("ECDHE-ECDSA-AES256-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-ECDSA:+AES-256-CBC:+SHA1", S2N_TLS10, True, False),
+    S2N_CIPHER("ECDHE-ECDSA-AES128-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-ECDSA:+AES-128-CBC:+SHA1", S2N_SSLv3, True, False),
+    S2N_CIPHER("ECDHE-ECDSA-AES256-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-ECDSA:+AES-256-CBC:+SHA1", S2N_SSLv3, True, False),
     S2N_CIPHER("ECDHE-ECDSA-AES128-SHA256", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-ECDSA:+AES-128-CBC:+SHA256", S2N_TLS12, True, True),
     S2N_CIPHER("ECDHE-ECDSA-AES256-SHA384", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-ECDSA:+AES-256-CBC:+SHA384", S2N_TLS12, True, True),
     S2N_CIPHER("ECDHE-ECDSA-AES128-GCM-SHA256", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-ECDSA:+AES-128-GCM:+AEAD", S2N_TLS12, True, True),
     S2N_CIPHER("ECDHE-ECDSA-AES256-GCM-SHA384", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-ECDSA:+AES-256-GCM:+AEAD", S2N_TLS12, True, True),
-    S2N_CIPHER("ECDHE-RSA-DES-CBC3-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-RSA:+3DES-CBC:+SHA1", S2N_TLS10, False, False),
-    S2N_CIPHER("ECDHE-RSA-AES128-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-RSA:+AES-128-CBC:+SHA1", S2N_TLS10, True, False),
-    S2N_CIPHER("ECDHE-RSA-AES256-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-RSA:+AES-256-CBC:+SHA1", S2N_TLS10, True, False),
+    S2N_CIPHER("ECDHE-RSA-DES-CBC3-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-RSA:+3DES-CBC:+SHA1", S2N_SSLv3, False, False),
+    S2N_CIPHER("ECDHE-RSA-AES128-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-RSA:+AES-128-CBC:+SHA1", S2N_SSLv3, True, False),
+    S2N_CIPHER("ECDHE-RSA-AES256-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-RSA:+AES-256-CBC:+SHA1", S2N_SSLv3, True, False),
+    S2N_CIPHER("ECDHE-RSA-RC4-SHA", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-RSA:+ARCFOUR-128:+SHA1", S2N_SSLv3, False, False),
     S2N_CIPHER("ECDHE-RSA-AES128-SHA256", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-RSA:+AES-128-CBC:+SHA256", S2N_TLS12, True, True),
     S2N_CIPHER("ECDHE-RSA-AES256-SHA384", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-RSA:+AES-256-CBC:+SHA384", S2N_TLS12, True, True),
     S2N_CIPHER("ECDHE-RSA-AES128-GCM-SHA256", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-RSA:+AES-128-GCM:+AEAD", S2N_TLS12, True, True),
     S2N_CIPHER("ECDHE-RSA-AES256-GCM-SHA384", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-RSA:+AES-256-GCM:+AEAD", S2N_TLS12, True, True),
     S2N_CIPHER("ECDHE-RSA-CHACHA20-POLY1305", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-RSA:+CHACHA20-POLY1305:+AEAD", S2N_TLS12, True, False),
+    S2N_CIPHER("ECDHE-ECDSA-CHACHA20-POLY1305", S2N_GNUTLS_PRIORITY_PREFIX + ":+ECDHE-ECDSA:+CHACHA20-POLY1305:+AEAD", S2N_TLS12, True, False),
     S2N_CIPHER("DHE-RSA-CHACHA20-POLY1305", S2N_GNUTLS_PRIORITY_PREFIX + ":+DHE-RSA:+CHACHA20-POLY1305:+AEAD", S2N_TLS12, True, False),
 ]
 
-# Test ciphers to use when s2n built with Openssl 1.1.0 libcrypto. All ciphers should be available.
-OPENSSL_1_1_0_TEST_CIPHERS = ALL_TEST_CIPHERS
+# Expected preferences for SignatureAlgorithms in GnuTLS priority string format
+# See https://github.com/awslabs/s2n/blob/master/tls/s2n_tls_digest_preferences.h
+EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS = [
+    "SIGN-RSA-SHA256",
+    "SIGN-RSA-SHA384",
+    "SIGN-RSA-SHA512",
+    "SIGN-RSA-SHA224",
+    "SIGN-RSA-SHA1",
+]
+
+EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS = [
+    "SIGN-ECDSA-SHA256",
+    "SIGN-ECDSA-SHA384",
+    "SIGN-ECDSA-SHA512",
+    "SIGN-ECDSA-SHA224",
+    "SIGN-ECDSA-SHA1",
+]
+
+# Test ciphers to use when s2n built with Openssl 1.1.1 libcrypto. All ciphers should be available.
+OPENSSL_1_1_1_TEST_CIPHERS = ALL_TEST_CIPHERS
 
 # Test ciphers to use when s2n is built with Openssl 1.0.2 libcrypto. 1.0.2 does not have the
 # ChaCha20-Poly1305 cipher.
-OPENSSL_1_0_2_TEST_CIPHERS = list(filter(lambda x: x.openssl_name != "ECDHE-RSA-CHACHA20-POLY1305" and x.openssl_name != "DHE-RSA-CHACHA20-POLY1305", ALL_TEST_CIPHERS))
-
+OPENSSL_1_0_2_TEST_CIPHERS = list(filter(lambda x: "CHACHA20" not in x.openssl_name, ALL_TEST_CIPHERS))
 
 # Test ciphers to use when s2n is built with Openssl 1.0.2 libcrypto that is linked with a FIPS module.
 OPENSSL_1_0_2_FIPS_TEST_CIPHERS = list(filter(lambda x: x.openssl_fips_compatible == True, ALL_TEST_CIPHERS))
 
 # Test ciphers to use when s2n is built with LibreSSL libcrypto. s2n does not implement the
 # ChaCha20-Poly1305 cipher offered by LibreSSL.
-LIBRESSL_TEST_CIPHERS = list(filter(lambda x: x.openssl_name != "ECDHE-RSA-CHACHA20-POLY1305" and x.openssl_name != "DHE-RSA-CHACHA20-POLY1305", ALL_TEST_CIPHERS))
+LIBRESSL_TEST_CIPHERS = list(filter(lambda x: "CHACHA20" not in x.openssl_name, ALL_TEST_CIPHERS))
 
 # Dictionary to look up ciphers to use by libcrypto s2n is built with.
 # Libcrypto string will be an argument to test scripts.
 S2N_LIBCRYPTO_TO_TEST_CIPHERS = {
-    "openssl-1.1.x-master"  : OPENSSL_1_1_0_TEST_CIPHERS,
-    "openssl-1.1.0"         : OPENSSL_1_1_0_TEST_CIPHERS,
+    "openssl-1.1.1"         : OPENSSL_1_1_1_TEST_CIPHERS,
     "openssl-1.0.2"         : OPENSSL_1_0_2_TEST_CIPHERS,
     "openssl-1.0.2-fips"    : OPENSSL_1_0_2_FIPS_TEST_CIPHERS,
     "libressl"              : LIBRESSL_TEST_CIPHERS,

@@ -23,7 +23,7 @@
 int main(int argc, char **argv)
 {
     char keystr[sizeof("ffff")];
-    char valstr[sizeof("8192")];
+    char valstr[sizeof("16384")];
     struct s2n_map *empty, *map;
     struct s2n_blob key;
     struct s2n_blob val;
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", i));
         }
         else {
-            // The first 10 entries were overwritten with i+1
+            /* The first 10 entries were overwritten with i+1 */
             EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", i));
             EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", i+1));
         }

@@ -111,85 +111,83 @@ int echo(struct s2n_connection *conn, int sockfd)
     /* Act as a simple proxy between stdin and the SSL connection */
     int p;
     s2n_blocked_status blocked;
-  POLL:
-    while ((p = poll(readers, 2, -1)) > 0) {
-        char buffer[10240];
-        int bytes_read, bytes_written;
-
-        if (readers[0].revents & POLLIN) {
-            do {
-                bytes_read = s2n_recv(conn, buffer, 10240, &blocked);
+    do {
+        while ((p = poll(readers, 2, -1)) > 0) {
+            char buffer[10240];
+            int bytes_read, bytes_written;
+    
+            if (readers[0].revents & POLLIN) {
+                do {
+                    bytes_read = s2n_recv(conn, buffer, 10240, &blocked);
+                    if (bytes_read == 0) {
+                        return 0;
+                    }
+                    if (bytes_read < 0) {
+                        fprintf(stderr, "Error reading from connection: '%s' %d\n", s2n_strerror(s2n_errno, "EN"), s2n_connection_get_alert(conn));
+                        exit(1);
+                    }
+                    bytes_written = write(STDOUT_FILENO, buffer, bytes_read);
+                    if (bytes_written <= 0) {
+                        fprintf(stderr, "Error writing to stdout\n");
+                        exit(1);
+                    }
+                } while (blocked);
+            }
+            if (readers[1].revents & POLLIN) {
+                int bytes_available;
+                if (ioctl(STDIN_FILENO, FIONREAD, &bytes_available) < 0) {
+                    bytes_available = 1;
+                }
+                if (bytes_available > sizeof(buffer)) {
+                    bytes_available = sizeof(buffer);
+                }
+    
+                /* Read as many bytes as we think we can */
+    	    do {
+    	        errno = 0;
+    		bytes_read = read(STDIN_FILENO, buffer, bytes_available);
+    		if(bytes_read < 0 && errno != EINTR){
+    		  fprintf(stderr, "Error reading from stdin\n");
+    		  exit(1);
+    		}
+    	    } while (bytes_read < 0);
+    
                 if (bytes_read == 0) {
+                    /* Exit on EOF */
                     return 0;
                 }
-                if (bytes_read < 0) {
-                    fprintf(stderr, "Error reading from connection: '%s' %d\n", s2n_strerror(s2n_errno, "EN"), s2n_connection_get_alert(conn));
-                    exit(1);
-                }
-                bytes_written = write(STDOUT_FILENO, buffer, bytes_read);
-                if (bytes_written <= 0) {
-                    fprintf(stderr, "Error writing to stdout\n");
-                    exit(1);
-                }
-            } while (blocked);
-        }
-        if (readers[1].revents & POLLIN) {
-            int bytes_available;
-            if (ioctl(STDIN_FILENO, FIONREAD, &bytes_available) < 0) {
-                bytes_available = 1;
+    
+                char *buf_ptr = buffer;
+                do {
+                    bytes_written = s2n_send(conn, buf_ptr, bytes_available, &blocked);
+                    if (bytes_written < 0) {
+                        fprintf(stderr, "Error writing to connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+                        exit(1);
+                    }
+    
+                    bytes_available -= bytes_written;
+                    buf_ptr += bytes_written;
+                } while (bytes_available || blocked);
             }
-            if (bytes_available > sizeof(buffer)) {
-                bytes_available = sizeof(buffer);
-            }
-
-            /* Read as many bytes as we think we can */
-          READ:
-            bytes_read = read(STDIN_FILENO, buffer, bytes_available);
-            if (bytes_read < 0) {
-                if (errno == EINTR) {
-                    goto READ;
-                }
-                fprintf(stderr, "Error reading from stdin\n");
-                exit(1);
-            }
-            if (bytes_read == 0) {
-                /* Exit on EOF */
+            if (readers[1].revents & POLLHUP) {
+                /* The stdin pipe hanged up, and we've handled all read from it above */
                 return 0;
             }
-
-            char *buf_ptr = buffer;
-            do {
-                bytes_written = s2n_send(conn, buf_ptr, bytes_available, &blocked);
-                if (bytes_written < 0) {
-                    fprintf(stderr, "Error writing to connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-                    exit(1);
-                }
-
-                bytes_available -= bytes_written;
-                buf_ptr += bytes_written;
-            } while (bytes_available || blocked);
+            if (readers[0].revents & (POLLERR | POLLHUP | POLLNVAL)) {
+                fprintf(stderr, "Error polling from socket: err=%d hup=%d nval=%d\n",
+                        (readers[0].revents & POLLERR ) ? 1 : 0,
+                        (readers[0].revents & POLLHUP ) ? 1 : 0,
+                        (readers[0].revents & POLLNVAL ) ? 1 : 0);
+                return -1;
+            }
+            if (readers[1].revents & (POLLERR | POLLNVAL)) {
+                fprintf(stderr, "Error polling from socket: err=%d nval=%d\n",
+                        (readers[1].revents & POLLERR ) ? 1 : 0,
+                        (readers[1].revents & POLLNVAL ) ? 1 : 0);
+                return -1;
+            }
         }
-        if (readers[1].revents & POLLHUP) {
-            /* The stdin pipe hanged up, and we've handled all read from it above */
-            return 0;
-        }
-        if (readers[0].revents & (POLLERR | POLLHUP | POLLNVAL)) {
-            fprintf(stderr, "Error polling from socket: err=%d hup=%d nval=%d\n",
-                    (readers[0].revents & POLLERR ) ? 1 : 0,
-                    (readers[0].revents & POLLHUP ) ? 1 : 0,
-                    (readers[0].revents & POLLNVAL ) ? 1 : 0);
-            return -1;
-        }
-        if (readers[1].revents & (POLLERR | POLLNVAL)) {
-            fprintf(stderr, "Error polling from socket: err=%d nval=%d\n",
-                    (readers[1].revents & POLLERR ) ? 1 : 0,
-                    (readers[1].revents & POLLNVAL ) ? 1 : 0);
-            return -1;
-        }
-    }
-    if (p < 0 && errno == EINTR) {
-        goto POLL;
-    }
+    } while (p < 0 && errno == EINTR);
 
     return 0;
 }

@@ -24,6 +24,11 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
 
+#define s2n_drbg_key_size(drgb) EVP_CIPHER_CTX_key_length((drbg)->ctx)
+#define s2n_drbg_seed_size(drgb) (S2N_DRBG_BLOCK_SIZE + s2n_drbg_key_size(drgb))
+
+static int s2n_enable_dangerous_drbg_modes = 0;
+
 static int s2n_drbg_block_encrypt(EVP_CIPHER_CTX * ctx, uint8_t in[S2N_DRBG_BLOCK_SIZE], uint8_t out[S2N_DRBG_BLOCK_SIZE])
 {
     int len = S2N_DRBG_BLOCK_SIZE;
@@ -61,31 +66,28 @@ static int s2n_drbg_bits(struct s2n_drbg *drbg, struct s2n_blob *out)
 
 static int s2n_drbg_update(struct s2n_drbg *drbg, struct s2n_blob *provided_data)
 {
-    uint8_t temp[32];
-    struct s2n_blob temp_blob = {.data = temp,.size = sizeof(temp) };
+    s2n_stack_blob(temp_blob, s2n_drbg_seed_size(drgb), S2N_DRBG_MAX_SEED_SIZE);
 
-    eq_check(provided_data->size, sizeof(temp));
+    eq_check(provided_data->size, s2n_drbg_seed_size(drbg));
 
     GUARD(s2n_drbg_bits(drbg, &temp_blob));
 
     /* XOR in the provided data */
     for (int i = 0; i < provided_data->size; i++) {
-        temp[i] ^= provided_data->data[i];
+        temp_blob.data[i] ^= provided_data->data[i];
     }
 
     /* Update the key and value */
-    GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_128_ecb(), NULL, temp, NULL), S2N_ERR_DRBG);
+    GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, NULL, NULL, temp_blob.data, NULL), S2N_ERR_DRBG);
 
-    memcpy_check(drbg->v, temp + S2N_DRBG_BLOCK_SIZE, S2N_DRBG_BLOCK_SIZE);
+    memcpy_check(drbg->v, temp_blob.data + s2n_drbg_key_size(drbg), S2N_DRBG_BLOCK_SIZE);
 
     return 0;
 }
 
-int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
+static int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
 {
-    uint8_t seed[32];
-    struct s2n_blob blob = {.data = seed,.size = sizeof(seed) };
-    lte_check(ps->size, sizeof(seed));
+    s2n_stack_blob(blob, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
 
     if (drbg->entropy_generator) {
         GUARD(drbg->entropy_generator(&blob));
@@ -105,23 +107,43 @@ int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
     return 0;
 }
 
-int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string)
+int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string, const s2n_drbg_mode mode)
 {
-    struct s2n_blob value = {.data = drbg->v,.size = sizeof(drbg->v) };
-    uint8_t ps_prefix[32];
-    struct s2n_blob ps = {.data = ps_prefix,.size = sizeof(ps_prefix) };
+    S2N_ERROR_IF(mode == S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR && !s2n_enable_dangerous_drbg_modes, S2N_ERR_DRBG);
 
-    /* Start off with zeroed data, per 10.2.1.3.1 item 4 */
-    GUARD(s2n_blob_zero(&value));
+    if (mode == S2N_AES_128_CTR_NO_DF_PR || mode == S2N_AES_256_CTR_NO_DF_PR) {
+        drbg->use_prediction_resistance = 1;
+    } else if ( mode == S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR) {
+        drbg->use_prediction_resistance = 0;
+    } else {
+        S2N_ERROR(S2N_ERR_DRBG);
+    }
 
     drbg->ctx = EVP_CIPHER_CTX_new();
     S2N_ERROR_IF(!drbg->ctx, S2N_ERR_DRBG);
-    (void)EVP_CIPHER_CTX_init(drbg->ctx);
 
-    /* Start off with zeroed key, per 10.2.1.3.1 item 5 */
-    GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_128_ecb(), NULL, drbg->v, NULL), S2N_ERR_DRBG);
+    s2n_evp_ctx_init(drbg->ctx);
+
+    if (mode == S2N_AES_128_CTR_NO_DF_PR) {
+        GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_128_ecb(), NULL, NULL, NULL), S2N_ERR_DRBG);
+    } else if (mode == S2N_AES_256_CTR_NO_DF_PR || mode == S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR) {
+        GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_256_ecb(), NULL, NULL, NULL), S2N_ERR_DRBG);
+    } else {
+        S2N_ERROR(S2N_ERR_DRBG);
+    }
+
+    lte_check(s2n_drbg_key_size(drbg), S2N_DRBG_MAX_KEY_SIZE);
+    lte_check(s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
+
+    static const uint8_t zero_key[S2N_DRBG_MAX_KEY_SIZE] = {0};
+    struct s2n_blob value = {.data = drbg->v,.size = sizeof(drbg->v) };
+
+    /* Start off with zeroed data, per 10.2.1.3.1 item 4 and 5 */
+    GUARD(s2n_blob_zero(&value));
+    GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, NULL, NULL, zero_key, NULL), S2N_ERR_DRBG);
 
     /* Copy the personalization string */
+    s2n_stack_blob(ps, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
     GUARD(s2n_blob_zero(&ps));
 
     memcpy_check(ps.data, personalization_string->data, MIN(ps.size, personalization_string->size));
@@ -133,19 +155,18 @@ int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization
     if (drbg->entropy_generator == NULL && s2n_cpu_supports_rdrand()) {
         drbg->entropy_generator = s2n_get_rdrand_data;
     }
+
     return 0;
 }
 
 int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob)
 {
-    uint8_t all_zeros[32] = { 0 };
-    struct s2n_blob zeros = {.data = all_zeros,.size = sizeof(all_zeros) };
+    s2n_stack_blob(zeros, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
+
     S2N_ERROR_IF(blob->size > S2N_DRBG_GENERATE_LIMIT, S2N_ERR_DRBG_REQUEST_SIZE);
 
-    /* If either the entropy generator is set, for prediction resistance,
-     * or if we reach the definitely-need-to-reseed limit, then reseed.
-     */
-    if (drbg->entropy_generator || drbg->bytes_used + blob->size + S2N_DRBG_BLOCK_SIZE >= S2N_DRBG_RESEED_LIMIT) {
+    /* If either use_prediction_resistance is set, or if we reach the definitely-need-to-reseed limit, then reseed */
+    if (drbg->use_prediction_resistance || drbg->bytes_used + blob->size + S2N_DRBG_BLOCK_SIZE >= S2N_DRBG_RESEED_LIMIT) {
         GUARD(s2n_drbg_seed(drbg, &zeros));
     }
 
@@ -174,4 +195,10 @@ int s2n_drbg_wipe(struct s2n_drbg *drbg)
 int s2n_drbg_bytes_used(struct s2n_drbg *drbg)
 {
     return drbg->bytes_used;
+}
+
+int s2n_drbg_enable_dangerous_modes()
+{
+    s2n_enable_dangerous_drbg_modes = 1;
+    return 0;
 }
