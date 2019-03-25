@@ -12,6 +12,7 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+#include <stdlib.h>
 #include <sys/param.h>
 
 #include "pq-crypto/pq-random.h"
