@@ -13,12 +13,24 @@
  * permissions and limitations under the License.
  */
 
+#include "pq-crypto/sike/sike_p503_kem.h"
+
 #include "stuffer/s2n_stuffer.h"
 
 #include "tls/s2n_kem.h"
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
+
+const struct s2n_kem s2n_sike_r1_p503 = {
+        .public_key_length = SIKE_P503_PUBLIC_KEY_BYTES,
+        .private_key_length = SIKE_P503_SECRET_KEY_BYTES,
+        .shared_secret_key_length = SIKE_P503_SHARED_SECRET_BYTES,
+        .ciphertext_length = SIKE_P503_CIPHERTEXT_BYTES,
+        .generate_keypair = &SIKE_P503_crypto_kem_keypair,
+        .encapsulate = &SIKE_P503_crypto_kem_enc,
+        .decapsulate = &SIKE_P503_crypto_kem_dec,
+};
 
 int s2n_kem_generate_keypair(struct s2n_kem_keypair *kem_keys)
 {

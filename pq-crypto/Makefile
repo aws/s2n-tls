@@ -20,6 +20,14 @@ OBJS=$(SRCS:.c=.o)
 all: $(OBJS)
 	$(MAKE) -C sike
 
+.PHONY : run-gcov
+run-gcov: gcov
+	$(MAKE) -C sike gcov
+
+.PHONY : run-lcov
+run-lcov: lcov
+	$(MAKE) -C sike lcov
+
 .PHONY : clean
 clean: decruft
 	${MAKE} -C sike decruft
