@@ -18,6 +18,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "error/s2n_errno.h"
 

@@ -18,6 +18,7 @@
 #include <inttypes.h>
 #include <fcntl.h>
 #include <s2n.h>
+#include <stdlib.h>
 
 #include <openssl/aes.h>
 
@@ -501,6 +502,22 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(aes256_pr_drbg.generation, 500011);
     EXPECT_EQUAL(aes256_no_pr_drbg.generation, 1);
 
+    /* Test that the drbg wont let you use dangerous configurations outside unit tests */
+    EXPECT_EQUAL(0, unsetenv("S2N_UNIT_TEST"));
+    struct s2n_drbg failing_drbg_mode = {0};
+    EXPECT_FAILURE(s2n_drbg_instantiate(&failing_drbg_mode, &blob, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
+
+    struct s2n_drbg failing_drbg_entropy = {.entropy_generator = &nist_fake_128_urandom_data};
+    EXPECT_FAILURE(s2n_drbg_instantiate(&failing_drbg_entropy, &blob, S2N_AES_128_CTR_NO_DF_PR));
+
+    /* Return to "unit test mode" and verify it would actually work and that was the reason for the failure */
+    EXPECT_EQUAL(0, setenv("S2N_UNIT_TEST", "1", 1));
+
+    EXPECT_SUCCESS(s2n_drbg_instantiate(&failing_drbg_mode, &blob, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
+    EXPECT_SUCCESS(s2n_drbg_instantiate(&failing_drbg_entropy, &blob, S2N_AES_128_CTR_NO_DF_PR));
+
+    EXPECT_SUCCESS(s2n_drbg_wipe(&failing_drbg_mode));
+    EXPECT_SUCCESS(s2n_drbg_wipe(&failing_drbg_entropy));
     EXPECT_SUCCESS(s2n_drbg_wipe(&aes128_drbg));
     EXPECT_SUCCESS(s2n_drbg_wipe(&aes256_pr_drbg));
     EXPECT_SUCCESS(s2n_drbg_wipe(&aes256_no_pr_drbg));
