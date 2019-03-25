@@ -15,11 +15,6 @@
 
 #pragma once
 
-#include "utils/s2n_blob.h"
 #include "pq-utils.h"
 
-extern int s2n_get_private_random_data(OUT struct s2n_blob *blob);
-
 int get_random_bytes(OUT unsigned char *buffer, unsigned int num_bytes);
-
-int initialize_pq_crypto_generator(int (*generator_ptr)(struct s2n_blob *));
