@@ -373,7 +373,7 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
             __asm__ __volatile__(".byte 0x0f, 0xc7, 0xf0;\n" "setc %b1;\n": "=a"(output.i386_fields.u_high), "=qm"(success_high)
                                  :
                                  :"cc");
-
+            // cppcheck-suppress knownConditionTrueFalse
             success = success_high & success_low;
 #else
             /* execute the rdrand instruction, store the result in a general purpose register (it's assigned to
