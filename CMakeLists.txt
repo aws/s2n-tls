@@ -87,15 +87,15 @@ file(GLOB S2N_HEADERS
     ${STUFFER_HEADERS}
     ${TLS_HEADERS}
     ${UTILS_HEADERS}
- )
+)
 
- file(GLOB S2N_SRC
+file(GLOB S2N_SRC
     ${CRYPTO_SRC}
     ${ERROR_SRC}
     ${STUFFER_SRC}
     ${TLS_SRC}
     ${UTILS_SRC}
- )
+)
 
 add_library(${CMAKE_PROJECT_NAME} ${S2N_HEADERS} ${S2N_SRC})
 set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C)
@@ -128,8 +128,23 @@ target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAK
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC $<TARGET_PROPERTY:LibCrypto::Crypto,INTERFACE_INCLUDE_DIRECTORIES>)
 
+#######################################
+#   Begin  PQ-Crypto 
+#######################################
+option (USE_S2N_PQ_CRYTPO "Use S2N default Post Quantum crypto library" ON) 
+
+if (USE_S2N_PQ_CRYTPO)
+    include_directories ("${PROJECT_SOURCE_DIR}/pq-crypto")
+    add_subdirectory (pq-crypto)
+    set (EXTRA_LIBS ${EXTRA_LIBS} s2n_pq_crypto)
+endif (USE_S2N_PQ_CRYTPO)
+
+#######################################
+#   end PQ-Crypto 
+#######################################
+
 file(GLOB TESTLIB_SRC "tests/testlib/*.c")
-file(GLOB TESTLIB_HEADERS "tests/testlib/*.h")
+file(GLOB TESTLIB_HEADERS "tests/testlib/*.h" "tests/s2n_test.h")
 
 add_library(testss2n ${TESTLIB_HEADERS} ${TESTLIB_SRC})
 target_include_directories(testss2n PRIVATE tests)
@@ -144,11 +159,11 @@ include(CTest)
 enable_testing()
 
 file(GLOB UNITTESTS_SRC "tests/unit/*.c")
-    foreach(test_case ${UNITTESTS_SRC})
+foreach(test_case ${UNITTESTS_SRC})
     string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
 
     add_executable(${test_case_name} ${test_case})
-    target_link_libraries(${test_case_name} PRIVATE testss2n m)
+    target_link_libraries(${test_case_name} PRIVATE testss2n ${EXTRA_LIBS} m pthread)
     target_include_directories(${test_case_name} PRIVATE api)
     target_include_directories(${test_case_name} PRIVATE ./)
     target_include_directories(${test_case_name} PRIVATE tests)

@@ -48,6 +48,8 @@
 #endif
 
 #define DEFAULT_MAX_CHAIN_DEPTH 7
+/* Time used by default for nextUpdate if none provided in OCSP: 1 hour since thisUpdate. */
+#define DEFAULT_OCSP_NEXT_UPDATE_PERIOD 3600000000000
 
 uint8_t s2n_x509_ocsp_stapling_supported(void) {
     return S2N_OCSP_STAPLING_SUPPORTED;
@@ -466,8 +468,13 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
                                                                   (uint32_t) thisupd->length, &this_update);
 
         uint64_t next_update = 0;
-        int nextupd_err = s2n_asn1_time_to_nano_since_epoch_ticks((const char *) nextupd->data,
+        int nextupd_err = 0;
+        if (nextupd) {
+            nextupd_err = s2n_asn1_time_to_nano_since_epoch_ticks((const char *) nextupd->data,
                                                                   (uint32_t) nextupd->length, &next_update);
+        } else {
+            next_update = this_update + DEFAULT_OCSP_NEXT_UPDATE_PERIOD;
+        }
 
         uint64_t current_time = 0;
         int current_time_err = conn->config->wall_clock(conn->config->sys_clock_ctx, &current_time);

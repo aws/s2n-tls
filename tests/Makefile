@@ -45,9 +45,9 @@ fuzz:
 include ../s2n.mk
 
 .PHONY : clean
-clean:
+clean: decruft
 	${MAKE} -C testlib decruft
 	${MAKE} -C LD_PRELOAD decruft
-	${MAKE} -C unit decruft
-	${MAKE} -C fuzz decruft
+	${MAKE} -C unit clean
+	${MAKE} -C fuzz clean
 	${MAKE} -C saw decruft
