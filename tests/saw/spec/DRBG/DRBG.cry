@@ -103,7 +103,7 @@ drbg_generate drbg entropy reseed_p = (take enc_result, drbg_out)
   where
     // Re-seed if we have exceeded the limit, or if reseed_p is set
     drbg_r =
-      if reseed_p \/ drbg.bytes_used + `n * 8 + `blocklen * 8 >= `reseed_limit then
+      if reseed_p \/ drbg.bytes_used + `n / 8 + `blocksize >= `reseed_limit then
         drbg_reseed drbg entropy (zero : [256])
       else drbg
     // Encrypt v+1, v+2, ..., v + ceil (n / blocklen)
