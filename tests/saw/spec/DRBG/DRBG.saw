@@ -295,7 +295,7 @@ let generate_spec = do {
 
 let bytes_used_spec = do {
     (sp, keyp, s) <- drbg_state "drbg";
-    crucible_execute_func[sp];
+    crucible_execute_func [sp];
     crucible_return (tm {{ drop s.bytes_used : [32] }});
 };
 
