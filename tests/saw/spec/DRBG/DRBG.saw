@@ -285,7 +285,6 @@ let generate_spec = do {
     (psp, datap) <- alloc_blob seedsize;
     use_prediction_resistance <- crucible_fresh_var "use_prediction_resistance" i8;
     crucible_points_to (crucible_field sp "use_prediction_resistance") (tm use_prediction_resistance);
-    crucible_precond {{ s.bytes_used < (`reseed_limit / 2 : [64]) }};
     crucible_execute_func [sp, psp];
     let {{ res = drbg_generate_seedlen s fake_entropy (use_prediction_resistance != zero) }};
     crucible_points_to datap (tm {{ split res.0 : [seedsize][8] }});
