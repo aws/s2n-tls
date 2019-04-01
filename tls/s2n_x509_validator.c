@@ -236,7 +236,6 @@ static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator,
                 verified = conn->verify_host_fn(address_ptr, strlen(address_ptr), conn->data_for_verify_host);
             }
         }
-
     }
 
     GENERAL_NAMES_free(names_list);
