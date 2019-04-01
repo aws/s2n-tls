@@ -19,6 +19,8 @@
 #include "tls/s2n_connection.h"
 #include "crypto/s2n_openssl.h"
 
+#include "arpa/inet.h"
+
 #include "openssl/err.h"
 #include "openssl/asn1.h"
 
@@ -210,7 +212,31 @@ static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator,
             size_t name_len = (size_t) ASN1_STRING_length(current_name->d.ia5);
 
             verified = conn->verify_host_fn(name, name_len, conn->data_for_verify_host);
+        } else if (current_name->type == GEN_IPADD) {
+            /* try to validate an IP address if it's in the subject alt name. */
+            const unsigned char *ip_addr = current_name->d.iPAddress->data;
+            size_t ip_addr_len = (size_t)current_name->d.iPAddress->length;
+
+            char address[INET6_ADDRSTRLEN + 1] = {0};
+            const char *address_ptr = NULL;
+            if (ip_addr_len == 4) {
+                struct sockaddr_in s = {0};
+                s.sin_family = AF_INET;
+                memcpy(&s.sin_addr.s_addr, ip_addr, ip_addr_len);
+                address_ptr = inet_ntop(AF_INET, &s.sin_addr, address, (socklen_t) sizeof(address));
+            } else if (ip_addr_len == 16) {
+                struct sockaddr_in6 s = {0};
+                s.sin6_family = AF_INET6;
+                memcpy(&s.sin6_addr.__in6_u, ip_addr, ip_addr_len);
+                address_ptr = inet_ntop(AF_INET6, &s.sin6_addr, address, (socklen_t) sizeof(address));
+            }
+
+            /* strlen should be safe here since we made sure we were null terminated AND that inet_ntop succeeded */
+            if (address_ptr) {
+                verified = conn->verify_host_fn(address_ptr, strlen(address_ptr), conn->data_for_verify_host);
+            }
         }
+
     }
 
     GENERAL_NAMES_free(names_list);
@@ -368,6 +394,8 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
         op_code = X509_verify_cert(ctx);
 
         if (op_code <= 0) {
+            int error = X509_STORE_CTX_get_error(ctx);
+            (void)error;
             return S2N_CERT_ERR_UNTRUSTED;
         }
     }
