@@ -16,7 +16,7 @@
 struct s2n_blob;
 
 /**
- * Converts a binary representation of an ip address into it's canonical string
+ * Converts a binary representation of an ip address into its canonical string
  * representation. Returns 0 on success and -1 on failure.
  */ 
 extern int s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst);
