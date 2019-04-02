@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@
 #include <arpa/inet.h>
 
 #include "utils/s2n_rfc5952.h"
-#include "utils/s2n_blob.h"
 
 int main(int argc, char **argv)
 {

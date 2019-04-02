@@ -20,7 +20,6 @@
 #include <error/s2n_errno.h>
 
 #include "s2n_rfc5952.h"
-#include "s2n_blob.h"
 
 static uint8_t dec[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
 static uint8_t hex[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
@@ -32,7 +31,6 @@ int s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
 
     if (af == AF_INET) {
         S2N_ERROR_IF(dst->size < sizeof("111.222.333.444"), S2N_ERR_SIZE_MISMATCH);
-
 
         for(int i = 0; i < 4; i++) {
             if (bytes[i] / 100) {
@@ -70,7 +68,7 @@ int s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
         int longest_run_length = 0;
         int current_run_length = 0;
 
-        //2001:db8::1:0:0:1
+        /* 2001:db8::1:0:0:1 */
 
         /* Find the longest run of zeroes */
         for (int i = 0; i < 8; i++) {

@@ -13,7 +13,7 @@
  * express or implied. See the License for the specific language governing
  */
 
-struct s2n_blob;
+#include "utils/s2n_blob.h"
 
 /**
  * Converts a binary representation of an ip address into its canonical string
