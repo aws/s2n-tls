@@ -18,6 +18,7 @@
 #include <arpa/inet.h>
 
 #include "utils/s2n_rfc5952.h"
+#include "utils/s2n_blob.h"
 
 int main(int argc, char **argv)
 {

@@ -13,18 +13,19 @@
  * permissions and limitations under the License.
  */
 
-#include "tls/s2n_config.h"
+#include "crypto/s2n_openssl.h"
+#include "crypto/s2n_openssl_x509.h"
 #include "utils/s2n_asn1_time.h"
 #include "utils/s2n_safety.h"
+#include "utils/s2n_rfc5952.h"
+#include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
-#include "crypto/s2n_openssl.h"
 
 #include "arpa/inet.h"
+#include "sys/socket.h"
 
 #include "openssl/err.h"
 #include "openssl/asn1.h"
-
-#include "crypto/s2n_openssl_x509.h"
 
 #if !defined(OPENSSL_IS_BORINGSSL)
 #include "openssl/ocsp.h"
@@ -217,23 +218,20 @@ static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator,
             const unsigned char *ip_addr = current_name->d.iPAddress->data;
             size_t ip_addr_len = (size_t)current_name->d.iPAddress->length;
 
-            char address[INET6_ADDRSTRLEN + 1] = {0};
-            const char *address_ptr = NULL;
+            int parse_err = -1;
+            s2n_stack_blob(address, INET6_ADDRSTRLEN + 1, INET6_ADDRSTRLEN + 1); 
             if (ip_addr_len == 4) {
-                struct sockaddr_in s = {0};
-                s.sin_family = AF_INET;
-                memcpy_check(&s.sin_addr.s_addr, ip_addr, ip_addr_len);
-                address_ptr = inet_ntop(AF_INET, &s.sin_addr, address, (socklen_t) sizeof(address));
+                parse_err = s2n_inet_ntop(AF_INET, ip_addr, &address);                
             } else if (ip_addr_len == 16) {
-                struct sockaddr_in6 s = {0};
-                s.sin6_family = AF_INET6;
-                memcpy_check(&s.sin6_addr.__in6_u, ip_addr, ip_addr_len);
-                address_ptr = inet_ntop(AF_INET6, &s.sin6_addr, address, (socklen_t) sizeof(address));
+                parse_err = s2n_inet_ntop(AF_INET6, ip_addr, &address);
             }
 
             /* strlen should be safe here since we made sure we were null terminated AND that inet_ntop succeeded */
-            if (address_ptr) {
-                verified = conn->verify_host_fn(address_ptr, strlen(address_ptr), conn->data_for_verify_host);
+            if (!parse_err) {
+                verified = conn->verify_host_fn(
+                               (const char *)address.data, 
+                               strlen((const char *)address.data), 
+                               conn->data_for_verify_host);
             }
         }
     }
