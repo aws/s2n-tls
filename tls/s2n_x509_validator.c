@@ -222,12 +222,12 @@ static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator,
             if (ip_addr_len == 4) {
                 struct sockaddr_in s = {0};
                 s.sin_family = AF_INET;
-                memcpy(&s.sin_addr.s_addr, ip_addr, ip_addr_len);
+                memcpy_check(&s.sin_addr.s_addr, ip_addr, ip_addr_len);
                 address_ptr = inet_ntop(AF_INET, &s.sin_addr, address, (socklen_t) sizeof(address));
             } else if (ip_addr_len == 16) {
                 struct sockaddr_in6 s = {0};
                 s.sin6_family = AF_INET6;
-                memcpy(&s.sin6_addr.__in6_u, ip_addr, ip_addr_len);
+                memcpy_check(&s.sin6_addr.__in6_u, ip_addr, ip_addr_len);
                 address_ptr = inet_ntop(AF_INET6, &s.sin6_addr, address, (socklen_t) sizeof(address));
             }
 
