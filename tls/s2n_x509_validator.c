@@ -21,14 +21,14 @@
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 
-#include "arpa/inet.h"
-#include "sys/socket.h"
+#include <arpa/inet.h>
+#include <sys/socket.h>
 
-#include "openssl/err.h"
-#include "openssl/asn1.h"
+#include <openssl/err.h>
+#include <openssl/asn1.h>
 
 #if !defined(OPENSSL_IS_BORINGSSL)
-#include "openssl/ocsp.h"
+#include <openssl/ocsp.h>
 #endif
 
 /* one day, boringssl, may add ocsp stapling support. Let's future proof this a bit by grabbing a definition
