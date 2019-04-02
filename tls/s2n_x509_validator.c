@@ -214,6 +214,7 @@ static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator,
 
             verified = conn->verify_host_fn(name, name_len, conn->data_for_verify_host);
         } else if (current_name->type == GEN_IPADD) {
+            san_found = 1;
             /* try to validate an IP address if it's in the subject alt name. */
             const unsigned char *ip_addr = current_name->d.iPAddress->data;
             size_t ip_addr_len = (size_t)current_name->d.iPAddress->length;
