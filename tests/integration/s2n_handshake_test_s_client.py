@@ -200,8 +200,8 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
 
     s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
-    # Make sure it's running
-    sleep(0.1)
+    # Make sure s2nd has started
+    sleep(0.5)
 
     s_client_cmd = ["openssl", "s_client", PROTO_VERS_TO_S_CLIENT_ARG[ssl_version],
             "-connect", str(endpoint) + ":" + str(port)]
@@ -222,8 +222,8 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     # Fire up s_client
     s_client = subprocess.Popen(s_client_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
-    # Wait for resumption
-    sleep(0.1)
+    # Wait for openssl to resume connection 5 times in a row, and verify resumption works
+    sleep(0.5)
 
     # Write the cipher name towards s2n server
     msg = (cipher + "\n").encode("utf-8")
@@ -231,13 +231,14 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     s_client.stdin.flush()
 
     # Wait for pipe ready for write
-    sleep(0.1)
+    sleep(0.5)
     # Write the cipher name from s2n server to client
     s2nd.stdin.write(msg)
     s2nd.stdin.flush()
 
-    # Wait for pipe ready for read
-    sleep(0.1)
+    # Wait for openssl and s2n to send data to each other that was just flushed
+    sleep(0.5)
+
     outs = communicate_processes(s_client, s2nd)
     s2nd_out = outs[1]
     if '' == s2nd_out:
@@ -310,7 +311,7 @@ def run_handshake_test(host, port, ssl_version, cipher, fips_mode, no_ticket, us
 
     ret = try_handshake(host, port, cipher_name, ssl_version, no_ticket=no_ticket, enter_fips_mode=fips_mode, client_auth=use_client_auth, client_cert=client_cert_path, client_key=client_key_path)
     
-    result_prefix = "Cipher: %-28s ClientCert: %-16s Vers: %-8s ... " % (cipher_name, client_cert_str, S2N_PROTO_VERS_TO_STR[ssl_version])
+    result_prefix = "Cipher: %-30s ClientCert: %-16s Vers: %-8s ... " % (cipher_name, client_cert_str, S2N_PROTO_VERS_TO_STR[ssl_version])
     print_result(result_prefix, ret)
     
     return ret
@@ -357,6 +358,14 @@ def client_auth_test(host, port, test_ciphers, fips_mode):
                 
     return failed
 
+def run_resume_test(host, port, cipher_name, ssl_version, resume, no_ticket, fips_mode):
+    ret = try_handshake(host, port, cipher_name, ssl_version, resume=resume, no_ticket=no_ticket, enter_fips_mode=fips_mode)
+    result_prefix = "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
+    print_result(result_prefix, ret)
+
+    return ret
+
+
 def resume_test(host, port, test_ciphers, fips_mode, no_ticket=False):
     """
     Tests s2n's session resumption capability using all valid combinations of cipher suite and TLS version.
@@ -367,7 +376,10 @@ def resume_test(host, port, test_ciphers, fips_mode, no_ticket=False):
         print("\n\tRunning resumption tests using session ticket:")
 
     failed = 0
+    results = []
     for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
+        port_offset = 0
+        threadpool = create_thread_pool()
         print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
         for cipher in test_ciphers:
             cipher_name = cipher.openssl_name
@@ -380,10 +392,15 @@ def resume_test(host, port, test_ciphers, fips_mode, no_ticket=False):
             if ssl_version < cipher_vers:
                 continue
 
-            ret = try_handshake(host, port, cipher_name, ssl_version, resume=True, no_ticket=no_ticket, enter_fips_mode=fips_mode)
-            result_prefix = "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
-            print_result(result_prefix, ret)
-            if ret != 0:
+            async_result = threadpool.apply_async(run_resume_test, (host, port + port_offset, cipher_name, ssl_version, True, no_ticket, fips_mode))
+            port_offset += 1
+            results.append(async_result)
+        
+        threadpool.close()
+        threadpool.join()
+
+        for async_result in results:
+            if async_result.get() != 0:
                 failed = 1
 
     return failed
