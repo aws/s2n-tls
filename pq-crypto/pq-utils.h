@@ -13,11 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#ifndef S2N_PQ_UTILS_H
-#define S2N_PQ_UTILS_H
+#pragma once
 
 //For clarity of the code.
 #define IN
 #define OUT
-
-#endif //S2N_PQ_UTILS_H

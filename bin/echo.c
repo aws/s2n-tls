@@ -70,6 +70,7 @@ int negotiate(struct s2n_connection *conn)
         fprintf(stderr, "Could not get actual protocol version\n");
         return -1;
     }
+    printf("CONNECTED:\n");
     printf("Client hello version: %d\n", client_hello_version);
     printf("Client protocol version: %d\n", client_protocol_version);
     printf("Server protocol version: %d\n", server_protocol_version);

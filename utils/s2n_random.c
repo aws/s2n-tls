@@ -198,7 +198,7 @@ int64_t s2n_public_random(int64_t bound)
     }
 }
 
-#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_FIPS) && !defined(LIBRESSL_VERSION_NUMBER)
+#if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
 
 int s2n_openssl_compat_rand(unsigned char *buf, int num)
 {
@@ -252,7 +252,7 @@ int s2n_rand_init(void)
 
     GUARD(s2n_defend_if_forked());
 
-#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_FIPS) && !defined(LIBRESSL_VERSION_NUMBER)
+#if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
     /* Create an engine */
     ENGINE *e = ENGINE_new();
     if (e == NULL ||
@@ -278,7 +278,7 @@ int s2n_rand_cleanup(void)
     GUARD(close(entropy_fd));
     entropy_fd = -1;
 
-#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_FIPS) && !defined(LIBRESSL_VERSION_NUMBER)
+#if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
     /* Cleanup our rand ENGINE in libcrypto */
     ENGINE *rand_engine = ENGINE_by_id("s2n_rand");
     if (rand_engine) {
@@ -298,6 +298,20 @@ int s2n_rand_cleanup_thread(void)
 
     return 0;
 }
+
+/*
+ * This must only be used for unit tests. Any real use is dangerous and will be overwritten in s2n_defend_if_forked if
+ * it is forked. This was added to support known answer tests that use OpenSSL and s2n_get_private_random_data directly.
+ */
+int s2n_set_private_drbg_for_test(struct s2n_drbg drbg)
+{
+    S2N_ERROR_IF(!S2N_IN_UNIT_TEST, S2N_ERR_NOT_IN_UNIT_TEST);
+    GUARD(s2n_drbg_wipe(&per_thread_private_drbg));
+
+    per_thread_private_drbg = drbg;
+    return 0;
+}
+
 
 int s2n_cpu_supports_rdrand()
 {

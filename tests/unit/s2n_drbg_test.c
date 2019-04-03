@@ -18,6 +18,7 @@
 #include <inttypes.h>
 #include <fcntl.h>
 #include <s2n.h>
+#include <stdlib.h>
 
 #include <openssl/aes.h>
 
@@ -435,13 +436,6 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(check_drgb_version(S2N_AES_256_CTR_NO_DF_PR, &nist_fake_256_urandom_data, 48, nist_aes256_reference_personalization_strings_hex,
                        nist_aes256_reference_values_hex, nist_aes256_reference_returned_bits_hex));
 
-    /* Before enabling dangerous drbg modes attempting to use S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR should fail */
-    s2n_stack_blob(personalization_string, 64, 64);
-    struct s2n_drbg failing_drbg = {0};
-    EXPECT_FAILURE(s2n_drbg_instantiate(&failing_drbg, &personalization_string, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
-
-    EXPECT_SUCCESS(s2n_drbg_enable_dangerous_modes());
-
     /* Check everything against the NIST AES 256 vectors with no prediction resistance */
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&nist_aes256_no_pr_reference_entropy, nist_aes256_no_pr_reference_entropy_hex));
     EXPECT_SUCCESS(check_drgb_version(S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR, &nist_fake_256_no_pr_urandom_data, 48, nist_aes256_no_pr_reference_personalization_strings_hex,
@@ -508,6 +502,22 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(aes256_pr_drbg.generation, 500011);
     EXPECT_EQUAL(aes256_no_pr_drbg.generation, 1);
 
+    /* Test that the drbg wont let you use dangerous configurations outside unit tests */
+    EXPECT_EQUAL(0, unsetenv("S2N_UNIT_TEST"));
+    struct s2n_drbg failing_drbg_mode = {0};
+    EXPECT_FAILURE(s2n_drbg_instantiate(&failing_drbg_mode, &blob, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
+
+    struct s2n_drbg failing_drbg_entropy = {.entropy_generator = &nist_fake_128_urandom_data};
+    EXPECT_FAILURE(s2n_drbg_instantiate(&failing_drbg_entropy, &blob, S2N_AES_128_CTR_NO_DF_PR));
+
+    /* Return to "unit test mode" and verify it would actually work and that was the reason for the failure */
+    EXPECT_EQUAL(0, setenv("S2N_UNIT_TEST", "1", 1));
+
+    EXPECT_SUCCESS(s2n_drbg_instantiate(&failing_drbg_mode, &blob, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
+    EXPECT_SUCCESS(s2n_drbg_instantiate(&failing_drbg_entropy, &blob, S2N_AES_128_CTR_NO_DF_PR));
+
+    EXPECT_SUCCESS(s2n_drbg_wipe(&failing_drbg_mode));
+    EXPECT_SUCCESS(s2n_drbg_wipe(&failing_drbg_entropy));
     EXPECT_SUCCESS(s2n_drbg_wipe(&aes128_drbg));
     EXPECT_SUCCESS(s2n_drbg_wipe(&aes256_pr_drbg));
     EXPECT_SUCCESS(s2n_drbg_wipe(&aes256_no_pr_drbg));
