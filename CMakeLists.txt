@@ -143,8 +143,8 @@ endif (USE_S2N_PQ_CRYPTO)
 #   end PQ-Crypto 
 #######################################
 
+include(CTest)
 if (BUILD_TESTING)
-    include(CTest)
     enable_testing()
 
     file(GLOB TESTLIB_SRC "tests/testlib/*.c")
