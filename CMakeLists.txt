@@ -131,13 +131,13 @@ target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC $<TARGET_PROPERTY:LibCry
 #######################################
 #   Begin  PQ-Crypto 
 #######################################
-option (USE_S2N_PQ_CRYTPO "Use S2N default Post Quantum crypto library" ON) 
+option (USE_S2N_PQ_CRYPTO "Use S2N default Post Quantum crypto library" ON) 
 
-if (USE_S2N_PQ_CRYTPO)
+if (USE_S2N_PQ_CRYPTO)
     include_directories ("${PROJECT_SOURCE_DIR}/pq-crypto")
     add_subdirectory (pq-crypto)
     set (EXTRA_LIBS ${EXTRA_LIBS} s2n_pq_crypto)
-endif (USE_S2N_PQ_CRYTPO)
+endif (USE_S2N_PQ_CRYPTO)
 
 #######################################
 #   end PQ-Crypto 
@@ -146,7 +146,7 @@ endif (USE_S2N_PQ_CRYTPO)
 if (BUILD_TESTING)
     include(CTest)
     enable_testing()
-    
+
     file(GLOB TESTLIB_SRC "tests/testlib/*.c")
     file(GLOB TESTLIB_HEADERS "tests/testlib/*.h" "tests/s2n_test.h")
 
