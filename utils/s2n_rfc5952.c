@@ -32,7 +32,7 @@ int s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
     if (af == AF_INET) {
         S2N_ERROR_IF(dst->size < sizeof("111.222.333.444"), S2N_ERR_SIZE_MISMATCH);
 
-        for(int i = 0; i < 4; i++) {
+        for (int i = 0; i < 4; i++) {
             if (bytes[i] / 100) {
                 *cursor++ = dec[bytes[i] / 100];
             }
