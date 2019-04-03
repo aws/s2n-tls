@@ -144,7 +144,7 @@ endif (USE_S2N_PQ_CRYTPO)
 #######################################
 
 file(GLOB TESTLIB_SRC "tests/testlib/*.c")
-file(GLOB TESTLIB_HEADERS "tests/testlib/*.h")
+file(GLOB TESTLIB_HEADERS "tests/testlib/*.h" "tests/s2n_test.h")
 
 add_library(testss2n ${TESTLIB_HEADERS} ${TESTLIB_SRC})
 target_include_directories(testss2n PRIVATE tests)
@@ -175,7 +175,6 @@ foreach(test_case ${UNITTESTS_SRC})
         ${test_case_name}
     PROPERTY
         ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
-
 endforeach(test_case)
 
 add_executable(s2nc "bin/s2nc.c" "bin/echo.c")
@@ -221,3 +220,4 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}-config.cmake"
 install(FILES "cmake/modules/FindLibCrypto.cmake"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/"
         COMPONENT Development)
+

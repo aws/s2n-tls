@@ -18,12 +18,25 @@
  */
 
 #include "s2n_test.h"
-#include "s2n_nist_kats.h"
+#include "crypto/s2n_drbg.h"
 #include "pq-crypto/bike/bike1_l1_kem.h"
 #include "pq-crypto/pq-random.h"
-#include "./crypto/s2n_fips.c"
+#include "tests/unit/s2n_nist_kats.h"
+#include "utils/s2n_mem.h"
+#include "utils/s2n_safety.h"
+#include "utils/s2n_random.h"
+#include "crypto/s2n_fips.h"
 
 #define RSP_FILE_NAME "kats/bike1_l1.kat"
+
+struct s2n_blob kat_entropy_blob = {0};
+
+int kat_entropy(struct s2n_blob *blob)
+{
+    eq_check(blob->size, kat_entropy_blob.size);
+    blob->data = kat_entropy_blob.data;
+    return 0;
+}
 
 int main(int argc, char **argv, char **envp) {
     BEGIN_TEST();
@@ -33,14 +46,11 @@ int main(int argc, char **argv, char **envp) {
         END_TEST();
     }
 
-    // Flip pq-random over to nist RNG to ensure KAT values match
-    EXPECT_SUCCESS(initialize_pq_crypto_generator(&randombytes));
-
-    FILE *rsp_file = fopen(RSP_FILE_NAME, "r");
-    EXPECT_NOT_NULL(rsp_file);
+    FILE *kat_file = fopen(RSP_FILE_NAME, "r");
+    EXPECT_NOT_NULL(kat_file);
 
     int count;
-    uint8_t seed[48];
+    EXPECT_SUCCESS(s2n_alloc(&kat_entropy_blob, 48));
 
     // Client side variables
     uint8_t ct[BIKE1_L1_CIPHERTEXT_BYTES];
@@ -57,16 +67,19 @@ int main(int argc, char **argv, char **envp) {
     uint8_t ct_answer[BIKE1_L1_CIPHERTEXT_BYTES];
     uint8_t shared_secret_answer[BIKE1_L1_SHARED_SECRET_BYTES];
 
+    s2n_stack_blob(persoanlization_string, 48, 48);
+
     for (uint32_t i = 0; i < NUM_OF_KATS; i++) {
         // Verify test index
-        EXPECT_SUCCESS(FindMarker(rsp_file, "count = "));
-        EXPECT_TRUE(fscanf(rsp_file, "%d", &count) > 0);
+        EXPECT_SUCCESS(FindMarker(kat_file, "count = "));
+        EXPECT_TRUE(fscanf(kat_file, "%d", &count) > 0);
         EXPECT_EQUAL(count, i);
 
         // Set the NIST rng to the same state the response file was created with
-        EXPECT_SUCCESS(ReadHex(rsp_file, seed, 48, "seed = "));
-        randombytes_init(seed, NULL, 256);
-
+        EXPECT_SUCCESS(ReadHex(kat_file, kat_entropy_blob.data, 48, "seed = "));
+        struct s2n_drbg kat_drbg = {.entropy_generator = kat_entropy};
+        EXPECT_SUCCESS(s2n_drbg_instantiate(&kat_drbg, &persoanlization_string, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
+        EXPECT_SUCCESS(s2n_set_private_drbg_for_test(kat_drbg));
         ////////////////////////////////////
         //      Run the prtocol
         ////////////////////////////////////
@@ -85,10 +98,10 @@ int main(int argc, char **argv, char **envp) {
         ////////////////////////////////////
 
         // Read the KAT values
-        EXPECT_SUCCESS(ReadHex(rsp_file, pk_answer, BIKE1_L1_PUBLIC_KEY_BYTES, "pk = "));
-        EXPECT_SUCCESS(ReadHex(rsp_file, sk_answer, BIKE1_L1_SECRET_KEY_BYTES, "sk = "));
-        EXPECT_SUCCESS(ReadHex(rsp_file, ct_answer, BIKE1_L1_CIPHERTEXT_BYTES, "ct = "));
-        EXPECT_SUCCESS(ReadHex(rsp_file, shared_secret_answer, BIKE1_L1_SHARED_SECRET_BYTES, "ss = "));
+        EXPECT_SUCCESS(ReadHex(kat_file, pk_answer, BIKE1_L1_PUBLIC_KEY_BYTES, "pk = "));
+        EXPECT_SUCCESS(ReadHex(kat_file, sk_answer, BIKE1_L1_SECRET_KEY_BYTES, "sk = "));
+        EXPECT_SUCCESS(ReadHex(kat_file, ct_answer, BIKE1_L1_CIPHERTEXT_BYTES, "ct = "));
+        EXPECT_SUCCESS(ReadHex(kat_file, shared_secret_answer, BIKE1_L1_SHARED_SECRET_BYTES, "ss = "));
 
         // Test the client and server got the same value
         EXPECT_BYTEARRAY_EQUAL(client_shared_secret, server_shared_secret, BIKE1_L1_SHARED_SECRET_BYTES);
@@ -100,7 +113,7 @@ int main(int argc, char **argv, char **envp) {
         EXPECT_BYTEARRAY_EQUAL(shared_secret_answer, server_shared_secret, BIKE1_L1_SHARED_SECRET_BYTES);
     }
 
-    fclose(rsp_file);
+    fclose(kat_file);
 
     END_TEST();
 }

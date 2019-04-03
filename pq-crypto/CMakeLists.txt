@@ -62,6 +62,8 @@ target_compile_options(s2n_pq_crypto PRIVATE -pedantic -std=c99 -Wall -Werror -W
         -Wno-missing-braces)
 target_compile_options(s2n_pq_crypto PUBLIC -fPIC)
 
+target_compile_definitions(s2n_pq_crypto PRIVATE -DBIKE_VER=1 -DLEVEL=1 -DCONSTANT_TIME -DUSE_OPENSSL)
+
 # Copied from parent CmakeLists.txt
 target_compile_definitions(s2n_pq_crypto PRIVATE -D_POSIX_C_SOURCE=200809L)
 if(CMAKE_BUILD_TYPE MATCHES Release)
