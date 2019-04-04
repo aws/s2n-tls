@@ -1,0 +1,165 @@
+///////////////////////////////////////////////////////////////////////////////
+// Copyright 2019 Galois, Inc. All Rights Reserved
+//
+// Authored by Galois, Inc. (saw@galois.com)
+//
+// Licensed under the Apache License, Version 2.0 (the "License").
+// You may not use this file except in compliance with the License.
+// A copy of the License is located at
+//
+//  http://aws.amazon.com/apache2.0
+//
+// or in the "license" file accompanying this file. This file is distributed
+// on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+// express or implied. See the License for the specific language governing
+// permissions and limitations under the License.
+//
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+let get_ss_spec with_post = do {
+
+    ap <- out_ref ss_T;
+    (e, ep) <- in_ref e_T "et";
+    crucible_execute_func [ap, ep];
+    a' <- point_to ss_T ap "a'";
+    if with_post
+
+    // NOTE: This is needed for the kem_dec proof
+    then crucible_postcond {{a' == get_ss e}}
+
+    else return ();
+};
+
+let calc_pk_spec = do {
+    ap <- out_ref pk_T;
+    (b, bp) <- in_ref seed_S "seedca";
+    (c, cp) <- in_ref pad_sk_T "sk";
+    crucible_execute_func [ap, bp, cp];
+    a' <- point_to pk_T ap "pk'";
+    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+};
+
+// NOTE: Encrypt writes to ct only on success. it always succeeds
+let encrypt_spec = do {
+    ap <- out_ref ct_T;
+    (b,bp) <- in_ref pk_T "pk";
+    (c,cp) <- in_ref seed_T "seed";
+    (d,dp) <- in_ref split_e_T "splitted_e";
+    crucible_execute_func [ap, bp, cp, dp];
+    a' <- point_to ct_T ap "ct'";
+    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+};
+
+// NOTE: BIKE1_L1_crypto_kem_keypair might NOT write to its OUT parameters.
+let keypair_spec = do {
+    ap <- out_ref char_pk_T;
+    bp <- out_ref char_sk_T;
+    crucible_execute_func [ap, bp];
+};
+
+let crypto_kem_enc_spec = do {
+    ap <- out_ref char_ct_T;
+    bp <- out_ref char_ss_T;
+    (c, cp) <- in_ref char_pk_T "pk";
+    crucible_execute_func [ap, bp, cp];
+};
+
+// NOTE: We need to prove crypto_kem_dec in two steps, due to SAW's
+//       treatment of memory and the fact that the OUT memory area
+//       pointed to by `ss` is written to only if the result is success.
+//       We distinguish two cases by precondition, where the precondition
+//       uses the Cryptol equivalent to predict the result code.
+
+// NOTE: Step 1 of 2 - non-success result
+let crypto_kem_dec_unsuccessful_spec = do {
+
+    ap <- out_ref char_ss_T;
+    (b, bp) <- in_ref char_ct_T "ct";
+    (c, cp) <- in_ref char_sk_T "sk";
+    crucible_precond {{ (BIKE1_L1_crypto_kem_dec b c).0 != SUCCESS }};
+
+    // NOTE: This is for memory safety
+    crucible_precond {{ is_bounded_sk (assemble_sk_t c) }};
+
+    crucible_execute_func [ap, bp, cp];
+    ret <- crucible_fresh_var "ret" i32;
+    crucible_return (tm ret);
+    crucible_postcond {{ ret == fromInteger`{[32]}
+        ((BIKE1_L1_crypto_kem_dec b c).0) }};
+};
+
+// NOTE: Step 2 of 2 - conditioned on a SUCCESS result
+let crypto_kem_dec_successful_spec = do {
+
+    ap <- out_ref char_ss_T;
+    (b, bp) <- in_ref char_ct_T "ct";
+    (c, cp) <- in_ref char_sk_T "sk";
+    crucible_precond {{ (BIKE1_L1_crypto_kem_dec b c).0 == SUCCESS }} ;
+
+    // NOTE: This is for memory safety
+    crucible_precond {{ is_bounded_sk (assemble_sk_t c) }};
+
+    crucible_execute_func [ap, bp, cp];
+    //r <- crucible_fresh_var "ss" char_ss_t;
+    //crucible_points_to ap (tm r);
+    a' <- point_to char_ss_T ap "a'";
+    ret <- crucible_fresh_var "ret" i32;
+    crucible_return (tm ret);
+    crucible_postcond {{ (toInteger ret, a') == (BIKE1_L1_crypto_kem_dec b c) }};
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+verify "get_ss"
+    [parallel_hash_ov_getss, secure_clean_124_ov48]
+    (get_ss_spec false);
+
+get_ss_ov <- admit "get_ss"
+    [parallel_hash_ov_getss, secure_clean_124_ov48]
+    (get_ss_spec true);
+
+calc_pk_ov <- verify  "calc_pk"
+	[ sample_uniform_r_bits_ov
+        , gf2x_mod_mul_123_ov
+	, secure_clean_124_ov_PRT ]
+	calc_pk_spec;
+
+// NOTE: In the LLVM we get instances of inlined functions. Currently they
+//       are gf2x_mod_mul.123, gf2x.add.128, secure_clean.124
+encrypt_ov <- verify "encrypt"
+    [sample_uniform_r_bits_ov
+    , secure_clean_124_ov_PRT // for sizeof(padded_r_t)
+    , secure_clean_124_ov_DPCTT // for sizeof(dbl_pad_ct_t)
+    , gf2x_mod_mul_123_ov
+    , gf2x_add_128_left_ov_RSIZE ]
+    encrypt_spec;
+
+keypair_ov <- verify "BIKE1_L1_crypto_kem_keypair"
+    [ finalize_aes_ctr_prf_132_ov
+    , get_seeds_ov_kem
+    , init_aes_ctr_prf_state_ov
+    , generate_sparse_fake_rep_ov
+    , calc_pk_ov
+    , secure_clean_124_ov64 // for sizeof(seeds)
+    , secure_clean_124_ov48 // for sizeof(aes_prf_state)
+    , secure_clean_124_ov_2RPS ] // for sizeof(p_sk)
+    keypair_spec;
+
+crypto_kem_enc_ov <- verify_unint "BIKE1_L1_crypto_kem_enc"
+    [ finalize_aes_ctr_prf_132_ov
+    , encrypt_ov
+    , init_aes_ctr_prf_state_ov
+    , generate_sparse_rep_ov
+    , split_e_ov
+    , get_ss_ov
+    , secure_clean_124_ov_GPNT // for sizeof(split_e_t)
+    , secure_clean_124_ov48 // for sizeof(aes_prf_state)
+    , secure_clean_124_ov64 // for sizeof(seeds)
+    , secure_clean_124_ov_PET // for sizeof(padded_e_t)
+    , get_seeds_ov_kem ]
+    ["get_ss"]
+    crypto_kem_enc_spec;

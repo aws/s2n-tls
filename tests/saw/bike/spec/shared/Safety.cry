@@ -1,0 +1,41 @@
+///////////////////////////////////////////////////////////////////////////////
+// Copyright 2019 Galois, Inc. All Rights Reserved
+//
+// Authored by Galois, Inc. (saw@galois.com)
+//
+// Licensed under the Apache License, Version 2.0 (the "License").
+// You may not use this file except in compliance with the License.
+// A copy of the License is located at
+//
+//  http://aws.amazon.com/apache2.0
+//
+// or in the "license" file accompanying this file. This file is distributed
+// on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+// express or implied. See the License for the specific language governing
+// permissions and limitations under the License.
+//
+///////////////////////////////////////////////////////////////////////////////
+
+module shared::Safety where
+
+import interface::H_defs
+import interface::H_bike_defs
+import interface::H_types_v1l1
+
+///////////////////////////////////////////////////////////////////////////////
+// This module collects definitions needed for conditions relating to the
+// memory safety proofs
+
+// NOTE: Compute_counter_of_unsat needs this condition on the
+//       two compressed_idx parameters for its memory safety, otherwise
+//       there will be indices out of bounds.
+
+is_bounded_compressed_idx_dv: compressed_idx_dv_t -> Bit
+is_bounded_compressed_idx_dv {val=v} =
+    and [x.val <= `R_BITS | x <- v]
+
+// NOTE: Those compressed_idx values are derived from secret keys, and so
+//       any parameters of secret key type should also satisfy the bounds.
+
+is_bounded_sk: sk_t -> Bit
+is_bounded_sk sk = and [is_bounded_compressed_idx_dv w | w <- sk.wlist]

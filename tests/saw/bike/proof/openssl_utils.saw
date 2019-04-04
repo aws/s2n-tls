@@ -1,0 +1,59 @@
+///////////////////////////////////////////////////////////////////////////////
+// Copyright 2019 Galois, Inc. All Rights Reserved
+//
+// Authored by Galois, Inc. (saw@galois.com)
+//
+// Licensed under the Apache License, Version 2.0 (the "License").
+// You may not use this file except in compliance with the License.
+// A copy of the License is located at
+//
+//  http://aws.amazon.com/apache2.0
+//
+// or in the "license" file accompanying this file. This file is distributed
+// on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+// express or implied. See the License for the specific language governing
+// permissions and limitations under the License.
+//
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+let ossl_add3_spec len = do {
+    let ty = make_i8_T len;
+    ap <- out_ref ty;
+    (b,bp) <- in_ref ty "a_bin";
+    (c,cp) <- in_ref ty "b_bin";
+    crucible_execute_func [ap, bp, cp];
+    a' <- point_to ty ap "a'";
+    crucible_return (crucible_term {{ 0:[32] }});
+};
+
+let ossl_add3_left_spec ty = do {
+    (a, ap) <- inout_ref ty "a";
+    (b, bp) <- in_ref ty "b";
+    crucible_execute_func [ap, ap, bp];
+    a' <- point_to ty ap "a'";
+    crucible_return (crucible_term {{ 0:[32] }});
+};
+
+let cyclic_product_spec = do {
+    rbp <- out_ref rsize_T;
+    (a, abp) <- in_ref rsize_T "a";
+    (b, bbp) <- in_ref rsize_T "b";
+    crucible_execute_func [ rbp, abp, bbp];
+    r' <- point_to rsize_T rbp "cyclic_product_r'"; // writes to the result
+    res <- crucible_fresh_var "res" i32;
+    crucible_return (tm res);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+ossl_add3_ov1 <- admit "ossl_add" [] (ossl_add3_spec R_SIZE);
+
+ossl_add3_left_ov1 <- admit  "ossl_add" [] (ossl_add3_left_spec
+    ( make_i8_T R_SIZE));
+
+cyclic_product_ov <- admit "cyclic_product" [] (cyclic_product_spec);
+

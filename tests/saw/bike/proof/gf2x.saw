@@ -1,0 +1,114 @@
+///////////////////////////////////////////////////////////////////////////////
+// Copyright 2019 Galois, Inc. All Rights Reserved
+//
+// Authored by Galois, Inc. (saw@galois.com)
+//
+// Licensed under the Apache License, Version 2.0 (the "License").
+// You may not use this file except in compliance with the License.
+// A copy of the License is located at
+//
+//  http://aws.amazon.com/apache2.0
+//
+// or in the "license" file accompanying this file. This file is distributed
+// on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+// express or implied. See the License for the specific language governing
+// permissions and limitations under the License.
+//
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+// NOTE: A comment in the C says that gf2x_mod_mul "requires the values to
+//       be 64bit padded and extra (dbl) space for the results" but the
+//       actual code does not seem to need that.  Maybe one of the
+//       alternative implementations does?  In any case, we specify here
+//       that the result parameter must have this extra space.
+// TODO: Does this space need to be initialized to 0? One comment suggests this.
+
+// NOTE: Like some other BIKE functions, the gfx2 functions are declared
+//       inline, and the bitcode contains multiple copies with derived names.
+
+let gf2x_mod_mul_spec4 x = do {
+    let len = eval_int {{ `R_PADDED_QW:[64] }};
+    let len2 = eval_int {{ 2 * (`R_PADDED_QW:[64]) }};
+    let ty = (llvm_array len (llvm_int 64));
+    let ty2 = (llvm_array len (llvm_int 64));
+    resp <- crucible_alloc ty2; // double length
+    (a,ap) <- ptr_to_fresh_readonly "a" ty;
+    (b,bp) <- ptr_to_fresh_readonly "b" ty;
+    crucible_execute_func [resp, ap, bp];
+
+    if x then
+        crucible_points_to resp (tm {{ gf2x_mod_mul a b }})
+    else do {
+
+        // NOTE: R_SIZE bytes
+        v <- crucible_fresh_var "gf2x_r'" rsize_t;
+        crucible_points_to_untyped resp (tm v);
+    };
+};
+
+let gf2x_add3_spec = do {
+    let ty = rsize_T;
+    ap <- out_ref  ty;
+    (b,bp) <- in_ref ty "a_bin";
+    (c,cp) <- in_ref ty "b_bin";
+    crucible_execute_func [ap, bp, cp];
+    a <- point_to ty ap "a'";
+    return ();
+};
+
+let gf2x_add3_spec_left ty = do {
+    (a, ap) <- inout_ref ty "a";
+    (b, bp) <- in_ref ty "b";
+    crucible_execute_func [ap, ap, bp];
+    a' <- point_to ty ap "a'"; // *ap is updated
+    return ();
+};
+
+let ossl_add_left_spec = do {
+    let ty = rsize_T;
+    (a, ap) <- inout_ref ty "a";
+    (b, bp) <- in_ref ty "b";
+    crucible_execute_func [ap, ap, bp];
+    a' <- point_to ty ap "ossl_add_left_a'"; // *ap is updated
+    crucible_return (crucible_term {{ 0:[32] }});
+};
+
+// NOTE: The postcondition is needed for the functionality
+//       proof of compute_syndrome
+let gf2x_add_spec4 x = do {
+
+    (a,ap) <- inout_ref rsize_T "a";
+    (b,bp) <- in_ref rsize_T "b";
+    crucible_execute_func [ap, ap, bp, tm {{ `R_SIZE:[64] }}];
+
+    if x then
+    	crucible_points_to ap (tm {{ gf2x_add a b }})
+    else do {
+        a' <- point_to rsize_T ap "a'"; // *ap is updated
+        return ();
+    };
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+gf2x_mod_mul_ov5 <- verify "gf2x_mod_mul"
+    [cyclic_product_ov] (gf2x_mod_mul_spec4 false);
+
+// NOTE: These are admitted as post-cond is needed for compute syndrome
+gf2x_mod_mul_ov4 <- admit "gf2x_mod_mul" [] (gf2x_mod_mul_spec4 true);
+gf2x_mod_mul_123_ov <- admit  "gf2x_mod_mul.62"
+    [cyclic_product_ov] (gf2x_mod_mul_spec4 true);
+
+gf2x_add3_ov <- verify "gf2x_add" [ossl_add3_ov1] gf2x_add3_spec;
+
+gf2x_add3_left_ov1 <- verify  "gf2x_add"
+    [ossl_add3_left_ov1] (gf2x_add3_spec_left ( make_i8_T R_SIZE));
+gf2x_add_128_left_ov_RSIZE <- verify  "gf2x_add.67"
+    [ossl_add3_left_ov1] (gf2x_add3_spec_left ( make_i8_T R_SIZE));
+
+ossl_add_left_ov <- admit "ossl_add" [] ossl_add_left_spec;
+gf2x_add_ov4 <-  admit "gf2x_add" [ossl_add_left_ov] (gf2x_add_spec4 true);

@@ -1,0 +1,38 @@
+///////////////////////////////////////////////////////////////////////////////
+// Copyright 2019 Galois, Inc. All Rights Reserved
+//
+// Authored by Galois, Inc. (saw@galois.com)
+//
+// Licensed under the Apache License, Version 2.0 (the "License").
+// You may not use this file except in compliance with the License.
+// A copy of the License is located at
+//
+//  http://aws.amazon.com/apache2.0
+//
+// or in the "license" file accompanying this file. This file is distributed
+// on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+// express or implied. See the License for the specific language governing
+// permissions and limitations under the License.
+//
+///////////////////////////////////////////////////////////////////////////////
+
+module shared::Support where
+
+import interface::H_types_v1l1
+import shared::Params
+
+///////////////////////////////////////////////////////////////////////////////
+
+MSG s = undefined
+DMSG s = undefined
+ERR code res exit = undefined
+
+sizeof_ss_t  = undefined
+sizeof_e_t  = undefined
+sizeof_hash_t = undefined
+sizeof_red_r_t = undefined
+sizeof_dbl_pad_syndrome_t = undefined
+sizeof_pad_sk_t = undefined
+sizeof_pad_ct_t = undefined
+sizeof_syndrome_t = undefined
+sizeof_dup1_t = undefined

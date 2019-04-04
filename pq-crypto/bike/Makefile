@@ -24,8 +24,21 @@ CFLAGS += -DBIKE_VER=1 -DLEVEL=1 -DCONSTANT_TIME -DUSE_OPENSSL
 
 CFLAGS += -I../../
 
+CFLAGS_LLVM += -Wno-missing-braces -Wno-missing-field-initializers
+CFLAGS_LLVM += -DBIKE_VER=1 -DLEVEL=1 -DCONSTANT_TIME -DUSE_OPENSSL
+CFLAGS_LLVM += -I../../
+
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
+
+BCS_1=utilities.bc decode.bc bike1_l1_kem.bc \
+    converts_portable.bc secure_decode_portable.bc \
+    openssl_utils.bc aes_ctr_prf.bc parallel_hash.bc \
+    sampling_portable.bc sampling.bc
+BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
+
+.PHONY : bc
+bc: $(BCS)
 
 .PHONY : all
 all: libbike1_l1.a
