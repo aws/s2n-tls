@@ -438,7 +438,10 @@ int main(int argc, char *const *argv)
         }
 
         if (dyn_rec_threshold > 0 && dyn_rec_timeout > 0) {
-            s2n_connection_set_dynamic_record_threshold(conn, dyn_rec_threshold, dyn_rec_timeout);
+            if (s2n_connection_set_dynamic_record_threshold(conn, dyn_rec_threshold, dyn_rec_timeout) < 0) {
+                print_s2n_error("Error configuring dynamic record");
+                exit(1);
+            }
         }
 
         if (echo_input == 1) {

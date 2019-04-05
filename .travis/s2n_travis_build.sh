@@ -29,7 +29,11 @@ fi
 
 # Use prlimit to set the memlock limit to unlimited for linux. OSX is unlimited by default
 if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-    sudo -E "$PRLIMIT_INSTALL_DIR"/bin/prlimit --pid "$$" --memlock=unlimited:unlimited;
+    if [[ -f "$PRLIMIT_INSTALL_DIR"/bin/prlimit ]]; then
+        sudo -E "$PRLIMIT_INSTALL_DIR"/bin/prlimit --pid "$$" --memlock=unlimited:unlimited;
+    else
+        sudo -E /usr/bin/prlimit --pid "$$" --memlock=unlimited:unlimited;
+    fi
 fi
 
 # Set GCC 6 as Default if it's required
