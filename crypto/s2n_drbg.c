@@ -26,8 +26,6 @@
 #define s2n_drbg_key_size(drgb) EVP_CIPHER_CTX_key_length((drbg)->ctx)
 #define s2n_drbg_seed_size(drgb) (S2N_DRBG_BLOCK_SIZE + s2n_drbg_key_size(drgb))
 
-static int s2n_enable_dangerous_drbg_modes = 0;
-
 /* This function is the same as s2n_increment_sequence_number
     but it does not check for overflow, since overflow is
     acceptable in DRBG */

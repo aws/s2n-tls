@@ -270,7 +270,6 @@ let instantiate_spec n = do {
     (psp, datap) <- alloc_blob n;
     data <- crucible_fresh_var "data" (bytes_type n);
     crucible_points_to datap (tm data);
-    crucible_points_to (crucible_global "s2n_enable_dangerous_drbg_modes") (tm {{ 0 : [1] }});
 
     crucible_execute_func [sp, psp, tm {{ mode_128 : [32] }}];
 
