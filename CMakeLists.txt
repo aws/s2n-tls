@@ -131,61 +131,63 @@ target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC $<TARGET_PROPERTY:LibCry
 #######################################
 #   Begin  PQ-Crypto 
 #######################################
-option (USE_S2N_PQ_CRYTPO "Use S2N default Post Quantum crypto library" ON) 
+option (USE_S2N_PQ_CRYPTO "Use S2N default Post Quantum crypto library" ON) 
 
-if (USE_S2N_PQ_CRYTPO)
+if (USE_S2N_PQ_CRYPTO)
     include_directories ("${PROJECT_SOURCE_DIR}/pq-crypto")
     add_subdirectory (pq-crypto)
     set (EXTRA_LIBS ${EXTRA_LIBS} s2n_pq_crypto)
-endif (USE_S2N_PQ_CRYTPO)
+endif (USE_S2N_PQ_CRYPTO)
 
 #######################################
 #   end PQ-Crypto 
 #######################################
 
-file(GLOB TESTLIB_SRC "tests/testlib/*.c")
-file(GLOB TESTLIB_HEADERS "tests/testlib/*.h" "tests/s2n_test.h")
-
-add_library(testss2n ${TESTLIB_HEADERS} ${TESTLIB_SRC})
-target_include_directories(testss2n PRIVATE tests)
-target_compile_options(testss2n PRIVATE -std=c99)
-target_link_libraries(testss2n PUBLIC ${CMAKE_PROJECT_NAME})
-
-#run unit tests
-file (GLOB TEST_LD_PRELOAD "tests/LD_PRELOAD/*.c")
-add_library(allocator_overrides SHARED ${TEST_LD_PRELOAD})
-
 include(CTest)
-enable_testing()
+if (BUILD_TESTING)
+    enable_testing()
 
-file(GLOB UNITTESTS_SRC "tests/unit/*.c")
-foreach(test_case ${UNITTESTS_SRC})
-    string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
+    file(GLOB TESTLIB_SRC "tests/testlib/*.c")
+    file(GLOB TESTLIB_HEADERS "tests/testlib/*.h" "tests/s2n_test.h")
 
-    add_executable(${test_case_name} ${test_case})
-    target_link_libraries(${test_case_name} PRIVATE testss2n ${EXTRA_LIBS} m pthread)
-    target_include_directories(${test_case_name} PRIVATE api)
-    target_include_directories(${test_case_name} PRIVATE ./)
-    target_include_directories(${test_case_name} PRIVATE tests)
-    target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -D_POSIX_C_SOURCE=200809L -std=c99)
-    add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
+    add_library(testss2n ${TESTLIB_HEADERS} ${TESTLIB_SRC})
+    target_include_directories(testss2n PRIVATE tests)
+    target_compile_options(testss2n PRIVATE -std=c99)
+    target_link_libraries(testss2n PUBLIC ${CMAKE_PROJECT_NAME})
 
-    set_property(
-    TEST
-        ${test_case_name}
-    PROPERTY
-        ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
-endforeach(test_case)
+    #run unit tests
+    file (GLOB TEST_LD_PRELOAD "tests/LD_PRELOAD/*.c")
+    add_library(allocator_overrides SHARED ${TEST_LD_PRELOAD})
 
-add_executable(s2nc "bin/s2nc.c" "bin/echo.c")
-target_link_libraries(s2nc ${CMAKE_PROJECT_NAME})
-target_include_directories(s2nc PRIVATE api)
-target_compile_options(s2nc PRIVATE -std=c99 -D_POSIX_C_SOURCE=200112L)
+    file(GLOB UNITTESTS_SRC "tests/unit/*.c")
+    foreach(test_case ${UNITTESTS_SRC})
+        string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
 
-add_executable(s2nd "bin/s2nd.c" "bin/echo.c")
-target_link_libraries(s2nd ${CMAKE_PROJECT_NAME})
-target_include_directories(s2nd PRIVATE api)
-target_compile_options(s2nd PRIVATE -std=c99 -D_POSIX_C_SOURCE=200112L)
+        add_executable(${test_case_name} ${test_case})
+        target_link_libraries(${test_case_name} PRIVATE testss2n ${EXTRA_LIBS} m pthread)
+        target_include_directories(${test_case_name} PRIVATE api)
+        target_include_directories(${test_case_name} PRIVATE ./)
+        target_include_directories(${test_case_name} PRIVATE tests)
+        target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -D_POSIX_C_SOURCE=200809L -std=c99)
+        add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
+
+        set_property(
+        TEST
+            ${test_case_name}
+        PROPERTY
+            ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
+    endforeach(test_case)
+
+    add_executable(s2nc "bin/s2nc.c" "bin/echo.c")
+    target_link_libraries(s2nc ${CMAKE_PROJECT_NAME})
+    target_include_directories(s2nc PRIVATE api)
+    target_compile_options(s2nc PRIVATE -std=c99 -D_POSIX_C_SOURCE=200112L)
+
+    add_executable(s2nd "bin/s2nd.c" "bin/echo.c")
+    target_link_libraries(s2nd ${CMAKE_PROJECT_NAME})
+    target_include_directories(s2nd PRIVATE api)
+    target_compile_options(s2nd PRIVATE -std=c99 -D_POSIX_C_SOURCE=200112L)
+endif()
 
 #install the s2n files
 install(FILES ${API_HEADERS} DESTINATION "include/" COMPONENT Development)

@@ -44,6 +44,7 @@ $(UNIT_TESTS)::
 	@DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:../../pq-crypto:$$LD_LIBRARY_PATH" \
 	LD_PRELOAD="../LD_PRELOAD/allocator_overrides.so" \
+	S2N_UNIT_TEST=1 \
 	./$@
 
 $(VALGRIND_TESTS)::
@@ -51,6 +52,7 @@ $(VALGRIND_TESTS)::
 	@DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:../../pq-crypto:$$LD_LIBRARY_PATH" \
 	S2N_VALGRIND=1 \
+	S2N_UNIT_TEST=1 \
 	valgrind --leak-check=full --run-libc-freeres=no -q --error-exitcode=9 --gen-suppressions=all --log-fd=2 --num-callers=40 --leak-resolution=high --undef-value-errors=no --trace-children=yes --suppressions=valgrind.suppressions \
 	./$(@:.valgrind=)
 

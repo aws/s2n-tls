@@ -24,6 +24,7 @@
 #include "tests/unit/s2n_nist_kats.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
+#include "utils/s2n_random.h"
 
 #define RSP_FILE_NAME "kats/sike_p503.kat"
 
@@ -36,21 +37,8 @@ int kat_entropy(struct s2n_blob *blob)
     return 0;
 }
 
-struct s2n_drbg kat_drbg = {0};
-
-static int kat_get_random_bytes(struct s2n_blob *blob)
-{
-    GUARD(s2n_drbg_generate(&kat_drbg, blob));
-    return 0;
-}
-
 int main(int argc, char **argv, char **envp) {
     BEGIN_TEST();
-
-    // Flip pq-random over to nist RNG to ensure KAT values match
-    EXPECT_SUCCESS(initialize_pq_crypto_generator(&kat_get_random_bytes));
-    /* SIKE knwon answers were generated with an AES_256_CTR_NO_DF_NO_PR DRBG */
-    EXPECT_SUCCESS(s2n_drbg_enable_dangerous_modes());
 
     FILE *kat_file = fopen(RSP_FILE_NAME, "r");
     EXPECT_NOT_NULL(kat_file);
@@ -83,8 +71,9 @@ int main(int argc, char **argv, char **envp) {
 
         // Set the NIST rng to the same state the response file was created with
         EXPECT_SUCCESS(ReadHex(kat_file, kat_entropy_blob.data, 48, "seed = "));
-        kat_drbg.entropy_generator = &kat_entropy;
+        struct s2n_drbg kat_drbg = {.entropy_generator = kat_entropy};
         EXPECT_SUCCESS(s2n_drbg_instantiate(&kat_drbg, &persoanlization_string, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
+        EXPECT_SUCCESS(s2n_set_private_drbg_for_test(kat_drbg));
 
         ////////////////////////////////////
         //      Run the protocol
@@ -117,7 +106,6 @@ int main(int argc, char **argv, char **envp) {
         EXPECT_BYTEARRAY_EQUAL(sk_answer, sk, SIKE_P503_SECRET_KEY_BYTES);
         EXPECT_BYTEARRAY_EQUAL(ct_answer, ct, SIKE_P503_CIPHERTEXT_BYTES);
         EXPECT_BYTEARRAY_EQUAL(shared_secret_answer, server_shared_secret, SIKE_P503_SHARED_SECRET_BYTES);
-        EXPECT_SUCCESS(s2n_drbg_wipe(&kat_drbg));
     }
 
     fclose(kat_file);
