@@ -290,7 +290,7 @@ let generate_spec = do {
     (psp, datap) <- alloc_blob seedsize;
     crucible_points_to (crucible_field sp "use_prediction_resistance") (tm {{ 1 : [8] }});
     crucible_execute_func [sp, psp];
-    let {{ res = drbg_generate_seedlen s fake_entropy (use_prediction_resistance != zero) }};
+    let {{ res = drbg_generate_seedlen s fake_entropy True }};
     crucible_points_to datap (tm {{ split res.0 : [seedsize][8] }});
     ensure_drbg_state sp keyp {{ res.1 }};
     crucible_return (tm {{ 0 : [32] }});
