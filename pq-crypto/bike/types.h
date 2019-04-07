@@ -9,8 +9,7 @@
 * The license is detailed in the file LICENSE.txt, and applies to this file.
 * ***************************************************************************/
 
-#ifndef __TYPES_H_INCLUDED__
-#define __TYPES_H_INCLUDED__
+#pragma once
 
 #include "bike_defs.h"
 #include <stdint.h>
@@ -26,8 +25,6 @@
 #define PTR(x) x->u.v
 #define PTRV(x) (x->u.v.val)
 #define VAL(x) (x.u.v.val)
-
-#ifndef __cplusplus
 
 typedef struct uint128_s {
     union {
@@ -181,7 +178,7 @@ typedef ALIGN(16) struct syndrome_s {
         struct {
             red_r_t dup1;
             red_r_t dup2;
-#ifdef USE_AVX512F_INSTRUCTIONS
+#ifdef AVX512
             uint8_t reserved[N_QDQWORDS_BITS - N_BITS];
         } v;
         uint8_t raw[N_QDQWORDS_BITS];
@@ -243,7 +240,4 @@ enum _status
 typedef enum _status status_t;
 
 #pragma pack(pop)
-
-#endif //__cplusplus
-#endif //__TYPES_H_INCLUDED__
 

@@ -9,8 +9,7 @@
 * The license is detailed in the file LICENSE.txt, and applies to this file.
 * ***************************************************************************/
 
-#ifndef __AES_H_INCLUDED__
-#define __AES_H_INCLUDED__
+#pragma once
 
 #include "types.h"
 
@@ -69,8 +68,8 @@ typedef ALIGN(16) struct aes256_ks_s {
 } aes256_ks_t;
 
 // The ks parameter must be 16 bytes aligned!
-void aes256_key_expansion(OUT aes256_ks_t *ks,
-                          IN const aes256_key_t *key);
+EXTERNC void aes256_key_expansion(OUT aes256_ks_t *ks,
+                                  IN const aes256_key_t *key);
 
 void aes256_enc(OUT uint8_t *ct,
                 IN const uint8_t *pt,
@@ -83,6 +82,4 @@ _INLINE_ void aes256_free_ks(OUT BIKE_UNUSED_ATT aes256_ks_t *ks)
 }
 
 #endif //USE_OPENSSL
-
-#endif //__AES_H_INCLUDED__
 

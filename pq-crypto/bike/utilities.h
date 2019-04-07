@@ -9,8 +9,7 @@
 * The license is detailed in the file LICENSE.txt, and applies to this file.
 * ***************************************************************************/
 
-#ifndef _UTILITIES_H_
-#define _UTILITIES_H_
+#pragma once
 
 #include <string.h>
 #include "types.h"
@@ -128,7 +127,7 @@ _INLINE_ uint32_t secure_l32_mask(IN const uint32_t v1, IN const uint32_t v2)
 }
 
 // len is bytes length of in
-uint64_t count_ones(IN const uint8_t *in, IN const uint32_t len);
+EXTERNC uint64_t count_ones(IN const uint8_t *in, IN const uint32_t len);
 
 // len is bytes length of in
 _INLINE_ void secure_clean(OUT uint8_t *p, IN const uint32_t len)
@@ -141,5 +140,3 @@ _INLINE_ void secure_clean(OUT uint8_t *p, IN const uint32_t len)
         memset_func(p, 0, len);
 #endif
 }
-
-#endif //_UTILITIES_H_

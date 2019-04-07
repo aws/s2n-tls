@@ -17,10 +17,10 @@
 #define MAX_WEIGHT (T1 > FAKE_DV ? T1 : FAKE_DV)
 
 // This implementation assumes that the wlist contains fake list
-void secure_set_bits(IN OUT uint64_t *a,
-                     IN const idx_t wlist[],
-                     IN const uint32_t a_len_bytes,
-                     IN const uint32_t weight)
+EXTERNC void secure_set_bits(IN OUT uint64_t *a,
+                             IN const idx_t wlist[],
+                             IN const uint32_t a_len_bytes,
+                             IN const uint32_t weight)
 {
     assert(a_len_bytes % 8 == 0);
 

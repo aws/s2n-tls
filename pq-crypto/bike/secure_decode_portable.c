@@ -21,10 +21,10 @@
 #include "utilities.h"
 #include <string.h>
 
-void compute_counter_of_unsat(OUT uint8_t upc[N_BITS],
-                              IN const uint8_t s[R_BITS],
-                              IN const compressed_idx_dv_t* inv_h0_compressed,
-                              IN const compressed_idx_dv_t* inv_h1_compressed)
+EXTERNC void compute_counter_of_unsat(OUT uint8_t upc[N_BITS],
+                                      IN const uint8_t s[N_BITS],
+                                      IN const compressed_idx_dv_t* inv_h0_compressed,
+                                      IN const compressed_idx_dv_t* inv_h1_compressed)
 {
     uint32_t i=0, j=0, mask=0, pos=0;
     
@@ -51,12 +51,12 @@ void compute_counter_of_unsat(OUT uint8_t upc[N_BITS],
     }
 }
 
-void find_error1(IN OUT e_t* e,
-                 OUT e_t* black_e,
-                 OUT e_t* gray_e,
-                 IN const uint8_t* upc,
-                 IN const uint32_t black_th,
-                 IN const uint32_t gray_th)
+EXTERNC void find_error1(IN OUT e_t* e,
+                         OUT e_t* black_e,
+                         OUT e_t* gray_e,
+                         IN const uint8_t* upc,
+                         IN const uint32_t black_th,
+                         IN const uint32_t gray_th)
 {
     uint8_t bit = 1, black_acc = 0, gray_acc = 0;
     uint8_t val = 0, mask = 0;
@@ -109,10 +109,10 @@ void find_error1(IN OUT e_t* e,
     gray_e->raw[byte_itr] = gray_acc;
 }
 
-void find_error2(IN OUT e_t* e,
-                 IN e_t* pos_e,
-                 IN const uint8_t* upc,
-                 IN const uint32_t threshold)
+EXTERNC void find_error2(IN OUT e_t* e,
+                         IN e_t* pos_e,
+                         IN const uint8_t* upc,
+                         IN const uint32_t threshold)
 {
     uint8_t bit = 1;
     uint8_t pos_acc = 0;

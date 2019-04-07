@@ -9,11 +9,17 @@
 * The license is detailed in the file LICENSE.txt, and applies to this file.
 * ***************************************************************************/
 
-#ifndef __DEFS_H_INCLUDED__
-#define __DEFS_H_INCLUDED__
+#pragma once
+
 ////////////////////////////////////////////
 //             Basic defs
 ///////////////////////////////////////////
+
+#ifdef __cplusplus
+  #define EXTERNC extern "C"
+#else
+  #define EXTERNC
+#endif
 
 // For code clarity.
 #define IN
@@ -29,7 +35,7 @@
 // in asm files we must ensure with static_assert its validity
 #ifdef __ASM_FILE__
 #define bike_static_assert(COND, MSG)
-#elif defined(__cplusplus) || defined(static_assert)
+#elif (__cplusplus >= 201103L) || defined(static_assert)
 #define bike_static_assert(COND, MSG) static_assert(COND, "MSG")
 #else
 #define bike_static_assert(COND, MSG) typedef char static_assertion_##MSG[(COND) ? 1 : -1] BIKE_UNUSED_ATT
@@ -112,4 +118,3 @@
 //Disabled for random testing
 //#define USE_NIST_RAND
 
-#endif //__TYPES_H_INCLUDED__

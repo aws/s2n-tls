@@ -9,8 +9,7 @@
 * The license is detailed in the file LICENSE.txt, and applies to this file.
 * ***************************************************************************/
 
-#ifndef __AES_CTR_REF_H_INCLUDED__
-#define __AES_CTR_REF_H_INCLUDED__
+#pragma once
 
 #include "aes.h"
 
@@ -42,5 +41,3 @@ _INLINE_ void finalize_aes_ctr_prf(IN OUT aes_ctr_prf_state_t *s)
 {
     aes256_free_ks(&s->ks);
 }
-
-#endif // __AES_CTR_REF_H_INCLUDED__

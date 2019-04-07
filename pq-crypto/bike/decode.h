@@ -9,8 +9,7 @@
 * The license is detailed in the file LICENSE.txt, and applies to this file.
 * ***************************************************************************/
 
-#ifndef _R_DECAPS_H_
-#define _R_DECAPS_H_
+#pragma once
 
 #include "types.h"
 
@@ -20,11 +19,9 @@ void compute_syndrome(OUT syndrome_t* syndrome,
                       IN const ct_t* ct,
                       IN const sk_t* sk);
 
-//e and s should be zeroed before calling the decoder.
+//e should be zeroed before calling the decoder.
 int decode(OUT e_t* e,
-           OUT syndrome_t* s,
+           IN const syndrome_t* s,
            IN const ct_t* ct,
            IN const sk_t* sk,
            IN const uint32_t u);
-
-#endif //_R_DECAPS_H_

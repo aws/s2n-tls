@@ -9,8 +9,7 @@
 * The license is detailed in the file LICENSE.txt, and applies to this file.
 * ***************************************************************************/
 
-#ifndef __BIKE_DEFS_H_INCLUDED__
-#define __BIKE_DEFS_H_INCLUDED__
+#pragma once
 
 #include "defs.h"
 
@@ -156,6 +155,4 @@ bike_static_assert((N_BITS % ALL_YMM_SIZE != 0), nbits_512_err);
 #define ELL_K_SIZE (ELL_K_BITS / 8)
 
 #define SHA_MB_SECURE_BUF_SIZE 608
-
-#endif //__BIKE_DEFS_H_INCLUDED__
 

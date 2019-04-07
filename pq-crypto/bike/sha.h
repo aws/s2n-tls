@@ -9,8 +9,7 @@
 * The license is detailed in the file LICENSE.txt, and applies to this file.
 * ***************************************************************************/
 
-#ifndef _MB_SHA_H_
-#define _MB_SHA_H_
+#pragma once
 
 #include "types.h"
 
@@ -85,5 +84,3 @@ void sha_mb(OUT sha_hash_t *hash_out,
             IN const uint32_t byte_len,
             IN const uint32_t num);
 #endif // USE_OPENSSL
-
-#endif //_MB_SHA_H_

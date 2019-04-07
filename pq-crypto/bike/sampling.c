@@ -40,29 +40,15 @@ EXIT:
     return res;
 }
 
-_INLINE_ status_t make_odd_weight(IN OUT uint8_t *a,
-                                  IN const uint32_t len,
-                                  IN OUT aes_ctr_prf_state_t *prf_state)
+_INLINE_ void make_odd_weight(IN OUT uint8_t *a)
 {
-    status_t res;
-    uint32_t rand_pos = 0;
-
     if(((count_ones(a, R_SIZE) % 2) == 1))
     {
         // Already odd
-        return SUCCESS;
+        return;
     }
 
-    // Generate random bit and flip it
-    GUARD(get_rand_mod_len(&rand_pos, len, prf_state), res, EXIT);
-
-    const uint32_t rand_byte = rand_pos >> 3;
-    const uint32_t rand_bit  = rand_pos & 0x7;
-        
-    a[rand_byte] ^= BIT(rand_bit);
-
-EXIT:
-    return SUCCESS;
+    a[0] ^= 1;
 }
 
 // IN: must_be_odd - 1 true, 0 not
@@ -86,7 +72,7 @@ status_t sample_uniform_r_bits(OUT uint8_t *r,
 
     if(must_be_odd == MUST_BE_ODD)
     {
-        GUARD(make_odd_weight(r, R_BITS, &prf_state), res, EXIT);
+        make_odd_weight(r);
     }
 
 EXIT:
@@ -125,8 +111,7 @@ _INLINE_ int is_new(IN idx_t wlist[],
     return 1;
 }
 
-// Assumption 1) fake_weight > waight
-//            3) paddded_len % 64 = 0!
+// Assumption 1) paddded_len % 64 = 0!
 status_t generate_sparse_fake_rep(OUT uint64_t *a,
                                   OUT idx_t wlist[],
                                   IN  const uint32_t padded_len,
@@ -137,10 +122,11 @@ status_t generate_sparse_fake_rep(OUT uint64_t *a,
     status_t res = SUCCESS;
     uint64_t ctr = 0;
     uint32_t real_wlist[DV] = {0};
-	const uint32_t len = R_BITS;
+    const uint32_t len = R_BITS;
+    uint32_t mask = 0;
 
     // Initialize lists
-    memset(wlist, 0, sizeof(idx_t)*FAKE_DV);
+    memset(wlist, 0, sizeof(idx_t) * FAKE_DV);
 
     // Generate FAKE_DV rand numbers
     do
@@ -158,7 +144,6 @@ status_t generate_sparse_fake_rep(OUT uint64_t *a,
     } while(ctr < DV);
 
     // Applying the indices in constant time
-    uint32_t mask = 0;
     for(uint32_t j = 0; j < FAKE_DV; j++)
     {
         for(uint32_t i = 0; i < DV; i++)
@@ -180,6 +165,9 @@ EXIT:
 }
 
 // Assumption 1) paddded_len % 64 = 0!
+// Assumption 2) a is a len bits array. It is padded to be a padded_len
+//               bytes array. The padded area may be modified and should 
+//               be ignored outside the function scope.
 status_t generate_sparse_rep(OUT uint64_t *a,
                              OUT idx_t wlist[],
                              IN  const uint32_t weight,
@@ -188,6 +176,8 @@ status_t generate_sparse_rep(OUT uint64_t *a,
                              IN OUT aes_ctr_prf_state_t *prf_state)
 {
     assert(padded_len % 64 == 0);
+    // Bits comparison
+    assert((padded_len*8) >= len);
 
     status_t res = SUCCESS;
     uint64_t ctr = 0;
@@ -241,16 +231,13 @@ _INLINE_ void set_bit(IN uint64_t *a,
 // Assumption fake_weight > waight
 status_t generate_sparse_fake_rep(OUT uint64_t *a,
                                   OUT idx_t wlist[],
-                                  IN  const uint32_t weight,
-                                  IN  const uint32_t fake_weight,
-                                  IN  const uint32_t len,
                                   IN  const uint32_t padded_len,
                                   IN OUT aes_ctr_prf_state_t *prf_state)
 {
-    BIKE_UNUSED(fake_weight);
+    const uint32_t len = R_BITS;
 
 #ifndef VALIDATE_CONSTANT_TIME
-    return generate_sparse_rep(a, wlist, weight, len, padded_len, prf_state);
+    return generate_sparse_rep(a, wlist, DV, len, padded_len, prf_state);
 #else
     // This part of code to be able to compare constant and 
     // non constant time implementations.
@@ -258,25 +245,25 @@ status_t generate_sparse_fake_rep(OUT uint64_t *a,
     status_t res = SUCCESS;
     uint64_t ctr = 0;
     
-    uint32_t real_wlist[weight];
-    idx_t inordered_wlist[fake_weight];
+    uint32_t real_wlist[DV];
+    idx_t inordered_wlist[FAKE_DV];
 
-    GUARD(generate_sparse_rep(a, inordered_wlist, fake_weight, 
+    GUARD(generate_sparse_rep(a, inordered_wlist, FAKE_DV, 
                               len, padded_len, prf_state), res, EXIT);
 
     // Initialize to zero
     memset(a, 0, (len + 7) >> 3);
 
-    // Allocate weight real positions
+    // Allocate DV real positions
     do
     {
-        GUARD(get_rand_mod_len(&real_wlist[ctr], fake_weight, prf_state), res, EXIT);
+        GUARD(get_rand_mod_len(&real_wlist[ctr], FAKE_DV, prf_state), res, EXIT);
 
         wlist[ctr].val = inordered_wlist[real_wlist[ctr]].val;
         set_bit(a, wlist[ctr].val);
-        
+
         ctr += is_new2(real_wlist, ctr);
-    } while(ctr < weight);
+    } while(ctr < DV);
 
 EXIT:
     return res;

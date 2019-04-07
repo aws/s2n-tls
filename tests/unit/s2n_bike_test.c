@@ -17,7 +17,6 @@
 #include "crypto/s2n_fips.h"
 #include "pq-crypto/bike/bike1_l1_kem.h"
 
-
 int main(int argc, char **argv)
 {
     unsigned char publicKey[BIKE1_L1_PUBLIC_KEY_BYTES];

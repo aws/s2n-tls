@@ -75,14 +75,16 @@ void parallel_hash(OUT sha_hash_t *out_hash,
 
     for(uint32_t i = 0; i < MAX_MB_SLICES; i++)
     {
-        EDMSG("X[%u]:", i); print((uint64_t*)yx.u.v.x[i].u.raw, sizeof(yx.u.v.x[i])*8);
+        EDMSG("X[%u]:", i); 
+		print((uint64_t*)yx.u.v.x[i].u.raw, sizeof(yx.u.v.x[i])*8);
     }
 
     // Copy the reminder (Y)
     memcpy(yx.u.v.y, &m[MAX_MB_SLICES * ls], lrem);
 
     // Compute the final hash (on YX)
-    sha(out_hash, sizeof(yx), yx.u.raw);
+    //We explicitly use lrem instead of sizeof(yx.y) because yx.y is padded with zeros.
+    sha(out_hash, sizeof(yx.u.v.x)+lrem, yx.u.raw);
 
     EDMSG("\nY:  "); print((uint64_t*)yx.u.v.y, lrem*8);
 

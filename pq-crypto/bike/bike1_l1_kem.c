@@ -1,36 +1,13 @@
-/******************************************************************************
- * BIKE -- Bit Flipping Key Encapsulation
- *
- * Copyright (c) 2017 Nir Drucker, Shay Gueron, Rafael Misoczki, Tobias Oder, Tim Gueneysu
- * (drucker.nir@gmail.com, shay.gueron@gmail.com, rafael.misoczki@intel.com, tobias.oder@rub.de, tim.gueneysu@rub.de)
- *
- * Permission to use this code for BIKE is granted.
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * * Redistributions of source code must retain the above copyright notice,
- *   this list of conditions and the following disclaimer.
- *
- * * Redistributions in binary form must reproduce the above copyright
- *   notice, this list of conditions and the following disclaimer in the
- *   documentation and/or other materials provided with the distribution.
- *
- * * The names of the contributors may not be used to endorse or promote
- *   products derived from this software without specific prior written
- *   permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHORS ""AS IS"" AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS CORPORATION OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ******************************************************************************/
+/***************************************************************************
+* Additional implementation of "BIKE: Bit Flipping Key Encapsulation". 
+* Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+* 
+* Written by Nir Drucker and Shay Gueron
+* AWS Cryptographic Algorithms Group
+* (ndrucker@amazon.com, gueron@amazon.com)
+* 
+* The license is detailed in the file LICENSE.txt, and applies to this file.
+****************************************************************************/
 
 #include <string.h>
 
@@ -51,8 +28,9 @@ _INLINE_ status_t encrypt(OUT ct_t *ct,
     dbl_pad_ct_t p_ct;
 
     // Pad the public key
-    const pad_pk_t p_pk = {{.u.v.val = PTRV(pk)[0], .u.v.pad = {0}},
-                           {.u.v.val = PTRV(pk)[1], .u.v.pad = {0}}};
+    pad_pk_t p_pk = {0};
+    VAL(p_pk[0]) = PTRV(pk)[0];
+    VAL(p_pk[1]) = PTRV(pk)[1];
 
     DMSG("    Sampling m.\n");
     GUARD(sample_uniform_r_bits(VAL(m).raw, seed, NO_RESTRICTION), res, EXIT);
@@ -89,14 +67,14 @@ _INLINE_ status_t calc_pk(OUT pk_t *pk,
 {
     status_t res = SUCCESS;
 
-    // Must intialized padding to zero!!
-    padded_r_t g = {.u.v.pad = {0}};
+    //PK is dbl padded because modmul require scratch space for the multiplication result
+    dbl_pad_pk_t p_pk = {0};
+
+    //Must intialized padding to zero!!
+    padded_r_t g = {0};
     GUARD(sample_uniform_r_bits(VAL(g).raw, g_seed, MUST_BE_ODD), res, EXIT);
     
     EDMSG("g:  "); print((uint64_t*)VAL(g).raw, R_BITS);
-    
-    // PK is dbl padded because modmul require scratch space for the multiplication result
-    dbl_pad_pk_t p_pk = {0};
 
     // Calculate (g0, g1) = (g*h1, g*h0)
     gf2x_mod_mul(p_pk[0].u.qw, g.u.qw, p_sk[1].u.qw);
@@ -122,9 +100,10 @@ _INLINE_ void encrypt(OUT ct_t *ct,
                       IN const pk_t *pk,
                       IN const split_e_t *splitted_e)
 {
-    //Pad the public key
-    const pad_pk_t p_pk = {{.v.val = *pk, .v.pad = {0}}};
+    // Pad the public key and ciphertext
     dbl_pad_ct_t p_ct;
+    pad_pk_t p_pk = {0};
+    VAL(p_pk) = *pk;
 
     cyclic_product(VAL(p_ct).raw, PTRV(splitted_e)[1].raw, VAL(p_pk).raw);
     gf2x_add(VAL(p_ct).raw, VAL(p_ct).raw, PTRV(splitted_e)[0].raw, R_SIZE);
@@ -274,7 +253,7 @@ _INLINE_ status_t calc_pk(OUT pk_t *pk,
     r_t tmp1;
 
     // pk = (h1 + g*h0, g)
-    padded_r_t g = {.u.v.pad = {0}};
+    padded_r_t g = {0};
     GUARD(sample_uniform_r_bits(VAL(g).raw, g_seed, NO_RESTRICTION), res, EXIT);
 
     cyclic_product(tmp1.raw, VAL(g).raw, PTR(sk).bin[0].raw);
@@ -287,8 +266,8 @@ _INLINE_ status_t calc_pk(OUT pk_t *pk,
     PTR(sk).pk = *pk;
     
 EXIT:
-    EDMSG("g0: "); print((uint64_t*)pk->val[0].raw, R_BITS);
-    EDMSG("g1: "); print((uint64_t*)pk->val[1].raw, R_BITS);
+    EDMSG("g0: "); print((uint64_t*)PTRV(pk)[0].raw, R_BITS);
+    EDMSG("g1: "); print((uint64_t*)PTRV(pk)[1].raw, R_BITS);
 
     secure_clean(g.u.raw, sizeof(g));
     secure_clean(tmp1.raw, sizeof(tmp1));
@@ -350,13 +329,13 @@ int BIKE1_L1_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
     static batch_ctx_t batch_ctx = {.cnt = 0};
     GUARD(init_batch(&h_prf_state, &batch_ctx), res, EXIT);
 #else
-    GUARD(generate_sparse_fake_rep(p_sk[0].u.qw, PTR(l_sk).wlist[0].val, 
+    GUARD(generate_sparse_fake_rep(p_sk[0].u.qw, PTR(l_sk).wlist[0].val,
                                    sizeof(p_sk[0]), &h_prf_state), res, EXIT);
     
     // Copy data
     PTR(l_sk).bin[0] = VAL(p_sk[0]);
 #endif
-    GUARD(generate_sparse_fake_rep(p_sk[1].u.qw, PTR(l_sk).wlist[1].val, 
+    GUARD(generate_sparse_fake_rep(p_sk[1].u.qw, PTR(l_sk).wlist[1].val,
                                    sizeof(p_sk[1]), &h_prf_state), res, EXIT);
 
     // Copy data

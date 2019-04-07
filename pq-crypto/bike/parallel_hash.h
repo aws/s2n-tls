@@ -9,8 +9,7 @@
 * The license is detailed in the file LICENSE.txt, and applies to this file.
 * ***************************************************************************/
 
-#ifndef __PARALLEL_HASH_H_INCLUDED__
-#define __PARALLEL_HASH_H_INCLUDED__
+#pragma once
 
 #include "sha.h"
 
@@ -30,5 +29,3 @@
 void parallel_hash(OUT sha_hash_t *out_hash,
                    IN const uint8_t *m,
                    IN const uint32_t la);
-
-#endif // __PARALLEL_HASH_H_INCLUDED__

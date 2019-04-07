@@ -33,6 +33,8 @@ status_t init_aes_ctr_prf_state(OUT aes_ctr_prf_state_t *s,
         // Initialize buffer and counter
         s->ctr.u.qw[0] = 0;
         s->ctr.u.qw[1] = 0;
+        s->buffer.u.qw[0] = 0;
+        s->buffer.u.qw[1] = 0;
 
         s->pos = AES256_BLOCK_SIZE;
         s->rem_invokations = max_invokations;
@@ -65,7 +67,7 @@ _INLINE_ status_t perform_aes(OUT uint8_t *ct, IN OUT aes_ctr_prf_state_t *s) {
 }
 
 status_t aes_ctr_prf(OUT uint8_t *a,
-                     IN aes_ctr_prf_state_t *s,
+                     IN OUT aes_ctr_prf_state_t *s,
                      IN const uint32_t len)
 {
     status_t res = SUCCESS;

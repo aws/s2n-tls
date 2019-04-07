@@ -12,9 +12,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 #
+
 .DEFAULT_GOAL := all
 
 include ../../s2n.mk
+
+SRCS=$(wildcard *.c)
+OBJS=$(SRCS:.c=.o)
 
 #WA for GCC 4.8.5 bug.
 CFLAGS += -Wno-missing-braces -Wno-missing-field-initializers
@@ -22,18 +26,10 @@ CFLAGS += -Wno-missing-braces -Wno-missing-field-initializers
 # Currently only BIKE1_L1 is supportted in the S2N library!
 CFLAGS += -DBIKE_VER=1 -DLEVEL=1 -DCONSTANT_TIME -DUSE_OPENSSL
 
-CFLAGS += -I../../
-
-SRCS=$(wildcard *.c)
-OBJS=$(SRCS:.c=.o)
+CFLAGS+=-I../../
 
 .PHONY : all
-all: libbike1_l1.a
+all: $(OBJS)
 
-libbike1_l1.a: ${OBJS}
-	$(AR) cru libbike1_l1.a ${OBJS}
-	$(RANLIB) libbike1_l1.a
-
-.PHONY : clean
-clean:
-	${MAKE} decruft
+.PHONY : bc
+bc: $(BCS)

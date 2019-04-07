@@ -15,7 +15,7 @@
 * The decoder (in decoder/decoder.c) algorithm is the algorithm included in
 * the early submission of CAKE (due to N. Sandrier and R Misoczki).
 *
-* ***************************************************************************/
+****************************************************************************/
 
 #include <string.h>
 #include "decode.h"
@@ -27,19 +27,19 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 // Defined in decode.S file
-void compute_counter_of_unsat(OUT uint8_t upc[N_BITS],
-                              IN const uint8_t s[R_BITS],
-                              IN const compressed_idx_dv_t* inv_h0_compressed,
-                              IN const compressed_idx_dv_t* inv_h1_compressed);
+EXTERNC void compute_counter_of_unsat(OUT uint8_t upc[N_BITS],
+                                      IN const uint8_t s[N_BITS],
+                                      IN const compressed_idx_dv_t *inv_h0_compressed,
+                                      IN const compressed_idx_dv_t *inv_h1_compressed);
 
-void recompute(OUT syndrome_t* s,
-               IN const uint32_t num_positions,
-               IN const uint32_t positions[R_BITS],
-               IN const compressed_idx_dv_t* h_compressed);
+EXTERNC void recompute(OUT syndrome_t *s,
+                       IN const uint32_t num_positions,
+                       IN const uint32_t positions[R_BITS],
+                       IN const compressed_idx_dv_t *h_compressed);
 
-void convert_to_redundant_rep(OUT uint8_t* out, 
-                              IN const uint8_t * in, 
-                              IN const uint64_t len);
+EXTERNC void convert_to_redundant_rep(OUT uint8_t *out, 
+                                      IN const uint8_t  *in, 
+                                      IN const uint64_t len);
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -74,7 +74,7 @@ typedef ALIGN(16) struct decode_ctx_s
     uint32_t threshold;
 } decode_ctx_t;
 
-void split_e(OUT split_e_t* split_e, IN const e_t* e)
+void split_e(OUT split_e_t *split_e, IN const e_t *e)
 {
     // Copy lower bytes (e0)
     memcpy(PTRV(split_e)[0].raw, e->raw, R_SIZE);
@@ -87,7 +87,7 @@ void split_e(OUT split_e_t* split_e, IN const e_t* e)
     }
 
     // Fix corner case
-    if (N_SIZE < 2UL * R_SIZE) {
+    if (N_SIZE < 2UL  *R_SIZE) {
         PTRV(split_e)[1].raw[R_SIZE - 1] = (e->raw[N_SIZE - 1] >> LAST_R_BYTE_LEAD);
     }
 
@@ -107,17 +107,21 @@ _INLINE_ void transpose(OUT red_r_t *col,
     }
 }
 
-void compute_syndrome(OUT syndrome_t* syndrome,
-                      IN const ct_t* ct,
-                      IN const sk_t* sk)
+void compute_syndrome(OUT syndrome_t *syndrome,
+                      IN const ct_t *ct,
+                      IN const sk_t *sk)
 {
-    pad_sk_t pad_sk = {{.u.v.val = PTR(sk).bin[0]}, {.u.v.val = PTR(sk).bin[1]}};
+    pad_sk_t pad_sk = {0};
+    VAL(pad_sk[0]) = PTR(sk).bin[0];
+    VAL(pad_sk[1]) = PTR(sk).bin[1];
 
     // gf2x_mod_mul requires the values to be 64bit padded and extra (dbl) space for the results
     dbl_pad_syndrome_t pad_s;
 
-#if BIKE_VER == 1
-    pad_ct_t pad_ct = {{.u.v.val = PTRV(ct)[0]}, {.u.v.val = PTRV(ct)[1]}};
+#if BIKE_VER==1
+    pad_ct_t pad_ct = {0};
+    VAL(pad_ct[0]) = PTRV(ct)[0];
+    VAL(pad_ct[1]) = PTRV(ct)[1];
 
     // Compute s = c0*h0 + c1*h1:
     gf2x_mod_mul(pad_s[0].u.qw, pad_ct[0].u.qw, pad_sk[0].u.qw);
@@ -125,8 +129,9 @@ void compute_syndrome(OUT syndrome_t* syndrome,
 
     gf2x_add(VAL(pad_s[0]).raw, VAL(pad_s[0]).raw, VAL(pad_s[1]).raw, R_SIZE);
 
-#elif BIKE_VER == 2
-    pad_ct_t pad_ct = {.u.v.val = *ct};
+#elif BIKE_VER==2
+    pad_ct_t pad_ct = {0};
+    VAL(pad_ct) = *ct;
     gf2x_mod_mul(pad_s[0].u.qw, pad_ct.u.qw, pad_sk[0].u.qw);
 
 #elif BIKE_VER == 3
@@ -140,6 +145,8 @@ void compute_syndrome(OUT syndrome_t* syndrome,
     red_r_t s_tmp_bytes = {0};
     convert_to_redundant_rep(s_tmp_bytes.raw, VAL(pad_s[0]).raw, sizeof(s_tmp_bytes));
     transpose(&PTR(syndrome).dup1, &s_tmp_bytes);
+
+    PTR(syndrome).dup2 = PTR(syndrome).dup1;
 
     secure_clean(pad_s[0].u.raw, sizeof(pad_s));
     secure_clean(pad_sk[0].u.raw, sizeof(pad_sk));
@@ -223,17 +230,17 @@ void recompute_syndrome(OUT syndrome_t *syndrome,
 ///////////////////////////////////////////////////////////
 // Find_error1/2 are defined in ASM files
 //////////////////////////////////////////////////////////
-extern void find_error1(IN OUT e_t *e,
-                        OUT e_t *black_e,
-                        OUT e_t *gray_e,
-                        IN const uint8_t *upc,
-                        IN const uint32_t black_th,
-                        IN const uint32_t gray_th);
+EXTERNC void find_error1(IN OUT e_t *e,
+                         OUT e_t *black_e,
+                         OUT e_t *gray_e,
+                         IN const uint8_t *upc,
+                         IN const uint32_t black_th,
+                         IN const uint32_t gray_th);
 
-extern void find_error2(IN OUT e_t *e,
-                        OUT e_t *pos_e,
-                        IN const uint8_t *upc,
-                        IN const uint32_t threshold);
+EXTERNC void find_error2(IN OUT e_t *e,
+                         OUT e_t *pos_e,
+                         IN const uint8_t *upc,
+                         IN const uint32_t threshold);
 
 _INLINE_ void fix_error1(IN OUT syndrome_t *s,
                          IN OUT e_t *e, 
@@ -312,6 +319,7 @@ _INLINE_ void fix_error1(IN OUT syndrome_t *s,
         recompute(s, ctx->num_black_pos[j], ctx->black_pos[j], &PTR(sk).wlist[j]);
     }
     
+    PTR(s).dup2 = PTR(s).dup1;
 }
 
 _INLINE_ void fix_black_error(IN OUT syndrome_t *s,
@@ -337,6 +345,8 @@ _INLINE_ void fix_black_error(IN OUT syndrome_t *s,
         }
         recompute(s, ctx->num_unflip_pos[j], ctx->unflip_pos[j], &PTR(sk).wlist[j]);
     }
+    
+    PTR(s).dup2 = PTR(s).dup1;
 }
 
 _INLINE_ void fix_gray_error(IN OUT syndrome_t *s,
@@ -361,18 +371,21 @@ _INLINE_ void fix_gray_error(IN OUT syndrome_t *s,
         }
         recompute(s, ctx->num_gray_pos_to_flip[j], ctx->gray_pos_to_flip[j], &PTR(sk).wlist[j]);
     }
+    
+    PTR(s).dup2 = PTR(s).dup1;
 }
 
 #endif
 
 int decode(OUT e_t *e,
-           OUT syndrome_t *s,
+           IN const syndrome_t *original_s,
            IN const ct_t *ct,
            IN const sk_t *sk,
            IN const uint32_t u)
 {
     int code_ret = -1;
-    syndrome_t original_s;
+    syndrome_t _s;
+	syndrome_t *s = &_s;
 
 #ifdef CONSTANT_TIME
     decode_ctx_t ctx = {0};
@@ -385,6 +398,12 @@ int decode(OUT e_t *e,
     ALIGN(16) compressed_idx_dv_t inv_h_compressed[N0] = {0};
     for (uint64_t i = 0; i < FAKE_DV; i++)
     {
+        if((PTR(sk).wlist[0].val[i].val > R_BITS) || 
+           (PTR(sk).wlist[1].val[i].val > R_BITS))
+        {
+            return -1;
+        }
+
         inv_h_compressed[0].val[i].val = R_BITS - PTR(sk).wlist[0].val[i].val;
         inv_h_compressed[1].val[i].val = R_BITS - PTR(sk).wlist[1].val[i].val; 
 
@@ -394,7 +413,7 @@ int decode(OUT e_t *e,
 #endif
     }
 
-    original_s.u.v.dup1 = PTR(s).dup1;
+    PTR(s).dup1 = PTR(original_s).dup1;
 
     for(ctx.delta = MAX_DELTA; 
        (ctx.delta >= 0) && (count_ones(PTR(s).dup1.raw, sizeof(PTR(s).dup1)) > u); 
@@ -404,8 +423,8 @@ int decode(OUT e_t *e,
         memset(e, 0, sizeof(*e));
         
         // Reset the syndrom
-        PTR(s).dup1 = original_s.u.v.dup1;
-        PTR(s).dup2 = original_s.u.v.dup1;
+        PTR(s).dup1 = PTR(original_s).dup1;
+        PTR(s).dup2 = PTR(original_s).dup1;
 
         for (uint32_t iter = 0; iter < MAX_IT; iter++)
         {
@@ -428,9 +447,6 @@ int decode(OUT e_t *e,
             DMSG("    Weight of e: %lu\n", count_ones(e->raw, sizeof(*e)));
             DMSG("    Weight of syndrome: %lu\n", count_ones(PTR(s).dup1.raw, sizeof(PTR(s).dup1)));
 
-            // Make sure both duplication are the same!
-            memcpy(PTR(s).dup2.raw, PTR(s).dup1.raw, sizeof(PTR(s).dup1));
-
             // Recompute the UPC
             compute_counter_of_unsat(ctx.upc, s->u.raw, &inv_h_compressed[0], &inv_h_compressed[1]);
 
@@ -447,9 +463,6 @@ int decode(OUT e_t *e,
                 break;
             }
 
-            // Make sure both duplication are the same!
-            memcpy(PTR(s).dup2.raw, PTR(s).dup1.raw, sizeof(PTR(s).dup1));
-
             // Recompute UPC
             compute_counter_of_unsat(ctx.upc, s->u.raw, &inv_h_compressed[0], &inv_h_compressed[1]);
     
@@ -462,9 +475,6 @@ int decode(OUT e_t *e,
                 code_ret = 0;
                 break;
             }
-            
-            // Make sure both duplication are the same!
-            memcpy(PTR(s).dup2.raw, PTR(s).dup1.raw, sizeof(PTR(s).dup1));
         }
     }
     
