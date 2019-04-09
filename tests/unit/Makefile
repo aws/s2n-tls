@@ -41,7 +41,7 @@ LDFLAGS += -L../../lib/ ${CRYPTO_LDFLAGS} -L../testlib/ -L../../pq-crypto ${LIBS
 
 $(UNIT_TESTS)::
 	@${CC} ${CFLAGS} -o $@ $@.c ${LDFLAGS} 2>&1
-	@DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
+	@DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:../../pq-crypto:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:../../pq-crypto:$$LD_LIBRARY_PATH" \
 	LD_PRELOAD="../LD_PRELOAD/allocator_overrides.so" \
 	S2N_UNIT_TEST=1 \
@@ -49,7 +49,7 @@ $(UNIT_TESTS)::
 
 $(VALGRIND_TESTS)::
 	@${CC} ${CFLAGS} -o $(@:.valgrind=) $(@:.valgrind=.c) ${LDFLAGS} 2>&1
-	@DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
+	@DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:../../pq-crypto:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:../../pq-crypto:$$LD_LIBRARY_PATH" \
 	S2N_VALGRIND=1 \
 	S2N_UNIT_TEST=1 \
