@@ -137,17 +137,17 @@ let verify_s2n_hmac
     ];
 
   (t, hmac_init_ov) <-
-    with_time (crucible_llvm_verify m "s2n_hmac_init"   hash_ovs true (hmac_init_spec key_size cfg) yices_hash_unint);
+    with_time (crucible_llvm_verify m "s2n_hmac_init"   hash_ovs false (hmac_init_spec key_size cfg) yices_hash_unint);
 
   print_json "s2n_hmac_init" cfg t key_size msg_size hmac_init_ov;
 
   (t, hmac_update_ov) <-
-    with_time (crucible_llvm_verify m "s2n_hmac_update" hash_ovs true (hmac_update_spec msg_size cfg) yices_hash_unint);
+    with_time (crucible_llvm_verify m "s2n_hmac_update" hash_ovs false (hmac_update_spec msg_size cfg) yices_hash_unint);
 
   print_json "s2n_hmac_update" cfg t key_size msg_size hmac_update_ov;
 
   (t, hmac_digest_ov) <-
-    with_time (crucible_llvm_verify m "s2n_hmac_digest" hash_ovs true (hmac_digest_spec cfg) yices_hash_unint);
+    with_time (crucible_llvm_verify m "s2n_hmac_digest" hash_ovs false (hmac_digest_spec cfg) yices_hash_unint);
 
   print_json "s2n_hmac_digest" cfg t key_size msg_size hmac_digest_ov;
 

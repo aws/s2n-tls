@@ -30,14 +30,44 @@ let hash_lemma2 =
 
 let mod_lemma = rewrite (cryptol_ss ()) (unfold_term ["modthm"] {{ modthm }});
 
+let tuple_lemma = rewrite (cryptol_ss ()) (unfold_term ["modthm"] {{ modthm }});
+
+let tuple_lemma = rewrite (cryptol_ss ()) {{
+  \a1 b1 c1 d1 a2 b2 c2 d2 ->
+    ((a1,b1,c1,d1) == (a2,b2,c2,d2)) == (a1 == a2 /\ b1 == b2 /\ c1 == c2 /\ d1 == d2)
+}};
+
+let eq_lemma = rewrite (cryptol_ss ()) {{
+  \a -> (a == a) == True
+}};
+
+let and_true1 = rewrite (cryptol_ss ()) {{
+  \a -> (a /\ True) == a
+}};
+
+let and_true2 = rewrite (cryptol_ss ()) {{
+  \a -> (True /\ a) == a
+}};
+
+let {{
+type_add_lemma : {a,b} (fin a, fin b, 32 >= width a, 32 >= width b, 32 >= width (a + b)) => Bit
+type_add_lemma = (`(a + b) : [32]) == ((`b : [32]) + (`a : [32]))
+}};
+
+let type_add_lemma = rewrite (cryptol_ss()) (unfold_term ["type_add_lemma"] {{ type_add_lemma }});
+
+and_true1_thm <- time (prove_print abc and_true1);
+and_true2_thm <- time (prove_print abc and_true2);
+
 time (prove_print (do {
     unfolding ["hmac_update_append"];
     unfolding ["hmac_update_c_state"];
-    simplify(cryptol_ss ());
-    simplify (addsimp' hash_lemma1 empty_ss);
-    simplify (add_cryptol_eqs ["demote_add_distr"] empty_ss);
-    simplify (addsimp' mod_lemma empty_ss);
+    simplify (cryptol_ss ());
+    simplify (addsimps' [hash_lemma1, mod_lemma, tuple_lemma, eq_lemma] empty_ss);
+    simplify (addsimps [and_true1_thm, and_true2_thm] empty_ss); 
+    simplify (addsimps' [type_add_lemma] empty_ss); 
     simplify (add_prelude_eqs ["eq_refl"] empty_ss);
+    simplify (addsimps' [eq_lemma] empty_ss); 
     trivial;
 }) {{ hmac_update_append }});
 
@@ -46,5 +76,5 @@ time (prove_print (do {
     unfolding ["hmac_update_c_state"];
     simplify(cryptol_ss ());
     simplify (addsimp' hash_lemma2 empty_ss);
-    unint_z3 ["hash_update_c_state"];
+    unint_yices ["hash_update_c_state"];
 }) {{ hmac_update_empty }});
