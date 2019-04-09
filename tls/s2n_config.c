@@ -257,13 +257,11 @@ int s2n_config_init_session_ticket_keys(struct s2n_config *config)
 int s2n_config_free_session_ticket_keys(struct s2n_config *config)
 {
     if (config->ticket_keys != NULL) {
-        GUARD(s2n_array_free(config->ticket_keys));
-        config->ticket_keys = NULL;
+        GUARD(s2n_array_free_p(&config->ticket_keys));
     }
 
     if (config->ticket_key_hashes != NULL) {
-        GUARD(s2n_array_free(config->ticket_key_hashes));
-        config->ticket_key_hashes = NULL;
+        GUARD(s2n_array_free_p(&config->ticket_key_hashes));
     }
 
     return 0;
@@ -282,26 +280,19 @@ int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
 
 int s2n_config_free_dhparams(struct s2n_config *config)
 {
-    struct s2n_blob b = {
-        .data = (uint8_t *) config->dhparams,
-        .size = sizeof(struct s2n_dh_params)
-    };
-
     if (config->dhparams) {
         GUARD(s2n_dh_params_free(config->dhparams));
     }
 
-    GUARD(s2n_free(&b));
+    GUARD(s2n_free_object((uint8_t **)&config->dhparams, sizeof(struct s2n_dh_params)));
     return 0;
 }
 
 int s2n_config_free(struct s2n_config *config)
 {
-    struct s2n_blob b = {.data = (uint8_t *) config,.size = sizeof(struct s2n_config) };
-
     s2n_config_cleanup(config);
 
-    GUARD(s2n_free(&b));
+    GUARD(s2n_free_object((uint8_t **)&config, sizeof(struct s2n_config)));
     return 0;
 }
 
@@ -630,7 +621,6 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
 
     S2N_ERROR_IF(name_len == 0 || name_len > S2N_TICKET_KEY_NAME_LEN || s2n_find_ticket_key(config, name), S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH);
 
-    uint64_t now;
     uint16_t insert_index = 0;
     uint8_t output_pad[S2N_AES256_KEY_LEN + S2N_TICKET_AAD_IMPLICIT_LEN];
     struct s2n_blob out_key = { .data = output_pad, .size = sizeof(output_pad) };
@@ -657,7 +647,7 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     GUARD(s2n_hash_digest(&hash, hash_output, SHA_DIGEST_LENGTH));
 
     if (config->ticket_key_hashes->num_of_elements >= S2N_MAX_TICKET_KEY_HASHES) {
-        GUARD(s2n_array_free(config->ticket_key_hashes));
+        GUARD(s2n_array_free_p(&config->ticket_key_hashes));
         notnull_check(config->ticket_key_hashes = s2n_array_new(SHA_DIGEST_LENGTH));
     }
 
@@ -673,7 +663,8 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     memcpy_check(session_ticket_key->implicit_aad, out_key.data, S2N_TICKET_AAD_IMPLICIT_LEN);
 
     if (intro_time_in_seconds_from_epoch == 0) {
-        GUARD(config->monotonic_clock(config->monotonic_clock_ctx, &now));
+        uint64_t now;
+        GUARD(config->wall_clock(config->sys_clock_ctx, &now));
         session_ticket_key->intro_timestamp = now;
     } else {
         session_ticket_key->intro_timestamp = (intro_time_in_seconds_from_epoch * ONE_SEC_IN_NANOS);

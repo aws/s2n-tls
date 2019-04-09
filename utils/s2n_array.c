@@ -127,22 +127,24 @@ int s2n_array_remove(struct s2n_array *array, uint32_t index)
     return 0;
 }
 
-int s2n_array_free(struct s2n_array *array)
+int s2n_array_free_p(struct s2n_array **parray)
 {
-    notnull_check(array);
-    struct s2n_blob mem = {0};
+    notnull_check(parray);
+    struct s2n_array *array = *parray;
 
+    notnull_check(array);
     /* Free the elements */
-    mem.data = (void *) array->elements;
-    mem.size = array->capacity * array->element_size;
-    GUARD(s2n_free(&mem));
+    GUARD(s2n_free_object((uint8_t **)&array->elements, array->capacity * array->element_size));
 
     /* And finally the array */
-    mem.data = (void *) array;
-    mem.size = sizeof(struct s2n_array);
-    GUARD(s2n_free(&mem));
+    GUARD(s2n_free_object((uint8_t **)parray, sizeof(struct s2n_array)));
 
     return 0;
+}
+
+int s2n_array_free(struct s2n_array *array)
+{
+    return s2n_array_free_p(&array);
 }
 
 int s2n_array_binary_search(int low, int top, struct s2n_array *array, void *element,

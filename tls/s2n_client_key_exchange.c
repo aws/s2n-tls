@@ -35,7 +35,7 @@
 static int calculate_keys(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
     /* Turn the pre-master secret into a master secret */
-    GUARD(s2n_prf_master_secret(conn, shared_key));
+    GUARD(s2n_tls_prf_master_secret(conn, shared_key));
     /* Erase the pre-master secret */
     GUARD(s2n_blob_zero(shared_key));
     if (shared_key->allocated) {

@@ -356,20 +356,8 @@ static int s2n_connection_free_io_contexts(struct s2n_connection *conn)
         return 0;
     }
 
-    struct s2n_blob send_io_blob = {0};
-    struct s2n_blob recv_io_blob = {0};
-
-    if (conn->send_io_context) {
-        send_io_blob.data = (uint8_t *)conn->send_io_context;
-        send_io_blob.size = sizeof(struct s2n_socket_write_io_context);
-        GUARD(s2n_free(&send_io_blob));
-    }
-
-    if (conn->recv_io_context) {
-        recv_io_blob.data = (uint8_t *)conn->recv_io_context;
-        recv_io_blob.size = sizeof(struct s2n_socket_read_io_context);
-        GUARD(s2n_free(&recv_io_blob));
-    }
+    GUARD(s2n_free_object((uint8_t **)&conn->send_io_context, sizeof(struct s2n_socket_write_io_context)));
+    GUARD(s2n_free_object((uint8_t **)&conn->recv_io_context, sizeof(struct s2n_socket_read_io_context)));
 
     return 0;
 }
@@ -463,8 +451,6 @@ static uint8_t s2n_default_verify_host(const char *host_name, size_t len, void *
 
 int s2n_connection_free(struct s2n_connection *conn)
 {
-    struct s2n_blob blob = {0};
-
     GUARD(s2n_connection_wipe_keys(conn));
     GUARD(s2n_connection_free_keys(conn));
 
@@ -486,11 +472,8 @@ int s2n_connection_free(struct s2n_connection *conn)
     s2n_x509_validator_wipe(&conn->x509_validator);
     GUARD(s2n_client_hello_free(&conn->client_hello));
     GUARD(s2n_free(&conn->application_protocols_overridden));
+    GUARD(s2n_free_object((uint8_t **)&conn, sizeof(struct s2n_connection)));
 
-    blob.data = (uint8_t *) conn;
-    blob.size = sizeof(struct s2n_connection);
-
-    GUARD(s2n_free(&blob));
     return 0;
 }
 

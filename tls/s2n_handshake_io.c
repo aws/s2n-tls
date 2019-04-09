@@ -695,6 +695,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
             *blocked = S2N_BLOCKED_ON_WRITE;
             if (handshake_write_io(conn) < 0 && s2n_errno != S2N_ERR_BLOCKED) {
                 /* Non-retryable write error. The peer might have sent an alert. Try and read it. */
+                const int write_errno = errno;
                 const int write_s2n_errno = s2n_errno;
                 const char *write_s2n_debug_str = s2n_debug_str;
 
@@ -703,6 +704,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
                     return -1;
                 } else {
                     /* Let the write error take precedence if we didn't read an alert. */
+                    errno = write_errno;
                     s2n_errno = write_s2n_errno;
                     s2n_debug_str = write_s2n_debug_str;
                     return -1;

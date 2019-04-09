@@ -81,6 +81,7 @@ struct s2n_error_translation S2N_ERROR_EN[] = {
     {S2N_ERR_HMAC_INVALID_ALGORITHM, "invalid HMAC algorithm"},
     {S2N_ERR_HKDF_OUTPUT_SIZE, "invalid HKDF output size"},
     {S2N_ERR_PRF_INVALID_ALGORITHM, "invalid prf hash algorithm"},
+    {S2N_ERR_PRF_INVALID_SEED, "invalid prf seeds provided"},
     {S2N_ERR_P_HASH_INVALID_ALGORITHM, "invalid p_hash algorithm"},
     {S2N_ERR_P_HASH_INIT_FAILED, "error initializing p_hash"},
     {S2N_ERR_P_HASH_UPDATE_FAILED, "error updating p_hash"},
@@ -158,6 +159,7 @@ struct s2n_error_translation S2N_ERROR_EN[] = {
     {S2N_ERR_SENDING_NST, "Error in session ticket status encountered before sending NST"},
     {S2N_ERR_INVALID_DYNAMIC_THRESHOLD, "invalid dynamic record threshold"},
     {S2N_ERR_INVALID_ARGUMENT, "invalid argument provided into a function call"},
+    {S2N_ERR_NOT_IN_UNIT_TEST, "Illegal configuration, can only be used during unit tests"},
 };
 
 const char *s2n_strerror(int error, const char *lang)

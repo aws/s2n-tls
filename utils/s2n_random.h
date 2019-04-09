@@ -15,16 +15,19 @@
 
 #pragma once
 
+#include "crypto/s2n_drbg.h"
+
 #include "utils/s2n_blob.h"
 
 extern int s2n_rand_init(void);
 extern int s2n_rand_cleanup(void);
 extern int s2n_rand_cleanup_thread(void);
+extern int s2n_set_private_drbg_for_test(struct s2n_drbg drbg);
 extern int s2n_get_public_random_data(struct s2n_blob *blob);
 extern int s2n_get_public_random_bytes_used(void);
 extern int s2n_get_private_random_data(struct s2n_blob *blob);
 extern int s2n_get_private_random_bytes_used(void);
 extern int s2n_get_urandom_data(struct s2n_blob *blob);
 extern int64_t s2n_public_random(int64_t max);
-extern int s2n_cpu_supports_rdrand();
+extern int s2n_cpu_supports_rdrand(void);
 extern int s2n_get_rdrand_data(struct s2n_blob *out);

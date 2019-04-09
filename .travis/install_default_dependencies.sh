@@ -27,10 +27,10 @@ if [[ "$TESTS" == "fuzz" || "$TESTS" == "ALL" ]] && [[ ! -d "$LIBFUZZER_INSTALL_
     PATH=$LATEST_CLANG_INSTALL_DIR/bin:$PATH .travis/install_libFuzzer.sh "$(mktemp -d)" "$LIBFUZZER_INSTALL_DIR" "$TRAVIS_OS_NAME" > /dev/null ;
 fi
 
-# Download and Install Openssl 1.1.0
-if [[ "$TESTS" == "integration"  || "$TESTS" == "ALL" ]] && [[ ! -d "$OPENSSL_1_1_0_INSTALL_DIR" ]]; then
-    mkdir -p "$OPENSSL_1_1_0_INSTALL_DIR";
-    .travis/install_openssl_1_1_0.sh "$(mktemp -d)" "$OPENSSL_1_1_0_INSTALL_DIR" "$TRAVIS_OS_NAME" > /dev/null ;
+# Download and Install Openssl 1.1.1
+if [[ ("$S2N_LIBCRYPTO" == "openssl-1.1.1") || ("$TESTS" == "integration"  || "$TESTS" == "ALL" ) ]] && [[ ! -d "$OPENSSL_1_1_1_INSTALL_DIR" ]]; then
+    mkdir -p "$OPENSSL_1_1_1_INSTALL_DIR";
+    .travis/install_openssl_1_1_1.sh "$(mktemp -d)" "$OPENSSL_1_1_1_INSTALL_DIR" "$TRAVIS_OS_NAME" > /dev/null ;
 fi
 
 # Download and Install Openssl 1.0.2
@@ -55,16 +55,10 @@ if [[ "$S2N_LIBCRYPTO" == "libressl" ]] && [[ ! -d "$LIBRESSL_INSTALL_DIR" ]]; t
     .travis/install_libressl.sh "$(mktemp -d)" "$LIBRESSL_INSTALL_DIR" > /dev/null ;
 fi
 
-# Download and Install Openssl master. Don't use the cache so the latest revision is used
-if [[ "$S2N_LIBCRYPTO" == "openssl-1.1.x-master" ]]; then
-    mkdir -p "$OPENSSL_1_1_X_MASTER_INSTALL_DIR";
-    .travis/install_openssl_1_1_x_master.sh "$(mktemp -d)" "$OPENSSL_1_1_X_MASTER_INSTALL_DIR" "$TRAVIS_OS_NAME"  ;
-fi
-
 # Install python linked with the latest Openssl for integration tests
 if [[ "$TESTS" == "integration" || "$TESTS" == "ALL" ]] && [[ ! -d "$PYTHON_INSTALL_DIR" ]]; then
     mkdir -p "$PYTHON_INSTALL_DIR";
-    .travis/install_python.sh "$OPENSSL_1_1_0_INSTALL_DIR" "$(mktemp -d)" "$PYTHON_INSTALL_DIR" > /dev/null ;
+    .travis/install_python.sh "$OPENSSL_1_1_1_INSTALL_DIR" "$(mktemp -d)" "$PYTHON_INSTALL_DIR" > /dev/null ;
 fi
 
 # Download and Install GnuTLS for integration tests

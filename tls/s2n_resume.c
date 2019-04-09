@@ -49,7 +49,7 @@ static int s2n_serialize_resumption_state(struct s2n_connection *conn, struct s2
     }
 
     /* Get the time */
-    GUARD(conn->config->monotonic_clock(conn->config->monotonic_clock_ctx, &now));
+    GUARD(conn->config->wall_clock(conn->config->sys_clock_ctx, &now));
 
     /* Write the entry */
     GUARD(s2n_stuffer_write_uint8(to, S2N_SERIALIZED_FORMAT_VERSION));
@@ -63,7 +63,6 @@ static int s2n_serialize_resumption_state(struct s2n_connection *conn, struct s2
 
 static int s2n_deserialize_resumption_state(struct s2n_connection *conn, struct s2n_stuffer *from)
 {
-    uint64_t now, then;
     uint8_t format;
     uint8_t protocol_version;
     uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN];
@@ -87,8 +86,10 @@ static int s2n_deserialize_resumption_state(struct s2n_connection *conn, struct 
         return -1;
     }
 
-    GUARD(conn->config->monotonic_clock(conn->config->monotonic_clock_ctx, &now));
+    uint64_t now;
+    GUARD(conn->config->wall_clock(conn->config->sys_clock_ctx, &now));
 
+    uint64_t then;
     GUARD(s2n_stuffer_read_uint64(from, &then));
     if (then > now) {
         return -1;
@@ -340,7 +341,7 @@ int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn)
 int s2n_config_is_encrypt_decrypt_key_available(struct s2n_config *config)
 {
     uint64_t now;
-    GUARD(config->monotonic_clock(config->monotonic_clock_ctx, &now));
+    GUARD(config->wall_clock(config->sys_clock_ctx, &now));
 
     for (int i = config->ticket_keys->num_of_elements - 1; i >= 0; i--) {
         uint64_t key_intro_time = ((struct s2n_ticket_key *)s2n_array_get(config->ticket_keys, i))->intro_timestamp;
@@ -407,14 +408,14 @@ int s2n_compute_weight_of_encrypt_decrypt_keys(struct s2n_config *config,
  */
 struct s2n_ticket_key *s2n_get_ticket_encrypt_decrypt_key(struct s2n_config *config)
 {
-    uint64_t now;
     uint8_t num_encrypt_decrypt_keys = 0;
     uint8_t encrypt_decrypt_keys_index[S2N_MAX_TICKET_KEYS];
 
+    uint64_t now;
+    GUARD_PTR(config->wall_clock(config->sys_clock_ctx, &now));
+
     for (int i = config->ticket_keys->num_of_elements - 1; i >= 0; i--) {
         uint64_t key_intro_time = ((struct s2n_ticket_key *)s2n_array_get(config->ticket_keys, i))->intro_timestamp;
-
-        GUARD_PTR(config->monotonic_clock(config->monotonic_clock_ctx, &now));
 
         if (key_intro_time < now
                 && now < key_intro_time + config->encrypt_decrypt_key_lifetime_in_nanos) {
@@ -443,10 +444,10 @@ struct s2n_ticket_key *s2n_get_ticket_encrypt_decrypt_key(struct s2n_config *con
 struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint8_t *name)
 {
     uint64_t now;
+    GUARD_PTR(config->wall_clock(config->sys_clock_ctx, &now));
 
     for (int i = 0; i < config->ticket_keys->num_of_elements; i++) {
         if (memcmp(((struct s2n_ticket_key *)s2n_array_get(config->ticket_keys, i))->key_name, name, S2N_TICKET_KEY_NAME_LEN) == 0) {
-            GUARD_PTR(config->monotonic_clock(config->monotonic_clock_ctx, &now));
 
             /* Check to see if the key has expired */
             if (now >= ((struct s2n_ticket_key *)s2n_array_get(config->ticket_keys, i))->intro_timestamp +
@@ -567,7 +568,7 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn)
     GUARD(s2n_session_key_free(&aes_ticket_key));
 
     uint64_t now;
-    GUARD(conn->config->monotonic_clock(conn->config->monotonic_clock_ctx, &now));
+    GUARD(conn->config->wall_clock(conn->config->sys_clock_ctx, &now));
 
     /* If the key is in decrypt-only state, then a new key is assigned
      * for the ticket.
@@ -588,7 +589,6 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn)
 /* This function is used to remove all or just one expired key from server config */
 int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t expired_key_index)
 {
-    uint64_t now;
     int num_of_expired_keys = 0;
     int expired_keys_index[S2N_MAX_TICKET_KEYS];
 
@@ -599,11 +599,12 @@ int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t
         goto end;
     }
 
-    for (int i = 0; i < config->ticket_keys->num_of_elements; i++) {
-        GUARD(config->monotonic_clock(config->monotonic_clock_ctx, &now));
+    uint64_t now;
+    GUARD(config->wall_clock(config->sys_clock_ctx, &now));
 
+    for (int i = 0; i < config->ticket_keys->num_of_elements; i++) {
         if (now >= ((struct s2n_ticket_key *)s2n_array_get(config->ticket_keys, i))->intro_timestamp +
-                            config->encrypt_decrypt_key_lifetime_in_nanos + config->decrypt_key_lifetime_in_nanos) {
+                   config->encrypt_decrypt_key_lifetime_in_nanos + config->decrypt_key_lifetime_in_nanos) {
             expired_keys_index[num_of_expired_keys] = i;
             num_of_expired_keys++;
         }

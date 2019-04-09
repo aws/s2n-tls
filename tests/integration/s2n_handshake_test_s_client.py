@@ -25,6 +25,7 @@ import subprocess
 import itertools
 import multiprocessing
 import threading
+import uuid
 from os import environ
 from multiprocessing.pool import ThreadPool
 from s2n_test_constants import *
@@ -37,6 +38,7 @@ PROTO_VERS_TO_S_CLIENT_ARG = {
 }
 
 S_CLIENT_SUCCESSFUL_OCSP="OCSP Response Status: successful"
+S_CLIENT_NEGOTIATED_CIPHER_PREFIX="Cipher    : "
 
 def communicate_processes(*processes):
     outs = []
@@ -52,9 +54,92 @@ def cleanup_processes(*processes):
         p.kill()
         p.wait()
 
+def validate_data_transfer(expected_data, s_client_out, s2nd_out):
+    """
+    Verify that the application data written between s_client and s2nd is encrypted and decrypted successfuly.
+    """
+    found = 0
+
+    for line in s2nd_out.splitlines():
+        if expected_data in line:
+            found = 1
+            break
+
+    if found == 0:
+        print ("Did not find " + expected_data + " in output from s2nd")
+        return -1
+
+    found = 0
+    for line in s_client_out.splitlines():
+        if expected_data in line:
+            found = 1
+            break
+
+    if found == 0:
+        print ("Did not find " + expected_data + " in output from s_client")
+        return -1
+
+    return 0
+
+def validate_resume(s2nd_out):
+    """
+    Verify that s2nd properly resumes sessions.
+    """
+    resume_count = 0
+
+    for line in s2nd_out.splitlines():
+        if line.startswith("Resumed session"):
+            resume_count += 1
+
+        if resume_count == 5:
+            break
+
+    if resume_count != 5:
+        print ("Validate resumption failed")
+        return -1
+
+    return 0
+
+def validate_ocsp(s_client_out):
+    """
+    Verify that stapled OCSP response is accepted by s_client.
+    """
+    s_client_out_len = len(s_client_out)
+    for line in s_client_out.splitlines():
+        if S_CLIENT_SUCCESSFUL_OCSP in line:
+            return 0
+            break
+    print ("Validate OCSP failed")
+    return -1
+
+def find_expected_cipher(expected_cipher, s_client_out):
+    """
+    Make sure s_client and s2nd negotiate the cipher suite we expect
+    """
+    s_client_out_len = len(s_client_out)
+    full_expected_string = S_CLIENT_NEGOTIATED_CIPHER_PREFIX + expected_cipher
+    for line in s_client_out.splitlines():
+        if full_expected_string in line:
+            return 0
+            break
+    print("Failed to find " + expected_cipher + " in s_client output")
+    return -1
+
+def read_process_output_until(process, marker):
+    output = ""
+
+    while True:
+        line = process.stdout.readline().decode("utf-8")
+        output += line
+        if marker in line:
+            return output
+
+    return output
+
 def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, server_cert_key_list=None, server_cipher_pref=None,
         ocsp=None, sig_algs=None, curves=None, resume=False, no_ticket=False, prefer_low_latency=False, enter_fips_mode=False,
-        client_auth=None, client_cert=DEFAULT_CLIENT_CERT_PATH, client_key=DEFAULT_CLIENT_KEY_PATH):
+        client_auth=None, client_cert=DEFAULT_CLIENT_CERT_PATH, client_key=DEFAULT_CLIENT_KEY_PATH,
+        expected_cipher=None):
     """
     Attempt to handshake against s2nd listening on `endpoint` and `port` using Openssl s_client
 
@@ -75,6 +160,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     :param bool client_auth: True if the test should try and use client authentication
     :param str client_cert: Path to the client's cert file
     :param str client_key: Path to the client's private key file
+    :param str expected_cipher: the cipher we expect to negotiate
     :return: 0 on successfully negotiation(s), -1 on failure
     """
 
@@ -106,7 +192,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
         s2nd_cmd.extend(["-t", client_cert])
 
     s2nd_cmd.extend([str(endpoint), str(port)])
-    
+
     s2nd_ciphers = "test_all"
     if server_cipher_pref is not None:
         s2nd_ciphers = server_cipher_pref
@@ -117,11 +203,11 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     s2nd_cmd.append(s2nd_ciphers)
     if no_ticket:
         s2nd_cmd.append("-T")
-    
+
     s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
-    # Make sure it's running
-    sleep(0.1)
+    # Make sure s2nd has started
+    s2nd.stdout.readline()
 
     s_client_cmd = ["openssl", "s_client", PROTO_VERS_TO_S_CLIENT_ARG[ssl_version],
             "-connect", str(endpoint) + ":" + str(port)]
@@ -142,88 +228,62 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     # Fire up s_client
     s_client = subprocess.Popen(s_client_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
-    # Wait for resumption
-    sleep(0.1)
+    s_client_out = ""
+    s2nd_out = ""
 
-    # Write the cipher name towards s2n server
-    msg = (cipher + "\n").encode("utf-8")
+    openssl_connect_marker = "CONNECTED"
+    openssl_reconnect_marker = "drop connection and then reconnect"
+    end_of_msg_marker = "__end_of_msg__"
+
+    # Wait until openssl and s2n have finished the handshake and are connected to each other
+    s_client_out += read_process_output_until(s_client, openssl_connect_marker)
+    s2nd_out += read_process_output_until(s2nd, openssl_connect_marker)
+
+    if resume == True:
+        for i in range(0,5):
+            # Wait for openssl to resume connection 5 times in a row, and verify resumption works. 
+            s_client_out += read_process_output_until(s_client, openssl_reconnect_marker)
+            s2nd_out += read_process_output_until(s2nd, openssl_connect_marker)
+
+    data_to_validate = cipher + " " + str(uuid.uuid4())
+
+    # Write the data to openssl towards s2n server
+    msg = (data_to_validate + "\n" + end_of_msg_marker + "\n\n").encode("utf-8")
     s_client.stdin.write(msg)
     s_client.stdin.flush()
 
-    # Wait for pipe ready for write
-    sleep(0.1)
-    # Write the cipher name from s2n server to client
+     # Write the data to s2n towards openssl client
     s2nd.stdin.write(msg)
     s2nd.stdin.flush()
 
-    # Wait for pipe ready for read
-    sleep(0.1)
-    outs = communicate_processes(s_client, s2nd)
-    s_out = outs[1]
-    if '' == s_out:
+    # Wait for the Data transfer to complete between OpenSSL and s2n
+    s_client_out += read_process_output_until(s_client, end_of_msg_marker)
+    s2nd_out += read_process_output_until(s2nd, end_of_msg_marker)
+
+    cleanup_processes(s2nd, s_client)
+
+    if '' == s2nd_out:
         print ("No output from client PIPE, skip")
         return 0
 
-    c_out = outs[0]
-    if '' == c_out:
+    if '' == s_client_out:
         print ("No output from client PIPE, skip")
         return 0
-    s_out_len = len (s_out)
-    c_out_len = len (c_out)
 
-    # Validate that s_client resumes successfully against s2nd
-    s_line = 0
+    if validate_data_transfer(data_to_validate, s_client_out, s2nd_out) != 0:
+        return -1
+
     if resume is True:
-        seperators = 0
-        for i in range(0, s_out_len):
-            s_line = i
-            output = s_out[i].strip()
-            if output.startswith("Resumed session"):
-                seperators += 1
-
-            if seperators == 5:
-                break
-
-        if seperators != 5:
-            print ("Validate resumes failed")
+        if validate_resume(s2nd_out) != 0:
             return -1
 
-    # Validate that s_client accepted s2nd's stapled OCSP response
-    c_line = 0
     if ocsp is not None:
-        ocsp_success = False
-        for i in range(0, c_out_len):
-            c_line = i
-            output = c_out[i].strip()
-            if S_CLIENT_SUCCESSFUL_OCSP in output:
-                ocsp_success = True
-                break
-        if not ocsp_success:
-            print ("Validate OCSP failed")
+        if validate_ocsp(s_client_out) != 0:
             return -1
 
-    # Analyze server output
-    found = 0
-    for i in range(s_line, s_out_len):
-        output = s_out[i].strip()
-        if output == cipher:
-            found = 1
-            break
-
-    if found == 0:
-        print ("No cipher output from server")
-        return -1
-
-    found = 0
-    for i in range(c_line, c_out_len):
-        output = c_out[i].strip()
-        if output == cipher:
-            found = 1
-            break
-
-    if found == 0:
-        print ("No cipher output from client")
-        return -1
+    if expected_cipher is not None:
+        if find_expected_cipher(expected_cipher, s_client_out) != 0:
+            return -1
 
     return 0
 
@@ -257,8 +317,8 @@ def run_handshake_test(host, port, ssl_version, cipher, fips_mode, no_ticket, us
     cipher_name = cipher.openssl_name
     cipher_vers = cipher.min_tls_vers
 
-    # Skip the cipher if openssl can't test it. 3DES/RC4 are disabled by default in 1.1.0
-    if not cipher.openssl_1_1_0_compatible:
+    # Skip the cipher if openssl can't test it. 3DES/RC4 are disabled by default in 1.1.1
+    if not cipher.openssl_1_1_1_compatible:
         return 0
 
     if ssl_version < cipher_vers:
@@ -271,9 +331,9 @@ def run_handshake_test(host, port, ssl_version, cipher, fips_mode, no_ticket, us
 
     ret = try_handshake(host, port, cipher_name, ssl_version, no_ticket=no_ticket, enter_fips_mode=fips_mode, client_auth=use_client_auth, client_cert=client_cert_path, client_key=client_key_path)
     
-    result_prefix = "Cipher: %-28s ClientCert: %-16s Vers: %-8s ... " % (cipher_name, client_cert_str, S2N_PROTO_VERS_TO_STR[ssl_version])
+    result_prefix = "Cipher: %-30s ClientCert: %-16s Vers: %-8s ... " % (cipher_name, client_cert_str, S2N_PROTO_VERS_TO_STR[ssl_version])
     print_result(result_prefix, ret)
-    
+
     return ret
 
 def handshake_test(host, port, test_ciphers, fips_mode, no_ticket=False, use_client_auth=None, use_client_cert=None, use_client_key=None):
@@ -318,6 +378,13 @@ def client_auth_test(host, port, test_ciphers, fips_mode):
                 
     return failed
 
+def run_resume_test(host, port, cipher_name, ssl_version, resume, no_ticket, fips_mode):
+    ret = try_handshake(host, port, cipher_name, ssl_version, resume=resume, no_ticket=no_ticket, enter_fips_mode=fips_mode)
+    result_prefix = "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
+    print_result(result_prefix, ret)
+
+    return ret
+
 def resume_test(host, port, test_ciphers, fips_mode, no_ticket=False):
     """
     Tests s2n's session resumption capability using all valid combinations of cipher suite and TLS version.
@@ -328,23 +395,31 @@ def resume_test(host, port, test_ciphers, fips_mode, no_ticket=False):
         print("\n\tRunning resumption tests using session ticket:")
 
     failed = 0
+    results = []
     for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
+        port_offset = 0
+        threadpool = create_thread_pool()
         print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
         for cipher in test_ciphers:
             cipher_name = cipher.openssl_name
             cipher_vers = cipher.min_tls_vers
 
-            # Skip the cipher if openssl can't test it. 3DES/RC4 are disabled by default in 1.1.0
-            if not cipher.openssl_1_1_0_compatible:
+            # Skip the cipher if openssl can't test it. 3DES/RC4 are disabled by default in 1.1.1
+            if not cipher.openssl_1_1_1_compatible:
                 continue
 
             if ssl_version < cipher_vers:
                 continue
 
-            ret = try_handshake(host, port, cipher_name, ssl_version, resume=True, no_ticket=no_ticket, enter_fips_mode=fips_mode)
-            result_prefix = "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
-            print_result(result_prefix, ret)
-            if ret != 0:
+            async_result = threadpool.apply_async(run_resume_test, (host, port + port_offset, cipher_name, ssl_version, True, no_ticket, fips_mode))
+            port_offset += 1
+            results.append(async_result)
+
+        threadpool.close()
+        threadpool.join()
+
+        for async_result in results:
+            if async_result.get() != 0:
                 failed = 1
 
     return failed
@@ -574,9 +649,9 @@ def main():
     parser = argparse.ArgumentParser(description='Runs TLS server integration tests against s2nd using Openssl s_client')
     parser.add_argument('host', help='The host for s2nd to bind to')
     parser.add_argument('port', type=int, help='The port for s2nd to bind to')
-    parser.add_argument('--libcrypto', default='openssl-1.1.0', choices=['openssl-1.0.2', 'openssl-1.0.2-fips', 'openssl-1.1.0', 'openssl-1.1.x-master', 'libressl'],
+    parser.add_argument('--libcrypto', default='openssl-1.1.1', choices=['openssl-1.0.2', 'openssl-1.0.2-fips', 'openssl-1.1.1', 'libressl'],
             help="""The Libcrypto that s2n was built with. s2n supports different cipher suites depending on
-                    libcrypto version. Defaults to openssl-1.1.0.""")
+                    libcrypto version. Defaults to openssl-1.1.1.""")
     args = parser.parse_args()
 
     # Retrieve the test ciphers to use based on the libcrypto version s2n was built with
