@@ -62,6 +62,7 @@ if [[ "$TESTS" == "ALL" || "$TESTS" == "sawDRBG" ]]; then make -C tests/saw tmp/
 if [[ "$TESTS" == "ALL" || "$TESTS" == "tls" ]]; then (make -C tests/saw tmp/handshake.log && make -C tests/saw tmp/cork-uncork.log) ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMACFailure" ]]; then make -C tests/saw failure-tests ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "ctverif" ]]; then .travis/run_ctverif.sh "$CTVERIF_INSTALL_DIR" ; fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "sawSIKE" ]]; then make -C tests/saw sike ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sidetrail" ]]; then .travis/run_sidetrail.sh "$SIDETRAIL_INSTALL_DIR" "$PART" ; fi
 
 # Upload Code Coverage Information to CodeCov.io

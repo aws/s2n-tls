@@ -87,7 +87,7 @@ tmp/%.log : %.saw bitcode/all_llvm.bc tmp
 ###########################################
 
 .PHONY : sike
-sike : bitcode
+sike : sike_patched_bitcode
 	@${MAKE} clean-sike-logs
 	@${MAKE} sike/word.log
 	@${MAKE} sike/field.log
@@ -172,7 +172,9 @@ bitcode :
 	${MAKE} clean_the_dir
 	${MAKE} bitcode/all_llvm.bc
 
-
+sike_patched_bitcode :
+	${MAKE} clean_the_dir
+	${MAKE} bitcode/sike_llvm.bc
 
 ########################################################
 ## Rules to copy the s2n directory for patching and bulding
@@ -231,6 +233,10 @@ tmp:
 	mkdir -p tmp
 
 bitcode/all_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
+	${MAKE} -C s2n bc
+	${MAKE} -C bitcode all_llvm.bc
+
+bitcode/sike_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
 	patch s2n/pq-crypto/sike/api.h sike/patch/api.h.patch
 	patch s2n/pq-crypto/sike/ec_isogeny.c sike/patch/ec_isogeny.c.patch
 	patch s2n/pq-crypto/sike/sidh.c sike/patch/sidh.c.patch
