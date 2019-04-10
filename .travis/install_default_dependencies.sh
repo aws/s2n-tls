@@ -70,7 +70,7 @@ fi
 # Install SAW, Z3, and Yices for formal verification
 if [[ "$SAW" == "true" || "$TESTS" == "ALL" ]] && [[ ! -d "$SAW_INSTALL_DIR" ]]; then
     mkdir -p "$SAW_INSTALL_DIR";
-    .travis/install_saw.sh "$(mktemp -d)" "$SAW_INSTALL_DIR" ;
+    .travis/install_saw.sh "$(mktemp -d)" "$SAW_INSTALL_DIR" > /dev/null ;
 fi
 
 if [[ "$SAW" == "true" || "$TESTS" == "ALL" ]] && [[ ! -d "$Z3_INSTALL_DIR" ]]; then
