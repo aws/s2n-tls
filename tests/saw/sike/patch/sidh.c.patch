@@ -1,0 +1,56 @@
+82c82
+< int EphemeralKeyGeneration_A(const digit_t* PrivateKeyA, unsigned char* PublicKeyA)
+---
+> int EphemeralKeyGeneration_A(const digit_t* PrivateKeyA, unsigned char* PublicKeyA, unsigned int F1)
+107,109c107,110
+<     index = 0;        
+<     for (row = 1; row < MAX_Alice; row++) {
+<         while (index < MAX_Alice-row) {
+---
+>     index = 0;
+>     // F1 : MAX_Alice        
+>     for (row = 1; row < F1; row++) {
+>         while (index < F1-row) {
+151c152
+< int EphemeralKeyGeneration_B(const digit_t* PrivateKeyB, unsigned char* PublicKeyB)
+---
+> int EphemeralKeyGeneration_B(const digit_t* PrivateKeyB, unsigned char* PublicKeyB, unsigned int F1)
+156c157
+<     f2elm_t _XPB, _XQB, _XRB, coeff[3], _A24plus = {0}, _A24minus = {0}, _A = {0};
+---
+>     f2elm_t _XPB, _XQB, _XRB, coeff[2], _A24plus = {0}, _A24minus = {0}, _A = {0};
+177,179c178,181
+<     index = 0;  
+<     for (row = 1; row < MAX_Bob; row++) {
+<         while (index < MAX_Bob-row) {
+---
+>     index = 0; 
+>     // F1 : MAX_Bob 
+>     for (row = 1; row < F1; row++) {
+>         while (index < F1-row) {
+221c223
+< int EphemeralSecretAgreement_A(const digit_t* PrivateKeyA, const unsigned char* PublicKeyB, unsigned char* SharedSecretA)
+---
+> int EphemeralSecretAgreement_A(const digit_t* PrivateKeyA, const unsigned char* PublicKeyB, unsigned char* SharedSecretA, unsigned int F1)
+248,250c250,253
+<     index = 0;        
+<     for (row = 1; row < MAX_Alice; row++) {
+<         while (index < MAX_Alice-row) {
+---
+>     index = 0;
+>     // F1 : MAX_Alice        
+>     for (row = 1; row < F1; row++) {
+>         while (index < F1-row) {
+281c284
+< int EphemeralSecretAgreement_B(const digit_t* PrivateKeyB, const unsigned char* PublicKeyA, unsigned char* SharedSecretB)
+---
+> int EphemeralSecretAgreement_B(const digit_t* PrivateKeyB, const unsigned char* PublicKeyA, unsigned char* SharedSecretB, unsigned int F1)
+308,310c311,314
+<     index = 0;  
+<     for (row = 1; row < MAX_Bob; row++) {
+<         while (index < MAX_Bob-row) {
+---
+>     index = 0;
+>     // F1 : MAX_Bob 
+>     for (row = 1; row < F1; row++) {
+>         while (index < F1-row) {

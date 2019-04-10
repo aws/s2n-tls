@@ -1,0 +1,10 @@
+///////////////////////////////////////////////////////////////////////////////
+// SAW verification script for the field operations of the SIKE algorithm
+
+let do_prove = false;
+let debug = false;
+
+include "proof/base.saw";
+include "proof/word.saw";
+let do_prove = true;
+include "proof/field.saw";

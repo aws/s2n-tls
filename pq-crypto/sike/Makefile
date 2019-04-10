@@ -12,10 +12,26 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 #
+.DEFAULT_GOAL := all
+
+include ../../s2n.mk
+
+#WA for GCC 4.8.5 bug.
+CFLAGS += -Wno-missing-braces
+
+CFLAGS+=-I../../
+
+CFLAGS_LLVM += -Wno-missing-braces
+CFLAGS_LLVM += -I../../
+
 SRCS=fp_generic.c P503.c sike_p503_kem.c fips202.c
 OBJS=$(SRCS:.c=.o)
 
-CFLAGS+=-I../../
+BCS_1=fp_generic.bc P503.bc sike_p503_kem.bc fips202.bc
+BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
+
+.PHONY : bc
+bc: $(BCS)
 
 .PHONY : all
 all: $(OBJS)
@@ -23,4 +39,6 @@ all: $(OBJS)
 .PHONY : bc
 bc: $(BCS)
 
-include ../../s2n.mk
+.PHONY : clean
+clean:
+	${MAKE} decruft
