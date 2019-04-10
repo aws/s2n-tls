@@ -97,22 +97,22 @@ sike : sike_patched_bitcode
 	@${MAKE} sike/sike.log
 
 sike/word.log :
-	saw sike/verify_word.saw &> $@
+	saw sike/verify_word.saw | tee $@
 
 sike/field.log :
-	saw sike/verify_field.saw &> $@
+	saw sike/verify_field.saw | tee $@
 
 sike/curve.log :
-	saw sike/verify_curve.saw &> $@
+	saw sike/verify_curve.saw | tee $@
 
 sike/isogeny.log :
-	saw sike/verify_isogeny.saw &> $@
+	saw sike/verify_isogeny.saw | tee $@
 
 sike/sidh.log :
-	saw sike/verify_sidh.saw &> $@
+	saw sike/verify_sidh.saw | tee $@
 
 sike/sike.log :
-	saw sike/verify_sike.saw &> $@
+	saw sike/verify_sike.saw | tee $@
 
 ###########################################
 ## Failure Tests
