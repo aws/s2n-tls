@@ -17,7 +17,7 @@ set -e
 set -x
 
 usage() {
-    echo "run_ctverif.sh install_dir"
+    echo "run_ctverif.sh install_dir part?"
     exit 1
 }
 
@@ -41,14 +41,14 @@ runSingleTest() {
     fi
 }
 
-if [ "$#" -ne "1" ]; then
+if [[ "$#" -ne "1" && "$#" -ne "2" ]]; then
     usage
 fi
 
 INSTALL_DIR=$1
 SMACK_DIR="${1}/smack"
 
-#Put the dependencies are on the path
+#Put the dependencies on the path
 
 # Disabling ShellCheck using https://github.com/koalaman/shellcheck/wiki/Directive
 # Turn of Warning in one line as https://github.com/koalaman/shellcheck/wiki/SC1090
@@ -62,8 +62,13 @@ which llvm2bpl || echo "can't find llvm2bpl"
 which clang
 clang --version
 
-runSingleTest "s2n-cbc"
-runSingleTest "s2n-record-read-aead"
-runSingleTest "s2n-record-read-cbc"
-runSingleTest "s2n-record-read-composite"
-runSingleTest "s2n-record-read-stream"
+if [[ "$2" == "" || "$2" == "1" ]]; then
+    runSingleTest "s2n-cbc"
+    runSingleTest "s2n-record-read-aead"
+fi
+
+if [[ "$2" == "" || "$2" == "2" ]]; then
+    runSingleTest "s2n-record-read-cbc"
+    runSingleTest "s2n-record-read-composite"
+    runSingleTest "s2n-record-read-stream"
+fi

@@ -398,6 +398,7 @@ static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
         if (s2n_digest_is_md5_allowed_for_fips(&from->digest.high_level.evp)) {
             GUARD(s2n_hash_allow_md5_for_fips(to));
         }
+    /* fall through */
     case S2N_HASH_SHA1:
     case S2N_HASH_SHA224:
     case S2N_HASH_SHA256:

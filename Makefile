@@ -39,7 +39,7 @@ bc:
 	${MAKE} -C pq-crypto bc
 #	${MAKE} -C stuffer bc
 	${MAKE} -C tls bc
-#	${MAKE} -C utils bc
+	${MAKE} -C utils bc
 
 .PHONY : saw
 saw : bc 
