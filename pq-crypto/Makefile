@@ -19,6 +19,15 @@ INTERNAL_LIBS += sike/libsike_p503.a
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
+BITCODE_DIR?=../tests/saw/bitcode/
+
+BCS_11=pq-random.bc
+BCS1=$(addprefix $(BITCODE_DIR), $(BCS_11))
+
+.PHONY : bc
+bc:     $(BCS1)
+	$(MAKE) -C sike bc
+
 .PHONY : all
 all: libs2n_pq_crypto.so
 

@@ -21,8 +21,17 @@ CFLAGS += -Wno-missing-braces
 
 CFLAGS+=-I../../
 
+CFLAGS_LLVM += -Wno-missing-braces
+CFLAGS_LLVM += -I../../
+
 SRCS=fp_generic.c P503.c sike_p503_kem.c fips202.c
 OBJS=$(SRCS:.c=.o)
+
+BCS_1=fp_generic.bc P503.bc sike_p503_kem.bc fips202.bc
+BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
+
+.PHONY : bc
+bc: $(BCS)
 
 .PHONY : all
 all: libsike_p503.a
