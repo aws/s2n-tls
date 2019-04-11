@@ -52,13 +52,20 @@
 #define TLS_CLIENT_FINISHED           20
 #define TLS_SERVER_FINISHED           20  /* Same as CLIENT_FINISHED */
 #define TLS_SERVER_CERT_STATUS        22
+#define TLS_SERVER_SESSION_LOOKUP     23
 
 struct s2n_handshake_action {
     uint8_t record_type;
     uint8_t message_type;
-    char writer;                /* 'S' or 'C' for server or client, 'B' for both */
+    char writer;                /* 'S' or 'C' for server or client, 'B' for both, 'A' for application data */
     int (*handler[2]) (struct s2n_connection * conn);
 };
+
+static int s2n_handshake_dummy_handler(struct s2n_connection *conn) {
+    /* This handler is just to advance the state machine, 
+     * which can be used in some cases such as application data handling */
+    return 0;
+}
 
 /* Client and Server handlers for each message type we support.  
  * See http://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-7 for the list of handshake message types
@@ -66,7 +73,8 @@ struct s2n_handshake_action {
 static struct s2n_handshake_action state_machine[] = {
     /* message_type_t           = {Record type   Message type     Writer S2N_SERVER                S2N_CLIENT }  */
     [CLIENT_HELLO]              = {TLS_HANDSHAKE, TLS_CLIENT_HELLO, 'C', {s2n_client_hello_recv, s2n_client_hello_send}}, 
-    [SERVER_HELLO]              = {TLS_HANDSHAKE, TLS_SERVER_HELLO, 'S', {s2n_server_hello_send, s2n_server_hello_recv}}, 
+    [SERVER_SESSION_LOOKUP]     = {TLS_HANDSHAKE, TLS_SERVER_SESSION_LOOKUP, 'A', {s2n_process_client_hello, s2n_handshake_dummy_handler}}, 
+    [SERVER_HELLO]              = {TLS_HANDSHAKE, TLS_SERVER_HELLO, 'S', {s2n_server_hello_send, s2n_server_hello_recv}},
     [SERVER_NEW_SESSION_TICKET] = {TLS_HANDSHAKE, TLS_SERVER_NEW_SESSION_TICKET,'S', {s2n_server_nst_send, s2n_server_nst_recv}},
     [SERVER_CERT]               = {TLS_HANDSHAKE, TLS_SERVER_CERT, 'S', {s2n_server_cert_send, s2n_server_cert_recv}},
     [SERVER_CERT_STATUS]        = {TLS_HANDSHAKE, TLS_SERVER_CERT_STATUS, 'S', {s2n_server_status_send, s2n_server_status_recv}},
@@ -86,27 +94,28 @@ static struct s2n_handshake_action state_machine[] = {
 /* We support different ordering of TLS Handshake messages, depending on what is being negotiated. There's also a dummy "INITIAL" handshake
  * that everything starts out as until we know better.
  */
-static message_type_t handshakes[128][16] = {
+static message_type_t handshakes[128][32] = {
     [INITIAL] = {
             CLIENT_HELLO,
+            SERVER_SESSION_LOOKUP,
             SERVER_HELLO
     },
 
     [NEGOTIATED] = {
-            CLIENT_HELLO,
+            CLIENT_HELLO, SERVER_SESSION_LOOKUP,
             SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
             CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
             APPLICATION_DATA
     },
 
     [NEGOTIATED | WITH_SESSION_TICKET ] = {
-            CLIENT_HELLO,
+            CLIENT_HELLO, SERVER_SESSION_LOOKUP,
             SERVER_HELLO, SERVER_NEW_SESSION_TICKET, SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
             CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
             APPLICATION_DATA},
 
     [NEGOTIATED | FULL_HANDSHAKE ] = {
-            CLIENT_HELLO,
+            CLIENT_HELLO, SERVER_SESSION_LOOKUP,
             SERVER_HELLO, SERVER_CERT, SERVER_HELLO_DONE,
             CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
             SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
@@ -114,7 +123,7 @@ static message_type_t handshakes[128][16] = {
     },
 
     [NEGOTIATED | FULL_HANDSHAKE | WITH_SESSION_TICKET ] = {
-            CLIENT_HELLO,
+            CLIENT_HELLO, SERVER_SESSION_LOOKUP,
             SERVER_HELLO, SERVER_CERT, SERVER_HELLO_DONE,
             CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
             SERVER_NEW_SESSION_TICKET, SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
@@ -122,7 +131,7 @@ static message_type_t handshakes[128][16] = {
     },
 
     [NEGOTIATED | FULL_HANDSHAKE | PERFECT_FORWARD_SECRECY ] = {
-            CLIENT_HELLO,
+            CLIENT_HELLO, SERVER_SESSION_LOOKUP,
             SERVER_HELLO, SERVER_CERT, SERVER_KEY, SERVER_HELLO_DONE,
             CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
             SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
@@ -130,7 +139,7 @@ static message_type_t handshakes[128][16] = {
     },
 
     [NEGOTIATED | FULL_HANDSHAKE | PERFECT_FORWARD_SECRECY | WITH_SESSION_TICKET ] = {
-            CLIENT_HELLO,
+            CLIENT_HELLO, SERVER_SESSION_LOOKUP,
             SERVER_HELLO, SERVER_CERT, SERVER_KEY, SERVER_HELLO_DONE,
             CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
             SERVER_NEW_SESSION_TICKET, SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
@@ -138,7 +147,7 @@ static message_type_t handshakes[128][16] = {
     },
 
     [NEGOTIATED | FULL_HANDSHAKE | OCSP_STATUS ] ={
-            CLIENT_HELLO,
+            CLIENT_HELLO, SERVER_SESSION_LOOKUP,
             SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS, SERVER_HELLO_DONE,
             CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
             SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
@@ -146,7 +155,7 @@ static message_type_t handshakes[128][16] = {
     },
 
     [NEGOTIATED | FULL_HANDSHAKE | OCSP_STATUS | WITH_SESSION_TICKET ] = {
-            CLIENT_HELLO,
+            CLIENT_HELLO, SERVER_SESSION_LOOKUP,
             SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS, SERVER_HELLO_DONE,
             CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
             SERVER_NEW_SESSION_TICKET, SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
@@ -154,7 +163,7 @@ static message_type_t handshakes[128][16] = {
     },
 
     [NEGOTIATED | FULL_HANDSHAKE | PERFECT_FORWARD_SECRECY | OCSP_STATUS ] = {
-            CLIENT_HELLO,
+            CLIENT_HELLO, SERVER_SESSION_LOOKUP,
             SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS, SERVER_KEY, SERVER_HELLO_DONE,
             CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
             SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
@@ -162,7 +171,7 @@ static message_type_t handshakes[128][16] = {
     },
 
     [NEGOTIATED | FULL_HANDSHAKE | PERFECT_FORWARD_SECRECY | OCSP_STATUS  | WITH_SESSION_TICKET ] ={
-            CLIENT_HELLO,
+            CLIENT_HELLO, SERVER_SESSION_LOOKUP,
             SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS, SERVER_KEY, SERVER_HELLO_DONE,
             CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
             SERVER_NEW_SESSION_TICKET, SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
@@ -173,7 +182,7 @@ static message_type_t handshakes[128][16] = {
      * a connection, the Server may not have a copy of the Client Certificate without placing it inside the Session Ticket. */
 
      [NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH] = {
-             CLIENT_HELLO,
+             CLIENT_HELLO, SERVER_SESSION_LOOKUP,
              SERVER_HELLO, SERVER_CERT, SERVER_CERT_REQ, SERVER_HELLO_DONE,
              CLIENT_CERT, CLIENT_KEY, CLIENT_CERT_VERIFY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
              SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
@@ -181,7 +190,7 @@ static message_type_t handshakes[128][16] = {
      },
 
      [NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH | NO_CLIENT_CERT ] = {
-             CLIENT_HELLO,
+             CLIENT_HELLO, SERVER_SESSION_LOOKUP,
              SERVER_HELLO, SERVER_CERT, SERVER_CERT_REQ, SERVER_HELLO_DONE,
              CLIENT_CERT, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
              SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
@@ -189,7 +198,7 @@ static message_type_t handshakes[128][16] = {
      },
 
      [NEGOTIATED | FULL_HANDSHAKE | PERFECT_FORWARD_SECRECY | CLIENT_AUTH] = {
-            CLIENT_HELLO,
+            CLIENT_HELLO, SERVER_SESSION_LOOKUP,
             SERVER_HELLO, SERVER_CERT, SERVER_KEY, SERVER_CERT_REQ, SERVER_HELLO_DONE,
             CLIENT_CERT, CLIENT_KEY, CLIENT_CERT_VERIFY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
             SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
@@ -197,7 +206,7 @@ static message_type_t handshakes[128][16] = {
      },
 
      [NEGOTIATED | FULL_HANDSHAKE | PERFECT_FORWARD_SECRECY | CLIENT_AUTH | NO_CLIENT_CERT ] = {
-            CLIENT_HELLO,
+            CLIENT_HELLO, SERVER_SESSION_LOOKUP,
             SERVER_HELLO, SERVER_CERT, SERVER_KEY, SERVER_CERT_REQ, SERVER_HELLO_DONE,
             CLIENT_CERT, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
             SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
@@ -205,7 +214,7 @@ static message_type_t handshakes[128][16] = {
      },
 
      [NEGOTIATED | FULL_HANDSHAKE | OCSP_STATUS | CLIENT_AUTH] = {
-            CLIENT_HELLO,
+            CLIENT_HELLO, SERVER_SESSION_LOOKUP,
             SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS, SERVER_CERT_REQ, SERVER_HELLO_DONE,
             CLIENT_CERT, CLIENT_KEY, CLIENT_CERT_VERIFY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
             SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
@@ -213,7 +222,7 @@ static message_type_t handshakes[128][16] = {
      },
 
      [NEGOTIATED | FULL_HANDSHAKE | OCSP_STATUS | CLIENT_AUTH | NO_CLIENT_CERT ] = {
-            CLIENT_HELLO,
+            CLIENT_HELLO, SERVER_SESSION_LOOKUP,
             SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS, SERVER_CERT_REQ, SERVER_HELLO_DONE,
             CLIENT_CERT, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
             SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
@@ -221,7 +230,7 @@ static message_type_t handshakes[128][16] = {
      },
 
      [NEGOTIATED | FULL_HANDSHAKE | PERFECT_FORWARD_SECRECY | OCSP_STATUS | CLIENT_AUTH ] = {
-             CLIENT_HELLO,
+             CLIENT_HELLO, SERVER_SESSION_LOOKUP,
              SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS, SERVER_KEY, SERVER_CERT_REQ, SERVER_HELLO_DONE,
              CLIENT_CERT, CLIENT_KEY, CLIENT_CERT_VERIFY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
              SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
@@ -229,7 +238,7 @@ static message_type_t handshakes[128][16] = {
      },
 
      [NEGOTIATED | FULL_HANDSHAKE | PERFECT_FORWARD_SECRECY | OCSP_STATUS | CLIENT_AUTH | NO_CLIENT_CERT ] = {
-             CLIENT_HELLO,
+             CLIENT_HELLO, SERVER_SESSION_LOOKUP,
              SERVER_HELLO, SERVER_CERT, SERVER_CERT_STATUS, SERVER_KEY, SERVER_CERT_REQ, SERVER_HELLO_DONE,
              CLIENT_CERT, CLIENT_KEY, CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
              SERVER_CHANGE_CIPHER_SPEC, SERVER_FINISHED,
@@ -268,7 +277,7 @@ static int s2n_advance_message(struct s2n_connection *conn)
     }
 
     /* Are we changing I/O directions */
-    if (ACTIVE_STATE(conn).writer == PREVIOUS_STATE(conn).writer) {
+    if (ACTIVE_STATE(conn).writer == PREVIOUS_STATE(conn).writer || ACTIVE_STATE(conn).writer == 'A') {
         return 0;
     }
 
@@ -330,8 +339,11 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
     /* If a TLS session is resumed, the Server should respond in its ServerHello with the same SessionId the
      * Client sent in the ClientHello. */
-    if (s2n_allowed_to_cache_connection(conn) && !s2n_resume_from_cache(conn)) {
-        return 0;
+    if (s2n_allowed_to_cache_connection(conn)) {
+        int r = s2n_resume_from_cache(conn);
+        if (r == S2N_AGAIN || r == S2N_SUCCESS) {
+            return r;
+        }
     }
 
 skip_cache_lookup:
@@ -570,6 +582,44 @@ static int s2n_handshake_handle_sslv2(struct s2n_connection *conn)
     return 0;
 }
 
+/* Sometimes the handshake state machine can be blocked on application data. 
+ * For example, if the s2n server is using a remote upstream peer for session cache lookup,
+ * the handshake state machine will be blocked until there is data returned from the 
+ * session cache server. In such a case, there is no data in the underlying io, 
+ * so we can just call the corresponding handler to process the application data.
+ * Note that we need a return value 1 to indicate that app data is not yet avaiable 
+ * and the state machine is still blocked; a return value 0 to indicate the app data is 
+ * successfully processed and state machine advanced; -1 to indicate an error and 
+ * the connection been killed
+ */
+static int s2n_handshake_handle_app_data(struct s2n_connection *conn) {
+    int r = ACTIVE_STATE(conn).handler[conn->mode] (conn);
+
+    if (r == S2N_SUCCESS) {
+        /* if r == 0, then we advance the state machine */
+        GUARD(s2n_stuffer_wipe(&conn->handshake.io));
+        GUARD(s2n_advance_message(conn));
+        goto done;
+    }
+
+    if (r == S2N_AGAIN) {
+        /* if r == S2N_AGAIN, it means we are still blocked */
+        return r;
+    }
+
+    if (r < 0) {
+        /* if r == -1, we kill the connection */
+        GUARD(s2n_stuffer_wipe(&conn->handshake.io));
+        GUARD(s2n_connection_kill(conn));
+        return r;
+    }
+
+done:
+    conn->in_status = ENCRYPTED;
+
+    return 0;
+}
+
 /* Reading is a little more complicated than writing as the TLS RFCs allow content
  * types to be interleaved at the record layer. We may get an alert message
  * during the handshake phase, or messages of types that we don't support (e.g.
@@ -680,6 +730,13 @@ static int handshake_read_io(struct s2n_connection *conn)
     return 0;
 }
 
+static void s2n_try_delete_session_cache(struct s2n_connection *conn) 
+{
+    if (s2n_errno != S2N_ERR_BLOCKED && s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
+        conn->config->cache_delete(conn, conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
+    }
+}
+
 int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
 {
     char this = 'S';
@@ -691,7 +748,26 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
         /* Flush any pending I/O or alert messages */
         GUARD(s2n_flush(conn, blocked));
 
-        if (ACTIVE_STATE(conn).writer == this) {
+        if (ACTIVE_STATE(conn).writer == 'A') {
+            /* We are in a state that is blocked on application data */
+            *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
+
+            int r = s2n_handshake_handle_app_data(conn);
+            if (r < 0) {
+                s2n_try_delete_session_cache(conn);
+                return S2N_FAILURE;
+            }
+            if (r == S2N_AGAIN) {
+                /* The peer might have sent an alert. Try and read it. */
+                if (s2n_stuffer_data_available(&conn->in)) {
+                    if (handshake_read_io(conn) < 0 && s2n_errno == S2N_ERR_ALERT) {
+                        /* handshake_read_io has set s2n_errno */
+                        return S2N_FAILURE;
+                    }
+                }
+                S2N_ERROR(S2N_ERR_BLOCKED);
+            }
+        } else if (ACTIVE_STATE(conn).writer == this) {
             *blocked = S2N_BLOCKED_ON_WRITE;
             if (handshake_write_io(conn) < 0 && s2n_errno != S2N_ERR_BLOCKED) {
                 /* Non-retryable write error. The peer might have sent an alert. Try and read it. */
@@ -701,23 +777,26 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
 
                 if (handshake_read_io(conn) < 0 && s2n_errno == S2N_ERR_ALERT) {
                     /* handshake_read_io has set s2n_errno */
-                    return -1;
+                    return S2N_FAILURE;
                 } else {
                     /* Let the write error take precedence if we didn't read an alert. */
                     errno = write_errno;
                     s2n_errno = write_s2n_errno;
                     s2n_debug_str = write_s2n_debug_str;
-                    return -1;
+                    return S2N_FAILURE;
                 }
             }
         } else {
             *blocked = S2N_BLOCKED_ON_READ;
-            if (handshake_read_io(conn) < 0) {
-                if (s2n_errno != S2N_ERR_BLOCKED && s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
-                    conn->config->cache_delete(conn, conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
-                }
+            int r = handshake_read_io(conn);
+            if (r < 0) {
+                s2n_try_delete_session_cache(conn);
+                return S2N_FAILURE;
+            }
 
-                return -1;
+            if (r == S2N_AGAIN) {
+                *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
+                S2N_ERROR(S2N_ERR_BLOCKED);
             }
         }
 

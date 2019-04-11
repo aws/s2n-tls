@@ -29,6 +29,7 @@
 /* This is the list of message types that we support */
 typedef enum {
     CLIENT_HELLO=0,
+    SERVER_SESSION_LOOKUP,
     SERVER_HELLO,
     SERVER_CERT,
     SERVER_NEW_SESSION_TICKET,

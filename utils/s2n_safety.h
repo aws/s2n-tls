@@ -89,9 +89,11 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
     lt_check(__tmp_n, high);                    \
   } while (0)
 
-#define GUARD( x )              if ( (x) < 0 ) return -1
+#define GUARD( x )              if ( (x) < 0 ) return S2N_FAILURE
 #define GUARD_GOTO( x , label ) if ( (x) < 0 ) goto label
 #define GUARD_PTR( x )          if ( (x) < 0 ) return NULL
+#define GUARD_RETRY( x )  int r = (x); GUARD(r); if (S2N_AGAIN == r) return S2N_AGAIN
+
 #define S2N_IN_UNIT_TEST ( getenv("S2N_UNIT_TEST") != NULL )
 
 /* TODO: use the OSSL error code in error reporting https://github.com/awslabs/s2n/issues/705 */
