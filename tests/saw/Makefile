@@ -92,7 +92,7 @@ bike : bitcode
 	@${MAKE} bike/bike.log
 
 bike/bike.log :
-	saw bike/verify_bike.saw &> $@
+	saw bike/verify_bike.saw | tee $@
 
 ###########################################
 ## Failure Tests

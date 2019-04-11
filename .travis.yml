@@ -70,6 +70,9 @@ matrix:
     env : TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true GCC6_REQUIRED=false
     addons : *sawaddons
   - os : linux
+    env: TESTS=sawBIKE                       SAW=true GCC6_REQUIRED=false
+    addons : *sawaddons
+  - os : linux
     env: TESTS=sawDRBG                       SAW=true GCC6_REQUIRED=false
     addons : *sawaddons
   - os : linux
