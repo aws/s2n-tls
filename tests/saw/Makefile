@@ -97,21 +97,27 @@ sike : sike_patched_bitcode
 	@${MAKE} sike/sike.log
 
 sike/word.log :
+	@set -o pipefail; \
 	saw sike/verify_word.saw | tee $@
 
 sike/field.log :
+	@set -o pipefail; \
 	saw sike/verify_field.saw | tee $@
 
 sike/curve.log :
+	@set -o pipefail; \
 	saw sike/verify_curve.saw | tee $@
 
 sike/isogeny.log :
+	@set -o pipefail; \
 	saw sike/verify_isogeny.saw | tee $@
 
 sike/sidh.log :
+	@set -o pipefail; \
 	saw sike/verify_sidh.saw | tee $@
 
 sike/sike.log :
+	@set -o pipefail; \
 	saw sike/verify_sike.saw | tee $@
 
 ###########################################
