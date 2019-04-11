@@ -262,14 +262,6 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
 
     cleanup_processes(s2nd, s_client)
 
-    if '' == s2nd_out:
-        print ("No output from client PIPE, skip")
-        return 0
-
-    if '' == s_client_out:
-        print ("No output from client PIPE, skip")
-        return 0
-
     if validate_data_transfer(data_to_validate, s_client_out, s2nd_out) != 0:
         return -1
 
@@ -308,7 +300,7 @@ def print_result(result_prefix, return_code):
     print(result_prefix + suffix)
 
 def create_thread_pool():
-    threadpool_size = multiprocessing.cpu_count() * 2  #Multiply by 2 since performance improves slightly if CPU has hyperthreading
+    threadpool_size = multiprocessing.cpu_count() * 4  # Multiply by 4 to increase parallelization between integration tests
     print("\tCreating ThreadPool of size: " + str(threadpool_size))
     threadpool = ThreadPool(processes=threadpool_size)
     return threadpool
