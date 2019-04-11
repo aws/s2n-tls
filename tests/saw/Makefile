@@ -92,6 +92,7 @@ bike : bike_bitcode
 	@${MAKE} bike/bike.log
 
 bike/bike.log :
+	@set -o pipefail; \
 	saw bike/verify_bike.saw | tee $@
 
 ###########################################
@@ -156,6 +157,8 @@ bitcode :
 bike_bitcode :
 	${MAKE} clean_the_dir
 	${MAKE} bitcode/all_llvm.bc
+	llvm-dis bitcode/all_llvm.bc
+	grep "gf2x_mod_mul" bitcode/all_llvm.ll
 
 
 
