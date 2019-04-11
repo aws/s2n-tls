@@ -20,7 +20,7 @@
 #include "s2n_test.h"
 #include "crypto/s2n_drbg.h"
 #include "pq-crypto/sike/sike_p503_kem.h"
-#include "pq-crypto/pq-random.h"
+#include "pq-crypto/pq_random.h"
 #include "tests/unit/s2n_nist_kats.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"

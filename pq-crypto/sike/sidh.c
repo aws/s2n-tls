@@ -5,7 +5,7 @@
 *********************************************************************************************/ 
 
 #include "P503_internal.h"
-#include "pq-crypto/pq-random.h"
+#include "pq-crypto/pq_random.h"
 
 static void clear_words(void* mem, digit_t nwords)
 { // Clear digits from memory. "nwords" indicates the number of digits to be zeroed.

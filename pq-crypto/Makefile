@@ -22,9 +22,22 @@ OBJS=$(SRCS:.c=.o)
 .PHONY : all
 all: libs2n_pq_crypto.so
 
+ENABLE_DYNAMIC_LOOKUP=
+WHOLE_ARCHIVE_OPTION="-Wl,--whole-archive"
+NO_WHOLE_ARCHIVE_OPTION="-Wl,--no-whole-archive"
+ifeq ($(PLATFORM),Darwin)
+	# MacOS linker by default does not allow creating a shared library without all symbols resolved.
+	# Use dynamic_lookup to allow the shared_library to be created without a direct reference to
+	# all symbols.
+	ENABLE_DYNAMIC_LOOKUP="-Wl,-undefined,dynamic_lookup"
+	WHOLE_ARCHIVE_OPTION="-Wl,-force_load"
+	# This is the default
+	NO_WHOLE_ARCHIVE_OPTION=
+endif
+
 libs2n_pq_crypto.so: ${OBJS}
 	$(MAKE) -C sike
-	${CC} -shared -o libs2n_pq_crypto.so ${OBJS} -Wl,--whole-archive ${INTERNAL_LIBS} -Wl,--no-whole-archive -L../../ ${CFLAGS} ${LDFLAGS} -lm
+	${CC} -shared -o libs2n_pq_crypto.so ${OBJS} ${ENABLE_DYNAMIC_LOOKUP} ${WHOLE_ARCHIVE_OPTION} ${INTERNAL_LIBS} ${NO_WHOLE_ARCHIVE_OPTION} -L../lib -L../utils ${CFLAGS} ${LDFLAGS} -lm
 
 include ../s2n.mk
 
