@@ -87,7 +87,7 @@ tmp/%.log : %.saw bitcode/all_llvm.bc tmp
 ###########################################
 
 .PHONY : bike
-bike : bitcode
+bike : bike_bitcode
 	@${MAKE} clean-bike-logs
 	@${MAKE} bike/bike.log
 
@@ -152,6 +152,11 @@ bitcode :
 	${MAKE} clean_the_dir
 	${MAKE} bitcode/all_llvm.bc
 
+.PHONY : bike_bitcode
+bike_bitcode :
+	${MAKE} clean_the_dir
+	${MAKE} bitcode/all_llvm.bc
+
 
 
 ########################################################
@@ -211,9 +216,14 @@ tmp:
 	mkdir -p tmp
 
 bitcode/all_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(BIKE_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
+	${MAKE} -C s2n bc
+	${MAKE} -C bitcode all_llvm.bc
+
+bitcode/bike_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(BIKE_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
 	patch s2n/pq-crypto/bike/bike_defs.h bike/patch/bike_defs.h.patch
 	${MAKE} -C s2n bc
 	${MAKE} -C bitcode all_llvm.bc
+
 
 s2n/%.h : ../../%.h
 	cp $< $@
