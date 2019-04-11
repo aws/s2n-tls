@@ -158,7 +158,7 @@ static parser_state process_state(parser_state state, char current_char, struct 
             if (current_char == '.' || isdigit(current_char)) {
                 return ON_SUBSECOND;
             }
-        /* this fallthrough is intentional */
+        /* fall through */
         case ON_TIMEZONE:
             if (current_char == 'Z' || current_char == 'z') {
                 args->local_time_assumed = 0;

@@ -18,6 +18,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "error/s2n_errno.h"
 
@@ -91,6 +92,7 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
 #define GUARD( x )              if ( (x) < 0 ) return -1
 #define GUARD_GOTO( x , label ) if ( (x) < 0 ) goto label
 #define GUARD_PTR( x )          if ( (x) < 0 ) return NULL
+#define S2N_IN_UNIT_TEST ( getenv("S2N_UNIT_TEST") != NULL )
 
 /* TODO: use the OSSL error code in error reporting https://github.com/awslabs/s2n/issues/705 */
 #define GUARD_OSSL( x , errcode )               \

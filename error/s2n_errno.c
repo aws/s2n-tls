@@ -159,6 +159,7 @@ struct s2n_error_translation S2N_ERROR_EN[] = {
     {S2N_ERR_SENDING_NST, "Error in session ticket status encountered before sending NST"},
     {S2N_ERR_INVALID_DYNAMIC_THRESHOLD, "invalid dynamic record threshold"},
     {S2N_ERR_INVALID_ARGUMENT, "invalid argument provided into a function call"},
+    {S2N_ERR_NOT_IN_UNIT_TEST, "Illegal configuration, can only be used during unit tests"},
 };
 
 const char *s2n_strerror(int error, const char *lang)

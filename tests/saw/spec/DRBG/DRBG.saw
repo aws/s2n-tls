@@ -1,3 +1,25 @@
+////////////////////////////////////////////////////////////////
+// Copyright 2019 Galois, Inc. All Rights Reserved
+//
+// Licensed under the Apache License, Version 2.0 (the "License").
+// You may not use this file except in compliance with the License.
+// A copy of the License is located at
+//
+//  http://aws.amazon.com/apache2.0
+//
+// or in the "license" file accompanying this file. This file is distributed
+// on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+// express or implied. See the License for the specific language governing
+// permissions and limitations under the License.
+//
+////////////////////////////////////////////////////////////////
+//
+// This file describes the correspondence between the Cryptol
+// specification of DRBG in DRBG.cry and the C implementation in
+// crypto/s2n_drbg.c, allowing SAW to prove them equivalent.
+//
+////////////////////////////////////////////////////////////////
+
 import "DRBG.cry";
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -74,12 +96,12 @@ let drbg_state n = do {
     (key, keyp) <- ptr_to_fresh "key" (bytes_type keysize);
     bytes_used <- crucible_fresh_var (str_concat n "->bytes_used") i64;
     v <- crucible_fresh_var (str_concat n "->v") (bytes_type blocksize);
+    gen <- crucible_fresh_var (str_concat n "->generation") i32;
     crucible_points_to (crucible_field state "bytes_used") (tm bytes_used);
     crucible_points_to (crucible_field state "ctx") keyp;
     crucible_points_to (crucible_field state "v") (tm v);
     crucible_points_to (crucible_field state "entropy_generator") crucible_null;
-    crucible_points_to (crucible_field state "generation") (tm {{ 0 : [32] }});
-    crucible_precond {{ bytes_used < (`reseed_limit : [64]) }};
+    crucible_points_to (crucible_field state "generation") (tm gen);
     return ( state
            , keyp
            , {{ { bytes_used = bytes_used
@@ -102,6 +124,12 @@ let ensure_drbg_state p keyp s = do {
 ////////////////////////////////////////////////////////////////////////////////
 // Assumed specifications
 ////////////////////////////////////////////////////////////////////////////////
+
+let getenv_spec = do {
+    p <- crucible_fresh_pointer i8;
+    crucible_execute_func [p];
+    crucible_return crucible_null;
+};
 
 let aes_128_ecb_spec = do {
     crucible_execute_func [];
@@ -200,11 +228,10 @@ let blob_zero_spec n = do {
     crucible_return (tm {{ 0 : [32] }});
 };
 
-let increment_sequence_number_spec = do {
+let increment_drbg_counter_spec = do {
     (p, datap) <- alloc_blob blocksize;
     v <- crucible_fresh_var "v" (bytes_type blocksize);
     crucible_points_to datap (tm v);
-    crucible_precond {{ join v < max_seq_number }}; // Overflow not allowed
     crucible_execute_func [p];
     let res = {{ split ((join v) + 1) : [blocksize][8] }};
     crucible_points_to datap (tm res);
@@ -214,7 +241,6 @@ let increment_sequence_number_spec = do {
 let bits_spec n = do {
     (sp, keyp, s) <- drbg_state "drbg";
     (outp, datap) <- alloc_blob n;
-    crucible_precond {{ s.v < max_seq_number - `(n / blocksize) }};
     crucible_execute_func [sp, outp];
     let res = {{ drbg_generate_internal `{n=n*8} s }};
     crucible_points_to datap (tm {{ split res.0 : [n][8] }});
@@ -229,8 +255,6 @@ let update_spec n = do {
     (providedp, datap) <- alloc_blob n;
     data <- crucible_fresh_var "data" (bytes_type n);
     crucible_points_to datap (tm data);
-    // Avoid overflowing sequence number
-    crucible_precond {{ s.v < max_seq_number - `(n / blocksize) }};
     crucible_execute_func [sp, providedp];
     ensure_drbg_state sp keyp {{ drbg_update (join data) s }};
     crucible_return (tm {{ 0 : [32] }});
@@ -242,8 +266,6 @@ let seed_spec n = do {
     (psp, datap) <- alloc_blob n;
     data <- crucible_fresh_var "data" (bytes_type n);
     crucible_points_to datap (tm data);
-    // Avoid overflowing sequence number
-    crucible_precond {{ s.v < max_seq_number - `(n / blocksize) }};
     crucible_execute_func [sp, psp];
     ensure_drbg_state sp keyp {{ drbg_reseed s fake_entropy (join data) }};
     crucible_return (tm {{ 0 : [32] }});
@@ -254,9 +276,9 @@ let instantiate_spec n = do {
     (psp, datap) <- alloc_blob n;
     data <- crucible_fresh_var "data" (bytes_type n);
     crucible_points_to datap (tm data);
-    // Avoid overflowing sequence number
-    crucible_precond {{ s.v < max_seq_number - `(n / blocksize) }};
+
     crucible_execute_func [sp, psp, tm {{ mode_128 : [32] }}];
+
     newkeyp <- crucible_alloc (bytes_type keysize);
     crucible_points_to (crucible_field sp "ctx") newkeyp;
     ensure_drbg_state sp newkeyp {{ drbg_instantiate fake_entropy (join data) }};
@@ -266,27 +288,17 @@ let instantiate_spec n = do {
 let generate_spec = do {
     (sp, keyp, s) <- drbg_state "drbg";
     (psp, datap) <- alloc_blob seedsize;
-    // Avoid overflowing sequence number
-    crucible_precond {{ s.v < max_seq_number - `(2*seedsize / blocksize) }};
-    crucible_precond {{ s.bytes_used < (`reseed_limit / 2 : [64]) }};
+    crucible_points_to (crucible_field sp "use_prediction_resistance") (tm {{ 1 : [8] }});
     crucible_execute_func [sp, psp];
-    let {{ res = drbg_generate_seedlen s fake_entropy False }};
+    let {{ res = drbg_generate_seedlen s fake_entropy True }};
     crucible_points_to datap (tm {{ split res.0 : [seedsize][8] }});
     ensure_drbg_state sp keyp {{ res.1 }};
     crucible_return (tm {{ 0 : [32] }});
 };
 
-// TODO: incomplete
-let wipe_spec = do {
-    (sp, keyp, s) <- drbg_state "drbg";
-    crucible_execute_func [sp];
-    crucible_points_to (crucible_field sp "v") (tm {{ zero : [blocksize][8] }});
-    crucible_return (tm {{ 0 : [32] }});
-};
-
 let bytes_used_spec = do {
     (sp, keyp, s) <- drbg_state "drbg";
-    crucible_execute_func[sp];
+    crucible_execute_func [sp];
     crucible_return (tm {{ drop s.bytes_used : [32] }});
 };
 
@@ -300,14 +312,14 @@ m <- llvm_load_module "../../bitcode/all_llvm.bc";
 // Assumptions about external functions
 ////////////////////////////////////////////////////////////////////////////////
 
+getenv_ov <- crucible_llvm_unsafe_assume_spec m "getenv" getenv_spec;
+
 aes_128_ecb_ov <- crucible_llvm_unsafe_assume_spec m "EVP_aes_128_ecb" aes_128_ecb_spec;
 cipher_new_ov <- crucible_llvm_unsafe_assume_spec m "EVP_CIPHER_CTX_new" cipher_new_spec;
 
-cipher_init_ov <- crucible_llvm_unsafe_assume_spec m "EVP_CIPHER_CTX_init" cipher_init_spec;
-
 cipher_free_ov <- crucible_llvm_unsafe_assume_spec m "EVP_CIPHER_CTX_free" cipher_free_spec;
 
-cipher_cleanup_ov <- crucible_llvm_unsafe_assume_spec m "EVP_CIPHER_CTX_cleanup" cipher_cleanup_spec;
+cipher_cleanup_ov <- crucible_llvm_unsafe_assume_spec m "EVP_CIPHER_CTX_reset" cipher_cleanup_spec;
 
 cipher_key_length_ov <- crucible_llvm_unsafe_assume_spec m "EVP_CIPHER_CTX_key_length" cipher_key_length_spec;
 
@@ -332,9 +344,7 @@ zero_ov_block <- crucible_llvm_verify m "s2n_blob_zero" [] false (blob_zero_spec
 zero_ov_seed <- crucible_llvm_verify m "s2n_blob_zero" [] false (blob_zero_spec seedsize) yices;
 zero_ov_drbg <- crucible_llvm_verify m "s2n_blob_zero" [] false (blob_zero_spec 48) yices;
 
-inc_ov <- crucible_llvm_verify m "s2n_increment_sequence_number" [] false increment_sequence_number_spec yices;
-
-crucible_llvm_verify m "s2n_drbg_wipe" [cipher_free_ov, cipher_cleanup_ov, zero_ov_drbg] false wipe_spec yices;
+inc_ov <- crucible_llvm_verify m "s2n_increment_drbg_counter" [] false increment_drbg_counter_spec yices;
 
 crucible_llvm_verify m "s2n_drbg_bytes_used" [] false bytes_used_spec yices;
 
@@ -346,6 +356,6 @@ update_ov <- crucible_llvm_verify m "s2n_drbg_update" [bits_ov, encryptInit_ov, 
 
 seed_ov <- crucible_llvm_verify m "s2n_drbg_seed" [get_urandom_ov, update_ov, cipher_key_length_ov] false (seed_spec seedsize) (unint_yices ["block_encrypt"]);
 
-instantiate_ov <- crucible_llvm_verify m "s2n_drbg_instantiate" [zero_ov_block, zero_ov_seed, cipher_new_ov, cipher_init_ov, encryptInit_ov, encryptInit_nokey_ov, aes_128_ecb_ov, cipher_key_length_ov, seed_ov, supports_rdrand_ov] false(instantiate_spec seedsize) (unint_yices ["block_encrypt"]);
+instantiate_ov <- crucible_llvm_verify m "s2n_drbg_instantiate" [zero_ov_block, zero_ov_seed, cipher_new_ov, cipher_cleanup_ov, encryptInit_ov, encryptInit_nokey_ov, aes_128_ecb_ov, cipher_key_length_ov, seed_ov, supports_rdrand_ov] false(instantiate_spec seedsize) (unint_yices ["block_encrypt"]);
 
-generate_ov <- crucible_llvm_verify m "s2n_drbg_generate" [seed_ov, bits_ov, update_ov, cipher_key_length_ov] false generate_spec (unint_yices ["block_encrypt"]);
+generate_ov <- crucible_llvm_verify m "s2n_drbg_generate" [getenv_ov, seed_ov, bits_ov, update_ov, cipher_key_length_ov] false generate_spec (unint_yices ["block_encrypt"]);
