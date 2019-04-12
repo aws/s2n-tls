@@ -89,7 +89,7 @@ gf2x_add3_ov <- verify "gf2x_add" [ossl_add3_ov1] gf2x_add3_spec;
 
 gf2x_add3_left_ov1 <- verify  "gf2x_add"
     [ossl_add3_left_ov1] (gf2x_add3_spec_left ( make_i8_T R_SIZE));
-gf2x_add_128_left_ov_RSIZE <- verify  "gf2x_add.67"
+gf2x_add_128_left_ov_RSIZE <- verify  "gf2x_add.11"
     [ossl_add3_left_ov1] (gf2x_add3_spec_left ( make_i8_T R_SIZE));
 
 ossl_add_left_ov <- admit "ossl_add" [] ossl_add_left_spec;
