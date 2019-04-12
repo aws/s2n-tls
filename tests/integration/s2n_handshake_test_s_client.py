@@ -277,6 +277,8 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
         s_client_cmd.extend(["-servername", server_name])
         if strict_hostname is True:
             s_client_cmd.extend(["-verify_hostname", server_name])
+    else:
+        s_client_cmd.append("-noservername")
 
     # Fire up s_client
     s_client = subprocess.Popen(s_client_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -706,6 +708,8 @@ def multiple_cert_domain_name_test(host, port):
     print("\n\tRunning multiple server cert domain name test:")
 
     ALL_TEST_SNI_CERTS = [(test_case[0],test_case[1]) for test_case in SNI_CERT_TEST_CASES  ]
+    # For now, we expect the default certificate to be the first one loaded into the s2n_config.
+    EXPECTED_DEFAULT_CERT = SNI_CERT_TEST_CASES[0][0]
 
     for test_case in SNI_CERT_TEST_CASES:
         cert_path = test_case[0]
@@ -716,6 +720,24 @@ def multiple_cert_domain_name_test(host, port):
             print_result(result_prefix, ret)
             if ret != 0:
                 return ret
+
+    # No matching server_name, make sure the first certificate added to s2nd is served.
+    mismatched_server_name = "no.match.expected"
+    ret = try_handshake(host, port, "ECDHE-RSA-AES128-SHA", S2N_TLS12, server_name=mismatched_server_name,
+            server_cert_key_list=ALL_TEST_SNI_CERTS, expected_server_cert=EXPECTED_DEFAULT_CERT)
+    result_prefix = "[SNI mismatch test] server_name: %-30s cert: %-50s" % (mismatched_server_name,
+            EXPECTED_DEFAULT_CERT)
+    print_result(result_prefix, ret)
+    if ret != 0:
+        return ret
+
+    # No server_name sent, make sure the first certificate added to s2nd is served.
+    ret = try_handshake(host, port, "ECDHE-RSA-AES128-SHA", S2N_TLS12, server_cert_key_list=ALL_TEST_SNI_CERTS,
+            expected_server_cert=EXPECTED_DEFAULT_CERT)
+    result_prefix = "[No SNI test] %-49s cert: %-50s" % ("", EXPECTED_DEFAULT_CERT)
+    print_result(result_prefix, ret)
+    if ret != 0:
+        return ret
 
     return 0
 
