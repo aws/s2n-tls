@@ -159,6 +159,7 @@ bike_bitcode :
 	${MAKE} bitcode/all_llvm.bc
 	llvm-dis bitcode/all_llvm.bc
 	grep "gf2x_mod_mul" bitcode/all_llvm.ll
+	grep "gf2x_add" bitcode/all_llvm.ll
 
 
 
