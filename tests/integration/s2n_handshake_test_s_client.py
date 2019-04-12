@@ -26,6 +26,8 @@ import itertools
 import multiprocessing
 import threading
 import uuid
+import re
+import string
 from os import environ
 from multiprocessing.pool import ThreadPool
 from s2n_test_constants import *
@@ -40,6 +42,9 @@ PROTO_VERS_TO_S_CLIENT_ARG = {
 S_CLIENT_SUCCESSFUL_OCSP="OCSP Response Status: successful"
 S_CLIENT_NEGOTIATED_CIPHER_PREFIX="Cipher    : "
 S_CLIENT_HOSTNAME_MISMATCH="verify error:num=62:Hostname mismatch"
+# Server certificate starts on the line after this one.
+S_CLIENT_START_OF_SERVER_CERTIFICATE="Server certificate"
+S_CLIENT_LAST_CERTIFICATE_LINE_PATTERN=re.compile("-----END.*CERTIFICATE-----")
 
 def communicate_processes(*processes):
     outs = []
@@ -138,6 +143,34 @@ def validate_hostname(s_client_out):
             return 1
     return 0
 
+def validate_selected_certificate(s_client_out, expected_cert_path):
+    """
+    Make sure that the server certificate that s_client sees is the certificate we expect.
+    """
+    s_client_out_len = len(s_client_out)
+    start_found = 0
+    cert_str = ""
+    for line in s_client_out.splitlines():
+        # Spin until we get to the start of the cert
+        if start_found == 0:
+            if S_CLIENT_START_OF_SERVER_CERTIFICATE in line:
+                start_found = 1
+        else:
+            cert_str+=line
+            cert_str+="\n"
+        # reached the end of the cert.
+        if S_CLIENT_LAST_CERTIFICATE_LINE_PATTERN.match(line):
+            break
+
+    expected_cert_str = open(expected_cert_path).read()
+    if "".join(cert_str.split()) != "".join(expected_cert_str.split()):
+        print("The expected certificate was not served!!!")
+        print("The cert I expected: \n" + expected_server_cert_str)
+        print("The cert I got: \n" + cert_str)
+        return -1
+
+    return 0
+
 def read_process_output_until(process, marker):
     output = ""
 
@@ -150,7 +183,7 @@ def read_process_output_until(process, marker):
     return output
 
 def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_hostname=False, server_cert=None, server_key=None,
-        server_cert_key_list=None, server_cipher_pref=None, ocsp=None, sig_algs=None, curves=None, resume=False, no_ticket=False,
+        server_cert_key_list=None, expected_server_cert=None, server_cipher_pref=None, ocsp=None, sig_algs=None, curves=None, resume=False, no_ticket=False,
         prefer_low_latency=False, enter_fips_mode=False, client_auth=None, client_cert=DEFAULT_CLIENT_CERT_PATH,
         client_key=DEFAULT_CLIENT_KEY_PATH, expected_cipher=None):
     """
@@ -165,6 +198,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
     :param str server_cert: path to certificate for s2nd to use
     :param str server_key: path to private key for s2nd to use
     :param list server_cert_key_list: a list of (cert_path, key_path) tuples for multicert tests.
+    :param str expected_server_cert: Path to the expected server certificate should be sent to s_client.
     :param str ocsp: path to OCSP response file for stapling
     :param str sig_algs: Signature algorithms for s_client to offer
     :param str curves: Elliptic curves for s_client to offer
@@ -298,6 +332,10 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
 
     if strict_hostname is True:
         if validate_hostname(s_client_out) != 0:
+            return -1
+
+    if expected_server_cert is not None:
+        if validate_selected_certificate(s_client_out, expected_server_cert) != 0:
             return -1
 
     return 0
@@ -663,16 +701,17 @@ def multiple_cert_type_test(host, port):
 def multiple_cert_domain_name_test(host, port):
     '''
     Test s2n server's ability to select the correct certificate based on the client ServerName extension.
+    Validates that the correct certificate is selected and s_client does not throw and hostname validation errors.
     '''
     print("\n\tRunning multiple server cert domain name test:")
 
     ALL_TEST_SNI_CERTS = [(test_case[0],test_case[1]) for test_case in SNI_CERT_TEST_CASES  ]
 
     for test_case in SNI_CERT_TEST_CASES:
-        # Verify the correct certificate is served for each valid domain
+        cert_path = test_case[0]
         for domain_name in test_case[2]:
             ret = try_handshake(host, port, "ECDHE-RSA-AES128-SHA", S2N_TLS12, server_name=domain_name,
-                    strict_hostname=True, server_cert_key_list=ALL_TEST_SNI_CERTS)
+                    strict_hostname=True, server_cert_key_list=ALL_TEST_SNI_CERTS, expected_server_cert=cert_path)
             result_prefix = "server_name: %-50s cert: %-50s" % (domain_name, test_case[0])
             print_result(result_prefix, ret)
             if ret != 0:
