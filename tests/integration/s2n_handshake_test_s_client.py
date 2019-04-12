@@ -40,15 +40,6 @@ PROTO_VERS_TO_S_CLIENT_ARG = {
 S_CLIENT_SUCCESSFUL_OCSP="OCSP Response Status: successful"
 S_CLIENT_NEGOTIATED_CIPHER_PREFIX="Cipher    : "
 
-def communicate_processes(*processes):
-    outs = []
-    for p in processes:
-        p.kill()
-        out = p.communicate()[0].decode("utf-8").split('\n')
-        outs.append(out)
-
-    return outs
-
 def cleanup_processes(*processes):
     for p in processes:
         p.kill()
@@ -140,6 +131,20 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
         ocsp=None, sig_algs=None, curves=None, resume=False, no_ticket=False, prefer_low_latency=False, enter_fips_mode=False,
         client_auth=None, client_cert=DEFAULT_CLIENT_CERT_PATH, client_key=DEFAULT_CLIENT_KEY_PATH,
         expected_cipher=None):
+    corked_io_options = [True, False]
+    for use_corked_io in corked_io_options:
+        if do_handshake(endpoint, port, cipher, ssl_version, server_cert, server_key, server_cert_key_list, server_cipher_pref,
+            ocsp, sig_algs, curves, resume, no_ticket, prefer_low_latency, enter_fips_mode,
+            client_auth, client_cert, client_key,
+            expected_cipher, use_corked_io) == -1:
+            return -1
+
+    return 0
+
+def do_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, server_cert_key_list=None, server_cipher_pref=None,
+        ocsp=None, sig_algs=None, curves=None, resume=False, no_ticket=False, prefer_low_latency=False, enter_fips_mode=False,
+        client_auth=None, client_cert=DEFAULT_CLIENT_CERT_PATH, client_key=DEFAULT_CLIENT_KEY_PATH,
+        expected_cipher=None, use_corked_io=False):
     """
     Attempt to handshake against s2nd listening on `endpoint` and `port` using Openssl s_client
 
@@ -203,6 +208,8 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     s2nd_cmd.append(s2nd_ciphers)
     if no_ticket:
         s2nd_cmd.append("-T")
+    if use_corked_io:
+        s2nd_cmd.append("-C")
 
     s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 

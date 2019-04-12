@@ -40,8 +40,15 @@ def cleanup_processes(*processes):
         p.kill()
         p.wait()
 
-
 def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, sig_algs=None, curves=None, dh_params=None, resume=False, no_ticket=False):
+    corked_io_options = [True, False]
+    for use_corked_io in corked_io_options:
+        if do_handshake(endpoint, port, cipher, ssl_version, server_cert, server_key, sig_algs, curves, dh_params, resume, no_ticket, use_corked_io) == -1:
+            return -1
+
+    return 0
+
+def do_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, sig_algs=None, curves=None, dh_params=None, resume=False, no_ticket=False, use_corked_io=False):
     """
     Attempt to handshake against Openssl s_server listening on `endpoint` and `port` using s2nc
 
@@ -112,6 +119,8 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
         s2nc_cmd.append("-r")
     if no_ticket:
         s2nc_cmd.append("-T")
+    if use_corked_io:
+        s2nc_cmd.append("-C")
     s2nc_cmd.extend([str(endpoint), str(port)])
 
     envVars = os.environ.copy()
