@@ -30,6 +30,7 @@ from os import environ
 from multiprocessing.pool import ThreadPool
 from s2n_test_constants import *
 from time import sleep
+import random 
 
 PROTO_VERS_TO_S_CLIENT_ARG = {
     S2N_TLS10 : "-tls1",
@@ -132,14 +133,10 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
         client_auth=None, client_cert=DEFAULT_CLIENT_CERT_PATH, client_key=DEFAULT_CLIENT_KEY_PATH,
         expected_cipher=None):
     corked_io_options = [True, False]
-    for use_corked_io in corked_io_options:
-        if do_handshake(endpoint, port, cipher, ssl_version, server_cert, server_key, server_cert_key_list, server_cipher_pref,
-            ocsp, sig_algs, curves, resume, no_ticket, prefer_low_latency, enter_fips_mode,
-            client_auth, client_cert, client_key,
-            expected_cipher, use_corked_io) == -1:
-            return -1
 
-    return 0
+    return do_handshake(endpoint, port, cipher, ssl_version, server_cert, server_key, server_cert_key_list, server_cipher_pref,
+            ocsp, sig_algs, curves, resume, no_ticket, prefer_low_latency, enter_fips_mode,
+            client_auth, client_cert, client_key, expected_cipher, corked_io_options[random.randint(0, 1)])
 
 def do_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, server_cert_key_list=None, server_cipher_pref=None,
         ocsp=None, sig_algs=None, curves=None, resume=False, no_ticket=False, prefer_low_latency=False, enter_fips_mode=False,

@@ -27,6 +27,7 @@ import multiprocessing
 from multiprocessing.pool import ThreadPool
 from s2n_test_constants import *
 from time import sleep
+import random 
 
 PROTO_VERS_TO_S_SERVER_ARG = {
     S2N_TLS10: "-tls1",
@@ -42,11 +43,8 @@ def cleanup_processes(*processes):
 
 def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, sig_algs=None, curves=None, dh_params=None, resume=False, no_ticket=False):
     corked_io_options = [True, False]
-    for use_corked_io in corked_io_options:
-        if do_handshake(endpoint, port, cipher, ssl_version, server_cert, server_key, sig_algs, curves, dh_params, resume, no_ticket, use_corked_io) == -1:
-            return -1
-
-    return 0
+    
+    return do_handshake(endpoint, port, cipher, ssl_version, server_cert, server_key, sig_algs, curves, dh_params, resume, no_ticket, corked_io_options[random.randint(0, 1)])
 
 def do_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, sig_algs=None, curves=None, dh_params=None, resume=False, no_ticket=False, use_corked_io=False):
     """
