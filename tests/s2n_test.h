@@ -25,7 +25,7 @@
 
 /* Macro definitions for calls that occur within BEGIN_TEST() and END_TEST() to preserve the SKIPPED test behavior
  * by ignoring the test_count, keeping it as 0 to indicate that a test was skipped. */
-#define EXPECT_TRUE_WITHOUT_COUNT( condition )    { if ( !(condition) ) { FAIL_MSG( #condition " is not true "); } }
+#define EXPECT_TRUE_WITHOUT_COUNT( condition )    do { if ( !(condition) ) { FAIL_MSG( #condition " is not true "); } } while(0)
 #define EXPECT_FALSE_WITHOUT_COUNT( condition )   EXPECT_TRUE_WITHOUT_COUNT( !(condition) )
 
 #define EXPECT_NOT_EQUAL_WITHOUT_COUNT( p1, p2 )  EXPECT_FALSE_WITHOUT_COUNT( (p1) == (p2) )
@@ -37,12 +37,14 @@
  * happen in main() and start with a BEGIN_TEST() and end with an END_TEST();
  */
 #ifdef S2N_TEST_IN_FIPS_MODE
-#define BEGIN_TEST() int test_count = 0; EXPECT_NOT_EQUAL_WITHOUT_COUNT(FIPS_mode_set(1), 0); EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());\
-                            { fprintf(stdout, "Running FIPS test %-50s ... ", __FILE__); }
+#define BEGIN_TEST() int test_count = 0; do { EXPECT_NOT_EQUAL_WITHOUT_COUNT(FIPS_mode_set(1), 0); \
+                            EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init()); \
+                            fprintf(stdout, "Running FIPS test %-50s ... ", __FILE__); } while(0)
 #else
-#define BEGIN_TEST() int test_count = 0; EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init()); { fprintf(stdout, "Running %-50s ... ", __FILE__); }
+#define BEGIN_TEST() int test_count = 0; do { EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());  fprintf(stdout, "Running %-50s ... ", __FILE__); } while(0)
 #endif
-#define END_TEST()   EXPECT_SUCCESS_WITHOUT_COUNT(s2n_cleanup()); { if (isatty(fileno(stdout))) { \
+#define END_TEST()   do { EXPECT_SUCCESS_WITHOUT_COUNT(s2n_cleanup()); \
+                        if (isatty(fileno(stdout))) { \
                             if (test_count) { \
                                 fprintf(stdout, "\033[32;1mPASSED\033[0m %10d tests\n", test_count ); \
                             }\
@@ -59,20 +61,20 @@
                             }\
                        } \
                        return 0;\
-                    }
+                    } while(0)
 
-#define FAIL()      FAIL_MSG("");
+#define FAIL()      FAIL_MSG("")
 
-#define FAIL_MSG( msg ) { if (isatty(fileno(stdout))) { \
+#define FAIL_MSG( msg ) do { if (isatty(fileno(stdout))) { \
                             fprintf(stdout, "\033[31;1mFAILED test %d\033[0m\n%s (%s line %d)\nError Message: '%s'\n Debug String: '%s'\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_debug_str); \
                           } \
                           else { \
                             fprintf(stdout, "FAILED test %d\n%s (%s line %d)\nError Message: '%s'\n Debug String: '%s'\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_debug_str); \
                           } \
                           exit(1);  \
-                        }
+                        } while(0)
 
-#define EXPECT_TRUE( condition )    { test_count++; if ( !(condition) ) { FAIL_MSG( #condition " is not true "); } }
+#define EXPECT_TRUE( condition )    do { test_count++; if ( !(condition) ) { FAIL_MSG( #condition " is not true "); } } while(0)
 #define EXPECT_FALSE( condition )   EXPECT_TRUE( !(condition) )
 
 #define EXPECT_EQUAL( p1, p2 )      EXPECT_TRUE( (p1) == (p2) )
@@ -81,7 +83,7 @@
 #define EXPECT_NULL( ptr )      EXPECT_EQUAL( ptr, NULL )
 #define EXPECT_NOT_NULL( ptr )  EXPECT_NOT_EQUAL( ptr, NULL )
 
-#define EXPECT_FAILURE( function_call )  { EXPECT_EQUAL( (function_call) ,  -1 ); EXPECT_NOT_EQUAL(s2n_errno, 0); EXPECT_NOT_NULL(s2n_debug_str); s2n_errno = 0; s2n_debug_str = NULL; }
+#define EXPECT_FAILURE( function_call )  do { EXPECT_EQUAL( (function_call) ,  -1 ); EXPECT_NOT_EQUAL(s2n_errno, 0); EXPECT_NOT_NULL(s2n_debug_str); s2n_errno = 0; s2n_debug_str = NULL; } while(0)
 #define EXPECT_SUCCESS( function_call )  EXPECT_NOT_EQUAL( (function_call) ,  -1 )
 
 #define EXPECT_BYTEARRAY_EQUAL( p1, p2, l ) EXPECT_EQUAL( memcmp( (p1), (p2), (l) ), 0 )

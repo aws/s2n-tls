@@ -133,7 +133,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1))
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1))
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
@@ -226,7 +226,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1))
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
