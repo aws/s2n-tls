@@ -206,7 +206,7 @@ void get_A(const f2elm_t *xP, const f2elm_t *xQ, const f2elm_t *xR, f2elm_t *A)
 { // Given the x-coordinates of P, Q, and R, returns the value A corresponding to the Montgomery curve E_A: y^2=x^3+A*x^2+x such that R=Q-P on E_A.
   // Input:  the x-coordinates xP, xQ, and xR of the points P, Q and R.
   // Output: the coefficient A corresponding to the curve E_A: y^2=x^3+A*x^2+x.
-    f2elm_t _t0, _t1, one = {0};
+    f2elm_t _t0, _t1, one = {{{0}}};
     f2elm_t *t0=&_t0, *t1=&_t1;
     
     fpcopy((const digit_t*)&Montgomery_one, one.e[0]);
@@ -306,8 +306,8 @@ static void swap_points(point_proj_t P, point_proj_t Q, const digit_t option)
 
 static void LADDER3PT(const f2elm_t *xP, const f2elm_t *xQ, const f2elm_t *xPQ, const digit_t* m, const unsigned int AliceOrBob, point_proj_t R, const f2elm_t *A)
 {
-    point_proj_t R0 = {0}, R2 = {0};
-    f2elm_t _A24 = {0};
+    point_proj_t R0 = {{{{{0}}}}}, R2 = {{{{{0}}}}};
+    f2elm_t _A24 = {{{0}}};
     f2elm_t *A24=&_A24;
     digit_t mask;
     int i, nbits, bit, swap, prevbit = 0;

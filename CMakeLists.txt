@@ -21,6 +21,11 @@ file(GLOB ERROR_HEADERS
     "error/*.h"
 )
 
+file(GLOB PQ_HEADERS
+    "pq-crypto/*.h"
+    "pq-crypto/sike/*.h"
+)
+
 file(GLOB STUFFER_HEADERS
     "stuffer/*.h"
 )
@@ -42,6 +47,15 @@ file(GLOB ERROR_SRC
     "error/*.c"
 )
 
+# The SIKE code #includes .c files directly, including all sike/*.c breaks the build due to duplicates
+file(GLOB PQ_SRC
+    "pq-crypto/*.c"
+    "pq-crypto/sike/fp_generic.c"
+    "pq-crypto/sike/P503.c"
+    "pq-crypto/sike/sike_p503_kem.c"
+    "pq-crypto/sike/fips202.c"
+)
+
 file(GLOB STUFFER_SRC
     "stuffer/*.c"
 )
@@ -59,12 +73,14 @@ if(MSVC)
     source_group("Header Files\\s2n\\api" FILES ${API_HEADERS})
     source_group("Header Files\\s2n\\crypto" FILES ${CRYPTO_HEADERS})
     source_group("Header Files\\s2n\\error" FILES ${ERROR_HEADERS})
+    source_group("Header Files\\s2n\\pq-crypto" FILES ${PQ_HEADERS})
     source_group("Header Files\\s2n\\stuffer" FILES ${STUFFER_HEADERS})
     source_group("Header Files\\s2n\\tls" FILES ${TLS_HEADERS})
     source_group("Header Files\\s2n\\utils" FILES ${UTILS_HEADERS})
 
     source_group("Source Files\\crypto" FILES ${CRYPTO_SRC})
     source_group("Source Files\\error" FILES ${ERROR_SRC})
+    source_group("Source Files\\pq-crypto" FILES ${PQ_SRC})
     source_group("Source Files\\stuffer" FILES ${STUFFER_SRC})
     source_group("Source Files\\tls" FILES ${TLS_SRC})
     source_group("Source Files\\utils" FILES ${UTILS_SRC})
@@ -84,6 +100,7 @@ file(GLOB S2N_HEADERS
     ${API_HEADERS}
     ${CRYPTO_HEADERS}
     ${ERROR_HEADERS}
+    ${PQ_HEADERS}
     ${STUFFER_HEADERS}
     ${TLS_HEADERS}
     ${UTILS_HEADERS}
@@ -92,6 +109,7 @@ file(GLOB S2N_HEADERS
 file(GLOB S2N_SRC
     ${CRYPTO_SRC}
     ${ERROR_SRC}
+    ${PQ_SRC}
     ${STUFFER_SRC}
     ${TLS_SRC}
     ${UTILS_SRC}
@@ -128,21 +146,6 @@ target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAK
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC $<TARGET_PROPERTY:LibCrypto::Crypto,INTERFACE_INCLUDE_DIRECTORIES>)
 
-#######################################
-#   Begin  PQ-Crypto 
-#######################################
-option (USE_S2N_PQ_CRYPTO "Use S2N default Post Quantum crypto library" ON) 
-
-if (USE_S2N_PQ_CRYPTO)
-    include_directories ("${PROJECT_SOURCE_DIR}/pq-crypto")
-    add_subdirectory (pq-crypto)
-    set (EXTRA_LIBS ${EXTRA_LIBS} s2n_pq_crypto)
-endif (USE_S2N_PQ_CRYPTO)
-
-#######################################
-#   end PQ-Crypto 
-#######################################
-
 include(CTest)
 if (BUILD_TESTING)
     enable_testing()
@@ -164,7 +167,7 @@ if (BUILD_TESTING)
         string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
 
         add_executable(${test_case_name} ${test_case})
-        target_link_libraries(${test_case_name} PRIVATE testss2n ${EXTRA_LIBS} m pthread)
+        target_link_libraries(${test_case_name} PRIVATE testss2n m pthread)
         target_include_directories(${test_case_name} PRIVATE api)
         target_include_directories(${test_case_name} PRIVATE ./)
         target_include_directories(${test_case_name} PRIVATE tests)
