@@ -12,25 +12,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 #
-.DEFAULT_GOAL := all
-
-include ../../s2n.mk
-
-#WA for GCC 4.8.5 bug.
-CFLAGS += -Wno-missing-braces
-
-CFLAGS+=-I../../
-
 SRCS=fp_generic.c P503.c sike_p503_kem.c fips202.c
 OBJS=$(SRCS:.c=.o)
 
+CFLAGS+=-I../../
+
 .PHONY : all
-all: libsike_p503.a
+all: $(OBJS)
 
-libsike_p503.a: ${OBJS}
-	$(AR) cru libsike_p503.a ${OBJS}
-	$(RANLIB) libsike_p503.a
+.PHONY : bc
+bc: $(BCS)
 
-.PHONY : clean
-clean:
-	${MAKE} decruft
+include ../../s2n.mk
