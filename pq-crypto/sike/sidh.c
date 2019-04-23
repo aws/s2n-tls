@@ -56,18 +56,6 @@ static void fp2_decode(const unsigned char *enc, f2elm_t *x)
     to_fp2mont(x, x);
 }
 
-
-void random_mod_order_A(unsigned char* random_digits)
-{  // Generation of Alice's secret key  
-   // Outputs random value in [0, 2^eA - 1]
-    unsigned long long nbytes = NBITS_TO_NBYTES(OALICE_BITS);
-
-    clear_words((void*)random_digits, MAXWORDS_ORDER);
-    get_random_bytes(random_digits, nbytes);
-    random_digits[nbytes-1] &= MASK_ALICE;    // Masking last byte 
-}
-
-
 void random_mod_order_B(unsigned char* random_digits)
 {  // Generation of Bob's secret key  
    // Outputs random value in [0, 2^Floor(Log(2, oB)) - 1]

@@ -91,14 +91,6 @@ void fp2copy(const f2elm_t *a, f2elm_t *c)
     fpcopy(a->e[1], c->e[1]);
 }
 
-
-void fp2zero(f2elm_t *a)
-{ // Zero a GF(p^2) element, a = 0.
-    fpzero(a->e[0]);
-    fpzero(a->e[1]);
-}
-
-
 void fp2neg(f2elm_t *a)
 { // GF(p^2) negation, a = -a in GF(p^2).
     fpneg(a->e[0]);
@@ -353,28 +345,6 @@ unsigned int mp_add(const digit_t* a, const digit_t* b, digit_t* c, const unsign
     return carry;
 }
 
-
-void mp_shiftleft(digit_t* x, unsigned int shift, const unsigned int nwords)
-{
-    unsigned int i, j = 0;
-
-    while (shift > RADIX) {
-        j += 1;
-        shift -= RADIX;
-    }
-
-    for (i = 0; i < nwords-j; i++) 
-        x[nwords-1-i] = x[nwords-1-i-j];
-    for (i = nwords-j; i < nwords; i++) 
-        x[nwords-1-i] = 0;
-    if (shift != 0) {
-        for (j = nwords-1; j > 0; j--) 
-            SHIFTL(x[j], x[j-1], shift, x[j], RADIX);
-        x[0] <<= shift;
-    }
-}
-
-
 void mp_shiftr1(digit_t* x, const unsigned int nwords)
 { // Multiprecision right shift by one.
     unsigned int i;
@@ -383,15 +353,4 @@ void mp_shiftr1(digit_t* x, const unsigned int nwords)
         SHIFTR(x[i+1], x[i], 1, x[i], RADIX);
     }
     x[nwords-1] >>= 1;
-}
-
-
-void mp_shiftl1(digit_t* x, const unsigned int nwords)
-{ // Multiprecision left shift by one.
-    int i;
-
-    for (i = nwords-1; i > 0; i--) {
-        SHIFTL(x[i], x[i-1], 1, x[i], RADIX);
-    }
-    x[0] <<= 1;
 }
