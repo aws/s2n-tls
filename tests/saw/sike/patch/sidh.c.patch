@@ -15,10 +15,6 @@
 < int EphemeralKeyGeneration_B(const digit_t* PrivateKeyB, unsigned char* PublicKeyB)
 ---
 > int EphemeralKeyGeneration_B(const digit_t* PrivateKeyB, unsigned char* PublicKeyB, unsigned int F1)
-156c157
-<     f2elm_t _XPB, _XQB, _XRB, coeff[3], _A24plus = {0}, _A24minus = {0}, _A = {0};
----
->     f2elm_t _XPB, _XQB, _XRB, coeff[2], _A24plus = {0}, _A24minus = {0}, _A = {0};
 177,179c178,181
 <     index = 0;  
 <     for (row = 1; row < MAX_Bob; row++) {
