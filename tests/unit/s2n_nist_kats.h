@@ -120,3 +120,4 @@ static inline int ReadHex(FILE *infile, uint8_t *buf, uint32_t len, const char *
  
     return 0;
 }
+

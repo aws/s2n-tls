@@ -15,7 +15,7 @@
 #ifndef __SIKE_P503_KEM_H_INCLUDED__
 #define __SIKE_P503_KEM_H_INCLUDED__
 
-#include "../pq-utils.h"
+#include "../pq_utils.h"
 
 ////////////////////////////////////////////////////////////////
 //The three APIs below (keypair, enc, dec) are defined by NIST:

@@ -32,17 +32,17 @@ all: $(UNIT_TESTS)
 include ../../s2n.mk
 
 CRUFT += $(wildcard *_test)
-LIBS += -lm -ls2n_pq_crypto -ltests2n -ls2n -ldl
+LIBS += -lm -ltests2n -ls2n -ldl
 
 # Suppress the unreachable code warning, because tests involve what should be
 # unreachable code
-CFLAGS += -Wno-unreachable-code -I$(LIBCRYPTO_ROOT)/include/ -I../../ -I../../api/ -I../../pq-crypto/
-LDFLAGS += -L../../lib/ ${CRYPTO_LDFLAGS} -L../testlib/ -L../../pq-crypto ${LIBS} ${CRYPTO_LIBS}
+CFLAGS += -Wno-unreachable-code -I$(LIBCRYPTO_ROOT)/include/ -I../../ -I../../api/
+LDFLAGS += -L../../lib/ ${CRYPTO_LDFLAGS} -L../testlib/ ${LIBS} ${CRYPTO_LIBS}
 
 $(UNIT_TESTS)::
 	@${CC} ${CFLAGS} -o $@ $@.c ${LDFLAGS} 2>&1
 	@DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
-	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:../../pq-crypto:$$LD_LIBRARY_PATH" \
+	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
 	LD_PRELOAD="../LD_PRELOAD/allocator_overrides.so" \
 	S2N_UNIT_TEST=1 \
 	./$@
@@ -50,7 +50,7 @@ $(UNIT_TESTS)::
 $(VALGRIND_TESTS)::
 	@${CC} ${CFLAGS} -o $(@:.valgrind=) $(@:.valgrind=.c) ${LDFLAGS} 2>&1
 	@DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
-	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:../../pq-crypto:$$LD_LIBRARY_PATH" \
+	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
 	S2N_VALGRIND=1 \
 	S2N_UNIT_TEST=1 \
 	valgrind --leak-check=full --run-libc-freeres=no -q --error-exitcode=9 --gen-suppressions=all --log-fd=2 --num-callers=40 --leak-resolution=high --undef-value-errors=no --trace-children=yes --suppressions=valgrind.suppressions \
