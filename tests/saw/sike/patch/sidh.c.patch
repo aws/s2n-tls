@@ -1,3 +1,7 @@
+8c8
+< #include "pq-crypto/pq_random.h"
+---
+> #include "../pq_random.h"
 82c82
 < int EphemeralKeyGeneration_A(const digit_t* PrivateKeyA, unsigned char* PublicKeyA)
 ---

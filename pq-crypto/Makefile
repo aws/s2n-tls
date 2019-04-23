@@ -15,7 +15,11 @@
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
+BCS_11=pq_random.bc
+BCS1=$(addprefix $(BITCODE_DIR), $(BCS_11))
+
 .PHONY : bc
+bc: $(BCS1)
 	$(MAKE) -C sike bc
 
 .PHONY : all
@@ -27,4 +31,3 @@ clean: decruft
 	${MAKE} -C sike decruft
 
 include ../s2n.mk
-
