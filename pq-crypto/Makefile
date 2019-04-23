@@ -15,13 +15,11 @@
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
-BITCODE_DIR?=../tests/saw/bitcode/
-
-BCS_11=pq-random.bc
+BCS_11=pq_random.bc
 BCS1=$(addprefix $(BITCODE_DIR), $(BCS_11))
 
 .PHONY : bc
-bc:     $(BCS1)
+bc: $(BCS1)
 	$(MAKE) -C sike bc
 
 .PHONY : all
@@ -35,11 +33,4 @@ all: $(OBJS)
 run-gcov: gcov
 	$(MAKE) -C sike gcov
 
-.PHONY : run-lcov
-run-lcov: lcov
-	$(MAKE) -C sike lcov
-
-.PHONY : clean
-clean:
-	${MAKE} -C sike clean
-	${MAKE} decruft
+include ../s2n.mk
