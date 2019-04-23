@@ -6,8 +6,8 @@
 > // for easier analysis.
 > void LADDER3PT_short(const f2elm_t xP, const f2elm_t xQ, const f2elm_t xPQ, const digit_t* m, const int nbits, point_proj_t R, const f2elm_t A)
 > {
->     point_proj_t R0 = {0}, R2 = {0};
->     f2elm_t _A24 = {0};
+>     point_proj_t R0 = {{{{{0}}}}}, R2 = {{{{{0}}}}};
+>     f2elm_t _A24 = {{{0}}};
 >     f2elm_t *A24=&_A24;
 >     digit_t mask;
 >     int i, bit, swap, prevbit = 0;
