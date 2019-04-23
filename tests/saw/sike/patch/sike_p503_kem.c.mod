@@ -9,7 +9,7 @@
 #include <string.h>
 #include "P503_internal.h"
 #include "fips202.h"
-#include "pq-crypto/pq-random.h"
+#include "pq-crypto/pq_random.h"
 
 int SIKE_P503_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 { // SIKE's key generation
