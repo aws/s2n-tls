@@ -5,7 +5,7 @@
 *********************************************************************************************/ 
 
 #include "P503_internal.h"
-#include "pq-crypto/pq-random.h"
+#include "pq-crypto/pq_random.h"
 
 static void clear_words(void* mem, digit_t nwords)
 { // Clear digits from memory. "nwords" indicates the number of digits to be zeroed.
@@ -83,8 +83,8 @@ int EphemeralKeyGeneration_A(const digit_t* PrivateKeyA, unsigned char* PublicKe
 { // Alice's ephemeral public key generation
   // Input:  a private key PrivateKeyA in the range [0, 2^eA - 1]. 
   // Output: the public key PublicKeyA consisting of 3 elements in GF(p^2) which are encoded by removing leading 0 bytes.
-    point_proj_t R, phiP = {0}, phiQ = {0}, phiR = {0}, pts[MAX_INT_POINTS_ALICE];
-    f2elm_t _XPA, _XQA, _XRA, coeff[3], _A24plus = {0}, _C24 = {0}, _A = {0};
+    point_proj_t R, phiP = {{{{{0}}}}}, phiQ = {{{{{0}}}}}, phiR = {{{{{0}}}}}, pts[MAX_INT_POINTS_ALICE];
+    f2elm_t _XPA, _XQA, _XRA, coeff[3], _A24plus = {{{0}}}, _C24 = {{{0}}}, _A = {{{0}}};
     f2elm_t *XPA=&_XPA, *XQA=&_XQA, *XRA=&_XRA, *A24plus=&_A24plus, *C24=&_C24, *A=&_A;
     unsigned int i, row, m, index = 0, pts_index[MAX_INT_POINTS_ALICE], npts = 0, ii = 0;
 
@@ -152,8 +152,8 @@ int EphemeralKeyGeneration_B(const digit_t* PrivateKeyB, unsigned char* PublicKe
 { // Bob's ephemeral public key generation
   // Input:  a private key PrivateKeyB in the range [0, 2^Floor(Log(2,oB)) - 1]. 
   // Output: the public key PublicKeyB consisting of 3 elements in GF(p^2) which are encoded by removing leading 0 bytes.
-    point_proj_t R, phiP = {0}, phiQ = {0}, phiR = {0}, pts[MAX_INT_POINTS_BOB];
-    f2elm_t _XPB, _XQB, _XRB, coeff[3], _A24plus = {0}, _A24minus = {0}, _A = {0};
+    point_proj_t R, phiP = {{{{{0}}}}}, phiQ = {{{{{0}}}}}, phiR = {{{{{0}}}}}, pts[MAX_INT_POINTS_BOB];
+    f2elm_t _XPB, _XQB, _XRB, coeff[3], _A24plus = {{{0}}}, _A24minus = {{{0}}}, _A = {{{0}}};
     f2elm_t *XPB=&_XPB, *XQB=&_XQB, *XRB=&_XRB, *A24plus=&_A24plus, *A24minus=&_A24minus, *A=&_A;
     unsigned int i, row, m, index = 0, pts_index[MAX_INT_POINTS_BOB], npts = 0, ii = 0;
 
@@ -226,7 +226,7 @@ int EphemeralSecretAgreement_A(const digit_t* PrivateKeyA, const unsigned char* 
   // Output: a shared secret SharedSecretA that consists of one element in GF(p^2) encoded by removing leading 0 bytes.  
     point_proj_t R, pts[MAX_INT_POINTS_ALICE];
     f2elm_t coeff[3], PKB[3], _jinv;
-    f2elm_t _A24plus = {0}, _C24 = {0}, _A = {0};
+    f2elm_t _A24plus = {{{0}}}, _C24 = {{{0}}}, _A = {{{0}}};
     f2elm_t *jinv=&_jinv, *A24plus=&_A24plus, *C24=&_C24, *A=&_A;
     unsigned int i, row, m, index = 0, pts_index[MAX_INT_POINTS_ALICE], npts = 0, ii = 0;
       
@@ -286,7 +286,7 @@ int EphemeralSecretAgreement_B(const digit_t* PrivateKeyB, const unsigned char* 
   // Output: a shared secret SharedSecretB that consists of one element in GF(p^2) encoded by removing leading 0 bytes.  
     point_proj_t R, pts[MAX_INT_POINTS_BOB];
     f2elm_t coeff[3], PKB[3], _jinv;
-    f2elm_t _A24plus = {0}, _A24minus = {0}, _A = {0};
+    f2elm_t _A24plus = {{{0}}}, _A24minus = {{{0}}}, _A = {{{0}}};
     f2elm_t *jinv=&_jinv, *A24plus=&_A24plus, *A24minus=&_A24minus, *A=&_A;
     unsigned int i, row, m, index = 0, pts_index[MAX_INT_POINTS_BOB], npts = 0, ii = 0;
       
