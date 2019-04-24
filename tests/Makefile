@@ -40,6 +40,7 @@ integration:
 
 .PHONY : fuzz
 fuzz:
+	${MAKE} -C testlib
 	${MAKE} -C fuzz
 
 include ../s2n.mk
