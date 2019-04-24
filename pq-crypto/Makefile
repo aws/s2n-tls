@@ -18,10 +18,6 @@ OBJS=$(SRCS:.c=.o)
 BCS_11=pq_random.bc
 BCS1=$(addprefix $(BITCODE_DIR), $(BCS_11))
 
-.PHONY : bc
-bc: $(BCS1)
-	$(MAKE) -C sike bc
-
 .PHONY : all
 all: libs2n_pq_crypto.so
 
@@ -29,8 +25,12 @@ all: libs2n_pq_crypto.so
 all: $(OBJS)
 	$(MAKE) -C sike
 
-.PHONY : run-gcov
-run-gcov: gcov
-	$(MAKE) -C sike gcov
+.PHONY : bc
+bc: $(BCS1)
+	$(MAKE) -C sike bc
+
+.PHONY : clean
+clean: decruft
+	${MAKE} -C sike decruft
 
 include ../s2n.mk
