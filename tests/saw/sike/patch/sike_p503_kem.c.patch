@@ -1,7 +1,3 @@
-12c12
-< #include "pq-crypto/pq_random.h"
----
-> #include "../pq_random.h"
 26c26
 <     EphemeralKeyGeneration_B(_sk, pk);
 ---
