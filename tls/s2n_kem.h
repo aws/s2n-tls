@@ -42,6 +42,8 @@ struct s2n_kem_keypair {
     struct s2n_blob private_key;
 };
 
+extern const struct s2n_kem s2n_sike_r1_p503;
+
 extern int s2n_kem_generate_keypair(struct s2n_kem_keypair *kem_keys);
 
 extern int s2n_kem_encapsulate(const struct s2n_kem_keypair *kem_keys, struct s2n_blob *shared_secret,
