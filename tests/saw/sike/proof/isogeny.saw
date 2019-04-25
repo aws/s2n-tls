@@ -368,11 +368,11 @@ let fp_functions =
 
 let fp2_functions =
     [ "fp2norm", "fp2normalized", "fp2neg503", "pf2twice_mod"
-    , "fp2add503", "fp2sub503", "fp2div2_503", "fp2zero503"
+    , "fp2add503", "fp2sub503", "fp2div2_503"
     , "fp2mul503_mont", "fp2sqr503_mont", "fp2inv503_mont" ];
 
 let ladder_unint = concat fp_functions
-    ["fp2neg503", "fp2add503", "fp2sub503", "fp2div2_503", "fp2zero503"
+    ["fp2neg503", "fp2add503", "fp2sub503", "fp2div2_503"
     , "fp2mul503_mont", "fp2sqr503_mont", "fp2inv503_mont", "fp2normalized"
     , "xdbladd_" ];
 

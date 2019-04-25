@@ -267,27 +267,6 @@ shake256_absorb_zero_ov <- verify_shake_unint
     "keccak_absorb" [KeccakF1600_StatePermute_ov]
     [] (keccak_absorb_zero_spec 10 SHAKE256_RATE);
 
-shake256_ov <- verify_shake_unint
-    "shake256" [KeccakF1600_StatePermute_ov, shake256_absorb_ones_ov ]
-    [] (shake256_spec 64 10 );
-
-cshake128_simple_absorb_ov <- verify_shake_unint
-    "cshake128_simple_absorb"
-    [KeccakF1600_StatePermute_ov, shake128_absorb_zero_ov ] []
-    (cshake128_simple_absorb_spec 10 SHAKE128_RATE);
-
-cshake256_simple_absorb_ov <- verify_shake_unint
-    "cshake256_simple_absorb"
-    [KeccakF1600_StatePermute_ov, shake256_absorb_zero_ov ] []
-    (cshake256_simple_absorb_spec 10 SHAKE256_RATE);
-
-cshake256_simple_ov <- verify_shake_unint
-    "cshake256_simple"
-    [ KeccakF1600_StatePermute_ov
-    , cshake256_simple_absorb_ov
-    , cshake256_simple_absorb_ov ] []
-    (cshake256_simple_spec 10 SHAKE256_RATE);
-
 cshake256_simple_dec_ov <- admit "cshake256_simple"
     [] (cshake256_simple_spec_admit fp2_encoded_bytes 2 24);
 cshake256_simple_enc_ov0 <- admit "cshake256_simple"

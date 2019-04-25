@@ -222,8 +222,6 @@ let ephemeralSecretAgreement_B_spec (f1:Int) = do {
 basis_thm1 <- prove_print (tactic []) {{ (is_good_basis A_gen) == True }};
 basis_thm2 <- prove_print (tactic []) {{ (is_good_basis B_gen) == True }};
 
-random_mod_order_A_ov <- admit "random_mod_order_A"
-    [clear_words_ov, randombytes_sidh_ov] random_mod_order_A_spec;
 random_mod_order_B_ov <- admit "random_mod_order_B"
     [clear_words_ov, randombytes_sidh_ov] random_mod_order_B_spec;
 random_mod_order_B_unint_ov <- admit "random_mod_order_B"
