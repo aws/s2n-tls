@@ -41,6 +41,8 @@ PROTO_VERS_TO_S_CLIENT_ARG = {
 S_CLIENT_SUCCESSFUL_OCSP="OCSP Response Status: successful"
 S_CLIENT_NEGOTIATED_CIPHER_PREFIX="Cipher    : "
 
+use_corked_io=False
+
 def cleanup_processes(*processes):
     for p in processes:
         p.kill()
@@ -132,16 +134,6 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
         ocsp=None, sig_algs=None, curves=None, resume=False, no_ticket=False, prefer_low_latency=False, enter_fips_mode=False,
         client_auth=None, client_cert=DEFAULT_CLIENT_CERT_PATH, client_key=DEFAULT_CLIENT_KEY_PATH,
         expected_cipher=None):
-    corked_io_options = [True, False]
-
-    return do_handshake(endpoint, port, cipher, ssl_version, server_cert, server_key, server_cert_key_list, server_cipher_pref,
-            ocsp, sig_algs, curves, resume, no_ticket, prefer_low_latency, enter_fips_mode,
-            client_auth, client_cert, client_key, expected_cipher, corked_io_options[random.randint(0, 1)])
-
-def do_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, server_cert_key_list=None, server_cipher_pref=None,
-        ocsp=None, sig_algs=None, curves=None, resume=False, no_ticket=False, prefer_low_latency=False, enter_fips_mode=False,
-        client_auth=None, client_cert=DEFAULT_CLIENT_CERT_PATH, client_key=DEFAULT_CLIENT_KEY_PATH,
-        expected_cipher=None, use_corked_io=False):
     """
     Attempt to handshake against s2nd listening on `endpoint` and `port` using Openssl s_client
 
@@ -641,14 +633,24 @@ def multiple_cert_test(host, port):
 
     return 0
 
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
 def main():
     parser = argparse.ArgumentParser(description='Runs TLS server integration tests against s2nd using Openssl s_client')
     parser.add_argument('host', help='The host for s2nd to bind to')
     parser.add_argument('port', type=int, help='The port for s2nd to bind to')
+    parser.add_argument('use_corked_io', type=str2bool, help='Turn corked IO on/off')
     parser.add_argument('--libcrypto', default='openssl-1.1.1', choices=['openssl-1.0.2', 'openssl-1.0.2-fips', 'openssl-1.1.1', 'libressl'],
             help="""The Libcrypto that s2n was built with. s2n supports different cipher suites depending on
                     libcrypto version. Defaults to openssl-1.1.1.""")
     args = parser.parse_args()
+    use_corked_io = args.use_corked_io
 
     # Retrieve the test ciphers to use based on the libcrypto version s2n was built with
     test_ciphers = S2N_LIBCRYPTO_TO_TEST_CIPHERS[args.libcrypto]
@@ -659,8 +661,10 @@ def main():
     if environ.get("S2N_TEST_IN_FIPS_MODE") is not None:
         fips_mode = True
         print("\nRunning s2nd in FIPS mode.")
-
+    
     print("\nRunning tests with: " + os.popen('openssl version').read())
+    if use_corked_io == True:
+        print("Corked IO is on")
 
     failed = 0
     failed += resume_test(host, port, test_ciphers, fips_mode, no_ticket=True)

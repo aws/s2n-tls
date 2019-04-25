@@ -22,6 +22,7 @@ env:
   - S2N_LIBCRYPTO=openssl-1.1.1 LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=120 S2N_COVERAGE=true CODECOV_IO_UPLOAD=true
   # Normal Build Targets
   - S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
+  - S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true S2N_CORKED_IO=true
   - S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
   - S2N_LIBCRYPTO=openssl-1.0.2-fips BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
   - S2N_LIBCRYPTO=libressl      BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true

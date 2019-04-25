@@ -35,6 +35,7 @@ PROTO_VERS_TO_S_SERVER_ARG = {
     S2N_TLS12: "-tls1_2",
 }
 
+use_corked_io=False
 
 def cleanup_processes(*processes):
     for p in processes:
@@ -42,11 +43,6 @@ def cleanup_processes(*processes):
         p.wait()
 
 def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, sig_algs=None, curves=None, dh_params=None, resume=False, no_ticket=False):
-    corked_io_options = [True, False]
-    
-    return do_handshake(endpoint, port, cipher, ssl_version, server_cert, server_key, sig_algs, curves, dh_params, resume, no_ticket, corked_io_options[random.randint(0, 1)])
-
-def do_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, sig_algs=None, curves=None, dh_params=None, resume=False, no_ticket=False, use_corked_io=False):
     """
     Attempt to handshake against Openssl s_server listening on `endpoint` and `port` using s2nc
 
@@ -325,15 +321,24 @@ def elliptic_curve_test(host, port):
                     failed = 1
     return failed
 
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 def main():
     parser = argparse.ArgumentParser(description='Runs TLS server integration tests against Openssl s_server using s2nc')
     parser.add_argument('host', help='The host for s2nc to connect to')
     parser.add_argument('port', type=int, help='The port for s_server to bind to')
+    parser.add_argument('use_corked_io', type=str2bool, help='Turn corked IO on/off')
     parser.add_argument('--libcrypto', default='openssl-1.1.1', choices=['openssl-1.0.2', 'openssl-1.0.2-fips', 'openssl-1.1.1', 'libressl'],
             help="""The Libcrypto that s2n was built with. s2n supports different cipher suites depending on
                     libcrypto version. Defaults to openssl-1.1.1.""")
     args = parser.parse_args()
+    use_corked_io = args.use_corked_io
 
     # Retrieve the test ciphers to use based on the libcrypto version s2n was built with
     test_ciphers = S2N_LIBCRYPTO_TO_TEST_CIPHERS[args.libcrypto]
@@ -341,6 +346,8 @@ def main():
     port = args.port
 
     print("\nRunning s2n Client tests with: " + os.popen('openssl version').read())
+    if use_corked_io == True:
+        print("Corked IO is on")
 
     failed = 0
     failed += handshake_test(host, port, test_ciphers)
