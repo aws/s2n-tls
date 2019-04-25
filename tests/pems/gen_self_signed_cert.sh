@@ -32,7 +32,7 @@ Options:
 }
 
 # This only works with gnu getopt.
-PARSED_OPTS=`getopt -o vdn: --long help,user-type:,rsa-key-size:,curve-name,hash-alg:,san:,cn:,key-type: -n 'parse-options' -- "$@"`
+PARSED_OPTS=`getopt -o vdn: --long help,user-type:,rsa-key-size:,curve-name:,hash-alg:,san:,cn:,key-type: -n 'parse-options' -- "$@"`
 eval set -- "$PARSED_OPTS"
 
 USER_TYPE="server"

@@ -165,7 +165,7 @@ def validate_selected_certificate(s_client_out, expected_cert_path):
     expected_cert_str = open(expected_cert_path).read()
     if "".join(cert_str.split()) != "".join(expected_cert_str.split()):
         print("The expected certificate was not served!!!")
-        print("The cert I expected: \n" + expected_server_cert_str)
+        print("The cert I expected: \n" + expected_cert_str)
         print("The cert I got: \n" + cert_str)
         return -1
 
@@ -707,37 +707,24 @@ def multiple_cert_domain_name_test(host, port):
     '''
     print("\n\tRunning multiple server cert domain name test:")
 
-    ALL_TEST_SNI_CERTS = [(test_case[0],test_case[1]) for test_case in SNI_CERT_TEST_CASES  ]
-    # For now, we expect the default certificate to be the first one loaded into the s2n_config.
-    EXPECTED_DEFAULT_CERT = SNI_CERT_TEST_CASES[0][0]
-
     for test_case in SNI_CERT_TEST_CASES:
-        cert_path = test_case[0]
-        for domain_name in test_case[2]:
-            ret = try_handshake(host, port, "ECDHE-RSA-AES128-SHA", S2N_TLS12, server_name=domain_name,
-                    strict_hostname=True, server_cert_key_list=ALL_TEST_SNI_CERTS, expected_server_cert=cert_path)
-            result_prefix = "server_name: %-50s cert: %-50s" % (domain_name, test_case[0])
+        # Server certs to use for this test case
+        test_cert_list = [(cert[0],cert[1]) for cert in test_case[0]]
+        # ( domain , ( cert_path, key_path, acceptable_domains ), expected_domain_match, client_ciphers)
+        for domain_check in test_case[1]:
+            domain_name = domain_check[0]
+            expected_cert_path = domain_check[1][0]
+            expected_match = domain_check[2]
+            client_cipher = domain_check[3]
+            ret = try_handshake(host, port, client_cipher, S2N_TLS12, server_name=domain_name,
+                    strict_hostname=expected_match, server_cert_key_list=test_cert_list, expected_server_cert=expected_cert_path)
+            result_prefix = "server_name: %-35s match_expected: %-5s cipher: %-25s cert: %-50s" % (domain_name,
+                    expected_match,
+                    client_cipher,
+                    expected_cert_path)
             print_result(result_prefix, ret)
             if ret != 0:
                 return ret
-
-    # No matching server_name, make sure the first certificate added to s2nd is served.
-    mismatched_server_name = "no.match.expected"
-    ret = try_handshake(host, port, "ECDHE-RSA-AES128-SHA", S2N_TLS12, server_name=mismatched_server_name,
-            server_cert_key_list=ALL_TEST_SNI_CERTS, expected_server_cert=EXPECTED_DEFAULT_CERT)
-    result_prefix = "[SNI mismatch test] server_name: %-30s cert: %-50s" % (mismatched_server_name,
-            EXPECTED_DEFAULT_CERT)
-    print_result(result_prefix, ret)
-    if ret != 0:
-        return ret
-
-    # No server_name sent, make sure the first certificate added to s2nd is served.
-    ret = try_handshake(host, port, "ECDHE-RSA-AES128-SHA", S2N_TLS12, server_cert_key_list=ALL_TEST_SNI_CERTS,
-            expected_server_cert=EXPECTED_DEFAULT_CERT)
-    result_prefix = "[No SNI test] %-49s cert: %-50s" % ("", EXPECTED_DEFAULT_CERT)
-    print_result(result_prefix, ret)
-    if ret != 0:
-        return ret
 
     return 0
 
