@@ -167,6 +167,7 @@ struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void)
     GUARD_PTR(s2n_pkey_zero_init(chain_and_key->private_key));
     memset(&chain_and_key->ocsp_status, 0, sizeof(chain_and_key->ocsp_status));
     memset(&chain_and_key->sct_list, 0, sizeof(chain_and_key->sct_list));
+    chain_and_key->san_names = NULL;
     chain_and_key->x509_cert = NULL;
 
     return chain_and_key;
@@ -181,6 +182,15 @@ static int s2n_cert_chain_and_key_set_x509(struct s2n_cert_chain_and_key *chain_
     }
 
     chain_and_key->x509_cert = cert;
+
+    GENERAL_NAMES *san_names = X509_get_ext_d2i(cert, NID_subject_alt_name, NULL, NULL);
+    if (san_names == NULL) {
+        /* No SAN extension */
+        return 0;
+    }
+
+    chain_and_key->san_names = san_names;
+
     return 0;
 }
 
@@ -236,6 +246,11 @@ int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key)
     if (cert_and_key->x509_cert) {
         X509_free(cert_and_key->x509_cert);
     }
+
+    if (cert_and_key->san_names) {
+        sk_GENERAL_NAME_pop_free(cert_and_key->san_names, GENERAL_NAME_free);
+    }
+
     GUARD(s2n_free(&cert_and_key->ocsp_status));
     GUARD(s2n_free(&cert_and_key->sct_list));
 
@@ -267,11 +282,10 @@ int s2n_send_empty_cert_chain(struct s2n_stuffer *out)
     return 0;
 }
 
-static int s2n_does_cert_san_match_hostname(X509 *cert, const char *hostname)
+static int s2n_does_cert_san_match_hostname(struct s2n_cert_chain_and_key *cert, const char *hostname)
 {
-    GENERAL_NAMES *san_names = NULL;
-    if (!(san_names = X509_get_ext_d2i(cert, NID_subject_alt_name, NULL, NULL))) {
-        /* No SAN extension */
+    GENERAL_NAMES *san_names = cert->san_names;
+    if (san_names == NULL) {
         return 0;
     }
 
@@ -295,19 +309,17 @@ static int s2n_does_cert_san_match_hostname(X509 *cert, const char *hostname)
             const int match = !!((hostname_len == san_str_len) && (strncasecmp(hostname, (const char *) san_str, san_str_len) == 0));
             OPENSSL_free(san_str);
             if (match) {
-                sk_GENERAL_NAME_pop_free(san_names, GENERAL_NAME_free);
                 return 1;
             }
         }
     }
 
-    sk_GENERAL_NAME_pop_free(san_names, GENERAL_NAME_free);
     return 0;
 }
 
 int s2n_cert_chain_and_key_matches_name(struct s2n_cert_chain_and_key *chain_and_key, const char *name)
 {
-    if (s2n_does_cert_san_match_hostname(chain_and_key->x509_cert, name)) {
+    if (s2n_does_cert_san_match_hostname(chain_and_key, name)) {
         return 1;
     }
 
