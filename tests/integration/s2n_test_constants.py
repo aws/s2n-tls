@@ -188,5 +188,14 @@ SNI_CERT_TEST_CASES = [
         # Make sure alligator is still served properly
         [("www.alligator.com", SNI_CERTS["alligator"], True, "ECDHE-RSA-AES128-SHA"),
         # many_animals was the first cert added
-        (None, SNI_CERTS["many_animals"], False, "ECDHE-RSA-AES128-SHA")])
+        (None, SNI_CERTS["many_animals"], False, "ECDHE-RSA-AES128-SHA")]),
+    ([SNI_CERTS["beaver"], SNI_CERTS["alligator_ecdsa"]],
+        # Assumptions in this test:
+        #   - beaver is the default cert and is rsa
+        #   - There is an SNI mismatch for beaver
+        #   - There is an SNI match for alligator_ecdsa but only for ECDSA ciphers
+        #   - Server prefers ECDHE-RSA-AES128-SHA above ECDHE-ECDSA-AES128-SHA256
+        # Expectation:
+        #   - Server selected alligator_ecdsa cert since SNI match is a higher "priority" than cipher preference.
+        [("www.alligator.com", SNI_CERTS["alligator_ecdsa"], True, "ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA256")])
 ]
