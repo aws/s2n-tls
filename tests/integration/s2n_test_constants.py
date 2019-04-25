@@ -140,12 +140,15 @@ DEFAULT_CLIENT_KEY_PATH = TEST_CERT_DIRECTORY + "rsa_2048_sha256_client_key.pem"
 
 TEST_SNI_CERT_DIRECTORY="../pems/sni/"
 # Server certificates used to test matching domain names client with server_name
-SNI_CERT_TEST_CASES = [
-    # ( certificate_path, private_key_path, valid_domain_names )
-    (TEST_SNI_CERT_DIRECTORY + "alligator_cert.pem", TEST_SNI_CERT_DIRECTORY + "alligator_key.pem", ["www.alligator.com"]),
-    (TEST_SNI_CERT_DIRECTORY + "beaver_cert.pem", TEST_SNI_CERT_DIRECTORY + "beaver_key.pem", ["www.beaver.com"]),
-    # Certificate with many valid SANs
-    (TEST_SNI_CERT_DIRECTORY + "many_animal_sans_rsa_cert.pem", TEST_SNI_CERT_DIRECTORY + "many_animal_sans_rsa_key.pem",
+# ( cert_path, private_key_path, domains[] )
+SNI_CERTS = {
+    "alligator" : ( TEST_SNI_CERT_DIRECTORY + "alligator_cert.pem", TEST_SNI_CERT_DIRECTORY + "alligator_key.pem",
+        ["www.alligator.com"]),
+    "alligator_ecdsa" : ( TEST_SNI_CERT_DIRECTORY + "alligator_ecdsa_cert.pem", TEST_SNI_CERT_DIRECTORY +
+        "alligator_ecdsa_key.pem", ["www.alligator.com"]),
+    "beaver"    : ( TEST_SNI_CERT_DIRECTORY + "beaver_cert.pem", TEST_SNI_CERT_DIRECTORY + "beaver_key.pem",
+        ["www.beaver.com"]),
+    "many_animals" : (TEST_SNI_CERT_DIRECTORY + "many_animal_sans_rsa_cert.pem", TEST_SNI_CERT_DIRECTORY + "many_animal_sans_rsa_key.pem",
         ["www.catfish.com",
          "www.dolphin.com",
          "www.elephant.com",
@@ -160,5 +163,30 @@ SNI_CERT_TEST_CASES = [
          # Verify case insensitivity works as expected.
          "LADYBUG.LADYBUG",
          "com.penguin.macaroni"
-        ]),
+        ])
+}
+
+# Test cases with certificates to load into s2nd and expected behavior
+# ( certificates_to_use[], (domain_name, expected_certificate, expected_domain_match, client_cipher)[]  )
+SNI_CERT_TEST_CASES = [
+    ([SNI_CERTS["alligator"], SNI_CERTS["beaver"], SNI_CERTS["alligator_ecdsa"]],
+        [("www.alligator.com", SNI_CERTS["alligator"], True, "ECDHE-RSA-AES128-SHA"),
+        ("www.beaver.com", SNI_CERTS["beaver"], True,  "ECDHE-RSA-AES128-SHA"),
+        # This is a mismatch, expect the first cert added is selected.
+        ("not.a.match", SNI_CERTS["alligator"], False, "ECDHE-RSA-AES128-SHA"),
+        # No SNI sent at all. expect the first cert added is selected.
+        (None, SNI_CERTS["alligator"], False, "ECDHE-RSA-AES128-SHA"),
+        # We have two certificates that match www.alligator.com but the client
+        # only supports ECDSA. The ECDSA cert should be served
+        ("www.alligator.com", SNI_CERTS["alligator_ecdsa"], True, "ECDHE-ECDSA-AES128-SHA"),
+        # Client supports mixed auth types, expect we negotiate the higher priority cipher
+        # and select the correct cert
+        ("www.alligator.com", SNI_CERTS["alligator_ecdsa"], True, "ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA")]),
+    ([ SNI_CERTS["many_animals"] , SNI_CERTS["alligator"] ],
+        # Every valid many animal_domain should work
+        [(many_animal_domain, SNI_CERTS["many_animals"], True, "ECDHE-RSA-AES128-SHA") for many_animal_domain in SNI_CERTS["many_animals"][2]] +
+        # Make sure alligator is still served properly
+        [("www.alligator.com", SNI_CERTS["alligator"], True, "ECDHE-RSA-AES128-SHA"),
+        # many_animals was the first cert added
+        (None, SNI_CERTS["many_animals"], False, "ECDHE-RSA-AES128-SHA")])
 ]
