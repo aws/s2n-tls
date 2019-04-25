@@ -351,7 +351,6 @@ mul_single_ov <- admit "mp_mul" []
     (mp_mul_single_spec nwords_field twice_nwords_field );
 mul_half_ov <- admit "mp_mul" [] (mp_mul_spec half_nwords_field nwords_field);
 
-shiftl1_ov <- verify "mp_shiftl1" [] (mp_shiftl1_spec nwords_field);
 shiftr1_ov <- verify "mp_shiftr1" [] (mp_shiftr1_spec nwords_field);
 
 sub_ov <- verify "mp_sub" [] (mp_sub_spec twice_nwords_field false);

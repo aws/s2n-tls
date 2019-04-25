@@ -649,8 +649,6 @@ fpmul503_mont_same_ov <- verify_unint "fpmul503_mont"
 fpsqr503_mont_ov <- verify_unint "fpsqr503_mont"
     [mul_single_ov,rdc_mont_ov] ["rdc_mont"] fpsqr503_mont_spec;
 
-fp2zero503_ov <- verify_unint "fp2zero503"
-    [fpzero503_ov] ["fpzero503"] fp2zero503_spec;
 fp2copy503_ov <- verify_unint "fp2copy503"
     [fpcopy503_ov] ["fpcopy503"] fp2copy503_spec;
 fp2correction503_ov <- verify_unint "fp2correction503"

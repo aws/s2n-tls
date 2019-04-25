@@ -32,10 +32,6 @@
 // See "On the Security of Supersingular Isogeny Cryptosystems", S.D. Galbraith, C. Petit, B. Shani and Y.B. Ti, in ASIACRYPT 2016, 2016.
 // Extended version available at: http://eprint.iacr.org/2016/859  
 
-// Generation of Alice's secret key 
-// Outputs random value in [0, 2^250 - 1] to be used as Alice's private key
-void random_mod_order_A(unsigned char* random_digits);
-
 // Generation of Bob's secret key 
 // Outputs random value in [0, 2^Floor(Log(2,3^159)) - 1] to be used as Bob's private key
 void random_mod_order_B(unsigned char* random_digits);
