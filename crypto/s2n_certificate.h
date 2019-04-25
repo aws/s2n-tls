@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 #include <openssl/x509.h>
+#include <openssl/x509v3.h>
 
 #include <s2n.h>
 #include "crypto/s2n_pkey.h"
