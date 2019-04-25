@@ -34,14 +34,13 @@ static const char *valid_pem_pairs[][2] = {
     { S2N_TRAILING_WHITESPACE_CERT_CHAIN,     S2N_RSA_2048_PKCS1_KEY },
     { S2N_LEADING_COMMENT_TEXT_CERT_CHAIN,    S2N_RSA_2048_PKCS1_KEY },
     { S2N_LONG_BASE64_LINES_CERT_CHAIN,       S2N_RSA_2048_PKCS1_KEY },
-    /* Apparently s2n can parse this but openssl x509 can't */
-    //{ S2N_MISSING_LINE_ENDINGS_CERT_CHAIN,    S2N_RSA_2048_PKCS1_KEY },
+    { S2N_MISSING_LINE_ENDINGS_CERT_CHAIN,    S2N_RSA_2048_PKCS1_KEY },
 
     /* Technically Invalid according to RFC, but that we are lenient towards */
     { S2N_INVALID_HEADER_CERT_CHAIN,          S2N_RSA_2048_PKCS1_KEY  },
     { S2N_INVALID_TRAILER_CERT_CHAIN,         S2N_RSA_2048_PKCS1_KEY  },
     { S2N_RSA_2048_PKCS1_CERT_CHAIN,          S2N_INVALID_TRAILER_KEY },
-    //{ S2N_WEIRD_DASHES_CERT_CHAIN,            S2N_RSA_2048_PKCS1_KEY  },
+    { S2N_WEIRD_DASHES_CERT_CHAIN,            S2N_RSA_2048_PKCS1_KEY  },
 };
 
 static const char *invalid_pem_pairs[][2] = {
