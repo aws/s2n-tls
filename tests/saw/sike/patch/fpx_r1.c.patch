@@ -1,0 +1,16 @@
+200a201,203
+> extern void __breakpoint__fpinv_chain_mont0(digit_t**, unsigned int*, unsigned int*, felm_t (*)[15], felm_t*)__attribute__((noduplicate));
+> extern void __breakpoint__fpinv_chain_mont1(digit_t**, unsigned int*, unsigned int*, felm_t (*)[15], felm_t*)__attribute__((noduplicate));
+> 
+205c207
+<     felm_t t[15], tt;
+---
+>     felm_t t[15] = {0}, tt;
+210c212
+<     for (i = 0; i <= 13; i++) fpmul_mont(t[i], tt, t[i+1]);
+---
+>     for (i = 0; __breakpoint__fpinv_chain_mont0(&a, &i, &j, &t, &tt), i <= 13; i++) fpmul_mont(t[i], tt, t[i+1]);
+213c215
+<     for (i = 0; i < 8; i++) fpsqr_mont(tt, tt);
+---
+>     for (i = 0; __breakpoint__fpinv_chain_mont1(&a, &i, &j, &t, &tt), i < 8; i++) fpsqr_mont(tt, tt);
