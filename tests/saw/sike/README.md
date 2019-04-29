@@ -13,7 +13,7 @@ We applied these approaches so as to maximize the assurance we achieved with the
 | # | Description | Approach | SIKE file  | Cryptol Specification           | SAW Proof |
 | -----: | -----: |------------- | -----: |:-------------:| -----:|
 | 1 | Base math operations | 1|config.h | fp_generic.cry  & fpx.cry | word.saw
-| 2 | Low-level field operators (fp) | 1 | fp_generic.c     |  fp_generic.cry . | field.saw & word.saw |
+| 2 | Low-level field operators (fp) | 1 | fp_generic.c     |  fp_generic.cry | field.saw & word.saw |
 | 3 | Higher-level field operators (fp2)|1 | fpx.c | fpx.cry  |  field.saw & word.saw |
 | 4 |CShake |  1|flips202.c | Keccak.cry | cshake.saw
 | 5| Isogeny Functions |  2&3 |ec_isogeny.c | ec_isogeny.cry | curv.saw &  isogeny.saw
