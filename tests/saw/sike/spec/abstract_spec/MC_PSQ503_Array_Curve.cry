@@ -1,3 +1,5 @@
+//MC_PSQ503_Array_Curve.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 ///////////////////////////////////////////////////////////////////////////////
 
 module abstract_spec::MC_PSQ503_Array_Curve where
