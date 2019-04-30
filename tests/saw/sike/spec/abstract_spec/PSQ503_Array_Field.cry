@@ -1,3 +1,5 @@
+//PSQ503_Array_Field.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 ///////////////////////////////////////////////////////////////////////////////
 
 module abstract_spec::PSQ503_Array_Field where

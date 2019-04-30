@@ -1,3 +1,6 @@
+//base.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 ///////////////////////////////////////////////////////////////////////////////
 // Base definitions and helper functions used by all proofs
 
@@ -351,3 +354,10 @@ let memcmp_simple_spec nbytes = do {
 };
 
 memcmp_ov_for_kem_dec <- admit "memcmp" [] (memcmp_simple_spec 378);
+
+
+/* Note the following conventions: 
+"_ov" indicates an overrides, "O" is a list of overrides, "U" is a list of uninterpreted functions.
+Overrides is a proof specification that can be used as input to other proofs.
+Uninterpreted functions are cryptol function that will not get unwrapped/unrolled by the solver.
+*/
