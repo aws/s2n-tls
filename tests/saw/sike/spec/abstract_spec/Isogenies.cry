@@ -1,0 +1,122 @@
+//Isogenies.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+///////////////////////////////////////////////////////////////////////////////
+
+module abstract_spec::Isogenies where
+
+import lib::math::Safe_Arithmetic
+import lib::util::Bit_Vector_Utils
+import abstract_spec::Field_Types
+import abstract_spec::Finite_Field
+import abstract_spec::PSQ503_Array_Field
+import abstract_spec::P503_Array_Field
+import abstract_spec::Montgomery_Curve
+import abstract_spec::MC_PSQ503_Array_Curve
+
+// 1.9 Page 5
+// E_ab -> E_a'b'
+
+f = psq503_array_field
+mkVal v =  from_psq503{r=v, i=0}
+
+const_vn1 = mkVal 1 //negative one FIXME
+const_v1 = mkVal 1
+const_v2 = mkVal 2
+const_v4 = mkVal 4
+const_v5 = mkVal 5
+
+convertE_order4: point -> point
+convertE_order4 (x, y) =
+    if (psq503_array_eq (x, const_v1)) then error "Error: x=+-1 can not do computation"
+    else
+        (A', B') where
+        x2 = f.mult (x, x)              // x^2
+        x4 = f.mult (x2, x2)            // x^4
+        t1 = f.mult (x4, const_v4)      // 4x^4
+        A' = f.sub (t1, const_v2)       // 4x^4 -2
+        t2 = f.mult (x, const_vn1)      // -x
+        t3 = f.add (x2, const_v1)       // x^2 +1
+        t4 = f.div (curvB, const_v2)    // B/2
+        B' = f.mult (t2, f.mult(t3, t4))
+        // (-x)(x^2 +1)(B/2)
+
+phi_order4: _ -> point -> point
+phi_order4 x (xp, yp) =
+    (xPhi, yPhi) where
+    x2 = f.mult (x, x)                  // x^2
+    x3 = f.mult (x2, x)                 // x^3
+    x4 = f.mult (x2, x2)                // x^4
+    xp_2 = f.mult (xp, xp)              // xp^2
+    xp_3 = f.mult (xp_2, xp)            // xp^3
+    xp_4 = f.mult (xp_2, xp_2)          // xp^4
+    t0 = f.mult (xp, x)                 // xp x
+    t1 = f.mult (t0, x)                 // xp x^2
+    t2 = f.mult (const_v2, x4)          // 2x^4
+    t3 = f.add (t1, xp)                 // xp x^2 + xp
+    t4 = f.sub (t3, t2)                 // (xp, x^2 + xp) - 2x^4
+    t5 = f.sub (t0, const_v1)           // (xp, x) -1
+    t6 = f.mult (t5,t5)                 // ((xp, x) -1)^2
+    t7 = f.mult (t4, f.mult(xp, t6))
+    // ((xp, x^2 + xp) - 2x^4 ) xp ((xp, x) -1)^2
+    t8 = f.mult (const_vn1, t7)
+    t9 = f.sub (xp, x)                  // xp-x
+    t10 = f.mult (t9, t9)               // (xp-x)^2
+    t11 = f.mult (const_v2, t0)         // 2 xp x
+    t12 = f.add (x2, const_v1)          // x^2  +1
+    t13 = f.sub (t11, t12)              // 2 xp x - (x^2  +1)
+    t14 = f.mult (t10, t13)             // (xp-x)^2 (2 xp x - (x^2  +1))
+    xPhi = f.div (t8, t14)
+    d0 = f.mult (const_v2, x2)          // 2x^2
+    d1 = f.mult (const_vn1, d0)         // -2x^2
+    d2 = f.mult (d1, t5)                // (-2x^2)((xp, x) -1)
+    d3 = f.mult (xp_4, t12)             // xp^4 (x^2  +1)
+    d4 = f.add (x3, x)                  // x^3+x
+    d5 = f.mult (const_v4, xp)          // 4xp
+    d6 = f.mult (d5, xp_2)              // 4xp^3
+    d7 = f.mult (d6, d4)                // (4xp^3)(x^3+x)
+    d8 = f.mult (const_v5, x2)           // 5x^2
+    d9 = f.add (x4, d8)                 // x^4 + 5x^2
+    d10 = f.mult (const_v2, xp_2)        // 2xp^2
+    d11 = f.mult (d10, d9)               // 2xp^2 (x^4 + 5x^2)
+    d12 = f.mult (d5, d4)                // 4xp (x^3+x)
+    d13 = f.sub (d3, d7)                // xp^4 (x^2  +1) - ((4xp^3)(x^3+x))
+    d14 = f.sub (d11, d12)              // 2xp^2 (x^4 + 5x^2) - (4xp (x^3+x))
+    d15 = f.add (f.add(d13, d14), f.add (x2, const_v1))
+    //..+.. x^2+1
+    d16 = f.mult (yp, f.mult(d2, d15))  // yp (-2x^2)((xp, x) -1)
+    d17 = f.mult (t9, t10)              // (xp-x)^3
+    d18 = f.mult (t13, t13)             // (2 xp x - (x^2  +1)) ^2
+    d19 = f.mult (d17, d18)
+    // (xp-x)^3 * (2 xp x - (x^2  +1)) ^2
+    yPhi = f.div (d16, d19)
+    // (yp (-2x^2)((xp, x) -1)) / ((xp-x)^3 * (2 xp x - (x^2  +1)) ^2)
+
+convertE_order3: point -> point
+convertE_order3 (x, y) =
+    (A', B') where
+    x2 = f.mult (x, x)                  // x^2
+    t1 = f.mult (curvA, x)              // Ax
+    t2 = f.mult (const_v6, x2)          // 6x^2
+    t3 = f.sub (t1, t2)                 // Ax - 6x^2
+    t4 = f.add (t3, const_v6)           // Ax - 6x^2 +6
+    A' = f.mult (t4, x)                 // (Ax - 6x^2 +6)x
+    B' = f.mult (curvB, x2)             // B x^2
+
+
+phi_order3: _ -> point -> point
+phi_order3 x (xp, yp) =
+    (xPhi, yPhi) where
+    t1 = f.mult (xp, x)                  // xp * x
+    t2 = f.sub(t1, const_v1)            // xp * x - 1
+    t3 = f.mult (t2, t2)                // (xp * x - 1)^2
+    t4 = f.mult(xp, t3)                 // xp (xp * x - 1)^2
+    t5 = f.sub (xp, x)                  // xp-x
+    t6 =  f.mult (t5, t5)               // (xp-x)^2
+    xPhi = f.div (t4, t6)
+    t7 = f.mult (t1, xp)                // xp^2*x
+    t8 = f.mult (t1, x)                 // xp x^2
+    t9 = f.mult (const_v3, t8)          // 3 xp x^2
+    t10 = f.add(f.sub(t7,t9),f.add(xp,x))    // xp^2*x - 3 xp x^2 +xp + x
+    t11 = f.mult (t6, t5)              // (xp-x)^3
+    t12 = f.mult (yp, f.mult(t2, t10))
+    yPhi = f.div (t12, t11)

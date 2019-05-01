@@ -73,6 +73,9 @@ matrix:
     env: TESTS=sawDRBG                       SAW=true GCC6_REQUIRED=false
     addons : *sawaddons
   - os : linux
+    env: TESTS=sawSIKE                       SAW=true GCC6_REQUIRED=false
+    addons : *sawaddons
+  - os : linux
     env : TESTS=tls SAW=true GCC6_REQUIRED=false
     addons : *sawaddons    
   - os : linux

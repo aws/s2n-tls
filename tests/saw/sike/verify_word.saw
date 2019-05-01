@@ -1,0 +1,11 @@
+//verify_word.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// SAW verification script for the word operations of the SIKE algorithm
+
+let do_prove = true;
+let debug = false;
+
+include "proof/base.saw";
+include "proof/word.saw";

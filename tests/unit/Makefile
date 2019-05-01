@@ -36,7 +36,7 @@ LIBS += -lm -ltests2n -ls2n -ldl
 
 # Suppress the unreachable code warning, because tests involve what should be
 # unreachable code
-CFLAGS += -Wno-unreachable-code -I$(LIBCRYPTO_ROOT)/include/ -I../../ -I../../api/
+CFLAGS += -Wno-unreachable-code -I../
 LDFLAGS += -L../../lib/ ${CRYPTO_LDFLAGS} -L../testlib/ ${LIBS} ${CRYPTO_LIBS}
 
 $(UNIT_TESTS)::

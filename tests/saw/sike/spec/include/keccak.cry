@@ -1,0 +1,218 @@
+//keccak.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module include::keccak where
+
+SHA_3_224 M = take`{224} (Keccak `{r = 1152, c =  448} (M # 0b01))
+SHA_3_256 M = take`{256} (Keccak `{r = 1088, c =  512} (M # 0b01))
+SHA_3_384 M = take`{384} (Keccak `{r =  832, c =  768} (M # 0b01))
+SHA_3_512 M = take`{512} (Keccak `{r =  576, c = 1024} (M # 0b01))
+SHAKE128 M = Keccak`{r = 1344, c = 256} (M # 0b1111)
+SHAKE256 M = Keccak`{r = 1088, c = 512} (M # 0b1111)
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Specification of the cSHAKE (customizable SHAKE) function
+
+// TODO: Remove this if it is not used
+
+// cshake_128 : {m, n, s} 
+//     ( fin m
+//     , fin n
+//     , fin s
+//    // , m >= 192
+//     //, m <=320
+//     , (2^^2040-1) >= (n*8)
+//     , (2^^2040-1) >= (n*s)
+//     ) => [m] -> [n][8] -> [s][8]-> [inf]
+CSHAKE128 M s1 s2 = if (s1 == "" /\ s2 == "") then (SHAKE128 M)
+                                               else (Keccak`{r = 1344, c = 256} (join(s1)#join(s2)#M#0b00))
+
+// NOTE: We are unsure if (join(s1)#join(s2)#M#0b00)) is the correct value
+
+
+// cshake_256 : {m, n, s} 
+//     ( fin m
+//     , fin n 
+//     , fin s
+//    // , m >= 192
+//    // , m <=320
+//     , (2^^2040-1) >= (n*8)
+//     , (2^^2040-1) >= (n*s)
+//     ) => [m] -> [n][8] -> [s][8]-> [inf]
+CSHAKE256 M s1 s2 = if (s1 == "" /\ s2 == "") then (SHAKE256 M)
+                                               else (Keccak`{r = 1088, c = 512} (join(s1)#join(s2)#M#0b00))
+
+// NOTE: We are unsure if (join(s1)#join(s2)#M#0b00)) is the correct value
+
+
+Keccak : {r, c, m}
+  ( fin r, fin c, fin m
+  , r >= 1
+  , (r + c) % 25 == 0
+  , 64 >= (r + c) / 25
+  ) => [m] -> [inf]
+Keccak M = squeeze `{r = r} (absorb `{w = (r + c) / 25} Ps)
+  where Ps = pad `{r = r} M
+
+squeeze : {r, w} (fin r, fin w, 64 >= w, r >= 0, 25 * w >= r) => [5][5][w] -> [inf]
+squeeze A = take`{r} (flatten A) # squeeze`{r = r} (Keccak_f A)
+
+absorb : {r, w, n} (fin r, fin w, fin n, 64 >= w, 25 * w >= r) => [n][r] -> [5][5][w]
+absorb Ps = as ! 0
+  where
+    as = [zero] # [ Keccak_f `{w = w} (s ^ (unflatten p)) | s <- as | p <- Ps ]
+
+pad : {r, m}
+  ( fin r, fin m
+  , r >= 1
+  ) => [m] -> [(m + 2) /^ r][r]
+  
+pad M = split (M # [True] # zero # [True])
+
+Keccak_f : {w} (fin w, 64 >= w) => [5][5][w] -> [5][5][w]
+Keccak_f A0 = rounds ! 0
+  where
+    rounds = [A0] # [ Round RC A | RC <- RCs`{w = w} | A <- rounds ]
+
+Round : {w} (fin w) => [5][5][w] -> [5][5][w] -> [5][5][w]
+Round RC A = ι RC (χ (π (ρ (θ A))))
+
+θ : {w} (fin w) => [5][5][w] -> [5][5][w]
+θ A = A'
+  where
+    C = [ xor a | a <- A ]
+    D = [ C @ x ^ (C @ y <<< 1)
+        | (x:[8]) <- [4,0,1,2,3]
+        | (y:[8]) <- [1,2,3,4,0]
+        ]
+    A' = [ [ a ^ (D @ x) | a <- A @ x ] | (x:[8]) <- [0 .. 4] ]
+
+ρ : {w} (fin w) => [5][5][w] -> [5][5][w]
+ρ A = groupBy`{5} [ a <<< r | a <- join A | (r:[8]) <- R ]
+  where R = [00, 36, 03, 41, 18,
+             01, 44, 10, 45, 02,
+             62, 06, 43, 15, 61,
+             28, 55, 25, 21, 56,
+             27, 20, 39, 08, 14]
+
+π : {w} (fin w) => [5][5][w] -> [5][5][w]
+π A = groupBy`{5} [ A @ ((x + 3*y) % 5) @ x
+                  | (x:[8]) <- [0..4], (y:[8]) <- [0..4]
+                  ]
+
+χ : {w} (fin w) => [5][5][w] -> [5][5][w]
+χ A = groupBy`{5} [ (A @ x @ y) ^ (~ A @ ((x + 1) % 5) @ y
+                                  && A @ ((x + 2) % 5) @ y)
+                  | (x:[8]) <- [0..4], (y:[8]) <- [0..4]
+                  ]
+
+ι : {w} (fin w) => [5][5][w] -> [5][5][w] -> [5][5][w]
+ι RC A = A ^ RC
+
+RCs : {w, n} (fin w, fin n, 24 >= n, n == 12 + 2 * (lg2 w)) => [n][5][5][w]
+RCs = take`{n} [ [[take`{w} RC] # zero] # zero | RC <- RCs64 ]
+
+RCs64 : [24][64]
+RCs64 = join (transpose [
+    [0x0000000000000001, 0x000000008000808B],
+    [0x0000000000008082, 0x800000000000008B],
+    [0x800000000000808A, 0x8000000000008089],
+    [0x8000000080008000, 0x8000000000008003],
+    [0x000000000000808B, 0x8000000000008002],
+    [0x0000000080000001, 0x8000000000000080],
+    [0x8000000080008081, 0x000000000000800A],
+    [0x8000000000008009, 0x800000008000000A],
+    [0x000000000000008A, 0x8000000080008081],
+    [0x0000000000000088, 0x8000000000008080],
+    [0x0000000080008009, 0x0000000080000001],
+    [0x000000008000000A, 0x8000000080008008]
+])
+
+unflatten : {r, w} (fin w, 25*w >= r) => [r] -> [5][5][w]
+unflatten p = transpose (groupBy`{5} (reverse (groupBy`{w} (reverse (p # zero)))))
+
+flatten : {w} (fin w) => [5][5][w] -> [5 * 5 * w]
+flatten A = reverse (join (reverse (join (transpose A))))
+
+xor : {a, b} (fin a) => [a][b] -> [b]
+xor xs = xors ! 0
+  where xors = [zero] # [ x ^ z | x <- xs | z <- xors ]
+
+property RC_correct i j =
+  (i:[8]) < 24 ==> (j:[8]) < 7 ==> RCs64@i!(2^^j - 1) == lfsr@(j + 7*i)
+
+lfsr : [inf]
+lfsr = [ p!0 | p <- ps ]
+  where
+    /* powers of x modulo m */
+    ps = [0x01] # [ pmod (pmult p 0b10) m | p <- ps ]
+    m = <| x^^8 + x^^6 + x^^5 + x^^4 + 1 |>
+
+/* See https://keccak.team/files/Keccak-reference-3.0.pdf, Section 1.2 */
+property unflatten_correct x y z p =
+  x < 5 ==> y < 5 ==> z < (64:[12]) ==>
+  p@((5*y + x)*64 + z) == unflatten`{1600,64} p @ x @ y ! z
+
+property flatten_correct s =
+  unflatten`{1600,64} (flatten`{64} s) == s
+
+/** Splits a list of bits into bytes, using little-endian bit order. **/
+toBytes : {n} (fin n) => [8*n] -> [n][8]
+toBytes s = reverse (split (reverse s))
+
+/** Joins a list of bytes into a list of bits, using little-endian bit order. **/
+fromBytes : {n} (fin n) => [n][8] -> [8*n]
+fromBytes bs = reverse (join (reverse bs))
+
+/*
+Test vectors from
+https://csrc.nist.gov/projects/cryptographic-standards-and-guidelines/example-values#aHashing
+*/
+
+property t1 = join (toBytes (SHA_3_224 [])) ==
+  0x6b4e03423667dbb73b6e15454f0eb1abd4597f9a1b078e3f5b5a6bc7
+property t2 = join (toBytes (SHA_3_256 [])) ==
+  0xa7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a
+property t3 = join (toBytes (SHA_3_384 [])) ==
+  0x0c63a75b845e4f7d01107d852e4c2485c51a50aaaa94fc61995e71bbee983a2ac3713831264adb47fb6bd1e058d5f004
+property t4 = join (toBytes (SHA_3_512 [])) ==
+  0xa69f73cca23a9ac5c8b567dc185a756e97c982164fe25859e0d1dcc1475c80a615b2123af1f5f94c11e3e9402c3ac558f500199d95b6d3e301758586281dcd26
+
+property u1 = join (toBytes (SHA_3_224 0b11001)) ==
+  0xffbad5da96bad71789330206dc6768ecaeb1b32dca6b3301489674ab
+property u2 = join (toBytes (SHA_3_256 0b11001)) ==
+  0x7b0047cf5a456882363cbf0fb05322cf65f4b7059a46365e830132e3b5d957af
+property u3 = join (toBytes (SHA_3_384 0b11001)) ==
+  0x737c9b491885e9bf7428e792741a7bf8dca9653471c3e148473f2c236b6a0a6455eb1dce9f779b4b6b237fef171b1c64
+property u4 = join (toBytes (SHA_3_512 0b11001)) ==
+  0xa13e01494114c09800622a70288c432121ce70039d753cadd2e006e4d961cb27544c1481e5814bdceb53be6733d5e099795e5e81918addb058e22a9f24883f37
+
+msg1600 : [1600]
+msg1600 = join [ 0b11000101 | _ <- zero : [200] ]
+
+property v1 = join (toBytes (SHA_3_224 msg1600)) ==
+  0x9376816aba503f72f96ce7eb65ac095deee3be4bf9bbc2a1cb7e11e0
+
+property w1 = join (toBytes (SHA_3_224 (msg1600 # 0b11000))) ==
+  0x22d2f7bb0b173fd8c19686f9173166e3ee62738047d7eadd69efb228
+
+//SHAKE -- Test Vectors
+//Author: Ajay Kumar Eeralla
+//source:https://github.com/XKCP/XKCP/tree/master/tests/TestVectors
+
+property k1 = join (toBytes (take`{512} (SHAKE128 []))) == 0x7f9c2ba4e88f827d616045507605853ed73b8093f6efbc88eb1a6eacfa66ef263cb1eea988004b93103cfb0aeefd2a686e01fa4a58e8a3639ca8a1e3f9ae57e2
+
+property k2 = join (toBytes (take`{512} (SHAKE128 0b0))) == 0xe78b86559a9ccdc72288bf7bcf8e11d574543a2922978913a02be149e89d03cae63d2c36e2cf6906791b187d7e371d4f21ebe59dcfc249a510b82255a18250dd
+
+property k3 = join (toBytes (take`{512} (SHAKE128 0b11))) == 0xf6b6c4093f0a2ceba61b9f2c2fea2ca238ce9005edcd588c380405070532ddd00cbd3a3a7448017d874c52c9e383fa3db1c184e023181fcc8550f53ac92feca5
+
+property k4 = join (toBytes (take`{512} (SHAKE256 []))) == 0x46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762fd75dc4ddd8c0f200cb05019d67b592f6fc821c49479ab48640292eacb3b7c4be
+
+property k5 = join (toBytes (take`{512} (SHAKE256 0b0))) == 0x1e20b13f3bdb730d286913335c092bcec0eb1aff2798c05736faa93bd665807a48ed7652aefd600427e9f797d647b9b355d30410d71b8e275a676545600f1c35
+
+property k6 = join (toBytes (take`{512} (SHAKE256 0b11))) == 0x4f86b0eb85f7a9f6dc38b622706948adb2beb6dd6911b5e9d865fd1f9667b5c02a0dbb39c488b040a18ff3885f04ef957c98f3948e6b7959a9b8950ffd6345d5
+

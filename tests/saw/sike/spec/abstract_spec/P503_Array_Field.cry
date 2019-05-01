@@ -1,0 +1,64 @@
+//P503_Array_Field.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module abstract_spec::P503_Array_Field where
+
+import abstract_spec::Field_Types
+import abstract_spec::Finite_Field
+import abstract_spec::P503_Field
+import lib::math::Modular_Arithmetic
+import lib::math::Safe_Arithmetic
+import lib::util::Bit_Vector_Utils
+
+///////////////////////////////////////////////////////////////////////////////
+
+(p503_array_char_int : Integer) = p503_char_int
+(p503_array_char : p503_array_fv) = from_p503(p503_char)
+
+(p503_array_add_id : p503_array_fv) = from_p503(p503_field.add_id)
+(p503_array_mult_id : p503_array_fv) = from_p503(p503_field.mult_id)
+
+p503_array_normalized : p503_array_fv -> Bit
+p503_array_normalized x = (join(x) < p503_char)
+
+p503_array_eq : (p503_array_fv, p503_array_fv) -> Bool
+p503_array_eq x = x.0 == x.1
+
+p503_array_add : binary_p503_array_op
+p503_array_add (fv1, fv2) = apply_binary_p503_array (fv1, fv2) p503_field.add
+
+p503_array_add_inv : unary_p503_array_op
+p503_array_add_inv fv = apply_unary_p503_array fv p503_field.add_inv
+
+p503_array_sub : binary_p503_array_op
+p503_array_sub (fv1, fv2) = apply_binary_p503_array (fv1, fv2) p503_field.sub
+
+p503_array_mult : binary_p503_array_op
+p503_array_mult (fv1, fv2) = apply_binary_p503_array (fv1, fv2) p503_field.mult
+
+p503_array_mult_inv :  unary_p503_array_op
+p503_array_mult_inv fv = apply_unary_p503_array fv p503_field.mult_inv
+
+p503_array_div2 : unary_p503_array_op
+p503_array_div2 fv = apply_unary_p503_array fv p503_div2
+
+p503_array_div : binary_p503_array_op
+p503_array_div (fv1, fv2) = apply_binary_p503_array (fv1, fv2) p503_field.div
+
+p503_array_field : Field p503_array_fv
+p503_array_field =
+    { is_val = p503_array_normalized
+    , eq = p503_array_eq
+    , add_id = p503_array_add_id
+    , mult_id = p503_array_mult_id
+    , add = p503_array_add
+    , add_inv = p503_array_add_inv
+    , sub = p503_array_sub
+    , mult = p503_array_mult
+    , mult_inv = p503_array_mult_inv
+    , div = p503_array_div
+    , char = p503_array_char_int
+    , size = p503_array_char_int
+    }

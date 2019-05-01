@@ -1,0 +1,73 @@
+//Field_Types.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+///////////////////////////////////////////////////////////////////////////////
+
+module abstract_spec::Field_Types where
+
+import lib::util::Bit_Vector_Utils
+
+///////////////////////////////////////////////////////////////////////////////
+
+type p503_fv = [512]
+type unary_p503_op = p503_fv -> p503_fv
+type binary_p503_op = (p503_fv, p503_fv) -> p503_fv
+
+type p503_array_fv = [8][64]
+type unary_p503_array_op = p503_array_fv -> p503_array_fv
+type binary_p503_array_op = (p503_array_fv, p503_array_fv) -> p503_array_fv
+
+from_p503 : p503_fv -> p503_array_fv
+from_p503 fv = bv_to_bva`{8,64}(fv)
+
+to_p503 : p503_array_fv -> p503_fv
+to_p503 fv = join(fv)
+
+apply_unary_p503_array : p503_array_fv
+    -> unary_p503_op
+    -> p503_array_fv
+apply_unary_p503_array fv op = res_val where
+    p503_res = op(to_p503(fv))
+    res_val = from_p503(p503_res)
+
+apply_binary_p503_array : (p503_array_fv, p503_array_fv)
+    -> binary_p503_op
+    -> p503_array_fv
+apply_binary_p503_array (fv1, fv2) op = res_val where
+    p503_res = op(to_p503(fv1), to_p503(fv2))
+    res_val = from_p503(p503_res)
+
+type psq503_fv = {r : p503_fv, i : p503_fv}
+type unary_psq503_op = psq503_fv -> psq503_fv
+type binary_psq503_op = (psq503_fv, psq503_fv) -> psq503_fv
+
+type psq503_array_fv = {r : p503_array_fv, i : p503_array_fv}
+type unary_psq503_array_op = psq503_array_fv -> psq503_array_fv
+type binary_psq503_array_op =
+    (psq503_array_fv, psq503_array_fv) -> psq503_array_fv
+
+from_psq503 : psq503_fv -> psq503_array_fv
+from_psq503 fv = {r = from_p503(fv.r), i = from_p503(fv.i)}
+
+to_psq503 : psq503_array_fv -> psq503_fv
+to_psq503 fv = {r = to_p503(fv.r), i = to_p503(fv.i)}
+
+apply_unary_psq503_array : psq503_array_fv
+    -> unary_psq503_op
+    -> psq503_array_fv
+apply_unary_psq503_array fv op = res_val where
+    psq503_res = op(to_psq503(fv))
+    res_val = from_psq503(psq503_res)
+
+apply_binary_psq503_array : (psq503_array_fv, psq503_array_fv)
+    -> binary_psq503_op
+    -> psq503_array_fv
+apply_binary_psq503_array (fv1, fv2) op = res_val where
+    psq503_res = op(to_psq503(fv1), to_psq503(fv2))
+    res_val = from_psq503(psq503_res)
+
+type point = (psq503_array_fv, psq503_array_fv)
+
+type uint_ty = Integer
+type digit_ty = psq503_array_fv
+type felm_ty = p503_array_fv
+type f2elm_ty = psq503_array_fv
