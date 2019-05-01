@@ -105,7 +105,6 @@ int main(int argc, char **argv) {
     EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
     GUARD(s2n_set_signature_hash_pair_from_preference_list(server_conn, &server_conn->handshake_params.client_sig_hash_algs, &server_conn->secure.conn_hash_alg, &server_conn->secure.conn_sig_alg));
 
-
     DEFER_CLEANUP(struct s2n_stuffer certificate_in = {{0}}, s2n_stuffer_free);
     EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
     DEFER_CLEANUP(struct s2n_stuffer certificate_out = {{0}}, s2n_stuffer_free);

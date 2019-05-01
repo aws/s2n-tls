@@ -77,7 +77,7 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_ecdhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify, struct s2n_kex_raw_server_data *raw_server_data, int num_d)
+int s2n_ecdhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_blob *data_to_verify, struct s2n_kex_raw_server_data *raw_server_data)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
 
