@@ -173,10 +173,10 @@ struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void)
     return chain_and_key;
 }
 
-static int s2n_cert_chain_and_key_set_x509(struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert *leaf)
+static int s2n_cert_chain_and_key_set_x509(struct s2n_cert_chain_and_key *chain_and_key, struct s2n_blob *leaf_bytes)
 {
-    const unsigned char *leaf_der = leaf->raw.data;
-    X509 *cert = d2i_X509(NULL, &leaf_der, leaf->raw.size);
+    const unsigned char *leaf_der = leaf_bytes->data;
+    X509 *cert = d2i_X509(NULL, &leaf_der, leaf_bytes->size);
     if (!cert) {
         S2N_ERROR(S2N_ERR_INVALID_PEM);
     }
@@ -211,7 +211,7 @@ int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key
     GUARD(s2n_pkey_match(&public_key, chain_and_key->private_key));
 
     /* TODO this will be removed once we add native hostname comparison to s2n. */
-    GUARD(s2n_cert_chain_and_key_set_x509(chain_and_key, chain_and_key->cert_chain->head));
+    GUARD(s2n_cert_chain_and_key_set_x509(chain_and_key, &chain_and_key->cert_chain->head->raw));
 
     return 0;
 }
@@ -248,7 +248,7 @@ int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key)
     }
 
     if (cert_and_key->san_names) {
-        sk_GENERAL_NAME_pop_free(cert_and_key->san_names, GENERAL_NAME_free);
+        GENERAL_NAMES_free(cert_and_key->san_names);
     }
 
     GUARD(s2n_free(&cert_and_key->ocsp_status));
@@ -289,9 +289,8 @@ static int s2n_does_cert_san_match_hostname(struct s2n_cert_chain_and_key *cert,
         return 0;
     }
 
-    const int hostname_len = strnlen(hostname, S2N_MAX_SERVER_NAME);
-    const int num_san_names = sk_GENERAL_NAME_num(san_names);
-    for (int i = 0; i < num_san_names; i++) {
+    const size_t hostname_len = strnlen(hostname, S2N_MAX_SERVER_NAME);
+    for (int i = 0; i < sk_GENERAL_NAME_num(san_names); i++) {
         GENERAL_NAME *san_name = sk_GENERAL_NAME_value(san_names, i);
         if (!san_name) {
             continue;
@@ -299,15 +298,13 @@ static int s2n_does_cert_san_match_hostname(struct s2n_cert_chain_and_key *cert,
 
         /* we only care about DNS entries */
         if (san_name->type == GEN_DNS) {
-            unsigned char *san_str = NULL;
-            const int san_str_len = ASN1_STRING_to_UTF8(&san_str, san_name->d.dNSName);
-            if (san_str_len < 0) {
-                /* Some error parsing the SAN, skip the match and don't free memory. */
-                continue;
-            }
-
+            unsigned char *san_str = san_name->d.dNSName->data;
+            const size_t san_str_len = san_name->d.dNSName->length;
+            /* Per https://www.openssl.org/docs/man1.1.0/man3/ASN1_STRING_data.html there may
+             * be embedded NULLs inside of the SAN string. The strncasecmp will return false for
+             * that case.
+             */
             const int match = !!((hostname_len == san_str_len) && (strncasecmp(hostname, (const char *) san_str, san_str_len) == 0));
-            OPENSSL_free(san_str);
             if (match) {
                 return 1;
             }
