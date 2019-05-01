@@ -219,6 +219,5 @@ The following components are provided under the MIT License. See project link fo
 
     SIKE
       -> s2n/pq-crypto/sike/LICENSE.txt
-
-   
-   
+    BIKE
+      -> s2n/pq-crypto/bike/LICENSE
