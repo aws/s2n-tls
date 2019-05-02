@@ -166,36 +166,81 @@ SNI_CERTS = {
         ])
 }
 
-# Test cases with certificates to load into s2nd and expected behavior
-# ( certificates_to_use[], (domain_name, expected_certificate, expected_domain_match, client_cipher)[]  )
-SNI_CERT_TEST_CASES = [
-    ([SNI_CERTS["alligator"], SNI_CERTS["beaver"], SNI_CERTS["alligator_ecdsa"]],
-        [("www.alligator.com", SNI_CERTS["alligator"], True, "ECDHE-RSA-AES128-SHA"),
-        ("www.beaver.com", SNI_CERTS["beaver"], True,  "ECDHE-RSA-AES128-SHA"),
-        # This is a mismatch, expect the first cert added is selected.
-        ("not.a.match", SNI_CERTS["alligator"], False, "ECDHE-RSA-AES128-SHA"),
-        # No SNI sent at all. expect the first cert added is selected.
-        (None, SNI_CERTS["alligator"], False, "ECDHE-RSA-AES128-SHA"),
-        # We have two certificates that match www.alligator.com but the client
-        # only supports ECDSA. The ECDSA cert should be served
-        ("www.alligator.com", SNI_CERTS["alligator_ecdsa"], True, "ECDHE-ECDSA-AES128-SHA"),
-        # Client supports mixed auth types, expect we negotiate the higher priority cipher
-        # and select the correct cert
-        ("www.alligator.com", SNI_CERTS["alligator_ecdsa"], True, "ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA")]),
-    ([ SNI_CERTS["many_animals"] , SNI_CERTS["alligator"] ],
-        # Every valid many animal_domain should work
-        [(many_animal_domain, SNI_CERTS["many_animals"], True, "ECDHE-RSA-AES128-SHA") for many_animal_domain in SNI_CERTS["many_animals"][2]] +
-        # Make sure alligator is still served properly
-        [("www.alligator.com", SNI_CERTS["alligator"], True, "ECDHE-RSA-AES128-SHA"),
+# Test cases for certificate selection.
+# Test inputs are server certificates to load into s2nd, client SNI and capabilities, outputs are selected server cert
+# and negotiated cipher.
+MultiCertTest = collections.namedtuple('MultiCertTest', 'description server_certs client_sni client_ciphers expected_cert expect_matching_hostname')
+MULTI_CERT_TEST_CASES= [
+    MultiCertTest(
+        description="Test basic SNI match for default cert.",
+        server_certs=[SNI_CERTS["alligator"], SNI_CERTS["beaver"], SNI_CERTS["alligator_ecdsa"]],
+        client_sni="www.alligator.com",
+        client_ciphers="ECDHE-RSA-AES128-SHA",
+        expected_cert=SNI_CERTS["alligator"],
+        expect_matching_hostname=True),
+    MultiCertTest(
+        description="Test basic SNI matches for non-default cert.",
+        server_certs=[SNI_CERTS["alligator"], SNI_CERTS["beaver"], SNI_CERTS["alligator_ecdsa"]],
+        client_sni="www.beaver.com",
+        client_ciphers="ECDHE-RSA-AES128-SHA",
+        expected_cert=SNI_CERTS["beaver"],
+        expect_matching_hostname=True),
+    MultiCertTest(
+        description="Test default cert is selected when there are no SNI matches.",
+        server_certs=[SNI_CERTS["alligator"], SNI_CERTS["beaver"], SNI_CERTS["alligator_ecdsa"]],
+        client_sni="not.a.match",
+        client_ciphers="ECDHE-RSA-AES128-SHA",
+        expected_cert=SNI_CERTS["alligator"],
+        expect_matching_hostname=False),
+    MultiCertTest(
+        description="Test default cert is selected when no SNI is sent.",
+        server_certs=[SNI_CERTS["alligator"], SNI_CERTS["beaver"], SNI_CERTS["alligator_ecdsa"]],
+        client_sni=None,
+        client_ciphers="ECDHE-RSA-AES128-SHA",
+        expected_cert=SNI_CERTS["alligator"],
+        expect_matching_hostname=False),
+    MultiCertTest(
+        description="Test ECDSA cert is selected with matching domain and client only supports ECDSA.",
+        server_certs=[SNI_CERTS["alligator"], SNI_CERTS["beaver"], SNI_CERTS["alligator_ecdsa"]],
+        client_sni="www.alligator.com",
+        client_ciphers="ECDHE-ECDSA-AES128-SHA",
+        expected_cert=SNI_CERTS["alligator_ecdsa"],
+        expect_matching_hostname=True),
+    MultiCertTest(
+        description="Test ECDSA cert selected when: domain matches for both ECDSA+RSA, client supports ECDSA+RSA "\
+                    " ciphers, ECDSA is higher priority on server side.",
+        server_certs=[SNI_CERTS["alligator"], SNI_CERTS["beaver"], SNI_CERTS["alligator_ecdsa"]],
+        client_sni="www.alligator.com",
+        client_ciphers="ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA",
+        expected_cert=SNI_CERTS["alligator_ecdsa"],
+        expect_matching_hostname=True),
+    MultiCertTest(
+        description="Test domain match is highest priority. Domain matching ECDSA certificate should be selected"\
+                    " even if domain mismatched RSA certificate is available and RSA cipher is higher priority.",
+        server_certs=[SNI_CERTS["beaver"], SNI_CERTS["alligator_ecdsa"]],
+        client_sni="www.alligator.com",
+        client_ciphers="ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA256",
+        expected_cert=SNI_CERTS["alligator_ecdsa"],
+        expect_matching_hostname=True),
+    MultiCertTest(
+        description="Test certificate with single SAN entry matching is selected before mismatched multi SAN cert",
+        server_certs=[SNI_CERTS["many_animals"] , SNI_CERTS["alligator"]],
+        client_sni="www.alligator.com",
+        client_ciphers="ECDHE-RSA-AES128-SHA",
+        expected_cert=SNI_CERTS["alligator"],
+        expect_matching_hostname=True),
         # many_animals was the first cert added
-        (None, SNI_CERTS["many_animals"], False, "ECDHE-RSA-AES128-SHA")]),
-    ([SNI_CERTS["beaver"], SNI_CERTS["alligator_ecdsa"]],
-        # Assumptions in this test:
-        #   - beaver is the default cert and is rsa
-        #   - There is an SNI mismatch for beaver
-        #   - There is an SNI match for alligator_ecdsa but only for ECDSA ciphers
-        #   - Server prefers ECDHE-RSA-AES128-SHA above ECDHE-ECDSA-AES128-SHA256
-        # Expectation:
-        #   - Server selected alligator_ecdsa cert since SNI match is a higher "priority" than cipher preference.
-        [("www.alligator.com", SNI_CERTS["alligator_ecdsa"], True, "ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA256")])
-]
+    MultiCertTest(
+        description="Test default cert with multiple sans and no SNI sent.",
+        server_certs=[SNI_CERTS["many_animals"] , SNI_CERTS["alligator"]],
+        client_sni=None,
+        client_ciphers="ECDHE-RSA-AES128-SHA",
+        expected_cert=SNI_CERTS["many_animals"],
+        expect_matching_hostname=True)]
+MULTI_CERT_TEST_CASES.extend([MultiCertTest(
+        description="Match " + many_animal_domain + " in many_animals cert",
+        server_certs= [SNI_CERTS["many_animals"] , SNI_CERTS["alligator"]],
+        client_sni=many_animal_domain,
+        client_ciphers="ECDHE-RSA-AES128-SHA",
+        expected_cert=SNI_CERTS["many_animals"],
+        expect_matching_hostname=True) for many_animal_domain in SNI_CERTS["many_animals"][2]])
