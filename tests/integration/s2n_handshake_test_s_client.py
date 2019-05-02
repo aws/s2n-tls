@@ -706,25 +706,22 @@ def multiple_cert_domain_name_test(host, port):
     Validates that the correct certificate is selected and s_client does not throw and hostname validation errors.
     '''
     print("\n\tRunning multiple server cert domain name test:")
-
-    for test_case in SNI_CERT_TEST_CASES:
-        # Server certs to use for this test case
-        test_cert_list = [(cert[0],cert[1]) for cert in test_case[0]]
-        # ( domain , ( cert_path, key_path, acceptable_domains ), expected_domain_match, client_ciphers)
-        for domain_check in test_case[1]:
-            domain_name = domain_check[0]
-            expected_cert_path = domain_check[1][0]
-            expected_match = domain_check[2]
-            client_cipher = domain_check[3]
-            ret = try_handshake(host, port, client_cipher, S2N_TLS12, server_name=domain_name,
-                    strict_hostname=expected_match, server_cert_key_list=test_cert_list, expected_server_cert=expected_cert_path)
-            result_prefix = "server_name: %-35s match_expected: %-5s cipher: %-25s cert: %-50s" % (domain_name,
-                    expected_match,
-                    client_cipher,
-                    expected_cert_path)
-            print_result(result_prefix, ret)
-            if ret != 0:
-                return ret
+    for test_case in MULTI_CERT_TEST_CASES:
+        cert_key_list = [(cert[0],cert[1]) for cert in test_case.server_certs]
+        client_sni = test_case.client_sni
+        client_ciphers = test_case.client_ciphers
+        expected_cert_path = test_case.expected_cert[0]
+        expect_hostname_match = test_case.expect_matching_hostname
+        ret = try_handshake(host, port, client_ciphers, S2N_TLS12, server_name=client_sni,
+                strict_hostname=expect_hostname_match, server_cert_key_list=cert_key_list, expected_server_cert=expected_cert_path)
+        result_prefix = "\nDescription: %s\n\nclient_sni: %s\nclient_ciphers: %s\nexpected_cert: %s\nexpect_hostname_match: %s\nresult: " % (test_case.description,
+                client_sni,
+                client_ciphers,
+                expected_cert_path,
+                expect_hostname_match)
+        print_result(result_prefix, ret)
+        if ret != 0:
+            return ret
 
     return 0
 
