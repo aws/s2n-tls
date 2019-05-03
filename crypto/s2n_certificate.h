@@ -16,8 +16,6 @@
 #pragma once
 
 #include <stdint.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
 
 #include <s2n.h>
 #include "crypto/s2n_pkey.h"
@@ -42,9 +40,15 @@ struct s2n_cert_chain_and_key {
     s2n_cert_private_key *private_key;
     struct s2n_blob ocsp_status;
     struct s2n_blob sct_list;
-    GENERAL_NAMES *san_names;
+    /* DNS type SubjectAlternative names from the leaf certificate to match
+     * with the server_name extension. We ignore non-DNS SANs here since the
+     * server_name extension only supports DNS.
+     */
+    struct s2n_array *san_names;
+    /* CommonName values from the leaf certificate's Subject to match with the
+     * server_name extension. Decoded as UTF8.
+     */
     struct s2n_array *cn_names;
-    X509 *x509_cert;
 };
 
 typedef enum {
