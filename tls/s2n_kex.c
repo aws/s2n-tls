@@ -20,7 +20,7 @@
 #include "utils/s2n_safety.h"
 #include "s2n_tls.h"
 
-static int get_server_ecc_extension_size(const struct s2n_connection *conn)
+static int s2n_get_server_ecc_extension_size(const struct s2n_connection *conn)
 {
     if (s2n_server_can_send_ec_point_formats(conn)){
         return 6;
@@ -29,7 +29,7 @@ static int get_server_ecc_extension_size(const struct s2n_connection *conn)
     }
 }
 
-static int get_no_extension_size(const struct s2n_connection *conn)
+static int s2n_get_no_extension_size(const struct s2n_connection *conn)
 {
     return 0;
 }
@@ -39,7 +39,7 @@ static int get_no_extension_size(const struct s2n_connection *conn)
  * is equivalent to allowing only the uncompressed point format. Let's send the
  * extension in case clients(Openssl 1.0.0) don't honor the implied behavior.
  */
-static int write_server_ecc_extension(const struct s2n_connection *conn, struct s2n_stuffer *out)
+static int s2n_write_server_ecc_extension(const struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     if (s2n_server_can_send_ec_point_formats(conn)) {
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_EC_POINT_FORMATS));
@@ -55,32 +55,32 @@ static int write_server_ecc_extension(const struct s2n_connection *conn, struct 
     return 0;
 }
 
-static int write_no_extension(const struct s2n_connection *conn, struct s2n_stuffer *out)
+static int s2n_write_no_extension(const struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     return 0;
 }
 
-static int check_rsa_key(const struct s2n_connection *conn)
+static int s2n_check_rsa_key(const struct s2n_connection *conn)
 {
     return conn->handshake_params.our_chain_and_key != NULL;
 }
 
-static int check_dhe(const struct s2n_connection *conn)
+static int s2n_check_dhe(const struct s2n_connection *conn)
 {
     return conn->config->dhparams != NULL;
 }
 
-static int check_ecdhe(const struct s2n_connection *conn)
+static int s2n_check_ecdhe(const struct s2n_connection *conn)
 {
     return conn->secure.server_ecc_params.negotiated_curve != NULL;
 }
 
-static int check_kem(const struct s2n_connection *conn)
+static int s2n_check_kem(const struct s2n_connection *conn)
 {
     return conn->secure.s2n_kem_keys.negotiated_kem != NULL;
 }
 
-static int check_hybrid(const struct s2n_connection *conn)
+static int s2n_check_hybrid(const struct s2n_connection *conn)
 {
     const struct s2n_kex *kex = conn->secure.cipher_suite->key_exchange_alg;
     const struct s2n_kex *hybrid_kex_1 = *kex->hybrid;
@@ -88,7 +88,7 @@ static int check_hybrid(const struct s2n_connection *conn)
     return s2n_kex_supported(hybrid_kex_1, conn) && s2n_kex_supported(hybrid_kex_2, conn);
 }
 
-static int write_server_hybrid_extensions(const struct s2n_connection *conn, struct s2n_stuffer *out)
+static int s2n_write_server_hybrid_extensions(const struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     const struct s2n_kex *kex = conn->secure.cipher_suite->key_exchange_alg;
     const struct s2n_kex *hybrid_kex_1 = *kex->hybrid;
@@ -98,7 +98,7 @@ static int write_server_hybrid_extensions(const struct s2n_connection *conn, str
     return 0;
 }
 
-static int get_server_hybrid_extensions_size(const struct s2n_connection *conn)
+static int s2n_get_server_hybrid_extensions_size(const struct s2n_connection *conn)
 {
     const struct s2n_kex *kex = conn->secure.cipher_suite->key_exchange_alg;
     const struct s2n_kex *hybrid_kex_1 = *kex->hybrid;
@@ -108,9 +108,9 @@ static int get_server_hybrid_extensions_size(const struct s2n_connection *conn)
 
 static const struct s2n_kex s2n_sike = {
         .is_ephemeral = 1,
-        .get_server_extension_size = &get_no_extension_size,
-        .write_server_extensions = &write_no_extension,
-        .connection_supported = &check_kem,
+        .get_server_extension_size = &s2n_get_no_extension_size,
+        .write_server_extensions = &s2n_write_no_extension,
+        .connection_supported = &s2n_check_kem,
         .server_key_recv_read_data = &s2n_kem_server_key_recv_read_data,
         .server_key_recv_parse_data = &s2n_kem_server_key_recv_parse_data,
         .server_key_send = &s2n_kem_server_key_send,
@@ -121,9 +121,9 @@ static const struct s2n_kex s2n_sike = {
 
 const struct s2n_kex s2n_rsa = {
         .is_ephemeral = 0,
-        .get_server_extension_size = &get_no_extension_size,
-        .write_server_extensions = &write_no_extension,
-        .connection_supported = &check_rsa_key,
+        .get_server_extension_size = &s2n_get_no_extension_size,
+        .write_server_extensions = &s2n_write_no_extension,
+        .connection_supported = &s2n_check_rsa_key,
         .server_key_recv_read_data = NULL,
         .server_key_recv_parse_data = NULL,
         .server_key_send = NULL,
@@ -134,9 +134,9 @@ const struct s2n_kex s2n_rsa = {
 
 const struct s2n_kex s2n_dhe = {
         .is_ephemeral = 1,
-        .get_server_extension_size = &get_no_extension_size,
-        .write_server_extensions = &write_no_extension,
-        .connection_supported = &check_dhe,
+        .get_server_extension_size = &s2n_get_no_extension_size,
+        .write_server_extensions = &s2n_write_no_extension,
+        .connection_supported = &s2n_check_dhe,
         .server_key_recv_read_data = &s2n_dhe_server_key_recv_read_data,
         .server_key_recv_parse_data = &s2n_dhe_server_key_recv_parse_data,
         .server_key_send = &s2n_dhe_server_key_send,
@@ -147,9 +147,9 @@ const struct s2n_kex s2n_dhe = {
 
 const struct s2n_kex s2n_ecdhe = {
         .is_ephemeral = 1,
-        .get_server_extension_size = &get_server_ecc_extension_size,
-        .write_server_extensions = &write_server_ecc_extension,
-        .connection_supported = &check_ecdhe,
+        .get_server_extension_size = &s2n_get_server_ecc_extension_size,
+        .write_server_extensions = &s2n_write_server_ecc_extension,
+        .connection_supported = &s2n_check_ecdhe,
         .server_key_recv_read_data = &s2n_ecdhe_server_key_recv_read_data,
         .server_key_recv_parse_data = &s2n_ecdhe_server_key_recv_parse_data,
         .server_key_send = &s2n_ecdhe_server_key_send,
@@ -162,9 +162,9 @@ const struct s2n_kex s2n_ecdhe = {
 const struct s2n_kex s2n_hybrid_ecdhe_sike = {
         .is_ephemeral = 1,
         .hybrid = {&s2n_ecdhe, &s2n_sike},
-        .get_server_extension_size = &get_server_hybrid_extensions_size,
-        .write_server_extensions = &write_server_hybrid_extensions,
-        .connection_supported = &check_hybrid,
+        .get_server_extension_size = &s2n_get_server_hybrid_extensions_size,
+        .write_server_extensions = &s2n_write_server_hybrid_extensions,
+        .connection_supported = &s2n_check_hybrid,
         .server_key_recv_read_data = &s2n_hybrid_server_key_recv_read_data,
         .server_key_recv_parse_data = &s2n_hybrid_server_key_recv_parse_data,
         .server_key_send = &s2n_hybrid_server_key_send,

@@ -38,6 +38,9 @@
 #define SERVER_KEY_MESSAGE_LENGTH 710
 #define CLIENT_KEY_MESSAGE_LENGTH 470
 
+/* If the configured lib crypto supports a custom random number generator this test is run with a AES 256 DRBG with no
+ * prediction resistance RNG. Running in that mode all the server and client key exchange messages and final master
+ * secret can be checked against the expected values in RSP_FILE_NAME. */
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
 #define RSP_FILE_NAME "kats/hybrid_ecdhe_sike_p503.kat"
 
@@ -63,6 +66,9 @@ int main(int argc, char **argv) {
     BEGIN_TEST();
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
+    /* Read the seed from the RSP_FILE and create the DRBG for the test. Since the seed is the same (and prediction
+     * resistance is off) all calls to generate random data will return the same sequence. Thus the server always
+     * generates the same ECDHE point and KEM public key, the client does the same. */
     FILE *kat_file = fopen(RSP_FILE_NAME, "r");
     EXPECT_NOT_NULL(kat_file);
     EXPECT_SUCCESS(s2n_alloc(&kat_entropy_blob, 48));
@@ -134,6 +140,7 @@ int main(int argc, char **argv) {
     struct s2n_blob server_key_message = {.size = SERVER_KEY_MESSAGE_LENGTH, .data = s2n_stuffer_raw_read(&server_conn->handshake.io, SERVER_KEY_MESSAGE_LENGTH)};
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
+    /* Part 2.1.1 if we're running in known answer mode check the server's key exchange message matches the expected value */
     uint8_t expected_server_key_message[SERVER_KEY_MESSAGE_LENGTH];
     EXPECT_SUCCESS(ReadHex(kat_file, expected_server_key_message, SERVER_KEY_MESSAGE_LENGTH, "expected_server_key_exchange = "));
     EXPECT_BYTEARRAY_EQUAL(expected_server_key_message, server_key_message.data, SERVER_KEY_MESSAGE_LENGTH);
@@ -152,6 +159,7 @@ int main(int argc, char **argv) {
 
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
+    /* Part 3.1.1 if we're running in known answer mode check the client's key exchange message matches the expected value */
     uint8_t expected_client_key_message[CLIENT_KEY_MESSAGE_LENGTH];
     EXPECT_SUCCESS(ReadHex(kat_file, expected_client_key_message, CLIENT_KEY_MESSAGE_LENGTH, "expected_client_key_exchange = "));
     EXPECT_BYTEARRAY_EQUAL(expected_client_key_message, client_key_message.data, CLIENT_KEY_MESSAGE_LENGTH);
@@ -167,6 +175,8 @@ int main(int argc, char **argv) {
     EXPECT_BYTEARRAY_EQUAL(server_conn->secure.master_secret, client_conn->secure.master_secret, S2N_TLS_SECRET_LEN);
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
+    /* Part 4.1.1 if we're running in known answer mode check that both the client and server got the expected master secret
+     * from the RSP_FILE */
     uint8_t expected_master_secret[S2N_TLS_SECRET_LEN];
     EXPECT_SUCCESS(ReadHex(kat_file, expected_master_secret, S2N_TLS_SECRET_LEN, "expected_master_secret = "));
     EXPECT_BYTEARRAY_EQUAL(expected_master_secret, client_conn->secure.master_secret, S2N_TLS_SECRET_LEN);
@@ -182,6 +192,7 @@ int main(int argc, char **argv) {
     free(private_key);
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
+    /* Extra cleanup needed for the known answer test */
     fclose(kat_file);
 #endif
 
