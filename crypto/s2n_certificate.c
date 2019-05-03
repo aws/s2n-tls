@@ -24,6 +24,7 @@
 #include <strings.h>
 
 #include "crypto/s2n_certificate.h"
+#include "utils/s2n_array.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
 
@@ -31,6 +32,7 @@ static const s2n_authentication_method cert_type_to_auth_method[] = {
     [S2N_CERT_TYPE_RSA_SIGN] = S2N_AUTHENTICATION_RSA,
     [S2N_CERT_TYPE_ECDSA_SIGN] = S2N_AUTHENTICATION_ECDSA,
 };
+
 
 int s2n_cert_public_key_set_rsa_from_openssl(s2n_cert_public_key *public_key, RSA *openssl_rsa)
 {
@@ -178,8 +180,78 @@ struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void)
     memset(&chain_and_key->sct_list, 0, sizeof(chain_and_key->sct_list));
     chain_and_key->san_names = NULL;
     chain_and_key->x509_cert = NULL;
+    chain_and_key->cn_names = s2n_array_new(sizeof(struct s2n_blob));
+    if (!chain_and_key->cn_names) {
+        return NULL;
+    }
 
     return chain_and_key;
+}
+
+static int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert)
+{
+    GENERAL_NAMES *san_names = X509_get_ext_d2i(x509_cert, NID_subject_alt_name, NULL, NULL);
+    if (san_names == NULL) {
+        /* No SAN extension */
+        return 0;
+    }
+
+    chain_and_key->san_names = san_names;
+    return 0;
+}
+
+static int s2n_cert_chain_and_key_load_cn(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert)
+{
+    notnull_check(chain_and_key->cn_names);
+
+    X509_NAME *subject = X509_get_subject_name(x509_cert);
+    if (!subject) {
+        return 0;
+    }
+
+    /* Technically there can be multiple CommonNames entries in the Subject. */
+    int lastpos = -1;
+    while((lastpos = X509_NAME_get_index_by_NID(subject, NID_commonName, lastpos)) >= 0) {
+        const X509_NAME_ENTRY *name_entry = X509_NAME_get_entry(subject, lastpos);
+        if (!name_entry) {
+            continue;
+        }
+
+        ASN1_STRING *asn1_str = X509_NAME_ENTRY_get_data(name_entry);
+        if (!asn1_str) {
+            continue;
+        }
+
+        /* We need to try and decode the CN since it may be encoded as unicode with a
+         * direct ASCII equivalent. Any non ASCII bytes in the string will fail later when we
+         * actually compare hostnames.
+         */
+        unsigned char *utf8_str;
+        const int utf8_out_len = ASN1_STRING_to_UTF8(&utf8_str, asn1_str);
+        if (utf8_out_len < 0) {
+            continue;
+        }
+
+        if (utf8_out_len > 0) {
+            struct s2n_blob *cn_name = s2n_array_insert(chain_and_key->cn_names, s2n_array_num_elements(chain_and_key->cn_names));
+            if (cn_name == NULL) {
+                OPENSSL_free(utf8_str);
+                return -1;
+            }
+
+            if (s2n_alloc(cn_name, utf8_out_len) < 0) {
+                OPENSSL_free(utf8_str);
+                return -1;
+            }
+            memcpy_check(cn_name->data, utf8_str, utf8_out_len);
+            cn_name->size = utf8_out_len;
+        }
+
+        /* Note when ASN1_STRING_to_UTF8 returns 0 we still need to free memory */
+        OPENSSL_free(utf8_str);
+    }
+
+    return 0;
 }
 
 static int s2n_cert_chain_and_key_set_x509(struct s2n_cert_chain_and_key *chain_and_key, struct s2n_blob *leaf_bytes)
@@ -191,14 +263,12 @@ static int s2n_cert_chain_and_key_set_x509(struct s2n_cert_chain_and_key *chain_
     }
 
     chain_and_key->x509_cert = cert;
-
-    GENERAL_NAMES *san_names = X509_get_ext_d2i(cert, NID_subject_alt_name, NULL, NULL);
-    if (san_names == NULL) {
-        /* No SAN extension */
-        return 0;
-    }
-
-    chain_and_key->san_names = san_names;
+    GUARD(s2n_cert_chain_and_key_load_sans(chain_and_key, cert));
+    /* For current use cases, we *could* avoid populating the common names if any sans were loaded in
+     * s2n_cert_chain_and_key_load_sans. Let's unconditionally populate this field to avoid surprises
+     * in the future.
+     */
+    GUARD(s2n_cert_chain_and_key_load_cn(chain_and_key, cert));
 
     return 0;
 }
@@ -260,6 +330,15 @@ int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key)
         GENERAL_NAMES_free(cert_and_key->san_names);
     }
 
+    if (cert_and_key->cn_names) {
+        for (int i = 0; i < s2n_array_num_elements(cert_and_key->cn_names); i++) {
+            struct s2n_blob *cn_name = s2n_array_get(cert_and_key->cn_names, i);
+            GUARD(s2n_free(cn_name));
+        }
+        GUARD(s2n_array_free(cert_and_key->cn_names));
+        cert_and_key->cn_names = NULL;
+    }
+
     GUARD(s2n_free(&cert_and_key->ocsp_status));
     GUARD(s2n_free(&cert_and_key->sct_list));
 
@@ -305,7 +384,6 @@ static int s2n_does_cert_san_match_hostname(struct s2n_cert_chain_and_key *cert,
             continue;
         }
 
-        /* we only care about DNS entries */
         if (san_name->type == GEN_DNS) {
             unsigned char *san_str = san_name->d.dNSName->data;
             const size_t san_str_len = san_name->d.dNSName->length;
@@ -323,10 +401,34 @@ static int s2n_does_cert_san_match_hostname(struct s2n_cert_chain_and_key *cert,
     return 0;
 }
 
+int s2n_does_cert_cn_match_hostname(struct s2n_cert_chain_and_key *chain_and_key, const char *hostname)
+{
+    struct s2n_array *cn_names = chain_and_key->cn_names;
+    if (!cn_names) {
+        return 0;
+    }
+
+    const size_t hostname_len = strnlen(hostname, S2N_MAX_SERVER_NAME);
+    for (int i = 0; i < s2n_array_num_elements(cn_names); i++) {
+        struct s2n_blob *cn_name = s2n_array_get(cn_names, i);
+        if ((hostname_len == cn_name->size) && (strncasecmp(hostname, (const char *) cn_name->data, hostname_len) == 0)) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 int s2n_cert_chain_and_key_matches_name(struct s2n_cert_chain_and_key *chain_and_key, const char *name)
 {
-    if (s2n_does_cert_san_match_hostname(chain_and_key, name)) {
-        return 1;
+    if (chain_and_key->san_names) {
+        if (s2n_does_cert_san_match_hostname(chain_and_key, name)) {
+            return 1;
+        }
+    } else {
+        if (s2n_does_cert_cn_match_hostname(chain_and_key, name)) {
+            return 1;
+        }
     }
 
     return 0;

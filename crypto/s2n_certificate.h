@@ -43,6 +43,7 @@ struct s2n_cert_chain_and_key {
     struct s2n_blob ocsp_status;
     struct s2n_blob sct_list;
     GENERAL_NAMES *san_names;
+    struct s2n_array *cn_names;
     X509 *x509_cert;
 };
 

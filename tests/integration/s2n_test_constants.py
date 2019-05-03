@@ -1,5 +1,5 @@
 #
-# Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -163,11 +163,18 @@ SNI_CERTS = {
          # Verify case insensitivity works as expected.
          "LADYBUG.LADYBUG",
          "com.penguin.macaroni"
-        ])
+        ]),
+    "narwhal_cn" : ( TEST_SNI_CERT_DIRECTORY + "narwhal_cn_cert.pem", TEST_SNI_CERT_DIRECTORY + "narwhal_cn_key.pem",
+        ["www.narwhal.com"]),
+    "octopus_cn_platypus_san" : ( TEST_SNI_CERT_DIRECTORY + "octopus_cn_platypus_san_cert.pem", TEST_SNI_CERT_DIRECTORY
+        + "octopus_cn_platypus_san_key.pem", ["www.platypus.com"]),
+    "quail_cn_rattlesnake_cn" : ( TEST_SNI_CERT_DIRECTORY + "quail_cn_rattlesnake_cn_cert.pem", TEST_SNI_CERT_DIRECTORY
+        + "quail_cn_rattlesnake_cn_key.pem", ["www.quail.com", "www.rattlesnake.com"])
+
 }
 
 # Test cases for certificate selection.
-# Test inputs are server certificates to load into s2nd, client SNI and capabilities, outputs are selected server cert
+# Test inputs: server certificates to load into s2nd, client SNI and capabilities, outputs are selected server cert
 # and negotiated cipher.
 MultiCertTest = collections.namedtuple('MultiCertTest', 'description server_certs client_sni client_ciphers expected_cert expect_matching_hostname')
 MULTI_CERT_TEST_CASES= [
@@ -236,9 +243,37 @@ MULTI_CERT_TEST_CASES= [
         client_sni=None,
         client_ciphers="ECDHE-RSA-AES128-SHA",
         expected_cert=SNI_CERTS["many_animals"],
-        expect_matching_hostname=True)]
+        expect_matching_hostname=True),
+    MultiCertTest(
+        description="Test certificate match with CN",
+        server_certs=[ SNI_CERTS["alligator"], SNI_CERTS["narwhal_cn"] ],
+        client_sni="www.narwhal.com",
+        client_ciphers="ECDHE-RSA-AES128-SHA",
+        expected_cert=SNI_CERTS["narwhal_cn"],
+        expect_matching_hostname=True),
+    MultiCertTest(
+        description="Test SAN+CN cert can match using SAN.",
+        server_certs=[ SNI_CERTS["alligator"], SNI_CERTS["octopus_cn_platypus_san"] ],
+        client_sni="www.platypus.com",
+        client_ciphers="ECDHE-RSA-AES128-SHA",
+        expected_cert=SNI_CERTS["octopus_cn_platypus_san"],
+        expect_matching_hostname=True),
+    MultiCertTest(
+        description="Test that CN is not considered for matching if the certificate contains SANs.",
+        server_certs=[ SNI_CERTS["alligator"], SNI_CERTS["octopus_cn_platypus_san"] ],
+        client_sni="www.octopus.com",
+        client_ciphers="ECDHE-RSA-AES128-SHA",
+        expected_cert=SNI_CERTS["alligator"],
+        expect_matching_hostname=False),
+    MultiCertTest(
+        description="Test certificate with multiple CNs can match.",
+        server_certs=[ SNI_CERTS["alligator"], SNI_CERTS["quail_cn_rattlesnake_cn"] ],
+        client_sni="www.rattlesnake.com",
+        client_ciphers="ECDHE-RSA-AES128-SHA",
+        expected_cert=SNI_CERTS["quail_cn_rattlesnake_cn"],
+        expect_matching_hostname=False)]
 MULTI_CERT_TEST_CASES.extend([MultiCertTest(
-        description="Match " + many_animal_domain + " in many_animals cert",
+        description="Match SAN " + many_animal_domain + " in many_animals cert",
         server_certs= [SNI_CERTS["many_animals"] , SNI_CERTS["alligator"]],
         client_sni=many_animal_domain,
         client_ciphers="ECDHE-RSA-AES128-SHA",
