@@ -180,8 +180,22 @@ SNI_CERTS = {
          "WWW.gorilla.COM",
          "www.horse.com",
          "WWW.IMPALA.COM",
-         "WwW.jAcKaL.cOm"])
-
+         "WwW.jAcKaL.cOm"]),
+    "embedded_wildcard" : ( TEST_SNI_CERT_DIRECTORY + "embedded_wildcard_rsa_cert.pem", TEST_SNI_CERT_DIRECTORY
+        + "embedded_wildcard_rsa_key.pem", ["www.labelstart*labelend.com"]),
+    "non_empty_label_wildcard" : ( TEST_SNI_CERT_DIRECTORY + "non_empty_label_wildcard_rsa_cert.pem", TEST_SNI_CERT_DIRECTORY
+        + "non_empty_label_wildcard_rsa_key.pem", ["WILD*.middle.end"]),
+    "trailing_wildcard" : ( TEST_SNI_CERT_DIRECTORY + "trailing_wildcard_rsa_cert.pem", TEST_SNI_CERT_DIRECTORY
+        + "trailing_wildcard_rsa_key.pem", ["the.prefix.*"]),
+    "wildcard_insect" : ( TEST_SNI_CERT_DIRECTORY + "wildcard_insect_rsa_cert.pem", TEST_SNI_CERT_DIRECTORY
+        + "wildcard_insect_rsa_key.pem",
+        ["ant.insect.hexapod",
+         "BEE.insect.hexapod",
+         "wasp.INSECT.hexapod",
+         "butterfly.insect.hexapod",
+        ]),
+    "termite" : ( TEST_SNI_CERT_DIRECTORY + "termite_rsa_cert.pem", TEST_SNI_CERT_DIRECTORY + "termite_rsa_key.pem",
+        [ "termite.insect.hexapod" ])
 }
 
 # Test cases for certificate selection.
@@ -282,7 +296,46 @@ MULTI_CERT_TEST_CASES= [
         client_sni="www.rattlesnake.com",
         client_ciphers="ECDHE-RSA-AES128-SHA",
         expected_cert=SNI_CERTS["quail_cn_rattlesnake_cn"],
-        expect_matching_hostname=False)]
+        expect_matching_hostname=False),
+    MultiCertTest(
+        description="Test cert with embedded wildcard is not treated as a wildcard.",
+        server_certs=[ SNI_CERTS["alligator"], SNI_CERTS["embedded_wildcard"] ],
+        client_sni="www.labelstartWILDCARDlabelend.com",
+        client_ciphers="ECDHE-RSA-AES128-SHA",
+        expected_cert=SNI_CERTS["alligator"],
+        expect_matching_hostname=False),
+    MultiCertTest(
+        description="Test non empty left label wildcard cert is not treated as a wildcard."\
+                    " s2n only supports wildcards with a single * as the left label",
+        server_certs=[ SNI_CERTS["alligator"], SNI_CERTS["non_empty_label_wildcard"] ],
+        client_sni="WILDCARD.middle.end",
+        client_ciphers="ECDHE-RSA-AES128-SHA",
+        expected_cert=SNI_CERTS["alligator"],
+        expect_matching_hostname=False),
+    MultiCertTest(
+        description="Test cert with trailing * is not treated as wildcard.",
+        server_certs=[ SNI_CERTS["alligator"], SNI_CERTS["trailing_wildcard"] ],
+        client_sni="the.prefix.WILDCARD",
+        client_ciphers="ECDHE-RSA-AES128-SHA",
+        expected_cert=SNI_CERTS["alligator"],
+        expect_matching_hostname=False),
+    MultiCertTest(
+        description="Certificate with exact sni match(termite.insect.hexapod) is preferred over wildcard"\
+                    " *.insect.hexapod",
+        server_certs=[ SNI_CERTS["wildcard_insect"], SNI_CERTS["alligator"], SNI_CERTS["termite"] ],
+        client_sni="termite.insect.hexapod",
+        client_ciphers="ECDHE-RSA-AES128-SHA",
+        expected_cert=SNI_CERTS["termite"],
+        expect_matching_hostname=True)]
+# Positive test for wildcard matches
+MULTI_CERT_TEST_CASES.extend([MultiCertTest(
+        description="Test wildcard *.insect.hexapod matches subdomain " + specific_insect_domain,
+        server_certs=[ SNI_CERTS["alligator"], SNI_CERTS["wildcard_insect"] ],
+        client_sni=specific_insect_domain,
+        client_ciphers="ECDHE-RSA-AES128-SHA",
+        expected_cert=SNI_CERTS["wildcard_insect"],
+        expect_matching_hostname=True) for specific_insect_domain in SNI_CERTS["wildcard_insect"][2]])
+# Positive test for basic SAN matches
 MULTI_CERT_TEST_CASES.extend([MultiCertTest(
         description="Match SAN " + many_animal_domain + " in many_animals cert",
         server_certs= [ SNI_CERTS["alligator"], SNI_CERTS["many_animals"] ],
