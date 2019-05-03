@@ -79,8 +79,10 @@ struct s2n_handshake_parameters {
      *    - Client only supports RSA ciphers
      *    - certB will be selected.
      */
-    struct s2n_cert_chain_and_key *sni_matching_certs[S2N_AUTHENTICATION_METHOD_SENTINEL];
-    uint8_t sni_match_exists;
+    struct s2n_cert_chain_and_key *exact_sni_matches[S2N_AUTHENTICATION_METHOD_SENTINEL];
+    struct s2n_cert_chain_and_key *wc_sni_matches[S2N_AUTHENTICATION_METHOD_SENTINEL];
+    uint8_t exact_sni_match_exists;
+    uint8_t wc_sni_match_exists;
 };
 
 struct s2n_handshake {
@@ -156,4 +158,4 @@ extern uint8_t s2n_handshake_is_hash_required(struct s2n_handshake *handshake, s
 extern int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn);
 extern int s2n_handshake_get_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg, struct s2n_hash_state *hash_state);
 extern int s2n_conn_find_name_matching_certs(struct s2n_connection *conn);
-
+extern int s2n_create_wildcard_hostname(struct s2n_stuffer *hostname, struct s2n_stuffer *output);

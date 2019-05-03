@@ -33,7 +33,6 @@ static const s2n_authentication_method cert_type_to_auth_method[] = {
     [S2N_CERT_TYPE_ECDSA_SIGN] = S2N_AUTHENTICATION_ECDSA,
 };
 
-
 int s2n_cert_public_key_set_rsa_from_openssl(s2n_cert_public_key *public_key, RSA *openssl_rsa)
 {
     notnull_check(openssl_rsa);
