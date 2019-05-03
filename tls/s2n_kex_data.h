@@ -32,7 +32,7 @@ struct s2n_kem_raw_server_params {
     struct s2n_blob raw_public_key;
 };
 
-union s2n_kex_raw_server_data {
+struct s2n_kex_raw_server_data {
     struct s2n_ecdhe_raw_server_params ecdhe_data;
     struct s2n_dhe_raw_server_points dhe_data;
     struct s2n_kem_raw_server_params kem_data;

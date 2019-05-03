@@ -130,6 +130,7 @@ extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_chacha20_poly1305_sha256;
 extern struct s2n_cipher_suite s2n_dhe_rsa_with_chacha20_poly1305_sha256;
 extern struct s2n_cipher_suite s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256;
 extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_rc4_128_sha;
+extern struct s2n_cipher_suite s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384;
 
 extern int s2n_cipher_suites_init(void);
 extern int s2n_cipher_suites_cleanup(void);

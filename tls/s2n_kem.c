@@ -17,12 +17,14 @@
 
 #include "stuffer/s2n_stuffer.h"
 
+#include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_kem.h"
 
-#include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
+#include "utils/s2n_safety.h"
 
 const struct s2n_kem s2n_sike_r1_p503 = {
+        .kem_extension_id = SIKEp503r1_KEM,
         .public_key_length = SIKE_P503_PUBLIC_KEY_BYTES,
         .private_key_length = SIKE_P503_SECRET_KEY_BYTES,
         .shared_secret_key_length = SIKE_P503_SHARED_SECRET_BYTES,

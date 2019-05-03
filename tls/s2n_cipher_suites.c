@@ -625,6 +625,20 @@ struct s2n_cipher_suite s2n_dhe_rsa_with_chacha20_poly1305_sha256 = /* 0xCC,0xAA
     .minimum_required_tls_version = S2N_TLS12,
 };
 
+struct s2n_cipher_suite s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384 = /* 0xFF, 0x08 */ {
+        .available = 0,
+        .name = "ECDHE-SIKE-RSA-AES256-GCM-SHA384",
+        .iana_value = { TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 },
+        .key_exchange_alg = &s2n_hybrid_ecdhe_sike,
+        .auth_method = S2N_AUTHENTICATION_RSA,
+        .record_alg = NULL,
+        .all_record_algs = { &s2n_record_alg_aes256_gcm },
+        .num_record_algs = 1,
+        .sslv3_record_alg = NULL,
+        .tls12_prf_alg = S2N_HMAC_SHA384,
+        .minimum_required_tls_version = S2N_TLS12,
+};
+
 /* All of the cipher suites that s2n negotiates, in order of IANA value.
  * Exposed for the "test_all" cipher preference list.
  */
@@ -662,6 +676,7 @@ static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
     &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,   /* 0xCC,0xA8 */
     &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256, /* 0xCC,0xA9 */
     &s2n_dhe_rsa_with_chacha20_poly1305_sha256,     /* 0xCC,0xAA */
+    &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x08 */
 };
 
 /* All supported ciphers. Exposed for integration testing. */

@@ -23,7 +23,6 @@
 #include "tls/s2n_kem.h"
 #include "tls/s2n_tls.h"
 
-
 #include "utils/s2n_safety.h"
 
 #define KEM_ID 0xab
@@ -121,7 +120,7 @@ int main(int argc, char **argv)
     s2n_stuffer_write(&client_conn->handshake.io, &server_key_message);
 
     /* Part 2: Client calls recv_read and recv_parse */
-    union s2n_kex_raw_server_data raw_parms = {{{0}}};
+    struct s2n_kex_raw_server_data raw_parms = {{{0}}};
     struct s2n_blob data_to_verify = {0};
     EXPECT_SUCCESS(s2n_kem_server_key_recv_read_data(client_conn, &data_to_verify, &raw_parms));
     EXPECT_EQUAL(data_to_verify.size, TEST_SERVER_SEND_KEY_MESSAGE_LENGTH);

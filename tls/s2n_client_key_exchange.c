@@ -31,11 +31,46 @@
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
+typedef int s2n_kex_client_key_method(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key);
+static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob *combined_shared_key,
+        s2n_kex_client_key_method kex_method)
+{
+    notnull_check(kex_method);
+    struct s2n_stuffer *io = &conn->handshake.io;
+    const struct s2n_kex *kex = conn->secure.cipher_suite->key_exchange_alg;
+    const struct s2n_kex *hybrid_kex_0 = kex->hybrid[0];
+    const struct s2n_kex *hybrid_kex_1 = kex->hybrid[1];
+
+    /* Keep a copy to the start of the entire hybrid client key exchange message for the hybrid PRF */
+    struct s2n_blob *client_key_exchange_message = &conn->secure.client_key_exchange_message;
+    client_key_exchange_message->data = s2n_stuffer_raw_read(io, 0);
+    notnull_check(client_key_exchange_message->data);
+    const uint32_t start_read = io->read_cursor;
+    const uint32_t start_write = io->write_cursor;
+
+    DEFER_CLEANUP(struct s2n_blob shared_key_0 = {0}, s2n_free);
+    GUARD(kex_method(hybrid_kex_0, conn, &shared_key_0));
+
+    DEFER_CLEANUP(struct s2n_blob shared_key_1 = {0}, s2n_free);
+    GUARD(kex_method(hybrid_kex_1, conn, &shared_key_1));
+
+    const uint32_t end_read = io->read_cursor;
+    const uint32_t end_write = io->write_cursor;
+    client_key_exchange_message->size = (end_read - start_read) + (end_write - start_write);
+
+    GUARD(s2n_alloc(combined_shared_key, shared_key_0.size + shared_key_1.size));
+    struct s2n_stuffer stuffer_combiner = {{0}};
+    GUARD(s2n_stuffer_init(&stuffer_combiner, combined_shared_key));
+    GUARD(s2n_stuffer_write(&stuffer_combiner, &shared_key_0));
+    GUARD(s2n_stuffer_write(&stuffer_combiner, &shared_key_1));
+
+    return 0;
+}
 
 static int calculate_keys(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
     /* Turn the pre-master secret into a master secret */
-    GUARD(s2n_tls_prf_master_secret(conn, shared_key));
+    GUARD(s2n_kex_tls_prf(conn->secure.cipher_suite->key_exchange_alg, conn, shared_key));
     /* Erase the pre-master secret */
     GUARD(s2n_blob_zero(shared_key));
     if (shared_key->allocated) {
@@ -128,6 +163,11 @@ int s2n_kem_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
     return 0;
 }
 
+int s2n_hybrid_client_key_recv(struct s2n_connection *conn, struct s2n_blob *combined_shared_key)
+{
+    return s2n_hybrid_client_action(conn, combined_shared_key, &s2n_kex_client_key_recv);
+}
+
 int s2n_client_key_recv(struct s2n_connection *conn)
 {
     const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
@@ -207,6 +247,11 @@ int s2n_kem_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
     GUARD(s2n_kem_encapsulate(&conn->secure.s2n_kem_keys, shared_key, &ciphertext));
     GUARD(s2n_kem_free(&conn->secure.s2n_kem_keys));
     return 0;
+}
+
+int s2n_hybrid_client_key_send(struct s2n_connection *conn, struct s2n_blob *combined_shared_key)
+{
+    return s2n_hybrid_client_action(conn, combined_shared_key, &s2n_kex_client_key_send);
 }
 
 int s2n_client_key_send(struct s2n_connection *conn)
