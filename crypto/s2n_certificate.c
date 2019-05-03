@@ -178,10 +178,13 @@ struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void)
     GUARD_PTR(s2n_pkey_zero_init(chain_and_key->private_key));
     memset(&chain_and_key->ocsp_status, 0, sizeof(chain_and_key->ocsp_status));
     memset(&chain_and_key->sct_list, 0, sizeof(chain_and_key->sct_list));
-    chain_and_key->san_names = NULL;
-    chain_and_key->x509_cert = NULL;
     chain_and_key->cn_names = s2n_array_new(sizeof(struct s2n_blob));
     if (!chain_and_key->cn_names) {
+        return NULL;
+    }
+
+    chain_and_key->san_names = s2n_array_new(sizeof(struct s2n_blob));
+    if (!chain_and_key->san_names) {
         return NULL;
     }
 
@@ -190,13 +193,44 @@ struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void)
 
 static int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert)
 {
+    notnull_check(chain_and_key->san_names);
+
     GENERAL_NAMES *san_names = X509_get_ext_d2i(x509_cert, NID_subject_alt_name, NULL, NULL);
     if (san_names == NULL) {
         /* No SAN extension */
         return 0;
     }
 
-    chain_and_key->san_names = san_names;
+    for (int i = 0; i < sk_GENERAL_NAME_num(san_names); i++) {
+        GENERAL_NAME *san_name = sk_GENERAL_NAME_value(san_names, i);
+        if (!san_name) {
+            continue;
+        }
+
+        if (san_name->type == GEN_DNS) {
+            /* Per https://www.openssl.org/docs/man1.1.0/man3/ASN1_STRING_data.html there may
+             * be embedded NULLs inside of the SAN string. The comparison later with any proper
+             * DNS hostnames will safely fail.
+             */
+            unsigned char *san_str = san_name->d.dNSName->data;
+            const size_t san_str_len = san_name->d.dNSName->length;
+            struct s2n_blob *san_blob = s2n_array_insert(chain_and_key->san_names, s2n_array_num_elements(chain_and_key->san_names));
+            if (!san_blob) {
+                GENERAL_NAMES_free(san_names);
+                return -1;
+            }
+
+            if (s2n_alloc(san_blob, san_str_len)) {
+                GENERAL_NAMES_free(san_names);
+                return -1;
+            }
+
+            memcpy_check(san_blob->data, san_str, san_str_len);
+            san_blob->size = san_str_len;
+        }
+    }
+
+    GENERAL_NAMES_free(san_names);
     return 0;
 }
 
@@ -212,7 +246,7 @@ static int s2n_cert_chain_and_key_load_cn(struct s2n_cert_chain_and_key *chain_a
     /* Technically there can be multiple CommonNames entries in the Subject. */
     int lastpos = -1;
     while((lastpos = X509_NAME_get_index_by_NID(subject, NID_commonName, lastpos)) >= 0) {
-        const X509_NAME_ENTRY *name_entry = X509_NAME_get_entry(subject, lastpos);
+        X509_NAME_ENTRY *name_entry = X509_NAME_get_entry(subject, lastpos);
         if (!name_entry) {
             continue;
         }
@@ -254,7 +288,7 @@ static int s2n_cert_chain_and_key_load_cn(struct s2n_cert_chain_and_key *chain_a
     return 0;
 }
 
-static int s2n_cert_chain_and_key_set_x509(struct s2n_cert_chain_and_key *chain_and_key, struct s2n_blob *leaf_bytes)
+static int s2n_cert_chain_and_key_set_names(struct s2n_cert_chain_and_key *chain_and_key, struct s2n_blob *leaf_bytes)
 {
     const unsigned char *leaf_der = leaf_bytes->data;
     X509 *cert = d2i_X509(NULL, &leaf_der, leaf_bytes->size);
@@ -262,7 +296,6 @@ static int s2n_cert_chain_and_key_set_x509(struct s2n_cert_chain_and_key *chain_
         S2N_ERROR(S2N_ERR_INVALID_PEM);
     }
 
-    chain_and_key->x509_cert = cert;
     GUARD(s2n_cert_chain_and_key_load_sans(chain_and_key, cert));
     /* For current use cases, we *could* avoid populating the common names if any sans were loaded in
      * s2n_cert_chain_and_key_load_sans. Let's unconditionally populate this field to avoid surprises
@@ -270,6 +303,7 @@ static int s2n_cert_chain_and_key_set_x509(struct s2n_cert_chain_and_key *chain_
      */
     GUARD(s2n_cert_chain_and_key_load_cn(chain_and_key, cert));
 
+    X509_free(cert);
     return 0;
 }
 
@@ -289,8 +323,8 @@ int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key
     /* Validate the leaf cert's public key matches the provided private key */
     GUARD(s2n_pkey_match(&public_key, chain_and_key->private_key));
 
-    /* TODO this will be removed once we add native hostname comparison to s2n. */
-    GUARD(s2n_cert_chain_and_key_set_x509(chain_and_key, &chain_and_key->cert_chain->head->raw));
+    /* Populate name information from the SAN/CN for the leaf certificate */
+    GUARD(s2n_cert_chain_and_key_set_names(chain_and_key, &chain_and_key->cert_chain->head->raw));
 
     return 0;
 }
@@ -322,12 +356,13 @@ int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key)
         GUARD(s2n_free_object((uint8_t **)&cert_and_key->private_key, sizeof(s2n_cert_private_key)));
     }
 
-    if (cert_and_key->x509_cert) {
-        X509_free(cert_and_key->x509_cert);
-    }
-
     if (cert_and_key->san_names) {
-        GENERAL_NAMES_free(cert_and_key->san_names);
+        for (int i = 0; i < s2n_array_num_elements(cert_and_key->san_names); i++) {
+            struct s2n_blob *san_name = s2n_array_get(cert_and_key->san_names, i);
+            GUARD(s2n_free(san_name));
+        }
+        GUARD(s2n_array_free(cert_and_key->san_names));
+        cert_and_key->san_names = NULL;
     }
 
     if (cert_and_key->cn_names) {
@@ -370,31 +405,14 @@ int s2n_send_empty_cert_chain(struct s2n_stuffer *out)
     return 0;
 }
 
-static int s2n_does_cert_san_match_hostname(struct s2n_cert_chain_and_key *cert, const char *hostname)
+static int s2n_does_cert_san_match_hostname(struct s2n_cert_chain_and_key *chain_and_key, const char *hostname)
 {
-    GENERAL_NAMES *san_names = cert->san_names;
-    if (san_names == NULL) {
-        return 0;
-    }
-
+    struct s2n_array *san_names = chain_and_key->san_names;
     const size_t hostname_len = strnlen(hostname, S2N_MAX_SERVER_NAME);
-    for (int i = 0; i < sk_GENERAL_NAME_num(san_names); i++) {
-        GENERAL_NAME *san_name = sk_GENERAL_NAME_value(san_names, i);
-        if (!san_name) {
-            continue;
-        }
-
-        if (san_name->type == GEN_DNS) {
-            unsigned char *san_str = san_name->d.dNSName->data;
-            const size_t san_str_len = san_name->d.dNSName->length;
-            /* Per https://www.openssl.org/docs/man1.1.0/man3/ASN1_STRING_data.html there may
-             * be embedded NULLs inside of the SAN string. The strncasecmp will return false for
-             * that case.
-             */
-            const int match = !!((hostname_len == san_str_len) && (strncasecmp(hostname, (const char *) san_str, san_str_len) == 0));
-            if (match) {
-                return 1;
-            }
+    for (int i = 0; i < s2n_array_num_elements(san_names); i++) {
+        struct s2n_blob *san_name = s2n_array_get(san_names, i);
+        if ((hostname_len == san_name->size) && (strncasecmp(hostname, (const char *) san_name->data, hostname_len) == 0)) {
+            return 1;
         }
     }
 
@@ -404,10 +422,6 @@ static int s2n_does_cert_san_match_hostname(struct s2n_cert_chain_and_key *cert,
 int s2n_does_cert_cn_match_hostname(struct s2n_cert_chain_and_key *chain_and_key, const char *hostname)
 {
     struct s2n_array *cn_names = chain_and_key->cn_names;
-    if (!cn_names) {
-        return 0;
-    }
-
     const size_t hostname_len = strnlen(hostname, S2N_MAX_SERVER_NAME);
     for (int i = 0; i < s2n_array_num_elements(cn_names); i++) {
         struct s2n_blob *cn_name = s2n_array_get(cn_names, i);
@@ -421,11 +435,15 @@ int s2n_does_cert_cn_match_hostname(struct s2n_cert_chain_and_key *chain_and_key
 
 int s2n_cert_chain_and_key_matches_name(struct s2n_cert_chain_and_key *chain_and_key, const char *name)
 {
-    if (chain_and_key->san_names) {
+    if (s2n_array_num_elements(chain_and_key->san_names) > 0) {
         if (s2n_does_cert_san_match_hostname(chain_and_key, name)) {
             return 1;
         }
     } else {
+        /* Per https://tools.ietf.org/html/rfc6125#section-6.4.4 we only will
+         * consider the CN for matching if no valid DNS entries are provided
+         * in a SAN.
+         */
         if (s2n_does_cert_cn_match_hostname(chain_and_key, name)) {
             return 1;
         }
