@@ -53,3 +53,5 @@ extern const struct s2n_cipher_preferences elb_security_policy_fs_2018_06;
 
 extern int s2n_find_cipher_pref_from_version(const char *version, const struct s2n_cipher_preferences **cipher_preferences);
 extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
+extern int s2n_is_ecc_enabled(const struct s2n_cipher_preferences *preferences);
+extern int s2n_is_sike_enabled(const struct s2n_cipher_preferences *preferences);

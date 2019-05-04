@@ -25,7 +25,7 @@
 
 #include "utils/s2n_safety.h"
 
-#define KEM_ID 0xab
+#define KEM_ID 0xabcd
 #define TEST_PUBLIC_KEY_LENGTH 0x0002
 const uint8_t TEST_PUBLIC_KEY[] = {0x02, 0x02};
 
@@ -39,7 +39,7 @@ const uint8_t TEST_SHARED_SECRET[] = {0x04, 0x04, 0x04, 0x04};
 const uint8_t TEST_CIPHERTEXT[] = {0x05, 0x05, 0x05, 0x05, 0x05};
 
 const int TEST_SERVER_SEND_KEY_MESSAGE_LENGTH = sizeof(kem_extension_size) + sizeof(kem_public_key_size) + TEST_PUBLIC_KEY_LENGTH;
-const uint8_t TEST_SERVER_SEND_KEY_MESSAGE[] = {0xab, 0x00, 0x02, 0x02, 0x02};
+const uint8_t TEST_SERVER_SEND_KEY_MESSAGE[] = {0xab, 0xcd, 0x00, 0x02, 0x02, 0x02};
 
 const int TEST_CLIENT_SEND_KEY_MESSAGE_LENGTH = sizeof(kem_ciphertext_key_size) + TEST_CIPHERTEXT_LENGTH;
 const uint8_t TEST_CLIENT_SEND_KEY_MESSAGE[] = {0x00, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05};

@@ -796,3 +796,12 @@ int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, 
 
     return 0;
 }
+int s2n_is_ecc_enabled(const struct s2n_cipher_preferences *preferences)
+{
+    return 1;
+}
+
+int s2n_is_sike_enabled(const struct s2n_cipher_preferences *preferences)
+{
+    return 1;
+}
