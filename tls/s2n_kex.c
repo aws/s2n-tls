@@ -60,32 +60,31 @@ static int s2n_write_no_extension(const struct s2n_connection *conn, struct s2n_
     return 0;
 }
 
-static int s2n_check_rsa_key(const struct s2n_connection *conn)
+static int s2n_check_rsa_key(const struct s2n_kex *kex, const struct s2n_connection *conn)
 {
     return conn->handshake_params.our_chain_and_key != NULL;
 }
 
-static int s2n_check_dhe(const struct s2n_connection *conn)
+static int s2n_check_dhe(const struct s2n_kex *kex, const struct s2n_connection *conn)
 {
     return conn->config->dhparams != NULL;
 }
 
-static int s2n_check_ecdhe(const struct s2n_connection *conn)
+static int s2n_check_ecdhe(const struct s2n_kex *kex, const struct s2n_connection *conn)
 {
     return conn->secure.server_ecc_params.negotiated_curve != NULL;
 }
 
-static int s2n_check_kem(const struct s2n_connection *conn)
+static int s2n_check_kem(const struct s2n_kex *kex, const struct s2n_connection *conn)
 {
     return conn->secure.s2n_kem_keys.negotiated_kem != NULL;
 }
 
-static int s2n_check_hybrid(const struct s2n_connection *conn)
+static int s2n_check_hybrid(const struct s2n_kex *kex, const struct s2n_connection *conn)
 {
-    const struct s2n_kex *kex = conn->secure.cipher_suite->key_exchange_alg;
-    const struct s2n_kex *hybrid_kex_1 = *kex->hybrid;
-    const struct s2n_kex *hybrid_kex_2 = hybrid_kex_1 + 1;
-    return s2n_kex_supported(hybrid_kex_1, conn) && s2n_kex_supported(hybrid_kex_2, conn);
+    const struct s2n_kex *hybrid_kex_0 = kex->hybrid[0];
+    const struct s2n_kex *hybrid_kex_1 = kex->hybrid[1];
+    return s2n_kex_supported(hybrid_kex_0, conn) && s2n_kex_supported(hybrid_kex_1, conn);
 }
 
 static int s2n_write_server_hybrid_extensions(const struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -188,7 +187,7 @@ int s2n_kex_write_server_extension(const struct s2n_kex *kex, const struct s2n_c
 int s2n_kex_supported(const struct s2n_kex *kex, const struct s2n_connection *conn)
 {
     /* Don't return -1 from notnull_check because that might allow a improperly configured kex to be marked as "supported" */
-    return kex->connection_supported != NULL && kex->connection_supported(conn);
+    return kex->connection_supported != NULL && kex->connection_supported(kex, conn);
 }
 
 int s2n_kex_is_ephemeral(const struct s2n_kex *kex)

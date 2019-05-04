@@ -23,15 +23,17 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
-const struct s2n_kem s2n_sike_r1_p503 = {
-        .kem_extension_id = SIKEp503r1_KEM,
-        .public_key_length = SIKE_P503_PUBLIC_KEY_BYTES,
-        .private_key_length = SIKE_P503_SECRET_KEY_BYTES,
-        .shared_secret_key_length = SIKE_P503_SHARED_SECRET_BYTES,
-        .ciphertext_length = SIKE_P503_CIPHERTEXT_BYTES,
-        .generate_keypair = &SIKE_P503_crypto_kem_keypair,
-        .encapsulate = &SIKE_P503_crypto_kem_enc,
-        .decapsulate = &SIKE_P503_crypto_kem_dec,
+const struct s2n_kem s2n_sike_supported_params[1] = {
+        {
+                .kem_extension_id = SIKEp503r1_KEM,
+                .public_key_length = SIKE_P503_PUBLIC_KEY_BYTES,
+                .private_key_length = SIKE_P503_SECRET_KEY_BYTES,
+                .shared_secret_key_length = SIKE_P503_SHARED_SECRET_BYTES,
+                .ciphertext_length = SIKE_P503_CIPHERTEXT_BYTES,
+                .generate_keypair = &SIKE_P503_crypto_kem_keypair,
+                .encapsulate = &SIKE_P503_crypto_kem_enc,
+                .decapsulate = &SIKE_P503_crypto_kem_dec,
+        },
 };
 
 int s2n_kem_generate_keypair(struct s2n_kem_keypair *kem_keys)
@@ -88,19 +90,26 @@ int s2n_kem_decapsulate(const struct s2n_kem_keypair *kem_keys, struct s2n_blob 
     return 0;
 }
 
-int s2n_kem_find_supported_kem(const struct s2n_blob *client_kem_ids, const struct s2n_kem *server_supported_kems,
+int s2n_kem_find_supported_kem(struct s2n_blob *client_kem_ids, const struct s2n_kem *server_supported_kems,
                                const int num_server_supported_kems, const struct s2n_kem **matching_kem)
 {
+    struct s2n_stuffer client_kems_in = {{0}};
+
+    GUARD(s2n_stuffer_init(&client_kems_in, client_kem_ids));
+    GUARD(s2n_stuffer_write(&client_kems_in, client_kem_ids));
+
     for (int i = 0; i < num_server_supported_kems; i++) {
         const struct s2n_kem candidate_server_kem_name = server_supported_kems[i];
-        for (int j = 0; j < client_kem_ids->size; j++) {
-            const kem_extension_size candidate_client_kem_id = client_kem_ids->data[j];
+        for (int j = 0; j < client_kem_ids->size / 2; j++) {
+            kem_extension_size candidate_client_kem_id;
+            GUARD(s2n_stuffer_read_uint16(&client_kems_in, &candidate_client_kem_id));
 
             if (candidate_server_kem_name.kem_extension_id == candidate_client_kem_id) {
                 *matching_kem = &server_supported_kems[i];
                 return 0;
             }
         }
+        GUARD(s2n_stuffer_reread(&client_kems_in));
     }
 
     /* Nothing found */

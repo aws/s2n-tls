@@ -35,7 +35,7 @@
 #include "utils/s2n_safety.h"
 #include "tls/s2n_cipher_suites.h"
 
-#define SERVER_KEY_MESSAGE_LENGTH 710
+#define SERVER_KEY_MESSAGE_LENGTH 711
 #define CLIENT_KEY_MESSAGE_LENGTH 470
 
 /* If the configured lib crypto supports a custom random number generator this test is run with a AES 256 DRBG with no
@@ -56,7 +56,7 @@ int s2n_entropy_generator(struct s2n_blob *blob)
 int setup_connection(struct s2n_connection *conn) {
     conn->actual_protocol_version = S2N_TLS12;
     conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
-    conn->secure.s2n_kem_keys.negotiated_kem = &s2n_sike_r1_p503;
+    conn->secure.s2n_kem_keys.negotiated_kem = &s2n_sike_supported_params[0];
     conn->secure.cipher_suite = &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384;
     conn->secure.conn_hash_alg = S2N_HASH_SHA384;
     return 0;
