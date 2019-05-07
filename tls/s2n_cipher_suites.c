@@ -683,7 +683,8 @@ static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
 const struct s2n_cipher_preferences cipher_preferences_test_all = {
     .count = sizeof(s2n_all_cipher_suites) / sizeof(s2n_all_cipher_suites[0]),
     .suites = s2n_all_cipher_suites,
-    .minimum_protocol_version = S2N_SSLv3
+    .minimum_protocol_version = S2N_SSLv3,
+    .extension_flag = S2N_ECC_EXTENSION_ENABLED | S2N_SIKE_EXTENSION_ENABLED
 };
 
 /* All of the cipher suites that s2n can negotiate when in FIPS mode,
@@ -715,7 +716,8 @@ static struct s2n_cipher_suite *s2n_all_fips_cipher_suites[] = {
 const struct s2n_cipher_preferences cipher_preferences_test_all_fips = {
     .count = sizeof(s2n_all_fips_cipher_suites) / sizeof(s2n_all_fips_cipher_suites[0]),
     .suites = s2n_all_fips_cipher_suites,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
+    .extension_flag = S2N_ECC_EXTENSION_ENABLED
 };
 
 /* All of the ECDSA cipher suites that s2n can negotiate, in order of IANA
@@ -735,7 +737,8 @@ static struct s2n_cipher_suite *s2n_all_ecdsa_cipher_suites[] = {
 const struct s2n_cipher_preferences cipher_preferences_test_all_ecdsa = {
     .count = sizeof(s2n_all_ecdsa_cipher_suites) / sizeof(s2n_all_ecdsa_cipher_suites[0]),
     .suites = s2n_all_ecdsa_cipher_suites,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
+    .extension_flag = S2N_ECC_EXTENSION_ENABLED
 };
 
 /* All ECDSA cipher suites first, then the rest of the supported ciphers that s2n can negotiate.
@@ -781,7 +784,8 @@ static struct s2n_cipher_suite *s2n_ecdsa_priority_cipher_suites[] = {
 const struct s2n_cipher_preferences cipher_preferences_test_ecdsa_priority = {
     .count = sizeof(s2n_ecdsa_priority_cipher_suites) / sizeof(s2n_ecdsa_priority_cipher_suites[0]),
     .suites = s2n_ecdsa_priority_cipher_suites,
-    .minimum_protocol_version = S2N_SSLv3
+    .minimum_protocol_version = S2N_SSLv3,
+    .extension_flag = S2N_ECC_EXTENSION_ENABLED
 };
 
 /* Determines cipher suite availability and selects record algorithms */
