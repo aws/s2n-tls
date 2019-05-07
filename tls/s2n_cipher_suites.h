@@ -17,7 +17,9 @@
 
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_crypto.h"
 
+#include "crypto/s2n_certificate.h"
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_hmac.h"
 
@@ -27,11 +29,6 @@
 #define S2N_KEY_EXCHANGE_DH       0x01  /* Diffie-Hellman key exchange, including ephemeral */
 #define S2N_KEY_EXCHANGE_EPH      0x02  /* Ephemeral key exchange */
 #define S2N_KEY_EXCHANGE_ECC      0x04  /* Elliptic curve cryptography */
-
-typedef enum {
-    S2N_AUTHENTICATION_RSA = 0,
-    S2N_AUTHENTICATION_ECDSA
-} s2n_authentication_method;
 
 #define S2N_MAX_POSSIBLE_RECORD_ALGS  2
 

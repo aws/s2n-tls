@@ -161,10 +161,11 @@ int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
     const char *name = conn->server_name;
     for (int i = 0; i < conn->config->num_certificates; i++) {
         struct s2n_cert_chain_and_key *chain_and_key = conn->config->cert_and_key_pairs[i];
-        if (s2n_cert_chain_and_key_matches_name(chain_and_key, name)) {
-            /* Found a match, add it to the list for this session. */
-            conn->handshake_params.sni_matching_certs[conn->handshake_params.num_sni_matching_certs] = chain_and_key;
-            conn->handshake_params.num_sni_matching_certs++;
+        s2n_authentication_method auth_method = s2n_cert_chain_and_key_get_auth_method(chain_and_key);
+        if (s2n_cert_chain_and_key_matches_name(chain_and_key, name) &&
+                !conn->handshake_params.sni_matching_certs[auth_method]) {
+            conn->handshake_params.sni_matching_certs[auth_method] = chain_and_key;
+            conn->handshake_params.sni_match_exists = 1;
         }
     }
 

@@ -956,8 +956,9 @@ static struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(stru
 
 static struct s2n_cert_chain_and_key *s2n_conn_get_compatible_cert_chain_and_key(struct s2n_connection *conn, struct s2n_cipher_suite *cipher_suite)
 {
-    if (conn->handshake_params.num_sni_matching_certs > 0) {
-        return s2n_get_compatible_cert_chain_and_key(conn->handshake_params.sni_matching_certs, conn->handshake_params.num_sni_matching_certs, cipher_suite);
+    if (conn->handshake_params.sni_match_exists > 0) {
+        /* This may return NULL if there was an SNI match, but not a match the cipher_suite's authentication type. */
+        return conn->handshake_params.sni_matching_certs[cipher_suite->auth_method];
     } else {
         /* We don't have any name matches. Use the first certificate that works with the key type. */
         return s2n_get_compatible_cert_chain_and_key(conn->config->cert_and_key_pairs, conn->config->num_certificates, cipher_suite);
