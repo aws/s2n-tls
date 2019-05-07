@@ -19,10 +19,15 @@
 
 #include "tls/s2n_cipher_suites.h"
 
+
+#define S2N_ECC_EXTENSION_ENABLED 0x01
+#define S2N_SIKE_EXTENSION_ENABLED 0x02
+
 struct s2n_cipher_preferences {
     uint8_t count;
     struct s2n_cipher_suite **suites;
     int minimum_protocol_version;
+    uint8_t extension_flag;
 };
 
 extern const struct s2n_cipher_preferences cipher_preferences_20140601;
