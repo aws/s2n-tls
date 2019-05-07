@@ -143,8 +143,10 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
     GUARD(s2n_config_add_cert_chain_and_key(server_config, certificate_chain, private_key));
 
     s2n_cert_type cert_type;
-    GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &cert_type, &server_config->cert_and_key_pairs[0]->cert_chain->head->raw));
-    
+    struct s2n_array *certs = server_config->cert_and_key_pairs;
+    struct s2n_cert_chain_and_key *cert = *((struct s2n_cert_chain_and_key**) s2n_array_get(certs, 0));
+    GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &cert_type, &cert->cert_chain->head->raw));
+
     return 0;
 }
 
