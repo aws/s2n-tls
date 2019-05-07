@@ -27,6 +27,10 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
 
+static const s2n_authentication_method cert_type_to_auth_method[] = {
+    [S2N_CERT_TYPE_RSA_SIGN] = S2N_AUTHENTICATION_RSA,
+    [S2N_CERT_TYPE_ECDSA_SIGN] = S2N_AUTHENTICATION_ECDSA,
+};
 
 int s2n_cert_public_key_set_rsa_from_openssl(s2n_cert_public_key *public_key, RSA *openssl_rsa)
 {
@@ -326,5 +330,14 @@ int s2n_cert_chain_and_key_matches_name(struct s2n_cert_chain_and_key *chain_and
     }
 
     return 0;
+}
+
+/*
+ * Note that this assumes there is a 1:1 relationship between cert type and auth method.
+ * This interface will need to be updated if s2n adds support for more than one auth method per certificate type.
+ */
+s2n_authentication_method s2n_cert_chain_and_key_get_auth_method(struct s2n_cert_chain_and_key *chain_and_key)
+{
+    return cert_type_to_auth_method[chain_and_key->cert_chain->head->cert_type];
 }
 

@@ -46,6 +46,12 @@ struct s2n_cert_chain_and_key {
     X509 *x509_cert;
 };
 
+typedef enum {
+    S2N_AUTHENTICATION_RSA = 0,
+    S2N_AUTHENTICATION_ECDSA,
+    S2N_AUTHENTICATION_METHOD_SENTINEL
+} s2n_authentication_method;
+
 int s2n_cert_chain_and_key_set_ocsp_data(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length);
 int s2n_cert_chain_and_key_set_sct_list(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length);
 int s2n_cert_chain_and_key_matches_name(struct s2n_cert_chain_and_key *chain_and_key, const char *name);
@@ -55,3 +61,6 @@ int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_cert_type cert_type);
 int s2n_send_cert_chain(struct s2n_stuffer *out, struct s2n_cert_chain *chain);
 int s2n_send_empty_cert_chain(struct s2n_stuffer *out);
 int s2n_create_cert_chain_from_stuffer(struct s2n_cert_chain *cert_chain_out, struct s2n_stuffer *chain_in_stuffer);
+
+s2n_authentication_method s2n_cert_chain_and_key_get_auth_method(struct s2n_cert_chain_and_key *chain_and_key);
+

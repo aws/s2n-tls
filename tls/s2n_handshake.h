@@ -18,6 +18,7 @@
 #include <stdint.h>
 #include <s2n.h>
 
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_crypto.h"
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_tls_parameters.h"
@@ -62,6 +63,10 @@ struct s2n_handshake_parameters {
      * In the case of multiple certificates matching a server_name, s2n will prefer certificates
      * in FIFO order based on calls to s2n_config_add_cert_chain_and_key_to_store
      *
+     * Note that in addition to domain matching, the key type for the certificate must also be
+     * suitable for a negotiation in order to be selected. The set of matching certs here are indexed
+     * by s2n_authentication_method.
+     *
      * Example:
      *    - Assume certA is added to s2n_config via s2n_config_add_cert_chain_and_key_to_store
      *    - Next certB is added.
@@ -76,8 +81,8 @@ struct s2n_handshake_parameters {
      *    - Client only supports RSA ciphers
      *    - certB will be selected.
      */
-    unsigned int num_sni_matching_certs;
-    struct s2n_cert_chain_and_key *sni_matching_certs[S2N_MAX_CERTIFICATES];
+    struct s2n_cert_chain_and_key *sni_matching_certs[S2N_AUTHENTICATION_METHOD_SENTINEL];
+    uint8_t sni_match_exists;
 };
 
 struct s2n_handshake {
