@@ -63,7 +63,6 @@ static uint8_t unsafe_client_ecdsa_testing_config_init = 0;
 static uint8_t default_client_config_init = 0;
 static uint8_t default_fips_config_init = 0;
 
-
 static struct s2n_config s2n_default_config = {0};
 
 /* This config should only used by the s2n_client for unit/integration testing purposes. */
@@ -78,8 +77,6 @@ static struct s2n_config s2n_default_fips_config = {0};
 static int s2n_config_init(struct s2n_config *config)
 {
     config->cert_allocated = 0;
-    config->num_certificates = 0;
-    memset(config->cert_and_key_pairs, 0, sizeof(struct s2n_cert_chain_and_key *) * S2N_MAX_CERTIFICATES);
     config->dhparams = NULL;
     memset(&config->application_protocols, 0, sizeof(config->application_protocols));
     config->status_request_type = S2N_STATUS_REQUEST_NONE;
@@ -120,6 +117,8 @@ static int s2n_config_init(struct s2n_config *config)
         s2n_config_set_cipher_preferences(config, "default");
     }
 
+    notnull_check(config->cert_and_key_pairs = s2n_array_new(sizeof(struct s2n_cert_chain_and_key*)));
+
     s2n_x509_trust_store_init_empty(&config->trust_store);
     s2n_x509_trust_store_from_system_defaults(&config->trust_store);
 
@@ -135,13 +134,14 @@ static int s2n_config_cleanup(struct s2n_config *config)
     GUARD(s2n_config_free_cert_chain_and_key(config));
     GUARD(s2n_config_free_dhparams(config));
     GUARD(s2n_free(&config->application_protocols));
+    GUARD(s2n_array_free(config->cert_and_key_pairs));
 
     return 0;
 }
 
 struct s2n_config *s2n_fetch_default_config(void) {
     if (!default_config_init) {
-        s2n_config_init(&s2n_default_config);
+        GUARD_PTR(s2n_config_init(&s2n_default_config));
         s2n_default_config.cipher_preferences = &cipher_preferences_20170210;
         s2n_default_config.client_cert_auth_type = S2N_CERT_AUTH_NONE; /* Do not require the client to provide a Cert to the Server */
 
@@ -154,7 +154,7 @@ struct s2n_config *s2n_fetch_default_config(void) {
 struct s2n_config *s2n_fetch_default_fips_config(void)
 {
     if (!default_fips_config_init) {
-        s2n_config_init(&s2n_default_fips_config);
+        GUARD_PTR(s2n_config_init(&s2n_default_fips_config));
         s2n_default_fips_config.cipher_preferences = &cipher_preferences_20170405;
 
         default_fips_config_init = 1;
@@ -166,7 +166,7 @@ struct s2n_config *s2n_fetch_default_fips_config(void)
 struct s2n_config *s2n_fetch_unsafe_client_testing_config(void)
 {
     if (!unsafe_client_testing_config_init) {
-        s2n_config_init(&s2n_unsafe_client_testing_config);
+        GUARD_PTR(s2n_config_init(&s2n_unsafe_client_testing_config));
         s2n_unsafe_client_testing_config.cipher_preferences = &cipher_preferences_20170210;
         s2n_unsafe_client_testing_config.client_cert_auth_type = S2N_CERT_AUTH_NONE;
         s2n_unsafe_client_testing_config.check_ocsp = 0;
@@ -181,7 +181,7 @@ struct s2n_config *s2n_fetch_unsafe_client_testing_config(void)
 struct s2n_config *s2n_fetch_unsafe_client_ecdsa_testing_config(void)
 {
     if (!unsafe_client_ecdsa_testing_config_init) {
-        s2n_config_init(&s2n_unsafe_client_ecdsa_testing_config);
+        GUARD_PTR(s2n_config_init(&s2n_unsafe_client_ecdsa_testing_config));
         s2n_unsafe_client_ecdsa_testing_config.cipher_preferences = &cipher_preferences_test_all_ecdsa;
         s2n_unsafe_client_ecdsa_testing_config.client_cert_auth_type = S2N_CERT_AUTH_NONE;
         s2n_unsafe_client_ecdsa_testing_config.check_ocsp = 0;
@@ -196,7 +196,7 @@ struct s2n_config *s2n_fetch_unsafe_client_ecdsa_testing_config(void)
 struct s2n_config *s2n_fetch_default_client_config(void)
 {
     if (!default_client_config_init) {
-        s2n_config_init(&default_client_config);
+        GUARD_PTR(s2n_config_init(&default_client_config));
         default_client_config.cipher_preferences = &cipher_preferences_20170210;
         default_client_config.client_cert_auth_type = S2N_CERT_AUTH_REQUIRED;
 
@@ -236,7 +236,7 @@ struct s2n_config *s2n_config_new(void)
     GUARD_PTR(s2n_alloc(&allocator, sizeof(struct s2n_config)));
 
     new_config = (struct s2n_config *)(void *)allocator.data;
-    s2n_config_init(new_config);
+    GUARD_PTR(s2n_config_init(new_config));
 
     return new_config;
 }
@@ -272,7 +272,8 @@ int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
     /* Free the cert_chain_and_key since the application has no reference
      * to it. This is necessary until s2n_config_add_cert_chain_and_key is deprecated. */
     if (config->cert_allocated) {
-        GUARD(s2n_cert_chain_and_key_free(config->cert_and_key_pairs[0]));
+        struct s2n_cert_chain_and_key *chain_and_key = *((struct s2n_cert_chain_and_key**) s2n_array_get(config->cert_and_key_pairs, 0));
+        GUARD(s2n_cert_chain_and_key_free(chain_and_key));
     }
 
     return 0;
@@ -418,12 +419,12 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
 
 int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
 {
-    if (config->num_certificates == S2N_MAX_CERTIFICATES) {
-        S2N_ERROR(S2N_ERR_TOO_MANY_CERTIFICATES);
-    }
+    notnull_check(config->cert_and_key_pairs);
+    notnull_check(cert_key_pair);
 
-    config->cert_and_key_pairs[config->num_certificates] = cert_key_pair;
-    config->num_certificates++;
+    struct s2n_cert_chain_and_key **to_insert = s2n_array_add(config->cert_and_key_pairs);
+    notnull_check(to_insert);
+    *to_insert = cert_key_pair;
 
     return 0;
 }
@@ -507,9 +508,13 @@ int s2n_config_set_cache_delete_callback(struct s2n_config *config, s2n_cache_de
 int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length)
 {
     notnull_check(config);
-    struct s2n_cert_chain_and_key *config_chain_and_key = config->cert_and_key_pairs[0];
+    struct s2n_array *certs = config->cert_and_key_pairs;
+    if (s2n_array_num_elements(certs) == 0) {
+        S2N_ERROR(S2N_ERR_UPDATING_EXTENSION);
+    }
+    struct s2n_cert_chain_and_key *config_chain_and_key = *((struct s2n_cert_chain_and_key**) s2n_array_get(certs, 0));
     notnull_check(config_chain_and_key);
-    
+
     switch (type) {
         case S2N_EXTENSION_CERTIFICATE_TRANSPARENCY:
             {
@@ -522,7 +527,7 @@ int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_t
         default:
             S2N_ERROR(S2N_ERR_UNRECOGNIZED_EXTENSION);
     }
-    
+
     return 0;
 }
 
