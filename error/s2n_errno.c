@@ -105,7 +105,6 @@ struct s2n_error_translation S2N_ERROR_EN[] = {
     {S2N_ERR_CLIENT_MODE, "operation not allowed in client mode"},
     {S2N_ERR_SERVER_NAME_TOO_LONG, "server name is too long"},
     {S2N_ERR_CLIENT_MODE_DISABLED, "client connections not allowed"},
-    {S2N_ERR_TOO_MANY_CERTIFICATES, "Too many certificates configured"},
     {S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_FIPS_MODE, "Client Auth is not supported when in FIPS mode"},
     {S2N_ERR_HANDSHAKE_STATE, "Invalid handshake state encountered"},
     {S2N_ERR_FALLBACK_DETECTED, "TLS fallback detected"},

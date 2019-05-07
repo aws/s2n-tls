@@ -25,11 +25,13 @@
 #include "tls/s2n_tls.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
+#include "utils/s2n_array.h"
 
 static int s2n_set_cert_chain_as_client(struct s2n_connection *conn)
 {
-    if (conn->config->num_certificates > 0) {
-        conn->handshake_params.our_chain_and_key = conn->config->cert_and_key_pairs[0];
+    struct s2n_array *certs = conn->config->cert_and_key_pairs;
+    if (s2n_array_num_elements(certs) > 0) {
+        conn->handshake_params.our_chain_and_key = *((struct s2n_cert_chain_and_key**) s2n_array_get(certs, 0));
     }
 
     return 0;
