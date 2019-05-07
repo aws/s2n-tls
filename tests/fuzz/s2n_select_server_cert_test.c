@@ -107,6 +107,31 @@ GENERAL_NAME *string_to_general_name(const char *str)
     return san_name;
 }
 
+static int set_x509_sans(X509* x509_cert, GENERAL_NAMES *san_names)
+{
+    if (X509_add1_ext_i2d(x509_cert, NID_subject_alt_name, san_names, 0, X509V3_ADD_REPLACE) <= 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+static int set_x509_cns(X509 *x509_cert, const unsigned char **cns, size_t num_cns)
+{
+    X509_NAME *x509_name = X509_NAME_new();
+    if (!x509_name) {
+        return -1;
+    }
+
+    for (int i = 0; i < num_cns; i++) {
+        X509_NAME_add_entry_by_NID(x509_name, NID_commonName, MBSTRING_ASC, (unsigned char *)(uintptr_t) cns[i], -1, -1, 1);
+    }
+
+    X509_set_subject_name(x509_cert, x509_name);
+    X509_NAME_free(x509_name);
+    return 0;
+}
+
 /*
  * This fuzz test uses the fuzz input to:
  * - Generate the data to populate in the SAN of a certificate
@@ -123,26 +148,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
         goto cleanup;
     }
 
-    /* Create an array of strings based on fuzz input. To populate the cert SANs and
+    /* Create an array of strings based on fuzz input. To populate the cert SANs,CN and
      * input hostname.
      */
     const char *strings[MAX_TOKENS] = { NULL };
     size_t num_strings = find_strings(buf, len, strings, MAX_TOKENS);
-    size_t num_sans;
-    /* This should be a match since we make the hostname the same string as a SAN we've added.
-     * It won't be a match when the SAN is longer than domain name length for SNI.
-     */
-    const char *likely_matching_hostname;
-    /* A string that was not part of the set of strings we added for SANs. */
-    const char *other_hostname = NULL;
-    if (num_strings == 0) {
-        likely_matching_hostname = "";
-        num_sans = 0;
-    } else {
-        num_sans = num_strings - 1;
-        likely_matching_hostname = strings[0];
-        other_hostname = strings[num_strings - 1];
-    }
+    size_t num_sans = num_strings/2 ;
+    size_t num_cns = (num_strings == 1) ? 1 : num_sans;
+    const unsigned char **cns = (const unsigned char **) (&strings[num_sans]);
 
     for (int i = 0; i < num_sans; i++) {
         GENERAL_NAME *san_name = string_to_general_name(strings[i]);
@@ -152,21 +165,28 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
         sk_GENERAL_NAME_push(san_names, san_name);
     }
 
-    if (X509_add1_ext_i2d(x509_cert, NID_subject_alt_name, san_names, 0, X509V3_ADD_REPLACE) <= 0) {
+    if (num_sans != 0 && set_x509_sans(x509_cert, san_names) < 0) {
+        goto cleanup;
+    }
+    if (num_cns != 0 && set_x509_cns(x509_cert, (const unsigned char **) cns, num_cns) < 0) {
         goto cleanup;
     }
 
-    cert->x509_cert = x509_cert;
-    cert->san_names = san_names;
-
-    /* Not checking the return value as we aren't using this fuzz test for matching correctness. */
-    s2n_cert_chain_and_key_matches_name(cert, likely_matching_hostname);
-    if (other_hostname != NULL) {
-        s2n_cert_chain_and_key_matches_name(cert, other_hostname);
+    /* We've created an X509 object with names. Pass it back to s2n to parse and load. */
+    if (s2n_cert_chain_and_key_load_cns(cert, x509_cert) < 0) {
+        goto cleanup;
     }
 
-    cert->x509_cert = NULL;
-    cert->san_names = NULL;
+    if (s2n_cert_chain_and_key_load_sans(cert, x509_cert) < 0) {
+        goto cleanup;
+    }
+
+    /* Not checking the return value as we aren't using this fuzz test for matching correctness. */
+    s2n_cert_chain_and_key_matches_name(cert, "");
+    for (int i = 0; i < num_strings; i++) {
+        s2n_cert_chain_and_key_matches_name(cert, strings[i]);
+    }
+
 cleanup:
     if (x509_cert != NULL) { X509_free(x509_cert); }
     if (san_names != NULL) { GENERAL_NAMES_free(san_names); }

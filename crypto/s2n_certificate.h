@@ -17,6 +17,8 @@
 
 #include <stdint.h>
 
+#include <openssl/x509.h>
+
 #include <s2n.h>
 #include "crypto/s2n_pkey.h"
 #include "stuffer/s2n_stuffer.h"
@@ -59,6 +61,9 @@ typedef enum {
 
 int s2n_cert_chain_and_key_set_ocsp_data(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length);
 int s2n_cert_chain_and_key_set_sct_list(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length);
+/* Exposed for fuzzing */
+int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert);
+int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert);
 int s2n_cert_chain_and_key_matches_name(struct s2n_cert_chain_and_key *chain_and_key, const char *name);
 
 int s2n_cert_public_key_set_rsa_from_openssl(s2n_cert_public_key *cert_pub_key, RSA *rsa);

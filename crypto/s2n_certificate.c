@@ -191,7 +191,7 @@ struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void)
     return chain_and_key;
 }
 
-static int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert)
+int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert)
 {
     notnull_check(chain_and_key->san_names);
 
@@ -201,17 +201,15 @@ static int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain
         return 0;
     }
 
-    for (int i = 0; i < sk_GENERAL_NAME_num(san_names); i++) {
+    const int num_san_names = sk_GENERAL_NAME_num(san_names);
+    for (int i = 0; i < num_san_names; i++) {
         GENERAL_NAME *san_name = sk_GENERAL_NAME_value(san_names, i);
         if (!san_name) {
             continue;
         }
 
         if (san_name->type == GEN_DNS) {
-            /* Per https://www.openssl.org/docs/man1.1.0/man3/ASN1_STRING_data.html there may
-             * be embedded NULLs inside of the SAN string. The comparison later with any proper
-             * DNS hostnames will safely fail.
-             */
+            /* Decoding isn't necessary here since a DNS SAN name is ASCII(type V_ASN1_IA5STRING) */
             unsigned char *san_str = san_name->d.dNSName->data;
             const size_t san_str_len = san_name->d.dNSName->length;
             struct s2n_blob *san_blob = s2n_array_insert(chain_and_key->san_names, s2n_array_num_elements(chain_and_key->san_names));
@@ -234,7 +232,15 @@ static int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain
     return 0;
 }
 
-static int s2n_cert_chain_and_key_load_cn(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert)
+/* Parse CN names from the Subject of the leaf certificate. Technically there can by multiple CNs
+ * in the Subject but practically very few certificates in the wild will have more than one CN.
+ * Since the data for this certificate is coming from the application and not from an untrusted
+ * source, we will try our best to parse all of the CNs.
+ *
+ * A recent CAB thread proposed removing support for multiple CNs:
+ * https://cabforum.org/pipermail/public/2016-April/007242.html
+ */
+int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert)
 {
     notnull_check(chain_and_key->cn_names);
 
@@ -243,7 +249,6 @@ static int s2n_cert_chain_and_key_load_cn(struct s2n_cert_chain_and_key *chain_a
         return 0;
     }
 
-    /* Technically there can be multiple CommonNames entries in the Subject. */
     int lastpos = -1;
     while((lastpos = X509_NAME_get_index_by_NID(subject, NID_commonName, lastpos)) >= 0) {
         X509_NAME_ENTRY *name_entry = X509_NAME_get_entry(subject, lastpos);
@@ -301,7 +306,7 @@ static int s2n_cert_chain_and_key_set_names(struct s2n_cert_chain_and_key *chain
      * s2n_cert_chain_and_key_load_sans. Let's unconditionally populate this field to avoid surprises
      * in the future.
      */
-    GUARD(s2n_cert_chain_and_key_load_cn(chain_and_key, cert));
+    GUARD(s2n_cert_chain_and_key_load_cns(chain_and_key, cert));
 
     X509_free(cert);
     return 0;
@@ -419,7 +424,7 @@ static int s2n_does_cert_san_match_hostname(struct s2n_cert_chain_and_key *chain
     return 0;
 }
 
-int s2n_does_cert_cn_match_hostname(struct s2n_cert_chain_and_key *chain_and_key, const char *hostname)
+static int s2n_does_cert_cn_match_hostname(struct s2n_cert_chain_and_key *chain_and_key, const char *hostname)
 {
     struct s2n_array *cn_names = chain_and_key->cn_names;
     const size_t hostname_len = strnlen(hostname, S2N_MAX_SERVER_NAME);
