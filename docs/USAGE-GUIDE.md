@@ -557,7 +557,9 @@ int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config,
                                                struct s2n_cert_chain_and_key *cert_key_pair);
 ```
 
-**s2n_config_add_cert_chain_and_key_to_store** is the preferred method of associating a certificate chain and private key pair with an **s2n_config** object. At present, this may only be called once for each config object. It is not recommended to free or modify the **cert_key_pair** as any subsequent changes will be reflected in the config.
+**s2n_config_add_cert_chain_and_key_to_store** is the preferred method of associating a certificate chain and private key pair with an **s2n_config** object. It is not recommended to free or modify the **cert_key_pair** as any subsequent changes will be reflected in the config.
+
+**s2n_config_add_cert_chain_and_key_to_store** may be called multiple times to support multiple key types(RSA, ECDSA) and multiple domains. On the server side, the certificate selected will be based on the incoming SNI value and the client's capabilities(supported ciphers). In the case of no certificate matching the client's SNI extension or if no SNI extension was sent by the client, the certificate from the **first** call to **s2n_config_add_cert_chain_and_key_to_store** will be selected.
 
 ### s2n\_config\_add\_dhparams
 

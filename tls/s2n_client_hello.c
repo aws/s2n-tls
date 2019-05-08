@@ -221,6 +221,9 @@ static int s2n_process_client_hello(struct s2n_connection *conn)
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
 
+    /* Find potential certificate matches before we choose the cipher. */
+    GUARD(s2n_conn_find_name_matching_certs(conn));
+
     /* Now choose the ciphers and the cert chain. */
     GUARD(s2n_set_cipher_and_cert_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
 
@@ -229,7 +232,7 @@ static int s2n_process_client_hello(struct s2n_connection *conn)
     /* Set the handshake type */
     GUARD(s2n_conn_set_handshake_type(conn));
 
-    /* We've selected the cipher, update the required hashes for this connection */
+    /* We've selected the parameters for the handshake, update the required hashes for this connection */
     GUARD(s2n_conn_update_required_handshake_hashes(conn));
 
     return 0;
@@ -425,6 +428,10 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
 
     cipher_suites = s2n_stuffer_raw_read(in, cipher_suites_length);
     notnull_check(cipher_suites);
+
+    /* Find potential certificate matches before we choose the cipher. */
+    GUARD(s2n_conn_find_name_matching_certs(conn));
+
     GUARD(s2n_set_cipher_and_cert_as_sslv2_server(conn, cipher_suites, cipher_suites_length / S2N_SSLv2_CIPHER_SUITE_LEN));
 
     S2N_ERROR_IF(session_id_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
