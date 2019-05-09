@@ -13,6 +13,10 @@
  * permissions and limitations under the License.
  */
 
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE
+#endif
+
 #include <s2n.h>
 #include <openssl/x509v3.h>
 #include <openssl/pem.h>
