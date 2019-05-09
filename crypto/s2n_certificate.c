@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 #include <s2n.h>
 #include <openssl/x509v3.h>
 #include <openssl/pem.h>
+#include <string.h>
 #include <strings.h>
 
 #include "crypto/s2n_certificate.h"
