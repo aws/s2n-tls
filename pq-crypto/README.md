@@ -19,7 +19,7 @@ post-quantum key exchange scheme and a classical key exchange scheme.
 
 ## Hybrid key exchange
 A hybrid key exchange combines both the high assurance of classical key exchange with the conjectured quantum-resistance
-of newly proposed key exchanges. s2n implements the hybrid specification from [this RFC](https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-00).
+of newly proposed key exchanges. s2n implements the hybrid specification from [this RFC](https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-01).
 See [this s2n issue](https://github.com/awslabs/s2n/issues/904) for more up-to-date information.
 
 ## SIKE (Supersingular Isogeny Key Encapsulation)
