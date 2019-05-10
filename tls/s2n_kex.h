@@ -25,7 +25,7 @@ struct s2n_kex {
 
     int (*get_server_extension_size)(const struct s2n_connection *conn);
     int (*write_server_extensions)(const struct s2n_connection *conn, struct s2n_stuffer *out);
-    int (*connection_supported)(const struct s2n_connection *conn);
+    int (*connection_supported)(const struct s2n_kex *kex, const struct s2n_connection *conn);
     int (*server_key_recv_read_data)(struct s2n_connection *conn, struct s2n_blob *data_to_verify, struct s2n_kex_raw_server_data *kex_data);
     int (*server_key_recv_parse_data)(struct s2n_connection *conn, struct s2n_kex_raw_server_data *kex_data);
     int (*server_key_send)(struct s2n_connection *conn, struct s2n_blob *data_to_sign);

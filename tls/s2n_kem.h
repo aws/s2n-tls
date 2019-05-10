@@ -18,7 +18,7 @@
 #include <stdint.h>
 #include "utils/s2n_blob.h"
 
-typedef uint8_t kem_extension_size;
+typedef uint16_t kem_extension_size;
 typedef uint16_t kem_public_key_size;
 typedef uint16_t kem_private_key_size;
 typedef uint16_t kem_shared_secret_size;
@@ -42,7 +42,7 @@ struct s2n_kem_keypair {
     struct s2n_blob private_key;
 };
 
-extern const struct s2n_kem s2n_sike_r1_p503;
+extern const struct s2n_kem s2n_sike_supported_params[1];
 
 extern int s2n_kem_generate_keypair(struct s2n_kem_keypair *kem_keys);
 
@@ -52,7 +52,7 @@ extern int s2n_kem_encapsulate(const struct s2n_kem_keypair *kem_keys, struct s2
 extern int s2n_kem_decapsulate(const struct s2n_kem_keypair *kem_params, struct s2n_blob *shared_secret,
                                const struct s2n_blob *ciphertext);
 
-extern int s2n_kem_find_supported_kem(const struct s2n_blob *client_kem_names, const struct s2n_kem *server_supported_kems,
+extern int s2n_kem_find_supported_kem(struct s2n_blob *client_kem_names, const struct s2n_kem *server_kem_pref_list,
                                       const int num_server_supported_kems, const struct s2n_kem **matching_kem);
 
 extern int s2n_kem_free(struct s2n_kem_keypair *kem_keys);

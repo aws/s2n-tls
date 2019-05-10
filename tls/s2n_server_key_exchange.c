@@ -147,7 +147,7 @@ int s2n_kem_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_bl
 
     /* the server sends the KEM ID again and this must match what was agreed upon during server hello */
     kem_extension_size kem_id;
-    GUARD(s2n_stuffer_read_uint8(in, &kem_id));
+    GUARD(s2n_stuffer_read_uint16(in, &kem_id));
     eq_check(kem_id, kem->kem_extension_id);
 
     GUARD(s2n_stuffer_read_uint16(in, &key_length));
@@ -267,7 +267,7 @@ int s2n_kem_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_t
     data_to_sign->data = s2n_stuffer_raw_write(out, 0);
     notnull_check(data_to_sign->data);
 
-    GUARD(s2n_stuffer_write_uint8(out, kem->kem_extension_id));
+    GUARD(s2n_stuffer_write_uint16(out, kem->kem_extension_id));
     GUARD(s2n_stuffer_write_uint16(out, kem->public_key_length));
 
     /* The public key is not needed after this method, write it straight to the stuffer */

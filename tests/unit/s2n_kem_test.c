@@ -65,7 +65,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     {
         /* Regression test for network parsing data of expected sizes */
-        EXPECT_EQUAL(sizeof(kem_extension_size), 1);
+        EXPECT_EQUAL(sizeof(kem_extension_size), 2);
         EXPECT_EQUAL(sizeof(kem_public_key_size), 2);
         EXPECT_EQUAL(sizeof(kem_private_key_size), 2);
         EXPECT_EQUAL(sizeof(kem_shared_secret_size), 2);
@@ -108,16 +108,15 @@ int main(int argc, char **argv)
     {
         const struct s2n_kem *negotiated_kem = NULL;
 
-        struct s2n_kem kem02 = {.kem_extension_id = 0x02};
-        struct s2n_kem kem03 = {.kem_extension_id = 0x03};
-        struct s2n_kem kem0a = {.kem_extension_id = 0x0a};
-        struct s2n_kem kembc = {.kem_extension_id = 0xbc};
-        struct s2n_kem kemff = {.kem_extension_id = 0xff};
+        struct s2n_kem kem02 = {.kem_extension_id = 0x0202};
+        struct s2n_kem kem03 = {.kem_extension_id = 0x0303};
+        struct s2n_kem kembc = {.kem_extension_id = 0xbcbc};
+        struct s2n_kem kemff = {.kem_extension_id = 0xffff};
 
         /* In the order of the client preference which is ignored by the s2n server */
-        uint8_t clientKems[] = {kem03.kem_extension_id, kem0a.kem_extension_id, kembc.kem_extension_id, kem02.kem_extension_id};
+        uint8_t clientKems[] = {0x03, 0x03, 0x0a, 0x0a, 0xbc, 0xbc, 0x02, 0x02};
         struct s2n_blob  clientKemBlob = {0};
-        EXPECT_SUCCESS(s2n_blob_init(&clientKemBlob, clientKems, 4));
+        EXPECT_SUCCESS(s2n_blob_init(&clientKemBlob, clientKems, 8));
 
         struct s2n_kem only02[] = {kem02};
         EXPECT_SUCCESS(s2n_kem_find_supported_kem(&clientKemBlob, only02, 1, &negotiated_kem));

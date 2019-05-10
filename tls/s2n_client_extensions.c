@@ -18,6 +18,7 @@
 
 #include "error/s2n_errno.h"
 
+#include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_tls_digest_preferences.h"
 #include "tls/s2n_tls_parameters.h"
@@ -40,6 +41,7 @@ static int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struc
 static int s2n_recv_client_sct_list(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_session_ticket_ext(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_recv_pq_kem_extension(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 static int s2n_send_client_signature_algorithms_extension(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
@@ -97,9 +99,20 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         total_size += 4 + client_ticket_len;
     }
 
-    /* Write ECC extensions: Supported Curves and Supported Point Formats */
-    int ec_curves_count = sizeof(s2n_ecc_supported_curves) / sizeof(s2n_ecc_supported_curves[0]);
-    total_size += 12 + ec_curves_count * 2;
+    const struct s2n_cipher_preferences *cipher_preferences;
+    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
+
+    if (s2n_is_ecc_enabled(cipher_preferences)) {
+        /* Write ECC extensions: Supported Curves and Supported Point Formats */
+        int ec_curves_count = sizeof(s2n_ecc_supported_curves) / sizeof(s2n_ecc_supported_curves[0]);
+        total_size += 12 + ec_curves_count * 2;
+    }
+
+    if (s2n_is_sike_enabled(cipher_preferences)) {
+        int sike_params_count = sizeof(s2n_sike_supported_params) / sizeof(s2n_sike_supported_params[0]);
+        /* 2 for the extension id, 2 for overall length, 2 for length of the list, and each enum is 2 bytes  */
+        total_size += 6 + sike_params_count * 2;
+    }
 
     GUARD(s2n_stuffer_write_uint16(out, total_size));
 
@@ -167,7 +180,8 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
      * RFC 4492: Clients SHOULD send both the Supported Elliptic Curves Extension
      * and the Supported Point Formats Extension.
      */
-    {
+    if (s2n_is_ecc_enabled(cipher_preferences)) {
+        int ec_curves_count = sizeof(s2n_ecc_supported_curves) / sizeof(s2n_ecc_supported_curves[0]);
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_ELLIPTIC_CURVES));
         GUARD(s2n_stuffer_write_uint16(out, 2 + ec_curves_count * 2));
         /* Curve list len */
@@ -183,6 +197,18 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint8(out, 1));
         /* Only allow uncompressed format */
         GUARD(s2n_stuffer_write_uint8(out, 0));
+    }
+
+    if (s2n_is_sike_enabled(cipher_preferences)) {
+        int sike_params_count = sizeof(s2n_sike_supported_params) / sizeof(s2n_sike_supported_params[0]);
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_PQ_KEM_PARAMETERS));
+        /* Overall length */
+        GUARD(s2n_stuffer_write_uint16(out, 2 + sike_params_count * 2));
+        /* Length of parameters in bytes */
+        GUARD(s2n_stuffer_write_uint16(out, sike_params_count * 2));
+        for (int i = 0; i < sike_params_count; i++) {
+            GUARD(s2n_stuffer_write_uint16(out, s2n_sike_supported_params[i].kem_extension_id));
+        }
     }
 
     return 0;
@@ -228,6 +254,9 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *pa
             break;
         case TLS_EXTENSION_SESSION_TICKET:
             GUARD(s2n_recv_client_session_ticket_ext(conn, &extension));
+            break;
+        case TLS_EXTENSION_PQ_KEM_PARAMETERS:
+            GUARD(s2n_recv_pq_kem_extension(conn, &extension));
             break;
         }
     }
@@ -447,6 +476,28 @@ static int s2n_recv_client_session_ticket_ext(struct s2n_connection *conn, struc
         conn->session_ticket_status = S2N_DECRYPT_TICKET;
         GUARD(s2n_stuffer_copy(extension, &conn->client_ticket_to_decrypt, S2N_TICKET_SIZE_IN_BYTES));
     }
+
+    return 0;
+}
+static int s2n_recv_pq_kem_extension(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    uint16_t size_of_all;
+    struct s2n_blob proposed_kems = {0};
+
+    GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
+    if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all % 2) {
+        /* Malformed length, ignore the extension */
+        return 0;
+    }
+
+    proposed_kems.size = size_of_all;
+    proposed_kems.data = s2n_stuffer_raw_read(extension, proposed_kems.size);
+    notnull_check(proposed_kems.data);
+
+    const struct s2n_kem *match = NULL;
+    int num_params = sizeof(s2n_sike_supported_params) / sizeof(s2n_sike_supported_params[0]);
+    s2n_kem_find_supported_kem(&proposed_kems, s2n_sike_supported_params, num_params, &match);
+    conn->secure.s2n_kem_keys.negotiated_kem = match;
 
     return 0;
 }
