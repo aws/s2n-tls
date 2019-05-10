@@ -494,9 +494,10 @@ static int s2n_recv_pq_kem_extension(struct s2n_connection *conn, struct s2n_stu
     proposed_kems.data = s2n_stuffer_raw_read(extension, proposed_kems.size);
     notnull_check(proposed_kems.data);
 
-    if (s2n_kem_find_supported_kem(&proposed_kems, s2n_sike_supported_params, 1, &conn->secure.s2n_kem_keys.negotiated_kem) != 0) {
-        /* Can't agree on a kem. Return success to proceed with the handshake. */
-        conn->secure.s2n_kem_keys.negotiated_kem = NULL;
-    }
+    const struct s2n_kem *match = NULL;
+    int num_params = sizeof(s2n_sike_supported_params) / sizeof(s2n_sike_supported_params[0]);
+    s2n_kem_find_supported_kem(&proposed_kems, s2n_sike_supported_params, num_params, &match);
+    conn->secure.s2n_kem_keys.negotiated_kem = match;
+
     return 0;
 }

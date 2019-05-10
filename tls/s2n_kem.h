@@ -52,7 +52,7 @@ extern int s2n_kem_encapsulate(const struct s2n_kem_keypair *kem_keys, struct s2
 extern int s2n_kem_decapsulate(const struct s2n_kem_keypair *kem_params, struct s2n_blob *shared_secret,
                                const struct s2n_blob *ciphertext);
 
-extern int s2n_kem_find_supported_kem(struct s2n_blob *client_kem_names, const struct s2n_kem *server_supported_kems,
+extern int s2n_kem_find_supported_kem(struct s2n_blob *client_kem_names, const struct s2n_kem *server_kem_pref_list,
                                       const int num_server_supported_kems, const struct s2n_kem **matching_kem);
 
 extern int s2n_kem_free(struct s2n_kem_keypair *kem_keys);
