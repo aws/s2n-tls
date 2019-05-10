@@ -1141,7 +1141,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
     }
 
-    /* Client sends PQ KEM extension with matching SIKE extension from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-00 */
+    /* Client sends PQ KEM extension with matching SIKE extension from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-01 */
     {
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
