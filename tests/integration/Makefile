@@ -22,9 +22,11 @@ ifndef S2N_LIBCRYPTO
 	export S2N_LIBCRYPTO="openssl-1.1.1"
 endif
 
-ifndef S2N_CORKED_IO
-	export S2N_CORKED_IO=False
-endif 
+HANDSHAKE_TEST_PARAMS:=--libcrypto $(S2N_LIBCRYPTO) $(S2ND_HOST) $(S2ND_PORT)
+
+ifeq ($(S2N_CORKED_IO),true)
+	HANDSHAKE_TEST_PARAMS:=--use_corked_io $(HANDSHAKE_TEST_PARAMS)
+endif
 
 .PHONY : all
 all:
@@ -44,13 +46,13 @@ all:
 	( \
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
-	python3 s2n_handshake_test_s_client.py --libcrypto $(S2N_LIBCRYPTO) $(S2ND_HOST) $(S2ND_PORT) $(S2N_CORKED_IO); \
+	python3 s2n_handshake_test_s_client.py $(HANDSHAKE_TEST_PARAMS); \
 	)
 	# Run s_server handshake tests
 	( \
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
-	python3 s2n_handshake_test_s_server.py --libcrypto $(S2N_LIBCRYPTO) $(S2ND_HOST) $(S2ND_PORT) $(S2N_CORKED_IO); \
+	python3 s2n_handshake_test_s_server.py $(HANDSHAKE_TEST_PARAMS); \
 	)
 	# Run gnutls handshake tests
 	( \
