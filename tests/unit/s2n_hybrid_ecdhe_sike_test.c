@@ -65,21 +65,6 @@ int setup_connection(struct s2n_connection *conn) {
 int main(int argc, char **argv) {
     BEGIN_TEST();
 
-#if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
-    /* Read the seed from the RSP_FILE and create the DRBG for the test. Since the seed is the same (and prediction
-     * resistance is off) all calls to generate random data will return the same sequence. Thus the server always
-     * generates the same ECDHE point and KEM public key, the client does the same. */
-    FILE *kat_file = fopen(RSP_FILE_NAME, "r");
-    EXPECT_NOT_NULL(kat_file);
-    EXPECT_SUCCESS(s2n_alloc(&kat_entropy_blob, 48));
-    EXPECT_SUCCESS(ReadHex(kat_file, kat_entropy_blob.data, 48, "seed = "));
-
-    struct s2n_drbg drbg = {.entropy_generator = &s2n_entropy_generator};
-    s2n_stack_blob(personalization_string, 32, 32);
-    EXPECT_SUCCESS(s2n_drbg_instantiate(&drbg, &personalization_string, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
-    EXPECT_SUCCESS(s2n_set_private_drbg_for_test(drbg));
-#endif
-
     EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
 
     /* Part 1 setup a client and server connection with everything they need for a key exchange */
@@ -131,6 +116,21 @@ int main(int argc, char **argv) {
 
     EXPECT_SUCCESS(setup_connection(server_conn));
     EXPECT_SUCCESS(setup_connection(client_conn));
+
+#if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
+    /* Read the seed from the RSP_FILE and create the DRBG for the test. Since the seed is the same (and prediction
+     * resistance is off) all calls to generate random data will return the same sequence. Thus the server always
+     * generates the same ECDHE point and KEM public key, the client does the same. */
+    FILE *kat_file = fopen(RSP_FILE_NAME, "r");
+    EXPECT_NOT_NULL(kat_file);
+    EXPECT_SUCCESS(s2n_alloc(&kat_entropy_blob, 48));
+    EXPECT_SUCCESS(ReadHex(kat_file, kat_entropy_blob.data, 48, "seed = "));
+
+    struct s2n_drbg drbg = {.entropy_generator = &s2n_entropy_generator};
+    s2n_stack_blob(personalization_string, 32, 32);
+    EXPECT_SUCCESS(s2n_drbg_instantiate(&drbg, &personalization_string, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
+    EXPECT_SUCCESS(s2n_set_private_drbg_for_test(drbg));
+#endif
 
     /* Part 2 server sends key first */
     EXPECT_SUCCESS(s2n_server_key_send(server_conn));
