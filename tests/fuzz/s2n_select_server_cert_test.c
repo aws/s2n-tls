@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 #include <openssl/crypto.h>
 #include <openssl/err.h>
@@ -141,10 +142,12 @@ static int set_x509_cns(X509 *x509_cert, const unsigned char **cns, size_t num_c
 int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
     struct s2n_cert_chain_and_key *cert = s2n_cert_chain_and_key_new();
+    struct s2n_config *config = s2n_config_new();
+    struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
     GENERAL_NAMES* san_names = sk_GENERAL_NAME_new_null();
     X509 *x509_cert = X509_new();
 
-    if (!x509_cert || !san_names || !cert) {
+    if (!x509_cert || !san_names || !cert || !config || !conn) {
         goto cleanup;
     }
 
@@ -181,16 +184,34 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
         goto cleanup;
     }
 
-    /* Not checking the return value as we aren't using this fuzz test for matching correctness. */
-    s2n_cert_chain_and_key_matches_name(cert, "");
-    for (int i = 0; i < num_strings; i++) {
-        s2n_cert_chain_and_key_matches_name(cert, strings[i]);
+    if (s2n_connection_set_config(conn, config) < 0) {
+        goto cleanup;
     }
 
+    if (s2n_config_add_cert_chain_and_key_to_store(config, cert) < 0) {
+        goto cleanup;
+    }
+
+    /* Cert selection relies on this being set and we haven't added a "real" public/private key to the cert.
+     * Set the type based on fuzz input.
+     */
+    s2n_cert_type cert_type = (len % 2) ? S2N_CERT_TYPE_RSA_SIGN : S2N_CERT_TYPE_ECDSA_SIGN;
+    struct s2n_cert head = { .cert_type = cert_type };
+    cert->cert_chain->head = &head;
+
+    /* Not checking the return value as we aren't using this fuzz test for matching correctness. */
+    for (int i = 0; i < num_strings; i++) {
+        strncpy(conn->server_name, strings[i], S2N_MAX_SERVER_NAME);
+        /* Not checking the return value as we aren't using this fuzz test for matching correctness. */
+        s2n_conn_find_name_matching_certs(conn);
+    }
+    cert->cert_chain->head = NULL;
 cleanup:
     if (x509_cert != NULL) { X509_free(x509_cert); }
     if (san_names != NULL) { GENERAL_NAMES_free(san_names); }
     if (cert != NULL) { s2n_cert_chain_and_key_free(cert); }
+    if (conn != NULL) { s2n_connection_free(conn); }
+    if (config != NULL) { s2n_config_free(config); }
 
     return 0;
 }
