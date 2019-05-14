@@ -546,6 +546,22 @@ const struct s2n_cipher_preferences elb_security_policy_fs_2018_06 = {
     .extension_flag = S2N_ECC_EXTENSION_ENABLED
 };
 
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls_1_2_2019_05[] = {
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls_1_2_2019_05 = {
+    .count = sizeof(cipher_suites_elb_security_policy_tls_1_2_2019_05) / sizeof(cipher_suites_elb_security_policy_tls_1_2_2019_05[0]),
+    .suites = cipher_suites_elb_security_policy_tls_1_2_2019_05,
+    .minimum_protocol_version = S2N_TLS12,
+    .extension_flag = S2N_ECC_EXTENSION_ENABLED
+};
+
 struct s2n_cipher_suite *cipher_suites_cloudfront_upstream[] = {
     &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
@@ -744,6 +760,7 @@ struct {
     { "ELBSecurityPolicy-TLS-1-2-2017-01", &elb_security_policy_tls_1_2_2017_01},
     { "ELBSecurityPolicy-TLS-1-2-Ext-2018-06", &elb_security_policy_tls_1_2_ext_2018_06},
     { "ELBSecurityPolicy-FS-2018-06", &elb_security_policy_fs_2018_06},
+    { "ELBSecurityPolicy-TLS-1-2-2019-05", &elb_security_policy_tls_1_2_2019_05},
     { "CloudFront-Upstream", &cipher_preferences_cloudfront_upstream },
     { "CloudFront-SSL-v-3", &cipher_preferences_cloudfront_ssl_v_3 },
     { "CloudFront-TLS-1-0-2014", &cipher_preferences_cloudfront_tls_1_0_2014 },
