@@ -93,11 +93,11 @@ status_t aes_ctr_prf(OUT uint8_t *a,
     // Copy full AES blocks
     while((len - idx) >= AES256_BLOCK_SIZE)
     {
-        GUARD(perform_aes(&a[idx], s), res, EXIT);
+        BIKE_GUARD(perform_aes(&a[idx], s), res, EXIT);
         idx += AES256_BLOCK_SIZE;
     }
     
-    GUARD(perform_aes(s->buffer.u.bytes, s), res, EXIT);
+    BIKE_GUARD(perform_aes(s->buffer.u.bytes, s), res, EXIT);
 
     // Copy the tail
     s->pos = len - idx;

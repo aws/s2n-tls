@@ -23,7 +23,7 @@ _INLINE_ status_t get_rand_mod_len(OUT uint32_t *rand_pos,
     do
     {
         // Generate 128bit of random numbers
-        GUARD(aes_ctr_prf((uint8_t*)rand_pos, prf_state, sizeof(*rand_pos)), res, EXIT);
+        BIKE_GUARD(aes_ctr_prf((uint8_t*)rand_pos, prf_state, sizeof(*rand_pos)), res, EXIT);
 
         // Mask only relevant bits
         (*rand_pos) &= mask;
@@ -65,7 +65,7 @@ status_t sample_uniform_r_bits(OUT uint8_t *r,
     init_aes_ctr_prf_state(&prf_state, MAX_AES_INVOKATION, seed);
 
     // Generate random data
-    GUARD(aes_ctr_prf(r, &prf_state, R_SIZE), res, EXIT);
+    BIKE_GUARD(aes_ctr_prf(r, &prf_state, R_SIZE), res, EXIT);
     
     // Mask upper bits of the MSByte
     r[R_SIZE - 1] &= MASK(R_BITS + 8 - (R_SIZE * 8));
@@ -131,7 +131,7 @@ status_t generate_sparse_fake_rep(OUT uint64_t *a,
     // Generate FAKE_DV rand numbers
     do
     {
-         GUARD(get_rand_mod_len(&wlist[ctr].val, len, prf_state), res, EXIT);
+         BIKE_GUARD(get_rand_mod_len(&wlist[ctr].val, len, prf_state), res, EXIT);
          ctr += is_new(wlist, ctr);
     } while(ctr < FAKE_DV);
 
@@ -139,7 +139,7 @@ status_t generate_sparse_fake_rep(OUT uint64_t *a,
     ctr = 0;
     do
     {
-        GUARD(get_rand_mod_len(&real_wlist[ctr], FAKE_DV, prf_state), res, EXIT);
+        BIKE_GUARD(get_rand_mod_len(&real_wlist[ctr], FAKE_DV, prf_state), res, EXIT);
         ctr += is_new2(real_wlist, ctr);
     } while(ctr < DV);
 
@@ -185,7 +185,7 @@ status_t generate_sparse_rep(OUT uint64_t *a,
     // Generate fake_weight rand numbers
     do
     {
-         GUARD(get_rand_mod_len(&wlist[ctr].val, len, prf_state), res, EXIT);
+         BIKE_GUARD(get_rand_mod_len(&wlist[ctr].val, len, prf_state), res, EXIT);
 
          wlist[ctr].used = -1U;
          ctr += is_new(wlist, ctr);
@@ -248,7 +248,7 @@ status_t generate_sparse_fake_rep(OUT uint64_t *a,
     uint32_t real_wlist[DV];
     idx_t inordered_wlist[FAKE_DV];
 
-    GUARD(generate_sparse_rep(a, inordered_wlist, FAKE_DV, 
+    BIKE_GUARD(generate_sparse_rep(a, inordered_wlist, FAKE_DV,
                               len, padded_len, prf_state), res, EXIT);
 
     // Initialize to zero
@@ -257,7 +257,7 @@ status_t generate_sparse_fake_rep(OUT uint64_t *a,
     // Allocate DV real positions
     do
     {
-        GUARD(get_rand_mod_len(&real_wlist[ctr], FAKE_DV, prf_state), res, EXIT);
+        BIKE_GUARD(get_rand_mod_len(&real_wlist[ctr], FAKE_DV, prf_state), res, EXIT);
 
         wlist[ctr].val = inordered_wlist[real_wlist[ctr]].val;
         set_bit(a, wlist[ctr].val);
@@ -288,7 +288,7 @@ status_t generate_sparse_rep(OUT uint64_t *a,
 
     do
     {
-         GUARD(get_rand_mod_len(&wlist[ctr].val, len, prf_state), res, EXIT);
+         BIKE_GUARD(get_rand_mod_len(&wlist[ctr].val, len, prf_state), res, EXIT);
 
          if (!is_bit_set(a, wlist[ctr].val))
          {

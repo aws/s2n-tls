@@ -142,14 +142,14 @@ status_t ossl_add(OUT uint8_t res_bin[R_SIZE],
       ERR(EXTERNAL_LIB_ERROR_OPENSSL, res, EXIT);
    }
 
-   GUARD(ossl_bin2bn(a, a_bin, R_SIZE), res, EXIT);
-   GUARD(ossl_bin2bn(b, b_bin, R_SIZE), res, EXIT);
+   BIKE_GUARD(ossl_bin2bn(a, a_bin, R_SIZE), res, EXIT);
+   BIKE_GUARD(ossl_bin2bn(b, b_bin, R_SIZE), res, EXIT);
 
    if (BN_GF2m_add(r, a, b) == 0) {
       ERR(EXTERNAL_LIB_ERROR_OPENSSL, res, EXIT);
    }
 
-   GUARD(ossl_bn2bin(res_bin, r, R_SIZE), res, EXIT);
+   BIKE_GUARD(ossl_bn2bin(res_bin, r, R_SIZE), res, EXIT);
 
 EXIT:
    if (bn_ctx) {
@@ -184,10 +184,10 @@ status_t cyclic_product(OUT uint8_t res_bin[R_SIZE],
       ERR(EXTERNAL_LIB_ERROR_OPENSSL, res, EXIT);
    }
 
-   GUARD(ossl_bin2bn(a, a_bin, R_SIZE), res, EXIT);
-   GUARD(ossl_bin2bn(b, b_bin, R_SIZE), res, EXIT);
-   GUARD(ossl_cyclic_product(r, a, b, bn_ctx), res, EXIT);
-   GUARD(ossl_bn2bin(res_bin, r, R_SIZE), res, EXIT);
+   BIKE_GUARD(ossl_bin2bn(a, a_bin, R_SIZE), res, EXIT);
+   BIKE_GUARD(ossl_bin2bn(b, b_bin, R_SIZE), res, EXIT);
+   BIKE_GUARD(ossl_cyclic_product(r, a, b, bn_ctx), res, EXIT);
+   BIKE_GUARD(ossl_bn2bin(res_bin, r, R_SIZE), res, EXIT);
 
 EXIT:
    if (bn_ctx) {
@@ -223,7 +223,7 @@ status_t ossl_split_polynomial(OUT uint8_t e0_bin[R_SIZE],
       ERR(EXTERNAL_LIB_ERROR_OPENSSL, res, EXIT);
    }
 
-   GUARD(ossl_bin2bn(e, e_bin, N_SIZE), res, EXIT);
+   BIKE_GUARD(ossl_bin2bn(e, e_bin, N_SIZE), res, EXIT);
 
    // Split e to e0 and e1
    if ((BN_set_bit(mid, R_BITS) == 0) ||
@@ -232,8 +232,8 @@ status_t ossl_split_polynomial(OUT uint8_t e0_bin[R_SIZE],
       ERR(EXTERNAL_LIB_ERROR_OPENSSL, res, EXIT);
    }
 
-   GUARD(ossl_bn2bin(e0_bin, e0, R_SIZE), res, EXIT);
-   GUARD(ossl_bn2bin(e1_bin, e1, R_SIZE), res, EXIT);
+   BIKE_GUARD(ossl_bn2bin(e0_bin, e0, R_SIZE), res, EXIT);
+   BIKE_GUARD(ossl_bn2bin(e1_bin, e1, R_SIZE), res, EXIT);
 
 EXIT:
    if (bn_ctx) {
@@ -265,9 +265,9 @@ status_t mod_inv(OUT uint8_t res_bin[R_SIZE],
       ERR(EXTERNAL_LIB_ERROR_OPENSSL, res, EXIT);
    }
 
-   GUARD(ossl_bin2bn(a, a_bin, R_SIZE), res, EXIT);
-   GUARD(invert_poly(r, a, bn_ctx), res, EXIT);
-   GUARD(ossl_bn2bin(res_bin, r, R_SIZE), res, EXIT);
+   BIKE_GUARD(ossl_bin2bn(a, a_bin, R_SIZE), res, EXIT);
+   BIKE_GUARD(invert_poly(r, a, bn_ctx), res, EXIT);
+   BIKE_GUARD(ossl_bn2bin(res_bin, r, R_SIZE), res, EXIT);
 
 EXIT:
    if (bn_ctx) {

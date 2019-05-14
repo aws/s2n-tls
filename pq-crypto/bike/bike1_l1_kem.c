@@ -33,7 +33,7 @@ _INLINE_ status_t encrypt(OUT ct_t *ct,
     VAL(p_pk[1]) = PTRV(pk)[1];
 
     DMSG("    Sampling m.\n");
-    GUARD(sample_uniform_r_bits(VAL(m).raw, seed, NO_RESTRICTION), res, EXIT);
+    BIKE_GUARD(sample_uniform_r_bits(VAL(m).raw, seed, NO_RESTRICTION), res, EXIT);
 
     EDMSG("m:  "); print((uint64_t*)VAL(m).raw, R_BITS);
 
@@ -72,7 +72,7 @@ _INLINE_ status_t calc_pk(OUT pk_t *pk,
 
     //Must intialized padding to zero!!
     padded_r_t g = {0};
-    GUARD(sample_uniform_r_bits(VAL(g).raw, g_seed, MUST_BE_ODD), res, EXIT);
+    BIKE_GUARD(sample_uniform_r_bits(VAL(g).raw, g_seed, MUST_BE_ODD), res, EXIT);
     
     EDMSG("g:  "); print((uint64_t*)VAL(g).raw, R_BITS);
 
@@ -151,7 +151,7 @@ _INLINE_ status_t init_batch(IN OUT aes_ctr_prf_state_t *h_prf_state,
     //First time - Init ad calc.
     for(uint32_t i=0 ; i < BATCH_SIZE ; ++i)
     {
-        GUARD(generate_sparse_fake_rep(ctx->h0[i].qw, 
+        BIKE_GUARD(generate_sparse_fake_rep(ctx->h0[i].qw,
                                        ctx->sk_wlist[i].val,
                                        sizeof(ctx->h0[i].val),
                                        h_prf_state), res, EXIT);
@@ -224,7 +224,7 @@ _INLINE_ status_t encrypt(OUT ct_t *ct,
     padded_r_t e_extra;
     status_t res;
 
-    GUARD(generate_sparse_rep(e_extra.u.qw, dummy.val, T1/2, 
+    BIKE_GUARD(generate_sparse_rep(e_extra.u.qw, dummy.val, T1/2,
                               R_BITS, sizeof(e_extra), e_prf_state), res, EXIT);
 
     // ct = (e1*pk0 + e_extra, e1*pk1 + e0)
@@ -254,7 +254,7 @@ _INLINE_ status_t calc_pk(OUT pk_t *pk,
 
     // pk = (h1 + g*h0, g)
     padded_r_t g = {0};
-    GUARD(sample_uniform_r_bits(VAL(g).raw, g_seed, NO_RESTRICTION), res, EXIT);
+    BIKE_GUARD(sample_uniform_r_bits(VAL(g).raw, g_seed, NO_RESTRICTION), res, EXIT);
 
     cyclic_product(tmp1.raw, VAL(g).raw, PTR(sk).bin[0].raw);
     gf2x_add(PTRV(pk)[0].raw, tmp1.raw, PTR(sk).bin[1].raw, R_SIZE);
@@ -310,7 +310,7 @@ int BIKE1_L1_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
     aes_ctr_prf_state_t h_prf_state = {0};
     
     // Get the entrophy seeds
-    GUARD(get_seeds(&seeds, KEYGEN_SEEDS), res, EXIT);
+    BIKE_GUARD(get_seeds(&seeds, KEYGEN_SEEDS), res, EXIT);
 
     DMSG("  Enter crypto_kem_keypair.\n");
     DMSG("    Calculating the secret key.\n");
@@ -327,15 +327,15 @@ int BIKE1_L1_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
 
 #if BATCH_SIZE > 1
     static batch_ctx_t batch_ctx = {.cnt = 0};
-    GUARD(init_batch(&h_prf_state, &batch_ctx), res, EXIT);
+    BIKE_GUARD(init_batch(&h_prf_state, &batch_ctx), res, EXIT);
 #else
-    GUARD(generate_sparse_fake_rep(p_sk[0].u.qw, PTR(l_sk).wlist[0].val,
+    BIKE_GUARD(generate_sparse_fake_rep(p_sk[0].u.qw, PTR(l_sk).wlist[0].val,
                                    sizeof(p_sk[0]), &h_prf_state), res, EXIT);
     
     // Copy data
     PTR(l_sk).bin[0] = VAL(p_sk[0]);
 #endif
-    GUARD(generate_sparse_fake_rep(p_sk[1].u.qw, PTR(l_sk).wlist[1].val,
+    BIKE_GUARD(generate_sparse_fake_rep(p_sk[1].u.qw, PTR(l_sk).wlist[1].val,
                                    sizeof(p_sk[1]), &h_prf_state), res, EXIT);
 
     // Copy data
@@ -344,7 +344,7 @@ int BIKE1_L1_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
     DMSG("    Calculating the public key.\n");
 
 #if BIKE_VER==1
-    GUARD(calc_pk(l_pk, &seeds.u.v.s2, p_sk), res, EXIT);
+    BIKE_GUARD(calc_pk(l_pk, &seeds.u.v.s2, p_sk), res, EXIT);
 #elif (BIKE_VER == 2)
   #if (BATCH_SIZE > 1)
     get_batch_keys(l_pk, l_sk, &batch_ctx);
@@ -352,7 +352,7 @@ int BIKE1_L1_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
     calc_pk(l_pk, l_sk);
   #endif
 #elif (BIKE_VER == 3)
-    GUARD(calc_pk(l_pk, &seeds.u.v.s2, l_sk), res, EXIT);
+    BIKE_GUARD(calc_pk(l_pk, &seeds.u.v.s2, l_sk), res, EXIT);
 #endif
 
 EXIT:
@@ -393,7 +393,7 @@ int BIKE1_L1_crypto_kem_enc(OUT unsigned char *ct,
     aes_ctr_prf_state_t e_prf_state = {0};
 
     // Get the entrophy seeds
-    GUARD(get_seeds(&seeds, ENCAPS_SEEDS), res, EXIT);
+    BIKE_GUARD(get_seeds(&seeds, ENCAPS_SEEDS), res, EXIT);
 
     // Random data generator
     // Using first seed
@@ -401,7 +401,7 @@ int BIKE1_L1_crypto_kem_enc(OUT unsigned char *ct,
 
     DMSG("    Generating error.\n");
     compressed_idx_t_t dummy;
-    GUARD(generate_sparse_rep(e.u.qw, dummy.val, T1, N_BITS, sizeof(e), &e_prf_state), res, EXIT);
+    BIKE_GUARD(generate_sparse_rep(e.u.qw, dummy.val, T1, N_BITS, sizeof(e), &e_prf_state), res, EXIT);
 
     EDMSG("e:  "); print((uint64_t*)VAL(e).raw, sizeof(e)*8);
 
@@ -416,11 +416,11 @@ int BIKE1_L1_crypto_kem_enc(OUT unsigned char *ct,
     // Using second seed
     DMSG("    Encrypting.\n");
 #if   BIKE_VER==1
-    GUARD(encrypt(l_ct, l_pk, &seeds.u.v.s2, &splitted_e), res, EXIT);
+    BIKE_GUARD(encrypt(l_ct, l_pk, &seeds.u.v.s2, &splitted_e), res, EXIT);
 #elif BIKE_VER==2
     encrypt(l_ct, l_pk, &splitted_e);
 #elif BIKE_VER==3
-    GUARD(encrypt(l_ct, l_pk, &splitted_e, &e_prf_state), res, EXIT);
+    BIKE_GUARD(encrypt(l_ct, l_pk, &splitted_e, &e_prf_state), res, EXIT);
 #endif
 
     DMSG("    Generating shared secret.\n");

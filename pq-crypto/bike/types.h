@@ -224,7 +224,7 @@ typedef struct double_seed_s
 
 // This convention will work all over the code
 #define ERR(v, return_param, label) {return_param = v; goto label;}
-#define GUARD(func, stat, label) {stat = func; if(stat != SUCCESS) {goto label;}}
+#define BIKE_GUARD(func, stat, label) {stat = func; if(stat != SUCCESS) {goto label;}}
 
 enum _status
 {
