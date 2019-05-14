@@ -39,14 +39,9 @@ typedef struct sha512_hash_s
 } sha512_hash_t;
 bike_static_assert(sizeof(sha512_hash_t) == SHA512_HASH_SIZE, sha512_hash_size);
 
-typedef struct {
-    const uint8_t *ptr;
-    uint32_t blocks;
-} hash_desc;
 
 #include "sha384.h"
 
-#ifdef USE_OPENSSL
 
 #include "utilities.h"
 #include <openssl/sha.h>
@@ -62,7 +57,7 @@ _INLINE_ int sha(OUT sha_hash_t *hash_out,
 _INLINE_ void sha_mb(OUT sha_hash_t *hash_out,
                      IN const uint8_t *msg,
                      IN const uint32_t byte_len,
-                     IN const uint32_t num) 
+                     IN const uint32_t num)
 {
     const uint32_t ls = (byte_len / NUM_OF_BLOCKS_IN_MB);
 
@@ -72,15 +67,3 @@ _INLINE_ void sha_mb(OUT sha_hash_t *hash_out,
     }
 }
 
-#else // USE_OPENSSL
-
-int sha(OUT sha_hash_t *hash_out,
-        IN const uint32_t byte_len,
-        IN const uint8_t *msg);
-
-
-void sha_mb(OUT sha_hash_t *hash_out,
-            IN const uint8_t *msg,
-            IN const uint32_t byte_len,
-            IN const uint32_t num);
-#endif // USE_OPENSSL

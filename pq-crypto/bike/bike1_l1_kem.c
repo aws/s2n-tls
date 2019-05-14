@@ -17,7 +17,6 @@
 #include "decode.h"
 #include "gf2x.h"
 
-#if (BIKE_VER == 1)
 _INLINE_ status_t encrypt(OUT ct_t *ct,
                           IN const pk_t *pk,
                           IN const seed_t *seed,
@@ -93,190 +92,6 @@ EXIT:
     return res;
 }
 
-#endif
-
-#if BIKE_VER==2
-_INLINE_ void encrypt(OUT ct_t *ct,
-                      IN const pk_t *pk,
-                      IN const split_e_t *splitted_e)
-{
-    // Pad the public key and ciphertext
-    dbl_pad_ct_t p_ct;
-    pad_pk_t p_pk = {0};
-    VAL(p_pk) = *pk;
-
-    cyclic_product(VAL(p_ct).raw, PTRV(splitted_e)[1].raw, VAL(p_pk).raw);
-    gf2x_add(VAL(p_ct).raw, VAL(p_ct).raw, PTRV(splitted_e)[0].raw, R_SIZE);
-    
-    *ct = VAL(p_ct);
-    EDMSG("c:  "); print((uint64_t*)ct->raw, R_BITS);
-}
-
-_INLINE_ void calc_pk(OUT pk_t *pk, IN OUT sk_t *sk)
-{
-    r_t inv;
-    
-    mod_inv(inv.raw, PTR(sk).bin[0].raw);
-    cyclic_product(pk->raw, PTR(sk).bin[1].raw, inv.raw);
-
-    PTR(sk).pk = *pk;
-
-    EDMSG("g0: "); print((uint64_t*)pk->raw, R_BITS);
-
-    secure_clean(inv.raw, sizeof(r_t));
-}
-
-#if BATCH_SIZE > 1
-typedef struct batch_ctx_s
-{
-    uint32_t cnt;
-    padded_r_t h0[BATCH_SIZE];
-    compressed_idx_dv_t sk_wlist[BATCH_SIZE];
-    r_t tmp1[BATCH_SIZE];
-    r_t tmp0[BATCH_SIZE];
-    r_t inv;
-} batch_ctx_t;
-
-_INLINE_ status_t init_batch(IN OUT aes_ctr_prf_state_t *h_prf_state,
-                             IN OUT batch_ctx_t *ctx)
-{
-    status_t res = SUCCESS;
-
-    if(ctx->cnt != 0)
-    {
-        //Already initialized.
-        return res;
-    }
-
-    //First time - Init ad calc.
-    for(uint32_t i=0 ; i < BATCH_SIZE ; ++i)
-    {
-        BIKE_GUARD(generate_sparse_fake_rep(ctx->h0[i].qw,
-                                       ctx->sk_wlist[i].val,
-                                       sizeof(ctx->h0[i].val),
-                                       h_prf_state), res, EXIT);
-    }
-
-    ctx->tmp0[0] = ctx->h0[0].val;
-
-    for(uint32_t i = 1 ; i < BATCH_SIZE ; ++i)
-    {
-        cyclic_product(ctx->tmp0[i].raw, 
-                    ctx->tmp0[i-1].raw, 
-                    ctx->h0[i].val.raw);
-    }
-
-    mod_inv(ctx->tmp1[BATCH_SIZE-1].raw, ctx->tmp0[BATCH_SIZE-1].raw);
-
-    for(uint32_t i = (BATCH_SIZE - 2) ; i >= 1 ; i--)
-    {
-        cyclic_product(ctx->tmp1[i].raw, 
-                    ctx->tmp1[i+1].raw, 
-                    ctx->h0[i+1].val.raw);
-    }
-
-EXIT:
-
-    return res;
-}
-
-_INLINE_ void get_batch_keys(OUT pk_t *pk, 
-                             IN OUT sk_t *sk, 
-                             IN OUT batch_ctx_t *ctx)
-{
-    //Set the private key.
-    sk->bin[0] = ctx->h0[ctx->cnt].val;
-    sk->wlist[0] = ctx->sk_wlist[ctx->cnt];
-
-    if(ctx->cnt == 0)
-    {
-        cyclic_product(ctx->inv.raw, 
-                    ctx->tmp1[1].raw, 
-                    ctx->h0[1].val.raw);
-    }
-    else
-    {
-        cyclic_product(ctx->inv.raw, 
-                    ctx->tmp1[ctx->cnt].raw, 
-                    ctx->tmp0[ctx->cnt-1].raw);
-    }
-   
-    //Set the public key.
-    cyclic_product(pk->raw, sk->bin[1].raw, ctx->inv.raw);
-
-    EDMSG("g0: "); print((uint64_t*)pk->raw, R_BITS);
-    
-    //Increment the counter
-    ctx->cnt = (ctx->cnt+1) % BATCH_SIZE;
-}
-
-#endif
-
-#endif
-
-#if BIKE_VER==3
-_INLINE_ status_t encrypt(OUT ct_t *ct,
-                          IN const pk_t *pk,
-                          IN const split_e_t *splitted_e,
-                          IN OUT aes_ctr_prf_state_t *e_prf_state)
-{
-    compressed_idx_t_t dummy;
-    padded_r_t e_extra;
-    status_t res;
-
-    BIKE_GUARD(generate_sparse_rep(e_extra.u.qw, dummy.val, T1/2,
-                              R_BITS, sizeof(e_extra), e_prf_state), res, EXIT);
-
-    // ct = (e1*pk0 + e_extra, e1*pk1 + e0)
-    cyclic_product(PTRV(ct)[0].raw, PTRV(splitted_e)[1].raw, PTRV(pk)[0].raw);
-    cyclic_product(PTRV(ct)[1].raw, PTRV(splitted_e)[1].raw, PTRV(pk)[1].raw);
-    gf2x_add(PTRV(ct)[0].raw, PTRV(ct)[0].raw, VAL(e_extra).raw, R_SIZE);
-    gf2x_add(PTRV(ct)[1].raw, PTRV(ct)[1].raw, PTRV(splitted_e)[0].raw, R_SIZE);
-
-    EDMSG("c0: "); print((uint64_t*)PTRV(ct)[0].raw, R_BITS);
-    EDMSG("c1: "); print((uint64_t*)PTRV(ct)[1].raw, R_BITS);
-
-EXIT:
-    EDMSG("c0: "); print((uint64_t*)PTRV(ct)[0].raw, R_BITS);
-    EDMSG("c1: "); print((uint64_t*)PTRV(ct)[1].raw, R_BITS);
-
-    secure_clean(e_extra.u.raw, sizeof(e_extra));
-
-    return res;    
-}
-
-_INLINE_ status_t calc_pk(OUT pk_t *pk,
-                          IN const seed_t *g_seed,
-                          IN OUT sk_t *sk)
-{
-    status_t res = SUCCESS;
-    r_t tmp1;
-
-    // pk = (h1 + g*h0, g)
-    padded_r_t g = {0};
-    BIKE_GUARD(sample_uniform_r_bits(VAL(g).raw, g_seed, NO_RESTRICTION), res, EXIT);
-
-    cyclic_product(tmp1.raw, VAL(g).raw, PTR(sk).bin[0].raw);
-    gf2x_add(PTRV(pk)[0].raw, tmp1.raw, PTR(sk).bin[1].raw, R_SIZE);
-
-    // Copy g to pk[1]
-    PTRV(pk)[1] = VAL(g);
-    
-    // Store the pk for later use
-    PTR(sk).pk = *pk;
-    
-EXIT:
-    EDMSG("g0: "); print((uint64_t*)PTRV(pk)[0].raw, R_BITS);
-    EDMSG("g1: "); print((uint64_t*)PTRV(pk)[1].raw, R_BITS);
-
-    secure_clean(g.u.raw, sizeof(g));
-    secure_clean(tmp1.raw, sizeof(tmp1));
-
-    return res;
-}
-
-#endif
-
 // Generate the Shared Secret (K(e))
 _INLINE_ void get_ss(OUT ss_t *out, IN const e_t *e)
 {
@@ -343,17 +158,7 @@ int BIKE1_L1_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
 
     DMSG("    Calculating the public key.\n");
 
-#if BIKE_VER==1
     BIKE_GUARD(calc_pk(l_pk, &seeds.u.v.s2, p_sk), res, EXIT);
-#elif (BIKE_VER == 2)
-  #if (BATCH_SIZE > 1)
-    get_batch_keys(l_pk, l_sk, &batch_ctx);
-  #else
-    calc_pk(l_pk, l_sk);
-  #endif
-#elif (BIKE_VER == 3)
-    BIKE_GUARD(calc_pk(l_pk, &seeds.u.v.s2, l_sk), res, EXIT);
-#endif
 
 EXIT:
 
@@ -415,13 +220,7 @@ int BIKE1_L1_crypto_kem_enc(OUT unsigned char *ct,
     // Computing ct = enc(pk, e)
     // Using second seed
     DMSG("    Encrypting.\n");
-#if   BIKE_VER==1
     BIKE_GUARD(encrypt(l_ct, l_pk, &seeds.u.v.s2, &splitted_e), res, EXIT);
-#elif BIKE_VER==2
-    encrypt(l_ct, l_pk, &splitted_e);
-#elif BIKE_VER==3
-    BIKE_GUARD(encrypt(l_ct, l_pk, &splitted_e, &e_prf_state), res, EXIT);
-#endif
 
     DMSG("    Generating shared secret.\n");
     get_ss(l_ss, &VAL(e));

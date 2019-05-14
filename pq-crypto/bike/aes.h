@@ -13,13 +13,8 @@
 
 #include "types.h"
 
-#ifdef USE_OPENSSL
-  #include <assert.h>
-  #include <openssl/evp.h>
-#else
-  #include <wmmintrin.h>
-  #include <tmmintrin.h>
-#endif
+#include <assert.h>
+#include <openssl/evp.h>
 
 #define MAX_AES_INVOKATION (MASK(32))
 
@@ -32,7 +27,6 @@ typedef ALIGN(16) struct aes256_key_s {
         uint8_t raw[AES256_KEY_SIZE];
 } aes256_key_t;
 
-#if defined(USE_OPENSSL)
 
 //Using OpenSSL structures
 typedef EVP_CIPHER_CTX* aes256_ks_t;
@@ -42,8 +36,8 @@ _INLINE_ void aes256_key_expansion(OUT aes256_ks_t *ks,
 {
     *ks = EVP_CIPHER_CTX_new();
     assert(*ks != NULL);
-    EVP_EncryptInit_ex(*ks, EVP_aes_256_ecb(), NULL, key->raw, NULL);
-    EVP_CIPHER_CTX_set_padding(*ks, 0);
+    assert(1 == EVP_EncryptInit_ex(*ks, EVP_aes_256_ecb(), NULL, key->raw, NULL));
+    assert(1 == EVP_CIPHER_CTX_set_padding(*ks, 0));
 }
 
 _INLINE_ void aes256_enc(OUT uint8_t *ct,
@@ -60,26 +54,3 @@ _INLINE_ void aes256_free_ks(OUT aes256_ks_t *ks)
     EVP_CIPHER_CTX_free(*ks);
     ks = NULL;
 }
-
-#else
-
-typedef ALIGN(16) struct aes256_ks_s {
-        __m128i keys[AES256_ROUNDS + 1];
-} aes256_ks_t;
-
-// The ks parameter must be 16 bytes aligned!
-EXTERNC void aes256_key_expansion(OUT aes256_ks_t *ks,
-                                  IN const aes256_key_t *key);
-
-void aes256_enc(OUT uint8_t *ct,
-                IN const uint8_t *pt,
-                IN const aes256_ks_t *ks);
-
-// Empty function
-_INLINE_ void aes256_free_ks(OUT BIKE_UNUSED_ATT aes256_ks_t *ks)
-{
-    return;
-}
-
-#endif //USE_OPENSSL
-

@@ -96,25 +96,3 @@
     #define SEDMSG(...)
   #endif
 #endif
-
-////////////////////////////////////////////
-//              Printing
-///////////////////////////////////////////
-
-//Show timer rests in cycles.
-//#define RDTSC
-
-//#define PRINT_IN_BE
-//#define NO_SPACE
-//#define NO_NEWLINE
-
-////////////////////////////////////////////
-//              Testing
-///////////////////////////////////////////
-#ifndef NUM_OF_TESTS
-  #define NUM_OF_TESTS  1
-#endif
-
-//Disabled for random testing
-//#define USE_NIST_RAND
-

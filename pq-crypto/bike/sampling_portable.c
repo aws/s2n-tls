@@ -12,8 +12,6 @@
 #include "sampling.h"
 #include <assert.h>
 
-#ifdef CONSTANT_TIME
-
 #define MAX_WEIGHT (T1 > FAKE_DV ? T1 : FAKE_DV)
 
 // This implementation assumes that the wlist contains fake list
@@ -48,5 +46,3 @@ EXTERNC void secure_set_bits(IN OUT uint64_t *a,
         a[qw] |= tmp;
     }
 }
-
-#endif

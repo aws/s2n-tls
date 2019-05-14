@@ -21,11 +21,3 @@ status_t ossl_add(OUT uint8_t res_bin[R_SIZE],
 status_t cyclic_product(OUT uint8_t res_bin[R_SIZE],
                         IN const uint8_t a_bin[R_SIZE],
                         IN const uint8_t b_bin[R_SIZE]);
-
-status_t ossl_split_polynomial(OUT uint8_t e0_bin[R_SIZE],
-                               OUT uint8_t e1_bin[R_SIZE],
-                               IN const uint8_t e_bin[N_SIZE]);
-
-// Perform modular inverse with OpenSSL
-status_t mod_inv(OUT uint8_t res_bin[R_SIZE],
-                 IN const uint8_t a_bin[R_SIZE]);

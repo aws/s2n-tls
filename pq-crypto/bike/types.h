@@ -55,20 +55,13 @@ typedef struct generic_param_n_s {
     } u;
 } generic_param_n_t;
 
-#if BIKE_VER == 2
-typedef r_t pk_t;
-typedef r_t ct_t;
-#else
 typedef generic_param_n_t pk_t;
 typedef generic_param_n_t ct_t;
-#endif
 typedef generic_param_n_t split_e_t;
 
 typedef struct idx_s {
     uint32_t val;
-#ifdef CONSTANT_TIME
     uint32_t used;
-#endif
 } idx_t;
 
 typedef struct compressed_idx_dv_s {
@@ -89,10 +82,6 @@ typedef struct sk_s
         {
             r_t bin[N0];
             compressed_idx_dv_t wlist[N0];
-#if BIKE_VER>1
-            // For caching instead of recalculating during decoding
-            pk_t pk;
-#endif
         } v;
         uint8_t raw[N0 * (sizeof(r_t) + sizeof(compressed_idx_dv_t))];
     } u;
@@ -130,13 +119,8 @@ typedef struct padded_r_s
 
 typedef padded_r_t padded_param_n_t[N0];
 typedef padded_param_n_t pad_sk_t;
-#if BIKE_VER==2
-    typedef padded_r_t pad_pk_t;
-    typedef padded_r_t pad_ct_t;
-#else
-    typedef padded_param_n_t pad_pk_t;
-    typedef padded_param_n_t pad_ct_t;
-#endif
+typedef padded_param_n_t pad_pk_t;
+typedef padded_param_n_t pad_ct_t;
 
 // Need to allocate twice the room for the results
 typedef struct dbl_padded_r_s {
@@ -152,13 +136,8 @@ typedef struct dbl_padded_r_s {
 } dbl_padded_r_t;
 
 typedef dbl_padded_r_t dbl_padded_param_n_t[N0];
-#if BIKE_VER == 2
-typedef dbl_padded_r_t dbl_pad_pk_t;
-typedef dbl_padded_r_t dbl_pad_ct_t;
-#else
 typedef dbl_padded_param_n_t dbl_pad_pk_t;
 typedef dbl_padded_param_n_t dbl_pad_ct_t;
-#endif
 typedef dbl_padded_param_n_t dbl_pad_syndrome_t;
 
 typedef struct ss_s {
@@ -178,15 +157,9 @@ typedef ALIGN(16) struct syndrome_s {
         struct {
             red_r_t dup1;
             red_r_t dup2;
-#ifdef AVX512
-            uint8_t reserved[N_QDQWORDS_BITS - N_BITS];
-        } v;
-        uint8_t raw[N_QDQWORDS_BITS];
-#else
             uint8_t reserved[N_DDQWORDS_BITS - N_BITS];
         } v;
         uint8_t raw[N_DDQWORDS_BITS];
-#endif
     } u;
 } syndrome_t;
 

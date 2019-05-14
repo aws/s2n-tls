@@ -81,9 +81,8 @@ int main(int argc, char **argv, char **envp) {
         EXPECT_SUCCESS(s2n_drbg_instantiate(&kat_drbg, &persoanlization_string, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
         EXPECT_SUCCESS(s2n_set_private_drbg_for_test(kat_drbg));
         ////////////////////////////////////
-        //      Run the prtocol
+        //      Run the protocol
         ////////////////////////////////////
-
         // Generate the public/private key pair
         EXPECT_SUCCESS(BIKE1_L1_crypto_kem_keypair(pk, sk));
 
@@ -96,7 +95,6 @@ int main(int argc, char **argv, char **envp) {
         ////////////////////////////////////
         //      Verify the results
         ////////////////////////////////////
-
         // Read the KAT values
         EXPECT_SUCCESS(ReadHex(kat_file, pk_answer, BIKE1_L1_PUBLIC_KEY_BYTES, "pk = "));
         EXPECT_SUCCESS(ReadHex(kat_file, sk_answer, BIKE1_L1_SECRET_KEY_BYTES, "sk = "));

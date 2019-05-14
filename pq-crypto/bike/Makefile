@@ -21,12 +21,7 @@ SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
 #WA for GCC 4.8.5 bug.
-CFLAGS += -Wno-missing-braces -Wno-missing-field-initializers
-
-# Currently only BIKE1_L1 is supportted in the S2N library!
-CFLAGS += -DBIKE_VER=1 -DLEVEL=1 -DCONSTANT_TIME -DUSE_OPENSSL
-
-CFLAGS+=-I../../
+CFLAGS += -Wno-missing-braces -Wno-missing-field-initializers -I../../
 
 .PHONY : all
 all: $(OBJS)
