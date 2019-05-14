@@ -90,19 +90,19 @@ static int s2n_check_hybrid(const struct s2n_kex *kex, const struct s2n_connecti
 static int s2n_write_server_hybrid_extensions(const struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     const struct s2n_kex *kex = conn->secure.cipher_suite->key_exchange_alg;
-    const struct s2n_kex *hybrid_kex_1 = *kex->hybrid;
-    const struct s2n_kex *hybrid_kex_2 = hybrid_kex_1 + 1;
+    const struct s2n_kex *hybrid_kex_0 = kex->hybrid[0];
+    const struct s2n_kex *hybrid_kex_1 = kex->hybrid[1];
+    GUARD(s2n_kex_write_server_extension(hybrid_kex_0, conn, out));
     GUARD(s2n_kex_write_server_extension(hybrid_kex_1, conn, out));
-    GUARD(s2n_kex_write_server_extension(hybrid_kex_2, conn, out));
     return 0;
 }
 
 static int s2n_get_server_hybrid_extensions_size(const struct s2n_connection *conn)
 {
     const struct s2n_kex *kex = conn->secure.cipher_suite->key_exchange_alg;
-    const struct s2n_kex *hybrid_kex_1 = *kex->hybrid;
-    const struct s2n_kex *hybrid_kex_2 = hybrid_kex_1 + 1;
-    return s2n_kex_server_extension_size(hybrid_kex_1, conn) + s2n_kex_server_extension_size(hybrid_kex_2, conn);
+    const struct s2n_kex *hybrid_kex_0 = kex->hybrid[0];
+    const struct s2n_kex *hybrid_kex_1 = kex->hybrid[1];
+    return s2n_kex_server_extension_size(hybrid_kex_0, conn) + s2n_kex_server_extension_size(hybrid_kex_1, conn);
 }
 
 static const struct s2n_kex s2n_sike = {
