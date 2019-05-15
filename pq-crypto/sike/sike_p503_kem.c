@@ -10,6 +10,7 @@
 #include "P503_internal.h"
 #include "fips202.h"
 #include "pq-crypto/pq_random.h"
+#include "utils/s2n_safety.h"
 
 int SIKE_P503_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 { // SIKE's key generation
@@ -19,11 +20,11 @@ int SIKE_P503_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
     digit_t _sk[SECRETKEY_B_BYTES/sizeof(digit_t)];
     
     // Generate lower portion of secret key sk <- s||SK
-    get_random_bytes(sk, MSG_BYTES);
+    GUARD(get_random_bytes(sk, MSG_BYTES));
     random_mod_order_B((unsigned char*)_sk);
 
     // Generate public key pk
-    EphemeralKeyGeneration_B(_sk, pk);
+    GUARD(EphemeralKeyGeneration_B(_sk, pk));
 
     memcpy(sk + MSG_BYTES, _sk, SECRETKEY_B_BYTES);
     // Append public key pk to secret key sk
@@ -51,14 +52,14 @@ int SIKE_P503_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsigne
     unsigned int i;
 
     // Generate ephemeralsk <- G(m||pk) mod oA 
-    get_random_bytes(temp, MSG_BYTES);
+    GUARD(get_random_bytes(temp, MSG_BYTES));
     memcpy(&temp[MSG_BYTES], pk, SIKE_P503_PUBLIC_KEY_BYTES);
     cshake256_simple(ephemeralsk.b, SECRETKEY_A_BYTES, G, temp, SIKE_P503_PUBLIC_KEY_BYTES+MSG_BYTES);
     ephemeralsk.b[SECRETKEY_A_BYTES - 1] &= MASK_ALICE;
 
     // Encrypt
-    EphemeralKeyGeneration_A(ephemeralsk.d, ct);
-    EphemeralSecretAgreement_A(ephemeralsk.d, pk, jinvariant);
+    GUARD(EphemeralKeyGeneration_A(ephemeralsk.d, ct));
+    GUARD(EphemeralSecretAgreement_A(ephemeralsk.d, pk, jinvariant));
     cshake256_simple(h, MSG_BYTES, P, jinvariant, FP2_ENCODED_BYTES);
     for (i = 0; i < MSG_BYTES; i++) ct[i + SIKE_P503_PUBLIC_KEY_BYTES] = temp[i] ^ h[i];
 
@@ -93,7 +94,7 @@ int SIKE_P503_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, const u
 	memcpy(_sk, sk + MSG_BYTES, SECRETKEY_B_BYTES);
 
     // Decrypt
-    EphemeralSecretAgreement_B(_sk, ct, jinvariant_);
+    GUARD(EphemeralSecretAgreement_B(_sk, ct, jinvariant_));
     cshake256_simple(h_, MSG_BYTES, P, jinvariant_, FP2_ENCODED_BYTES);
     for (i = 0; i < MSG_BYTES; i++) temp[i] = ct[i + SIKE_P503_PUBLIC_KEY_BYTES] ^ h_[i];
 
@@ -103,7 +104,7 @@ int SIKE_P503_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, const u
     ephemeralsk_.b[SECRETKEY_A_BYTES - 1] &= MASK_ALICE;
     
     // Generate shared secret ss <- H(m||ct) or output ss <- H(s||ct)
-    EphemeralKeyGeneration_A(ephemeralsk_.d, c0_);
+    GUARD(EphemeralKeyGeneration_A(ephemeralsk_.d, c0_));
     if (memcmp(c0_, ct, SIKE_P503_PUBLIC_KEY_BYTES) != 0) {
         memcpy(temp, sk, MSG_BYTES);
     }
