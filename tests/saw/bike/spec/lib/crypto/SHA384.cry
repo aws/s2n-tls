@@ -1,13 +1,5 @@
-// Copyright (c) 2007-2009, Galois, Inc.
-//
-// Author: Sigbjorn Finne
-// 
-
-// Based on spec in FIPS180-2 doc: http://csrc.nist.gov/publications/fips/fips180-2/fips180-2withchangenotice.pdf
-
-// Frank Seaton Taylor removed eveything unnecessary to SHA-384
-
-// Frank Seaton Taylor made Ch, Maj, [sS]igma_[01] be explicit functions
+// SHA384.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 module lib::crypto::SHA384 where
 
