@@ -46,14 +46,7 @@ S_CLIENT_HOSTNAME_MISMATCH="verify error:num=62:Hostname mismatch"
 S_CLIENT_START_OF_SERVER_CERTIFICATE="Server certificate"
 S_CLIENT_LAST_CERTIFICATE_LINE_PATTERN=re.compile("-----END.*CERTIFICATE-----")
 
-def communicate_processes(*processes):
-    outs = []
-    for p in processes:
-        p.kill()
-        out = p.communicate()[0].decode("utf-8").split('\n')
-        outs.append(out)
-
-    return outs
+use_corked_io=False
 
 def cleanup_processes(*processes):
     for p in processes:
@@ -252,6 +245,8 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
     s2nd_cmd.append(s2nd_ciphers)
     if no_ticket:
         s2nd_cmd.append("-T")
+    if use_corked_io:
+        s2nd_cmd.append("-C")
 
     s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
@@ -729,10 +724,12 @@ def main():
     parser = argparse.ArgumentParser(description='Runs TLS server integration tests against s2nd using Openssl s_client')
     parser.add_argument('host', help='The host for s2nd to bind to')
     parser.add_argument('port', type=int, help='The port for s2nd to bind to')
+    parser.add_argument('--use_corked_io', action='store_true', help='Turn corked IO on/off')
     parser.add_argument('--libcrypto', default='openssl-1.1.1', choices=['openssl-1.0.2', 'openssl-1.0.2-fips', 'openssl-1.1.1', 'libressl'],
             help="""The Libcrypto that s2n was built with. s2n supports different cipher suites depending on
                     libcrypto version. Defaults to openssl-1.1.1.""")
     args = parser.parse_args()
+    use_corked_io = args.use_corked_io
 
     # Retrieve the test ciphers to use based on the libcrypto version s2n was built with
     test_ciphers = S2N_LIBCRYPTO_TO_TEST_CIPHERS[args.libcrypto]
@@ -745,6 +742,8 @@ def main():
         print("\nRunning s2nd in FIPS mode.")
 
     print("\nRunning tests with: " + os.popen('openssl version').read())
+    if use_corked_io == True:
+        print("Corked IO is on")
 
     failed = 0
     failed += resume_test(host, port, test_ciphers, fips_mode, no_ticket=True)
