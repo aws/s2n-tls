@@ -1,5 +1,5 @@
 #
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -12,32 +12,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 #
+
+.DEFAULT_GOAL := all
+
+include ../../s2n.mk
+
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
-BCS_11=pq_random.bc
-BCS1=$(addprefix $(BITCODE_DIR), $(BCS_11))
+#WA for GCC 4.8.5 bug.
+CFLAGS += -Wno-missing-braces -Wno-missing-field-initializers -I../../
 
 .PHONY : all
 all: $(OBJS)
-	$(MAKE) -C bike
-	$(MAKE) -C sike
 
 .PHONY : bc
-bc: $(BCS1)
-	$(MAKE) -C sike bc
-
-.PHONY : run-gcov
-run-gcov: gcov
-	$(MAKE) -C sike gcov
-
-.PHONY : run-lcov
-run-lcov: lcov
-	$(MAKE) -C sike lcov
-
-.PHONY : clean
-clean: decruft
-	${MAKE} -C bike decruft
-	${MAKE} -C sike decruft
-
-include ../s2n.mk
+bc: $(BCS)
