@@ -74,6 +74,7 @@ export SIDETRAIL_INSTALL_DIR
 export OPENSSL_1_1_X_MASTER_INSTALL_DIR
 export FUZZ_TIMEOUT_SEC
 export TRAVIS_OS_NAME
+export S2N_CORKED_IO
 
 # Add all of our test dependencies to the PATH. Use Openssl 1.1.1 so the latest openssl is used for s_client
 # integration tests.
