@@ -23,6 +23,7 @@ file(GLOB ERROR_HEADERS
 
 file(GLOB PQ_HEADERS
     "pq-crypto/*.h"
+    "pq-crypto/bike/*.h"
     "pq-crypto/sike/*.h"
 )
 
@@ -50,6 +51,7 @@ file(GLOB ERROR_SRC
 # The SIKE code #includes .c files directly, including all sike/*.c breaks the build due to duplicates
 file(GLOB PQ_SRC
     "pq-crypto/*.c"
+    "pq-crypto/bike/*.c"
     "pq-crypto/sike/fp_generic.c"
     "pq-crypto/sike/P503.c"
     "pq-crypto/sike/sike_p503_kem.c"

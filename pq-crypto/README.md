@@ -27,3 +27,10 @@ The code in the pq-crypto/sike directory was taken from the [round 1 nist submis
 s2n uses the reference implementation to ensure maximum comparability and ease of review. The known answer tests are
 [here](https://github.com/awslabs/s2n/blob/master/tests/unit/s2n_sike_p503_kat_test.c) and use the known answer file
 from the SIKEp503 round 1 submission.
+
+## BIKE (Bit Flipping Key Encapsulation)
+The code in the pq-crypto/bike directory was taken from the [additional implementation](https://bikesuite.org/files/round2/add-impl/Additional_Implementation.2019.03.30.zip).
+s2n uses the "additional implementation" which ensures constant time primitives, does not use any external libraries
+besides libcrypto, and does not depend on any specific hardware instructions to ensure maximum comparability and ease of
+review. The known answer tests are [here](https://github.com/awslabs/s2n/blob/master/tests/unit/s2n_bike1_l1_kat_test.c)
+and use the BIKE1_L1.const.kat from the above Additional_Implementation.2019.03.30.zip.
