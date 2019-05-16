@@ -24,7 +24,7 @@
 
 #include "tests/testlib/s2n_testlib.h"
 
-#include "tests/unit/s2n_nist_kats.h"
+#include "tests/testlib/s2n_nist_kats.h"
 
 #include "tls/s2n_kex.h"
 #include "tls/s2n_kem.h"

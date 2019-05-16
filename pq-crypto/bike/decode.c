@@ -54,26 +54,26 @@ typedef ALIGN(16) struct decode_ctx_s
     uint32_t threshold;
 } decode_ctx_t;
 
-void split_e(OUT split_e_t *split_e, IN const e_t *e)
+void split_e(OUT split_e_t *split_e_, IN const e_t *e)
 {
     // Copy lower bytes (e0)
-    memcpy(PTRV(split_e)[0].raw, e->raw, R_SIZE);
+    memcpy(PTRV(split_e_)[0].raw, e->raw, R_SIZE);
 
     // Now load second value
     for (uint32_t i = R_SIZE; i < N_SIZE; ++i) {
-        PTRV(split_e)
+        PTRV(split_e_)
         [1].raw[i - R_SIZE] = ((e->raw[i] << LAST_R_BYTE_TRAIL) |
                                (e->raw[i - 1] >> LAST_R_BYTE_LEAD));
     }
 
     // Fix corner case
     if (N_SIZE < (2UL * R_SIZE)) {
-        PTRV(split_e)[1].raw[R_SIZE - 1] = (e->raw[N_SIZE - 1] >> LAST_R_BYTE_LEAD);
+        PTRV(split_e_)[1].raw[R_SIZE - 1] = (e->raw[N_SIZE - 1] >> LAST_R_BYTE_LEAD);
     }
 
     // Fix last value
-    PTRV(split_e)[0].raw[R_SIZE - 1] &= LAST_R_BYTE_MASK;
-    PTRV(split_e)[1].raw[R_SIZE - 1] &= LAST_R_BYTE_MASK;
+    PTRV(split_e_)[0].raw[R_SIZE - 1] &= LAST_R_BYTE_MASK;
+    PTRV(split_e_)[1].raw[R_SIZE - 1] &= LAST_R_BYTE_MASK;
 }
 
 // Transpose a row into a column

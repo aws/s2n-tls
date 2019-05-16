@@ -22,7 +22,6 @@
 #include "stuffer/s2n_stuffer.h"
 #include "tests/s2n_test.h"
 #include "tests/testlib/s2n_testlib.h"
-#include "tests/unit/s2n_nist_kats.h"
 #include "tls/s2n_kex.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_tls.h"
