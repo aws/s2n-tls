@@ -29,6 +29,7 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
+static int s2n_recv_server_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_server_renegotiation_info_ext(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_server_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_server_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension);
@@ -41,6 +42,10 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     uint16_t total_size = 0;
 
     const uint8_t application_protocol_len = strlen(conn->application_protocol);
+
+    if (conn->server_name_used && !s2n_connection_is_session_resumed(conn)) {
+        total_size += 4;
+    }
 
     if (application_protocol_len) {
         total_size += 7 + application_protocol_len;
@@ -69,6 +74,12 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     }
 
     GUARD(s2n_stuffer_write_uint16(out, total_size));
+
+    /* Write server name extension */
+    if (conn->server_name_used && !s2n_connection_is_session_resumed(conn)) {
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SERVER_NAME));
+        GUARD(s2n_stuffer_write_uint16(out, 0));
+    }
 
     GUARD(s2n_kex_write_server_extension(conn->secure.cipher_suite->key_exchange_alg, conn, out));
 
@@ -142,6 +153,9 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
         GUARD(s2n_stuffer_write(&extension, &ext));
 
         switch (extension_type) {
+        case TLS_EXTENSION_SERVER_NAME:
+            GUARD(s2n_recv_server_server_name(conn, &extension));
+            break;
         case TLS_EXTENSION_RENEGOTIATION_INFO:
             GUARD(s2n_recv_server_renegotiation_info_ext(conn, &extension));
             break;
@@ -163,6 +177,12 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
         }
     }
 
+    return 0;
+}
+
+int s2n_recv_server_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    conn->server_name_used = 1;
     return 0;
 }
 

@@ -92,6 +92,13 @@ struct s2n_connection {
      /* whether the connection address is ipv6 or not */
     unsigned ipv6:1;
 
+    /* Whether server_name extension was used to make a decision on cert selection.
+     * RFC6066 Section 3 states that server which used server_name to make a decision
+     * on certificate or security settings has to send an empty server_name.
+     */
+    unsigned server_name_used:1;
+
+
     /* Is this connection a client or a server connection */
     s2n_mode mode;
 
