@@ -66,6 +66,8 @@ _INLINE_ ret_t invert_poly(OUT BIGNUM *r,
       BIKE_ERROR(EXTERNAL_LIB_ERROR_OPENSSL);
    }
 
+    // See a detailed explanation why we loop over BN_GF2m_mod_inv in: 
+    // https://github.com/open-quantum-safe/openssl/issues/42
     // r = a*b mod m
     uint32_t inv_res;
     for (uint32_t i = 0; i < MAX_OPENSSL_INV_TRIALS; i++) {

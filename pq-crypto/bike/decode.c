@@ -67,7 +67,7 @@ void split_e(OUT split_e_t *split_e, IN const e_t *e)
     }
 
     // Fix corner case
-    if (N_SIZE < 2UL  *R_SIZE) {
+    if (N_SIZE < (2UL * R_SIZE)) {
         PTRV(split_e)[1].raw[R_SIZE - 1] = (e->raw[N_SIZE - 1] >> LAST_R_BYTE_LEAD);
     }
 
@@ -93,7 +93,7 @@ ret_t compute_syndrome(OUT syndrome_t *syndrome,
 {
     // gf2x_mod_mul requires the values to be 64bit padded and extra (dbl) space for the results
     DEFER_CLEANUP(dbl_pad_syndrome_t pad_s, dbl_pad_syndrome_cleanup);
-	DEFER_CLEANUP(pad_ct_t pad_ct = {0}, pad_ct_cleanup);
+    DEFER_CLEANUP(pad_ct_t pad_ct = {0}, pad_ct_cleanup);
     DEFER_CLEANUP(pad_sk_t pad_sk = {0}, pad_sk_cleanup);
     VAL(pad_sk[0]) = PTR(sk).bin[0];
     VAL(pad_sk[1]) = PTR(sk).bin[1];
@@ -119,6 +119,10 @@ ret_t compute_syndrome(OUT syndrome_t *syndrome,
 _INLINE_ uint32_t get_threshold(IN const red_r_t *s)
 {
     const uint32_t syndrome_weight = count_ones(s->raw, R_BITS);
+
+    // The equations below are defined in BIKE's specification:
+    // https://bikesuite.org/files/round2/spec/BIKE-Spec-Round2.2019.03.30.pdf
+    // Page 20 Section 2.4.2 
     const uint32_t threshold = (13.530 + 0.0069721 * (syndrome_weight));
 
     DMSG("    Thresold: %d\n", threshold);
@@ -140,7 +144,7 @@ ret_t recompute_syndrome(OUT syndrome_t *syndrome,
     GUARD(gf2x_add(VAL(tmp_ct)[0].raw, VAL(tmp_ct)[0].raw, VAL(splitted_e)[0].raw, R_SIZE));
     GUARD(gf2x_add(VAL(tmp_ct)[1].raw, VAL(tmp_ct)[1].raw, VAL(splitted_e)[1].raw, R_SIZE));
 
-    // Recompute the syndromee
+    // Recompute the syndrome
     GUARD(compute_syndrome(syndrome, &tmp_ct, sk));
 
     return SUCCESS;
@@ -238,7 +242,7 @@ ret_t decode(OUT e_t *e,
         // Reset the error
         memset(e, 0, sizeof(*e));
         
-        // Reset the syndrom
+        // Reset the syndrome
         PTR(s).dup1 = PTR(original_s).dup1;
         PTR(s).dup2 = PTR(original_s).dup1;
 
