@@ -20,6 +20,7 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_tls.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -164,6 +165,10 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
  */
 int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
 {
+    if (!s2n_server_received_server_name(conn)) {
+        return 0;
+    }
+
     const char *name = conn->server_name;
     struct s2n_array *certs = conn->config->cert_and_key_pairs;
     for (int i = 0; i < s2n_array_num_elements(certs); i++) {
