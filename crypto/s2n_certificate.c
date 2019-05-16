@@ -268,10 +268,12 @@ int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key
         unsigned char *utf8_str;
         const int utf8_out_len = ASN1_STRING_to_UTF8(&utf8_str, asn1_str);
         if (utf8_out_len < 0) {
+            /* On failure, ASN1_STRING_to_UTF8 does not allocate any memory */
             continue;
-        }
-
-        if (utf8_out_len > 0) {
+        } else if (utf8_out_len == 0) {
+            /* We still need to free memory here see https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-7521 */
+            OPENSSL_free(utf8_str);
+        } else {
             struct s2n_blob *cn_name = s2n_array_insert(chain_and_key->cn_names, s2n_array_num_elements(chain_and_key->cn_names));
             if (cn_name == NULL) {
                 OPENSSL_free(utf8_str);
@@ -284,10 +286,8 @@ int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key
             }
             memcpy_check(cn_name->data, utf8_str, utf8_out_len);
             cn_name->size = utf8_out_len;
+            OPENSSL_free(utf8_str);
         }
-
-        /* Note when ASN1_STRING_to_UTF8 returns 0 we still need to free memory */
-        OPENSSL_free(utf8_str);
     }
 
     return 0;
