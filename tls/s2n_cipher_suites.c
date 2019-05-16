@@ -939,7 +939,8 @@ static int s2n_cipher_is_compatible_with_cert(struct s2n_cipher_suite *cipher, s
     return 0;
 }
 
-static struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(struct s2n_array *certs, struct s2n_cipher_suite *cipher_suite)
+/* Find the first certificate that is compatible with the authentication method for a given cipher suite. */
+static struct s2n_cert_chain_and_key *s2n_get_first_compatible_cert_chain_and_key(struct s2n_array *certs, struct s2n_cipher_suite *cipher_suite)
 {
     for (int i = 0; i < s2n_array_num_elements(certs); i++) {
         struct s2n_cert_chain_and_key *cert_chain_and_key = *((struct s2n_cert_chain_and_key**) s2n_array_get(certs, i));
@@ -954,6 +955,11 @@ static struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(stru
     return NULL;
 }
 
+/* Find the optimal certificate certificate that is compatible with with a cipher.
+ * The priority of set of certificates to choose from:
+ * 1. Certificates that match the client's ServerName extension.
+ * 2. All mismatched certificates
+ */
 static struct s2n_cert_chain_and_key *s2n_conn_get_compatible_cert_chain_and_key(struct s2n_connection *conn, struct s2n_cipher_suite *cipher_suite)
 {
     if (conn->handshake_params.sni_match_exists > 0) {
@@ -961,7 +967,7 @@ static struct s2n_cert_chain_and_key *s2n_conn_get_compatible_cert_chain_and_key
         return conn->handshake_params.sni_matching_certs[cipher_suite->auth_method];
     } else {
         /* We don't have any name matches. Use the first certificate that works with the key type. */
-        return s2n_get_compatible_cert_chain_and_key(conn->config->cert_and_key_pairs, cipher_suite);
+        return s2n_get_first_compatible_cert_chain_and_key(conn->config->cert_and_key_pairs, cipher_suite);
     }
 }
 
