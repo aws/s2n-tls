@@ -156,6 +156,12 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
     return 0;
 }
 
+/* Find certificates that match the ServerName TLS extension sent by the client.
+ * For a given ServerName there can be multiple matching certificates based on the
+ * type of key in the certificate.
+ *
+ * A match is determined using traditional case insensitive DNS name comparison.
+ */
 int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
 {
     const char *name = conn->server_name;
@@ -163,8 +169,9 @@ int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
     for (int i = 0; i < s2n_array_num_elements(certs); i++) {
         struct s2n_cert_chain_and_key *chain_and_key = *((struct s2n_cert_chain_and_key**) s2n_array_get(certs, i));
         s2n_authentication_method auth_method = s2n_cert_chain_and_key_get_auth_method(chain_and_key);
-        if (s2n_cert_chain_and_key_matches_name(chain_and_key, name) &&
-                !conn->handshake_params.sni_matching_certs[auth_method]) {
+        /* Add the match if there isn't already an existing match for the certificate key type */
+        if (!conn->handshake_params.sni_matching_certs[auth_method] &&
+                s2n_cert_chain_and_key_matches_name(chain_and_key, name)) {
             conn->handshake_params.sni_matching_certs[auth_method] = chain_and_key;
             conn->handshake_params.sni_match_exists = 1;
         }
