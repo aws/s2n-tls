@@ -67,7 +67,7 @@ void random_mod_order_B(unsigned char* random_digits)
 }
 
 
-int EphemeralKeyGeneration_A(const digit_t* PrivateKeyA, unsigned char* PublicKeyA)
+void EphemeralKeyGeneration_A(const digit_t* PrivateKeyA, unsigned char* PublicKeyA)
 { // Alice's ephemeral public key generation
   // Input:  a private key PrivateKeyA in the range [0, 2^eA - 1]. 
   // Output: the public key PublicKeyA consisting of 3 elements in GF(p^2) which are encoded by removing leading 0 bytes.
@@ -132,11 +132,11 @@ int EphemeralKeyGeneration_A(const digit_t* PrivateKeyA, unsigned char* PublicKe
     fp2_encode(&phiQ->X, PublicKeyA + FP2_ENCODED_BYTES);
     fp2_encode(&phiR->X, PublicKeyA + 2*FP2_ENCODED_BYTES);
 
-    return 0;
+    return;
 }
 
 
-int EphemeralKeyGeneration_B(const digit_t* PrivateKeyB, unsigned char* PublicKeyB)
+void EphemeralKeyGeneration_B(const digit_t* PrivateKeyB, unsigned char* PublicKeyB)
 { // Bob's ephemeral public key generation
   // Input:  a private key PrivateKeyB in the range [0, 2^Floor(Log(2,oB)) - 1]. 
   // Output: the public key PublicKeyB consisting of 3 elements in GF(p^2) which are encoded by removing leading 0 bytes.
@@ -202,11 +202,11 @@ int EphemeralKeyGeneration_B(const digit_t* PrivateKeyB, unsigned char* PublicKe
     fp2_encode(&phiQ->X, PublicKeyB + FP2_ENCODED_BYTES);
     fp2_encode(&phiR->X, PublicKeyB + 2*FP2_ENCODED_BYTES);
 
-    return 0;
+    return;
 }
 
 
-int EphemeralSecretAgreement_A(const digit_t* PrivateKeyA, const unsigned char* PublicKeyB, unsigned char* SharedSecretA)
+void EphemeralSecretAgreement_A(const digit_t* PrivateKeyA, const unsigned char* PublicKeyB, unsigned char* SharedSecretA)
 { // Alice's ephemeral shared secret computation
   // It produces a shared secret key SharedSecretA using her secret key PrivateKeyA and Bob's public key PublicKeyB
   // Inputs: Alice's PrivateKeyA is an integer in the range [0, oA-1]. 
@@ -262,11 +262,11 @@ int EphemeralSecretAgreement_A(const digit_t* PrivateKeyA, const unsigned char* 
     j_inv(A24plus, C24, jinv);
     fp2_encode(jinv, SharedSecretA);    // Format shared secret
 
-    return 0;
+    return;
 }
 
 
-int EphemeralSecretAgreement_B(const digit_t* PrivateKeyB, const unsigned char* PublicKeyA, unsigned char* SharedSecretB)
+void EphemeralSecretAgreement_B(const digit_t* PrivateKeyB, const unsigned char* PublicKeyA, unsigned char* SharedSecretB)
 { // Bob's ephemeral shared secret computation
   // It produces a shared secret key SharedSecretB using his secret key PrivateKeyB and Alice's public key PublicKeyA
   // Inputs: Bob's PrivateKeyB is an integer in the range [0, 2^Floor(Log(2,oB)) - 1]. 
@@ -322,5 +322,5 @@ int EphemeralSecretAgreement_B(const digit_t* PrivateKeyB, const unsigned char* 
     j_inv(A, A24plus, jinv);
     fp2_encode(jinv, SharedSecretB);    // Format shared secret
 
-    return 0;
+    return;
 }
