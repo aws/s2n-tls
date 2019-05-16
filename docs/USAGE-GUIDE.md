@@ -753,8 +753,10 @@ ClientHello and context provided in **s2n_config_set_client_hello_cb**. The
 callback can get any ClientHello infromation from the connection and use
 **s2n_connection_set_config** call to change the config of the connection.
 
-The callback can return 0 to continue handshake in s2n or it can return negative
-value to make s2n terminate handshake early with fatal handshake failure alert.
+If any of the properties of the connection were changed based on server_name
+extension the callback must return 1, otherwise the callback can return 0
+to continue handshake in s2n or it can return negative value to make s2n
+terminate handshake early with fatal handshake failure alert.
 
 ### s2n\_config\_set\_alert\_behavior
 ```c
