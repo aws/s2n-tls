@@ -27,8 +27,6 @@
 
 #include "crypto/s2n_hash.h"
 
-#define s2n_conn_received_server_name(conn) conn->server_name[0] != 0
-
 /* This is the list of message types that we support */
 typedef enum {
     CLIENT_HELLO=0,
