@@ -177,6 +177,8 @@ int main(int argc, char **argv)
     /* Negotiate the handshake. */
     EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
 
+    EXPECT_EQUAL(s2n_connection_get_selected_cert(conn), chain_and_key);
+
     /* Expect NULL negotiated protocol */
     EXPECT_EQUAL(s2n_get_application_protocol(conn), NULL);
 

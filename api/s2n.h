@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -211,6 +211,8 @@ extern int s2n_connection_get_session_id_length(struct s2n_connection *conn);
 extern int s2n_connection_get_session_id(struct s2n_connection *conn, uint8_t *session_id, size_t max_length);
 extern int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 extern int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);
+
+extern struct s2n_cert_chain_and_key *s2n_connection_get_selected_cert(struct s2n_connection *conn);
 
 /* RFC's that define below values:
  *  - https://tools.ietf.org/html/rfc5246#section-7.4.4
