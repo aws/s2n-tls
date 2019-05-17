@@ -959,7 +959,7 @@ file-descriptor should be active and connected. s2n also supports setting the
 read and write file-descriptors to different values (for pipes or other unusual
 types of I/O).
 
-## s2n\_connection\_is\_valid\_for\_cipher\_preferences
+### s2n\_connection\_is\_valid\_for\_cipher\_preferences
 
 ```c
 int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, const char *version);
@@ -972,7 +972,7 @@ is supported by a given cipher preferences. It returns
 - -1 on any other errors
 
 
-## s2n\_connection\_set\_cipher\_preferences
+### s2n\_connection\_set\_cipher\_preferences
 
 ```c
 int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);
@@ -1259,6 +1259,16 @@ handshake.
 **s2n_connection_get_session_id** get the session id from the connection and copies into the **session_id** buffer and returns the number of bytes that were copied.
 
 **s2n_connection_is_session_resumed** returns 1 if the handshake was abbreviated, otherwise returns 0.
+
+### s2n\_connection\_get\_selected\_cert
+
+```c
+struct s2n_cert_chain_and_key s2n_connection_get_selected_cert(struct s2n_connection *conn);
+```
+
+Return the certificate that was used during the TLS handshake. If **conn** is a server connection, the certificate selected will depend on the
+ServerName sent by the client and supported ciphers. This function returns NULL if certificate selection phase of the handshake has not completed.
+
 
 ### Session Ticket Specific calls
 

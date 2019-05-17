@@ -1161,3 +1161,10 @@ int s2n_connection_is_client_auth_enabled(struct s2n_connection *s2n_connection)
 
     return (auth_type != S2N_CERT_AUTH_NONE);
 }
+
+struct s2n_cert_chain_and_key *s2n_connection_get_selected_cert(struct s2n_connection *conn)
+{
+    notnull_check_ptr(conn);
+    return conn->handshake_params.our_chain_and_key;
+}
+
