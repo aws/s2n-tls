@@ -64,6 +64,10 @@ CFLAGS += ${DEFAULT_CFLAGS}
 
 DEBUG_CFLAGS = -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls
 
+ifdef S2N_ADDRESS_SANITIZER
+	CFLAGS += -fsanitize=address ${DEBUG_CFLAGS}
+endif
+
 ifdef S2N_DEBUG
 	CFLAGS += ${DEBUG_CFLAGS}
 endif
