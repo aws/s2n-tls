@@ -9,6 +9,8 @@
 * The license is detailed in the file LICENSE.md, and applies to this file.
 * ***************************************************************************/
 
+#include <inttypes.h>
+
 #include "utilities.h"
 
 #define BITS_IN_QW 64ULL
@@ -38,7 +40,7 @@ _INLINE_ void print_uint64(IN const uint64_t val)
 #ifdef WIN32
     printf("%.16I64x", tmp);
 #else
-    printf("%.16lx",  tmp);
+    printf("%.16"PRIu64,  tmp);
 #endif
 
 #ifndef NO_SPACE
