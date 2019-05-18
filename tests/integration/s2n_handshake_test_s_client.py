@@ -45,6 +45,17 @@ S_CLIENT_HOSTNAME_MISMATCH="verify error:num=62:Hostname mismatch"
 # Server certificate starts on the line after this one.
 S_CLIENT_START_OF_SERVER_CERTIFICATE="Server certificate"
 S_CLIENT_LAST_CERTIFICATE_LINE_PATTERN=re.compile("-----END.*CERTIFICATE-----")
+S_CLIENT_SERVER_NAME_EXTENSION='TLS server extension "server name"'
+
+class TlsExtensionServerName:
+    def s_client_validate(s_client_out):
+        s_client_out_len = len(s_client_out)
+        for line in s_client_out.splitlines():
+            if S_CLIENT_SERVER_NAME_EXTENSION in line:
+                return 0
+        print("Did not find the ServerName extension as expected!")
+
+        return -1
 
 def communicate_processes(*processes):
     outs = []
@@ -185,7 +196,7 @@ def read_process_output_until(process, marker):
 def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_hostname=False, server_cert=None, server_key=None,
         server_cert_key_list=None, expected_server_cert=None, server_cipher_pref=None, ocsp=None, sig_algs=None, curves=None, resume=False, no_ticket=False,
         prefer_low_latency=False, enter_fips_mode=False, client_auth=None, client_cert=DEFAULT_CLIENT_CERT_PATH,
-        client_key=DEFAULT_CLIENT_KEY_PATH, expected_cipher=None):
+        client_key=DEFAULT_CLIENT_KEY_PATH, expected_cipher=None, expected_extensions=None):
     """
     Attempt to handshake against s2nd listening on `endpoint` and `port` using Openssl s_client
 
@@ -210,6 +221,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
     :param str client_cert: Path to the client's cert file
     :param str client_key: Path to the client's private key file
     :param str expected_cipher: the cipher we expect to negotiate
+    :param list expected_extensions: list of expected extensions that s_client should receive.
     :return: 0 on successfully negotiation(s), -1 on failure
     """
 
@@ -280,6 +292,9 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
     else:
         s_client_cmd.append("-noservername")
 
+    # For verifying extensions that s2nd sends expected extensions
+    s_client_cmd.append("-tlsextdebug")
+
     # Fire up s_client
     s_client = subprocess.Popen(s_client_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -296,7 +311,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
 
     if resume == True:
         for i in range(0,5):
-            # Wait for openssl to resume connection 5 times in a row, and verify resumption works. 
+            # Wait for openssl to resume connection 5 times in a row, and verify resumption works.
             s_client_out += read_process_output_until(s_client, openssl_reconnect_marker)
             s2nd_out += read_process_output_until(s2nd, openssl_connect_marker)
 
@@ -339,6 +354,11 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
     if expected_server_cert is not None:
         if validate_selected_certificate(s_client_out, expected_server_cert) != 0:
             return -1
+
+    if expected_extensions is not None:
+        for extension in expected_extensions:
+            if extension.s_client_validate(s_client_out) != 0:
+                return -1
 
     return 0
 
@@ -713,6 +733,7 @@ def multiple_cert_domain_name_test(host, port):
         expected_cert_path = test_case.expected_cert[0]
         expect_hostname_match = test_case.expect_matching_hostname
         ret = try_handshake(host, port, client_ciphers, S2N_TLS12, server_name=client_sni,
+                expected_extensions = [TlsExtensionServerName] if expect_hostname_match == True else None,
                 strict_hostname=expect_hostname_match, server_cert_key_list=cert_key_list, expected_server_cert=expected_cert_path)
         result_prefix = "\nDescription: %s\n\nclient_sni: %s\nclient_ciphers: %s\nexpected_cert: %s\nexpect_hostname_match: %s\nresult: " % (test_case.description,
                 client_sni,
