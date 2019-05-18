@@ -98,7 +98,6 @@ struct s2n_connection {
      */
     unsigned server_name_used:1;
 
-
     /* Is this connection a client or a server connection */
     s2n_mode mode;
 
