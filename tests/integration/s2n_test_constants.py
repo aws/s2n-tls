@@ -243,7 +243,7 @@ MULTI_CERT_TEST_CASES= [
         client_sni=None,
         client_ciphers="ECDHE-RSA-AES128-SHA",
         expected_cert=SNI_CERTS["many_animals"],
-        expect_matching_hostname=True),
+        expect_matching_hostname=False),
     MultiCertTest(
         description="Test certificate match with CN",
         server_certs=[ SNI_CERTS["alligator"], SNI_CERTS["narwhal_cn"] ],
