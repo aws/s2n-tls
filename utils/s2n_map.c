@@ -176,6 +176,13 @@ int s2n_map_complete(struct s2n_map *map)
     return 0;
 }
 
+int s2n_map_unlock(struct s2n_map *map)
+{
+    map->immutable = 0;
+
+    return 0;
+}
+
 int s2n_map_lookup(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *value)
 {
     S2N_ERROR_IF(!map->immutable, S2N_ERR_MAP_MUTABLE);
