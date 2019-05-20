@@ -133,6 +133,26 @@ int main(int argc, char **argv)
     key.size = strlen(keystr) + 1;
     EXPECT_EQUAL(s2n_map_lookup(map, &key, &val), 0);
 
+    /* Make the map mutable */
+    EXPECT_SUCCESS(s2n_map_unlock(map));
+    /* Make sure that add-after-unlock succeeds */
+    EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", 8193));
+    EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", 8193));
+
+    key.data = (void *) keystr;
+    key.size = strlen(keystr) + 1;
+    val.data = (void *) valstr;
+    val.size = strlen(valstr) + 1;
+
+    EXPECT_SUCCESS(s2n_map_add(map, &key, &val));
+
+    /* Complete the map again */
+    EXPECT_SUCCESS(s2n_map_complete(map));
+
+    /* Check the element added after map unlock */
+    EXPECT_EQUAL(s2n_map_lookup(map, &key, &val), 1);
+    EXPECT_SUCCESS(memcmp(val.data, valstr, strlen(valstr) + 1));
+
     EXPECT_SUCCESS(s2n_map_free(map));
 
     END_TEST();
