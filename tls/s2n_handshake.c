@@ -185,6 +185,6 @@ int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
     /* If we found a suitable cert, we should send back the ServerName extension.
      * Note that this may have already been set by the client hello callback, so we won't override its value
      */
-    conn->server_name_used |= conn->handshake_params.sni_match_exists;
+    conn->server_name_used = conn->server_name_used || conn->handshake_params.sni_match_exists;
     return 0;
 }
