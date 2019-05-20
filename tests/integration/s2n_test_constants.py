@@ -274,7 +274,7 @@ MULTI_CERT_TEST_CASES= [
         expect_matching_hostname=False)]
 MULTI_CERT_TEST_CASES.extend([MultiCertTest(
         description="Match SAN " + many_animal_domain + " in many_animals cert",
-        server_certs= [SNI_CERTS["many_animals"] , SNI_CERTS["alligator"]],
+        server_certs= [ SNI_CERTS["alligator"], SNI_CERTS["many_animals"] ],
         client_sni=many_animal_domain,
         client_ciphers="ECDHE-RSA-AES128-SHA",
         expected_cert=SNI_CERTS["many_animals"],
