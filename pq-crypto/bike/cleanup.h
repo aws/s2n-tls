@@ -47,6 +47,6 @@ _INLINE_ void compressed_idx_dv_ar_cleanup(IN OUT compressed_idx_dv_ar_t *o)
 {
     for(int i=0; i < N0; i++)
     {
-        secure_clean((uint8_t*)&o[i], sizeof(*o[0])); 
+        secure_clean((uint8_t*)&(*o)[i], sizeof((*o)[0]));
     }
 }
