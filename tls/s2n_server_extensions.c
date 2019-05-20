@@ -37,7 +37,7 @@ static int s2n_recv_server_sct_list(struct s2n_connection *conn, struct s2n_stuf
 static int s2n_recv_server_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_server_session_ticket_ext(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
-#define s2n_server_should_send_server_name(conn) ((conn)->server_name_used && \
+#define s2n_server_can_send_server_name(conn) ((conn)->server_name_used && \
         !s2n_connection_is_session_resumed((conn)))
 
 int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -46,7 +46,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 
     const uint8_t application_protocol_len = strlen(conn->application_protocol);
 
-    if (conn->server_name_used && !s2n_connection_is_session_resumed(conn)) {
+    if (s2n_server_can_send_server_name(conn)) {
         total_size += 4;
     }
 
@@ -79,7 +79,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     GUARD(s2n_stuffer_write_uint16(out, total_size));
 
     /* Write server name extension */
-    if (s2n_server_should_send_server_name(conn)) {
+    if (s2n_server_can_send_server_name(conn)) {
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SERVER_NAME));
         GUARD(s2n_stuffer_write_uint16(out, 0));
     }
