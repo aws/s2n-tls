@@ -39,6 +39,14 @@ LIBS += -lm -ltests2n -ls2n -ldl
 CFLAGS += -Wno-unreachable-code -I../
 LDFLAGS += -L../../lib/ ${CRYPTO_LDFLAGS} -L../testlib/ ${LIBS} ${CRYPTO_LIBS}
 
+ifdef S2N_ADDRESS_SANITIZER
+$(UNIT_TESTS)::
+	@${CC} ${CFLAGS} -o $@ $@.c ${LDFLAGS} 2>&1
+	@DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
+	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
+	S2N_UNIT_TEST=1 \
+	./$@
+else
 $(UNIT_TESTS)::
 	@${CC} ${CFLAGS} -o $@ $@.c ${LDFLAGS} 2>&1
 	@DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
@@ -46,6 +54,7 @@ $(UNIT_TESTS)::
 	LD_PRELOAD="../LD_PRELOAD/allocator_overrides.so" \
 	S2N_UNIT_TEST=1 \
 	./$@
+endif
 
 $(VALGRIND_TESTS)::
 	@${CC} ${CFLAGS} -o $(@:.valgrind=) $(@:.valgrind=.c) ${LDFLAGS} 2>&1
