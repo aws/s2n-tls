@@ -189,7 +189,8 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
 
     /* This is going to be our default if the client has no preference. */
     conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
-    conn->secure.s2n_kem_keys.negotiated_kem = &s2n_sike_supported_params[0];
+    conn->secure.mutual_bike_kem = &s2n_bike_supported_params[0];
+    conn->secure.mutual_sike_kem = &s2n_sike_supported_params[0];
 
 
     uint16_t extensions_length = 0;

@@ -55,7 +55,7 @@ int main(int argc, char **argv)
             }
         }
 
-        EXPECT_EQUAL(count, 34);
+        EXPECT_EQUAL(count, 35);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         free(private_key);

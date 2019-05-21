@@ -832,7 +832,12 @@ int s2n_is_ecc_enabled(const struct s2n_cipher_preferences *preferences)
     return preferences->extension_flag & S2N_ECC_EXTENSION_ENABLED;
 }
 
-int s2n_is_sike_enabled(const struct s2n_cipher_preferences *preferences)
+int s2n_bike_enabled(const struct s2n_cipher_preferences *preferences)
+{
+    return preferences->extension_flag & S2N_BIKE_EXTENSION_ENABLED;
+}
+
+int s2n_sike_enabled(const struct s2n_cipher_preferences *preferences)
 {
     return preferences->extension_flag & S2N_SIKE_EXTENSION_ENABLED;
 }

@@ -60,6 +60,8 @@ struct s2n_crypto_parameters {
     struct s2n_pkey client_public_key;
     struct s2n_dh_params server_dh_params;
     struct s2n_ecc_params server_ecc_params;
+    const struct s2n_kem *mutual_bike_kem;
+    const struct s2n_kem *mutual_sike_kem;
     struct s2n_kem_keypair s2n_kem_keys;
     struct s2n_blob client_key_exchange_message;
     s2n_hash_algorithm conn_hash_alg;

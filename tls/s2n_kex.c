@@ -75,9 +75,14 @@ static int s2n_check_ecdhe(const struct s2n_kex *kex, const struct s2n_connectio
     return conn->secure.server_ecc_params.negotiated_curve != NULL;
 }
 
-static int s2n_check_kem(const struct s2n_kex *kex, const struct s2n_connection *conn)
+static int s2n_check_bike(const struct s2n_kex *kex, const struct s2n_connection *conn)
 {
-    return conn->secure.s2n_kem_keys.negotiated_kem != NULL;
+    return conn->secure.mutual_bike_kem != NULL;
+}
+
+static int s2n_check_sike(const struct s2n_kex *kex, const struct s2n_connection *conn)
+{
+    return conn->secure.mutual_sike_kem != NULL;
 }
 
 static int s2n_check_hybrid(const struct s2n_kex *kex, const struct s2n_connection *conn)
@@ -105,17 +110,49 @@ static int s2n_get_server_hybrid_extensions_size(const struct s2n_connection *co
     return s2n_kex_server_extension_size(hybrid_kex_0, conn) + s2n_kex_server_extension_size(hybrid_kex_1, conn);
 }
 
-static const struct s2n_kex s2n_sike = {
+static int s2n_setup_basic_kex(struct s2n_connection *conn)
+{
+    return 0;
+}
+
+static int s2n_setup_bike(struct s2n_connection *conn)
+{
+    notnull_check(conn->secure.mutual_bike_kem);
+    conn->secure.s2n_kem_keys.negotiated_kem = conn->secure.mutual_bike_kem;
+    return 0;
+}
+
+static int s2n_setup_sike(struct s2n_connection *conn)
+{
+    notnull_check(conn->secure.mutual_sike_kem);
+    conn->secure.s2n_kem_keys.negotiated_kem = conn->secure.mutual_sike_kem;
+    return 0;
+}
+
+static const struct s2n_kex s2n_bike = {
         .is_ephemeral = 1,
         .get_server_extension_size = &s2n_get_no_extension_size,
         .write_server_extensions = &s2n_write_no_extension,
-        .connection_supported = &s2n_check_kem,
+        .connection_supported = &s2n_check_bike,
         .server_key_recv_read_data = &s2n_kem_server_key_recv_read_data,
         .server_key_recv_parse_data = &s2n_kem_server_key_recv_parse_data,
         .server_key_send = &s2n_kem_server_key_send,
         .client_key_recv = &s2n_kem_client_key_recv,
         .client_key_send = &s2n_kem_client_key_send,
+        .setup_kex = &s2n_setup_bike,
+};
 
+static const struct s2n_kex s2n_sike = {
+        .is_ephemeral = 1,
+        .get_server_extension_size = &s2n_get_no_extension_size,
+        .write_server_extensions = &s2n_write_no_extension,
+        .connection_supported = &s2n_check_sike,
+        .server_key_recv_read_data = &s2n_kem_server_key_recv_read_data,
+        .server_key_recv_parse_data = &s2n_kem_server_key_recv_parse_data,
+        .server_key_send = &s2n_kem_server_key_send,
+        .client_key_recv = &s2n_kem_client_key_recv,
+        .client_key_send = &s2n_kem_client_key_send,
+        .setup_kex = &s2n_setup_sike,
 };
 
 const struct s2n_kex s2n_rsa = {
@@ -129,6 +166,7 @@ const struct s2n_kex s2n_rsa = {
         .client_key_recv = &s2n_rsa_client_key_recv,
         .client_key_send = &s2n_rsa_client_key_send,
         .prf = &s2n_tls_prf_master_secret,
+        .setup_kex = &s2n_setup_basic_kex,
 };
 
 const struct s2n_kex s2n_dhe = {
@@ -142,6 +180,7 @@ const struct s2n_kex s2n_dhe = {
         .client_key_recv = &s2n_dhe_client_key_recv,
         .client_key_send = &s2n_dhe_client_key_send,
         .prf = &s2n_tls_prf_master_secret,
+        .setup_kex = &s2n_setup_basic_kex,
 };
 
 const struct s2n_kex s2n_ecdhe = {
@@ -155,8 +194,23 @@ const struct s2n_kex s2n_ecdhe = {
         .client_key_recv = &s2n_ecdhe_client_key_recv,
         .client_key_send = &s2n_ecdhe_client_key_send,
         .prf = &s2n_tls_prf_master_secret,
+        .setup_kex = &s2n_setup_basic_kex,
 };
 
+const struct s2n_kex s2n_hybrid_ecdhe_bike = {
+        .is_ephemeral = 1,
+        .hybrid = {&s2n_ecdhe, &s2n_bike},
+        .get_server_extension_size = &s2n_get_server_hybrid_extensions_size,
+        .write_server_extensions = &s2n_write_server_hybrid_extensions,
+        .connection_supported = &s2n_check_hybrid,
+        .server_key_recv_read_data = &s2n_hybrid_server_key_recv_read_data,
+        .server_key_recv_parse_data = &s2n_hybrid_server_key_recv_parse_data,
+        .server_key_send = &s2n_hybrid_server_key_send,
+        .client_key_recv = &s2n_hybrid_client_key_recv,
+        .client_key_send = &s2n_hybrid_client_key_send,
+        .prf = &s2n_hybrid_prf_master_secret,
+        .setup_kex = &s2n_setup_bike,
+};
 
 const struct s2n_kex s2n_hybrid_ecdhe_sike = {
         .is_ephemeral = 1,
@@ -170,6 +224,7 @@ const struct s2n_kex s2n_hybrid_ecdhe_sike = {
         .client_key_recv = &s2n_hybrid_client_key_recv,
         .client_key_send = &s2n_hybrid_client_key_send,
         .prf = &s2n_hybrid_prf_master_secret,
+        .setup_kex = &s2n_setup_sike,
 };
 
 int s2n_kex_server_extension_size(const struct s2n_kex *kex, const struct s2n_connection *conn)
@@ -229,4 +284,10 @@ int s2n_kex_tls_prf(const struct s2n_kex *kex, struct s2n_connection *conn, stru
 {
     notnull_check(kex->prf);
     return kex->prf(conn, premaster_secret);
+}
+
+int s2n_setup_kex(const struct s2n_kex *kex, struct s2n_connection *conn)
+{
+    notnull_check(kex->setup_kex);
+    return kex->setup_kex(conn);
 }

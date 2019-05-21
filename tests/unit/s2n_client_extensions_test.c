@@ -1225,6 +1225,8 @@ int main(int argc, char **argv)
         /* Expect SIKEp503r1-KEM to be selected */
         EXPECT_NOT_NULL(server_conn->secure.s2n_kem_keys.negotiated_kem);
         EXPECT_EQUAL(server_conn->secure.s2n_kem_keys.negotiated_kem->kem_extension_id, 0x000A);
+        EXPECT_EQUAL(server_conn->secure.mutual_sike_kem->kem_extension_id, 0x000A);
+        EXPECT_EQUAL(server_conn->secure.mutual_bike_kem->kem_extension_id, 0x0001);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
@@ -1314,6 +1316,8 @@ int main(int argc, char **argv)
         EXPECT_FAILURE(s2n_negotiate(server_conn, &server_blocked));
         /* Expect null to be selected indicating no matching KEMS*/
         EXPECT_NULL(server_conn->secure.s2n_kem_keys.negotiated_kem);
+        EXPECT_NULL(server_conn->secure.mutual_sike_kem);
+        EXPECT_NULL(server_conn->secure.mutual_bike_kem);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));

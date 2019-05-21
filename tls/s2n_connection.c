@@ -271,7 +271,11 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->initial.cipher_suite = &s2n_null_cipher_suite;
     conn->secure.cipher_suite = &s2n_null_cipher_suite;
     conn->initial.s2n_kem_keys.negotiated_kem = NULL;
+    conn->initial.mutual_bike_kem = NULL;
+    conn->initial.mutual_sike_kem = NULL;
     conn->secure.s2n_kem_keys.negotiated_kem = NULL;
+    conn->secure.mutual_bike_kem = NULL;
+    conn->secure.mutual_sike_kem = NULL;
     conn->server = &conn->initial;
     conn->client = &conn->initial;
     conn->max_outgoing_fragment_length = S2N_DEFAULT_FRAGMENT_LENGTH;

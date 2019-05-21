@@ -32,11 +32,13 @@ struct s2n_kex {
     int (*client_key_recv)(struct s2n_connection *conn, struct s2n_blob *shared_key);
     int (*client_key_send)(struct s2n_connection *conn, struct s2n_blob *shared_key);
     int (*prf)(struct s2n_connection *conn, struct s2n_blob *premaster_secret);
+    int (*setup_kex)(struct s2n_connection *conn);
 };
 
 extern const struct s2n_kex s2n_rsa;
 extern const struct s2n_kex s2n_dhe;
 extern const struct s2n_kex s2n_ecdhe;
+extern const struct s2n_kex s2n_hybrid_ecdhe_bike;
 extern const struct s2n_kex s2n_hybrid_ecdhe_sike;
 
 extern int s2n_kex_server_extension_size(const struct s2n_kex *kex, const struct s2n_connection *conn);
@@ -52,3 +54,5 @@ extern int s2n_kex_client_key_recv(const struct s2n_kex *kex, struct s2n_connect
 extern int s2n_kex_client_key_send(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key);
 
 extern int s2n_kex_tls_prf(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *premaster_secret);
+
+extern int s2n_setup_kex(const struct s2n_kex *kex, struct s2n_connection *conn);
