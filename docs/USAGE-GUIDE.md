@@ -983,7 +983,7 @@ s2n_connection. Calling this function is not necessary unless you want to set th
 cipher preferences on the connection to something different than what is in the s2n_config.
 
 
-## s2n\_connection\_set\_protocol\_preferences
+### s2n\_connection\_set\_protocol\_preferences
 
 ```c
 int s2n_connection_set_protocol_preferences(struct s2n_connection *conn, const char * const *protocols, int protocol_count);
@@ -1224,6 +1224,23 @@ const char * s2n_connection_get_curve(struct s2n_connection *conn);
 
 **s2n_connection_get_curve** returns a string indicating the elliptic curve used during ECDHE key exchange. The string "NONE" is returned if no curve has was used.
 
+### s2n\_connection\_get\_selected\_cert
+
+```c
+struct s2n_cert_chain_and_key s2n_connection_get_selected_cert(struct s2n_connection *conn);
+```
+
+Return the certificate that was used during the TLS handshake.
+
+- If **conn** is a server connection, the certificate selected will depend on the
+  ServerName sent by the client and supported ciphers.
+- If **conn** is a client connection, the certificate sent in response to a CertificateRequest
+  message is returned. Currently s2n supports loading only one certificate in client mode. Note that
+  not all TLS endpoints will request a certificate.
+
+This function returns NULL if the certificate selection phase of the handshake has not completed
+ or if a certificate was not requested by the peer.
+
 ### Session Resumption Related calls
 
 ```c
@@ -1259,16 +1276,6 @@ handshake.
 **s2n_connection_get_session_id** get the session id from the connection and copies into the **session_id** buffer and returns the number of bytes that were copied.
 
 **s2n_connection_is_session_resumed** returns 1 if the handshake was abbreviated, otherwise returns 0.
-
-### s2n\_connection\_get\_selected\_cert
-
-```c
-struct s2n_cert_chain_and_key s2n_connection_get_selected_cert(struct s2n_connection *conn);
-```
-
-Return the certificate that was used during the TLS handshake. If **conn** is a server connection, the certificate selected will depend on the
-ServerName sent by the client and supported ciphers. This function returns NULL if certificate selection phase of the handshake has not completed.
-
 
 ### Session Ticket Specific calls
 
