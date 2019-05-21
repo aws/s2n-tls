@@ -169,7 +169,18 @@ SNI_CERTS = {
     "octopus_cn_platypus_san" : ( TEST_SNI_CERT_DIRECTORY + "octopus_cn_platypus_san_cert.pem", TEST_SNI_CERT_DIRECTORY
         + "octopus_cn_platypus_san_key.pem", ["www.platypus.com"]),
     "quail_cn_rattlesnake_cn" : ( TEST_SNI_CERT_DIRECTORY + "quail_cn_rattlesnake_cn_cert.pem", TEST_SNI_CERT_DIRECTORY
-        + "quail_cn_rattlesnake_cn_key.pem", ["www.quail.com", "www.rattlesnake.com"])
+        + "quail_cn_rattlesnake_cn_key.pem", ["www.quail.com", "www.rattlesnake.com"]),
+    "many_animals_mixed_case" : (TEST_SNI_CERT_DIRECTORY + "many_animal_sans_mixed_case_rsa_cert.pem", TEST_SNI_CERT_DIRECTORY + "many_animal_sans_mixed_case_rsa_key.pem",
+        ["alligator.com",
+         "beaver.com",
+         "catFish.com",
+         "WWW.dolphin.COM",
+         "www.ELEPHANT.com",
+         "www.Falcon.Com",
+         "WWW.gorilla.COM",
+         "www.horse.com",
+         "WWW.IMPALA.COM",
+         "WwW.jAcKaL.cOm"])
 
 }
 
@@ -279,3 +290,11 @@ MULTI_CERT_TEST_CASES.extend([MultiCertTest(
         client_ciphers="ECDHE-RSA-AES128-SHA",
         expected_cert=SNI_CERTS["many_animals"],
         expect_matching_hostname=True) for many_animal_domain in SNI_CERTS["many_animals"][2]])
+# Positive test for mixed cased SAN matches
+MULTI_CERT_TEST_CASES.extend([MultiCertTest(
+        description="Match SAN " + many_animal_domain + " in many_animals_mixed_case cert",
+        server_certs= [SNI_CERTS["alligator"] , SNI_CERTS["many_animals_mixed_case"]],
+        client_sni=many_animal_domain,
+        client_ciphers="ECDHE-RSA-AES128-SHA",
+        expected_cert=SNI_CERTS["many_animals_mixed_case"],
+        expect_matching_hostname=True) for many_animal_domain in SNI_CERTS["many_animals_mixed_case"][2]])
