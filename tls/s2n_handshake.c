@@ -197,7 +197,7 @@ int s2n_create_wildcard_hostname(struct s2n_stuffer *hostname_stuffer, struct s2
 }
 
 static int s2n_find_cert_matches(struct s2n_array *certs,
-        const char *dns_name,
+        struct s2n_blob *dns_name,
         struct s2n_cert_chain_and_key *matches[S2N_AUTHENTICATION_METHOD_SENTINEL],
         uint8_t *match_exists)
 {
@@ -205,7 +205,7 @@ static int s2n_find_cert_matches(struct s2n_array *certs,
         struct s2n_cert_chain_and_key *chain_and_key = *((struct s2n_cert_chain_and_key**) s2n_array_get(certs, i));
         s2n_authentication_method auth_method = s2n_cert_chain_and_key_get_auth_method(chain_and_key);
         /* Add the match if there isn't already: an existing match for the certificate key type */
-        if (!matches[auth_method] && s2n_cert_chain_and_key_matches_name(chain_and_key, dns_name)) {
+        if (!matches[auth_method] && s2n_cert_chain_and_key_matches_dns_name(chain_and_key, dns_name)) {
             matches[auth_method] = chain_and_key;
             *match_exists = 1;
         }
@@ -237,7 +237,7 @@ int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
 
     /* Find the exact matches for the ServerName */
     GUARD(s2n_find_cert_matches(certs,
-                name,
+                &hostname_blob,
                 conn->handshake_params.exact_sni_matches,
                 &(conn->handshake_params.exact_sni_match_exists)));
 
@@ -248,15 +248,17 @@ int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
         struct s2n_stuffer wildcard_stuffer;
         GUARD(s2n_stuffer_init(&wildcard_stuffer, &wildcard_blob));
         GUARD(s2n_create_wildcard_hostname(&hostname_stuffer, &wildcard_stuffer));
+        const uint32_t wildcard_len = s2n_stuffer_data_available(&wildcard_stuffer);
 
         /* Couldn't create a valid wildcard from the input */
-        if (s2n_stuffer_data_available(&wildcard_stuffer) == 0) {
+        if (wildcard_len == 0) {
             return 0;
         }
 
         /* The client's SNI is wildcardified, do an exact match against the set of server certs. */
+        wildcard_blob.size = wildcard_len;
         GUARD(s2n_find_cert_matches(certs,
-                    wildcard_hostname,
+                    &wildcard_blob,
                     conn->handshake_params.wc_sni_matches,
                     &(conn->handshake_params.wc_sni_match_exists)));
     }

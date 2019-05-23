@@ -238,7 +238,7 @@ struct s2n_connection {
     sig_atomic_t closed;
 
     /* TLS extension data */
-    char server_name[256];
+    char server_name[S2N_MAX_SERVER_NAME + 1];
 
     /* The application protocol decided upon during the client hello.
      * If ALPN is being used, then:
