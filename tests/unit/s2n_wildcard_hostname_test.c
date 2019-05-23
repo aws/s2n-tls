@@ -30,7 +30,14 @@ struct wildcardify_test_case {
 };
 
 struct wildcardify_test_case wildcardify_test_cases[] = {
-    { .hostname = "foo.bar.com" , .output = "*.bar.com" },
+    { .hostname = "foo.bar.com" ,    .output = "*.bar.com" },
+    { .hostname = "localhost" ,      .output = NULL },
+    { .hostname = "one.com" ,        .output = "*.com" },
+    { .hostname = "foo*.bar*.com*" , .output= "*.bar*.com*" },
+    { .hostname = "foo.bar.com." ,   .output = "*.bar.com." },
+    { .hostname = "*.a.c" ,          .output = "*.a.c" },
+    { .hostname = "*" ,              .output = NULL },
+    { .hostname = "foo.",            .output = "*." },
 };
 
 int main(int argc, char **argv)
