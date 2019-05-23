@@ -916,7 +916,7 @@ int s2n_set_server_name(struct s2n_connection *conn, const char *server_name)
     S2N_ERROR_IF(conn->mode != S2N_CLIENT, S2N_ERR_CLIENT_MODE);
 
     int len = strlen(server_name);
-    S2N_ERROR_IF(len > 255, S2N_ERR_SERVER_NAME_TOO_LONG);
+    S2N_ERROR_IF(len > S2N_MAX_SERVER_NAME, S2N_ERR_SERVER_NAME_TOO_LONG);
 
     memcpy_check(conn->server_name, server_name, len);
 

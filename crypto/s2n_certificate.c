@@ -409,13 +409,12 @@ int s2n_send_empty_cert_chain(struct s2n_stuffer *out)
     return 0;
 }
 
-static int s2n_does_cert_san_match_hostname(struct s2n_cert_chain_and_key *chain_and_key, const char *hostname)
+static int s2n_does_cert_san_match_hostname(const struct s2n_cert_chain_and_key *chain_and_key, const struct s2n_blob *dns_name)
 {
     struct s2n_array *san_names = chain_and_key->san_names;
-    const size_t hostname_len = strnlen(hostname, S2N_MAX_SERVER_NAME);
     for (int i = 0; i < s2n_array_num_elements(san_names); i++) {
         struct s2n_blob *san_name = s2n_array_get(san_names, i);
-        if ((hostname_len == san_name->size) && (strncasecmp(hostname, (const char *) san_name->data, hostname_len) == 0)) {
+        if ((dns_name->size == san_name->size) && (strncasecmp((const char *) dns_name->data, (const char *) san_name->data, dns_name->size) == 0)) {
             return 1;
         }
     }
@@ -423,13 +422,12 @@ static int s2n_does_cert_san_match_hostname(struct s2n_cert_chain_and_key *chain
     return 0;
 }
 
-static int s2n_does_cert_cn_match_hostname(struct s2n_cert_chain_and_key *chain_and_key, const char *hostname)
+static int s2n_does_cert_cn_match_hostname(const struct s2n_cert_chain_and_key *chain_and_key, const struct s2n_blob *dns_name)
 {
     struct s2n_array *cn_names = chain_and_key->cn_names;
-    const size_t hostname_len = strnlen(hostname, S2N_MAX_SERVER_NAME);
     for (int i = 0; i < s2n_array_num_elements(cn_names); i++) {
         struct s2n_blob *cn_name = s2n_array_get(cn_names, i);
-        if ((hostname_len == cn_name->size) && (strncasecmp(hostname, (const char *) cn_name->data, hostname_len) == 0)) {
+        if ((dns_name->size == cn_name->size) && (strncasecmp((const char *) dns_name->data, (const char *) cn_name->data, dns_name->size) == 0)) {
             return 1;
         }
     }
@@ -437,10 +435,10 @@ static int s2n_does_cert_cn_match_hostname(struct s2n_cert_chain_and_key *chain_
     return 0;
 }
 
-int s2n_cert_chain_and_key_matches_name(struct s2n_cert_chain_and_key *chain_and_key, const char *name)
+int s2n_cert_chain_and_key_matches_dns_name(const struct s2n_cert_chain_and_key *chain_and_key, const struct s2n_blob *dns_name)
 {
     if (s2n_array_num_elements(chain_and_key->san_names) > 0) {
-        if (s2n_does_cert_san_match_hostname(chain_and_key, name)) {
+        if (s2n_does_cert_san_match_hostname(chain_and_key, dns_name)) {
             return 1;
         }
     } else {
@@ -448,7 +446,7 @@ int s2n_cert_chain_and_key_matches_name(struct s2n_cert_chain_and_key *chain_and
          * consider the CN for matching if no valid DNS entries are provided
          * in a SAN.
          */
-        if (s2n_does_cert_cn_match_hostname(chain_and_key, name)) {
+        if (s2n_does_cert_cn_match_hostname(chain_and_key, dns_name)) {
             return 1;
         }
     }

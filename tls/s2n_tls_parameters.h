@@ -173,3 +173,6 @@
 
 /* Handshake messages have their own header too */
 #define TLS_HANDSHAKE_HEADER_LENGTH   4
+
+#define S2N_MAX_SERVER_NAME 255
+
