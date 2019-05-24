@@ -40,7 +40,8 @@
 #include "utils/s2n_safety.h"
 #include "s2n_test.h"
 
-#define MAX_TOKENS 256
+#define MAX_TOKENS 1024
+#define MAX_CERTIFICATES 256
 
 static void s2n_fuzz_atexit()
 {
@@ -108,16 +109,32 @@ GENERAL_NAME *string_to_general_name(const char *str)
     return san_name;
 }
 
-static int set_x509_sans(X509* x509_cert, GENERAL_NAMES *san_names)
+static int set_x509_sans(X509* x509_cert, const char **names, size_t num_sans)
 {
-    if (X509_add1_ext_i2d(x509_cert, NID_subject_alt_name, san_names, 0, X509V3_ADD_REPLACE) <= 0) {
+    GENERAL_NAMES* san_names = sk_GENERAL_NAME_new_null();
+    if (!san_names) {
         return -1;
     }
 
+    for (int i = 0; i < num_sans; i++) {
+        GENERAL_NAME *san_name = string_to_general_name(names[i]);
+        if (!san_name) {
+            continue;
+        }
+        sk_GENERAL_NAME_push(san_names, san_name);
+    }
+
+
+    if (X509_add1_ext_i2d(x509_cert, NID_subject_alt_name, san_names, 0, X509V3_ADD_REPLACE) <= 0) {
+        GENERAL_NAMES_free(san_names);
+        return -1;
+    }
+
+    GENERAL_NAMES_free(san_names);
     return 0;
 }
 
-static int set_x509_cns(X509 *x509_cert, const unsigned char **cns, size_t num_cns)
+static int set_x509_cns(X509 *x509_cert, const char **cns, size_t num_cns)
 {
     X509_NAME *x509_name = X509_NAME_new();
     if (!x509_name) {
@@ -133,6 +150,84 @@ static int set_x509_cns(X509 *x509_cert, const unsigned char **cns, size_t num_c
     return 0;
 }
 
+static struct s2n_cert_chain_and_key *create_cert(const char **names, int num_names)
+{
+    struct s2n_cert_chain_and_key *cert = s2n_cert_chain_and_key_new();
+    X509 *x509_cert = X509_new();
+
+    if (!x509_cert || !cert) {
+        goto cert_cleanup;
+    }
+
+    /* Figure out if this cert should use SANs or CNs. s2n will only use one or the other
+     * for name matching.
+     */
+    const uint8_t is_san = names[0][0] & 0x1;
+    if (is_san) {
+        if (set_x509_sans(x509_cert, names, num_names) < 0) {
+            goto cert_cleanup;
+        }
+        if (s2n_cert_chain_and_key_load_sans(cert, x509_cert) < 0) {
+            goto cert_cleanup;
+        }
+    } else {
+        if (set_x509_cns(x509_cert, names, num_names) < 0) {
+            goto cert_cleanup;
+        }
+        if (s2n_cert_chain_and_key_load_cns(cert, x509_cert) < 0) {
+            goto cert_cleanup;
+        }
+    }
+    X509_free(x509_cert);
+    x509_cert = NULL;
+
+    /* Figure out if this should be an RSA or ECDSA certificate */
+    s2n_cert_type cert_type = (names[0][0] & 0x2) ? S2N_CERT_TYPE_RSA_SIGN : S2N_CERT_TYPE_ECDSA_SIGN;
+    struct s2n_cert *head = calloc(1, sizeof(struct s2n_cert));
+    if (!head) {
+        goto cert_cleanup;
+    }
+
+    head->cert_type = cert_type;
+    cert->cert_chain->head = head;
+    return cert;
+
+cert_cleanup:
+    if (cert) { s2n_cert_chain_and_key_free(cert); }
+    if (x509_cert) { X509_free(x509_cert); }
+    return NULL;
+}
+
+/*
+ * Try to create some number of certificates with SANs/CNs provided by a list of input C strings. Return the number of
+ * certificates created.
+ */
+static size_t create_certs(const char **strings, unsigned int num_strings, struct s2n_cert_chain_and_key **out_certs, unsigned int num_certs)
+{
+    if (num_certs == 0) {
+        return 0;
+    }
+
+    /* We want the fuzz input to give us at least 1 domain name string for each cert */
+    if (num_strings <= num_certs) {
+        return 0;
+    }
+
+    const int num_names_per_cert = num_strings / num_certs;
+    size_t num_certs_added = 0;
+    for (int i = 0; i < num_certs; i++) {
+        struct s2n_cert_chain_and_key *cert = create_cert((&strings[i*num_names_per_cert]), num_names_per_cert);
+        if (!cert) {
+            continue;
+        }
+        out_certs[num_certs_added] = cert;
+        num_certs_added++;
+    }
+
+    return num_certs_added;
+}
+
+
 /*
  * This fuzz test uses the fuzz input to:
  * - Generate the data to populate in the SAN of a certificate
@@ -141,13 +236,11 @@ static int set_x509_cns(X509 *x509_cert, const unsigned char **cns, size_t num_c
  */
 int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
-    struct s2n_cert_chain_and_key *cert = s2n_cert_chain_and_key_new();
     struct s2n_config *config = s2n_config_new();
     struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
-    GENERAL_NAMES* san_names = sk_GENERAL_NAME_new_null();
-    X509 *x509_cert = X509_new();
+    struct s2n_cert_chain_and_key *certs[MAX_CERTIFICATES] = { NULL };
 
-    if (!x509_cert || !san_names || !cert || !config || !conn) {
+    if (!config || !conn || len == 0) {
         goto cleanup;
     }
 
@@ -156,31 +249,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
      */
     const char *strings[MAX_TOKENS] = { NULL };
     size_t num_strings = find_strings(buf, len, strings, MAX_TOKENS);
-    size_t num_sans = num_strings/2 ;
-    size_t num_cns = (num_strings == 1) ? 1 : num_sans;
-    const unsigned char **cns = (const unsigned char **) (&strings[num_sans]);
-
-    for (int i = 0; i < num_sans; i++) {
-        GENERAL_NAME *san_name = string_to_general_name(strings[i]);
-        if (!san_name) {
-            continue;
-        }
-        sk_GENERAL_NAME_push(san_names, san_name);
-    }
-
-    if (num_sans != 0 && set_x509_sans(x509_cert, san_names) < 0) {
-        goto cleanup;
-    }
-    if (num_cns != 0 && set_x509_cns(x509_cert, (const unsigned char **) cns, num_cns) < 0) {
-        goto cleanup;
-    }
-
-    /* We've created an X509 object with names. Pass it back to s2n to parse and load. */
-    if (s2n_cert_chain_and_key_load_cns(cert, x509_cert) < 0) {
-        goto cleanup;
-    }
-
-    if (s2n_cert_chain_and_key_load_sans(cert, x509_cert) < 0) {
+    if (num_strings == 0) {
         goto cleanup;
     }
 
@@ -188,28 +257,32 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
         goto cleanup;
     }
 
-    if (s2n_config_add_cert_chain_and_key_to_store(config, cert) < 0) {
+    const int max_certs_to_create = buf[0] % MAX_CERTIFICATES;
+    const int num_certs = create_certs(strings, num_strings, certs, max_certs_to_create);
+    if (num_certs == 0) {
         goto cleanup;
     }
 
-    /* Cert selection relies on this being set and we haven't added a "real" public/private key to the cert.
-     * Set the type based on fuzz input.
-     */
-    s2n_cert_type cert_type = (len % 2) ? S2N_CERT_TYPE_RSA_SIGN : S2N_CERT_TYPE_ECDSA_SIGN;
-    struct s2n_cert head = { .cert_type = cert_type };
-    cert->cert_chain->head = &head;
+    /* Add all of the certs created by fuzz input to store. */
+    for (int i = 0; i < num_certs; i++) {
+        if (s2n_config_add_cert_chain_and_key_to_store(config, certs[i]) < 0) {
+            goto cleanup;
+        }
+    }
 
-    /* Not checking the return value as we aren't using this fuzz test for matching correctness. */
     for (int i = 0; i < num_strings; i++) {
         strncpy(conn->server_name, strings[i], S2N_MAX_SERVER_NAME);
         /* Not checking the return value as we aren't using this fuzz test for matching correctness. */
         s2n_conn_find_name_matching_certs(conn);
     }
-    cert->cert_chain->head = NULL;
 cleanup:
-    if (x509_cert != NULL) { X509_free(x509_cert); }
-    if (san_names != NULL) { GENERAL_NAMES_free(san_names); }
-    if (cert != NULL) { s2n_cert_chain_and_key_free(cert); }
+    for (int i = 0; i < MAX_CERTIFICATES; i++) {
+        if (certs[i]) {
+            free(certs[i]->cert_chain->head);
+            certs[i]->cert_chain->head = NULL;
+            s2n_cert_chain_and_key_free(certs[i]);
+        }
+    }
     if (conn != NULL) { s2n_connection_free(conn); }
     if (config != NULL) { s2n_config_free(config); }
 
