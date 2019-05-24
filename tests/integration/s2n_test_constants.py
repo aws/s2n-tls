@@ -195,7 +195,9 @@ SNI_CERTS = {
          "butterfly.insect.hexapod",
         ]),
     "termite" : ( TEST_SNI_CERT_DIRECTORY + "termite_rsa_cert.pem", TEST_SNI_CERT_DIRECTORY + "termite_rsa_key.pem",
-        [ "termite.insect.hexapod" ])
+        [ "termite.insect.hexapod" ]),
+    "underwing" : ( TEST_SNI_CERT_DIRECTORY + "underwing_ecdsa_cert.pem", TEST_SNI_CERT_DIRECTORY + "underwing_ecdsa_key.pem",
+        [ "underwing.insect.hexapod" ])
 }
 
 # Test cases for certificate selection.
@@ -326,6 +328,16 @@ MULTI_CERT_TEST_CASES= [
         client_sni="termite.insect.hexapod",
         client_ciphers="ECDHE-RSA-AES128-SHA",
         expected_cert=SNI_CERTS["termite"],
+        expect_matching_hostname=True),
+    MultiCertTest(
+        description="ECDSA Certificate with exact sni match(underwing.insect.hexapod) is preferred over RSA wildcard"\
+                    " *.insect.hexapod when RSA ciphers are higher priority than ECDSA in sever preferences.",
+        server_certs=[ SNI_CERTS["wildcard_insect"], SNI_CERTS["alligator"], SNI_CERTS["underwing"] ],
+        client_sni="underwing.insect.hexapod",
+        # AES128-GCM-SHA256 is prioritized about ECDHE-ECDSA-AES128-SHA in
+        # the "test_all" server cipher preferences
+        client_ciphers="AES128-GCM-SHA256:ECDHE-ECDSA-AES128-SHA",
+        expected_cert=SNI_CERTS["underwing"],
         expect_matching_hostname=True)]
 # Positive test for wildcard matches
 MULTI_CERT_TEST_CASES.extend([MultiCertTest(
