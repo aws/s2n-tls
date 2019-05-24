@@ -204,7 +204,7 @@ static int s2n_find_cert_matches(struct s2n_array *certs,
     for (int i = 0; i < s2n_array_num_elements(certs); i++) {
         struct s2n_cert_chain_and_key *chain_and_key = *((struct s2n_cert_chain_and_key**) s2n_array_get(certs, i));
         s2n_authentication_method auth_method = s2n_cert_chain_and_key_get_auth_method(chain_and_key);
-        /* Add the match if there isn't already: an existing match for the certificate key type */
+        /* Add the match if there isn't already an existing match for the certificate key type */
         if (!matches[auth_method] && s2n_cert_chain_and_key_matches_dns_name(chain_and_key, dns_name)) {
             matches[auth_method] = chain_and_key;
             *match_exists = 1;
