@@ -226,6 +226,8 @@ int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_ke
 
             memcpy_check(san_blob->data, san_str, san_str_len);
             san_blob->size = san_str_len;
+            /* normalize san_blob to lowercase */
+            GUARD(s2n_blob_char_to_lower(san_blob));
         }
     }
 
@@ -287,6 +289,8 @@ int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key
             }
             memcpy_check(cn_name->data, utf8_str, utf8_out_len);
             cn_name->size = utf8_out_len;
+            /* normalize cn_name to lowercase */
+            GUARD(s2n_blob_char_to_lower(cn_name));
             OPENSSL_free(utf8_str);
         }
     }

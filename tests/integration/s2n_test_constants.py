@@ -144,6 +144,8 @@ TEST_SNI_CERT_DIRECTORY="../pems/sni/"
 SNI_CERTS = {
     "alligator" : ( TEST_SNI_CERT_DIRECTORY + "alligator_cert.pem", TEST_SNI_CERT_DIRECTORY + "alligator_key.pem",
         ["www.alligator.com"]),
+    "second_alligator_rsa" : ( TEST_SNI_CERT_DIRECTORY + "second_alligator_rsa_cert.pem", TEST_SNI_CERT_DIRECTORY + "second_alligator_rsa_key.pem",
+        ["www.alligator.com"]),
     "alligator_ecdsa" : ( TEST_SNI_CERT_DIRECTORY + "alligator_ecdsa_cert.pem", TEST_SNI_CERT_DIRECTORY +
         "alligator_ecdsa_key.pem", ["www.alligator.com"]),
     "beaver"    : ( TEST_SNI_CERT_DIRECTORY + "beaver_cert.pem", TEST_SNI_CERT_DIRECTORY + "beaver_key.pem",
@@ -338,6 +340,20 @@ MULTI_CERT_TEST_CASES= [
         # the "test_all" server cipher preferences
         client_ciphers="AES128-GCM-SHA256:ECDHE-ECDSA-AES128-SHA",
         expected_cert=SNI_CERTS["underwing"],
+        expect_matching_hostname=True),
+    MultiCertTest(
+        description="Firstly loaded matching certificate should be selected among certificates with the same domain names",
+        server_certs=[ SNI_CERTS["alligator"], SNI_CERTS["second_alligator_rsa"] ],
+        client_sni="www.alligator.com",
+        client_ciphers="AES128-GCM-SHA256",
+        expected_cert=SNI_CERTS["alligator"],
+        expect_matching_hostname=True),
+    MultiCertTest(
+        description="Firstly loaded matching certificate should be selected among matching+non-matching certificates",
+        server_certs=[ SNI_CERTS["beaver"], SNI_CERTS["alligator"], SNI_CERTS["second_alligator_rsa"] ],
+        client_sni="www.alligator.com",
+        client_ciphers="AES128-GCM-SHA256",
+        expected_cert=SNI_CERTS["alligator"],
         expect_matching_hostname=True)]
 # Positive test for wildcard matches
 MULTI_CERT_TEST_CASES.extend([MultiCertTest(

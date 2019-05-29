@@ -36,6 +36,7 @@ struct s2n_config {
      * does not have a reference to. */
     unsigned cert_allocated:1;
     struct s2n_array *cert_and_key_pairs;
+    struct s2n_map *domain_name_to_cert_map;
     const struct s2n_cipher_preferences *cipher_preferences;
     struct s2n_blob application_protocols;
     s2n_status_request_type status_request_type;
