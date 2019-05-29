@@ -23,7 +23,7 @@
 #include "gf2x.h"
 
 // Decoding (bit-flipping) parameter
-#define MAX_IT 25
+#define MAX_IT 4
 
 ////////////////////////////////////////////////////////////////////////////////
 // Defined in decode.S file
@@ -54,26 +54,26 @@ typedef ALIGN(16) struct decode_ctx_s
     uint32_t threshold;
 } decode_ctx_t;
 
-void split_e(OUT split_e_t *split_e_, IN const e_t *e)
+void split_e(OUT split_e_t *split_e, IN const e_t *e)
 {
     // Copy lower bytes (e0)
-    memcpy(PTRV(split_e_)[0].raw, e->raw, R_SIZE);
+    memcpy(PTRV(split_e)[0].raw, e->raw, R_SIZE);
 
     // Now load second value
     for (uint32_t i = R_SIZE; i < N_SIZE; ++i) {
-        PTRV(split_e_)
+        PTRV(split_e)
         [1].raw[i - R_SIZE] = ((e->raw[i] << LAST_R_BYTE_TRAIL) |
                                (e->raw[i - 1] >> LAST_R_BYTE_LEAD));
     }
 
     // Fix corner case
-    if (N_SIZE < (2UL * R_SIZE)) {
-        PTRV(split_e_)[1].raw[R_SIZE - 1] = (e->raw[N_SIZE - 1] >> LAST_R_BYTE_LEAD);
+    if (N_SIZE < (2ULL * R_SIZE)) {
+        PTRV(split_e)[1].raw[R_SIZE - 1] = (e->raw[N_SIZE - 1] >> LAST_R_BYTE_LEAD);
     }
 
     // Fix last value
-    PTRV(split_e_)[0].raw[R_SIZE - 1] &= LAST_R_BYTE_MASK;
-    PTRV(split_e_)[1].raw[R_SIZE - 1] &= LAST_R_BYTE_MASK;
+    PTRV(split_e)[0].raw[R_SIZE - 1] &= LAST_R_BYTE_MASK;
+    PTRV(split_e)[1].raw[R_SIZE - 1] &= LAST_R_BYTE_MASK;
 }
 
 // Transpose a row into a column
@@ -235,63 +235,62 @@ ret_t decode(OUT e_t *e,
 
     PTR(s).dup1 = PTR(original_s).dup1;
 
-    for(ctx.delta = MAX_DELTA; 
-       (ctx.delta >= 0) && (count_ones(PTR(s).dup1.raw, sizeof(PTR(s).dup1)) > u); 
-        ctx.delta--)
-    {
-        // Reset the error
-        memset(e, 0, sizeof(*e));
-        
-        // Reset the syndrome
-        PTR(s).dup1 = PTR(original_s).dup1;
-        PTR(s).dup2 = PTR(original_s).dup1;
+    // Fixing ctx.delta, in order to optimize the decoding failure path;
+    ctx.delta = MAX_DELTA;
 
-        for (uint32_t iter = 0; iter < MAX_IT; iter++)
-        {
-            DMSG("    Iteration: %d\n", iter);
-            DMSG("    Weight of e: %lu\n", count_ones(e->raw, sizeof(*e)));
-            DMSG("    Weight of syndrome: %lu\n", count_ones(PTR(s).dup1.raw, sizeof(PTR(s).dup1)));
-
-            compute_counter_of_unsat(ctx.upc, s->u.raw, &inv_h_compressed[0], &inv_h_compressed[1]);
-
-            ctx.threshold = get_threshold(&PTR(s).dup1);
-            GUARD(fix_error1(s, e, &ctx, sk, ct));
-
-            // Decoding Step I: check if syndrome is 0 (successful decoding)
-            if (count_ones(PTR(s).dup1.raw, sizeof(PTR(s).dup1)) <= u)
-            {
-                break;
-            }
-
-            DMSG("    Weight of e: %lu\n", count_ones(e->raw, sizeof(*e)));
-            DMSG("    Weight of syndrome: %lu\n", count_ones(PTR(s).dup1.raw, sizeof(PTR(s).dup1)));
-
-            // Recompute the UPC
-            compute_counter_of_unsat(ctx.upc, s->u.raw, &inv_h_compressed[0], &inv_h_compressed[1]);
-
-            // Decoding Step II: Unflip positions that still have high number of UPC associated
-            GUARD(fix_black_error(s, e, &ctx, sk, ct));
-            
-            DMSG("    Weight of e: %lu\n", count_ones(e->raw, sizeof(*e)));
-            DMSG("    Weight of syndrome: %lu\n", count_ones(PTR(s).dup1.raw, sizeof(PTR(s).dup1)));
-
-            // Decoding Step II: Check if syndrome is 0 (successful decoding)
-            if (count_ones(PTR(s).dup1.raw, sizeof(PTR(s).dup1)) <= u)
-            {
-                break;
-            }
-
-            // Recompute UPC
-            compute_counter_of_unsat(ctx.upc, s->u.raw, &inv_h_compressed[0], &inv_h_compressed[1]);
+    // Reset the error
+    memset(e, 0, sizeof(*e));
     
-            // Decoding Step III: Flip all gray positions associated to high number of UPC 
-            GUARD(fix_gray_error(s, e, &ctx, sk, ct));
+    // Reset the syndrome
+    // Copying dup1 twice is faster than copying dup1+dup2.
+    PTR(s).dup1 = PTR(original_s).dup1;
+    PTR(s).dup2 = PTR(original_s).dup1;
+
+    for (uint32_t iter = 0; iter < MAX_IT; iter++)
+    {
+        DMSG("    Iteration: %d\n", iter);
+        DMSG("    Weight of e: %lu\n", count_ones(e->raw, sizeof(*e)));
+        DMSG("    Weight of syndrome: %lu\n", count_ones(PTR(s).dup1.raw, sizeof(PTR(s).dup1)));
+
+        compute_counter_of_unsat(ctx.upc, s->u.raw, &inv_h_compressed[0], &inv_h_compressed[1]);
+
+        ctx.threshold = get_threshold(&PTR(s).dup1);
+        GUARD(fix_error1(s, e, &ctx, sk, ct));
+
+        // Decoding Step I: check if syndrome is 0 (successful decoding)
+        if (count_ones(PTR(s).dup1.raw, sizeof(PTR(s).dup1)) <= u)
+        {
+            break;
+        }
+
+        DMSG("    Weight of e: %lu\n", count_ones(e->raw, sizeof(*e)));
+        DMSG("    Weight of syndrome: %lu\n", count_ones(PTR(s).dup1.raw, sizeof(PTR(s).dup1)));
+
+        // Recompute the UPC
+        compute_counter_of_unsat(ctx.upc, s->u.raw, &inv_h_compressed[0], &inv_h_compressed[1]);
+
+        // Decoding Step II: Unflip positions that still have high number of UPC associated
+        GUARD(fix_black_error(s, e, &ctx, sk, ct));
         
-            // Decoding Step III: Check for successful decoding
-            if (count_ones(PTR(s).dup1.raw, sizeof(PTR(s).dup1)) <= u)
-            {
-                break;
-            }
+        DMSG("    Weight of e: %lu\n", count_ones(e->raw, sizeof(*e)));
+        DMSG("    Weight of syndrome: %lu\n", count_ones(PTR(s).dup1.raw, sizeof(PTR(s).dup1)));
+
+        // Decoding Step II: Check if syndrome is 0 (successful decoding)
+        if (count_ones(PTR(s).dup1.raw, sizeof(PTR(s).dup1)) <= u)
+        {
+            break;
+        }
+
+        // Recompute UPC
+        compute_counter_of_unsat(ctx.upc, s->u.raw, &inv_h_compressed[0], &inv_h_compressed[1]);
+
+        // Decoding Step III: Flip all gray positions associated to high number of UPC 
+        GUARD(fix_gray_error(s, e, &ctx, sk, ct));
+    
+        // Decoding Step III: Check for successful decoding
+        if (count_ones(PTR(s).dup1.raw, sizeof(PTR(s).dup1)) <= u)
+        {
+            break;
         }
     }
 

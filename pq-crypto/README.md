@@ -33,4 +33,4 @@ The code in the pq-crypto/bike directory was taken from the [additional implemen
 s2n uses the "additional implementation" which ensures constant time primitives, does not use any external libraries
 besides libcrypto, and does not depend on any specific hardware instructions to ensure maximum comparability and ease of
 review. The known answer tests are [here](https://github.com/awslabs/s2n/blob/master/tests/unit/s2n_bike1_l1_kat_test.c)
-and use the BIKE1_L1.const.kat from the above Additional_Implementation.2019.03.30.zip.
+and use the BIKE1_L1.const.kat from the above Additional_Implementation.2019.03.30.zip. This implementation uses constant time primitives on x86 and aarch64 platforms.

@@ -9,9 +9,8 @@
 * The license is detailed in the file LICENSE.md, and applies to this file.
 * ***************************************************************************/
 
-#include <inttypes.h>
-
 #include "utilities.h"
+#include <inttypes.h>
 
 #define BITS_IN_QW 64ULL
 #define BITS_IN_BYTE 8ULL
@@ -37,11 +36,7 @@ _INLINE_ void print_uint64(IN const uint64_t val)
     uint64_t tmp = val;
 #endif
 
-#ifdef WIN32
-    printf("%.16I64x", tmp);
-#else
-    printf("%.16"PRIu64,  tmp);
-#endif
+printf("%.16"PRIx64,  tmp);
 
 #ifndef NO_SPACE
     printf(" ");

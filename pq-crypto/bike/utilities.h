@@ -81,6 +81,15 @@ _INLINE_ uint8_t bit_scan_reverse(uint64_t val)
 // Return 1 if equal 0 otherwise
 _INLINE_ uint32_t secure_cmp32(IN const uint32_t v1, IN const uint32_t v2)
 {
+#if defined(__aarch64__)
+    uint32_t res;
+    __asm__ __volatile__("cmp  %1, %2; \n "
+                         "cset %0, EQ; \n"
+                         : "=r" (res)
+                         : "r"(v1), "r"(v2)
+                         :);
+    return res;
+#elif defined(__x86_64__) || defined(__i386__)
     uint32_t res;
     __asm__ __volatile__("xor  %%edx, %%edx; \n"
                          "cmp  %1, %2; \n "
@@ -89,28 +98,26 @@ _INLINE_ uint32_t secure_cmp32(IN const uint32_t v1, IN const uint32_t v2)
                          : "=r" (res)
                          : "r"(v1), "r"(v2)
                          : "rdx");
-    
     return res;
-}
-
-// Return 1 if v1 >= v2, 0 otherwise
-_INLINE_ uint32_t secure_ge32(IN const uint32_t v1, IN const uint32_t v2)
-{
-    uint32_t res;
-    __asm__ __volatile__("xor  %%edx, %%edx; \n"
-                         "cmp  %1, %2; \n "
-                         "setge %%dl; \n"
-                         "mov %%edx, %0; \n"
-                         : "=r" (res)
-                         : "r"(v2), "r"(v1)
-                         : "rdx");
-    
-    return res;
+#else
+    //Insceure comparison
+    return (v1 == v2 ? 1 : 0);
+#endif
 }
 
 // Return 0 if v1 < v2, (-1) otherwise
 _INLINE_ uint32_t secure_l32_mask(IN const uint32_t v1, IN const uint32_t v2)
 {
+    
+#if defined(__aarch64__)
+    uint32_t res;
+    __asm__ __volatile__("cmp  %1, %2; \n "
+                         "cset %0, LS; \n"
+                         : "=r" (res)
+                         : "r"(v1), "r"(v2)
+                         :);
+    return (res-1);
+#elif defined(__x86_64__) || defined(__i386__)
     uint32_t res;
     __asm__ __volatile__("xor  %%edx, %%edx; \n"
                          "cmp  %1, %2; \n "
@@ -123,6 +130,12 @@ _INLINE_ uint32_t secure_l32_mask(IN const uint32_t v1, IN const uint32_t v2)
                          : "rdx");
     
     return res;
+#else
+    // If v1 >= v2 then the subtraction result is 0^32||(v1-v2)
+    // else it will be 1^32||(v2-v1+1). Subsequently, negating the upper 
+    // 32 bits gives 0 if v1 < v2 and otherwise (-1).
+    return ~((uint32_t)(((uint64_t)v1 - (uint64_t)v2) >> 32));
+#endif
 }
 
 // len is bytes length of in
