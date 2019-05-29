@@ -59,6 +59,10 @@ typedef enum {
     S2N_AUTHENTICATION_METHOD_SENTINEL
 } s2n_authentication_method;
 
+struct domain_name_to_cert_map_value {
+    struct s2n_cert_chain_and_key *certs[S2N_AUTHENTICATION_METHOD_SENTINEL];
+};
+
 int s2n_cert_chain_and_key_set_ocsp_data(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length);
 int s2n_cert_chain_and_key_set_sct_list(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length);
 /* Exposed for fuzzing */

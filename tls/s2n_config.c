@@ -24,6 +24,8 @@
 #include "tls/s2n_cipher_preferences.h"
 #include "utils/s2n_safety.h"
 #include "crypto/s2n_hkdf.h"
+#include "utils/s2n_map.h"
+#include "utils/s2n_blob.h"
 
 #if defined(CLOCK_MONOTONIC_RAW)
 #define S2N_CLOCK_HW CLOCK_MONOTONIC_RAW
@@ -118,6 +120,8 @@ static int s2n_config_init(struct s2n_config *config)
     }
 
     notnull_check(config->cert_and_key_pairs = s2n_array_new(sizeof(struct s2n_cert_chain_and_key*)));
+    notnull_check(config->domain_name_to_cert_map = s2n_map_new());
+    GUARD(s2n_map_complete(config->domain_name_to_cert_map));
 
     s2n_x509_trust_store_init_empty(&config->trust_store);
     s2n_x509_trust_store_from_system_defaults(&config->trust_store);
@@ -135,6 +139,53 @@ static int s2n_config_cleanup(struct s2n_config *config)
     GUARD(s2n_config_free_dhparams(config));
     GUARD(s2n_free(&config->application_protocols));
     GUARD(s2n_array_free(config->cert_and_key_pairs));
+    GUARD(s2n_map_free(config->domain_name_to_cert_map));
+
+    return 0;
+}
+
+static int s2n_config_update_domain_name_to_cert_map(struct s2n_map *domain_name_to_cert_map,
+        struct s2n_blob *name,
+        struct s2n_cert_chain_and_key *cert_key_pair)
+{
+    /* s2n_map does not allow zero-size key */
+    if (name->size == 0) {
+        return 0;
+    }
+    struct s2n_blob s2n_map_value = { 0 };
+    s2n_authentication_method auth_method = s2n_cert_chain_and_key_get_auth_method(cert_key_pair);
+    if (s2n_map_lookup(domain_name_to_cert_map, name, &s2n_map_value) == 0) {
+        struct domain_name_to_cert_map_value value = {{ 0 }};
+        value.certs[auth_method] = cert_key_pair;
+        s2n_map_value.data = (uint8_t *) &value;
+        s2n_map_value.size = sizeof(struct domain_name_to_cert_map_value);
+
+        GUARD(s2n_map_unlock(domain_name_to_cert_map));
+        GUARD(s2n_map_add(domain_name_to_cert_map, name, &s2n_map_value));
+        GUARD(s2n_map_complete(domain_name_to_cert_map));
+    } else {
+        struct domain_name_to_cert_map_value *value = (void *) s2n_map_value.data;;
+        if (value->certs[auth_method] == NULL) {
+            value->certs[auth_method] = cert_key_pair;
+        }
+    }
+
+    return 0;
+}
+
+static int s2n_config_build_domain_name_to_cert_map(struct s2n_map *domain_name_to_cert_map, struct s2n_cert_chain_and_key *cert_key_pair)
+{
+    if (s2n_array_num_elements(cert_key_pair->san_names) == 0) {
+        for (int i = 0; i < s2n_array_num_elements(cert_key_pair->cn_names); i++) {
+            struct s2n_blob *cn_name = s2n_array_get(cert_key_pair->cn_names, i);
+            GUARD(s2n_config_update_domain_name_to_cert_map(domain_name_to_cert_map, cn_name, cert_key_pair));
+        }
+    } else {
+        for (int i = 0; i < s2n_array_num_elements(cert_key_pair->san_names); i++) {
+            struct s2n_blob *san_name = s2n_array_get(cert_key_pair->san_names, i);
+            GUARD(s2n_config_update_domain_name_to_cert_map(domain_name_to_cert_map, san_name, cert_key_pair));
+        }
+    }
 
     return 0;
 }
@@ -420,11 +471,13 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
 int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
 {
     notnull_check(config->cert_and_key_pairs);
+    notnull_check(config->domain_name_to_cert_map);
     notnull_check(cert_key_pair);
 
     struct s2n_cert_chain_and_key **to_insert = s2n_array_add(config->cert_and_key_pairs);
     notnull_check(to_insert);
     *to_insert = cert_key_pair;
+    GUARD(s2n_config_build_domain_name_to_cert_map(config->domain_name_to_cert_map, cert_key_pair));
 
     return 0;
 }
