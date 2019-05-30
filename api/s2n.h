@@ -96,6 +96,9 @@ struct s2n_cert_chain_and_key;
 extern struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void);
 extern int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem, const char *private_key_pem);
 extern int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key);
+extern int s2n_cert_chain_and_key_set_ctx(struct s2n_cert_chain_and_key *cert_and_key, void *ctx);
+extern void *s2n_cert_chain_and_key_get_ctx(struct s2n_cert_chain_and_key *cert_and_key);
+
 extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem);
 extern int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair);
 

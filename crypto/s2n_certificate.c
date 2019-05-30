@@ -162,14 +162,14 @@ struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void)
 {
     struct s2n_cert_chain_and_key *chain_and_key;
     struct s2n_blob chain_and_key_mem, cert_chain_mem, pkey_mem;
-    
+
     GUARD_PTR(s2n_alloc(&chain_and_key_mem, sizeof(struct s2n_cert_chain_and_key)));
     chain_and_key = (struct s2n_cert_chain_and_key *)(void *)chain_and_key_mem.data;
-    
+
     /* Allocate the memory for the chain and key */
     GUARD_PTR(s2n_alloc(&cert_chain_mem, sizeof(struct s2n_cert_chain)));
     chain_and_key->cert_chain = (struct s2n_cert_chain *)(void *)cert_chain_mem.data;
-    
+
     GUARD_PTR(s2n_alloc(&pkey_mem, sizeof(s2n_cert_private_key)));
     chain_and_key->private_key = (s2n_cert_private_key *)(void *)pkey_mem.data;
 
@@ -186,6 +186,8 @@ struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void)
     if (!chain_and_key->san_names) {
         return NULL;
     }
+
+    chain_and_key->context = NULL;
 
     return chain_and_key;
 }
@@ -463,3 +465,13 @@ s2n_authentication_method s2n_cert_chain_and_key_get_auth_method(struct s2n_cert
     return cert_type_to_auth_method[chain_and_key->cert_chain->head->cert_type];
 }
 
+int s2n_cert_chain_and_key_set_ctx(struct s2n_cert_chain_and_key *cert_and_key, void *ctx)
+{
+    cert_and_key->context = ctx;
+    return 0;
+}
+
+void *s2n_cert_chain_and_key_get_ctx(struct s2n_cert_chain_and_key *cert_and_key)
+{
+    return cert_and_key->context;
+}

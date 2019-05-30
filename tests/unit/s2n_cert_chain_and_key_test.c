@@ -71,21 +71,26 @@ int main(int argc, char **argv)
 
     EXPECT_NOT_NULL(client_config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
-        
+
     /* Create config with s2n_config_add_cert_chain_and_key_to_store API */
     {
         struct s2n_cert_chain_and_key *chain_and_key;
+        /* Some data to retrieve from the cert after selection in handshake. */
+        int associated_cert_data = 7;
         EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
         EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain, private_key));
-        
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_set_ctx(chain_and_key, (void*) &associated_cert_data));
+
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
-       
+
         EXPECT_NOT_NULL(server_conn = create_conn(S2N_SERVER, server_config, server_to_client, client_to_server));
         EXPECT_NOT_NULL(client_conn = create_conn(S2N_CLIENT, client_config, server_to_client, client_to_server));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn->handshake.handshake_type));
+        EXPECT_EQUAL(s2n_connection_get_selected_cert(server_conn), chain_and_key);
+        EXPECT_EQUAL(s2n_cert_chain_and_key_get_ctx(chain_and_key), &associated_cert_data);
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -98,7 +103,7 @@ int main(int argc, char **argv)
     {
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain, private_key));
-        
+
         EXPECT_NOT_NULL(server_conn = create_conn(S2N_SERVER, server_config, server_to_client, client_to_server));
         EXPECT_NOT_NULL(client_conn = create_conn(S2N_CLIENT, client_config, server_to_client, client_to_server));
 
@@ -115,7 +120,7 @@ int main(int argc, char **argv)
        EXPECT_SUCCESS(close(server_to_client[i]));
        EXPECT_SUCCESS(close(client_to_server[i]));
     }
-    
+
     EXPECT_SUCCESS(s2n_config_free(client_config));
 
     free(cert_chain);
