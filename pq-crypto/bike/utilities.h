@@ -100,7 +100,12 @@ _INLINE_ uint32_t secure_cmp32(IN const uint32_t v1, IN const uint32_t v2)
                          : "rdx");
     return res;
 #else
-    //Insceure comparison
+    // Insecure comparison: The main purpose of secure_cmp32 is to avoid
+    // branches and thus to prevent potential side channel attacks. To do that
+    // we normally leverage some CPU special instructions such as "sete"
+    // (for __x86_64__) and "cset" (for __aarch64__). When dealing with general
+    // CPU architectures, the interpretation of the line below is left for the 
+    // compiler, which may lead to an insecure branch.
     return (v1 == v2 ? 1 : 0);
 #endif
 }
