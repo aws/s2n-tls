@@ -788,11 +788,29 @@ int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key);
 int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem, const char *private_key_pem);
 ```
 
-**s2n_cert_chain_and_key_load_pem** associates a certificate chain and private key with an **s2n_cert_chain_and_key** object. 
+**s2n_cert_chain_and_key_load_pem** associates a certificate chain and private key with an **s2n_cert_chain_and_key** object.
 
 **cert_chain_pem** should be a PEM encoded certificate chain, with the first
 certificate in the chain being your leaf certificate. **private_key_pem**
 should be a PEM encoded private key corresponding to the leaf certificate.
+
+### s2n\_cert\_chain\_and\_key\_set\_ctx
+
+```c
+int s2n_cert_chain_and_key_set_ctx(struct s2n_cert_chain_and_key *chain_and_key, void *ctx);
+```
+
+**s2n_cert_chain_and_key_set_ctx** associates an application defined context with a **s2n_cert_chain_and_key** object.
+This is useful when multiple s2n_cert_chain_and_key objects are used and the application would like to associate unique data
+with each certificate.
+
+### s2n\_cert\_chain\_and\_key\_get\_ctx
+
+```c
+int s2n_cert_chain_and_key_get_ctx(struct s2n_cert_chain_and_key *chain_and_key);
+```
+
+**s2n_cert_chain_and_key_set_ctx** returns a previously set context pointer or NULL if no context was set.
 
 ## Client Auth Related calls
 Client Auth Related API's are not recommended for normal users. Use of these API's is discouraged.
