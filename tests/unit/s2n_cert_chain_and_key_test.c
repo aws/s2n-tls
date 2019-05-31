@@ -91,6 +91,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn->handshake.handshake_type));
         EXPECT_EQUAL(s2n_connection_get_selected_cert(server_conn), chain_and_key);
         EXPECT_EQUAL(s2n_cert_chain_and_key_get_ctx(chain_and_key), &associated_cert_data);
+        EXPECT_EQUAL(*((int *) s2n_cert_chain_and_key_get_ctx(chain_and_key)), 7);
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
