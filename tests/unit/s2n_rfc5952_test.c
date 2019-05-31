@@ -40,6 +40,10 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_inet_ntop(AF_INET, ipv4, &ipv4_blob));
     EXPECT_EQUAL(strcmp("0.0.0.0", (char *) ipv4_buf), 0);
 
+    EXPECT_SUCCESS(inet_pton(AF_INET, "100.104.123.1", ipv4));
+    EXPECT_SUCCESS(s2n_inet_ntop(AF_INET, ipv4, &ipv4_blob));
+    EXPECT_EQUAL(strcmp("100.104.123.1", (char *) ipv4_buf), 0);
+
     EXPECT_SUCCESS(inet_pton(AF_INET, "255.255.255.255", ipv4));
     EXPECT_SUCCESS(s2n_inet_ntop(AF_INET, ipv4, &ipv4_blob));
     EXPECT_EQUAL(strcmp("255.255.255.255", (char *) ipv4_buf), 0);
