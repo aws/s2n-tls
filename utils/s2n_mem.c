@@ -149,6 +149,8 @@ int s2n_dup(struct s2n_blob *from, struct s2n_blob *to)
 {
     eq_check(to->size, 0);
     eq_check(to->data, NULL);
+    ne_check(from->size, 0);
+    ne_check(from->data, NULL);
 
     GUARD(s2n_alloc(to, from->size));
     
