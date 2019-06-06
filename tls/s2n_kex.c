@@ -110,7 +110,7 @@ static int s2n_get_server_hybrid_extensions_size(const struct s2n_connection *co
     return s2n_kex_server_extension_size(hybrid_kex_0, conn) + s2n_kex_server_extension_size(hybrid_kex_1, conn);
 }
 
-static int s2n_setup_basic_kex(struct s2n_connection *conn)
+static int s2n_setup_empty_kex(struct s2n_connection *conn)
 {
     return 0;
 }
@@ -166,7 +166,7 @@ const struct s2n_kex s2n_rsa = {
         .client_key_recv = &s2n_rsa_client_key_recv,
         .client_key_send = &s2n_rsa_client_key_send,
         .prf = &s2n_tls_prf_master_secret,
-        .setup_kex = &s2n_setup_basic_kex,
+        .setup_kex = &s2n_setup_empty_kex,
 };
 
 const struct s2n_kex s2n_dhe = {
@@ -180,7 +180,7 @@ const struct s2n_kex s2n_dhe = {
         .client_key_recv = &s2n_dhe_client_key_recv,
         .client_key_send = &s2n_dhe_client_key_send,
         .prf = &s2n_tls_prf_master_secret,
-        .setup_kex = &s2n_setup_basic_kex,
+        .setup_kex = &s2n_setup_empty_kex,
 };
 
 const struct s2n_kex s2n_ecdhe = {
@@ -194,7 +194,7 @@ const struct s2n_kex s2n_ecdhe = {
         .client_key_recv = &s2n_ecdhe_client_key_recv,
         .client_key_send = &s2n_ecdhe_client_key_send,
         .prf = &s2n_tls_prf_master_secret,
-        .setup_kex = &s2n_setup_basic_kex,
+        .setup_kex = &s2n_setup_empty_kex,
 };
 
 const struct s2n_kex s2n_hybrid_ecdhe_bike = {
