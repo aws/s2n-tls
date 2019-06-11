@@ -14,6 +14,7 @@
  */
 
 #pragma once
+#include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -66,10 +67,10 @@
 #define FAIL()      FAIL_MSG("")
 
 #define FAIL_MSG( msg ) do { if (isatty(fileno(stdout))) { \
-                            fprintf(stdout, "\033[31;1mFAILED test %d\033[0m\n%s (%s line %d)\nError Message: '%s'\n Debug String: '%s'\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_debug_str); \
+                            fprintf(stdout, "\033[31;1mFAILED test %d\033[0m\n%s (%s line %d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_debug_str, strerror(errno), errno); \
                           } \
                           else { \
-                            fprintf(stdout, "FAILED test %d\n%s (%s line %d)\nError Message: '%s'\n Debug String: '%s'\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_debug_str); \
+                            fprintf(stdout, "FAILED test %d\n%s (%s line %d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_debug_str, strerror(errno), errno); \
                           } \
                           exit(1);  \
                         } while(0)
