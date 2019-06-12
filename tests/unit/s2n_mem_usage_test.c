@@ -161,8 +161,12 @@ int main(int argc, char **argv)
     fprintf(stdout, "Max VmData diff allowed:  %10zu\n", MAX_ALLOWED_MEM_DIFF);
 #endif
 
-    EXPECT_TRUE(vm_data_after_allocation - vm_data_initial < MAX_ALLOWED_MEM_DIFF);
-    EXPECT_TRUE(vm_data_after_handshakes - vm_data_initial < MAX_ALLOWED_MEM_DIFF);
+    /* Ignore expectations when running under valgrind, as valgrind allocates much more
+     * memory than we expect in this test. */
+    if (getenv("S2N_VALGRIND") == NULL) {
+        EXPECT_TRUE(vm_data_after_allocation - vm_data_initial < MAX_ALLOWED_MEM_DIFF);
+        EXPECT_TRUE(vm_data_after_handshakes - vm_data_initial < MAX_ALLOWED_MEM_DIFF);
+    }
 
     END_TEST();
 
