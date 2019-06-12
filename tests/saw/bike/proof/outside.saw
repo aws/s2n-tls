@@ -4,50 +4,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Specifications
 
-let printf_chk_spec = do {
-    (a, ap) <- in_val i32_T "a";
-    (b, bp) <- in_ref rsize_T "b";
-    crucible_execute_func [ap, bp];
-    crucible_return (crucible_term {{0:[32]}});
-};
-
-let EVP_CIPHER_CTX_new_spec = do {
-    crucible_execute_func [];
-    rp <- crucible_alloc aes256_ks_t;
-    res <- point_to aes256_ks_T rp "ks";
-    crucible_return  rp;
-};
-
-let EVP_CIPHER_CTX_free_spec2 = do {
-    (a,ap) <- in_ref evp_cipher_ctx_st_T "a";
-    crucible_execute_func [ap];
-};
-
-let EVP_EncryptUpdate_specaes len = do {
-    (a, ap) <- in_ref aes256_ks_T "ks";
-    bp <- out_ref (make_i8_T len);
-    cp <- out_ref i32_T;
-    (d, dp) <- in_ref (make_i8_T len) "pt";
-    crucible_execute_func [ap, bp, cp, dp, tm {{ 16:[32] }}];
-    b' <- point_to (make_i8_T len) bp "ct'"; // bp is written to
-    res <- crucible_fresh_var "res" i32;
-    crucible_return (tm res);
-
-    // NOTE: 0 indicates that bp and dp overlap;
-    //       cannot occur with this setup
-    crucible_postcond {{ res != 0 }};
-};
-
-let EVP_aes_256_ecb_spec = do {
-    crucible_execute_func [];
-    res <- crucible_fresh_var "res" evp_cipher_st_t;
-    crucible_return (tm res);
-};
-
-let assert_fail_spec = do {
-    crucible_execute_func [];
-};
-
 let get_random_bytes_spec = do {
     ap <- out_ref (make_i8_T 64);
     crucible_execute_func [ap, tm {{ 64:[32] }}];
@@ -58,20 +14,5 @@ let get_random_bytes_spec = do {
 
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
-
-printf_chk_ov <- admit  "__printf_chk" [] printf_chk_spec;
-
-EVP_CIPHER_CTX_new_ov <- admit "EVP_CIPHER_CTX_new" []
-    (EVP_CIPHER_CTX_new_spec);
-
-EVP_CIPHER_CTX_free_ov2 <- admit "EVP_CIPHER_CTX_free" []
-    (EVP_CIPHER_CTX_free_spec2);
-
-EVP_EncryptUpdate_ovaes <- admit "EVP_EncryptUpdate" []
-    (EVP_EncryptUpdate_specaes 16);
-
-EVP_aes_256_ecb_ov <- admit "EVP_aes_256_ecb" [] EVP_aes_256_ecb_spec;
-
-assert_fail_ov <- admit "__assert_fail" [] (assert_fail_spec);
 
 get_random_bytes_ov <- admit "get_random_bytes" [] get_random_bytes_spec;

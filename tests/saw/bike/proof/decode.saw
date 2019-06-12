@@ -119,7 +119,7 @@ compute_syndrome_ov <- verify_unint  "compute_syndrome"
   , gf2x_add_ov4
   , convert_to_redundant_rep_ov
   , transpose_ov
-  , secure_clean_100_ov_4RPS, secure_clean_100_ov_2RPS ]
+  , secure_clean_ov_4RPS, secure_clean_ov_2RPS ]
   [ "gf2x_mod_mul", "convert_to_redundant_rep", "c_transpose"]
   compute_syndrome_spec;
 
@@ -128,7 +128,7 @@ compute_syndrome_update_ov <- verify_unint  "compute_syndrome"
     , gf2x_add_ov4
     , convert_to_redundant_rep_ov
     , transpose_ov
-    , secure_clean_100_ov_4RPS, secure_clean_100_ov_2RPS ]
+    , secure_clean_ov_4RPS, secure_clean_ov_2RPS ]
     ["gf2x_mod_mul", "gf2x_add", "convert_to_redundant_rep", "c_transpose"]
     compute_syndrome_update_spec;
 
@@ -136,7 +136,7 @@ recompute_syndrome_ov <- verify "recompute_syndrome"
     [ cyclic_product_ov
     , compute_syndrome_ov
     , split_e_ov
-    , secure_clean_100_ov_GPNT
+    , secure_clean_ov_GPNT
     , gf2x_add3_left_ov1 ]
     recompute_syndrome_spec;
 

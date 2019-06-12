@@ -71,9 +71,8 @@ let crypto_kem_dec_unsuccessful_spec = do {
 
     crucible_execute_func [ap, bp, cp];
     ret <- crucible_fresh_var "ret" i32;
+    // crucible_postcond {{ ret == fromInteger`{[32]} ((BIKE1_L1_crypto_kem_dec b c).0) }};
     crucible_return (tm ret);
-    crucible_postcond {{ ret == fromInteger`{[32]}
-        ((BIKE1_L1_crypto_kem_dec b c).0) }};
 };
 
 // NOTE: Step 2 of 2 - conditioned on a SUCCESS result
@@ -88,63 +87,59 @@ let crypto_kem_dec_successful_spec = do {
     crucible_precond {{ is_bounded_sk (assemble_sk_t c) }};
 
     crucible_execute_func [ap, bp, cp];
-    //r <- crucible_fresh_var "ss" char_ss_t;
-    //crucible_points_to ap (tm r);
     a' <- point_to char_ss_T ap "a'";
     ret <- crucible_fresh_var "ret" i32;
+    // crucible_postcond {{ (toInteger ret, a') == (BIKE1_L1_crypto_kem_dec b c) }};
     crucible_return (tm ret);
-    crucible_postcond {{ (toInteger ret, a') == (BIKE1_L1_crypto_kem_dec b c) }};
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
 
 verify "get_ss"
-    [parallel_hash_ov_getss, secure_clean_124_ov48]
+    [parallel_hash_ov_getss, secure_clean_ov48]
     (get_ss_spec false);
 
 get_ss_ov <- admit "get_ss"
-    [parallel_hash_ov_getss, secure_clean_124_ov48]
+    [parallel_hash_ov_getss, secure_clean_ov48]
     (get_ss_spec true);
 
 calc_pk_ov <- verify  "calc_pk"
 	[ sample_uniform_r_bits_ov
-        , gf2x_mod_mul_123_ov
-	, secure_clean_124_ov_PRT ]
+        , gf2x_mod_mul_ov4
+	, secure_clean_ov_PRT ]
 	calc_pk_spec;
 
-// NOTE: In the LLVM we get instances of inlined functions. Currently they
-//       are gf2x_mod_mul.123, gf2x.add.128, secure_clean.124
 encrypt_ov <- verify "encrypt"
     [sample_uniform_r_bits_ov
-    , secure_clean_124_ov_PRT // for sizeof(padded_r_t)
-    , secure_clean_124_ov_DPCTT // for sizeof(dbl_pad_ct_t)
-    , gf2x_mod_mul_123_ov
-    , gf2x_add_128_left_ov_RSIZE ]
+    , secure_clean_ov_PRT // for sizeof(padded_r_t)
+    , secure_clean_ov_4RPS // for sizeof(dbl_pad_ct_t)
+    , gf2x_mod_mul_ov4
+    , gf2x_add3_left_ov1 ]
     encrypt_spec;
 
 keypair_ov <- verify "BIKE1_L1_crypto_kem_keypair"
-    [ finalize_aes_ctr_prf_132_ov
+    [ finalize_aes_ctr_prf_ov
     , get_seeds_ov_kem
     , init_aes_ctr_prf_state_ov
     , generate_sparse_fake_rep_ov
     , calc_pk_ov
-    , secure_clean_124_ov64 // for sizeof(seeds)
-    , secure_clean_124_ov48 // for sizeof(aes_prf_state)
-    , secure_clean_124_ov_2RPS ] // for sizeof(p_sk)
+    , secure_clean_ov64 // for sizeof(seeds)
+    , secure_clean_ov48 // for sizeof(aes_prf_state)
+    , secure_clean_ov_2RPS ] // for sizeof(p_sk)
     keypair_spec;
 
 crypto_kem_enc_ov <- verify_unint "BIKE1_L1_crypto_kem_enc"
-    [ finalize_aes_ctr_prf_132_ov
+    [ finalize_aes_ctr_prf_ov
     , encrypt_ov
     , init_aes_ctr_prf_state_ov
     , generate_sparse_rep_ov
     , split_e_ov
     , get_ss_ov
-    , secure_clean_124_ov_GPNT // for sizeof(split_e_t)
-    , secure_clean_124_ov48 // for sizeof(aes_prf_state)
-    , secure_clean_124_ov64 // for sizeof(seeds)
-    , secure_clean_124_ov_PET // for sizeof(padded_e_t)
+    , secure_clean_ov_GPNT // for sizeof(split_e_t)
+    , secure_clean_ov48 // for sizeof(aes_prf_state)
+    , secure_clean_ov64 // for sizeof(seeds)
+    , secure_clean_ov_PET // for sizeof(padded_e_t)
     , get_seeds_ov_kem ]
     ["get_ss"]
     crypto_kem_enc_spec;

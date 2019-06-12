@@ -62,8 +62,6 @@ let find_error2_spec = do {
 compute_counter_of_unsat_ov <- admit "compute_counter_of_unsat" []
     (compute_counter_of_unsat_spec);
 
-find_error2_ov <- verify "find_error2" [secure_l32_mask_ov] find_error2_spec;
-
 find_error1_ov <- verify "find_error1"
     [secure_l32_mask_ov
     // , ossl_add4_ov1, ossl_add4_ov2

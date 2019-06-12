@@ -312,15 +312,15 @@ sample_uniform_r_bits_ov <- verify "sample_uniform_r_bits"
     (sample_uniform_r_bits_spec R_SIZE);
 
 // NOTE: For generate_sparse_rep:
-secure_set_bits_GSR_ov <- verify "secure_set_bits"
-    [secure_cmp32_120_ov]
+secure_set_bits_GSR_ov <- admit "secure_set_bits"
+    [secure_cmp32_ov]
     (secure_set_bits_spec (eval_int {{( `N_PADDED_SIZE:[32])/8 }}) T1);
 
 // NOTE: Code proof, with the faked random data
 verify_pathsat "generate_sparse_rep"
     [ get_rand_mod_len_HACK_ov
-    , assert_fail_ov
-    , secure_set_bits_GSR_ov ]
+    , secure_set_bits_GSR_ov
+    ]
     (generate_sparse_rep_spec
         (eval_int {{ (`N_PADDED_SIZE:[32])/8 }}) N_BITS T1 true);
 
@@ -340,8 +340,8 @@ generate_sparse_rep_ov <- admit "generate_sparse_rep" []
 */
 
 // NOTE: For generate_sparse_fake_rep
-secure_set_bits_GSFR_ov <- verify "secure_set_bits"
-    [secure_cmp32_120_ov]
+secure_set_bits_GSFR_ov <- admit "secure_set_bits"
+    [secure_cmp32_ov]
     (secure_set_bits_spec (eval_int {{( `R_PADDED_SIZE:[32])/8 }}) FAKE_DV);
 
 // NOTE: Override for callers, without the faked data
@@ -353,5 +353,5 @@ verify "generate_sparse_fake_rep"
     [get_rand_mod_len_HACK_ov
     , secure_cmp32_ov
     , secure_set_bits_GSFR_ov
-    , assert_fail_ov ]
+    ]
     (generate_sparse_fake_rep_spec true);

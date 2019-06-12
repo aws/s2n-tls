@@ -12,8 +12,8 @@ let tactic unints =
             simplify basic_ss;
             print_goal_consts;
             print_goal;
-            unint_yices unints;}
-    else unint_yices unints;
+            w4_unint_yices unints;}
+    else w4_unint_yices unints;
 
 let verify_unint func overrides unints spec =
     if do_prove then

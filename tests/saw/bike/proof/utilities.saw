@@ -43,7 +43,9 @@ let secure_l32_mask_spec = do {
     (a, ap) <- in_val i32_T "v1";
     (b, bp) <- in_val i32_T "v2";
     crucible_execute_func [ap, bp];
-    crucible_return (crucible_term {{ if a<b then (0:[32]) else -1 }});
+    // crucible_return (tm {{ if a<b then (0:[32]) else -1 }});
+    ret <- crucible_fresh_var "ret" i32;
+    crucible_return (tm ret);
 };
 
 let bit_scan_reverse_spec = do {
@@ -57,60 +59,50 @@ let secure_cmp32_spec = do {
     (a, ap) <- in_val i32_T "v1";
     (b, bp) <- in_val i32_T "v2";
     crucible_execute_func [ap, bp];
-    crucible_return (tm {{ if a==b then (1:[32]) else 0 }});
+    // crucible_return (tm {{ if a==b then (1:[32]) else 0 }});
+    ret <- crucible_fresh_var "ret" i32;
+    crucible_return (tm ret);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
 
-// NOTE: Used by dbl_pad_syndrome_t
-secure_clean_100_ov_4RPS <- admit "secure_clean.32" []
-    (secure_clean_spec (eval_int {{ 4*(`R_PADDED_SIZE:[32]) }}));
-
-// NOTE: Used by pad_sk, pad_ct and anything else that's padded_param_n_t
-secure_clean_100_ov_2RPS <- admit "secure_clean.32" []
-    (secure_clean_spec (eval_int {{ 2*(`R_PADDED_SIZE:[32]) }}));
-
-// NOTE: Used bu split_e_t or anything that's generic_param_n_t
-secure_clean_100_ov_GPNT <- admit "secure_clean.32" []
-    (secure_clean_spec (eval_int {{ `N_generic_param_n_t:[32] }}));
-
 // NOTE: Used by padded_r_t
-secure_clean_124_ov_PRT <- admit "secure_clean.63" []
+secure_clean_ov_PRT <- admit "secure_clean" []
     (secure_clean_spec (eval_int {{ `R_PADDED_SIZE:[32] }}));
 
-// NOTE: Used by dbl_pad_ct_t
-secure_clean_124_ov_DPCTT <- admit "secure_clean.63" []
+// NOTE: Used by dbl_pad_ct_t, dbl_pad_syndrome_t, ...
+secure_clean_ov_4RPS <- admit "secure_clean" []
     (secure_clean_spec (eval_int {{ 4 *(`R_PADDED_SIZE:[32]) }}));
 
 // NOTE: Used by pad_sk, pad_ct, anything else that's padded_param_n_t
-secure_clean_124_ov_2RPS <- admit "secure_clean.63" []
+secure_clean_ov_2RPS <- admit "secure_clean" []
     (secure_clean_spec (eval_int {{ 2*(`R_PADDED_SIZE:[32]) }}));
 
 // NOTE: Used by padded_e_t
-secure_clean_124_ov_PET <- admit "secure_clean.63" []
+secure_clean_ov_PET <- admit "secure_clean" []
     (secure_clean_spec (eval_int {{ `N_PADDED_SIZE:[32] }}));
 
 // NOTE: Used by double_seed_t
-secure_clean_124_ov64 <- admit "secure_clean.63" [] (secure_clean_spec 64);
+secure_clean_ov64 <- admit "secure_clean" [] (secure_clean_spec 64);
 
 // NOTE: Used by aes_prf_state
-secure_clean_124_ov48 <- admit "secure_clean.63" [] (secure_clean_spec 48);
+secure_clean_ov48 <- admit "secure_clean" [] (secure_clean_spec 48);
 
-// NOTE: Used by split_e_t or anything that's generic_param_n_t
-secure_clean_124_ov_GPNT <- admit "secure_clean.63" []
+// NOTE: Used bu split_e_t or anything that's generic_param_n_t
+secure_clean_ov_GPNT <- admit "secure_clean" []
     (secure_clean_spec (eval_int {{ `N_generic_param_n_t:[32] }}));
 
-secure_clean_124_syndrome_ov <- admit "secure_clean.63" []
+secure_clean_syndrome_ov <- admit "secure_clean" []
     (secure_clean_spec (eval_int {{ `N_syndrome_t:[64] }}));
 
-secure_clean_124_e_ov <- admit "secure_clean.63" []
+secure_clean_e_ov <- admit "secure_clean" []
     (secure_clean_spec (eval_int {{ `N_e_t:[64] }}));
 
-secure_clean_124_R_SIZE_ov <- admit "secure_clean.63" []
+secure_clean_R_SIZE_ov <- admit "secure_clean" []
     (secure_clean_spec (eval_int {{ `R_SIZE:[64] }}));
 
-secure_clean_134_ov3 <- admit "secure_clean.73" []
+secure_clean_ov3 <- admit "secure_clean" []
     (secure_clean_spec AES256_KEY_SIZE);
 
 secure_l32_mask_ov <-  admit  "secure_l32_mask" [] secure_l32_mask_spec;
@@ -118,5 +110,3 @@ secure_l32_mask_ov <-  admit  "secure_l32_mask" [] secure_l32_mask_spec;
 iszero_ov <- verify  "bit_scan_reverse" [] bit_scan_reverse_spec;
 
 secure_cmp32_ov <- admit "secure_cmp32" [] secure_cmp32_spec;
-
-secure_cmp32_120_ov <- admit "secure_cmp32.59" [] secure_cmp32_spec;

@@ -211,16 +211,12 @@ let aes_ctr_prf_spec len = do {
 // Proof Commands
 
 aes256_free_ks_ov <- admit "aes256_free_ks"
-	[EVP_CIPHER_CTX_free_ov2]
-	aes256_free_ks_spec;
-
-aes256_free_ks_133_ov <- admit "aes256_free_ks.66"
-	[EVP_CIPHER_CTX_free_ov2]
+	[] // [EVP_CIPHER_CTX_free_ov2]
 	aes256_free_ks_spec;
 
 // NOTE: This cannot be verified because EVP_CIPHER_CTX_new returns a pointer
 aes256_key_expansion_ov <- admit "aes256_key_expansion"
-    [EVP_CIPHER_CTX_new_ov, EVP_aes_256_ecb_ov]
+    [] // [EVP_CIPHER_CTX_new_ov, EVP_aes_256_ecb_ov]
     aes256_key_expansion_spec;
 
 aes256_enc_ov <- admit "aes256_enc" [] (aes256_enc_spec 16);
@@ -229,12 +225,8 @@ finalize_aes_ctr_prf_ov <- verify "finalize_aes_ctr_prf"
     [aes256_free_ks_ov]
     finalize_aes_ctr_prf_spec;
 
-finalize_aes_ctr_prf_132_ov <- verify "finalize_aes_ctr_prf.65"
-    [aes256_free_ks_133_ov]
-    finalize_aes_ctr_prf_spec;
-
 init_aes_ctr_prf_state_ov <- verify "init_aes_ctr_prf_state"
-    [EVP_CIPHER_CTX_new_ov, aes256_key_expansion_ov, secure_clean_134_ov3]
+    [aes256_key_expansion_ov, secure_clean_ov3]
     init_aes_ctr_prf_state_spec;
 
 perform_aes_ov <- verify "perform_aes" [aes256_enc_ov] (perform_aes_spec 16);
