@@ -16,6 +16,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "tls/s2n_crypto.h"
 #include "utils/s2n_blob.h"
 
 typedef uint16_t kem_extension_size;
@@ -36,14 +37,14 @@ struct s2n_kem {
     int (*decapsulate)(unsigned char *shared_secret_out, const unsigned char *ciphertext_in, const unsigned char *private_key_in);
 };
 
-struct s2n_kem_keypair {
-    const struct s2n_kem *negotiated_kem;
-    struct s2n_blob public_key;
-    struct s2n_blob private_key;
+struct s2n_iana_to_kem {
+    const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN];
+    const struct s2n_kem **kems;
+    uint8_t kem_count;
 };
 
-extern const struct s2n_kem s2n_sike_supported_params[1];
-extern const struct s2n_kem s2n_bike_supported_params[1];
+extern const struct s2n_kem s2n_bike_1_level_1_r1;
+extern const struct s2n_kem s2n_sike_p503_r1;
 
 extern int s2n_kem_generate_keypair(struct s2n_kem_keypair *kem_keys);
 
@@ -57,3 +58,5 @@ extern int s2n_kem_find_supported_kem(struct s2n_blob *client_kem_names, const s
                                       const int num_server_supported_kems, const struct s2n_kem **matching_kem);
 
 extern int s2n_kem_free(struct s2n_kem_keypair *kem_keys);
+
+extern int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_iana_to_kem **supported_params);

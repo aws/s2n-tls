@@ -24,30 +24,47 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
-const struct s2n_kem s2n_sike_supported_params[1] = {
-        {
-                .kem_extension_id = SIKEp503r1_KEM,
-                .public_key_length = SIKE_P503_PUBLIC_KEY_BYTES,
-                .private_key_length = SIKE_P503_SECRET_KEY_BYTES,
-                .shared_secret_key_length = SIKE_P503_SHARED_SECRET_BYTES,
-                .ciphertext_length = SIKE_P503_CIPHERTEXT_BYTES,
-                .generate_keypair = &SIKE_P503_crypto_kem_keypair,
-                .encapsulate = &SIKE_P503_crypto_kem_enc,
-                .decapsulate = &SIKE_P503_crypto_kem_dec,
-        },
+const struct s2n_kem s2n_bike_1_level_1_r1 = {
+        .kem_extension_id = BIKE1r1_Level1,
+        .public_key_length = BIKE1_L1_PUBLIC_KEY_BYTES,
+        .private_key_length = BIKE1_L1_SECRET_KEY_BYTES,
+        .shared_secret_key_length = BIKE1_L1_SHARED_SECRET_BYTES,
+        .ciphertext_length = BIKE1_L1_CIPHERTEXT_BYTES,
+        .generate_keypair = &BIKE1_L1_crypto_kem_keypair,
+        .encapsulate = &BIKE1_L1_crypto_kem_enc,
+        .decapsulate = &BIKE1_L1_crypto_kem_dec,
 };
 
-const struct s2n_kem s2n_bike_supported_params[1] = {
+const struct s2n_kem s2n_sike_p503_r1 = {
+        .kem_extension_id = SIKEp503r1_KEM,
+        .public_key_length = SIKE_P503_PUBLIC_KEY_BYTES,
+        .private_key_length = SIKE_P503_SECRET_KEY_BYTES,
+        .shared_secret_key_length = SIKE_P503_SHARED_SECRET_BYTES,
+        .ciphertext_length = SIKE_P503_CIPHERTEXT_BYTES,
+        .generate_keypair = &SIKE_P503_crypto_kem_keypair,
+        .encapsulate = &SIKE_P503_crypto_kem_enc,
+        .decapsulate = &SIKE_P503_crypto_kem_dec,
+};
+
+const struct s2n_kem *supported_bike_params[] = {
+        &s2n_bike_1_level_1_r1,
+};
+
+const struct s2n_kem *supported_sike_params[] = {
+        &s2n_sike_p503_r1,
+};
+
+const struct s2n_iana_to_kem kem_mapping[2] = {
         {
-                .kem_extension_id = BIKE1r1_Level1,
-                .public_key_length = BIKE1_L1_PUBLIC_KEY_BYTES,
-                .private_key_length = BIKE1_L1_SECRET_KEY_BYTES,
-                .shared_secret_key_length = BIKE1_L1_SHARED_SECRET_BYTES,
-                .ciphertext_length = BIKE1_L1_CIPHERTEXT_BYTES,
-                .generate_keypair = &BIKE1_L1_crypto_kem_keypair,
-                .encapsulate = &BIKE1_L1_crypto_kem_enc,
-                .decapsulate = &BIKE1_L1_crypto_kem_dec,
+            .iana_value = { TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 },
+            .kems = supported_bike_params,
+            .kem_count = s2n_array_len(supported_bike_params),
         },
+        {
+            .iana_value = { TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 },
+            .kems = supported_sike_params,
+            .kem_count = s2n_array_len(supported_sike_params),
+        }
 };
 
 int s2n_kem_generate_keypair(struct s2n_kem_keypair *kem_keys)
@@ -128,7 +145,6 @@ int s2n_kem_find_supported_kem(struct s2n_blob *client_kem_ids, const struct s2n
 
     /* Nothing found */
     S2N_ERROR(S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-    return 0;
 }
 
 int s2n_kem_free(struct s2n_kem_keypair *kem_keys)
@@ -143,4 +159,16 @@ int s2n_kem_free(struct s2n_kem_keypair *kem_keys)
         }
     }
     return 0;
+}
+
+int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_iana_to_kem **supported_params)
+{
+    for (int i = 0; i < s2n_array_len(kem_mapping); i++) {
+        const struct s2n_iana_to_kem *candidate = &kem_mapping[i];
+        if (memcmp(iana_value, candidate->iana_value, S2N_TLS_CIPHER_SUITE_LEN) == 0) {
+            *supported_params = candidate;
+            return 0;
+        }
+    }
+    S2N_ERROR(S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 }

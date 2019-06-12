@@ -13,7 +13,7 @@
 
 #include "types.h"
 
-void split_e(OUT split_e_t* split_e, IN const e_t* e);
+void split_e(OUT split_e_t* split_e_, IN const e_t* e);
 
 ret_t compute_syndrome(OUT syndrome_t* syndrome,
                        IN const ct_t* ct,
