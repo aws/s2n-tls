@@ -590,8 +590,8 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     /* Allocate memory for handling handshakes */
     GUARD(s2n_stuffer_resize(&conn->handshake.io, S2N_LARGE_RECORD_LENGTH));
 
-    /* Resize raw message buffer to max length */
-    GUARD(s2n_stuffer_resize(&conn->client_hello.raw_message, S2N_LARGE_RECORD_LENGTH));
+    /* Truncate the raw message buffer to save memory, we will dynamically resize it as needed */
+    GUARD(s2n_stuffer_resize(&conn->client_hello.raw_message, 0));
 
     /* Remove context associated with connection */
     conn->context = NULL;

@@ -31,10 +31,10 @@
 #define CONNECTIONS 250
 
 /* This is roughly the current memory usage per connection */
-#define MEM_PER_CONNECTION (128 * 1024)
+#define MEM_PER_CONNECTION (106 * 1024)
 
-/* This is the maximum  memory per conneciton including 16KB of slack */
-#define MAX_MEM_PER_CONNECTION (MEM_PER_CONNECTION + 16 * 1024)
+/* This is the maximum  memory per conneciton including 4KB of slack */
+#define MAX_MEM_PER_CONNECTION (MEM_PER_CONNECTION + 4 * 1024)
 
 #define MAX_ALLOWED_MEM_DIFF ((ssize_t) 2 * CONNECTIONS * MAX_MEM_PER_CONNECTION)
 
