@@ -395,6 +395,8 @@ int main(int argc, char *const *argv)
 
         GUARD_EXIT(s2n_connection_set_fd(conn, sockfd) , "Error setting file descriptor");
 
+        GUARD_EXIT(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_OPTIONAL), "Error setting ClientAuth optional");
+
         if (use_corked_io) {
             GUARD_EXIT(s2n_connection_use_corked_io(conn), "Error setting corked io");
         }
