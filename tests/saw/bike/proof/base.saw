@@ -43,7 +43,7 @@ let test func overrides spec =
 let really_verify_simps func overrides unints spec transformations =
     crucible_llvm_verify m func overrides false spec do {
         transformations;
-        unint_yices unints;
+        tactic unints;
     };
 
 let verify_simps func overrides unints spec transformations =
@@ -70,14 +70,14 @@ let really_verify_pathsat func overrides spec =
 let really_verify_simps func overrides unints spec transformations =
     crucible_llvm_verify m func overrides false spec do {
         transformations;
-        unint_yices unints;
+        tactic unints;
    };
 
 let really_verify_unint func overrides unints spec =
     crucible_llvm_verify m func overrides false spec (tactic unints);
 
 let really_verify_bike_unint func overrides unints spec =
-crucible_llvm_verify m func overrides true spec (tactic unints);
+    crucible_llvm_verify m func overrides true spec (tactic unints);
 
 let really_test func overrides spec =
     crucible_llvm_verify m func overrides false spec (quickcheck 100);
@@ -96,4 +96,4 @@ let show_goal func overrides unints spec transformations =
     crucible_llvm_verify m func overrides false spec
         do { transformations;
              print_goal;
-             unint_yices unints; };
+             tactic unints; };

@@ -89,6 +89,9 @@ secure_clean_ov64 <- admit "secure_clean" [] (secure_clean_spec 64);
 // NOTE: Used by aes_prf_state
 secure_clean_ov48 <- admit "secure_clean" [] (secure_clean_spec 48);
 
+// NOTE: Used by parallel_hash
+secure_clean_ov1408 <- admit "secure_clean" [] (secure_clean_spec 1408);
+
 // NOTE: Used bu split_e_t or anything that's generic_param_n_t
 secure_clean_ov_GPNT <- admit "secure_clean" []
     (secure_clean_spec (eval_int {{ `N_generic_param_n_t:[32] }}));
@@ -107,6 +110,6 @@ secure_clean_ov3 <- admit "secure_clean" []
 
 secure_l32_mask_ov <-  admit  "secure_l32_mask" [] secure_l32_mask_spec;
 
-iszero_ov <- verify  "bit_scan_reverse" [] bit_scan_reverse_spec;
+iszero_ov <- verify_pathsat "bit_scan_reverse" [] bit_scan_reverse_spec;
 
 secure_cmp32_ov <- admit "secure_cmp32" [] secure_cmp32_spec;

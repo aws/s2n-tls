@@ -1,0 +1,26 @@
+127a128,131
+> extern status_t __breakpoint__generate_sparse_fake_rep_first_loop(uint64_t**, idx_t**, const uint32_t*, aes_ctr_prf_state_t**, status_t*, uint64_t*, uint32_t (*)[DV], const uint32_t*, uint32_t*, uint32_t*, uint32_t*) __attribute__((noduplicate));
+> extern status_t __breakpoint__generate_sparse_fake_rep_second_loop(uint64_t**, idx_t**, const uint32_t*, aes_ctr_prf_state_t**, status_t*, uint64_t*, uint32_t (*)[DV], const uint32_t*, uint32_t*, uint32_t*, uint32_t*) __attribute__((noduplicate));
+> extern status_t __breakpoint__generate_sparse_fake_rep_last_loop(uint64_t**, idx_t**, const uint32_t*, aes_ctr_prf_state_t**, status_t*, uint32_t (*)[DV], const uint32_t*, uint32_t*, uint32_t*, uint32_t*) __attribute__((noduplicate));
+> 
+140a145,146
+>     uint32_t mask = 0;
+>     uint32_t j, i;
+147a154
+>         __breakpoint__generate_sparse_fake_rep_first_loop(&a, &wlist, &padded_len, &prf_state, &res, &ctr, &real_wlist, &len, &mask, &j, &i);
+155a163
+>         __breakpoint__generate_sparse_fake_rep_second_loop(&a, &wlist, &padded_len, &prf_state, &res, &ctr, &real_wlist, &len, &mask, &j, &i);
+161,162c169
+<     uint32_t mask = 0;
+<     for(uint32_t j = 0; j < FAKE_DV; j++)
+---
+>     for(j = 0; j < FAKE_DV; j++)
+164c171
+<         for(uint32_t i = 0; i < DV; i++)
+---
+>         for(i = 0; __breakpoint__generate_sparse_fake_rep_last_loop(&a, &wlist, &padded_len, &prf_state, &res, &real_wlist, &len, &mask, &j, &i), i < DV; i++)
+181a189,190
+> extern status_t __breakpoint__generate_sparse_rep_loop(uint64_t**, idx_t**, const uint32_t*, const uint32_t*, const uint32_t*, aes_ctr_prf_state_t**, status_t*, uint64_t*) __attribute__((noduplicate));
+> 
+197a207
+>         __breakpoint__generate_sparse_rep_loop(&a, &wlist, &weight, &len, &padded_len, &prf_state, &res, &ctr);

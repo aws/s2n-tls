@@ -64,9 +64,7 @@ compute_counter_of_unsat_ov <- admit "compute_counter_of_unsat" []
 
 find_error1_ov <- verify "find_error1"
     [secure_l32_mask_ov
-    // , ossl_add4_ov1, ossl_add4_ov2
-    // , gf2x_add3_left_ov2, gf2x_add3_left_ov3
-    , gf2x_add3_left_ov1 ]
+    , gf2x_add_left_ov ]
     find_error1_spec;
 
 find_error2_ov <- verify "find_error2" [secure_l32_mask_ov] find_error2_spec;

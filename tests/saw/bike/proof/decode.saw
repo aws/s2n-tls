@@ -73,17 +73,104 @@ let fix_error_spec = do {
     a' <- point_to red_r_T ap "s'";
     b' <- point_to e_T bp "e'";
     c' <- point_to decode_ctx_T cp "ctx'";
+    crucible_postcond {{ c'.delta == c.delta }};
     return ();
 };
 
 let decode_spec = do {
-    ap <- out_ref e_T;
-    (b, bp) <- inout_ref syndrome_T "s";
-    (c, cp) <- in_ref ct_T "ct";
-    (d, dp) <- in_ref sk_T "sk";
-    e <- crucible_fresh_var "u" i32;
-    crucible_precond {{ is_bounded_sk d }};
-    crucible_execute_func [ap, bp, cp, dp, tm {{ e }}];
+    e_ptr <- out_ref e_T;
+    (s, s_ptr) <- inout_ref syndrome_T "s";
+    (ct, ct_ptr) <- in_ref ct_T "ct";
+    (sk, sk_ptr) <- in_ref sk_T "sk";
+    u <- crucible_fresh_var "u" i32;
+    crucible_precond {{ is_bounded_sk sk }};
+    crucible_execute_func [e_ptr, s_ptr, ct_ptr, sk_ptr, tm {{ u }}];
+    res <- crucible_fresh_var "res" i32;
+    crucible_return (tm res);
+};
+
+let decode_first_loop_spec = do {
+    e_ptr <- out_ref e_T;
+    e_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to e_ptr_ptr e_ptr;
+    (s, s_ptr) <- inout_ref syndrome_T "s";
+    s_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to s_ptr_ptr s_ptr;
+    (ct, ct_ptr) <- in_ref ct_T "ct";
+    ct_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to ct_ptr_ptr ct_ptr;
+    (sk, sk_ptr) <- in_ref sk_T "sk";
+    sk_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to sk_ptr_ptr sk_ptr;
+    (u, u_ptr) <- ptr_to_fresh "u" i32;
+    (code_ret, code_ret_ptr) <- ptr_to_fresh "code_ret" i32;
+    (original_s, original_s_ptr) <- inout_ref syndrome_T "original_s";
+    (ctx, ctx_ptr) <- inout_ref decode_ctx_T "ctx";
+    (inv_h_compressed, inv_h_compressed_ptr) <- inout_ref (compressed_idx_dv_array_T N0) "inv_h_compressed";
+    (i, i_ptr) <- ptr_to_fresh "i" i64;
+    iter_ptr <- crucible_alloc i32;
+
+    crucible_precond {{ is_bounded_sk sk }};
+    crucible_precond {{ is_bounded_compressed_idx_dv (inv_h_compressed @ 0) }};
+    crucible_precond {{ is_bounded_compressed_idx_dv (inv_h_compressed @ 1) }};
+    crucible_precond {{ i <= `FAKE_DV }};
+
+    crucible_execute_func
+        [ e_ptr_ptr
+        , s_ptr_ptr
+        , ct_ptr_ptr
+        , sk_ptr_ptr
+        , u_ptr
+        , code_ret_ptr
+        , original_s_ptr
+        , ctx_ptr
+        , inv_h_compressed_ptr
+        , i_ptr
+        , iter_ptr
+        ];
+
+    res <- crucible_fresh_var "res" i32;
+    crucible_return (tm res);
+};
+
+let decode_last_loop_spec = do {
+    (e, e_ptr) <- inout_ref e_T "e";
+    e_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to e_ptr_ptr e_ptr;
+    (s, s_ptr) <- inout_ref syndrome_T "s";
+    s_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to s_ptr_ptr s_ptr;
+    (ct, ct_ptr) <- in_ref ct_T "ct";
+    ct_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to ct_ptr_ptr ct_ptr;
+    (sk, sk_ptr) <- in_ref sk_T "sk";
+    sk_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to sk_ptr_ptr sk_ptr;
+    (u, u_ptr) <- ptr_to_fresh "u" i32;
+    (code_ret, code_ret_ptr) <- ptr_to_fresh "code_ret" i32;
+    (original_s, original_s_ptr) <- inout_ref syndrome_T "original_s";
+    (ctx, ctx_ptr) <- inout_ref decode_ctx_T "ctx";
+    (inv_h_compressed, inv_h_compressed_ptr) <- in_ref (compressed_idx_dv_array_T N0) "inv_h_compressed";
+    (iter, iter_ptr) <- ptr_to_fresh "iter" i32;
+
+    crucible_precond {{ is_bounded_sk sk }};
+    crucible_precond {{ is_bounded_compressed_idx_dv (inv_h_compressed @ 0) }};
+    crucible_precond {{ is_bounded_compressed_idx_dv (inv_h_compressed @ 1) }};
+    crucible_precond {{ ctx.delta <= `MAX_DELTA }};
+
+    crucible_execute_func
+        [ e_ptr_ptr
+        , s_ptr_ptr
+        , ct_ptr_ptr
+        , sk_ptr_ptr
+        , u_ptr
+        , code_ret_ptr
+        , original_s_ptr
+        , ctx_ptr
+        , inv_h_compressed_ptr
+        , iter_ptr
+        ];
+
     res <- crucible_fresh_var "res" i32;
     crucible_return (tm res);
 };
@@ -114,18 +201,18 @@ get_threshold_ov <- admit "get_threshold" [count_ones_R_BITS_ov]
 transpose_ov <- verify "transpose" [] transpose_spec;
 split_e_ov <- verify "split_e" [] (split_e_spec);
 
-compute_syndrome_ov <- verify_unint  "compute_syndrome"
-  [ gf2x_mod_mul_ov4
-  , gf2x_add_ov4
+compute_syndrome_ov <- verify_unint "compute_syndrome"
+  [ gf2x_mod_mul_ov
+  , gf2x_add_left_ov
   , convert_to_redundant_rep_ov
   , transpose_ov
   , secure_clean_ov_4RPS, secure_clean_ov_2RPS ]
   [ "gf2x_mod_mul", "convert_to_redundant_rep", "c_transpose"]
   compute_syndrome_spec;
 
-compute_syndrome_update_ov <- verify_unint  "compute_syndrome"
-    [ gf2x_mod_mul_ov4
-    , gf2x_add_ov4
+compute_syndrome_update_ov <- verify_unint "compute_syndrome"
+    [ gf2x_mod_mul_ov
+    , gf2x_add_left_ov
     , convert_to_redundant_rep_ov
     , transpose_ov
     , secure_clean_ov_4RPS, secure_clean_ov_2RPS ]
@@ -137,7 +224,7 @@ recompute_syndrome_ov <- verify "recompute_syndrome"
     , compute_syndrome_ov
     , split_e_ov
     , secure_clean_ov_GPNT
-    , gf2x_add3_left_ov1 ]
+    , gf2x_add_left_ov ]
     recompute_syndrome_spec;
 
 fix_error1_ov <- verify "fix_error1"
@@ -148,5 +235,34 @@ fix_black_error_ov <- verify "fix_black_error"
 
 fix_gray_error_ov <- verify "fix_gray_error"
     [find_error2_ov, recompute_syndrome_ov] fix_error_spec;
+
+decode_first_loop_ov <- admit "__breakpoint__decode_first_loop#decode"
+    [] decode_first_loop_spec;
+decode_last_loop_ov <- admit "__breakpoint__decode_last_loop#decode"
+    [] decode_last_loop_spec;
+let decode_O =
+    [ decode_first_loop_ov
+    , decode_last_loop_ov
+    , count_ones_R_BITS_ov
+    , count_ones_N_SIZE_ov
+    , compute_counter_of_unsat_ov
+    , get_threshold_ov
+    , fix_error1_ov
+    , fix_black_error_ov
+    , fix_gray_error_ov
+    , compute_syndrome_ov
+    , cyclic_product_ov
+    ];
+verify_unint "__breakpoint__decode_first_loop#decode"
+    decode_O
+    ["count_ones"]
+    decode_first_loop_spec;
+verify_unint "__breakpoint__decode_last_loop#decode"
+    decode_O
+    ["is_bounded_compressed_idx_dv", "is_bounded_sk", "count_ones"]
+    decode_last_loop_spec;
+decode_ov <- verify "decode"
+    decode_O
+    decode_spec;
 
 decode_op_ov <- admit "decode" [] decode_op_spec;

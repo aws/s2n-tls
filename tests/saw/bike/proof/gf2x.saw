@@ -11,10 +11,7 @@
 //       that the result parameter must have this extra space.
 // TODO: Does this space need to be initialized to 0? One comment suggests this.
 
-// NOTE: Like some other BIKE functions, the gfx2 functions are declared
-//       inline, and the bitcode contains multiple copies with derived names.
-
-let gf2x_mod_mul_spec4 x = do {
+let gf2x_mod_mul_spec x = do {
     let len = eval_int {{ `R_PADDED_QW:[64] }};
     let len2 = eval_int {{ 2 * (`R_PADDED_QW:[64]) }};
     let ty = (llvm_array len (llvm_int 64));
@@ -27,69 +24,55 @@ let gf2x_mod_mul_spec4 x = do {
     if x then
         crucible_points_to resp (tm {{ gf2x_mod_mul a b }})
     else do {
-
         // NOTE: R_SIZE bytes
         v <- crucible_fresh_var "gf2x_r'" rsize_t;
         crucible_points_to_untyped resp (tm v);
     };
+
+    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
 };
 
-let gf2x_add3_spec = do {
-    let ty = rsize_T;
-    ap <- out_ref  ty;
-    (b,bp) <- in_ref ty "a_bin";
-    (c,cp) <- in_ref ty "b_bin";
-    crucible_execute_func [ap, bp, cp];
-    a <- point_to ty ap "a'";
-    return ();
+let gf2x_add_spec x = do {
+    ap <- out_ref rsize_T;
+    (b,bp) <- in_ref rsize_T "a";
+    (c,cp) <- in_ref rsize_T "b";
+
+    crucible_execute_func [ap, bp, cp, tm {{ `R_SIZE:[64] }}];
+
+    if x then
+        crucible_points_to ap (tm {{ gf2x_add b c }})
+    else do {
+        a' <- point_to rsize_T ap "a'"; // *ap is updated
+        return ();
+    };
+
+    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
 };
 
-let gf2x_add3_spec_left ty = do {
-    (a, ap) <- inout_ref ty "a";
-    (b, bp) <- in_ref ty "b";
-    crucible_execute_func [ap, ap, bp];
-    a' <- point_to ty ap "a'"; // *ap is updated
-    return ();
-};
-
-let ossl_add_left_spec = do {
-    let ty = rsize_T;
-    (a, ap) <- inout_ref ty "a";
-    (b, bp) <- in_ref ty "b";
-    crucible_execute_func [ap, ap, bp];
-    a' <- point_to ty ap "ossl_add_left_a'"; // *ap is updated
-    crucible_return (crucible_term {{ 0:[32] }});
-};
-
-// NOTE: The postcondition is needed for the functionality
-//       proof of compute_syndrome
-let gf2x_add_spec4 x = do {
-
+let gf2x_add_left_spec x = do {
     (a,ap) <- inout_ref rsize_T "a";
     (b,bp) <- in_ref rsize_T "b";
     crucible_execute_func [ap, ap, bp, tm {{ `R_SIZE:[64] }}];
 
     if x then
-    	crucible_points_to ap (tm {{ gf2x_add a b }})
+        crucible_points_to ap (tm {{ gf2x_add a b }})
     else do {
         a' <- point_to rsize_T ap "a'"; // *ap is updated
         return ();
     };
+
+    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
 
-gf2x_mod_mul_ov5 <- verify "gf2x_mod_mul"
-    [cyclic_product_ov] (gf2x_mod_mul_spec4 false);
-
+verify "gf2x_mod_mul" [cyclic_product_ov] (gf2x_mod_mul_spec false);
 // NOTE: These are admitted as post-cond is needed for compute syndrome
-gf2x_mod_mul_ov4 <- admit "gf2x_mod_mul" [] (gf2x_mod_mul_spec4 true);
+gf2x_mod_mul_ov <- admit "gf2x_mod_mul" [] (gf2x_mod_mul_spec true);
 
-gf2x_add3_ov <- verify "gf2x_add" [ossl_add3_ov1] gf2x_add3_spec;
-
-gf2x_add3_left_ov1 <- verify  "gf2x_add"
-    [ossl_add3_left_ov1] (gf2x_add3_spec_left ( make_i8_T R_SIZE));
-
-ossl_add_left_ov <- admit "ossl_add" [] ossl_add_left_spec;
-gf2x_add_ov4 <-  admit "gf2x_add" [ossl_add_left_ov] (gf2x_add_spec4 true);
+verify "gf2x_add" [ossl_add_ov] (gf2x_add_spec false);
+verify "gf2x_add" [ossl_add_left_ov] (gf2x_add_left_spec false);
+// NOTE: These are admitted as post-cond is needed for compute syndrome
+gf2x_add_ov <- admit "gf2x_add" [] (gf2x_add_spec true);
+gf2x_add_left_ov <- admit "gf2x_add" [] (gf2x_add_left_spec true);

@@ -32,7 +32,7 @@ type FAKE_DV = set_value 261  197 132 261 197 133 4
 type T1      = set_value 300 226 154 264  199  134 7
 type BLOCK_SIZE = set_value (32768 * 2) 32768 16384 32768 32768 16384 512
 
-MAX_DELTA = 4
+type MAX_DELTA = 4
 
 type U_ERR = ifeq BIKE_VER 3 /*then*/ 1 /*else*/ 0
 BATCH_SIZE = 1
@@ -42,7 +42,6 @@ type N_BITS   = R_BITS * N0
 type R_SIZE   = DIVIDE_AND_CEIL R_BITS  8
 type R_QW     = DIVIDE_AND_CEIL R_BITS  64
 type N_SIZE   = DIVIDE_AND_CEIL N_BITS  8
-type N_SIZE_GLOB   = DIVIDE_AND_CEIL N_BITS  8
 
 type N_QW     = DIVIDE_AND_CEIL N_BITS  64
 type N_EXTRA_BYTES = 8 * N_QW - N_SIZE

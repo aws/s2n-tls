@@ -24,9 +24,10 @@ CFLAGS += -DBIKE_VER=1 -DLEVEL=1 -DCONSTANT_TIME -DUSE_OPENSSL
 
 CFLAGS += -I../../
 
-CFLAGS_LLVM += -Wno-missing-braces -Wno-missing-field-initializers
-CFLAGS_LLVM += -DBIKE_VER=1 -DLEVEL=1 -DCONSTANT_TIME -DUSE_OPENSSL
-CFLAGS_LLVM += -I../../
+CFLAGS_LLVM = -emit-llvm -c -g \
+              -std=c99 -fgnu89-inline -D_POSIX_C_SOURCE=200809L -D_FORTIFY_SOURCE=2 \
+              -I$(LIBCRYPTO_ROOT)/include/ -I../../../api/ -I../../../ -I../../ \
+              -DBIKE_VER=1 -DLEVEL=1 -DCONSTANT_TIME -DUSE_OPENSSL
 
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)

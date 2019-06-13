@@ -117,6 +117,8 @@ let generic_param_n_T = plain_type generic_param_n_t;
 let compressed_idx_dv_t = llvm_struct "struct.compressed_idx_dv_s";
 let compressed_idx_dv_T = point_to_flat {{ `N_compressed_idx_dv_t }}
     {{ assemble_compressed_idx_dv_t }};
+let compressed_idx_dv_array_T n = point_to_flat {{ (`N_compressed_idx_dv_t:[32]) * (`n:[32]) }}
+    {{ assemble_array assemble_compressed_idx_dv_t }};
 
 let a_t  = llvm_array N_PADDED_QW i64;
 let a_T = plain_type a_t;

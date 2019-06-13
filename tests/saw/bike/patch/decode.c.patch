@@ -1,0 +1,19 @@
+367a368,371
+> extern status_t __breakpoint__decode_first_loop(e_t**, syndrome_t**, const ct_t**, const sk_t**, const uint32_t*, int*, syndrome_t*, decode_ctx_t*, compressed_idx_dv_t (*)[N0], uint64_t*, uint32_t*) __attribute__((noduplicate));
+> extern status_t __breakpoint__decode_last_loop(e_t**, syndrome_t**, const ct_t**, const sk_t**, const uint32_t*, int*, syndrome_t*, decode_ctx_t*, compressed_idx_dv_t (*)[N0], uint32_t*) __attribute__((noduplicate));
+> 
+> 
+375c379
+<     syndrome_t original_s;
+---
+>     syndrome_t original_s = {0};
+386c390,392
+<     for (uint64_t i = 0; i < FAKE_DV; i++)
+---
+>     uint64_t i;
+>     uint32_t iter;
+>     for (i = 0; __breakpoint__decode_first_loop(&e, &s, &ct, &sk, &u, &code_ret, &original_s, &ctx, &inv_h_compressed, &i, &iter), i < FAKE_DV; i++)
+410c416
+<         for (uint32_t iter = 0; iter < MAX_IT; iter++)
+---
+>         for (iter = 0; __breakpoint__decode_last_loop(&e, &s, &ct, &sk, &u, &code_ret, &original_s, &ctx, &inv_h_compressed, &iter), iter < MAX_IT; iter++)

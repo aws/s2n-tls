@@ -47,39 +47,28 @@ let point_to_compressed_idx_dv p v = do {
 };
 
 let point_to_decode_ctx p v = do {
-    let el = crucible_elem;
-    upc <- crucible_fresh_var (str_concat v ".upc")
-        (llvm_array decode_utc (llvm_int 8));
-    black_e <- crucible_fresh_var (str_concat v ".black_e") e_t;
-    gray_e <- crucible_fresh_var (str_concat v ".gray_e") e_t;
-    delta <- crucible_fresh_var (str_concat v ".delta") (llvm_int 32);
-    threshold <- crucible_fresh_var (str_concat v ".threshold") (llvm_int 32);
-    if (reduced) then
-    do {
-    	crucible_points_to p (crucible_struct
-	    [tm upc, tm black_e, tm gray_e, tm delta, tm threshold] );
-      	return {{
-            { upc = upc
-            , black_e = black_e
-            , gray_e = gray_e
-            , delta = delta
-            , threshold = threshold }
-        }};
+    x <- crucible_fresh_var v (llvm_struct "struct.decode_ctx_s");
+    crucible_points_to p (tm x);
+    if (reduced) then do {
+      return {{
+          { upc = x.0
+          , black_e = x.1
+          , gray_e = x.2
+          , delta = x.3
+          , threshold = x.4
+          }
+      }};
     }
     else do {
-        ex <- crucible_fresh_var (str_concat v ".ex")
-            (llvm_array 8 (llvm_int 8));
-  	crucible_points_to p (crucible_struct
-    	    [tm upc, tm black_e, tm gray_e, tm delta, tm threshold, tm ex]);
     	return {{
-            { upc = upc
-            , black_e = black_e
-            , gray_e = gray_e
-            , delta = delta
-            , threshold = threshold
-            , ex = ex
-            }
-        }};
+          { upc = x.0
+          , black_e = x.1
+          , gray_e = x.2
+          , delta = x.3
+          , threshold = x.4
+          , ex = x.5
+          }
+      }};
     };
 };
 

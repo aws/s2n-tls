@@ -4,17 +4,32 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Specifications
 
+let alpha = eval_int {{ (((`N_SIZE / `MAX_MB_SLICES) - `SLICE_REM) / `HASH_BLOCK_SIZE):[64] }};
+let ls = eval_int {{ ((`alpha * `HASH_BLOCK_SIZE) + `SLICE_REM):[64] }};
+
 let compute_slice_len_spec = do {
-    la <- crucible_fresh_var "la" i64;
-    crucible_precond {{ la == 8188 }};
-    crucible_execute_func [tm la];
-    let alpha = eval_int {{
-        (((`8188 / `(MAX_MB_SLICES)) -
-        `(SLICE_REM)) / `(HASH_BLOCK_SIZE)):[64] }};
-    crucible_return (tm {{ ((`alpha * `HASH_BLOCK_SIZE) + `SLICE_REM):[64] }});
+    crucible_execute_func [tm {{ `N_SIZE:[64] }}];
+    crucible_return (tm {{ `ls:[64] }});
+};
+
+// NOTE: Used by get_ss
+let parallel_hash_spec = do {
+    ap <- out_ref sha384_hash_T;
+    (b, bp) <- ptr_to_fresh "m" (llvm_array N_SIZE i8);
+    crucible_execute_func [ap, bp, tm {{ `N_SIZE:[32] }}];
+    a' <- point_to sha384_hash_T ap "parallel_hash_out_hash'";
+    return ();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
 
 compute_slice_len_ov <- verify "compute_slice_len" [] (compute_slice_len_spec);
+
+parallel_hash_ov <- admit "parallel_hash"
+    [ compute_slice_len_ov
+    , sha_ov
+    , sha_mb_ov
+    , secure_clean_ov1408
+    ]
+    parallel_hash_spec;
