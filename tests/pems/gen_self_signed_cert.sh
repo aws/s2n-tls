@@ -32,7 +32,7 @@ Options:
 }
 
 # This only works with gnu getopt.
-PARSED_OPTS=`getopt -o vdn: --long help,user-type:,rsa-key-size:,curve-name:,hash-alg:,san:,cn:,key-type: -n 'parse-options' -- "$@"`
+PARSED_OPTS=`getopt -o vdn: --long help,user-type:,rsa-key-size:,curve-name:,hash-alg:,san:,cn:,key-type:,prefix: -n 'parse-options' -- "$@"`
 eval set -- "$PARSED_OPTS"
 
 USER_TYPE="server"
@@ -56,7 +56,7 @@ while true; do
     --rsa-key-size ) RSA_KEY_SIZE="$2" ; shift 2 ;;
     --curve-name ) CURVE_NAME="$2" ; shift 2 ;;
     --user-type ) USER_TYPE="$2" ; shift 2 ;;
-    --output-prefix ) PREFIX="$2" ; shift 2 ;;
+    --prefix ) PREFIX="$2" ; shift 2 ;;
     -- ) shift; break ;;
     * ) break ;;
   esac
@@ -77,6 +77,9 @@ then
 elif [ "$USER_TYPE" == "client" ]
 then
     KEY_USAGE="clientAuth";
+elif [ "$USER_TYPE" == "both" ]
+then
+    KEY_USAGE="serverAuth, clientAuth";
 else
     echo "Incorrect user-type: $USER_TYPE" 
     usage ;
