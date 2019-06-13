@@ -76,6 +76,12 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
+    /* Skip the test when running under valgrind or address sanitizer, as those tools
+     * impact the memory usage. */
+    if (getenv("S2N_VALGRIND") != NULL || getenv("S2N_ADDRESS_SANITIZER") != NULL) {
+        END_TEST();
+    }
+
     EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
 
     EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -161,12 +167,9 @@ int main(int argc, char **argv)
     fprintf(stdout, "Max VmData diff allowed:  %10zu\n", MAX_ALLOWED_MEM_DIFF);
 #endif
 
-    /* Ignore expectations when running under valgrind, as valgrind allocates much more
-     * memory than we expect in this test. */
-    if (getenv("S2N_VALGRIND") == NULL) {
-        EXPECT_TRUE(vm_data_after_allocation - vm_data_initial < MAX_ALLOWED_MEM_DIFF);
-        EXPECT_TRUE(vm_data_after_handshakes - vm_data_initial < MAX_ALLOWED_MEM_DIFF);
-    }
+    EXPECT_TRUE(vm_data_after_allocation - vm_data_initial < MAX_ALLOWED_MEM_DIFF);
+    EXPECT_TRUE(vm_data_after_handshakes - vm_data_initial < MAX_ALLOWED_MEM_DIFF);
+
 
     END_TEST();
 
