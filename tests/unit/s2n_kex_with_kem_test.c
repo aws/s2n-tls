@@ -34,7 +34,7 @@ struct s2n_kex s2n_test_kem_kex = {
 };
 
 struct s2n_cipher_suite s2n_test_suite = {
-        .iana_value = { TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 },
+        .iana_value = { TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 },
         .key_exchange_alg = &s2n_test_kem_kex,
 };
 
@@ -49,20 +49,20 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
     EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
-    client_conn->secure.s2n_kem_keys.negotiated_kem = &s2n_bike_1_level_1_r1;
+    client_conn->secure.s2n_kem_keys.negotiated_kem = &s2n_sike_p503_r1;
     client_conn->secure.cipher_suite = &s2n_test_suite;
 
-    server_conn->secure.s2n_kem_keys.negotiated_kem = &s2n_bike_1_level_1_r1;
+    server_conn->secure.s2n_kem_keys.negotiated_kem = &s2n_sike_p503_r1;
     server_conn->secure.cipher_suite = &s2n_test_suite;
 
     /* Part 1: Server calls send_key */
     struct s2n_blob data_to_sign = {0};
     EXPECT_SUCCESS(s2n_kem_server_key_send(server_conn, &data_to_sign));
     /* 2 extra bytes for the kem extension id and 2 additional bytes for the length of the public key sent over the wire. */
-    const int KEM_PUBLIC_KEY_SIZE = s2n_bike_1_level_1_r1.public_key_length + 4;
+    const int KEM_PUBLIC_KEY_SIZE = s2n_sike_p503_r1.public_key_length + 4;
     EXPECT_EQUAL(data_to_sign.size, KEM_PUBLIC_KEY_SIZE);
 
-    EXPECT_EQUAL(s2n_bike_1_level_1_r1.private_key_length, server_conn->secure.s2n_kem_keys.private_key.size);
+    EXPECT_EQUAL(s2n_sike_p503_r1.private_key_length, server_conn->secure.s2n_kem_keys.private_key.size);
     struct s2n_blob server_key_message = {.size = KEM_PUBLIC_KEY_SIZE, .data = s2n_stuffer_raw_read(&server_conn->handshake.io,
                                                                                                     KEM_PUBLIC_KEY_SIZE)};
     EXPECT_NOT_NULL(server_key_message.data);
@@ -76,10 +76,10 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_kem_server_key_recv_read_data(client_conn, &data_to_verify, &raw_parms));
     EXPECT_EQUAL(data_to_verify.size, KEM_PUBLIC_KEY_SIZE);
     EXPECT_SUCCESS(s2n_kem_server_key_recv_parse_data(client_conn, &raw_parms));
-    EXPECT_EQUAL(s2n_bike_1_level_1_r1.public_key_length, client_conn->secure.s2n_kem_keys.public_key.size);
+    EXPECT_EQUAL(s2n_sike_p503_r1.public_key_length, client_conn->secure.s2n_kem_keys.public_key.size);
 
     /* Part 3: Client calls send_key. The additional 2 bytes are for the ciphertext length sent over the wire */
-    int KEM_CIPHERTEXT_SIZE = s2n_bike_1_level_1_r1.ciphertext_length + 2;
+    int KEM_CIPHERTEXT_SIZE = s2n_sike_p503_r1.ciphertext_length + 2;
     DEFER_CLEANUP(struct s2n_blob client_shared_key = {0}, s2n_free);
     EXPECT_SUCCESS(s2n_kem_client_key_send(client_conn, &client_shared_key));
     struct s2n_blob client_key_message = {.size = KEM_CIPHERTEXT_SIZE, .data = s2n_stuffer_raw_read(&client_conn->handshake.io,
@@ -92,7 +92,7 @@ int main(int argc, char **argv)
     /* Part 4: Call client key recv */
     DEFER_CLEANUP(struct s2n_blob server_shared_key = {0}, s2n_free);
     EXPECT_SUCCESS(s2n_kem_client_key_recv(server_conn, &server_shared_key));
-    EXPECT_BYTEARRAY_EQUAL(client_shared_key.data, server_shared_key.data, s2n_bike_1_level_1_r1.shared_secret_key_length);
+    EXPECT_BYTEARRAY_EQUAL(client_shared_key.data, server_shared_key.data, s2n_sike_p503_r1.shared_secret_key_length);
 
     EXPECT_SUCCESS(s2n_connection_free(client_conn));
     EXPECT_SUCCESS(s2n_connection_free(server_conn));
