@@ -32,9 +32,9 @@ if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     sudo -E "$PRLIMIT_INSTALL_DIR"/bin/prlimit --pid "$$" --memlock=unlimited:unlimited;
 fi
 
-# Set GCC 6 as Default if it's required
-if [[ "$GCC6_REQUIRED" == "true" ]]; then
-    alias gcc=$(which gcc-6);
+# Set the version of GCC as Default if it's required
+if [[ -n "$GCC_VERSION" ]] && [[ "$GCC_VERSION" != "NONE" ]]; then
+    alias gcc=$(which gcc-$GCC_VERSION);
 fi
 
 if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "valgrind" ]]; then

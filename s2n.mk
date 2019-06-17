@@ -62,6 +62,17 @@ endif
 
 CFLAGS += ${DEFAULT_CFLAGS}
 
+ifdef GCC_VERSION
+	ifneq ("$(GCC_VERSION)","NONE")
+		CC=gcc-$(GCC_VERSION)
+	endif
+# Make doesn't support greater than checks, this uses `test` to compare values, then `echo $$?` to return the value of test's
+# exit code and finally using the built in make `ifeq` to check if it was true and then add the extra flag.
+	ifeq ($(shell test $(GCC_VERSION) -gt 7; echo $$?),0)
+		CFLAGS += -Wimplicit-fallthrough
+	endif
+endif
+
 DEBUG_CFLAGS = -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls
 
 ifdef S2N_ADDRESS_SANITIZER
