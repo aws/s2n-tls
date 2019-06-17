@@ -56,6 +56,7 @@ static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob
     GUARD(kex_method(hybrid_kex_1, conn, &shared_key_1));
 
     const uint32_t end_cursor = *cursor;
+    gte_check(end_cursor, start_cursor);
     client_key_exchange_message->size = end_cursor - start_cursor;
 
     GUARD(s2n_alloc(combined_shared_key, shared_key_0.size + shared_key_1.size));

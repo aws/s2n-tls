@@ -1039,7 +1039,7 @@ static int s2n_set_cipher_and_cert_as_server(struct s2n_connection *conn, uint8_
                 continue;
             }
 
-            if (!s2n_kex_supported(match, conn)) {
+            if (!s2n_kex_supported_and_configure(match, conn)) {
                 continue;
             }
 

@@ -25,7 +25,7 @@
 #include "utils/s2n_safety.h"
 
 const struct s2n_kem s2n_bike_1_level_1_r1 = {
-        .kem_extension_id = BIKE1r1_Level1,
+        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_BIKE1_R1_LEVEL_1,
         .public_key_length = BIKE1_L1_PUBLIC_KEY_BYTES,
         .private_key_length = BIKE1_L1_SECRET_KEY_BYTES,
         .shared_secret_key_length = BIKE1_L1_SHARED_SECRET_BYTES,
@@ -36,7 +36,7 @@ const struct s2n_kem s2n_bike_1_level_1_r1 = {
 };
 
 const struct s2n_kem s2n_sike_p503_r1 = {
-        .kem_extension_id = SIKEp503r1_KEM,
+        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1_KEM,
         .public_key_length = SIKE_P503_PUBLIC_KEY_BYTES,
         .private_key_length = SIKE_P503_SECRET_KEY_BYTES,
         .shared_secret_key_length = SIKE_P503_SHARED_SECRET_BYTES,
