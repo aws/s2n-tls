@@ -37,8 +37,8 @@ int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name)
     FILE *kat_file = fopen(kat_file_name, "r");
     notnull_check(kat_file);
 
-    /* Client side variables */
     uint8_t *ct, *client_shared_secret, *pk, *sk, *server_shared_secret, *pk_answer, *sk_answer, *ct_answer, *ss_answer;
+    /* Client side variables */
     notnull_check(ct = malloc(kem->ciphertext_length));
     notnull_check(client_shared_secret = malloc(kem->shared_secret_key_length));
 
@@ -55,9 +55,9 @@ int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name)
 
     s2n_stack_blob(personalization_string, SEED_LENGTH, SEED_LENGTH);
 
-    for (uint32_t i = 0; i < NUM_OF_KATS; i++) {
+    for (int32_t i = 0; i < NUM_OF_KATS; i++) {
         /* Verify test index */
-        int count = 0;
+        int32_t count = 0;
         GUARD(FindMarker(kat_file, "count = "));
         gt_check(fscanf(kat_file, "%d", &count), 0);
         eq_check(count, i);
