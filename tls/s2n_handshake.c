@@ -204,7 +204,7 @@ static int s2n_find_cert_matches(struct s2n_map *domain_name_to_cert_map,
 {
     struct s2n_blob map_value;
     if (s2n_map_lookup(domain_name_to_cert_map, dns_name, &map_value) == 1) {
-        struct domain_name_to_cert_map_value *value = (void *) map_value.data;
+        struct auth_method_to_cert_value *value = (void *) map_value.data;
         for (int i = 0; i < S2N_AUTHENTICATION_METHOD_SENTINEL; i++) {
             matches[i] = value->certs[i];
         }

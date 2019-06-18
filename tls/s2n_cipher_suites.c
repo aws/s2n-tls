@@ -914,51 +914,10 @@ static int s2n_wire_ciphers_contain(const uint8_t * match, const uint8_t * wire,
     return 0;
 }
 
-static int s2n_cipher_is_compatible_with_cert(struct s2n_cipher_suite *cipher, struct s2n_cert *cert, uint8_t *compatibility_out)
-{
-    *compatibility_out = 0;
-
-    /* Verify cert type with cipher authentication method */
-    switch (cert->cert_type) {
-        case S2N_CERT_TYPE_RSA_SIGN:
-            if (cipher->auth_method == S2N_AUTHENTICATION_RSA) {
-                *compatibility_out = 1;
-            }
-            break;
-        case S2N_CERT_TYPE_ECDSA_SIGN:
-            if (cipher->auth_method == S2N_AUTHENTICATION_ECDSA) {
-                *compatibility_out = 1;
-            }
-            break;
-        default:
-            /* Match error from s2n_pkey_setup_for_type ? */
-            S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
-            break;
-    }
-
-    return 0;
-}
-
-/* Find the first certificate that is compatible with the authentication method for a given cipher suite. */
-static struct s2n_cert_chain_and_key *s2n_get_first_compatible_cert_chain_and_key(struct s2n_array *certs, struct s2n_cipher_suite *cipher_suite)
-{
-    for (int i = 0; i < s2n_array_num_elements(certs); i++) {
-        struct s2n_cert_chain_and_key *cert_chain_and_key = *((struct s2n_cert_chain_and_key**) s2n_array_get(certs, i));
-        struct s2n_cert *leaf_cert = cert_chain_and_key->cert_chain->head;
-        uint8_t cert_compatibility = 0;
-        GUARD_PTR(s2n_cipher_is_compatible_with_cert(cipher_suite, leaf_cert, &cert_compatibility));
-        if (cert_compatibility) {
-            return cert_chain_and_key;
-        }
-    }
-
-    return NULL;
-}
-
-/* Find the optimal certificate certificate that is compatible with with a cipher.
+/* Find the optimal certificate that is compatible with a cipher.
  * The priority of set of certificates to choose from:
  * 1. Certificates that match the client's ServerName extension.
- * 2. All mismatched certificates
+ * 2. Default certificates
  */
 static struct s2n_cert_chain_and_key *s2n_conn_get_compatible_cert_chain_and_key(struct s2n_connection *conn, struct s2n_cipher_suite *cipher_suite)
 {
@@ -968,8 +927,8 @@ static struct s2n_cert_chain_and_key *s2n_conn_get_compatible_cert_chain_and_key
     } if (conn->handshake_params.wc_sni_match_exists) {
         return conn->handshake_params.wc_sni_matches[cipher_suite->auth_method];
     } else {
-        /* We don't have any name matches. Use the first certificate that works with the key type. */
-        return s2n_get_first_compatible_cert_chain_and_key(conn->config->cert_and_key_pairs, cipher_suite);
+        /* We don't have any name matches. Use the default certificate that works with the key type. */
+        return conn->config->default_cert_per_auth_method.certs[cipher_suite->auth_method];
     }
 }
 
