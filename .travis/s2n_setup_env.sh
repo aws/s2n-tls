@@ -17,7 +17,7 @@
 # Setup Default Build Config
 : "${S2N_LIBCRYPTO:=openssl-1.1.1}"
 : "${BUILD_S2N:=false}"
-: "${GCC6_REQUIRED:=false}"
+: "${GCC_VERSION:=NONE}"
 : "${LATEST_CLANG:=false}"
 : "${TESTS:=integration}"
 
@@ -52,7 +52,7 @@ fi
 # Export all Env Variables
 export S2N_LIBCRYPTO
 export BUILD_S2N
-export GCC6_REQUIRED
+export GCC_VERSION
 export LATEST_CLANG
 export TESTS
 export BASE_S2N_DIR
@@ -103,7 +103,7 @@ export LIBFUZZER_ROOT=$LIBFUZZER_INSTALL_DIR
 echo "TRAVIS_OS_NAME=$TRAVIS_OS_NAME"
 echo "S2N_LIBCRYPTO=$S2N_LIBCRYPTO"
 echo "BUILD_S2N=$BUILD_S2N"
-echo "GCC6_REQUIRED=$GCC6_REQUIRED"
+echo "GCC_VERSION=$GCC_VERSION"
 echo "LATEST_CLANG=$LATEST_CLANG"
 echo "TESTS=$TESTS"
 echo "PATH=$PATH"
