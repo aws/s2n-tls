@@ -89,8 +89,8 @@ cd libcrypto-build
 curl -LO https://www.openssl.org/source/openssl-1.1.1-latest.tar.gz
 tar -xzvf openssl-1.1.1-latest.tar.gz
 
-# Build openssl libcrypto  (NOTE: check directory name 1.1.1-latest unpacked as)
-cd openssl-1.1.1b
+# Build openssl libcrypto
+cd `tar ztf openssl-1.1.1-latest.tar.gz | head -n1 | cut -f1 -d/`
 ./config -fPIC no-shared              \
          no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
          no-hw no-mdc2 no-seed no-idea enable-ec_nistp_64_gcc_128 no-camellia\
@@ -127,8 +127,8 @@ cd libcrypto-build
 curl -LO https://www.openssl.org/source/openssl-1.0.2-latest.tar.gz
 tar -xzvf openssl-1.0.2-latest.tar.gz
 
-# Build openssl libcrypto  (NOTE: check directory name 1.0.2-latest unpacked as)
-cd openssl-1.0.2k
+# Build openssl libcrypto
+cd `tar ztf openssl-1.0.2-latest.tar.gz | head -n1 | cut -f1 -d/`
 ./config -fPIC no-shared no-libunbound no-gmp no-jpake no-krb5              \
          no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-store no-zlib     \
          no-hw no-mdc2 no-seed no-idea enable-ec-nistp_64_gcc_128 no-camellia\
