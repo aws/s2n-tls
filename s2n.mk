@@ -76,7 +76,7 @@ endif
 DEBUG_CFLAGS = -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls
 
 ifdef S2N_ADDRESS_SANITIZER
-	CFLAGS += -fsanitize=address ${DEBUG_CFLAGS}
+	CFLAGS += -fsanitize=address -fuse-ld=gold ${DEBUG_CFLAGS}
 endif
 
 ifdef S2N_DEBUG
