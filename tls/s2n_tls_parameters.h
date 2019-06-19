@@ -61,6 +61,7 @@
 /* TLS Hybrid post-quantum definitions from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-01 */
 #define TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 0xFF, 0x08
 #define TLS_EXTENSION_PQ_KEM_PARAMETERS 0xFE01
+#define BIKE1r1_Level1 1
 #define SIKEp503r1_KEM 10
 
 /* From https://tools.ietf.org/html/rfc7507 */

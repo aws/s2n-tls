@@ -102,3 +102,5 @@ int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size);
 
 int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn);
 int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn);
+
+int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file);
