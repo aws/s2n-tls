@@ -25,7 +25,7 @@ FAILED=0
 
 for file in $S2N_FILES; do
     # The word "Copyright" should appear at least once in the first 3 lines of every file
-    COUNT=`head -3 $file | grep "Copyright" | wc -l`;
+    COUNT=$(head -3 "$file" | grep -c "Copyright");
     if [ "$COUNT" == "0" ];
     then
         FAILED=1;

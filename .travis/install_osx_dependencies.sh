@@ -16,7 +16,7 @@
 set -ex
 
 function brew_install_if_not_installed () {
-    brew list $1 &>/dev/null || brew install $1
+    brew list "$1" &>/dev/null || brew install "$1"
 }
 
 brew update

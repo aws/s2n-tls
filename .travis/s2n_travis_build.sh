@@ -34,7 +34,7 @@ fi
 
 # Set the version of GCC as Default if it's required
 if [[ -n "$GCC_VERSION" ]] && [[ "$GCC_VERSION" != "NONE" ]]; then
-    alias gcc=$(which gcc-$GCC_VERSION);
+    alias gcc=$(which "gcc-$GCC_VERSION");
 fi
 
 if [[ "$TRAVIS_OS_NAME" == "linux" && "$TESTS" == "valgrind" ]]; then
@@ -73,5 +73,5 @@ if [[ -n "$CODECOV_IO_UPLOAD" ]]; then
     make run-gcov;
 
     # Upload coverage metrics to codecov.io site
-    bash <(curl -s https://codecov.io/bash) -F ${TESTS};
+    bash <(curl -s https://codecov.io/bash) -F "${TESTS}";
 fi

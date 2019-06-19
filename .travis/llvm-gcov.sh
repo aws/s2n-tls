@@ -22,7 +22,7 @@ usage() {
     exit 1
 }
 
-if [ "$#" -l "1" ]; then
+if [ "$#" -lt "1" ]; then
     usage
 fi
 

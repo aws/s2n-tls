@@ -20,10 +20,10 @@ sudo apt-get update -o Acquire::CompressionTypes::Order::=gz
 
 DEPENDENCIES="unzip make indent kwstyle libssl-dev tcpdump valgrind lcov m4 nettle-dev nettle-bin pkg-config gcc g++ zlibc zlib1g-dev python-pip llvm"
 
-sudo apt-get install -y ${DEPENDENCIES}
+sudo apt-get install -y "${DEPENDENCIES}"
 
 if [[ -n "$GCC_VERSION" ]] && [[ "$GCC_VERSION" != "NONE" ]]; then
-    sudo apt-get -y install gcc-$GCC_VERSION;
+    sudo apt-get -y install "gcc-$GCC_VERSION";
 fi
 
 # Download and Install prlimit for memlock

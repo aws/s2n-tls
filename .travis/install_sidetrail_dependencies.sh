@@ -22,10 +22,7 @@ sudo apt-get install -y figlet
 #Install boogieman
 #sudo gem install --pre bam-bam-boogieman
 git clone https://github.com/Qthan/bam-bam-boogieman.git -b cost-modeling
-cd bam-bam-boogieman
-bundle update
-bundle exec rake install
-cd ..
+(cd bam-bam-boogieman && bundle update && bundle exec rake install)
 which bam
 
 
@@ -40,7 +37,7 @@ sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328
 echo "deb http://download.mono-project.com/repo/ubuntu trusty main" | sudo tee /etc/apt/sources.list.d/mono-official.list
 
 sudo apt-get update -o Acquire::CompressionTypes::Order::=gz
-sudo apt-get install -y ${DEPENDENCIES}
+sudo apt-get install -y "${DEPENDENCIES}"
 pip install pyyaml
 
 LLVM_SHORT_VERSION=3.9
