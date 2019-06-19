@@ -78,6 +78,9 @@ struct s2n_config {
     uint8_t (*verify_host) (const char *host_name, size_t host_name_len, void *data);
     void *data_for_verify_host;
 
+    /* Application supplied callback to resolve domain name conflicts when loading certs. */
+    s2n_cert_tiebreak_callback cert_tiebreak_cb;
+
     uint8_t mfl_code;
 
     /* if this is FALSE, server will ignore client's Maximum Fragment Length request */

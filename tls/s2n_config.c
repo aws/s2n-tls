@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -113,6 +113,8 @@ static int s2n_config_init(struct s2n_config *config)
     config->max_verify_cert_chain_depth = 0;
     config->max_verify_cert_chain_depth_set = 0;
 
+    config->cert_tiebreak_cb = NULL;
+
     if (s2n_is_in_fips_mode()) {
         s2n_config_set_cipher_preferences(config, "default_fips");
     } else {
@@ -144,10 +146,11 @@ static int s2n_config_cleanup(struct s2n_config *config)
     return 0;
 }
 
-static int s2n_config_update_domain_name_to_cert_map(struct s2n_map *domain_name_to_cert_map,
+static int s2n_config_update_domain_name_to_cert_map(struct s2n_config *config,
         struct s2n_blob *name,
         struct s2n_cert_chain_and_key *cert_key_pair)
 {
+    struct s2n_map *domain_name_to_cert_map = config->domain_name_to_cert_map;
     /* s2n_map does not allow zero-size key */
     if (name->size == 0) {
         return 0;
@@ -167,23 +170,37 @@ static int s2n_config_update_domain_name_to_cert_map(struct s2n_map *domain_name
         struct domain_name_to_cert_map_value *value = (void *) s2n_map_value.data;;
         if (value->certs[auth_method] == NULL) {
             value->certs[auth_method] = cert_key_pair;
+        } else if (config->cert_tiebreak_cb) {
+            /* There's an existing certificate for this (domain_name, auth_method).
+             * Run the application's tiebreaking callback to decide which cert should be used.
+             * An application may have some context specific logic to resolve ties that are based
+             * on factors like trust, expiry, etc.
+             */
+            struct s2n_cert_chain_and_key *winner = config->cert_tiebreak_cb(
+                    value->certs[auth_method],
+                    cert_key_pair,
+                    name->data,
+                    name->size);
+            if (winner) {
+                value->certs[auth_method] = winner;
+            }
         }
     }
 
     return 0;
 }
 
-static int s2n_config_build_domain_name_to_cert_map(struct s2n_map *domain_name_to_cert_map, struct s2n_cert_chain_and_key *cert_key_pair)
+static int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
 {
     if (s2n_array_num_elements(cert_key_pair->san_names) == 0) {
         for (int i = 0; i < s2n_array_num_elements(cert_key_pair->cn_names); i++) {
             struct s2n_blob *cn_name = s2n_array_get(cert_key_pair->cn_names, i);
-            GUARD(s2n_config_update_domain_name_to_cert_map(domain_name_to_cert_map, cn_name, cert_key_pair));
+            GUARD(s2n_config_update_domain_name_to_cert_map(config, cn_name, cert_key_pair));
         }
     } else {
         for (int i = 0; i < s2n_array_num_elements(cert_key_pair->san_names); i++) {
             struct s2n_blob *san_name = s2n_array_get(cert_key_pair->san_names, i);
-            GUARD(s2n_config_update_domain_name_to_cert_map(domain_name_to_cert_map, san_name, cert_key_pair));
+            GUARD(s2n_config_update_domain_name_to_cert_map(config, san_name, cert_key_pair));
         }
     }
 
@@ -477,7 +494,7 @@ int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct
     struct s2n_cert_chain_and_key **to_insert = s2n_array_add(config->cert_and_key_pairs);
     notnull_check(to_insert);
     *to_insert = cert_key_pair;
-    GUARD(s2n_config_build_domain_name_to_cert_map(config->domain_name_to_cert_map, cert_key_pair));
+    GUARD(s2n_config_build_domain_name_to_cert_map(config, cert_key_pair));
 
     return 0;
 }
@@ -730,5 +747,11 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
 
     GUARD(s2n_config_store_ticket_key(config, session_ticket_key));
 
+    return 0;
+}
+
+int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config, s2n_cert_tiebreak_callback cert_tiebreak_cb)
+{
+    config->cert_tiebreak_cb = cert_tiebreak_cb;
     return 0;
 }
