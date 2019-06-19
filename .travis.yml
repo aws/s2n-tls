@@ -8,43 +8,39 @@ cache:
         # https://docs.travis-ci.com/user/caching/#Caches-and-build-matrices
         - test-deps
 
-osx_image: xcode8
+#osx_image: xcode8
 
 os:
-  - osx
+#  - osx
   - linux
 
 env:
   - TESTS=ctverif
   # Code Coverage Targets
-  - S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=unit GCC_VERSION=6 S2N_COVERAGE=true CODECOV_IO_UPLOAD=true
-  - S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=6 S2N_COVERAGE=true CODECOV_IO_UPLOAD=true
-  - S2N_LIBCRYPTO=openssl-1.1.1 LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=120 S2N_COVERAGE=true CODECOV_IO_UPLOAD=true
+  - S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=false TESTS=integration GCC_VERSION=6 S2N_COVERAGE=true CODECOV_IO_UPLOAD=true
+  - S2N_LIBCRYPTO=openssl-1.1.1 LATEST_CLANG=false TESTS=fuzz FUZZ_TIMEOUT_SEC=120 S2N_COVERAGE=true CODECOV_IO_UPLOAD=true
   # Normal Build Targets
-  - S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=6
-  - S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=9
-  - S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=6 S2N_CORKED_IO=true
-  - S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=integration GCC_VERSION=6
-  - S2N_LIBCRYPTO=openssl-1.0.2-fips BUILD_S2N=true TESTS=integration GCC_VERSION=6
-  - S2N_LIBCRYPTO=libressl      BUILD_S2N=true TESTS=integration GCC_VERSION=6
+  - S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=7 S2N_CORKED_IO=true
+  - S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=false TESTS=integration GCC_VERSION=8
+  - S2N_LIBCRYPTO=openssl-1.0.2-fips BUILD_S2N=false TESTS=integration GCC_VERSION=9
+  - S2N_LIBCRYPTO=libressl      BUILD_S2N=false TESTS=integration GCC_VERSION=6
   # Force libcrypto to use "software only" crypto implementations for AES and AES-GCM. Verify s2n can gracefully use
   # unoptimized routines. See https://www.openssl.org/docs/man1.1.0/crypto/OPENSSL_ia32cap.html
   - S2N_LIBCRYPTO=openssl-1.1.1 OPENSSL_ia32cap="~0x200000200000000" BUILD_S2N=true TESTS=integration GCC_VERSION=6
-  - S2N_LIBCRYPTO=openssl-1.1.1 LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=120
   - S2N_LIBCRYPTO=openssl-1.0.2-fips LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=120
-  - S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=asan GCC_VERSION=6
-  - S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=valgrind GCC_VERSION=6
+  - S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=false TESTS=asan GCC_VERSION=6
+  - S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=false TESTS=valgrind GCC_VERSION=6
 
 matrix:
   exclude:
-  - os: osx
-    env: TESTS=ctverif
-  - os: osx
-    env: S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=valgrind GCC_VERSION=6
-  - os: osx
-    env: S2N_LIBCRYPTO=openssl-1.0.2-fips LATEST_CLANG=true TESTS=fuzz
-  - os: osx
-    env: S2N_LIBCRYPTO=openssl-1.0.2-fips BUILD_S2N=true TESTS=integration GCC_VERSION=6
+#  - os: osx
+#    env: TESTS=ctverif
+#  - os: osx
+#    env: S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=valgrind GCC_VERSION=6
+#  - os: osx
+#    env: S2N_LIBCRYPTO=openssl-1.0.2-fips LATEST_CLANG=true TESTS=fuzz
+#  - os: osx
+#    env: S2N_LIBCRYPTO=openssl-1.0.2-fips BUILD_S2N=true TESTS=integration GCC_VERSION=6
   include:
   - os : linux
     env: TESTS=sidetrail PART=1
@@ -84,9 +80,9 @@ matrix:
   - os : linux
     env : TESTS=sawHMACFailure SAW=true
     addons : *sawaddons   
-  allow_failures:
-    - os: osx
-    - env: TESTS=ctverif
+#  allow_failures:
+#    - os: osx
+#    - env: TESTS=ctverif
 
   fast_finish: true
 
