@@ -30,6 +30,7 @@ export LIBCRYPTO_ROOT:=$(shell pwd)/../../libcrypto-root
 all:
 	@echo "Running formal verification with ${YICES_VERSION}"
 	@${MAKE} clean-logs
+	@${MAKE} clean_the_dir
 	@${MAKE} $(LOGS)
 	@${MAKE} failure-tests
 
@@ -156,12 +157,7 @@ bitcode :
 .PHONY : bike_bitcode
 bike_bitcode :
 	${MAKE} clean_the_dir
-	${MAKE} bitcode/all_llvm.bc
-	llvm-dis bitcode/all_llvm.bc
-	grep "gf2x_mod_mul" bitcode/all_llvm.ll
-	grep "gf2x_add" bitcode/all_llvm.ll
-
-
+	${MAKE} bitcode/all_llvm_patched.bc
 
 ########################################################
 ## Rules to copy the s2n directory for patching and bulding
@@ -223,13 +219,13 @@ bitcode/all_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike s2n/utils s2n/
 	${MAKE} -C s2n bc
 	${MAKE} -C bitcode all_llvm.bc
 
-bitcode/bike_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(BIKE_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
+bitcode/all_llvm_patched.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(BIKE_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
 	patch s2n/pq-crypto/bike/bike_defs.h bike/patch/bike_defs.h.patch
 	patch s2n/pq-crypto/bike/bike1_l1_kem.c bike/patch/bike1_l1_kem.c.patch
 	patch s2n/pq-crypto/bike/sampling.c bike/patch/sampling.c.patch
 	patch s2n/pq-crypto/bike/decode.c bike/patch/decode.c.patch
 	${MAKE} -C s2n bc
-	${MAKE} -C bitcode all_llvm.bc
+	${MAKE} -C bitcode all_llvm_patched.bc
 
 
 s2n/%.h : ../../%.h

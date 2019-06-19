@@ -5,7 +5,7 @@ let do_prove = true;
 let debug = false;
 let reduced = true;
 
-m <-  llvm_load_module  "../bitcode/all_llvm.bc";
+m <-  llvm_load_module  "../bitcode/all_llvm_patched.bc";
 
 import "spec/version/input.cry";
 import "spec/interface/H_defs.cry";
