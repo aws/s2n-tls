@@ -15,7 +15,7 @@ os:
   - linux
 
 env:
-  - TESTS=ctverif
+#  - TESTS=ctverif
   # Code Coverage Targets
   - S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=false TESTS=integration GCC_VERSION=6 S2N_COVERAGE=true CODECOV_IO_UPLOAD=true
   - S2N_LIBCRYPTO=openssl-1.1.1 LATEST_CLANG=false TESTS=fuzz FUZZ_TIMEOUT_SEC=120 S2N_COVERAGE=true CODECOV_IO_UPLOAD=true

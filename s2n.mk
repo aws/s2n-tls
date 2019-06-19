@@ -37,7 +37,7 @@ INDENT  = $(shell (if indent --version 2>&1 | grep GNU > /dev/null; then echo in
 
 DEFAULT_CFLAGS = -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized \
                  -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -fPIC \
-                 -Wunknown-pragmas -Wshift-negative-value -Wformat=2 \
+                  -Wshift-negative-value -Wunknown-pragmas -Wformat=2 \
                  -std=c99 -D_POSIX_C_SOURCE=200809L -O2 -I$(LIBCRYPTO_ROOT)/include/ \
                  -I$(S2N_ROOT)/api/ -I$(S2N_ROOT) -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security \
                  -D_FORTIFY_SOURCE=2 -fgnu89-inline
@@ -66,11 +66,14 @@ CFLAGS += ${DEFAULT_CFLAGS}
 ifdef GCC_VERSION
 	ifneq ("$(GCC_VERSION)","NONE")
 		CC=gcc-$(GCC_VERSION)
-	endif
-# Make doesn't support greater than checks, this uses `test` to compare values, then `echo $$?` to return the value of test's
-# exit code and finally using the built in make `ifeq` to check if it was true and then add the extra flag.
-	ifeq ($(shell test $(GCC_VERSION) -gt 7; echo $$?),0)
-		CFLAGS += -Wimplicit-fallthrough -Wmultistatement-macros -Wduplicated-branches
+		# These flags are unsupported by clang and only added when building with GCC
+		CFLAGS += -Wduplicated-cond -Warray-bounds=2 -Wc99-c11-compat -Wmaybe-uninitialized
+
+		# Make doesn't support greater than checks, this uses `test` to compare values, then `echo $$?` to return the value of test's
+		# exit code and finally using the built in make `ifeq` to check if it was true and then add the extra flag.
+		ifeq ($(shell test $(GCC_VERSION) -gt 7; echo $$?),0)
+			CFLAGS += -Wimplicit-fallthrough -Wmultistatement-macros -Wduplicated-branches
+		endif
 	endif
 endif
 
