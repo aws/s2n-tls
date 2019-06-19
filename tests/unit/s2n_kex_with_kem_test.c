@@ -59,12 +59,12 @@ int main(int argc, char **argv)
     struct s2n_blob data_to_sign = {0};
     EXPECT_SUCCESS(s2n_kem_server_key_send(server_conn, &data_to_sign));
     /* 2 extra bytes for the kem extension id and 2 additional bytes for the length of the public key sent over the wire. */
-    const int KEM_PUBLIC_KEY_SIZE = s2n_sike_p503_r1.public_key_length + 4;
-    EXPECT_EQUAL(data_to_sign.size, KEM_PUBLIC_KEY_SIZE);
+    const uint32_t KEM_PUBLIC_KEY_MESSAGE_SIZE = s2n_sike_p503_r1.public_key_length + 4;
+    EXPECT_EQUAL(data_to_sign.size, KEM_PUBLIC_KEY_MESSAGE_SIZE);
 
     EXPECT_EQUAL(s2n_sike_p503_r1.private_key_length, server_conn->secure.s2n_kem_keys.private_key.size);
-    struct s2n_blob server_key_message = {.size = KEM_PUBLIC_KEY_SIZE, .data = s2n_stuffer_raw_read(&server_conn->handshake.io,
-                                                                                                    KEM_PUBLIC_KEY_SIZE)};
+    struct s2n_blob server_key_message = {.size = KEM_PUBLIC_KEY_MESSAGE_SIZE, .data = s2n_stuffer_raw_read(&server_conn->handshake.io,
+                                                                                                    KEM_PUBLIC_KEY_MESSAGE_SIZE)};
     EXPECT_NOT_NULL(server_key_message.data);
 
     /* Part 1.1: feed that to the client */
@@ -74,16 +74,16 @@ int main(int argc, char **argv)
     struct s2n_kex_raw_server_data raw_parms = {{{0}}};
     struct s2n_blob data_to_verify = {0};
     EXPECT_SUCCESS(s2n_kem_server_key_recv_read_data(client_conn, &data_to_verify, &raw_parms));
-    EXPECT_EQUAL(data_to_verify.size, KEM_PUBLIC_KEY_SIZE);
+    EXPECT_EQUAL(data_to_verify.size, KEM_PUBLIC_KEY_MESSAGE_SIZE);
     EXPECT_SUCCESS(s2n_kem_server_key_recv_parse_data(client_conn, &raw_parms));
     EXPECT_EQUAL(s2n_sike_p503_r1.public_key_length, client_conn->secure.s2n_kem_keys.public_key.size);
 
     /* Part 3: Client calls send_key. The additional 2 bytes are for the ciphertext length sent over the wire */
-    int KEM_CIPHERTEXT_SIZE = s2n_sike_p503_r1.ciphertext_length + 2;
+    const uint32_t KEM_CIPHERTEXT_MESSAGE_SIZE = s2n_sike_p503_r1.ciphertext_length + 2;
     DEFER_CLEANUP(struct s2n_blob client_shared_key = {0}, s2n_free);
     EXPECT_SUCCESS(s2n_kem_client_key_send(client_conn, &client_shared_key));
-    struct s2n_blob client_key_message = {.size = KEM_CIPHERTEXT_SIZE, .data = s2n_stuffer_raw_read(&client_conn->handshake.io,
-                                                                                                    KEM_CIPHERTEXT_SIZE)};
+    struct s2n_blob client_key_message = {.size = KEM_CIPHERTEXT_MESSAGE_SIZE, .data = s2n_stuffer_raw_read(&client_conn->handshake.io,
+                                                                                                    KEM_CIPHERTEXT_MESSAGE_SIZE)};
     EXPECT_NOT_NULL(client_key_message.data);
 
     /* Part 3.1: Send that back to the server */

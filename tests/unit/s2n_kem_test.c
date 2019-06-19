@@ -138,6 +138,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE(s2n_cipher_suite_to_kem(classic_ecdhe, &supported_params));
         EXPECT_NULL(supported_params);
 
+        supported_params = NULL;
         const uint8_t bike_iana[S2N_TLS_CIPHER_SUITE_LEN] = {TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384};
         EXPECT_SUCCESS(s2n_cipher_suite_to_kem(bike_iana, &supported_params));
         EXPECT_EQUAL(supported_params->kem_count, 1);
