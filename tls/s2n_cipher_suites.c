@@ -1039,9 +1039,12 @@ static int s2n_set_cipher_and_cert_as_server(struct s2n_connection *conn, uint8_
                 continue;
             }
 
-            /* Short circuit logic to ensure the kex is supported (returns true, non zero value) and that the kex is
-             * configured correctly (returns 0) else continue to to the next matching cipher_suite */
-            if (!s2n_kex_supported(match, conn) || s2n_configure_kex(match, conn)) {
+            /* If the kex is not supported continue to the next candidate */
+            if (!s2n_kex_supported(match, conn)) {
+                continue;
+            }
+            /* If the kex is not configured correctly continue to the next candidate */
+            if (s2n_configure_kex(match, conn)){
                 continue;
             }
 
