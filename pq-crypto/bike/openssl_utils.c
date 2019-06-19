@@ -50,40 +50,6 @@ _INLINE_ ret_t ossl_cyclic_product(OUT BIGNUM *r,
    return SUCCESS;
 }
 
-_INLINE_ ret_t invert_poly(OUT BIGNUM *r,
-                           IN const BIGNUM *a,
-                           BN_CTX *bn_ctx) 
-{
-   BIGNUM *m = BN_CTX_get(bn_ctx);
-
-   if (NULL == m) {
-      BIKE_ERROR(EXTERNAL_LIB_ERROR_OPENSSL);
-   }
-
-   // m = x^PARAM_R - 1
-   if ((BN_set_bit(m, R_BITS) == 0) ||
-       (BN_set_bit(m, 0) == 0)) {
-      BIKE_ERROR(EXTERNAL_LIB_ERROR_OPENSSL);
-   }
-
-    // See a detailed explanation why we loop over BN_GF2m_mod_inv in: 
-    // https://github.com/open-quantum-safe/openssl/issues/42
-    // r = a*b mod m
-    uint32_t inv_res;
-    for (uint32_t i = 0; i < MAX_OPENSSL_INV_TRIALS; i++) {
-        inv_res = BN_GF2m_mod_inv(r, a, m, bn_ctx);
-        if (inv_res != 0) {
-            break;
-        }
-    }
-
-    if (0 == inv_res) {
-        BIKE_ERROR(EXTERNAL_LIB_ERROR_OPENSSL);
-    }
-
-   return SUCCESS;
-}
-
 // Loading numbers into OpenSSL should be done in Big Endian representation,
 // therefore the byte order of a number should be reversed
 _INLINE_ void reverse_endian(OUT uint8_t *res,
@@ -198,75 +164,6 @@ ret_t cyclic_product(OUT uint8_t res_bin[R_SIZE],
    GUARD(ossl_bin2bn(a, a_bin, R_SIZE));
    GUARD(ossl_bin2bn(b, b_bin, R_SIZE));
    GUARD(ossl_cyclic_product(r, a, b, bn_ctx));
-   GUARD(ossl_bn2bin(res_bin, r, R_SIZE));
-
-   return SUCCESS;
-}
-
-ret_t ossl_split_polynomial(OUT uint8_t e0_bin[R_SIZE],
-                            OUT uint8_t e1_bin[R_SIZE],
-                            IN const uint8_t e_bin[N_SIZE]) 
-{
-   DEFER_CLEANUP(BN_CTX *bn_ctx = BN_CTX_new(), BN_CTX_cleanup_pointer);
-   BIGNUM *e = NULL;
-   BIGNUM *e0 = NULL;
-   BIGNUM *e1 = NULL;
-   BIGNUM *mid = NULL;
-
-   if (NULL == bn_ctx) {
-      BIKE_ERROR(EXTERNAL_LIB_ERROR_OPENSSL);
-   }
-
-   BN_CTX_start(bn_ctx);
-
-   e = BN_CTX_get(bn_ctx);
-   e0 = BN_CTX_get(bn_ctx);
-   e1 = BN_CTX_get(bn_ctx);
-   mid = BN_CTX_get(bn_ctx);
-
-   if ((NULL == e) || (NULL == e0) || (NULL == e1) || (NULL == mid)) {
-      BIKE_ERROR(EXTERNAL_LIB_ERROR_OPENSSL);
-   }
-
-   GUARD(ossl_bin2bn(e, e_bin, N_SIZE));
-
-   // Split e to e0 and e1
-   if ((BN_set_bit(mid, R_BITS) == 0) ||
-       (BN_mod(e0, e, mid, bn_ctx) == 0) ||
-       (BN_rshift(e1, e, R_BITS) == 0)) 
-   {
-      BIKE_ERROR(EXTERNAL_LIB_ERROR_OPENSSL);
-   }
-
-   GUARD(ossl_bn2bin(e0_bin, e0, R_SIZE));
-   GUARD(ossl_bn2bin(e1_bin, e1, R_SIZE));
-
-   return SUCCESS;
-}
-
-// Perform a cyclic product by using OpenSSL
-ret_t mod_inv(OUT uint8_t res_bin[R_SIZE],
-              IN const uint8_t a_bin[R_SIZE]) 
-{
-   DEFER_CLEANUP(BN_CTX *bn_ctx = BN_CTX_new(), BN_CTX_cleanup_pointer);
-   BIGNUM *r = NULL;
-   BIGNUM *a = NULL;
-
-   if (NULL == bn_ctx) {
-      BIKE_ERROR(EXTERNAL_LIB_ERROR_OPENSSL);
-   }
-
-   BN_CTX_start(bn_ctx);
-
-   r = BN_CTX_get(bn_ctx);
-   a = BN_CTX_get(bn_ctx);
-
-   if ((NULL == r) || (NULL == a)) {
-      BIKE_ERROR(EXTERNAL_LIB_ERROR_OPENSSL);
-   }
-
-   GUARD(ossl_bin2bn(a, a_bin, R_SIZE));
-   GUARD(invert_poly(r, a, bn_ctx));
    GUARD(ossl_bn2bin(res_bin, r, R_SIZE));
 
    return SUCCESS;
