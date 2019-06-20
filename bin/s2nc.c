@@ -86,7 +86,9 @@ static uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, v
 
     char *offset = strstr(host_name, "*.");
     if (offset) {
-        return (uint8_t)(strcasecmp(verify_data->trusted_host, offset + 2) == 0);
+          char *label = strchr(verify_data->trusted_host, '.');
+          return (uint8_t)(strcasecmp(verify_data->trusted_host, offset + 2) == 0) ||
+              (label && (uint8_t)(strcasecmp(label + 1, offset + 2) == 0));
     }
 
     int equals = strcasecmp(host_name, verify_data->trusted_host);
