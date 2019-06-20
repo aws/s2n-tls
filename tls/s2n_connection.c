@@ -854,7 +854,7 @@ const char *s2n_connection_get_curve(struct s2n_connection *conn)
     return conn->secure.server_ecc_params.negotiated_curve->name;
 }
 
-const char *s2n_connection_get_kem(struct s2n_connection *conn)
+const char *s2n_connection_get_kem_name(struct s2n_connection *conn)
 {
     notnull_check_ptr(conn);
 
