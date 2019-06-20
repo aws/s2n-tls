@@ -23,7 +23,8 @@
 
 #define RSP_FILE_NAME "../unit/kats/bike1_l1.kat"
 
-/* A valid ciphertext that was encrypted to this private key is is in corpus/s2n_sike_fuzz_test/valid_ciphertext */
+/* This fuzz test uses the first private key from tests/unit/kats/bike1_l1.kat, the valid ciphertext generated with the
+ * public key was copied to corpus/s2n_bike_fuzz_test/valid_ciphertext */
 
 static struct s2n_kem_keypair server_kem_keys = {.negotiated_kem = &s2n_bike_1_level_1_r1};
 
@@ -58,7 +59,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     /* Need to memcpy since blobs expect a non-const value and LLVMFuzzer does expect a const */
     memcpy_check(ciphertext.data, buf, len);
 
-    /* Run the test, don't use GAURD since the memory needs to be cleaned up and decapsulate will most likely fail */
+    /* Run the test, don't use GUARD since the memory needs to be cleaned up and decapsulate will most likely fail */
     s2n_kem_decapsulate(&server_kem_keys, &server_shared_secret, &ciphertext);
 
     GUARD(s2n_free(&ciphertext));
