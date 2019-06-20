@@ -36,8 +36,10 @@ cd "$DOWNLOAD_DIR"
 # curl --retry 3 https://github.com/pedrotst/saw-script/releases/download/3.0.x/saw.tar.gz --output saw.tar.gz -k;
 wget --tries=10  --no-check-certificate https://github.com/pedrotst/saw-script/releases/download/3.0.x/saw.tar.gz -O saw.tar.gz
 
-mkdir -p saw && tar -xzf saw.tar.gz --strip-components=1 -C saw
-mkdir -p "$INSTALL_DIR" && mv saw/* "$INSTALL_DIR"
+mkdir -p saw 
+tar -xzf saw.tar.gz -C saw
+mkdir -p "$INSTALL_DIR" 
+mkdir -p "$INSTALL_DIR"/bin
+mv saw/* "$INSTALL_DIR"/bin
 
-clang --version
 "$INSTALL_DIR"/bin/saw --version
