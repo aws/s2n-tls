@@ -561,6 +561,18 @@ int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config,
 
 **s2n_config_add_cert_chain_and_key_to_store** may be called multiple times to support multiple key types(RSA, ECDSA) and multiple domains. On the server side, the certificate selected will be based on the incoming SNI value and the client's capabilities(supported ciphers). In the case of no certificate matching the client's SNI extension or if no SNI extension was sent by the client, the certificate from the **first** call to **s2n_config_add_cert_chain_and_key_to_store** will be selected.
 
+### s2n\_config\_set\_cert\_chain\_and\_key\_defaults
+
+```c
+int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
+                                               struct s2n_cert_chain_and_key **cert_key_pairs,
+                                               uint32_t num_cert_key_pairs);
+```
+
+**s2n_config_set_cert_chain_and_key_defaults** explicitly sets certificate chain and private key pairs to be used as defaults for each auth method (key type). A "default" certificate is used when there is not an SNI match with any other configured certificate. Only one certificate can be set as the default per auth method (one RSA default, one ECDSA default, etc.). All previous default certificates will be cleared and re-set when this API is called. This API is called for a specific **s2n_config** object.
+
+S2N will attempt to automatically choose default certificates for each auth method (key type) based on the order that **s2n_cert_chain_and_key** are added to the **s2n_config** using one of the APIs listed above. **s2n_config_set_cert_chain_and_key_defaults** can be called at any time; s2n will clear defaults and no longer attempt to automatically choose any default certificates.
+
 ### s2n\_cert\_tiebreak\_callback
 ```c
 typedef struct s2n_cert_chain_and_key* (*s2n_cert_tiebreak_callback) (struct s2n_cert_chain_and_key *cert1, struct s2n_cert_chain_and_key *cert2, uint8_t *name, uint32_t name_len);

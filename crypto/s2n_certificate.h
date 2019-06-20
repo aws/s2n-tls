@@ -59,7 +59,7 @@ typedef enum {
     S2N_AUTHENTICATION_METHOD_SENTINEL
 } s2n_authentication_method;
 
-struct domain_name_to_cert_map_value {
+struct auth_method_to_cert_value {
     struct s2n_cert_chain_and_key *certs[S2N_AUTHENTICATION_METHOD_SENTINEL];
 };
 

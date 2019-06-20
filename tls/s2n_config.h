@@ -37,6 +37,8 @@ struct s2n_config {
     unsigned cert_allocated:1;
     struct s2n_array *cert_and_key_pairs;
     struct s2n_map *domain_name_to_cert_map;
+    unsigned default_certs_are_explicit:1;
+    struct auth_method_to_cert_value default_cert_per_auth_method;
     const struct s2n_cipher_preferences *cipher_preferences;
     struct s2n_blob application_protocols;
     s2n_status_request_type status_request_type;

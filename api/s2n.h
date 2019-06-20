@@ -104,6 +104,9 @@ extern int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config, s2n_
 
 extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem);
 extern int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair);
+extern int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
+                                                      struct s2n_cert_chain_and_key **cert_key_pairs,
+                                                      uint32_t num_cert_key_pairs);
 
 extern int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_pem_filename, const char *ca_dir);
 extern int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem);
