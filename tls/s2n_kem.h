@@ -26,6 +26,7 @@ typedef uint16_t kem_shared_secret_size;
 typedef uint16_t kem_ciphertext_key_size;
 
 struct s2n_kem {
+    const char *name;
     const kem_extension_size kem_extension_id;
     const kem_public_key_size public_key_length;
     const kem_private_key_size private_key_length;
