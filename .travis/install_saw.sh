@@ -33,13 +33,12 @@ cd "$DOWNLOAD_DIR"
 
 #download saw binaries
 # curl --retry 3 https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/saw-0.2-2019-03-08-Ubuntu14.04-64.tar.gz --output saw.tar.gz;
-# curl --retry 3 https://github.com/pedrotst/saw-script/releases/download/3.0.x/saw.tar.gz --output saw.tar.gz -k;
-wget --tries=10  --no-check-certificate https://github.com/pedrotst/saw-script/releases/download/3.0.x/saw.tar.gz -O saw.tar.gz
+wget --tries=3 --no-check-certificate https://github.com/pedrotst/saw-script/releases/download/v.0.2.2-dev/saw.tar.gz -O saw.tar.gz
 
 mkdir -p saw 
 tar -xzf saw.tar.gz -C saw
-mkdir -p "$INSTALL_DIR" 
 mkdir -p "$INSTALL_DIR"/bin
-mv saw/* "$INSTALL_DIR"/bin
+mv saw/bin/* "$INSTALL_DIR"/bin
 
 "$INSTALL_DIR"/bin/saw --version
+"$INSTALL_DIR"/bin/cryptol --version
