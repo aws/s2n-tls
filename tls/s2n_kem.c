@@ -24,6 +24,7 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
+/* The names below come from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-01#section-5.1.6 */
 const struct s2n_kem s2n_bike_1_level_1_r1 = {
         .name = "BIKE1r1-Level1",
         .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_BIKE1_R1_LEVEL_1,
