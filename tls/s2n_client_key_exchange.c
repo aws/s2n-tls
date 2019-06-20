@@ -32,10 +32,12 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
 typedef int s2n_kex_client_key_method(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key);
+typedef void *s2n_stuffer_action(struct s2n_stuffer *stuffer, uint32_t data_len);
 static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob *combined_shared_key,
-        s2n_kex_client_key_method kex_method)
+        s2n_kex_client_key_method kex_method, uint32_t *cursor, s2n_stuffer_action stuffer_action)
 {
     notnull_check(kex_method);
+    notnull_check(stuffer_action);
     struct s2n_stuffer *io = &conn->handshake.io;
     const struct s2n_kex *kex = conn->secure.cipher_suite->key_exchange_alg;
     const struct s2n_kex *hybrid_kex_0 = kex->hybrid[0];
@@ -43,10 +45,9 @@ static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob
 
     /* Keep a copy to the start of the entire hybrid client key exchange message for the hybrid PRF */
     struct s2n_blob *client_key_exchange_message = &conn->secure.client_key_exchange_message;
-    client_key_exchange_message->data = s2n_stuffer_raw_read(io, 0);
+    client_key_exchange_message->data = stuffer_action(io, 0);
     notnull_check(client_key_exchange_message->data);
-    const uint32_t start_read = io->read_cursor;
-    const uint32_t start_write = io->write_cursor;
+    const uint32_t start_cursor = *cursor;
 
     DEFER_CLEANUP(struct s2n_blob shared_key_0 = {0}, s2n_free);
     GUARD(kex_method(hybrid_kex_0, conn, &shared_key_0));
@@ -54,9 +55,9 @@ static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob
     DEFER_CLEANUP(struct s2n_blob shared_key_1 = {0}, s2n_free);
     GUARD(kex_method(hybrid_kex_1, conn, &shared_key_1));
 
-    const uint32_t end_read = io->read_cursor;
-    const uint32_t end_write = io->write_cursor;
-    client_key_exchange_message->size = (end_read - start_read) + (end_write - start_write);
+    const uint32_t end_cursor = *cursor;
+    gte_check(end_cursor, start_cursor);
+    client_key_exchange_message->size = end_cursor - start_cursor;
 
     GUARD(s2n_alloc(combined_shared_key, shared_key_0.size + shared_key_1.size));
     struct s2n_stuffer stuffer_combiner = {{0}};
@@ -165,7 +166,8 @@ int s2n_kem_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
 
 int s2n_hybrid_client_key_recv(struct s2n_connection *conn, struct s2n_blob *combined_shared_key)
 {
-    return s2n_hybrid_client_action(conn, combined_shared_key, &s2n_kex_client_key_recv);
+    return s2n_hybrid_client_action(conn, combined_shared_key, &s2n_kex_client_key_recv, &conn->handshake.io.read_cursor,
+            &s2n_stuffer_raw_read);
 }
 
 int s2n_client_key_recv(struct s2n_connection *conn)
@@ -251,7 +253,8 @@ int s2n_kem_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
 
 int s2n_hybrid_client_key_send(struct s2n_connection *conn, struct s2n_blob *combined_shared_key)
 {
-    return s2n_hybrid_client_action(conn, combined_shared_key, &s2n_kex_client_key_send);
+    return s2n_hybrid_client_action(conn, combined_shared_key, &s2n_kex_client_key_send, &conn->handshake.io.write_cursor,
+                                    s2n_stuffer_raw_write);
 }
 
 int s2n_client_key_send(struct s2n_connection *conn)

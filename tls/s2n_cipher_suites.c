@@ -626,11 +626,25 @@ struct s2n_cipher_suite s2n_dhe_rsa_with_chacha20_poly1305_sha256 = /* 0xCC,0xAA
 };
 
 /* From https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-01 */
+struct s2n_cipher_suite s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384 = /* 0xFF, 0x04 */ {
+        .available = 0,
+        .name = "ECDHE-BIKE-RSA-AES256-GCM-SHA384",
+        .iana_value = { TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 },
+        .key_exchange_alg = &s2n_hybrid_ecdhe_kem,
+        .auth_method = S2N_AUTHENTICATION_RSA,
+        .record_alg = NULL,
+        .all_record_algs = { &s2n_record_alg_aes256_gcm },
+        .num_record_algs = 1,
+        .sslv3_record_alg = NULL,
+        .tls12_prf_alg = S2N_HMAC_SHA384,
+        .minimum_required_tls_version = S2N_TLS12,
+};
+
 struct s2n_cipher_suite s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384 = /* 0xFF, 0x08 */ {
         .available = 0,
         .name = "ECDHE-SIKE-RSA-AES256-GCM-SHA384",
         .iana_value = { TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 },
-        .key_exchange_alg = &s2n_hybrid_ecdhe_sike,
+        .key_exchange_alg = &s2n_hybrid_ecdhe_kem,
         .auth_method = S2N_AUTHENTICATION_RSA,
         .record_alg = NULL,
         .all_record_algs = { &s2n_record_alg_aes256_gcm },
@@ -677,6 +691,7 @@ static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
     &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,   /* 0xCC,0xA8 */
     &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256, /* 0xCC,0xA9 */
     &s2n_dhe_rsa_with_chacha20_poly1305_sha256,     /* 0xCC,0xAA */
+    &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x04 */
     &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x08 */
 };
 
@@ -685,7 +700,7 @@ const struct s2n_cipher_preferences cipher_preferences_test_all = {
     .count = sizeof(s2n_all_cipher_suites) / sizeof(s2n_all_cipher_suites[0]),
     .suites = s2n_all_cipher_suites,
     .minimum_protocol_version = S2N_SSLv3,
-    .extension_flag = S2N_ECC_EXTENSION_ENABLED | S2N_SIKE_EXTENSION_ENABLED
+    .extension_flag = S2N_ECC_EXTENSION_ENABLED
 };
 
 /* All of the cipher suites that s2n can negotiate when in FIPS mode,
@@ -1024,7 +1039,12 @@ static int s2n_set_cipher_and_cert_as_server(struct s2n_connection *conn, uint8_
                 continue;
             }
 
-            if (!s2n_kex_supported(match->key_exchange_alg, conn)) {
+            /* If the kex is not supported continue to the next candidate */
+            if (!s2n_kex_supported(match, conn)) {
+                continue;
+            }
+            /* If the kex is not configured correctly continue to the next candidate */
+            if (s2n_configure_kex(match, conn)){
                 continue;
             }
 

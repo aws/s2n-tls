@@ -30,6 +30,6 @@ int main(int argc, char **argv, char **envp) {
         /* Skip when FIPS mode is set as BIKE is not supported in FIPS mode */
         END_TEST();
     }
-    EXPECT_SUCCESS(s2n_test_kem_with_kat(&s2n_bike_supported_params[0], RSP_FILE));
+    EXPECT_SUCCESS(s2n_test_kem_with_kat(&s2n_bike_1_level_1_r1, RSP_FILE));
     END_TEST();
 }

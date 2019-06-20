@@ -14,7 +14,7 @@
  */
 
 #include "tls/s2n_kem.h"
-#include "tests/unit/s2n_nist_kats.h"
+#include "tests/testlib/s2n_nist_kats.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"

@@ -138,21 +138,19 @@ int s2n_kem_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_bl
 {
     struct s2n_kem_raw_server_params *kem_data = &raw_server_data->kem_data;
     struct s2n_stuffer *in = &conn->handshake.io;
-    const struct s2n_kem *kem = conn->secure.s2n_kem_keys.negotiated_kem;
     kem_public_key_size key_length;
 
     /* Keep a copy to the start of the whole structure for the signature check */
     data_to_verify->data = s2n_stuffer_raw_read(in, 0);
     notnull_check(data_to_verify->data);
 
-    /* the server sends the KEM ID again and this must match what was agreed upon during server hello */
-    kem_extension_size kem_id;
-    GUARD(s2n_stuffer_read_uint16(in, &kem_id));
-    eq_check(kem_id, kem->kem_extension_id);
+    /* the server sends the KEM ID */
+    kem_data->kem_name.data = s2n_stuffer_raw_read(in, 2);
+    notnull_check(kem_data->kem_name.data);
+    kem_data->kem_name.size = 2;
 
     GUARD(s2n_stuffer_read_uint16(in, &key_length));
     S2N_ERROR_IF(key_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
-    S2N_ERROR_IF(key_length != conn->secure.s2n_kem_keys.negotiated_kem->public_key_length, S2N_ERR_BAD_MESSAGE);
 
     kem_data->raw_public_key.data = s2n_stuffer_raw_read(in, key_length);
     notnull_check(kem_data->raw_public_key.data);
@@ -164,7 +162,19 @@ int s2n_kem_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_bl
 
 int s2n_kem_server_key_recv_parse_data(struct s2n_connection *conn, struct s2n_kex_raw_server_data *raw_server_data)
 {
-    s2n_dup(&raw_server_data->kem_data.raw_public_key, &conn->secure.s2n_kem_keys.public_key);
+    struct s2n_kem_raw_server_params *kem_data = &raw_server_data->kem_data;
+
+    /* Check that the server's requested kem is supported by the client */
+    const struct s2n_kem *match = NULL;
+    const struct s2n_iana_to_kem *supported_params = NULL;
+    GUARD(s2n_cipher_suite_to_kem(conn->secure.cipher_suite->iana_value, &supported_params));
+
+    S2N_ERROR_IF(s2n_kem_find_supported_kem(&kem_data->kem_name, *supported_params->kems, supported_params->kem_count, &match) != 0, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+    conn->secure.s2n_kem_keys.negotiated_kem = match;
+
+    S2N_ERROR_IF(kem_data->raw_public_key.size != conn->secure.s2n_kem_keys.negotiated_kem->public_key_length, S2N_ERR_BAD_MESSAGE);
+
+    s2n_dup(&kem_data->raw_public_key, &conn->secure.s2n_kem_keys.public_key);
     return 0;
 }
 
@@ -291,7 +301,7 @@ int s2n_hybrid_server_key_send(struct s2n_connection *conn, struct s2n_blob *tot
     const struct s2n_kex *hybrid_kex_1 = kex->hybrid[1];
 
     /* Keep a copy to the start of the whole structure for the signature check */
-    total_data_to_sign->data = s2n_stuffer_raw_read(&conn->handshake.io, 0);
+    total_data_to_sign->data = s2n_stuffer_raw_write(&conn->handshake.io, 0);
     notnull_check(total_data_to_sign->data);
 
     struct s2n_blob data_to_verify_0 = {0};

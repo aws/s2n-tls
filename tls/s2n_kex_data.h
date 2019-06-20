@@ -29,6 +29,7 @@ struct s2n_dhe_raw_server_points {
 };
 
 struct s2n_kem_raw_server_params {
+    struct s2n_blob kem_name;
     struct s2n_blob raw_public_key;
 };
 

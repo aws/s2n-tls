@@ -22,7 +22,6 @@
 #include "stuffer/s2n_stuffer.h"
 #include "tests/s2n_test.h"
 #include "tests/testlib/s2n_testlib.h"
-#include "tests/unit/s2n_nist_kats.h"
 #include "tls/s2n_kex.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_tls.h"
@@ -31,7 +30,7 @@
 #include "utils/s2n_safety.h"
 #include "tls/s2n_cipher_suites.h"
 
-static struct s2n_kem_keypair server_kem_keys = {.negotiated_kem = &s2n_sike_supported_params[0]};
+static struct s2n_kem_keypair server_kem_keys = {.negotiated_kem = &s2n_sike_p503_r1};
 
 /* Setup the connection in a state for a fuzz test run, s2n_client_key_recv modifies the state of the connection
  * along the way and gets cleaned up at the end of each fuzz test.
@@ -42,7 +41,7 @@ static int setup_connection(struct s2n_connection *server_conn)
 {
     server_conn->actual_protocol_version = S2N_TLS12;
     server_conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
-    server_conn->secure.s2n_kem_keys.negotiated_kem = &s2n_sike_supported_params[0];
+    server_conn->secure.s2n_kem_keys.negotiated_kem = &s2n_sike_p503_r1;
     server_conn->secure.cipher_suite = &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384;
     server_conn->secure.conn_hash_alg = S2N_HASH_SHA384;
 
