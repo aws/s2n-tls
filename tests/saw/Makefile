@@ -52,7 +52,7 @@ clean-failure-logs :
 
 .PHONY : clean-bike-logs
 clean-bike-logs :
-	$(RM) -- $(wildcard bike/*.log)
+	${RM} -r bike/tmp/*.log
 
 .PHONY: clean
 clean: decruft
@@ -87,14 +87,19 @@ tmp/%.log : %.saw bitcode/all_llvm.bc tmp
 ## BIKE Tests
 ###########################################
 
+BIKE_SCRIPTS=$(wildcard bike/*.saw)
+
 .PHONY : bike
 bike : bike_bitcode
-	@${MAKE} clean-bike-logs
-	@${MAKE} bike/bike.log
+	# @${MAKE} clean-bike-logs
+	# @${MAKE} bike/bike.log
+	@${MAKE} -C bike force_all
+	# @${MAKE} bike/verify_bike.saw
 
-bike/bike.log :
-	@set -o pipefail; \
-	saw bike/verify_bike.saw | tee $@
+# bike/%.saw: bike_bitcode bike/tmp/%.log
+
+bike/%.saw: bike_bitcode
+	@${MAKE} bike/$@.log
 
 ###########################################
 ## Failure Tests
@@ -150,14 +155,12 @@ bitcode/%.bc : failure_tests/%.patch
 
 #if we ask this makefile to create bitcode it will always completely rebuild it
 .PHONY : bitcode
-bitcode :
-	${MAKE} clean_the_dir
-	${MAKE} bitcode/all_llvm.bc
+bitcode : clean_the_dir bitcode/all_llvm.bc
+	# ${MAKE} clean_the_dir
+	# ${MAKE} bitcode/all_llvm.bc
 
 .PHONY : bike_bitcode
-bike_bitcode :
-	${MAKE} clean_the_dir
-	${MAKE} bitcode/bike_llvm.bc
+bike_bitcode : clean_the_dir bitcode/bike_llvm.bc
 
 ########################################################
 ## Rules to copy the s2n directory for patching and bulding
