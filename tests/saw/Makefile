@@ -77,7 +77,7 @@ clean_the_dir :
 # To make a log we need the corresponding saw file, the all_llvm file, and a temp directory
 # The pipefail command causes the entire command to fail if saw fails, even though we pipe it to tee
 # without it we would see only the tee return code
-tmp/%.log : %.saw bitcode/all_llvm.bc tmp
+tmp/%.log : %.saw bitcode tmp
 	@echo "Running formal verification with ${YICES_VERSION}"
 	@echo saw $<
 	@set -o pipefail; \
