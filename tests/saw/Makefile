@@ -93,8 +93,8 @@ BIKE_SCRIPTS=$(wildcard bike/*.saw)
 bike : bike_bitcode
 	# @${MAKE} clean-bike-logs
 	# @${MAKE} bike/bike.log
-	@${MAKE} -C bike force_all
 	# @${MAKE} bike/verify_bike.saw
+	@${MAKE} -C bike force_all
 
 # bike/%.saw: bike_bitcode bike/tmp/%.log
 

@@ -20,12 +20,11 @@
 
 SCRIPTS = $(wildcard *.saw)
 LOGS=$(patsubst %.saw,tmp/%.log,${SCRIPTS})
+SHELL:=/bin/bash
 
 all : ${LOGS}
 
-force_all :
-	@${MAKE} clean_bike_logs
-	@${MAKE} all
+force_all :clean_bike_logs all
 
 clean_bike_logs :
 	${RM} -r tmp/*.log
@@ -33,5 +32,5 @@ clean_bike_logs :
 tmp/%.log: %.saw
 	@echo "Running formal verification with ${YICES_VERSION}"
 	@echo saw $<
-	# @set -o pipefail;
+	@set -o pipefail;
 	saw $< | tee $@

@@ -44,12 +44,6 @@ include "proof/gf2x.saw";
 include "proof/utilities.saw";
 
 include "proof/converts_portable.saw";
-include "proof/AES.saw";
-include "proof/sha.saw";
-include "proof/parallel_hash.saw";
-include "proof/sampling.saw";
-include "proof/secure_decode_portable.saw";
-include "proof/decode.saw";
 
 let do_prove = true;
-include "proof/bike1_l1_kem.saw";
+include "proof/AES.saw";
