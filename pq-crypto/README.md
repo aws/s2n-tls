@@ -49,3 +49,24 @@ and use the BIKE1_L1.const.kat from the above Additional_Implementation.2019.03.
 1. Add formal verification in `tests/saw/KEM_NAME/verify.saw`
 1. Create a new `s2n_cipher_suite` in `tls/s2n_cipher_suites.c`
 1. Create a new `s2n_cipher_preferences` in `tls/s2n_cipher_prefrences.c` that uses the new cipher suite
+
+## How to use PQ cipher suites
+1. Checkout s2n `git clone https://github.com/awslabs/s2n.git`
+1. Following the docs/USAGE-GUIDE.md build s2n
+1. Use the sample server and client in the bin directory:
+```bash
+# Terminal 1
+# Use the s2nd CLI tool to start a TLS daemon with the KMS-PQ-TLS-1-0-2019-06 cipher preferences listening on port 8888
+export PATH_TO_S2N=/path/to/s2n
+export LD_LIBRARY_PATH=${PATH_TO_S2N}/test-deps/openssl-1.1.1/lib:${PATH_TO_S2N}/test-deps/openssl-1.1.1/lib:${PATH_TO_S2N}/lib:${PATH_TO_S2N}/bin
+export PATH=${PATH_TO_S2N}/bin:$PATH
+s2nd --cert ${PATH_TO_S2N}/tests/pems/rsa_2048_sha256_wildcard_cert.pem --key ${PATH_TO_S2N}/tests/pems/rsa_2048_sha256_wildcard_key.pem --negotiate --ciphers KMS-PQ-TLS-1-0-2019-06 0.0.0.0 8888
+
+# Terminal 2
+# Use the s2nc TLS CLI client to connect to the TLS server daemon started in Terminal 1 on port 8888
+export PATH_TO_S2N=/path/to/s2n
+export LD_LIBRARY_PATH=${PATH_TO_S2N}/test-deps/openssl-1.1.1/lib:${PATH_TO_S2N}/test-deps/openssl-1.1.1/lib:${PATH_TO_S2N}/lib:${PATH_TO_S2N}/bin
+export PATH=${PATH_TO_S2N}/bin:$PATH
+export S2N_ENABLE_CLIENT_MODE=1
+s2nc -i --ciphers KMS-PQ-TLS-1-0-2019-06 0.0.0.0 8888
+```

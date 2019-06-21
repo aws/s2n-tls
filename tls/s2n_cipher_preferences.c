@@ -713,6 +713,28 @@ const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_0_2018_10 = {
         .extension_flag = S2N_ECC_EXTENSION_ENABLED
 };
 
+struct s2n_cipher_suite *cipher_suites_kms_pq_tls_1_0_2019_06[] = {
+        &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
+        &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
+        &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+        &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+        &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+        &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+        &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+        &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,
+        &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+        &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+        &s2n_dhe_rsa_with_aes_256_cbc_sha,
+        &s2n_dhe_rsa_with_aes_128_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_kms_pq_tls_1_0_2019_06 = {
+        .count = sizeof(cipher_suites_kms_pq_tls_1_0_2019_06) / sizeof(cipher_suites_kms_pq_tls_1_0_2019_06[0]),
+        .suites = cipher_suites_kms_pq_tls_1_0_2019_06,
+        .minimum_protocol_version = S2N_TLS10,
+        .extension_flag = S2N_ECC_EXTENSION_ENABLED
+};
+
 struct s2n_cipher_suite *cipher_suites_kms_fips_tls_1_2_2018_10[] = {
         &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
         &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
@@ -752,6 +774,7 @@ struct {
     { "CloudFront-TLS-1-2-2018", &cipher_preferences_cloudfront_tls_1_2_2018 },
     { "CloudFront-TLS-1-2-2019", &cipher_preferences_cloudfront_tls_1_2_2019 },
     { "KMS-TLS-1-0-2018-10", &cipher_preferences_kms_tls_1_0_2018_10 },
+    { "KMS-PQ-TLS-1-0-2019-06", &cipher_preferences_kms_pq_tls_1_0_2019_06 },
     { "KMS-FIPS-TLS-1-2-2018-10", &cipher_preferences_kms_fips_tls_1_2_2018_10 },
     { "20140601", &cipher_preferences_20140601 },
     { "20141001", &cipher_preferences_20141001 },

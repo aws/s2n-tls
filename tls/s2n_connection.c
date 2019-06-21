@@ -854,6 +854,17 @@ const char *s2n_connection_get_curve(struct s2n_connection *conn)
     return conn->secure.server_ecc_params.negotiated_curve->name;
 }
 
+const char *s2n_connection_get_kem_name(struct s2n_connection *conn)
+{
+    notnull_check_ptr(conn);
+
+    if (!conn->secure.s2n_kem_keys.negotiated_kem) {
+        return "NONE";
+    }
+
+    return conn->secure.s2n_kem_keys.negotiated_kem->name;
+}
+
 int s2n_connection_get_client_protocol_version(struct s2n_connection *conn)
 {
     notnull_check(conn);
