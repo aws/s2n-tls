@@ -32,5 +32,5 @@ clean_bike_logs :
 tmp/%.log: %.saw
 	@echo "Running formal verification with ${YICES_VERSION}"
 	@echo saw $<
-	@set -o pipefail;
+	@set -o pipefail; \
 	saw $< | tee $@
