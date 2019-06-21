@@ -17,101 +17,19 @@
  * Copyright © 2017 Bassham, Lawrence E (Fed). All rights reserved.
  */
 
-#include "s2n_test.h"
-#include "crypto/s2n_drbg.h"
-#include "pq-crypto/bike/bike1_l1_kem.h"
-#include "pq-crypto/pq_random.h"
-#include "tests/unit/s2n_nist_kats.h"
-#include "utils/s2n_mem.h"
-#include "utils/s2n_safety.h"
-#include "utils/s2n_random.h"
 #include "crypto/s2n_fips.h"
+#include "s2n_test.h"
+#include "tests/testlib/s2n_testlib.h"
+#include "tls/s2n_kem.h"
 
-#define RSP_FILE_NAME "kats/bike1_l1.kat"
-
-struct s2n_blob kat_entropy_blob = {0};
-
-int kat_entropy(struct s2n_blob *blob)
-{
-    eq_check(blob->size, kat_entropy_blob.size);
-    blob->data = kat_entropy_blob.data;
-    return 0;
-}
+#define RSP_FILE "kats/bike1_l1.kat"
 
 int main(int argc, char **argv, char **envp) {
     BEGIN_TEST();
-
-    // BIKE is not supported in FIPS mode
     if (s2n_is_in_fips_mode()) {
+        /* Skip when FIPS mode is set as BIKE is not supported in FIPS mode */
         END_TEST();
     }
-
-    FILE *kat_file = fopen(RSP_FILE_NAME, "r");
-    EXPECT_NOT_NULL(kat_file);
-
-    int count;
-    EXPECT_SUCCESS(s2n_alloc(&kat_entropy_blob, 48));
-
-    // Client side variables
-    uint8_t ct[BIKE1_L1_CIPHERTEXT_BYTES];
-    uint8_t client_shared_secret[BIKE1_L1_SHARED_SECRET_BYTES];
-
-    // Server side variables
-    uint8_t pk[BIKE1_L1_PUBLIC_KEY_BYTES];
-    uint8_t sk[BIKE1_L1_SECRET_KEY_BYTES];
-    uint8_t server_shared_secret[BIKE1_L1_SHARED_SECRET_BYTES];
-
-    // Known answer variables
-    uint8_t pk_answer[BIKE1_L1_PUBLIC_KEY_BYTES];
-    uint8_t sk_answer[BIKE1_L1_SECRET_KEY_BYTES];
-    uint8_t ct_answer[BIKE1_L1_CIPHERTEXT_BYTES];
-    uint8_t shared_secret_answer[BIKE1_L1_SHARED_SECRET_BYTES];
-
-    s2n_stack_blob(persoanlization_string, 48, 48);
-
-    for (uint32_t i = 0; i < NUM_OF_KATS; i++) {
-        // Verify test index
-        EXPECT_SUCCESS(FindMarker(kat_file, "count = "));
-        EXPECT_TRUE(fscanf(kat_file, "%d", &count) > 0);
-        EXPECT_EQUAL(count, i);
-
-        // Set the NIST rng to the same state the response file was created with
-        EXPECT_SUCCESS(ReadHex(kat_file, kat_entropy_blob.data, 48, "seed = "));
-        struct s2n_drbg kat_drbg = {.entropy_generator = kat_entropy};
-        EXPECT_SUCCESS(s2n_drbg_instantiate(&kat_drbg, &persoanlization_string, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
-        EXPECT_SUCCESS(s2n_set_private_drbg_for_test(kat_drbg));
-        ////////////////////////////////////
-        //      Run the protocol
-        ////////////////////////////////////
-        // Generate the public/private key pair
-        EXPECT_SUCCESS(BIKE1_L1_crypto_kem_keypair(pk, sk));
-
-        // Create a shared secret and use the public key to encrypt it
-        EXPECT_SUCCESS(BIKE1_L1_crypto_kem_enc(ct, client_shared_secret, pk));
-
-        // Use the private key to decrypt the ct to get the shared secret
-        EXPECT_SUCCESS(BIKE1_L1_crypto_kem_dec(server_shared_secret, ct, sk));
-
-        ////////////////////////////////////
-        //      Verify the results
-        ////////////////////////////////////
-        // Read the KAT values
-        EXPECT_SUCCESS(ReadHex(kat_file, pk_answer, BIKE1_L1_PUBLIC_KEY_BYTES, "pk = "));
-        EXPECT_SUCCESS(ReadHex(kat_file, sk_answer, BIKE1_L1_SECRET_KEY_BYTES, "sk = "));
-        EXPECT_SUCCESS(ReadHex(kat_file, ct_answer, BIKE1_L1_CIPHERTEXT_BYTES, "ct = "));
-        EXPECT_SUCCESS(ReadHex(kat_file, shared_secret_answer, BIKE1_L1_SHARED_SECRET_BYTES, "ss = "));
-
-        // Test the client and server got the same value
-        EXPECT_BYTEARRAY_EQUAL(client_shared_secret, server_shared_secret, BIKE1_L1_SHARED_SECRET_BYTES);
-
-        // Compare the KAT values
-        EXPECT_BYTEARRAY_EQUAL(pk_answer, pk, BIKE1_L1_PUBLIC_KEY_BYTES);
-        EXPECT_BYTEARRAY_EQUAL(sk_answer, sk, BIKE1_L1_SECRET_KEY_BYTES);
-        EXPECT_BYTEARRAY_EQUAL(ct_answer, ct, BIKE1_L1_CIPHERTEXT_BYTES);
-        EXPECT_BYTEARRAY_EQUAL(shared_secret_answer, server_shared_secret, BIKE1_L1_SHARED_SECRET_BYTES);
-    }
-
-    fclose(kat_file);
-
+    EXPECT_SUCCESS(s2n_test_kem_with_kat(&s2n_bike_1_level_1_r1, RSP_FILE));
     END_TEST();
 }

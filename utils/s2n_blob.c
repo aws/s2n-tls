@@ -14,6 +14,7 @@
  */
 
 #include <string.h>
+#include <ctype.h>
 
 #include "error/s2n_errno.h"
 
@@ -32,6 +33,17 @@ int s2n_blob_init(struct s2n_blob *b, uint8_t * data, uint32_t size)
 int s2n_blob_zero(struct s2n_blob *b)
 {
     memset_check(b->data, 0, b->size);
+
+    return 0;
+}
+
+int s2n_blob_char_to_lower(struct s2n_blob *b)
+{
+    uint8_t *ptr = b->data;
+    for (int i = 0; i < b->size; i++ ) {
+        *ptr = tolower(*ptr);
+        ptr++;
+    }
 
     return 0;
 }

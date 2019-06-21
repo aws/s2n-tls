@@ -311,13 +311,9 @@ int main(int argc, char **argv)
          /* Wipe connection */
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
 
-        /* Verify connection_wipe resized the s2n_client_hello.raw_message stuffer */
-        EXPECT_NOT_NULL(client_hello->raw_message.blob.data);
-        EXPECT_EQUAL(client_hello->raw_message.blob.size, S2N_LARGE_RECORD_LENGTH);
-
-        /* Verify connection_wipe cleared the s2n_client_hello.raw_message stuffer data */
-        uint8_t zero_buffer[S2N_LARGE_RECORD_LENGTH] = { 0 };
-        EXPECT_SUCCESS(memcmp(collected_client_hello, zero_buffer, S2N_LARGE_RECORD_LENGTH));
+        /* Verify connection_wipe resized the s2n_client_hello.raw_message stuffer back to 0 */
+        EXPECT_NULL(client_hello->raw_message.blob.data);
+        EXPECT_EQUAL(client_hello->raw_message.blob.size, 0);
 
         /* Verify the s2n blobs referencing cipher_suites and extensions have cleared */
         EXPECT_EQUAL(client_hello->cipher_suites.size, 0);

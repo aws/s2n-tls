@@ -16,6 +16,7 @@
 
 #include "tls/s2n_kex.h"
 #include "tls/s2n_kem.h"
+#include "tls/s2n_tls_parameters.h"
 
 #include "utils/s2n_safety.h"
 
@@ -130,6 +131,24 @@ int main(int argc, char **argv)
         struct s2n_kem server_order_test[] = {kemff, kembc, kem03};
         EXPECT_SUCCESS(s2n_kem_find_supported_kem(&clientKemBlob, server_order_test, 3, &negotiated_kem));
         EXPECT_EQUAL(negotiated_kem->kem_extension_id, kembc.kem_extension_id);
+    }
+    {
+        const struct s2n_iana_to_kem *supported_params = NULL;
+        const uint8_t classic_ecdhe[S2N_TLS_CIPHER_SUITE_LEN] = {TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA};
+        EXPECT_FAILURE(s2n_cipher_suite_to_kem(classic_ecdhe, &supported_params));
+        EXPECT_NULL(supported_params);
+
+        supported_params = NULL;
+        const uint8_t bike_iana[S2N_TLS_CIPHER_SUITE_LEN] = {TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384};
+        EXPECT_SUCCESS(s2n_cipher_suite_to_kem(bike_iana, &supported_params));
+        EXPECT_EQUAL(supported_params->kem_count, 1);
+        EXPECT_EQUAL(supported_params->kems[0]->kem_extension_id, s2n_bike_1_level_1_r1.kem_extension_id);
+
+        supported_params = NULL;
+        const uint8_t sike_iana[S2N_TLS_CIPHER_SUITE_LEN] = {TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384};
+        EXPECT_SUCCESS(s2n_cipher_suite_to_kem(sike_iana, &supported_params));
+        EXPECT_EQUAL(supported_params->kem_count, 1);
+        EXPECT_EQUAL(supported_params->kems[0]->kem_extension_id, s2n_sike_p503_r1.kem_extension_id);
     }
 
     END_TEST();

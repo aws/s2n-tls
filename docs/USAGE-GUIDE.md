@@ -89,8 +89,8 @@ cd libcrypto-build
 curl -LO https://www.openssl.org/source/openssl-1.1.1-latest.tar.gz
 tar -xzvf openssl-1.1.1-latest.tar.gz
 
-# Build openssl libcrypto  (NOTE: check directory name 1.1.1-latest unpacked as)
-cd openssl-1.1.1b
+# Build openssl libcrypto
+cd `tar ztf openssl-1.1.1-latest.tar.gz | head -n1 | cut -f1 -d/`
 ./config -fPIC no-shared              \
          no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
          no-hw no-mdc2 no-seed no-idea enable-ec_nistp_64_gcc_128 no-camellia\
@@ -127,8 +127,8 @@ cd libcrypto-build
 curl -LO https://www.openssl.org/source/openssl-1.0.2-latest.tar.gz
 tar -xzvf openssl-1.0.2-latest.tar.gz
 
-# Build openssl libcrypto  (NOTE: check directory name 1.0.2-latest unpacked as)
-cd openssl-1.0.2k
+# Build openssl libcrypto
+cd `tar ztf openssl-1.0.2-latest.tar.gz | head -n1 | cut -f1 -d/`
 ./config -fPIC no-shared no-libunbound no-gmp no-jpake no-krb5              \
          no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-store no-zlib     \
          no-hw no-mdc2 no-seed no-idea enable-ec-nistp_64_gcc_128 no-camellia\
@@ -561,6 +561,35 @@ int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config,
 
 **s2n_config_add_cert_chain_and_key_to_store** may be called multiple times to support multiple key types(RSA, ECDSA) and multiple domains. On the server side, the certificate selected will be based on the incoming SNI value and the client's capabilities(supported ciphers). In the case of no certificate matching the client's SNI extension or if no SNI extension was sent by the client, the certificate from the **first** call to **s2n_config_add_cert_chain_and_key_to_store** will be selected.
 
+### s2n\_config\_set\_cert\_chain\_and\_key\_defaults
+
+```c
+int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
+                                               struct s2n_cert_chain_and_key **cert_key_pairs,
+                                               uint32_t num_cert_key_pairs);
+```
+
+**s2n_config_set_cert_chain_and_key_defaults** explicitly sets certificate chain and private key pairs to be used as defaults for each auth method (key type). A "default" certificate is used when there is not an SNI match with any other configured certificate. Only one certificate can be set as the default per auth method (one RSA default, one ECDSA default, etc.). All previous default certificates will be cleared and re-set when this API is called. This API is called for a specific **s2n_config** object.
+
+S2N will attempt to automatically choose default certificates for each auth method (key type) based on the order that **s2n_cert_chain_and_key** are added to the **s2n_config** using one of the APIs listed above. **s2n_config_set_cert_chain_and_key_defaults** can be called at any time; s2n will clear defaults and no longer attempt to automatically choose any default certificates.
+
+### s2n\_cert\_tiebreak\_callback
+```c
+typedef struct s2n_cert_chain_and_key* (*s2n_cert_tiebreak_callback) (struct s2n_cert_chain_and_key *cert1, struct s2n_cert_chain_and_key *cert2, uint8_t *name, uint32_t name_len);
+```
+
+**s2n_cert_tiebreak_callback** is invoked if s2n cannot resolve a conflict between two certificates with the same domain name. This function is invoked while certificates are added to an **s2n_config**.
+Currently, the only builtin resolution for domain name conflicts is certificate type(RSA, ECDSA, etc).
+The callback should return a pointer to the **s2n_cert_chain_and_key** that should be used for dns name **name**. If NULL is returned, the first certificate will be used.
+Typically an application will use properties like trust and expiry to implement tiebreaking.
+
+### s2n\_config\_set\_cert\_tiebreak\_callback
+```c
+int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config, s2n_cert_tiebreak_callback tiebreak_fn);
+```
+
+**s2n_config_set_cert_tiebreak_callback** sets the **s2n_cert_tiebreak_callback** for resolving domain name conflicts. If no callback is set, the first certificate added for a domain name will always be preferred.
+
 ### s2n\_config\_add\_dhparams
 
 ```c
@@ -788,11 +817,29 @@ int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key);
 int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem, const char *private_key_pem);
 ```
 
-**s2n_cert_chain_and_key_load_pem** associates a certificate chain and private key with an **s2n_cert_chain_and_key** object. 
+**s2n_cert_chain_and_key_load_pem** associates a certificate chain and private key with an **s2n_cert_chain_and_key** object.
 
 **cert_chain_pem** should be a PEM encoded certificate chain, with the first
 certificate in the chain being your leaf certificate. **private_key_pem**
 should be a PEM encoded private key corresponding to the leaf certificate.
+
+### s2n\_cert\_chain\_and\_key\_set\_ctx
+
+```c
+int s2n_cert_chain_and_key_set_ctx(struct s2n_cert_chain_and_key *chain_and_key, void *ctx);
+```
+
+**s2n_cert_chain_and_key_set_ctx** associates an application defined context with a **s2n_cert_chain_and_key** object.
+This is useful when multiple s2n_cert_chain_and_key objects are used and the application would like to associate unique data
+with each certificate.
+
+### s2n\_cert\_chain\_and\_key\_get\_ctx
+
+```c
+int s2n_cert_chain_and_key_get_ctx(struct s2n_cert_chain_and_key *chain_and_key);
+```
+
+**s2n_cert_chain_and_key_set_ctx** returns a previously set context pointer or NULL if no context was set.
 
 ## Client Auth Related calls
 Client Auth Related API's are not recommended for normal users. Use of these API's is discouraged.

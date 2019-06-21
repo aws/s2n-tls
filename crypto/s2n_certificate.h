@@ -49,6 +49,8 @@ struct s2n_cert_chain_and_key {
      * server_name extension. Decoded as UTF8.
      */
     struct s2n_array *cn_names;
+    /* Application defined data related to this cert. */
+    void *context;
 };
 
 typedef enum {
@@ -56,6 +58,10 @@ typedef enum {
     S2N_AUTHENTICATION_ECDSA,
     S2N_AUTHENTICATION_METHOD_SENTINEL
 } s2n_authentication_method;
+
+struct auth_method_to_cert_value {
+    struct s2n_cert_chain_and_key *certs[S2N_AUTHENTICATION_METHOD_SENTINEL];
+};
 
 int s2n_cert_chain_and_key_set_ocsp_data(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length);
 int s2n_cert_chain_and_key_set_sct_list(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length);

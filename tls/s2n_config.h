@@ -36,6 +36,9 @@ struct s2n_config {
      * does not have a reference to. */
     unsigned cert_allocated:1;
     struct s2n_array *cert_and_key_pairs;
+    struct s2n_map *domain_name_to_cert_map;
+    unsigned default_certs_are_explicit:1;
+    struct auth_method_to_cert_value default_cert_per_auth_method;
     const struct s2n_cipher_preferences *cipher_preferences;
     struct s2n_blob application_protocols;
     s2n_status_request_type status_request_type;
@@ -76,6 +79,9 @@ struct s2n_config {
      * in the certificate. If any respond TRUE. If none return TRUE, the cert will be considered untrusted. */
     uint8_t (*verify_host) (const char *host_name, size_t host_name_len, void *data);
     void *data_for_verify_host;
+
+    /* Application supplied callback to resolve domain name conflicts when loading certs. */
+    s2n_cert_tiebreak_callback cert_tiebreak_cb;
 
     uint8_t mfl_code;
 

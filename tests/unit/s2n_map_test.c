@@ -38,6 +38,16 @@ int main(int argc, char **argv)
     key.size = strlen(keystr) + 1;
     EXPECT_FAILURE(s2n_map_lookup(empty, &key, &val));
 
+    EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", 1234));
+    val.data = (void *) valstr;
+    val.size = strlen(valstr) + 1;
+
+    /* Try to add/put key with zero-size data. Expect failures */
+    key.size = 0;
+    EXPECT_FAILURE(s2n_map_add(empty, &key, &val));
+    EXPECT_FAILURE(s2n_map_put(empty, &key, &val));
+    key.size = strlen(keystr) + 1;
+
     /* Make the empty map complete */
     EXPECT_SUCCESS(s2n_map_complete(empty));
 

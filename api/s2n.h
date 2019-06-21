@@ -96,8 +96,17 @@ struct s2n_cert_chain_and_key;
 extern struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void);
 extern int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem, const char *private_key_pem);
 extern int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key);
+extern int s2n_cert_chain_and_key_set_ctx(struct s2n_cert_chain_and_key *cert_and_key, void *ctx);
+extern void *s2n_cert_chain_and_key_get_ctx(struct s2n_cert_chain_and_key *cert_and_key);
+
+typedef struct s2n_cert_chain_and_key* (*s2n_cert_tiebreak_callback) (struct s2n_cert_chain_and_key *cert1, struct s2n_cert_chain_and_key *cert2, uint8_t *name, uint32_t name_len);
+extern int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config, s2n_cert_tiebreak_callback cert_tiebreak_cb);
+
 extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem);
 extern int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair);
+extern int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
+                                                      struct s2n_cert_chain_and_key **cert_key_pairs,
+                                                      uint32_t num_cert_key_pairs);
 
 extern int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_pem_filename, const char *ca_dir);
 extern int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem);
@@ -247,6 +256,7 @@ extern int s2n_connection_client_cert_used(struct s2n_connection *conn);
 extern const char *s2n_connection_get_cipher(struct s2n_connection *conn);
 extern int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, const char *version);
 extern const char *s2n_connection_get_curve(struct s2n_connection *conn);
+extern const char *s2n_connection_get_kem_name(struct s2n_connection *conn);
 extern int s2n_connection_get_alert(struct s2n_connection *conn);
 
 #ifdef __cplusplus

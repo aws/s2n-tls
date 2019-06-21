@@ -24,7 +24,7 @@
 
 #include "tests/testlib/s2n_testlib.h"
 
-#include "tests/unit/s2n_nist_kats.h"
+#include "tests/testlib/s2n_nist_kats.h"
 
 #include "tls/s2n_kex.h"
 #include "tls/s2n_kem.h"
@@ -56,7 +56,7 @@ int s2n_entropy_generator(struct s2n_blob *blob)
 int setup_connection(struct s2n_connection *conn) {
     conn->actual_protocol_version = S2N_TLS12;
     conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
-    conn->secure.s2n_kem_keys.negotiated_kem = &s2n_sike_supported_params[0];
+    conn->secure.s2n_kem_keys.negotiated_kem = &s2n_sike_p503_r1;
     conn->secure.cipher_suite = &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384;
     conn->secure.conn_hash_alg = S2N_HASH_SHA384;
     return 0;
