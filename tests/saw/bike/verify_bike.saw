@@ -1,11 +1,11 @@
 // verify_bike.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-let do_prove = true;
+let do_prove = false;
 let debug = false;
 let reduced = true;
 
-m <-  llvm_load_module  "../bitcode/all_llvm_patched.bc";
+m <-  llvm_load_module  "../bitcode/bike_llvm.bc";
 
 import "spec/version/input.cry";
 import "spec/interface/H_defs.cry";
@@ -42,6 +42,7 @@ include "proof/outside.saw";
 include "proof/openssl_utils.saw";
 include "proof/gf2x.saw";
 include "proof/utilities.saw";
+
 include "proof/converts_portable.saw";
 include "proof/AES.saw";
 include "proof/sha.saw";
@@ -49,4 +50,6 @@ include "proof/parallel_hash.saw";
 include "proof/sampling.saw";
 include "proof/secure_decode_portable.saw";
 include "proof/decode.saw";
+
+let do_prove = true;
 include "proof/bike1_l1_kem.saw";
