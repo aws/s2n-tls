@@ -236,9 +236,14 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_rsa_wire_choice));
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-        /* Test that clients that support PQ ciphers can negioatate them. */
+        /* Test that clients that support PQ ciphers can negotiate them. */
         const uint8_t expected_pq_wire_choice[] = { TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 };
-        uint8_t client_extensions_data[] = { 0xFE, 0x01, 0x00, 0x04, 0x00, 0x02, 0x00, 0x01 };
+        uint8_t client_extensions_data[] = {
+                0xFE, 0x01, /* PQ KEM extension ID */
+                0x00, 0x04, /* Total extension length in bytes */
+                0x00, 0x02, /* Length of the supported parameters list in bytes */
+                0x00, 0x01  /* BIKE1r1-Level1 */
+        };
         int client_extensions_len = sizeof(client_extensions_data);
         s2n_connection_set_cipher_preferences(conn, "KMS-PQ-TLS-1-0-2019-06");
         conn->client_protocol_version = S2N_TLS12;
