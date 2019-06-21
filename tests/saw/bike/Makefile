@@ -24,12 +24,15 @@ SHELL:=/bin/bash
 
 all : ${LOGS}
 
-force_all :clean_bike_logs all
+force_all : clean_bike_logs all
+
+create_dirs :
+	@mkdir -p tmp
 
 clean_bike_logs :
 	${RM} -r tmp/*.log
 
-tmp/%.log: %.saw
+tmp/%.log: %.saw create_dirs 
 	@echo "Running formal verification with ${YICES_VERSION}"
 	@echo saw $<
 	@set -o pipefail; \
