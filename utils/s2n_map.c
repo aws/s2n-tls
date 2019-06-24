@@ -83,6 +83,12 @@ static int s2n_map_embiggen(struct s2n_map *map, uint32_t capacity)
 
 struct s2n_map *s2n_map_new()
 {
+    return s2n_map_new_with_initial_capacity(S2N_INITIAL_TABLE_SIZE);
+}
+
+struct s2n_map *s2n_map_new_with_initial_capacity(uint32_t capacity)
+{
+    S2N_ERROR_IF_PTR(capacity == 0, S2N_ERR_MAP_INVALID_MAP_SIZE);
     struct s2n_blob mem = {0};
     struct s2n_map *map;
 
@@ -97,7 +103,7 @@ struct s2n_map *s2n_map_new()
     GUARD_PTR(s2n_hash_new(&map->sha256));
     GUARD_PTR(s2n_hash_init(&map->sha256, S2N_HASH_SHA256));
 
-    GUARD_PTR(s2n_map_embiggen(map, S2N_INITIAL_TABLE_SIZE));
+    GUARD_PTR(s2n_map_embiggen(map, capacity));
 
     return map;
 }
@@ -189,12 +195,17 @@ int s2n_map_lookup(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *v
 
     uint32_t slot;
     GUARD(s2n_map_slot(map, key, &slot));
+    const uint32_t initial_slot = slot;
 
     while(map->table[slot].key.size) {
         if (key->size != map->table[slot].key.size ||
             memcmp(key->data,  map->table[slot].key.data, key->size)) {
             slot++;
             slot %= map->capacity;
+            /* We went over all the slots but found no match */
+            if (slot == initial_slot) {
+                break;
+            }
             continue;
         }
 
