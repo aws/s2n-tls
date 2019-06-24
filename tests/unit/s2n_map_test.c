@@ -57,7 +57,11 @@ int main(int argc, char **argv)
     /* Done with the empty map */
     EXPECT_SUCCESS(s2n_map_free(empty));
 
-    EXPECT_NOT_NULL(map = s2n_map_new());
+    /* Expect failure since initial map size is zero */
+    EXPECT_NULL(map = s2n_map_new_with_initial_capacity(0));
+
+    /* Create map with the smallest initial size */
+    EXPECT_NOT_NULL(map = s2n_map_new_with_initial_capacity(1));
 
     /* Insert 8k key value pairs of the form hex(i) -> dec(i) */
     for (int i = 0; i < 8192; i++) {
