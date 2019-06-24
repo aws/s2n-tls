@@ -843,7 +843,7 @@ int s2n_ecc_extension_required(const struct s2n_cipher_preferences *preferences)
     notnull_check(preferences);
     for (int i = 0; selection[i].version != NULL; i++) {
         if (selection[i].preferences == preferences) {
-            return selection[i].ecc_extension_required & 1;
+            return 1 == selection[i].ecc_extension_required;
         }
     }
     S2N_ERROR(S2N_ERR_INVALID_CIPHER_PREFERENCES);
@@ -854,7 +854,7 @@ int s2n_pq_kem_extension_required(const struct s2n_cipher_preferences *preferenc
     notnull_check(preferences);
     for (int i = 0; selection[i].version != NULL; i++) {
         if (selection[i].preferences == preferences) {
-            return selection[i].pq_kem_extension_required & 1;
+            return 1 == selection[i].pq_kem_extension_required;
         }
     }
     S2N_ERROR(S2N_ERR_INVALID_CIPHER_PREFERENCES);

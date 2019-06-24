@@ -43,7 +43,6 @@ int main(int argc, char **argv)
     EXPECT_FALSE(s2n_pq_kem_extension_required(preferences));
 
     preferences = NULL;
-    preferences = NULL;
     EXPECT_FAILURE(s2n_ecc_extension_required(preferences));
     EXPECT_FAILURE(s2n_pq_kem_extension_required(preferences));
 
