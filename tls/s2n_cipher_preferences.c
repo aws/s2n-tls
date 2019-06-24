@@ -723,8 +723,8 @@ const struct s2n_cipher_preferences cipher_preferences_kms_fips_tls_1_2_2018_10 
 struct {
     const char *version;
     const struct s2n_cipher_preferences *preferences;
-    uint8_t ecc_extension_required;
-    uint8_t pq_kem_extension_required;
+    unsigned ecc_extension_required:1;
+    unsigned pq_kem_extension_required:1;
 } selection[] = {
     { "default", &cipher_preferences_20170210 },
     { "default_fips", &cipher_preferences_20170405},
