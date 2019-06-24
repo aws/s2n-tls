@@ -91,15 +91,7 @@ BIKE_SCRIPTS=$(wildcard bike/*.saw)
 
 .PHONY : bike
 bike : bike_bitcode
-	# @${MAKE} clean-bike-logs
-	# @${MAKE} bike/bike.log
-	# @${MAKE} bike/verify_bike.saw
 	@${MAKE} -C bike force_all
-
-# bike/%.saw: bike_bitcode bike/tmp/%.log
-
-bike/%.saw: bike_bitcode
-	@${MAKE} bike/$@.log
 
 ###########################################
 ## Failure Tests
