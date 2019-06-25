@@ -50,10 +50,6 @@ clean-bitcode :
 clean-failure-logs :
 	$(RM) -- $(wildcard failure_tests/*.log)
 
-.PHONY : clean-bike-logs
-clean-bike-logs :
-	${RM} -r bike/tmp/*.log
-
 .PHONY: clean
 clean: decruft
 
@@ -77,7 +73,7 @@ clean_the_dir :
 # To make a log we need the corresponding saw file, the all_llvm file, and a temp directory
 # The pipefail command causes the entire command to fail if saw fails, even though we pipe it to tee
 # without it we would see only the tee return code
-tmp/%.log : %.saw bitcode tmp
+tmp/%.log : %.saw bitcode/all_llvm.bc tmp
 	@echo "Running formal verification with ${YICES_VERSION}"
 	@echo saw $<
 	@set -o pipefail; \
@@ -86,8 +82,6 @@ tmp/%.log : %.saw bitcode tmp
 ###########################################
 ## BIKE Tests
 ###########################################
-
-BIKE_SCRIPTS=$(wildcard bike/*.saw)
 
 .PHONY : bike
 bike : bike_bitcode
@@ -147,9 +141,9 @@ bitcode/%.bc : failure_tests/%.patch
 
 #if we ask this makefile to create bitcode it will always completely rebuild it
 .PHONY : bitcode
-bitcode : clean_the_dir bitcode/all_llvm.bc
-	# ${MAKE} clean_the_dir
-	# ${MAKE} bitcode/all_llvm.bc
+bitcode : 
+	${MAKE} clean_the_dir
+	${MAKE} bitcode/all_llvm.bc
 
 .PHONY : bike_bitcode
 bike_bitcode : clean_the_dir bitcode/bike_llvm.bc
