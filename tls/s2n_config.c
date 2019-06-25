@@ -121,7 +121,6 @@ static int s2n_config_init(struct s2n_config *config)
         s2n_config_set_cipher_preferences(config, "default");
     }
 
-    notnull_check(config->cert_and_key_pairs = s2n_array_new(sizeof(struct s2n_cert_chain_and_key*)));
     notnull_check(config->domain_name_to_cert_map = s2n_map_new_with_initial_capacity(1));
     GUARD(s2n_map_complete(config->domain_name_to_cert_map));
     memset(&config->default_cert_per_auth_method, 0, sizeof(struct auth_method_to_cert_value));
@@ -142,7 +141,6 @@ static int s2n_config_cleanup(struct s2n_config *config)
     GUARD(s2n_config_free_cert_chain_and_key(config));
     GUARD(s2n_config_free_dhparams(config));
     GUARD(s2n_free(&config->application_protocols));
-    GUARD(s2n_array_free(config->cert_and_key_pairs));
     GUARD(s2n_map_free(config->domain_name_to_cert_map));
 
     return 0;
@@ -344,8 +342,9 @@ int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
     /* Free the cert_chain_and_key since the application has no reference
      * to it. This is necessary until s2n_config_add_cert_chain_and_key is deprecated. */
     if (config->cert_allocated) {
-        struct s2n_cert_chain_and_key *chain_and_key = *((struct s2n_cert_chain_and_key**) s2n_array_get(config->cert_and_key_pairs, 0));
-        GUARD(s2n_cert_chain_and_key_free(chain_and_key));
+        for (int i = 0; i < S2N_AUTHENTICATION_METHOD_SENTINEL; i++) {
+            s2n_cert_chain_and_key_free(config->default_cert_per_auth_method.certs[i]);
+        }
     }
 
     return 0;
@@ -493,13 +492,9 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
 
 int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
 {
-    notnull_check(config->cert_and_key_pairs);
     notnull_check(config->domain_name_to_cert_map);
     notnull_check(cert_key_pair);
 
-    struct s2n_cert_chain_and_key **to_insert = s2n_array_add(config->cert_and_key_pairs);
-    notnull_check(to_insert);
-    *to_insert = cert_key_pair;
     GUARD(s2n_config_build_domain_name_to_cert_map(config, cert_key_pair));
 
     if (!config->default_certs_are_explicit) {
@@ -630,11 +625,11 @@ int s2n_config_set_cache_delete_callback(struct s2n_config *config, s2n_cache_de
 int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length)
 {
     notnull_check(config);
-    struct s2n_array *certs = config->cert_and_key_pairs;
-    if (s2n_array_num_elements(certs) == 0) {
+
+    if (s2n_config_get_num_default_certs(config) == 0) {
         S2N_ERROR(S2N_ERR_UPDATING_EXTENSION);
     }
-    struct s2n_cert_chain_and_key *config_chain_and_key = *((struct s2n_cert_chain_and_key**) s2n_array_get(certs, 0));
+    struct s2n_cert_chain_and_key *config_chain_and_key = s2n_config_get_single_default_cert(config);
     notnull_check(config_chain_and_key);
 
     switch (type) {
@@ -806,4 +801,30 @@ int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config, s2n_cert_ti
 {
     config->cert_tiebreak_cb = cert_tiebreak_cb;
     return 0;
+}
+
+struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_config *config)
+{
+    notnull_check_ptr(config);
+    struct s2n_cert_chain_and_key *cert = NULL;
+
+    for (int i = S2N_AUTHENTICATION_METHOD_SENTINEL - 1; i >= 0; i--) {
+        if (config->default_cert_per_auth_method.certs[i] != NULL) {
+            cert = config->default_cert_per_auth_method.certs[i];
+        }
+    }
+    return cert;
+}
+
+int s2n_config_get_num_default_certs(struct s2n_config *config)
+{
+    notnull_check(config);
+    int num_certs = 0;
+    for (int i = 0; i < S2N_AUTHENTICATION_METHOD_SENTINEL; i++) {
+        if (config->default_cert_per_auth_method.certs[i] != NULL) {
+            num_certs++;
+        }
+    }
+
+    return num_certs;
 }
