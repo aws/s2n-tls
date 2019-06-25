@@ -43,4 +43,7 @@ include "proof/sha.saw";
 include "proof/utilities.saw";
 
 let do_prove = true;
+include "proof/converts_portable.saw";
+include "proof/AES.saw";
+include "proof/sha.saw";
 include "proof/parallel_hash.saw";
