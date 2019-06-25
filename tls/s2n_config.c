@@ -122,7 +122,7 @@ static int s2n_config_init(struct s2n_config *config)
     }
 
     notnull_check(config->cert_and_key_pairs = s2n_array_new(sizeof(struct s2n_cert_chain_and_key*)));
-    notnull_check(config->domain_name_to_cert_map = s2n_map_new());
+    notnull_check(config->domain_name_to_cert_map = s2n_map_new_with_initial_capacity(1));
     GUARD(s2n_map_complete(config->domain_name_to_cert_map));
     memset(&config->default_cert_per_auth_method, 0, sizeof(struct auth_method_to_cert_value));
     config->default_certs_are_explicit = 0;
