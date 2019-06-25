@@ -26,27 +26,21 @@ EXTERNC void compute_counter_of_unsat(OUT uint8_t upc[N_BITS],
                                       IN const compressed_idx_dv_t* inv_h0_compressed,
                                       IN const compressed_idx_dv_t* inv_h1_compressed)
 {
-    uint32_t i=0, j=0, mask=0, pos=0;
+    uint32_t i=0, j=0, mask[2]={0}, pos[2]={0};
     
     memset(upc, 0, N_BITS);
 
     for(j = 0; j < FAKE_DV; j++)
     {
-        mask = inv_h0_compressed->val[j].used;
-        pos  = inv_h0_compressed->val[j].val;
+        // It is faster (by 5M cycles) to have one loop instead of two.
+        mask[0] = inv_h0_compressed->val[j].used;
+        mask[1] = inv_h1_compressed->val[j].used;
+        pos[0]  = inv_h0_compressed->val[j].val;
+        pos[1]  = inv_h1_compressed->val[j].val;
         for(i = 0; i < R_BITS; i++)
         {
-            upc[i] += (s[i+pos] & mask);
-        }
-    }
-
-    for(j = 0; j < FAKE_DV; j++)
-    {
-        mask = inv_h1_compressed->val[j].used;
-        pos  = inv_h1_compressed->val[j].val;
-        for(i = 0; i < R_BITS; i++)
-        {
-            upc[R_BITS + i] += (s[i+pos] & mask);
+            upc[i] += (s[i+pos[0]] & mask[0]);
+            upc[R_BITS + i] += (s[i+pos[1]] & mask[1]);
         }
     }
 }

@@ -38,8 +38,8 @@ void secure_set_bits(IN OUT uint64_t *a,
     for (uint32_t qw = 0; qw < (a_len_bytes/8); qw++) {
         tmp = 0;
         for (uint32_t j = 0; j < weight; j++) {
-            uint64_t mask = (-1UL) + (!secure_cmp32(qw_pos[j], qw));
-            mask &= (-1UL) + (wlist[j].used + 1U);
+            uint64_t mask = (-1ULL) + (!secure_cmp32(qw_pos[j], qw));
+            mask &= (-1ULL) + (wlist[j].used + 1U);
             tmp |= (bit_pos[j] & mask );
         }
         // Set the bit in a masked way

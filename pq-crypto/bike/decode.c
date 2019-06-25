@@ -67,7 +67,7 @@ void split_e(OUT split_e_t *split_e_, IN const e_t *e)
     }
 
     // Fix corner case
-    if (N_SIZE < (2UL * R_SIZE)) {
+    if (N_SIZE < (2ULL * R_SIZE)) {
         PTRV(split_e_)[1].raw[R_SIZE - 1] = (e->raw[N_SIZE - 1] >> LAST_R_BYTE_LEAD);
     }
 

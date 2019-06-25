@@ -43,9 +43,7 @@
 #define DIVIDE_AND_CEIL(x, divider) ((x + divider) / divider)
 
 //Bit manipations
-//Linux Assemblies except for Ubuntu can't understand what UL mean.
-//Therefore in that case len must be smaller than 31.
-#define BIT(len) (1UL << (len))
+#define BIT(len) (1ULL << (len))
 #define MASK(len) (BIT(len) - 1)
 #define SIZEOF_BITS(b) (sizeof(b)*8)
 
