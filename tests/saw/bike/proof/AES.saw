@@ -1,0 +1,259 @@
+// AES.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+let aes256_key_expansion_spec = do {
+
+    ap <- out_ref aes256_ks_T;
+    (b, bp) <- in_ref aes256_key_T "key";
+    crucible_execute_func [ap, bp];
+
+    // NOTE: ap gets an initialized value
+    v <- point_to aes256_ks_T ap "ks";
+
+    return ();
+};
+
+let aes256_enc_spec len = do {
+
+    ap <- out_ref (make_i8_T len);
+    (b, bp) <- in_ref (make_i8_T len) "pt";
+    (c, cp) <- in_ref aes256_ks_T "ks";
+    crucible_execute_func [ap, bp, cp];
+
+    // NOTE: OUT is written to
+    a' <- point_to (make_i8_T len) ap "ct'";
+
+    return ();
+};
+
+// NOTE: This is an inline static funciton that is somethimes renamed by
+//       the linker.
+let aes256_free_ks_spec = do {
+
+    // NOTE: This argument is incorrectly specified as OUT in the code
+    (a,ap) <- inout_ref aes256_ks_T "ks";
+    crucible_execute_func [ap];
+};
+
+// NOTE: This is an inline static funciton that is somethimes renamed by
+//       the linker.
+let finalize_aes_ctr_prf_spec = do {
+    (a, ap) <- inout_ref partial_aes_ctr_prf_state_T "s";
+    crucible_execute_func[ap];
+};
+
+/* NOTE: interesting features of aes_ctr_prf:
+
+  - `init_aes_ctr_prf_state` does not actually initialize the whole
+    structure; see the note in helpers.saw.  We sometimes can only
+    assume a partially_initialized state.
+
+  - 'aes_ctr_prf` writes to the whole OUT parameter on success, but
+    might possibly fail, returning a non-SUCCESS code and not writing
+    to all (maybe not any) of the OUT parameter.
+
+  - Expanding on the section point, he failue code is only returned if the
+    `rem_invokations` parameter drops to zero.  So we will just add a
+    precondition on every call that this will not happen.  Otherwise I do
+    not know how we could describe the effect on the OUT parameter.
+
+  - In fact, in the BIKE code the state is always zeroed before init is called,
+    so it is far, far easier to deal with memory safety if we build this in.
+    As a result, we consider the prf state to be an IN OUT parameter for init.
+
+  - The above allows us to use far simpler specifications for
+    everything using an aes_prf_state, as these states will be
+    fully initialized.
+
+  - We still need to track the `rem_invokations` counter and the `pos`:
+
+    - rem_invokations must be positive so that we know the prf gives a result.
+      otherwise several functions can bail out early, now writing to their OUT
+      parameters.
+
+    - Unless `pos <= AES256_BLOCK_SIZE`, the aes_ctr_prf code can get
+      memory errors.  So this invariant is an important property to track.
+*/
+
+let AES256_BLOCK_SIZE = 16;
+
+// NOTE: This spec is for partial initialization, should we wish to verify it
+
+/*let init_aes_ctr_prf_state_spec = do {
+    ap <- out_ref aes_ctr_prf_state_T;
+    (b, bp) <- in_val i32_T "mi";
+    (c, cp) <- in_ref seed_T "seed";
+    crucible_precond {{ b > 0 }}; // otherwise, call fails
+    crucible_execute_func[ap, bp, cp];
+    //ret <- crucible_fresh_var "ret" i32;
+    //crucible_return (tm {{ret}});
+    // NOTE: ap gets *mostly* initialized
+    v <- point_to partial_aes_ctr_prf_state_T ap "s'";
+    crucible_postcond {{ v.pos == `AES256_BLOCK_SIZE }};
+    crucible_postcond {{ v.rem_invokations == b }};
+    crucible_return (crucible_term {{0:[32]}});
+};*/
+
+let init_aes_ctr_prf_state_spec = do {
+
+    // NOTE: requires "s" is already initilized
+    (a,ap) <- inout_ref aes_ctr_prf_state_T "s";
+
+    (b, bp) <- in_val i32_T "mi";
+    (c, cp) <- in_ref seed_T "seed";
+
+    // NOTE: The call fails without this precondition
+    crucible_precond {{ b > 0 }};
+
+    crucible_execute_func[ap, bp, cp];
+
+    // NOTE: ap gets updated
+    s' <- point_to aes_ctr_prf_state_T ap "s'";
+
+    crucible_postcond {{ s'.rem_invokations == b }};
+    crucible_postcond {{ s'.pos == `AES256_BLOCK_SIZE }};
+    crucible_return (crucible_term {{0:[32]}});
+};
+
+let perform_aes_spec len = do {
+    ap <- out_ref (make_i8_T len); //ct
+    (b, bp) <- inout_ref aes_ctr_prf_state_T "s";
+    crucible_precond {{ b.pos <= `AES256_BLOCK_SIZE }};
+    crucible_precond {{ b.rem_invokations >= 1 }};
+    crucible_execute_func[ap, bp];
+    b' <- point_to partial_aes_ctr_prf_state_T bp "s'"; // s is updated
+    crucible_postcond {{ b'.pos <= `AES256_BLOCK_SIZE }};
+    crucible_postcond {{ b'.rem_invokations == b.rem_invokations - 1}};
+    a' <- point_to (make_i8_T len) ap "ct'"; // ct is written to
+    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+};
+
+/* This setup is not working, so we just use a non-compositional
+   proof for aes_ctr_prf and do not need this override.
+
+// NOTE: There is also a call to perform_aes with overlapping parameters,
+//       where ct is the buffer of s
+
+let perform_aes_overlapped_spec = do {
+    let el = crucible_elem;
+    (b, bp) <- inout_ref aes_ctr_prf_state_T "s";
+    let ap = el (el (el bp 1) 0) 0; // &bp->buffer
+    crucible_precond {{ b.pos <= `AES256_BLOCK_SIZE }};
+    crucible_precond {{ b.rem_invokations >= 1 }};
+    crucible_execute_func[(crucible_elem bp 1), bp]; // &bp->buffer, bp
+    b' <- point_to partial_aes_ctr_prf_state_T bp "s'";
+    crucible_postcond {{ b'.pos <= `AES256_BLOCK_SIZE }};
+    crucible_postcond {{ b'.rem_invokations == b.rem_invokations - 1}};
+    a' <- point_to (make_i8_T 16) ap "ct'"; // buffer is written to
+    crucible_return (tm {{fromInteger`{[32]} SUCCESS}});
+};
+
+perform_aes_overlapped_ov <- verify "perform_aes" [aes256_enc_ov] perform_aes_overlapped_spec;
+
+*/
+
+/* For partial initialization, if we want to verify that:
+let aes_ctr_prf_partial_spec len = do {
+    ap <- out_ref (make_i8_T len);
+    // NOTE: marked as "IN" in C code
+    (b, bp) <- inout_ref partial_aes_ctr_prf_state_T "s";
+    (c, cp) <- in_val i32_T "len";
+    crucible_precond {{ b.rem_invokations >=  `(len/AES256_BLOCK_SIZE) }};
+    crucible_precond {{ b.pos == `AES256_BLOCK_SIZE \/ b.rem_invokations==0}};
+    // NOTE: avoid uint32 overflow!
+    crucible_precond {{ c < 2^^32 - `AES256_BLOCK_SIZE }};
+    crucible_precond {{ c == `len }};
+    crucible_execute_func[ap, bp, cp];
+    b' <- point_to partial_aes_ctr_prf_state_T bp "s'";
+    crucible_postcond {{ b'.pos <= `AES256_BLOCK_SIZE }};
+    crucible_postcond {{ b'.rem_invokations >= b.rem_invokations -
+        `(len/AES256_BLOCK_SIZE) }};
+    a' <- point_to (make_i8_T len) ap "ct'"; // OUT is written to
+    // ret <- crucible_fresh_var "ret" i32;
+    // crucible_return (tm {{ret}});
+    crucible_return (tm {{fromInteger`{[32]} SUCCESS}});
+};
+
+aes_ctr_prf_ov1 <- verify_pathsat
+        "aes_ctr_prf"
+	[aes256_enc_ov]
+	(aes_ctr_prf_partial_spec R_SIZE);
+*/
+
+
+let aes_ctr_prf_spec len = do {
+    ap <- out_ref (make_i8_T len);
+
+    // NOTE: marked as "IN" in C code, should be IN OUT
+    (b, bp) <- inout_ref aes_ctr_prf_state_T "s";
+
+    crucible_precond {{ b.rem_invokations >=  `(len/AES256_BLOCK_SIZE) + 1 }};
+
+    // NOTE: This invariant is need to avoid underflow
+    crucible_precond {{ b.pos <= `AES256_BLOCK_SIZE }};
+
+    // NOTE: This is needed to avoid uint32 overflow
+    crucible_precond {{ `len < 2^^32 - `AES256_BLOCK_SIZE }};
+
+    crucible_execute_func[ap, bp, tm {{`len:[32]}}];
+    b' <- point_to aes_ctr_prf_state_T bp "s'";
+    crucible_postcond {{ b'.pos <= `AES256_BLOCK_SIZE }}; // invariant
+    crucible_postcond {{ b'.rem_invokations >=
+        b.rem_invokations - `(len/AES256_BLOCK_SIZE) - 1 }};
+    a' <- point_to  (make_i8_T len) ap "a'"; // OUT parameter is written to
+    crucible_return (tm {{fromInteger`{[32]} SUCCESS}});
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof Commands
+
+aes256_free_ks_ov <- admit "aes256_free_ks"
+	[] // [EVP_CIPHER_CTX_free_ov2]
+	aes256_free_ks_spec;
+
+// NOTE: This cannot be verified because EVP_CIPHER_CTX_new returns a pointer
+aes256_key_expansion_ov <- admit "aes256_key_expansion"
+    [] // [EVP_CIPHER_CTX_new_ov, EVP_aes_256_ecb_ov]
+    aes256_key_expansion_spec;
+
+aes256_enc_ov <- admit "aes256_enc" [] (aes256_enc_spec 16);
+
+finalize_aes_ctr_prf_ov <- verify "finalize_aes_ctr_prf"
+    [aes256_free_ks_ov]
+    finalize_aes_ctr_prf_spec;
+
+init_aes_ctr_prf_state_ov <- verify "init_aes_ctr_prf_state"
+    [aes256_key_expansion_ov, secure_clean_ov3]
+    init_aes_ctr_prf_state_spec;
+
+perform_aes_ov <- verify "perform_aes" [aes256_enc_ov] (perform_aes_spec 16);
+
+/* NOTES:
+
+  - These can be proved in the 2018-10-23 version of SAW, but
+    not in versions after sometime in December 2018, as path
+    satisfiability checking does not work.  However, we need 2019
+    versions of SAW to handle other proofs, e.g., count_ones. So for
+    now these are admitted --- but the proofs have been verified in that
+    earlier version of SAW.  If path satisfiability checking is
+    restored, these should be verified again.
+
+  - There is a call `perform_aes(s->buffer.u.bytes, s)` in
+    aes_ctr_prf, so we would need an override for `perform_aes` that
+    accounts for overlapping parameters.  It is easier just to let SAW
+    simulate the called function, and not bother with overriding
+    `perform_aes`, which is a fairly trivial function anyway.
+*/
+
+aes_ctr_prf_ov2 <- admit // verify_pathsat
+         "aes_ctr_prf"
+	[aes256_enc_ov] // see note above on perform_aes_overlapped_ov
+	(aes_ctr_prf_spec R_SIZE);
+
+aes_ctr_prf_ov10 <- admit // verify_pathsat
+        "aes_ctr_prf"
+	[aes256_enc_ov]
+	(aes_ctr_prf_spec 10);

@@ -1,0 +1,65 @@
+// converts_portable.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+// NOTE: This is the provable spec that corresponds to what the code does.
+let convert_to_redundant_rep_spec len = do {
+    let len_div_8 = eval_int {{ 1+(`len:[64])/8 }};
+    let len' = eval_int {{ (`len_div_8:[64])*8  }};
+    (out,outp) <- ptr_to_fresh "out" (llvm_array len' (llvm_int 8));
+    (i,inp) <- ptr_to_fresh_readonly "in" (llvm_array len_div_8 (llvm_int 8));
+    crucible_execute_func [outp, inp, tm {{ `len:[64] }}];
+    crucible_points_to outp (tm {{ out || (redundant_rep i) }});
+};
+
+// NOTE: This is the specification this function should satisfy. We
+//       admit its proof for now, to faciliate verifying the rest of
+//       the program.
+let convert_to_redundant_rep_spec' len = do {
+    let len_div_8 = eval_int {{ 1+(`len:[64])/8 }};
+    (out,outp) <- ptr_to_fresh "out" (llvm_array len (llvm_int 8));
+    crucible_precond {{ out == zero }};
+    (i,inp) <- ptr_to_fresh_readonly "in" (llvm_array len_div_8 (llvm_int 8));
+    crucible_execute_func [outp, inp, tm {{ `len:[64] }}];
+    crucible_points_to outp (tm {{ convert_to_redundant_rep`{len} i }});
+};
+
+// NOTE: n corresponds to different input lengths
+let count_ones_spec n = do {
+    let ty = (make_i8_T n);
+    (a, ap) <- in_ref ty "in";
+    crucible_execute_func [ap, tm {{ `n:[32] }} ];
+    crucible_return (tm {{count_ones`{n} a}});
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+verify "convert_to_redundant_rep" [] (convert_to_redundant_rep_spec 0);
+verify "convert_to_redundant_rep" [] (convert_to_redundant_rep_spec 1);
+verify "convert_to_redundant_rep" [] (convert_to_redundant_rep_spec 8);
+verify "convert_to_redundant_rep" [] (convert_to_redundant_rep_spec 32);
+
+// NOTE: This is only every used for len==RBITS, the proof
+//       takes ~3 minutes on the full sizes
+// verify "convert_to_redundant_rep" [] (convert_to_redundant_rep_spec R_BITS);
+
+convert_to_redundant_rep_ov <- admit "convert_to_redundant_rep" []
+    (convert_to_redundant_rep_spec' R_BITS);
+
+// NOTE: Overrides for various needed lengths needed in the program
+//       Only RBITS=10163, R_SIZE=1271, and N_SIZE=2541 appear in the
+//       bitcode file. With the toy parameter size,
+//       RBITS=163, R_SIZE=21 and N_SIZE=41 appear
+
+// NOTE: Proof timeout on full sizes.
+//
+//       The function behavior does not depend on the size.
+//       Thus, verify on one small size, and assume on full sizes.
+verify "count_ones" [] (count_ones_spec 10);
+
+count_ones_R_SIZE_ov <- admit "count_ones" [] (count_ones_spec R_SIZE);
+count_ones_N_SIZE_ov <- admit "count_ones" [] (count_ones_spec N_SIZE);
+count_ones_R_BITS_ov <- admit "count_ones" [] (count_ones_spec R_BITS);

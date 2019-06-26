@@ -31,6 +31,7 @@ export S2N_ROOT=$(shell pwd)/s2n
 all:
 	@echo "Running formal verification with ${YICES_VERSION}"
 	@${MAKE} clean-logs
+	@${MAKE} clean_the_dir
 	@${MAKE} $(LOGS)
 	@${MAKE} failure-tests
 
@@ -68,6 +69,7 @@ clean_the_dir :
 	${RM} -r tmp
 	${RM} -r failure_tests/*.log
 	${RM} -r sike/*.log
+	${RM} -r bike/*.log                                                        
 	${RM} -r bitcode/*.bc
 
 ###########################################
@@ -120,6 +122,14 @@ sike/sidh.log :
 sike/sike.log :
 	@set -o pipefail; \
 	saw sike/verify_sike.saw | tee $@
+
+###########################################
+## BIKE Tests
+###########################################
+
+.PHONY : bike
+bike : bike_patched_bitcode
+	@${MAKE} -C bike force_all
 
 ###########################################
 ## Failure Tests
@@ -175,13 +185,16 @@ bitcode/%.bc : failure_tests/%.patch
 
 #if we ask this makefile to create bitcode it will always completely rebuild it
 .PHONY : bitcode
-bitcode :
+bitcode : 
 	${MAKE} clean_the_dir
 	${MAKE} bitcode/all_llvm.bc
 
 sike_patched_bitcode :
 	${MAKE} clean_the_dir
 	${MAKE} bitcode/sike_llvm.bc
+
+.PHONY : bike_bitcode
+bike_patched_bitcode : clean_the_dir bitcode/bike_llvm.bc
 
 ########################################################
 ## Rules to copy the s2n directory for patching and bulding
@@ -191,12 +204,13 @@ CRYPTO_C = $(wildcard ../../crypto/*.c) $(wildcard ../../crypto/*.h) ../../crypt
 CRYPTO_COPY = $(addprefix s2n/crypto/, $(notdir $(CRYPTO_C)))
 
 PQ_CRYPTO_C = $(wildcard ../../pq-crypto/*.c) $(wildcard ../../pq-crypto/*.h) ../../pq-crypto/Makefile
-
 PQ_CRYPTO_COPY = $(addprefix s2n/pq-crypto/, $(notdir $(PQ_CRYPTO_C)))
 
 SIKE_C = $(wildcard ../../pq-crypto/sike/*.c) $(wildcard ../../pq-crypto/sike/*.h) ../../pq-crypto/sike/Makefile
-
 SIKE_COPY = $(addprefix s2n/pq-crypto/sike/, $(notdir $(SIKE_C)))
+
+BIKE_C = $(wildcard ../../pq-crypto/bike/*.c) $(wildcard ../../pq-crypto/bike/*.h) ../../pq-crypto/bike/Makefile    
+BIKE_COPY = $(addprefix s2n/pq-crypto/bike/, $(notdir $(BIKE_C)))    
 
 UTILS_C = $(wildcard ../../utils/*.c) $(wildcard ../../utils/*.h) ../../utils/Makefile
 UTILS_COPY =$(addprefix s2n/utils/, $(notdir $(UTILS_C)))
@@ -225,6 +239,9 @@ s2n/pq-crypto :
 s2n/pq-crypto/sike :
 	mkdir -p $@
 
+s2n/pq-crypto/bike :                                                                          
+	mkdir -p $@       
+
 s2n/utils :
 	mkdir -p $@
 
@@ -250,6 +267,15 @@ bitcode/sike_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike s2n/utils s2n
 	patch s2n/pq-crypto/sike/sike_p503_kem.c sike/patch/sike_p503_kem.c.patch
 	${MAKE} -C s2n bc
 	${MAKE} -C bitcode all_llvm.bc
+
+bitcode/bike_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(BIKE_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
+	patch s2n/pq-crypto/bike/bike_defs.h bike/patch/bike_defs.h.patch
+	patch s2n/pq-crypto/bike/bike1_l1_kem.c bike/patch/bike1_l1_kem.c.patch
+	patch s2n/pq-crypto/bike/sampling.c bike/patch/sampling.c.patch
+	patch s2n/pq-crypto/bike/decode.c bike/patch/decode.c.patch
+	${MAKE} -C s2n bc
+	${MAKE} -C bitcode bike_llvm.bc
+
 
 s2n/%.h : ../../%.h
 	cp $< $@

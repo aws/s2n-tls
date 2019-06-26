@@ -1,0 +1,15 @@
+77,80c77,81
+<     #define R_BITS  10163
+<     #define DV      71
+<     #define FAKE_DV 133
+<     #define T1      134
+---
+>     // REDUCED SIZES to make the proofs tractable
+>     #define R_BITS  163 // more than 128 so we use multiple quadwords
+>     #define DV      3
+>     #define FAKE_DV 4
+>     #define T1      7
+83c84
+<     #define BLOCK_SIZE (16384)
+---
+>     #define BLOCK_SIZE (512) // larger than R_BITS, as in the full-sized version

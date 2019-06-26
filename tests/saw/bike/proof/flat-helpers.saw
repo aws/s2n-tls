@@ -1,0 +1,100 @@
+// flat-helpers.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// Helper functions for writing crucible setups
+
+/* NOTES: These codify the common patterns in defining parameters
+
+  - There are 4 kinds of parameters: input passed by value, input passed
+    by reference (i.e., a pointer), inout passed by reference, out passed
+    by reference.
+
+  - So for a type T, we provide 4 helper functions,
+     -  in_val_T: String -> CrucibleSetup (Term, SetupValue)
+     -  in_ref_T: String -> CrucibleSetup (Term, SetupValue)
+     -  inout_ref_T: String -> CrucibleSetup (Term, SetupValue)
+     -  out_ref_T: () -> CrucibleSetup SetupValue
+
+  - The Term is a name for the initial value of the parameter, usable in
+    pre- and post-conditions; the SetupValue is usable in the
+    `crucible_execute_func` command.  The given String is the name of that
+    variable as may be seen in counterexamples when proofs fail.
+
+  - The in_ref is declared in SAW as a readonly allocation, so that an
+    override can apply to calls where different in_refs are the same
+    pointer.
+
+  - An out_ref does not have an initial value, so does not get a name and
+    does not return a Term.
+
+  - We can simplify both the definition of these functions and their use
+    by defining an extra helper
+      - point_to_T: SetupValue -> String -> CrucibleSetup Term
+
+  - which, when given an existing pointer and a name, declares a fresh
+    variable of type T, asserts that the given pointer points to it,
+    and returns that variable.  This is useful for inout or out
+    parameters, e.g.,
+
+    (x,xp) <- inout_ref T "x";
+    yp <- out_ref S "y";
+    crucible_precond {{ ... x ... }};
+    crucible_execute_func [xp, yp];
+    x' <- point_to T xp "x'"; // final value of x
+    y' <- point_to S yp "y'"; // final value of y
+    crucible_postcond {{ ... x ... x' ... y' ... }};
+*/
+
+// NOTE: C type descriptor for SAW is pair of an LLVM_type, and a
+//       setup function for "points to".
+
+typedef point_to_function_t =  SetupValue -> String -> CrucibleSetup Term;
+typedef type_descriptor_t = (LLVMType, SetupValue ->
+    String -> CrucibleSetup Term);
+
+let point_to (llvm_type, pt_to) p n = do {
+    pt_to p n;
+};
+
+let in_val (llvm_type, pt_to) n = do {
+    v <- crucible_fresh_var n llvm_type;
+    let x = crucible_term v;
+    return ({{ v }}, x);
+};
+
+let in_ref (llvm_type, pt_to) n = do {
+    p <- crucible_alloc_readonly llvm_type;
+    v <- point_to (llvm_type, pt_to) p n;
+    return (v, p);
+};
+
+let inout_ref (llvm_type, pt_to) n = do {
+    p <- crucible_alloc llvm_type;
+    v <- point_to (llvm_type, pt_to) p n;
+    return (v, p);
+};
+
+let out_ref (llvm_type, pt_to)= do {
+    p <- crucible_alloc llvm_type;
+    return p;
+};
+
+// NOTE: A helper for the helpers. Non-struct types can be handled uniformly
+let point_to_plain ty p v = do {
+    x <- crucible_fresh_var v ty;
+    crucible_points_to p (crucible_term x);
+    return x;
+};
+
+// NOTE: Helpers for the assemble/flatten method
+let flat cryptol_len = llvm_array (eval_int {{ cryptol_len:[32] }}) i8;
+
+let point_to_flattened ty assemble_fn p v = do {
+    x <- crucible_fresh_var v ty;
+    crucible_points_to p (tm x);
+    return {{ assemble_fn x }};
+};
+
+let point_to_flat len assemble : type_descriptor_t =
+    (flat len,  point_to_flattened (flat len) assemble);

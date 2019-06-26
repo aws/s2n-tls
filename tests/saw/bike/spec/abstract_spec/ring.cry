@@ -1,0 +1,170 @@
+// ring.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module abstract_spec::ring where
+
+import abstract_spec::vectors
+
+///////////////////////////////////////////////////////////////////////////////
+// Definitions for the ring R from Section 1 of the specification.
+// In the spec, a quotient ring R = F_2[X]/ <X^r - 1>
+
+// There are 3 proposed representations for type R:
+//  as a polynomial of degree r
+//  as a matrix of size r*r
+//  as a vector of length r
+
+type R_polynomial r = [r]
+type R_matrix r = matrix r r
+type R_vector r = vector r
+
+R_modulus: {r} (fin r, r >= 2) => [1+r]
+R_modulus = 0b1 # zero # 0b1 // In Cryptol, cannot write: <| x^^r - 1 |>
+
+/**
+ * Determine whether a matrix is a circulant matrix.
+ */
+is_circulant: {n} (fin n, n >= 1) => [n][n][1] -> Bit
+is_circulant m = and [r' == (r>>>1) | r <- m | r' <- tail m]
+
+/**
+ * The circulant matrix with the given top row.  Each successive row
+ * is a right rotation one place of the previous row.
+ */
+make_circulant: {n} (fin n) => [n][1] -> [n][n][1]
+make_circulant v = take rows where
+  rows = [v] # [r>>>1 | r <- rows]
+
+private
+  property circulants_are_made M = is_circulant`{4} M ==> M == make_circulant (M@0)
+
+  property make_circulant_is_circulant v =
+    is_circulant`{7} (make_circulant v)
+
+// Ring operations:
+
+// For all representations: `zero` is the ring 0,
+// but we define addition and multiplication for each representation
+
+/** Sum of two R_polynomials */
+r_add_polynomial: {r} R_polynomial r -> R_polynomial r -> R_polynomial r
+r_add_polynomial p q = p^q
+
+/** Product of two R_polynomials */
+r_mul_polynomial: {r} (fin r, r >= 2) => R_polynomial r -> R_polynomial r -> R_polynomial r
+r_mul_polynomial p q = pmod (pmult p q) R_modulus`{r}
+
+/** Sum of two R_matrices */
+r_add_matrix: {r} R_matrix r -> R_matrix r -> R_matrix r
+r_add_matrix H G = H+G
+
+/** Product of two R_matrices */
+r_mul_matrix: {r} (fin r) => R_matrix r -> R_matrix r -> R_matrix r
+r_mul_matrix = matrix_mul
+
+/** Sum of two R_vectors */
+r_add_vector u v = u+v
+
+
+/** Difference of two R_vectors */
+r_sub_vector u v = u-v // actually in F_2 the same as addition
+
+/** Cyclic product of two R_vectors */
+r_mul_vector: {r} (fin r, r >= 1) => R_vector r -> R_vector r -> R_vector r
+r_mul_vector v1 v2 = (convolve v1 v2) where
+    convolve u v = [dot_product u vrot | vrot <- rots] where
+      rots = [T_vector v] # [w>>>1 | w <- rots | _ <- tail v]
+
+/** Hamming weight of a word; the number of set bits */
+hamming_weight: {n} (fin n) => [n] -> Integer
+hamming_weight x = ws ! 0 where
+  ws = [0] # [w + (toInteger [xi]) | xi <- x | w <- ws]
+
+/** Hamming weight of a word; the number of set bits.  This version
+    returns a fixed-width result rather than Integer, which can be
+    more efficient in proofs. */
+weight: {n, k} (fin n, fin k, k >= 1) => [n] -> [k]
+weight bits = sum [0#[b] | b <- bits ]
+
+hamming_weight_polynomial: {r} (fin r) => R_polynomial r -> Integer
+hamming_weight_polynomial = hamming_weight
+
+hamming_weight_vector: {r} (fin r) => R_vector r -> Integer
+hamming_weight_vector = vector_hamming_weight
+
+// Section 1.2.2
+
+// Function phi maps from circulant matrices to polynomials
+
+/** The R_matrix assocated with an R_polynomial. */
+phi_matrix: {r} (fin r) => R_matrix r -> R_polynomial r
+phi_matrix m = reverse (join (m@0))
+
+private
+  property phi_matrix_0 = phi_matrix`{16} zero == zero
+  property phi_matrix_sum H G =
+    phi_matrix`{16} (r_add_matrix H G) == r_add_polynomial (phi_matrix H) (phi_matrix G)
+// phi_matrix_mul holds for circulants
+  property phi_matrix_product h g =
+    phi_matrix`{16} (r_mul_matrix H G) == r_mul_polynomial (phi_matrix H) (phi_matrix G)
+    where H = make_circulant h
+          G = make_circulant g
+
+// ... and also from vectors to polynomials
+
+/** The R_vector assocated with an R_polynomial. */
+phi_vector: {r} (fin r) => R_vector r -> R_polynomial r
+phi_vector v = reverse (join v)
+
+private
+  property phi_vector_0 = phi_vector`{8} zero == zero
+  property phi_vector_sum v w =
+    phi_vector`{8} (r_add_vector v w) == r_add_polynomial (phi_vector v) (phi_vector w)
+  property phi_vector_prod v w =
+    phi_vector`{8} (r_mul_vector v w) == r_mul_polynomial (phi_vector v) (phi_vector w)
+
+  property hw_vector v =
+    hamming_weight_vector`{8} v == hamming_weight_polynomial (phi_vector v)
+
+phi_transposed_vector: {r} (fin r, r >= 1) => R_vector r -> R_polynomial r
+phi_transposed_vector v = T_polynomial (phi_vector v)
+
+// phi inverse is sometimes used
+
+/** The R_matrix assocated with an R_polynomial. */
+phi_inverse_matrix: {r} (fin r) => R_polynomial r -> R_matrix r
+phi_inverse_matrix p = make_circulant (phi_inverse_vector p)
+
+/** The R_vector assocated with an R_polynomial. */
+phi_inverse_vector:  {r} (fin r) => R_polynomial r -> R_vector r
+phi_inverse_vector p = split (reverse p)
+
+private // show the inverse properties hold
+  property phi_phi_inverse_vector p =
+    phi_vector`{16} (phi_inverse_vector p) == p
+
+  property phi_inverse_phi_vector v =
+    phi_inverse_vector`{16} (phi_vector v) == v
+
+  property phi_phi_inverse_matrix p =
+    phi_matrix`{16} (phi_inverse_matrix p) == p
+
+  property phi_inverse_phi_matrix h = // holds for circulants only
+    phi_inverse_matrix`{16} (phi_matrix H) == H where
+        H = make_circulant h
+
+// Transposition in R_polynomial and R_vector
+
+/** Transposition of an R_polynomial */
+T_polynomial: {r} (fin r, r >= 1) => R_polynomial r -> R_polynomial r
+T_polynomial p = (reverse (take p)) # [(p!0)]
+
+/** Transposition of an R_vector */
+T_vector: {r} (fin r, r >= 1) => R_vector r -> R_vector r
+T_vector v = [v@0] # (reverse (tail v))
+
+private
+  property phi_T_vector v =
+    phi_vector`{16} (T_vector v) == T_polynomial (phi_vector v)
