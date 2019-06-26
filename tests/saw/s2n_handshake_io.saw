@@ -283,7 +283,7 @@ let s2n_advance_message_spec = do {
     crucible_return (crucible_term {{ 0 : [32] }});
 };
 
-// Specs for the 4 functions that s2n_advance_message calls. Right now
+// Specs for the 5 functions that s2n_advance_message calls. Right now
 // we just assume the specs and don't verify them. That's because we
 // don't model the state that they depend on, instead, making assumptions
 // about it: we use managed corking and the socket was initially uncorked.
@@ -351,6 +351,17 @@ let s2n_socket_was_corked_spec = do {
 };
 
 
+// Specification for s2n_socket_quickack. This is essentially
+// a noop function that returns 0 from the perspective of our current proof
+let s2n_socket_quickack_spec = do {
+    pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
+
+    crucible_execute_func [pconn];
+
+    crucible_return (crucible_term {{ 0 : [32] }});
+};
+
+
 // Specification for s2n_connection_is_managed_corked. We assume it
 // always returns 1 to reflect our assumption that the library is
 // managing the corking and uncorking of the socket. Otherwise, the
@@ -384,6 +395,8 @@ let s2n_handshake_io_lowlevel = do {
     s2n_socket_write_cork <- crucible_llvm_unsafe_assume_spec llvm "s2n_socket_write_cork" s2n_socket_write_cork_spec;
     print "s2n_socket_was_corked";
     s2n_socket_was_corked <- crucible_llvm_unsafe_assume_spec llvm "s2n_socket_was_corked" s2n_socket_was_corked_spec;
+    print "s2n_socket_quickack";
+    s2n_socket_quickack <- crucible_llvm_unsafe_assume_spec llvm "s2n_socket_quickack" s2n_socket_quickack_spec;
     print "s2n_connection_is_managed_corked";
     s2n_connection_is_managed_corked <- crucible_llvm_unsafe_assume_spec llvm "s2n_connection_is_managed_corked" s2n_connection_is_managed_corked_spec;
     print "s2n_generate_new_client_session_id";
@@ -392,7 +405,7 @@ let s2n_handshake_io_lowlevel = do {
     s2n_allowed_to_cache_connection <- crucible_llvm_unsafe_assume_spec llvm "s2n_allowed_to_cache_connection" s2n_allowed_to_cache_connection_spec;
     print "s2n_decrypt_session_ticket";
     s2n_decrypt_session_ticket <- crucible_llvm_unsafe_assume_spec llvm "s2n_decrypt_session_ticket" s2n_decrypt_session_ticket_spec;
-    let dependencies = [s2n_socket_write_uncork, s2n_socket_write_cork, s2n_socket_was_corked, s2n_connection_is_managed_corked];
+    let dependencies = [s2n_socket_write_uncork, s2n_socket_write_cork, s2n_socket_was_corked, s2n_connection_is_managed_corked, s2n_socket_quickack];
 
 
     print "Proving correctness of get_auth_type";
