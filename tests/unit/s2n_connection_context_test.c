@@ -39,7 +39,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
     /* Verify that we don't assume nonnull input and seg fault */
-    EXPECT_NULL(s2n_connection_get_cipher(conn_null));
+    EXPECT_NULL(s2n_connection_get_cipher_name(conn_null));
 
     END_TEST();
 }

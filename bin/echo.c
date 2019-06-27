@@ -84,7 +84,7 @@ int negotiate(struct s2n_connection *conn)
         printf("Application protocol: %s\n", s2n_get_application_protocol(conn));
     }
 
-    printf("Curve: %s\n", s2n_connection_get_curve(conn));
+    printf("Curve: %s\n", s2n_connection_get_curve_name(conn));
     printf("KEM: %s\n", s2n_connection_get_kem_name(conn));
 
     uint32_t length;
@@ -93,7 +93,7 @@ int negotiate(struct s2n_connection *conn)
         fprintf(stderr, "OCSP response received, length %u\n", length);
     }
 
-    printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
+    printf("Cipher negotiated: %s\n", s2n_connection_get_cipher_name(conn));
     if (s2n_connection_is_session_resumed(conn)) {
         printf("Resumed session\n");
     }

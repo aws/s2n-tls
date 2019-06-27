@@ -835,7 +835,7 @@ uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn)
     return conn->wire_bytes_out;
 }
 
-const char *s2n_connection_get_cipher(struct s2n_connection *conn)
+const char *s2n_connection_get_cipher_name(struct s2n_connection *conn)
 {
     notnull_check_ptr(conn);
     notnull_check_ptr(conn->secure.cipher_suite);
@@ -843,7 +843,7 @@ const char *s2n_connection_get_cipher(struct s2n_connection *conn)
     return conn->secure.cipher_suite->name;
 }
 
-const char *s2n_connection_get_curve(struct s2n_connection *conn)
+const char *s2n_connection_get_curve_name(struct s2n_connection *conn)
 {
     notnull_check_ptr(conn);
 

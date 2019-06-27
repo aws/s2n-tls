@@ -147,7 +147,7 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
 
         if (!expect_failure) {
             GUARD(try_handshake(server_conn, client_conn));
-            const char* actual_cipher = s2n_connection_get_cipher(server_conn);
+            const char* actual_cipher = s2n_connection_get_cipher_name(server_conn);
             if (strcmp(actual_cipher, expected_cipher->name) != 0){
                 return -1;
             }

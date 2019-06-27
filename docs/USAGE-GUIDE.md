@@ -1257,19 +1257,19 @@ TLS alerts fatal and shuts down a connection whenever one is received.
 ### s2n\_connection\_get\_cipher
 
 ```c
-const char * s2n_connection_get_cipher(struct s2n_connection *conn);
+const char * s2n_connection_get_cipher_name(struct s2n_connection *conn);
 ```
 
-**s2n_connection_get_cipher** returns a string indicating the cipher suite
+**s2n_connection_get_cipher_name** returns a string indicating the cipher suite
 negotiated by s2n for a connection in Openssl format, e.g. "ECDHE-RSA-AES128-GCM-SHA256".
 
 ### s2n\_connection\_get\_curve
 
 ```c
-const char * s2n_connection_get_curve(struct s2n_connection *conn);
+const char * s2n_connection_get_curve_name(struct s2n_connection *conn);
 ```
 
-**s2n_connection_get_curve** returns a string indicating the elliptic curve used during ECDHE key exchange. The string "NONE" is returned if no curve has was used.
+**s2n_connection_get_curve_name** returns a string indicating the elliptic curve used during ECDHE key exchange. The string "NONE" is returned if no curve has was used.
 
 ### s2n\_connection\_get\_selected\_cert
 
