@@ -76,6 +76,9 @@ matrix:
     env: TESTS=sawDRBG                       SAW=true GCC_VERSION=NONE
     addons : *sawaddons
   - os : linux
+    env: TESTS=sawBIKE                       SAW=true GCC_VERSION=NONE
+    addons : *sawaddons
+  - os : linux
     env: TESTS=sawSIKE                       SAW=true GCC_VERSION=NONE
     addons : *sawaddons
   - os : linux

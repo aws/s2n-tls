@@ -265,7 +265,7 @@ bitcode/sike_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike s2n/utils s2n
 	patch s2n/pq-crypto/sike/ec_isogeny.c sike/patch/ec_isogeny.c.patch
 	patch s2n/pq-crypto/sike/sidh.c sike/patch/sidh.c.patch
 	patch s2n/pq-crypto/sike/sike_p503_kem.c sike/patch/sike_p503_kem.c.patch
-	${MAKE} -C s2n bc
+	${MAKE} -C s2n sike_bc
 	${MAKE} -C bitcode all_llvm.bc
 
 bitcode/bike_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(BIKE_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
@@ -273,7 +273,7 @@ bitcode/bike_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike s2n/utils s2n
 	patch s2n/pq-crypto/bike/bike1_l1_kem.c bike/patch/bike1_l1_kem.c.patch
 	patch s2n/pq-crypto/bike/sampling.c bike/patch/sampling.c.patch
 	patch s2n/pq-crypto/bike/decode.c bike/patch/decode.c.patch
-	${MAKE} -C s2n bc
+	${MAKE} -C s2n bike_bc
 	${MAKE} -C bitcode bike_llvm.bc
 
 
