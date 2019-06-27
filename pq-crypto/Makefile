@@ -22,6 +22,8 @@ BCS1=$(addprefix $(BITCODE_DIR), $(BCS_11))
 all: $(OBJS)
 	$(MAKE) -C bike
 	$(MAKE) -C sike
+	${CC} -shared -o libs2n_pq_crypto.so ${OBJS} -Wl,--whole-archive ${INTERNAL_LIBS} -Wl,--no-whole-archive -L../../ ${CFLAGS} ${LDFLAGS} -lm
+
 
 .PHONY : sike_bc
 sike_bc: $(BCS1)
