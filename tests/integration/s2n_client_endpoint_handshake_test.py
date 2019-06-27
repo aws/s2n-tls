@@ -50,11 +50,8 @@ def try_client_handshake(endpoint, use_corked_io):
     if use_corked_io:
         s2nc_cmd.append("-C")
 
-    # Add S2N_ENABLE_CLIENT_MODE to env variables
-    envVars = os.environ.copy()
-    envVars["S2N_ENABLE_CLIENT_MODE"] = "1"
     currentDir = os.path.dirname(os.path.realpath(__file__))
-    s2nc = subprocess.Popen(s2nc_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, env=envVars, cwd=currentDir)
+    s2nc = subprocess.Popen(s2nc_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, cwd=currentDir)
 
     found = 0
     for line in range(0, 10):

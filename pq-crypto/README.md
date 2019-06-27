@@ -67,6 +67,5 @@ s2nd --cert ${PATH_TO_S2N}/tests/pems/rsa_2048_sha256_wildcard_cert.pem --key ${
 export PATH_TO_S2N=/path/to/s2n
 export LD_LIBRARY_PATH=${PATH_TO_S2N}/test-deps/openssl-1.1.1/lib:${PATH_TO_S2N}/test-deps/openssl-1.1.1/lib:${PATH_TO_S2N}/lib:${PATH_TO_S2N}/bin
 export PATH=${PATH_TO_S2N}/bin:$PATH
-export S2N_ENABLE_CLIENT_MODE=1
 s2nc -i --ciphers KMS-PQ-TLS-1-0-2019-06 0.0.0.0 8888
 ```
