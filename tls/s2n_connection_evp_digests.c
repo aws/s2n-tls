@@ -44,6 +44,7 @@ int s2n_connection_save_hash_state(struct s2n_connection_hash_handles *hash_hand
     hash_handles->sha384 = conn->handshake.sha384.digest.high_level;
     hash_handles->sha512 = conn->handshake.sha512.digest.high_level;
     hash_handles->md5_sha1 = conn->handshake.md5_sha1.digest.high_level;
+    hash_handles->ccv_hash_copy = conn->handshake.ccv_hash_copy.digest.high_level;
     hash_handles->prf_md5_hash_copy = conn->handshake.prf_md5_hash_copy.digest.high_level;
     hash_handles->prf_sha1_hash_copy = conn->handshake.prf_sha1_hash_copy.digest.high_level;
     hash_handles->prf_tls12_hash_copy = conn->handshake.prf_tls12_hash_copy.digest.high_level;
@@ -103,6 +104,7 @@ int s2n_connection_restore_hash_state(struct s2n_connection *conn, struct s2n_co
     conn->handshake.sha384.digest.high_level = hash_handles->sha384;
     conn->handshake.sha512.digest.high_level = hash_handles->sha512;
     conn->handshake.md5_sha1.digest.high_level = hash_handles->md5_sha1;
+    conn->handshake.ccv_hash_copy.digest.high_level = hash_handles->ccv_hash_copy;
     conn->handshake.prf_md5_hash_copy.digest.high_level = hash_handles->prf_md5_hash_copy;
     conn->handshake.prf_sha1_hash_copy.digest.high_level = hash_handles->prf_sha1_hash_copy;
     conn->handshake.prf_tls12_hash_copy.digest.high_level = hash_handles->prf_tls12_hash_copy;

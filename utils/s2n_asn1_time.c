@@ -45,7 +45,7 @@ typedef enum parser_state {
 } parser_state;
 
 static inline long get_gmt_offset(struct tm *t) {
-#if defined(__USE_BSD) || defined(__APPLE__) && defined(__MACH__)
+#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__APPLE__) && defined(__MACH__)
     return t->tm_gmtoff;
 #else
     return t->__tm_gmtoff;
@@ -158,7 +158,7 @@ static parser_state process_state(parser_state state, char current_char, struct 
             if (current_char == '.' || isdigit(current_char)) {
                 return ON_SUBSECOND;
             }
-        /* this fallthrough is intentional */
+        /* fall through */
         case ON_TIMEZONE:
             if (current_char == 'Z' || current_char == 'z') {
                 args->local_time_assumed = 0;

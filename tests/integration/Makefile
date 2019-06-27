@@ -16,10 +16,16 @@
 S2ND_PORT=8888
 S2ND_HOST=127.0.0.1
 
-# If the libcrypto that s2n was built with is not specified, assume latest(1.1.0).
+# If the libcrypto that s2n was built with is not specified, assume latest(1.1.1).
 # Required to determine the cipher suites to use in integration tests.
 ifndef S2N_LIBCRYPTO
-	export S2N_LIBCRYPTO="openssl-1.1.0"
+	export S2N_LIBCRYPTO="openssl-1.1.1"
+endif
+
+HANDSHAKE_TEST_PARAMS:=--libcrypto $(S2N_LIBCRYPTO) $(S2ND_HOST) $(S2ND_PORT)
+
+ifeq ($(S2N_CORKED_IO),true)
+	HANDSHAKE_TEST_PARAMS:=--use_corked_io $(HANDSHAKE_TEST_PARAMS)
 endif
 
 .PHONY : all
@@ -40,13 +46,13 @@ all:
 	( \
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
-	python3 s2n_handshake_test_s_client.py --libcrypto $(S2N_LIBCRYPTO) $(S2ND_HOST) $(S2ND_PORT); \
+	python3 s2n_handshake_test_s_client.py $(HANDSHAKE_TEST_PARAMS); \
 	)
 	# Run s_server handshake tests
 	( \
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
-	python3 s2n_handshake_test_s_server.py --libcrypto $(S2N_LIBCRYPTO) $(S2ND_HOST) $(S2ND_PORT); \
+	python3 s2n_handshake_test_s_server.py $(HANDSHAKE_TEST_PARAMS); \
 	)
 	# Run gnutls handshake tests
 	( \

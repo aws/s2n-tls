@@ -14,6 +14,9 @@
 #
 set -e
 
+# Need to upgrade pyOpenSSL before pip on a fresh Ubuntu 16.04 install: https://stackoverflow.com/a/48569233
+sudo python -m easy_install --upgrade pyOpenSSL
+
 pip install --user --upgrade pip setuptools
 pip install --user --upgrade nassl sslyze==1.4.0
 

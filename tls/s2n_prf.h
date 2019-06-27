@@ -63,7 +63,8 @@ struct s2n_p_hash_hmac {
 
 extern int s2n_prf_new(struct s2n_connection *conn);
 extern int s2n_prf_free(struct s2n_connection *conn);
-extern int s2n_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret);
+extern int s2n_tls_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret);
+extern int s2n_hybrid_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret);
 extern int s2n_prf_key_expansion(struct s2n_connection *conn);
 extern int s2n_prf_server_finished(struct s2n_connection *conn);
 extern int s2n_prf_client_finished(struct s2n_connection *conn);

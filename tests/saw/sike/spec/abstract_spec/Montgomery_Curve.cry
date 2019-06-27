@@ -1,0 +1,27 @@
+//Montgomery_Curve.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module abstract_spec::Montgomery_Curve where
+
+import abstract_spec::Finite_Field
+import lib::collections::Set
+
+///////////////////////////////////////////////////////////////////////////////
+// Type and property definitions for montgomery curves
+
+type MontgomeryCurve fv =
+    { field : Field fv
+    , c_is_point : Set (fv, fv)
+    , c_A : fv
+    , c_B : fv
+    , c_O : (fv,fv)
+    , c_order : Integer
+    , c_j_invariant : fv
+    , p_is_equal : (fv,fv) -> (fv,fv) -> Bit
+    , p_order : (fv,fv) -> Integer
+    , p_add : (fv,fv) -> (fv,fv) -> (fv,fv)
+    , p_double : (fv,fv) -> (fv,fv)
+    , p_triple : (fv,fv) -> (fv,fv)
+    }

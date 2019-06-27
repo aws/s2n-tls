@@ -39,10 +39,10 @@ in the other two and proves the HMAC files equivalent.
 
 ## The build
 
-Running the saw tests will require a SAW executable, which must be
-able to find the Z3 prover on the path. Future examples might require
-further installation of provers. The build will also require clang,
-which is not currently a necessary prerequisite for s2n.
+Running the saw tests will require a SAW executable, which must be able
+to find the Yices and Z3 provers on the path. Future examples might
+require further installation of provers. The build will also require
+clang, which is not currently a necessary prerequisite for s2n.
 
 We have integrated the build of this test into the s2n build. Right
 now, the steps for a build are (files that do the work are listed in parenthesis):
@@ -63,7 +63,7 @@ now, the steps for a build are (files that do the work are listed in parenthesis
      it's trivial to switch the behavior for either.
      (s2n/tests/Makefile, s2n/tests/saw)
 
-With the exception of step 5 (`make clean`), all of these steps are
-run by running `make saw` in the s2n root directory. The only
-modification needed for a Travis script is to install Z3, download
-SAW, and run the SAW make target.
+With the exception of step 5 (`make clean`), all of these steps are run
+by running `make saw` in the s2n root directory. The only modification
+needed for a Travis script is to install Yices and Z3, download SAW, and
+run the SAW make target.

@@ -1,0 +1,93 @@
+//P503_Field.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+///////////////////////////////////////////////////////////////////////////////
+
+module abstract_spec::P503_Field where
+
+import abstract_spec::Field_Types
+import abstract_spec::Finite_Field
+import lib::math::Modular_Arithmetic
+import lib::math::Safe_Arithmetic
+
+///////////////////////////////////////////////////////////////////////////////
+
+(p503_char_int : Integer) = (2^^(250) * 3^^(159)) - 1
+(p503_char : p503_fv) = (2^^(250) * 3^^(159)) - 1
+
+(p503_add_id : p503_fv) = 0
+(p503_mult_id : p503_fv) = 1
+
+p503_normalized : p503_fv -> Bit
+p503_normalized x = (x < p503_char)
+
+p503_eq : (p503_fv, p503_fv) -> Bool
+p503_eq x = x.0 == x.1
+
+p503_add : binary_p503_op
+p503_add (fv1, fv2) = mod_add(p503_char, fv1, fv2)
+
+p503_add_inv : unary_p503_op
+p503_add_inv fv =
+    if (fv == 0) then p503_add_id
+    else mod_sub(p503_char, p503_char, (fv % p503_char))
+
+p503_sub : binary_p503_op
+p503_sub (fv1, fv2) = mod_add(p503_char, fv1, p503_add_inv(fv2)) % p503_char
+
+// NOTE: Add two n-bit numbers and input carry to obtain a n bit
+//       number and output carry.
+adc : {n} (fin n) => ([n],[n]) -> ([n],Bit)
+adc(x,y) = (drop(the_sum), the_sum@0)
+  where the_sum = safe_add(x,y)
+
+// NOTE: sbb(x,y) subtracts y from x, and returns the
+//       result along with output borrow bit.
+sbb : {n} (fin n) => ([n],[n]) -> ([n],Bit)
+sbb(x,y) = (drop(r), r@0)
+  where r = ([False] # x) - ([False] # y)
+
+p503_mult : binary_p503_op
+p503_mult (fv1, fv2) = mod_prod(p503_char, fv1, fv2)
+
+p503_mult_inv :  unary_p503_op
+p503_mult_inv fv =
+    if (fv == 0) then error "Error: 0 does not have a multiplicative inverse"
+    else (mod_pow_rs(p503_char, fv, p503_char_int-2) % p503_char)
+
+p503_div2 : unary_p503_op
+p503_div2 (fv1) = mod_div2(p503_char, fv1) % p503_char
+
+p503_div : binary_p503_op
+p503_div (fv1, fv2) =
+    if (fv2 == 0) then error "Error: cannot divide by 0"
+    else mod_div(p503_char, fv1, fv2) //else p503_mult(fv1, p503_mult_inv(fv2))
+
+p503_field : Field p503_fv
+p503_field =
+    { is_val = p503_normalized
+    , eq = p503_eq
+    , add_id = p503_add_id
+    , mult_id = p503_mult_id
+    , add = p503_add
+    , add_inv = p503_add_inv
+    , sub = p503_sub
+    , mult = p503_mult
+    , mult_inv = p503_mult_inv
+    , div = p503_div
+    , char = p503_char_int
+    , size = p503_char_int
+    }
+
+p503_add_inv_correct : p503_fv -> Bit
+property p503_add_inv_correct fv =
+    if (fv != 0 /\ p503_normalized fv) then (add_inv(fv) == p503_add_id)
+    else True where
+        add_inv : p503_fv -> p503_fv
+        add_inv fv2 =  p503_add(fv2, p503_add_inv(fv2))
+
+p503_mult_inv_correct : p503_fv -> Bit
+property p503_mult_inv_correct fv =
+    if (fv != 0 /\ p503_normalized fv) then (mult_by_inv(fv) == p503_mult_id)
+    else True where
+        mult_by_inv : p503_fv -> p503_fv
+        mult_by_inv fv2 =  p503_mult(fv2, p503_mult_inv(fv2))

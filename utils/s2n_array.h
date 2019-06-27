@@ -30,7 +30,13 @@ struct s2n_array {
     size_t element_size;
 };
 
+#define s2n_array_num_elements( a )   ((a)->num_of_elements)
+
 extern struct s2n_array *s2n_array_new(size_t element_size);
 extern void *s2n_array_add(struct s2n_array *array);
 extern void *s2n_array_get(struct s2n_array *array, uint32_t index);
+extern void *s2n_array_insert(struct s2n_array *array, uint32_t index);
+extern int s2n_array_remove(struct s2n_array *array, uint32_t index);
+extern int s2n_array_free_p(struct s2n_array **parray);
 extern int s2n_array_free(struct s2n_array *array);
+extern int s2n_array_binary_search(int low, int top, struct s2n_array *array, void *element, int (*comparator)(void*, void*));

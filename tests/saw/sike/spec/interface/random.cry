@@ -1,0 +1,11 @@
+//random.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module interface::random where
+
+///////////////////////////////////////////////////////////////////////////////
+
+randombytes : {n} (fin n) => [n][8]
+randombytes = repeat 3

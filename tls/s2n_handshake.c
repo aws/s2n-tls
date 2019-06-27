@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -20,10 +20,12 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_tls.h"
 
 #include "stuffer/s2n_stuffer.h"
 
 #include "utils/s2n_safety.h"
+#include "utils/s2n_map.h"
 
 int s2n_handshake_write_header(struct s2n_connection *conn, uint8_t message_type)
 {
@@ -155,3 +157,121 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
 
     return 0;
 }
+
+/*
+ * Take a hostname and return a single "simple" wildcard domain name that matches it.
+ * The output wildcard representation is meant to be compared directly against a wildcard domain in a certificate.
+ * We take a restrictive definition of wildcard here to achieve a single unique wildcard representation
+ * given any input hostname.
+ * No embedded or trailing wildcards are supported. Additionally, we only support one level of wildcard matching.
+ * Thus the output should be a single wildcard character in the first(left-most) DNS label.
+ *
+ * Example:
+ * - my.domain.name -> *.domain.name
+ *
+ * Not supported:
+ * - my.domain.name -> m*.domain.name
+ * - my.domain.name -> my.*.name
+ * etc.
+ *
+ * The motivation for using a constrained definition of wildcard:
+ * - Support for issuing non-simple wildcard certificates is insignificant.
+ * - Certificate selection can be implemented with a constant number of lookups(two).
+ */
+int s2n_create_wildcard_hostname(struct s2n_stuffer *hostname_stuffer, struct s2n_stuffer *output)
+{
+    /* Find the end of the first label */
+    GUARD(s2n_stuffer_skip_to_char(hostname_stuffer, '.'));
+
+    /* No first label found */
+    if (s2n_stuffer_data_available(hostname_stuffer) == 0) {
+        return 0;
+    }
+
+    /* Slap a single wildcard character to be the first label in output */
+    GUARD(s2n_stuffer_write_uint8(output, '*'));
+
+    /* Simply copy the rest of the input to the output. */
+    GUARD(s2n_stuffer_copy(hostname_stuffer, output, s2n_stuffer_data_available(hostname_stuffer)));
+
+    return 0;
+}
+
+static int s2n_find_cert_matches(struct s2n_map *domain_name_to_cert_map,
+        struct s2n_blob *dns_name,
+        struct s2n_cert_chain_and_key *matches[S2N_AUTHENTICATION_METHOD_SENTINEL],
+        uint8_t *match_exists)
+{
+    struct s2n_blob map_value;
+    if (s2n_map_lookup(domain_name_to_cert_map, dns_name, &map_value) == 1) {
+        struct auth_method_to_cert_value *value = (void *) map_value.data;
+        for (int i = 0; i < S2N_AUTHENTICATION_METHOD_SENTINEL; i++) {
+            matches[i] = value->certs[i];
+        }
+        *match_exists = 1;
+    }
+
+    return 0;
+}
+
+/* Find certificates that match the ServerName TLS extension sent by the client.
+ * For a given ServerName there can be multiple matching certificates based on the
+ * type of key in the certificate.
+ *
+ * A match is determined using s2n_map lookup by DNS name.
+ * Wildcards that have a single * in the left most label are supported.
+ */
+int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
+{
+    if (!s2n_server_received_server_name(conn)) {
+        return 0;
+    }
+    const char *name = conn->server_name;
+    struct s2n_blob hostname_blob = { .data = (uint8_t *) (uintptr_t) name, .size = strlen(name) };
+    lte_check(hostname_blob.size, S2N_MAX_SERVER_NAME);
+    char normalized_hostname[S2N_MAX_SERVER_NAME + 1] = { 0 };
+    memcpy_check(normalized_hostname, hostname_blob.data, hostname_blob.size);
+    struct s2n_blob normalized_name = { .data = (uint8_t *) normalized_hostname, .size = hostname_blob.size };
+    GUARD(s2n_blob_char_to_lower(&normalized_name));
+    struct s2n_stuffer normalized_hostname_stuffer;
+    GUARD(s2n_stuffer_init(&normalized_hostname_stuffer, &normalized_name));
+    GUARD(s2n_stuffer_skip_write(&normalized_hostname_stuffer, normalized_name.size));
+
+    /* Find the exact matches for the ServerName */
+    GUARD(s2n_find_cert_matches(conn->config->domain_name_to_cert_map,
+                &normalized_name,
+                conn->handshake_params.exact_sni_matches,
+                &(conn->handshake_params.exact_sni_match_exists)));
+
+    if (!conn->handshake_params.exact_sni_match_exists) {
+        /* We have not yet found an exact domain match. Try to find wildcard matches. */
+        char wildcard_hostname[S2N_MAX_SERVER_NAME + 1] = { 0 };
+        struct s2n_blob wildcard_blob = { .data = (uint8_t *) wildcard_hostname, .size = sizeof(wildcard_hostname) };
+        struct s2n_stuffer wildcard_stuffer;
+        GUARD(s2n_stuffer_init(&wildcard_stuffer, &wildcard_blob));
+        GUARD(s2n_create_wildcard_hostname(&normalized_hostname_stuffer, &wildcard_stuffer));
+        const uint32_t wildcard_len = s2n_stuffer_data_available(&wildcard_stuffer);
+
+        /* Couldn't create a valid wildcard from the input */
+        if (wildcard_len == 0) {
+            return 0;
+        }
+
+        /* The client's SNI is wildcardified, do an exact match against the set of server certs. */
+        wildcard_blob.size = wildcard_len;
+        GUARD(s2n_find_cert_matches(conn->config->domain_name_to_cert_map,
+                    &wildcard_blob,
+                    conn->handshake_params.wc_sni_matches,
+                    &(conn->handshake_params.wc_sni_match_exists)));
+    }
+
+    /* If we found a suitable cert, we should send back the ServerName extension.
+     * Note that this may have already been set by the client hello callback, so we won't override its value
+     */
+    conn->server_name_used = conn->server_name_used
+        || conn->handshake_params.exact_sni_match_exists
+        || conn->handshake_params.wc_sni_match_exists;
+
+    return 0;
+}
+

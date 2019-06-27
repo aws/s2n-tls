@@ -30,10 +30,9 @@
 static const EVP_CIPHER *s2n_evp_aes_128_cbc_hmac_sha1(void)
 {
     /* Symbols for AES-SHA1-CBC composite ciphers were added in Openssl 1.0.1:
-     * See https://www.openssl.org/news/cl101.txt. LibreSSL defines OPENSSL_VERSION_NUMBER to be
-     * 0x20000000L but AES-SHA1-CBC is in LibreSSL since first major release(2.0.0).
+     * See https://www.openssl.org/news/cl101.txt.
      */
-    #if S2N_OPENSSL_VERSION_AT_LEAST(1,0,1)
+    #if S2N_OPENSSL_VERSION_AT_LEAST(1,0,1) && !defined LIBRESSL_VERSION_NUMBER
         return EVP_aes_128_cbc_hmac_sha1();
     #else
         return NULL;
@@ -42,7 +41,7 @@ static const EVP_CIPHER *s2n_evp_aes_128_cbc_hmac_sha1(void)
 
 static const EVP_CIPHER *s2n_evp_aes_256_cbc_hmac_sha1(void)
 {
-    #if S2N_OPENSSL_VERSION_AT_LEAST(1,0,1)
+    #if S2N_OPENSSL_VERSION_AT_LEAST(1,0,1) && !defined LIBRESSL_VERSION_NUMBER
         return EVP_aes_256_cbc_hmac_sha1();
     #else
         return NULL;
@@ -257,7 +256,7 @@ static int s2n_composite_cipher_aes256_sha256_set_decryption_key(struct s2n_sess
 
 static int s2n_composite_cipher_aes_sha_init(struct s2n_session_key *key)
 {
-    EVP_CIPHER_CTX_init(key->evp_cipher_ctx);
+    s2n_evp_ctx_init(key->evp_cipher_ctx);
 
     return 0;
 }

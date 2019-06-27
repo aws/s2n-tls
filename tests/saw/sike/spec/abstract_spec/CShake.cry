@@ -1,0 +1,33 @@
+//CShake.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module abstract_spec::CShake where
+
+import include::keccak
+
+///////////////////////////////////////////////////////////////////////////////
+// Specification of the cSHAKE (customizable SHAKE) function
+
+cshake_128 : {m, n, s}
+    ( fin m
+    , fin n
+    , fin s
+    , m >= 192
+    , m <=320
+    , (2^^2040-1) >= (n*8)
+    , (2^^2040-1) >= (n*s)
+    ) => [m] -> [n][8] -> [s][8]-> [inf]
+cshake_128 M s1 s2 = (Keccak`{r = 1344, c = 256} (join(s1)#join(s2)#M#0b00))
+
+cshake_256 : {m, n, s}
+    ( fin m
+    , fin n
+    , fin s
+    , m >= 192
+    , m <=320
+    , (2^^2040-1) >= (n*8)
+    , (2^^2040-1) >= (n*s)
+    ) => [m] -> [n][8] -> [s][8]-> [inf]
+cshake_256 M s1 s2 = (Keccak`{r = 1088, c = 512} (join(s1)#join(s2)#M#0b00))

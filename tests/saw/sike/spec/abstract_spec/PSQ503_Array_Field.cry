@@ -1,0 +1,63 @@
+//PSQ503_Array_Field.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+///////////////////////////////////////////////////////////////////////////////
+
+module abstract_spec::PSQ503_Array_Field where
+
+import abstract_spec::Field_Types
+import abstract_spec::Finite_Field
+import abstract_spec::PSQ503_Field
+import abstract_spec::P503_Field
+import abstract_spec::P503_Array_Field
+import lib::math::Modular_Arithmetic
+import lib::math::Safe_Arithmetic
+import lib::util::Bit_Vector_Utils
+
+///////////////////////////////////////////////////////////////////////////////
+
+(psq503_array_add_id : psq503_array_fv) = from_psq503(psq503_add_id)
+(psq503_array_mult_id : psq503_array_fv) = from_psq503(psq503_mult_id)
+
+psq503_array_normalized : psq503_array_fv -> Bit
+psq503_array_normalized fv = join(fv.r) < join(p503_array_char) /\
+    join(fv.i) < join(p503_array_char)
+
+psq503_array_eq : (psq503_array_fv, psq503_array_fv) -> Bool
+psq503_array_eq (fv1, fv2) = fv1 == fv2
+
+psq503_array_add : binary_psq503_array_op
+psq503_array_add (fv1, fv2) = apply_binary_psq503_array (fv1, fv2) psq503_add
+
+psq503_array_add_inv : unary_psq503_array_op
+psq503_array_add_inv fv = apply_unary_psq503_array fv psq503_add_inv
+
+psq503_array_sub : binary_psq503_array_op
+psq503_array_sub (fv1, fv2) = apply_binary_psq503_array (fv1, fv2) psq503_sub
+
+psq503_array_mult : binary_psq503_array_op
+psq503_array_mult (fv1, fv2) = apply_binary_psq503_array (fv1, fv2) psq503_mult
+
+psq503_array_mult_inv : unary_psq503_array_op
+psq503_array_mult_inv fv = apply_unary_psq503_array fv psq503_mult_inv
+
+psq503_array_div2 : unary_psq503_array_op
+psq503_array_div2 fv = apply_unary_psq503_array fv psq503_div2
+
+psq503_array_div : binary_psq503_array_op
+psq503_array_div (fv1, fv2) = apply_binary_psq503_array (fv1, fv2) psq503_div
+
+psq503_array_field : Field psq503_array_fv
+psq503_array_field =
+    { is_val = psq503_array_normalized
+    , eq = psq503_array_eq
+    , add_id = psq503_array_add_id
+    , mult_id = psq503_array_mult_id
+    , add = psq503_array_add
+    , add_inv = psq503_array_add_inv
+    , sub = psq503_array_sub
+    , mult = psq503_array_mult
+    , mult_inv = psq503_array_mult_inv
+    , div = psq503_array_div
+    , char = psq503_char_int
+    , size = psq503_size_int
+    }

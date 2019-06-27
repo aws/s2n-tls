@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -22,12 +22,22 @@
 #include "api/s2n.h"
 
 #include "tls/s2n_x509_validator.h"
+#include "tls/s2n_resume.h"
+
+#define S2N_MAX_TICKET_KEYS 48
+#define S2N_MAX_TICKET_KEY_HASHES 500 /* 10KB */
 
 struct s2n_cipher_preferences;
 
 struct s2n_config {
     struct s2n_dh_params *dhparams;
-    struct s2n_cert_chain_and_key *cert_and_key_pairs;
+    /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
+     * used to release memory allocated only in the deprecated API that the application 
+     * does not have a reference to. */
+    unsigned cert_allocated:1;
+    struct s2n_map *domain_name_to_cert_map;
+    unsigned default_certs_are_explicit:1;
+    struct auth_method_to_cert_value default_cert_per_auth_method;
     const struct s2n_cipher_preferences *cipher_preferences;
     struct s2n_blob application_protocols;
     s2n_status_request_type status_request_type;
@@ -40,23 +50,37 @@ struct s2n_config {
     s2n_client_hello_fn *client_hello_cb;
     void *client_hello_cb_ctx;
 
+    uint64_t session_state_lifetime_in_nanos;
+
+    uint8_t use_tickets;
+    struct s2n_array *ticket_keys;
+    struct s2n_array *ticket_key_hashes;
+    uint64_t encrypt_decrypt_key_lifetime_in_nanos;
+    uint64_t decrypt_key_lifetime_in_nanos;
+
     /* If caching is being used, these must all be set */
-    int (*cache_store) (void *data, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size);
+    s2n_cache_store_callback cache_store;
     void *cache_store_data;
 
-    int (*cache_retrieve) (void *data, const void *key, uint64_t key_size, void *value, uint64_t * value_size);
+    s2n_cache_retrieve_callback cache_retrieve;
     void *cache_retrieve_data;
 
-    int (*cache_delete) (void *data, const void *key, uint64_t key_size);
+    s2n_cache_delete_callback cache_delete;
     void *cache_delete_data;
+
     s2n_ct_support_level ct_type;
 
     s2n_cert_auth_type client_cert_auth_type;
+
+    s2n_alert_behavior alert_behavior;
 
     /* Return TRUE if the host should be trusted, If FALSE this will likely be called again for every host/alternative name
      * in the certificate. If any respond TRUE. If none return TRUE, the cert will be considered untrusted. */
     uint8_t (*verify_host) (const char *host_name, size_t host_name_len, void *data);
     void *data_for_verify_host;
+
+    /* Application supplied callback to resolve domain name conflicts when loading certs. */
+    s2n_cert_tiebreak_callback cert_tiebreak_cb;
 
     uint8_t mfl_code;
 
@@ -75,8 +99,10 @@ extern struct s2n_config *s2n_fetch_default_fips_config(void);
 extern struct s2n_config *s2n_fetch_unsafe_client_testing_config(void);
 extern struct s2n_config *s2n_fetch_unsafe_client_ecdsa_testing_config(void);
 
+extern int s2n_config_init_session_ticket_keys(struct s2n_config *config);
+extern int s2n_config_free_session_ticket_keys(struct s2n_config *config);
+
 extern void s2n_wipe_static_configs(void);
-extern int s2n_config_add_cert_chain_from_stuffer(struct s2n_config *config, struct s2n_stuffer *chain_in_stuffer);
-extern int s2n_config_add_cert_chain(struct s2n_config *config, const char *cert_chain_pem);
-extern int s2n_config_add_private_key(struct s2n_config *config, const char *private_key_pem);
 int s2n_config_get_cert_type(struct s2n_config *config, s2n_cert_type *cert_type);
+extern struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_config *config);
+extern int s2n_config_get_num_default_certs(struct s2n_config *config);

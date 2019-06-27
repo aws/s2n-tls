@@ -23,7 +23,7 @@
 int main(int argc, char **argv)
 {
     char keystr[sizeof("ffff")];
-    char valstr[sizeof("8192")];
+    char valstr[sizeof("16384")];
     struct s2n_map *empty, *map;
     struct s2n_blob key;
     struct s2n_blob val;
@@ -38,6 +38,16 @@ int main(int argc, char **argv)
     key.size = strlen(keystr) + 1;
     EXPECT_FAILURE(s2n_map_lookup(empty, &key, &val));
 
+    EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", 1234));
+    val.data = (void *) valstr;
+    val.size = strlen(valstr) + 1;
+
+    /* Try to add/put key with zero-size data. Expect failures */
+    key.size = 0;
+    EXPECT_FAILURE(s2n_map_add(empty, &key, &val));
+    EXPECT_FAILURE(s2n_map_put(empty, &key, &val));
+    key.size = strlen(keystr) + 1;
+
     /* Make the empty map complete */
     EXPECT_SUCCESS(s2n_map_complete(empty));
 
@@ -47,7 +57,11 @@ int main(int argc, char **argv)
     /* Done with the empty map */
     EXPECT_SUCCESS(s2n_map_free(empty));
 
-    EXPECT_NOT_NULL(map = s2n_map_new());
+    /* Expect failure since initial map size is zero */
+    EXPECT_NULL(map = s2n_map_new_with_initial_capacity(0));
+
+    /* Create map with the smallest initial size */
+    EXPECT_NOT_NULL(map = s2n_map_new_with_initial_capacity(1));
 
     /* Insert 8k key value pairs of the form hex(i) -> dec(i) */
     for (int i = 0; i < 8192; i++) {
@@ -114,7 +128,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", i));
         }
         else {
-            // The first 10 entries were overwritten with i+1
+            /* The first 10 entries were overwritten with i+1 */
             EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", i));
             EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", i+1));
         }
@@ -132,6 +146,26 @@ int main(int argc, char **argv)
     key.data = (void *) keystr;
     key.size = strlen(keystr) + 1;
     EXPECT_EQUAL(s2n_map_lookup(map, &key, &val), 0);
+
+    /* Make the map mutable */
+    EXPECT_SUCCESS(s2n_map_unlock(map));
+    /* Make sure that add-after-unlock succeeds */
+    EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", 8193));
+    EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", 8193));
+
+    key.data = (void *) keystr;
+    key.size = strlen(keystr) + 1;
+    val.data = (void *) valstr;
+    val.size = strlen(valstr) + 1;
+
+    EXPECT_SUCCESS(s2n_map_add(map, &key, &val));
+
+    /* Complete the map again */
+    EXPECT_SUCCESS(s2n_map_complete(map));
+
+    /* Check the element added after map unlock */
+    EXPECT_EQUAL(s2n_map_lookup(map, &key, &val), 1);
+    EXPECT_SUCCESS(memcmp(val.data, valstr, strlen(valstr) + 1));
 
     EXPECT_SUCCESS(s2n_map_free(map));
 

@@ -20,6 +20,8 @@ ifndef LIBCRYPTO_ROOT
 	export LIBCRYPTO_ROOT = $(shell echo "`pwd`/libcrypto-root")
 endif
 
+export S2N_ROOT=$(shell pwd)
+export COVERAGE_DIR = $(shell echo "${S2N_ROOT}/coverage")
 DIRS=$(wildcard */)
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
@@ -34,9 +36,10 @@ bitcode :
 .PHONY : bc
 bc: 
 	${MAKE} -C crypto bc
+	${MAKE} -C pq-crypto bc
 #	${MAKE} -C stuffer bc
 	${MAKE} -C tls bc
-#	${MAKE} -C utils bc
+	${MAKE} -C utils bc
 
 .PHONY : saw
 saw : bc 
@@ -46,6 +49,7 @@ include s2n.mk
 
 .PHONY : libs
 libs:
+	$(MAKE) -C pq-crypto
 	$(MAKE) -C utils
 	$(MAKE) -C error
 	$(MAKE) -C stuffer
@@ -56,17 +60,14 @@ libs:
 .PHONY : bin
 bin: libs
 	$(MAKE) -C bin
-	$(MAKE) -C utils
-	$(MAKE) -C error
-	$(MAKE) -C stuffer
-	$(MAKE) -C crypto
-	$(MAKE) -C tls
-	$(MAKE) -C lib
 
 .PHONY : integration
 integration: bin
 	$(MAKE) -C tests integration
 
+.PHONY : valgrind
+valgrind: bin
+	$(MAKE) -C tests valgrind
 
 .PHONY : fuzz
 ifeq ($(shell uname),Linux)
@@ -84,8 +85,40 @@ fuzz-linux : export S2N_UNSAFE_FUZZING_MODE = 1
 fuzz-linux : bin
 	$(MAKE) -C tests fuzz
 
+.PHONY : coverage
+coverage: run-gcov run-lcov run-genhtml
+
+.PHONY : run-gcov
+run-gcov:
+	$(MAKE) -C bin gcov
+	$(MAKE) -C crypto gcov
+	$(MAKE) -C error gcov
+	$(MAKE) -C pq-crypto run-gcov
+	$(MAKE) -C stuffer gcov
+	$(MAKE) -C tests gcov
+	$(MAKE) -C tls gcov
+	$(MAKE) -C utils gcov
+
+.PHONY : run-lcov
+run-lcov:
+	$(MAKE) -C bin lcov
+	$(MAKE) -C crypto lcov
+	$(MAKE) -C error lcov
+	$(MAKE) -C pq-crypto run-lcov
+	$(MAKE) -C stuffer lcov
+	$(MAKE) -C tests lcov
+	$(MAKE) -C tls lcov
+	$(MAKE) -C utils lcov
+	lcov -a crypto/coverage.info -a error/coverage.info -a pq-crypto/coverage.info -a pq-crypto/sike/coverage.info -a stuffer/coverage.info -a tls/coverage.info -a utils/coverage.info --output ${COVERAGE_DIR}/all_coverage.info
+
+.PHONY : run-genhtml
+run-genhtml:
+	genhtml -o ${COVERAGE_DIR}/html ${COVERAGE_DIR}/all_coverage.info
+
+
 .PHONY : indent
 indent:
+	$(MAKE) -C pq-crypto indentsource
 	$(MAKE) -C tests indentsource
 	$(MAKE) -C stuffer indentsource
 	$(MAKE) -C crypto indentsource
@@ -99,6 +132,7 @@ pre_commit_check: all indent clean
 
 .PHONY : clean
 clean:
+	$(MAKE) -C pq-crypto clean
 	$(MAKE) -C tests clean
 	$(MAKE) -C stuffer decruft
 	$(MAKE) -C crypto decruft
@@ -107,3 +141,4 @@ clean:
 	$(MAKE) -C tls decruft
 	$(MAKE) -C bin decruft
 	$(MAKE) -C lib decruft
+	$(MAKE) -C coverage clean
