@@ -32,20 +32,11 @@ int s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
     if (af == AF_INET) {
         S2N_ERROR_IF(dst->size < sizeof("111.222.333.444"), S2N_ERR_SIZE_MISMATCH);
 
-<<<<<<< HEAD
-
-        for(int i = 0; i < 4; i++) {
-            if (bytes[i] / 100) {
-                *cursor++ = dec[bytes[i] / 100];
-            }
-            if ((bytes[i] % 100) / 10) {
-=======
         for (int i = 0; i < 4; i++) {
             if (bytes[i] / 100) {
                 *cursor++ = dec[bytes[i] / 100];
             }
             if (bytes[i] >= 10) {
->>>>>>> upstream/master
                 *cursor++ = dec[(bytes[i] % 100) / 10];
             }
             *cursor++ = dec[(bytes[i] % 10)];
@@ -77,11 +68,7 @@ int s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
         int longest_run_length = 0;
         int current_run_length = 0;
 
-<<<<<<< HEAD
-        //2001:db8::1:0:0:1
-=======
         /* 2001:db8::1:0:0:1 */
->>>>>>> upstream/master
 
         /* Find the longest run of zeroes */
         for (int i = 0; i < 8; i++) {
