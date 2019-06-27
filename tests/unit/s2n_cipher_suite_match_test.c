@@ -26,9 +26,6 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-
-    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
-
     {
         struct s2n_connection *conn;
         uint8_t wire[2];

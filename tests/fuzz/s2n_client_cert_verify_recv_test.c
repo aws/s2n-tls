@@ -136,7 +136,6 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 
     GUARD(s2n_init());
     GUARD(atexit(s2n_fuzz_atexit));
-    GUARD(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
 
     /* Set up Server Config */
     server_config = s2n_config_new();

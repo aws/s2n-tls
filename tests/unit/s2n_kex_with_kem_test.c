@@ -41,7 +41,6 @@ struct s2n_cipher_suite s2n_test_suite = {
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
 
     struct s2n_connection *client_conn;
     struct s2n_connection *server_conn;

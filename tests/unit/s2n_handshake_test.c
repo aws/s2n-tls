@@ -172,8 +172,6 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
-    
     // test_with_rsa_cert();
     {
         struct s2n_config *server_config, *client_config;

@@ -106,7 +106,6 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
     EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain, private_key));
 
-    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
     EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
 
     /* Create nonblocking pipes */

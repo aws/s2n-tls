@@ -220,16 +220,6 @@ to raise the limit, consult the documentation for your platform.
 To disable s2n's mlock behavior, run your application with the `S2N_DONT_MLOCK` environment variable set. 
 s2n also reads this for unit tests. Try `S2N_DONT_MLOCK=1 make` if you're having mlock failures during unit tests.
 
-## client mode
-
-At this time x509 certificate validation is undergoing further testing and client mode is
-disabled as a precaution. To enable client mode for testing and development,
-set the **S2N_ENABLE_CLIENT_MODE** environment variable.
-
-```shell
-export S2N_ENABLE_CLIENT_MODE=1
-```
-
 # s2n API
 
 The API exposed by s2n is the set of functions and declarations that

@@ -65,8 +65,6 @@ int setup_connection(struct s2n_connection *conn) {
 int main(int argc, char **argv) {
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
-
     /* Part 1 setup a client and server connection with everything they need for a key exchange */
     struct s2n_connection *client_conn, *server_conn;
     EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
