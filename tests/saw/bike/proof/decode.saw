@@ -108,6 +108,7 @@ let decode_first_loop_spec = do {
     crucible_points_to s_ptr_ptr s_ptr;
     (ctx, ctx_ptr) <- inout_ref decode_ctx_T "ctx";
     (inv_h_compressed, inv_h_compressed_ptr) <- inout_ref (compressed_idx_dv_array_T N0) "inv_h_compressed";
+    res_ptr <- crucible_alloc i32;
     (i, i_ptr) <- ptr_to_fresh "i" i64;
     iter_ptr <- crucible_alloc i32;
 
@@ -126,6 +127,7 @@ let decode_first_loop_spec = do {
 	, s_ptr_ptr
         , ctx_ptr
         , inv_h_compressed_ptr
+	, res_ptr
         , i_ptr
         , iter_ptr
         ];
@@ -153,6 +155,8 @@ let decode_last_loop_spec = do {
     crucible_points_to s_ptr_ptr original_s_ptr;
     (ctx, ctx_ptr) <- inout_ref decode_ctx_T "ctx";
     (inv_h_compressed, inv_h_compressed_ptr) <- in_ref (compressed_idx_dv_array_T N0) "inv_h_compressed";
+    res_ptr <- crucible_alloc i32;
+    (i, i_ptr) <- ptr_to_fresh "i" i64;
     (iter, iter_ptr) <- ptr_to_fresh "iter" i32;
 
     crucible_precond {{ is_bounded_sk sk }};
@@ -170,6 +174,8 @@ let decode_last_loop_spec = do {
 	, s_ptr_ptr
         , ctx_ptr
         , inv_h_compressed_ptr
+	, res_ptr
+	, i_ptr
         , iter_ptr
         ];
 

@@ -283,6 +283,7 @@ let generate_sparse_fake_rep_first_loop_spec = do {
     len_ptr <- crucible_alloc i32;
     crucible_points_to len_ptr (tm {{ `R_BITS:[32] }});
     mask_ptr <- crucible_alloc i32;
+    res_ptr <- crucible_alloc i32;
     j_ptr <- crucible_alloc i32;
     i_ptr <- crucible_alloc i32;
 
@@ -299,6 +300,7 @@ let generate_sparse_fake_rep_first_loop_spec = do {
         , real_wlist_ptr
         , len_ptr
         , mask_ptr
+	, res_ptr
         , j_ptr
         , i_ptr
         ];
@@ -331,6 +333,7 @@ let generate_sparse_fake_rep_second_loop_spec = do {
     len_ptr <- crucible_alloc i32;
     crucible_points_to len_ptr (tm {{ `R_BITS:[32] }});
     mask_ptr <- crucible_alloc i32;
+    res_ptr <- crucible_alloc i32;
     j_ptr <- crucible_alloc i32;
     i_ptr <- crucible_alloc i32;
 
@@ -347,6 +350,7 @@ let generate_sparse_fake_rep_second_loop_spec = do {
         , real_wlist_ptr
         , len_ptr
         , mask_ptr
+	, res_ptr
         , j_ptr
         , i_ptr
         ];
@@ -378,6 +382,7 @@ let generate_sparse_fake_rep_last_loop_spec = do {
     len_ptr <- crucible_alloc i32;
     crucible_points_to len_ptr (tm {{ `R_BITS:[32] }});
     mask_ptr <- crucible_alloc i32;
+    res_ptr <- crucible_alloc i32;
     (j, j_ptr) <- ptr_to_fresh "j" i32;
     (i, i_ptr) <- ptr_to_fresh "i" i32;
 
@@ -393,6 +398,7 @@ let generate_sparse_fake_rep_last_loop_spec = do {
         , real_wlist_ptr
         , len_ptr
         , mask_ptr
+	, res_ptr
         , j_ptr
         , i_ptr
         ];

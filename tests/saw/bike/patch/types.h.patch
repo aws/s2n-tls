@@ -1,0 +1,3 @@
+195a196,197
+> #define GUARD_OLD(func, stat, label) {stat = func; if(stat != SUCCESS) {goto label;}}
+> 
