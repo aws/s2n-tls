@@ -18,8 +18,8 @@ let tactic unints =
         ( do {
             simplify (cryptol_ss ());
             print_goal; 
-            unint_yices unints;} )
-    else unint_yices unints;
+            w4_unint_yices unints;} )
+    else w4_unint_yices unints;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands for use in production
