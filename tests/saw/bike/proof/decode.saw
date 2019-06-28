@@ -93,9 +93,9 @@ let decode_first_loop_spec = do {
     e_ptr <- out_ref e_T;
     e_ptr_ptr <- crucible_alloc i64;
     crucible_points_to e_ptr_ptr e_ptr;
-    (s, s_ptr) <- inout_ref syndrome_T "s";
-    s_ptr_ptr <- crucible_alloc i64;
-    crucible_points_to s_ptr_ptr s_ptr;
+    (original_s, original_s_ptr) <- inout_ref syndrome_T "original_s";
+    original_s_ptr_ptr <- crucible_alloc i64; 
+    crucible_points_to original_s_ptr_ptr original_s_ptr;
     (ct, ct_ptr) <- in_ref ct_T "ct";
     ct_ptr_ptr <- crucible_alloc i64;
     crucible_points_to ct_ptr_ptr ct_ptr;
@@ -103,8 +103,9 @@ let decode_first_loop_spec = do {
     sk_ptr_ptr <- crucible_alloc i64;
     crucible_points_to sk_ptr_ptr sk_ptr;
     (u, u_ptr) <- ptr_to_fresh "u" i32;
-    (code_ret, code_ret_ptr) <- ptr_to_fresh "code_ret" i32;
-    (original_s, original_s_ptr) <- inout_ref syndrome_T "original_s";
+    (s, s_ptr) <- inout_ref syndrome_T "s";
+    s_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to s_ptr_ptr s_ptr;
     (ctx, ctx_ptr) <- inout_ref decode_ctx_T "ctx";
     (inv_h_compressed, inv_h_compressed_ptr) <- inout_ref (compressed_idx_dv_array_T N0) "inv_h_compressed";
     (i, i_ptr) <- ptr_to_fresh "i" i64;
@@ -117,12 +118,12 @@ let decode_first_loop_spec = do {
 
     crucible_execute_func
         [ e_ptr_ptr
-        , s_ptr_ptr
+        , original_s_ptr_ptr
         , ct_ptr_ptr
         , sk_ptr_ptr
         , u_ptr
-        , code_ret_ptr
-        , original_s_ptr
+        , s_ptr
+	, s_ptr_ptr
         , ctx_ptr
         , inv_h_compressed_ptr
         , i_ptr
@@ -137,9 +138,9 @@ let decode_last_loop_spec = do {
     (e, e_ptr) <- inout_ref e_T "e";
     e_ptr_ptr <- crucible_alloc i64;
     crucible_points_to e_ptr_ptr e_ptr;
-    (s, s_ptr) <- inout_ref syndrome_T "s";
-    s_ptr_ptr <- crucible_alloc i64;
-    crucible_points_to s_ptr_ptr s_ptr;
+    (original_s, original_s_ptr) <- inout_ref syndrome_T "s";
+    original_s_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to original_s_ptr_ptr original_s_ptr;
     (ct, ct_ptr) <- in_ref ct_T "ct";
     ct_ptr_ptr <- crucible_alloc i64;
     crucible_points_to ct_ptr_ptr ct_ptr;
@@ -147,8 +148,9 @@ let decode_last_loop_spec = do {
     sk_ptr_ptr <- crucible_alloc i64;
     crucible_points_to sk_ptr_ptr sk_ptr;
     (u, u_ptr) <- ptr_to_fresh "u" i32;
-    (code_ret, code_ret_ptr) <- ptr_to_fresh "code_ret" i32;
-    (original_s, original_s_ptr) <- inout_ref syndrome_T "original_s";
+    (s, s_ptr) <- inout_ref syndrome_T "original_s";
+    s_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to s_ptr_ptr original_s_ptr;
     (ctx, ctx_ptr) <- inout_ref decode_ctx_T "ctx";
     (inv_h_compressed, inv_h_compressed_ptr) <- in_ref (compressed_idx_dv_array_T N0) "inv_h_compressed";
     (iter, iter_ptr) <- ptr_to_fresh "iter" i32;
@@ -160,12 +162,12 @@ let decode_last_loop_spec = do {
 
     crucible_execute_func
         [ e_ptr_ptr
-        , s_ptr_ptr
+        , original_s_ptr_ptr
         , ct_ptr_ptr
         , sk_ptr_ptr
         , u_ptr
-        , code_ret_ptr
-        , original_s_ptr
+        , s_ptr
+	, s_ptr_ptr
         , ctx_ptr
         , inv_h_compressed_ptr
         , iter_ptr
