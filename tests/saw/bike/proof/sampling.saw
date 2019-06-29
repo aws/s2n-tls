@@ -114,18 +114,18 @@ let get_rand_mod_len_spec = do {
 
 let make_odd_weight_spec = do {
     (a, ap) <- inout_ref (make_i8_T R_SIZE) "a";
-    (c, cp) <- inout_ref aes_ctr_prf_state_T "prf_state";
+    // (c, cp) <- inout_ref aes_ctr_prf_state_T "prf_state";
 
     // NOTE: This invariant is need to avoid underflow
-    crucible_precond {{ c.pos <= `AES256_BLOCK_SIZE }};
+    // crucible_precond {{ c.pos <= `AES256_BLOCK_SIZE }};
 
-    crucible_execute_func [ap, tm {{ `R_BITS:[32] }}, cp];
-    a' <- point_to (make_i8_T R_SIZE) ap "make_odd_weight_a'";
-    c' <- point_to aes_ctr_prf_state_T cp "make_odd_weight_s'";
+    crucible_execute_func [ap]; //, tm {{ `R_BITS:[32] }}, cp];
+    // a' <- point_to (make_i8_T R_SIZE) ap "make_odd_weight_a'";
+    // c' <- point_to aes_ctr_prf_state_T cp "make_odd_weight_s'";
 
     // NOTE: This invariant still holds
-    crucible_postcond {{ c'.pos <= `AES256_BLOCK_SIZE }};
-    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+    // crucible_postcond {{ c'.pos <= `AES256_BLOCK_SIZE }};
+    // crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
 };
 
 let sample_uniform_r_bits_spec = do {

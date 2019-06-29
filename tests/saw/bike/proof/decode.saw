@@ -36,6 +36,8 @@ let compute_syndrome_spec = do {
     crucible_execute_func [ap, bp, cp];
     a' <- point_to red_r_T ap "a'";
     crucible_postcond {{ a' == compute_syndrome b c }};
+    res <- crucible_fresh_var "res" i32;
+    crucible_return (tm res);
 };
 
 // NOTE: For calls with an initialized `ss` parameter; we
@@ -47,6 +49,8 @@ let compute_syndrome_update_spec = do {
     crucible_execute_func [ap, bp, cp];
     a' <- point_to syndrome_T ap "s'";
     crucible_postcond {{ a' == compute_syndrome_update a b c }};
+    res <- crucible_fresh_var "res" i32;
+    crucible_return (tm res);
 };
 
 // NOTE: Like `compute_syndrome`, for calls with an uninitialized
@@ -59,7 +63,8 @@ let recompute_syndrome_spec = do {
     (d, dp) <- in_ref e_T "e";
     crucible_execute_func [ap, bp, cp, dp];
     a' <- point_to red_r_T ap "syndrome'";
-    return ();
+    res <- crucible_fresh_var "res" i32;
+    crucible_return (tm res);
 };
 
 let fix_error_spec = do {
@@ -74,7 +79,8 @@ let fix_error_spec = do {
     b' <- point_to e_T bp "e'";
     c' <- point_to decode_ctx_T cp "ctx'";
     crucible_postcond {{ c'.delta == c.delta }};
-    return ();
+    res <- crucible_fresh_var "res" i32;
+    crucible_return (tm res);
 };
 
 let decode_spec = do {
