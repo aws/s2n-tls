@@ -50,6 +50,8 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
         return 0;
     }
 
+    GUARD(s2n_stuffer_resize(&conn->in, S2N_LARGE_FRAGMENT_LENGTH));
+
     /* Read the record until we at least have a header */
     while (s2n_stuffer_data_available(&conn->header_in) < S2N_TLS_RECORD_HEADER_LENGTH) {
         int remaining = S2N_TLS_RECORD_HEADER_LENGTH - s2n_stuffer_data_available(&conn->header_in);

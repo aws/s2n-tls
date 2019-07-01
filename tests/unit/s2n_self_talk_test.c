@@ -55,6 +55,8 @@ void mock_client(int writefd, int readfd)
 
     s2n_negotiate(conn, &blocked);
 
+    s2n_connection_free_handshake(conn);
+
     uint16_t timeout = 1;
     s2n_connection_set_dynamic_record_threshold(conn, 0x7fff, timeout);
     int i;
@@ -68,6 +70,9 @@ void mock_client(int writefd, int readfd)
     for (int j = 0; j < i; j++) {
         buffer[j] = 33;
     }
+
+    /* release the buffers here to validate we can continue IO after */
+    s2n_connection_release_buffers(conn);
 
     /* Simulate timeout second conneciton inactivity and tolerate 50 ms error */
     struct timespec sleep_time = {.tv_sec = timeout, .tv_nsec = 50000000};
@@ -180,6 +185,9 @@ int main(int argc, char **argv)
             for (int j = 0; j < i; j++) {
                 EXPECT_EQUAL(buffer[j], 33);
             }
+
+            /* release the buffers here to validate we can continue IO after */
+            EXPECT_SUCCESS(s2n_connection_release_buffers(conn));
         }
 
         int shutdown_rc = -1;

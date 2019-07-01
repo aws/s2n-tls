@@ -113,6 +113,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->out.blob.data[4], bytes_written & 0xff);
         EXPECT_EQUAL(memcmp(conn->out.blob.data + 5, random_data, bytes_written), 0);
 
+        EXPECT_SUCCESS(s2n_stuffer_resize(&conn->in, S2N_LARGE_FRAGMENT_LENGTH));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
         EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));

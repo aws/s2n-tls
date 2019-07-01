@@ -301,6 +301,13 @@ int main(int argc, char **argv)
         free(ext_data);
         ext_data = NULL;
 
+        /* Free all handshake data */
+        EXPECT_SUCCESS(s2n_connection_free_handshake(server_conn));
+
+        /* Verify connection_wipe resized the s2n_client_hello.raw_message stuffer back to 0 */
+        EXPECT_NULL(client_hello->raw_message.blob.data);
+        EXPECT_EQUAL(client_hello->raw_message.blob.size, 0);
+
         /* Not a real tls client but make sure we block on its close_notify */
         int shutdown_rc = s2n_shutdown(server_conn, &server_blocked);
         EXPECT_EQUAL(shutdown_rc, -1);
