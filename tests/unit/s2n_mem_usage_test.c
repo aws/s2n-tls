@@ -38,7 +38,6 @@
 
 #define MAX_ALLOWED_MEM_DIFF ((ssize_t) 2 * CONNECTIONS * MAX_MEM_PER_CONNECTION)
 
-
 ssize_t get_vm_data_size()
 {
 #ifdef __linux__
@@ -141,6 +140,20 @@ int main(int argc, char **argv)
     EXPECT_NOT_EQUAL(vm_data_after_handshakes, -1);
 
     for (int i = 0; i < CONNECTIONS; i++) {
+        EXPECT_SUCCESS(s2n_connection_free_handshake(servers[i]));
+        EXPECT_SUCCESS(s2n_connection_free_handshake(clients[i]));
+    }
+    ssize_t vm_data_after_free_handshake = get_vm_data_size();
+    EXPECT_NOT_EQUAL(vm_data_after_free_handshake, -1);
+
+    for (int i = 0; i < CONNECTIONS; i++) {
+        EXPECT_SUCCESS(s2n_connection_release_buffers(servers[i]));
+        EXPECT_SUCCESS(s2n_connection_release_buffers(clients[i]));
+    }
+    ssize_t vm_data_after_release_buffers = get_vm_data_size();
+    EXPECT_NOT_EQUAL(vm_data_after_release_buffers, -1);
+
+    for (int i = 0; i < CONNECTIONS; i++) {
         EXPECT_SUCCESS(s2n_connection_free(clients[i]));
         EXPECT_SUCCESS(s2n_connection_free(servers[i]));
 
@@ -159,15 +172,18 @@ int main(int argc, char **argv)
 
 #if 0
     fprintf(stdout, "\n");
-    fprintf(stdout, "VmData initial:           %10zu\n", vm_data_initial);
-    fprintf(stdout, "VmData after allocations: %10zu\n", vm_data_after_allocation);
-    fprintf(stdout, "VmData after handshakes:  %10zu\n", vm_data_after_handshakes);
-    fprintf(stdout, "Max VmData diff allowed:  %10zu\n", MAX_ALLOWED_MEM_DIFF);
+    fprintf(stdout, "VmData initial:              %10zu\n", vm_data_initial);
+    fprintf(stdout, "VmData after allocations:    %10zu\n", vm_data_after_allocation);
+    fprintf(stdout, "VmData after handshakes:     %10zu\n", vm_data_after_handshakes);
+    fprintf(stdout, "VmData after free handshake: %10zu\n", vm_data_after_free_handshake);
+    fprintf(stdout, "VmData after release:        %10zu\n", vm_data_after_release_buffers);
+    fprintf(stdout, "Max VmData diff allowed:     %10zu\n", MAX_ALLOWED_MEM_DIFF);
 #endif
 
     EXPECT_TRUE(vm_data_after_allocation - vm_data_initial < MAX_ALLOWED_MEM_DIFF);
     EXPECT_TRUE(vm_data_after_handshakes - vm_data_initial < MAX_ALLOWED_MEM_DIFF);
-
+    EXPECT_TRUE(vm_data_after_free_handshake <= vm_data_after_handshakes);
+    EXPECT_TRUE(vm_data_after_release_buffers <= vm_data_after_free_handshake);
 
     END_TEST();
 

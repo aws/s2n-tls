@@ -1339,6 +1339,27 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config, const uint8_t *n
 **s2n_config_add_ticket_crypto_key** adds session ticket key on the server side. It would be ideal to add new keys after every (encrypt_decrypt_key_lifetime_in_nanos/2) nanos because
 this will allow for gradual and linear transition of a key from encrypt-decrypt state to decrypt-only state.
 
+### s2n\_connection\_free\_handshake
+
+```c
+int s2n_connection_free_handshake(struct s2n_connection *conn);
+```
+
+**s2n_connection_free_handshake** wipes and releases buffers and memory
+allocated during the TLS handshake.  This function should be called after the
+handshake is successfully negotiated and logging or recording of handshake data
+is complete.
+
+### s2n\_connection\_release\_buffers
+
+```c
+int s2n_connection_release_buffers(struct s2n_connection *conn);
+```
+
+**s2n_connection_release_buffers** wipes and free the `in` and `out` buffers
+associated with a connection.  This function may be called when a connection is
+in keep-alive or idle state to reduce memory overhead of long lived connections.
+
 ### s2n\_connection\_wipe
 
 ```c

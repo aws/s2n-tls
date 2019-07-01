@@ -204,8 +204,6 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
 
     GUARD_PTR(s2n_stuffer_init(&conn->client_ticket_to_decrypt, &blob));
 
-    GUARD_PTR(s2n_stuffer_alloc(&conn->out, S2N_LARGE_RECORD_LENGTH));
-
     /* Allocate long term key memory */
     GUARD_PTR(s2n_session_key_alloc(&conn->secure.client_key));
     GUARD_PTR(s2n_session_key_alloc(&conn->secure.server_key));
@@ -228,6 +226,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     blob.size = S2N_TLS_RECORD_HEADER_LENGTH;
 
     GUARD_PTR(s2n_stuffer_init(&conn->header_in, &blob));
+    GUARD_PTR(s2n_stuffer_growable_alloc(&conn->out, 0));
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->in, 0));
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->handshake.io, 0));
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->client_hello.raw_message, 0));
@@ -528,6 +527,52 @@ void *s2n_connection_get_ctx(struct s2n_connection *conn)
     return conn->context;
 }
 
+int s2n_connection_release_buffers(struct s2n_connection *conn)
+{
+    /* wipe and truncate the input and output buffers */
+    GUARD(s2n_stuffer_wipe(&conn->in));
+    GUARD(s2n_stuffer_wipe(&conn->out));
+
+    GUARD(s2n_stuffer_resize(&conn->in, 0));
+    GUARD(s2n_stuffer_resize(&conn->out, 0));
+
+    return 0;
+}
+
+int s2n_connection_free_handshake(struct s2n_connection *conn)
+{
+    /* We are done with the handshake */
+    GUARD(s2n_hash_reset(&conn->handshake.md5));
+    GUARD(s2n_hash_reset(&conn->handshake.sha1));
+    GUARD(s2n_hash_reset(&conn->handshake.sha224));
+    GUARD(s2n_hash_reset(&conn->handshake.sha256));
+    GUARD(s2n_hash_reset(&conn->handshake.sha384));
+    GUARD(s2n_hash_reset(&conn->handshake.sha512));
+    GUARD(s2n_hash_reset(&conn->handshake.md5_sha1));
+    GUARD(s2n_hash_reset(&conn->handshake.ccv_hash_copy));
+    GUARD(s2n_hash_reset(&conn->handshake.prf_md5_hash_copy));
+    GUARD(s2n_hash_reset(&conn->handshake.prf_sha1_hash_copy));
+    GUARD(s2n_hash_reset(&conn->handshake.prf_tls12_hash_copy));
+
+    /* Wipe the buffers we are going to free */
+    GUARD(s2n_stuffer_wipe(&conn->handshake.io));
+    GUARD(s2n_stuffer_wipe(&conn->client_hello.raw_message));
+
+    /* Truncate buffers to save memory, we are done with the handshake */
+    GUARD(s2n_stuffer_resize(&conn->handshake.io, 0));
+    GUARD(s2n_stuffer_resize(&conn->client_hello.raw_message, 0));
+
+    /* We can free extension data we no longer need */
+    GUARD(s2n_free(&conn->client_ticket));
+    GUARD(s2n_free(&conn->status_response));
+    GUARD(s2n_free(&conn->application_protocols_overridden));
+
+    /* Remove parsed extensions array from client_hello */
+    GUARD(s2n_client_hello_free_parsed_extensions(&conn->client_hello));
+
+    return 0;
+}
+
 int s2n_connection_wipe(struct s2n_connection *conn)
 {
     /* First make a copy of everything we'd like to save, which isn't very much. */
@@ -576,14 +621,13 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     /* Remove parsed extensions array from client_hello */
     GUARD(s2n_client_hello_free_parsed_extensions(&conn->client_hello));
 
-    /* Allocate or resize to their original sizes */
-    GUARD(s2n_stuffer_resize(&conn->in, S2N_LARGE_FRAGMENT_LENGTH));
-
     /* Allocate memory for handling handshakes */
     GUARD(s2n_stuffer_resize(&conn->handshake.io, S2N_LARGE_RECORD_LENGTH));
 
-    /* Truncate the raw message buffer to save memory, we will dynamically resize it as needed */
+    /* Truncate the message buffers to save memory, we will dynamically resize it as needed */
     GUARD(s2n_stuffer_resize(&conn->client_hello.raw_message, 0));
+    GUARD(s2n_stuffer_resize(&conn->in, 0));
+    GUARD(s2n_stuffer_resize(&conn->out, 0));
 
     /* Remove context associated with connection */
     conn->context = NULL;
