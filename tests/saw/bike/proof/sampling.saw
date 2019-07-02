@@ -214,6 +214,7 @@ let generate_sparse_rep_loop_spec = do {
     (prf_state, prf_state_ptr) <- inout_ref aes_ctr_prf_state_T "prf_state";
     prf_state_ptr_ptr <- crucible_alloc i64;
     crucible_points_to prf_state_ptr_ptr prf_state_ptr;
+    res_ptr <- crucible_alloc i32;
     (ctr, ctr_ptr) <- ptr_to_fresh "ctr" i64;
 
     crucible_precond {{ prf_state.pos <= `AES256_BLOCK_SIZE }};
@@ -226,6 +227,7 @@ let generate_sparse_rep_loop_spec = do {
         , len_ptr
         , padded_len_ptr
         , prf_state_ptr_ptr
+	, res_ptr
         , ctr_ptr
         ];
 

@@ -74,8 +74,8 @@ pad_v3 ct pad_sk = error "version 3 not implemented"
 //              an updated value
 //           2. Just return the value of the field that becomes set.
 //       I'm trying (2) for now.
-compute_syndrome : ct_t -> sk_t -> red_r_t
-compute_syndrome ct sk = d where
+compute_syndrome : ct_t -> sk_t -> syndrome_t
+compute_syndrome ct sk = {dup1 = d, dup2 = d, reserved = zero} where
     (bin1:[2]r_t) = sk.bin
     (pad_sk : pad_sk_t) = make_pad_sk_t (bin1@0) (bin1@1)
     val_pad_s_0_raw =  pad_v1 ct pad_sk
@@ -88,7 +88,8 @@ compute_syndrome ct sk = d where
 // We also allow for a syndrome to be updated; this is option 1 above
 compute_syndrome_update : syndrome_t -> ct_t -> sk_t -> syndrome_t
 compute_syndrome_update s ct sk =
-  {dup1 = compute_syndrome ct sk, dup2 = s.dup2, reserved = s.reserved}
+  {dup1 = d.dup1, dup2 = s.dup2, reserved = s.reserved} where
+      d = compute_syndrome ct sk
 
 inv_h : sk_t -> compressed_idx_dv_2t
 inv_h sk = loop 0 zero zero where
