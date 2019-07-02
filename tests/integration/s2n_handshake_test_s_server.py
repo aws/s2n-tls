@@ -116,10 +116,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
         s2nc_cmd.append("-C")
     s2nc_cmd.extend([str(endpoint), str(port)])
 
-    envVars = os.environ.copy()
-    envVars["S2N_ENABLE_CLIENT_MODE"] = "1"
-
-    s2nc = subprocess.Popen(s2nc_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=envVars)
+    s2nc = subprocess.Popen(s2nc_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # Read from s2nc until we get successful connection message
     found = 0

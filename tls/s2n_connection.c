@@ -163,14 +163,6 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
         s2n_connection_set_config(conn, s2n_fetch_default_config());
     }
 
-    if (mode == S2N_CLIENT) {
-        /* we need to do more testing on our x.509 code. Until then use with caution */
-        if (getenv("S2N_ENABLE_CLIENT_MODE") == NULL) {
-            GUARD_PTR(s2n_free(&blob));
-            S2N_ERROR_PTR(S2N_ERR_CLIENT_MODE_DISABLED);
-        }
-    }
-
     conn->mode = mode;
     conn->blinding = S2N_BUILT_IN_BLINDING;
     conn->close_notify_queued = 0;

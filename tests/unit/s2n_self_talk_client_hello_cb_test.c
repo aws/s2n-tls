@@ -205,8 +205,6 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
-
     /* Test config swapping in client hello callback */
     EXPECT_NOT_NULL(config = s2n_config_new());
     /* Don't set up certificate and private key for the main config, so if
