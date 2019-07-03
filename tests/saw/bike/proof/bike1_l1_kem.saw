@@ -81,16 +81,17 @@ let crypto_kem_dec_successful_spec = do {
     ap <- out_ref char_ss_T;
     (b, bp) <- in_ref char_ct_T "ct";
     (c, cp) <- in_ref char_sk_T "sk";
-    crucible_precond {{ (BIKE1_L1_crypto_kem_dec b c).0 == SUCCESS }} ;
+    // crucible_precond {{ (BIKE1_L1_crypto_kem_dec b c).0 == SUCCESS }} ;
 
     // NOTE: This is for memory safety
     crucible_precond {{ is_bounded_sk (assemble_sk_t c) }};
 
     crucible_execute_func [ap, bp, cp];
-    a' <- point_to char_ss_T ap "a'";
-    ret <- crucible_fresh_var "ret" i32;
+    // a' <- point_to char_ss_T ap "a'";
+    // ret <- crucible_fresh_var "ret" i32;
     // crucible_postcond {{ (toInteger ret, a') == (BIKE1_L1_crypto_kem_dec b c) }};
-    crucible_return (tm ret);
+    // crucible_return (tm ret);
+    return();
 };
 
 ///////////////////////////////////////////////////////////////////////////////

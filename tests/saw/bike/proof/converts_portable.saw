@@ -25,6 +25,9 @@ let convert_to_redundant_rep_spec' len = do {
     (i,inp) <- ptr_to_fresh_readonly "in" (llvm_array len_div_8 (llvm_int 8));
     crucible_execute_func [outp, inp, tm {{ `len:[64] }}];
     // crucible_points_to outp (tm {{ redundant_rep`{len} i }});
+
+    // len' <- crucible_fresh_var "len'" i64;
+    // crucible_points_to outp (tm len');
     return();
 };
 

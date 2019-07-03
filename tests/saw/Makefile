@@ -128,7 +128,9 @@ sike/sike.log :
 ###########################################
 
 .PHONY : bike
-bike : bike_patched_bitcode
+bike :
+	@${MAKE} clean_the_dir
+	@${MAKE} bike_patched_bitcode
 	@${MAKE} -C bike force_all
 
 
@@ -195,7 +197,7 @@ sike_patched_bitcode :
 	${MAKE} bitcode/sike_llvm.bc
 
 .PHONY : bike_patched_bitcode
-bike_patched_bitcode : clean_the_dir bitcode/bike_llvm.bc
+bike_patched_bitcode : bitcode/bike_llvm.bc
 
 ########################################################
 ## Rules to copy the s2n directory for patching and bulding
