@@ -379,7 +379,7 @@ assemble_aes_ctr_prf_state_t (a#b#c#d#e) =
 
 // NOTE: We only reflect the "v" substructure of syndrome_t, as the
 //       other elements are used for type conversion.
-//       See "get_syndrome_raw below.
+//       See get_syndrome_raw below.
 type syndrome_t =  {
     dup1 : red_r_t,
     dup2 : red_r_t,

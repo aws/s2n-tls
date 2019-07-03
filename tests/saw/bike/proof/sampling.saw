@@ -377,6 +377,7 @@ let generate_sparse_fake_rep_last_loop_spec = do {
     crucible_points_to wlist_ptr_ptr wlist_ptr;
     padded_len_ptr <- crucible_alloc i32;
     crucible_points_to padded_len_ptr (tm {{ `R_PADDED_SIZE:[32] }});
+    (ctr, ctr_ptr) <- ptr_to_fresh "ctr" i64;
     (prf_state, prf_state_ptr) <- inout_ref aes_ctr_prf_state_T "prf_state";
     prf_state_ptr_ptr <- crucible_alloc i64;
     crucible_points_to prf_state_ptr_ptr prf_state_ptr;
@@ -384,7 +385,7 @@ let generate_sparse_fake_rep_last_loop_spec = do {
     len_ptr <- crucible_alloc i32;
     crucible_points_to len_ptr (tm {{ `R_BITS:[32] }});
     mask_ptr <- crucible_alloc i32;
-    res_ptr <- crucible_alloc i32;
+    (res', res_ptr) <- ptr_to_fresh "res'" i32;
     (j, j_ptr) <- ptr_to_fresh "j" i32;
     (i, i_ptr) <- ptr_to_fresh "i" i32;
 
@@ -396,6 +397,7 @@ let generate_sparse_fake_rep_last_loop_spec = do {
         [ a_ptr_ptr
         , wlist_ptr_ptr
         , padded_len_ptr
+	, ctr_ptr
         , prf_state_ptr_ptr
         , real_wlist_ptr
         , len_ptr
@@ -501,9 +503,9 @@ let generate_sparse_fake_rep_O =
 verify_pathsat "__breakpoint__generate_sparse_fake_rep_first_loop#generate_sparse_fake_rep"
     generate_sparse_fake_rep_O
     generate_sparse_fake_rep_first_loop_spec;
-verify_pathsat "__breakpoint__generate_sparse_fake_rep_second_loop#generate_sparse_fake_rep"
-    generate_sparse_fake_rep_O
-    generate_sparse_fake_rep_second_loop_spec;
+// verify_pathsat "__breakpoint__generate_sparse_fake_rep_second_loop#generate_sparse_fake_rep"
+    // generate_sparse_fake_rep_O
+    // generate_sparse_fake_rep_second_loop_spec;
 verify_pathsat "__breakpoint__generate_sparse_fake_rep_last_loop#generate_sparse_fake_rep"
     generate_sparse_fake_rep_O
     generate_sparse_fake_rep_last_loop_spec;

@@ -75,7 +75,7 @@ let red_r_T:type_descriptor_t = point_to_flat {{ `N_red_r_t}}
     {{ assemble_red_r_t }};
 
 let e_t = llvm_struct "struct.e_s";
-let e_T = point_to_flat {{ `N_e_t}} {{ assemble_e_t }};
+let e_T = point_to_flat {{ `N_e_t }} {{ assemble_e_t }};
 
 let sk_t = llvm_struct "struct.sk_s";
 let sk_T:type_descriptor_t = point_to_flat {{`N_sk_t }} {{ assemble_sk_t }};
