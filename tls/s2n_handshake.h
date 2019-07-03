@@ -120,11 +120,12 @@ struct s2n_handshake {
 /* Has the handshake been negotiated yet? */
 #define INITIAL                     0x00
 #define NEGOTIATED                  0x01
+#define IS_NEGOTIATED( type ) ( (type) & NEGOTIATED )
 
 /* Handshake is a full handshake  */
 #define FULL_HANDSHAKE              0x02
 #define IS_FULL_HANDSHAKE( type )   ( (type) & FULL_HANDSHAKE )
-#define IS_RESUMPTION_HANDSHAKE( type ) ( !IS_FULL_HANDSHAKE( (type) ) )
+#define IS_RESUMPTION_HANDSHAKE( type ) ( !IS_FULL_HANDSHAKE( (type) ) && IS_NEGOTIATED ( (type) ) )
 
 /* Handshake uses perfect forward secrecy */
 #define PERFECT_FORWARD_SECRECY     0x04
