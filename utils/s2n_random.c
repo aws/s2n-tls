@@ -337,7 +337,7 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
 
 #if defined(__x86_64__) || defined(__i386__)
     int space_remaining = 0;
-    struct s2n_stuffer stuffer = {{0}};
+    struct s2n_stuffer stuffer = {0};
     union {
         uint64_t u64;
 #if defined(__i386__)

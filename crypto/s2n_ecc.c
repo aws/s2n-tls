@@ -263,7 +263,7 @@ static int s2n_ecc_compute_shared_secret(EC_KEY * own_key, const EC_POINT * peer
 
 int s2n_ecc_find_supported_curve(struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **found)
 {
-    struct s2n_stuffer iana_ids_in = {{0}};
+    struct s2n_stuffer iana_ids_in = {0};
 
     GUARD(s2n_stuffer_init(&iana_ids_in, iana_ids));
     GUARD(s2n_stuffer_write(&iana_ids_in, iana_ids));

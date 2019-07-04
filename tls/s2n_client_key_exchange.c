@@ -60,7 +60,7 @@ static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob
     client_key_exchange_message->size = end_cursor - start_cursor;
 
     GUARD(s2n_alloc(combined_shared_key, shared_key_0.size + shared_key_1.size));
-    struct s2n_stuffer stuffer_combiner = {{0}};
+    struct s2n_stuffer stuffer_combiner = {0};
     GUARD(s2n_stuffer_init(&stuffer_combiner, combined_shared_key));
     GUARD(s2n_stuffer_write(&stuffer_combiner, &shared_key_0));
     GUARD(s2n_stuffer_write(&stuffer_combiner, &shared_key_1));

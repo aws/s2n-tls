@@ -70,7 +70,7 @@ int main()
 
   //check that the cleanup functions are called on each loop exit
   for (int i = 0; i < 10; ++i) {
-    DEFER_CLEANUP(struct foo x = {i}, foo_free);
+    DEFER_CLEANUP(struct foo x = {0}, foo_free);
     S2N_UNUSED(x);
     EXPECT_EQUAL(foo_cleanup_calls, expected_cleanup_count);
     expected_cleanup_count++;
