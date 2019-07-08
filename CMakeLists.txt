@@ -124,7 +124,7 @@ set(CMAKE_C_FLAGS_DEBUGOPT "")
 
 target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -pedantic -std=c99 -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts
         -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
-        -Wno-missing-braces -Wmissing-field-initializers)
+        -Wno-missing-braces)
 target_compile_options(${CMAKE_PROJECT_NAME} PUBLIC -fPIC)
 
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE -D_POSIX_C_SOURCE=200809L)
