@@ -42,7 +42,7 @@ bc:
 	${MAKE} -C utils bc
 
 .PHONY : sike_bc
-bike_bc: bc
+sike_bc: bc
 	${MAKE} -C pq-crypto sike_bc
 
 .PHONY : bike_bc
