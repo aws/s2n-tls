@@ -200,6 +200,8 @@ extern ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ssize_t si
 extern ssize_t s2n_recv(struct s2n_connection *conn,  void *buf, ssize_t size, s2n_blocked_status *blocked);
 extern uint32_t s2n_peek(struct s2n_connection *conn);
 
+extern int s2n_connection_free_handshake(struct s2n_connection *conn);
+extern int s2n_connection_release_buffers(struct s2n_connection *conn);
 extern int s2n_connection_wipe(struct s2n_connection *conn);
 extern int s2n_connection_free(struct s2n_connection *conn);
 extern int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked);
