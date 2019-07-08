@@ -46,16 +46,18 @@ BIKE1_L1_crypto_kem_dec ct sk = (res2, ss2) where
     (l_sk:sk_t) = assemble_sk_t sk
     (l_ct:ct_t) = assemble_ct_t ct
     (e:e_t) = zero
-    (syndrome_2: syndrome_t) = compute_syndrome_update (assemble_syndrome_t zero) l_ct l_sk
+    (syndrome_2: syndrome_t, rtn_val_4) = compute_syndrome_update (assemble_syndrome_t zero) l_ct l_sk
     (e_3:e_t, syndrome_3: syndrome_t, rtn_val_3) = decode e syndrome_2 l_ct l_sk `U_ERR
     // ERR(..., EXIT) actually jumps to EXIT if there is an error, so there
     // is non-obvious control flow in the C code.
     // If there *is* an error, the output `ss` is not set at all.
     // We just return a zero in that case.
-    (res2, ss2) = if rtn_val_3!=0
-        then (E_DECODING_FAILURE, zero)
+    (res2, ss2) = if rtn_val_3 <$ 0
+        then (-1, zero)
         else if rtn_val_T != `T1
         then (E_ERROR_WEIGHT_IS_NOT_T, zero)
+        else if rtn_val_4 <$ zero 
+        then (-1, zero)
         else (res, ss3)
     rtn_val_T = count_ones e_3.raw
     (l_ss_4:ss_t) = get_ss e_3
