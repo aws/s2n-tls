@@ -33,7 +33,7 @@ cd "$DOWNLOAD_DIR"
 
 #download saw binaries
 # curl --retry 3 https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/saw-0.2-2019-03-08-Ubuntu14.04-64.tar.gz --output saw.tar.gz;
-wget --tries=3 --no-check-certificate https://github.com/pedrotst/saw-script/releases/download/v.0.2.2-dev/saw.tar.gz -O saw.tar.gz
+wget --tries=3 --no-check-certificate https://github.com/pedrotst/saw-script/releases/download/0.2.3-array/saw.tar.gz -O saw.tar.gz
 
 mkdir -p saw 
 tar -xzf saw.tar.gz -C saw
