@@ -25,8 +25,8 @@ let aes256_enc_spec len = do {
 
     // NOTE: OUT is written to
     a' <- point_to (make_i8_T len) ap "ct'";
+    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
 
-    return ();
 };
 
 // NOTE: This is an inline static funciton that is somethimes renamed by
