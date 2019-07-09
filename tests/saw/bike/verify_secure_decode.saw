@@ -4,6 +4,7 @@
 let do_prove = false;
 let debug = false;
 let reduced = true;
+enable_smt_array_memory_model;
 
 m <-  llvm_load_module  "../bitcode/bike_llvm.bc";
 
