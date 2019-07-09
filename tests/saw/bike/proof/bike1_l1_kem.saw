@@ -87,18 +87,18 @@ let crypto_kem_dec_successful_spec = do {
     crucible_precond {{ is_bounded_sk (assemble_sk_t c) }};
 
     crucible_execute_func [ap, bp, cp];
-    // a' <- point_to char_ss_T ap "a'";
-    // ret <- crucible_fresh_var "ret" i32;
-    // crucible_postcond {{ (toInteger ret, a') == (BIKE1_L1_crypto_kem_dec b c) }};
-    crucible_return (tm {{ fromInteger `{[32]} SUCCESS }} );
+    a' <- point_to char_ss_T ap "a'";
+    ret <- crucible_fresh_var "ret" i32;
+    crucible_postcond {{ (toInteger ret, a') == (BIKE1_L1_crypto_kem_dec b c) }};
+    crucible_return (tm ret);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
 
-// verify "get_ss"
-//     [parallel_hash_ov, secure_clean_ov48]
-//     (get_ss_spec false);
+verify "get_ss"
+    [parallel_hash_ov, secure_clean_ov48]
+    (get_ss_spec false);
 
 get_ss_ov <- admit "get_ss"
     [parallel_hash_ov, secure_clean_ov48]
@@ -167,13 +167,13 @@ let crypto_kem_dec_U =
     ];
 
 // NOTE: Step 1 of 2 - non-success result
-// crypto_kem_dec_unsuccessful_ov <- verify_unint "BIKE1_L1_crypto_kem_dec"
-//     crypto_kem_dec_O
-//     crypto_kem_dec_U
-//     crypto_kem_dec_unsuccessful_spec;
-
-// NOTE: Step 2 of 2 - conditioned on a SUCCESS result
-crypto_kem_dec_successful_ov <- verify_unint "BIKE1_L1_crypto_kem_dec"
+crypto_kem_dec_unsuccessful_ov <- verify_unint "BIKE1_L1_crypto_kem_dec"
     crypto_kem_dec_O
     crypto_kem_dec_U
-    crypto_kem_dec_successful_spec;
+    crypto_kem_dec_unsuccessful_spec;
+
+// NOTE: Step 1 of 2 - conditioned on a SUCCESS result
+// crypto_kem_dec_successful_ov <- verify_unint "BIKE1_L1_crypto_kem_dec"
+    // crypto_kem_dec_O
+    // crypto_kem_dec_U
+    // crypto_kem_dec_successful_spec;
