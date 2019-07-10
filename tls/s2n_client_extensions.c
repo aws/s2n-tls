@@ -238,7 +238,7 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *pa
         struct s2n_client_hello_parsed_extension *parsed_extension = s2n_array_get(parsed_extensions, i);
         notnull_check(parsed_extension);
 
-        struct s2n_stuffer extension = {{0}};
+        struct s2n_stuffer extension = {0};
         GUARD(s2n_stuffer_init(&extension, &parsed_extension->extension));
         GUARD(s2n_stuffer_write(&extension, &parsed_extension->extension));
 
@@ -332,8 +332,8 @@ static int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, str
 static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     uint16_t size_of_all;
-    struct s2n_stuffer client_protos = {{0}};
-    struct s2n_stuffer server_protos = {{0}};
+    struct s2n_stuffer client_protos = {0};
+    struct s2n_stuffer server_protos = {0};
 
     struct s2n_blob *server_app_protocols;
     GUARD(s2n_connection_get_protocol_preferences(conn, &server_app_protocols));

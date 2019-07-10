@@ -207,7 +207,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
 
     /* If we're AEAD, write the sequence number as an IV, and generate the AAD */
     if (cipher_suite->record_alg->cipher->type == S2N_AEAD) {
-        struct s2n_stuffer iv_stuffer = {{0}};
+        struct s2n_stuffer iv_stuffer = {0};
         iv.data = aad_iv;
         iv.size = sizeof(aad_iv);
         GUARD(s2n_stuffer_init(&iv_stuffer, &iv));
@@ -235,7 +235,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
         aad.data = aad_gen;
         aad.size = sizeof(aad_gen);
 
-        struct s2n_stuffer ad_stuffer = {{0}};
+        struct s2n_stuffer ad_stuffer = {0};
         GUARD(s2n_stuffer_init(&ad_stuffer, &aad));
         GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &ad_stuffer));
     } else if (cipher_suite->record_alg->cipher->type == S2N_CBC || cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {

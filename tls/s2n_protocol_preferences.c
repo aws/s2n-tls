@@ -19,7 +19,7 @@
 
 int s2n_blob_set_protocol_preferences(struct s2n_blob *application_protocols, const char *const *protocols, int protocol_count)
 {
-    struct s2n_stuffer protocol_stuffer = {{0}};
+    struct s2n_stuffer protocol_stuffer = {0};
 
     GUARD(s2n_free(application_protocols));
 

@@ -578,24 +578,24 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     /* First make a copy of everything we'd like to save, which isn't very much. */
     int mode = conn->mode;
     struct s2n_config *config = conn->config;
-    struct s2n_stuffer alert_in = {{0}};
-    struct s2n_stuffer reader_alert_out = {{0}};
-    struct s2n_stuffer writer_alert_out = {{0}};
-    struct s2n_stuffer client_ticket_to_decrypt = {{0}};
-    struct s2n_stuffer handshake_io = {{0}};
-    struct s2n_stuffer client_hello_raw_message = {{0}};
-    struct s2n_stuffer header_in = {{0}};
-    struct s2n_stuffer in = {{0}};
-    struct s2n_stuffer out = {{0}};
+    struct s2n_stuffer alert_in = {0};
+    struct s2n_stuffer reader_alert_out = {0};
+    struct s2n_stuffer writer_alert_out = {0};
+    struct s2n_stuffer client_ticket_to_decrypt = {0};
+    struct s2n_stuffer handshake_io = {0};
+    struct s2n_stuffer client_hello_raw_message = {0};
+    struct s2n_stuffer header_in = {0};
+    struct s2n_stuffer in = {0};
+    struct s2n_stuffer out = {0};
     /* Session keys will be wiped. Preserve structs to avoid reallocation */
     struct s2n_session_key initial_client_key = {0};
     struct s2n_session_key initial_server_key = {0};
     struct s2n_session_key secure_client_key = {0};
     struct s2n_session_key secure_server_key = {0};
     /* Parts of the PRF working space, hash states, and hmac states  will be wiped. Preserve structs to avoid reallocation */
-    struct s2n_connection_prf_handles prf_handles = {{{{0}}}};
-    struct s2n_connection_hash_handles hash_handles = {{{0}}};
-    struct s2n_connection_hmac_handles hmac_handles = {{{{0}}}};
+    struct s2n_connection_prf_handles prf_handles = {0};
+    struct s2n_connection_hash_handles hash_handles = {0};
+    struct s2n_connection_hmac_handles hmac_handles = {0};
 
     /* Wipe all of the sensitive stuff */
     GUARD(s2n_connection_wipe_keys(conn));
@@ -983,7 +983,7 @@ const char *s2n_get_server_name(struct s2n_connection *conn)
 
     GUARD_PTR(s2n_client_hello_get_parsed_extension(conn->client_hello.parsed_extensions, S2N_EXTENSION_SERVER_NAME, &parsed_extension));
 
-    struct s2n_stuffer extension = {{0}};
+    struct s2n_stuffer extension = {0};
     GUARD_PTR(s2n_stuffer_init(&extension, &parsed_extension.extension));
     GUARD_PTR(s2n_stuffer_write(&extension, &parsed_extension.extension));
 

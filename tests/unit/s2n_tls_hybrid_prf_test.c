@@ -79,7 +79,7 @@ int multi_convert_hex_to_bytes(uint8_t *output, const char **input, int num_stri
 {
     int output_index = 0;
     for (int i = 0; i < num_strings; i++) {
-        DEFER_CLEANUP(struct s2n_stuffer stuffer_in = {{0}}, s2n_stuffer_free);
+        DEFER_CLEANUP(struct s2n_stuffer stuffer_in = {0}, s2n_stuffer_free);
 
         GUARD(s2n_stuffer_alloc_ro_from_string(&stuffer_in, input[i]));
         int num_bytes = strlen(input[i]) / 2;
@@ -130,7 +130,7 @@ int main(int argc, char **argv)
         // In teh future the hybrid_kex client_key_send (client side) and client_key_receive (server side) will concatenate the two parts
         DEFER_CLEANUP(struct s2n_blob combined_pms = {0}, s2n_free);
         EXPECT_SUCCESS(s2n_alloc(&combined_pms, classic_pms.size + kem_pms.size));
-        struct s2n_stuffer combined_stuffer = {{0}};
+        struct s2n_stuffer combined_stuffer = {0};
         s2n_stuffer_init(&combined_stuffer, &combined_pms);
         s2n_stuffer_write(&combined_stuffer, &classic_pms);
         s2n_stuffer_write(&combined_stuffer, &kem_pms);

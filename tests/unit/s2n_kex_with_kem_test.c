@@ -70,7 +70,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_write(&client_conn->handshake.io, &server_key_message));
 
     /* Part 2: Client calls recv_read and recv_parse */
-    struct s2n_kex_raw_server_data raw_parms = {{{0}}};
+    struct s2n_kex_raw_server_data raw_parms = {0};
     struct s2n_blob data_to_verify = {0};
     EXPECT_SUCCESS(s2n_kem_server_key_recv_read_data(client_conn, &data_to_verify, &raw_parms));
     EXPECT_EQUAL(data_to_verify.size, KEM_PUBLIC_KEY_MESSAGE_SIZE);

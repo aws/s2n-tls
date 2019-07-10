@@ -548,8 +548,8 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
 
 int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
 {
-    DEFER_CLEANUP(struct s2n_stuffer dhparams_in_stuffer = {{0}}, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_stuffer dhparams_out_stuffer = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer dhparams_in_stuffer = {0}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer dhparams_out_stuffer = {0}, s2n_stuffer_free);
     struct s2n_blob dhparams_blob = {0};
     struct s2n_blob mem = {0};
 

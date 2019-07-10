@@ -127,7 +127,7 @@ int s2n_kem_decapsulate(const struct s2n_kem_keypair *kem_keys, struct s2n_blob 
 int s2n_kem_find_supported_kem(struct s2n_blob *client_kem_ids, const struct s2n_kem *server_kem_pref_list,
                                const int num_server_supported_kems, const struct s2n_kem **matching_kem)
 {
-    struct s2n_stuffer client_kems_in = {{0}};
+    struct s2n_stuffer client_kems_in = {0};
 
     GUARD(s2n_stuffer_init(&client_kems_in, client_kem_ids));
     GUARD(s2n_stuffer_write(&client_kems_in, client_kem_ids));

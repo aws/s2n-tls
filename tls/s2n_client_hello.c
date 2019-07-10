@@ -257,7 +257,7 @@ static int s2n_populate_client_hello_extensions(struct s2n_client_hello *ch)
         notnull_check(ch->parsed_extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension)));
     }
 
-    struct s2n_stuffer in = {{0}};
+    struct s2n_stuffer in = {0};
 
     GUARD(s2n_stuffer_init(&in, &ch->extensions));
     GUARD(s2n_stuffer_write(&in, &ch->extensions));
@@ -325,7 +325,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 int s2n_client_hello_send(struct s2n_connection *conn)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
-    struct s2n_stuffer client_random = {{0}};
+    struct s2n_stuffer client_random = {0};
     struct s2n_blob b, r;
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
