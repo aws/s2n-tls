@@ -162,8 +162,6 @@ int main(int argc, char **argv) {
         s2n_x509_trust_store_wipe(&trust_store);
     }
 
-    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
-
     /* test validator in unsafe mode */
     {
         struct s2n_x509_validator validator;

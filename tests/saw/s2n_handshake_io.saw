@@ -1,3 +1,26 @@
+////////////////////////////////////////////////////////////////
+// Copyright 2019 Galois, Inc. All Rights Reserved
+//
+// Licensed under the Apache License, Version 2.0 (the "License").
+// You may not use this file except in compliance with the License.
+// A copy of the License is located at
+//
+//  http://aws.amazon.com/apache2.0
+//
+// or in the "license" file accompanying this file. This file is distributed
+// on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+// express or implied. See the License for the specific language governing
+// permissions and limitations under the License.
+//
+////////////////////////////////////////////////////////////////
+//
+// This file describes the correspondence between the Cryptol
+// specification of the TLS handshake and the C code in
+// tls/s2n_handshake_io.c, allowing SAW to prove that the code
+// corresponds to the specification.
+//
+////////////////////////////////////////////////////////////////
+
 // Low level specifications for some of the functions and constants declared in
 // tls/s2n_handshake_io.c
 import "spec/s2n_handshake_io.cry";
@@ -260,7 +283,7 @@ let s2n_advance_message_spec = do {
     crucible_return (crucible_term {{ 0 : [32] }});
 };
 
-// Specs for the 4 functions that s2n_advance_message calls. Right now
+// Specs for the 5 functions that s2n_advance_message calls. Right now
 // we just assume the specs and don't verify them. That's because we
 // don't model the state that they depend on, instead, making assumptions
 // about it: we use managed corking and the socket was initially uncorked.
@@ -328,6 +351,17 @@ let s2n_socket_was_corked_spec = do {
 };
 
 
+// Specification for s2n_socket_quickack. This is essentially
+// a noop function that returns 0 from the perspective of our current proof
+let s2n_socket_quickack_spec = do {
+    pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
+
+    crucible_execute_func [pconn];
+
+    crucible_return (crucible_term {{ 0 : [32] }});
+};
+
+
 // Specification for s2n_connection_is_managed_corked. We assume it
 // always returns 1 to reflect our assumption that the library is
 // managing the corking and uncorking of the socket. Otherwise, the
@@ -348,7 +382,8 @@ let yices_debug = do {yices;
 
 // Workaround for If then else on nat
 let equalNat_ite = core_axiom
-  "\\(x y z :: Nat) (b :: Bool) -> eq Bool (equalNat x (ite Nat b y z)) (ite Bool b (equalNat x y) (equalNat x z))";
+  "\\(x y z : Nat) (b : Bool) -> eq Bool (equalNat x (ite Nat b y z)) (ite Bool b (equalNat x y) (equalNat x z))";
+
 
 // Low-level correspondence proof. This is the entry point for this file.
 let s2n_handshake_io_lowlevel = do {
@@ -360,6 +395,8 @@ let s2n_handshake_io_lowlevel = do {
     s2n_socket_write_cork <- crucible_llvm_unsafe_assume_spec llvm "s2n_socket_write_cork" s2n_socket_write_cork_spec;
     print "s2n_socket_was_corked";
     s2n_socket_was_corked <- crucible_llvm_unsafe_assume_spec llvm "s2n_socket_was_corked" s2n_socket_was_corked_spec;
+    print "s2n_socket_quickack";
+    s2n_socket_quickack <- crucible_llvm_unsafe_assume_spec llvm "s2n_socket_quickack" s2n_socket_quickack_spec;
     print "s2n_connection_is_managed_corked";
     s2n_connection_is_managed_corked <- crucible_llvm_unsafe_assume_spec llvm "s2n_connection_is_managed_corked" s2n_connection_is_managed_corked_spec;
     print "s2n_generate_new_client_session_id";
@@ -368,15 +405,15 @@ let s2n_handshake_io_lowlevel = do {
     s2n_allowed_to_cache_connection <- crucible_llvm_unsafe_assume_spec llvm "s2n_allowed_to_cache_connection" s2n_allowed_to_cache_connection_spec;
     print "s2n_decrypt_session_ticket";
     s2n_decrypt_session_ticket <- crucible_llvm_unsafe_assume_spec llvm "s2n_decrypt_session_ticket" s2n_decrypt_session_ticket_spec;
-    let dependencies = [s2n_socket_write_uncork, s2n_socket_write_cork, s2n_socket_was_corked, s2n_connection_is_managed_corked];
+    let dependencies = [s2n_socket_write_uncork, s2n_socket_write_cork, s2n_socket_was_corked, s2n_connection_is_managed_corked, s2n_socket_quickack];
 
 
     print "Proving correctness of get_auth_type";
-    auth_type_proof <- crucible_llvm_verify llvm "s2n_connection_get_client_auth_type" dependencies true s2n_connection_get_client_auth_type_spec (do {simplify (addsimp equalNat_ite basic_ss); yices;});
+    auth_type_proof <- crucible_llvm_verify llvm "s2n_connection_get_client_auth_type" dependencies false s2n_connection_get_client_auth_type_spec (do {simplify (addsimp equalNat_ite basic_ss); yices;});
     print "Proving correctness of s2n_advance_message";
-    s2n_advance_message_proof <- crucible_llvm_verify llvm "s2n_advance_message" dependencies true s2n_advance_message_spec yices;
+    s2n_advance_message_proof <- crucible_llvm_verify llvm "s2n_advance_message" dependencies false s2n_advance_message_spec yices;
     print "Proving correctness of s2n_conn_set_handshake_type";
-    s2n_conn_set_handshake_type_proof <- crucible_llvm_verify llvm "s2n_conn_set_handshake_type" [s2n_allowed_to_cache_connection, auth_type_proof, s2n_generate_new_client_session_id, s2n_decrypt_session_ticket] true s2n_conn_set_handshake_type_spec yices;
+    s2n_conn_set_handshake_type_proof <- crucible_llvm_verify llvm "s2n_conn_set_handshake_type" [s2n_allowed_to_cache_connection, auth_type_proof, s2n_generate_new_client_session_id, s2n_decrypt_session_ticket] false s2n_conn_set_handshake_type_spec yices;
     print "done";
     return ();
 };

@@ -1,0 +1,16 @@
+//cshake.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module interface::cshake where
+
+import shared::Constants
+import shared::C_Types
+import shared::Convert_Types
+
+///////////////////////////////////////////////////////////////////////////////
+
+cshake : {outlen, inlen} (fin outlen, fin inlen) =>
+    [16] -> [inlen][8] -> [outlen][8]
+cshake cstm in = zero

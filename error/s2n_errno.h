@@ -131,6 +131,7 @@ typedef enum {
     S2N_ERR_MAP_DUPLICATE,
     S2N_ERR_MAP_IMMUTABLE,
     S2N_ERR_MAP_MUTABLE,
+    S2N_ERR_MAP_INVALID_MAP_SIZE,
     S2N_ERR_INITIAL_HMAC,
     S2N_ERR_INVALID_NONCE_TYPE,
     S2N_ERR_UNIMPLEMENTED,
@@ -150,6 +151,8 @@ typedef enum {
     S2N_ERR_INVALID_PKCS3,
     S2N_ERR_NO_CERTIFICATE_IN_PEM,
     S2N_ERR_SERVER_NAME_TOO_LONG,
+    S2N_ERR_NUM_DEFAULT_CERTIFICATES,
+    S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE,
     S2N_ERR_INVALID_CIPHER_PREFERENCES,
     S2N_ERR_APPLICATION_PROTOCOL_TOO_LONG,
     S2N_ERR_KEY_MISMATCH,
@@ -189,3 +192,4 @@ extern __thread const char *s2n_debug_str;
 #define S2N_ERROR( x )      do { _S2N_ERROR( ( x ) ); return -1; } while (0)
 #define S2N_ERROR_PTR( x )  do { _S2N_ERROR( ( x ) ); return NULL; } while (0)
 #define S2N_ERROR_IF( cond , x ) do { if ( cond ) { S2N_ERROR( x ); }} while (0)
+#define S2N_ERROR_IF_PTR( cond , x ) do { if ( cond ) { S2N_ERROR_PTR( x ); }} while (0)

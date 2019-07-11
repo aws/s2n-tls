@@ -16,8 +16,6 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
-#include "testlib/s2n_testlib.h"
-
 #include <string.h>
 
 #include "crypto/s2n_ecc.h"
@@ -28,9 +26,6 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-
-    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
-
     {
         struct s2n_connection *conn;
         uint8_t wire[2];
@@ -55,8 +50,7 @@ int main(int argc, char **argv)
             }
         }
 
-        /* We should have exactly 32 cipher suites */
-        EXPECT_EQUAL(count, 33);
+        EXPECT_EQUAL(count, 35);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         free(private_key);
@@ -109,6 +103,8 @@ int main(int argc, char **argv)
             TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
             TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
             TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+            TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384,
+            TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384,
         };
         const uint8_t cipher_count = sizeof(wire_ciphers) / S2N_TLS_CIPHER_SUITE_LEN;
 
@@ -234,6 +230,39 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->secure_renegotiation, 0);
         EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_rsa_wire_choice));
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
+
+        /* Test that clients that support PQ ciphers can negotiate them. */
+        const uint8_t expected_pq_wire_choice[] = { TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 };
+        uint8_t client_extensions_data[] = {
+                0xFE, 0x01, /* PQ KEM extension ID */
+                0x00, 0x04, /* Total extension length in bytes */
+                0x00, 0x02, /* Length of the supported parameters list in bytes */
+                0x00, 0x01  /* BIKE1r1-Level1 */
+        };
+        int client_extensions_len = sizeof(client_extensions_data);
+        s2n_connection_set_cipher_preferences(conn, "KMS-PQ-TLS-1-0-2019-06");
+        conn->client_protocol_version = S2N_TLS12;
+        conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
+        conn->secure.client_pq_kem_extension.data = client_extensions_data;
+        conn->secure.client_pq_kem_extension.size = client_extensions_len;
+        EXPECT_SUCCESS(s2n_set_cipher_and_cert_as_tls_server(conn, wire_ciphers, cipher_count));
+        EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_pq_wire_choice));
+        EXPECT_SUCCESS(s2n_connection_wipe(conn));
+
+        /* Test cipher preferences that use PQ cipher suites that require TLS 1.2 fall back to classic ciphers if a client
+         * only supports TLS 1.1 or below, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA is the first cipher suite that supports
+         * TLS 1.1 in KMS-PQ-TLS-1-0-2019-06 */
+        for (int i = S2N_TLS10; i <= S2N_TLS11; i++) {
+            const uint8_t expected_classic_wire_choice[] = { TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA };
+            s2n_connection_set_cipher_preferences(conn, "KMS-PQ-TLS-1-0-2019-06");
+            conn->client_protocol_version = i;
+            conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
+            conn->secure.client_pq_kem_extension.data = client_extensions_data;
+            conn->secure.client_pq_kem_extension.size = client_extensions_len;
+            EXPECT_SUCCESS(s2n_set_cipher_and_cert_as_tls_server(conn, wire_ciphers, cipher_count));
+            EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_classic_wire_choice));
+            EXPECT_SUCCESS(s2n_connection_wipe(conn));
+        }
 
         /* Clean+free to setup for ECDSA tests */
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -371,6 +400,85 @@ int main(int argc, char **argv)
             conn->secure.server_ecc_params.negotiated_curve = NULL;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
             EXPECT_SUCCESS(s2n_set_cipher_and_cert_as_tls_server(conn, wire_ciphers_rsa_fallback, cipher_count_rsa_fallback));
+            EXPECT_EQUAL(conn->secure_renegotiation, 0);
+            EXPECT_EQUAL(conn->handshake_params.our_chain_and_key, rsa_cert);
+            EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_wire_choice));
+            EXPECT_SUCCESS(s2n_connection_wipe(conn));
+        }
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, rsa_cert));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_cert));
+        /* Override auto-chosen defaults with only RSA cert default. ECDSA still loaded, but not default. */
+        EXPECT_SUCCESS(s2n_config_set_cert_chain_and_key_defaults(server_config, &rsa_cert, 1));
+
+        /* Client sends RSA and ECDSA ciphers, server prioritizes ECDSA, ECDSA + RSA cert is configured,
+         * only RSA is default. Expect default RSA used instead of previous test that expects ECDSA for this case. */
+        {
+            const uint8_t expected_wire_choice[] = { TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA };
+            s2n_connection_set_cipher_preferences(conn, "test_ecdsa_priority");
+            conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
+            EXPECT_SUCCESS(s2n_set_cipher_and_cert_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
+            EXPECT_EQUAL(conn->secure_renegotiation, 0);
+            EXPECT_EQUAL(conn->handshake_params.our_chain_and_key, rsa_cert);
+            EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_wire_choice));
+            EXPECT_SUCCESS(s2n_connection_wipe(conn));
+        }
+
+        /* Override auto-chosen defaults with only ECDSA cert default. RSA still loaded, but not default. */
+        EXPECT_SUCCESS(s2n_config_set_cert_chain_and_key_defaults(server_config, &ecdsa_cert, 1));
+
+        /* Client sends RSA and ECDSA ciphers, server prioritizes RSA, ECDSA + RSA cert is configured,
+         * only ECDSA is default. Expect default ECDSA used instead of previous test that expects RSA for this case. */
+        {
+            const uint8_t expected_wire_choice[] = { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 };
+            s2n_connection_set_cipher_preferences(conn, "test_all");
+            conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
+            EXPECT_SUCCESS(s2n_set_cipher_and_cert_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
+            EXPECT_EQUAL(conn->secure_renegotiation, 0);
+            EXPECT_EQUAL(conn->handshake_params.our_chain_and_key, ecdsa_cert);
+            EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_wire_choice));
+            EXPECT_SUCCESS(s2n_connection_wipe(conn));
+        }
+
+        /* Test override back to both RSA and ECDSA defaults. */
+        struct s2n_cert_chain_and_key *certs_list[] = { rsa_cert, ecdsa_cert };
+        EXPECT_SUCCESS(s2n_config_set_cert_chain_and_key_defaults(server_config, certs_list, 2));
+
+        /* Client sends RSA and ECDSA ciphers, server prioritizes ECDSA, ECDSA + RSA cert is configured */
+        {
+            const uint8_t expected_wire_choice[] = { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 };
+            s2n_connection_set_cipher_preferences(conn, "test_ecdsa_priority");
+            conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
+            EXPECT_SUCCESS(s2n_set_cipher_and_cert_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
+            EXPECT_EQUAL(conn->secure_renegotiation, 0);
+            EXPECT_EQUAL(conn->handshake_params.our_chain_and_key, ecdsa_cert);
+            EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_wire_choice));
+            EXPECT_SUCCESS(s2n_connection_wipe(conn));
+        }
+
+        /* Test that defaults are not overriden after failures to set new default certificates */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cert_chain_and_key_defaults(server_config, NULL, 0), S2N_ERR_NULL);
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cert_chain_and_key_defaults(server_config, &rsa_cert, 0),
+                S2N_ERR_NUM_DEFAULT_CERTIFICATES);
+
+        struct s2n_cert_chain_and_key *rsa_certs_list[] = { rsa_cert, rsa_cert };
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cert_chain_and_key_defaults(server_config, rsa_certs_list, 2),
+                S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE);
+
+        /* Client sends RSA and ECDSA ciphers, server prioritizes RSA, ECDSA + RSA cert is configured.
+         * RSA default certificate should be chosen. */
+        {
+            const uint8_t expected_wire_choice[] = { TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA };
+            s2n_connection_set_cipher_preferences(conn, "test_all");
+            conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
+            EXPECT_SUCCESS(s2n_set_cipher_and_cert_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->handshake_params.our_chain_and_key, rsa_cert);
             EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_wire_choice));

@@ -89,8 +89,8 @@ cd libcrypto-build
 curl -LO https://www.openssl.org/source/openssl-1.1.1-latest.tar.gz
 tar -xzvf openssl-1.1.1-latest.tar.gz
 
-# Build openssl libcrypto  (NOTE: check directory name 1.1.1-latest unpacked as)
-cd openssl-1.1.1b
+# Build openssl libcrypto
+cd `tar ztf openssl-1.1.1-latest.tar.gz | head -n1 | cut -f1 -d/`
 ./config -fPIC no-shared              \
          no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
          no-hw no-mdc2 no-seed no-idea enable-ec_nistp_64_gcc_128 no-camellia\
@@ -127,8 +127,8 @@ cd libcrypto-build
 curl -LO https://www.openssl.org/source/openssl-1.0.2-latest.tar.gz
 tar -xzvf openssl-1.0.2-latest.tar.gz
 
-# Build openssl libcrypto  (NOTE: check directory name 1.0.2-latest unpacked as)
-cd openssl-1.0.2k
+# Build openssl libcrypto
+cd `tar ztf openssl-1.0.2-latest.tar.gz | head -n1 | cut -f1 -d/`
 ./config -fPIC no-shared no-libunbound no-gmp no-jpake no-krb5              \
          no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-store no-zlib     \
          no-hw no-mdc2 no-seed no-idea enable-ec-nistp_64_gcc_128 no-camellia\
@@ -219,16 +219,6 @@ to raise the limit, consult the documentation for your platform.
 ### Disabling mlock()
 To disable s2n's mlock behavior, run your application with the `S2N_DONT_MLOCK` environment variable set. 
 s2n also reads this for unit tests. Try `S2N_DONT_MLOCK=1 make` if you're having mlock failures during unit tests.
-
-## client mode
-
-At this time x509 certificate validation is undergoing further testing and client mode is
-disabled as a precaution. To enable client mode for testing and development,
-set the **S2N_ENABLE_CLIENT_MODE** environment variable.
-
-```shell
-export S2N_ENABLE_CLIENT_MODE=1
-```
 
 # s2n API
 
@@ -557,7 +547,38 @@ int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config,
                                                struct s2n_cert_chain_and_key *cert_key_pair);
 ```
 
-**s2n_config_add_cert_chain_and_key_to_store** is the preferred method of associating a certificate chain and private key pair with an **s2n_config** object. At present, this may only be called once for each config object. It is not recommended to free or modify the **cert_key_pair** as any subsequent changes will be reflected in the config.
+**s2n_config_add_cert_chain_and_key_to_store** is the preferred method of associating a certificate chain and private key pair with an **s2n_config** object. It is not recommended to free or modify the **cert_key_pair** as any subsequent changes will be reflected in the config.
+
+**s2n_config_add_cert_chain_and_key_to_store** may be called multiple times to support multiple key types(RSA, ECDSA) and multiple domains. On the server side, the certificate selected will be based on the incoming SNI value and the client's capabilities(supported ciphers). In the case of no certificate matching the client's SNI extension or if no SNI extension was sent by the client, the certificate from the **first** call to **s2n_config_add_cert_chain_and_key_to_store** will be selected.
+
+### s2n\_config\_set\_cert\_chain\_and\_key\_defaults
+
+```c
+int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
+                                               struct s2n_cert_chain_and_key **cert_key_pairs,
+                                               uint32_t num_cert_key_pairs);
+```
+
+**s2n_config_set_cert_chain_and_key_defaults** explicitly sets certificate chain and private key pairs to be used as defaults for each auth method (key type). A "default" certificate is used when there is not an SNI match with any other configured certificate. Only one certificate can be set as the default per auth method (one RSA default, one ECDSA default, etc.). All previous default certificates will be cleared and re-set when this API is called. This API is called for a specific **s2n_config** object.
+
+S2N will attempt to automatically choose default certificates for each auth method (key type) based on the order that **s2n_cert_chain_and_key** are added to the **s2n_config** using one of the APIs listed above. **s2n_config_set_cert_chain_and_key_defaults** can be called at any time; s2n will clear defaults and no longer attempt to automatically choose any default certificates.
+
+### s2n\_cert\_tiebreak\_callback
+```c
+typedef struct s2n_cert_chain_and_key* (*s2n_cert_tiebreak_callback) (struct s2n_cert_chain_and_key *cert1, struct s2n_cert_chain_and_key *cert2, uint8_t *name, uint32_t name_len);
+```
+
+**s2n_cert_tiebreak_callback** is invoked if s2n cannot resolve a conflict between two certificates with the same domain name. This function is invoked while certificates are added to an **s2n_config**.
+Currently, the only builtin resolution for domain name conflicts is certificate type(RSA, ECDSA, etc).
+The callback should return a pointer to the **s2n_cert_chain_and_key** that should be used for dns name **name**. If NULL is returned, the first certificate will be used.
+Typically an application will use properties like trust and expiry to implement tiebreaking.
+
+### s2n\_config\_set\_cert\_tiebreak\_callback
+```c
+int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config, s2n_cert_tiebreak_callback tiebreak_fn);
+```
+
+**s2n_config_set_cert_tiebreak_callback** sets the **s2n_cert_tiebreak_callback** for resolving domain name conflicts. If no callback is set, the first certificate added for a domain name will always be preferred.
 
 ### s2n\_config\_add\_dhparams
 
@@ -751,8 +772,10 @@ ClientHello and context provided in **s2n_config_set_client_hello_cb**. The
 callback can get any ClientHello infromation from the connection and use
 **s2n_connection_set_config** call to change the config of the connection.
 
-The callback can return 0 to continue handshake in s2n or it can return negative
-value to make s2n terminate handshake early with fatal handshake failure alert.
+If any of the properties of the connection were changed based on server_name
+extension the callback must return 1, otherwise the callback can return 0
+to continue handshake in s2n or it can return negative value to make s2n
+terminate handshake early with fatal handshake failure alert.
 
 ### s2n\_config\_set\_alert\_behavior
 ```c
@@ -784,11 +807,29 @@ int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key);
 int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem, const char *private_key_pem);
 ```
 
-**s2n_cert_chain_and_key_load_pem** associates a certificate chain and private key with an **s2n_cert_chain_and_key** object. 
+**s2n_cert_chain_and_key_load_pem** associates a certificate chain and private key with an **s2n_cert_chain_and_key** object.
 
 **cert_chain_pem** should be a PEM encoded certificate chain, with the first
 certificate in the chain being your leaf certificate. **private_key_pem**
 should be a PEM encoded private key corresponding to the leaf certificate.
+
+### s2n\_cert\_chain\_and\_key\_set\_ctx
+
+```c
+int s2n_cert_chain_and_key_set_ctx(struct s2n_cert_chain_and_key *chain_and_key, void *ctx);
+```
+
+**s2n_cert_chain_and_key_set_ctx** associates an application defined context with a **s2n_cert_chain_and_key** object.
+This is useful when multiple s2n_cert_chain_and_key objects are used and the application would like to associate unique data
+with each certificate.
+
+### s2n\_cert\_chain\_and\_key\_get\_ctx
+
+```c
+int s2n_cert_chain_and_key_get_ctx(struct s2n_cert_chain_and_key *chain_and_key);
+```
+
+**s2n_cert_chain_and_key_set_ctx** returns a previously set context pointer or NULL if no context was set.
 
 ## Client Auth Related calls
 Client Auth Related API's are not recommended for normal users. Use of these API's is discouraged.
@@ -955,7 +996,7 @@ file-descriptor should be active and connected. s2n also supports setting the
 read and write file-descriptors to different values (for pipes or other unusual
 types of I/O).
 
-## s2n\_connection\_is\_valid\_for\_cipher\_preferences
+### s2n\_connection\_is\_valid\_for\_cipher\_preferences
 
 ```c
 int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, const char *version);
@@ -968,7 +1009,7 @@ is supported by a given cipher preferences. It returns
 - -1 on any other errors
 
 
-## s2n\_connection\_set\_cipher\_preferences
+### s2n\_connection\_set\_cipher\_preferences
 
 ```c
 int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);
@@ -979,7 +1020,7 @@ s2n_connection. Calling this function is not necessary unless you want to set th
 cipher preferences on the connection to something different than what is in the s2n_config.
 
 
-## s2n\_connection\_set\_protocol\_preferences
+### s2n\_connection\_set\_protocol\_preferences
 
 ```c
 int s2n_connection_set_protocol_preferences(struct s2n_connection *conn, const char * const *protocols, int protocol_count);
@@ -1220,6 +1261,23 @@ const char * s2n_connection_get_curve(struct s2n_connection *conn);
 
 **s2n_connection_get_curve** returns a string indicating the elliptic curve used during ECDHE key exchange. The string "NONE" is returned if no curve has was used.
 
+### s2n\_connection\_get\_selected\_cert
+
+```c
+struct s2n_cert_chain_and_key s2n_connection_get_selected_cert(struct s2n_connection *conn);
+```
+
+Return the certificate that was used during the TLS handshake.
+
+- If **conn** is a server connection, the certificate selected will depend on the
+  ServerName sent by the client and supported ciphers.
+- If **conn** is a client connection, the certificate sent in response to a CertificateRequest
+  message is returned. Currently s2n supports loading only one certificate in client mode. Note that
+  not all TLS endpoints will request a certificate.
+
+This function returns NULL if the certificate selection phase of the handshake has not completed
+ or if a certificate was not requested by the peer.
+
 ### Session Resumption Related calls
 
 ```c
@@ -1280,6 +1338,27 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config, const uint8_t *n
 
 **s2n_config_add_ticket_crypto_key** adds session ticket key on the server side. It would be ideal to add new keys after every (encrypt_decrypt_key_lifetime_in_nanos/2) nanos because
 this will allow for gradual and linear transition of a key from encrypt-decrypt state to decrypt-only state.
+
+### s2n\_connection\_free\_handshake
+
+```c
+int s2n_connection_free_handshake(struct s2n_connection *conn);
+```
+
+**s2n_connection_free_handshake** wipes and releases buffers and memory
+allocated during the TLS handshake.  This function should be called after the
+handshake is successfully negotiated and logging or recording of handshake data
+is complete.
+
+### s2n\_connection\_release\_buffers
+
+```c
+int s2n_connection_release_buffers(struct s2n_connection *conn);
+```
+
+**s2n_connection_release_buffers** wipes and free the `in` and `out` buffers
+associated with a connection.  This function may be called when a connection is
+in keep-alive or idle state to reduce memory overhead of long lived connections.
 
 ### s2n\_connection\_wipe
 

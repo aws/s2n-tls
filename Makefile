@@ -36,9 +36,10 @@ bitcode :
 .PHONY : bc
 bc: 
 	${MAKE} -C crypto bc
+	${MAKE} -C pq-crypto bc
 #	${MAKE} -C stuffer bc
 	${MAKE} -C tls bc
-#	${MAKE} -C utils bc
+	${MAKE} -C utils bc
 
 .PHONY : saw
 saw : bc 
@@ -92,6 +93,7 @@ run-gcov:
 	$(MAKE) -C bin gcov
 	$(MAKE) -C crypto gcov
 	$(MAKE) -C error gcov
+	$(MAKE) -C pq-crypto run-gcov
 	$(MAKE) -C stuffer gcov
 	$(MAKE) -C tests gcov
 	$(MAKE) -C tls gcov
@@ -102,11 +104,12 @@ run-lcov:
 	$(MAKE) -C bin lcov
 	$(MAKE) -C crypto lcov
 	$(MAKE) -C error lcov
+	$(MAKE) -C pq-crypto run-lcov
 	$(MAKE) -C stuffer lcov
 	$(MAKE) -C tests lcov
 	$(MAKE) -C tls lcov
 	$(MAKE) -C utils lcov
-	lcov -a crypto/coverage.info -a error/coverage.info -a stuffer/coverage.info -a tls/coverage.info -a utils/coverage.info --output ${COVERAGE_DIR}/all_coverage.info
+	lcov -a crypto/coverage.info -a error/coverage.info -a pq-crypto/coverage.info -a pq-crypto/sike/coverage.info -a stuffer/coverage.info -a tls/coverage.info -a utils/coverage.info --output ${COVERAGE_DIR}/all_coverage.info
 
 .PHONY : run-genhtml
 run-genhtml:

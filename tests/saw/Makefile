@@ -23,12 +23,13 @@ SCRIPTS = $(wildcard *.saw)
 #A log file will be created for each test in the temp dir
 LOGS=$(patsubst %.saw,tmp/%.log,$(SCRIPTS))
 SHELL:=/bin/bash
-Z3_VERSION=$(shell z3 --version)
+YICES_VERSION=$(shell yices-smt2 --version)
 export LIBCRYPTO_ROOT:=$(shell pwd)/../../libcrypto-root
+export S2N_ROOT=$(shell pwd)/s2n
 
 .PHONY : all
 all:
-	@echo "Running formal verification with ${Z3_VERSION}"
+	@echo "Running formal verification with ${YICES_VERSION}"
 	@${MAKE} clean-logs
 	@${MAKE} $(LOGS)
 	@${MAKE} failure-tests
@@ -49,6 +50,10 @@ clean-bitcode :
 clean-failure-logs :
 	$(RM) -- $(wildcard failure_tests/*.log)
 
+.PHONY : clean-sike-logs
+clean-sike-logs :
+	$(RM) -- $(wildcard sike/*.log)
+
 .PHONY: clean
 clean: decruft
 
@@ -62,6 +67,7 @@ clean_the_dir :
 	${RM} -r s2n
 	${RM} -r tmp
 	${RM} -r failure_tests/*.log
+	${RM} -r sike/*.log
 	${RM} -r bitcode/*.bc
 
 ###########################################
@@ -72,11 +78,48 @@ clean_the_dir :
 # The pipefail command causes the entire command to fail if saw fails, even though we pipe it to tee
 # without it we would see only the tee return code
 tmp/%.log : %.saw bitcode/all_llvm.bc tmp
-	@echo "Running formal verification with ${Z3_VERSION}"
+	@echo "Running formal verification with ${YICES_VERSION}"
 	@echo saw $<
 	@set -o pipefail; \
 	saw $< | tee $@
 
+###########################################
+## SIKE Tests
+###########################################
+
+.PHONY : sike
+sike : sike_patched_bitcode
+	@${MAKE} clean-sike-logs
+	@${MAKE} sike/word.log
+	@${MAKE} sike/field.log
+	@${MAKE} sike/curve.log
+	@${MAKE} sike/isogeny.log
+	@${MAKE} sike/sidh.log
+	@${MAKE} sike/sike.log
+
+sike/word.log :
+	@set -o pipefail; \
+	saw sike/verify_word.saw | tee $@
+
+sike/field.log :
+	@set -o pipefail; \
+	saw sike/verify_field.saw | tee $@
+
+sike/curve.log :
+	@set -o pipefail; \
+	saw sike/verify_curve.saw | tee $@
+
+sike/isogeny.log :
+	@set -o pipefail; \
+	saw sike/verify_isogeny.saw | tee $@
+
+sike/sidh.log :
+	@set -o pipefail; \
+	saw sike/verify_sidh.saw | tee $@
+
+sike/sike.log :
+	@set -o pipefail; \
+	saw sike/verify_sike.saw | tee $@
 
 ###########################################
 ## Failure Tests
@@ -136,7 +179,9 @@ bitcode :
 	${MAKE} clean_the_dir
 	${MAKE} bitcode/all_llvm.bc
 
-
+sike_patched_bitcode :
+	${MAKE} clean_the_dir
+	${MAKE} bitcode/sike_llvm.bc
 
 ########################################################
 ## Rules to copy the s2n directory for patching and bulding
@@ -144,6 +189,14 @@ bitcode :
 
 CRYPTO_C = $(wildcard ../../crypto/*.c) $(wildcard ../../crypto/*.h) ../../crypto/Makefile
 CRYPTO_COPY = $(addprefix s2n/crypto/, $(notdir $(CRYPTO_C)))
+
+PQ_CRYPTO_C = $(wildcard ../../pq-crypto/*.c) $(wildcard ../../pq-crypto/*.h) ../../pq-crypto/Makefile
+
+PQ_CRYPTO_COPY = $(addprefix s2n/pq-crypto/, $(notdir $(PQ_CRYPTO_C)))
+
+SIKE_C = $(wildcard ../../pq-crypto/sike/*.c) $(wildcard ../../pq-crypto/sike/*.h) ../../pq-crypto/sike/Makefile
+
+SIKE_COPY = $(addprefix s2n/pq-crypto/sike/, $(notdir $(SIKE_C)))
 
 UTILS_C = $(wildcard ../../utils/*.c) $(wildcard ../../utils/*.h) ../../utils/Makefile
 UTILS_COPY =$(addprefix s2n/utils/, $(notdir $(UTILS_C)))
@@ -166,6 +219,12 @@ s2n/api :
 s2n/crypto :
 	mkdir -p $@
 
+s2n/pq-crypto :
+	mkdir -p $@
+
+s2n/pq-crypto/sike :
+	mkdir -p $@
+
 s2n/utils :
 	mkdir -p $@
 
@@ -180,7 +239,15 @@ export BITCODE_DIR := $(CURDIR)/bitcode/
 tmp:
 	mkdir -p tmp
 
-bitcode/all_llvm.bc : s2n/crypto s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
+bitcode/all_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
+	${MAKE} -C s2n bc
+	${MAKE} -C bitcode all_llvm.bc
+
+bitcode/sike_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
+	patch s2n/pq-crypto/sike/api.h sike/patch/api.h.patch
+	patch s2n/pq-crypto/sike/ec_isogeny.c sike/patch/ec_isogeny.c.patch
+	patch s2n/pq-crypto/sike/sidh.c sike/patch/sidh.c.patch
+	patch s2n/pq-crypto/sike/sike_p503_kem.c sike/patch/sike_p503_kem.c.patch
 	${MAKE} -C s2n bc
 	${MAKE} -C bitcode all_llvm.bc
 
@@ -198,7 +265,3 @@ s2n/Makefile : ../../Makefile
 
 s2n/s2n.mk : ../../s2n.mk
 	cp $< $@
-
-
-
-

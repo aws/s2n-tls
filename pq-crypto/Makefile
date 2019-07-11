@@ -12,23 +12,32 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 #
-.DEFAULT_GOAL := all
-
-INTERNAL_LIBS += sike/libsike_p503.a
-
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
+BCS_11=pq_random.bc
+BCS1=$(addprefix $(BITCODE_DIR), $(BCS_11))
+
 .PHONY : all
-all: libs2n_pq_crypto.so
-
-libs2n_pq_crypto.so: ${OBJS}
+all: $(OBJS)
+	$(MAKE) -C bike
 	$(MAKE) -C sike
-	${CC} -shared -o libs2n_pq_crypto.so ${OBJS} -Wl,--whole-archive ${INTERNAL_LIBS} -Wl,--no-whole-archive -L../../ ${CFLAGS} ${LDFLAGS} -lm
 
-include ../s2n.mk
+.PHONY : bc
+bc: $(BCS1)
+	$(MAKE) -C sike bc
+
+.PHONY : run-gcov
+run-gcov: gcov
+	$(MAKE) -C sike gcov
+
+.PHONY : run-lcov
+run-lcov: lcov
+	$(MAKE) -C sike lcov
 
 .PHONY : clean
-clean:
-	${MAKE} -C sike clean
-	${MAKE} decruft
+clean: decruft
+	${MAKE} -C bike decruft
+	${MAKE} -C sike decruft
+
+include ../s2n.mk

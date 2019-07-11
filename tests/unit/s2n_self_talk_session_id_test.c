@@ -283,8 +283,6 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
 
-    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
-
     /* Create a pipe */
     EXPECT_SUCCESS(pipe(server_to_client));
     EXPECT_SUCCESS(pipe(client_to_server));

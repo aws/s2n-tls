@@ -95,7 +95,6 @@ const unsigned int strat_Bob[MAX_Bob-1] = {
 #define fpinv_chain_mont        fpinv503_chain_mont
 #define fpinv_mont_bingcd       fpinv503_mont_bingcd
 #define fp2copy                 fp2copy503
-#define fp2zero                 fp2zero503
 #define fp2add                  fp2add503
 #define fp2sub                  fp2sub503
 #define fp2neg                  fp2neg503

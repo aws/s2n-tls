@@ -1,0 +1,217 @@
+//curv.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// Montgomery curve operations
+
+import "../spec/Loader.cry";
+import "../spec/interface/fpx.cry";
+import "../spec/interface/ec_isogeny.cry";
+
+///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+let point_op t3 t4 f = do {
+    (p, pp) <- A_point_t "P";
+    qp <- C_point_t();
+    (a, ap) <- A_f2elm_t t3;
+    (c, cp) <- A_f2elm_t t4;
+    crucible_precond {{ point_mod (p) /\ pf2twice_mod(a) /\ pf2twice_mod(c) }};
+    crucible_execute_func [pp, qp, ap, cp];
+    q <- crucible_fresh_var "q" point_proj_t;
+    crucible_points_to qp (tm q);
+    crucible_postcond 
+        {{ point_norm q == f (point_norm p) (fp2norm a) (fp2norm c) }};
+    crucible_postcond {{ point_mod q }};
+};
+
+let point_op_same t3 t4 f = do {
+    (p, pp) <- B_point_t "P";
+    (a, ap) <- A_f2elm_t t3;
+    (c, cp) <- A_f2elm_t t4;
+    crucible_precond {{ point_mod (p) /\ pf2twice_mod(a) /\ pf2twice_mod(c) }};
+    crucible_execute_func [pp, pp, ap, cp];
+    p' <- crucible_fresh_var "xDBL_p'" point_proj_t;
+    crucible_points_to pp (tm p');
+    crucible_postcond
+        {{ point_norm p' == f (point_norm p) (fp2norm a) (fp2norm c) }};
+    crucible_postcond {{ point_mod p' }};
+};
+
+let point_op_scaled t3 t4 f = do {
+    (p, pp) <- A_point_t "P";
+    qp <- C_point_t();
+    (a, ap) <- A_f2elm_t t3;
+    (c, cp) <- A_f2elm_t t4;
+    e <- A_int_t "e";
+    crucible_precond {{ point_mod (p) /\ pf2twice_mod(a) /\ pf2twice_mod(c) }};
+    crucible_execute_func [pp, qp, ap, cp, tm e];
+    q <- crucible_fresh_var "q" point_proj_t;
+    crucible_points_to qp (tm q);
+    crucible_postcond {{ point_norm q ==
+        f (point_norm p) (fp2norm a) (fp2norm c) (toInteger e) }};
+    crucible_postcond {{ point_mod q }};
+};
+
+let point_op_scaled_same t3 t4 f = do {
+    (p, pp) <- B_point_t "P";
+    (a, ap) <- A_f2elm_t t3;
+    (c, cp) <- A_f2elm_t t4;
+    e <- A_int_t "e";
+    crucible_precond {{ point_mod (p) /\ pf2twice_mod(a) /\ pf2twice_mod(c) }};
+    crucible_execute_func [pp, pp, ap, cp, tm e];
+    q <- crucible_fresh_var "q" point_proj_t;
+    crucible_points_to pp (tm q);
+    crucible_postcond {{ point_norm q ==
+        f (point_norm p) (fp2norm a) (fp2norm c) (toInteger e) }};
+    crucible_postcond {{ point_mod q }};
+};
+
+// NOTE: this assumes a known number of iterations of xDBLe and xTRLe
+let point_op_iter t3 t4 f e = do {
+    (p, pp) <- A_point_t "P";
+    qp <- C_point_t();
+    (a, ap) <- A_f2elm_t t3;
+    (c, cp) <- A_f2elm_t t4;
+    crucible_precond {{ point_mod (p) /\ pf2twice_mod(a) /\ pf2twice_mod(c) }};
+    crucible_execute_func [pp, qp, ap, cp, tm e];
+    q <- crucible_fresh_var "q" point_proj_t;
+    crucible_points_to qp (tm q);
+    crucible_postcond {{ point_norm q ==
+        f (point_norm p) (fp2norm a) (fp2norm c) (toInteger e) }};
+    crucible_postcond {{ point_mod q }};
+};
+
+let point_op_iter_same t3 t4 f e = do {
+    (p, pp) <- B_point_t "P";
+    (a, ap) <- A_f2elm_t t3;
+    (c, cp) <- A_f2elm_t t4;
+    crucible_precond {{ point_mod (p) /\ pf2twice_mod(a) /\ pf2twice_mod(c) }};
+    crucible_execute_func [pp, pp, ap, cp, tm e];
+    q <- crucible_fresh_var "q" point_proj_t;
+    crucible_points_to pp (tm q);
+    crucible_postcond {{ point_norm q ==
+        f (point_norm p) (fp2norm a) (fp2norm c) (toInteger e) }};
+    crucible_postcond {{ point_mod q }};
+};
+
+let point_op_scaled_same_32 t3 t4 f = do {
+    (p, pp) <- B_point_t "P";
+    (a, ap) <- A_f2elm_t t3;
+    (c, cp) <- A_f2elm_t t4;
+    e <-  A_uint_t  "e";
+    crucible_precond {{ point_mod (p) /\ pf2twice_mod(a) /\ pf2twice_mod(c) }};
+    crucible_execute_func [pp, pp, ap, cp, tm e];
+    q <- crucible_fresh_var "q" point_proj_t;
+    crucible_points_to pp (tm q);
+    crucible_postcond {{ point_norm q ==
+        f (point_norm p) (fp2norm a) (fp2norm c) (e) }};
+    crucible_postcond {{ point_mod q }};
+};
+
+let xDBL_spec = point_op "A24plus" "C24" {{ xDBL }};
+let xDBL_same_spec = point_op_same "A24plus" "C24" {{ xDBL }};
+let xDBLe_spec_known_e = point_op_iter "A24plus" "C24" {{ xDBLe }};
+let xDBLe_spec = point_op_scaled "A24plus" "C24" {{ xDBLe }};
+let xDBLe_same_spec = point_op_scaled_same "A24plus" "C24" {{ xDBLe }};
+let xDBLe_same_spec_known_e = point_op_iter_same "A24plus" "C24" {{ xDBLe }};
+let xDBLe_same32_spec = point_op_scaled_same_32 "A24plus" "C24" {{ xDBLe_32 }};
+
+let xTPL_spec = point_op "A24minus" "A24plus" {{ xTPL }};
+let xTPL_same_spec = point_op_same "A24minus" "A24plus" {{ xTPL }};
+let xTPLe_spec_known_e = point_op_iter "A24minus" "A24plus" {{ xTPLe }};
+let xTPLe_spec = point_op_scaled "A24minus" "A24plus" {{ xTPLe }};
+let xTPLe_same_spec = point_op_scaled_same "A24minus" "A24plus" {{ xTPLe }};
+let xTPLe_same_spec_known_e =
+    point_op_iter_same "A24minus" "A24plus" {{ xTPLe }};
+let xTPLe_same32_spec =
+    point_op_scaled_same_32 "A24minus" "A24plus" {{ xTPLe_32 }};
+
+let a_xDBL_spec = point_op "A24plus" "C24" {{ xDBL_abstract }};
+let a_xTPL_spec = point_op "A24minus" "A24plus" {{ xTPL_abstract }};
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+/* NOTES for xDBLe and xTPLe proofs:
+
+ - We cannot prove either function with the "e" parameter a variable
+   due to limitations of SAW. Instead we have proved things about them
+   for some particular (and smallish) values of "e".
+
+ - There are a fixed number of specific values of "e" that arise from
+   the Alice and Bob strategies, so in principle we could prove something
+   for every value that a caller needs. This includes a few large "e".
+*/
+
+xDBL_ov <- verify_unint "xDBL"
+    [ fp2add503_left_ov,fp2add503_ov, fp2mul503_mont_left_ov, fp2mul503_mont_ov
+    , fp2sqr503_mont_same_ov, fp2sub503_ov, fp2sub503_left_ov ]
+    [ "fp2add503", "fp2mul503_mont", "fp2sqr503_mont"
+    , "fp2sub503", "fp2norm", "pf2twice_mod" ]
+    xDBL_spec;
+
+xDBL_same_ov <- verify_unint "xDBL"
+    [ fp2add503_left_ov,fp2add503_ov, fp2mul503_mont_left_ov, fp2mul503_mont_ov
+    , fp2sqr503_mont_same_ov, fp2sub503_ov, fp2sub503_left_ov ]
+    [ "fp2add503", "fp2mul503_mont", "fp2sqr503_mont"
+    , "fp2sub503", "fp2norm", "pf2twice_mod" ]
+    xDBL_same_spec;
+
+// NOTE: Proofs for some of the "e" values used in calls
+for [1,2,4,5] (\e -> do {
+    verify_unint "xDBLe"
+        [xDBL_same_ov, copy_words_nwords_field_x4_ov]
+        ["xDBL"]
+        (xDBLe_spec_known_e {{ `e:[32] }});
+    });
+
+xDBLe_ov <- admit "xDBLe" [] xDBLe_spec;
+
+// NOTE: Proofs for some of the "e" values used in calls
+for [1,2,4,5] (\e -> do {
+    verify_unint "xDBLe"
+        [xDBL_same_ov, copy_words_same_nwords_field_x4_ov]
+        ["xDBL"]
+        (xDBLe_same_spec_known_e {{ `e:[32] }});
+    });
+
+xDBLe_same_ov <- admit "xDBLe" [] xDBLe_same_spec;
+xDBLe_same32_ov <- admit "xDBLe" [] xDBLe_same32_spec;
+
+xTPL_ov <- verify_unint "xTPL"
+    [ fp2sub503_ov, fp2sqr503_mont_ov, fp2add503_ov, fp2sub503_left_ov
+    , fp2sub503_right_ov, fp2mul503_mont_left_ov, fp2mul503_mont_ov
+    , fp2sqr503_mont_same_ov, fp2sqr503_mont_ov ]
+    [ "fp2add503", "fp2mul503_mont", "fp2sqr503_mont"
+    , "fp2sub503", "fp2norm", "pf2twice_mod" ]
+    xTPL_spec;
+
+xTPL_same_ov <- verify_unint "xTPL"
+    [ fp2sub503_ov, fp2sqr503_mont_ov, fp2add503_ov, fp2sub503_left_ov
+    , fp2sub503_right_ov, fp2mul503_mont_left_ov, fp2mul503_mont_ov
+    , fp2sqr503_mont_same_ov, fp2sqr503_mont_ov ]
+    [ "fp2add503", "fp2mul503_mont", "fp2sqr503_mont"
+    , "fp2sub503", "fp2norm", "pf2twice_mod" ]
+    xTPL_same_spec;
+
+// NOTE: Proofs for some of the "e" values used in calls
+for [1,2,4,5] (\e -> do {
+    verify_unint "xTPLe"
+        [xTPL_same_ov, copy_words_nwords_field_x4_ov]
+        ["xTPL"]
+        (xTPLe_spec_known_e {{ `e:[32] }});
+    });
+
+xTPLe_ov <- admit "xTPLe" [] xTPLe_spec;
+
+// NOTE: Proofs for some of the "e" values used in calls
+for [1,2,4,5] (\e -> do {
+    verify_unint "xTPLe"
+       [xTPL_same_ov, copy_words_same_nwords_field_x4_ov]
+       ["xTPL"]
+       (xTPLe_same_spec_known_e {{ `e:[32] }});
+    });
+
+xTPLe_same_ov <- admit "xTPLe" [] xTPLe_same_spec;
+xTPLe_same32_ov <- admit "xTPLe" [] xTPLe_same32_spec;

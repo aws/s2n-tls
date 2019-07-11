@@ -93,14 +93,8 @@ void mp_add503x2_asm(const digit_t* a, const digit_t* b, digit_t* c);
 unsigned int mp_sub(const digit_t* a, const digit_t* b, digit_t* c, const unsigned int nwords);
 digit_t mp_sub503x2_asm(const digit_t* a, const digit_t* b, digit_t* c);
 
-// Multiprecision left shift
-void mp_shiftleft(digit_t* x, unsigned int shift, const unsigned int nwords);
-
 // Multiprecision right shift by one
 void mp_shiftr1(digit_t* x, const unsigned int nwords);
-
-// Multiprecision left right shift by one    
-void mp_shiftl1(digit_t* x, const unsigned int nwords);
 
 // Digit multiplication, digit * digit -> 2-digit result
 void digit_x_digit(const digit_t a, const digit_t b, digit_t* c); 
@@ -185,9 +179,6 @@ void fpinv503_chain_mont(felm_t a);
     
 // Copy of a GF(p503^2) element, c = a
 void fp2copy503(const f2elm_t *a, f2elm_t *c);
-
-// Zeroing a GF(p503^2) element, a = 0
-void fp2zero503(f2elm_t *a);
 
 // GF(p503^2) negation, a = -a in GF(p503^2)
 void fp2neg503(f2elm_t *a);

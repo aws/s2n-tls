@@ -87,6 +87,9 @@ void s2n_print_connection(struct s2n_connection *conn, const char *marker);
 #define S2N_OCSP_RESPONSE_NO_NEXT_UPDATE_DER   "../pems/ocsp/ocsp_response_no_next_update.der"
 #define S2N_OCSP_RESPONSE_CERT                 "../pems/ocsp/ocsp_cert.pem"
 
+#define S2N_ALLIGATOR_SAN_CERT                 "../pems/sni/alligator_cert.pem"
+#define S2N_ALLIGATOR_SAN_KEY                  "../pems/sni/alligator_key.pem"
+
 #define S2N_DHPARAMS_2048 "../pems/dhparams_2048.pem"
 
 #define S2N_DEFAULT_TEST_CERT_CHAIN  S2N_RSA_2048_PKCS1_CERT_CHAIN
@@ -99,3 +102,5 @@ int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size);
 
 int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn);
 int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn);
+
+int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file);

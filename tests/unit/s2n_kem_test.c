@@ -16,6 +16,7 @@
 
 #include "tls/s2n_kex.h"
 #include "tls/s2n_kem.h"
+#include "tls/s2n_tls_parameters.h"
 
 #include "utils/s2n_safety.h"
 
@@ -65,7 +66,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     {
         /* Regression test for network parsing data of expected sizes */
-        EXPECT_EQUAL(sizeof(kem_extension_size), 1);
+        EXPECT_EQUAL(sizeof(kem_extension_size), 2);
         EXPECT_EQUAL(sizeof(kem_public_key_size), 2);
         EXPECT_EQUAL(sizeof(kem_private_key_size), 2);
         EXPECT_EQUAL(sizeof(kem_shared_secret_size), 2);
@@ -108,16 +109,15 @@ int main(int argc, char **argv)
     {
         const struct s2n_kem *negotiated_kem = NULL;
 
-        struct s2n_kem kem02 = {.kem_extension_id = 0x02};
-        struct s2n_kem kem03 = {.kem_extension_id = 0x03};
-        struct s2n_kem kem0a = {.kem_extension_id = 0x0a};
-        struct s2n_kem kembc = {.kem_extension_id = 0xbc};
-        struct s2n_kem kemff = {.kem_extension_id = 0xff};
+        struct s2n_kem kem02 = {.kem_extension_id = 0x0202};
+        struct s2n_kem kem03 = {.kem_extension_id = 0x0303};
+        struct s2n_kem kembc = {.kem_extension_id = 0xbcbc};
+        struct s2n_kem kemff = {.kem_extension_id = 0xffff};
 
         /* In the order of the client preference which is ignored by the s2n server */
-        uint8_t clientKems[] = {kem03.kem_extension_id, kem0a.kem_extension_id, kembc.kem_extension_id, kem02.kem_extension_id};
+        uint8_t clientKems[] = {0x03, 0x03, 0x0a, 0x0a, 0xbc, 0xbc, 0x02, 0x02};
         struct s2n_blob  clientKemBlob = {0};
-        EXPECT_SUCCESS(s2n_blob_init(&clientKemBlob, clientKems, 4));
+        EXPECT_SUCCESS(s2n_blob_init(&clientKemBlob, clientKems, 8));
 
         struct s2n_kem only02[] = {kem02};
         EXPECT_SUCCESS(s2n_kem_find_supported_kem(&clientKemBlob, only02, 1, &negotiated_kem));
@@ -131,6 +131,24 @@ int main(int argc, char **argv)
         struct s2n_kem server_order_test[] = {kemff, kembc, kem03};
         EXPECT_SUCCESS(s2n_kem_find_supported_kem(&clientKemBlob, server_order_test, 3, &negotiated_kem));
         EXPECT_EQUAL(negotiated_kem->kem_extension_id, kembc.kem_extension_id);
+    }
+    {
+        const struct s2n_iana_to_kem *supported_params = NULL;
+        const uint8_t classic_ecdhe[S2N_TLS_CIPHER_SUITE_LEN] = {TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA};
+        EXPECT_FAILURE(s2n_cipher_suite_to_kem(classic_ecdhe, &supported_params));
+        EXPECT_NULL(supported_params);
+
+        supported_params = NULL;
+        const uint8_t bike_iana[S2N_TLS_CIPHER_SUITE_LEN] = {TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384};
+        EXPECT_SUCCESS(s2n_cipher_suite_to_kem(bike_iana, &supported_params));
+        EXPECT_EQUAL(supported_params->kem_count, 1);
+        EXPECT_EQUAL(supported_params->kems[0]->kem_extension_id, s2n_bike_1_level_1_r1.kem_extension_id);
+
+        supported_params = NULL;
+        const uint8_t sike_iana[S2N_TLS_CIPHER_SUITE_LEN] = {TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384};
+        EXPECT_SUCCESS(s2n_cipher_suite_to_kem(sike_iana, &supported_params));
+        EXPECT_EQUAL(supported_params->kem_count, 1);
+        EXPECT_EQUAL(supported_params->kems[0]->kem_extension_id, s2n_sike_p503_r1.kem_extension_id);
     }
 
     END_TEST();

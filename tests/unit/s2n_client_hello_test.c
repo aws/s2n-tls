@@ -45,7 +45,6 @@ int main(int argc, char **argv)
 
     EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
     EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
 
     /* Minimal TLS 1.2 client hello. */
@@ -302,6 +301,13 @@ int main(int argc, char **argv)
         free(ext_data);
         ext_data = NULL;
 
+        /* Free all handshake data */
+        EXPECT_SUCCESS(s2n_connection_free_handshake(server_conn));
+
+        /* Verify connection_wipe resized the s2n_client_hello.raw_message stuffer back to 0 */
+        EXPECT_NULL(client_hello->raw_message.blob.data);
+        EXPECT_EQUAL(client_hello->raw_message.blob.size, 0);
+
         /* Not a real tls client but make sure we block on its close_notify */
         int shutdown_rc = s2n_shutdown(server_conn, &server_blocked);
         EXPECT_EQUAL(shutdown_rc, -1);
@@ -311,13 +317,9 @@ int main(int argc, char **argv)
          /* Wipe connection */
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
 
-        /* Verify connection_wipe resized the s2n_client_hello.raw_message stuffer */
-        EXPECT_NOT_NULL(client_hello->raw_message.blob.data);
-        EXPECT_EQUAL(client_hello->raw_message.blob.size, S2N_LARGE_RECORD_LENGTH);
-
-        /* Verify connection_wipe cleared the s2n_client_hello.raw_message stuffer data */
-        uint8_t zero_buffer[S2N_LARGE_RECORD_LENGTH] = { 0 };
-        EXPECT_SUCCESS(memcmp(collected_client_hello, zero_buffer, S2N_LARGE_RECORD_LENGTH));
+        /* Verify connection_wipe resized the s2n_client_hello.raw_message stuffer back to 0 */
+        EXPECT_NULL(client_hello->raw_message.blob.data);
+        EXPECT_EQUAL(client_hello->raw_message.blob.size, 0);
 
         /* Verify the s2n blobs referencing cipher_suites and extensions have cleared */
         EXPECT_EQUAL(client_hello->cipher_suites.size, 0);

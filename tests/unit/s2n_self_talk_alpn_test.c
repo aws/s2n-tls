@@ -126,7 +126,6 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -176,6 +175,8 @@ int main(int argc, char **argv)
 
     /* Negotiate the handshake. */
     EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
+
+    EXPECT_EQUAL(s2n_connection_get_selected_cert(conn), chain_and_key);
 
     /* Expect NULL negotiated protocol */
     EXPECT_EQUAL(s2n_get_application_protocol(conn), NULL);

@@ -37,6 +37,28 @@
     #define S2N_CORK_OFF    1
 #endif
 
+int s2n_socket_quickack(struct s2n_connection *conn)
+{
+#ifdef TCP_QUICKACK
+    if (!conn->managed_io) {
+        return 0;
+    }
+
+    struct s2n_socket_read_io_context *r_io_ctx = (struct s2n_socket_read_io_context *) conn->recv_io_context;
+    if (r_io_ctx->tcp_quickack_set) {
+        return 0;
+    }
+
+    /* Ignore the return value, if it fails it fails */
+    int optval = 1;
+    if (setsockopt(r_io_ctx->fd, IPPROTO_TCP, TCP_QUICKACK, &optval, sizeof(optval)) == 0) {
+        r_io_ctx->tcp_quickack_set = 1;
+    }
+#endif
+
+    return 0;
+}
+
 int s2n_socket_write_snapshot(struct s2n_connection *conn)
 {
 #ifdef S2N_CORK
@@ -164,6 +186,9 @@ int s2n_socket_read(void *io_context, uint8_t *buf, uint32_t len)
         errno = EBADF;
         return -1;
     }
+
+    /* Clear the quickack flag so we know to reset it */
+    ((struct s2n_socket_read_io_context*) io_context)->tcp_quickack_set = 0;
 
     /* On success, the number of bytes read is returned. On failure, -1 is
      * returned and errno is set appropriately. */

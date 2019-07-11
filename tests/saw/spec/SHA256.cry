@@ -161,9 +161,6 @@ SHA256Update : {n} (fin n) => SHA256State -> [n][8] -> SHA256State
 SHA256Update sinit bs = ss!0
   where ss = [sinit] # [ SHA256Update1 s b | s <- ss | b <- bs ]
 
-update : {a, b, c} (fin c, c >= width (2 ^^ c - 1)) => [b]a -> [c] -> a -> [min b (2 ^^ c)]a
-update a i x = [ if j == i then x else e | e <- a | j <- [0 ..] ]
-
 // Add padding and size and process the final block.
 SHA256Final : SHA256State -> [256]
 SHA256Final s = join (SHA256Block h b')

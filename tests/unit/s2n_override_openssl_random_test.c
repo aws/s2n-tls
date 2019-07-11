@@ -82,7 +82,7 @@ int main(int argc, char **argv)
     /* Verify we switched to a new DRBG */
     EXPECT_EQUAL(s2n_get_private_random_bytes_used(), 0);
 
-    DEFER_CLEANUP(struct s2n_stuffer out_stuffer = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer out_stuffer = {0}, s2n_stuffer_free);
     struct s2n_blob out_blob = {0};
     EXPECT_SUCCESS(s2n_stuffer_alloc(&out_stuffer, 4096));
     GUARD(s2n_dh_generate_ephemeral_key(&dh_params));
@@ -90,10 +90,10 @@ int main(int argc, char **argv)
 
     EXPECT_EQUAL(s2n_get_private_random_bytes_used(), 304);
 
-    DEFER_CLEANUP(struct s2n_stuffer dhe_key_stuffer = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer dhe_key_stuffer = {0}, s2n_stuffer_free);
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&dhe_key_stuffer, expected_dhe_key_hex));
-    EXPECT_EQUAL(dhe_key_stuffer.blob.size, 519)
-    EXPECT_EQUAL(out_blob.size, 519)
+    EXPECT_EQUAL(dhe_key_stuffer.blob.size, 519);
+    EXPECT_EQUAL(out_blob.size, 519);
 
     EXPECT_BYTEARRAY_EQUAL(dhe_key_stuffer.blob.data, out_blob.data, out_blob.size);
 
