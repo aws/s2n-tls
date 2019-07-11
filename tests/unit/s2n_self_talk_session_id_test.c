@@ -377,7 +377,6 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(memcmp(buffer, MSG, sizeof(MSG)), 0);
 
         /* Shutdown handshake */
-        shutdown_rc = -1;
         do {
             shutdown_rc = s2n_shutdown(conn, &blocked);
             EXPECT_TRUE(shutdown_rc == 0 || (errno == EAGAIN && blocked));

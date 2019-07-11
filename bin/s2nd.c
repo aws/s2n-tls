@@ -574,6 +574,8 @@ int main(int argc, char *const *argv)
     if (optind < argc) {
         host = argv[optind++];
     }
+
+    // cppcheck-suppress duplicateCondition
     if (optind < argc) {
         port = argv[optind++];
     }
