@@ -51,6 +51,7 @@ extern int s2n_stuffer_alloc(struct s2n_stuffer *stuffer, const uint32_t size);
 extern int s2n_stuffer_growable_alloc(struct s2n_stuffer *stuffer, const uint32_t size);
 extern int s2n_stuffer_free(struct s2n_stuffer *stuffer);
 extern int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size);
+extern int s2n_stuffer_resize_if_empty(struct s2n_stuffer *stuffer, const uint32_t size);
 extern int s2n_stuffer_rewind_read(struct s2n_stuffer *stuffer, const uint32_t size);
 extern int s2n_stuffer_reread(struct s2n_stuffer *stuffer);
 extern int s2n_stuffer_rewrite(struct s2n_stuffer *stuffer);
