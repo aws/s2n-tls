@@ -166,7 +166,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     /* Start the MAC with the sequence number */
     GUARD(s2n_hmac_update(mac, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
 
-    GUARD(s2n_stuffer_resize(&conn->out, S2N_LARGE_RECORD_LENGTH));
+    GUARD(s2n_stuffer_resize_if_empty(&conn->out, S2N_LARGE_RECORD_LENGTH));
 
     /* Now that we know the length, start writing the record */
     GUARD(s2n_stuffer_write_uint8(&conn->out, content_type));
