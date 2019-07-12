@@ -81,6 +81,9 @@
 #define TLS_EXTENSION_RENEGOTIATION_INFO   65281
 #define TLS_EXTENSION_SESSION_TICKET       35
 
+/* TLS 1.3 extensions from https://tools.ietf.org/html/rfc8446#section-4.2 */
+#define TLS_EXTENSION_SUPPORTED_VERSIONS   43
+
 /* TLS Signature Algorithms - RFC 5246 7.4.1.4.1*/
 #define TLS_SIGNATURE_ALGORITHM_ANONYMOUS   0
 #define TLS_SIGNATURE_ALGORITHM_RSA         1

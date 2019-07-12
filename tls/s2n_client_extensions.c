@@ -27,6 +27,7 @@
 #include "tls/s2n_client_extensions.h"
 #include "tls/s2n_resume.h"
 
+#include "extensions/s2n_client_supported_versions.h"
 #include "stuffer/s2n_stuffer.h"
 
 #include "tls/s2n_tls.h"
@@ -126,7 +127,15 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         }
     }
 
+    if (conn->client_protocol_version >= S2N_TLS13) {
+        total_size += s2n_extensions_client_supported_versions_size(conn);
+    }
+
     GUARD(s2n_stuffer_write_uint16(out, total_size));
+
+    if (conn->client_protocol_version >= S2N_TLS13) {
+        GUARD(s2n_extensions_client_supported_versions_send(conn, out));
+    }
 
     if (conn->actual_protocol_version == S2N_TLS12) {
         GUARD(s2n_send_client_signature_algorithms_extension(conn, out));
@@ -275,6 +284,9 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *pa
             break;
         case TLS_EXTENSION_PQ_KEM_PARAMETERS:
             GUARD(s2n_recv_pq_kem_extension(conn, &extension));
+            break;
+        case TLS_EXTENSION_SUPPORTED_VERSIONS:
+            GUARD(s2n_extensions_client_supported_versions_recv(conn, &extension));
             break;
         }
     }

@@ -19,6 +19,7 @@ S2N_SSLv3 = 30
 S2N_TLS10 = 31
 S2N_TLS11 = 32
 S2N_TLS12 = 33
+S2N_TLS13 = 34
 
 # namedtuple makes iterating through ciphers across client libraries easier. The openssl_1_1_1_compatible flag is for
 # s_client tests. s_client won't be able to use those ciphers.
@@ -110,6 +111,7 @@ S2N_PROTO_VERS_TO_STR = {
     S2N_TLS10 : "TLSv1.0",
     S2N_TLS11 : "TLSv1.1",
     S2N_TLS12 : "TLSv1.2",
+    S2N_TLS13 : "TLSv1.3",
 }
 
 S2N_PROTO_VERS_TO_GNUTLS = {
@@ -117,6 +119,7 @@ S2N_PROTO_VERS_TO_GNUTLS = {
     S2N_TLS10 : "VERS-TLS1.0",
     S2N_TLS11 : "VERS-TLS1.1",
     S2N_TLS12 : "VERS-TLS1.2",
+    S2N_TLS13 : "VERS-TLS1.3",
 }
 
 TEST_CERT_DIRECTORY="../pems/"

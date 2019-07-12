@@ -191,23 +191,23 @@ CRYPTO_C = $(wildcard ../../crypto/*.c) $(wildcard ../../crypto/*.h) ../../crypt
 CRYPTO_COPY = $(addprefix s2n/crypto/, $(notdir $(CRYPTO_C)))
 
 PQ_CRYPTO_C = $(wildcard ../../pq-crypto/*.c) $(wildcard ../../pq-crypto/*.h) ../../pq-crypto/Makefile
-
 PQ_CRYPTO_COPY = $(addprefix s2n/pq-crypto/, $(notdir $(PQ_CRYPTO_C)))
 
 SIKE_C = $(wildcard ../../pq-crypto/sike/*.c) $(wildcard ../../pq-crypto/sike/*.h) ../../pq-crypto/sike/Makefile
-
 SIKE_COPY = $(addprefix s2n/pq-crypto/sike/, $(notdir $(SIKE_C)))
 
 UTILS_C = $(wildcard ../../utils/*.c) $(wildcard ../../utils/*.h) ../../utils/Makefile
 UTILS_COPY =$(addprefix s2n/utils/, $(notdir $(UTILS_C)))
 
-TLS_C = $(wildcard ../../tls/*.c) $(wildcard ../../tls/*.h) ../../tls/Makefile
-TLS_COPY =$(addprefix s2n/tls/, $(notdir $(TLS_C)))
+TLS_C = $(wildcard ../../tls/*.c ../../tls/*/*.c ../../tls/*.h ../../tls/*/*.h ../../tls/*/Makefile) ../../tls/Makefile
+TLS_COPY = $(subst ../../tls/, s2n/tls/, $(TLS_C))
+TLS_DIRS = $(sort $(dir $(TLS_COPY)))
 
 STUFFER_C = $(wildcard ../../stuffer/*.c) $(wildcard ../../stuffer/*.h) ../../stuffer/Makefile
 STUFFER_COPY =$(addprefix s2n/stuffer/, $(notdir $(STUFFER_C)))
 
 API_COPY =$(addprefix s2n/api/, $(notdir $(wildcard ../../api/*.h)))
+
 ERROR_COPY =$(addprefix s2n/error/, $(notdir $(wildcard ../../error/*.h)))
 
 s2n/error :
@@ -229,7 +229,7 @@ s2n/utils :
 	mkdir -p $@
 
 s2n/tls :
-	mkdir -p $@
+	mkdir -p $(TLS_DIRS)
 
 s2n/stuffer :
 	mkdir -p $@

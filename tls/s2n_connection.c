@@ -688,10 +688,18 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     /* Require all handshakes hashes. This set can be reduced as the handshake progresses. */
     GUARD(s2n_handshake_require_all_hashes(&conn->handshake));
 
+    uint8_t s2n_initial_protocol_version = s2n_highest_protocol_version;
+
+    /* TLS 1.3 is not fully supported yet, and only available for developmental testing.
+     * TLS 1.2 should still be used outside of tests. */
+    if (getenv("S2N_ENABLE_TLS13_FOR_TESTING") != NULL && S2N_IN_TEST ) {
+        s2n_initial_protocol_version = S2N_TLS13;
+    }
+
     if (conn->mode == S2N_SERVER) {
         /* Start with the highest protocol version so that the highest common protocol version can be selected */
         /* during handshake. */
-        conn->server_protocol_version = s2n_highest_protocol_version;
+        conn->server_protocol_version = s2n_initial_protocol_version;
         conn->client_protocol_version = s2n_unknown_protocol_version;
         conn->actual_protocol_version = s2n_unknown_protocol_version;
     }
@@ -699,8 +707,8 @@ int s2n_connection_wipe(struct s2n_connection *conn)
         /* For clients, also set actual_protocol_version.  Record generation uses that value for the initial */
         /* ClientHello record version. Not all servers ignore the record version in ClientHello. */
         conn->server_protocol_version = s2n_unknown_protocol_version;
-        conn->client_protocol_version = s2n_highest_protocol_version;
-        conn->actual_protocol_version = s2n_highest_protocol_version;
+        conn->client_protocol_version = s2n_initial_protocol_version;
+        conn->actual_protocol_version = s2n_initial_protocol_version;
     }
 
     return 0;

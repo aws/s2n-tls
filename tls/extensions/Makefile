@@ -1,5 +1,5 @@
 #
-# Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -16,33 +16,13 @@
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
-BITCODE_DIR?=../tests/saw/bitcode/
-
-BCS_1=s2n_handshake_io.bc s2n_connection.bc s2n_kex.bc
+BCS_1=$(SRCS:.c=.bc)
 BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
 
 .PHONY : all
 all: $(OBJS)
-	$(MAKE) -C extensions
 
 .PHONY : bc
 bc: $(BCS)
-	$(MAKE) -C extensions bc
 
-.PHONY : run-gcov
-run-gcov: gcov
-	$(MAKE) -C extensions gcov
-
-.PHONY : run-lcov
-run-lcov: lcov
-	$(MAKE) -C extensions lcov
-	
-.PHONY : indent
-indent: indentsource
-	${MAKE} -C extensions indentsource
-
-.PHONY : clean
-clean: decruft
-	${MAKE} -C extensions decruft
-
-include ../s2n.mk
+include ../../s2n.mk
