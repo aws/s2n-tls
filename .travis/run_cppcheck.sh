@@ -30,7 +30,7 @@ CPPCHECK_EXECUTABLE=${INSTALL_DIR}/cppcheck/cppcheck
 
 FAILED=0
 $CPPCHECK_EXECUTABLE --version
-$CPPCHECK_EXECUTABLE --std=c99 --error-exitcode=-1 --quiet -j 8 --enable=all --template='[{file}:{line}]: ({severity}:{id}) {message}' --inline-suppr --suppressions-list=.travis/cppcheck_suppressions.txt -I ./tests api bin crypto error stuffer tests tls utils || FAILED=1
+$CPPCHECK_EXECUTABLE --std=c99 --error-exitcode=-1 --quiet -j 8 --enable=all --template='[{file}:{line}]: ({severity}:{id}) {message}' --inline-suppr --suppressions-list=.travis/cppcheck_suppressions.txt -I ./tests api bin crypto error stuffer ./tests/unit tls utils || FAILED=1
 
 if [ $FAILED == 1 ];
 then
