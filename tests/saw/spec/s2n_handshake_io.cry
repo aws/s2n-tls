@@ -354,7 +354,10 @@ handshakes_fn handshk =
 // state machine)
 valid_handshake : handshake -> Bit
 valid_handshake hs = (handshakes_fn hs.handshake_type) != zero /\
-                     ((hs.message_number > 0) ==> ((handshakes_fn hs.handshake_type)@(hs.message_number + 1) != 0))
+                     (hs.message_number < length handshakefn - 1) /\
+                     ((hs.message_number > 0) ==> (handshakefn@(hs.message_number + 1) != 0)) where
+                     handshakefn = (handshakes_fn hs.handshake_type)
+
 
 valid_connection : connection -> Bit
 valid_connection conn = valid_handshake (conn.handshake)
