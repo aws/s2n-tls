@@ -84,9 +84,9 @@ struct verify_data {
 static uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, void *data) {
     struct verify_data *verify_data = (struct verify_data *)data;
 
-    char *offset = strstr(host_name, "*.");
-    if (offset) {
-        return (uint8_t)(strcasecmp(verify_data->trusted_host, offset + 2) == 0);
+    if (host_name_len > 2 && host_name[0] == '*' && host_name[1] == '.') {
+        char *suffix = strstr(verify_data->trusted_host, ".");
+        return (uint8_t)(strcasecmp(suffix, host_name + 1) == 0);
     }
 
     int equals = strcasecmp(host_name, verify_data->trusted_host);
