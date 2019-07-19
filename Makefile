@@ -109,7 +109,7 @@ run-lcov:
 	$(MAKE) -C tests lcov
 	$(MAKE) -C tls run-lcov
 	$(MAKE) -C utils lcov
-	lcov -a crypto/coverage.info -a error/coverage.info -a pq-crypto/coverage.info -a pq-crypto/sike/coverage.info -a stuffer/coverage.info -a tls/coverage.info -a tls/extensions/coverage.info -a utils/coverage.info --output ${COVERAGE_DIR}/all_coverage.info
+	lcov -a crypto/coverage.info -a error/coverage.info -a pq-crypto/coverage.info -a pq-crypto/sike/coverage.info -a stuffer/coverage.info -a tls/coverage.info -a $(wildcard tls/*/coverage.info) -a utils/coverage.info --output ${COVERAGE_DIR}/all_coverage.info
 
 .PHONY : run-genhtml
 run-genhtml:
