@@ -524,6 +524,82 @@ const struct s2n_cipher_preferences elb_security_policy_fs_2018_06 = {
     .minimum_protocol_version = S2N_TLS10,
 };
 
+struct s2n_cipher_preferences *cipher_suites_elb_security_policy_fs_1_2_2019_08[] = {
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_fs_1_2_2019_08 = {
+    .count = sizeof(cipher_suites_elb_security_policy_fs_1_2_2019_08) / sizeof(cipher_suites_elb_security_policy_fs_1_2_2019_08[0]), 
+    .suites = cipher_suites_elb_security_policy_fs_1_2_2019_08, 
+    .minimum_protocol_version = S2N_TLS12,
+};
+
+struct s2n_cipher_preferences *cipher_suites_elb_security_policy_fs_1_1_2019_08[] = {
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_fs_1_1_2019_08 = {
+    .count = sizeof(cipher_suites_elb_security_policy_fs_1_1_2019_08) / sizeof(cipher_suites_elb_security_policy_fs_1_1_2019_08[0]), 
+    .suites = cipher_suites_elb_security_policy_fs_1_1_2019_08, 
+    .minimum_protocol_version = S2N_TLS11,
+};
+
+struct s2n_cipher_preferences *cipher_suites_elb_security_policy_fs_Res_2019_08[] = {
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_fs_Res_2019_08 = {
+    .count = sizeof(cipher_suites_elb_security_policy_fs_Res_2019_08) / sizeof(cipher_suites_elb_security_policy_fs_Res_2019_08[0]), 
+    .suites = cipher_suites_elb_security_policy_fs_Res_2019_08, 
+    .minimum_protocol_version = S2N_TLS10,
+};
+
+struct s2n_cipher_preferences *cipher_suites_elb_security_policy_fs_1_2_Res_2019_08[] = {
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_fs_1_2_Res_2019_08 = {
+    .count = sizeof(cipher_suites_elb_security_policy_fs_1_2_Res_2019_08) / sizeof(cipher_suites_elb_security_policy_fs_1_2_Res_2019_08[0]), 
+    .suites = cipher_suites_elb_security_policy_fs_1_2_Res_2019_08, 
+    .minimum_protocol_version = S2N_TLS12,
+};
+
 struct s2n_cipher_suite *cipher_suites_cloudfront_upstream[] = {
     &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
@@ -737,6 +813,10 @@ struct {
     { .version="ELBSecurityPolicy-TLS-1-2-2017-01", .preferences=&elb_security_policy_tls_1_2_2017_01, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="ELBSecurityPolicy-TLS-1-2-Ext-2018-06", .preferences=&elb_security_policy_tls_1_2_ext_2018_06, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="ELBSecurityPolicy-FS-2018-06", .preferences=&elb_security_policy_fs_2018_06, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="ELBSecurityPolicy-FS-1-2-2019-08", .preferences=&elb_security_policy_fs_1_2_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0}, 
+    { .version="ELBSecurityPolicy-FS-1-1-2019-08", .preferences=&elb_security_policy_fs_1_1_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0}, 
+    { .version="ELBSecurityPolicy-FS-Res-2019-08", .preferences=&elb_security_policy_fs_Res_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0}, 
+    { .version="ELBSecurityPolicy-FS-1-2-Res-2019-08", .preferences=&elb_security_policy_fs_1_2_Res_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0}, 
     { .version="CloudFront-Upstream", .preferences=&cipher_preferences_cloudfront_upstream, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="CloudFront-SSL-v-3", .preferences=&cipher_preferences_cloudfront_ssl_v_3, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="CloudFront-TLS-1-0-2014", .preferences=&cipher_preferences_cloudfront_tls_1_0_2014, .ecc_extension_required=0, .pq_kem_extension_required=0},
