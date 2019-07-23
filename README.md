@@ -26,6 +26,16 @@ source .travis/s2n_setup_env.sh
 .travis/s2n_travis_build.sh
 ```
 
+* For OSX 10 Mojave users, if you are facing ```Undefined symbols for architecture x86_64:``` error in building. Starting with Mojave, the headers are no longer installed under ```/usr/include``` by default -- look under ```Command Line Tools -> New Features``` in the [release notes](https://developer.apple.com/documentation/xcode_release_notes/xcode_10_release_notes).
+  
+  Running
+
+  ```open /Library/Developer/CommandLineTools/Packages/macOS_SDK_headers_for_macOS_10.14.pkg```
+
+  from the command line fixes the issue.
+
+  Thanks for solution provider [@clason](https://github.com/clason), whose original answer could be found [here](https://github.com/neovim/neovim/issues/9050#issuecomment-424417456).
+
 ### Have a Question?
 If you have any questions about Submitting PR's, Opening Issues, s2n API usage, or something similar, we have a public chatroom available here to answer your questions: https://gitter.im/awslabs/s2n
 
