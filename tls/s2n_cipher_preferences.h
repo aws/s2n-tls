@@ -51,6 +51,11 @@ extern const struct s2n_cipher_preferences elb_security_policy_tls_1_1_2017_01;
 extern const struct s2n_cipher_preferences elb_security_policy_tls_1_2_ext_2018_06;
 extern const struct s2n_cipher_preferences elb_security_policy_fs_2018_06;
 
+extern const struct s2n_cipher_preferences elb_security_policy_fs_1_2_2019_08;
+extern const struct s2n_cipher_preferences elb_security_policy_fs_1_1_2019_08;
+extern const struct s2n_cipher_preferences elb_security_policy_fs_Res_2019_08;
+extern const struct s2n_cipher_preferences elb_security_policy_fs_1_2_Res_2019_08;
+
 extern int s2n_cipher_preferences_init();
 extern int s2n_find_cipher_pref_from_version(const char *version, const struct s2n_cipher_preferences **cipher_preferences);
 extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
