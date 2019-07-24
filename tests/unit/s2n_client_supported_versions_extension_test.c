@@ -35,7 +35,7 @@ int get_alert(struct s2n_connection *conn) {
 }
 
 int write_test_supported_versions_list(struct s2n_stuffer *list, uint8_t *supported_versions, uint8_t length) {
-    GUARD(s2n_stuffer_write_uint8(list, length*S2N_TLS_PROTOCOL_VERSION_LEN));
+    GUARD(s2n_stuffer_write_uint8(list, length * S2N_TLS_PROTOCOL_VERSION_LEN));
 
     for (int i = 0; i < length; i++) {
         GUARD(s2n_stuffer_write_uint8(list, supported_versions[i] / 10));
@@ -49,10 +49,8 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
     EXPECT_SUCCESS(setenv("S2N_ENABLE_TLS13_FOR_TESTING", "1", 0));
-
-    uint8_t latest_version = s2n_supported_protocol_versions[0];
+    uint8_t latest_version = S2N_TLS13;
 
     struct s2n_config *config;
     EXPECT_NOT_NULL(config = s2n_config_new());

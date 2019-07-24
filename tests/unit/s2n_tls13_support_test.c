@@ -23,15 +23,22 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    uint8_t expected_version = s2n_supported_protocol_versions[0];
-    EXPECT_EQUAL(expected_version, S2N_TLS13);
-
     /* Client does not use TLS 1.3 by default */
     {
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         EXPECT_NOT_EQUAL(conn->client_protocol_version, S2N_TLS13);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Server does not use TLS 1.3 by default */
+    {
+        struct s2n_connection *conn;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
+        EXPECT_NOT_EQUAL(conn->server_protocol_version, S2N_TLS13);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
@@ -44,6 +51,16 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         EXPECT_EQUAL(conn->client_protocol_version, S2N_TLS13);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Server does use TLS 1.3 if enabled */
+    {
+        struct s2n_connection *conn;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
+        EXPECT_EQUAL(conn->server_protocol_version, S2N_TLS13);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
