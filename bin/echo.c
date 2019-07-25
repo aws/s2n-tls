@@ -33,7 +33,7 @@
 
 void print_s2n_error(const char *app_error)
 {
-    fprintf(stderr, "%s: '%s' : '%s'\n", app_error, s2n_strerror(s2n_errno, "EN"),
+    fprintf(stderr, "[%d] %s: '%s' : '%s'\n", getpid(), app_error, s2n_strerror(s2n_errno, "EN"),
             s2n_strerror_debug(s2n_errno, "EN"));
 }
 
