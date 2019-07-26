@@ -29,17 +29,38 @@ import multiprocessing
 from os import environ
 from multiprocessing.pool import ThreadPool
 from s2n_test_constants import *
+from enum import Enum
+
+
+class OCSP(Enum):
+    ENABLED = 1
+    DISABLED = 2
+    MALFORMED = 3
+
 
 def try_gnutls_handshake(endpoint, port, priority_str, session_tickets, ocsp):
     gnutls_cmd = ["gnutls-serv", "--priority=" + priority_str, "-p " + str(port),
             "--dhparams", TEST_DH_PARAMS]
 
     if "ECDSA" in priority_str:
+        ocsp_response = TEST_OCSP_ECDSA_RESPONSE_FILE
+
+        # When gnutls-serv is provided with incorrect staple, it'll indicate
+        # that it's going to send an OCSP response through ServerHello
+        # extension, but it won't send the ServerCertStatus message.
+        if ocsp == OCSP.MALFORMED:
+            ocsp_response = TEST_OCSP_RESPONSE_FILE
+
         gnutls_cmd.extend(["--x509keyfile", TEST_OCSP_ECDSA_KEY, "--x509certfile", TEST_OCSP_ECDSA_CERT,
-            "--ocsp-response", TEST_OCSP_ECDSA_RESPONSE_FILE])
+            "--ocsp-response", ocsp_response])
     else:
+        ocsp_response = TEST_OCSP_RESPONSE_FILE
+
+        if ocsp == OCSP.MALFORMED:
+            ocsp_response = TEST_OCSP_ECDSA_RESPONSE_FILE
+
         gnutls_cmd.extend(["--x509keyfile", TEST_OCSP_KEY, "--x509certfile", TEST_OCSP_CERT,
-            "--ocsp-response", TEST_OCSP_RESPONSE_FILE])
+            "--ocsp-response", ocsp_response])
 
     if not session_tickets:
         gnutls_cmd.append("--noticket")
@@ -57,7 +78,7 @@ def try_gnutls_handshake(endpoint, port, priority_str, session_tickets, ocsp):
 
     s2nc_cmd = ["../../bin/s2nc", "-i", "-r", "-c", s2nc_cipher_suite, str(endpoint), str(port)]
 
-    if ocsp:
+    if ocsp != OCSP.DISABLED:
         s2nc_cmd.append("-s")
 
     s2nc = subprocess.Popen(s2nc_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
@@ -131,7 +152,7 @@ def main():
     results = []
     for cipher in test_ciphers:
         for session_tickets in [True, False]:
-            for ocsp in [True, False]:
+            for ocsp in OCSP:
                 async_result = threadpool.apply_async(handshake, (host, port + port_offset, cipher, session_tickets, ocsp))
                 port_offset += 1
                 results.append(async_result)
