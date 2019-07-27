@@ -709,11 +709,19 @@ static int handshake_read_io(struct s2n_connection *conn)
 
         /* If we're a Client, and received a ClientCertRequest message instead of a ServerHelloDone, and ClientAuth
          * is set to optional, then switch the State Machine that we're using to expect the ClientCertRequest. */
-        if(conn->mode == S2N_CLIENT
+        if (conn->mode == S2N_CLIENT
                 && client_cert_auth_type == S2N_CERT_AUTH_OPTIONAL
                 && actual_handshake_message_type == TLS_CLIENT_CERT_REQ
                 && EXPECTED_MESSAGE_TYPE(conn) == TLS_SERVER_HELLO_DONE) {
             conn->handshake.handshake_type |= CLIENT_AUTH;
+        }
+
+        /* According to rfc6066 section 8, server may choose not to send "CertificateStatus" message even if it has
+         * sent "status_request" extension in the ServerHello message. */
+        if (conn->mode == S2N_CLIENT
+                && EXPECTED_MESSAGE_TYPE(conn) == TLS_SERVER_CERT_STATUS
+                && actual_handshake_message_type != TLS_SERVER_CERT_STATUS) {
+            conn->handshake.handshake_type &= ~OCSP_STATUS;
         }
 
         S2N_ERROR_IF(actual_handshake_message_type != EXPECTED_MESSAGE_TYPE(conn), S2N_ERR_BAD_MESSAGE);
