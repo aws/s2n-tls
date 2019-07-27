@@ -717,8 +717,7 @@ static int handshake_read_io(struct s2n_connection *conn)
         }
 
         /* According to rfc6066 section 8, server may choose not to send "CertificateStatus" message even if it has
-         * sent "status_request" extension in the ServerHello message.
-         */
+         * sent "status_request" extension in the ServerHello message. */
         if (conn->mode == S2N_CLIENT
                 && EXPECTED_MESSAGE_TYPE(conn) == TLS_SERVER_CERT_STATUS
                 && actual_handshake_message_type != TLS_SERVER_CERT_STATUS) {
