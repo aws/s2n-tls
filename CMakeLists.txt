@@ -31,7 +31,7 @@ file(GLOB STUFFER_HEADERS
     "stuffer/*.h"
 )
 
-file(GLOB TLS_HEADERS
+file(GLOB_RECURSE TLS_HEADERS
     "tls/*.h"
 )
 
@@ -62,7 +62,7 @@ file(GLOB STUFFER_SRC
     "stuffer/*.c"
 )
 
-file(GLOB TLS_SRC
+file(GLOB_RECURSE TLS_SRC
     "tls/*.c"
 )
 

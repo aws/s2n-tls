@@ -96,7 +96,7 @@ run-gcov:
 	$(MAKE) -C pq-crypto run-gcov
 	$(MAKE) -C stuffer gcov
 	$(MAKE) -C tests gcov
-	$(MAKE) -C tls gcov
+	$(MAKE) -C tls run-gcov
 	$(MAKE) -C utils gcov
 
 .PHONY : run-lcov
@@ -107,9 +107,9 @@ run-lcov:
 	$(MAKE) -C pq-crypto run-lcov
 	$(MAKE) -C stuffer lcov
 	$(MAKE) -C tests lcov
-	$(MAKE) -C tls lcov
+	$(MAKE) -C tls run-lcov
 	$(MAKE) -C utils lcov
-	lcov -a crypto/coverage.info -a error/coverage.info -a pq-crypto/coverage.info -a pq-crypto/sike/coverage.info -a stuffer/coverage.info -a tls/coverage.info -a utils/coverage.info --output ${COVERAGE_DIR}/all_coverage.info
+	lcov -a crypto/coverage.info -a error/coverage.info -a pq-crypto/coverage.info -a pq-crypto/sike/coverage.info -a stuffer/coverage.info -a tls/coverage.info -a $(wildcard tls/*/coverage.info) -a utils/coverage.info --output ${COVERAGE_DIR}/all_coverage.info
 
 .PHONY : run-genhtml
 run-genhtml:
@@ -124,7 +124,7 @@ indent:
 	$(MAKE) -C crypto indentsource
 	$(MAKE) -C utils indentsource
 	$(MAKE) -C error indentsource
-	$(MAKE) -C tls indentsource
+	$(MAKE) -C tls indent
 	$(MAKE) -C bin indentsource
 
 .PHONY : pre_commit_check
@@ -138,7 +138,7 @@ clean:
 	$(MAKE) -C crypto decruft
 	$(MAKE) -C utils decruft
 	$(MAKE) -C error decruft
-	$(MAKE) -C tls decruft
+	$(MAKE) -C tls clean
 	$(MAKE) -C bin decruft
 	$(MAKE) -C lib decruft
 	$(MAKE) -C coverage clean

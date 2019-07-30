@@ -127,6 +127,9 @@ struct s2n_connection {
     uint8_t client_protocol_version;
     uint8_t server_protocol_version;
     uint8_t actual_protocol_version;
+
+    /* Flag indicating whether a protocol version has been
+     * negotiated yet. */
     uint8_t actual_protocol_version_established;
 
     /* Our crypto parameters */
