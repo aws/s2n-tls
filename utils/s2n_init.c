@@ -16,6 +16,7 @@
 
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_client_extensions.h"
 
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
@@ -45,6 +46,27 @@ int s2n_init(void)
         s2n_fetch_default_fips_config();
     } else {
         s2n_fetch_default_config();
+    }
+
+    /* Set the supported extension mask bits for each of the recognized
+     * extensions */
+    static const uint16_t extensions[] = {
+        TLS_EXTENSION_SERVER_NAME,
+        TLS_EXTENSION_MAX_FRAG_LEN,
+        TLS_EXTENSION_STATUS_REQUEST,
+        TLS_EXTENSION_ELLIPTIC_CURVES,
+        TLS_EXTENSION_EC_POINT_FORMATS,
+        TLS_EXTENSION_SIGNATURE_ALGORITHMS,
+        TLS_EXTENSION_ALPN,
+        TLS_EXTENSION_SCT_LIST,
+        TLS_EXTENSION_SESSION_TICKET,
+        TLS_EXTENSION_SUPPORTED_VERSIONS,
+        TLS_EXTENSION_PQ_KEM_PARAMETERS,
+        TLS_EXTENSION_RENEGOTIATION_INFO,
+    };
+    static const uint16_t  num_extensions = sizeof(extensions) / sizeof(uint16_t);
+    for (uint16_t i = 0; i < num_extensions; i++) {
+        s2n_register_extension(extensions[i]);
     }
 
     return 0;
