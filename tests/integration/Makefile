@@ -29,7 +29,9 @@ ifeq ($(S2N_CORKED_IO),true)
 endif
 
 .PHONY : all
-all:
+all: client_endpoints dynamic_record s_client s_server gnutls_cli gnutls_serv sslyze
+
+client_endpoints:
 	# Run s2n client endpoint handshake tests
 	( \
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
@@ -37,6 +39,8 @@ all:
 	S2N_INTEG_TEST=1 \
 	python3 s2n_client_endpoint_handshake_test.py $(S2ND_HOST) $(S2ND_PORT); \
 	)
+
+dynamic_record:
 	# Run dynamic record size tests
 	( \
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
@@ -44,6 +48,8 @@ all:
 	S2N_INTEG_TEST=1 \
 	python3 s2n_dynamic_record_size_test.py --libcrypto $(S2N_LIBCRYPTO) $(S2ND_HOST) $(S2ND_PORT); \
 	)
+
+s_client:
 	# Run s_client handshake tests
 	( \
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
@@ -51,6 +57,8 @@ all:
 	S2N_INTEG_TEST=1 \
 	python3 s2n_handshake_test_s_client.py $(HANDSHAKE_TEST_PARAMS); \
 	)
+
+s_server:
 	# Run s_server handshake tests
 	( \
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
@@ -58,6 +66,8 @@ all:
 	S2N_INTEG_TEST=1 \
 	python3 s2n_handshake_test_s_server.py $(HANDSHAKE_TEST_PARAMS); \
 	)
+
+gnutls_cli:
 	# Run gnutls-cli handshake tests
 	( \
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLID_LIBRARY_PATH" \
@@ -65,6 +75,8 @@ all:
 	S2N_INTEG_TEST=1 \
 	python3 s2n_handshake_test_gnutls-cli.py --libcrypto $(S2N_LIBCRYPTO) $(S2ND_HOST) $(S2ND_PORT); \
 	)
+
+gnutls_serv:
 	# Run gnutls-serv handshake tests
 	( \
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLID_LIBRARY_PATH" \
@@ -72,6 +84,8 @@ all:
 	S2N_INTEG_TEST=1 \
 	python3 s2n_handshake_test_gnutls-serv.py --libcrypto $(S2N_LIBCRYPTO) $(S2ND_HOST) $(S2ND_PORT); \
 	)
+
+sslyze:
 	# Run SSLyze Tests
 	( \
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLID_LIBRARY_PATH" \
@@ -79,3 +93,4 @@ all:
 	S2N_INTEG_TEST=1 \
 	python3 s2n_sslyze_test.py --libcrypto $(S2N_LIBCRYPTO) $(S2ND_HOST) $(S2ND_PORT); \
 	)
+
