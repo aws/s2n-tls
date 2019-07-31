@@ -95,7 +95,9 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "NetBSD")
     set(OS_LIBS pthread)
 else()
-    set(OS_LIBS pthread dl rt)
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
+    set(OS_LIBS Threads::Threads dl rt)
 endif()
 
 file(GLOB S2N_HEADERS
