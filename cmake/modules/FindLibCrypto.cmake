@@ -84,6 +84,6 @@ if(LibCrypto_FOUND)
         set_target_properties(LibCrypto::Crypto PROPERTIES
             IMPORTED_LINK_INTERFACE_LANGUAGES "C"
             IMPORTED_LOCATION "${LibCrypto_LIBRARY}")
-        add_depdendencies(LibCrypto::Crypto pthread)
+        add_dependencies(LibCrypto::Crypto pthread)
     endif()
 endif()
