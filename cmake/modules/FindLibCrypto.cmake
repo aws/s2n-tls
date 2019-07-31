@@ -78,12 +78,14 @@ if(LibCrypto_FOUND)
     if (NOT TARGET LibCrypto::Crypto AND
         (EXISTS "${LibCrypto_LIBRARY}")
         )
+        set(THREADS_PREFER_PTHREAD_FLAG ON)
+        find_package(Threads REQUIRED)
         add_library(LibCrypto::Crypto UNKNOWN IMPORTED)
         set_target_properties(LibCrypto::Crypto PROPERTIES
             INTERFACE_INCLUDE_DIRECTORIES "${LibCrypto_INCLUDE_DIR}")
         set_target_properties(LibCrypto::Crypto PROPERTIES
             IMPORTED_LINK_INTERFACE_LANGUAGES "C"
             IMPORTED_LOCATION "${LibCrypto_LIBRARY}")
-        add_dependencies(LibCrypto::Crypto pthread)
+        add_dependencies(LibCrypto::Crypto Threads::Threads)
     endif()
 endif()
