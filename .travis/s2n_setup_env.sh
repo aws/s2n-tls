@@ -79,7 +79,6 @@ export S2N_CORKED_IO
 # Add all of our test dependencies to the PATH. Use Openssl 1.1.1 so the latest openssl is used for s_client
 # integration tests.
 export PATH=$PYTHON_INSTALL_DIR/bin:$OPENSSL_1_1_1_INSTALL_DIR/bin:$GNUTLS_INSTALL_DIR/bin:$SAW_INSTALL_DIR/bin:$Z3_INSTALL_DIR/bin:$SCAN_BUILD_INSTALL_DIR/bin:$LATEST_CLANG_INSTALL_DIR/bin:`pwd`/.travis/:$PATH
-export LD_LIBRARY_PATH=$OPENSSL_1_1_1_INSTALL_DIR/lib:$LD_LIBRARY_PATH; 
 export DYLD_LIBRARY_PATH=$OPENSSL_1_1_1_INSTALL_DIR/lib:$LD_LIBRARY_PATH;
 
 # Select the libcrypto to build s2n against. If this is unset, default to the latest stable version(Openssl 1.1.1)
