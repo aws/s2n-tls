@@ -31,7 +31,7 @@ file(GLOB STUFFER_HEADERS
     "stuffer/*.h"
 )
 
-file(GLOB TLS_HEADERS
+file(GLOB_RECURSE TLS_HEADERS
     "tls/*.h"
 )
 
@@ -62,7 +62,7 @@ file(GLOB STUFFER_SRC
     "stuffer/*.c"
 )
 
-file(GLOB TLS_SRC
+file(GLOB_RECURSE TLS_SRC
     "tls/*.c"
 )
 
@@ -86,16 +86,19 @@ if(MSVC)
     source_group("Source Files\\stuffer" FILES ${STUFFER_SRC})
     source_group("Source Files\\tls" FILES ${TLS_SRC})
     source_group("Source Files\\utils" FILES ${UTILS_SRC})
+else()
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
 endif()
 
 if(APPLE)
-    set(OS_LIBS c pthread)
+    set(OS_LIBS c Threads::Threads)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
     set(OS_LIBS thr)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "NetBSD")
-    set(OS_LIBS pthread)
+    set(OS_LIBS Threads::Threads)
 else()
-    set(OS_LIBS pthread dl rt)
+    set(OS_LIBS Threads::Threads dl rt)
 endif()
 
 file(GLOB S2N_HEADERS
@@ -123,7 +126,8 @@ set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C)
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
 target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -pedantic -std=c99 -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts
-        -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security)
+        -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
+        -Wno-missing-braces)
 target_compile_options(${CMAKE_PROJECT_NAME} PUBLIC -fPIC)
 
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE -D_POSIX_C_SOURCE=200809L)

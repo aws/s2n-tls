@@ -35,7 +35,6 @@ struct s2n_config {
      * used to release memory allocated only in the deprecated API that the application 
      * does not have a reference to. */
     unsigned cert_allocated:1;
-    struct s2n_array *cert_and_key_pairs;
     struct s2n_map *domain_name_to_cert_map;
     unsigned default_certs_are_explicit:1;
     struct auth_method_to_cert_value default_cert_per_auth_method;
@@ -105,3 +104,5 @@ extern int s2n_config_free_session_ticket_keys(struct s2n_config *config);
 
 extern void s2n_wipe_static_configs(void);
 int s2n_config_get_cert_type(struct s2n_config *config, s2n_cert_type *cert_type);
+extern struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_config *config);
+extern int s2n_config_get_num_default_certs(struct s2n_config *config);

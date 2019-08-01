@@ -65,8 +65,6 @@ int setup_connection(struct s2n_connection *conn) {
 int main(int argc, char **argv) {
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
-
     /* Part 1 setup a client and server connection with everything they need for a key exchange */
     struct s2n_connection *client_conn, *server_conn;
     EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -96,9 +94,9 @@ int main(int argc, char **argv) {
     EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
     GUARD(s2n_set_signature_hash_pair_from_preference_list(server_conn, &server_conn->handshake_params.client_sig_hash_algs, &server_conn->secure.conn_hash_alg, &server_conn->secure.conn_sig_alg));
 
-    DEFER_CLEANUP(struct s2n_stuffer certificate_in = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer certificate_in = {0}, s2n_stuffer_free);
     EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
-    DEFER_CLEANUP(struct s2n_stuffer certificate_out = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer certificate_out = {0}, s2n_stuffer_free);
     EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
 
     struct s2n_blob temp_blob;

@@ -210,7 +210,7 @@ int s2n_resume_from_cache(struct s2n_connection *conn)
 {
     uint8_t data[S2N_STATE_SIZE_IN_BYTES] = { 0 };
     struct s2n_blob entry = {.data = data,.size = S2N_STATE_SIZE_IN_BYTES };
-    struct s2n_stuffer from = {{0}};
+    struct s2n_stuffer from = {0};
     uint64_t size;
 
     if (conn->session_id_len == 0 || conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN) {
@@ -239,7 +239,7 @@ int s2n_store_to_cache(struct s2n_connection *conn)
 {
     uint8_t data[S2N_STATE_SIZE_IN_BYTES] = { 0 };
     struct s2n_blob entry = {.data = data,.size = S2N_STATE_SIZE_IN_BYTES };
-    struct s2n_stuffer to = {{0}};
+    struct s2n_stuffer to = {0};
 
     if (!s2n_allowed_to_cache_connection(conn)) {
         return -1;
@@ -269,7 +269,7 @@ int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *sessi
     GUARD(s2n_alloc(&session_data, length));
     memcpy(session_data.data, session, length);
 
-    struct s2n_stuffer from = {{0}};
+    struct s2n_stuffer from = {0};
     GUARD(s2n_stuffer_init(&from, &session_data));
     GUARD(s2n_stuffer_write(&from, &session_data));
     GUARD(s2n_client_deserialize_resumption_state(conn, &from));
@@ -294,7 +294,7 @@ int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, si
     serialized_data.size = len;
     GUARD(s2n_blob_zero(&serialized_data));
 
-    struct s2n_stuffer to = {{0}};
+    struct s2n_stuffer to = {0};
     GUARD(s2n_stuffer_init(&to, &serialized_data));
     GUARD(s2n_client_serialize_resumption_state(conn, &to));
 

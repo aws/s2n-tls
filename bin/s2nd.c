@@ -428,8 +428,6 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
 
     GUARD_RETURN(s2n_connection_free(conn), "Error freeing connection");
 
-    close(fd);
-
     return 0;
 }
 
@@ -574,6 +572,8 @@ int main(int argc, char *const *argv)
     if (optind < argc) {
         host = argv[optind++];
     }
+
+    // cppcheck-suppress duplicateCondition
     if (optind < argc) {
         port = argv[optind++];
     }
@@ -746,6 +746,15 @@ int main(int argc, char *const *argv)
         }
     }
 
+    if (parallelize) {
+        struct sigaction sa;
+
+        sa.sa_handler = SIG_IGN;
+        sa.sa_flags = SA_NOCLDWAIT;
+        sigemptyset(&sa.sa_mask);
+        sigaction(SIGCHLD, &sa, NULL);
+    }
+
     int fd;
     while ((fd = accept(sockfd, ai->ai_addr, &ai->ai_addrlen)) > 0) {
 
@@ -765,10 +774,12 @@ int main(int argc, char *const *argv)
                 close(fd);
                 _exit(rc);
             } else if (child_pid == -1) {
+                close(fd);
                 print_s2n_error("Error calling fork(). Acceptor unable to start handler.");
                 exit(1);
             } else {
                 /* This is the parent Acceptor Thread, continue listening for new connections */
+                close(fd);
                 continue;
             }
         }

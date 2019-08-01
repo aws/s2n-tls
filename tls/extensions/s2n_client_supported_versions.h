@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -13,21 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include <stdlib.h>
-#include <s2n.h>
+#pragma once
 
-int main(int argc, char **argv)
-{
-    struct s2n_connection *conn;
+#include "tls/s2n_connection.h"
+#include "stuffer/s2n_stuffer.h"
 
-    BEGIN_TEST();
-
-    EXPECT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-
-    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-    EXPECT_SUCCESS(s2n_connection_free(conn));
-
-    END_TEST();
-}
+extern int s2n_extensions_client_supported_versions_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+extern int s2n_extensions_client_supported_versions_size(struct s2n_connection *conn);
+extern int s2n_extensions_client_supported_versions_send(struct s2n_connection *conn, struct s2n_stuffer *out);

@@ -36,8 +36,17 @@
 
 #include "stuffer/s2n_stuffer.h"
 
+#include "utils/s2n_bitmap.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
+
+typedef char s2n_tls_extension_mask[8192];
+
+static s2n_tls_extension_mask s2n_suported_extensions = { 0 };
+
+void s2n_register_extension(uint16_t ext_type) {
+    S2N_CBIT_SET(s2n_suported_extensions, ext_type);
+}
 
 struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn) {
     if (conn->client_hello.parsed != 1) {
@@ -243,7 +252,7 @@ static int s2n_parsed_extensions_compare(const void *p, const void *q)
     const struct s2n_client_hello_parsed_extension *left = (const struct s2n_client_hello_parsed_extension *) p;
     const struct s2n_client_hello_parsed_extension *right = (const struct s2n_client_hello_parsed_extension *) q;
 
-    return left->extension_type - right->extension_type;
+    return (int)left->extension_type - (int)right->extension_type;
 }
 
 static int s2n_populate_client_hello_extensions(struct s2n_client_hello *ch)
@@ -257,10 +266,13 @@ static int s2n_populate_client_hello_extensions(struct s2n_client_hello *ch)
         notnull_check(ch->parsed_extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension)));
     }
 
-    struct s2n_stuffer in = {{0}};
+    struct s2n_stuffer in = {0};
 
     GUARD(s2n_stuffer_init(&in, &ch->extensions));
     GUARD(s2n_stuffer_write(&in, &ch->extensions));
+
+    static __thread s2n_tls_extension_mask parsed_extensions_mask;
+    memset(&parsed_extensions_mask, 0, sizeof(s2n_tls_extension_mask));
 
     while (s2n_stuffer_data_available(&in)) {
         uint16_t ext_size, ext_type;
@@ -268,27 +280,30 @@ static int s2n_populate_client_hello_extensions(struct s2n_client_hello *ch)
         GUARD(s2n_stuffer_read_uint16(&in, &ext_type));
         GUARD(s2n_stuffer_read_uint16(&in, &ext_size));
 
+        lte_check(ext_size, s2n_stuffer_data_available(&in));
+
+        /* fail early if we encountered a duplicate extension */
+        S2N_ERROR_IF(S2N_CBIT_TEST(parsed_extensions_mask, ext_type), S2N_ERR_BAD_MESSAGE);
+        S2N_CBIT_SET(parsed_extensions_mask, ext_type);
+
+        /* Skip invalid/unknown extensions */
+        if (!S2N_CBIT_TEST(s2n_suported_extensions, ext_type)) {
+            s2n_stuffer_skip_read(&in, ext_size);
+            continue;
+        }
+
         struct s2n_client_hello_parsed_extension *parsed_extension = s2n_array_add(ch->parsed_extensions);
         notnull_check(parsed_extension);
 
         parsed_extension->extension_type = ext_type;
         parsed_extension->extension.size = ext_size;
 
-        lte_check(ext_size, s2n_stuffer_data_available(&in));
         parsed_extension->extension.data = s2n_stuffer_raw_read(&in, ext_size);
         notnull_check(parsed_extension->extension.data);
     }
 
     /* Sort extensions by extension type */
     qsort(ch->parsed_extensions->elements, ch->parsed_extensions->num_of_elements, ch->parsed_extensions->element_size, s2n_parsed_extensions_compare);
-
-    /* check for duplicates, we start at index 1 and compare current with
-     * previous extension type, as we are ordered on that field */
-    for (uint32_t n = 1; n < ch->parsed_extensions->num_of_elements; n++) {
-        uint16_t t1 = ((struct s2n_client_hello_parsed_extension *)(ch->parsed_extensions->elements))[n].extension_type;
-        uint16_t t0 = ((struct s2n_client_hello_parsed_extension *)(ch->parsed_extensions->elements))[n - 1].extension_type;
-        S2N_ERROR_IF(t0 == t1, S2N_ERR_BAD_MESSAGE);
-    }
 
     return 0;
 }
@@ -325,7 +340,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 int s2n_client_hello_send(struct s2n_connection *conn)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
-    struct s2n_stuffer client_random = {{0}};
+    struct s2n_stuffer client_random = {0};
     struct s2n_blob b, r;
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
@@ -340,8 +355,9 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     notnull_check(r.data);
     GUARD(s2n_get_public_random_data(&r));
 
-    client_protocol_version[0] = conn->client_protocol_version / 10;
-    client_protocol_version[1] = conn->client_protocol_version % 10;
+    uint8_t reported_protocol_version = MIN(conn->client_protocol_version, S2N_TLS12);
+    client_protocol_version[0] = reported_protocol_version / 10;
+    client_protocol_version[1] = reported_protocol_version % 10;
     conn->client_hello_version = conn->client_protocol_version;
 
     GUARD(s2n_stuffer_write_bytes(out, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));

@@ -41,7 +41,7 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     struct s2n_blob data_to_verify = {0};
 
     /* Read the KEX data */
-    struct s2n_kex_raw_server_data kex_data = {{{0}}};
+    struct s2n_kex_raw_server_data kex_data = {0};
     GUARD(s2n_kex_server_key_recv_read_data(key_exchange, conn, &data_to_verify, &kex_data));
 
     /* Add common signature data */

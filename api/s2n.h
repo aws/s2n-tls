@@ -30,6 +30,7 @@ extern "C" {
 #define S2N_TLS10 31
 #define S2N_TLS11 32
 #define S2N_TLS12 33
+#define S2N_TLS13 34
 #define S2N_UNKNOWN_PROTOCOL_VERSION 0
 
 extern __thread int s2n_errno;
@@ -200,6 +201,8 @@ extern ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ssize_t si
 extern ssize_t s2n_recv(struct s2n_connection *conn,  void *buf, ssize_t size, s2n_blocked_status *blocked);
 extern uint32_t s2n_peek(struct s2n_connection *conn);
 
+extern int s2n_connection_free_handshake(struct s2n_connection *conn);
+extern int s2n_connection_release_buffers(struct s2n_connection *conn);
 extern int s2n_connection_wipe(struct s2n_connection *conn);
 extern int s2n_connection_free(struct s2n_connection *conn);
 extern int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked);

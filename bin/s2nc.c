@@ -84,9 +84,9 @@ struct verify_data {
 static uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, void *data) {
     struct verify_data *verify_data = (struct verify_data *)data;
 
-    char *offset = strstr(host_name, "*.");
-    if (offset) {
-        return (uint8_t)(strcasecmp(verify_data->trusted_host, offset + 2) == 0);
+    if (host_name_len > 2 && host_name[0] == '*' && host_name[1] == '.') {
+        char *suffix = strstr(verify_data->trusted_host, ".");
+        return (uint8_t)(strcasecmp(suffix, host_name + 1) == 0);
     }
 
     int equals = strcasecmp(host_name, verify_data->trusted_host);
@@ -313,6 +313,8 @@ int main(int argc, char *const *argv)
     if (optind < argc) {
         host = argv[optind++];
     }
+
+    // cppcheck-suppress duplicateCondition
     if (optind < argc) {
         port = argv[optind++];
     }
@@ -392,6 +394,8 @@ int main(int argc, char *const *argv)
         GUARD_EXIT(s2n_set_server_name(conn, server_name), "Error setting server name");
 
         GUARD_EXIT(s2n_connection_set_fd(conn, sockfd) , "Error setting file descriptor");
+
+        GUARD_EXIT(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_OPTIONAL), "Error setting ClientAuth optional");
 
         if (use_corked_io) {
             GUARD_EXIT(s2n_connection_use_corked_io(conn), "Error setting corked io");

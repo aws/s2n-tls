@@ -220,16 +220,6 @@ to raise the limit, consult the documentation for your platform.
 To disable s2n's mlock behavior, run your application with the `S2N_DONT_MLOCK` environment variable set. 
 s2n also reads this for unit tests. Try `S2N_DONT_MLOCK=1 make` if you're having mlock failures during unit tests.
 
-## client mode
-
-At this time x509 certificate validation is undergoing further testing and client mode is
-disabled as a precaution. To enable client mode for testing and development,
-set the **S2N_ENABLE_CLIENT_MODE** environment variable.
-
-```shell
-export S2N_ENABLE_CLIENT_MODE=1
-```
-
 # s2n API
 
 The API exposed by s2n is the set of functions and declarations that
@@ -260,7 +250,9 @@ but does accept SSL2.0 hello messages.
 
 ## Enums
 
-s2n defines five enum types:
+s2n defines the following enum types:
+
+### s2n_error_type
 
 ```c
 typedef enum {
@@ -279,6 +271,7 @@ typedef enum {
 This enum is optimized for use in C switch statements. Each value in the enum represents
 an error "category". See [Error Handling](#error-handling) for more detail.
 
+### s2n_mode
 
 ```c
 typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
@@ -288,6 +281,8 @@ typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
 respectively.  At this time, s2n does not function as a client and only
 S2N_SERVER should be used.
 
+### s2n_blocked_status
+
 ```c
 typedef enum { S2N_NOT_BLOCKED, S2N_BLOCKED_ON_READ, S2N_BLOCKED_ON_WRITE } s2n_blocked_status;
 ```
@@ -296,6 +291,8 @@ typedef enum { S2N_NOT_BLOCKED, S2N_BLOCKED_ON_READ, S2N_BLOCKED_ON_WRITE } s2n_
 direction s2n became blocked on I/O before it returned control to the caller.
 This allows an application to avoid retrying s2n operations until I/O is 
 possible in that direction.
+
+### s2n_blinding
 
 ```c
 typedef enum { S2N_BUILT_IN_BLINDING, S2N_SELF_SERVICE_BLINDING } s2n_blinding;
@@ -313,6 +310,8 @@ self-service applications should call **s2n_connection_get_delay** and pause
 activity on the connection  for the specified number of nanoseconds before calling
 close() or shutdown().
 
+### s2n_status_request_type
+
 ```c
 typedef enum { S2N_STATUS_REQUEST_NONE, S2N_STATUS_REQUEST_OCSP } s2n_status_request_type;
 ```
@@ -321,12 +320,15 @@ typedef enum { S2N_STATUS_REQUEST_NONE, S2N_STATUS_REQUEST_OCSP } s2n_status_req
 status request an S2N_CLIENT should make during the handshake. The only
 supported status request type is OCSP, **S2N_STATUS_REQUEST_OCSP**.
 
+### s2n_cert_auth_type
 
 ```c
 typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED, S2N_CERT_AUTH_OPTIONAL } s2n_cert_auth_type;
 ```
 **s2n_cert_auth_type** is used to declare what type of client certificiate authentication to use.
 Currently the default for s2n is for neither the server side or the client side to use Client (aka Mutual) authentication.
+
+### s2n_cert_type
 
 ```c
 typedef enum {
@@ -1348,6 +1350,27 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config, const uint8_t *n
 
 **s2n_config_add_ticket_crypto_key** adds session ticket key on the server side. It would be ideal to add new keys after every (encrypt_decrypt_key_lifetime_in_nanos/2) nanos because
 this will allow for gradual and linear transition of a key from encrypt-decrypt state to decrypt-only state.
+
+### s2n\_connection\_free\_handshake
+
+```c
+int s2n_connection_free_handshake(struct s2n_connection *conn);
+```
+
+**s2n_connection_free_handshake** wipes and releases buffers and memory
+allocated during the TLS handshake.  This function should be called after the
+handshake is successfully negotiated and logging or recording of handshake data
+is complete.
+
+### s2n\_connection\_release\_buffers
+
+```c
+int s2n_connection_release_buffers(struct s2n_connection *conn);
+```
+
+**s2n_connection_release_buffers** wipes and free the `in` and `out` buffers
+associated with a connection.  This function may be called when a connection is
+in keep-alive or idle state to reduce memory overhead of long lived connections.
 
 ### s2n\_connection\_wipe
 

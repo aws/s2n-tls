@@ -76,7 +76,7 @@ static int s2n_stuffer_pem_read_contents(struct s2n_stuffer *pem, struct s2n_stu
 {
     uint8_t base64_buf[64] = { 0 };
     struct s2n_blob base64__blob = { .data = base64_buf, .size = sizeof(base64_buf) };
-    struct s2n_stuffer base64_stuffer = {{0}};
+    struct s2n_stuffer base64_stuffer = {0};
     GUARD(s2n_stuffer_init(&base64_stuffer, &base64__blob));
 
     while (1) {
