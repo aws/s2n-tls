@@ -529,12 +529,8 @@ void *s2n_connection_get_ctx(struct s2n_connection *conn)
 
 int s2n_connection_release_buffers(struct s2n_connection *conn)
 {
-    /* wipe and truncate the input and output buffers */
-    GUARD(s2n_stuffer_wipe(&conn->in));
-    GUARD(s2n_stuffer_wipe(&conn->out));
-
-    GUARD(s2n_stuffer_resize(&conn->in, 0));
-    GUARD(s2n_stuffer_resize(&conn->out, 0));
+    GUARD(s2n_stuffer_release_if_empty(&conn->out));
+    GUARD(s2n_stuffer_release_if_empty(&conn->in));
 
     return 0;
 }

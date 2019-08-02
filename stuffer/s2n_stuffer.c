@@ -143,6 +143,21 @@ int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t size)
     return 0;
 }
 
+int s2n_stuffer_release_if_empty(struct s2n_stuffer *stuffer)
+{
+    if (stuffer->blob.data == NULL) {
+        return 0;
+    }
+
+    S2N_ERROR_IF(stuffer->read_cursor != stuffer->write_cursor,
+            S2N_ERR_STUFFER_HAS_UNPROCESSED_DATA);
+
+    GUARD(s2n_stuffer_wipe(stuffer));
+    GUARD(s2n_stuffer_resize(stuffer, 0));
+
+    return 0;
+}
+
 int s2n_stuffer_wipe(struct s2n_stuffer *stuffer)
 {
     stuffer->tainted = 0;

@@ -57,6 +57,7 @@ struct s2n_error_translation S2N_ERROR_EN[] = {
     {S2N_ERR_STUFFER_OUT_OF_DATA, "stuffer is out of data"},
     {S2N_ERR_STUFFER_IS_FULL, "stuffer is full"},
     {S2N_ERR_STUFFER_NOT_FOUND, "stuffer expected bytes were not found"},
+    {S2N_ERR_STUFFER_HAS_UNPROCESSED_DATA, "stuffer has unprocessed data"},
     {S2N_ERR_INVALID_BASE64, "invalid base64 encountered"},
     {S2N_ERR_INVALID_PEM, "invalid PEM encountered"},
     {S2N_ERR_DH_COPYING_PARAMETERS, "error copying Diffie-Hellman parameters"},
