@@ -806,6 +806,7 @@ int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
     GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_read_io_context)));
 
     peer_socket_ctx = (struct s2n_socket_read_io_context *)(void *)ctx_mem.data;
+    *peer_socket_ctx = (struct s2n_socket_read_io_context){0};
     peer_socket_ctx->fd = rfd;
 
     s2n_connection_set_recv_cb(conn, s2n_socket_read);
