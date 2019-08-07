@@ -298,6 +298,8 @@ static message_type_t handshakes[128][16] = {
     },
 };
 
+static char handshake_type_str[128][MAX_HANDSHAKE_TYPE_LEN] = {0};
+
 #define ACTIVE_MESSAGE( conn ) handshakes[ (conn)->handshake.handshake_type ][ (conn)->handshake.message_number ]
 #define PREVIOUS_MESSAGE( conn ) handshakes[ (conn)->handshake.handshake_type ][ (conn)->handshake.message_number - 1 ]
 
@@ -441,56 +443,45 @@ int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn) {
     return 0;
 }
 
-int s2n_connection_get_handshake_type(struct s2n_connection *conn) 
+const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn) 
 {
-    notnull_check(conn);
-    return conn->handshake.handshake_type;
-}
-
-const char *s2n_translate_handshake_type(int handshake_type)
-{
-    if (handshake_type < 0) {
-        return NULL;
+    int handshake_type = conn->handshake.handshake_type;
+    
+    if (handshake_type_str[handshake_type][0] != '\0') {
+        return handshake_type_str[handshake_type];
     }
 
-    if (0 == handshake_type) {
-        return "INITIAL";
+    /* Compute handshake_type_str[handshake_type] */
+    if (handshake_type > INITIAL) {
+        if (handshake_type & NEGOTIATED) {
+            strcat(handshake_type_str[handshake_type], "NEGOTIATED|");
+        }
+        if (handshake_type & FULL_HANDSHAKE) {
+            strcat(handshake_type_str[handshake_type], "FULL_HANDSHAKE|");
+        }
+        if (handshake_type & PERFECT_FORWARD_SECRECY) {
+            strcat(handshake_type_str[handshake_type], "PERFECT_FORWARD_SECRECY|");
+        }
+        if (handshake_type & OCSP_STATUS) {
+            strcat(handshake_type_str[handshake_type], "OCSP_STATUS|");
+        }
+        if (handshake_type & CLIENT_AUTH) {
+            strcat(handshake_type_str[handshake_type], "CLIENT_AUTH|");
+        }
+        if (handshake_type & WITH_SESSION_TICKET) {
+            strcat(handshake_type_str[handshake_type], "WITH_SESSION_TICKET|");
+        }
+        if (handshake_type & NO_CLIENT_CERT) {
+            strcat(handshake_type_str[handshake_type], "NO_CLIENT_CERT|");
+        }
+
+        int len = strlen(handshake_type_str[handshake_type]);
+        handshake_type_str[handshake_type][len - 1] = '\0';
+    } else {
+        strcpy(handshake_type_str[handshake_type], "INITIAL");
     }
 
-    static char handshake_type_str[MAX_HANDSHAKE_TYPE_LEN];
-    memset(handshake_type_str, 0, MAX_HANDSHAKE_TYPE_LEN);
-
-    if (handshake_type & NEGOTIATED) {
-        strcat(handshake_type_str, "NEGOTIATED|");
-    }
-    if (handshake_type & FULL_HANDSHAKE) {
-        strcat(handshake_type_str, "FULL_HANDSHAKE|");
-    }
-    if (handshake_type & PERFECT_FORWARD_SECRECY) {
-        strcat(handshake_type_str, "PERFECT_FORWARD_SECRECY|");
-    }
-    if (handshake_type & OCSP_STATUS) {
-        strcat(handshake_type_str, "OCSP_STATUS|");
-    }
-    if (handshake_type & CLIENT_AUTH) {
-        strcat(handshake_type_str, "CLIENT_AUTH|");
-    }
-    if (handshake_type & WITH_SESSION_TICKET) {
-        strcat(handshake_type_str, "WITH_SESSION_TICKET|");
-    }
-    if (handshake_type & NO_CLIENT_CERT) {
-        strcat(handshake_type_str, "NO_CLIENT_CERT|");
-    }
-
-    int len = strlen(handshake_type_str);
-    if (0 == len) {
-        return NULL;
-    }
-
-    /* Remove the last | separator */
-    handshake_type_str[len - 1] = '\0';
-
-    return handshake_type_str;
+    return handshake_type_str[handshake_type];
 }
 
 static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data)
