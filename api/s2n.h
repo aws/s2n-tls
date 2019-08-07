@@ -261,6 +261,8 @@ extern int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection 
 extern const char *s2n_connection_get_curve(struct s2n_connection *conn);
 extern const char *s2n_connection_get_kem_name(struct s2n_connection *conn);
 extern int s2n_connection_get_alert(struct s2n_connection *conn);
+extern int s2n_connection_get_handshake_type(struct s2n_connection *conn);
+extern const char *s2n_translate_handshake_type(int handshake_type);
 
 #ifdef __cplusplus
 }

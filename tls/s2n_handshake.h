@@ -151,6 +151,8 @@ struct s2n_handshake {
     uint8_t rsa_failed;
 };
 
+#define MAX_HANDSHAKE_TYPE_LEN 128
+
 extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
 extern int s2n_conn_set_handshake_type(struct s2n_connection *conn);
 extern int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn);

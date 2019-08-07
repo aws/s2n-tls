@@ -441,6 +441,58 @@ int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn) {
     return 0;
 }
 
+int s2n_connection_get_handshake_type(struct s2n_connection *conn) 
+{
+    notnull_check(conn);
+    return conn->handshake.handshake_type;
+}
+
+const char *s2n_translate_handshake_type(int handshake_type)
+{
+    if (handshake_type < 0) {
+        return NULL;
+    }
+
+    if (0 == handshake_type) {
+        return "INITIAL";
+    }
+
+    static char handshake_type_str[MAX_HANDSHAKE_TYPE_LEN];
+    memset(handshake_type_str, 0, MAX_HANDSHAKE_TYPE_LEN);
+
+    if (handshake_type & NEGOTIATED) {
+        strcat(handshake_type_str, "NEGOTIATED|");
+    }
+    if (handshake_type & FULL_HANDSHAKE) {
+        strcat(handshake_type_str, "FULL_HANDSHAKE|");
+    }
+    if (handshake_type & PERFECT_FORWARD_SECRECY) {
+        strcat(handshake_type_str, "PERFECT_FORWARD_SECRECY|");
+    }
+    if (handshake_type & OCSP_STATUS) {
+        strcat(handshake_type_str, "OCSP_STATUS|");
+    }
+    if (handshake_type & CLIENT_AUTH) {
+        strcat(handshake_type_str, "CLIENT_AUTH|");
+    }
+    if (handshake_type & WITH_SESSION_TICKET) {
+        strcat(handshake_type_str, "WITH_SESSION_TICKET|");
+    }
+    if (handshake_type & NO_CLIENT_CERT) {
+        strcat(handshake_type_str, "NO_CLIENT_CERT|");
+    }
+
+    int len = strlen(handshake_type_str);
+    if (0 == len) {
+        return NULL;
+    }
+
+    /* Remove the last | separator */
+    handshake_type_str[len - 1] = '\0';
+
+    return handshake_type_str;
+}
+
 static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data)
 {
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_MD5)) {
