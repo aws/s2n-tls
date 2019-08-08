@@ -446,33 +446,41 @@ int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn) {
 const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn) 
 {
     int handshake_type = conn->handshake.handshake_type;
-    
+
     if (handshake_type_str[handshake_type][0] != '\0') {
         return handshake_type_str[handshake_type];
     }
 
     /* Compute handshake_type_str[handshake_type] */
+    int free_bytes = MAX_HANDSHAKE_TYPE_LEN;
     if (handshake_type > INITIAL) {
         if (handshake_type & NEGOTIATED) {
-            strcat(handshake_type_str[handshake_type], "NEGOTIATED|");
+            strncat(handshake_type_str[handshake_type], "NEGOTIATED|", free_bytes);
+            free_bytes -= sizeof("NEGOTIATED|") - 1;
         }
         if (handshake_type & FULL_HANDSHAKE) {
-            strcat(handshake_type_str[handshake_type], "FULL_HANDSHAKE|");
+            strncat(handshake_type_str[handshake_type], "FULL_HANDSHAKE|", free_bytes);
+            free_bytes -= sizeof("FULL_HANDSHAKE|") - 1;
         }
         if (handshake_type & PERFECT_FORWARD_SECRECY) {
-            strcat(handshake_type_str[handshake_type], "PERFECT_FORWARD_SECRECY|");
+            strncat(handshake_type_str[handshake_type], "PERFECT_FORWARD_SECRECY|", free_bytes);
+            free_bytes -= sizeof("PERFECT_FORWARD_SECRECY|") - 1;
         }
         if (handshake_type & OCSP_STATUS) {
-            strcat(handshake_type_str[handshake_type], "OCSP_STATUS|");
+            strncat(handshake_type_str[handshake_type], "OCSP_STATUS|", free_bytes);
+            free_bytes -= sizeof("OCSP_STATUS|") - 1;
         }
         if (handshake_type & CLIENT_AUTH) {
-            strcat(handshake_type_str[handshake_type], "CLIENT_AUTH|");
+            strncat(handshake_type_str[handshake_type], "CLIENT_AUTH|", free_bytes);
+            free_bytes -= sizeof("CLIENT_AUTH|") - 1;
         }
         if (handshake_type & WITH_SESSION_TICKET) {
-            strcat(handshake_type_str[handshake_type], "WITH_SESSION_TICKET|");
+            strncat(handshake_type_str[handshake_type], "WITH_SESSION_TICKET|", free_bytes);
+            free_bytes -= sizeof("WITH_SESSION_TICKET|") - 1;
         }
         if (handshake_type & NO_CLIENT_CERT) {
-            strcat(handshake_type_str[handshake_type], "NO_CLIENT_CERT|");
+            strncat(handshake_type_str[handshake_type], "NO_CLIENT_CERT|", free_bytes);
+            free_bytes -= sizeof("NO_CLIENT_CERT|") - 1;
         }
 
         int len = strlen(handshake_type_str[handshake_type]);
