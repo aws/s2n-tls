@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -21,7 +21,9 @@ char *s2n_strcpy(char *buf, char *last, const char *str) {
         return buf;
     }
 
-    /* free_bytes needs to be one byte smaller than size of a storage, as strncpy always writes \0, but doesn't include it in n */
+    /* Free bytes needs to be one byte smaller than size of a storage, 
+     * as strncpy always writes '\0', but doesn't include it in n 
+     */
     if (buf + 1 >= last) {
         return buf;
     }
