@@ -35,6 +35,7 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_socket.h"
 #include "utils/s2n_random.h"
+#include "utils/s2n_str.h"
 
 /* From RFC 5246 7.4 */
 #define TLS_HELLO_REQUEST              0
@@ -454,39 +455,34 @@ const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn)
     }
 
     /* Compute handshake_type_str[handshake_type] */
-    int free_bytes = MAX_HANDSHAKE_TYPE_LEN;
+    char *p = handshake_type_str[handshake_type];
+    char *end = p + sizeof(handshake_type_str[0]);
     if (handshake_type > INITIAL) {
         if (handshake_type & NEGOTIATED) {
-            strncat(handshake_type_str[handshake_type], "NEGOTIATED|", free_bytes);
-            free_bytes -= sizeof("NEGOTIATED|") - 1;
+            p = s2n_strcpy(p, end, "NEGOTIATED|");
         }
         if (handshake_type & FULL_HANDSHAKE) {
-            strncat(handshake_type_str[handshake_type], "FULL_HANDSHAKE|", free_bytes);
-            free_bytes -= sizeof("FULL_HANDSHAKE|") - 1;
+            p = s2n_strcpy(p, end, "FULL_HANDSHAKE|");
         }
         if (handshake_type & PERFECT_FORWARD_SECRECY) {
-            strncat(handshake_type_str[handshake_type], "PERFECT_FORWARD_SECRECY|", free_bytes);
-            free_bytes -= sizeof("PERFECT_FORWARD_SECRECY|") - 1;
+            p = s2n_strcpy(p, end, "PERFECT_FORWARD_SECRECY|");
         }
         if (handshake_type & OCSP_STATUS) {
-            strncat(handshake_type_str[handshake_type], "OCSP_STATUS|", free_bytes);
-            free_bytes -= sizeof("OCSP_STATUS|") - 1;
+            p = s2n_strcpy(p, end, "OCSP_STATUS|");
         }
         if (handshake_type & CLIENT_AUTH) {
-            strncat(handshake_type_str[handshake_type], "CLIENT_AUTH|", free_bytes);
-            free_bytes -= sizeof("CLIENT_AUTH|") - 1;
+            p = s2n_strcpy(p, end, "CLIENT_AUTH|");
         }
         if (handshake_type & WITH_SESSION_TICKET) {
-            strncat(handshake_type_str[handshake_type], "WITH_SESSION_TICKET|", free_bytes);
-            free_bytes -= sizeof("WITH_SESSION_TICKET|") - 1;
+            p = s2n_strcpy(p, end, "WITH_SESSION_TICKET|");
         }
         if (handshake_type & NO_CLIENT_CERT) {
-            strncat(handshake_type_str[handshake_type], "NO_CLIENT_CERT|", free_bytes);
-            free_bytes -= sizeof("NO_CLIENT_CERT|") - 1;
+            p = s2n_strcpy(p, end, "NO_CLIENT_CERT|");
         }
 
-        int len = strlen(handshake_type_str[handshake_type]);
-        handshake_type_str[handshake_type][len - 1] = '\0';
+        if (p - 1 != handshake_type_str[handshake_type] && '|' == *(p - 1)) {
+            *(p - 1) = '\0';
+        }
     } else {
         strcpy(handshake_type_str[handshake_type], "INITIAL");
     }
