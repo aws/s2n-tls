@@ -26,8 +26,7 @@ char *s2n_strcpy(char *buf, char *last, const char *str) {
         return buf;
     }
 
-    size_t free_bytes = last - buf - 1;
-    size_t bytes_to_copy = MIN((size_t)free_bytes, strlen(str));
+    size_t bytes_to_copy = MIN(last - buf - 1, strlen(str));
 
     return strncpy(buf, str, bytes_to_copy) + bytes_to_copy;
 }
