@@ -30,5 +30,5 @@ char *s2n_strcpy(char *buf, char *last, const char *str) {
 
     size_t bytes_to_copy = MIN(last - buf - 1, strlen(str));
 
-    return strncpy(buf, str, bytes_to_copy) + bytes_to_copy;
+    return (char *)memcpy(buf, str, bytes_to_copy) + bytes_to_copy;
 }
