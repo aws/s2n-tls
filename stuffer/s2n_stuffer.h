@@ -51,16 +51,20 @@ extern int s2n_stuffer_alloc(struct s2n_stuffer *stuffer, const uint32_t size);
 extern int s2n_stuffer_growable_alloc(struct s2n_stuffer *stuffer, const uint32_t size);
 extern int s2n_stuffer_free(struct s2n_stuffer *stuffer);
 extern int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size);
+extern int s2n_stuffer_resize_if_empty(struct s2n_stuffer *stuffer, const uint32_t size);
+extern int s2n_stuffer_rewind_read(struct s2n_stuffer *stuffer, const uint32_t size);
 extern int s2n_stuffer_reread(struct s2n_stuffer *stuffer);
 extern int s2n_stuffer_rewrite(struct s2n_stuffer *stuffer);
 extern int s2n_stuffer_wipe(struct s2n_stuffer *stuffer);
 extern int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t n);
+extern int s2n_stuffer_release_if_empty(struct s2n_stuffer *stuffer);
 
 /* Basic read and write */
 extern int s2n_stuffer_read(struct s2n_stuffer *stuffer, struct s2n_blob *out);
 extern int s2n_stuffer_erase_and_read(struct s2n_stuffer *stuffer, struct s2n_blob *out);
 extern int s2n_stuffer_write(struct s2n_stuffer *stuffer, const struct s2n_blob *in);
 extern int s2n_stuffer_read_bytes(struct s2n_stuffer *stuffer, uint8_t * out, uint32_t n);
+extern int s2n_stuffer_erase_and_read_bytes(struct s2n_stuffer *stuffer, uint8_t * data, uint32_t size);
 extern int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t * in, const uint32_t n);
 extern int s2n_stuffer_skip_read(struct s2n_stuffer *stuffer, uint32_t n);
 extern int s2n_stuffer_skip_write(struct s2n_stuffer *stuffer, const uint32_t n);
@@ -101,16 +105,24 @@ extern int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuf
 #define s2n_stuffer_write_str( stuffer, c )  s2n_stuffer_write_bytes( (stuffer), (const uint8_t *) (c), strlen((c)) )
 #define s2n_stuffer_write_text( stuffer, c, n )  s2n_stuffer_write_bytes( (stuffer), (const uint8_t *) (c), (n) )
 #define s2n_stuffer_read_text( stuffer, c, n )  s2n_stuffer_read_bytes( (stuffer), (uint8_t *) (c), (n) )
+extern int s2n_stuffer_read_expected_str(struct s2n_stuffer *stuffer, const char* expected);
 extern int s2n_stuffer_peek_char(struct s2n_stuffer *stuffer, char *c);
 extern int s2n_stuffer_read_token(struct s2n_stuffer *stuffer, struct s2n_stuffer *token, char delim);
+extern int s2n_stuffer_read_line(struct s2n_stuffer *stuffer, struct s2n_stuffer *token);
+extern int s2n_stuffer_peek_check_for_str(struct s2n_stuffer *s2n_stuffer, const char *expected);
 extern int s2n_stuffer_skip_whitespace(struct s2n_stuffer *stuffer);
+extern int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, char target);
+extern int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expected, int min, int max);
+extern int s2n_stuffer_skip_read_until(struct s2n_stuffer *stuffer, const char* target);
 extern int s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, const char *str);
 
-/* Read an RSA private key from a PEM encoded stuffer to an ASN1/DER encoded one */
-extern int s2n_stuffer_rsa_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1);
+/* Read a private key from a PEM encoded stuffer to an ASN1/DER encoded one */
+extern int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1);
 
 /* Read a certificate  from a PEM encoded stuffer to an ASN1/DER encoded one */
 extern int s2n_stuffer_certificate_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1);
 
 /* Read DH parameters om a PEM encoded stuffer to a PKCS3 encoded one */
 extern int s2n_stuffer_dhparams_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *pkcs3);
+
+extern int s2n_is_base64_char(char c);

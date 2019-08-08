@@ -21,164 +21,231 @@
 
 import "HMAC_iterative.cry";
 import "Hashing.cry";
-m <- llvm_load_module "../bitcode/all_llvm.bc";
+
+////////////////////////////////////////////////////////////////
+// Generic Utilities.
+//
+
+let alloc_init ty v = do {
+    p <- crucible_alloc ty;
+    crucible_points_to p v;
+    return p;
+};
+
+let ptr_to_fresh n ty = do {
+    x <- crucible_fresh_var n ty;
+    p <- alloc_init ty (crucible_term x);
+    return (x, p);
+};
+
+let yices_hash_unint =
+    unint_yices [ "hash_init_c_state"
+                , "hash_update_c_state"
+                , "hash_digest_c_state"
+                ];
 
 ////////////////////////////////////////////////////////////////
 // Hash.
 //
 
-// The 'prefix' argument is a "struct path prefix", e.g. "state->" or
-// "(state->5).". Note the trailing, dangling dereference.
-let setup_initial_hash_state prefix = do {
-    // Make struct path using 'prefix'.
-    let p before after = str_concat before (str_concat prefix after);
+let hash_state_inner pstate =
+    crucible_elem (crucible_elem (crucible_elem pstate 4) 0) 0;
 
-    alg0 <- llvm_var (p "" "0") (llvm_int 32);
-
-    hash_ctx0_h      <- llvm_var (p "((" "1).0).0") (llvm_array 8 (llvm_int 64));
-    hash_ctx0_Nl     <- llvm_var (p "((" "1).0).1") (llvm_int 64);
-    hash_ctx0_Nh     <- llvm_var (p "((" "1).0).2") (llvm_int 64);
-    hash_ctx0_u      <- llvm_var (p "(((" "1).0).3).0") (llvm_array 16 (llvm_int 64));
-    hash_ctx0_num    <- llvm_var (p "((" "1).0).4") (llvm_int 32);
-    hash_ctx0_md_len <- llvm_var (p "((" "1).0).5") (llvm_int 32);
-
-    let st0 = {{
-      { h      = hash_ctx0_h
-      , Nl     = hash_ctx0_Nl
-      , Nh     = hash_ctx0_Nh
-      , u      = hash_ctx0_u
-      , num    = hash_ctx0_num
-      , md_len = hash_ctx0_md_len
-      } : SHA512_c_state
+let setup_hash_state pstate = do {
+    alg0 <- crucible_fresh_var "alg" (llvm_int 32);
+    h0 <- crucible_fresh_var "h" (llvm_array 8 (llvm_int 64));
+    Nl0 <- crucible_fresh_var "Nl" (llvm_int 64);
+    Nh0 <- crucible_fresh_var "Nh" (llvm_int 64);
+    u0 <- crucible_fresh_var "u" (llvm_array 16 (llvm_int 64));
+    num0 <- crucible_fresh_var "num" (llvm_int 32);
+    is_ready_for_input0 <- crucible_fresh_var "is_ready_for_input" (llvm_int 8);
+    currently_in_hash0 <- crucible_fresh_var "currently_in_hash" (llvm_int 64);
+    md_len0 <- crucible_fresh_var "md_len" (llvm_int 32);
+    (_, pimpl) <- ptr_to_fresh "impl" (llvm_struct "struct.s2n_hash");
+    crucible_points_to pstate
+      (crucible_struct
+        [ pimpl
+        , crucible_term alg0
+        , crucible_term is_ready_for_input0
+        , crucible_term currently_in_hash0
+        , crucible_struct
+          [ crucible_struct
+            [ crucible_struct
+              [ crucible_term h0
+              , crucible_term Nl0
+              , crucible_term Nh0
+              , crucible_struct [ crucible_term u0 ]
+              , crucible_term num0
+              , crucible_term md_len0
+              ]
+            ]
+          ]
+        ]);
+    let st = {{
+      { h = h0
+      , Nl = Nl0
+      , Nh = Nh0
+      , u = u0
+      , num = num0
+      , md_len = md_len0
+      }
     }};
-
-    return (alg0, st0);
+    return (st, currently_in_hash0);
 };
 
-let check_final_hash_state prefix st1 = do {
-    // Make struct path using 'prefix'.
-    let p before after = str_concat before (str_concat prefix after);
-
-    llvm_ensure_eq (p "((" "1).0).0") {{ st1.h }};
-    llvm_ensure_eq (p "((" "1).0).1") {{ st1.Nl }};
-    llvm_ensure_eq (p "((" "1).0).2") {{ st1.Nh }};
-    llvm_ensure_eq (p "(((" "1).0).3).0") {{ st1.u }};
-    llvm_ensure_eq (p "((" "1).0).4") {{ st1.num }};
-    llvm_ensure_eq (p "((" "1).0).5") {{ st1.md_len }};
+let update_hash_state pstate st = do {
+    crucible_points_to (crucible_elem (hash_state_inner pstate) 0) (crucible_term {{ st.h }});
+    crucible_points_to (crucible_elem (hash_state_inner pstate) 1) (crucible_term {{ st.Nl }});
+    crucible_points_to (crucible_elem (hash_state_inner pstate) 2) (crucible_term {{ st.Nh }});
+    crucible_points_to (crucible_elem (crucible_elem (hash_state_inner pstate) 3) 0) (crucible_term {{ st.u }});
+    crucible_points_to (crucible_elem (hash_state_inner pstate) 4) (crucible_term {{ st.num }});
+    crucible_points_to (crucible_elem (hash_state_inner pstate) 5) (crucible_term {{ st.md_len }});
 };
 
 let hash_init_spec = do {
-    llvm_ptr "state" (llvm_struct "struct.s2n_hash_state");
-    (_, st0) <- setup_initial_hash_state "state->";
-    alg0 <- llvm_var "alg" (llvm_int 32);
-
+    pstate <- crucible_alloc (llvm_struct "struct.s2n_hash_state");
+    (st0, _) <- setup_hash_state pstate;
+    alg <- crucible_fresh_var "alg" (llvm_int 32);
+    crucible_execute_func [pstate, crucible_term alg];
     // We need to pass in the starting state since many of the bits in
     // the union are unused by many of the hash algorithms.
     let st1 = {{ hash_init_c_state st0 }};
+    update_hash_state pstate st1;
+    crucible_return (crucible_term {{ 0 : [32] }});
+};
 
-    check_final_hash_state "state->" st1;
-    llvm_return {{ 0 : [32] }};
+let hash_reset_spec = do {
+    pstate <- crucible_alloc (llvm_struct "struct.s2n_hash_state");
+    (st0, _) <- setup_hash_state pstate;
+    crucible_execute_func [pstate];
+    let st1 = {{ hash_init_c_state st0 }};
+    update_hash_state pstate st1;
+    crucible_return (crucible_term {{ 0 : [32] }});
+};
 
-    llvm_no_simulate; // "Admit".
+let hash_copy_spec = do {
+    pstate1 <- crucible_alloc (llvm_struct "struct.s2n_hash_state");
+    pstate2 <- crucible_alloc (llvm_struct "struct.s2n_hash_state");
+    (st1, _) <- setup_hash_state pstate1;
+    (st2, _) <- setup_hash_state pstate2;
+    crucible_execute_func [pstate1, pstate2];
+    update_hash_state pstate1 st2;
+    crucible_return (crucible_term {{ 0 : [32] }});
 };
 
 let hash_update_spec msg_size = do {
-    llvm_ptr "state" (llvm_struct "struct.s2n_hash_state");
-    llvm_ptr "data" (llvm_array msg_size (llvm_int 8));
-    (_, st0) <- setup_initial_hash_state "state->";
-    data0 <- llvm_var "*data" (llvm_array msg_size (llvm_int 8));
-    size0 <- llvm_var "size" (llvm_int 32);
-
-    llvm_assert_eq "size" {{ `msg_size : [32] }};
-    let st1 = {{ hash_update_c_state`{msg_size=msg_size} st0 data0 }};
-
-    check_final_hash_state "state->" st1;
-    llvm_return {{ 0 : [32] }};
-
-    llvm_no_simulate; // "Admit".
+    pstate <- crucible_alloc (llvm_struct "struct.s2n_hash_state");
+    (msg, pmsg) <- ptr_to_fresh "msg" (llvm_array msg_size (llvm_int 8));
+    (st0, _) <- setup_hash_state pstate;
+    let size = crucible_term {{ `msg_size : [32] }};
+    crucible_execute_func [pstate, pmsg, size];
+    let st1 = {{ hash_update_c_state`{msg_size=msg_size} st0 msg }};
+    update_hash_state pstate st1;
+    crucible_return (crucible_term {{ 0 : [32] }});
 };
 
 let hash_digest_spec digest_size = do {
-    llvm_ptr "state" (llvm_struct "struct.s2n_hash_state");
-    llvm_ptr "out" (llvm_array digest_size (llvm_int 8));
-    (_, st0) <- setup_initial_hash_state "state->";
-    out0 <- llvm_var "*out" (llvm_array digest_size (llvm_int 8));
-    size0 <- llvm_var "size" (llvm_int 32);
-
+    pstate <- crucible_alloc (llvm_struct "struct.s2n_hash_state");
+    (dgst, pdgst) <- ptr_to_fresh "out" (llvm_array digest_size (llvm_int 8));
+    (st0, _) <- setup_hash_state pstate;
+    size <- crucible_fresh_var "size" (llvm_int 32);
+    crucible_execute_func [pstate, pdgst, crucible_term size];
     let out1 = {{ hash_digest_c_state`{digest_size=digest_size} st0 }};
+    crucible_points_to pdgst (crucible_term out1);
+    crucible_return (crucible_term {{ 0 : [32] }});
+};
 
-    llvm_ensure_eq "*out" {{ out1 }};
-    llvm_return {{ 0 : [32] }};
-
-    llvm_no_simulate; // "Admit".
+let hash_get_currently_in_hash_total_spec = do {
+    pstate <- crucible_alloc (llvm_struct "struct.s2n_hash_state");
+    pout <- crucible_alloc (llvm_int 64);
+    (st0, currently_in_hash) <- setup_hash_state pstate;
+    crucible_execute_func [pstate, pout];
+    crucible_points_to pout (crucible_term {{zero: [64]}} );
+    crucible_return (crucible_term {{ 0 : [32] }});
 };
 
 ////////////////////////////////////////////////////////////////
 // HMAC.
 
-let setup_initial_hmac_state = do {
-    llvm_ptr "state" (llvm_struct "struct.s2n_hmac_state");
-
-    alg0 <- llvm_var "state->0" (llvm_int 32);
-
-    hash_block_size0         <- llvm_var "state->1" (llvm_int 16);
-    currently_in_hash_block0 <- llvm_var "state->2" (llvm_int 32);
-    block_size0              <- llvm_var "state->3" (llvm_int 16);
-    digest_size0             <- llvm_var "state->4" (llvm_int 8);
-
-    (_, inner0)          <- setup_initial_hash_state "(state->5).";
-    (_, inner_just_key0) <- setup_initial_hash_state "(state->6).";
-    (_, outer0)          <- setup_initial_hash_state "(state->7).";
-
-    xor_pad0 <- llvm_var "state->8" (llvm_array 128 (llvm_int 8));
-
-    // The digest size is the SHA512 digest size, because SHA512
-    // has the largest digest size; the other hash algorithms only
-    // use a prefix of this buffer.
+let setup_hmac_state alg0 hash_block_size0 block_size0 digest_size0 = do {
+    pstate <- crucible_alloc (llvm_struct "struct.s2n_hmac_state");
+    currently_in_hash_block0 <- crucible_fresh_var "currently_in_hash_block" (llvm_int 32);
+    xor_pad0 <- crucible_fresh_var "xor_pad" (llvm_array 128 (llvm_int 8));
     let digest_size = eval_size {| SHA512_DIGEST_LENGTH |};
-    digest_pad0 <- llvm_var "state->9" (llvm_array digest_size
-    (llvm_int 8));
+    digest_pad0 <- crucible_fresh_var "digest_pad" (llvm_array digest_size (llvm_int 8));
+
+    crucible_points_to (crucible_field pstate "alg") (crucible_term alg0);
+    crucible_points_to (crucible_field pstate "hash_block_size") (crucible_term hash_block_size0);
+    crucible_points_to (crucible_field pstate "currently_in_hash_block") (crucible_term currently_in_hash_block0);
+    crucible_points_to (crucible_field pstate "xor_pad_size") (crucible_term block_size0);
+    crucible_points_to (crucible_field pstate "digest_size") (crucible_term digest_size0);
+    (inner0, _) <- setup_hash_state (crucible_field pstate "inner");
+    (inner_just_key0, _) <- setup_hash_state (crucible_field pstate "inner_just_key");
+    (outer_just_key0, _) <- setup_hash_state (crucible_field pstate "outer_just_key");
+    (outer0, _) <- setup_hash_state (crucible_field pstate "outer");
+    crucible_points_to (crucible_field pstate "xor_pad") (crucible_term xor_pad0);
+    crucible_points_to (crucible_field pstate "digest_pad") (crucible_term digest_pad0);
 
     let st0 = {{
-      { alg                     = alg0
-      , hash_block_size         = hash_block_size0
-      , currently_in_hash_block = currently_in_hash_block0
-      , block_size              = block_size0
-      , digest_size             = digest_size0
-      , inner                   = inner0
-      , inner_just_key          = inner_just_key0
-      , outer                   = outer0
-      , xor_pad                 = xor_pad0
-      , digest_pad              = digest_pad0
-      }
-    }};
-    return st0;
+        { alg                     = alg0
+        , hash_block_size         = hash_block_size0
+        , currently_in_hash_block = currently_in_hash_block0
+        , block_size              = block_size0
+        , digest_size             = digest_size0
+        , inner                   = inner0
+        , inner_just_key          = inner_just_key0
+        , outer                   = outer0
+        , outer_just_key          = outer_just_key0
+        , xor_pad                 = xor_pad0
+        , digest_pad              = digest_pad0
+        }
+      }};
+    return (pstate, st0);
 };
 
-let check_final_hmac_state st1 = do {
-    llvm_ensure_eq "state->0" {{ st1.alg }};
-    llvm_ensure_eq "state->1" {{ st1.hash_block_size }};
-    llvm_ensure_eq "state->2" {{ st1.currently_in_hash_block }};
-    llvm_ensure_eq "state->3" {{ st1.block_size }};
-    llvm_ensure_eq "state->4" {{ st1.digest_size }};
-
-    check_final_hash_state "(state->5)." {{ st1.inner }};
-    check_final_hash_state "(state->6)." {{ st1.inner_just_key }};
+let check_hmac_state pstate st = do {
+    crucible_points_to (crucible_field pstate "alg") (crucible_term {{ st.alg }});
+    crucible_points_to (crucible_field pstate "hash_block_size") (crucible_term {{ st.hash_block_size }});
+    crucible_points_to (crucible_field pstate "currently_in_hash_block") (crucible_term {{ st.currently_in_hash_block }});
+    crucible_points_to (crucible_field pstate "xor_pad_size") (crucible_term {{ st.block_size }});
+    crucible_points_to (crucible_field pstate "digest_size") (crucible_term {{ st.digest_size }});
+    update_hash_state (crucible_field pstate "inner") {{ st.inner }};
+    update_hash_state (crucible_field pstate "inner_just_key") {{ st.inner_just_key }};
 
     // XXX: Don't care about 'outer' because it gets overwritten by
     // 's2n_hash_reset' before use in 's2n_hmac_digest'.
     //
-    check_final_hash_state "(state->7)." {{ st1.outer }};
-
-    llvm_ensure_eq "state->8" {{ st1.xor_pad }};
+    //update_hash_state (crucible_elem pstate 7) {{ st.outer }};
+    update_hash_state (crucible_field pstate "outer_just_key") ({{ st.outer_just_key }});
+    crucible_points_to (crucible_field pstate "xor_pad") (crucible_term {{ st.xor_pad }});
 
     // Don't care about 'digest_pad', because it gets overwritten
     // using 's2n_hash_digest' before use in 's2n_hmac_digest'.
     //
-    // TODO: could try leaving this in and seeing if the verification
-    // still goes through (since we tried to model exactly what happens).
+    // However, if we leave it in, the proof still goes through
+    // (since we model exactly what happens).
     //
-    //llvm_ensure_eq "state->9" {{ st1.digest_pad }};
+    //crucible_points_to (crucible_elem pstate 9) (crucible_term {{ st.digest_pad }});
+};
+
+let hmac_invariants
+      st
+      (cfg : { name            : String
+             , hmac_alg        : Term
+             , digest_size     : Int
+             , block_size      : Int
+             , hash_block_size : Int
+             }) = do {
+    // Specify the HMAC algorithm.
+    crucible_equal (crucible_term {{ st.alg }}) (crucible_term cfg.hmac_alg);
+
+    // Specify sizes
+    let hash_block_size = cfg.hash_block_size;
+    let block_size = cfg.block_size;
+    let digest_size = cfg.digest_size;
+    crucible_equal (crucible_term {{ st.hash_block_size }}) (crucible_term {{ `hash_block_size : [16] }});
+    crucible_equal (crucible_term {{ st.block_size }}) (crucible_term {{ `block_size : [16] }});
+    crucible_equal (crucible_term {{ st.digest_size }}) (crucible_term {{ `digest_size : [8] }});
 };
 
 ////////////////////////////////////////////////////////////////
@@ -191,21 +258,21 @@ let hmac_init_spec
              , block_size      : Int
              , hash_block_size : Int
              }) = do {
+    (key0, pkey) <- ptr_to_fresh "key" (llvm_array key_size (llvm_int 8));
 
-    llvm_ptr "key" (llvm_array key_size (llvm_int 8));
-    st0 <- setup_initial_hmac_state;
-    alg0 <- llvm_var "alg" (llvm_int 32);
-    key0 <- llvm_var "*key" (llvm_array key_size (llvm_int 8));
-    klen0 <- llvm_var "klen" (llvm_int 32);
+    alg0 <- crucible_fresh_var "alg" (llvm_int 32);
+    hash_block_size0 <- crucible_fresh_var "hash_block_size" (llvm_int 16);
+    block_size0 <- crucible_fresh_var "block_size" (llvm_int 16);
+    digest_size0 <- crucible_fresh_var "digest_size" (llvm_int 8);
+    (pstate, st0) <- setup_hmac_state alg0 hash_block_size0 block_size0 digest_size0;
 
-    llvm_assert_eq "alg" cfg.hmac_alg;
-
-    // Here 'key_size', a SAWScript 'Int', can be treated as a Cryptol type.
-    llvm_assert_eq "klen" {{ `key_size : [32] }};
+    crucible_execute_func [pstate, crucible_term (cfg.hmac_alg), pkey, crucible_term {{ `key_size : [32] }}];
 
     let block_size      = cfg.block_size;
     let hash_block_size = cfg.hash_block_size;
     let digest_size     = cfg.digest_size;
+    let alg0            = cfg.hmac_alg;
+
     let st1 = {{
       hmac_init_c_state
         `{key_size=key_size
@@ -214,25 +281,9 @@ let hmac_init_spec
          ,digest_size=digest_size}
         st0 alg0 key0
     }};
-
-    check_final_hmac_state st1;
-    llvm_return {{ 0 : [32] }};
-
-    //JD: Right now we aren't verifying this property. It performs
-    // poorly using the current release of Z3. Nightlies of Z3 have
-    // fixed the problem, but are not yet integrated into our build.
-
-    llvm_sat_branches true;
-
-    llvm_verify_tactic do {
-        print_goal_size;
-	unint_z3 [ "hash_init_c_state"
-                    , "hash_update_c_state"
-                    , "hash_digest_c_state"
-                    ];
-    };
-
-    //llvm_no_simulate; // "Admit".
+    check_hmac_state pstate st1;
+    hmac_invariants st1 cfg;
+    crucible_return (crucible_term {{ 0 : [32] }});
 };
 
 let hmac_update_spec
@@ -243,36 +294,27 @@ let hmac_update_spec
              , block_size      : Int
              , hash_block_size : Int
              }) = do {
+    (msg, pmsg) <- ptr_to_fresh "msg" (llvm_array msg_size (llvm_int 8));
 
-    llvm_ptr "in" (llvm_array msg_size (llvm_int 8));
-    st0 <- setup_initial_hmac_state;
-    in0 <- llvm_var "*in" (llvm_array msg_size (llvm_int 8));
-    size0 <- llvm_var "size" (llvm_int 32);
-
-    // Specify the HMAC algorithm.
-    llvm_assert_eq "state->0" cfg.hmac_alg;
-
-    let hash_block_size = cfg.hash_block_size;
-    llvm_assert_eq "state->1" {{ `hash_block_size : [16] }};
-    let block_size = cfg.block_size;
-    llvm_assert_eq "state->3" {{ `block_size : [16] }};
     let digest_size = cfg.digest_size;
-    llvm_assert_eq "state->4" {{ `digest_size : [8] }};
-    llvm_assert_eq "size" {{ `msg_size : [32] }};
+    let block_size = cfg.block_size;
+    let hash_block_size = cfg.hash_block_size;
+    (pstate, st0) <- setup_hmac_state
+                       cfg.hmac_alg
+                       {{ `hash_block_size : [16] }}
+                       {{ `block_size : [16] }}
+                       {{ `digest_size : [8] }};
 
-    let st1 = {{ hmac_update_c_state st0 in0 }};
+    hmac_invariants st0 cfg;
 
-    check_final_hmac_state st1;
-    llvm_return {{ 0 : [32] }};
+    let size = {{ `msg_size : [32] }};
+    crucible_execute_func [pstate, pmsg, crucible_term size];
 
-    llvm_sat_branches true;
+    let st1 = {{ hmac_update_c_state st0 msg }};
+    check_hmac_state pstate st1;
+    hmac_invariants st1 cfg;
 
-    llvm_verify_tactic do {
-        unint_z3 [ "hash_init_c_state"
-                 , "hash_update_c_state"
-                 , "hash_digest_c_state"
-                 ];
-    };
+    crucible_return (crucible_term {{ 0 : [32] }});
 };
 
 let hmac_digest_spec
@@ -282,42 +324,44 @@ let hmac_digest_spec
              , block_size      : Int
              , hash_block_size : Int
              }) = do {
+    (out, pout) <- ptr_to_fresh "out" (llvm_array cfg.digest_size (llvm_int 8));
 
-    llvm_ptr "out" (llvm_array cfg.digest_size (llvm_int 8));
-    st0 <- setup_initial_hmac_state;
-    out0 <- llvm_var "*out" (llvm_array cfg.digest_size (llvm_int 8));
-    size0 <- llvm_var "size" (llvm_int 32);
+    let digest_size = cfg.digest_size;
+    let block_size = cfg.block_size;
+    let hash_block_size = cfg.hash_block_size;
+    (pstate, st0) <- setup_hmac_state
+                       cfg.hmac_alg
+                       {{ `hash_block_size : [16] }}
+                       {{ `block_size : [16] }}
+                       {{ `digest_size : [8] }};
 
-    // Specify the HMAC algorithm.
-    llvm_assert_eq "state->0" cfg.hmac_alg;
+    hmac_invariants st0 cfg;
 
     let hash_block_size = cfg.hash_block_size;
-    llvm_assert_eq "state->1" {{ `hash_block_size : [16] }};
     let block_size = cfg.block_size;
-    llvm_assert_eq "state->3" {{ `block_size : [16] }};
     let digest_size = cfg.digest_size;
-    llvm_assert_eq "state->4" {{ `digest_size : [8] }};
-    llvm_assert_eq "size" {{ `digest_size : [32] }};
-
-    // Feature request: be able to write '(st1, digest)' instead of
-    // 'st1_digest'.
+    let size = {{ `digest_size : [32] }};
+    crucible_execute_func [pstate, pout, crucible_term size];
     let st1_digest = {{
       hmac_digest_c_state`{block_size=block_size,digest_size=digest_size} st0
     }};
     let st1 = {{ st1_digest.0 }};
-    let digest = {{ st1_digest.1 }};
+    let digest = {{ split (st1_digest.1) : [digest_size][8] }};
 
-    llvm_ensure_eq "*out" {{ split digest : [digest_size][8] }};
-    llvm_return {{ 0 : [32] }};
-
-    llvm_sat_branches true;
-    llvm_verify_tactic do {
-        unint_z3 [ "hash_init_c_state"
-                 , "hash_update_c_state"
-                 , "hash_digest_c_state"
-                 ];
-    };
+    crucible_points_to pout (crucible_term digest);
+    crucible_return (crucible_term {{ 0 : [32] }});
 };
 
-
-
+let hmac_digest_size_spec
+      (cfg : { name            : String
+             , hmac_alg        : Term
+             , digest_size     : Int
+             , block_size      : Int
+             , hash_block_size : Int
+             }) = do {
+    psize <- crucible_alloc (llvm_int 8);
+    crucible_execute_func [crucible_term cfg.hmac_alg, psize];
+    let digest_size = cfg.digest_size;
+    crucible_points_to psize (crucible_term {{ `digest_size : [8] }});
+    crucible_return (crucible_term {{ 0 : [32] }});
+};

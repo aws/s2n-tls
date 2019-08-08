@@ -22,7 +22,7 @@ all: libtests2n.so libtests2n.dylib
 
 include ../../s2n.mk
 
-CFLAGS += -I../../ -I../../api/ -I$(LIBCRYPTO_ROOT)/include/
+CFLAGS += -I../
 LDFLAGS += -L../../lib/ ${CRYPTO_LDFLAGS} -lcrypto -lpthread -ls2n
 
 libtests2n.so: ${OBJS}

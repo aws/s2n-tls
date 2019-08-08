@@ -30,6 +30,8 @@ void *thread_safety_tester(void *slot)
 
     s2n_get_public_random_data(&blob);
 
+    s2n_rand_cleanup_thread();
+
     return NULL;
 }
 
@@ -54,7 +56,6 @@ int main(int argc, char **argv)
 {
     uint8_t bits[8] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
     uint8_t bit_set_run[8];
-    intptr_t slot;
     int p[2], status;
     pid_t pid;
     uint8_t data[5120];
@@ -70,10 +71,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_get_public_random_data(&blob));
 
     /* Create two threads and have them each grab 100 bytes */
-    slot = 0;
-    EXPECT_SUCCESS(pthread_create(&threads[0], NULL, thread_safety_tester, (void *)slot));
-    slot = 1;
-    EXPECT_SUCCESS(pthread_create(&threads[1], NULL, thread_safety_tester, (void *)slot));
+    EXPECT_SUCCESS(pthread_create(&threads[0], NULL, thread_safety_tester, (void *)0));
+    EXPECT_SUCCESS(pthread_create(&threads[1], NULL, thread_safety_tester, (void *)1));
 
     /* Wait for those threads to finish */
     EXPECT_SUCCESS(pthread_join(threads[0], NULL));

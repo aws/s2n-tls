@@ -26,10 +26,13 @@ fi
 
 BUILD_DIR=$1
 INSTALL_DIR=$2
-NUM_CORES=`nproc`
+NUM_CORES=$(nproc)
 
-cd $BUILD_DIR
-wget https://www.kernel.org/pub/linux/utils/util-linux/v2.25/util-linux-2.25.2.tar.gz
+sudo apt-get install -y libncurses5-dev
+
+cd "$BUILD_DIR"
+# Originally from: https://www.kernel.org/pub/linux/utils/util-linux/v2.25/util-linux-2.25.2.tar.gz
+curl --retry 3 https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-29_util-linux-2.25.2.tar.gz --output util-linux-2.25.2.tar.gz
 tar -xzvf util-linux-2.25.2.tar.gz
 cd util-linux-2.25.2
 ./configure ADJTIME_PATH=/var/lib/hwclock/adjtime \
@@ -46,8 +49,7 @@ cd util-linux-2.25.2
     --disable-makeinstall-chown \
     --without-systemdsystemunitdir \
     --without-ncurses \
-    --prefix=$INSTALL_DIR || cat config.log
+    --prefix="$INSTALL_DIR" || cat config.log
 
-make -j $NUM_CORES
-make install
-
+make -j "$NUM_CORES" > /dev/null
+make install > /dev/null

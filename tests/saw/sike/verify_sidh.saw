@@ -1,0 +1,17 @@
+//verify_sidh.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// SAW verification script for the SIDH funcitons of the SIKE algorithm
+
+let do_prove = false;
+let debug = false;
+
+include "proof/base.saw";
+include "proof/word.saw";
+include "proof/field.saw";
+include "proof/curv.saw";
+include "proof/isogeny.saw";
+include "proof/random.saw";
+let do_prove = true;
+include "proof/sidh.saw";

@@ -19,6 +19,7 @@
 #include <stdio.h>
 
 #include <s2n.h>
+#include "tls/s2n_kex.h"
 
 #include "testlib/s2n_testlib.h"
 
@@ -78,6 +79,8 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
+    EXPECT_SUCCESS(s2n_hmac_new(&check_mac));
+
     EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, fixed_iv.data, fixed_iv.size));
     EXPECT_SUCCESS(s2n_get_urandom_data(&r));
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -110,6 +113,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->out.blob.data[4], bytes_written & 0xff);
         EXPECT_EQUAL(memcmp(conn->out.blob.data + 5, random_data, bytes_written), 0);
 
+        EXPECT_SUCCESS(s2n_stuffer_resize_if_empty(&conn->in, S2N_LARGE_FRAGMENT_LENGTH));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
         EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
@@ -152,7 +156,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->out.blob.data[2], 2);
         EXPECT_EQUAL(conn->out.blob.data[3], (predicted_length >> 8) & 0xff);
         EXPECT_EQUAL(conn->out.blob.data[4], predicted_length & 0xff);
-        EXPECT_EQUAL(memcmp(conn->out.blob.data + 5, random_data, bytes_written), 0)
+        EXPECT_EQUAL(memcmp(conn->out.blob.data + 5, random_data, bytes_written), 0);
 
         uint8_t top = bytes_written >> 8;
         uint8_t bot = bytes_written & 0xff;
@@ -348,6 +352,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
     /* Sequence number should wrap around */
     EXPECT_FAILURE(s2n_record_write(conn, TLS_APPLICATION_DATA, &empty_blob));
+
+    EXPECT_SUCCESS(s2n_hmac_free(&check_mac));
 
     EXPECT_SUCCESS(s2n_connection_free(conn));
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -16,13 +16,16 @@
 #include <netinet/tcp.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/ioctl.h>
+#include <sys/mman.h>
 #include <poll.h>
 #include <netdb.h>
 
 #include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <string.h>
 #include <signal.h>
 #include <stdio.h>
@@ -30,9 +33,17 @@
 
 #include <errno.h>
 
-#include <s2n.h>
+#include <error/s2n_errno.h>
 
-static char certificate_chain[] =
+#include <openssl/crypto.h>
+#include <openssl/err.h>
+
+#include <s2n.h>
+#include "common.h"
+
+#define MAX_CERTIFICATES 50
+
+static char default_certificate_chain[] =
     "-----BEGIN CERTIFICATE-----\n"
     "MIICrTCCAZUCAn7lMA0GCSqGSIb3DQEBCwUAMB4xHDAaBgNVBAMME3MyblRlc3RJ\n"
     "bnRlcm1lZGlhdGUwIBcNMTcwMjEyMDQxMzA5WhgPMjExNzAxMTkwNDEzMDlaMBgx\n"
@@ -89,7 +100,7 @@ static char certificate_chain[] =
     "e3r1R9CDhIo=\n"
     "-----END CERTIFICATE-----\n";
 
-static char private_key[] =
+static char default_private_key[] =
     "-----BEGIN PRIVATE KEY-----\n"
     "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDHZZ9R9bKwS28K\n"
     "gAzNnXHnKeQ/IRqMhcv1OoNpV28TMutajg+Nri42CsdLvQe2gEVSb9WAo81LmaQy\n"
@@ -125,7 +136,16 @@ static char dhparams[] =
     "Bbn6k0FQ7yMED6w5XWQKDC0z2m0FI/BPE3AjUfuPzEYGqTDf9zQZ2Lz4oAN90Sud\n"
     "luOoEhYR99cEbCn0T4eBvEf9IUtczXUZ/wj7gzGbGG07dLfT+CmCRJxCjhrosenJ\n"
     "gzucyS7jt1bobgU66JKkgMNm7hJY4/nhR5LWTCzZyzYQh2HM2Vk4K5ZqILpj/n0S\n"
-    "5JYTQ2PVhxP+Uu8+hICs/8VvM72DznjPZzufADipjC7CsQ4S6x/ecZluFtbb+ZTv\n" "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n" "-----END DH PARAMETERS-----\n";
+    "5JYTQ2PVhxP+Uu8+hICs/8VvM72DznjPZzufADipjC7CsQ4S6x/ecZluFtbb+ZTv\n"
+    "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n"
+    "-----END DH PARAMETERS-----\n";
+
+uint8_t ticket_key_name[16] = "2016.07.26.15\0";
+
+uint8_t default_ticket_key[32] = {0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf, 0x0d, 0xdc,
+                                  0x3f, 0x0d, 0xc4, 0x7b, 0xba, 0x63, 0x90, 0xb6, 0xc7, 0x3b,
+                                  0xb5, 0x0f, 0x9c, 0x31, 0x22, 0xec, 0x84, 0x4a, 0xd7, 0xc2,
+                                  0xb3, 0xe5 };
 
 #define MAX_KEY_LEN 32
 #define MAX_VAL_LEN 255
@@ -139,7 +159,7 @@ struct session_cache_entry {
 
 struct session_cache_entry session_cache[256];
 
-int cache_store(void *ctx, uint64_t ttl, const void *key, uint64_t key_size, const void *value, uint64_t value_size)
+int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, const void *key, uint64_t key_size, const void *value, uint64_t value_size)
 {
     struct session_cache_entry *cache = ctx;
 
@@ -161,7 +181,7 @@ int cache_store(void *ctx, uint64_t ttl, const void *key, uint64_t key_size, con
     return 0;
 }
 
-int cache_retrieve(void *ctx, const void *key, uint64_t key_size, void *value, uint64_t * value_size)
+int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t * value_size)
 {
     struct session_cache_entry *cache = ctx;
 
@@ -186,7 +206,6 @@ int cache_retrieve(void *ctx, const void *key, uint64_t key_size, void *value, u
     *value_size = cache[index].value_len;
     memcpy(value, cache[index].value, cache[index].value_len);
 
-    printf("Resumed session ");
     for (int i = 0; i < key_size; i++) {
         printf("%02x", ((const uint8_t *)key)[i]);
     }
@@ -195,7 +214,7 @@ int cache_retrieve(void *ctx, const void *key, uint64_t key_size, void *value, u
     return 0;
 }
 
-int cache_delete(void *ctx, const void *key, uint64_t key_size)
+int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size)
 {
     struct session_cache_entry *cache = ctx;
 
@@ -219,12 +238,64 @@ int cache_delete(void *ctx, const void *key, uint64_t key_size)
     return 0;
 }
 
-static uint8_t sct_list[] = {
-    0xff, 0xff, 0xff, 0xff, // bogus test data
-};
+/*
+ * Since this is a server, and the mechanism for hostname verification is not defined for this use-case,
+ * allow any hostname through. If you are writing something with mutual auth and you have a scheme for verifying
+ * the client (e.g. a reverse DNS lookup), you would plug that in here.
+ */
+static uint8_t unsafe_verify_host_fn(const char *host_name, size_t host_name_len, void *data)
+{
+    return 1;
+}
 
+extern void print_s2n_error(const char *app_error);
 extern int echo(struct s2n_connection *conn, int sockfd);
 extern int negotiate(struct s2n_connection *conn);
+
+/* Caller is expected to free the memory returned. */
+static char *load_file_to_cstring(const char *path)
+{
+    FILE *pem_file = fopen(path, "rb");
+    if (!pem_file) {
+       fprintf(stderr, "Failed to open file %s: '%s'\n", path, strerror(errno));
+       return NULL;
+    }
+
+    /* Make sure we can fit the pem into the output buffer */
+    if (fseek(pem_file, 0, SEEK_END) < 0) {
+        fprintf(stderr, "Failed calling fseek: '%s'\n", strerror(errno));
+        fclose(pem_file);
+        return NULL;
+    }
+
+    const long int pem_file_size = ftell(pem_file);
+    if (pem_file_size < 0) {
+        fprintf(stderr, "Failed calling ftell: '%s'\n", strerror(errno));
+        fclose(pem_file);
+        return NULL;
+    }
+
+    rewind(pem_file);
+
+    char *pem_out = malloc(pem_file_size + 1);
+    if (pem_out == NULL) {
+        fprintf(stderr, "Failed allocating memory\n");
+        fclose(pem_file);
+        return NULL;
+    }
+
+    if (fread(pem_out, sizeof(char), pem_file_size, pem_file) < pem_file_size) {
+        fprintf(stderr, "Failed reading file: '%s'\n", strerror(errno));
+        free(pem_out);
+        fclose(pem_file);
+        return NULL;
+    }
+
+    pem_out[pem_file_size] = '\0';
+    fclose(pem_file);
+
+    return pem_out;
+}
 
 void usage()
 {
@@ -235,74 +306,265 @@ void usage()
     fprintf(stderr, "  -c [version_string]\n");
     fprintf(stderr, "  --ciphers [version_string]\n");
     fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
+    fprintf(stderr, "  --enter-fips-mode\n");
+    fprintf(stderr, "    Enter libcrypto's FIPS mode. The linked version of OpenSSL must be built with the FIPS module.\n");
+    fprintf(stderr, "  --cert\n");
+    fprintf(stderr, "    Path to a PEM encoded certificate [chain]. Option can be repeated to load multiple certs.\n");
+    fprintf(stderr, "  --key\n");
+    fprintf(stderr, "    Path to a PEM encoded private key that matches cert. Option can be repeated to load multiple certs.\n");
+    fprintf(stderr, "  -m\n");
+    fprintf(stderr, "  --mutualAuth\n");
+    fprintf(stderr, "    Request a Client Certificate. Any RSA Certificate will be accepted.\n");
     fprintf(stderr, "  -n\n");
     fprintf(stderr, "  --negotiate\n");
     fprintf(stderr, "    Only perform tls handshake and then shutdown the connection\n");
+    fprintf(stderr, "  --parallelize\n");
+    fprintf(stderr, "    Create a new Connection handler thread for each new connection. Useful for tests with lots of connections.\n");
+    fprintf(stderr, "    Warning: this option isn't compatible with TLS Resumption, since each thread gets its own Session cache.\n");
     fprintf(stderr, "  --prefer-low-latency\n");
-    fprintf(stderr, "    Prefer low latency by clamping maximum outgoing record size at 1500.");
+    fprintf(stderr, "    Prefer low latency by clamping maximum outgoing record size at 1500.\n");
     fprintf(stderr, "  --prefer-throughput\n");
-    fprintf(stderr, "    Prefer throughput by raising maximum outgoing record size to 16k");
+    fprintf(stderr, "    Prefer throughput by raising maximum outgoing record size to 16k\n");
+    fprintf(stderr, "  --enable-mfl\n");
+    fprintf(stderr, "    Accept client's TLS maximum fragment length extension request\n");
+    fprintf(stderr, "  --ocsp\n");
+    fprintf(stderr, "    Path to a DER formatted OCSP response for stapling\n");
+    fprintf(stderr, "  -s\n");
+    fprintf(stderr, "  --self-service-blinding\n");
+    fprintf(stderr, "    Don't introduce 10-30 second delays on TLS Handshake errors. \n");
+    fprintf(stderr, "    Warning: this should only be used for testing since skipping blinding may allow timing side channels.\n");
+    fprintf(stderr, "  -t,--ca-file [file path]\n");
+    fprintf(stderr, "    Location of trust store CA file (PEM format). If neither -t or -d are specified. System defaults will be used.");
+    fprintf(stderr, "    This option is only used if mutual auth is enabled.\n");
+    fprintf(stderr, "  -d,--ca-dir [directory path]\n");
+    fprintf(stderr, "    Directory containing hashed trusted certs. If neither -t or -d are specified. System defaults will be used.");
+    fprintf(stderr, "    This option is only used if mutual auth is enabled.\n");
+    fprintf(stderr, "  -i,--insecure\n");
+    fprintf(stderr, "    Turns off certification validation altogether.\n");
+    fprintf(stderr, "  --stk-file\n");
+    fprintf(stderr, "    Location of key file used for encryption and decryption of session ticket.\n");
+    fprintf(stderr, "  -T,--no-session-ticket\n");
+    fprintf(stderr, "    Disable session ticket for resumption.\n");
+    fprintf(stderr, "  -C,--corked-io\n");
+    fprintf(stderr, "    Turn on corked io\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
     exit(1);
 }
 
+
+struct conn_settings {
+    int mutual_auth;
+    int self_service_blinding;
+    int only_negotiate;
+    int prefer_throughput;
+    int prefer_low_latency;
+    int enable_mfl;
+    int session_ticket;
+    const char *ca_dir;
+    const char *ca_file;
+    int insecure;
+    int use_corked_io;
+};
+
+int handle_connection(int fd, struct s2n_config *config, struct conn_settings settings)
+{
+    struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+    if (!conn) {
+        print_s2n_error("Error getting new s2n connection");
+        return -1;
+    }
+
+    if (settings.self_service_blinding) {
+        s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING);
+    }
+
+    if (settings.mutual_auth) {
+        GUARD_RETURN(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED), "Error setting client auth type");
+
+        if (settings.ca_dir || settings.ca_file) {
+            GUARD_RETURN(s2n_config_set_verification_ca_location(config, settings.ca_file, settings.ca_dir), "Error adding verify location");
+        }
+
+        if (settings.insecure) {
+            GUARD_RETURN(s2n_config_disable_x509_verification(config), "Error disabling X.509 validation");
+        }
+    }
+
+    GUARD_RETURN(s2n_connection_set_config(conn, config), "Error setting configuration");
+
+    if (settings.prefer_throughput) {
+        GUARD_RETURN(s2n_connection_prefer_throughput(conn), "Error setting prefer throughput");
+    }
+
+    if (settings.prefer_low_latency) {
+        GUARD_RETURN(s2n_connection_prefer_low_latency(conn), "Error setting prefer low latency");
+    }
+
+    GUARD_RETURN(s2n_connection_set_fd(conn, fd), "Error setting file descriptor");
+
+    if (settings.use_corked_io) {
+        GUARD_RETURN(s2n_connection_use_corked_io(conn), "Error setting corked io");
+    }
+
+    negotiate(conn);
+
+    if (settings.mutual_auth) {
+        if (!s2n_connection_client_cert_used(conn)) {
+            print_s2n_error("Error: Mutual Auth was required, but not negotiatied");
+            return -1;
+        }
+    }
+
+    if (!settings.only_negotiate) {
+        echo(conn, fd);
+    }
+
+    s2n_blocked_status blocked;
+    s2n_shutdown(conn, &blocked);
+
+    GUARD_RETURN(s2n_connection_wipe(conn), "Error wiping connection");
+
+    GUARD_RETURN(s2n_connection_free(conn), "Error freeing connection");
+
+    return 0;
+}
+
 int main(int argc, char *const *argv)
 {
     struct addrinfo hints, *ai;
     int r, sockfd = 0;
-    s2n_tls_extension sct_ext = { .type = S2N_EXTENSION_CERTIFICATE_TRANSPARENCY,
-                                  .length = sizeof(sct_list), .data = sct_list };
 
     /* required args */
     const char *host = NULL;
     const char *port = NULL;
 
+    const char *ocsp_response_file_path = NULL;
+    const char *session_ticket_key_file_path = NULL;
     const char *cipher_prefs = "default";
-    int only_negotiate = 0;
-    int prefer_throughput = 0;
-    int prefer_low_latency = 0;
 
-    static struct option long_options[] = {
-        {"help", no_argument, 0, 'h'},
-        {"ciphers", required_argument, 0, 'c'},
-        {"negotiate", no_argument, 0, 'n'},
-        {"prefer-low-latency", no_argument, 0, 'l'},
-        {"prefer-throughput", no_argument, 0, 'p'},
+    /* The certificates provided by the user. If there are none provided, we will use the hardcoded default cert.
+     * The associated private key for each cert will be at the same index in private_keys. If the user mixes up the
+     * order of --cert --key for a given cert/key pair, s2n will fail to load the cert and s2nd will exit.
+     */
+    int num_user_certificates = 0;
+    int num_user_private_keys = 0;
+    const char *certificates[MAX_CERTIFICATES] = { 0 };
+    const char *private_keys[MAX_CERTIFICATES] = { 0 };
+
+    struct conn_settings conn_settings = { 0 };
+    int fips_mode = 0;
+    int parallelize = 0;
+    conn_settings.session_ticket = 1;
+
+    struct option long_options[] = {
+        {"ciphers", required_argument, NULL, 'c'},
+        {"enable-mfl", no_argument, NULL, 'e'},
+        {"enter-fips-mode", no_argument, NULL, 'f'},
+        {"help", no_argument, NULL, 'h'},
+        {"key", required_argument, NULL, 'k'},
+        {"prefer-low-latency", no_argument, NULL, 'l'},
+        {"mutualAuth", no_argument, NULL, 'm'},
+        {"negotiate", no_argument, NULL, 'n'},
+        {"ocsp", required_argument, NULL, 'o'},
+        {"parallelize", no_argument, &parallelize, 1},
+        {"prefer-throughput", no_argument, NULL, 'p'},
+        {"cert", required_argument, NULL, 'r'},
+        {"self-service-blinding", no_argument, NULL, 's'},
+        {"ca-dir", required_argument, 0, 'd'},
+        {"ca-file", required_argument, 0, 't'},
+        {"insecure", no_argument, 0, 'i'},
+        {"stk-file", required_argument, 0, 'a'},
+        {"no-session-ticket", no_argument, 0, 'T'},
+        {"corked-io", no_argument, 0, 'C'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hn", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmnst:d:i:TC", long_options, &option_index);
         if (c == -1) {
             break;
         }
+
         switch (c) {
+        case 0:
+            /* getopt_long() returns 0 if an option.flag is non-null (Eg "parallelize") */
+            break;
+        case 'C':
+            conn_settings.use_corked_io = 1;
+            break;
         case 'c':
             cipher_prefs = optarg;
+            break;
+        case 'e':
+            conn_settings.enable_mfl = 1;
+            break;
+        case 'f':
+            fips_mode = 1;
             break;
         case 'h':
             usage();
             break;
-        case 'n':
-            only_negotiate = 1;
+        case 'k':
+            if (num_user_private_keys == MAX_CERTIFICATES) {
+                fprintf(stderr, "Cannot support more than %d certificates!\n", MAX_CERTIFICATES);
+                exit(1);
+            }
+            private_keys[num_user_private_keys] = load_file_to_cstring(optarg);
+            num_user_private_keys++;
             break;
         case 'l':
-            prefer_low_latency = 1;
+            conn_settings.prefer_low_latency = 1;
+            break;
+        case 'm':
+            conn_settings.mutual_auth = 1;
+            break;
+        case 'n':
+            conn_settings.only_negotiate = 1;
+            break;
+        case 'o':
+            ocsp_response_file_path = optarg;
             break;
         case 'p':
-            prefer_throughput = 1;
+            conn_settings.prefer_throughput = 1;
+            break;
+        case 'r':
+            if (num_user_certificates == MAX_CERTIFICATES) {
+                fprintf(stderr, "Cannot support more than %d certificates!\n", MAX_CERTIFICATES);
+                exit(1);
+            }
+            certificates[num_user_certificates] = load_file_to_cstring(optarg);
+            num_user_certificates++;
+            break;
+        case 's':
+            conn_settings.self_service_blinding = 1;
+            break;
+        case 'd':
+            conn_settings.ca_dir = optarg;
+            break;
+        case 't':
+            conn_settings.ca_file = optarg;
+            break;
+        case 'i':
+            conn_settings.insecure = 1;
+            break;
+        case 'a':
+            session_ticket_key_file_path = optarg;
+            break;
+        case 'T':
+            conn_settings.session_ticket = 0;
             break;
         case '?':
         default:
+            fprintf(stdout, "getopt_long returned: %d", c);
             usage();
             break;
         }
     }
 
-    if (prefer_throughput && prefer_low_latency) {
+    if (conn_settings.prefer_throughput && conn_settings.prefer_low_latency) {
         fprintf(stderr, "prefer-throughput and prefer-low-latency options are mutually exclusive\n");
         exit(1);
     }
@@ -310,6 +572,8 @@ int main(int argc, char *const *argv)
     if (optind < argc) {
         host = argv[optind++];
     }
+
+    // cppcheck-suppress duplicateCondition
     if (optind < argc) {
         port = argv[optind++];
     }
@@ -364,101 +628,165 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    if (s2n_init() < 0) {
-        fprintf(stderr, "Error running s2n_init(): '%s'\n", s2n_strerror(s2n_errno, "EN"));
+    if (fips_mode) {
+#ifdef OPENSSL_FIPS
+        if (FIPS_mode_set(1) == 0) {
+            unsigned long fips_rc = ERR_get_error();
+            char ssl_error_buf[256]; // Openssl claims you need no more than 120 bytes for error strings
+            fprintf(stderr, "s2nd failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf));
+            exit(1);
+        }
+        printf("s2nd entered FIPS mode\n");
+#else
+        fprintf(stderr, "Error entering FIPS mode. s2nd is not linked with a FIPS-capable libcrypto.\n");
+        exit(1);
+#endif
     }
+
+    GUARD_EXIT(s2n_init(), "Error running s2n_init()");
 
     printf("Listening on %s:%s\n", host, port);
 
     struct s2n_config *config = s2n_config_new();
     if (!config) {
-        fprintf(stderr, "Error getting new s2n config: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+        print_s2n_error("Error getting new s2n config");
         exit(1);
     }
 
-    if (s2n_config_add_cert_chain_and_key_with_extensions(config, certificate_chain, private_key, &sct_ext, 1) < 0) {
-        fprintf(stderr, "Error getting certificate/key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+    if (num_user_certificates != num_user_private_keys) {
+        fprintf(stderr, "Mismatched certificate(%d) and private key(%d) count!\n", num_user_certificates, num_user_private_keys);
         exit(1);
     }
 
-    if (s2n_config_add_dhparams(config, dhparams) < 0) {
-        fprintf(stderr, "Error adding DH parameters: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+    int num_certificates = 0;
+    if (num_user_certificates == 0) {
+        certificates[0] = default_certificate_chain;
+        private_keys[0] = default_private_key;
+        num_certificates = 1;
+    } else {
+        num_certificates = num_user_certificates;
+    }
+
+    for (int i = 0; i < num_certificates; i++) {
+        struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new();
+        GUARD_EXIT(s2n_cert_chain_and_key_load_pem(chain_and_key, certificates[i], private_keys[i]), "Error getting certificate/key");
+
+        GUARD_EXIT(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key), "Error setting certificate/key");
+    }
+
+    if (ocsp_response_file_path) {
+        int fd = open(ocsp_response_file_path, O_RDONLY);
+        if (fd < 0) {
+            fprintf(stderr, "Error opening OCSP response file: '%s'\n", strerror(errno));
+            exit(1);
+        }
+
+        struct stat st = {0};
+        if (fstat(fd, &st) < 0) {
+            fprintf(stderr, "Error fstat-ing OCSP response file: '%s'\n", strerror(errno));
+            exit(1);
+        }
+
+        uint8_t *ocsp_response = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+        if (s2n_config_set_extension_data(config, S2N_EXTENSION_OCSP_STAPLING, ocsp_response, st.st_size) < 0) {
+            fprintf(stderr, "Error adding ocsp response: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+            exit(1);
+        }
+
+        close(fd);
+    }
+
+    GUARD_EXIT(s2n_config_add_dhparams(config, dhparams), "Error adding DH parameters");
+
+    GUARD_EXIT(s2n_config_set_cipher_preferences(config, cipher_prefs),"Error setting cipher prefs");
+
+    GUARD_EXIT(s2n_config_set_cache_store_callback(config, cache_store_callback, session_cache), "Error setting cache store callback");
+
+    GUARD_EXIT(s2n_config_set_cache_retrieve_callback(config, cache_retrieve_callback, session_cache), "Error setting cache retrieve callback");
+
+    GUARD_EXIT(s2n_config_set_cache_delete_callback(config, cache_delete_callback, session_cache), "Error setting cache retrieve callback");
+
+    if (conn_settings.enable_mfl) {
+        GUARD_EXIT(s2n_config_accept_max_fragment_length(config), "Error enabling TLS maximum fragment length extension in server");
+    }
+
+    if (s2n_config_set_verify_host_callback(config, unsafe_verify_host_fn, NULL)) {
+        print_s2n_error("Failure to set hostname verification callback");
         exit(1);
     }
 
-    if (s2n_config_set_cipher_preferences(config, cipher_prefs) < 0) {
-        fprintf(stderr, "Error setting cipher prefs: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-        exit(1);
+    if (conn_settings.session_ticket) {
+        GUARD_EXIT(s2n_config_set_session_tickets_onoff(config, 1), "Error enabling session tickets");
+
+        /* Key initialization */
+        uint8_t *st_key;
+        uint32_t st_key_length;
+
+        if (session_ticket_key_file_path) {
+            int fd = open(session_ticket_key_file_path, O_RDONLY);
+            GUARD_EXIT(fd, "Error opening session ticket key file");
+
+            struct stat st;
+            GUARD_EXIT(fstat(fd, &st), "Error fstat-ing session ticket key file");
+
+            st_key = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+            S2N_ERROR_IF(st_key == MAP_FAILED, S2N_ERR_MMAP);
+
+            st_key_length = st.st_size;
+
+            close(fd);
+        } else {
+            st_key = default_ticket_key;
+            st_key_length = strlen((char *)default_ticket_key);
+        }
+
+        if (s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name), st_key, st_key_length, 0) != 0) {
+            fprintf(stderr, "Error adding ticket key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+            exit(1);
+        }
     }
 
-    if (s2n_config_set_cache_store_callback(config, cache_store, session_cache) < 0) {
-        fprintf(stderr, "Error setting cache store callback: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-        exit(1);
-    }
+    if (parallelize) {
+        struct sigaction sa;
 
-    if (s2n_config_set_cache_retrieve_callback(config, cache_retrieve, session_cache) < 0) {
-        fprintf(stderr, "Error setting cache retrieve callback: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-        exit(1);
-    }
-
-    if (s2n_config_set_cache_delete_callback(config, cache_delete, session_cache) < 0) {
-        fprintf(stderr, "Error setting cache retrieve callback: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-        exit(1);
-    }
-
-    struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
-    if (!conn) {
-        fprintf(stderr, "Error getting new s2n connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-        exit(1);
-    }
-
-    if (s2n_connection_set_config(conn, config) < 0) {
-        fprintf(stderr, "Error setting configuration: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-        exit(1);
-    }
-
-    if (prefer_throughput && s2n_connection_prefer_throughput(conn) < 0) {
-        fprintf(stderr, "Error setting prefer throughput: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-        exit(1);
-    }
-
-    if (prefer_low_latency && s2n_connection_prefer_low_latency(conn) < 0) {
-        fprintf(stderr, "Error setting prefer low latency: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-        exit(1);
+        sa.sa_handler = SIG_IGN;
+        sa.sa_flags = SA_NOCLDWAIT;
+        sigemptyset(&sa.sa_mask);
+        sigaction(SIGCHLD, &sa, NULL);
     }
 
     int fd;
     while ((fd = accept(sockfd, ai->ai_addr, &ai->ai_addrlen)) > 0) {
-        if (s2n_connection_set_fd(conn, fd) < 0) {
-            fprintf(stderr, "Error setting file descriptor: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-            exit(1);
+
+        if (!parallelize) {
+            int rc = handle_connection(fd, config, conn_settings);
+            close(fd);
+            if (rc < 0) {
+                exit(rc);
+            }
+        } else {
+            /* Fork Process, one for the Acceptor (parent), and another for the Handler (child). */
+            pid_t child_pid = fork();
+
+            if (child_pid == 0) {
+                /* This is the Child Handler Thread. We should handle the connection, then exit. */
+                int rc = handle_connection(fd, config, conn_settings);
+                close(fd);
+                _exit(rc);
+            } else if (child_pid == -1) {
+                close(fd);
+                print_s2n_error("Error calling fork(). Acceptor unable to start handler.");
+                exit(1);
+            } else {
+                /* This is the parent Acceptor Thread, continue listening for new connections */
+                close(fd);
+                continue;
+            }
         }
 
-        negotiate(conn);
-
-        if (!only_negotiate) {
-            echo(conn, fd);
-        }
-
-        s2n_blocked_status blocked;
-        s2n_shutdown(conn, &blocked);
-
-        close(fd);
-
-        if (s2n_connection_wipe(conn) < 0) {
-            fprintf(stderr, "Error wiping connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-            exit(1);
-        }
     }
 
-    if (s2n_connection_free(conn) < 0) {
-        fprintf(stderr, "Error freeing connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-        exit(1);
-    }
-
-    if (s2n_cleanup() < 0) {
-        fprintf(stderr, "Error running s2n_cleanup(): '%s'\n", s2n_strerror(s2n_errno, "EN"));
-    }
+    GUARD_EXIT(s2n_cleanup(),  "Error running s2n_cleanup()");
 
     return 0;
 }

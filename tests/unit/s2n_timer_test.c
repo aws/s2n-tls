@@ -37,7 +37,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     EXPECT_NOT_NULL(config = s2n_config_new());
-    EXPECT_SUCCESS(s2n_config_set_nanoseconds_since_epoch_callback(config, mock_clock, &mock_time));
+    EXPECT_SUCCESS(s2n_config_set_monotonic_clock(config, mock_clock, &mock_time));
 
     mock_time = 0;
     EXPECT_SUCCESS(s2n_timer_start(config, &timer));
@@ -58,6 +58,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_timer_elapsed(config, &timer, &nanoseconds));
     EXPECT_EQUAL(nanoseconds, 10);
     EXPECT_EQUAL(mock_time, 40); /* Work-around for cppcheck complaining that mock_time is never read after being set */
+
+    EXPECT_SUCCESS(s2n_config_free(config));
 
     END_TEST();
 }

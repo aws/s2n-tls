@@ -15,31 +15,26 @@
 
 #pragma once
 
-#include <openssl/rsa.h>
 #include <stdint.h>
+#include <s2n.h>
 
-#include "stuffer/s2n_stuffer.h"
+#include <openssl/rsa.h>
 
 #include "crypto/s2n_hash.h"
 
 #include "utils/s2n_blob.h"
 
-struct s2n_rsa_public_key {
+/* Forward declaration to avoid the circular dependency with s2n_pkey.h */
+struct s2n_pkey;
+
+struct s2n_rsa_key {
     RSA *rsa;
 };
 
-struct s2n_rsa_private_key {
-    RSA *rsa;
-};
+typedef struct s2n_rsa_key s2n_rsa_public_key;
+typedef struct s2n_rsa_key s2n_rsa_private_key;
 
-extern int s2n_rsa_keys_match(struct s2n_rsa_public_key *pub, struct s2n_rsa_private_key *priv);
-extern int s2n_asn1der_to_rsa_public_key(struct s2n_rsa_public_key *key, struct s2n_blob *asn1der);
-extern int s2n_asn1der_to_rsa_private_key(struct s2n_rsa_private_key *key, struct s2n_blob *asn1der);
-extern int s2n_rsa_encrypt(struct s2n_rsa_public_key *key, struct s2n_blob *in, struct s2n_blob *out);
-extern int s2n_rsa_decrypt(struct s2n_rsa_private_key *key, struct s2n_blob *in, struct s2n_blob *out);
-extern int s2n_rsa_public_key_free(struct s2n_rsa_public_key *key);
-extern int s2n_rsa_private_key_free(struct s2n_rsa_private_key *key);
-extern int s2n_rsa_public_encrypted_size(struct s2n_rsa_public_key *key);
-extern int s2n_rsa_private_encrypted_size(struct s2n_rsa_private_key *key);
-extern int s2n_rsa_sign(struct s2n_rsa_private_key *key, struct s2n_hash_state *digest, struct s2n_blob *signature);
-extern int s2n_rsa_verify(struct s2n_rsa_public_key *key, struct s2n_hash_state *digest, struct s2n_blob *signature);
+extern int s2n_rsa_pkey_init(struct s2n_pkey *pkey);
+
+extern int s2n_evp_pkey_to_rsa_public_key(s2n_rsa_public_key *rsa_key, EVP_PKEY *pkey);
+extern int s2n_evp_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *pkey);

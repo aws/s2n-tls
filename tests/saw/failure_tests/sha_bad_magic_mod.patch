@@ -1,0 +1,14 @@
+diff -r -u s2n/crypto/s2n_hmac.c s2n_break/crypto/s2n_hmac.c
+--- s2n/crypto/s2n_hmac.c	2016-05-23 09:59:56.600873694 -0700
++++ s2n_break/crypto/s2n_hmac.c	2016-05-27 16:12:24.278698053 -0700
+@@ -193,7 +193,7 @@
+      * input. On some platforms, including Intel, the operation can take a
+      * smaller number of cycles if the input is "small".
+      */
+-    state->currently_in_hash_block += (4294949760 + size) % state->hash_block_size;
++    state->currently_in_hash_block += (4294949761 + size) % state->hash_block_size;
+     state->currently_in_hash_block %= state->hash_block_size;
+
+     return s2n_hash_update(&state->inner, in, size);
+Binary files s2n/.git/index and s2n_break/.git/index differ
+Only in s2n/tests/saw: bad_magic_mod.patch

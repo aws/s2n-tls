@@ -22,6 +22,7 @@
 #include <stdint.h>
 
 #include "tls/s2n_tls_parameters.h"
+#include "tls/s2n_kex.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
 
@@ -44,16 +45,14 @@ int s2n_ecc_generate_ephemeral_key(struct s2n_ecc_params *server_ecc_params)
 {
     notnull_check(server_ecc_params->negotiated_curve);
     server_ecc_params->ec_key = s2n_ecc_generate_own_key(server_ecc_params->negotiated_curve);
-    if (server_ecc_params->ec_key == NULL) {
-        S2N_ERROR(S2N_ERR_ECDHE_GEN_KEY);
-    }
+    S2N_ERROR_IF(server_ecc_params->ec_key == NULL, S2N_ERR_ECDHE_GEN_KEY);
     return 0;
 }
 
 int s2n_ecc_write_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2n_stuffer *out, struct s2n_blob *written)
 {
     uint8_t point_len;
-    struct s2n_blob point;
+    struct s2n_blob point = {0};
 
     /* Remember when the written data starts */
     written->data = s2n_stuffer_raw_write(out, 0);
@@ -79,54 +78,50 @@ int s2n_ecc_write_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2
     return 0;
 }
 
-int s2n_ecc_read_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2n_stuffer *in, struct s2n_blob *read)
+int s2n_ecc_read_ecc_params(struct s2n_stuffer *in, struct s2n_blob *data_to_verify, struct s2n_ecdhe_raw_server_params *raw_server_ecc_params)
 {
     uint8_t curve_type;
     uint8_t point_length;
-    struct s2n_blob point_blob, curve_blob;
-    EC_POINT *point;
 
     /* Remember where we started reading the data */
-    read->data = s2n_stuffer_raw_read(in, 0);
-    notnull_check(read->data);
+    data_to_verify->data = s2n_stuffer_raw_read(in, 0);
+    notnull_check(data_to_verify->data);
 
     /* Read the curve */
     GUARD(s2n_stuffer_read_uint8(in, &curve_type));
-    if (curve_type != TLS_EC_CURVE_TYPE_NAMED) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
-    curve_blob.data = s2n_stuffer_raw_read(in, 2);
-    notnull_check(curve_blob.data);
-
-    curve_blob.size = 2;
-    /* Verify that the client supports the server curve */
-    if (s2n_ecc_find_supported_curve(&curve_blob, &server_ecc_params->negotiated_curve) != 0) {
-        S2N_ERROR(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
-    }
-    /* Create a key to store the server public point */
-    server_ecc_params->ec_key = EC_KEY_new_by_curve_name(server_ecc_params->negotiated_curve->libcrypto_nid);
-    if (server_ecc_params->ec_key == NULL) {
-        S2N_ERROR(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
-    }
+    S2N_ERROR_IF(curve_type != TLS_EC_CURVE_TYPE_NAMED, S2N_ERR_BAD_MESSAGE);
+    raw_server_ecc_params->curve_blob.data = s2n_stuffer_raw_read(in, 2);
+    notnull_check(raw_server_ecc_params->curve_blob.data);
+    raw_server_ecc_params->curve_blob.size = 2;
 
     /* Read the point */
     GUARD(s2n_stuffer_read_uint8(in, &point_length));
-    point_blob.size = point_length;
-    point_blob.data = s2n_stuffer_raw_read(in, point_blob.size);
-    notnull_check(point_blob.data);
+    raw_server_ecc_params->point_blob.size = point_length;
+    raw_server_ecc_params->point_blob.data = s2n_stuffer_raw_read(in, point_length);
+    notnull_check(raw_server_ecc_params->point_blob.data);
+
+    // 1 byte for curve type, 2 for the curve data, 1 for the point length, and point_length for the point
+    data_to_verify->size = (1 + 2) + (1 + point_length);
+
+    return 0;
+}
+
+int s2n_ecc_parse_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2n_ecdhe_raw_server_params *raw_server_ecc_params)
+{
+    /* Verify that the client supports the server curve */
+    S2N_ERROR_IF(s2n_ecc_find_supported_curve(&raw_server_ecc_params->curve_blob, &server_ecc_params->negotiated_curve) != 0, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    /* Create a key to store the server public point */
+    server_ecc_params->ec_key = EC_KEY_new_by_curve_name(server_ecc_params->negotiated_curve->libcrypto_nid);
+    S2N_ERROR_IF(server_ecc_params->ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
     /* Parse and store the server public point */
-    point = s2n_ecc_blob_to_point(&point_blob, server_ecc_params->ec_key);
-    if (point == NULL) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    EC_POINT *point = s2n_ecc_blob_to_point(&raw_server_ecc_params->point_blob, server_ecc_params->ec_key);
+    S2N_ERROR_IF(point == NULL, S2N_ERR_BAD_MESSAGE);
     if (EC_KEY_set_public_key(server_ecc_params->ec_key, point) != 1) {
         EC_POINT_free(point);
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
     EC_POINT_free(point);
-
-    read->size = 3 + (1 + point_length);
 
     return 0;
 }
@@ -134,7 +129,7 @@ int s2n_ecc_read_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2n
 int s2n_ecc_compute_shared_secret_as_server(struct s2n_ecc_params *server_ecc_params, struct s2n_stuffer *Yc_in, struct s2n_blob *shared_key)
 {
     uint8_t client_public_len;
-    struct s2n_blob client_public_blob;
+    struct s2n_blob client_public_blob = {0};
     EC_POINT *client_public;
     int rc;
 
@@ -145,9 +140,7 @@ int s2n_ecc_compute_shared_secret_as_server(struct s2n_ecc_params *server_ecc_pa
 
     /* Parse the client public */
     client_public = s2n_ecc_blob_to_point(&client_public_blob, server_ecc_params->ec_key);
-    if (client_public == NULL) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(client_public == NULL, S2N_ERR_BAD_MESSAGE);
 
     /* Compute the key and free the point */
     rc = s2n_ecc_compute_shared_secret(server_ecc_params->ec_key, client_public, shared_key);
@@ -162,9 +155,7 @@ int s2n_ecc_compute_shared_secret_as_client(struct s2n_ecc_params *server_ecc_pa
     /* Generate the client key. Don't forget to free it. */
     notnull_check(server_ecc_params->negotiated_curve);
     client_key = s2n_ecc_generate_own_key(server_ecc_params->negotiated_curve);
-    if (client_key == NULL) {
-        S2N_ERROR(S2N_ERR_ECDHE_GEN_KEY);
-    }
+    S2N_ERROR_IF(client_key == NULL, S2N_ERR_ECDHE_GEN_KEY);
 
     /* Compute the shared secret */
     if (s2n_ecc_compute_shared_secret(client_key, EC_KEY_get0_public_key(server_ecc_params->ec_key), shared_key) != 0) {
@@ -221,12 +212,8 @@ static EC_POINT *s2n_ecc_blob_to_point(struct s2n_blob *blob, const EC_KEY * ec_
 static int s2n_ecc_calculate_point_length(const EC_POINT * point, const EC_GROUP * group, uint8_t * length)
 {
     size_t ret = EC_POINT_point2oct(group, point, POINT_CONVERSION_UNCOMPRESSED, NULL, 0, NULL);
-    if (ret == 0) {
-        S2N_ERROR(S2N_ERR_ECDHE_SERIALIZING);
-    }
-    if (ret > UINT8_MAX) {
-        S2N_ERROR(S2N_ERR_ECDHE_SERIALIZING);
-    }
+    S2N_ERROR_IF(ret == 0, S2N_ERR_ECDHE_SERIALIZING);
+    S2N_ERROR_IF(ret > UINT8_MAX, S2N_ERR_ECDHE_SERIALIZING);
     *length = (uint8_t) ret;
     return 0;
 }
@@ -234,16 +221,14 @@ static int s2n_ecc_calculate_point_length(const EC_POINT * point, const EC_GROUP
 static int s2n_ecc_write_point_data_snug(const EC_POINT * point, const EC_GROUP * group, struct s2n_blob *out)
 {
     size_t ret = EC_POINT_point2oct(group, point, POINT_CONVERSION_UNCOMPRESSED, out->data, out->size, NULL);
-    if (ret != out->size) {
-        S2N_ERROR(S2N_ERR_ECDHE_SERIALIZING);
-    }
+    S2N_ERROR_IF(ret != out->size, S2N_ERR_ECDHE_SERIALIZING);
     return 0;
 }
 
 static int s2n_ecc_write_point_with_length(const EC_POINT * point, const EC_GROUP * group, struct s2n_stuffer *out)
 {
     uint8_t point_len;
-    struct s2n_blob point_blob;
+    struct s2n_blob point_blob = {0};
 
     GUARD(s2n_ecc_calculate_point_length(point, group, &point_len));
 
@@ -264,9 +249,7 @@ static int s2n_ecc_compute_shared_secret(EC_KEY * own_key, const EC_POINT * peer
     int shared_secret_size;
 
     field_degree = EC_GROUP_get_degree(EC_KEY_get0_group(own_key));
-    if (field_degree <= 0) {
-        S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
-    }
+    S2N_ERROR_IF(field_degree <= 0, S2N_ERR_ECDHE_SHARED_SECRET);
 
     shared_secret_size = (field_degree + 7) / 8;
     GUARD(s2n_alloc(shared_secret, shared_secret_size));
@@ -281,7 +264,7 @@ static int s2n_ecc_compute_shared_secret(EC_KEY * own_key, const EC_POINT * peer
 
 int s2n_ecc_find_supported_curve(struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **found)
 {
-    struct s2n_stuffer iana_ids_in;
+    struct s2n_stuffer iana_ids_in = {0};
 
     GUARD(s2n_stuffer_init(&iana_ids_in, iana_ids));
     GUARD(s2n_stuffer_write(&iana_ids_in, iana_ids));

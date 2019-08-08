@@ -15,8 +15,35 @@
 
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
+SUB_BUILDS = $(patsubst %/Makefile, %, $(wildcard */Makefile))
+
+BITCODE_DIR?=../tests/saw/bitcode/
+
+BCS_1=s2n_handshake_io.bc s2n_connection.bc s2n_kex.bc
+BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
 
 .PHONY : all
 all: $(OBJS)
+	$(foreach subfolder, $(SUB_BUILDS), $(MAKE) -C $(subfolder))
+
+.PHONY : bc
+bc: $(BCS)
+	$(foreach subfolder, $(SUB_BUILDS), $(MAKE) -C $(subfolder) bc)
+
+.PHONY : run-gcov
+run-gcov: gcov
+	$(foreach subfolder, $(SUB_BUILDS), $(MAKE) -C $(subfolder) gcov)
+
+.PHONY : run-lcov
+run-lcov: lcov
+	$(foreach subfolder, $(SUB_BUILDS), $(MAKE) -C $(subfolder) lcov)
+	
+.PHONY : indent
+indent: indentsource
+	$(foreach subfolder, $(SUB_BUILDS), ${MAKE} -C $(subfolder) indentsource)
+
+.PHONY : clean
+clean: decruft
+	$(foreach subfolder, $(SUB_BUILDS), ${MAKE} -C $(subfolder) decruft)
 
 include ../s2n.mk

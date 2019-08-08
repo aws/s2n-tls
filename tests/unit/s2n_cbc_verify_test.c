@@ -33,7 +33,11 @@
 #include "tls/s2n_record.h"
 #include "tls/s2n_prf.h"
 
-
+/*
+ * disable everything in this file if the compiler target isn't Intel x86 or x86_64. There's inline asm
+ * that can't really be replaced with an analog for other architectures.
+ */
+#if defined(__x86_64__) || defined(__i386__)
 /* qsort() u64s numerically */
 static int u64cmp (const void * left, const void * right)
 {
@@ -112,9 +116,16 @@ inline static uint64_t rdtsc(){
     __asm__ __volatile__ ("rdtsc" : "=a" (bot), "=d" (top));
     return ((uint64_t) top << 32) | bot;
 }
+#endif /* defined(__x86_64__) || defined(__i386__) */
 
 int main(int argc, char **argv)
 {
+    BEGIN_TEST();
+/*
+ * disable everything in this test if the compiler target isn't Intel x86 or x86_64. There's inline asm
+ * that can't really be replaced with an analog for other architectures.
+ */
+#if defined(__x86_64__) || defined(__i386__)
     struct s2n_connection *conn;
     uint8_t mac_key[] = "sample mac key";
     uint8_t fragment[S2N_SMALL_FRAGMENT_LENGTH];
@@ -122,7 +133,14 @@ int main(int argc, char **argv)
     struct s2n_hmac_state check_mac, record_mac;
     struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
 
-    BEGIN_TEST();
+
+    /* Valgrind affects execution timing, making this test unreliable */
+    if (getenv("S2N_VALGRIND") != NULL) {
+        END_TEST();
+    }
+
+    EXPECT_SUCCESS(s2n_hmac_new(&check_mac));
+    EXPECT_SUCCESS(s2n_hmac_new(&record_mac));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
     EXPECT_SUCCESS(s2n_get_urandom_data(&r));
@@ -148,7 +166,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
 
             uint64_t before = rdtsc();
-            EXPECT_SUCCESS(s2n_verify_cbc(conn, &check_mac, &decrypted)); 
+            EXPECT_SUCCESS(s2n_verify_cbc(conn, &check_mac, &decrypted));
             uint64_t after = rdtsc();
 
             timings[ t ] = (after - before);
@@ -161,7 +179,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
 
             uint64_t before = rdtsc();
-            EXPECT_SUCCESS(s2n_verify_cbc(conn, &check_mac, &decrypted)); 
+            EXPECT_SUCCESS(s2n_verify_cbc(conn, &check_mac, &decrypted));
             uint64_t after = rdtsc();
 
             timings[ t ] = (after - before);
@@ -183,7 +201,7 @@ int main(int argc, char **argv)
 
         /* Verify that the record would pass: the MAC and padding are ok */
         EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
-        EXPECT_SUCCESS(s2n_verify_cbc(conn, &check_mac, &decrypted)); 
+        EXPECT_SUCCESS(s2n_verify_cbc(conn, &check_mac, &decrypted));
 
         /* Corrupt a HMAC byte */
         fragment[i - 256]++;
@@ -192,7 +210,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
 
             uint64_t before = rdtsc();
-            EXPECT_FAILURE(s2n_verify_cbc(conn, &check_mac, &decrypted)); 
+            EXPECT_FAILURE(s2n_verify_cbc(conn, &check_mac, &decrypted));
             uint64_t after = rdtsc();
 
             timings[ t ] = (after - before);
@@ -226,7 +244,7 @@ int main(int argc, char **argv)
 
         /* Verify that the record would pass: the MAC and padding are ok */
         EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
-        EXPECT_SUCCESS(s2n_verify_cbc(conn, &check_mac, &decrypted)); 
+        EXPECT_SUCCESS(s2n_verify_cbc(conn, &check_mac, &decrypted));
 
         /* Now corrupt a padding byte */
         fragment[i - 10]++;
@@ -235,7 +253,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
 
             uint64_t before = rdtsc();
-            EXPECT_FAILURE(s2n_verify_cbc(conn, &check_mac, &decrypted)); 
+            EXPECT_FAILURE(s2n_verify_cbc(conn, &check_mac, &decrypted));
             uint64_t after = rdtsc();
 
             timings[ t ] = (after - before);
@@ -262,13 +280,17 @@ int main(int argc, char **argv)
         hi = mac_median + (mac_stddev / 2);
 
         if ((int64_t) pad_median < lo || (int64_t) pad_median > hi) {
-            printf("\n\nRecord size: %dMAC Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n"
+            printf("\n\nRecord size: %d\nMAC Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n"
                    "PAD Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n\n", 
                     i, mac_median, mac_avg, mac_stddev, pad_median, pad_avg, pad_stddev);
             FAIL();
         }
     }
+
+    EXPECT_SUCCESS(s2n_hmac_free(&check_mac));
+    EXPECT_SUCCESS(s2n_hmac_free(&record_mac));
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
+#endif /* defined(__x86_64__) || defined(__i386__) */
     END_TEST();
 }

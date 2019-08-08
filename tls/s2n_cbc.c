@@ -24,7 +24,6 @@
 #include "crypto/s2n_hmac.h"
 
 #include "tls/s2n_record.h"
-#include "tls/s2n_prf.h"
 
 /* A TLS CBC record looks like ..
  *
@@ -48,8 +47,12 @@
  */
 int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, struct s2n_blob *decrypted)
 {
-    struct s2n_hmac_state copy;
-
+    /* Set up MAC copy workspace */
+    struct s2n_hmac_state *copy = &conn->client->record_mac_copy_workspace;
+    if (conn->mode == S2N_CLIENT) {
+       copy = &conn->server->record_mac_copy_workspace;
+    }
+    
     uint8_t mac_digest_size;
     GUARD(s2n_hmac_digest_size(hmac->alg, &mac_digest_size));
 
@@ -66,7 +69,7 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
 
     /* Update the MAC */
     GUARD(s2n_hmac_update(hmac, decrypted->data, payload_length));
-    GUARD(s2n_hmac_copy(&copy, hmac));
+    GUARD(s2n_hmac_copy(copy, hmac));
 
     /* Check the MAC */
     uint8_t check_digest[S2N_MAX_DIGEST_LEN];
@@ -76,7 +79,7 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
     int mismatches = s2n_constant_time_equals(decrypted->data + payload_length, check_digest, mac_digest_size) ^ 1;
 
     /* Compute a MAC on the rest of the data so that we perform the same number of hash operations */
-    GUARD(s2n_hmac_update(&copy, decrypted->data + payload_length + mac_digest_size, decrypted->size - payload_length - mac_digest_size - 1));
+    GUARD(s2n_hmac_update(copy, decrypted->data + payload_length + mac_digest_size, decrypted->size - payload_length - mac_digest_size - 1));
 
     /* SSLv3 doesn't specify what the padding should actually be */
     if (conn->actual_protocol_version == S2N_SSLv3) {
@@ -92,9 +95,9 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
         mismatches |= (decrypted->data[j] ^ padding_length) & mask;
     }
 
-    if (mismatches) {
-        S2N_ERROR(S2N_ERR_CBC_VERIFY);
-    }
+    GUARD(s2n_hmac_reset(copy));
+
+    S2N_ERROR_IF(mismatches, S2N_ERR_CBC_VERIFY);
 
     return 0;
 }

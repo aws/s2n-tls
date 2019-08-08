@@ -69,21 +69,18 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
     void *data;
     if (!use_mlock) {
         data = realloc(b->data, size);
-        if (!data) {
-            S2N_ERROR(S2N_ERR_ALLOC);
-        }
+        S2N_ERROR_IF(!data, S2N_ERR_ALLOC);
 
         b->data = data;
         b->size = size;
         b->allocated = size;
+        b->mlocked = 0;
         return 0;
     }
 
     /* Page aligned allocation required for mlock */
     uint32_t allocate = page_size * (((size - 1) / page_size) + 1);
-    if (posix_memalign(&data, page_size, allocate)) {
-        S2N_ERROR(S2N_ERR_ALLOC);
-    }
+    S2N_ERROR_IF(posix_memalign(&data, page_size, allocate), S2N_ERR_ALLOC);
 
     if (b->size) {
         memcpy_check(data, b->data, b->size);
@@ -122,18 +119,38 @@ int s2n_free(struct s2n_blob *b)
     b->size = 0;
     b->allocated = 0;
 
-    if (munlock_rc < 0) {
-        S2N_ERROR(S2N_ERR_MUNLOCK);
-    }
+    S2N_ERROR_IF(munlock_rc < 0, S2N_ERR_MUNLOCK);
     b->mlocked = 0;
 
     return 0;
+}
+
+int s2n_free_object(uint8_t **p_data, uint32_t size)
+{
+    struct s2n_blob b = {0};
+    notnull_check(p_data);
+
+    if (*p_data == NULL) {
+        return 0;
+    }
+
+    b.data = *p_data;
+    b.size = size;
+    b.mlocked = use_mlock;
+
+    /* s2n_free() will call free() even if it returns error.
+    ** This makes sure *p_data is not used after free() */
+    *p_data = NULL;
+
+    return s2n_free(&b);
 }
 
 int s2n_dup(struct s2n_blob *from, struct s2n_blob *to)
 {
     eq_check(to->size, 0);
     eq_check(to->data, NULL);
+    ne_check(from->size, 0);
+    ne_check(from->data, NULL);
 
     GUARD(s2n_alloc(to, from->size));
     

@@ -26,7 +26,9 @@ fi
 
 INSTALL_DIR=$1
 
-cd $INSTALL_DIR
+cd "$INSTALL_DIR"
 git clone https://github.com/danmar/cppcheck.git
 cd cppcheck
+git checkout 1.88
+
 make

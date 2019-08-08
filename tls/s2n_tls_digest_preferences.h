@@ -19,7 +19,7 @@
 #include "crypto/s2n_hash.h"
 
 /* Table to translate TLS numbers to s2n algorithms */
-static s2n_hash_algorithm s2n_hash_tls_to_alg[] = {
+static const s2n_hash_algorithm s2n_hash_tls_to_alg[] = {
     [TLS_HASH_ALGORITHM_MD5] = S2N_HASH_MD5,
     [TLS_HASH_ALGORITHM_SHA1] = S2N_HASH_SHA1,
     [TLS_HASH_ALGORITHM_SHA224] = S2N_HASH_SHA224,
@@ -27,14 +27,21 @@ static s2n_hash_algorithm s2n_hash_tls_to_alg[] = {
     [TLS_HASH_ALGORITHM_SHA384] = S2N_HASH_SHA384,
     [TLS_HASH_ALGORITHM_SHA512] = S2N_HASH_SHA512 };
 
+/* Table to translate from s2n algorithm numbers to TLS numbers */
+static const uint8_t s2n_hash_alg_to_tls[] = {
+    [S2N_HASH_MD5] = TLS_HASH_ALGORITHM_MD5,
+    [S2N_HASH_SHA1] = TLS_HASH_ALGORITHM_SHA1,
+    [S2N_HASH_SHA224] = TLS_HASH_ALGORITHM_SHA224,
+    [S2N_HASH_SHA256] = TLS_HASH_ALGORITHM_SHA256,
+    [S2N_HASH_SHA384] = TLS_HASH_ALGORITHM_SHA384,
+    [S2N_HASH_SHA512] = TLS_HASH_ALGORITHM_SHA512 };
+
 /* Our own order of preference for signature hashes. No MD5 to avoid
  * SLOTH.
  */
-static uint8_t  s2n_preferred_hashes[] = {
+static const uint8_t s2n_preferred_hashes[] = {
     TLS_HASH_ALGORITHM_SHA256,
     TLS_HASH_ALGORITHM_SHA384,
     TLS_HASH_ALGORITHM_SHA512,
     TLS_HASH_ALGORITHM_SHA224,
     TLS_HASH_ALGORITHM_SHA1 };
-
-

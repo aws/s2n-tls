@@ -19,17 +19,22 @@
 
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
+#include "crypto/s2n_openssl.h"
 
 #include "utils/s2n_blob.h"
-
-#define S2N_MAX_DIGEST_LEN SHA512_DIGEST_LENGTH
 
 /* Enough to support TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384, 2*SHA384_DIGEST_LEN + 2*AES256_KEY_SIZE */
 #define S2N_MAX_KEY_BLOCK_LEN 160
 
-union s2n_prf_working_space {
+struct p_hash_state {
+    struct s2n_hmac_state s2n_hmac;
+    struct s2n_evp_hmac_state evp_hmac;
+};
+
+struct s2n_prf_working_space {
     struct {
-        struct s2n_hmac_state hmac;
+        const struct s2n_p_hash_hmac *p_hash_hmac_impl;
+        struct p_hash_state p_hash;
         uint8_t digest0[S2N_MAX_DIGEST_LEN];
         uint8_t digest1[S2N_MAX_DIGEST_LEN];
     } tls;
@@ -42,9 +47,24 @@ union s2n_prf_working_space {
     } ssl3;
 };
 
+/* The s2n p_hash implementation is abstracted to allow for separate implementations, using
+ * either s2n's formally verified HMAC or OpenSSL's EVP HMAC, for use by the TLS PRF. */
+struct s2n_p_hash_hmac {
+    int (*new) (struct s2n_prf_working_space *ws);
+    int (*init) (struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret);
+    int (*update) (struct s2n_prf_working_space *ws, const void *data, uint32_t size);
+    int (*final) (struct s2n_prf_working_space *ws, void *digest, uint32_t size);
+    int (*reset) (struct s2n_prf_working_space *ws);
+    int (*cleanup) (struct s2n_prf_working_space *ws);
+    int (*free) (struct s2n_prf_working_space *ws);
+};
+
 #include "tls/s2n_connection.h"
 
-extern int s2n_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret);
+extern int s2n_prf_new(struct s2n_connection *conn);
+extern int s2n_prf_free(struct s2n_connection *conn);
+extern int s2n_tls_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret);
+extern int s2n_hybrid_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret);
 extern int s2n_prf_key_expansion(struct s2n_connection *conn);
 extern int s2n_prf_server_finished(struct s2n_connection *conn);
 extern int s2n_prf_client_finished(struct s2n_connection *conn);

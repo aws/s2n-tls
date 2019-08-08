@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ if [ "$#" -ne "1" ]; then
     usage
 fi
 INSTALL_DIR=$1
-
-wget http://clang-analyzer.llvm.org/downloads/checker-278.tar.bz2
-mkdir -p $INSTALL_DIR && tar jxf checker-278.tar.bz2 --strip-components=1 -C $INSTALL_DIR
-
+# Originally from: http://clang-analyzer.llvm.org/downloads/checker-278.tar.bz2
+curl --retry 3 https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-29_clang-analyzer_checker.tar.bz2 --output checker-278.tar.bz2
+mkdir -p "$INSTALL_DIR" && tar jxf checker-278.tar.bz2 --strip-components=1 -C "$INSTALL_DIR"

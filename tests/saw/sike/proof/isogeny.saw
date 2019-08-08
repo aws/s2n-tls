@@ -1,0 +1,406 @@
+//isogeny.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// Verify the isogeny operations
+
+import "../spec/Loader.cry";
+import "../spec/interface/ec_isogeny.cry";
+import "../spec/shared/C_Types.cry";
+
+///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+let get_3_isog_spec = do {
+    (p, pp) <- A_point_t "P";
+    t2p <- C_f2elm_t();
+    t3p <- C_f2elm_t();
+    t4p <- crucible_alloc (llvm_array 2 f2elm_t);
+    crucible_precond {{ point_mod p }};
+    crucible_execute_func [pp, t2p, t3p, t4p];
+    t2' <- crucible_fresh_var "get_3_isog_t2'" f2elm_t;
+    crucible_points_to t2p (tm t2');
+    t3' <- crucible_fresh_var "get_3_isog_t3'" f2elm_t;
+    crucible_points_to t3p (tm t3');
+    t4' <- crucible_fresh_var "get_3_isog_t4'" (llvm_array 2 f2elm_t);
+    crucible_points_to t4p (tm t4');
+    crucible_postcond {{ (fp2norm t2', fp2norm t3', fp2norm_n2 t4') ==
+        get_3_isog (point_norm p)}};
+    crucible_postcond {{ pf2twice_mod t2' }};
+    crucible_postcond {{ pf2twice_mod t3' }};
+    crucible_postcond {{ pf2twice_n2_mod t4' }};
+};
+
+let get_4_isog_spec = do {
+    (p, pp) <- A_point_t "P";
+    t2p <- C_f2elm_t();
+    t3p <- C_f2elm_t();
+    t4p <- crucible_alloc (llvm_array 3 f2elm_t);
+    crucible_precond {{ point_mod p }};
+    crucible_execute_func [pp, t2p, t3p, t4p];
+    t2' <- crucible_fresh_var "get_4_isog_t2'" f2elm_t;
+    crucible_points_to t2p (tm t2');
+    t3' <- crucible_fresh_var "get_4_isog_t3'" f2elm_t;
+    crucible_points_to t3p (tm t3');
+    t4' <- crucible_fresh_var "get_4_isog_t4'" (llvm_array 3 f2elm_t);
+    crucible_points_to t4p (tm t4');
+    crucible_postcond {{ (fp2norm t2', fp2norm t3', fp2norm_n3 t4') ==
+        get_4_isog (point_norm p)}};
+    crucible_postcond {{ pf2twice_mod t2' }};
+    crucible_postcond {{ pf2twice_mod t3' }};
+    crucible_postcond {{ pf2twice_n3_mod t4' }};
+};
+
+let eval_3_isog_spec = do {
+    (q, qp) <- B_point_t  "Q";
+    (coeff, coeffp) <- ptr_to_fresh_readonly "coeff" (llvm_array 2 f2elm_t);
+    crucible_precond {{ point_mod q }};
+    crucible_precond {{ pf2twice_n2_mod coeff }};
+    crucible_execute_func [qp, coeffp];
+    q' <- crucible_fresh_var "eval_isog_q'" point_proj_t;
+    crucible_points_to qp (tm q');
+    crucible_postcond {{ point_norm q' ==
+        eval_3_isog (point_norm q) (fp2norm_n2 coeff) }};
+    crucible_postcond {{ point_mod q' }};
+};
+
+let eval_4_isog_spec = do {
+    (q, qp) <- B_point_t  "P";
+    (coeff, coeffp) <- ptr_to_fresh_readonly "coeff" (llvm_array 3 f2elm_t);
+    crucible_precond {{ point_mod q }};
+    crucible_precond {{ pf2twice_n3_mod coeff }};
+    crucible_execute_func [qp, coeffp];
+    q' <- crucible_fresh_var "eval_isog_q'" point_proj_t;
+    crucible_points_to qp (tm q');
+    crucible_postcond {{ point_norm q' ==
+        eval_4_isog (point_norm q) (fp2norm_n3 coeff) }};
+    crucible_postcond {{ point_mod q' }};
+};
+
+let get_A_spec = do {
+    (p, pp) <- A_f2elm_t "xP";
+    (q, qp) <- A_f2elm_t "xQ";
+    (r, rp) <- A_f2elm_t "xR";
+    ap <- C_f2elm_t ();
+    crucible_precond {{ pf2twice_mod p }};
+    crucible_precond {{ pf2twice_mod q }};
+    crucible_precond {{ pf2twice_mod r }};
+    crucible_execute_func [pp, qp, rp, ap];
+    a <- crucible_fresh_var "A" f2elm_t;
+    crucible_points_to ap (tm a);
+    crucible_postcond {{ fp2norm a ==
+        get_A_match (fp2norm p) (fp2norm q) (fp2norm r) }};
+    crucible_postcond {{ pf2twice_mod a }};
+};
+
+let inv_3_way_spec = do {
+    (z1, z1p) <- B_f2elm_t "z1";
+    (z2, z2p) <- B_f2elm_t "z2";
+    (z3, z3p) <- B_f2elm_t "z3";
+    crucible_precond {{ pf2twice_mod z1 }};
+    crucible_precond {{ pf2twice_mod z2 }};
+    crucible_precond {{ pf2twice_mod z3 }};
+    crucible_execute_func [z1p, z2p, z3p];
+    y1 <- crucible_fresh_var "inv_3_y1" f2elm_t;
+    crucible_points_to z1p (tm y1);
+    y2 <- crucible_fresh_var "inv_3_y2" f2elm_t;
+    crucible_points_to z2p (tm y2);
+    y3 <- crucible_fresh_var "inv_3_y3" f2elm_t;
+    crucible_points_to z3p (tm y3);
+    crucible_postcond {{ (fp2norm y1, fp2norm y2, fp2norm y3) ==
+        inv_3_way ((fp2norm z1), (fp2norm z2), (fp2norm z3)) }};
+    crucible_postcond {{ pf2twice_mod y1 }};
+    crucible_postcond {{ pf2twice_mod y2 }};
+    crucible_postcond {{ pf2twice_mod y3 }};
+};
+
+let j_inv_spec = do {
+    (a, ap) <- A_f2elm_t "A";
+    (c, cp) <- A_f2elm_t "C";
+    jinvp <- C_f2elm_t();
+    crucible_precond {{ pf2twice_mod a }};
+    crucible_precond {{ pf2twice_mod c }};
+    crucible_execute_func [ap, cp, jinvp];
+    jinv <- crucible_fresh_var "jinv" f2elm_t;
+    crucible_points_to jinvp (tm jinv);
+    crucible_postcond {{ fp2norm jinv ==
+        j_inv_match (fp2norm a) (fp2norm c) }};
+    crucible_postcond {{ pf2twice_mod jinv }};
+};
+
+let xDBLADD_spec = do {
+    (p, pp) <- B_point_t "P";
+    (q, qp) <- B_point_t  "Q";
+    (t3, t3p) <- A_f2elm_t "xPQ";
+    (t4, t4p) <- A_f2elm_t "A24";
+    crucible_precond {{ point_mod p }};
+    crucible_precond {{ point_mod q }};
+    crucible_precond {{ pf2twice_mod t3 }};
+    crucible_precond {{ pf2twice_mod t4 }};
+    crucible_execute_func [pp, qp, t3p, t4p];
+    p' <- crucible_fresh_var "xDBLADD_p'" point_proj_t;
+    crucible_points_to pp (tm p');
+    q' <- crucible_fresh_var "xDBLADD_q'" point_proj_t;
+    crucible_points_to qp (tm q');
+    crucible_postcond {{ (point_norm p', point_norm q') ==
+        xdbladd (point_norm p) (point_norm q) (fp2norm t3) (fp2norm t4) }};
+    crucible_postcond {{ point_mod p' }};
+    crucible_postcond {{ point_mod q' }};
+};
+
+let swap_points_spec_orig = do {
+    (p, pp) <- B_point_t "P";
+    (q, qp) <- B_point_t  "Q";
+    t <- crucible_fresh_var "option" (llvm_int 64);
+    crucible_execute_func [pp, qp, tm t];
+    p' <- crucible_fresh_var "swap_points_p'" point_proj_t;
+    crucible_points_to pp (tm p');
+    q' <- crucible_fresh_var "swap_points_q'" point_proj_t;
+    crucible_points_to qp (tm q');
+};
+
+let swap_points_spec = do {
+    (p, pp) <- B_point_t "P";
+    (q, qp) <- B_point_t  "Q";
+    t <- crucible_fresh_var "option" (llvm_int 64);
+    crucible_precond {{ t == 0 \/ t == -1 }};
+    crucible_precond {{ point_mod p }};
+    crucible_precond {{ point_mod q }};
+    crucible_execute_func [pp, qp, tm t];
+    p' <- crucible_fresh_var "p'_swap" point_proj_t;
+    q' <- crucible_fresh_var "q'_swap" point_proj_t;
+    crucible_points_to pp (tm p');
+    crucible_points_to qp (tm q');
+    crucible_postcond {{ (p', q') == swap_points p q t }};
+    crucible_postcond {{ point_mod p' }};
+    crucible_postcond {{ point_mod q' }};
+};
+
+let swap_points_spec' = do {
+    (p, pp) <- B_point_t "P";
+    (q, qp) <- B_point_t  "Q";
+    t <- crucible_fresh_var "option" (llvm_int 64);
+    crucible_precond {{ t == 0 \/ t == -1 }};
+    crucible_precond {{ point_mod p }};
+    crucible_precond {{ point_mod q }};
+    crucible_execute_func [pp, qp, tm t];
+    p' <- crucible_fresh_var "p'_swap" point_proj_t;
+    q' <- crucible_fresh_var "q'_swap" point_proj_t;
+    crucible_points_to pp (tm p');
+    crucible_points_to qp (tm q');
+    crucible_equal (tm p') (tm {{ (swap_points p q t).0 }});
+    crucible_equal (tm q') (tm {{ (swap_points p q t).1 }});
+    crucible_postcond {{ point_mod p' }};
+    crucible_postcond {{ point_mod q' }};
+};
+
+/* NOTES for LADDER3PT proof:
+
+ - We cannot prove LADDER3PT currently due to the large number of
+   iterations, so have proved things about LADDER3PT_short, a variant
+   that iterates a number of times given by its parameter.
+
+ - We have shown that for small numbers of iterations, LADDER3PT_short
+   code agrees with the Cryptol definition.
+
+ - For that proof, we added some conditions in as extra preconditions,
+   but have also proved that these conditions are always true.
+   However, the "goal_insert" mechansim that should let us drop these
+   preconditions is not working well at the moment.
+
+ - The proof could be optimized, currently the proving time increases
+   around 5 times for every iteration.
+
+ - We finally just admit the specification of the real LADDER3PT.
+
+*/
+
+let LADDER3PT_short_spec nbits = do {
+
+    (t1, t1p) <- A_f2elm_t "xP";
+    (t2, t2p) <- A_f2elm_t "xQ";
+    (t3, t3p) <- A_f2elm_t "xPQ";
+    (t4, t4p) <- A_param "m" (llvm_array 4 digit_t);
+    t6p <- C_point_t (); // "R"
+    (t7, t7p) <- A_f2elm_t "A";
+
+    // NOTE: Temporary preconditions
+    crucible_precond {{ pftwice_mod g_Montgomery_one }};
+    crucible_precond {{ pftwice_mod zero }};
+    crucible_precond {{ fpnorm zero == zero }};
+    crucible_precond {{ fpnorm g_Montgomery_one == g_Montgomery_one }};
+
+    // NOTE: Real preconditions
+    crucible_precond {{ pf2twice_mod t1 }};
+    crucible_precond {{ pf2twice_mod t2 }};
+    crucible_precond {{ pf2twice_mod t3 }};
+    crucible_precond {{ pf2twice_mod t7 }};
+
+    crucible_execute_func
+        [t1p, t2p, t3p, t4p, (tm {{`nbits : [32]}}), t6p, t7p];
+    t6 <- crucible_fresh_var "LADDER3PT_R" point_proj_t;
+    crucible_points_to t6p (tm t6);
+    crucible_postcond {{ point_mod t6 }};
+    crucible_equal
+        (tm {{ point_norm t6 }})
+        (tm {{ ladder3pt_short (fp2norm t1) (fp2norm t2)
+            (fp2norm t3) t4 (`nbits: [32]) (fp2norm t7) }});
+};
+
+// NOTE: This proofscript does not include temporary preconditions
+let LADDER3PT_short_spec' nbits = do {
+
+    (t1, t1p) <- A_f2elm_t "xP";
+    (t2, t2p) <- A_f2elm_t "xQ";
+    (t3, t3p) <- A_f2elm_t "xPQ";
+    (t4, t4p) <- A_param "m" (llvm_array 4 digit_t);
+    t6p <- C_point_t (); // "R"
+    (t7, t7p) <- A_f2elm_t "A";
+
+    crucible_precond {{ pf2twice_mod t1 }};
+    crucible_precond {{ pf2twice_mod t2 }};
+    crucible_precond {{ pf2twice_mod t3 }};
+    crucible_precond {{ pf2twice_mod t7 }};
+
+    crucible_execute_func
+        [t1p, t2p, t3p, t4p, (tm {{`nbits : [32]}}), t6p, t7p];
+    t6 <- crucible_fresh_var "LADDER3PT_R" point_proj_t;
+    crucible_points_to t6p (tm t6);
+
+    crucible_postcond {{ point_mod t6 }};
+    crucible_equal
+        (tm {{ point_norm t6 }})
+        (tm {{ ladder3pt_short (fp2norm t1) (fp2norm t2)
+            (fp2norm t3) t4 (`nbits: [32]) (fp2norm t7) }});
+};
+
+let LADDER3PT_spec = do {
+
+    (t1, t1p) <- A_f2elm_t "xP";
+    (t2, t2p) <- A_f2elm_t "xQ";
+    (t3, t3p) <- A_f2elm_t "xPQ";
+    (t4, t4p) <- A_param "m" (llvm_array 4 digit_t);
+    t5 <- A_uint_t "AliceOrBob";
+    t6p <- C_point_t ();
+    (t7, t7p) <- A_f2elm_t "A";
+
+    crucible_precond {{ pf2twice_mod t1 }};
+    crucible_precond {{ pf2twice_mod t2 }};
+    crucible_precond {{ pf2twice_mod t3 }};
+    crucible_precond {{ pf2twice_mod t7 }};
+
+    crucible_execute_func [t1p, t2p, t3p, t4p, tm t5, t6p, t7p];
+    t6 <- crucible_fresh_var "LADDER3PT_R" point_proj_t;
+
+    crucible_postcond {{ point_mod t6 }};
+    crucible_points_to t6p (tm t6);
+    crucible_equal
+        (tm {{ point_norm t6 }})
+        (tm {{ ladder3pt (fp2norm t1) (fp2norm t2)
+            (fp2norm t3) t4 t5 (fp2norm t7) }});
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+let eval_iv = ["fp2add503", "fp2sub503", "fp2mul503_mont", "fp2sqr503_mont"];
+
+get_3_isog_ov <- verify_unint "get_3_isog"
+    [ fp2add503_ov, fp2add503_left_ov, fp2add503_right_ov, fp2add503_same_ov
+    , fp2sub503_ov,fp2sub503_left_ov
+    , fp2mul503_mont_ov, fp2mul503_mont_left_ov, fp2mul503_mont_right_ov
+    , fp2sqr503_mont_ov, fp2sqr503_mont_same_ov ]
+    [ "fp2add503", "fp2mul503_mont", "fp2sqr503_mont", "fp2sub503" ]
+    get_3_isog_spec;
+
+get_4_isog_ov <- verify_unint "get_4_isog"
+    [ fp2add503_ov, fp2add503_left_ov, fp2add503_right_ov, fp2add503_same_ov
+    , fp2sub503_ov, fp2mul503_mont_ov, fp2mul503_mont_left_ov
+    , fp2sqr503_mont_ov, fp2sqr503_mont_same_ov ]
+    [ "fp2add503", "fp2mul503_mont", "fp2sqr503_mont", "fp2sub503" ]
+    get_4_isog_spec;
+
+let eval_ov =
+    [ fp2add503_ov, fp2sub503_ov, fp2sub503_right_ov
+    , fp2mul503_mont_ov, fp2mul503_mont_left_ov
+    , fp2sqr503_mont_same_ov ];
+
+eval_3_isog_ov <- verify_unint "eval_3_isog" eval_ov eval_iv eval_3_isog_spec;
+eval_4_isog_ov <- verify_unint "eval_4_isog" eval_ov eval_iv eval_4_isog_spec;
+
+get_A_ov <- verify_unint "get_A"
+    [ fp2copy503_ov, fp2add503_ov, fp2add503_left_ov
+    , fp2add503_right_ov, fp2add503_same_ov
+    , fp2sub503_left_ov, fp2mul503_mont_ov, fp2mul503_mont_left_ov
+    , fp2sqr503_mont_same_ov, fp2inv503_mont_ov ]
+    [ "fp2copy503", "fp2add503", "fp2sub503"
+    , "fp2mul503_mont", "fp2sqr503_mont", "fp2inv503_mont" ]
+    get_A_spec;
+
+inv_3_way_ov <- verify_unint "inv_3_way"
+    [ fp2copy503_ov, fp2mul503_mont_ov, fp2inv503_mont_ov ]
+    [ "fp2copy503", "fp2mul503_mont", "fp2inv503_mont" ]
+    inv_3_way_spec;
+
+j_inv_ov <- verify_unint "j_inv"
+    [ fp2add503_left_ov, fp2add503_ov, fp2add503_same_ov, fp2add503_pair_ov
+    , fp2sub503_ov, fp2sub503_left_ov, fp2sub503_right_ov
+    , fp2mul503_mont_left_ov, fp2sqr503_mont_ov, fp2sqr503_mont_same_ov
+    , fp2inv503_mont_ov ]
+    [ "fp2add503", "fp2sub503", "fp2mul503_mont"
+    , "fp2sqr503_mont", "fp2inv503_mont" ]
+    j_inv_spec;
+
+xDBLADD_ov <- verify_unint "xDBLADD"
+    [ fp2add503_ov, fp2add503_left_ov, fp2add503_right_ov
+    , fp2sub503_ov, fp2correction503_norm_ov
+    , fp2mul503_mont_ov, fp2mul503_mont_left_ov
+    , fp2sqr503_mont_ov, fp2sqr503_mont_same_ov ]
+    [ "fp2add503", "fp2mul503_mont", "fp2sqr503_mont"
+    , "fp2sub503", "fp2norm" ]
+    xDBLADD_spec;
+
+swap_points_ov <- verify "swap_points" [] swap_points_spec;
+swap_points_ov' <- verify "swap_points" [] swap_points_spec';
+
+let fp_functions =
+    [ "fpnorm", "fpnormalized", "fpneg503", "pftwice_mod"
+    , "fpadd503", "fpsub503", "fpdiv2_503", "fpzero503"
+    , "fpmul503_mont", "fpsqr503_mont", "rdc_mont"
+    , "to_mont", "from_mont", "fpinv503_chain_mont", "fpinv503_mont" ];
+
+let fp2_functions =
+    [ "fp2norm", "fp2normalized", "fp2neg503", "pf2twice_mod"
+    , "fp2add503", "fp2sub503", "fp2div2_503"
+    , "fp2mul503_mont", "fp2sqr503_mont", "fp2inv503_mont" ];
+
+let ladder_unint = concat fp_functions
+    ["fp2neg503", "fp2add503", "fp2sub503", "fp2div2_503"
+    , "fp2mul503_mont", "fp2sqr503_mont", "fp2inv503_mont", "fp2normalized"
+    , "xdbladd_" ];
+
+let ladder_overrides =
+    [ fpcopy503_ov, fpzero503_ov, fp2copy503_ov, fp2add503_right_ov
+    , fp2add503_same_ov, fp2div2_503_same_ov, fp2mul503_mont_left_ov
+    , swap_points_ov, xDBLADD_ov ];
+
+// NOTE: These are proven so they can be used as rewrites in later proofs
+ladder_thm1 <- prove_print (tactic [])
+    {{ pftwice_mod g_Montgomery_one == True }};
+ladder_thm2 <- prove_print (tactic [])
+    {{ pftwice_mod zero == True }};
+ladder_thm3 <- prove_print (tactic [])
+    {{ fpnorm zero == zero }};
+ladder_thm4 <- prove_print (tactic [])
+    {{ fpnorm g_Montgomery_one == g_Montgomery_one }};
+
+let LADDER3PT_rewrites = [ladder_thm1, ladder_thm2, ladder_thm3, ladder_thm4];
+
+LADDER3PT_ov1 <- verify_unint "LADDER3PT_short" ladder_overrides
+    ladder_unint (LADDER3PT_short_spec 0);
+LADDER3PT_ov2 <- verify_unint "LADDER3PT_short" ladder_overrides
+    ladder_unint (LADDER3PT_short_spec 1);
+LADDER3PT_ov3 <- verify_unint "LADDER3PT_short" ladder_overrides
+    ladder_unint (LADDER3PT_short_spec 2);
+
+LADDER3PT_ov <- admit "LADDER3PT" ladder_overrides LADDER3PT_spec;

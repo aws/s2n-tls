@@ -21,17 +21,14 @@
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
-
+#include "tls/s2n_x509_validator.h"
 #include "utils/s2n_safety.h"
 
 int s2n_server_status_send(struct s2n_connection *conn)
 {
-    uint32_t length = conn->config->cert_and_key_pairs->ocsp_status.size + 4;
-    GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, length));
-
     GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, (uint8_t) S2N_STATUS_REQUEST_OCSP));
-    GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, conn->config->cert_and_key_pairs->ocsp_status.size));
-    GUARD(s2n_stuffer_write(&conn->handshake.io, &conn->config->cert_and_key_pairs->ocsp_status));
+    GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, conn->handshake_params.our_chain_and_key->ocsp_status.size));
+    GUARD(s2n_stuffer_write(&conn->handshake.io, &conn->handshake_params.our_chain_and_key->ocsp_status));
 
     return 0;
 }
@@ -50,7 +47,11 @@ int s2n_server_status_recv(struct s2n_connection *conn)
         GUARD(s2n_alloc(&conn->status_response, status.size));
         memcpy_check(conn->status_response.data, status.data, status.size);
         conn->status_response.size = status.size;
+
+        return s2n_x509_validator_validate_cert_stapled_ocsp_response(&conn->x509_validator, conn,
+                                                                      conn->status_response.data, conn->status_response.size);
     }
 
     return 0;
 }
+

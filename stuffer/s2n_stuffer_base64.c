@@ -62,6 +62,11 @@ static const uint8_t b64_inverse[256] = {
     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255
 };
 
+int s2n_is_base64_char(char c)
+{
+    return (b64_inverse[(uint8_t) c] != 255);
+}
+
 /**
  * NOTE:
  * In general, shift before masking. This avoids needing to worry about how the
@@ -95,25 +100,19 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
         /* The first two characters can never be '=' and in general
          * everything has to be a valid character. 
          */
-        if (value1 == 64 || value2 == 64 || value2 == 255 || value3 == 255 || value4 == 255) {
-            S2N_ERROR(S2N_ERR_INVALID_BASE64);
-        }
+        S2N_ERROR_IF(value1 == 64 || value2 == 64 || value2 == 255 || value3 == 255 || value4 == 255, S2N_ERR_INVALID_BASE64);
 
         if (o.data[2] == '=') {
             /* If there is only one output byte, then the second value
              * should have none of its bottom four bits set.
              */
-            if (o.data[3] != '=' || value2 & 0x0f) {
-                S2N_ERROR(S2N_ERR_INVALID_BASE64);
-            }
+            S2N_ERROR_IF(o.data[3] != '=' || value2 & 0x0f, S2N_ERR_INVALID_BASE64);
             bytes_this_round = 1;
             value3 = 0;
             value4 = 0;
         } else if (o.data[3] == '=') {
             /* The last two bits of the final value should be unset */
-            if (value3 & 0x03) {
-                S2N_ERROR(S2N_ERR_INVALID_BASE64);
-            }
+            S2N_ERROR_IF(value3 & 0x03, S2N_ERR_INVALID_BASE64);
 
             bytes_this_round = 2;
             value4 = 0;

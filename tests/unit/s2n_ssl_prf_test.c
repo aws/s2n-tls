@@ -18,6 +18,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "crypto/s2n_fips.h"
 #include "testlib/s2n_testlib.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_prf.h"
@@ -50,6 +51,10 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
+    if (s2n_is_in_fips_mode()) {
+        /* Skip when FIPS mode is set as FIPS mode does not support SSLv3 */
+        END_TEST();
+    }
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
@@ -80,7 +85,7 @@ int main(int argc, char **argv)
     conn->actual_protocol_version = S2N_SSLv3;
     pms.data = conn->secure.rsa_premaster_secret;
     pms.size = sizeof(conn->secure.rsa_premaster_secret);
-    EXPECT_SUCCESS(s2n_prf_master_secret(conn, &pms));
+    EXPECT_SUCCESS(s2n_tls_prf_master_secret(conn, &pms));
 
     /* Convert the master secret to hex */
     for (int i = 0; i < 48; i++) {

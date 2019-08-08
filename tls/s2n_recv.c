@@ -50,6 +50,8 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
         return 0;
     }
 
+    GUARD(s2n_stuffer_resize_if_empty(&conn->in, S2N_LARGE_FRAGMENT_LENGTH));
+
     /* Read the record until we at least have a header */
     while (s2n_stuffer_data_available(&conn->header_in) < S2N_TLS_RECORD_HEADER_LENGTH) {
         int remaining = S2N_TLS_RECORD_HEADER_LENGTH - s2n_stuffer_data_available(&conn->header_in);
@@ -130,7 +132,6 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
     struct s2n_blob out = {.data = (uint8_t *) buf };
 
     if (conn->closed) {
-        GUARD(s2n_connection_wipe(conn));
         return 0;
     }
 
@@ -144,7 +145,6 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
             if (s2n_errno == S2N_ERR_CLOSED) {
                 *blocked = S2N_NOT_BLOCKED;
                 if (!bytes_read) {
-                    GUARD(s2n_connection_wipe(conn));
                     return 0;
                 } else {
                     return bytes_read;
@@ -158,16 +158,14 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
             }
 
             /* If we get here, it's an error condition */
-            if (s2n_errno != S2N_ERR_BLOCKED && s2n_is_caching_enabled(conn->config) && conn->session_id_len) {
-                conn->config->cache_delete(conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
+            if (s2n_errno != S2N_ERR_BLOCKED && s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
+                conn->config->cache_delete(conn, conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
             }
 
             return -1;
         }
 
-        if (isSSLv2) {
-            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-        }
+        S2N_ERROR_IF(isSSLv2, S2N_ERR_BAD_MESSAGE);
 
         if (record_type != TLS_APPLICATION_DATA) {
             if (record_type == TLS_ALERT) {
@@ -209,6 +207,10 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
     return bytes_read;
 }
 
+uint32_t s2n_peek(struct s2n_connection *conn) {
+    return s2n_stuffer_data_available(&conn->in);
+}
+
 int s2n_recv_close_notify(struct s2n_connection *conn, s2n_blocked_status * blocked)
 {
     uint8_t record_type;
@@ -217,13 +219,9 @@ int s2n_recv_close_notify(struct s2n_connection *conn, s2n_blocked_status * bloc
 
     GUARD(s2n_read_full_record(conn, &record_type, &isSSLv2));
 
-    if (isSSLv2) {
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
+    S2N_ERROR_IF(isSSLv2, S2N_ERR_BAD_MESSAGE);
 
-    if (record_type != TLS_ALERT) {
-        S2N_ERROR(S2N_ERR_SHUTDOWN_RECORD_TYPE);
-    }
+    S2N_ERROR_IF(record_type != TLS_ALERT, S2N_ERR_SHUTDOWN_RECORD_TYPE);
 
     /* Only succeeds for an incoming close_notify alert */
     GUARD(s2n_process_alert_fragment(conn));

@@ -19,8 +19,8 @@
 
 #include "tls/s2n_connection.h"
 
-extern uint8_t s2n_highest_protocol_version;
 extern uint8_t s2n_unknown_protocol_version;
+extern uint8_t s2n_highest_protocol_version;
 
 extern int s2n_flush(struct s2n_connection *conn, s2n_blocked_status * more);
 extern int s2n_client_hello_send(struct s2n_connection *conn);
@@ -34,12 +34,20 @@ extern int s2n_server_status_send(struct s2n_connection *conn);
 extern int s2n_server_status_recv(struct s2n_connection *conn);
 extern int s2n_server_key_send(struct s2n_connection *conn);
 extern int s2n_server_key_recv(struct s2n_connection *conn);
+extern int s2n_client_cert_req_recv(struct s2n_connection *conn);
+extern int s2n_client_cert_req_send(struct s2n_connection *conn);
 extern int s2n_server_done_send(struct s2n_connection *conn);
 extern int s2n_server_done_recv(struct s2n_connection *conn);
+extern int s2n_client_cert_recv(struct s2n_connection *conn);
+extern int s2n_client_cert_send(struct s2n_connection *conn);
 extern int s2n_client_key_send(struct s2n_connection *conn);
 extern int s2n_client_key_recv(struct s2n_connection *conn);
+extern int s2n_client_cert_verify_recv(struct s2n_connection *conn);
+extern int s2n_client_cert_verify_send(struct s2n_connection *conn);
 extern int s2n_client_ccs_send(struct s2n_connection *conn);
 extern int s2n_client_ccs_recv(struct s2n_connection *conn);
+extern int s2n_server_nst_send(struct s2n_connection *conn);
+extern int s2n_server_nst_recv(struct s2n_connection *conn);
 extern int s2n_server_ccs_send(struct s2n_connection *conn);
 extern int s2n_server_ccs_recv(struct s2n_connection *conn);
 extern int s2n_client_finished_send(struct s2n_connection *conn);
@@ -52,15 +60,27 @@ extern int s2n_handshake_parse_header(struct s2n_connection *conn, uint8_t * mes
 extern int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int *isSSLv2);
 extern int s2n_recv_close_notify(struct s2n_connection *conn, s2n_blocked_status * blocked);
 extern int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out);
-extern int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *extensions);
+extern int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *parsed_extensions);
 extern int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 extern int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *extensions);
 
+extern uint16_t mfl_code_to_length[5];
+
+#define s2n_server_received_server_name(conn) ((conn)->server_name[0] != 0)
+
+#define s2n_server_can_send_ec_point_formats(conn) \
+        ((conn)->ec_point_formats)
+
 #define s2n_server_can_send_ocsp(conn) ((conn)->status_type == S2N_STATUS_REQUEST_OCSP && \
-        (conn)->config->cert_and_key_pairs && \
-        (conn)->config->cert_and_key_pairs->ocsp_status.size > 0)
+        (conn)->handshake_params.our_chain_and_key && \
+        (conn)->handshake_params.our_chain_and_key->ocsp_status.size > 0)
+
+#define s2n_server_sent_ocsp(conn) ((conn)->mode == S2N_CLIENT && \
+        (conn)->status_type == S2N_STATUS_REQUEST_OCSP)
 
 #define s2n_server_can_send_sct_list(conn) ((conn)->ct_level_requested == S2N_CT_SUPPORT_REQUEST && \
-        (conn)->config->cert_and_key_pairs && \
-        (conn)->config->cert_and_key_pairs->sct_list.size > 0)
+        (conn)->handshake_params.our_chain_and_key && \
+        (conn)->handshake_params.our_chain_and_key->sct_list.size > 0)
 
+#define s2n_server_sending_nst(conn) ((conn)->config->use_tickets && \
+        (conn)->session_ticket_status == S2N_NEW_TICKET)

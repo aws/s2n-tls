@@ -14,9 +14,6 @@
  */
 
 #include <sys/param.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
 
 #include "error/s2n_errno.h"
 
@@ -79,15 +76,13 @@ int s2n_stuffer_free(struct s2n_stuffer *stuffer)
 
 int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size)
 {
-    if (stuffer->growable == 0) {
-        S2N_ERROR(S2N_ERR_RESIZE_STATIC_STUFFER);
-    }
-    if (stuffer->tainted == 1) {
-        S2N_ERROR(S2N_ERR_RESIZE_TAINTED_STUFFER);
-    }
+    S2N_ERROR_IF(stuffer->tainted == 1, S2N_ERR_RESIZE_TAINTED_STUFFER);
+    S2N_ERROR_IF(stuffer->growable == 0, S2N_ERR_RESIZE_STATIC_STUFFER);
+
     if (size == stuffer->blob.size) {
         return 0;
     }
+
     if (size < stuffer->blob.size) {
         GUARD(s2n_stuffer_wipe_n(stuffer, stuffer->blob.size - size));
     }
@@ -99,11 +94,29 @@ int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size)
     return 0;
 }
 
+int s2n_stuffer_resize_if_empty(struct s2n_stuffer *stuffer, const uint32_t size)
+{
+    if (stuffer->blob.data == NULL) {
+        GUARD(s2n_stuffer_resize(stuffer, size));
+    }
+
+    return 0;
+}
+
 int s2n_stuffer_rewrite(struct s2n_stuffer *stuffer)
 {
     stuffer->write_cursor = 0;
     stuffer->read_cursor = 0;
 
+    return 0;
+}
+
+int s2n_stuffer_rewind_read(struct s2n_stuffer *stuffer, const uint32_t size)
+{
+    if(stuffer->read_cursor < size){
+        S2N_ERROR(S2N_ERR_STUFFER_OUT_OF_DATA);
+    }
+    stuffer->read_cursor -= size;
     return 0;
 }
 
@@ -130,6 +143,21 @@ int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t size)
     return 0;
 }
 
+int s2n_stuffer_release_if_empty(struct s2n_stuffer *stuffer)
+{
+    if (stuffer->blob.data == NULL) {
+        return 0;
+    }
+
+    S2N_ERROR_IF(stuffer->read_cursor != stuffer->write_cursor,
+            S2N_ERR_STUFFER_HAS_UNPROCESSED_DATA);
+
+    GUARD(s2n_stuffer_wipe(stuffer));
+    GUARD(s2n_stuffer_resize(stuffer, 0));
+
+    return 0;
+}
+
 int s2n_stuffer_wipe(struct s2n_stuffer *stuffer)
 {
     stuffer->tainted = 0;
@@ -138,9 +166,7 @@ int s2n_stuffer_wipe(struct s2n_stuffer *stuffer)
 
 int s2n_stuffer_skip_read(struct s2n_stuffer *stuffer, uint32_t n)
 {
-    if (s2n_stuffer_data_available(stuffer) < n) {
-        S2N_ERROR(S2N_ERR_STUFFER_OUT_OF_DATA);
-    }
+    S2N_ERROR_IF(s2n_stuffer_data_available(stuffer) < n, S2N_ERR_STUFFER_OUT_OF_DATA);
 
     stuffer->read_cursor += n;
     return 0;
@@ -167,9 +193,7 @@ int s2n_stuffer_erase_and_read(struct s2n_stuffer *stuffer, struct s2n_blob *out
     GUARD(s2n_stuffer_skip_read(stuffer, out->size));
 
     void *ptr = stuffer->blob.data + stuffer->read_cursor - out->size;
-    if (ptr == NULL) {
-        return -1;
-    }
+    notnull_check(ptr);
 
     memcpy_check(out->data, ptr, out->size);
     memset(ptr, 0, out->size);
@@ -185,6 +209,19 @@ int s2n_stuffer_read_bytes(struct s2n_stuffer *stuffer, uint8_t * data, uint32_t
     notnull_check(ptr);
 
     memcpy_check(data, ptr, size);
+
+    return 0;
+}
+
+int s2n_stuffer_erase_and_read_bytes(struct s2n_stuffer *stuffer, uint8_t * data, uint32_t size)
+{
+    GUARD(s2n_stuffer_skip_read(stuffer, size));
+
+    void *ptr = stuffer->blob.data + stuffer->read_cursor - size;
+    notnull_check(ptr);
+
+    memcpy_check(data, ptr, size);
+    memset(ptr, 0, size);
 
     return 0;
 }
@@ -226,9 +263,7 @@ int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t * data, c
     GUARD(s2n_stuffer_skip_write(stuffer, size));
 
     void *ptr = stuffer->blob.data + stuffer->write_cursor - size;
-    if (ptr == NULL) {
-        return -1;
-    }
+    notnull_check(ptr);
 
     if (ptr == data) {
         return 0;

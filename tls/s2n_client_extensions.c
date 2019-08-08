@@ -18,16 +18,22 @@
 
 #include "error/s2n_errno.h"
 
+#include "tls/s2n_cipher_preferences.h"
+#include "tls/s2n_kem.h"
+#include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_tls_digest_preferences.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_client_extensions.h"
+#include "tls/s2n_resume.h"
 
+#include "extensions/s2n_client_supported_versions.h"
 #include "stuffer/s2n_stuffer.h"
 
+#include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-static int s2n_recv_client_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension);
@@ -35,18 +41,47 @@ static int s2n_recv_client_elliptic_curves(struct s2n_connection *conn, struct s
 static int s2n_recv_client_ec_point_formats(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_sct_list(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_recv_client_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_recv_client_session_ticket_ext(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_recv_pq_kem_extension(struct s2n_connection *conn, struct s2n_stuffer *extension);
+
+static int s2n_send_client_signature_algorithms_extension(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    /* The extension header */
+    GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SIGNATURE_ALGORITHMS));
+
+    /* Each hash-signature-alg pair is two bytes, and there's another two bytes for
+     * the extension length field.
+     */
+    uint16_t preferred_hashes_len = s2n_array_len(s2n_preferred_hashes);
+    uint16_t num_signature_algs = s2n_array_len(s2n_preferred_signature_algorithms);
+    uint16_t preferred_hash_sigalg_size = preferred_hashes_len * num_signature_algs * 2;
+    uint16_t extension_len_field_size = 2;
+
+    GUARD(s2n_stuffer_write_uint16(out, extension_len_field_size + preferred_hash_sigalg_size));
+    GUARD(s2n_send_supported_signature_algorithms(out));
+
+    return 0;
+}
 
 int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     uint16_t total_size = 0;
+    uint16_t pq_kem_list_size = 0;
+    uint16_t num_signature_algs = s2n_array_len(s2n_preferred_signature_algorithms);
 
     /* Signature algorithms */
     if (conn->actual_protocol_version == S2N_TLS12) {
-        total_size += (sizeof(s2n_preferred_hashes) * 2) + 6;
+        total_size += (sizeof(s2n_preferred_hashes) * num_signature_algs * 2) + 6;
     }
 
-    uint16_t application_protocols_len = conn->config->application_protocols.size;
+    struct s2n_blob *client_app_protocols;
+    GUARD(s2n_connection_get_protocol_preferences(conn, &client_app_protocols));
+
+    uint16_t application_protocols_len = client_app_protocols->size;
     uint16_t server_name_len = strlen(conn->server_name);
+    uint16_t mfl_code_len = sizeof(conn->config->mfl_code);
+    uint16_t client_ticket_len = conn->client_ticket.size;
 
     if (server_name_len) {
         total_size += 9 + server_name_len;
@@ -60,28 +95,50 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     if (conn->config->ct_type != S2N_CT_SUPPORT_NONE) {
         total_size += 4;
     }
+    if (conn->config->mfl_code != S2N_TLS_MAX_FRAG_LEN_EXT_NONE) {
+        total_size += 5;
+    }
+    if (conn->config->use_tickets) {
+        total_size += 4 + client_ticket_len;
+    }
 
-    /* Write ECC extensions: Supported Curves and Supported Point Formats */
-    int ec_curves_count = sizeof(s2n_ecc_supported_curves) / sizeof(s2n_ecc_supported_curves[0]);
-    total_size += 12 + ec_curves_count * 2;
+    const struct s2n_cipher_preferences *cipher_preferences;
+    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
+
+    const uint8_t ecc_extension_required = s2n_ecc_extension_required(cipher_preferences);
+    if (ecc_extension_required) {
+        /* Write ECC extensions: Supported Curves and Supported Point Formats */
+        int ec_curves_count = s2n_array_len(s2n_ecc_supported_curves);
+        total_size += 12 + ec_curves_count * 2;
+    }
+
+    const uint8_t pq_kem_extension_required = s2n_pq_kem_extension_required(cipher_preferences);
+    if (pq_kem_extension_required) {
+        for (int i = 0; i < cipher_preferences->count; i++) {
+            const struct s2n_iana_to_kem *supported_params = NULL;
+            if (s2n_cipher_suite_to_kem(cipher_preferences->suites[i]->iana_value, &supported_params) == 0) {
+                /* Each supported kem id is 2 bytes */
+                pq_kem_list_size += supported_params->kem_count * 2;
+            }
+        }
+        if (pq_kem_list_size > 0) {
+            /* 2 for the extension id, 2 for overall length, 2 for length of the list, and the list size  */
+            total_size += 6 + pq_kem_list_size;
+        }
+    }
+
+    if (conn->client_protocol_version >= S2N_TLS13) {
+        total_size += s2n_extensions_client_supported_versions_size(conn);
+    }
 
     GUARD(s2n_stuffer_write_uint16(out, total_size));
 
+    if (conn->client_protocol_version >= S2N_TLS13) {
+        GUARD(s2n_extensions_client_supported_versions_send(conn, out));
+    }
+
     if (conn->actual_protocol_version == S2N_TLS12) {
-        /* The extension header */
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SIGNATURE_ALGORITHMS));
-
-        /* Each hash-signature-alg pair is two bytes, and there's another two bytes for
-         * the extension length field.
-         */
-        GUARD(s2n_stuffer_write_uint16(out, (sizeof(s2n_preferred_hashes) * 2) + 2));
-
-        /* The array of hashes and signature algorithms we support */
-        GUARD(s2n_stuffer_write_uint16(out, sizeof(s2n_preferred_hashes) * 2));
-        for (int i =  0; i < sizeof(s2n_preferred_hashes); i++) {
-            GUARD(s2n_stuffer_write_uint8(out, s2n_preferred_hashes[i]));
-            GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_RSA));
-        }
+        GUARD(s2n_send_client_signature_algorithms_extension(conn, out));
     }
 
     if (server_name_len) {
@@ -95,7 +152,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         /* Name type - host name, RFC3546 */
         GUARD(s2n_stuffer_write_uint8(out, 0));
 
-        struct s2n_blob server_name;
+        struct s2n_blob server_name = {0};
         server_name.data = (uint8_t *) conn->server_name;
         server_name.size = server_name_len;
         GUARD(s2n_stuffer_write_uint16(out, server_name_len));
@@ -107,7 +164,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_ALPN));
         GUARD(s2n_stuffer_write_uint16(out, application_protocols_len + 2));
         GUARD(s2n_stuffer_write_uint16(out, application_protocols_len));
-        GUARD(s2n_stuffer_write(out, &conn->config->application_protocols));
+        GUARD(s2n_stuffer_write(out, client_app_protocols));
     }
 
     if (conn->config->status_request_type != S2N_STATUS_REQUEST_NONE) {
@@ -126,11 +183,26 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint16(out, 0));
     }
 
+    /* Write Maximum Fragmentation Length extension */
+    if (conn->config->mfl_code != S2N_TLS_MAX_FRAG_LEN_EXT_NONE) {
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_MAX_FRAG_LEN));
+        GUARD(s2n_stuffer_write_uint16(out, mfl_code_len));
+        GUARD(s2n_stuffer_write_uint8(out, conn->config->mfl_code));
+    }
+
+    /* Write Session Tickets extension */
+    if (conn->config->use_tickets) {
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SESSION_TICKET));
+        GUARD(s2n_stuffer_write_uint16(out, client_ticket_len));
+        GUARD(s2n_stuffer_write(out, &conn->client_ticket));
+    }
+
     /*
      * RFC 4492: Clients SHOULD send both the Supported Elliptic Curves Extension
      * and the Supported Point Formats Extension.
      */
-    {
+    if (ecc_extension_required) {
+        int ec_curves_count = s2n_array_len(s2n_ecc_supported_curves);
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_ELLIPTIC_CURVES));
         GUARD(s2n_stuffer_write_uint16(out, 2 + ec_curves_count * 2));
         /* Curve list len */
@@ -148,35 +220,40 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint8(out, 0));
     }
 
+    if (pq_kem_extension_required) {
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_PQ_KEM_PARAMETERS));
+        /* Overall extension length */
+        GUARD(s2n_stuffer_write_uint16(out, 2 + pq_kem_list_size));
+        /* Length of parameters in bytes */
+        GUARD(s2n_stuffer_write_uint16(out, pq_kem_list_size));
+
+        for (int i = 0; i < cipher_preferences->count; i++) {
+            const struct s2n_iana_to_kem *supported_params = NULL;
+            if(s2n_cipher_suite_to_kem(cipher_preferences->suites[i]->iana_value, &supported_params) == 0) {
+                /* Each supported kem id is 2 bytes */
+                for (int j = 0; j < supported_params->kem_count; j++) {
+                    GUARD(s2n_stuffer_write_uint16(out, supported_params->kems[j]->kem_extension_id));
+                }
+            }
+        }
+    }
+
     return 0;
 }
 
-int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *extensions)
+int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *parsed_extensions)
 {
-    struct s2n_stuffer in;
+    for (int i = 0; i < parsed_extensions->num_of_elements; i++) {
+        struct s2n_client_hello_parsed_extension *parsed_extension = s2n_array_get(parsed_extensions, i);
+        notnull_check(parsed_extension);
 
-    GUARD(s2n_stuffer_init(&in, extensions));
-    GUARD(s2n_stuffer_write(&in, extensions));
+        struct s2n_stuffer extension = {0};
+        GUARD(s2n_stuffer_init(&extension, &parsed_extension->extension));
+        GUARD(s2n_stuffer_write(&extension, &parsed_extension->extension));
 
-    while (s2n_stuffer_data_available(&in)) {
-        struct s2n_blob ext;
-        uint16_t extension_type, extension_size;
-        struct s2n_stuffer extension;
-
-        GUARD(s2n_stuffer_read_uint16(&in, &extension_type));
-        GUARD(s2n_stuffer_read_uint16(&in, &extension_size));
-
-        ext.size = extension_size;
-        lte_check(extension_size, s2n_stuffer_data_available(&in));
-        ext.data = s2n_stuffer_raw_read(&in, ext.size);
-        notnull_check(ext.data);
-
-        GUARD(s2n_stuffer_init(&extension, &ext));
-        GUARD(s2n_stuffer_write(&extension, &ext));
-
-        switch (extension_type) {
+        switch (parsed_extension->extension_type) {
         case TLS_EXTENSION_SERVER_NAME:
-            GUARD(s2n_recv_client_server_name(conn, &extension));
+            GUARD(s2n_parse_client_hello_server_name(conn, &extension));
             break;
         case TLS_EXTENSION_SIGNATURE_ALGORITHMS:
             GUARD(s2n_recv_client_signature_algorithms(conn, &extension));
@@ -199,14 +276,31 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
         case TLS_EXTENSION_SCT_LIST:
             GUARD(s2n_recv_client_sct_list(conn, &extension));
             break;
+        case TLS_EXTENSION_MAX_FRAG_LEN:
+            GUARD(s2n_recv_client_max_frag_len(conn, &extension));
+            break;
+        case TLS_EXTENSION_SESSION_TICKET:
+            GUARD(s2n_recv_client_session_ticket_ext(conn, &extension));
+            break;
+        case TLS_EXTENSION_PQ_KEM_PARAMETERS:
+            GUARD(s2n_recv_pq_kem_extension(conn, &extension));
+            break;
+        case TLS_EXTENSION_SUPPORTED_VERSIONS:
+            GUARD(s2n_extensions_client_supported_versions_recv(conn, &extension));
+            break;
         }
     }
 
     return 0;
 }
 
-static int s2n_recv_client_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension)
+int s2n_parse_client_hello_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
+    if (conn->server_name[0]) {
+        /* already parsed server name extension, exit early */
+        return 0;
+    }
+
     uint16_t size_of_all;
     uint8_t server_name_type;
     uint16_t server_name_len;
@@ -244,65 +338,19 @@ static int s2n_recv_client_server_name(struct s2n_connection *conn, struct s2n_s
 
 static int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    int chosen = sizeof(s2n_preferred_hashes);
-    uint16_t length_of_all_pairs;
-    GUARD(s2n_stuffer_read_uint16(extension, &length_of_all_pairs));
-    if (length_of_all_pairs > s2n_stuffer_data_available(extension)) {
-        /* Malformed length, ignore the extension */
-        return 0;
-    }
-
-    if (length_of_all_pairs % 2 || s2n_stuffer_data_available(extension) % 2) {
-        /* Pairs occur in two byte lengths. Malformed length, ignore the extension. */
-        return 0;
-    }
-
-    while (s2n_stuffer_data_available(extension)) {
-        uint8_t hash_alg;
-        uint8_t sig_alg;
-
-        GUARD(s2n_stuffer_read_uint8(extension, &hash_alg));
-        GUARD(s2n_stuffer_read_uint8(extension, &sig_alg));
-
-        /* We only support RSA for now */
-        if (sig_alg != TLS_SIGNATURE_ALGORITHM_RSA) {
-            continue;
-        }
-
-        /* Chosen starts out high, at the size of the preferred_hashes. We
-         * always search backwards from chosen, so can only move to an algorithm
-         * with a higher preference.
-         */
-        for (int i = chosen - 1; i >= 0; i--) {
-            if (s2n_preferred_hashes[i] != hash_alg) {
-                continue;
-            }
-
-            chosen = i;
-
-            if (i == 0) {
-                break;
-            }
-        }
-    }
-
-    /* Did we chose a hash algorithm ? */
-    if (chosen < sizeof(s2n_preferred_hashes)) {
-        conn->secure.signature_digest_alg = s2n_hash_tls_to_alg[ s2n_preferred_hashes[chosen] ];
-        return 0;
-    }
-
-    /* No supported signature algorithms, fail the handshake */
-    S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    return s2n_recv_supported_signature_algorithms(conn, extension, &conn->handshake_params.client_sig_hash_algs);
 }
 
 static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     uint16_t size_of_all;
-    struct s2n_stuffer client_protos;
-    struct s2n_stuffer server_protos;
+    struct s2n_stuffer client_protos = {0};
+    struct s2n_stuffer server_protos = {0};
 
-    if (!conn->config->application_protocols.size) {
+    struct s2n_blob *server_app_protocols;
+    GUARD(s2n_connection_get_protocol_preferences(conn, &server_app_protocols));
+
+    if (!server_app_protocols->size) {
         /* No protocols configured, nothing to do */
         return 0;
     }
@@ -313,36 +361,34 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
         return 0;
     }
 
-    struct s2n_blob application_protocols = {
+    struct s2n_blob client_app_protocols = {
         .data = s2n_stuffer_raw_read(extension, size_of_all),
         .size = size_of_all
     };
-    notnull_check(application_protocols.data);
+    notnull_check(client_app_protocols.data);
 
     /* Find a matching protocol */
-    GUARD(s2n_stuffer_init(&client_protos, &application_protocols));
-    GUARD(s2n_stuffer_write(&client_protos, &application_protocols));
-    GUARD(s2n_stuffer_init(&server_protos, &conn->config->application_protocols));
-    GUARD(s2n_stuffer_write(&server_protos, &conn->config->application_protocols));
+    GUARD(s2n_stuffer_init(&client_protos, &client_app_protocols));
+    GUARD(s2n_stuffer_write(&client_protos, &client_app_protocols));
+    GUARD(s2n_stuffer_init(&server_protos, server_app_protocols));
+    GUARD(s2n_stuffer_write(&server_protos, server_app_protocols));
 
     while (s2n_stuffer_data_available(&server_protos)) {
         uint8_t length;
-        uint8_t protocol[255];
+        uint8_t server_protocol[255];
         GUARD(s2n_stuffer_read_uint8(&server_protos, &length));
-        GUARD(s2n_stuffer_read_bytes(&server_protos, protocol, length));
+        GUARD(s2n_stuffer_read_bytes(&server_protos, server_protocol, length));
 
         while (s2n_stuffer_data_available(&client_protos)) {
             uint8_t client_length;
             GUARD(s2n_stuffer_read_uint8(&client_protos, &client_length));
-            if (client_length > s2n_stuffer_data_available(&client_protos)) {
-                S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-            }
+            S2N_ERROR_IF(client_length > s2n_stuffer_data_available(&client_protos), S2N_ERR_BAD_MESSAGE);
             if (client_length != length) {
                 GUARD(s2n_stuffer_skip_read(&client_protos, client_length));
             } else {
                 uint8_t client_protocol[255];
                 GUARD(s2n_stuffer_read_bytes(&client_protos, client_protocol, client_length));
-                if (memcmp(client_protocol, protocol, client_length) == 0) {
+                if (memcmp(client_protocol, server_protocol, client_length) == 0) {
                     memcpy_check(conn->application_protocol, client_protocol, client_length);
                     conn->application_protocol[client_length] = '\0';
                     return 0;
@@ -352,15 +398,12 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
 
         GUARD(s2n_stuffer_reread(&client_protos));
     }
-
-    S2N_ERROR(S2N_ERR_NO_APPLICATION_PROTOCOL);
+    return 0;
 }
 
 static int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    uint16_t size_of_all;
-    GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
-    if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all < 5) {
+    if (s2n_stuffer_data_available(extension) < 5) {
         /* Malformed length, ignore the extension */
         return 0;
     }
@@ -377,7 +420,7 @@ static int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2
 static int s2n_recv_client_elliptic_curves(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     uint16_t size_of_all;
-    struct s2n_blob proposed_curves;
+    struct s2n_blob proposed_curves = {0};
 
     GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
     if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all % 2) {
@@ -402,6 +445,7 @@ static int s2n_recv_client_ec_point_formats(struct s2n_connection *conn, struct 
      * Only uncompressed points are supported by the server and the client must include it in
      * the extension. Just skip the extension.
      */
+    conn->ec_point_formats = 1;
     return 0;
 }
 
@@ -410,9 +454,7 @@ static int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struc
     /* RFC5746 Section 3.2: The renegotiated_connection field is of zero length for the initial handshake. */
     uint8_t renegotiated_connection_len;
     GUARD(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
-    if (s2n_stuffer_data_available(extension) || renegotiated_connection_len) {
-        S2N_ERROR(S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
-    }
+    S2N_ERROR_IF(s2n_stuffer_data_available(extension) || renegotiated_connection_len, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
 
     conn->secure_renegotiation = 1;
     return 0;
@@ -422,5 +464,65 @@ static int s2n_recv_client_sct_list(struct s2n_connection *conn, struct s2n_stuf
 {
     conn->ct_level_requested = S2N_CT_SUPPORT_REQUEST;
     /* Skip reading the extension, per RFC6962 (3.1.1) it SHOULD be empty anyway  */
+    return 0;
+}
+
+
+static int s2n_recv_client_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    if (!conn->config->accept_mfl) {
+        return 0;
+    }
+
+    uint8_t mfl_code;
+    GUARD(s2n_stuffer_read_uint8(extension, &mfl_code));
+    if (mfl_code > S2N_TLS_MAX_FRAG_LEN_4096 || mfl_code_to_length[mfl_code] > S2N_TLS_MAXIMUM_FRAGMENT_LENGTH) {
+        return 0;
+    }
+
+    conn->mfl_code = mfl_code;
+    conn->max_outgoing_fragment_length = mfl_code_to_length[mfl_code];
+    return 0;
+}
+
+static int s2n_recv_client_session_ticket_ext(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    if (conn->config->use_tickets != 1) {
+        /* Ignore the extension. */
+        return 0;
+    }
+
+    /* s2n server does not support session ticket with CLIENT_AUTH enabled */
+    if (s2n_connection_is_client_auth_enabled(conn) > 0) {
+        return 0;
+    }
+
+    if (s2n_stuffer_data_available(extension) == 0 && s2n_config_is_encrypt_decrypt_key_available(conn->config) == 1) {
+        conn->session_ticket_status = S2N_NEW_TICKET;
+        return 0;
+    }
+
+    if (s2n_stuffer_data_available(extension) == S2N_TICKET_SIZE_IN_BYTES) {
+        conn->session_ticket_status = S2N_DECRYPT_TICKET;
+        GUARD(s2n_stuffer_copy(extension, &conn->client_ticket_to_decrypt, S2N_TICKET_SIZE_IN_BYTES));
+    }
+
+    return 0;
+}
+static int s2n_recv_pq_kem_extension(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    uint16_t size_of_all;
+    struct s2n_blob *proposed_kems = &conn->secure.client_pq_kem_extension;
+
+    GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
+    if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all % 2) {
+        /* Malformed length, ignore the extension */
+        return 0;
+    }
+
+    proposed_kems->size = size_of_all;
+    proposed_kems->data = s2n_stuffer_raw_read(extension, proposed_kems->size);
+    notnull_check(proposed_kems->data);
+
     return 0;
 }

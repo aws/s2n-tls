@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 
 #include <s2n.h>
 
-/**
+/*
  * To easily retrieve error types, we split error values into two parts.
  * The upper 6 bits describe the error type and the lower bits describe the value within the category.
  * [ Error Type Bits(31-26) ][ Value Bits(25-0) ]
@@ -34,6 +34,10 @@
 #define S2N_ERR_T_INTERNAL_START S2N_ERR_T_INTERNAL << S2N_ERR_NUM_VALUE_BITS
 #define S2N_ERR_T_USAGE_START S2N_ERR_T_USAGE << S2N_ERR_NUM_VALUE_BITS
 
+/* Order of values in this enum is important. New error values should be placed at the end of their respective category.
+ * For example, a new TLS protocol related error belongs in the S2N_ERR_T_PROTO category. It should be placed
+ * immediately before S2N_ERR_T_INTERNAL_START(the first value of he next category).
+ */
 typedef enum {
     /* S2N_ERR_T_OK */
     S2N_ERR_OK = S2N_ERR_T_OK_START,
@@ -62,6 +66,10 @@ typedef enum {
     S2N_ERR_HASH_DIGEST_FAILED,
     S2N_ERR_HASH_INIT_FAILED,
     S2N_ERR_HASH_UPDATE_FAILED,
+    S2N_ERR_HASH_COPY_FAILED,
+    S2N_ERR_HASH_WIPE_FAILED,
+    S2N_ERR_HASH_NOT_READY,
+    S2N_ERR_ALLOW_MD5_FOR_FIPS_FAILED,
     S2N_ERR_DECODE_CERTIFICATE,
     S2N_ERR_DECODE_PRIVATE_KEY,
     S2N_ERR_INVALID_SIGNATURE_ALGORITHM,
@@ -73,10 +81,15 @@ typedef enum {
     S2N_ERR_ECDHE_SHARED_SECRET,
     S2N_ERR_ECDHE_UNSUPPORTED_CURVE,
     S2N_ERR_ECDHE_SERIALIZING,
+    S2N_ERR_KEM_UNSUPPORTED_PARAMS,
     S2N_ERR_SHUTDOWN_RECORD_TYPE,
     S2N_ERR_SHUTDOWN_CLOSED,
     S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO,
     S2N_ERR_RECORD_LIMIT,
+    S2N_ERR_CERT_UNTRUSTED,
+    S2N_ERR_CERT_TYPE_UNSUPPORTED,
+    S2N_ERR_INVALID_MAX_FRAG_LEN,
+    S2N_ERR_MAX_FRAG_LEN_MISMATCH,
     /* S2N_ERR_T_INTERNAL */
     S2N_ERR_MADVISE = S2N_ERR_T_INTERNAL_START,
     S2N_ERR_ALLOC,
@@ -85,6 +98,7 @@ typedef enum {
     S2N_ERR_FSTAT,
     S2N_ERR_OPEN,
     S2N_ERR_MMAP,
+    S2N_ERR_ATEXIT,
     S2N_ERR_NOMEM,
     S2N_ERR_NULL,
     S2N_ERR_SAFETY,
@@ -95,8 +109,16 @@ typedef enum {
     S2N_ERR_RESIZE_TAINTED_STUFFER,
     S2N_ERR_STUFFER_OUT_OF_DATA,
     S2N_ERR_STUFFER_IS_FULL,
+    S2N_ERR_STUFFER_NOT_FOUND,
+    S2N_ERR_STUFFER_HAS_UNPROCESSED_DATA,
     S2N_ERR_HASH_INVALID_ALGORITHM,
     S2N_ERR_PRF_INVALID_ALGORITHM,
+    S2N_ERR_PRF_INVALID_SEED,
+    S2N_ERR_P_HASH_INVALID_ALGORITHM,
+    S2N_ERR_P_HASH_INIT_FAILED,
+    S2N_ERR_P_HASH_UPDATE_FAILED,
+    S2N_ERR_P_HASH_FINAL_FAILED,
+    S2N_ERR_P_HASH_WIPE_FAILED,
     S2N_ERR_HMAC_INVALID_ALGORITHM,
     S2N_ERR_HKDF_OUTPUT_SIZE,
     S2N_ERR_ALERT_PRESENT,
@@ -105,16 +127,23 @@ typedef enum {
     S2N_ERR_SIZE_MISMATCH,
     S2N_ERR_DRBG,
     S2N_ERR_DRBG_REQUEST_SIZE,
-    S2N_ERR_PRIVATE_KEY_CHECK,
+    S2N_ERR_KEY_CHECK,
     S2N_ERR_CIPHER_TYPE,
     S2N_ERR_MAP_DUPLICATE,
     S2N_ERR_MAP_IMMUTABLE,
     S2N_ERR_MAP_MUTABLE,
+    S2N_ERR_MAP_INVALID_MAP_SIZE,
     S2N_ERR_INITIAL_HMAC,
+    S2N_ERR_INVALID_NONCE_TYPE,
+    S2N_ERR_UNIMPLEMENTED,
+    S2N_ERR_READ,
+    S2N_ERR_WRITE,
     /* S2N_ERR_T_USAGE */
     S2N_ERR_NO_ALERT = S2N_ERR_T_USAGE_START,
     S2N_ERR_CLIENT_MODE,
     S2N_ERR_CLIENT_MODE_DISABLED,
+    S2N_ERR_TOO_MANY_CERTIFICATES,
+    S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_FIPS_MODE,
     S2N_ERR_INVALID_BASE64,
     S2N_ERR_INVALID_PEM,
     S2N_ERR_DH_PARAMS_CREATE,
@@ -123,6 +152,8 @@ typedef enum {
     S2N_ERR_INVALID_PKCS3,
     S2N_ERR_NO_CERTIFICATE_IN_PEM,
     S2N_ERR_SERVER_NAME_TOO_LONG,
+    S2N_ERR_NUM_DEFAULT_CERTIFICATES,
+    S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE,
     S2N_ERR_INVALID_CIPHER_PREFERENCES,
     S2N_ERR_APPLICATION_PROTOCOL_TOO_LONG,
     S2N_ERR_KEY_MISMATCH,
@@ -131,6 +162,23 @@ typedef enum {
     S2N_ERR_UNRECOGNIZED_EXTENSION,
     S2N_ERR_INVALID_SCT_LIST,
     S2N_ERR_INVALID_OCSP_RESPONSE,
+    S2N_ERR_UPDATING_EXTENSION,
+    S2N_ERR_CANCELLED,
+    S2N_ERR_INVALID_SERIALIZED_SESSION_STATE,
+    S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG,
+    S2N_ERR_SESSION_ID_TOO_LONG,
+    S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_RESUMPTION_MODE,
+    S2N_ERR_INVALID_TICKET_KEY_LENGTH,
+    S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH,
+    S2N_ERR_TICKET_KEY_NOT_UNIQUE,
+    S2N_ERR_TICKET_KEY_LIMIT,
+    S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY,
+    S2N_ERR_ENCRYPT_DECRYPT_KEY_SELECTION_FAILED,
+    S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND,
+    S2N_ERR_SENDING_NST,
+    S2N_ERR_INVALID_DYNAMIC_THRESHOLD,
+    S2N_ERR_INVALID_ARGUMENT,
+    S2N_ERR_NOT_IN_UNIT_TEST,
 } s2n_error;
 
 #define S2N_DEBUG_STR_LEN 128
@@ -141,6 +189,8 @@ extern __thread const char *s2n_debug_str;
 #define STRING__LINE__ STRING_(__LINE__)
 
 #define _S2N_DEBUG_LINE     "Error encountered in " __FILE__ " line " STRING__LINE__
-#define _S2N_ERROR( x )     s2n_debug_str = _S2N_DEBUG_LINE; s2n_errno = ( x )
-#define S2N_ERROR( x )      _S2N_ERROR( ( x ) ); return -1
-#define S2N_ERROR_PTR( x )  _S2N_ERROR( ( x ) ); return NULL
+#define _S2N_ERROR( x )     do { s2n_debug_str = _S2N_DEBUG_LINE; s2n_errno = ( x ); } while (0)
+#define S2N_ERROR( x )      do { _S2N_ERROR( ( x ) ); return -1; } while (0)
+#define S2N_ERROR_PTR( x )  do { _S2N_ERROR( ( x ) ); return NULL; } while (0)
+#define S2N_ERROR_IF( cond , x ) do { if ( cond ) { S2N_ERROR( x ); }} while (0)
+#define S2N_ERROR_IF_PTR( cond , x ) do { if ( cond ) { S2N_ERROR_PTR( x ); }} while (0)

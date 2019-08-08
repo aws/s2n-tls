@@ -15,6 +15,17 @@
 
 #pragma once
 
+/**
+ * openssl with OPENSSL_VERSION_NUMBER < 0x10100003L made data type details unavailable
+ * libressl use openssl with data type details available, but mandatorily set
+ * OPENSSL_VERSION_NUMBER = 0x20000000L, insane!
+ * https://github.com/aws/aws-sdk-cpp/pull/507/commits/2c99f1fe0c4b4683280caeb161538d4724d6a179
+ */
+#if defined(LIBRESSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER == 0x20000000L)
+#undef OPENSSL_VERSION_NUMBER
+#define OPENSSL_VERSION_NUMBER 0x1000107fL
+#endif
+
 /* Per https://wiki.openssl.org/index.php/Manual:OPENSSL_VERSION_NUMBER(3)
  * OPENSSL_VERSION_NUMBER in hex is: MNNFFRBB major minor fix final beta/patch.
  * bitwise: MMMMNNNNNNNNFFFFFFFFRRRRBBBBBBBB
@@ -24,3 +35,14 @@
 #define S2N_OPENSSL_VERSION_AT_LEAST(major, minor, fix) \
     (OPENSSL_VERSION_NUMBER >= ((major << 28) + (minor << 20) + (fix << 12)))
 
+#if (S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0))
+#define s2n_evp_ctx_init(ctx) GUARD_OSSL(EVP_CIPHER_CTX_init(ctx), S2N_ERR_DRBG)
+#else
+#define s2n_evp_ctx_init(ctx) EVP_CIPHER_CTX_init(ctx)
+#endif
+
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_FIPS) && !defined(LIBRESSL_VERSION_NUMBER)
+#define S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND 1
+#else
+#define S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND 0
+#endif

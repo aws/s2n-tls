@@ -18,6 +18,7 @@
 #include "error/s2n_errno.h"
 
 #include "crypto/s2n_cipher.h"
+#include "crypto/s2n_openssl.h"
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
@@ -31,18 +32,11 @@ static int s2n_cbc_cipher_3des_encrypt(struct s2n_session_key *key, struct s2n_b
 {
     gte_check(out->size, in->size);
 
-    if (EVP_EncryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data) == 0) {
-        S2N_ERROR(S2N_ERR_KEY_INIT);
-    }
+    GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data), S2N_ERR_KEY_INIT);
 
     int len = out->size;
-    if (EVP_EncryptUpdate(key->evp_cipher_ctx, out->data, &len, in->data, in->size) == 0) {
-        S2N_ERROR(S2N_ERR_ENCRYPT);
-    }
-
-    if (len != in->size) {
-        S2N_ERROR(S2N_ERR_ENCRYPT);
-    }
+    GUARD_OSSL(EVP_EncryptUpdate(key->evp_cipher_ctx, out->data, &len, in->data, in->size), S2N_ERR_ENCRYPT);
+    S2N_ERROR_IF(len != in->size, S2N_ERR_ENCRYPT);
 
     return 0;
 }
@@ -51,14 +45,10 @@ static int s2n_cbc_cipher_3des_decrypt(struct s2n_session_key *key, struct s2n_b
 {
     gte_check(out->size, in->size);
 
-    if (EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data) == 0) {
-        S2N_ERROR(S2N_ERR_KEY_INIT);
-    }
+    GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data), S2N_ERR_KEY_INIT);
 
     int len = out->size;
-    if (EVP_DecryptUpdate(key->evp_cipher_ctx, out->data, &len, in->data, in->size) == 0) {
-        S2N_ERROR(S2N_ERR_DECRYPT);
-    }
+    GUARD_OSSL(EVP_DecryptUpdate(key->evp_cipher_ctx, out->data, &len, in->data, in->size), S2N_ERR_DECRYPT);
 
     return 0;
 }
@@ -68,9 +58,7 @@ static int s2n_cbc_cipher_3des_set_decryption_key(struct s2n_session_key *key, s
     eq_check(in->size, 192 / 8);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
-    if (EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_des_ede3_cbc(), NULL, in->data, NULL) != 1) {
-        S2N_ERROR(S2N_ERR_KEY_INIT);
-    }
+    GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_des_ede3_cbc(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
 
     return 0;
 }
@@ -80,16 +68,14 @@ static int s2n_cbc_cipher_3des_set_encryption_key(struct s2n_session_key *key, s
     eq_check(in->size, 192 / 8);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, EVP_CIPH_NO_PADDING);
-    if (EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_des_ede3_cbc(), NULL, in->data, NULL) != 1) {
-        S2N_ERROR(S2N_ERR_KEY_INIT);
-    }
+    GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_des_ede3_cbc(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
 
     return 0;
 }
 
 static int s2n_cbc_cipher_3des_init(struct s2n_session_key *key)
 {
-    EVP_CIPHER_CTX_init(key->evp_cipher_ctx);
+    s2n_evp_ctx_init(key->evp_cipher_ctx);
 
     return 0;
 }
