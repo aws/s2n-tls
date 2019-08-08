@@ -13,6 +13,5 @@
  * permissions and limitations under the License.
  */
 #pragma once
-#include <stdlib.h>
 
 extern char *s2n_strcpy(char *buf, char *last, const char *str);
