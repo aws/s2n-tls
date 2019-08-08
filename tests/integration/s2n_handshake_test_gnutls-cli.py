@@ -170,85 +170,85 @@ def main():
         print("\nRunning s2nd in FIPS mode.")
 
     print("\nRunning GnuTLS handshake tests with: " + os.popen('gnutls-cli --version | grep -w gnutls-cli').read())
-    for ssl_version in [S2N_SSLv3, S2N_TLS10, S2N_TLS11, S2N_TLS12]:
+    #for ssl_version in [S2N_SSLv3, S2N_TLS10, S2N_TLS11, S2N_TLS12]:
 
-        if ssl_version == S2N_SSLv3 and fips_mode == True:
-            # FIPS does not permit the use of SSLv3
-            continue
+    #    if ssl_version == S2N_SSLv3 and fips_mode == True:
+    #        # FIPS does not permit the use of SSLv3
+    #        continue
 
-        print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
-        threadpool = create_thread_pool()
-        port_offset = 0
-        results = []
+    #    print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
+    #    threadpool = create_thread_pool()
+    #    port_offset = 0
+    #    results = []
 
-        for cipher in test_ciphers:
-            # Use the Openssl name for printing
-            cipher_name = cipher.openssl_name
-            cipher_priority_str = cipher.gnutls_priority_str
-            cipher_vers = cipher.min_tls_vers
+    #    for cipher in test_ciphers:
+    #        # Use the Openssl name for printing
+    #        cipher_name = cipher.openssl_name
+    #        cipher_priority_str = cipher.gnutls_priority_str
+    #        cipher_vers = cipher.min_tls_vers
 
-            if ssl_version < cipher_vers:
-                continue
+    #        if ssl_version < cipher_vers:
+    #            continue
 
-            # gnutls-cli always adds tls extensions to client hello, add NO_EXTENSIONS flag for SSLv3 to avoid that
-            if ssl_version == S2N_SSLv3:
-                cipher_priority_str = cipher_priority_str + ":%NO_EXTENSIONS"
+    #        # gnutls-cli always adds tls extensions to client hello, add NO_EXTENSIONS flag for SSLv3 to avoid that
+    #        if ssl_version == S2N_SSLv3:
+    #            cipher_priority_str = cipher_priority_str + ":%NO_EXTENSIONS"
 
-            # Add the SSL version to make the cipher priority string fully qualified
-            complete_priority_str = cipher_priority_str + ":+" + S2N_PROTO_VERS_TO_GNUTLS[ssl_version] + ":+SIGN-ALL" + ":+CURVE-ALL"
+    #        # Add the SSL version to make the cipher priority string fully qualified
+    #        complete_priority_str = cipher_priority_str + ":+" + S2N_PROTO_VERS_TO_GNUTLS[ssl_version] + ":+SIGN-ALL" + ":+CURVE-ALL"
 
-            async_result = threadpool.apply_async(handshake, (host, port + port_offset, cipher_name, ssl_version, complete_priority_str, [], 0, fips_mode))
-            port_offset += 1
-            results.append(async_result)
+    #        async_result = threadpool.apply_async(handshake, (host, port + port_offset, cipher_name, ssl_version, complete_priority_str, [], 0, fips_mode))
+    #        port_offset += 1
+    #        results.append(async_result)
 
-        threadpool.close()
-        threadpool.join()
-        for async_result in results:
-            if async_result.get().handshake_success == False:
-                return -1
+    #    threadpool.close()
+    #    threadpool.join()
+    #    for async_result in results:
+    #        if async_result.get().handshake_success == False:
+    #            return -1
 
-    # Produce permutations of every accepted signature algorithm in every possible order
-    for size in range(1, len(EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS) + 1):
-        print("\n\tTesting ciphers using RSA signature preferences of size: " + str(size))
-        threadpool = create_thread_pool()
-        port_offset = 0
-        results = []
-        for permutation in itertools.permutations(EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS, size):
-            # Try an ECDHE cipher suite and a DHE one
-            for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or x.openssl_name == "DHE-RSA-AES128-GCM-SHA256", ALL_TEST_CIPHERS):
-                if fips_mode and cipher.openssl_fips_compatible == False:
-                    continue
-                complete_priority_str = cipher.gnutls_priority_str + ":+CURVE-ALL" + ":+VERS-TLS1.2:+" + ":+".join(permutation)
-                async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, S2N_TLS12, complete_priority_str, permutation, 0, fips_mode))
-                port_offset += 1
-                results.append(async_result)
+    ## Produce permutations of every accepted signature algorithm in every possible order
+    #for size in range(1, len(EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS) + 1):
+    #    print("\n\tTesting ciphers using RSA signature preferences of size: " + str(size))
+    #    threadpool = create_thread_pool()
+    #    port_offset = 0
+    #    results = []
+    #    for permutation in itertools.permutations(EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS, size):
+    #        # Try an ECDHE cipher suite and a DHE one
+    #        for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or x.openssl_name == "DHE-RSA-AES128-GCM-SHA256", ALL_TEST_CIPHERS):
+    #            if fips_mode and cipher.openssl_fips_compatible == False:
+    #                continue
+    #            complete_priority_str = cipher.gnutls_priority_str + ":+CURVE-ALL" + ":+VERS-TLS1.2:+" + ":+".join(permutation)
+    #            async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, S2N_TLS12, complete_priority_str, permutation, 0, fips_mode))
+    #            port_offset += 1
+    #            results.append(async_result)
 
-        threadpool.close()
-        threadpool.join()
-        for async_result in results:
-            if async_result.get().handshake_success == False:
-                return -1
+    #    threadpool.close()
+    #    threadpool.join()
+    #    for async_result in results:
+    #        if async_result.get().handshake_success == False:
+    #            return -1
 
-    # Try ECDSA signature algorithm permutations. When we support multiple certificates, we can combine the RSA and ECDSA tests
-    for size in range(1, len(EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS) + 1):
-        print("\n\tTesting ciphers using ECDSA signature preferences of size: " + str(size))
-        threadpool = create_thread_pool()
-        port_offset = 0
-        results = []
-        for permutation in itertools.permutations(EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS, size):
-            for cipher in filter(lambda x: x.openssl_name == "ECDHE-ECDSA-AES128-SHA", ALL_TEST_CIPHERS):
-                if fips_mode and cipher.openssl_fips_compatible == False:
-                    continue
-                complete_priority_str = cipher.gnutls_priority_str + ":+CURVE-ALL" + ":+VERS-TLS1.2:+" + ":+".join(permutation)
-                async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, S2N_TLS12, complete_priority_str, permutation, 0, fips_mode))
-                port_offset += 1
-                results.append(async_result)
+    ## Try ECDSA signature algorithm permutations. When we support multiple certificates, we can combine the RSA and ECDSA tests
+    #for size in range(1, len(EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS) + 1):
+    #    print("\n\tTesting ciphers using ECDSA signature preferences of size: " + str(size))
+    #    threadpool = create_thread_pool()
+    #    port_offset = 0
+    #    results = []
+    #    for permutation in itertools.permutations(EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS, size):
+    #        for cipher in filter(lambda x: x.openssl_name == "ECDHE-ECDSA-AES128-SHA", ALL_TEST_CIPHERS):
+    #            if fips_mode and cipher.openssl_fips_compatible == False:
+    #                continue
+    #            complete_priority_str = cipher.gnutls_priority_str + ":+CURVE-ALL" + ":+VERS-TLS1.2:+" + ":+".join(permutation)
+    #            async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, S2N_TLS12, complete_priority_str, permutation, 0, fips_mode))
+    #            port_offset += 1
+    #            results.append(async_result)
 
-        threadpool.close()
-        threadpool.join()
-        for async_result in results:
-            if async_result.get().handshake_success == False:
-                return -1
+    #    threadpool.close()
+    #    threadpool.join()
+    #    for async_result in results:
+    #        if async_result.get().handshake_success == False:
+    #            return -1
 
     # Test that s2n's server Signature Algorithm preferences are as expected.
     # This is a brittle test that must be kept in sync with the signature algorithm preference lists in the core code,
@@ -268,8 +268,9 @@ def main():
             sig_algs = "SIGN-ALL"
             if len(sig_algs_to_remove) > 0:
                 sig_algs += ":!" + sig_algs_to_remove
-            priority_str = cipher.gnutls_priority_str + ":+VERS-TLS1.2:+" + sig_algs
-            rc = handshake(host, port, cipher.openssl_name, S2N_TLS12, priority_str, [], 0, fips_mode, "Preferences found: %-40s "
+            priority_str = cipher.gnutls_priority_str + ":+CURVE-ALL" + ":+VERS-TLS1.2:+" + sig_algs
+            rc = handshake(host, port, cipher.openssl_name, S2N_TLS12, 
+                    priority_str, [], 0, fips_mode, [], "Preferences found: %-40s " 
                     % (sigalg_str_from_list(current_preferences_found)))
             if rc.handshake_success == False:
                 print("Failed to negotiate " + expected_sigalg + " as expected! Priority string: "
@@ -305,8 +306,9 @@ def main():
             sig_algs = "SIGN-ALL"
             if len(sig_algs_to_remove) > 0:
                 sig_algs += ":!" + sig_algs_to_remove
-            priority_str = cipher.gnutls_priority_str + ":+VERS-TLS1.2:+" + sig_algs
-            rc = handshake(host, port, cipher.openssl_name, S2N_TLS12, priority_str, [], 0, fips_mode, "Preferences found: %-40s "
+            priority_str = cipher.gnutls_priority_str + ":+CURVE-ALL" + ":+VERS-TLS1.2:+" + sig_algs
+            rc = handshake(host, port, cipher.openssl_name, S2N_TLS12,
+                    priority_str, [], 0, fips_mode, [], "Preferences found: %-40s "
                     % (sigalg_str_from_list(current_preferences_found)))
             if rc.handshake_success == False:
                 print("Failed to negotiate " + expected_sigalg + " as expected! Priority string: " +
