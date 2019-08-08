@@ -445,6 +445,8 @@ int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn) {
 
 const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn) 
 {
+    notnull_check_ptr(conn);
+
     int handshake_type = conn->handshake.handshake_type;
 
     if (handshake_type_str[handshake_type][0] != '\0') {
