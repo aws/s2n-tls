@@ -480,7 +480,7 @@ const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn)
             p = s2n_strcpy(p, end, "NO_CLIENT_CERT|");
         }
 
-        if (p - 1 != handshake_type_str[handshake_type] && '|' == *(p - 1)) {
+        if (p != handshake_type_str[handshake_type] && '|' == *(p - 1)) {
             *(p - 1) = '\0';
         }
     } else {
