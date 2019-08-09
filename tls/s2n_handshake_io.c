@@ -458,26 +458,20 @@ const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn)
     char *p = handshake_type_str[handshake_type];
     char *end = p + sizeof(handshake_type_str[0]);
     if (handshake_type > INITIAL) {
-        if (handshake_type & NEGOTIATED) {
-            p = s2n_strcpy(p, end, "NEGOTIATED|");
-        }
-        if (handshake_type & FULL_HANDSHAKE) {
-            p = s2n_strcpy(p, end, "FULL_HANDSHAKE|");
-        }
-        if (handshake_type & PERFECT_FORWARD_SECRECY) {
-            p = s2n_strcpy(p, end, "PERFECT_FORWARD_SECRECY|");
-        }
-        if (handshake_type & OCSP_STATUS) {
-            p = s2n_strcpy(p, end, "OCSP_STATUS|");
-        }
-        if (handshake_type & CLIENT_AUTH) {
-            p = s2n_strcpy(p, end, "CLIENT_AUTH|");
-        }
-        if (handshake_type & WITH_SESSION_TICKET) {
-            p = s2n_strcpy(p, end, "WITH_SESSION_TICKET|");
-        }
-        if (handshake_type & NO_CLIENT_CERT) {
-            p = s2n_strcpy(p, end, "NO_CLIENT_CERT|");
+        const char* handshake_type_names[] = { 
+            "NEGOTIATED|", 
+            "FULL_HANDSHAKE|",
+            "PERFECT_FORWARD_SECRECY|",
+            "OCSP_STATUS|",
+            "CLIENT_AUTH|",
+            "WITH_SESSION_TICKET|",
+            "NO_CLIENT_CERT|"
+            };
+
+        for (int i = 0; i < sizeof(handshake_type_names) / sizeof(handshake_type_names[0]); ++i) {
+            if (handshake_type & (1 << i)) {
+                p = s2n_strcpy(p, end, handshake_type_names[i]);
+            }
         }
 
         if (p != handshake_type_str[handshake_type] && '|' == *(p - 1)) {
