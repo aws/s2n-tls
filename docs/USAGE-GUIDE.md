@@ -1246,6 +1246,14 @@ int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);
 
 **s2n_connection_is_ocsp_stapled** returns 1 if OCSP response was sent (if connection is in S2N_SERVER mode) or received (if connection is in S2N_CLIENT mode) during handshake, otherwise it returns 0.
 
+### s2n\_connection\_get\_handshake\_type\_name
+
+```c
+const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn);
+```
+
+**s2n_connection_get_handshake_type_name** returns a human-readable handshake type name, e.g. "NEGOTIATED|FULL_HANDSHAKE|PERFECT_FORWARD_SECRECY"
+
 ### s2n\_connection\_get\_alert
 
 ```c

@@ -151,6 +151,25 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
             if (strcmp(actual_cipher, expected_cipher->name) != 0){
                 return -1;
             }
+
+            const char *handshake_type_name = s2n_connection_get_handshake_type_name(client_conn);
+            if (NULL == strstr(handshake_type_name, "NEGOTIATED|FULL_HANDSHAKE")) {
+                return -1;
+            }
+
+            /* Calling the same funciton on the same connection again should get the same handshake name */
+            if (strcmp(s2n_connection_get_handshake_type_name(client_conn), handshake_type_name) != 0) {
+                return -1;
+            }
+
+            handshake_type_name = s2n_connection_get_handshake_type_name(server_conn);
+            if (NULL == strstr(handshake_type_name, "NEGOTIATED|FULL_HANDSHAKE")) {
+                return -1;
+            }
+
+            if (strcmp(s2n_connection_get_handshake_type_name(server_conn), handshake_type_name) != 0) {
+                return -1;
+            }
         } else {
             eq_check(try_handshake(server_conn, client_conn), -1);
         }
