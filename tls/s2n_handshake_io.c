@@ -301,6 +301,16 @@ static message_type_t handshakes[128][16] = {
 
 static char handshake_type_str[128][MAX_HANDSHAKE_TYPE_LEN] = {0};
 
+static const char* handshake_type_names[] = { 
+    "NEGOTIATED|", 
+    "FULL_HANDSHAKE|",
+    "PERFECT_FORWARD_SECRECY|",
+    "OCSP_STATUS|",
+    "CLIENT_AUTH|",
+    "WITH_SESSION_TICKET|",
+    "NO_CLIENT_CERT|"
+};
+
 #define ACTIVE_MESSAGE( conn ) handshakes[ (conn)->handshake.handshake_type ][ (conn)->handshake.message_number ]
 #define PREVIOUS_MESSAGE( conn ) handshakes[ (conn)->handshake.handshake_type ][ (conn)->handshake.message_number - 1 ]
 
@@ -450,6 +460,10 @@ const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn)
 
     int handshake_type = conn->handshake.handshake_type;
 
+    if (handshake_type == INITIAL) {
+        return "INITIAL";
+    }
+
     if (handshake_type_str[handshake_type][0] != '\0') {
         return handshake_type_str[handshake_type];
     }
@@ -457,28 +471,15 @@ const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn)
     /* Compute handshake_type_str[handshake_type] */
     char *p = handshake_type_str[handshake_type];
     char *end = p + sizeof(handshake_type_str[0]);
-    if (handshake_type > INITIAL) {
-        const char* handshake_type_names[] = { 
-            "NEGOTIATED|", 
-            "FULL_HANDSHAKE|",
-            "PERFECT_FORWARD_SECRECY|",
-            "OCSP_STATUS|",
-            "CLIENT_AUTH|",
-            "WITH_SESSION_TICKET|",
-            "NO_CLIENT_CERT|"
-            };
 
-        for (int i = 0; i < sizeof(handshake_type_names) / sizeof(handshake_type_names[0]); ++i) {
-            if (handshake_type & (1 << i)) {
-                p = s2n_strcpy(p, end, handshake_type_names[i]);
-            }
+    for (int i = 0; i < sizeof(handshake_type_names) / sizeof(handshake_type_names[0]); ++i) {
+        if (handshake_type & (1 << i)) {
+            p = s2n_strcpy(p, end, handshake_type_names[i]);
         }
+    }
 
-        if (p != handshake_type_str[handshake_type] && '|' == *(p - 1)) {
-            *(p - 1) = '\0';
-        }
-    } else {
-        strcpy(handshake_type_str[handshake_type], "INITIAL");
+    if (p != handshake_type_str[handshake_type] && '|' == *(p - 1)) {
+        *(p - 1) = '\0';
     }
 
     return handshake_type_str[handshake_type];
