@@ -115,10 +115,14 @@ static int s2n_config_init(struct s2n_config *config)
 
     config->cert_tiebreak_cb = NULL;
 
+    s2n_config_set_cipher_preferences(config, "default");
+
     if (s2n_is_in_fips_mode()) {
         s2n_config_set_cipher_preferences(config, "default_fips");
-    } else {
-        s2n_config_set_cipher_preferences(config, "default");
+    }
+
+    if (getenv("S2N_ENABLE_TLS13_FOR_TESTING") != NULL && S2N_IN_TEST ) {
+        s2n_config_set_cipher_preferences(config, "default_tls13");
     }
 
     notnull_check(config->domain_name_to_cert_map = s2n_map_new_with_initial_capacity(1));
@@ -211,7 +215,7 @@ struct s2n_config *s2n_fetch_default_config(void)
 {
     if (!default_config_init) {
         GUARD_PTR(s2n_config_init(&s2n_default_config));
-        s2n_default_config.cipher_preferences = &cipher_preferences_20170210;
+        s2n_config_set_cipher_preferences(&s2n_default_config, "default");
         s2n_default_config.client_cert_auth_type = S2N_CERT_AUTH_NONE; /* Do not require the client to provide a Cert to the Server */
 
         default_config_init = 1;
@@ -224,7 +228,7 @@ struct s2n_config *s2n_fetch_default_fips_config(void)
 {
     if (!default_fips_config_init) {
         GUARD_PTR(s2n_config_init(&s2n_default_fips_config));
-        s2n_default_fips_config.cipher_preferences = &cipher_preferences_20170405;
+        s2n_config_set_cipher_preferences(&s2n_default_fips_config, "default_fips");
 
         default_fips_config_init = 1;
     }
@@ -236,7 +240,7 @@ struct s2n_config *s2n_fetch_unsafe_client_testing_config(void)
 {
     if (!unsafe_client_testing_config_init) {
         GUARD_PTR(s2n_config_init(&s2n_unsafe_client_testing_config));
-        s2n_unsafe_client_testing_config.cipher_preferences = &cipher_preferences_20170210;
+        s2n_config_set_cipher_preferences(&s2n_unsafe_client_testing_config, "default");
         s2n_unsafe_client_testing_config.client_cert_auth_type = S2N_CERT_AUTH_NONE;
         s2n_unsafe_client_testing_config.check_ocsp = 0;
         s2n_unsafe_client_testing_config.disable_x509_validation = 1;
@@ -251,7 +255,7 @@ struct s2n_config *s2n_fetch_unsafe_client_ecdsa_testing_config(void)
 {
     if (!unsafe_client_ecdsa_testing_config_init) {
         GUARD_PTR(s2n_config_init(&s2n_unsafe_client_ecdsa_testing_config));
-        s2n_unsafe_client_ecdsa_testing_config.cipher_preferences = &cipher_preferences_test_all_ecdsa;
+        s2n_config_set_cipher_preferences(&s2n_unsafe_client_ecdsa_testing_config, "test_all_ecdsa");
         s2n_unsafe_client_ecdsa_testing_config.client_cert_auth_type = S2N_CERT_AUTH_NONE;
         s2n_unsafe_client_ecdsa_testing_config.check_ocsp = 0;
         s2n_unsafe_client_ecdsa_testing_config.disable_x509_validation = 1;
@@ -266,7 +270,7 @@ struct s2n_config *s2n_fetch_default_client_config(void)
 {
     if (!default_client_config_init) {
         GUARD_PTR(s2n_config_init(&default_client_config));
-        default_client_config.cipher_preferences = &cipher_preferences_20170210;
+        s2n_config_set_cipher_preferences(&default_client_config, "default");
         default_client_config.client_cert_auth_type = S2N_CERT_AUTH_REQUIRED;
 
         default_client_config_init = 1;

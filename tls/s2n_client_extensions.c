@@ -71,7 +71,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     uint16_t num_signature_algs = s2n_array_len(s2n_preferred_signature_algorithms);
 
     /* Signature algorithms */
-    if (conn->actual_protocol_version == S2N_TLS12) {
+    if (conn->actual_protocol_version >= S2N_TLS12) {
         total_size += (sizeof(s2n_preferred_hashes) * num_signature_algs * 2) + 6;
     }
 
@@ -137,7 +137,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_extensions_client_supported_versions_send(conn, out));
     }
 
-    if (conn->actual_protocol_version == S2N_TLS12) {
+    if (conn->actual_protocol_version >= S2N_TLS12) {
         GUARD(s2n_send_client_signature_algorithms_extension(conn, out));
     }
 

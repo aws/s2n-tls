@@ -654,8 +654,51 @@ struct s2n_cipher_suite s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384 = /* 0xFF, 0x
         .minimum_required_tls_version = S2N_TLS12,
 };
 
-/* All of the cipher suites that s2n negotiates, in order of IANA value.
- * Exposed for the "test_all" cipher preference list.
+struct s2n_cipher_suite s2n_tls13_aes_128_gcm_sha256 = {
+    .available = 0,
+    .name = "TLS_AES_128_GCM_SHA256",
+    .iana_value = { TLS_AES_128_GCM_SHA256 },
+    .key_exchange_alg = NULL,
+    .auth_method = S2N_AUTHENTICATION_METHOD_SENTINEL,
+    .record_alg = NULL,
+    .all_record_algs = { &s2n_record_alg_aes128_sha256_composite, &s2n_record_alg_aes128_sha256 },
+    .num_record_algs = 2,
+    .sslv3_record_alg = NULL,
+    .tls12_prf_alg = S2N_HMAC_SHA256,
+    .minimum_required_tls_version = S2N_TLS13,
+};
+
+struct s2n_cipher_suite s2n_tls13_aes_256_gcm_sha384 = {
+    .available = 0,
+    .name = "TLS_AES_256_GCM_SHA384",
+    .iana_value = { TLS_AES_256_GCM_SHA384 },
+    .key_exchange_alg = NULL,
+    .auth_method = S2N_AUTHENTICATION_METHOD_SENTINEL,
+    .record_alg = NULL,
+    .all_record_algs = { &s2n_record_alg_aes256_sha256_composite, &s2n_record_alg_aes256_sha256 },
+    .num_record_algs = 2,
+    .sslv3_record_alg = NULL,
+    .tls12_prf_alg = S2N_HMAC_SHA384,
+    .minimum_required_tls_version = S2N_TLS13,
+};
+
+struct s2n_cipher_suite s2n_tls13_chacha20_poly1305_sha256 = {
+    .available = 0,
+    .name = "TLS_CHACHA20_POLY1305_SHA256",
+    .iana_value = { TLS_CHACHA20_POLY1305_SHA256 },
+    .key_exchange_alg = NULL,
+    .auth_method = S2N_AUTHENTICATION_METHOD_SENTINEL,
+    .record_alg = NULL,
+    .all_record_algs = { &s2n_record_alg_chacha20_poly1305 },
+    .num_record_algs = 1,
+    .sslv3_record_alg = NULL,
+    .tls12_prf_alg = S2N_HMAC_SHA256,
+    .minimum_required_tls_version = S2N_TLS13,
+};
+
+/* All of the cipher suites that s2n negotiates in order of IANA value.
+ * New cipher suites MUST be added here, IN ORDER, or they will not be
+ * properly initialized.
  */
 static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
     &s2n_rsa_with_rc4_128_md5,                      /* 0x00,0x04 */
@@ -674,6 +717,11 @@ static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
     &s2n_rsa_with_aes_256_gcm_sha384,               /* 0x00,0x9D */
     &s2n_dhe_rsa_with_aes_128_gcm_sha256,           /* 0x00,0x9E */
     &s2n_dhe_rsa_with_aes_256_gcm_sha384,           /* 0x00,0x9F */
+
+    &s2n_tls13_aes_128_gcm_sha256,                  /* 0x13,0x01 */
+    &s2n_tls13_aes_256_gcm_sha384,                  /* 0x13,0x02 */
+    &s2n_tls13_chacha20_poly1305_sha256,            /* 0x13,0x03 */
+
     &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,          /* 0xC0,0x09 */
     &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,          /* 0xC0,0x0A */
     &s2n_ecdhe_rsa_with_rc4_128_sha,                /* 0xC0,0x11 */
@@ -983,24 +1031,28 @@ static int s2n_set_cipher_and_cert_as_server(struct s2n_connection *conn, uint8_
                 match = match->sslv3_cipher_suite;
             }
 
-            /* Skip the suite if it is not compatible with any certificates */
-            conn->handshake_params.our_chain_and_key = s2n_conn_get_compatible_cert_chain_and_key(conn, match);
-            if (!conn->handshake_params.our_chain_and_key) {
-                continue;
-            }
-
             /* Skip the suite if we don't have an available implementation */
             if (!match->available) {
                 continue;
             }
 
-            /* If the kex is not supported continue to the next candidate */
-            if (!s2n_kex_supported(match, conn)) {
-                continue;
-            }
-            /* If the kex is not configured correctly continue to the next candidate */
-            if (s2n_configure_kex(match, conn)){
-                continue;
+            /* TLS 1.3 does not include key exchange in cipher suites */
+            if (match->minimum_required_tls_version < S2N_TLS13) {
+                /* Skip the suite if it is not compatible with any certificates */
+                conn->handshake_params.our_chain_and_key = s2n_conn_get_compatible_cert_chain_and_key(conn, match);
+                if (!conn->handshake_params.our_chain_and_key) {
+                    continue;
+                }
+
+                /* If the kex is not supported continue to the next candidate */
+                if (!s2n_kex_supported(match, conn)) {
+                    continue;
+                }
+
+                /* If the kex is not configured correctly continue to the next candidate */
+                if (s2n_configure_kex(match, conn)) {
+                    continue;
+                }
             }
 
             /* Don't immediately choose a cipher the client shouldn't be able to support */
