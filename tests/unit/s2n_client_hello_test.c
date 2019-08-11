@@ -37,6 +37,8 @@
 #define ZERO_TO_THIRTY_ONE  0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, \
                             0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
 
+#define LENGTH_TO_CIPHER_LIST (S2N_TLS_PROTOCOL_VERSION_LEN + S2N_TLS_RANDOM_DATA_LEN + 1)
+
 int main(int argc, char **argv)
 {
     char *cert_chain;
@@ -46,6 +48,84 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
+
+    /* Test cipher suites list */
+    {
+        /* When TLS 1.3 NOT supported */
+        {
+            struct s2n_config *config;
+            EXPECT_NOT_NULL(config = s2n_config_new());
+            s2n_config_set_session_tickets_onoff(config, 0);
+
+            /* TLS 1.3 cipher suites NOT written by client */
+            {
+                struct s2n_connection *conn;
+                EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+                struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
+
+                EXPECT_SUCCESS(s2n_client_hello_send(conn));
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(hello_stuffer, LENGTH_TO_CIPHER_LIST));
+
+                uint16_t list_length = 0;
+                EXPECT_SUCCESS(s2n_stuffer_read_uint16(hello_stuffer, &list_length));
+                EXPECT_NOT_EQUAL(list_length, 0);
+
+                uint8_t first_cipher_byte;
+                for (int i = 0; i < list_length; i++) {
+                    EXPECT_SUCCESS(s2n_stuffer_read_uint8(hello_stuffer, &first_cipher_byte));
+                    EXPECT_NOT_EQUAL(first_cipher_byte, 0x13);
+                    EXPECT_SUCCESS(s2n_stuffer_skip_read(hello_stuffer, 1));
+                }
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            }
+
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
+        /* When TLS 1.3 supported */
+        {
+            EXPECT_SUCCESS(setenv("S2N_ENABLE_TLS13_FOR_TESTING", "1", 0));
+
+            struct s2n_config *config;
+            EXPECT_NOT_NULL(config = s2n_config_new());
+            s2n_config_set_session_tickets_onoff(config, 0);
+
+            /* TLS 1.3 cipher suites written by client */
+            {
+                struct s2n_connection *conn;
+                EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+                struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
+
+                EXPECT_SUCCESS(s2n_client_hello_send(conn));
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(hello_stuffer, LENGTH_TO_CIPHER_LIST));
+
+                uint16_t list_length = 0;
+                EXPECT_SUCCESS(s2n_stuffer_read_uint16(hello_stuffer, &list_length));
+                EXPECT_NOT_EQUAL(list_length, 0);
+
+                uint8_t first_cipher_byte;
+                int tls13_ciphers_found = 0;
+                for (int i = 0; i < list_length; i++) {
+                    EXPECT_SUCCESS(s2n_stuffer_read_uint8(hello_stuffer, &first_cipher_byte));
+                    if (first_cipher_byte == 0x13) {
+                        tls13_ciphers_found++;
+                    }
+                    EXPECT_SUCCESS(s2n_stuffer_skip_read(hello_stuffer, 1));
+                }
+                EXPECT_NOT_EQUAL(tls13_ciphers_found, 0);
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            }
+
+            EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(unsetenv("S2N_ENABLE_TLS13_FOR_TESTING"));
+        }
+    }
 
     /* Minimal TLS 1.2 client hello. */
     {

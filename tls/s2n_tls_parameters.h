@@ -69,6 +69,13 @@
 #define TLS_FALLBACK_SCSV                   0x56, 0x00
 #define TLS_EMPTY_RENEGOTIATION_INFO_SCSV   0x00, 0xff
 
+/* TLS 1.3 cipher suites from https://tools.ietf.org/html/rfc8446#appendix-B.4 */
+#define TLS_AES_128_GCM_SHA256              0x13, 0x01
+#define TLS_AES_256_GCM_SHA384              0x13, 0x02
+#define TLS_CHACHA20_POLY1305_SHA256        0x13, 0x03
+#define TLS_AES_128_CCM_SHA256              0x13, 0x04
+#define TLS_AES_128_CCM_8_SHA256            0x13, 0x05
+
 /* TLS extensions from https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml */
 #define TLS_EXTENSION_SERVER_NAME           0
 #define TLS_EXTENSION_MAX_FRAG_LEN          1

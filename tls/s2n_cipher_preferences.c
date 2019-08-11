@@ -23,6 +23,34 @@
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 
+/* TLS 1.3 cipher suites, in order of preference.
+ * Can be added to other ciphers suite lists to enable
+ * TLS1.3 compatibility. */
+#define S2N_TLS13_CIPHER_SUITES_20190801    \
+    &s2n_tls13_aes_256_gcm_sha384,          \
+    &s2n_tls13_aes_128_gcm_sha256,          \
+    &s2n_tls13_chacha20_poly1305_sha256     \
+
+/* s2n's list of cipher suites, in order of preferences, as of 2019-08-01 */
+struct s2n_cipher_suite *cipher_suites_20190801[] = {
+    S2N_TLS13_CIPHER_SUITES_20190801,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20190801 = {
+    .count = sizeof(cipher_suites_20190801) / sizeof(cipher_suites_20190801[0]),
+    .suites = cipher_suites_20190801,
+    .minimum_protocol_version = S2N_TLS10,
+};
+
 /* s2n's list of cipher suites, in order of preference, as of 2014-06-01 */
 struct s2n_cipher_suite *cipher_suites_20140601[] = {
     &s2n_dhe_rsa_with_aes_128_cbc_sha256,
@@ -804,6 +832,7 @@ struct {
 } selection[] = {
     /* Zero init .ecc_extension_required and .pq_kem_extension_required, they'll be initialized later in s2n_cipher_preferences_init() */
     { .version="default", .preferences=&cipher_preferences_20170210, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="default_tls13", .preferences=&cipher_preferences_20190801, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="default_fips", .preferences=&cipher_preferences_20170405, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="ELBSecurityPolicy-TLS-1-0-2015-04", .preferences=&elb_security_policy_2015_04, .ecc_extension_required=0, .pq_kem_extension_required=0},
     /* Not a mistake. TLS-1-0-2015-05 and 2016-08 are equivalent */
@@ -907,10 +936,19 @@ int s2n_cipher_preferences_init()
     for (int i = 0; selection[i].version != NULL; i++) {
         const struct s2n_cipher_preferences *preferences = selection[i].preferences;
         for (int j = 0; j < preferences->count; j++) {
+
             struct s2n_cipher_suite *cipher = preferences->suites[j];
-            if (cipher->key_exchange_alg == &s2n_ecdhe || cipher->key_exchange_alg == &s2n_hybrid_ecdhe_kem){
+
+            /* TLS1.3 does not include key exchange algorithms in its cipher suites,
+             * but the elliptic curves extension is always required. */
+            if (cipher->minimum_required_tls_version >= S2N_TLS13) {
                 selection[i].ecc_extension_required = 1;
             }
+
+            if (cipher->key_exchange_alg == &s2n_ecdhe || cipher->key_exchange_alg == &s2n_hybrid_ecdhe_kem) {
+                selection[i].ecc_extension_required = 1;
+            }
+
             if (cipher->key_exchange_alg == &s2n_hybrid_ecdhe_kem) {
                 selection[i].pq_kem_extension_required = 1;
             }

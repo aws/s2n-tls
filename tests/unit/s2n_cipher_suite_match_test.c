@@ -50,12 +50,11 @@ int main(int argc, char **argv)
             }
         }
 
-        EXPECT_EQUAL(count, 35);
+        EXPECT_EQUAL(count, S2N_CIPHER_SUITE_COUNT);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         free(private_key);
         free(cert_chain);
-
     }
 
     /* Test server cipher selection and scsv detection */
@@ -481,6 +480,37 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_set_cipher_and_cert_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->handshake_params.our_chain_and_key, rsa_cert);
+            EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_wire_choice));
+            EXPECT_SUCCESS(s2n_connection_wipe(conn));
+        }
+
+        struct s2n_cipher_suite *tls12_cipher_suite = cipher_preferences_20170210.suites[cipher_preferences_20170210.count-1];
+        uint8_t wire_ciphers_with_tls13[] = {
+            TLS_AES_128_GCM_SHA256,
+            TLS_AES_256_GCM_SHA384,
+            TLS_CHACHA20_POLY1305_SHA256,
+            tls12_cipher_suite->iana_value[0], tls12_cipher_suite->iana_value[1]
+        };
+        const uint8_t cipher_count_tls13 = sizeof(wire_ciphers_with_tls13) / S2N_TLS_CIPHER_SUITE_LEN;
+
+        /* Client sends TLS1.3 cipher suites, but server does not support TLS1.3 */
+        {
+            s2n_connection_set_cipher_preferences(conn, "test_all");
+            conn->client_protocol_version = S2N_TLS13;
+            conn->actual_protocol_version = S2N_TLS12;
+            EXPECT_SUCCESS(s2n_set_cipher_and_cert_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
+            EXPECT_EQUAL(conn->secure.cipher_suite, tls12_cipher_suite);
+            EXPECT_SUCCESS(s2n_connection_wipe(conn));
+        }
+
+        /* Client sends TLS1.3 cipher suites, server selects TLS1.3 */
+        {
+            const uint8_t expected_wire_choice[] = { TLS_AES_256_GCM_SHA384 };
+            s2n_connection_set_cipher_preferences(conn, "test_all");
+            s2n_connection_set_cipher_preferences(conn, "default_tls13");
+            conn->client_protocol_version = S2N_TLS13;
+            conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_SUCCESS(s2n_set_cipher_and_cert_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
             EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_wire_choice));
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
         }

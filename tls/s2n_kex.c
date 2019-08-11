@@ -238,6 +238,7 @@ int s2n_configure_kex(const struct s2n_cipher_suite *cipher_suite, struct s2n_co
 
 int s2n_kex_is_ephemeral(const struct s2n_kex *kex)
 {
+    notnull_check(kex);
     return kex->is_ephemeral;
 }
 
