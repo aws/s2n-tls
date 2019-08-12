@@ -20,7 +20,6 @@ int main(int argc, char **argv)
 {
     const int buf_size = 10;
     char buf[buf_size];
-    char expect_result[buf_size];
 
     BEGIN_TEST();
 
@@ -28,7 +27,7 @@ int main(int argc, char **argv)
     char *last = buf + buf_size;
     const char *hello = "Hello";
     const char *world = " World!";
-    const char *hello_world = "Hello World!";
+    const char *expect_result = "Hello Wor";
     const char *hi = " Hi!";
     const char *hello_hi = "Hello Hi!";
 
@@ -45,7 +44,6 @@ int main(int argc, char **argv)
 
     // last - buf - 1 <= length of src string, output string length is truncated to buf size - 1
     p = s2n_strcpy(p, last, world);
-    strncpy(expect_result, hello_world, buf_size -1);
     EXPECT_TRUE(0 == strcmp(buf, expect_result));
 
     // NULL src, a NULL terminator should be added
