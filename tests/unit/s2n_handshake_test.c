@@ -145,6 +145,7 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
         server_conn->client_protocol_version = S2N_TLS12;
         server_conn->actual_protocol_version = S2N_TLS12;
 
+        const char* app_data_str = "APPLICATION_DATA";
         if (!expect_failure) {
             GUARD(try_handshake(server_conn, client_conn));
             const char* actual_cipher = s2n_connection_get_cipher(server_conn);
@@ -170,8 +171,17 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
             if (strcmp(s2n_connection_get_handshake_type_name(server_conn), handshake_type_name) != 0) {
                 return -1;
             }
+
+            if (strcmp(app_data_str, s2n_connection_get_last_message_name(client_conn)) != 0 ||
+                strcmp(app_data_str, s2n_connection_get_last_message_name(server_conn)) != 0) {
+                return -1;
+            }
         } else {
             eq_check(try_handshake(server_conn, client_conn), -1);
+            if (0 == strcmp(app_data_str, s2n_connection_get_last_message_name(client_conn)) ||
+                0 == strcmp(app_data_str, s2n_connection_get_last_message_name(server_conn))) {
+                return -1;
+            }
         }
 
         GUARD(s2n_connection_free(server_conn));
