@@ -37,7 +37,7 @@
 static int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension);
-static int s2n_recv_client_elliptic_curves(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_recv_client_supported_groups(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_ec_point_formats(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_client_sct_list(struct s2n_connection *conn, struct s2n_stuffer *extension);
@@ -198,12 +198,12 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     }
 
     /*
-     * RFC 4492: Clients SHOULD send both the Supported Elliptic Curves Extension
-     * and the Supported Point Formats Extension.
+     * RFC 4492: Clients SHOULD send both the Supported Elliptic Curves Extension (renamed
+     * Supported Groups in TLS 1.3 RFC 8446) and the Supported Point Formats Extension.
      */
     if (ecc_extension_required) {
         int ec_curves_count = s2n_array_len(s2n_ecc_supported_curves);
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_ELLIPTIC_CURVES));
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SUPPORTED_GROUPS));
         GUARD(s2n_stuffer_write_uint16(out, 2 + ec_curves_count * 2));
         /* Curve list len */
         GUARD(s2n_stuffer_write_uint16(out, ec_curves_count * 2));
@@ -264,8 +264,8 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *pa
         case TLS_EXTENSION_STATUS_REQUEST:
             GUARD(s2n_recv_client_status_request(conn, &extension));
             break;
-        case TLS_EXTENSION_ELLIPTIC_CURVES:
-            GUARD(s2n_recv_client_elliptic_curves(conn, &extension));
+        case TLS_EXTENSION_SUPPORTED_GROUPS:
+            GUARD(s2n_recv_client_supported_groups(conn, &extension));
             break;
         case TLS_EXTENSION_EC_POINT_FORMATS:
             GUARD(s2n_recv_client_ec_point_formats(conn, &extension));
@@ -417,7 +417,7 @@ static int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2
     return 0;
 }
 
-static int s2n_recv_client_elliptic_curves(struct s2n_connection *conn, struct s2n_stuffer *extension)
+static int s2n_recv_client_supported_groups(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     uint16_t size_of_all;
     struct s2n_blob proposed_curves = {0};
