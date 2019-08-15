@@ -594,23 +594,6 @@ const struct s2n_cipher_preferences elb_security_policy_fs_1_1_2019_08 = {
     .minimum_protocol_version = S2N_TLS11,
 };
 
-struct s2n_cipher_suite *cipher_suites_elb_security_policy_fs_Res_2019_08[] = {
-    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
-    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
-    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
-    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
-    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
-};
-
-const struct s2n_cipher_preferences elb_security_policy_fs_Res_2019_08 = {
-    .count = sizeof(cipher_suites_elb_security_policy_fs_Res_2019_08) / sizeof(cipher_suites_elb_security_policy_fs_Res_2019_08[0]), 
-    .suites = cipher_suites_elb_security_policy_fs_Res_2019_08, 
-    .minimum_protocol_version = S2N_TLS10,
-};
-
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_fs_1_2_Res_2019_08[] = {
     &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
