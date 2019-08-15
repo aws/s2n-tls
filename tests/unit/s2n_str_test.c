@@ -16,15 +16,16 @@
 #include "s2n_test.h"
 #include "utils/s2n_str.h"
 
+#define BUF_SIZE 10
+
 int main(int argc, char **argv)
 {
-    const int buf_size = 10;
-    char buf[buf_size];
+    char buf[BUF_SIZE];
 
     BEGIN_TEST();
 
     char *p = buf;
-    char *last = buf + buf_size;
+    char *last = buf + BUF_SIZE;
     const char *hello = "Hello";
     const char *world = " World!";
     const char *expect_result = "Hello Wor";
