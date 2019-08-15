@@ -827,7 +827,6 @@ struct {
     { .version="ELBSecurityPolicy-FS-2018-06", .preferences=&elb_security_policy_fs_2018_06, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="ELBSecurityPolicy-FS-1-2-2019-08", .preferences=&elb_security_policy_fs_1_2_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0}, 
     { .version="ELBSecurityPolicy-FS-1-1-2019-08", .preferences=&elb_security_policy_fs_1_1_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0}, 
-    { .version="ELBSecurityPolicy-FS-Res-2019-08", .preferences=&elb_security_policy_fs_Res_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0}, 
     { .version="ELBSecurityPolicy-FS-1-2-Res-2019-08", .preferences=&elb_security_policy_fs_1_2_Res_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0}, 
     { .version="CloudFront-Upstream", .preferences=&cipher_preferences_cloudfront_upstream, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="CloudFront-SSL-v-3", .preferences=&cipher_preferences_cloudfront_ssl_v_3, .ecc_extension_required=0, .pq_kem_extension_required=0},
