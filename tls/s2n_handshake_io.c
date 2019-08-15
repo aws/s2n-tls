@@ -84,6 +84,27 @@ static struct s2n_handshake_action state_machine[] = {
     [APPLICATION_DATA]          = {TLS_APPLICATION_DATA, 0, 'B', {NULL, NULL}}
 };
 
+#define MESSAGE_NAME_ENTRY(msg) [msg] = #msg
+
+static const char *message_names[] = {
+    MESSAGE_NAME_ENTRY(CLIENT_HELLO),
+    MESSAGE_NAME_ENTRY(SERVER_HELLO),
+    MESSAGE_NAME_ENTRY(SERVER_NEW_SESSION_TICKET),
+    MESSAGE_NAME_ENTRY(SERVER_CERT),
+    MESSAGE_NAME_ENTRY(SERVER_CERT_STATUS),
+    MESSAGE_NAME_ENTRY(SERVER_KEY),
+    MESSAGE_NAME_ENTRY(SERVER_CERT_REQ),
+    MESSAGE_NAME_ENTRY(SERVER_HELLO_DONE),
+    MESSAGE_NAME_ENTRY(CLIENT_CERT),
+    MESSAGE_NAME_ENTRY(CLIENT_KEY),
+    MESSAGE_NAME_ENTRY(CLIENT_CERT_VERIFY),
+    MESSAGE_NAME_ENTRY(CLIENT_CHANGE_CIPHER_SPEC),
+    MESSAGE_NAME_ENTRY(CLIENT_FINISHED),
+    MESSAGE_NAME_ENTRY(SERVER_CHANGE_CIPHER_SPEC),
+    MESSAGE_NAME_ENTRY(SERVER_FINISHED),
+    MESSAGE_NAME_ENTRY(APPLICATION_DATA),
+};
+
 /* We support different ordering of TLS Handshake messages, depending on what is being negotiated. There's also a dummy "INITIAL" handshake
  * that everything starts out as until we know better.
  */
@@ -452,6 +473,11 @@ int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn) {
 
     conn->handshake.handshake_type |= NO_CLIENT_CERT;
     return 0;
+}
+
+const char *s2n_connection_get_last_message_name(struct s2n_connection *conn)
+{
+    return message_names[ACTIVE_MESSAGE(conn)];
 }
 
 const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn) 

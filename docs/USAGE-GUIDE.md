@@ -1254,6 +1254,14 @@ const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn);
 
 **s2n_connection_get_handshake_type_name** returns a human-readable handshake type name, e.g. "NEGOTIATED|FULL_HANDSHAKE|PERFECT_FORWARD_SECRECY"
 
+### s2n\_connection\_get\_last\_message\_name
+
+```c
+const char *s2n_connection_get_last_message_name(struct s2n_connection *conn);
+```
+
+**s2n_connection_get_last_message_name** returns the last message name in TLS state machine, e.g. "SERVER_HELLO", "APPLICATION_DATA".
+
 ### s2n\_connection\_get\_alert
 
 ```c
