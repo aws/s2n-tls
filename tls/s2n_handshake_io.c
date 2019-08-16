@@ -477,6 +477,8 @@ int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn) {
 
 const char *s2n_connection_get_last_message_name(struct s2n_connection *conn)
 {
+    notnull_check_ptr(conn);
+    
     return message_names[ACTIVE_MESSAGE(conn)];
 }
 
