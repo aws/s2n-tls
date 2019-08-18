@@ -24,6 +24,33 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    /* Test s2n_ecc_write_ecc_params_point for all supported curves */
+    {
+        for (int i = 0; i < sizeof(s2n_ecc_supported_curves) / sizeof(s2n_ecc_supported_curves[0]); i++) {
+            struct s2n_ecc_params test_params;
+            struct s2n_stuffer wire;
+            uint8_t legacy_form;
+
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire, 1024));
+
+            /* Server generates a key for a given curve */
+            test_params.negotiated_curve = &s2n_ecc_supported_curves[i];
+
+            EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&test_params));
+            EXPECT_SUCCESS(s2n_ecc_write_ecc_params_point(&test_params, &wire));
+
+            /* Verify output is of the right length */
+            EXPECT_EQUAL(s2n_stuffer_data_available(&wire), s2n_ecc_supported_curves[i].share_size);
+
+            /* Verify output starts with the known legacy form */
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&wire, &legacy_form));
+            EXPECT_EQUAL(legacy_form, 4);
+
+            EXPECT_SUCCESS(s2n_ecc_params_free(&test_params));
+            EXPECT_SUCCESS(s2n_stuffer_free(&wire));
+        }
+    }
+
     /* Test generate->write->read->compute_shared with all supported curves */
     for (int i = 0; i < sizeof(s2n_ecc_supported_curves) / sizeof(s2n_ecc_supported_curves[0]); i++) {
         struct s2n_ecc_params server_params, client_params;

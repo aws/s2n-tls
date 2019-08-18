@@ -17,6 +17,7 @@
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_client_extensions.h"
+#include "tls/extensions/s2n_client_key_share.h"
 
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
@@ -38,6 +39,7 @@ int s2n_init(void)
     GUARD(s2n_rand_init());
     GUARD(s2n_cipher_suites_init());
     GUARD(s2n_cipher_preferences_init());
+    GUARD(s2n_client_key_share_init());
 
     S2N_ERROR_IF(atexit(s2n_cleanup_atexit) != 0, S2N_ERR_ATEXIT);
 

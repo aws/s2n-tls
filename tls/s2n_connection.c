@@ -298,6 +298,9 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     s2n_x509_validator_wipe(&conn->x509_validator);
     GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
     GUARD(s2n_ecc_params_free(&conn->secure.server_ecc_params));
+    for (int i=0; i< S2N_ECC_SUPPORTED_CURVES_COUNT; i++) {
+        GUARD(s2n_ecc_params_free(&conn->secure.client_ecc_params[i]));
+    }
     GUARD(s2n_kem_free(&conn->secure.s2n_kem_keys));
     GUARD(s2n_free(&conn->secure.client_cert_chain));
     GUARD(s2n_free(&conn->ct_response));
