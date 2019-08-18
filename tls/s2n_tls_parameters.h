@@ -90,6 +90,7 @@
 
 /* TLS 1.3 extensions from https://tools.ietf.org/html/rfc8446#section-4.2 */
 #define TLS_EXTENSION_SUPPORTED_VERSIONS   43
+#define TLS_EXTENSION_KEY_SHARE            51
 
 /* TLS Signature Algorithms - RFC 5246 7.4.1.4.1*/
 #define TLS_SIGNATURE_ALGORITHM_ANONYMOUS   0
