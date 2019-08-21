@@ -16,5 +16,4 @@ include "proof/random.saw";
 include "proof/sidh.saw";
 include "proof/cshake.saw";
 let do_prove = true;
-let debug = true;
 include "proof/sike.saw";
