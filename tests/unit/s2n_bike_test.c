@@ -26,7 +26,7 @@ int main(int argc, char **argv)
     unsigned char encryptedSecret[BIKE1_L1_CIPHERTEXT_BYTES];
 
     BEGIN_TEST();
-    // BIKE is not supported in FIPS mode
+    /* BIKE is not supported in FIPS mode */
     if (s2n_is_in_fips_mode()) {
         END_TEST();
     }

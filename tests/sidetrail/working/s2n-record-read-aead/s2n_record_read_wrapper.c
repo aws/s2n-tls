@@ -116,9 +116,9 @@ int s2n_record_parse_wrapper(int *xor_pad,
     .record_alg = &record_algorithm,
   };
 
-  //cppcheck-suppress unassignedVariable
+  /* cppcheck-suppress unassignedVariable */
   uint8_t data1[MAX_SIZE];
-  //cppcheck-suppress unassignedVariable
+  /* cppcheck-suppress unassignedVariable */
   uint8_t data2[MAX_SIZE];
   
   struct s2n_connection conn = {
