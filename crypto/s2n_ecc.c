@@ -115,7 +115,7 @@ int s2n_ecc_read_ecc_params(struct s2n_stuffer *in, struct s2n_blob *data_to_ver
     raw_server_ecc_params->point_blob.data = s2n_stuffer_raw_read(in, point_length);
     notnull_check(raw_server_ecc_params->point_blob.data);
 
-    // 1 byte for curve type, 2 for the curve data, 1 for the point length, and point_length for the point
+    /* 1 byte for curve type, 2 for the curve data, 1 for the point length, and point_length for the point */
     data_to_verify->size = (1 + 2) + (1 + point_length);
 
     return 0;

@@ -35,19 +35,19 @@ int main(int argc, char **argv)
     p = s2n_strcpy(p, last, hello);
     EXPECT_TRUE(0 == strcmp(buf, hello));
 
-    // buf = last, string does not change
+    /* buf = last, string does not change */
     p = s2n_strcpy(p, p, hello);
     EXPECT_TRUE(0 == strcmp(buf, hello));
 
-    // buf > last, string does not change
+    /* buf > last, string does not change */
     p = s2n_strcpy(p, buf, hello);
     EXPECT_TRUE(0 == strcmp(buf, hello));
 
-    // last - buf - 1 <= length of src string, output string length is truncated to buf size - 1
+    /* last - buf - 1 <= length of src string, output string length is truncated to buf size - 1 */
     p = s2n_strcpy(p, last, world);
     EXPECT_TRUE(0 == strcmp(buf, expect_result));
 
-    // NULL src, a NULL terminator should be added
+    /* NULL src, a NULL terminator should be added */
     p = buf;
     p = s2n_strcpy(p, last, NULL);
     EXPECT_EQUAL(*p, '\0');
@@ -55,16 +55,16 @@ int main(int argc, char **argv)
     p = s2n_strcpy(p, last, hello);
     EXPECT_TRUE(0 == strcmp(buf, hello));
 
-    // buf + 1 = last, a NULL terminator should be added
+    /* buf + 1 = last, a NULL terminator should be added */
     *p = 'a';
     p = s2n_strcpy(p, p + 1, hello);
     EXPECT_TRUE(0 == strcmp(buf, hello));
 
-    // Normal case, string just fit buf size
+    /* Normal case, string just fit buf size */
     p = s2n_strcpy(p, last, hi);
     EXPECT_TRUE(0 == strcmp(buf, hello_hi));
 
-    // Writing to the end buf does not change the string
+    /* Writing to the end buf does not change the string */
     p = s2n_strcpy(p, last, "s2n");
     EXPECT_TRUE(0 == strcmp(buf, hello_hi));
 

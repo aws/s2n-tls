@@ -42,7 +42,7 @@ int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
         return -1;
     }
 
-    // read the number of bytes requested or less if it isn't available
+    /* read the number of bytes requested or less if it isn't available */
     n_avail = s2n_stuffer_data_available(in_buf);
     n_read = (len < n_avail) ? len : n_avail;
 

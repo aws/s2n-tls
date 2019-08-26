@@ -201,7 +201,7 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    // test_with_rsa_cert();
+    /*  test_with_rsa_cert(); */
     {
         struct s2n_config *server_config, *client_config;
         char *cert_chain_pem;
@@ -237,7 +237,7 @@ int main(int argc, char **argv)
 
     }
 
-    //    test_with_ecdsa_cert()
+    /*  test_with_ecdsa_cert() */
     {
         struct s2n_config *server_config, *client_config;
         char *cert_chain_pem;

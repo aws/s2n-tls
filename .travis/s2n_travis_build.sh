@@ -25,6 +25,7 @@ fi
 
 if [[ "$BUILD_S2N" == "true" && "$TRAVIS_OS_NAME" == "linux" ]]; then
     .travis/run_kwstyle.sh;
+    .travis/cpp_style_comment_linter.sh;
 fi
 
 # Use prlimit to set the memlock limit to unlimited for linux. OSX is unlimited by default

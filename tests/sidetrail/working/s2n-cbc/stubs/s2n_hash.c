@@ -79,7 +79,7 @@ int num_blocks(int numBytes) {
   if (numBytes < 16*BLOCK_SIZE) return 15;
   if (numBytes < 17*BLOCK_SIZE) return 16;
   if (numBytes == 17*BLOCK_SIZE) return 17;
-  __VERIFIER_assert(0);//Unreachable
+  __VERIFIER_assert(0);/* Unreachable */
 }
 
 int s2n_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size)
@@ -91,7 +91,7 @@ int s2n_hash_update(struct s2n_hash_state *state, const void *data, uint32_t siz
    * invariant properties.
    * The proof should hold in their absense (albeit much more slowly).
    */
-  //cppcheck-suppress unsignedPositive
+  /* cppcheck-suppress unsignedPositive */
    __VERIFIER_assert(size >= 0);
    __VERIFIER_assert(size <= MAX_SIZE);
    __VERIFIER_assert(state->currently_in_hash_block < BLOCK_SIZE);
@@ -117,10 +117,10 @@ int s2n_hash_update(struct s2n_hash_state *state, const void *data, uint32_t siz
 int s2n_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size)
 {
   __VERIFIER_ASSUME_LEAKAGE(0);
-  // All the leakage comes from the hash_update we do once we've updated the size fields
+  /* All the leakage comes from the hash_update we do once we've updated the size fields */
 
   const int MARKER_BYTE_LENGTH = 1;
-  // append the bit '1' to the message e.g. by adding 0x80 if message length is a multiple of 8 bits.
+  /* append the bit '1' to the message e.g. by adding 0x80 if message length is a multiple of 8 bits. */
   uint32_t min_bytes_to_add = MARKER_BYTE_LENGTH;
   min_bytes_to_add += LENGTH_FIELD_SIZE;
 

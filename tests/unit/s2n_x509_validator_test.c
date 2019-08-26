@@ -442,7 +442,7 @@ int main(int argc, char **argv) {
         uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
         uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
-        //alter a random byte in the certificate to make it invalid.
+        /* alter a random byte in the certificate to make it invalid */
         chain_data[500] = (uint8_t) (chain_data[500] << 2);
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -1153,7 +1153,7 @@ int main(int argc, char **argv) {
         uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
         EXPECT_TRUE(ocsp_data_len > 0);
 
-        //flip a byte right in the middle of the cert.
+        /* flip a byte right in the middle of the cert */
         uint8_t *raw_data = (uint8_t *)s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len);
         raw_data[800] = (uint8_t) (raw_data[800] + 1);
 
