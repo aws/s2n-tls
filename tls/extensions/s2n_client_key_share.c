@@ -14,17 +14,12 @@
  */
 
 #include "tls/extensions/s2n_client_key_share.h"
+#include "tls/extensions/s2n_key_share.h"
 
 #include "crypto/s2n_ecc.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
-
-#define S2N_SIZE_OF_EXTENSION_TYPE          2
-#define S2N_SIZE_OF_EXTENSION_DATA_SIZE     2
-#define S2N_SIZE_OF_CLIENT_SHARES_SIZE      2
-#define S2N_SIZE_OF_NAMED_GROUP             2
-#define S2N_SIZE_OF_KEY_SHARE_SIZE          2
 
 /**
  * Specified in https://tools.ietf.org/html/rfc8446#section-4.2.8
@@ -52,7 +47,6 @@
 int s2n_client_key_share_extension_size;
 
 static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s2n_stuffer *out);
-int s2n_ecdhe_parameters_send(struct s2n_ecc_params *ecc_params, struct s2n_stuffer *out);
 
 int s2n_client_key_share_init()
 {
@@ -168,21 +162,6 @@ static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s
         ecc_params->negotiated_curve = named_curve;
         GUARD(s2n_ecdhe_parameters_send(ecc_params, out));
     }
-
-    return 0;
-}
-
-int s2n_ecdhe_parameters_send(struct s2n_ecc_params *ecc_params, struct s2n_stuffer *out)
-{
-    notnull_check(out);
-    notnull_check(ecc_params);
-    notnull_check(ecc_params->negotiated_curve);
-
-    GUARD(s2n_stuffer_write_uint16(out, ecc_params->negotiated_curve->iana_id));
-    GUARD(s2n_stuffer_write_uint16(out, ecc_params->negotiated_curve->share_size));
-
-    GUARD(s2n_ecc_generate_ephemeral_key(ecc_params));
-    GUARD(s2n_ecc_write_ecc_params_point(ecc_params, out));
 
     return 0;
 }

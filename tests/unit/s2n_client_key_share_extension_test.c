@@ -22,6 +22,7 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "tls/extensions/s2n_client_key_share.h"
+#include "tls/extensions/s2n_key_share.h"
 
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
@@ -32,8 +33,6 @@
     EXPECT_SUCCESS(s2n_stuffer_skip_write(stuffer, S2N_SIZE_OF_CLIENT_SHARE_SIZE))
 #define S2N_WRITE_DATA_LENGTH( stuffer )     \
     EXPECT_SUCCESS(s2n_test_rewrite_length(stuffer))
-
-extern int s2n_ecdhe_parameters_send(struct s2n_ecc_params *ecc_params, struct s2n_stuffer *out);
 
 static int s2n_public_ecc_keys_are_equal(struct s2n_ecc_params *param_1, struct s2n_ecc_params *param_2);
 static int s2n_test_rewrite_length(struct s2n_stuffer *stuffer);
@@ -392,7 +391,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
-
     }
 
     END_TEST();
@@ -404,7 +402,7 @@ static int s2n_public_ecc_keys_are_equal(struct s2n_ecc_params *params_1, struct
     struct s2n_stuffer point_stuffer;
     int size = params_1->negotiated_curve->share_size;
 
-    if(params_1->negotiated_curve != params_2->negotiated_curve) {
+    if (params_1->negotiated_curve != params_2->negotiated_curve) {
         return 0;
     }
 

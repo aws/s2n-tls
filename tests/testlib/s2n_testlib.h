@@ -104,3 +104,14 @@ int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, str
 int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn);
 
 int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file);
+
+#define S2N_STUFFER_WRITTEN_EXPECT_EQUAL( stuffer, bytes ) do { \
+    EXPECT_SUCCESS(s2n_stuffer_skip_read(stuffer, bytes));      \
+    EXPECT_EQUAL(s2n_stuffer_data_available(stuffer), 0);       \
+} while (0)
+
+#define S2N_STUFFER_READ_EXPECT_EQUAL( stuffer, expected, type ) do { \
+    type##_t value;                                                   \
+    EXPECT_SUCCESS(s2n_stuffer_read_##type(stuffer, &value));         \
+    EXPECT_EQUAL(value, expected);                                    \
+} while (0)
