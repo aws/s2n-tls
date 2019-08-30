@@ -204,8 +204,7 @@ let swap_points_spec' = do {
 
 */
 
-let LADDER3PT_spec = do {
-
+let LADDER3PT_spec is_unsafe_assume = do {
     (xP, xP_ptr) <- A_f2elm_t "xP";
     (xQ, xQ_ptr) <- A_f2elm_t "xQ";
     (xPQ, xPQ_ptr) <- A_f2elm_t "xPQ";
@@ -238,10 +237,14 @@ let LADDER3PT_spec = do {
 
     res_r <- crucible_fresh_var "LADDER3PT_R" point_proj_t;
     crucible_points_to r_ptr (tm res_r);
-
     crucible_postcond {{ point_mod res_r }};
-    // crucible_equal (tm {{ point_norm res_r }})
-    //                (tm {{ ladder3pt (fp2norm xP) (fp2norm xQ) (fp2norm xPQ) m aliceOrBob (fp2norm a) }});
+    if is_unsafe_assume then do {
+      crucible_equal
+        (tm {{ point_norm res_r }})
+        (tm {{ ladder3pt (fp2norm xP) (fp2norm xQ) (fp2norm xPQ) m aliceOrBob (fp2norm a) }});
+    } else do {
+      return ();
+    };
 };
 
 let LADDER3PT_main_loop_spec = do {
@@ -288,8 +291,6 @@ let LADDER3PT_main_loop_spec = do {
     crucible_points_to r_ptr (tm res_r);
 
     crucible_postcond {{ point_mod res_r }};
-    // crucible_equal (tm {{ point_norm res_r }})
-    //                (tm {{ wrap_point (main_loop i (prevbit == 1) (unwrap_point (point_norm r)) (unwrap_point (point_norm r0)) (unwrap_point (point_norm r2)) (fp2norm a24) nbits m) }});
 };
 
 
@@ -395,5 +396,8 @@ let LADDER3PT_rewrites = [ladder_thm1, ladder_thm2, ladder_thm3, ladder_thm4];
 
 verify_unint "__breakpoint__LADDER3PT_main_loop#LADDER3PT_r1"
     ladder_overrides ladder_unint LADDER3PT_main_loop_spec;
-LADDER3PT_ov <- verify_unint "LADDER3PT_r1"
-    ladder_overrides ladder_unint LADDER3PT_spec;
+verify_unint "LADDER3PT_r1"
+    ladder_overrides ladder_unint
+    (LADDER3PT_spec false);
+LADDER3PT_ov <- admit "LADDER3PT_r1" [] (LADDER3PT_spec true);
+
