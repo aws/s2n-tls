@@ -19,8 +19,8 @@
 
 #include "tls/s2n_connection.h"
 
-extern uint8_t s2n_highest_protocol_version;
 extern uint8_t s2n_unknown_protocol_version;
+extern uint8_t s2n_highest_protocol_version;
 
 extern int s2n_flush(struct s2n_connection *conn, s2n_blocked_status * more);
 extern int s2n_client_hello_send(struct s2n_connection *conn);
@@ -66,6 +66,8 @@ extern int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_st
 extern int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *extensions);
 
 extern uint16_t mfl_code_to_length[5];
+
+#define s2n_server_received_server_name(conn) ((conn)->server_name[0] != 0)
 
 #define s2n_server_can_send_ec_point_formats(conn) \
         ((conn)->ec_point_formats)

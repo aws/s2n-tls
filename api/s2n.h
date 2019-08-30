@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -35,6 +35,7 @@ extern "C" {
 #define S2N_TLS10 31
 #define S2N_TLS11 32
 #define S2N_TLS12 33
+#define S2N_TLS13 34
 #define S2N_UNKNOWN_PROTOCOL_VERSION 0
 
 extern __thread int s2n_errno;
@@ -82,7 +83,7 @@ typedef enum {
     S2N_EXTENSION_SERVER_NAME = 0,
     S2N_EXTENSION_MAX_FRAG_LEN = 1,
     S2N_EXTENSION_OCSP_STAPLING = 5,
-    S2N_EXTENSION_ELLIPTIC_CURVES = 10,
+    S2N_EXTENSION_SUPPORTED_GROUPS = 10,
     S2N_EXTENSION_EC_POINT_FORMATS = 11,
     S2N_EXTENSION_SIGNATURE_ALGORITHMS = 13,
     S2N_EXTENSION_ALPN = 16,
@@ -101,8 +102,17 @@ struct s2n_cert_chain_and_key;
 extern struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void);
 extern int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem, const char *private_key_pem);
 extern int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key);
+extern int s2n_cert_chain_and_key_set_ctx(struct s2n_cert_chain_and_key *cert_and_key, void *ctx);
+extern void *s2n_cert_chain_and_key_get_ctx(struct s2n_cert_chain_and_key *cert_and_key);
+
+typedef struct s2n_cert_chain_and_key* (*s2n_cert_tiebreak_callback) (struct s2n_cert_chain_and_key *cert1, struct s2n_cert_chain_and_key *cert2, uint8_t *name, uint32_t name_len);
+extern int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config, s2n_cert_tiebreak_callback cert_tiebreak_cb);
+
 extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem);
 extern int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair);
+extern int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
+                                                      struct s2n_cert_chain_and_key **cert_key_pairs,
+                                                      uint32_t num_cert_key_pairs);
 
 extern int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_pem_filename, const char *ca_dir);
 extern int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem);
@@ -196,6 +206,8 @@ extern ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ssize_t si
 extern ssize_t s2n_recv(struct s2n_connection *conn,  void *buf, ssize_t size, s2n_blocked_status *blocked);
 extern uint32_t s2n_peek(struct s2n_connection *conn);
 
+extern int s2n_connection_free_handshake(struct s2n_connection *conn);
+extern int s2n_connection_release_buffers(struct s2n_connection *conn);
 extern int s2n_connection_wipe(struct s2n_connection *conn);
 extern int s2n_connection_free(struct s2n_connection *conn);
 extern int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked);
@@ -216,6 +228,8 @@ extern int s2n_connection_get_session_id_length(struct s2n_connection *conn);
 extern int s2n_connection_get_session_id(struct s2n_connection *conn, uint8_t *session_id, size_t max_length);
 extern int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 extern int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);
+
+extern struct s2n_cert_chain_and_key *s2n_connection_get_selected_cert(struct s2n_connection *conn);
 
 /* RFC's that define below values:
  *  - https://tools.ietf.org/html/rfc5246#section-7.4.4
@@ -250,7 +264,10 @@ extern int s2n_connection_client_cert_used(struct s2n_connection *conn);
 extern const char *s2n_connection_get_cipher(struct s2n_connection *conn);
 extern int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, const char *version);
 extern const char *s2n_connection_get_curve(struct s2n_connection *conn);
+extern const char *s2n_connection_get_kem_name(struct s2n_connection *conn);
 extern int s2n_connection_get_alert(struct s2n_connection *conn);
+extern const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn);
+extern const char *s2n_connection_get_last_message_name(struct s2n_connection *conn);
 
 #ifdef __cplusplus
 }

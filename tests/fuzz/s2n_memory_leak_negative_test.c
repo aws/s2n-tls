@@ -140,7 +140,6 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 #endif
 
     GUARD(s2n_init());
-    GUARD(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
     return 0;
 }
 

@@ -30,6 +30,8 @@ void *thread_safety_tester(void *slot)
 
     s2n_get_public_random_data(&blob);
 
+    s2n_rand_cleanup_thread();
+
     return NULL;
 }
 

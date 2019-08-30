@@ -33,7 +33,7 @@
 
 void print_s2n_error(const char *app_error)
 {
-    fprintf(stderr, "%s: '%s' : '%s'\n", app_error, s2n_strerror(s2n_errno, "EN"),
+    fprintf(stderr, "[%d] %s: '%s' : '%s'\n", getpid(), app_error, s2n_strerror(s2n_errno, "EN"),
             s2n_strerror_debug(s2n_errno, "EN"));
 }
 
@@ -85,6 +85,7 @@ int negotiate(struct s2n_connection *conn)
     }
 
     printf("Curve: %s\n", s2n_connection_get_curve(conn));
+    printf("KEM: %s\n", s2n_connection_get_kem_name(conn));
 
     uint32_t length;
     const uint8_t *status = s2n_connection_get_ocsp_response(conn, &length);

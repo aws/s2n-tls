@@ -1,0 +1,29 @@
+//Bit_Vector_Utils.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module lib::util::Bit_Vector_Utils where
+
+///////////////////////////////////////////////////////////////////////////////
+
+extend : {size,a} (fin size, size >= a) => [a] -> [size]
+extend bv = zero # bv
+
+bva_to_bv : {buf,a,b,c}
+    ( fin buf
+    , fin a
+    , fin b
+    , fin c
+    , c == ((a*b) - buf)
+    , a * b >= buf
+    ) => [a][b] -> [c]
+bva_to_bv array = drop`{buf}(join (array))
+
+bv_to_bva : {arr_size, elem_size, a}
+    ( fin arr_size
+    , fin elem_size
+    , fin a
+    , arr_size * elem_size >= a
+    ) => [a] -> [arr_size][elem_size]
+bv_to_bva vec = split`{arr_size}(extend`{arr_size*elem_size} vec)

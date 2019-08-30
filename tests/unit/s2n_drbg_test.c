@@ -357,9 +357,9 @@ int nist_fake_256_no_pr_urandom_data(struct s2n_blob *blob)
 int check_drgb_version(s2n_drbg_mode mode, int (*generator)(struct s2n_blob *), int personalization_size,
         const char personalization_hex[], const char reference_values_hex[], const char returned_bits_hex[]) {
 
-    DEFER_CLEANUP(struct s2n_stuffer personalization = {{0}}, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_stuffer returned_bits = {{0}}, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_stuffer reference_values = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer personalization = {0}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer returned_bits = {0}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer reference_values = {0}, s2n_stuffer_free);
     GUARD(s2n_stuffer_alloc_ro_from_hex_string(&personalization, personalization_hex));
     GUARD(s2n_stuffer_alloc_ro_from_hex_string(&returned_bits, returned_bits_hex));
     GUARD(s2n_stuffer_alloc_ro_from_hex_string(&reference_values, reference_values_hex));
@@ -423,8 +423,8 @@ int main(int argc, char **argv)
                        nist_aes128_reference_values_hex, nist_aes128_reference_returned_bits_hex));
 
     /* Check everything against the NIST AES 256 vectors with prediction resistance */
-    DEFER_CLEANUP(struct s2n_stuffer temp1 = {{0}}, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_stuffer temp2 = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer temp1 = {0}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer temp2 = {0}, s2n_stuffer_free);
     /* Combine nist_aes256_reference_entropy_hex_part1 and nist_aes256_reference_entropy_hex_part2 to avoid C99
      * string length limit. */
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&temp1, nist_aes256_reference_entropy_hex_part1));

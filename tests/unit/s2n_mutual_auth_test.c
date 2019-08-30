@@ -42,7 +42,7 @@ int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
         return -1;
     }
 
-    // read the number of bytes requested or less if it isn't available
+    /* read the number of bytes requested or less if it isn't available */
     n_avail = s2n_stuffer_data_available(in_buf);
     n_read = (len < n_avail) ? len : n_avail;
 
@@ -103,7 +103,6 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));

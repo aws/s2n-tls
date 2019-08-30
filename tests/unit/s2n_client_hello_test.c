@@ -37,6 +37,8 @@
 #define ZERO_TO_THIRTY_ONE  0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, \
                             0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
 
+#define LENGTH_TO_CIPHER_LIST (S2N_TLS_PROTOCOL_VERSION_LEN + S2N_TLS_RANDOM_DATA_LEN + 1)
+
 int main(int argc, char **argv)
 {
     char *cert_chain;
@@ -45,8 +47,85 @@ int main(int argc, char **argv)
 
     EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
     EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
+
+    /* Test cipher suites list */
+    {
+        /* When TLS 1.3 NOT supported */
+        {
+            struct s2n_config *config;
+            EXPECT_NOT_NULL(config = s2n_config_new());
+            s2n_config_set_session_tickets_onoff(config, 0);
+
+            /* TLS 1.3 cipher suites NOT written by client */
+            {
+                struct s2n_connection *conn;
+                EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+                struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
+
+                EXPECT_SUCCESS(s2n_client_hello_send(conn));
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(hello_stuffer, LENGTH_TO_CIPHER_LIST));
+
+                uint16_t list_length = 0;
+                EXPECT_SUCCESS(s2n_stuffer_read_uint16(hello_stuffer, &list_length));
+                EXPECT_NOT_EQUAL(list_length, 0);
+
+                uint8_t first_cipher_byte;
+                for (int i = 0; i < list_length; i++) {
+                    EXPECT_SUCCESS(s2n_stuffer_read_uint8(hello_stuffer, &first_cipher_byte));
+                    EXPECT_NOT_EQUAL(first_cipher_byte, 0x13);
+                    EXPECT_SUCCESS(s2n_stuffer_skip_read(hello_stuffer, 1));
+                }
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            }
+
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
+        /* When TLS 1.3 supported */
+        {
+            EXPECT_SUCCESS(setenv("S2N_ENABLE_TLS13_FOR_TESTING", "1", 0));
+
+            struct s2n_config *config;
+            EXPECT_NOT_NULL(config = s2n_config_new());
+            s2n_config_set_session_tickets_onoff(config, 0);
+
+            /* TLS 1.3 cipher suites written by client */
+            {
+                struct s2n_connection *conn;
+                EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+                struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
+
+                EXPECT_SUCCESS(s2n_client_hello_send(conn));
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(hello_stuffer, LENGTH_TO_CIPHER_LIST));
+
+                uint16_t list_length = 0;
+                EXPECT_SUCCESS(s2n_stuffer_read_uint16(hello_stuffer, &list_length));
+                EXPECT_NOT_EQUAL(list_length, 0);
+
+                uint8_t first_cipher_byte;
+                int tls13_ciphers_found = 0;
+                for (int i = 0; i < list_length; i++) {
+                    EXPECT_SUCCESS(s2n_stuffer_read_uint8(hello_stuffer, &first_cipher_byte));
+                    if (first_cipher_byte == 0x13) {
+                        tls13_ciphers_found++;
+                    }
+                    EXPECT_SUCCESS(s2n_stuffer_skip_read(hello_stuffer, 1));
+                }
+                EXPECT_NOT_EQUAL(tls13_ciphers_found, 0);
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            }
+
+            EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(unsetenv("S2N_ENABLE_TLS13_FOR_TESTING"));
+        }
+    }
 
     /* Minimal TLS 1.2 client hello. */
     {
@@ -302,6 +381,13 @@ int main(int argc, char **argv)
         free(ext_data);
         ext_data = NULL;
 
+        /* Free all handshake data */
+        EXPECT_SUCCESS(s2n_connection_free_handshake(server_conn));
+
+        /* Verify connection_wipe resized the s2n_client_hello.raw_message stuffer back to 0 */
+        EXPECT_NULL(client_hello->raw_message.blob.data);
+        EXPECT_EQUAL(client_hello->raw_message.blob.size, 0);
+
         /* Not a real tls client but make sure we block on its close_notify */
         int shutdown_rc = s2n_shutdown(server_conn, &server_blocked);
         EXPECT_EQUAL(shutdown_rc, -1);
@@ -311,13 +397,9 @@ int main(int argc, char **argv)
          /* Wipe connection */
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
 
-        /* Verify connection_wipe resized the s2n_client_hello.raw_message stuffer */
-        EXPECT_NOT_NULL(client_hello->raw_message.blob.data);
-        EXPECT_EQUAL(client_hello->raw_message.blob.size, S2N_LARGE_RECORD_LENGTH);
-
-        /* Verify connection_wipe cleared the s2n_client_hello.raw_message stuffer data */
-        uint8_t zero_buffer[S2N_LARGE_RECORD_LENGTH] = { 0 };
-        EXPECT_SUCCESS(memcmp(collected_client_hello, zero_buffer, S2N_LARGE_RECORD_LENGTH));
+        /* Verify connection_wipe resized the s2n_client_hello.raw_message stuffer back to 0 */
+        EXPECT_NULL(client_hello->raw_message.blob.data);
+        EXPECT_EQUAL(client_hello->raw_message.blob.size, 0);
 
         /* Verify the s2n blobs referencing cipher_suites and extensions have cleared */
         EXPECT_EQUAL(client_hello->cipher_suites.size, 0);
@@ -399,6 +481,112 @@ int main(int argc, char **argv)
         EXPECT_FAILURE(s2n_client_hello_get_extension_by_id(NULL, S2N_EXTENSION_SERVER_NAME, out, len));
         free(out);
         out = NULL;
+    }
+
+    /* test_weird_client_hello_version() */
+    {
+        struct s2n_connection *server_conn;
+        struct s2n_config *server_config;
+        s2n_blocked_status server_blocked;
+        int server_to_client[2];
+        int client_to_server[2];
+        uint8_t* sent_client_hello;
+        struct s2n_cert_chain_and_key *chain_and_key;
+
+        uint8_t client_extensions[] = {
+            /* Extension type TLS_EXTENSION_SERVER_NAME */
+            0x00, 0x00,
+            /* Extension size */
+            0x00, 0x08,
+            /* Server names len */
+            0x00, 0x06,
+            /* First server name type - host name */
+            0x00,
+            /* First server name len */
+            0x00, 0x03,
+            /* First server name, matches sent_server_name */
+            's', 'v', 'r',
+        };
+
+        int client_extensions_len = sizeof(client_extensions);
+        uint8_t client_hello_prefix[] = {
+            /* Protocol version TLS ??? */
+            0xFF, 0xFF,
+            /* Client random */
+            ZERO_TO_THIRTY_ONE,
+            /* SessionID len - 32 bytes */
+            0x20,
+            /* Session ID */
+            ZERO_TO_THIRTY_ONE,
+            /* Cipher suites len */
+            0x00, 0x02,
+            /* Cipher suite - TLS_RSA_WITH_AES_128_CBC_SHA256 */
+            0x00, 0x3C,
+            /* Compression methods len */
+            0x01,
+            /* Compression method - none */
+            0x00,
+            /* Extensions len */
+            (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
+        };
+        int client_hello_prefix_len = sizeof(client_hello_prefix);
+        int sent_client_hello_len = client_hello_prefix_len + client_extensions_len;
+        uint8_t message_header[] = {
+            /* Handshake message type CLIENT HELLO */
+            0x01,
+            /* Body len */
+            (sent_client_hello_len >> 16) & 0xff, (sent_client_hello_len >> 8) & 0xff, (sent_client_hello_len & 0xff),
+        };
+        int message_len = sizeof(message_header) + sent_client_hello_len;
+        uint8_t record_header[] = {
+            /* Record type HANDSHAKE */
+            0x16,
+            /* Protocol version TLS 1.2 */
+            0x03, 0x03,
+            /* Message len */
+            (message_len >> 8) & 0xff, (message_len & 0xff),
+        };
+
+        EXPECT_NOT_NULL(sent_client_hello = malloc(sent_client_hello_len));
+        memcpy_check(sent_client_hello, client_hello_prefix, client_hello_prefix_len);
+        memcpy_check(sent_client_hello + client_hello_prefix_len, client_extensions, client_extensions_len);
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(pipe(server_to_client));
+        EXPECT_SUCCESS(pipe(client_to_server));
+        for (int i = 0; i < 2; i++) {
+            EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
+            EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
+        }
+
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
+
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain, private_key));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+        /* Send the client hello message */
+        EXPECT_EQUAL(write(client_to_server[1], record_header, sizeof(record_header)), sizeof(record_header));
+        EXPECT_EQUAL(write(client_to_server[1], message_header, sizeof(message_header)), sizeof(message_header));
+        EXPECT_EQUAL(write(client_to_server[1], sent_client_hello, sent_client_hello_len), sent_client_hello_len);
+
+        /* Verify that the sent client hello message is accepted */
+        s2n_negotiate(server_conn, &server_blocked);
+        EXPECT_TRUE(s2n_conn_get_current_message_type(server_conn) > CLIENT_HELLO);
+        EXPECT_EQUAL(server_conn->handshake.handshake_type, NEGOTIATED | FULL_HANDSHAKE);
+        /* Client sent an invalid legacy protocol version. We should still have negotiate the maximum value(TLS1.2) */
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+
+        s2n_connection_free(server_conn);
+        s2n_config_free(server_config);
+        s2n_cert_chain_and_key_free(chain_and_key);
+        free(sent_client_hello);
     }
 
     free(cert_chain);

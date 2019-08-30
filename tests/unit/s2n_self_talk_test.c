@@ -55,6 +55,8 @@ void mock_client(int writefd, int readfd)
 
     s2n_negotiate(conn, &blocked);
 
+    s2n_connection_free_handshake(conn);
+
     uint16_t timeout = 1;
     s2n_connection_set_dynamic_record_threshold(conn, 0x7fff, timeout);
     int i;
@@ -68,6 +70,9 @@ void mock_client(int writefd, int readfd)
     for (int j = 0; j < i; j++) {
         buffer[j] = 33;
     }
+
+    /* release the buffers here to validate we can continue IO after */
+    s2n_connection_release_buffers(conn);
 
     /* Simulate timeout second conneciton inactivity and tolerate 50 ms error */
     struct timespec sleep_time = {.tv_sec = timeout, .tv_nsec = 50000000};
@@ -108,94 +113,98 @@ int main(int argc, char **argv)
     char *cert_chain_pem;
     char *private_key_pem;
     char *dhparams_pem;
-    struct s2n_cert_chain_and_key *chain_and_key;
 
     BEGIN_TEST();
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
 
-    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
+    for (int is_dh_key_exchange = 0; is_dh_key_exchange <= 1; is_dh_key_exchange++) {
+        struct s2n_cert_chain_and_key *chain_and_keys[SUPPORTED_CERTIFICATE_FORMATS];
 
-    for (int cert = 0; cert < SUPPORTED_CERTIFICATE_FORMATS; cert++) {
-        for (int is_dh_key_exchange = 0; is_dh_key_exchange <= 1; is_dh_key_exchange++) {
-            /* Create a pipe */
-            EXPECT_SUCCESS(pipe(server_to_client));
-            EXPECT_SUCCESS(pipe(client_to_server));
+        /* Create a pipe */
+        EXPECT_SUCCESS(pipe(server_to_client));
+        EXPECT_SUCCESS(pipe(client_to_server));
 
-            /* Create a child process */
-            pid = fork();
-            if (pid == 0) {
-                /* This is the child process, close the read end of the pipe */
-                EXPECT_SUCCESS(close(client_to_server[0]));
-                EXPECT_SUCCESS(close(server_to_client[1]));
+        /* Create a child process */
+        pid = fork();
+        if (pid == 0) {
+            /* This is the child process, close the read end of the pipe */
+            EXPECT_SUCCESS(close(client_to_server[0]));
+            EXPECT_SUCCESS(close(server_to_client[1]));
 
-                /* Write the fragmented hello message */
-                mock_client(client_to_server[1], server_to_client[0]);
-            }
+            /* Write the fragmented hello message */
+            mock_client(client_to_server[1], server_to_client[0]);
+        }
 
-            /* This is the parent */
-            EXPECT_SUCCESS(close(client_to_server[1]));
-            EXPECT_SUCCESS(close(server_to_client[0]));
+        /* This is the parent */
+        EXPECT_SUCCESS(close(client_to_server[1]));
+        EXPECT_SUCCESS(close(server_to_client[0]));
 
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            conn->server_protocol_version = S2N_TLS12;
-            conn->client_protocol_version = S2N_TLS12;
-            conn->actual_protocol_version = S2N_TLS12;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        conn->server_protocol_version = S2N_TLS12;
+        conn->client_protocol_version = S2N_TLS12;
+        conn->actual_protocol_version = S2N_TLS12;
 
-            EXPECT_NOT_NULL(config = s2n_config_new());
-
+        EXPECT_NOT_NULL(config = s2n_config_new());
+        for (int cert = 0; cert < SUPPORTED_CERTIFICATE_FORMATS; cert++) {
             EXPECT_SUCCESS(s2n_read_test_pem(certificate_paths[cert], cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
             EXPECT_SUCCESS(s2n_read_test_pem(private_key_paths[cert], private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-            EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-            EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
-            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-            if (is_dh_key_exchange) {
-                EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
-                EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
-            }
-
-            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-
-            /* Set up the connection to read from the fd */
-            EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
-            EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
-
-            /* Negotiate the handshake. */
-            EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
-
-            char buffer[0xffff];
-            for (int i = 1; i < 0xffff; i += 100) {
-                char * ptr = buffer;
-                int size = i;
-
-                do {
-                    int bytes_read = 0;
-                    EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &blocked));
-
-                    size -= bytes_read;
-                    ptr += bytes_read;
-                } while(size);
-
-                for (int j = 0; j < i; j++) {
-                    EXPECT_EQUAL(buffer[j], 33);
-                }
-            }
-
-            int shutdown_rc = -1;
-            do {
-                shutdown_rc = s2n_shutdown(conn, &blocked);
-                EXPECT_TRUE(shutdown_rc == 0 || (errno == EAGAIN && blocked));
-            } while(shutdown_rc != 0);
-
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-            EXPECT_SUCCESS(s2n_config_free(config));
-
-            /* Clean up */
-            EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
-            EXPECT_EQUAL(status, 0);
+            EXPECT_NOT_NULL(chain_and_keys[cert] = s2n_cert_chain_and_key_new());
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_keys[cert], cert_chain_pem, private_key_pem));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_keys[cert]));
         }
+
+        if (is_dh_key_exchange) {
+            EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
+            EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
+        }
+
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        /* Set up the connection to read from the fd */
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
+
+        /* Negotiate the handshake. */
+        EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
+
+        char buffer[0xffff];
+        for (int i = 1; i < 0xffff; i += 100) {
+            char * ptr = buffer;
+            int size = i;
+
+            do {
+                int bytes_read = 0;
+                EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &blocked));
+
+                size -= bytes_read;
+                ptr += bytes_read;
+            } while(size);
+
+            for (int j = 0; j < i; j++) {
+                EXPECT_EQUAL(buffer[j], 33);
+            }
+
+            /* release the buffers here to validate we can continue IO after */
+            EXPECT_SUCCESS(s2n_connection_release_buffers(conn));
+        }
+
+        int shutdown_rc = -1;
+        do {
+            shutdown_rc = s2n_shutdown(conn, &blocked);
+            EXPECT_TRUE(shutdown_rc == 0 || (errno == EAGAIN && blocked));
+        } while(shutdown_rc != 0);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        for (int cert = 0; cert < SUPPORTED_CERTIFICATE_FORMATS; cert++) {
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_keys[cert]));
+        }
+        EXPECT_SUCCESS(s2n_config_free(config));
+
+        /* Clean up */
+        EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
+        EXPECT_EQUAL(status, 0);
     }
 
     free(cert_chain_pem);

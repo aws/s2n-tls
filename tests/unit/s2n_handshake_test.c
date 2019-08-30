@@ -145,14 +145,43 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
         server_conn->client_protocol_version = S2N_TLS12;
         server_conn->actual_protocol_version = S2N_TLS12;
 
+        const char* app_data_str = "APPLICATION_DATA";
         if (!expect_failure) {
             GUARD(try_handshake(server_conn, client_conn));
             const char* actual_cipher = s2n_connection_get_cipher(server_conn);
             if (strcmp(actual_cipher, expected_cipher->name) != 0){
                 return -1;
             }
+
+            const char *handshake_type_name = s2n_connection_get_handshake_type_name(client_conn);
+            if (NULL == strstr(handshake_type_name, "NEGOTIATED|FULL_HANDSHAKE")) {
+                return -1;
+            }
+
+            /* Calling the same funciton on the same connection again should get the same handshake name */
+            if (strcmp(s2n_connection_get_handshake_type_name(client_conn), handshake_type_name) != 0) {
+                return -1;
+            }
+
+            handshake_type_name = s2n_connection_get_handshake_type_name(server_conn);
+            if (NULL == strstr(handshake_type_name, "NEGOTIATED|FULL_HANDSHAKE")) {
+                return -1;
+            }
+
+            if (strcmp(s2n_connection_get_handshake_type_name(server_conn), handshake_type_name) != 0) {
+                return -1;
+            }
+
+            if (strcmp(app_data_str, s2n_connection_get_last_message_name(client_conn)) != 0 ||
+                strcmp(app_data_str, s2n_connection_get_last_message_name(server_conn)) != 0) {
+                return -1;
+            }
         } else {
             eq_check(try_handshake(server_conn, client_conn), -1);
+            if (0 == strcmp(app_data_str, s2n_connection_get_last_message_name(client_conn)) ||
+                0 == strcmp(app_data_str, s2n_connection_get_last_message_name(server_conn))) {
+                return -1;
+            }
         }
 
         GUARD(s2n_connection_free(server_conn));
@@ -172,9 +201,7 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
-    
-    // test_with_rsa_cert();
+    /*  test_with_rsa_cert(); */
     {
         struct s2n_config *server_config, *client_config;
         char *cert_chain_pem;
@@ -210,7 +237,7 @@ int main(int argc, char **argv)
 
     }
 
-    //    test_with_ecdsa_cert()
+    /*  test_with_ecdsa_cert() */
     {
         struct s2n_config *server_config, *client_config;
         char *cert_chain_pem;

@@ -1,0 +1,63 @@
+//sike.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+
+///////////////////////////////////////////////////////////////////////////////
+
+module interface::sike where
+
+import shared::Constants
+import shared::C_Types
+import shared::Convert_Types
+import interface::fpx
+import interface::fp_generic
+import interface::ec_isogeny
+import interface::sidh
+import interface::random
+import interface::cshake
+
+///////////////////////////////////////////////////////////////////////////////
+
+G = 0
+H = 1
+P = 2
+
+crypto_kem_enc : [378]uchar -> ([402]uchar, [16]uchar)
+crypto_kem_enc pk = (ct,ss) where
+    (temp_0       :[24]uchar ) = randombytes
+    (temp_1       :[402]uchar) = temp_0 # pk
+    (ephemeralsk_1:[32]uchar ) = cshake G temp_1
+    (ephemeralsk_2:[32]uchar ) = (take`{31} ephemeralsk_1) #
+                                 [g_MASK_ALICE && (ephemeralsk_1 ! 0)]
+    (ct_0         :[378]uchar) = EphemeralKeyGeneration_A ephemeralsk_2
+    (jinvariant   :[126]uchar) = EphemeralSecretAgreement_A ephemeralsk_2 pk
+    (h            :[24]uchar ) = cshake P jinvariant
+    (fn           :[378]uchar) = ct_0
+    (m            :[24]uchar ) = temp_0 ^ h
+    (ct           :[402]uchar) = fn#m
+    (temp_final   :[426]uchar) = temp_0 # ct
+    (ss           :[16]uchar ) = cshake H temp_final
+
+crypto_kem_dec : [402]uchar -> [434]uchar -> [16]uchar
+crypto_kem_dec ct sk = ss where
+    (c0:[378][8]) # (c1:[24][8]) = ct
+    (jinvariant_: [126]uchar) = EphemeralSecretAgreement_B
+                                (take (drop`{24} sk)) ct
+    (h_: [24]uchar) = cshake P jinvariant_
+    (fn:[24]uchar)  = c1 ^ h_
+    (b:[378]uchar)= drop` {56} sk
+    (temp_0:[402]uchar) = fn # b
+    (ephemeralsk_1:[32]uchar) = cshake G temp_0
+    (ephemeralsk_2:[32]uchar) = (take`{31} ephemeralsk_1) #
+                                [g_MASK_ALICE && (ephemeralsk_1 ! 0)]
+    (c0_1:[378]uchar) = EphemeralKeyGeneration_A ephemeralsk_2
+    (temp_2:[24]uchar) = if c0_1 != c0 then take`{24} sk else fn
+    (temp_3:[426]uchar) = temp_2 # ct
+    (ss:[16]uchar) = cshake H temp_3
+
+crypto_kem_keypair : (([378]uchar), ([434]uchar))
+crypto_kem_keypair = (pk, sk) where
+    (t_0:[24]uchar ) = randombytes
+    (t_1:[32]uchar ) = random_mod_order_B
+    (pk :[378]uchar) = EphemeralKeyGeneration_B t_1
+    (sk :[434]uchar) =  t_0 # t_1 # pk

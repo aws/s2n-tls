@@ -50,10 +50,10 @@ int main(int argc, char **argv)
     char expected_secret_hex_in[] ="33ad0a1c607ec03b09e6cd9893680ce210adf300aa1f2660e1b22e10f170f92a";
     char expected_expanded_hex_in[] ="6f2615a108c702c5678f54fc9dbab69716c076189c48250cebeac3576c3611ba";
 
-    DEFER_CLEANUP(struct s2n_stuffer client_handshake_message_in = {{0}}, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_stuffer server_handshake_message_in = {{0}}, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_stuffer expected_secret_in = {{0}}, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_stuffer expected_expanded_in = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer client_handshake_message_in = {0}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer server_handshake_message_in = {0}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer expected_secret_in = {0}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer expected_expanded_in = {0}, s2n_stuffer_free);
 
     char client_handshake_message[ sizeof(client_handshake_message_hex_in) / 2 ] = { 0 };
     char server_handshake_message[ sizeof(server_handshake_message_hex_in) / 2 ] = { 0 };

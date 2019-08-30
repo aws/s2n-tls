@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -17,11 +17,11 @@
 
 #include <stdint.h>
 
+#include <openssl/x509.h>
+
 #include <s2n.h>
 #include "crypto/s2n_pkey.h"
 #include "stuffer/s2n_stuffer.h"
-
-#define S2N_MAX_SERVER_NAME 256
 
 struct s2n_cert {
     s2n_cert_type cert_type;
@@ -40,14 +40,41 @@ struct s2n_cert_chain_and_key {
     s2n_cert_private_key *private_key;
     struct s2n_blob ocsp_status;
     struct s2n_blob sct_list;
-    char server_name[S2N_MAX_SERVER_NAME];
+    /* DNS type SubjectAlternative names from the leaf certificate to match
+     * with the server_name extension. We ignore non-DNS SANs here since the
+     * server_name extension only supports DNS.
+     */
+    struct s2n_array *san_names;
+    /* CommonName values from the leaf certificate's Subject to match with the
+     * server_name extension. Decoded as UTF8.
+     */
+    struct s2n_array *cn_names;
+    /* Application defined data related to this cert. */
+    void *context;
+};
+
+typedef enum {
+    S2N_AUTHENTICATION_RSA = 0,
+    S2N_AUTHENTICATION_ECDSA,
+    S2N_AUTHENTICATION_METHOD_SENTINEL
+} s2n_authentication_method;
+
+struct auth_method_to_cert_value {
+    struct s2n_cert_chain_and_key *certs[S2N_AUTHENTICATION_METHOD_SENTINEL];
 };
 
 int s2n_cert_chain_and_key_set_ocsp_data(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length);
 int s2n_cert_chain_and_key_set_sct_list(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length);
+/* Exposed for fuzzing */
+int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert);
+int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert);
+int s2n_cert_chain_and_key_matches_dns_name(const struct s2n_cert_chain_and_key *chain_and_key, const struct s2n_blob *dns_name);
 
 int s2n_cert_public_key_set_rsa_from_openssl(s2n_cert_public_key *cert_pub_key, RSA *rsa);
 int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_cert_type cert_type);
 int s2n_send_cert_chain(struct s2n_stuffer *out, struct s2n_cert_chain *chain);
 int s2n_send_empty_cert_chain(struct s2n_stuffer *out);
 int s2n_create_cert_chain_from_stuffer(struct s2n_cert_chain *cert_chain_out, struct s2n_stuffer *chain_in_stuffer);
+
+s2n_authentication_method s2n_cert_chain_and_key_get_auth_method(struct s2n_cert_chain_and_key *chain_and_key);
+

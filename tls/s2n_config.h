@@ -27,12 +27,6 @@
 #define S2N_MAX_TICKET_KEYS 48
 #define S2N_MAX_TICKET_KEY_HASHES 500 /* 10KB */
 
-/* This is 2 to match the number of certificate types s2n supports(RSA, ECDSA)
- * This will increase once we support more lookup methods(server_name). Since this value is
- * a factor in memory footprint, the application will also need a way to control the max.
- */
-#define S2N_MAX_CERTIFICATES 2
-
 struct s2n_cipher_preferences;
 
 struct s2n_config {
@@ -41,8 +35,9 @@ struct s2n_config {
      * used to release memory allocated only in the deprecated API that the application 
      * does not have a reference to. */
     unsigned cert_allocated:1;
-    unsigned int num_certificates;
-    struct s2n_cert_chain_and_key *cert_and_key_pairs[S2N_MAX_CERTIFICATES];
+    struct s2n_map *domain_name_to_cert_map;
+    unsigned default_certs_are_explicit:1;
+    struct auth_method_to_cert_value default_cert_per_auth_method;
     const struct s2n_cipher_preferences *cipher_preferences;
     struct s2n_blob application_protocols;
     s2n_status_request_type status_request_type;
@@ -84,6 +79,9 @@ struct s2n_config {
     uint8_t (*verify_host) (const char *host_name, size_t host_name_len, void *data);
     void *data_for_verify_host;
 
+    /* Application supplied callback to resolve domain name conflicts when loading certs. */
+    s2n_cert_tiebreak_callback cert_tiebreak_cb;
+
     uint8_t mfl_code;
 
     /* if this is FALSE, server will ignore client's Maximum Fragment Length request */
@@ -106,3 +104,5 @@ extern int s2n_config_free_session_ticket_keys(struct s2n_config *config);
 
 extern void s2n_wipe_static_configs(void);
 int s2n_config_get_cert_type(struct s2n_config *config, s2n_cert_type *cert_type);
+extern struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_config *config);
+extern int s2n_config_get_num_default_certs(struct s2n_config *config);

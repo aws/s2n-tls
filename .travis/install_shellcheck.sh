@@ -28,7 +28,7 @@ fi
 TRAVIS_PLATFORM=$1
 
 if [ "$TRAVIS_PLATFORM" == "linux" ]; then
-    which shellcheck || sudo apt-get -qq install shellcheck -y
+    which shellcheck || (sudo apt-get -qq update && sudo apt-get -qq install shellcheck -y)
 elif [ "$TRAVIS_PLATFORM" == "osx" ]; then
     # Installing an existing package is a "failure" in brew
     brew install shellcheck || true ;

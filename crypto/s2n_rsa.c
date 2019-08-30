@@ -149,12 +149,11 @@ static int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, str
 
 static int s2n_rsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv)
 {
-    uint8_t plain_inpad[36] = {0}, plain_outpad[36] = {0}, encpad[8192];
+    uint8_t plain_inpad[36] = {1}, plain_outpad[36] = {0}, encpad[8192];
     struct s2n_blob plain_in, plain_out, enc;
 
     plain_in.data = plain_inpad;
     plain_in.size = sizeof(plain_inpad);
-    GUARD(s2n_get_private_random_data(&plain_in));
 
     enc.data = encpad;
     enc.size = s2n_rsa_encrypted_size(pub);
@@ -209,7 +208,8 @@ int s2n_evp_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *evp_
     return 0;
 }
 
-int s2n_rsa_pkey_init(struct s2n_pkey *pkey) {
+int s2n_rsa_pkey_init(struct s2n_pkey *pkey)
+{
     pkey->size = &s2n_rsa_encrypted_size;
     pkey->sign = &s2n_rsa_sign;
     pkey->verify = &s2n_rsa_verify;

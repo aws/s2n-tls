@@ -113,6 +113,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->out.blob.data[4], bytes_written & 0xff);
         EXPECT_EQUAL(memcmp(conn->out.blob.data + 5, random_data, bytes_written), 0);
 
+        EXPECT_SUCCESS(s2n_stuffer_resize_if_empty(&conn->in, S2N_LARGE_FRAGMENT_LENGTH));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
         EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
@@ -155,7 +156,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->out.blob.data[2], 2);
         EXPECT_EQUAL(conn->out.blob.data[3], (predicted_length >> 8) & 0xff);
         EXPECT_EQUAL(conn->out.blob.data[4], predicted_length & 0xff);
-        EXPECT_EQUAL(memcmp(conn->out.blob.data + 5, random_data, bytes_written), 0)
+        EXPECT_EQUAL(memcmp(conn->out.blob.data + 5, random_data, bytes_written), 0);
 
         uint8_t top = bytes_written >> 8;
         uint8_t bot = bytes_written & 0xff;

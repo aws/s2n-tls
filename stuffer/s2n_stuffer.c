@@ -76,11 +76,13 @@ int s2n_stuffer_free(struct s2n_stuffer *stuffer)
 
 int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size)
 {
-    S2N_ERROR_IF(stuffer->growable == 0, S2N_ERR_RESIZE_STATIC_STUFFER);
     S2N_ERROR_IF(stuffer->tainted == 1, S2N_ERR_RESIZE_TAINTED_STUFFER);
+    S2N_ERROR_IF(stuffer->growable == 0, S2N_ERR_RESIZE_STATIC_STUFFER);
+
     if (size == stuffer->blob.size) {
         return 0;
     }
+
     if (size < stuffer->blob.size) {
         GUARD(s2n_stuffer_wipe_n(stuffer, stuffer->blob.size - size));
     }
@@ -88,6 +90,15 @@ int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size)
     GUARD(s2n_realloc(&stuffer->blob, size));
 
     stuffer->blob.size = size;
+
+    return 0;
+}
+
+int s2n_stuffer_resize_if_empty(struct s2n_stuffer *stuffer, const uint32_t size)
+{
+    if (stuffer->blob.data == NULL) {
+        GUARD(s2n_stuffer_resize(stuffer, size));
+    }
 
     return 0;
 }
@@ -128,6 +139,21 @@ int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t size)
     }
 
     stuffer->read_cursor = MIN(stuffer->read_cursor, stuffer->write_cursor);
+
+    return 0;
+}
+
+int s2n_stuffer_release_if_empty(struct s2n_stuffer *stuffer)
+{
+    if (stuffer->blob.data == NULL) {
+        return 0;
+    }
+
+    S2N_ERROR_IF(stuffer->read_cursor != stuffer->write_cursor,
+            S2N_ERR_STUFFER_HAS_UNPROCESSED_DATA);
+
+    GUARD(s2n_stuffer_wipe(stuffer));
+    GUARD(s2n_stuffer_resize(stuffer, 0));
 
     return 0;
 }

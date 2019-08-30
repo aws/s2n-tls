@@ -30,6 +30,7 @@
 #include <errno.h>
 
 #include <s2n.h>
+#include "common.h"
 
 void usage()
 {
@@ -70,6 +71,8 @@ void usage()
     fprintf(stderr, "    Set dynamic record resize threshold\n");
     fprintf(stderr, "  -t,--timeout\n");
     fprintf(stderr, "    Set dynamic record timeout threshold\n");
+    fprintf(stderr, "  -C,--corked-io\n");
+    fprintf(stderr, "    Turn on corked io\n");
     fprintf(stderr, "\n");
     exit(1);
 }
@@ -81,9 +84,9 @@ struct verify_data {
 static uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, void *data) {
     struct verify_data *verify_data = (struct verify_data *)data;
 
-    char *offset = strstr(host_name, "*.");
-    if (offset) {
-        return (uint8_t)(strcasecmp(verify_data->trusted_host, offset + 2) == 0);
+    if (host_name_len > 2 && host_name[0] == '*' && host_name[1] == '.') {
+        char *suffix = strstr(verify_data->trusted_host, ".");
+        return (uint8_t)(strcasecmp(suffix, host_name + 1) == 0);
     }
 
     int equals = strcasecmp(host_name, verify_data->trusted_host);
@@ -102,15 +105,9 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
         exit(1);
     }
 
-    if (s2n_config_set_cipher_preferences(config, cipher_prefs) < 0) {
-        print_s2n_error("Error setting cipher prefs");
-        exit(1);
-    }
+    GUARD_EXIT(s2n_config_set_cipher_preferences(config, cipher_prefs), "Error setting cipher prefs");
 
-    if (s2n_config_set_status_request_type(config, type) < 0) {
-        print_s2n_error("OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
-        exit(1);
-    }
+    GUARD_EXIT(s2n_config_set_status_request_type(config, type), "OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
 
     if (s2n_config_set_verify_host_callback(config, unsafe_verify_host, unsafe_verify_data) < 0) {
         print_s2n_error("Error setting host name verification function.");
@@ -173,10 +170,9 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
             memcpy(protocols[idx], next, length);
             protocols[idx][length] = '\0';
         }
-        if (s2n_config_set_protocol_preferences(config, (const char *const *)protocols, protocol_count) < 0) {
-            print_s2n_error("Failed to set protocol preferences");
-            exit(1);
-        }
+
+        GUARD_EXIT(s2n_config_set_protocol_preferences(config, (const char *const *)protocols, protocol_count), "Failed to set protocol preferences");
+
         while (protocol_count) {
             protocol_count--;
             free(protocols[protocol_count]);
@@ -205,10 +201,7 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
         }
     }
 
-    if (s2n_config_send_max_fragment_length(config, mfl_code) < 0) {
-        print_s2n_error("Error setting maximum fragment length");
-        exit(1);
-    }
+    GUARD_EXIT(s2n_config_send_max_fragment_length(config, mfl_code), "Error setting maximum fragment length");
 }
 
 int main(int argc, char *const *argv)
@@ -235,6 +228,7 @@ int main(int argc, char *const *argv)
     struct verify_data unsafe_verify_data;
     const char *port = "443";
     int echo_input = 0;
+    int use_corked_io = 0;
 
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
@@ -249,18 +243,23 @@ int main(int argc, char *const *argv)
         {"insecure", no_argument, 0, 'i'},
         {"reconnect", no_argument, 0, 'r'},
         {"no-session-ticket", no_argument, 0, 'T'},
-        {"Dynamic", required_argument, 0, 'D'},
+        {"dynamic", required_argument, 0, 'D'},
         {"timeout", required_argument, 0, 't'},
+        {"corked-io", no_argument, 0, 'C'},
     };
+
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:D:t:irT", long_options, &option_index);
+        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:D:t:irTC", long_options, &option_index);
         if (c == -1) {
             break;
         }
         switch (c) {
         case 'a':
             alpn_protocols = optarg;
+            break;
+        case 'C':
+            use_corked_io = 1;
             break;
         case 'c':
             cipher_prefs = optarg;
@@ -314,6 +313,8 @@ int main(int argc, char *const *argv)
     if (optind < argc) {
         host = argv[optind++];
     }
+
+    /* cppcheck-suppress duplicateCondition */
     if (optind < argc) {
         port = argv[optind++];
     }
@@ -336,10 +337,7 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    if (s2n_init() < 0) {
-        print_s2n_error("Error running s2n_init()");
-        exit(1);
-    }
+    GUARD_EXIT(s2n_init(), "Error running s2n_init()");
 
     if ((r = getaddrinfo(host, port, &hints, &ai_list)) != 0) {
         fprintf(stderr, "error: %s\n", gai_strerror(r));
@@ -377,11 +375,11 @@ int main(int argc, char *const *argv)
             }
         }
         else if (insecure) {
-            s2n_config_disable_x509_verification(config);
+            GUARD_EXIT(s2n_config_disable_x509_verification(config), "Error disabling X.509 validation");
         }
 
         if (session_ticket) {
-            s2n_config_set_session_tickets_onoff(config, 1);
+            GUARD_EXIT(s2n_config_set_session_tickets_onoff(config, 1), "Error enabling session tickets");
         }
 
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
@@ -391,25 +389,21 @@ int main(int argc, char *const *argv)
             exit(1);
         }
 
-        if (s2n_connection_set_config(conn, config) < 0) {
-            print_s2n_error("Error setting configuration");
-            exit(1);
-        }
+        GUARD_EXIT(s2n_connection_set_config(conn, config), "Error setting configuration");
+ 
+        GUARD_EXIT(s2n_set_server_name(conn, server_name), "Error setting server name");
 
-        if (s2n_set_server_name(conn, server_name) < 0) {
-            print_s2n_error("Error setting server name");
-            exit(1);
-        }
+        GUARD_EXIT(s2n_connection_set_fd(conn, sockfd) , "Error setting file descriptor");
 
-        if (s2n_connection_set_fd(conn, sockfd) < 0) {
-            print_s2n_error("Error setting file descriptor");
-            exit(1);
+        GUARD_EXIT(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_OPTIONAL), "Error setting ClientAuth optional");
+
+        if (use_corked_io) {
+            GUARD_EXIT(s2n_connection_use_corked_io(conn), "Error setting corked io");
         }
 
         /* Update session state in connection if exists */
-        if (session_state_length > 0 && s2n_connection_set_session(conn, session_state, session_state_length) < 0) {
-            print_s2n_error("Error setting session state in connection");
-            exit(1);
+        if (session_state_length > 0) {
+            GUARD_EXIT(s2n_connection_set_session(conn, session_state, session_state_length), "Error setting session state in connection");
         }
 
         /* See echo.c */
@@ -448,25 +442,16 @@ int main(int argc, char *const *argv)
         s2n_blocked_status blocked;
         s2n_shutdown(conn, &blocked);
 
-        if (s2n_connection_free(conn) < 0) {
-            print_s2n_error("Error freeing connection");
-            exit(1);
-        }
+        GUARD_EXIT(s2n_connection_free(conn), "Error freeing connection");
 
-        if (s2n_config_free(config) < 0) {
-            print_s2n_error("Error freeing configuration");
-            exit(1);
-        }
+        GUARD_EXIT(s2n_config_free(config), "Error freeing configuration");
 
         close(sockfd);
         reconnect--;
 
     } while (reconnect >= 0);
 
-    if (s2n_cleanup() < 0) {
-        print_s2n_error("Error running s2n_cleanup()");
-        exit(1);
-    }
+    GUARD_EXIT(s2n_cleanup(), "Error running s2n_cleanup()");
 
     free(session_state);
     freeaddrinfo(ai_list);
