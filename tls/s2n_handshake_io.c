@@ -96,6 +96,7 @@ static struct s2n_handshake_action state_machine[] = {
 
 static const char *message_names[] = {
     MESSAGE_NAME_ENTRY(CLIENT_HELLO),
+    MESSAGE_NAME_ENTRY(SERVER_SESSION_LOOKUP),
     MESSAGE_NAME_ENTRY(SERVER_HELLO),
     MESSAGE_NAME_ENTRY(SERVER_NEW_SESSION_TICKET),
     MESSAGE_NAME_ENTRY(SERVER_CERT),

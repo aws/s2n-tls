@@ -92,7 +92,7 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
 #define GUARD( x )              do {if ( (x) < 0 ) return S2N_FAILURE;} while (0)
 #define GUARD_GOTO( x , label ) do {if ( (x) < 0 ) goto label;} while (0)
 #define GUARD_PTR( x )          do {if ( (x) < 0 ) return NULL;} while (0)
-#define GUARD_RETRY( x )  int r = (x); GUARD(r); do {if (S2N_AGAIN == r) return S2N_AGAIN;} while(0)
+#define GUARD_RETRY( x )  do {int r = (x); GUARD(r); if (S2N_AGAIN == r) return S2N_AGAIN;} while(0)
 
 
 #define S2N_IN_UNIT_TEST ( getenv("S2N_UNIT_TEST") != NULL )

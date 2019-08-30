@@ -308,9 +308,6 @@ int s2n_process_client_hello(struct s2n_connection *conn)
      * events, we should immediately return here to block the state machine */
     GUARD_RETRY(s2n_conn_set_handshake_type(conn));
 
-    /* We've selected the parameters for the handshake, update the required hashes for this connection */
-    GUARD(s2n_conn_update_required_handshake_hashes(conn));
-
     return 0;
 }
 
