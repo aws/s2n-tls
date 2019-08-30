@@ -291,6 +291,9 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *pa
         case TLS_EXTENSION_SUPPORTED_VERSIONS:
             GUARD(s2n_extensions_client_supported_versions_recv(conn, &extension));
             break;
+        case TLS_EXTENSION_KEY_SHARE:
+            GUARD(s2n_extensions_client_key_share_recv(conn, &extension));
+            break;
         }
     }
 

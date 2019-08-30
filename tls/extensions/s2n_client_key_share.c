@@ -38,11 +38,21 @@
  *      Named group (2 bytes)
  *      Key share size (2 bytes)
  *      Key share (variable size)
+ *
+ * This extension only modifies the connection's client ecc_params. It does
+ * not make any decisions about which set of params to use.
+ *
+ * The server will NOT alert when processing a client extension that violates the RFC.
+ * So the server will accept:
+ * - Multiple key shares for the same named group. The server will accept the first
+ *   key share for the group and ignore any duplicates.
+ * - Key shares for named groups not in the client's supported_groups extension.
  **/
 
-static int s2n_ecdhe_parameters_send(struct s2n_connection *conn, struct s2n_stuffer *out);
-
 int s2n_client_key_share_extension_size;
+
+static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+int s2n_ecdhe_parameters_send(struct s2n_ecc_params *ecc_params, struct s2n_stuffer *out);
 
 int s2n_client_key_share_init()
 {
@@ -60,7 +70,64 @@ int s2n_client_key_share_init()
 
 int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
+    notnull_check(conn);
+    notnull_check(extension);
+
+    uint16_t key_shares_size;
+    GUARD(s2n_stuffer_read_uint16(extension, &key_shares_size));
+    S2N_ERROR_IF(s2n_stuffer_data_available(extension) < key_shares_size, S2N_ERR_BAD_MESSAGE);
+
+    const struct s2n_ecc_named_curve *supported_curve;
+    struct s2n_blob point_blob;
+    uint16_t named_group, share_size;
+    int supported_curve_index;
+
+    int bytes_processed = 0;
+    while (bytes_processed < key_shares_size) {
+        GUARD(s2n_stuffer_read_uint16(extension, &named_group));
+        GUARD(s2n_stuffer_read_uint16(extension, &share_size));
+
+        S2N_ERROR_IF(s2n_stuffer_data_available(extension) < share_size, S2N_ERR_BAD_MESSAGE);
+        bytes_processed += share_size + S2N_SIZE_OF_NAMED_GROUP + S2N_SIZE_OF_KEY_SHARE_SIZE;
+
+        supported_curve = NULL;
+        for (int i = 0; i < S2N_ECC_SUPPORTED_CURVES_COUNT; i++) {
+            if (named_group == s2n_ecc_supported_curves[i].iana_id) {
+                supported_curve_index = i;
+                supported_curve = &s2n_ecc_supported_curves[i];
+                break;
+            }
+        }
+
+        /* Ignore unsupported curves */
+        if (!supported_curve) {
+            GUARD(s2n_stuffer_skip_read(extension, share_size));
+            continue;
+        }
+
+        /* Ignore curves that we've already received material for */
+        if (conn->secure.client_ecc_params[supported_curve_index].negotiated_curve) {
+            GUARD(s2n_stuffer_skip_read(extension, share_size));
+            continue;
+        }
+
+        /* Ignore curves with unexpected share sizes */
+        if (supported_curve->share_size != share_size) {
+            GUARD(s2n_stuffer_skip_read(extension, share_size));
+            continue;
+        }
+
+        GUARD(s2n_ecc_read_ecc_params_point(extension, &point_blob, share_size));
+
+        conn->secure.client_ecc_params[supported_curve_index].negotiated_curve = supported_curve;
+        if (s2n_ecc_parse_ecc_params_point(&conn->secure.client_ecc_params[supported_curve_index], &point_blob) < 0) {
+            /* Ignore curves with points we can't parse */
+            conn->secure.client_ecc_params[supported_curve_index].negotiated_curve = NULL;
+            GUARD(s2n_ecc_params_free(&conn->secure.client_ecc_params[supported_curve_index]));
+        }
+    }
+
+    return 0;
 }
 
 int s2n_extensions_client_key_share_size(struct s2n_connection *conn)
@@ -70,6 +137,8 @@ int s2n_extensions_client_key_share_size(struct s2n_connection *conn)
 
 int s2n_extensions_client_key_share_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
+    notnull_check(out);
+
     const uint16_t extension_type = TLS_EXTENSION_KEY_SHARE;
     const uint16_t extension_data_size =
             s2n_client_key_share_extension_size - S2N_SIZE_OF_EXTENSION_TYPE - S2N_SIZE_OF_EXTENSION_DATA_SIZE;
@@ -80,13 +149,15 @@ int s2n_extensions_client_key_share_send(struct s2n_connection *conn, struct s2n
     GUARD(s2n_stuffer_write_uint16(out, extension_data_size));
     GUARD(s2n_stuffer_write_uint16(out, client_shares_size));
 
-    GUARD(s2n_ecdhe_parameters_send(conn, out));
+    GUARD(s2n_ecdhe_supported_curves_send(conn, out));
 
     return 0;
 }
 
-static int s2n_ecdhe_parameters_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
+    notnull_check(conn);
+
     const struct s2n_ecc_named_curve *named_curve = NULL;
     struct s2n_ecc_params *ecc_params = NULL;
 
@@ -95,13 +166,23 @@ static int s2n_ecdhe_parameters_send(struct s2n_connection *conn, struct s2n_stu
         named_curve = &s2n_ecc_supported_curves[i];
 
         ecc_params->negotiated_curve = named_curve;
-
-        GUARD(s2n_stuffer_write_uint16(out, named_curve->iana_id));
-        GUARD(s2n_stuffer_write_uint16(out, named_curve->share_size));
-
-        GUARD(s2n_ecc_generate_ephemeral_key(ecc_params));
-        GUARD(s2n_ecc_write_ecc_params_point(ecc_params, out));
+        GUARD(s2n_ecdhe_parameters_send(ecc_params, out));
     }
+
+    return 0;
+}
+
+int s2n_ecdhe_parameters_send(struct s2n_ecc_params *ecc_params, struct s2n_stuffer *out)
+{
+    notnull_check(out);
+    notnull_check(ecc_params);
+    notnull_check(ecc_params->negotiated_curve);
+
+    GUARD(s2n_stuffer_write_uint16(out, ecc_params->negotiated_curve->iana_id));
+    GUARD(s2n_stuffer_write_uint16(out, ecc_params->negotiated_curve->share_size));
+
+    GUARD(s2n_ecc_generate_ephemeral_key(ecc_params));
+    GUARD(s2n_ecc_write_ecc_params_point(ecc_params, out));
 
     return 0;
 }
