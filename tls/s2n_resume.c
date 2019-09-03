@@ -214,7 +214,7 @@ int s2n_resume_from_cache(struct s2n_connection *conn)
     uint64_t size;
 
     if (conn->session_id_len == 0 || conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN) {
-        return -1;
+        S2N_ERROR(S2N_ERR_SESSION_ID_TOO_SHORT);
     }
 
     GUARD(s2n_stuffer_init(&from, &entry));
@@ -223,11 +223,11 @@ int s2n_resume_from_cache(struct s2n_connection *conn)
 
     size = S2N_STATE_SIZE_IN_BYTES;
     if (conn->config->cache_retrieve(conn, conn->config->cache_retrieve_data, conn->session_id, conn->session_id_len, state, &size)) {
-        return -1;
+        S2N_ERROR(S2N_ERR_RETRIEVE_FROM_CACHE_FAILED);
     }
 
     if (size != S2N_STATE_SIZE_IN_BYTES) {
-        return -1;
+        S2N_ERROR(S2N_ERR_RETRIEVE_FROM_CACHE_FAILED);
     }
 
     GUARD(s2n_deserialize_resumption_state(conn, &from));
@@ -242,13 +242,13 @@ int s2n_store_to_cache(struct s2n_connection *conn)
     struct s2n_stuffer to = {0};
 
     if (!s2n_allowed_to_cache_connection(conn)) {
-        return -1;
+        S2N_ERROR(S2N_ERR_STORE_TO_CACHE_FAILED);
     }
 
     /* session_id_len should always be >0 since either the Client provided a SessionId or the Server generated a new
      * one for the Client */
     if (conn->session_id_len == 0 || conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN) {
-        return -1;
+        S2N_ERROR(S2N_ERR_SESSION_ID_TOO_SHORT);
     }
 
     GUARD(s2n_stuffer_init(&to, &entry));

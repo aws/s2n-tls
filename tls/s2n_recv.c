@@ -120,7 +120,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
     if (s2n_record_parse(conn) < 0) {
         GUARD(s2n_connection_kill(conn));
 
-        return -1;
+        S2N_ERROR(S2N_ERR_DECRYPT);
     }
 
     return 0;

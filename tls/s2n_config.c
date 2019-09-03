@@ -444,14 +444,14 @@ int s2n_config_set_max_cert_chain_depth(struct s2n_config *config, uint16_t max_
         return 0;
     }
 
-    return -1;
+    S2N_ERROR(S2N_ERR_CERT_CHAIN_DEPTH_NOT_SET);
 }
 
 
 int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_request_type type)
 {
     if (type == S2N_STATUS_REQUEST_OCSP && !s2n_x509_ocsp_stapling_supported()) {
-        return -1;
+        S2N_ERROR(S2N_ERR_OCSP_UNSUPPORTED);
     }
 
     notnull_check(config);

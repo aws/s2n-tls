@@ -162,6 +162,11 @@ struct s2n_error_translation S2N_ERROR_EN[] = {
     {S2N_ERR_INVALID_DYNAMIC_THRESHOLD, "invalid dynamic record threshold"},
     {S2N_ERR_INVALID_ARGUMENT, "invalid argument provided into a function call"},
     {S2N_ERR_NOT_IN_UNIT_TEST, "Illegal configuration, can only be used during unit tests"},
+    {S2N_ERR_OCSP_UNSUPPORTED, "OSCP validation not supported"},
+    {S2N_ERR_CERT_CHAIN_DEPTH_NOT_SET, "Not able to set max cert chain depth"},
+    {S2N_ERR_SESSION_ID_TOO_SHORT, "Session ID is too short"},
+    {S2N_ERR_RETRIEVE_FROM_CACHE_FAILED, "Failed to retrieve connection data from cache"},
+    {S2N_ERR_STORE_TO_CACHE_FAILED, "Failed to store connection data from cache"},
 };
 
 const char *s2n_strerror(int error, const char *lang)
