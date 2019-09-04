@@ -141,7 +141,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
         implicit_iv = conn->client->client_implicit_iv;
     }
 
-    S2N_ERROR_IF(s2n_stuffer_data_available(&conn->out), S2N_ERR_BAD_MESSAGE);
+    uint32_t write_cursor_begin = conn->out.write_cursor;
 
     uint8_t mac_digest_size;
     GUARD(s2n_hmac_digest_size(mac->alg, &mac_digest_size));
@@ -276,7 +276,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     }
 
     /* Rewind to rewrite/encrypt the packet */
-    GUARD(s2n_stuffer_rewrite(&conn->out));
+    conn->out.write_cursor = write_cursor_begin;
 
     /* Skip the header */
     GUARD(s2n_stuffer_skip_write(&conn->out, S2N_TLS_RECORD_HEADER_LENGTH));
