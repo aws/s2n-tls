@@ -58,21 +58,39 @@
 #define TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256  0xCC, 0xA9
 #define TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256      0xCC, 0xAA
 
+/* TLS Hybrid post-quantum definitions from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-01 */
+#define TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 0xFF, 0x04
+#define TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 0xFF, 0x08
+#define TLS_EXTENSION_PQ_KEM_PARAMETERS 0xFE01
+#define TLS_PQ_KEM_EXTENSION_ID_BIKE1_R1_LEVEL_1 1
+#define TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1_KEM 10
+
 /* From https://tools.ietf.org/html/rfc7507 */
 #define TLS_FALLBACK_SCSV                   0x56, 0x00
 #define TLS_EMPTY_RENEGOTIATION_INFO_SCSV   0x00, 0xff
+
+/* TLS 1.3 cipher suites from https://tools.ietf.org/html/rfc8446#appendix-B.4 */
+#define TLS_AES_128_GCM_SHA256              0x13, 0x01
+#define TLS_AES_256_GCM_SHA384              0x13, 0x02
+#define TLS_CHACHA20_POLY1305_SHA256        0x13, 0x03
+#define TLS_AES_128_CCM_SHA256              0x13, 0x04
+#define TLS_AES_128_CCM_8_SHA256            0x13, 0x05
 
 /* TLS extensions from https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml */
 #define TLS_EXTENSION_SERVER_NAME           0
 #define TLS_EXTENSION_MAX_FRAG_LEN          1
 #define TLS_EXTENSION_STATUS_REQUEST        5
-#define TLS_EXTENSION_ELLIPTIC_CURVES      10
+#define TLS_EXTENSION_SUPPORTED_GROUPS     10
 #define TLS_EXTENSION_EC_POINT_FORMATS     11
 #define TLS_EXTENSION_SIGNATURE_ALGORITHMS 13
 #define TLS_EXTENSION_ALPN                 16
 #define TLS_EXTENSION_SCT_LIST             18
-#define TLS_EXTENSION_RENEGOTIATION_INFO   65281
 #define TLS_EXTENSION_SESSION_TICKET       35
+#define TLS_EXTENSION_RENEGOTIATION_INFO   65281
+
+/* TLS 1.3 extensions from https://tools.ietf.org/html/rfc8446#section-4.2 */
+#define TLS_EXTENSION_SUPPORTED_VERSIONS   43
+#define TLS_EXTENSION_KEY_SHARE            51
 
 /* TLS Signature Algorithms - RFC 5246 7.4.1.4.1*/
 #define TLS_SIGNATURE_ALGORITHM_ANONYMOUS   0
@@ -168,3 +186,6 @@
 
 /* Handshake messages have their own header too */
 #define TLS_HANDSHAKE_HEADER_LENGTH   4
+
+#define S2N_MAX_SERVER_NAME 255
+

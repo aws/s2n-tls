@@ -3,7 +3,6 @@
 
 module TLSHandshake where
 
-import Cryptol::Extras
 import s2n_handshake_io
 
 // Main correctness property: a simulation of the S2N handshake state

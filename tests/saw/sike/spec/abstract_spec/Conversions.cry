@@ -1,0 +1,25 @@
+//Conversions.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module abstract_spec::Conversions where
+
+import abstract_spec::Field_Types
+
+///////////////////////////////////////////////////////////////////////////////
+// Conversions from Section 1.2 of the specification
+
+type Np = 63
+
+fptoos: p503_fv -> [Np][8]
+fptoos v = reverse (drop`{1} (split v))
+
+fp2toos: psq503_fv -> [2*Np][8]
+fp2toos {r = r, i = i} = (fptoos r) # (fptoos i)
+
+ostofp: [Np][8] -> p503_fv
+ostofp v = zero # (join (reverse v))
+
+ostofp2: [2*Np][8] -> psq503_fv
+ostofp2 (x # y) = {r = ostofp x, i = ostofp y}

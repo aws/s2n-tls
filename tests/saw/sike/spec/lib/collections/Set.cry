@@ -1,0 +1,29 @@
+//Set.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module lib::collections::Set where
+
+///////////////////////////////////////////////////////////////////////////////
+// Sets as predicates
+
+implies : Bit -> Bit -> Bit
+implies P = \Q -> if P then Q else True
+
+type Set a = (a -> Bit)
+
+// NOTE: A set is *valid* if it always evaluates to true,
+//       i.e. it contains all elements of its underlying type.
+
+intersect : {a} Set a -> Set a -> Set a
+intersect P = \Q -> \x -> P x && Q x
+
+union : {a} Set a -> Set a -> Set a
+union P = \Q -> \x -> P x || Q x
+
+subset : {a} Set a -> Set a -> Set a
+subset P = \Q -> \x -> implies (P x) (Q x)
+
+ProdSet : {a, b} Set a -> Set b -> Set ((a,b))
+ProdSet A = \B -> \(a,b) -> A a && B b

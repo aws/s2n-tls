@@ -17,7 +17,6 @@
 
 #include <openssl/evp.h>
 
-#include "crypto/s2n_sequence.h"
 #include "crypto/s2n_drbg.h"
 
 #include "utils/s2n_safety.h"
@@ -27,8 +26,25 @@
 #define s2n_drbg_key_size(drgb) EVP_CIPHER_CTX_key_length((drbg)->ctx)
 #define s2n_drbg_seed_size(drgb) (S2N_DRBG_BLOCK_SIZE + s2n_drbg_key_size(drgb))
 
+/* This function is the same as s2n_increment_sequence_number
+    but it does not check for overflow, since overflow is
+    acceptable in DRBG */
+int s2n_increment_drbg_counter(struct s2n_blob *counter)
+{
+    for (int i = counter->size - 1; i >= 0; i--) {
+        counter->data[i] += 1;
+        if (counter->data[i]) {
+            break;
+        }
+
+       /* seq[i] wrapped, so let it carry */
+    }
+    return 0;
+}
+
 static int s2n_drbg_block_encrypt(EVP_CIPHER_CTX * ctx, uint8_t in[S2N_DRBG_BLOCK_SIZE], uint8_t out[S2N_DRBG_BLOCK_SIZE])
 {
+    notnull_check(ctx);
     int len = S2N_DRBG_BLOCK_SIZE;
     GUARD_OSSL(EVP_EncryptUpdate(ctx, out, &len, in, S2N_DRBG_BLOCK_SIZE), S2N_ERR_DRBG);
     eq_check(len, S2N_DRBG_BLOCK_SIZE);
@@ -38,12 +54,16 @@ static int s2n_drbg_block_encrypt(EVP_CIPHER_CTX * ctx, uint8_t in[S2N_DRBG_BLOC
 
 static int s2n_drbg_bits(struct s2n_drbg *drbg, struct s2n_blob *out)
 {
+    notnull_check(drbg);
+    notnull_check(drbg->ctx);
+    notnull_check(out);
+
     struct s2n_blob value = {.data = drbg->v,.size = sizeof(drbg->v) };
     int block_aligned_size = out->size - (out->size % S2N_DRBG_BLOCK_SIZE);
 
     /* Per NIST SP800-90A 10.2.1.2: */
     for (int i = 0; i < block_aligned_size; i += S2N_DRBG_BLOCK_SIZE) {
-        GUARD(s2n_increment_sequence_number(&value));
+        GUARD(s2n_increment_drbg_counter(&value));
         GUARD(s2n_drbg_block_encrypt(drbg->ctx, drbg->v, out->data + i));
         drbg->bytes_used += S2N_DRBG_BLOCK_SIZE;
     }
@@ -53,7 +73,7 @@ static int s2n_drbg_bits(struct s2n_drbg *drbg, struct s2n_blob *out)
     }
 
     uint8_t spare_block[S2N_DRBG_BLOCK_SIZE];
-    GUARD(s2n_increment_sequence_number(&value));
+    GUARD(s2n_increment_drbg_counter(&value));
     GUARD(s2n_drbg_block_encrypt(drbg->ctx, drbg->v, spare_block));
     drbg->bytes_used += S2N_DRBG_BLOCK_SIZE;
 
@@ -64,6 +84,9 @@ static int s2n_drbg_bits(struct s2n_drbg *drbg, struct s2n_blob *out)
 
 static int s2n_drbg_update(struct s2n_drbg *drbg, struct s2n_blob *provided_data)
 {
+    notnull_check(drbg);
+    notnull_check(drbg->ctx);
+
     s2n_stack_blob(temp_blob, s2n_drbg_seed_size(drgb), S2N_DRBG_MAX_SEED_SIZE);
 
     eq_check(provided_data->size, s2n_drbg_seed_size(drbg));
@@ -85,6 +108,8 @@ static int s2n_drbg_update(struct s2n_drbg *drbg, struct s2n_blob *provided_data
 
 static int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
 {
+    notnull_check(drbg);
+    notnull_check(drbg->ctx);
     s2n_stack_blob(blob, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
 
     if (drbg->entropy_generator) {
@@ -107,6 +132,7 @@ static int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
 
 int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string, const s2n_drbg_mode mode)
 {
+    notnull_check(drbg);
     S2N_ERROR_IF(mode == S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR && !S2N_IN_UNIT_TEST, S2N_ERR_NOT_IN_UNIT_TEST);
     S2N_ERROR_IF(drbg->entropy_generator != NULL && !S2N_IN_UNIT_TEST, S2N_ERR_NOT_IN_UNIT_TEST);
 
@@ -160,6 +186,8 @@ int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization
 
 int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob)
 {
+    notnull_check(drbg);
+    notnull_check(drbg->ctx);
     s2n_stack_blob(zeros, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
 
     S2N_ERROR_IF(blob->size > S2N_DRBG_GENERATE_LIMIT, S2N_ERR_DRBG_REQUEST_SIZE);
@@ -179,6 +207,7 @@ int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob)
 
 int s2n_drbg_wipe(struct s2n_drbg *drbg)
 {
+    notnull_check(drbg);
     struct s2n_blob state = {.data = (void *)drbg,.size = sizeof(struct s2n_drbg) };
 
     if (drbg->ctx) {
@@ -195,5 +224,6 @@ int s2n_drbg_wipe(struct s2n_drbg *drbg)
 
 int s2n_drbg_bytes_used(struct s2n_drbg *drbg)
 {
+    notnull_check(drbg);
     return drbg->bytes_used;
 }

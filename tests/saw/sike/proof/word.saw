@@ -1,0 +1,366 @@
+//word.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// Verify the word and digit operations
+
+import "../spec/lib/math/Safe_Arithmetic.cry";
+import "../spec/Loader.cry";
+import "../spec/interface/fpx.cry";
+import "../spec/interface/fp_generic.cry";
+
+///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+let clear_words_spec n = do {
+
+    mp <- crucible_alloc (llvm_array n digit_t);
+    nwords <- crucible_fresh_var "nwords" digit_t;
+    crucible_precond {{ nwords == `n }};
+    crucible_execute_func [mp, tm nwords];
+    
+    // NOTE: This does not prove anything about the function
+    crucible_points_to mp (tm {{ zero:[n][64] }});
+};
+
+let copy_words_spec na nc = do {
+
+    (a, ap) <- ptr_to_fresh_readonly "a" (llvm_array na digit_t);
+    (c, cp) <- ptr_to_fresh "c" (llvm_array nc digit_t);
+    nwords <- crucible_fresh_var "nwords" i32;
+    crucible_precond {{ nwords <= `na /\ nwords <= `nc }};
+    crucible_execute_func [ap, cp, tm nwords];
+    
+    // NOTE: This does not prove anything about the function
+    res <- crucible_fresh_var "res" (llvm_array nc digit_t);
+    crucible_points_to cp (tm res);
+};
+
+let copy_words_same_spec na = do {
+
+    (a, ap) <- ptr_to_fresh "a" (llvm_array na digit_t);
+    nwords <- crucible_fresh_var "nwords" i32;
+    crucible_precond {{ nwords == `na }};
+    crucible_execute_func [ap, ap, tm nwords];
+    crucible_points_to ap (tm a);
+};
+
+// NOTE: This version lets us have an uninitialized output
+//       as long as we copy to all of it
+
+let copy_words_spec_tight n = do {
+    (a, ap) <- ptr_to_fresh_readonly "a" (llvm_array n digit_t);
+    cp <- crucible_alloc (llvm_array n digit_t);
+    nwords <- crucible_fresh_var "nwords" i32;
+    crucible_precond {{ nwords == `n }} ;
+    crucible_execute_func [ap, cp, tm nwords];
+    crucible_points_to cp (tm a);
+};
+
+let digit_x_digit_spec = do {
+    a <- fresh_digit "a";
+    b <- fresh_digit "b";
+    cp <- crucible_alloc (llvm_array 2 digit_t);
+    crucible_execute_func [tm a, tm b, cp];
+    crucible_points_to cp (crucible_term {{ digit_x_digit(a,b) }});
+};
+
+let is_digit_lessthan_ct_spec = do {
+    a <- fresh_digit "a";
+    b <- fresh_digit "b";
+    crucible_execute_func [tm a, tm b];
+    r <- crucible_fresh_var "r" i32;
+    crucible_postcond {{ digit_lt(a,b) == r }};
+    crucible_return (tm r);
+};
+
+let is_digit_nonzero_ct_spec = do {
+    a <- fresh_digit "a";
+    crucible_execute_func [tm a];
+    r <- crucible_fresh_var "r" i32;
+    crucible_postcond {{ digit_non_zero(a) == r }};
+    crucible_return (tm r);
+};
+
+let is_digit_zero_ct_spec = do {
+    a <- fresh_digit "a";
+    crucible_execute_func [tm a];
+    r <- crucible_fresh_var "r" i32;  
+    crucible_postcond {{ digit_zero(a) == r }};
+    crucible_return (tm r);
+};
+
+let mp_add_spec n normalized = do {
+    let at = llvm_array n digit_t;
+    (a, ap) <- ptr_to_fresh_readonly "a" at;
+    (b, bp) <- ptr_to_fresh_readonly "b" at;
+    cp <- crucible_alloc at;
+
+    if normalized then 
+        crucible_precond {{ digit_modx2(a) /\ digit_modx2(b) }}
+    else 
+        crucible_precond {{ True }}; 
+
+    crucible_execute_func [ap, bp, cp, tm {{ `n : [32] }}];
+    
+    c <- crucible_fresh_var "c" at;
+    crucible_points_to cp (tm {{ c }});
+    crucible_postcond {{ c == mp_add(a,b) }}; 
+    
+    if normalized then 
+        crucible_postcond {{ digit_modx4(c) }}
+    else 
+        crucible_postcond {{ True }}; 
+
+    // NOTE: This does not prove anything about the function
+    ret <- crucible_fresh_var "ret" i32;
+    crucible_return (tm ret);
+};
+
+let mp_add_single_spec n normalized = do {
+    let at = llvm_array n digit_t;
+    (a, ap) <- ptr_to_fresh "a" at;
+    cp <- crucible_alloc at;
+
+    if normalized then 
+        crucible_precond {{ digit_modx2(a) }}
+    else 
+        crucible_precond {{ True }};
+
+    crucible_execute_func [ap, ap, cp, tm {{ `n : [32] }}];
+    
+    c <- crucible_fresh_var "c" at;
+    crucible_points_to cp (tm {{ c }});
+    crucible_postcond {{ c == mp_add(a,a) }};
+    
+    if normalized then 
+        crucible_postcond {{ digit_modx4(c) }}
+    else
+        crucible_postcond {{ True }};
+
+    // NOTE: This does not prove anything about the function
+    ret <- crucible_fresh_var "ret" i32;
+    crucible_return (tm ret);
+};
+
+let mp_add_left_spec n normalized = do {
+
+    let at = llvm_array n digit_t;
+    (a, ap) <- ptr_to_fresh "a" at;
+    (b, bp) <- ptr_to_fresh_readonly "b" at;
+
+    if normalized then
+        crucible_precond {{ digit_modx2(a) /\ digit_modx2(b) }}
+    else
+        crucible_precond {{ True }};
+
+    crucible_execute_func [ap, bp, ap, tm {{ `n : [32] }}];
+
+    c <- crucible_fresh_var "c" at;
+    crucible_points_to ap (tm {{ c }});
+    crucible_postcond {{ c == mp_add(a,b) }};
+
+    if normalized then
+        crucible_postcond {{ digit_modx4(c) }}
+    else
+        crucible_postcond {{ True }};
+
+    // NOTE: This does not prove anything about the function
+    ret <- crucible_fresh_var "ret" i32;
+    crucible_return (tm ret);
+};
+
+let mp_addfast_spec n m normalized =
+    binary_words_op digit_t n m {{ mp_add }} normalized;
+
+let mp_addfast_single_spec n m normalized =
+    binary_words_op_single digit_t n m {{ mp_add }} normalized;
+
+let mp_addfast_left_spec n m normalized =
+    binary_words_left_op digit_t n m {{ mp_add }} normalized;
+
+let mp_subfast_spec n m normalized =
+    binary_words_op digit_t n m {{ mp_sub }} normalized;
+
+let mp_subfast_left_spec n m normalized =
+    binary_words_left_op digit_t n m {{ mp_sub }} normalized;
+
+let mp_mul_spec n m = do {
+
+    let at = llvm_array n digit_t;
+    let at2 = llvm_array m digit_t;
+    (a, ap) <- ptr_to_fresh_readonly "a" at;
+    (b, bp) <- ptr_to_fresh_readonly "b" at;
+    cp <- crucible_alloc at2;
+    crucible_execute_func [ap, bp, cp, tm {{ `n : [32] }}];
+    c <- crucible_fresh_var "c44" at2;
+    crucible_points_to cp (tm {{ c }});
+    crucible_postcond {{ c == mp_mul(a,b) }};
+};
+
+let mp_mul_single_spec n m = do {
+
+    let at = llvm_array n digit_t;
+    let at2 = llvm_array m digit_t;
+    (a, ap) <- ptr_to_fresh_readonly "a" at;
+    cp <- crucible_alloc at2;
+    crucible_execute_func [ap, ap, cp, tm {{ `n : [32] }}];
+    c <- crucible_fresh_var "c" at2;
+    crucible_points_to cp (tm {{ c }});
+    crucible_postcond {{ c == mp_mul(a,a) }};
+};
+
+let mp_shiftl1_spec n = do {
+    (x, xp) <- ptr_to_fresh "x" (llvm_array n digit_t);
+    crucible_execute_func [xp, tm {{ `n : [32] }}];
+    crucible_points_to xp (tm {{ word_unop shl1 x }});
+};
+
+let mp_shiftleft_spec n = do {
+
+    (x, xp) <- ptr_to_fresh "x" (llvm_array n digit_t);
+    shift <- crucible_fresh_var "shift" i32;
+    crucible_execute_func [xp, tm shift, tm {{ `n : [32] }}];
+
+    // NOTE: This does not prove anything about the function
+    res <- crucible_fresh_var "res" (llvm_array n digit_t);
+    crucible_points_to xp (tm res);
+};
+
+let mp_shiftr1_spec n = do {
+    (x, xp) <- ptr_to_fresh "x" (llvm_array n digit_t);
+    crucible_execute_func [xp, tm {{ `n : [32] }}];
+    crucible_points_to xp (tm {{ word_unop shr1 x }});
+};
+
+let mp_sub_spec n normalized = do {
+
+    let at = llvm_array n digit_t;
+    (a, ap) <- ptr_to_fresh_readonly "a" at;
+    (b, bp) <- ptr_to_fresh_readonly "b" at;
+    cp <- crucible_alloc at;
+
+    if normalized then
+        crucible_precond {{ digit_modx2(a) /\ digit_modx2(b) }}
+    else
+        crucible_precond {{ True }};
+
+    crucible_execute_func [ap, bp, cp, tm {{ `n : [32] }}];
+
+    c <- crucible_fresh_var "c" at;
+    crucible_points_to cp (tm {{ c }});
+    crucible_postcond {{ c == mp_sub(a,b) }};
+
+    if normalized then
+        crucible_postcond {{ digit_modx4(c) }}
+    else
+        crucible_postcond {{ True }};
+
+    // NOTE: This does not prove anything about the function
+    ret <- crucible_fresh_var "ret" i32;
+    crucible_return (tm ret);
+};
+
+let mp_sub_left_spec n normalized = do {
+    let at = llvm_array n digit_t;
+    (a, ap) <- ptr_to_fresh "a" at;
+    (b, bp) <- ptr_to_fresh_readonly "b" at;
+
+    if normalized then
+        crucible_precond {{ digit_modx2(a) /\ digit_modx2(b) }}
+    else
+        crucible_precond {{ True }};
+
+    crucible_execute_func [ap, bp, ap, tm {{ `n : [32] }}];
+
+    c <- crucible_fresh_var "c" at;
+    crucible_points_to ap (tm {{ c }});
+    crucible_postcond {{ c == mp_sub(a,b) }};
+
+    if normalized then
+        crucible_postcond {{ digit_modx4(c) }}
+    else
+        crucible_postcond {{ True }};
+
+    // NOTE: This does not prove anything about the function
+    ret <- crucible_fresh_var "ret" i32;
+    crucible_return (tm ret);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+clear_words_ov <- verify "clear_words" [] (clear_words_spec max_words_order);
+copy_words_ov <- verify "copy_words" []
+    (copy_words_spec nwords_point nwords_point);
+
+// NOTE: "tight" variants needed for some callers
+//       4*nwords_field for xDBLe and xTPLe
+let nwords_field_x4 = eval_int {{ `(4 * nwords_field):[64] }};
+copy_words_nwords_field_x4_ov <-
+  verify "copy_words" [] (copy_words_spec_tight nwords_field_x4);
+copy_words_same_nwords_field_x4_ov <-
+  verify "copy_words" [] (copy_words_same_spec nwords_field_x4);
+
+// NOTE: The SMT solver cannot prove multiplication, so the
+//       following uses random testing instead
+dxd_ov <- test "digit_x_digit" [] digit_x_digit_spec;
+
+dlt_ov <- verify "is_digit_lessthan_ct" [] is_digit_lessthan_ct_spec;
+dnz_ov <- verify "is_digit_nonzero_ct" [] is_digit_nonzero_ct_spec;
+dz_ov <- verify "is_digit_zero_ct" [] is_digit_zero_ct_spec;
+
+add_ov <- verify "mp_add" [] (mp_add_spec nwords_field false);
+add_norm_ov <- verify "mp_add" [] (mp_add_spec nwords_field true);
+add_single_ov <- verify "mp_add" [] (mp_add_single_spec nwords_field false);
+add_single_norm_ov <- verify "mp_add" []
+    (mp_add_single_spec nwords_field true);
+add_left_ov <- verify "mp_add" [] (mp_add_left_spec nwords_field false);
+add_left_norm_ov <- verify "mp_add" [] (mp_add_left_spec nwords_field true);
+
+addx2_ov <- verify "mp_add" []
+    (mp_add_spec twice_nwords_field false);
+addx2_norm_ov <- verify "mp_add" []
+    (mp_add_spec twice_nwords_field true);
+addx2_single_ov <- verify "mp_add" []
+    (mp_add_single_spec twice_nwords_field false);
+addx2_single_norm_ov <- verify "mp_add" []
+    (mp_add_single_spec twice_nwords_field true);
+addx2_left_ov <- verify "mp_add" []
+    (mp_add_left_spec twice_nwords_field false);
+addx2_left_norm_ov <- verify "mp_add" []
+    (mp_add_left_spec twice_nwords_field true);
+
+addfast_ov <- verify "mp_addfast" [add_ov]
+    (mp_addfast_spec nwords_field nwords_field false);
+addfast_norm_ov <- verify "mp_addfast" [add_ov]
+    (mp_addfast_spec nwords_field nwords_field true);
+addfast_single_ov <- verify "mp_addfast" [add_single_ov]
+    (mp_addfast_single_spec nwords_field nwords_field false);
+addfast_single_norm_ov <- verify "mp_addfast" [add_single_ov]
+    (mp_addfast_single_spec nwords_field nwords_field true);
+
+addfastx2_ov <- verify "mp_addfastx2" [addx2_ov]
+    (mp_addfast_spec twice_nwords_field twice_nwords_field false);
+addfastx2_norm_ov <- verify "mp_addfastx2" [addx2_ov]
+    (mp_addfast_spec twice_nwords_field twice_nwords_field true);
+addfastx2_left_ov <- verify "mp_addfastx2" []
+    (mp_addfast_left_spec twice_nwords_field twice_nwords_field false);
+addfastx2_left_norm_ov <- verify "mp_addfastx2" []
+    (mp_addfast_left_spec twice_nwords_field twice_nwords_field true);
+
+mul_ov <- admit "mp_mul" [] (mp_mul_spec nwords_field twice_nwords_field);
+mul_single_ov <- admit "mp_mul" []
+    (mp_mul_single_spec nwords_field twice_nwords_field );
+mul_half_ov <- admit "mp_mul" [] (mp_mul_spec half_nwords_field nwords_field);
+
+shiftr1_ov <- verify "mp_shiftr1" [] (mp_shiftr1_spec nwords_field);
+
+sub_ov <- verify "mp_sub" [] (mp_sub_spec twice_nwords_field false);
+sub_left_ov <- verify "mp_sub" [] (mp_sub_left_spec twice_nwords_field false);
+
+subfast_ov <- verify "mp_subfast" []
+    (mp_subfast_spec twice_nwords_field twice_nwords_field false);
+subfast_left_ov <- verify "mp_subfast" []
+    (mp_subfast_spec twice_nwords_field twice_nwords_field false);
+

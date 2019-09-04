@@ -1,0 +1,23 @@
+//Safe_Arithmetic.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module lib::math::Safe_Arithmetic where
+
+///////////////////////////////////////////////////////////////////////////////
+
+uext : {a, b} (fin a, fin b) => [a] -> [a+b]
+uext(x) = zero # x
+
+safe_add : {a} (fin a) => ([a],[a]) -> [a+1]
+safe_add(x,y) = uext(x) + uext(y)
+
+safe_sub : {a} (fin a) => ([a],[a]) -> [a+1]
+safe_sub(x,y) = uext(x) - uext(y)
+
+safe_prod : {a} (fin a) => ([a],[a]) -> [2*a]
+safe_prod(x,y) = uext(x) * uext(y)
+
+safe_mod : {a, b} (fin a, fin b) => ([b],[a+b]) -> [b]
+safe_mod(p,x) = drop(x % uext(p))

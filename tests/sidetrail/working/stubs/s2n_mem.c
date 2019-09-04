@@ -56,7 +56,7 @@ int s2n_alloc(struct s2n_blob *b, uint32_t size)
 
 void *realloc( void *ptr, size_t new_size )
 {
-  //just leave it undet for now
+  /* just leave it undet for now */
   void* ret = malloc(new_size);
   return ret;
 }

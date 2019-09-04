@@ -17,10 +17,39 @@
 #include <stdint.h>
 #include <s2n.h>
 #include "tls/s2n_cipher_preferences.h"
+#include "tls/s2n_kex.h"
 #include "tls/s2n_config.h"
 
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
+
+/* TLS 1.3 cipher suites, in order of preference.
+ * Can be added to other ciphers suite lists to enable
+ * TLS1.3 compatibility. */
+#define S2N_TLS13_CIPHER_SUITES_20190801    \
+    &s2n_tls13_aes_256_gcm_sha384,          \
+    &s2n_tls13_aes_128_gcm_sha256,          \
+    &s2n_tls13_chacha20_poly1305_sha256     \
+
+/* s2n's list of cipher suites, in order of preferences, as of 2019-08-01 */
+struct s2n_cipher_suite *cipher_suites_20190801[] = {
+    S2N_TLS13_CIPHER_SUITES_20190801,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20190801 = {
+    .count = sizeof(cipher_suites_20190801) / sizeof(cipher_suites_20190801[0]),
+    .suites = cipher_suites_20190801,
+    .minimum_protocol_version = S2N_TLS10,
+};
 
 /* s2n's list of cipher suites, in order of preference, as of 2014-06-01 */
 struct s2n_cipher_suite *cipher_suites_20140601[] = {
@@ -37,14 +66,14 @@ struct s2n_cipher_suite *cipher_suites_20140601[] = {
 const struct s2n_cipher_preferences cipher_preferences_20140601 = {
     .count = sizeof(cipher_suites_20140601) / sizeof(cipher_suites_20140601[0]),
     .suites = cipher_suites_20140601,
-    .minimum_protocol_version = S2N_SSLv3
+    .minimum_protocol_version = S2N_SSLv3,
 };
 
 /* Disable SSLv3 due to POODLE */
 const struct s2n_cipher_preferences cipher_preferences_20141001 = {
     .count = sizeof(cipher_suites_20140601) / sizeof(cipher_suites_20140601[0]),
     .suites = cipher_suites_20140601,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
 };
 
 /* Disable RC4 */
@@ -60,7 +89,7 @@ struct s2n_cipher_suite *cipher_suites_20150202[] = {
 const struct s2n_cipher_preferences cipher_preferences_20150202 = {
     .count = sizeof(cipher_suites_20150202) / sizeof(cipher_suites_20150202[0]),
     .suites = cipher_suites_20150202,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
 };
 
 /* Support AES-GCM modes */
@@ -78,7 +107,7 @@ struct s2n_cipher_suite *cipher_suites_20150214[] = {
 const struct s2n_cipher_preferences cipher_preferences_20150214 = {
     .count = sizeof(cipher_suites_20150214) / sizeof(cipher_suites_20150214[0]),
     .suites = cipher_suites_20150214,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
 };
 
 /* Make a CBC cipher #1 to avoid negotiating GCM with buggy Java clients */
@@ -101,7 +130,7 @@ struct s2n_cipher_suite *cipher_suites_20160411[] = {
 const struct s2n_cipher_preferences cipher_preferences_20160411 = {
     .count = sizeof(cipher_suites_20160411) / sizeof(cipher_suites_20160411[0]),
     .suites = cipher_suites_20160411,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
 };
 
 /* Use ECDHE instead of plain DHE. Prioritize ECDHE in favour of non ECDHE; GCM in favour of CBC; AES128 in favour of AES256. */
@@ -121,7 +150,7 @@ struct s2n_cipher_suite *cipher_suites_20150306[] = {
 const struct s2n_cipher_preferences cipher_preferences_20150306 = {
     .count = sizeof(cipher_suites_20150306) / sizeof(cipher_suites_20150306[0]),
     .suites = cipher_suites_20150306,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
 };
 
 struct s2n_cipher_suite *cipher_suites_20160804[] = {
@@ -143,7 +172,7 @@ struct s2n_cipher_suite *cipher_suites_20160804[] = {
 const struct s2n_cipher_preferences cipher_preferences_20160804 = {
     .count = sizeof(cipher_suites_20160804) / sizeof(cipher_suites_20160804[0]),
     .suites = cipher_suites_20160804,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
 };
 
 struct s2n_cipher_suite *cipher_suites_20160824[] = {
@@ -160,7 +189,7 @@ struct s2n_cipher_suite *cipher_suites_20160824[] = {
 const struct s2n_cipher_preferences cipher_preferences_20160824 = {
     .count = sizeof(cipher_suites_20160824) / sizeof(cipher_suites_20160824[0]),
     .suites = cipher_suites_20160824,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
 };
 
 /* Add ChaCha20 suite */
@@ -176,6 +205,11 @@ struct s2n_cipher_suite *cipher_suites_20170210[] = {
     &s2n_rsa_with_aes_128_cbc_sha
 };
 
+const struct s2n_cipher_preferences cipher_preferences_20170210 = {
+    .count = sizeof(cipher_suites_20170210) / sizeof(cipher_suites_20170210[0]),
+    .suites = cipher_suites_20170210,
+    .minimum_protocol_version = S2N_TLS10,
+};
 
 /* Same as 20160411, but with ChaCha20 added as 1st in Preference List */
 struct s2n_cipher_suite *cipher_suites_20190122[] = {
@@ -198,7 +232,7 @@ struct s2n_cipher_suite *cipher_suites_20190122[] = {
 const struct s2n_cipher_preferences cipher_preferences_20190122 = {
     .count = sizeof(cipher_suites_20190122) / sizeof(cipher_suites_20190122[0]),
     .suites = cipher_suites_20190122,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
 };
 
 /* Same as 20160804, but with ChaCha20 added as 2nd in Preference List */
@@ -222,7 +256,7 @@ struct s2n_cipher_suite *cipher_suites_20190121[] = {
 const struct s2n_cipher_preferences cipher_preferences_20190121 = {
     .count = sizeof(cipher_suites_20190121) / sizeof(cipher_suites_20190121[0]),
     .suites = cipher_suites_20190121,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
 };
 
 /* Same as 20160411, but with ChaCha20 in 3rd Place after CBC and GCM */
@@ -246,7 +280,7 @@ struct s2n_cipher_suite *cipher_suites_20190120[] = {
 const struct s2n_cipher_preferences cipher_preferences_20190120 = {
     .count = sizeof(cipher_suites_20190120) / sizeof(cipher_suites_20190120[0]),
     .suites = cipher_suites_20190120,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
 };
 
 /* Preferences optimized for interop, includes ECDSA priortitized. DHE and 3DES are added(at the lowest preference). */
@@ -281,7 +315,7 @@ struct s2n_cipher_suite *cipher_suites_20190214[] = {
 const struct s2n_cipher_preferences cipher_preferences_20190214 = {
     .count = sizeof(cipher_suites_20190214) / sizeof(cipher_suites_20190214[0]),
     .suites = cipher_suites_20190214,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
 };
 
 struct s2n_cipher_suite *cipher_suites_null[] = {
@@ -291,13 +325,7 @@ struct s2n_cipher_suite *cipher_suites_null[] = {
 const struct s2n_cipher_preferences cipher_preferences_null = {
     .count = sizeof(cipher_suites_null) / sizeof(cipher_suites_null[0]),
     .suites = cipher_suites_null,
-    .minimum_protocol_version = S2N_TLS10
-};
-
-const struct s2n_cipher_preferences cipher_preferences_20170210 = {
-    .count = sizeof(cipher_suites_20170210) / sizeof(cipher_suites_20170210[0]),
-    .suites = cipher_suites_20170210,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
 };
 
 /* Preferences optimized for interop. DHE and 3DES are added(at the lowest preference). */
@@ -326,7 +354,7 @@ struct s2n_cipher_suite *cipher_suites_20170328[] = {
 const struct s2n_cipher_preferences cipher_preferences_20170328 = {
     .count = sizeof(cipher_suites_20170328) / sizeof(cipher_suites_20170328[0]),
     .suites = cipher_suites_20170328,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
 };
 
 /* Preferences optimized for FIPS compatibility. */
@@ -347,7 +375,7 @@ struct s2n_cipher_suite *cipher_suites_20170405[] = {
 const struct s2n_cipher_preferences cipher_preferences_20170405 = {
     .count = sizeof(cipher_suites_20170405) / sizeof(cipher_suites_20170405[0]),
     .suites = cipher_suites_20170405,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
 };
 
 /* Equivalent to cipher_suite_20160411 with 3DES removed.
@@ -370,7 +398,7 @@ struct s2n_cipher_suite *cipher_suites_20170718[] = {
 const struct s2n_cipher_preferences cipher_preferences_20170718 = {
     .count = sizeof(cipher_suites_20170718) / sizeof(cipher_suites_20170718[0]),
     .suites = cipher_suites_20170718,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_2015_04[] = {
@@ -398,7 +426,7 @@ struct s2n_cipher_suite *cipher_suites_elb_security_policy_2015_04[] = {
 const struct s2n_cipher_preferences elb_security_policy_2015_04 = {
     .count = sizeof(cipher_suites_elb_security_policy_2015_04) / sizeof(cipher_suites_elb_security_policy_2015_04[0]),
     .suites = cipher_suites_elb_security_policy_2015_04,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_2016_08[] = {
@@ -425,7 +453,7 @@ struct s2n_cipher_suite *cipher_suites_elb_security_policy_2016_08[] = {
 const struct s2n_cipher_preferences elb_security_policy_2016_08 = {
     .count = sizeof(cipher_suites_elb_security_policy_2016_08) / sizeof(cipher_suites_elb_security_policy_2016_08[0]),
     .suites = cipher_suites_elb_security_policy_2016_08,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls_1_2_2017_01[] = {
@@ -446,7 +474,7 @@ struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls_1_2_2017_01[] = {
 const struct s2n_cipher_preferences elb_security_policy_tls_1_2_2017_01 = {
     .count = sizeof(cipher_suites_elb_security_policy_tls_1_2_2017_01) / sizeof(cipher_suites_elb_security_policy_tls_1_2_2017_01[0]),
     .suites = cipher_suites_elb_security_policy_tls_1_2_2017_01,
-    .minimum_protocol_version = S2N_TLS12
+    .minimum_protocol_version = S2N_TLS12,
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls_1_1_2017_01[] = {
@@ -473,7 +501,7 @@ struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls_1_1_2017_01[] = {
 const struct s2n_cipher_preferences elb_security_policy_tls_1_1_2017_01 = {
     .count = sizeof(cipher_suites_elb_security_policy_tls_1_1_2017_01) / sizeof(cipher_suites_elb_security_policy_tls_1_1_2017_01[0]),
     .suites = cipher_suites_elb_security_policy_tls_1_1_2017_01,
-    .minimum_protocol_version = S2N_TLS11
+    .minimum_protocol_version = S2N_TLS11,
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls_1_2_ext_2018_06[] = {
@@ -500,7 +528,7 @@ struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls_1_2_ext_2018_06[]
 const struct s2n_cipher_preferences elb_security_policy_tls_1_2_ext_2018_06 = {
     .count = sizeof(cipher_suites_elb_security_policy_tls_1_2_ext_2018_06) / sizeof(cipher_suites_elb_security_policy_tls_1_2_ext_2018_06[0]),
     .suites = cipher_suites_elb_security_policy_tls_1_2_ext_2018_06,
-    .minimum_protocol_version = S2N_TLS12
+    .minimum_protocol_version = S2N_TLS12,
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_fs_2018_06[] = {
@@ -521,7 +549,66 @@ struct s2n_cipher_suite *cipher_suites_elb_security_policy_fs_2018_06[] = {
 const struct s2n_cipher_preferences elb_security_policy_fs_2018_06 = {
     .count = sizeof(cipher_suites_elb_security_policy_fs_2018_06) / sizeof(cipher_suites_elb_security_policy_fs_2018_06[0]),
     .suites = cipher_suites_elb_security_policy_fs_2018_06,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_fs_1_2_2019_08[] = {
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_fs_1_2_2019_08 = {
+    .count = sizeof(cipher_suites_elb_security_policy_fs_1_2_2019_08) / sizeof(cipher_suites_elb_security_policy_fs_1_2_2019_08[0]), 
+    .suites = cipher_suites_elb_security_policy_fs_1_2_2019_08, 
+    .minimum_protocol_version = S2N_TLS12,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_fs_1_1_2019_08[] = {
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_fs_1_1_2019_08 = {
+    .count = sizeof(cipher_suites_elb_security_policy_fs_1_1_2019_08) / sizeof(cipher_suites_elb_security_policy_fs_1_1_2019_08[0]), 
+    .suites = cipher_suites_elb_security_policy_fs_1_1_2019_08, 
+    .minimum_protocol_version = S2N_TLS11,
+};
+
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_fs_1_2_Res_2019_08[] = {
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_fs_1_2_Res_2019_08 = {
+    .count = sizeof(cipher_suites_elb_security_policy_fs_1_2_Res_2019_08) / sizeof(cipher_suites_elb_security_policy_fs_1_2_Res_2019_08[0]), 
+    .suites = cipher_suites_elb_security_policy_fs_1_2_Res_2019_08, 
+    .minimum_protocol_version = S2N_TLS12,
 };
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_upstream[] = {
@@ -549,7 +636,7 @@ struct s2n_cipher_suite *cipher_suites_cloudfront_upstream[] = {
 const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream = {
     .count = sizeof(cipher_suites_cloudfront_upstream) / sizeof(cipher_suites_cloudfront_upstream[0]),
     .suites = cipher_suites_cloudfront_upstream,
-    .minimum_protocol_version = S2N_SSLv3
+    .minimum_protocol_version = S2N_SSLv3,
 };
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_ssl_v_3[] = {
@@ -571,7 +658,7 @@ struct s2n_cipher_suite *cipher_suites_cloudfront_ssl_v_3[] = {
 const struct s2n_cipher_preferences cipher_preferences_cloudfront_ssl_v_3 = {
     .count = sizeof(cipher_suites_cloudfront_ssl_v_3) / sizeof(cipher_suites_cloudfront_ssl_v_3[0]),
     .suites = cipher_suites_cloudfront_ssl_v_3,
-    .minimum_protocol_version = S2N_SSLv3
+    .minimum_protocol_version = S2N_SSLv3,
 };
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_0_2014[] = {
@@ -592,7 +679,7 @@ struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_0_2014[] = {
 const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0_2014 = {
     .count = sizeof(cipher_suites_cloudfront_tls_1_0_2014) / sizeof(cipher_suites_cloudfront_tls_1_0_2014[0]),
     .suites = cipher_suites_cloudfront_tls_1_0_2014,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
 };
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_0_2016[] = {
@@ -612,7 +699,7 @@ struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_0_2016[] = {
 const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0_2016 = {
     .count = sizeof(cipher_suites_cloudfront_tls_1_0_2016) / sizeof(cipher_suites_cloudfront_tls_1_0_2016[0]),
     .suites = cipher_suites_cloudfront_tls_1_0_2016,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
 };
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_1_2016[] = {
@@ -632,7 +719,7 @@ struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_1_2016[] = {
 const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_1_2016 = {
     .count = sizeof(cipher_suites_cloudfront_tls_1_1_2016) / sizeof(cipher_suites_cloudfront_tls_1_1_2016[0]),
     .suites = cipher_suites_cloudfront_tls_1_1_2016,
-    .minimum_protocol_version = S2N_TLS11
+    .minimum_protocol_version = S2N_TLS11,
 };
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_2_2018[] = {
@@ -648,7 +735,7 @@ struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_2_2018[] = {
 const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2018 = {
     .count = sizeof(cipher_suites_cloudfront_tls_1_2_2018) / sizeof(cipher_suites_cloudfront_tls_1_2_2018[0]),
     .suites = cipher_suites_cloudfront_tls_1_2_2018,
-    .minimum_protocol_version = S2N_TLS12
+    .minimum_protocol_version = S2N_TLS12,
 };
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_2_2019[] = {
@@ -661,7 +748,7 @@ struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_2_2019[] = {
 const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2019 = {
     .count = sizeof(cipher_suites_cloudfront_tls_1_2_2019) / sizeof(cipher_suites_cloudfront_tls_1_2_2019[0]),
     .suites = cipher_suites_cloudfront_tls_1_2_2019,
-    .minimum_protocol_version = S2N_TLS12
+    .minimum_protocol_version = S2N_TLS12,
 };
 
 struct s2n_cipher_suite *cipher_suites_kms_tls_1_0_2018_10[] = {
@@ -680,7 +767,28 @@ struct s2n_cipher_suite *cipher_suites_kms_tls_1_0_2018_10[] = {
 const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_0_2018_10 = {
         .count = sizeof(cipher_suites_kms_tls_1_0_2018_10) / sizeof(cipher_suites_kms_tls_1_0_2018_10[0]),
         .suites = cipher_suites_kms_tls_1_0_2018_10,
-        .minimum_protocol_version = S2N_TLS10
+        .minimum_protocol_version = S2N_TLS10,
+};
+
+struct s2n_cipher_suite *cipher_suites_kms_pq_tls_1_0_2019_06[] = {
+        &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
+        &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
+        &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+        &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+        &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+        &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+        &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+        &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,
+        &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+        &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+        &s2n_dhe_rsa_with_aes_256_cbc_sha,
+        &s2n_dhe_rsa_with_aes_128_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_kms_pq_tls_1_0_2019_06 = {
+        .count = sizeof(cipher_suites_kms_pq_tls_1_0_2019_06) / sizeof(cipher_suites_kms_pq_tls_1_0_2019_06[0]),
+        .suites = cipher_suites_kms_pq_tls_1_0_2019_06,
+        .minimum_protocol_version = S2N_TLS10,
 };
 
 struct s2n_cipher_suite *cipher_suites_kms_fips_tls_1_2_2018_10[] = {
@@ -695,55 +803,63 @@ struct s2n_cipher_suite *cipher_suites_kms_fips_tls_1_2_2018_10[] = {
 const struct s2n_cipher_preferences cipher_preferences_kms_fips_tls_1_2_2018_10 = {
         .count = sizeof(cipher_suites_kms_fips_tls_1_2_2018_10) / sizeof(cipher_suites_kms_fips_tls_1_2_2018_10[0]),
         .suites = cipher_suites_kms_fips_tls_1_2_2018_10,
-        .minimum_protocol_version = S2N_TLS12
+        .minimum_protocol_version = S2N_TLS12,
 
 };
 
 struct {
     const char *version;
     const struct s2n_cipher_preferences *preferences;
+    unsigned ecc_extension_required:1;
+    unsigned pq_kem_extension_required:1;
 } selection[] = {
-    { "default", &cipher_preferences_20170210 },
-    { "default_fips", &cipher_preferences_20170405},
-    { "ELBSecurityPolicy-TLS-1-0-2015-04", &elb_security_policy_2015_04},
+    /* Zero init .ecc_extension_required and .pq_kem_extension_required, they'll be initialized later in s2n_cipher_preferences_init() */
+    { .version="default", .preferences=&cipher_preferences_20170210, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="default_tls13", .preferences=&cipher_preferences_20190801, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="default_fips", .preferences=&cipher_preferences_20170405, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="ELBSecurityPolicy-TLS-1-0-2015-04", .preferences=&elb_security_policy_2015_04, .ecc_extension_required=0, .pq_kem_extension_required=0},
     /* Not a mistake. TLS-1-0-2015-05 and 2016-08 are equivalent */
-    { "ELBSecurityPolicy-TLS-1-0-2015-05", &elb_security_policy_2016_08},
-    { "ELBSecurityPolicy-2016-08", &elb_security_policy_2016_08},
-    { "ELBSecurityPolicy-TLS-1-1-2017-01", &elb_security_policy_tls_1_1_2017_01},
-    { "ELBSecurityPolicy-TLS-1-2-2017-01", &elb_security_policy_tls_1_2_2017_01},
-    { "ELBSecurityPolicy-TLS-1-2-Ext-2018-06", &elb_security_policy_tls_1_2_ext_2018_06},
-    { "ELBSecurityPolicy-FS-2018-06", &elb_security_policy_fs_2018_06},
-    { "CloudFront-Upstream", &cipher_preferences_cloudfront_upstream },
-    { "CloudFront-SSL-v-3", &cipher_preferences_cloudfront_ssl_v_3 },
-    { "CloudFront-TLS-1-0-2014", &cipher_preferences_cloudfront_tls_1_0_2014 },
-    { "CloudFront-TLS-1-0-2016", &cipher_preferences_cloudfront_tls_1_0_2016 },
-    { "CloudFront-TLS-1-1-2016", &cipher_preferences_cloudfront_tls_1_1_2016 },
-    { "CloudFront-TLS-1-2-2018", &cipher_preferences_cloudfront_tls_1_2_2018 },
-    { "CloudFront-TLS-1-2-2019", &cipher_preferences_cloudfront_tls_1_2_2019 },
-    { "KMS-TLS-1-0-2018-10", &cipher_preferences_kms_tls_1_0_2018_10 },
-    { "KMS-FIPS-TLS-1-2-2018-10", &cipher_preferences_kms_fips_tls_1_2_2018_10 },
-    { "20140601", &cipher_preferences_20140601 },
-    { "20141001", &cipher_preferences_20141001 },
-    { "20150202", &cipher_preferences_20150202 },
-    { "20150214", &cipher_preferences_20150214 },
-    { "20150306", &cipher_preferences_20150306 },
-    { "20160411", &cipher_preferences_20160411 },
-    { "20160804", &cipher_preferences_20160804 },
-    { "20160824", &cipher_preferences_20160824 },
-    { "20170210", &cipher_preferences_20170210 },
-    { "20170328", &cipher_preferences_20170328 },
-    { "20190214", &cipher_preferences_20190214 },
-    { "20170405", &cipher_preferences_20170405 },
-    { "20170718", &cipher_preferences_20170718 },
-    { "20190120", &cipher_preferences_20190120 },
-    { "20190121", &cipher_preferences_20190121 },
-    { "20190122", &cipher_preferences_20190122 },
-    { "test_all", &cipher_preferences_test_all },
-    { "test_all_fips", &cipher_preferences_test_all_fips },
-    { "test_all_ecdsa", &cipher_preferences_test_all_ecdsa },
-    { "test_ecdsa_priority", &cipher_preferences_test_ecdsa_priority },
-    { "null", &cipher_preferences_null },
-    { NULL, NULL }
+    { .version="ELBSecurityPolicy-TLS-1-0-2015-05", .preferences=&elb_security_policy_2016_08, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="ELBSecurityPolicy-2016-08", .preferences=&elb_security_policy_2016_08, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="ELBSecurityPolicy-TLS-1-1-2017-01", .preferences=&elb_security_policy_tls_1_1_2017_01, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="ELBSecurityPolicy-TLS-1-2-2017-01", .preferences=&elb_security_policy_tls_1_2_2017_01, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="ELBSecurityPolicy-TLS-1-2-Ext-2018-06", .preferences=&elb_security_policy_tls_1_2_ext_2018_06, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="ELBSecurityPolicy-FS-2018-06", .preferences=&elb_security_policy_fs_2018_06, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="ELBSecurityPolicy-FS-1-2-2019-08", .preferences=&elb_security_policy_fs_1_2_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0}, 
+    { .version="ELBSecurityPolicy-FS-1-1-2019-08", .preferences=&elb_security_policy_fs_1_1_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0}, 
+    { .version="ELBSecurityPolicy-FS-1-2-Res-2019-08", .preferences=&elb_security_policy_fs_1_2_Res_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0}, 
+    { .version="CloudFront-Upstream", .preferences=&cipher_preferences_cloudfront_upstream, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="CloudFront-SSL-v-3", .preferences=&cipher_preferences_cloudfront_ssl_v_3, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="CloudFront-TLS-1-0-2014", .preferences=&cipher_preferences_cloudfront_tls_1_0_2014, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="CloudFront-TLS-1-0-2016", .preferences=&cipher_preferences_cloudfront_tls_1_0_2016, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="CloudFront-TLS-1-1-2016", .preferences=&cipher_preferences_cloudfront_tls_1_1_2016, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="CloudFront-TLS-1-2-2018", .preferences=&cipher_preferences_cloudfront_tls_1_2_2018, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="CloudFront-TLS-1-2-2019", .preferences=&cipher_preferences_cloudfront_tls_1_2_2019, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="KMS-TLS-1-0-2018-10", .preferences=&cipher_preferences_kms_tls_1_0_2018_10, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="KMS-PQ-TLS-1-0-2019-06", .preferences=&cipher_preferences_kms_pq_tls_1_0_2019_06, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="KMS-FIPS-TLS-1-2-2018-10", .preferences=&cipher_preferences_kms_fips_tls_1_2_2018_10, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="20140601", .preferences=&cipher_preferences_20140601, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="20141001", .preferences=&cipher_preferences_20141001, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="20150202", .preferences=&cipher_preferences_20150202, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="20150214", .preferences=&cipher_preferences_20150214, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="20150306", .preferences=&cipher_preferences_20150306, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="20160411", .preferences=&cipher_preferences_20160411, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="20160804", .preferences=&cipher_preferences_20160804, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="20160824", .preferences=&cipher_preferences_20160824, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="20170210", .preferences=&cipher_preferences_20170210, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="20170328", .preferences=&cipher_preferences_20170328, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="20190214", .preferences=&cipher_preferences_20190214, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="20170405", .preferences=&cipher_preferences_20170405, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="20170718", .preferences=&cipher_preferences_20170718, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="20190120", .preferences=&cipher_preferences_20190120, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="20190121", .preferences=&cipher_preferences_20190121, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="20190122", .preferences=&cipher_preferences_20190122, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="test_all", .preferences=&cipher_preferences_test_all, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="test_all_fips", .preferences=&cipher_preferences_test_all_fips, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="test_all_ecdsa", .preferences=&cipher_preferences_test_all_ecdsa, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="test_ecdsa_priority", .preferences=&cipher_preferences_test_ecdsa_priority, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="null", .preferences=&cipher_preferences_null, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version=NULL, .preferences=NULL, .ecc_extension_required=0, .pq_kem_extension_required=0}
 };
 
 int s2n_find_cipher_pref_from_version(const char *version, const struct s2n_cipher_preferences **cipher_preferences)
@@ -795,4 +911,52 @@ int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, 
     }
 
     return 0;
+}
+
+int s2n_cipher_preferences_init()
+{
+    for (int i = 0; selection[i].version != NULL; i++) {
+        const struct s2n_cipher_preferences *preferences = selection[i].preferences;
+        for (int j = 0; j < preferences->count; j++) {
+
+            struct s2n_cipher_suite *cipher = preferences->suites[j];
+
+            /* TLS1.3 does not include key exchange algorithms in its cipher suites,
+             * but the elliptic curves extension is always required. */
+            if (cipher->minimum_required_tls_version >= S2N_TLS13) {
+                selection[i].ecc_extension_required = 1;
+            }
+
+            if (cipher->key_exchange_alg == &s2n_ecdhe || cipher->key_exchange_alg == &s2n_hybrid_ecdhe_kem) {
+                selection[i].ecc_extension_required = 1;
+            }
+
+            if (cipher->key_exchange_alg == &s2n_hybrid_ecdhe_kem) {
+                selection[i].pq_kem_extension_required = 1;
+            }
+        }
+    }
+    return 0;
+}
+
+int s2n_ecc_extension_required(const struct s2n_cipher_preferences *preferences)
+{
+    notnull_check(preferences);
+    for (int i = 0; selection[i].version != NULL; i++) {
+        if (selection[i].preferences == preferences) {
+            return 1 == selection[i].ecc_extension_required;
+        }
+    }
+    S2N_ERROR(S2N_ERR_INVALID_CIPHER_PREFERENCES);
+}
+
+int s2n_pq_kem_extension_required(const struct s2n_cipher_preferences *preferences)
+{
+    notnull_check(preferences);
+    for (int i = 0; selection[i].version != NULL; i++) {
+        if (selection[i].preferences == preferences) {
+            return 1 == selection[i].pq_kem_extension_required;
+        }
+    }
+    S2N_ERROR(S2N_ERR_INVALID_CIPHER_PREFERENCES);
 }

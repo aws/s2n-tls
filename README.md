@@ -18,8 +18,8 @@ s2n is a C99 implementation of the TLS/SSL protocols that is designed to be simp
 git clone https://github.com/${YOUR_GITHUB_ACCOUNT_NAME}/s2n.git
 cd s2n
 
-# Pick an "env" line from the .travis.yml file and run it, in this case choose the openssl-1.1.0 build
-S2N_LIBCRYPTO=openssl-1.1.0 BUILD_S2N=true TESTS=integration GCC6_REQUIRED=true
+# Pick an "env" line from the .travis.yml file and run it, in this case choose the openssl-1.1.1 with GCC 9 build
+S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=9
 
 source .travis/s2n_setup_env.sh
 .travis/s2n_install_test_dependencies.sh

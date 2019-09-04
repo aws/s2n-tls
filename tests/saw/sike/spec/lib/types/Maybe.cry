@@ -1,0 +1,13 @@
+//Maybe.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module lib::types::Maybe where
+
+///////////////////////////////////////////////////////////////////////////////
+
+type Maybe val =
+    { valid : Bool
+    , value : val
+    }

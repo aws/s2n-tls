@@ -5,7 +5,7 @@
 *********************************************************************************************/ 
 
 #include "P503_internal.h"
-#include "pq-crypto/pq-random.h"
+#include "pq-crypto/pq_random.h"
 
 static void clear_words(void* mem, digit_t nwords)
 { // Clear digits from memory. "nwords" indicates the number of digits to be zeroed.
@@ -55,18 +55,6 @@ static void fp2_decode(const unsigned char *enc, f2elm_t *x)
     }
     to_fp2mont(x, x);
 }
-
-
-void random_mod_order_A(unsigned char* random_digits)
-{  // Generation of Alice's secret key  
-   // Outputs random value in [0, 2^eA - 1]
-    unsigned long long nbytes = NBITS_TO_NBYTES(OALICE_BITS);
-
-    clear_words((void*)random_digits, MAXWORDS_ORDER);
-    get_random_bytes(random_digits, nbytes);
-    random_digits[nbytes-1] &= MASK_ALICE;    // Masking last byte 
-}
-
 
 void random_mod_order_B(unsigned char* random_digits)
 {  // Generation of Bob's secret key  

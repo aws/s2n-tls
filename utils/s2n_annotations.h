@@ -14,6 +14,6 @@
  */
 #pragma once
 
-//For compilation purposes, these annotations are no-ops 
+/* For compilation purposes, these annotations are no-ops */
 #define S2N_PUBLIC_INPUT(__a)
 #define S2N_INVARIENT(__a)

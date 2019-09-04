@@ -1,0 +1,52 @@
+70c70
+< int EphemeralKeyGeneration_A(const digit_t* PrivateKeyA, unsigned char* PublicKeyA)
+---
+> int EphemeralKeyGeneration_A(const digit_t* PrivateKeyA, unsigned char* PublicKeyA, unsigned int F1)
+95,97c95,98
+<     index = 0;        
+<     for (row = 1; row < MAX_Alice; row++) {
+<         while (index < MAX_Alice-row) {
+---
+>     index = 0;
+>     // F1 : MAX_Alice        
+>     for (row = 1; row < F1; row++) {
+>         while (index < F1-row) {
+139c140
+< int EphemeralKeyGeneration_B(const digit_t* PrivateKeyB, unsigned char* PublicKeyB)
+---
+> int EphemeralKeyGeneration_B(const digit_t* PrivateKeyB, unsigned char* PublicKeyB, unsigned int F1)
+165,167c166,169
+<     index = 0;  
+<     for (row = 1; row < MAX_Bob; row++) {
+<         while (index < MAX_Bob-row) {
+---
+>     index = 0; 
+>     // F1 : MAX_Bob 
+>     for (row = 1; row < F1; row++) {
+>         while (index < F1-row) {
+209c211
+< int EphemeralSecretAgreement_A(const digit_t* PrivateKeyA, const unsigned char* PublicKeyB, unsigned char* SharedSecretA)
+---
+> int EphemeralSecretAgreement_A(const digit_t* PrivateKeyA, const unsigned char* PublicKeyB, unsigned char* SharedSecretA, unsigned int F1)
+236,238c238,241
+<     index = 0;        
+<     for (row = 1; row < MAX_Alice; row++) {
+<         while (index < MAX_Alice-row) {
+---
+>     index = 0;
+>     // F1 : MAX_Alice        
+>     for (row = 1; row < F1; row++) {
+>         while (index < F1-row) {
+269c272
+< int EphemeralSecretAgreement_B(const digit_t* PrivateKeyB, const unsigned char* PublicKeyA, unsigned char* SharedSecretB)
+---
+> int EphemeralSecretAgreement_B(const digit_t* PrivateKeyB, const unsigned char* PublicKeyA, unsigned char* SharedSecretB, unsigned int F1)
+296,298c299,302
+<     index = 0;  
+<     for (row = 1; row < MAX_Bob; row++) {
+<         while (index < MAX_Bob-row) {
+---
+>     index = 0;
+>     // F1 : MAX_Bob 
+>     for (row = 1; row < F1; row++) {
+>         while (index < F1-row) {

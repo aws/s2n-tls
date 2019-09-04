@@ -89,12 +89,20 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
     lt_check(__tmp_n, high);                    \
   } while (0)
 
+<<<<<<< HEAD
 #define GUARD( x )              if ( (x) < 0 ) return S2N_FAILURE
 #define GUARD_GOTO( x , label ) if ( (x) < 0 ) goto label
 #define GUARD_PTR( x )          if ( (x) < 0 ) return NULL
 #define GUARD_RETRY( x )  int r = (x); GUARD(r); if (S2N_AGAIN == r) return S2N_AGAIN
+=======
+#define GUARD( x )              do {if ( (x) < 0 ) return -1;} while (0)
+#define GUARD_GOTO( x , label ) do {if ( (x) < 0 ) goto label;} while (0)
+#define GUARD_PTR( x )          do {if ( (x) < 0 ) return NULL;} while (0)
+>>>>>>> master
 
 #define S2N_IN_UNIT_TEST ( getenv("S2N_UNIT_TEST") != NULL )
+#define S2N_IN_INTEG_TEST ( getenv("S2N_INTEG_TEST") != NULL )
+#define S2N_IN_TEST ( S2N_IN_UNIT_TEST || S2N_IN_INTEG_TEST )
 
 /* TODO: use the OSSL error code in error reporting https://github.com/awslabs/s2n/issues/705 */
 #define GUARD_OSSL( x , errcode )               \
@@ -137,3 +145,4 @@ extern int s2n_constant_time_pkcs1_unpad_or_dont(uint8_t * dst, const uint8_t * 
   }                                                         \
   struct __useless_struct_to_allow_trailing_semicolon__
 
+#define s2n_array_len(array) (sizeof(array) / sizeof(array[0]))

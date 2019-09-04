@@ -39,8 +39,9 @@
 #include <openssl/err.h>
 
 #include <s2n.h>
+#include "common.h"
 
-#define MAX_CERTIFICATES 2
+#define MAX_CERTIFICATES 50
 
 static char default_certificate_chain[] =
     "-----BEGIN CERTIFICATE-----\n"
@@ -344,6 +345,8 @@ void usage()
     fprintf(stderr, "    Location of key file used for encryption and decryption of session ticket.\n");
     fprintf(stderr, "  -T,--no-session-ticket\n");
     fprintf(stderr, "    Disable session ticket for resumption.\n");
+    fprintf(stderr, "  -C,--corked-io\n");
+    fprintf(stderr, "    Turn on corked io\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -362,6 +365,7 @@ struct conn_settings {
     const char *ca_dir;
     const char *ca_file;
     int insecure;
+    int use_corked_io;
 };
 
 int handle_connection(int fd, struct s2n_config *config, struct conn_settings settings)
@@ -377,44 +381,31 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
     }
 
     if (settings.mutual_auth) {
-        if (s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED) < 0) {
-            print_s2n_error("Error setting client auth type");
-            exit(1);
-        }
+        GUARD_RETURN(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED), "Error setting client auth type");
 
         if (settings.ca_dir || settings.ca_file) {
-            if (s2n_config_set_verification_ca_location(config, settings.ca_file, settings.ca_dir) < 0) {
-                print_s2n_error("Error adding verify location");
-                exit(1);
-            }
+            GUARD_RETURN(s2n_config_set_verification_ca_location(config, settings.ca_file, settings.ca_dir), "Error adding verify location");
         }
 
         if (settings.insecure) {
-            if (s2n_config_disable_x509_verification(config) < 0) {
-                print_s2n_error("Error disabling X.509 validation");
-                exit(1);
-            }
+            GUARD_RETURN(s2n_config_disable_x509_verification(config), "Error disabling X.509 validation");
         }
     }
 
-    if (s2n_connection_set_config(conn, config) < 0) {
-        print_s2n_error("Error setting configuration");
-        return -1;
+    GUARD_RETURN(s2n_connection_set_config(conn, config), "Error setting configuration");
+
+    if (settings.prefer_throughput) {
+        GUARD_RETURN(s2n_connection_prefer_throughput(conn), "Error setting prefer throughput");
     }
 
-    if (settings.prefer_throughput && s2n_connection_prefer_throughput(conn) < 0) {
-        print_s2n_error("Error setting prefer throughput");
-        return -1;
+    if (settings.prefer_low_latency) {
+        GUARD_RETURN(s2n_connection_prefer_low_latency(conn), "Error setting prefer low latency");
     }
 
-    if (settings.prefer_low_latency && s2n_connection_prefer_low_latency(conn) < 0) {
-        print_s2n_error("Error setting prefer low latency");
-        return -1;
-    }
+    GUARD_RETURN(s2n_connection_set_fd(conn, fd), "Error setting file descriptor");
 
-     if (s2n_connection_set_fd(conn, fd) < 0) {
-        print_s2n_error("Error setting file descriptor");
-        return -1;
+    if (settings.use_corked_io) {
+        GUARD_RETURN(s2n_connection_use_corked_io(conn), "Error setting corked io");
     }
 
     negotiate(conn);
@@ -433,16 +424,9 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
     s2n_blocked_status blocked;
     s2n_shutdown(conn, &blocked);
 
-    if (s2n_connection_wipe(conn) < 0) {
-        print_s2n_error("Error wiping connection");
-        return -1;
-    }
+    GUARD_RETURN(s2n_connection_wipe(conn), "Error wiping connection");
 
-    if (s2n_connection_free(conn) < 0) {
-        print_s2n_error("Error freeing connection");
-        return -1;
-    }
-    close(fd);
+    GUARD_RETURN(s2n_connection_free(conn), "Error freeing connection");
 
     return 0;
 }
@@ -493,12 +477,13 @@ int main(int argc, char *const *argv)
         {"insecure", no_argument, 0, 'i'},
         {"stk-file", required_argument, 0, 'a'},
         {"no-session-ticket", no_argument, 0, 'T'},
+        {"corked-io", no_argument, 0, 'C'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hmnst:d:i:T", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmnst:d:i:TC", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -506,6 +491,9 @@ int main(int argc, char *const *argv)
         switch (c) {
         case 0:
             /* getopt_long() returns 0 if an option.flag is non-null (Eg "parallelize") */
+            break;
+        case 'C':
+            conn_settings.use_corked_io = 1;
             break;
         case 'c':
             cipher_prefs = optarg;
@@ -584,6 +572,8 @@ int main(int argc, char *const *argv)
     if (optind < argc) {
         host = argv[optind++];
     }
+
+    /* cppcheck-suppress duplicateCondition */
     if (optind < argc) {
         port = argv[optind++];
     }
@@ -642,7 +632,7 @@ int main(int argc, char *const *argv)
 #ifdef OPENSSL_FIPS
         if (FIPS_mode_set(1) == 0) {
             unsigned long fips_rc = ERR_get_error();
-            char ssl_error_buf[256]; // Openssl claims you need no more than 120 bytes for error strings
+            char ssl_error_buf[256]; /* Openssl claims you need no more than 120 bytes for error strings */
             fprintf(stderr, "s2nd failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf));
             exit(1);
         }
@@ -653,10 +643,7 @@ int main(int argc, char *const *argv)
 #endif
     }
 
-    if (s2n_init() < 0) {
-        print_s2n_error("Error running s2n_init()");
-        exit(1);
-    }
+    GUARD_EXIT(s2n_init(), "Error running s2n_init()");
 
     printf("Listening on %s:%s\n", host, port);
 
@@ -682,15 +669,9 @@ int main(int argc, char *const *argv)
 
     for (int i = 0; i < num_certificates; i++) {
         struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new();
-        if (s2n_cert_chain_and_key_load_pem(chain_and_key, certificates[i], private_keys[i]) < 0) {
-            print_s2n_error("Error getting certificate/key");
-            exit(1);
-        }
+        GUARD_EXIT(s2n_cert_chain_and_key_load_pem(chain_and_key, certificates[i], private_keys[i]), "Error getting certificate/key");
 
-        if (s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key) < 0) {
-            print_s2n_error("Error setting certificate/key");
-            exit(1);
-        }
+        GUARD_EXIT(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key), "Error setting certificate/key");
     }
 
     if (ocsp_response_file_path) {
@@ -715,46 +696,27 @@ int main(int argc, char *const *argv)
         close(fd);
     }
 
-    if (s2n_config_add_dhparams(config, dhparams) < 0) {
-        print_s2n_error("Error adding DH parameters");
-        exit(1);
-    }
+    GUARD_EXIT(s2n_config_add_dhparams(config, dhparams), "Error adding DH parameters");
 
-    if (s2n_config_set_cipher_preferences(config, cipher_prefs) < 0) {
-        print_s2n_error("Error setting cipher prefs");
-        exit(1);
-    }
+    GUARD_EXIT(s2n_config_set_cipher_preferences(config, cipher_prefs),"Error setting cipher prefs");
 
-    if (s2n_config_set_cache_store_callback(config, cache_store_callback, session_cache) < 0) {
-        print_s2n_error("Error setting cache store callback");
-        exit(1);
-    }
+    GUARD_EXIT(s2n_config_set_cache_store_callback(config, cache_store_callback, session_cache), "Error setting cache store callback");
 
-    if (s2n_config_set_cache_retrieve_callback(config, cache_retrieve_callback, session_cache) < 0) {
-        print_s2n_error("Error setting cache retrieve callback");
-        exit(1);
-    }
+    GUARD_EXIT(s2n_config_set_cache_retrieve_callback(config, cache_retrieve_callback, session_cache), "Error setting cache retrieve callback");
 
-    if (s2n_config_set_cache_delete_callback(config, cache_delete_callback, session_cache) < 0) {
-        print_s2n_error("Error setting cache retrieve callback");
-        exit(1);
-    }
+    GUARD_EXIT(s2n_config_set_cache_delete_callback(config, cache_delete_callback, session_cache), "Error setting cache retrieve callback");
 
-    if (conn_settings.enable_mfl && s2n_config_accept_max_fragment_length(config) < 0) {
-        print_s2n_error("Error enabling TLS maximum fragment length extension in server");
-        exit(1);
+    if (conn_settings.enable_mfl) {
+        GUARD_EXIT(s2n_config_accept_max_fragment_length(config), "Error enabling TLS maximum fragment length extension in server");
     }
 
     if (s2n_config_set_verify_host_callback(config, unsafe_verify_host_fn, NULL)) {
-        print_s2n_error("Failure to set hostname verification callback.");
+        print_s2n_error("Failure to set hostname verification callback");
         exit(1);
     }
 
     if (conn_settings.session_ticket) {
-        if (s2n_config_set_session_tickets_onoff(config, 1) < 0) {
-            fprintf(stderr, "Error enabling session tickets: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-            exit(1);
-        }
+        GUARD_EXIT(s2n_config_set_session_tickets_onoff(config, 1), "Error enabling session tickets");
 
         /* Key initialization */
         uint8_t *st_key;
@@ -762,16 +724,10 @@ int main(int argc, char *const *argv)
 
         if (session_ticket_key_file_path) {
             int fd = open(session_ticket_key_file_path, O_RDONLY);
-            if (fd < 0) {
-                print_s2n_error("Error opening session ticket key file");
-                exit(1);
-            }
+            GUARD_EXIT(fd, "Error opening session ticket key file");
 
             struct stat st;
-            if (fstat(fd, &st) < 0) {
-                print_s2n_error("Error fstat-ing session ticket key file");
-                exit(1);
-            }
+            GUARD_EXIT(fstat(fd, &st), "Error fstat-ing session ticket key file");
 
             st_key = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
             S2N_ERROR_IF(st_key == MAP_FAILED, S2N_ERR_MMAP);
@@ -788,6 +744,15 @@ int main(int argc, char *const *argv)
             fprintf(stderr, "Error adding ticket key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
             exit(1);
         }
+    }
+
+    if (parallelize) {
+        struct sigaction sa;
+
+        sa.sa_handler = SIG_IGN;
+        sa.sa_flags = SA_NOCLDWAIT;
+        sigemptyset(&sa.sa_mask);
+        sigaction(SIGCHLD, &sa, NULL);
     }
 
     int fd;
@@ -809,21 +774,19 @@ int main(int argc, char *const *argv)
                 close(fd);
                 _exit(rc);
             } else if (child_pid == -1) {
+                close(fd);
                 print_s2n_error("Error calling fork(). Acceptor unable to start handler.");
                 exit(1);
             } else {
                 /* This is the parent Acceptor Thread, continue listening for new connections */
+                close(fd);
                 continue;
             }
         }
 
     }
 
-
-    if (s2n_cleanup() < 0) {
-        print_s2n_error("Error running s2n_cleanup()");
-        exit(1);
-    }
+    GUARD_EXIT(s2n_cleanup(),  "Error running s2n_cleanup()");
 
     return 0;
 }

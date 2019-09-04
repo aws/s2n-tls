@@ -22,8 +22,8 @@ DEPENDENCIES="unzip make indent kwstyle libssl-dev tcpdump valgrind lcov m4 nett
 
 sudo apt-get install -y ${DEPENDENCIES}
 
-if [[ "$GCC6_REQUIRED" == "true" ]]; then
-    sudo apt-get -y install gcc-6;
+if [[ -n "$GCC_VERSION" ]] && [[ "$GCC_VERSION" != "NONE" ]]; then
+    sudo apt-get -y install gcc-$GCC_VERSION;
 fi
 
 # Download and Install prlimit for memlock

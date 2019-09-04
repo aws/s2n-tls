@@ -1,0 +1,101 @@
+//PSQ503_Field.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+///////////////////////////////////////////////////////////////////////////////
+
+module abstract_spec::PSQ503_Field where
+
+import abstract_spec::Field_Types
+import abstract_spec::Finite_Field
+import abstract_spec::P503_Field
+
+///////////////////////////////////////////////////////////////////////////////
+
+(psq503_char_int : Integer) = p503_field.char
+(psq503_size_int : Integer) = psq503_char_int^^2
+(psq503_char : p503_fv) = p503_char
+
+(psq503_add_id : psq503_fv) = { r = 0, i = 0 }
+(psq503_mult_id : psq503_fv) = { r = 1, i = 0 }
+
+psq503_normalized : psq503_fv -> Bit
+psq503_normalized x = (x.r < psq503_char /\ x.i < psq503_char)
+
+psq503_eq : (psq503_fv, psq503_fv) -> Bool
+psq503_eq p = ((p.0).r == (p.1).r) /\ ((p.0).i == (p.1).i)
+
+psq503_add : binary_psq503_op
+psq503_add (fv1, fv2) =
+    { r = p503_field.add(fv1.r, fv2.r)
+    , i = p503_field.add(fv1.i, fv2.i)
+    }
+
+psq503_add_inv : unary_psq503_op
+psq503_add_inv fv =
+    { r = p503_field.add_inv(fv.r)
+    , i = p503_field.add_inv(fv.i)
+    }
+
+psq503_sub : binary_psq503_op
+psq503_sub (fv1, fv2) = psq503_add(fv1, psq503_add_inv(fv2))
+
+psq503_mult : binary_psq503_op
+psq503_mult (fv1, fv2) = {r = r_val, i = i_val} where
+     mi1i2 = p503_field.mult(fv1.i, fv2.i)
+     mi1r2 = p503_field.mult(fv1.i, fv2.r)
+     mr1r2 = p503_field.mult(fv1.r, fv2.r)
+     mr1i2 = p503_field.mult(fv1.r, fv2.i)
+     r_val = p503_field.sub(mr1r2, mi1i2)
+     i_val = p503_field.add(mr1i2, mi1r2)
+
+psq503_mult_inv : unary_psq503_op
+psq503_mult_inv fv =
+    if (fv.r == 0) then
+        error "Error: 0 does not have a multiplicative inverse"
+    else {r = r_val, i = i_val} where
+        a0sq = p503_field.mult(fv.r, fv.r)
+        a1sq = p503_field.mult(fv.i, fv.i)
+        ssi = p503_field.mult_inv(p503_field.add(a0sq, a1sq))
+        r_val = p503_field.mult(ssi, fv.r)
+        i_val = p503_field.mult(ssi, p503_field.add_inv(fv.i))
+
+psq503_div2 : unary_psq503_op
+psq503_div2 fv = {r = r_val, i = i_val} where
+    r_val = p503_div2 fv.r
+    i_val = p503_div2 fv.i
+
+psq503_div : binary_psq503_op
+psq503_div (fv1, fv2) =
+    if (fv2.r == 0) then error "Error: cannot divide by 0"
+    else psq503_mult(fv1, psq503_mult_inv(fv2))
+
+psq503_field : Field psq503_fv
+psq503_field =
+    { is_val = psq503_normalized
+    , eq = psq503_eq
+    , add_id = psq503_add_id
+    , mult_id = psq503_mult_id
+    , add = psq503_add
+    , add_inv = psq503_add_inv
+    , sub = psq503_sub
+    , mult = psq503_mult
+    , mult_inv = psq503_mult_inv
+    , div = psq503_div
+    , char = psq503_char_int
+    , size = psq503_size_int
+    }
+
+psq503_add_inv_correct : psq503_fv -> Bit
+property psq503_add_inv_correct fv =
+    if (fv.r != 0 /\ psq503_normalized fv) then
+        (add_inv(fv) == psq503_add_id)
+    else True where
+        add_inv : psq503_fv -> psq503_fv
+        add_inv fv2 =  psq503_add(fv2, psq503_add_inv(fv2))
+
+psq503_mult_inv_correct : psq503_fv -> Bit
+property psq503_mult_inv_correct fv =
+    if (fv.r != 0 /\ psq503_normalized fv) then
+        (mult_by_inv(fv) == psq503_mult_id)
+    else True where
+        mult_by_inv : psq503_fv -> psq503_fv
+        mult_by_inv fv2 = psq503_mult(fv2, psq503_mult_inv(fv2))

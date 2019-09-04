@@ -48,7 +48,7 @@ int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
         return -1;
     }
    
-    // read the number of bytes requested or less if it isn't available
+    /* read the number of bytes requested or less if it isn't available */
     n_avail = s2n_stuffer_data_available(in_buf);
     n_read = (len < n_avail) ? len : n_avail;
 
@@ -95,7 +95,7 @@ int mock_client(int writefd, int readfd)
     s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(conn, client_config);
 
-    // Unlike the server, the client just passes ownership of I/O to s2n
+    /* Unlike the server, the client just passes ownership of I/O to s2n */
     s2n_connection_set_read_fd(conn, readfd);
     s2n_connection_set_write_fd(conn, writefd);
 
@@ -134,8 +134,6 @@ int main(int argc, char **argv)
     struct s2n_stuffer in, out;
 
     BEGIN_TEST();
-
-    EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
 
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -204,8 +202,9 @@ int main(int argc, char **argv)
         ret = s2n_negotiate(conn, &blocked);
         EXPECT_TRUE(ret == 0 || (blocked && (errno == EAGAIN || errno == EWOULDBLOCK)));
         
-        // check to see if we need to copy more over from the pipes to the buffers
-        // to continue the handshake
+        /* check to see if we need to copy more over from the pipes to the buffers
+         * to continue the handshake
+         */
         s2n_stuffer_recv_from_fd(&in, client_to_server[0], MAX_BUF_SIZE);
         s2n_stuffer_send_to_fd(&out, server_to_client[1], s2n_stuffer_data_available(&out));
     } while (blocked);

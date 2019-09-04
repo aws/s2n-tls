@@ -1,0 +1,91 @@
+//fp_generic.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module interface::fp_generic where
+
+import lib::math::Safe_Arithmetic
+import lib::math::Modular_Arithmetic
+import lib::util::Bit_Vector_Utils
+import shared::Constants
+import shared::C_Types
+import shared::Convert_Types
+import abstract_spec::Field_Types
+import abstract_spec::Finite_Field
+import abstract_spec::P503_Array_Field
+import abstract_spec::P503_Field
+import abstract_spec::Montgomery_Arithmetic
+
+///////////////////////////////////////////////////////////////////////////////
+
+f = p503_array_field
+(p503_charx2 : p503_fv) = (2 * p503_char)
+(p503_charx4 : p503_fv) = ((4 * p503_char) - 2)
+
+// NOTE: word and digit operations
+
+digit_lt : ([64], [64]) -> [32]
+digit_lt (d1, d2) = if (d1 < d2) then 1 else 0
+
+digit_zero : [64] -> [32]
+digit_zero d = if (d == 0) then 1 else 0
+
+digit_non_zero : [64] -> [32]
+digit_non_zero d = if (d != 0) then 1 else 0
+
+digit_x_digit : ([64], [64]) -> [2][64]
+digit_x_digit(d1,d2) = reverse(res) where
+    ed1 = (zero # d1) : [128]
+    ed2 = (zero # d2) : [128]
+    res = split`{2}(ed1 * ed2)
+
+mp_mul : {a,b} (fin a, a >= 1, fin b, b >= 1, b == 2*a ) =>
+    ([a][64], [a][64]) -> [b][64]
+mp_mul (v1, v2) = reverse(split`{b}(u_res)) where
+    uv1 = join(reverse(v1))
+    uv2 = join(reverse(v2))
+    ext_uv1 = (zero # uv1) : [b * 64]
+    ext_uv2 = (zero # uv2) : [b * 64]
+    u_res = ext_uv1 * ext_uv2
+
+// NOTE: Montgomery arithmetic operations
+
+mont_value : dfelm -> Bool
+mont_value mv = if ( mv_val < lim ) then True else False where
+    mv_val = join(reverse(mv))
+    lim = mont_p503_char * mont_R
+
+rdc_mont : dfelm -> felm
+rdc_mont dfv = reverse(split`{8}(s_res)) where
+    u_dfv = join(reverse(dfv))
+    u_res = mod_div(mont_p503_char, u_dfv, mont_R)
+    s_res = drop`{512}(u_res)
+
+// NOTE: p503 field operations
+
+pftwice_mod : felm -> Bool
+pftwice_mod e = to_p503(unwrap_felm(e)) < p503_charx2
+
+pf_modx4 : felm -> Bool
+pf_modx4 e = to_p503(unwrap_felm(e)) < p503_charx4
+
+fpnorm : felm -> felm
+fpnorm e = wrap_felm(p_norm) where
+    u_val = unwrap_felm(e)
+    p_norm = from_p503(to_p503(u_val) % p503_char)
+
+fpadd503 : (felm, felm) -> felm
+fpadd503 fv = apply_binary_felm fv f.add
+
+fpsub503 : (felm, felm) -> felm
+fpsub503 fv = apply_binary_felm fv f.sub
+
+fpdiv2_503 : felm -> felm
+fpdiv2_503 fv = apply_unary_felm fv p503_array_div2
+
+fpneg503 : felm -> felm
+fpneg503 fv = apply_unary_felm fv f.add_inv
+
+fpnormalized : felm -> Bool
+fpnormalized e = p503_array_normalized(unwrap_felm(e))

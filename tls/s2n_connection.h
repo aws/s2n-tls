@@ -92,6 +92,12 @@ struct s2n_connection {
      /* whether the connection address is ipv6 or not */
     unsigned ipv6:1;
 
+    /* Whether server_name extension was used to make a decision on cert selection.
+     * RFC6066 Section 3 states that server which used server_name to make a decision
+     * on certificate or security settings has to send an empty server_name.
+     */
+    unsigned server_name_used:1;
+
     /* Is this connection a client or a server connection */
     s2n_mode mode;
 
@@ -121,6 +127,9 @@ struct s2n_connection {
     uint8_t client_protocol_version;
     uint8_t server_protocol_version;
     uint8_t actual_protocol_version;
+
+    /* Flag indicating whether a protocol version has been
+     * negotiated yet. */
     uint8_t actual_protocol_version_established;
 
     /* Our crypto parameters */
@@ -232,7 +241,7 @@ struct s2n_connection {
     sig_atomic_t closed;
 
     /* TLS extension data */
-    char server_name[256];
+    char server_name[S2N_MAX_SERVER_NAME + 1];
 
     /* The application protocol decided upon during the client hello.
      * If ALPN is being used, then:

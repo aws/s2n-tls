@@ -1,0 +1,20 @@
+//Sidh.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+///////////////////////////////////////////////////////////////////////////////
+
+module abstract_spec::Sidh where
+
+///////////////////////////////////////////////////////////////////////////////
+
+type Secret_key = [256]
+
+sidh_sk_alice_bits = 250
+sidh_sk_bob_bits = 252
+
+is_good_sk_alice : Secret_key -> Bit
+is_good_sk_alice k = k < limit where
+    (limit:[256]) = sidh_sk_alice_bits
+
+is_good_sk_bob: Secret_key -> Bit
+is_good_sk_bob k = k < limit where
+    (limit:[256]) = sidh_sk_bob_bits

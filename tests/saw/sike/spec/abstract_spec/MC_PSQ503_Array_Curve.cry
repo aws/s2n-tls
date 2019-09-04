@@ -1,0 +1,175 @@
+//MC_PSQ503_Array_Curve.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+///////////////////////////////////////////////////////////////////////////////
+
+module abstract_spec::MC_PSQ503_Array_Curve where
+
+import abstract_spec::Field_Types
+import abstract_spec::PSQ503_Field
+import abstract_spec::PSQ503_Array_Field
+import abstract_spec::Montgomery_Curve
+
+///////////////////////////////////////////////////////////////////////////////
+// Type and property definitions for SIKE starting supersingular elliptic curve
+
+f = psq503_array_field
+
+(curvA : psq503_array_fv) = from_psq503  {r = 0, i = 0}
+(curvB : psq503_array_fv) = from_psq503  {r = 1, i = 0}
+(curv_jnv : psq503_array_fv) = from_psq503  {r = 1728, i = 0}
+(curvO : point) = (from_psq503 {r = 2^^503, i = 0}, from_psq503 {r = 0, i = 0})
+
+p_equal P Q = (f.eq (P.0, Q.0)) /\ (f.eq (P.1, Q.1))
+mkVal v = from_psq503 {r = v, i = 0}
+
+const_vn1 = mkVal 1 // negative one
+const_v1 = mkVal 1
+const_v2 = mkVal 2
+const_v3 = mkVal 3
+const_v4 = mkVal 4
+const_v6 = mkVal 6
+const_v8 = mkVal 8
+const_v16 = mkVal 16
+const_v28 = mkVal 28
+
+curv_is_point : (psq503_array_fv, psq503_array_fv) -> Bool
+curv_is_point p = f.is_val(p.0) /\ f.is_val(p.1) /\ (f.eq (lhs, rhs)) where
+    lhs = f.mult (curvB, (f.mult (p.1, p.1)))
+    x2 = f.mult (p.0, p.0)
+    x3 = f.mult (p.0, x2)
+    rhs = f.add (f.add (x3, (f.mult (curvA, x2))), p.0)
+
+MC_add : (psq503_array_fv, psq503_array_fv)
+    -> point
+    -> point
+MC_add P Q = (xr, yr) where
+    xp = P.0
+    yp = P.1
+    xq = Q.0
+    yq = Q.1
+    A = curvA
+    B = curvB
+    t1 = f.sub (yp, yq)
+    t2 = f.sub (xp, xq)
+    lambda = f.div (t1, t2)
+    t3 = f.mult (lambda, lambda)
+    t4 = f.mult (B, t3)
+    t5 = f.add (xp, xq)
+    t6 = f.sub (t5, A)
+    xr = f.sub (t4, t6)
+    t7 = f.sub (xp, xr)
+    t8 = f.mult (lambda, t7)
+    yr = f.sub (t8, yp)
+
+MC_is_equal : point -> point -> Bool
+MC_is_equal P Q = (P.0 == P.1) /\ (Q.0 == Q.1)
+
+bracketAddSelf : point -> point
+bracketAddSelf P = (f.mult (const_v2, P.0),  f.mult (const_v2, P.1))
+
+bracketAdd : point
+    -> point
+    -> Integer
+    -> Integer
+bracketAdd P_src P_target cnt =
+    if (p_equal P_src P_target) then cnt
+    else bracketAdd (bracketAddSelf P_src) P_target 6
+
+MC_order_Point : point -> Integer
+MC_order_Point P = bracketAdd P curvO 0
+
+divide_order : point -> Integer -> Bool
+divide_order P x = (x % (MC_order_Point P)) == 0
+
+MC_double : point -> point
+MC_double P =
+    if (divide_order P 2) then
+        error "ord(P) does divide 2"
+    else
+        (x_double, y_double) where
+            x = P.0                                  // x
+            y = P.1                                  // y
+            x2 = f.mult (x, x)                       // x^2
+            x3 = f.mult (x2, x)                      // x^3
+            x4 = f.mult (x2, x2)                     // x^4
+            t0 = f.mult (curvA, x)                   // Ax
+            t1 = f.sub (x2, const_v1 )               // x^2-1
+            t2 = f.add (x2, f.add (t0, const_v1))    // x^2+Ax+1
+            t3 = f.mult (const_v4, f.mult (x, t2))   // 4x(x^2+Ax+1)
+            x_double = f.div ((f.mult(t1, t1)), t3)  // ((x^2-1)^2))/(4x(x^2+Ax+1))
+            t4 = f.mult (const_v2,                   // 2Ax^3
+                (f.mult (curvA, x3)))
+            t5 = f.mult (const_v6, x2)               // 6x^2
+            t6 = f.mult (const_v2, t0)               // 2Ax
+            t7 = f.add (x4, f.add (f.add (t4, t5),   // x^4 + 2Ax^3 + 6x^2 +2Ax +1
+                 f.add (t6, const_v1)))
+            t8 = f.mult (t1, t7)                     // (x^2-1)(x^4 + 2Ax^3 +
+                                                     // 6x^2 +2Ax +1)
+            t9 = f.mult (t2, t2)                     // (x^2+Ax+1)^2
+            t10 = f.mult (const_v8, f.mult (x2, t9)) // 8(x^2)((x^2+Ax+1)^2)
+            t11 = f.div (t8, t10)                    // ((x^2-1)(x^4 + 2Ax^3 +
+                                                     // 6x^2 +2Ax +1)) /
+                                                     // (8(x^2)((x^2+Ax+1)^2))
+            y_double = f.mult (y, t11)
+
+MC_triple : point -> point
+MC_triple P =
+    if (divide_order P 3) then
+        error "ord(P) does divide 3"
+    else (x_triple, y_triple) where
+        x = P.0
+        y = P.1
+        x2 = f.mult (x, x)                           // x^2
+        x3 = f.mult (x2, x)                          // x^3
+        x4 = f.mult (x2, x2)                         // x^4
+        x5 = f.mult (x4, x)                          // x^5
+        x6 = f.mult (x4, x2)                         // x^6
+        x7 = f.mult (x6, x)                          // x^7
+        x8 = f.mult (x4, x4)                         // x^8
+        t1 = f.mult (curvA, x)                       // Ax
+        t2 = f.mult (const_v4, t1)                   // 4Ax
+        t3 = f.mult (const_v6, x2)                   // 6x^2
+        t4 = f.add (t2, f.add(t3, const_v3))         // 4Ax + 6x^2 + 3
+        t5 = f.sub (x4, t4)                          // x^4 - (4Ax + 6x^2 + 3)
+        t7 = f.mult (t2, x2)                         // 4Ax^3
+        t8 = f.mult (const_v3, x4)                   // 3x^4
+        t9 = f.mult (const_v6, x2)                   // 6x^2
+        t10 = f.add (t7, f.add (t8, t9))             // (4Ax^3)+ (3x^4) +(6x^2)
+        t11 = f.sub (t10, const_v1)                  // (4Ax^3)+ (3x^4) +(6x^2) -1
+        t12 = f.mult (t5, t5)                        // (x^4 - (4Ax + 6x^2 + 3))^2
+        t13 = f.mult (t12, x)                        // x(x^4 - (4Ax + 6x^2 + 3))^2
+        t14 = f.mult (t11, t11)                      // ((4Ax^3)+ (3x^4) +(6x^2) -1)^2
+        x_triple = f.div (t13, t14)
+        d0 = f.mult (const_v28, x2)                  // 28x^2
+        d1 = f.mult (d0, x4)                         // 28x^6
+        d2 = f.mult (d0, curvA)                      // 28Ax^2
+        d3 = f.mult (d2, x)                          // 28Ax^3
+        d4 = f.mult (d2, x3)                         // 28Ax^5
+        d5 = f.mult                                  // 16A^2
+            (const_v16, f.mult(curvA, curvA))
+        d6 = f.add (d5, const_v6)                    // 16A^2 + 6
+        d7 = f.mult (d6, x4)                         // (16A^2 +6) x^4
+        d8 = f.mult (t7, x4)                         // 4Ax^7
+        d9 = f.add (x8, f.add(f.add (d8, d1),        // x^8 + 4Ax^7 +
+            f.add (d4, d7)))                         // 28x^6 +28Ax^5 +(16A^2 +6) x^4
+        d10 = f.add (d9, f.add(f.add (d3, d0),
+            f.add (t2, const_v1)))                   // ... + 28Ax^3 +28x^2+ 4Ax +1
+        d11 = f.mult (t5, d10)                       // (x^4 - (4Ax + 6x^2 + 3)) * ...
+        d12 = f.mult (t14, t11)                      // ((4Ax^3)+ (3x^4) +(6x^2) -1)^3
+        y_triple = f.div (d11, d12)
+
+Mont_Curve : MontgomeryCurve psq503_array_fv
+Mont_Curve =
+    { field = f
+    , c_is_point = curv_is_point
+    , c_A = curvA
+    , c_B = curvB
+    , c_O = curvO
+    , c_order = psq503_size_int + 1
+    , c_j_invariant = curv_jnv
+    , p_is_equal = p_equal
+    , p_order = MC_order_Point
+    , p_add = MC_add
+    , p_double = MC_double
+    , p_triple = MC_triple
+    }

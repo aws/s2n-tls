@@ -1,0 +1,100 @@
+//Convert_Types.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module shared::Convert_Types where
+
+import lib::math::Safe_Arithmetic
+import lib::util::Bit_Vector_Utils
+import shared::Constants
+import shared::C_Types
+import abstract_spec::Field_Types
+import abstract_spec::P503_Array_Field
+import abstract_spec::PSQ503_Array_Field
+
+///////////////////////////////////////////////////////////////////////////////
+// C representation of Cryptol types and conversion between them
+
+// NOTE: felm conversions
+
+wrap_felm : p503_array_fv -> felm
+wrap_felm fv = reverse(fv)
+
+unwrap_felm : felm -> p503_array_fv
+unwrap_felm fv = reverse(fv)
+
+apply_binary_felm : (felm, felm) -> binary_p503_array_op -> felm
+apply_binary_felm(fv1, fv2) op = wrap_felm(u_res) where
+    u_res = op(unwrap_felm(fv1), unwrap_felm(fv2))
+
+apply_unary_felm : felm -> unary_p503_array_op -> felm
+apply_unary_felm fv op = wrap_felm(u_res) where
+    u_res = op(unwrap_felm(fv))
+
+// NOTE: f2elm conversions
+
+unwrap_f2elm :  f2elm -> psq503_array_fv
+unwrap_f2elm e = {r = reverse(e@0), i = reverse(e@1)}
+
+wrap_f2elm : psq503_array_fv -> f2elm
+wrap_f2elm e = [reverse(e.r), reverse(e.i)]
+
+apply_unary_f2elm : f2elm -> unary_psq503_array_op -> f2elm
+apply_unary_f2elm e op = wrap_f2elm(u_res) where
+    u_res = op(unwrap_f2elm(e))
+
+apply_binary_f2elm : (f2elm, f2elm)
+    -> binary_psq503_array_op
+    -> f2elm
+apply_binary_f2elm (e1, e2) op = wrap_f2elm (u_res) where
+    u_res = op(unwrap_f2elm(e1), unwrap_f2elm(e2))
+
+unwrap_digit = unwrap_f2elm
+apply_unary_f2elm_3 [e1, e2, e3] op = [f e1, f e2, f e3] where
+    f e =  wrap_f2elm(op(unwrap_f2elm(e)))
+
+// NOTE: Point conversions
+
+unwrap_Point_proj_t_array_cv : point_proj_t -> point
+unwrap_Point_proj_t_array_cv e = (u,v) where
+    (n:point_proj_t) = e
+    (p_st:point_struct) = e@0
+    (i:f2elm, j:f2elm) = p_st
+    (u:psq503_array_fv) = unwrap_f2elm i
+    (v:psq503_array_fv) = unwrap_f2elm j
+
+
+wrap_Point_proj_t_array_cv : point -> point_proj_t
+wrap_Point_proj_t_array_cv (u, v) = ([p_st]:point_proj_t) where
+    (i:f2elm) = wrap_f2elm u
+    (j:f2elm) = wrap_f2elm v
+    (p_st:point_struct) = (i, j)
+
+unary_Point_proj_t_array_cv :
+    (point -> point)
+    -> point_proj_t
+    -> point_proj_t
+unary_Point_proj_t_array_cv f p = t3 where
+    t1 = unwrap_Point_proj_t_array_cv p
+    t2 = f t1
+    t3 = wrap_Point_proj_t_array_cv t2
+
+unwrap_pff f p a b = wrap_Point_proj_t_array_cv q where
+    t = unwrap_Point_proj_t_array_cv p
+    x = unwrap_f2elm a
+    y = unwrap_f2elm b
+    q = f t x y
+
+unwrap_pffi f p a b i =
+    wrap_Point_proj_t_array_cv q  where
+    t = unwrap_Point_proj_t_array_cv p
+    x = unwrap_f2elm a
+    y = unwrap_f2elm b
+    q = f t x y i
+
+wrap_sk: [4][64] -> [256]
+wrap_sk s = join (reverse s)
+
+g_FP2_ENCODED_BYTES_psq =
+    { r = from_p503 g_FP2_ENCODED_BYTES, i = from_p503 0 }

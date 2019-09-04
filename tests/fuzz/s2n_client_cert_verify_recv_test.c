@@ -136,15 +136,17 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 
     GUARD(s2n_init());
     GUARD(atexit(s2n_fuzz_atexit));
-    GUARD(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
 
     /* Set up Server Config */
     server_config = s2n_config_new();
     GUARD(s2n_config_add_cert_chain_and_key(server_config, certificate_chain, private_key));
 
     s2n_cert_type cert_type;
-    GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &cert_type, &server_config->cert_and_key_pairs[0]->cert_chain->head->raw));
-    
+    S2N_ERROR_IF(s2n_config_get_num_default_certs(server_config) == 0, S2N_ERR_NUM_DEFAULT_CERTIFICATES);
+    struct s2n_cert_chain_and_key *cert = s2n_config_get_single_default_cert(server_config);
+    notnull_check(cert);
+    GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &cert_type, &cert->cert_chain->head->raw));
+
     return 0;
 }
 

@@ -163,14 +163,6 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
         s2n_connection_set_config(conn, s2n_fetch_default_config());
     }
 
-    if (mode == S2N_CLIENT) {
-        /* we need to do more testing on our x.509 code. Until then use with caution */
-        if (getenv("S2N_ENABLE_CLIENT_MODE") == NULL) {
-            GUARD_PTR(s2n_free(&blob));
-            S2N_ERROR_PTR(S2N_ERR_CLIENT_MODE_DISABLED);
-        }
-    }
-
     conn->mode = mode;
     conn->blinding = S2N_BUILT_IN_BLINDING;
     conn->close_notify_queued = 0;
@@ -212,8 +204,6 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
 
     GUARD_PTR(s2n_stuffer_init(&conn->client_ticket_to_decrypt, &blob));
 
-    GUARD_PTR(s2n_stuffer_alloc(&conn->out, S2N_LARGE_RECORD_LENGTH));
-
     /* Allocate long term key memory */
     GUARD_PTR(s2n_session_key_alloc(&conn->secure.client_key));
     GUARD_PTR(s2n_session_key_alloc(&conn->secure.server_key));
@@ -236,6 +226,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     blob.size = S2N_TLS_RECORD_HEADER_LENGTH;
 
     GUARD_PTR(s2n_stuffer_init(&conn->header_in, &blob));
+    GUARD_PTR(s2n_stuffer_growable_alloc(&conn->out, 0));
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->in, 0));
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->handshake.io, 0));
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->client_hello.raw_message, 0));
@@ -307,6 +298,9 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     s2n_x509_validator_wipe(&conn->x509_validator);
     GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
     GUARD(s2n_ecc_params_free(&conn->secure.server_ecc_params));
+    for (int i=0; i< S2N_ECC_SUPPORTED_CURVES_COUNT; i++) {
+        GUARD(s2n_ecc_params_free(&conn->secure.client_ecc_params[i]));
+    }
     GUARD(s2n_kem_free(&conn->secure.s2n_kem_keys));
     GUARD(s2n_free(&conn->secure.client_cert_chain));
     GUARD(s2n_free(&conn->ct_response));
@@ -487,7 +481,7 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
     }
 
     /* We only support one client certificate */
-    if (config->num_certificates > 1 && conn->mode == S2N_CLIENT) {
+    if (s2n_config_get_num_default_certs(config) > 1 && conn->mode == S2N_CLIENT) {
         S2N_ERROR(S2N_ERR_TOO_MANY_CERTIFICATES);
     }
 
@@ -536,29 +530,71 @@ void *s2n_connection_get_ctx(struct s2n_connection *conn)
     return conn->context;
 }
 
+int s2n_connection_release_buffers(struct s2n_connection *conn)
+{
+    GUARD(s2n_stuffer_release_if_empty(&conn->out));
+    GUARD(s2n_stuffer_release_if_empty(&conn->in));
+
+    return 0;
+}
+
+int s2n_connection_free_handshake(struct s2n_connection *conn)
+{
+    /* We are done with the handshake */
+    GUARD(s2n_hash_reset(&conn->handshake.md5));
+    GUARD(s2n_hash_reset(&conn->handshake.sha1));
+    GUARD(s2n_hash_reset(&conn->handshake.sha224));
+    GUARD(s2n_hash_reset(&conn->handshake.sha256));
+    GUARD(s2n_hash_reset(&conn->handshake.sha384));
+    GUARD(s2n_hash_reset(&conn->handshake.sha512));
+    GUARD(s2n_hash_reset(&conn->handshake.md5_sha1));
+    GUARD(s2n_hash_reset(&conn->handshake.ccv_hash_copy));
+    GUARD(s2n_hash_reset(&conn->handshake.prf_md5_hash_copy));
+    GUARD(s2n_hash_reset(&conn->handshake.prf_sha1_hash_copy));
+    GUARD(s2n_hash_reset(&conn->handshake.prf_tls12_hash_copy));
+
+    /* Wipe the buffers we are going to free */
+    GUARD(s2n_stuffer_wipe(&conn->handshake.io));
+    GUARD(s2n_stuffer_wipe(&conn->client_hello.raw_message));
+
+    /* Truncate buffers to save memory, we are done with the handshake */
+    GUARD(s2n_stuffer_resize(&conn->handshake.io, 0));
+    GUARD(s2n_stuffer_resize(&conn->client_hello.raw_message, 0));
+
+    /* We can free extension data we no longer need */
+    GUARD(s2n_free(&conn->client_ticket));
+    GUARD(s2n_free(&conn->status_response));
+    GUARD(s2n_free(&conn->application_protocols_overridden));
+
+    /* Remove parsed extensions array from client_hello */
+    GUARD(s2n_client_hello_free_parsed_extensions(&conn->client_hello));
+
+    return 0;
+}
+
 int s2n_connection_wipe(struct s2n_connection *conn)
 {
     /* First make a copy of everything we'd like to save, which isn't very much. */
     int mode = conn->mode;
     struct s2n_config *config = conn->config;
-    struct s2n_stuffer alert_in = {{0}};
-    struct s2n_stuffer reader_alert_out = {{0}};
-    struct s2n_stuffer writer_alert_out = {{0}};
-    struct s2n_stuffer client_ticket_to_decrypt = {{0}};
-    struct s2n_stuffer handshake_io = {{0}};
-    struct s2n_stuffer client_hello_raw_message = {{0}};
-    struct s2n_stuffer header_in = {{0}};
-    struct s2n_stuffer in = {{0}};
-    struct s2n_stuffer out = {{0}};
+    struct s2n_stuffer alert_in = {0};
+    struct s2n_stuffer reader_alert_out = {0};
+    struct s2n_stuffer writer_alert_out = {0};
+    struct s2n_stuffer client_ticket_to_decrypt = {0};
+    struct s2n_stuffer handshake_io = {0};
+    struct s2n_stuffer client_hello_raw_message = {0};
+    struct s2n_stuffer header_in = {0};
+    struct s2n_stuffer in = {0};
+    struct s2n_stuffer out = {0};
     /* Session keys will be wiped. Preserve structs to avoid reallocation */
     struct s2n_session_key initial_client_key = {0};
     struct s2n_session_key initial_server_key = {0};
     struct s2n_session_key secure_client_key = {0};
     struct s2n_session_key secure_server_key = {0};
     /* Parts of the PRF working space, hash states, and hmac states  will be wiped. Preserve structs to avoid reallocation */
-    struct s2n_connection_prf_handles prf_handles = {{{{0}}}};
-    struct s2n_connection_hash_handles hash_handles = {{{0}}};
-    struct s2n_connection_hmac_handles hmac_handles = {{{{0}}}};
+    struct s2n_connection_prf_handles prf_handles = {0};
+    struct s2n_connection_hash_handles hash_handles = {0};
+    struct s2n_connection_hmac_handles hmac_handles = {0};
 
     /* Wipe all of the sensitive stuff */
     GUARD(s2n_connection_wipe_keys(conn));
@@ -584,14 +620,13 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     /* Remove parsed extensions array from client_hello */
     GUARD(s2n_client_hello_free_parsed_extensions(&conn->client_hello));
 
-    /* Allocate or resize to their original sizes */
-    GUARD(s2n_stuffer_resize(&conn->in, S2N_LARGE_FRAGMENT_LENGTH));
-
     /* Allocate memory for handling handshakes */
     GUARD(s2n_stuffer_resize(&conn->handshake.io, S2N_LARGE_RECORD_LENGTH));
 
-    /* Resize raw message buffer to max length */
-    GUARD(s2n_stuffer_resize(&conn->client_hello.raw_message, S2N_LARGE_RECORD_LENGTH));
+    /* Truncate the message buffers to save memory, we will dynamically resize it as needed */
+    GUARD(s2n_stuffer_resize(&conn->client_hello.raw_message, 0));
+    GUARD(s2n_stuffer_resize(&conn->in, 0));
+    GUARD(s2n_stuffer_resize(&conn->out, 0));
 
     /* Remove context associated with connection */
     conn->context = NULL;
@@ -652,10 +687,18 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     /* Require all handshakes hashes. This set can be reduced as the handshake progresses. */
     GUARD(s2n_handshake_require_all_hashes(&conn->handshake));
 
+    uint8_t s2n_initial_protocol_version = s2n_highest_protocol_version;
+
+    /* TLS 1.3 is not fully supported yet, and only available for developmental testing.
+     * TLS 1.2 should still be used outside of tests. */
+    if (getenv("S2N_ENABLE_TLS13_FOR_TESTING") != NULL && S2N_IN_TEST ) {
+        s2n_initial_protocol_version = S2N_TLS13;
+    }
+
     if (conn->mode == S2N_SERVER) {
         /* Start with the highest protocol version so that the highest common protocol version can be selected */
         /* during handshake. */
-        conn->server_protocol_version = s2n_highest_protocol_version;
+        conn->server_protocol_version = s2n_initial_protocol_version;
         conn->client_protocol_version = s2n_unknown_protocol_version;
         conn->actual_protocol_version = s2n_unknown_protocol_version;
     }
@@ -663,8 +706,8 @@ int s2n_connection_wipe(struct s2n_connection *conn)
         /* For clients, also set actual_protocol_version.  Record generation uses that value for the initial */
         /* ClientHello record version. Not all servers ignore the record version in ClientHello. */
         conn->server_protocol_version = s2n_unknown_protocol_version;
-        conn->client_protocol_version = s2n_highest_protocol_version;
-        conn->actual_protocol_version = s2n_highest_protocol_version;
+        conn->client_protocol_version = s2n_initial_protocol_version;
+        conn->actual_protocol_version = s2n_initial_protocol_version;
     }
 
     return 0;
@@ -764,6 +807,7 @@ int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
     struct s2n_socket_read_io_context *peer_socket_ctx;
 
     GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_read_io_context)));
+    GUARD(s2n_blob_zero(&ctx_mem));
 
     peer_socket_ctx = (struct s2n_socket_read_io_context *)(void *)ctx_mem.data;
     peer_socket_ctx->fd = rfd;
@@ -854,6 +898,17 @@ const char *s2n_connection_get_curve(struct s2n_connection *conn)
     return conn->secure.server_ecc_params.negotiated_curve->name;
 }
 
+const char *s2n_connection_get_kem_name(struct s2n_connection *conn)
+{
+    notnull_check_ptr(conn);
+
+    if (!conn->secure.s2n_kem_keys.negotiated_kem) {
+        return "NONE";
+    }
+
+    return conn->secure.s2n_kem_keys.negotiated_kem->name;
+}
+
 int s2n_connection_get_client_protocol_version(struct s2n_connection *conn)
 {
     notnull_check(conn);
@@ -916,7 +971,7 @@ int s2n_set_server_name(struct s2n_connection *conn, const char *server_name)
     S2N_ERROR_IF(conn->mode != S2N_CLIENT, S2N_ERR_CLIENT_MODE);
 
     int len = strlen(server_name);
-    S2N_ERROR_IF(len > 255, S2N_ERR_SERVER_NAME_TOO_LONG);
+    S2N_ERROR_IF(len > S2N_MAX_SERVER_NAME, S2N_ERR_SERVER_NAME_TOO_LONG);
 
     memcpy_check(conn->server_name, server_name, len);
 
@@ -936,7 +991,7 @@ const char *s2n_get_server_name(struct s2n_connection *conn)
 
     GUARD_PTR(s2n_client_hello_get_parsed_extension(conn->client_hello.parsed_extensions, S2N_EXTENSION_SERVER_NAME, &parsed_extension));
 
-    struct s2n_stuffer extension = {{0}};
+    struct s2n_stuffer extension = {0};
     GUARD_PTR(s2n_stuffer_init(&extension, &parsed_extension.extension));
     GUARD_PTR(s2n_stuffer_write(&extension, &parsed_extension.extension));
 
@@ -1161,3 +1216,10 @@ int s2n_connection_is_client_auth_enabled(struct s2n_connection *s2n_connection)
 
     return (auth_type != S2N_CERT_AUTH_NONE);
 }
+
+struct s2n_cert_chain_and_key *s2n_connection_get_selected_cert(struct s2n_connection *conn)
+{
+    notnull_check_ptr(conn);
+    return conn->handshake_params.our_chain_and_key;
+}
+

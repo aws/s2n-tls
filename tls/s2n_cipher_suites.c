@@ -625,8 +625,80 @@ struct s2n_cipher_suite s2n_dhe_rsa_with_chacha20_poly1305_sha256 = /* 0xCC,0xAA
     .minimum_required_tls_version = S2N_TLS12,
 };
 
-/* All of the cipher suites that s2n negotiates, in order of IANA value.
- * Exposed for the "test_all" cipher preference list.
+/* From https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-01 */
+struct s2n_cipher_suite s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384 = /* 0xFF, 0x04 */ {
+        .available = 0,
+        .name = "ECDHE-BIKE-RSA-AES256-GCM-SHA384",
+        .iana_value = { TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 },
+        .key_exchange_alg = &s2n_hybrid_ecdhe_kem,
+        .auth_method = S2N_AUTHENTICATION_RSA,
+        .record_alg = NULL,
+        .all_record_algs = { &s2n_record_alg_aes256_gcm },
+        .num_record_algs = 1,
+        .sslv3_record_alg = NULL,
+        .tls12_prf_alg = S2N_HMAC_SHA384,
+        .minimum_required_tls_version = S2N_TLS12,
+};
+
+struct s2n_cipher_suite s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384 = /* 0xFF, 0x08 */ {
+        .available = 0,
+        .name = "ECDHE-SIKE-RSA-AES256-GCM-SHA384",
+        .iana_value = { TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 },
+        .key_exchange_alg = &s2n_hybrid_ecdhe_kem,
+        .auth_method = S2N_AUTHENTICATION_RSA,
+        .record_alg = NULL,
+        .all_record_algs = { &s2n_record_alg_aes256_gcm },
+        .num_record_algs = 1,
+        .sslv3_record_alg = NULL,
+        .tls12_prf_alg = S2N_HMAC_SHA384,
+        .minimum_required_tls_version = S2N_TLS12,
+};
+
+struct s2n_cipher_suite s2n_tls13_aes_128_gcm_sha256 = {
+    .available = 0,
+    .name = "TLS_AES_128_GCM_SHA256",
+    .iana_value = { TLS_AES_128_GCM_SHA256 },
+    .key_exchange_alg = NULL,
+    .auth_method = S2N_AUTHENTICATION_METHOD_SENTINEL,
+    .record_alg = NULL,
+    .all_record_algs = { &s2n_record_alg_aes128_sha256_composite, &s2n_record_alg_aes128_sha256 },
+    .num_record_algs = 2,
+    .sslv3_record_alg = NULL,
+    .tls12_prf_alg = S2N_HMAC_SHA256,
+    .minimum_required_tls_version = S2N_TLS13,
+};
+
+struct s2n_cipher_suite s2n_tls13_aes_256_gcm_sha384 = {
+    .available = 0,
+    .name = "TLS_AES_256_GCM_SHA384",
+    .iana_value = { TLS_AES_256_GCM_SHA384 },
+    .key_exchange_alg = NULL,
+    .auth_method = S2N_AUTHENTICATION_METHOD_SENTINEL,
+    .record_alg = NULL,
+    .all_record_algs = { &s2n_record_alg_aes256_sha256_composite, &s2n_record_alg_aes256_sha256 },
+    .num_record_algs = 2,
+    .sslv3_record_alg = NULL,
+    .tls12_prf_alg = S2N_HMAC_SHA384,
+    .minimum_required_tls_version = S2N_TLS13,
+};
+
+struct s2n_cipher_suite s2n_tls13_chacha20_poly1305_sha256 = {
+    .available = 0,
+    .name = "TLS_CHACHA20_POLY1305_SHA256",
+    .iana_value = { TLS_CHACHA20_POLY1305_SHA256 },
+    .key_exchange_alg = NULL,
+    .auth_method = S2N_AUTHENTICATION_METHOD_SENTINEL,
+    .record_alg = NULL,
+    .all_record_algs = { &s2n_record_alg_chacha20_poly1305 },
+    .num_record_algs = 1,
+    .sslv3_record_alg = NULL,
+    .tls12_prf_alg = S2N_HMAC_SHA256,
+    .minimum_required_tls_version = S2N_TLS13,
+};
+
+/* All of the cipher suites that s2n negotiates in order of IANA value.
+ * New cipher suites MUST be added here, IN ORDER, or they will not be
+ * properly initialized.
  */
 static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
     &s2n_rsa_with_rc4_128_md5,                      /* 0x00,0x04 */
@@ -645,6 +717,11 @@ static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
     &s2n_rsa_with_aes_256_gcm_sha384,               /* 0x00,0x9D */
     &s2n_dhe_rsa_with_aes_128_gcm_sha256,           /* 0x00,0x9E */
     &s2n_dhe_rsa_with_aes_256_gcm_sha384,           /* 0x00,0x9F */
+
+    &s2n_tls13_aes_128_gcm_sha256,                  /* 0x13,0x01 */
+    &s2n_tls13_aes_256_gcm_sha384,                  /* 0x13,0x02 */
+    &s2n_tls13_chacha20_poly1305_sha256,            /* 0x13,0x03 */
+
     &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,          /* 0xC0,0x09 */
     &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,          /* 0xC0,0x0A */
     &s2n_ecdhe_rsa_with_rc4_128_sha,                /* 0xC0,0x11 */
@@ -662,13 +739,15 @@ static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
     &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,   /* 0xCC,0xA8 */
     &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256, /* 0xCC,0xA9 */
     &s2n_dhe_rsa_with_chacha20_poly1305_sha256,     /* 0xCC,0xAA */
+    &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x04 */
+    &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x08 */
 };
 
 /* All supported ciphers. Exposed for integration testing. */
 const struct s2n_cipher_preferences cipher_preferences_test_all = {
     .count = sizeof(s2n_all_cipher_suites) / sizeof(s2n_all_cipher_suites[0]),
     .suites = s2n_all_cipher_suites,
-    .minimum_protocol_version = S2N_SSLv3
+    .minimum_protocol_version = S2N_SSLv3,
 };
 
 /* All of the cipher suites that s2n can negotiate when in FIPS mode,
@@ -700,7 +779,7 @@ static struct s2n_cipher_suite *s2n_all_fips_cipher_suites[] = {
 const struct s2n_cipher_preferences cipher_preferences_test_all_fips = {
     .count = sizeof(s2n_all_fips_cipher_suites) / sizeof(s2n_all_fips_cipher_suites[0]),
     .suites = s2n_all_fips_cipher_suites,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
 };
 
 /* All of the ECDSA cipher suites that s2n can negotiate, in order of IANA
@@ -720,7 +799,7 @@ static struct s2n_cipher_suite *s2n_all_ecdsa_cipher_suites[] = {
 const struct s2n_cipher_preferences cipher_preferences_test_all_ecdsa = {
     .count = sizeof(s2n_all_ecdsa_cipher_suites) / sizeof(s2n_all_ecdsa_cipher_suites[0]),
     .suites = s2n_all_ecdsa_cipher_suites,
-    .minimum_protocol_version = S2N_TLS10
+    .minimum_protocol_version = S2N_TLS10,
 };
 
 /* All ECDSA cipher suites first, then the rest of the supported ciphers that s2n can negotiate.
@@ -766,7 +845,7 @@ static struct s2n_cipher_suite *s2n_ecdsa_priority_cipher_suites[] = {
 const struct s2n_cipher_preferences cipher_preferences_test_ecdsa_priority = {
     .count = sizeof(s2n_ecdsa_priority_cipher_suites) / sizeof(s2n_ecdsa_priority_cipher_suites[0]),
     .suites = s2n_ecdsa_priority_cipher_suites,
-    .minimum_protocol_version = S2N_SSLv3
+    .minimum_protocol_version = S2N_SSLv3,
 };
 
 /* Determines cipher suite availability and selects record algorithms */
@@ -894,44 +973,22 @@ static int s2n_wire_ciphers_contain(const uint8_t * match, const uint8_t * wire,
     return 0;
 }
 
-static int s2n_cipher_is_compatible_with_cert(struct s2n_cipher_suite *cipher, struct s2n_cert *cert, uint8_t *compatibility_out)
+/* Find the optimal certificate that is compatible with a cipher.
+ * The priority of set of certificates to choose from:
+ * 1. Certificates that match the client's ServerName extension.
+ * 2. Default certificates
+ */
+static struct s2n_cert_chain_and_key *s2n_conn_get_compatible_cert_chain_and_key(struct s2n_connection *conn, struct s2n_cipher_suite *cipher_suite)
 {
-    *compatibility_out = 0;
-
-    /* Verify cert type with cipher authentication method */
-    switch (cert->cert_type) {
-        case S2N_CERT_TYPE_RSA_SIGN:
-            if (cipher->auth_method == S2N_AUTHENTICATION_RSA) {
-                *compatibility_out = 1;
-            }
-            break;
-        case S2N_CERT_TYPE_ECDSA_SIGN:
-            if (cipher->auth_method == S2N_AUTHENTICATION_ECDSA) {
-                *compatibility_out = 1;
-            }
-            break;
-        default:
-            /* Match error from s2n_pkey_setup_for_type ? */
-            S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
-            break;
+    if (conn->handshake_params.exact_sni_match_exists) {
+        /* This may return NULL if there was an SNI match, but not a match the cipher_suite's authentication type. */
+        return conn->handshake_params.exact_sni_matches[cipher_suite->auth_method];
+    } if (conn->handshake_params.wc_sni_match_exists) {
+        return conn->handshake_params.wc_sni_matches[cipher_suite->auth_method];
+    } else {
+        /* We don't have any name matches. Use the default certificate that works with the key type. */
+        return conn->config->default_cert_per_auth_method.certs[cipher_suite->auth_method];
     }
-
-    return 0;
-}
-
-static struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(struct s2n_connection *conn, struct s2n_cipher_suite *cipher_suite)
-{
-    for (int i = 0; i < conn->config->num_certificates; i++) {
-        struct s2n_cert_chain_and_key *cert_chain_and_key = conn->config->cert_and_key_pairs[i];
-        struct s2n_cert *leaf_cert = cert_chain_and_key->cert_chain->head;
-        uint8_t cert_compatibility = 0;
-        GUARD_PTR(s2n_cipher_is_compatible_with_cert(cipher_suite, leaf_cert, &cert_compatibility));
-        if (cert_compatibility) {
-            return cert_chain_and_key;
-        }
-    }
-
-    return NULL;
 }
 
 static int s2n_set_cipher_and_cert_as_server(struct s2n_connection *conn, uint8_t * wire, uint32_t count, uint32_t cipher_suite_len)
@@ -974,19 +1031,28 @@ static int s2n_set_cipher_and_cert_as_server(struct s2n_connection *conn, uint8_
                 match = match->sslv3_cipher_suite;
             }
 
-            /* Skip the suite if it is not compatible with any certificates */
-            conn->handshake_params.our_chain_and_key = s2n_get_compatible_cert_chain_and_key(conn, match);
-            if (!conn->handshake_params.our_chain_and_key) {
-                continue;
-            }
-
             /* Skip the suite if we don't have an available implementation */
             if (!match->available) {
                 continue;
             }
 
-            if (!s2n_kex_supported(match->key_exchange_alg, conn)) {
-                continue;
+            /* TLS 1.3 does not include key exchange in cipher suites */
+            if (match->minimum_required_tls_version < S2N_TLS13) {
+                /* Skip the suite if it is not compatible with any certificates */
+                conn->handshake_params.our_chain_and_key = s2n_conn_get_compatible_cert_chain_and_key(conn, match);
+                if (!conn->handshake_params.our_chain_and_key) {
+                    continue;
+                }
+
+                /* If the kex is not supported continue to the next candidate */
+                if (!s2n_kex_supported(match, conn)) {
+                    continue;
+                }
+
+                /* If the kex is not configured correctly continue to the next candidate */
+                if (s2n_configure_kex(match, conn)) {
+                    continue;
+                }
             }
 
             /* Don't immediately choose a cipher the client shouldn't be able to support */

@@ -115,11 +115,8 @@ def try_dynamic_record(endpoint, port, cipher, ssl_version, threshold, server_ce
     s2nc_cmd = ["../../bin/s2nc", "-e", "-D", str(threshold), "-t", "1", "-c", "test_all", "-i"]
     s2nc_cmd.extend([str(endpoint), str(port)])
 
-    envVars = os.environ.copy()
-    envVars["S2N_ENABLE_CLIENT_MODE"] = "1"
-
     file_input = open(test_file)
-    s2nc = subprocess.Popen(s2nc_cmd, stdin=file_input, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=envVars)
+    s2nc = subprocess.Popen(s2nc_cmd, stdin=file_input, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # Read from s2nc until we get successful connection message
     found = 0

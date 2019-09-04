@@ -132,7 +132,7 @@ int s2n_server_hello_send(struct s2n_connection *conn)
     GUARD(s2n_conn_update_required_handshake_hashes(conn));
     
     struct s2n_stuffer *out = &conn->handshake.io;
-    struct s2n_stuffer server_random = {{0}};
+    struct s2n_stuffer server_random = {0};
     struct s2n_blob b, r;
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
