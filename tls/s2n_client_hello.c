@@ -214,42 +214,6 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     return 0;
 }
 
-<<<<<<< HEAD
-=======
-static int s2n_process_client_hello(struct s2n_connection *conn)
-{
-    struct s2n_client_hello *client_hello = &conn->client_hello;
-
-    if (client_hello->parsed_extensions != NULL && client_hello->parsed_extensions->num_of_elements > 0) {
-        GUARD(s2n_client_extensions_recv(conn, client_hello->parsed_extensions));
-    }
-
-    const struct s2n_cipher_preferences *cipher_preferences;
-    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
-
-    if (conn->client_protocol_version < cipher_preferences->minimum_protocol_version) {
-        GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
-
-    /* Find potential certificate matches before we choose the cipher. */
-    GUARD(s2n_conn_find_name_matching_certs(conn));
-
-    /* Now choose the ciphers and the cert chain. */
-    GUARD(s2n_set_cipher_and_cert_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
-
-    /* And set the signature and hash algorithm used for key exchange signatures */
-    GUARD(s2n_set_signature_hash_pair_from_preference_list(conn, &conn->handshake_params.client_sig_hash_algs, &conn->secure.conn_hash_alg, &conn->secure.conn_sig_alg));
-    /* Set the handshake type */
-    GUARD(s2n_conn_set_handshake_type(conn));
-
-    /* We've selected the parameters for the handshake, update the required hashes for this connection */
-    GUARD(s2n_conn_update_required_handshake_hashes(conn));
-
-    return 0;
-}
-
->>>>>>> master
 static int s2n_parsed_extensions_compare(const void *p, const void *q)
 {
     const struct s2n_client_hello_parsed_extension *left = (const struct s2n_client_hello_parsed_extension *) p;
@@ -328,6 +292,10 @@ int s2n_process_client_hello(struct s2n_connection *conn)
         GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
+
+    /* Find potential certificate matches before we choose the cipher. */
+    GUARD(s2n_conn_find_name_matching_certs(conn));
+
 
     /* Now choose the ciphers and the cert chain. */
     GUARD(s2n_set_cipher_and_cert_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
