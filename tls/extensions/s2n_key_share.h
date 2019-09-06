@@ -26,4 +26,3 @@
 #define S2N_SIZE_OF_KEY_SHARE_SIZE          2
 
 extern int s2n_ecdhe_parameters_send(struct s2n_ecc_params *ecc_params, struct s2n_stuffer *out);
-extern const struct s2n_ecc_named_curve* s2n_ecc_find_supported_curve_by_iana_id(uint16_t named_group);

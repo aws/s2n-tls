@@ -24,11 +24,6 @@
 
 #define S2N_ECC_SUPPORTED_CURVES_COUNT 2
 
-typedef enum {
-    S2N_ECC_NAMED_CURVED_SECP_256_R1 = 0,
-    S2N_ECC_NAMED_CURVED_SECP_384_R1
-} s2n_supported_curve_t;
-
 struct s2n_ecc_named_curve {
     /* See https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8 */
     uint16_t iana_id;
@@ -36,7 +31,6 @@ struct s2n_ecc_named_curve {
     int libcrypto_nid;
     const char *name;
     const uint8_t share_size;
-    int supported_curve_index;
 };
 
 /* An array of supported curves in order of descending preference */

@@ -29,7 +29,16 @@ static int s2n_extensions_server_key_share_send_check(struct s2n_connection *con
     server_curve = conn->secure.server_ecc_params.negotiated_curve;
     notnull_check(server_curve);
 
-    const struct s2n_ecc_params client_ecc = conn->secure.client_ecc_params[server_curve->supported_curve_index];
+    int curve_index = -1;
+    for (int i = 0; i < S2N_ECC_SUPPORTED_CURVES_COUNT; i++) {
+        if (server_curve == &s2n_ecc_supported_curves[i]) {
+            curve_index = i;
+            break;
+        }
+    }
+    gt_check(curve_index, -1);
+
+    const struct s2n_ecc_params client_ecc = conn->secure.client_ecc_params[curve_index];
     client_curve = client_ecc.negotiated_curve;
 
     S2N_ERROR_IF(client_curve == NULL, S2N_ERR_BAD_KEY_SHARE);
@@ -95,7 +104,15 @@ int s2n_extensions_server_key_share_recv(struct s2n_connection *conn, struct s2n
     GUARD(s2n_stuffer_read_uint16(extension, &named_group));
     GUARD(s2n_stuffer_read_uint16(extension, &share_size));
 
-    const struct s2n_ecc_named_curve *supported_curve = s2n_ecc_find_supported_curve_by_iana_id(named_group);
+    int supported_curve_index = -1;
+    const struct s2n_ecc_named_curve *supported_curve = NULL;
+    for (int i = 0; i < S2N_ECC_SUPPORTED_CURVES_COUNT; i++) {
+        if (named_group == s2n_ecc_supported_curves[i].iana_id) {
+            supported_curve_index = i;
+            supported_curve = &s2n_ecc_supported_curves[i];
+            break;
+        }
+    }
 
     /*
      * From https://tools.ietf.org/html/rfc8446#section-4.2.8
@@ -108,9 +125,10 @@ int s2n_extensions_server_key_share_recv(struct s2n_connection *conn, struct s2n
 
     /* Key share unsupported by s2n */
     S2N_ERROR_IF(supported_curve == NULL, S2N_ERR_BAD_KEY_SHARE);
+    S2N_ERROR_IF(supported_curve_index == -1, S2N_ERR_BAD_KEY_SHARE);
 
     /* Key share not sent by client */
-    S2N_ERROR_IF(conn->secure.client_ecc_params[supported_curve->supported_curve_index].ec_key == NULL, S2N_ERR_BAD_KEY_SHARE);
+    S2N_ERROR_IF(conn->secure.client_ecc_params[supported_curve_index].ec_key == NULL, S2N_ERR_BAD_KEY_SHARE);
 
     struct s2n_ecc_params* server_ecc_params = &conn->secure.server_ecc_params;
     server_ecc_params->negotiated_curve = supported_curve;

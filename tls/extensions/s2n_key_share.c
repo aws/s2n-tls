@@ -17,12 +17,6 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
-/* Table to translate iana ids to supported curve index */
-static const struct s2n_ecc_named_curve *s2n_iana_id_to_supported_curve[] = {
-    [TLS_EC_CURVE_SECP_256_R1] = &s2n_ecc_supported_curves[S2N_ECC_NAMED_CURVED_SECP_256_R1],
-    [TLS_EC_CURVE_SECP_384_R1] = &s2n_ecc_supported_curves[S2N_ECC_NAMED_CURVED_SECP_384_R1],
-};
-
 int s2n_ecdhe_parameters_send(struct s2n_ecc_params *ecc_params, struct s2n_stuffer *out)
 {
     notnull_check(out);
@@ -36,13 +30,4 @@ int s2n_ecdhe_parameters_send(struct s2n_ecc_params *ecc_params, struct s2n_stuf
     GUARD(s2n_ecc_write_ecc_params_point(ecc_params, out));
 
     return 0;
-}
-
-const struct s2n_ecc_named_curve* s2n_ecc_find_supported_curve_by_iana_id(uint16_t named_group)
-{
-    if (named_group >= s2n_array_len(s2n_iana_id_to_supported_curve)) {
-        return NULL;
-    }
-
-    return s2n_iana_id_to_supported_curve[named_group];
 }
