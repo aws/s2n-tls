@@ -113,7 +113,6 @@ _INLINE_ uint32_t secure_cmp32(IN const uint32_t v1, IN const uint32_t v2)
 // Return 0 if v1 < v2, (-1) otherwise
 _INLINE_ uint32_t secure_l32_mask(IN const uint32_t v1, IN const uint32_t v2)
 {
-
 #if defined(__aarch64__)
     uint32_t res;
     __asm__ __volatile__("cmp  %w1, %w2; \n "
@@ -129,11 +128,9 @@ _INLINE_ uint32_t secure_l32_mask(IN const uint32_t v1, IN const uint32_t v2)
                          "setl %%dl; \n"
                          "dec %%edx; \n"
                          "mov %%edx, %0; \n"
-
                          : "=r" (res)
                          : "r"(v2), "r"(v1)
                          : "rdx");
-
     return res;
 #else
     // If v1 >= v2 then the subtraction result is 0^32||(v1-v2)
