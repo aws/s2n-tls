@@ -21,6 +21,7 @@
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls13.h"
 #include "tls/extensions/s2n_client_supported_versions.h"
 
 #include "stuffer/s2n_stuffer.h"
@@ -49,7 +50,8 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(setenv("S2N_ENABLE_TLS13_FOR_TESTING", "1", 0));
+    EXPECT_SUCCESS(s2n_enable_tls13());
+
     uint8_t latest_version = S2N_TLS13;
 
     struct s2n_config *config;
