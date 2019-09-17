@@ -32,6 +32,7 @@
 #include "stuffer/s2n_stuffer.h"
 
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
@@ -289,10 +290,14 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *pa
             GUARD(s2n_recv_pq_kem_extension(conn, &extension));
             break;
         case TLS_EXTENSION_SUPPORTED_VERSIONS:
-            GUARD(s2n_extensions_client_supported_versions_recv(conn, &extension));
+            if (s2n_is_tls13_enabled()) {
+                GUARD(s2n_extensions_client_supported_versions_recv(conn, &extension));
+            }
             break;
         case TLS_EXTENSION_KEY_SHARE:
-            GUARD(s2n_extensions_client_key_share_recv(conn, &extension));
+            if (s2n_is_tls13_enabled()) {
+                GUARD(s2n_extensions_client_key_share_recv(conn, &extension));
+            }
             break;
         }
     }

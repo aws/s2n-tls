@@ -22,6 +22,7 @@
 #include "crypto/s2n_fips.h"
 
 #include "tls/s2n_cipher_preferences.h"
+#include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
 #include "crypto/s2n_hkdf.h"
 #include "utils/s2n_map.h"
@@ -121,7 +122,7 @@ static int s2n_config_init(struct s2n_config *config)
         s2n_config_set_cipher_preferences(config, "default_fips");
     }
 
-    if (getenv("S2N_ENABLE_TLS13_FOR_TESTING") != NULL && S2N_IN_TEST ) {
+    if (s2n_is_tls13_enabled()) {
         s2n_config_set_cipher_preferences(config, "default_tls13");
     }
 

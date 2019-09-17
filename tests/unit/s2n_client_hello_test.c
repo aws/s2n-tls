@@ -26,6 +26,7 @@
 #include <s2n.h>
 
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls13.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_client_hello.h"
 #include "tls/s2n_handshake.h"
@@ -87,7 +88,7 @@ int main(int argc, char **argv)
 
         /* When TLS 1.3 supported */
         {
-            EXPECT_SUCCESS(setenv("S2N_ENABLE_TLS13_FOR_TESTING", "1", 0));
+            EXPECT_SUCCESS(s2n_enable_tls13());
 
             struct s2n_config *config;
             EXPECT_NOT_NULL(config = s2n_config_new());
@@ -123,7 +124,7 @@ int main(int argc, char **argv)
             }
 
             EXPECT_SUCCESS(s2n_config_free(config));
-            EXPECT_SUCCESS(unsetenv("S2N_ENABLE_TLS13_FOR_TESTING"));
+            EXPECT_SUCCESS(s2n_disable_tls13());
         }
     }
 
