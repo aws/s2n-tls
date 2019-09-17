@@ -375,7 +375,7 @@ struct s2n_cert_public_key;
 ```
 const char *s2n_strerror(int error, const char *lang);
 const char *s2n_strerror_debug(int error, const char *lang);
-const char *s2n_strerror_name(int error);
+const char *s2n_strerror_name(int error, const char *lang);
 ````
 
 s2n functions that return 'int' return 0 to indicate success and -1 to indicate

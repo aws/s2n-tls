@@ -40,7 +40,7 @@ int s2n_init(void)
     GUARD(s2n_cipher_suites_init());
     GUARD(s2n_cipher_preferences_init());
     GUARD(s2n_client_key_share_init());
-    GUARD(s2n_error_map_init());
+    GUARD(s2n_error_table_init());
 
     S2N_ERROR_IF(atexit(s2n_cleanup_atexit) != 0, S2N_ERR_ATEXIT);
 
@@ -79,7 +79,7 @@ int s2n_init(void)
 int s2n_cleanup(void)
 {
     GUARD(s2n_rand_cleanup_thread());
-    s2n_error_map_cleanup();
+    s2n_error_table_cleanup();
     return 0;
 }
 
