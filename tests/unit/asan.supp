@@ -1,0 +1,2 @@
+leak:s2n_error_table_init
+leak:s2n_init
