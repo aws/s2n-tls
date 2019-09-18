@@ -35,7 +35,6 @@ typedef struct _s2n_error_translation {
     const char *str;
 }s2n_error_translation;
 
-#define KEY_BUF_LEN 9
 #define KEY_BASE 16
 #define ERROR_STRING(x, y) { (x) , (#x), (y) },
 
@@ -174,21 +173,31 @@ s2n_error_translation S2N_ERROR_EN[] = {
 const int num_of_errors = sizeof(S2N_ERROR_EN) / sizeof(S2N_ERROR_EN[0]);
 static struct s2n_map *error_translation_table = NULL;
 
+typedef union {
+    uint8_t bytes[sizeof(int)];
+    int raw;
+} key_type;
+
+typedef union {
+    uint8_t bytes[sizeof(uintptr_t)];
+    uintptr_t raw;
+} value_type;
+
 static s2n_error_translation *s2n_lookup_error_translation(int error)
 {
     struct s2n_blob k, v;
-    char key[KEY_BUF_LEN];
-    snprintf(key, KEY_BUF_LEN, "%08x", error);
-    k.data = (void *)key;
-    k.size = KEY_BUF_LEN - 1;
+    key_type key;
+    key.raw = error;
+    k.data = key.bytes;
+    k.size = sizeof(key.bytes);
     if (s2n_map_lookup(error_translation_table, &k, &v) != 1) {
         return NULL;
     }
 
-    uintptr_t static_address;
-    memcpy_check_ptr(&static_address, v.data, v.size);
+    value_type address = {0};
+    memcpy(address.bytes, v.data, v.size);
 
-    return (s2n_error_translation*)static_address;
+    return (s2n_error_translation*)address.raw;
 }
 
 const char *s2n_strerror(int error, const char *lang)
@@ -260,14 +269,15 @@ int s2n_error_table_init()
     }   
 
     struct s2n_blob k, v;
-    char key[KEY_BUF_LEN];
     for (int i = 0; i < num_of_errors; ++i) {
-        snprintf(key, KEY_BUF_LEN, "%08x", S2N_ERROR_EN[i].errno_value);
-        k.data = (void *)key;
-        k.size = KEY_BUF_LEN - 1;
-        uintptr_t static_address = (uintptr_t)&S2N_ERROR_EN[i];
-        v.data = (void *)&static_address;
-        v.size = sizeof(uintptr_t);
+        key_type key = {0};
+        key.raw = S2N_ERROR_EN[i].errno_value;
+        k.data = key.bytes;
+        k.size = sizeof(key.bytes);
+        value_type address = {0};
+        address.raw = (uintptr_t)&S2N_ERROR_EN[i];
+        v.data = address.bytes;
+        v.size = sizeof(address.bytes);
         if (s2n_map_add(error_translation_table, &k, &v) != 0) {
             S2N_ERROR(S2N_ERR_ALLOC);
         }
