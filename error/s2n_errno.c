@@ -185,7 +185,8 @@ static s2n_error_translation *s2n_lookup_error_translation(int error)
         return NULL;
     }
 
-    uintptr_t static_address = *((uintptr_t *)v.data);
+    uintptr_t static_address;
+    memcpy_check_ptr(&static_address, v.data, v.size);
 
     return (s2n_error_translation*)static_address;
 }
