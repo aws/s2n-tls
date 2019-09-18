@@ -20,8 +20,8 @@
 #include "error/s2n_errno.h"
 
 #include <s2n.h>
-#define __USE_GNU
-#include <search.h>
+#include "utils/s2n_map.h"
+#include "utils/s2n_safety.h"
 
 __thread int s2n_errno;
 __thread const char *s2n_debug_str;
@@ -35,7 +35,7 @@ typedef struct _s2n_error_translation {
     const char *str;
 }s2n_error_translation;
 
-#define KEY_LEN 10
+#define KEY_BUF_LEN 9
 #define KEY_BASE 16
 #define ERROR_STRING(x, y) { (x) , (#x), (y) },
 
@@ -172,8 +172,23 @@ s2n_error_translation S2N_ERROR_EN[] = {
     ERROR_STRING(S2N_ERR_NOT_IN_UNIT_TEST, "Illegal configuration, can only be used during unit tests")
 };
 const int num_of_errors = sizeof(S2N_ERROR_EN) / sizeof(S2N_ERROR_EN[0]);
-static struct hsearch_data error_translation_table;
-static int error_translation_table_initialized = 0;
+static struct s2n_map *error_translation_table = NULL;
+
+static s2n_error_translation *s2n_lookup_error_translation(int error)
+{
+    struct s2n_blob k, v;
+    char key[KEY_BUF_LEN];
+    snprintf(key, KEY_BUF_LEN, "%08x", error);
+    k.data = (void *)key;
+    k.size = KEY_BUF_LEN - 1;
+    if (s2n_map_lookup(error_translation_table, &k, &v) != 1) {
+        return NULL;
+    }
+
+    uintptr_t static_address = *((uintptr_t *)v.data);
+
+    return (s2n_error_translation*)static_address;
+}
 
 const char *s2n_strerror(int error, const char *lang)
 {
@@ -185,15 +200,12 @@ const char *s2n_strerror(int error, const char *lang)
         return no_such_language;
     }
 
-    ENTRY e, *ep;
-    char key[KEY_LEN];
-    snprintf(key, KEY_LEN, "%x", error);
-    e.key = key;
-    if (0 == hsearch_r(e, FIND, &ep, &error_translation_table)) {
+    s2n_error_translation *translation = s2n_lookup_error_translation(error);
+    if (NULL == translation) {
         return no_such_error;
     }
 
-    return ((s2n_error_translation*)ep->data)->str;
+    return translation->str;
 }
 
 const char *s2n_strerror_name(int error, const char *lang)
@@ -205,16 +217,13 @@ const char *s2n_strerror_name(int error, const char *lang)
     if (strcasecmp(lang, "EN")) {
         return no_such_language;
     }
-    
-    ENTRY e, *ep;
-    char key[KEY_LEN];
-    snprintf(key, KEY_LEN, "%x", error);
-    e.key = key;
-    if (0 == hsearch_r(e, FIND, &ep, &error_translation_table)) {
+
+    s2n_error_translation *translation = s2n_lookup_error_translation(error);
+    if (NULL == translation) {
         return no_such_error;
     }
 
-    return ((s2n_error_translation*)ep->data)->error_name;
+    return translation->error_name;
 }
 
 const char *s2n_strerror_debug(int error, const char *lang)
@@ -242,47 +251,36 @@ int s2n_error_get_type(int error)
 
 int s2n_error_table_init()
 {
-    /* The hash talbe array uses double size of error array to minimize collisions.
-       It must be initialized with zero before calling hcreate_r.
-    */
+    /* The hash talbe array uses double size of error array to minimize collisions. */
     int table_size = num_of_errors * 2;
-    memset(&error_translation_table, 0, sizeof(struct hsearch_data));
-    int ret = hcreate_r(table_size, &error_translation_table);
-    if (0 == ret) {
+    error_translation_table = s2n_map_new_with_initial_capacity(table_size);
+    if (NULL == error_translation_table) {
         S2N_ERROR(S2N_ERR_ALLOC);
     }   
-    
+
+    struct s2n_blob k, v;
+    char key[KEY_BUF_LEN];
     for (int i = 0; i < num_of_errors; ++i) {
-        ENTRY e, *ep;
-        char *key = malloc(KEY_LEN);
-        snprintf(key, KEY_LEN, "%x", S2N_ERROR_EN[i].errno_value);
-        e.key = key;
-        e.data = (void *)&S2N_ERROR_EN[i];
-        if (0 == hsearch_r(e, ENTER, &ep, &error_translation_table)) {
+        snprintf(key, KEY_BUF_LEN, "%08x", S2N_ERROR_EN[i].errno_value);
+        k.data = (void *)key;
+        k.size = KEY_BUF_LEN - 1;
+        uintptr_t static_address = (uintptr_t)&S2N_ERROR_EN[i];
+        v.data = (void *)&static_address;
+        v.size = sizeof(uintptr_t);
+        if (s2n_map_add(error_translation_table, &k, &v) != 0) {
             S2N_ERROR(S2N_ERR_ALLOC);
         }
     }
     
-    error_translation_table_initialized = 0;
+    GUARD(s2n_map_complete(error_translation_table));
 
     return 0;
 }
 
 void s2n_error_table_cleanup() 
 {
-    if (!error_translation_table_initialized) {
-        return;
+    if (error_translation_table) {
+        s2n_map_free(error_translation_table);
+        error_translation_table = NULL;
     }
-
-    /* Free key strings */
-    for (int i = 0; i < num_of_errors; ++i) {
-        ENTRY e, *ep;
-        char key[KEY_LEN];
-        snprintf(key, KEY_LEN, "%x", S2N_ERROR_EN[i].errno_value);
-        e.key = key;
-        if (hsearch_r(e, FIND, &ep, &error_translation_table) != 0) {
-            free(ep->key);
-        }
-    }
-    hdestroy_r(&error_translation_table);
 }
