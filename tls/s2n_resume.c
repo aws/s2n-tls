@@ -222,7 +222,7 @@ int s2n_resume_from_cache(struct s2n_connection *conn)
     notnull_check(state);
 
     size = S2N_STATE_SIZE_IN_BYTES;
-    GUARD_RETRY(conn->config->cache_retrieve(conn, conn->config->cache_retrieve_data, conn->session_id, conn->session_id_len, state, &size));
+    GUARD_AGAIN(conn->config->cache_retrieve(conn, conn->config->cache_retrieve_data, conn->session_id, conn->session_id_len, state, &size));
 
     if (size != S2N_STATE_SIZE_IN_BYTES) {
         return S2N_FAILURE;
