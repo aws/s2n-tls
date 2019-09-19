@@ -186,7 +186,8 @@ typedef union {
 static s2n_error_translation *s2n_lookup_error_translation(int error)
 {
     struct s2n_blob k, v;
-    key_type key;
+    key_type key = {0};
+    /* cppcheck-suppress unreadVariable */
     key.raw = error;
     k.data = key.bytes;
     k.size = sizeof(key.bytes);
@@ -271,10 +272,12 @@ int s2n_error_table_init()
     struct s2n_blob k, v;
     for (int i = 0; i < num_of_errors; ++i) {
         key_type key = {0};
+        /* cppcheck-suppress unreadVariable */
         key.raw = S2N_ERROR_EN[i].errno_value;
         k.data = key.bytes;
         k.size = sizeof(key.bytes);
         value_type address = {0};
+        /* cppcheck-suppress unreadVariable */
         address.raw = (uintptr_t)&S2N_ERROR_EN[i];
         v.data = address.bytes;
         v.size = sizeof(address.bytes);
