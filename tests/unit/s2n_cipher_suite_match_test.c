@@ -26,7 +26,6 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_error_table_init());
     {
         struct s2n_connection *conn;
         uint8_t wire[2];
@@ -525,6 +524,5 @@ int main(int argc, char **argv)
         free(rsa_private_key_pem);
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
-    s2n_error_table_cleanup();
     END_TEST();
 }

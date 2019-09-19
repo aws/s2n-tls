@@ -10,14 +10,3 @@
    fun:pthread_create@@GLIBC_2.2.5
    fun:main
 }
-
-# Memory is released by s2n_map_free when s2n_cleanup is called
-{
-   s2n_map_free_false_positive
-   Memcheck:Leak
-   match-leak-kinds: definite
-   ...
-   fun:s2n_error_table_init
-   fun:s2n_init
-   fun:main
-}

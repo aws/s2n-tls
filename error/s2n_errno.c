@@ -261,7 +261,11 @@ int s2n_error_get_type(int error)
 
 int s2n_error_table_init()
 {
-    /* The hash talbe array uses double size of error array to minimize collisions. */
+    if (error_translation_table) {
+        return 0;
+    }
+
+    /* The hash table array uses double size of error array to minimize collisions. */
     int table_size = num_of_errors * 2;
     error_translation_table = s2n_map_new_with_initial_capacity(table_size);
     if (NULL == error_translation_table) {
