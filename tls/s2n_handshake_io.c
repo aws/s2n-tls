@@ -439,7 +439,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
     /* If a TLS session is resumed, the Server should respond in its ServerHello with the same SessionId the
      * Client sent in the ClientHello. */
-    if (s2n_allowed_to_cache_connection(conn)) {
+    if (conn->mode == S2N_SERVER && s2n_allowed_to_cache_connection(conn)) {
         int r = s2n_resume_from_cache(conn);
         if (r == S2N_SUCCESS || (r < 0 && s2n_errno == S2N_ERR_BLOCKED)) {
             return r;
@@ -874,7 +874,7 @@ static int handshake_read_io(struct s2n_connection *conn)
 
 static void s2n_try_delete_session_cache(struct s2n_connection *conn) 
 {
-    if (s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
+    if (s2n_errno != S2N_ERR_BLOCKED && s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
         conn->config->cache_delete(conn, conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
     }
 }
@@ -898,20 +898,15 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
 
             int r = s2n_handshake_handle_app_data(conn);
             if (r < 0) {
-                if(s2n_errno != S2N_ERR_BLOCKED) {
-                    s2n_try_delete_session_cache(conn);
-                    return S2N_FAILURE;
-                }
-                else {
-                    /* The peer might have sent an alert. Try and read it. */
-                    if (s2n_stuffer_data_available(&conn->in)) {
-                        if (handshake_read_io(conn) < 0 && s2n_errno == S2N_ERR_ALERT) {
-                            /* handshake_read_io has set s2n_errno */
-                            return S2N_FAILURE;
-                        }
+                s2n_try_delete_session_cache(conn);
+                /* The peer might have sent an alert. Try and read it. */
+                if (s2n_stuffer_data_available(&conn->in)) {
+                    if (handshake_read_io(conn) < 0 && s2n_errno == S2N_ERR_ALERT) {
+                        /* handshake_read_io has set s2n_errno */
+                        return S2N_FAILURE;
                     }
-                    S2N_ERROR(S2N_ERR_BLOCKED);
                 }
+                return S2N_FAILURE;
             }
         } else if (ACTIVE_STATE(conn).writer == this) {
             *blocked = S2N_BLOCKED_ON_WRITE;
@@ -937,10 +932,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
             int r = handshake_read_io(conn);
 
             if (r < 0) {
-                if(s2n_errno != S2N_ERR_BLOCKED)
-                    s2n_try_delete_session_cache(conn);
-                else
-                    *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
+                s2n_try_delete_session_cache(conn);
                 return S2N_FAILURE;
             }
         }
