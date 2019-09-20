@@ -107,7 +107,7 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         GUARD(s2n_server_extensions_recv(conn, &extensions));
     }
 
-    GUARD_RETRY(s2n_conn_set_handshake_type(conn));
+    GUARD(s2n_conn_set_handshake_type(conn));
 
     if (IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type)) {
         GUARD(s2n_prf_key_expansion(conn));

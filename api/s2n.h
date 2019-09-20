@@ -26,7 +26,6 @@ extern "C" {
 /* Function return code  */
 #define S2N_SUCCESS 0
 #define S2N_FAILURE -1
-#define S2N_AGAIN 1
 
 #define S2N_MINIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION 2
 #define S2N_MAXIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION 3

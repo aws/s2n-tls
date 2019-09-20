@@ -439,9 +439,9 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
     /* If a TLS session is resumed, the Server should respond in its ServerHello with the same SessionId the
      * Client sent in the ClientHello. */
-    if (s2n_allowed_to_cache_connection(conn)) {
+    if (conn->mode == S2N_SERVER && s2n_allowed_to_cache_connection(conn)) {
         int r = s2n_resume_from_cache(conn);
-        if (r == S2N_AGAIN || r == S2N_SUCCESS) {
+        if (r == S2N_SUCCESS || (r < 0 && s2n_errno == S2N_ERR_BLOCKED)) {
             return r;
         }
     }
@@ -725,7 +725,7 @@ static int s2n_handshake_handle_sslv2(struct s2n_connection *conn)
  * the handshake state machine will be blocked until there is data returned from the 
  * session cache server. In such a case, there is no data in the underlying io, 
  * so we can just call the corresponding handler to process the application data.
- * Note that we need a return value 1 to indicate that app data is not yet avaiable 
+ * Note that we need a return value -2 to indicate that app data is not yet avaiable 
  * and the state machine is still blocked; a return value 0 to indicate the app data is 
  * successfully processed and state machine advanced; -1 to indicate an error and 
  * the connection been killed
@@ -740,15 +740,11 @@ static int s2n_handshake_handle_app_data(struct s2n_connection *conn) {
         goto done;
     }
 
-    if (r == S2N_AGAIN) {
-        /* if r == S2N_AGAIN, it means we are still blocked */
-        return r;
-    }
-
     if (r < 0) {
-        /* if r == -1, we kill the connection */
-        GUARD(s2n_stuffer_wipe(&conn->handshake.io));
-        GUARD(s2n_connection_kill(conn));
+        if(s2n_errno != S2N_ERR_BLOCKED) {
+            GUARD(s2n_stuffer_wipe(&conn->handshake.io));
+            GUARD(s2n_connection_kill(conn));
+        }
         return r;
     }
 
@@ -884,7 +880,7 @@ static void s2n_try_delete_session_cache(struct s2n_connection *conn)
 }
 
 int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
-{
+{    
     char this = 'S';
     if (conn->mode == S2N_CLIENT) {
         this = 'C';
@@ -901,17 +897,14 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
             int r = s2n_handshake_handle_app_data(conn);
             if (r < 0) {
                 s2n_try_delete_session_cache(conn);
-                return S2N_FAILURE;
-            }
-            if (r == S2N_AGAIN) {
                 /* The peer might have sent an alert. Try and read it. */
-                if (s2n_stuffer_data_available(&conn->in)) {
+                if (s2n_errno == S2N_ERR_BLOCKED && s2n_stuffer_data_available(&conn->in)) {
                     if (handshake_read_io(conn) < 0 && s2n_errno == S2N_ERR_ALERT) {
                         /* handshake_read_io has set s2n_errno */
                         return S2N_FAILURE;
                     }
                 }
-                S2N_ERROR(S2N_ERR_BLOCKED);
+                return S2N_FAILURE;
             }
         } else if (ACTIVE_STATE(conn).writer == this) {
             *blocked = S2N_BLOCKED_ON_WRITE;
@@ -935,14 +928,10 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
         } else {
             *blocked = S2N_BLOCKED_ON_READ;
             int r = handshake_read_io(conn);
+
             if (r < 0) {
                 s2n_try_delete_session_cache(conn);
                 return S2N_FAILURE;
-            }
-
-            if (r == S2N_AGAIN) {
-                *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
-                S2N_ERROR(S2N_ERR_BLOCKED);
             }
         }
 

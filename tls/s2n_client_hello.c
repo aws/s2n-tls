@@ -304,9 +304,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     GUARD(s2n_set_signature_hash_pair_from_preference_list(conn, &conn->handshake_params.client_sig_hash_algs, &conn->secure.conn_hash_alg, &conn->secure.conn_sig_alg));
 
     /* Set the handshake type */
-    /* if return value is S2N_AGAIN, it means cache related callbacks are blocked on other
-     * events, we should immediately return here to block the state machine */
-    GUARD_RETRY(s2n_conn_set_handshake_type(conn));
+    GUARD(s2n_conn_set_handshake_type(conn));
 
     return 0;
 }
