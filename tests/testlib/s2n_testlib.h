@@ -35,6 +35,7 @@ extern int s2n_stuffer_write_uint64_hex(struct s2n_stuffer *stuffer, uint64_t u)
 extern int s2n_stuffer_alloc_ro_from_hex_string(struct s2n_stuffer *stuffer, const char *str);
 
 void s2n_print_connection(struct s2n_connection *conn, const char *marker);
+int s2n_connection_set_io_stuffers(struct s2n_stuffer *input, struct s2n_stuffer *output, struct s2n_connection *conn);
 
 #define S2N_MAX_TEST_PEM_SIZE 4096
 
