@@ -14,6 +14,8 @@
  */
 #include "crypto/s2n_fips.h"
 
+#include "error/s2n_errno.h"
+
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_client_extensions.h"
@@ -22,8 +24,8 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
+
 #include "openssl/opensslv.h"
-#include "error/s2n_errno.h"
 
 static void s2n_cleanup_atexit(void);
 
