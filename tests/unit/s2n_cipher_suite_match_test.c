@@ -462,14 +462,14 @@ int main(int argc, char **argv)
 
         /* Test that defaults are not overriden after failures to set new default certificates */
         EXPECT_FAILURE_WITH_ERRNO_NO_RESET(s2n_config_set_cert_chain_and_key_defaults(server_config, NULL, 0), S2N_ERR_NULL);
-        EXPECT_EQUAL(strcmp(s2n_strerror_name(s2n_errno, "EN"), "S2N_ERR_NULL"), 0);
+        EXPECT_EQUAL(strcmp(s2n_strerror_name(s2n_errno), "S2N_ERR_NULL"), 0);
         EXPECT_FAILURE_WITH_ERRNO_NO_RESET(s2n_config_set_cert_chain_and_key_defaults(server_config, &rsa_cert, 0),
                 S2N_ERR_NUM_DEFAULT_CERTIFICATES);
-        EXPECT_EQUAL(strcmp(s2n_strerror_name(s2n_errno, "EN"), "S2N_ERR_NUM_DEFAULT_CERTIFICATES"), 0);
+        EXPECT_EQUAL(strcmp(s2n_strerror_name(s2n_errno), "S2N_ERR_NUM_DEFAULT_CERTIFICATES"), 0);
         struct s2n_cert_chain_and_key *rsa_certs_list[] = { rsa_cert, rsa_cert };
         EXPECT_FAILURE_WITH_ERRNO_NO_RESET(s2n_config_set_cert_chain_and_key_defaults(server_config, rsa_certs_list, 2),
                 S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE);
-        EXPECT_EQUAL(strcmp(s2n_strerror_name(s2n_errno, "EN"), "S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE"), 0);
+        EXPECT_EQUAL(strcmp(s2n_strerror_name(s2n_errno), "S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE"), 0);
         /* Client sends RSA and ECDSA ciphers, server prioritizes RSA, ECDSA + RSA cert is configured.
          * RSA default certificate should be chosen. */
         {

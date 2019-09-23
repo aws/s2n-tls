@@ -218,16 +218,8 @@ const char *s2n_strerror(int error, const char *lang)
     return translation->str;
 }
 
-const char *s2n_strerror_name(int error, const char *lang)
+const char *s2n_strerror_name(int error)
 {
-    if (lang == NULL) {
-        lang = "EN";
-    }
-
-    if (strcasecmp(lang, "EN")) {
-        return no_such_language;
-    }
-
     struct s2n_error_translation *translation = s2n_lookup_error_translation(error);
     if (NULL == translation) {
         return no_such_error;
@@ -294,8 +286,10 @@ int s2n_error_table_init()
 
 void s2n_error_table_cleanup() 
 {
-    if (error_translation_table) {
-        s2n_map_free(error_translation_table);
-        error_translation_table = NULL;
+    if (NULL == error_translation_table) {
+        return;
     }
+
+    s2n_map_free(error_translation_table);
+    error_translation_table = NULL;
 }
