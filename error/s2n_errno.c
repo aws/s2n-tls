@@ -23,22 +23,22 @@
 #include "utils/s2n_map.h"
 #include "utils/s2n_safety.h"
 
+
 __thread int s2n_errno;
 __thread const char *s2n_debug_str;
 
 static const char *no_such_language = "Language is not supported for error translation";
 static const char *no_such_error = "Internal s2n error";
 
-typedef struct _s2n_error_translation {
+struct s2n_error_translation {
     int errno_value;
     const char *error_name;
     const char *str;
-}s2n_error_translation;
+};
 
-#define KEY_BASE 16
 #define ERROR_STRING(x, y) { (x) , (#x), (y) },
 
-s2n_error_translation S2N_ERROR_EN[] = {
+struct s2n_error_translation S2N_ERROR_EN[] = {
     ERROR_STRING(S2N_ERR_OK, "no error")
     ERROR_STRING(S2N_ERR_IO, "underlying I/O operation failed, check system errno")
     ERROR_STRING(S2N_ERR_BLOCKED, "underlying I/O operation would block")
@@ -183,7 +183,7 @@ typedef union {
     uintptr_t raw;
 } value_type;
 
-static s2n_error_translation *s2n_lookup_error_translation(int error)
+static struct s2n_error_translation *s2n_lookup_error_translation(int error)
 {
     struct s2n_blob k, v;
     key_type key = {0};
@@ -197,7 +197,7 @@ static s2n_error_translation *s2n_lookup_error_translation(int error)
     value_type address = {0};
     memcpy(address.bytes, v.data, v.size);
 
-    return (s2n_error_translation*)address.raw;
+    return (struct s2n_error_translation*)address.raw;
 }
 
 const char *s2n_strerror(int error, const char *lang)
@@ -210,7 +210,7 @@ const char *s2n_strerror(int error, const char *lang)
         return no_such_language;
     }
 
-    s2n_error_translation *translation = s2n_lookup_error_translation(error);
+    struct s2n_error_translation *translation = s2n_lookup_error_translation(error);
     if (NULL == translation) {
         return no_such_error;
     }
@@ -228,7 +228,7 @@ const char *s2n_strerror_name(int error, const char *lang)
         return no_such_language;
     }
 
-    s2n_error_translation *translation = s2n_lookup_error_translation(error);
+    struct s2n_error_translation *translation = s2n_lookup_error_translation(error);
     if (NULL == translation) {
         return no_such_error;
     }

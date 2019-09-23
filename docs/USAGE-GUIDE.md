@@ -383,8 +383,8 @@ failure. s2n functions that return pointer types return NULL in the case of
 failure. When an s2n function returns a failure, s2n_errno will be set to a value
 corresponding to the error. This error value can be translated into a string
 explaining the error in English by calling s2n_strerror(s2n_errno, "EN");
+A string containing human readable error name, can be generated with `s2n_strerror_name`
 A string containing internal debug information, including filename and line number, can be generated with `s2n_strerror_debug`
-error name can be obtained by calling s2n_strerror_name
 This string is useful to include when reporting issues to the s2n development team.
 
 Example:
