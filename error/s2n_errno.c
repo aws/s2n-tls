@@ -17,12 +17,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "error/s2n_errno.h"
 
 #include <s2n.h>
 #include "utils/s2n_map.h"
 #include "utils/s2n_safety.h"
-
 
 __thread int s2n_errno;
 __thread const char *s2n_debug_str;
