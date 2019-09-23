@@ -375,14 +375,16 @@ struct s2n_cert_public_key;
 ```
 const char *s2n_strerror(int error, const char *lang);
 const char *s2n_strerror_debug(int error, const char *lang);
+const char *s2n_strerror_name(int error);
 ````
 
 s2n functions that return 'int' return 0 to indicate success and -1 to indicate
 failure. s2n functions that return pointer types return NULL in the case of
 failure. When an s2n function returns a failure, s2n_errno will be set to a value
 corresponding to the error. This error value can be translated into a string
-explaining the error in English by calling s2n_strerror(s2n_errno, "EN");
-A string containing internal debug information, including filename and line number, can be generated with `s2n_strerror_debug`
+explaining the error in English by calling s2n_strerror(s2n_errno, "EN").
+A string containing human readable error name, can be generated with `s2n_strerror_name`.
+A string containing internal debug information, including filename and line number, can be generated with `s2n_strerror_debug`.
 This string is useful to include when reporting issues to the s2n development team.
 
 Example:
