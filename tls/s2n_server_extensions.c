@@ -201,6 +201,7 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
             if (s2n_is_tls13_enabled()) {
                 GUARD(s2n_extensions_server_supported_versions_recv(conn, &extension));
             }
+            break;
         case TLS_EXTENSION_KEY_SHARE:
             if (s2n_is_tls13_enabled()) {
                 GUARD(s2n_extensions_server_key_share_recv(conn, &extension));

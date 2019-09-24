@@ -51,7 +51,7 @@ int main(int argc, char **argv)
                 + COMPRESSION_METHOD_SIZE;
 
             EXPECT_SUCCESS(s2n_server_hello_send(conn));
-            S2N_STUFFER_WRITTEN_EXPECT_EQUAL(hello_stuffer, total);
+            S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, total);
         }
 
         EXPECT_SUCCESS(s2n_config_free(config));

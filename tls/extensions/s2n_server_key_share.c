@@ -18,12 +18,10 @@
 #include "tls/s2n_client_extensions.h"
 #include "utils/s2n_safety.h"
 
-static int s2n_extensions_server_key_share_send_check(struct s2n_connection *conn);
-
 /*
  * Check whether client has sent a corresponding curve and key_share
  */
-static int s2n_extensions_server_key_share_send_check(struct s2n_connection *conn)
+int s2n_extensions_server_key_share_send_check(struct s2n_connection *conn)
 {
     const struct s2n_ecc_named_curve *server_curve, *client_curve;
     server_curve = conn->secure.server_ecc_params.negotiated_curve;
@@ -101,8 +99,14 @@ int s2n_extensions_server_key_share_recv(struct s2n_connection *conn, struct s2n
 
     uint16_t named_group, share_size;
 
+    /* Make sure we can read the next 4 bytes */
+    S2N_ERROR_IF(s2n_stuffer_data_available(extension) < 4, S2N_ERR_BAD_KEY_SHARE);
+
     GUARD(s2n_stuffer_read_uint16(extension, &named_group));
     GUARD(s2n_stuffer_read_uint16(extension, &share_size));
+
+    /* and the remaining amount of bytes */
+    S2N_ERROR_IF(s2n_stuffer_data_available(extension) < share_size, S2N_ERR_BAD_KEY_SHARE);
 
     int supported_curve_index = -1;
     const struct s2n_ecc_named_curve *supported_curve = NULL;
