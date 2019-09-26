@@ -53,10 +53,6 @@
  * derive the input salt for the next phase.
  */
 
-#define S2N_BLOB_LABEL(name, str) \
-    static uint8_t name##_data[] = str;   \
-    const struct s2n_blob name = { .data = name##_data, .size = sizeof(name##_data) - 1 };
-
 /*
  * Define TLS 1.3 HKDF labels as specified in
  * https://tools.ietf.org/html/rfc8446#section-7.1
