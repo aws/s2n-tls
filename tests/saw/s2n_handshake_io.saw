@@ -92,9 +92,14 @@ crucible_ghost_value corked {{ 0 : [2] }};
 // structs into a Cryptol record. It also deserializes the ghost state.
 let setup_connection = do {
    pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
+   
    // we assume that corking/uncorking is managed by s2n
    let corked_io = {{1 : [8]}};
    crucible_points_to (conn_corked_io pconn) (crucible_term corked_io); 
+   
+   // this proof is only valid for the tls1.2 version of the handshake
+   let tls12_version = {{33 : [8]}};
+   crucible_points_to (crucible_field pconn "actual_protocol_version") (crucible_term tls12_version);
    
    mode <- crucible_fresh_var "mode" (llvm_int 32);
    crucible_points_to (conn_mode pconn) (crucible_term mode);
@@ -406,7 +411,6 @@ let s2n_handshake_io_lowlevel = do {
     print "s2n_decrypt_session_ticket";
     s2n_decrypt_session_ticket <- crucible_llvm_unsafe_assume_spec llvm "s2n_decrypt_session_ticket" s2n_decrypt_session_ticket_spec;
     let dependencies = [s2n_socket_write_uncork, s2n_socket_write_cork, s2n_socket_was_corked, s2n_connection_is_managed_corked, s2n_socket_quickack];
-
 
     print "Proving correctness of get_auth_type";
     auth_type_proof <- crucible_llvm_verify llvm "s2n_connection_get_client_auth_type" dependencies false s2n_connection_get_client_auth_type_spec (do {simplify (addsimp equalNat_ite basic_ss); yices;});

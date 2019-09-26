@@ -44,7 +44,11 @@ typedef enum {
     CLIENT_FINISHED,
     SERVER_CHANGE_CIPHER_SPEC,
     SERVER_FINISHED,
-    APPLICATION_DATA
+    APPLICATION_DATA,
+
+    /* TLS1.3 message types. Defined: https://tools.ietf.org/html/rfc8446#appendix-B.3 */
+    ENCRYPTED_EXTENSIONS,
+    SERVER_CERT_VERIFY,
 } message_type_t;
 
 struct s2n_handshake_parameters {
@@ -115,7 +119,7 @@ struct s2n_handshake {
 
     /* Handshake type is a bitset, with the following
        bit positions */
-    int handshake_type;
+    uint32_t handshake_type;
 
 /* Has the handshake been negotiated yet? */
 #define INITIAL                     0x00
@@ -128,7 +132,7 @@ struct s2n_handshake {
 #define IS_RESUMPTION_HANDSHAKE( type ) ( !IS_FULL_HANDSHAKE( (type) ) && IS_NEGOTIATED ( (type) ) )
 
 /* Handshake uses perfect forward secrecy */
-#define PERFECT_FORWARD_SECRECY     0x04
+#define TLS12_PERFECT_FORWARD_SECRECY 0x04
 
 /* Handshake needs OCSP status message */
 #define OCSP_STATUS                 0x08
@@ -150,8 +154,6 @@ struct s2n_handshake {
     /* Set to 1 if the RSA verification failed */
     uint8_t rsa_failed;
 };
-
-#define MAX_HANDSHAKE_TYPE_LEN 128
 
 extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
 extern int s2n_conn_set_handshake_type(struct s2n_connection *conn);
