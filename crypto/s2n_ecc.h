@@ -17,6 +17,7 @@
 
 #include <openssl/ec.h>
 
+#include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_kex_data.h"
 #include "stuffer/s2n_stuffer.h"
 #include "crypto/s2n_hash.h"
@@ -51,5 +52,6 @@ int s2n_ecc_parse_ecc_params(struct s2n_ecc_params *server_ecc_params, struct s2
 int s2n_ecc_parse_ecc_params_point(struct s2n_ecc_params *ecc_params, struct s2n_blob *point_blob);
 int s2n_ecc_compute_shared_secret_as_server(struct s2n_ecc_params *server_ecc_params, struct s2n_stuffer *Yc_in, struct s2n_blob *shared_key);
 int s2n_ecc_compute_shared_secret_as_client(struct s2n_ecc_params *server_ecc_params, struct s2n_stuffer *Yc_out, struct s2n_blob *shared_key);
+int s2n_ecc_compute_shared_secret_from_params(struct s2n_ecc_params *private_ecc_params, struct s2n_ecc_params *public_ecc_params, struct s2n_blob *shared_key);
 int s2n_ecc_find_supported_curve(struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **found);
 int s2n_ecc_params_free(struct s2n_ecc_params *server_ecc_params);
