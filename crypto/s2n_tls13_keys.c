@@ -164,6 +164,7 @@ int s2n_tls13_derive_handshake_secrets(struct s2n_tls13_keys *keys,
 
     /* copy the hash */
     struct s2n_hash_state hkdf_hash_copy;
+    GUARD(s2n_hash_new(&hkdf_hash_copy));
     GUARD(s2n_hash_copy(&hkdf_hash_copy, client_server_hello_hash));
     s2n_hash_digest(&hkdf_hash_copy, message_digest.data, message_digest.size);
     s2n_hash_free(&hkdf_hash_copy);
@@ -199,6 +200,7 @@ int s2n_tls13_derive_application_secrets(struct s2n_tls13_keys *keys, struct s2n
 
     /* copy the hash */
     struct s2n_hash_state hkdf_hash_copy;
+    GUARD(s2n_hash_new(&hkdf_hash_copy));
     GUARD(s2n_hash_copy(&hkdf_hash_copy, hashes));
     GUARD(s2n_hash_digest(&hkdf_hash_copy, message_digest.data, message_digest.size));
 

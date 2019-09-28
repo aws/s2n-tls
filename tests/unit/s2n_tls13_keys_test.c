@@ -86,6 +86,7 @@ int main(int argc, char **argv)
     s2n_tls13_key_blob(server_handshake_secret, secrets.size);
 
     struct s2n_hash_state hash_state_copy;
+    EXPECT_SUCCESS(s2n_hash_new(&hash_state_copy));
     EXPECT_SUCCESS(s2n_hash_copy(&hash_state_copy, &hash_state));
 
     /* Derive Handshake Secrets */
