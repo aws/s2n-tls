@@ -185,6 +185,22 @@ typedef union {
 
 static struct s2n_error_translation *s2n_lookup_error_translation(int error)
 {
+    if (error_translation_table == NULL) {
+        /* Since error_translation_table should be initialized early
+         * in s2n_init(), error_translation_table can be only be NULL if
+         * 1. an error is thrown before i.e. s2n_fips_init()
+         * 2. s2n_error_table_init() fails when allocating memory
+         *
+         * In these cases, fall back to O(N) approach of iterating error strings
+         */
+        for (int i = 0; i < num_of_errors; ++i) {
+            if (S2N_ERROR_EN[i].errno_value == error) {
+                return &S2N_ERROR_EN[i];
+            }
+        }
+        return NULL;
+    }
+
     struct s2n_blob k, v;
     key_type key = {0};
     key.raw = error;
@@ -197,7 +213,7 @@ static struct s2n_error_translation *s2n_lookup_error_translation(int error)
     value_type address = {0};
     memcpy(address.bytes, v.data, v.size);
 
-    return (struct s2n_error_translation*)address.raw;
+    return (struct s2n_error_translation*) address.raw;
 }
 
 const char *s2n_strerror(int error, const char *lang)
