@@ -36,9 +36,9 @@ unsigned long s2n_get_openssl_version(void)
 
 int s2n_init(void)
 {
-    GUARD(s2n_error_table_init()); /* initalize error table first so error look up is possible */
     GUARD(s2n_fips_init());
     GUARD(s2n_mem_init());
+    GUARD(s2n_error_table_init());
     GUARD(s2n_rand_init());
     GUARD(s2n_cipher_suites_init());
     GUARD(s2n_cipher_preferences_init());
