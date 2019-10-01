@@ -128,9 +128,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(memcmp(secret_buf, expected_secret, sizeof(secret_buf)), 0);
 
     /* Validate the derived secret */
-    uint8_t label_buf[] = "derived";
-    struct s2n_blob label = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&label, label_buf, sizeof(label_buf) - 1));
+    S2N_BLOB_LABEL(label, "derived");
 
     struct s2n_hmac_state hmac = {0};
 
