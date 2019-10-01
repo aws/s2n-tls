@@ -27,9 +27,12 @@ struct s2n_tls13_keys {
 
     uint8_t size;
 
-    struct s2n_blob current_secret;
+    /* we only need to keep these 2 rolling secrets at any point,
+     * since other secrets to be used can be generated from these
+     */
+    struct s2n_blob extract_secret;
     struct s2n_blob derive_secret;
-    uint8_t current_secret_bytes[S2N_TLS13_SECRET_MAX_LEN];
+    uint8_t extract_secret_bytes[S2N_TLS13_SECRET_MAX_LEN];
     uint8_t derive_secret_bytes[S2N_TLS13_SECRET_MAX_LEN];
 
     struct s2n_hmac_state hmac;

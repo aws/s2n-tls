@@ -73,7 +73,7 @@ int main(int argc, char **argv)
     /* Derive Early Secrets */
     EXPECT_SUCCESS(s2n_tls13_derive_early_secrets(&secrets));
 
-    S2N_BLOB_EXPECT_EQUAL(secrets.current_secret, expected_early_secret);
+    S2N_BLOB_EXPECT_EQUAL(secrets.extract_secret, expected_early_secret);
     S2N_BLOB_EXPECT_EQUAL(secrets.derive_secret, expect_derived_handshake_secret);
 
     struct s2n_hash_state hash_state;
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
     s2n_tls13_key_blob(server_application_secret, secrets.size);
 
     EXPECT_SUCCESS(s2n_tls13_derive_application_secrets(&secrets, &hash_state, &client_application_secret, &server_application_secret));
-    S2N_BLOB_EXPECT_EQUAL(expect_extract_master_secret, secrets.current_secret);
+    S2N_BLOB_EXPECT_EQUAL(expect_extract_master_secret, secrets.extract_secret);
 
     /* Test Traffic Keys */
 

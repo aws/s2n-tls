@@ -111,7 +111,7 @@ int s2n_tls13_keys_init(struct s2n_tls13_keys *handshake, s2n_hmac_algorithm alg
     handshake->hmac_algorithm = alg;
     GUARD(s2n_hmac_hash_alg(alg, &handshake->hash_algorithm));
     GUARD(s2n_hash_digest_size(handshake->hash_algorithm, &handshake->size));
-    GUARD(s2n_blob_init(&handshake->current_secret, handshake->current_secret_bytes, handshake->size));
+    GUARD(s2n_blob_init(&handshake->extract_secret, handshake->extract_secret_bytes, handshake->size));
     GUARD(s2n_blob_init(&handshake->derive_secret, handshake->derive_secret_bytes, handshake->size));
     GUARD(s2n_hmac_new(&handshake->hmac));
 
@@ -125,18 +125,17 @@ int s2n_tls13_derive_early_secrets(struct s2n_tls13_keys *keys)
 {
     notnull_check(keys);
 
-    s2n_tls13_key_blob(empty_salt_blob, 0);
-    s2n_tls13_key_blob(psk_ikm, keys->size);
+    s2n_tls13_key_blob(psk_ikm, keys->size); /* in 1-RTT, PSK is 0-filled of key length */
 
     /* Early Secret */
-    GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, &empty_salt_blob, &psk_ikm, &keys->current_secret));
+    GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, &zero_length_blob, &psk_ikm, &keys->extract_secret));
 
     /* binder, client_early_traffic_secret, early_exporter_master_secret can be derived here */
 
     /* derive next secret */
     s2n_tls13_key_blob(message_digest, keys->size);
     GUARD(s2n_tls13_transcript_message_hash(keys, &zero_length_blob, &message_digest));
-    GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->current_secret,
+    GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
         &s2n_tls13_label_derived_secret, &message_digest, &keys->derive_secret));
 
     return 0;
@@ -158,7 +157,7 @@ int s2n_tls13_derive_handshake_secrets(struct s2n_tls13_keys *keys,
     notnull_check(server_secret);
 
     /* Handshake Secret */
-    GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, &keys->derive_secret, ecdhe, &keys->current_secret));
+    GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, &keys->derive_secret, ecdhe, &keys->extract_secret));
 
     s2n_tls13_key_blob(message_digest, keys->size);
 
@@ -170,14 +169,14 @@ int s2n_tls13_derive_handshake_secrets(struct s2n_tls13_keys *keys,
     s2n_hash_free(&hkdf_hash_copy);
 
     /* produce client + server traffic secrets */
-    GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->current_secret,
+    GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
         &s2n_tls13_label_client_handshake_traffic_secret, &message_digest, client_secret));
-    GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->current_secret,
+    GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
         &s2n_tls13_label_server_handshake_traffic_secret, &message_digest, server_secret));
 
     /* derive next secret */
     GUARD(s2n_tls13_transcript_message_hash(keys, &zero_length_blob, &message_digest));
-    GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->current_secret,
+    GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
         &s2n_tls13_label_derived_secret, &message_digest, &keys->derive_secret));
 
     return 0;
@@ -194,7 +193,7 @@ int s2n_tls13_derive_application_secrets(struct s2n_tls13_keys *keys, struct s2n
     notnull_check(server_secret);
 
     s2n_tls13_key_blob(empty_key, keys->size);
-    GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, &keys->derive_secret, &empty_key, &keys->current_secret));
+    GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, &keys->derive_secret, &empty_key, &keys->extract_secret));
 
     s2n_tls13_key_blob(message_digest, keys->size);
 
@@ -207,9 +206,9 @@ int s2n_tls13_derive_application_secrets(struct s2n_tls13_keys *keys, struct s2n
     GUARD(s2n_hash_free(&hkdf_hash_copy));
 
     /* produce client + server traffic secrets */
-    GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->current_secret,
+    GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
         &s2n_tls13_label_client_application_traffic_secret, &message_digest, client_secret));
-    GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->current_secret,
+    GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
         &s2n_tls13_label_server_application_traffic_secret, &message_digest, server_secret));
 
     /* exporter and resumption master secrets can be derived here */
