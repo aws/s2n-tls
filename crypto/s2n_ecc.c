@@ -212,6 +212,15 @@ int s2n_ecc_compute_shared_secret_as_client(struct s2n_ecc_params *server_ecc_pa
     return 0;
 }
 
+/* Writes a shared key using a public key with a private key pair */
+int s2n_ecc_compute_shared_secret_from_params(struct s2n_ecc_params *private_ecc_params, struct s2n_ecc_params *public_ecc_params, struct s2n_blob *shared_key)
+{
+    const EC_POINT *public_ec_point;
+    notnull_check(public_ec_point = EC_KEY_get0_public_key(public_ecc_params->ec_key));
+    GUARD(s2n_ecc_compute_shared_secret(private_ecc_params->ec_key, public_ec_point, shared_key));
+    return 0;
+}
+
 int s2n_ecc_params_free(struct s2n_ecc_params *server_ecc_params)
 {
     if (server_ecc_params->ec_key != NULL) {

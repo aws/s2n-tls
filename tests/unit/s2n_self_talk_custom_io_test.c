@@ -33,56 +33,6 @@
 
 #define MAX_BUF_SIZE 10000
 
-int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
-{
-    struct s2n_stuffer *in_buf;
-    int n_read, n_avail;
-    
-    if (buf == NULL) {
-        return 0;
-    }
-
-    in_buf = (struct s2n_stuffer *) io_context;
-    if (in_buf == NULL) {
-        errno = EINVAL;
-        return -1;
-    }
-   
-    /* read the number of bytes requested or less if it isn't available */
-    n_avail = s2n_stuffer_data_available(in_buf);
-    n_read = (len < n_avail) ? len : n_avail;
-
-    if (n_read == 0) {
-        errno = EAGAIN;
-        return -1;
-    }
-
-    s2n_stuffer_read_bytes(in_buf, buf, n_read);
-    return n_read;
-}
-
-int buffer_write(void *io_context, const uint8_t *buf, uint32_t len)
-{
-    struct s2n_stuffer *out;
-
-    if (buf == NULL) {
-        return 0;
-    }
-    
-    out = (struct s2n_stuffer *) io_context;
-    if (out == NULL) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    if (s2n_stuffer_write_bytes(out, buf, len) < 0) {
-        errno = EAGAIN;
-        return -1;
-    }
-
-    return len;
-}
-
 int mock_client(int writefd, int readfd)
 {
     struct s2n_connection *conn;
@@ -185,11 +135,7 @@ int main(int argc, char **argv)
     /* Set up our I/O callbacks. Use stuffers for the "I/O context" */
     EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
     EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
-
-    EXPECT_SUCCESS(s2n_connection_set_recv_cb(conn, &buffer_read));
-    EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, &buffer_write));
-    EXPECT_SUCCESS(s2n_connection_set_recv_ctx(conn, &in));
-    EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, &out));
+    EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&in, &out, conn));
     
     /* Make our pipes non-blocking */
     EXPECT_NOT_EQUAL(fcntl(client_to_server[0], F_SETFL, fcntl(client_to_server[0], F_GETFL) | O_NONBLOCK), -1);

@@ -71,7 +71,13 @@ mark_as_advanced(
     LibCrypto_STATIC_LIBRARY
     )
 
-if(LibCrypto_FOUND)
+# some versions of cmake have a super esoteric bug around capitalization differences between
+# find dependency and find package, just avoid that here by checking and
+# setting both.
+if(LIBCRYPTO_FOUND OR LibCrypto_FOUND)
+    set(LIBCRYPTO_FOUND true)
+    set(LibCrypto_FOUND true)
+
     message(STATUS "LibCrypto Include Dir: ${LibCrypto_INCLUDE_DIR}")
     message(STATUS "LibCrypto Shared Lib:  ${LibCrypto_SHARED_LIBRARY}")
     message(STATUS "LibCrypto Static Lib:  ${LibCrypto_STATIC_LIBRARY}")

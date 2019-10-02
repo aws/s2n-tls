@@ -179,6 +179,7 @@ typedef enum {
     S2N_ERR_INVALID_DYNAMIC_THRESHOLD,
     S2N_ERR_INVALID_ARGUMENT,
     S2N_ERR_NOT_IN_UNIT_TEST,
+    S2N_ERR_BAD_KEY_SHARE,
 } s2n_error;
 
 #define S2N_DEBUG_STR_LEN 128
@@ -194,3 +195,6 @@ extern __thread const char *s2n_debug_str;
 #define S2N_ERROR_PTR( x )  do { _S2N_ERROR( ( x ) ); return NULL; } while (0)
 #define S2N_ERROR_IF( cond , x ) do { if ( cond ) { S2N_ERROR( x ); }} while (0)
 #define S2N_ERROR_IF_PTR( cond , x ) do { if ( cond ) { S2N_ERROR_PTR( x ); }} while (0)
+
+extern int s2n_error_table_init();
+extern void s2n_error_table_cleanup();

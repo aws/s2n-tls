@@ -1,5 +1,5 @@
 /***************************************************************************
-* Additional implementation of "BIKE: Bit Flipping Key Encapsulation". 
+* Additional implementation of "BIKE: Bit Flipping Key Encapsulation".
 * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 *
 * Written by Nir Drucker and Shay Gueron
@@ -83,8 +83,8 @@ _INLINE_ uint32_t secure_cmp32(IN const uint32_t v1, IN const uint32_t v2)
 {
 #if defined(__aarch64__)
     uint32_t res;
-    __asm__ __volatile__("cmp  %1, %2; \n "
-                         "cset %0, EQ; \n"
+    __asm__ __volatile__("cmp  %w1, %w2; \n "
+                         "cset %w0, EQ; \n"
                          : "=r" (res)
                          : "r"(v1), "r"(v2)
                          :);
@@ -104,7 +104,7 @@ _INLINE_ uint32_t secure_cmp32(IN const uint32_t v1, IN const uint32_t v2)
     // branches and thus to prevent potential side channel attacks. To do that
     // we normally leverage some CPU special instructions such as "sete"
     // (for __x86_64__) and "cset" (for __aarch64__). When dealing with general
-    // CPU architectures, the interpretation of the line below is left for the 
+    // CPU architectures, the interpretation of the line below is left for the
     // compiler, which may lead to an insecure branch.
     return (v1 == v2 ? 1 : 0);
 #endif
@@ -113,11 +113,10 @@ _INLINE_ uint32_t secure_cmp32(IN const uint32_t v1, IN const uint32_t v2)
 // Return 0 if v1 < v2, (-1) otherwise
 _INLINE_ uint32_t secure_l32_mask(IN const uint32_t v1, IN const uint32_t v2)
 {
-    
 #if defined(__aarch64__)
     uint32_t res;
-    __asm__ __volatile__("cmp  %1, %2; \n "
-                         "cset %0, LS; \n"
+    __asm__ __volatile__("cmp  %w1, %w2; \n "
+                         "cset %w0, LS; \n"
                          : "=r" (res)
                          : "r"(v1), "r"(v2)
                          :);
@@ -129,15 +128,13 @@ _INLINE_ uint32_t secure_l32_mask(IN const uint32_t v1, IN const uint32_t v2)
                          "setl %%dl; \n"
                          "dec %%edx; \n"
                          "mov %%edx, %0; \n"
-                         
                          : "=r" (res)
                          : "r"(v2), "r"(v1)
                          : "rdx");
-    
     return res;
 #else
     // If v1 >= v2 then the subtraction result is 0^32||(v1-v2)
-    // else it will be 1^32||(v2-v1+1). Subsequently, negating the upper 
+    // else it will be 1^32||(v2-v1+1). Subsequently, negating the upper
     // 32 bits gives 0 if v1 < v2 and otherwise (-1).
     return ~((uint32_t)(((uint64_t)v1 - (uint64_t)v2) >> 32));
 #endif

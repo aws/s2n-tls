@@ -85,10 +85,13 @@
 #define EXPECT_NOT_NULL( ptr )  EXPECT_NOT_EQUAL( ptr, NULL )
 
 #define EXPECT_FAILURE( function_call )  do { EXPECT_EQUAL( (function_call) ,  -1 ); EXPECT_NOT_EQUAL(s2n_errno, 0); EXPECT_NOT_NULL(s2n_debug_str); s2n_errno = 0; s2n_debug_str = NULL; } while(0)
-#define EXPECT_FAILURE_WITH_ERRNO( function_call, err ) do { EXPECT_EQUAL( (function_call), -1 ); EXPECT_EQUAL(s2n_errno, err); EXPECT_NOT_NULL(s2n_debug_str); s2n_errno = 0; s2n_debug_str = NULL; } while(0)
+#define EXPECT_FAILURE_WITH_ERRNO_NO_RESET( function_call, err ) do { EXPECT_EQUAL( (function_call), -1 ); EXPECT_EQUAL(s2n_errno, err); EXPECT_NOT_NULL(s2n_debug_str);} while(0)
+#define EXPECT_FAILURE_WITH_ERRNO( function_call, err ) do { EXPECT_FAILURE_WITH_ERRNO_NO_RESET( function_call, err ); s2n_errno = 0; s2n_debug_str = NULL; } while(0)
 #define EXPECT_SUCCESS( function_call )  EXPECT_NOT_EQUAL( (function_call) ,  -1 )
 
 #define EXPECT_BYTEARRAY_EQUAL( p1, p2, l ) EXPECT_EQUAL( memcmp( (p1), (p2), (l) ), 0 )
+#define EXPECT_BYTEARRAY_NOT_EQUAL( p1, p2, l ) EXPECT_NOT_EQUAL( memcmp( (p1), (p2), (l) ), 0 )
+
 #define EXPECT_STRING_EQUAL( p1, p2 ) EXPECT_EQUAL( strcmp( (p1), (p2) ), 0 )
 
 #define S2N_TEST_ENTER_FIPS_MODE()    { if (FIPS_mode_set(1) == 0) { \

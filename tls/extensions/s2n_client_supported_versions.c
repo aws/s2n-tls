@@ -17,6 +17,7 @@
 #include <stdint.h>
 
 #include "tls/extensions/s2n_client_supported_versions.h"
+#include "tls/extensions/s2n_supported_versions.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_tls.h"
@@ -43,17 +44,9 @@
  * is already an assumption made in the old client hello version handling.
  **/
 
-static uint8_t get_minimum_supported_version(struct s2n_connection *conn) {
-    const struct s2n_cipher_preferences *cipher_preferences;
-    if (s2n_connection_get_cipher_preferences(conn, &cipher_preferences) < 0) {
-        return S2N_TLS13;
-    }
-
-    return cipher_preferences->minimum_protocol_version;
-}
-
 int s2n_extensions_client_supported_versions_size(struct s2n_connection *conn) {
-    uint8_t minimum_supported_version = get_minimum_supported_version(conn);
+    uint8_t minimum_supported_version;
+    GUARD(s2n_connection_get_minimum_supported_version(conn, &minimum_supported_version));
     uint8_t highest_supported_version = conn->client_protocol_version;
 
     uint8_t version_list_length = highest_supported_version - minimum_supported_version + 1;
@@ -63,7 +56,8 @@ int s2n_extensions_client_supported_versions_size(struct s2n_connection *conn) {
 
 int s2n_extensions_client_supported_versions_process(struct s2n_connection *conn, struct s2n_stuffer *extension) {
     uint8_t highest_supported_version = conn->server_protocol_version;
-    uint8_t minimum_supported_version = get_minimum_supported_version(conn);
+    uint8_t minimum_supported_version;
+    GUARD(s2n_connection_get_minimum_supported_version(conn, &minimum_supported_version));
 
     uint8_t size_of_version_list;
     GUARD(s2n_stuffer_read_uint8(extension, &size_of_version_list));
@@ -109,7 +103,8 @@ int s2n_extensions_client_supported_versions_recv(struct s2n_connection *conn, s
 
 int s2n_extensions_client_supported_versions_send(struct s2n_connection *conn, struct s2n_stuffer *out) {
     uint8_t highest_supported_version = conn->client_protocol_version;
-    uint8_t minimum_supported_version = get_minimum_supported_version(conn);
+    uint8_t minimum_supported_version;
+    GUARD(s2n_connection_get_minimum_supported_version(conn, &minimum_supported_version));
 
     int extension_length = s2n_extensions_client_supported_versions_size(conn);
 

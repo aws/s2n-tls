@@ -21,13 +21,18 @@
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls13.h"
 #include "tls/s2n_kex.h"
 #include "tls/s2n_cipher_suites.h"
+
+#include "extensions/s2n_server_supported_versions.h"
 
 #include "stuffer/s2n_stuffer.h"
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
+
+#include "tls/extensions/s2n_server_key_share.h"
 
 static int s2n_recv_server_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_recv_server_renegotiation_info_ext(struct s2n_connection *conn, struct s2n_stuffer *extension);
@@ -72,11 +77,21 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         total_size += 4;
     }
 
+    if (conn->actual_protocol_version >= S2N_TLS13) {
+        total_size += s2n_extensions_server_supported_versions_size();
+        total_size += s2n_extensions_server_key_share_send_size(conn);
+    }
+
     if (total_size == 0) {
         return 0;
     }
 
     GUARD(s2n_stuffer_write_uint16(out, total_size));
+
+    /* Write supported versions extension if TLS 1.3 or greater */
+    if (conn->actual_protocol_version >= S2N_TLS13) {
+        GUARD(s2n_extensions_server_supported_versions_send(conn, out));
+    }
 
     /* Write server name extension */
     if (s2n_server_can_send_server_name(conn)) {
@@ -130,6 +145,11 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint16(out, 0));
     }
 
+    /* Write key share extension */
+    if (conn->actual_protocol_version >= S2N_TLS13) {
+        GUARD(s2n_extensions_server_key_share_send(conn, out));
+    }
+
     return 0;
 }
 
@@ -176,6 +196,16 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
             break;
         case TLS_EXTENSION_SESSION_TICKET:
             GUARD(s2n_recv_server_session_ticket_ext(conn, &extension));
+            break;
+        case TLS_EXTENSION_SUPPORTED_VERSIONS:
+            if (s2n_is_tls13_enabled()) {
+                GUARD(s2n_extensions_server_supported_versions_recv(conn, &extension));
+            }
+            break;
+        case TLS_EXTENSION_KEY_SHARE:
+            if (s2n_is_tls13_enabled()) {
+                GUARD(s2n_extensions_server_key_share_recv(conn, &extension));
+            }
             break;
         }
     }
