@@ -100,7 +100,7 @@ int mock_client_iov(int writefd, int readfd, struct iovec *iov, uint32_t iov_siz
     for (i = 0; i < iov_size; i++) {
         total_size += iov[i].iov_len;
     }
-    uint8_t *buffer = malloc(total_size);
+    uint8_t *buffer = malloc(total_size + iov[0].iov_len);
     int buffer_offs = 0;
 
     /* Give the server a chance to listen */
@@ -129,6 +129,16 @@ int mock_client_iov(int writefd, int readfd, struct iovec *iov, uint32_t iov_siz
         buffer_offs += r;
     }
 
+    remaining = iov[0].iov_len;
+    while(remaining) {
+        int r = s2n_recv(client_conn, &buffer[buffer_offs], remaining, &blocked);
+        if (r < 0) {
+            continue;
+        }
+        remaining -= r;
+        buffer_offs += r;
+    }
+
     int shutdown_rc= -1;
     do {
         shutdown_rc = s2n_shutdown(client_conn, &blocked);
@@ -139,6 +149,10 @@ int mock_client_iov(int writefd, int readfd, struct iovec *iov, uint32_t iov_siz
             return 1;
         }
         buffer_offs += iov[i].iov_len;
+    }
+
+    if (memcmp(iov[0].iov_base, &buffer[buffer_offs], iov[0].iov_len)) {
+       return 1;
     }
 
     free(buffer);
@@ -243,7 +257,7 @@ int test_send(int use_iov)
     uint32_t iov_offs = 0;
     while (remaining) {
         int r = !use_iov ? s2n_send(conn, ptr, remaining, &blocked) :
-            s2n_sendv2(conn, iov, iov_size, iov_offs, &blocked);
+            s2n_sendv_with_offs(conn, iov, iov_size, iov_offs, &blocked);
         if (r < 0) {
             if (blocked) {
                 /* We reached a blocked state and made no forward progress last call */
@@ -274,7 +288,7 @@ int test_send(int use_iov)
     /* Actually send the remaining data */
     while (remaining) {
         int r = !use_iov ? s2n_send(conn, ptr, remaining, &blocked) :
-            s2n_sendv2(conn, iov, iov_size, iov_offs, &blocked);
+            s2n_sendv_with_offs(conn, iov, iov_size, iov_offs, &blocked);
         if (r < 0) {
             continue;
         }
@@ -285,6 +299,11 @@ int test_send(int use_iov)
         } else {
             iov_offs += r;
         }
+    }
+
+    if (use_iov) {
+       int r = s2n_sendv(conn, iov, 1, &blocked);
+        EXPECT_TRUE(r > 0);
     }
 
     EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
