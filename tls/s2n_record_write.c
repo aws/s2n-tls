@@ -110,6 +110,11 @@ int s2n_record_write_protocol_version(struct s2n_connection *conn)
         record_protocol_version = MIN(record_protocol_version, S2N_TLS10);
     }
 
+    /* In accordance to TLS 1.3 spec, https://tools.ietf.org/html/rfc8446#section-5.1
+     * tls record version should never be greater than 33 (legacy TLS 1.2 version).
+     */
+    record_protocol_version = MIN(record_protocol_version, S2N_TLS12);
+
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
     protocol_version[0] = record_protocol_version / 10;
     protocol_version[1] = record_protocol_version % 10;

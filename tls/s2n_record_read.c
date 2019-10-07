@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/param.h>
+
 #include "crypto/s2n_sequence.h"
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_hmac.h"
@@ -77,7 +79,9 @@ int s2n_record_header_parse(
      * match the negotiated version.
      */
 
-    S2N_ERROR_IF(conn->actual_protocol_version_established && conn->actual_protocol_version != version, S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(conn->actual_protocol_version_established &&
+        MIN(conn->actual_protocol_version, S2N_TLS12) /* check against legacy record version (1.2) in tls 1.3 */
+        != version, S2N_ERR_BAD_MESSAGE);
     GUARD(s2n_stuffer_read_uint16(in, fragment_length));
 
     /* Some servers send fragments that are above the maximum length.  (e.g.
