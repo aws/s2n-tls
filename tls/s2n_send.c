@@ -86,7 +86,7 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status * blocked)
     return 0;
 }
 
-ssize_t s2n_sendv_with_offs(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, ssize_t offs, s2n_blocked_status *blocked)
+ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, ssize_t offs, s2n_blocked_status *blocked)
 {
     ssize_t user_data_sent, total_size = 0;
     int max_payload_size;
@@ -200,7 +200,7 @@ ssize_t s2n_sendv_with_offs(struct s2n_connection *conn, const struct iovec *buf
 
 ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, s2n_blocked_status *blocked)
 {
-    return s2n_sendv_with_offs(conn, bufs, count, 0, blocked);
+    return s2n_sendv_with_offset(conn, bufs, count, 0, blocked);
 }
 
 ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ssize_t size, s2n_blocked_status *blocked)
@@ -208,5 +208,5 @@ ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ssize_t size, s2n
     struct iovec iov;
     iov.iov_base = (void*)(uintptr_t)buf;
     iov.iov_len = size;
-    return s2n_sendv_with_offs(conn, &iov, 1, 0, blocked);
+    return s2n_sendv_with_offset(conn, &iov, 1, 0, blocked);
 }

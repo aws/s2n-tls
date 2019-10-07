@@ -257,7 +257,7 @@ int test_send(int use_iov)
     uint32_t iov_offs = 0;
     while (remaining) {
         int r = !use_iov ? s2n_send(conn, ptr, remaining, &blocked) :
-            s2n_sendv_with_offs(conn, iov, iov_size, iov_offs, &blocked);
+            s2n_sendv_with_offset(conn, iov, iov_size, iov_offs, &blocked);
         if (r < 0) {
             if (blocked) {
                 /* We reached a blocked state and made no forward progress last call */
@@ -288,7 +288,7 @@ int test_send(int use_iov)
     /* Actually send the remaining data */
     while (remaining) {
         int r = !use_iov ? s2n_send(conn, ptr, remaining, &blocked) :
-            s2n_sendv_with_offs(conn, iov, iov_size, iov_offs, &blocked);
+            s2n_sendv_with_offset(conn, iov, iov_size, iov_offs, &blocked);
         if (r < 0) {
             continue;
         }
