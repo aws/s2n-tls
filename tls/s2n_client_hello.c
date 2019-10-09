@@ -173,10 +173,6 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     GUARD(s2n_stuffer_read_uint8(in, &conn->session_id_len));
 
     conn->client_protocol_version = (client_protocol_version[0] * 10) + client_protocol_version[1];
-    if (conn->client_protocol_version > conn->server_protocol_version) {
-        GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
     conn->client_hello_version = conn->client_protocol_version;
     /* Protocol version in the ClientHello is fixed at 0x0303(TLS 1.2) for
      * future versions of TLS. Still, we will negotiate down if a client sends
