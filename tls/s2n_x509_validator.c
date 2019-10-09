@@ -213,6 +213,11 @@ static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator,
             size_t name_len = (size_t) ASN1_STRING_length(current_name->d.ia5);
 
             verified = conn->verify_host_fn(name, name_len, conn->data_for_verify_host);
+        } else if (current_name->type == GEN_URI) {
+            const char *name = (const char *) ASN1_STRING_data(current_name->d.ia5);
+            size_t name_len = (size_t) ASN1_STRING_length(current_name->d.ia5);
+
+            verified = conn->verify_host_fn(name, name_len, conn->data_for_verify_host);
         } else if (current_name->type == GEN_IPADD) {
             san_found = 1;
             /* try to validate an IP address if it's in the subject alt name. */
@@ -240,7 +245,7 @@ static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator,
     GENERAL_NAMES_free(names_list);
 
     /* if no SubjectAltNames of type DNS found, go to the common name. */
-    if (!san_found) {
+    if (!verified && !san_found) {
         X509_NAME *subject_name = X509_get_subject_name(public_cert);
         if (subject_name) {
             int next_idx = 0, curr_idx = -1;
