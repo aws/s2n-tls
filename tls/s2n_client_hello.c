@@ -173,6 +173,10 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     GUARD(s2n_stuffer_read_uint8(in, &conn->session_id_len));
 
     conn->client_protocol_version = (client_protocol_version[0] * 10) + client_protocol_version[1];
+    if (conn->client_protocol_version > conn->server_protocol_version) {
+        GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
+        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+    }
     conn->client_hello_version = conn->client_protocol_version;
     /* Protocol version in the ClientHello is fixed at 0x0303(TLS 1.2) for
      * future versions of TLS. Still, we will negotiate down if a client sends
@@ -274,7 +278,19 @@ static int s2n_populate_client_hello_extensions(struct s2n_client_hello *ch)
 
     return 0;
 }
+int s2n_handshake_status_handler(struct s2n_connection *conn)
+{
+    /* Set the handshake type */
+    GUARD(s2n_conn_set_handshake_type(conn));
 
+    if(conn->client_hello_version != S2N_SSLv2)
+    {
+        /* We've selected the parameters for the handshake, update the required hashes for this connection */
+        GUARD(s2n_conn_update_required_handshake_hashes(conn));
+    }
+
+    return 0;
+}
 int s2n_process_client_hello(struct s2n_connection *conn)
 {
     /* Client hello is parsed and config is finalized.
@@ -303,9 +319,6 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     /* And set the signature and hash algorithm used for key exchange signatures */
     GUARD(s2n_set_signature_hash_pair_from_preference_list(conn, &conn->handshake_params.client_sig_hash_algs, &conn->secure.conn_hash_alg, &conn->secure.conn_sig_alg));
 
-    /* Set the handshake type */
-    GUARD(s2n_conn_set_handshake_type(conn));
-
     return 0;
 }
 
@@ -330,7 +343,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
             conn->server_name_used = 1;
         }
     }
-
+    GUARD(s2n_process_client_hello(conn));
     return 0;
 }
 
@@ -467,8 +480,6 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     b.size -= S2N_TLS_RANDOM_DATA_LEN - challenge_length;
 
     GUARD(s2n_stuffer_read(in, &b));
-
-    GUARD(s2n_conn_set_handshake_type(conn));
 
     return 0;
 }

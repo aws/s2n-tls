@@ -74,7 +74,7 @@ static int s2n_handshake_dummy_handler(struct s2n_connection *conn) {
 static struct s2n_handshake_action state_machine[] = {
     /* message_type_t           = {Record type   Message type     Writer S2N_SERVER                S2N_CLIENT }  */
     [CLIENT_HELLO]              = {TLS_HANDSHAKE, TLS_CLIENT_HELLO, 'C', {s2n_client_hello_recv, s2n_client_hello_send}}, 
-    [SERVER_SESSION_LOOKUP]     = {TLS_HANDSHAKE, TLS_SERVER_SESSION_LOOKUP, 'A', {s2n_process_client_hello, s2n_handshake_dummy_handler}}, 
+    [SERVER_SESSION_LOOKUP]     = {TLS_HANDSHAKE, TLS_SERVER_SESSION_LOOKUP, 'A', {s2n_handshake_status_handler, s2n_handshake_dummy_handler}}, 
     [SERVER_HELLO]              = {TLS_HANDSHAKE, TLS_SERVER_HELLO, 'S', {s2n_server_hello_send, s2n_server_hello_recv}},
     [SERVER_NEW_SESSION_TICKET] = {TLS_HANDSHAKE, TLS_SERVER_NEW_SESSION_TICKET,'S', {s2n_server_nst_send, s2n_server_nst_recv}},
     [SERVER_CERT]               = {TLS_HANDSHAKE, TLS_SERVER_CERT, 'S', {s2n_server_cert_send, s2n_server_cert_recv}},
