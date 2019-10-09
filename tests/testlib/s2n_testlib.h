@@ -58,6 +58,8 @@ int s2n_connection_set_io_stuffers(struct s2n_stuffer *input, struct s2n_stuffer
 #define S2N_RSA_2048_SHA256_NO_DNS_SANS_CERT "../pems/rsa_2048_sha256_no_dns_sans_cert.pem"
 #define S2N_RSA_2048_SHA256_WILDCARD_CERT    "../pems/rsa_2048_sha256_wildcard_cert.pem"
 
+#define S2N_RSA_2048_SHA256_URI_SANS_CERT "../pems/rsa_2048_sha256_uri_sans_cert.pem"
+
 /* "Strangely" formatted PEMs that should still parse successfully */
 #define S2N_LEAF_WHITESPACE_CERT_CHAIN         "../pems/rsa_2048_leaf_whitespace_cert.pem"
 #define S2N_INTERMEDIATE_WHITESPACE_CERT_CHAIN "../pems/rsa_2048_intermediate_whitespace_cert.pem"
