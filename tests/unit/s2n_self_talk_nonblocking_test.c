@@ -302,7 +302,7 @@ int test_send(int use_iov)
     }
 
     if (use_iov) {
-       int r = s2n_sendv(conn, iov, 1, &blocked);
+        int r = s2n_sendv(conn, iov, 1, &blocked);
         EXPECT_TRUE(r > 0);
     }
 
@@ -314,6 +314,10 @@ int test_send(int use_iov)
     EXPECT_EQUAL(status, 0);
     EXPECT_SUCCESS(s2n_config_free(config));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+
+    if (iov) {
+        free(iov);
+    }
 
     return 0;
 }
