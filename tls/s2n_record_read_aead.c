@@ -41,13 +41,16 @@ int s2n_record_parse_aead(
     uint8_t * sequence_number,
     struct s2n_session_key *session_key)
 {
-    uint8_t aad_gen[S2N_TLS_MAX_AAD_LEN] = { 0 };
-    struct s2n_blob aad = {.data = aad_gen,.size = sizeof(aad_gen) };
+    const int TLS13_RECORD = cipher_suite->record_alg->flags & S2N_TLS13_IMPLICIT_IV;
+    /* TLS 1.3 record protection uses a different 5 byte associated data than TLS 1.2's */
+    s2n_stack_blob(aad, TLS13_RECORD ? S2N_TLS13_AAD_LEN : S2N_TLS_MAX_AAD_LEN, S2N_TLS_MAX_AAD_LEN);
+
+    const struct s2n_cipher *cipher = cipher_suite->record_alg->cipher;
 
     struct s2n_blob en = {.size = encrypted_length,.data = s2n_stuffer_raw_read(&conn->in, encrypted_length) };
     notnull_check(en.data);
     /* In AEAD mode, the explicit IV is in the record */
-    gte_check(en.size, cipher_suite->record_alg->cipher->io.aead.record_iv_size);
+    gte_check(en.size, cipher->io.aead.record_iv_size);
 
     uint8_t aad_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
     struct s2n_blob iv = {.data = aad_iv,.size = sizeof(aad_iv) };
@@ -56,15 +59,21 @@ int s2n_record_parse_aead(
 
     if (cipher_suite->record_alg->flags & S2N_TLS12_AES_GCM_AEAD_NONCE) {
         /* Partially explicit nonce. See RFC 5288 Section 3 */
-        GUARD(s2n_stuffer_write_bytes(&iv_stuffer, implicit_iv, cipher_suite->record_alg->cipher->io.aead.fixed_iv_size));
-        GUARD(s2n_stuffer_write_bytes(&iv_stuffer, en.data, cipher_suite->record_alg->cipher->io.aead.record_iv_size));
-    } else if (cipher_suite->record_alg->flags & S2N_TLS12_CHACHA_POLY_AEAD_NONCE) {
-        /* Fully implicit nonce. See RFC 7905 Section 2 */
+        GUARD(s2n_stuffer_write_bytes(&iv_stuffer, implicit_iv, cipher->io.aead.fixed_iv_size));
+        GUARD(s2n_stuffer_write_bytes(&iv_stuffer, en.data, cipher->io.aead.record_iv_size));
+    } else if (cipher_suite->record_alg->flags & S2N_TLS12_CHACHA_POLY_AEAD_NONCE || TLS13_RECORD) {
+        /* Fully implicit nonce.
+         * This is introduced with ChaChaPoly with RFC 7905 Section 2
+         * and also used for TLS 1.3 record protection.
+         *
+         * In these cipher modes, the sequence number (64 bits) is left padded by 4 bytes
+         * to align and xor-ed with the 96-bit IV.
+         **/
         uint8_t four_zeroes[4] = { 0 };
         GUARD(s2n_stuffer_write_bytes(&iv_stuffer, four_zeroes, 4));
         GUARD(s2n_stuffer_write_bytes(&iv_stuffer, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
-        for (int i = 0; i < cipher_suite->record_alg->cipher->io.aead.fixed_iv_size; i++) {
-	    S2N_INVARIENT(i <= cipher_suite->record_alg->cipher->io.aead.fixed_iv_size);
+        for (int i = 0; i < cipher->io.aead.fixed_iv_size; i++) {
+	    S2N_INVARIENT(i <= cipher->io.aead.fixed_iv_size);
             aad_iv[i] = aad_iv[i] ^ implicit_iv[i];
         }
     } else {
@@ -76,23 +85,28 @@ int s2n_record_parse_aead(
 
     uint16_t payload_length = encrypted_length;
     /* remove the AEAD overhead from the record size */
-    gte_check(payload_length, cipher_suite->record_alg->cipher->io.aead.record_iv_size + cipher_suite->record_alg->cipher->io.aead.tag_size);
-    payload_length -= cipher_suite->record_alg->cipher->io.aead.record_iv_size;
-    payload_length -= cipher_suite->record_alg->cipher->io.aead.tag_size;
+    gte_check(payload_length, cipher->io.aead.record_iv_size + cipher->io.aead.tag_size);
+    payload_length -= cipher->io.aead.record_iv_size;
+    payload_length -= cipher->io.aead.tag_size;
 
     struct s2n_stuffer ad_stuffer = {0};
     GUARD(s2n_stuffer_init(&ad_stuffer, &aad));
-    GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, payload_length, &ad_stuffer));
+
+    if (TLS13_RECORD) {
+        GUARD(s2n_tls13_aead_aad_init(payload_length, cipher->io.aead.tag_size, &ad_stuffer));
+    } else {
+        GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, payload_length, &ad_stuffer));
+    }
 
     /* Decrypt stuff! */
     /* Skip explicit IV for decryption */
-    en.size -= cipher_suite->record_alg->cipher->io.aead.record_iv_size;
-    en.data += cipher_suite->record_alg->cipher->io.aead.record_iv_size;
+    en.size -= cipher->io.aead.record_iv_size;
+    en.data += cipher->io.aead.record_iv_size;
 
     /* Check that we have some data to decrypt */
     ne_check(en.size, 0);
 
-    GUARD(cipher_suite->record_alg->cipher->io.aead.decrypt(session_key, &iv, &aad, &en, &en));
+    GUARD(cipher->io.aead.decrypt(session_key, &iv, &aad, &en, &en));
     struct s2n_blob seq = {.data = sequence_number,.size = S2N_TLS_SEQUENCE_NUM_LEN };
     GUARD(s2n_increment_sequence_number(&seq));
 
@@ -104,7 +118,7 @@ int s2n_record_parse_aead(
 
     /* Skip the IV, if any */
     if (conn->actual_protocol_version >= S2N_TLS12) {
-        GUARD(s2n_stuffer_skip_read(&conn->in, cipher_suite->record_alg->cipher->io.aead.record_iv_size));
+        GUARD(s2n_stuffer_skip_read(&conn->in, cipher->io.aead.record_iv_size));
     }
 
     /* Truncate and wipe the MAC and any padding */

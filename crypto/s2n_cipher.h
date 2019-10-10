@@ -87,6 +87,11 @@ extern struct s2n_cipher s2n_aes256;
 extern struct s2n_cipher s2n_3des;
 extern struct s2n_cipher s2n_aes128_gcm;
 extern struct s2n_cipher s2n_aes256_gcm;
+
+extern struct s2n_cipher s2n_tls13_aes128_gcm;
+
+extern struct s2n_cipher s2n_tls13_aes256_gcm;
+
 extern struct s2n_cipher s2n_aes128_sha;
 extern struct s2n_cipher s2n_aes256_sha;
 extern struct s2n_cipher s2n_aes128_sha256;

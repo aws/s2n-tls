@@ -191,3 +191,36 @@ struct s2n_cipher s2n_aes256_gcm = {
     .set_decryption_key = s2n_aead_cipher_aes256_gcm_set_decryption_key,
     .destroy_key = s2n_aead_cipher_aes_gcm_destroy_key,
 };
+
+/* TLS 1.3 GCM ciphers */
+struct s2n_cipher s2n_tls13_aes128_gcm = {
+    .key_material_size = 16,
+    .type = S2N_AEAD,
+    .io.aead = {
+                .record_iv_size = 0, /* Implicit IV */
+                .fixed_iv_size = 12,
+                .tag_size = S2N_TLS_GCM_TAG_LEN,
+                .decrypt = s2n_aead_cipher_aes_gcm_decrypt,
+                .encrypt = s2n_aead_cipher_aes_gcm_encrypt},
+    .is_available = s2n_aead_cipher_aes128_gcm_available,
+    .init = s2n_aead_cipher_aes_gcm_init,
+    .set_encryption_key = s2n_aead_cipher_aes128_gcm_set_encryption_key,
+    .set_decryption_key = s2n_aead_cipher_aes128_gcm_set_decryption_key,
+    .destroy_key = s2n_aead_cipher_aes_gcm_destroy_key,
+};
+
+struct s2n_cipher s2n_tls13_aes256_gcm = {
+    .key_material_size = 32,
+    .type = S2N_AEAD,
+    .io.aead = {
+                .record_iv_size = 0, /* Implicit IV */
+                .fixed_iv_size = 12,
+                .tag_size = S2N_TLS_GCM_TAG_LEN,
+                .decrypt = s2n_aead_cipher_aes_gcm_decrypt,
+                .encrypt = s2n_aead_cipher_aes_gcm_encrypt},
+    .is_available = s2n_aead_cipher_aes256_gcm_available,
+    .init = s2n_aead_cipher_aes_gcm_init,
+    .set_encryption_key = s2n_aead_cipher_aes256_gcm_set_encryption_key,
+    .set_decryption_key = s2n_aead_cipher_aes256_gcm_set_decryption_key,
+    .destroy_key = s2n_aead_cipher_aes_gcm_destroy_key,
+};

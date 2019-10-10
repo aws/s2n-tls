@@ -33,3 +33,19 @@ int s2n_aead_aad_init(const struct s2n_connection *conn, uint8_t * sequence_numb
 
     return 0;
 }
+
+/* Prepares an AAD for a TLS 1.3 AEAD record */
+int s2n_tls13_aead_aad_init(uint16_t record_length, uint8_t tag_length, struct s2n_stuffer *ad)
+{
+    gte_check(record_length, 0);
+    gt_check(tag_length, 0);
+    notnull_check(ad);
+
+    /* tls1.3 ad = content type || version || length */
+    GUARD(s2n_stuffer_write_uint8(ad, TLS_APPLICATION_DATA)); /* fixed to 0x17 */
+    GUARD(s2n_stuffer_write_uint8(ad, 3)); /* TLS record layer              */
+    GUARD(s2n_stuffer_write_uint8(ad, 3)); /* version fixed at 1.2 (0x0303) */
+    GUARD(s2n_stuffer_write_uint16(ad, record_length + tag_length));
+
+    return 0;
+}
