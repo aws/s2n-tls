@@ -202,8 +202,9 @@ int test_send(int use_iov)
         iov = malloc(sizeof(*iov) * iov_size);
         data_size = 0;
         for (int i = 0; i < iov_size; i++, iov_payload_size *= 2) {
-            iov[i].iov_base = blob.data = malloc(iov_payload_size);
-            iov[i].iov_len = blob.size = iov_payload_size;
+            struct s2n_blob blob_local;
+            iov[i].iov_base = blob_local.data = malloc(iov_payload_size);
+            iov[i].iov_len = blob_local.size = iov_payload_size;
             EXPECT_SUCCESS(s2n_get_urandom_data(&blob));
             data_size += iov_payload_size;
         }
@@ -316,6 +317,9 @@ int test_send(int use_iov)
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
     if (iov) {
+        for (int i = 0; i < iov_size; i++) {
+            free(iov[i].iov_base);
+        }
         free(iov);
     }
 
