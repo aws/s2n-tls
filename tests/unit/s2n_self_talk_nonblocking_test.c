@@ -157,6 +157,7 @@ int mock_client_iov(int writefd, int readfd, struct iovec *iov, uint32_t iov_siz
 
     free(buffer);
     s2n_connection_free(client_conn);
+    s2n_config_free(client_config);
 
     /* Give the server a chance to a void a sigpipe */
     sleep(1);
