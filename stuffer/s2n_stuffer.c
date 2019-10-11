@@ -276,9 +276,7 @@ int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t * data, c
 
 int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec* iov, int iov_count, size_t offs, size_t size)
 {
-    GUARD(s2n_stuffer_skip_write(stuffer, size));
-
-    void *ptr = stuffer->blob.data + stuffer->write_cursor - size;
+    void *ptr = s2n_stuffer_raw_write(stuffer, size);
     notnull_check(ptr);
 
     size_t size_left = size, to_skip = offs;

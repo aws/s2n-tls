@@ -1459,7 +1459,7 @@ do {
 ### s2n\_sendv\_with\_offset
 
 ```c
-ssize_t s2n_sendv(struct s2n_connection *conn 
+ssize_t s2n_sendv_with_offset(struct s2n_connection *conn 
               const struct iovec *bufs,
               ssize_t count,
               ssize_t offs,
