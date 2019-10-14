@@ -168,6 +168,13 @@ const struct s2n_record_algorithm s2n_tls13_record_alg_aes256_gcm = {
     .flags = S2N_TLS13_RECORD_AEAD_NONCE,
 };
 
+const struct s2n_record_algorithm s2n_tls13_record_alg_chacha20_poly1305 = {
+    .cipher = &s2n_chacha20_poly1305,
+    .hmac_alg = S2N_HMAC_NONE,
+    /* this mirrors s2n_record_alg_chacha20_poly1305 with the exception of TLS 1.3 nonce flag */
+    .flags = S2N_TLS13_RECORD_AEAD_NONCE,
+};
+
 /*********************
  * S2n Cipher Suites *
  *********************/
@@ -708,7 +715,7 @@ struct s2n_cipher_suite s2n_tls13_chacha20_poly1305_sha256 = {
     .key_exchange_alg = NULL,
     .auth_method = S2N_AUTHENTICATION_METHOD_SENTINEL,
     .record_alg = NULL,
-    .all_record_algs = { &s2n_record_alg_chacha20_poly1305 },
+    .all_record_algs = { &s2n_tls13_record_alg_chacha20_poly1305 },
     .num_record_algs = 1,
     .sslv3_record_alg = NULL,
     .tls12_prf_alg = S2N_HMAC_SHA256,
