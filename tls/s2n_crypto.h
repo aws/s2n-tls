@@ -42,9 +42,11 @@
 #define S2N_TLS_GCM_EXPLICIT_IV_LEN     8
 #define S2N_TLS_GCM_IV_LEN            (S2N_TLS_GCM_FIXED_IV_LEN + S2N_TLS_GCM_EXPLICIT_IV_LEN)
 #define S2N_TLS_GCM_TAG_LEN            16
-/* TLS 1.3 */
-#define S2N_TLS13_AAD_LEN               5
 
+/* TLS 1.3 uses only implicit IVs - RFC 8446 5.3 */
+#define S2N_TLS13_AAD_LEN               5
+#define S2N_TLS13_RECORD_IV_LEN         0
+#define S2N_TLS13_FIXED_IV_LEN         12
 
 /* From RFC 7905 */
 #define S2N_TLS_CHACHA20_POLY1305_FIXED_IV_LEN    12

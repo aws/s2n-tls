@@ -17,16 +17,14 @@
 
 #include <string.h>
 #include <stdio.h>
-
 #include <s2n.h>
 
-#include "tls/s2n_record.h"
-#include "testlib/s2n_testlib.h"
-#include "utils/s2n_safety.h"
-
-#include "tls/s2n_cipher_suites.h"
 #include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_record.h"
 #include "tls/s2n_record_read.h"
+#include "utils/s2n_safety.h"
 
 #define S2N_BLOB_FROM_HEX( name, hex )                  \
     struct s2n_stuffer name##_stuffer;                  \
@@ -119,6 +117,23 @@ int main(int argc, char **argv)
         S2N_BLOB_FROM_HEX(expected_aad, "17030302a2");
         S2N_BLOB_EXPECT_EQUAL(expected_aad, aad);
         S2N_BLOB_FREE(expected_aad);
+
+        /* record length 16640 should be valid */
+        EXPECT_SUCCESS(s2n_stuffer_rewrite(&associated_data_stuffer));
+        EXPECT_SUCCESS(s2n_tls13_aead_aad_init(16628, 12, &associated_data_stuffer));
+
+        /* record length 16641 should be invalid */
+        EXPECT_SUCCESS(s2n_stuffer_rewrite(&associated_data_stuffer));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_aead_aad_init(16629, 12, &associated_data_stuffer), S2N_ERR_RECORD_LIMIT);
+
+        /* Test other failure cases */
+        EXPECT_SUCCESS(s2n_stuffer_rewrite(&associated_data_stuffer));
+        EXPECT_FAILURE(s2n_tls13_aead_aad_init(16629, 12, NULL));
+
+        EXPECT_SUCCESS(s2n_stuffer_rewrite(&associated_data_stuffer));
+        EXPECT_FAILURE(s2n_tls13_aead_aad_init(16628, 0, &associated_data_stuffer));
+
+        EXPECT_FAILURE(s2n_tls13_aead_aad_init(-1, 0, &associated_data_stuffer));
     }
 
     /* Test s2n_tls13_aes_128_gcm_sha256 cipher suite with TLS 1.3 test vectors */
@@ -166,11 +181,11 @@ int main(int argc, char **argv)
         S2N_BLOB_EXPECT_EQUAL(plaintext_record, decrypted_stuffer.blob);
 
         #define RESET_TEST \
-        /* wipe conn in stuffer and refill protected record */ \
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in)); \
-        EXPECT_SUCCESS(s2n_stuffer_write(&conn->in, &protected_record)); \
-        /* reset sequence number */ \
-        conn->secure.client_sequence_number[7] = 0;
+            /* wipe conn in stuffer and refill protected record */ \
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in)); \
+            EXPECT_SUCCESS(s2n_stuffer_write(&conn->in, &protected_record)); \
+            /* reset sequence number */ \
+            conn->secure.client_sequence_number[7] = 0;
 
         /* Repeat the test to prove RESET_TEST works */
         RESET_TEST

@@ -41,9 +41,9 @@ int s2n_record_parse_aead(
     uint8_t * sequence_number,
     struct s2n_session_key *session_key)
 {
-    const int TLS13_RECORD = cipher_suite->record_alg->flags & S2N_TLS13_IMPLICIT_IV;
+    const int is_tls13_record = cipher_suite->record_alg->flags & S2N_TLS13_RECORD_AEAD_NONCE;
     /* TLS 1.3 record protection uses a different 5 byte associated data than TLS 1.2's */
-    s2n_stack_blob(aad, TLS13_RECORD ? S2N_TLS13_AAD_LEN : S2N_TLS_MAX_AAD_LEN, S2N_TLS_MAX_AAD_LEN);
+    s2n_stack_blob(aad, is_tls13_record ? S2N_TLS13_AAD_LEN : S2N_TLS_MAX_AAD_LEN, S2N_TLS_MAX_AAD_LEN);
 
     const struct s2n_cipher *cipher = cipher_suite->record_alg->cipher;
 
@@ -61,10 +61,10 @@ int s2n_record_parse_aead(
         /* Partially explicit nonce. See RFC 5288 Section 3 */
         GUARD(s2n_stuffer_write_bytes(&iv_stuffer, implicit_iv, cipher->io.aead.fixed_iv_size));
         GUARD(s2n_stuffer_write_bytes(&iv_stuffer, en.data, cipher->io.aead.record_iv_size));
-    } else if (cipher_suite->record_alg->flags & S2N_TLS12_CHACHA_POLY_AEAD_NONCE || TLS13_RECORD) {
+    } else if (cipher_suite->record_alg->flags & S2N_TLS12_CHACHA_POLY_AEAD_NONCE || is_tls13_record) {
         /* Fully implicit nonce.
          * This is introduced with ChaChaPoly with RFC 7905 Section 2
-         * and also used for TLS 1.3 record protection.
+         * and also used for TLS 1.3 record protection (RFC 8446 Section 5.2).
          *
          * In these cipher modes, the sequence number (64 bits) is left padded by 4 bytes
          * to align and xor-ed with the 96-bit IV.
@@ -73,7 +73,7 @@ int s2n_record_parse_aead(
         GUARD(s2n_stuffer_write_bytes(&iv_stuffer, four_zeroes, 4));
         GUARD(s2n_stuffer_write_bytes(&iv_stuffer, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
         for (int i = 0; i < cipher->io.aead.fixed_iv_size; i++) {
-	    S2N_INVARIENT(i <= cipher->io.aead.fixed_iv_size);
+            S2N_INVARIENT(i <= cipher->io.aead.fixed_iv_size);
             aad_iv[i] = aad_iv[i] ^ implicit_iv[i];
         }
     } else {
@@ -92,7 +92,7 @@ int s2n_record_parse_aead(
     struct s2n_stuffer ad_stuffer = {0};
     GUARD(s2n_stuffer_init(&ad_stuffer, &aad));
 
-    if (TLS13_RECORD) {
+    if (is_tls13_record) {
         GUARD(s2n_tls13_aead_aad_init(payload_length, cipher->io.aead.tag_size, &ad_stuffer));
     } else {
         GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, payload_length, &ad_stuffer));

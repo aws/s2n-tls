@@ -156,16 +156,16 @@ const struct s2n_record_algorithm s2n_record_alg_chacha20_poly1305 = {
 };
 
 /* TLS 1.3 Record Algorithms */
-const struct s2n_record_algorithm s2n_tls13_record_alg_aes128 = {
+const struct s2n_record_algorithm s2n_tls13_record_alg_aes128_gcm = {
     .cipher = &s2n_tls13_aes128_gcm,
     .hmac_alg = S2N_HMAC_NONE, /* previously used in 1.2 prf, we do not need this */
-    .flags = S2N_TLS13_IMPLICIT_IV,
+    .flags = S2N_TLS13_RECORD_AEAD_NONCE,
 };
 
-const struct s2n_record_algorithm s2n_tls13_record_alg_aes256 = {
+const struct s2n_record_algorithm s2n_tls13_record_alg_aes256_gcm = {
     .cipher = &s2n_tls13_aes256_gcm,
     .hmac_alg = S2N_HMAC_NONE,
-    .flags = S2N_TLS13_IMPLICIT_IV,
+    .flags = S2N_TLS13_RECORD_AEAD_NONCE,
 };
 
 /*********************
@@ -680,7 +680,7 @@ struct s2n_cipher_suite s2n_tls13_aes_128_gcm_sha256 = {
     .key_exchange_alg = NULL,
     .auth_method = S2N_AUTHENTICATION_METHOD_SENTINEL,
     .record_alg = NULL,
-    .all_record_algs = { &s2n_tls13_record_alg_aes128 },
+    .all_record_algs = { &s2n_tls13_record_alg_aes128_gcm },
     .num_record_algs = 1,
     .sslv3_record_alg = NULL,
     .tls12_prf_alg = S2N_HMAC_SHA256,
@@ -694,7 +694,7 @@ struct s2n_cipher_suite s2n_tls13_aes_256_gcm_sha384 = {
     .key_exchange_alg = NULL,
     .auth_method = S2N_AUTHENTICATION_METHOD_SENTINEL,
     .record_alg = NULL,
-    .all_record_algs = { &s2n_tls13_record_alg_aes256 },
+    .all_record_algs = { &s2n_tls13_record_alg_aes256_gcm },
     .num_record_algs = 1,
     .sslv3_record_alg = NULL,
     .tls12_prf_alg = S2N_HMAC_SHA384,

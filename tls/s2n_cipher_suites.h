@@ -36,7 +36,7 @@
 /* Record algorithm flags that can be OR'ed */
 #define S2N_TLS12_AES_GCM_AEAD_NONCE     0x01
 #define S2N_TLS12_CHACHA_POLY_AEAD_NONCE 0x02
-#define S2N_TLS13_IMPLICIT_IV            0x04
+#define S2N_TLS13_RECORD_AEAD_NONCE      0x04
 
 struct s2n_record_algorithm {
     const struct s2n_cipher *cipher;
