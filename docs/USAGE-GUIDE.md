@@ -1458,6 +1458,46 @@ do {
 } while (blocked != S2N_NOT_BLOCKED); 
 ```    
 
+### s2n\_sendv\_with\_offset
+
+```c
+ssize_t s2n_sendv_with_offset(struct s2n_connection *conn 
+              const struct iovec *bufs,
+              ssize_t count,
+              ssize_t offs,
+              s2n_blocked_status *blocked);
+```
+
+**s2n_sendv_with_offset** works in the same way as **s2n_send** except that it accepts vectorized buffers. **s2n_sendv_with_offset** will return the number of bytes written, and may indicate a partial write. Partial writes are possible not just for non-blocking I/O, but also for connections aborted while active. **NOTE:** Unlike OpenSSL, repeated calls to **s2n_sendv_with_offset** should not duplicate the original parameters, but should update **bufs** and **count** per the indication of size written. For example;
+
+```c
+s2n_blocked_status blocked;
+int written = 0;
+char data[10]; /* Some data we want to write */
+struct iovec iov[1];
+iov[0].iov_base = data;
+iov[0].iov_len = 10;
+do {
+    int w = s2n_sendv_with_offset(conn, iov, 1, written, &blocked);
+    if (w < 0) {
+        /* Some kind of error */
+        break;
+    }
+    written += w;
+} while (blocked != S2N_NOT_BLOCKED); 
+```    
+
+### s2n\_sendv
+
+```c
+ssize_t s2n_sendv(struct s2n_connection *conn 
+              const struct iovec *bufs,
+              ssize_t count,
+              s2n_blocked_status *blocked);
+```
+
+**s2n_sendv** works in the same way as **s2n_sendv_with_offset** except that the latter's **offs** parameter is implicitly assumed to be 0. Therefore in the partial write case, the caller would have to make sure that **bufs** and **count** fields are modified in a way that takes the partial writes into account.
+
 ### s2n\_recv
 
 ```c
