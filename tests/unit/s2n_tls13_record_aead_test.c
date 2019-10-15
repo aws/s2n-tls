@@ -126,13 +126,15 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_rewrite(&associated_data_stuffer));
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_aead_aad_init(16629, 12, &associated_data_stuffer), S2N_ERR_RECORD_LIMIT);
 
-        /* Test other failure cases */
+        /* Test failure case: No AAD should be invalid */
         EXPECT_SUCCESS(s2n_stuffer_rewrite(&associated_data_stuffer));
         EXPECT_FAILURE(s2n_tls13_aead_aad_init(16629, 12, NULL));
 
+        /* Test failure case: 0-length tag should be invalid */
         EXPECT_SUCCESS(s2n_stuffer_rewrite(&associated_data_stuffer));
         EXPECT_FAILURE(s2n_tls13_aead_aad_init(16628, 0, &associated_data_stuffer));
 
+        /* Test failure case: invalid record length (-1) should be invalid */
         EXPECT_FAILURE(s2n_tls13_aead_aad_init(-1, 0, &associated_data_stuffer));
     }
 

@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include <math.h>
 #include "error/s2n_errno.h"
 
 #include "utils/s2n_safety.h"
@@ -43,7 +42,7 @@ int s2n_tls13_aead_aad_init(uint16_t record_length, uint8_t tag_length, struct s
     notnull_check(additional_data);
 
     /*
-     *  tls1.3 additional_data = opaque_type || legacy_record_version || length
+     * tls1.3 additional_data = opaque_type || legacy_record_version || length
      *
      * https://tools.ietf.org/html/rfc8446#section-5.2
      *
@@ -69,7 +68,7 @@ int s2n_tls13_aead_aad_init(uint16_t record_length, uint8_t tag_length, struct s
      */
 
     uint16_t length = record_length + tag_length;
-    S2N_ERROR_IF(length > pow(2, 14) + 256, S2N_ERR_RECORD_LIMIT);
+    S2N_ERROR_IF(length > (1 << 14) + 256, S2N_ERR_RECORD_LIMIT);
 
     GUARD(s2n_stuffer_write_uint8(additional_data, TLS_APPLICATION_DATA)); /* fixed to 0x17 */
     GUARD(s2n_stuffer_write_uint8(additional_data, 3)); /* TLS record layer              */
