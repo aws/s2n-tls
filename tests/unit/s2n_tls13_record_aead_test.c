@@ -228,5 +228,129 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_session_key_free(&session_key));
     }
 
+    /* Test s2n_tls13_aes_128_gcm_sha256 cipher suite ENCRYPTION with TLS 1.3 test vectors */
+    {
+        struct s2n_connection *conn;
+        struct s2n_cipher_suite *cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        conn->actual_protocol_version = S2N_TLS13;
+
+        conn->server->cipher_suite = cipher_suite;
+        struct s2n_session_key *session_key = &conn->server->server_key;
+
+        uint8_t *implicit_iv = conn->server->server_implicit_iv;
+
+        /* init record algorithm */
+        EXPECT_SUCCESS(cipher_suite->record_alg->cipher->init(session_key));
+        S2N_BLOB_FROM_HEX(key, "3fce516009c21727d0f2e4e86ee403bc");
+        EXPECT_SUCCESS(cipher_suite->record_alg->cipher->set_encryption_key(session_key, &key));
+
+        S2N_BLOB_FROM_HEX(protected_record, protected_record_hex);
+
+        S2N_BLOB_FROM_HEX(iv, "5d313eb2671276ee13000b30");
+
+        /* copy iv bytes from input data */
+        for (int i = 0; i < iv.size; i++) {
+            implicit_iv[i] = iv.data[i];
+        }
+
+        /* Test parsing of tls 1.3 aead record */
+        S2N_BLOB_FROM_HEX(plaintext_record, plaintext_record_hex);
+
+        /* Make plaintext blob slice */
+        struct s2n_blob in = {
+            .data = &plaintext_record.data[0],
+            .size = plaintext_record.size - 1, /* 1 byte less to remove content type */
+        };
+
+        /* Takes an input blob and writes to out stuffer then encrypt the payload */
+        EXPECT_SUCCESS(s2n_record_write(conn, TLS_HANDSHAKE, &in));
+
+        /* Make a slice of output bytes to verify */
+        struct s2n_blob out = {
+            .data = &conn->out.blob.data[S2N_TLS13_AAD_LEN],
+            .size = protected_record.size
+        };
+
+        S2N_BLOB_EXPECT_EQUAL(out, protected_record);
+
+        S2N_BLOB_FREE(key);
+        S2N_BLOB_FREE(protected_record);
+        S2N_BLOB_FREE(iv);
+        S2N_BLOB_FREE(plaintext_record);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test encrypt-decrypt roundtrip */
+    {
+        struct s2n_connection *conn;
+        struct s2n_cipher_suite *cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        conn->actual_protocol_version = S2N_TLS13;
+
+        conn->server->cipher_suite = cipher_suite;
+        struct s2n_session_key *session_key = &conn->server->server_key;
+
+        uint8_t *implicit_iv = conn->server->server_implicit_iv;
+
+        /* init record algorithm */
+        EXPECT_SUCCESS(cipher_suite->record_alg->cipher->init(session_key));
+        S2N_BLOB_FROM_HEX(key, "3fce516009c21727d0f2e4e86ee403bc");
+        EXPECT_SUCCESS(cipher_suite->record_alg->cipher->set_encryption_key(session_key, &key));
+        EXPECT_SUCCESS(cipher_suite->record_alg->cipher->set_decryption_key(session_key, &key));
+
+        S2N_BLOB_FROM_HEX(iv, "5d313eb2671276ee13000b30");
+
+        /* copy iv bytes from input data */
+        for (int i = 0; i < iv.size; i++) {
+            implicit_iv[i] = iv.data[i];
+        }
+
+        /* Test parsing of tls 1.3 aead record */
+        S2N_BLOB_LABEL(expect_plaintext, "Hello world");
+
+        static uint8_t hello_data[] = "Hello world";
+        struct s2n_blob plaintext = { .data = hello_data, .size = sizeof(hello_data) - 1 };
+
+        /* Takes an input blob and writes to out stuffer then encrypt the payload */
+        EXPECT_SUCCESS(s2n_record_write(conn, TLS_HANDSHAKE, &plaintext));
+
+        /* Reset sequence number */
+        conn->secure.client_sequence_number[7] = 0;
+
+        s2n_stuffer_write_bytes(&conn->in, &conn->out.blob.data[S2N_TLS13_AAD_LEN], plaintext.size + 16 + 1); /* tag length + content type */;
+
+        /* Make a slice of output bytes to verify */
+        struct s2n_blob encrypted = {
+            .data = &conn->in.blob.data[0],
+            .size = plaintext.size + 16 + 1
+        };
+
+        /* Decrypt payload */
+        EXPECT_SUCCESS(s2n_record_parse_aead(
+            cipher_suite,
+            conn,
+            0, /* content_type */
+            encrypted.size,
+            iv.data, /* implicit_iv */
+            NULL, /* mac not used for TLS 1.3 */
+            conn->secure.client_sequence_number,
+            session_key));
+
+        struct s2n_blob decrypted = {
+            .data = &conn->in.blob.data[0],
+            .size = expect_plaintext.size
+        };
+
+        /* Verify decrypted payload */
+        S2N_BLOB_EXPECT_EQUAL(decrypted, expect_plaintext);
+
+        S2N_BLOB_FREE(key);
+        S2N_BLOB_FREE(iv);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
     END_TEST();
 }

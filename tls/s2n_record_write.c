@@ -146,6 +146,8 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         implicit_iv = conn->client->client_implicit_iv;
     }
 
+    const int is_tls13_record = cipher_suite->record_alg->flags & S2N_TLS13_RECORD_AEAD_NONCE;
+
     S2N_ERROR_IF(s2n_stuffer_data_available(&conn->out), S2N_ERR_BAD_MESSAGE);
 
     uint8_t mac_digest_size;
@@ -222,7 +224,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
             GUARD(s2n_stuffer_write_bytes(&conn->out, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
             GUARD(s2n_stuffer_write_bytes(&iv_stuffer, implicit_iv, cipher_suite->record_alg->cipher->io.aead.fixed_iv_size));
             GUARD(s2n_stuffer_write_bytes(&iv_stuffer, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
-        } else if (cipher_suite->record_alg->flags & S2N_TLS12_CHACHA_POLY_AEAD_NONCE) {
+        } else if (cipher_suite->record_alg->flags & S2N_TLS12_CHACHA_POLY_AEAD_NONCE || is_tls13_record) {
             /* Fully implicit nonce. See RFC7905 Section 2 */
             uint8_t four_zeroes[4] = { 0 };
             GUARD(s2n_stuffer_write_bytes(&iv_stuffer, four_zeroes, 4));
@@ -238,11 +240,15 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         iv.size = s2n_stuffer_data_available(&iv_stuffer);
 
         aad.data = aad_gen;
-        aad.size = sizeof(aad_gen);
+        aad.size = is_tls13_record ? S2N_TLS13_AAD_LEN : sizeof(aad_gen);
 
         struct s2n_stuffer ad_stuffer = {0};
         GUARD(s2n_stuffer_init(&ad_stuffer, &aad));
-        GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &ad_stuffer));
+        if (is_tls13_record) {
+            GUARD(s2n_tls13_aead_aad_init(data_bytes_to_take + sizeof(content_type), cipher_suite->record_alg->cipher->io.aead.tag_size, &ad_stuffer));
+        } else {
+            GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &ad_stuffer));
+        }
     } else if (cipher_suite->record_alg->cipher->type == S2N_CBC || cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
         iv.size = block_size;
         iv.data = implicit_iv;
@@ -270,6 +276,11 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     GUARD(s2n_hmac_digest(mac, digest, mac_digest_size));
     GUARD(s2n_hmac_reset(mac));
 
+    /* Write content type for TLS 1.3 record (RFC 8446 Section 5.2) */
+    if (is_tls13_record) {
+        GUARD(s2n_stuffer_write_uint8(&conn->out, content_type));
+    }
+
     if (cipher_suite->record_alg->cipher->type == S2N_CBC) {
         /* Include padding bytes, each with the value 'p', and
          * include an extra padding length byte, also with the value 'p'.
@@ -290,6 +301,10 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         case S2N_AEAD:
             GUARD(s2n_stuffer_skip_write(&conn->out, cipher_suite->record_alg->cipher->io.aead.record_iv_size));
             encrypted_length += cipher_suite->record_alg->cipher->io.aead.tag_size;
+            if (is_tls13_record) {
+                /* one extra byte for content type */
+                encrypted_length += sizeof(content_type);
+            }
             break;
         case S2N_CBC:
             if (conn->actual_protocol_version > S2N_TLS10) {
