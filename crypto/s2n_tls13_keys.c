@@ -37,8 +37,8 @@
  * [ ] early_exporter_master_secret
  * [x] client_handshake_traffic_secret
  * [x] server_handshake_traffic_secret
- * [ ] client_application_traffic_secret_0
- * [ ] server_application_traffic_secret_0
+ * [x] client_application_traffic_secret_0
+ * [x] server_application_traffic_secret_0
  * [ ] exporter_master_secret
  * [ ] resumption_master_secret
  *
