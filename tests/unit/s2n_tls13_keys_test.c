@@ -27,11 +27,6 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
-#define S2N_BLOB_EXPECT_EQUAL( blob1, blob2 ) do {              \
-    EXPECT_EQUAL(blob1.size, blob2.size);                       \
-    EXPECT_BYTEARRAY_EQUAL(blob1.data, blob2.data, blob1.size); \
-} while (0)
-
 #define S2N_BLOB_FROM_HEX( name, hex )                  \
     struct s2n_stuffer name##_stuffer;                  \
     s2n_stuffer_alloc_ro_from_hex_string(               \
