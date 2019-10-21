@@ -319,7 +319,7 @@ int main(int argc, char **argv)
         /* Reset sequence number */
         conn->secure.client_sequence_number[7] = 0;
 
-        s2n_stuffer_write_bytes(&conn->in, &conn->out.blob.data[S2N_TLS13_AAD_LEN], plaintext.size + 16 + 1); /* tag length + content type */;
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, &conn->out.blob.data[S2N_TLS13_AAD_LEN], plaintext.size + 16 + 1)); /* tag length + content type */;
 
         /* Make a slice of output bytes to verify */
         struct s2n_blob encrypted = {
