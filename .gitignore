@@ -26,4 +26,5 @@ clang-*
 fuzz_dependencies/*
 .travis/prlimit
 .travis/.libs/*
+.vscode/
 test-deps/*
