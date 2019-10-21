@@ -124,9 +124,9 @@ int s2n_record_write_protocol_version(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in)
+int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const struct iovec *in, int in_count, size_t offs, size_t to_write)
 {
-    struct s2n_blob out, iv, aad;
+    struct s2n_blob iv, aad;
     uint8_t padding = 0;
     uint16_t block_size = 0;
     uint8_t aad_gen[S2N_TLS_MAX_AAD_LEN] = { 0 };
@@ -154,7 +154,7 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     /* Before we do anything, we need to figure out what the length of the
      * fragment is going to be.
      */
-    uint16_t data_bytes_to_take = MIN(in->size, s2n_record_max_write_payload_size(conn));
+    uint16_t data_bytes_to_take = MIN(to_write, s2n_record_max_write_payload_size(conn));
 
     uint16_t extra = overhead(conn);
 
@@ -259,10 +259,9 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
     GUARD(s2n_increment_sequence_number(&seq));
 
     /* Write the plaintext data */
-    out.data = in->data;
-    out.size = data_bytes_to_take;
-    GUARD(s2n_stuffer_write(&conn->out, &out));
-    GUARD(s2n_hmac_update(mac, out.data, out.size));
+    GUARD(s2n_stuffer_writev_bytes(&conn->out, in, in_count, offs, data_bytes_to_take));
+    void *orig_write_ptr = conn->out.blob.data + conn->out.write_cursor - data_bytes_to_take;
+    GUARD(s2n_hmac_update(mac, orig_write_ptr, data_bytes_to_take));
 
     /* Write the digest */
     uint8_t *digest = s2n_stuffer_raw_write(&conn->out, mac_digest_size);
@@ -347,4 +346,12 @@ int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s
 
     conn->wire_bytes_out += actual_fragment_length + S2N_TLS_RECORD_HEADER_LENGTH;
     return data_bytes_to_take;
+}
+
+int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in)
+{
+    struct iovec iov;
+    iov.iov_base = in->data;
+    iov.iov_len = in->size;
+    return s2n_record_writev(conn, content_type, &iov, 1, 0, in->size);
 }

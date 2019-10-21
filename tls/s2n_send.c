@@ -86,9 +86,9 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status * blocked)
     return 0;
 }
 
-ssize_t s2n_send(struct s2n_connection * conn, const void *buf, ssize_t size, s2n_blocked_status * blocked)
+ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, ssize_t offs, s2n_blocked_status *blocked)
 {
-    ssize_t user_data_sent;
+    ssize_t user_data_sent, total_size = 0;
     int max_payload_size;
 
     S2N_ERROR_IF(conn->closed, S2N_ERR_CLOSED);
@@ -115,7 +115,22 @@ ssize_t s2n_send(struct s2n_connection * conn, const void *buf, ssize_t size, s2
     }
 
     /* Defensive check against an invalid retry */
-    S2N_ERROR_IF(conn->current_user_data_consumed > size, S2N_ERR_SEND_SIZE);
+    if (offs) {
+        const struct iovec* _bufs = bufs;
+        ssize_t _count = count;
+        while (offs >= _bufs->iov_len && _count > 0) {
+            offs -= _bufs->iov_len;
+            _bufs++;
+            _count--;
+        }
+        bufs = _bufs;
+        count = _count;
+    }
+    for (int i = 0; i < count; i++) {
+        total_size += bufs[i].iov_len;
+    }
+    total_size -= offs;
+    S2N_ERROR_IF(conn->current_user_data_consumed > total_size, S2N_ERR_SEND_SIZE);
 
     if (conn->dynamic_record_timeout_threshold > 0) {
         uint64_t elapsed;
@@ -128,16 +143,16 @@ ssize_t s2n_send(struct s2n_connection * conn, const void *buf, ssize_t size, s2
     }
 
     /* Now write the data we were asked to send this round */
-    while (size - conn->current_user_data_consumed) {
-        struct s2n_blob in = {.data = ((uint8_t *)(uintptr_t) buf) + conn->current_user_data_consumed };
-        in.size = MIN(size - conn->current_user_data_consumed, max_payload_size);
+    while (total_size - conn->current_user_data_consumed) {
+        ssize_t to_write = MIN(total_size - conn->current_user_data_consumed, max_payload_size);
+
         /* If dynamic record size is enabled,
          * use small TLS records that fit into a single TCP segment for the threshold bytes of data     
          */
         if (conn->active_application_bytes_consumed < (uint64_t) conn->dynamic_record_resize_threshold) {
             int min_payload_size = s2n_record_min_write_payload_size(conn);
-            if (min_payload_size < in.size) {
-                in.size = min_payload_size; 
+            if (min_payload_size < to_write) {
+                to_write = min_payload_size; 
             }
         }
 
@@ -145,17 +160,18 @@ ssize_t s2n_send(struct s2n_connection * conn, const void *buf, ssize_t size, s2
          * Some clients may have expectations based on the amount of content in the first record.
          */
         if (conn->actual_protocol_version < S2N_TLS11 && writer->cipher_suite->record_alg->cipher->type == S2N_CBC && conn->mode != S2N_SERVER) {
-            if (in.size > 1 && cbcHackUsed == 0) {
-                in.size = 1;
+            if (to_write > 1 && cbcHackUsed == 0) {
+                to_write = 1;
                 cbcHackUsed = 1;
             }
         }
 
         /* Write and encrypt the record */
         GUARD(s2n_stuffer_rewrite(&conn->out));
-        GUARD(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
-        conn->current_user_data_consumed += in.size;
-        conn->active_application_bytes_consumed += in.size;
+        GUARD(s2n_record_writev(conn, TLS_APPLICATION_DATA, bufs, count, 
+            conn->current_user_data_consumed + offs, to_write));
+        conn->current_user_data_consumed += to_write;
+        conn->active_application_bytes_consumed += to_write;
 
         /* Send it */
         if (s2n_flush(conn, blocked) < 0) {
@@ -179,5 +195,18 @@ ssize_t s2n_send(struct s2n_connection * conn, const void *buf, ssize_t size, s2
 
     *blocked = S2N_NOT_BLOCKED;
 
-    return size;
+    return total_size;
+}
+
+ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, s2n_blocked_status *blocked)
+{
+    return s2n_sendv_with_offset(conn, bufs, count, 0, blocked);
+}
+
+ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ssize_t size, s2n_blocked_status *blocked)
+{
+    struct iovec iov;
+    iov.iov_base = (void*)(uintptr_t)buf;
+    iov.iov_len = size;
+    return s2n_sendv_with_offset(conn, &iov, 1, 0, blocked);
 }

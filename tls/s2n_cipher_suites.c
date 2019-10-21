@@ -25,7 +25,9 @@
 #include "tls/s2n_kex.h"
 #include "utils/s2n_safety.h"
 
-
+/*************************
+ * S2n Record Algorithms *
+ *************************/
 const struct s2n_record_algorithm s2n_record_alg_null = {
     .cipher = &s2n_null_cipher,
     .hmac_alg = S2N_HMAC_NONE,
@@ -152,6 +154,30 @@ const struct s2n_record_algorithm s2n_record_alg_chacha20_poly1305 = {
      */
     .flags = S2N_TLS12_CHACHA_POLY_AEAD_NONCE,
 };
+
+/* TLS 1.3 Record Algorithms */
+const struct s2n_record_algorithm s2n_tls13_record_alg_aes128_gcm = {
+    .cipher = &s2n_tls13_aes128_gcm,
+    .hmac_alg = S2N_HMAC_NONE, /* previously used in 1.2 prf, we do not need this */
+    .flags = S2N_TLS13_RECORD_AEAD_NONCE,
+};
+
+const struct s2n_record_algorithm s2n_tls13_record_alg_aes256_gcm = {
+    .cipher = &s2n_tls13_aes256_gcm,
+    .hmac_alg = S2N_HMAC_NONE,
+    .flags = S2N_TLS13_RECORD_AEAD_NONCE,
+};
+
+const struct s2n_record_algorithm s2n_tls13_record_alg_chacha20_poly1305 = {
+    .cipher = &s2n_chacha20_poly1305,
+    .hmac_alg = S2N_HMAC_NONE,
+    /* this mirrors s2n_record_alg_chacha20_poly1305 with the exception of TLS 1.3 nonce flag */
+    .flags = S2N_TLS13_RECORD_AEAD_NONCE,
+};
+
+/*********************
+ * S2n Cipher Suites *
+ *********************/
 
 /* This is the initial cipher suite, but is never negotiated */
 struct s2n_cipher_suite s2n_null_cipher_suite = {
@@ -661,8 +687,8 @@ struct s2n_cipher_suite s2n_tls13_aes_128_gcm_sha256 = {
     .key_exchange_alg = NULL,
     .auth_method = S2N_AUTHENTICATION_METHOD_SENTINEL,
     .record_alg = NULL,
-    .all_record_algs = { &s2n_record_alg_aes128_sha256_composite, &s2n_record_alg_aes128_sha256 },
-    .num_record_algs = 2,
+    .all_record_algs = { &s2n_tls13_record_alg_aes128_gcm },
+    .num_record_algs = 1,
     .sslv3_record_alg = NULL,
     .tls12_prf_alg = S2N_HMAC_SHA256,
     .minimum_required_tls_version = S2N_TLS13,
@@ -675,8 +701,8 @@ struct s2n_cipher_suite s2n_tls13_aes_256_gcm_sha384 = {
     .key_exchange_alg = NULL,
     .auth_method = S2N_AUTHENTICATION_METHOD_SENTINEL,
     .record_alg = NULL,
-    .all_record_algs = { &s2n_record_alg_aes256_sha256_composite, &s2n_record_alg_aes256_sha256 },
-    .num_record_algs = 2,
+    .all_record_algs = { &s2n_tls13_record_alg_aes256_gcm },
+    .num_record_algs = 1,
     .sslv3_record_alg = NULL,
     .tls12_prf_alg = S2N_HMAC_SHA384,
     .minimum_required_tls_version = S2N_TLS13,
@@ -689,7 +715,7 @@ struct s2n_cipher_suite s2n_tls13_chacha20_poly1305_sha256 = {
     .key_exchange_alg = NULL,
     .auth_method = S2N_AUTHENTICATION_METHOD_SENTINEL,
     .record_alg = NULL,
-    .all_record_algs = { &s2n_record_alg_chacha20_poly1305 },
+    .all_record_algs = { &s2n_tls13_record_alg_chacha20_poly1305 },
     .num_record_algs = 1,
     .sslv3_record_alg = NULL,
     .tls12_prf_alg = S2N_HMAC_SHA256,
