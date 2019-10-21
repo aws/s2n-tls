@@ -136,32 +136,32 @@ static inline int s2n_record_encrypt(
     notnull_check(en->data);
 
     switch (cipher_suite->record_alg->cipher->type) {
-        case S2N_STREAM:
-            GUARD(cipher_suite->record_alg->cipher->io.stream.encrypt(session_key, en, en));
-            break;
-        case S2N_CBC:
-            GUARD(cipher_suite->record_alg->cipher->io.cbc.encrypt(session_key, iv, en, en));
+    case S2N_STREAM:
+        GUARD(cipher_suite->record_alg->cipher->io.stream.encrypt(session_key, en, en));
+        break;
+    case S2N_CBC:
+        GUARD(cipher_suite->record_alg->cipher->io.cbc.encrypt(session_key, iv, en, en));
 
-            /* Copy the last encrypted block to be the next IV */
-            if (conn->actual_protocol_version < S2N_TLS11) {
-                gte_check(en->size, block_size);
-                memcpy_check(implicit_iv, en->data + en->size - block_size, block_size);
-            }
-            break;
-        case S2N_AEAD:
-            GUARD(cipher_suite->record_alg->cipher->io.aead.encrypt(session_key, iv, aad, en, en));
-            break;
-        case S2N_COMPOSITE:
-            /* This will: compute mac, append padding, append padding length, and encrypt */
-            GUARD(cipher_suite->record_alg->cipher->io.comp.encrypt(session_key, iv, en, en));
-
-            /* Copy the last encrypted block to be the next IV */
+        /* Copy the last encrypted block to be the next IV */
+        if (conn->actual_protocol_version < S2N_TLS11) {
             gte_check(en->size, block_size);
             memcpy_check(implicit_iv, en->data + en->size - block_size, block_size);
-            break;
-        default:
-            S2N_ERROR(S2N_ERR_CIPHER_TYPE);
-            break;
+        }
+        break;
+    case S2N_AEAD:
+        GUARD(cipher_suite->record_alg->cipher->io.aead.encrypt(session_key, iv, aad, en, en));
+        break;
+    case S2N_COMPOSITE:
+        /* This will: compute mac, append padding, append padding length, and encrypt */
+        GUARD(cipher_suite->record_alg->cipher->io.comp.encrypt(session_key, iv, en, en));
+
+        /* Copy the last encrypted block to be the next IV */
+        gte_check(en->size, block_size);
+        memcpy_check(implicit_iv, en->data + en->size - block_size, block_size);
+        break;
+    default:
+        S2N_ERROR(S2N_ERR_CIPHER_TYPE);
+        break;
     }
 
     return 0;
@@ -336,30 +336,30 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
 
     uint16_t encrypted_length = data_bytes_to_take + mac_digest_size;
     switch (cipher_suite->record_alg->cipher->type) {
-        case S2N_AEAD:
-            GUARD(s2n_stuffer_skip_write(&conn->out, cipher_suite->record_alg->cipher->io.aead.record_iv_size));
-            encrypted_length += cipher_suite->record_alg->cipher->io.aead.tag_size;
-            if (is_tls13_record) {
-                /* one extra byte for content type */
-                encrypted_length += sizeof(content_type);
-            }
-            break;
-        case S2N_CBC:
-            if (conn->actual_protocol_version > S2N_TLS10) {
-                /* Leave the IV alone and unencrypted */
-                GUARD(s2n_stuffer_skip_write(&conn->out, iv.size));
-            }
-            /* Encrypt the padding and the padding length byte too */
-            encrypted_length += padding + 1;
-            break;
-        case S2N_COMPOSITE:
-            /* Composite CBC expects a pointer starting at explicit IV: [Explicit IV | fragment | MAC | padding | padding len ]
-             * extra will account for the explicit IV len(if applicable), MAC digest len, padding len + padding byte.
-             */
-            encrypted_length += extra;
-            break;
-        default:
-            break;
+    case S2N_AEAD:
+        GUARD(s2n_stuffer_skip_write(&conn->out, cipher_suite->record_alg->cipher->io.aead.record_iv_size));
+        encrypted_length += cipher_suite->record_alg->cipher->io.aead.tag_size;
+        if (is_tls13_record) {
+            /* one extra byte for content type */
+            encrypted_length += sizeof(content_type);
+        }
+        break;
+    case S2N_CBC:
+        if (conn->actual_protocol_version > S2N_TLS10) {
+            /* Leave the IV alone and unencrypted */
+            GUARD(s2n_stuffer_skip_write(&conn->out, iv.size));
+        }
+        /* Encrypt the padding and the padding length byte too */
+        encrypted_length += padding + 1;
+        break;
+    case S2N_COMPOSITE:
+        /* Composite CBC expects a pointer starting at explicit IV: [Explicit IV | fragment | MAC | padding | padding len ]
+        * extra will account for the explicit IV len(if applicable), MAC digest len, padding len + padding byte.
+        */
+        encrypted_length += extra;
+        break;
+    default:
+        break;
     }
 
     /* Do the encryption */
