@@ -265,8 +265,10 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
     # Make sure s2nd has started
     s2nd.stdout.readline()
 
-    s_client_cmd = ["openssl", "s_client", PROTO_VERS_TO_S_CLIENT_ARG[ssl_version],
-            "-connect", str(endpoint) + ":" + str(port)]
+    s_client_cmd = ["openssl", "s_client", "-connect", str(endpoint) + ":" + str(port)]
+
+    if ssl_version is not None:
+        s_client_cmd.append(PROTO_VERS_TO_S_CLIENT_ARG[ssl_version])
     if cipher is not None:
         s_client_cmd.extend(["-cipher", cipher])
     if sig_algs is not None:
@@ -391,7 +393,7 @@ def run_handshake_test(host, port, ssl_version, cipher, fips_mode, no_ticket, us
     if not cipher.openssl_1_1_1_compatible:
         return 0
 
-    if ssl_version < cipher_vers:
+    if ssl_version and ssl_version < cipher_vers:
         return 0
     
     client_cert_str=str(use_client_auth)
@@ -413,7 +415,7 @@ def handshake_test(host, port, test_ciphers, fips_mode, no_ticket=False, use_cli
     print("\n\tRunning handshake tests:")
     
     failed = 0
-    for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
+    for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12, None]:
         print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
         threadpool = create_thread_pool()
         port_offset = 0
@@ -466,7 +468,7 @@ def resume_test(host, port, test_ciphers, fips_mode, no_ticket=False):
 
     failed = 0
     results = []
-    for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
+    for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12, None]:
         port_offset = 0
         threadpool = create_thread_pool()
         print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
@@ -478,7 +480,7 @@ def resume_test(host, port, test_ciphers, fips_mode, no_ticket=False):
             if not cipher.openssl_1_1_1_compatible:
                 continue
 
-            if ssl_version < cipher_vers:
+            if ssl_version and ssl_version < cipher_vers:
                 continue
 
             async_result = threadpool.apply_async(run_resume_test, (host, port + port_offset, cipher_name, ssl_version, True, no_ticket, fips_mode))
@@ -504,7 +506,7 @@ def run_sigalg_test(host, port, cipher, ssl_version, permutation, fips_mode, use
     ret = try_handshake(host, port, cipher.openssl_name, ssl_version, sig_algs=mixed_sigs_str, no_ticket=no_ticket, enter_fips_mode=fips_mode, client_auth=use_client_auth)
         
     # Trim the RSA part off for brevity. User should know we are only supported RSA at the moment.
-    prefix = "Digests: %-35s ClientAuth: %-6s Vers: %-8s... " % (':'.join([x[4:] for x in permutation]), str(use_client_auth), S2N_PROTO_VERS_TO_STR[S2N_TLS12])
+    prefix = "Digests: %-35s ClientAuth: %-6s Vers: %-8s... " % (':'.join([x[4:] for x in permutation]), str(use_client_auth), S2N_PROTO_VERS_TO_STR[ssl_version])
     print_result(prefix, ret)
     return ret
 
@@ -528,8 +530,8 @@ def sigalg_test(host, port, fips_mode, use_client_auth=None, no_ticket=False):
         for permutation in itertools.permutations(supported_sigs, size):
             for cipher in ALL_TEST_CIPHERS:
                 # Try an ECDHE cipher suite and a DHE one
-                if(cipher.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or cipher.openssl_name == "DHE-RSA-AES128-GCM-SHA256"):
-                    async_result = threadpool.apply_async(run_sigalg_test, (host, port + portOffset, cipher, S2N_TLS12, permutation, fips_mode, use_client_auth, no_ticket))
+                if (cipher.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or cipher.openssl_name == "DHE-RSA-AES128-GCM-SHA256"):
+                    async_result = threadpool.apply_async(run_sigalg_test, (host, port + portOffset, cipher, None, permutation, fips_mode, use_client_auth, no_ticket))
                     portOffset = portOffset + 1
                     results.append(async_result)
 
@@ -564,8 +566,8 @@ def elliptic_curve_test(host, port, fips_mode):
             for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or x.openssl_name == "ECDHE-RSA-AES128-SHA", ALL_TEST_CIPHERS):
                 if fips_mode and cipher.openssl_fips_compatible == False:
                     continue
-                ret = try_handshake(host, port, cipher.openssl_name, S2N_TLS12, curves=mixed_curves_str, enter_fips_mode=fips_mode)
-                prefix = "Curves: %-40s Vers: %10s ... " % (':'.join(list(permutation)), S2N_PROTO_VERS_TO_STR[S2N_TLS12])
+                ret = try_handshake(host, port, cipher.openssl_name, None, curves=mixed_curves_str, enter_fips_mode=fips_mode)
+                prefix = "Curves: %-40s Vers: %10s ... " % (':'.join(list(permutation)), S2N_PROTO_VERS_TO_STR[None])
                 print_result(prefix, ret)
                 if ret != 0:
                     failed = 1
@@ -579,7 +581,7 @@ def elliptic_curve_fallback_test(host, port, fips_mode):
     failed = 0
     # Make sure s2n can still negotiate a non-EC kx(AES256-GCM-SHA384) suite if we don't match anything on the client
     unsupported_curves = ["B-163", "K-409"]
-    ret = try_handshake(host, port, "ECDHE-RSA-AES128-SHA256:AES256-GCM-SHA384", S2N_TLS12, curves=":".join(unsupported_curves), enter_fips_mode=fips_mode)
+    ret = try_handshake(host, port, "ECDHE-RSA-AES128-SHA256:AES256-GCM-SHA384", None, curves=":".join(unsupported_curves), enter_fips_mode=fips_mode)
     print_result("%-65s ... " % "Testing curve mismatch fallback", ret)
     if ret != 0:
         failed = 1
@@ -593,7 +595,7 @@ def handshake_fragmentation_test(host, port, fips_mode):
     """
     print("\n\tRunning handshake fragmentation tests:")
     failed = 0
-    for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
+    for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12, None]:
         print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
         # Cipher isn't relevant for this test, pick one available in all OpenSSL versions and all TLS versions
         cipher_name = "AES256-SHA"
@@ -614,7 +616,7 @@ def ocsp_stapling_test(host, port, fips_mode):
     """
     print("\n\tRunning OCSP stapling tests:")
     failed = 0
-    for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
+    for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12, None]:
         print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
         # Cipher isn't relevant for this test, pick one available in all TLS versions
         cipher_name = "AES256-SHA"
@@ -639,17 +641,17 @@ def cert_type_cipher_match_test(host, port):
     supported_curves = "P-256:P-384"
 
     # Handshake with RSA cert + ECDSApriority server cipher pref (must skip ecdsa ciphers)
-    rsa_ret = try_handshake(host, port, cipher, S2N_TLS12, curves=supported_curves,
+    rsa_ret = try_handshake(host, port, cipher, None, curves=supported_curves,
             server_cipher_pref="test_ecdsa_priority")
-    result_prefix = "Cert Type: rsa    Server Pref: ecdsa priority.  Vers: TLSv1.2 ... "
+    result_prefix = "Cert Type: rsa    Server Pref: ecdsa priority.  Vers: %-10s ... " % S2N_PROTO_VERS_TO_STR[None]
     print_result(result_prefix, rsa_ret)
     if rsa_ret != 0:
         failed = 1
 
     # Handshake with ECDSA cert + RSA priority server cipher prefs (must skip rsa ciphers)
-    ecdsa_ret = try_handshake(host, port, cipher, S2N_TLS12, curves=supported_curves,
+    ecdsa_ret = try_handshake(host, port, cipher, None, curves=supported_curves,
             server_cert=TEST_ECDSA_CERT, server_key=TEST_ECDSA_KEY, server_cipher_pref="test_all")
-    result_prefix = "Cert Type: ecdsa  Server Pref: rsa priority.  Vers: TLSv1.2 ... "
+    result_prefix = "Cert Type: ecdsa  Server Pref: rsa priority.  Vers: %-10s ... " % S2N_PROTO_VERS_TO_STR[None]
     print_result(result_prefix, ecdsa_ret)
     if ecdsa_ret != 0:
         failed = 1
@@ -667,10 +669,10 @@ def multiple_cert_type_test(host, port):
     for cipher in ["ECDHE-ECDSA-AES128-SHA", "ECDHE-RSA-AES128-GCM-SHA256"]:
         supported_curves = "P-256:P-384"
         server_prefs = "test_all"
-        ret = try_handshake(host, port, cipher, S2N_TLS12, curves=supported_curves,
+        ret = try_handshake(host, port, cipher, None, curves=supported_curves,
                 server_cert_key_list=[(TEST_RSA_CERT, TEST_RSA_KEY),(TEST_ECDSA_CERT, TEST_ECDSA_KEY)],
                 server_cipher_pref=server_prefs)
-        result_prefix = "Certs: [RSA, ECDSA]  Client Prefs " + cipher + " Server Pref: " + server_prefs + " Vers: TLSv1.2 ... "
+        result_prefix = "Certs: [RSA, ECDSA]  Client Prefs %s Server Pref: %s Vers: %-10s ... " % (cipher, server_prefs, S2N_PROTO_VERS_TO_STR[None])
         print_result(result_prefix, ret)
         if ret != 0:
             return ret
@@ -679,10 +681,10 @@ def multiple_cert_type_test(host, port):
     for cipher in ["ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-GCM-SHA256", "AES128-SHA"]:
         supported_curves = "P-256:P-384"
         server_prefs = "20170210"
-        ret = try_handshake(host, port, cipher, S2N_TLS12, curves=supported_curves,
+        ret = try_handshake(host, port, cipher, None, curves=supported_curves,
                 server_cert_key_list=[(TEST_RSA_CERT, TEST_RSA_KEY),(TEST_ECDSA_CERT, TEST_ECDSA_KEY)],
                 server_cipher_pref=server_prefs)
-        result_prefix = "Certs: [RSA, ECDSA]  Client Prefs " + cipher + " Server Pref: " + server_prefs + " Vers: TLSv1.2 ... "
+        result_prefix = "Certs: [RSA, ECDSA]  Client Prefs %s Server Pref: %s Vers: %-10s ... " % (cipher, server_prefs, S2N_PROTO_VERS_TO_STR[None])
         print_result(result_prefix, ret)
         if ret != 0:
             return ret
@@ -691,10 +693,10 @@ def multiple_cert_type_test(host, port):
     for cipher in ["ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-GCM-SHA256", "ECDHE-ECDSA-AES256-SHA"]:
         supported_curves = "P-256:P-384"
         server_prefs = "test_all_ecdsa"
-        ret = try_handshake(host, port, cipher, S2N_TLS12, curves=supported_curves,
+        ret = try_handshake(host, port, cipher, None, curves=supported_curves,
                 server_cert_key_list=[(TEST_RSA_CERT, TEST_RSA_KEY),(TEST_ECDSA_CERT, TEST_ECDSA_KEY)],
                 server_cipher_pref=server_prefs)
-        result_prefix = "Certs: [RSA, ECDSA]  Client Prefs " + cipher + " Server Pref: " + server_prefs + " Vers: TLSv1.2 ... "
+        result_prefix = "Certs: [RSA, ECDSA]  Client Prefs %s Server Pref: %s Vers: %-10s ... " % (cipher, server_prefs, S2N_PROTO_VERS_TO_STR[None])
         print_result(result_prefix, ret)
         if ret != 0:
             return ret
@@ -705,10 +707,10 @@ def multiple_cert_type_test(host, port):
         # Assume this is a curve s2n does not support
         supported_curves = "P-521"
         server_prefs = "test_all"
-        ret = try_handshake(host, port, cipher, S2N_TLS12, curves=supported_curves,
+        ret = try_handshake(host, port, cipher, None, curves=supported_curves,
                 server_cert_key_list=[(TEST_RSA_CERT, TEST_RSA_KEY),(TEST_ECDSA_CERT, TEST_ECDSA_KEY)],
                 server_cipher_pref=server_prefs)
-        result_prefix = "Certs: [RSA, ECDSA]  Client Prefs " + cipher + " Server Pref: " + server_prefs + " Vers: TLSv1.2 ... "
+        result_prefix = "Certs: [RSA, ECDSA]  Client Prefs %s Server Pref: %s Vers: %-10s ... " % (cipher, server_prefs, S2N_PROTO_VERS_TO_STR[None])
         print_result(result_prefix, ret)
         if ret != 0:
             return ret
@@ -727,7 +729,7 @@ def multiple_cert_domain_name_test(host, port):
         client_ciphers = test_case.client_ciphers
         expected_cert_path = test_case.expected_cert[0]
         expect_hostname_match = test_case.expect_matching_hostname
-        ret = try_handshake(host, port, client_ciphers, S2N_TLS12, server_name=client_sni,
+        ret = try_handshake(host, port, client_ciphers, None, server_name=client_sni,
                 expected_extensions = [TlsExtensionServerName] if expect_hostname_match == True else None,
                 strict_hostname=expect_hostname_match, server_cert_key_list=cert_key_list, expected_server_cert=expected_cert_path)
         result_prefix = "\nDescription: %s\n\nclient_sni: %s\nclient_ciphers: %s\nexpected_cert: %s\nexpect_hostname_match: %s\nresult: " % (test_case.description,

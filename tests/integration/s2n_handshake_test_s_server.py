@@ -73,8 +73,10 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
         dh_params = TEST_DH_PARAMS
 
     # Start Openssl s_server
-    s_server_cmd = ["openssl", "s_server", PROTO_VERS_TO_S_SERVER_ARG[ssl_version],
-            "-accept", str(port)]
+    s_server_cmd = ["openssl", "s_server", "-accept", str(port)]
+
+    if ssl_version is not None:
+        s_server_cmd.append(PROTO_VERS_TO_S_SERVER_ARG[ssl_version])
     if server_cert is not None:
         s_server_cmd.extend(["-cert", server_cert])
     if server_key is not None:
@@ -183,7 +185,7 @@ def run_handshake_test(host, port, ssl_version, cipher):
     if not cipher.openssl_1_1_1_compatible:
         return 0
 
-    if ssl_version < cipher_vers:
+    if ssl_version and ssl_version < cipher_vers:
         return 0
 
     ret = try_handshake(host, port, cipher_name, ssl_version)
@@ -201,7 +203,7 @@ def handshake_test(host, port, test_ciphers):
     print("\n\tRunning s2n Client handshake tests:")
 
     failed = 0
-    for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
+    for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12, None]:
         print("\n\tTesting ciphers using client version: " + S2N_PROTO_VERS_TO_STR[ssl_version])
         threadpool = create_thread_pool()
         port_offset = 0
@@ -230,7 +232,7 @@ def handshake_resumption_test(host, port, no_ticket=False):
         print("\n\tRunning s2n Client session resumption using session ticket tests:")
 
     failed = 0
-    for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
+    for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12, None]:
         ret = try_handshake(host, port, None, ssl_version, resume=True, no_ticket=no_ticket)
         prefix = "Session Resumption for: %-40s ... " % (S2N_PROTO_VERS_TO_STR[ssl_version])
         print_result(prefix, ret)
@@ -276,7 +278,7 @@ def sigalg_test(host, port):
             for cipher in ALL_TEST_CIPHERS:
                 # Try an ECDHE cipher suite and a DHE one
                 if cipher.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or cipher.openssl_name == "DHE-RSA-AES128-GCM-SHA256":
-                    async_result = threadpool.apply_async(run_sigalg_test, (host, port + portOffset, cipher, S2N_TLS12, permutation))
+                    async_result = threadpool.apply_async(run_sigalg_test, (host, port + portOffset, cipher, None, permutation))
                     portOffset = portOffset + 1
                     results.append(async_result)
 
@@ -310,8 +312,8 @@ def elliptic_curve_test(host, port):
             mixed_curves = unsupported_curves + list(permutation)
             mixed_curves_str = ':'.join(mixed_curves)
             for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or x.openssl_name == "ECDHE-RSA-AES128-SHA", ALL_TEST_CIPHERS):
-                ret = try_handshake(host, port, cipher.openssl_name, S2N_TLS12, curves=mixed_curves_str)
-                prefix = "Curves: %-40s Vers: %10s ... " % (':'.join(list(permutation)), S2N_PROTO_VERS_TO_STR[S2N_TLS12])
+                ret = try_handshake(host, port, cipher.openssl_name, None, curves=mixed_curves_str)
+                prefix = "Curves: %-40s Vers: %10s ... " % (':'.join(list(permutation)), S2N_PROTO_VERS_TO_STR[None])
                 print_result(prefix, ret)
                 if ret != 0:
                     failed = 1

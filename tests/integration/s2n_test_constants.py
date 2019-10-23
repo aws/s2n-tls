@@ -112,6 +112,7 @@ S2N_PROTO_VERS_TO_STR = {
     S2N_TLS11 : "TLSv1.1",
     S2N_TLS12 : "TLSv1.2",
     S2N_TLS13 : "TLSv1.3",
+    None      : "Default",
 }
 
 S2N_PROTO_VERS_TO_GNUTLS = {
