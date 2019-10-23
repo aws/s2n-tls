@@ -81,12 +81,12 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
 
         if (s2n_sslv2_record_header_parse(conn, record_type, &conn->client_protocol_version, &fragment_length) < 0) {
             GUARD(s2n_connection_kill(conn));
-            return -1;
+            S2N_ERROR_PRESERVE_ERRNO();
         }
     } else {
         if (s2n_record_header_parse(conn, record_type, &fragment_length) < 0) {
             GUARD(s2n_connection_kill(conn));
-            return -1;
+            S2N_ERROR_PRESERVE_ERRNO();
         }
     }
 
@@ -119,8 +119,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
     /* Decrypt and parse the record */
     if (s2n_record_parse(conn) < 0) {
         GUARD(s2n_connection_kill(conn));
-
-        return -1;
+        S2N_ERROR_PRESERVE_ERRNO();
     }
 
     return 0;
@@ -162,7 +161,7 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
                 conn->config->cache_delete(conn, conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
             }
 
-            return -1;
+            S2N_ERROR_PRESERVE_ERRNO();
         }
 
         S2N_ERROR_IF(isSSLv2, S2N_ERR_BAD_MESSAGE);

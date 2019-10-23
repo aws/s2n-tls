@@ -138,6 +138,20 @@ typedef enum {
     S2N_ERR_UNIMPLEMENTED,
     S2N_ERR_READ,
     S2N_ERR_WRITE,
+    S2N_ERR_BAD_FD,
+    S2N_ERR_RDRAND_FAILED,
+    S2N_ERR_FAILED_CACHE_RETRIEVAL,
+    S2N_ERR_X509_TRUST_STORE,
+    S2N_ERR_UNKNOWN_PROTOCOL_VERSION,
+    S2N_ERR_NULL_CN_NAME,
+    S2N_ERR_NULL_SANS,
+    S2N_ERR_CLIENT_HELLO_VERSION,
+    S2N_ERR_CLIENT_PROTOCOL_VERSION,
+    S2N_ERR_SERVER_PROTOCOL_VERSION,
+    S2N_ERR_ACTUAL_PROTOCOL_VERSION,
+    S2N_ERR_POLLING_FROM_SOCKET,
+    S2N_ERR_RECV_STUFFER_FROM_CONN,
+    S2N_ERR_SEND_STUFFER_TO_CONN,
     /* S2N_ERR_T_USAGE */
     S2N_ERR_NO_ALERT = S2N_ERR_T_USAGE_START,
     S2N_ERR_CLIENT_MODE,
@@ -180,6 +194,11 @@ typedef enum {
     S2N_ERR_INVALID_ARGUMENT,
     S2N_ERR_NOT_IN_UNIT_TEST,
     S2N_ERR_BAD_KEY_SHARE,
+    S2N_ERR_UNSUPPORTED_CPU,
+    S2N_ERR_SESSION_ID_TOO_SHORT,
+    S2N_ERR_CONNECTION_CACHING_DISALLOWED,
+    S2N_ERR_SESSION_TICKET_NOT_SUPPORTED,
+    S2N_ERR_OCSP_NOT_SUPPORTED,
 } s2n_error;
 
 #define S2N_DEBUG_STR_LEN 128
@@ -192,6 +211,7 @@ extern __thread const char *s2n_debug_str;
 #define _S2N_DEBUG_LINE     "Error encountered in " __FILE__ " line " STRING__LINE__
 #define _S2N_ERROR( x )     do { s2n_debug_str = _S2N_DEBUG_LINE; s2n_errno = ( x ); } while (0)
 #define S2N_ERROR( x )      do { _S2N_ERROR( ( x ) ); return -1; } while (0)
+#define S2N_ERROR_PRESERVE_ERRNO() do { return -1; } while (0)
 #define S2N_ERROR_PTR( x )  do { _S2N_ERROR( ( x ) ); return NULL; } while (0)
 #define S2N_ERROR_IF( cond , x ) do { if ( cond ) { S2N_ERROR( x ); }} while (0)
 #define S2N_ERROR_IF_PTR( cond , x ) do { if ( cond ) { S2N_ERROR_PTR( x ); }} while (0)

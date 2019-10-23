@@ -86,9 +86,7 @@ int s2n_extensions_client_supported_versions_process(struct s2n_connection *conn
         conn->actual_protocol_version = MAX(client_version, conn->actual_protocol_version);
     }
 
-    if (conn->actual_protocol_version == s2n_unknown_protocol_version) {
-        return -1;
-    }
+    S2N_ERROR_IF(conn->actual_protocol_version == s2n_unknown_protocol_version, S2N_ERR_UNKNOWN_PROTOCOL_VERSION);
 
     return 0;
 }

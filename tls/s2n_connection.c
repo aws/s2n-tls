@@ -1149,7 +1149,7 @@ int s2n_connection_recv_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
         if (errno == EINTR) {
             goto RECV;
         }
-        return -1;
+        S2N_ERROR(S2N_ERR_RECV_STUFFER_FROM_CONN);
     }
 
     /* Record just how many bytes we have written */
@@ -1176,7 +1176,7 @@ int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
         if (errno == EINTR) {
             goto SEND;
         }
-        return -1;
+        S2N_ERROR(S2N_ERR_SEND_STUFFER_TO_CONN);
     }
 
     stuffer->read_cursor += w;

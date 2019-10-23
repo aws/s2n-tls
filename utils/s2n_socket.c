@@ -184,7 +184,7 @@ int s2n_socket_read(void *io_context, uint8_t *buf, uint32_t len)
     int rfd = ((struct s2n_socket_read_io_context*) io_context)->fd;
     if (rfd < 0) {
         errno = EBADF;
-        return -1;
+        S2N_ERROR(S2N_ERR_BAD_FD);
     }
 
     /* Clear the quickack flag so we know to reset it */
@@ -201,7 +201,7 @@ int s2n_socket_write(void *io_context, const uint8_t *buf, uint32_t len)
     int wfd = ((struct s2n_socket_write_io_context*) io_context)->fd;
     if (wfd < 0) {
         errno = EBADF;
-        return -1;
+        S2N_ERROR(S2N_ERR_BAD_FD);
     }
 
     /* On success, the number of bytes written is returned. On failure, -1 is

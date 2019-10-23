@@ -44,9 +44,7 @@ static int s2n_serialize_resumption_state(struct s2n_connection *conn, struct s2
 {
     uint64_t now;
 
-    if (s2n_stuffer_space_remaining(to) < S2N_STATE_SIZE_IN_BYTES) {
-        return -1;
-    }
+    S2N_ERROR_IF(s2n_stuffer_space_remaining(to) < S2N_STATE_SIZE_IN_BYTES, S2N_ERR_STUFFER_IS_FULL);
 
     /* Get the time */
     GUARD(conn->config->wall_clock(conn->config->sys_clock_ctx, &now));
@@ -67,36 +65,24 @@ static int s2n_deserialize_resumption_state(struct s2n_connection *conn, struct 
     uint8_t protocol_version;
     uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN];
 
-    if (s2n_stuffer_data_available(from) < S2N_STATE_SIZE_IN_BYTES) {
-        return -1;
-    }
+    S2N_ERROR_IF(s2n_stuffer_data_available(from) < S2N_STATE_SIZE_IN_BYTES, S2N_ERR_STUFFER_OUT_OF_DATA);
 
     GUARD(s2n_stuffer_read_uint8(from, &format));
-    if (format != S2N_SERIALIZED_FORMAT_VERSION) {
-        return -1;
-    }
+    S2N_ERROR_IF(format != S2N_SERIALIZED_FORMAT_VERSION, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
 
     GUARD(s2n_stuffer_read_uint8(from, &protocol_version));
-    if (protocol_version != conn->actual_protocol_version) {
-        return -1;
-    }
+    S2N_ERROR_IF(protocol_version != conn->actual_protocol_version, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
 
     GUARD(s2n_stuffer_read_bytes(from, cipher_suite, S2N_TLS_CIPHER_SUITE_LEN));
-    if (memcmp(conn->secure.cipher_suite->iana_value, cipher_suite, S2N_TLS_CIPHER_SUITE_LEN)) {
-        return -1;
-    }
+    S2N_ERROR_IF(memcmp(conn->secure.cipher_suite->iana_value, cipher_suite, S2N_TLS_CIPHER_SUITE_LEN), S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
 
     uint64_t now;
     GUARD(conn->config->wall_clock(conn->config->sys_clock_ctx, &now));
 
     uint64_t then;
     GUARD(s2n_stuffer_read_uint64(from, &then));
-    if (then > now) {
-        return -1;
-    }
-    if (now - then > conn->config->session_state_lifetime_in_nanos) {
-        return -1;
-    }
+    S2N_ERROR_IF(then > now, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
+    S2N_ERROR_IF(now - then > conn->config->session_state_lifetime_in_nanos, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
 
     /* Last but not least, put the master secret in place */
     GUARD(s2n_stuffer_read_bytes(from, conn->secure.master_secret, S2N_TLS_SECRET_LEN));
@@ -213,21 +199,17 @@ int s2n_resume_from_cache(struct s2n_connection *conn)
     struct s2n_stuffer from = {0};
     uint64_t size;
 
-    if (conn->session_id_len == 0 || conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN) {
-        return S2N_FAILURE;
-    }
+    S2N_ERROR_IF(conn->session_id_len == 0, S2N_ERR_SESSION_ID_TOO_SHORT);
+    S2N_ERROR_IF(conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN, S2N_ERR_SESSION_ID_TOO_LONG);
 
     GUARD(s2n_stuffer_init(&from, &entry));
     uint8_t *state = s2n_stuffer_raw_write(&from, entry.size);
     notnull_check(state);
 
     size = S2N_STATE_SIZE_IN_BYTES;
+
     GUARD_AGAIN(conn->config->cache_retrieve(conn, conn->config->cache_retrieve_data, conn->session_id, conn->session_id_len, state, &size));
-
-    if (size != S2N_STATE_SIZE_IN_BYTES) {
-        return S2N_FAILURE;
-    }
-
+    S2N_ERROR_IF(size != S2N_STATE_SIZE_IN_BYTES, S2N_ERR_SIZE_MISMATCH);
     GUARD(s2n_deserialize_resumption_state(conn, &from));
 
     return S2N_SUCCESS;
@@ -241,9 +223,8 @@ int s2n_store_to_cache(struct s2n_connection *conn)
 
     /* session_id_len should always be >0 since either the Client provided a SessionId or the Server generated a new
      * one for the Client */
-    if (conn->session_id_len == 0 || conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN) {
-        return -1;
-    }
+    S2N_ERROR_IF(conn->session_id_len == 0, S2N_ERR_SESSION_ID_TOO_SHORT);
+    S2N_ERROR_IF(conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN, S2N_ERR_SESSION_ID_TOO_LONG);
 
     GUARD(s2n_stuffer_init(&to, &entry));
     GUARD(s2n_serialize_resumption_state(conn, &to));
@@ -298,13 +279,10 @@ int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, si
 int s2n_connection_get_session_ticket_lifetime_hint(struct s2n_connection *conn)
 {
     notnull_check(conn);
+    S2N_ERROR_IF(!(conn->config->use_tickets && conn->client_ticket.size > 0), S2N_ERR_SESSION_TICKET_NOT_SUPPORTED);
 
     /* Session resumption using session ticket */
-    if (conn->config->use_tickets && conn->client_ticket.size > 0) {
-        return conn->ticket_lifetime_hint;
-    } else {
-        return -1;
-    }
+    return conn->ticket_lifetime_hint;
 }
 
 int s2n_connection_get_session_length(struct s2n_connection *conn)
@@ -625,9 +603,7 @@ int s2n_verify_unique_ticket_key(struct s2n_config *config, uint8_t *hash, uint1
                                          hash,
                                          s2n_verify_unique_ticket_key_comparator);
 
-    if (result == -1) {
-        return result;
-    }
+    S2N_ERROR_IF(result == -1, S2N_ERR_TICKET_KEY_NOT_UNIQUE);
 
     *insert_index = result;
     return 0;
@@ -636,9 +612,9 @@ int s2n_verify_unique_ticket_key(struct s2n_config *config, uint8_t *hash, uint1
 int s2n_config_store_ticket_key_comparator(void *a, void *b)
 {
     if (((struct s2n_ticket_key *) a)->intro_timestamp >= ((struct s2n_ticket_key *) b)->intro_timestamp) {
-        return 1;
+        return S2N_GREATER_OR_EQUAL;
     } else {
-        return -1;
+        return S2N_LESS_THAN;
     }
 }
 
@@ -650,13 +626,11 @@ int s2n_config_store_ticket_key(struct s2n_config *config, struct s2n_ticket_key
                                         key,
                                         s2n_config_store_ticket_key_comparator);
 
-    if (index != -1) {
-        /* Keys are stored from oldest to newest */
-        struct s2n_ticket_key *ticket_key_element = s2n_array_insert(config->ticket_keys, index);
-        memcpy_check(ticket_key_element, key, sizeof(struct s2n_ticket_key));
+    S2N_ERROR_IF(index == -1, S2N_ERR_TICKET_KEY_NOT_UNIQUE);
 
-        return 0;
-    }
+    /* Keys are stored from oldest to newest */
+    struct s2n_ticket_key *ticket_key_element = s2n_array_insert(config->ticket_keys, index);
+    memcpy_check(ticket_key_element, key, sizeof(struct s2n_ticket_key));
 
-    return -1;
+    return 0;
 }
