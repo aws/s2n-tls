@@ -159,7 +159,7 @@ int s2n_array_binary_search(int low, int top, struct s2n_array *array, void *ele
 
         if (m == 0) {
             /* Return -1 when a match is found */
-            return -1;
+            return S2N_ELEMENT_ALREADY_IN_ARRAY;
         } else if (m > 0) {
             top = mid - 1;
         } else if (m < 0) {

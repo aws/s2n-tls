@@ -394,9 +394,7 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
             }
         }
 
-        if (!success) {
-            return -1;
-        }
+        S2N_ERROR_IF(!success, S2N_ERR_RDRAND_FAILED);
 
         int data_to_fill = MIN(sizeof(output), space_remaining);
 
@@ -405,6 +403,6 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
 
     return 0;
 #else
-    return -1;
+    S2N_ERROR(S2N_ERR_UNSUPPORTED_CPU);
 #endif
 }

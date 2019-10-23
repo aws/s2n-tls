@@ -31,6 +31,7 @@
 
 #include <s2n.h>
 #include "common.h"
+#include <error/s2n_errno.h>
 
 void usage()
 {
@@ -407,11 +408,10 @@ int main(int argc, char *const *argv)
         }
 
         /* See echo.c */
-        int ret = negotiate(conn);
-
-        if (ret != 0) {
+        if (negotiate(conn) != 0)
+        {
             /* Error is printed in negotiate */
-            return -1;
+            S2N_ERROR_PRESERVE_ERRNO();
         }
 
         printf("Connected to %s:%s\n", host, port);

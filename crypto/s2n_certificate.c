@@ -216,12 +216,12 @@ int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_ke
             struct s2n_blob *san_blob = s2n_array_insert(chain_and_key->san_names, s2n_array_num_elements(chain_and_key->san_names));
             if (!san_blob) {
                 GENERAL_NAMES_free(san_names);
-                return -1;
+                S2N_ERROR(S2N_ERR_NULL_SANS);
             }
 
             if (s2n_alloc(san_blob, san_str_len)) {
                 GENERAL_NAMES_free(san_names);
-                return -1;
+                S2N_ERROR_PRESERVE_ERRNO();
             }
 
             memcpy_check(san_blob->data, san_str, san_str_len);
@@ -280,12 +280,12 @@ int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key
             struct s2n_blob *cn_name = s2n_array_insert(chain_and_key->cn_names, s2n_array_num_elements(chain_and_key->cn_names));
             if (cn_name == NULL) {
                 OPENSSL_free(utf8_str);
-                return -1;
+                S2N_ERROR(S2N_ERR_NULL_CN_NAME);
             }
 
             if (s2n_alloc(cn_name, utf8_out_len) < 0) {
                 OPENSSL_free(utf8_str);
-                return -1;
+                S2N_ERROR_PRESERVE_ERRNO();
             }
             memcpy_check(cn_name->data, utf8_str, utf8_out_len);
             cn_name->size = utf8_out_len;

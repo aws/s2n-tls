@@ -220,7 +220,8 @@ int main(int argc, char **argv) {
 
         struct s2n_x509_validator validator;
         s2n_x509_validator_init(&validator, &trust_store, 1);
-        EXPECT_EQUAL(-1, s2n_x509_validator_set_max_chain_depth(&validator, 0));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_x509_validator_set_max_chain_depth(&validator, 0), S2N_ERR_INVALID_ARGUMENT);
 
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);

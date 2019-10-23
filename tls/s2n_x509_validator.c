@@ -75,7 +75,7 @@ int s2n_x509_trust_store_from_system_defaults(struct s2n_x509_trust_store *store
     int err_code = X509_STORE_set_default_paths(store->trust_store);
     if (!err_code) {
         s2n_x509_trust_store_wipe(store);
-        return -1;
+        S2N_ERROR(S2N_ERR_X509_TRUST_STORE);
     }
 
     X509_STORE_set_flags(store->trust_store, X509_VP_FLAG_DEFAULT);
@@ -125,7 +125,7 @@ int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const 
     int err_code = X509_STORE_load_locations(store->trust_store, ca_pem_filename, ca_dir);
     if (!err_code) {
         s2n_x509_trust_store_wipe(store);
-        return -1;
+        S2N_ERROR(S2N_ERR_X509_TRUST_STORE);
     }
 
     /* It's a likely scenario if this function is called, a self-signed certificate is used, and that is was generated
@@ -184,13 +184,10 @@ void s2n_x509_validator_wipe(struct s2n_x509_validator *validator) {
 
 int s2n_x509_validator_set_max_chain_depth(struct s2n_x509_validator *validator, uint16_t max_depth) {
     notnull_check(validator);
+    S2N_ERROR_IF(max_depth == 0, S2N_ERR_INVALID_ARGUMENT);
 
-    if (max_depth > 0) {
-        validator->max_chain_depth = max_depth;
-        return 0;
-    }
-
-    return -1;
+    validator->max_chain_depth = max_depth;
+    return 0;
 }
 
 /*

@@ -1021,13 +1021,13 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
 
                 if (handshake_read_io(conn) < 0 && s2n_errno == S2N_ERR_ALERT) {
                     /* handshake_read_io has set s2n_errno */
-                    return S2N_FAILURE;
+                    S2N_ERROR_PRESERVE_ERRNO();
                 } else {
                     /* Let the write error take precedence if we didn't read an alert. */
                     errno = write_errno;
                     s2n_errno = write_s2n_errno;
                     s2n_debug_str = write_s2n_debug_str;
-                    return S2N_FAILURE;
+                    S2N_ERROR_PRESERVE_ERRNO();
                 }
             }
         } else {
@@ -1036,7 +1036,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
 
             if (r < 0) {
                 s2n_try_delete_session_cache(conn);
-                return S2N_FAILURE;
+                S2N_ERROR_PRESERVE_ERRNO();
             }
         }
 
