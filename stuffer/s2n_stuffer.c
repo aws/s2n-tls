@@ -274,6 +274,32 @@ int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t * data, c
     return 0;
 }
 
+int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec* iov, int iov_count, size_t offs, size_t size)
+{
+    void *ptr = s2n_stuffer_raw_write(stuffer, size);
+    notnull_check(ptr);
+
+    size_t size_left = size, to_skip = offs;
+    for (int i = 0; i < iov_count; i++) {
+        if (to_skip >= iov[i].iov_len) {
+            to_skip -= iov[i].iov_len;
+            continue;
+        }
+
+        uint32_t iov_len = iov[i].iov_len - to_skip;
+        uint32_t iov_size_to_take = MIN(size_left, iov_len);
+        memcpy_check(ptr, (uint8_t*)iov[i].iov_base + to_skip, iov_size_to_take);
+        size_left -= iov_size_to_take;
+        if (size_left == 0) {
+            break;
+        }
+        ptr = (void*)((uint8_t*)ptr + iov_size_to_take);
+        to_skip = 0;
+    }
+
+    return 0;
+}
+
 int s2n_stuffer_read_uint8(struct s2n_stuffer *stuffer, uint8_t * u)
 {
     GUARD(s2n_stuffer_read_bytes(stuffer, u, 1));

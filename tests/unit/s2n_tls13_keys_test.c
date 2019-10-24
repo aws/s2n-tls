@@ -27,11 +27,6 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
-#define S2N_BLOB_EXPECT_EQUAL( blob1, blob2 ) do {              \
-    EXPECT_EQUAL(blob1.size, blob2.size);                       \
-    EXPECT_BYTEARRAY_EQUAL(blob1.data, blob2.data, blob1.size); \
-} while (0)
-
 #define S2N_BLOB_FROM_HEX( name, hex )                  \
     struct s2n_stuffer name##_stuffer;                  \
     s2n_stuffer_alloc_ro_from_hex_string(               \
@@ -58,6 +53,11 @@ int main(int argc, char **argv)
 
     S2N_BLOB_FROM_HEX(expect_derived_master_secret, "43de77e0c77713859a944db9db2590b53190a65b3ee2e4f12dd7a0bb7ce254b4");
     S2N_BLOB_FROM_HEX(expect_extract_master_secret, "18df06843d13a08bf2a449844c5f8a478001bc4d4c627984d5a41da8d0402919");
+
+    S2N_BLOB_FROM_HEX(server_payload, "080000240022000a00140012001d00170018001901000101010201030104001c00024001000000000b0001b9000001b50001b0308201ac30820115a003020102020102300d06092a864886f70d01010b0500300e310c300a06035504031303727361301e170d3136303733303031323335395a170d3236303733303031323335395a300e310c300a0603550403130372736130819f300d06092a864886f70d010101050003818d0030818902818100b4bb498f8279303d980836399b36c6988c0c68de55e1bdb826d3901a2461eafd2de49a91d015abbc9a95137ace6c1af19eaa6af98c7ced43120998e187a80ee0ccb0524b1b018c3e0b63264d449a6d38e22a5fda430846748030530ef0461c8ca9d9efbfae8ea6d1d03e2bd193eff0ab9a8002c47428a6d35a8d88d79f7f1e3f0203010001a31a301830090603551d1304023000300b0603551d0f0404030205a0300d06092a864886f70d01010b05000381810085aad2a0e5b9276b908c65f73a7267170618a54c5f8a7b337d2df7a594365417f2eae8f8a58c8f8172f9319cf36b7fd6c55b80f21a03015156726096fd335e5e67f2dbf102702e608ccae6bec1fc63a42a99be5c3eb7107c3c54e9b9eb2bd5203b1c3b84e0a8b2f759409ba3eac9d91d402dcc0cc8f8961229ac9187b42b4de100000f000084080400805a747c5d88fa9bd2e55ab085a61015b7211f824cd484145ab3ff52f1fda8477b0b7abc90db78e2d33a5c141a078653fa6bef780c5ea248eeaaa785c4f394cab6d30bbe8d4859ee511f602957b15411ac027671459e46445c9ea58c181e818e95b8c3fb0bf3278409d3be152a3da5043e063dda65cdf5aea20d53dfacd42f74f3140000209b9b141d906337fbd2cbdce71df4deda4ab42c309572cb7fffee5454b78f0718");
+    
+    S2N_BLOB_FROM_HEX(expect_derived_client_application_traffic_secret, "9e40646ce79a7f9dc05af8889bce6552875afa0b06df0087f792ebb7c17504a5");
+    S2N_BLOB_FROM_HEX(expect_derived_server_application_traffic_secret, "a11af9f05531f856ad47116b45a950328204b4f44bfb6b3a4b4f1f3fcb631643");
 
     S2N_BLOB_FROM_HEX(expect_handshake_traffic_server_key, "3fce516009c21727d0f2e4e86ee403bc");
     S2N_BLOB_FROM_HEX(expect_handshake_traffic_server_iv, "5d313eb2671276ee13000b30");
@@ -107,8 +107,13 @@ int main(int argc, char **argv)
     s2n_tls13_key_blob(client_application_secret, secrets.size);
     s2n_tls13_key_blob(server_application_secret, secrets.size);
 
+    EXPECT_SUCCESS(s2n_hash_update(&hash_state, server_payload.data, server_payload.size));
+
     EXPECT_SUCCESS(s2n_tls13_derive_application_secrets(&secrets, &hash_state, &client_application_secret, &server_application_secret));
     S2N_BLOB_EXPECT_EQUAL(expect_extract_master_secret, secrets.extract_secret);
+    
+    S2N_BLOB_EXPECT_EQUAL(expect_derived_client_application_traffic_secret, client_application_secret);
+    S2N_BLOB_EXPECT_EQUAL(expect_derived_server_application_traffic_secret, server_application_secret);
 
     /* Test Traffic Keys */
 
@@ -141,6 +146,9 @@ int main(int argc, char **argv)
     S2N_BLOB_FREE(expect_derived_server_handshake_secret);
     S2N_BLOB_FREE(expect_derived_master_secret);
     S2N_BLOB_FREE(expect_extract_master_secret);
+    S2N_BLOB_FREE(server_payload);
+    S2N_BLOB_FREE(expect_derived_client_application_traffic_secret);
+    S2N_BLOB_FREE(expect_derived_server_application_traffic_secret);
     S2N_BLOB_FREE(expect_handshake_traffic_server_key);
     S2N_BLOB_FREE(expect_handshake_traffic_server_iv);
     S2N_BLOB_FREE(expect_derived_client_handshake_secret_digest);

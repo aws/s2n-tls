@@ -13,15 +13,16 @@
 # permissions and limitations under the License.
 #
 
-
 set -ex
 
+# Defer overriding LD_LIBRARY_PATH so that the overriden paths don't interfere with test install scripts.
+# Some Test install scripts use curl commands to download files from S3, but those commands don't work when forced to load OpenSSL 1.1.1
+source .travis/s2n_override_paths.sh
 
 if [[ "$BUILD_S2N" == "true" ]]; then
     .travis/run_cppcheck.sh "$CPPCHECK_INSTALL_DIR";
     .travis/copyright_mistake_scanner.sh;
 fi
-
 
 if [[ "$BUILD_S2N" == "true" && "$TRAVIS_OS_NAME" == "linux" ]]; then
     .travis/run_kwstyle.sh;
@@ -30,7 +31,9 @@ fi
 
 # Use prlimit to set the memlock limit to unlimited for linux. OSX is unlimited by default
 if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-    sudo -E "$PRLIMIT_INSTALL_DIR"/bin/prlimit --pid "$$" --memlock=unlimited:unlimited;
+    PRLIMIT_LOCATION=`which prlimit`
+    # sudo may not be able to find prlimit if we installed it in the test-deps directory. Force it to use the one on our current path.
+    sudo -E ${PRLIMIT_LOCATION} --pid "$$" --memlock=unlimited:unlimited;
 fi
 
 # Set the version of GCC as Default if it's required
@@ -46,6 +49,8 @@ if [[ -x "$(command -v nproc)" ]]; then
         JOBS=$UNITS;
     fi
 fi
+
+make clean;
 
 echo "Using $JOBS jobs for make..";
 

@@ -26,11 +26,6 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
-#define S2N_BLOB_EXPECT_EQUAL( blob1, blob2 ) do {              \
-    EXPECT_EQUAL(blob1.size, blob2.size);                       \
-    EXPECT_BYTEARRAY_EQUAL(blob1.data, blob2.data, blob1.size); \
-} while (0)
-
 #define S2N_STUFFER_READ_SKIP_TILL_END( stuffer ) do { \
     EXPECT_SUCCESS(s2n_stuffer_skip_read(stuffer,      \
         s2n_stuffer_data_available(stuffer)));         \

@@ -22,6 +22,7 @@ extern "C" {
 #include <sys/types.h>
 #include <stdint.h>
 #include <openssl/ossl_typ.h>
+#include <sys/uio.h>
 
 /* Function return code  */
 #define S2N_SUCCESS 0
@@ -203,6 +204,8 @@ extern const uint8_t *s2n_connection_get_sct_list(struct s2n_connection *conn, u
 typedef enum { S2N_NOT_BLOCKED = 0, S2N_BLOCKED_ON_READ, S2N_BLOCKED_ON_WRITE, S2N_BLOCKED_ON_APPLICATION_INPUT } s2n_blocked_status;
 extern int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked);
 extern ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ssize_t size, s2n_blocked_status *blocked);
+extern ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, s2n_blocked_status *blocked);
+extern ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, ssize_t offs, s2n_blocked_status *blocked);
 extern ssize_t s2n_recv(struct s2n_connection *conn,  void *buf, ssize_t size, s2n_blocked_status *blocked);
 extern uint32_t s2n_peek(struct s2n_connection *conn);
 

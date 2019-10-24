@@ -4,7 +4,7 @@
 
 module s2n_handshake_io where
 
-// This function modesl the update of the s2n_connection struct by the
+// This function models the update of the s2n_connection struct by the
 // s2n_conn_set_handshake_type function in s2n.
 conn_set_handshake_type : connection -> connection
 conn_set_handshake_type conn = conn'

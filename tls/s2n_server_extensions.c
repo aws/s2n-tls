@@ -25,22 +25,20 @@
 #include "tls/s2n_kex.h"
 #include "tls/s2n_cipher_suites.h"
 
-#include "extensions/s2n_server_supported_versions.h"
+#include "tls/extensions/s2n_server_renegotiation_info.h"
+#include "tls/extensions/s2n_server_alpn.h"
+#include "tls/extensions/s2n_server_status_request.h"
+#include "tls/extensions/s2n_server_sct_list.h"
+#include "tls/extensions/s2n_server_max_fragment_length.h"
+#include "tls/extensions/s2n_server_session_ticket.h"
+#include "tls/extensions/s2n_server_server_name.h"
+#include "tls/extensions/s2n_server_supported_versions.h"
+#include "tls/extensions/s2n_server_key_share.h"
 
 #include "stuffer/s2n_stuffer.h"
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
-
-#include "tls/extensions/s2n_server_key_share.h"
-
-static int s2n_recv_server_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension);
-static int s2n_recv_server_renegotiation_info_ext(struct s2n_connection *conn, struct s2n_stuffer *extension);
-static int s2n_recv_server_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension);
-static int s2n_recv_server_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension);
-static int s2n_recv_server_sct_list(struct s2n_connection *conn, struct s2n_stuffer *extension);
-static int s2n_recv_server_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer *extension);
-static int s2n_recv_server_session_ticket_ext(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 #define s2n_server_can_send_server_name(conn) ((conn)->server_name_used && \
         !s2n_connection_is_session_resumed((conn)))
@@ -192,7 +190,7 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
             GUARD(s2n_recv_server_sct_list(conn, &extension));
             break;
         case TLS_EXTENSION_MAX_FRAG_LEN:
-            GUARD(s2n_recv_server_max_frag_len(conn, &extension));
+            GUARD(s2n_recv_server_max_fragment_length(conn, &extension));
             break;
         case TLS_EXTENSION_SESSION_TICKET:
             GUARD(s2n_recv_server_session_ticket_ext(conn, &extension));
@@ -209,84 +207,6 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
             break;
         }
     }
-
-    return 0;
-}
-
-int s2n_recv_server_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    conn->server_name_used = 1;
-    return 0;
-}
-
-int s2n_recv_server_renegotiation_info_ext(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    /* RFC5746 Section 3.4: The client MUST then verify that the length of
-     * the "renegotiated_connection" field is zero, and if it is not, MUST
-     * abort the handshake. */
-    uint8_t renegotiated_connection_len;
-    GUARD(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
-    S2N_ERROR_IF(s2n_stuffer_data_available(extension), S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
-    S2N_ERROR_IF(renegotiated_connection_len, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
-
-    conn->secure_renegotiation = 1;
-    return 0;
-}
-
-int s2n_recv_server_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    uint16_t size_of_all;
-    GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
-    if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all < 3) {
-        /* ignore invalid extension size */
-        return 0;
-    }
-
-    uint8_t protocol_len;
-    GUARD(s2n_stuffer_read_uint8(extension, &protocol_len));
-
-    uint8_t *protocol = s2n_stuffer_raw_read(extension, protocol_len);
-    notnull_check(protocol);
-
-    /* copy the first protocol name */
-    memcpy_check(conn->application_protocol, protocol, protocol_len);
-    conn->application_protocol[protocol_len] = '\0';
-
-    return 0;
-}
-
-int s2n_recv_server_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    conn->status_type = S2N_STATUS_REQUEST_OCSP;
-
-    return 0;
-}
-
-int s2n_recv_server_sct_list(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    struct s2n_blob sct_list = { .data = NULL, .size = 0 };
-
-    sct_list.size = s2n_stuffer_data_available(extension);
-    sct_list.data = s2n_stuffer_raw_read(extension, sct_list.size);
-    notnull_check(sct_list.data);
-
-    GUARD(s2n_dup(&sct_list, &conn->ct_response));
-
-    return 0;
-}
-
-int s2n_recv_server_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    uint8_t mfl_code;
-    GUARD(s2n_stuffer_read_uint8(extension, &mfl_code));
-    S2N_ERROR_IF(mfl_code != conn->config->mfl_code, S2N_ERR_MAX_FRAG_LEN_MISMATCH);
-
-    return 0;
-}
-
-int s2n_recv_server_session_ticket_ext(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    conn->session_ticket_status = S2N_NEW_TICKET;
 
     return 0;
 }

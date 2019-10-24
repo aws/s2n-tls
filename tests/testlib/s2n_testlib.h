@@ -58,6 +58,8 @@ int s2n_connection_set_io_stuffers(struct s2n_stuffer *input, struct s2n_stuffer
 #define S2N_RSA_2048_SHA256_NO_DNS_SANS_CERT "../pems/rsa_2048_sha256_no_dns_sans_cert.pem"
 #define S2N_RSA_2048_SHA256_WILDCARD_CERT    "../pems/rsa_2048_sha256_wildcard_cert.pem"
 
+#define S2N_RSA_2048_SHA256_URI_SANS_CERT "../pems/rsa_2048_sha256_uri_sans_cert.pem"
+
 /* "Strangely" formatted PEMs that should still parse successfully */
 #define S2N_LEAF_WHITESPACE_CERT_CHAIN         "../pems/rsa_2048_leaf_whitespace_cert.pem"
 #define S2N_INTERMEDIATE_WHITESPACE_CERT_CHAIN "../pems/rsa_2048_intermediate_whitespace_cert.pem"
@@ -105,6 +107,12 @@ int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, str
 int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn);
 
 int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file);
+
+/* Expects 2 s2n_blobs to be equal (same size and contents) */
+#define S2N_BLOB_EXPECT_EQUAL( blob1, blob2 ) do {              \
+    EXPECT_EQUAL(blob1.size, blob2.size);                       \
+    EXPECT_BYTEARRAY_EQUAL(blob1.data, blob2.data, blob1.size); \
+} while (0)
 
 /* Expects data of type in stuffer, where type is uint32, uint64 etc.. */
 #define S2N_STUFFER_READ_EXPECT_EQUAL( stuffer, expected, type ) do { \
