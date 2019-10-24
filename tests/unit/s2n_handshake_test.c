@@ -46,12 +46,12 @@ static int try_handshake(struct s2n_connection *server_conn, struct s2n_connecti
         }
 
         int server_rc = s2n_negotiate(server_conn, &server_blocked);
-        if (!(server_rc == 0 || (server_blocked && errno == EAGAIN))) {
+        if (!(server_rc == 0 || (server_blocked && errno == EAGAIN) || server_blocked == S2N_BLOCKED_ON_APPLICATION_INPUT)) {
             return -1;
         }
 
         tries += 1;
-        if (tries == 100) {
+        if (tries == 5) {
             return -1;
         }
     } while (client_blocked || server_blocked);

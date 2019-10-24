@@ -89,9 +89,13 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
     lt_check(__tmp_n, high);                    \
   } while (0)
 
-#define GUARD( x )              do {if ( (x) < 0 ) return -1;} while (0)
+#define GUARD( x )              do {if ( (x) < 0 ) return S2N_FAILURE;} while (0)
 #define GUARD_GOTO( x , label ) do {if ( (x) < 0 ) goto label;} while (0)
 #define GUARD_PTR( x )          do {if ( (x) < 0 ) return NULL;} while (0)
+
+/* Check the return value from caller. If this value is -2, S2N_ERR_BLOCKED is marked*/
+#define GUARD_AGAIN( x )  do {if ( (x) == -2 ) { S2N_ERROR(S2N_ERR_BLOCKED); } GUARD( x );} while(0)
+
 
 #define S2N_IN_UNIT_TEST ( getenv("S2N_UNIT_TEST") != NULL )
 #define S2N_IN_INTEG_TEST ( getenv("S2N_INTEG_TEST") != NULL )

@@ -6,11 +6,11 @@ include "s2n_handshake_io.saw";
 s2n_handshake_io_lowlevel;
 print "Verified that the low-level specification corresponds to the C code";
 //prove correspondence of the high-level and low-level models
-prove_print abc {{ highLevelSimulatesLowLevel `{16} }}; 
+prove_print abc {{ highLevelSimulatesLowLevel `{17} }}; 
 print "Verified the low-level->high-level cork-uncork simulation";
 //prove no-double-uncork property for server mode
-prove_print abc {{ noDoubleCorkUncork }};
+prove_print abc {{ noDoubleCorkUncork `{17} }};
 print "Verified that double uncorking or corking cannot occur in server mode";
 //(for the record) evidence that a double uncork can occur in client mode
 print "Expecting failure when proving low-high simulation without the server mode assumption";
-sat abc {{ ~highLevelDoesNotSimulateLowLevel `{16} }};
+sat abc {{ ~highLevelDoesNotSimulateLowLevel `{17} }};

@@ -243,7 +243,7 @@ let s2n_conn_set_handshake_type_spec = do {
     // of the post-state of the s2n_connection struct. In this case only handshake
     // type should change
     let conn' = {{ conn_set_handshake_type conn }};
-    //crucible_ghost_value corked {{ conn'.corked }};
+    crucible_ghost_value corked {{ conn'.corked }};
     crucible_points_to (conn_handshake_handshake_type pconn) (crucible_term {{ conn'.handshake.handshake_type }});
 
     // assert that s2n_advance_message returns 0 (true if the 4
@@ -280,7 +280,9 @@ let s2n_advance_message_spec = do {
     // handshake/cork-uncork state machine is equivalent to the one in
     // s2n
     crucible_points_to (crucible_global "handshakes") (crucible_term {{ handshakes }});
-    let messages = [ {{CLIENT_HELLO : [4]}}, {{SERVER_HELLO : [4]}}, {{SERVER_CERT : [4]}}, {{SERVER_NEW_SESSION_TICKET : [4]}}, {{SERVER_CERT_STATUS : [4]}}, {{SERVER_KEY : [4]}}, {{SERVER_CERT : [4]}}, {{SERVER_CERT_REQ : [4]}}, {{SERVER_HELLO_DONE : [4]}}, {{CLIENT_CERT : [4]}}, {{CLIENT_KEY : [4]}}, {{CLIENT_CERT_VERIFY : [4]}}, {{CLIENT_CHANGE_CIPHER_SPEC : [4]}}, {{SERVER_FINISHED : [4]}}, {{APPLICATION_DATA : [4]}}];
+    let messages = [ {{CLIENT_HELLO : [5]}}, {{SERVER_SESSION_LOOKUP : [5]}}, {{SERVER_HELLO : [5]}}, {{SERVER_CERT : [5]}}, {{SERVER_NEW_SESSION_TICKET : [5]}}, {{SERVER_CERT_STATUS : [5]}}, 
+      {{SERVER_KEY : [5]}}, {{SERVER_CERT : [5]}}, {{SERVER_CERT_REQ : [5]}}, {{SERVER_HELLO_DONE : [5]}}, {{CLIENT_CERT : [5]}}, {{CLIENT_KEY : [5]}}, {{CLIENT_CERT_VERIFY : [5]}}, 
+      {{CLIENT_CHANGE_CIPHER_SPEC : [5]}}, {{SERVER_FINISHED : [5]}}, {{APPLICATION_DATA : [5]}}];
 
     for messages (verify_state_machine_elem (crucible_global "state_machine"));
     // assert that s2n_advance_message returns 0 (true if the 4

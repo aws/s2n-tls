@@ -11,7 +11,16 @@ import s2n_handshake_io
 rfcSimulatesS2N : {len} (fin len) => connection -> Parameters -> Bool
 rfcSimulatesS2N conn pars = 
    initial_connection conn /\ connectionParameters conn pars ==>
-   map rfc2S2N (traceRFC `{n = len} pars) == traceS2N `{n = len} conn
+   map rfc2S2N (traceRFC `{n = len} pars) == traceS2N_NoWait `{n = len} conn
+
+// The above is provable in Cryptol but not in Fall 2018 versions of SAW;
+// this alternate is better in that regard:
+rfcSimulatesS2N_alt : {len} (fin len, width len >= 1) => connection -> Parameters -> Bool
+rfcSimulatesS2N_alt conn pars =
+   initial_connection conn /\ connectionParameters conn pars ==>
+   tracesMatchExcludingWaits
+     (map rfc2S2N (traceRFC `{n = len} pars))
+     (traceS2N `{n = len} conn)
 
 // Generate a sequence of states for the the RFC handshake state machine given
 // handshake parameters
