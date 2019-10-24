@@ -169,5 +169,53 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp), S2N_ERR_INVALID_ARGUMENT);
     }
 
+    /* Test Epoch timestamp in UTC */
+    {
+        const char *time_str = "19700101000000.000Z";
+        uint64_t timestamp = 1; /* Initial assignment must be non-zero, so we know if it was set correctly. */
+        EXPECT_SUCCESS(s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp));
+        EXPECT_EQUAL(0, timestamp);
+    }
+
+    /* Test Epoch timestamp with 1:15 east offset */
+    {
+        const char *time_str = "19700101011500.000+0115";
+        uint64_t timestamp = 1; /* Initial assignment must be non-zero, so we know if it was set correctly. */
+        EXPECT_SUCCESS(s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp));
+        EXPECT_EQUAL(0, timestamp);
+    }
+
+    /* Note: We cannot use the function to convert a timestamp from before Epoch with an offset,
+     * even if the adjusted time falls after the Epoch, e.g. "19691231224500.000-0115", because
+     * mktime() will fail. */
+
+    /* Test UTC time before Epoch fails */
+    {
+        const char *time_str = "19691231235959.999Z";
+        uint64_t timestamp = 0;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp), S2N_ERR_SAFETY);
+    }
+
+    /* Test time from way before Epoch*/
+    {
+        const char *time_str = "19680101000000.000Z";
+        uint64_t timestamp = 0;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp), S2N_ERR_SAFETY);
+    }
+
+    /* Test time before Epoch with east offset fails */
+    {
+        const char *time_str = "19700101011500.000+0116"; /* One minute before Epoch */
+        uint64_t timestamp = 0;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp), S2N_ERR_SAFETY);
+    }
+
+    /* Test time before Epoch with west offset fails */
+    {
+        const char *time_str = "19691231224400.000-0115"; /* One minute before Epoch */
+        uint64_t timestamp = 0;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp), S2N_ERR_SAFETY);
+    }
+
     END_TEST();
 }
