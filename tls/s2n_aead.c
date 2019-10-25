@@ -37,7 +37,6 @@ int s2n_aead_aad_init(const struct s2n_connection *conn, uint8_t * sequence_numb
 /* Prepares an AAD (additional authentication data) for a TLS 1.3 AEAD record */
 int s2n_tls13_aead_aad_init(uint16_t record_length, uint8_t tag_length, struct s2n_stuffer *additional_data)
 {
-    gte_check(record_length, 0);
     gt_check(tag_length, 0);
     notnull_check(additional_data);
 
