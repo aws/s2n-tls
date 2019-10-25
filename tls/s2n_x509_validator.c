@@ -347,6 +347,14 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
             }
         }
 
+        /* certificate extensions is a field in TLS 1.3 - https://tools.ietf.org/html/rfc8446#section-4.4.2 */
+        if (conn->actual_protocol_version == S2N_TLS13) {
+            uint16_t certificate_extensions_length = 0;
+            GUARD(s2n_stuffer_read_uint16(&cert_chain_in_stuffer, &certificate_extensions_length));
+            /* we currently do not process certificate extensions, but we can skip pass it */
+            GUARD(s2n_stuffer_skip_read(&cert_chain_in_stuffer, certificate_extensions_length));
+        }
+
         certificate_count++;
     }
 
