@@ -19,16 +19,19 @@ all: build_viz
 
 include ../../s2n.mk
 
-CFLAGS += -I../
-LDFLAGS += -L../../lib/ -ls2n
+LDFLAGS += -L../../lib ${LIBS} -ls2n -L$(LIBCRYPTO_ROOT)/lib ${CRYPTO_LIBS}
 
 # Run state machine graph generation
 # with `make STATE_MACHINE_GRAPHS=1`.
 # graphviz is required.
 
 build_viz::
-	${CC} ${CFLAGS} ${LDFLAGS} -o s2n_state_machine_viz s2n_state_machine_viz.c
+	${CC} ${CFLAGS} -fno-omit-frame-pointer -fno-optimize-sibling-calls -o s2n_state_machine_viz s2n_state_machine_viz.c ${LDFLAGS}
 	@[ "${STATE_MACHINE_GRAPHS}" ] && \
-	DYLD_LIBRARY_PATH="../../lib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
-	LD_LIBRARY_PATH="../../lib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
+	DYLD_LIBRARY_PATH="../../lib:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
+	LD_LIBRARY_PATH="../../lib:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
 	./s2n_state_machine_viz || true
+
+.PHONY : clean
+clean: decruft
+	rm s2n_state_machine_viz
