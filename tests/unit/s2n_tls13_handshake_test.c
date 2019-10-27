@@ -35,8 +35,32 @@
 
 static message_type_t invalid_handshake[S2N_MAX_HANDSHAKE_LENGTH];
 
+static int expected_handler_called;
+static int unexpected_handler_called;
+
 static int s2n_test_handler(struct s2n_connection* conn)
 {
+    unexpected_handler_called = 1;
+    return 0;
+}
+
+static int s2n_test_expected_handler(struct s2n_connection* conn)
+{
+    expected_handler_called = 1;
+    return 0;
+}
+
+static int s2n_setup_handler_to_expect(message_type_t expected, uint8_t direction) {
+    for (int i = 0; i < sizeof(tls13_state_machine) / sizeof(struct s2n_handshake_action); i++) {
+        tls13_state_machine[i].handler[0] = s2n_test_handler;
+        tls13_state_machine[i].handler[1] = s2n_test_handler;
+    }
+
+    tls13_state_machine[expected].handler[direction] = s2n_test_expected_handler;
+
+    expected_handler_called = 0;
+    unexpected_handler_called = 0;
+
     return 0;
 }
 
@@ -89,15 +113,6 @@ int main(int argc, char **argv)
     for (int i = 0; i < sizeof(tls13_state_machine) / sizeof(struct s2n_handshake_action); i++) {
         tls13_state_machine[i].handler[0] = s2n_test_handler;
         tls13_state_machine[i].handler[1] = s2n_test_handler;
-    }
-
-    /* Test: When using TLS 1.2, use the existing state machine and handshakes */
-    {
-        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
-        conn->actual_protocol_version = S2N_TLS12;
-        EXPECT_EQUAL(ACTIVE_STATE_MACHINE(conn), state_machine);
-        EXPECT_EQUAL(ACTIVE_HANDSHAKES(conn), handshakes);
-        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
     /* Test: When using TLS 1.3, use the new state machine and handshakes */
@@ -217,7 +232,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* Test: TLS1.3 client can receive a cipher change spec at any time. */
+    /* Test: TLS1.3 client can receive a server cipher change spec at any time. */
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         conn->actual_protocol_version = S2N_TLS13;
@@ -225,6 +240,8 @@ int main(int argc, char **argv)
         struct s2n_stuffer input;
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
+
+        GUARD(s2n_setup_handler_to_expect(SERVER_CHANGE_CIPHER_SPEC, S2N_CLIENT));
 
         for (int i = 0; i < valid_tls13_handshakes_size; i++) {
             int handshake = valid_tls13_handshakes[i];
@@ -240,6 +257,8 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(handshake_read_io(conn));
 
                 EXPECT_EQUAL(conn->handshake.message_number, j);
+                EXPECT_FALSE(unexpected_handler_called);
+                EXPECT_TRUE(expected_handler_called);
 
                 EXPECT_SUCCESS(s2n_stuffer_wipe(&input));
                 break;
@@ -250,7 +269,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* Test: TLS1.3 server can receive a cipher change request at any time. */
+    /* Test: TLS1.3 server can receive a client cipher change request at any time. */
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
         conn->actual_protocol_version = S2N_TLS13;
@@ -258,6 +277,8 @@ int main(int argc, char **argv)
         struct s2n_stuffer input;
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
+
+        GUARD(s2n_setup_handler_to_expect(CLIENT_CHANGE_CIPHER_SPEC, S2N_SERVER));
 
         for (int i = 0; i < valid_tls13_handshakes_size; i++) {
             int handshake = valid_tls13_handshakes[i];
@@ -273,6 +294,8 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(handshake_read_io(conn));
 
                 EXPECT_EQUAL(conn->handshake.message_number, j);
+                EXPECT_FALSE(unexpected_handler_called);
+                EXPECT_TRUE(expected_handler_called);
 
                 EXPECT_SUCCESS(s2n_stuffer_wipe(&input));
                 break;
