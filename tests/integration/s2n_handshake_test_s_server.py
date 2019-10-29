@@ -268,7 +268,7 @@ def sigalg_test(host, port):
     print("\tExpected supported:   " + str(supported_sigs))
     print("\tExpected unsupported: " + str(unsupported_sigs))
 
-    for size in range(1, len(supported_sigs) + 1):
+    for size in range(1, min(MAX_ITERATION_DEPTH, len(supported_sigs)) + 1):
         print("\n\t\tTesting ciphers using signature preferences of size: " + str(size))
         threadpool = create_thread_pool()
         portOffset = 0
@@ -303,7 +303,7 @@ def elliptic_curve_test(host, port):
     print("\tExpected unsupported: " + str(unsupported_curves))
 
     failed = 0
-    for size in range(1, len(supported_curves) + 1):
+    for size in range(1, min(MAX_ITERATION_DEPTH, len(supported_curves)) + 1):
         print("\n\t\tTesting ciphers using curve list of size: " + str(size))
 
         # Produce permutations of every accepted curve in every possible order

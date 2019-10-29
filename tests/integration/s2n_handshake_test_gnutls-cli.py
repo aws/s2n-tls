@@ -204,7 +204,7 @@ def main():
                 return -1
 
     # Produce permutations of every accepted signature algorithm in every possible order
-    for size in range(1, len(EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS) + 1):
+    for size in range(1, min(MAX_ITERATION_DEPTH, len(EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS)) + 1):
         print("\n\tTesting ciphers using RSA signature preferences of size: " + str(size))
         threadpool = create_thread_pool()
         port_offset = 0
@@ -226,7 +226,7 @@ def main():
                 return -1
 
     # Try ECDSA signature algorithm permutations. When we support multiple certificates, we can combine the RSA and ECDSA tests
-    for size in range(1, len(EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS) + 1):
+    for size in range(1, min(MAX_ITERATION_DEPTH, len(EXPECTED_ECDSA_SIGNATURE_ALGORITHM_PREFS)) + 1):
         print("\n\tTesting ciphers using ECDSA signature preferences of size: " + str(size))
         threadpool = create_thread_pool()
         port_offset = 0
