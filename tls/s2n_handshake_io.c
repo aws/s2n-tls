@@ -996,10 +996,10 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
                 if (s2n_errno == S2N_ERR_BLOCKED && s2n_stuffer_data_available(&conn->in)) {
                     if (handshake_read_io(conn) < 0 && s2n_errno == S2N_ERR_ALERT) {
                         /* handshake_read_io has set s2n_errno */
-                        return S2N_FAILURE;
+                        S2N_ERROR_PRESERVE_ERRNO();
                     }
                 }
-                return S2N_FAILURE;
+                S2N_ERROR_PRESERVE_ERRNO();
             }
         } else if (ACTIVE_STATE(conn).writer == this) {
             *blocked = S2N_BLOCKED_ON_WRITE;

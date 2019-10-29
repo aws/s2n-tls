@@ -372,10 +372,9 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
         return 0;
     }
 
-    struct s2n_blob client_app_protocols = {
-        .data = s2n_stuffer_raw_read(extension, size_of_all),
-        .size = size_of_all
-    };
+    struct s2n_blob client_app_protocols = { 0 };
+    client_app_protocols.size = size_of_all;
+    client_app_protocols.data = s2n_stuffer_raw_read(extension, size_of_all);
     notnull_check(client_app_protocols.data);
 
     /* Find a matching protocol */
