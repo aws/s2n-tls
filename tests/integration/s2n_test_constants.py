@@ -65,6 +65,9 @@ ALL_TEST_CIPHERS = [
     S2N_CIPHER("DHE-RSA-CHACHA20-POLY1305", S2N_GNUTLS_PRIORITY_PREFIX + ":+DHE-RSA:+CHACHA20-POLY1305:+AEAD", S2N_TLS12, True, False),
 ]
 
+# Limit the depth of combinations with itertools permutations to reduce integration tests runtime
+MAX_ITERATION_DEPTH = 3
+
 # Expected preferences for SignatureAlgorithms in GnuTLS priority string format
 # See https://github.com/awslabs/s2n/blob/master/tls/s2n_tls_digest_preferences.h
 EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS = [
