@@ -46,10 +46,6 @@
 int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
 
-    if (conn->secure.cipher_suite->key_exchange_alg == NULL) {
-        return 0;
-    }
-
     uint16_t total_size = 0;
 
     const uint8_t application_protocol_len = strlen(conn->application_protocol);
@@ -68,7 +64,9 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         total_size += 5;
     }
 
-    total_size += s2n_kex_server_extension_size(conn->secure.cipher_suite->key_exchange_alg, conn);
+    if (conn->secure.cipher_suite->key_exchange_alg) {
+        total_size += s2n_kex_server_extension_size(conn->secure.cipher_suite->key_exchange_alg, conn);
+    }
 
     if (s2n_server_can_send_sct_list(conn)) {
         total_size += 4 + conn->handshake_params.our_chain_and_key->sct_list.size;
@@ -102,7 +100,9 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint16(out, 0));
     }
 
-    GUARD(s2n_kex_write_server_extension(conn->secure.cipher_suite->key_exchange_alg, conn, out));
+    if (conn->secure.cipher_suite->key_exchange_alg) {
+        GUARD(s2n_kex_write_server_extension(conn->secure.cipher_suite->key_exchange_alg, conn, out));
+    }
 
     /* Write the renegotiation_info extension */
     if (conn->secure_renegotiation) {

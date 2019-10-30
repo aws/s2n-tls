@@ -875,8 +875,8 @@ const struct s2n_cipher_preferences cipher_preferences_test_ecdsa_priority = {
 };
 
 static struct s2n_cipher_suite *s2n_tls13_null_key_exchange_alg_cipher_suites[] = {
-    &s2n_tls13_aes_256_gcm_sha384,                  /* 0x13,0x02 */
     &s2n_tls13_aes_128_gcm_sha256,                  /* 0x13,0x01 */
+    &s2n_tls13_aes_256_gcm_sha384,                  /* 0x13,0x02 */
     &s2n_tls13_chacha20_poly1305_sha256,            /* 0x13,0x03 */
 };
 
