@@ -64,7 +64,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         total_size += 5;
     }
 
-    if (conn->secure.cipher_suite->key_exchange_alg) {
+    if (s2n_server_can_send_kex(conn)) {
         total_size += s2n_kex_server_extension_size(conn->secure.cipher_suite->key_exchange_alg, conn);
     }
 
@@ -100,7 +100,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint16(out, 0));
     }
 
-    if (conn->secure.cipher_suite->key_exchange_alg) {
+    if (s2n_server_can_send_kex(conn)) {
         GUARD(s2n_kex_write_server_extension(conn->secure.cipher_suite->key_exchange_alg, conn, out));
     }
 
