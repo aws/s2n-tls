@@ -24,11 +24,12 @@
 
 extern const struct s2n_ecc_named_curve s2n_X25519;
 
-struct s2n_ecc_evp_params {
-    /* Negotiated named curve from s2n_ecc_supported_curves, or NULL if ECC can't be used */
+struct s2n_ecc_evp_params
+{
     const struct s2n_ecc_named_curve *negotiated_curve;
-    /* The ephemeral key or NULL if ECC is not used. Stores only the server public key in the client mode. */
     EVP_PKEY *evp_pkey;
 };
 
 int s2n_evp_generate_ephemeral_key(struct s2n_ecc_evp_params *server_evp_params);
+int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *server_ecc_evp_params, struct s2n_blob *shared_key);
+int s2n_ecc_evp_compute_shared_secret_as_client(struct s2n_ecc_evp_params *client_ecc_evp_params, struct s2n_blob *shared_key);
