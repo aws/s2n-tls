@@ -40,14 +40,14 @@ static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY * own_key, const EC_POINT 
 static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY * own_key, const EC_POINT * peer_public, struct s2n_blob *shared_secret)
 {
     EVP_PKEY_CTX *ctx = NULL;
-    size_t *shared_secret_size;
+    size_t shared_secret_size;
 
     ctx = EVP_PKEY_CTX_new(own_key, NULL);
     if (ctx == NULL) goto err;
     if(EVP_PKEY_derive_init(ctx) != 1) goto err; 
-    if(EVP_PKEY_derive(ctx, NULL, shared_secret_size) != 1) goto err; 
-    GUARD(s2n_alloc(shared_secret, *shared_secret_size));
-    if(EVP_PKEY_derive(ctx, shared_secret->data, shared_secret_size) != 1) goto err; 
+    if(EVP_PKEY_derive(ctx, NULL, &shared_secret_size) != 1) goto err; 
+    GUARD(s2n_alloc(shared_secret, shared_secret_size));
+    if(EVP_PKEY_derive(ctx, shared_secret->data, &shared_secret_size) != 1) goto err; 
     return 0; 
 
     err: 
