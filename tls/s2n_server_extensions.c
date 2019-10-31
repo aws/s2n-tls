@@ -45,7 +45,6 @@
 
 int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-
     uint16_t total_size = 0;
 
     const uint8_t application_protocol_len = strlen(conn->application_protocol);
