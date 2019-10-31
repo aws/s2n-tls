@@ -219,7 +219,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     GUARD(s2n_stuffer_resize_if_empty(&conn->out, S2N_LARGE_RECORD_LENGTH));
 
     /* Now that we know the length, start writing the record */
-    GUARD(s2n_stuffer_write_uint8(&conn->out, content_type));
+    GUARD(s2n_stuffer_write_uint8(&conn->out, is_tls13_record ? TLS_APPLICATION_DATA : content_type));
     GUARD(s2n_record_write_protocol_version(conn));
 
     /* First write a header that has the payload length, this is for the MAC */
@@ -284,7 +284,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         struct s2n_stuffer ad_stuffer = {0};
         GUARD(s2n_stuffer_init(&ad_stuffer, &aad));
         if (is_tls13_record) {
-            GUARD(s2n_tls13_aead_aad_init(data_bytes_to_take + sizeof(content_type), cipher_suite->record_alg->cipher->io.aead.tag_size, &ad_stuffer));
+            GUARD(s2n_tls13_aead_aad_init(data_bytes_to_take, cipher_suite->record_alg->cipher->io.aead.tag_size, &ad_stuffer));
         } else {
             GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &ad_stuffer));
         }
@@ -314,11 +314,6 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     GUARD(s2n_hmac_digest(mac, digest, mac_digest_size));
     GUARD(s2n_hmac_reset(mac));
 
-    /* Write content type for TLS 1.3 record (RFC 8446 Section 5.2) */
-    if (is_tls13_record) {
-        GUARD(s2n_stuffer_write_uint8(&conn->out, content_type));
-    }
-
     if (cipher_suite->record_alg->cipher->type == S2N_CBC) {
         /* Include padding bytes, each with the value 'p', and
          * include an extra padding length byte, also with the value 'p'.
@@ -339,10 +334,6 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     case S2N_AEAD:
         GUARD(s2n_stuffer_skip_write(&conn->out, cipher_suite->record_alg->cipher->io.aead.record_iv_size));
         encrypted_length += cipher_suite->record_alg->cipher->io.aead.tag_size;
-        if (is_tls13_record) {
-            /* one extra byte for content type */
-            encrypted_length += sizeof(content_type);
-        }
         break;
     case S2N_CBC:
         if (conn->actual_protocol_version > S2N_TLS10) {

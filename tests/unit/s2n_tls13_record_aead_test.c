@@ -257,16 +257,10 @@ int main(int argc, char **argv)
         /* Test parsing of tls 1.3 aead record */
         S2N_BLOB_FROM_HEX(plaintext_record, plaintext_record_hex);
 
-        /* Make plaintext blob slice */
-        struct s2n_blob in = {
-            .data = &plaintext_record.data[0],
-            .size = plaintext_record.size - 1, /* 1 byte less to remove content type */
-        };
-
         /* Takes an input blob and writes to out stuffer then encrypt the payload */
-        EXPECT_SUCCESS(s2n_record_write(conn, TLS_HANDSHAKE, &in));
+        EXPECT_SUCCESS(s2n_record_write(conn, TLS_HANDSHAKE, &plaintext_record));
 
-        /* Make a slice of output bytes to verify */
+        /* Make a slice of output bytes (without TLS record headers) to verify */
         struct s2n_blob out = {
             .data = &conn->out.blob.data[S2N_TLS13_AAD_LEN],
             .size = protected_record.size
@@ -319,12 +313,12 @@ int main(int argc, char **argv)
         /* Reset sequence number */
         conn->secure.client_sequence_number[7] = 0;
 
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, &conn->out.blob.data[S2N_TLS13_AAD_LEN], plaintext.size + 16 + 1)); /* tag length + content type */;
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, &conn->out.blob.data[S2N_TLS13_AAD_LEN], plaintext.size + 16)); /* aead tag length */;
 
         /* Make a slice of output bytes to verify */
         struct s2n_blob encrypted = {
             .data = &conn->in.blob.data[0],
-            .size = plaintext.size + 16 + 1
+            .size = plaintext.size + 16
         };
 
         /* Decrypt payload */
