@@ -33,6 +33,8 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
 
+#define TLS13_CONTENT_TYPE 1
+
 extern uint8_t s2n_unknown_protocol_version;
 
 /* How much overhead does the IV, MAC, TAG and padding bytes introduce ? */
@@ -219,7 +221,9 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     GUARD(s2n_stuffer_resize_if_empty(&conn->out, S2N_LARGE_RECORD_LENGTH));
 
     /* Now that we know the length, start writing the record */
-    GUARD(s2n_stuffer_write_uint8(&conn->out, content_type));
+    GUARD(s2n_stuffer_write_uint8(&conn->out, is_tls13_record ?
+        /* tls 1.3 opaque type */ TLS_APPLICATION_DATA :
+        /* actual content_type */ content_type ));
     GUARD(s2n_record_write_protocol_version(conn));
 
     /* First write a header that has the payload length, this is for the MAC */
@@ -252,6 +256,9 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
 
     /* Rewrite the length to be the actual fragment length */
     uint16_t actual_fragment_length = data_bytes_to_take + padding + extra;
+    if (is_tls13_record) {
+        actual_fragment_length += TLS13_CONTENT_TYPE;
+    }
     GUARD(s2n_stuffer_wipe_n(&conn->out, 2));
     GUARD(s2n_stuffer_write_uint16(&conn->out, actual_fragment_length));
 
@@ -284,7 +291,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         struct s2n_stuffer ad_stuffer = {0};
         GUARD(s2n_stuffer_init(&ad_stuffer, &aad));
         if (is_tls13_record) {
-            GUARD(s2n_tls13_aead_aad_init(data_bytes_to_take + sizeof(content_type), cipher_suite->record_alg->cipher->io.aead.tag_size, &ad_stuffer));
+            GUARD(s2n_tls13_aead_aad_init(data_bytes_to_take + TLS13_CONTENT_TYPE, cipher_suite->record_alg->cipher->io.aead.tag_size, &ad_stuffer));
         } else {
             GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &ad_stuffer));
         }
@@ -341,7 +348,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         encrypted_length += cipher_suite->record_alg->cipher->io.aead.tag_size;
         if (is_tls13_record) {
             /* one extra byte for content type */
-            encrypted_length += sizeof(content_type);
+            encrypted_length += TLS13_CONTENT_TYPE;
         }
         break;
     case S2N_CBC:

@@ -266,6 +266,14 @@ int main(int argc, char **argv)
         /* Takes an input blob and writes to out stuffer then encrypt the payload */
         EXPECT_SUCCESS(s2n_record_write(conn, TLS_HANDSHAKE, &in));
 
+        /* Verify opaque content type in tls 1.3 */
+        EXPECT_EQUAL(conn->out.blob.data[0], TLS_APPLICATION_DATA);
+        /* Verify TLS legacy record version */
+        EXPECT_EQUAL(conn->out.blob.data[1], 3);
+        EXPECT_EQUAL(conn->out.blob.data[2], 3);
+        /* Verify payload length */
+        EXPECT_EQUAL((conn->out.blob.data[3] << 8) + conn->out.blob.data[4], protected_record.size);
+
         /* Make a slice of output bytes to verify */
         struct s2n_blob out = {
             .data = &conn->out.blob.data[S2N_TLS13_AAD_LEN],
