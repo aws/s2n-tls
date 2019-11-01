@@ -251,8 +251,9 @@ int s2n_tls13_derive_finished_key(struct s2n_tls13_keys *keys, struct s2n_blob *
 /*
  * Compute finished verify data using HMAC
  * with a finished key and hash state
+ * https://tools.ietf.org/html/rfc8446#section-4.4.4
  */
-int s2n_tls13_calculate_finished_verify_mac(struct s2n_tls13_keys *keys, struct s2n_blob *finished_key, struct s2n_hash_state *hash_state, struct s2n_blob *finished_verify)
+int s2n_tls13_calculate_finished_mac(struct s2n_tls13_keys *keys, struct s2n_blob *finished_key, struct s2n_hash_state *hash_state, struct s2n_blob *finished_verify)
 {
     /* Set up a blob to contain hash */
     s2n_tls13_key_blob(transcribe_hash, keys->size);
