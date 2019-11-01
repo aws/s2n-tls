@@ -128,3 +128,15 @@ int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file);
 } while (0)
 
 int s2n_public_ecc_keys_are_equal(struct s2n_ecc_params *params_1, struct s2n_ecc_params *params_2);
+
+/* utils for creating blob with hex string,
+ * currently requires free after use */
+#define S2N_BLOB_FROM_HEX( name, hex )                  \
+    struct s2n_stuffer name##_stuffer;                  \
+    s2n_stuffer_alloc_ro_from_hex_string(               \
+        &name##_stuffer, hex);                          \
+    struct s2n_blob name = name##_stuffer.blob;
+
+#define S2N_BLOB_FREE( name ) do {                       \
+    EXPECT_SUCCESS(s2n_stuffer_free(&name##_stuffer));   \
+} while (0)

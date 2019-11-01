@@ -24,16 +24,6 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
-#define S2N_BLOB_FROM_HEX( name, hex )                  \
-    struct s2n_stuffer name##_stuffer;                  \
-    s2n_stuffer_alloc_ro_from_hex_string(               \
-        &name##_stuffer, hex);                          \
-    struct s2n_blob name = name##_stuffer.blob;
-
-#define S2N_BLOB_FREE( name ) do {                       \
-    EXPECT_SUCCESS(s2n_stuffer_free(&name##_stuffer));   \
-} while (0)
-
 /* Test vectors from https://tools.ietf.org/html/rfc8448#section-3 */
 const char *tls13_cert_hex =
     "000001b50001b03082" /* without 0b0001b9 header */

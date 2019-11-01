@@ -27,16 +27,6 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
-#define S2N_BLOB_FROM_HEX( name, hex )                  \
-    struct s2n_stuffer name##_stuffer;                  \
-    s2n_stuffer_alloc_ro_from_hex_string(               \
-        &name##_stuffer, hex);                          \
-    struct s2n_blob name = name##_stuffer.blob;
-
-#define S2N_BLOB_FREE( name ) do {                       \
-    EXPECT_SUCCESS(s2n_stuffer_free(&name##_stuffer));   \
-} while (0)
-
 int main(int argc, char **argv)
 {
     /* TLS 1.3 Test Vectors from https://tools.ietf.org/html/rfc8448 */
