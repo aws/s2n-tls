@@ -874,6 +874,18 @@ const struct s2n_cipher_preferences cipher_preferences_test_ecdsa_priority = {
     .minimum_protocol_version = S2N_SSLv3,
 };
 
+static struct s2n_cipher_suite *s2n_tls13_null_key_exchange_alg_cipher_suites[] = {
+    &s2n_tls13_aes_128_gcm_sha256,                  /* 0x13,0x01 */
+    &s2n_tls13_aes_256_gcm_sha384,                  /* 0x13,0x02 */
+    &s2n_tls13_chacha20_poly1305_sha256,            /* 0x13,0x03 */
+};
+
+const struct s2n_cipher_preferences cipher_preferences_test_tls13_null_key_exchange_alg = {
+    .count = sizeof(s2n_tls13_null_key_exchange_alg_cipher_suites) / sizeof(s2n_tls13_null_key_exchange_alg_cipher_suites[0]),
+    .suites = s2n_tls13_null_key_exchange_alg_cipher_suites,
+    .minimum_protocol_version = S2N_SSLv3,
+};
+
 /* Determines cipher suite availability and selects record algorithms */
 int s2n_cipher_suites_init(void)
 {
