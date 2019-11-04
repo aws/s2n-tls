@@ -29,6 +29,7 @@
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
+#include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_kex.h"
 
 #include "stuffer/s2n_stuffer.h"
@@ -651,6 +652,50 @@ static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct 
     return 0;
 }
 
+/* this hook runs before hashes are updated */
+static int s2n_conn_pre_handshake_hashes_update(struct s2n_connection *conn)
+{
+    if (conn->actual_protocol_version < S2N_TLS13) return 0;
+
+    switch(s2n_conn_get_current_message_type(conn)) {
+    case CLIENT_FINISHED:
+        /* This runs before handshake update because application secrets uses only
+         * handshake hashes up to Server finished. This handler works in both
+         * read and write modes.
+         */
+        GUARD(s2n_tls13_handle_application_secrets(conn));
+        break;
+    default:
+        break;
+    }
+    return 0;
+}
+
+/* this hook runs after hashes are updated */
+static int s2n_conn_post_handshake_hashes_update(struct s2n_connection *conn)
+{
+    if (conn->actual_protocol_version < S2N_TLS13) return 0;
+    struct s2n_blob client_seq = {.data = conn->secure.client_sequence_number,.size = sizeof(conn->secure.client_sequence_number) };
+    struct s2n_blob server_seq = {.data = conn->secure.server_sequence_number,.size = sizeof(conn->secure.server_sequence_number) };
+
+    switch(s2n_conn_get_current_message_type(conn)) {
+    case SERVER_HELLO:
+        GUARD(s2n_tls13_handle_handshake_secrets(conn));
+        GUARD(s2n_blob_zero(&client_seq));
+        GUARD(s2n_blob_zero(&server_seq));
+        conn->server = &conn->secure;
+        break;
+    case CLIENT_FINISHED:
+        /* Reset sequence numbers for Application Data */
+        GUARD(s2n_blob_zero(&client_seq));
+        GUARD(s2n_blob_zero(&server_seq));
+        break;
+    default:
+        break;
+    }
+    return 0;
+}
+
 /* Writing is relatively straight forward, simply write each message out as a record,
  * we may fragment a message across multiple records, but we never coalesce multiple
  * messages into single records. 
@@ -690,7 +735,9 @@ static int handshake_write_io(struct s2n_connection *conn)
 
         /* MD5 and SHA sum the handshake data too */
         if (record_type == TLS_HANDSHAKE) {
+            GUARD(s2n_conn_pre_handshake_hashes_update(conn));
             GUARD(s2n_conn_update_handshake_hashes(conn, &out));
+            GUARD(s2n_conn_post_handshake_hashes_update(conn));
         }
 
         /* Actually send the record. We could block here. Assume the caller will call flush before coming back. */
@@ -764,8 +811,10 @@ static int s2n_handshake_conn_update_hashes(struct s2n_connection *conn)
     handshake_record.size = TLS_HANDSHAKE_HEADER_LENGTH + handshake_message_length;
     notnull_check(handshake_record.data);
 
+    GUARD(s2n_conn_pre_handshake_hashes_update(conn));
     /* MD5 and SHA sum the handshake data too */
     GUARD(s2n_conn_update_handshake_hashes(conn, &handshake_record));
+    GUARD(s2n_conn_post_handshake_hashes_update(conn));
 
     return 0;
 }
@@ -844,10 +893,28 @@ static int handshake_read_io(struct s2n_connection *conn)
     uint8_t record_type;
     int isSSLv2;
 
+    /* Fill conn->in stuffer necessary for the handshake */
     GUARD(s2n_read_full_record(conn, &record_type, &isSSLv2));
 
     if (isSSLv2) {
         GUARD(s2n_handshake_handle_sslv2(conn));
+    }
+
+    /* In TLS 1.3, encrypted handshake records would appear to be of record type
+     * TLS_APPLICATION_DATA. The actual record content type is found after the encryped
+     * is decrypted.
+     */
+    if (conn->actual_protocol_version >= S2N_TLS13 && record_type == TLS_APPLICATION_DATA) {
+        GUARD(s2n_stuffer_skip_read(&conn->in, s2n_stuffer_data_available(&conn->in) - 1));
+
+        /* set the true record type */
+        GUARD(s2n_stuffer_read_uint8(&conn->in, &record_type));
+
+        /* wipe this last byte so the rest handshake works like < TLS 1.3 */
+        GUARD(s2n_stuffer_wipe_n(&conn->in, 1));
+
+        /* set the read cursor at where it should be */
+        GUARD(s2n_stuffer_reread(&conn->in));
     }
 
     /* Now we have a record, but it could be a partial fragment of a message, or it might
@@ -897,7 +964,7 @@ static int handshake_read_io(struct s2n_connection *conn)
         uint8_t actual_handshake_message_type;
         GUARD((r = read_full_handshake_message(conn, &actual_handshake_message_type)));
 
-        /* Do we need more data? */
+        /* Do we need more data? This happens for message fragmentation */
         if (r == 1) {
             /* Break out of this inner loop, but since we're not changing the state, the
              * outer loop in s2n_handshake_io() will read another record. 

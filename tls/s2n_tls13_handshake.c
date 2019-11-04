@@ -48,3 +48,103 @@ int s2n_tls13_keys_from_conn(struct s2n_tls13_keys *keys, struct s2n_connection 
 
     return 0;
 }
+
+int s2n_tls13_select_key_and_compute_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret)
+{
+    int selection = 0; /* hardcoded to the first curve */
+
+    if (conn->mode == S2N_CLIENT) {
+        GUARD(s2n_ecc_compute_shared_secret_from_params(
+            &conn->secure.client_ecc_params[selection],
+            &conn->secure.server_ecc_params,
+            shared_secret));
+    } else {
+        GUARD(s2n_ecc_compute_shared_secret_from_params(
+            &conn->secure.server_ecc_params,
+            &conn->secure.client_ecc_params[selection],
+            shared_secret));
+    }
+
+    return 0;
+}
+
+/*
+ * This function executes after Server Hello is processed
+ * and handshake hashes are computed. It produces and configure
+ * the shared secret, handshake secrets, handshake traffic keys,
+ * and finished keys.
+ */
+int s2n_tls13_handle_handshake_secrets(struct s2n_connection *conn)
+{
+    /* get tls13 key context */
+    s2n_tls13_connection_keys(secrets, conn);
+
+    /* get shared secret */
+    struct s2n_blob shared_secret = { 0 };
+    GUARD(s2n_tls13_select_key_and_compute_secret(conn, &shared_secret));
+
+    /* derive early secrets */
+    GUARD(s2n_tls13_derive_early_secrets(&secrets));
+
+    /* produce handshake secrets */
+    s2n_stack_blob(client_hs_secret, secrets.size, S2N_TLS13_SECRET_MAX_LEN);
+    s2n_stack_blob(server_hs_secret, secrets.size, S2N_TLS13_SECRET_MAX_LEN);
+
+    struct s2n_hash_state hash_state = {0};
+    GUARD(s2n_handshake_get_hash_state(conn, secrets.hash_algorithm, &hash_state));
+    GUARD(s2n_tls13_derive_handshake_secrets(&secrets, &shared_secret, &hash_state, &client_hs_secret, &server_hs_secret));
+
+    /* produce handshake traffic keys and configure record algorithm */
+    s2n_tls13_key_blob(s_hs_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);
+    struct s2n_blob s_hs_iv = { .data = conn->secure.server_implicit_iv, .size = S2N_TLS13_FIXED_IV_LEN };
+    GUARD(s2n_tls13_derive_traffic_keys(&secrets, &server_hs_secret, &s_hs_key, &s_hs_iv));
+
+    s2n_tls13_key_blob(c_hs_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);
+    struct s2n_blob c_hs_iv = { .data = conn->secure.client_implicit_iv, .size = S2N_TLS13_FIXED_IV_LEN };
+    GUARD(s2n_tls13_derive_traffic_keys(&secrets, &client_hs_secret, &c_hs_key, &c_hs_iv));
+
+    GUARD(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.server_key));
+    GUARD(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.client_key));
+
+    GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.server_key, &s_hs_key));
+    GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.client_key, &c_hs_key));
+
+    /* calculate server + client finished keys and store them in handshake struct */
+    struct s2n_blob server_finished_key = { .data = conn->handshake.server_finished, .size = secrets.size };
+    struct s2n_blob client_finished_key = { .data = conn->handshake.client_finished, .size = secrets.size };
+    GUARD(s2n_tls13_derive_finished_key(&secrets, &server_hs_secret, &server_finished_key));
+    GUARD(s2n_tls13_derive_finished_key(&secrets, &client_hs_secret, &client_finished_key));
+
+    return 0;
+}
+
+/*
+ * This must be called after ServerFinished
+ */
+int s2n_tls13_handle_application_secrets(struct s2n_connection *conn)
+{
+    /* get tls13 key context */
+    s2n_tls13_connection_keys(keys, conn);
+
+    /* produce application secrets */
+    s2n_stack_blob(client_app_secret, keys.size, S2N_TLS13_SECRET_MAX_LEN);
+    s2n_stack_blob(server_app_secret, keys.size, S2N_TLS13_SECRET_MAX_LEN);
+
+    struct s2n_hash_state hash_state = {0};
+    GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
+    GUARD(s2n_tls13_derive_application_secrets(&keys, &hash_state, &client_app_secret, &server_app_secret));
+
+    s2n_tls13_key_blob(s_app_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);
+    struct s2n_blob s_app_iv = { .data = conn->secure.server_implicit_iv, .size = S2N_TLS13_FIXED_IV_LEN };
+    GUARD(s2n_tls13_derive_traffic_keys(&keys, &server_app_secret, &s_app_key, &s_app_iv));
+
+    s2n_tls13_key_blob(c_app_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);
+    struct s2n_blob c_app_iv = { .data = conn->secure.client_implicit_iv, .size = S2N_TLS13_FIXED_IV_LEN };
+    GUARD(s2n_tls13_derive_traffic_keys(&keys, &client_app_secret, &c_app_key, &c_app_iv));
+
+    /* update record algorithm secrets */
+    GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.server_key, &s_app_key));
+    GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.client_key, &c_app_key));
+
+    return 0;
+}
