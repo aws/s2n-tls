@@ -154,6 +154,7 @@ struct s2n_error_translation S2N_ERROR_EN[] = {
     ERROR_STRING(S2N_ERR_CANCELLED, "handshake was cancelled")
     ERROR_STRING(S2N_ERR_INVALID_MAX_FRAG_LEN, "invalid Maximum Fragmentation Length encountered")
     ERROR_STRING(S2N_ERR_MAX_FRAG_LEN_MISMATCH, "Negotiated Maximum Fragmentation Length from server does not match the requested length by client")
+    ERROR_STRING(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED, "TLS protocol version is not supported by selected cipher suite")
     ERROR_STRING(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE, "Serialized session state is not in valid format")
     ERROR_STRING(S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG, "Serialized session state is too long")
     ERROR_STRING(S2N_ERR_SESSION_ID_TOO_LONG, "Session id is too long")

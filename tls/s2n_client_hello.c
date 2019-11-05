@@ -302,7 +302,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
 
     if (conn->client_protocol_version < cipher_preferences->minimum_protocol_version) {
         GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        S2N_ERROR(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
     }
 
     /* Find potential certificate matches before we choose the cipher. */
@@ -436,7 +436,7 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
 
     if (conn->client_protocol_version < cipher_preferences->minimum_protocol_version) {
         GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        S2N_ERROR(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
     }
     conn->actual_protocol_version = MIN(conn->client_protocol_version, conn->server_protocol_version);
     conn->client_hello_version = S2N_SSLv2;
