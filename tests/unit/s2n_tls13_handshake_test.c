@@ -306,9 +306,16 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* Test: TLS1.3 s2n_conn_set_handshake_type doesn't set TLS12_PERFECT_FORWARD_SECRECY or OCSP_STATUS */
+    /* Test: TLS1.3 s2n_conn_set_handshake_type only sets FULL_HANDSHAKE */
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+
+        /* Ensure WITH_SESSION_TICKETS is set */
+        conn->config->use_tickets = 1;
+        conn->session_ticket_status = S2N_NEW_TICKET;
+
+        /* Ensure CLIENT_AUTH is set */
+        conn->config->client_cert_auth_type = S2N_CERT_AUTH_REQUIRED;
 
         /* Ensure TLS12_PERFECT_FORWARD_SECRECY is set by choosing a cipher suite with is_ephemeral=1 on the kex */
         conn->secure.cipher_suite = &s2n_dhe_rsa_with_chacha20_poly1305_sha256;
@@ -321,12 +328,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_conn_set_handshake_type(conn));
         EXPECT_TRUE(conn->handshake.handshake_type & TLS12_PERFECT_FORWARD_SECRECY );
         EXPECT_TRUE(conn->handshake.handshake_type & OCSP_STATUS );
+        EXPECT_TRUE(conn->handshake.handshake_type & WITH_SESSION_TICKET );
+        EXPECT_TRUE(conn->handshake.handshake_type & CLIENT_AUTH );
 
         /* Verify that tls1.3 DOES NOT set the flags */
         conn->actual_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_conn_set_handshake_type(conn));
-        EXPECT_FALSE(conn->handshake.handshake_type & TLS12_PERFECT_FORWARD_SECRECY );
-        EXPECT_FALSE(conn->handshake.handshake_type & OCSP_STATUS );
+        EXPECT_EQUAL(conn->handshake.handshake_type, NEGOTIATED | FULL_HANDSHAKE);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
