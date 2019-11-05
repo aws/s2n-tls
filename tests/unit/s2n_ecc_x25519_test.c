@@ -29,7 +29,7 @@ int main(int argc, char **argv)
     {
         /* Test compute shared sceret for Curve25519 */
         struct s2n_ecc_evp_params server_params, client_params;
-        struct s2n_stuffer wire, out;
+        struct s2n_stuffer out;
         struct s2n_blob server_shared, client_shared;
 
         const struct s2n_ecc_named_curve *curve = &s2n_X25519;
@@ -40,16 +40,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&out, server_params.negotiated_curve->iana_id));
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&out, server_params.negotiated_curve->share_size));
 
-        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire, 1024));
-
         /* Server generates a key */
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_params));
 
         /* Client generates a key, computes its shared secret and sends the client public key */
-        EXPECT_SUCCESS(s2n_ecc_evp_compute_shared_secret_as_client(&client_params, &wire, &client_shared));
+        EXPECT_SUCCESS(s2n_ecc_evp_compute_shared_secret_as_client(&server_params, &client_params, &client_shared));
 
         /* Server receives the client public key and computes its shared secret */
-        EXPECT_SUCCESS(s2n_ecc_evp_compute_shared_secret_as_server(&server_params, &wire, &server_shared));
+        EXPECT_SUCCESS(s2n_ecc_evp_compute_shared_secret_as_server(&server_params, &client_params, &server_shared));
 
         /* Check if the shared secret computed is the same for the client and the server */
         EXPECT_EQUAL(client_shared.size, server_shared.size);
@@ -57,7 +55,6 @@ int main(int argc, char **argv)
 
         /* Clean up */
         EXPECT_SUCCESS(s2n_stuffer_free(&out));
-        EXPECT_SUCCESS(s2n_stuffer_free(&wire));
         EXPECT_SUCCESS(s2n_free(&server_shared));
         EXPECT_SUCCESS(s2n_free(&client_shared));
         EXPECT_SUCCESS(s2n_ecc_evp_params_free(&server_params));
@@ -66,3 +63,4 @@ int main(int argc, char **argv)
 
     END_TEST();
 }
+

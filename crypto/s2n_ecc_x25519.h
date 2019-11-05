@@ -31,6 +31,6 @@ struct s2n_ecc_evp_params
 };
 
 int s2n_ecc_evp_generate_ephemeral_key(struct s2n_ecc_evp_params *server_evp_params);
-int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *server_params, struct s2n_stuffer *Yc_in, struct s2n_blob *shared_key);
-int s2n_ecc_evp_compute_shared_secret_as_client(struct s2n_ecc_evp_params *server_params, struct s2n_stuffer *Yc_out, struct s2n_blob *shared_key);
+int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *server_params, struct s2n_ecc_evp_params *client_params, struct s2n_blob *shared_key);
+int s2n_ecc_evp_compute_shared_secret_as_client(struct s2n_ecc_evp_params *server_params, struct s2n_ecc_evp_params *client_params, struct s2n_blob *shared_key);
 int s2n_ecc_evp_params_free(struct s2n_ecc_evp_params *server_params);
