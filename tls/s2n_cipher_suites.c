@@ -685,7 +685,7 @@ struct s2n_cipher_suite s2n_tls13_aes_128_gcm_sha256 = {
     .name = "TLS_AES_128_GCM_SHA256",
     .iana_value = { TLS_AES_128_GCM_SHA256 },
     .key_exchange_alg = NULL,
-    .auth_method = S2N_AUTHENTICATION_METHOD_SENTINEL,
+    .auth_method = S2N_AUTHENTICATION_METHOD_TLS13,
     .record_alg = NULL,
     .all_record_algs = { &s2n_tls13_record_alg_aes128_gcm },
     .num_record_algs = 1,
@@ -699,7 +699,7 @@ struct s2n_cipher_suite s2n_tls13_aes_256_gcm_sha384 = {
     .name = "TLS_AES_256_GCM_SHA384",
     .iana_value = { TLS_AES_256_GCM_SHA384 },
     .key_exchange_alg = NULL,
-    .auth_method = S2N_AUTHENTICATION_METHOD_SENTINEL,
+    .auth_method = S2N_AUTHENTICATION_METHOD_TLS13,
     .record_alg = NULL,
     .all_record_algs = { &s2n_tls13_record_alg_aes256_gcm },
     .num_record_algs = 1,
@@ -713,7 +713,7 @@ struct s2n_cipher_suite s2n_tls13_chacha20_poly1305_sha256 = {
     .name = "TLS_CHACHA20_POLY1305_SHA256",
     .iana_value = { TLS_CHACHA20_POLY1305_SHA256 },
     .key_exchange_alg = NULL,
-    .auth_method = S2N_AUTHENTICATION_METHOD_SENTINEL,
+    .auth_method = S2N_AUTHENTICATION_METHOD_TLS13,
     .record_alg = NULL,
     .all_record_algs = { &s2n_tls13_record_alg_chacha20_poly1305 },
     .num_record_algs = 1,
@@ -871,6 +871,18 @@ static struct s2n_cipher_suite *s2n_ecdsa_priority_cipher_suites[] = {
 const struct s2n_cipher_preferences cipher_preferences_test_ecdsa_priority = {
     .count = sizeof(s2n_ecdsa_priority_cipher_suites) / sizeof(s2n_ecdsa_priority_cipher_suites[0]),
     .suites = s2n_ecdsa_priority_cipher_suites,
+    .minimum_protocol_version = S2N_SSLv3,
+};
+
+static struct s2n_cipher_suite *s2n_tls13_null_key_exchange_alg_cipher_suites[] = {
+    &s2n_tls13_aes_128_gcm_sha256,                  /* 0x13,0x01 */
+    &s2n_tls13_aes_256_gcm_sha384,                  /* 0x13,0x02 */
+    &s2n_tls13_chacha20_poly1305_sha256,            /* 0x13,0x03 */
+};
+
+const struct s2n_cipher_preferences cipher_preferences_test_tls13_null_key_exchange_alg = {
+    .count = sizeof(s2n_tls13_null_key_exchange_alg_cipher_suites) / sizeof(s2n_tls13_null_key_exchange_alg_cipher_suites[0]),
+    .suites = s2n_tls13_null_key_exchange_alg_cipher_suites,
     .minimum_protocol_version = S2N_SSLv3,
 };
 

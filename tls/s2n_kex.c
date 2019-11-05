@@ -213,12 +213,14 @@ const struct s2n_kex s2n_hybrid_ecdhe_kem = {
 
 int s2n_kex_server_extension_size(const struct s2n_kex *kex, const struct s2n_connection *conn)
 {
+    notnull_check(kex);
     notnull_check(kex->get_server_extension_size);
     return kex->get_server_extension_size(conn);
 }
 
 int s2n_kex_write_server_extension(const struct s2n_kex *kex, const struct s2n_connection *conn, struct s2n_stuffer *out)
 {
+    notnull_check(kex);
     notnull_check(kex->write_server_extensions);
     return kex->write_server_extensions(conn, out);
 }

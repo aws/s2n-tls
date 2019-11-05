@@ -163,12 +163,8 @@ int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, c
 {
     struct session_cache_entry *cache = ctx;
 
-    if (key_size == 0 || key_size > MAX_KEY_LEN) {
-        return -1;
-    }
-    if (value_size == 0 || value_size > MAX_VAL_LEN) {
-        return -1;
-    }
+    S2N_ERROR_IF(key_size == 0 || key_size > MAX_KEY_LEN, S2N_ERR_INVALID_ARGUMENT);
+    S2N_ERROR_IF(value_size == 0 || value_size > MAX_VAL_LEN, S2N_ERR_INVALID_ARGUMENT);
 
     uint8_t index = ((const uint8_t *)key)[0];
 
@@ -185,23 +181,13 @@ int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *
 {
     struct session_cache_entry *cache = ctx;
 
-    if (key_size == 0 || key_size > MAX_KEY_LEN) {
-        return -1;
-    }
+    S2N_ERROR_IF(key_size == 0 || key_size > MAX_KEY_LEN, S2N_ERR_INVALID_ARGUMENT);
 
     uint8_t index = ((const uint8_t *)key)[0];
 
-    if (cache[index].key_len != key_size) {
-        return -1;
-    }
-
-    if (memcmp(cache[index].key, key, key_size)) {
-        return -1;
-    }
-
-    if (*value_size < cache[index].value_len) {
-        return -1;
-    }
+    S2N_ERROR_IF(cache[index].key_len != key_size, S2N_ERR_INVALID_ARGUMENT);
+    S2N_ERROR_IF(memcmp(cache[index].key, key, key_size), S2N_ERR_INVALID_ARGUMENT);
+    S2N_ERROR_IF(*value_size < cache[index].value_len, S2N_ERR_INVALID_ARGUMENT);
 
     *value_size = cache[index].value_len;
     memcpy(value, cache[index].value, cache[index].value_len);
@@ -218,19 +204,12 @@ int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *ke
 {
     struct session_cache_entry *cache = ctx;
 
-    if (key_size == 0 || key_size > MAX_KEY_LEN) {
-        return -1;
-    }
+    S2N_ERROR_IF(key_size == 0 || key_size > MAX_KEY_LEN, S2N_ERR_INVALID_ARGUMENT);
 
     uint8_t index = ((const uint8_t *)key)[0];
 
-    if (cache[index].key_len != key_size) {
-        return -1;
-    }
-
-    if (memcmp(cache[index].key, key, key_size)) {
-        return -1;
-    }
+    S2N_ERROR_IF(cache[index].key_len != key_size, S2N_ERR_INVALID_ARGUMENT);
+    S2N_ERROR_IF(memcmp(cache[index].key, key, key_size), S2N_ERR_INVALID_ARGUMENT);
 
     cache[index].key_len = 0;
     cache[index].value_len = 0;
@@ -373,7 +352,7 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
     struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
     if (!conn) {
         print_s2n_error("Error getting new s2n connection");
-        return -1;
+        S2N_ERROR_PRESERVE_ERRNO();
     }
 
     if (settings.self_service_blinding) {
@@ -412,8 +391,8 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
 
     if (settings.mutual_auth) {
         if (!s2n_connection_client_cert_used(conn)) {
-            print_s2n_error("Error: Mutual Auth was required, but not negotiatied");
-            return -1;
+            print_s2n_error("Error: Mutual Auth was required, but not negotiated");
+            S2N_ERROR_PRESERVE_ERRNO();
         }
     }
 

@@ -26,16 +26,6 @@
 #include "tls/s2n_record_read.h"
 #include "utils/s2n_safety.h"
 
-#define S2N_BLOB_FROM_HEX( name, hex )                  \
-    struct s2n_stuffer name##_stuffer;                  \
-    s2n_stuffer_alloc_ro_from_hex_string(               \
-        &name##_stuffer, hex);                          \
-    struct s2n_blob name = name##_stuffer.blob;
-
-#define S2N_BLOB_FREE( name ) do {                       \
-    EXPECT_SUCCESS(s2n_stuffer_free(&name##_stuffer));   \
-} while (0)
-
 const char *protected_record_hex = "d1ff334a56f5bf"
     "f6594a07cc87b580233f500f45e489e7f33af35edf"
     "7869fcf40aa40aa2b8ea73f848a7ca07612ef9f945"
@@ -265,6 +255,14 @@ int main(int argc, char **argv)
 
         /* Takes an input blob and writes to out stuffer then encrypt the payload */
         EXPECT_SUCCESS(s2n_record_write(conn, TLS_HANDSHAKE, &in));
+
+        /* Verify opaque content type in tls 1.3 */
+        EXPECT_EQUAL(conn->out.blob.data[0], TLS_APPLICATION_DATA);
+        /* Verify TLS legacy record version */
+        EXPECT_EQUAL(conn->out.blob.data[1], 3);
+        EXPECT_EQUAL(conn->out.blob.data[2], 3);
+        /* Verify payload length */
+        EXPECT_EQUAL((conn->out.blob.data[3] << 8) + conn->out.blob.data[4], protected_record.size);
 
         /* Make a slice of output bytes to verify */
         struct s2n_blob out = {

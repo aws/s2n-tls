@@ -70,64 +70,56 @@ int main(int argc, char **argv)
     {
         const char *time_str = "201710210";
         uint64_t timestamp = 0;
-        int err_code = s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp);
-        EXPECT_NOT_EQUAL(0, err_code);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp), S2N_ERR_INVALID_ARGUMENT);
     }
 
     /* test invalid tz character fails. */
     {
         const char *time_str = "20171020225118.999q";
         uint64_t timestamp = 0;
-        int err_code = s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp);
-        EXPECT_NOT_EQUAL(0, err_code);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp), S2N_ERR_INVALID_ARGUMENT);
     }
 
     /* test invalid month fails. */
     {
         const char *time_str = "20171320225118.999Z";
         uint64_t timestamp = 0;
-        int err_code = s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp);
-        EXPECT_NOT_EQUAL(0, err_code);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp), S2N_ERR_INVALID_ARGUMENT);
     }
 
     /* test invalid day fails. */
     {
         const char *time_str = "20171032225118.999Z";
         uint64_t timestamp = 0;
-        int err_code = s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp);
-        EXPECT_NOT_EQUAL(0, err_code);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp), S2N_ERR_INVALID_ARGUMENT);
     }
 
     /* test invalid hour fails. */
     {
         const char *time_str = "20171020255118.999Z";
         uint64_t timestamp = 0;
-        int err_code = s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp);
-        EXPECT_NOT_EQUAL(0, err_code);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp), S2N_ERR_INVALID_ARGUMENT);
     }
 
     /* test invalid minute fails. */
     {
         const char *time_str = "20171020226118.999Z";
         uint64_t timestamp = 0;
-        int err_code = s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp);
-        EXPECT_NOT_EQUAL(0, err_code);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp), S2N_ERR_INVALID_ARGUMENT);
     }
 
     /* test invalid second fails. */
     {
         const char *time_str = "20171020225161.999Z";
         uint64_t timestamp = 0;
-        int err_code = s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp);
-        EXPECT_NOT_EQUAL(0, err_code);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp), S2N_ERR_INVALID_ARGUMENT);
     }
 
     /* test empty fails */
     {
         const char *time_str = "";
         uint64_t timestamp = 0;
-        int err_code = s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp);
-        EXPECT_NOT_EQUAL(0, err_code);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp), S2N_ERR_INVALID_ARGUMENT);
     }
 
     /* now run a test where we are certain UTC is not the timezone used, but make sure it still converts.
@@ -174,8 +166,8 @@ int main(int argc, char **argv)
     {
         const char *time_str = "2017102B225118.999Z";
         uint64_t timestamp = 0;
-        int err_code = s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp);
-        EXPECT_NOT_EQUAL(0, err_code);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_asn1_time_to_nano_since_epoch_ticks(time_str, strlen(time_str), &timestamp), S2N_ERR_INVALID_ARGUMENT);
     }
+
     END_TEST();
 }

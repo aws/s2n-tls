@@ -546,7 +546,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_EQUAL(memcmp(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES, ticket_key_name2, strlen((char *)ticket_key_name2)), 0);
 
         /* Verify the lifetime hint from the server */
-        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), -1);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_ERR_SESSION_TICKET_NOT_SUPPORTED);
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 

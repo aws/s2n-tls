@@ -438,22 +438,17 @@ int s2n_config_disable_x509_verification(struct s2n_config *config)
 int s2n_config_set_max_cert_chain_depth(struct s2n_config *config, uint16_t max_depth)
 {
     notnull_check(config);
+    S2N_ERROR_IF(max_depth == 0, S2N_ERR_INVALID_ARGUMENT);
 
-    if (max_depth > 0) {
-        config->max_verify_cert_chain_depth = max_depth;
-        config->max_verify_cert_chain_depth_set = 1;
-        return 0;
-    }
-
-    return -1;
+    config->max_verify_cert_chain_depth = max_depth;
+    config->max_verify_cert_chain_depth_set = 1;
+    return 0;
 }
 
 
 int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_request_type type)
 {
-    if (type == S2N_STATUS_REQUEST_OCSP && !s2n_x509_ocsp_stapling_supported()) {
-        return -1;
-    }
+    S2N_ERROR_IF(type == S2N_STATUS_REQUEST_OCSP && !s2n_x509_ocsp_stapling_supported(), S2N_ERR_OCSP_NOT_SUPPORTED);
 
     notnull_check(config);
     config->status_request_type = type;

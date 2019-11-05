@@ -858,6 +858,7 @@ struct {
     { .version="test_all_fips", .preferences=&cipher_preferences_test_all_fips, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="test_all_ecdsa", .preferences=&cipher_preferences_test_all_ecdsa, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="test_ecdsa_priority", .preferences=&cipher_preferences_test_ecdsa_priority, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="test_tls13_null_key_exchange_alg", .preferences=&cipher_preferences_test_tls13_null_key_exchange_alg, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="null", .preferences=&cipher_preferences_null, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version=NULL, .preferences=NULL, .ecc_extension_required=0, .pq_kem_extension_required=0}
 };

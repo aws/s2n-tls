@@ -182,7 +182,7 @@ ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *b
                 conn->current_user_data_consumed -= user_data_sent;
                 return user_data_sent;
             } else {
-                return -1;
+                S2N_ERROR_PRESERVE_ERRNO();
             }
         }
 

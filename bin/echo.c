@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <s2n.h>
+#include <error/s2n_errno.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 
@@ -44,7 +45,7 @@ int negotiate(struct s2n_connection *conn)
         if (s2n_negotiate(conn, &blocked) < 0) {
             fprintf(stderr, "Failed to negotiate: '%s'. %s\n", s2n_strerror(s2n_errno, "EN"), s2n_strerror_debug(s2n_errno, "EN"));
             fprintf(stderr, "Alert: %d\n", s2n_connection_get_alert(conn));
-            return -1;
+            S2N_ERROR_PRESERVE_ERRNO();
         }
     } while (blocked);
 
@@ -56,19 +57,19 @@ int negotiate(struct s2n_connection *conn)
 
     if ((client_hello_version = s2n_connection_get_client_hello_version(conn)) < 0) {
         fprintf(stderr, "Could not get client hello version\n");
-        return -1;
+        S2N_ERROR(S2N_ERR_CLIENT_HELLO_VERSION);
     }
     if ((client_protocol_version = s2n_connection_get_client_protocol_version(conn)) < 0) {
         fprintf(stderr, "Could not get client protocol version\n");
-        return -1;
+        S2N_ERROR(S2N_ERR_CLIENT_PROTOCOL_VERSION);
     }
     if ((server_protocol_version = s2n_connection_get_server_protocol_version(conn)) < 0) {
         fprintf(stderr, "Could not get server protocol version\n");
-        return -1;
+        S2N_ERROR(S2N_ERR_SERVER_PROTOCOL_VERSION);
     }
     if ((actual_protocol_version = s2n_connection_get_actual_protocol_version(conn)) < 0) {
         fprintf(stderr, "Could not get actual protocol version\n");
-        return -1;
+        S2N_ERROR(S2N_ERR_ACTUAL_PROTOCOL_VERSION);
     }
     printf("CONNECTED:\n");
     printf("Client hello version: %d\n", client_hello_version);
@@ -180,13 +181,13 @@ int echo(struct s2n_connection *conn, int sockfd)
                         (readers[0].revents & POLLERR ) ? 1 : 0,
                         (readers[0].revents & POLLHUP ) ? 1 : 0,
                         (readers[0].revents & POLLNVAL ) ? 1 : 0);
-                return -1;
+                S2N_ERROR(S2N_ERR_POLLING_FROM_SOCKET);
             }
             if (readers[1].revents & (POLLERR | POLLNVAL)) {
                 fprintf(stderr, "Error polling from socket: err=%d nval=%d\n",
                         (readers[1].revents & POLLERR ) ? 1 : 0,
                         (readers[1].revents & POLLNVAL ) ? 1 : 0);
-                return -1;
+                S2N_ERROR(S2N_ERR_POLLING_FROM_SOCKET);
             }
         }
     } while (p < 0 && errno == EINTR);
