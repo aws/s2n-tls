@@ -54,12 +54,16 @@ convert_to_redundant_rep_ov <- admit "convert_to_redundant_rep" []
 //       bitcode file. With the toy parameter size,
 //       RBITS=163, R_SIZE=21 and N_SIZE=41 appear
 
-// NOTE: Proof timeout on full sizes.
-//
-//       The function behavior does not depend on the size.
-//       Thus, verify on one small size, and assume on full sizes.
-verify "count_ones" [] (count_ones_spec 10);
+// NOTE: Proof times out without preprocessing with a rewrite rule.
+// Sign-extending a 32-bit popcount is the same as doing a 64-bit
+// popcount on a zero-extended value.
 
-count_ones_R_SIZE_ov <- admit "count_ones" [] (count_ones_spec R_SIZE);
-count_ones_N_SIZE_ov <- admit "count_ones" [] (count_ones_spec N_SIZE);
-count_ones_R_BITS_ov <- admit "count_ones" [] (count_ones_spec R_BITS);
+count_ones_simp <-
+  prove_core abc
+  "(x : bitvector 32) -> EqTrue (bvEq 64 (bvSExt 32 31 (bvPopcount 32 x)) (bvPopcount 64 (bvUExt 32 32 x)))";
+
+let count_ones_tac = simplify (addsimp count_ones_simp empty_ss);
+
+count_ones_R_SIZE_ov <- verify_simps "count_ones" [] [] (count_ones_spec R_SIZE) count_ones_tac;
+count_ones_N_SIZE_ov <- verify_simps "count_ones" [] [] (count_ones_spec N_SIZE) count_ones_tac;
+count_ones_R_BITS_ov <- verify_simps "count_ones" [] [] (count_ones_spec R_BITS) count_ones_tac;
