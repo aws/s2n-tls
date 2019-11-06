@@ -83,12 +83,8 @@ if [[ "$TESTS" == "ALL" || "$TESTS" == "ctverif" ]]; then .travis/run_ctverif.sh
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawSIKE" ]]; then make -C tests/saw sike ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sidetrail" ]]; then .travis/run_sidetrail.sh "$SIDETRAIL_INSTALL_DIR" "$PART" ; fi
 
-# Upload Code Coverage Information to CodeCov.io
+# Generate *.gcov files that can be picked up by the CodeCov.io Bash helper script. Don't run lcov or genhtml 
+# since those will delete .gcov files as they're processed.
 if [[ -n "$CODECOV_IO_UPLOAD" ]]; then
-    # Generate *.gcov files that can be picked up by the CodeCov.io Bash helper script. Don't run lcov or genhtml 
-    # since those will delete .gcov files as they're processed.
     make run-gcov;
-
-    # Upload coverage metrics to codecov.io site
-    bash <(curl -s https://codecov.io/bash) -F ${TESTS};
 fi

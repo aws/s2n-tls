@@ -135,3 +135,4 @@ install:
 
 script:
   - .travis/s2n_travis_build.sh
+  - .travis/s2n_after_travis_build.sh
