@@ -97,9 +97,8 @@ let setup_connection = do {
    let corked_io = {{1 : [8]}};
    crucible_points_to (conn_corked_io pconn) (crucible_term corked_io); 
    
-   // this proof is only valid for the tls1.2 version of the handshake
-   let tls12_version = {{33 : [8]}};
-   crucible_points_to (crucible_field pconn "actual_protocol_version") (crucible_term tls12_version);
+   version <- crucible_fresh_var "version" (llvm_int 8);
+   crucible_points_to (crucible_field pconn "actual_protocol_version") (crucible_term version);
    
    mode <- crucible_fresh_var "mode" (llvm_int 32);
    crucible_points_to (conn_mode pconn) (crucible_term mode);
@@ -158,8 +157,8 @@ let setup_connection = do {
    return (pconn, {{ {corked_io = corked_io
                      ,mode      = mode
                      ,handshake = {message_number = message_number
-		                  ,handshake_type = handshake_type}
-         	     ,corked    = cork_val
+                                  ,handshake_type = handshake_type}
+                     ,corked    = cork_val
                      ,is_caching_enabled = False
                      ,key_exchange_eph = eph_flag != zero
                      ,server_can_send_ocsp =
@@ -167,8 +166,9 @@ let setup_connection = do {
                             ((mode == 1) && (ocsp_flag == 1))
                      ,resume_from_cache = False
                      ,client_auth_flag = if mode == S2N_CLIENT then client_cert_auth_type == 1 else 
-                                            if mode == S2N_SERVER then client_cert_auth_type != 0 else False
-                     }                  
+                                         if mode == S2N_SERVER then client_cert_auth_type != 0 else False
+                     ,actual_protocol_version = version
+                     }
                   }}); 
 };
 
@@ -177,15 +177,15 @@ let setup_connection = do {
 // This function checks that the values of the state_machine array are what we
 // expect. 'sm' is the pointer to the beginning of the array, 'ixt' is the term
 // representing the index in the array.
-let verify_state_machine_elem sm ixt = do {
-    let ix = eval_int ixt;
-    let abstract = {{ state_machine @ ixt }};
+let verify_state_machine_elem state_machine state_machine_model index_term = do {
+    let index = eval_int index_term;
+    let abstract = {{ state_machine_model @ index_term }};
 
-    crucible_points_to (crucible_elem (crucible_elem sm ix) 0) (crucible_term {{ abstract.record_type }});
+    crucible_points_to (crucible_elem (crucible_elem state_machine index) 0) (crucible_term {{ abstract.record_type }});
 
-    crucible_points_to (crucible_elem (crucible_elem sm ix) 1) (crucible_term {{ abstract.message_type }});
+    crucible_points_to (crucible_elem (crucible_elem state_machine index) 1) (crucible_term {{ abstract.message_type }});
 
-    crucible_points_to (crucible_elem (crucible_elem sm ix) 2) (crucible_term {{ abstract.writer }});
+    crucible_points_to (crucible_elem (crucible_elem state_machine index) 2) (crucible_term {{ abstract.writer }});
 
 };
 
@@ -232,12 +232,12 @@ let s2n_conn_set_handshake_type_spec = do {
     // "handshakes")
     crucible_precond {{ valid_handshake conn.handshake }};
 
-    // symbolically execute s2n_advance_message
+    // symbolically execute s2n_conn_set_handshake_type
     crucible_execute_func [pconn];
 
     // Next we check that the changes to s2n_connection fields are
     // simulated by the low-level specification of the function. We do
-    // this by running the model function advance_message on the
+    // this by running the model function conn_set_handshake_type on the
     // deserealized pre-state of the s2n_connection struct and checking
     // that values of the fields of the resulting struct match the fields
     // of the post-state of the s2n_connection struct. In this case only handshake
@@ -246,7 +246,7 @@ let s2n_conn_set_handshake_type_spec = do {
     crucible_ghost_value corked {{ conn'.corked }};
     crucible_points_to (conn_handshake_handshake_type pconn) (crucible_term {{ conn'.handshake.handshake_type }});
 
-    // assert that s2n_advance_message returns 0 (true if the 4
+    // assert that s2n_conn_set_handshake_type returns 0 (true if the 4
     // functions it calls don't fail)
     crucible_return (crucible_term {{ 0 : [32] }});
 };
@@ -272,19 +272,23 @@ let s2n_advance_message_spec = do {
     let conn' = {{ advance_message conn }};
     crucible_ghost_value corked {{ conn'.corked }};
     crucible_points_to (conn_corked_io pconn) (crucible_term {{ conn'.corked_io }});
-    crucible_points_to (conn_mode pconn) (crucible_term {{ (advance_message conn).mode }});
-    crucible_points_to (conn_handshake_handshake_type pconn) (crucible_term {{ (advance_message conn).handshake.handshake_type }});
-    crucible_points_to (conn_handshake_message_number pconn) (crucible_term {{ (advance_message conn).handshake.message_number }});
+    crucible_points_to (conn_mode pconn) (crucible_term {{ conn'.mode }});
+    crucible_points_to (conn_handshake_handshake_type pconn) (crucible_term {{ conn'.handshake.handshake_type }});
+    crucible_points_to (conn_handshake_message_number pconn) (crucible_term {{ conn'.handshake.message_number }});
 
     // make sure the low-level spec representation of the declarative
     // handshake/cork-uncork state machine is equivalent to the one in
     // s2n
     crucible_points_to (crucible_global "handshakes") (crucible_term {{ handshakes }});
+    crucible_points_to (crucible_global "tls13_handshakes") (crucible_term {{ tls13_handshakes }});
+    
     let messages = [ {{CLIENT_HELLO : [5]}}, {{SERVER_SESSION_LOOKUP : [5]}}, {{SERVER_HELLO : [5]}}, {{SERVER_CERT : [5]}}, {{SERVER_NEW_SESSION_TICKET : [5]}}, {{SERVER_CERT_STATUS : [5]}}, 
       {{SERVER_KEY : [5]}}, {{SERVER_CERT : [5]}}, {{SERVER_CERT_REQ : [5]}}, {{SERVER_HELLO_DONE : [5]}}, {{CLIENT_CERT : [5]}}, {{CLIENT_KEY : [5]}}, {{CLIENT_CERT_VERIFY : [5]}}, 
-      {{CLIENT_CHANGE_CIPHER_SPEC : [5]}}, {{SERVER_FINISHED : [5]}}, {{APPLICATION_DATA : [5]}}];
+      {{CLIENT_CHANGE_CIPHER_SPEC : [5]}}, {{SERVER_FINISHED : [5]}}, {{ENCRYPTED_EXTENSIONS : [5]}}, {{SERVER_CERT_VERIFY : [5]}}, {{APPLICATION_DATA : [5]}} ];
 
-    for messages (verify_state_machine_elem (crucible_global "state_machine"));
+    for messages (verify_state_machine_elem (crucible_global "state_machine") {{ state_machine }} );
+    for messages (verify_state_machine_elem (crucible_global "tls13_state_machine") {{ tls13_state_machine }} );
+
     // assert that s2n_advance_message returns 0 (true if the 4
     // functions it calls don't fail)
     crucible_return (crucible_term {{ 0 : [32] }});
