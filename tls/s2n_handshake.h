@@ -45,11 +45,12 @@ typedef enum {
     CLIENT_FINISHED,
     SERVER_CHANGE_CIPHER_SPEC,
     SERVER_FINISHED,
-    APPLICATION_DATA,
 
     /* TLS1.3 message types. Defined: https://tools.ietf.org/html/rfc8446#appendix-B.3 */
     ENCRYPTED_EXTENSIONS,
     SERVER_CERT_VERIFY,
+
+    APPLICATION_DATA,
 } message_type_t;
 
 struct s2n_handshake_parameters {
