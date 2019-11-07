@@ -119,6 +119,9 @@ int main(int argc, char **argv)
     /* Negotiate the handshake. */
     EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
+    /* Check that blinding was not invoked */
+    EXPECT_EQUAL(s2n_connection_get_delay(conn), 0);
+
     /* Free connection */
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
