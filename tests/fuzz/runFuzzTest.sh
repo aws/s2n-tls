@@ -66,7 +66,7 @@ ACTUAL_TEST_FAILURE=0
 # Copy existing Corpus to a temp directory so that new inputs from fuzz tests runs will add new inputs to the temp directory. 
 # This allows us to minimize new inputs before merging to the original corpus directory.
 TEMP_CORPUS_DIR="$(mktemp -d)"
-cp ./corpus/${TEST_NAME}/* "${TEMP_CORPUS_DIR}"
+cp -r ./corpus/${TEST_NAME}/. "${TEMP_CORPUS_DIR}"
 
 
 printf "Running %-s %-40s for %5d sec with %2d threads... " "${FIPS_TEST_MSG}" ${TEST_NAME} ${FUZZ_TIMEOUT_SEC} ${NUM_CPU_THREADS}
