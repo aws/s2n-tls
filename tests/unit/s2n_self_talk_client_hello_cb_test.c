@@ -48,9 +48,6 @@ int mock_client(int writefd, int readfd, int expect_failure, int expect_server_n
     s2n_config_set_protocol_preferences(config, protocols, 2);
     s2n_config_disable_x509_verification(config);
     s2n_connection_set_config(conn, config);
-    conn->server_protocol_version = S2N_TLS12;
-    conn->client_protocol_version = S2N_TLS12;
-    conn->actual_protocol_version = S2N_TLS12;
 
     s2n_connection_set_read_fd(conn, readfd);
     s2n_connection_set_write_fd(conn, writefd);
@@ -97,23 +94,6 @@ int mock_client(int writefd, int readfd, int expect_failure, int expect_server_n
     s2n_cleanup();
 
     _exit(result);
-}
-
-int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
-{
-    static int called = 0;
-
-    /* When first called return 0 seconds */
-    *nanoseconds = 0;
-
-    /* When next called return 31 seconds */
-    if (called) {
-        *nanoseconds += (uint64_t) 31 * 1000000000;
-    }
-
-    called = 1;
-
-    return 0;
 }
 
 int client_hello_swap_config(struct s2n_connection *conn, void *ctx)
@@ -252,10 +232,6 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(server_to_client[0]));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-    conn->server_protocol_version = S2N_TLS12;
-    conn->client_protocol_version = S2N_TLS12;
-    conn->actual_protocol_version = S2N_TLS12;
-
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
     /* Set up the connection to read from the fd */
@@ -329,10 +305,6 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(server_to_client[0]));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-    conn->server_protocol_version = S2N_TLS12;
-    conn->client_protocol_version = S2N_TLS12;
-    conn->actual_protocol_version = S2N_TLS12;
-
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
     /* Set up the connection to read from the fd */
@@ -404,23 +376,22 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(server_to_client[0]));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-    conn->server_protocol_version = S2N_TLS12;
-    conn->client_protocol_version = S2N_TLS12;
-    conn->actual_protocol_version = S2N_TLS12;
-
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-    /* s2n_negotiate will fail, which ordinarily would delay with a sleep.
-     * Remove the sleep and fake the delay with a mock time routine */
+    /* If s2n_negotiate fails, it usually would delay with a sleep. In order to
+     * test that we don't blind when CLientHello callback fails the handshake,
+     * disable blinding here */
     EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
-    EXPECT_SUCCESS(s2n_config_set_monotonic_clock(config, mock_nanoseconds_since_epoch, NULL));
 
     /* Set up the connection to read from the fd */
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
     EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
 
     /* Negotiate the handshake. */
-    EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
+    EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked), S2N_ERR_CANCELLED);
+
+    /* Check that blinding was not invoked */
+    EXPECT_EQUAL(s2n_connection_get_delay(conn), 0);
 
     /* Ensure that callback was invoked */
     EXPECT_EQUAL(client_hello_ctx.invoked, 1);

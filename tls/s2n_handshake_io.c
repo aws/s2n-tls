@@ -939,7 +939,16 @@ static int handshake_read_io(struct s2n_connection *conn)
         GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
         if (r < 0) {
-            GUARD(s2n_connection_kill(conn));
+            /* Don't invoke blinding on some of the common errors */
+            switch (s2n_errno) {
+                case S2N_ERR_CANCELLED:
+                case S2N_ERR_CIPHER_NOT_SUPPORTED:
+                case S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED:
+                    conn->closed = 1;
+                    break;
+                default:
+                    GUARD(s2n_connection_kill(conn));
+            }
 
             return r;
         }

@@ -300,8 +300,8 @@ typedef enum { S2N_BUILT_IN_BLINDING, S2N_SELF_SERVICE_BLINDING } s2n_blinding;
 
 **s2n_blinding** is used to opt-out of s2n's built-in blinding. Blinding is a
 mitigation against timing side-channels which in some cases can leak information
-about encrypted data. By default s2n will cause a thread to sleep between 1ms and 
-10 seconds whenever tampering is detected. 
+about encrypted data. By default s2n will cause a thread to sleep between 10 and 
+30 seconds whenever tampering is detected. 
 
 Setting the **S2N_SELF_SERVICE_BLINDING** option with **s2n_connection_set_blinding**
 turns off this behavior. This is useful for applications that are handling many connections
