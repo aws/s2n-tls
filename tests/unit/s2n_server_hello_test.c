@@ -20,6 +20,7 @@
 #include <s2n.h>
 
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls13.h"
 
 #include "utils/s2n_safety.h"
 
@@ -90,7 +91,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_stuffer_data_available(server_stuffer), total);
 
         /* Copy server stuffer to client stuffer */
-        s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io, total);
+        EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io, total));
 
         /* Test s2n_server_hello_recv() */
         struct s2n_stuffer *client_stuffer = &client_conn->handshake.io;
@@ -104,8 +105,70 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
+     /* Test TLS 1.3 session id matching */
+    {
+        EXPECT_SUCCESS(s2n_enable_tls13());
+        struct s2n_config *client_config;
+        struct s2n_connection *client_conn;
+        EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+
+        struct s2n_stuffer *io = &client_conn->handshake.io;
+        /* protocol version */
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, S2N_TLS12 / 10));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, S2N_TLS12 % 10));
+
+        /* random payload */
+        uint8_t random[S2N_TLS_RANDOM_DATA_LEN] = {0};
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(io, random, S2N_TLS_RANDOM_DATA_LEN));
+
+        uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN] = {0};
+
+        /* generate matching session id for payload and client connection */
+        for (int i = 0; i < 32; i++) {
+            session_id[i] = i;
+            client_conn->session_id[i] = i;
+        }
+
+        /* session id */
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, S2N_TLS_SESSION_ID_MAX_LEN));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(io, session_id, S2N_TLS_SESSION_ID_MAX_LEN));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint16(io, (0x13 << 8) + 0x01)); /* cipher suites */
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, 0)); /* no compression */
+
+        client_conn->server_protocol_version = S2N_TLS13;
+        client_conn->session_id_len = 32;
+
+        /* Test s2n_server_hello_recv() */
+        EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
+        EXPECT_EQUAL(s2n_stuffer_data_available(io), 0);
+
+        /* Check that corrupt session id fails server hello */
+        for (int i = 0; i < 32; i++) {
+            client_conn->session_id[i] ^= 1;
+            EXPECT_SUCCESS(s2n_stuffer_reread(io));
+            EXPECT_FAILURE(s2n_server_hello_recv(client_conn));
+            client_conn->session_id[i] ^= 1;
+        }
+
+        /* Check that server hello is successful again */
+        EXPECT_SUCCESS(s2n_stuffer_reread(io));
+        EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
+
+        /* Check that unmatched session length should also fail */
+        for (int i = 0; i < 32; i++) {
+            client_conn->session_id_len = i;
+            EXPECT_SUCCESS(s2n_stuffer_reread(io));
+            EXPECT_FAILURE(s2n_server_hello_recv(client_conn));
+        }
+
+        EXPECT_SUCCESS(s2n_config_free(client_config));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_disable_tls13());
+    }
+
     END_TEST();
 
     return 0;
 }
-
