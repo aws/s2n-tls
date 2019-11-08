@@ -68,7 +68,7 @@ if [[ "$TRAVIS_OS_NAME" == "linux" && (("$TESTS" == "integration") || ("$TESTS" 
 fi
 
 # Build and run unit tests with scan-build for osx. scan-build bundle isn't available for linux
-if [[ "$TRAVIS_OS_NAME" == "osx" && "$TESTS" == "integration" ]]; then  
+if [[ "$TRAVIS_OS_NAME" == "osx" && "$TESTS" == "integration" ]]; then
     scan-build --status-bugs -o /tmp/scan-build make -j$JOBS; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/* ; [ "$STATUS" -eq "0" ];
 fi
 
@@ -77,13 +77,13 @@ if [[ "$TESTS" == "ALL" || "$TESTS" == "integration" ]]; then make clean; make i
 if [[ "$TESTS" == "ALL" || "$TESTS" == "fuzz" ]]; then (make clean && make fuzz) ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMAC" ]] && [[ "$TRAVIS_OS_NAME" == "linux" ]]; then make -C tests/saw/ tmp/"verify_s2n_hmac_$SAW_HMAC_TEST".log ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawDRBG" ]]; then make -C tests/saw tmp/verify_drbg.log ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "tls" ]]; then (make -C tests/saw tmp/handshake.log && make -C tests/saw tmp/cork-uncork.log) ; fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "tls" ]]; then (false) ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMACFailure" ]]; then make -C tests/saw failure-tests ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "ctverif" ]]; then .travis/run_ctverif.sh "$CTVERIF_INSTALL_DIR" ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "sawSIKE" ]]; then make -C tests/saw sike ; fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "sawSIKE" ]]; then false ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sidetrail" ]]; then .travis/run_sidetrail.sh "$SIDETRAIL_INSTALL_DIR" "$PART" ; fi
 
-# Generate *.gcov files that can be picked up by the CodeCov.io Bash helper script. Don't run lcov or genhtml 
+# Generate *.gcov files that can be picked up by the CodeCov.io Bash helper script. Don't run lcov or genhtml
 # since those will delete .gcov files as they're processed.
 if [[ -n "$CODECOV_IO_UPLOAD" ]]; then
     make run-gcov;
