@@ -73,7 +73,7 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
 
     if (conn->server_protocol_version >= S2N_TLS13) {
         /* Check echoed session ID matches */
-        S2N_ERROR_IF(session_id_len != conn->session_id_len || !memcmp(session_id, conn->session_id, session_id_len), S2N_ERR_BAD_MESSAGE);
+        S2N_ERROR_IF(session_id_len != conn->session_id_len || memcmp(session_id, conn->session_id, session_id_len), S2N_ERR_BAD_MESSAGE);
         conn->actual_protocol_version = conn->server_protocol_version;
         GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
     } else {
