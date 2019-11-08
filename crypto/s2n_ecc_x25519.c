@@ -91,29 +91,64 @@ int s2n_ecc_evp_generate_ephemeral_key(struct s2n_ecc_evp_params *server_evp_par
     return 0;
 }
 
-int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *server_params, struct s2n_ecc_evp_params *peer, struct s2n_blob *shared_key)
+int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *server_params, struct s2n_stuffer *Yc_in, struct s2n_blob *shared_key)
 {
+    uint8_t client_public_len;
+    struct s2n_blob client_public_blob = {0};
+    EVP_PKEY *client_public;
+    int rc;
+
+    GUARD(s2n_stuffer_read_uint8(Yc_in, &client_public_len));
+    client_public_blob.size = client_public_len;
+    client_public_blob.data = s2n_stuffer_raw_read(Yc_in, client_public_blob.size);
+    notnull_check(client_public_blob.data);
+
+    /* Parse the client public */
+    client_public = EVP_PKEY_new_raw_public_key(EVP_PKEY_X25519, NULL, client_public_blob.data, (size_t)client_public_blob.size);
+    S2N_ERROR_IF(client_public == NULL, S2N_ERR_BAD_MESSAGE);
+
     /* Compute the shared secret*/
-    return s2n_ecc_evp_compute_shared_secret(server_params->evp_pkey, client_params->evp_pkey, shared_key);
+    rc = s2n_ecc_evp_compute_shared_secret(server_params->evp_pkey, client_public, shared_key);
+    EVP_PKEY_free(client_public);
+
+    return rc;
 }
 
-int s2n_ecc_evp_compute_shared_secret_as_client(struct s2n_ecc_evp_params *server_params, struct s2n_ecc_evp_params *client_params, struct s2n_blob *shared_key)
+int s2n_ecc_evp_compute_shared_secret_as_client(struct s2n_ecc_evp_params *server_params, struct s2n_stuffer *Yc_out, struct s2n_blob *shared_key)
 {
     EVP_PKEY *client_key;
+    EVP_PKEY *server_public;
+    size_t client_len;
+    struct s2n_blob server_public_blob = {0};
 
     /* Generate the client key */
     notnull_check(server_params->negotiated_curve);
     client_key = s2n_ecc_evp_generate_own_key(server_params->negotiated_curve);
     S2N_ERROR_IF(client_key == NULL, S2N_ERR_ECDHE_GEN_KEY);
 
+    /* Obtain the server public key */
+    S2N_ERROR_IF(EVP_PKEY_get_raw_public_key(server_params->evp_pkey, NULL, (size_t *)&server_public_blob.size), S2N_ERR_ECDHE_SERIALIZING);
+    S2N_ERROR_IF(EVP_PKEY_get_raw_public_key(server_params->evp_pkey, server_public_blob.data, (size_t *)&server_public_blob.size), S2N_ERR_ECDHE_SERIALIZING);
+    server_public = EVP_PKEY_new_raw_public_key(EVP_PKEY_X25519, NULL, server_public_blob.data, (size_t)server_public_blob.size);
+    S2N_ERROR_IF(server_public == NULL, S2N_ERR_BAD_MESSAGE);
+
     /* Compute the shared secret */
-    if (s2n_ecc_evp_compute_shared_secret(client_key, server_params->evp_pkey, shared_key) != 0)
+    if (s2n_ecc_evp_compute_shared_secret(client_key, server_public, shared_key) != 0)
     {
         EVP_PKEY_free(client_key);
         S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
     }
 
-    client_params->evp_pkey = client_key;
+    S2N_ERROR_IF(EVP_PKEY_get_raw_public_key(client_key, NULL, &client_len) != 1, S2N_ERR_ECDHE_SERIALIZING);
+    S2N_ERROR_IF(client_len != server_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
+    GUARD(s2n_stuffer_write_uint8(Yc_out, client_len));
+
+    /* Write the client public to Yc */
+    S2N_ERROR_IF(EVP_PKEY_get_raw_public_key(client_key, Yc_out->blob.data, &client_len) != 1, S2N_ERR_ECDHE_SERIALIZING);
+
+    EVP_PKEY_free(client_key);
+    EVP_PKEY_free(server_public);
+
     return 0;
 }
 
