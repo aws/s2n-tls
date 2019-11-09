@@ -23,6 +23,7 @@ bin/s2nd
 util-linux-*
 Python-*
 clang-*
+.DS_Store
 fuzz_dependencies/*
 .travis/prlimit
 .travis/.libs/*
