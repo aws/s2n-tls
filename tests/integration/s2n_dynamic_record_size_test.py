@@ -244,6 +244,7 @@ def analyze_throughput_dump(array):
     return failed
 
 def get_local_mtu():
+    #TODO:  https://ubuntu.com/blog/if-youre-still-using-ifconfig-youre-living-in-the-past
     cmd = ["ifconfig", "lo"]
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     mtu = 65536

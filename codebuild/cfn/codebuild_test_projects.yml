@@ -1,0 +1,794 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Outputs": {
+        "CodeBuildProjects2nAsanOpenSSL102Gcc6": {
+            "Value": {
+                "Ref": "s2nAsanOpenSSL102Gcc6"
+            }
+        },
+        "CodeBuildProjects2nIntegrationLibreSSLGcc9": {
+            "Value": {
+                "Ref": "s2nIntegrationLibreSSLGcc9"
+            }
+        },
+        "CodeBuildProjects2nIntegrationOpenSSL102Gcc6": {
+            "Value": {
+                "Ref": "s2nIntegrationOpenSSL102Gcc6"
+            }
+        },
+        "CodeBuildProjects2nIntegrationOpenSSL102Gcc6FIPS": {
+            "Value": {
+                "Ref": "s2nIntegrationOpenSSL102Gcc6FIPS"
+            }
+        },
+        "CodeBuildProjects2nIntegrationOpenSSL111Gcc6": {
+            "Value": {
+                "Ref": "s2nIntegrationOpenSSL111Gcc6"
+            }
+        },
+        "CodeBuildProjects2nIntegrationOpenSSL111Gcc6Corked": {
+            "Value": {
+                "Ref": "s2nIntegrationOpenSSL111Gcc6Corked"
+            }
+        },
+        "CodeBuildProjects2nIntegrationOpenSSL111Gcc6SoftCrypto": {
+            "Value": {
+                "Ref": "s2nIntegrationOpenSSL111Gcc6SoftCrypto"
+            }
+        },
+        "CodeBuildProjects2nIntegrationOpenSSL111Gcc9": {
+            "Value": {
+                "Ref": "s2nIntegrationOpenSSL111Gcc9"
+            }
+        },
+        "CodeBuildProjects2nUnitOpenSSL111Gcc6": {
+            "Value": {
+                "Ref": "s2nUnitOpenSSL111Gcc6"
+            }
+        },
+        "CodeBuildProjects2nValgrindOpenSSL102Gcc6": {
+            "Value": {
+                "Ref": "s2nValgrindOpenSSL102Gcc6"
+            }
+        },
+        "CodeBuildProjects2nfuzzer1": {
+            "Value": {
+                "Ref": "s2nfuzzer1"
+            }
+        },
+        "CodeBuildProjects2nfuzzer2": {
+            "Value": {
+                "Ref": "s2nfuzzer2"
+            }
+        },
+        "CodeBuildProjects2nfuzzer3": {
+            "Value": {
+                "Ref": "s2nfuzzer3"
+            }
+        },
+        "CodeBuildProjects2nfuzzerOpenSSL111LongRun": {
+            "Value": {
+                "Ref": "s2nfuzzerOpenSSL111LongRun"
+            }
+        },
+        "CodeBuildRoleName": {
+            "Value": {
+                "Ref": "CodeBuildRole"
+            }
+        }
+    },
+    "Resources": {
+        "CodeBuildRole": {
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "codebuild.amazonaws.com"
+                            }
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyDocument": {
+                            "Id": "inline_policy_snapshots_cw_logs",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        "arn:aws:logs:*:024603541914:*"
+                                    ]
+                                }
+                            ],
+                            "Version": "2012-10-17"
+                        },
+                        "PolicyName": "inline_policy_snapshots_cw_logs"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::Role"
+        },
+        "s2nAsanOpenSSL102Gcc6": {
+            "DependsOn": "CodeBuildRole",
+            "Properties": {
+                "Artifacts": {
+                    "Type": "NO_ARTIFACTS"
+                },
+                "BadgeEnabled": "true",
+                "Environment": {
+                    "ComputeType": "BUILD_GENERAL1_2XLARGE",
+                    "EnvironmentVariables": [
+                        {
+                            "Name": "S2N_LIBCRYPTO",
+                            "Value": "openssl-1.0.2"
+                        },
+                        {
+                            "Name": "BUILD_S2N",
+                            "Value": "true"
+                        },
+                        {
+                            "Name": "TESTS",
+                            "Value": "asan"
+                        },
+                        {
+                            "Name": "GCC_VERSION",
+                            "Value": "6"
+                        }
+                    ],
+                    "Image": "aws/codebuild/standard:2.0",
+                    "PrivilegedMode": "true",
+                    "Type": "LINUX_CONTAINER"
+                },
+                "Name": "s2nAsanOpenSSL102Gcc6",
+                "ServiceRole": {
+                    "Ref": "CodeBuildRole"
+                },
+                "Source": {
+                    "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
+                    "GitCloneDepth": "1",
+                    "Location": "https://github.com/dougch/s2n.git",
+                    "ReportBuildStatus": "true",
+                    "Type": "GITHUB"
+                },
+                "SourceVersion": "codebuild_fuzzers"
+            },
+            "Type": "AWS::CodeBuild::Project"
+        },
+        "s2nIntegrationLibreSSLGcc9": {
+            "DependsOn": "CodeBuildRole",
+            "Properties": {
+                "Artifacts": {
+                    "Type": "NO_ARTIFACTS"
+                },
+                "BadgeEnabled": "true",
+                "Environment": {
+                    "ComputeType": "BUILD_GENERAL1_2XLARGE",
+                    "EnvironmentVariables": [
+                        {
+                            "Name": "S2N_LIBCRYPTO",
+                            "Value": "libressl"
+                        },
+                        {
+                            "Name": "BUILD_S2N",
+                            "Value": "true"
+                        },
+                        {
+                            "Name": "TESTS",
+                            "Value": "integration"
+                        },
+                        {
+                            "Name": "GCC_VERSION",
+                            "Value": "9"
+                        }
+                    ],
+                    "Image": "aws/codebuild/standard:2.0",
+                    "PrivilegedMode": "true",
+                    "Type": "LINUX_CONTAINER"
+                },
+                "Name": "s2nIntegrationLibreSSLGcc9",
+                "ServiceRole": {
+                    "Ref": "CodeBuildRole"
+                },
+                "Source": {
+                    "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
+                    "GitCloneDepth": "1",
+                    "Location": "https://github.com/dougch/s2n.git",
+                    "ReportBuildStatus": "true",
+                    "Type": "GITHUB"
+                },
+                "SourceVersion": "codebuild_fuzzers"
+            },
+            "Type": "AWS::CodeBuild::Project"
+        },
+        "s2nIntegrationOpenSSL102Gcc6": {
+            "DependsOn": "CodeBuildRole",
+            "Properties": {
+                "Artifacts": {
+                    "Type": "NO_ARTIFACTS"
+                },
+                "BadgeEnabled": "true",
+                "Environment": {
+                    "ComputeType": "BUILD_GENERAL1_2XLARGE",
+                    "EnvironmentVariables": [
+                        {
+                            "Name": "S2N_LIBCRYPTO",
+                            "Value": "openssl-1.0.2"
+                        },
+                        {
+                            "Name": "BUILD_S2N",
+                            "Value": "true"
+                        },
+                        {
+                            "Name": "TESTS",
+                            "Value": "integration"
+                        },
+                        {
+                            "Name": "GCC_VERSION",
+                            "Value": "6"
+                        }
+                    ],
+                    "Image": "aws/codebuild/standard:2.0",
+                    "PrivilegedMode": "true",
+                    "Type": "LINUX_CONTAINER"
+                },
+                "Name": "s2nIntegrationOpenSSL102Gcc6",
+                "ServiceRole": {
+                    "Ref": "CodeBuildRole"
+                },
+                "Source": {
+                    "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
+                    "GitCloneDepth": "1",
+                    "Location": "https://github.com/dougch/s2n.git",
+                    "ReportBuildStatus": "true",
+                    "Type": "GITHUB"
+                },
+                "SourceVersion": "codebuild_fuzzers"
+            },
+            "Type": "AWS::CodeBuild::Project"
+        },
+        "s2nIntegrationOpenSSL102Gcc6FIPS": {
+            "DependsOn": "CodeBuildRole",
+            "Properties": {
+                "Artifacts": {
+                    "Type": "NO_ARTIFACTS"
+                },
+                "BadgeEnabled": "true",
+                "Environment": {
+                    "ComputeType": "BUILD_GENERAL1_2XLARGE",
+                    "EnvironmentVariables": [
+                        {
+                            "Name": "S2N_LIBCRYPTO",
+                            "Value": "openssl-1.0.2-fips"
+                        },
+                        {
+                            "Name": "BUILD_S2N",
+                            "Value": "true"
+                        },
+                        {
+                            "Name": "TESTS",
+                            "Value": "integration"
+                        },
+                        {
+                            "Name": "GCC_VERSION",
+                            "Value": "6"
+                        }
+                    ],
+                    "Image": "aws/codebuild/standard:2.0",
+                    "PrivilegedMode": "true",
+                    "Type": "LINUX_CONTAINER"
+                },
+                "Name": "s2nIntegrationOpenSSL102Gcc6FIPS",
+                "ServiceRole": {
+                    "Ref": "CodeBuildRole"
+                },
+                "Source": {
+                    "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
+                    "GitCloneDepth": "1",
+                    "Location": "https://github.com/dougch/s2n.git",
+                    "ReportBuildStatus": "true",
+                    "Type": "GITHUB"
+                },
+                "SourceVersion": "codebuild_fuzzers"
+            },
+            "Type": "AWS::CodeBuild::Project"
+        },
+        "s2nIntegrationOpenSSL111Gcc6": {
+            "DependsOn": "CodeBuildRole",
+            "Properties": {
+                "Artifacts": {
+                    "Type": "NO_ARTIFACTS"
+                },
+                "BadgeEnabled": "true",
+                "Environment": {
+                    "ComputeType": "BUILD_GENERAL1_2XLARGE",
+                    "EnvironmentVariables": [
+                        {
+                            "Name": "S2N_LIBCRYPTO",
+                            "Value": "openssl-1.1.1"
+                        },
+                        {
+                            "Name": "BUILD_S2N",
+                            "Value": "true"
+                        },
+                        {
+                            "Name": "TESTS",
+                            "Value": "integration"
+                        },
+                        {
+                            "Name": "GCC_VERSION",
+                            "Value": "6"
+                        },
+                        {
+                            "Name": "S2N_COVERAGE",
+                            "Value": "true"
+                        },
+                        {
+                            "Name": "CODECOV_IO_UPLOAD",
+                            "Value": "true"
+                        }
+                    ],
+                    "Image": "aws/codebuild/standard:2.0",
+                    "PrivilegedMode": "true",
+                    "Type": "LINUX_CONTAINER"
+                },
+                "Name": "s2nIntegrationOpenSSL111Gcc6",
+                "ServiceRole": {
+                    "Ref": "CodeBuildRole"
+                },
+                "Source": {
+                    "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
+                    "GitCloneDepth": "1",
+                    "Location": "https://github.com/dougch/s2n.git",
+                    "ReportBuildStatus": "true",
+                    "Type": "GITHUB"
+                },
+                "SourceVersion": "codebuild_fuzzers"
+            },
+            "Type": "AWS::CodeBuild::Project"
+        },
+        "s2nIntegrationOpenSSL111Gcc6Corked": {
+            "DependsOn": "CodeBuildRole",
+            "Properties": {
+                "Artifacts": {
+                    "Type": "NO_ARTIFACTS"
+                },
+                "BadgeEnabled": "true",
+                "Environment": {
+                    "ComputeType": "BUILD_GENERAL1_2XLARGE",
+                    "EnvironmentVariables": [
+                        {
+                            "Name": "S2N_LIBCRYPTO",
+                            "Value": "openssl-1.1.1"
+                        },
+                        {
+                            "Name": "BUILD_S2N",
+                            "Value": "true"
+                        },
+                        {
+                            "Name": "TESTS",
+                            "Value": "integration"
+                        },
+                        {
+                            "Name": "GCC_VERSION",
+                            "Value": "6"
+                        },
+                        {
+                            "Name": "S2N_CORKED_IO",
+                            "Value": "true"
+                        }
+                    ],
+                    "Image": "aws/codebuild/standard:2.0",
+                    "PrivilegedMode": "true",
+                    "Type": "LINUX_CONTAINER"
+                },
+                "Name": "s2nIntegrationOpenSSL111Gcc6Corked",
+                "ServiceRole": {
+                    "Ref": "CodeBuildRole"
+                },
+                "Source": {
+                    "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
+                    "GitCloneDepth": "1",
+                    "Location": "https://github.com/dougch/s2n.git",
+                    "ReportBuildStatus": "true",
+                    "Type": "GITHUB"
+                },
+                "SourceVersion": "codebuild_fuzzers"
+            },
+            "Type": "AWS::CodeBuild::Project"
+        },
+        "s2nIntegrationOpenSSL111Gcc6SoftCrypto": {
+            "DependsOn": "CodeBuildRole",
+            "Properties": {
+                "Artifacts": {
+                    "Type": "NO_ARTIFACTS"
+                },
+                "BadgeEnabled": "true",
+                "Environment": {
+                    "ComputeType": "BUILD_GENERAL1_2XLARGE",
+                    "EnvironmentVariables": [
+                        {
+                            "Name": "S2N_LIBCRYPTO",
+                            "Value": "openssl-1.1.1"
+                        },
+                        {
+                            "Name": "OPENSSL_ia32cap",
+                            "Value": "\"~0x200000200000000\""
+                        },
+                        {
+                            "Name": "BUILD_S2N",
+                            "Value": "true"
+                        },
+                        {
+                            "Name": "TESTS",
+                            "Value": "integration"
+                        },
+                        {
+                            "Name": "GCC_VERSION",
+                            "Value": "6"
+                        }
+                    ],
+                    "Image": "aws/codebuild/standard:2.0",
+                    "PrivilegedMode": "true",
+                    "Type": "LINUX_CONTAINER"
+                },
+                "Name": "s2nIntegrationOpenSSL111Gcc6SoftCrypto",
+                "ServiceRole": {
+                    "Ref": "CodeBuildRole"
+                },
+                "Source": {
+                    "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
+                    "GitCloneDepth": "1",
+                    "Location": "https://github.com/dougch/s2n.git",
+                    "ReportBuildStatus": "true",
+                    "Type": "GITHUB"
+                },
+                "SourceVersion": "codebuild_fuzzers"
+            },
+            "Type": "AWS::CodeBuild::Project"
+        },
+        "s2nIntegrationOpenSSL111Gcc9": {
+            "DependsOn": "CodeBuildRole",
+            "Properties": {
+                "Artifacts": {
+                    "Type": "NO_ARTIFACTS"
+                },
+                "BadgeEnabled": "true",
+                "Environment": {
+                    "ComputeType": "BUILD_GENERAL1_2XLARGE",
+                    "EnvironmentVariables": [
+                        {
+                            "Name": "S2N_LIBCRYPTO",
+                            "Value": "openssl-1.1.1"
+                        },
+                        {
+                            "Name": "BUILD_S2N",
+                            "Value": "true"
+                        },
+                        {
+                            "Name": "TESTS",
+                            "Value": "integration"
+                        },
+                        {
+                            "Name": "GCC_VERSION",
+                            "Value": "9"
+                        }
+                    ],
+                    "Image": "aws/codebuild/standard:2.0",
+                    "PrivilegedMode": "true",
+                    "Type": "LINUX_CONTAINER"
+                },
+                "Name": "s2nIntegrationOpenSSL111Gcc9",
+                "ServiceRole": {
+                    "Ref": "CodeBuildRole"
+                },
+                "Source": {
+                    "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
+                    "GitCloneDepth": "1",
+                    "Location": "https://github.com/dougch/s2n.git",
+                    "ReportBuildStatus": "true",
+                    "Type": "GITHUB"
+                },
+                "SourceVersion": "codebuild_fuzzers"
+            },
+            "Type": "AWS::CodeBuild::Project"
+        },
+        "s2nUnitOpenSSL111Gcc6": {
+            "DependsOn": "CodeBuildRole",
+            "Properties": {
+                "Artifacts": {
+                    "Type": "NO_ARTIFACTS"
+                },
+                "BadgeEnabled": "true",
+                "Environment": {
+                    "ComputeType": "BUILD_GENERAL1_2XLARGE",
+                    "EnvironmentVariables": [
+                        {
+                            "Name": "S2N_LIBCRYPTO",
+                            "Value": "openssl-1.1.1"
+                        },
+                        {
+                            "Name": "BUILD_S2N",
+                            "Value": "true"
+                        },
+                        {
+                            "Name": "TESTS",
+                            "Value": "unit"
+                        },
+                        {
+                            "Name": "GCC_VERSION",
+                            "Value": "6"
+                        },
+                        {
+                            "Name": "S2N_COVERAGE",
+                            "Value": "true"
+                        },
+                        {
+                            "Name": "CODECOV_IO_UPLOAD",
+                            "Value": "true"
+                        }
+                    ],
+                    "Image": "aws/codebuild/standard:2.0",
+                    "PrivilegedMode": "true",
+                    "Type": "LINUX_CONTAINER"
+                },
+                "Name": "s2nUnitOpenSSL111Gcc6",
+                "ServiceRole": {
+                    "Ref": "CodeBuildRole"
+                },
+                "Source": {
+                    "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
+                    "GitCloneDepth": "1",
+                    "Location": "https://github.com/dougch/s2n.git",
+                    "ReportBuildStatus": "true",
+                    "Type": "GITHUB"
+                },
+                "SourceVersion": "codebuild_fuzzers"
+            },
+            "Type": "AWS::CodeBuild::Project"
+        },
+        "s2nValgrindOpenSSL102Gcc6": {
+            "DependsOn": "CodeBuildRole",
+            "Properties": {
+                "Artifacts": {
+                    "Type": "NO_ARTIFACTS"
+                },
+                "BadgeEnabled": "true",
+                "Environment": {
+                    "ComputeType": "BUILD_GENERAL1_2XLARGE",
+                    "EnvironmentVariables": [
+                        {
+                            "Name": "S2N_LIBCRYPTO",
+                            "Value": "openssl-1.0.2"
+                        },
+                        {
+                            "Name": "BUILD_S2N",
+                            "Value": "true"
+                        },
+                        {
+                            "Name": "TESTS",
+                            "Value": "valgrind"
+                        },
+                        {
+                            "Name": "GCC_VERSION",
+                            "Value": "6"
+                        }
+                    ],
+                    "Image": "aws/codebuild/standard:2.0",
+                    "PrivilegedMode": "true",
+                    "Type": "LINUX_CONTAINER"
+                },
+                "Name": "s2nValgrindOpenSSL102Gcc6",
+                "ServiceRole": {
+                    "Ref": "CodeBuildRole"
+                },
+                "Source": {
+                    "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
+                    "GitCloneDepth": "1",
+                    "Location": "https://github.com/dougch/s2n.git",
+                    "ReportBuildStatus": "true",
+                    "Type": "GITHUB"
+                },
+                "SourceVersion": "codebuild_fuzzers"
+            },
+            "Type": "AWS::CodeBuild::Project"
+        },
+        "s2nfuzzer1": {
+            "DependsOn": "CodeBuildRole",
+            "Properties": {
+                "Artifacts": {
+                    "Type": "NO_ARTIFACTS"
+                },
+                "BadgeEnabled": "true",
+                "Environment": {
+                    "ComputeType": "BUILD_GENERAL1_2XLARGE",
+                    "EnvironmentVariables": [
+                        {
+                            "Name": "S2N_LIBCRYPTO",
+                            "Value": "openssl-1.1.1"
+                        },
+                        {
+                            "Name": "LATEST_CLANG",
+                            "Value": "true"
+                        },
+                        {
+                            "Name": "TESTS",
+                            "Value": "fuzz"
+                        },
+                        {
+                            "Name": "FUZZ_TIMEOUT_SEC",
+                            "Value": "120"
+                        },
+                        {
+                            "Name": "S2N_COVERAGE",
+                            "Value": "true"
+                        }
+                    ],
+                    "Image": "aws/codebuild/standard:2.0",
+                    "PrivilegedMode": "true",
+                    "Type": "LINUX_CONTAINER"
+                },
+                "Name": "s2nfuzzer1",
+                "ServiceRole": {
+                    "Ref": "CodeBuildRole"
+                },
+                "Source": {
+                    "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
+                    "GitCloneDepth": "1",
+                    "Location": "https://github.com/dougch/s2n.git",
+                    "ReportBuildStatus": "true",
+                    "Type": "GITHUB"
+                },
+                "SourceVersion": "codebuild_fuzzers"
+            },
+            "Type": "AWS::CodeBuild::Project"
+        },
+        "s2nfuzzer2": {
+            "DependsOn": "CodeBuildRole",
+            "Properties": {
+                "Artifacts": {
+                    "Type": "NO_ARTIFACTS"
+                },
+                "BadgeEnabled": "true",
+                "Environment": {
+                    "ComputeType": "BUILD_GENERAL1_2XLARGE",
+                    "EnvironmentVariables": [
+                        {
+                            "Name": "S2N_LIBCRYPTO",
+                            "Value": "openssl-1.1.1"
+                        },
+                        {
+                            "Name": "LATEST_CLANG",
+                            "Value": "true"
+                        },
+                        {
+                            "Name": "TESTS",
+                            "Value": "fuzz"
+                        },
+                        {
+                            "Name": "FUZZ_TIMEOUT_SEC",
+                            "Value": "120"
+                        }
+                    ],
+                    "Image": "aws/codebuild/standard:2.0",
+                    "PrivilegedMode": "true",
+                    "Type": "LINUX_CONTAINER"
+                },
+                "Name": "s2nfuzzer2",
+                "ServiceRole": {
+                    "Ref": "CodeBuildRole"
+                },
+                "Source": {
+                    "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
+                    "GitCloneDepth": "1",
+                    "Location": "https://github.com/dougch/s2n.git",
+                    "ReportBuildStatus": "true",
+                    "Type": "GITHUB"
+                },
+                "SourceVersion": "codebuild_fuzzers"
+            },
+            "Type": "AWS::CodeBuild::Project"
+        },
+        "s2nfuzzer3": {
+            "DependsOn": "CodeBuildRole",
+            "Properties": {
+                "Artifacts": {
+                    "Type": "NO_ARTIFACTS"
+                },
+                "BadgeEnabled": "true",
+                "Environment": {
+                    "ComputeType": "BUILD_GENERAL1_2XLARGE",
+                    "EnvironmentVariables": [
+                        {
+                            "Name": "S2N_LIBCRYPTO",
+                            "Value": "openssl-1.0.2-fips"
+                        },
+                        {
+                            "Name": "LATEST_CLANG",
+                            "Value": "true"
+                        },
+                        {
+                            "Name": "TESTS",
+                            "Value": "fuzz"
+                        },
+                        {
+                            "Name": "FUZZ_TIMEOUT_SEC",
+                            "Value": "120"
+                        }
+                    ],
+                    "Image": "aws/codebuild/standard:2.0",
+                    "PrivilegedMode": "true",
+                    "Type": "LINUX_CONTAINER"
+                },
+                "Name": "s2nfuzzer3",
+                "ServiceRole": {
+                    "Ref": "CodeBuildRole"
+                },
+                "Source": {
+                    "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
+                    "GitCloneDepth": "1",
+                    "Location": "https://github.com/dougch/s2n.git",
+                    "ReportBuildStatus": "true",
+                    "Type": "GITHUB"
+                },
+                "SourceVersion": "codebuild_fuzzers"
+            },
+            "Type": "AWS::CodeBuild::Project"
+        },
+        "s2nfuzzerOpenSSL111LongRun": {
+            "DependsOn": "CodeBuildRole",
+            "Properties": {
+                "Artifacts": {
+                    "Type": "NO_ARTIFACTS"
+                },
+                "BadgeEnabled": "true",
+                "Environment": {
+                    "ComputeType": "BUILD_GENERAL1_2XLARGE",
+                    "EnvironmentVariables": [
+                        {
+                            "Name": "S2N_LIBCRYPTO",
+                            "Value": "openssl-1.1.1"
+                        },
+                        {
+                            "Name": "LATEST_CLANG",
+                            "Value": "true"
+                        },
+                        {
+                            "Name": "TESTS",
+                            "Value": "fuzz"
+                        },
+                        {
+                            "Name": "FUZZ_TIMEOUT_SEC",
+                            "Value": "3600"
+                        }
+                    ],
+                    "Image": "aws/codebuild/standard:2.0",
+                    "PrivilegedMode": "true",
+                    "Type": "LINUX_CONTAINER"
+                },
+                "Name": "s2nfuzzerOpenSSL111LongRun",
+                "ServiceRole": {
+                    "Ref": "CodeBuildRole"
+                },
+                "Source": {
+                    "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
+                    "GitCloneDepth": "1",
+                    "Location": "https://github.com/dougch/s2n.git",
+                    "ReportBuildStatus": "true",
+                    "Type": "GITHUB"
+                },
+                "SourceVersion": "codebuild_fuzzers"
+            },
+            "Type": "AWS::CodeBuild::Project"
+        }
+    }
+}
