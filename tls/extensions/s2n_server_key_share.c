@@ -80,7 +80,10 @@ int s2n_extensions_server_key_share_send(struct s2n_connection *conn, struct s2n
     notnull_check(out);
 
     GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_KEY_SHARE));
-    GUARD(s2n_stuffer_write_uint16(out, s2n_extensions_server_key_share_send_size(conn) - S2N_SIZE_OF_EXTENSION_TYPE));
+    GUARD(s2n_stuffer_write_uint16(out, s2n_extensions_server_key_share_send_size(conn)
+        - S2N_SIZE_OF_EXTENSION_TYPE
+        - S2N_SIZE_OF_EXTENSION_DATA_SIZE
+    ));
 
     GUARD(s2n_ecdhe_parameters_send(&conn->secure.server_ecc_params, out));
 
