@@ -181,6 +181,8 @@ int s2n_free_external_ctx_signed_hash(struct s2n_connection *conn)
     conn->external_ctx.signed_hash = NULL;
     conn->external_ctx.signed_hash_size = 0;
 
+    GUARD(s2n_stuffer_free(&conn->external_ctx.ephemeral_key_io));
+
     return 0;
 }
 
