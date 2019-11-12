@@ -286,6 +286,8 @@ bitcode/bike_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike s2n/utils s2n
 	patch s2n/pq-crypto/bike/sampling.c bike/patch/sampling.c.patch
 	tr -d '\r' <../../pq-crypto/bike/decode.c >s2n/pq-crypto/bike/decode.c
 	patch s2n/pq-crypto/bike/decode.c bike/patch/decode.c.patch
+	tr -d '\r' <../../pq-crypto/bike/secure_decode_portable.c >s2n/pq-crypto/bike/secure_decode_portable.c
+	patch s2n/pq-crypto/bike/secure_decode_portable.c bike/patch/secure_decode_portable.c.patch
 	${MAKE} -C s2n bike_bc
 	${MAKE} -C bitcode bike_llvm.bc
 
