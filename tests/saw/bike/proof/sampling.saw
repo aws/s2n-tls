@@ -147,11 +147,63 @@ let is_new_spec = do {
 //       Must have weight < max (T1, FAKE_DV), or an assertion fails.
 //       a_len_64 is the length of a `a` array, and is 1/8 times `a_len_bytes
 
+let MAX_WEIGHT = eval_int {{ max (`T1:[64]) (`FAKE_DV:[64]) }};
+
+let secure_set_bits_loop_spec a_len_64 weight = do {
+    (a ,a_ptr) <- inout_ref (plain_type (llvm_array a_len_64 i64)) "a";
+    a_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to a_ptr_ptr a_ptr;
+    (wlist, wlist_ptr) <- in_ref (idx_array_T weight) "wlist";
+    wlist_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to wlist_ptr_ptr wlist_ptr;
+    a_len_8_ptr <- crucible_alloc i32;
+    crucible_points_to a_len_8_ptr (crucible_term {{ 8 * (`a_len_64:[32]) }});
+    weight_ptr <- crucible_alloc i32;
+    crucible_points_to weight_ptr (crucible_term {{ `weight:[32] }});
+    (qw_pos, qw_pos_ptr) <- inout_ref (make_i64_T MAX_WEIGHT) "qw_pos";
+    (bit_pos, bit_pos_ptr) <- inout_ref (make_i64_T MAX_WEIGHT) "bit_pos";
+    (tmp, tmp_ptr) <- ptr_to_fresh "tmp" i64;
+    (qw, qw_ptr) <- ptr_to_fresh "qw" i32;
+    (j, j_ptr) <- ptr_to_fresh "j" i32;
+    mask_ptr <- crucible_alloc i64;
+
+    crucible_precond {{ qw < `a_len_64 }};
+    crucible_precond {{ j <= `weight }};
+
+    crucible_execute_func
+        [ a_ptr_ptr
+        , wlist_ptr_ptr
+        , a_len_8_ptr
+        , weight_ptr
+        , qw_pos_ptr
+        , bit_pos_ptr
+        , tmp_ptr
+        , qw_ptr
+        , j_ptr
+        , mask_ptr
+        ];
+
+    a' <- crucible_fresh_var "a'" (llvm_array a_len_64 i64);
+    crucible_points_to a_ptr (crucible_term {{ a' }});
+
+    return ();
+};
+
 let secure_set_bits_spec a_len_64 weight = do {
-    (a ,ap) <- inout_ref (plain_type (llvm_array a_len_64 i64)) "a";
-    (b, bp) <- inout_ref (idx_array_T weight) "wlist";
-    crucible_execute_func [ap, bp, tm {{ 8*(`a_len_64:[32])}},
-        tm {{ `weight:[32] }}];
+    (a ,a_ptr) <- inout_ref (plain_type (llvm_array a_len_64 i64)) "a";
+    (wlist, wlist_ptr) <- in_ref (idx_array_T weight) "wlist";
+
+    crucible_execute_func
+        [ a_ptr
+        , wlist_ptr
+        , crucible_term {{ 8 * (`a_len_64:[32]) }}
+        , crucible_term {{ `weight:[32] }}
+        ];
+
+    a' <- crucible_fresh_var "a'" (llvm_array a_len_64 i64);
+    crucible_points_to a_ptr (crucible_term {{ a' }});
+
+    return ();
 };
 
 let generate_sparse_rep_spec = do {
@@ -446,13 +498,23 @@ sample_uniform_r_bits_ov <- verify "sample_uniform_r_bits"
 */
 
 // NOTE: For generate_sparse_rep:
-secure_set_bits_GSR_ov <- admit "secure_set_bits"
-    [secure_cmp32_ov]
+secure_set_bits_GSR_loop_ov <- admit "__breakpoint__secure_set_bits_loop#secure_set_bits"
+    [] (secure_set_bits_loop_spec (eval_int {{( `N_PADDED_SIZE:[32])/8 }}) T1);
+verify "__breakpoint__secure_set_bits_loop#secure_set_bits"
+    [secure_set_bits_GSR_loop_ov, secure_cmp32_ov]
+    (secure_set_bits_loop_spec (eval_int {{( `N_PADDED_SIZE:[32])/8 }}) T1);
+secure_set_bits_GSR_ov <- verify "secure_set_bits"
+    [secure_set_bits_GSR_loop_ov, secure_cmp32_ov]
     (secure_set_bits_spec (eval_int {{( `N_PADDED_SIZE:[32])/8 }}) T1);
 
 // NOTE: For generate_sparse_fake_rep
+secure_set_bits_GSFR_loop_ov <- admit "__breakpoint__secure_set_bits_loop#secure_set_bits"
+    [] (secure_set_bits_loop_spec (eval_int {{( `R_PADDED_SIZE:[32])/8 }}) FAKE_DV);
+verify "__breakpoint__secure_set_bits_loop#secure_set_bits"
+    [secure_set_bits_GSFR_loop_ov, secure_cmp32_ov]
+    (secure_set_bits_loop_spec (eval_int {{( `R_PADDED_SIZE:[32])/8 }}) FAKE_DV);
 secure_set_bits_GSFR_ov <- admit "secure_set_bits"
-    [secure_cmp32_ov]
+    [secure_set_bits_GSFR_loop_ov, secure_cmp32_ov]
     (secure_set_bits_spec (eval_int {{( `R_PADDED_SIZE:[32])/8 }}) FAKE_DV);
 
 generate_sparse_rep_loop_ov <- admit "__breakpoint__generate_sparse_rep_loop#generate_sparse_rep"
