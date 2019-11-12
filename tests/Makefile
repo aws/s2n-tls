@@ -55,4 +55,6 @@ clean: decruft
 	${MAKE} -C LD_PRELOAD decruft
 	${MAKE} -C unit clean
 	${MAKE} -C fuzz clean
+	${MAKE} -C viz clean
 	${MAKE} -C saw decruft
+
