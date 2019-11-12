@@ -24,7 +24,7 @@ BATCHFLAGS ?= \
 	--cbmcflags $(call encode_options,$(CBMCFLAGS)) \
 	--cbmcpkg $(CBMCPKG) \
 	--coverage-memory $(COVMEM) \
-	--goto $(ENTRY).goto \
+	--goto gotos/$(ENTRY).goto \
 	--jobprefix $(ENTRY) \
 	--no-build \
 	--no-copysrc \
@@ -50,44 +50,26 @@ define yaml_encode_options
        "$(shell echo $(1) | sed 's/ ,/ /g' | sed 's/ /;/g')"
 endef
 
-$(ENTRY).yaml: $(ENTRY).goto Makefile
+$(ENTRY).yaml: 
 	echo 'batchpkg: $(BATCHPKG)' > $@
 	echo 'build: true' >> $@
 	echo 'cbmcflags: $(call yaml_encode_options,$(CBMCFLAGS))' >> $@
 	echo 'cbmcpkg: $(CBMCPKG)' >> $@
 	echo 'coverage_memory: $(COVMEM)' >> $@
 	echo 'expected: "SUCCESSFUL"' >> $@
-	echo 'goto: $(ENTRY).goto' >> $@
+	echo 'goto: gotos/$(GOTO).goto' >> $@
 	echo 'jobos: ubuntu16' >> $@
 	echo 'property_memory: $(PROPMEM)' >> $@
 	echo 'viewerpkg: $(VIEWERPKG)' >> $@
 
-batch-yaml: $(ENTRY).yaml
+batch-yaml: $(ENTRY).yaml Makefile
 
-cbmc-batch.yaml: $(ENTRY).goto Makefile
+cbmc-batch.yaml: 
 	echo 'cbmcflags: $(strip $(call yaml_encode_options,$(CBMCFLAGS)))' > $@
 	echo 'expected: "SUCCESSFUL"' >> $@
-	echo 'goto: $(ENTRY).goto' >> $@
+	echo 'goto: gotos/$(ENTRY).goto' >> $@
 	echo 'jobos: ubuntu16' >> $@
 
-ci-yaml: cbmc-batch.yaml
+ci-yaml: cbmc-batch.yaml Makefile
 
-launch: $(ENTRY).goto Makefile
-	mkdir -p $(WS)
-	cp $(ENTRY).goto $(WS)
-	$(BATCH) $(BATCHFLAGS)
-
-launch-clean:
-	for d in $(ENTRY)*; do \
-	  if [ -d $$d ]; then \
-	    for f in $$d.json $$d.yaml Makefile-$$d; do \
-	      if [ -f $$f ]; then mv $$f $$d; fi \
-	    done\
-	  fi \
-	done
-	$(RM) Makefile-$(ENTRY)-[0-7]*-[0-7]*
-	$(RM) $(ENTRY)-[0-7]*-[0-7]*.json $(ENTRY)-[0-7]*-[0-7]*.yaml
-	$(RM) -r $(WS)
-
-launch-veryclean: launch-clean
-	$(RM) -r $(ENTRY)-[0-7]*-[0-7]*
+.PHONY: ci-yaml batch-yaml

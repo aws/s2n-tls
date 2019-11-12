@@ -228,15 +228,6 @@ $(ENTRY_GOTO)7.goto: $(ENTRY_GOTO)6.goto
 $(ENTRY_GOTO).goto: $(ENTRY_GOTO)7.goto
 	cp $< $@
 
-# For now, CBMC batch expects the goto in the same folder as the proof itself,
-# instead of the proof/gotos folder all other gotos go in.  This isn't a problem
-# for out-of-tree or parallel builds, it just clutters the proof directory.
-# I could update the .yaml file for all 160 proofs, or I could copy it, and
-# have one goto file in the proof directory.  Doing the second option for now.
-# TODO: cleanup which files go in which directories.
-$(ENTRY).goto: $(ENTRY_GOTO).goto
-	cp $< $@
-
 # # Catch-all used for building goto-binaries of the individual
 # # dependencies, which are then linked in the $(ENTRY_GOTO)0.goto rule above
 # # DSN TODO This should be able to go away once we have static removal working
@@ -254,28 +245,28 @@ goto: $(ENTRY).goto
 
 ################################################################
 # Targets to run the analysis commands
-cbmc.log: $(ENTRY).goto
+logs/cbmc.log: $(ENTRY_GOTO).goto
 	cbmc $(CBMCFLAGS) --trace $< 2>&1 | tee $@
 
-property.xml: $(ENTRY).goto
+logs/property.xml: $(ENTRY_GOTO).goto
 	cbmc $(CBMCFLAGS) --show-properties --xml-ui $< 2>&1 > $@
 
-coverage.xml: $(ENTRY).goto
+logs/coverage.xml: $(ENTRY_GOTO).goto
 	cbmc $(filter-out --unwinding-assertions,$(CBMCFLAGS)) --cover location --xml-ui $< 2>&1 > $@
 
-cbmc: cbmc.log
+cbmc: logs/cbmc.log
 
-property: property.xml
+property: logs/property.xml
 
-coverage: coverage.xml
+coverage: logs/coverage.xml
 
-report: cbmc.log property.xml coverage.xml
+report: logs/cbmc.log logs/property.xml logs/coverage.xml
 	$(VIEWER) \
-	--block coverage.xml \
-	--goto $(ENTRY).goto \
+	--block logs/coverage.xml \
+	--goto $(ENTRY_GOTO).goto \
 	--htmldir html \
-	--property property.xml \
-	--result cbmc.log \
+	--property logs/property.xml \
+	--result logs/cbmc.log \
 	--srcdir $(SRCDIR) \
 	--srcexclude "(./verification|./tests|./tools|./lib/third_party)"
 
