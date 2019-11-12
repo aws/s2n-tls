@@ -11,6 +11,10 @@
 *.info
 *.profraw
 *.tmp
+build/*
+.cproject
+.project
+.settings/*
 coverage/html/*
 libcrypto-build/*
 libcrypto-root
