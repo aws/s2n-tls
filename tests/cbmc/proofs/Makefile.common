@@ -240,7 +240,7 @@ $(ENTRY_GOTO).goto: $(ENTRY_GOTO)7.goto
 # 	  $(INC) $(DEFINES) -o $@ \
 # 	  2>&1 | tee $(call LOG_FROM_GOTO,$@) ; exit $${PIPESTATUS[0]}
 
-goto: $(ENTRY).goto
+goto: $(ENTRY_GOTO).goto
 	echo $(DEPENDENT_GOTOS)
 
 ################################################################
