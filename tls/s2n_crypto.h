@@ -16,6 +16,7 @@
 #pragma once
 
 #include "tls/s2n_config.h"
+#include "tls/s2n_signature_scheme.h"
 
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_cipher.h"

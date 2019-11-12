@@ -33,8 +33,11 @@ struct s2n_ecc_named_curve {
     const uint8_t share_size;
 };
 
+extern struct s2n_ecc_named_curve s2n_ecc_curve_secp256r1;
+extern struct s2n_ecc_named_curve s2n_ecc_curve_secp384r1;
+
 /* An array of supported curves in order of descending preference */
-extern const struct s2n_ecc_named_curve s2n_ecc_supported_curves[S2N_ECC_SUPPORTED_CURVES_COUNT];
+extern const struct s2n_ecc_named_curve *s2n_ecc_supported_curves[S2N_ECC_SUPPORTED_CURVES_COUNT];
 
 struct s2n_ecc_params {
     /* Negotiated named curve from s2n_ecc_supported_curves, or NULL if ECC can't be used */

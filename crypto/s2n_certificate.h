@@ -56,6 +56,11 @@ struct s2n_cert_chain_and_key {
 typedef enum {
     S2N_AUTHENTICATION_RSA = 0,
     S2N_AUTHENTICATION_ECDSA,
+
+    /* Unspecified is used by some TLS 1.3 CipherSuites (Eg TLS_AES_128_GCM_SHA256 "0x1301") where the Auth method will
+     * be specified by another Extension (SignatureScheme), not the Ciphersuite. */
+    S2N_AUTHENTICATION_UNSPECIFIED,
+
     S2N_AUTHENTICATION_METHOD_SENTINEL
 } s2n_authentication_method;
 

@@ -197,7 +197,7 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     GUARD(s2n_stuffer_skip_read(in, num_compression_methods));
 
     /* This is going to be our default if the client has no preference. */
-    conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
+    conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
 
     uint16_t extensions_length = 0;
     if (s2n_stuffer_data_available(in) >= 2) {
@@ -313,7 +313,8 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     GUARD(s2n_set_cipher_and_cert_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
 
     /* And set the signature and hash algorithm used for key exchange signatures */
-    GUARD(s2n_set_signature_hash_pair_from_preference_list(conn, &conn->handshake_params.client_sig_hash_algs, &conn->secure.conn_hash_alg, &conn->secure.conn_sig_alg));
+    GUARD(s2n_set_signature_hash_pair_from_preference_list(conn, &conn->handshake_params.client_sig_hash_algs,
+                                                           &conn->secure.conn_hash_alg, &conn->secure.conn_sig_alg));
 
     return 0;
 }

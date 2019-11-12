@@ -54,10 +54,10 @@ typedef enum {
 
 struct s2n_handshake_parameters {
     /* Signature/hash algorithm pairs offered by the client in the signature_algorithms extension */
-    struct s2n_sig_hash_alg_pairs client_sig_hash_algs;
+    struct s2n_sig_scheme_list client_sig_hash_algs;
 
     /* Signature/hash algorithm pairs offered by the server in the certificate request */
-    struct s2n_sig_hash_alg_pairs server_sig_hash_algs;
+    struct s2n_sig_scheme_list server_sig_hash_algs;
 
     /* The cert chain we will send the peer. */
     struct s2n_cert_chain_and_key *our_chain_and_key;
