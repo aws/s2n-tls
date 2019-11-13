@@ -18,6 +18,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
 #include "error/s2n_errno.h"
@@ -96,8 +97,13 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
 /* Check the return value from caller. If this value is -2, S2N_ERR_BLOCKED is marked*/
 #define GUARD_AGAIN( x )  do {if ( (x) == -2 ) { S2N_ERROR(S2N_ERR_BLOCKED); } GUARD( x );} while(0)
 
+/* Returns true if s2n is in unit test mode, false otherwise */
+bool s2n_in_unit_test();
 
-#define S2N_IN_UNIT_TEST ( getenv("S2N_UNIT_TEST") != NULL )
+/* Sets whether s2n is in unit test mode. Returns the previous value for the flag */
+bool s2n_in_unit_test_set(bool newval);
+
+#define S2N_IN_UNIT_TEST ( s2n_in_unit_test() )
 #define S2N_IN_INTEG_TEST ( getenv("S2N_INTEG_TEST") != NULL )
 #define S2N_IN_TEST ( S2N_IN_UNIT_TEST || S2N_IN_INTEG_TEST )
 
@@ -121,7 +127,7 @@ extern pid_t s2n_actual_getpid();
 extern int s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, uint32_t len);
 
 /* Copy src to dst, or don't copy it, in constant time */
-extern int s2n_constant_time_copy_or_dont(const uint8_t * dst, const uint8_t * src, uint32_t len, uint8_t dont);
+extern int s2n_constant_time_copy_or_dont(uint8_t * dst, const uint8_t * src, uint32_t len, uint8_t dont);
 
 /* If src contains valid PKCS#1 v1.5 padding of exactly expectlen bytes, decode
  * it into dst, otherwise leave dst alone, in constant time.
