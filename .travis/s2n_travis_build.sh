@@ -22,6 +22,7 @@ source .travis/s2n_override_paths.sh
 if [[ "$BUILD_S2N" == "true" ]]; then
     .travis/run_cppcheck.sh "$CPPCHECK_INSTALL_DIR";
     .travis/copyright_mistake_scanner.sh;
+    .travis/grep_simple_mistakes.sh;
 fi
 
 if [[ "$BUILD_S2N" == "true" && "$TRAVIS_OS_NAME" == "linux" ]]; then
