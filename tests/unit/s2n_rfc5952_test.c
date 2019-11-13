@@ -72,6 +72,11 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_inet_ntop(AF_INET6, ipv6, &ipv6_blob));
     EXPECT_EQUAL(strcmp("::", (char *) ipv6_buf), 0);
 
+    /* Prevents build failure on Mac */
+    #ifndef AF_BLUETOOTH
+        #define AF_BLUETOOTH 31
+    #endif
+
     EXPECT_FAILURE_WITH_ERRNO(s2n_inet_ntop(AF_BLUETOOTH, ipv6, &ipv6_blob), S2N_ERR_INVALID_ARGUMENT);
     END_TEST();
 }
