@@ -512,7 +512,7 @@ int main(int argc, char **argv)
 
     /* Return to "unit test mode" and verify it would actually work and that was the reason for the failure */
     s2n_in_unit_test_set(true);
-    
+
     EXPECT_SUCCESS(s2n_drbg_instantiate(&failing_drbg_mode, &blob, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
     EXPECT_SUCCESS(s2n_drbg_instantiate(&failing_drbg_entropy, &blob, S2N_AES_128_CTR_NO_DF_PR));
 

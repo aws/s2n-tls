@@ -103,9 +103,8 @@ bool s2n_in_unit_test();
 /* Sets whether s2n is in unit test mode. Returns the previous value for the flag */
 bool s2n_in_unit_test_set(bool newval);
 
-#define S2N_IN_UNIT_TEST ( s2n_in_unit_test() )
 #define S2N_IN_INTEG_TEST ( getenv("S2N_INTEG_TEST") != NULL )
-#define S2N_IN_TEST ( S2N_IN_UNIT_TEST || S2N_IN_INTEG_TEST )
+#define S2N_IN_TEST ( s2n_in_unit_test() || S2N_IN_INTEG_TEST )
 
 /* TODO: use the OSSL error code in error reporting https://github.com/awslabs/s2n/issues/705 */
 #define GUARD_OSSL( x , errcode )               \
