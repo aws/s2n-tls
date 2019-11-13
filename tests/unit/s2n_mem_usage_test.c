@@ -21,6 +21,9 @@
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <sys/param.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -28,15 +31,13 @@
 
 /* The number of connection pairs to allocate before measuring memory
  * usage. The greater the value, the more accurate the end result. */
-#define CONNECTIONS 250
+#define MAX_CONNECTIONS 1000
 
 /* This is roughly the current memory usage per connection */
 #define MEM_PER_CONNECTION (106 * 1024)
 
 /* This is the maximum  memory per conneciton including 4KB of slack */
 #define MAX_MEM_PER_CONNECTION (MEM_PER_CONNECTION + 4 * 1024)
-
-#define MAX_ALLOWED_MEM_DIFF ((ssize_t) 2 * CONNECTIONS * MAX_MEM_PER_CONNECTION)
 
 ssize_t get_vm_data_size()
 {
@@ -65,10 +66,7 @@ ssize_t get_vm_data_size()
 
 int main(int argc, char **argv)
 {
-    int server_to_client[2 * CONNECTIONS];
-    int client_to_server[2 * CONNECTIONS];
-    struct s2n_connection *clients[CONNECTIONS];
-    struct s2n_connection *servers[CONNECTIONS];
+    size_t connectionsToUse = MAX_CONNECTIONS;
 
     char *cert_chain;
     char *private_key;
@@ -80,6 +78,21 @@ int main(int argc, char **argv)
     if (getenv("S2N_VALGRIND") != NULL || getenv("S2N_ADDRESS_SANITIZER") != NULL) {
         END_TEST();
     }
+
+    struct rlimit file_limit;
+    EXPECT_SUCCESS(getrlimit(RLIMIT_NOFILE, &file_limit));
+    /* 4 fds per connection: {client,server} {write,read} fd
+     * and reserve 16 fds for libraries, stdin/stdout/stderr and so on */
+    if (4 * connectionsToUse + 16 > file_limit.rlim_cur) {
+        connectionsToUse = MAX(1, (file_limit.rlim_cur - 16) / 4);
+    }
+
+    const ssize_t maxAllowedMemDiff = 2 * connectionsToUse * MAX_MEM_PER_CONNECTION;
+
+    int *server_to_client = calloc(2 * connectionsToUse, sizeof(int));
+    int *client_to_server = calloc(2 * connectionsToUse, sizeof(int));
+    struct s2n_connection **clients = calloc(connectionsToUse, sizeof(struct s2n_connection *));
+    struct s2n_connection **servers = calloc(connectionsToUse, sizeof(struct s2n_connection *));
 
     EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -102,7 +115,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_EQUAL(vm_data_initial, -1);
 
     /* Allocate all connections */
-    for (int i = 0; i < CONNECTIONS; i++)
+    for (int i = 0; i < connectionsToUse; i++)
     {
         /* Create nonblocking pipes */
         EXPECT_SUCCESS(pipe(server_to_client + 2 * i));
@@ -132,28 +145,28 @@ int main(int argc, char **argv)
     ssize_t vm_data_after_allocation = get_vm_data_size();
     EXPECT_NOT_EQUAL(vm_data_after_allocation, -1);
 
-    for (int i = 0; i < CONNECTIONS; i++) {
+    for (int i = 0; i < connectionsToUse; i++) {
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(servers[i], clients[i]));
     }
 
     ssize_t vm_data_after_handshakes = get_vm_data_size();
     EXPECT_NOT_EQUAL(vm_data_after_handshakes, -1);
 
-    for (int i = 0; i < CONNECTIONS; i++) {
+    for (int i = 0; i < connectionsToUse; i++) {
         EXPECT_SUCCESS(s2n_connection_free_handshake(servers[i]));
         EXPECT_SUCCESS(s2n_connection_free_handshake(clients[i]));
     }
     ssize_t vm_data_after_free_handshake = get_vm_data_size();
     EXPECT_NOT_EQUAL(vm_data_after_free_handshake, -1);
 
-    for (int i = 0; i < CONNECTIONS; i++) {
+    for (int i = 0; i < connectionsToUse; i++) {
         EXPECT_SUCCESS(s2n_connection_release_buffers(servers[i]));
         EXPECT_SUCCESS(s2n_connection_release_buffers(clients[i]));
     }
     ssize_t vm_data_after_release_buffers = get_vm_data_size();
     EXPECT_NOT_EQUAL(vm_data_after_release_buffers, -1);
 
-    for (int i = 0; i < CONNECTIONS; i++) {
+    for (int i = 0; i < connectionsToUse; i++) {
         EXPECT_SUCCESS(s2n_connection_free(clients[i]));
         EXPECT_SUCCESS(s2n_connection_free(servers[i]));
 
@@ -169,6 +182,10 @@ int main(int argc, char **argv)
 
     free(cert_chain);
     free(private_key);
+    free(server_to_client);
+    free(client_to_server);
+    free(clients);
+    free(servers);
 
 #if 0
     fprintf(stdout, "\n");
@@ -177,11 +194,12 @@ int main(int argc, char **argv)
     fprintf(stdout, "VmData after handshakes:     %10zu\n", vm_data_after_handshakes);
     fprintf(stdout, "VmData after free handshake: %10zu\n", vm_data_after_free_handshake);
     fprintf(stdout, "VmData after release:        %10zu\n", vm_data_after_release_buffers);
-    fprintf(stdout, "Max VmData diff allowed:     %10zu\n", MAX_ALLOWED_MEM_DIFF);
+    fprintf(stdout, "Max VmData diff allowed:     %10zu\n", maxAllowedMemDiff);
+    fprintf(stdout, "Number of connecitons used:  %10zu\n", connectionsToUse);
 #endif
 
-    EXPECT_TRUE(vm_data_after_allocation - vm_data_initial < MAX_ALLOWED_MEM_DIFF);
-    EXPECT_TRUE(vm_data_after_handshakes - vm_data_initial < MAX_ALLOWED_MEM_DIFF);
+    EXPECT_TRUE(vm_data_after_allocation - vm_data_initial < maxAllowedMemDiff);
+    EXPECT_TRUE(vm_data_after_handshakes - vm_data_initial < maxAllowedMemDiff);
     EXPECT_TRUE(vm_data_after_free_handshake <= vm_data_after_handshakes);
     EXPECT_TRUE(vm_data_after_release_buffers <= vm_data_after_free_handshake);
 
