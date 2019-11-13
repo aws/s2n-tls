@@ -1,4 +1,4 @@
-# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"). You may not use
 # this file except in compliance with the License. A copy of the License is
@@ -76,10 +76,10 @@ DO_NOOP_COPY = cp $(2) $(3); echo $(1) | tee $(call LOG_FROM_ENTRY,$(3))
 
 ################################################################
 # Useful macros translating filenames
-#C_FROM_GOTO = $(patsubst $(GOTODIR)%,$(SRCDIR)%,$(1:.goto=.c))
-#GOTO_FROM_C = $(patsubst $(SRCDIR)%,$(GOTODIR)%,$(1:.c=.goto))
+C_FROM_GOTO = $(patsubst $(GOTODIR)%,$(SRCDIR)%,$(1:.goto=.c))
+GOTO_FROM_C = $(patsubst $(SRCDIR)%,$(GOTODIR)%,$(1:.c=.goto))
 LOG_FROM_ENTRY = $(LOGDIR)/$(notdir $(1:.goto=.log))
-#LOG_FROM_GOTO = $(patsubst $(GOTODIR)%,$(LOGDIR)%,$(1:.goto=.log))
+LOG_FROM_GOTO = $(patsubst $(GOTODIR)%,$(LOGDIR)%,$(1:.goto=.log))
 
 ################################################################
 # Default CBMC flags
@@ -99,7 +99,8 @@ CBMCFLAGS += --unwinding-assertions
 ################################################################
 # Setup the unwindset
 # TODO: CBMC should accept multiple unwindset flags, making the substutions here
-# unnecessary
+# unnecessary.
+# Tracked in https://github.com/diffblue/cbmc/issues/5185
 ifneq ($(UNWINDSET),)
 CBMC_UNWINDSET := --unwindset $(subst $(SPACE),$(COMMA),$(strip $(UNWINDSET)))
 endif
@@ -227,18 +228,6 @@ $(ENTRY_GOTO)7.goto: $(ENTRY_GOTO)6.goto
 
 $(ENTRY_GOTO).goto: $(ENTRY_GOTO)7.goto
 	cp $< $@
-
-# # Catch-all used for building goto-binaries of the individual
-# # dependencies, which are then linked in the $(ENTRY_GOTO)0.goto rule above
-# # DSN TODO This should be able to go away once we have static removal working
-# # properly.
-# %.goto:
-# 	mkdir -p $(dir $@)
-# 	mkdir -p $(dir $(call LOG_FROM_GOTO,$@))
-# 	echo $(call C_FROM_GOTO,$@)
-# 	$(GOTO_CC) -c $(call C_FROM_GOTO,$@) --export-function-local-symbols $(CBMC_VERBOSITY) \
-# 	  $(INC) $(DEFINES) -o $@ \
-# 	  2>&1 | tee $(call LOG_FROM_GOTO,$@) ; exit $${PIPESTATUS[0]}
 
 goto: $(ENTRY_GOTO).goto
 	echo $(DEPENDENT_GOTOS)
