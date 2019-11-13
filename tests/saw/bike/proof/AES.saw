@@ -190,7 +190,8 @@ let aes_ctr_prf_spec len = do {
     // NOTE: marked as "IN" in C code, should be IN OUT
     (b, bp) <- inout_ref aes_ctr_prf_state_T "s";
 
-    crucible_precond {{ b.rem_invokations >=  `(len/AES256_BLOCK_SIZE) + 1 }};
+    // TODO: count invokations accross bike
+    // crucible_precond {{ b.rem_invokations >=  `(len/AES256_BLOCK_SIZE) + 1 }};
 
     // NOTE: This invariant is need to avoid underflow
     crucible_precond {{ b.pos <= `AES256_BLOCK_SIZE }};
@@ -201,8 +202,11 @@ let aes_ctr_prf_spec len = do {
     crucible_execute_func[ap, bp, tm {{`len:[32]}}];
     b' <- point_to aes_ctr_prf_state_T bp "s'";
     crucible_postcond {{ b'.pos <= `AES256_BLOCK_SIZE }}; // invariant
-    crucible_postcond {{ b'.rem_invokations >=
-        b.rem_invokations - `(len/AES256_BLOCK_SIZE) - 1 }};
+
+    // TODO: count invokations accross bike
+    // crucible_postcond {{ b'.rem_invokations >=
+    //     b.rem_invokations - `(len/AES256_BLOCK_SIZE) - 1 }};
+
     a' <- point_to  (make_i8_T len) ap "a'"; // OUT parameter is written to
     crucible_return (tm {{fromInteger`{[32]} SUCCESS}});
 };
@@ -253,7 +257,8 @@ aes_ctr_prf_ov2 <- admit // verify_pathsat
 	[aes256_enc_ov] // see note above on perform_aes_overlapped_ov
 	(aes_ctr_prf_spec R_SIZE);
 
-aes_ctr_prf_ov10 <- admit // verify_pathsat
+aes_ctr_prf_4_ov <- admit // verify_pathsat
         "aes_ctr_prf"
 	[aes256_enc_ov]
-	(aes_ctr_prf_spec 10);
+	(aes_ctr_prf_spec 4);
+
