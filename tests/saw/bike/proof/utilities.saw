@@ -51,6 +51,7 @@ let bit_scan_reverse_spec = do {
     (b, bp) <- in_val i64_T "val";
     crucible_execute_func [bp];
     ret <- crucible_fresh_var "ret" i8;
+    crucible_postcond {{ if b < 2^^32 then ret <= 32 else ret <= 64 }};
     crucible_return (tm ret);
 };
 
@@ -108,6 +109,6 @@ secure_clean_ov3 <- admit "secure_clean" []
 
 secure_l32_mask_ov <- admit "secure_l32_mask" [] secure_l32_mask_spec;
 
-iszero_ov <- verify_pathsat "bit_scan_reverse" [] bit_scan_reverse_spec;
+bit_scan_reverse_ov <- verify_pathsat "bit_scan_reverse" [] bit_scan_reverse_spec;
 
 secure_cmp32_ov <- admit "secure_cmp32" [] secure_cmp32_spec;
