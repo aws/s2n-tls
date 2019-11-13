@@ -158,9 +158,8 @@ bool s2n_in_unit_test()
     return s_s2n_in_unit_test;
 }
 
-bool s2n_in_unit_test_set(bool newval)
+int s2n_in_unit_test_set(bool newval)
 {
-    bool oldval = s_s2n_in_unit_test;
     s_s2n_in_unit_test = newval;
-    return oldval;
+    return S2N_SUCCESS;
 }

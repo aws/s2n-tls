@@ -39,14 +39,24 @@
  * happen in main() and start with a BEGIN_TEST() and end with an END_TEST();
  */
 #ifdef S2N_TEST_IN_FIPS_MODE
-#define BEGIN_TEST() int test_count = 0; do {  s2n_in_unit_test_set(true); \
-                            EXPECT_NOT_EQUAL_WITHOUT_COUNT(FIPS_mode_set(1), 0);		\
-                            EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init()); \
-                            fprintf(stdout, "Running FIPS test %-50s ... ", __FILE__); } while(0)
+#define BEGIN_TEST()						\
+  int test_count = 0;						\
+  do {								\
+    EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));	\
+    EXPECT_NOT_EQUAL_WITHOUT_COUNT(FIPS_mode_set(1), 0);	\
+    EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());			\
+    fprintf(stdout, "Running FIPS test %-50s ... ", __FILE__);	\
+  } while(0)
 #else
-#define BEGIN_TEST() int test_count = 0; do {s2n_in_unit_test_set(true); EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());  fprintf(stdout, "Running %-50s ... ", __FILE__); } while(0)
+#define BEGIN_TEST()						\
+  int test_count = 0; do {					\
+    EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));	\
+    EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());			\
+    fprintf(stdout, "Running %-50s ... ", __FILE__);		\
+  } while(0)
 #endif
-#define END_TEST()   do { s2n_in_unit_test_set(false); \
+#define END_TEST()   do { \
+                        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(false));		\
                         EXPECT_SUCCESS_WITHOUT_COUNT(s2n_cleanup());       \
                         if (isatty(fileno(stdout))) { \
                             if (test_count) { \

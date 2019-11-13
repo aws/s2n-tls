@@ -100,8 +100,8 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
 /* Returns true if s2n is in unit test mode, false otherwise */
 bool s2n_in_unit_test();
 
-/* Sets whether s2n is in unit test mode. Returns the previous value for the flag */
-bool s2n_in_unit_test_set(bool newval);
+/* Sets whether s2n is in unit test mode */
+int s2n_in_unit_test_set(bool newval);
 
 #define S2N_IN_INTEG_TEST ( getenv("S2N_INTEG_TEST") != NULL )
 #define S2N_IN_TEST ( s2n_in_unit_test() || S2N_IN_INTEG_TEST )
