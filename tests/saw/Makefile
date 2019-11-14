@@ -140,7 +140,6 @@ failure-tests : bitcode
 	@${MAKE} failure_tests/cork_one.log
 	@${MAKE} failure_tests/cork_two.log
 
-
 #The bitcode files don't get deleted, in case we want to do tests on them
 .SECONDARY : $(wildcard bitcode/*.bc)
 
@@ -154,12 +153,12 @@ failure_tests/sha_%.log : bitcode/sha_%.bc
 failure_tests/tls_%.log : bitcode/tls_%.bc
         #this might not be necessary
 	cp $< bitcode/all_llvm.bc 
-	! saw handshake.saw &> $@
+	! saw verify_state_machine.saw &> $@
 
 failure_tests/cork_%.log : bitcode/cork_%.bc
         #this might not be necessary
 	cp $< bitcode/all_llvm.bc 
-	! saw cork-uncork.saw &> $@
+	! saw verify_cork_uncork.saw &> $@
 
 
 # we patch the s2n dir, build it with the top level s2n makefile, and
