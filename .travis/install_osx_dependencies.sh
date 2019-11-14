@@ -26,6 +26,7 @@ brew_install_if_not_installed gnu-indent
 brew_install_if_not_installed cppcheck
 brew_install_if_not_installed pkg-config # for gnutls compilation
 brew_install_if_not_installed openssl # for python compilation with ssl
+brew_install_if_not_installed zlib
 
 # Download and Install Clang Scan-build for static analysis
 if [[ ! -d "$SCAN_BUILD_INSTALL_DIR" ]] && [[ "$TRAVIS_OS_NAME" == "osx" ]]; then .travis/install_scan-build.sh "$SCAN_BUILD_INSTALL_DIR"; fi
