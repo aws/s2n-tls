@@ -19,7 +19,7 @@
  * We override abort to be an assert(0) so that it is caught by CBMC
  */
 
-#include <stdint.h>
+#include <assert.h>
 
 void abort() {
     assert(0);
