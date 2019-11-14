@@ -50,6 +50,11 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_pq_kem_extension_required(preferences));
 
         preferences = NULL;
+        EXPECT_SUCCESS(s2n_find_cipher_pref_from_version("PQ-SIKE-TEST-TLS-1-0-2019-11", &preferences));
+        EXPECT_TRUE(s2n_ecc_extension_required(preferences));
+        EXPECT_TRUE(s2n_pq_kem_extension_required(preferences));
+
+        preferences = NULL;
         EXPECT_SUCCESS(s2n_find_cipher_pref_from_version("20141001", &preferences));
         EXPECT_FALSE(s2n_ecc_extension_required(preferences));
         EXPECT_FALSE(s2n_pq_kem_extension_required(preferences));
