@@ -43,13 +43,13 @@ include "proof/outside.saw";
 include "proof/openssl_utils.saw";
 include "proof/gf2x.saw";
 include "proof/utilities.saw";
-
 include "proof/converts_portable.saw";
 include "proof/AES.saw";
 include "proof/sha.saw";
 include "proof/parallel_hash.saw";
 include "proof/sampling.saw";
 include "proof/secure_decode_portable.saw";
-let do_prove = true;
 
+let do_prove = true;
 include "proof/decode.saw";
+

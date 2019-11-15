@@ -89,6 +89,8 @@ let compressed_idx_dv_s = llvm_struct "struct.compressed_idx_dv_s";
 let syndrome_t =  llvm_struct "struct.syndrome_s";
 let syndrome_T:type_descriptor_t = point_to_flat {{ `N_syndrome_t }}
     {{ assemble_syndrome_t }};
+let dup1_dup2_syndrome_T:type_descriptor_t = point_to_flat {{ `N_dup1_dup2_syndrome_t }}
+    {{ assemble_dup1_dup2_syndrome_t }};
 
 let sha384_hash_t = make_i8_t SHA384_HASH_SIZE;
 let sha384_hash_s = llvm_struct "struct.sha384_hash_s";

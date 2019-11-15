@@ -402,6 +402,14 @@ flatten_syndrome_t s = f1#f2#f3 where
     f2 = flatten_red_r_t s.dup2
     f3 = s.reserved
 
+type N_dup1_dup2_syndrome_t = 2*N_red_r_t
+assemble_dup1_dup2_syndrome_t: [N_dup1_dup2_syndrome_t][8] -> syndrome_t
+assemble_dup1_dup2_syndrome_t (x#y) =
+    { dup1 = assemble_red_r_t x
+    , dup2 = assemble_red_r_t y
+    , reserved = zero
+    }
+
 type raw_ddq = N_DDQWORDS_BITS_t uint8_t
 get_syndrome_raw: syndrome_t -> raw_ddq
 get_syndrome_raw = flatten_syndrome_t

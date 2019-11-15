@@ -173,7 +173,7 @@ crypto_kem_dec_unsuccessful_ov <- verify_unint "BIKE1_L1_crypto_kem_dec"
     crypto_kem_dec_unsuccessful_spec;
 
 // NOTE: Step 1 of 2 - conditioned on a SUCCESS result
-// crypto_kem_dec_successful_ov <- verify_unint "BIKE1_L1_crypto_kem_dec"
-    // crypto_kem_dec_O
-    // crypto_kem_dec_U
-    // crypto_kem_dec_successful_spec;
+crypto_kem_dec_successful_ov <- verify_unint "BIKE1_L1_crypto_kem_dec"
+    crypto_kem_dec_O
+    crypto_kem_dec_U
+    crypto_kem_dec_successful_spec;
