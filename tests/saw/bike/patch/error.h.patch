@@ -1,4 +1,0 @@
-32a33,35
-> 
-> #define BIKE_ERROR_PATCH( x, ret, LABEL ) do { bike_errno = ( x ); ret = ( x ); goto LABEL; } while (0)
-> 
