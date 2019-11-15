@@ -30,7 +30,7 @@
 /* Share sizes are described here: https://tools.ietf.org/html/rfc8446#section-4.2.8.2
  * and include the extra "legacy_form" byte */
 const struct s2n_ecc_named_curve s2n_X25519 = {
-    .iana_id = TLS_EC_CURVE_ECDH_X25519, .libcrypto_nid = NID_X25519, .name = "x25519", .share_size = (32 * 2) + 1};
+    .iana_id = TLS_EC_CURVE_ECDH_X25519, .libcrypto_nid = NID_X25519, .name = "x25519", .share_size = 32 };
 
 static EVP_PKEY *s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve);
 static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, struct s2n_blob *shared_secret);
