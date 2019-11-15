@@ -49,83 +49,15 @@ let point_to_compressed_idx_dv p v = do {
 let point_to_decode_ctx p v = do {
     x <- crucible_fresh_var v (llvm_struct "struct.decode_ctx_s");
     crucible_points_to p (tm x);
-    if (reduced) then do {
-      return {{
-          { upc = x.0
-          , black_e = x.1
-          , gray_e = x.2
-          , delta = x.3
-          , threshold = x.4
-          }
-      }};
-    }
-    else do {
-    	return {{
-          { upc = x.0
-          , black_e = x.1
-          , gray_e = x.2
-          , delta = x.3
-          , threshold = x.4
-          , ex = x.5
-          }
-      }};
-    };
-};
-
-/* NOTES:
-
-  - The evp_cipher_ctx type is part of the OpenSSL library, so we should not
-    need to say much about it.  Here, we allocate all the data elements, and
-    set all the members of pointer type to NULL.  This should be fine because
-    we will not be simulating any code that actually uses this data; instead
-    all those library functions have overrides.
-
-  - So why do we need this type at all?  There is at least one place in the
-    code where a pointer to this struct is asserted to be non-null, so in the
-    SAW setup we need to create some value that can be pointed to.
-
-  - The corresponding Cryptol value is not used in any of the memory safety
-    analysis and is, so far, irrelevant to anythng we are doing.
-*/
-
-let point_to_evp_cipher_ctx_st p v = do {
-    // a <- crucible_fresh_var (str_concat v ".a")
-        // ((llvm_struct "struct.evp_cipher_st"));
-    // b <- crucible_fresh_var (str_concat v ".b")
-        // ((llvm_struct "struct.engine_st"));
-    c <- crucible_fresh_var (str_concat v ".c") i32;
-    d <- crucible_fresh_var (str_concat v ".d") i32;
-    e <- crucible_fresh_var (str_concat v ".e") (make_i8_t 16);
-    f <- crucible_fresh_var (str_concat v ".f") (make_i8_t 16);
-    g <- crucible_fresh_var (str_concat v ".g") (make_i8_t 32);
-    h <- crucible_fresh_var (str_concat v ".h") i32;
-    // i <- crucible_fresh_var (str_concat v ".i") (make_i8_t n);
-    j <- crucible_fresh_var (str_concat v ".j") i32;
-    k <- crucible_fresh_var (str_concat v ".k") i64;
-    // l <- crucible_fresh_var (str_concat v ".l") (make_i8_t n);
-    m <- crucible_fresh_var (str_concat v ".m") i32;
-    n <- crucible_fresh_var (str_concat v ".n") i32;
-    o <- crucible_fresh_var (str_concat v ".o") (make_i8_t 32);
-    crucible_points_to p (crucible_struct
-         [ crucible_null, crucible_null // two pointer values
-    	 , tm c, tm d, tm e, tm f, tm g, tm h
-         , crucible_null // rather than tm i
-         , tm j, tm k
-         , crucible_null // rather than tm l
-         , tm m, tm n, tm o]);
     return {{
-        { // a = a, b = b
-          c = c, d = d, e = e
-        , f= f, g = g, h=h
-        // ,i=i
-        ,j=j, k=k
-        // ,l=l
-        ,m=m, n=n, o=o
+        { upc = x.0
+        , black_e = x.1
+        , gray_e = x.2
+        , delta = x.3
+        , threshold = x.4
         }
     }};
 };
-
-let evp_cipher_ctx_st_T = (evp_cipher_ctx_st_t, point_to_evp_cipher_ctx_st);
 
 let points_to_uint128 p v = do {
     let el = crucible_elem;
@@ -137,15 +69,10 @@ let points_to_uint128 p v = do {
 
 let uint128_T = (llvm_struct "struct.uint128_s", points_to_uint128);
 
-// type aes256_ks_t is "%struct.evp_cipher_ctx_st* -- a pointer to a struct.
-
 // TODO: There is really no good Cryptol value to associate with
-//       this pointer, unless we were to consider the pointed-to
-//       structure as owned by this pointer, and use its value.
+//       this pointer.
 
 let points_to_aes256_ks p v = do {
-    //ctx_p <- crucible_alloc evp_cipher_ctx_st_t;
-    //point_to evp_cipher_ctx_st_T ctx_p v;
     ctx_p <- crucible_fresh_pointer evp_cipher_ctx_st_t;
     crucible_points_to p ctx_p;
     return {{ 0:[64] }};

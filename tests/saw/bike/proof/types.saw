@@ -43,10 +43,7 @@ let seed_t = make_i8_t 32;
 let seed_T = point_to_flat {{ `N_seed_tt }} {{ assemble_seed_tt }};
 let seed_S = plain_type (llvm_struct "struct.seed_s");
 
-let pad_sk_T =
-    if (reduced) then
-        point_to_flat {{ `N_padded_param_n_t }} {{ assemble_padded_param_n_t }}
-    else plain_type (llvm_struct "struct.padded_r_s");
+let pad_sk_T = point_to_flat {{ `N_padded_param_n_t }} {{ assemble_padded_param_n_t }};
 
 let ss_t =  make_i8_t ELL_K_SIZE;
 let double_seed_t =  make_i8_t 64;

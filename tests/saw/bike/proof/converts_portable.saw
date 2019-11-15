@@ -10,7 +10,6 @@ let convert_to_redundant_rep_spec len = do {
     (out,outp) <- ptr_to_fresh "out" (llvm_array len (llvm_int 8));
     (i,inp) <- ptr_to_fresh_readonly "in" (llvm_array len_div_8 (llvm_int 8));
     crucible_execute_func [outp, inp, tm {{ `len:[64] }}];
-    // crucible_points_to outp (tm {{ out || (redundant_rep i) }});
     crucible_points_to outp (tm {{ out || convert_to_redundant_rep `{len} i }});
     return();
 };
@@ -20,16 +19,11 @@ let convert_to_redundant_rep_spec len = do {
 //       the program.
 let convert_to_redundant_rep_spec' len = do {
     let len_div_8 = eval_int {{ (1+(`len:[64])/8) }};
-    // let len_p1 = eval_int {{ (`len:[64]) + 1 }};
-    // (out,outp) <- ptr_to_fresh "out" (llvm_array len_p1 (llvm_int 8));
     (out,outp) <- ptr_to_fresh "out" (llvm_array len (llvm_int 8));
     crucible_precond {{ out == zero }};
     (i,inp) <- ptr_to_fresh_readonly "in" (llvm_array len_div_8 (llvm_int 8));
-    // crucible_execute_func [outp, inp, tm {{ `len_p1:[64] }}];
     crucible_execute_func [outp, inp, tm {{ `len:[64] }}];
-    //crucible_points_to outp (tm {{ convert_to_redundant_rep `{len_p1} i }});
     crucible_points_to outp (tm {{ convert_to_redundant_rep `{len} i }});
-
     return();
 };
 

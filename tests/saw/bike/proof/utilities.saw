@@ -43,7 +43,6 @@ let secure_l32_mask_spec = do {
     (a, ap) <- in_val i32_T "v1";
     (b, bp) <- in_val i32_T "v2";
     crucible_execute_func [ap, bp];
-    // crucible_return (tm {{ if a<b then (0:[32]) else -1 }});
     ret <- crucible_fresh_var "ret" i32;
     crucible_return (tm ret);
 };
@@ -59,7 +58,6 @@ let secure_cmp32_spec = do {
     (a, ap) <- in_val i32_T "v1";
     (b, bp) <- in_val i32_T "v2";
     crucible_execute_func [ap, bp];
-    // crucible_return (tm {{ if a==b then (1:[32]) else 0 }});
     ret <- crucible_fresh_var "ret" i32;
     crucible_return (tm ret);
 };
@@ -108,7 +106,7 @@ secure_clean_R_SIZE_ov <- admit "secure_clean" []
 secure_clean_ov3 <- admit "secure_clean" []
     (secure_clean_spec AES256_KEY_SIZE);
 
-secure_l32_mask_ov <-  admit  "secure_l32_mask" [] secure_l32_mask_spec;
+secure_l32_mask_ov <- admit "secure_l32_mask" [] secure_l32_mask_spec;
 
 iszero_ov <- verify_pathsat "bit_scan_reverse" [] bit_scan_reverse_spec;
 

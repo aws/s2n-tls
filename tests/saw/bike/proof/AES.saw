@@ -211,12 +211,12 @@ let aes_ctr_prf_spec len = do {
 // Proof Commands
 
 aes256_free_ks_ov <- admit "aes256_free_ks"
-	[] // [EVP_CIPHER_CTX_free_ov2]
+	[]
 	aes256_free_ks_spec;
 
 // NOTE: This cannot be verified because EVP_CIPHER_CTX_new returns a pointer
 aes256_key_expansion_ov <- admit "aes256_key_expansion"
-    [] // [EVP_CIPHER_CTX_new_ov, EVP_aes_256_ecb_ov]
+    []
     aes256_key_expansion_spec;
 
 aes256_enc_ov <- admit "aes256_enc" [] (aes256_enc_spec 16);

@@ -114,18 +114,9 @@ let get_rand_mod_len_spec = do {
 
 let make_odd_weight_spec = do {
     (a, ap) <- inout_ref (make_i8_T R_SIZE) "a";
-    // (c, cp) <- inout_ref aes_ctr_prf_state_T "prf_state";
-
-    // NOTE: This invariant is need to avoid underflow
-    // crucible_precond {{ c.pos <= `AES256_BLOCK_SIZE }};
-
-    crucible_execute_func [ap]; //, tm {{ `R_BITS:[32] }}, cp];
-    // a' <- point_to (make_i8_T R_SIZE) ap "make_odd_weight_a'";
-    // c' <- point_to aes_ctr_prf_state_T cp "make_odd_weight_s'";
-
-    // NOTE: This invariant still holds
-    // crucible_postcond {{ c'.pos <= `AES256_BLOCK_SIZE }};
-    // crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+    crucible_execute_func [ap];
+    a' <- point_to (make_i8_T R_SIZE) ap "make_odd_weight_a'";
+    return ();
 };
 
 let sample_uniform_r_bits_spec = do {
@@ -163,16 +154,8 @@ let secure_set_bits_spec a_len_64 weight = do {
         tm {{ `weight:[32] }}];
 };
 
-// NOTE: `generate_sparse_rep` has a coding error, which does not
-//       matter AS USED HERE, since the caller has actually already
-//       zeroed out the `a` parameter, even though it is marked as
-//       an OUT. But it is a latent error, and SAW rejects a specification
-//       with `a` marked IN, as then uninitilized memory is referenced.
-
-// TODO: Should we add a pre to ensure `a` comes in zeroed?
-
 let generate_sparse_rep_spec = do {
-    (a, a_ptr) <- inout_ref (make_i64_T N_PADDED_QW) "a";
+    a_ptr <- out_ref (make_i64_T N_PADDED_QW);
     (wlist, wlist_ptr) <- inout_ref (idx_array_T T1) "wlist";
     (prf_state, prf_state_ptr) <- inout_ref aes_ctr_prf_state_T "prf_state";
 
@@ -199,7 +182,7 @@ let generate_sparse_rep_spec = do {
 };
 
 let generate_sparse_rep_loop_spec = do {
-    (a, a_ptr) <- inout_ref (make_i64_T N_PADDED_QW) "a";
+    a_ptr <- out_ref (make_i64_T N_PADDED_QW);
     a_ptr_ptr <- crucible_alloc i64;
     crucible_points_to a_ptr_ptr a_ptr;
     (wlist, wlist_ptr) <- inout_ref (idx_array_T T1) "wlist";
@@ -269,7 +252,7 @@ let generate_sparse_fake_rep_spec = do {
 };
 
 let generate_sparse_fake_rep_first_loop_spec = do {
-    (a, a_ptr) <- inout_ref (make_i64_T R_PADDED_QW) "a";
+    a_ptr <- out_ref (make_i64_T R_PADDED_QW);
     a_ptr_ptr <- crucible_alloc i64;
     crucible_points_to a_ptr_ptr a_ptr;
     (wlist, wlist_ptr) <- inout_ref (idx_array_T FAKE_DV) "wlist";
@@ -319,7 +302,7 @@ let generate_sparse_fake_rep_first_loop_spec = do {
 };
 
 let generate_sparse_fake_rep_second_loop_spec = do {
-    (a, a_ptr) <- inout_ref (make_i64_T R_PADDED_QW) "a";
+    a_ptr <- out_ref (make_i64_T R_PADDED_QW);
     a_ptr_ptr <- crucible_alloc i64;
     crucible_points_to a_ptr_ptr a_ptr;
     (wlist, wlist_ptr) <- inout_ref (idx_array_T FAKE_DV) "wlist";
@@ -369,7 +352,7 @@ let generate_sparse_fake_rep_second_loop_spec = do {
 };
 
 let generate_sparse_fake_rep_last_loop_spec = do {
-    (a, a_ptr) <- inout_ref (make_i64_T R_PADDED_QW) "a";
+    a_ptr <- out_ref (make_i64_T R_PADDED_QW);
     a_ptr_ptr <- crucible_alloc i64;
     crucible_points_to a_ptr_ptr a_ptr;
     (wlist, wlist_ptr) <- inout_ref (idx_array_T FAKE_DV) "wlist";

@@ -17,5 +17,5 @@ import shared::Params
 import interface::C_parallel_hash
 import interface::C_decode
 import interface::C_KEM
-//
+
 import shared::Safety

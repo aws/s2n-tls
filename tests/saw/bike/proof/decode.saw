@@ -230,12 +230,14 @@ compute_syndrome_update_ov <- verify_unint "compute_syndrome"
   ["gf2x_mod_mul", "gf2x_add", "convert_to_redundant_rep", "c_transpose"]
   compute_syndrome_update_spec;
 
-recompute_syndrome_ov <- verify "recompute_syndrome"
+recompute_syndrome_ov <- verify_unint "recompute_syndrome"
   [ cyclic_product_ov
   , compute_syndrome_ov
   , split_e_ov
   , secure_clean_ov_GPNT
-  , gf2x_add_left_ov ]
+  , gf2x_add_left_ov
+  ]
+  [ "gf2x_add", "compute_syndrome" ]
   recompute_syndrome_spec;
 
 fix_error1_ov <- verify "fix_error1"
