@@ -1,4 +1,0 @@
-180c180
-<     compressed_idx_t_t dummy;
----
->     compressed_idx_t_t dummy = {0};
