@@ -23,7 +23,7 @@ of newly proposed key exchanges. s2n implements the hybrid specification from [t
 See [this s2n issue](https://github.com/awslabs/s2n/issues/904) for more up-to-date information.
 
 ## SIKE (Supersingular Isogeny Key Encapsulation)
-The code in the pq-crypto/sike directory was taken from the [round 1 nist submission](https://csrc.nist.gov/CSRC/media/Projects/Post-Quantum-Cryptography/documents/round-1/submissions/SIKE.zip).
+The code in the pq-crypto/sike_r1 directory was taken from the [round 1 nist submission](https://csrc.nist.gov/CSRC/media/Projects/Post-Quantum-Cryptography/documents/round-1/submissions/SIKE.zip).
 s2n uses the optimized portable implementation to ensure maximum comparability and ease of review. The known answer tests
 are [here](https://github.com/awslabs/s2n/blob/master/tests/unit/s2n_sike_p503_kat_test.c) and use the known answer file
 from the SIKEp503 round 1 submission.
