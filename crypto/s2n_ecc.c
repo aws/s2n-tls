@@ -26,7 +26,7 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
 
-#define TLS_EC_CURVE_TYPE_NAMED 2
+#define TLS_EC_CURVE_TYPE_NAMED 3
 
 /* IANA values can be found here: https://tools.ietf.org/html/rfc8446#appendix-B.3.1.4 */
 /* Share sizes are described here: https://tools.ietf.org/html/rfc8446#section-4.2.8.2
