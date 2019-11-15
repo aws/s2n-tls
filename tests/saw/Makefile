@@ -187,7 +187,7 @@ bitcode/%.bc : failure_tests/%.patch
 
 #if we ask this makefile to create bitcode it will always completely rebuild it
 .PHONY : bitcode
-bitcode : 
+bitcode :
 	${MAKE} clean_the_dir
 	${MAKE} bitcode/all_llvm.bc
 
