@@ -1,9 +1,14 @@
-diff --git a/utils/s2n_safety.h b/utils/s2n_safety.h
-index eb9185e7..44b70221 100644
---- ../../../../../utils/s2n_safety.h
-+++ s2n_safety.h
-@@ -24,17 +24,15 @@
+--- ../../../../../utils/s2n_safety.h	2019-11-15 14:47:04.000000000 -0500
++++ s2n_safety.h	2019-11-15 14:57:20.000000000 -0500
+@@ -22,19 +22,22 @@
+ #include <stdlib.h>
+ 
  #include "error/s2n_errno.h"
++#include "s2n_annotations.h"
++#include "sidetrail.h"
++
++void __VERIFIER_assume(int);
++void *memcpy(void *str1, const void *str2, size_t n);
  
  /* NULL check a pointer */
 -#define notnull_check( ptr )           do { if ( (ptr) == NULL ) { S2N_ERROR(S2N_ERR_NULL); } } while(0)
@@ -26,7 +31,7 @@ index eb9185e7..44b70221 100644
      return memcpy(to, from, size);
  }
  
-@@ -42,20 +40,12 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
+@@ -42,20 +45,12 @@
   */
  #define memcpy_check( d, s, n )                                             \
    do {                                                                      \
@@ -49,7 +54,7 @@ index eb9185e7..44b70221 100644
    } while(0)
  
  #define memset_check( d, c, n )                                             \
-@@ -64,19 +54,19 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
+@@ -64,19 +59,19 @@
      if ( __tmp_n ) {                                                        \
        __typeof( d ) __tmp_d = ( d );                                        \
        notnull_check( __tmp_d );                                             \
@@ -76,7 +81,7 @@ index eb9185e7..44b70221 100644
  #define inclusive_range_check( low, n, high )   \
    do  {                                         \
      __typeof( n ) __tmp_n = ( n );              \
-@@ -90,9 +80,9 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
+@@ -90,9 +85,9 @@
      lt_check(__tmp_n, high);                    \
    } while (0)
  
@@ -89,7 +94,7 @@ index eb9185e7..44b70221 100644
  
  /* Check the return value from caller. If this value is -2, S2N_ERR_BLOCKED is marked*/
  #define GUARD_AGAIN( x )  do {if ( (x) == -2 ) { S2N_ERROR(S2N_ERR_BLOCKED); } GUARD( x );} while(0)
-@@ -107,12 +97,7 @@ int s2n_in_unit_test_set(bool newval);
+@@ -107,12 +102,7 @@
  #define S2N_IN_TEST ( s2n_in_unit_test() || S2N_IN_INTEG_TEST )
  
  /* TODO: use the OSSL error code in error reporting https://github.com/awslabs/s2n/issues/705 */
