@@ -1,0 +1,99 @@
+// base.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands for use in production
+
+let tactic unints =
+    if debug then
+        do {
+            simplify basic_ss;
+            simplify (cryptol_ss ());
+            simplify basic_ss;
+            print_goal_consts;
+            print_goal;
+            w4_unint_yices unints;}
+    else w4_unint_yices unints;
+
+let verify_unint func overrides unints spec =
+    if do_prove then
+        crucible_llvm_verify m func overrides false spec (tactic unints)
+    else
+        crucible_llvm_unsafe_assume_spec m func spec;
+
+let verify func overrides spec = verify_unint func overrides [] spec;
+
+let verify_unint_pathsat func overrides unints spec =
+    if do_prove then
+        crucible_llvm_verify m func overrides true spec (tactic unints)
+    else
+        crucible_llvm_unsafe_assume_spec m func spec;
+
+let verify_pathsat func overrides spec =
+    verify_unint_pathsat func overrides [] spec;
+
+let admit func overrides spec = crucible_llvm_unsafe_assume_spec m func spec;
+
+let test func overrides spec =
+    if do_prove then
+        crucible_llvm_verify m func overrides false spec (quickcheck 100)
+    else
+        crucible_llvm_unsafe_assume_spec m func spec;
+
+let really_verify_simps func overrides unints spec transformations =
+    crucible_llvm_verify m func overrides false spec do {
+        transformations;
+        tactic unints;
+    };
+
+let verify_simps func overrides unints spec transformations =
+    if do_prove then
+        really_verify_simps func overrides unints spec transformations
+    else
+        crucible_llvm_unsafe_assume_spec m func spec;
+
+let custom_verify func overrides spec custom_tactic =
+    if do_prove then
+        crucible_llvm_verify m func overrides false spec custom_tactic
+    else
+        crucible_llvm_unsafe_assume_spec m func spec;
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands for use with debugging
+
+let really_verify func overrides spec =
+    crucible_llvm_verify m func overrides false spec (tactic []);
+
+let really_verify_pathsat func overrides spec =
+    crucible_llvm_verify m func overrides true spec (tactic []);
+
+let really_verify_simps func overrides unints spec transformations =
+    crucible_llvm_verify m func overrides false spec do {
+        transformations;
+        tactic unints;
+   };
+
+let really_verify_unint func overrides unints spec =
+    crucible_llvm_verify m func overrides false spec (tactic unints);
+
+let really_verify_bike_unint func overrides unints spec =
+    crucible_llvm_verify m func overrides true spec (tactic unints);
+
+let really_test func overrides spec =
+    crucible_llvm_verify m func overrides false spec (quickcheck 100);
+
+let really_custom_verify func overrides spec custom_tactic =
+  crucible_llvm_verify m func overrides false spec custom_tactic;
+
+let show_admit func overrides spec =
+    crucible_llvm_verify m func overrides false spec
+        do { simplify basic_ss;
+             simplify (cryptol_ss());
+             print_goal;
+             assume_unsat; };
+
+let show_goal func overrides unints spec transformations =
+    crucible_llvm_verify m func overrides false spec
+        do { transformations;
+             print_goal;
+             tactic unints; };

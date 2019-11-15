@@ -31,7 +31,7 @@ mkdir -p "$DOWNLOAD_DIR"
 cd "$DOWNLOAD_DIR"
 
 #download z3 and yices
-curl --retry 3 https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/yices-2.6.1-x86_64-pc-linux-gnu-static-gmp.tar.gz --output yices.tar.gz
+curl --retry 3 http://yices.csl.sri.com/releases/2.6.1/yices-2.6.1-x86_64-pc-linux-gnu-static-gmp.tar.gz --output yices.tar.gz
 tar -xf yices.tar.gz
 
 curl --retry 3 https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/z3-2017-04-04-Ubuntu14.04-64 --output z3

@@ -1,0 +1,14 @@
+// C_parallel_hash.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module interface::C_parallel_hash where
+
+import interface::H_types_v1l1
+import shared::Params
+
+///////////////////////////////////////////////////////////////////////////////
+
+parallel_hash : sha_hash_t -> e_raw_t -> Integer -> sha_hash_t
+parallel_hash = undefined

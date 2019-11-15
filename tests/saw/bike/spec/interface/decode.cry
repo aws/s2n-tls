@@ -1,0 +1,24 @@
+// decode.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module interface::decode where
+
+import interface::representations
+
+///////////////////////////////////////////////////////////////////////////////
+
+gf2x_mod_mul: {len} [len][64] -> [len][64] -> [len][64]
+gf2x_mod_mul = undefined
+
+gf2x_add: [R_SIZE][8] -> [R_SIZE][8] -> [R_SIZE][8]
+gf2x_add = (^)
+
+// NOTE: The name "transpose" is an important function in the prelude,
+//       so do not reuse it!
+decode_transpose: red_r_t -> red_r_t
+decode_transpose x = { raw = decode_transpose' x.raw }
+
+decode_transpose': [R_BITS][8] -> [R_BITS][8]
+decode_transpose' v = [v@0] # (reverse (tail v))

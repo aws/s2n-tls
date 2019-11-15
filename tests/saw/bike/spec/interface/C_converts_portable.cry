@@ -1,0 +1,35 @@
+// C_converts_portable.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module interface::C_converts_portable where
+
+import interface::H_types_v1l1
+import abstract_spec::vectors
+import abstract_spec::ring
+
+///////////////////////////////////////////////////////////////////////////////
+
+redundant_rep: {n} (fin n) => [n][8] -> [n*8][8]
+redundant_rep bytes = [(0#[b]):[8] | b <- reverse (join (reverse bytes))]
+
+convert_to_redundant_rep: {n} (fin n) => [1+n/8][8] -> [n][8]
+convert_to_redundant_rep bytes = take (redundant_rep bytes)
+
+// NOTE: ctpop in the bitcode file is an LLVM intrinsic that counts
+//       the number of 1 bits in a word.
+
+__builtin_popcount = undefined
+
+// C_version
+C_count_ones : e_raw_t -> uint32_t -> uint64_t
+C_count_ones in len = count_ones_acc 0 0 where
+    count_ones_acc i acc =
+        if (i>=len)
+        then acc
+        else count_ones_acc (i+1) (acc+ __builtin_popcount(in@i))
+
+// abstract version
+count_ones: {len} (fin len) => [len][8] -> [64]
+count_ones bytes = weight`{k=64} (join bytes)

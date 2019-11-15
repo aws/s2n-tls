@@ -77,6 +77,7 @@ if [[ "$TESTS" == "ALL" || "$TESTS" == "asan" ]]; then make clean; S2N_ADDRESS_S
 if [[ "$TESTS" == "ALL" || "$TESTS" == "integration" ]]; then make clean; make integration ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "fuzz" ]]; then (make clean && make fuzz) ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMAC" ]] && [[ "$TRAVIS_OS_NAME" == "linux" ]]; then make -C tests/saw/ tmp/"verify_s2n_hmac_$SAW_HMAC_TEST".log ; fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "sawBIKE" ]]; then make -C tests/saw bike ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawDRBG" ]]; then make -C tests/saw tmp/verify_drbg.log ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "tls" ]]; then
     # We have to output something every 9 minutes, as some proofs may run longer than 10 minutes
