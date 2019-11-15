@@ -1,0 +1,40 @@
+// sha.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+let SHA384_HASH_SIZE = 48;
+
+let sha384_spec len  = do {
+    (m, mp) <- ptr_to_fresh "m" (llvm_array len i8);
+    rp <- crucible_alloc (llvm_array SHA384_HASH_SIZE i8);
+    crucible_execute_func [mp, tm {{ `len:[64] }}, rp];
+    res <- crucible_fresh_var "res" (llvm_array SHA384_HASH_SIZE i8);
+    crucible_points_to rp (tm res);
+    crucible_return  rp;
+};
+
+let sha_spec = do {
+    (oh, ohp) <- ptr_to_fresh "oh" (llvm_array 1 sha384_hash_s);
+    (m, mp) <- ptr_to_fresh "m" (llvm_array 1408 i8);
+    crucible_execute_func [ohp, tm {{ `1408:[32] }}, mp];
+    res <- crucible_fresh_var "res" (llvm_array 1 sha384_hash_s);
+    crucible_points_to ohp (tm {{ res }});
+};
+
+let sha_mb_spec = do {
+    (oh, ohp) <- ptr_to_fresh "oh" (llvm_array 4 sha384_hash_s);
+    (m, mp) <- ptr_to_fresh "m" (llvm_array 4028 i8);
+    crucible_execute_func [ ohp, mp, tm {{ `4028:[32] }}, tm {{ `4:[32] }}];
+    res <- crucible_fresh_var "res" (llvm_array 4 sha384_hash_s);
+    crucible_points_to ohp (tm {{ res }});
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+sha384_1408_ov <- admit "SHA384" [] (sha384_spec 1408);
+sha384_1007_ov <- admit "SHA384" [] (sha384_spec 1007);
+sha_ov <- verify "sha" [sha384_1408_ov] (sha_spec);
+sha_mb_ov <- verify "sha_mb" [sha384_1007_ov] (sha_mb_spec);

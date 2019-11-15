@@ -1,0 +1,219 @@
+// helpers.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+// NOTE: For structures or unions, where SAW support is not quite as simple
+//       as for simpler types, we use a 2-step process to define the
+//       helpers.  An auxiliary function "point_to_X", for X a structure
+//       type, is given a pointer and name, then creates a fresh value that
+//       is pointed to.  This is used in the "A" and "B" functions, and can
+//       be used after the "crucible_execute_func" to define the pointed-to
+//       value.
+
+let alloc_init ty v = do {
+    p <- crucible_alloc ty;
+    crucible_points_to p (crucible_term v);
+    return p;
+};
+
+let alloc_init_readonly ty v = do {
+    p <- crucible_alloc_readonly ty;
+    crucible_points_to p (crucible_term v);
+    return p;
+};
+
+let ptr_to_fresh n ty = do {
+    x <- crucible_fresh_var n ty;
+    p <- alloc_init ty x;
+    return (x, p);
+};
+
+let ptr_to_fresh_readonly n ty = do {
+    x <- crucible_fresh_var n ty;
+    p <- alloc_init_readonly ty x;
+    return (x, p);
+};
+
+let point_to_red_r p v = do {
+    x <- crucible_fresh_var (str_concat v ".raw") (llvm_array R_BITS i8);
+    crucible_points_to (crucible_elem p 0) (tm x);
+	return {{ {raw = x} }};
+};
+
+let point_to_compressed_idx_dv p v = do {
+    x <- crucible_fresh_var (str_concat v ".val") (llvm_array FAKE_DV idx_s);
+    let el = crucible_elem;
+    crucible_points_to (el p 0) (tm x);
+    return {{ {val = x} }};
+};
+
+let point_to_decode_ctx p v = do {
+    x <- crucible_fresh_var v (llvm_struct "struct.decode_ctx_s");
+    crucible_points_to p (tm x);
+    if (reduced) then do {
+      return {{
+          { upc = x.0
+          , black_e = x.1
+          , gray_e = x.2
+          , delta = x.3
+          , threshold = x.4
+          }
+      }};
+    }
+    else do {
+    	return {{
+          { upc = x.0
+          , black_e = x.1
+          , gray_e = x.2
+          , delta = x.3
+          , threshold = x.4
+          , ex = x.5
+          }
+      }};
+    };
+};
+
+/* NOTES:
+
+  - The evp_cipher_ctx type is part of the OpenSSL library, so we should not
+    need to say much about it.  Here, we allocate all the data elements, and
+    set all the members of pointer type to NULL.  This should be fine because
+    we will not be simulating any code that actually uses this data; instead
+    all those library functions have overrides.
+
+  - So why do we need this type at all?  There is at least one place in the
+    code where a pointer to this struct is asserted to be non-null, so in the
+    SAW setup we need to create some value that can be pointed to.
+
+  - The corresponding Cryptol value is not used in any of the memory safety
+    analysis and is, so far, irrelevant to anythng we are doing.
+*/
+
+let point_to_evp_cipher_ctx_st p v = do {
+    // a <- crucible_fresh_var (str_concat v ".a")
+        // ((llvm_struct "struct.evp_cipher_st"));
+    // b <- crucible_fresh_var (str_concat v ".b")
+        // ((llvm_struct "struct.engine_st"));
+    c <- crucible_fresh_var (str_concat v ".c") i32;
+    d <- crucible_fresh_var (str_concat v ".d") i32;
+    e <- crucible_fresh_var (str_concat v ".e") (make_i8_t 16);
+    f <- crucible_fresh_var (str_concat v ".f") (make_i8_t 16);
+    g <- crucible_fresh_var (str_concat v ".g") (make_i8_t 32);
+    h <- crucible_fresh_var (str_concat v ".h") i32;
+    // i <- crucible_fresh_var (str_concat v ".i") (make_i8_t n);
+    j <- crucible_fresh_var (str_concat v ".j") i32;
+    k <- crucible_fresh_var (str_concat v ".k") i64;
+    // l <- crucible_fresh_var (str_concat v ".l") (make_i8_t n);
+    m <- crucible_fresh_var (str_concat v ".m") i32;
+    n <- crucible_fresh_var (str_concat v ".n") i32;
+    o <- crucible_fresh_var (str_concat v ".o") (make_i8_t 32);
+    crucible_points_to p (crucible_struct
+         [ crucible_null, crucible_null // two pointer values
+    	 , tm c, tm d, tm e, tm f, tm g, tm h
+         , crucible_null // rather than tm i
+         , tm j, tm k
+         , crucible_null // rather than tm l
+         , tm m, tm n, tm o]);
+    return {{
+        { // a = a, b = b
+          c = c, d = d, e = e
+        , f= f, g = g, h=h
+        // ,i=i
+        ,j=j, k=k
+        // ,l=l
+        ,m=m, n=n, o=o
+        }
+    }};
+};
+
+let evp_cipher_ctx_st_T = (evp_cipher_ctx_st_t, point_to_evp_cipher_ctx_st);
+
+let points_to_uint128 p v = do {
+    let el = crucible_elem;
+    v <- crucible_fresh_var (str_concat v ".u.qw")
+        (llvm_array 2 i64); // [2][64] in the bitcode
+    crucible_points_to (el p 0) (tm v);
+    return {{ assemble_int`{16} (little_endian_cast v) }}; // :[128]
+};
+
+let uint128_T = (llvm_struct "struct.uint128_s", points_to_uint128);
+
+// type aes256_ks_t is "%struct.evp_cipher_ctx_st* -- a pointer to a struct.
+
+// TODO: There is really no good Cryptol value to associate with
+//       this pointer, unless we were to consider the pointed-to
+//       structure as owned by this pointer, and use its value.
+
+let points_to_aes256_ks p v = do {
+    //ctx_p <- crucible_alloc evp_cipher_ctx_st_t;
+    //point_to evp_cipher_ctx_st_T ctx_p v;
+    ctx_p <- crucible_fresh_pointer evp_cipher_ctx_st_t;
+    crucible_points_to p ctx_p;
+    return {{ 0:[64] }};
+};
+
+let aes256_ks_T = (aes256_ks_t, points_to_aes256_ks);
+
+/* NOTES:
+
+  - TL;DR: we need TWO `point_to` functions for aes_ctr_prf_state,
+    because the `buffer` member is not always initialized.
+
+  - Long story: The aes_ctr_prf_state type presents an interesting
+    challenge.  Function `init_aes_ctr_prf_state` does not write to the
+    whole thing, but instead sets the `pos` member to the buffer size.
+    The buffer remains uninitialized.  When the state is used, if the
+    position is past the end of the buffer, a new set of data is set.
+    So by the time we read the buffer, it has been initialized.
+
+  - Thus a function taking an inout parameter of this type cannot assume
+    that the buffer havs been initialized, unless the position is
+    less than the maximum.
+
+  - The upshot is that we need TWO overrides for any such function,
+    one with a precondition that the index is at least the maximum,
+    and not assuming the buffer is initialized, and another assuming that
+    the buffer has been initialized.
+
+  - A bit of a hack is used here; we write the two `point_to` functions, then
+    use them to define two type descriptors so that we may write
+    "inout_ref aes_ctr_prf_state_T" etc for the fully-initialized type and
+    "inout_ref partial_aes_ctr_prf_state_T" fro the partially-initialized one.
+*/
+
+// NOTE: This does not represent fully-initialized state
+let points_to_partial_aes_ctr_prf_state p v = do {
+    let el = crucible_elem;
+    ctr <- point_to uint128_T (el p 0) (str_concat v ".ctr");
+    ks <- point_to aes256_ks_T (el p 2) (str_concat v ".ks");
+    ri <- point_to i32_T (el p 3) (str_concat v ".rem_invokations");
+    pos <- point_to i8_T (el p 4) (str_concat v ".pos");
+    return {{
+        { ctr=ctr
+        , buffer=zero
+        , ks=ks
+        , rem_invokations=ri
+        , pos=pos } : aes_ctr_prf_state_t }};
+};
+
+let partial_aes_ctr_prf_state_T =
+    (aes_ctr_prf_state_t, points_to_partial_aes_ctr_prf_state);
+
+// NOTE: This represents the fully_initialized state
+let points_to_aes_ctr_prf_state p v = do {
+    let el = crucible_elem;
+    ctr <- point_to uint128_T (el p 0) (str_concat v ".ctr");
+    buffer <- point_to uint128_T (el p 1) (str_concat v ".buffer");
+    ks <- point_to aes256_ks_T (el p 2) (str_concat v ".ks");
+    ri <- point_to i32_T (el p 3) (str_concat v ".rem_invokations");
+    pos <- point_to i8_T (el p 4) (str_concat v ".pos");
+    return {{
+        { ctr=ctr
+        , buffer=buffer
+        , ks=ks
+        , rem_invokations=ri
+        , pos=pos }:aes_ctr_prf_state_t }};
+};
+
+let aes_ctr_prf_state_T = (aes_ctr_prf_state_t, points_to_aes_ctr_prf_state);
+
+let decode_ctx_T = (llvm_struct "struct.decode_ctx_s",  point_to_decode_ctx);

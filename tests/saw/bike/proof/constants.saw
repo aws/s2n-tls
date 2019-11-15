@@ -1,0 +1,47 @@
+// constants.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+// NOTE: BIKE_VER==1 - 128-bits of post-quantum security parameters
+
+let R_BITS = eval_int {{ `R_BITS:[64] }};
+let R_SIZE = eval_int {{ `R_SIZE:[64] }};
+
+let HASH_BLOCK_SIZE=128;
+let SLICE_REM=111;
+let MAX_MB_SLICES=8;
+let N_BITS = eval_int {{ `N_BITS:[64] }};
+let N_SIZE = eval_int {{ `N_SIZE:[64] }};
+let ELL_K_BITS = eval_int {{ `ELL_K_BITS:[64] }} ;
+let ELL_K_SIZE = eval_int {{ (`ELL_K_BITS / 8):[16] }} ;
+
+let DV = eval_int {{ `DV:[64] }};
+let T1 = eval_int {{ `T1:[64] }};
+let N0 = eval_int {{ `N0:[64] }};
+
+let N_DDQWORDS_BITS = eval_int {{ `N_DDQWORDS_BITS:[64] }};
+let FAKE_DV = eval_int {{ `FAKE_DV:[64] }};
+
+let SHA384_HASH_SIZE = 48;
+let SHA384_HASH_QWORDS = eval_int {{ (`SHA384_HASH_SIZE/8):[64] }};
+
+let i8 = llvm_int 8;
+let i16 = llvm_int 16;
+let i32 = llvm_int 32;
+let i64 = llvm_int 64;
+let tm = crucible_term;
+
+let N_PADDED_QW = eval_int {{  `N_PADDED_QW:[64] }};
+let MAX_REM_LEN = eval_int {{ (`MAX_MB_SLICES * `HASH_BLOCK_SIZE):[64] }};
+let sha_hash_size = eval_int {{ 6 * 64:[64] }};
+
+let N_BB = eval_int
+     {{ (`MAX_MB_SLICES * `sha_hash_size) + `MAX_REM_LEN :[64] }};
+
+let R_PADDED_QW = eval_int {{  `R_PADDED_QW:[64] }};
+
+let n_split_e_t = eval_int {{ `N_split_e_t:[64] }};
+let decode_utc = eval_int {{ `decode_utc:[64]}};
+
+let N_PADDED_SIZE =  eval_int {{ `N_PADDED_SIZE:[64] }};
+
+let MAX_DELTA = eval_int {{ `MAX_DELTA:[64] }};

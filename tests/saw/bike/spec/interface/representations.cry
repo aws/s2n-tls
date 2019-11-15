@@ -1,0 +1,77 @@
+// representations.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module interface::representations where
+
+import abstract_spec::ring
+
+///////////////////////////////////////////////////////////////////////////////
+
+// NOTE: From the modified bike_defs.h
+type R_BITS = 163
+type N_BITS = 2*R_BITS
+
+// NOTE: From macro DIVIDE_AND_CEIL. Probably should be (a+b-1)/b,
+//        but this will not matter for the parameters here, as
+//        a is never a multiple of b.
+type divide_and_ceil a b = (a+b)/b
+
+type R_SIZE = divide_and_ceil R_BITS 8
+type N_SIZE = divide_and_ceil N_BITS 8
+
+type R_QW = divide_and_ceil R_BITS 64
+type N_QW = divide_and_ceil N_BITS 64
+
+type BLOCK_SIZE = 256
+type R_BLOCKS = divide_and_ceil R_BITS BLOCK_SIZE
+type R_PADDED = R_BLOCKS * BLOCK_SIZE
+type R_PADDED_SIZE = (R_PADDED / 8)
+type R_PADDED_QW = (R_PADDED / 64)
+
+type YMM_SIZE = 32
+type ZMM_SIZE = 128
+type ALL_YMM_SIZE = (16*YMM_SIZE)
+type ALL_ZMM_SIZE = (32*ZMM_SIZE)
+
+type R_DQWORDS = divide_and_ceil R_SIZE 16
+type R_QDQWORDS_BITS  = (divide_and_ceil R_BITS ALL_ZMM_SIZE) * ALL_ZMM_SIZE
+type N_QDQWORDS_BITS  = R_QDQWORDS_BITS + R_BITS
+type R_DDQWORDS_BITS  = (divide_and_ceil R_BITS ALL_YMM_SIZE) * ALL_YMM_SIZE
+type N_DDQWORDS_BITS  = R_DDQWORDS_BITS + R_BITS
+
+// NOTE: Cryptol semantics of casting, when little-endian
+
+little_endian_cast: {a,b,c,d} (fin a, fin b, fin c, fin d, a*b == c*d)
+    => [a][b] -> [c][d]
+little_endian_cast x = reverse (split (join (reverse x)))
+
+// Specific instances needed
+// *uint8_t to *uint64_t
+cast_8_64: {n} (fin n) => [8*n][8] -> [n][64]
+cast_8_64 = little_endian_cast
+
+// *uint64_t to *uint8_t
+cast_64_8: {n} (fin n) => [n][64] ->[8*n][8]
+cast_64_8 = little_endian_cast
+
+//NOTE: Representation of polynomials
+
+// ... condensed
+type r_t = {raw: [R_SIZE][8] }
+
+bytes_to_ring_polynomial: [R_SIZE][8] -> R_polynomial R_BITS
+bytes_to_ring_polynomial = undefined
+
+r_t_to_ring_polynomial: r_t -> R_polynomial R_BITS
+r_t_to_ring_polynomial x = bytes_to_ring_polynomial x.raw
+
+// ... "redundant": 1 bit per byte
+type red_r_t = {raw: [R_BITS][8] }
+
+redundant_bytes_to_ring_polynomial: [R_BITS][8] -> R_polynomial R_BITS
+redundant_bytes_to_ring_polynomial bytes = [b@0  | b <- bytes]
+
+red_r_t_to_ring_polynomial: red_r_t -> R_polynomial R_BITS
+red_r_t_to_ring_polynomial x = redundant_bytes_to_ring_polynomial x.raw

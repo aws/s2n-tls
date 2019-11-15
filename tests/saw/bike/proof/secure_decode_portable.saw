@@ -1,0 +1,70 @@
+// secure_decode_portable.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+/* NOTES:
+
+  - We will not be able to verify `compute_counter_of_unsat` until either
+    SAW's performance on safety checks is dramaticaly improved, or we can use
+    loop invariants to avoid simulating the entire execution.  AS it stands
+    the verification, even at small parameter sizes, will take days. So,
+    for now we admit the specification.
+
+  - TODO: the memory safety of `compute_counter_of_unsat` relies on the entries
+    in h0c and h1c being less than R_BITS.  This condition comes from a similar
+    constrain on secret keys.  These preconditions should be added to
+    all relevant functions.
+ */
+
+let compute_counter_of_unsat_spec = do {
+
+    ucp <- out_ref (make_i8_T N_BITS);
+
+    // NOTE: code says "R_BITS" but that is incorrect!
+    (s, sp) <- in_ref (make_i8_T N_BITS) "s";
+
+    (h0c, h0cp) <-  in_ref compressed_idx_dv_T "h0c";
+    (h1c, h1cp) <-  in_ref compressed_idx_dv_T "h1c";
+    crucible_precond {{ is_bounded_compressed_idx_dv h0c }};
+    crucible_precond {{ is_bounded_compressed_idx_dv h1c }};
+    crucible_execute_func [ucp, sp, h0cp, h1cp];
+};
+
+let find_error1_spec = do {
+    (a, ap) <- inout_ref e_T "e";
+    bp <- out_ref e_T;
+    cp <- out_ref e_T;
+    (d, dp) <- in_ref decode_utc_T "upc";
+    (e, ep) <- in_val i32_T "black_th";
+    (f, fp) <- in_val  i32_T "gray_th";
+    crucible_execute_func [ap, bp, cp, dp, ep, fp];
+    a' <- point_to e_T ap "e'";
+    b' <- point_to e_T bp "black_e'";
+    c' <- point_to e_T cp "grey_e'";
+    return ();
+};
+
+let find_error2_spec = do {
+    (a, ap) <- inout_ref e_T "e";
+    (b, bp) <- in_ref e_T "pos_e";
+    (c, cp) <- in_ref decode_utc_T  "upc";
+    (d, dp) <- in_val i32_T "threshold";
+    crucible_execute_func [ap, bp, cp, dp];
+    a' <- point_to e_T ap "e'";
+    return ();
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+compute_counter_of_unsat_ov <- admit "compute_counter_of_unsat" []
+    (compute_counter_of_unsat_spec);
+
+find_error1_ov <- verify "find_error1"
+    [secure_l32_mask_ov
+    , gf2x_add_left_ov ]
+    find_error1_spec;
+
+find_error2_ov <- verify "find_error2" [secure_l32_mask_ov] find_error2_spec;

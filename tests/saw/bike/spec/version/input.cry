@@ -1,0 +1,24 @@
+// input.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module version::input where
+
+///////////////////////////////////////////////////////////////////////////////
+
+// NOTE: 0 uses reduced-size paramters
+//       1 uses full-size parameters
+type BITCODE = 0
+
+type BIKE_VER = 1
+
+// NOTE: The valid levels are 1, 3, 5
+type LEVEL = 1
+
+AVX512 = True
+
+// NOTE: Fix syndrome_v_t if modified
+USE_AVX512F_INSTRUCTIONS = True
+
+CONSTANT_TIME = True

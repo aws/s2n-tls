@@ -1,0 +1,40 @@
+// openssl_utils.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+let ossl_add_spec = do {
+    ap <- out_ref rsize_T;
+    (b,bp) <- in_ref rsize_T "a";
+    (c,cp) <- in_ref rsize_T "b";
+    crucible_execute_func [ap, bp, cp];
+    a' <- point_to rsize_T ap "a'";
+    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+};
+
+let ossl_add_left_spec = do {
+    (a, ap) <- inout_ref rsize_T "a";
+    (b, bp) <- in_ref rsize_T "b";
+    crucible_execute_func [ap, ap, bp];
+    a' <- point_to rsize_T ap "a'";
+    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+};
+
+let cyclic_product_spec = do {
+    rbp <- out_ref rsize_T;
+    (a, abp) <- in_ref rsize_T "a";
+    (b, bbp) <- in_ref rsize_T "b";
+    crucible_execute_func [ rbp, abp, bbp];
+    r' <- point_to rsize_T rbp "cyclic_product_r'"; // writes to the result
+    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+ossl_add_ov <- admit "ossl_add" [] ossl_add_spec;
+
+ossl_add_left_ov <- admit "ossl_add" [] ossl_add_left_spec;
+
+cyclic_product_ov <- admit "cyclic_product" [] (cyclic_product_spec);

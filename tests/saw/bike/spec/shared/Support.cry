@@ -1,0 +1,25 @@
+// Support.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module shared::Support where
+
+import interface::H_types_v1l1
+import shared::Params
+
+///////////////////////////////////////////////////////////////////////////////
+
+MSG s = undefined
+DMSG s = undefined
+ERR code res exit = undefined
+
+sizeof_ss_t  = undefined
+sizeof_e_t  = undefined
+sizeof_hash_t = undefined
+sizeof_red_r_t = undefined
+sizeof_dbl_pad_syndrome_t = undefined
+sizeof_pad_sk_t = undefined
+sizeof_pad_ct_t = undefined
+sizeof_syndrome_t = undefined
+sizeof_dup1_t = undefined
