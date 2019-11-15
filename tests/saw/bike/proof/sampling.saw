@@ -503,12 +503,13 @@ let generate_sparse_fake_rep_O =
 verify_pathsat "__breakpoint__generate_sparse_fake_rep_first_loop#generate_sparse_fake_rep"
     generate_sparse_fake_rep_O
     generate_sparse_fake_rep_first_loop_spec;
-// verify_pathsat "__breakpoint__generate_sparse_fake_rep_second_loop#generate_sparse_fake_rep"
-    // generate_sparse_fake_rep_O
-    // generate_sparse_fake_rep_second_loop_spec;
+verify_pathsat "__breakpoint__generate_sparse_fake_rep_second_loop#generate_sparse_fake_rep"
+    generate_sparse_fake_rep_O
+    generate_sparse_fake_rep_second_loop_spec;
 verify_pathsat "__breakpoint__generate_sparse_fake_rep_last_loop#generate_sparse_fake_rep"
     generate_sparse_fake_rep_O
     generate_sparse_fake_rep_last_loop_spec;
 generate_sparse_fake_rep_ov <- verify_pathsat "generate_sparse_fake_rep"
     generate_sparse_fake_rep_O
     generate_sparse_fake_rep_spec;
+

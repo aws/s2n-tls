@@ -44,7 +44,6 @@ let count_ones_spec n = do {
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
 
-// verify "convert_to_redundant_rep" [] (convert_to_redundant_rep_spec 1);
 verify "convert_to_redundant_rep" [] (convert_to_redundant_rep_spec 1);
 verify "convert_to_redundant_rep" [] (convert_to_redundant_rep_spec 8);
 verify "convert_to_redundant_rep" [] (convert_to_redundant_rep_spec 32);

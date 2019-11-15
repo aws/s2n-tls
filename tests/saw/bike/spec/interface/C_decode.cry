@@ -47,9 +47,7 @@ count_LTE s u code_ret =
 //       never subsequently read
 
 // bike version 1
-// pad_v1 ct pad_sk = v0 where
-
-pad_v1 ct pad_sk = (v0, res) where
+pad_v1 ct pad_sk = v0 where
     c = ct.val
     (pad_ct : pad_ct_t) = make_pad_ct_t_0 (c@0) (c@1)
     //first mult
@@ -64,9 +62,6 @@ pad_v1 ct pad_sk = (v0, res) where
     (a : R_SIZE_8_t) = take (C_cast qw0)
     (b : R_SIZE_8_t) = take (C_cast qw1)
     (v0 : R_SIZE_8_t) = gf2x_add a b
-    res = if ((a <$ zero) || (b <$ zero) || (v0 <$ zero))
-          then -1
-          else 0
 
 pad_v2 ct pad_sk = error "version 2 not implemented"
 
@@ -79,11 +74,11 @@ pad_v3 ct pad_sk = error "version 3 not implemented"
 //              an updated value
 //           2. Just return the value of the field that becomes set.
 //       I'm trying (2) for now.
-compute_syndrome : ct_t -> sk_t -> (syndrome_t, int_ty)
-compute_syndrome ct sk = ({dup1 = d, dup2 = d, reserved = zero}, pad_res) where
+compute_syndrome : ct_t -> sk_t -> red_r_t
+compute_syndrome ct sk = d where
     (bin1:[2]r_t) = sk.bin
     (pad_sk : pad_sk_t) = make_pad_sk_t (bin1@0) (bin1@1)
-    (val_pad_s_0_raw, pad_res) =  pad_v1 ct pad_sk
+    val_pad_s_0_raw = pad_v1 ct pad_sk
     (s_tmp_bytes :red_r_t) = zero
     (a : R_SIZE_8_t) = val_pad_s_0_raw
     (b : R_BITS_t i8) = convert_to_redundant_rep a
@@ -91,10 +86,9 @@ compute_syndrome ct sk = ({dup1 = d, dup2 = d, reserved = zero}, pad_res) where
     (d : red_r_t) = c_transpose c
 
 // We also allow for a syndrome to be updated; this is option 1 above
-compute_syndrome_update : syndrome_t -> ct_t -> sk_t -> (syndrome_t, int_ty)
-compute_syndrome_update s ct sk =
-  ({dup1 = d.dup1, dup2 = s.dup2, reserved = s.reserved}, ret) where
-      (d, ret) = compute_syndrome ct sk
+compute_syndrome_update : syndrome_t -> ct_t -> sk_t -> syndrome_t
+compute_syndrome_update s ct sk = {dup1 = d, dup2 = d, reserved = s.reserved} where
+    (d : red_r_t) = compute_syndrome ct sk
 
 inv_h : sk_t -> compressed_idx_dv_2t
 inv_h sk = loop 0 zero zero where
