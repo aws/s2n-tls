@@ -240,29 +240,5 @@ int main(int argc, char **argv)
     S2N_BLOB_EXPECT_EQUAL(expect_handshake_traffic_server_key, handshake_traffic_server_key);
     S2N_BLOB_EXPECT_EQUAL(expect_handshake_traffic_server_iv, handshake_traffic_server_iv);
 
-    /* Free stuffers */
-    S2N_BLOB_FREE(expected_early_secret);
-    S2N_BLOB_FREE(expect_derived_handshake_secret);
-    S2N_BLOB_FREE(client_hello);
-    S2N_BLOB_FREE(server_hello);
-    S2N_BLOB_FREE(ecdhe);
-    S2N_BLOB_FREE(expect_derived_client_handshake_secret);
-    S2N_BLOB_FREE(expect_derived_server_handshake_secret);
-    S2N_BLOB_FREE(expect_derived_master_secret);
-    S2N_BLOB_FREE(expect_extract_master_secret);
-
-    S2N_BLOB_FREE(encrypted_extensions);
-    S2N_BLOB_FREE(certificate);
-    S2N_BLOB_FREE(certificate_verify);
-    S2N_BLOB_FREE(server_finished);
-    S2N_BLOB_FREE(expect_server_finished_verify);
-    S2N_BLOB_FREE(expect_client_finished_verify);
-
-    S2N_BLOB_FREE(expect_derived_client_application_traffic_secret);
-    S2N_BLOB_FREE(expect_derived_server_application_traffic_secret);
-    S2N_BLOB_FREE(expect_handshake_traffic_server_key);
-    S2N_BLOB_FREE(expect_handshake_traffic_server_iv);
-    S2N_BLOB_FREE(expect_derived_client_handshake_secret_digest);
-
     END_TEST();
 }
