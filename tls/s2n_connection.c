@@ -707,12 +707,18 @@ int s2n_connection_wipe(struct s2n_connection *conn)
 
 int s2n_connection_set_recv_ctx(struct s2n_connection *conn, void *ctx)
 {
+    if (conn->managed_io) {
+        GUARD(s2n_free_object((uint8_t **)&conn->recv_io_context, sizeof(struct s2n_socket_read_io_context)));
+    }
     conn->recv_io_context = ctx;
     return 0;
 }
 
 int s2n_connection_set_send_ctx(struct s2n_connection *conn, void *ctx)
 {
+    if (conn->managed_io) {
+        GUARD(s2n_free_object((uint8_t **)&conn->send_io_context, sizeof(struct s2n_socket_write_io_context)));
+    }
     conn->send_io_context = ctx;
     return 0;
 }
