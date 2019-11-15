@@ -20,11 +20,11 @@ include ../../s2n.mk
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
-.PHONY : all
-all: $(OBJS)
-
 #WA for GCC 4.8.5 bug.
 CFLAGS += -Wno-missing-braces -Wno-missing-field-initializers -I../../
+
+.PHONY : all
+all: $(OBJS)
 
 CFLAGS_LLVM = -emit-llvm -c -g \
               -std=c99 -fgnu89-inline -D_POSIX_C_SOURCE=200809L -D_FORTIFY_SOURCE=2 \
