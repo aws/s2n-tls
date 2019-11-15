@@ -27,6 +27,10 @@
 <         for(uint32_t i = 0; i < DV; i++)
 ---
 >         for(i = 0; __breakpoint__generate_sparse_fake_rep_last_loop(&a, &wlist, &padded_len, &prf_state, &ctr, &real_wlist, &len, &mask, &res, &j, &i), i < DV; i++)
+150c161
+<     memset(a, 0, (len + 7) >> 3);
+---
+>     memset(a, 0, padded_len);
 155c166,167
 <     return SUCCESS;
 ---
@@ -42,6 +46,10 @@
 ---
 >          __breakpoint__generate_sparse_rep_loop(&a, &wlist, &weight, &len, &padded_len, &prf_state, &res, &ctr);
 >          GUARD(get_rand_mod_len(&wlist[ctr].val, len, prf_state), res, EXIT);
+185c201
+<     memset(a, 0, (len + 7) >> 3);
+---
+>     memset(a, 0, padded_len);
 190c206,207
 <     return SUCCESS;
 ---
