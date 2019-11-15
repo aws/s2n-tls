@@ -40,9 +40,10 @@ get_ss e = ss where
 BIKE1_L1_crypto_kem_dec
     : char_ct
     -> char_sk
-    -> (status_t, char_ss)
+    -> (int_ty, char_ss)
 BIKE1_L1_crypto_kem_dec ct sk = (res2, ss2) where
-    (res : status_t) = SUCCESS
+    (success_res : int_ty) = 0
+    (fail_res : int_ty) = -1
     (l_sk:sk_t) = assemble_sk_t sk
     (l_ct:ct_t) = assemble_ct_t ct
     (e:e_t) = zero
@@ -53,10 +54,10 @@ BIKE1_L1_crypto_kem_dec ct sk = (res2, ss2) where
     // If there *is* an error, the output `ss` is not set at all.
     // We just return a zero in that case.
     (res2, ss2) = if rtn_val_3 <$ zero
-        then (E_DECODING_FAILURE, zero)
+        then (fail_res, zero)
         else if rtn_val_T != `T1
-        then (E_ERROR_WEIGHT_IS_NOT_T, zero)
-        else (res, ss3)
+        then (fail_res, zero)
+        else (success_res, ss3)
     rtn_val_T = count_ones e_3.raw
     (l_ss_4:ss_t) = get_ss e_3
     (ss3:char_ss) = disassemble_ss_t l_ss_4

@@ -193,7 +193,6 @@ let decode_op_spec = do {
     crucible_precond {{ is_bounded_sk d }};
     crucible_execute_func [ap, bp, cp, dp, tm {{e}}];
     ret <- crucible_fresh_var "return" i32;
-    crucible_postcond {{ ret == (fromInteger`{[32]} SUCCESS) \/ ret <$ zero }};
     crucible_return (crucible_term {{ret}});
     a' <- point_to e_T ap "e'";
     b' <- point_to syndrome_T bp "s'";

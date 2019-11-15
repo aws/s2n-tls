@@ -439,6 +439,7 @@ type double_seed_v_t = { s1 : seed_t, s2 : seed_t }
 
 type status_t = Integer
 (SUCCESS : status_t)                           = 0
+(FAIL : status_t)                              = 0
 (E_ERROR_WEIGHT_IS_NOT_T : status_t)           = 1
 (E_DECODING_FAILURE : status_t)                = 2
 (E_AES_CTR_PRF_INIT_FAIL : status_t)           = 3
