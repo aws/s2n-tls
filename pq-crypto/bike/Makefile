@@ -12,25 +12,23 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 #
+
 .DEFAULT_GOAL := all
 
 include ../../s2n.mk
 
+SRCS=$(wildcard *.c)
+OBJS=$(SRCS:.c=.o)
+
+.PHONY : all
+all: $(OBJS)
+
 #WA for GCC 4.8.5 bug.
-CFLAGS += -Wno-missing-braces -Wno-missing-field-initializers
-
-# Currently only BIKE1_L1 is supportted in the S2N library!
-CFLAGS += -DBIKE_VER=1 -DLEVEL=1 -DCONSTANT_TIME -DUSE_OPENSSL
-
-CFLAGS += -I../../
+CFLAGS += -Wno-missing-braces -Wno-missing-field-initializers -I../../
 
 CFLAGS_LLVM = -emit-llvm -c -g \
               -std=c99 -fgnu89-inline -D_POSIX_C_SOURCE=200809L -D_FORTIFY_SOURCE=2 \
-              -I$(LIBCRYPTO_ROOT)/include/ -I../../api/ -I../../ -I../ \
-              -DBIKE_VER=1 -DLEVEL=1 -DCONSTANT_TIME -DUSE_OPENSSL
-
-SRCS=$(wildcard *.c)
-OBJS=$(SRCS:.c=.o)
+              -I$(LIBCRYPTO_ROOT)/include/ -I../../api/ -I../../
 
 BCS_1=utilities.bc decode.bc bike1_l1_kem.bc \
     converts_portable.bc secure_decode_portable.bc \
@@ -40,14 +38,3 @@ BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
 
 .PHONY : bc
 bc: $(BCS)
-
-.PHONY : all
-all: libbike1_l1.a
-
-libbike1_l1.a: ${OBJS}
-	$(AR) cru libbike1_l1.a ${OBJS}
-	$(RANLIB) libbike1_l1.a
-
-.PHONY : clean
-clean:
-	${MAKE} decruft
