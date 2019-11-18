@@ -44,6 +44,7 @@ COMMA :=,
 # Paths to binaries
 # By default, use the version on your path; this can be overriden to select particular
 # versions of the tools. /usr/bin/goto-analyzer or ${HOME}/sw/goto-analyzer etc
+CBMC ?= cbmc
 GOTO_ANALYZER ?= goto-analyzer
 GOTO_CC ?= goto-cc
 GOTO_INSTRUMENT ?= goto-instrument
@@ -63,16 +64,20 @@ LOGDIR = $(PROOFDIR)/logs
 DO_AND_LOG_COMMAND = $(1) $(2) 2>&1 | tee $(3); exit $${PIPESTATUS[0]}
 
 #1: flags, 2: source, 3: target
-DO_GOTO_ANALYZER = $(call DO_AND_LOG_COMMAND,$(GOTO_ANALYZER),$(1) $(2) $(3), $(call LOG_FROM_ENTRY,$(3)))
+DO_GOTO_ANALYZER = $(call DO_AND_LOG_COMMAND,$(GOTO_ANALYZER),$(CBMC_VERBOSITY) $(1) $(2) $(3), $(call LOG_FROM_ENTRY,$(3)))
 
 #1: flags, 2: source, 3: target
-DO_GOTO_CC =  $(call DO_AND_LOG_COMMAND,$(GOTO_CC),$(1) $(2) -o $(3), $(call LOG_FROM_ENTRY,$(3)))
+DO_GOTO_CC =  $(call DO_AND_LOG_COMMAND,$(GOTO_CC),$(CBMC_VERBOSITY) $(1) $(2) -o $(3), $(call LOG_FROM_ENTRY,$(3)))
 
 #1: flags, 2: source, 3: target
-DO_GOTO_INSTRUMENT = $(call DO_AND_LOG_COMMAND,$(GOTO_INSTRUMENT),$(1) $(2) $(3), $(call LOG_FROM_ENTRY,$(3)))
+DO_GOTO_INSTRUMENT = $(call DO_AND_LOG_COMMAND,$(GOTO_INSTRUMENT),$(CBMC_VERBOSITY) $(1) $(2) $(3), $(call LOG_FROM_ENTRY,$(3)))
+
+#1: flags, 2: source, 3: logfile
+DO_CBMC =  $(call DO_AND_LOG_COMMAND,$(CBMC),$(CBMC_VERBOSITY) $(1) $(2), $(3))
 
 #1: message 2: source 3: dest 
 DO_NOOP_COPY = cp $(2) $(3); echo $(1) | tee $(call LOG_FROM_ENTRY,$(3))
+
 
 ################################################################
 # Useful macros translating filenames
@@ -83,7 +88,6 @@ LOG_FROM_GOTO = $(patsubst $(GOTODIR)%,$(LOGDIR)%,$(1:.goto=.log))
 
 ################################################################
 # Default CBMC flags
-CBMC_VERBOSITY ?= ""
 CBMCFLAGS += --bounds-check
 CBMCFLAGS += --div-by-zero-check
 CBMCFLAGS += --float-overflow-check
@@ -97,6 +101,18 @@ CBMCFLAGS += --unwind 1
 CBMCFLAGS += --unwinding-assertions
 
 ################################################################
+# Verbosity
+# 0 none
+# 1 only errors
+# 2 + warnings
+# 4 + results
+# 6 + status/phase information
+# 8 + statistical information
+# 9 + progress information
+# 10 + debug info
+CBMC_VERBOSITY ?= --verbosity 4
+
+################################################################
 # Setup the unwindset
 # TODO: CBMC should accept multiple unwindset flags, making the substutions here
 # unnecessary.
@@ -108,7 +124,7 @@ CBMCFLAGS += $(CBMC_UNWINDSET)
 
 ################################################################
 # Set C compiler defines
-CBMC_OBJECT_BITS ?= 8
+CBMC_OBJECT_BITS ?= 6
 CBMCFLAGS +=  --object-bits $(CBMC_OBJECT_BITS)
 DEFINES += -DCBMC_OBJECT_BITS=$(CBMC_OBJECT_BITS)
 DEFINES += -DCBMC=1
@@ -123,7 +139,8 @@ INC += -I$(SRCDIR)/api
 
 ################################################################
 # Enables costly checks (e.g. ones that contain loops)
-# Don't execute deep checks by default
+# Whether a proof needs these checks should be decided on a proof by proof basis.  
+# Checks can be enabled by setting AWS_DEEP_CHECKS to 1 in the makefile of the proof that requires them
 AWS_DEEP_CHECKS ?= 0
 DEFINES += -DAWS_DEEP_CHECKS=$(AWS_DEEP_CHECKS)
 
@@ -141,7 +158,6 @@ REMOVE_FUNCTION_BODY += $(ADDITIONAL_REMOVE_FUNCTION_BODY)
 
 ################################################################
 # Determine the names of the goto files to build
-#DEPENDENT_GOTOS = $(call GOTO_FROM_C,$(DEPENDENCIES))
 ENTRY_GOTO = $(GOTODIR)/$(ENTRY)
 
 ################################################################
@@ -153,26 +169,14 @@ SIMPLIFY ?= 0
 ################################################################
 # Build targets that make the relevant .goto files
 
-# Other libraries that use this Makefile template may wish to do
-# actual work here
-setup_dependencies:
-	echo "Setting up dependencies"
-
 # Here, whenever there is a change in any of ANSI-C source
 # dependency files, make will take action. However, to make
 # sure changes in the headers files will also trigger make,
 # the user must run make clean first.
-$(ENTRY_GOTO)0.goto: setup_dependencies $(ENTRY).c $(DEPENDENCIES)
+$(ENTRY_GOTO)0.goto: $(ENTRY).c $(DEPENDENCIES)
 	mkdir -p $(dir $@)
 	mkdir -p $(dir $(call LOG_FROM_ENTRY,$@))
-	$(call DO_GOTO_CC,\
-		--export-function-local-symbols \
-			$(CBMC_VERBOSITY) \
-			--function $(ENTRY) \
-			$(INC) \
-			$(DEFINES), \
-		$(ENTRY).c $(DEPENDENCIES),\
-		$@)
+	$(call DO_GOTO_CC,--export-function-local-symbols --function $(ENTRY) $(INC) $(DEFINES),$^,$@)
 
 # Removes specified function bodies. This allows us to replace
 # function definitions with ABSTRACTIONS.
@@ -202,6 +206,8 @@ else
 endif
 
 # Skip simplify (and hence generate-function-body) until missing source locations debugged
+# --generate-function-body requires a regular expression specifying the names of functions
+# that a body is to be generated for: ".*" is all functions
 $(ENTRY_GOTO)4.goto: $(ENTRY_GOTO)3.goto
 ifeq ($(SIMPLIFY),1)
 	$(call DO_GOTO_INSTRUMENT,--generate-function-body '.*',$<,$@)
@@ -235,13 +241,13 @@ goto: $(ENTRY_GOTO).goto
 ################################################################
 # Targets to run the analysis commands
 logs/cbmc.log: $(ENTRY_GOTO).goto
-	cbmc $(CBMCFLAGS) --trace $< 2>&1 | tee $@
+	$(call DO_CBMC,$(CBMCFLAGS) --trace,$<,$@)
 
 logs/property.xml: $(ENTRY_GOTO).goto
-	cbmc $(CBMCFLAGS) --show-properties --xml-ui $< 2>&1 > $@
+	$(call DO_CBMC,$(CBMCFLAGS) --show-properties --xml-ui,$<,$@)
 
 logs/coverage.xml: $(ENTRY_GOTO).goto
-	cbmc $(filter-out --unwinding-assertions,$(CBMCFLAGS)) --cover location --xml-ui $< 2>&1 > $@
+	$(call DO_CBMC,$(filter-out --unwinding-assertions,$(CBMCFLAGS)) --cover location --xml-ui,$<,$@)
 
 cbmc: logs/cbmc.log
 

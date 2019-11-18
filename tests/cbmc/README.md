@@ -2,7 +2,7 @@ CBMC Proof Infrastructure
 =========================
 
 This directory contains automated proofs of the memory safety of various parts
-of the amazon:FreeRTOS codebase. A continuous integration system validates every
+of the s2n codebase. A continuous integration system validates every
 pull request posted to the repository against these proofs, and developers can
 also run the proofs on their local machines.
 

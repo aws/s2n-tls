@@ -20,7 +20,5 @@
 void s2n_stuffer_init_harness() {
   struct s2n_stuffer *stuffer = malloc(sizeof(*stuffer));
   struct s2n_blob *in = malloc(sizeof(*stuffer));
-  if(s2n_stuffer_init(stuffer,in) == S2N_SUCCESS){
-  } else {
-  }
+  int result = s2n_stuffer_init(stuffer,in);
 }

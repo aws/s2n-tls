@@ -12,6 +12,7 @@
 # limitations under the License.
 
 ###########
+#Use the default set of CBMC flags
 CBMCFLAGS +=
 
 DEPENDENCIES += $(SRCDIR)/stuffer/s2n_stuffer.c
@@ -19,6 +20,7 @@ DEPENDENCIES += $(HELPERDIR)/source/proof_allocators.c
 
 ENTRY = s2n_stuffer_init_harness
 
+#No loops to unwind
 UNWINDSET +=
 ###########
 
