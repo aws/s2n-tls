@@ -122,7 +122,7 @@ int main(int argc, char **argv)
     struct s2n_cert_chain_and_key *chain_and_key;
 
     const char *protocols[] = { "http/1.1", "spdy/3.1", "h2" };
-    const int protocols_size = sizeof(protocols) / sizeof(protocols[0]);
+    const int protocols_size = s2n_array_len(protocols);
     const char *mismatch_protocols[] = { "spdy/2" };
 
     BEGIN_TEST();
