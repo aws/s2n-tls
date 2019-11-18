@@ -10,15 +10,14 @@ The proofs are checked using the
 [C Bounded Model Checker](http://www.cprover.org/cbmc/), an open-source static
 analysis tool
 ([GitHub repository](https://github.com/diffblue/cbmc)). This README describes
-how to run the proofs on your local clone of a:FR.
+how to run the proofs on your local clone s2n.
 
 
 Prerequisites
 -------------
 
-You will need Python 3. On Windows, you will need Visual Studio 2015 or later
-(in particular, you will need the Developer Command Prompt and NMake). On macOS
-and Linux, you will need Make.
+You will need Python 3.
+On macOS and Linux, you will need Make.
 
 
 Installing CBMC
