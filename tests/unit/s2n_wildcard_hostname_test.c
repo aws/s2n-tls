@@ -24,6 +24,8 @@
 
 #include "crypto/s2n_certificate.h"
 
+#include "utils/s2n_safety.h"
+
 struct wildcardify_test_case {
     const char *hostname;
     const char *output;

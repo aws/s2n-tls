@@ -24,6 +24,8 @@
 
 #include <s2n.h>
 
+
+#include "utils/s2n_safety.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 

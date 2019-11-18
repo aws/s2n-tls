@@ -20,6 +20,7 @@
 
 #include <s2n.h>
 
+#include "utils/s2n_safety.h"
 #include "testlib/s2n_testlib.h"
 
 static const char *valid_pem_pairs[][2] = {
