@@ -37,6 +37,17 @@ for file in $S2N_FILES_ASSERT_RETURN; do
   fi
 done
 
+# Detect any array size calculations that are not using the s2n_array_len() function.
+S2N_FILES_ARRAY_SIZING_RETURN=$(find "$PWD" -type f -name "s2n*.c" -path "*")
+for file in $S2N_FILES_ARRAY_SIZING_RETURN; do
+  RESULT_ARR_DIV=`grep -Ern 'sizeof\((.*)\) \/ sizeof\(\1\[0\]\)' $file`
+
+  if [ "${#RESULT_ARR_DIV}" != "0" ]; then
+    FAILED=1
+    printf "\e[1;34mGrep for 'sizeof\((.*)\) \/ sizeof\(\1\[0\]\)' check failed in $file:\e[0m\n$RESULT_ARR_DIV\n\n"
+  fi
+done
+
 # Assert that all assignments from s2n_stuffer_raw_read() have a
 # notnull_check (or similar manual null check) on the same, or next, line.
 # The assertion is shallow; this doesn't guarantee that we're doing the
