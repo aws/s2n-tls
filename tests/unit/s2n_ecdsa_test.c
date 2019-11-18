@@ -28,6 +28,9 @@
 #include "crypto/s2n_ecc.h"
 #include "crypto/s2n_fips.h"
 
+#include "utils/s2n_safety.h"
+
+
 static uint8_t unmatched_private_key[] =
     "-----BEGIN EC PRIVATE KEY-----\n"
     "MIIB+gIBAQQwuenHFMJsDm5tCQgthH8kGXQ1dHkKACmHH3ZqIGteoghhGow6vGmr\n"
