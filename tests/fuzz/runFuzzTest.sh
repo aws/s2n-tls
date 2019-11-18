@@ -63,7 +63,7 @@ mkdir -p "./corpus/${TEST_NAME}"
 
 ACTUAL_TEST_FAILURE=0
 
-# Copy existing Corpus to a temp directory so that new inputs from fuzz tests runs will add new inputs to the temp directory. 
+# Copy existing Corpus to a temp directory so that new inputs from fuzz tests runs will add new inputs to the temp directory.
 # This allows us to minimize new inputs before merging to the original corpus directory.
 TEMP_CORPUS_DIR="$(mktemp -d)"
 cp -r ./corpus/${TEST_NAME}/. "${TEMP_CORPUS_DIR}"
