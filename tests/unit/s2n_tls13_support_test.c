@@ -144,7 +144,7 @@ int main(int argc, char **argv)
     EXPECT_FALSE(s2n_is_tls13_enabled());
 
     /* TLS 1.3 can't be enabled outside of unit tests */
-    EXPECT_SUCCESS(unsetenv("S2N_UNIT_TEST"));
+    EXPECT_SUCCESS(s2n_in_unit_test_set(false));
     EXPECT_FAILURE_WITH_ERRNO(s2n_enable_tls13(), S2N_ERR_NOT_IN_UNIT_TEST);
 
     END_TEST();

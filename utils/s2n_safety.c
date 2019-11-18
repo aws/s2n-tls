@@ -20,8 +20,10 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "s2n_annotations.h"
+#include "s2n_safety.h"
 
 /**
  * Get the process id
@@ -147,4 +149,17 @@ int s2n_constant_time_pkcs1_unpad_or_dont(uint8_t * dst, const uint8_t * src, ui
     s2n_constant_time_copy_or_dont(dst, start_of_data, expectlen, dont_copy);
 
     return 0;
+}
+
+static bool s_s2n_in_unit_test = false;
+
+bool s2n_in_unit_test()
+{
+    return s_s2n_in_unit_test;
+}
+
+int s2n_in_unit_test_set(bool newval)
+{
+    s_s2n_in_unit_test = newval;
+    return S2N_SUCCESS;
 }
