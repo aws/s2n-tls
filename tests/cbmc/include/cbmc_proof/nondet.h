@@ -22,7 +22,7 @@
 /**
  * These functions provide a way to get unconstrained values of the correct types for use in CBMC proofs
  * CBMC treats any function which does not have a body as returning an unconstrained value.
- * For exampkle, each call to nondet_uint8_t() will return a different unconstrained value which can be used
+ * For example, each call to nondet_uint8_t() will return a different unconstrained value which can be used
  * in CBMC proofs.
  */
 bool nondet_bool();

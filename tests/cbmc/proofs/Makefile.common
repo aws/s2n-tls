@@ -32,7 +32,7 @@ SHELL=/bin/bash
 
 default: report
 
-# if Makefile.local exists, use it. This provides a way to override the defaults
+# Use `sinclude` to include Makefile.local if it exists. This provides a way to override the defaults
 sinclude Makefile.local
 
 ################################################################
