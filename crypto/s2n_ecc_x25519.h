@@ -22,8 +22,11 @@
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_ecc.h"
 
+#if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER)
 #define S2N_ECC_EVP_SUPPORTED_CURVES_COUNT 3
-
+#else 
+#define S2N_ECC_EVP_SUPPORTED_CURVES_COUNT 2
+#endif
 extern const struct s2n_ecc_named_curve s2n_ecc_evp_supported_curves[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT];
 
 struct s2n_ecc_evp_params
@@ -33,7 +36,8 @@ struct s2n_ecc_evp_params
 };
 
 int s2n_ecc_evp_generate_ephemeral_key(struct s2n_ecc_evp_params *ecc_evp_params);
-int s2n_ecc_evp_compute_shared_secret_as_client(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_blob *Yc_out, struct s2n_blob *shared_key);
-int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_blob *Yc_in, struct s2n_blob *shared_key);
+int s2n_ecc_evp_compute_shared_secret_from_params(struct s2n_ecc_evp_params *private_ecc_evp_params, struct s2n_ecc_evp_params *public_ecc_evp_params, struct s2n_blob *shared_key) ;
+int s2n_ecc_evp_compute_shared_secret_as_client(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *Yc_out, struct s2n_blob *shared_key);
+int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *Yc_in, struct s2n_blob *shared_key);
 int s2n_ecc_evp_params_free(struct s2n_ecc_evp_params *ecc_evp_params);
 

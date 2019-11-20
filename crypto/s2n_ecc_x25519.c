@@ -29,14 +29,17 @@
 /* IANA values can be found here: https://tools.ietf.org/html/rfc8446#appendix-B.3.1.4 */
 /* Share sizes are described here: https://tools.ietf.org/html/rfc8446#section-4.2.8.2
  * and include the extra "legacy_form" byte */
-const struct s2n_ecc_named_curve s2n_X25519 = {
-    .iana_id = TLS_EC_CURVE_ECDH_X25519, .libcrypto_nid = NID_X25519, .name = "x25519", .share_size = 32};
-
+#if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER)
 const struct s2n_ecc_named_curve s2n_ecc_evp_supported_curves[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT] = {
     {.iana_id = TLS_EC_CURVE_SECP_256_R1, .libcrypto_nid = NID_X9_62_prime256v1, .name = "secp256r1", .share_size = (32 * 2) + 1},
     {.iana_id = TLS_EC_CURVE_SECP_384_R1, .libcrypto_nid = NID_secp384r1, .name = "secp384r1", .share_size = (48 * 2) + 1},
     {.iana_id = TLS_EC_CURVE_ECDH_X25519, .libcrypto_nid = NID_X25519, .name = "x25519", .share_size = 32},
 };
+#else
+const struct s2n_ecc_named_curve s2n_ecc_evp_supported_curves[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT] = {
+    {.iana_id = TLS_EC_CURVE_SECP_256_R1, .libcrypto_nid = NID_X9_62_prime256v1, .name = "secp256r1", .share_size = (32 * 2) + 1},
+    {.iana_id = TLS_EC_CURVE_SECP_384_R1, .libcrypto_nid = NID_secp384r1, .name = "secp384r1", .share_size = (48 * 2) + 1},
+#endif
 
 static EVP_PKEY *s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve);
 static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, struct s2n_blob *shared_secret);
@@ -48,6 +51,7 @@ static EVP_PKEY *s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *
     EVP_PKEY_CTX *kctx = NULL;
     EVP_PKEY *params = NULL;
 
+#if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER)
     if (named_curve->libcrypto_nid == NID_X25519)
     {
         pctx = EVP_PKEY_CTX_new_id(NID_X25519, NULL);
@@ -65,7 +69,8 @@ static EVP_PKEY *s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *
             EVP_PKEY_CTX_free(pctx);
         S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
     }
-    else
+#endif
+    if (named_curve->libcrypto_nid == NID_X9_62_prime256v1 || named_curve->libcrypto_nid == NID_secp384r1)
     {
         pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL);
         if (pctx == NULL)
@@ -96,6 +101,9 @@ static EVP_PKEY *s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *
         if (params != NULL)
             EVP_PKEY_free(params);
         S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
+    }
+    else {
+         S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
     }
 }
 
@@ -133,7 +141,18 @@ int s2n_ecc_evp_generate_ephemeral_key(struct s2n_ecc_evp_params *ecc_evp_params
     return 0;
 }
 
-int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_blob *Yc_in, struct s2n_blob *shared_key)
+int s2n_ecc_evp_compute_shared_secret_from_params(struct s2n_ecc_evp_params *private_ecc_evp_params, struct s2n_ecc_evp_params *public_ecc_evp_params, struct s2n_blob *shared_key)
+{
+    notnull_check(private_ecc_evp_params->negotiated_curve);
+    notnull_check(private_ecc_evp_params->evp_pkey);
+    notnull_check(public_ecc_evp_params->negotiated_curve);
+    notnull_check(public_ecc_evp_params->evp_pkey);
+    S2N_ERROR_IF(private_ecc_evp_params->negotiated_curve->iana_id != public_ecc_evp_params->negotiated_curve->iana_id, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    GUARD(s2n_ecc_evp_compute_shared_secret(private_ecc_evp_params->evp_pkey, public_ecc_evp_params->evp_pkey, shared_key));
+    return 0;
+}
+
+int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *Yc_in, struct s2n_blob *shared_key)
 {
     EVP_PKEY *client_key = EVP_PKEY_new();
 
@@ -142,14 +161,13 @@ int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *ecc_e
     S2N_ERROR_IF(EVP_PKEY_copy_parameters(client_key, ecc_evp_params->evp_pkey) != 1, S2N_ERR_ECDHE_SERIALIZING);
 
     /* Decode the client public obtained from the wire*/
-    S2N_ERROR_IF(Yc_in->size != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
-    S2N_ERROR_IF(1 != EVP_PKEY_set1_tls_encodedpoint(client_key, Yc_in->data, Yc_in->size), S2N_ERR_ECDHE_SERIALIZING);
+    S2N_ERROR_IF(Yc_in->blob.size != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
+    S2N_ERROR_IF(1 != EVP_PKEY_set1_tls_encodedpoint(client_key, Yc_in->blob.data, Yc_in->blob.size), S2N_ERR_ECDHE_SERIALIZING);
     S2N_ERROR_IF(client_key == NULL, S2N_ERR_ECDHE_SERIALIZING);
 
     /* Compute the key and free the point */
     if (s2n_ecc_evp_compute_shared_secret(ecc_evp_params->evp_pkey, client_key, shared_key) != 0)
     {
-
         EVP_PKEY_free(client_key);
         S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
     }
@@ -158,7 +176,7 @@ int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *ecc_e
     return 0;
 }
 
-int s2n_ecc_evp_compute_shared_secret_as_client(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_blob *Yc_out, struct s2n_blob *shared_key)
+int s2n_ecc_evp_compute_shared_secret_as_client(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *Yc_out, struct s2n_blob *shared_key)
 {
     EVP_PKEY *client_key;
 
@@ -168,8 +186,8 @@ int s2n_ecc_evp_compute_shared_secret_as_client(struct s2n_ecc_evp_params *ecc_e
     S2N_ERROR_IF(client_key == NULL, S2N_ERR_ECDHE_GEN_KEY);
 
     /* Encode the client public to send across wire */
-    Yc_out->size = EVP_PKEY_get1_tls_encodedpoint(client_key, &Yc_out->data);
-    S2N_ERROR_IF(Yc_out->size != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
+    Yc_out->blob.size = EVP_PKEY_get1_tls_encodedpoint(client_key, &Yc_out->blob.data);
+    S2N_ERROR_IF(Yc_out->blob.size != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
 
     /* Compute the shared secret */
     if (s2n_ecc_evp_compute_shared_secret(client_key, ecc_evp_params->evp_pkey, shared_key) != 0)
