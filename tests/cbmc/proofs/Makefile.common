@@ -60,8 +60,13 @@ LOGDIR = $(PROOFDIR)/logs
 
 ################################################################
 # Useful macros for running commands
+
 #1: command, 2: flags, 3: log file
 DO_AND_LOG_COMMAND = $(1) $(2) 2>&1 | tee $(3); exit $${PIPESTATUS[0]}
+
+#1: command, 2: flags, 3: log file
+DO_AND_LOG_COMMAND_EAT_ERRORS = $(1) $(2) 2>&1 | tee $(3)
+
 
 #1: flags, 2: source, 3: target
 DO_GOTO_ANALYZER = $(call DO_AND_LOG_COMMAND,$(GOTO_ANALYZER),$(CBMC_VERBOSITY) $(1) $(2) $(3), $(call LOG_FROM_ENTRY,$(3)))
@@ -73,7 +78,7 @@ DO_GOTO_CC =  $(call DO_AND_LOG_COMMAND,$(GOTO_CC),$(CBMC_VERBOSITY) $(1) $(2) -
 DO_GOTO_INSTRUMENT = $(call DO_AND_LOG_COMMAND,$(GOTO_INSTRUMENT),$(CBMC_VERBOSITY) $(1) $(2) $(3), $(call LOG_FROM_ENTRY,$(3)))
 
 #1: flags, 2: source, 3: logfile
-DO_CBMC =  $(call DO_AND_LOG_COMMAND,$(CBMC),$(CBMC_VERBOSITY) $(1) $(2), $(3))
+DO_CBMC =  $(call DO_AND_LOG_COMMAND_EAT_ERRORS,$(CBMC),$(CBMC_VERBOSITY) $(1) $(2), $(3))
 
 #1: message 2: source 3: dest 
 DO_NOOP_COPY = cp $(2) $(3); echo $(1) | tee $(call LOG_FROM_ENTRY,$(3))
@@ -262,8 +267,7 @@ report: logs/cbmc.log logs/property.xml logs/coverage.xml
 	--htmldir html \
 	--property logs/property.xml \
 	--result logs/cbmc.log \
-	--srcdir $(SRCDIR) \
-	--srcexclude "(./verification|./tests|./tools|./lib/third_party)"
+	--srcdir $(SRCDIR)
 
 ################################################################
 # Targets to clean up after ourselves
