@@ -25,13 +25,14 @@
 
 bool s2n_stuffer_is_valid(const struct s2n_stuffer* stuffer)
 {
-  return S2N_OBJECT_PTR_IS_READABLE(stuffer) && 
+    /* Note that we do not assert any properties on the  wiped, alloced, growable, and tainted fields,
+     * as all possible combinations of boolean values in those fields are valid */
+    return S2N_OBJECT_PTR_IS_READABLE(stuffer) && 
     s2n_blob_is_valid(&stuffer->blob) &&
     /* <= is valid because we can have a fully written/read stuffer */
     stuffer->read_cursor <= stuffer->blob.size &&
     stuffer->write_cursor <= stuffer->blob.size &&
     stuffer->read_cursor <= stuffer->write_cursor;
-    /*any combination of wiped, alloced, growable, and tainted are valid */
 }
 
 int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in)
