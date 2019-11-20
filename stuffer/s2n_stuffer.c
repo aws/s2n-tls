@@ -231,7 +231,7 @@ int s2n_stuffer_skip_write(struct s2n_stuffer *stuffer, const uint32_t n)
     if (s2n_stuffer_space_remaining(stuffer) < n) {
         if (stuffer->growable) {
             /* Always grow a stuffer by at least 1k */
-            uint32_t growth = MAX(n, 1024);
+            uint32_t growth = MAX(n - s2n_stuffer_space_remaining(stuffer), 1024);
 
             GUARD(s2n_stuffer_resize(stuffer, stuffer->blob.size + growth));
         } else {
