@@ -32,6 +32,12 @@
 const struct s2n_ecc_named_curve s2n_X25519 = {
     .iana_id = TLS_EC_CURVE_ECDH_X25519, .libcrypto_nid = NID_X25519, .name = "x25519", .share_size = 32};
 
+const struct s2n_ecc_named_curve s2n_ecc_evp_supported_curves[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT] = {
+    {.iana_id = TLS_EC_CURVE_SECP_256_R1, .libcrypto_nid = NID_X9_62_prime256v1, .name = "secp256r1", .share_size = (32 * 2) + 1},
+    {.iana_id = TLS_EC_CURVE_SECP_384_R1, .libcrypto_nid = NID_secp384r1, .name = "secp384r1", .share_size = (48 * 2) + 1},
+    {.iana_id = TLS_EC_CURVE_ECDH_X25519, .libcrypto_nid = NID_X25519, .name = "x25519", .share_size = 32},
+};
+
 static EVP_PKEY *s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve);
 static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, struct s2n_blob *shared_secret);
 
@@ -39,22 +45,58 @@ static EVP_PKEY *s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *
 {
     EVP_PKEY *evp_pkey = NULL;
     EVP_PKEY_CTX *pctx = NULL;
+    EVP_PKEY_CTX *kctx = NULL;
+    EVP_PKEY *params = NULL;
 
-    pctx = EVP_PKEY_CTX_new_id(NID_X25519, NULL);
-    if (pctx == NULL)
-        goto err;
-    if (EVP_PKEY_keygen_init(pctx) != 1)
-        goto err;
-    if (EVP_PKEY_keygen(pctx, &evp_pkey) != 1)
-        goto err;
+    if (named_curve->libcrypto_nid == NID_X25519)
+    {
+        pctx = EVP_PKEY_CTX_new_id(NID_X25519, NULL);
+        if (pctx == NULL)
+            goto err1;
+        if (EVP_PKEY_keygen_init(pctx) != 1)
+            goto err1;
+        if (EVP_PKEY_keygen(pctx, &evp_pkey) != 1)
+            goto err1;
 
-    EVP_PKEY_CTX_free(pctx);
-    return evp_pkey;
-
-err:
-    if (pctx != NULL)
         EVP_PKEY_CTX_free(pctx);
-    S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
+        return evp_pkey;
+    err1:
+        if (pctx != NULL)
+            EVP_PKEY_CTX_free(pctx);
+        S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
+    }
+    else
+    {
+        pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL);
+        if (pctx == NULL)
+            goto err2;
+        if (EVP_PKEY_paramgen_init(pctx) != 1)
+            goto err2;
+        if (EVP_PKEY_CTX_set_ec_paramgen_curve_nid(pctx, named_curve->libcrypto_nid) != 1)
+            goto err2;
+        if (!EVP_PKEY_paramgen(pctx, &params))
+            goto err2;
+        kctx = EVP_PKEY_CTX_new(params, NULL);
+        if (kctx == NULL)
+            goto err2;
+        if (EVP_PKEY_keygen_init(kctx) != 1)
+            goto err2;
+        if (EVP_PKEY_keygen(kctx, &evp_pkey) != 1)
+            goto err2;
+
+        EVP_PKEY_CTX_free(pctx);
+        EVP_PKEY_CTX_free(kctx);
+        EVP_PKEY_free(params);
+        return evp_pkey;
+    err2:
+        if (pctx != NULL)
+            EVP_PKEY_CTX_free(pctx);
+        if (kctx != NULL)
+            EVP_PKEY_CTX_free(kctx);
+        if (params != NULL)
+            EVP_PKEY_free(params);
+        S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
+    }
 }
 
 static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, struct s2n_blob *shared_secret)

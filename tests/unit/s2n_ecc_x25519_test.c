@@ -26,30 +26,31 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
     {
-        /* Test compute shared sceret for Curve25519 */
-        struct s2n_ecc_evp_params ecc_evp_params;
-        struct s2n_blob wire, server_shared, client_shared;
+        for (int i = 0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++)
+        {
+            struct s2n_ecc_evp_params ecc_evp_params;
+            struct s2n_blob wire, server_shared, client_shared;
+            ecc_evp_params.negotiated_curve = &s2n_ecc_evp_supported_curves[i];
+            printf("Negotiated Curve is %s, share size = %d \n", ecc_evp_params.negotiated_curve->name, ecc_evp_params.negotiated_curve->share_size);
+            /* Server generates a key */
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&ecc_evp_params));
 
-        ecc_evp_params.negotiated_curve = &s2n_X25519;
+            /* Client generates a key, computes its shared secret and sends the client public key */
+            EXPECT_SUCCESS(s2n_ecc_evp_compute_shared_secret_as_client(&ecc_evp_params, &wire, &client_shared));
 
-        /* Server generates a key */
-        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&ecc_evp_params));
+            /* Server receives the client public key and computes its shared secret */
+            EXPECT_SUCCESS(s2n_ecc_evp_compute_shared_secret_as_server(&ecc_evp_params, &wire, &server_shared));
 
-        /* Client generates a key, computes its shared secret and sends the client public key */
-        EXPECT_SUCCESS(s2n_ecc_evp_compute_shared_secret_as_client(&ecc_evp_params, &wire, &client_shared));
+            /* Check if the shared secret computed is the same for the client and the server */
+            EXPECT_EQUAL(client_shared.size, server_shared.size);
+            EXPECT_BYTEARRAY_EQUAL(client_shared.data, server_shared.data, client_shared.size);
 
-        /* Server receives the client public key and computes its shared secret */
-        EXPECT_SUCCESS(s2n_ecc_evp_compute_shared_secret_as_server(&ecc_evp_params, &wire, &server_shared));
-
-        /* Check if the shared secret computed is the same for the client and the server */
-        EXPECT_EQUAL(client_shared.size, server_shared.size);
-        EXPECT_BYTEARRAY_EQUAL(client_shared.data, server_shared.data, client_shared.size);
-
-        /* Clean up */
-        EXPECT_SUCCESS(s2n_free(&wire));
-        EXPECT_SUCCESS(s2n_free(&server_shared));
-        EXPECT_SUCCESS(s2n_free(&client_shared));
-        EXPECT_SUCCESS(s2n_ecc_evp_params_free(&ecc_evp_params));
+            /* Clean up */
+            EXPECT_SUCCESS(s2n_free(&wire));
+            EXPECT_SUCCESS(s2n_free(&server_shared));
+            EXPECT_SUCCESS(s2n_free(&client_shared));
+            EXPECT_SUCCESS(s2n_ecc_evp_params_free(&ecc_evp_params));
+        }
     }
 
     END_TEST();

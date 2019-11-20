@@ -22,7 +22,9 @@
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_ecc.h"
 
-extern const struct s2n_ecc_named_curve s2n_X25519;
+#define S2N_ECC_EVP_SUPPORTED_CURVES_COUNT 3
+
+extern const struct s2n_ecc_named_curve s2n_ecc_evp_supported_curves[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT];
 
 struct s2n_ecc_evp_params
 {
