@@ -21,7 +21,3 @@ unmatchedSuppression:*
 // cppcheck Message: [crypto/s2n_aead_cipher_chacha20_poly1305.c:163]: (error:syntaxError) syntax error
 // Reason: Cppcheck is not able to parse certain struct initialization syntaxes and complains that it can't tell if there might be a bug. Ignore these errors.
 syntaxError:*
-
-// cppcheck Message: [error/s2n_errno.c:190]: (style:unreadVariable) Variable 'key.raw' is assigned a value that is never used.
-// Reson: Cppcheck does not treat all union members as a single variable
-unreadVariable:error/s2n_errno.c
