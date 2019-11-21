@@ -38,7 +38,6 @@ int s2n_init(void)
 {
     GUARD(s2n_fips_init());
     GUARD(s2n_mem_init());
-    GUARD(s2n_error_table_init());
     GUARD(s2n_rand_init());
     GUARD(s2n_cipher_suites_init());
     GUARD(s2n_cipher_preferences_init());
@@ -80,8 +79,9 @@ int s2n_init(void)
 
 int s2n_cleanup(void)
 {
+    /* s2n_cleanup is supposed to be called from each thread before exiting,
+     * so ensure that whatever clean ups we have here are thread safe */
     GUARD(s2n_rand_cleanup_thread());
-    s2n_error_table_cleanup();
     return 0;
 }
 
