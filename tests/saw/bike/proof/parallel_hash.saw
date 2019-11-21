@@ -15,7 +15,7 @@ let compute_slice_len_spec = do {
 // NOTE: Used by get_ss
 let parallel_hash_spec = do {
     ap <- out_ref sha384_hash_T;
-    (b, bp) <- ptr_to_fresh "m" (llvm_array N_SIZE i8);
+    (b, bp) <- in_ref (make_i8_T N_SIZE) "m";
     crucible_execute_func [ap, bp, tm {{ `N_SIZE:[32] }}];
     a' <- point_to sha384_hash_T ap "parallel_hash_out_hash'";
     return ();
