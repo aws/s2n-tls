@@ -12,37 +12,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 #
-SRCS=$(wildcard *.c)
+
+SRCS=sike_p434_r2.c sike_p434_r2_fips202.c sike_p434_r2_kem.c
 OBJS=$(SRCS:.c=.o)
 
-BCS_11=pq_random.bc
-BCS1=$(addprefix $(BITCODE_DIR), $(BCS_11))
+BCS_1=sike_p434_r2.bc sike_p434_r2_fips202.bc sike_p434_r2_kem.bc
+BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
 
 .PHONY : all
 all: $(OBJS)
-	$(MAKE) -C bike
-	$(MAKE) -C sike_r1
-	$(MAKE) -C sike_r2
 
 .PHONY : bc
-bc: $(BCS1)
-	$(MAKE) -C sike_r1 bc
-	$(MAKE) -C sike_r2 bc
+bc: $(BCS)
 
-.PHONY : run-gcov
-run-gcov: gcov
-	$(MAKE) -C sike_r1 gcov
-	$(MAKE) -C sike_r2 gcov
-
-.PHONY : run-lcov
-run-lcov: lcov
-	$(MAKE) -C sike_r1 lcov
-	$(MAKE) -C sike_r2 lcov
-
-.PHONY : clean
-clean: decruft
-	${MAKE} -C bike decruft
-	${MAKE} -C sike_r1 decruft
-	${MAKE} -C sike_r2 decruft
-
-include ../s2n.mk
+include ../../s2n.mk

@@ -48,7 +48,7 @@ file(GLOB ERROR_SRC
     "error/*.c"
 )
 
-# The SIKE code #includes .c files directly, including all sike_r1/*.c breaks the build due to duplicates
+# The SIKE code #includes .c files directly, including all sike_r*/*.c breaks the build due to duplicates
 file(GLOB PQ_SRC
     "pq-crypto/*.c"
     "pq-crypto/bike/*.c"
@@ -56,6 +56,9 @@ file(GLOB PQ_SRC
     "pq-crypto/sike_r1/P503.c"
     "pq-crypto/sike_r1/sike_p503_r1_kem.c"
     "pq-crypto/sike_r1/fips202.c"
+    "pq-crypto/sike_r2/sike_p434_r2.c"
+    "pq-crypto/sike_r2/sike_p434_r2_kem.c"
+    "pq-crypto/sike_r2/sike_p434_r2_fips202.c"
 )
 
 file(GLOB STUFFER_SRC
