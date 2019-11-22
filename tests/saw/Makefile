@@ -278,8 +278,6 @@ bitcode/sike_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/utils 
 
 .PHONY : bitcode/bike_llvm.bc
 bitcode/bike_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(BIKE_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
-	tr -d '\r' <../../pq-crypto/bike/bike_defs.h >s2n/pq-crypto/bike/bike_defs.h
-	patch s2n/pq-crypto/bike/bike_defs.h bike/patch/bike_defs.h.patch
 	tr -d '\r' <../../pq-crypto/bike/bike1_l1_kem.c >s2n/pq-crypto/bike/bike1_l1_kem.c
 	patch s2n/pq-crypto/bike/bike1_l1_kem.c bike/patch/bike1_l1_kem.c.patch
 	tr -d '\r' <../../pq-crypto/bike/cleanup.h >s2n/pq-crypto/bike/cleanup.h
