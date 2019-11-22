@@ -17,14 +17,17 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 struct s2n_blob {
     uint8_t *data;
     uint32_t size;
     uint32_t allocated;
     uint8_t mlocked;
+    bool growable;
 };
 
+extern bool s2n_blob_is_growable(const struct s2n_blob* b);
 extern bool s2n_blob_is_valid(const struct s2n_blob* b);
 extern int s2n_blob_init(struct s2n_blob *b, uint8_t * data, uint32_t size);
 extern int s2n_blob_zero(struct s2n_blob *b);
