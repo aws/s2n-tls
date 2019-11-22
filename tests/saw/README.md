@@ -9,7 +9,7 @@ this algorithm equivalent to the spec.
 
 Currently this directory houses a test that compares the s2n
 implementation of HMAC with a cryptol spec of the same. There are 3
-files that take part in this test.
+files that take part in this test. 
 
   1. bitcode/all_llvm.bc
   2. spec/HMAC.cry
