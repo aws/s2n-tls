@@ -35,10 +35,6 @@ int s2n_basic_ccs_recv(struct s2n_connection *conn)
     GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &type));
     S2N_ERROR_IF(type != CHANGE_CIPHER_SPEC_TYPE, S2N_ERR_BAD_MESSAGE);
 
-    if (conn->actual_protocol_version == S2N_TLS13) {
-        conn->client = &conn->secure;
-    }
-
     return 0;
 }
 

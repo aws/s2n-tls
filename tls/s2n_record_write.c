@@ -33,7 +33,7 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
 
-#define TLS13_CONTENT_TYPE 1
+#define TLS13_CONTENT_TYPE_LENGTH 1
 
 extern uint8_t s2n_unknown_protocol_version;
 
@@ -176,6 +176,14 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     uint16_t block_size = 0;
     uint8_t aad_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
 
+    /* In TLS 1.3, handle CCS message as unprotected records */
+    struct s2n_crypto_parameters *current_client_crypto = conn->client;
+    struct s2n_crypto_parameters *current_server_crypto = conn->server;
+    if (conn->actual_protocol_version == S2N_TLS13 && content_type == TLS_CHANGE_CIPHER_SPEC) {
+        conn->client = &conn->initial;
+        conn->server = &conn->initial;
+    }
+
     uint8_t *sequence_number = conn->server->server_sequence_number;
     struct s2n_hmac_state *mac = &conn->server->server_record_mac;
     struct s2n_session_key *session_key = &conn->server->server_key;
@@ -257,7 +265,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     /* Rewrite the length to be the actual fragment length */
     uint16_t actual_fragment_length = data_bytes_to_take + padding + extra;
     if (is_tls13_record) {
-        actual_fragment_length += TLS13_CONTENT_TYPE;
+        actual_fragment_length += TLS13_CONTENT_TYPE_LENGTH;
     }
     GUARD(s2n_stuffer_wipe_n(&conn->out, 2));
     GUARD(s2n_stuffer_write_uint16(&conn->out, actual_fragment_length));
@@ -291,7 +299,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         struct s2n_stuffer ad_stuffer = {0};
         GUARD(s2n_stuffer_init(&ad_stuffer, &aad));
         if (is_tls13_record) {
-            GUARD(s2n_tls13_aead_aad_init(data_bytes_to_take + TLS13_CONTENT_TYPE, cipher_suite->record_alg->cipher->io.aead.tag_size, &ad_stuffer));
+            GUARD(s2n_tls13_aead_aad_init(data_bytes_to_take + TLS13_CONTENT_TYPE_LENGTH, cipher_suite->record_alg->cipher->io.aead.tag_size, &ad_stuffer));
         } else {
             GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &ad_stuffer));
         }
@@ -348,7 +356,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         encrypted_length += cipher_suite->record_alg->cipher->io.aead.tag_size;
         if (is_tls13_record) {
             /* one extra byte for content type */
-            encrypted_length += TLS13_CONTENT_TYPE;
+            encrypted_length += TLS13_CONTENT_TYPE_LENGTH;
         }
         break;
     case S2N_CBC:
@@ -372,6 +380,11 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     /* Do the encryption */
     struct s2n_blob en = { .size = encrypted_length, .data = s2n_stuffer_raw_write(&conn->out, encrypted_length) };
     GUARD(s2n_record_encrypt(conn, cipher_suite, session_key, &iv, &aad, &en, implicit_iv, block_size));
+
+    if (conn->actual_protocol_version == S2N_TLS13 && content_type == TLS_CHANGE_CIPHER_SPEC) {
+        conn->client = current_client_crypto;
+        conn->server = current_server_crypto;
+    }
 
     conn->wire_bytes_out += actual_fragment_length + S2N_TLS_RECORD_HEADER_LENGTH;
     return data_bytes_to_take;

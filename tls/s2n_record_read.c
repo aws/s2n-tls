@@ -95,6 +95,18 @@ int s2n_record_header_parse(
 
 int s2n_record_parse(struct s2n_connection *conn)
 {
+    uint8_t content_type;
+    uint16_t encrypted_length;
+    GUARD(s2n_record_header_parse(conn, &content_type, &encrypted_length));
+
+    /* In TLS 1.3, handle CCS message as unprotected records */
+    struct s2n_crypto_parameters *current_client_crypto = conn->client;
+    struct s2n_crypto_parameters *current_server_crypto = conn->server;
+    if (conn->actual_protocol_version == S2N_TLS13 && content_type == TLS_CHANGE_CIPHER_SPEC) {
+        conn->client = &conn->initial;
+        conn->server = &conn->initial;
+    }
+
     const struct s2n_cipher_suite *cipher_suite = conn->client->cipher_suite;
     uint8_t *implicit_iv = conn->client->client_implicit_iv;
     struct s2n_hmac_state *mac = &conn->client->client_record_mac;
@@ -109,9 +121,10 @@ int s2n_record_parse(struct s2n_connection *conn)
         session_key = &conn->server->server_key;
     }
 
-    uint8_t content_type;
-    uint16_t encrypted_length;
-    GUARD(s2n_record_header_parse(conn, &content_type, &encrypted_length));
+    if (conn->actual_protocol_version == S2N_TLS13 && content_type == TLS_CHANGE_CIPHER_SPEC) {
+        conn->client = current_client_crypto;
+        conn->server = current_server_crypto;
+    }
 
     switch (cipher_suite->record_alg->cipher->type) {
     case S2N_AEAD:

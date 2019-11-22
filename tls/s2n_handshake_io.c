@@ -675,6 +675,7 @@ static int s2n_conn_pre_handshake_hashes_update(struct s2n_connection *conn)
 static int s2n_conn_post_handshake_hashes_update(struct s2n_connection *conn)
 {
     if (conn->actual_protocol_version < S2N_TLS13) return 0;
+
     struct s2n_blob client_seq = {.data = conn->secure.client_sequence_number,.size = sizeof(conn->secure.client_sequence_number) };
     struct s2n_blob server_seq = {.data = conn->secure.server_sequence_number,.size = sizeof(conn->secure.server_sequence_number) };
 
@@ -684,6 +685,8 @@ static int s2n_conn_post_handshake_hashes_update(struct s2n_connection *conn)
         GUARD(s2n_blob_zero(&client_seq));
         GUARD(s2n_blob_zero(&server_seq));
         conn->server = &conn->secure;
+        conn->client = &conn->secure;
+        GUARD(s2n_stuffer_wipe(&conn->alert_in));
         break;
     case CLIENT_FINISHED:
         /* Reset sequence numbers for Application Data */
