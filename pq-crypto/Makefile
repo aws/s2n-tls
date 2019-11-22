@@ -21,23 +21,23 @@ BCS1=$(addprefix $(BITCODE_DIR), $(BCS_11))
 .PHONY : all
 all: $(OBJS)
 	$(MAKE) -C bike
-	$(MAKE) -C sike
+	$(MAKE) -C sike_r1
 
 .PHONY : bc
 bc: $(BCS1)
-	$(MAKE) -C sike bc
+	$(MAKE) -C sike_r1 bc
 
 .PHONY : run-gcov
 run-gcov: gcov
-	$(MAKE) -C sike gcov
+	$(MAKE) -C sike_r1 gcov
 
 .PHONY : run-lcov
 run-lcov: lcov
-	$(MAKE) -C sike lcov
+	$(MAKE) -C sike_r1 lcov
 
 .PHONY : clean
 clean: decruft
 	${MAKE} -C bike decruft
-	${MAKE} -C sike decruft
+	${MAKE} -C sike_r1 decruft
 
 include ../s2n.mk

@@ -103,11 +103,11 @@ static struct s2n_handshake_action tls13_state_machine[] = {
     [SERVER_CERT_REQ]           = {TLS_HANDSHAKE, TLS_CERT_REQ, 'S', {s2n_client_cert_req_send, s2n_client_cert_req_recv}},
     [SERVER_CERT]               = {TLS_HANDSHAKE, TLS_CERTIFICATE, 'S', {s2n_server_cert_send, s2n_server_cert_recv}},
     [SERVER_CERT_VERIFY]        = {TLS_HANDSHAKE, TLS_CERT_VERIFY, 'S', {s2n_server_cert_verify_send, s2n_server_cert_verify_recv}},
-    [SERVER_FINISHED]           = {TLS_HANDSHAKE, TLS_FINISHED, 'S', {s2n_server_finished_send, s2n_server_finished_recv}},
+    [SERVER_FINISHED]           = {TLS_HANDSHAKE, TLS_FINISHED, 'S', {s2n_tls13_server_finished_send, s2n_tls13_server_finished_recv}},
 
     [CLIENT_CERT]               = {TLS_HANDSHAKE, TLS_CERTIFICATE, 'C', {s2n_client_cert_recv, s2n_client_cert_send}},
     [CLIENT_CERT_VERIFY]        = {TLS_HANDSHAKE, TLS_CERT_VERIFY, 'C', {s2n_client_cert_verify_recv, s2n_client_cert_verify_send}},
-    [CLIENT_FINISHED]           = {TLS_HANDSHAKE, TLS_FINISHED, 'C', {s2n_client_finished_recv, s2n_client_finished_send}},
+    [CLIENT_FINISHED]           = {TLS_HANDSHAKE, TLS_FINISHED, 'C', {s2n_tls13_client_finished_recv, s2n_tls13_client_finished_send}},
 
     /* Not used by TLS1.3, except to maintain middlebox compatibility */
     [CLIENT_CHANGE_CIPHER_SPEC] = {TLS_CHANGE_CIPHER_SPEC, 0, 'C', {s2n_basic_ccs_recv, s2n_ccs_send}},
@@ -996,10 +996,10 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
                 if (s2n_errno == S2N_ERR_BLOCKED && s2n_stuffer_data_available(&conn->in)) {
                     if (handshake_read_io(conn) < 0 && s2n_errno == S2N_ERR_ALERT) {
                         /* handshake_read_io has set s2n_errno */
-                        return S2N_FAILURE;
+                        S2N_ERROR_PRESERVE_ERRNO();
                     }
                 }
-                return S2N_FAILURE;
+                S2N_ERROR_PRESERVE_ERRNO();
             }
         } else if (ACTIVE_STATE(conn).writer == this) {
             *blocked = S2N_BLOCKED_ON_WRITE;

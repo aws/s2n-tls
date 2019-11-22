@@ -246,7 +246,7 @@ int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len,
     }
 
     clock_data = mktime(&args.time);
-    S2N_ERROR_IF(clock_data <= 0, S2N_ERR_SAFETY);
+    S2N_ERROR_IF(clock_data < 0, S2N_ERR_SAFETY);
 
     /* if we detected UTC is being used (please always use UTC), we need to add the detected timezone on the local
      * machine back to the offset. Also, the offset includes an offset for daylight savings time. When the time being parsed
@@ -255,6 +255,8 @@ int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len,
         gmt_offset -= gmt_offset_current;
         gmt_offset -= args.time.tm_isdst != is_dst ? (args.time.tm_isdst - is_dst) * 3600 : 0;
     }
+
+    S2N_ERROR_IF(clock_data < gmt_offset, S2N_ERR_SAFETY);
 
     /* convert to nanoseconds and add the timezone offset. */
     *ticks = ((uint64_t) clock_data - gmt_offset) * 1000000000;

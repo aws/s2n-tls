@@ -26,7 +26,7 @@
 #include "tls/s2n_record_read.h"
 #include "utils/s2n_safety.h"
 
-const char *protected_record_hex = "d1ff334a56f5bf"
+const char protected_record_hex[] = "d1ff334a56f5bf"
     "f6594a07cc87b580233f500f45e489e7f33af35edf"
     "7869fcf40aa40aa2b8ea73f848a7ca07612ef9f945"
     "cb960b4068905123ea78b111b429ba9191cd05d2a3"
@@ -60,7 +60,7 @@ const char *protected_record_hex = "d1ff334a56f5bf"
     "939828fd4ae3794e44f94df5a631ede42c1719bfda"
     "bf0253fe5175be898e750edc53370d2b"; /* includes tag */
 
-const char* plaintext_record_hex =
+const char plaintext_record_hex[] =
     "080000240022000a00140012001d"
     "00170018001901000101010201030104001c000240"
     "01000000000b0001b9000001b50001b0308201ac30"
@@ -106,7 +106,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_tls13_aead_aad_init(662, 12, &associated_data_stuffer));
         S2N_BLOB_FROM_HEX(expected_aad, "17030302a2");
         S2N_BLOB_EXPECT_EQUAL(expected_aad, aad);
-        S2N_BLOB_FREE(expected_aad);
 
         /* record length 16640 should be valid */
         EXPECT_SUCCESS(s2n_stuffer_rewrite(&associated_data_stuffer));
@@ -184,7 +183,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_record_parse_aead(cipher_suite, conn, 0, protected_record.size,
             iv.data, NULL, conn->secure.client_sequence_number, &session_key));
 
-
         /* Test record parsing failure from aead tag change */
         RESET_TEST
         conn->in.blob.data[protected_record.size-2]++;
@@ -209,10 +207,6 @@ int main(int argc, char **argv)
         EXPECT_FAILURE(s2n_record_parse_aead(cipher_suite, conn, 0, protected_record.size,
             iv.data, NULL, conn->secure.client_sequence_number, &session_key));
 
-        S2N_BLOB_FREE(key);
-        S2N_BLOB_FREE(protected_record);
-        S2N_BLOB_FREE(iv);
-        S2N_BLOB_FREE(plaintext_record);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_session_key_free(&session_key));
@@ -271,11 +265,6 @@ int main(int argc, char **argv)
         };
 
         S2N_BLOB_EXPECT_EQUAL(out, protected_record);
-
-        S2N_BLOB_FREE(key);
-        S2N_BLOB_FREE(protected_record);
-        S2N_BLOB_FREE(iv);
-        S2N_BLOB_FREE(plaintext_record);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
@@ -343,9 +332,6 @@ int main(int argc, char **argv)
 
         /* Verify decrypted payload */
         S2N_BLOB_EXPECT_EQUAL(decrypted, expect_plaintext);
-
-        S2N_BLOB_FREE(key);
-        S2N_BLOB_FREE(iv);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }

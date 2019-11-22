@@ -86,15 +86,16 @@ int main(int argc, char **argv)
      *    decrypt-only state due to absence of encrypt-decrypt key.
      * 6) Client sends non-empty ST extension. Server does a full handshake and issues a NST because the key is not found.
      * 7) Client sends non-empty ST extension. Server does a full handshake and issues a NST because the key has expired.
-     * 8) Client sends non-empty ST extension, but server cannot or does not want to honor the ticket.
-     * 9) Client sets corrupted ST extension.
-     * 10) User tries adding a duplicate key to the server.
-     * 11) Testing expired keys are removed from the server config while adding new keys.
-     * 12) Scenario 1: Client sends empty ST and server has multiple encrypt-decrypt keys to choose from for encrypting NST.
-     * 13) Scenario 2: Client sends empty ST and server has multiple encrypt-decrypt keys to choose from for encrypting NST.
-     * 14) Testing s2n_config_set_ticket_encrypt_decrypt_key_lifetime and s2n_config_set_ticket_decrypt_key_lifetime calls.
-     * 15) Add keys out of order and pre-emptively add a key.
-     * 16) Handshake with client auth and session ticket enabled.
+     * 8) Client sends non-empty ST extension. Server does a full handshake and issues a NST because the ticket has non-standard size.
+     * 9) Client sends non-empty ST extension, but server cannot or does not want to honor the ticket.
+     * 10) Client sets corrupted ST extension.
+     * 11) User tries adding a duplicate key to the server.
+     * 12) Testing expired keys are removed from the server config while adding new keys.
+     * 13) Scenario 1: Client sends empty ST and server has multiple encrypt-decrypt keys to choose from for encrypting NST.
+     * 14) Scenario 2: Client sends empty ST and server has multiple encrypt-decrypt keys to choose from for encrypting NST.
+     * 15) Testing s2n_config_set_ticket_encrypt_decrypt_key_lifetime and s2n_config_set_ticket_decrypt_key_lifetime calls.
+     * 16) Add keys out of order and pre-emptively add a key.
+     * 17) Handshake with client auth and session ticket enabled.
      */
 
     BEGIN_TEST();
@@ -496,6 +497,69 @@ int main(int argc, char **argv)
         serialized_session_state_length = s2n_connection_get_session_length(client_conn);
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES, ticket_key_name2, strlen((char *)ticket_key_name2));
+
+        /* Verify the lifetime hint from the server */
+        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
+
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
+    }
+
+    /* Client sends non-empty ST extension. Server does a full handshake and issues a NST because the ticket has non-standard size. */
+    {
+        EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_config, 1));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+
+        /* Tamper session state to make session ticket size smaller than what we expect */
+        /* Verify that client_ticket is same as before because server did not issue a NST */
+        uint8_t tampered_session_state[sizeof(serialized_session_state) - 1];
+        /* Copy session format */
+        tampered_session_state[0] = serialized_session_state[0];
+        /* Copy and reduce by 1 the session ticket length */
+        tampered_session_state[1] = serialized_session_state[1];
+        tampered_session_state[2] = serialized_session_state[2] - 1;
+        /* Skip 1 byte of the session ticket and copy the rest */
+        memcpy_check(tampered_session_state + 3, serialized_session_state + 4, sizeof(tampered_session_state) - 4);
+
+        /* Set client tampered ST and session state */
+        EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tampered_session_state, serialized_session_state_length - 1));
+
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
+
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
+
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+        /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
+        EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
+
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, strlen((char *)ticket_key_name1), ticket_key1, sizeof(ticket_key1), 0));
+
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* Verify that the server did a full handshake and issued NST */
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn->handshake.handshake_type));
+        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
+
+        /* Verify that the client received NST */
+        serialized_session_state_length = s2n_connection_get_session_length(client_conn);
+        EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
+        EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES, ticket_key_name1, strlen((char *)ticket_key_name1));
 
         /* Verify the lifetime hint from the server */
         EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);

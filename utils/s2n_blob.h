@@ -27,6 +27,7 @@ struct s2n_blob {
 extern int s2n_blob_init(struct s2n_blob *b, uint8_t * data, uint32_t size);
 extern int s2n_blob_zero(struct s2n_blob *b);
 extern int s2n_blob_char_to_lower(struct s2n_blob *b);
+extern int s2n_hex_string_to_bytes(const char *str, struct s2n_blob *blob);
 
 #define s2n_stack_blob(name, requested_size, maximum)                               \
     size_t name ## _requested_size = (requested_size);                              \
@@ -37,3 +38,11 @@ extern int s2n_blob_char_to_lower(struct s2n_blob *b);
 #define S2N_BLOB_LABEL(name, str) \
     static uint8_t name##_data[] = str;   \
     const struct s2n_blob name = { .data = name##_data, .size = sizeof(name##_data) - 1 };
+
+/* The S2N_BLOB_FROM_HEX macro creates a s2n_blob with the contents of a hex string.
+ * It is allocated on a stack so there no need to free after use.
+ * hex should be a const char[]. This function checks against using char*,
+ * because sizeof needs to refer to the buffer length rather than a pointer size */
+#define S2N_BLOB_FROM_HEX( name, hex ) \
+    s2n_stack_blob(name, (sizeof(hex) - 1) / 2, (sizeof(hex) - 1) / 2); \
+    GUARD(s2n_hex_string_to_bytes(hex, &name));

@@ -791,6 +791,26 @@ const struct s2n_cipher_preferences cipher_preferences_kms_pq_tls_1_0_2019_06 = 
         .minimum_protocol_version = S2N_TLS10,
 };
 
+struct s2n_cipher_suite *cipher_suites_pq_sike_test_tls_1_0_2019_11[] = {
+        &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
+        &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+        &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+        &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+        &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+        &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+        &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,
+        &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+        &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+        &s2n_dhe_rsa_with_aes_256_cbc_sha,
+        &s2n_dhe_rsa_with_aes_128_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_pq_sike_test_tls_1_0_2019_11 = {
+        .count = sizeof(cipher_suites_pq_sike_test_tls_1_0_2019_11) / sizeof(cipher_suites_pq_sike_test_tls_1_0_2019_11[0]),
+        .suites = cipher_suites_pq_sike_test_tls_1_0_2019_11,
+        .minimum_protocol_version = S2N_TLS10,
+};
+
 struct s2n_cipher_suite *cipher_suites_kms_fips_tls_1_2_2018_10[] = {
         &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
         &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
@@ -837,6 +857,7 @@ struct {
     { .version="CloudFront-TLS-1-2-2019", .preferences=&cipher_preferences_cloudfront_tls_1_2_2019, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="KMS-TLS-1-0-2018-10", .preferences=&cipher_preferences_kms_tls_1_0_2018_10, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="KMS-PQ-TLS-1-0-2019-06", .preferences=&cipher_preferences_kms_pq_tls_1_0_2019_06, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="PQ-SIKE-TEST-TLS-1-0-2019-11", .preferences=&cipher_preferences_pq_sike_test_tls_1_0_2019_11, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="KMS-FIPS-TLS-1-2-2018-10", .preferences=&cipher_preferences_kms_fips_tls_1_2_2018_10, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="20140601", .preferences=&cipher_preferences_20140601, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="20141001", .preferences=&cipher_preferences_20141001, .ecc_extension_required=0, .pq_kem_extension_required=0},
