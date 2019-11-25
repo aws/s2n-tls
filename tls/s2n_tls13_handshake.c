@@ -80,7 +80,7 @@ int s2n_tls13_handle_handshake_secrets(struct s2n_connection *conn)
     s2n_tls13_connection_keys(secrets, conn);
 
     /* get shared secret */
-    struct s2n_blob shared_secret = { 0 };
+    DEFER_CLEANUP(struct s2n_blob shared_secret = { 0 }, s2n_free);
     GUARD(s2n_tls13_select_key_and_compute_secret(conn, &shared_secret));
 
     /* derive early secrets */

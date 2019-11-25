@@ -379,8 +379,8 @@ int main(int argc, char **argv)
 
         EXPECT_EQUAL(server_conn->secure.server_ecc_params.negotiated_curve, client_conn->secure.server_ecc_params.negotiated_curve);
 
-        struct s2n_blob server_shared_secret = { 0 };
-        struct s2n_blob client_shared_secret = { 0 };
+        DEFER_CLEANUP(struct s2n_blob server_shared_secret = { 0 }, s2n_free);
+        DEFER_CLEANUP(struct s2n_blob client_shared_secret = { 0 }, s2n_free);
 
         client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
         server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
