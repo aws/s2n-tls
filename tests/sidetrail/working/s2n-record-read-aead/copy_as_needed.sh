@@ -42,6 +42,7 @@ patch -p5 < ../patches/cbc.patch
 
 mkdir -p utils
 cp s2n_annotations.h utils/
+cp $S2N_BASE/utils/s2n_blob.c utils/
 cp $S2N_BASE/utils/s2n_safety.c utils/
 cp $S2N_BASE/utils/s2n_safety.h utils/
 cp ../stubs/s2n_mem.c utils/
