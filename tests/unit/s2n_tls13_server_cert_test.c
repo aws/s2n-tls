@@ -26,7 +26,7 @@
 
 /* Test vectors from https://tools.ietf.org/html/rfc8448#section-3 */
 const char tls13_cert_hex[] =
-    "000001b50001b03082" /* without 0b0001b9 header */
+    "3082" /* without certificate chain header */
     "01ac30820115a003020102020102300d06092a8648"
     "86f70d01010b0500300e310c300a06035504031303"
     "727361301e170d3136303733303031323335395a17"
@@ -49,14 +49,32 @@ const char tls13_cert_hex[] =
     "1c3b84e0a8b2f759409ba3eac9d91d402dcc0cc8f8"
     "961229ac9187b42b4de10000";
 
+/* certificate chain header. It contains
+   1. Request Context length (00)
+   2. Cert chain length (00001b5)
+   3. Cert length (0001b0)
+ */
+const char tls13_cert_chain_header_hex[] =
+     "000001b50001b0";
+
 int main(int argc, char **argv)
 {
+    char *tls13_cert_chain_hex;
     BEGIN_TEST();
+    /* creating a certificate chain by concatenating
+       1. chain header
+       2. certificate
+    */
+    EXPECT_NOT_NULL(tls13_cert_chain_hex = malloc(S2N_MAX_TEST_PEM_SIZE));
+    strcpy(tls13_cert_chain_hex, tls13_cert_chain_header_hex);
+    strcat(tls13_cert_chain_hex, tls13_cert_hex);
+    /* convert certificate chain hex to bytes*/
+    struct s2n_blob tls13_cert = {0};
+    EXPECT_SUCCESS(s2n_alloc(&tls13_cert, strlen(tls13_cert_chain_hex) / 2 ));
+    GUARD(s2n_hex_string_to_bytes(tls13_cert_chain_hex, &tls13_cert));
 
     /* Test s2n_server_cert_recv() parses tls13 certificate */
     {
-        S2N_BLOB_FROM_HEX(tls13_cert, tls13_cert_hex);
-
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
@@ -78,5 +96,43 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
+    /* Test s2n_server_cert_send() verify server's certificate */
+    {
+        S2N_BLOB_FROM_HEX(tls13_cert_chain, tls13_cert_hex);
+
+        struct s2n_connection *conn;
+        uint8_t certificate_request_context_len;
+
+        struct s2n_cert cert = {.raw = tls13_cert_chain,.next = NULL};
+        struct s2n_cert_chain cert_chain = {.head = &cert};
+        struct s2n_cert_chain_and_key cert_chain_and_key = {.cert_chain = &cert_chain};
+
+        /* tls13 mode */
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        conn->actual_protocol_version = S2N_TLS13;
+        conn->handshake_params.our_chain_and_key = &cert_chain_and_key;
+        EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS13);
+        EXPECT_SUCCESS(s2n_server_cert_send(conn));
+        EXPECT_EQUAL(s2n_stuffer_data_available(&conn->handshake.io), tls13_cert.size);
+        GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &certificate_request_context_len));
+        /* server's certificate request context should always be of zero length */
+        EXPECT_EQUAL(certificate_request_context_len, 0);
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+
+        /* tls12 mode */
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        conn->actual_protocol_version = S2N_TLS12;
+        conn->handshake_params.our_chain_and_key = &cert_chain_and_key;
+        EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
+        EXPECT_SUCCESS(s2n_server_cert_send(conn));
+        /* In tls1.2 there is no certificate request context.
+           TLS1.2 Cert length = TLS1.3 Cert length -1 (server's request context)*/
+        EXPECT_EQUAL(s2n_stuffer_data_available(&conn->handshake.io), tls13_cert.size - 1);
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    free(tls13_cert_chain_hex);
+    /* free memory allocated in s2n_alloc*/
+    free(tls13_cert.data);
     END_TEST();
 }
