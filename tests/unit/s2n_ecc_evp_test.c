@@ -17,7 +17,7 @@
 
 #include <s2n.h>
 
-#include "crypto/s2n_ecc_x25519.h"
+#include "crypto/s2n_ecc_evp.h"
 #include "utils/s2n_mem.h"
 #include "testlib/s2n_testlib.h"
 #include "stuffer/s2n_stuffer.h"

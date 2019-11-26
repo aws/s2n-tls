@@ -25,7 +25,7 @@
 #include "crypto/s2n_signature.h"
 #include "crypto/s2n_dhe.h"
 #include "crypto/s2n_ecc.h"
-#include "crypto/s2n_ecc_x25519.h"
+#include "crypto/s2n_ecc_evp.h"
 
 #define S2N_TLS_SECRET_LEN             48
 #define S2N_TLS_RANDOM_DATA_LEN        32
