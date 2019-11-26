@@ -61,6 +61,8 @@ int s2n_extensions_client_supported_versions_process(struct s2n_connection *conn
 
     uint8_t size_of_version_list;
     GUARD(s2n_stuffer_read_uint8(extension, &size_of_version_list));
+    S2N_ERROR_IF(size_of_version_list != s2n_stuffer_data_available(extension), S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(size_of_version_list % 2 == 1, S2N_ERR_BAD_MESSAGE);
 
     conn->client_protocol_version = s2n_unknown_protocol_version;
     conn->actual_protocol_version = s2n_unknown_protocol_version;

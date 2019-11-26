@@ -125,10 +125,18 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_str(&extension_data, "bad extension"));
 
             extension->extension_type = new_extensions[i];
-            extension->extension = extension_data.blob;
+
+            /* We can't just take a stuffer blob as its size is all allocated memory, not all written data,
+             * so do a stuffer read here. */
+            extension->extension.size = s2n_stuffer_data_available(&extension_data);
+            extension->extension.data = s2n_stuffer_raw_read(&extension_data, extension->extension.size);
+            EXPECT_NOT_NULL(extension->extension.data);
 
             /* We're not passing in well-formed extensions, so if they are parsed then they should fail */
             EXPECT_FAILURE(s2n_client_extensions_recv(server_conn, extensions));
+
+            /* Zero out the blob to avoid dangling pointer */
+            EXPECT_SUCCESS(s2n_blob_zero(&extension->extension));
         }
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
