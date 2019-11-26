@@ -142,8 +142,37 @@ const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha512 = {
         .signature_curve = NULL /* Elliptic Curve not needed for RSA */
 };
 
-/* Signature Scheme Preference List: TLS 1.2 and previous */
-/* This list MUST NOT contain any s2n_signature_scheme's with a non-null signature_curve defined. */
+/* All Supported SignatureSchemes (Both TLS 1.2 and 1.3) to send in the ClientHello to the Server. */
+/* No MD5 to avoid SLOTH Vulnerability */
+const struct s2n_signature_scheme* const s2n_supported_sig_scheme_pref_list[] = {
+        /* RSA PSS - Commented out until it is actually supported */
+        /* &s2n_rsa_pss_rsae_sha256, */
+        /* &s2n_rsa_pss_rsae_sha384, */
+        /* &s2n_rsa_pss_rsae_sha512, */
+
+        /* RSA PKCS1 */
+        &s2n_rsa_pkcs1_sha256,
+        &s2n_rsa_pkcs1_sha384,
+        &s2n_rsa_pkcs1_sha512,
+        &s2n_rsa_pkcs1_sha224,
+
+        /* ECDSA - TLS 1.3 */
+        &s2n_ecdsa_secp256r1_sha256,
+        &s2n_ecdsa_secp384r1_sha384,
+
+        /* ECDSA - TLS 1.2*/
+        &s2n_ecdsa_sha256,
+        &s2n_ecdsa_sha384,
+        &s2n_ecdsa_sha512,
+        &s2n_ecdsa_sha224,
+
+        /* SHA-1 Legacy */
+        &s2n_rsa_pkcs1_sha1,
+        &s2n_ecdsa_sha1,
+};
+
+/* Signature Scheme Preference List to use when picking a <=TLS 1.2 SignatureAlgorithm/SignatureScheme */
+/* As per RFC: This list MUST NOT contain any s2n_signature_scheme's with a non-null signature_curve defined. */
 const struct s2n_signature_scheme* const s2n_legacy_sig_scheme_pref_list[] = {
         /* RSA PSS - Commented out until it is actually supported */
         /* &s2n_rsa_pss_rsae_sha256, */
@@ -187,6 +216,7 @@ const struct s2n_signature_scheme * const s2n_tls13_sig_scheme_pref_list[] = {
         &s2n_ecdsa_sha1,
 };
 
+const size_t s2n_supported_sig_scheme_pref_list_len = s2n_array_len(s2n_supported_sig_scheme_pref_list);
 const size_t s2n_legacy_sig_scheme_pref_list_len = s2n_array_len(s2n_legacy_sig_scheme_pref_list);
 const size_t s2n_tls13_sig_scheme_pref_list_len = s2n_array_len(s2n_tls13_sig_scheme_pref_list);
 
