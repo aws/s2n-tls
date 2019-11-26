@@ -27,7 +27,7 @@ struct s2n_signature_scheme {
     s2n_signature_algorithm sig_alg;
 
     /* Curve is only specified for ECDSA Signatures */
-    struct s2n_ecc_named_curve *signature_curve;
+    struct s2n_ecc_named_curve const *signature_curve;
 };
 
 /* RSA PKCS1 */
@@ -58,47 +58,9 @@ extern const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha256;
 extern const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha384;
 extern const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha512;
 
-/* Signature Scheme Preference List: TLS 1.2 and previous */
-/* This list MUST NOT contain any s2n_signature_scheme's with a non-null signature_curve defined. */
-static const struct s2n_signature_scheme* const s2n_legacy_preferred_signature_schemes[] = {
-        /* RSA PSS - Commented out until it is actually supported */
-        /* &s2n_rsa_pss_rsae_sha256, */
-        /* &s2n_rsa_pss_rsae_sha384, */
-        /* &s2n_rsa_pss_rsae_sha512, */
 
-        /* RSA PKCS1 */
-        &s2n_rsa_pkcs1_sha256,
-        &s2n_rsa_pkcs1_sha384,
-        &s2n_rsa_pkcs1_sha512,
-        &s2n_rsa_pkcs1_sha224,
-        &s2n_rsa_pkcs1_sha1,
+extern const struct s2n_signature_scheme* const s2n_legacy_sig_scheme_pref_list[];
+extern const struct s2n_signature_scheme* const s2n_tls13_sig_scheme_pref_list[];
 
-        /* ECDSA */
-        &s2n_ecdsa_sha256,
-        &s2n_ecdsa_sha384,
-        &s2n_ecdsa_sha512,
-        &s2n_ecdsa_sha224,
-        &s2n_ecdsa_sha1,
-};
-
-/* Signature Scheme Preference List:  TLS 1.3 */
-/* This list MUST NOT contain any ECDSA s2n_signature_scheme's with a NULL signature_curve (except ECDSA_SHA1). */
-static const struct s2n_signature_scheme * const s2n_tls13_preferred_signature_schemes[] = {
-        /* RSA PSS - Commented out until it is actually supported */
-        /* &s2n_rsa_pss_rsae_sha256, */
-        /* &s2n_rsa_pss_rsae_sha384, */
-        /* &s2n_rsa_pss_rsae_sha512, */
-
-        /* RSA PKCS1 */
-        &s2n_rsa_pkcs1_sha256,
-        &s2n_rsa_pkcs1_sha384,
-        &s2n_rsa_pkcs1_sha512,
-
-        /* ECDSA */
-        &s2n_ecdsa_secp256r1_sha256,
-        &s2n_ecdsa_secp384r1_sha384,
-
-        /* SHA-1 Legacy */
-        &s2n_rsa_pkcs1_sha1,
-        &s2n_ecdsa_sha1,
-};
+extern const size_t s2n_legacy_sig_scheme_pref_list_len;
+extern const size_t s2n_tls13_sig_scheme_pref_list_len;

@@ -28,24 +28,26 @@
 
 #define TLS_EC_CURVE_TYPE_NAMED 3
 
-struct s2n_ecc_named_curve s2n_ecc_curve_secp256r1 = {
+const struct s2n_ecc_named_curve s2n_ecc_curve_secp256r1 =
+{
         .iana_id = TLS_EC_CURVE_SECP_256_R1,
         .libcrypto_nid = NID_X9_62_prime256v1,
         .name = "secp256r1",
         .share_size = ( 32 * 2 ) + 1
 };
 
-struct s2n_ecc_named_curve s2n_ecc_curve_secp384r1 = {
+const struct s2n_ecc_named_curve s2n_ecc_curve_secp384r1 =
+{
         .iana_id = TLS_EC_CURVE_SECP_384_R1,
         .libcrypto_nid = NID_secp384r1,
-        .name= "secp384r1",
+        .name = "secp384r1",
         .share_size = ( 48 * 2 ) + 1
 };
 
 /* IANA values can be found here: https://tools.ietf.org/html/rfc8446#appendix-B.3.1.4 */
 /* Share sizes are described here: https://tools.ietf.org/html/rfc8446#section-4.2.8.2
  * and include the extra "legacy_form" byte */
-const struct s2n_ecc_named_curve* s2n_ecc_supported_curves[S2N_ECC_SUPPORTED_CURVES_COUNT] = {
+const struct s2n_ecc_named_curve* const s2n_ecc_supported_curves[] = {
     &s2n_ecc_curve_secp256r1,
     &s2n_ecc_curve_secp384r1,
 };

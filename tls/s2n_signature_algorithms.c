@@ -92,12 +92,12 @@ int s2n_set_signature_hash_pair_from_preference_list(struct s2n_connection *conn
         hash_alg_chosen = S2N_HASH_SHA1;
     }
 
-    const struct s2n_signature_scheme* const* our_pref_list = s2n_legacy_preferred_signature_schemes;
-    size_t our_pref_len =  s2n_array_len(s2n_legacy_preferred_signature_schemes);
+    const struct s2n_signature_scheme* const* our_pref_list = s2n_legacy_sig_scheme_pref_list;
+    size_t our_pref_len =  s2n_legacy_sig_scheme_pref_list_len;
 
     if (conn->actual_protocol_version == S2N_TLS13) {
-        our_pref_list = s2n_tls13_preferred_signature_schemes;
-        our_pref_len = s2n_array_len(s2n_tls13_preferred_signature_schemes);
+        our_pref_list = s2n_tls13_sig_scheme_pref_list;
+        our_pref_len = s2n_tls13_sig_scheme_pref_list_len;
     }
 
     /* Perform New SigScheme Negotiation */

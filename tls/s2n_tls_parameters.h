@@ -120,12 +120,12 @@
 #define TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA256           0x0401
 #define TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA384           0x0501
 #define TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA512           0x0601
+
 /* In TLS 1.0 and 1.1 the hard-coded default scheme was RSA_PKCS1_MD5_SHA1, but there's no IANA defined backwards
  * compatible value for that Scheme for TLS 1.2 and 1.3. So we define an internal value in the private range that won't
  * match anything in the valid range so that all TLS Versions can use the same SignatureScheme negotiation abstraction
  * layer. This scheme isn't in any preference list, so it can't be negotiated even if a client sent it in its pref list. */
 #define TLS_SIGNATURE_SCHEME_PRIVATE_INTERNAL_RSA_PKCS1_MD5_SHA1         0xFFFF
-
 
 /* TLS 1.2 Backwards Compatible ECDSA Schemes */
 #define TLS_SIGNATURE_SCHEME_ECDSA_SHA1                 0x0203
