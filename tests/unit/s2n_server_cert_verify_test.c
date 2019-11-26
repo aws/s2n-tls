@@ -58,8 +58,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
         client_conn->handshake_params.our_chain_and_key = ecdsa_cert;
-        client_conn->secure.conn_hash_alg = S2N_HASH_SHA256;
-        client_conn->secure.conn_sig_alg = S2N_SIGNATURE_ECDSA;
+        client_conn->secure.conn_sig_scheme = s2n_ecdsa_secp256r1_sha256;
 
         b.data = (uint8_t *) cert_chain_pem;
         b.size = strlen(cert_chain_pem) + 1;
@@ -121,8 +120,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
         client_conn->handshake_params.our_chain_and_key = ecdsa_cert;
-        client_conn->secure.conn_hash_alg = S2N_HASH_SHA256;
-        client_conn->secure.conn_sig_alg = S2N_SIGNATURE_ECDSA;
+        client_conn->secure.conn_sig_scheme = s2n_ecdsa_secp256r1_sha256;
 
         b.data = (uint8_t *) cert_chain_pem;
         b.size = strlen(cert_chain_pem) + 1;
@@ -185,8 +183,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
         client_conn->handshake_params.our_chain_and_key = ecdsa_cert;
-        client_conn->secure.conn_hash_alg = S2N_HASH_SHA256;
-        client_conn->secure.conn_sig_alg = S2N_SIGNATURE_ECDSA;
+        client_conn->secure.conn_sig_scheme = s2n_ecdsa_secp256r1_sha256;
 
         b.data = (uint8_t *) cert_chain_pem;
         b.size = strlen(cert_chain_pem) + 1;
@@ -246,8 +243,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
         client_conn->handshake_params.our_chain_and_key = ecdsa_cert;
-        client_conn->secure.conn_hash_alg = S2N_HASH_SHA256;
-        client_conn->secure.conn_sig_alg = S2N_SIGNATURE_ECDSA;
+        client_conn->secure.conn_sig_scheme = s2n_ecdsa_secp256r1_sha256;
 
         b.data = (uint8_t *) cert_chain_pem;
         b.size = strlen(cert_chain_pem) + 1;
@@ -266,7 +262,7 @@ int main(int argc, char **argv)
         /* send and receive with mismatched hash algs */
         EXPECT_SUCCESS(s2n_server_cert_verify_send(client_conn));
 
-        client_conn->secure.conn_hash_alg = S2N_HASH_SHA1;
+        client_conn->secure.conn_sig_scheme.hash_alg = S2N_HASH_SHA1;
 
         /* Reinitialize hash */
         EXPECT_SUCCESS(s2n_hash_init(&client_conn->handshake.sha256, S2N_HASH_SHA256));
@@ -275,8 +271,10 @@ int main(int argc, char **argv)
         EXPECT_FAILURE(s2n_server_cert_verify_recv(client_conn));
 
         /* send and receive with mismatched signature algs */
-        client_conn->secure.conn_hash_alg = S2N_HASH_SHA256;
-        client_conn->secure.conn_sig_alg = S2N_SIGNATURE_ANONYMOUS;
+        client_conn->secure.conn_sig_scheme.hash_alg = S2N_HASH_SHA256;
+        client_conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_ANONYMOUS;
+        client_conn->secure.conn_sig_scheme.iana_value = 0xFFFF;
+
         EXPECT_SUCCESS(s2n_hash_init(&client_conn->handshake.sha256, S2N_HASH_SHA256));
         EXPECT_SUCCESS(s2n_hash_update(&client_conn->handshake.sha256, hello, strlen((char *)hello)));
 

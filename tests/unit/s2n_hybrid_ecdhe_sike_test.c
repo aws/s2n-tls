@@ -58,7 +58,7 @@ int setup_connection(struct s2n_connection *conn) {
     conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
     conn->secure.s2n_kem_keys.negotiated_kem = &s2n_sike_p503_r1;
     conn->secure.cipher_suite = &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384;
-    conn->secure.conn_hash_alg = S2N_HASH_SHA384;
+    conn->secure.conn_sig_scheme = s2n_rsa_pkcs1_sha384;
     return 0;
 }
 
@@ -92,7 +92,8 @@ int main(int argc, char **argv) {
     EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain, private_key));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
     EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-    GUARD(s2n_set_signature_hash_pair_from_preference_list(server_conn, &server_conn->handshake_params.client_sig_hash_algs, &server_conn->secure.conn_hash_alg, &server_conn->secure.conn_sig_alg));
+
+    GUARD(s2n_choose_sig_scheme_from_peer_preference_list(server_conn, &server_conn->handshake_params.client_sig_hash_algs, &server_conn->secure.conn_sig_scheme));
 
     DEFER_CLEANUP(struct s2n_stuffer certificate_in = {0}, s2n_stuffer_free);
     EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
