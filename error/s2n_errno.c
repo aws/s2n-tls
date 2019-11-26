@@ -13,11 +13,12 @@
  * permissions and limitations under the License.
  */
 
+#include <errno.h>
 #include <strings.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <execinfo.h>
 #include "error/s2n_errno.h"
 
 #include <s2n.h>
@@ -270,3 +271,60 @@ int s2n_error_get_type(int error)
 {
     return (error >> S2N_ERR_NUM_VALUE_BITS);
 }
+
+
+/* https://www.gnu.org/software/libc/manual/html_node/Backtraces.html */
+static bool s_s2n_stack_traces_enabled;
+
+bool s2n_stack_traces_enabled()
+{
+    return s_s2n_stack_traces_enabled;
+}
+
+int s2n_stack_traces_enabled_set(bool newval)
+{
+    s_s2n_stack_traces_enabled = newval;
+    return S2N_SUCCESS;
+}
+
+#define MAX_BACKTRACE_DEPTH 20
+__thread char ** s2n_stacktrace = NULL;
+__thread int s2n_stacktrace_size = 0;
+
+int s2n_free_stacktrace(void)
+{
+    if(s2n_stacktrace != NULL) {
+        free(s2n_stacktrace);
+        s2n_stacktrace_size = 0;
+    }
+    return S2N_SUCCESS;
+}
+
+int s2n_calculate_stacktrace(void)
+{
+    if(s_s2n_stack_traces_enabled) {
+        int old_errno = errno;
+        GUARD(s2n_free_stacktrace());
+        void *array[MAX_BACKTRACE_DEPTH];
+        s2n_stacktrace_size = backtrace(array, MAX_BACKTRACE_DEPTH);
+        s2n_stacktrace = backtrace_symbols(array, s2n_stacktrace_size);
+	errno = old_errno;
+    }
+    return S2N_SUCCESS;
+}
+
+int s2n_get_stacktrace(char*** trace, int* trace_size) {
+    *trace = s2n_stacktrace;
+    *trace_size = s2n_stacktrace_size;
+    return S2N_SUCCESS;
+}
+
+int s2n_print_stacktrace(FILE *fptr)
+{
+    fprintf(fptr, "\nStacktrace is:\n");
+    for(int i = 0; i < s2n_stacktrace_size; ++i){
+        fprintf(fptr, "%s\n", s2n_stacktrace[i]);
+    }
+    return S2N_SUCCESS;
+}
+
