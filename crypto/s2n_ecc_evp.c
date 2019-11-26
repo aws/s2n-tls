@@ -41,6 +41,7 @@ const struct s2n_ecc_named_curve s2n_ecc_evp_supported_curves[S2N_ECC_EVP_SUPPOR
 const struct s2n_ecc_named_curve s2n_ecc_evp_supported_curves[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT] = {
     {.iana_id = TLS_EC_CURVE_SECP_256_R1, .libcrypto_nid = NID_X9_62_prime256v1, .name = "secp256r1", .share_size = (32 * 2) + 1},
     {.iana_id = TLS_EC_CURVE_SECP_384_R1, .libcrypto_nid = NID_secp384r1, .name = "secp384r1", .share_size = (48 * 2) + 1},
+};
 #endif
 
 static EVP_PKEY *s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve);
@@ -241,8 +242,9 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
     notnull_check(ecc_evp_params->negotiated_curve);
     notnull_check(ecc_evp_params->evp_pkey);
     notnull_check(out);
-
+    
     out->blob.size = EVP_PKEY_get1_tls_encodedpoint(ecc_evp_params->evp_pkey, &out->blob.data);
+    out->blob.data = s2n_stuffer_raw_write(out, out->blob.size);
     S2N_ERROR_IF(out->blob.size == 0, S2N_ERR_ECDHE_SERIALIZING);
     S2N_ERROR_IF(out->blob.size != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
 
@@ -304,18 +306,11 @@ int s2n_ecc_evp_parse_params(struct s2n_ecdhe_raw_server_params *raw_server_ecc_
 
 int s2n_ecc_evp_parse_params_point(struct s2n_blob *point_blob, struct s2n_ecc_evp_params *ecc_evp_params)
 {
-    notnull_check(point_blob);
-    notnull_check(ecc_evp_params);
+    notnull_check(point_blob->data);
     notnull_check(ecc_evp_params->negotiated_curve);
     notnull_check(ecc_evp_params->evp_pkey);
-    notnull_check(ecc_evp_params->evp_pkey);
 
-    S2N_ERROR_IF(!EVP_PKEY_missing_parameters(ecc_evp_params->evp_pkey), S2N_ERR_ECDHE_SERIALIZING);
-
-    S2N_ERROR_IF(EVP_PKEY_copy_parameters(ecc_evp_params->evp_pkey,
-                                          ecc_evp_params->evp_pkey) != 1,
-                 S2N_ERR_ECDHE_SERIALIZING);
-
+    S2N_ERROR_IF(0 != EVP_PKEY_missing_parameters(ecc_evp_params->evp_pkey), S2N_ERR_ECDHE_SERIALIZING);
     S2N_ERROR_IF(point_blob->size != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
     S2N_ERROR_IF(1 != EVP_PKEY_set1_tls_encodedpoint(ecc_evp_params->evp_pkey,
                                                      point_blob->data, point_blob->size),
@@ -326,10 +321,10 @@ int s2n_ecc_evp_parse_params_point(struct s2n_blob *point_blob, struct s2n_ecc_e
 
 int s2n_ecc_evp_generate_copy_params(struct s2n_ecc_evp_params *from_params, struct s2n_ecc_evp_params *to_params)
 {
-
-    notnull_check(from_params);
+    notnull_check(from_params->evp_pkey);
     notnull_check(from_params->negotiated_curve);
-    notnull_check(to_params->evp_pkey);
+    notnull_check(to_params->negotiated_curve);
+    S2N_ERROR_IF(from_params->negotiated_curve != to_params->negotiated_curve, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
     to_params->evp_pkey = EVP_PKEY_new();
     S2N_ERROR_IF(to_params->evp_pkey == NULL, S2N_ERR_ECDHE_GEN_KEY);
