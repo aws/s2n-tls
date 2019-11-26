@@ -150,6 +150,7 @@ const char *s2n_strerror(int error, const char *lang)
         case S2N_ERR_POLLING_FROM_SOCKET: return "Error polling from socket";
         case S2N_ERR_RECV_STUFFER_FROM_CONN: return "Error receiving stuffer from connection";
         case S2N_ERR_SEND_STUFFER_TO_CONN: return "Error sending stuffer to connection";
+        case S2N_ERR_PRECONDITION_VIOLATION: return "Precondition violation";
         case S2N_ERR_NO_ALERT: return "No Alert present";
         case S2N_ERR_CLIENT_MODE: return "operation not allowed in client mode";
         case S2N_ERR_CLIENT_MODE_DISABLED: return "client connections not allowed";
@@ -327,6 +328,7 @@ const char *s2n_strerror_name(int error)
         CASE_ERROR_NAME(S2N_ERR_POLLING_FROM_SOCKET);
         CASE_ERROR_NAME(S2N_ERR_RECV_STUFFER_FROM_CONN);
         CASE_ERROR_NAME(S2N_ERR_SEND_STUFFER_TO_CONN);
+	CASE_ERROR_NAME(S2N_ERR_PRECONDITION_VIOLATION);
         CASE_ERROR_NAME(S2N_ERR_NO_ALERT);
         CASE_ERROR_NAME(S2N_ERR_CLIENT_MODE);
         CASE_ERROR_NAME(S2N_ERR_CLIENT_MODE_DISABLED);
