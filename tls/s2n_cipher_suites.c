@@ -828,6 +828,23 @@ const struct s2n_cipher_preferences cipher_preferences_test_all_ecdsa = {
     .minimum_protocol_version = S2N_TLS10,
 };
 
+/* Certain cipher suites using RSA key exchange. Exposed for unit or integration tests. */
+static struct s2n_cipher_suite *s2n_some_rsa_kex_cipher_suites[] = {
+    &s2n_rsa_with_aes_128_cbc_sha,                  /* 0x00,0x2F */
+    &s2n_rsa_with_aes_256_cbc_sha,                  /* 0x00,0x35 */
+    &s2n_rsa_with_aes_128_cbc_sha256,               /* 0x00,0x3C */
+    &s2n_rsa_with_aes_256_cbc_sha256,               /* 0x00,0x3D */
+    &s2n_rsa_with_aes_128_gcm_sha256,               /* 0x00,0x9C */
+    &s2n_rsa_with_aes_256_gcm_sha384,               /* 0x00,0x9D */
+};
+
+/* Cipher preferences with rsa key exchange. Exposed for unit and integration tests. */
+const struct s2n_cipher_preferences cipher_preferences_test_some_rsa = {
+    .count = sizeof(s2n_some_rsa_kex_cipher_suites) / sizeof(s2n_some_rsa_kex_cipher_suites[0]),
+    .suites = s2n_some_rsa_kex_cipher_suites,
+    .minimum_protocol_version = S2N_TLS10,
+};
+
 /* All ECDSA cipher suites first, then the rest of the supported ciphers that s2n can negotiate.
  * Exposed for the "test_ecdsa_priority" cipher preference list.
  */

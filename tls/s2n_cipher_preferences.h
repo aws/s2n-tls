@@ -41,6 +41,7 @@ extern const struct s2n_cipher_preferences cipher_preferences_20190214;
 extern const struct s2n_cipher_preferences cipher_preferences_test_all;
 extern const struct s2n_cipher_preferences cipher_preferences_test_all_fips;
 extern const struct s2n_cipher_preferences cipher_preferences_test_all_ecdsa;
+extern const struct s2n_cipher_preferences cipher_preferences_test_some_rsa;
 extern const struct s2n_cipher_preferences cipher_preferences_test_ecdsa_priority;
 extern const struct s2n_cipher_preferences cipher_preferences_test_tls13_null_key_exchange_alg;
 
