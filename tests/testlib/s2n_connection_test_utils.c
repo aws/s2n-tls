@@ -17,6 +17,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "utils/s2n_blob.h"
+#include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
 #include "testlib/s2n_testlib.h"
@@ -86,44 +88,37 @@ int s2n_connection_set_io_stuffers(struct s2n_stuffer *input, struct s2n_stuffer
     return 0;
 }
 
+void s2n_print_bytearray(uint8_t *buf, uint32_t len)
+{
+    for (int i = 0; i < len; i++) {
+        printf("%02x", buf[i]);
+        if ((i + 1) % 8 == 0) {
+            printf(" ");
+        }
+        if ((i + 1) % 40 == 0) {
+            printf("\n");
+        }
+    }
+    printf("\n");
+}
+
+void s2n_print_blob(struct s2n_blob *blob, const char *name)
+{
+    printf("%s Blob (size: %d)\n", name, blob->size);
+    s2n_print_bytearray(blob->data, blob->size);
+}
+
+void s2n_print_stuffer(struct s2n_stuffer *stuffer, const char *name)
+{
+    printf("%s Stuffer (write: %d, read: %d, size: %d)\n", name, stuffer->write_cursor, stuffer->read_cursor, stuffer->blob.size);
+    s2n_print_bytearray(stuffer->blob.data, stuffer->write_cursor);
+}
+
 void s2n_print_connection(struct s2n_connection *conn, const char *marker)
 {
-    int i;
-
     printf("marker: %s\n", marker);
-    printf("HEADER IN Stuffer (write: %d, read: %d, size: %d)\n", conn->header_in.write_cursor, conn->header_in.read_cursor, conn->header_in.blob.size);
-    for (i = 0; i < conn->header_in.blob.size; i++) {
-        printf("%02x", conn->header_in.blob.data[i]);
-        if ((i + 1) % 8 == 0) {
-            printf(" ");
-        }
-        if ((i + 1) % 40 == 0) {
-            printf("\n");
-        }
-    }
-    printf("\n");
- 
-    printf("IN Stuffer (write: %d, read: %d, size: %d)\n", conn->in.write_cursor, conn->in.read_cursor, conn->in.blob.size);
-    for (i = 0; i < conn->in.write_cursor; i++) {
-        printf("%02x", conn->in.blob.data[i]);
-        if ((i + 1) % 8 == 0) {
-            printf(" ");
-        }
-        if ((i + 1) % 40 == 0) {
-            printf("\n");
-        }
-    }
-    printf("\n");
 
-    printf("OUT Stuffer (write: %d, read: %d, size: %d)\n", conn->out.write_cursor, conn->out.read_cursor, conn->out.blob.size);
-    for (i = 0; i < conn->out.write_cursor; i++) {
-        printf("%02x", conn->out.blob.data[i]);
-        if ((i + 1) % 8 == 0) {
-            printf(" ");
-        }
-        if ((i + 1) % 40 == 0) {
-            printf("\n");
-        }
-    }
-    printf("\n");
+    s2n_print_blob(&conn->header_in.blob, "HEADER IN");
+    s2n_print_stuffer(&conn->in, "IN");
+    s2n_print_stuffer(&conn->out, "OUT");
 }
