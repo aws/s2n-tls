@@ -668,6 +668,119 @@ int main(int argc, char **argv)
         }
     }
 
+/* Test: Handshake self-talks using handshake_write_io and handshake_read_io */
+    {
+        EXPECT_SUCCESS(s2n_enable_tls13());
+
+        struct s2n_connection *client_conn;
+        struct s2n_connection *server_conn;
+
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+
+        struct s2n_stuffer client_to_server;
+        struct s2n_stuffer server_to_client;
+
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
+
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
+
+        server_conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
+        server_conn->handshake.message_number = CLIENT_HELLO;
+
+        client_conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
+        client_conn->handshake.message_number = CLIENT_HELLO;
+
+        struct s2n_blob server_seq = { .data = server_conn->secure.server_sequence_number,.size = sizeof(server_conn->secure.server_sequence_number) };
+        S2N_BLOB_FROM_HEX(seq_0, "0000000000000000");
+        S2N_BLOB_FROM_HEX(seq_1, "0000000000000001");
+
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
+
+        /* Client sends ClientHello */
+        EXPECT_SUCCESS(handshake_write_io(client_conn));
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), SERVER_HELLO);
+
+        EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, 0);
+
+        s2n_tls13_connection_keys(server_secrets_0, server_conn);
+        EXPECT_EQUAL(server_secrets_0.size, 0);
+
+        /* Server reads ClientHello */
+        EXPECT_SUCCESS(handshake_read_io(server_conn));
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13); /* Server is now on TLS13 */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_HELLO);
+
+        s2n_tls13_connection_keys(server_secrets, server_conn);
+        EXPECT_EQUAL(server_secrets.size, 48);
+
+        EXPECT_SUCCESS(s2n_conn_set_handshake_type(server_conn));
+
+        /* Server sends ServerHello */
+        EXPECT_SUCCESS(handshake_write_io(server_conn));
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_CHANGE_CIPHER_SPEC);
+
+        /* Server sends CCS */
+        EXPECT_SUCCESS(handshake_write_io(server_conn));
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), ENCRYPTED_EXTENSIONS);
+        S2N_BLOB_EXPECT_EQUAL(server_seq, seq_0);
+
+        /* Server sends EncryptedExtensions */
+        EXPECT_SUCCESS(handshake_write_io(server_conn));
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_CERT);
+        S2N_BLOB_EXPECT_EQUAL(server_seq, seq_1);
+
+        /* Client reads CCS */
+        EXPECT_SUCCESS(handshake_read_io(client_conn));
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), ENCRYPTED_EXTENSIONS);
+
+        s2n_tls13_connection_keys(client_secrets, client_conn);
+        EXPECT_EQUAL(client_secrets.size, 48);
+
+        /* Verify that derive and extract secrets match */
+        S2N_BLOB_EXPECT_EQUAL(server_secrets.derive_secret, client_secrets.derive_secret);
+        S2N_BLOB_EXPECT_EQUAL(server_secrets.extract_secret, client_secrets.extract_secret);
+
+        /* Client reads Encrypted extensions */
+        EXPECT_SUCCESS(handshake_read_io(client_conn));
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), ENCRYPTED_EXTENSIONS);
+
+        /* TODO add the rest of the handshakes tests
+         * (ServerCert, CertVerify, ServerFinished, ClientFinished)
+         * when respective TLS 1.3 components are done */
+
+        /*
+         * // Server sends ServerCert
+         * EXPECT_SUCCESS(handshake_write_io(server_conn));
+         * EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_CERT_VERIFY);
+         *
+         * // Server sends CertVerify
+         * EXPECT_SUCCESS(handshake_write_io(server_conn));
+         * EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_FINISHED);
+         *
+         * // Server sends ServerFinished
+         * EXPECT_SUCCESS(handshake_write_io(server_conn));
+         * EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_FINISHED);
+         *
+         * // Client sends ClientFinished
+         * EXPECT_SUCCESS(handshake_write_io(client_conn));
+         * EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), APPLICATION_DATA);
+         *
+         * // Verify that sequence numbers reset
+         */
+
+        /* Clean up */
+        EXPECT_SUCCESS(s2n_stuffer_free(&client_to_server));
+        EXPECT_SUCCESS(s2n_stuffer_free(&server_to_client));
+
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
     END_TEST();
     return 0;
 }
