@@ -191,7 +191,7 @@ let verify_state_machine_elem state_machine state_machine_model index_term = do 
 
 // For now axiomitize this is always false and see if we can prove something
 let s2n_allowed_to_cache_connection_spec = do {
-    pconf <- crucible_alloc (llvm_struct "struct.s2n_connection");
+    pconf <- crucible_alloc_readonly (llvm_struct "struct.s2n_connection");
 
     crucible_execute_func [pconf];
     crucible_return (crucible_term {{ 0 : [32] }});
@@ -200,13 +200,13 @@ let s2n_allowed_to_cache_connection_spec = do {
 
 let s2n_connection_get_client_auth_type_spec = do{
 
-    pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
+    pconn <- crucible_alloc_readonly (llvm_struct "struct.s2n_connection");
     auth_type <- crucible_alloc (llvm_int 32);
 
     cca_ov <- crucible_fresh_var "cca_ov" (llvm_int 8);
     crucible_points_to (cca_type_ov pconn) (crucible_term cca_ov);
 
-    config <- crucible_alloc (llvm_struct "struct.s2n_config");
+    config <- crucible_alloc_readonly (llvm_struct "struct.s2n_config");
     crucible_points_to (conn_config pconn) config;
 
     config_cca <- crucible_fresh_var "config_cca" (llvm_int 32);
@@ -303,7 +303,7 @@ let s2n_advance_message_spec = do {
 // that it decrements the 'corked' ghost variable to indicate that the socket
 // has been uncorked.
 let s2n_socket_write_uncork_spec = do {
-    pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
+    pconn <- crucible_alloc_readonly (llvm_struct "struct.s2n_connection");
     cork_val <- crucible_fresh_var "corked" (llvm_int 2);
     crucible_ghost_value corked cork_val;
 
@@ -317,7 +317,7 @@ let s2n_socket_write_uncork_spec = do {
 // Specification for s2n_generate_new_client_session_id. This is essentially
 // a noop function that returns 0 from the perspective of our current proof
 let s2n_generate_new_client_session_id_spec = do {
-    pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
+    pconn <- crucible_alloc_readonly (llvm_struct "struct.s2n_connection");
    
     crucible_execute_func [pconn];
 
@@ -327,7 +327,7 @@ let s2n_generate_new_client_session_id_spec = do {
 // Specification for s2n_decrypt_session_ticket_spec. This is essentially
 // a noop function that returns 0 from the perspective of our current proof
 let s2n_decrypt_session_ticket_spec = do {
-    pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
+    pconn <- crucible_alloc_readonly (llvm_struct "struct.s2n_connection");
 
     crucible_execute_func [pconn];
     crucible_return (crucible_term {{ 0 : [32] }});
@@ -337,7 +337,7 @@ let s2n_decrypt_session_ticket_spec = do {
 // that it increments the 'corked' ghost variable to 1 to
 // indicate that the socket has been corked.
 let s2n_socket_write_cork_spec = do {
-    pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
+    pconn <- crucible_alloc_readonly (llvm_struct "struct.s2n_connection");
 
     cork_val <- crucible_fresh_var "corked" (llvm_int 2);
     crucible_ghost_value corked cork_val;
@@ -354,7 +354,7 @@ let s2n_socket_write_cork_spec = do {
 // uncorked initially. If it was corked, then the cork/uncork state
 // machine would be bypassed, making verification moot.
 let s2n_socket_was_corked_spec = do {
-    pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
+    pconn <- crucible_alloc_readonly (llvm_struct "struct.s2n_connection");
 
     crucible_execute_func [pconn];
 
@@ -365,7 +365,7 @@ let s2n_socket_was_corked_spec = do {
 // Specification for s2n_socket_quickack. This is essentially
 // a noop function that returns 0 from the perspective of our current proof
 let s2n_socket_quickack_spec = do {
-    pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
+    pconn <- crucible_alloc_readonly (llvm_struct "struct.s2n_connection");
 
     crucible_execute_func [pconn];
 
@@ -378,7 +378,7 @@ let s2n_socket_quickack_spec = do {
 // managing the corking and uncorking of the socket. Otherwise, the
 //cork/uncork state machine would be bypassed making verification moot.
 let s2n_connection_is_managed_corked_spec = do {
-    pconn <- crucible_alloc (llvm_struct "struct.s2n_connection");
+    pconn <- crucible_alloc_readonly (llvm_struct "struct.s2n_connection");
 
     crucible_execute_func [pconn];
 
