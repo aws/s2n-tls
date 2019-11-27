@@ -806,7 +806,7 @@ struct s2n_cipher_suite *cipher_suites_pq_sike_test_tls_1_0_2019_11[] = {
 };
 
 const struct s2n_cipher_preferences cipher_preferences_pq_sike_test_tls_1_0_2019_11 = {
-        .count = sizeof(cipher_suites_pq_sike_test_tls_1_0_2019_11) / sizeof(cipher_suites_pq_sike_test_tls_1_0_2019_11[0]),
+        .count = s2n_array_len(cipher_suites_pq_sike_test_tls_1_0_2019_11),
         .suites = cipher_suites_pq_sike_test_tls_1_0_2019_11,
         .minimum_protocol_version = S2N_TLS10,
 };
