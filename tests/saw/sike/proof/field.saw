@@ -199,7 +199,7 @@ let fpsqr503_mont_spec = do {
 };
 
 let fpsqr503_mont_same_spec = do {
-    (a, ap) <- A_felm_t "a";
+    (a, ap) <- B_felm_t "a";
     crucible_precond {{ digit_modx4(a) }};
     crucible_execute_func [ap, ap];
     c <- crucible_fresh_var "c" felm_t;
@@ -484,7 +484,7 @@ let fp2mul503_mont_spec norm_post = do {
 
     (a, ap) <- A_f2elm_t "a";
     (b, bp) <- A_f2elm_t "b";
-    cp <- crucible_alloc f2elm_t;
+    cp <- C_f2elm_t ();
     crucible_precond {{ pf2twice_mod(a) /\ pf2twice_mod(b) }};
     crucible_execute_func [ap, bp, cp];
     c <- crucible_fresh_var "c" f2elm_t;
@@ -552,8 +552,8 @@ let fp2mul503_mont_same_spec norm_post = do {
 };
 
 let fp2sqr503_mont_spec norm_post = do {
-    (a, ap) <- ptr_to_fresh "a" f2elm_t;
-    cp <- crucible_alloc f2elm_t;
+    (a, ap) <- A_f2elm_t "a";
+    cp <- C_f2elm_t ();
     crucible_precond {{ pf2twice_mod(a) }};
     crucible_execute_func [ap, cp];
     c <- crucible_fresh_var "c" f2elm_t;
@@ -568,7 +568,7 @@ let fp2sqr503_mont_spec norm_post = do {
 };
 
 let fp2sqr503_mont_same_spec norm_post = do {
-    (a, ap) <- ptr_to_fresh "a" f2elm_t;
+    (a, ap) <- B_f2elm_t "a";
     crucible_precond {{ pf2twice_mod(a) }};
     crucible_execute_func [ap, ap];
     c <- crucible_fresh_var "c" f2elm_t;
