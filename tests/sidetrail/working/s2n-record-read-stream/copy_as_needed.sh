@@ -14,6 +14,8 @@
 #
 
 set -x 
+set -e
+
 BASEDIR=$(pwd)
 echo $BASEDIR
 S2N_BASE="$BASEDIR/../../../.."
@@ -29,6 +31,9 @@ patch -p5 < ../patches/hmac.patch
 #the hash uses my stubs for now, so replace the file
 cp ../stubs/s2n_hash.c crypto/
 cp ../stubs/s2n_hash.h crypto/
+
+mkdir -p error
+cp ../stubs/s2n_errno.c error/
 
 mkdir -p stuffer
 cp $S2N_BASE/stuffer/s2n_stuffer.c stuffer/
