@@ -302,14 +302,16 @@ int s2n_free_stacktrace(void)
 
 int s2n_calculate_stacktrace(void)
 {
-    if (s_s2n_stack_traces_enabled) {
-        int old_errno = errno;
-        GUARD(s2n_free_stacktrace());
-        void *array[MAX_BACKTRACE_DEPTH];
-        s2n_stacktrace_size = backtrace(array, MAX_BACKTRACE_DEPTH);
-        s2n_stacktrace = backtrace_symbols(array, s2n_stacktrace_size);
-        errno = old_errno;
+    if (!s_s2n_stack_traces_enabled) {
+        return S2N_SUCCESS;
     }
+
+    int old_errno = errno;
+    GUARD(s2n_free_stacktrace());
+    void *array[MAX_BACKTRACE_DEPTH];
+    s2n_stacktrace_size = backtrace(array, MAX_BACKTRACE_DEPTH);
+    s2n_stacktrace = backtrace_symbols(array, s2n_stacktrace_size);
+    errno = old_errno;
     return S2N_SUCCESS;
 }
 
@@ -321,11 +323,13 @@ int s2n_get_stacktrace(char*** trace, int* trace_size) {
 
 int s2n_print_stacktrace(FILE *fptr)
 {
-    if (s_s2n_stack_traces_enabled) {
-        fprintf(fptr, "\nStacktrace is:\n");
-        for (int i = 0; i < s2n_stacktrace_size; ++i){
-            fprintf(fptr, "%s\n", s2n_stacktrace[i]);
-        }
+    if (!s_s2n_stack_traces_enabled) {
+        return S2N_SUCCESS;
+    }
+
+    fprintf(fptr, "\nStacktrace is:\n");
+    for (int i = 0; i < s2n_stacktrace_size; ++i){
+        fprintf(fptr, "%s\n", s2n_stacktrace[i]);
     }
     return S2N_SUCCESS;
 }
