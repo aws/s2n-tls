@@ -270,7 +270,7 @@ static int s2n_populate_client_hello_extensions(struct s2n_client_hello *ch)
     }
 
     /* Sort extensions by extension type */
-    qsort(ch->parsed_extensions->elements, ch->parsed_extensions->num_of_elements, ch->parsed_extensions->element_size, s2n_parsed_extensions_compare);
+    qsort(ch->parsed_extensions->mem.data, ch->parsed_extensions->num_of_elements, ch->parsed_extensions->element_size, s2n_parsed_extensions_compare);
 
     return 0;
 }
@@ -488,7 +488,7 @@ int s2n_client_hello_get_parsed_extension(struct s2n_array *parsed_extensions, s
     struct s2n_client_hello_parsed_extension search = {0};
     search.extension_type = extension_type;
 
-    struct s2n_client_hello_parsed_extension *result_extension = bsearch(&search, parsed_extensions->elements, parsed_extensions->num_of_elements,
+    struct s2n_client_hello_parsed_extension *result_extension = bsearch(&search, parsed_extensions->mem.data, parsed_extensions->num_of_elements,
             parsed_extensions->element_size, s2n_parsed_extensions_compare);
 
     notnull_check(result_extension);
