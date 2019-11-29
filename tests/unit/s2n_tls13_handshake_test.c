@@ -84,8 +84,8 @@ int main(int argc, char **argv)
         server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         /* test that ecdhe shared secret generation matches */
-        EXPECT_SUCCESS(s2n_tls13_select_key_and_compute_secret(server_conn, &server_shared_secret));
-        EXPECT_SUCCESS(s2n_tls13_select_key_and_compute_secret(client_conn, &client_shared_secret));
+        EXPECT_SUCCESS(s2n_tls13_compute_shared_secret(server_conn, &server_shared_secret));
+        EXPECT_SUCCESS(s2n_tls13_compute_shared_secret(client_conn, &client_shared_secret));
 
         S2N_BLOB_EXPECT_EQUAL(server_shared_secret, client_shared_secret);
 

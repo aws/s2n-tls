@@ -49,20 +49,29 @@ int s2n_tls13_keys_from_conn(struct s2n_tls13_keys *keys, struct s2n_connection 
     return 0;
 }
 
-int s2n_tls13_select_key_and_compute_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret)
+int s2n_tls13_compute_shared_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret)
 {
-    int selection = 0; /* hardcoded to the first curve */
+    struct s2n_ecc_params *server_key = &conn->secure.server_ecc_params;
+    notnull_check(server_key);
+
+    /* for now we do this tedious loop to find the matching client key selection.
+     * this can be simplified if we get an index or a pointer to a specific key */
+    int selection = -1;
+    for (int i = 0; i < S2N_ECC_SUPPORTED_CURVES_COUNT; i++) {
+        if (server_key->negotiated_curve->iana_id == s2n_ecc_supported_curves[i].iana_id) {
+            selection = i;
+            break;
+        }
+    }
+
+    S2N_ERROR_IF(selection < 0, S2N_ERR_BAD_KEY_SHARE);
+    struct s2n_ecc_params *client_key = &conn->secure.client_ecc_params[selection];
+    notnull_check(client_key);
 
     if (conn->mode == S2N_CLIENT) {
-        GUARD(s2n_ecc_compute_shared_secret_from_params(
-            &conn->secure.client_ecc_params[selection],
-            &conn->secure.server_ecc_params,
-            shared_secret));
+        GUARD(s2n_ecc_compute_shared_secret_from_params(client_key, server_key, shared_secret));
     } else {
-        GUARD(s2n_ecc_compute_shared_secret_from_params(
-            &conn->secure.server_ecc_params,
-            &conn->secure.client_ecc_params[selection],
-            shared_secret));
+        GUARD(s2n_ecc_compute_shared_secret_from_params(server_key, client_key, shared_secret));
     }
 
     return 0;
@@ -81,7 +90,7 @@ int s2n_tls13_handle_handshake_secrets(struct s2n_connection *conn)
 
     /* get shared secret */
     DEFER_CLEANUP(struct s2n_blob shared_secret = { 0 }, s2n_free);
-    GUARD(s2n_tls13_select_key_and_compute_secret(conn, &shared_secret));
+    GUARD(s2n_tls13_compute_shared_secret(conn, &shared_secret));
 
     /* derive early secrets */
     GUARD(s2n_tls13_derive_early_secrets(&secrets));
@@ -114,6 +123,12 @@ int s2n_tls13_handle_handshake_secrets(struct s2n_connection *conn)
     struct s2n_blob client_finished_key = { .data = conn->handshake.client_finished, .size = secrets.size };
     GUARD(s2n_tls13_derive_finished_key(&secrets, &server_hs_secret, &server_finished_key));
     GUARD(s2n_tls13_derive_finished_key(&secrets, &client_hs_secret, &client_finished_key));
+
+    /* since shared secret has been computed, clean up keys */
+    GUARD(s2n_ecc_params_free(&conn->secure.server_ecc_params));
+    for (int i = 0; i< S2N_ECC_SUPPORTED_CURVES_COUNT; i++) {
+        GUARD(s2n_ecc_params_free(&conn->secure.client_ecc_params[i]));
+    }
 
     return 0;
 }
