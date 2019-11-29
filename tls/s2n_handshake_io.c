@@ -655,26 +655,30 @@ static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct 
 /* this hook runs before hashes are updated */
 static int s2n_conn_pre_handshake_hashes_update(struct s2n_connection *conn)
 {
-    if (conn->actual_protocol_version < S2N_TLS13) return 0;
-
-    switch(s2n_conn_get_current_message_type(conn)) {
-    case CLIENT_FINISHED:
-        /* This runs before handshake update because application secrets uses only
-         * handshake hashes up to Server finished. This handler works in both
-         * read and write modes.
-         */
-        GUARD(s2n_tls13_handle_application_secrets(conn));
-        break;
-    default:
-        break;
+    if (conn->actual_protocol_version < S2N_TLS13) {
+        return 0;
     }
+
+    /* Right now only this function concerns with only CLIENT_FINISHED */
+    if (s2n_conn_get_current_message_type(conn) != CLIENT_FINISHED) {
+        return 0;
+    }
+
+    /* This runs before handshake update because application secrets uses only
+     * handshake hashes up to Server finished. This handler works in both
+     * read and write modes.
+     */
+    GUARD(s2n_tls13_handle_application_secrets(conn));
+
     return 0;
 }
 
 /* this hook runs after hashes are updated */
 static int s2n_conn_post_handshake_hashes_update(struct s2n_connection *conn)
 {
-    if (conn->actual_protocol_version < S2N_TLS13) return 0;
+    if (conn->actual_protocol_version < S2N_TLS13) {
+        return 0;
+    }
 
     struct s2n_blob client_seq = {.data = conn->secure.client_sequence_number,.size = sizeof(conn->secure.client_sequence_number) };
     struct s2n_blob server_seq = {.data = conn->secure.server_sequence_number,.size = sizeof(conn->secure.server_sequence_number) };
@@ -907,7 +911,7 @@ static int handshake_read_io(struct s2n_connection *conn)
      * TLS_APPLICATION_DATA. The actual record content type is found after the encryped
      * is decrypted.
      */
-    if (conn->actual_protocol_version >= S2N_TLS13 && record_type == TLS_APPLICATION_DATA) {
+    if (conn->actual_protocol_version == S2N_TLS13 && record_type == TLS_APPLICATION_DATA) {
         GUARD(s2n_stuffer_skip_read(&conn->in, s2n_stuffer_data_available(&conn->in) - 1));
 
         /* set the true record type */
