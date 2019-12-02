@@ -94,6 +94,10 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
 #define GUARD_GOTO( x , label ) do {if ( (x) < 0 ) goto label;} while (0)
 #define GUARD_PTR( x )          do {if ( (x) < 0 ) return NULL;} while (0)
 
+#define GUARD_NONNULL( x )              do {if ( (x) == NULL ) return S2N_FAILURE;} while (0)
+#define GUARD_NONNULL_GOTO( x , label ) do {if ( (x) == NULL ) goto label;} while (0)
+#define GUARD_NONNULL_PTR( x )          do {if ( (x) == NULL ) return NULL;} while (0)
+
 /* Check the return value from caller. If this value is -2, S2N_ERR_BLOCKED is marked*/
 #define GUARD_AGAIN( x )  do {if ( (x) == -2 ) { S2N_ERROR(S2N_ERR_BLOCKED); } GUARD( x );} while(0)
 
@@ -148,3 +152,5 @@ extern int s2n_constant_time_pkcs1_unpad_or_dont(uint8_t * dst, const uint8_t * 
   struct __useless_struct_to_allow_trailing_semicolon__
 
 #define s2n_array_len(array) (sizeof(array) / sizeof(array[0]))
+
+extern int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out);
