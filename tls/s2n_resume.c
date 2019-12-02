@@ -590,25 +590,6 @@ end:
     return 0;
 }
 
-int s2n_verify_unique_ticket_key_comparator(void *a, void *b)
-{
-    return memcmp((uint8_t *) a, (uint8_t *) b, SHA_DIGEST_LENGTH);
-}
-
-int s2n_verify_unique_ticket_key(struct s2n_config *config, uint8_t *hash, uint16_t *insert_index)
-{
-    int result = s2n_array_binary_search(0,
-                                         config->ticket_key_hashes->num_of_elements - 1,
-                                         config->ticket_key_hashes,
-                                         hash,
-                                         s2n_verify_unique_ticket_key_comparator);
-
-    S2N_ERROR_IF(result == -1, S2N_ERR_TICKET_KEY_NOT_UNIQUE);
-
-    *insert_index = result;
-    return 0;
-}
-
 int s2n_config_store_ticket_key_comparator(void *a, void *b)
 {
     if (((struct s2n_ticket_key *) a)->intro_timestamp >= ((struct s2n_ticket_key *) b)->intro_timestamp) {
@@ -620,16 +601,10 @@ int s2n_config_store_ticket_key_comparator(void *a, void *b)
 
 int s2n_config_store_ticket_key(struct s2n_config *config, struct s2n_ticket_key *key)
 {
-    int index = s2n_array_binary_search(0,
-                                        config->ticket_keys->num_of_elements - 1,
-                                        config->ticket_keys,
-                                        key,
-                                        s2n_config_store_ticket_key_comparator);
-
-    S2N_ERROR_IF(index == -1, S2N_ERR_TICKET_KEY_NOT_UNIQUE);
-
     /* Keys are stored from oldest to newest */
-    struct s2n_ticket_key *ticket_key_element = s2n_array_insert(config->ticket_keys, index);
+    struct s2n_ticket_key *ticket_key_element = s2n_array_insert_sorted(config->ticket_keys,
+									key,
+									s2n_config_store_ticket_key_comparator);
     memcpy_check(ticket_key_element, key, sizeof(struct s2n_ticket_key));
 
     return 0;
