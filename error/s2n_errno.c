@@ -288,14 +288,14 @@ int s2n_stack_traces_enabled_set(bool newval)
 }
 
 #define MAX_BACKTRACE_DEPTH 20
-__thread char ** s2n_stacktrace = NULL;
-__thread int s2n_stacktrace_size = 0;
+__thread struct s2n_stacktrace tl_stacktrace = {0};
 
 int s2n_free_stacktrace(void)
 {
-    if (s2n_stacktrace != NULL) {
-        free(s2n_stacktrace);
-        s2n_stacktrace_size = 0;
+    if (tl_stacktrace.trace != NULL) {
+        free(tl_stacktrace.trace);
+	struct s2n_stacktrace zero_stacktrace = {0};
+	tl_stacktrace = zero_stacktrace;
     }
     return S2N_SUCCESS;
 }
@@ -309,27 +309,27 @@ int s2n_calculate_stacktrace(void)
     int old_errno = errno;
     GUARD(s2n_free_stacktrace());
     void *array[MAX_BACKTRACE_DEPTH];
-    s2n_stacktrace_size = backtrace(array, MAX_BACKTRACE_DEPTH);
-    s2n_stacktrace = backtrace_symbols(array, s2n_stacktrace_size);
+    tl_stacktrace.trace_size = backtrace(array, MAX_BACKTRACE_DEPTH);
+    tl_stacktrace.trace = backtrace_symbols(array, tl_stacktrace.trace_size);
     errno = old_errno;
     return S2N_SUCCESS;
 }
 
-int s2n_get_stacktrace(char*** trace, int* trace_size) {
-    *trace = s2n_stacktrace;
-    *trace_size = s2n_stacktrace_size;
+int s2n_get_stacktrace(struct s2n_stacktrace *trace) {
+    *trace = tl_stacktrace;
     return S2N_SUCCESS;
 }
 
 int s2n_print_stacktrace(FILE *fptr)
 {
     if (!s_s2n_stack_traces_enabled) {
+        fprintf(fptr, "NOTE: Some details are omitted, run with S2N_PRINT_STACKTRACE=1 for a verbose backtrace.  See https://github.com/awslabs/s2n/blob/master/docs/USAGE-GUIDE.md\n");
         return S2N_SUCCESS;
     }
 
     fprintf(fptr, "\nStacktrace is:\n");
-    for (int i = 0; i < s2n_stacktrace_size; ++i){
-        fprintf(fptr, "%s\n", s2n_stacktrace[i]);
+    for (int i = 0; i < tl_stacktrace.trace_size; ++i){
+        fprintf(fptr, "%s\n",  tl_stacktrace.trace[i]);
     }
     return S2N_SUCCESS;
 }

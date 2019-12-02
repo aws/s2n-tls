@@ -259,10 +259,15 @@ extern __thread const char *s2n_debug_str;
 #define S2N_OBJECT_PTR_IS_WRITABLE(ptr) S2N_MEM_IS_WRITABLE((ptr), sizeof(*(ptr)))
 
 /** Calculate and print stacktraces */
+struct s2n_stacktrace {
+  char **trace;
+  int trace_size;
+};
+
 extern bool s2n_stack_traces_enabled();
 extern int s2n_stack_traces_enabled_set(bool newval);
 
 extern int s2n_calculate_stacktrace(void);
 extern int s2n_print_stacktrace(FILE *fptr);
 extern int s2n_free_stacktrace(void);
-extern int s2n_get_stacktrace(char*** trace, int* trace_size);
+extern int s2n_get_stacktrace(struct s2n_stacktrace *trace);
