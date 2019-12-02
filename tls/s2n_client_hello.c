@@ -364,7 +364,12 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     uint8_t reported_protocol_version = MIN(conn->client_protocol_version, S2N_TLS12);
     client_protocol_version[0] = reported_protocol_version / 10;
     client_protocol_version[1] = reported_protocol_version % 10;
-    // conn->client_hello_version = conn->client_protocol_version;
+    /* As per RFC https://tools.ietf.org/id/draft-ietf-tls-tls13-23.html#client-hello, 
+     * In TLS 1.3, the client indicates its version preferences in the "supported_versions" extension
+     * and the legacy_version field MUST be set to 0x0303, which is the version number for TLS 1.2
+     * Here we set the client hello version to reported protocol version, which is the min of the
+     * "supported_versions" by the client and TLS1.2.
+     */
     conn->client_hello_version = reported_protocol_version;
 
     GUARD(s2n_stuffer_write_bytes(out, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));

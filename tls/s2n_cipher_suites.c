@@ -831,11 +831,6 @@ const struct s2n_cipher_preferences cipher_preferences_test_all_ecdsa = {
 /* Certain cipher suites using RSA key exchange. Exposed for unit or integration tests. */
 static struct s2n_cipher_suite *s2n_some_rsa_kex_cipher_suites[] = {
     &s2n_rsa_with_aes_128_cbc_sha,                  /* 0x00,0x2F */
-    &s2n_rsa_with_aes_256_cbc_sha,                  /* 0x00,0x35 */
-    &s2n_rsa_with_aes_128_cbc_sha256,               /* 0x00,0x3C */
-    &s2n_rsa_with_aes_256_cbc_sha256,               /* 0x00,0x3D */
-    &s2n_rsa_with_aes_128_gcm_sha256,               /* 0x00,0x9C */
-    &s2n_rsa_with_aes_256_gcm_sha384,               /* 0x00,0x9D */
 };
 
 /* Cipher preferences with rsa key exchange. Exposed for unit and integration tests. */
