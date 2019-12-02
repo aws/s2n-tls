@@ -60,7 +60,8 @@ int main(int argc, char **argv)
         /* Client sends ClientHello key_share */
         EXPECT_SUCCESS(s2n_extensions_client_key_share_send(client_conn, &client_hello_key_share));
         S2N_STUFFER_READ_EXPECT_EQUAL(&client_hello_key_share, TLS_EXTENSION_KEY_SHARE, uint16);
-        S2N_STUFFER_READ_EXPECT_EQUAL(&client_hello_key_share, s2n_extensions_client_key_share_size(server_conn) - 4, uint16);
+        S2N_STUFFER_READ_EXPECT_EQUAL(&client_hello_key_share, s2n_extensions_client_key_share_size(server_conn)
+            - (S2N_SIZE_OF_EXTENSION_TYPE + S2N_SIZE_OF_EXTENSION_DATA_SIZE), uint16);
 
         EXPECT_SUCCESS(s2n_extensions_client_key_share_recv(server_conn, &client_hello_key_share));
 
@@ -71,7 +72,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_extensions_server_key_share_send(server_conn, &server_hello_key_share));
 
         S2N_STUFFER_READ_EXPECT_EQUAL(&server_hello_key_share, TLS_EXTENSION_KEY_SHARE, uint16);
-        S2N_STUFFER_READ_EXPECT_EQUAL(&server_hello_key_share, s2n_extensions_server_key_share_send_size(server_conn) - 4, uint16);
+        S2N_STUFFER_READ_EXPECT_EQUAL(&server_hello_key_share, s2n_extensions_server_key_share_send_size(server_conn)
+            - (S2N_SIZE_OF_EXTENSION_TYPE + S2N_SIZE_OF_EXTENSION_DATA_SIZE), uint16);
         EXPECT_SUCCESS(s2n_extensions_server_key_share_recv(client_conn, &server_hello_key_share));
         EXPECT_EQUAL(s2n_stuffer_data_available(&server_hello_key_share), 0);
 
