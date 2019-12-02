@@ -659,7 +659,7 @@ static int s2n_conn_pre_handshake_hashes_update(struct s2n_connection *conn)
         return 0;
     }
 
-    /* Right now only this function concerns with only CLIENT_FINISHED */
+    /* Right now this function is only concerned with CLIENT_FINISHED */
     if (s2n_conn_get_current_message_type(conn) != CLIENT_FINISHED) {
         return 0;
     }

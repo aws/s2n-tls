@@ -368,8 +368,8 @@ int main(int argc, char **argv)
             /* Test parsing of tls 1.3 aead record */
             S2N_BLOB_FROM_HEX(plaintext_record, plaintext_record_hex);
 
-            uint8_t ccs[] = { 1 };
-            struct s2n_blob in = { .data = ccs, .size = sizeof(ccs) };
+            uint8_t change_cipher_spec[] = { 1 };
+            struct s2n_blob in = { .data = change_cipher_spec, .size = sizeof(change_cipher_spec) };
 
             /* Takes an input blob and writes to out stuffer then encrypt the payload */
             EXPECT_SUCCESS(s2n_record_write(conn, TLS_CHANGE_CIPHER_SPEC, &in));

@@ -104,19 +104,19 @@ int s2n_tls13_handle_handshake_secrets(struct s2n_connection *conn)
     GUARD(s2n_tls13_derive_handshake_secrets(&secrets, &shared_secret, &hash_state, &client_hs_secret, &server_hs_secret));
 
     /* produce handshake traffic keys and configure record algorithm */
-    s2n_tls13_key_blob(s_hs_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);
-    struct s2n_blob s_hs_iv = { .data = conn->secure.server_implicit_iv, .size = S2N_TLS13_FIXED_IV_LEN };
-    GUARD(s2n_tls13_derive_traffic_keys(&secrets, &server_hs_secret, &s_hs_key, &s_hs_iv));
+    s2n_tls13_key_blob(server_hs_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);
+    struct s2n_blob server_hs_iv = { .data = conn->secure.server_implicit_iv, .size = S2N_TLS13_FIXED_IV_LEN };
+    GUARD(s2n_tls13_derive_traffic_keys(&secrets, &server_hs_secret, &server_hs_key, &server_hs_iv));
 
-    s2n_tls13_key_blob(c_hs_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);
-    struct s2n_blob c_hs_iv = { .data = conn->secure.client_implicit_iv, .size = S2N_TLS13_FIXED_IV_LEN };
-    GUARD(s2n_tls13_derive_traffic_keys(&secrets, &client_hs_secret, &c_hs_key, &c_hs_iv));
+    s2n_tls13_key_blob(client_hs_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);
+    struct s2n_blob client_hs_iv = { .data = conn->secure.client_implicit_iv, .size = S2N_TLS13_FIXED_IV_LEN };
+    GUARD(s2n_tls13_derive_traffic_keys(&secrets, &client_hs_secret, &client_hs_key, &client_hs_iv));
 
     GUARD(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.server_key));
     GUARD(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.client_key));
 
-    GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.server_key, &s_hs_key));
-    GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.client_key, &c_hs_key));
+    GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.server_key, &server_hs_key));
+    GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.client_key, &client_hs_key));
 
     /* calculate server + client finished keys and store them in handshake struct */
     struct s2n_blob server_finished_key = { .data = conn->handshake.server_finished, .size = secrets.size };
