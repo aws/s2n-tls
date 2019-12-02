@@ -13,11 +13,12 @@
  * permissions and limitations under the License.
  */
 
+#include <errno.h>
 #include <strings.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <execinfo.h>
 #include "error/s2n_errno.h"
 
 #include <s2n.h>
@@ -269,4 +270,68 @@ const char *s2n_strerror_debug(int error, const char *lang)
 int s2n_error_get_type(int error)
 {
     return (error >> S2N_ERR_NUM_VALUE_BITS);
+}
+
+
+/* https://www.gnu.org/software/libc/manual/html_node/Backtraces.html */
+static bool s_s2n_stack_traces_enabled;
+
+bool s2n_stack_traces_enabled()
+{
+    return s_s2n_stack_traces_enabled;
+}
+
+int s2n_stack_traces_enabled_set(bool newval)
+{
+    s_s2n_stack_traces_enabled = newval;
+    return S2N_SUCCESS;
+}
+
+#define MAX_BACKTRACE_DEPTH 20
+__thread struct s2n_stacktrace tl_stacktrace = {0};
+
+int s2n_free_stacktrace(void)
+{
+    if (tl_stacktrace.trace != NULL) {
+        free(tl_stacktrace.trace);
+	struct s2n_stacktrace zero_stacktrace = {0};
+	tl_stacktrace = zero_stacktrace;
+    }
+    return S2N_SUCCESS;
+}
+
+int s2n_calculate_stacktrace(void)
+{
+    if (!s_s2n_stack_traces_enabled) {
+        return S2N_SUCCESS;
+    }
+
+    int old_errno = errno;
+    GUARD(s2n_free_stacktrace());
+    void *array[MAX_BACKTRACE_DEPTH];
+    tl_stacktrace.trace_size = backtrace(array, MAX_BACKTRACE_DEPTH);
+    tl_stacktrace.trace = backtrace_symbols(array, tl_stacktrace.trace_size);
+    errno = old_errno;
+    return S2N_SUCCESS;
+}
+
+int s2n_get_stacktrace(struct s2n_stacktrace *trace) {
+    *trace = tl_stacktrace;
+    return S2N_SUCCESS;
+}
+
+int s2n_print_stacktrace(FILE *fptr)
+{
+    if (!s_s2n_stack_traces_enabled) {
+      fprintf(fptr, "%s\n%s\n",
+	      "NOTE: Some details are omitted, run with S2N_PRINT_STACKTRACE=1 for a verbose backtrace.",
+	      "See https://github.com/awslabs/s2n/blob/master/docs/USAGE-GUIDE.md");
+        return S2N_SUCCESS;
+    }
+
+    fprintf(fptr, "\nStacktrace is:\n");
+    for (int i = 0; i < tl_stacktrace.trace_size; ++i){
+        fprintf(fptr, "%s\n",  tl_stacktrace.trace[i]);
+    }
+    return S2N_SUCCESS;
 }

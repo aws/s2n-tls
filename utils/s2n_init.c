@@ -74,6 +74,10 @@ int s2n_init(void)
         s2n_register_extension(extensions[i]);
     }
 
+    if (getenv("S2N_PRINT_STACKTRACE")) {
+      s2n_stack_traces_enabled_set(true);
+    }
+
     return 0;
 }
 

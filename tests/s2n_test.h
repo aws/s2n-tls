@@ -15,10 +15,10 @@
 
 #pragma once
 #include <errno.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include <openssl/crypto.h>
 
@@ -80,6 +80,7 @@
 #define FAIL()      FAIL_MSG("")
 
 #define FAIL_MSG( msg ) do { \
+                          s2n_print_stacktrace(stdout); \
                           /* isatty will overwrite errno on failure */ \
                           int real_errno = errno; \
                           if (isatty(fileno(stdout))) { \
