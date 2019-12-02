@@ -129,15 +129,26 @@ let drbg_state n = do {
            );
 };
 
-let ensure_drbg_state p keyp s = do {
+let ensure_drbg_state_helper is_null_entropy_generator p keyp s = do {
     crucible_points_to (crucible_field p "bytes_used") (tm {{ s.bytes_used }});
+    crucible_points_to (crucible_field p "ctx") keyp;
     crucible_points_to_untyped keyp (tm {{
         split s.ctx.key : [keysize][8]
     }});
     crucible_points_to (crucible_field p "v") (tm {{
         split s.v : [blocksize][8]
     }});
+    if is_null_entropy_generator then do {
+        crucible_points_to (crucible_field p "entropy_generator") crucible_null;
+    } else do {
+        return ();
+    };
+    gen <- crucible_fresh_var ("generation'") i32;
+    crucible_points_to (crucible_field p "generation") (tm gen);
 };
+
+let ensure_drbg_state = ensure_drbg_state_helper true;
+let ensure_drbg_state_nonnull_entropy_generator = ensure_drbg_state_helper false;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Assumed specifications
@@ -164,6 +175,8 @@ let cipher_new_spec = do {
 let cipher_init_spec = do {
     ctx <- crucible_alloc ctx_type;
     crucible_execute_func [ctx];
+    key <- crucible_fresh_var "key" ctx_type;
+    crucible_points_to ctx (crucible_term key);
 };
 
 let cipher_free_spec = do {
@@ -188,7 +201,7 @@ let cipher_key_length_spec = do {
 let encryptInit_spec = do {
     ctx <- crucible_alloc ctx_type;
     st <- crucible_fresh_pointer ctx_type;
-    (key, keyp) <- ptr_to_fresh "key" ctx_type;
+    (key, keyp) <- ptr_to_fresh_readonly "key" ctx_type;
     crucible_execute_func [ctx, st, crucible_null, keyp, crucible_null];
     crucible_points_to ctx (tm key);
     crucible_return (tm {{ 1 : [32] }});
@@ -202,7 +215,9 @@ let encryptInit_nokey_spec = do {
 };
 
 let encryptUpdate_spec n = do {
-    (key, keyp) <- ptr_to_fresh "key" ctx_type;
+    // the first argument of `EVP_EncryptUpdate` is not `const`,
+    // but it is constant in the DRBG cryptol specification.
+    (key, keyp) <- ptr_to_fresh_readonly "key" ctx_type;
     outp <- alloc_bytes n;
     lenp <- alloc_init i32 (tm {{ `n : [32] }});
     (msg, msgp) <- ptr_to_fresh_readonly "msg" (bytes_type n);
@@ -230,7 +245,7 @@ let supports_rdrand_spec = do {
 ////////////////////////////////////////////////////////////////////////////////
 
 let block_encrypt_spec = do {
-    (key, keyp) <- ptr_to_fresh "ctx" ctx_type;
+    (key, keyp) <- ptr_to_fresh_readonly "ctx" ctx_type;
     (msg, msgp) <- ptr_to_fresh_readonly "msg" (bytes_type blocksize);
     outp <- alloc_bytes blocksize;
     crucible_execute_func [keyp, msgp, outp];
@@ -296,7 +311,7 @@ let instantiate_spec n = do {
 
     newkeyp <- crucible_alloc ctx_type;
     crucible_points_to (crucible_field sp "ctx") newkeyp;
-    ensure_drbg_state sp newkeyp {{ drbg_instantiate fake_entropy (join data) }};
+    ensure_drbg_state_nonnull_entropy_generator sp newkeyp {{ drbg_instantiate fake_entropy (join data) }};
     crucible_return (tm {{ 0 : [32] }});
 };
 
