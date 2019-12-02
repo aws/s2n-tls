@@ -47,7 +47,8 @@ int s2n_mem_cleanup(void)
 int s2n_alloc(struct s2n_blob *b, uint32_t size)
 {
     notnull_check(b);
-    *b = (struct s2n_blob) {0};
+    const struct s2n_blob temp = {0};
+    *b = temp;
     GUARD(s2n_realloc(b, size));
     return 0;
 }
