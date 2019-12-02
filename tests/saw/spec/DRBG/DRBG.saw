@@ -79,8 +79,6 @@ fake_entropy <- fresh_symbolic "fake_entropy" {| [seedsize*8] |};
 ////////////////////////////////////////////////////////////////////////////////
 
 let ctx_type = bytes_type keysize;
-let alloc_ctx = crucible_alloc ctx_type;
-let fresh_ctx n = ptr_to_fresh n ctx_type;
 
 let blob_type = llvm_struct "struct.s2n_blob";
 let alloc_blob n = do {
@@ -93,7 +91,7 @@ let alloc_blob n = do {
 
 let drbg_state n = do {
     state <- crucible_alloc (llvm_struct "struct.s2n_drbg");
-    (key, keyp) <- ptr_to_fresh "key" (bytes_type keysize);
+    (key, keyp) <- ptr_to_fresh "key" ctx_type;
     bytes_used <- crucible_fresh_var (str_concat n "->bytes_used") i64;
     v <- crucible_fresh_var (str_concat n "->v") (bytes_type blocksize);
     gen <- crucible_fresh_var (str_concat n "->generation") i32;
@@ -133,61 +131,61 @@ let getenv_spec = do {
 
 let aes_128_ecb_spec = do {
     crucible_execute_func [];
-    r <- crucible_fresh_pointer (bytes_type keysize);
+    r <- crucible_fresh_pointer ctx_type;
     crucible_return r;
 };
 
 let cipher_new_spec = do {
     crucible_execute_func [];
-    r <- alloc_bytes keysize;
+    r <- crucible_alloc ctx_type;
     crucible_return r;
 };
 
 let cipher_init_spec = do {
-    ctx <- alloc_ctx;
+    ctx <- crucible_alloc ctx_type;
     crucible_execute_func [ctx];
 };
 
 let cipher_free_spec = do {
-    ctx <- alloc_ctx;
+    ctx <- crucible_alloc ctx_type;
     crucible_execute_func [ctx];
 };
 
 let cipher_cleanup_spec = do {
-    ctx <- alloc_ctx;
+    ctx <- crucible_alloc ctx_type;
     crucible_execute_func [ctx];
     crucible_points_to ctx (tm {{ zero : [keysize][8] }});
     crucible_return (tm {{ 1 : [32] }});
 };
 
 let cipher_key_length_spec = do {
-    ctx <- alloc_ctx;
+    ctx <- crucible_alloc ctx_type;
     crucible_execute_func [ctx];
     // Specialized to AES-128 for now
     crucible_return (tm {{ 16 : [32] }});
 };
 
 let encryptInit_spec = do {
-    ctx <- alloc_ctx;
-    st <- crucible_fresh_pointer (bytes_type keysize);
-    (key, keyp) <- ptr_to_fresh "key" (bytes_type keysize);
+    ctx <- crucible_alloc ctx_type;
+    st <- crucible_fresh_pointer ctx_type;
+    (key, keyp) <- ptr_to_fresh "key" ctx_type;
     crucible_execute_func [ctx, st, crucible_null, keyp, crucible_null];
     crucible_points_to ctx (tm key);
     crucible_return (tm {{ 1 : [32] }});
 };
 
 let encryptInit_nokey_spec = do {
-    ctx <- alloc_ctx;
-    st <- crucible_fresh_pointer (bytes_type keysize);
+    ctx <- crucible_alloc ctx_type;
+    st <- crucible_fresh_pointer ctx_type;
     crucible_execute_func [ctx, st, crucible_null, crucible_null, crucible_null];
     crucible_return (tm {{ 1 : [32] }});
 };
 
 let encryptUpdate_spec n = do {
-    (key, keyp) <- fresh_ctx "key";
+    (key, keyp) <- ptr_to_fresh "key" ctx_type;
     outp <- alloc_bytes n;
-    (msg, msgp) <- ptr_to_fresh "msg" (bytes_type n);
     lenp <- alloc_init i32 (tm {{ `n : [32] }});
+    (msg, msgp) <- ptr_to_fresh "msg" (bytes_type n);
     crucible_execute_func [keyp, outp, lenp, msgp, tm {{ `blocksize : [32] }} ];
     crucible_points_to outp (tm {{ encrypt_128 key msg }});
     crucible_points_to lenp (tm {{ `n : [32] }});
@@ -213,7 +211,7 @@ let supports_rdrand_spec = do {
 ////////////////////////////////////////////////////////////////////////////////
 
 let block_encrypt_spec = do {
-    (key, keyp) <- ptr_to_fresh "ctx" (bytes_type keysize);
+    (key, keyp) <- ptr_to_fresh "ctx" ctx_type;
     (msg, msgp) <- ptr_to_fresh "msg" (bytes_type blocksize);
     outp <- alloc_bytes blocksize;
     crucible_execute_func [keyp, msgp, outp];
@@ -279,7 +277,7 @@ let instantiate_spec n = do {
 
     crucible_execute_func [sp, psp, tm {{ mode_128 : [32] }}];
 
-    newkeyp <- crucible_alloc (bytes_type keysize);
+    newkeyp <- crucible_alloc ctx_type;
     crucible_points_to (crucible_field sp "ctx") newkeyp;
     ensure_drbg_state sp newkeyp {{ drbg_instantiate fake_entropy (join data) }};
     crucible_return (tm {{ 0 : [32] }});
