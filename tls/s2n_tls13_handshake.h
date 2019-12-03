@@ -28,7 +28,7 @@ int s2n_tls13_mac_verify(struct s2n_tls13_keys *keys, struct s2n_blob *finished_
 
 /* Creates a reference to tls13_keys from connection */
 #define s2n_tls13_connection_keys(keys, conn) \
-    struct s2n_tls13_keys keys = {0};\
+    DEFER_CLEANUP(struct s2n_tls13_keys keys = {0}, s2n_tls13_keys_free);\
     GUARD(s2n_tls13_keys_from_conn(&keys, conn));
 
 int s2n_tls13_keys_from_conn(struct s2n_tls13_keys *keys, struct s2n_connection *conn);

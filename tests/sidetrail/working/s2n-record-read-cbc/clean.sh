@@ -15,6 +15,7 @@
 
 make clean
 rm -r crypto
+rm -r error
 rm -r tls
 rm -r stuffer
 rm -r utils

@@ -16,7 +16,8 @@
 #pragma once
 
 #include <s2n.h>
-
+#include <stdio.h>
+#include <stdbool.h>
 /*
  * To easily retrieve error types, we split error values into two parts.
  * The upper 6 bits describe the error type and the lower bits describe the value within the category.
@@ -166,6 +167,7 @@ typedef enum {
     S2N_ERR_POLLING_FROM_SOCKET,
     S2N_ERR_RECV_STUFFER_FROM_CONN,
     S2N_ERR_SEND_STUFFER_TO_CONN,
+    S2N_ERR_PRECONDITION_VIOLATION,
     S2N_ERR_T_INTERNAL_END,
 
     /* S2N_ERR_T_USAGE */
@@ -226,9 +228,46 @@ extern __thread const char *s2n_debug_str;
 #define STRING__LINE__ STRING_(__LINE__)
 
 #define _S2N_DEBUG_LINE     "Error encountered in " __FILE__ " line " STRING__LINE__
-#define _S2N_ERROR( x )     do { s2n_debug_str = _S2N_DEBUG_LINE; s2n_errno = ( x ); } while (0)
+#define _S2N_ERROR( x )     do { s2n_debug_str = _S2N_DEBUG_LINE; s2n_errno = ( x ); s2n_calculate_stacktrace(); } while (0)
 #define S2N_ERROR( x )      do { _S2N_ERROR( ( x ) ); return -1; } while (0)
 #define S2N_ERROR_PRESERVE_ERRNO() do { return -1; } while (0)
 #define S2N_ERROR_PTR( x )  do { _S2N_ERROR( ( x ) ); return NULL; } while (0)
 #define S2N_ERROR_IF( cond , x ) do { if ( cond ) { S2N_ERROR( x ); }} while (0)
 #define S2N_ERROR_IF_PTR( cond , x ) do { if ( cond ) { S2N_ERROR_PTR( x ); }} while (0)
+
+#define S2N_PRECONDITION( cond ) S2N_ERROR_IF(!(cond), S2N_ERR_PRECONDITION_VIOLATION)
+#define S2N_PRECONDITION_PTR( cond ) S2N_ERROR_IF_PTR(!(cond), S2N_ERR_PRECONDITION_VIOLATION)
+
+/**
+ * Define function contracts.
+ * When the code is being verified using CBMC these contracts are formally verified;
+ * When the code is built in debug mode, they are checked as much as possible using assertions
+ * When the code is built in production mode, non-fatal contracts are not checked.
+ * Violations of the function contracts are undefined behaviour.
+ */
+#ifdef CBMC
+#    define S2N_MEM_IS_READABLE(base, len) __CPROVER_r_ok((base), (len))
+#    define S2N_MEM_IS_WRITABLE(base, len) __CPROVER_w_ok((base), (len))
+#else
+/* the C runtime does not give a way to check these properties,
+ * but we can at least check that the pointer is valid */
+#    define S2N_MEM_IS_READABLE(base, len) (((len) == 0) || (base))
+#    define S2N_MEM_IS_WRITABLE(base, len) (((len) == 0) || (base))
+#endif /* CBMC */
+
+#define S2N_OBJECT_PTR_IS_READABLE(ptr) S2N_MEM_IS_READABLE((ptr), sizeof(*(ptr)))
+#define S2N_OBJECT_PTR_IS_WRITABLE(ptr) S2N_MEM_IS_WRITABLE((ptr), sizeof(*(ptr)))
+
+/** Calculate and print stacktraces */
+struct s2n_stacktrace {
+  char **trace;
+  int trace_size;
+};
+
+extern bool s2n_stack_traces_enabled();
+extern int s2n_stack_traces_enabled_set(bool newval);
+
+extern int s2n_calculate_stacktrace(void);
+extern int s2n_print_stacktrace(FILE *fptr);
+extern int s2n_free_stacktrace(void);
+extern int s2n_get_stacktrace(struct s2n_stacktrace *trace);

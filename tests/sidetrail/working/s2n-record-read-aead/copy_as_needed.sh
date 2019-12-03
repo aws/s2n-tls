@@ -14,6 +14,7 @@
 #
 
 set -x 
+set -e
 BASEDIR=$(pwd)
 echo $BASEDIR
 S2N_BASE="$BASEDIR/../../../.."
@@ -30,6 +31,9 @@ patch -p5 < ../patches/hmac.patch
 cp ../stubs/s2n_hash.c crypto/
 cp ../stubs/s2n_hash.h crypto/
 
+mkdir -p error
+cp ../stubs/s2n_errno.c error/
+
 mkdir -p stuffer
 cp $S2N_BASE/stuffer/s2n_stuffer.c stuffer/
 
@@ -42,6 +46,7 @@ patch -p5 < ../patches/cbc.patch
 
 mkdir -p utils
 cp s2n_annotations.h utils/
+cp $S2N_BASE/utils/s2n_blob.c utils/
 cp $S2N_BASE/utils/s2n_safety.c utils/
 cp $S2N_BASE/utils/s2n_safety.h utils/
 cp ../stubs/s2n_mem.c utils/
