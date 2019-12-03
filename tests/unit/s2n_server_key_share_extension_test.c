@@ -277,7 +277,7 @@ int main(int argc, char **argv)
 
             EXPECT_NULL(server_conn->secure.server_ecc_params.negotiated_curve);
 
-            /* Configure the "negotiated_curve" */
+            /* Server configures the "negotiated_curve" */
             server_conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[i];
             for (int j = 0; j < S2N_ECC_SUPPORTED_CURVES_COUNT; j++) {
                 if (j != i) {
