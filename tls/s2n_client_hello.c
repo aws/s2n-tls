@@ -270,7 +270,7 @@ static int s2n_populate_client_hello_extensions(struct s2n_client_hello *ch)
     }
 
     /* Sort extensions by extension type */
-    qsort(ch->parsed_extensions->elements, ch->parsed_extensions->num_of_elements, ch->parsed_extensions->element_size, s2n_parsed_extensions_compare);
+    qsort(ch->parsed_extensions->mem.data, ch->parsed_extensions->num_of_elements, ch->parsed_extensions->element_size, s2n_parsed_extensions_compare);
 
     return 0;
 }
@@ -302,7 +302,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
 
     if (conn->client_protocol_version < cipher_preferences->minimum_protocol_version) {
         GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        S2N_ERROR(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
     }
 
     /* Find potential certificate matches before we choose the cipher. */
@@ -436,7 +436,7 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
 
     if (conn->client_protocol_version < cipher_preferences->minimum_protocol_version) {
         GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        S2N_ERROR(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
     }
     conn->actual_protocol_version = MIN(conn->client_protocol_version, conn->server_protocol_version);
     conn->client_hello_version = S2N_SSLv2;
@@ -488,7 +488,7 @@ int s2n_client_hello_get_parsed_extension(struct s2n_array *parsed_extensions, s
     struct s2n_client_hello_parsed_extension search = {0};
     search.extension_type = extension_type;
 
-    struct s2n_client_hello_parsed_extension *result_extension = bsearch(&search, parsed_extensions->elements, parsed_extensions->num_of_elements,
+    struct s2n_client_hello_parsed_extension *result_extension = bsearch(&search, parsed_extensions->mem.data, parsed_extensions->num_of_elements,
             parsed_extensions->element_size, s2n_parsed_extensions_compare);
 
     notnull_check(result_extension);

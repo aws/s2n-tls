@@ -103,11 +103,11 @@ static struct s2n_handshake_action tls13_state_machine[] = {
     [SERVER_CERT_REQ]           = {TLS_HANDSHAKE, TLS_CERT_REQ, 'S', {s2n_client_cert_req_send, s2n_client_cert_req_recv}},
     [SERVER_CERT]               = {TLS_HANDSHAKE, TLS_CERTIFICATE, 'S', {s2n_server_cert_send, s2n_server_cert_recv}},
     [SERVER_CERT_VERIFY]        = {TLS_HANDSHAKE, TLS_CERT_VERIFY, 'S', {s2n_server_cert_verify_send, s2n_server_cert_verify_recv}},
-    [SERVER_FINISHED]           = {TLS_HANDSHAKE, TLS_FINISHED, 'S', {s2n_server_finished_send, s2n_server_finished_recv}},
+    [SERVER_FINISHED]           = {TLS_HANDSHAKE, TLS_FINISHED, 'S', {s2n_tls13_server_finished_send, s2n_tls13_server_finished_recv}},
 
     [CLIENT_CERT]               = {TLS_HANDSHAKE, TLS_CERTIFICATE, 'C', {s2n_client_cert_recv, s2n_client_cert_send}},
     [CLIENT_CERT_VERIFY]        = {TLS_HANDSHAKE, TLS_CERT_VERIFY, 'C', {s2n_client_cert_verify_recv, s2n_client_cert_verify_send}},
-    [CLIENT_FINISHED]           = {TLS_HANDSHAKE, TLS_FINISHED, 'C', {s2n_client_finished_recv, s2n_client_finished_send}},
+    [CLIENT_FINISHED]           = {TLS_HANDSHAKE, TLS_FINISHED, 'C', {s2n_tls13_client_finished_recv, s2n_tls13_client_finished_send}},
 
     /* Not used by TLS1.3, except to maintain middlebox compatibility */
     [CLIENT_CHANGE_CIPHER_SPEC] = {TLS_CHANGE_CIPHER_SPEC, 0, 'C', {s2n_basic_ccs_recv, s2n_ccs_send}},
@@ -377,31 +377,10 @@ static message_type_t tls13_handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_L
             SERVER_HELLO
     },
 
-    [NEGOTIATED] = {
-            CLIENT_HELLO,
-            SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_FINISHED,
-            CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
-            APPLICATION_DATA
-    },
-
     [NEGOTIATED | FULL_HANDSHAKE] = {
             CLIENT_HELLO,
             SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
             CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
-            APPLICATION_DATA
-    },
-
-    [NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH] = {
-            CLIENT_HELLO,
-            SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
-            CLIENT_CHANGE_CIPHER_SPEC, CLIENT_CERT, CLIENT_CERT_VERIFY, CLIENT_FINISHED,
-            APPLICATION_DATA
-    },
-
-    [NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH | NO_CLIENT_CERT] = {
-            CLIENT_HELLO,
-            SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
-            CLIENT_CHANGE_CIPHER_SPEC, CLIENT_CERT, CLIENT_FINISHED,
             APPLICATION_DATA
     },
 };
@@ -509,6 +488,12 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
     /* A handshake type has been negotiated */
     conn->handshake.handshake_type = NEGOTIATED;
 
+    /* In the initial TLS1.3 release, we will only support the basic handshake. */
+    if (IS_TLS13_HANDSHAKE(conn)) {
+        conn->handshake.handshake_type |= FULL_HANDSHAKE;
+        return 0;
+    }
+
     if (conn->config->use_tickets) {
         if (conn->session_ticket_status == S2N_DECRYPT_TICKET) {
             if (!s2n_decrypt_session_ticket(conn)) {
@@ -558,10 +543,6 @@ skip_cache_lookup:
     } else if (conn->mode == S2N_SERVER && client_cert_auth_type != S2N_CERT_AUTH_NONE) {
         /* If we're a server, and Client Auth is REQUIRED or OPTIONAL, then the server must send the CLIENT_CERT_REQ Message*/
         conn->handshake.handshake_type |= CLIENT_AUTH;
-    }
-
-    if (IS_TLS13_HANDSHAKE(conn)) {
-        return 0;
     }
 
     if (s2n_kex_is_ephemeral(conn->secure.cipher_suite->key_exchange_alg)) {
@@ -958,7 +939,16 @@ static int handshake_read_io(struct s2n_connection *conn)
         GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
         if (r < 0) {
-            GUARD(s2n_connection_kill(conn));
+            /* Don't invoke blinding on some of the common errors */
+            switch (s2n_errno) {
+                case S2N_ERR_CANCELLED:
+                case S2N_ERR_CIPHER_NOT_SUPPORTED:
+                case S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED:
+                    conn->closed = 1;
+                    break;
+                default:
+                    GUARD(s2n_connection_kill(conn));
+            }
 
             return r;
         }
@@ -1006,10 +996,10 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
                 if (s2n_errno == S2N_ERR_BLOCKED && s2n_stuffer_data_available(&conn->in)) {
                     if (handshake_read_io(conn) < 0 && s2n_errno == S2N_ERR_ALERT) {
                         /* handshake_read_io has set s2n_errno */
-                        return S2N_FAILURE;
+                        S2N_ERROR_PRESERVE_ERRNO();
                     }
                 }
-                return S2N_FAILURE;
+                S2N_ERROR_PRESERVE_ERRNO();
             }
         } else if (ACTIVE_STATE(conn).writer == this) {
             *blocked = S2N_BLOCKED_ON_WRITE;

@@ -161,7 +161,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
     }
 
-    /* Server alerts if extension is malformed */
+    /* Server alerts if version list size exceeds the extension size */
     {
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -171,6 +171,46 @@ int main(int argc, char **argv)
         s2n_stuffer_alloc(&extension, 1);
 
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 13));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_client_supported_versions_recv(server_conn, &extension), S2N_ERR_BAD_MESSAGE);
+        EXPECT_EQUAL(get_alert(server_conn), PROTOCOL_VERSION_ALERT);
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_stuffer_free(&extension));
+    }
+
+    /* Server alerts if version list size is less than extension size */
+    {
+        struct s2n_connection *server_conn;
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        struct s2n_stuffer extension;
+        s2n_stuffer_alloc(&extension, 5);
+
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 2));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint16(&extension, 0x0302));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint16(&extension, 0x0303));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_client_supported_versions_recv(server_conn, &extension), S2N_ERR_BAD_MESSAGE);
+        EXPECT_EQUAL(get_alert(server_conn), PROTOCOL_VERSION_ALERT);
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_stuffer_free(&extension));
+    }
+
+    /* Server alerts if version list size is odd */
+    {
+        struct s2n_connection *server_conn;
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        struct s2n_stuffer extension;
+        s2n_stuffer_alloc(&extension, 4);
+
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 3));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint16(&extension, 0x0302));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 0x03));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_client_supported_versions_recv(server_conn, &extension), S2N_ERR_BAD_MESSAGE);
         EXPECT_EQUAL(get_alert(server_conn), PROTOCOL_VERSION_ALERT);

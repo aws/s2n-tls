@@ -300,8 +300,8 @@ typedef enum { S2N_BUILT_IN_BLINDING, S2N_SELF_SERVICE_BLINDING } s2n_blinding;
 
 **s2n_blinding** is used to opt-out of s2n's built-in blinding. Blinding is a
 mitigation against timing side-channels which in some cases can leak information
-about encrypted data. By default s2n will cause a thread to sleep between 1ms and 
-10 seconds whenever tampering is detected. 
+about encrypted data. By default s2n will cause a thread to sleep between 10 and 
+30 seconds whenever tampering is detected. 
 
 Setting the **S2N_SELF_SERVICE_BLINDING** option with **s2n_connection_set_blinding**
 turns off this behavior. This is useful for applications that are handling many connections
@@ -397,6 +397,22 @@ if (s2n_config_set_cipher_preferences(config, prefs) < 0) {
 ```
 
 **NOTE**: To avoid possible confusion, s2n_errno should be cleared after processing an error: `s2n_errno = S2N_ERR_T_OK`
+
+### Stacktraces
+s2n has an mechanism to capture stacktraces when errors occur.
+This mechanism is off by default, but can be enabled in code by calling `s2n_stack_traces_enabled_set()`.
+It can be enabled globally by setting the environment variable `S2N_PRINT_STACKTRACE=1`.
+Note that enabling stacktraces this can significantly slow down unit tests, and can cause failures on unit-tests (such as `s2n_cbc_verify`) that measure the timing of events.
+
+```
+bool s2n_stack_traces_enabled();
+int s2n_stack_traces_enabled_set(bool newval);
+
+int s2n_calculate_stacktrace(void);
+int s2n_print_stacktrace(FILE *fptr);
+int s2n_free_stacktrace(void);
+int s2n_get_stacktrace(char*** trace, int* trace_size);
+```
 
 ### Error categories
 

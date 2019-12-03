@@ -20,7 +20,9 @@ extern "C" {
 #endif
 
 #include <sys/types.h>
+#include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <openssl/ossl_typ.h>
 #include <sys/uio.h>
 
@@ -75,6 +77,15 @@ extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_t
 extern const char *s2n_strerror(int error, const char *lang);
 extern const char *s2n_strerror_debug(int error, const char *lang);
 extern const char *s2n_strerror_name(int error); 
+
+
+struct s2n_stacktrace;
+extern bool s2n_stack_traces_enabled();
+extern int s2n_stack_traces_enabled_set(bool newval);
+extern int s2n_calculate_stacktrace(void);
+extern int s2n_print_stacktrace(FILE *fptr);
+extern int s2n_free_stacktrace(void);
+extern int s2n_get_stacktrace(struct s2n_stacktrace *trace);
 
 extern int s2n_config_set_cache_store_callback(struct s2n_config *config, s2n_cache_store_callback cache_store_callback, void *data);
 extern int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, s2n_cache_retrieve_callback cache_retrieve_callback, void *data);

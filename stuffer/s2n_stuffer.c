@@ -23,10 +23,23 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 
+bool s2n_stuffer_is_valid(const struct s2n_stuffer* stuffer)
+{
+    /* Note that we do not assert any properties on the  wiped, alloced, growable, and tainted fields,
+     * as all possible combinations of boolean values in those fields are valid */
+    return S2N_OBJECT_PTR_IS_READABLE(stuffer) && 
+    s2n_blob_is_valid(&stuffer->blob) &&
+    /* <= is valid because we can have a fully written/read stuffer */
+    stuffer->read_cursor <= stuffer->blob.size &&
+    stuffer->write_cursor <= stuffer->blob.size &&
+    stuffer->read_cursor <= stuffer->write_cursor;
+}
+
 int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in)
 {
-    stuffer->blob.data = in->data;
-    stuffer->blob.size = in->size;
+    S2N_PRECONDITION(S2N_OBJECT_PTR_IS_WRITABLE(stuffer));
+    S2N_PRECONDITION(s2n_blob_is_valid(in));
+    stuffer->blob = *in;
     stuffer->wiped = 1;
     stuffer->alloced = 0;
     stuffer->growable = 0;
@@ -231,7 +244,7 @@ int s2n_stuffer_skip_write(struct s2n_stuffer *stuffer, const uint32_t n)
     if (s2n_stuffer_space_remaining(stuffer) < n) {
         if (stuffer->growable) {
             /* Always grow a stuffer by at least 1k */
-            uint32_t growth = MAX(n, 1024);
+            uint32_t growth = MAX(n - s2n_stuffer_space_remaining(stuffer), 1024);
 
             GUARD(s2n_stuffer_resize(stuffer, stuffer->blob.size + growth));
         } else {

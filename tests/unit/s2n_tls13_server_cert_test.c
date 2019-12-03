@@ -25,7 +25,7 @@
 #include "utils/s2n_safety.h"
 
 /* Test vectors from https://tools.ietf.org/html/rfc8448#section-3 */
-const char *tls13_cert_hex =
+const char tls13_cert_hex[] =
     "000001b50001b03082" /* without 0b0001b9 header */
     "01ac30820115a003020102020102300d06092a8648"
     "86f70d01010b0500300e310c300a06035504031303"
@@ -76,8 +76,6 @@ int main(int argc, char **argv)
         EXPECT_FAILURE(s2n_server_cert_recv(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-
-        S2N_BLOB_FREE(tls13_cert);
     }
 
     END_TEST();

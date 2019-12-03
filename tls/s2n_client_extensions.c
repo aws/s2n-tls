@@ -372,10 +372,9 @@ static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer 
         return 0;
     }
 
-    struct s2n_blob client_app_protocols = {
-        .data = s2n_stuffer_raw_read(extension, size_of_all),
-        .size = size_of_all
-    };
+    struct s2n_blob client_app_protocols = { 0 };
+    client_app_protocols.size = size_of_all;
+    client_app_protocols.data = s2n_stuffer_raw_read(extension, size_of_all);
     notnull_check(client_app_protocols.data);
 
     /* Find a matching protocol */
@@ -508,14 +507,11 @@ static int s2n_recv_client_session_ticket_ext(struct s2n_connection *conn, struc
         return 0;
     }
 
-    if (s2n_stuffer_data_available(extension) == 0 && s2n_config_is_encrypt_decrypt_key_available(conn->config) == 1) {
-        conn->session_ticket_status = S2N_NEW_TICKET;
-        return 0;
-    }
-
     if (s2n_stuffer_data_available(extension) == S2N_TICKET_SIZE_IN_BYTES) {
         conn->session_ticket_status = S2N_DECRYPT_TICKET;
         GUARD(s2n_stuffer_copy(extension, &conn->client_ticket_to_decrypt, S2N_TICKET_SIZE_IN_BYTES));
+    } else if (s2n_config_is_encrypt_decrypt_key_available(conn->config) == 1) {
+        conn->session_ticket_status = S2N_NEW_TICKET;
     }
 
     return 0;

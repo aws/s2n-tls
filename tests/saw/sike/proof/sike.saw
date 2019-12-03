@@ -69,7 +69,7 @@ let crypto_kem_keypair_spec = do {
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
 
-crypto_kem_keypair_ov <- verify_unint "SIKE_P503_crypto_kem_keypair"
+crypto_kem_keypair_ov <- verify_unint "SIKE_P503_r1_crypto_kem_keypair"
     [ randombytes_sike_ov, random_mod_order_B_unint_ov
     , ephemeralKeyGeneration_B_ov ]
     ["EphemeralKeyGeneration_B_short"]
@@ -85,14 +85,14 @@ let U_kem_enc =
     , "cshake", "pftwice_mod", "fpnorm"
     , "is_good_pk_encoding", "is_good_basis" ];
 
-crypto_kem_enc_ov <- verify_unint "SIKE_P503_crypto_kem_enc"
+crypto_kem_enc_ov <- verify_unint "SIKE_P503_r1_crypto_kem_enc"
     O_kem_enc U_kem_enc crypto_kem_enc_spec;
 
 // NOTE: This proof uses Z3 as it otherwise was triggering a bug
 //       in yices versions 2.6.0 and 2.6.1. That error was reported
 //       as issue #103, and has been repaired.
 
-crypto_kem_dec_ov <- custom_verify "SIKE_P503_crypto_kem_dec"
+crypto_kem_dec_ov <- custom_verify "SIKE_P503_r1_crypto_kem_dec"
     [ ephemeralSecretAgreement_B_ov, cshake256_simple_enc_ov0
     , cshake256_simple_enc_ov1, cshake256_simple_enc_ov2
     ,  ephemeralKeyGeneration_A_378_ov, memcmp_ov_for_kem_dec ]

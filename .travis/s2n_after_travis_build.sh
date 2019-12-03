@@ -1,4 +1,4 @@
-#
+#!/bin/bash
 # Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
@@ -12,16 +12,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 #
-SRCS=fp_generic.c P503.c sike_p503_kem.c fips202.c
-OBJS=$(SRCS:.c=.o)
 
-BCS_1=fp_generic.bc P503.bc sike_p503_kem.bc fips202.bc
-BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
+set -ex
 
-.PHONY : all
-all: $(OBJS)
-
-.PHONY : bc
-bc: $(BCS)
-
-include ../../s2n.mk
+# Upload Code Coverage Information to CodeCov.io
+if [[ -n "$CODECOV_IO_UPLOAD" ]]; then
+    bash <(curl -s https://codecov.io/bash) -F ${TESTS};
+fi

@@ -15,10 +15,11 @@
 #pragma once
 
 #include <s2n.h>
+#include "utils/s2n_blob.h"
 
 struct s2n_array {
     /* Pointer to elements in array */
-    void *elements;
+    struct s2n_blob mem;
 
     /* The total number of elements currently in the array. */
     uint32_t num_of_elements;

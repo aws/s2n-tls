@@ -69,8 +69,9 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
 
     s2n_cert_type actual_cert_type;
     struct s2n_blob cert_chain = {0};
-    cert_chain.data = s2n_stuffer_raw_read(&conn->handshake.io, size_of_all_certificates);
     cert_chain.size = size_of_all_certificates;
+    cert_chain.data = s2n_stuffer_raw_read(&conn->handshake.io, size_of_all_certificates);
+    notnull_check(cert_chain.data);
 
     S2N_ERROR_IF(s2n_x509_validator_validate_cert_chain(&conn->x509_validator, conn, cert_chain.data,
                          cert_chain.size, &actual_cert_type, &public_key) != S2N_CERT_OK, S2N_ERR_CERT_UNTRUSTED);

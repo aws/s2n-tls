@@ -24,16 +24,13 @@ static int s2n_array_enlarge(struct s2n_array *array, uint32_t capacity)
     notnull_check(array);
     size_t array_elements_size = array->element_size * array->num_of_elements;
 
-    struct s2n_blob mem = {.data = array->elements, .size = array_elements_size, .allocated = array_elements_size};
-
-    GUARD(s2n_realloc(&mem, array->element_size * capacity));
+    GUARD(s2n_realloc(&array->mem, array->element_size * capacity));
 
     /* Zero the extened part */
-    memset_check(mem.data + array_elements_size, 0, mem.size - array_elements_size);
+    memset_check(array->mem.data + array_elements_size, 0, array->mem.size - array_elements_size);
 
     /* Update array capacity and elements */
     array->capacity = capacity;
-    array->elements = (void *) mem.data;
 
     return 0;
 }
@@ -41,16 +38,11 @@ static int s2n_array_enlarge(struct s2n_array *array, uint32_t capacity)
 struct s2n_array *s2n_array_new(size_t element_size)
 {
     struct s2n_blob mem = {0};
-    struct s2n_array *array;
-
     GUARD_PTR(s2n_alloc(&mem, sizeof(struct s2n_array)));
 
-    array = (void *) mem.data;
-    array->capacity = 0;
-    array->num_of_elements = 0;
-    array->element_size = element_size;
-    array->elements = NULL;
-
+    struct s2n_array initilizer = {.mem = {0}, .num_of_elements = 0, .capacity = 0, .element_size = element_size};
+    struct s2n_array *array = (void *) mem.data;
+    *array = initilizer;
     GUARD_PTR(s2n_array_enlarge(array, S2N_INITIAL_ARRAY_SIZE));
 
     return array;
@@ -67,7 +59,7 @@ void *s2n_array_add(struct s2n_array *array)
         GUARD_PTR(s2n_array_enlarge(array, array->capacity * 2));
     }
 
-    void *element = (uint8_t *) array->elements + array->element_size * array->num_of_elements;
+    void *element = array->mem.data + array->element_size * array->num_of_elements;
     array->num_of_elements++;
 
     return element;
@@ -82,7 +74,7 @@ void *s2n_array_get(struct s2n_array *array, uint32_t index)
     void *element = NULL;
 
     if (index < array->num_of_elements) {
-        element = (uint8_t *) array->elements + array->element_size * index;
+        element = array->mem.data + array->element_size * index;
     }
 
     return element;
@@ -99,11 +91,11 @@ void *s2n_array_insert(struct s2n_array *array, uint32_t index)
         GUARD_PTR(s2n_array_enlarge(array, array->capacity * 2));
     }
 
-    memmove((uint8_t *) array->elements + array->element_size * (index + 1),
-            (uint8_t *) array->elements + array->element_size * index,
+    memmove(array->mem.data + array->element_size * (index + 1),
+            array->mem.data + array->element_size * index,
             (array->num_of_elements - index) * array->element_size);
 
-    void *element = (uint8_t *) array->elements + array->element_size * index;
+    void *element = array->mem.data + array->element_size * index;
     array->num_of_elements++;
 
     return element;
@@ -113,14 +105,14 @@ int s2n_array_remove(struct s2n_array *array, uint32_t index)
 {
     notnull_check(array);
 
-    memmove((uint8_t *) array->elements + array->element_size * index,
-            (uint8_t *) array->elements + array->element_size * (index + 1),
+    memmove(array->mem.data + array->element_size * index,
+            array->mem.data + array->element_size * (index + 1),
             (array->num_of_elements - index - 1) * array->element_size);
 
     array->num_of_elements--;
 
     /* After shifting, zero the last element */
-    memset_check((uint8_t *) array->elements + array->element_size * array->num_of_elements,
+    memset_check(array->mem.data + array->element_size * array->num_of_elements,
                   0,
                   array->element_size);
 
@@ -134,7 +126,7 @@ int s2n_array_free_p(struct s2n_array **parray)
 
     notnull_check(array);
     /* Free the elements */
-    GUARD(s2n_free_object((uint8_t **)&array->elements, array->capacity * array->element_size));
+    GUARD(s2n_free(&array->mem));
 
     /* And finally the array */
     GUARD(s2n_free_object((uint8_t **)parray, sizeof(struct s2n_array)));

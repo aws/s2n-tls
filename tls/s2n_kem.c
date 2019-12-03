@@ -14,7 +14,7 @@
  */
 
 #include "pq-crypto/bike/bike1_l1_kem.h"
-#include "pq-crypto/sike/sike_p503_kem.h"
+#include "pq-crypto/sike_r1/sike_p503_r1_kem.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -40,13 +40,13 @@ const struct s2n_kem s2n_bike_1_level_1_r1 = {
 const struct s2n_kem s2n_sike_p503_r1 = {
         .name = "SIKEp503r1-KEM",
         .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1_KEM,
-        .public_key_length = SIKE_P503_PUBLIC_KEY_BYTES,
-        .private_key_length = SIKE_P503_SECRET_KEY_BYTES,
-        .shared_secret_key_length = SIKE_P503_SHARED_SECRET_BYTES,
-        .ciphertext_length = SIKE_P503_CIPHERTEXT_BYTES,
-        .generate_keypair = &SIKE_P503_crypto_kem_keypair,
-        .encapsulate = &SIKE_P503_crypto_kem_enc,
-        .decapsulate = &SIKE_P503_crypto_kem_dec,
+        .public_key_length = SIKE_P503_r1_PUBLIC_KEY_BYTES,
+        .private_key_length = SIKE_P503_r1_SECRET_KEY_BYTES,
+        .shared_secret_key_length = SIKE_P503_r1_SHARED_SECRET_BYTES,
+        .ciphertext_length = SIKE_P503_r1_CIPHERTEXT_BYTES,
+        .generate_keypair = &SIKE_P503_r1_crypto_kem_keypair,
+        .encapsulate = &SIKE_P503_r1_crypto_kem_enc,
+        .decapsulate = &SIKE_P503_r1_crypto_kem_dec,
 };
 
 const struct s2n_kem *supported_bike_params[] = {

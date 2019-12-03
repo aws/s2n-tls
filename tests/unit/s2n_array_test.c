@@ -96,7 +96,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(array->capacity, 32);
     EXPECT_EQUAL(array->num_of_elements, 17);
     EXPECT_EQUAL(array->element_size, element_size);
-    EXPECT_SUCCESS(memcmp(array->elements, mem.data, num_of_elements * element_size));
+    EXPECT_SUCCESS(memcmp(array->mem.data, mem.data, num_of_elements * element_size));
 
     /* Insert element at given index */
     struct array_element *insert_element = s2n_array_insert(array, 16);

@@ -108,16 +108,27 @@ static int s2n_tls13_transcript_message_hash(struct s2n_tls13_keys *keys, const 
 /*
  * Initalizes the tls13_keys struct
  */
-int s2n_tls13_keys_init(struct s2n_tls13_keys *handshake, s2n_hmac_algorithm alg)
+int s2n_tls13_keys_init(struct s2n_tls13_keys *keys, s2n_hmac_algorithm alg)
 {
-    notnull_check(handshake);
+    notnull_check(keys);
 
-    handshake->hmac_algorithm = alg;
-    GUARD(s2n_hmac_hash_alg(alg, &handshake->hash_algorithm));
-    GUARD(s2n_hash_digest_size(handshake->hash_algorithm, &handshake->size));
-    GUARD(s2n_blob_init(&handshake->extract_secret, handshake->extract_secret_bytes, handshake->size));
-    GUARD(s2n_blob_init(&handshake->derive_secret, handshake->derive_secret_bytes, handshake->size));
-    GUARD(s2n_hmac_new(&handshake->hmac));
+    keys->hmac_algorithm = alg;
+    GUARD(s2n_hmac_hash_alg(alg, &keys->hash_algorithm));
+    GUARD(s2n_hash_digest_size(keys->hash_algorithm, &keys->size));
+    GUARD(s2n_blob_init(&keys->extract_secret, keys->extract_secret_bytes, keys->size));
+    GUARD(s2n_blob_init(&keys->derive_secret, keys->derive_secret_bytes, keys->size));
+    GUARD(s2n_hmac_new(&keys->hmac));
+
+    return 0;
+}
+
+/*
+ * Frees any allocation
+ */
+int s2n_tls13_keys_free(struct s2n_tls13_keys *keys) {
+    notnull_check(keys);
+
+    GUARD(s2n_hmac_free(&keys->hmac));
 
     return 0;
 }
@@ -251,8 +262,9 @@ int s2n_tls13_derive_finished_key(struct s2n_tls13_keys *keys, struct s2n_blob *
 /*
  * Compute finished verify data using HMAC
  * with a finished key and hash state
+ * https://tools.ietf.org/html/rfc8446#section-4.4.4
  */
-int s2n_tls13_calculate_finished_verify_mac(struct s2n_tls13_keys *keys, struct s2n_blob *finished_key, struct s2n_hash_state *hash_state, struct s2n_blob *finished_verify)
+int s2n_tls13_calculate_finished_mac(struct s2n_tls13_keys *keys, struct s2n_blob *finished_key, struct s2n_hash_state *hash_state, struct s2n_blob *finished_verify)
 {
     /* Set up a blob to contain hash */
     s2n_tls13_key_blob(transcribe_hash, keys->size);

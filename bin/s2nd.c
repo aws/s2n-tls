@@ -716,7 +716,7 @@ int main(int argc, char *const *argv)
             close(fd);
         } else {
             st_key = default_ticket_key;
-            st_key_length = strlen((char *)default_ticket_key);
+            st_key_length = sizeof(default_ticket_key);
         }
 
         if (s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name), st_key, st_key_length, 0) != 0) {
