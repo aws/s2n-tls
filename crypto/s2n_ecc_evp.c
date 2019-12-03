@@ -231,7 +231,7 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER)
     out->blob.size = EVP_PKEY_get1_tls_encodedpoint(ecc_evp_params->evp_pkey, &out->blob.data);
 #else
-    const EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(ecc_evp_params->evp_pkey);
+    const EC_KEY *ec_key = EVP_PKEY_get0_EC_KEY(ecc_evp_params->evp_pkey);
     S2N_ERROR_IF(ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
     const EC_POINT *point = EC_KEY_get0_public_key(ec_key);
     const EC_GROUP *group = EC_KEY_get0_group(ec_key);
