@@ -50,8 +50,4 @@ int s2n_ecc_evp_generate_copy_params(struct s2n_ecc_evp_params *from_params, str
 int s2n_ecc_evp_compute_shared_secret_from_params(struct s2n_ecc_evp_params *private_ecc_evp_params,
                                                   struct s2n_ecc_evp_params *public_ecc_evp_params,
                                                   struct s2n_blob *shared_key);
-int s2n_ecc_evp_compute_shared_secret_as_client(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *Yc_out,
-                                                struct s2n_blob *shared_key);
-int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *Yc_in,
-                                                struct s2n_blob *shared_key);
 int s2n_ecc_evp_params_free(struct s2n_ecc_evp_params *ecc_evp_params);

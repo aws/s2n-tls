@@ -87,7 +87,7 @@ int main(int argc, char **argv)
         }
     }
 
-    /* TEST s2n_ecc_parse_ecc_params_point for all supported curves */
+    /* TEST s2n_ecc_evp_parse_params_point for all supported curves */
     {
         for (int i = 0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++)
         {
@@ -106,44 +106,15 @@ int main(int argc, char **argv)
 
             /* Read point back in */
             EXPECT_SUCCESS(s2n_ecc_evp_read_params_point(&wire, s2n_ecc_evp_supported_curves[i].share_size, &point_blob));
+#if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER)
             EXPECT_SUCCESS(s2n_ecc_evp_generate_copy_params(&write_params, &read_params));
+#endif
             EXPECT_SUCCESS(s2n_ecc_evp_parse_params_point(&point_blob, &read_params));
-
             /* Check that the point we read is the same we wrote */
-            EXPECT_TRUE(1 == EVP_PKEY_cmp(write_params.evp_pkey, read_params.evp_pkey));
-
+            EXPECT_TRUE(EVP_PKEY_cmp(write_params.evp_pkey, read_params.evp_pkey));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&write_params));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&read_params));
             EXPECT_SUCCESS(s2n_stuffer_free(&wire));
-        }
-    }
-
-    {
-        for (int i = 0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++)
-        {
-            struct s2n_ecc_evp_params ecc_evp_params;
-            struct s2n_blob server_shared, client_shared;
-            struct s2n_stuffer wire;
-            ecc_evp_params.negotiated_curve = &s2n_ecc_evp_supported_curves[i];
-
-            /* Server generates a key */
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&ecc_evp_params));
-
-            /* Client generates a key, computes its shared secret and sends the client public key */
-            EXPECT_SUCCESS(s2n_ecc_evp_compute_shared_secret_as_client(&ecc_evp_params, &wire, &client_shared));
-
-            /* Server receives the client public key and computes its shared secret */
-            EXPECT_SUCCESS(s2n_ecc_evp_compute_shared_secret_as_server(&ecc_evp_params, &wire, &server_shared));
-
-            /* Check if the shared secret computed is the same for the client and the server */
-            EXPECT_EQUAL(client_shared.size, server_shared.size);
-            EXPECT_BYTEARRAY_EQUAL(client_shared.data, server_shared.data, client_shared.size);
-
-            /* Clean up */
-            EXPECT_SUCCESS(s2n_stuffer_free(&wire));
-            EXPECT_SUCCESS(s2n_free(&server_shared));
-            EXPECT_SUCCESS(s2n_free(&client_shared));
-            EXPECT_SUCCESS(s2n_ecc_evp_params_free(&ecc_evp_params));
         }
     }
 

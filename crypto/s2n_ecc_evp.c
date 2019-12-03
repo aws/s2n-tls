@@ -57,7 +57,7 @@ static EVP_PKEY *s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER)
     if (named_curve->libcrypto_nid == NID_X25519)
     {
-        pctx = EVP_PKEY_CTX_new_id(NID_X25519, NULL);
+        pctx = EVP_PKEY_CTX_new_id(named_curve->libcrypto_nid, NULL);
         if (pctx == NULL)
             goto err1;
         if (EVP_PKEY_keygen_init(pctx) != 1)
@@ -70,6 +70,8 @@ static EVP_PKEY *s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *
     err1:
         if (pctx != NULL)
             EVP_PKEY_CTX_free(pctx);
+        if (evp_pkey != NULL)
+            EVP_PKEY_free(evp_pkey);
         S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
     }
 #endif
@@ -99,10 +101,12 @@ static EVP_PKEY *s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *
     err2:
         if (pctx != NULL)
             EVP_PKEY_CTX_free(pctx);
-        if (kctx != NULL)
-            EVP_PKEY_CTX_free(kctx);
         if (params != NULL)
             EVP_PKEY_free(params);
+        if (kctx != NULL)
+            EVP_PKEY_CTX_free(kctx);
+        if (evp_pkey != NULL)
+            EVP_PKEY_free(evp_pkey);
         S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
     }
     else
@@ -159,57 +163,6 @@ int s2n_ecc_evp_compute_shared_secret_from_params(struct s2n_ecc_evp_params *pri
     return 0;
 }
 
-int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *Yc_in,
-                                                struct s2n_blob *shared_key)
-{
-    EVP_PKEY *client_key = EVP_PKEY_new();
-
-    /* Copy EVP_PKEY Paramaters */
-    S2N_ERROR_IF(client_key == NULL, S2N_ERR_ECDHE_GEN_KEY);
-    S2N_ERROR_IF(EVP_PKEY_copy_parameters(client_key, ecc_evp_params->evp_pkey) != 1, S2N_ERR_ECDHE_SERIALIZING);
-
-    /* Decode the client public obtained from the wire*/
-    S2N_ERROR_IF(Yc_in->blob.size != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
-    S2N_ERROR_IF(1 != EVP_PKEY_set1_tls_encodedpoint(client_key, Yc_in->blob.data, Yc_in->blob.size),
-                 S2N_ERR_ECDHE_SERIALIZING);
-    S2N_ERROR_IF(client_key == NULL, S2N_ERR_ECDHE_SERIALIZING);
-
-    /* Compute the key and free the point */
-    if (s2n_ecc_evp_compute_shared_secret(ecc_evp_params->evp_pkey, client_key, shared_key) != 0)
-    {
-        EVP_PKEY_free(client_key);
-        S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
-    }
-
-    EVP_PKEY_free(client_key);
-    return 0;
-}
-
-int s2n_ecc_evp_compute_shared_secret_as_client(struct s2n_ecc_evp_params *ecc_evp_params,
-                                                struct s2n_stuffer *Yc_out, struct s2n_blob *shared_key)
-{
-    EVP_PKEY *client_key;
-
-    /* Generate the client key */
-    notnull_check(ecc_evp_params->negotiated_curve);
-    client_key = s2n_ecc_evp_generate_own_key(ecc_evp_params->negotiated_curve);
-    S2N_ERROR_IF(client_key == NULL, S2N_ERR_ECDHE_GEN_KEY);
-
-    /* Encode the client public to send across wire */
-    Yc_out->blob.size = EVP_PKEY_get1_tls_encodedpoint(client_key, &Yc_out->blob.data);
-    S2N_ERROR_IF(Yc_out->blob.size != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
-
-    /* Compute the shared secret */
-    if (s2n_ecc_evp_compute_shared_secret(client_key, ecc_evp_params->evp_pkey, shared_key) != 0)
-    {
-        EVP_PKEY_free(client_key);
-        S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
-    }
-
-    EVP_PKEY_free(client_key);
-    return 0;
-}
-
 int s2n_ecc_evp_write_params(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *out, struct s2n_blob *written)
 {
     notnull_check(ecc_evp_params);
@@ -242,15 +195,25 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
     notnull_check(ecc_evp_params->negotiated_curve);
     notnull_check(ecc_evp_params->evp_pkey);
     notnull_check(out);
-    
+
+#if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER)
     out->blob.size = EVP_PKEY_get1_tls_encodedpoint(ecc_evp_params->evp_pkey, &out->blob.data);
-    out->blob.data = s2n_stuffer_raw_write(out, out->blob.size);
+#else
+    const EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(ecc_evp_params->evp_pkey);
+    S2N_ERROR_IF(ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    const EC_POINT *point = EC_KEY_get0_public_key(ec_key);
+    const EC_GROUP *group = EC_KEY_get0_group(ec_key);
+    S2N_ERROR_IF(point == NULL || group == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    out->blob.size = (uint8_t)EC_POINT_point2oct(group, point, POINT_CONVERSION_UNCOMPRESSED, out->blob.data, out->blob.size, NULL);
+
+#endif
     S2N_ERROR_IF(out->blob.size == 0, S2N_ERR_ECDHE_SERIALIZING);
     S2N_ERROR_IF(out->blob.size != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
+    out->blob.data = s2n_stuffer_raw_write(out, out->blob.size);
+    notnull_check(out->blob.data);
 
     return 0;
 }
-
 
 int s2n_ecc_evp_read_params(struct s2n_stuffer *in, struct s2n_blob *data_to_verify,
                             struct s2n_ecdhe_raw_server_params *raw_server_ecc_params)
@@ -308,14 +271,37 @@ int s2n_ecc_evp_parse_params_point(struct s2n_blob *point_blob, struct s2n_ecc_e
 {
     notnull_check(point_blob->data);
     notnull_check(ecc_evp_params->negotiated_curve);
-    notnull_check(ecc_evp_params->evp_pkey);
-
-    S2N_ERROR_IF(0 != EVP_PKEY_missing_parameters(ecc_evp_params->evp_pkey), S2N_ERR_ECDHE_SERIALIZING);
     S2N_ERROR_IF(point_blob->size != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
+    if (ecc_evp_params->evp_pkey == NULL)
+    {
+        ecc_evp_params->evp_pkey = EVP_PKEY_new();
+    }
+    S2N_ERROR_IF(ecc_evp_params->evp_pkey == NULL, S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(0 != EVP_PKEY_missing_parameters(ecc_evp_params->evp_pkey), S2N_ERR_BAD_MESSAGE);
+
+#if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER)
     S2N_ERROR_IF(1 != EVP_PKEY_set1_tls_encodedpoint(ecc_evp_params->evp_pkey,
                                                      point_blob->data, point_blob->size),
                  S2N_ERR_ECDHE_SERIALIZING);
-
+#else
+    /* Create a key to store the point */
+    EC_KEY *ec_key = EC_KEY_new_by_curve_name(ecc_evp_params->negotiated_curve->libcrypto_nid);
+    S2N_ERROR_IF(ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    const EC_GROUP *group = EC_KEY_get0_group(ec_key);
+    /* Parse and store the server public point */
+    EC_POINT *point = EC_POINT_new(group);
+    S2N_ERROR_IF(point == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    if (1 != EC_POINT_oct2point(group, point, point_blob->data, point_blob->size, NULL))
+    {
+        EC_POINT_free(point);
+        return 1;
+    }
+    /* Set the point as the public key */
+    S2N_ERROR_IF(1 != EC_KEY_set_public_key(ec_key, point), S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(1 != EVP_PKEY_set1_EC_KEY(ecc_evp_params->evp_pkey, ec_key), S2N_ERR_BAD_MESSAGE);
+    EC_POINT_free(point);
+    EC_KEY_free(ec_key);
+#endif
     return 0;
 }
 
@@ -334,7 +320,6 @@ int s2n_ecc_evp_generate_copy_params(struct s2n_ecc_evp_params *from_params, str
     S2N_ERROR_IF(!EVP_PKEY_missing_parameters(to_params->evp_pkey) &&
                      !EVP_PKEY_cmp_parameters(from_params->evp_pkey, to_params->evp_pkey),
                  S2N_ERR_ECDHE_SERIALIZING);
-
     return 0;
 }
 
