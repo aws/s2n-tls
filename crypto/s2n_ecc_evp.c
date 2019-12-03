@@ -59,55 +59,76 @@ static EVP_PKEY *s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *
     {
         pctx = EVP_PKEY_CTX_new_id(named_curve->libcrypto_nid, NULL);
         if (pctx == NULL)
-            goto err1;
+        {
+            S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
+        }
         if (EVP_PKEY_keygen_init(pctx) != 1)
-            goto err1;
+        {
+            EVP_PKEY_CTX_free(pctx);
+            S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
+        }
         if (EVP_PKEY_keygen(pctx, &evp_pkey) != 1)
-            goto err1;
+        {
+            EVP_PKEY_CTX_free(pctx);
+            EVP_PKEY_free(evp_pkey);
+            S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
+        }
 
         EVP_PKEY_CTX_free(pctx);
         return evp_pkey;
-    err1:
-        if (pctx != NULL)
-            EVP_PKEY_CTX_free(pctx);
-        if (evp_pkey != NULL)
-            EVP_PKEY_free(evp_pkey);
-        S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
     }
 #endif
     if (named_curve->libcrypto_nid == NID_X9_62_prime256v1 || named_curve->libcrypto_nid == NID_secp384r1)
     {
         pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL);
         if (pctx == NULL)
-            goto err2;
+        {
+            S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
+        }
         if (EVP_PKEY_paramgen_init(pctx) != 1)
-            goto err2;
+        {
+            EVP_PKEY_CTX_free(pctx);
+            S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
+        }
         if (EVP_PKEY_CTX_set_ec_paramgen_curve_nid(pctx, named_curve->libcrypto_nid) != 1)
-            goto err2;
+        {
+            EVP_PKEY_CTX_free(pctx);
+            S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
+        }
         if (!EVP_PKEY_paramgen(pctx, &params))
-            goto err2;
+        {
+            EVP_PKEY_CTX_free(pctx);
+            EVP_PKEY_free(params);
+            S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
+        }
         kctx = EVP_PKEY_CTX_new(params, NULL);
         if (kctx == NULL)
-            goto err2;
+        {
+            EVP_PKEY_CTX_free(pctx);
+            EVP_PKEY_free(params);
+            S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
+        }
         if (EVP_PKEY_keygen_init(kctx) != 1)
-            goto err2;
+        {
+            EVP_PKEY_CTX_free(pctx);
+            EVP_PKEY_free(params);
+            EVP_PKEY_CTX_free(kctx);
+            S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
+        }
+
         if (EVP_PKEY_keygen(kctx, &evp_pkey) != 1)
-            goto err2;
+        {
+            EVP_PKEY_CTX_free(pctx);
+            EVP_PKEY_free(params);
+            EVP_PKEY_CTX_free(kctx);
+            EVP_PKEY_free(evp_pkey);
+            S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
+        }
 
         EVP_PKEY_CTX_free(pctx);
         EVP_PKEY_CTX_free(kctx);
         EVP_PKEY_free(params);
         return evp_pkey;
-    err2:
-        if (pctx != NULL)
-            EVP_PKEY_CTX_free(pctx);
-        if (params != NULL)
-            EVP_PKEY_free(params);
-        if (kctx != NULL)
-            EVP_PKEY_CTX_free(kctx);
-        if (evp_pkey != NULL)
-            EVP_PKEY_free(evp_pkey);
-        S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
     }
     else
     {
@@ -122,23 +143,34 @@ static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_p
 
     ctx = EVP_PKEY_CTX_new(own_key, NULL);
     if (ctx == NULL)
-        goto err;
+    {
+        S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
+    }
+
     if (EVP_PKEY_derive_init(ctx) != 1)
-        goto err;
+    {
+        EVP_PKEY_CTX_free(ctx);
+        S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
+    }
     if (EVP_PKEY_derive_set_peer(ctx, peer_public) != 1)
-        goto err;
+    {
+        EVP_PKEY_CTX_free(ctx);
+        S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
+    }
     if (EVP_PKEY_derive(ctx, NULL, &shared_secret_size) != 1)
-        goto err;
+    {
+        EVP_PKEY_CTX_free(ctx);
+        S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
+    }
     GUARD(s2n_alloc(shared_secret, shared_secret_size));
     if (EVP_PKEY_derive(ctx, shared_secret->data, &shared_secret_size) != 1)
-        goto err;
+    {
+        EVP_PKEY_CTX_free(ctx);
+        GUARD(s2n_free(shared_secret));
+        S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
+    }
     EVP_PKEY_CTX_free(ctx);
     return 0;
-
-err:
-    if (ctx != NULL)
-        EVP_PKEY_CTX_free(ctx);
-    S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
 }
 
 int s2n_ecc_evp_generate_ephemeral_key(struct s2n_ecc_evp_params *ecc_evp_params)
