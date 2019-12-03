@@ -66,7 +66,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_extensions_client_key_share_recv(server_conn, &client_hello_key_share));
 
         /* Server configures the "negotiated_curve" */
-        server_conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
+        server_conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
 
         /* Server sends ServerHello key_share */
         EXPECT_SUCCESS(s2n_extensions_server_key_share_send(server_conn, &server_hello_key_share));
@@ -290,8 +290,8 @@ int main(int argc, char **argv)
                 conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
                 conn->handshake.message_number = i;
 
-                conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
-                conn->secure.client_ecc_params[0].negotiated_curve = &s2n_ecc_supported_curves[0];
+                conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
+                conn->secure.client_ecc_params[0].negotiated_curve = s2n_ecc_supported_curves[0];
                 EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&conn->secure.server_ecc_params));
                 EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&conn->secure.client_ecc_params[0]));
 
@@ -337,8 +337,8 @@ int main(int argc, char **argv)
                 conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
                 conn->handshake.message_number = i;
 
-                conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
-                conn->secure.client_ecc_params[0].negotiated_curve = &s2n_ecc_supported_curves[0];
+                conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
+                conn->secure.client_ecc_params[0].negotiated_curve = s2n_ecc_supported_curves[0];
                 EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&conn->secure.server_ecc_params));
                 EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&conn->secure.client_ecc_params[0]));
 
