@@ -108,13 +108,13 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
-            conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
+            conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
 
             /* Test that s2n_server_extensions_send() only works when protocol version is TLS13 */
             conn->actual_protocol_version = S2N_TLS13;
 
             /* key_share_send() requires a negotiated_curve */
-            conn->secure.client_ecc_params[0].negotiated_curve = &s2n_ecc_supported_curves[0];
+            conn->secure.client_ecc_params[0].negotiated_curve = s2n_ecc_supported_curves[0];
 
             uint8_t size = s2n_extensions_server_key_share_send_size(conn)
                 + s2n_extensions_server_supported_versions_size()
@@ -155,7 +155,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
-            conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
+            conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
 
             s2n_connection_set_cipher_preferences(conn, "test_tls13_null_key_exchange_alg");
             /* Test that s2n_server_extensions_send() only works when protocol version is TLS13 */
@@ -164,7 +164,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_set_cipher_and_cert_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
 
             /* key_share_send() requires a negotiated_curve */
-            conn->secure.client_ecc_params[0].negotiated_curve = &s2n_ecc_supported_curves[0];
+            conn->secure.client_ecc_params[0].negotiated_curve = s2n_ecc_supported_curves[0];
 
             uint8_t size = s2n_extensions_server_key_share_send_size(conn)
                 + s2n_extensions_server_supported_versions_size()

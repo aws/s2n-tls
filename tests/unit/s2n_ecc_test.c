@@ -48,14 +48,14 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire, 1024));
 
-            test_params.negotiated_curve = &s2n_ecc_supported_curves[i];
+            test_params.negotiated_curve = s2n_ecc_supported_curves[i];
 
             /* Server generates a key for a given curve */
             EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&test_params));
             EXPECT_SUCCESS(s2n_ecc_write_ecc_params_point(&test_params, &wire));
 
             /* Verify output is of the right length */
-            EXPECT_EQUAL(s2n_stuffer_data_available(&wire), s2n_ecc_supported_curves[i].share_size);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&wire), s2n_ecc_supported_curves[i]->share_size);
 
             /* Verify output starts with the known legacy form */
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&wire, &legacy_form));
@@ -75,17 +75,17 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire, 1024));
 
-            write_params.negotiated_curve = &s2n_ecc_supported_curves[i];
+            write_params.negotiated_curve = s2n_ecc_supported_curves[i];
 
             /* Server generates a key for a given curve */
             EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&write_params));
             EXPECT_SUCCESS(s2n_ecc_write_ecc_params_point(&write_params, &wire));
 
             /* Read point back in */
-            EXPECT_SUCCESS(s2n_ecc_read_ecc_params_point(&wire, &point_blob, s2n_ecc_supported_curves[i].share_size));
+            EXPECT_SUCCESS(s2n_ecc_read_ecc_params_point(&wire, &point_blob, s2n_ecc_supported_curves[i]->share_size));
 
             /* Check that the blob looks generally correct. */
-            EXPECT_EQUAL(point_blob.size, s2n_ecc_supported_curves[i].share_size);
+            EXPECT_EQUAL(point_blob.size, s2n_ecc_supported_curves[i]->share_size);
             EXPECT_NOT_NULL(point_blob.data);
 
             EXPECT_SUCCESS(s2n_ecc_params_free(&write_params));
@@ -102,15 +102,15 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire, 1024));
 
-            write_params.negotiated_curve = &s2n_ecc_supported_curves[i];
-            read_params.negotiated_curve = &s2n_ecc_supported_curves[i];
+            write_params.negotiated_curve = s2n_ecc_supported_curves[i];
+            read_params.negotiated_curve = s2n_ecc_supported_curves[i];
 
             /* Server generates a key for a given curve */
             EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&write_params));
             EXPECT_SUCCESS(s2n_ecc_write_ecc_params_point(&write_params, &wire));
 
             /* Read point back in */
-            EXPECT_SUCCESS(s2n_ecc_read_ecc_params_point(&wire, &point_blob, s2n_ecc_supported_curves[i].share_size));
+            EXPECT_SUCCESS(s2n_ecc_read_ecc_params_point(&wire, &point_blob, s2n_ecc_supported_curves[i]->share_size));
             EXPECT_SUCCESS(s2n_ecc_parse_ecc_params_point(&read_params, &point_blob));
 
             /* Check that the point we read is the same we wrote */
@@ -131,7 +131,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire, 1024));
 
         /* Server generates a key for a given curve */
-        server_params.negotiated_curve = &s2n_ecc_supported_curves[i];
+        server_params.negotiated_curve = s2n_ecc_supported_curves[i];
         EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&server_params));
         /* Server sends the public */
         EXPECT_SUCCESS(s2n_ecc_write_ecc_params(&server_params, &wire, &ecdh_params_sent));
