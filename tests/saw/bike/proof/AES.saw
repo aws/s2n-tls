@@ -190,7 +190,6 @@ let aes_ctr_prf_spec len = do {
     // NOTE: marked as "IN" in C code, should be IN OUT
     (b, bp) <- inout_ref aes_ctr_prf_state_T "s";
 
-    // TODO: count invokations accross bike
     // crucible_precond {{ b.rem_invokations >=  `(len/AES256_BLOCK_SIZE) + 1 }};
 
     // NOTE: This invariant is need to avoid underflow
@@ -203,7 +202,6 @@ let aes_ctr_prf_spec len = do {
     b' <- point_to aes_ctr_prf_state_T bp "s'";
     crucible_postcond {{ b'.pos <= `AES256_BLOCK_SIZE }}; // invariant
 
-    // TODO: count invokations accross bike
     // crucible_postcond {{ b'.rem_invokations >=
     //     b.rem_invokations - `(len/AES256_BLOCK_SIZE) - 1 }};
 

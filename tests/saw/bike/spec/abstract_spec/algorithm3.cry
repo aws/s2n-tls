@@ -34,9 +34,6 @@ type pk_matrix = matrix P::r P::n
 half_rounded_up: Integer -> Integer
 half_rounded_up x = (1+x)/2
 
-// TODO: How many Js are there?  The subscript is never larger than the
-//       threshold T, which we assume is at most `max_T`.
-
 // NOTE:  line 4: all J_l initially empty
 (initialJs: [1+P::max_T]J_set) = repeat empty_set
 

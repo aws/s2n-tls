@@ -213,7 +213,6 @@ crypto_kem_dec_ov <- verify_unint "BIKE1_L1_crypto_kem_dec"
     ]
     crypto_kem_dec_spec;
 
-// TODO: functional correctness
 // // NOTE: Step 1 of 2 - non-success result
 // crypto_kem_dec_unsuccessful_ov <- verify_unint "BIKE1_L1_crypto_kem_dec"
 //     crypto_kem_dec_O

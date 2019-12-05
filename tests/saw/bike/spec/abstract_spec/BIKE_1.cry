@@ -30,7 +30,7 @@ private
   //  - slicerem = 111  :  #define SLICE_REM           111ULL
   //  - s = 8           :  #define MAX_MB_SLICES       8ULL
 
-  // TODO: those numbers are unsuitable for the smaller "proof development" sizes
+  // NOTE: those numbers are unsuitable for the smaller "proof development" sizes
   // we use.  I've substituted different numbers below
 
   // Parallelized_hash produces 384 bits, using SHA-384.
