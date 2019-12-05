@@ -21,7 +21,6 @@ import logging
 from awacs.aws import Action, Allow, Statement, Principal, PolicyDocument
 from troposphere import Template, Ref, Output
 from troposphere.iam import Role, Policy
-from troposphere.s3 import Bucket
 from troposphere.codebuild import Artifacts, Environment, Source, Project
 
 logging.getLogger(__name__)
@@ -32,7 +31,7 @@ def build_project(template=Template(), section=None, proj_name=None, raw_env=Non
     template.set_version('2010-09-09')
     # artifacts = Artifacts(Type='S3', Name='s2n-codebuild-artifact-bucket', Location='s2n-codebuild-artifact-bucket')
     artifacts = Artifacts(Type='NO_ARTIFACTS')
-    env_list=list()
+    env_list = list()
 
     try:
         logging.debug(f'raw_env is {raw_env}')
@@ -135,7 +134,8 @@ def main(**kwargs):
         if 'CodeBuild:' in job:
             # Pull the env out of the section, and use the snippet for the other values.
             if 'snippet' in config[job]:
-                build_project(template=codebuild, proj_name=job.split(':')[1], section=config.get(job, 'snippet'), raw_env=config.get(job, 'env'))
+                build_project(template=codebuild, proj_name=job.split(':')[1], section=config.get(job, 'snippet'),\
+                              raw_env=config.get(job, 'env'))
             else:
                 build_project(template=codebuild, proj_name=job.split(':')[1], section=job)
 
@@ -150,8 +150,8 @@ def main(**kwargs):
 
 if __name__ == '__main__':
     # Parse  options
-    parser = argparse.ArgumentParser(description='Creates AWS CodeBuild Project CloudFormation files based on a '
-                                                                                                'simple config')
+    parser = argparse.ArgumentParser(description='Creates AWS CodeBuild Project CloudFormation files ' + \
+                                                 'based on a simple config')
     parser.add_argument('--config', type=str, default="codebuild.config", help='The config filename to create the '
                                                                                'CodeBuild projects')
     parser.add_argument('--dry-run', dest='dry_run', action='store_true', help='Output CFN to stdout; Do not call AWS')
@@ -161,4 +161,4 @@ if __name__ == '__main__':
     logging.debug(f'Try to load config file {args.config}')
     config.read(args.config)
     assert config.get('CFNRole', 'account_number')
-    raise SystemExit(main(args=args, config=config))
+    main(args=args, config=config)
