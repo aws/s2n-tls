@@ -13,7 +13,7 @@
 # permissions and limitations under the License.
 #
 
-SRCS=P434.c fips202.c
+SRCS=fips202.c P434.c
 OBJS=$(SRCS:.c=.o)
 
 # TODO add when ready for SIKE R2 SAW proofs
@@ -28,10 +28,3 @@ all: $(OBJS)
 #bc: $(BCS)
 
 include ../../s2n.mk
-
-# If importing the SIKE P434 code straight from liboqs, -pedantic and -Werror
-# cause the build to break.
-FLAGS_TO_REMOVE := -pedantic -Werror
-FINAL_CFLAGS := $(filter-out $(FLAGS_TO_REMOVE),$(CFLAGS))
-CFLAGS=$(FINAL_CFLAGS)
-CFLAGS+=-I../../

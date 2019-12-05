@@ -6,7 +6,7 @@
 
 #include "P434_internal.h"
 
-__inline void fpadd434(const digit_t *a, const digit_t *b, digit_t *c) { // Modular addition, c = a+b mod p434.
+void fpadd434(const digit_t *a, const digit_t *b, digit_t *c) { // Modular addition, c = a+b mod p434.
 	                                                                     // Inputs: a, b in [0, 2*p434-1]
 	                                                                     // Output: c in [0, 2*p434-1]
 	unsigned int i, carry = 0;
@@ -18,17 +18,17 @@ __inline void fpadd434(const digit_t *a, const digit_t *b, digit_t *c) { // Modu
 
 	carry = 0;
 	for (i = 0; i < NWORDS_FIELD; i++) {
-		SUBC(carry, c[i], ((digit_t *) p434x2)[i], carry, c[i]);
+		SUBC(carry, c[i], ((const digit_t *) p434x2)[i], carry, c[i]);
 	}
 	mask = 0 - (digit_t) carry;
 
 	carry = 0;
 	for (i = 0; i < NWORDS_FIELD; i++) {
-		ADDC(carry, c[i], ((digit_t *) p434x2)[i] & mask, carry, c[i]);
+		ADDC(carry, c[i], ((const digit_t *) p434x2)[i] & mask, carry, c[i]);
 	}
 }
 
-__inline void fpsub434(const digit_t *a, const digit_t *b, digit_t *c) { // Modular subtraction, c = a-b mod p434.
+void fpsub434(const digit_t *a, const digit_t *b, digit_t *c) { // Modular subtraction, c = a-b mod p434.
 	                                                                     // Inputs: a, b in [0, 2*p434-1]
 	                                                                     // Output: c in [0, 2*p434-1]
 	unsigned int i, borrow = 0;
@@ -41,16 +41,16 @@ __inline void fpsub434(const digit_t *a, const digit_t *b, digit_t *c) { // Modu
 
 	borrow = 0;
 	for (i = 0; i < NWORDS_FIELD; i++) {
-		ADDC(borrow, c[i], ((digit_t *) p434x2)[i] & mask, borrow, c[i]);
+		ADDC(borrow, c[i], ((const digit_t *) p434x2)[i] & mask, borrow, c[i]);
 	}
 }
 
-__inline void fpneg434(digit_t *a) { // Modular negation, a = -a mod p434.
+void fpneg434(digit_t *a) { // Modular negation, a = -a mod p434.
 	                                 // Input/output: a in [0, 2*p434-1]
 	unsigned int i, borrow = 0;
 
 	for (i = 0; i < NWORDS_FIELD; i++) {
-		SUBC(borrow, ((digit_t *) p434x2)[i], a[i], borrow, a[i]);
+		SUBC(borrow, ((const digit_t *) p434x2)[i], a[i], borrow, a[i]);
 	}
 }
 
@@ -62,7 +62,7 @@ void fpdiv2_434(const digit_t *a, digit_t *c) { // Modular division by two, c = 
 
 	mask = 0 - (digit_t)(a[0] & 1); // If a is odd compute a+p434
 	for (i = 0; i < NWORDS_FIELD; i++) {
-		ADDC(carry, a[i], ((digit_t *) p434)[i] & mask, carry, c[i]);
+		ADDC(carry, a[i], ((const digit_t *) p434)[i] & mask, carry, c[i]);
 	}
 
 	mp_shiftr1(c, NWORDS_FIELD);
@@ -73,13 +73,13 @@ void fpcorrection434(digit_t *a) { // Modular correction to reduce field element
 	digit_t mask;
 
 	for (i = 0; i < NWORDS_FIELD; i++) {
-		SUBC(borrow, a[i], ((digit_t *) p434)[i], borrow, a[i]);
+		SUBC(borrow, a[i], ((const digit_t *) p434)[i], borrow, a[i]);
 	}
 	mask = 0 - (digit_t) borrow;
 
 	borrow = 0;
 	for (i = 0; i < NWORDS_FIELD; i++) {
-		ADDC(borrow, a[i], ((digit_t *) p434)[i] & mask, borrow, a[i]);
+		ADDC(borrow, a[i], ((const digit_t *) p434)[i] & mask, borrow, a[i]);
 	}
 }
 
@@ -162,7 +162,7 @@ void rdc_mont(const digit_t *ma, digit_t *mc) { // Efficient Montgomery reductio
 	for (i = 0; i < NWORDS_FIELD; i++) {
 		for (j = 0; j < i; j++) {
 			if (j < (i - p434_ZERO_WORDS + 1)) {
-				MUL(mc[j], ((digit_t *) p434p1)[i - j], UV + 1, UV[0]);
+				MUL(mc[j], ((const digit_t *) p434p1)[i - j], UV + 1, UV[0]);
 				ADDC(0, UV[0], v, carry, v);
 				ADDC(carry, UV[1], u, carry, u);
 				t += carry;
@@ -183,7 +183,7 @@ void rdc_mont(const digit_t *ma, digit_t *mc) { // Efficient Montgomery reductio
 		}
 		for (j = i - NWORDS_FIELD + 1; j < NWORDS_FIELD; j++) {
 			if (j < (NWORDS_FIELD - count)) {
-				MUL(mc[j], ((digit_t *) p434p1)[i - j], UV + 1, UV[0]);
+				MUL(mc[j], ((const digit_t *) p434p1)[i - j], UV + 1, UV[0]);
 				ADDC(0, UV[0], v, carry, v);
 				ADDC(carry, UV[1], u, carry, u);
 				t += carry;
