@@ -35,11 +35,10 @@ struct s2n_array {
 #define S2N_ELEMENT_ALREADY_IN_ARRAY -1
 
 extern struct s2n_array *s2n_array_new(size_t element_size);
-extern void *s2n_array_add(struct s2n_array *array);
+extern void *s2n_array_pushback(struct s2n_array *array);
 extern void *s2n_array_get(struct s2n_array *array, uint32_t index);
 extern void *s2n_array_insert(struct s2n_array *array, uint32_t index);
 extern int s2n_array_remove(struct s2n_array *array, uint32_t index);
 extern int s2n_array_free_p(struct s2n_array **parray);
 extern int s2n_array_free(struct s2n_array *array);
-extern int s2n_array_binary_search(struct s2n_array *array, void *element, int (*comparator)(void*, void*), uint32_t* out);
-extern void *s2n_array_insert_sorted(struct s2n_array *array, void *element, int (*comparator)(void*, void*));
+extern int s2n_array_insert_and_copy(struct s2n_array *array, void* element, uint32_t index);
