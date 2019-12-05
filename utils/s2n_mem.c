@@ -81,7 +81,7 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
         b->data = data;
         b->size = size;
         b->allocated = size;
-        b->growable = true;
+        b->growable = 1;
         b->mlocked = 0;
         return 0;
     }
@@ -98,7 +98,7 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
     b->data = data;
     b->size = size;
     b->allocated = allocate;
-    b->growable = true;
+    b->growable = 1;
 
 #ifdef MADV_DONTDUMP
     if (madvise(b->data, size, MADV_DONTDUMP) < 0) {

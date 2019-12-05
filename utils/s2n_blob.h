@@ -23,7 +23,8 @@ struct s2n_blob {
     uint8_t *data;
     uint32_t size;
     uint32_t allocated;
-    uint8_t mlocked :1, growable :1;
+    uint8_t mlocked :1;
+    uint8_t growable :1;
 };
 
 extern bool s2n_blob_is_growable(const struct s2n_blob* b);

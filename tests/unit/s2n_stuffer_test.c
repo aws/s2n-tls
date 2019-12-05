@@ -53,13 +53,13 @@ int main(int argc, char **argv)
         uint64_t value = i * (0xff / 100);
         EXPECT_SUCCESS(s2n_stuffer_read_uint8(&stuffer, &u8));
         EXPECT_EQUAL(value, u8);
-	EXPECT_EQUAL(copy_of_bytes.data[i], u8);
+        EXPECT_EQUAL(copy_of_bytes.data[i], u8);
     }
 
     /* The copy_of_bytes should have the same values */
     for (uint64_t i = 0; i < 100; i++) {
         uint64_t value = i * (0xff / 100);
-	EXPECT_EQUAL(copy_of_bytes.data[i], value);
+        EXPECT_EQUAL(copy_of_bytes.data[i], value);
     }
 
     EXPECT_FAILURE(s2n_stuffer_read_uint8(&stuffer, &u8));
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
     /* Can still read the copy_of_bytes even once the stuffer has been overwritten and freed */
     for (uint64_t i = 0; i < 100; i++) {
         uint64_t value = i * (0xff / 100);
-	EXPECT_EQUAL(copy_of_bytes.data[i], value);
+        EXPECT_EQUAL(copy_of_bytes.data[i], value);
     }
     EXPECT_SUCCESS(s2n_free(&copy_of_bytes));
 
