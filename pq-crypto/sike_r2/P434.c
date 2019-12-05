@@ -85,7 +85,6 @@ const unsigned int strat_Bob[MAX_Bob - 1] = {
 #define fpsqr_mont fpsqr434_mont
 #define fpinv_mont fpinv434_mont
 #define fpinv_chain_mont fpinv434_chain_mont
-#define fpinv_mont_bingcd fpinv434_mont_bingcd
 #define fp2copy fp2copy434
 #define fp2zero fp2zero434
 #define fp2add fp2add434
@@ -96,8 +95,6 @@ const unsigned int strat_Bob[MAX_Bob - 1] = {
 #define fp2mul_mont fp2mul434_mont
 #define fp2sqr_mont fp2sqr434_mont
 #define fp2inv_mont fp2inv434_mont
-#define fp2inv_mont_bingcd fp2inv434_mont_bingcd
-#define fpequal_non_constant_time fpequal434_non_constant_time
 #define mp_add_asm mp_add434_asm
 #define mp_subaddx2_asm mp_subadd434x2_asm
 #define mp_dblsubx2_asm mp_dblsub434x2_asm
