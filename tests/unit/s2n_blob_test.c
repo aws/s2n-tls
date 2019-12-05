@@ -16,6 +16,7 @@
 #include "s2n_test.h"
 
 #include "utils/s2n_blob.h"
+#include "utils/s2n_mem.h"
 
 #include <s2n.h>
 
