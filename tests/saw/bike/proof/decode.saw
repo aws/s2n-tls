@@ -35,7 +35,6 @@ let compute_syndrome_spec = do {
     (c,cp) <- in_ref sk_T "sk";
     crucible_execute_func [ap, bp, cp];
     a' <- point_to dup1_dup2_syndrome_T ap "a'";
-    // TODO: functional correctness
     // crucible_postcond {{ a'.dup1 == compute_syndrome b c }};
     // crucible_postcond {{ a'.dup2 == compute_syndrome b c }};
     crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
@@ -49,7 +48,6 @@ let compute_syndrome_update_spec = do {
     (c,cp) <- in_ref sk_T "sk";
     crucible_execute_func [ap, bp, cp];
     a' <- point_to syndrome_T ap "s'";
-    // TODO: functional correctness
     // crucible_postcond {{ a' == compute_syndrome_update a b c }};
     crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
 };

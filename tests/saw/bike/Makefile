@@ -1,9 +1,8 @@
 #####################
-# Copyright 2016 Galois, Inc. All Rights Reserved
+# Copyright 2019 Galois, Inc. All Rights Reserved
 #
 #  Authors:
 #	Joey Dodds : jdodds@galois.com
-#       Nathan Collins : conathan@galois.com
 #	
 #
 # Licensed under the Apache License, Version 2.0 (the "License").

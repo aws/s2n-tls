@@ -69,9 +69,7 @@ let points_to_uint128 p v = do {
 
 let uint128_T = (llvm_struct "struct.uint128_s", points_to_uint128);
 
-// TODO: There is really no good Cryptol value to associate with
-//       this pointer.
-
+// NOTE: There is no Cryptol value to associate with a pointer.
 let points_to_aes256_ks p v = do {
     ctx_p <- crucible_fresh_pointer evp_cipher_ctx_st_t;
     crucible_points_to p ctx_p;
