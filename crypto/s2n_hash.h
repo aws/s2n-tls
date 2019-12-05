@@ -16,6 +16,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include <openssl/md5.h>
 #include <openssl/sha.h>
@@ -88,7 +89,7 @@ struct s2n_hash {
 
 extern int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out);
 extern int s2n_hash_block_size(s2n_hash_algorithm alg, uint64_t *block_size);
-extern int s2n_hash_is_available(s2n_hash_algorithm alg);
+extern bool s2n_hash_is_available(s2n_hash_algorithm alg);
 extern int s2n_hash_is_ready_for_input(struct s2n_hash_state *state);
 extern int s2n_hash_new(struct s2n_hash_state *state);
 extern int s2n_hash_allow_md5_for_fips(struct s2n_hash_state *state);
