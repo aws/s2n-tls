@@ -44,11 +44,14 @@ struct s2n_array *s2n_array_new(size_t element_size)
     struct s2n_blob mem = {0};
     GUARD_PTR(s2n_alloc(&mem, sizeof(struct s2n_array)));
 
-    struct s2n_array initilizer = {.mem = {0}, .num_of_elements = 0, .capacity = 0, .element_size = element_size};
     struct s2n_array *array = (void *) mem.data;
-    *array = initilizer;
-    GUARD_PTR(s2n_array_enlarge(array, S2N_INITIAL_ARRAY_SIZE));
+    *array = (struct s2n_array) {.mem = {0}, .num_of_elements = 0, .capacity = 0, .element_size = element_size};
 
+    if (s2n_array_enlarge(array, S2N_INITIAL_ARRAY_SIZE) < 0) {
+        /* Avoid memory leak if allocation fails */
+        GUARD_PTR(s2n_free(&mem));
+        return NULL;
+    }
     return array;
 }
 
