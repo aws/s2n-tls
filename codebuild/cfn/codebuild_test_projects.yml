@@ -51,6 +51,11 @@
                 "Ref": "s2nValgrindOpenSSL102Gcc6"
             }
         },
+        "CodeBuildProjects2nValgrindOpenSSL111Gcc9": {
+            "Value": {
+                "Ref": "s2nValgrindOpenSSL111Gcc9"
+            }
+        },
         "CodeBuildProjects2nfuzzer1": {
             "Value": {
                 "Ref": "s2nfuzzer1"
@@ -156,7 +161,7 @@
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
-                    "Location": "https://github.com/dougch/s2n.git",
+                    "Location": "https://github.com/awslabs/s2n.git",
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
@@ -202,7 +207,7 @@
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
-                    "Location": "https://github.com/dougch/s2n.git",
+                    "Location": "https://github.com/awslabs/s2n.git",
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
@@ -248,7 +253,7 @@
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
-                    "Location": "https://github.com/dougch/s2n.git",
+                    "Location": "https://github.com/awslabs/s2n.git",
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
@@ -294,7 +299,7 @@
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
-                    "Location": "https://github.com/dougch/s2n.git",
+                    "Location": "https://github.com/awslabs/s2n.git",
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
@@ -348,7 +353,7 @@
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
-                    "Location": "https://github.com/dougch/s2n.git",
+                    "Location": "https://github.com/awslabs/s2n.git",
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
@@ -398,7 +403,7 @@
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
-                    "Location": "https://github.com/dougch/s2n.git",
+                    "Location": "https://github.com/awslabs/s2n.git",
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
@@ -448,7 +453,7 @@
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
-                    "Location": "https://github.com/dougch/s2n.git",
+                    "Location": "https://github.com/awslabs/s2n.git",
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
@@ -494,7 +499,7 @@
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
-                    "Location": "https://github.com/dougch/s2n.git",
+                    "Location": "https://github.com/awslabs/s2n.git",
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
@@ -548,7 +553,7 @@
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
-                    "Location": "https://github.com/dougch/s2n.git",
+                    "Location": "https://github.com/awslabs/s2n.git",
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
@@ -594,7 +599,53 @@
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
-                    "Location": "https://github.com/dougch/s2n.git",
+                    "Location": "https://github.com/awslabs/s2n.git",
+                    "ReportBuildStatus": "true",
+                    "Type": "GITHUB"
+                },
+                "SourceVersion": "codebuild_fuzzers"
+            },
+            "Type": "AWS::CodeBuild::Project"
+        },
+        "s2nValgrindOpenSSL111Gcc9": {
+            "DependsOn": "CodeBuildRole",
+            "Properties": {
+                "Artifacts": {
+                    "Type": "NO_ARTIFACTS"
+                },
+                "BadgeEnabled": "true",
+                "Environment": {
+                    "ComputeType": "BUILD_GENERAL1_2XLARGE",
+                    "EnvironmentVariables": [
+                        {
+                            "Name": "S2N_LIBCRYPTO",
+                            "Value": "openssl-1.1.1"
+                        },
+                        {
+                            "Name": "BUILD_S2N",
+                            "Value": "true"
+                        },
+                        {
+                            "Name": "TESTS",
+                            "Value": "valgrind"
+                        },
+                        {
+                            "Name": "GCC_VERSION",
+                            "Value": "9"
+                        }
+                    ],
+                    "Image": "aws/codebuild/standard:2.0",
+                    "PrivilegedMode": "true",
+                    "Type": "LINUX_CONTAINER"
+                },
+                "Name": "s2nValgrindOpenSSL111Gcc9",
+                "ServiceRole": {
+                    "Ref": "CodeBuildRole"
+                },
+                "Source": {
+                    "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
+                    "GitCloneDepth": "1",
+                    "Location": "https://github.com/awslabs/s2n.git",
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
@@ -644,7 +695,7 @@
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
-                    "Location": "https://github.com/dougch/s2n.git",
+                    "Location": "https://github.com/awslabs/s2n.git",
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
@@ -690,7 +741,7 @@
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
-                    "Location": "https://github.com/dougch/s2n.git",
+                    "Location": "https://github.com/awslabs/s2n.git",
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
@@ -736,7 +787,7 @@
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
-                    "Location": "https://github.com/dougch/s2n.git",
+                    "Location": "https://github.com/awslabs/s2n.git",
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
@@ -782,7 +833,7 @@
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
-                    "Location": "https://github.com/dougch/s2n.git",
+                    "Location": "https://github.com/awslabs/s2n.git",
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },

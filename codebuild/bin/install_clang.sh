@@ -43,13 +43,8 @@ export GIT_CURL_VERBOSE=1
 echo "Downloading Clang..."
 git clone https://chromium.googlesource.com/chromium/src/tools/clang
 
-cd clang
-# Reset to known working version of Clang - NOTE: This commit is from 2017 and requires Python2.7(EOL)
-#git reset --hard e96a7b48d35ab6a268c8372048781cdec903a794
-cd ..
-
 echo "Updating Clang..."
-"$CLANG_DOWNLOAD_DIR"/clang/scripts/update.py
+python3 "$CLANG_DOWNLOAD_DIR"/clang/scripts/update.py
 
 # "third_party" directory is created above $CLANG_DOWNLOAD_DIR after running 
 # update, move it into $CLANG_DOWNLOAD_DIR once update is complete.
