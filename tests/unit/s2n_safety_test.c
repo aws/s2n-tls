@@ -335,6 +335,6 @@ int main(int argc, char **argv)
     CHECK_OVF(s2n_mul_overflow, uint32_t, 0x1FFFF, 0x1FFFF);
     CHECK_OVF(s2n_mul_overflow, uint32_t, ~0u, ~0u);
 
-    return 0;
     END_TEST();
+    return 0;
 }
