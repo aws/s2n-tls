@@ -20,10 +20,10 @@ import yaml
 
 from collections import defaultdict
 from troposphere.codebuild import Artifacts, Environment, Source, Project
-from troposphere import Template, Ref, Output
+from troposphere import Template
 logging.basicConfig(level=logging.DEBUG)
 
-# Docker built matrix os distro/OS/SSL version (excludes macOS and windows)
+# Docker build matrix: OS. release, SSL version (linux specific)
 distros = {"ubuntu": ['19.04', '18.04', '16.04'], "amazonlinux": ['2.0']}
 open_ssl_versions = ['OpenSSL_1_1_1-stable', 'OpenSSL_1_1_0-stable']
 cc_versions = ['gcc-9', 'gcc-6']
@@ -106,6 +106,7 @@ def create_buildspec(openssl_tag: str, distro: str, tag: str) -> dict:
 
 
 def create_codebuild_jobs() -> defaultdict:
+    """ Create a Troposphere template for building docker images with CodeBuild. """
     result = defaultdict()
     artifacts = Artifacts(Type='NO_ARTIFACTS')
 
@@ -148,6 +149,7 @@ def create_codebuild_jobs() -> defaultdict:
 
 
 def main(*argv):
+    """ Create Docker Compose file, CodeBuild buildspec and cfn for desired dimensions. """
     # TODO: check for isengard role.
     # if 'AWS_ACCESS_KEY_ID' in os.environ and 'AWS_ACCESS_KEY_ID' in os.environ:
 
@@ -170,7 +172,7 @@ def main(*argv):
             fh.write(yaml.dump(all_buildspecs[target], default_style=None, default_flow_style=False, sort_keys=False))
         logging.debug(f'Wrote {repo_tag_path}')
 
-    logging.debug('Creating CodeBuild CloudFormation yamls.')
+    logging.debug('Creating CodeBuild CloudFormation files.')
     all_cfn = create_codebuild_jobs()
     for target in all_cfn.keys():
         with(open(f'../codebuild/cfn/docker_build_{target}_cfn.yml', "w")) as fh:

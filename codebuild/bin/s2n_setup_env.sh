@@ -13,6 +13,7 @@
 # permissions and limitations under the License.
 #
 
+# TODO: Flag user if they didn't source this, values won't stick.
 
 # Setup Default Build Config
 : "${S2N_LIBCRYPTO:=openssl-1.1.1}"
