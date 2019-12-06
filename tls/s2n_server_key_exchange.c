@@ -46,12 +46,12 @@ int s2n_server_key_recv(struct s2n_connection *conn)
 
     /* Add common signature data */
     if (conn->actual_protocol_version == S2N_TLS12) {
-        s2n_hash_algorithm hash_algorithm;
-        s2n_signature_algorithm signature_algorithm;
-        GUARD(s2n_get_signature_hash_pair_if_supported(in, &hash_algorithm, &signature_algorithm));
-        GUARD(s2n_hash_init(signature_hash, hash_algorithm));
+        struct s2n_signature_scheme negotiated_sig_scheme;
+        /* Verify the SigScheme picked by the Server was actually in the list we sent */
+        GUARD(s2n_get_and_validate_negotiated_signature_scheme(conn, in, &negotiated_sig_scheme));
+        GUARD(s2n_hash_init(signature_hash, negotiated_sig_scheme.hash_alg));
     } else {
-        GUARD(s2n_hash_init(signature_hash, conn->secure.conn_hash_alg));
+        GUARD(s2n_hash_init(signature_hash, conn->secure.conn_sig_scheme.hash_alg));
     }
     GUARD(s2n_hash_update(signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_hash_update(signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
@@ -225,12 +225,11 @@ int s2n_server_key_send(struct s2n_connection *conn)
 
     /* Add common signature data */
     if (conn->actual_protocol_version == S2N_TLS12) {
-        GUARD(s2n_stuffer_write_uint8(out, s2n_hash_alg_to_tls[ conn->secure.conn_hash_alg ]));
-        GUARD(s2n_stuffer_write_uint8(out, conn->secure.conn_sig_alg));
+        GUARD(s2n_stuffer_write_uint16(out, conn->secure.conn_sig_scheme.iana_value));
     }
 
     /* Add the random data to the hash */
-    GUARD(s2n_hash_init(signature_hash, conn->secure.conn_hash_alg));
+    GUARD(s2n_hash_init(signature_hash, conn->secure.conn_sig_scheme.hash_alg));
     GUARD(s2n_hash_update(signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_hash_update(signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
 

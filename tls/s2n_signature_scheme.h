@@ -31,6 +31,8 @@ struct s2n_signature_scheme {
 };
 
 /* RSA PKCS1 */
+/* s2n_rsa_pkcs1_md5_sha1 is not in any preference list, but it is needed since it's the default for TLS 1.0 and 1.1 if
+ * no SignatureScheme is sent. */
 extern const struct s2n_signature_scheme s2n_rsa_pkcs1_md5_sha1;
 extern const struct s2n_signature_scheme s2n_rsa_pkcs1_sha1;
 extern const struct s2n_signature_scheme s2n_rsa_pkcs1_sha224;
@@ -59,8 +61,11 @@ extern const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha384;
 extern const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha512;
 
 
+extern const struct s2n_signature_scheme* const s2n_supported_sig_scheme_pref_list[];
 extern const struct s2n_signature_scheme* const s2n_legacy_sig_scheme_pref_list[];
 extern const struct s2n_signature_scheme* const s2n_tls13_sig_scheme_pref_list[];
 
+extern const size_t s2n_supported_sig_scheme_pref_list_len;
 extern const size_t s2n_legacy_sig_scheme_pref_list_len;
 extern const size_t s2n_tls13_sig_scheme_pref_list_len;
+
