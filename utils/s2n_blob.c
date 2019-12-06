@@ -32,8 +32,7 @@ bool s2n_blob_is_valid(const struct s2n_blob* b)
 int s2n_blob_init(struct s2n_blob *b, uint8_t * data, uint32_t size)
 {
     notnull_check(b);
-    struct s2n_blob temp = {.data=data, .size=size};
-    *b = temp;
+    *b = (struct s2n_blob) {.data = data, .size = size, .growable = 0, .mlocked = 0};
     return 0;
 }
 
