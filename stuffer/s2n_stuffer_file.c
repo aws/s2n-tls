@@ -42,10 +42,8 @@ int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, int rfd, uint32_t len)
         S2N_ERROR_IF(r < 0 && errno != EINTR, S2N_ERR_READ);
     } while (r < 0);
 
-      /* Record just how many bytes we have written */
-    stuffer->write_cursor += r;
-    stuffer->wiped = 0;
-
+    /* Record just how many bytes we have written */
+    GUARD(s2n_stuffer_skip_write(stuffer, r));
     return r;
 }
 
