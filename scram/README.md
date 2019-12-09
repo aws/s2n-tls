@@ -77,11 +77,12 @@ consideration for cryptographic systems.
 ## SCRAM algorithm
 
 SCRAM is being developed as part of Amazon s2n and is open source. The working
-specification of the SCRAM algorithm is maintained in Python. There are several
-ways of achieving SCRAM's cryptographic goals, but our choices are heavily
-guided by ensuring that SCRAM's security proofs can be simple, robust, and
-build on top of well-established properties of existing cryptographic
-primitives.
+specification of the SCRAM algorithm is maintained in Python. 
+
+There are several ways of achieving SCRAM's cryptographic goals, but our
+choices are heavily guided by ensuring that SCRAM's security proofs can be
+simple, robust, and build on top of well-established properties of existing
+cryptographic primitives.
 
 The design of SCRAM is also intended to make use of operations that are already
 accelerated in hardware on common platforms including Amazon EC2 instances, the
