@@ -384,14 +384,3 @@ let s2n_connection_is_managed_corked_spec = do {
 
     crucible_return (crucible_term {{ 1 : [32] }});
 };
-
-// Verification tactic: use the Yices prover and print detailed information in
-// case of failure.
-let yices_debug = do {yices;
-                      print_goal;
-                     };
-
-// Workaround for If then else on nat
-let equalNat_ite = core_axiom
-  "\\(x y z : Nat) (b : Bool) -> eq Bool (equalNat x (ite Nat b y z)) (ite Bool b (equalNat x y) (equalNat x z))";
-

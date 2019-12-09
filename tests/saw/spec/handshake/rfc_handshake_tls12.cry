@@ -1,22 +1,22 @@
 // This module provides an specification of the TLS 1.2 handshake message
 // state machine according to RFCs 5246, 5077 and 6066 (OCSP extension only).
 
-module TLSHandshake where
+module rfc_handshake_tls12 where
 
 import s2n_handshake_io
 
 // Main correctness property: a simulation of the S2N handshake state
 // machine by an RFC-derived state machine. Every pair of related initial
 // 'connection' and 'Parameters' generates the same sequence of messages.
-rfcSimulatesS2N : {len} (fin len) => connection -> Parameters -> Bool
-rfcSimulatesS2N conn pars = 
+tls12rfcSimulatesS2N : {len} (fin len) => connection -> Parameters -> Bool
+tls12rfcSimulatesS2N conn pars =
    initial_connection conn /\ connectionParameters conn pars ==>
    map rfc2S2N (traceRFC `{n = len} pars) == traceS2N_NoWait `{n = len} conn
 
 // The above is provable in Cryptol but not in Fall 2018 versions of SAW;
 // this alternate is better in that regard:
-rfcSimulatesS2N_alt : {len} (fin len, width len >= 1) => connection -> Parameters -> Bool
-rfcSimulatesS2N_alt conn pars =
+tls12rfcSimulatesS2N_alt : {len} (fin len, width len >= 1) => connection -> Parameters -> Bool
+tls12rfcSimulatesS2N_alt conn pars =
    initial_connection conn /\ connectionParameters conn pars ==>
    tracesMatchExcludingWaits
      (map rfc2S2N (traceRFC `{n = len} pars))
@@ -280,19 +280,15 @@ s2nMessageType msg =
   if prot == handshake then (if mt == helloRequest then TLS_HELLO_REQUEST
                        else if mt == clientHello  then TLS_CLIENT_HELLO
                        else if mt == serverHello  then TLS_SERVER_HELLO
-                       else if mt == certificate  then (if send == server then TLS_SERVER_CERT
-                                                         else if send == client then TLS_CLIENT_CERT
-                                                         else ERROR_MESSAGE)
+                       else if mt == certificate  then TLS_CERTIFICATE
                        else if mt == serverKeyExchange then TLS_SERVER_KEY
-                       else if mt == certificateRequest then TLS_SERVER_CERT_REQ
+                       else if mt == certificateRequest then TLS_CERTIFICATE_REQ
                        else if mt == serverHelloDone then TLS_SERVER_HELLO_DONE
-                       else if mt == certificateVerify then TLS_CLIENT_CERT_VERIFY
+                       else if mt == certificateVerify then TLS_CERT_VERIFY
                        else if mt == clientKeyExchange then TLS_CLIENT_KEY
-                       else if mt == finished then (if send == server then TLS_SERVER_FINISHED
-                                                     else if send == client then TLS_SERVER_FINISHED
-                                                     else ERROR_MESSAGE)
+                       else if mt == finished then TLS_FINISHED
                        else if mt == newSessionTicket then TLS_SERVER_NEW_SESSION_TICKET
-                       else if mt == certificateStatus then TLS_SERVER_CERT_STATUS
+                       else if mt == certificateStatus then TLS_CERTIFICATE_STATUS
                        else ERROR_MESSAGE)
 
   else 0
