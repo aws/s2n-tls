@@ -78,10 +78,13 @@ boundaries such as page sizes or block sizes. It's up to the application.
 
 By integrating padding, SCRAM handles the details that developers can sometimes
 get wrong, for example many application developers mistakenly believe that a
-random amount of padding is sufficient to hide the length of a message. The
-scram interface also acts as a noteworthy reminder to application developers
-and code-auditors that obfuscation of message sizes and timings is an important
-consideration for cryptographic systems.
+random amount of padding is sufficient to hide the length of a message. 
+
+Applications using SCRAM don't have to use padding, it's not enforced, but
+adding padding to the AEAD layer acts as a noteworthy reminder to application
+developers and code-auditors that obfuscation of message sizes and timings is
+an important consideration for cryptographic systems. For example, it will
+be noticable during a code-review that padding has not been chosen.
 
 ## SCRAM algorithm
 
@@ -112,5 +115,6 @@ SCRAM specification, accompanying security proofs, and other learnings.
 ## SCRAM team
 
 SCRAM is designed and maintained by Shay Gueron, Colm MacCarthaigh, and Alex
-Weibel from the AWS Cryptography team.
+Weibel from the AWS Cryptography team. Shay Gueron is also a professor at the
+University of Haifa.
 
