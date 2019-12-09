@@ -162,11 +162,9 @@ int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization
     lte_check(s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
 
     static const uint8_t zero_key[S2N_DRBG_MAX_KEY_SIZE] = {0};
-    struct s2n_blob value = {0};
-    GUARD(s2n_blob_init(&value, drbg->v, sizeof(drbg->v)));
 
     /* Start off with zeroed data, per 10.2.1.3.1 item 4 and 5 */
-    GUARD(s2n_blob_zero(&value));
+    memset(drbg->v, 0, sizeof(drbg->v));
     GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, NULL, NULL, zero_key, NULL), S2N_ERR_DRBG);
 
     /* Copy the personalization string */
