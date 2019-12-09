@@ -52,7 +52,6 @@ int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in)
 
 int s2n_stuffer_alloc(struct s2n_stuffer *stuffer, const uint32_t size)
 {
-
     GUARD(s2n_alloc(&stuffer->blob, size));
     GUARD(s2n_stuffer_init(stuffer, &stuffer->blob));
 
@@ -72,17 +71,10 @@ int s2n_stuffer_growable_alloc(struct s2n_stuffer *stuffer, const uint32_t size)
 
 int s2n_stuffer_free(struct s2n_stuffer *stuffer)
 {
-    if (stuffer->alloced == 0) {
-        return 0;
+    if (stuffer->alloced) {
+        GUARD(s2n_free(&stuffer->blob));
     }
-    if (stuffer->wiped == 0) {
-        GUARD(s2n_stuffer_wipe(stuffer));
-    }
-
-    GUARD(s2n_free(&stuffer->blob));
-
-    stuffer->blob.data = NULL;
-    stuffer->blob.size = 0;
+    *stuffer = (struct s2n_stuffer) {0};
 
     return 0;
 }
@@ -101,8 +93,6 @@ int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size)
     }
 
     GUARD(s2n_realloc(&stuffer->blob, size));
-
-    stuffer->blob.size = size;
 
     return 0;
 }
@@ -173,8 +163,15 @@ int s2n_stuffer_release_if_empty(struct s2n_stuffer *stuffer)
 
 int s2n_stuffer_wipe(struct s2n_stuffer *stuffer)
 {
+    if (!stuffer->wiped) {
+        GUARD(s2n_blob_zero(&stuffer->blob));
+    }
+
     stuffer->tainted = 0;
-    return s2n_stuffer_wipe_n(stuffer, stuffer->write_cursor);
+    stuffer->write_cursor = 0;
+    stuffer->read_cursor = 0;
+    stuffer->wiped = 1;
+    return S2N_SUCCESS;
 }
 
 int s2n_stuffer_skip_read(struct s2n_stuffer *stuffer, uint32_t n)
