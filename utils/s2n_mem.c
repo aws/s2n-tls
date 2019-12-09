@@ -46,16 +46,23 @@ int s2n_mem_cleanup(void)
 
 int s2n_alloc(struct s2n_blob *b, uint32_t size)
 {
-    b->data = NULL;
-    b->size = 0;
-    b->allocated = 0;
-    b->mlocked = 0;
+    notnull_check(b);
+    const struct s2n_blob temp = {0};
+    *b = temp;
     GUARD(s2n_realloc(b, size));
     return 0;
 }
 
+/* A blob is growable if it is either explicitly marked as such, or if it contains no data */
+bool s2n_blob_is_growable(const struct s2n_blob* b)
+{
+  return b && (b->growable || (b->data == NULL && b->size == 0 && b->allocated == 0));
+}
+
 int s2n_realloc(struct s2n_blob *b, uint32_t size)
 {
+    notnull_check(b);
+    S2N_ERROR_IF(!s2n_blob_is_growable(b), S2N_ERR_RESIZE_STATIC_BLOB);
     if (size == 0) {
         return s2n_free(b);
     }
@@ -74,6 +81,7 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
         b->data = data;
         b->size = size;
         b->allocated = size;
+        b->growable = 1;
         b->mlocked = 0;
         return 0;
     }
@@ -90,6 +98,7 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
     b->data = data;
     b->size = size;
     b->allocated = allocate;
+    b->growable = 1;
 
 #ifdef MADV_DONTDUMP
     if (madvise(b->data, size, MADV_DONTDUMP) < 0) {
@@ -109,6 +118,7 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
 
 int s2n_free(struct s2n_blob *b)
 {
+    S2N_ERROR_IF(!s2n_blob_is_growable(b), S2N_ERR_FREE_STATIC_BLOB);
     int munlock_rc = 0;
     if (b->mlocked) {
         munlock_rc = munlock(b->data, b->size);
@@ -127,18 +137,14 @@ int s2n_free(struct s2n_blob *b)
 
 int s2n_free_object(uint8_t **p_data, uint32_t size)
 {
-    struct s2n_blob b = {0};
     notnull_check(p_data);
 
     if (*p_data == NULL) {
         return 0;
     }
+    struct s2n_blob b = {.data = *p_data, .size = size, .mlocked = use_mlock, .growable = 1};
 
-    b.data = *p_data;
-    b.size = size;
-    b.mlocked = use_mlock;
-
-    /* s2n_free() will call free() even if it returns error.
+    /* s2n_free() will call free() even if it returns error (for a growable blob).
     ** This makes sure *p_data is not used after free() */
     *p_data = NULL;
 
