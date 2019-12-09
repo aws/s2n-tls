@@ -70,10 +70,10 @@ void *s2n_array_get(struct s2n_array *array, uint32_t index)
 
 int s2n_array_insert_and_copy(struct s2n_array *array, void* element, uint32_t index)
 {
-  void* insert_location = NULL;
-  GUARD_NONNULL(insert_location = s2n_array_insert(array, index));
-  memcpy_check(insert_location, element, array->element_size);
-  return S2N_SUCCESS;
+    void* insert_location = NULL;
+    GUARD_NONNULL(insert_location = s2n_array_insert(array, index));
+    memcpy_check(insert_location, element, array->element_size);
+    return S2N_SUCCESS;
 }
 
 void *s2n_array_insert(struct s2n_array *array, uint32_t index)

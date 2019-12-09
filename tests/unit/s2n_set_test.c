@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ struct array_element {
     char second;
 };
 
-int s2n_binary_search_comparator(const void *pa, const void *pb)
+static int s2n_binary_search_comparator(const void *pa, const void *pb)
 {
     const struct array_element* a = (const struct array_element *) pa;
     const struct array_element* b = (const struct array_element *) pb;
