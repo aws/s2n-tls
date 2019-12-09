@@ -1,6 +1,6 @@
-<img src="../docs/images/scram_intro.png" alt="scram">
-
 # Preview: SCRAM -- Short Cut Resistant AEAD Mode
+
+<img src="../docs/images/scram_intro.png" alt="scram">
 
 SCRAM is a symmetric encryption mode, based on AES-GCM, that includes new
 cryptographic protections against dangerous short-cuts that applications
@@ -97,6 +97,8 @@ Once measurements and any changes are finalized, we will be publishing a final
 SCRAM specification, accompanying security proofs, and other learnings.
 
 ## SCRAM material
+
+* [Watch AWS CISO Stephen Schmidt announce SCRAM](https://www.youtube.com/watch?time_continue=2489&v=oam8FDNJhbE)
 
 ## SCRAM team
 
