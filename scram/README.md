@@ -25,7 +25,7 @@ encryption libraries such as Amazon s2n do include tests that simulate malicous
 attackers injecting corrupted traffic, this is not a common or easy kind of
 test for applications to include. An application with this error will appear to
 work correctly, and will handle correctly encrypted and authenticated data
-without error, however the application will alos accept corrupt or malicious
+without error, however the application will also accept corrupt or malicious
 input; usually a high severity security issue.  
 
 2. Some applications deliberately use decrypted plaintext before it has been
@@ -34,7 +34,7 @@ application may decompress a compressed payload before it has been
 authenticated, or may optimistically execute a dependent operation such as a
 web-request. The application developers may believe that this is 'ok' as long
 as the work is 'cancelled' or 'undone' should the message fail authentication.
-However this not always done with a full appreciation for the information
+However this is rarely done with a full appreciation for the information
 side-channels that are introduced by optimistic operations, or the inherent
 risk of denial of service attacks. 
 
