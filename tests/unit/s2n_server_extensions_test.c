@@ -28,6 +28,8 @@
 #include "utils/s2n_safety.h"
 
 const uint8_t EXTENSION_LEN = 2;
+const uint8_t SECURE_RENEGOTIATION_SIZE = 5;
+const uint8_t NEW_SESSION_TICKET_SIZE = 4;
 
 int main(int argc, char **argv)
 {
@@ -41,7 +43,7 @@ int main(int argc, char **argv)
         /* Test Server Extensions Send - No extensions */
         {
             struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
@@ -52,7 +54,7 @@ int main(int argc, char **argv)
         /* Test Server Extensions Send - Server Name */
         {
             struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
             conn->server_name_used = 1;
@@ -68,7 +70,7 @@ int main(int argc, char **argv)
         /* Test Server Extensions Send - Application Protocol */
         {
             struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
             strcpy(conn->application_protocol, "h2");
@@ -87,12 +89,11 @@ int main(int argc, char **argv)
         /* Test Server Extensions Send - Secure Negotiation */
         {
             struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
             conn->secure_renegotiation = 1;
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
-            const uint8_t SECURE_RENEGOTIATION_SIZE = 5;
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, SECURE_RENEGOTIATION_SIZE + EXTENSION_LEN);
 
             conn->secure_renegotiation = 0;
@@ -101,11 +102,27 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
+        /* Test Server Extensions Send - New Session Ticket */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
+            EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
+            S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, 0);
+
+            conn->config->use_tickets = 1;
+            conn->session_ticket_status = S2N_NEW_TICKET;
+            EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
+            S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, NEW_SESSION_TICKET_SIZE + EXTENSION_LEN);
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
         /* Test TLS13 Extensions */
         {
             EXPECT_SUCCESS(s2n_enable_tls13());
             struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
             conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
@@ -139,6 +156,89 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
+        /* Test Secure Negotiation server_hello extension not sent with TLS13 or higher */
+        {
+            EXPECT_SUCCESS(s2n_enable_tls13());
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
+            conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
+            /* secure renegotiation is requested */
+            conn->secure_renegotiation = 1;
+            /* Test that s2n_server_extensions_send() only works when protocol version is TLS13 */
+            conn->actual_protocol_version = S2N_TLS13;
+
+            /* key_share_send() requires a negotiated_curve */
+            conn->secure.client_ecc_params[0].negotiated_curve = s2n_ecc_supported_curves[0];
+            /* secure_renegotiation extension not send >=TLS13*/
+            uint8_t size = s2n_extensions_server_key_share_send_size(conn)
+                + s2n_extensions_server_supported_versions_size()
+                + EXTENSION_LEN;
+
+            EXPECT_FAILURE(s2n_server_extensions_send(conn, hello_stuffer));
+
+            EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&conn->secure.client_ecc_params[0]));
+
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(hello_stuffer, s2n_stuffer_data_available(hello_stuffer)));
+            EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
+
+            S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, size);
+
+            /* Only sending secure_renegotiation(if it is requested) < TLS13 */
+            conn->actual_protocol_version = S2N_TLS12;
+            uint8_t tls12_server_extension_size = SECURE_RENEGOTIATION_SIZE + EXTENSION_LEN;
+            s2n_stuffer_skip_read(hello_stuffer, s2n_stuffer_data_available(hello_stuffer));
+            EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
+            S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, tls12_server_extension_size);
+            EXPECT_SUCCESS(s2n_disable_tls13());
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Test New Session Ticket server_hello extension not sent with TLS13 or higher */
+        {
+            EXPECT_SUCCESS(s2n_enable_tls13());
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
+            conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
+
+            /* New Session Ticket Requested*/
+            conn->config->use_tickets = 1;
+            conn->session_ticket_status = S2N_NEW_TICKET;
+
+            /* Test that s2n_server_extensions_send() only works when protocol version is TLS13 */
+            conn->actual_protocol_version = S2N_TLS13;
+
+            /* key_share_send() requires a negotiated_curve */
+            conn->secure.client_ecc_params[0].negotiated_curve = s2n_ecc_supported_curves[0];
+
+            /* nst extension not send >=TLS13*/
+            uint8_t size = s2n_extensions_server_key_share_send_size(conn)
+                + s2n_extensions_server_supported_versions_size()
+                + EXTENSION_LEN;
+
+            EXPECT_FAILURE(s2n_server_extensions_send(conn, hello_stuffer));
+
+            EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&conn->secure.client_ecc_params[0]));
+
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(hello_stuffer, s2n_stuffer_data_available(hello_stuffer)));
+            EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
+
+            S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, size);
+
+            /* Sending nst (if it is requested) < TLS13 */
+            conn->actual_protocol_version = S2N_TLS12;
+
+            s2n_stuffer_skip_read(hello_stuffer, s2n_stuffer_data_available(hello_stuffer));
+            EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
+            uint8_t tls12_server_extension_size = NEW_SESSION_TICKET_SIZE + EXTENSION_LEN;
+            S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, tls12_server_extension_size);
+            EXPECT_SUCCESS(s2n_disable_tls13());
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
         /* Test TLS13 Extensions with null key exchange alg cipher suites */
         {
             struct s2n_cipher_suite *tls12_cipher_suite = cipher_preferences_20170210.suites[cipher_preferences_20170210.count-1];
@@ -152,7 +252,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_enable_tls13());
             struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
             conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
