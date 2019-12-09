@@ -24,7 +24,8 @@
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_safety.h"
 
-#if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER)
+#define S2N_IS_X25519_SUPPORTED S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER)
+#if S2N_IS_X25519_SUPPORTED
 #define S2N_ECC_EVP_SUPPORTED_CURVES_COUNT 3
 extern const struct s2n_ecc_named_curve s2n_ecc_curve_x25519;
 #else
