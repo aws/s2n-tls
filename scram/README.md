@@ -45,11 +45,17 @@ authentication code in order to subsequently decrypt it.  There is no
 significant benefit to skipping this step. If an application does fail to check
 the result of the message authentication operation, and uses the 'decrypted'
 data prematurely, the corrupt message will result in a 'random garbage'
-plaintext. Crucially, an attacker has no control over this random garbage and,
-it cannot be used to construct meaningful decryption or message forgery
-oracles.
+plaintext. Crucially, an attacker has no control over this random garbage.
 
 <img src="../docs/images/scram_example.png" alt="">
+
+For applications that are using SCRAM to simply encrypt bulk data, this kind of
+application failure still results in data corruption. But for applications that
+are using SCRAM to encrypt data that must conform to a schema, or data that
+contains instructions, this kind of application failure is much safer. Without
+any control over the data that is decrypted, an attacker's ability to abuse the
+application failure, or to find meaningful decryption or message forgery oracles
+is severely limited.
 
 ## Integration of message padding into the AEAD layer
 
