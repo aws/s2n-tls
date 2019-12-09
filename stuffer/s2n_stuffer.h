@@ -131,3 +131,9 @@ extern int s2n_stuffer_certificate_from_pem(struct s2n_stuffer *pem, struct s2n_
 extern int s2n_stuffer_dhparams_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *pkcs3);
 
 extern int s2n_is_base64_char(char c);
+
+/* Copies all valid data from "stuffer" into "out".
+ * The old blob "out" pointed to is freed.
+ * It is the responsibility of the caller to free the free "out".
+ */
+extern int s2n_stuffer_extract_blob(struct s2n_stuffer *stuffer, struct s2n_blob *out);
