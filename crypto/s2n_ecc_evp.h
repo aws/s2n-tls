@@ -16,11 +16,13 @@
 #pragma once
 
 #include "crypto/s2n_ecc.h"
+
+#include <openssl/evp.h>
+
 #include "crypto/s2n_hash.h"
 #include "stuffer/s2n_stuffer.h"
-#include "tls/s2n_kex_data.h"
 #include "tls/s2n_tls_parameters.h"
-#include <openssl/evp.h>
+#include "utils/s2n_safety.h"
 
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER)
 #define S2N_ECC_EVP_SUPPORTED_CURVES_COUNT 3

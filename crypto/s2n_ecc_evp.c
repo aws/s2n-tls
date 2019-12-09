@@ -15,18 +15,16 @@
 
 #include "crypto/s2n_ecc_evp.h"
 
-#include <openssl/bn.h>
 #include <openssl/ecdh.h>
 #include <openssl/evp.h>
-#include <openssl/obj_mac.h>
 #include <stdint.h>
 
-#include "tls/s2n_kex.h"
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
-#define TLS_EC_EVP_CURVE_TYPE_NAMED S2N_ECC_EVP_SUPPORTED_CURVES_COUNT
+DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY *, EVP_PKEY_free);
+DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY_CTX *, EVP_PKEY_CTX_free);
 
 /* IANA values can be found here:
  * https://tools.ietf.org/html/rfc8446#appendix-B.3.1.4 */
@@ -56,129 +54,75 @@ const struct s2n_ecc_named_curve *const s2n_ecc_evp_supported_curves[] = {
 };
 
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER)
-static EVP_PKEY *s2n_ecc_evp_generate_key_x25519(const struct s2n_ecc_named_curve *named_curve);
+static int s2n_ecc_evp_generate_key_x25519(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 #endif
 
-static EVP_PKEY *s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve *named_curve);
-static EVP_PKEY *s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve);
+static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
+static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, struct s2n_blob *shared_secret);
 
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER)
-static EVP_PKEY *s2n_ecc_evp_generate_key_x25519(const struct s2n_ecc_named_curve *named_curve) {
-    EVP_PKEY *evp_pkey = NULL;
-    EVP_PKEY_CTX *pctx = NULL;
+static int s2n_ecc_evp_generate_key_x25519(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey) {
 
-    pctx = EVP_PKEY_CTX_new_id(named_curve->libcrypto_nid, NULL);
-    if (pctx == NULL) {
-        S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
-    }
-    if (EVP_PKEY_keygen_init(pctx) != 1) {
-        EVP_PKEY_CTX_free(pctx);
-        S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
-    }
-    if (EVP_PKEY_keygen(pctx, &evp_pkey) != 1) {
-        EVP_PKEY_CTX_free(pctx);
-        S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
-    }
-
-    EVP_PKEY_CTX_free(pctx);
-    return evp_pkey;
+    DEFER_CLEANUP(EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(named_curve->libcrypto_nid, NULL),
+                  EVP_PKEY_CTX_free_pointer);
+    S2N_ERROR_IF(pctx == NULL, S2N_ERR_ECDHE_GEN_KEY);
+    GUARD_OSSL(EVP_PKEY_keygen_init(pctx), S2N_ERR_ECDHE_GEN_KEY);
+    GUARD_OSSL(EVP_PKEY_keygen(pctx, evp_pkey), S2N_ERR_ECDHE_GEN_KEY);
+    S2N_ERROR_IF(evp_pkey == NULL, S2N_ERR_ECDHE_GEN_KEY);
+    return 0;
 }
 #endif
 
-static EVP_PKEY *s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve *named_curve) {
-    EVP_PKEY *evp_pkey = NULL;
-    EVP_PKEY_CTX *pctx = NULL;
-    EVP_PKEY_CTX *kctx = NULL;
-    EVP_PKEY *params = NULL;
+static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey) {
 
-    pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL);
-    if (pctx == NULL) {
-        S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
-    }
-    if (EVP_PKEY_paramgen_init(pctx) != 1) {
-        EVP_PKEY_CTX_free(pctx);
-        S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
-    }
-    if (EVP_PKEY_CTX_set_ec_paramgen_curve_nid(pctx, named_curve->libcrypto_nid) != 1) {
-        EVP_PKEY_CTX_free(pctx);
-        S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
-    }
-    if (!EVP_PKEY_paramgen(pctx, &params)) {
-        EVP_PKEY_CTX_free(pctx);
-        EVP_PKEY_free(params);
-        S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
-    }
-    kctx = EVP_PKEY_CTX_new(params, NULL);
-    if (kctx == NULL) {
-        EVP_PKEY_CTX_free(pctx);
-        EVP_PKEY_free(params);
-        S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
-    }
-    if (EVP_PKEY_keygen_init(kctx) != 1) {
-        EVP_PKEY_CTX_free(pctx);
-        EVP_PKEY_free(params);
-        EVP_PKEY_CTX_free(kctx);
-        S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
-    }
-    if (EVP_PKEY_keygen(kctx, &evp_pkey) != 1) {
-        EVP_PKEY_CTX_free(pctx);
-        EVP_PKEY_free(params);
-        EVP_PKEY_CTX_free(kctx);
-        S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
-    }
-    EVP_PKEY_CTX_free(pctx);
-    EVP_PKEY_CTX_free(kctx);
-    EVP_PKEY_free(params);
-    return evp_pkey;
+    DEFER_CLEANUP(EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL), EVP_PKEY_CTX_free_pointer);
+    S2N_ERROR_IF(pctx == NULL, S2N_ERR_ECDHE_GEN_KEY);
+    GUARD_OSSL(EVP_PKEY_paramgen_init(pctx), S2N_ERR_ECDHE_GEN_KEY);
+    GUARD_OSSL(EVP_PKEY_CTX_set_ec_paramgen_curve_nid(pctx, named_curve->libcrypto_nid), S2N_ERR_ECDHE_GEN_KEY);
+    DEFER_CLEANUP(EVP_PKEY *params = NULL, EVP_PKEY_free_pointer);
+    GUARD_OSSL(EVP_PKEY_paramgen(pctx, &params), S2N_ERR_ECDHE_GEN_KEY);
+    S2N_ERROR_IF(params == NULL, S2N_ERR_ECDHE_GEN_KEY);
+    DEFER_CLEANUP(EVP_PKEY_CTX *kctx = EVP_PKEY_CTX_new(params, NULL), EVP_PKEY_CTX_free_pointer);
+    S2N_ERROR_IF(kctx == NULL, S2N_ERR_ECDHE_GEN_KEY);
+    GUARD_OSSL(EVP_PKEY_keygen_init(kctx), S2N_ERR_ECDHE_GEN_KEY);
+    GUARD_OSSL(EVP_PKEY_keygen(kctx, evp_pkey), S2N_ERR_ECDHE_GEN_KEY);
+    S2N_ERROR_IF(evp_pkey == NULL, S2N_ERR_ECDHE_GEN_KEY);
+    return 0;
 }
 
-static EVP_PKEY *s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve) {
+static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey) {
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER)
     if (named_curve->libcrypto_nid == NID_X25519) {
-        return s2n_ecc_evp_generate_key_x25519(named_curve);
+        return s2n_ecc_evp_generate_key_x25519(named_curve, evp_pkey);
     }
 #endif
     if (named_curve->libcrypto_nid == NID_X9_62_prime256v1 || named_curve->libcrypto_nid == NID_secp384r1) {
-        return s2n_ecc_evp_generate_key_nist_curves(named_curve);
+        return s2n_ecc_evp_generate_key_nist_curves(named_curve, evp_pkey);
     }
-    S2N_ERROR_PTR(S2N_ERR_ECDHE_GEN_KEY);
+    S2N_ERROR(S2N_ERR_ECDHE_GEN_KEY);
 }
 
 static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, struct s2n_blob *shared_secret) {
-    EVP_PKEY_CTX *ctx = NULL;
     size_t shared_secret_size;
 
-    ctx = EVP_PKEY_CTX_new(own_key, NULL);
-    if (ctx == NULL) {
-        S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
-    }
-
-    if (EVP_PKEY_derive_init(ctx) != 1) {
-        EVP_PKEY_CTX_free(ctx);
-        S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
-    }
-    if (EVP_PKEY_derive_set_peer(ctx, peer_public) != 1) {
-        EVP_PKEY_CTX_free(ctx);
-        S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
-    }
-    if (EVP_PKEY_derive(ctx, NULL, &shared_secret_size) != 1) {
-        EVP_PKEY_CTX_free(ctx);
-        S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
-    }
+    DEFER_CLEANUP(EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(own_key, NULL), EVP_PKEY_CTX_free_pointer);
+    S2N_ERROR_IF(ctx == NULL, S2N_ERR_ECDHE_SHARED_SECRET);
+    GUARD_OSSL(EVP_PKEY_derive_init(ctx), S2N_ERR_ECDHE_SHARED_SECRET);
+    GUARD_OSSL(EVP_PKEY_derive_set_peer(ctx, peer_public), S2N_ERR_ECDHE_SHARED_SECRET);
+    GUARD_OSSL(EVP_PKEY_derive(ctx, NULL, &shared_secret_size), S2N_ERR_ECDHE_SHARED_SECRET);
     GUARD(s2n_alloc(shared_secret, shared_secret_size));
     if (EVP_PKEY_derive(ctx, shared_secret->data, &shared_secret_size) != 1) {
-        EVP_PKEY_CTX_free(ctx);
         GUARD(s2n_free(shared_secret));
         S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
     }
-    EVP_PKEY_CTX_free(ctx);
     return 0;
 }
 
 int s2n_ecc_evp_generate_ephemeral_key(struct s2n_ecc_evp_params *ecc_evp_params) {
     notnull_check(ecc_evp_params->negotiated_curve);
-    ecc_evp_params->evp_pkey = s2n_ecc_evp_generate_own_key(ecc_evp_params->negotiated_curve);
+    S2N_ERROR_IF(s2n_ecc_evp_generate_own_key(ecc_evp_params->negotiated_curve, &ecc_evp_params->evp_pkey) != 0,
+                 S2N_ERR_ECDHE_GEN_KEY);
     S2N_ERROR_IF(ecc_evp_params->evp_pkey == NULL, S2N_ERR_ECDHE_GEN_KEY);
     return 0;
 }

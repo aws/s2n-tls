@@ -26,10 +26,9 @@ int main(int argc, char **argv) {
     BEGIN_TEST();
     {
         /* Test generate ephemeral keys for all supported curves */
-        for (int i = 1; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
-            struct s2n_ecc_evp_params evp_params;
+        for (int i = 0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
+            struct s2n_ecc_evp_params evp_params = {0};
             /* Server generates a key */
-            EXPECT_FAILURE(s2n_ecc_evp_generate_ephemeral_key(&evp_params));
             evp_params.negotiated_curve = s2n_ecc_evp_supported_curves[i];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&evp_params));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&evp_params));
@@ -38,7 +37,8 @@ int main(int argc, char **argv) {
     {
         /* Test generate ephemeral key and compute shared key for all supported curves */
         for (int i = 0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
-            struct s2n_ecc_evp_params server_params, client_params;
+            struct s2n_ecc_evp_params server_params = {0};
+            struct s2n_ecc_evp_params client_params = {0};
             struct s2n_blob server_shared, client_shared;
             struct s2n_stuffer wire;
             server_params.negotiated_curve = s2n_ecc_evp_supported_curves[i];
@@ -72,7 +72,8 @@ int main(int argc, char **argv) {
     {
         /* Test failure case for computing shared key for all supported curves */
         for (int i = 1; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
-            struct s2n_ecc_evp_params server_params, client_params;
+            struct s2n_ecc_evp_params server_params = {0};
+            struct s2n_ecc_evp_params client_params = {0};
             struct s2n_blob server_shared, client_shared;
             struct s2n_stuffer wire;
             server_params.negotiated_curve = s2n_ecc_evp_supported_curves[i];
