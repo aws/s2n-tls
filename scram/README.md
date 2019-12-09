@@ -49,6 +49,8 @@ plaintext. Crucially, an attacker has no control over this random garbage and,
 it cannot be used to construct meaningful decryption or message forgery
 oracles.
 
+<img src="../docs/images/scram_example.png" alt="">
+
 ## Integration of message padding into the AEAD layer
 
 Modern cryptography is extremely good at disguising data as meaningless noise,
