@@ -131,25 +131,29 @@ int main(int argc, char **argv)
 
     /* Validate struct with same member value already exists using binary search */
     struct array_element find_element = { 10 , 'a' + 10};
-    EXPECT_EQUAL(-1, s2n_array_binary_search(0,
-                                             array->num_of_elements - 1,
-                                             array,
-                                             &find_element,
-                                             s2n_binary_search_comparator));
+    uint32_t index;
+    EXPECT_FAILURE(s2n_array_binary_search(array,
+                                           &find_element,
+                                           s2n_binary_search_comparator,
+                                           &index));
 
     /* Find insert index of a struct based on increasing order of one of it's members */
     struct array_element add_largest_element = { 25 , 'a' + 25};
-    int index = array->num_of_elements;
-    EXPECT_EQUAL(index, s2n_array_binary_search(0,
-                                                array->num_of_elements - 1,
-                                                array,
-                                                &add_largest_element,
-                                                s2n_binary_search_comparator));
+    EXPECT_SUCCESS(s2n_array_binary_search(array,
+                                           &add_largest_element,
+                                           s2n_binary_search_comparator,
+                                           &index));
+    EXPECT_EQUAL(index, array->num_of_elements);
 
     /* Done with the array, make sure it can be freed */
     EXPECT_SUCCESS(s2n_array_free(array));
 
     EXPECT_SUCCESS(s2n_free(&mem));
 
+    /* Check what happens if there is an integer overflow */
+    /* 0xF00000F0 * 16 = 3840 (in 32 bit arithmatic) */
+    EXPECT_NULL(array = s2n_array_new(0xF00000F0));
+    EXPECT_NOT_NULL(array = s2n_array_new(240));
+    EXPECT_SUCCESS(s2n_array_free(array));
     END_TEST();
 }
