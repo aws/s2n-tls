@@ -71,10 +71,11 @@ fingerprints.
 
 To enhance protection against these risks, SCRAM integrates message padding
 directly into the AEAD encryption layer. The caller indicates a desired 'frame
-size' and SCRAM will ensure that every encrypted message is rounded up to a
-whole number of frames. Frames can be aligned with network boundaries, such as
-record sizes or TCP segment sizes, or they can be aligned with storage
-boundaries such as page sizes or block sizes. It's up to the application.
+size' and SCRAM will ensure that every encrypted message is rounded up (if
+needed) to a whole number of frames. Frames can be aligned with network
+boundaries, such as record sizes or TCP segment sizes, or they can be aligned
+with storage boundaries such as page sizes or block sizes. It's up to the
+application.
 
 By integrating padding, SCRAM handles the details that developers can sometimes
 get wrong, for example many application developers mistakenly believe that a
