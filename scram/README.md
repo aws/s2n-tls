@@ -40,13 +40,14 @@ risk of denial of service attacks.
 
 SCRAM adds mis-use resistance for both kinds of issues. 
 
-When using SCRAM, a recipient simply must correctly compute the message
-authentication code in order to decrypt it. There is no benefit to skipping
-this step. If an application does fail to check the result of the message
-authentication operation, and uses the 'decrypted' data prematurely, any
-corrupt message will result in a 'random garbage' plaintext. Crucially, an
-attacker has no control over this random garbage and it can not be used to
-construct meaningful decryption or message forgery oracles.
+When using SCRAM, a recipient simply must first (correctly) compute the message
+authentication code in order to subsequently decrypt it.  There is no
+significant benefit to skipping this step. If an application does fail to check
+the result of the message authentication operation, and uses the 'decrypted'
+data prematurely, the corrupt message will result in a 'random garbage'
+plaintext. Crucially, an attacker has no control over this random garbage and,
+it cannot be used to construct meaningful decryption or message forgery
+oracles.
 
 ## Integration of message padding into the AEAD layer
 
