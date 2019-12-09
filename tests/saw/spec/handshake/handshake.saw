@@ -25,8 +25,17 @@
 ////////////////////////////////////////////////////////////////////////////
 
 include "handshake_io_lowlevel.saw";
-import "rfc-handshake.cry";
-import "cork-uncork.cry";
+import "rfc_handshake_tls12.cry";
+import "rfc_handshake_tls13.cry";
+import "cork_uncork.cry";
+
+// Verification tactic: use the Yices prover and print detailed information in
+// case of failure.
+let yices_debug = do { yices; print_goal; };
+
+// Workaround for If then else on nat
+let equalNat_ite = core_axiom
+  "\\(x y z : Nat) (b : Bool) -> eq Bool (equalNat x (ite Nat b y z)) (ite Bool b (equalNat x y) (equalNat x z))";
 
 // Low-level handshake_io correspondence proof
 let prove_handshake_io_lowlevel = do {
@@ -65,8 +74,11 @@ let prove_handshake_io_lowlevel = do {
 };
 
 let prove_state_machine = do {
-    print "Checking proof that the RFC simulates our Cryptol s2n spec";
-    prove_print z3 {{ rfcSimulatesS2N_alt `{17} }};
+    print "Checking proof that the TLS1.2 RFC simulates our Cryptol s2n spec";
+    prove_print z3 {{ tls12rfcSimulatesS2N_alt `{17} }};
+
+    print "Checking proof that the TLS1.3 RFC simulates our Cryptol s2n spec";
+    prove_print yices {{ tls13rfcSimulatesS2N `{17} }};
     
     return ();
 };

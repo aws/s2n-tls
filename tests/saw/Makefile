@@ -81,8 +81,9 @@ clean_the_dir :
 # without it we would see only the tee return code
 tmp/%.log : %.saw bitcode/all_llvm.bc tmp
 	@echo "Running formal verification with ${YICES_VERSION}"
-	@echo saw $<
-	@set -o pipefail; \
+	@echo "Running formal verification with SAW version:"
+	@saw --version
+	set -o pipefail; \
 	saw $< | tee $@
 
 ###########################################
