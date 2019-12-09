@@ -1,4 +1,5 @@
-/* Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+/*
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -12,14 +13,15 @@
  * permissions and limitations under the License.
  */
 
-#pragma once
+#include <cbmc_proof/make_common_datastructures.h>
+void ensure_s2n_blob_has_allocated_fields(struct s2n_blob* blob) {
+  blob->data = bounded_malloc(blob->size);  
+}
 
-#include "tls/s2n_tls_parameters.h"
-
-typedef enum {
-    S2N_SIGNATURE_ANONYMOUS = TLS_SIGNATURE_ALGORITHM_ANONYMOUS,
-    S2N_SIGNATURE_RSA = TLS_SIGNATURE_ALGORITHM_RSA,
-    S2N_SIGNATURE_DSA = TLS_SIGNATURE_ALGORITHM_DSA,
-    S2N_SIGNATURE_ECDSA = TLS_SIGNATURE_ALGORITHM_ECDSA,
-    S2N_SIGNATURE_RSA_PSS_RSAE = TLS_SIGNATURE_ALGORITHM_PRIVATE,
-} s2n_signature_algorithm;
+struct s2n_blob* cbmc_allocate_s2n_blob() {
+  struct s2n_blob* blob = can_fail_malloc(sizeof(*blob));
+  if(blob) {
+    ensure_s2n_blob_has_allocated_fields(blob);
+  }
+  return blob;
+}

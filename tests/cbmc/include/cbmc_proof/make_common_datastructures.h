@@ -1,4 +1,5 @@
-/* Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+/*
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -14,12 +15,9 @@
 
 #pragma once
 
-#include "tls/s2n_tls_parameters.h"
+#include <cbmc_proof/proof_allocators.h>
+#include "api/s2n.h"
+#include "stuffer/s2n_stuffer.h"
 
-typedef enum {
-    S2N_SIGNATURE_ANONYMOUS = TLS_SIGNATURE_ALGORITHM_ANONYMOUS,
-    S2N_SIGNATURE_RSA = TLS_SIGNATURE_ALGORITHM_RSA,
-    S2N_SIGNATURE_DSA = TLS_SIGNATURE_ALGORITHM_DSA,
-    S2N_SIGNATURE_ECDSA = TLS_SIGNATURE_ALGORITHM_ECDSA,
-    S2N_SIGNATURE_RSA_PSS_RSAE = TLS_SIGNATURE_ALGORITHM_PRIVATE,
-} s2n_signature_algorithm;
+void ensure_s2n_blob_has_allocated_fields(struct s2n_blob* blob);
+struct s2n_blob* cbmc_allocate_s2n_blob();

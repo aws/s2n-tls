@@ -118,5 +118,51 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
 
+    /* Invalid blob should fail init */
+    struct s2n_stuffer s1;
+    struct s2n_blob b1 = {.data = 0,.size = 101 };
+    EXPECT_FAILURE(s2n_stuffer_init(&s1, &b1));
+
+    /* Valid empty blob should succeed init */
+    struct s2n_stuffer s2;
+    struct s2n_blob b2 = {.data = 0,.size = 0 };
+    EXPECT_SUCCESS(s2n_stuffer_init(&s2, &b2));
+
+    /* Valid blob should succeed init */
+    struct s2n_stuffer s3;
+    uint8_t a3[12];
+    struct s2n_blob b3 = {.data = a3,.size = sizeof(a3)};
+    EXPECT_SUCCESS(s2n_stuffer_init(&s3, &b3));
+
+    /* Null blob should fail init */
+    struct s2n_stuffer s4;
+    EXPECT_FAILURE(s2n_stuffer_init(&s4, NULL));
+
+    /* Null stuffer should fail init */
+    struct s2n_blob b5 = {.data = 0,.size = 0 };
+    EXPECT_FAILURE(s2n_stuffer_init(NULL, &b5));
+
+    /* Check s2n_stuffer_is_valid() function */
+    EXPECT_FALSE(s2n_stuffer_is_valid(NULL));
+    uint8_t valid_blob_array[12];
+    struct s2n_blob blob_valid = {.data = valid_blob_array,.size = sizeof(valid_blob_array)};
+    struct s2n_blob blob_invalid = {.data = 0,.size = sizeof(valid_blob_array)};
+
+    struct s2n_stuffer stuffer_valid;
+    EXPECT_SUCCESS(s2n_stuffer_init(&stuffer_valid, &blob_valid));
+    EXPECT_TRUE(s2n_stuffer_is_valid(&stuffer));
+
+    struct s2n_stuffer stuffer_invalid1 = {.blob = blob_invalid};
+    EXPECT_FALSE(s2n_stuffer_is_valid(&stuffer_invalid1));
+
+    struct s2n_stuffer stuffer_invalid2 = {.blob = blob_valid, .write_cursor = 13};
+    EXPECT_FALSE(s2n_stuffer_is_valid(&stuffer_invalid2));
+
+    struct s2n_stuffer stuffer_invalid3 = {.blob = blob_valid, .read_cursor = 13};
+    EXPECT_FALSE(s2n_stuffer_is_valid(&stuffer_invalid3));
+
+    struct s2n_stuffer stuffer_invalid4 = {.blob = blob_valid, .read_cursor = 12, .write_cursor = 1};
+    EXPECT_FALSE(s2n_stuffer_is_valid(&stuffer_invalid4));
+
     END_TEST();
 }

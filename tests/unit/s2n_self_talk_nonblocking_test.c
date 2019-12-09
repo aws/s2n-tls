@@ -60,7 +60,7 @@ int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size)
     while(remaining) {
         int r = s2n_recv(client_conn, ptr, remaining, &blocked);
         if (r < 0) {
-            continue;
+            return 1;
         }
         remaining -= r;
         ptr += r;
@@ -80,9 +80,6 @@ int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size)
     free(buffer);
     s2n_connection_free(client_conn);
     s2n_config_free(client_config);
-
-    /* Give the server a chance to a void a sigpipe */
-    sleep(1);
 
     s2n_cleanup();
 
@@ -123,7 +120,7 @@ int mock_client_iov(int writefd, int readfd, struct iovec *iov, uint32_t iov_siz
     while(remaining) {
         int r = s2n_recv(client_conn, &buffer[buffer_offs], remaining, &blocked);
         if (r < 0) {
-            continue;
+            return 1;
         }
         remaining -= r;
         buffer_offs += r;
@@ -133,7 +130,7 @@ int mock_client_iov(int writefd, int readfd, struct iovec *iov, uint32_t iov_siz
     while(remaining) {
         int r = s2n_recv(client_conn, &buffer[buffer_offs], remaining, &blocked);
         if (r < 0) {
-            continue;
+            return 1;
         }
         remaining -= r;
         buffer_offs += r;
@@ -158,9 +155,6 @@ int mock_client_iov(int writefd, int readfd, struct iovec *iov, uint32_t iov_siz
     free(buffer);
     s2n_connection_free(client_conn);
     s2n_config_free(client_config);
-
-    /* Give the server a chance to a void a sigpipe */
-    sleep(1);
 
     return 0;
 }
@@ -236,6 +230,9 @@ int test_send(int use_iov)
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
+    /* Use small records in order to have more chance fitting full record into pipe */
+    EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
+
     /* Set up the connection to read from the fd */
     EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
     EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
@@ -247,7 +244,7 @@ int test_send(int use_iov)
 
     /* Pause the child process by sending it SIGSTP */
     EXPECT_SUCCESS(kill(pid, SIGSTOP));
-    
+
     /* Make our pipes non-blocking */
     EXPECT_NOT_EQUAL(fcntl(client_to_server[0], F_SETFL, fcntl(client_to_server[0], F_GETFL) | O_NONBLOCK), -1);
     EXPECT_NOT_EQUAL(fcntl(server_to_client[1], F_SETFL, fcntl(server_to_client[1], F_GETFL) | O_NONBLOCK), -1);
@@ -260,12 +257,9 @@ int test_send(int use_iov)
     while (remaining) {
         int r = !use_iov ? s2n_send(conn, ptr, remaining, &blocked) :
             s2n_sendv_with_offset(conn, iov, iov_size, iov_offs, &blocked);
-        if (r < 0) {
-            if (blocked) {
-                /* We reached a blocked state and made no forward progress last call */
-                break;
-            }
-            continue;
+        if (r < 0 && blocked == S2N_BLOCKED_ON_WRITE) {
+            /* We reached a blocked state and made no forward progress last call */
+            break;
         }
         EXPECT_TRUE(r > 0);
         remaining -= r;
@@ -286,14 +280,11 @@ int test_send(int use_iov)
     /* Make our sockets blocking again */
     EXPECT_NOT_EQUAL(fcntl(client_to_server[0], F_SETFL, fcntl(client_to_server[0], F_GETFL) ^ O_NONBLOCK), -1);
     EXPECT_NOT_EQUAL(fcntl(server_to_client[1], F_SETFL, fcntl(server_to_client[1], F_GETFL) ^ O_NONBLOCK), -1);
-    
+
     /* Actually send the remaining data */
     while (remaining) {
         int r = !use_iov ? s2n_send(conn, ptr, remaining, &blocked) :
             s2n_sendv_with_offset(conn, iov, iov_size, iov_offs, &blocked);
-        if (r < 0) {
-            continue;
-        }
         EXPECT_TRUE(r > 0);
         remaining -= r;
         if (!use_iov) {
@@ -329,6 +320,9 @@ int test_send(int use_iov)
 
 int main(int argc, char **argv)
 {
+    /* Ignore SIGPIPE */
+    signal(SIGPIPE, SIG_IGN);
+
 #define test_count _test_count
     BEGIN_TEST();
 #undef test_count

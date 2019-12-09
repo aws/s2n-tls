@@ -16,6 +16,7 @@
 #pragma once
 
 #include "tls/s2n_config.h"
+#include "tls/s2n_signature_scheme.h"
 
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_cipher.h"
@@ -73,12 +74,13 @@ struct s2n_crypto_parameters {
     struct s2n_kem_keypair s2n_kem_keys;
     struct s2n_blob client_key_exchange_message;
     struct s2n_blob client_pq_kem_extension;
-    s2n_hash_algorithm conn_hash_alg;
-    s2n_signature_algorithm conn_sig_alg;
+
+    struct s2n_signature_scheme conn_sig_scheme;
+
     struct s2n_blob client_cert_chain;
     s2n_cert_type client_cert_type;
-    s2n_hash_algorithm client_cert_hash_algorithm;
-    s2n_signature_algorithm client_cert_sig_alg;
+
+    struct s2n_signature_scheme client_cert_sig_scheme;
 
     struct s2n_cipher_suite *cipher_suite;
     struct s2n_session_key client_key;

@@ -33,7 +33,7 @@ int main(int argc, char **argv)
         struct s2n_stuffer out;
 
         struct s2n_ecc_params ecc_params;
-        const struct s2n_ecc_named_curve *curve = &s2n_ecc_supported_curves[0];
+        const struct s2n_ecc_named_curve *curve = s2n_ecc_supported_curves[0];
         ecc_params.negotiated_curve = curve;
 
         EXPECT_SUCCESS(s2n_stuffer_alloc(&out, curve->share_size + 4));
@@ -51,7 +51,7 @@ int main(int argc, char **argv)
         struct s2n_stuffer out;
 
         struct s2n_ecc_params ecc_params;
-        const struct s2n_ecc_named_curve *good_curve = &s2n_ecc_supported_curves[0];
+        const struct s2n_ecc_named_curve *good_curve = s2n_ecc_supported_curves[0];
         const struct s2n_ecc_named_curve curve = {
             .iana_id = 12345,
             .libcrypto_nid = 0,

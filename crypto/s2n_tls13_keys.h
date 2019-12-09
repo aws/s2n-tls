@@ -72,6 +72,7 @@ extern const struct s2n_blob s2n_tls13_label_traffic_secret_iv;
     s2n_stack_blob(name, bytes, S2N_TLS13_SECRET_MAX_LEN)
 
 int s2n_tls13_keys_init(struct s2n_tls13_keys *handshake, s2n_hmac_algorithm alg);
+int s2n_tls13_keys_free(struct s2n_tls13_keys *keys);
 int s2n_tls13_derive_early_secrets(struct s2n_tls13_keys *handshake);
 int s2n_tls13_derive_handshake_secrets(struct s2n_tls13_keys *handshake,
                                         const struct s2n_blob *ecdhe,

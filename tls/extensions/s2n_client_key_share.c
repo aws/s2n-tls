@@ -56,7 +56,7 @@ int s2n_client_key_share_init()
 
     for (int i = 0; i < S2N_ECC_SUPPORTED_CURVES_COUNT; i++) {
         s2n_client_key_share_extension_size += S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIZE_OF_NAMED_GROUP;
-        s2n_client_key_share_extension_size += s2n_ecc_supported_curves[i].share_size;
+        s2n_client_key_share_extension_size += s2n_ecc_supported_curves[i]->share_size;
     }
 
     return 0;
@@ -86,9 +86,9 @@ int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n
 
         supported_curve = NULL;
         for (int i = 0; i < S2N_ECC_SUPPORTED_CURVES_COUNT; i++) {
-            if (named_group == s2n_ecc_supported_curves[i].iana_id) {
+            if (named_group == s2n_ecc_supported_curves[i]->iana_id) {
                 supported_curve_index = i;
-                supported_curve = &s2n_ecc_supported_curves[i];
+                supported_curve = s2n_ecc_supported_curves[i];
                 break;
             }
         }
@@ -157,7 +157,7 @@ static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s
 
     for (int i = 0; i < S2N_ECC_SUPPORTED_CURVES_COUNT; i++) {
         ecc_params = &conn->secure.client_ecc_params[i];
-        named_curve = &s2n_ecc_supported_curves[i];
+        named_curve = s2n_ecc_supported_curves[i];
 
         ecc_params->negotiated_curve = named_curve;
         GUARD(s2n_ecdhe_parameters_send(ecc_params, out));

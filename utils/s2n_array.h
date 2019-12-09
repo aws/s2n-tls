@@ -15,10 +15,11 @@
 #pragma once
 
 #include <s2n.h>
+#include "utils/s2n_blob.h"
 
 struct s2n_array {
     /* Pointer to elements in array */
-    void *elements;
+    struct s2n_blob mem;
 
     /* The total number of elements currently in the array. */
     uint32_t num_of_elements;
@@ -40,4 +41,5 @@ extern void *s2n_array_insert(struct s2n_array *array, uint32_t index);
 extern int s2n_array_remove(struct s2n_array *array, uint32_t index);
 extern int s2n_array_free_p(struct s2n_array **parray);
 extern int s2n_array_free(struct s2n_array *array);
-extern int s2n_array_binary_search(int low, int top, struct s2n_array *array, void *element, int (*comparator)(void*, void*));
+extern int s2n_array_binary_search(struct s2n_array *array, void *element, int (*comparator)(void*, void*), uint32_t* out);
+extern void *s2n_array_insert_sorted(struct s2n_array *array, void *element, int (*comparator)(void*, void*));

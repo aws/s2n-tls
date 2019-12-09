@@ -29,6 +29,7 @@
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
+#include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_kex.h"
 
 #include "stuffer/s2n_stuffer.h"
@@ -72,15 +73,15 @@ static int s2n_handshake_dummy_handler(struct s2n_connection *conn) {
  */
 static struct s2n_handshake_action state_machine[] = {
     /* message_type_t           = {Record type   Message type     Writer S2N_SERVER                S2N_CLIENT }  */
-    [CLIENT_HELLO]              = {TLS_HANDSHAKE, TLS_CLIENT_HELLO, 'C', {s2n_client_hello_recv, s2n_client_hello_send}}, 
-    [SERVER_SESSION_LOOKUP]     = {TLS_HANDSHAKE, TLS_SERVER_SESSION_LOOKUP, 'A', {s2n_handshake_status_handler, s2n_handshake_dummy_handler}}, 
+    [CLIENT_HELLO]              = {TLS_HANDSHAKE, TLS_CLIENT_HELLO, 'C', {s2n_client_hello_recv, s2n_client_hello_send}},
+    [SERVER_SESSION_LOOKUP]     = {TLS_HANDSHAKE, TLS_SERVER_SESSION_LOOKUP, 'A', {s2n_handshake_status_handler, s2n_handshake_dummy_handler}},
     [SERVER_HELLO]              = {TLS_HANDSHAKE, TLS_SERVER_HELLO, 'S', {s2n_server_hello_send, s2n_server_hello_recv}},
     [SERVER_NEW_SESSION_TICKET] = {TLS_HANDSHAKE, TLS_SERVER_NEW_SESSION_TICKET,'S', {s2n_server_nst_send, s2n_server_nst_recv}},
     [SERVER_CERT]               = {TLS_HANDSHAKE, TLS_CERTIFICATE, 'S', {s2n_server_cert_send, s2n_server_cert_recv}},
     [SERVER_CERT_STATUS]        = {TLS_HANDSHAKE, TLS_SERVER_CERT_STATUS, 'S', {s2n_server_status_send, s2n_server_status_recv}},
     [SERVER_KEY]                = {TLS_HANDSHAKE, TLS_SERVER_KEY, 'S', {s2n_server_key_send, s2n_server_key_recv}},
     [SERVER_CERT_REQ]           = {TLS_HANDSHAKE, TLS_CERT_REQ, 'S', {s2n_client_cert_req_send, s2n_client_cert_req_recv}},
-    [SERVER_HELLO_DONE]         = {TLS_HANDSHAKE, TLS_SERVER_HELLO_DONE, 'S', {s2n_server_done_send, s2n_server_done_recv}}, 
+    [SERVER_HELLO_DONE]         = {TLS_HANDSHAKE, TLS_SERVER_HELLO_DONE, 'S', {s2n_server_done_send, s2n_server_done_recv}},
     [CLIENT_CERT]               = {TLS_HANDSHAKE, TLS_CERTIFICATE, 'C', {s2n_client_cert_recv, s2n_client_cert_send}},
     [CLIENT_KEY]                = {TLS_HANDSHAKE, TLS_CLIENT_KEY, 'C', {s2n_client_key_recv, s2n_client_key_send}},
     [CLIENT_CERT_VERIFY]        = {TLS_HANDSHAKE, TLS_CERT_VERIFY, 'C', {s2n_client_cert_verify_recv, s2n_client_cert_verify_send}},
@@ -404,10 +405,8 @@ static const char* handshake_type_names[] = {
 #define ACTIVE_HANDSHAKES( conn )     (IS_TLS13_HANDSHAKE(conn) ? tls13_handshakes : handshakes)
 
 #define ACTIVE_MESSAGE( conn )        ACTIVE_HANDSHAKES(conn)[ (conn)->handshake.handshake_type ][ (conn)->handshake.message_number ]
-#define PREVIOUS_MESSAGE( conn )      ACTIVE_HANDSHAKES(conn)[ (conn)->handshake.handshake_type ][ (conn)->handshake.message_number - 1 ]
 
 #define ACTIVE_STATE( conn )          ACTIVE_STATE_MACHINE(conn)[ ACTIVE_MESSAGE( (conn) ) ]
-#define PREVIOUS_STATE( conn )        ACTIVE_STATE_MACHINE(conn)[ PREVIOUS_MESSAGE( (conn) ) ]
 #define CCS_STATE( conn )             (((conn)->mode == S2N_CLIENT) ? ACTIVE_STATE_MACHINE(conn)[SERVER_CHANGE_CIPHER_SPEC] \
                                                                     : ACTIVE_STATE_MACHINE(conn)[CLIENT_CHANGE_CIPHER_SPEC] )
 
@@ -422,23 +421,25 @@ message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn)
 
 static int s2n_advance_message(struct s2n_connection *conn)
 {
-    char this = 'S';
+    /* Get the mode: 'C'lient or 'S'erver */
+    char previous_writer = ACTIVE_STATE(conn).writer;
+    char this_mode = 'S';
     if (conn->mode == S2N_CLIENT) {
-        this = 'C';
+        this_mode = 'C';
     }
 
     /* Actually advance the message number */
     conn->handshake.message_number++;
 
-    /* Set TCP_QUICKACK to avoid artificial delay during the handshake */
-    GUARD(s2n_socket_quickack(conn));
-
     /* When reading and using TLS1.3, skip optional change_cipher_spec states. */
-    if (ACTIVE_STATE(conn).writer != this &&
+    if (ACTIVE_STATE(conn).writer != this_mode &&
             EXPECTED_RECORD_TYPE(conn) == TLS_CHANGE_CIPHER_SPEC &&
             IS_TLS13_HANDSHAKE(conn)) {
-        return s2n_advance_message(conn);
+        conn->handshake.message_number++;
     }
+
+    /* Set TCP_QUICKACK to avoid artificial delay during the handshake */
+    GUARD(s2n_socket_quickack(conn));
 
     /* If optimized io hasn't been enabled or if the caller started out with a corked socket,
      * we don't mess with it
@@ -448,12 +449,12 @@ static int s2n_advance_message(struct s2n_connection *conn)
     }
 
     /* Are we changing I/O directions */
-    if (ACTIVE_STATE(conn).writer == PREVIOUS_STATE(conn).writer || ACTIVE_STATE(conn).writer == 'A') {
+    if (ACTIVE_STATE(conn).writer == previous_writer || ACTIVE_STATE(conn).writer == 'A') {
         return 0;
     }
 
     /* We're the new writer */
-    if (ACTIVE_STATE(conn).writer == this) {
+    if (ACTIVE_STATE(conn).writer == this_mode) {
         if (s2n_connection_is_managed_corked(conn)) {
             /* Set TCP_CORK/NOPUSH */
             GUARD(s2n_socket_write_cork(conn));
@@ -651,6 +652,57 @@ static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct 
     return 0;
 }
 
+/* this hook runs before hashes are updated */
+static int s2n_conn_pre_handshake_hashes_update(struct s2n_connection *conn)
+{
+    if (conn->actual_protocol_version < S2N_TLS13) {
+        return 0;
+    }
+
+    /* Right now this function is only concerned with CLIENT_FINISHED */
+    if (s2n_conn_get_current_message_type(conn) != CLIENT_FINISHED) {
+        return 0;
+    }
+
+    /* This runs before handshake update because application secrets uses only
+     * handshake hashes up to Server finished. This handler works in both
+     * read and write modes.
+     */
+    GUARD(s2n_tls13_handle_application_secrets(conn));
+
+    return 0;
+}
+
+/* this hook runs after hashes are updated */
+static int s2n_conn_post_handshake_hashes_update(struct s2n_connection *conn)
+{
+    if (conn->actual_protocol_version < S2N_TLS13) {
+        return 0;
+    }
+
+    struct s2n_blob client_seq = {.data = conn->secure.client_sequence_number,.size = sizeof(conn->secure.client_sequence_number) };
+    struct s2n_blob server_seq = {.data = conn->secure.server_sequence_number,.size = sizeof(conn->secure.server_sequence_number) };
+
+    switch(s2n_conn_get_current_message_type(conn)) {
+    case SERVER_HELLO:
+        GUARD(s2n_tls13_handle_handshake_secrets(conn));
+        GUARD(s2n_blob_zero(&client_seq));
+        GUARD(s2n_blob_zero(&server_seq));
+        conn->server = &conn->secure;
+        conn->client = &conn->secure;
+        GUARD(s2n_stuffer_wipe(&conn->alert_in));
+        break;
+    case CLIENT_FINISHED:
+        /* Reset sequence numbers for Application Data */
+        GUARD(s2n_blob_zero(&client_seq));
+        GUARD(s2n_blob_zero(&server_seq));
+        break;
+    default:
+        break;
+    }
+    return 0;
+}
+
 /* Writing is relatively straight forward, simply write each message out as a record,
  * we may fragment a message across multiple records, but we never coalesce multiple
  * messages into single records. 
@@ -690,7 +742,9 @@ static int handshake_write_io(struct s2n_connection *conn)
 
         /* MD5 and SHA sum the handshake data too */
         if (record_type == TLS_HANDSHAKE) {
+            GUARD(s2n_conn_pre_handshake_hashes_update(conn));
             GUARD(s2n_conn_update_handshake_hashes(conn, &out));
+            GUARD(s2n_conn_post_handshake_hashes_update(conn));
         }
 
         /* Actually send the record. We could block here. Assume the caller will call flush before coming back. */
@@ -764,8 +818,10 @@ static int s2n_handshake_conn_update_hashes(struct s2n_connection *conn)
     handshake_record.size = TLS_HANDSHAKE_HEADER_LENGTH + handshake_message_length;
     notnull_check(handshake_record.data);
 
+    GUARD(s2n_conn_pre_handshake_hashes_update(conn));
     /* MD5 and SHA sum the handshake data too */
     GUARD(s2n_conn_update_handshake_hashes(conn, &handshake_record));
+    GUARD(s2n_conn_post_handshake_hashes_update(conn));
 
     return 0;
 }
@@ -844,10 +900,28 @@ static int handshake_read_io(struct s2n_connection *conn)
     uint8_t record_type;
     int isSSLv2;
 
+    /* Fill conn->in stuffer necessary for the handshake */
     GUARD(s2n_read_full_record(conn, &record_type, &isSSLv2));
 
     if (isSSLv2) {
         GUARD(s2n_handshake_handle_sslv2(conn));
+    }
+
+    /* In TLS 1.3, encrypted handshake records would appear to be of record type
+     * TLS_APPLICATION_DATA. The actual record content type is found after the encryped
+     * is decrypted.
+     */
+    if (conn->actual_protocol_version == S2N_TLS13 && record_type == TLS_APPLICATION_DATA) {
+        GUARD(s2n_stuffer_skip_read(&conn->in, s2n_stuffer_data_available(&conn->in) - 1));
+
+        /* set the true record type */
+        GUARD(s2n_stuffer_read_uint8(&conn->in, &record_type));
+
+        /* wipe this last byte so the rest handshake works like < TLS 1.3 */
+        GUARD(s2n_stuffer_wipe_n(&conn->in, 1));
+
+        /* set the read cursor at where it should be */
+        GUARD(s2n_stuffer_reread(&conn->in));
     }
 
     /* Now we have a record, but it could be a partial fragment of a message, or it might
@@ -897,7 +971,7 @@ static int handshake_read_io(struct s2n_connection *conn)
         uint8_t actual_handshake_message_type;
         GUARD((r = read_full_handshake_message(conn, &actual_handshake_message_type)));
 
-        /* Do we need more data? */
+        /* Do we need more data? This happens for message fragmentation */
         if (r == 1) {
             /* Break out of this inner loop, but since we're not changing the state, the
              * outer loop in s2n_handshake_io() will read another record. 

@@ -59,7 +59,9 @@ typedef enum {
     S2N_AUTHENTICATION_METHOD_SENTINEL
 } s2n_authentication_method;
 
-#define S2N_AUTHENTICATION_METHOD_TLS13 S2N_AUTHENTICATION_METHOD_SENTINEL
+/* Used by TLS 1.3 CipherSuites (Eg TLS_AES_128_GCM_SHA256 "0x1301") where the Auth method will be specified by the
+ * SignatureScheme Extension, not the CipherSuite. */
+#define S2N_AUTHENTICATION_METHOD_TLS13     S2N_AUTHENTICATION_METHOD_SENTINEL
 
 struct auth_method_to_cert_value {
     struct s2n_cert_chain_and_key *certs[S2N_AUTHENTICATION_METHOD_SENTINEL];

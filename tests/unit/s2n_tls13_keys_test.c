@@ -148,7 +148,7 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    struct s2n_tls13_keys secrets;
+    DEFER_CLEANUP(struct s2n_tls13_keys secrets = {0}, s2n_tls13_keys_free);
 
     EXPECT_SUCCESS(s2n_tls13_keys_init(&secrets, S2N_HMAC_SHA256));
 
@@ -158,7 +158,7 @@ int main(int argc, char **argv)
     S2N_BLOB_EXPECT_EQUAL(secrets.extract_secret, expected_early_secret);
     S2N_BLOB_EXPECT_EQUAL(secrets.derive_secret, expect_derived_handshake_secret);
 
-    struct s2n_hash_state hash_state;
+    DEFER_CLEANUP(struct s2n_hash_state hash_state, s2n_hash_free);
     EXPECT_SUCCESS(s2n_hash_new(&hash_state));
     EXPECT_SUCCESS(s2n_hash_init(&hash_state, secrets.hash_algorithm));
     EXPECT_SUCCESS(s2n_hash_update(&hash_state, client_hello.data, client_hello.size));
@@ -167,7 +167,7 @@ int main(int argc, char **argv)
     s2n_tls13_key_blob(client_handshake_secret, secrets.size);
     s2n_tls13_key_blob(server_handshake_secret, secrets.size);
 
-    struct s2n_hash_state hash_state_copy;
+    DEFER_CLEANUP(struct s2n_hash_state hash_state_copy, s2n_hash_free);
     EXPECT_SUCCESS(s2n_hash_new(&hash_state_copy));
     EXPECT_SUCCESS(s2n_hash_copy(&hash_state_copy, &hash_state));
 
