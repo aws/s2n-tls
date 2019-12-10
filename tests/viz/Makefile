@@ -38,4 +38,4 @@ build_viz::
 
 .PHONY : clean
 clean: decruft
-	rm s2n_state_machine_viz
+	rm -f s2n_state_machine_viz
