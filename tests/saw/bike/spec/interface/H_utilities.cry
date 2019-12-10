@@ -1,0 +1,12 @@
+// H_utilities.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module  interface::H_utilities where
+
+import interface::H_types_v1l1
+
+///////////////////////////////////////////////////////////////////////////////
+
+secure_clean raw size = undefined

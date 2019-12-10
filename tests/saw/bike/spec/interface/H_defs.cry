@@ -1,0 +1,17 @@
+// H_defs.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module interface::H_defs where
+
+///////////////////////////////////////////////////////////////////////////////
+
+type DIVIDE_AND_CEIL x divider = ((x + divider) / divider)
+
+type XMM_SIZE = 16 //0x10
+type YMM_SIZE = 32 //0x20
+type ZMM_SIZE = 64 //0x40
+
+type ALL_YMM_SIZE = (16*YMM_SIZE)
+type ALL_ZMM_SIZE = (32*ZMM_SIZE)

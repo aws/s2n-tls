@@ -1,0 +1,523 @@
+// sampling.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+/* NOTES:
+    `get_rand_mod_len` uses the results of the aes_ctr_prf in a way
+    that guarantees termination only probabilistically (given a true
+    random source).
+*/
+
+let get_rand_mod_len_loop_spec = do {
+    rand_pos_ptr <- out_ref i32_T;
+    rand_pos_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to rand_pos_ptr_ptr rand_pos_ptr;
+    (len, len_ptr) <- in_ref i32_T "len";
+    (prf_state, prf_state_ptr) <- inout_ref aes_ctr_prf_state_T "prf_state";
+    prf_state_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to prf_state_ptr_ptr prf_state_ptr;
+    (mask, mask_ptr) <- in_ref i64_T "mask";
+    res_ptr <- crucible_alloc i32;
+
+    // NOTE: This precondition is needed for terminiation
+    crucible_precond {{ len > 0 }};
+
+    // NOTE: This invariant is need to avoid underflow
+    crucible_precond {{ prf_state.pos <= `AES256_BLOCK_SIZE }};
+
+    crucible_execute_func
+        [ rand_pos_ptr_ptr
+        , len_ptr
+        , prf_state_ptr_ptr
+        , mask_ptr
+	, res_ptr
+        ];
+
+    rand_pos' <- point_to i32_T rand_pos_ptr "rand_pos'";
+    prf_state' <- point_to aes_ctr_prf_state_T prf_state_ptr "prf_state'";
+
+    crucible_postcond {{ rand_pos' < len }};
+
+    // NOTE: Invariant continues to hold
+    crucible_postcond {{ prf_state'.pos <= `AES256_BLOCK_SIZE }};
+
+    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+};
+
+let get_rand_mod_len_spec = do {
+    rand_pos_ptr <- out_ref i32_T;
+    len <- crucible_fresh_var "len" i32;
+    (prf_state, prf_state_ptr) <- inout_ref aes_ctr_prf_state_T "prf_state";
+
+    // NOTE: This precondition is needed for terminiation
+    crucible_precond {{ len > 0 }};
+
+    // NOTE: This invariant is need to avoid underflow
+    crucible_precond {{ prf_state.pos <= `AES256_BLOCK_SIZE }};
+
+    crucible_execute_func
+        [ rand_pos_ptr
+        , (crucible_term {{ len }})
+        , prf_state_ptr
+        ];
+
+    rand_pos' <- point_to i32_T rand_pos_ptr "rand_pos'";
+    prf_state' <- point_to aes_ctr_prf_state_T prf_state_ptr "prf_state'";
+
+    crucible_postcond {{ rand_pos' < len }};
+
+    // NOTE: Invariant continues to hold
+    crucible_postcond {{ prf_state'.pos <= `AES256_BLOCK_SIZE }};
+
+    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+};
+
+let make_odd_weight_spec = do {
+    (a, ap) <- inout_ref (make_i8_T R_SIZE) "a";
+    crucible_execute_func [ap];
+    a' <- point_to (make_i8_T R_SIZE) ap "make_odd_weight_a'";
+    return ();
+};
+
+let sample_uniform_r_bits_spec = do {
+    (ap) <- out_ref (make_i8_T R_SIZE);
+    (b, bp) <- in_ref seed_T "seed";
+    (c, cp) <- in_val i32_T "must_be_odd";
+    crucible_execute_func [ap, bp, cp];
+    a' <- point_to (make_i8_T R_SIZE) ap "a'"; // write to OUT parameter
+    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+};
+
+let is_new2_spec = do {
+    (a, ap) <- in_ref (make_i32_T FAKE_DV) "wlist";
+    crucible_execute_func [ap, tm {{ 3:[32] }}];
+    succ <- crucible_fresh_var "succ" i32;
+    crucible_return (tm succ);
+};
+
+let is_new_spec = do {
+    let ty = llvm_array FAKE_DV idx_t;
+    (a, ap) <- in_ref (plain_type ty) "wlist";
+    crucible_execute_func [ap, tm {{ `DV:[32] }}];
+    succ <- crucible_fresh_var "succ" i32;
+    crucible_return (tm succ);
+};
+
+// NOTE: We parameterize by the lengths of the `a` and `wlist` parameters.
+//       Must have weight < max (T1, FAKE_DV), or an assertion fails.
+//       a_len_64 is the length of a `a` array, and is 1/8 times `a_len_bytes
+
+let secure_set_bits_loop_spec a_len_64 weight = do {
+    (a ,a_ptr) <- inout_ref (plain_type (llvm_array a_len_64 i64)) "a";
+    a_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to a_ptr_ptr a_ptr;
+    (wlist, wlist_ptr) <- in_ref (idx_array_T weight) "wlist";
+    wlist_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to wlist_ptr_ptr wlist_ptr;
+    a_len_8_ptr <- crucible_alloc i32;
+    crucible_points_to a_len_8_ptr (crucible_term {{ 8 * (`a_len_64:[32]) }});
+    weight_ptr <- crucible_alloc i32;
+    crucible_points_to weight_ptr (crucible_term {{ `weight:[32] }});
+    (qw_pos, qw_pos_ptr) <- in_ref (make_i64_T weight) "qw_pos";
+    (bit_pos, bit_pos_ptr) <- in_ref (make_i64_T weight) "bit_pos";
+    (tmp, tmp_ptr) <- ptr_to_fresh "tmp" i64;
+    (qw, qw_ptr) <- ptr_to_fresh "qw" i32;
+    (j, j_ptr) <- ptr_to_fresh "j" i32;
+    mask_ptr <- crucible_alloc i64;
+
+    crucible_precond {{ qw < `a_len_64 }};
+    crucible_precond {{ j <= `weight }};
+
+    crucible_execute_func
+        [ a_ptr_ptr
+        , wlist_ptr_ptr
+        , a_len_8_ptr
+        , weight_ptr
+        , qw_pos_ptr
+        , bit_pos_ptr
+        , tmp_ptr
+        , qw_ptr
+        , j_ptr
+        , mask_ptr
+        ];
+
+    a' <- crucible_fresh_var "a'" (llvm_array a_len_64 i64);
+    crucible_points_to a_ptr (crucible_term {{ a' }});
+
+    return ();
+};
+
+let secure_set_bits_spec a_len_64 weight = do {
+    (a ,a_ptr) <- inout_ref (plain_type (llvm_array a_len_64 i64)) "a";
+    (wlist, wlist_ptr) <- in_ref (idx_array_T weight) "wlist";
+
+    crucible_execute_func
+        [ a_ptr
+        , wlist_ptr
+        , crucible_term {{ 8 * (`a_len_64:[32]) }}
+        , crucible_term {{ `weight:[32] }}
+        ];
+
+    a' <- crucible_fresh_var "a'" (llvm_array a_len_64 i64);
+    crucible_points_to a_ptr (crucible_term {{ a' }});
+
+    return ();
+};
+
+let generate_sparse_rep_spec = do {
+    a_ptr <- out_ref (make_i64_T N_PADDED_QW);
+    (wlist, wlist_ptr) <- inout_ref (idx_array_T T1) "wlist";
+    (prf_state, prf_state_ptr) <- inout_ref aes_ctr_prf_state_T "prf_state";
+
+    // NOTE: Invariant
+    crucible_precond {{ prf_state.pos <= `AES256_BLOCK_SIZE }};
+
+    crucible_execute_func
+        [ a_ptr
+        , wlist_ptr
+        , tm {{ `T1:[32] }}
+        , tm {{ `N_BITS:[32] }}
+        , tm {{ `N_PADDED_SIZE:[32] }}
+        , prf_state_ptr
+        ];
+
+    _a_res <- point_to (make_i64_T N_PADDED_QW) a_ptr "a'";
+    _wlist_res <- point_to (idx_array_T T1) wlist_ptr "wlist'";
+    prf_state_res <- point_to aes_ctr_prf_state_T prf_state_ptr "generate_sparse_fake_rep_s'";
+
+    // NOTE: Invariant
+    crucible_postcond {{ prf_state_res.pos <= `AES256_BLOCK_SIZE }};
+
+    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+};
+
+let generate_sparse_rep_loop_spec = do {
+    a_ptr <- out_ref (make_i64_T N_PADDED_QW);
+    a_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to a_ptr_ptr a_ptr;
+    (wlist, wlist_ptr) <- inout_ref (idx_array_T T1) "wlist";
+    wlist_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to wlist_ptr_ptr wlist_ptr;
+    weight_ptr <- crucible_alloc i32;
+    crucible_points_to weight_ptr (tm {{ `T1:[32] }});
+    len_ptr <- crucible_alloc i32;
+    crucible_points_to len_ptr (tm {{ `N_BITS:[32] }});
+    padded_len_ptr <- crucible_alloc i32;
+    crucible_points_to padded_len_ptr (tm {{ `N_PADDED_SIZE:[32] }});
+    (prf_state, prf_state_ptr) <- inout_ref aes_ctr_prf_state_T "prf_state";
+    prf_state_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to prf_state_ptr_ptr prf_state_ptr;
+    res_ptr <- crucible_alloc i32;
+    (ctr, ctr_ptr) <- ptr_to_fresh "ctr" i64;
+
+    crucible_precond {{ prf_state.pos <= `AES256_BLOCK_SIZE }};
+    crucible_precond {{ ctr < `T1 }};
+
+    crucible_execute_func
+        [ a_ptr_ptr
+        , wlist_ptr_ptr
+        , weight_ptr
+        , len_ptr
+        , padded_len_ptr
+        , prf_state_ptr_ptr
+	, res_ptr
+        , ctr_ptr
+        ];
+
+    _a_res <- point_to (make_i64_T N_PADDED_QW) a_ptr "a'";
+    _wlist_res <- point_to (idx_array_T T1) wlist_ptr "wlist'";
+    prf_state_res <- point_to aes_ctr_prf_state_T prf_state_ptr "generate_sparse_fake_rep_s'";
+
+    crucible_postcond {{ prf_state_res.pos <= `AES256_BLOCK_SIZE }};
+
+    crucible_return (tm {{ 0:[32] }});
+};
+
+// NOTE: Only one parameter set to worry about, with
+//       a:[R_PADDED_QW][64] and padded_len = R_PADDED_SIZE
+let generate_sparse_fake_rep_spec = do {
+    (a, a_ptr) <- inout_ref (make_i64_T R_PADDED_QW) "a";
+    wlist_ptr <- out_ref (idx_array_T FAKE_DV);
+    (prf_state, prf_state_ptr) <- inout_ref aes_ctr_prf_state_T "prf_state";
+
+    // NOTE: Invariant
+    crucible_precond {{ prf_state.pos <= `AES256_BLOCK_SIZE }};
+
+    crucible_execute_func
+        [ a_ptr
+        , wlist_ptr
+        , tm {{ `R_PADDED_SIZE:[32] }}
+        , prf_state_ptr
+        ];
+
+    _a_res <- point_to (make_i64_T R_PADDED_QW) a_ptr "a'";
+    _wlist_res <- point_to (idx_array_T FAKE_DV) wlist_ptr "wlist'";
+    prf_state_res <- point_to aes_ctr_prf_state_T prf_state_ptr "generate_sparse_fake_rep_s'";
+
+    // NOTE: Invariant
+    crucible_postcond {{ prf_state_res.pos <= `AES256_BLOCK_SIZE }};
+
+    ret <- crucible_fresh_var "ret" i32;
+    crucible_return (tm {{ ret }});
+};
+
+let generate_sparse_fake_rep_first_loop_spec = do {
+    a_ptr <- out_ref (make_i64_T R_PADDED_QW);
+    a_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to a_ptr_ptr a_ptr;
+    (wlist, wlist_ptr) <- inout_ref (idx_array_T FAKE_DV) "wlist";
+    wlist_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to wlist_ptr_ptr wlist_ptr;
+    padded_len_ptr <- crucible_alloc i32;
+    crucible_points_to padded_len_ptr (tm {{ `R_PADDED_SIZE:[32] }});
+    (prf_state, prf_state_ptr) <- inout_ref aes_ctr_prf_state_T "prf_state";
+    prf_state_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to prf_state_ptr_ptr prf_state_ptr;
+    (ctr, ctr_ptr) <- ptr_to_fresh "ctr" i64;
+    (real_wlist, real_wlist_ptr) <- inout_ref (make_i32_T DV) "real_wlist";
+    len_ptr <- crucible_alloc i32;
+    crucible_points_to len_ptr (tm {{ `R_BITS:[32] }});
+    mask_ptr <- crucible_alloc i32;
+    res_ptr <- crucible_alloc i32;
+    j_ptr <- crucible_alloc i32;
+    i_ptr <- crucible_alloc i32;
+
+    // NOTE: Invariant
+    crucible_precond {{ prf_state.pos <= `AES256_BLOCK_SIZE }};
+    crucible_precond {{ ctr < `FAKE_DV }};
+
+    crucible_execute_func
+        [ a_ptr_ptr
+        , wlist_ptr_ptr
+        , padded_len_ptr
+        , prf_state_ptr_ptr
+        , ctr_ptr
+        , real_wlist_ptr
+        , len_ptr
+        , mask_ptr
+	, res_ptr
+        , j_ptr
+        , i_ptr
+        ];
+
+    _a_res <- point_to (make_i64_T R_PADDED_QW) a_ptr "a'";
+    _wlist_res <- point_to (idx_array_T FAKE_DV) wlist_ptr "wlist'";
+    prf_state_res <- point_to aes_ctr_prf_state_T prf_state_ptr "generate_sparse_fake_rep_s'";
+
+    // NOTE: Invariant
+    crucible_postcond {{ prf_state_res.pos <= `AES256_BLOCK_SIZE }};
+
+    ret <- crucible_fresh_var "ret" i32;
+    crucible_return (tm {{ ret }});
+};
+
+let generate_sparse_fake_rep_second_loop_spec = do {
+    a_ptr <- out_ref (make_i64_T R_PADDED_QW);
+    a_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to a_ptr_ptr a_ptr;
+    (wlist, wlist_ptr) <- inout_ref (idx_array_T FAKE_DV) "wlist";
+    wlist_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to wlist_ptr_ptr wlist_ptr;
+    padded_len_ptr <- crucible_alloc i32;
+    crucible_points_to padded_len_ptr (tm {{ `R_PADDED_SIZE:[32] }});
+    (prf_state, prf_state_ptr) <- inout_ref aes_ctr_prf_state_T "prf_state";
+    prf_state_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to prf_state_ptr_ptr prf_state_ptr;
+    (ctr, ctr_ptr) <- ptr_to_fresh "ctr" i64;
+    (real_wlist, real_wlist_ptr) <- inout_ref (make_i32_T DV) "real_wlist";
+    len_ptr <- crucible_alloc i32;
+    crucible_points_to len_ptr (tm {{ `R_BITS:[32] }});
+    mask_ptr <- crucible_alloc i32;
+    res_ptr <- crucible_alloc i32;
+    j_ptr <- crucible_alloc i32;
+    i_ptr <- crucible_alloc i32;
+
+    // NOTE: Invariant
+    crucible_precond {{ prf_state.pos <= `AES256_BLOCK_SIZE }};
+    crucible_precond {{ ctr < `DV }};
+
+    crucible_execute_func
+        [ a_ptr_ptr
+        , wlist_ptr_ptr
+        , padded_len_ptr
+        , prf_state_ptr_ptr
+        , ctr_ptr
+        , real_wlist_ptr
+        , len_ptr
+        , mask_ptr
+	, res_ptr
+        , j_ptr
+        , i_ptr
+        ];
+
+    _a_res <- point_to (make_i64_T R_PADDED_QW) a_ptr "a'";
+    _wlist_res <- point_to (idx_array_T FAKE_DV) wlist_ptr "wlist'";
+    prf_state_res <- point_to aes_ctr_prf_state_T prf_state_ptr "generate_sparse_fake_rep_s'";
+
+    // NOTE: Invariant
+    crucible_postcond {{ prf_state_res.pos <= `AES256_BLOCK_SIZE }};
+
+    ret <- crucible_fresh_var "ret" i32;
+    crucible_return (tm {{ ret }});
+};
+
+let generate_sparse_fake_rep_last_loop_spec = do {
+    a_ptr <- out_ref (make_i64_T R_PADDED_QW);
+    a_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to a_ptr_ptr a_ptr;
+    (wlist, wlist_ptr) <- inout_ref (idx_array_T FAKE_DV) "wlist";
+    wlist_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to wlist_ptr_ptr wlist_ptr;
+    padded_len_ptr <- crucible_alloc i32;
+    crucible_points_to padded_len_ptr (tm {{ `R_PADDED_SIZE:[32] }});
+    (ctr, ctr_ptr) <- ptr_to_fresh "ctr" i64;
+    (prf_state, prf_state_ptr) <- inout_ref aes_ctr_prf_state_T "prf_state";
+    prf_state_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to prf_state_ptr_ptr prf_state_ptr;
+    (real_wlist, real_wlist_ptr) <- inout_ref (make_i32_T DV) "real_wlist";
+    len_ptr <- crucible_alloc i32;
+    crucible_points_to len_ptr (tm {{ `R_BITS:[32] }});
+    mask_ptr <- crucible_alloc i32;
+    (res', res_ptr) <- ptr_to_fresh "res'" i32;
+    (j, j_ptr) <- ptr_to_fresh "j" i32;
+    (i, i_ptr) <- ptr_to_fresh "i" i32;
+
+    // NOTE: Invariant
+    crucible_precond {{ prf_state.pos <= `AES256_BLOCK_SIZE }};
+    crucible_precond {{ j < `FAKE_DV /\ i <= `DV }};
+
+    crucible_execute_func
+        [ a_ptr_ptr
+        , wlist_ptr_ptr
+        , padded_len_ptr
+        , prf_state_ptr_ptr
+	, ctr_ptr
+        , real_wlist_ptr
+        , len_ptr
+        , mask_ptr
+	, res_ptr
+        , j_ptr
+        , i_ptr
+        ];
+
+    _a_res <- point_to (make_i64_T R_PADDED_QW) a_ptr "a'";
+    _wlist_res <- point_to (idx_array_T FAKE_DV) wlist_ptr "wlist'";
+    prf_state_res <- point_to aes_ctr_prf_state_T prf_state_ptr "generate_sparse_fake_rep_s'";
+
+    // NOTE: Invariant
+    crucible_postcond {{ prf_state_res.pos <= `AES256_BLOCK_SIZE }};
+
+    ret <- crucible_fresh_var "ret" i32;
+    crucible_return (tm {{ ret }});
+};
+
+let get_seeds_spec = do {
+    ap <- out_ref double_seed_T;
+    (b, bp) <- in_val seeds_purpose_T "seeds_type";
+    crucible_execute_func[ap, bp];
+    a' <- point_to double_seed_T ap "seeds";
+    res <- crucible_fresh_var "res" i32;
+    crucible_return (tm res);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+get_rand_mod_len_loop_ov <- admit "__breakpoint__get_rand_mod_len_loop#get_rand_mod_len"
+    [] get_rand_mod_len_loop_spec;
+verify "__breakpoint__get_rand_mod_len_loop#get_rand_mod_len"
+    [get_rand_mod_len_loop_ov, aes_ctr_prf_4_ov]
+    get_rand_mod_len_loop_spec;
+get_rand_mod_len_ov <- verify "get_rand_mod_len"
+    [get_rand_mod_len_loop_ov, bit_scan_reverse_ov]
+    get_rand_mod_len_spec;
+
+make_odd_weight_ov <- verify_unint "make_odd_weight"
+    [get_rand_mod_len_ov, count_ones_R_SIZE_ov]
+    ["count_ones"]
+    make_odd_weight_spec;
+
+is_new_ov <- verify "is_new" [] (is_new_spec);
+is_new2_ov <- verify "is_new2" [] (is_new2_spec);
+
+// NOTE: This is used an override for kem
+get_seeds_ov <- verify "get_seeds" [get_random_bytes_ov] get_seeds_spec;
+
+sample_uniform_r_bits_ov <- verify "sample_uniform_r_bits"
+    [init_aes_ctr_prf_state_ov, aes_ctr_prf_ov2
+    , make_odd_weight_ov, finalize_aes_ctr_prf_ov]
+    sample_uniform_r_bits_spec;
+
+/* NOTES: There are two calls to `secure_set_bits` in the CONSTANT_TIME version
+
+  1. (a, wlist, padded_len, weight) from  generate_sparse_rep
+     ... with parameters padded_len = N_PADDED_SIZE and weight=T1
+
+  2. (a, wlist, padded_len, FAKE_DV) from generate_sparse_fake_rep and
+     that called by crypto_kem_keypair, with
+     padded_len = sizeof(p_sk[0]) = R_PADDED_SIZE
+*/
+
+// NOTE: For generate_sparse_rep:
+secure_set_bits_GSR_loop_ov <- admit "__breakpoint__secure_set_bits_loop#secure_set_bits"
+    [] (secure_set_bits_loop_spec (eval_int {{( `N_PADDED_SIZE:[32])/8 }}) T1);
+verify "__breakpoint__secure_set_bits_loop#secure_set_bits"
+    [secure_set_bits_GSR_loop_ov, secure_cmp32_ov]
+    (secure_set_bits_loop_spec (eval_int {{( `N_PADDED_SIZE:[32])/8 }}) T1);
+secure_set_bits_GSR_ov <- verify "secure_set_bits"
+    [secure_set_bits_GSR_loop_ov, secure_cmp32_ov]
+    (secure_set_bits_spec (eval_int {{( `N_PADDED_SIZE:[32])/8 }}) T1);
+
+// NOTE: For generate_sparse_fake_rep
+secure_set_bits_GSFR_loop_ov <- admit "__breakpoint__secure_set_bits_loop#secure_set_bits"
+    [] (secure_set_bits_loop_spec (eval_int {{( `R_PADDED_SIZE:[32])/8 }}) FAKE_DV);
+verify "__breakpoint__secure_set_bits_loop#secure_set_bits"
+    [secure_set_bits_GSFR_loop_ov, secure_cmp32_ov]
+    (secure_set_bits_loop_spec (eval_int {{( `R_PADDED_SIZE:[32])/8 }}) FAKE_DV);
+secure_set_bits_GSFR_ov <- verify "secure_set_bits"
+    [secure_set_bits_GSFR_loop_ov, secure_cmp32_ov]
+    (secure_set_bits_spec (eval_int {{( `R_PADDED_SIZE:[32])/8 }}) FAKE_DV);
+
+generate_sparse_rep_loop_ov <- admit "__breakpoint__generate_sparse_rep_loop#generate_sparse_rep"
+    [] generate_sparse_rep_loop_spec;
+let generate_sparse_rep_O =
+    [ generate_sparse_rep_loop_ov
+    , get_rand_mod_len_ov
+    , secure_set_bits_GSR_ov
+    ];
+verify_pathsat "__breakpoint__generate_sparse_rep_loop#generate_sparse_rep"
+    generate_sparse_rep_O
+    generate_sparse_rep_loop_spec;
+generate_sparse_rep_ov <- verify_pathsat "generate_sparse_rep"
+    generate_sparse_rep_O
+    generate_sparse_rep_spec;
+
+generate_sparse_fake_rep_first_loop_ov <- admit "__breakpoint__generate_sparse_fake_rep_first_loop#generate_sparse_fake_rep"
+    [] generate_sparse_fake_rep_first_loop_spec;
+generate_sparse_fake_rep_second_loop_ov <- admit "__breakpoint__generate_sparse_fake_rep_second_loop#generate_sparse_fake_rep"
+    [] generate_sparse_fake_rep_second_loop_spec;
+generate_sparse_fake_rep_last_loop_ov <- admit "__breakpoint__generate_sparse_fake_rep_last_loop#generate_sparse_fake_rep"
+    [] generate_sparse_fake_rep_last_loop_spec;
+let generate_sparse_fake_rep_O =
+    [ generate_sparse_fake_rep_first_loop_ov
+    , generate_sparse_fake_rep_second_loop_ov
+    , generate_sparse_fake_rep_last_loop_ov
+    , get_rand_mod_len_ov
+    , secure_cmp32_ov
+    , secure_set_bits_GSFR_ov
+    ];
+verify_pathsat "__breakpoint__generate_sparse_fake_rep_first_loop#generate_sparse_fake_rep"
+    generate_sparse_fake_rep_O
+    generate_sparse_fake_rep_first_loop_spec;
+verify_pathsat "__breakpoint__generate_sparse_fake_rep_second_loop#generate_sparse_fake_rep"
+    generate_sparse_fake_rep_O
+    generate_sparse_fake_rep_second_loop_spec;
+verify_pathsat "__breakpoint__generate_sparse_fake_rep_last_loop#generate_sparse_fake_rep"
+    generate_sparse_fake_rep_O
+    generate_sparse_fake_rep_last_loop_spec;
+generate_sparse_fake_rep_ov <- verify_pathsat "generate_sparse_fake_rep"
+    generate_sparse_fake_rep_O
+    generate_sparse_fake_rep_spec;
+

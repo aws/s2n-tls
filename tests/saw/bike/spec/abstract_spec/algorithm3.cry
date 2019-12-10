@@ -1,0 +1,166 @@
+// algorithm3.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module abstract_spec::algorithm3 where
+
+import abstract_spec::vectors
+import abstract_spec::vector_sets
+import abstract_spec::ring
+import abstract_spec::types
+import abstract_spec::parameters as P
+import abstract_spec::random_choice
+import lib::Maybe
+
+///////////////////////////////////////////////////////////////////////////////
+// BIKE Algorithm 3 "One-Round Bit Flipping Algorithm", from Section 2.5.1
+
+// NOTE: The algorithm description there has several loops and a few
+//       subfunctions.  We translate the while loops into recursive
+//       functions. For loops can be translated into Cryptol comprehensions.
+
+threshold_fn _ = 2
+
+type syndrome = R_vector P::r
+type J_set = vector P::n // vector-as-set
+type pk_matrix = matrix P::r P::n
+
+// NOTE: The spec uses `d/2`, but d can be odd.  Absent a module for rationals
+//       in Crytpol, which seems like overkill, not that the only context in
+//       which d/2 is used is in expressions like "e >= d/2", where e is an
+//       integer. So if we use division with rounding up, we will get the
+//       correct result.
+half_rounded_up: Integer -> Integer
+half_rounded_up x = (1+x)/2
+
+// NOTE:  line 4: all J_l initially empty
+(initialJs: [1+P::max_T]J_set) = repeat empty_set
+
+// NOTE: the for loop on lines 2-4 sets up the J sets
+loop_2_4: Integer -> pk_matrix -> syndrome -> [1+P::max_T]J_set
+loop_2_4 T H s = Js ! 0 where
+    Js = [initialJs] # [ step js j | js <- Js | j <- [0 .. (P::n - 1)] ]
+    step js j = update js l (set_union (js @l) (singleton_set j)) where
+        l = fromInteger`{[width P::max_T]} (min T (ctr (H, s, j)))
+
+// NOTE: the inner for loop on lines 8 through 10
+loop_8_10 e0 s0 T H Js = e_and_s ! 0 where // line 8
+    e_and_s = [(e0,s0)] # [ update_e_and_s e s' l
+                          | (e,s') <- e_and_s
+                          | l <- [0 .. P::delta] ] // line 8
+    update_e_and_s e s' l = x where
+        e' = check (H, s', Js @ (fromInteger T - l), half_rounded_up `P::d) // line 9
+        x = (r_add_vector e e', r_sub_vector s'  (vector_times_matrix e' (transpose H))) // line 10
+
+// NOTE: the outer while loop on lines 7 through 10
+loop_7_10 e s' T H Js =
+    if (cardinality s') > `P::S then // line 7
+        loop_7_10 e1 s1 T H Js where (e1,s1) = loop_8_10 e s' T H Js // lines 8-10
+    else (e,s')
+
+// NOTE: loop_13_15: RandomState -> Integer ->vector P::n ->
+//       vector P::r-> pk_matrix -> (RandomState, Maybe vector n)
+loop_13_15 RS u e s' H  =
+  if (cardinality s') > u // line 13
+  then maybe
+        (RS', nothing) // guess failed -- should not happen as cardinality s > 0
+        (\ j -> (loop_13_15 RS' u e1 s1 H where // iterate with new values
+                  e1 = update e j ((e@j) + 1) // line 15
+                  s1 = r_sub_vector s' (column H j))) // line 15
+        maybe_j  where
+    (RS', maybe_j) = guess_error_pos RS (H, s', half_rounded_up `P::d) // line 14
+  else (RS, just e)
+
+/* Inputs:
+
+  - H, a (n*r) = (2r * r) block circulant matrix, represented by
+    two elements of R, h0 and h1;
+
+  - u, an integer; either 0 (BIKE-1 and BIKE-2) or t/2 (BIKE-3)
+
+  - a "syndrome" s, where s=e' + e0*h0 + e1*h1 for some e',e1,e2
+    in R, with |e'| = u, |e0| = |e1| = t to which we add a random state,
+    used for and updated by the random choice function used in
+    `get_error_pos`:
+
+  - `RS`, an input random state
+*/
+
+// NOTE: private_key -> Integer -> syndrome ->
+//       RandomState -> (RandomState, Maybe R_vector)
+algorithm3 pk u s RS = last_e where
+  H = private_key_matrix pk
+  T = threshold_fn s // line 1
+  Js = loop_2_4 T H s // lines 2 .. 4
+  e = Js @ (fromInteger`{[width P::max_T]} T) // line 5
+  s1 = r_sub_vector s (vector_times_matrix e (transpose H)) // line 6
+  (e2, s2) = loop_7_10 e s1 T H Js // lines 7-19
+  e3 = check (H, s2, e2, half_rounded_up `P::d) // line 11
+  (e4,s4) = (r_add_vector e2 e3, r_sub_vector s2 (vector_times_matrix e3 (transpose H))) // line 12
+  last_e = loop_13_15 RS u e4 s4 H
+
+// NOTE: For testing, return intermediate results
+algorithm3' pk s RS what = last_e where
+    H = private_key_matrix pk
+    T = threshold_fn s // line 1
+    Js = loop_2_4 T H s // lines 2 .. 4
+    e = Js @ (fromInteger`{[width P::max_T]} T) // line 5
+    s1 = r_sub_vector s (vector_times_matrix e (transpose H)) // line 6
+    // last_e = (e,s1,cardinality s1)
+    (e2, s2) = loop_7_10 e s1 T H Js // lines 7-19
+    // last_e = (e2, s2)
+    e3 = check (H, s2, e2, half_rounded_up `P::d) // line 11
+    (e4,s4) = (r_add_vector e2 e3, r_sub_vector s2
+        (vector_times_matrix e3 (transpose H))) // line 12
+    // last_e = ((e,s1), (e2,s2), (e4,s4))
+    last_e = if what==0x0 then (e,  s1, cardinality s1)
+              | what==0x1 then (e2, s2, cardinality s2)
+                          else (e4, s4, cardinality s4)
+
+///////////////////////////////////////////////////////////////////////////////
+// Other functions defined or used in Algorithm 3
+
+column: pk_matrix -> [P::n] -> vector P::r // "h_j" in the algorithm
+column H j = (transpose H) @ j
+
+row: pk_matrix -> [P::n] -> vector P::n // "eq_i" in the algorithm
+row H i = H @ i
+
+ctr:  (pk_matrix, syndrome, [P::n]) -> Integer
+ctr (H,s,j) = cardinality (set_intersection (column H j) s)
+
+/* NOTE:
+
+  - In two places we need to iterate over the elements of a set.
+    We are representing sets as vectors, so where the pseudocode says
+    "for j in S do body" we can code up
+
+      for j in 0 .. (n-1) do
+        if j in S then
+          body
+
+    either as a recursive definition or as a comprehension.
+*/
+
+// NOTE: Here we use a comprehension to encode the loop
+check: (pk_matrix, syndrome, J_set, Integer) -> vector P::n
+check (H, s, J, t) = [ if el==1 /\ ctr(H,s,j) >= t then 1 else 0
+                     | el <- J // el == 1 if j in J, otherwise 0
+                     | j <- [0 .. (P::n-1)]:[_][P::n]
+                     ]
+
+guess_inner_loop (H,s,T, eq_i) = take_first c where
+  c = [ if el==1 /\ ctr(H,s,j) >= T then just j else nothing
+      | el <- eq_i
+      | j <- [0 .. (P::n-1)]:[_][P::n]
+      ]
+
+guess_error_pos RS (H,s,T) = res where
+  (RS', maybe_i) = choose_element RS s // i <-$- s
+  res = maybe (RS', nothing)  // s was empty, cannot pick i
+              (\ i -> // i in s
+                maybe (guess_error_pos RS' (H,s,T)) // no j from inner loop, try again
+                      (\ j -> (RS', just j)) // got a j
+                      (guess_inner_loop (H,s,T, H@(fromInteger`{[P::n]} i))))
+              maybe_i

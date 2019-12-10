@@ -1,0 +1,71 @@
+// Maybe.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module lib::Maybe where
+
+///////////////////////////////////////////////////////////////////////////////
+
+/* NOTE: Similar to Haskell's Maybe type, this gives a way to have 
+         optional values.
+
+  - A value of type `Maybe t` is meant to be either `nothing`, or `just x`
+    for some x:t.  There is no way to properly define this type in
+    Cryptol; the type definition here allows for some undesired values to
+    exist in `Maybe t`.  Function `is_maybe` recognizes the proper values.
+
+  - Function `maybe` allows for case analysis.
+
+  - Function `maybe_map` allows a function to be applied "inside" the
+    Maybe wrapper.
+
+*/
+
+type Maybe a = (Bool, a)
+
+// The `no data` value in a Maybe type.
+nothing: {a} (Zero a) => Maybe a
+nothing = (False, zero)
+
+// Inject a value of type `a` into `Maybe a`.
+just: {a} a -> Maybe a
+just x = (True, x)
+
+/** Case analysis of a value of `Maybe` type.
+    maybe v f nothing == v
+    maybe v f (just x) == f x
+*/
+maybe: {a,b} b -> (a -> b) -> Maybe a -> b
+maybe c_nothing c_just (b, x) = if b then c_just x else c_nothing
+
+/** Apply a function to the contained value if present, in a `Maybe` type.
+    maybe_map f nothing == nothing
+    maybe_map f (just x) == just (f x)
+*/
+maybe_map: {a,b} (Zero b) => (a -> b) -> Maybe a -> Maybe b
+maybe_map f = maybe nothing (\v -> just (f v))
+
+// Recognizer for proper `Maybe` values
+is_maybe: {a} (Cmp a, Zero a) => Maybe a -> Bool
+is_maybe (b,x) = (b \/ x==zero) // b==False ==> x==zero
+
+// Get the first available "just v" from a list of maybes.
+take_first: {n,t} (fin n, Zero t) => [n](Maybe t) -> Maybe t
+take_first xs = ys ! 0 where
+  ys = [nothing] # [maybe x just y | x <- xs | y <- ys]
+
+private
+
+  property distinct (x:[2]) = nothing != just x
+  property injective (x:[2]) y = (just x == just y) == (x == y)
+
+  property recognize_nothing = is_maybe`{[5]} nothing
+  property recognize_just x = is_maybe`{([2],[2])} (just x)
+  property no_junk x = is_maybe`{[3]} x ==> x == (maybe nothing just) x
+
+  property take_first_recursion_0 (s:[4](Maybe [2])) =
+    take_first ([nothing]#s) ==take_first s
+
+  property take_first_recursion_1 x (s:[4](Maybe [2])) =
+    take_first ([just x]#s) == just x

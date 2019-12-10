@@ -1,0 +1,140 @@
+// types.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// BIKE-specific types
+
+// NOTE: We use names ending in "_t" for llvm_type values, and names ending
+//       in "_T" for things of type `type_descriptor_t` that can be used
+//       with the generic helper functions defined in `flat-helpers.saw`.
+
+// NOTE: Function `plain_type` takes a "_t" type to a "_T" type
+let plain_type ty = (ty,  point_to_plain ty);
+
+// NOTE: Arrays of integers
+let make_i8_t n = llvm_array n (llvm_int 8);
+let make_i8_T n = plain_type (make_i8_t n);
+let make_i32_t n = llvm_array n (llvm_int 32);
+let make_i32_T n = plain_type (make_i32_t n);
+let make_i64_t n = llvm_array n (llvm_int 64);
+let make_i64_T n = plain_type (make_i64_t n);
+
+// NOTE: Some basic types
+let i8_T = plain_type i8;
+let i16_T = plain_type i16;
+let i32_T = plain_type i32;
+let i64_T = plain_type i64;
+let seeds_purpose_t = i32;
+let seeds_purpose_T = i32_T;
+let status_t = i32;
+
+// NOTE: Nested arrays
+let N_BITS_arr_i8 = make_i8_t N_BITS;
+let R_BITS_arr_i8 = make_i8_t R_BITS;
+let rsize_t =  make_i8_t R_SIZE;
+let rsize_T = plain_type rsize_t;
+let  decode_utc_T =  make_i8_T decode_utc;
+let r_T =  make_i8_T 110;
+let pk_t = rsize_t;
+
+// NOTE: Took the maximum allocation of an entry in the union type
+let seed_t = make_i8_t 32;
+
+let seed_T = point_to_flat {{ `N_seed_tt }} {{ assemble_seed_tt }};
+let seed_S = plain_type (llvm_struct "struct.seed_s");
+
+let pad_sk_T = point_to_flat {{ `N_padded_param_n_t }} {{ assemble_padded_param_n_t }};
+
+let ss_t =  make_i8_t ELL_K_SIZE;
+let double_seed_t =  make_i8_t 64;
+let double_seed_T =  make_i8_T 64;
+
+///////////////////////////////////////////////////////////////////////////////
+// Types involving structures
+
+// NOTE: pointer to a struct!
+let aes256_ks_t = llvm_type "%struct.evp_cipher_ctx_st*";
+
+let evp_cipher_ctx_st_t = llvm_struct "struct.evp_cipher_ctx_st";
+
+// NOTE: The _T types for these two are in 'helpers.saw'
+
+let evp_cipher_st_t = (llvm_struct "struct.evp_cipher_st");
+let evp_cipher_st_T = plain_type  evp_cipher_st_t;
+let engine_st_t = (llvm_struct "struct.engine_st");
+let engine_st_T = plain_type engine_st_t;
+
+let ct_t =   llvm_struct "struct.generic_param_n_s";
+let ct_T = point_to_flat {{`N_ct_t}} {{ assemble_ct_t }};
+
+let red_r_t = llvm_struct "struct.red_r_s";
+let red_r_T:type_descriptor_t = point_to_flat {{ `N_red_r_t}}
+    {{ assemble_red_r_t }};
+
+let e_t = llvm_struct "struct.e_s";
+let e_T = point_to_flat {{ `N_e_t }} {{ assemble_e_t }};
+
+let sk_t = llvm_struct "struct.sk_s";
+let sk_T:type_descriptor_t = point_to_flat {{`N_sk_t }} {{ assemble_sk_t }};
+
+let ss_t = llvm_struct "struct.ss_s";
+let ss_T = point_to_flat {{ `N_ss_t}} {{ assemble_ss_t }};
+
+let idx_s =  llvm_struct "struct.idx_s";
+let compressed_idx_dv_s = llvm_struct "struct.compressed_idx_dv_s";
+
+let syndrome_t =  llvm_struct "struct.syndrome_s";
+let syndrome_T:type_descriptor_t = point_to_flat {{ `N_syndrome_t }}
+    {{ assemble_syndrome_t }};
+let dup1_dup2_syndrome_T:type_descriptor_t = point_to_flat {{ `N_dup1_dup2_syndrome_t }}
+    {{ assemble_dup1_dup2_syndrome_t }};
+
+let sha384_hash_t = make_i8_t SHA384_HASH_SIZE;
+let sha384_hash_s = llvm_struct "struct.sha384_hash_s";
+let sha384_hash_T = point_to_flat {{ `N_sha384_hash_t}}
+    {{ assemble_sha384_hash_t }};
+
+let arr_sha_hash_T = plain_type sha384_hash_s;
+
+let aes_ctr_prf_state_t = llvm_struct "struct.aes_ctr_prf_state_s";
+
+let idx_t = idx_s ;
+let idx_array_T n = point_to_flat {{( `N_idx_t:[32]) * (`n:[32]) }}
+    {{ assemble_array assemble_idx_t }};
+
+let pk_T = point_to_flat {{ `N_pk_t }} {{ assemble_pk_t }};
+let split_e_T = point_to_flat {{ `N_split_e_t }} {{ assemble_split_e_t }};
+
+let aes256_key_T = point_to_flat {{ `N_aes256_key_t }}
+    {{ assemble_aes256_key_t }};
+
+let batch_ctx_t = llvm_struct "struct.batch_ctx_s";
+let batch_ctx_T = plain_type batch_ctx_t;
+let generic_param_n_t = llvm_struct "struct.generic_param_n_s";
+let generic_param_n_T = plain_type generic_param_n_t;
+
+let compressed_idx_dv_t = llvm_struct "struct.compressed_idx_dv_s";
+let compressed_idx_dv_T = point_to_flat {{ `N_compressed_idx_dv_t }}
+    {{ assemble_compressed_idx_dv_t }};
+let compressed_idx_dv_array_T n = point_to_flat {{ (`N_compressed_idx_dv_t:[32]) * (`n:[32]) }}
+    {{ assemble_array assemble_compressed_idx_dv_t }};
+
+let a_t  = llvm_array N_PADDED_QW i64;
+let a_T = plain_type a_t;
+
+let c_t  = llvm_array N_PADDED_QW idx_t;
+let c_T = plain_type c_t;
+
+// NOTE: Input types of decap function, char arrays
+let char_ct_len = eval_int {{ `char_ct_len:[64] }};
+let char_sk_len = eval_int {{ `char_sk_len:[64] }};
+let char_ss_len = eval_int {{ `char_ss_len:[64] }};
+let char_pk_len = eval_int {{ `char_pk_len:[64] }};
+let char_ss_t = llvm_array char_ss_len i8;
+let char_ss_T = plain_type char_ss_t;
+let char_ct_t = llvm_array char_ct_len i8;
+let char_ct_T = plain_type char_ct_t;
+let char_sk_t = llvm_array char_sk_len i8;
+let char_sk_T  = plain_type char_sk_t;
+let char_pk_t = llvm_array char_pk_len i8;
+let char_pk_T  = plain_type char_pk_t;

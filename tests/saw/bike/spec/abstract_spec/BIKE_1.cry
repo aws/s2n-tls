@@ -1,0 +1,70 @@
+// BIKE_1.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module abstract_spec::BIKE_1 where
+
+import abstract_spec::vectors
+import abstract_spec::vector_sets
+import abstract_spec::ring
+import abstract_spec::types
+import abstract_spec::parameters as P
+import abstract_spec::random_choice
+import abstract_spec::algorithm3
+import abstract_spec::parallelized_hash
+import lib::Maybe
+
+///////////////////////////////////////////////////////////////////////////////
+// Top-level algorithms for BIKE 1, from Section 2.1 of the specification
+
+private
+  // Encaps and Decaps call a hash function K: {0,1}^n -> {0,1}^{ell_K}
+  // This is instantiated to ParallelizedHash, which has several parameters
+  // not given in BIKE.pdf:
+  // - hbs, the hash block size
+  // - slicerem
+  // - s, the number of slices
+  // Looking at the source code (sha384.h), we see
+  //  - hbs = 128       :  #define HASH_BLOCK_SIZE     128ULL
+  //  - slicerem = 111  :  #define SLICE_REM           111ULL
+  //  - s = 8           :  #define MAX_MB_SLICES       8ULL
+
+  // NOTE: those numbers are unsuitable for the smaller "proof development" sizes
+  // we use.  I've substituted different numbers below
+
+  // Parallelized_hash produces 384 bits, using SHA-384.
+  // `get_ss` in the code takes the first 256 of these to generate the shared secret
+  // Parallelized_hash also takes its input in bytes; the spec does not suggest
+  // how the n-bit version is padded and split up.
+  // the code puts extra 0 bits at the most-significant end of the lowest-indexed byte
+  K: [P::n] -> [P::ell_k]
+  K bits = take`{P::ell_k} (join out_bytes) where
+    // out_bytes = parallelized_hash`{s=8,slicerem=111} in_bytes // should be this
+    out_bytes = parallelized_hash`{s=2,slicerem=1} in_bytes
+    in_bytes  = split (padding#bits)
+    padding: [8* (P::n /^ 8) - P::n] // rounded-up length - actual length
+    padding = 0
+
+  create_key: vector P::n -> shared_key
+  create_key e0_e1 = K (join e0_e1) // join collects the 0-1 vector into a word
+
+////////////////////////////////////////////////////////////////
+// Decaps, Section 2.1.3
+// We have an extra input, the random state used by the decoder
+
+Decaps: private_key -> cryptogram -> RandomState -> Maybe shared_key
+Decaps h c rs = maybe_K where
+  s = syndrome h c
+  (_, maybe_es) = algorithm3 h 0 s rs
+  maybe_K = maybe nothing // decoding failed
+                  handle_e // decoding success, see below
+                  maybe_es
+  handle_e e = if cardinality e == `P::t // correct weight
+               then just (create_key e)
+               else nothing
+
+
+syndrome: private_key -> cryptogram -> vector P::r
+syndrome (h0,h1) (c0,c1) =
+  phi_inverse_vector (r_add_polynomial (r_mul_polynomial c0 h0) (r_mul_polynomial c1 h1))

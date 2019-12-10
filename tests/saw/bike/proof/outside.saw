@@ -1,0 +1,18 @@
+// outside.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+let get_random_bytes_spec = do {
+    ap <- out_ref (make_i8_T 64);
+    crucible_execute_func [ap, tm {{ 64:[32] }}];
+    a <- point_to (make_i8_T 64) ap "random_bytes"; // OUT parameter is set
+    res <- crucible_fresh_var "res" i32;
+    crucible_return (tm res);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+get_random_bytes_ov <- admit "get_random_bytes" [] get_random_bytes_spec;
