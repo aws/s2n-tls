@@ -259,7 +259,7 @@ static int s2n_populate_client_hello_extensions(struct s2n_client_hello *ch)
             continue;
         }
 
-        struct s2n_client_hello_parsed_extension *parsed_extension = s2n_array_add(ch->parsed_extensions);
+        struct s2n_client_hello_parsed_extension *parsed_extension = s2n_array_pushback(ch->parsed_extensions);
         notnull_check(parsed_extension);
 
         parsed_extension->extension_type = ext_type;
