@@ -267,9 +267,9 @@ bitcode/all_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/utils s
 
 .PHONY : bitcode/sike_llvm.bc
 bitcode/sike_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
-	patch s2n/pq-crypto/sike_r1/api.h sike/patch/api.h.patch
-	patch s2n/pq-crypto/sike_r1/ec_isogeny.c sike/patch/ec_isogeny.c.patch
-	patch s2n/pq-crypto/sike_r1/sidh.c sike/patch/sidh.c.patch
+	patch s2n/pq-crypto/sike_r1/api_r1.h sike/patch/api_r1.h.patch
+	patch s2n/pq-crypto/sike_r1/ec_isogeny_r1.c sike/patch/ec_isogeny_r1.c.patch
+	patch s2n/pq-crypto/sike_r1/sidh_r1.c sike/patch/sidh_r1.c.patch
 	patch s2n/pq-crypto/sike_r1/sike_p503_r1_kem.c sike/patch/sike_p503_kem.c.patch
 	${MAKE} -C s2n sike_bc
 	${MAKE} -C bitcode all_llvm.bc

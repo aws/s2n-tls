@@ -52,10 +52,10 @@ file(GLOB ERROR_SRC
 file(GLOB PQ_SRC
     "pq-crypto/*.c"
     "pq-crypto/bike/*.c"
-    "pq-crypto/sike_r1/fp_generic.c"
-    "pq-crypto/sike_r1/P503.c"
+    "pq-crypto/sike_r1/fp_generic_r1.c"
+    "pq-crypto/sike_r1/P503_r1.c"
     "pq-crypto/sike_r1/sike_p503_r1_kem.c"
-    "pq-crypto/sike_r1/fips202.c"
+    "pq-crypto/sike_r1/fips202_r1.c"
 )
 
 file(GLOB STUFFER_SRC

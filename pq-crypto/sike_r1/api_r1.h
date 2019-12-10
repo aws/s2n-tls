@@ -7,8 +7,8 @@
 #ifndef __P503_API_H__
 #define __P503_API_H__
 
-#include "config.h"
-    
+#include "sike_r1_namespace.h"
+#include "config_r1.h"
 
 // Encoding of keys for KEM-based isogeny system "SIKEp503" (wire format):
 // ----------------------------------------------------------------------

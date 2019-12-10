@@ -4,8 +4,8 @@
 * Abstract: core functions over GF(p) and GF(p^2)
 *********************************************************************************************/
 
-#include "P503_internal.h"
-
+#include "sike_r1_namespace.h"
+#include "P503_internal_r1.h"
 
 __inline void fpcopy(const felm_t a, felm_t c)
 { // Copy a field element, c = a.

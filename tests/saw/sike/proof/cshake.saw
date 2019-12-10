@@ -245,35 +245,35 @@ let cshake256_simple_squeezeblocks_spec no ns = do {
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
 
-load64_ov <- verify "load64" [] load64_spec;
-store64_ov <- verify "store64" [] store64_spec;
+load64_ov <- verify "load64_r1" [] load64_spec;
+store64_ov <- verify "store64_r1" [] store64_spec;
 
-KeccakF1600_StatePermute_ov <- verify "KeccakF1600_StatePermute" []
+KeccakF1600_StatePermute_ov <- verify "KeccakF1600_StatePermute_r1" []
     (KeccakF1600_StatePermute_spec);
 
 // NOTE: The padding value for the following functions is 31 (0x1f)
 
 shake128_absorb_ones_ov <- verify_shake_unint 
-    "keccak_absorb" [KeccakF1600_StatePermute_ov]
+    "keccak_absorb_r1" [KeccakF1600_StatePermute_ov]
     [] (keccak_absorb_ones_spec 10 SHAKE128_RATE);
 shake256_absorb_ones_ov <- verify_shake_unint
-    "keccak_absorb" [KeccakF1600_StatePermute_ov]
+    "keccak_absorb_r1" [KeccakF1600_StatePermute_ov]
     [] (keccak_absorb_ones_spec 10 SHAKE256_RATE);
 
 // NOTE: The padding value for the following functions is 0
 
 shake128_absorb_zero_ov <- verify_shake_unint
-    "keccak_absorb" [KeccakF1600_StatePermute_ov]
+    "keccak_absorb_r1" [KeccakF1600_StatePermute_ov]
     [] (keccak_absorb_zero_spec 10 SHAKE128_RATE);
 shake256_absorb_zero_ov <- verify_shake_unint
-    "keccak_absorb" [KeccakF1600_StatePermute_ov]
+    "keccak_absorb_r1" [KeccakF1600_StatePermute_ov]
     [] (keccak_absorb_zero_spec 10 SHAKE256_RATE);
 
-cshake256_simple_dec_ov <- admit "cshake256_simple"
+cshake256_simple_dec_ov <- admit "cshake256_simple_r1"
     [] (cshake256_simple_spec_admit fp2_encoded_bytes 2 24);
-cshake256_simple_enc_ov0 <- admit "cshake256_simple"
+cshake256_simple_enc_ov0 <- admit "cshake256_simple_r1"
     [] (cshake256_simple_spec_admit SECRETKEY_A_BYTES 0 402);
-cshake256_simple_enc_ov1 <- admit "cshake256_simple"
+cshake256_simple_enc_ov1 <- admit "cshake256_simple_r1"
     [] (cshake256_simple_spec_admit MSG_BYTES 2 fp2_encoded_bytes);
-cshake256_simple_enc_ov2 <- admit "cshake256_simple"
+cshake256_simple_enc_ov2 <- admit "cshake256_simple_r1"
     [] (cshake256_simple_spec_admit CRYPTO_BYTES 1 426);

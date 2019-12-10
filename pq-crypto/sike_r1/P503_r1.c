@@ -2,10 +2,10 @@
 * Supersingular Isogeny Key Encapsulation Library
 *
 * Abstract: supersingular isogeny parameters and generation of functions for P503
-*********************************************************************************************/  
+*********************************************************************************************/
 
-#include "P503_internal.h"
-
+#include "sike_r1_namespace.h"
+#include "P503_internal_r1.h"
 
 // Encoding of field elements, elements over Z_order, elements over GF(p^2) and elliptic curve points:
 // --------------------------------------------------------------------------------------------------
@@ -109,6 +109,6 @@ const unsigned int strat_Bob[MAX_Bob-1] = {
 #define mp_addx2_asm            mp_add503x2_asm
 #define mp_subx2_asm            mp_sub503x2_asm
 
-#include "fpx.c"
-#include "ec_isogeny.c"
-#include "sidh.c"
+#include "fpx_r1.c"
+#include "ec_isogeny_r1.c"
+#include "sidh_r1.c"

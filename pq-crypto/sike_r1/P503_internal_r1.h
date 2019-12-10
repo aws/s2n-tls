@@ -7,7 +7,8 @@
 #ifndef __P503_INTERNAL_H__
 #define __P503_INTERNAL_H__
 
-#include "api.h"
+#include "sike_r1_namespace.h"
+#include "api_r1.h"
 
 #if (TARGET == TARGET_AMD64)
     #define NWORDS_FIELD    8               // Number of words of a 503-bit field element
@@ -22,7 +23,6 @@
     #define NWORDS_FIELD    8
     #define p503_ZERO_WORDS 3
 #endif
-    
 
 // Basic constants
 
