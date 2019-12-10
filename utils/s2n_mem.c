@@ -62,7 +62,6 @@ bool s2n_blob_is_growable(const struct s2n_blob* b)
 static int s2n_get_memory(struct s2n_blob *b, uint32_t size)
 {
     if(use_mlock) {
-      printf("\nusing mlock \n");
         /* Page aligned allocation required for mlock */
         uint32_t allocate = page_size * (((size - 1) / page_size) + 1);
 	*b = (struct s2n_blob) {.data = NULL, .size = size, .allocated = allocate, .mlocked = 1, .growable = 1};
