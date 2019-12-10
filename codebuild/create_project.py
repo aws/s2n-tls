@@ -19,8 +19,9 @@ import configparser
 import logging
 
 from awacs.aws import Action, Allow, Statement, Principal, PolicyDocument
+from awacs.sts import AssumeRole
 from troposphere import Template, Ref, Output
-from troposphere.iam import Role, ServiceLinkedRole, Policy
+from troposphere.iam import Role, ServiceLinkedRole, Policy, ManagedPolicy
 from troposphere.codebuild import Artifacts, Environment, Source, Project, ProjectTriggers
 
 logging.getLogger(__name__)
@@ -59,21 +60,17 @@ def build_project(template=Template(), section=None, project_name=None, raw_env=
         BuildSpec=config.get(section, 'buildspec'),
         ReportBuildStatus=True
     )
-    project_triggers = ProjectTriggers(
-        Webhook=True,
-    )
 
     project_id = project = Project(
         project_name,
         Artifacts=artifacts,
         Environment=environment,
         Name=project_name,
-        ServiceRole=service_role,
+        ServiceRole=Ref(service_role),
         Source=source,
         SourceVersion=config.get(section, 'source_version'),
         BadgeEnabled=True,
         DependsOn=service_role,
-        Triggers=project_triggers,
     )
     template.add_resource(project)
     template.add_output([Output(f"CodeBuildProject{project_name}", Value=Ref(project_id))])
@@ -84,42 +81,29 @@ def build_role(template=Template(), section="CFNRole", project_name:str=None, **
     template.set_version('2010-09-09')
     assert project_name
     project_name+='Role'
+
+    # NOTE: By default CodeBuild manages the policies for this role.  If you delete a CFN stack and try to recreate the project
+    # or make changes to it when the Codebuild managed Policy still exists, you'll see an error in the UI:
+    # `The policy is attached to 0 entities but it must be attached to a single role`. (CFN fails with fail to update)
+    # Orphaned policies created by CodeBuild will have CodeBuildBasePolicy prepended to them; search for policies with this
+    # name and no role and delete to clear the error.
+    # TODO: Get a CloudFormation feature request to turn this off for project creation- let CFN manage the policy.
     role_id = template.add_resource(
         Role(
             project_name,
+            Path='/',
             AssumeRolePolicyDocument=PolicyDocument(
                 Statement=[
                     Statement(
                         Effect=Allow,
-                        Action=[
-                            Action("sts", "AssumeRole")
-                        ],
-                        Principal=Principal("Service", "codebuild.amazonaws.com")
+                        Action=[AssumeRole],
+                        Principal=Principal("Service", ["codebuild.amazonaws.com"])
                     )
                 ]
-            ),
-            Policies=[
-                Policy(
-                    PolicyName="inline_policy_snapshots_cw_logs",
-                    PolicyDocument=PolicyDocument(
-                        Id="inline_policy_snapshots_cw_logs",
-                        Version="2012-10-17",
-                        Statement=[
-                            Statement(
-                                Effect=Allow,
-                                Action=[
-                                    Action("logs", "CreateLogGroup"),
-                                    Action("logs", "CreateLogStream"),
-                                    Action("logs", "PutLogEvents"),
-                                ],
-                                Resource=[f"arn:aws:logs:*:{account_number}:*"]
-                            )
-                        ]
-                    )
-                ),
-            ],
+            )
         )
     )
+
     template.add_output([Output(project_name, Value=Ref(role_id))])
     return Ref(role_id)
 
@@ -146,7 +130,7 @@ def main(**kwargs):
                 build_project(template=codebuild, project_name=job_title, section=job, service_role=service_role['Ref'])
 
     with(open("cfn/codebuild_test_projects.yml", 'w')) as fh:
-        fh.write(codebuild.to_json())
+        fh.write(codebuild.to_yaml())
 
     if args.dry_run:
         logging.debug('Dry Run: wrote cfn file, but not calling AWS.')
