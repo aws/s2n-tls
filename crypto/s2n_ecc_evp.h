@@ -29,6 +29,7 @@
 #define S2N_ECC_EVP_SUPPORTED_CURVES_COUNT 3
 extern const struct s2n_ecc_named_curve s2n_ecc_curve_x25519;
 #else
+#define S2N_IS_X25519_SUPPORTED 0
 #define S2N_ECC_EVP_SUPPORTED_CURVES_COUNT 2
 #endif
 
@@ -43,4 +44,11 @@ int s2n_ecc_evp_generate_ephemeral_key(struct s2n_ecc_evp_params *ecc_evp_params
 int s2n_ecc_evp_compute_shared_secret_from_params(struct s2n_ecc_evp_params *private_ecc_evp_params,
                                                   struct s2n_ecc_evp_params *public_ecc_evp_params,
                                                   struct s2n_blob *shared_key);
+int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *out);
+int s2n_ecc_evp_read_params_point(struct s2n_stuffer *in, int point_size, struct s2n_blob *point_blob);
+int s2n_ecc_evp_compute_shared_secret_from_params(struct s2n_ecc_evp_params *private_ecc_evp_params,
+                                                  struct s2n_ecc_evp_params *public_ecc_evp_params,
+                                                  struct s2n_blob *shared_key);
+int s2n_ecc_evp_parse_params_point(struct s2n_blob *point_blob, struct s2n_ecc_evp_params *ecc_evp_params);
+int s2n_ecc_evp_generate_copy_params(struct s2n_ecc_evp_params *from_params, struct s2n_ecc_evp_params *to_params);
 int s2n_ecc_evp_params_free(struct s2n_ecc_evp_params *ecc_evp_params);
