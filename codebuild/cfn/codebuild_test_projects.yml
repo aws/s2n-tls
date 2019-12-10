@@ -76,14 +76,131 @@
                 "Ref": "s2nfuzzerOpenSSL111LongRun"
             }
         },
-        "CodeBuildRoleName": {
+        "s2nAsanOpenSSL102Gcc6Role": {
             "Value": {
-                "Ref": "CodeBuildRole"
+                "Ref": "s2nAsanOpenSSL102Gcc6Role"
+            }
+        },
+        "s2nIntegrationLibreSSLGcc9Role": {
+            "Value": {
+                "Ref": "s2nIntegrationLibreSSLGcc9Role"
+            }
+        },
+        "s2nIntegrationOpenSSL102Gcc6FIPSRole": {
+            "Value": {
+                "Ref": "s2nIntegrationOpenSSL102Gcc6FIPSRole"
+            }
+        },
+        "s2nIntegrationOpenSSL102Gcc6Role": {
+            "Value": {
+                "Ref": "s2nIntegrationOpenSSL102Gcc6Role"
+            }
+        },
+        "s2nIntegrationOpenSSL111Gcc6CorkedRole": {
+            "Value": {
+                "Ref": "s2nIntegrationOpenSSL111Gcc6CorkedRole"
+            }
+        },
+        "s2nIntegrationOpenSSL111Gcc6Role": {
+            "Value": {
+                "Ref": "s2nIntegrationOpenSSL111Gcc6Role"
+            }
+        },
+        "s2nIntegrationOpenSSL111Gcc6SoftCryptoRole": {
+            "Value": {
+                "Ref": "s2nIntegrationOpenSSL111Gcc6SoftCryptoRole"
+            }
+        },
+        "s2nIntegrationOpenSSL111Gcc9Role": {
+            "Value": {
+                "Ref": "s2nIntegrationOpenSSL111Gcc9Role"
+            }
+        },
+        "s2nUnitOpenSSL111Gcc6Role": {
+            "Value": {
+                "Ref": "s2nUnitOpenSSL111Gcc6Role"
+            }
+        },
+        "s2nValgrindOpenSSL102Gcc6Role": {
+            "Value": {
+                "Ref": "s2nValgrindOpenSSL102Gcc6Role"
+            }
+        },
+        "s2nValgrindOpenSSL111Gcc9Role": {
+            "Value": {
+                "Ref": "s2nValgrindOpenSSL111Gcc9Role"
+            }
+        },
+        "s2nfuzzer1Role": {
+            "Value": {
+                "Ref": "s2nfuzzer1Role"
+            }
+        },
+        "s2nfuzzer2Role": {
+            "Value": {
+                "Ref": "s2nfuzzer2Role"
+            }
+        },
+        "s2nfuzzer3Role": {
+            "Value": {
+                "Ref": "s2nfuzzer3Role"
+            }
+        },
+        "s2nfuzzerOpenSSL111LongRunRole": {
+            "Value": {
+                "Ref": "s2nfuzzerOpenSSL111LongRunRole"
             }
         }
     },
     "Resources": {
-        "CodeBuildRole": {
+        "s2nAsanOpenSSL102Gcc6": {
+            "DependsOn": "s2nAsanOpenSSL102Gcc6Role",
+            "Properties": {
+                "Artifacts": {
+                    "Type": "NO_ARTIFACTS"
+                },
+                "BadgeEnabled": "true",
+                "Environment": {
+                    "ComputeType": "BUILD_GENERAL1_2XLARGE",
+                    "EnvironmentVariables": [
+                        {
+                            "Name": "S2N_LIBCRYPTO",
+                            "Value": "openssl-1.0.2"
+                        },
+                        {
+                            "Name": "BUILD_S2N",
+                            "Value": "true"
+                        },
+                        {
+                            "Name": "TESTS",
+                            "Value": "asan"
+                        },
+                        {
+                            "Name": "GCC_VERSION",
+                            "Value": "6"
+                        }
+                    ],
+                    "Image": "aws/codebuild/standard:2.0",
+                    "PrivilegedMode": "true",
+                    "Type": "LINUX_CONTAINER"
+                },
+                "Name": "s2nAsanOpenSSL102Gcc6",
+                "ServiceRole": "s2nAsanOpenSSL102Gcc6Role",
+                "Source": {
+                    "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
+                    "GitCloneDepth": "1",
+                    "Location": "https://github.com/awslabs/s2n.git",
+                    "ReportBuildStatus": "true",
+                    "Type": "GITHUB"
+                },
+                "SourceVersion": "",
+                "Triggers": {
+                    "Webhook": "true"
+                }
+            },
+            "Type": "AWS::CodeBuild::Project"
+        },
+        "s2nAsanOpenSSL102Gcc6Role": {
             "Properties": {
                 "AssumeRolePolicyDocument": {
                     "Statement": [
@@ -123,54 +240,8 @@
             },
             "Type": "AWS::IAM::Role"
         },
-        "s2nAsanOpenSSL102Gcc6": {
-            "DependsOn": "CodeBuildRole",
-            "Properties": {
-                "Artifacts": {
-                    "Type": "NO_ARTIFACTS"
-                },
-                "BadgeEnabled": "true",
-                "Environment": {
-                    "ComputeType": "BUILD_GENERAL1_2XLARGE",
-                    "EnvironmentVariables": [
-                        {
-                            "Name": "S2N_LIBCRYPTO",
-                            "Value": "openssl-1.0.2"
-                        },
-                        {
-                            "Name": "BUILD_S2N",
-                            "Value": "true"
-                        },
-                        {
-                            "Name": "TESTS",
-                            "Value": "asan"
-                        },
-                        {
-                            "Name": "GCC_VERSION",
-                            "Value": "6"
-                        }
-                    ],
-                    "Image": "aws/codebuild/standard:2.0",
-                    "PrivilegedMode": "true",
-                    "Type": "LINUX_CONTAINER"
-                },
-                "Name": "s2nAsanOpenSSL102Gcc6",
-                "ServiceRole": {
-                    "Ref": "CodeBuildRole"
-                },
-                "Source": {
-                    "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
-                    "GitCloneDepth": "1",
-                    "Location": "https://github.com/awslabs/s2n.git",
-                    "ReportBuildStatus": "true",
-                    "Type": "GITHUB"
-                },
-                "SourceVersion": "codebuild_fuzzers"
-            },
-            "Type": "AWS::CodeBuild::Project"
-        },
         "s2nIntegrationLibreSSLGcc9": {
-            "DependsOn": "CodeBuildRole",
+            "DependsOn": "s2nIntegrationLibreSSLGcc9Role",
             "Properties": {
                 "Artifacts": {
                     "Type": "NO_ARTIFACTS"
@@ -201,9 +272,7 @@
                     "Type": "LINUX_CONTAINER"
                 },
                 "Name": "s2nIntegrationLibreSSLGcc9",
-                "ServiceRole": {
-                    "Ref": "CodeBuildRole"
-                },
+                "ServiceRole": "s2nIntegrationLibreSSLGcc9Role",
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
@@ -211,12 +280,55 @@
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
-                "SourceVersion": "codebuild_fuzzers"
+                "SourceVersion": "",
+                "Triggers": {
+                    "Webhook": "true"
+                }
             },
             "Type": "AWS::CodeBuild::Project"
         },
+        "s2nIntegrationLibreSSLGcc9Role": {
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "codebuild.amazonaws.com"
+                            }
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyDocument": {
+                            "Id": "inline_policy_snapshots_cw_logs",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        "arn:aws:logs:*:024603541914:*"
+                                    ]
+                                }
+                            ],
+                            "Version": "2012-10-17"
+                        },
+                        "PolicyName": "inline_policy_snapshots_cw_logs"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::Role"
+        },
         "s2nIntegrationOpenSSL102Gcc6": {
-            "DependsOn": "CodeBuildRole",
+            "DependsOn": "s2nIntegrationOpenSSL102Gcc6Role",
             "Properties": {
                 "Artifacts": {
                     "Type": "NO_ARTIFACTS"
@@ -247,9 +359,7 @@
                     "Type": "LINUX_CONTAINER"
                 },
                 "Name": "s2nIntegrationOpenSSL102Gcc6",
-                "ServiceRole": {
-                    "Ref": "CodeBuildRole"
-                },
+                "ServiceRole": "s2nIntegrationOpenSSL102Gcc6Role",
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
@@ -257,12 +367,15 @@
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
-                "SourceVersion": "codebuild_fuzzers"
+                "SourceVersion": "",
+                "Triggers": {
+                    "Webhook": "true"
+                }
             },
             "Type": "AWS::CodeBuild::Project"
         },
         "s2nIntegrationOpenSSL102Gcc6FIPS": {
-            "DependsOn": "CodeBuildRole",
+            "DependsOn": "s2nIntegrationOpenSSL102Gcc6FIPSRole",
             "Properties": {
                 "Artifacts": {
                     "Type": "NO_ARTIFACTS"
@@ -293,9 +406,7 @@
                     "Type": "LINUX_CONTAINER"
                 },
                 "Name": "s2nIntegrationOpenSSL102Gcc6FIPS",
-                "ServiceRole": {
-                    "Ref": "CodeBuildRole"
-                },
+                "ServiceRole": "s2nIntegrationOpenSSL102Gcc6FIPSRole",
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
@@ -303,12 +414,95 @@
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
-                "SourceVersion": "codebuild_fuzzers"
+                "SourceVersion": "",
+                "Triggers": {
+                    "Webhook": "true"
+                }
             },
             "Type": "AWS::CodeBuild::Project"
         },
+        "s2nIntegrationOpenSSL102Gcc6FIPSRole": {
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "codebuild.amazonaws.com"
+                            }
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyDocument": {
+                            "Id": "inline_policy_snapshots_cw_logs",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        "arn:aws:logs:*:024603541914:*"
+                                    ]
+                                }
+                            ],
+                            "Version": "2012-10-17"
+                        },
+                        "PolicyName": "inline_policy_snapshots_cw_logs"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::Role"
+        },
+        "s2nIntegrationOpenSSL102Gcc6Role": {
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "codebuild.amazonaws.com"
+                            }
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyDocument": {
+                            "Id": "inline_policy_snapshots_cw_logs",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        "arn:aws:logs:*:024603541914:*"
+                                    ]
+                                }
+                            ],
+                            "Version": "2012-10-17"
+                        },
+                        "PolicyName": "inline_policy_snapshots_cw_logs"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::Role"
+        },
         "s2nIntegrationOpenSSL111Gcc6": {
-            "DependsOn": "CodeBuildRole",
+            "DependsOn": "s2nIntegrationOpenSSL111Gcc6Role",
             "Properties": {
                 "Artifacts": {
                     "Type": "NO_ARTIFACTS"
@@ -347,9 +541,7 @@
                     "Type": "LINUX_CONTAINER"
                 },
                 "Name": "s2nIntegrationOpenSSL111Gcc6",
-                "ServiceRole": {
-                    "Ref": "CodeBuildRole"
-                },
+                "ServiceRole": "s2nIntegrationOpenSSL111Gcc6Role",
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
@@ -357,12 +549,15 @@
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
-                "SourceVersion": "codebuild_fuzzers"
+                "SourceVersion": "",
+                "Triggers": {
+                    "Webhook": "true"
+                }
             },
             "Type": "AWS::CodeBuild::Project"
         },
         "s2nIntegrationOpenSSL111Gcc6Corked": {
-            "DependsOn": "CodeBuildRole",
+            "DependsOn": "s2nIntegrationOpenSSL111Gcc6CorkedRole",
             "Properties": {
                 "Artifacts": {
                     "Type": "NO_ARTIFACTS"
@@ -397,9 +592,7 @@
                     "Type": "LINUX_CONTAINER"
                 },
                 "Name": "s2nIntegrationOpenSSL111Gcc6Corked",
-                "ServiceRole": {
-                    "Ref": "CodeBuildRole"
-                },
+                "ServiceRole": "s2nIntegrationOpenSSL111Gcc6CorkedRole",
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
@@ -407,12 +600,95 @@
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
-                "SourceVersion": "codebuild_fuzzers"
+                "SourceVersion": "",
+                "Triggers": {
+                    "Webhook": "true"
+                }
             },
             "Type": "AWS::CodeBuild::Project"
         },
+        "s2nIntegrationOpenSSL111Gcc6CorkedRole": {
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "codebuild.amazonaws.com"
+                            }
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyDocument": {
+                            "Id": "inline_policy_snapshots_cw_logs",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        "arn:aws:logs:*:024603541914:*"
+                                    ]
+                                }
+                            ],
+                            "Version": "2012-10-17"
+                        },
+                        "PolicyName": "inline_policy_snapshots_cw_logs"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::Role"
+        },
+        "s2nIntegrationOpenSSL111Gcc6Role": {
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "codebuild.amazonaws.com"
+                            }
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyDocument": {
+                            "Id": "inline_policy_snapshots_cw_logs",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        "arn:aws:logs:*:024603541914:*"
+                                    ]
+                                }
+                            ],
+                            "Version": "2012-10-17"
+                        },
+                        "PolicyName": "inline_policy_snapshots_cw_logs"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::Role"
+        },
         "s2nIntegrationOpenSSL111Gcc6SoftCrypto": {
-            "DependsOn": "CodeBuildRole",
+            "DependsOn": "s2nIntegrationOpenSSL111Gcc6SoftCryptoRole",
             "Properties": {
                 "Artifacts": {
                     "Type": "NO_ARTIFACTS"
@@ -447,9 +723,7 @@
                     "Type": "LINUX_CONTAINER"
                 },
                 "Name": "s2nIntegrationOpenSSL111Gcc6SoftCrypto",
-                "ServiceRole": {
-                    "Ref": "CodeBuildRole"
-                },
+                "ServiceRole": "s2nIntegrationOpenSSL111Gcc6SoftCryptoRole",
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
@@ -457,12 +731,55 @@
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
-                "SourceVersion": "codebuild_fuzzers"
+                "SourceVersion": "",
+                "Triggers": {
+                    "Webhook": "true"
+                }
             },
             "Type": "AWS::CodeBuild::Project"
         },
+        "s2nIntegrationOpenSSL111Gcc6SoftCryptoRole": {
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "codebuild.amazonaws.com"
+                            }
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyDocument": {
+                            "Id": "inline_policy_snapshots_cw_logs",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        "arn:aws:logs:*:024603541914:*"
+                                    ]
+                                }
+                            ],
+                            "Version": "2012-10-17"
+                        },
+                        "PolicyName": "inline_policy_snapshots_cw_logs"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::Role"
+        },
         "s2nIntegrationOpenSSL111Gcc9": {
-            "DependsOn": "CodeBuildRole",
+            "DependsOn": "s2nIntegrationOpenSSL111Gcc9Role",
             "Properties": {
                 "Artifacts": {
                     "Type": "NO_ARTIFACTS"
@@ -493,9 +810,7 @@
                     "Type": "LINUX_CONTAINER"
                 },
                 "Name": "s2nIntegrationOpenSSL111Gcc9",
-                "ServiceRole": {
-                    "Ref": "CodeBuildRole"
-                },
+                "ServiceRole": "s2nIntegrationOpenSSL111Gcc9Role",
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
@@ -503,12 +818,55 @@
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
-                "SourceVersion": "codebuild_fuzzers"
+                "SourceVersion": "",
+                "Triggers": {
+                    "Webhook": "true"
+                }
             },
             "Type": "AWS::CodeBuild::Project"
         },
+        "s2nIntegrationOpenSSL111Gcc9Role": {
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "codebuild.amazonaws.com"
+                            }
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyDocument": {
+                            "Id": "inline_policy_snapshots_cw_logs",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        "arn:aws:logs:*:024603541914:*"
+                                    ]
+                                }
+                            ],
+                            "Version": "2012-10-17"
+                        },
+                        "PolicyName": "inline_policy_snapshots_cw_logs"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::Role"
+        },
         "s2nUnitOpenSSL111Gcc6": {
-            "DependsOn": "CodeBuildRole",
+            "DependsOn": "s2nUnitOpenSSL111Gcc6Role",
             "Properties": {
                 "Artifacts": {
                     "Type": "NO_ARTIFACTS"
@@ -547,9 +905,7 @@
                     "Type": "LINUX_CONTAINER"
                 },
                 "Name": "s2nUnitOpenSSL111Gcc6",
-                "ServiceRole": {
-                    "Ref": "CodeBuildRole"
-                },
+                "ServiceRole": "s2nUnitOpenSSL111Gcc6Role",
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
@@ -557,12 +913,55 @@
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
-                "SourceVersion": "codebuild_fuzzers"
+                "SourceVersion": "",
+                "Triggers": {
+                    "Webhook": "true"
+                }
             },
             "Type": "AWS::CodeBuild::Project"
         },
+        "s2nUnitOpenSSL111Gcc6Role": {
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "codebuild.amazonaws.com"
+                            }
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyDocument": {
+                            "Id": "inline_policy_snapshots_cw_logs",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        "arn:aws:logs:*:024603541914:*"
+                                    ]
+                                }
+                            ],
+                            "Version": "2012-10-17"
+                        },
+                        "PolicyName": "inline_policy_snapshots_cw_logs"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::Role"
+        },
         "s2nValgrindOpenSSL102Gcc6": {
-            "DependsOn": "CodeBuildRole",
+            "DependsOn": "s2nValgrindOpenSSL102Gcc6Role",
             "Properties": {
                 "Artifacts": {
                     "Type": "NO_ARTIFACTS"
@@ -593,9 +992,7 @@
                     "Type": "LINUX_CONTAINER"
                 },
                 "Name": "s2nValgrindOpenSSL102Gcc6",
-                "ServiceRole": {
-                    "Ref": "CodeBuildRole"
-                },
+                "ServiceRole": "s2nValgrindOpenSSL102Gcc6Role",
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
@@ -603,12 +1000,55 @@
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
-                "SourceVersion": "codebuild_fuzzers"
+                "SourceVersion": "",
+                "Triggers": {
+                    "Webhook": "true"
+                }
             },
             "Type": "AWS::CodeBuild::Project"
         },
+        "s2nValgrindOpenSSL102Gcc6Role": {
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "codebuild.amazonaws.com"
+                            }
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyDocument": {
+                            "Id": "inline_policy_snapshots_cw_logs",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        "arn:aws:logs:*:024603541914:*"
+                                    ]
+                                }
+                            ],
+                            "Version": "2012-10-17"
+                        },
+                        "PolicyName": "inline_policy_snapshots_cw_logs"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::Role"
+        },
         "s2nValgrindOpenSSL111Gcc9": {
-            "DependsOn": "CodeBuildRole",
+            "DependsOn": "s2nValgrindOpenSSL111Gcc9Role",
             "Properties": {
                 "Artifacts": {
                     "Type": "NO_ARTIFACTS"
@@ -639,9 +1079,7 @@
                     "Type": "LINUX_CONTAINER"
                 },
                 "Name": "s2nValgrindOpenSSL111Gcc9",
-                "ServiceRole": {
-                    "Ref": "CodeBuildRole"
-                },
+                "ServiceRole": "s2nValgrindOpenSSL111Gcc9Role",
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
@@ -649,12 +1087,55 @@
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
-                "SourceVersion": "codebuild_fuzzers"
+                "SourceVersion": "",
+                "Triggers": {
+                    "Webhook": "true"
+                }
             },
             "Type": "AWS::CodeBuild::Project"
         },
+        "s2nValgrindOpenSSL111Gcc9Role": {
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "codebuild.amazonaws.com"
+                            }
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyDocument": {
+                            "Id": "inline_policy_snapshots_cw_logs",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        "arn:aws:logs:*:024603541914:*"
+                                    ]
+                                }
+                            ],
+                            "Version": "2012-10-17"
+                        },
+                        "PolicyName": "inline_policy_snapshots_cw_logs"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::Role"
+        },
         "s2nfuzzer1": {
-            "DependsOn": "CodeBuildRole",
+            "DependsOn": "s2nfuzzer1Role",
             "Properties": {
                 "Artifacts": {
                     "Type": "NO_ARTIFACTS"
@@ -689,9 +1170,7 @@
                     "Type": "LINUX_CONTAINER"
                 },
                 "Name": "s2nfuzzer1",
-                "ServiceRole": {
-                    "Ref": "CodeBuildRole"
-                },
+                "ServiceRole": "s2nfuzzer1Role",
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
@@ -699,12 +1178,55 @@
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
-                "SourceVersion": "codebuild_fuzzers"
+                "SourceVersion": "",
+                "Triggers": {
+                    "Webhook": "true"
+                }
             },
             "Type": "AWS::CodeBuild::Project"
         },
+        "s2nfuzzer1Role": {
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "codebuild.amazonaws.com"
+                            }
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyDocument": {
+                            "Id": "inline_policy_snapshots_cw_logs",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        "arn:aws:logs:*:024603541914:*"
+                                    ]
+                                }
+                            ],
+                            "Version": "2012-10-17"
+                        },
+                        "PolicyName": "inline_policy_snapshots_cw_logs"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::Role"
+        },
         "s2nfuzzer2": {
-            "DependsOn": "CodeBuildRole",
+            "DependsOn": "s2nfuzzer2Role",
             "Properties": {
                 "Artifacts": {
                     "Type": "NO_ARTIFACTS"
@@ -735,9 +1257,7 @@
                     "Type": "LINUX_CONTAINER"
                 },
                 "Name": "s2nfuzzer2",
-                "ServiceRole": {
-                    "Ref": "CodeBuildRole"
-                },
+                "ServiceRole": "s2nfuzzer2Role",
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
@@ -745,12 +1265,55 @@
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
-                "SourceVersion": "codebuild_fuzzers"
+                "SourceVersion": "",
+                "Triggers": {
+                    "Webhook": "true"
+                }
             },
             "Type": "AWS::CodeBuild::Project"
         },
+        "s2nfuzzer2Role": {
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "codebuild.amazonaws.com"
+                            }
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyDocument": {
+                            "Id": "inline_policy_snapshots_cw_logs",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        "arn:aws:logs:*:024603541914:*"
+                                    ]
+                                }
+                            ],
+                            "Version": "2012-10-17"
+                        },
+                        "PolicyName": "inline_policy_snapshots_cw_logs"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::Role"
+        },
         "s2nfuzzer3": {
-            "DependsOn": "CodeBuildRole",
+            "DependsOn": "s2nfuzzer3Role",
             "Properties": {
                 "Artifacts": {
                     "Type": "NO_ARTIFACTS"
@@ -781,9 +1344,7 @@
                     "Type": "LINUX_CONTAINER"
                 },
                 "Name": "s2nfuzzer3",
-                "ServiceRole": {
-                    "Ref": "CodeBuildRole"
-                },
+                "ServiceRole": "s2nfuzzer3Role",
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
@@ -791,12 +1352,55 @@
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
-                "SourceVersion": "codebuild_fuzzers"
+                "SourceVersion": "",
+                "Triggers": {
+                    "Webhook": "true"
+                }
             },
             "Type": "AWS::CodeBuild::Project"
         },
+        "s2nfuzzer3Role": {
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "codebuild.amazonaws.com"
+                            }
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyDocument": {
+                            "Id": "inline_policy_snapshots_cw_logs",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        "arn:aws:logs:*:024603541914:*"
+                                    ]
+                                }
+                            ],
+                            "Version": "2012-10-17"
+                        },
+                        "PolicyName": "inline_policy_snapshots_cw_logs"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::Role"
+        },
         "s2nfuzzerOpenSSL111LongRun": {
-            "DependsOn": "CodeBuildRole",
+            "DependsOn": "s2nfuzzerOpenSSL111LongRunRole",
             "Properties": {
                 "Artifacts": {
                     "Type": "NO_ARTIFACTS"
@@ -827,9 +1431,7 @@
                     "Type": "LINUX_CONTAINER"
                 },
                 "Name": "s2nfuzzerOpenSSL111LongRun",
-                "ServiceRole": {
-                    "Ref": "CodeBuildRole"
-                },
+                "ServiceRole": "s2nfuzzerOpenSSL111LongRunRole",
                 "Source": {
                     "BuildSpec": "codebuild/spec/buildspec_ubuntu.yml",
                     "GitCloneDepth": "1",
@@ -837,9 +1439,52 @@
                     "ReportBuildStatus": "true",
                     "Type": "GITHUB"
                 },
-                "SourceVersion": "codebuild_fuzzers"
+                "SourceVersion": "",
+                "Triggers": {
+                    "Webhook": "true"
+                }
             },
             "Type": "AWS::CodeBuild::Project"
+        },
+        "s2nfuzzerOpenSSL111LongRunRole": {
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "codebuild.amazonaws.com"
+                            }
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyDocument": {
+                            "Id": "inline_policy_snapshots_cw_logs",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        "arn:aws:logs:*:024603541914:*"
+                                    ]
+                                }
+                            ],
+                            "Version": "2012-10-17"
+                        },
+                        "PolicyName": "inline_policy_snapshots_cw_logs"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::Role"
         }
     }
 }

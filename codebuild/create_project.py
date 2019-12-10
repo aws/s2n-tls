@@ -20,14 +20,14 @@ import logging
 
 from awacs.aws import Action, Allow, Statement, Principal, PolicyDocument
 from troposphere import Template, Ref, Output
-from troposphere.iam import Role, Policy
-from troposphere.codebuild import Artifacts, Environment, Source, Project
+from troposphere.iam import Role, ServiceLinkedRole, Policy
+from troposphere.codebuild import Artifacts, Environment, Source, Project, ProjectTriggers
 
 logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
 
-def build_project(template=Template(), section=None, proj_name=None, raw_env=None, **kwargs) -> Template:
+def build_project(template=Template(), section=None, project_name=None, raw_env=None, service_role: str=None) -> Template:
     template.set_version('2010-09-09')
     # artifacts = Artifacts(Type='S3', Name='s2n-codebuild-artifact-bucket', Location='s2n-codebuild-artifact-bucket')
     artifacts = Artifacts(Type='NO_ARTIFACTS')
@@ -59,28 +59,34 @@ def build_project(template=Template(), section=None, proj_name=None, raw_env=Non
         BuildSpec=config.get(section, 'buildspec'),
         ReportBuildStatus=True
     )
+    project_triggers = ProjectTriggers(
+        Webhook=True,
+    )
 
     project_id = project = Project(
-        proj_name,
+        project_name,
         Artifacts=artifacts,
         Environment=environment,
-        Name=proj_name,
-        ServiceRole=config.get('CFNRole', 'role_id'),
+        Name=project_name,
+        ServiceRole=service_role,
         Source=source,
         SourceVersion=config.get(section, 'source_version'),
         BadgeEnabled=True,
-        DependsOn="CodeBuildRole",
+        DependsOn=service_role,
+        Triggers=project_triggers,
     )
     template.add_resource(project)
-    template.add_output([Output(f"CodeBuildProject{proj_name}", Value=Ref(project_id))])
+    template.add_output([Output(f"CodeBuildProject{project_name}", Value=Ref(project_id))])
 
-
-def build_role(template=Template(), section="CFNRole", **kwargs) -> Template:
+def build_role(template=Template(), section="CFNRole", project_name:str=None, **kwargs) -> Ref:
+    """ Build a role with an inline policy. """
     account_number = config.get(section, 'account_number')
     template.set_version('2010-09-09')
+    assert project_name
+    project_name+='Role'
     role_id = template.add_resource(
         Role(
-            "CodeBuildRole",
+            project_name,
             AssumeRolePolicyDocument=PolicyDocument(
                 Statement=[
                     Statement(
@@ -114,30 +120,30 @@ def build_role(template=Template(), section="CFNRole", **kwargs) -> Template:
             ],
         )
     )
-    template.add_output([Output("CodeBuildRoleName", Value=Ref(role_id))])
-    config.set('CFNRole', 'role_id', Ref(role_id))
-
+    template.add_output([Output(project_name, Value=Ref(role_id))])
+    return Ref(role_id)
 
 def build_s3_cache(template=Template(), section=None, **kwargs) -> Template:
     """ Create/Manage the s3 bucket for use by CodeBuild Cache    """
     # TODO: Add s3 bucket.
     pass
 
-
 def main(**kwargs):
     """ Create the CFN template and either write to screen or update/create boto3. """
     codebuild = Template()
-    build_role(template=codebuild)
+    
     build_s3_cache(template=codebuild)
 
     for job in config.sections():
         if 'CodeBuild:' in job:
+            job_title = job.split(':')[1]
+            service_role = build_role(template=codebuild, project_name=job_title).to_dict()
             # Pull the env out of the section, and use the snippet for the other values.
             if 'snippet' in config[job]:
-                build_project(template=codebuild, proj_name=job.split(':')[1], section=config.get(job, 'snippet'),\
-                              raw_env=config.get(job, 'env'))
+                build_project(template=codebuild, project_name=job_title, section=config.get(job, 'snippet'),\
+                              service_role=service_role['Ref'], raw_env=config.get(job, 'env'))
             else:
-                build_project(template=codebuild, proj_name=job.split(':')[1], section=job)
+                build_project(template=codebuild, project_name=job_title, section=job, service_role=service_role['Ref'])
 
     with(open("cfn/codebuild_test_projects.yml", 'w')) as fh:
         fh.write(codebuild.to_json())
