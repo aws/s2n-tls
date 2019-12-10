@@ -39,8 +39,8 @@ int main(int argc, char **argv) {
         for (int i = 0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
             struct s2n_ecc_evp_params server_params = {0};
             struct s2n_ecc_evp_params client_params = {0};
-            struct s2n_blob server_shared, client_shared;
-            struct s2n_stuffer wire;
+            struct s2n_blob server_shared = {0};
+            struct s2n_blob client_shared = {0};
             server_params.negotiated_curve = s2n_ecc_evp_supported_curves[i];
 
             /* Server generates a key */
@@ -62,7 +62,6 @@ int main(int argc, char **argv) {
             EXPECT_BYTEARRAY_EQUAL(client_shared.data, server_shared.data, client_shared.size);
 
             /* Clean up */
-            EXPECT_SUCCESS(s2n_stuffer_free(&wire));
             EXPECT_SUCCESS(s2n_free(&server_shared));
             EXPECT_SUCCESS(s2n_free(&client_shared));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&server_params));
@@ -74,8 +73,8 @@ int main(int argc, char **argv) {
         for (int i = 1; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
             struct s2n_ecc_evp_params server_params = {0};
             struct s2n_ecc_evp_params client_params = {0};
-            struct s2n_blob server_shared, client_shared;
-            struct s2n_stuffer wire;
+            struct s2n_blob server_shared = {0};
+            struct s2n_blob client_shared = {0};
             server_params.negotiated_curve = s2n_ecc_evp_supported_curves[i];
 
             /* Server generates a key */
@@ -91,10 +90,6 @@ int main(int argc, char **argv) {
             EXPECT_FAILURE(
                 s2n_ecc_evp_compute_shared_secret_from_params(&client_params, &server_params, &client_shared));
 
-            /* Clean up */
-            EXPECT_SUCCESS(s2n_stuffer_free(&wire));
-            EXPECT_SUCCESS(s2n_free(&server_shared));
-            EXPECT_SUCCESS(s2n_free(&client_shared));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&server_params));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_params));
         }
