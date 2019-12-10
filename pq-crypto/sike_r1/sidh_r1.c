@@ -2,9 +2,10 @@
 * Supersingular Isogeny Key Encapsulation Library
 *
 * Abstract: ephemeral supersingular isogeny Diffie-Hellman key exchange (SIDH)
-*********************************************************************************************/ 
+*********************************************************************************************/
 
-#include "P503_internal.h"
+#include "sike_r1_namespace.h"
+#include "P503_internal_r1.h"
 #include "pq-crypto/pq_random.h"
 
 static void clear_words(void* mem, digit_t nwords)
@@ -17,7 +18,6 @@ static void clear_words(void* mem, digit_t nwords)
         v[i] = 0;
     }
 }
-
 
 static void init_basis(const digit_t *gen, f2elm_t *XP, f2elm_t *XQ, f2elm_t *XR)
 { // Initialization of basis points

@@ -7,10 +7,10 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
+#include "sike_r1_namespace.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-
 
 // Definition of compiler
 

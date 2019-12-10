@@ -1,8 +1,8 @@
 #ifndef FIPS202_H
 #define FIPS202_H
 
+#include "sike_r1_namespace.h"
 #include <stdint.h>
-
 
 #define SHAKE128_RATE 168
 #define SHAKE256_RATE 136

@@ -634,7 +634,7 @@ fpsub503_same_ov <- admit "fpsub503" [] fpsub503_same_spec;
 fpneg503_nonzero_ov <- verify "fpneg503" [] fpneg503_nonzero_spec;
 fpneg503_ov <- admit "fpneg503" [] fpneg503_spec;
 fpdiv2_503_ov <- verify "fpdiv2_503" [] fpdiv2_503_spec;
-rdc_mont_ov <- admit "rdc_mont" [] rdc_mont_spec;
+rdc_mont_ov <- admit "rdc_mont_r1" [] rdc_mont_spec;
 
 fpmul503_mont_ov <- verify_unint "fpmul503_mont"
     [rdc_mont_ov,mul_ov,mul_half_ov] ["rdc_mont"]
@@ -714,23 +714,23 @@ fp2sqr503_mont_same_ov <- admit "fp2sqr503_mont"
 fp2sqr503_mont_same_ov2 <- admit "fp2sqr503_mont"
     [] (fp2sqr503_mont_same_spec false);
 
-to_mont_ov <- verify_unint "to_mont"
+to_mont_ov <- verify_unint "to_mont_r1"
     [fpmul503_mont_ov] ["rdc_mont"] (to_mont_spec false);
-to_mont_same_ov <- verify_unint "to_mont"
+to_mont_same_ov <- verify_unint "to_mont_r1"
     [fpmul503_mont_left_ov] ["fpmul503_mont"] (to_mont_spec true);
-from_mont_ov <- verify_unint "from_mont"
+from_mont_ov <- verify_unint "from_mont_r1"
     [fpmul503_mont_ov,fpcorrection503_ov]
     ["fpcorrection503", "fpmul503_mont"] (from_mont_spec false);
-from_mont_norm_ov <- admit "from_mont"
+from_mont_norm_ov <- admit "from_mont_r1"
     [fpmul503_mont_ov,fpcorrection503_ov] (from_mont_spec true);
 
-to_fp2mont_ov <- verify_unint "to_fp2mont"
+to_fp2mont_ov <- verify_unint "to_fp2mont_r1"
     [to_mont_ov] ["to_mont"] (to_fp2mont_spec false);
-to_fp2mont_same_ov <- verify_unint "to_fp2mont"
+to_fp2mont_same_ov <- verify_unint "to_fp2mont_r1"
     [to_mont_same_ov] ["to_mont"] (to_fp2mont_spec true);
-from_fp2mont_ov <- verify_unint "from_fp2mont"
+from_fp2mont_ov <- verify_unint "from_fp2mont_r1"
     [from_mont_ov] ["from_mont"] (from_fp2mont_spec false);
-from_fp2mont_norm_ov <- verify_unint "from_fp2mont"
+from_fp2mont_norm_ov <- verify_unint "from_fp2mont_r1"
     [from_mont_norm_ov] ["from_mont"] (from_fp2mont_spec true);
 
 fp2inv503_mont_ov <- admit "fp2inv503_mont" [] fp2inv503_mont_spec;

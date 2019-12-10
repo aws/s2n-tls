@@ -4,8 +4,8 @@
 * Abstract: portable modular arithmetic for P503
 *********************************************************************************************/
 
-#include "P503_internal.h"
-
+#include "sike_r1_namespace.h"
+#include "P503_internal_r1.h"
 
 // Global constants
 extern const uint64_t p503[NWORDS_FIELD];
