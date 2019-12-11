@@ -15,16 +15,15 @@
 
 #include "s2n_test.h"
 
+#include "tls/extensions/s2n_server_supported_versions.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
-#include "tls/extensions/s2n_server_supported_versions.h"
 
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     BEGIN_TEST();
 
     EXPECT_SUCCESS(s2n_enable_tls13());
@@ -39,7 +38,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
-        uint8_t encrypted_extensions_expected_size = 2;
+        uint8_t encrypted_extensions_expected_size    = 2;
         uint16_t encrypted_extensions_expected_length = 0;
 
         EXPECT_SUCCESS(s2n_encrypted_extensions_send(server_conn));
@@ -79,14 +78,15 @@ int main(int argc, char **argv)
         /* Write length of ALPN extension, then write the extension itself */
         strcpy(client_conn->application_protocol, "h2");
         const uint8_t application_protocol_len = strlen(client_conn->application_protocol);
-        uint16_t alpn_extension_length = 7 + application_protocol_len;
+        uint16_t alpn_extension_length         = 7 + application_protocol_len;
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&client_conn->handshake.io, alpn_extension_length));
 
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&client_conn->handshake.io, TLS_EXTENSION_ALPN));
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&client_conn->handshake.io, application_protocol_len + 3));
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&client_conn->handshake.io, application_protocol_len + 1));
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&client_conn->handshake.io, application_protocol_len));
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&client_conn->handshake.io, (uint8_t *) client_conn->application_protocol, application_protocol_len));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(
+            &client_conn->handshake.io, (uint8_t *)client_conn->application_protocol, application_protocol_len));
 
         /* Client parses encrypted extensions */
         strcpy(client_conn->application_protocol, "");

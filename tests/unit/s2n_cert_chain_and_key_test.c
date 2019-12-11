@@ -17,8 +17,8 @@
 
 #include "testlib/s2n_testlib.h"
 
-#include <fcntl.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #include <s2n.h>
 
@@ -30,7 +30,7 @@
 struct s2n_connection *create_conn(s2n_mode mode, struct s2n_config *config, int s_to_c[], int c_to_s[]) {
     struct s2n_connection *conn = s2n_connection_new(mode);
     GUARD_PTR(s2n_connection_set_config(conn, config));
-    
+
     if (mode == S2N_SERVER) {
         GUARD_PTR(s2n_connection_set_read_fd(conn, c_to_s[0]));
         GUARD_PTR(s2n_connection_set_write_fd(conn, s_to_c[1]));
@@ -43,19 +43,15 @@ struct s2n_connection *create_conn(s2n_mode mode, struct s2n_config *config, int
 }
 
 static int num_times_cb_executed = 0;
-static struct s2n_cert_chain_and_key *test_cert_tiebreak_cb(struct s2n_cert_chain_and_key *cert1,
-        struct s2n_cert_chain_and_key *cert2,
-        uint8_t *name,
-        uint32_t name_len)
-{
-    const int priority1 = *((int *) s2n_cert_chain_and_key_get_ctx(cert1));
-    const int priority2 = *((int *) s2n_cert_chain_and_key_get_ctx(cert2));
+static struct s2n_cert_chain_and_key *test_cert_tiebreak_cb(
+    struct s2n_cert_chain_and_key *cert1, struct s2n_cert_chain_and_key *cert2, uint8_t *name, uint32_t name_len) {
+    const int priority1 = *((int *)s2n_cert_chain_and_key_get_ctx(cert1));
+    const int priority2 = *((int *)s2n_cert_chain_and_key_get_ctx(cert2));
     num_times_cb_executed++;
     return (priority1 > priority2 ? cert1 : cert2);
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     struct s2n_config *server_config;
     struct s2n_config *client_config;
     struct s2n_connection *server_conn;
@@ -84,8 +80,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(pipe(server_to_client));
     EXPECT_SUCCESS(pipe(client_to_server));
     for (int i = 0; i < 2; i++) {
-       EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
-       EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
+        EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
+        EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
     }
 
     EXPECT_NOT_NULL(client_config = s2n_config_new());
@@ -105,12 +101,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(default_cert, cert_chain, private_key));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, default_cert));
 
-        /* Add NUM_TIED_CERTS that are actually the same certificate(www.alligator.com) to trigger the tiebreak callback. */
+        /* Add NUM_TIED_CERTS that are actually the same certificate(www.alligator.com) to trigger the tiebreak
+         * callback. */
         for (unsigned int i = 0; i < NUM_TIED_CERTS; i++) {
             EXPECT_NOT_NULL(tied_certs[i] = s2n_cert_chain_and_key_new());
             EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(tied_certs[i], alligator_cert, alligator_key));
             tiebreak_priorites[i] = i;
-            EXPECT_SUCCESS(s2n_cert_chain_and_key_set_ctx(tied_certs[i], (void*) &tiebreak_priorites[i]));
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_set_ctx(tied_certs[i], (void *)&tiebreak_priorites[i]));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, tied_certs[i]));
         }
 
@@ -123,8 +120,8 @@ int main(int argc, char **argv)
         struct s2n_cert_chain_and_key *selected_cert = s2n_connection_get_selected_cert(server_conn);
         /* The last alligator certificate should have the highest priority */
         EXPECT_EQUAL(selected_cert, tied_certs[(NUM_TIED_CERTS - 1)]);
-        EXPECT_EQUAL(s2n_cert_chain_and_key_get_ctx(selected_cert), (void*) &tiebreak_priorites[(NUM_TIED_CERTS - 1)]);
-        EXPECT_EQUAL(*((int *) s2n_cert_chain_and_key_get_ctx(selected_cert)), NUM_TIED_CERTS - 1);
+        EXPECT_EQUAL(s2n_cert_chain_and_key_get_ctx(selected_cert), (void *)&tiebreak_priorites[(NUM_TIED_CERTS - 1)]);
+        EXPECT_EQUAL(*((int *)s2n_cert_chain_and_key_get_ctx(selected_cert)), NUM_TIED_CERTS - 1);
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -154,8 +151,8 @@ int main(int argc, char **argv)
     }
 
     for (int i = 0; i < 2; i++) {
-       EXPECT_SUCCESS(close(server_to_client[i]));
-       EXPECT_SUCCESS(close(client_to_server[i]));
+        EXPECT_SUCCESS(close(server_to_client[i]));
+        EXPECT_SUCCESS(close(client_to_server[i]));
     }
 
     EXPECT_SUCCESS(s2n_config_free(client_config));

@@ -13,12 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
 #include "crypto/s2n_fips.h"
 #include "pq-crypto/bike/bike1_l1_kem.h"
+#include "s2n_test.h"
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     unsigned char publicKey[BIKE1_L1_PUBLIC_KEY_BYTES];
     unsigned char privateKey[BIKE1_L1_SECRET_KEY_BYTES];
     unsigned char clientSharedSecretPlaintext[BIKE1_L1_SHARED_SECRET_BYTES];
@@ -38,4 +37,3 @@ int main(int argc, char **argv)
 
     END_TEST();
 }
-

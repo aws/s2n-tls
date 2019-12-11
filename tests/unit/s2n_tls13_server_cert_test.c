@@ -15,9 +15,9 @@
 
 #include "s2n_test.h"
 
-#include <string.h>
-#include <stdio.h>
 #include <s2n.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
@@ -54,11 +54,9 @@ const char tls13_cert_hex[] =
    2. Cert chain length (00001b5)
    3. Cert length (0001b0)
  */
-const char tls13_cert_chain_header_hex[] =
-     "000001b50001b0";
+const char tls13_cert_chain_header_hex[] = "000001b50001b0";
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     char *tls13_cert_chain_hex;
     BEGIN_TEST();
     /* creating a certificate chain by concatenating
@@ -69,8 +67,8 @@ int main(int argc, char **argv)
     strcpy(tls13_cert_chain_hex, tls13_cert_chain_header_hex);
     strcat(tls13_cert_chain_hex, tls13_cert_hex);
     /* convert certificate chain hex to bytes*/
-    struct s2n_blob tls13_cert = {0};
-    EXPECT_SUCCESS(s2n_alloc(&tls13_cert, strlen(tls13_cert_chain_hex) / 2 ));
+    struct s2n_blob tls13_cert = { 0 };
+    EXPECT_SUCCESS(s2n_alloc(&tls13_cert, strlen(tls13_cert_chain_hex) / 2));
     GUARD(s2n_hex_string_to_bytes(tls13_cert_chain_hex, &tls13_cert));
 
     /* Test s2n_server_cert_recv() parses tls13 certificate */
@@ -103,13 +101,13 @@ int main(int argc, char **argv)
         struct s2n_connection *conn;
         uint8_t certificate_request_context_len;
 
-        struct s2n_cert cert = {.raw = tls13_cert_chain,.next = NULL};
-        struct s2n_cert_chain cert_chain = {.head = &cert};
-        struct s2n_cert_chain_and_key cert_chain_and_key = {.cert_chain = &cert_chain};
+        struct s2n_cert cert                             = { .raw = tls13_cert_chain, .next = NULL };
+        struct s2n_cert_chain cert_chain                 = { .head = &cert };
+        struct s2n_cert_chain_and_key cert_chain_and_key = { .cert_chain = &cert_chain };
 
         /* tls13 mode */
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        conn->actual_protocol_version = S2N_TLS13;
+        conn->actual_protocol_version            = S2N_TLS13;
         conn->handshake_params.our_chain_and_key = &cert_chain_and_key;
         EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS13);
         EXPECT_SUCCESS(s2n_server_cert_send(conn));
@@ -121,7 +119,7 @@ int main(int argc, char **argv)
 
         /* tls12 mode */
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        conn->actual_protocol_version = S2N_TLS12;
+        conn->actual_protocol_version            = S2N_TLS12;
         conn->handshake_params.our_chain_and_key = &cert_chain_and_key;
         EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
         EXPECT_SUCCESS(s2n_server_cert_send(conn));

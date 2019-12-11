@@ -17,25 +17,23 @@
 #include "tests/testlib/s2n_nist_kats.h"
 #include "tests/testlib/s2n_testlib.h"
 #include "tls/s2n_kem.h"
-#include "utils/s2n_safety.h"
-#include "utils/s2n_mem.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_mem.h"
+#include "utils/s2n_safety.h"
 
 #define RSP_FILE_NAME "../unit/kats/bike1_l1.kat"
 
 /* This fuzz test uses the first private key from tests/unit/kats/bike1_l1.kat, the valid ciphertext generated with the
  * public key was copied to corpus/s2n_bike_fuzz_test/valid_ciphertext */
 
-static struct s2n_kem_keypair server_kem_keys = {.negotiated_kem = &s2n_bike_1_level_1_r1};
+static struct s2n_kem_keypair server_kem_keys = { .negotiated_kem = &s2n_bike_1_level_1_r1 };
 
-static void s2n_fuzz_atexit()
-{
+static void s2n_fuzz_atexit() {
     s2n_free(&server_kem_keys.private_key);
     s2n_cleanup();
 }
 
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
-{
+int LLVMFuzzerInitialize(const uint8_t *buf, size_t len) {
     GUARD(s2n_init());
     GUARD(atexit(s2n_fuzz_atexit));
 
@@ -50,10 +48,9 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
     return 0;
 }
 
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
-{
-    struct s2n_blob server_shared_secret = {0};
-    struct s2n_blob ciphertext = {0};
+int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
+    struct s2n_blob server_shared_secret = { 0 };
+    struct s2n_blob ciphertext           = { 0 };
     GUARD(s2n_alloc(&ciphertext, len));
 
     /* Need to memcpy since blobs expect a non-const value and LLVMFuzzer does expect a const */

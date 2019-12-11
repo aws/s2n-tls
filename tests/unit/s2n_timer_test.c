@@ -18,17 +18,13 @@
 
 #include "tls/s2n_config.h"
 
-
-
-int mock_clock(void *in, uint64_t *out)
-{
+int mock_clock(void *in, uint64_t *out) {
     *out = *(uint64_t *)in;
 
     return 0;
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     struct s2n_config *config;
     struct s2n_timer timer;
     uint64_t nanoseconds;

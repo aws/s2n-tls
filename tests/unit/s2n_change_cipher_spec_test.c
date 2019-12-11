@@ -19,8 +19,7 @@
 #include "tls/s2n_crypto.h"
 #include "tls/s2n_tls.h"
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     BEGIN_TEST();
 
     uint8_t empty_finished_array[S2N_TLS_FINISHED_LEN] = { 0 };

@@ -21,8 +21,7 @@
 
 #include "error/s2n_errno.h"
 
-int main(void)
-{
+int main(void) {
     BEGIN_TEST();
 
     /* First, test that we can find error message for all defined errors */

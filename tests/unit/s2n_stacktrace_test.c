@@ -19,13 +19,11 @@
 
 #include <s2n.h>
 
-int raises_error()
-{
-  S2N_ERROR(S2N_ERR_INVALID_ARGUMENT);
+int raises_error() {
+    S2N_ERROR(S2N_ERR_INVALID_ARGUMENT);
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_stack_traces_enabled_set(true));
     struct s2n_stacktrace trace;
@@ -41,7 +39,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_EQUAL(trace.trace_size, 0);
 
     /* Test printing the stacktrace. */
-    FILE *stream = fopen("/dev/null","w");
+    FILE *stream = fopen("/dev/null", "w");
     EXPECT_SUCCESS(s2n_print_stacktrace(stream));
     fclose(stream);
 

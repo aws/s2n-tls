@@ -25,6 +25,7 @@
 #include <openssl/err.h>
 
 #include "api/s2n.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_config.h"
@@ -33,7 +34,6 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_safety.h"
-#include "s2n_test.h"
 
 static char certificate_chain[] =
     "-----BEGIN CERTIFICATE-----\n"
@@ -133,8 +133,7 @@ static char dhparams[] =
 
 static int MAX_NEGOTIATION_ATTEMPTS = 10;
 
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
-{
+int LLVMFuzzerInitialize(const uint8_t *buf, size_t len) {
 #ifdef S2N_TEST_IN_FIPS_MODE
     S2N_TEST_ENTER_FIPS_MODE();
 #endif
@@ -143,9 +142,8 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
     return 0;
 }
 
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
-{
-    if(len < S2N_TLS_RECORD_HEADER_LENGTH){
+int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
+    if (len < S2N_TLS_RECORD_HEADER_LENGTH) {
         return 0;
     }
 
@@ -197,7 +195,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     do {
         s2n_negotiate(server_conn, &server_blocked);
         num_attempted_negotiations += 1;
-    } while(!server_blocked && num_attempted_negotiations < MAX_NEGOTIATION_ATTEMPTS);
+    } while (!server_blocked && num_attempted_negotiations < MAX_NEGOTIATION_ATTEMPTS);
 
     /* Clean up */
     GUARD(s2n_connection_wipe(server_conn));

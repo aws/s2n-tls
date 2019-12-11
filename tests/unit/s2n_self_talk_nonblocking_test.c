@@ -17,10 +17,10 @@
 
 #include "testlib/s2n_testlib.h"
 
+#include <fcntl.h>
+#include <stdint.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <stdint.h>
-#include <fcntl.h>
 
 #include <s2n.h>
 
@@ -30,10 +30,9 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 
-int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size)
-{
+int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size) {
     uint8_t *buffer = malloc(size);
-    uint8_t *ptr = buffer;
+    uint8_t *ptr    = buffer;
     struct s2n_connection *client_conn;
     struct s2n_config *client_config;
     s2n_blocked_status blocked;
@@ -42,7 +41,7 @@ int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size)
     /* Give the server a chance to listen */
     sleep(1);
 
-    client_conn = s2n_connection_new(S2N_CLIENT);
+    client_conn   = s2n_connection_new(S2N_CLIENT);
     client_config = s2n_config_new();
     s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(client_conn, client_config);
@@ -57,7 +56,7 @@ int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size)
 
     /* Receive 10MB of data */
     uint32_t remaining = size;
-    while(remaining) {
+    while (remaining) {
         int r = s2n_recv(client_conn, ptr, remaining, &blocked);
         if (r < 0) {
             return 1;
@@ -66,10 +65,10 @@ int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size)
         ptr += r;
     }
 
-    int shutdown_rc= -1;
+    int shutdown_rc = -1;
     do {
         shutdown_rc = s2n_shutdown(client_conn, &blocked);
-    } while(shutdown_rc != 0);
+    } while (shutdown_rc != 0);
 
     for (int i = 0; i < size; i++) {
         if (buffer[i] != expected_data[i]) {
@@ -86,12 +85,11 @@ int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size)
     return 0;
 }
 
-int mock_client_iov(int writefd, int readfd, struct iovec *iov, uint32_t iov_size)
-{
+int mock_client_iov(int writefd, int readfd, struct iovec *iov, uint32_t iov_size) {
     struct s2n_connection *client_conn;
     struct s2n_config *client_config;
     s2n_blocked_status blocked;
-    int result = 0;
+    int result     = 0;
     int total_size = 0, i;
 
     for (i = 0; i < iov_size; i++) {
@@ -103,7 +101,7 @@ int mock_client_iov(int writefd, int readfd, struct iovec *iov, uint32_t iov_siz
     /* Give the server a chance to listen */
     sleep(1);
 
-    client_conn = s2n_connection_new(S2N_CLIENT);
+    client_conn   = s2n_connection_new(S2N_CLIENT);
     client_config = s2n_config_new();
     s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(client_conn, client_config);
@@ -117,7 +115,7 @@ int mock_client_iov(int writefd, int readfd, struct iovec *iov, uint32_t iov_siz
     }
 
     uint32_t remaining = total_size;
-    while(remaining) {
+    while (remaining) {
         int r = s2n_recv(client_conn, &buffer[buffer_offs], remaining, &blocked);
         if (r < 0) {
             return 1;
@@ -127,7 +125,7 @@ int mock_client_iov(int writefd, int readfd, struct iovec *iov, uint32_t iov_siz
     }
 
     remaining = iov[0].iov_len;
-    while(remaining) {
+    while (remaining) {
         int r = s2n_recv(client_conn, &buffer[buffer_offs], remaining, &blocked);
         if (r < 0) {
             return 1;
@@ -136,10 +134,10 @@ int mock_client_iov(int writefd, int readfd, struct iovec *iov, uint32_t iov_siz
         buffer_offs += r;
     }
 
-    int shutdown_rc= -1;
+    int shutdown_rc = -1;
     do {
         shutdown_rc = s2n_shutdown(client_conn, &blocked);
-    } while(shutdown_rc != 0);
+    } while (shutdown_rc != 0);
 
     for (i = 0, buffer_offs = 0; i < iov_size; i++) {
         if (memcmp(iov[i].iov_base, &buffer[buffer_offs], iov[i].iov_len)) {
@@ -149,7 +147,7 @@ int mock_client_iov(int writefd, int readfd, struct iovec *iov, uint32_t iov_siz
     }
 
     if (memcmp(iov[0].iov_base, &buffer[buffer_offs], iov[0].iov_len)) {
-       return 1;
+        return 1;
     }
 
     free(buffer);
@@ -164,8 +162,7 @@ char *cert_chain_pem;
 char *private_key_pem;
 char *dhparams_pem;
 
-int test_send(int use_iov)
-{
+int test_send(int use_iov) {
     struct s2n_connection *conn;
     struct s2n_config *config;
     s2n_blocked_status blocked;
@@ -186,15 +183,15 @@ int test_send(int use_iov)
 
     /* Get some random data to send/receive */
     uint32_t data_size = 0;
-    DEFER_CLEANUP(struct s2n_blob blob = {0}, s2n_free);
+    DEFER_CLEANUP(struct s2n_blob blob = { 0 }, s2n_free);
     int iov_payload_size = 8, iov_size = 16;
-    struct iovec* iov = NULL;
+    struct iovec *iov = NULL;
     if (!use_iov) {
         data_size = 10000000;
         s2n_alloc(&blob, data_size);
         EXPECT_SUCCESS(s2n_get_urandom_data(&blob));
     } else {
-        iov = malloc(sizeof(*iov) * iov_size);
+        iov       = malloc(sizeof(*iov) * iov_size);
         data_size = 0;
         for (int i = 0; i < iov_size; i++, iov_payload_size *= 2) {
             struct s2n_blob blob_local;
@@ -218,7 +215,7 @@ int test_send(int use_iov)
 
         /* Run the client */
         const int client_rc = !use_iov ? mock_client(client_to_server[1], server_to_client[0], blob.data, data_size)
-            : mock_client_iov(client_to_server[1], server_to_client[0], iov, iov_size);
+                                       : mock_client_iov(client_to_server[1], server_to_client[0], iov, iov_size);
 
         _exit(client_rc);
     }
@@ -252,11 +249,11 @@ int test_send(int use_iov)
     /* Try to all 10MB of data, should be enough to fill PIPEBUF, so
        we'll get blocked at some point */
     uint32_t remaining = data_size;
-    uint8_t *ptr = blob.data;
-    uint32_t iov_offs = 0;
+    uint8_t *ptr       = blob.data;
+    uint32_t iov_offs  = 0;
     while (remaining) {
-        int r = !use_iov ? s2n_send(conn, ptr, remaining, &blocked) :
-            s2n_sendv_with_offset(conn, iov, iov_size, iov_offs, &blocked);
+        int r = !use_iov ? s2n_send(conn, ptr, remaining, &blocked)
+                         : s2n_sendv_with_offset(conn, iov, iov_size, iov_offs, &blocked);
         if (r < 0 && blocked == S2N_BLOCKED_ON_WRITE) {
             /* We reached a blocked state and made no forward progress last call */
             break;
@@ -283,8 +280,8 @@ int test_send(int use_iov)
 
     /* Actually send the remaining data */
     while (remaining) {
-        int r = !use_iov ? s2n_send(conn, ptr, remaining, &blocked) :
-            s2n_sendv_with_offset(conn, iov, iov_size, iov_offs, &blocked);
+        int r = !use_iov ? s2n_send(conn, ptr, remaining, &blocked)
+                         : s2n_sendv_with_offset(conn, iov, iov_size, iov_offs, &blocked);
         EXPECT_TRUE(r > 0);
         remaining -= r;
         if (!use_iov) {
@@ -318,8 +315,7 @@ int test_send(int use_iov)
     return 0;
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     /* Ignore SIGPIPE */
     signal(SIGPIPE, SIG_IGN);
 

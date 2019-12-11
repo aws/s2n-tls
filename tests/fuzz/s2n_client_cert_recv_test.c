@@ -25,6 +25,7 @@
 #include <openssl/err.h>
 
 #include "api/s2n.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_config.h"
@@ -34,17 +35,14 @@
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
-#include "s2n_test.h"
 
-static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12};
+static const uint8_t TLS_VERSIONS[] = { S2N_TLS10, S2N_TLS11, S2N_TLS12 };
 
-static void s2n_fuzz_atexit()
-{
+static void s2n_fuzz_atexit() {
     s2n_cleanup();
 }
 
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
-{
+int LLVMFuzzerInitialize(const uint8_t *buf, size_t len) {
 #ifdef S2N_TEST_IN_FIPS_MODE
     S2N_TEST_ENTER_FIPS_MODE();
 #endif
@@ -54,9 +52,8 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
     return 0;
 }
 
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
-{
-    for(int version = 0; version < (sizeof(TLS_VERSIONS) / sizeof(TLS_VERSIONS[0])); version++){
+int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
+    for (int version = 0; version < (sizeof(TLS_VERSIONS) / sizeof(TLS_VERSIONS[0])); version++) {
         /* Setup */
         struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
         notnull_check(server_conn);
@@ -70,7 +67,6 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 
         /* Cleanup */
         GUARD(s2n_connection_free(server_conn));
-
     }
     return 0;
 }

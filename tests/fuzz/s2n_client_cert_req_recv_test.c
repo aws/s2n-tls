@@ -22,6 +22,7 @@
 #include <unistd.h>
 
 #include "api/s2n.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_config.h"
@@ -30,25 +31,21 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_safety.h"
-#include "s2n_test.h"
 
-static void s2n_client_cert_req_recv_fuzz_atexit()
-{
+static void s2n_client_cert_req_recv_fuzz_atexit() {
     s2n_cleanup();
 }
 
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
-{
+int LLVMFuzzerInitialize(const uint8_t *buf, size_t len) {
     GUARD(s2n_init());
     GUARD(atexit(s2n_client_cert_req_recv_fuzz_atexit));
     return 0;
 }
 
-static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12};
+static const uint8_t TLS_VERSIONS[] = { S2N_TLS10, S2N_TLS11, S2N_TLS12 };
 
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
-{
-    for(int i = 0; i < sizeof(TLS_VERSIONS); i++){
+int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
+    for (int i = 0; i < sizeof(TLS_VERSIONS); i++) {
         /* Setup */
         struct s2n_config *client_config = s2n_config_new();
         s2n_config_disable_x509_verification(client_config);

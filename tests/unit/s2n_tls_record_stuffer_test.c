@@ -19,8 +19,7 @@
 #include "tls/s2n_record.h"
 #include "utils/s2n_random.h"
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
 #if 0
     uint8_t plaintext_pad[S2N_TLS_MAXIMUM_RECORD_LENGTH + 1];
     uint8_t encrypted_pad[S2N_TLS_MAXIMUM_RECORD_LENGTH + 1];

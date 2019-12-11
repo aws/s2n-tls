@@ -24,11 +24,10 @@
 
 #include "utils/s2n_safety.h"
 
-const uint8_t SESSION_ID_SIZE = 1;
+const uint8_t SESSION_ID_SIZE         = 1;
 const uint8_t COMPRESSION_METHOD_SIZE = 1;
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     BEGIN_TEST();
 
     /* Test basic Server Hello Send */
@@ -44,12 +43,8 @@ int main(int argc, char **argv)
 
         /* Test s2n_server_hello_send */
         {
-            const uint32_t total = S2N_TLS_PROTOCOL_VERSION_LEN
-                + S2N_TLS_RANDOM_DATA_LEN
-                + SESSION_ID_SIZE
-                + conn->session_id_len
-                + S2N_TLS_CIPHER_SUITE_LEN
-                + COMPRESSION_METHOD_SIZE;
+            const uint32_t total = S2N_TLS_PROTOCOL_VERSION_LEN + S2N_TLS_RANDOM_DATA_LEN + SESSION_ID_SIZE +
+                                   conn->session_id_len + S2N_TLS_CIPHER_SUITE_LEN + COMPRESSION_METHOD_SIZE;
 
             EXPECT_SUCCESS(s2n_server_hello_send(conn));
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, total);
@@ -77,15 +72,11 @@ int main(int argc, char **argv)
 
         struct s2n_stuffer *server_stuffer = &server_conn->handshake.io;
 
-        const uint32_t total = S2N_TLS_PROTOCOL_VERSION_LEN
-            + S2N_TLS_RANDOM_DATA_LEN
-            + SESSION_ID_SIZE
-            + server_conn->session_id_len
-            + S2N_TLS_CIPHER_SUITE_LEN
-            + COMPRESSION_METHOD_SIZE;
+        const uint32_t total = S2N_TLS_PROTOCOL_VERSION_LEN + S2N_TLS_RANDOM_DATA_LEN + SESSION_ID_SIZE +
+                               server_conn->session_id_len + S2N_TLS_CIPHER_SUITE_LEN + COMPRESSION_METHOD_SIZE;
 
         server_conn->actual_protocol_version = S2N_TLS12;
-        server_conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+        server_conn->secure.cipher_suite     = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
 
         EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
         EXPECT_EQUAL(s2n_stuffer_data_available(server_stuffer), total);
@@ -105,7 +96,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
-     /* Test TLS 1.3 session id matching */
+    /* Test TLS 1.3 session id matching */
     {
         EXPECT_SUCCESS(s2n_enable_tls13());
         struct s2n_config *client_config;
@@ -120,14 +111,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, S2N_TLS12 % 10));
 
         /* random payload */
-        uint8_t random[S2N_TLS_RANDOM_DATA_LEN] = {0};
+        uint8_t random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(io, random, S2N_TLS_RANDOM_DATA_LEN));
 
-        uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN] = {0};
+        uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN] = { 0 };
 
         /* generate matching session id for payload and client connection */
         for (int i = 0; i < 32; i++) {
-            session_id[i] = i;
+            session_id[i]              = i;
             client_conn->session_id[i] = i;
         }
 
@@ -135,10 +126,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, S2N_TLS_SESSION_ID_MAX_LEN));
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(io, session_id, S2N_TLS_SESSION_ID_MAX_LEN));
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(io, (0x13 << 8) + 0x01)); /* cipher suites */
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, 0)); /* no compression */
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, 0));                   /* no compression */
 
         client_conn->server_protocol_version = S2N_TLS13;
-        client_conn->session_id_len = 32;
+        client_conn->session_id_len          = 32;
 
         /* Test s2n_server_hello_recv() */
         EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));

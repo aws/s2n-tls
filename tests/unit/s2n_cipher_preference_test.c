@@ -17,8 +17,7 @@
 
 #include "tls/s2n_cipher_preferences.h"
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     BEGIN_TEST();
 
     const struct s2n_cipher_preferences *preferences = NULL;
@@ -70,12 +69,12 @@ int main(int argc, char **argv)
     /* Test that anything not automatically configured in s2n_cipher_preferences_init fails */
     {
         struct s2n_cipher_suite *fake_suites[] = {
-                &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
+            &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
         };
         const struct s2n_cipher_preferences fake_preferences = {
-                .count = 1,
-                .suites = fake_suites,
-                .minimum_protocol_version = S2N_TLS10,
+            .count                    = 1,
+            .suites                   = fake_suites,
+            .minimum_protocol_version = S2N_TLS10,
         };
         preferences = &fake_preferences;
         EXPECT_FAILURE(s2n_ecc_extension_required(preferences));

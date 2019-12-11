@@ -15,41 +15,38 @@
 
 #include "s2n_test.h"
 
+#include <openssl/evp.h>
 #include <s2n.h>
 #include <string.h>
-#include <openssl/evp.h>
 
 #include "testlib/s2n_testlib.h"
 
-#include "tls/s2n_record.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_record.h"
 
 #include "stuffer/s2n_stuffer.h"
 
 #include "utils/s2n_random.h"
 
 #include "crypto/s2n_cipher.h"
-#include "crypto/s2n_hmac.h"
 #include "crypto/s2n_hash.h"
+#include "crypto/s2n_hmac.h"
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     struct s2n_connection *conn;
     uint8_t random_data[S2N_DEFAULT_FRAGMENT_LENGTH + 1];
-    uint8_t mac_key_sha[20] = "server key shaserve";
+    uint8_t mac_key_sha[20]    = "server key shaserve";
     uint8_t mac_key_sha256[32] = "server key sha256server key sha";
-    uint8_t aes128_key[] = "123456789012345";
-    uint8_t aes256_key[] = "1234567890123456789012345678901";
-    struct s2n_blob aes128 = {.data = aes128_key,.size = sizeof(aes128_key) };
-    struct s2n_blob aes256 = {.data = aes256_key,.size = sizeof(aes256_key) };
-    struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
+    uint8_t aes128_key[]       = "123456789012345";
+    uint8_t aes256_key[]       = "1234567890123456789012345678901";
+    struct s2n_blob aes128     = { .data = aes128_key, .size = sizeof(aes128_key) };
+    struct s2n_blob aes256     = { .data = aes256_key, .size = sizeof(aes256_key) };
+    struct s2n_blob r          = { .data = random_data, .size = sizeof(random_data) };
 
     BEGIN_TEST();
 
     /* Skip test if we can't use the ciphers */
-    if (!s2n_aes128_sha.is_available()    ||
-        !s2n_aes256_sha.is_available()    ||
-        !s2n_aes128_sha256.is_available() ||
+    if (!s2n_aes128_sha.is_available() || !s2n_aes256_sha.is_available() || !s2n_aes128_sha256.is_available() ||
         !s2n_aes256_sha256.is_available()) {
         END_TEST();
     }
@@ -61,7 +58,7 @@ int main(int argc, char **argv)
     conn->server = &conn->initial;
     conn->client = &conn->initial;
 
-    int max_aligned_fragment = S2N_DEFAULT_FRAGMENT_LENGTH - (S2N_DEFAULT_FRAGMENT_LENGTH % 16);
+    int max_aligned_fragment  = S2N_DEFAULT_FRAGMENT_LENGTH - (S2N_DEFAULT_FRAGMENT_LENGTH % 16);
     uint8_t proto_versions[3] = { S2N_TLS10, S2N_TLS11, S2N_TLS12 };
 
     /* test the composite AES128_SHA1 cipher  */
@@ -70,17 +67,21 @@ int main(int argc, char **argv)
     /* It's important to verify all TLS versions for the composite implementation.
      * There are a few gotchas with respect to explicit IV length and payload length
      */
-    for (int j = 0; j < 3; j++ ) {
+    for (int j = 0; j < 3; j++) {
         for (int i = 0; i < max_aligned_fragment; i++) {
-            struct s2n_blob in = {.data = random_data,.size = i };
+            struct s2n_blob in = { .data = random_data, .size = i };
             int bytes_written;
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial.server_key, &aes128));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial.client_key, &aes128));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial.server_key, mac_key_sha, sizeof(mac_key_sha)));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial.client_key, mac_key_sha, sizeof(mac_key_sha)));
+            EXPECT_SUCCESS(
+                conn->initial.cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial.server_key, &aes128));
+            EXPECT_SUCCESS(
+                conn->initial.cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial.client_key, &aes128));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(
+                &conn->initial.server_key, mac_key_sha, sizeof(mac_key_sha)));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(
+                &conn->initial.client_key, mac_key_sha, sizeof(mac_key_sha)));
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
@@ -135,17 +136,21 @@ int main(int argc, char **argv)
 
     /* test the composite AES256_SHA1 cipher  */
     conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_sha_composite;
-    for (int j = 0; j < 3; j++ ) {
+    for (int j = 0; j < 3; j++) {
         for (int i = 0; i < max_aligned_fragment; i++) {
-            struct s2n_blob in = {.data = random_data,.size = i };
+            struct s2n_blob in = { .data = random_data, .size = i };
             int bytes_written;
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial.server_key, &aes256));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial.client_key, &aes256));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial.server_key, mac_key_sha, sizeof(mac_key_sha)));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial.client_key, mac_key_sha, sizeof(mac_key_sha)));
+            EXPECT_SUCCESS(
+                conn->initial.cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial.server_key, &aes256));
+            EXPECT_SUCCESS(
+                conn->initial.cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial.client_key, &aes256));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(
+                &conn->initial.server_key, mac_key_sha, sizeof(mac_key_sha)));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(
+                &conn->initial.client_key, mac_key_sha, sizeof(mac_key_sha)));
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
@@ -198,20 +203,23 @@ int main(int argc, char **argv)
         }
     }
 
-
     /* test the composite AES128_SHA256 cipher  */
     conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_sha256_composite;
-    for (int j = 0; j < 3; j++ ) {
+    for (int j = 0; j < 3; j++) {
         for (int i = 0; i < max_aligned_fragment; i++) {
-            struct s2n_blob in = {.data = random_data,.size = i };
+            struct s2n_blob in = { .data = random_data, .size = i };
             int bytes_written;
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial.server_key, &aes128));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial.client_key, &aes128));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial.server_key, mac_key_sha256, sizeof(mac_key_sha256)));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial.client_key, mac_key_sha256, sizeof(mac_key_sha256)));
+            EXPECT_SUCCESS(
+                conn->initial.cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial.server_key, &aes128));
+            EXPECT_SUCCESS(
+                conn->initial.cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial.client_key, &aes128));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(
+                &conn->initial.server_key, mac_key_sha256, sizeof(mac_key_sha256)));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(
+                &conn->initial.client_key, mac_key_sha256, sizeof(mac_key_sha256)));
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
@@ -266,17 +274,21 @@ int main(int argc, char **argv)
 
     /* test the composite AES256_SHA256 cipher  */
     conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_sha256_composite;
-    for (int j = 0; j < 3; j++ ) {
+    for (int j = 0; j < 3; j++) {
         for (int i = 0; i < max_aligned_fragment; i++) {
-            struct s2n_blob in = {.data = random_data,.size = i };
+            struct s2n_blob in = { .data = random_data, .size = i };
             int bytes_written;
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial.server_key, &aes256));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial.client_key, &aes256));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial.server_key, mac_key_sha256, sizeof(mac_key_sha256)));
-            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial.client_key, mac_key_sha256, sizeof(mac_key_sha256)));
+            EXPECT_SUCCESS(
+                conn->initial.cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial.server_key, &aes256));
+            EXPECT_SUCCESS(
+                conn->initial.cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial.client_key, &aes256));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(
+                &conn->initial.server_key, mac_key_sha256, sizeof(mac_key_sha256)));
+            EXPECT_SUCCESS(conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(
+                &conn->initial.client_key, mac_key_sha256, sizeof(mac_key_sha256)));
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];

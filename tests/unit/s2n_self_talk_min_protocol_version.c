@@ -17,18 +17,17 @@
 
 #include "testlib/s2n_testlib.h"
 
+#include <fcntl.h>
+#include <stdint.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <stdint.h>
-#include <fcntl.h>
 
 #include <s2n.h>
 
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 
-int mock_client(int writefd, int readfd)
-{
+int mock_client(int writefd, int readfd) {
     struct s2n_connection *client_conn;
     struct s2n_config *client_config;
     s2n_blocked_status blocked;
@@ -58,8 +57,7 @@ int mock_client(int writefd, int readfd)
     _exit(result == 0 ? 1 : 0);
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     struct s2n_connection *conn;
     struct s2n_config *config;
     s2n_blocked_status blocked;

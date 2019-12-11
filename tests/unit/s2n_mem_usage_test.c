@@ -22,8 +22,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <sys/param.h>
-#include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/time.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -39,8 +39,7 @@
 /* This is the maximum  memory per conneciton including 4KB of slack */
 #define MAX_MEM_PER_CONNECTION (MEM_PER_CONNECTION + 4 * 1024)
 
-ssize_t get_vm_data_size()
-{
+ssize_t get_vm_data_size() {
 #ifdef __linux__
     long page_size;
     ssize_t size, resident, share, text, lib, data, dt;
@@ -50,7 +49,7 @@ ssize_t get_vm_data_size()
         return -1;
     }
 
-    FILE *status_file = fopen( "/proc/self/statm", "r" );
+    FILE *status_file = fopen("/proc/self/statm", "r");
     if (fscanf(status_file, "%zd %zd %zd %zd %zd %zd %zd", &size, &resident, &share, &text, &lib, &data, &dt) < 7) {
         fclose(status_file);
         return -1;
@@ -64,8 +63,7 @@ ssize_t get_vm_data_size()
 #endif
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     size_t connectionsToUse = MAX_CONNECTIONS;
 
     char *cert_chain;
@@ -89,8 +87,8 @@ int main(int argc, char **argv)
 
     const ssize_t maxAllowedMemDiff = 2 * connectionsToUse * MAX_MEM_PER_CONNECTION;
 
-    int *server_to_client = calloc(2 * connectionsToUse, sizeof(int));
-    int *client_to_server = calloc(2 * connectionsToUse, sizeof(int));
+    int *server_to_client           = calloc(2 * connectionsToUse, sizeof(int));
+    int *client_to_server           = calloc(2 * connectionsToUse, sizeof(int));
     struct s2n_connection **clients = calloc(connectionsToUse, sizeof(struct s2n_connection *));
     struct s2n_connection **servers = calloc(connectionsToUse, sizeof(struct s2n_connection *));
 
@@ -115,8 +113,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_EQUAL(vm_data_initial, -1);
 
     /* Allocate all connections */
-    for (int i = 0; i < connectionsToUse; i++)
-    {
+    for (int i = 0; i < connectionsToUse; i++) {
         /* Create nonblocking pipes */
         EXPECT_SUCCESS(pipe(server_to_client + 2 * i));
         EXPECT_SUCCESS(pipe(client_to_server + 2 * i));
@@ -207,4 +204,3 @@ int main(int argc, char **argv)
 
     return 0;
 }
-

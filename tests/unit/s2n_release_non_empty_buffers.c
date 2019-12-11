@@ -17,12 +17,12 @@
 
 #include "testlib/s2n_testlib.h"
 
+#include <fcntl.h>
+#include <signal.h>
+#include <stdint.h>
 #include <sys/poll.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <signal.h>
-#include <stdint.h>
-#include <fcntl.h>
 
 #include <s2n.h>
 
@@ -35,14 +35,13 @@
 
 static const uint8_t buf_to_send[1023] = { 27 };
 
-int mock_client(int writefd, int readfd)
-{
+int mock_client(int writefd, int readfd) {
     struct s2n_connection *conn;
     struct s2n_config *client_config;
     s2n_blocked_status blocked;
     int result = 0;
 
-    conn = s2n_connection_new(S2N_CLIENT);
+    conn          = s2n_connection_new(S2N_CLIENT);
     client_config = s2n_config_new();
     s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(conn, client_config);
@@ -72,8 +71,7 @@ int mock_client(int writefd, int readfd)
  * This test ensures that we don't allow releasing connection buffers if they contain part
  * of the unprocessed record, avoiding conneciton corruption.
  */
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     struct s2n_connection *conn;
     struct s2n_config *config;
     s2n_blocked_status blocked;
@@ -175,8 +173,7 @@ int main(int argc, char **argv)
         }
 
         ret = s2n_recv(conn, buf, sizeof(buf), &blocked);
-    } while (ret < 0 && s2n_error_get_type(s2n_errno) == S2N_ERR_T_BLOCKED
-                 && blocked == S2N_BLOCKED_ON_READ);
+    } while (ret < 0 && s2n_error_get_type(s2n_errno) == S2N_ERR_T_BLOCKED && blocked == S2N_BLOCKED_ON_READ);
 
     /* Expect that we read the data client sent us */
     EXPECT_TRUE(ret == sizeof(buf_to_send));
@@ -186,7 +183,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_release_buffers(conn));
 
     /* Shutdown after negotiating */
-    uint8_t server_shutdown=0;
+    uint8_t server_shutdown = 0;
     do {
         ret = s2n_shutdown(conn, &blocked);
         EXPECT_TRUE(ret == 0 || (blocked && (errno == EAGAIN || errno == EWOULDBLOCK)));
@@ -216,4 +213,3 @@ int main(int argc, char **argv)
 
     return 0;
 }
-

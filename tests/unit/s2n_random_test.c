@@ -15,18 +15,17 @@
 
 #include "s2n_test.h"
 
-#include <sys/wait.h>
 #include <pthread.h>
 #include <s2n.h>
+#include <sys/wait.h>
 
 #include "utils/s2n_random.h"
 
 static uint8_t thread_data[2][100];
 
-void *thread_safety_tester(void *slot)
-{
-    intptr_t slotnum = (intptr_t) slot;
-    struct s2n_blob blob = {.data = thread_data[slotnum], .size = 100 };
+void *thread_safety_tester(void *slot) {
+    intptr_t slotnum     = (intptr_t)slot;
+    struct s2n_blob blob = { .data = thread_data[slotnum], .size = 100 };
 
     s2n_get_public_random_data(&blob);
 
@@ -35,11 +34,10 @@ void *thread_safety_tester(void *slot)
     return NULL;
 }
 
-void process_safety_tester(int write_fd)
-{
+void process_safety_tester(int write_fd) {
     uint8_t pad[100];
 
-    struct s2n_blob blob = {.data = pad, .size = 100 };
+    struct s2n_blob blob = { .data = pad, .size = 100 };
     s2n_get_public_random_data(&blob);
 
     /* Write the data we got to our pipe */
@@ -52,15 +50,14 @@ void process_safety_tester(int write_fd)
     _exit(0);
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     uint8_t bits[8] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
     uint8_t bit_set_run[8];
     int p[2], status;
     pid_t pid;
     uint8_t data[5120];
     uint8_t child_data[100];
-    struct s2n_blob blob = {.data = data };
+    struct s2n_blob blob = { .data = data };
 
     pthread_t threads[2];
 
@@ -141,7 +138,7 @@ int main(int argc, char **argv)
 
             /* Apply 8 monobit tests to the data. Basically, we're
              * looking for successive runs where a given bit is set.
-             * If a run exists with any particular bit 64 times in 
+             * If a run exists with any particular bit 64 times in
              * a row, then the data doesn't look randomly generated.
              */
             for (int j = 0; j < i; j++) {
@@ -161,7 +158,7 @@ int main(int argc, char **argv)
         /* A common mistake in array filling leaves the last bytes zero
          * depending on the length.
          */
-        int remainder = i % 8;
+        int remainder      = i % 8;
         int non_zero_found = 0;
         for (int t = i - remainder; t < i; t++) {
             non_zero_found |= data[t];
@@ -185,7 +182,7 @@ int main(int argc, char **argv)
 
             /* Apply 8 monobit tests to the data. Basically, we're
              * looking for successive runs where a given bit is set.
-             * If a run exists with any particular bit 64 times in 
+             * If a run exists with any particular bit 64 times in
              * a row, then the data doesn't look randomly generated.
              */
             for (int j = 0; j < i; j++) {
@@ -205,7 +202,7 @@ int main(int argc, char **argv)
         /* A common mistake in array filling leaves the last bytes zero
          * depending on the length.
          */
-        int remainder = i % 8;
+        int remainder      = i % 8;
         int non_zero_found = 0;
         for (int t = i - remainder; t < i; t++) {
             non_zero_found |= data[t];
@@ -229,7 +226,7 @@ int main(int argc, char **argv)
 
             /* Apply 8 monobit tests to the data. Basically, we're
              * looking for successive runs where a given bit is set.
-             * If a run exists with any particular bit 64 times in 
+             * If a run exists with any particular bit 64 times in
              * a row, then the data doesn't look randomly generated.
              */
             for (int j = 0; j < i; j++) {
@@ -249,7 +246,7 @@ int main(int argc, char **argv)
         /* A common mistake in array filling leaves the last bytes zero
          * depending on the length.
          */
-        int remainder = i % 8;
+        int remainder      = i % 8;
         int non_zero_found = 0;
         for (int t = i - remainder; t < i; t++) {
             non_zero_found |= data[t];
@@ -274,7 +271,7 @@ int main(int argc, char **argv)
 
                 /* Apply 8 monobit tests to the data. Basically, we're
                  * looking for successive runs where a given bit is set.
-                 * If a run exists with any particular bit 64 times in 
+                 * If a run exists with any particular bit 64 times in
                  * a row, then the data doesn't look randomly generated.
                  */
                 for (int j = 0; j < i; j++) {
@@ -294,17 +291,17 @@ int main(int argc, char **argv)
             /* A common mistake in array filling leaves the last bytes zero
              * depending on the length
              */
-            int remainder = i % 8;
+            int remainder      = i % 8;
             int non_zero_found = 0;
             for (int t = i - remainder; t < i; t++) {
-              non_zero_found |= data[t];
+                non_zero_found |= data[t];
             }
             if (!non_zero_found) {
-              trailing_zeros[remainder]++;
+                trailing_zeros[remainder]++;
             }
         }
         for (int t = 1; t < 8; t++) {
-          EXPECT_TRUE(trailing_zeros[t] < 5120 / 16);
+            EXPECT_TRUE(trailing_zeros[t] < 5120 / 16);
         }
     }
 

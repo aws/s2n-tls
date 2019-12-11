@@ -15,11 +15,10 @@
 
 #include "s2n_test.h"
 
-#include "tls/s2n_tls.h"
 #include "error/s2n_errno.h"
+#include "tls/s2n_tls.h"
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     BEGIN_TEST();
 
     EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_retry_send(NULL), S2N_ERR_UNIMPLEMENTED);

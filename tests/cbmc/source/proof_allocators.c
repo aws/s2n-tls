@@ -29,7 +29,6 @@ void *bounded_malloc(size_t size) {
     return malloc(size);
 }
 
-
 void *can_fail_calloc(size_t num, size_t size) {
     return nondet_bool() ? NULL : bounded_calloc(num, size);
 }

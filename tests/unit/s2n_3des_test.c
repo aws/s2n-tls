@@ -15,29 +15,28 @@
 
 #include "s2n_test.h"
 
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <s2n.h>
 
 #include "testlib/s2n_testlib.h"
 
-#include "tls/s2n_cipher_suites.h"
-#include "stuffer/s2n_stuffer.h"
 #include "crypto/s2n_cipher.h"
-#include "utils/s2n_random.h"
 #include "crypto/s2n_hmac.h"
-#include "tls/s2n_record.h"
+#include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_prf.h"
+#include "tls/s2n_record.h"
+#include "utils/s2n_random.h"
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     struct s2n_connection *conn;
-    uint8_t mac_key[] = "sample mac key";
-    uint8_t des3_key[] = "12345678901234567890123";
-    struct s2n_blob des3 = {.data = des3_key,.size = sizeof(des3_key) };
+    uint8_t mac_key[]    = "sample mac key";
+    uint8_t des3_key[]   = "12345678901234567890123";
+    struct s2n_blob des3 = { .data = des3_key, .size = sizeof(des3_key) };
     uint8_t random_data[S2N_DEFAULT_FRAGMENT_LENGTH + 1];
-    struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
+    struct s2n_blob r = { .data = random_data, .size = sizeof(random_data) };
 
     BEGIN_TEST();
 
@@ -60,7 +59,7 @@ int main(int argc, char **argv)
 
     int max_aligned_fragment = S2N_DEFAULT_FRAGMENT_LENGTH - (S2N_DEFAULT_FRAGMENT_LENGTH % 8);
     for (int i = 0; i <= max_aligned_fragment + 1; i++) {
-        struct s2n_blob in = {.data = random_data,.size = i };
+        struct s2n_blob in = { .data = random_data, .size = i };
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));

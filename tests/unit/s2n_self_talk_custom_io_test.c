@@ -17,12 +17,12 @@
 
 #include "testlib/s2n_testlib.h"
 
+#include <fcntl.h>
+#include <signal.h>
+#include <stdint.h>
 #include <sys/poll.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <signal.h>
-#include <stdint.h>
-#include <fcntl.h>
 
 #include <s2n.h>
 
@@ -33,14 +33,13 @@
 
 #define MAX_BUF_SIZE 10000
 
-int mock_client(int writefd, int readfd)
-{
+int mock_client(int writefd, int readfd) {
     struct s2n_connection *conn;
     struct s2n_config *client_config;
     s2n_blocked_status blocked;
     int result = 0;
 
-    conn = s2n_connection_new(S2N_CLIENT);
+    conn          = s2n_connection_new(S2N_CLIENT);
     client_config = s2n_config_new();
     s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(conn, client_config);
@@ -66,10 +65,9 @@ int mock_client(int writefd, int readfd)
  * This test creates a server, client, and a pair of pipes. The client uses the
  * pipes directly for I/O in s2n. The server copies data from the pipes into
  * stuffers and manages s2n I/O with a set of I/O callbacks that read and write
- * from the stuffers. 
+ * from the stuffers.
  */
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     struct s2n_connection *conn;
     struct s2n_config *config;
     s2n_blocked_status blocked;
@@ -136,7 +134,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
     EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
     EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&in, &out, conn));
-    
+
     /* Make our pipes non-blocking */
     EXPECT_NOT_EQUAL(fcntl(client_to_server[0], F_SETFL, fcntl(client_to_server[0], F_GETFL) | O_NONBLOCK), -1);
     EXPECT_NOT_EQUAL(fcntl(server_to_client[1], F_SETFL, fcntl(server_to_client[1], F_GETFL) | O_NONBLOCK), -1);
@@ -147,29 +145,29 @@ int main(int argc, char **argv)
 
         ret = s2n_negotiate(conn, &blocked);
         EXPECT_TRUE(ret == 0 || (blocked && (errno == EAGAIN || errno == EWOULDBLOCK)));
-        
+
         /* check to see if we need to copy more over from the pipes to the buffers
          * to continue the handshake
          */
         s2n_stuffer_recv_from_fd(&in, client_to_server[0], MAX_BUF_SIZE);
         s2n_stuffer_send_to_fd(&out, server_to_client[1], s2n_stuffer_data_available(&out));
     } while (blocked);
-   
+
     /* Shutdown after negotiating */
-    uint8_t server_shutdown=0;
+    uint8_t server_shutdown = 0;
     do {
         int ret;
-        
+
         ret = s2n_shutdown(conn, &blocked);
         EXPECT_TRUE(ret == 0 || (blocked && (errno == EAGAIN || errno == EWOULDBLOCK)));
         if (ret == 0) {
             server_shutdown = 1;
         }
-        
+
         s2n_stuffer_recv_from_fd(&in, client_to_server[0], MAX_BUF_SIZE);
         s2n_stuffer_send_to_fd(&out, server_to_client[1], s2n_stuffer_data_available(&out));
     } while (!server_shutdown);
-    
+
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
     /* Clean up */
@@ -189,4 +187,3 @@ int main(int argc, char **argv)
 
     return 0;
 }
-

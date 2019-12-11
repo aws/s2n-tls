@@ -19,12 +19,11 @@
 #include <string.h>
 
 #include "crypto/s2n_ecc.h"
+#include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
-#include "tls/s2n_cipher_preferences.h"
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     BEGIN_TEST();
     {
         struct s2n_connection *conn;
@@ -180,12 +179,9 @@ int main(int argc, char **argv)
         const uint8_t cipher_count_only_ecdsa = sizeof(wire_ciphers_only_ecdsa) / S2N_TLS_CIPHER_SUITE_LEN;
 
         uint8_t wire_ciphers_rsa_fallback[] = {
-            TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
-            TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-            TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-            TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
-            TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-            TLS_RSA_WITH_AES_256_GCM_SHA384,
+            TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,       TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+            TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+            TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,         TLS_RSA_WITH_AES_256_GCM_SHA384,
         };
         const uint8_t cipher_count_rsa_fallback = sizeof(wire_ciphers_rsa_fallback) / S2N_TLS_CIPHER_SUITE_LEN;
 
@@ -202,7 +198,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
         /* TEST RENEGOTIATION */
-        EXPECT_SUCCESS(s2n_set_cipher_and_cert_as_tls_server(conn, wire_ciphers_renegotiation, cipher_count_renegotiation));
+        EXPECT_SUCCESS(
+            s2n_set_cipher_and_cert_as_tls_server(conn, wire_ciphers_renegotiation, cipher_count_renegotiation));
         EXPECT_EQUAL(conn->secure_renegotiation, 1);
         conn->actual_protocol_version = S2N_TLS12;
         EXPECT_EQUAL(1, s2n_connection_is_valid_for_cipher_preferences(conn, "test_all"));
@@ -224,7 +221,7 @@ int main(int argc, char **argv)
         /* Assume default for negotiated curve. */
         /* Shouldn't be necessary unless the test fails, but we want the failure to be obvious. */
         conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
-        const uint8_t expected_rsa_wire_choice[] = { TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA };
+        const uint8_t expected_rsa_wire_choice[]        = { TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA };
         EXPECT_SUCCESS(s2n_set_cipher_and_cert_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
         EXPECT_EQUAL(conn->secure_renegotiation, 0);
         EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_rsa_wire_choice));
@@ -232,32 +229,32 @@ int main(int argc, char **argv)
 
         /* Test that clients that support PQ ciphers can negotiate them. */
         const uint8_t expected_pq_wire_choice[] = { TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 };
-        uint8_t client_extensions_data[] = {
-                0xFE, 0x01, /* PQ KEM extension ID */
-                0x00, 0x04, /* Total extension length in bytes */
-                0x00, 0x02, /* Length of the supported parameters list in bytes */
-                0x00, 0x01  /* BIKE1r1-Level1 */
+        uint8_t client_extensions_data[]        = {
+            0xFE, 0x01, /* PQ KEM extension ID */
+            0x00, 0x04, /* Total extension length in bytes */
+            0x00, 0x02, /* Length of the supported parameters list in bytes */
+            0x00, 0x01  /* BIKE1r1-Level1 */
         };
         int client_extensions_len = sizeof(client_extensions_data);
         s2n_connection_set_cipher_preferences(conn, "KMS-PQ-TLS-1-0-2019-06");
-        conn->client_protocol_version = S2N_TLS12;
+        conn->client_protocol_version                   = S2N_TLS12;
         conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
-        conn->secure.client_pq_kem_extension.data = client_extensions_data;
-        conn->secure.client_pq_kem_extension.size = client_extensions_len;
+        conn->secure.client_pq_kem_extension.data       = client_extensions_data;
+        conn->secure.client_pq_kem_extension.size       = client_extensions_len;
         EXPECT_SUCCESS(s2n_set_cipher_and_cert_as_tls_server(conn, wire_ciphers, cipher_count));
         EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_pq_wire_choice));
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-        /* Test cipher preferences that use PQ cipher suites that require TLS 1.2 fall back to classic ciphers if a client
-         * only supports TLS 1.1 or below, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA is the first cipher suite that supports
-         * TLS 1.1 in KMS-PQ-TLS-1-0-2019-06 */
+        /* Test cipher preferences that use PQ cipher suites that require TLS 1.2 fall back to classic ciphers if a
+         * client only supports TLS 1.1 or below, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA is the first cipher suite that
+         * supports TLS 1.1 in KMS-PQ-TLS-1-0-2019-06 */
         for (int i = S2N_TLS10; i <= S2N_TLS11; i++) {
             const uint8_t expected_classic_wire_choice[] = { TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA };
             s2n_connection_set_cipher_preferences(conn, "KMS-PQ-TLS-1-0-2019-06");
-            conn->client_protocol_version = i;
+            conn->client_protocol_version                   = i;
             conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
-            conn->secure.client_pq_kem_extension.data = client_extensions_data;
-            conn->secure.client_pq_kem_extension.size = client_extensions_len;
+            conn->secure.client_pq_kem_extension.data       = client_extensions_data;
+            conn->secure.client_pq_kem_extension.size       = client_extensions_len;
             EXPECT_SUCCESS(s2n_set_cipher_and_cert_as_tls_server(conn, wire_ciphers, cipher_count));
             EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_classic_wire_choice));
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -378,7 +375,8 @@ int main(int argc, char **argv)
             s2n_connection_set_cipher_preferences(conn, "test_ecdsa_priority");
             conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
-            EXPECT_SUCCESS(s2n_set_cipher_and_cert_as_tls_server(conn, wire_ciphers_only_ecdsa, cipher_count_only_ecdsa));
+            EXPECT_SUCCESS(
+                s2n_set_cipher_and_cert_as_tls_server(conn, wire_ciphers_only_ecdsa, cipher_count_only_ecdsa));
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->handshake_params.our_chain_and_key, ecdsa_cert);
             EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_wire_choice));
@@ -398,7 +396,8 @@ int main(int argc, char **argv)
             /* No shared curve */
             conn->secure.server_ecc_params.negotiated_curve = NULL;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
-            EXPECT_SUCCESS(s2n_set_cipher_and_cert_as_tls_server(conn, wire_ciphers_rsa_fallback, cipher_count_rsa_fallback));
+            EXPECT_SUCCESS(
+                s2n_set_cipher_and_cert_as_tls_server(conn, wire_ciphers_rsa_fallback, cipher_count_rsa_fallback));
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->handshake_params.our_chain_and_key, rsa_cert);
             EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_wire_choice));
@@ -461,14 +460,16 @@ int main(int argc, char **argv)
         }
 
         /* Test that defaults are not overriden after failures to set new default certificates */
-        EXPECT_FAILURE_WITH_ERRNO_NO_RESET(s2n_config_set_cert_chain_and_key_defaults(server_config, NULL, 0), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO_NO_RESET(
+            s2n_config_set_cert_chain_and_key_defaults(server_config, NULL, 0), S2N_ERR_NULL);
         EXPECT_EQUAL(strcmp(s2n_strerror_name(s2n_errno), "S2N_ERR_NULL"), 0);
-        EXPECT_FAILURE_WITH_ERRNO_NO_RESET(s2n_config_set_cert_chain_and_key_defaults(server_config, &rsa_cert, 0),
-                S2N_ERR_NUM_DEFAULT_CERTIFICATES);
+        EXPECT_FAILURE_WITH_ERRNO_NO_RESET(
+            s2n_config_set_cert_chain_and_key_defaults(server_config, &rsa_cert, 0), S2N_ERR_NUM_DEFAULT_CERTIFICATES);
         EXPECT_EQUAL(strcmp(s2n_strerror_name(s2n_errno), "S2N_ERR_NUM_DEFAULT_CERTIFICATES"), 0);
         struct s2n_cert_chain_and_key *rsa_certs_list[] = { rsa_cert, rsa_cert };
-        EXPECT_FAILURE_WITH_ERRNO_NO_RESET(s2n_config_set_cert_chain_and_key_defaults(server_config, rsa_certs_list, 2),
-                S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE);
+        EXPECT_FAILURE_WITH_ERRNO_NO_RESET(
+            s2n_config_set_cert_chain_and_key_defaults(server_config, rsa_certs_list, 2),
+            S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE);
         EXPECT_EQUAL(strcmp(s2n_strerror_name(s2n_errno), "S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE"), 0);
         /* Client sends RSA and ECDSA ciphers, server prioritizes RSA, ECDSA + RSA cert is configured.
          * RSA default certificate should be chosen. */
@@ -484,14 +485,14 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
         }
 
-        struct s2n_cipher_suite *tls12_cipher_suite = cipher_preferences_20170210.suites[cipher_preferences_20170210.count-1];
-        uint8_t wire_ciphers_with_tls13[] = {
-            TLS_AES_128_GCM_SHA256,
-            TLS_AES_256_GCM_SHA384,
-            TLS_CHACHA20_POLY1305_SHA256,
-            tls12_cipher_suite->iana_value[0], tls12_cipher_suite->iana_value[1]
-        };
-        const uint8_t cipher_count_tls13 = sizeof(wire_ciphers_with_tls13) / S2N_TLS_CIPHER_SUITE_LEN;
+        struct s2n_cipher_suite *tls12_cipher_suite =
+            cipher_preferences_20170210.suites[cipher_preferences_20170210.count - 1];
+        uint8_t wire_ciphers_with_tls13[] = { TLS_AES_128_GCM_SHA256,
+                                              TLS_AES_256_GCM_SHA384,
+                                              TLS_CHACHA20_POLY1305_SHA256,
+                                              tls12_cipher_suite->iana_value[0],
+                                              tls12_cipher_suite->iana_value[1] };
+        const uint8_t cipher_count_tls13  = sizeof(wire_ciphers_with_tls13) / S2N_TLS_CIPHER_SUITE_LEN;
 
         /* Client sends TLS1.3 cipher suites, but server does not support TLS1.3 */
         {

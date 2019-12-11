@@ -17,24 +17,23 @@
 
 #include "testlib/s2n_testlib.h"
 
-#include <unistd.h>
-#include <stdint.h>
-#include <fcntl.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <stdint.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include <s2n.h>
 
 #include "crypto/s2n_fips.h"
 
-#include "tls/s2n_connection.h"
-#include "tls/s2n_handshake.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_connection.h"
+#include "tls/s2n_handshake.h"
 #include "utils/s2n_safety.h"
 
-static int try_handshake(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
-{
+static int try_handshake(struct s2n_connection *server_conn, struct s2n_connection *client_conn) {
     s2n_blocked_status server_blocked;
     s2n_blocked_status client_blocked;
 
@@ -46,7 +45,8 @@ static int try_handshake(struct s2n_connection *server_conn, struct s2n_connecti
         }
 
         int server_rc = s2n_negotiate(server_conn, &server_blocked);
-        if (!(server_rc == 0 || (server_blocked && errno == EAGAIN) || server_blocked == S2N_BLOCKED_ON_APPLICATION_INPUT)) {
+        if (!(server_rc == 0 || (server_blocked && errno == EAGAIN) ||
+              server_blocked == S2N_BLOCKED_ON_APPLICATION_INPUT)) {
             return -1;
         }
 
@@ -106,7 +106,7 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
         int server_to_client[2];
         int client_to_server[2];
         struct s2n_cipher_suite *expected_cipher = cipher_preferences->suites[cipher_idx];
-        uint8_t expect_failure = 0;
+        uint8_t expect_failure                   = 0;
 
         /* Expect failure if the libcrypto we're building with can't support the cipher */
         if (!expected_cipher->available) {
@@ -117,16 +117,16 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
            NOTE: Its safe to use memcpy as the address of server_cipher_preferences
            will never be NULL */
         memcpy(&server_cipher_preferences, cipher_preferences, sizeof(server_cipher_preferences));
-        server_cipher_preferences.count = 1;
-        server_cipher_preferences.suites = &expected_cipher;
+        server_cipher_preferences.count   = 1;
+        server_cipher_preferences.suites  = &expected_cipher;
         server_conn->cipher_pref_override = &server_cipher_preferences;
 
         /* Create nonblocking pipes */
         GUARD(pipe(server_to_client));
         GUARD(pipe(client_to_server));
         for (int i = 0; i < 2; i++) {
-           ne_check(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
-           ne_check(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
+            ne_check(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
+            ne_check(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
         }
 
         client_conn = s2n_connection_new(S2N_CLIENT);
@@ -145,11 +145,11 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
         server_conn->client_protocol_version = S2N_TLS12;
         server_conn->actual_protocol_version = S2N_TLS12;
 
-        const char* app_data_str = "APPLICATION_DATA";
+        const char *app_data_str = "APPLICATION_DATA";
         if (!expect_failure) {
             GUARD(try_handshake(server_conn, client_conn));
-            const char* actual_cipher = s2n_connection_get_cipher(server_conn);
-            if (strcmp(actual_cipher, expected_cipher->name) != 0){
+            const char *actual_cipher = s2n_connection_get_cipher(server_conn);
+            if (strcmp(actual_cipher, expected_cipher->name) != 0) {
                 return -1;
             }
 
@@ -188,17 +188,15 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
         GUARD(s2n_connection_free(client_conn));
 
         for (int i = 0; i < 2; i++) {
-           GUARD(close(server_to_client[i]));
-           GUARD(close(client_to_server[i]));
+            GUARD(close(server_to_client[i]));
+            GUARD(close(client_to_server[i]));
         }
     }
 
     return 0;
 }
 
-int main(int argc, char **argv)
-{
-
+int main(int argc, char **argv) {
     BEGIN_TEST();
 
     /*  test_with_rsa_cert(); */
@@ -222,9 +220,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
-    
+
         client_config = s2n_fetch_unsafe_client_testing_config();
-        
+
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
         EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config));
@@ -234,7 +232,6 @@ int main(int argc, char **argv)
         free(cert_chain_pem);
         free(private_key_pem);
         free(dhparams_pem);
-
     }
 
     /*  test_with_ecdsa_cert() */
@@ -264,7 +261,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_config = s2n_fetch_unsafe_client_ecdsa_testing_config());
 
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_ECDSA_P384_PKCS1_CERT_CHAIN, NULL));
-        
+
         EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config));
 
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
@@ -272,10 +269,8 @@ int main(int argc, char **argv)
         free(cert_chain_pem);
         free(private_key_pem);
         free(dhparams_pem);
-
     }
 
     END_TEST();
     return 0;
 }
-

@@ -30,14 +30,12 @@ static message_type_t invalid_handshake[S2N_MAX_HANDSHAKE_LENGTH];
 static int expected_handler_called;
 static int unexpected_handler_called;
 
-static int s2n_test_handler(struct s2n_connection* conn)
-{
+static int s2n_test_handler(struct s2n_connection *conn) {
     unexpected_handler_called = 1;
     return 0;
 }
 
-static int s2n_test_expected_handler(struct s2n_connection* conn)
-{
+static int s2n_test_expected_handler(struct s2n_connection *conn) {
     expected_handler_called = 1;
     return 0;
 }
@@ -50,14 +48,13 @@ static int s2n_setup_handler_to_expect(message_type_t expected, uint8_t directio
 
     tls13_state_machine[expected].handler[direction] = s2n_test_expected_handler;
 
-    expected_handler_called = 0;
+    expected_handler_called   = 0;
     unexpected_handler_called = 0;
 
     return 0;
 }
 
-int s2n_write_ccs_message(struct s2n_stuffer *output)
-{
+int s2n_write_ccs_message(struct s2n_stuffer *output) {
     GUARD(s2n_stuffer_write_uint8(output, TLS_CHANGE_CIPHER_SPEC));
 
     /* TLS1.2 protocol version */
@@ -73,15 +70,14 @@ int s2n_write_ccs_message(struct s2n_stuffer *output)
     return 0;
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     BEGIN_TEST();
 
     /* Construct an array of all valid tls1.2 handshake_types */
     uint16_t valid_tls12_handshakes[S2N_HANDSHAKES_COUNT];
     int valid_tls12_handshakes_size = 0;
     for (int i = 0; i < S2N_HANDSHAKES_COUNT; i++) {
-        if( memcmp(handshakes, invalid_handshake, S2N_MAX_HANDSHAKE_LENGTH) != 0) {
+        if (memcmp(handshakes, invalid_handshake, S2N_MAX_HANDSHAKE_LENGTH) != 0) {
             valid_tls12_handshakes[valid_tls12_handshakes_size] = i;
             valid_tls12_handshakes_size++;
         }
@@ -89,7 +85,7 @@ int main(int argc, char **argv)
 
     /* Test: When using TLS 1.2, use the existing state machine and handshakes */
     {
-        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        struct s2n_connection *conn   = s2n_connection_new(S2N_CLIENT);
         conn->actual_protocol_version = S2N_TLS12;
         EXPECT_EQUAL(ACTIVE_STATE_MACHINE(conn), state_machine);
         EXPECT_EQUAL(ACTIVE_HANDSHAKES(conn), handshakes);
@@ -98,7 +94,7 @@ int main(int argc, char **argv)
 
     /* Test: TLS1.2 server waits for expected CCS messages */
     {
-        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+        struct s2n_connection *conn   = s2n_connection_new(S2N_SERVER);
         conn->actual_protocol_version = S2N_TLS12;
 
         for (int i = 0; i < valid_tls12_handshakes_size; i++) {
@@ -125,7 +121,7 @@ int main(int argc, char **argv)
 
     /* Test: TLS1.2 client waits for expected CCS messages */
     {
-        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        struct s2n_connection *conn   = s2n_connection_new(S2N_CLIENT);
         conn->actual_protocol_version = S2N_TLS12;
 
         for (int i = 0; i < valid_tls12_handshakes_size; i++) {
@@ -153,7 +149,7 @@ int main(int argc, char **argv)
     /* Test: TLS1.2 client handles expected server CCS messages
      *       but errors on unexpected CCS messages */
     {
-        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        struct s2n_connection *conn   = s2n_connection_new(S2N_CLIENT);
         conn->actual_protocol_version = S2N_TLS12;
 
         struct s2n_stuffer input;
@@ -166,7 +162,7 @@ int main(int argc, char **argv)
             int handshake = valid_tls12_handshakes[i];
 
             conn->handshake.handshake_type = handshake;
-            conn->in_status = ENCRYPTED;
+            conn->in_status                = ENCRYPTED;
 
             for (int j = 1; j < S2N_MAX_HANDSHAKE_LENGTH; j++) {
                 conn->handshake.message_number = j;
@@ -194,7 +190,7 @@ int main(int argc, char **argv)
     /* Test: TLS1.2 server handles expected client CCS messages
      *       but errors on unexpected CCS messages */
     {
-        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+        struct s2n_connection *conn   = s2n_connection_new(S2N_SERVER);
         conn->actual_protocol_version = S2N_TLS12;
 
         struct s2n_stuffer input;
@@ -207,7 +203,7 @@ int main(int argc, char **argv)
             int handshake = valid_tls12_handshakes[i];
 
             conn->handshake.handshake_type = handshake;
-            conn->in_status = ENCRYPTED;
+            conn->in_status                = ENCRYPTED;
 
             for (int j = 1; j < S2N_MAX_HANDSHAKE_LENGTH; j++) {
                 conn->handshake.message_number = j;

@@ -17,10 +17,10 @@
 
 #include "testlib/s2n_testlib.h"
 
-#include <sys/wait.h>
-#include <unistd.h>
-#include <time.h>
 #include <stdint.h>
+#include <sys/wait.h>
+#include <time.h>
+#include <unistd.h>
 
 #include <s2n.h>
 
@@ -29,11 +29,12 @@
 
 #define SUPPORTED_CERTIFICATE_FORMATS (2)
 
-static const char *certificate_paths[SUPPORTED_CERTIFICATE_FORMATS] = { S2N_RSA_2048_PKCS1_CERT_CHAIN, S2N_RSA_2048_PKCS8_CERT_CHAIN };
-static const char *private_key_paths[SUPPORTED_CERTIFICATE_FORMATS] = { S2N_RSA_2048_PKCS1_KEY, S2N_RSA_2048_PKCS8_KEY };
+static const char *certificate_paths[SUPPORTED_CERTIFICATE_FORMATS] = { S2N_RSA_2048_PKCS1_CERT_CHAIN,
+                                                                        S2N_RSA_2048_PKCS8_CERT_CHAIN };
+static const char *private_key_paths[SUPPORTED_CERTIFICATE_FORMATS] = { S2N_RSA_2048_PKCS1_KEY,
+                                                                        S2N_RSA_2048_PKCS8_KEY };
 
-void mock_client(int writefd, int readfd)
-{
+void mock_client(int writefd, int readfd) {
     char buffer[0xffff];
     struct s2n_connection *conn;
     struct s2n_config *config;
@@ -42,7 +43,7 @@ void mock_client(int writefd, int readfd)
     /* Give the server a chance to listen */
     sleep(1);
 
-    conn = s2n_connection_new(S2N_CLIENT);
+    conn   = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
     s2n_config_disable_x509_verification(config);
     s2n_connection_set_config(conn, config);
@@ -75,7 +76,7 @@ void mock_client(int writefd, int readfd)
     s2n_connection_release_buffers(conn);
 
     /* Simulate timeout second conneciton inactivity and tolerate 50 ms error */
-    struct timespec sleep_time = {.tv_sec = timeout, .tv_nsec = 50000000};
+    struct timespec sleep_time = { .tv_sec = timeout, .tv_nsec = 50000000 };
     int r;
     do {
         r = nanosleep(&sleep_time, &sleep_time);
@@ -88,7 +89,7 @@ void mock_client(int writefd, int readfd)
     }
 
     int shutdown_rc = -1;
-    while(shutdown_rc != 0) {
+    while (shutdown_rc != 0) {
         shutdown_rc = s2n_shutdown(conn, &blocked);
     }
 
@@ -101,8 +102,7 @@ void mock_client(int writefd, int readfd)
     _exit(0);
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     struct s2n_connection *conn;
     struct s2n_config *config;
     s2n_blocked_status blocked;
@@ -171,8 +171,8 @@ int main(int argc, char **argv)
 
         char buffer[0xffff];
         for (int i = 1; i < 0xffff; i += 100) {
-            char * ptr = buffer;
-            int size = i;
+            char *ptr = buffer;
+            int size  = i;
 
             do {
                 int bytes_read = 0;
@@ -180,7 +180,7 @@ int main(int argc, char **argv)
 
                 size -= bytes_read;
                 ptr += bytes_read;
-            } while(size);
+            } while (size);
 
             for (int j = 0; j < i; j++) {
                 EXPECT_EQUAL(buffer[j], 33);
@@ -194,7 +194,7 @@ int main(int argc, char **argv)
         do {
             shutdown_rc = s2n_shutdown(conn, &blocked);
             EXPECT_TRUE(shutdown_rc == 0 || (errno == EAGAIN && blocked));
-        } while(shutdown_rc != 0);
+        } while (shutdown_rc != 0);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         for (int cert = 0; cert < SUPPORTED_CERTIFICATE_FORMATS; cert++) {

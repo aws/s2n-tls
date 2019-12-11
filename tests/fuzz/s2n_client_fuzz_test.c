@@ -22,6 +22,7 @@
 #include <unistd.h>
 
 #include "api/s2n.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_config.h"
@@ -30,7 +31,6 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_safety.h"
-#include "s2n_test.h"
 
 static char certificate_chain[] =
     "-----BEGIN CERTIFICATE-----\n"
@@ -130,8 +130,7 @@ static char dhparams[] =
 
 static int MAX_NEGOTIATION_ATTEMPTS = 10;
 
-int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
-{
+int buffer_read(void *io_context, uint8_t *buf, uint32_t len) {
     struct s2n_stuffer *in_buf;
     int n_read, n_avail;
 
@@ -139,7 +138,7 @@ int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
         return 0;
     }
 
-    in_buf = (struct s2n_stuffer *) io_context;
+    in_buf = (struct s2n_stuffer *)io_context;
     if (in_buf == NULL) {
         errno = EINVAL;
         return -1;
@@ -147,7 +146,7 @@ int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
 
     /* read the number of bytes requested or less if it isn't available */
     n_avail = s2n_stuffer_data_available(in_buf);
-    n_read = (len < n_avail) ? len : n_avail;
+    n_read  = (len < n_avail) ? len : n_avail;
 
     if (n_read == 0) {
         errno = EAGAIN;
@@ -158,21 +157,18 @@ int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
     return n_read;
 }
 
-int buffer_write(void *io_context, const uint8_t *buf, uint32_t len)
-{
+int buffer_write(void *io_context, const uint8_t *buf, uint32_t len) {
     return len;
 }
 
 static struct s2n_config *client_config;
 
-static void s2n_server_fuzz_atexit()
-{
+static void s2n_server_fuzz_atexit() {
     s2n_config_free(client_config);
     s2n_cleanup();
 }
 
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
-{
+int LLVMFuzzerInitialize(const uint8_t *buf, size_t len) {
     GUARD(s2n_init());
     GUARD(atexit(s2n_server_fuzz_atexit));
 
@@ -184,9 +180,8 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
     return 0;
 }
 
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
-{
-    if (len < S2N_TLS_RECORD_HEADER_LENGTH){
+int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
+    if (len < S2N_TLS_RECORD_HEADER_LENGTH) {
         return 0;
     }
 
@@ -210,7 +205,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     do {
         s2n_negotiate(client_conn, &client_blocked);
         num_attempted_negotiations += 1;
-    } while(!client_blocked && num_attempted_negotiations < MAX_NEGOTIATION_ATTEMPTS);
+    } while (!client_blocked && num_attempted_negotiations < MAX_NEGOTIATION_ATTEMPTS);
 
     /* Clean up */
     s2n_shutdown(client_conn, &client_blocked);

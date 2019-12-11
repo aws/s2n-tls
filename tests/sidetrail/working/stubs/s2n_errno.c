@@ -15,7 +15,6 @@
 
 #include <errno.h>
 
-int s2n_calculate_stacktrace(void)
-{
+int s2n_calculate_stacktrace(void) {
     return 0;
 }

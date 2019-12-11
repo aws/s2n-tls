@@ -20,12 +20,12 @@
 
 #include "testlib/s2n_testlib.h"
 
-#include "stuffer/s2n_stuffer.h"
-#include "tls/s2n_connection.h"
-#include "tls/s2n_config.h"
-#include "crypto/s2n_rsa.h"
 #include "crypto/s2n_dhe.h"
 #include "crypto/s2n_fips.h"
+#include "crypto/s2n_rsa.h"
+#include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_config.h"
+#include "tls/s2n_connection.h"
 
 static uint8_t unmatched_private_key[] =
     "-----BEGIN RSA PRIVATE KEY-----\n"
@@ -56,8 +56,7 @@ static uint8_t unmatched_private_key[] =
     "XQhx4wqVYQs2852qaJg+wYUi50FtRT6hLyDQmg9ttvS4YIwMTdVzl2Q=\n"
     "-----END RSA PRIVATE KEY-----\n";
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     struct s2n_stuffer certificate_in, certificate_out;
     struct s2n_stuffer dhparams_in, dhparams_out;
     struct s2n_stuffer rsa_key_in, rsa_key_out;
@@ -88,15 +87,15 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
     EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
 
-    b.data = (uint8_t *) leaf_cert_pem;
+    b.data = (uint8_t *)leaf_cert_pem;
     b.size = strlen(leaf_cert_pem) + 1;
     EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));
 
-    b.data = (uint8_t *) private_key_pem;
+    b.data = (uint8_t *)private_key_pem;
     b.size = strlen(private_key_pem) + 1;
     EXPECT_SUCCESS(s2n_stuffer_write(&rsa_key_in, &b));
 
-    b.data = (uint8_t *) dhparams_pem;
+    b.data = (uint8_t *)dhparams_pem;
     b.size = strlen(dhparams_pem) + 1;
     EXPECT_SUCCESS(s2n_stuffer_write(&dhparams_in, &b));
 
@@ -135,7 +134,7 @@ int main(int argc, char **argv)
     struct s2n_hash_state tls10_one, tls10_two, tls12_one, tls12_two;
 
     EXPECT_SUCCESS(s2n_alloc(&signature, s2n_pkey_size(&pub_key)));
-    
+
     if (s2n_hash_is_available(S2N_HASH_MD5_SHA1)) {
         /* TLS 1.0 use of RSA with DHE is not permitted when FIPS mode is set */
         EXPECT_SUCCESS(s2n_hash_new(&tls10_one));

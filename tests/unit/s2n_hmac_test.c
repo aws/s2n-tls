@@ -15,28 +15,28 @@
 
 #include "s2n_test.h"
 
-#include "testlib/s2n_testlib.h"
-#include "stuffer/s2n_stuffer.h"
+#include <string.h>
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
+#include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "utils/s2n_safety.h"
-#include <string.h>
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     uint8_t digest_pad[256];
     uint8_t check_pad[256];
     uint8_t output_pad[256];
     struct s2n_stuffer output;
     uint8_t sekrit[] = "sekrit";
-    uint8_t longsekrit[] = "This is a really really really long key on purpose to make sure that it's longer than the block size";
-    uint8_t hello[] = "Hello world!";
+    uint8_t longsekrit[] =
+        "This is a really really really long key on purpose to make sure that it's longer than the block size";
+    uint8_t hello[]   = "Hello world!";
     uint8_t string1[] = "String 1";
     uint8_t string2[] = "and String 2";
     struct s2n_hmac_state hmac, copy, cmac;
 
-    struct s2n_blob out = {.data = output_pad,.size = sizeof(output_pad) };
+    struct s2n_blob out = { .data = output_pad, .size = sizeof(output_pad) };
 
     BEGIN_TEST();
 
@@ -265,7 +265,12 @@ int main(int argc, char **argv)
     }
 
     /* Reference value from python */
-    EXPECT_EQUAL(memcmp(output_pad, "8552563cadd583b79dcc7225bb79bc6483c63f259187162e1c9d4283eb6299ef1bc3ca81c0c40fc7b22f7a1f3b93adb4", 48 * 2), 0);
+    EXPECT_EQUAL(
+        memcmp(
+            output_pad,
+            "8552563cadd583b79dcc7225bb79bc6483c63f259187162e1c9d4283eb6299ef1bc3ca81c0c40fc7b22f7a1f3b93adb4",
+            48 * 2),
+        0);
 
     /* Try SHA512 */
     EXPECT_SUCCESS(s2n_hmac_new(&hmac));
@@ -284,7 +289,13 @@ int main(int argc, char **argv)
     }
 
     /* Reference value from python */
-    EXPECT_EQUAL(memcmp(output_pad, "0a834a1ed265042e2897405edb4fdd9818950cd5bea10b828f2fed45a1cb6dbd2107e4b04eb20f211998cd4e8c7e11ebdcb0103ac63882481e1bb8083d07f4be", 64 * 2), 0);
+    EXPECT_EQUAL(
+        memcmp(
+            output_pad,
+            "0a834a1ed265042e2897405edb4fdd9818950cd5bea10b828f2fed45a1cb6dbd2107e4b04eb20f211998cd4e8c7e11ebdcb0103ac6"
+            "3882481e1bb8083d07f4be",
+            64 * 2),
+        0);
 
     END_TEST();
 }

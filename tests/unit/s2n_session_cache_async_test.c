@@ -17,12 +17,12 @@
 
 #include "testlib/s2n_testlib.h"
 
+#include <stdint.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <stdint.h>
 
-#include <s2n.h>
 #include <errno.h>
+#include <s2n.h>
 
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
@@ -31,7 +31,7 @@
 #define MAX_VAL_LEN 255
 
 static const char SESSION_ID[] = "0123456789abcdef0123456789abcdef";
-static const char MSG[] = "Test";
+static const char MSG[]        = "Test";
 
 struct session_cache_entry {
     uint8_t key[MAX_KEY_LEN];
@@ -43,8 +43,14 @@ struct session_cache_entry {
 
 struct session_cache_entry session_cache[256];
 
-int cache_store(struct s2n_connection *conn, void *ctx, uint64_t ttl, const void *key, uint64_t key_size, const void *value, uint64_t value_size)
-{
+int cache_store(
+    struct s2n_connection *conn,
+    void *ctx,
+    uint64_t ttl,
+    const void *key,
+    uint64_t key_size,
+    const void *value,
+    uint64_t value_size) {
     struct session_cache_entry *cache = ctx;
 
     if (key_size == 0 || key_size > MAX_KEY_LEN) {
@@ -59,14 +65,14 @@ int cache_store(struct s2n_connection *conn, void *ctx, uint64_t ttl, const void
     memcpy(cache[index].key, key, key_size);
     memcpy(cache[index].value, value, value_size);
 
-    cache[index].key_len = key_size;
+    cache[index].key_len   = key_size;
     cache[index].value_len = value_size;
 
     return 0;
 }
 
-int cache_retrieve(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t * value_size)
-{
+int cache_retrieve(
+    struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t *value_size) {
     struct session_cache_entry *cache = ctx;
 
     if (key_size == 0 || key_size > MAX_KEY_LEN) {
@@ -101,8 +107,7 @@ int cache_retrieve(struct s2n_connection *conn, void *ctx, const void *key, uint
     return 0;
 }
 
-int cache_delete(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size)
-{
+int cache_delete(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size) {
     struct session_cache_entry *cache = ctx;
 
     if (key_size == 0 || key_size > MAX_KEY_LEN) {
@@ -119,16 +124,15 @@ int cache_delete(struct s2n_connection *conn, void *ctx, const void *key, uint64
         return -1;
     }
 
-    cache[index].key_len = 0;
+    cache[index].key_len   = 0;
     cache[index].value_len = 0;
 
     return 0;
 }
 
-void mock_client(int writefd, int readfd)
-{
+void mock_client(int writefd, int readfd) {
     size_t serialized_session_state_length = 0;
-    uint8_t serialized_session_state[256] = { 0 };
+    uint8_t serialized_session_state[256]  = { 0 };
 
     struct s2n_connection *conn;
     struct s2n_config *config;
@@ -139,7 +143,7 @@ void mock_client(int writefd, int readfd)
     sleep(1);
 
     /* Initial handshake */
-    conn = s2n_connection_new(S2N_CLIENT);
+    conn   = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
     s2n_config_disable_x509_verification(config);
     s2n_connection_set_config(conn, config);
@@ -176,7 +180,8 @@ void mock_client(int writefd, int readfd)
         result = 5;
     }
 
-    if (s2n_connection_get_session(conn, serialized_session_state, serialized_session_state_length) != serialized_session_state_length) {
+    if (s2n_connection_get_session(conn, serialized_session_state, serialized_session_state_length) !=
+        serialized_session_state_length) {
         result = 6;
     }
 
@@ -185,7 +190,7 @@ void mock_client(int writefd, int readfd)
     }
 
     int shutdown_rc = -1;
-    while(shutdown_rc != 0) {
+    while (shutdown_rc != 0) {
         shutdown_rc = s2n_shutdown(conn, &blocked);
     }
 
@@ -218,7 +223,7 @@ void mock_client(int writefd, int readfd)
     }
 
     shutdown_rc = -1;
-    while(shutdown_rc != 0) {
+    while (shutdown_rc != 0) {
         shutdown_rc = s2n_shutdown(conn, &blocked);
     }
 
@@ -270,8 +275,7 @@ void mock_client(int writefd, int readfd)
     _exit(result);
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     struct s2n_connection *conn;
     struct s2n_config *config;
     s2n_blocked_status blocked;
@@ -335,7 +339,7 @@ int main(int argc, char **argv)
 
         /* Negotiate the handshake. */
         s2n_errno = S2N_ERR_T_OK;
-        int r = s2n_negotiate(conn, &blocked);
+        int r     = s2n_negotiate(conn, &blocked);
         /* first time it always blocks the handshake, as we mock a remote
          * connection/event from the lock
          */
@@ -356,7 +360,7 @@ int main(int argc, char **argv)
         do {
             shutdown_rc = s2n_shutdown(conn, &blocked);
             EXPECT_TRUE(shutdown_rc == 0 || (errno == EAGAIN && blocked));
-        } while(shutdown_rc != 0);
+        } while (shutdown_rc != 0);
 
         /* Clean up */
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -373,7 +377,7 @@ int main(int argc, char **argv)
 
         /* Negotiate the handshake. */
         s2n_errno = S2N_ERR_T_OK;
-        int r = s2n_negotiate(conn, &blocked);
+        int r     = s2n_negotiate(conn, &blocked);
         /* first time it always blocks the handshake, as we mock a remote
          * connection/event from the lock
          */
@@ -395,7 +399,7 @@ int main(int argc, char **argv)
         do {
             shutdown_rc = s2n_shutdown(conn, &blocked);
             EXPECT_TRUE(shutdown_rc == 0 || (errno == EAGAIN && blocked));
-        } while(shutdown_rc != 0);
+        } while (shutdown_rc != 0);
 
         /* Clean up */
         EXPECT_SUCCESS(s2n_connection_free(conn));

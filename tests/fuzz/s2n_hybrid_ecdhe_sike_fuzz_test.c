@@ -22,28 +22,27 @@
 #include "stuffer/s2n_stuffer.h"
 #include "tests/s2n_test.h"
 #include "tests/testlib/s2n_testlib.h"
-#include "tls/s2n_kex.h"
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_kem.h"
+#include "tls/s2n_kex.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
-#include "utils/s2n_safety.h"
-#include "tls/s2n_cipher_suites.h"
 
-static struct s2n_kem_keypair server_kem_keys = {.negotiated_kem = &s2n_sike_p503_r1};
+static struct s2n_kem_keypair server_kem_keys = { .negotiated_kem = &s2n_sike_p503_r1 };
 
 /* Setup the connection in a state for a fuzz test run, s2n_client_key_recv modifies the state of the connection
  * along the way and gets cleaned up at the end of each fuzz test.
  * - Connection needs cipher suite, curve, and kem setup
- * - Connection needs a ecdhe key and a kem private key, this would normally be setup when the server calls s2n_server_send_key
+ * - Connection needs a ecdhe key and a kem private key, this would normally be setup when the server calls
+ * s2n_server_send_key
  * */
-static int setup_connection(struct s2n_connection *server_conn)
-{
-    server_conn->actual_protocol_version = S2N_TLS12;
+static int setup_connection(struct s2n_connection *server_conn) {
+    server_conn->actual_protocol_version                   = S2N_TLS12;
     server_conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
-    server_conn->secure.s2n_kem_keys.negotiated_kem = &s2n_sike_p503_r1;
-    server_conn->secure.cipher_suite = &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384;
-    server_conn->secure.conn_sig_scheme = s2n_rsa_pkcs1_sha384;
+    server_conn->secure.s2n_kem_keys.negotiated_kem        = &s2n_sike_p503_r1;
+    server_conn->secure.cipher_suite                       = &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384;
+    server_conn->secure.conn_sig_scheme                    = s2n_rsa_pkcs1_sha384;
 
     GUARD(s2n_dup(&server_kem_keys.private_key, &server_conn->secure.s2n_kem_keys.private_key));
     GUARD(s2n_ecc_generate_ephemeral_key(&server_conn->secure.server_ecc_params));
@@ -51,14 +50,12 @@ static int setup_connection(struct s2n_connection *server_conn)
     return 0;
 }
 
-static void s2n_fuzz_atexit()
-{
+static void s2n_fuzz_atexit() {
     s2n_cleanup();
     s2n_kem_free(&server_kem_keys);
 }
 
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
-{
+int LLVMFuzzerInitialize(const uint8_t *buf, size_t len) {
     GUARD(s2n_init());
     GUARD(atexit(s2n_fuzz_atexit));
 
@@ -70,13 +67,13 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
     return 0;
 }
 
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
-{
+int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
     struct s2n_connection *server_conn;
     notnull_check(server_conn = s2n_connection_new(S2N_SERVER));
     GUARD(setup_connection(server_conn));
 
-    /* You can't write 0 bytes to a stuffer but attempting to call s2n_client_key_recv with 0 data is an interesting test */
+    /* You can't write 0 bytes to a stuffer but attempting to call s2n_client_key_recv with 0 data is an interesting
+     * test */
     if (len > 0) {
         GUARD(s2n_stuffer_write_bytes(&server_conn->handshake.io, buf, len));
     }

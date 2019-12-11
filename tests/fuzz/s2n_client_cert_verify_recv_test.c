@@ -17,8 +17,8 @@
 #include <openssl/err.h>
 
 #include "api/s2n.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
-#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
@@ -27,7 +27,6 @@
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
-#include "s2n_test.h"
 
 static char certificate_chain[] =
     "-----BEGIN CERTIFICATE-----\n"
@@ -86,7 +85,6 @@ static char certificate_chain[] =
     "r9IyvfU=\n"
     "-----END CERTIFICATE-----\n";
 
-
 static char private_key[] =
     "-----BEGIN RSA PRIVATE KEY-----\n"
     "MIIEpAIBAAKCAQEA0cOgLmFwHkU9GLqbQnyY0QfxAycshl57/vE1dh9ViVoTC5PK\n"
@@ -116,20 +114,18 @@ static char private_key[] =
     "6sml30j/GHvnW5DOlpsdNKDlxoFX+hncXYIjyVTGRNdsSwa4VVm+Xw==\n"
     "-----END RSA PRIVATE KEY-----\n";
 
-static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12};
+static const uint8_t TLS_VERSIONS[] = { S2N_TLS10, S2N_TLS11, S2N_TLS12 };
 
 static struct s2n_config *server_config;
 static struct s2n_pkey public_key;
 
-static void s2n_fuzz_atexit()
-{
+static void s2n_fuzz_atexit() {
     s2n_pkey_free(&public_key);
     s2n_config_free(server_config);
     s2n_cleanup();
 }
 
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
-{
+int LLVMFuzzerInitialize(const uint8_t *buf, size_t len) {
 #ifdef S2N_TEST_IN_FIPS_MODE
     S2N_TEST_ENTER_FIPS_MODE();
 #endif
@@ -150,9 +146,8 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
     return 0;
 }
 
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
-{
-    for(int version = 0; version < sizeof(TLS_VERSIONS); version++){
+int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
+    for (int version = 0; version < sizeof(TLS_VERSIONS); version++) {
         /* Setup */
         struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
         notnull_check(server_conn);
