@@ -16,6 +16,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h> 
 
 #include "tls/s2n_connection.h"
 
@@ -29,6 +30,7 @@ extern int s2n_handshake_status_handler(struct s2n_connection *conn);
 extern int s2n_sslv2_client_hello_recv(struct s2n_connection *conn);
 extern int s2n_client_hello_retry_send(struct s2n_connection *conn);
 extern int s2n_client_hello_retry_recv(struct s2n_connection *conn);
+extern bool s2n_is_hello_retry_req(struct s2n_connection *conn);
 extern int s2n_server_hello_send(struct s2n_connection *conn);
 extern int s2n_server_hello_recv(struct s2n_connection *conn);
 extern int s2n_encrypted_extensions_send(struct s2n_connection *conn);

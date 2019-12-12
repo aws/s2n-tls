@@ -27,6 +27,11 @@
 const uint8_t SESSION_ID_SIZE = 1;
 const uint8_t COMPRESSION_METHOD_SIZE = 1;
 
+/* from RFC: https://tools.ietf.org/html/rfc8446#section-4.1.3*/
+const char hello_retry_random_hex[] =
+    "CF21AD74E59A6111BE1D8C021E65B891"
+    "C2A211167ABB8C5E079E09E2C8A8339C";
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -166,6 +171,34 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_disable_tls13());
+    }
+
+    /* TLS13 hello retry message received results into S2N_ERR_UNIMPLEMENTED error*/
+    {
+        struct s2n_connection *client_conn;
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        struct s2n_stuffer *io = &client_conn->handshake.io;
+        client_conn->server_protocol_version = S2N_TLS13;
+
+        /* protocol version */
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, S2N_TLS12 / 10));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, S2N_TLS12 % 10));
+
+        uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN] = {0};
+        S2N_BLOB_FROM_HEX(random_blob, hello_retry_random_hex);
+        /* random payload */
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(io, random_blob.data, S2N_TLS_RANDOM_DATA_LEN));
+        /* session id */
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, S2N_TLS_SESSION_ID_MAX_LEN));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(io, session_id, S2N_TLS_SESSION_ID_MAX_LEN));
+        /* cipher suites */
+        EXPECT_SUCCESS(s2n_stuffer_write_uint16(io, (0x13 << 8) + 0x01));
+        /* no compression */
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, 0));
+        EXPECT_EQUAL(S2N_TLS_RANDOM_DATA_LEN, random_blob.size);
+        /* Test s2n_server_hello_recv() fails with Unimplemented method error */
+        EXPECT_FAILURE_WITH_ERRNO_NO_RESET(s2n_server_hello_recv(client_conn), S2N_ERR_UNIMPLEMENTED);
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
 
     END_TEST();
