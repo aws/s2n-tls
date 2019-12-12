@@ -23,6 +23,7 @@
 #include <string.h>
 #include <strings.h>
 
+#include "../tls/extensions/s2n_certificate_extensions.h"
 #include "crypto/s2n_certificate.h"
 #include "utils/s2n_array.h"
 #include "utils/s2n_safety.h"
@@ -393,17 +394,25 @@ int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key)
     return 0;
 }
 
-int s2n_send_cert_chain(struct s2n_stuffer *out, struct s2n_cert_chain *chain)
+int s2n_send_cert_chain(struct s2n_stuffer *out, struct s2n_cert_chain *chain, uint8_t actual_protocol_version)
 {
     notnull_check(out);
     notnull_check(chain);
-    GUARD(s2n_stuffer_write_uint24(out, chain->chain_size));
+    if (actual_protocol_version == S2N_TLS13) {
+        GUARD(s2n_stuffer_write_uint24(out, chain->chain_size + s2n_certificate_extensions_size(chain->head)));
+    }
+    else {
+        GUARD(s2n_stuffer_write_uint24(out, chain->chain_size));
+    }
 
     struct s2n_cert *cur_cert = chain->head;
     while (cur_cert) {
         notnull_check(cur_cert);
         GUARD(s2n_stuffer_write_uint24(out, cur_cert->raw.size));
         GUARD(s2n_stuffer_write_bytes(out, cur_cert->raw.data, cur_cert->raw.size));
+        if (actual_protocol_version == S2N_TLS13) {
+            GUARD(s2n_certificate_extensions_send(out));
+        }
         cur_cert = cur_cert->next;
     }
 
