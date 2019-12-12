@@ -26,12 +26,7 @@
 DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY *, EVP_PKEY_free);
 DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY_CTX *, EVP_PKEY_CTX_free);
 
-/* IANA values can be found here:
- * https://tools.ietf.org/html/rfc8446#appendix-B.3.1.4 */
-/* Share sizes are described here:
- * https://tools.ietf.org/html/rfc8446#section-4.2.8.2 and include the extra
- * "legacy_form" byte */
-#if S2N_IS_X25519_SUPPORTED
+#if MODERN_EC_SUPPORTED
 const struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {
     .iana_id = TLS_EC_CURVE_ECDH_X25519, 
     .libcrypto_nid = NID_X25519, 
@@ -40,20 +35,15 @@ const struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {
 };
 #endif
 
-/* IANA values can be found here:
- * https://tools.ietf.org/html/rfc8446#appendix-B.3.1.4 */
-/* Share sizes are described here:
- * https://tools.ietf.org/html/rfc8446#section-4.2.8.2 and include the extra
- * "legacy_form" byte */
 const struct s2n_ecc_named_curve *const s2n_ecc_evp_supported_curves[] = {
     &s2n_ecc_curve_secp256r1,
     &s2n_ecc_curve_secp384r1,
-#if S2N_IS_X25519_SUPPORTED
+#if MODERN_EC_SUPPORTED
     &s2n_ecc_curve_x25519,
 #endif
 };
 
-#if S2N_IS_X25519_SUPPORTED
+#if MODERN_EC_SUPPORTED
 static int s2n_ecc_evp_generate_key_x25519(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 #endif
 
@@ -61,7 +51,7 @@ static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve
 static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, struct s2n_blob *shared_secret);
 
-#if S2N_IS_X25519_SUPPORTED
+#if MODERN_EC_SUPPORTED
 static int s2n_ecc_evp_generate_key_x25519(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey) {
 
     DEFER_CLEANUP(EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(named_curve->libcrypto_nid, NULL),
@@ -99,7 +89,7 @@ static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve
 }
 
 static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey) {
-#if S2N_IS_X25519_SUPPORTED
+#if MODERN_EC_SUPPORTED
     if (named_curve->libcrypto_nid == NID_X25519) {
         return s2n_ecc_evp_generate_key_x25519(named_curve, evp_pkey);
     }
