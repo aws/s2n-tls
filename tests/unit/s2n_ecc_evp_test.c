@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
     BEGIN_TEST();
     {
         /* Test generate ephemeral keys for all supported curves */
-        for (int i = 0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
+        for (int i = 0; i < s2n_array_len(s2n_ecc_evp_supported_curves); i++) {
             struct s2n_ecc_evp_params evp_params = {0};
             /* Server generates a key */
             evp_params.negotiated_curve = s2n_ecc_evp_supported_curves[i];
@@ -36,23 +36,25 @@ int main(int argc, char **argv) {
     }
     {
         /* Test generate ephemeral key and compute shared key for all supported curves */
-        for (int i = 0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
+        for (int i = 0; i < s2n_array_len(s2n_ecc_evp_supported_curves); i++) {
             struct s2n_ecc_evp_params server_params = {0};
             struct s2n_ecc_evp_params client_params = {0};
             struct s2n_blob server_shared = {0};
             struct s2n_blob client_shared = {0};
-            server_params.negotiated_curve = s2n_ecc_evp_supported_curves[i];
 
             /* Server generates a key */
+            server_params.negotiated_curve = s2n_ecc_evp_supported_curves[i];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_params));
+
+            /* Client generates a key */
             client_params.negotiated_curve = s2n_ecc_evp_supported_curves[i];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params));
 
-            /* Compute shared secret for server*/
+            /* Compute shared secret for server */
             EXPECT_SUCCESS(
                 s2n_ecc_evp_compute_shared_secret_from_params(&server_params, &client_params, &server_shared));
 
-            /* Compute shared secret for client*/
+            /* Compute shared secret for client */
             EXPECT_SUCCESS(
                 s2n_ecc_evp_compute_shared_secret_from_params(&client_params, &server_params, &client_shared));
 
@@ -70,15 +72,17 @@ int main(int argc, char **argv) {
     }
     {
         /* Test failure case for computing shared key for all supported curves */
-        for (int i = 1; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
+        for (int i = 1; i < s2n_array_len(s2n_ecc_evp_supported_curves); i++) {
             struct s2n_ecc_evp_params server_params = {0};
             struct s2n_ecc_evp_params client_params = {0};
             struct s2n_blob server_shared = {0};
             struct s2n_blob client_shared = {0};
-            server_params.negotiated_curve = s2n_ecc_evp_supported_curves[i];
 
             /* Server generates a key */
+            server_params.negotiated_curve = s2n_ecc_evp_supported_curves[i];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_params));
+
+            /* Client generates a key */
             client_params.negotiated_curve = s2n_ecc_evp_supported_curves[0];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params));
 
@@ -90,21 +94,22 @@ int main(int argc, char **argv) {
             EXPECT_FAILURE(
                 s2n_ecc_evp_compute_shared_secret_from_params(&client_params, &server_params, &client_shared));
 
+            /* Clean up */
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&server_params));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_params));
         }
     }
     {
         /* Test s2n_ecc_evp_write_params_point for all supported curves */
-        for (int i = 0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
+        for (int i = 0; i < s2n_array_len(s2n_ecc_evp_supported_curves); i++) {
             struct s2n_ecc_evp_params test_params = {0};
             struct s2n_stuffer wire;
             uint8_t legacy_form;
 
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire, 0));
 
-            test_params.negotiated_curve = s2n_ecc_evp_supported_curves[i];
             /* Server generates a key for a given curve */
+            test_params.negotiated_curve = s2n_ecc_evp_supported_curves[i];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&test_params));
             EXPECT_SUCCESS(s2n_ecc_evp_write_params_point(&test_params, &wire));
 
@@ -121,7 +126,7 @@ int main(int argc, char **argv) {
             }
 
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&test_params));
-#if S2N_IS_X25519_SUPPORTED
+#if MODERN_EC_SUPPORTED
             OPENSSL_free(wire.blob.data);
 #else
             EXPECT_SUCCESS(s2n_stuffer_free(&wire));
@@ -130,16 +135,15 @@ int main(int argc, char **argv) {
     }
     {
         /* TEST s2n_ecc_evp_read_params_point for all supported curves */
-        for (int i = 0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
+        for (int i = 0; i < s2n_array_len(s2n_ecc_evp_supported_curves); i++) {
             struct s2n_ecc_evp_params write_params = {0};
             struct s2n_blob point_blob;
             struct s2n_stuffer wire;
 
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire, 0));
 
-            write_params.negotiated_curve = s2n_ecc_evp_supported_curves[i];
-
             /* Server generates a key for a given curve */
+            write_params.negotiated_curve = s2n_ecc_evp_supported_curves[i];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&write_params));
             EXPECT_SUCCESS(s2n_ecc_evp_write_params_point(&write_params, &wire));
 
@@ -152,7 +156,7 @@ int main(int argc, char **argv) {
             EXPECT_NOT_NULL(point_blob.data);
 
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&write_params));
-#if S2N_IS_X25519_SUPPORTED
+#if MODERN_EC_SUPPORTED
             OPENSSL_free(wire.blob.data);
 #else
             EXPECT_SUCCESS(s2n_stuffer_free(&wire));
@@ -161,7 +165,7 @@ int main(int argc, char **argv) {
     }
     {
         /* TEST s2n_ecc_evp_parse_params_point for all supported curves */
-        for (int i = 0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
+        for (int i = 0; i < s2n_array_len(s2n_ecc_evp_supported_curves); i++) {
             struct s2n_ecc_evp_params write_params = {0};
             struct s2n_ecc_evp_params read_params = {0};
             struct s2n_blob point_blob;
@@ -179,7 +183,7 @@ int main(int argc, char **argv) {
             /* Read point back in */
             EXPECT_SUCCESS(
                 s2n_ecc_evp_read_params_point(&wire, s2n_ecc_evp_supported_curves[i]->share_size, &point_blob));
-#if S2N_IS_X25519_SUPPORTED
+#if MODERN_EC_SUPPORTED
             EXPECT_SUCCESS(s2n_ecc_evp_generate_copy_params(&write_params, &read_params));
 #endif
             EXPECT_SUCCESS(s2n_ecc_evp_parse_params_point(&point_blob, &read_params));
@@ -187,7 +191,7 @@ int main(int argc, char **argv) {
             EXPECT_TRUE(EVP_PKEY_cmp(write_params.evp_pkey, read_params.evp_pkey));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&write_params));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&read_params));
-#if S2N_IS_X25519_SUPPORTED
+#if MODERN_EC_SUPPORTED
             OPENSSL_free(wire.blob.data);
 #else
             EXPECT_SUCCESS(s2n_stuffer_free(&wire));
