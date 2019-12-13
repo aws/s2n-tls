@@ -119,16 +119,16 @@ int main(int argc, char **argv)
         struct s2n_blob  clientKemBlob = {0};
         EXPECT_SUCCESS(s2n_blob_init(&clientKemBlob, clientKems, 8));
 
-        struct s2n_kem only02[] = {kem02};
+        const struct s2n_kem *only02[] = {&kem02};
         EXPECT_SUCCESS(s2n_kem_find_supported_kem(&clientKemBlob, only02, 1, &negotiated_kem));
         EXPECT_EQUAL(negotiated_kem->kem_extension_id, kem02.kem_extension_id);
 
-        struct s2n_kem onlyff[] = {kemff};
+        const struct s2n_kem *onlyff[] = {&kemff};
         negotiated_kem = NULL;
         EXPECT_FAILURE(s2n_kem_find_supported_kem(&clientKemBlob, onlyff, 1, &negotiated_kem));
         EXPECT_NULL(negotiated_kem);
 
-        struct s2n_kem server_order_test[] = {kemff, kembc, kem03};
+        const struct s2n_kem *server_order_test[] = {&kemff, &kembc, &kem03};
         EXPECT_SUCCESS(s2n_kem_find_supported_kem(&clientKemBlob, server_order_test, 3, &negotiated_kem));
         EXPECT_EQUAL(negotiated_kem->kem_extension_id, kembc.kem_extension_id);
     }

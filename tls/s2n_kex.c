@@ -91,7 +91,7 @@ static int s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n
 
     /* If the client did send a PQ KEM extension the server must find a mutually supported parameter */
     const struct s2n_kem *matching_kem = NULL;
-    if(s2n_kem_find_supported_kem(proposed_kems, *supported_params->kems, supported_params->kem_count, &matching_kem) != 0) { return 0; }
+    if(s2n_kem_find_supported_kem(proposed_kems, supported_params->kems, supported_params->kem_count, &matching_kem) != 0) { return 0; }
     return matching_kem != NULL;
 }
 
@@ -108,7 +108,7 @@ static int s2n_configure_kem(const struct s2n_cipher_suite *cipher_suite, struct
     }
 
     const struct s2n_kem *matching_kem = NULL;
-    GUARD(s2n_kem_find_supported_kem(proposed_kems, *supported_params->kems, supported_params->kem_count, &matching_kem));
+    GUARD(s2n_kem_find_supported_kem(proposed_kems, supported_params->kems, supported_params->kem_count, &matching_kem));
     conn->secure.s2n_kem_keys.negotiated_kem = matching_kem;
     return 0;
 }

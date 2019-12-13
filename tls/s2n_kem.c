@@ -124,7 +124,7 @@ int s2n_kem_decapsulate(const struct s2n_kem_keypair *kem_keys, struct s2n_blob 
     return 0;
 }
 
-int s2n_kem_find_supported_kem(struct s2n_blob *client_kem_ids, const struct s2n_kem *server_kem_pref_list,
+int s2n_kem_find_supported_kem(struct s2n_blob *client_kem_ids, const struct s2n_kem *server_kem_pref_list[],
                                const int num_server_supported_kems, const struct s2n_kem **matching_kem)
 {
     struct s2n_stuffer client_kems_in = {0};
@@ -133,13 +133,13 @@ int s2n_kem_find_supported_kem(struct s2n_blob *client_kem_ids, const struct s2n
     GUARD(s2n_stuffer_write(&client_kems_in, client_kem_ids));
 
     for (int i = 0; i < num_server_supported_kems; i++) {
-        const struct s2n_kem candidate_server_kem_name = server_kem_pref_list[i];
+        const struct s2n_kem candidate_server_kem_name = *server_kem_pref_list[i];
         for (int j = 0; j < client_kem_ids->size / 2; j++) {
             kem_extension_size candidate_client_kem_id;
             GUARD(s2n_stuffer_read_uint16(&client_kems_in, &candidate_client_kem_id));
 
             if (candidate_server_kem_name.kem_extension_id == candidate_client_kem_id) {
-                *matching_kem = &server_kem_pref_list[i];
+                *matching_kem = server_kem_pref_list[i];
                 return 0;
             }
         }
