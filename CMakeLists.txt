@@ -50,15 +50,27 @@ file(GLOB ERROR_SRC
 
 # The SIKE code #includes .c files directly, including all sike_r*/*.c breaks the build due to duplicates
 file(GLOB PQ_SRC
-    "pq-crypto/*.c"
-    "pq-crypto/bike/*.c"
-    "pq-crypto/sike_r1/fp_generic_r1.c"
-    "pq-crypto/sike_r1/P503_r1.c"
-    "pq-crypto/sike_r1/sike_p503_r1_kem.c"
-    "pq-crypto/sike_r1/fips202_r1.c"
-    "pq-crypto/sike_r2/fips202.c"
-    "pq-crypto/sike_r2/P434.c"
-)
+        "pq-crypto/*.c"
+        "pq-crypto/bike/*.c"
+        "pq-crypto/sike_r1/fp_generic_r1.c"
+        "pq-crypto/sike_r1/P503_r1.c"
+        "pq-crypto/sike_r1/sike_p503_r1_kem.c"
+        "pq-crypto/sike_r1/fips202_r1.c"
+        "pq-crypto/sike_r2/fips202.c"
+        "pq-crypto/sike_r2/P434.c"
+        )
+
+if($ENV{S2N_SIKE_R2_FORCE_GENERIC})
+    message(STATUS "Forcing usage of generic C code for SIKE p434 r2")
+elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64" OR ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "amd64" OR (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "AMD64" AND CMAKE_CL_64))
+    message(STATUS "Using optimized x86_64 assembly for SIKE p434 r2")
+    enable_language(ASM)
+    file(GLOB PQ_X86_64_ASM
+            "pq-crypto/sike_r2/fp_x64_asm.S")
+    list(APPEND PQ_SRC ${PQ_X86_64_ASM})
+else()
+    message(STATUS "Architecture is not x86_64 compatible - using generic C code for SIKE p434 r2")
+endif()
 
 file(GLOB STUFFER_SRC
     "stuffer/*.c"

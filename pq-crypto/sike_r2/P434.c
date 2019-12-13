@@ -19,6 +19,10 @@
 // Curve isogeny system "SIDHp434". Base curve: Montgomery curve By^2 = Cx^3 + Ax^2 + Cx defined over GF(p434^2), where A=6, B=1, C=1 and p434 = 2^216*3^137-1
 //
 
+
+// The constants p434, p434p1, and p434x2 have been duplicated in
+// fp_x64_asm.S. If, for any reason, the constants are changed in
+// one file, they should be updated in the other file as well.
 const uint64_t p434[NWORDS64_FIELD] = {0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFDC1767AE2FFFFFF,
                                               0x7BC65C783158AEA3, 0x6CFC5FD681C52056, 0x0002341F27177344};
 const uint64_t p434p1[NWORDS64_FIELD] = {0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0xFDC1767AE3000000,
@@ -105,17 +109,13 @@ const unsigned int strat_Bob[MAX_Bob - 1] = {
 #define EphemeralSecretAgreement_A oqs_kem_sidh_p434_EphemeralSecretAgreement_A
 #define EphemeralSecretAgreement_B oqs_kem_sidh_p434_EphemeralSecretAgreement_B
 
-/*
- * TODO Get x86_64 assembly code working; for now, we just import the generic portable C
- * #if defined(X86_64)
- * #include "AMD64/fp_x64.c"
- * #include "AMD64/fp_x64_asm.S"
- * #else
- * #include "fp_generic.c"
- * #endif
-*/
-
+#if defined(OPTIMIZED_ASM_IMPLEMENTATION)
+#include "fp_x64.c"
+#elif defined(GENERIC_IMPLEMENTATION)
 #include "fp_generic.c"
+#else
+#error "Neither OPTIMIZED_ASM_IMPLEMENTATION nor GENERIC_IMPLEMENTATION was defined. One of those must be defined."
+#endif
 
 #include "fpx.c"
 #include "ec_isogeny.c"
