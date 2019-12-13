@@ -85,6 +85,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_MAX_FRAG_LEN_MISMATCH, "Negotiated Maximum Fragmentation Length from server does not match the requested length by client") \
     ERR_ENTRY(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED, "TLS protocol version is not supported by selected cipher suite") \
     ERR_ENTRY(S2N_ERR_BAD_KEY_SHARE, "Bad key share received") \
+    ERR_ENTRY(S2N_ERR_CANCELLED, "handshake was cancelled") \
     ERR_ENTRY(S2N_ERR_MADVISE, "error calling madvise") \
     ERR_ENTRY(S2N_ERR_ALLOC, "error allocating memory") \
     ERR_ENTRY(S2N_ERR_MLOCK, "error calling mlock (Did you run prlimit?)") \
@@ -177,7 +178,6 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_INVALID_SCT_LIST, "SCT list is invalid") \
     ERR_ENTRY(S2N_ERR_INVALID_OCSP_RESPONSE, "OCSP response is invalid") \
     ERR_ENTRY(S2N_ERR_UPDATING_EXTENSION, "Updating extension data failed") \
-    ERR_ENTRY(S2N_ERR_CANCELLED, "handshake was cancelled") \
     ERR_ENTRY(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE, "Serialized session state is not in valid format") \
     ERR_ENTRY(S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG, "Serialized session state is too long") \
     ERR_ENTRY(S2N_ERR_SESSION_ID_TOO_LONG, "Session id is too long") \
