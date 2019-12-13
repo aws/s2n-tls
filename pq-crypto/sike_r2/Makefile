@@ -16,6 +16,14 @@
 SRCS=fips202.c P434.c
 OBJS=$(SRCS:.c=.o)
 
+ARCH := $(shell uname -p)
+ifeq ($(ARCH), x86_64)
+ifndef S2N_SIKE_R2_FORCE_GENERIC
+ASRC=fp_x64_asm.S
+OBJS+=$(ASRC:.S=.o)
+endif
+endif
+
 # TODO add when ready for SIKE R2 SAW proofs
 #BCS_1=fips202.bc P434.bc
 #BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))

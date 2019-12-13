@@ -4,7 +4,9 @@
 * Abstract: modular arithmetic optimized for x64 platforms for P434
 *********************************************************************************************/
 
-#include "../P434_internal.h"
+#include "config.h"
+#include "P434_internal.h"
+#include "sike_r2_code_identifier.h"
 
 __inline void fpadd434(const digit_t *a, const digit_t *b, digit_t *c) { // Modular addition, c = a+b mod p434.
                                                                          // Inputs: a, b in [0, 2*p434-1]
@@ -66,7 +68,7 @@ __inline void fpneg434(digit_t *a) { // Modular negation, a = -a mod p434.
 	unsigned int i, borrow = 0;
 
 	for (i = 0; i < NWORDS_FIELD; i++) {
-		SUBC(borrow, ((digit_t *) p434x2)[i], a[i], borrow, a[i]);
+		SUBC(borrow, ((const digit_t *) p434x2)[i], a[i], borrow, a[i]);
 	}
 }
 
@@ -78,7 +80,7 @@ void fpdiv2_434(const digit_t *a, digit_t *c) { // Modular division by two, c = 
 
 	mask = 0 - (digit_t)(a[0] & 1); // If a is odd compute a+p434
 	for (i = 0; i < NWORDS_FIELD; i++) {
-		ADDC(carry, a[i], ((digit_t *) p434)[i] & mask, carry, c[i]);
+		ADDC(carry, a[i], ((const digit_t *) p434)[i] & mask, carry, c[i]);
 	}
 
 	mp_shiftr1(c, NWORDS_FIELD);
@@ -89,13 +91,13 @@ void fpcorrection434(digit_t *a) { // Modular correction to reduce field element
 	digit_t mask;
 
 	for (i = 0; i < NWORDS_FIELD; i++) {
-		SUBC(borrow, a[i], ((digit_t *) p434)[i], borrow, a[i]);
+		SUBC(borrow, a[i], ((const digit_t *) p434)[i], borrow, a[i]);
 	}
 	mask = 0 - (digit_t) borrow;
 
 	borrow = 0;
 	for (i = 0; i < NWORDS_FIELD; i++) {
-		ADDC(borrow, a[i], ((digit_t *) p434)[i] & mask, borrow, a[i]);
+		ADDC(borrow, a[i], ((const digit_t *) p434)[i] & mask, borrow, a[i]);
 	}
 }
 
@@ -419,4 +421,8 @@ void rdc_mont(const digit_t *ma, digit_t *mc) { // Montgomery reduction exploiti
 	rdc434_asm(ma, mc);
 
 #endif
+}
+
+int sike_r2_fp_code_identifier() {
+    return ASM_CODE_IDENTIFIER;
 }
