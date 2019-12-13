@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include "sike_r2_code_identifier.h"
 
 // Definition of operating system
 
@@ -35,39 +36,34 @@
 #error -- "Unsupported COMPILER"
 #endif
 
-
-// TODO - Hardcoding these #defines for now to get the build working with the generic C code.
-//  Need to enable builds for multiple architectures, and enable/include optimized x64 assembly
-//  code
-#define _AMD64_
-#define _GENERIC_
-
 // Definition of the targeted architecture and basic data types
+// NOTE - we determine whether to use the generic C code optimized assembly
+//     code in sike_r2_code_identifier.h.
 
 #define TARGET_AMD64 1
 #define TARGET_x86 2
 #define TARGET_ARM 3
 #define TARGET_ARM64 4
 
-#if defined(_AMD64_)
+#if defined(__x86_64__)
 #define TARGET TARGET_AMD64
 #define RADIX 64
 #define LOG2RADIX 6
 typedef uint64_t digit_t;  // Unsigned 64-bit digit
 typedef uint32_t hdigit_t; // Unsigned 32-bit digit
-#elif defined(_X86_)
+#elif defined(__i386__)
 #define TARGET TARGET_x86
 #define RADIX 32
 #define LOG2RADIX 5
 typedef uint32_t digit_t;  // Unsigned 32-bit digit
 typedef uint16_t hdigit_t; // Unsigned 16-bit digit
-#elif defined(_ARM_)
+#elif defined(__arm__)
 #define TARGET TARGET_ARM
 #define RADIX 32
 #define LOG2RADIX 5
 typedef uint32_t digit_t;  // Unsigned 32-bit digit
 typedef uint16_t hdigit_t; // Unsigned 16-bit digit
-#elif defined(_ARM64_)
+#elif defined(__aarch64__)
 #define TARGET TARGET_ARM64
 #define RADIX 64
 #define LOG2RADIX 6
@@ -78,12 +74,6 @@ typedef uint32_t hdigit_t; // Unsigned 32-bit digit
 #endif
 
 #define RADIX64 64
-
-// Selection of generic, portable implementation
-
-#if defined(_GENERIC_)
-#define GENERIC_IMPLEMENTATION
-#endif
 
 // Extended datatype support
 #if defined(GENERIC_IMPLEMENTATION)

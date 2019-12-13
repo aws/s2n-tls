@@ -5,6 +5,7 @@
 *********************************************************************************************/
 
 #include "P434_internal.h"
+#include "sike_r2_code_identifier.h"
 
 void fpadd434(const digit_t *a, const digit_t *b, digit_t *c) { // Modular addition, c = a+b mod p434.
 	                                                                     // Inputs: a, b in [0, 2*p434-1]
@@ -199,4 +200,8 @@ void rdc_mont(const digit_t *ma, digit_t *mc) { // Efficient Montgomery reductio
 	}
 	ADDC(0, v, ma[2 * NWORDS_FIELD - 1], carry, v);
 	mc[NWORDS_FIELD - 1] = v;
+}
+
+int sike_r2_fp_code_identifier() {
+    return GENERIC_C_CODE_IDENTIFIER;
 }

@@ -4,7 +4,9 @@
 // Abstract: field arithmetic in x64 assembly for P434 on Linux
 //*******************************************************************************************  
 
-.intel_syntax noprefix 
+.intel_syntax noprefix
+
+#define _MULX_
 
 // Registers that are used for parameter passing:
 #define reg_p1  rdi
@@ -30,8 +32,47 @@
 #endif    
 #endif
 
+// The constants below (asm_p434, asm_p434p1, and asm_p434x2) are duplicated from
+// P434.c, and correspond to the arrays p434, p434p1, and p434x2. The values are
+// idenctical; they are just represented here as standard (base 10) ints, instead
+// of hex. If, for any reason, the constants are changed in one file, they should be
+// updated in the other file as well.
 
 .text
+.align 32
+.type   asm_p434, @object
+.size   asm_p434, 56
+asm_p434:
+  .quad   -1
+  .quad   -1
+  .quad   -1
+  .quad   -161717841442111489
+  .quad   8918917783347572387
+  .quad   7853257225132122198
+  .quad   620258357900100
+.align 32
+.type   asm_p434p1, @object
+.size   asm_p434p1, 56
+asm_p434p1:
+  .quad   0
+  .quad   0
+  .quad   0
+  .quad   -161717841442111488
+  .quad   8918917783347572387
+  .quad   7853257225132122198
+  .quad   620258357900100
+.align 32
+.type   asm_p434x2, @object
+.size   asm_p434x2, 56
+asm_p434x2:
+  .quad   -2
+  .quad   -1
+  .quad   -1
+  .quad   -323435682884222977
+  .quad   -608908507014406841
+  .quad   -2740229623445307220
+  .quad   1240516715800200
+
 //***********************************************************************
 //  Field addition
 //  Operation: c [reg_p3] = a [reg_p1] + b [reg_p2]
@@ -61,18 +102,18 @@ fpadd434_asm:
   adc    r13, [reg_p2+40] 
   adc    r14, [reg_p2+48]
 
-  mov    rbx, [rip+p434x2]
+  mov    rbx, [rip+asm_p434x2]
   sub    r8, rbx
-  mov    rcx, [rip+p434x2+8]
+  mov    rcx, [rip+asm_p434x2+8]
   sbb    r9, rcx
   sbb    r10, rcx
-  mov    rdi, [rip+p434x2+24]
+  mov    rdi, [rip+asm_p434x2+24]
   sbb    r11, rdi
-  mov    rsi, [rip+p434x2+32]
+  mov    rsi, [rip+asm_p434x2+32]
   sbb    r12, rsi
-  mov    rbp, [rip+p434x2+40]
+  mov    rbp, [rip+asm_p434x2+40]
   sbb    r13, rbp
-  mov    r15, [rip+p434x2+48]
+  mov    r15, [rip+asm_p434x2+48]
   sbb    r14, r15
   sbb    rax, 0
   
@@ -134,9 +175,9 @@ fpsub434_asm:
   sbb    r14, [reg_p2+48]
   sbb    rax, 0
   
-  mov    rcx, [rip+p434x2]
-  mov    rdi, [rip+p434x2+8]
-  mov    rsi, [rip+p434x2+24]
+  mov    rcx, [rip+asm_p434x2]
+  mov    rdi, [rip+asm_p434x2+8]
+  mov    rsi, [rip+asm_p434x2+24]
   and    rcx, rax
   and    rdi, rax
   and    rsi, rax  
@@ -150,9 +191,9 @@ fpsub434_asm:
   mov    [reg_p3+24], r11 
   setc   cl  
 
-  mov    r8, [rip+p434x2+32]
-  mov    rdi, [rip+p434x2+40]
-  mov    rsi, [rip+p434x2+48]
+  mov    r8, [rip+asm_p434x2+32]
+  mov    rdi, [rip+asm_p434x2+40]
+  mov    rsi, [rip+asm_p434x2+48]
   and    r8, rax
   and    rdi, rax
   and    rsi, rax  
@@ -666,7 +707,7 @@ rdc434_asm:
     push   r13 
 
     // a[0-1] x p434p1_nz --> result: r8:r13 
-    MUL128x256_SCHOOL [reg_p1], [rip+p434p1+24], r8, r9, r10, r11, r12, r13, rcx     
+    MUL128x256_SCHOOL [reg_p1], [rip+asm_p434p1+24], r8, r9, r10, r11, r12, r13, rcx
 
     xor    rcx, rcx
     add    r8, [reg_p1+24]  
@@ -697,7 +738,7 @@ rdc434_asm:
     mov    [reg_p1+104], r11
 
     // a[2-3] x p434p1_nz --> result: r8:r13
-    MUL128x256_SCHOOL [reg_p1+16], [rip+p434p1+24], r8, r9, r10, r11, r12, r13, rcx 
+    MUL128x256_SCHOOL [reg_p1+16], [rip+asm_p434p1+24], r8, r9, r10, r11, r12, r13, rcx
 
     xor    rcx, rcx
     add    r8, [reg_p1+40]  
@@ -722,7 +763,7 @@ rdc434_asm:
     mov    [reg_p1+104], r9
 
     // a[4-5] x p434p1_nz --> result: r8:r13
-    MUL128x256_SCHOOL [reg_p1+32], [rip+p434p1+24], r8, r9, r10, r11, r12, r13, rcx  
+    MUL128x256_SCHOOL [reg_p1+32], [rip+asm_p434p1+24], r8, r9, r10, r11, r12, r13, rcx
 
     xor    rcx, rcx
     add    r8, [reg_p1+56]  
@@ -741,7 +782,7 @@ rdc434_asm:
     mov    [reg_p1+104], rcx
 
     // a[6-7] x p434p1_nz --> result: r8:r12
-    MUL64x256_SCHOOL [reg_p1+48], [rip+p434p1+24], r8, r9, r10, r11, r12, r13  
+    MUL64x256_SCHOOL [reg_p1+48], [rip+asm_p434p1+24], r8, r9, r10, r11, r12, r13
     
     // Final result c2:c6
     add    r8, [reg_p1+72]  
@@ -759,7 +800,7 @@ rdc434_asm:
     pop    r12
     ret
 
-  #else
+#else
   
 //***********************************************************************
 //  Montgomery reduction
@@ -774,7 +815,7 @@ rdc434_asm:
 
 # error "CONFIGURATION NOT SUPPORTED. TRY USE_MULX=TRUE"
 
-  #endif
+#endif
 
 
 //***********************************************************************
@@ -860,11 +901,11 @@ mp_subadd434x2_asm:
   sbb    rax, 0
   
   // Add p434 anded with the mask in rax 
-  mov    r8, [rip+p434]
-  mov    r9, [rip+p434+24]
-  mov    r10, [rip+p434+32]
-  mov    rdi, [rip+p434+40]
-  mov    rsi, [rip+p434+48]
+  mov    r8, [rip+asm_p434]
+  mov    r9, [rip+asm_p434+24]
+  mov    r10, [rip+asm_p434+32]
+  mov    rdi, [rip+asm_p434+40]
+  mov    rsi, [rip+asm_p434+48]
   and    r8, rax
   and    r9, rax
   and    r10, rax
