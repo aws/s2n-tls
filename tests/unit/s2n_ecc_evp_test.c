@@ -26,28 +26,38 @@ int main(int argc, char **argv) {
     BEGIN_TEST();
     {
         /* Test generate ephemeral keys for all supported curves */
-        for (int i = 0; i < s2n_array_len(s2n_ecc_evp_supported_curves); i++) {
+        for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
             struct s2n_ecc_evp_params evp_params = {0};
             /* Server generates a key */
-            evp_params.negotiated_curve = s2n_ecc_evp_supported_curves[i];
+            evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[i];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&evp_params));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&evp_params));
         }
     }
     {
+        /* Test failure case for generate ephemeral key when the negotiated curve is not set */
+        for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
+            struct s2n_ecc_evp_params evp_params = {0};
+            /* Server generates a key */
+            evp_params.negotiated_curve = NULL;
+            EXPECT_FAILURE(s2n_ecc_evp_generate_ephemeral_key(&evp_params));
+            EXPECT_SUCCESS(s2n_ecc_evp_params_free(&evp_params));
+        }
+    }
+    {
         /* Test generate ephemeral key and compute shared key for all supported curves */
-        for (int i = 0; i < s2n_array_len(s2n_ecc_evp_supported_curves); i++) {
+        for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
             struct s2n_ecc_evp_params server_params = {0};
             struct s2n_ecc_evp_params client_params = {0};
             struct s2n_blob server_shared = {0};
             struct s2n_blob client_shared = {0};
 
             /* Server generates a key */
-            server_params.negotiated_curve = s2n_ecc_evp_supported_curves[i];
+            server_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[i];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_params));
 
             /* Client generates a key */
-            client_params.negotiated_curve = s2n_ecc_evp_supported_curves[i];
+            client_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[i];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params));
 
             /* Compute shared secret for server */
@@ -71,32 +81,39 @@ int main(int argc, char **argv) {
         }
     }
     {
-        /* Test failure case for computing shared key for all supported curves */
-        for (int i = 1; i < s2n_array_len(s2n_ecc_evp_supported_curves); i++) {
-            struct s2n_ecc_evp_params server_params = {0};
-            struct s2n_ecc_evp_params client_params = {0};
-            struct s2n_blob server_shared = {0};
-            struct s2n_blob client_shared = {0};
+        /* Test failure case for computing shared key for all supported curves when the server
+        and client curves donot match */
+        for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
+            for (int j = 0; j < s2n_ecc_evp_supported_curves_list_len; j++) {
+                    struct s2n_ecc_evp_params server_params = {0};
+                    struct s2n_ecc_evp_params client_params = {0};
+                    struct s2n_blob server_shared = {0};
+                    struct s2n_blob client_shared = {0};
+                    if (s2n_ecc_evp_supported_curves_list[i] == s2n_ecc_evp_supported_curves_list[j]) {
+                        continue;
+                    }
 
-            /* Server generates a key */
-            server_params.negotiated_curve = s2n_ecc_evp_supported_curves[i];
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_params));
+                    /* Server generates a key */
+                    server_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[j];
 
-            /* Client generates a key */
-            client_params.negotiated_curve = s2n_ecc_evp_supported_curves[0];
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params));
+                    EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_params));
 
-            /* Compute shared secret for server */
-            EXPECT_FAILURE(
-                s2n_ecc_evp_compute_shared_secret_from_params(&server_params, &client_params, &server_shared));
+                    /* Client generates a key */
+                    client_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[i];
+                    EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params));
 
-            /* Compute shared secret for client */
-            EXPECT_FAILURE(
-                s2n_ecc_evp_compute_shared_secret_from_params(&client_params, &server_params, &client_shared));
+                    /* Compute shared secret for server */
+                    EXPECT_FAILURE(
+                        s2n_ecc_evp_compute_shared_secret_from_params(&server_params, &client_params, &server_shared));
 
-            /* Clean up */
-            EXPECT_SUCCESS(s2n_ecc_evp_params_free(&server_params));
-            EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_params));
+                    /* Compute shared secret for client */
+                    EXPECT_FAILURE(
+                        s2n_ecc_evp_compute_shared_secret_from_params(&client_params, &server_params, &client_shared));
+
+                    /* Clean up */
+                    EXPECT_SUCCESS(s2n_ecc_evp_params_free(&server_params));
+                    EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_params));
+            }
         }
     }
 
