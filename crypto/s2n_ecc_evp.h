@@ -26,16 +26,13 @@
 
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER)
 #define MODERN_EC_SUPPORTED 1
-/* S2N_ECC_EVP_SUPPORTED_CURVES_COUNT determines the number of ecc_curves 
-supported, the supported curves are listed in the s2n_ecc_evp_supported_curves array. */
-#define S2N_ECC_EVP_SUPPORTED_CURVES_COUNT 3
 extern const struct s2n_ecc_named_curve s2n_ecc_curve_x25519;
 #else
 #define MODERN_EC_SUPPORTED 0
-#define S2N_ECC_EVP_SUPPORTED_CURVES_COUNT 2
 #endif
 
-extern const struct s2n_ecc_named_curve *const s2n_ecc_evp_supported_curves[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT];
+extern const struct s2n_ecc_named_curve* const s2n_ecc_evp_supported_curves_list[];
+extern const size_t s2n_ecc_evp_supported_curves_list_len;
 
 struct s2n_ecc_evp_params {
     const struct s2n_ecc_named_curve *negotiated_curve;

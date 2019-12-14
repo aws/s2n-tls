@@ -29,24 +29,22 @@ DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY_CTX *, EVP_PKEY_CTX_free);
 #if !MODERN_EC_SUPPORTED
 DEFINE_POINTER_CLEANUP_FUNC(EC_KEY *, EC_KEY_free);
 DEFINE_POINTER_CLEANUP_FUNC(EC_POINT *, EC_POINT_free);
-#endif 
+#endif
 
 #if MODERN_EC_SUPPORTED
 const struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {
-    .iana_id = TLS_EC_CURVE_ECDH_X25519, 
-    .libcrypto_nid = NID_X25519, 
-    .name = "x25519", 
-    .share_size = 32
-};
+    .iana_id = TLS_EC_CURVE_ECDH_X25519, .libcrypto_nid = NID_X25519, .name = "x25519", .share_size = 32};
 #endif
 
-const struct s2n_ecc_named_curve *const s2n_ecc_evp_supported_curves[] = {
+const struct s2n_ecc_named_curve *const s2n_ecc_evp_supported_curves_list[] = {
     &s2n_ecc_curve_secp256r1,
     &s2n_ecc_curve_secp384r1,
 #if MODERN_EC_SUPPORTED
     &s2n_ecc_curve_x25519,
 #endif
 };
+
+const size_t s2n_ecc_evp_supported_curves_list_len = s2n_array_len(s2n_ecc_evp_supported_curves_list);
 
 #if MODERN_EC_SUPPORTED
 static int s2n_ecc_evp_generate_key_x25519(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
@@ -214,7 +212,7 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
 
     GUARD(s2n_ecc_evp_calculate_point_length(point, group, &point_len));
     S2N_ERROR_IF(point_len != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
-    out->blob.data = s2n_stuffer_raw_write(out, point_len);
+    out->blob.data =  (uint8_t *)s2n_stuffer_raw_write(out, point_len);
     out->blob.size = point_len;
 
     notnull_check(out->blob.data);
