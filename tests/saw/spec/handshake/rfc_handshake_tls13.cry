@@ -21,6 +21,18 @@ module rfc_handshake_tls13 where
 
 import s2n_handshake_io
 
+/**
+ * True if the given Parameters do not match the given connection, or if
+ * the sequence of handshake messages produced by s2n matches the sequence
+ * produced by the cryptol RFC implementation in this file.
+ *
+ * Why is this True if the Parameters don't match the connection? We prove
+ * this function for all possible connection and Parameter inputs. Inputs
+ * where the connection doesn't match the Parameters should be ignored as
+ * invalid instead of causing the proof to fail. This is basically equivalent
+ * to generating the Parameters from the connection, except theoretically
+ * one connection could correspond to multiple Parameters.
+ */
 tls13rfcSimulatesS2N : {len} (fin len, len >= 1) => connection -> Parameters -> Bit
 tls13rfcSimulatesS2N conn params =
     (initial_connection conn /\ connectionParameters conn params) ==>
@@ -61,6 +73,11 @@ type Parameters = {
     zero_rtt : Bit
 }
 
+/**
+ * True if the given Parameters are equivalent to the given s2n connection.
+ * As features are added to s2n, update the conn_* variables to indicate
+ * whether the feature is active for a given connection.
+ */
 connectionParameters : connection -> Parameters -> Bit
 connectionParameters conn params = params.psk_mode == conn_psk_mode
                                    /\ params.retry == conn_retry
@@ -87,6 +104,16 @@ type State = {
     next : StateId
 }
 
+/**
+ * Represents the sequence of the first n handshake messages for given
+ * Parameters.
+ *
+ * Procedural Translation: The handshake starts as n applicationData
+ * messages and index==0. For the first n States in the infinite series
+ * of states returned by 'stateMachine', loop over the state's list of
+ * actions. While index < n, for any Action with valid==True, add the
+ * Action's message to the handshake at 'index' and then increment 'index'.
+ */
 doHandshake : {n} (fin n, n >= 1) => Parameters -> [n]Message
 doHandshake params = (foldl doState initialHandshake (take`{n} (stateMachine params))).messages
   where doState hs state = foldl doAction hs state.actions
@@ -181,6 +208,15 @@ doHandshake params = (foldl doState initialHandshake (take`{n} (stateMachine par
  *                          |              |
  *                          +--------------+
  */
+/**
+ * Represents the infinite sequence of states that make up the state
+ * machine for given Parameters.
+ *
+ * Procedural Translation: Starting with CLIENT_START_STATE, add the
+ * State associated with the 'next' field to the sequence and then
+ * repeat for that State. Eventually, we will reach FINISHED_STATE and
+ * loop on it indefinitely.
+ */
 stateMachine : Parameters -> [inf]State
 stateMachine params = iterate (\s -> stateFor s.next) CLIENT_START_STATE
   where stateFor id = find (\s -> s.id == id) ERROR_STATE states
@@ -242,6 +278,11 @@ stateMachine params = iterate (\s -> stateFor s.next) CLIENT_START_STATE
             action applicationData both True
         ] FINISHED_STATE
 
+/**
+ * The s2n 'handshake_action' that corresponds to the Message produced
+ * by this cryptol implementation. Necessary to compare results from the
+ * s2n and RFC cryptol implementations.
+ */
 rfc2S2N : Message -> handshake_action
 rfc2S2N msg = mkAct recordType messageType writer
   where recordType = if msg.messageType == changeCipherSpec then TLS_CHANGE_CIPHER_SPEC
