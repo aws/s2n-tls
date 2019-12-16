@@ -18,11 +18,11 @@ import argparse
 import configparser
 import logging
 
-from awacs.aws import Action, Allow, Statement, Principal, PolicyDocument
+from awacs.aws import Allow, Statement, Principal, PolicyDocument
 from awacs.sts import AssumeRole
 from troposphere import Template, Ref, Output
-from troposphere.iam import Role, ServiceLinkedRole, Policy, ManagedPolicy
-from troposphere.codebuild import Artifacts, Environment, Source, Project, ProjectTriggers
+from troposphere.iam import Role
+from troposphere.codebuild import Artifacts, Environment, Source, Project
 
 logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -76,8 +76,7 @@ def build_project(template=Template(), section=None, project_name=None, raw_env=
     template.add_output([Output(f"CodeBuildProject{project_name}", Value=Ref(project_id))])
 
 def build_role(template=Template(), section="CFNRole", project_name:str=None, **kwargs) -> Ref:
-    """ Build a role with an inline policy. """
-    account_number = config.get(section, 'account_number')
+    """ Build a role with a CodeBuild managed policy. """
     template.set_version('2010-09-09')
     assert project_name
     project_name+='Role'
