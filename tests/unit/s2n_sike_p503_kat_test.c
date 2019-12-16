@@ -23,7 +23,8 @@
 
 #define RSP_FILE "kats/sike_p503.kat"
 
-int main(int argc, char **argv, char **envp) {
+int main(int argc, char **argv, char **envp)
+{
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_test_kem_with_kat(&s2n_sike_p503_r1, RSP_FILE));
     END_TEST();

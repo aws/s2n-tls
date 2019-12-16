@@ -13,27 +13,25 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
+#include "tls/s2n_handshake.h"
 
 #include <errno.h>
 #include <fcntl.h>
+#include <s2n.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <s2n.h>
-
 #include "crypto/s2n_fips.h"
-
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
-#include "tls/s2n_handshake.h"
 #include "utils/s2n_safety.h"
 
-static int try_handshake(struct s2n_connection *server_conn, struct s2n_connection *client_conn) {
+static int try_handshake(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
+{
     s2n_blocked_status server_blocked;
     s2n_blocked_status client_blocked;
 
@@ -81,7 +79,8 @@ static int try_handshake(struct s2n_connection *server_conn, struct s2n_connecti
     return 0;
 }
 
-int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config *client_config) {
+int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config *client_config)
+{
     const struct s2n_cipher_preferences *cipher_preferences;
 
     cipher_preferences = server_config->cipher_preferences;
@@ -196,7 +195,8 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
     return 0;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
 
     /*  test_with_rsa_cert(); */

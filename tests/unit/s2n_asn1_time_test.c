@@ -14,12 +14,14 @@
  */
 
 #include "utils/s2n_asn1_time.h"
-#include "s2n_test.h"
 
 #include <stdlib.h>
 #include <time.h>
 
-int main(int argc, char **argv) {
+#include "s2n_test.h"
+
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
 
     /* October 20, 2017 3:09:11 PM GMT-07:00 */

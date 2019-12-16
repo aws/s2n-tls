@@ -21,7 +21,8 @@
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
 
-static int buffer_read(void *io_context, uint8_t *buf, uint32_t len) {
+static int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
+{
     struct s2n_stuffer *in_buf;
     int n_read, n_avail;
 
@@ -29,7 +30,7 @@ static int buffer_read(void *io_context, uint8_t *buf, uint32_t len) {
         return 0;
     }
 
-    in_buf = (struct s2n_stuffer *)io_context;
+    in_buf = (struct s2n_stuffer *) io_context;
     if (in_buf == NULL) {
         errno = EINVAL;
         return -1;
@@ -48,14 +49,15 @@ static int buffer_read(void *io_context, uint8_t *buf, uint32_t len) {
     return n_read;
 }
 
-static int buffer_write(void *io_context, const uint8_t *buf, uint32_t len) {
+static int buffer_write(void *io_context, const uint8_t *buf, uint32_t len)
+{
     struct s2n_stuffer *out;
 
     if (buf == NULL) {
         return 0;
     }
 
-    out = (struct s2n_stuffer *)io_context;
+    out = (struct s2n_stuffer *) io_context;
     if (out == NULL) {
         errno = EINVAL;
         return -1;
@@ -70,7 +72,8 @@ static int buffer_write(void *io_context, const uint8_t *buf, uint32_t len) {
 }
 
 /* The connection will read/write to/from a stuffer, instead of sockets */
-int s2n_connection_set_io_stuffers(struct s2n_stuffer *input, struct s2n_stuffer *output, struct s2n_connection *conn) {
+int s2n_connection_set_io_stuffers(struct s2n_stuffer *input, struct s2n_stuffer *output, struct s2n_connection *conn)
+{
     /* Set Up Callbacks*/
     GUARD(s2n_connection_set_recv_cb(conn, &buffer_read));
     GUARD(s2n_connection_set_send_cb(conn, &buffer_write));
@@ -82,7 +85,8 @@ int s2n_connection_set_io_stuffers(struct s2n_stuffer *input, struct s2n_stuffer
     return 0;
 }
 
-void s2n_print_connection(struct s2n_connection *conn, const char *marker) {
+void s2n_print_connection(struct s2n_connection *conn, const char *marker)
+{
     int i;
 
     printf("marker: %s\n", marker);

@@ -13,24 +13,21 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
 #include <fcntl.h>
+#include <s2n.h>
 #include <stdint.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include <s2n.h>
-
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/s2n_connection.h"
+#include "tls/s2n_handshake.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
-#include "tls/s2n_connection.h"
-#include "tls/s2n_handshake.h"
-
-int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size) {
+int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size)
+{
     uint8_t *buffer = malloc(size);
     uint8_t *ptr    = buffer;
     struct s2n_connection *client_conn;
@@ -85,7 +82,8 @@ int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size) 
     return 0;
 }
 
-int mock_client_iov(int writefd, int readfd, struct iovec *iov, uint32_t iov_size) {
+int mock_client_iov(int writefd, int readfd, struct iovec *iov, uint32_t iov_size)
+{
     struct s2n_connection *client_conn;
     struct s2n_config *client_config;
     s2n_blocked_status blocked;
@@ -162,7 +160,8 @@ char *cert_chain_pem;
 char *private_key_pem;
 char *dhparams_pem;
 
-int test_send(int use_iov) {
+int test_send(int use_iov)
+{
     struct s2n_connection *conn;
     struct s2n_config *config;
     s2n_blocked_status blocked;
@@ -183,7 +182,7 @@ int test_send(int use_iov) {
 
     /* Get some random data to send/receive */
     uint32_t data_size = 0;
-    DEFER_CLEANUP(struct s2n_blob blob = { 0 }, s2n_free);
+    DEFER_CLEANUP(struct s2n_blob blob = {0}, s2n_free);
     int iov_payload_size = 8, iov_size = 16;
     struct iovec *iov = NULL;
     if (!use_iov) {
@@ -315,7 +314,8 @@ int test_send(int use_iov) {
     return 0;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     /* Ignore SIGPIPE */
     signal(SIGPIPE, SIG_IGN);
 

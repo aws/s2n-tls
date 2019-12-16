@@ -13,21 +13,19 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
 #include <fcntl.h>
+#include <s2n.h>
 #include <stdint.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include <s2n.h>
-
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 
-int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds) {
+int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
+{
     static int called = 0;
 
     /* When first called return 0 seconds */
@@ -35,7 +33,7 @@ int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds) {
 
     /* When next called return 31 seconds */
     if (called) {
-        *nanoseconds += (uint64_t)31 * 1000000000;
+        *nanoseconds += (uint64_t) 31 * 1000000000;
     }
 
     called = 1;
@@ -43,7 +41,8 @@ int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds) {
     return 0;
 }
 
-int mock_client(int writefd, int readfd, const char **protocols, int count, const char *expected) {
+int mock_client(int writefd, int readfd, const char **protocols, int count, const char *expected)
+{
     char buffer[0xffff];
     struct s2n_connection *client_conn;
     struct s2n_config *client_config;
@@ -103,7 +102,8 @@ int mock_client(int writefd, int readfd, const char **protocols, int count, cons
     _exit(result);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     char buffer[0xffff];
     struct s2n_connection *conn;
     struct s2n_config *config;
@@ -117,9 +117,9 @@ int main(int argc, char **argv) {
     char *dhparams_pem;
     struct s2n_cert_chain_and_key *chain_and_key;
 
-    const char *protocols[]          = { "http/1.1", "spdy/3.1", "h2" };
+    const char *protocols[]          = {"http/1.1", "spdy/3.1", "h2"};
     const int protocols_size         = sizeof(protocols) / sizeof(protocols[0]);
-    const char *mismatch_protocols[] = { "spdy/2" };
+    const char *mismatch_protocols[] = {"spdy/2"};
 
     BEGIN_TEST();
 

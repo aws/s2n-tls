@@ -13,25 +13,23 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
 #include <s2n.h>
 
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_server_key_share.h"
 #include "tls/extensions/s2n_server_supported_versions.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
-
 #include "utils/s2n_safety.h"
 
 const uint8_t EXTENSION_LEN             = 2;
 const uint8_t SECURE_RENEGOTIATION_SIZE = 5;
 const uint8_t NEW_SESSION_TICKET_SIZE   = 4;
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
 
     /* s2n_server_extensions_send */
@@ -239,11 +237,11 @@ int main(int argc, char **argv) {
         {
             struct s2n_cipher_suite *tls12_cipher_suite =
                 cipher_preferences_20170210.suites[cipher_preferences_20170210.count - 1];
-            uint8_t wire_ciphers_with_tls13[] = { TLS_AES_128_GCM_SHA256,
-                                                  TLS_AES_256_GCM_SHA384,
-                                                  TLS_CHACHA20_POLY1305_SHA256,
-                                                  tls12_cipher_suite->iana_value[0],
-                                                  tls12_cipher_suite->iana_value[1] };
+            uint8_t wire_ciphers_with_tls13[] = {TLS_AES_128_GCM_SHA256,
+                                                 TLS_AES_256_GCM_SHA384,
+                                                 TLS_CHACHA20_POLY1305_SHA256,
+                                                 tls12_cipher_suite->iana_value[0],
+                                                 tls12_cipher_suite->iana_value[1]};
             const uint8_t cipher_count_tls13  = sizeof(wire_ciphers_with_tls13) / S2N_TLS_CIPHER_SUITE_LEN;
 
             EXPECT_SUCCESS(s2n_enable_tls13());

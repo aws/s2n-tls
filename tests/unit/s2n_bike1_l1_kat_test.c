@@ -24,7 +24,8 @@
 
 #define RSP_FILE "kats/bike1_l1.kat"
 
-int main(int argc, char **argv, char **envp) {
+int main(int argc, char **argv, char **envp)
+{
     BEGIN_TEST();
     if (s2n_is_in_fips_mode()) {
         /* Skip when FIPS mode is set as BIKE is not supported in FIPS mode */

@@ -15,9 +15,11 @@
 
 #include <s2n.h>
 #include <stdlib.h>
+
 #include "s2n_test.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     struct s2n_connection *conn;
     int ctx;
 

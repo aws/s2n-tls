@@ -15,12 +15,6 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
 #include <openssl/conf.h>
 #include <openssl/dh.h>
 #include <openssl/ec.h>
@@ -28,6 +22,11 @@
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "api/s2n.h"
 #include "crypto/s2n_certificate.h"
@@ -38,7 +37,8 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
-static void s2n_fuzz_atexit() {
+static void s2n_fuzz_atexit()
+{
     s2n_cleanup();
     ERR_free_strings();
     CRYPTO_cleanup_all_ex_data();
@@ -46,7 +46,8 @@ static void s2n_fuzz_atexit() {
     ERR_clear_error();
 }
 
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len) {
+int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
+{
 #ifdef S2N_TEST_IN_FIPS_MODE
     S2N_TEST_ENTER_FIPS_MODE();
 #endif
@@ -57,9 +58,10 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len) {
     return 0;
 }
 
-static int openssl_parse_cert_chain(struct s2n_stuffer *in) {
+static int openssl_parse_cert_chain(struct s2n_stuffer *in)
+{
     uint8_t chain_len = 0;
-    BIO *membio       = BIO_new_mem_buf((void *)in->blob.data, in->blob.size - 1);
+    BIO *membio       = BIO_new_mem_buf((void *) in->blob.data, in->blob.size - 1);
     X509 *cert        = NULL;
 
     while (1) {
@@ -77,7 +79,8 @@ static int openssl_parse_cert_chain(struct s2n_stuffer *in) {
     return chain_len;
 }
 
-static int s2n_parse_cert_chain(struct s2n_stuffer *in) {
+static int s2n_parse_cert_chain(struct s2n_stuffer *in)
+{
     struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new();
 
     /* Allocate the memory for the chain and key */
@@ -94,7 +97,8 @@ static int s2n_parse_cert_chain(struct s2n_stuffer *in) {
     return chain_len;
 }
 
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
+int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
+{
     struct s2n_stuffer in;
     GUARD(s2n_stuffer_alloc(&in, len + 1));
     GUARD(s2n_stuffer_write_bytes(&in, buf, len));

@@ -13,17 +13,15 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
 #include <fcntl.h>
+#include <s2n.h>
 #include <signal.h>
 #include <stdint.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include <s2n.h>
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 
 #define TLS_ALERT 21
 #define TLS_ALERT_VERSION 0x03, 0x03
@@ -43,7 +41,8 @@ struct alert_ctx {
     uint8_t code;
 };
 
-int mock_client(int writefd, int readfd, s2n_alert_behavior alert_behavior, int expect_failure) {
+int mock_client(int writefd, int readfd, s2n_alert_behavior alert_behavior, int expect_failure)
+{
     struct s2n_connection *conn;
     struct s2n_config *config;
     s2n_blocked_status blocked;
@@ -95,7 +94,8 @@ int mock_client(int writefd, int readfd, s2n_alert_behavior alert_behavior, int 
     _exit(result);
 }
 
-int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds) {
+int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
+{
     static int called = 0;
 
     /* When first called return 0 seconds */
@@ -103,7 +103,7 @@ int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds) {
 
     /* When next called return 31 seconds */
     if (called) {
-        *nanoseconds += (uint64_t)31 * 1000000000;
+        *nanoseconds += (uint64_t) 31 * 1000000000;
     }
 
     called = 1;
@@ -111,9 +111,10 @@ int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds) {
     return 0;
 }
 
-int client_hello_send_alert(struct s2n_connection *conn, void *ctx) {
+int client_hello_send_alert(struct s2n_connection *conn, void *ctx)
+{
     struct alert_ctx *alert = ctx;
-    uint8_t alert_msg[]     = { TLS_ALERT, TLS_ALERT_VERSION, TLS_ALERT_LENGTH, alert->level, alert->code };
+    uint8_t alert_msg[]     = {TLS_ALERT, TLS_ALERT_VERSION, TLS_ALERT_LENGTH, alert->level, alert->code};
 
     if (write(alert->write_fd, alert_msg, sizeof(alert_msg)) != sizeof(alert_msg)) {
         _exit(100);
@@ -124,7 +125,8 @@ int client_hello_send_alert(struct s2n_connection *conn, void *ctx) {
     return 0;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     char buffer[0xffff];
     struct s2n_connection *conn;
     struct s2n_config *config;
@@ -158,10 +160,10 @@ int main(int argc, char **argv) {
         EXPECT_SUCCESS(pipe(client_to_server));
 
         /* Set up the callback to send an alert after receiving ClientHello */
-        struct alert_ctx warning_alert = { .write_fd = server_to_client[1],
-                                           .invoked  = 0,
-                                           .level    = TLS_ALERT_LEVEL_WARNING,
-                                           .code     = TLS_ALERT_UNRECOGNIZED_NAME };
+        struct alert_ctx warning_alert = {.write_fd = server_to_client[1],
+                                          .invoked  = 0,
+                                          .level    = TLS_ALERT_LEVEL_WARNING,
+                                          .code     = TLS_ALERT_UNRECOGNIZED_NAME};
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_send_alert, &warning_alert));
 
         /* Create a child process */
@@ -229,10 +231,10 @@ int main(int argc, char **argv) {
         EXPECT_SUCCESS(pipe(client_to_server));
 
         /* Set up the callback to send an alert after receiving ClientHello */
-        struct alert_ctx fatal_alert = { .write_fd = server_to_client[1],
-                                         .invoked  = 0,
-                                         .level    = TLS_ALERT_LEVEL_FATAL,
-                                         .code     = TLS_ALERT_UNRECOGNIZED_NAME };
+        struct alert_ctx fatal_alert = {.write_fd = server_to_client[1],
+                                        .invoked  = 0,
+                                        .level    = TLS_ALERT_LEVEL_FATAL,
+                                        .code     = TLS_ALERT_UNRECOGNIZED_NAME};
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_send_alert, &fatal_alert));
 
         /* Create a child process */
@@ -282,10 +284,10 @@ int main(int argc, char **argv) {
         EXPECT_SUCCESS(pipe(client_to_server));
 
         /* Set up the callback to send an alert after receiving ClientHello */
-        struct alert_ctx warning_alert = { .write_fd = server_to_client[1],
-                                           .invoked  = 0,
-                                           .level    = TLS_ALERT_LEVEL_WARNING,
-                                           .code     = TLS_ALERT_UNRECOGNIZED_NAME };
+        struct alert_ctx warning_alert = {.write_fd = server_to_client[1],
+                                          .invoked  = 0,
+                                          .level    = TLS_ALERT_LEVEL_WARNING,
+                                          .code     = TLS_ALERT_UNRECOGNIZED_NAME};
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_send_alert, &warning_alert));
 
         /* Create a child process */

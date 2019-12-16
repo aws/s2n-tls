@@ -23,11 +23,12 @@
 #include "tls/s2n_crypto.h"
 #include "utils/s2n_blob.h"
 
-int s2n_pkey_verify(const struct s2n_pkey *key, struct s2n_hash_state *digest, struct s2n_blob *signature) {
+int s2n_pkey_verify(const struct s2n_pkey *key, struct s2n_hash_state *digest, struct s2n_blob *signature)
+{
     typedef int (*orig_s2n_pkey_verify_func_type)(
         const struct s2n_pkey *key, struct s2n_hash_state *digest, struct s2n_blob *signature);
     orig_s2n_pkey_verify_func_type orig_s2n_pkey_verify;
-    orig_s2n_pkey_verify = (orig_s2n_pkey_verify_func_type)dlsym(RTLD_NEXT, "s2n_pkey_verify");
+    orig_s2n_pkey_verify = (orig_s2n_pkey_verify_func_type) dlsym(RTLD_NEXT, "s2n_pkey_verify");
     orig_s2n_pkey_verify(key, digest, signature);
 
     /* Always assume that pkey_verify passes */

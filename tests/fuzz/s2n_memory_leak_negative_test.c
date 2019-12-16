@@ -15,14 +15,13 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <openssl/crypto.h>
+#include <openssl/err.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-
-#include <openssl/crypto.h>
-#include <openssl/err.h>
 
 #include "api/s2n.h"
 #include "s2n_test.h"
@@ -133,7 +132,8 @@ static char dhparams[] =
 
 static int MAX_NEGOTIATION_ATTEMPTS = 10;
 
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len) {
+int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
+{
 #ifdef S2N_TEST_IN_FIPS_MODE
     S2N_TEST_ENTER_FIPS_MODE();
 #endif
@@ -142,7 +142,8 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len) {
     return 0;
 }
 
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
+int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
+{
     if (len < S2N_TLS_RECORD_HEADER_LENGTH) {
         return 0;
     }

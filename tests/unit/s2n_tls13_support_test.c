@@ -14,16 +14,16 @@
  */
 
 #include "s2n_test.h"
-
 #include "tls/s2n_client_extensions.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 
-static uint8_t tls13_extensions[] = { TLS_EXTENSION_SUPPORTED_VERSIONS, TLS_EXTENSION_KEY_SHARE };
+static uint8_t tls13_extensions[] = {TLS_EXTENSION_SUPPORTED_VERSIONS, TLS_EXTENSION_KEY_SHARE};
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
 
     /* TLS 1.3 is not enabled by default */
@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
 
     /* Server does parse new TLS 1.3 extensions if enabled */
     {
-        uint8_t new_extensions[] = { TLS_EXTENSION_SUPPORTED_VERSIONS, TLS_EXTENSION_KEY_SHARE };
+        uint8_t new_extensions[] = {TLS_EXTENSION_SUPPORTED_VERSIONS, TLS_EXTENSION_KEY_SHARE};
 
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));

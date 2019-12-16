@@ -13,25 +13,22 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
+#include "tls/s2n_client_hello.h"
 
 #include <errno.h>
 #include <fcntl.h>
+#include <s2n.h>
 #include <stdint.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include <s2n.h>
-
-#include "tls/s2n_client_hello.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_tls_parameters.h"
-
 #include "utils/s2n_safety.h"
 
 #define ZERO_TO_THIRTY_ONE                                                                                            \
@@ -40,7 +37,8 @@
 
 #define LENGTH_TO_CIPHER_LIST (S2N_TLS_PROTOCOL_VERSION_LEN + S2N_TLS_RANDOM_DATA_LEN + 1)
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     char *cert_chain;
     char *private_key;
     BEGIN_TEST();
@@ -50,8 +48,8 @@ int main(int argc, char **argv) {
     EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
 
     /* Test cipher suites list */
-    { /* When TLS 1.3 NOT supported */
-      { struct s2n_config * config;
+    {/* When TLS 1.3 NOT supported */
+     {struct s2n_config * config;
     EXPECT_NOT_NULL(config = s2n_config_new());
     s2n_config_set_session_tickets_onoff(config, 0);
 
@@ -283,7 +281,7 @@ int main(int argc, char **argv) {
 
     /* Verify the collected client hello has client random zero-ed out */
     uint8_t client_random_offset                            = S2N_TLS_PROTOCOL_VERSION_LEN;
-    uint8_t expected_client_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
+    uint8_t expected_client_random[S2N_TLS_RANDOM_DATA_LEN] = {0};
     EXPECT_SUCCESS(
         memcmp(collected_client_hello + client_random_offset, expected_client_random, S2N_TLS_RANDOM_DATA_LEN));
 
@@ -316,7 +314,7 @@ int main(int argc, char **argv) {
     free(raw_ch_out);
     raw_ch_out = NULL;
 
-    uint8_t expected_cs[] = { 0x00, 0x3C };
+    uint8_t expected_cs[] = {0x00, 0x3C};
 
     /* Verify collected cipher_suites size correct */
     EXPECT_EQUAL(client_hello->cipher_suites.size, sizeof(expected_cs));

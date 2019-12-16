@@ -15,14 +15,13 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <openssl/crypto.h>
+#include <openssl/err.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-
-#include <openssl/crypto.h>
-#include <openssl/err.h>
 
 #include "api/s2n.h"
 #include "s2n_test.h"
@@ -133,7 +132,8 @@ static char dhparams[] =
 
 static int MAX_NEGOTIATION_ATTEMPTS = 10;
 
-int buffer_read(void *io_context, uint8_t *buf, uint32_t len) {
+int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
+{
     struct s2n_stuffer *in_buf;
     int n_read, n_avail;
 
@@ -141,7 +141,7 @@ int buffer_read(void *io_context, uint8_t *buf, uint32_t len) {
         return 0;
     }
 
-    in_buf = (struct s2n_stuffer *)io_context;
+    in_buf = (struct s2n_stuffer *) io_context;
     if (in_buf == NULL) {
         errno = EINVAL;
         return -1;
@@ -160,18 +160,21 @@ int buffer_read(void *io_context, uint8_t *buf, uint32_t len) {
     return n_read;
 }
 
-int buffer_write(void *io_context, const uint8_t *buf, uint32_t len) {
+int buffer_write(void *io_context, const uint8_t *buf, uint32_t len)
+{
     return len;
 }
 
 static struct s2n_config *server_config;
 
-static void s2n_server_fuzz_atexit() {
+static void s2n_server_fuzz_atexit()
+{
     s2n_config_free(server_config);
     s2n_cleanup();
 }
 
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len) {
+int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
+{
 #ifdef S2N_TEST_IN_FIPS_MODE
     S2N_TEST_ENTER_FIPS_MODE();
 #endif
@@ -187,7 +190,8 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len) {
     return 0;
 }
 
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
+int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
+{
     if (len < S2N_TLS_RECORD_HEADER_LENGTH) {
         return 0;
     }

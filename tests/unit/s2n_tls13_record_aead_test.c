@@ -13,12 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include <s2n.h>
 #include <stdio.h>
 #include <string.h>
 
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_suites.h"
@@ -95,7 +94,8 @@ const char plaintext_record_hex[] =
     "00209b9b141d906337fbd2cbdce71df4deda4ab42c"
     "309572cb7fffee5454b78f071816"; /* includes last byte for content type */
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
 
     /* Test s2n_tls13_aead_aad_init() */
@@ -130,7 +130,7 @@ int main(int argc, char **argv) {
     /* Test s2n_tls13_aes_128_gcm_sha256 cipher suite with TLS 1.3 test vectors */
     {
         struct s2n_connection *conn;
-        struct s2n_session_key session_key = { 0 };
+        struct s2n_session_key session_key = {0};
         EXPECT_SUCCESS(s2n_session_key_alloc(&session_key));
 
         struct s2n_cipher_suite *cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
@@ -293,7 +293,7 @@ int main(int argc, char **argv) {
         EXPECT_EQUAL((conn->out.blob.data[3] << 8) + conn->out.blob.data[4], protected_record.size);
 
         /* Make a slice of output bytes to verify */
-        struct s2n_blob out = { .data = &conn->out.blob.data[S2N_TLS13_AAD_LEN], .size = protected_record.size };
+        struct s2n_blob out = {.data = &conn->out.blob.data[S2N_TLS13_AAD_LEN], .size = protected_record.size};
 
         S2N_BLOB_EXPECT_EQUAL(out, protected_record);
 
@@ -329,7 +329,7 @@ int main(int argc, char **argv) {
         S2N_BLOB_LABEL(expect_plaintext, "Hello world");
 
         static uint8_t hello_data[] = "Hello world";
-        struct s2n_blob plaintext   = { .data = hello_data, .size = sizeof(hello_data) - 1 };
+        struct s2n_blob plaintext   = {.data = hello_data, .size = sizeof(hello_data) - 1};
 
         /* Takes an input blob and writes to out stuffer then encrypt the payload */
         EXPECT_SUCCESS(s2n_record_write(conn, TLS_HANDSHAKE, &plaintext));
@@ -344,7 +344,7 @@ int main(int argc, char **argv) {
         ;
 
         /* Make a slice of output bytes to verify */
-        struct s2n_blob encrypted = { .data = &conn->in.blob.data[0], .size = plaintext.size + 16 + 1 };
+        struct s2n_blob encrypted = {.data = &conn->in.blob.data[0], .size = plaintext.size + 16 + 1};
 
         /* Decrypt payload */
         EXPECT_SUCCESS(s2n_record_parse_aead(
@@ -357,7 +357,7 @@ int main(int argc, char **argv) {
             conn->secure.client_sequence_number,
             session_key));
 
-        struct s2n_blob decrypted = { .data = &conn->in.blob.data[0], .size = expect_plaintext.size };
+        struct s2n_blob decrypted = {.data = &conn->in.blob.data[0], .size = expect_plaintext.size};
 
         /* Verify decrypted payload */
         S2N_BLOB_EXPECT_EQUAL(decrypted, expect_plaintext);
@@ -367,7 +367,7 @@ int main(int argc, char **argv) {
 
     /* Test that CCS in TLS 1.3 modes should be sent without encryption */
     {
-        s2n_mode modes[] = { S2N_SERVER, S2N_CLIENT };
+        s2n_mode modes[] = {S2N_SERVER, S2N_CLIENT};
         for (int m = 0; m < s2n_array_len(modes); m++) {
             struct s2n_connection *conn;
             struct s2n_cipher_suite *cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
@@ -397,8 +397,8 @@ int main(int argc, char **argv) {
             /* Test parsing of tls 1.3 aead record */
             S2N_BLOB_FROM_HEX(plaintext_record, plaintext_record_hex);
 
-            uint8_t change_cipher_spec[] = { 1 };
-            struct s2n_blob in           = { .data = change_cipher_spec, .size = sizeof(change_cipher_spec) };
+            uint8_t change_cipher_spec[] = {1};
+            struct s2n_blob in           = {.data = change_cipher_spec, .size = sizeof(change_cipher_spec)};
 
             /* Takes an input blob and writes to out stuffer then encrypt the payload */
             EXPECT_SUCCESS(s2n_record_write(conn, TLS_CHANGE_CIPHER_SPEC, &in));

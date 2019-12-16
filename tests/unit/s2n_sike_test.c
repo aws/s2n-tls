@@ -17,9 +17,10 @@
 #include "pq-crypto/sike_r1/sike_p503_r1_kem.h"
 #include "s2n_test.h"
 
-int main(int argc, char **argv) {
-    unsigned char pub_key[SIKE_P503_r1_PUBLIC_KEY_BYTES]  = { 0 };
-    unsigned char priv_key[SIKE_P503_r1_SECRET_KEY_BYTES] = { 0 };
+int main(int argc, char **argv)
+{
+    unsigned char pub_key[SIKE_P503_r1_PUBLIC_KEY_BYTES]  = {0};
+    unsigned char priv_key[SIKE_P503_r1_SECRET_KEY_BYTES] = {0};
     unsigned char c_shared_secret[SIKE_P503_r1_SHARED_SECRET_BYTES];
     unsigned char s_shared_secret[SIKE_P503_r1_SHARED_SECRET_BYTES];
     unsigned char ciphertext[SIKE_P503_r1_CIPHERTEXT_BYTES];

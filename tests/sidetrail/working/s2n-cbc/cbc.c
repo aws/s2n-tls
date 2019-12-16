@@ -13,21 +13,20 @@
  * permissions and limitations under the License.
  */
 
+#include <smack-contracts.h>
+#include <smack.h>
 #include <stdint.h>
 #include <sys/param.h>
 
 #include "crypto/s2n_hmac.h"
-
+#include "ct-verif.h"
+#include "sidetrail.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_prf.h"
 #include "tls/s2n_record.h"
 
-#include <smack-contracts.h>
-#include <smack.h>
-#include "ct-verif.h"
-#include "sidetrail.h"
-
-int simple_cbc_wrapper(int currently_in_hash_block, int mlocked, int size, int *xor_pad, int *digest_pad) {
+int simple_cbc_wrapper(int currently_in_hash_block, int mlocked, int size, int *xor_pad, int *digest_pad)
+{
     /* Even after code balancing, there is a small remaining leakage, because s2n forces an extra hash-compression
      * round by copying an extra hash block's worth of data into the hash.  This has extra cost of memcopy one
      * hash block (of data already in cache).  This could potentially be reduced by finding a better way to trigger
@@ -42,25 +41,25 @@ int simple_cbc_wrapper(int currently_in_hash_block, int mlocked, int size, int *
 
     public_in(__SMACK_value(mlocked));
 
-    struct s2n_hmac_state hmac = { .alg                                    = S2N_HMAC_SHA1,
-                                   .hash_block_size                        = BLOCK_SIZE,
-                                   .currently_in_hash_block                = 0,
-                                   .digest_size                            = SHA_DIGEST_LENGTH,
-                                   .xor_pad_size                           = BLOCK_SIZE,
-                                   .inner.alg                              = S2N_HASH_SHA1,
-                                   .inner.currently_in_hash_block          = 0,
-                                   .inner_just_key.alg                     = S2N_HASH_SHA1,
-                                   .inner_just_key.currently_in_hash_block = 0,
-                                   .outer.alg                              = S2N_HASH_SHA1,
-                                   .outer.currently_in_hash_block          = 0,
-                                   .outer_just_key.alg                     = S2N_HASH_SHA1,
-                                   .outer_just_key.currently_in_hash_block = 0,
-                                   .xor_pad                                = *xor_pad,
-                                   // xor_pad is an array
-                                   .digest_pad = *digest_pad };
+    struct s2n_hmac_state hmac = {.alg                                    = S2N_HMAC_SHA1,
+                                  .hash_block_size                        = BLOCK_SIZE,
+                                  .currently_in_hash_block                = 0,
+                                  .digest_size                            = SHA_DIGEST_LENGTH,
+                                  .xor_pad_size                           = BLOCK_SIZE,
+                                  .inner.alg                              = S2N_HASH_SHA1,
+                                  .inner.currently_in_hash_block          = 0,
+                                  .inner_just_key.alg                     = S2N_HASH_SHA1,
+                                  .inner_just_key.currently_in_hash_block = 0,
+                                  .outer.alg                              = S2N_HASH_SHA1,
+                                  .outer.currently_in_hash_block          = 0,
+                                  .outer_just_key.alg                     = S2N_HASH_SHA1,
+                                  .outer_just_key.currently_in_hash_block = 0,
+                                  .xor_pad                                = *xor_pad,
+                                  // xor_pad is an array
+                                  .digest_pad = *digest_pad};
 
     struct s2n_crypto_parameters client;
-    struct s2n_connection conn = { .client = &client, .mode = S2N_SERVER };
+    struct s2n_connection conn = {.client = &client, .mode = S2N_SERVER};
 
     /* Data represents the decrypted data handed to the process.
      * Intentionally left non-deterministic so that the proof can handle all possible values in the buffer
@@ -71,7 +70,7 @@ int simple_cbc_wrapper(int currently_in_hash_block, int mlocked, int size, int *
     __VERIFIER_assume(size >= 0);
     __VERIFIER_assume(size <= MAX_SIZE);
 
-    struct s2n_blob decrypted = { .data = data, .size = size, .allocated = 1, .mlocked = mlocked };
+    struct s2n_blob decrypted = {.data = data, .size = size, .allocated = 1, .mlocked = mlocked};
 
     return s2n_verify_cbc(&conn, &hmac, &decrypted);
 }

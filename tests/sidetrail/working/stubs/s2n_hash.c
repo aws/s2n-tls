@@ -14,14 +14,17 @@
  */
 
 #include "s2n_hash.h"
+
 #include <smack.h>
 #include <stdint.h>
 #include <stdlib.h>
+
 #include "../error/s2n_errno.h"
 #include "../sidetrail.h"
 #include "ct-verif.h"
 
-int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out) {
+int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
+{
     switch (alg) {
         case S2N_HASH_NONE: *out = 0; break;
         case S2N_HASH_MD5: *out = MD5_DIGEST_LENGTH; break;
@@ -36,18 +39,21 @@ int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out) {
     return 0;
 }
 
-int s2n_hash_new(struct s2n_hash_state *state) {
+int s2n_hash_new(struct s2n_hash_state *state)
+{
     return SUCCESS;
 }
 
-int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg) {
+int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
+{
     __VERIFIER_ASSUME_LEAKAGE(0);
     state->alg                     = alg;
     state->currently_in_hash_block = 0;
     return SUCCESS;
 }
 
-int num_blocks(int numBytes) {
+int num_blocks(int numBytes)
+{
     /* Using div and mod directly in the stubs turned out to have significant runtime cost
      * because the backend SMT solver does not handle these non-linear operations well.
      * Instead, hardcode the div function.
@@ -81,7 +87,8 @@ int num_blocks(int numBytes) {
     __VERIFIER_assert(0); /* Unreachable */
 }
 
-int s2n_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size) {
+int s2n_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size)
+{
     /* The __VERIFIER_assert statements give better performance but don't add to our current spec.
      * In particular, Boogie is bad about reestablishing invariants on values that have been put
      * into memory, then read back out. Adding the asserts triggers Boogie to relearn the
@@ -111,7 +118,8 @@ int s2n_hash_update(struct s2n_hash_state *state, const void *data, uint32_t siz
     return SUCCESS;
 }
 
-int s2n_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size) {
+int s2n_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size)
+{
     __VERIFIER_ASSUME_LEAKAGE(0);
     /* All the leakage comes from the hash_update we do once we've updated the size fields */
 
@@ -132,24 +140,28 @@ int s2n_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size) {
     return SUCCESS;
 }
 
-int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from) {
+int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from)
+{
     __VERIFIER_ASSUME_LEAKAGE(0);
     to->alg                     = from->alg;
     to->currently_in_hash_block = from->currently_in_hash_block;
     return SUCCESS;
 }
 
-int s2n_hash_reset(struct s2n_hash_state *state) {
+int s2n_hash_reset(struct s2n_hash_state *state)
+{
     __VERIFIER_ASSUME_LEAKAGE(0);
     state->currently_in_hash_block = 0;
     return SUCCESS;
 }
 
-int s2n_hash_free(struct s2n_hash_state *state) {
+int s2n_hash_free(struct s2n_hash_state *state)
+{
     return SUCCESS;
 }
 
-int s2n_hash_get_currently_in_hash_total(struct s2n_hash_state *state, uint64_t *out) {
+int s2n_hash_get_currently_in_hash_total(struct s2n_hash_state *state, uint64_t *out)
+{
     *out = state->currently_in_hash_block;
     return SUCCESS;
 }

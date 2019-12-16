@@ -13,17 +13,15 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
 #include <fcntl.h>
+#include <s2n.h>
 #include <stdint.h>
 #include <sys/wait.h>
+#include <tls/s2n_connection.h>
 #include <unistd.h>
 
-#include <s2n.h>
-#include <tls/s2n_connection.h>
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 
 struct client_hello_context {
     int invoked;
@@ -31,13 +29,14 @@ struct client_hello_context {
     struct s2n_config *config;
 };
 
-int mock_client(int writefd, int readfd, int expect_failure, int expect_server_name_used) {
+int mock_client(int writefd, int readfd, int expect_failure, int expect_server_name_used)
+{
     struct s2n_connection *conn;
     struct s2n_config *config;
     s2n_blocked_status blocked;
     int result              = 0;
     int rc                  = 0;
-    const char *protocols[] = { "h2", "http/1.1" };
+    const char *protocols[] = {"h2", "http/1.1"};
 
     /* Give the server a chance to listen */
     sleep(1);
@@ -95,7 +94,8 @@ int mock_client(int writefd, int readfd, int expect_failure, int expect_server_n
     _exit(result);
 }
 
-int client_hello_swap_config(struct s2n_connection *conn, void *ctx) {
+int client_hello_swap_config(struct s2n_connection *conn, void *ctx)
+{
     struct client_hello_context *client_hello_ctx;
     struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(conn);
     const char *sent_server_name          = "example.com";
@@ -110,27 +110,26 @@ int client_hello_swap_config(struct s2n_connection *conn, void *ctx) {
     client_hello_ctx->invoked++;
 
     /* Validate SNI extension */
-    uint8_t expected_server_name[] = { /* Server names len */
-                                       0x00,
-                                       0x0E,
-                                       /* Server name type - host name */
-                                       0x00,
-                                       /* First server name len */
-                                       0x00,
-                                       0x0B,
-                                       /* First server name, matches sent_server_name */
-                                       'e',
-                                       'x',
-                                       'a',
-                                       'm',
-                                       'p',
-                                       'l',
-                                       'e',
-                                       '.',
-                                       'c',
-                                       'o',
-                                       'm'
-    };
+    uint8_t expected_server_name[] = {/* Server names len */
+                                      0x00,
+                                      0x0E,
+                                      /* Server name type - host name */
+                                      0x00,
+                                      /* First server name len */
+                                      0x00,
+                                      0x0B,
+                                      /* First server name, matches sent_server_name */
+                                      'e',
+                                      'x',
+                                      'a',
+                                      'm',
+                                      'p',
+                                      'l',
+                                      'e',
+                                      '.',
+                                      'c',
+                                      'o',
+                                      'm'};
 
     /* Get SNI extension from client hello */
     uint32_t len = s2n_client_hello_get_extension_length(client_hello, S2N_EXTENSION_SERVER_NAME);
@@ -138,7 +137,7 @@ int client_hello_swap_config(struct s2n_connection *conn, void *ctx) {
         return -1;
     }
 
-    uint8_t ser_name[16] = { 0 };
+    uint8_t ser_name[16] = {0};
     if (s2n_client_hello_get_extension_by_id(client_hello, S2N_EXTENSION_SERVER_NAME, ser_name, len) <= 0) {
         return -1;
     }
@@ -161,7 +160,8 @@ int client_hello_swap_config(struct s2n_connection *conn, void *ctx) {
     return 0;
 }
 
-int client_hello_fail_handshake(struct s2n_connection *conn, void *ctx) {
+int client_hello_fail_handshake(struct s2n_connection *conn, void *ctx)
+{
     struct client_hello_context *client_hello_ctx;
 
     if (ctx == NULL) {
@@ -176,7 +176,8 @@ int client_hello_fail_handshake(struct s2n_connection *conn, void *ctx) {
     return -1;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     char buffer[0xffff];
     struct s2n_connection *conn;
     struct s2n_config *config;
@@ -210,7 +211,7 @@ int main(int argc, char **argv) {
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(swap_config, chain_and_key));
 
     /* Add application protocols to swapped config */
-    const char *protocols[] = { "h2" };
+    const char *protocols[] = {"h2"};
     EXPECT_SUCCESS(s2n_config_set_protocol_preferences(swap_config, protocols, 1));
 
     /* Prepare context */

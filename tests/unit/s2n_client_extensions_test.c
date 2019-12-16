@@ -13,18 +13,15 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
 #include <errno.h>
 #include <fcntl.h>
+#include <s2n.h>
 #include <stdint.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include <s2n.h>
-
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_kem.h"
@@ -127,11 +124,12 @@ static uint8_t server_ocsp_status[] = {
    to return correctly what has been configured.  Once the client does
    validation we will need real data here.
  */
-static uint8_t sct_list[] = { 0xff, 0xff, 0xff, 0xff, 0xff };
+static uint8_t sct_list[] = {0xff, 0xff, 0xff, 0xff, 0xff};
 
 extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     int server_to_client[2];
     int client_to_server[2];
     char *cert_chain;

@@ -14,13 +14,14 @@
  */
 
 #include <string.h>
-#include "s2n_test.h"
 
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_random.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     char c;
     struct s2n_stuffer stuffer, token;
     struct s2n_blob pad_blob, token_blob;
@@ -35,9 +36,9 @@ int main(int argc, char **argv) {
     /* Check whitespace reading */
     {
         /* Create a stuffer */
-        EXPECT_SUCCESS(s2n_blob_init(&token_blob, (uint8_t *)tokenpad, sizeof(tokenpad)));
+        EXPECT_SUCCESS(s2n_blob_init(&token_blob, (uint8_t *) tokenpad, sizeof(tokenpad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&token, &token_blob));
-        EXPECT_SUCCESS(s2n_blob_init(&pad_blob, (uint8_t *)pad, sizeof(pad)));
+        EXPECT_SUCCESS(s2n_blob_init(&pad_blob, (uint8_t *) pad, sizeof(pad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &pad_blob));
         EXPECT_SUCCESS(s2n_stuffer_write_text(&stuffer, text, sizeof(text)));
 
@@ -66,9 +67,9 @@ int main(int argc, char **argv) {
     /* Check read_until, rewinding, and expecting */
     {
         /* Create a stuffer */
-        EXPECT_SUCCESS(s2n_blob_init(&token_blob, (uint8_t *)tokenpad, sizeof(tokenpad)));
+        EXPECT_SUCCESS(s2n_blob_init(&token_blob, (uint8_t *) tokenpad, sizeof(tokenpad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&token, &token_blob));
-        EXPECT_SUCCESS(s2n_blob_init(&pad_blob, (uint8_t *)pad, sizeof(pad)));
+        EXPECT_SUCCESS(s2n_blob_init(&pad_blob, (uint8_t *) pad, sizeof(pad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &pad_blob));
         EXPECT_SUCCESS(s2n_stuffer_write_text(&stuffer, text, sizeof(text)));
 
@@ -109,14 +110,14 @@ int main(int argc, char **argv) {
 
     /* Check line reading */
     {
-        struct s2n_blob line_blob = { 0 };
+        struct s2n_blob line_blob = {0};
         struct s2n_stuffer lstuffer;
         char lf_line[]             = "a LF terminated line\n";
         char crlf_line[]           = "a CRLF terminated line\r\n";
         char lf_line_trailing_cr[] = "a LF terminated line with trailing CR\n\r\r\r\r\r\r";
         char not_a_line[]          = "not a line";
 
-        EXPECT_SUCCESS(s2n_blob_init(&line_blob, (uint8_t *)lf_line, sizeof(lf_line)));
+        EXPECT_SUCCESS(s2n_blob_init(&line_blob, (uint8_t *) lf_line, sizeof(lf_line)));
         EXPECT_SUCCESS(s2n_stuffer_init(&lstuffer, &line_blob));
         EXPECT_SUCCESS(s2n_stuffer_write(&lstuffer, &line_blob));
         memset(pad, 0, sizeof(pad));
@@ -126,7 +127,7 @@ int main(int argc, char **argv) {
         EXPECT_EQUAL(strlen("a LF terminated line"), s2n_stuffer_data_available(&token));
         EXPECT_SUCCESS(memcmp("a LF terminated line", token.blob.data, s2n_stuffer_data_available(&token)));
 
-        EXPECT_SUCCESS(s2n_blob_init(&line_blob, (uint8_t *)crlf_line, sizeof(crlf_line)));
+        EXPECT_SUCCESS(s2n_blob_init(&line_blob, (uint8_t *) crlf_line, sizeof(crlf_line)));
         EXPECT_SUCCESS(s2n_stuffer_init(&lstuffer, &line_blob));
         EXPECT_SUCCESS(s2n_stuffer_write(&lstuffer, &line_blob));
         memset(pad, 0, sizeof(pad));
@@ -136,7 +137,7 @@ int main(int argc, char **argv) {
         EXPECT_EQUAL(strlen("a CRLF terminated line"), s2n_stuffer_data_available(&token));
         EXPECT_SUCCESS(memcmp("a CRLF terminated line", token.blob.data, s2n_stuffer_data_available(&token)));
 
-        EXPECT_SUCCESS(s2n_blob_init(&line_blob, (uint8_t *)lf_line_trailing_cr, sizeof(lf_line_trailing_cr)));
+        EXPECT_SUCCESS(s2n_blob_init(&line_blob, (uint8_t *) lf_line_trailing_cr, sizeof(lf_line_trailing_cr)));
         EXPECT_SUCCESS(s2n_stuffer_init(&lstuffer, &line_blob));
         EXPECT_SUCCESS(s2n_stuffer_write(&lstuffer, &line_blob));
         memset(pad, 0, sizeof(pad));
@@ -147,7 +148,7 @@ int main(int argc, char **argv) {
         EXPECT_SUCCESS(
             memcmp("a LF terminated line with trailing CR", token.blob.data, s2n_stuffer_data_available(&token)));
 
-        EXPECT_SUCCESS(s2n_blob_init(&line_blob, (uint8_t *)not_a_line, sizeof(not_a_line)));
+        EXPECT_SUCCESS(s2n_blob_init(&line_blob, (uint8_t *) not_a_line, sizeof(not_a_line)));
         EXPECT_SUCCESS(s2n_stuffer_init(&lstuffer, &line_blob));
         EXPECT_SUCCESS(s2n_stuffer_write(&lstuffer, &line_blob));
         memset(pad, 0, sizeof(pad));

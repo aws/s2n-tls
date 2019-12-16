@@ -13,21 +13,18 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "crypto/s2n_dhe.h"
-#include "crypto/s2n_drbg.h"
-#include "crypto/s2n_ecc.h"
-
-#include "utils/s2n_blob.h"
-#include "utils/s2n_random.h"
-#include "utils/s2n_safety.h"
-
 #include <openssl/dh.h>
 #include <openssl/engine.h>
 #include <s2n.h>
 
+#include "crypto/s2n_dhe.h"
+#include "crypto/s2n_drbg.h"
+#include "crypto/s2n_ecc.h"
+#include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+#include "utils/s2n_blob.h"
+#include "utils/s2n_random.h"
+#include "utils/s2n_safety.h"
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
 const char reference_entropy_hex[] =
@@ -88,12 +85,14 @@ const char expected_dhe_key_hex_2[] =
     "3d9f00f19b37d2";
 
 struct s2n_stuffer test_entropy;
-int s2n_entropy_generator(struct s2n_blob *blob) {
+int s2n_entropy_generator(struct s2n_blob *blob)
+{
     GUARD(s2n_stuffer_read(&test_entropy, blob));
     return 0;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     struct s2n_stuffer dhparams_in, dhparams_out;
     struct s2n_dh_params dh_params;
     struct s2n_blob b;
@@ -106,7 +105,7 @@ int main(int argc, char **argv) {
     EXPECT_EQUAL(s2n_get_private_random_bytes_used(), 0);
 
     /* Parse the DH params */
-    b.data = (uint8_t *)dhparams_pem;
+    b.data = (uint8_t *) dhparams_pem;
     b.size = strlen(dhparams_pem) + 1;
     EXPECT_SUCCESS(s2n_stuffer_alloc(&dhparams_in, b.size));
     EXPECT_SUCCESS(s2n_stuffer_alloc(&dhparams_out, b.size));
@@ -128,26 +127,26 @@ int main(int argc, char **argv) {
     /* Set s2n_random to use a new fixed DRBG to test that other known answer tests with s2n_random and OpenSSL are
      * deterministic */
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&test_entropy, reference_entropy_hex));
-    struct s2n_drbg drbg = { .entropy_generator = &s2n_entropy_generator };
+    struct s2n_drbg drbg = {.entropy_generator = &s2n_entropy_generator};
     s2n_stack_blob(personalization_string, 32, 32);
     EXPECT_SUCCESS(s2n_drbg_instantiate(&drbg, &personalization_string, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
     EXPECT_SUCCESS(s2n_set_private_drbg_for_test(drbg));
     /* Verify we switched to a new DRBG */
     EXPECT_EQUAL(s2n_get_private_random_bytes_used(), 0);
 
-    DEFER_CLEANUP(struct s2n_stuffer out_stuffer = { 0 }, s2n_stuffer_free);
-    struct s2n_blob out_blob = { 0 };
+    DEFER_CLEANUP(struct s2n_stuffer out_stuffer = {0}, s2n_stuffer_free);
+    struct s2n_blob out_blob = {0};
     EXPECT_SUCCESS(s2n_stuffer_alloc(&out_stuffer, 4096));
     GUARD(s2n_dh_generate_ephemeral_key(&dh_params));
     GUARD(s2n_dh_params_to_p_g_Ys(&dh_params, &out_stuffer, &out_blob));
 
     EXPECT_EQUAL(s2n_get_private_random_bytes_used(), 304);
 
-    DEFER_CLEANUP(struct s2n_stuffer dhe_key_1_stuffer = { 0 }, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer dhe_key_1_stuffer = {0}, s2n_stuffer_free);
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&dhe_key_1_stuffer, expected_dhe_key_hex_1));
     EXPECT_EQUAL(dhe_key_1_stuffer.blob.size, 519);
 
-    DEFER_CLEANUP(struct s2n_stuffer dhe_key_2_stuffer = { 0 }, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer dhe_key_2_stuffer = {0}, s2n_stuffer_free);
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&dhe_key_2_stuffer, expected_dhe_key_hex_2));
     EXPECT_EQUAL(dhe_key_2_stuffer.blob.size, 519);
 
@@ -168,7 +167,8 @@ int main(int argc, char **argv) {
 
 #else /* defined(OPENSSL_IS_BORINGSSL) */
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
 
     END_TEST();

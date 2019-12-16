@@ -13,15 +13,14 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include <s2n.h>
 
+#include "error/s2n_errno.h"
+#include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
-#include "error/s2n_errno.h"
-
-int main(void) {
+int main(void)
+{
     BEGIN_TEST();
 
     s2n_errno = S2N_ERR_OK;

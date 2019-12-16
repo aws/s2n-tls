@@ -13,18 +13,19 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
+#include "crypto/s2n_hash.h"
 
 #include <string.h>
 
 #include "crypto/s2n_fips.h"
-#include "crypto/s2n_hash.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     uint8_t digest_pad[64];
     uint8_t output_pad[128];
     uint8_t hello[]   = "Hello world!\n";
@@ -32,7 +33,7 @@ int main(int argc, char **argv) {
     uint8_t string2[] = "and String 2\n";
     struct s2n_stuffer output;
     struct s2n_hash_state hash, copy;
-    struct s2n_blob out = { .data = output_pad, .size = sizeof(output_pad) };
+    struct s2n_blob out = {.data = output_pad, .size = sizeof(output_pad)};
     uint64_t bytes_in_hash;
 
     BEGIN_TEST();
@@ -54,7 +55,7 @@ int main(int argc, char **argv) {
         EXPECT_SUCCESS(s2n_hash_get_currently_in_hash_total(&hash, &bytes_in_hash));
         EXPECT_EQUAL(bytes_in_hash, 0);
 
-        EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *)hello)));
+        EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *) hello)));
         EXPECT_TRUE(s2n_hash_is_ready_for_input(&hash));
         EXPECT_SUCCESS(s2n_hash_get_currently_in_hash_total(&hash, &bytes_in_hash));
         EXPECT_EQUAL(bytes_in_hash, 13);
@@ -86,7 +87,7 @@ int main(int argc, char **argv) {
     EXPECT_SUCCESS(s2n_hash_get_currently_in_hash_total(&hash, &bytes_in_hash));
     EXPECT_EQUAL(bytes_in_hash, 0);
 
-    EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *)hello)));
+    EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *) hello)));
     EXPECT_TRUE(s2n_hash_is_ready_for_input(&hash));
     EXPECT_SUCCESS(s2n_hash_get_currently_in_hash_total(&hash, &bytes_in_hash));
     EXPECT_EQUAL(bytes_in_hash, 13);
@@ -136,7 +137,7 @@ int main(int argc, char **argv) {
     EXPECT_EQUAL(bytes_in_hash, 0);
 
     /* Test that a multi-update works */
-    EXPECT_SUCCESS(s2n_hash_update(&hash, string1, strlen((char *)string1)));
+    EXPECT_SUCCESS(s2n_hash_update(&hash, string1, strlen((char *) string1)));
     EXPECT_TRUE(s2n_hash_is_ready_for_input(&hash));
     EXPECT_SUCCESS(s2n_hash_get_currently_in_hash_total(&hash, &bytes_in_hash));
     EXPECT_EQUAL(bytes_in_hash, 9);
@@ -150,7 +151,7 @@ int main(int argc, char **argv) {
     EXPECT_SUCCESS(s2n_hash_get_currently_in_hash_total(&hash, &bytes_in_hash));
     EXPECT_EQUAL(bytes_in_hash, 9);
 
-    EXPECT_SUCCESS(s2n_hash_update(&hash, string2, strlen((char *)string2)));
+    EXPECT_SUCCESS(s2n_hash_update(&hash, string2, strlen((char *) string2)));
     EXPECT_TRUE(s2n_hash_is_ready_for_input(&hash));
     EXPECT_SUCCESS(s2n_hash_get_currently_in_hash_total(&hash, &bytes_in_hash));
     EXPECT_EQUAL(bytes_in_hash, 22);
@@ -168,7 +169,7 @@ int main(int argc, char **argv) {
     EXPECT_EQUAL(memcmp(output_pad, "4afd618f797f0c6bd85b2035338bb26c62ab0dbc", 20 * 2), 0);
 
     /* Test that a copy-update works */
-    EXPECT_SUCCESS(s2n_hash_update(&copy, string2, strlen((char *)string2)));
+    EXPECT_SUCCESS(s2n_hash_update(&copy, string2, strlen((char *) string2)));
     EXPECT_TRUE(s2n_hash_is_ready_for_input(&copy));
     EXPECT_SUCCESS(s2n_hash_get_currently_in_hash_total(&copy, &bytes_in_hash));
     EXPECT_EQUAL(bytes_in_hash, 22);
@@ -203,7 +204,7 @@ int main(int argc, char **argv) {
     EXPECT_SUCCESS(s2n_hash_get_currently_in_hash_total(&hash, &bytes_in_hash));
     EXPECT_EQUAL(bytes_in_hash, 0);
 
-    EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *)hello)));
+    EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *) hello)));
     EXPECT_TRUE(s2n_hash_is_ready_for_input(&hash));
     EXPECT_SUCCESS(s2n_hash_get_currently_in_hash_total(&hash, &bytes_in_hash));
     EXPECT_EQUAL(bytes_in_hash, 13);
@@ -237,7 +238,7 @@ int main(int argc, char **argv) {
     EXPECT_SUCCESS(s2n_hash_get_currently_in_hash_total(&hash, &bytes_in_hash));
     EXPECT_EQUAL(bytes_in_hash, 0);
 
-    EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *)hello)));
+    EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *) hello)));
     EXPECT_TRUE(s2n_hash_is_ready_for_input(&hash));
     EXPECT_SUCCESS(s2n_hash_get_currently_in_hash_total(&hash, &bytes_in_hash));
     EXPECT_EQUAL(bytes_in_hash, 13);
@@ -268,7 +269,7 @@ int main(int argc, char **argv) {
     EXPECT_SUCCESS(s2n_hash_get_currently_in_hash_total(&hash, &bytes_in_hash));
     EXPECT_EQUAL(bytes_in_hash, 0);
 
-    EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *)hello)));
+    EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *) hello)));
     EXPECT_TRUE(s2n_hash_is_ready_for_input(&hash));
     EXPECT_SUCCESS(s2n_hash_get_currently_in_hash_total(&hash, &bytes_in_hash));
     EXPECT_EQUAL(bytes_in_hash, 13);
@@ -304,7 +305,7 @@ int main(int argc, char **argv) {
     EXPECT_SUCCESS(s2n_hash_get_currently_in_hash_total(&hash, &bytes_in_hash));
     EXPECT_EQUAL(bytes_in_hash, 0);
 
-    EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *)hello)));
+    EXPECT_SUCCESS(s2n_hash_update(&hash, hello, strlen((char *) hello)));
     EXPECT_TRUE(s2n_hash_is_ready_for_input(&hash));
     EXPECT_SUCCESS(s2n_hash_get_currently_in_hash_total(&hash, &bytes_in_hash));
     EXPECT_EQUAL(bytes_in_hash, 13);

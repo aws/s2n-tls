@@ -13,21 +13,20 @@
  * permissions and limitations under the License.
  */
 
-#include <s2n.h>
-#include "s2n_test.h"
-
 #include <fcntl.h>
+#include <s2n.h>
 #include <stdlib.h>
 
-#include "testlib/s2n_testlib.h"
-
 #include "crypto/s2n_fips.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
 
 static const int MAX_TRIES = 100;
 
-static int try_handshake(struct s2n_connection *server_conn, struct s2n_connection *client_conn) {
+static int try_handshake(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
+{
     int tries = 0;
     s2n_blocked_status client_blocked;
     s2n_blocked_status server_blocked;
@@ -50,7 +49,8 @@ static int try_handshake(struct s2n_connection *server_conn, struct s2n_connecti
     return 0;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     struct s2n_config *client_config;
     struct s2n_config *server_config;
     const struct s2n_cipher_preferences *default_cipher_preferences;

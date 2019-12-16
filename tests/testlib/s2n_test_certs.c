@@ -17,14 +17,12 @@
 #include <stdio.h>
 
 #include "error/s2n_errno.h"
-
 #include "stuffer/s2n_stuffer.h"
-
+#include "testlib/s2n_testlib.h"
 #include "utils/s2n_safety.h"
 
-#include "testlib/s2n_testlib.h"
-
-int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size) {
+int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size)
+{
     FILE *pem_file = fopen(pem_path, "rb");
     if (!pem_file) {
         S2N_ERROR(S2N_ERR_NULL);

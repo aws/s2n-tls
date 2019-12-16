@@ -17,7 +17,6 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 #include "utils/s2n_safety.h"
@@ -30,17 +29,20 @@ static message_type_t invalid_handshake[S2N_MAX_HANDSHAKE_LENGTH];
 static int expected_handler_called;
 static int unexpected_handler_called;
 
-static int s2n_test_handler(struct s2n_connection *conn) {
+static int s2n_test_handler(struct s2n_connection *conn)
+{
     unexpected_handler_called = 1;
     return 0;
 }
 
-static int s2n_test_expected_handler(struct s2n_connection *conn) {
+static int s2n_test_expected_handler(struct s2n_connection *conn)
+{
     expected_handler_called = 1;
     return 0;
 }
 
-static int s2n_setup_handler_to_expect(message_type_t expected, uint8_t direction) {
+static int s2n_setup_handler_to_expect(message_type_t expected, uint8_t direction)
+{
     for (int i = 0; i < sizeof(tls13_state_machine) / sizeof(struct s2n_handshake_action); i++) {
         tls13_state_machine[i].handler[0] = s2n_test_handler;
         tls13_state_machine[i].handler[1] = s2n_test_handler;
@@ -54,7 +56,8 @@ static int s2n_setup_handler_to_expect(message_type_t expected, uint8_t directio
     return 0;
 }
 
-int s2n_write_ccs_message(struct s2n_stuffer *output) {
+int s2n_write_ccs_message(struct s2n_stuffer *output)
+{
     GUARD(s2n_stuffer_write_uint8(output, TLS_CHANGE_CIPHER_SPEC));
 
     /* TLS1.2 protocol version */
@@ -70,7 +73,8 @@ int s2n_write_ccs_message(struct s2n_stuffer *output) {
     return 0;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
 
     /* Construct an array of all valid tls1.2 handshake_types */

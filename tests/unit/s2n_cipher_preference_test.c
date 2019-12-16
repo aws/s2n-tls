@@ -14,10 +14,10 @@
  */
 
 #include "s2n_test.h"
-
 #include "tls/s2n_cipher_preferences.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
 
     const struct s2n_cipher_preferences *preferences = NULL;

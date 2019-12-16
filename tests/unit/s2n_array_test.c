@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 #include "utils/s2n_array.h"
+
 #include "s2n_test.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
@@ -25,12 +26,13 @@ struct array_element {
 
 #define NUM_OF_ELEMENTS 17
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     struct s2n_array *array;
     int element_size = sizeof(struct array_element);
 
     BEGIN_TEST();
-    struct array_element elements[NUM_OF_ELEMENTS] = { 0 };
+    struct array_element elements[NUM_OF_ELEMENTS] = {0};
 
     for (int i = 0; i < NUM_OF_ELEMENTS; i++) {
         elements[i].first  = i;

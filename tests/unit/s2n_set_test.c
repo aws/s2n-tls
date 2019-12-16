@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 #include "utils/s2n_set.h"
+
 #include "s2n_test.h"
 #include "utils/s2n_array.h"
 #include "utils/s2n_blob.h"
@@ -24,9 +25,10 @@ struct array_element {
     char second;
 };
 
-static int s2n_binary_search_comparator(const void *pa, const void *pb) {
-    const struct array_element *a = (const struct array_element *)pa;
-    const struct array_element *b = (const struct array_element *)pb;
+static int s2n_binary_search_comparator(const void *pa, const void *pb)
+{
+    const struct array_element *a = (const struct array_element *) pa;
+    const struct array_element *b = (const struct array_element *) pb;
 
     if (a->first > b->first) {
         return 1;
@@ -37,7 +39,8 @@ static int s2n_binary_search_comparator(const void *pa, const void *pb) {
     }
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     const int element_size = sizeof(struct array_element);
 
     BEGIN_TEST();
@@ -48,7 +51,7 @@ int main(int argc, char **argv) {
     EXPECT_EQUAL(s2n_set_size(set), 0);
     EXPECT_FAILURE(s2n_set_remove(set, 0));
 
-    struct array_element e1 = { .first = 1, .second = 'a' };
+    struct array_element e1 = {.first = 1, .second = 'a'};
     EXPECT_SUCCESS(s2n_set_add(set, &e1));
     EXPECT_EQUAL(s2n_set_size(set), 1);
     struct array_element *ep = NULL;
@@ -58,7 +61,7 @@ int main(int argc, char **argv) {
     EXPECT_NULL(s2n_set_get(set, 1));
 
     /* Insert an element that will go after */
-    struct array_element e2 = { .first = 10, .second = 'b' };
+    struct array_element e2 = {.first = 10, .second = 'b'};
     EXPECT_SUCCESS(s2n_set_add(set, &e2));
     EXPECT_EQUAL(s2n_set_size(set), 2);
     EXPECT_NOT_NULL(ep = s2n_set_get(set, 0));
@@ -70,7 +73,7 @@ int main(int argc, char **argv) {
     EXPECT_NULL(s2n_set_get(set, 2));
 
     /* insert an element to the middle */
-    struct array_element e3 = { .first = 5, .second = 'c' };
+    struct array_element e3 = {.first = 5, .second = 'c'};
     EXPECT_SUCCESS(s2n_set_add(set, &e3));
     EXPECT_EQUAL(s2n_set_size(set), 3);
     EXPECT_NOT_NULL(ep = s2n_set_get(set, 0));
@@ -85,7 +88,7 @@ int main(int argc, char **argv) {
     EXPECT_NULL(s2n_set_get(set, 3));
 
     /* insert an element at the front */
-    struct array_element e4 = { .first = 0, .second = 'd' };
+    struct array_element e4 = {.first = 0, .second = 'd'};
     EXPECT_SUCCESS(s2n_set_add(set, &e4));
     EXPECT_EQUAL(s2n_set_size(set), 4);
     EXPECT_NOT_NULL(ep = s2n_set_get(set, 0));
@@ -134,7 +137,7 @@ int main(int argc, char **argv) {
     EXPECT_NULL(s2n_set_get(set, 3));
 
     /* insert an element that already exists */
-    struct array_element e5 = { .first = 5, .second = 'e' };
+    struct array_element e5 = {.first = 5, .second = 'e'};
     EXPECT_FAILURE(s2n_set_add(set, &e5));
     EXPECT_EQUAL(s2n_set_size(set), 3);
     EXPECT_NOT_NULL(ep = s2n_set_get(set, 0));

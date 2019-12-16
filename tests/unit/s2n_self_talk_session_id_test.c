@@ -13,17 +13,14 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
+#include <errno.h>
+#include <s2n.h>
 #include <stdint.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include <errno.h>
-#include <s2n.h>
-
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 
@@ -49,7 +46,8 @@ int cache_store_callback(
     const void *key,
     uint64_t key_size,
     const void *value,
-    uint64_t value_size) {
+    uint64_t value_size)
+{
     struct session_cache_entry *cache = ctx;
 
     if (key_size == 0 || key_size > MAX_KEY_LEN) {
@@ -59,7 +57,7 @@ int cache_store_callback(
         return -1;
     }
 
-    uint8_t index = ((const uint8_t *)key)[0];
+    uint8_t index = ((const uint8_t *) key)[0];
 
     memcpy(cache[index].key, key, key_size);
     memcpy(cache[index].value, value, value_size);
@@ -71,14 +69,15 @@ int cache_store_callback(
 }
 
 int cache_retrieve_callback(
-    struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t *value_size) {
+    struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t *value_size)
+{
     struct session_cache_entry *cache = ctx;
 
     if (key_size == 0 || key_size > MAX_KEY_LEN) {
         return -1;
     }
 
-    uint8_t index = ((const uint8_t *)key)[0];
+    uint8_t index = ((const uint8_t *) key)[0];
 
     if (cache[index].key_len != key_size) {
         return -1;
@@ -98,14 +97,15 @@ int cache_retrieve_callback(
     return 0;
 }
 
-int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size) {
+int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size)
+{
     struct session_cache_entry *cache = ctx;
 
     if (key_size == 0 || key_size > MAX_KEY_LEN) {
         return -1;
     }
 
-    uint8_t index = ((const uint8_t *)key)[0];
+    uint8_t index = ((const uint8_t *) key)[0];
 
     if (cache[index].key_len != key_size) {
         return -1;
@@ -121,9 +121,10 @@ int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *ke
     return 0;
 }
 
-void mock_client(int writefd, int readfd) {
+void mock_client(int writefd, int readfd)
+{
     size_t serialized_session_state_length = 0;
-    uint8_t serialized_session_state[256]  = { 0 };
+    uint8_t serialized_session_state[256]  = {0};
 
     struct s2n_connection *conn;
     struct s2n_config *config;
@@ -266,7 +267,8 @@ void mock_client(int writefd, int readfd) {
     _exit(result);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     struct s2n_connection *conn;
     struct s2n_config *config;
     s2n_blocked_status blocked;

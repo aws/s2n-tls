@@ -13,31 +13,30 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
+#include <s2n.h>
 #include <stdio.h>
 #include <string.h>
 
-#include <s2n.h>
-
-#include "testlib/s2n_testlib.h"
-
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_hmac.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_prf.h"
 #include "tls/s2n_record.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
-static int destroy_server_keys(struct s2n_connection *server_conn) {
+static int destroy_server_keys(struct s2n_connection *server_conn)
+{
     GUARD(server_conn->initial.cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial.server_key));
     GUARD(server_conn->initial.cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial.client_key));
     return 0;
 }
 
-static int setup_server_keys(struct s2n_connection *server_conn, struct s2n_blob *key) {
+static int setup_server_keys(struct s2n_connection *server_conn, struct s2n_blob *key)
+{
     GUARD(server_conn->initial.cipher_suite->record_alg->cipher->init(&server_conn->initial.server_key));
     GUARD(server_conn->initial.cipher_suite->record_alg->cipher->init(&server_conn->initial.client_key));
     GUARD(server_conn->initial.cipher_suite->record_alg->cipher->set_encryption_key(
@@ -48,14 +47,15 @@ static int setup_server_keys(struct s2n_connection *server_conn, struct s2n_blob
     return 0;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     struct s2n_connection *conn;
     uint8_t random_data[S2N_SMALL_FRAGMENT_LENGTH + 1];
     uint8_t aes128_key[]   = "123456789012345";
     uint8_t aes256_key[]   = "1234567890123456789012345678901";
-    struct s2n_blob aes128 = { .data = aes128_key, .size = sizeof(aes128_key) };
-    struct s2n_blob aes256 = { .data = aes256_key, .size = sizeof(aes256_key) };
-    struct s2n_blob r      = { .data = random_data, .size = sizeof(random_data) };
+    struct s2n_blob aes128 = {.data = aes128_key, .size = sizeof(aes128_key)};
+    struct s2n_blob aes256 = {.data = aes256_key, .size = sizeof(aes256_key)};
+    struct s2n_blob r      = {.data = random_data, .size = sizeof(random_data)};
 
     BEGIN_TEST();
 
@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
 
     int max_fragment = S2N_SMALL_FRAGMENT_LENGTH;
     for (int i = 0; i < max_fragment; i++) {
-        struct s2n_blob in = { .data = random_data, .size = i };
+        struct s2n_blob in = {.data = random_data, .size = i};
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -255,7 +255,7 @@ int main(int argc, char **argv) {
     conn->actual_protocol_version = S2N_TLS12;
 
     for (int i = 0; i <= max_fragment + 1; i++) {
-        struct s2n_blob in = { .data = random_data, .size = i };
+        struct s2n_blob in = {.data = random_data, .size = i};
         int bytes_written;
 
         EXPECT_SUCCESS(s2n_connection_wipe(conn));

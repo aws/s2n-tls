@@ -13,18 +13,17 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include <s2n.h>
 #include <stdbool.h>
 #include <sys/wait.h>
 
+#include "s2n_test.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
 #define S2N_UNUSED(x) \
     do {              \
-        (void)x;      \
+        (void) x;     \
     } while (0)
 
 struct foo {
@@ -34,20 +33,23 @@ struct foo {
 
 int foo_cleanup_calls;
 
-void foo_free(struct foo *p) {
+void foo_free(struct foo *p)
+{
     foo_cleanup_calls++;
 }
 
 DEFINE_POINTER_CLEANUP_FUNC(struct foo *, foo_free);
 
-int check_cleanup_obj_on_fn_exit() {
-    DEFER_CLEANUP(struct foo x = { 0 }, foo_free);
+int check_cleanup_obj_on_fn_exit()
+{
+    DEFER_CLEANUP(struct foo x = {0}, foo_free);
     S2N_UNUSED(x);
     return 0;
 }
 
-int check_cleanup_pointer_on_fn_exit() {
-    struct foo thefoo = { 0 };
+int check_cleanup_pointer_on_fn_exit()
+{
+    struct foo thefoo = {0};
     DEFER_CLEANUP(struct foo *foop = &thefoo, foo_free_pointer);
     S2N_UNUSED(thefoo);
     S2N_UNUSED(foop);
@@ -55,20 +57,22 @@ int check_cleanup_pointer_on_fn_exit() {
 }
 
 /* check that our macros don't cleanup null objects */
-int check_dont_cleanup_null_on_fn_exit() {
+int check_dont_cleanup_null_on_fn_exit()
+{
     DEFER_CLEANUP(struct foo *foop = NULL, foo_free_pointer);
     S2N_UNUSED(foop);
     return 0;
 }
 
 /* This test checks that the compiler correctly implements deferred cleanup */
-int main() {
+int main()
+{
     BEGIN_TEST();
     int expected_cleanup_count = 0;
 
     /* check that the cleanup functions are called on each loop exit */
     for (int i = 0; i < 10; ++i) {
-        DEFER_CLEANUP(struct foo x = { i }, foo_free);
+        DEFER_CLEANUP(struct foo x = {i}, foo_free);
         S2N_UNUSED(x);
         EXPECT_EQUAL(foo_cleanup_calls, expected_cleanup_count);
         expected_cleanup_count++;

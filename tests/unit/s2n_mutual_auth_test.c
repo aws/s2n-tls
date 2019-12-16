@@ -14,13 +14,11 @@
  */
 
 #include <s2n.h>
-#include "s2n_test.h"
-
 #include <stdlib.h>
 
-#include "testlib/s2n_testlib.h"
-
 #include "crypto/s2n_fips.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
@@ -32,15 +30,17 @@ struct host_verify_data {
     uint8_t allow;
 };
 
-static uint8_t verify_host_fn(const char *host_name, size_t host_name_len, void *data) {
-    struct host_verify_data *verify_data = (struct host_verify_data *)data;
+static uint8_t verify_host_fn(const char *host_name, size_t host_name_len, void *data)
+{
+    struct host_verify_data *verify_data = (struct host_verify_data *) data;
     verify_data->callback_invoked        = 1;
     return verify_data->allow;
 }
 
 static const int MAX_TRIES = 100;
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     struct s2n_config *config;
     const struct s2n_cipher_preferences *default_cipher_preferences;
     char *cert_chain_pem;
@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
     EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
     EXPECT_NOT_NULL(default_cipher_preferences = config->cipher_preferences);
 
-    struct host_verify_data verify_data = { .allow = 1, .callback_invoked = 0 };
+    struct host_verify_data verify_data = {.allow = 1, .callback_invoked = 0};
     EXPECT_SUCCESS(s2n_config_set_verify_host_callback(config, verify_host_fn, &verify_data));
     EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 

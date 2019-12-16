@@ -20,16 +20,18 @@
 #include "utils/s2n_safety.h"
 
 #define SEED_LENGTH 48
-uint8_t kat_entropy_buff[SEED_LENGTH] = { 0 };
-struct s2n_blob kat_entropy_blob      = { .size = SEED_LENGTH, .data = kat_entropy_buff };
+uint8_t kat_entropy_buff[SEED_LENGTH] = {0};
+struct s2n_blob kat_entropy_blob      = {.size = SEED_LENGTH, .data = kat_entropy_buff};
 
-int kat_entropy(struct s2n_blob *blob) {
+int kat_entropy(struct s2n_blob *blob)
+{
     eq_check(blob->size, kat_entropy_blob.size);
     blob->data = kat_entropy_blob.data;
     return 0;
 }
 
-int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name) {
+int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name)
+{
     notnull_check(kem);
 
     FILE *kat_file = fopen(kat_file_name, "r");
@@ -62,7 +64,7 @@ int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name) 
 
         /* Set the NIST rng to the same state the response file was created with */
         GUARD(ReadHex(kat_file, kat_entropy_blob.data, SEED_LENGTH, "seed = "));
-        struct s2n_drbg kat_drbg = { .entropy_generator = kat_entropy };
+        struct s2n_drbg kat_drbg = {.entropy_generator = kat_entropy};
         GUARD(s2n_drbg_instantiate(&kat_drbg, &personalization_string, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
         GUARD(s2n_set_private_drbg_for_test(kat_drbg));
 

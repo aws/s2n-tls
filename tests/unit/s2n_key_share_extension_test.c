@@ -13,18 +13,17 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include <stdint.h>
 
-#include "tls/extensions/s2n_key_share.h"
-#include "tls/s2n_tls.h"
-
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
+#include "tls/extensions/s2n_key_share.h"
+#include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
 
     /* Test s2n_ecdhe_parameters_send write with valid ecc params */
@@ -52,8 +51,7 @@ int main(int argc, char **argv) {
         struct s2n_ecc_params ecc_params;
         const struct s2n_ecc_named_curve *good_curve = s2n_ecc_supported_curves[0];
         const struct s2n_ecc_named_curve curve       = {
-            .iana_id = 12345, .libcrypto_nid = 0, .name = good_curve->name, .share_size = good_curve->share_size
-        };
+            .iana_id = 12345, .libcrypto_nid = 0, .name = good_curve->name, .share_size = good_curve->share_size};
 
         ecc_params.negotiated_curve = &curve;
 

@@ -13,15 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
+#include <s2n.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include <s2n.h>
-
+#include "s2n_test.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 
@@ -33,7 +31,7 @@
     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, \
         0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
 
-static uint8_t zero_to_thirty_one[] = { ZERO_TO_THIRTY_ONE };
+static uint8_t zero_to_thirty_one[] = {ZERO_TO_THIRTY_ONE};
 
 static uint8_t server_hello_message[] = {
     /* SERVER HELLO */
@@ -62,8 +60,7 @@ static uint8_t server_hello_message[] = {
     0x3D,
 
     /* Compression method: none  */
-    0x00
-};
+    0x00};
 
 static uint8_t good_certificate_list[] = {
     /* SERVER CERT */
@@ -902,8 +899,7 @@ static uint8_t good_certificate_list[] = {
     0xcc,
     0xce,
     0xc0,
-    0x4b
-};
+    0x4b};
 
 static uint8_t empty_certificate_list[] = {
     /* SERVER CERT */
@@ -917,8 +913,7 @@ static uint8_t empty_certificate_list[] = {
     /* Length of all certificates */
     0x00,
     0x03,
-    0x00
-};
+    0x00};
 
 static uint8_t empty_certificate[] = {
     /* SERVER CERT */
@@ -937,8 +932,7 @@ static uint8_t empty_certificate[] = {
     /* Length of the first certificate */
     0x00,
     0x00,
-    0x00
-};
+    0x00};
 
 static uint8_t certificate_list_too_large[] = {
     /* SERVER CERT */
@@ -957,8 +951,7 @@ static uint8_t certificate_list_too_large[] = {
     /* Length the first certificate */
     0x00,
     0x00,
-    0x00
-};
+    0x00};
 
 static uint8_t certificate_too_large[] = {
     /* SERVER CERT */
@@ -977,14 +970,14 @@ static uint8_t certificate_too_large[] = {
     /* Length the first certificate */
     0x00,
     0x00,
-    0x10
-};
+    0x10};
 
 extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
 
 void send_messages(
-    int write_fd, uint8_t *server_hello, uint32_t server_hello_len, uint8_t *server_cert, uint32_t server_cert_len) {
-    uint8_t record_header[5] = { TLS_HANDSHAKE, 0x03, 0x03, (server_hello_len >> 8), server_hello_len & 0xff };
+    int write_fd, uint8_t *server_hello, uint32_t server_hello_len, uint8_t *server_cert, uint32_t server_cert_len)
+{
+    uint8_t record_header[5] = {TLS_HANDSHAKE, 0x03, 0x03, (server_hello_len >> 8), server_hello_len & 0xff};
 
     if (write(write_fd, record_header, 5) != 5) {
         _exit(100);
@@ -1009,7 +1002,8 @@ void send_messages(
     close(write_fd);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     struct s2n_connection *conn;
     struct s2n_config *config;
     s2n_blocked_status blocked;

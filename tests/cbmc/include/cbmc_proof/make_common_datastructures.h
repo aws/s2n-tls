@@ -16,6 +16,7 @@
 #pragma once
 
 #include <cbmc_proof/proof_allocators.h>
+
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
 

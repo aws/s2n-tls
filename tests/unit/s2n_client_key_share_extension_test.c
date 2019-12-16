@@ -13,19 +13,17 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include <stdint.h>
 
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_client_key_share.h"
 #include "tls/extensions/s2n_key_share.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
-
-#include "stuffer/s2n_stuffer.h"
-#include "testlib/s2n_testlib.h"
 #include "utils/s2n_safety.h"
 
 #define S2N_SIZE_OF_CLIENT_SHARE_SIZE 2
@@ -41,7 +39,8 @@ static int s2n_write_key_share(
     uint16_t share_size,
     const struct s2n_ecc_named_curve *existing_curve);
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
 
     /* Test that s2n_extensions_key_share_size produces the expected constant result */
@@ -68,8 +67,8 @@ int main(int argc, char **argv) {
     }
 
     /* Test s2n_extensions_key_share_send */
-    { /* Test that s2n_extensions_key_share_send initializes the client key share list */
-      { struct s2n_stuffer key_share_extension;
+    {/* Test that s2n_extensions_key_share_send initializes the client key share list */
+     {struct s2n_stuffer key_share_extension;
     struct s2n_connection *conn;
     EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(NULL)));
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
@@ -401,7 +400,8 @@ END_TEST();
 return 0;
 }
 
-static int s2n_test_rewrite_length(struct s2n_stuffer *stuffer) {
+static int s2n_test_rewrite_length(struct s2n_stuffer *stuffer)
+{
     notnull_check(stuffer);
 
     int length = s2n_stuffer_data_available(stuffer) - S2N_SIZE_OF_CLIENT_SHARE_SIZE;
@@ -411,23 +411,22 @@ static int s2n_test_rewrite_length(struct s2n_stuffer *stuffer) {
     return 0;
 }
 
-static int s2n_write_named_curve(struct s2n_stuffer *out, const struct s2n_ecc_named_curve *existing_curve) {
+static int s2n_write_named_curve(struct s2n_stuffer *out, const struct s2n_ecc_named_curve *existing_curve)
+{
     return s2n_write_key_share(out, existing_curve->iana_id, existing_curve->share_size, existing_curve);
 }
 
 static int s2n_write_key_share(
-    struct s2n_stuffer *out,
-    uint16_t iana_value,
-    uint16_t share_size,
-    const struct s2n_ecc_named_curve *existing_curve) {
+    struct s2n_stuffer *out, uint16_t iana_value, uint16_t share_size, const struct s2n_ecc_named_curve *existing_curve)
+{
     notnull_check(out);
     notnull_check(existing_curve);
 
     struct s2n_ecc_params ecc_params;
-    const struct s2n_ecc_named_curve test_curve = { .iana_id       = iana_value,
-                                                    .libcrypto_nid = existing_curve->libcrypto_nid,
-                                                    .name          = existing_curve->name,
-                                                    .share_size    = share_size };
+    const struct s2n_ecc_named_curve test_curve = {.iana_id       = iana_value,
+                                                   .libcrypto_nid = existing_curve->libcrypto_nid,
+                                                   .name          = existing_curve->name,
+                                                   .share_size    = share_size};
 
     ecc_params.negotiated_curve = &test_curve;
     GUARD(s2n_ecdhe_parameters_send(&ecc_params, out));

@@ -28,7 +28,8 @@ struct state {
 int traverse_handshakes(
     message_type_t hs_table[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_LENGTH],
     const char *version,
-    const char *destination) {
+    const char *destination)
+{
     FILE *out;
     char cmd[255];
     const char *dot = "dot -Tsvg > %s";
@@ -40,13 +41,13 @@ int traverse_handshakes(
         return 1;
     }
 
-    struct state states[MAX_STATE_TYPE] = { 0 };
+    struct state states[MAX_STATE_TYPE] = {0};
 
     /* generate struct for all states */
-    struct state initial = { .name = "INITIAL" };
+    struct state initial = {.name = "INITIAL"};
 
     for (int i = CLIENT_HELLO; i < MAX_STATE_TYPE; i++) {
-        struct state node = { .name = message_names[i] };
+        struct state node = {.name = message_names[i]};
         states[i]         = node;
     }
 
@@ -105,7 +106,8 @@ int traverse_handshakes(
  * document image directory.
  */
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     fprintf(stdout, "Generating graphs for s2n TLS state machine...\n");
     traverse_handshakes(handshakes, "1.2", "../../docs/images/tls12_state_machine.svg");
     traverse_handshakes(tls13_handshakes, "1.3", "../../docs/images/tls13_state_machine.svg");

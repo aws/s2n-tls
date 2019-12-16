@@ -13,21 +13,20 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
+#include "crypto/s2n_tls13_keys.h"
 
 #include <string.h>
 
-#include "stuffer/s2n_stuffer.h"
-#include "testlib/s2n_testlib.h"
-
 #include "crypto/s2n_hkdf.h"
 #include "crypto/s2n_hmac.h"
-#include "crypto/s2n_tls13_keys.h"
-
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     /* TLS 1.3 Test Vectors from https://tools.ietf.org/html/rfc8448 */
 
     S2N_BLOB_FROM_HEX(
@@ -163,7 +162,7 @@ int main(int argc, char **argv) {
 
     BEGIN_TEST();
 
-    DEFER_CLEANUP(struct s2n_tls13_keys secrets = { 0 }, s2n_tls13_keys_free);
+    DEFER_CLEANUP(struct s2n_tls13_keys secrets = {0}, s2n_tls13_keys_free);
 
     EXPECT_SUCCESS(s2n_tls13_keys_init(&secrets, S2N_HMAC_SHA256));
 

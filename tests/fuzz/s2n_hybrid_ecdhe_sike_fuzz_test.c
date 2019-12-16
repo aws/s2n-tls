@@ -29,7 +29,7 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
-static struct s2n_kem_keypair server_kem_keys = { .negotiated_kem = &s2n_sike_p503_r1 };
+static struct s2n_kem_keypair server_kem_keys = {.negotiated_kem = &s2n_sike_p503_r1};
 
 /* Setup the connection in a state for a fuzz test run, s2n_client_key_recv modifies the state of the connection
  * along the way and gets cleaned up at the end of each fuzz test.
@@ -37,7 +37,8 @@ static struct s2n_kem_keypair server_kem_keys = { .negotiated_kem = &s2n_sike_p5
  * - Connection needs a ecdhe key and a kem private key, this would normally be setup when the server calls
  * s2n_server_send_key
  * */
-static int setup_connection(struct s2n_connection *server_conn) {
+static int setup_connection(struct s2n_connection *server_conn)
+{
     server_conn->actual_protocol_version                   = S2N_TLS12;
     server_conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
     server_conn->secure.s2n_kem_keys.negotiated_kem        = &s2n_sike_p503_r1;
@@ -50,12 +51,14 @@ static int setup_connection(struct s2n_connection *server_conn) {
     return 0;
 }
 
-static void s2n_fuzz_atexit() {
+static void s2n_fuzz_atexit()
+{
     s2n_cleanup();
     s2n_kem_free(&server_kem_keys);
 }
 
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len) {
+int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
+{
     GUARD(s2n_init());
     GUARD(atexit(s2n_fuzz_atexit));
 
@@ -67,7 +70,8 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len) {
     return 0;
 }
 
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
+int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
+{
     struct s2n_connection *server_conn;
     notnull_check(server_conn = s2n_connection_new(S2N_SERVER));
     GUARD(setup_connection(server_conn));

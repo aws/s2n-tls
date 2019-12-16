@@ -13,20 +13,19 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include <stdint.h>
 
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_server_supported_versions.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
-
-#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
-int write_test_supported_version(struct s2n_stuffer *list, uint8_t supported_version) {
+int write_test_supported_version(struct s2n_stuffer *list, uint8_t supported_version)
+{
     GUARD(s2n_stuffer_write_uint8(list, S2N_TLS_PROTOCOL_VERSION_LEN));
 
     GUARD(s2n_stuffer_write_uint8(list, supported_version / 10));
@@ -35,7 +34,8 @@ int write_test_supported_version(struct s2n_stuffer *list, uint8_t supported_ver
     return 0;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
 
     EXPECT_SUCCESS(s2n_enable_tls13());

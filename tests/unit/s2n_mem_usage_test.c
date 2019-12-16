@@ -13,12 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
 #include <errno.h>
 #include <fcntl.h>
+#include <s2n.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <sys/param.h>
@@ -27,7 +24,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include <s2n.h>
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 
 /* The number of connection pairs to allocate before measuring memory
  * usage. The greater the value, the more accurate the end result. */
@@ -39,7 +37,8 @@
 /* This is the maximum  memory per conneciton including 4KB of slack */
 #define MAX_MEM_PER_CONNECTION (MEM_PER_CONNECTION + 4 * 1024)
 
-ssize_t get_vm_data_size() {
+ssize_t get_vm_data_size()
+{
 #ifdef __linux__
     long page_size;
     ssize_t size, resident, share, text, lib, data, dt;
@@ -63,7 +62,8 @@ ssize_t get_vm_data_size() {
 #endif
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     size_t connectionsToUse = MAX_CONNECTIONS;
 
     char *cert_chain;

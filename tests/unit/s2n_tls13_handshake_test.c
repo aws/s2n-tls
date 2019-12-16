@@ -13,31 +13,29 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
+#include "tls/s2n_tls13_handshake.h"
 
-#include "testlib/s2n_testlib.h"
-
+#include <s2n.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-#include <s2n.h>
-
 #include "crypto/s2n_fips.h"
-
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_client_key_share.h"
 #include "tls/extensions/s2n_server_key_share.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_tls13.h"
-#include "tls/s2n_tls13_handshake.h"
 #include "utils/s2n_safety.h"
 
 /* Just to get access to the static functions / variables we need to test */
 #include "tls/s2n_handshake_io.c"
 #include "tls/s2n_tls13_handshake.c"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
 
     /* Test: TLS 1.3 key and secrets generation is symmetrical */
@@ -86,8 +84,8 @@ int main(int argc, char **argv) {
             server_conn->secure.server_ecc_params.negotiated_curve,
             client_conn->secure.server_ecc_params.negotiated_curve);
 
-        DEFER_CLEANUP(struct s2n_blob server_shared_secret = { 0 }, s2n_free);
-        DEFER_CLEANUP(struct s2n_blob client_shared_secret = { 0 }, s2n_free);
+        DEFER_CLEANUP(struct s2n_blob server_shared_secret = {0}, s2n_free);
+        DEFER_CLEANUP(struct s2n_blob client_shared_secret = {0}, s2n_free);
 
         client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
         server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
@@ -219,7 +217,7 @@ int main(int argc, char **argv) {
     {
         S2N_BLOB_FROM_HEX(empty_secret, "0000000000000000000000000000000000000000000000000000000000000000");
 
-        s2n_mode modes[] = { S2N_CLIENT, S2N_SERVER };
+        s2n_mode modes[] = {S2N_CLIENT, S2N_SERVER};
 
         /* we ensure this works in both client and server modes */
         for (int m = 0; m < s2n_array_len(modes); m++) {
@@ -287,7 +285,7 @@ int main(int argc, char **argv) {
         S2N_BLOB_FROM_HEX(ref_seq, "0100000000000000");
         S2N_BLOB_FROM_HEX(reset_seq, "0000000000000000");
 
-        s2n_mode modes[] = { S2N_CLIENT, S2N_SERVER };
+        s2n_mode modes[] = {S2N_CLIENT, S2N_SERVER};
 
         /* we ensure this works in both client and server modes */
         for (int m = 0; m < s2n_array_len(modes); m++) {
@@ -310,10 +308,10 @@ int main(int argc, char **argv) {
                 EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&conn->secure.server_ecc_params));
                 EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&conn->secure.client_ecc_params[0]));
 
-                struct s2n_blob client_seq = { .data = conn->secure.client_sequence_number,
-                                               .size = sizeof(conn->secure.client_sequence_number) };
-                struct s2n_blob server_seq = { .data = conn->secure.server_sequence_number,
-                                               .size = sizeof(conn->secure.server_sequence_number) };
+                struct s2n_blob client_seq = {.data = conn->secure.client_sequence_number,
+                                              .size = sizeof(conn->secure.client_sequence_number)};
+                struct s2n_blob server_seq = {.data = conn->secure.server_sequence_number,
+                                              .size = sizeof(conn->secure.server_sequence_number)};
                 client_seq.data[0]         = 1;
                 server_seq.data[0]         = 1;
 
@@ -361,10 +359,10 @@ int main(int argc, char **argv) {
                 EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&conn->secure.server_ecc_params));
                 EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&conn->secure.client_ecc_params[0]));
 
-                struct s2n_blob client_seq = { .data = conn->secure.client_sequence_number,
-                                               .size = sizeof(conn->secure.client_sequence_number) };
-                struct s2n_blob server_seq = { .data = conn->secure.server_sequence_number,
-                                               .size = sizeof(conn->secure.server_sequence_number) };
+                struct s2n_blob client_seq = {.data = conn->secure.client_sequence_number,
+                                              .size = sizeof(conn->secure.client_sequence_number)};
+                struct s2n_blob server_seq = {.data = conn->secure.server_sequence_number,
+                                              .size = sizeof(conn->secure.server_sequence_number)};
                 client_seq.data[0]         = 1;
                 server_seq.data[0]         = 1;
 
@@ -415,8 +413,8 @@ int main(int argc, char **argv) {
         client_conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
         client_conn->handshake.message_number = CLIENT_HELLO;
 
-        struct s2n_blob server_seq = { .data = server_conn->secure.server_sequence_number,
-                                       .size = sizeof(server_conn->secure.server_sequence_number) };
+        struct s2n_blob server_seq = {.data = server_conn->secure.server_sequence_number,
+                                      .size = sizeof(server_conn->secure.server_sequence_number)};
         S2N_BLOB_FROM_HEX(seq_0, "0000000000000000");
         S2N_BLOB_FROM_HEX(seq_1, "0000000000000001");
 

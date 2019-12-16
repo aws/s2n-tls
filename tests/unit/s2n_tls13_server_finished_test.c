@@ -14,28 +14,28 @@
  */
 
 #include "s2n_test.h"
-
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
-static int reset_stuffers(struct s2n_stuffer *reread, struct s2n_stuffer *wipe) {
+static int reset_stuffers(struct s2n_stuffer *reread, struct s2n_stuffer *wipe)
+{
     GUARD(s2n_stuffer_reread(reread));
     GUARD(s2n_stuffer_wipe(wipe));
     return 0;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
 
     /* Test s2n_tls13_server_finished_send and s2n_tls13_server_finished_recv */
     {
-        struct s2n_cipher_suite cipher_suites[] = { s2n_tls13_aes_128_gcm_sha256,
-                                                    s2n_tls13_aes_256_gcm_sha384,
-                                                    s2n_tls13_chacha20_poly1305_sha256 };
+        struct s2n_cipher_suite cipher_suites[] = {
+            s2n_tls13_aes_128_gcm_sha256, s2n_tls13_aes_256_gcm_sha384, s2n_tls13_chacha20_poly1305_sha256};
 
-        int hash_sizes[] = { 32, 48, 32 };
+        int hash_sizes[] = {32, 48, 32};
 
         for (int i = 0; i < 3; i++) {
             struct s2n_connection *server_conn;

@@ -13,21 +13,19 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
 #include <s2n.h>
 
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
-
 #include "utils/s2n_safety.h"
 
 const uint8_t SESSION_ID_SIZE         = 1;
 const uint8_t COMPRESSION_METHOD_SIZE = 1;
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
 
     /* Test basic Server Hello Send */
@@ -111,10 +109,10 @@ int main(int argc, char **argv) {
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, S2N_TLS12 % 10));
 
         /* random payload */
-        uint8_t random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
+        uint8_t random[S2N_TLS_RANDOM_DATA_LEN] = {0};
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(io, random, S2N_TLS_RANDOM_DATA_LEN));
 
-        uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN] = { 0 };
+        uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN] = {0};
 
         /* generate matching session id for payload and client connection */
         for (int i = 0; i < 32; i++) {

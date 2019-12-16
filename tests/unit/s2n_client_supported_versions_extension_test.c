@@ -13,29 +13,29 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include <stdint.h>
 
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_client_supported_versions.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
-
-#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
 #define PROTOCOL_VERSION_ALERT 70
 
-int get_alert(struct s2n_connection *conn) {
+int get_alert(struct s2n_connection *conn)
+{
     uint8_t error[2];
     GUARD(s2n_stuffer_read_bytes(&conn->reader_alert_out, error, 2));
     return error[1];
 }
 
-int write_test_supported_versions_list(struct s2n_stuffer *list, uint8_t *supported_versions, uint8_t length) {
+int write_test_supported_versions_list(struct s2n_stuffer *list, uint8_t *supported_versions, uint8_t length)
+{
     GUARD(s2n_stuffer_write_uint8(list, length * S2N_TLS_PROTOCOL_VERSION_LEN));
 
     for (int i = 0; i < length; i++) {
@@ -46,7 +46,8 @@ int write_test_supported_versions_list(struct s2n_stuffer *list, uint8_t *suppor
     return 0;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
 
     EXPECT_SUCCESS(s2n_enable_tls13());
@@ -64,7 +65,7 @@ int main(int argc, char **argv) {
 
         int size_result = s2n_extensions_client_supported_versions_size(client_conn);
         EXPECT_NOT_EQUAL(size_result, -1);
-        uint16_t expected_length = (uint16_t)size_result;
+        uint16_t expected_length = (uint16_t) size_result;
 
         struct s2n_stuffer extension;
         s2n_stuffer_alloc(&extension, expected_length);
@@ -102,7 +103,7 @@ int main(int argc, char **argv) {
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
         uint8_t unsupported_client_version    = 255;
-        uint8_t supported_version_list[]      = { S2N_TLS11, S2N_TLS12, unsupported_client_version };
+        uint8_t supported_version_list[]      = {S2N_TLS11, S2N_TLS12, unsupported_client_version};
         uint8_t supported_version_list_length = sizeof(supported_version_list);
 
         struct s2n_stuffer extension;
@@ -126,7 +127,7 @@ int main(int argc, char **argv) {
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
-        uint8_t supported_version_list[]      = { S2N_UNKNOWN_PROTOCOL_VERSION };
+        uint8_t supported_version_list[]      = {S2N_UNKNOWN_PROTOCOL_VERSION};
         uint8_t supported_version_list_length = sizeof(supported_version_list);
 
         struct s2n_stuffer extension;

@@ -16,22 +16,26 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
-static int fetch_expired_after_ocsp_timestamp(void *data, uint64_t *timestamp) {
+static int fetch_expired_after_ocsp_timestamp(void *data, uint64_t *timestamp)
+{
     *timestamp = 7283958536000000000;
     return 0;
 }
 
-static int fetch_invalid_before_ocsp_timestamp(void *data, uint64_t *timestamp) {
+static int fetch_invalid_before_ocsp_timestamp(void *data, uint64_t *timestamp)
+{
     *timestamp = 1425019604000000000;
     return 0;
 }
 
-static int fetch_not_expired_ocsp_timestamp(void *data, uint64_t *timestamp) {
+static int fetch_not_expired_ocsp_timestamp(void *data, uint64_t *timestamp)
+{
     *timestamp = 1552824239000000000;
     return 0;
 }
 
-static uint32_t write_pem_file_to_stuffer_as_chain(struct s2n_stuffer *chain_out_stuffer, const char *pem_data) {
+static uint32_t write_pem_file_to_stuffer_as_chain(struct s2n_stuffer *chain_out_stuffer, const char *pem_data)
+{
     struct s2n_stuffer chain_in_stuffer, cert_stuffer;
     s2n_stuffer_alloc_ro_from_string(&chain_in_stuffer, pem_data);
     s2n_stuffer_growable_alloc(&cert_stuffer, 4096);
@@ -44,7 +48,7 @@ static uint32_t write_pem_file_to_stuffer_as_chain(struct s2n_stuffer *chain_out
         uint8_t *raw_cert_data = s2n_stuffer_raw_read(&cert_stuffer, cert_len);
 
         if (cert_len) {
-            struct s2n_blob cert_data = { .data = raw_cert_data, .size = cert_len };
+            struct s2n_blob cert_data = {.data = raw_cert_data, .size = cert_len};
             chain_size += cert_data.size + 3;
             s2n_stuffer_write_uint24(chain_out_stuffer, cert_data.size);
             s2n_stuffer_write(chain_out_stuffer, &cert_data);
@@ -56,7 +60,8 @@ static uint32_t write_pem_file_to_stuffer_as_chain(struct s2n_stuffer *chain_out
     return chain_size;
 }
 
-static int read_file(struct s2n_stuffer *file_output, const char *path, uint32_t max_len) {
+static int read_file(struct s2n_stuffer *file_output, const char *path, uint32_t max_len)
+{
     FILE *fd = fopen(path, "rb");
     s2n_stuffer_alloc(file_output, max_len);
 
@@ -64,7 +69,7 @@ static int read_file(struct s2n_stuffer *file_output, const char *path, uint32_t
         char data[1024];
         size_t r = 0;
         while ((r = fread(data, 1, sizeof(data), fd)) > 0) {
-            s2n_stuffer_write_bytes(file_output, (const uint8_t *)data, (const uint32_t)r);
+            s2n_stuffer_write_bytes(file_output, (const uint8_t *) data, (const uint32_t) r);
         }
         fclose(fd);
         return s2n_stuffer_data_available(file_output) > 0;
@@ -79,20 +84,23 @@ struct host_verify_data {
     uint8_t callback_invoked;
 };
 
-static uint8_t verify_host_reject_everything(const char *host_name, size_t host_name_len, void *data) {
-    struct host_verify_data *verify_data = (struct host_verify_data *)data;
+static uint8_t verify_host_reject_everything(const char *host_name, size_t host_name_len, void *data)
+{
+    struct host_verify_data *verify_data = (struct host_verify_data *) data;
     verify_data->callback_invoked        = 1;
     return 0;
 }
 
-static uint8_t verify_host_accept_everything(const char *host_name, size_t host_name_len, void *data) {
-    struct host_verify_data *verify_data = (struct host_verify_data *)data;
+static uint8_t verify_host_accept_everything(const char *host_name, size_t host_name_len, void *data)
+{
+    struct host_verify_data *verify_data = (struct host_verify_data *) data;
     verify_data->callback_invoked        = 1;
     return 1;
 }
 
-static uint8_t verify_host_verify_alt(const char *host_name, size_t host_name_len, void *data) {
-    struct host_verify_data *verify_data = (struct host_verify_data *)data;
+static uint8_t verify_host_verify_alt(const char *host_name, size_t host_name_len, void *data)
+{
+    struct host_verify_data *verify_data = (struct host_verify_data *) data;
 
     verify_data->callback_invoked = 1;
     if (!strcmp(host_name, verify_data->name)) {
@@ -103,7 +111,8 @@ static uint8_t verify_host_verify_alt(const char *host_name, size_t host_name_le
     return 0;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
 
     /* test empty trust store */
@@ -165,11 +174,11 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -192,11 +201,11 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         EXPECT_SUCCESS(s2n_x509_validator_set_max_chain_depth(&validator, 2));
         struct s2n_pkey public_key_out;
@@ -235,7 +244,7 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
 
         EXPECT_NOT_NULL(connection);
-        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        struct host_verify_data verify_data = {.callback_invoked = 0, .found_name = 0, .name = NULL};
         EXPECT_SUCCESS(
             s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
 
@@ -243,11 +252,11 @@ int main(int argc, char **argv) {
         s2n_x509_validator_init(&validator, &trust_store, 1);
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -276,16 +285,16 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
 
-        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        struct host_verify_data verify_data = {.callback_invoked = 0, .found_name = 0, .name = NULL};
         EXPECT_SUCCESS(
             s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -316,16 +325,16 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
 
-        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = "foo://bar" };
+        struct host_verify_data verify_data = {.callback_invoked = 0, .found_name = 0, .name = "foo://bar"};
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_verify_alt, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(
-            s2n_read_test_pem(S2N_RSA_2048_SHA256_URI_SANS_CERT, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+            s2n_read_test_pem(S2N_RSA_2048_SHA256_URI_SANS_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -363,16 +372,16 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
 
-        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        struct host_verify_data verify_data = {.callback_invoked = 0, .found_name = 0, .name = NULL};
         EXPECT_SUCCESS(
             s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -403,16 +412,16 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
 
-        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        struct host_verify_data verify_data = {.callback_invoked = 0, .found_name = 0, .name = NULL};
         EXPECT_SUCCESS(
             s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         EXPECT_SUCCESS(s2n_x509_validator_set_max_chain_depth(&validator, 2));
         struct s2n_pkey public_key_out;
@@ -444,16 +453,16 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
 
-        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        struct host_verify_data verify_data = {.callback_invoked = 0, .found_name = 0, .name = NULL};
         EXPECT_SUCCESS(
             s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
         s2n_config_set_wall_clock(connection->config, fetch_expired_after_ocsp_timestamp, NULL);
@@ -489,16 +498,16 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
 
-        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        struct host_verify_data verify_data = {.callback_invoked = 0, .found_name = 0, .name = NULL};
         EXPECT_SUCCESS(
             s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
         /* alter a random byte in the certificate to make it invalid */
         chain_data[500] = (uint8_t)(chain_data[500] << 2);
         struct s2n_pkey public_key_out;
@@ -537,11 +546,11 @@ int main(int argc, char **argv) {
             s2n_connection_set_verify_host_callback(connection, verify_host_reject_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -585,11 +594,11 @@ int main(int argc, char **argv) {
             s2n_connection_set_verify_host_callback(connection, verify_host_reject_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -625,11 +634,11 @@ int main(int argc, char **argv) {
             s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -676,11 +685,11 @@ int main(int argc, char **argv) {
             s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -721,11 +730,11 @@ int main(int argc, char **argv) {
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(
-            s2n_read_test_pem(S2N_RSA_2048_SHA256_CLIENT_CERT, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+            s2n_read_test_pem(S2N_RSA_2048_SHA256_CLIENT_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -769,11 +778,11 @@ int main(int argc, char **argv) {
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(
-            s2n_read_test_pem(S2N_RSA_2048_SHA256_CLIENT_CERT, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+            s2n_read_test_pem(S2N_RSA_2048_SHA256_CLIENT_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -817,11 +826,11 @@ int main(int argc, char **argv) {
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(
-            s2n_read_test_pem(S2N_RSA_2048_SHA256_NO_DNS_SANS_CERT, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+            s2n_read_test_pem(S2N_RSA_2048_SHA256_NO_DNS_SANS_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -854,16 +863,16 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
 
-        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        struct host_verify_data verify_data = {.callback_invoked = 0, .found_name = 0, .name = NULL};
         EXPECT_SUCCESS(
             s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -902,16 +911,16 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
 
-        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        struct host_verify_data verify_data = {.callback_invoked = 0, .found_name = 0, .name = NULL};
         EXPECT_SUCCESS(
             s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -962,16 +971,16 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
 
-        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        struct host_verify_data verify_data = {.callback_invoked = 0, .found_name = 0, .name = NULL};
         EXPECT_SUCCESS(
             s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -1015,11 +1024,11 @@ int main(int argc, char **argv) {
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(
-            s2n_read_test_pem(S2N_RSA_2048_SHA256_WILDCARD_CERT, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+            s2n_read_test_pem(S2N_RSA_2048_SHA256_WILDCARD_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -1054,11 +1063,11 @@ int main(int argc, char **argv) {
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(
-            s2n_read_test_pem(S2N_RSA_2048_SHA256_WILDCARD_CERT, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+            s2n_read_test_pem(S2N_RSA_2048_SHA256_WILDCARD_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -1093,11 +1102,11 @@ int main(int argc, char **argv) {
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(
-            s2n_read_test_pem(S2N_RSA_2048_SHA256_WILDCARD_CERT, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+            s2n_read_test_pem(S2N_RSA_2048_SHA256_WILDCARD_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -1129,11 +1138,11 @@ int main(int argc, char **argv) {
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(
-            s2n_read_test_pem(S2N_RSA_2048_SHA256_WILDCARD_CERT, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+            s2n_read_test_pem(S2N_RSA_2048_SHA256_WILDCARD_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -1163,16 +1172,16 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
 
-        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        struct host_verify_data verify_data = {.callback_invoked = 0, .found_name = 0, .name = NULL};
         EXPECT_SUCCESS(
             s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -1215,16 +1224,16 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
 
-        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        struct host_verify_data verify_data = {.callback_invoked = 0, .found_name = 0, .name = NULL};
         EXPECT_SUCCESS(
             s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -1269,16 +1278,16 @@ int main(int argc, char **argv) {
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
 
-        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        struct host_verify_data verify_data = {.callback_invoked = 0, .found_name = 0, .name = NULL};
         EXPECT_SUCCESS(
             s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
 
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *)cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *)cert_chain_pem);
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t)chain_len);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -1296,7 +1305,7 @@ int main(int argc, char **argv) {
         EXPECT_TRUE(ocsp_data_len > 0);
 
         /* flip a byte right in the middle of the cert */
-        uint8_t *raw_data = (uint8_t *)s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len);
+        uint8_t *raw_data = (uint8_t *) s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len);
         raw_data[800]     = (uint8_t)(raw_data[800] + 1);
 
         EXPECT_EQUAL(

@@ -25,7 +25,8 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
+int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
+{
     struct s2n_stuffer in;
     struct s2n_stuffer out;
     GUARD(s2n_stuffer_alloc(&in, len + 1));

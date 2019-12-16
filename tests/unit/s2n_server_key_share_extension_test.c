@@ -13,16 +13,14 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include <s2n.h>
 #include <stdint.h>
 
-#include "tls/extensions/s2n_client_key_share.h"
-#include "tls/extensions/s2n_server_key_share.h"
-
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
+#include "tls/extensions/s2n_client_key_share.h"
+#include "tls/extensions/s2n_server_key_share.h"
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
 
@@ -31,7 +29,8 @@
         EXPECT_SUCCESS(s2n_stuffer_skip_read(stuffer, s2n_stuffer_data_available(stuffer))); \
     } while (0)
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_enable_tls13());
 
@@ -169,14 +168,14 @@ int main(int argc, char **argv) {
     }
 
     /* Test s2n_extensions_server_key_share_recv with various sample payloads */
-    { /* valid extension payloads */
-      { const char * key_share_payloads[2] = {
-            /* p256 */
-            "001700410474cfd75c0ab7b57247761a277e1c92b5810dacb251bb758f43e9d15aaf292c4a2be43e886425ba55653ebb7a4f32fe36"
-            "8bacce3df00c618645cf1eb646f22552",
-            /* p384 */
-            "00180061040a27264201368540483e97d324a3093e11a5862b0a1be0cf5d8510bc47ec285f5304e9ec3ba01a0c375c3b6fa4bd0ad4"
-            "4aae041bb776aebc7ee92462ad481fe86f8b6e3858d5c41d0f83b0404f711832a4119aec3da2eac86266f424b50aa212" };
+    {/* valid extension payloads */
+     {const char * key_share_payloads[2] = {
+          /* p256 */
+          "001700410474cfd75c0ab7b57247761a277e1c92b5810dacb251bb758f43e9d15aaf292c4a2be43e886425ba55653ebb7a4f32fe36"
+          "8bacce3df00c618645cf1eb646f22552",
+          /* p384 */
+          "00180061040a27264201368540483e97d324a3093e11a5862b0a1be0cf5d8510bc47ec285f5304e9ec3ba01a0c375c3b6fa4bd0ad4"
+          "4aae041bb776aebc7ee92462ad481fe86f8b6e3858d5c41d0f83b0404f711832a4119aec3da2eac86266f424b50aa212"};
 
     for (int i = 0; i < 2; i++) {
         struct s2n_stuffer extension_stuffer;
@@ -264,7 +263,7 @@ int main(int argc, char **argv) {
 
 /* Test Shared Key Generation */
 {
-    int shared_secret_size[2] = { 32, 48 };
+    int shared_secret_size[2] = {32, 48};
     for (int i = 0; i < S2N_ECC_SUPPORTED_CURVES_COUNT; i++) {
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
@@ -321,12 +320,12 @@ int main(int argc, char **argv) {
             &server_conn->secure.client_ecc_params[i], &client_conn->secure.client_ecc_params[i]);
 
         /* Server generates shared key based on Server's Key (EC Key) and Client's public key (EC Point) */
-        struct s2n_blob server_shared_secret = { 0 };
+        struct s2n_blob server_shared_secret = {0};
         EXPECT_SUCCESS(s2n_ecc_compute_shared_secret_from_params(
             &server_conn->secure.server_ecc_params, &server_conn->secure.client_ecc_params[i], &server_shared_secret));
 
         /* Clients generates shared key based on Client's EC Key and Server's public key */
-        struct s2n_blob client_shared_secret = { 0 };
+        struct s2n_blob client_shared_secret = {0};
         EXPECT_SUCCESS(s2n_ecc_compute_shared_secret_from_params(
             &client_conn->secure.client_ecc_params[i], &client_conn->secure.server_ecc_params, &client_shared_secret));
 

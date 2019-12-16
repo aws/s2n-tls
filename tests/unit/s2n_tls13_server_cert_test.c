@@ -13,12 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include <s2n.h>
 #include <stdio.h>
 #include <string.h>
 
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_tls.h"
@@ -56,7 +55,8 @@ const char tls13_cert_hex[] =
  */
 const char tls13_cert_chain_header_hex[] = "000001b50001b0";
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     char *tls13_cert_chain_hex;
     BEGIN_TEST();
     /* creating a certificate chain by concatenating
@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
     strcpy(tls13_cert_chain_hex, tls13_cert_chain_header_hex);
     strcat(tls13_cert_chain_hex, tls13_cert_hex);
     /* convert certificate chain hex to bytes*/
-    struct s2n_blob tls13_cert = { 0 };
+    struct s2n_blob tls13_cert = {0};
     EXPECT_SUCCESS(s2n_alloc(&tls13_cert, strlen(tls13_cert_chain_hex) / 2));
     GUARD(s2n_hex_string_to_bytes(tls13_cert_chain_hex, &tls13_cert));
 
@@ -101,9 +101,9 @@ int main(int argc, char **argv) {
         struct s2n_connection *conn;
         uint8_t certificate_request_context_len;
 
-        struct s2n_cert cert                             = { .raw = tls13_cert_chain, .next = NULL };
-        struct s2n_cert_chain cert_chain                 = { .head = &cert };
-        struct s2n_cert_chain_and_key cert_chain_and_key = { .cert_chain = &cert_chain };
+        struct s2n_cert cert                             = {.raw = tls13_cert_chain, .next = NULL};
+        struct s2n_cert_chain cert_chain                 = {.head = &cert};
+        struct s2n_cert_chain_and_key cert_chain_and_key = {.cert_chain = &cert_chain};
 
         /* tls13 mode */
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));

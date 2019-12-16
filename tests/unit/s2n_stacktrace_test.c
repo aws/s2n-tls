@@ -13,17 +13,18 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "utils/s2n_blob.h"
-
 #include <s2n.h>
 
-int raises_error() {
+#include "s2n_test.h"
+#include "utils/s2n_blob.h"
+
+int raises_error()
+{
     S2N_ERROR(S2N_ERR_INVALID_ARGUMENT);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_stack_traces_enabled_set(true));
     struct s2n_stacktrace trace;

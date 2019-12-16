@@ -15,7 +15,8 @@
 
 #include "testlib/s2n_testlib.h"
 
-int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn) {
+int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
+{
     int server_rc = -1;
     int client_rc = -1;
     s2n_blocked_status server_blocked;
@@ -48,7 +49,8 @@ int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, str
     return rc;
 }
 
-int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn) {
+int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
+{
     int server_rc = -1;
     int client_rc = -1;
     s2n_blocked_status server_blocked;

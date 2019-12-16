@@ -13,24 +13,20 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
+#include "crypto/s2n_drbg.h"
 
 #include <fcntl.h>
 #include <inttypes.h>
+#include <openssl/aes.h>
 #include <s2n.h>
 #include <stdlib.h>
 
-#include <openssl/aes.h>
-
-#include "crypto/s2n_drbg.h"
-
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/s2n_config.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_timer.h"
-
-#include "tls/s2n_config.h"
-
-#include "testlib/s2n_testlib.h"
 
 /* Test vectors are taken from
  * https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/drbg/drbgtestvectors.zip
@@ -473,17 +469,20 @@ const char nist_aes256_no_pr_reference_returned_bits_hex[] =
     "d00312d7a65dd3";
 
 /* This function over-rides the s2n internal copy of the same function */
-int nist_fake_128_urandom_data(struct s2n_blob *blob) {
+int nist_fake_128_urandom_data(struct s2n_blob *blob)
+{
     GUARD(s2n_stuffer_read(&nist_aes128_reference_entropy, blob));
     return 0;
 }
 
-int nist_fake_256_urandom_data(struct s2n_blob *blob) {
+int nist_fake_256_urandom_data(struct s2n_blob *blob)
+{
     GUARD(s2n_stuffer_read(&nist_aes256_reference_entropy, blob));
     return 0;
 }
 
-int nist_fake_256_no_pr_urandom_data(struct s2n_blob *blob) {
+int nist_fake_256_no_pr_urandom_data(struct s2n_blob *blob)
+{
     GUARD(s2n_stuffer_read(&nist_aes256_no_pr_reference_entropy, blob));
     return 0;
 }
@@ -494,17 +493,18 @@ int check_drgb_version(
     int personalization_size,
     const char personalization_hex[],
     const char reference_values_hex[],
-    const char returned_bits_hex[]) {
-    DEFER_CLEANUP(struct s2n_stuffer personalization = { 0 }, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_stuffer returned_bits = { 0 }, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_stuffer reference_values = { 0 }, s2n_stuffer_free);
+    const char returned_bits_hex[])
+{
+    DEFER_CLEANUP(struct s2n_stuffer personalization = {0}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer returned_bits = {0}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer reference_values = {0}, s2n_stuffer_free);
     GUARD(s2n_stuffer_alloc_ro_from_hex_string(&personalization, personalization_hex));
     GUARD(s2n_stuffer_alloc_ro_from_hex_string(&returned_bits, returned_bits_hex));
     GUARD(s2n_stuffer_alloc_ro_from_hex_string(&reference_values, reference_values_hex));
     for (int i = 0; i < 14; i++) {
-        uint8_t ps[S2N_DRBG_MAX_SEED_SIZE]     = { 0 };
-        struct s2n_drbg nist_drbg              = { .entropy_generator = generator };
-        struct s2n_blob personalization_string = { .data = ps, .size = personalization_size };
+        uint8_t ps[S2N_DRBG_MAX_SEED_SIZE]     = {0};
+        struct s2n_drbg nist_drbg              = {.entropy_generator = generator};
+        struct s2n_blob personalization_string = {.data = ps, .size = personalization_size};
         /* Read the next personalization string */
         GUARD(s2n_stuffer_read(&personalization, &personalization_string));
 
@@ -518,7 +518,7 @@ int check_drgb_version(
 
         /* Generate 512 bits (FIRST CALL) */
         uint8_t out[64];
-        struct s2n_blob generated = { .data = out, .size = 64 };
+        struct s2n_blob generated = {.data = out, .size = 64};
         GUARD(s2n_drbg_generate(&nist_drbg, &generated));
 
         GUARD(s2n_stuffer_read_bytes(&reference_values, nist_v, sizeof(nist_v)));
@@ -547,7 +547,8 @@ int check_drgb_version(
     return 0;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
 
     /* Open /dev/urandom */
@@ -565,8 +566,8 @@ int main(int argc, char **argv) {
         nist_aes128_reference_returned_bits_hex));
 
     /* Check everything against the NIST AES 256 vectors with prediction resistance */
-    DEFER_CLEANUP(struct s2n_stuffer temp1 = { 0 }, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_stuffer temp2 = { 0 }, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer temp1 = {0}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer temp2 = {0}, s2n_stuffer_free);
     /* Combine nist_aes256_reference_entropy_hex_part1 and nist_aes256_reference_entropy_hex_part2 to avoid C99
      * string length limit. */
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&temp1, nist_aes256_reference_entropy_hex_part1));
@@ -594,11 +595,11 @@ int main(int argc, char **argv) {
         nist_aes256_no_pr_reference_values_hex,
         nist_aes256_no_pr_reference_returned_bits_hex));
 
-    uint8_t data[256]                 = { 0 };
-    struct s2n_drbg aes128_drbg       = { 0 };
-    struct s2n_drbg aes256_pr_drbg    = { 0 };
-    struct s2n_drbg aes256_no_pr_drbg = { 0 };
-    struct s2n_blob blob              = { .data = data, .size = 64 };
+    uint8_t data[256]                 = {0};
+    struct s2n_drbg aes128_drbg       = {0};
+    struct s2n_drbg aes256_pr_drbg    = {0};
+    struct s2n_drbg aes256_no_pr_drbg = {0};
+    struct s2n_blob blob              = {.data = data, .size = 64};
     struct s2n_timer timer;
     uint64_t aes128_drbg_nanoseconds;
     uint64_t aes256_pr_drbg_nanoseconds;
@@ -657,10 +658,10 @@ int main(int argc, char **argv) {
 
     /* Test that the drbg wont let you use dangerous configurations outside unit tests */
     EXPECT_SUCCESS(s2n_in_unit_test_set(false));
-    struct s2n_drbg failing_drbg_mode = { 0 };
+    struct s2n_drbg failing_drbg_mode = {0};
     EXPECT_FAILURE(s2n_drbg_instantiate(&failing_drbg_mode, &blob, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
 
-    struct s2n_drbg failing_drbg_entropy = { .entropy_generator = &nist_fake_128_urandom_data };
+    struct s2n_drbg failing_drbg_entropy = {.entropy_generator = &nist_fake_128_urandom_data};
     EXPECT_FAILURE(s2n_drbg_instantiate(&failing_drbg_entropy, &blob, S2N_AES_128_CTR_NO_DF_PR));
 
     /* Return to "unit test mode" and verify it would actually work and that was the reason for the failure */

@@ -13,17 +13,15 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include <stdlib.h>
 #include <string.h>
-
-#include "testlib/s2n_testlib.h"
 
 #include "crypto/s2n_dhe.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_rsa.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 
@@ -56,7 +54,8 @@ static uint8_t unmatched_private_key[] =
     "XQhx4wqVYQs2852qaJg+wYUi50FtRT6hLyDQmg9ttvS4YIwMTdVzl2Q=\n"
     "-----END RSA PRIVATE KEY-----\n";
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     struct s2n_stuffer certificate_in, certificate_out;
     struct s2n_stuffer dhparams_in, dhparams_out;
     struct s2n_stuffer rsa_key_in, rsa_key_out;
@@ -87,15 +86,15 @@ int main(int argc, char **argv) {
     EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
     EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
 
-    b.data = (uint8_t *)leaf_cert_pem;
+    b.data = (uint8_t *) leaf_cert_pem;
     b.size = strlen(leaf_cert_pem) + 1;
     EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));
 
-    b.data = (uint8_t *)private_key_pem;
+    b.data = (uint8_t *) private_key_pem;
     b.size = strlen(private_key_pem) + 1;
     EXPECT_SUCCESS(s2n_stuffer_write(&rsa_key_in, &b));
 
-    b.data = (uint8_t *)dhparams_pem;
+    b.data = (uint8_t *) dhparams_pem;
     b.size = strlen(dhparams_pem) + 1;
     EXPECT_SUCCESS(s2n_stuffer_write(&dhparams_in, &b));
 
@@ -173,7 +172,7 @@ int main(int argc, char **argv) {
     /* Mismatched public/private key should fail */
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-    EXPECT_FAILURE(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, (char *)unmatched_private_key));
+    EXPECT_FAILURE(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, (char *) unmatched_private_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_config_free(config));
 

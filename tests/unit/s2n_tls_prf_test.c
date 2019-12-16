@@ -13,13 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
+#include <s2n.h>
 #include <stdio.h>
 #include <string.h>
 
-#include <s2n.h>
-
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_prf.h"
@@ -34,7 +32,8 @@
  * |<9>| INT: MASTER SECRET:
  * c8c610686237cd024a2d8e0391f61a8a4464c2c9576ea2b5ccf3af68139ec07c6a1720097063de968f2341f77b837120
  */
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     uint8_t master_secret_hex_pad[96];
     char premaster_secret_hex_in[] =
         "0301bebf2a5707c7bda6bfe5a8971a351a9ebd019de412212da021fd802e03f49f231d4e959c7352679f892f9d7f9748";
@@ -47,7 +46,7 @@ int main(int argc, char **argv) {
     struct s2n_stuffer server_random_in;
     struct s2n_stuffer premaster_secret_in;
     struct s2n_stuffer master_secret_hex_out;
-    struct s2n_blob master_secret = { .data = master_secret_hex_pad, .size = sizeof(master_secret_hex_pad) };
+    struct s2n_blob master_secret = {.data = master_secret_hex_pad, .size = sizeof(master_secret_hex_pad)};
     struct s2n_blob pms;
 
     struct s2n_connection *conn;

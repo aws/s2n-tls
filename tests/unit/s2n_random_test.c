@@ -13,19 +13,20 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
+#include "utils/s2n_random.h"
 
 #include <pthread.h>
 #include <s2n.h>
 #include <sys/wait.h>
 
-#include "utils/s2n_random.h"
+#include "s2n_test.h"
 
 static uint8_t thread_data[2][100];
 
-void *thread_safety_tester(void *slot) {
-    intptr_t slotnum     = (intptr_t)slot;
-    struct s2n_blob blob = { .data = thread_data[slotnum], .size = 100 };
+void *thread_safety_tester(void *slot)
+{
+    intptr_t slotnum     = (intptr_t) slot;
+    struct s2n_blob blob = {.data = thread_data[slotnum], .size = 100};
 
     s2n_get_public_random_data(&blob);
 
@@ -34,10 +35,11 @@ void *thread_safety_tester(void *slot) {
     return NULL;
 }
 
-void process_safety_tester(int write_fd) {
+void process_safety_tester(int write_fd)
+{
     uint8_t pad[100];
 
-    struct s2n_blob blob = { .data = pad, .size = 100 };
+    struct s2n_blob blob = {.data = pad, .size = 100};
     s2n_get_public_random_data(&blob);
 
     /* Write the data we got to our pipe */
@@ -50,14 +52,15 @@ void process_safety_tester(int write_fd) {
     _exit(0);
 }
 
-int main(int argc, char **argv) {
-    uint8_t bits[8] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
+int main(int argc, char **argv)
+{
+    uint8_t bits[8] = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
     uint8_t bit_set_run[8];
     int p[2], status;
     pid_t pid;
     uint8_t data[5120];
     uint8_t child_data[100];
-    struct s2n_blob blob = { .data = data };
+    struct s2n_blob blob = {.data = data};
 
     pthread_t threads[2];
 
@@ -68,8 +71,8 @@ int main(int argc, char **argv) {
     EXPECT_SUCCESS(s2n_get_public_random_data(&blob));
 
     /* Create two threads and have them each grab 100 bytes */
-    EXPECT_SUCCESS(pthread_create(&threads[0], NULL, thread_safety_tester, (void *)0));
-    EXPECT_SUCCESS(pthread_create(&threads[1], NULL, thread_safety_tester, (void *)1));
+    EXPECT_SUCCESS(pthread_create(&threads[0], NULL, thread_safety_tester, (void *) 0));
+    EXPECT_SUCCESS(pthread_create(&threads[1], NULL, thread_safety_tester, (void *) 1));
 
     /* Wait for those threads to finish */
     EXPECT_SUCCESS(pthread_join(threads[0], NULL));

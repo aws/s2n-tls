@@ -13,20 +13,17 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include <inttypes.h>
 #include <math.h>
+#include <s2n.h>
 #include <stdio.h>
 #include <string.h>
 
-#include <s2n.h>
-
-#include "testlib/s2n_testlib.h"
-
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_hmac.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_prf.h"
 #include "tls/s2n_record.h"
@@ -39,15 +36,17 @@
  */
 #if defined(__x86_64__) || defined(__i386__)
 /* qsort() u64s numerically */
-static int u64cmp(const void *left, const void *right) {
-    if (*(const uint64_t *)left > *(const uint64_t *)right) return 1;
-    if (*(const uint64_t *)left < *(const uint64_t *)right) return -1;
+static int u64cmp(const void *left, const void *right)
+{
+    if (*(const uint64_t *) left > *(const uint64_t *) right) return 1;
+    if (*(const uint64_t *) left < *(const uint64_t *) right) return -1;
     return 0;
 }
 
 /* Generate summary statistics from a list of u64s */
 static void summarize(
-    uint64_t *list, int n, uint64_t *count, uint64_t *avg, uint64_t *median, uint64_t *stddev, uint64_t *variance) {
+    uint64_t *list, int n, uint64_t *count, uint64_t *avg, uint64_t *median, uint64_t *stddev, uint64_t *variance)
+{
     qsort(list, n, sizeof(uint64_t), u64cmp);
 
     uint64_t p25 = list[n / 4];
@@ -108,14 +107,16 @@ static void summarize(
     }
 }
 
-inline static uint64_t rdtsc() {
+inline static uint64_t rdtsc()
+{
     unsigned int bot, top;
     __asm__ __volatile__("rdtsc" : "=a"(bot), "=d"(top));
-    return ((uint64_t)top << 32) | bot;
+    return ((uint64_t) top << 32) | bot;
 }
 #endif /* defined(__x86_64__) || defined(__i386__) */
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
 /*
  * disable everything in this test if the compiler target isn't Intel x86 or x86_64. There's inline asm
@@ -127,7 +128,7 @@ int main(int argc, char **argv) {
     uint8_t fragment[S2N_SMALL_FRAGMENT_LENGTH];
     uint8_t random_data[S2N_SMALL_FRAGMENT_LENGTH];
     struct s2n_hmac_state check_mac, record_mac;
-    struct s2n_blob r = { .data = random_data, .size = sizeof(random_data) };
+    struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
 
     /* Valgrind affects execution timing, making this test unreliable */
     if (getenv("S2N_VALGRIND") != NULL) {
@@ -153,7 +154,7 @@ int main(int argc, char **argv) {
 
         /* Start out with zero byte padding */
         fragment[i - 1]           = 0;
-        struct s2n_blob decrypted = { .data = fragment, .size = i };
+        struct s2n_blob decrypted = {.data = fragment, .size = i};
 
         uint64_t timings[10001];
         for (int t = 0; t < 10001; t++) {
@@ -217,7 +218,7 @@ int main(int argc, char **argv) {
         int64_t lo = good_median - (3 * good_stddev);
         int64_t hi = good_median + (3 * good_stddev);
 
-        if ((int64_t)mac_median < lo || (int64_t)mac_median > hi) {
+        if ((int64_t) mac_median < lo || (int64_t) mac_median > hi) {
             printf(
                 "\n\nRecord size: %d\nGood Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64
                 ")\n"
@@ -268,7 +269,7 @@ int main(int argc, char **argv) {
         lo = good_median - (good_stddev);
         hi = good_median + (good_stddev);
 
-        if ((int64_t)pad_median < lo || (int64_t)pad_median > hi) {
+        if ((int64_t) pad_median < lo || (int64_t) pad_median > hi) {
             printf(
                 "\n\nRecord size: %d\nGood Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64
                 ")\n"
@@ -289,7 +290,7 @@ int main(int argc, char **argv) {
         lo = mac_median - (mac_stddev / 2);
         hi = mac_median + (mac_stddev / 2);
 
-        if ((int64_t)pad_median < lo || (int64_t)pad_median > hi) {
+        if ((int64_t) pad_median < lo || (int64_t) pad_median > hi) {
             printf(
                 "\n\nRecord size: %d\nMAC Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64
                 ")\n"

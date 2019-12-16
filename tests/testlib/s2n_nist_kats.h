@@ -30,11 +30,12 @@
  * ALLOW TO READ HEXADECIMAL ENTRY (KEYS, DATA, TEXT, etc.)
  */
 
-static inline int FindMarker(FILE *infile, const char *marker) {
+static inline int FindMarker(FILE *infile, const char *marker)
+{
     char line[MAX_MARKER_LEN];
     uint32_t i, len;
 
-    len = (int)strlen(marker);
+    len = (int) strlen(marker);
     if (len > (MAX_MARKER_LEN - 1)) {
         len = MAX_MARKER_LEN - 1;
     }
@@ -65,7 +66,8 @@ static inline int FindMarker(FILE *infile, const char *marker) {
  * ALLOW TO READ HEXADECIMAL ENTRY (KEYS, DATA, TEXT, etc.)
  */
 
-static inline int ReadHex(FILE *infile, uint8_t *buf, uint32_t len, const char *str) {
+static inline int ReadHex(FILE *infile, uint8_t *buf, uint32_t len, const char *str)
+{
     int ch;
     int started = 0;
     uint8_t ich;

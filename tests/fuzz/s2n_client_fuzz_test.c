@@ -130,7 +130,8 @@ static char dhparams[] =
 
 static int MAX_NEGOTIATION_ATTEMPTS = 10;
 
-int buffer_read(void *io_context, uint8_t *buf, uint32_t len) {
+int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
+{
     struct s2n_stuffer *in_buf;
     int n_read, n_avail;
 
@@ -138,7 +139,7 @@ int buffer_read(void *io_context, uint8_t *buf, uint32_t len) {
         return 0;
     }
 
-    in_buf = (struct s2n_stuffer *)io_context;
+    in_buf = (struct s2n_stuffer *) io_context;
     if (in_buf == NULL) {
         errno = EINVAL;
         return -1;
@@ -157,18 +158,21 @@ int buffer_read(void *io_context, uint8_t *buf, uint32_t len) {
     return n_read;
 }
 
-int buffer_write(void *io_context, const uint8_t *buf, uint32_t len) {
+int buffer_write(void *io_context, const uint8_t *buf, uint32_t len)
+{
     return len;
 }
 
 static struct s2n_config *client_config;
 
-static void s2n_server_fuzz_atexit() {
+static void s2n_server_fuzz_atexit()
+{
     s2n_config_free(client_config);
     s2n_cleanup();
 }
 
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len) {
+int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
+{
     GUARD(s2n_init());
     GUARD(atexit(s2n_server_fuzz_atexit));
 
@@ -180,7 +184,8 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len) {
     return 0;
 }
 
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
+int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
+{
     if (len < S2N_TLS_RECORD_HEADER_LENGTH) {
         return 0;
     }

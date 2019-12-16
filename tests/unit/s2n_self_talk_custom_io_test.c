@@ -13,27 +13,24 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
 #include <fcntl.h>
+#include <s2n.h>
 #include <signal.h>
 #include <stdint.h>
 #include <sys/poll.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include <s2n.h>
-
-#include "utils/s2n_random.h"
-
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
+#include "utils/s2n_random.h"
 
 #define MAX_BUF_SIZE 10000
 
-int mock_client(int writefd, int readfd) {
+int mock_client(int writefd, int readfd)
+{
     struct s2n_connection *conn;
     struct s2n_config *client_config;
     s2n_blocked_status blocked;
@@ -67,7 +64,8 @@ int mock_client(int writefd, int readfd) {
  * stuffers and manages s2n I/O with a set of I/O callbacks that read and write
  * from the stuffers.
  */
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     struct s2n_connection *conn;
     struct s2n_config *config;
     s2n_blocked_status blocked;

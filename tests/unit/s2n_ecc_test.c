@@ -13,14 +13,15 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
+#include "crypto/s2n_ecc.h"
 
 #include <s2n.h>
 
-#include "crypto/s2n_ecc.h"
+#include "s2n_test.h"
 #include "utils/s2n_mem.h"
 
-static int s2n_test_compare_ecc_keys(EC_KEY *key1, EC_KEY *key2) {
+static int s2n_test_compare_ecc_keys(EC_KEY *key1, EC_KEY *key2)
+{
     /* Both EC_cmp functions return 0 on equal, 1 on not equal, and -1 on error */
 
     if (EC_GROUP_cmp(EC_KEY_get0_group(key1), EC_KEY_get0_group(key2), NULL) != 0) {
@@ -34,7 +35,8 @@ static int s2n_test_compare_ecc_keys(EC_KEY *key1, EC_KEY *key2) {
     return 1;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
 
     /* Test s2n_ecc_write_ecc_params_point for all supported curves */
@@ -134,7 +136,7 @@ int main(int argc, char **argv) {
         /* Server sends the public */
         EXPECT_SUCCESS(s2n_ecc_write_ecc_params(&server_params, &wire, &ecdh_params_sent));
         /* Client reads the public */
-        struct s2n_ecdhe_raw_server_params ecdhe_data = { 0 };
+        struct s2n_ecdhe_raw_server_params ecdhe_data = {0};
         EXPECT_SUCCESS(s2n_ecc_read_ecc_params(&wire, &ecdh_params_received, &ecdhe_data));
         EXPECT_SUCCESS(s2n_ecc_parse_ecc_params(&client_params, &ecdhe_data));
 

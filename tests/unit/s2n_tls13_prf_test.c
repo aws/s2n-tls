@@ -13,14 +13,12 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
+#include <s2n.h>
 #include <stdio.h>
 #include <string.h>
 
-#include <s2n.h>
-
 #include "crypto/s2n_hkdf.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
 #include "utils/s2n_safety.h"
@@ -28,7 +26,8 @@
 /*
  * Test vectors from https://datatracker.ietf.org/doc/draft-ietf-tls-tls13-vectors/?include_text=1
  */
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     char client_handshake_message_hex_in[] =
         "010000c003032724c0ba613abd59"
         "4894f19ff6d59cde8364549555119b96ec1158fb9ac"
@@ -51,15 +50,15 @@ int main(int argc, char **argv) {
     char expected_secret_hex_in[]   = "33ad0a1c607ec03b09e6cd9893680ce210adf300aa1f2660e1b22e10f170f92a";
     char expected_expanded_hex_in[] = "6f2615a108c702c5678f54fc9dbab69716c076189c48250cebeac3576c3611ba";
 
-    DEFER_CLEANUP(struct s2n_stuffer client_handshake_message_in = { 0 }, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_stuffer server_handshake_message_in = { 0 }, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_stuffer expected_secret_in = { 0 }, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_stuffer expected_expanded_in = { 0 }, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer client_handshake_message_in = {0}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer server_handshake_message_in = {0}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer expected_secret_in = {0}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer expected_expanded_in = {0}, s2n_stuffer_free);
 
-    char client_handshake_message[sizeof(client_handshake_message_hex_in) / 2] = { 0 };
-    char server_handshake_message[sizeof(server_handshake_message_hex_in) / 2] = { 0 };
-    char expected_secret[sizeof(expected_secret_hex_in) / 2]                   = { 0 };
-    char expected_expanded[sizeof(expected_expanded_hex_in) / 2]               = { 0 };
+    char client_handshake_message[sizeof(client_handshake_message_hex_in) / 2] = {0};
+    char server_handshake_message[sizeof(server_handshake_message_hex_in) / 2] = {0};
+    char expected_secret[sizeof(expected_secret_hex_in) / 2]                   = {0};
+    char expected_expanded[sizeof(expected_expanded_hex_in) / 2]               = {0};
 
     uint8_t digest_buf[SHA256_DIGEST_LENGTH];
     uint8_t secret_buf[SHA256_DIGEST_LENGTH];
@@ -106,14 +105,14 @@ int main(int argc, char **argv) {
     EXPECT_SUCCESS(s2n_hash_copy(&transcript_hash_snapshot, &transcript_hash));
     EXPECT_SUCCESS(s2n_hash_digest(&transcript_hash_snapshot, digest_buf, SHA256_DIGEST_LENGTH));
 
-    uint8_t salt_buf[32] = { 0 };
-    struct s2n_blob salt = { 0 };
+    uint8_t salt_buf[32] = {0};
+    struct s2n_blob salt = {0};
 
-    uint8_t ikm_buf[32] = { 0 };
-    struct s2n_blob ikm = { 0 };
+    uint8_t ikm_buf[32] = {0};
+    struct s2n_blob ikm = {0};
 
-    uint8_t output_buf[SHA256_DIGEST_LENGTH] = { 0 };
-    struct s2n_blob output                   = { 0 };
+    uint8_t output_buf[SHA256_DIGEST_LENGTH] = {0};
+    struct s2n_blob output                   = {0};
 
     EXPECT_SUCCESS(s2n_blob_init(&salt, salt_buf, sizeof(salt_buf)));
     EXPECT_SUCCESS(s2n_blob_init(&ikm, ikm_buf, sizeof(ikm_buf)));
@@ -131,7 +130,7 @@ int main(int argc, char **argv) {
     /* Validate the derived secret */
     S2N_BLOB_LABEL(label, "derived");
 
-    struct s2n_hmac_state hmac = { 0 };
+    struct s2n_hmac_state hmac = {0};
 
     EXPECT_SUCCESS(s2n_hmac_new(&hmac));
     EXPECT_SUCCESS(s2n_hkdf_expand_label(&hmac, S2N_HMAC_SHA256, &secret, &label, &digest, &output));

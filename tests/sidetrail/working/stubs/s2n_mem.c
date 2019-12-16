@@ -13,21 +13,22 @@
  * permissions and limitations under the License.
  */
 
+#include "utils/s2n_mem.h"
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
 #include "error/s2n_errno.h"
-
 #include "utils/s2n_blob.h"
-#include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
 static long page_size = 4096;
 static int use_mlock  = 1;
 
-int s2n_mem_init(void) {
+int s2n_mem_init(void)
+{
     GUARD(page_size = sysconf(_SC_PAGESIZE));
     if (getenv("S2N_DONT_MLOCK")) {
         use_mlock = 0;
@@ -36,13 +37,15 @@ int s2n_mem_init(void) {
     return 0;
 }
 
-int s2n_mem_cleanup(void) {
+int s2n_mem_cleanup(void)
+{
     page_size = 4096;
     use_mlock = 1;
     return 0;
 }
 
-int s2n_alloc(struct s2n_blob *b, uint32_t size) {
+int s2n_alloc(struct s2n_blob *b, uint32_t size)
+{
     b->data      = NULL;
     b->size      = 0;
     b->allocated = 0;
@@ -51,13 +54,15 @@ int s2n_alloc(struct s2n_blob *b, uint32_t size) {
     return 0;
 }
 
-void *realloc(void *ptr, size_t new_size) {
+void *realloc(void *ptr, size_t new_size)
+{
     /* just leave it undet for now */
     void *ret = malloc(new_size);
     return ret;
 }
 
-int s2n_realloc(struct s2n_blob *b, uint32_t size) {
+int s2n_realloc(struct s2n_blob *b, uint32_t size)
+{
     /* if (size == 0) { */
     /*     return s2n_free(b); */
     /* } */
@@ -112,7 +117,8 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size) {
     return 0;
 }
 
-int s2n_free(struct s2n_blob *b) {
+int s2n_free(struct s2n_blob *b)
+{
     int munlock_rc = 0;
     if (b->mlocked) {
         munlock_rc = munlock(b->data, b->size);
@@ -131,7 +137,8 @@ int s2n_free(struct s2n_blob *b) {
     return 0;
 }
 
-int s2n_dup(struct s2n_blob *from, struct s2n_blob *to) {
+int s2n_dup(struct s2n_blob *from, struct s2n_blob *to)
+{
     eq_check(to->size, 0);
     eq_check(to->data, NULL);
 

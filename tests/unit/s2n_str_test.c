@@ -14,11 +14,13 @@
  */
 
 #include "utils/s2n_str.h"
+
 #include "s2n_test.h"
 
 #define BUF_SIZE 10
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     char buf[BUF_SIZE];
 
     BEGIN_TEST();

@@ -13,10 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#include <stdint.h>
-
 #include <openssl/crypto.h>
 #include <openssl/err.h>
+#include <stdint.h>
 
 #include "api/s2n.h"
 #include "s2n_test.h"
@@ -25,13 +24,15 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
-static const uint8_t TLS_VERSIONS[] = { S2N_TLS10, S2N_TLS11, S2N_TLS12 };
+static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12};
 
-static void s2n_fuzz_atexit() {
+static void s2n_fuzz_atexit()
+{
     s2n_cleanup();
 }
 
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len) {
+int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
+{
 #ifdef S2N_TEST_IN_FIPS_MODE
     S2N_TEST_ENTER_FIPS_MODE();
 #endif
@@ -41,7 +42,8 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len) {
     return 0;
 }
 
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
+int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
+{
     for (int version = 0; version < (sizeof(TLS_VERSIONS) / sizeof(TLS_VERSIONS[0])); version++) {
         /* Setup */
         struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);

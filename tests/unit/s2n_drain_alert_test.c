@@ -13,14 +13,12 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
+#include <s2n.h>
 #include <stdint.h>
 #include <unistd.h>
 
-#include <s2n.h>
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 
 #define ZERO_TO_THIRTY_ONE                                                                                            \
     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, \
@@ -33,33 +31,33 @@
  * in a failed handshake, but the alert is generally more useful.
  */
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
-    uint8_t client_hello_message[] = { /* Protocol version TLS 1.2 */
-                                       0x03,
-                                       0x03,
-                                       /* Client random */
-                                       ZERO_TO_THIRTY_ONE,
-                                       /* SessionID len - 32 bytes */
-                                       0x20,
-                                       /* Session ID */
-                                       ZERO_TO_THIRTY_ONE,
-                                       /* Cipher suites len */
-                                       0x00,
-                                       0x02,
-                                       /* Cipher suite - TLS_RSA_WITH_AES_128_CBC_SHA256 */
-                                       0x00,
-                                       0x3C,
-                                       /* Compression methods len */
-                                       0x01,
-                                       /* Compression method - none */
-                                       0x00,
-                                       /* Extensions len */
-                                       0x00,
-                                       0x00
-    };
-    size_t body_len          = sizeof(client_hello_message);
-    uint8_t message_header[] = {
+    uint8_t client_hello_message[] = {/* Protocol version TLS 1.2 */
+                                      0x03,
+                                      0x03,
+                                      /* Client random */
+                                      ZERO_TO_THIRTY_ONE,
+                                      /* SessionID len - 32 bytes */
+                                      0x20,
+                                      /* Session ID */
+                                      ZERO_TO_THIRTY_ONE,
+                                      /* Cipher suites len */
+                                      0x00,
+                                      0x02,
+                                      /* Cipher suite - TLS_RSA_WITH_AES_128_CBC_SHA256 */
+                                      0x00,
+                                      0x3C,
+                                      /* Compression methods len */
+                                      0x01,
+                                      /* Compression method - none */
+                                      0x00,
+                                      /* Extensions len */
+                                      0x00,
+                                      0x00};
+    size_t body_len                = sizeof(client_hello_message);
+    uint8_t message_header[]       = {
         /* Handshake message type CLIENT HELLO */
         0x01,
         /* Body len */

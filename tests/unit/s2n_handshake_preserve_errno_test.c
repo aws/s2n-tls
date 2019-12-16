@@ -13,25 +13,27 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include <errno.h>
-
 #include <s2n.h>
 
-int fake_recv(void *io_context, uint8_t *buf, uint32_t len) {
+#include "s2n_test.h"
+
+int fake_recv(void *io_context, uint8_t *buf, uint32_t len)
+{
     /* Pretend that we have no data availible to read for alert lookup. */
     errno = EAGAIN;
     return -1;
 }
 
-int fake_send(void *io_context, const uint8_t *buf, uint32_t len) {
+int fake_send(void *io_context, const uint8_t *buf, uint32_t len)
+{
     /* Fail the write with non-retriable error. */
     errno = ENOENT;
     return -1;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     struct s2n_connection *conn;
     s2n_blocked_status blocked;
 

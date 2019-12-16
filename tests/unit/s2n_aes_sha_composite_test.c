@@ -13,35 +13,31 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include <openssl/evp.h>
 #include <s2n.h>
 #include <string.h>
 
-#include "testlib/s2n_testlib.h"
-
-#include "tls/s2n_cipher_suites.h"
-#include "tls/s2n_record.h"
-
-#include "stuffer/s2n_stuffer.h"
-
-#include "utils/s2n_random.h"
-
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_record.h"
+#include "utils/s2n_random.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     struct s2n_connection *conn;
     uint8_t random_data[S2N_DEFAULT_FRAGMENT_LENGTH + 1];
     uint8_t mac_key_sha[20]    = "server key shaserve";
     uint8_t mac_key_sha256[32] = "server key sha256server key sha";
     uint8_t aes128_key[]       = "123456789012345";
     uint8_t aes256_key[]       = "1234567890123456789012345678901";
-    struct s2n_blob aes128     = { .data = aes128_key, .size = sizeof(aes128_key) };
-    struct s2n_blob aes256     = { .data = aes256_key, .size = sizeof(aes256_key) };
-    struct s2n_blob r          = { .data = random_data, .size = sizeof(random_data) };
+    struct s2n_blob aes128     = {.data = aes128_key, .size = sizeof(aes128_key)};
+    struct s2n_blob aes256     = {.data = aes256_key, .size = sizeof(aes256_key)};
+    struct s2n_blob r          = {.data = random_data, .size = sizeof(random_data)};
 
     BEGIN_TEST();
 
@@ -59,7 +55,7 @@ int main(int argc, char **argv) {
     conn->client = &conn->initial;
 
     int max_aligned_fragment  = S2N_DEFAULT_FRAGMENT_LENGTH - (S2N_DEFAULT_FRAGMENT_LENGTH % 16);
-    uint8_t proto_versions[3] = { S2N_TLS10, S2N_TLS11, S2N_TLS12 };
+    uint8_t proto_versions[3] = {S2N_TLS10, S2N_TLS11, S2N_TLS12};
 
     /* test the composite AES128_SHA1 cipher  */
     conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_sha_composite;
@@ -69,7 +65,7 @@ int main(int argc, char **argv) {
      */
     for (int j = 0; j < 3; j++) {
         for (int i = 0; i < max_aligned_fragment; i++) {
-            struct s2n_blob in = { .data = random_data, .size = i };
+            struct s2n_blob in = {.data = random_data, .size = i};
             int bytes_written;
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -138,7 +134,7 @@ int main(int argc, char **argv) {
     conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_sha_composite;
     for (int j = 0; j < 3; j++) {
         for (int i = 0; i < max_aligned_fragment; i++) {
-            struct s2n_blob in = { .data = random_data, .size = i };
+            struct s2n_blob in = {.data = random_data, .size = i};
             int bytes_written;
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -207,7 +203,7 @@ int main(int argc, char **argv) {
     conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_sha256_composite;
     for (int j = 0; j < 3; j++) {
         for (int i = 0; i < max_aligned_fragment; i++) {
-            struct s2n_blob in = { .data = random_data, .size = i };
+            struct s2n_blob in = {.data = random_data, .size = i};
             int bytes_written;
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -276,7 +272,7 @@ int main(int argc, char **argv) {
     conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_sha256_composite;
     for (int j = 0; j < 3; j++) {
         for (int i = 0; i < max_aligned_fragment; i++) {
-            struct s2n_blob in = { .data = random_data, .size = i };
+            struct s2n_blob in = {.data = random_data, .size = i};
             int bytes_written;
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));

@@ -13,17 +13,16 @@
  * permissions and limitations under the License.
  */
 
+#include "error/s2n_errno.h"
 #include "s2n_test.h"
-
+#include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_server_supported_versions.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
-
-#include "error/s2n_errno.h"
-#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     BEGIN_TEST();
 
     EXPECT_SUCCESS(s2n_enable_tls13());
@@ -86,7 +85,7 @@ int main(int argc, char **argv) {
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&client_conn->handshake.io, application_protocol_len + 1));
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&client_conn->handshake.io, application_protocol_len));
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(
-            &client_conn->handshake.io, (uint8_t *)client_conn->application_protocol, application_protocol_len));
+            &client_conn->handshake.io, (uint8_t *) client_conn->application_protocol, application_protocol_len));
 
         /* Client parses encrypted extensions */
         strcpy(client_conn->application_protocol, "");
