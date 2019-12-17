@@ -1146,20 +1146,14 @@ int s2n_connection_recv_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
 {
     notnull_check(conn->recv);
     /* Make sure we have enough space to write */
-    GUARD(s2n_stuffer_skip_write(stuffer, len));
+    GUARD(s2n_stuffer_reserve_space(stuffer, len));
 
-    /* "undo" the skip write */
-    stuffer->write_cursor -= len;
-
-  RECV:
-    errno = 0;
-    int r = conn->recv(conn->recv_io_context, stuffer->blob.data + stuffer->write_cursor, len);
-    if (r < 0) {
-        if (errno == EINTR) {
-            goto RECV;
-        }
-        S2N_ERROR(S2N_ERR_RECV_STUFFER_FROM_CONN);
-    }
+    int r = 0;
+    do {
+	errno = 0;
+	r = conn->recv(conn->recv_io_context, stuffer->blob.data + stuffer->write_cursor, len);
+	S2N_ERROR_IF(r < 0 && errno != EINTR, S2N_ERR_RECV_STUFFER_FROM_CONN);
+    } while (r < 0);
 
     /* Record just how many bytes we have written */
     GUARD(s2n_stuffer_skip_write(stuffer, r));
@@ -1174,10 +1168,7 @@ int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
         S2N_ERROR(S2N_ERR_SEND_STUFFER_TO_CONN);
     }
     /* Make sure we even have the data */
-    GUARD(s2n_stuffer_skip_read(stuffer, len));
-
-    /* "undo" the skip read */
-    stuffer->read_cursor -= len;
+    S2N_ERROR_IF(s2n_stuffer_data_available(stuffer) < len, S2N_ERR_STUFFER_OUT_OF_DATA);
 
   SEND:
     errno = 0;

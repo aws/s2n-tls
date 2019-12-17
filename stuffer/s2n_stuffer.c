@@ -209,7 +209,7 @@ int s2n_stuffer_erase_and_read(struct s2n_stuffer *stuffer, struct s2n_blob *out
     notnull_check(ptr);
 
     memcpy_check(out->data, ptr, out->size);
-    memset(ptr, 0, out->size);
+    memset_check(ptr, 0, out->size);
 
     return 0;
 }
@@ -218,9 +218,8 @@ int s2n_stuffer_read_bytes(struct s2n_stuffer *stuffer, uint8_t * data, uint32_t
 {
     notnull_check(data);
     GUARD(s2n_stuffer_skip_read(stuffer, size));
-
+    notnull_check(stuffer->blob.data);
     void *ptr = stuffer->blob.data + stuffer->read_cursor - size;
-    notnull_check(ptr);
 
     memcpy_check(data, ptr, size);
 
@@ -230,29 +229,18 @@ int s2n_stuffer_read_bytes(struct s2n_stuffer *stuffer, uint8_t * data, uint32_t
 int s2n_stuffer_erase_and_read_bytes(struct s2n_stuffer *stuffer, uint8_t * data, uint32_t size)
 {
     GUARD(s2n_stuffer_skip_read(stuffer, size));
-
+    notnull_check(stuffer->blob.data);
     void *ptr = stuffer->blob.data + stuffer->read_cursor - size;
-    notnull_check(ptr);
 
     memcpy_check(data, ptr, size);
-    memset(ptr, 0, size);
+    memset_check(ptr, 0, size);
 
     return 0;
 }
 
 int s2n_stuffer_skip_write(struct s2n_stuffer *stuffer, const uint32_t n)
 {
-    if (s2n_stuffer_space_remaining(stuffer) < n) {
-        if (stuffer->growable) {
-            /* Always grow a stuffer by at least 1k */
-            uint32_t growth = MAX(n - s2n_stuffer_space_remaining(stuffer), 1024);
-
-            GUARD(s2n_stuffer_resize(stuffer, stuffer->blob.size + growth));
-        } else {
-            S2N_ERROR(S2N_ERR_STUFFER_IS_FULL);
-        }
-    }
-
+    GUARD(s2n_stuffer_reserve_space(stuffer, n));
     stuffer->write_cursor += n;
     stuffer->high_water_mark = MAX(stuffer->write_cursor, stuffer->high_water_mark);
     return 0;
@@ -421,16 +409,48 @@ int s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, const uint64_t u)
     return 0;
 }
 
-int s2n_stuffer_copy(struct s2n_stuffer *from, struct s2n_stuffer *to, const uint32_t len)
+static int s2n_stuffer_copy_impl(struct s2n_stuffer *from, struct s2n_stuffer *to, const uint32_t len)
 {
     GUARD(s2n_stuffer_skip_read(from, len));
-
     GUARD(s2n_stuffer_skip_write(to, len));
 
     uint8_t *from_ptr = from->blob.data + from->read_cursor - len;
     uint8_t *to_ptr = to->blob.data + to->write_cursor - len;
 
     memcpy_check(to_ptr, from_ptr, len);
+
+    return 0;
+}
+
+int s2n_stuffer_reserve_space(struct s2n_stuffer *stuffer, uint32_t n)
+{
+    if (s2n_stuffer_space_remaining(stuffer) < n) {
+        if (stuffer->growable) {
+            /* Always grow a stuffer by at least 1k */
+            uint32_t growth = MAX(n - s2n_stuffer_space_remaining(stuffer), 1024);
+
+            GUARD(s2n_stuffer_resize(stuffer, stuffer->blob.size + growth));
+        } else {
+            S2N_ERROR(S2N_ERR_STUFFER_IS_FULL);
+        }
+    }
+    return S2N_SUCCESS;
+}
+
+
+/* Copies "len" bytes from "from" to "to".
+ * If the copy cannot succeed (i.e. there are either not enough bytes available, or there is not enough space to write them
+ * restore the old value of the stuffer */
+int s2n_stuffer_copy(struct s2n_stuffer *from, struct s2n_stuffer *to, const uint32_t len)
+{
+    uint32_t from_read_cursor = from->read_cursor;
+    uint32_t to_write_cursor = to->write_cursor;
+
+    if (s2n_stuffer_copy_impl(from, to, len) < 0) {
+	from->read_cursor = from_read_cursor;
+	to->write_cursor = to_write_cursor;
+	S2N_ERROR_PRESERVE_ERRNO();
+    }
 
     return 0;
 }
