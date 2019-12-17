@@ -1150,9 +1150,9 @@ int s2n_connection_recv_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
 
     int r = 0;
     do {
-	errno = 0;
-	r = conn->recv(conn->recv_io_context, stuffer->blob.data + stuffer->write_cursor, len);
-	S2N_ERROR_IF(r < 0 && errno != EINTR, S2N_ERR_RECV_STUFFER_FROM_CONN);
+        errno = 0;
+        r = conn->recv(conn->recv_io_context, stuffer->blob.data + stuffer->write_cursor, len);
+        S2N_ERROR_IF(r < 0 && errno != EINTR, S2N_ERR_RECV_STUFFER_FROM_CONN);
     } while (r < 0);
 
     /* Record just how many bytes we have written */
@@ -1170,20 +1170,15 @@ int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
     /* Make sure we even have the data */
     S2N_ERROR_IF(s2n_stuffer_data_available(stuffer) < len, S2N_ERR_STUFFER_OUT_OF_DATA);
 
-  SEND:
-    errno = 0;
-    int w = conn->send(conn->send_io_context, stuffer->blob.data + stuffer->read_cursor, len);
-    if (w < 0) {
-        if (errno == EINTR) {
-            goto SEND;
-        }
-
-        if (errno == EPIPE) {
+    int w = 0;
+    do {
+        errno = 0;
+        w = conn->send(conn->send_io_context, stuffer->blob.data + stuffer->read_cursor, len);
+	if (w < 0 && errno == EPIPE) {
             conn->write_fd_broken = 1;
         }
-
-        S2N_ERROR(S2N_ERR_SEND_STUFFER_TO_CONN);
-    }
+        S2N_ERROR_IF(w < 0 && errno != EINTR, S2N_ERR_SEND_STUFFER_TO_CONN);
+    } while (w < 0);
 
     stuffer->read_cursor += w;
 
