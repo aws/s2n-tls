@@ -592,7 +592,7 @@ const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn)
     char *p = handshake_type_str[handshake_type];
     char *end = p + sizeof(handshake_type_str[0]);
 
-    for (int i = 0; i < sizeof(handshake_type_names) / sizeof(handshake_type_names[0]); ++i) {
+    for (int i = 0; i < s2n_array_len(handshake_type_names); ++i) {
         if (handshake_type & (1 << i)) {
             p = s2n_strcpy(p, end, handshake_type_names[i]);
         }
