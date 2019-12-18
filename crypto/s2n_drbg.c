@@ -164,7 +164,7 @@ int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization
     static const uint8_t zero_key[S2N_DRBG_MAX_KEY_SIZE] = {0};
 
     /* Start off with zeroed data, per 10.2.1.3.1 item 4 and 5 */
-    memset(drbg->v, 0, sizeof(drbg->v));
+    S2N_ZERO_ARRAY(drbg->v);
     GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, NULL, NULL, zero_key, NULL), S2N_ERR_DRBG);
 
     /* Copy the personalization string */

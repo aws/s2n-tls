@@ -100,7 +100,7 @@ int s2n_handshake_get_hash_state(struct s2n_connection *conn, s2n_hash_algorithm
 
 int s2n_handshake_require_all_hashes(struct s2n_handshake *handshake)
 {
-    memset(handshake->required_hash_algs, 1, sizeof(handshake->required_hash_algs));
+    S2N_MEMSET_ARRAY(handshake->required_hash_algs, 1);
     return 0;
 }
 
@@ -123,7 +123,7 @@ uint8_t s2n_handshake_is_hash_required(struct s2n_handshake *handshake, s2n_hash
 int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
 {
     /* Clear all of the required hashes */
-    memset(conn->handshake.required_hash_algs, 0, sizeof(conn->handshake.required_hash_algs));
+    S2N_ZERO_ARRAY(conn->handshake.required_hash_algs);
 
     message_type_t handshake_message = s2n_conn_get_current_message_type(conn);
     const uint8_t client_cert_verify_done = (handshake_message >= CLIENT_CERT_VERIFY) ? 1 : 0;

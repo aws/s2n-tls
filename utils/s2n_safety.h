@@ -78,12 +78,9 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
     }                                                                       \
   } while(0)
 
-/* Use the __builtin_types_compatible_p to prevent this ever being called on a pointer */
-#define S2N_ZERO_ARRAY( a )                                                            \
-    do {                                                                               \
-        S2N_ERROR_IF(__builtin_types_compatible_p(typeof (p), void*), S2N_ERR_SAFETY); \
-        memset((a), 0, sizeof(a));                                                     \
-    } while (0)
+#define S2N_MEMSET_ARRAY( a, c ) memset((a), (c), sizeof(a)) 
+#define S2N_ZERO_ARRAY( a ) memset((a), 0, sizeof(a))
+#define S2N_ZERO_STRUCT( s ) (s) = (typeof(s)) {0}
 
 #define char_to_digit(c, d)  do { if(!isdigit(c)) { S2N_ERROR(S2N_ERR_SAFETY); } d = c - '0'; } while(0)
 
