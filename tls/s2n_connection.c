@@ -1180,8 +1180,7 @@ int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
         S2N_ERROR_IF(w < 0 && errno != EINTR, S2N_ERR_SEND_STUFFER_TO_CONN);
     } while (w < 0);
 
-    stuffer->read_cursor += w;
-
+    GUARD(s2n_stuffer_skip_read(stuffer, w));
     return w;
 }
 
