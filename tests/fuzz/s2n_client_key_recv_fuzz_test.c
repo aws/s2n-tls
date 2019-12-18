@@ -39,8 +39,10 @@ char *dhparams_pem;
 struct s2n_config *config;
 struct s2n_cert_chain_and_key *chain_and_key;
 struct s2n_cert_chain_and_key *cert;
+struct s2n_cipher_suite **test_suites;
+int num_suites;
 
-/* Only one cipher suite per decryption algorithm included to speed up fuzz tests */
+/* HARDCODED LIST OF SUPPORTED CIPHER SUITES TAKEN FROM tls/s2n_cipher_suites.c */
 static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
     &s2n_rsa_with_rc4_128_md5,                      /* 0x00,0x04 */
     &s2n_rsa_with_rc4_128_sha,                      /* 0x00,0x05 */
@@ -84,6 +86,28 @@ static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
     &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x08 */
 };
 
+static struct s2n_cipher_suite *s2n_all_fips_cipher_suites[] = {
+    &s2n_rsa_with_3des_ede_cbc_sha,                /* 0x00,0x0A */
+    &s2n_rsa_with_aes_128_cbc_sha,                 /* 0x00,0x2F */
+    &s2n_rsa_with_aes_256_cbc_sha,                 /* 0x00,0x35 */
+    &s2n_rsa_with_aes_128_cbc_sha256,              /* 0x00,0x3C */
+    &s2n_rsa_with_aes_256_cbc_sha256,              /* 0x00,0x3D */
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,          /* 0x00,0x67 */
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,          /* 0x00,0x6B */
+    &s2n_rsa_with_aes_128_gcm_sha256,              /* 0x00,0x9C */
+    &s2n_rsa_with_aes_256_gcm_sha384,              /* 0x00,0x9D */
+    &s2n_dhe_rsa_with_aes_128_gcm_sha256,          /* 0x00,0x9E */
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384,          /* 0x00,0x9F */
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,      /* 0xC0,0x23 */
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,      /* 0xC0,0x24 */
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,        /* 0xC0,0x27 */
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,        /* 0xC0,0x28 */
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,      /* 0xC0,0x2B */
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,      /* 0xC0,0x2C */
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,        /* 0xC0,0x2F */
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,        /* 0xC0,0x30 */
+};
+
 static void s2n_fuzz_atexit()
 {
     s2n_cleanup();
@@ -96,8 +120,16 @@ static void s2n_fuzz_atexit()
 
 int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 {
+    notnull_check(s2n_all_cipher_suites);
+    notnull_check(s2n_all_fips_cipher_suites);
+
 #ifdef S2N_TEST_IN_FIPS_MODE
     S2N_TEST_ENTER_FIPS_MODE();
+    test_suites = s2n_all_fips_cipher_suites;
+    num_suites = s2n_array_len(s2n_all_fips_cipher_suites);
+#else
+    test_suites = s2n_all_cipher_suites;
+    num_suites = s2n_array_len(s2n_all_cipher_suites);
 #endif
 
     /* One time Diffie-Hellman negotiation to speed along fuzz tests*/
@@ -134,40 +166,40 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 
 int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
-    for(int version = 0; version < (sizeof(TLS_VERSIONS) / sizeof(TLS_VERSIONS[0])); version++)
-    {
-        for(int cipher = 0; cipher < (sizeof(s2n_all_cipher_suites) / sizeof(s2n_all_cipher_suites[0])); cipher++)
-        {
-            /* Setup */
-            if(s2n_all_cipher_suites[cipher]->key_exchange_alg != NULL)
-            {
-                struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
-                notnull_check(server_conn);
-                server_conn->server_protocol_version = TLS_VERSIONS[version];
-                server_conn->secure.cipher_suite = s2n_all_cipher_suites[cipher];
+    for (int version = 0; version < s2n_array_len(TLS_VERSIONS); version++) {
+        for (int cipher = 0; cipher < num_suites; cipher++) {
 
-                GUARD(s2n_stuffer_write_bytes(&server_conn->handshake.io, buf, len));
-                server_conn->handshake_params.our_chain_and_key = cert;
-
-                if(server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_ecdhe_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv)
-                {
-                    server_conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
-                    s2n_ecc_generate_ephemeral_key(&server_conn->secure.server_ecc_params);
-                }
-
-                if(server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_kem_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv)
-                {
-                    server_conn->secure.s2n_kem_keys.negotiated_kem = &s2n_sike_p503_r1;
-                }
-
-                 /* Run Test
-                 * Do not use GUARD macro here since the connection memory hasn't been freed.
-                 */
-                s2n_client_key_recv(server_conn);
-
-                /* Cleanup */
-                GUARD(s2n_connection_free(server_conn));
+            /* Skip incompatible TLS 1.3 cipher suites */
+            if (test_suites[cipher]->key_exchange_alg == NULL) {
+                continue;
             }
+
+            /* Setup */
+
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            notnull_check(server_conn);
+            server_conn->server_protocol_version = TLS_VERSIONS[version];
+            server_conn->secure.cipher_suite = test_suites[cipher];
+
+            GUARD(s2n_stuffer_write_bytes(&server_conn->handshake.io, buf, len));
+            server_conn->handshake_params.our_chain_and_key = cert;
+
+            if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_ecdhe_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {
+                server_conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
+                s2n_ecc_generate_ephemeral_key(&server_conn->secure.server_ecc_params);
+            }
+
+            if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_kem_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {
+                server_conn->secure.s2n_kem_keys.negotiated_kem = &s2n_sike_p503_r1;
+            }
+
+            /* Run Test
+             * Do not use GUARD macro here since the connection memory hasn't been freed.
+             */
+            s2n_client_key_recv(server_conn);
+
+            /* Cleanup */
+            GUARD(s2n_connection_free(server_conn));
         }
     }
     return 0;
