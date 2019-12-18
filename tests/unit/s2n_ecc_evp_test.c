@@ -22,6 +22,8 @@
 #include "testlib/s2n_testlib.h"
 #include "utils/s2n_mem.h"
 
+#define ECDHE_PARAMS_LEGACY_FORM 4
+
 int main(int argc, char **argv) {
     BEGIN_TEST();
     {
@@ -85,34 +87,34 @@ int main(int argc, char **argv) {
         and client curves donot match */
         for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
             for (int j = 0; j < s2n_ecc_evp_supported_curves_list_len; j++) {
-                    struct s2n_ecc_evp_params server_params = {0};
-                    struct s2n_ecc_evp_params client_params = {0};
-                    struct s2n_blob server_shared = {0};
-                    struct s2n_blob client_shared = {0};
-                    if (s2n_ecc_evp_supported_curves_list[i] == s2n_ecc_evp_supported_curves_list[j]) {
-                        continue;
-                    }
+                struct s2n_ecc_evp_params server_params = {0};
+                struct s2n_ecc_evp_params client_params = {0};
+                struct s2n_blob server_shared = {0};
+                struct s2n_blob client_shared = {0};
+                if (s2n_ecc_evp_supported_curves_list[i] == s2n_ecc_evp_supported_curves_list[j]) {
+                    continue;
+                }
 
-                    /* Server generates a key */
-                    server_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[j];
+                /* Server generates a key */
+                server_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[j];
 
-                    EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_params));
+                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_params));
 
-                    /* Client generates a key */
-                    client_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[i];
-                    EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params));
+                /* Client generates a key */
+                client_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[i];
+                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params));
 
-                    /* Compute shared secret for server */
-                    EXPECT_FAILURE(
-                        s2n_ecc_evp_compute_shared_secret_from_params(&server_params, &client_params, &server_shared));
+                /* Compute shared secret for server */
+                EXPECT_FAILURE(
+                    s2n_ecc_evp_compute_shared_secret_from_params(&server_params, &client_params, &server_shared));
 
-                    /* Compute shared secret for client */
-                    EXPECT_FAILURE(
-                        s2n_ecc_evp_compute_shared_secret_from_params(&client_params, &server_params, &client_shared));
+                /* Compute shared secret for client */
+                EXPECT_FAILURE(
+                    s2n_ecc_evp_compute_shared_secret_from_params(&client_params, &server_params, &client_shared));
 
-                    /* Clean up */
-                    EXPECT_SUCCESS(s2n_ecc_evp_params_free(&server_params));
-                    EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_params));
+                /* Clean up */
+                EXPECT_SUCCESS(s2n_ecc_evp_params_free(&server_params));
+                EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_params));
             }
         }
     }
@@ -139,15 +141,11 @@ int main(int argc, char **argv) {
             if (s2n_ecc_evp_supported_curves_list[i]->iana_id == TLS_EC_CURVE_SECP_256_R1 ||
                 s2n_ecc_evp_supported_curves_list[i]->iana_id == TLS_EC_CURVE_SECP_384_R1) {
                 EXPECT_SUCCESS(s2n_stuffer_read_uint8(&wire, &legacy_form));
-                EXPECT_EQUAL(legacy_form, 4);
+                EXPECT_EQUAL(legacy_form, ECDHE_PARAMS_LEGACY_FORM);
             }
 
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&test_params));
-#if MODERN_EC_SUPPORTED
-            OPENSSL_free(wire.blob.data);
-#else
             EXPECT_SUCCESS(s2n_stuffer_free(&wire));
-#endif
         }
     }
     {
@@ -173,11 +171,7 @@ int main(int argc, char **argv) {
             EXPECT_NOT_NULL(point_blob.data);
 
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&write_params));
-#if MODERN_EC_SUPPORTED
-            OPENSSL_free(wire.blob.data);
-#else
             EXPECT_SUCCESS(s2n_stuffer_free(&wire));
-#endif
         }
     }
     {
@@ -208,11 +202,7 @@ int main(int argc, char **argv) {
             EXPECT_TRUE(EVP_PKEY_cmp(write_params.evp_pkey, read_params.evp_pkey));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&write_params));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&read_params));
-#if MODERN_EC_SUPPORTED
-            OPENSSL_free(wire.blob.data);
-#else
             EXPECT_SUCCESS(s2n_stuffer_free(&wire));
-#endif
         }
     }
 

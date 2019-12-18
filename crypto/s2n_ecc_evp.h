@@ -31,7 +31,7 @@ extern const struct s2n_ecc_named_curve s2n_ecc_curve_x25519;
 #define MODERN_EC_SUPPORTED 0
 #endif
 
-extern const struct s2n_ecc_named_curve* const s2n_ecc_evp_supported_curves_list[];
+extern const struct s2n_ecc_named_curve *const s2n_ecc_evp_supported_curves_list[];
 extern const size_t s2n_ecc_evp_supported_curves_list_len;
 
 struct s2n_ecc_evp_params {
