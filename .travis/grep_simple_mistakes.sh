@@ -37,6 +37,17 @@ for file in $S2N_FILES_ASSERT_RETURN; do
   fi
 done
 
+# Detect raw usage of memset
+S2N_FILES_RAW_MEMSET=$(find "$PWD" -type f -name "s2n*.c" ! -path "*tests*")
+for file in $S2N_FILES_RAW_MEMSET; do
+  RESULT_RAW_MEMSET=`grep -Ern 'memset\((.*)\)' $file`
+
+  if [ "${#RESULT_RAW_MEMSET}" != "0" ]; then
+    FAILED=1
+    printf "\e[1;34mGrep for 'memset\((.*)\)' check failed in $file:\e[0m\n$RESULT_ARR_DIV\n\n"
+  fi
+done
+
 # Detect any array size calculations that are not using the s2n_array_len() function.
 S2N_FILES_ARRAY_SIZING_RETURN=$(find "$PWD" -type f -name "s2n*.c" -path "*")
 for file in $S2N_FILES_ARRAY_SIZING_RETURN; do

@@ -81,7 +81,7 @@ static int s2n_config_init(struct s2n_config *config)
 {
     config->cert_allocated = 0;
     config->dhparams = NULL;
-    memset(&config->application_protocols, 0, sizeof(config->application_protocols));
+    memset_check(&config->application_protocols, 0, sizeof(config->application_protocols));
     config->status_request_type = S2N_STATUS_REQUEST_NONE;
     config->wall_clock = wall_clock;
     config->monotonic_clock = monotonic_clock;
@@ -128,7 +128,7 @@ static int s2n_config_init(struct s2n_config *config)
 
     notnull_check(config->domain_name_to_cert_map = s2n_map_new_with_initial_capacity(1));
     GUARD(s2n_map_complete(config->domain_name_to_cert_map));
-    memset(&config->default_cert_per_auth_method, 0, sizeof(struct auth_method_to_cert_value));
+    memset_check(&config->default_cert_per_auth_method, 0, sizeof(struct auth_method_to_cert_value));
     config->default_certs_are_explicit = 0;
 
     s2n_x509_trust_store_init_empty(&config->trust_store);

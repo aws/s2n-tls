@@ -238,7 +238,7 @@ static int s2n_populate_client_hello_extensions(struct s2n_client_hello *ch)
     GUARD(s2n_stuffer_write(&in, &ch->extensions));
 
     static __thread s2n_tls_extension_mask parsed_extensions_mask;
-    memset(&parsed_extensions_mask, 0, sizeof(s2n_tls_extension_mask));
+    memset_check(&parsed_extensions_mask, 0, sizeof(s2n_tls_extension_mask));
 
     while (s2n_stuffer_data_available(&in)) {
         uint16_t ext_size, ext_type;

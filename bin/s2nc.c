@@ -214,7 +214,7 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
 
 int main(int argc, char *const *argv)
 {
-    struct addrinfo hints, *ai_list, *ai;
+    struct addrinfo *ai_list, *ai;
     int r, sockfd = 0;
     ssize_t session_state_length = 0;
     uint8_t *session_state = NULL;
@@ -341,10 +341,7 @@ int main(int argc, char *const *argv)
         server_name = host;
     }
 
-    memset(&hints, 0, sizeof(hints));
-
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
+    struct addrinfo hints = {.ai_family = AF_UNSPEC, .ai_socktype = SOCK_STREAM};
 
     if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
         fprintf(stderr, "Error disabling SIGPIPE\n");

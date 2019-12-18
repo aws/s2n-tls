@@ -209,7 +209,7 @@ int s2n_stuffer_erase_and_read(struct s2n_stuffer *stuffer, struct s2n_blob *out
     notnull_check(ptr);
 
     memcpy_check(out->data, ptr, out->size);
-    memset(ptr, 0, out->size);
+    memset_check(ptr, 0, out->size);
 
     return 0;
 }
@@ -235,7 +235,7 @@ int s2n_stuffer_erase_and_read_bytes(struct s2n_stuffer *stuffer, uint8_t * data
     notnull_check(ptr);
 
     memcpy_check(data, ptr, size);
-    memset(ptr, 0, size);
+    memset_check(ptr, 0, size);
 
     return 0;
 }

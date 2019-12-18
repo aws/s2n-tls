@@ -421,7 +421,7 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
 
 int main(int argc, char *const *argv)
 {
-    struct addrinfo hints, *ai;
+    struct addrinfo *ai;
     int r, sockfd = 0;
 
     /* required args */
@@ -586,10 +586,7 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    memset(&hints, 0, sizeof(hints));
-
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
+    struct addrinfo hints = {.ai_family = AF_UNSPEC, .ai_socktype = SOCK_STREAM};
 
     if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
         fprintf(stderr, "Error disabling SIGPIPE\n");

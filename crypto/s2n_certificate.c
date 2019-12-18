@@ -181,8 +181,8 @@ struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void)
 
     chain_and_key->cert_chain->head = NULL;
     GUARD_PTR(s2n_pkey_zero_init(chain_and_key->private_key));
-    memset(&chain_and_key->ocsp_status, 0, sizeof(chain_and_key->ocsp_status));
-    memset(&chain_and_key->sct_list, 0, sizeof(chain_and_key->sct_list));
+    memset_check_ptr(&chain_and_key->ocsp_status, 0, sizeof(chain_and_key->ocsp_status));
+    memset_check_ptr(&chain_and_key->sct_list, 0, sizeof(chain_and_key->sct_list));
     chain_and_key->cn_names = s2n_array_new(sizeof(struct s2n_blob));
     if (!chain_and_key->cn_names) {
         return NULL;

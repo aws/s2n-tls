@@ -68,6 +68,23 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
     }                                                                       \
   } while(0)
 
+#define memset_check_ptr( d, c, n )                                         \
+  do {                                                                      \
+    __typeof( n ) __tmp_n = ( n );                                          \
+    if ( __tmp_n ) {                                                        \
+      __typeof( d ) __tmp_d = ( d );                                        \
+      notnull_check_ptr( __tmp_d );                                         \
+      memset( __tmp_d, (c), __tmp_n);                                       \
+    }                                                                       \
+  } while(0)
+
+/* Use the __builtin_types_compatible_p to prevent this ever being called on a pointer */
+#define S2N_ZERO_ARRAY( a )                                                            \
+    do {                                                                               \
+        S2N_ERROR_IF(__builtin_types_compatible_p(typeof (p), void*), S2N_ERR_SAFETY); \
+        memset((a), 0, sizeof(a));                                                     \
+    } while (0)
+
 #define char_to_digit(c, d)  do { if(!isdigit(c)) { S2N_ERROR(S2N_ERR_SAFETY); } d = c - '0'; } while(0)
 
 /* Range check a number */

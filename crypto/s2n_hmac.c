@@ -102,7 +102,7 @@ static int s2n_sslv3_mac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm a
 
 static int s2n_tls_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
 {
-    memset(&state->xor_pad, 0, sizeof(state->xor_pad));
+    memset_check(&state->xor_pad, 0, sizeof(state->xor_pad));
     
     if (klen > state->xor_pad_size) {
         GUARD(s2n_hash_update(&state->outer, key, klen));
@@ -209,7 +209,7 @@ int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const vo
      * Since xor_pad is used as a source of bytes in s2n_hmac_digest_two_compression_rounds,
      * this also prevents uninitilized bytes being used.
      */
-    memset(&state->xor_pad, 0, sizeof(state->xor_pad));
+    memset_check(&state->xor_pad, 0, sizeof(state->xor_pad));
     GUARD(s2n_hmac_reset(state));
 
     return 0;
