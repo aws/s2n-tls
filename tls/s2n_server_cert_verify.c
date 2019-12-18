@@ -92,7 +92,8 @@ int s2n_server_write_cert_verify_signature(struct s2n_connection *conn, struct s
 
 int s2n_server_generate_unsigned_cert_verify_content(struct s2n_connection *conn, struct s2n_stuffer *unsigned_content, s2n_hash_algorithm chosen_hash_alg)
 {
-    struct s2n_hash_state hash_copy;
+    DEFER_CLEANUP(struct s2n_hash_state hash_copy = {0}, s2n_hash_free);
+    GUARD(s2n_hash_new(&hash_copy));
     uint8_t hash_digest_length;
     uint8_t digest_out[S2N_MAX_DIGEST_LEN];
 
