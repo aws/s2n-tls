@@ -316,14 +316,28 @@ struct s2n_config *s2n_config_new(void)
     return new_config;
 }
 
+static int s2n_config_store_ticket_key_comparator(const void *a, const void *b)
+{
+    if (((const struct s2n_ticket_key *) a)->intro_timestamp >= ((const struct s2n_ticket_key *) b)->intro_timestamp) {
+        return S2N_GREATER_OR_EQUAL;
+    } else {
+        return S2N_LESS_THAN;
+    }
+}
+
+static int s2n_verify_unique_ticket_key_comparator(const void *a, const void *b)
+{
+    return memcmp(a, b, SHA_DIGEST_LENGTH);
+}
+
 int s2n_config_init_session_ticket_keys(struct s2n_config *config)
 {
     if (config->ticket_keys == NULL) {
-        notnull_check(config->ticket_keys = s2n_array_new(sizeof(struct s2n_ticket_key)));
+      notnull_check(config->ticket_keys = s2n_set_new(sizeof(struct s2n_ticket_key), s2n_config_store_ticket_key_comparator));
     }
 
     if (config->ticket_key_hashes == NULL) {
-        notnull_check(config->ticket_key_hashes = s2n_array_new(SHA_DIGEST_LENGTH));
+      notnull_check(config->ticket_key_hashes = s2n_set_new(SHA_DIGEST_LENGTH, s2n_verify_unique_ticket_key_comparator));
     }
 
     return 0;
@@ -332,11 +346,11 @@ int s2n_config_init_session_ticket_keys(struct s2n_config *config)
 int s2n_config_free_session_ticket_keys(struct s2n_config *config)
 {
     if (config->ticket_keys != NULL) {
-        GUARD(s2n_array_free_p(&config->ticket_keys));
+        GUARD(s2n_set_free_p(&config->ticket_keys));
     }
 
     if (config->ticket_key_hashes != NULL) {
-        GUARD(s2n_array_free_p(&config->ticket_key_hashes));
+        GUARD(s2n_set_free_p(&config->ticket_key_hashes));
     }
 
     return 0;
@@ -722,11 +736,6 @@ int s2n_config_set_ticket_decrypt_key_lifetime(struct s2n_config *config,
     return 0;
 }
 
-int s2n_verify_unique_ticket_key_comparator(void *a, void *b)
-{
-    return memcmp((uint8_t *) a, (uint8_t *) b, SHA_DIGEST_LENGTH);
-}
-
 int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
                                      const uint8_t *name, uint32_t name_len,
                                      uint8_t *key, uint32_t key_len,
@@ -744,7 +753,7 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
 
     S2N_ERROR_IF(key_len == 0, S2N_ERR_INVALID_TICKET_KEY_LENGTH);
 
-    S2N_ERROR_IF(config->ticket_keys->num_of_elements >= S2N_MAX_TICKET_KEYS, S2N_ERR_TICKET_KEY_LIMIT);
+    S2N_ERROR_IF(s2n_set_size(config->ticket_keys) >= S2N_MAX_TICKET_KEYS, S2N_ERR_TICKET_KEY_LIMIT);
 
     S2N_ERROR_IF(name_len == 0 || name_len > S2N_TICKET_KEY_NAME_LEN || s2n_find_ticket_key(config, name), S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH);
 
@@ -772,15 +781,13 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     GUARD(s2n_hash_update(&hash, out_key.data, out_key.size));
     GUARD(s2n_hash_digest(&hash, hash_output, SHA_DIGEST_LENGTH));
 
-    if (config->ticket_key_hashes->num_of_elements >= S2N_MAX_TICKET_KEY_HASHES) {
-        GUARD(s2n_array_free_p(&config->ticket_key_hashes));
-        notnull_check(config->ticket_key_hashes = s2n_array_new(SHA_DIGEST_LENGTH));
+    if (s2n_set_size(config->ticket_key_hashes) >= S2N_MAX_TICKET_KEY_HASHES) {
+        GUARD(s2n_set_free_p(&config->ticket_key_hashes));
+        notnull_check(config->ticket_key_hashes = s2n_set_new(SHA_DIGEST_LENGTH, s2n_verify_unique_ticket_key_comparator));
     }
 
     /* Insert hash key into a sorted array at known index */
-    struct uint8_t *hash_element = 0;
-    GUARD_NONNULL(hash_element = s2n_array_insert_sorted(config->ticket_key_hashes, hash_output, s2n_verify_unique_ticket_key_comparator));
-    memcpy_check(hash_element, hash_output, SHA_DIGEST_LENGTH);
+    GUARD(s2n_set_add(config->ticket_key_hashes, hash_output));
 
     memcpy_check(session_ticket_key->key_name, name, S2N_TICKET_KEY_NAME_LEN);
     memcpy_check(session_ticket_key->aes_key, out_key.data, S2N_AES256_KEY_LEN);

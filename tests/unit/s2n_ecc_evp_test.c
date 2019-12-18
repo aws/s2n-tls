@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
                 struct s2n_ecc_evp_params client_params = {0};
                 struct s2n_blob server_shared = {0};
                 struct s2n_blob client_shared = {0};
-                if (s2n_ecc_evp_supported_curves_list[i] == s2n_ecc_evp_supported_curves_list[j]) {
+                if (i == j) {
                     continue;
                 }
 

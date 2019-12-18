@@ -26,5 +26,15 @@ CFLAGS += -Wno-missing-braces -Wno-missing-field-initializers -I../../
 .PHONY : all
 all: $(OBJS)
 
+CFLAGS_LLVM = -emit-llvm -c -g \
+              -std=c99 -fgnu89-inline -D_POSIX_C_SOURCE=200809L -D_FORTIFY_SOURCE=2 \
+              -I$(LIBCRYPTO_ROOT)/include/ -I../../api/ -I../../
+
+BCS_1=utilities.bc decode.bc bike1_l1_kem.bc \
+    converts_portable.bc secure_decode_portable.bc \
+    openssl_utils.bc aes_ctr_prf.bc parallel_hash.bc \
+    sampling_portable.bc sampling.bc
+BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
+
 .PHONY : bc
 bc: $(BCS)

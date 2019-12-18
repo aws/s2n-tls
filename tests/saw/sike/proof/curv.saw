@@ -144,14 +144,14 @@ let a_xTPL_spec = point_op "A24minus" "A24plus" {{ xTPL_abstract }};
    for every value that a caller needs. This includes a few large "e".
 */
 
-xDBL_ov <- verify_unint "xDBL"
+xDBL_ov <- verify_unint "xDBL_r1"
     [ fp2add503_left_ov,fp2add503_ov, fp2mul503_mont_left_ov, fp2mul503_mont_ov
     , fp2sqr503_mont_same_ov, fp2sub503_ov, fp2sub503_left_ov ]
     [ "fp2add503", "fp2mul503_mont", "fp2sqr503_mont"
     , "fp2sub503", "fp2norm", "pf2twice_mod" ]
     xDBL_spec;
 
-xDBL_same_ov <- verify_unint "xDBL"
+xDBL_same_ov <- verify_unint "xDBL_r1"
     [ fp2add503_left_ov,fp2add503_ov, fp2mul503_mont_left_ov, fp2mul503_mont_ov
     , fp2sqr503_mont_same_ov, fp2sub503_ov, fp2sub503_left_ov ]
     [ "fp2add503", "fp2mul503_mont", "fp2sqr503_mont"
@@ -160,26 +160,26 @@ xDBL_same_ov <- verify_unint "xDBL"
 
 // NOTE: Proofs for some of the "e" values used in calls
 for [1,2,4,5] (\e -> do {
-    verify_unint "xDBLe"
+    verify_unint "xDBLe_r1"
         [xDBL_same_ov, copy_words_nwords_field_x4_ov]
         ["xDBL"]
         (xDBLe_spec_known_e {{ `e:[32] }});
     });
 
-xDBLe_ov <- admit "xDBLe" [] xDBLe_spec;
+xDBLe_ov <- admit "xDBLe_r1" [] xDBLe_spec;
 
 // NOTE: Proofs for some of the "e" values used in calls
 for [1,2,4,5] (\e -> do {
-    verify_unint "xDBLe"
+    verify_unint "xDBLe_r1"
         [xDBL_same_ov, copy_words_same_nwords_field_x4_ov]
         ["xDBL"]
         (xDBLe_same_spec_known_e {{ `e:[32] }});
     });
 
-xDBLe_same_ov <- admit "xDBLe" [] xDBLe_same_spec;
-xDBLe_same32_ov <- admit "xDBLe" [] xDBLe_same32_spec;
+xDBLe_same_ov <- admit "xDBLe_r1" [] xDBLe_same_spec;
+xDBLe_same32_ov <- admit "xDBLe_r1" [] xDBLe_same32_spec;
 
-xTPL_ov <- verify_unint "xTPL"
+xTPL_ov <- verify_unint "xTPL_r1"
     [ fp2sub503_ov, fp2sqr503_mont_ov, fp2add503_ov, fp2sub503_left_ov
     , fp2sub503_right_ov, fp2mul503_mont_left_ov, fp2mul503_mont_ov
     , fp2sqr503_mont_same_ov, fp2sqr503_mont_ov ]
@@ -187,7 +187,7 @@ xTPL_ov <- verify_unint "xTPL"
     , "fp2sub503", "fp2norm", "pf2twice_mod" ]
     xTPL_spec;
 
-xTPL_same_ov <- verify_unint "xTPL"
+xTPL_same_ov <- verify_unint "xTPL_r1"
     [ fp2sub503_ov, fp2sqr503_mont_ov, fp2add503_ov, fp2sub503_left_ov
     , fp2sub503_right_ov, fp2mul503_mont_left_ov, fp2mul503_mont_ov
     , fp2sqr503_mont_same_ov, fp2sqr503_mont_ov ]
@@ -197,21 +197,21 @@ xTPL_same_ov <- verify_unint "xTPL"
 
 // NOTE: Proofs for some of the "e" values used in calls
 for [1,2,4,5] (\e -> do {
-    verify_unint "xTPLe"
+    verify_unint "xTPLe_r1"
         [xTPL_same_ov, copy_words_nwords_field_x4_ov]
         ["xTPL"]
         (xTPLe_spec_known_e {{ `e:[32] }});
     });
 
-xTPLe_ov <- admit "xTPLe" [] xTPLe_spec;
+xTPLe_ov <- admit "xTPLe_r1" [] xTPLe_spec;
 
 // NOTE: Proofs for some of the "e" values used in calls
 for [1,2,4,5] (\e -> do {
-    verify_unint "xTPLe"
+    verify_unint "xTPLe_r1"
        [xTPL_same_ov, copy_words_same_nwords_field_x4_ov]
        ["xTPL"]
        (xTPLe_same_spec_known_e {{ `e:[32] }});
     });
 
-xTPLe_same_ov <- admit "xTPLe" [] xTPLe_same_spec;
-xTPLe_same32_ov <- admit "xTPLe" [] xTPLe_same32_spec;
+xTPLe_same_ov <- admit "xTPLe_r1" [] xTPLe_same_spec;
+xTPLe_same32_ov <- admit "xTPLe_r1" [] xTPLe_same32_spec;

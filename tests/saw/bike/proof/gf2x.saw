@@ -1,0 +1,73 @@
+// gf2x.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+// NOTE: A comment in the C says that gf2x_mod_mul "requires the values to
+//       be 64bit padded and extra (dbl) space for the results" but the
+//       actual code does not seem to need that.  Maybe one of the
+//       alternative implementations does?  In any case, we specify here
+//       that the result parameter must have this extra space.
+let gf2x_mod_mul_spec x = do {
+    let dbl_size = eval_int {{ 2 * (`R_PADDED_QW:[64]) }};
+    resp <- out_ref (make_i64_T dbl_size);
+    (a,ap) <- in_ref (make_i64_T R_PADDED_QW) "a";
+    (b,bp) <- in_ref (make_i64_T R_PADDED_QW) "b";
+    crucible_execute_func [resp, ap, bp];
+
+    if x then
+        crucible_points_to_untyped resp (tm {{ gf2x_mod_mul a b }})
+    else do {
+        // NOTE: R_SIZE bytes
+        v <- crucible_fresh_var "gf2x_r'" rsize_t;
+        crucible_points_to_untyped resp (tm v);
+    };
+
+    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+};
+
+let gf2x_add_spec x = do {
+    ap <- out_ref rsize_T;
+    (b,bp) <- in_ref rsize_T "a";
+    (c,cp) <- in_ref rsize_T "b";
+
+    crucible_execute_func [ap, bp, cp, tm {{ `R_SIZE:[64] }}];
+
+    if x then
+        crucible_points_to ap (tm {{ gf2x_add b c }})
+    else do {
+        a' <- point_to rsize_T ap "a'"; // *ap is updated
+        return ();
+    };
+
+    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+};
+
+let gf2x_add_left_spec x = do {
+    (a,ap) <- inout_ref rsize_T "a";
+    (b,bp) <- in_ref rsize_T "b";
+    crucible_execute_func [ap, ap, bp, tm {{ `R_SIZE:[64] }}];
+
+    if x then
+        crucible_points_to ap (tm {{ gf2x_add a b }})
+    else do {
+        a' <- point_to rsize_T ap "a'"; // *ap is updated
+        return ();
+    };
+
+    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+verify "gf2x_mod_mul" [cyclic_product_ov] (gf2x_mod_mul_spec false);
+// NOTE: These are admitted as post-cond is needed for compute syndrome
+gf2x_mod_mul_ov <- admit "gf2x_mod_mul" [] (gf2x_mod_mul_spec true);
+
+verify "gf2x_add" [ossl_add_ov] (gf2x_add_spec false);
+verify "gf2x_add" [ossl_add_left_ov] (gf2x_add_left_spec false);
+// NOTE: These are admitted as post-cond is needed for compute syndrome
+gf2x_add_ov <- admit "gf2x_add" [] (gf2x_add_spec true);
+gf2x_add_left_ov <- admit "gf2x_add" [] (gf2x_add_left_spec true);

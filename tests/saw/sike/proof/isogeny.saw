@@ -305,7 +305,7 @@ let LADDER3PT_spec = do {
 
 let eval_iv = ["fp2add503", "fp2sub503", "fp2mul503_mont", "fp2sqr503_mont"];
 
-get_3_isog_ov <- verify_unint "get_3_isog"
+get_3_isog_ov <- verify_unint "get_3_isog_r1"
     [ fp2add503_ov, fp2add503_left_ov, fp2add503_right_ov, fp2add503_same_ov
     , fp2sub503_ov,fp2sub503_left_ov
     , fp2mul503_mont_ov, fp2mul503_mont_left_ov, fp2mul503_mont_right_ov
@@ -313,7 +313,7 @@ get_3_isog_ov <- verify_unint "get_3_isog"
     [ "fp2add503", "fp2mul503_mont", "fp2sqr503_mont", "fp2sub503" ]
     get_3_isog_spec;
 
-get_4_isog_ov <- verify_unint "get_4_isog"
+get_4_isog_ov <- verify_unint "get_4_isog_r1"
     [ fp2add503_ov, fp2add503_left_ov, fp2add503_right_ov, fp2add503_same_ov
     , fp2sub503_ov, fp2mul503_mont_ov, fp2mul503_mont_left_ov
     , fp2sqr503_mont_ov, fp2sqr503_mont_same_ov ]
@@ -325,10 +325,10 @@ let eval_ov =
     , fp2mul503_mont_ov, fp2mul503_mont_left_ov
     , fp2sqr503_mont_same_ov ];
 
-eval_3_isog_ov <- verify_unint "eval_3_isog" eval_ov eval_iv eval_3_isog_spec;
-eval_4_isog_ov <- verify_unint "eval_4_isog" eval_ov eval_iv eval_4_isog_spec;
+eval_3_isog_ov <- verify_unint "eval_3_isog_r1" eval_ov eval_iv eval_3_isog_spec;
+eval_4_isog_ov <- verify_unint "eval_4_isog_r1" eval_ov eval_iv eval_4_isog_spec;
 
-get_A_ov <- verify_unint "get_A"
+get_A_ov <- verify_unint "get_A_r1"
     [ fp2copy503_ov, fp2add503_ov, fp2add503_left_ov
     , fp2add503_right_ov, fp2add503_same_ov
     , fp2sub503_left_ov, fp2mul503_mont_ov, fp2mul503_mont_left_ov
@@ -337,12 +337,12 @@ get_A_ov <- verify_unint "get_A"
     , "fp2mul503_mont", "fp2sqr503_mont", "fp2inv503_mont" ]
     get_A_spec;
 
-inv_3_way_ov <- verify_unint "inv_3_way"
+inv_3_way_ov <- verify_unint "inv_3_way_r1"
     [ fp2copy503_ov, fp2mul503_mont_ov, fp2inv503_mont_ov ]
     [ "fp2copy503", "fp2mul503_mont", "fp2inv503_mont" ]
     inv_3_way_spec;
 
-j_inv_ov <- verify_unint "j_inv"
+j_inv_ov <- verify_unint "j_inv_r1"
     [ fp2add503_left_ov, fp2add503_ov, fp2add503_same_ov, fp2add503_pair_ov
     , fp2sub503_ov, fp2sub503_left_ov, fp2sub503_right_ov
     , fp2mul503_mont_left_ov, fp2sqr503_mont_ov, fp2sqr503_mont_same_ov
@@ -351,7 +351,7 @@ j_inv_ov <- verify_unint "j_inv"
     , "fp2sqr503_mont", "fp2inv503_mont" ]
     j_inv_spec;
 
-xDBLADD_ov <- verify_unint "xDBLADD"
+xDBLADD_ov <- verify_unint "xDBLADD_r1"
     [ fp2add503_ov, fp2add503_left_ov, fp2add503_right_ov
     , fp2sub503_ov, fp2correction503_norm_ov
     , fp2mul503_mont_ov, fp2mul503_mont_left_ov
@@ -360,13 +360,13 @@ xDBLADD_ov <- verify_unint "xDBLADD"
     , "fp2sub503", "fp2norm" ]
     xDBLADD_spec;
 
-swap_points_ov <- verify "swap_points" [] swap_points_spec;
-swap_points_ov' <- verify "swap_points" [] swap_points_spec';
+swap_points_ov <- verify "swap_points_r1" [] swap_points_spec;
+swap_points_ov' <- verify "swap_points_r1" [] swap_points_spec';
 
 let fp_functions =
     [ "fpnorm", "fpnormalized", "fpneg503", "pftwice_mod"
     , "fpadd503", "fpsub503", "fpdiv2_503", "fpzero503"
-    , "fpmul503_mont", "fpsqr503_mont", "rdc_mont"
+    , "fpmul503_mont", "fpsqr503_mont", "rdc_mont_r1"
     , "to_mont", "from_mont", "fpinv503_chain_mont", "fpinv503_mont" ];
 
 let fp2_functions =
@@ -403,4 +403,4 @@ LADDER3PT_ov2 <- verify_unint "LADDER3PT_short" ladder_overrides
 LADDER3PT_ov3 <- verify_unint "LADDER3PT_short" ladder_overrides
     ladder_unint (LADDER3PT_short_spec 2);
 
-LADDER3PT_ov <- admit "LADDER3PT" ladder_overrides LADDER3PT_spec;
+LADDER3PT_ov <- admit "LADDER3PT_r1" ladder_overrides LADDER3PT_spec;

@@ -1,0 +1,108 @@
+// secure_decode_portable.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+let compute_counter_of_unsat_loop_spec = do {
+    (ucp, ucp_ptr) <- inout_ref (make_i8_T N_BITS) "ucp";
+    ucp_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to ucp_ptr_ptr ucp_ptr;
+    // NOTE: code says "R_BITS" but that is incorrect!
+    (s, s_ptr) <- in_ref (make_i8_T N_BITS) "s";
+    s_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to s_ptr_ptr s_ptr;
+    (h0c, h0c_ptr) <- in_ref compressed_idx_dv_T "h0c";
+    h0c_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to h0c_ptr_ptr h0c_ptr;
+    (h1c, h1c_ptr) <- in_ref compressed_idx_dv_T "h1c";
+    h1c_ptr_ptr <- crucible_alloc i64;
+    crucible_points_to h1c_ptr_ptr h1c_ptr;
+    (mask, mask_ptr) <- inout_ref (make_i32_T 2) "mask";
+    (pos, pos_ptr) <- inout_ref (make_i32_T 2) "pos";
+    (j, j_ptr) <- ptr_to_fresh "j" i32;
+    (i, i_ptr) <- ptr_to_fresh "i" i32;
+
+    crucible_precond {{ is_bounded_compressed_idx_dv h0c }};
+    crucible_precond {{ is_bounded_compressed_idx_dv h1c }};
+    crucible_precond {{ pos@0 <= `R_BITS /\ pos@1 <= `R_BITS }};
+    crucible_precond {{ j < `FAKE_DV }};
+    crucible_precond {{ i <= `R_BITS }};
+
+    crucible_execute_func
+        [ ucp_ptr_ptr
+        , s_ptr_ptr
+        , h0c_ptr_ptr
+        , h1c_ptr_ptr
+        , mask_ptr
+        , pos_ptr
+        , j_ptr
+        , i_ptr
+        ];
+
+    ucp' <- crucible_fresh_var "ucp'" (llvm_array N_BITS i8);
+    crucible_points_to ucp_ptr (crucible_term {{ ucp' }});
+
+    return ();
+};
+
+let compute_counter_of_unsat_spec = do {
+    ucp_ptr <- out_ref (make_i8_T N_BITS);
+    // NOTE: code says "R_BITS" but that is incorrect!
+    (s, s_ptr) <- in_ref (make_i8_T N_BITS) "s";
+    (h0c, h0c_ptr) <- in_ref compressed_idx_dv_T "h0c";
+    (h1c, h1c_ptr) <- in_ref compressed_idx_dv_T "h1c";
+
+    crucible_precond {{ is_bounded_compressed_idx_dv h0c }};
+    crucible_precond {{ is_bounded_compressed_idx_dv h1c }};
+
+    crucible_execute_func [ucp_ptr, s_ptr, h0c_ptr, h1c_ptr];
+
+    ucp' <- crucible_fresh_var "ucp'" (llvm_array N_BITS i8);
+    crucible_points_to ucp_ptr (crucible_term {{ ucp' }});
+
+    return ();
+};
+
+let find_error1_spec = do {
+    (a, ap) <- inout_ref e_T "e";
+    bp <- out_ref e_T;
+    cp <- out_ref e_T;
+    (d, dp) <- in_ref decode_utc_T "upc";
+    (e, ep) <- in_val i32_T "black_th";
+    (f, fp) <- in_val  i32_T "gray_th";
+    crucible_execute_func [ap, bp, cp, dp, ep, fp];
+    a' <- point_to e_T ap "e'";
+    b' <- point_to e_T bp "black_e'";
+    c' <- point_to e_T cp "grey_e'";
+    return ();
+};
+
+let find_error2_spec = do {
+    (a, ap) <- inout_ref e_T "e";
+    (b, bp) <- in_ref e_T "pos_e";
+    (c, cp) <- in_ref decode_utc_T  "upc";
+    (d, dp) <- in_val i32_T "threshold";
+    crucible_execute_func [ap, bp, cp, dp];
+    a' <- point_to e_T ap "e'";
+    return ();
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+compute_counter_of_unsat_loop_ov <- admit "__breakpoint__compute_counter_of_unsat_loop#compute_counter_of_unsat"
+    [] compute_counter_of_unsat_loop_spec;
+verify "__breakpoint__compute_counter_of_unsat_loop#compute_counter_of_unsat"
+    [compute_counter_of_unsat_loop_ov]
+    compute_counter_of_unsat_loop_spec;
+compute_counter_of_unsat_ov <- verify "compute_counter_of_unsat"
+    [compute_counter_of_unsat_loop_ov]
+    compute_counter_of_unsat_spec;
+
+find_error1_ov <- verify "find_error1"
+    [secure_l32_mask_ov
+    , gf2x_add_left_ov ]
+    find_error1_spec;
+
+find_error2_ov <- verify "find_error2" [secure_l32_mask_ov] find_error2_spec;

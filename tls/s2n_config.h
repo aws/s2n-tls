@@ -19,6 +19,7 @@
 #include "crypto/s2n_dhe.h"
 
 #include "utils/s2n_blob.h"
+#include "utils/s2n_set.h"
 #include "api/s2n.h"
 
 #include "tls/s2n_x509_validator.h"
@@ -53,8 +54,8 @@ struct s2n_config {
     uint64_t session_state_lifetime_in_nanos;
 
     uint8_t use_tickets;
-    struct s2n_array *ticket_keys;
-    struct s2n_array *ticket_key_hashes;
+    struct s2n_set *ticket_keys;
+    struct s2n_set *ticket_key_hashes;
     uint64_t encrypt_decrypt_key_lifetime_in_nanos;
     uint64_t decrypt_key_lifetime_in_nanos;
 

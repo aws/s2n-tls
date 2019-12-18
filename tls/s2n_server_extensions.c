@@ -43,6 +43,12 @@
 #define s2n_server_can_send_server_name(conn) ((conn)->server_name_used && \
         !s2n_connection_is_session_resumed((conn)))
 
+#define s2n_server_can_send_secure_renegotiation(conn) ((conn)->secure_renegotiation && \
+        (conn)->actual_protocol_version < S2N_TLS13)
+
+#define s2n_server_can_send_nst(conn) (s2n_server_sending_nst((conn)) && \
+        (conn)->actual_protocol_version < S2N_TLS13)
+
 int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     uint16_t total_size = 0;
@@ -59,7 +65,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     if (s2n_server_can_send_ocsp(conn)) {
         total_size += 4;
     }
-    if (conn->secure_renegotiation) {
+    if (s2n_server_can_send_secure_renegotiation(conn)) {
         total_size += 5;
     }
 
@@ -73,7 +79,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     if (conn->mfl_code) {
         total_size += 5;
     }
-    if (s2n_server_sending_nst(conn)) {
+    if (s2n_server_can_send_nst(conn)) {
         total_size += 4;
     }
 
@@ -104,7 +110,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     }
 
     /* Write the renegotiation_info extension */
-    if (conn->secure_renegotiation) {
+    if (s2n_server_can_send_secure_renegotiation(conn)) {
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_RENEGOTIATION_INFO));
         /* renegotiation_info length */
         GUARD(s2n_stuffer_write_uint16(out, 1));
@@ -142,7 +148,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     }
 
     /* Write session ticket extension */
-    if (s2n_server_sending_nst(conn)) {
+    if (s2n_server_can_send_nst(conn)) {
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SESSION_TICKET));
         GUARD(s2n_stuffer_write_uint16(out, 0));
     }

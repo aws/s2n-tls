@@ -15,6 +15,7 @@
 #ifndef __SIKE_P503_R1_KEM_H_INCLUDED__
 #define __SIKE_P503_R1_KEM_H_INCLUDED__
 
+#include "sike_r1_namespace.h"
 #include "../pq_utils.h"
 
 ////////////////////////////////////////////////////////////////

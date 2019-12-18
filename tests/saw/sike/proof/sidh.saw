@@ -21,7 +21,7 @@ let fp2_decoden_spec n = do {
     (enc, encp) <- ptr_to_fresh_readonly "enc" (llvm_array n char_t);
     crucible_precond {{  is_good_fp2_encoding (take` {126} enc) }};
     crucible_execute_func [encp, xp];
-    x <- crucible_fresh_var "fp2_decode" f2elm_t;
+    x <- crucible_fresh_var "fp2_decode_r1" f2elm_t;
     crucible_points_to xp (tm x);
     crucible_postcond {{ fp2norm x == fp2_decode (take` {126} enc)}};
     crucible_postcond {{ pf2twice_mod x }};
@@ -225,19 +225,19 @@ let ephemeralSecretAgreement_B_spec (f1:Int) = do {
 basis_thm1 <- prove_print (tactic []) {{ (is_good_basis A_gen) == True }};
 basis_thm2 <- prove_print (tactic []) {{ (is_good_basis B_gen) == True }};
 
-random_mod_order_B_ov <- admit "random_mod_order_B"
+random_mod_order_B_ov <- admit "random_mod_order_B_r1"
     [clear_words_ov, randombytes_sidh_ov] random_mod_order_B_spec;
-random_mod_order_B_unint_ov <- admit "random_mod_order_B"
+random_mod_order_B_unint_ov <- admit "random_mod_order_B_r1"
     [] random_mod_order_B_unint_spec;
 
-init_basis_ov <- verify "init_basis"
+init_basis_ov <- verify "init_basis_r1"
      [fpcopy503_ov, fpzero503_ov] (init_basis_spec false);
-init_basis_ov' <- verify_unint "init_basis"
+init_basis_ov' <- verify_unint "init_basis_r1"
      [] ["fpnorm", "pftwice"]  init_basis_spec';
 
-fp2_decode_ov_126 <- verify_unint "fp2_decode" [to_fp2mont_same_ov]
+fp2_decode_ov_126 <- verify_unint "fp2_decode_r1" [to_fp2mont_same_ov]
     ["to_fp2mont"] (fp2_decoden_spec  fp2_encoded_bytes);
-fp2_encode_ov <- verify_unint "fp2_encode" [from_fp2mont_norm_ov]
+fp2_encode_ov <- verify_unint "fp2_encode_r1" [from_fp2mont_norm_ov]
     ["from_fp2mont", "pf2twice"]
     fp2_encode_norm_spec;
 
@@ -301,13 +301,13 @@ let U_SecretAgreement_B = concat U_base_Secret U_base_Isog3;
 // NOTE: low-iteration cases for EphemeralKeyGeneration _A and _B
 
 let kG_A e =
-    verify_unint "EphemeralKeyGeneration_A"
+    verify_unint "EphemeralKeyGeneration_A_r1"
         O_KeyGeneration_A
         U_KeyGeneration_A
         (ephemeralKeyGeneration_A_spec 378 e);
 
 let kG_B e =
-    verify_unint "EphemeralKeyGeneration_B"
+    verify_unint "EphemeralKeyGeneration_B_r1"
         O_KeyGeneration_B
         U_KeyGeneration_B
         (ephemeralKeyGeneration_B_spec e);
@@ -320,14 +320,14 @@ kG_B 3;
 // NOTE: low-iteration cases for EphemeralSecretAgreement _A and _B
 
 let sA_A e =  do {
-    verify_unint  "EphemeralSecretAgreement_A"
+    verify_unint  "EphemeralSecretAgreement_A_r1"
         O_SecretAgreement_A
         U_SecretAgreement_A
        	(ephemeralSecretAgreement_A_spec e);
 };
 
 let sA_B e =  do {
-    verify_unint  "EphemeralSecretAgreement_B"
+    verify_unint  "EphemeralSecretAgreement_B_r1"
         O_SecretAgreement_B
         U_SecretAgreement_B
         (ephemeralSecretAgreement_B_spec e);};
@@ -340,13 +340,13 @@ sA_B 3;
 // NOTE: Full iteration cases are not proven
 
 let g_MAX_Alice = eval_int {{ (fromInteger g_MAX_Alice):[64] }};
-ephemeralKeyGeneration_A_378_ov <- admit "EphemeralKeyGeneration_A"
+ephemeralKeyGeneration_A_378_ov <- admit "EphemeralKeyGeneration_A_r1"
      O_KeyGeneration_A (ephemeralKeyGeneration_A_spec 378 g_MAX_Alice);
 
 let g_MAX_Bob = eval_int {{( fromInteger g_MAX_Bob):[64] }};
-ephemeralKeyGeneration_B_ov <- admit "EphemeralKeyGeneration_B"
+ephemeralKeyGeneration_B_ov <- admit "EphemeralKeyGeneration_B_r1"
     O_KeyGeneration_B  (ephemeralKeyGeneration_B_spec g_MAX_Bob);
-ephemeralSecretAgreement_A_ov <- admit "EphemeralSecretAgreement_A"
+ephemeralSecretAgreement_A_ov <- admit "EphemeralSecretAgreement_A_r1"
     O_SecretAgreement_A (ephemeralSecretAgreement_A_spec g_MAX_Alice);
-ephemeralSecretAgreement_B_ov <- admit "EphemeralSecretAgreement_B"
+ephemeralSecretAgreement_B_ov <- admit "EphemeralSecretAgreement_B_r1"
     O_SecretAgreement_B (ephemeralSecretAgreement_B_spec g_MAX_Bob);

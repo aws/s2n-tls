@@ -1,0 +1,39 @@
+// random_choice.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module abstract_spec::random_choice where
+
+import abstract_spec::vectors
+import abstract_spec::vector_sets
+import lib::Maybe
+
+///////////////////////////////////////////////////////////////////////////////
+
+type RandomState = [8]
+
+// NOTE: Choose_element returns an element form a set, where the set is
+//       represented as a vector; the 1s giving the indices of the elements.
+//       See `abstract_spec::vector_sets`
+
+choose_element: {n} (fin n, n>=1)
+    => RandomState
+    -> vector n
+    -> (RandomState, Maybe Integer)
+choose_element r v = (r+59, choices!0) where
+    choices = [nothing] # [ grab c e i
+                          | c <- choices
+                          | e <- (v<<<r)
+                          | i <- [0 .. n-1]<<<r ]
+    grab prev_choice e i =
+      if e==0 then prev_choice
+      else maybe (just i) just prev_choice
+
+private
+  property choose_empty_0 r = (choose_element`{4} r empty_set).1 == nothing
+  property choose_empty_1 r s = ((choose_element`{4} r s).1 == nothing) == (s == empty_set)
+
+  property choose_just_member r i s = ((choose_element`{4} r s).1 == just i) ==>
+     member (fromInteger`{[4]} i) s
+

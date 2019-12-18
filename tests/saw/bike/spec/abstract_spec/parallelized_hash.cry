@@ -1,0 +1,36 @@
+// parallelized_hash.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module abstract_spec::parallelized_hash where
+
+import lib::crypto::SHA384
+
+///////////////////////////////////////////////////////////////////////////////
+// Algorithm 7, ParallelizedHash, instantiated with SHA-384, as
+// described in Section 2.6.2 of the BIKE specification.
+
+// NOTE: We treat la, s, and slicerem as type parameters.
+
+type hbs = 128 // making this another parameter really shows dows the type checker!
+
+type computeSliceLen s la slicerem = ((la/s - slicerem)/hbs)*hbs+slicerem  // lines 2-4
+
+parallelized_hash: {s, la, slicerem}
+    (fin la, la >= s, la/s >= slicerem, s >= 1, fin slicerem
+    , la >= (computeSliceLen s la slicerem) * s
+    , 128 >= width (8*(computeSliceLen s la slicerem)) // required for SHA
+    , 128 >= width (8*(la - (computeSliceLen s la slicerem)*s + 384*s)) // required for SHA
+    )
+    => [la][8] -> [48][8]
+parallelized_hash array = hash YX where // line 13
+  type ls = computeSliceLen s la slicerem // line 6
+  // line 7, lrem := ... apparently not used!
+  X = [hash slice | slice <- split`{parts=s, each=ls} (drop array)] // lines 8-10
+  Y = take`{la - ls*s} array // line 11
+  YX = Y # (join X) // line 12
+
+private
+  hash: {a} (128 >= width (8*a)) => [a][8] -> [384/8][8]
+  hash bytes = split (sha384_bytes bytes)

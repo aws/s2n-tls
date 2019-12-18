@@ -39,12 +39,8 @@ int s2n_blob_set_protocol_preferences(struct s2n_blob *application_protocols, co
         GUARD(s2n_stuffer_write_bytes(&protocol_stuffer, protocol, length));
     }
 
-    uint32_t size = s2n_stuffer_data_available(&protocol_stuffer);
-    /* application_protocols blob now owns this data */
-    application_protocols->size = size;
-    application_protocols->data = s2n_stuffer_raw_read(&protocol_stuffer, size);
-    notnull_check(application_protocols->data);
-
+    GUARD(s2n_stuffer_extract_blob(&protocol_stuffer, application_protocols));
+    GUARD(s2n_stuffer_free(&protocol_stuffer));
     return 0;
 }
 

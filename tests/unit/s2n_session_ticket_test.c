@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
@@ -490,8 +490,8 @@ int main(int argc, char **argv)
         EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
 
         /* Verify that the server has only the unexpired key */
-        EXPECT_BYTEARRAY_EQUAL(s2n_array_get(server_config->ticket_keys, 0), ticket_key_name2, strlen((char *)ticket_key_name2));
-        EXPECT_EQUAL(server_config->ticket_keys->num_of_elements, 1);
+        EXPECT_BYTEARRAY_EQUAL(s2n_set_get(server_config->ticket_keys, 0), ticket_key_name2, strlen((char *)ticket_key_name2));
+        EXPECT_EQUAL(s2n_set_size(server_config->ticket_keys), 1);
 
         /* Verify that the client received NST */
         serialized_session_state_length = s2n_connection_get_session_length(client_conn);
@@ -678,11 +678,11 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_errno, S2N_ELEMENT_ALREADY_IN_ARRAY);
 
         /* Verify that the config has only one unexpired key */
-        EXPECT_BYTEARRAY_EQUAL(s2n_array_get(server_config->ticket_keys, 0), ticket_key_name3, strlen((char *)ticket_key_name3));
-        EXPECT_EQUAL(server_config->ticket_keys->num_of_elements, 1);
+        EXPECT_BYTEARRAY_EQUAL(s2n_set_get(server_config->ticket_keys, 0), ticket_key_name3, strlen((char *)ticket_key_name3));
+        EXPECT_EQUAL(s2n_set_size(server_config->ticket_keys), 1);
 
         /* Verify that the total number of key hashes is three */
-        EXPECT_EQUAL(server_config->ticket_key_hashes->num_of_elements, 3);
+        EXPECT_EQUAL(s2n_set_size(server_config->ticket_key_hashes), 3);
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
     }
@@ -926,9 +926,9 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES, ticket_key_name2, strlen((char *)ticket_key_name2));
 
         /* Verify that the keys are stored from oldest to newest */
-        EXPECT_BYTEARRAY_EQUAL(((struct s2n_ticket_key *)s2n_array_get(server_config->ticket_keys, 0))->key_name, ticket_key_name2, strlen((char *)ticket_key_name2));
-        EXPECT_BYTEARRAY_EQUAL(((struct s2n_ticket_key *)s2n_array_get(server_config->ticket_keys, 1))->key_name, ticket_key_name1, strlen((char *)ticket_key_name1));
-        EXPECT_BYTEARRAY_EQUAL(((struct s2n_ticket_key *)s2n_array_get(server_config->ticket_keys, 2))->key_name, ticket_key_name3, strlen((char *)ticket_key_name3));
+        EXPECT_BYTEARRAY_EQUAL(((struct s2n_ticket_key *)s2n_set_get(server_config->ticket_keys, 0))->key_name, ticket_key_name2, strlen((char *)ticket_key_name2));
+        EXPECT_BYTEARRAY_EQUAL(((struct s2n_ticket_key *)s2n_set_get(server_config->ticket_keys, 1))->key_name, ticket_key_name1, strlen((char *)ticket_key_name1));
+        EXPECT_BYTEARRAY_EQUAL(((struct s2n_ticket_key *)s2n_set_get(server_config->ticket_keys, 2))->key_name, ticket_key_name3, strlen((char *)ticket_key_name3));
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 

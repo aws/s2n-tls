@@ -290,77 +290,77 @@ let mp_sub_left_spec n normalized = do {
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
 
-clear_words_ov <- verify "clear_words" [] (clear_words_spec max_words_order);
-copy_words_ov <- verify "copy_words" []
+clear_words_ov <- verify "clear_words_r1" [] (clear_words_spec max_words_order);
+copy_words_ov <- verify "copy_words_r1" []
     (copy_words_spec nwords_point nwords_point);
 
 // NOTE: "tight" variants needed for some callers
 //       4*nwords_field for xDBLe and xTPLe
 let nwords_field_x4 = eval_int {{ `(4 * nwords_field):[64] }};
 copy_words_nwords_field_x4_ov <-
-  verify "copy_words" [] (copy_words_spec_tight nwords_field_x4);
+  verify "copy_words_r1" [] (copy_words_spec_tight nwords_field_x4);
 copy_words_same_nwords_field_x4_ov <-
-  verify "copy_words" [] (copy_words_same_spec nwords_field_x4);
+  verify "copy_words_r1" [] (copy_words_same_spec nwords_field_x4);
 
 // NOTE: The SMT solver cannot prove multiplication, so the
 //       following uses random testing instead
-dxd_ov <- test "digit_x_digit" [] digit_x_digit_spec;
+dxd_ov <- test "digit_x_digit_r1" [] digit_x_digit_spec;
 
 dlt_ov <- verify "is_digit_lessthan_ct" [] is_digit_lessthan_ct_spec;
 dnz_ov <- verify "is_digit_nonzero_ct" [] is_digit_nonzero_ct_spec;
 dz_ov <- verify "is_digit_zero_ct" [] is_digit_zero_ct_spec;
 
-add_ov <- verify "mp_add" [] (mp_add_spec nwords_field false);
-add_norm_ov <- verify "mp_add" [] (mp_add_spec nwords_field true);
-add_single_ov <- verify "mp_add" [] (mp_add_single_spec nwords_field false);
-add_single_norm_ov <- verify "mp_add" []
+add_ov <- verify "mp_add_r1" [] (mp_add_spec nwords_field false);
+add_norm_ov <- verify "mp_add_r1" [] (mp_add_spec nwords_field true);
+add_single_ov <- verify "mp_add_r1" [] (mp_add_single_spec nwords_field false);
+add_single_norm_ov <- verify "mp_add_r1" []
     (mp_add_single_spec nwords_field true);
-add_left_ov <- verify "mp_add" [] (mp_add_left_spec nwords_field false);
-add_left_norm_ov <- verify "mp_add" [] (mp_add_left_spec nwords_field true);
+add_left_ov <- verify "mp_add_r1" [] (mp_add_left_spec nwords_field false);
+add_left_norm_ov <- verify "mp_add_r1" [] (mp_add_left_spec nwords_field true);
 
-addx2_ov <- verify "mp_add" []
+addx2_ov <- verify "mp_add_r1" []
     (mp_add_spec twice_nwords_field false);
-addx2_norm_ov <- verify "mp_add" []
+addx2_norm_ov <- verify "mp_add_r1" []
     (mp_add_spec twice_nwords_field true);
-addx2_single_ov <- verify "mp_add" []
+addx2_single_ov <- verify "mp_add_r1" []
     (mp_add_single_spec twice_nwords_field false);
-addx2_single_norm_ov <- verify "mp_add" []
+addx2_single_norm_ov <- verify "mp_add_r1" []
     (mp_add_single_spec twice_nwords_field true);
-addx2_left_ov <- verify "mp_add" []
+addx2_left_ov <- verify "mp_add_r1" []
     (mp_add_left_spec twice_nwords_field false);
-addx2_left_norm_ov <- verify "mp_add" []
+addx2_left_norm_ov <- verify "mp_add_r1" []
     (mp_add_left_spec twice_nwords_field true);
 
-addfast_ov <- verify "mp_addfast" [add_ov]
+addfast_ov <- verify "mp_addfast_r1" [add_ov]
     (mp_addfast_spec nwords_field nwords_field false);
-addfast_norm_ov <- verify "mp_addfast" [add_ov]
+addfast_norm_ov <- verify "mp_addfast_r1" [add_ov]
     (mp_addfast_spec nwords_field nwords_field true);
-addfast_single_ov <- verify "mp_addfast" [add_single_ov]
+addfast_single_ov <- verify "mp_addfast_r1" [add_single_ov]
     (mp_addfast_single_spec nwords_field nwords_field false);
-addfast_single_norm_ov <- verify "mp_addfast" [add_single_ov]
+addfast_single_norm_ov <- verify "mp_addfast_r1" [add_single_ov]
     (mp_addfast_single_spec nwords_field nwords_field true);
 
-addfastx2_ov <- verify "mp_addfastx2" [addx2_ov]
+addfastx2_ov <- verify "mp_addfastx2_r1" [addx2_ov]
     (mp_addfast_spec twice_nwords_field twice_nwords_field false);
-addfastx2_norm_ov <- verify "mp_addfastx2" [addx2_ov]
+addfastx2_norm_ov <- verify "mp_addfastx2_r1" [addx2_ov]
     (mp_addfast_spec twice_nwords_field twice_nwords_field true);
-addfastx2_left_ov <- verify "mp_addfastx2" []
+addfastx2_left_ov <- verify "mp_addfastx2_r1" []
     (mp_addfast_left_spec twice_nwords_field twice_nwords_field false);
-addfastx2_left_norm_ov <- verify "mp_addfastx2" []
+addfastx2_left_norm_ov <- verify "mp_addfastx2_r1" []
     (mp_addfast_left_spec twice_nwords_field twice_nwords_field true);
 
-mul_ov <- admit "mp_mul" [] (mp_mul_spec nwords_field twice_nwords_field);
-mul_single_ov <- admit "mp_mul" []
+mul_ov <- admit "mp_mul_r1" [] (mp_mul_spec nwords_field twice_nwords_field);
+mul_single_ov <- admit "mp_mul_r1" []
     (mp_mul_single_spec nwords_field twice_nwords_field );
-mul_half_ov <- admit "mp_mul" [] (mp_mul_spec half_nwords_field nwords_field);
+mul_half_ov <- admit "mp_mul_r1" [] (mp_mul_spec half_nwords_field nwords_field);
 
-shiftr1_ov <- verify "mp_shiftr1" [] (mp_shiftr1_spec nwords_field);
+shiftr1_ov <- verify "mp_shiftr1_r1" [] (mp_shiftr1_spec nwords_field);
 
-sub_ov <- verify "mp_sub" [] (mp_sub_spec twice_nwords_field false);
-sub_left_ov <- verify "mp_sub" [] (mp_sub_left_spec twice_nwords_field false);
+sub_ov <- verify "mp_sub_r1" [] (mp_sub_spec twice_nwords_field false);
+sub_left_ov <- verify "mp_sub_r1" [] (mp_sub_left_spec twice_nwords_field false);
 
-subfast_ov <- verify "mp_subfast" []
+subfast_ov <- verify "mp_subfast_r1" []
     (mp_subfast_spec twice_nwords_field twice_nwords_field false);
-subfast_left_ov <- verify "mp_subfast" []
+subfast_left_ov <- verify "mp_subfast_r1" []
     (mp_subfast_spec twice_nwords_field twice_nwords_field false);
 

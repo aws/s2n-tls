@@ -1,0 +1,63 @@
+// vector_sets.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module abstract_spec::vector_sets where
+
+import abstract_spec::vectors
+
+///////////////////////////////////////////////////////////////////////////////
+// Vectors are sometimes used as sets in BIKE.
+
+/** The empty set, represented as a vector */
+empty_set: {n} vector n
+empty_set = zero
+
+/** membership test for a number in a vector-as-set */
+member: {n, ix} (fin ix, fin n) => [ix] -> vector n -> Bit
+member e s = (wide_s @ e) @ 0 where
+  wide_s = s # (zero:[2^^ix][1]) // too-large indexes are not in the set
+
+/** union of vectors-as-sets */
+set_union: {n} vector n -> vector n -> vector n
+set_union s1 s2 = s1 || s2 // component-wise or
+
+/** intersection of vectors-as-sets */
+set_intersection: {n} vector n -> vector n -> vector n
+set_intersection s1 s2 = s1 && s2 // component-wise and
+
+/** vector representing a singleton set */
+singleton_set: {elem_width, length} (fin elem_width, fin length, length>= 1)
+               => [elem_width] -> vector length
+singleton_set = basis`{k=elem_width, n=length}
+
+/** number of element of a vector_as_set */
+cardinality: {n} (fin n) =>  vector n -> Integer
+cardinality = vector_hamming_weight
+
+private
+  property member_empty (i:[5]) =
+    member i (empty_set`{21}) == False
+
+  property member_singleton (i:[4]) j =
+    member i (singleton_set`{length=20} j) == (i==j)
+
+  property member_union (i:[4]) (s:vector 15) t = // note i can exceed len s
+    member i (set_union s t) == (member i s) || (member i t)
+
+  property member_intersection (i:[3]) (s:vector 8) t =
+    member i (set_intersection s t) == (member i s) && (member i t)
+
+  property cardinality_empty =
+    cardinality empty_set`{100} == 0
+
+  property cardinality_singleton (i:[6]) =
+    cardinality (singleton_set`{length=100} i) == 1
+
+  property cardinality_singleton' (i:[6]) =
+    cardinality (singleton_set`{length=10} i) == (if i < 10 then 1 else 0)
+
+  property cardinality_union (s:vector 6) t =
+    cardinality (set_union s t) + cardinality (set_intersection s t) ==
+    cardinality s + cardinality t

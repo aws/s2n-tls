@@ -17,25 +17,29 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 struct s2n_blob {
     uint8_t *data;
     uint32_t size;
     uint32_t allocated;
-    uint8_t mlocked;
+    uint8_t mlocked :1;
+    uint8_t growable :1;
 };
 
+extern bool s2n_blob_is_growable(const struct s2n_blob* b);
 extern bool s2n_blob_is_valid(const struct s2n_blob* b);
 extern int s2n_blob_init(struct s2n_blob *b, uint8_t * data, uint32_t size);
 extern int s2n_blob_zero(struct s2n_blob *b);
 extern int s2n_blob_char_to_lower(struct s2n_blob *b);
 extern int s2n_hex_string_to_bytes(const char *str, struct s2n_blob *blob);
 
-#define s2n_stack_blob(name, requested_size, maximum)                               \
-    size_t name ## _requested_size = (requested_size);                              \
-    uint8_t name ## _buf[(maximum)] = {0};                                          \
-    lte_check(name ## _requested_size, (maximum));                                  \
-    struct s2n_blob name = {.data = name ## _buf, .size = name ## _requested_size}
+#define s2n_stack_blob(name, requested_size, maximum)			\
+    size_t name ## _requested_size = (requested_size);			\
+    uint8_t name ## _buf[(maximum)] = {0};				\
+    lte_check(name ## _requested_size, (maximum));			\
+    struct s2n_blob name = {0};						\
+    GUARD(s2n_blob_init(&name, name ## _buf, name ## _requested_size))
 
 #define S2N_BLOB_LABEL(name, str) \
     static uint8_t name##_data[] = str;   \

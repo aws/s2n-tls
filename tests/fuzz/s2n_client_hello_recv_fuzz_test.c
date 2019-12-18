@@ -45,7 +45,7 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 
 int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
-    for(int version = 0; version < (sizeof(TLS_VERSIONS) / sizeof(TLS_VERSIONS[0])); version++){
+    for(int version = 0; version < s2n_array_len(TLS_VERSIONS); version++){
         /* Setup */
         struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
         notnull_check(server_conn);

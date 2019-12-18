@@ -1,0 +1,23 @@
+// types.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module abstract_spec::types where
+
+import abstract_spec::vectors
+import abstract_spec::ring
+import abstract_spec::parameters as P
+
+///////////////////////////////////////////////////////////////////////////////
+
+type private_key = (R_polynomial P::r, R_polynomial P::r)
+type public_key = (R_polynomial P::r, R_polynomial P::r)
+type cryptogram = (R_polynomial P::r, R_polynomial P::r)
+
+type shared_key = [P::ell_k]
+
+private_key_matrix: private_key -> matrix P::r P::n
+private_key_matrix (h0,h1) = block_matrix [H0, H1] where
+  H0 = phi_inverse_matrix (T_polynomial h0)
+  H1 = phi_inverse_matrix (T_polynomial h1)

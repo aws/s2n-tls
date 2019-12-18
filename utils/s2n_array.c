@@ -55,7 +55,7 @@ struct s2n_array *s2n_array_new(size_t element_size)
     return array;
 }
 
-void *s2n_array_add(struct s2n_array *array)
+void *s2n_array_pushback(struct s2n_array *array)
 {
     notnull_check_ptr(array);
     return s2n_array_insert(array, array->num_of_elements);
@@ -66,6 +66,14 @@ void *s2n_array_get(struct s2n_array *array, uint32_t index)
     notnull_check_ptr(array);
     S2N_ERROR_IF_PTR(index >= array->num_of_elements, S2N_ERR_ARRAY_INDEX_OOB);
     return array->mem.data + array->element_size * index;
+}
+
+int s2n_array_insert_and_copy(struct s2n_array *array, void* element, uint32_t index)
+{
+    void* insert_location = NULL;
+    GUARD_NONNULL(insert_location = s2n_array_insert(array, index));
+    memcpy_check(insert_location, element, array->element_size);
+    return S2N_SUCCESS;
 }
 
 void *s2n_array_insert(struct s2n_array *array, uint32_t index)
@@ -135,57 +143,4 @@ int s2n_array_free_p(struct s2n_array **parray)
 int s2n_array_free(struct s2n_array *array)
 {
     return s2n_array_free_p(&array);
-}
-
-/* Sets "out" to the index at which the element should be inserted.
- * Returns an error if the element already exists */
-int s2n_array_binary_search(struct s2n_array *array, void *element, int (*comparator)(void*, void*), uint32_t* out)
-{
-    notnull_check(array);
-    notnull_check(element);
-    notnull_check(out);
-    if (array->num_of_elements == 0) {
-        *out = 0;
-        return S2N_SUCCESS;
-    }
-
-    if (array->num_of_elements == 1) {
-        void* array_element = NULL;
-        GUARD_NONNULL(array_element = s2n_array_get(array, 0));
-        int m = comparator(array_element, element);
-        S2N_ERROR_IF(m == 0, S2N_ELEMENT_ALREADY_IN_ARRAY);
-        if (m > 0) {
-            *out = 0;
-        } else {
-            *out = 1;
-        }
-        return S2N_SUCCESS;
-    }
-
-    uint32_t low = 0;
-    uint32_t top = array->num_of_elements - 1;
-
-    while (low <= top) {
-        int mid = low + ((top - low) / 2);
-        void* array_element = NULL;
-        GUARD_NONNULL(array_element = s2n_array_get(array, mid));
-        int m = comparator(array_element, element);
-
-        S2N_ERROR_IF(m == 0, S2N_ELEMENT_ALREADY_IN_ARRAY);
-        if (m > 0) {
-            top = mid - 1;
-        } else {
-            low = mid + 1;
-        }
-    }
-
-    *out = low;
-    return S2N_SUCCESS;
-}
-
-void *s2n_array_insert_sorted(struct s2n_array *array, void *element, int (*comparator)(void*, void*))
-{
-    uint32_t index;
-    GUARD_PTR(s2n_array_binary_search(array, element, comparator, &index));
-    return s2n_array_insert(array, index);
 }

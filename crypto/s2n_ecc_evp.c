@@ -198,9 +198,11 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
 #if MODERN_EC_SUPPORTED
     struct s2n_blob temp_blob = {0};
     out->blob.data = s2n_stuffer_raw_write(out, ecc_evp_params->negotiated_curve->share_size);
+
     size_t size = EVP_PKEY_get1_tls_encodedpoint(ecc_evp_params->evp_pkey, &temp_blob.data);
     S2N_ERROR_IF(size != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
     notnull_check(temp_blob.data);
+    
     memcpy(out->blob.data, temp_blob.data, size);
     OPENSSL_free(temp_blob.data);
     notnull_check(out->blob.data);

@@ -771,7 +771,7 @@ static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
 
 /* All supported ciphers. Exposed for integration testing. */
 const struct s2n_cipher_preferences cipher_preferences_test_all = {
-    .count = sizeof(s2n_all_cipher_suites) / sizeof(s2n_all_cipher_suites[0]),
+    .count = s2n_array_len(s2n_all_cipher_suites),
     .suites = s2n_all_cipher_suites,
     .minimum_protocol_version = S2N_SSLv3,
 };
@@ -803,7 +803,7 @@ static struct s2n_cipher_suite *s2n_all_fips_cipher_suites[] = {
 
 /* All supported FIPS ciphers. Exposed for integration testing. */
 const struct s2n_cipher_preferences cipher_preferences_test_all_fips = {
-    .count = sizeof(s2n_all_fips_cipher_suites) / sizeof(s2n_all_fips_cipher_suites[0]),
+    .count = s2n_array_len(s2n_all_fips_cipher_suites),
     .suites = s2n_all_fips_cipher_suites,
     .minimum_protocol_version = S2N_TLS10,
 };
@@ -823,7 +823,7 @@ static struct s2n_cipher_suite *s2n_all_ecdsa_cipher_suites[] = {
 
 /* All supported ECDSA cipher suites. Exposed for integration testing. */
 const struct s2n_cipher_preferences cipher_preferences_test_all_ecdsa = {
-    .count = sizeof(s2n_all_ecdsa_cipher_suites) / sizeof(s2n_all_ecdsa_cipher_suites[0]),
+    .count = s2n_array_len(s2n_all_ecdsa_cipher_suites),
     .suites = s2n_all_ecdsa_cipher_suites,
     .minimum_protocol_version = S2N_TLS10,
 };
@@ -869,7 +869,7 @@ static struct s2n_cipher_suite *s2n_ecdsa_priority_cipher_suites[] = {
 
 /* All cipher suites, but with ECDSA priority. Exposed for integration testing. */
 const struct s2n_cipher_preferences cipher_preferences_test_ecdsa_priority = {
-    .count = sizeof(s2n_ecdsa_priority_cipher_suites) / sizeof(s2n_ecdsa_priority_cipher_suites[0]),
+    .count = s2n_array_len(s2n_ecdsa_priority_cipher_suites),
     .suites = s2n_ecdsa_priority_cipher_suites,
     .minimum_protocol_version = S2N_SSLv3,
 };
@@ -881,7 +881,7 @@ static struct s2n_cipher_suite *s2n_tls13_null_key_exchange_alg_cipher_suites[] 
 };
 
 const struct s2n_cipher_preferences cipher_preferences_test_tls13_null_key_exchange_alg = {
-    .count = sizeof(s2n_tls13_null_key_exchange_alg_cipher_suites) / sizeof(s2n_tls13_null_key_exchange_alg_cipher_suites[0]),
+    .count = s2n_array_len(s2n_tls13_null_key_exchange_alg_cipher_suites),
     .suites = s2n_tls13_null_key_exchange_alg_cipher_suites,
     .minimum_protocol_version = S2N_SSLv3,
 };
@@ -889,7 +889,7 @@ const struct s2n_cipher_preferences cipher_preferences_test_tls13_null_key_excha
 /* Determines cipher suite availability and selects record algorithms */
 int s2n_cipher_suites_init(void)
 {
-    const int num_cipher_suites = sizeof(s2n_all_cipher_suites) / sizeof(s2n_all_cipher_suites[0]);
+    const int num_cipher_suites = s2n_array_len(s2n_all_cipher_suites);
     for (int i = 0; i < num_cipher_suites; i++) {
         struct s2n_cipher_suite *cur_suite = s2n_all_cipher_suites[i];
         cur_suite->available = 0;

@@ -64,7 +64,7 @@ int main(int argc, char **argv)
         struct s2n_array *extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension*));
         for (int i=0; i < sizeof(tls13_extensions) / sizeof(uint8_t); i++) {
             struct s2n_client_hello_parsed_extension *extension;
-            EXPECT_NOT_NULL(extension = s2n_array_add(extensions));
+            EXPECT_NOT_NULL(extension = s2n_array_pushback(extensions));
 
             extension->extension = extension_data.blob;
             extension->extension_type = tls13_extensions[i];
@@ -118,7 +118,7 @@ int main(int argc, char **argv)
 
         struct s2n_array *extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension*));
         struct s2n_client_hello_parsed_extension *extension;
-        EXPECT_NOT_NULL(extension = s2n_array_add(extensions));
+        EXPECT_NOT_NULL(extension = s2n_array_pushback(extensions));
 
         for (int i=0; i < sizeof(new_extensions) / sizeof(uint8_t); i++) {
             EXPECT_SUCCESS(s2n_stuffer_wipe(&extension_data));

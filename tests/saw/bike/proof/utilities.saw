@@ -1,0 +1,114 @@
+// utilities.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+/* NOTES:
+
+  - `secure_clean` is declared as "static inline" in
+    a _header_ file `utilities.h`.
+
+  - At our build optimization levels it does _not_ get inlined, which is
+    just as well, since SAW is not dealing with the stored
+    pointer-to-a-function in the code.
+
+  - However, as a downside, every file that #includes this header gets
+    its own copy of the code, and then the LLVM linker names them apart
+    when linking.
+
+  - The full bitcode file currently has these versions: secure_clean,
+    secure_clean.100, secure_clean.124, and secure_clean.134.
+    ... and after a recompilation, secure_clean, secure_clean.100 (for decode),
+    secure_clean.130 (for the BIKE toplevel), and secure_clean.140 (for AES)
+
+  - The small-parameter file had: secure_clean, secure_clean.100,
+    secure_clean.124, and secure_clean.134.  Happily, these matched up.
+    And happily, they match after the recompilation.
+*/
+
+let secure_clean_spec np = do {
+    pp <- out_ref (make_i8_T np);
+    crucible_execute_func [pp, tm {{ `np:[32] }}];
+};
+
+let AES256_KEY_SIZE = 32;
+
+// NOTE: Several inline assembly functions defined in utilities.h need to
+//       have overrides defined for them, as we cannot verify them in
+//       crucible. Like secure_clean, these may have several versions
+//       appering in the bitcode file
+
+let secure_l32_mask_spec = do {
+    (a, ap) <- in_val i32_T "v1";
+    (b, bp) <- in_val i32_T "v2";
+    crucible_execute_func [ap, bp];
+    ret <- crucible_fresh_var "ret" i32;
+    crucible_return (tm ret);
+};
+
+let bit_scan_reverse_spec = do {
+    (b, bp) <- in_val i64_T "val";
+    crucible_execute_func [bp];
+    ret <- crucible_fresh_var "ret" i8;
+    crucible_postcond {{ if b < 2^^32 then ret <= 32 else ret <= 64 }};
+    crucible_return (tm ret);
+};
+
+let secure_cmp32_spec = do {
+    (a, ap) <- in_val i32_T "v1";
+    (b, bp) <- in_val i32_T "v2";
+    crucible_execute_func [ap, bp];
+    ret <- crucible_fresh_var "ret" i32;
+    crucible_return (tm ret);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+// NOTE: Used by padded_r_t
+secure_clean_ov_PRT <- admit "secure_clean" []
+    (secure_clean_spec (eval_int {{ `R_PADDED_SIZE:[32] }}));
+
+// NOTE: Used by dbl_pad_ct_t, dbl_pad_syndrome_t, ...
+secure_clean_ov_4RPS <- admit "secure_clean" []
+    (secure_clean_spec (eval_int {{ 4 *(`R_PADDED_SIZE:[32]) }}));
+
+// NOTE: Used by pad_sk, pad_ct, anything else that's padded_param_n_t
+secure_clean_ov_2RPS <- admit "secure_clean" []
+    (secure_clean_spec (eval_int {{ 2*(`R_PADDED_SIZE:[32]) }}));
+
+// NOTE: Used by padded_e_t
+secure_clean_ov_PET <- admit "secure_clean" []
+    (secure_clean_spec (eval_int {{ `N_PADDED_SIZE:[32] }}));
+
+// NOTE: Used by double_seed_t
+secure_clean_ov64 <- admit "secure_clean" [] (secure_clean_spec 64);
+
+// NOTE: Used by aes_prf_state
+secure_clean_ov48 <- admit "secure_clean" [] (secure_clean_spec 48);
+
+// NOTE: Used by parallel_hash
+secure_clean_ov1408 <- admit "secure_clean" [] (secure_clean_spec 1408);
+
+// NOTE: Used bu split_e_t or anything that's generic_param_n_t
+secure_clean_ov_GPNT <- admit "secure_clean" []
+    (secure_clean_spec (eval_int {{ `N_generic_param_n_t:[32] }}));
+
+secure_clean_syndrome_ov <- admit "secure_clean" []
+    (secure_clean_spec (eval_int {{ `N_syndrome_t:[64] }}));
+
+secure_clean_e_ov <- admit "secure_clean" []
+    (secure_clean_spec (eval_int {{ `N_e_t:[64] }}));
+
+secure_clean_R_SIZE_ov <- admit "secure_clean" []
+    (secure_clean_spec (eval_int {{ `R_SIZE:[64] }}));
+
+secure_clean_ov3 <- admit "secure_clean" []
+    (secure_clean_spec AES256_KEY_SIZE);
+
+secure_l32_mask_ov <- admit "secure_l32_mask" [] secure_l32_mask_spec;
+
+bit_scan_reverse_ov <- verify_pathsat "bit_scan_reverse" [] bit_scan_reverse_spec;
+
+secure_cmp32_ov <- admit "secure_cmp32" [] secure_cmp32_spec;

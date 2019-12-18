@@ -1,0 +1,60 @@
+// vectors.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module abstract_spec::vectors where
+
+///////////////////////////////////////////////////////////////////////////////
+// Vectors and matrices over GF(2)
+
+/**
+ * A n-dimensional vector over GF(2)
+ */
+type vector n = [n][1] // this way, addition is component-wise addition
+
+/**
+ * The basis vector e_i, which has a 1 in the ith coordinate and zeros elsewhere.
+ */
+basis: {k, n} (fin k, fin n, n >= 1) => [k] -> vector n
+basis i = ([1] # zero) >> i
+
+dot_product: {n} (fin n) => vector n -> vector n -> [1]
+dot_product u v = sum [ui*vi | ui <- u | vi <- v ]
+
+vector_hamming_weight: {n} (fin n) =>  vector n -> Integer
+vector_hamming_weight v = sum [toInteger vi | vi <- v ]
+
+vector_intersection: {n} vector n -> vector n -> vector n
+vector_intersection v w = [vi*wi | vi <- v | wi <- w]
+
+/**
+ * A m*n matrix over GF(2), represented as a list of row vectors
+ */
+type matrix m n = [m](vector n)
+
+matrix_times_vector: {m,n} (fin m, fin n) => matrix m n -> vector n -> vector m
+matrix_times_vector M v = [dot_product r v | r <- M]
+
+vector_times_matrix: {m,n} (fin m, fin n) => vector m -> matrix m n -> vector n
+vector_times_matrix v M = matrix_times_vector (transpose M) v
+
+/**
+ * The matrix product of two size-compatible matrices over GF(2)
+ */
+matrix_mul: {m,n,k} (fin m, fin n, fin k) => matrix m n -> matrix n k -> matrix m k
+matrix_mul A B = [vector_times_matrix v B | v <- A]
+
+/**
+ * A n*n identity matrix
+ */
+identity_matrix: {n} (fin n, n >= 1) =>  matrix n n
+identity_matrix = take [basis`{n,n} i | i <- [0 ...] ]
+
+/**
+ * block_matrix takes a list of matrices and returns a single matrix whose
+ * rows are the join of the corresponding rows of all the matrices in the list.
+ * That is, the first row is the join of all the first rows, and so on.
+ */
+block_matrix: {m,n,k} (fin m, fin n, fin k) => [m](matrix n k) -> matrix n (m*k)
+block_matrix Ms = [join rows | rows <- transpose Ms]
