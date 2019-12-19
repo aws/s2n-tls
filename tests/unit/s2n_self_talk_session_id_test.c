@@ -141,8 +141,6 @@ static void initialize_cache()
 
 void mock_client(struct s2n_test_piped_io *piped_io)
 {
-    size_t serialized_session_state_length = 0;
-    uint8_t serialized_session_state[256] = { 0 };
 
     struct s2n_connection *conn;
     struct s2n_config *config;
@@ -174,8 +172,8 @@ void mock_client(struct s2n_test_piped_io *piped_io)
     }
 
     /* Save session state from the connection */
-    memset(serialized_session_state, 0, sizeof(serialized_session_state));
-    serialized_session_state_length = s2n_connection_get_session_length(conn);
+    uint8_t serialized_session_state[256] = { 0 };
+    size_t serialized_session_state_length = s2n_connection_get_session_length(conn);
     if (serialized_session_state_length > sizeof(serialized_session_state)) {
         result = 3;
     }
@@ -421,7 +419,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type));
 
         /* Ensure the message was delivered */
-        memset(buffer, 0, sizeof(buffer));
+	S2N_ZERO_ARRAY(buffer);
         EXPECT_SUCCESS(bytes_read = s2n_recv(conn, buffer, sizeof(buffer), &blocked));
         EXPECT_EQUAL(bytes_read, sizeof(MSG));
         EXPECT_EQUAL(memcmp(buffer, MSG, sizeof(MSG)), 0);

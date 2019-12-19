@@ -130,7 +130,7 @@ int main(int argc, char **argv)
      */
     int trailing_zeros[8];
 
-    memset(trailing_zeros, 0, sizeof(trailing_zeros));
+    S2N_ZERO_ARRAY(trailing_zeros);
     for (int i = 0; i < 5120; i++) {
         blob.size = i;
         EXPECT_SUCCESS(s2n_get_public_random_data(&blob));
@@ -174,7 +174,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(trailing_zeros[t] < 5120 / 16);
     }
 
-    memset(trailing_zeros, 0, sizeof(trailing_zeros));
+    S2N_ZERO_ARRAY(trailing_zeros);
     for (int i = 0; i < 5120; i++) {
         blob.size = i;
         EXPECT_SUCCESS(s2n_get_private_random_data(&blob));
@@ -218,7 +218,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(trailing_zeros[t] < 5120 / 16);
     }
 
-    memset(trailing_zeros, 0, sizeof(trailing_zeros));
+    S2N_ZERO_ARRAY(trailing_zeros);
     for (int i = 0; i < 5120; i++) {
         blob.size = i;
         EXPECT_SUCCESS(s2n_get_urandom_data(&blob));
@@ -263,7 +263,7 @@ int main(int argc, char **argv)
     }
 
     if (s2n_cpu_supports_rdrand()) {
-        memset(trailing_zeros, 0, sizeof(trailing_zeros));
+        S2N_ZERO_ARRAY(trailing_zeros);
         for (int i = 0; i < 5120; i++) {
             blob.size = i;
             EXPECT_SUCCESS(s2n_get_urandom_data(&blob));

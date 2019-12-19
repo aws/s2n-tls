@@ -23,6 +23,14 @@
 
 #include "error/s2n_errno.h"
 
+/* The assignment of void will cause a compile time error if "cond" is false
+ * See https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html */
+#define S2N_STATIC_ASSERT( cond )					\
+    do {								\
+	int _static_assert_temp = __builtin_choose_expr( cond, 0, (void)0); \
+	(void) _static_assert_temp; /* Avoid unused variable warning */	\
+    } while (0)
+
 /* NULL check a pointer */
 #define notnull_check( ptr )           do { if ( (ptr) == NULL ) { S2N_ERROR(S2N_ERR_NULL); } } while(0)
 #define notnull_check_ptr( ptr )       do { if ( (ptr) == NULL ) { S2N_ERROR_PTR(S2N_ERR_NULL); } } while(0)
@@ -78,9 +86,14 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
     }                                                                       \
   } while(0)
 
-#define S2N_MEMSET_ARRAY( a, c ) memset((a), (c), sizeof(a)) 
-#define S2N_ZERO_ARRAY( a ) memset((a), 0, sizeof(a))
-#define S2N_ZERO_STRUCT( s ) (s) = (typeof(s)) {0}
+#define S2N_MEMSET_ARRAY( a, c )					\
+    do {								\
+	/* If a is a pointer type, not a pure array, fail the build */	\
+	S2N_STATIC_ASSERT(! __builtin_types_compatible_p (__typeof__ (a), void*)); \
+	memset((a), (c), sizeof(a));					\
+    } while (0)
+#define S2N_ZERO_ARRAY( a ) S2N_MEMSET_ARRAY( (a), 0 )
+#define S2N_ZERO_STRUCT(s) (s) = (__typeof__(s)) {0}
 
 #define char_to_digit(c, d)  do { if(!isdigit(c)) { S2N_ERROR(S2N_ERR_SAFETY); } d = c - '0'; } while(0)
 
