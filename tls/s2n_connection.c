@@ -254,7 +254,7 @@ static int s2n_connection_free_keys(struct s2n_connection *conn)
 static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n_config *config)
 {
     /* Zero the whole connection structure */
-    memset_check(conn, 0, sizeof(struct s2n_connection));
+    S2N_ZERO_STRUCT(conn);
 
     conn->send = NULL;
     conn->recv = NULL;

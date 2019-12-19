@@ -120,7 +120,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_blob_init(&line_blob, (uint8_t *) lf_line, sizeof(lf_line)));
         EXPECT_SUCCESS(s2n_stuffer_init(&lstuffer, &line_blob));
         EXPECT_SUCCESS(s2n_stuffer_write(&lstuffer, &line_blob));
-        memset(pad, 0, sizeof(pad));
+        S2N_ZERO_ARRAY(pad);
         EXPECT_SUCCESS(s2n_blob_init(&pad_blob, pad, sizeof(pad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&token, &pad_blob));
         EXPECT_SUCCESS(s2n_stuffer_read_line(&lstuffer, &token));
@@ -130,7 +130,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_blob_init(&line_blob, (uint8_t *) crlf_line, sizeof(crlf_line)));
         EXPECT_SUCCESS(s2n_stuffer_init(&lstuffer, &line_blob));
         EXPECT_SUCCESS(s2n_stuffer_write(&lstuffer, &line_blob));
-        memset(pad, 0, sizeof(pad));
+        S2N_ZERO_ARRAY(pad);
         EXPECT_SUCCESS(s2n_blob_init(&pad_blob, pad, sizeof(pad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&token, &pad_blob));
         EXPECT_SUCCESS(s2n_stuffer_read_line(&lstuffer, &token));
@@ -140,7 +140,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_blob_init(&line_blob, (uint8_t *) lf_line_trailing_cr, sizeof(lf_line_trailing_cr)));
         EXPECT_SUCCESS(s2n_stuffer_init(&lstuffer, &line_blob));
         EXPECT_SUCCESS(s2n_stuffer_write(&lstuffer, &line_blob));
-        memset(pad, 0, sizeof(pad));
+        S2N_ZERO_ARRAY(pad);
         EXPECT_SUCCESS(s2n_blob_init(&pad_blob, pad, sizeof(pad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&token, &pad_blob));
         EXPECT_SUCCESS(s2n_stuffer_read_line(&lstuffer, &token));
@@ -150,7 +150,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_blob_init(&line_blob, (uint8_t *) not_a_line, sizeof(not_a_line)));
         EXPECT_SUCCESS(s2n_stuffer_init(&lstuffer, &line_blob));
         EXPECT_SUCCESS(s2n_stuffer_write(&lstuffer, &line_blob));
-        memset(pad, 0, sizeof(pad));
+        S2N_ZERO_ARRAY(pad);
         EXPECT_SUCCESS(s2n_blob_init(&pad_blob, pad, sizeof(pad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&token, &pad_blob));
         EXPECT_SUCCESS(s2n_stuffer_read_line(&lstuffer, &token));

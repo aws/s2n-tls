@@ -141,7 +141,6 @@ static void initialize_cache()
 
 void mock_client(struct s2n_test_piped_io *piped_io)
 {
-
     struct s2n_connection *conn;
     struct s2n_config *config;
     s2n_blocked_status blocked;
