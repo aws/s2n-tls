@@ -87,9 +87,9 @@ int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name)
         eq_check(memcmp(client_shared_secret, server_shared_secret, kem->shared_secret_key_length), 0);
 
         /* Compare the KAT values */
-        eq_check(memcmp(pk_answer, pk, kem->shared_secret_key_length), 0);
-        eq_check(memcmp(sk_answer, sk, kem->shared_secret_key_length), 0);
-        eq_check(memcmp(ct_answer, ct, kem->shared_secret_key_length), 0);
+        eq_check(memcmp(pk_answer, pk, kem->public_key_length), 0);
+        eq_check(memcmp(sk_answer, sk, kem->private_key_length), 0);
+        eq_check(memcmp(ct_answer, ct, kem->ciphertext_length), 0);
         eq_check(memcmp(ss_answer, server_shared_secret, kem->shared_secret_key_length ), 0);
     }
     fclose(kat_file);
