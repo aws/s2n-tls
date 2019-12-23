@@ -1,0 +1,23 @@
+// cppcheck Message: [utils/s2n_random.c:322]: (style) union member 'Anonymous0::u64' is never used.
+// Reason for Suppression: output.u64 is used inside raw __asm__  instructions which cppcheck isn't able to detect
+unusedStructMember:utils/s2n_random.c
+
+// Message: [tests/unit/s2n_stuffer_text_test.c:28]: (style:variableScope) The scope of the variable 'text' can be reduced.
+// Reason: Don't error for being able to reduce scope of variables in tests
+variableScope:tests/unit/*
+
+// cppcheck Message: [tls/s2n_config.c:60]: (information:ConfigurationNotChecked) Skipping configuration 'CLOCK_MONOTONIC_RAW' since the value of 'CLOCK_MONOTONIC_RAW' is unknown. Use -D if you want to check it. You can use -U to skip it explicitly
+// Reason: There are many Config options that aren't checked by Cppcheck, and it warns for each. Ignore these so that they don't clutter the output.
+ConfigurationNotChecked:*
+
+// cppcheck Message: [tests/unit/s2n_timer_test.c:49]: (style:redundantAssignment) Variable 'mock_time' is reassigned a value before the old one has been used.
+// Reason: s2n_config_set_monotonic_clock() takes a reference to mock_time so that whenever it's modified locally, the timer sees the update when it dereferences the pointer.
+redundantAssignment:tests/unit/s2n_timer_test.c
+
+// cppcheck Message: [*:-1]: (information:unmatchedSuppression) Unmatched suppression: ConfigurationNotChecked
+// Reason: Cppcheck complains if you add a cppcheck-suppression that doesn't suppress anything, but different versions of cppcheck catch different issues. So ignore complaints about unneccessary cppcheck suppressions.
+unmatchedSuppression:*
+
+// cppcheck Message: [crypto/s2n_aead_cipher_chacha20_poly1305.c:163]: (error:syntaxError) syntax error
+// Reason: Cppcheck is not able to parse certain struct initialization syntaxes and complains that it can't tell if there might be a bug. Ignore these errors.
+syntaxError:*
