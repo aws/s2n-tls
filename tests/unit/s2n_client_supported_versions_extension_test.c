@@ -237,6 +237,44 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
+/*
+    const uint16_t greased_proto_versions[] = {
+            TLS_GREASE_EXTENSION_0,
+            TLS_GREASE_EXTENSION_1,
+            TLS_GREASE_EXTENSION_2,
+            TLS_GREASE_EXTENSION_3,
+            TLS_GREASE_EXTENSION_4,
+            TLS_GREASE_EXTENSION_5,
+            TLS_GREASE_EXTENSION_6,
+            TLS_GREASE_EXTENSION_7,
+            TLS_GREASE_EXTENSION_8,
+            TLS_GREASE_EXTENSION_9,
+            S2N_TLS13,
+            S2N_TLS12,
+    };
+*/
+    /* Server alerts if no shared supported version found */
+/*    {
+        struct s2n_connection *server_conn;
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        uint8_t greased_version_list_length = s2n_array_len(greased_proto_versions);
+
+        struct s2n_stuffer extension;
+        s2n_stuffer_alloc(&extension, greased_version_list_length * 2 + 1);
+
+        EXPECT_SUCCESS(write_test_supported_versions_list(&extension, greased_proto_versions,
+                                                          greased_version_list_length));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_client_supported_versions_recv(server_conn, &extension), S2N_ERR_BAD_MESSAGE);
+//        EXPECT_SUCCESS(s2n_extensions_client_supported_versions_recv(server_conn, &extension));
+        EXPECT_EQUAL(get_alert(server_conn), PROTOCOL_VERSION_ALERT);
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_stuffer_free(&extension));
+    }*/
+
     EXPECT_SUCCESS(s2n_config_free(config));
 
     END_TEST();
