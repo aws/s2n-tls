@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<!-- For list of supported features see: https://kitware.github.io/KWStyle/resources/features.html -->
+
+
+<Description>
+    <LineLength>177</LineLength>
+    <!--
+         When KWStyle parses the line "const struct s2n_ecc_named_curve s2n_ecc_curve_secp256r1 = {", it thinks "=" is
+         a function name. Add "=" character to allowed function name regex to work around parser bug in KWStyle.
+    -->
+    <Functions>
+        <regex>[A-Za-z=_]</regex>
+        <length>223</length>
+    </Functions>
+</Description>
