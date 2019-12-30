@@ -5,11 +5,11 @@ rndfile = Random.new()
 import hashlib
 import hmac
 import sys
- 
+
 DEBUG_ENABLED = True
 
 # When reading/writing byte strings, the first (aka left-most) byte is the Most Significant Byte (aka Big-Endian) 
-# (Eg "0x0001", 0x00 is the MSB and 0x01 is the LSB, meaning 0x0001 == 1)
+# (e.g., in the string "0x0001", 0x00 is the MSB and 0x01 is the LSB)
 ENDIANNESS = 'big'
 
 # Convert Integer value to byte string
@@ -30,8 +30,6 @@ def debugInt(debugStr, intVal):
 def scram_generate_key():
 	# Generate Random 32 Byte Key
 	K = rndfile.read(32)
-	debugByteStr("K", K)
-	
 	return K
 
 def scram_encrypt(K, N, A, M, F):
@@ -53,7 +51,8 @@ def scram_encrypt(K, N, A, M, F):
 	# Generate a random 32-byte value R
 	R = rndfile.read(32)
 	
-	# Prepare the Padding. We append 0x00 bytes to the end up to the next frame size.
+	# Prepare the Padding. If F > 0, we append (if needed) 0x00 bytes to the end up to the next frame size.
+	# Input value F=0 ignores the padding step.
 	M_LEN = len(M)
 	PADDING_LEN = 0
 	
@@ -71,7 +70,7 @@ def scram_encrypt(K, N, A, M, F):
 	debugByteStr("PADDED_MSG", PADDED_MSG)
 	
 	# Derive Message encryption key (KE)
-	# S1 = N || 0x00 0x00 0x00 0x1 || 0^{8} || 0^{8} || 0^{16} || R 
+	# S1 = N || 0x00 0x00 0x00 0x1 || 0^{8} || 0^{8} || 0^{16} || R
 	S1 = N + byteStr(0x01, 4) + byteStr(0x0, 8) +  byteStr(0x0, 8) + byteStr(0x0, 16) + R
 	U1 = hmac.new(K, S1, hashlib.sha512).digest()
 	KE = U1[0:32]
@@ -88,7 +87,7 @@ def scram_encrypt(K, N, A, M, F):
 	# GMAC the string A || C , using the GMAC key KM and nonce N
 	T = AES.new(key=KM, mode=AES.MODE_GCM, nonce=N).update(A + C).digest()
 	 
-	# Derive a one-time pad (U3) from T
+	# Derive a one-time pad (U3) that depends (also) on T
 	# S3 = N || 0x00 0x00 0x00 0x3 || 0^{8} || 0^{8} || T || 0^{32}
 	S3 = N + byteStr(0x03, 4) + byteStr(0x0, 8) +  byteStr(0x0, 8) + T + byteStr(0x0, 32)
 	U3 = hmac.new(K, S3, hashlib.sha512).digest()
@@ -98,13 +97,13 @@ def scram_encrypt(K, N, A, M, F):
 	Y0 = bytes(a ^ b for (a,b) in zip (U3[32:34], PADDING_LEN_STR))
 	X = Y1 + Y0
 	
-	# Authenticate (Tag) T and R
-	# S4 = N || 0x00 0x00 0x00 0x4 || A_LEN_STR || M_LEN_STR || T || R 
+	# Authenticate (Tag) T, R, and the (string representation of the) lengths len (M) len (A)
+	# S4 = N || 0x00 0x00 0x00 0x4 || A_LEN_STR || M_LEN_STR || T || R
 	S4 = N + byteStr(0x04, 4) + byteStr(len(A), 8) + byteStr(M_LEN, 8) + T + R
-	U4 = hmac.new(K, S4, hashlib.sha512).digest()  
+	U4 = hmac.new(K, S4, hashlib.sha512).digest()
 	
-	# Truncate to 16 bytes tag
-	Tag = U4[0:16] 
+	# Truncate to a 16 byte tag
+	Tag = U4[0:16]
 	
 	debugByteStr("S1", S1)
 	debugByteStr("S2", S2)
@@ -153,7 +152,7 @@ def scram_decrypt(K, N, A, C, X, Tag):
 	# T = GMAC (N, A||C, null)
 	T_calculated  = AES.new(key=KM_calculated, mode=AES.MODE_GCM, nonce=N).update(A + C).digest()
 	  
-	# Derive one-time pad U3 from T_calculated, 
+	# Derive one-time pad U3 from T_calculated
 	# S3 = N || 0x00 0x00 0x00 0x3 || 0^{8} || 0^{8} || T || 0^{32}
 	S3_calculated  = N + byteStr(0x03, 4) + byteStr(0x0, 8) +  byteStr(0x0, 8) + T_calculated + byteStr(0x0, 32)
 	U3_calculated  = hmac.new(K, S3_calculated, hashlib.sha512).digest()
@@ -162,16 +161,16 @@ def scram_decrypt(K, N, A, C, X, Tag):
 	R_calculated = bytes(a ^ b for (a,b) in zip (U3_calculated[0:32], X[0:32]))
 	PADDING_LEN_STR_calculated = bytes(a ^ b for (a,b) in zip (U3_calculated[32:34], X[32:34]))
 	
-	# Derive Message and Padding Lengths
+	# Compute Message and Padding Lengths
 	PADDING_LEN_calculated = int.from_bytes(PADDING_LEN_STR_calculated, ENDIANNESS)
 	M_LEN_calculated = len(C) - PADDING_LEN_calculated
 	
-	# Authenticate R
-	# S4 = N || 0x00 0x00 0x00 0x4 || A_LEN_STR || M_LEN_STR || T || R 
+	# Authenticate (the string representation of) len (A), len (M), T, R
+	# S4 = N || 0x00 0x00 0x00 0x4 || A_LEN_STR || M_LEN_STR || T || R
 	S4_calculated  = N + byteStr(0x04, 4) + byteStr(len(A), 8) + byteStr(M_LEN_calculated, 8) + T_calculated + R_calculated
 	U4_calculated  = hmac.new(K, S4_calculated, hashlib.sha512).digest()
 	Tag_calculated = U4_calculated[0:16]
-	 
+	
 	if(Tag == Tag_calculated):
 	    print ("PASSED: Authentication")
 	else:
@@ -180,7 +179,7 @@ def scram_decrypt(K, N, A, C, X, Tag):
 	 
 	# Now that Ciphertext and other parameters are authenticated, we can decrypt Ciphertext to get Plaintext
 	# Derive Message Encryption key (KE)
-	# S1 = N || 0x00 0x00 0x00 0x1 || 0^{8} || 0^{8} || 0^{16} || R 
+	# S1 = N || 0x00 0x00 0x00 0x1 || 0^{8} || 0^{8} || 0^{16} || R
 	S1_calculated = N + byteStr(0x01, 4) + byteStr(0x0, 8) +  byteStr(0x0, 8) + byteStr(0x0, 16) + R_calculated
 	U1_calculated = hmac.new(K, S1_calculated, hashlib.sha512).digest()
 	KE_calculated = U1_calculated[0:32]
@@ -211,23 +210,28 @@ def scram_decrypt(K, N, A, C, X, Tag):
 	return M_calculated
 
 
-def main(argv):
-	# Generate Random 28 Byte Message
-	M = rndfile.read(28)
+def test_scram(M, A, N, K, F):
+	"""
+	Tests SCRAM with given parameters
+	
+	Parameters:
+		M: Plaintext Message
+		A: Additional Authenticated Data
+		N: Nonce
+		F: Frame Size
+		K: Key
+		
+	Returns:
+		True if decrypt(encrypt(M)) == M
+		False otherwise
+	"""
+	print ("\nTesting AES SCRAM...")
+	
 	debugByteStr("M", M)
-	
-	# Generate Random 28 Byte Additional Authenticated Data
-	A = rndfile.read(28)
 	debugByteStr("A", A)
-	
-	# Generate Random 12 Byte Key 
-	N = rndfile.read(12)
-	
-	# Frame Size. Messages will be padded up to the next Frame size before being encrypted.
-	F = 32
+	debugByteStr("N", N)
+	debugByteStr("K", K)
 	debugInt("F", F)
-
-	K = scram_generate_key()
 	
 	C, X, Tag = scram_encrypt(K, N, A, M, F)
 	
@@ -235,9 +239,34 @@ def main(argv):
 	
 	if(M != M_calculated):
 		print ("FAILED: Decryption")
+		return False
 	else:
 		print("PASSED: Decryption")
+		return True
+
+
+def main(argv):
+	# Generate Random values for each parameter
+	M_random = rndfile.read(28)
+	A_random = rndfile.read(28)
+	N_random = rndfile.read(12)
+	K_random = scram_generate_key()
 	
+	for F in range(0, 33):
+		passed_random_value_test = test_scram(M_random, A_random, N_random, K_random, F)
+		assert passed_random_value_test, "Failed Random Value Test"
+	
+	# Use Known Values for Compatibility Testing
+	M_known = 0x141312111009080706050403020100.to_bytes(15, ENDIANNESS)
+	A_known = 0x050403020100.to_bytes(6, ENDIANNESS)
+	N_known = 0x111009080706050403020100.to_bytes(12, ENDIANNESS)
+	K_known = 0x3130292827262524232221201918171615141312111009080706050403020100.to_bytes(32, ENDIANNESS)
+	
+	for F in range(0, 33):
+		passed_known_value_test = test_scram(M_known, A_known, N_known, K_known, F)
+		assert passed_known_value_test, "Failed Known Value Test"
+	
+	print ("\nAll Tests Passed!")
 	return
 
 if __name__ == "__main__":
