@@ -93,8 +93,8 @@ int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cip
 
     temp_blob.size = s2n_stuffer_data_available(&certificate_out);
     temp_blob.data = s2n_stuffer_raw_read(&certificate_out, temp_blob.size);
-    s2n_cert_type cert_type;
-    GUARD(s2n_asn1der_to_public_key_and_type(&client_conn->secure.server_public_key, &cert_type, &temp_blob));
+    s2n_pkey_type pkey_type;
+    GUARD(s2n_asn1der_to_public_key_and_type(&client_conn->secure.server_public_key, &pkey_type, &temp_blob));
 
     server_conn->handshake_params.our_chain_and_key = chain_and_key;
 

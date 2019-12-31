@@ -17,11 +17,9 @@
 #include <crypto/s2n_openssl_x509.h>
 
 #include "error/s2n_errno.h"
-
 #include "crypto/s2n_pkey.h"
 
 #include "utils/s2n_safety.h"
-
 
 int s2n_pkey_zero_init(struct s2n_pkey *pkey) 
 {
@@ -36,15 +34,20 @@ int s2n_pkey_zero_init(struct s2n_pkey *pkey)
     return 0;
 }
 
-int s2n_pkey_setup_for_type(struct s2n_pkey *pkey, s2n_cert_type cert_type)
+int s2n_pkey_setup_for_type(struct s2n_pkey *pkey, s2n_pkey_type pkey_type)
 {
-    switch(cert_type){
-    case S2N_CERT_TYPE_RSA_SIGN:
+    switch(pkey_type){
+    case S2N_PKEY_TYPE_RSA:
         GUARD(s2n_rsa_pkey_init(pkey));
         break;
-    case S2N_CERT_TYPE_ECDSA_SIGN:
+    case S2N_PKEY_TYPE_ECDSA:
         GUARD(s2n_ecdsa_pkey_init(pkey));
         break;
+#if RSA_PSS_SUPPORTED
+    case S2N_PKEY_TYPE_RSA_PSS:
+        GUARD(s2n_rsa_pss_pkey_init(pkey));
+        break;
+#endif
     default:
         S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);
     }
@@ -76,7 +79,7 @@ int s2n_pkey_verify(const struct s2n_pkey *pkey, struct s2n_hash_state *digest, 
 {
     notnull_check(pkey);
     notnull_check(pkey->verify);
-    
+
     return pkey->verify(pkey, digest, signature);
 }
 
@@ -136,6 +139,15 @@ int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1d
         }
         ret = s2n_evp_pkey_to_rsa_private_key(&priv_key->key.rsa_key, evp_private_key);
         break;
+#if RSA_PSS_SUPPORTED
+    case EVP_PKEY_RSA_PSS:
+        ret = s2n_rsa_pss_pkey_init(priv_key);
+        if (ret != 0) {
+            break;
+        }
+        ret = s2n_evp_pkey_to_rsa_pss_private_key(&priv_key->key.rsa_pss_key, evp_private_key);
+        break;
+#endif
     case EVP_PKEY_EC:
         ret = s2n_ecdsa_pkey_init(priv_key);
         if (ret != 0) {
@@ -153,7 +165,7 @@ int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1d
     return ret;
 }
 
-int s2n_asn1der_to_public_key_and_type(struct s2n_pkey *pub_key, s2n_cert_type *cert_type_out, struct s2n_blob *asn1der)
+int s2n_asn1der_to_public_key_and_type(struct s2n_pkey *pub_key, s2n_pkey_type *pkey_type_out, struct s2n_blob *asn1der)
 {
     uint8_t *cert_to_parse = asn1der->data;
     DEFER_CLEANUP(X509 *cert = NULL, X509_free_pointer);
@@ -179,15 +191,25 @@ int s2n_asn1der_to_public_key_and_type(struct s2n_pkey *pub_key, s2n_cert_type *
             break;
         }
         ret = s2n_evp_pkey_to_rsa_public_key(&pub_key->key.rsa_key, evp_public_key);
-        *cert_type_out = S2N_CERT_TYPE_RSA_SIGN;
+        *pkey_type_out = S2N_PKEY_TYPE_RSA;
         break;
+#if RSA_PSS_SUPPORTED
+    case EVP_PKEY_RSA_PSS:
+        ret = s2n_rsa_pss_pkey_init(pub_key);
+        if (ret != 0) {
+            break;
+        }
+        ret = s2n_evp_pkey_to_rsa_pss_public_key(&pub_key->key.rsa_pss_key, evp_public_key);
+        *pkey_type_out = S2N_PKEY_TYPE_RSA_PSS;
+        break;
+#endif
     case EVP_PKEY_EC:
         ret = s2n_ecdsa_pkey_init(pub_key);
         if (ret != 0) {
             break;
         }
         ret = s2n_evp_pkey_to_ecdsa_public_key(&pub_key->key.ecdsa_key, evp_public_key);
-        *cert_type_out = S2N_CERT_TYPE_ECDSA_SIGN;
+        *pkey_type_out = S2N_PKEY_TYPE_ECDSA;
         break;
     default:
         S2N_ERROR(S2N_ERR_DECODE_CERTIFICATE);

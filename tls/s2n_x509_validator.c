@@ -282,7 +282,7 @@ static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator,
 
 s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
                                                                 uint8_t *cert_chain_in, uint32_t cert_chain_len,
-                                                                s2n_cert_type *cert_type, struct s2n_pkey *public_key_out) {
+                                                                s2n_pkey_type *pkey_type, struct s2n_pkey *public_key_out) {
 
     if (!validator->skip_cert_validation && !s2n_x509_trust_store_has_certs(validator->trust_store)) {
         return S2N_CERT_ERR_UNTRUSTED;
@@ -342,7 +342,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 
         /* Pull the public key from the first certificate */
         if (certificate_count == 0) {
-            if (s2n_asn1der_to_public_key_and_type(&public_key, cert_type, &asn1cert) < 0) {
+            if (s2n_asn1der_to_public_key_and_type(&public_key, pkey_type, &asn1cert) < 0) {
                 return S2N_CERT_ERR_INVALID;
             }
         }

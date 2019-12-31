@@ -101,9 +101,9 @@ static int s2n_rsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *dige
 static int s2n_rsa_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
     uint8_t digest_length;
-    int NID_type;
+    int digest_NID_type;
     GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
-    GUARD(s2n_hash_NID_type(digest->alg, &NID_type));
+    GUARD(s2n_hash_NID_type(digest->alg, &digest_NID_type));
     lte_check(digest_length, S2N_MAX_DIGEST_LEN);
 
     const s2n_rsa_public_key *key = &pub->key.rsa_key;
@@ -111,7 +111,7 @@ static int s2n_rsa_verify(const struct s2n_pkey *pub, struct s2n_hash_state *dig
     uint8_t digest_out[S2N_MAX_DIGEST_LEN];
     GUARD(s2n_hash_digest(digest, digest_out, digest_length));
 
-    GUARD_OSSL(RSA_verify(NID_type, digest_out, digest_length, signature->data, signature->size, key->rsa), S2N_ERR_VERIFY_SIGNATURE);
+    GUARD_OSSL(RSA_verify(digest_NID_type, digest_out, digest_length, signature->data, signature->size, key->rsa), S2N_ERR_VERIFY_SIGNATURE);
 
     return 0;
 }
@@ -200,7 +200,6 @@ int s2n_evp_pkey_to_rsa_public_key(s2n_rsa_public_key *rsa_key, EVP_PKEY *evp_pu
 
 int s2n_evp_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *evp_private_key)
 {
-
     RSA *rsa = EVP_PKEY_get1_RSA(evp_private_key);
     S2N_ERROR_IF(rsa == NULL, S2N_ERR_DECODE_PRIVATE_KEY);
     

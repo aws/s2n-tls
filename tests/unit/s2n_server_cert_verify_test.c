@@ -41,7 +41,7 @@ int main(int argc, char **argv)
         struct s2n_cert_chain_and_key *ecdsa_cert;
         char *cert_chain_pem;
         char *private_key_pem;
-        s2n_cert_type cert_type;
+        s2n_pkey_type pkey_type;
 
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
         /* Extract public key from certificate */
         b.size = s2n_stuffer_data_available(&certificate_out);
         b.data = s2n_stuffer_raw_read(&certificate_out, b.size);
-        EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&client_conn->secure.server_public_key, &cert_type, &b));
+        EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&client_conn->secure.server_public_key, &pkey_type, &b));
 
         EXPECT_SUCCESS(s2n_pkey_match(&client_conn->secure.server_public_key, client_conn->handshake_params.our_chain_and_key->private_key));
 
@@ -104,7 +104,7 @@ int main(int argc, char **argv)
         char *cert_chain_pem;
         char *private_key_pem;
         uint64_t bytes_in_hash;
-        s2n_cert_type cert_type;
+        s2n_pkey_type pkey_type;
 
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
 
         b.size = s2n_stuffer_data_available(&certificate_out);
         b.data = s2n_stuffer_raw_read(&certificate_out, b.size);
-        EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&client_conn->secure.server_public_key, &cert_type, &b));
+        EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&client_conn->secure.server_public_key, &pkey_type, &b));
 
         EXPECT_SUCCESS(s2n_pkey_match(&client_conn->secure.server_public_key, client_conn->handshake_params.our_chain_and_key->private_key));
 
@@ -167,7 +167,7 @@ int main(int argc, char **argv)
         struct s2n_cert_chain_and_key *ecdsa_cert;
         char *cert_chain_pem;
         char *private_key_pem;
-        s2n_cert_type cert_type;
+        s2n_pkey_type pkey_type;
 
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
@@ -192,7 +192,7 @@ int main(int argc, char **argv)
 
         b.size = s2n_stuffer_data_available(&certificate_out);
         b.data = s2n_stuffer_raw_read(&certificate_out, b.size);
-        EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&client_conn->secure.server_public_key, &cert_type, &b));
+        EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&client_conn->secure.server_public_key, &pkey_type, &b));
 
         /* Initialize send hash with hello */
         EXPECT_SUCCESS(s2n_hash_init(&client_conn->handshake.sha256, S2N_HASH_SHA256));
@@ -227,7 +227,7 @@ int main(int argc, char **argv)
         struct s2n_cert_chain_and_key *ecdsa_cert;
         char *cert_chain_pem;
         char *private_key_pem;
-        s2n_cert_type cert_type;
+        s2n_pkey_type pkey_type;
 
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
@@ -253,7 +253,7 @@ int main(int argc, char **argv)
 
         b.size = s2n_stuffer_data_available(&certificate_out);
         b.data = s2n_stuffer_raw_read(&certificate_out, b.size);
-        EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&client_conn->secure.server_public_key, &cert_type, &b));
+        EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&client_conn->secure.server_public_key, &pkey_type, &b));
 
         /* Hash initialization */
         EXPECT_SUCCESS(s2n_hash_init(&client_conn->handshake.sha256, S2N_HASH_SHA256));

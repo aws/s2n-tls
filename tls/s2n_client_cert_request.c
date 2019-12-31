@@ -28,6 +28,19 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_array.h"
 
+static int s2n_cert_type_to_pkey_type(s2n_cert_type cert_type_in, s2n_pkey_type *pkey_type_out) {
+    switch(cert_type_in) {
+        case S2N_CERT_TYPE_RSA_SIGN:
+            *pkey_type_out = S2N_PKEY_TYPE_RSA;
+            return 0;
+        case S2N_CERT_TYPE_ECDSA_SIGN:
+            *pkey_type_out = S2N_PKEY_TYPE_ECDSA;
+            return 0;
+        default:
+            S2N_ERROR(S2N_CERT_ERR_TYPE_UNSUPPORTED);
+    }
+}
+
 static int s2n_set_cert_chain_as_client(struct s2n_connection *conn)
 {
     if (s2n_config_get_num_default_certs(conn->config) > 0) {
@@ -43,7 +56,9 @@ int s2n_client_cert_req_recv(struct s2n_connection *conn)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
 
-    GUARD(s2n_recv_client_cert_preferences(in, &conn->secure.client_cert_type));
+    s2n_cert_type cert_type = 0;
+    GUARD(s2n_recv_client_cert_preferences(in, &cert_type));
+    GUARD(s2n_cert_type_to_pkey_type(cert_type, &conn->secure.client_cert_pkey_type));
 
     if (conn->actual_protocol_version == S2N_TLS12) {
         GUARD(s2n_recv_supported_sig_scheme_list(in, &conn->handshake_params.server_sig_hash_algs));

@@ -28,9 +28,10 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
 
-static const s2n_authentication_method cert_type_to_auth_method[] = {
-    [S2N_CERT_TYPE_RSA_SIGN] = S2N_AUTHENTICATION_RSA,
-    [S2N_CERT_TYPE_ECDSA_SIGN] = S2N_AUTHENTICATION_ECDSA,
+static const s2n_authentication_method pkey_type_to_auth_method[] = {
+    [S2N_PKEY_TYPE_RSA] = S2N_AUTHENTICATION_RSA,
+    [S2N_PKEY_TYPE_RSA_PSS] = S2N_AUTHENTICATION_RSA_PSS,
+    [S2N_PKEY_TYPE_ECDSA] = S2N_AUTHENTICATION_ECDSA,
 };
 
 int s2n_cert_public_key_set_rsa_from_openssl(s2n_cert_public_key *public_key, RSA *openssl_rsa)
@@ -42,11 +43,11 @@ int s2n_cert_public_key_set_rsa_from_openssl(s2n_cert_public_key *public_key, RS
     return 0;
 }
 
-int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_cert_type cert_type)
+int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_pkey_type pkey_type)
 {
     notnull_check(cert);
-    cert->cert_type = cert_type;
-    s2n_pkey_setup_for_type(&cert->public_key, cert_type);
+    cert->pkey_type = pkey_type;
+    GUARD(s2n_pkey_setup_for_type(&cert->public_key, pkey_type));
     return 0;
 }
 
@@ -326,9 +327,10 @@ int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key
 
     /* Parse the leaf cert for the public key and certificate type */
     DEFER_CLEANUP(struct s2n_pkey public_key = {0}, s2n_pkey_free);
-    s2n_cert_type cert_type;
-    GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &cert_type, &chain_and_key->cert_chain->head->raw));
-    GUARD(s2n_cert_set_cert_type(chain_and_key->cert_chain->head, cert_type));
+    s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+    GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &chain_and_key->cert_chain->head->raw));
+    S2N_ERROR_IF(pkey_type == S2N_PKEY_TYPE_UNKNOWN, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+    GUARD(s2n_cert_set_cert_type(chain_and_key->cert_chain->head, pkey_type));
 
     /* Validate the leaf cert's public key matches the provided private key */
     GUARD(s2n_pkey_match(&public_key, chain_and_key->private_key));
@@ -466,7 +468,7 @@ int s2n_cert_chain_and_key_matches_dns_name(const struct s2n_cert_chain_and_key 
  */
 s2n_authentication_method s2n_cert_chain_and_key_get_auth_method(struct s2n_cert_chain_and_key *chain_and_key)
 {
-    return cert_type_to_auth_method[chain_and_key->cert_chain->head->cert_type];
+    return pkey_type_to_auth_method[chain_and_key->cert_chain->head->pkey_type];
 }
 
 int s2n_cert_chain_and_key_set_ctx(struct s2n_cert_chain_and_key *cert_and_key, void *ctx)
