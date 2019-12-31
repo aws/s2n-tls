@@ -106,11 +106,11 @@ int main(int argc, char **argv)
 
     struct s2n_pkey priv_key;
     struct s2n_pkey pub_key;
-    s2n_cert_type cert_type;
+    s2n_pkey_type pkey_type;
 
     b.size = s2n_stuffer_data_available(&certificate_out);
     b.data = s2n_stuffer_raw_read(&certificate_out, b.size);
-    EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&pub_key, &cert_type, &b));
+    EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&pub_key, &pkey_type, &b));
 
     b.size = s2n_stuffer_data_available(&rsa_key_out);
     b.data = s2n_stuffer_raw_read(&rsa_key_out, b.size);

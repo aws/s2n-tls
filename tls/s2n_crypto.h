@@ -78,7 +78,7 @@ struct s2n_crypto_parameters {
     struct s2n_signature_scheme conn_sig_scheme;
 
     struct s2n_blob client_cert_chain;
-    s2n_cert_type client_cert_type;
+    s2n_pkey_type client_cert_pkey_type;
 
     struct s2n_signature_scheme client_cert_sig_scheme;
 

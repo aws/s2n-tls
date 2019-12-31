@@ -142,10 +142,37 @@ const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha512 = {
         .signature_curve = NULL /* Elliptic Curve not needed for RSA */
 };
 
+/**
+ * RSA-PSS-PSS
+ */
+const struct s2n_signature_scheme s2n_rsa_pss_pss_sha256 = {
+        .iana_value = TLS_SIGNATURE_SCHEME_RSA_PSS_PSS_SHA256,
+        .hash_alg = S2N_HASH_SHA256,
+        .sig_alg = S2N_SIGNATURE_RSA_PSS_PSS,
+        .signature_curve = NULL /* Elliptic Curve not needed for RSA */
+};
+
+const struct s2n_signature_scheme s2n_rsa_pss_pss_sha384 = {
+        .iana_value = TLS_SIGNATURE_SCHEME_RSA_PSS_PSS_SHA384,
+        .hash_alg = S2N_HASH_SHA384,
+        .sig_alg = S2N_SIGNATURE_RSA_PSS_PSS,
+        .signature_curve = NULL /* Elliptic Curve not needed for RSA */
+};
+
+const struct s2n_signature_scheme s2n_rsa_pss_pss_sha512 = {
+        .iana_value = TLS_SIGNATURE_SCHEME_RSA_PSS_PSS_SHA512,
+        .hash_alg = S2N_HASH_SHA512,
+        .sig_alg = S2N_SIGNATURE_RSA_PSS_PSS,
+        .signature_curve = NULL /* Elliptic Curve not needed for RSA */
+};
+
 /* All Supported SignatureSchemes (Both TLS 1.2 and 1.3) to send in the ClientHello to the Server. */
 /* No MD5 to avoid SLOTH Vulnerability */
 const struct s2n_signature_scheme* const s2n_supported_sig_scheme_pref_list[] = {
-        /* RSA PSS - Commented out until it is actually supported */
+        /* RSA PSS - Commented out until Handshake can negotiate it */
+        /* &s2n_rsa_pss_pss_sha256, */
+        /* &s2n_rsa_pss_pss_sha384, */
+        /* &s2n_rsa_pss_pss_sha512, */
         /* &s2n_rsa_pss_rsae_sha256, */
         /* &s2n_rsa_pss_rsae_sha384, */
         /* &s2n_rsa_pss_rsae_sha512, */
@@ -174,7 +201,10 @@ const struct s2n_signature_scheme* const s2n_supported_sig_scheme_pref_list[] = 
 /* Signature Scheme Preference List to use when picking a <=TLS 1.2 SignatureAlgorithm/SignatureScheme */
 /* As per RFC: This list MUST NOT contain any s2n_signature_scheme's with a non-null signature_curve defined. */
 const struct s2n_signature_scheme* const s2n_legacy_sig_scheme_pref_list[] = {
-        /* RSA PSS - Commented out until it is actually supported */
+        /* RSA PSS - Commented out until Handshake can negotiate it */
+        /* &s2n_rsa_pss_pss_sha256, */
+        /* &s2n_rsa_pss_pss_sha384, */
+        /* &s2n_rsa_pss_pss_sha512, */
         /* &s2n_rsa_pss_rsae_sha256, */
         /* &s2n_rsa_pss_rsae_sha384, */
         /* &s2n_rsa_pss_rsae_sha512, */

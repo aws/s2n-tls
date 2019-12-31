@@ -53,6 +53,11 @@ int s2n_connection_set_io_stuffers(struct s2n_stuffer *input, struct s2n_stuffer
 #define S2N_RSA_2048_PKCS1_KEY          "../pems/rsa_2048_pkcs1_key.pem"
 #define S2N_RSA_2048_PKCS8_KEY          "../pems/rsa_2048_pkcs8_key.pem"
 
+#define S2N_RSA_PSS_2048_SHA256_CA_KEY         "../pems/rsa_pss_2048_sha256_CA_key.pem"
+#define S2N_RSA_PSS_2048_SHA256_CA_CERT        "../pems/rsa_pss_2048_sha256_CA_cert.pem"
+#define S2N_RSA_PSS_2048_SHA256_LEAF_KEY       "../pems/rsa_pss_2048_sha256_leaf_key.pem"
+#define S2N_RSA_PSS_2048_SHA256_LEAF_CERT      "../pems/rsa_pss_2048_sha256_leaf_cert.pem"
+
 #define S2N_RSA_2048_SHA256_CLIENT_CERT "../pems/rsa_2048_sha256_client_cert.pem"
 
 #define S2N_RSA_2048_SHA256_NO_DNS_SANS_CERT "../pems/rsa_2048_sha256_no_dns_sans_cert.pem"
