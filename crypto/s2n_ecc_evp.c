@@ -33,7 +33,11 @@ DEFINE_POINTER_CLEANUP_FUNC(EC_POINT *, EC_POINT_free);
 
 #if MODERN_EC_SUPPORTED
 const struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {
-    .iana_id = TLS_EC_CURVE_ECDH_X25519, .libcrypto_nid = NID_X25519, .name = "x25519", .share_size = 32};
+    .iana_id = TLS_EC_CURVE_ECDH_X25519, 
+    .libcrypto_nid = NID_X25519, 
+    .name = "x25519", 
+    .share_size = 32
+};
 #endif
 
 const struct s2n_ecc_named_curve *const s2n_ecc_evp_supported_curves_list[] = {
@@ -183,8 +187,36 @@ int s2n_ecc_evp_read_params_point(struct s2n_stuffer *in, int point_size, struct
 
     /* Extract point from stuffer */
     point_blob->size = point_size;
-    point_blob->data = (uint8_t *)s2n_stuffer_raw_read(in, point_size);
+    point_blob->data = s2n_stuffer_raw_read(in, point_size);
     notnull_check(point_blob->data);
+
+    return 0;
+}
+
+int s2n_ecc_evp_read_params(struct s2n_stuffer *in, struct s2n_blob *data_to_verify,
+                            struct s2n_ecdhe_raw_server_params *raw_server_ecc_params) {
+    notnull_check(in);
+    uint8_t curve_type;
+    uint8_t point_length;
+
+    /* Remember where we started reading the data */
+    data_to_verify->data = s2n_stuffer_raw_read(in, 0);
+    notnull_check(data_to_verify->data);
+
+    /* Read the curve */
+    GUARD(s2n_stuffer_read_uint8(in, &curve_type));
+    S2N_ERROR_IF(curve_type != s2n_ecc_evp_supported_curves_list_len, S2N_ERR_BAD_MESSAGE);
+    raw_server_ecc_params->curve_blob.data =  s2n_stuffer_raw_read(in, 2);
+    notnull_check(raw_server_ecc_params->curve_blob.data);
+    raw_server_ecc_params->curve_blob.size = 2;
+
+    /* Read the point */
+    GUARD(s2n_stuffer_read_uint8(in, &point_length));
+
+    GUARD(s2n_ecc_evp_read_params_point(in, point_length, &raw_server_ecc_params->point_blob));
+
+    /* curve type (1) + iana (2) + key share size (1) + key share */
+    data_to_verify->size = point_length + 4;
 
     return 0;
 }
@@ -196,18 +228,21 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
     notnull_check(out);
 
 #if MODERN_EC_SUPPORTED
-    struct s2n_blob temp_blob = {0};
-    out->blob.data = s2n_stuffer_raw_write(out, ecc_evp_params->negotiated_curve->share_size);
-
-    size_t size = EVP_PKEY_get1_tls_encodedpoint(ecc_evp_params->evp_pkey, &temp_blob.data);
-    S2N_ERROR_IF(size != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
-    notnull_check(temp_blob.data);
+    struct s2n_blob point_blob = {0};
+    uint8_t *encoded_point = NULL;
     
-    memcpy(out->blob.data, temp_blob.data, size);
-    OPENSSL_free(temp_blob.data);
-    notnull_check(out->blob.data);
+    point_blob.data = s2n_stuffer_raw_write(out, ecc_evp_params->negotiated_curve->share_size);
+    size_t size = EVP_PKEY_get1_tls_encodedpoint(ecc_evp_params->evp_pkey, &encoded_point);
+
+    memcpy(point_blob.data, encoded_point, size);
+    notnull_check(point_blob.data);
+    
+    OPENSSL_free(encoded_point);
+    S2N_ERROR_IF(size != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
 #else
     uint8_t point_len;
+    struct s2n_blob point_blob = {0};
+
     DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(ecc_evp_params->evp_pkey), EC_KEY_free_pointer);
     S2N_ERROR_IF(ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
@@ -217,13 +252,38 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
 
     GUARD(s2n_ecc_evp_calculate_point_length(point, group, &point_len));
     S2N_ERROR_IF(point_len != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
-    out->blob.data = (uint8_t *)s2n_stuffer_raw_write(out, point_len);
-    out->blob.size = point_len;
+    point_blob.data = s2n_stuffer_raw_write(out, point_len);
+    point_blob.size = point_len;
+    notnull_check(point_blob.data);
 
-    notnull_check(out->blob.data);
-    GUARD(s2n_ecc_evp_write_point_data_snug(point, group, &out->blob));
+    GUARD(s2n_ecc_evp_write_point_data_snug(point, group, &point_blob));
 #endif
     return 0;
+}
+
+int s2n_ecc_evp_write_params(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *out,
+                             struct s2n_blob *written) {
+    notnull_check(ecc_evp_params);
+    notnull_check(ecc_evp_params->negotiated_curve);
+    notnull_check(ecc_evp_params->evp_pkey);
+    notnull_check(out);
+    notnull_check(written);
+
+    int key_share_size = ecc_evp_params->negotiated_curve->share_size;
+    /* Remember where the written data starts */
+    written->data = s2n_stuffer_raw_write(out, 0);
+    notnull_check(written->data);
+
+    GUARD(s2n_stuffer_write_uint8(out, s2n_ecc_evp_supported_curves_list_len));
+    GUARD(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->iana_id));
+    GUARD(s2n_stuffer_write_uint8(out, key_share_size));
+
+    GUARD(s2n_ecc_evp_write_params_point(ecc_evp_params, out));
+
+    /* key share + key share size (1) + iana (2) + curve type (1) */
+    written->size = key_share_size + 4;
+
+    return written->size;
 }
 
 int s2n_ecc_evp_parse_params_point(struct s2n_blob *point_blob, struct s2n_ecc_evp_params *ecc_evp_params) {
@@ -258,6 +318,35 @@ int s2n_ecc_evp_parse_params_point(struct s2n_blob *point_blob, struct s2n_ecc_e
 
 #endif
     return 0;
+}
+
+int s2n_ecc_evp_parse_params(struct s2n_ecdhe_raw_server_params *raw_server_ecc_params,
+                             struct s2n_ecc_evp_params *ecc_evp_params) {
+    S2N_ERROR_IF(
+        s2n_ecc_evp_find_supported_curve(&raw_server_ecc_params->curve_blob, &ecc_evp_params->negotiated_curve) != 0,
+        S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    return s2n_ecc_evp_parse_params_point(&raw_server_ecc_params->point_blob, ecc_evp_params);
+}
+
+int s2n_ecc_evp_find_supported_curve(struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **found) {
+    struct s2n_stuffer iana_ids_in = {0};
+
+    GUARD(s2n_stuffer_init(&iana_ids_in, iana_ids));
+    GUARD(s2n_stuffer_write(&iana_ids_in, iana_ids));
+    for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
+        const struct s2n_ecc_named_curve *supported_curve = s2n_ecc_evp_supported_curves_list[i];
+        for (int j = 0; j < iana_ids->size / 2; j++) {
+            uint16_t iana_id;
+            GUARD(s2n_stuffer_read_uint16(&iana_ids_in, &iana_id));
+            if (supported_curve->iana_id == iana_id) {
+                *found = supported_curve;
+                return 0;
+            }
+        }
+        GUARD(s2n_stuffer_reread(&iana_ids_in));
+    }
+
+    S2N_ERROR(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 }
 
 int s2n_ecc_evp_generate_copy_params(struct s2n_ecc_evp_params *from_params, struct s2n_ecc_evp_params *to_params) {

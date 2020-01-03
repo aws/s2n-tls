@@ -205,6 +205,32 @@ int main(int argc, char **argv) {
             EXPECT_SUCCESS(s2n_stuffer_free(&wire));
         }
     }
+    {
+        /* Test read/write/parse params for all supported curves */
+        for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
+            struct s2n_ecc_evp_params write_params = {0};
+            struct s2n_ecc_evp_params read_params = {0};
+            struct s2n_stuffer wire;
+            struct s2n_blob ecdh_params_sent, ecdh_params_received;
 
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire, 1024));
+
+            write_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[i];
+            read_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[i];
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&write_params));
+            EXPECT_SUCCESS(s2n_ecc_evp_write_params(&write_params, &wire, &ecdh_params_sent));
+            struct s2n_ecdhe_raw_server_params ecdhe_data = {0};
+            EXPECT_SUCCESS(s2n_ecc_evp_read_params(&wire, &ecdh_params_received, &ecdhe_data));
+#if MODERN_EC_SUPPORTED
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_copy_params(&write_params, &read_params));
+#endif
+            EXPECT_SUCCESS(s2n_ecc_evp_parse_params(&ecdhe_data, &read_params));
+            EXPECT_TRUE(EVP_PKEY_cmp(write_params.evp_pkey, read_params.evp_pkey));
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&wire));
+            EXPECT_SUCCESS(s2n_ecc_evp_params_free(&write_params));
+            EXPECT_SUCCESS(s2n_ecc_evp_params_free(&read_params));
+        }
+    }
     END_TEST();
 }
