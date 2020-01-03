@@ -125,21 +125,256 @@ let random_mod_order_B_unint_spec = do {
 
 */
 
-let ephemeralKeyGeneration_A_spec n f1 = do {
+let ephemeralKeyGeneration_A_spec is_unsafe_assume = do {
     (a, ap) <- ptr_to_fresh_readonly "PrivateKeyA" (llvm_array 32 char_t);
-    bp <- crucible_alloc (llvm_array n char_t); // 378, minimum
+    bp <- crucible_alloc (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
     crucible_precond {{ pftwice_mod g_Montgomery_one }};
     crucible_precond {{ pftwice_mod zero }};
     crucible_precond {{ fpnorm zero == zero }};
     crucible_precond {{ fpnorm g_Montgomery_one == g_Montgomery_one }};
     crucible_precond {{ is_good_basis A_gen }};
     crucible_precond {{ is_good_basis B_gen }};
-    crucible_execute_func [ap, bp, tm {{ `f1:[32] }}]; // MAX_Alice
-    crucible_points_to bp (tm {{ EphemeralKeyGeneration_A_short a `f1 }});
-    crucible_return (crucible_term {{ 0:[32] }});
+    crucible_execute_func [ap, bp];
+    b' <- crucible_fresh_var "b'" (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
+    crucible_points_to bp (tm b');
+    if is_unsafe_assume then do {
+      crucible_postcond {{ b' == EphemeralKeyGeneration_A a }};
+    } else do {
+      return ();
+    };
+    crucible_return (crucible_term {{0:[32]}});
 };
 
-let ephemeralKeyGeneration_B_spec f1 = do {
+let ephemeralKeyGeneration_A_main_loop_spec = do {
+  (PrivateKeyA, PrivateKeyA_ptr) <- ptr_to_fresh_readonly "PrivateKeyA" (llvm_array 32 char_t);
+  PrivateKeyA_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PrivateKeyA_ptr_ptr PrivateKeyA_ptr;
+  PublicKeyA_ptr <- crucible_alloc (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
+  PublicKeyA_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PublicKeyA_ptr_ptr PublicKeyA_ptr;
+  (R, R_ptr) <- ptr_to_fresh "R" point_proj_t;
+  (phiP, phiP_ptr) <- ptr_to_fresh "phiP" point_proj_t;
+  (phiQ, phiQ_ptr) <- ptr_to_fresh "phiQ" point_proj_t;
+  (phiR, phiR_ptr) <- ptr_to_fresh "phiR" point_proj_t;
+  // point_proj_t (*)[7]
+  (pts, pts_ptr) <- ptr_to_fresh "pts" (llvm_array 7 point_proj_t);
+  // f2elm_t (*)[3]
+  coeff_ptr <- crucible_alloc (llvm_array 3 f2elm_t);
+  (A24plus, A24plus_ptr) <- ptr_to_fresh "A24plus" f2elm_t;
+  A24plus_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to A24plus_ptr_ptr A24plus_ptr;
+  (C24, C24_ptr) <- ptr_to_fresh "C24" f2elm_t;
+  C24_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to C24_ptr_ptr C24_ptr;
+  i_ptr <- crucible_alloc i32;
+  (row, row_ptr) <- ptr_to_fresh "row" i32;
+  m_ptr <- crucible_alloc i32;
+  (index, index_ptr) <- ptr_to_fresh "index" i32;
+  // unsigned int(*)[7]
+  (pts_index, pts_index_ptr) <- ptr_to_fresh "pts_index" (llvm_array 7 i32);
+  (npts, npts_ptr) <- ptr_to_fresh "npts" i32;
+  (ii, ii_ptr) <- ptr_to_fresh "ii" i32;
+
+  crucible_precond {{ pftwice_mod g_Montgomery_one }};
+  crucible_precond {{ pftwice_mod zero }};
+  crucible_precond {{ fpnorm g_Montgomery_one == g_Montgomery_one }};
+  crucible_precond {{ fpnorm zero == zero }};
+  crucible_precond {{ is_good_basis A_gen }};
+  crucible_precond {{ is_good_basis B_gen }};
+
+  crucible_precond {{ point_mod R }};
+  crucible_precond {{ point_mod phiP }};
+  crucible_precond {{ point_mod phiQ }};
+  crucible_precond {{ point_mod phiR }};
+  crucible_precond {{ point_n7_mod pts }};
+  crucible_precond {{ pf2twice_mod A24plus }};
+  crucible_precond {{ pf2twice_mod C24 }};
+
+  crucible_precond {{ 1 <= row /\ row <= g_MAX_Alice }};
+  crucible_precond {{ 0 <= ii /\ ii <= g_MAX_Alice }};
+  crucible_precond {{ is_valid_main_loop_control_state_A row ii index npts pts_index \/ row == g_MAX_Alice }};
+
+  crucible_execute_func
+    [ PrivateKeyA_ptr_ptr
+    , PublicKeyA_ptr_ptr
+    , R_ptr
+    , phiP_ptr
+    , phiQ_ptr
+    , phiR_ptr
+    , pts_ptr
+    , coeff_ptr
+    , A24plus_ptr_ptr
+    , C24_ptr_ptr
+    , i_ptr
+    , row_ptr
+    , m_ptr
+    , index_ptr
+    , pts_index_ptr
+    , npts_ptr
+    , ii_ptr
+    ];
+
+  PublicKeyA' <- crucible_fresh_var "PublicKeyA'" (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
+  crucible_points_to PublicKeyA_ptr (crucible_term PublicKeyA');
+
+  crucible_return (crucible_term {{ 0:[32] }});
+};
+
+let ephemeralKeyGeneration_A_first_loop_spec = do {
+  (PrivateKeyA, PrivateKeyA_ptr) <- ptr_to_fresh_readonly "PrivateKeyA" (llvm_array 32 char_t);
+  PrivateKeyA_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PrivateKeyA_ptr_ptr PrivateKeyA_ptr;
+  PublicKeyA_ptr <- crucible_alloc (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
+  PublicKeyA_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PublicKeyA_ptr_ptr PublicKeyA_ptr;
+  (R, R_ptr) <- ptr_to_fresh "R" point_proj_t;
+  (phiP, phiP_ptr) <- ptr_to_fresh "phiP" point_proj_t;
+  (phiQ, phiQ_ptr) <- ptr_to_fresh "phiQ" point_proj_t;
+  (phiR, phiR_ptr) <- ptr_to_fresh "phiR" point_proj_t;
+  // point_proj_t (*)[7]
+  (pts, pts_ptr) <- ptr_to_fresh "pts" (llvm_array 7 point_proj_t);
+  // f2elm_t (*)[3]
+  coeff_ptr <- crucible_alloc (llvm_array 3 f2elm_t);
+  (A24plus, A24plus_ptr) <- ptr_to_fresh "A24plus" f2elm_t;
+  A24plus_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to A24plus_ptr_ptr A24plus_ptr;
+  (C24, C24_ptr) <- ptr_to_fresh "C24" f2elm_t;
+  C24_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to C24_ptr_ptr C24_ptr;
+  i_ptr <- crucible_alloc i32;
+  (row, row_ptr) <- ptr_to_fresh "row" i32;
+  m_ptr <- crucible_alloc i32;
+  (index, index_ptr) <- ptr_to_fresh "index" i32;
+  // unsigned int(*)[7]
+  (pts_index, pts_index_ptr) <- ptr_to_fresh "pts_index" (llvm_array 7 i32);
+  (npts, npts_ptr) <- ptr_to_fresh "npts" i32;
+  (ii, ii_ptr) <- ptr_to_fresh "ii" i32;
+
+  crucible_precond {{ pftwice_mod g_Montgomery_one }};
+  crucible_precond {{ pftwice_mod zero }};
+  crucible_precond {{ fpnorm g_Montgomery_one == g_Montgomery_one }};
+  crucible_precond {{ fpnorm zero == zero }};
+  crucible_precond {{ is_good_basis A_gen }};
+  crucible_precond {{ is_good_basis B_gen }};
+
+  crucible_precond {{ point_mod R }};
+  crucible_precond {{ point_mod phiP }};
+  crucible_precond {{ point_mod phiQ }};
+  crucible_precond {{ point_mod phiR }};
+  crucible_precond {{ point_n7_mod pts }};
+  crucible_precond {{ pf2twice_mod A24plus }};
+  crucible_precond {{ pf2twice_mod C24 }};
+
+  crucible_precond {{ 1 <= row /\ row < g_MAX_Alice }};
+  crucible_precond {{ 0 <= ii /\ ii <= g_MAX_Alice }};
+  crucible_precond {{ is_valid_main_loop_control_state_A row ii index npts pts_index }};
+
+  crucible_execute_func
+    [ PrivateKeyA_ptr_ptr
+    , PublicKeyA_ptr_ptr
+    , R_ptr
+    , phiP_ptr
+    , phiQ_ptr
+    , phiR_ptr
+    , pts_ptr
+    , coeff_ptr
+    , A24plus_ptr_ptr
+    , C24_ptr_ptr
+    , i_ptr
+    , row_ptr
+    , m_ptr
+    , index_ptr
+    , pts_index_ptr
+    , npts_ptr
+    , ii_ptr
+    ];
+
+  PublicKeyA' <- crucible_fresh_var "PublicKeyA'" (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
+  crucible_points_to PublicKeyA_ptr (crucible_term PublicKeyA');
+
+  crucible_return (crucible_term {{ 0:[32] }});
+};
+
+let ephemeralKeyGeneration_A_second_loop_spec = do {
+  (PrivateKeyA, PrivateKeyA_ptr) <- ptr_to_fresh_readonly "PrivateKeyA" (llvm_array 32 char_t);
+  PrivateKeyA_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PrivateKeyA_ptr_ptr PrivateKeyA_ptr;
+  PublicKeyA_ptr <- crucible_alloc (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
+  PublicKeyA_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PublicKeyA_ptr_ptr PublicKeyA_ptr;
+  (R, R_ptr) <- ptr_to_fresh "R" point_proj_t;
+  (phiP, phiP_ptr) <- ptr_to_fresh "phiP" point_proj_t;
+  (phiQ, phiQ_ptr) <- ptr_to_fresh "phiQ" point_proj_t;
+  (phiR, phiR_ptr) <- ptr_to_fresh "phiR" point_proj_t;
+  // point_proj_t (*)[7]
+  (pts, pts_ptr) <- ptr_to_fresh "pts" (llvm_array 7 point_proj_t);
+  // f2elm_t (*)[3]
+  (coeff, coeff_ptr) <- ptr_to_fresh "coeff" (llvm_array 3 f2elm_t);
+  (A24plus, A24plus_ptr) <- ptr_to_fresh "A24plus" f2elm_t;
+  A24plus_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to A24plus_ptr_ptr A24plus_ptr;
+  (C24, C24_ptr) <- ptr_to_fresh "C24" f2elm_t;
+  C24_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to C24_ptr_ptr C24_ptr;
+  A_ptr <- crucible_alloc f2elm_t;
+  (i, i_ptr) <- ptr_to_fresh "i" i32;
+  (row, row_ptr) <- ptr_to_fresh "row" i32;
+  m_ptr <- crucible_alloc i32;
+  (index, index_ptr) <- ptr_to_fresh "index" i32;
+  // unsigned int(*)[7]
+  (pts_index, pts_index_ptr) <- ptr_to_fresh "pts_index" (llvm_array 7 i32);
+  (npts, npts_ptr) <- ptr_to_fresh "npts" i32;
+  (ii, ii_ptr) <- ptr_to_fresh "ii" i32;
+
+  crucible_precond {{ pftwice_mod g_Montgomery_one }};
+  crucible_precond {{ pftwice_mod zero }};
+  crucible_precond {{ fpnorm g_Montgomery_one == g_Montgomery_one }};
+  crucible_precond {{ fpnorm zero == zero }};
+  crucible_precond {{ is_good_basis A_gen }};
+  crucible_precond {{ is_good_basis B_gen }};
+
+  crucible_precond {{ point_mod R }};
+  crucible_precond {{ point_mod phiP }};
+  crucible_precond {{ point_mod phiQ }};
+  crucible_precond {{ point_mod phiR }};
+  crucible_precond {{ point_n7_mod pts }};
+  crucible_precond {{ pf2twice_n3_mod coeff }};
+  crucible_precond {{ pf2twice_mod A24plus }};
+  crucible_precond {{ pf2twice_mod C24 }};
+
+  crucible_precond {{ 1 <= row /\ row < g_MAX_Alice }};
+  crucible_precond {{ 0 <= ii /\ ii <= g_MAX_Alice }};
+  crucible_precond {{ index == g_MAX_Alice - row }};
+  crucible_precond {{ is_valid_second_loop_control_state_A row ii index npts pts_index }};
+  crucible_precond {{ 0 <= i /\ i <= npts }};
+
+  crucible_execute_func
+    [ PrivateKeyA_ptr_ptr
+    , PublicKeyA_ptr_ptr
+    , R_ptr
+    , phiP_ptr
+    , phiQ_ptr
+    , phiR_ptr
+    , pts_ptr
+    , coeff_ptr
+    , A24plus_ptr_ptr
+    , C24_ptr_ptr
+    , i_ptr
+    , row_ptr
+    , m_ptr
+    , index_ptr
+    , pts_index_ptr
+    , npts_ptr
+    , ii_ptr
+    ];
+
+  PublicKeyA' <- crucible_fresh_var "PublicKeyA'" (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
+  crucible_points_to PublicKeyA_ptr (crucible_term PublicKeyA');
+
+  crucible_return (crucible_term {{ 0:[32] }});
+};
+
+let ephemeralKeyGeneration_B_spec is_unsafe_assume = do {
     (a, ap) <- ptr_to_fresh_readonly "PrivateKeyB" (llvm_array 32 char_t);
     bp <- crucible_alloc (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
     crucible_precond {{ pftwice_mod g_Montgomery_one }};
@@ -148,73 +383,735 @@ let ephemeralKeyGeneration_B_spec f1 = do {
     crucible_precond {{ fpnorm g_Montgomery_one == g_Montgomery_one }};
     crucible_precond {{ is_good_basis A_gen }};
     crucible_precond {{ is_good_basis B_gen }};
-    crucible_execute_func [ap, bp, tm {{ `f1:[32] }}]; // MAX_Bob
+    crucible_execute_func [ap, bp];
     b' <- crucible_fresh_var "b'" (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
     crucible_points_to bp (tm b');
-    crucible_postcond {{ b' == EphemeralKeyGeneration_B_short a `f1 }};
+    if is_unsafe_assume then do {
+      crucible_postcond {{ b' == EphemeralKeyGeneration_B a }};
+    } else do {
+      return ();
+    };
     crucible_return (crucible_term {{ 0:[32] }});
 };
 
-let addSelf_spec = do {
-    (b, bp) <- B_f2elm_t "C24";
-    crucible_precond {{ pf2twice_mod b }};
-    crucible_execute_func [bp];
-    b' <-crucible_fresh_var "c24_b" f2elm_t; 
-    crucible_points_to bp  (tm b');
-    crucible_postcond {{ fp2norm b' == addSelf (fp2norm b) }};
-    crucible_postcond {{ pf2twice_mod b' }};
-    crucible_return (crucible_term {{ 0:[32] }});
+let ephemeralKeyGeneration_B_main_loop_spec = do {
+  (PrivateKeyB, PrivateKeyB_ptr) <- ptr_to_fresh_readonly "PrivateKeyB" (llvm_array 32 char_t);
+  PrivateKeyB_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PrivateKeyB_ptr_ptr PrivateKeyB_ptr;
+  PublicKeyB_ptr <- crucible_alloc (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
+  PublicKeyB_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PublicKeyB_ptr_ptr PublicKeyB_ptr;
+  (R, R_ptr) <- ptr_to_fresh "R" point_proj_t;
+  (phiP, phiP_ptr) <- ptr_to_fresh "phiP" point_proj_t;
+  (phiQ, phiQ_ptr) <- ptr_to_fresh "phiQ" point_proj_t;
+  (phiR, phiR_ptr) <- ptr_to_fresh "phiR" point_proj_t;
+  // point_proj_t (*)[8]
+  (pts, pts_ptr) <- ptr_to_fresh "pts" (llvm_array 8 point_proj_t);
+  // f2elm_t (*)[2]
+  coeff_ptr <- crucible_alloc (llvm_array 2 f2elm_t);
+  (A24plus, A24plus_ptr) <- ptr_to_fresh "A24plus" f2elm_t;
+  A24plus_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to A24plus_ptr_ptr A24plus_ptr;
+  (A24minus, A24minus_ptr) <- ptr_to_fresh "A24minus" f2elm_t;
+  A24minus_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to A24minus_ptr_ptr A24minus_ptr;
+  i_ptr <- crucible_alloc i32;
+  (row, row_ptr) <- ptr_to_fresh "row" i32;
+  m_ptr <- crucible_alloc i32;
+  (index, index_ptr) <- ptr_to_fresh "index" i32;
+  // unsigned int(*)[8]
+  (pts_index, pts_index_ptr) <- ptr_to_fresh "pts_index" (llvm_array 8 i32);
+  (npts, npts_ptr) <- ptr_to_fresh "npts" i32;
+  (ii, ii_ptr) <- ptr_to_fresh "ii" i32;
+
+  crucible_precond {{ pftwice_mod g_Montgomery_one }};
+  crucible_precond {{ pftwice_mod zero }};
+  crucible_precond {{ fpnorm g_Montgomery_one == g_Montgomery_one }};
+  crucible_precond {{ fpnorm zero == zero }};
+  crucible_precond {{ is_good_basis A_gen }};
+  crucible_precond {{ is_good_basis B_gen }};
+
+  crucible_precond {{ point_mod R }};
+  crucible_precond {{ point_mod phiP }};
+  crucible_precond {{ point_mod phiQ }};
+  crucible_precond {{ point_mod phiR }};
+  crucible_precond {{ point_n8_mod pts }};
+  crucible_precond {{ pf2twice_mod A24plus }};
+  crucible_precond {{ pf2twice_mod A24minus }};
+
+  crucible_precond {{ 1 <= row /\ row <= g_MAX_Bob }};
+  crucible_precond {{ 0 <= ii /\ ii <= g_MAX_Bob }};
+  crucible_precond {{ is_valid_main_loop_control_state_B row ii index npts pts_index \/ row == g_MAX_Bob }};
+
+  crucible_execute_func
+    [ PrivateKeyB_ptr_ptr
+    , PublicKeyB_ptr_ptr
+    , R_ptr
+    , phiP_ptr
+    , phiQ_ptr
+    , phiR_ptr
+    , pts_ptr
+    , coeff_ptr
+    , A24plus_ptr_ptr
+    , A24minus_ptr_ptr
+    , i_ptr
+    , row_ptr
+    , m_ptr
+    , index_ptr
+    , pts_index_ptr
+    , npts_ptr
+    , ii_ptr
+    ];
+
+  PublicKeyB' <- crucible_fresh_var "PublicKeyB'" (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
+  crucible_points_to PublicKeyB_ptr (crucible_term PublicKeyB');
+
+  crucible_return (crucible_term {{ 0:[32] }});
 };
 
-let traverse_tree_Secret_A_spec f1 = do {
+let ephemeralKeyGeneration_B_first_loop_spec = do {
+  (PrivateKeyB, PrivateKeyB_ptr) <- ptr_to_fresh_readonly "PrivateKeyB" (llvm_array 32 char_t);
+  PrivateKeyB_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PrivateKeyB_ptr_ptr PrivateKeyB_ptr;
+  PublicKeyB_ptr <- crucible_alloc (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
+  PublicKeyB_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PublicKeyB_ptr_ptr PublicKeyB_ptr;
+  (R, R_ptr) <- ptr_to_fresh "R" point_proj_t;
+  (phiP, phiP_ptr) <- ptr_to_fresh "phiP" point_proj_t;
+  (phiQ, phiQ_ptr) <- ptr_to_fresh "phiQ" point_proj_t;
+  (phiR, phiR_ptr) <- ptr_to_fresh "phiR" point_proj_t;
+  // point_proj_t (*)[8]
+  (pts, pts_ptr) <- ptr_to_fresh "pts" (llvm_array 8 point_proj_t);
+  // f2elm_t (*)[2]
+  coeff_ptr <- crucible_alloc (llvm_array 2 f2elm_t);
+  (A24plus, A24plus_ptr) <- ptr_to_fresh "A24plus" f2elm_t;
+  A24plus_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to A24plus_ptr_ptr A24plus_ptr;
+  (A24minus, A24minus_ptr) <- ptr_to_fresh "A24minus" f2elm_t;
+  A24minus_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to A24minus_ptr_ptr A24minus_ptr;
+  i_ptr <- crucible_alloc i32;
+  (row, row_ptr) <- ptr_to_fresh "row" i32;
+  m_ptr <- crucible_alloc i32;
+  (index, index_ptr) <- ptr_to_fresh "index" i32;
+  // unsigned int(*)[8]
+  (pts_index, pts_index_ptr) <- ptr_to_fresh "pts_index" (llvm_array 8 i32);
+  (npts, npts_ptr) <- ptr_to_fresh "npts" i32;
+  (ii, ii_ptr) <- ptr_to_fresh "ii" i32;
 
-    (a, ap) <- B_f2elm_t "A24plus";
-    (b, bp) <- B_f2elm_t "C24";
-    (d, dp) <- B_point_t "R";
-    crucible_precond {{ pf2twice_mod a }};
-    crucible_precond {{ pf2twice_mod b }};
-    crucible_precond {{ point_mod d }};
-    crucible_execute_func [ap, bp, dp,  tm {{ `f1: [32] }}];
-    d' <-crucible_fresh_var "d8" point_proj_t;
-    crucible_points_to dp  (tm d');
-    crucible_postcond {{ point_norm d' ==
-        traverse_tree_Secret_A (fp2norm a) (fp2norm b) ( point_norm d) `f1 }};
-    crucible_postcond {{ point_mod d' }};
-    crucible_return (crucible_term {{ 0:[32] }});
+  crucible_precond {{ pftwice_mod g_Montgomery_one }};
+  crucible_precond {{ pftwice_mod zero }};
+  crucible_precond {{ fpnorm g_Montgomery_one == g_Montgomery_one }};
+  crucible_precond {{ fpnorm zero == zero }};
+  crucible_precond {{ is_good_basis A_gen }};
+  crucible_precond {{ is_good_basis B_gen }};
+
+  crucible_precond {{ point_mod R }};
+  crucible_precond {{ point_mod phiP }};
+  crucible_precond {{ point_mod phiQ }};
+  crucible_precond {{ point_mod phiR }};
+  crucible_precond {{ point_n8_mod pts }};
+  crucible_precond {{ pf2twice_mod A24plus }};
+  crucible_precond {{ pf2twice_mod A24minus }};
+
+  crucible_precond {{ 1 <= row /\ row < g_MAX_Bob }};
+  crucible_precond {{ 0 <= ii /\ ii <= g_MAX_Bob }};
+  crucible_precond {{ is_valid_main_loop_control_state_B row ii index npts pts_index }};
+
+  crucible_execute_func
+    [ PrivateKeyB_ptr_ptr
+    , PublicKeyB_ptr_ptr
+    , R_ptr
+    , phiP_ptr
+    , phiQ_ptr
+    , phiR_ptr
+    , pts_ptr
+    , coeff_ptr
+    , A24plus_ptr_ptr
+    , A24minus_ptr_ptr
+    , i_ptr
+    , row_ptr
+    , m_ptr
+    , index_ptr
+    , pts_index_ptr
+    , npts_ptr
+    , ii_ptr
+    ];
+
+  PublicKeyB' <- crucible_fresh_var "PublicKeyB'" (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
+  crucible_points_to PublicKeyB_ptr (crucible_term PublicKeyB');
+
+  crucible_return (crucible_term {{ 0:[32] }});
 };
 
-let ephemeralSecretAgreement_A_spec f1 = do {
+let ephemeralKeyGeneration_B_second_loop_spec = do {
+  (PrivateKeyB, PrivateKeyB_ptr) <- ptr_to_fresh_readonly "PrivateKeyB" (llvm_array 32 char_t);
+  PrivateKeyB_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PrivateKeyB_ptr_ptr PrivateKeyB_ptr;
+  PublicKeyB_ptr <- crucible_alloc (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
+  PublicKeyB_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PublicKeyB_ptr_ptr PublicKeyB_ptr;
+  (R, R_ptr) <- ptr_to_fresh "R" point_proj_t;
+  (phiP, phiP_ptr) <- ptr_to_fresh "phiP" point_proj_t;
+  (phiQ, phiQ_ptr) <- ptr_to_fresh "phiQ" point_proj_t;
+  (phiR, phiR_ptr) <- ptr_to_fresh "phiR" point_proj_t;
+  // point_proj_t (*)[8]
+  (pts, pts_ptr) <- ptr_to_fresh "pts" (llvm_array 8 point_proj_t);
+  // f2elm_t (*)[2]
+  (coeff, coeff_ptr) <- ptr_to_fresh "coeff" (llvm_array 2 f2elm_t);
+  (A24plus, A24plus_ptr) <- ptr_to_fresh "A24plus" f2elm_t;
+  A24plus_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to A24plus_ptr_ptr A24plus_ptr;
+  (A24minus, A24minus_ptr) <- ptr_to_fresh "A24minus" f2elm_t;
+  A24minus_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to A24minus_ptr_ptr A24minus_ptr;
+  (i, i_ptr) <- ptr_to_fresh "i" i32;
+  (row, row_ptr) <- ptr_to_fresh "row" i32;
+  m_ptr <- crucible_alloc i32;
+  (index, index_ptr) <- ptr_to_fresh "index" i32;
+  // unsigned int(*)[8]
+  (pts_index, pts_index_ptr) <- ptr_to_fresh "pts_index" (llvm_array 8 i32);
+  (npts, npts_ptr) <- ptr_to_fresh "npts" i32;
+  (ii, ii_ptr) <- ptr_to_fresh "ii" i32;
 
+  crucible_precond {{ pftwice_mod g_Montgomery_one }};
+  crucible_precond {{ pftwice_mod zero }};
+  crucible_precond {{ fpnorm g_Montgomery_one == g_Montgomery_one }};
+  crucible_precond {{ fpnorm zero == zero }};
+  crucible_precond {{ is_good_basis A_gen }};
+  crucible_precond {{ is_good_basis B_gen }};
+
+  crucible_precond {{ point_mod R }};
+  crucible_precond {{ point_mod phiP }};
+  crucible_precond {{ point_mod phiQ }};
+  crucible_precond {{ point_mod phiR }};
+  crucible_precond {{ point_n8_mod pts }};
+  crucible_precond {{ pf2twice_n2_mod coeff }};
+  crucible_precond {{ pf2twice_mod A24plus }};
+  crucible_precond {{ pf2twice_mod A24minus }};
+
+  crucible_precond {{ 1 <= row /\ row < g_MAX_Bob }};
+  crucible_precond {{ 0 <= ii /\ ii <= g_MAX_Bob }};
+  crucible_precond {{ index == g_MAX_Bob - row }};
+  crucible_precond {{ is_valid_second_loop_control_state_B row ii index npts pts_index }};
+  crucible_precond {{ 0 <= i /\ i <= npts }};
+
+  crucible_execute_func
+    [ PrivateKeyB_ptr_ptr
+    , PublicKeyB_ptr_ptr
+    , R_ptr
+    , phiP_ptr
+    , phiQ_ptr
+    , phiR_ptr
+    , pts_ptr
+    , coeff_ptr
+    , A24plus_ptr_ptr
+    , A24minus_ptr_ptr
+    , i_ptr
+    , row_ptr
+    , m_ptr
+    , index_ptr
+    , pts_index_ptr
+    , npts_ptr
+    , ii_ptr
+    ];
+
+  PublicKeyB' <- crucible_fresh_var "PublicKeyB'" (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
+  crucible_points_to PublicKeyB_ptr (crucible_term PublicKeyB');
+
+  crucible_return (crucible_term {{ 0:[32] }});
+};
+
+let ephemeralSecretAgreement_A_spec is_unsafe_assume = do {
     (a, ap) <- ptr_to_fresh_readonly "PrivateKeyA" (llvm_array 32 char_t);
-    (b, bp) <- ptr_to_fresh_readonly "PublicKeyB" (llvm_array 378 char_t);
-    ssbp <- crucible_alloc (llvm_array 126 i8); // "SharedSecretA"
+    (b, bp) <- ptr_to_fresh_readonly "PublicKeyB" (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
+    ssbp <- crucible_alloc (llvm_array fp2_encoded_bytes i8); // "SharedSecretA"
     crucible_precond {{ is_good_pk_encoding b }};
     crucible_precond {{ pftwice_mod g_Montgomery_one }};
     crucible_precond {{ pftwice_mod zero }};
     crucible_precond {{ fpnorm zero == zero }};
     crucible_precond {{ fpnorm g_Montgomery_one == g_Montgomery_one }};
-    crucible_execute_func [ap, bp, ssbp, tm {{`f1:[32]}}]; // MAX_Alice-125
-    crucible_points_to ssbp
-        (tm {{ EphemeralSecretAgreement_A_short  a b `f1 }});
-    crucible_return (crucible_term {{ 0:[32] }});
+    crucible_execute_func [ap, bp, ssbp];
+    ssb' <- crucible_fresh_var "b'" (llvm_array fp2_encoded_bytes char_t);
+    crucible_points_to ssbp (tm ssb');
+    if is_unsafe_assume then do {
+      crucible_postcond {{ ssb' == EphemeralSecretAgreement_A a b }};
+    } else do {
+      return ();
+    };
+    crucible_return (crucible_term {{0:[32]}});
 };
 
-let ephemeralSecretAgreement_B_spec (f1:Int) = do {
-    (a, ap) <- ptr_to_fresh_readonly
-        "PrivateKeyB" (llvm_array 32 char_t);
-    (b, bp) <- ptr_to_fresh_readonly
-        "PublicKeyA" (llvm_array CRYPTO_CIPHERTEXTBYTES char_t);
-    ssbp <- crucible_alloc (llvm_array fp2_encoded_bytes i8);
-    crucible_precond {{ is_good_pk_encoding (take b) }};
+let ephemeralSecretAgreement_A_main_loop_spec = do {
+  (PrivateKeyA, PrivateKeyA_ptr) <- ptr_to_fresh_readonly "PrivateKeyA" (llvm_array 32 char_t);
+  PrivateKeyA_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PrivateKeyA_ptr_ptr PrivateKeyA_ptr;
+  (PublicKeyB, PublicKeyB_ptr) <- ptr_to_fresh_readonly "PublicKeyB" (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
+  PublicKeyB_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PublicKeyB_ptr_ptr PublicKeyB_ptr;
+  SharedSecretA_ptr <- crucible_alloc (llvm_array 126 char_t);
+  SharedSecretA_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to SharedSecretA_ptr_ptr SharedSecretA_ptr;
+  (R, R_ptr) <- ptr_to_fresh "R" point_proj_t;
+  // point_proj_t (*)[7]
+  (pts, pts_ptr) <- ptr_to_fresh "pts" (llvm_array 7 point_proj_t);
+  // f2elm_t (*)[3]
+  coeff_ptr <- crucible_alloc (llvm_array 3 f2elm_t);
+  jinv_ptr <- crucible_alloc f2elm_t;
+  jinv_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to jinv_ptr_ptr jinv_ptr;
+  (A24plus, A24plus_ptr) <- ptr_to_fresh "A24plus" f2elm_t;
+  A24plus_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to A24plus_ptr_ptr A24plus_ptr;
+  (C24, C24_ptr) <- ptr_to_fresh "C24" f2elm_t;
+  C24_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to C24_ptr_ptr C24_ptr;
+  i_ptr <- crucible_alloc i32;
+  (row, row_ptr) <- ptr_to_fresh "row" i32;
+  m_ptr <- crucible_alloc i32;
+  (index, index_ptr) <- ptr_to_fresh "index" i32;
+  // unsigned int(*)[7]
+  (pts_index, pts_index_ptr) <- ptr_to_fresh "pts_index" (llvm_array 7 i32);
+  (npts, npts_ptr) <- ptr_to_fresh "npts" i32;
+  (ii, ii_ptr) <- ptr_to_fresh "ii" i32;
+
+  crucible_precond {{ pftwice_mod g_Montgomery_one }};
+  crucible_precond {{ pftwice_mod zero }};
+  crucible_precond {{ fpnorm g_Montgomery_one == g_Montgomery_one }};
+  crucible_precond {{ fpnorm zero == zero }};
+
+  crucible_precond {{ point_mod R }};
+  crucible_precond {{ point_n7_mod pts }};
+  crucible_precond {{ pf2twice_mod A24plus }};
+  crucible_precond {{ pf2twice_mod C24 }};
+
+  crucible_precond {{ 1 <= row /\ row <= g_MAX_Alice }};
+  crucible_precond {{ 0 <= ii /\ ii <= g_MAX_Alice }};
+  crucible_precond {{ is_valid_main_loop_control_state_A row ii index npts pts_index \/ row == g_MAX_Alice }};
+
+  crucible_execute_func
+    [ PrivateKeyA_ptr_ptr
+    , PublicKeyB_ptr_ptr
+    , SharedSecretA_ptr_ptr
+    , R_ptr
+    , pts_ptr
+    , coeff_ptr
+    , jinv_ptr_ptr
+    , A24plus_ptr_ptr
+    , C24_ptr_ptr
+    , i_ptr
+    , row_ptr
+    , m_ptr
+    , index_ptr
+    , pts_index_ptr
+    , npts_ptr
+    , ii_ptr
+    ];
+
+  SharedSecretA' <- crucible_fresh_var "SharedSecretA'" (llvm_array fp2_encoded_bytes char_t);
+  crucible_points_to SharedSecretA_ptr (crucible_term SharedSecretA');
+
+  crucible_return (crucible_term {{ 0:[32] }});
+};
+
+let ephemeralSecretAgreement_A_first_loop_spec = do {
+  (PrivateKeyA, PrivateKeyA_ptr) <- ptr_to_fresh_readonly "PrivateKeyA" (llvm_array 32 char_t);
+  PrivateKeyA_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PrivateKeyA_ptr_ptr PrivateKeyA_ptr;
+  (PublicKeyB, PublicKeyB_ptr) <- ptr_to_fresh_readonly "PublicKeyB" (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
+  PublicKeyB_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PublicKeyB_ptr_ptr PublicKeyB_ptr;
+  SharedSecretA_ptr <- crucible_alloc (llvm_array 126 char_t);
+  SharedSecretA_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to SharedSecretA_ptr_ptr SharedSecretA_ptr;
+  (R, R_ptr) <- ptr_to_fresh "R" point_proj_t;
+  // point_proj_t (*)[7]
+  (pts, pts_ptr) <- ptr_to_fresh "pts" (llvm_array 7 point_proj_t);
+  // f2elm_t (*)[3]
+  coeff_ptr <- crucible_alloc (llvm_array 3 f2elm_t);
+  jinv_ptr <- crucible_alloc f2elm_t;
+  jinv_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to jinv_ptr_ptr jinv_ptr;
+  (A24plus, A24plus_ptr) <- ptr_to_fresh "A24plus" f2elm_t;
+  A24plus_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to A24plus_ptr_ptr A24plus_ptr;
+  (C24, C24_ptr) <- ptr_to_fresh "C24" f2elm_t;
+  C24_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to C24_ptr_ptr C24_ptr;
+  i_ptr <- crucible_alloc i32;
+  (row, row_ptr) <- ptr_to_fresh "row" i32;
+  m_ptr <- crucible_alloc i32;
+  (index, index_ptr) <- ptr_to_fresh "index" i32;
+  // unsigned int(*)[7]
+  (pts_index, pts_index_ptr) <- ptr_to_fresh "pts_index" (llvm_array 7 i32);
+  (npts, npts_ptr) <- ptr_to_fresh "npts" i32;
+  (ii, ii_ptr) <- ptr_to_fresh "ii" i32;
+
+  crucible_precond {{ pftwice_mod g_Montgomery_one }};
+  crucible_precond {{ pftwice_mod zero }};
+  crucible_precond {{ fpnorm g_Montgomery_one == g_Montgomery_one }};
+  crucible_precond {{ fpnorm zero == zero }};
+
+  crucible_precond {{ point_mod R }};
+  crucible_precond {{ point_n7_mod pts }};
+  crucible_precond {{ pf2twice_mod A24plus }};
+  crucible_precond {{ pf2twice_mod C24 }};
+
+  crucible_precond {{ 1 <= row /\ row < g_MAX_Alice }};
+  crucible_precond {{ 0 <= ii /\ ii <= g_MAX_Alice }};
+  crucible_precond {{ is_valid_main_loop_control_state_A row ii index npts pts_index }};
+
+  crucible_execute_func
+    [ PrivateKeyA_ptr_ptr
+    , PublicKeyB_ptr_ptr
+    , SharedSecretA_ptr_ptr
+    , R_ptr
+    , pts_ptr
+    , coeff_ptr
+    , jinv_ptr_ptr
+    , A24plus_ptr_ptr
+    , C24_ptr_ptr
+    , i_ptr
+    , row_ptr
+    , m_ptr
+    , index_ptr
+    , pts_index_ptr
+    , npts_ptr
+    , ii_ptr
+    ];
+
+  SharedSecretA' <- crucible_fresh_var "SharedSecretA'" (llvm_array fp2_encoded_bytes char_t);
+  crucible_points_to SharedSecretA_ptr (crucible_term SharedSecretA');
+
+  crucible_return (crucible_term {{ 0:[32] }});
+};
+
+let ephemeralSecretAgreement_A_second_loop_spec = do {
+  (PrivateKeyA, PrivateKeyA_ptr) <- ptr_to_fresh_readonly "PrivateKeyA" (llvm_array 32 char_t);
+  PrivateKeyA_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PrivateKeyA_ptr_ptr PrivateKeyA_ptr;
+  (PublicKeyB, PublicKeyB_ptr) <- ptr_to_fresh_readonly "PublicKeyB" (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
+  PublicKeyB_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PublicKeyB_ptr_ptr PublicKeyB_ptr;
+  SharedSecretA_ptr <- crucible_alloc (llvm_array 126 char_t);
+  SharedSecretA_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to SharedSecretA_ptr_ptr SharedSecretA_ptr;
+  (R, R_ptr) <- ptr_to_fresh "R" point_proj_t;
+  // point_proj_t (*)[7]
+  (pts, pts_ptr) <- ptr_to_fresh "pts" (llvm_array 7 point_proj_t);
+  // f2elm_t (*)[3]
+  (coeff, coeff_ptr) <- ptr_to_fresh "coeff" (llvm_array 3 f2elm_t);
+  jinv_ptr <- crucible_alloc f2elm_t;
+  jinv_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to jinv_ptr_ptr jinv_ptr;
+  (A24plus, A24plus_ptr) <- ptr_to_fresh "A24plus" f2elm_t;
+  A24plus_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to A24plus_ptr_ptr A24plus_ptr;
+  (C24, C24_ptr) <- ptr_to_fresh "C24" f2elm_t;
+  C24_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to C24_ptr_ptr C24_ptr;
+  (i, i_ptr) <- ptr_to_fresh "i" i32;
+  (row, row_ptr) <- ptr_to_fresh "row" i32;
+  m_ptr <- crucible_alloc i32;
+  (index, index_ptr) <- ptr_to_fresh "index" i32;
+  // unsigned int(*)[7]
+  (pts_index, pts_index_ptr) <- ptr_to_fresh "pts_index" (llvm_array 7 i32);
+  (npts, npts_ptr) <- ptr_to_fresh "npts" i32;
+  (ii, ii_ptr) <- ptr_to_fresh "ii" i32;
+
+  crucible_precond {{ pftwice_mod g_Montgomery_one }};
+  crucible_precond {{ pftwice_mod zero }};
+  crucible_precond {{ fpnorm g_Montgomery_one == g_Montgomery_one }};
+  crucible_precond {{ fpnorm zero == zero }};
+
+  crucible_precond {{ point_mod R }};
+  crucible_precond {{ point_n7_mod pts }};
+  crucible_precond {{ pf2twice_n3_mod coeff }};
+  crucible_precond {{ pf2twice_mod A24plus }};
+  crucible_precond {{ pf2twice_mod C24 }};
+
+  crucible_precond {{ 1 <= row /\ row < g_MAX_Alice }};
+  crucible_precond {{ 0 <= ii /\ ii <= g_MAX_Alice }};
+  crucible_precond {{ index == g_MAX_Alice - row }};
+  crucible_precond {{ is_valid_second_loop_control_state_A row ii index npts pts_index }};
+  crucible_precond {{ 0 <= i /\ i <= npts }};
+
+  crucible_execute_func
+    [ PrivateKeyA_ptr_ptr
+    , PublicKeyB_ptr_ptr
+    , SharedSecretA_ptr_ptr
+    , R_ptr
+    , pts_ptr
+    , coeff_ptr
+    , jinv_ptr_ptr
+    , A24plus_ptr_ptr
+    , C24_ptr_ptr
+    , i_ptr
+    , row_ptr
+    , m_ptr
+    , index_ptr
+    , pts_index_ptr
+    , npts_ptr
+    , ii_ptr
+    ];
+
+  SharedSecretA' <- crucible_fresh_var "SharedSecretA'" (llvm_array fp2_encoded_bytes char_t);
+  crucible_points_to SharedSecretA_ptr (crucible_term SharedSecretA');
+
+  crucible_return (crucible_term {{ 0:[32] }});
+};
+
+let ephemeralSecretAgreement_B_spec is_unsafe_assume = do {
+    (a, ap) <- ptr_to_fresh_readonly "PrivateKeyB" (llvm_array 32 char_t);
+    (b, bp) <- ptr_to_fresh_readonly "PublicKeyA" (llvm_array CRYPTO_CIPHERTEXTBYTES char_t);
+    ssbp <- crucible_alloc (llvm_array fp2_encoded_bytes i8); // "SharedSecretB"
+    crucible_precond {{ is_good_pk_encoding (take b) }} ;
     crucible_precond {{ pftwice_mod g_Montgomery_one }};
     crucible_precond {{ pftwice_mod zero }};
     crucible_precond {{ fpnorm zero == zero }};
     crucible_precond {{ fpnorm g_Montgomery_one == g_Montgomery_one }};
-    crucible_execute_func [ap, bp, ssbp, tm {{ `f1:[32] }}]; // MAX_Bob
-    crucible_points_to ssbp
-        (tm {{ EphemeralSecretAgreement_B_short a b `f1 }});
+    crucible_execute_func [ap, bp, ssbp];
+    ssb' <- crucible_fresh_var "b'" (llvm_array fp2_encoded_bytes char_t);
+    crucible_points_to ssbp (tm ssb');
+    if is_unsafe_assume then do {
+      crucible_postcond {{ ssb' == EphemeralSecretAgreement_B a b }};
+    } else do {
+      return ();
+    };
     crucible_return (crucible_term {{ 0:[32] }});
 };
+
+let ephemeralSecretAgreement_B_main_loop_spec = do {
+  (PrivateKeyB, PrivateKeyB_ptr) <- ptr_to_fresh_readonly "PrivateKeyB" (llvm_array 32 char_t);
+  PrivateKeyB_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PrivateKeyB_ptr_ptr PrivateKeyB_ptr;
+  (PublicKeyA, PublicKeyA_ptr) <- ptr_to_fresh_readonly "PublicKeyA" (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
+  PublicKeyA_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PublicKeyA_ptr_ptr PublicKeyA_ptr;
+  SharedSecretB_ptr <- crucible_alloc (llvm_array 126 char_t);
+  SharedSecretB_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to SharedSecretB_ptr_ptr SharedSecretB_ptr;
+  (R, R_ptr) <- ptr_to_fresh "R" point_proj_t;
+  // point_proj_t (*)[8]
+  (pts, pts_ptr) <- ptr_to_fresh "pts" (llvm_array 8 point_proj_t);
+  // f2elm_t (*)[2]
+  coeff_ptr <- crucible_alloc (llvm_array 2 f2elm_t);
+  jinv_ptr <- crucible_alloc f2elm_t;
+  jinv_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to jinv_ptr_ptr jinv_ptr;
+  (A24plus, A24plus_ptr) <- ptr_to_fresh "A24plus" f2elm_t;
+  A24plus_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to A24plus_ptr_ptr A24plus_ptr;
+  (A24minus, A24minus_ptr) <- ptr_to_fresh "A24minus" f2elm_t;
+  A24minus_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to A24minus_ptr_ptr A24minus_ptr;
+  A_ptr <- crucible_alloc f2elm_t;
+  A_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to A_ptr_ptr A_ptr;
+  i_ptr <- crucible_alloc i32;
+  (row, row_ptr) <- ptr_to_fresh "row" i32;
+  m_ptr <- crucible_alloc i32;
+  (index, index_ptr) <- ptr_to_fresh "index" i32;
+  // unsigned int(*)[8]
+  (pts_index, pts_index_ptr) <- ptr_to_fresh "pts_index" (llvm_array 8 i32);
+  (npts, npts_ptr) <- ptr_to_fresh "npts" i32;
+  (ii, ii_ptr) <- ptr_to_fresh "ii" i32;
+
+  crucible_precond {{ pftwice_mod g_Montgomery_one }};
+  crucible_precond {{ pftwice_mod zero }};
+  crucible_precond {{ fpnorm g_Montgomery_one == g_Montgomery_one }};
+  crucible_precond {{ fpnorm zero == zero }};
+
+  crucible_precond {{ point_mod R }};
+  crucible_precond {{ point_n8_mod pts }};
+  crucible_precond {{ pf2twice_mod A24plus }};
+  crucible_precond {{ pf2twice_mod A24minus }};
+
+  crucible_precond {{ 1 <= row /\ row <= g_MAX_Bob }};
+  crucible_precond {{ 0 <= ii /\ ii <= g_MAX_Bob }};
+  crucible_precond {{ is_valid_main_loop_control_state_B row ii index npts pts_index \/ row == g_MAX_Bob }};
+
+  crucible_execute_func
+    [ PrivateKeyB_ptr_ptr
+    , PublicKeyA_ptr_ptr
+    , SharedSecretB_ptr_ptr
+    , R_ptr
+    , pts_ptr
+    , coeff_ptr
+    , jinv_ptr_ptr
+    , A24plus_ptr_ptr
+    , A24minus_ptr_ptr
+    , A_ptr_ptr
+    , i_ptr
+    , row_ptr
+    , m_ptr
+    , index_ptr
+    , pts_index_ptr
+    , npts_ptr
+    , ii_ptr
+    ];
+
+  SharedSecretB' <- crucible_fresh_var "SharedSecretB'" (llvm_array fp2_encoded_bytes char_t);
+  crucible_points_to SharedSecretB_ptr (crucible_term SharedSecretB');
+
+  crucible_return (crucible_term {{ 0:[32] }});
+};
+
+let ephemeralSecretAgreement_B_first_loop_spec = do {
+  (PrivateKeyB, PrivateKeyB_ptr) <- ptr_to_fresh_readonly "PrivateKeyB" (llvm_array 32 char_t);
+  PrivateKeyB_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PrivateKeyB_ptr_ptr PrivateKeyB_ptr;
+  (PublicKeyA, PublicKeyA_ptr) <- ptr_to_fresh_readonly "PublicKeyA" (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
+  PublicKeyA_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PublicKeyA_ptr_ptr PublicKeyA_ptr;
+  SharedSecretB_ptr <- crucible_alloc (llvm_array 126 char_t);
+  SharedSecretB_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to SharedSecretB_ptr_ptr SharedSecretB_ptr;
+  (R, R_ptr) <- ptr_to_fresh "R" point_proj_t;
+  // point_proj_t (*)[8]
+  (pts, pts_ptr) <- ptr_to_fresh "pts" (llvm_array 8 point_proj_t);
+  // f2elm_t (*)[2]
+  coeff_ptr <- crucible_alloc (llvm_array 2 f2elm_t);
+  jinv_ptr <- crucible_alloc f2elm_t;
+  jinv_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to jinv_ptr_ptr jinv_ptr;
+  (A24plus, A24plus_ptr) <- ptr_to_fresh "A24plus" f2elm_t;
+  A24plus_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to A24plus_ptr_ptr A24plus_ptr;
+  (A24minus, A24minus_ptr) <- ptr_to_fresh "A24minus" f2elm_t;
+  A24minus_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to A24minus_ptr_ptr A24minus_ptr;
+  A_ptr <- crucible_alloc f2elm_t;
+  A_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to A_ptr_ptr A_ptr;
+  i_ptr <- crucible_alloc i32;
+  (row, row_ptr) <- ptr_to_fresh "row" i32;
+  m_ptr <- crucible_alloc i32;
+  (index, index_ptr) <- ptr_to_fresh "index" i32;
+  // unsigned int(*)[8]
+  (pts_index, pts_index_ptr) <- ptr_to_fresh "pts_index" (llvm_array 8 i32);
+  (npts, npts_ptr) <- ptr_to_fresh "npts" i32;
+  (ii, ii_ptr) <- ptr_to_fresh "ii" i32;
+
+  crucible_precond {{ pftwice_mod g_Montgomery_one }};
+  crucible_precond {{ pftwice_mod zero }};
+  crucible_precond {{ fpnorm g_Montgomery_one == g_Montgomery_one }};
+  crucible_precond {{ fpnorm zero == zero }};
+
+  crucible_precond {{ point_mod R }};
+  crucible_precond {{ point_n8_mod pts }};
+  crucible_precond {{ pf2twice_mod A24plus }};
+  crucible_precond {{ pf2twice_mod A24minus }};
+
+  crucible_precond {{ 1 <= row /\ row < g_MAX_Bob }};
+  crucible_precond {{ 0 <= ii /\ ii <= g_MAX_Bob }};
+  crucible_precond {{ is_valid_main_loop_control_state_B row ii index npts pts_index }};
+
+  crucible_execute_func
+    [ PrivateKeyB_ptr_ptr
+    , PublicKeyA_ptr_ptr
+    , SharedSecretB_ptr_ptr
+    , R_ptr
+    , pts_ptr
+    , coeff_ptr
+    , jinv_ptr_ptr
+    , A24plus_ptr_ptr
+    , A24minus_ptr_ptr
+    , A_ptr_ptr
+    , i_ptr
+    , row_ptr
+    , m_ptr
+    , index_ptr
+    , pts_index_ptr
+    , npts_ptr
+    , ii_ptr
+    ];
+
+  SharedSecretB' <- crucible_fresh_var "SharedSecretB'" (llvm_array fp2_encoded_bytes char_t);
+  crucible_points_to SharedSecretB_ptr (crucible_term SharedSecretB');
+
+  crucible_return (crucible_term {{ 0:[32] }});
+};
+
+let ephemeralSecretAgreement_B_second_loop_spec = do {
+  (PrivateKeyB, PrivateKeyB_ptr) <- ptr_to_fresh_readonly "PrivateKeyB" (llvm_array 32 char_t);
+  PrivateKeyB_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PrivateKeyB_ptr_ptr PrivateKeyB_ptr;
+  (PublicKeyA, PublicKeyA_ptr) <- ptr_to_fresh_readonly "PublicKeyA" (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
+  PublicKeyA_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to PublicKeyA_ptr_ptr PublicKeyA_ptr;
+  SharedSecretB_ptr <- crucible_alloc (llvm_array 126 char_t);
+  SharedSecretB_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to SharedSecretB_ptr_ptr SharedSecretB_ptr;
+  (R, R_ptr) <- ptr_to_fresh "R" point_proj_t;
+  // point_proj_t (*)[8]
+  (pts, pts_ptr) <- ptr_to_fresh "pts" (llvm_array 8 point_proj_t);
+  // f2elm_t (*)[2]
+  (coeff, coeff_ptr) <- ptr_to_fresh "coeff" (llvm_array 2 f2elm_t);
+  jinv_ptr <- crucible_alloc f2elm_t;
+  jinv_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to jinv_ptr_ptr jinv_ptr;
+  (A24plus, A24plus_ptr) <- ptr_to_fresh "A24plus" f2elm_t;
+  A24plus_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to A24plus_ptr_ptr A24plus_ptr;
+  (A24minus, A24minus_ptr) <- ptr_to_fresh "A24minus" f2elm_t;
+  A24minus_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to A24minus_ptr_ptr A24minus_ptr;
+  A_ptr <- crucible_alloc f2elm_t;
+  A_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to A_ptr_ptr A_ptr;
+  (i, i_ptr) <- ptr_to_fresh "i" i32;
+  (row, row_ptr) <- ptr_to_fresh "row" i32;
+  m_ptr <- crucible_alloc i32;
+  (index, index_ptr) <- ptr_to_fresh "index" i32;
+  // unsigned int(*)[8]
+  (pts_index, pts_index_ptr) <- ptr_to_fresh "pts_index" (llvm_array 8 i32);
+  (npts, npts_ptr) <- ptr_to_fresh "npts" i32;
+  (ii, ii_ptr) <- ptr_to_fresh "ii" i32;
+
+  crucible_precond {{ pftwice_mod g_Montgomery_one }};
+  crucible_precond {{ pftwice_mod zero }};
+  crucible_precond {{ fpnorm g_Montgomery_one == g_Montgomery_one }};
+  crucible_precond {{ fpnorm zero == zero }};
+
+  crucible_precond {{ point_mod R }};
+  crucible_precond {{ point_n8_mod pts }};
+  crucible_precond {{ pf2twice_n2_mod coeff }};
+  crucible_precond {{ pf2twice_mod A24plus }};
+  crucible_precond {{ pf2twice_mod A24minus }};
+
+  crucible_precond {{ 1 <= row /\ row < g_MAX_Bob }};
+  crucible_precond {{ 0 <= ii /\ ii <= g_MAX_Bob }};
+  crucible_precond {{ index == g_MAX_Bob - row }};
+  crucible_precond {{ is_valid_second_loop_control_state_B row ii index npts pts_index }};
+  crucible_precond {{ 0 <= i /\ i <= npts }};
+
+  crucible_execute_func
+    [ PrivateKeyB_ptr_ptr
+    , PublicKeyA_ptr_ptr
+    , SharedSecretB_ptr_ptr
+    , R_ptr
+    , pts_ptr
+    , coeff_ptr
+    , jinv_ptr_ptr
+    , A24plus_ptr_ptr
+    , A24minus_ptr_ptr
+    , A_ptr_ptr
+    , i_ptr
+    , row_ptr
+    , m_ptr
+    , index_ptr
+    , pts_index_ptr
+    , npts_ptr
+    , ii_ptr
+    ];
+
+  SharedSecretB' <- crucible_fresh_var "SharedSecretB'" (llvm_array fp2_encoded_bytes char_t);
+  crucible_points_to SharedSecretB_ptr (crucible_term SharedSecretB');
+
+  crucible_return (crucible_term {{ 0:[32] }});
+};
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
@@ -271,10 +1168,41 @@ let O_base_Isog3 =
     [ xTPLe_same32_ov, get_3_isog_ov
     , eval_3_isog_ov, fp2_decode_ov_126 ];
 
-let O_KeyGeneration_A = concat O_base_Key O_base_Isog4;
-let O_KeyGeneration_B = concat O_base_Key O_base_Isog3;
-let O_SecretAgreement_A = concat O_base_SecretA O_base_Isog4;
-let O_SecretAgreement_B = concat O_base_SecretB O_base_Isog3;
+keyGeneration_A_main_loop_ov <- admit "__breakpoint__EphemeralKeyGeneration_A_main_loop#EphemeralKeyGeneration_A_r1" []
+    ephemeralKeyGeneration_A_main_loop_spec;
+keyGeneration_A_first_loop_ov <- admit "__breakpoint__EphemeralKeyGeneration_A_first_loop#EphemeralKeyGeneration_A_r1" []
+    ephemeralKeyGeneration_A_first_loop_spec;
+keyGeneration_A_second_loop_ov <- admit "__breakpoint__EphemeralKeyGeneration_A_second_loop#EphemeralKeyGeneration_A_r1" []
+    ephemeralKeyGeneration_A_second_loop_spec;
+let O_KeyGeneration_A = concat (concat O_base_Key O_base_Isog4)
+  [keyGeneration_A_main_loop_ov, keyGeneration_A_first_loop_ov, keyGeneration_A_second_loop_ov];
+
+keyGeneration_B_main_loop_ov <- admit "__breakpoint__EphemeralKeyGeneration_B_main_loop#EphemeralKeyGeneration_B_r1" []
+    ephemeralKeyGeneration_B_main_loop_spec;
+keyGeneration_B_first_loop_ov <- admit "__breakpoint__EphemeralKeyGeneration_B_first_loop#EphemeralKeyGeneration_B_r1" []
+    ephemeralKeyGeneration_B_first_loop_spec;
+keyGeneration_B_second_loop_ov <- admit "__breakpoint__EphemeralKeyGeneration_B_second_loop#EphemeralKeyGeneration_B_r1" []
+    ephemeralKeyGeneration_B_second_loop_spec;
+let O_KeyGeneration_B = concat (concat O_base_Key O_base_Isog3)
+  [keyGeneration_B_main_loop_ov, keyGeneration_B_first_loop_ov, keyGeneration_B_second_loop_ov];
+
+secretAgreement_A_main_loop_ov <- admit "__breakpoint__EphemeralSecretAgreement_A_main_loop#EphemeralSecretAgreement_A_r1" []
+    ephemeralSecretAgreement_A_main_loop_spec;
+secretAgreement_A_first_loop_ov <- admit "__breakpoint__EphemeralSecretAgreement_A_first_loop#EphemeralSecretAgreement_A_r1" []
+    ephemeralSecretAgreement_A_first_loop_spec;
+secretAgreement_A_second_loop_ov <- admit "__breakpoint__EphemeralSecretAgreement_A_second_loop#EphemeralSecretAgreement_A_r1" []
+    ephemeralSecretAgreement_A_second_loop_spec;
+let O_SecretAgreement_A = concat (concat O_base_SecretA O_base_Isog4)
+  [secretAgreement_A_main_loop_ov, secretAgreement_A_first_loop_ov, secretAgreement_A_second_loop_ov];
+
+secretAgreement_B_main_loop_ov <- admit "__breakpoint__EphemeralSecretAgreement_B_main_loop#EphemeralSecretAgreement_B_r1" []
+    ephemeralSecretAgreement_B_main_loop_spec;
+secretAgreement_B_first_loop_ov <- admit "__breakpoint__EphemeralSecretAgreement_B_first_loop#EphemeralSecretAgreement_B_r1" []
+    ephemeralSecretAgreement_B_first_loop_spec;
+secretAgreement_B_second_loop_ov <- admit "__breakpoint__EphemeralSecretAgreement_B_second_loop#EphemeralSecretAgreement_B_r1" []
+    ephemeralSecretAgreement_B_second_loop_spec;
+let O_SecretAgreement_B = concat (concat O_base_SecretB O_base_Isog3)
+  [secretAgreement_B_main_loop_ov, secretAgreement_B_first_loop_ov, secretAgreement_B_second_loop_ov];
 
 let U_base_Key =
     ["fpadd503" , "fp2add503", "fpsub503", "fp2sub503","fp2sub503"
@@ -298,55 +1226,51 @@ let U_KeyGeneration_B = concat U_base_Key U_base_Isog3;
 let U_SecretAgreement_A = concat U_base_SecretA  U_base_Isog4;
 let U_SecretAgreement_B = concat U_base_Secret U_base_Isog3;
 
-// NOTE: low-iteration cases for EphemeralKeyGeneration _A and _B
+verify_unint "__breakpoint__EphemeralKeyGeneration_A_main_loop#EphemeralKeyGeneration_A_r1"
+  O_KeyGeneration_A U_KeyGeneration_A ephemeralKeyGeneration_A_main_loop_spec;
+verify_unint "__breakpoint__EphemeralKeyGeneration_A_first_loop#EphemeralKeyGeneration_A_r1"
+  O_KeyGeneration_A U_KeyGeneration_A ephemeralKeyGeneration_A_first_loop_spec;
+verify_unint "__breakpoint__EphemeralKeyGeneration_A_second_loop#EphemeralKeyGeneration_A_r1"
+  O_KeyGeneration_A U_KeyGeneration_A ephemeralKeyGeneration_A_second_loop_spec;
+verify_unint "EphemeralKeyGeneration_A_r1"
+  O_KeyGeneration_A U_KeyGeneration_A
+  (ephemeralKeyGeneration_A_spec false);
+ephemeralKeyGeneration_A_ov <- admit "EphemeralKeyGeneration_A_r1" []
+  (ephemeralKeyGeneration_A_spec true);
 
-let kG_A e =
-    verify_unint "EphemeralKeyGeneration_A_r1"
-        O_KeyGeneration_A
-        U_KeyGeneration_A
-        (ephemeralKeyGeneration_A_spec 378 e);
+verify_unint "__breakpoint__EphemeralKeyGeneration_B_main_loop#EphemeralKeyGeneration_B_r1"
+  O_KeyGeneration_B U_KeyGeneration_B ephemeralKeyGeneration_B_main_loop_spec;
+verify_unint "__breakpoint__EphemeralKeyGeneration_B_first_loop#EphemeralKeyGeneration_B_r1"
+  O_KeyGeneration_B U_KeyGeneration_B ephemeralKeyGeneration_B_first_loop_spec;
+verify_unint "__breakpoint__EphemeralKeyGeneration_B_second_loop#EphemeralKeyGeneration_B_r1"
+  O_KeyGeneration_B U_KeyGeneration_B ephemeralKeyGeneration_B_second_loop_spec;
+verify_unint "EphemeralKeyGeneration_B_r1"
+  O_KeyGeneration_B U_KeyGeneration_B
+  (ephemeralKeyGeneration_B_spec false);
+ephemeralKeyGeneration_B_ov <- admit "EphemeralKeyGeneration_B_r1" []
+  (ephemeralKeyGeneration_B_spec true);
 
-let kG_B e =
-    verify_unint "EphemeralKeyGeneration_B_r1"
-        O_KeyGeneration_B
-        U_KeyGeneration_B
-        (ephemeralKeyGeneration_B_spec e);
+verify_unint "__breakpoint__EphemeralSecretAgreement_A_main_loop#EphemeralSecretAgreement_A_r1"
+  O_SecretAgreement_A U_SecretAgreement_A ephemeralSecretAgreement_A_main_loop_spec;
+verify_unint "__breakpoint__EphemeralSecretAgreement_A_first_loop#EphemeralSecretAgreement_A_r1"
+  O_SecretAgreement_A U_SecretAgreement_A ephemeralSecretAgreement_A_first_loop_spec;
+verify_unint "__breakpoint__EphemeralSecretAgreement_A_second_loop#EphemeralSecretAgreement_A_r1"
+  O_SecretAgreement_A U_SecretAgreement_A ephemeralSecretAgreement_A_second_loop_spec;
+verify_unint "EphemeralSecretAgreement_A_r1"
+  O_SecretAgreement_A U_SecretAgreement_A
+  (ephemeralSecretAgreement_A_spec false);
+ephemeralSecretAgreement_A_ov <- admit "EphemeralSecretAgreement_A_r1" []
+  (ephemeralSecretAgreement_A_spec true);
 
-kG_A 1;
-kG_A 3;
-kG_B 1;
-kG_B 3;
+verify_unint "__breakpoint__EphemeralSecretAgreement_B_main_loop#EphemeralSecretAgreement_B_r1"
+  O_SecretAgreement_B U_SecretAgreement_B ephemeralSecretAgreement_B_main_loop_spec;
+verify_unint "__breakpoint__EphemeralSecretAgreement_B_first_loop#EphemeralSecretAgreement_B_r1"
+  O_SecretAgreement_B U_SecretAgreement_B ephemeralSecretAgreement_B_first_loop_spec;
+verify_unint "__breakpoint__EphemeralSecretAgreement_B_second_loop#EphemeralSecretAgreement_B_r1"
+  O_SecretAgreement_B U_SecretAgreement_B ephemeralSecretAgreement_B_second_loop_spec;
+verify_unint "EphemeralSecretAgreement_B_r1"
+  O_SecretAgreement_B U_SecretAgreement_B
+  (ephemeralSecretAgreement_B_spec false);
+ephemeralSecretAgreement_B_ov <- admit "EphemeralSecretAgreement_B_r1" []
+  (ephemeralSecretAgreement_B_spec true);
 
-// NOTE: low-iteration cases for EphemeralSecretAgreement _A and _B
-
-let sA_A e =  do {
-    verify_unint  "EphemeralSecretAgreement_A_r1"
-        O_SecretAgreement_A
-        U_SecretAgreement_A
-       	(ephemeralSecretAgreement_A_spec e);
-};
-
-let sA_B e =  do {
-    verify_unint  "EphemeralSecretAgreement_B_r1"
-        O_SecretAgreement_B
-        U_SecretAgreement_B
-        (ephemeralSecretAgreement_B_spec e);};
-
-sA_A 1;
-sA_A 3;
-sA_B 1;
-sA_B 3;
-
-// NOTE: Full iteration cases are not proven
-
-let g_MAX_Alice = eval_int {{ (fromInteger g_MAX_Alice):[64] }};
-ephemeralKeyGeneration_A_378_ov <- admit "EphemeralKeyGeneration_A_r1"
-     O_KeyGeneration_A (ephemeralKeyGeneration_A_spec 378 g_MAX_Alice);
-
-let g_MAX_Bob = eval_int {{( fromInteger g_MAX_Bob):[64] }};
-ephemeralKeyGeneration_B_ov <- admit "EphemeralKeyGeneration_B_r1"
-    O_KeyGeneration_B  (ephemeralKeyGeneration_B_spec g_MAX_Bob);
-ephemeralSecretAgreement_A_ov <- admit "EphemeralSecretAgreement_A_r1"
-    O_SecretAgreement_A (ephemeralSecretAgreement_A_spec g_MAX_Alice);
-ephemeralSecretAgreement_B_ov <- admit "EphemeralSecretAgreement_B_r1"
-    O_SecretAgreement_B (ephemeralSecretAgreement_B_spec g_MAX_Bob);

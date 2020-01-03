@@ -162,17 +162,20 @@ failure-tests : bitcode
 failure_tests/sha_%.log : bitcode/sha_%.bc
         #this might not be necessary
 	cp $< bitcode/all_llvm.bc 
-	! saw verify_s2n_hmac_sha256.saw &> $@
+	@set -o pipefail; \
+	! (saw verify_s2n_hmac_sha256.saw 2>&1 | tee $@)
 
 failure_tests/tls_%.log : bitcode/tls_%.bc
         #this might not be necessary
 	cp $< bitcode/all_llvm.bc 
-	! saw verify_state_machine.saw &> $@
+	@set -o pipefail; \
+	! (saw verify_state_machine.saw 2>&1 | tee $@)
 
 failure_tests/cork_%.log : bitcode/cork_%.bc
         #this might not be necessary
 	cp $< bitcode/all_llvm.bc 
-	! saw verify_cork_uncork.saw &> $@
+	@set -o pipefail; \
+	! (saw verify_cork_uncork.saw 2>&1 | tee $@)
 
 
 # we patch the s2n dir, build it with the top level s2n makefile, and
@@ -274,17 +277,14 @@ bitcode/all_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/utils s
 
 .PHONY : bitcode/sike_llvm.bc
 bitcode/sike_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_R1_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
-	patch s2n/pq-crypto/sike_r1/api_r1.h sike/patch/api_r1.h.patch
+	patch s2n/pq-crypto/sike_r1/fpx_r1.c sike/patch/fpx_r1.c.patch
 	patch s2n/pq-crypto/sike_r1/ec_isogeny_r1.c sike/patch/ec_isogeny_r1.c.patch
 	patch s2n/pq-crypto/sike_r1/sidh_r1.c sike/patch/sidh_r1.c.patch
-	patch s2n/pq-crypto/sike_r1/sike_p503_r1_kem.c sike/patch/sike_p503_kem.c.patch
 	${MAKE} -C s2n sike_bc
 	${MAKE} -C bitcode all_llvm.bc
 
 .PHONY : bitcode/bike_llvm.bc
 bitcode/bike_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(BIKE_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
-	tr -d '\r' <../../pq-crypto/bike/bike_defs.h >s2n/pq-crypto/bike/bike_defs.h
-	patch s2n/pq-crypto/bike/bike_defs.h bike/patch/bike_defs.h.patch
 	tr -d '\r' <../../pq-crypto/bike/bike1_l1_kem.c >s2n/pq-crypto/bike/bike1_l1_kem.c
 	patch s2n/pq-crypto/bike/bike1_l1_kem.c bike/patch/bike1_l1_kem.c.patch
 	tr -d '\r' <../../pq-crypto/bike/cleanup.h >s2n/pq-crypto/bike/cleanup.h

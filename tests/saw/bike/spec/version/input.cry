@@ -9,7 +9,7 @@ module version::input where
 
 // NOTE: 0 uses reduced-size paramters
 //       1 uses full-size parameters
-type BITCODE = 0
+type BITCODE = 1
 
 type BIKE_VER = 1
 

@@ -13,7 +13,7 @@ let aes256_key_expansion_spec = do {
     // NOTE: ap gets an initialized value
     v <- point_to aes256_ks_T ap "ks";
 
-    return ();
+    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
 };
 
 let aes256_enc_spec len = do {

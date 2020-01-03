@@ -32,9 +32,21 @@ let alloc_init ty v = do {
     return p;
 };
 
+let alloc_init_readonly ty v = do {
+    p <- crucible_alloc_readonly ty;
+    crucible_points_to p (crucible_term v);
+    return p;
+};
+
 let ptr_to_fresh n ty = do {
     x <- crucible_fresh_var n ty;
     p <- alloc_init ty (crucible_term x);
+    return (x, p);
+};
+
+let ptr_to_fresh_readonly n ty = do {
+    x <- crucible_fresh_var n ty;
+    p <- alloc_init_readonly ty x;
     return (x, p);
 };
 
@@ -47,9 +59,6 @@ let yices_hash_unint =
 ////////////////////////////////////////////////////////////////
 // Hash.
 //
-
-let hash_state_inner pstate =
-    crucible_elem (crucible_elem (crucible_elem pstate 4) 0) 0;
 
 let setup_hash_state pstate = do {
     alg0 <- crucible_fresh_var "alg" (llvm_int 32);
@@ -94,12 +103,30 @@ let setup_hash_state pstate = do {
 };
 
 let update_hash_state pstate st = do {
-    crucible_points_to (crucible_elem (hash_state_inner pstate) 0) (crucible_term {{ st.h }});
-    crucible_points_to (crucible_elem (hash_state_inner pstate) 1) (crucible_term {{ st.Nl }});
-    crucible_points_to (crucible_elem (hash_state_inner pstate) 2) (crucible_term {{ st.Nh }});
-    crucible_points_to (crucible_elem (crucible_elem (hash_state_inner pstate) 3) 0) (crucible_term {{ st.u }});
-    crucible_points_to (crucible_elem (hash_state_inner pstate) 4) (crucible_term {{ st.num }});
-    crucible_points_to (crucible_elem (hash_state_inner pstate) 5) (crucible_term {{ st.md_len }});
+    alg <- crucible_fresh_var "alg" (llvm_int 32);
+    is_ready_for_input <- crucible_fresh_var "is_ready_for_input" (llvm_int 8);
+    currently_in_hash <- crucible_fresh_var "currently_in_hash" (llvm_int 64);
+    (_, pimpl) <- ptr_to_fresh "impl" (llvm_struct "struct.s2n_hash");
+
+    crucible_points_to pstate
+      (crucible_struct
+        [ pimpl
+        , crucible_term alg
+        , crucible_term is_ready_for_input
+        , crucible_term currently_in_hash
+        , crucible_struct
+          [ crucible_struct
+            [ crucible_struct
+              [ crucible_term {{ st.h }}
+              , crucible_term {{ st.Nl }}
+              , crucible_term {{ st.Nh }}
+              , crucible_struct [ crucible_term {{ st.u }} ]
+              , crucible_term {{ st.num }}
+              , crucible_term {{ st.md_len }}
+              ]
+            ]
+          ]
+        ]);
 };
 
 let hash_init_spec = do {
@@ -130,12 +157,13 @@ let hash_copy_spec = do {
     (st2, _) <- setup_hash_state pstate2;
     crucible_execute_func [pstate1, pstate2];
     update_hash_state pstate1 st2;
+    update_hash_state pstate2 st2;
     crucible_return (crucible_term {{ 0 : [32] }});
 };
 
 let hash_update_spec msg_size = do {
     pstate <- crucible_alloc (llvm_struct "struct.s2n_hash_state");
-    (msg, pmsg) <- ptr_to_fresh "msg" (llvm_array msg_size (llvm_int 8));
+    (msg, pmsg) <- ptr_to_fresh_readonly "msg" (llvm_array msg_size (llvm_int 8));
     (st0, _) <- setup_hash_state pstate;
     let size = crucible_term {{ `msg_size : [32] }};
     crucible_execute_func [pstate, pmsg, size];
@@ -150,6 +178,7 @@ let hash_digest_spec digest_size = do {
     (st0, _) <- setup_hash_state pstate;
     size <- crucible_fresh_var "size" (llvm_int 32);
     crucible_execute_func [pstate, pdgst, crucible_term size];
+    update_hash_state pstate st0;
     let out1 = {{ hash_digest_c_state`{digest_size=digest_size} st0 }};
     crucible_points_to pdgst (crucible_term out1);
     crucible_return (crucible_term {{ 0 : [32] }});
@@ -160,6 +189,7 @@ let hash_get_currently_in_hash_total_spec = do {
     pout <- crucible_alloc (llvm_int 64);
     (st0, currently_in_hash) <- setup_hash_state pstate;
     crucible_execute_func [pstate, pout];
+    update_hash_state pstate st0;
     crucible_points_to pout (crucible_term {{zero: [64]}} );
     crucible_return (crucible_term {{ 0 : [32] }});
 };
@@ -258,7 +288,7 @@ let hmac_init_spec
              , block_size      : Int
              , hash_block_size : Int
              }) = do {
-    (key0, pkey) <- ptr_to_fresh "key" (llvm_array key_size (llvm_int 8));
+    (key0, pkey) <- ptr_to_fresh_readonly "key" (llvm_array key_size (llvm_int 8));
 
     alg0 <- crucible_fresh_var "alg" (llvm_int 32);
     hash_block_size0 <- crucible_fresh_var "hash_block_size" (llvm_int 16);
@@ -294,7 +324,7 @@ let hmac_update_spec
              , block_size      : Int
              , hash_block_size : Int
              }) = do {
-    (msg, pmsg) <- ptr_to_fresh "msg" (llvm_array msg_size (llvm_int 8));
+    (msg, pmsg) <- ptr_to_fresh_readonly "msg" (llvm_array msg_size (llvm_int 8));
 
     let digest_size = cfg.digest_size;
     let block_size = cfg.block_size;

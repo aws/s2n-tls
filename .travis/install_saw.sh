@@ -32,7 +32,7 @@ mkdir -p "$DOWNLOAD_DIR"
 cd "$DOWNLOAD_DIR"
 
 #download saw binaries
-curl --retry 3 https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/saw-0.3-2019-10-12-Ubuntu14.04-64.tar.gz --output saw.tar.gz
+curl --retry 3 https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/saw-0.4.0.99-2019-12-10-Ubuntu14.04-64.tar.gz --output saw.tar.gz
 
 mkdir -p saw && tar -xzf saw.tar.gz --strip-components=1 -C saw
 mkdir -p "$INSTALL_DIR" && mv saw/* "$INSTALL_DIR"

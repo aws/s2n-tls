@@ -439,3 +439,143 @@ EphemeralKeyGeneration_B_short PrivateKeyB f1 = PublicKeyA where
 EphemeralKeyGeneration_B : [32] uchar -> [378]uchar
 EphemeralKeyGeneration_B PrivateKeyB =
   EphemeralKeyGeneration_B_short PrivateKeyB g_MAX_Bob
+
+type loop_control_state_A =
+  { row : [32]
+  , ii : [32]
+  , index : [32]
+  , npts : [32]
+  , pts_index : [7][32]
+  }
+
+loop_control_state_machine_A : ([125]loop_control_state_A, [125]loop_control_state_A)
+loop_control_state_machine_A = make_loop_control_state_machine_A ([init_state | i <- [0..124]], [init_state | i <- [0..124]]) init_state
+  where
+    init_state =
+      { row = 1
+      , ii = 0
+      , index = 0
+      , npts = 0
+      , pts_index = [0 | i <- [0..6]]
+      }
+
+make_loop_control_state_machine_A
+  : ([125]loop_control_state_A, [125]loop_control_state_A)
+  -> loop_control_state_A
+  -> ([125]loop_control_state_A, [125]loop_control_state_A)
+make_loop_control_state_machine_A (ii_machine, row_machine) state =
+  if state.row < g_MAX_Alice
+  then if state.index < g_MAX_Alice - state.row
+    then make_loop_control_state_machine_A
+      ((update ii_machine state.ii state), row_machine)
+      { row = state.row
+      , ii = state.ii + 1
+      , index = state.index + (g_strat_Alice @ state.ii)
+      , npts = state.npts + 1
+      , pts_index = update state.pts_index state.npts state.index
+      }
+    else make_loop_control_state_machine_A
+      (ii_machine, (update row_machine state.row state))
+      { row = state.row + 1
+      , ii = state.ii
+      , index = state.pts_index @ (state.npts - 1)
+      , npts = state.npts - 1
+      , pts_index = state.pts_index
+      }
+  else (ii_machine, row_machine)
+
+is_valid_main_loop_control_state_A
+  : [32]
+  -> [32]
+  -> [32]
+  -> [32]
+  -> [7][32]
+  -> Bit
+is_valid_main_loop_control_state_A row ii index npts pts_index =
+  (ii < g_MAX_Alice /\ (ii_machine @ ii) == state) \/ (row < g_MAX_Alice /\ (row_machine @ row) == state)
+  where
+    state = { row = row, ii = ii, index = index, npts = npts, pts_index = pts_index }
+    (ii_machine, row_machine) = loop_control_state_machine_A
+
+is_valid_second_loop_control_state_A
+  : [32]
+  -> [32]
+  -> [32]
+  -> [32]
+  -> [7][32]
+  -> Bit
+is_valid_second_loop_control_state_A row ii index npts pts_index =
+  (row_machine @ row) == state
+  where
+    state = { row = row, ii = ii, index = index, npts = npts, pts_index = pts_index }
+    (ii_machine, row_machine) = loop_control_state_machine_A
+
+type loop_control_state_B =
+  { row : [32]
+  , ii : [32]
+  , index : [32]
+  , npts : [32]
+  , pts_index : [8][32]
+  }
+
+loop_control_state_machine_B : ([159]loop_control_state_B, [159]loop_control_state_B)
+loop_control_state_machine_B = make_loop_control_state_machine_B ([init_state | i <- [0..158]], [init_state | i <- [0..158]]) init_state
+  where
+    init_state =
+      { row = 1
+      , ii = 0
+      , index = 0
+      , npts = 0
+      , pts_index = [0 | i <- [0..7]]
+      }
+
+make_loop_control_state_machine_B
+  : ([159]loop_control_state_B, [159]loop_control_state_B)
+  -> loop_control_state_B
+  -> ([159]loop_control_state_B, [159]loop_control_state_B)
+make_loop_control_state_machine_B (ii_machine, row_machine) state =
+  if state.row < g_MAX_Bob
+  then if state.index < g_MAX_Bob - state.row
+    then make_loop_control_state_machine_B
+      ((update ii_machine state.ii state), row_machine)
+      { row = state.row
+      , ii = state.ii + 1
+      , index = state.index + (g_strat_Bob @ state.ii)
+      , npts = state.npts + 1
+      , pts_index = update state.pts_index state.npts state.index
+      }
+    else make_loop_control_state_machine_B
+      (ii_machine, (update row_machine state.row state))
+      { row = state.row + 1
+      , ii = state.ii
+      , index = state.pts_index @ (state.npts - 1)
+      , npts = state.npts - 1
+      , pts_index = state.pts_index
+      }
+  else (ii_machine, row_machine)
+
+is_valid_main_loop_control_state_B
+  : [32]
+  -> [32]
+  -> [32]
+  -> [32]
+  -> [8][32]
+  -> Bit
+is_valid_main_loop_control_state_B row ii index npts pts_index =
+  (ii < g_MAX_Bob /\ (ii_machine @ ii) == state) \/ (row < g_MAX_Bob /\ (row_machine @ row) == state)
+  where
+    state = { row = row, ii = ii, index = index, npts = npts, pts_index = pts_index }
+    (ii_machine, row_machine) = loop_control_state_machine_B
+
+is_valid_second_loop_control_state_B
+  : [32]
+  -> [32]
+  -> [32]
+  -> [32]
+  -> [8][32]
+  -> Bit
+is_valid_second_loop_control_state_B row ii index npts pts_index =
+  (row_machine @ row) == state
+  where
+    state = { row = row, ii = ii, index = index, npts = npts, pts_index = pts_index }
+    (ii_machine, row_machine) = loop_control_state_machine_B
