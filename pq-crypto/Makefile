@@ -22,10 +22,12 @@ BCS1=$(addprefix $(BITCODE_DIR), $(BCS_11))
 all: $(OBJS)
 	$(MAKE) -C bike
 	$(MAKE) -C sike_r1
+	$(MAKE) -C sike_r2
 
 .PHONY : sike_bc
 sike_bc: $(BCS1)
 	$(MAKE) -C sike_r1 bc
+#	$(MAKE) -C sike_r2 bc TODO add when ready for SIKE R2 SAW proofs
 
 .PHONY : bike_bc
 bike_bc: $(BCS1)
@@ -34,14 +36,17 @@ bike_bc: $(BCS1)
 .PHONY : run-gcov
 run-gcov: gcov
 	$(MAKE) -C sike_r1 gcov
+	$(MAKE) -C sike_r2 gcov
 
 .PHONY : run-lcov
 run-lcov: lcov
 	$(MAKE) -C sike_r1 lcov
+	$(MAKE) -C sike_r2 lcov
 
 .PHONY : clean
 clean: decruft
 	${MAKE} -C bike decruft
 	${MAKE} -C sike_r1 decruft
+	${MAKE} -C sike_r2 decruft
 
 include ../s2n.mk

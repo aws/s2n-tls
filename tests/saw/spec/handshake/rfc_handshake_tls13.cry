@@ -1,0 +1,307 @@
+////////////////////////////////////////////////////////////////////////////
+// Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved
+//
+// Licensed under the Apache License, Version 2.0 (the "License").
+// You may not use this file except in compliance with the License.
+// A copy of the License is located at
+//
+//  http://aws.amazon.com/apache2.0
+//
+// or in the "license" file accompanying this file. This file is distributed
+// on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+// express or implied. See the License for the specific language governing
+// permissions and limitations under the License.
+//
+////////////////////////////////////////////////////////////////////////////
+// This module provides a specification of the TLS 1.3 handshake message
+// state machine according to RFC 8446.
+////////////////////////////////////////////////////////////////////////////
+
+module rfc_handshake_tls13 where
+
+import s2n_handshake_io
+
+/**
+ * True if the given Parameters do not match the given connection, or if
+ * the sequence of handshake messages produced by s2n matches the sequence
+ * produced by the cryptol RFC implementation in this file.
+ *
+ * Why is this True if the Parameters don't match the connection? We prove
+ * this function for all possible connection and Parameter inputs. Inputs
+ * where the connection doesn't match the Parameters should be ignored as
+ * invalid instead of causing the proof to fail. This is basically equivalent
+ * to generating the Parameters from the connection, except theoretically
+ * one connection could correspond to multiple Parameters.
+ */
+tls13rfcSimulatesS2N : {len} (fin len, len >= 1) => connection -> Parameters -> Bit
+tls13rfcSimulatesS2N conn params =
+    (initial_connection conn /\ connectionParameters conn params) ==>
+        tracesMatchExcludingWaits
+            (map rfc2S2N (doHandshake`{len} params))
+            (traceS2N`{len} conn)
+
+type MessageType = [4]
+(applicationData        : MessageType) = 0
+(clientHello            : MessageType) = 1
+(helloRetryRequest      : MessageType) = 2
+(serverHello            : MessageType) = 3
+(encryptedExtensions    : MessageType) = 4
+(certificateRequest     : MessageType) = 5
+(certificate            : MessageType) = 6
+(certificateVerify      : MessageType) = 7
+(finished               : MessageType) = 8
+(endOfEarlyData         : MessageType) = 9
+(changeCipherSpec       : MessageType) = 10
+(error                  : MessageType) = 12
+
+type Sender = [2]
+(server   : Sender) = 0
+(client   : Sender) = 1
+(both     : Sender) = 2
+
+type Message = {
+    messageType : MessageType,
+    sender : Sender
+}
+
+type Parameters = {
+    compat_mode : [2],
+    psk_mode : Bit,
+    retry : Bit,
+    client_auth : Bit,
+    no_client_cert : Bit,
+    zero_rtt : Bit
+}
+
+/**
+ * True if the given Parameters are equivalent to the given s2n connection.
+ * As features are added to s2n, update the conn_* variables to indicate
+ * whether the feature is active for a given connection.
+ */
+connectionParameters : connection -> Parameters -> Bit
+connectionParameters conn params = params.psk_mode == conn_psk_mode
+                                   /\ params.retry == conn_retry
+                                   /\ params.client_auth == (conn_client_auth /\ ~params.psk_mode)
+                                   /\ params.no_client_cert == (conn_no_client_cert /\ params.client_auth)
+                                   /\ params.zero_rtt == (conn_zero_rtt /\ params.psk_mode)
+                                   /\ params.compat_mode == [ conn.mode != S2N_CLIENT, conn.mode == S2N_CLIENT ]
+                                   /\ conn.actual_protocol_version == S2N_TLS13
+  where conn_psk_mode =         False /* Not supported yet */
+        conn_retry =            False /* Not supported yet */
+        conn_client_auth =      False /* Not supported yet */
+        conn_no_client_cert =   False /* Not supported yet */
+        conn_zero_rtt =         False /* Not supported yet */
+
+type Action = {
+    message : Message,
+    valid : Bit
+}
+
+type StateId = [5]
+type State = {
+    actions : [5]Action,
+    id : StateId,
+    next : StateId
+}
+
+/**
+ * Represents the sequence of the first n handshake messages for given
+ * Parameters.
+ *
+ * Procedural Translation: The handshake starts as n applicationData
+ * messages and index==0. For the first n States in the infinite series
+ * of states returned by 'stateMachine', loop over the state's list of
+ * actions. While index < n, for any Action with valid==True, add the
+ * Action's message to the handshake at 'index' and then increment 'index'.
+ */
+doHandshake : {n} (fin n, n >= 1) => Parameters -> [n]Message
+doHandshake params = (foldl doState initialHandshake (take`{n} (stateMachine params))).messages
+  where doState hs state = foldl doAction hs state.actions
+        doAction hs action = if hs.index < `n /\ action.valid
+                             then updateHandshake hs action.message
+                             else hs
+        updateHandshake hs value = {
+            messages = update`{ix=(width n)} hs.messages hs.index value,
+            index = hs.index + 1
+        }
+        initialHandshake = {
+            messages = repeat { messageType = applicationData, sender = both },
+            index = zero
+        }
+
+/*
+ * State machine based on RFC 8446, specifically:
+ * - The basic state machines in Appendix A
+ * - The middlebox compatability rules in Appendix D.4
+ *
+ * "*" -> Indicates optional or situation-dependent
+ *        messages that are not always sent.
+ *
+ *                 +------------------+
+ *                 |CLIENT_START_STATE|
+ *                 |------------------|
+ *                 |clientHello (C)   |
+ *                 |* CCS (C)         |
+ *                 +------------------+
+ *                      |        |
+ *                      |        | if retry
+ *                      |        v
+ *                      |    +---------------------+
+ *                      |    |  HELLO_RETRY_STATE  |
+ *         if not retry |    |---------------------|
+ *                      |    |helloRetryRequest (S)|
+ *                      |    |* CCS (S)            |
+ *                      |    |* CCS (C)            |
+ *                      |    |clientHello (C)      |
+ *                      |    +---------------------+
+ *                      |        |
+ *                      v        v
+ *              +-----------------------+
+ *              |  SERVER_HELLO_STATE   |
+ *              |-----------------------|
+ *              |serverHello (S)        |
+ *              |* CCS (S)              |
+ *              |encryptedExtensions (S)|
+ *              +-----------------------+
+ *                      |        |
+ *                      |        | if not psk
+ *                      |        v
+ *                      |    +------------------------+
+ *                      |    |    SERVER_AUTH_STATE   |
+ *               if psk |    |------------------------|
+ *                      |    |* certificateRequest (S)|
+ *                      |    |certificate (S)         |
+ *                      |    |certificateVerify (S)   |
+ *                      |    +------------------------+
+ *                      |        |
+ *                      v        v
+ *                +--------------------+
+ *                |SERVER_FINISH_STATE |
+ *                |--------------------|
+ *                |finished (S)        |
+ *                |* CCS (C)           |
+ *                |* endOfEarlyData (C)|
+ *                +--------------------+
+ *                      |        |
+ *                      |        | if client_auth
+ *                      |        v
+ *                      |    +-----------------------+
+ *                      |    |   CLIENT_AUTH_STATE   |
+ *   if not client_auth |    |-----------------------|
+ *                      |    |certificate (C)        |
+ *                      |    |* certificateVerify (C)|
+ *                      |    +-----------------------+
+ *                      |        |
+ *                      v        v
+ *               +---------------------+
+ *               |CLIENT_FINISHED_STATE|
+ *               |---------------------|
+ *               |finished (C)         |
+ *               +---------------------+
+ *                          |
+ *                          v
+ *                +-------------------+
+ *                |     FINISHED      |
+ *                |-------------------|<---+
+ *                |applicationData (B)|    |
+ *                +---------+---------+    |
+ *                          |              |
+ *                          +--------------+
+ */
+/**
+ * Represents the infinite sequence of states that make up the state
+ * machine for given Parameters.
+ *
+ * Procedural Translation: Starting with CLIENT_START_STATE, add the
+ * State associated with the 'next' field to the sequence and then
+ * repeat for that State. Eventually, we will reach FINISHED_STATE and
+ * loop on it indefinitely.
+ */
+stateMachine : Parameters -> [inf]State
+stateMachine params = iterate (\s -> stateFor s.next) CLIENT_START_STATE
+  where stateFor id = find (\s -> s.id == id) ERROR_STATE states
+        states = [
+            CLIENT_START_STATE, HELLO_RETRY_STATE, SERVER_HELLO_STATE,
+            SERVER_AUTH_STATE, SERVER_FINISH_STATE, CLIENT_AUTH_STATE,
+            CLIENT_FINISH_STATE, FINISHED_STATE
+        ]
+
+        state : {n} (fin n, n <= 5) => StateId -> [n]Action -> State -> State
+        state id actions next = { actions = actions # zero, id = id, next = next.id }
+        action mt s v = { message = { messageType = mt, sender = s }, valid = v }
+        compatMode mode = params.compat_mode @ mode
+
+        ERROR_STATE = state 0 [
+            action error both True
+        ] ERROR_STATE
+
+        CLIENT_START_STATE = state 1 [
+            action clientHello client True,
+            action changeCipherSpec client (params.zero_rtt /\ compatMode client)
+        ] (if params.retry then HELLO_RETRY_STATE else SERVER_HELLO_STATE)
+
+        HELLO_RETRY_STATE = state 2 [
+            action helloRetryRequest server True,
+            action changeCipherSpec server (compatMode server),
+            action changeCipherSpec client (~params.zero_rtt /\ compatMode client),
+            action clientHello client True
+        ] SERVER_HELLO_STATE
+
+        SERVER_HELLO_STATE = state 3 [
+            action serverHello server True,
+            action changeCipherSpec server (~params.retry /\ ~params.zero_rtt /\ compatMode server),
+            action encryptedExtensions server True
+        ] (if params.psk_mode then SERVER_FINISH_STATE else SERVER_AUTH_STATE)
+
+        SERVER_AUTH_STATE = state 4 [
+            action certificateRequest server params.client_auth,
+            action certificate server True,
+            action certificateVerify server True
+        ] SERVER_FINISH_STATE
+
+        SERVER_FINISH_STATE = state 5 [
+            action finished server True,
+            action changeCipherSpec client (~params.retry /\ ~params.zero_rtt /\ compatMode client),
+            action endOfEarlyData client params.zero_rtt
+        ] (if params.client_auth then CLIENT_AUTH_STATE else CLIENT_FINISH_STATE)
+
+        CLIENT_AUTH_STATE = state 6 [
+            action certificate client True,
+            action certificateVerify client (~params.no_client_cert)
+        ] CLIENT_FINISH_STATE
+
+        CLIENT_FINISH_STATE = state 7 [
+            action finished client True
+        ]  FINISHED_STATE
+
+        FINISHED_STATE = state 8 [
+            action applicationData both True
+        ] FINISHED_STATE
+
+/**
+ * The s2n 'handshake_action' that corresponds to the Message produced
+ * by this cryptol implementation. Necessary to compare results from the
+ * s2n and RFC cryptol implementations.
+ */
+rfc2S2N : Message -> handshake_action
+rfc2S2N msg = mkAct recordType messageType writer
+  where recordType = if msg.messageType == changeCipherSpec then TLS_CHANGE_CIPHER_SPEC
+                     |  msg.messageType == applicationData then TLS_APPLICATION_DATA
+                     |  msg.messageType == error then TLS_ALERT
+                     else TLS_HANDSHAKE
+        messageType = if recordType != TLS_HANDSHAKE then noMessageType
+                      |  msg.messageType == clientHello then TLS_CLIENT_HELLO
+                      |  msg.messageType == serverHello then TLS_SERVER_HELLO
+                      |  msg.messageType == helloRetryRequest then TLS_HELLO_RETRY_REQUEST
+                      |  msg.messageType == encryptedExtensions then TLS_ENCRYPTED_EXTENSIONS
+                      |  msg.messageType == certificateRequest then TLS_CERTIFICATE_REQ
+                      |  msg.messageType == certificate then TLS_CERTIFICATE
+                      |  msg.messageType == certificateVerify then TLS_CERT_VERIFY
+                      |  msg.messageType == finished then TLS_FINISHED
+                      |  msg.messageType == endOfEarlyData then TLS_END_OF_EARLY_DATA
+                      else noMessageType
+        writer = if msg.sender == server then 'S'
+                 | msg.sender == client then 'C'
+                 | msg.sender == both then 'B'
+                 else '!'
+        noMessageType = TLS_HELLO_REQUEST // HelloRequests don't exist in tls1.3

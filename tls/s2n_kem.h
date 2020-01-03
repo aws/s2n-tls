@@ -46,6 +46,7 @@ struct s2n_iana_to_kem {
 
 extern const struct s2n_kem s2n_bike_1_level_1_r1;
 extern const struct s2n_kem s2n_sike_p503_r1;
+extern const struct s2n_kem s2n_sike_p434_r2;
 
 extern int s2n_kem_generate_keypair(struct s2n_kem_keypair *kem_keys);
 

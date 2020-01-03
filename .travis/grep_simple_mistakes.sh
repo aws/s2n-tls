@@ -44,7 +44,7 @@ for file in $S2N_FILES_ARRAY_SIZING_RETURN; do
 
   if [ "${#RESULT_ARR_DIV}" != "0" ]; then
     FAILED=1
-    printf "\e[1;34mGrep for 'sizeof\((.*)\) \/ sizeof\(\1\[0\]\)' check failed in $file:\e[0m\n$RESULT_ARR_DIV\n\n"
+    printf "\e[1;34mUsage of 'sizeof(array) / sizeof(array[0])' check failed. Use s2n_array_len(array) instead in $file:\e[0m\n$RESULT_ARR_DIV\n\n"
   fi
 done
 
