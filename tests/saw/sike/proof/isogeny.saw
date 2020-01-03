@@ -6,6 +6,7 @@
 
 import "../spec/Loader.cry";
 import "../spec/interface/ec_isogeny.cry";
+import "../spec/shared/Constants.cry";
 import "../spec/shared/C_Types.cry";
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -194,35 +195,23 @@ let swap_points_spec' = do {
     crucible_postcond {{ point_mod q' }};
 };
 
-/* NOTES for LADDER3PT proof:
+/* NOTE for LADDER3PT proof:
 
- - We cannot prove LADDER3PT currently due to the large number of
-   iterations, so have proved things about LADDER3PT_short, a variant
-   that iterates a number of times given by its parameter.
-
- - We have shown that for small numbers of iterations, LADDER3PT_short
-   code agrees with the Cryptol definition.
-
- - For that proof, we added some conditions in as extra preconditions,
+   For that proof, we added some conditions in as extra preconditions,
    but have also proved that these conditions are always true.
    However, the "goal_insert" mechansim that should let us drop these
    preconditions is not working well at the moment.
 
- - The proof could be optimized, currently the proving time increases
-   around 5 times for every iteration.
-
- - We finally just admit the specification of the real LADDER3PT.
-
 */
 
-let LADDER3PT_short_spec nbits = do {
-
-    (t1, t1p) <- A_f2elm_t "xP";
-    (t2, t2p) <- A_f2elm_t "xQ";
-    (t3, t3p) <- A_f2elm_t "xPQ";
-    (t4, t4p) <- A_param "m" (llvm_array 4 digit_t);
-    t6p <- C_point_t (); // "R"
-    (t7, t7p) <- A_f2elm_t "A";
+let LADDER3PT_spec is_unsafe_assume = do {
+    (xP, xP_ptr) <- A_f2elm_t "xP";
+    (xQ, xQ_ptr) <- A_f2elm_t "xQ";
+    (xPQ, xPQ_ptr) <- A_f2elm_t "xPQ";
+    (m, m_ptr) <- A_param "m" (llvm_array 4 digit_t);
+    aliceOrBob <- A_uint_t "AliceOrBob";
+    r_ptr <- C_point_t (); // "R"
+    (a, a_ptr) <- A_f2elm_t "A";
 
     // NOTE: Temporary preconditions
     crucible_precond {{ pftwice_mod g_Montgomery_one }};
@@ -230,75 +219,80 @@ let LADDER3PT_short_spec nbits = do {
     crucible_precond {{ fpnorm zero == zero }};
     crucible_precond {{ fpnorm g_Montgomery_one == g_Montgomery_one }};
 
-    // NOTE: Real preconditions
-    crucible_precond {{ pf2twice_mod t1 }};
-    crucible_precond {{ pf2twice_mod t2 }};
-    crucible_precond {{ pf2twice_mod t3 }};
-    crucible_precond {{ pf2twice_mod t7 }};
+    // real preconditions:
+    crucible_precond {{ pf2twice_mod xP }};
+    crucible_precond {{ pf2twice_mod xQ }};
+    crucible_precond {{ pf2twice_mod xPQ }};
+    crucible_precond {{ pf2twice_mod a }};
 
     crucible_execute_func
-        [t1p, t2p, t3p, t4p, (tm {{`nbits : [32]}}), t6p, t7p];
-    t6 <- crucible_fresh_var "LADDER3PT_R" point_proj_t;
-    crucible_points_to t6p (tm t6);
-    crucible_postcond {{ point_mod t6 }};
-    crucible_equal
-        (tm {{ point_norm t6 }})
-        (tm {{ ladder3pt_short (fp2norm t1) (fp2norm t2)
-            (fp2norm t3) t4 (`nbits: [32]) (fp2norm t7) }});
+      [ xP_ptr
+      , xQ_ptr
+      , xPQ_ptr
+      , m_ptr
+      , (tm aliceOrBob)
+      , r_ptr
+      , a_ptr
+      ];
+
+    res_r <- crucible_fresh_var "LADDER3PT_R" point_proj_t;
+    crucible_points_to r_ptr (tm res_r);
+    crucible_postcond {{ point_mod res_r }};
+    if is_unsafe_assume then do {
+      crucible_equal
+        (tm {{ point_norm res_r }})
+        (tm {{ ladder3pt (fp2norm xP) (fp2norm xQ) (fp2norm xPQ) m aliceOrBob (fp2norm a) }});
+    } else do {
+      return ();
+    };
 };
 
-// NOTE: This proofscript does not include temporary preconditions
-let LADDER3PT_short_spec' nbits = do {
+let LADDER3PT_main_loop_spec = do {
+    (r, r_ptr) <- B_point_t "R";
+    r_ptr_ptr <- crucible_alloc (llvm_int 64);
+    crucible_points_to r_ptr_ptr r_ptr;
+    (m, m_ptr) <- A_param "m" (llvm_array 4 digit_t);
+    m_ptr_ptr <- crucible_alloc (llvm_int 64);
+    crucible_points_to m_ptr_ptr m_ptr;
+    (r0, r0_ptr) <- B_point_t "R0";
+    (r2, r2_ptr) <- B_point_t "R2";
+    (a24, a24_ptr) <- A_f2elm_t "A24";
+    a24_ptr_ptr <- crucible_alloc (llvm_int 64);
+    crucible_points_to a24_ptr_ptr a24_ptr;
+    mask_ptr <- crucible_alloc digit_t;
+    (i, i_ptr) <- ptr_to_fresh "i" i32;
+    (nbits, nbits_ptr) <- ptr_to_fresh "nbits" i32;
+    bit_ptr <- crucible_alloc i32;
+    swap_ptr <- crucible_alloc i32;
+    (prevbit, prevbit_ptr) <- ptr_to_fresh "prevbit" i32;
 
-    (t1, t1p) <- A_f2elm_t "xP";
-    (t2, t2p) <- A_f2elm_t "xQ";
-    (t3, t3p) <- A_f2elm_t "xPQ";
-    (t4, t4p) <- A_param "m" (llvm_array 4 digit_t);
-    t6p <- C_point_t (); // "R"
-    (t7, t7p) <- A_f2elm_t "A";
+    crucible_precond {{ point_mod r /\ point_mod r0 /\ point_mod r2 }};
+    crucible_precond {{ pf2twice_mod a24 }};
+    crucible_precond {{ prevbit == 0 \/ prevbit == 1 }};
 
-    crucible_precond {{ pf2twice_mod t1 }};
-    crucible_precond {{ pf2twice_mod t2 }};
-    crucible_precond {{ pf2twice_mod t3 }};
-    crucible_precond {{ pf2twice_mod t7 }};
+    crucible_precond {{ nbits == g_OALICE_BITS \/ nbits == g_OBOB_BITS }};
+    crucible_precond {{ 0 <= i /\ i <= nbits }};
 
     crucible_execute_func
-        [t1p, t2p, t3p, t4p, (tm {{`nbits : [32]}}), t6p, t7p];
-    t6 <- crucible_fresh_var "LADDER3PT_R" point_proj_t;
-    crucible_points_to t6p (tm t6);
+      [ r_ptr_ptr
+      , m_ptr_ptr
+      , r0_ptr
+      , r2_ptr
+      , a24_ptr_ptr
+      , mask_ptr
+      , i_ptr
+      , nbits_ptr
+      , bit_ptr
+      , swap_ptr
+      , prevbit_ptr
+      ];
 
-    crucible_postcond {{ point_mod t6 }};
-    crucible_equal
-        (tm {{ point_norm t6 }})
-        (tm {{ ladder3pt_short (fp2norm t1) (fp2norm t2)
-            (fp2norm t3) t4 (`nbits: [32]) (fp2norm t7) }});
+    res_r <- crucible_fresh_var "LADDER3PT_R" point_proj_t;
+    crucible_points_to r_ptr (tm res_r);
+
+    crucible_postcond {{ point_mod res_r }};
 };
 
-let LADDER3PT_spec = do {
-
-    (t1, t1p) <- A_f2elm_t "xP";
-    (t2, t2p) <- A_f2elm_t "xQ";
-    (t3, t3p) <- A_f2elm_t "xPQ";
-    (t4, t4p) <- A_param "m" (llvm_array 4 digit_t);
-    t5 <- A_uint_t "AliceOrBob";
-    t6p <- C_point_t ();
-    (t7, t7p) <- A_f2elm_t "A";
-
-    crucible_precond {{ pf2twice_mod t1 }};
-    crucible_precond {{ pf2twice_mod t2 }};
-    crucible_precond {{ pf2twice_mod t3 }};
-    crucible_precond {{ pf2twice_mod t7 }};
-
-    crucible_execute_func [t1p, t2p, t3p, t4p, tm t5, t6p, t7p];
-    t6 <- crucible_fresh_var "LADDER3PT_R" point_proj_t;
-
-    crucible_postcond {{ point_mod t6 }};
-    crucible_points_to t6p (tm t6);
-    crucible_equal
-        (tm {{ point_norm t6 }})
-        (tm {{ ladder3pt (fp2norm t1) (fp2norm t2)
-            (fp2norm t3) t4 t5 (fp2norm t7) }});
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
@@ -379,10 +373,14 @@ let ladder_unint = concat fp_functions
     , "fp2mul503_mont", "fp2sqr503_mont", "fp2inv503_mont", "fp2normalized"
     , "xdbladd_" ];
 
+LADDER3PT_main_loop_ov <- admit "__breakpoint__LADDER3PT_main_loop#LADDER3PT_r1"
+    [] LADDER3PT_main_loop_spec;
 let ladder_overrides =
     [ fpcopy503_ov, fpzero503_ov, fp2copy503_ov, fp2add503_right_ov
     , fp2add503_same_ov, fp2div2_503_same_ov, fp2mul503_mont_left_ov
-    , swap_points_ov, xDBLADD_ov ];
+    , swap_points_ov, xDBLADD_ov
+    , LADDER3PT_main_loop_ov
+    ];
 
 // NOTE: These are proven so they can be used as rewrites in later proofs
 ladder_thm1 <- prove_print (tactic [])
@@ -396,11 +394,10 @@ ladder_thm4 <- prove_print (tactic [])
 
 let LADDER3PT_rewrites = [ladder_thm1, ladder_thm2, ladder_thm3, ladder_thm4];
 
-LADDER3PT_ov1 <- verify_unint "LADDER3PT_short" ladder_overrides
-    ladder_unint (LADDER3PT_short_spec 0);
-LADDER3PT_ov2 <- verify_unint "LADDER3PT_short" ladder_overrides
-    ladder_unint (LADDER3PT_short_spec 1);
-LADDER3PT_ov3 <- verify_unint "LADDER3PT_short" ladder_overrides
-    ladder_unint (LADDER3PT_short_spec 2);
+verify_unint "__breakpoint__LADDER3PT_main_loop#LADDER3PT_r1"
+    ladder_overrides ladder_unint LADDER3PT_main_loop_spec;
+verify_unint "LADDER3PT_r1"
+    ladder_overrides ladder_unint
+    (LADDER3PT_spec false);
+LADDER3PT_ov <- admit "LADDER3PT_r1" [] (LADDER3PT_spec true);
 
-LADDER3PT_ov <- admit "LADDER3PT_r1" ladder_overrides LADDER3PT_spec;

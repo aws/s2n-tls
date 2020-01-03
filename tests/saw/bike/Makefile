@@ -35,4 +35,4 @@ tmp/%.log: %.saw create_dirs
 	@echo "Running formal verification with ${YICES_VERSION}"
 	@echo saw $<
 	@set -o pipefail; \
-	saw $< | tee $@
+	saw --verbose=warning $< | tee $@
