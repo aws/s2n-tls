@@ -73,6 +73,12 @@ printf "Running %-s %-40s for %5d sec with %2d threads... " "${FIPS_TEST_MSG}" $
 ./${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
 
 TEST_COUNT=`grep -o "stat::number_of_executed_units: [0-9]*" ${TEST_NAME}_output.txt | awk '{test_count += $2} END {print test_count}'`
+
+# Check for empty string in case all test runs fail (which might happen when new Fuzz Test is being written and debugged)
+if [ -z "$TEST_COUNT" ]; then
+	export TEST_COUNT=0
+fi
+
 TESTS_PER_SEC=`echo $(($TEST_COUNT / $FUZZ_TIMEOUT_SEC))`
 FEATURE_COVERAGE=`grep -o "ft: [0-9]*" ${TEST_NAME}_output.txt | awk '{print $2}' | sort | tail -1`
 
