@@ -272,17 +272,6 @@ ladder3pt xP xQ xPQ m aliceorbob A = wrap_point R_out where
     R = (xP, M)
     R_out = main_loop 0 False R R0 R2 A24 nbits m
 
-ladder3pt_short xP xQ xPQ m nbits A = wrap_point R_out where
-    M = g_Montgomery_one_list_f2elm
-    t1 = fp2add503 (M, M)
-    t2 = fp2add503 (A, t1)
-    t3 = fp2div2_503 t2
-    A24 = fp2div2_503 t3
-    R0 = (xQ, M)
-    R2 = (xPQ, M)
-    R = (xP, M)
-    R_out = main_loop 0 False R R0 R2 A24 nbits m
-
 get_A_abstract : f2elm
 get_A_abstract = wrap_f2elm Mont_Curve.c_A
 
@@ -342,3 +331,24 @@ inv_3_way (z1, z2, z3) = (inv_z1, inv_z2, inv_z3) where
     inv_z1 = fp2mul503_mont(t2, z2)
     inv_z2 = fp2mul503_mont(t2, z1)
     inv_z3 = fp2mul503_mont(t0, inv_t1)
+
+point_n7_mod : [7]point_proj_t -> Bool
+point_n7_mod pts =
+  (point_mod (pts @ 0))
+  /\ (point_mod (pts @ 1))
+  /\ (point_mod (pts @ 2))
+  /\ (point_mod (pts @ 3))
+  /\ (point_mod (pts @ 4))
+  /\ (point_mod (pts @ 5))
+  /\ (point_mod (pts @ 6))
+
+point_n8_mod : [8]point_proj_t -> Bool
+point_n8_mod pts =
+  (point_mod (pts @ 0))
+  /\ (point_mod (pts @ 1))
+  /\ (point_mod (pts @ 2))
+  /\ (point_mod (pts @ 3))
+  /\ (point_mod (pts @ 4))
+  /\ (point_mod (pts @ 5))
+  /\ (point_mod (pts @ 6))
+  /\ (point_mod (pts @ 7))

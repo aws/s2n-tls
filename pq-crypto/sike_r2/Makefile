@@ -13,20 +13,18 @@
 # permissions and limitations under the License.
 #
 
-SRCS=fp_generic_r1.c P503_r1.c sike_p503_r1_kem.c fips202_r1.c
+SRCS=fips202.c P434.c
 OBJS=$(SRCS:.c=.o)
 
-BCS_1=fp_generic_r1.bc P503_r1.bc sike_p503_r1_kem.bc fips202_r1.bc
-BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
+# TODO add when ready for SIKE R2 SAW proofs
+#BCS_1=fips202.bc P434.bc
+#BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
 
 .PHONY : all
 all: $(OBJS)
 
+# TODO add when ready for SIKE R2 SAW proofs
+#.PHONY : bc
+#bc: $(BCS)
+
 include ../../s2n.mk
-
-CFLAGS_LLVM = -emit-llvm -c -g \
-              -std=c99 -fgnu89-inline -D_POSIX_C_SOURCE=200809L -D_FORTIFY_SOURCE=2 \
-              -I$(LIBCRYPTO_ROOT)/include/ -I../../api/ -I../../
-
-.PHONY : bc
-bc: $(BCS)

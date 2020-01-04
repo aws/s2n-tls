@@ -198,6 +198,16 @@ let fpsqr503_mont_spec = do {
     crucible_postcond {{ pftwice_mod(c) }};
 };
 
+let fpsqr503_mont_same_spec = do {
+    (a, ap) <- B_felm_t "a";
+    crucible_precond {{ digit_modx4(a) }};
+    crucible_execute_func [ap, ap];
+    c <- crucible_fresh_var "c" felm_t;
+    crucible_points_to ap (tm c);
+    crucible_postcond {{ fpnorm(fpsqr503_mont(a)) == fpnorm(c) }};
+    crucible_postcond {{ pftwice_mod(c) }};
+};
+
 let rdc_mont_spec = do {
     (a, ap) <- A_dfelm_t "a";
     cp <- C_felm_t ();
@@ -474,7 +484,7 @@ let fp2mul503_mont_spec norm_post = do {
 
     (a, ap) <- A_f2elm_t "a";
     (b, bp) <- A_f2elm_t "b";
-    cp <- crucible_alloc f2elm_t;
+    cp <- C_f2elm_t ();
     crucible_precond {{ pf2twice_mod(a) /\ pf2twice_mod(b) }};
     crucible_execute_func [ap, bp, cp];
     c <- crucible_fresh_var "c" f2elm_t;
@@ -542,8 +552,8 @@ let fp2mul503_mont_same_spec norm_post = do {
 };
 
 let fp2sqr503_mont_spec norm_post = do {
-    (a, ap) <- ptr_to_fresh "a" f2elm_t;
-    cp <- crucible_alloc f2elm_t;
+    (a, ap) <- A_f2elm_t "a";
+    cp <- C_f2elm_t ();
     crucible_precond {{ pf2twice_mod(a) }};
     crucible_execute_func [ap, cp];
     c <- crucible_fresh_var "c" f2elm_t;
@@ -558,7 +568,7 @@ let fp2sqr503_mont_spec norm_post = do {
 };
 
 let fp2sqr503_mont_same_spec norm_post = do {
-    (a, ap) <- ptr_to_fresh "a" f2elm_t;
+    (a, ap) <- B_f2elm_t "a";
     crucible_precond {{ pf2twice_mod(a) }};
     crucible_execute_func [ap, ap];
     c <- crucible_fresh_var "c" f2elm_t;
@@ -600,13 +610,122 @@ let from_fp2mont_spec norm_post = do {
     crucible_postcond {{ fp2normalized(c) }};
 };
 
+let fpinv503_chain_mont_spec = do {
+  (a, a_ptr) <- ptr_to_fresh "a" felm_t;
+  crucible_precond {{ digit_modx4(a) }};
+  crucible_execute_func [a_ptr];
+  res_a <- crucible_fresh_var "res_a" felm_t;
+  crucible_points_to a_ptr (crucible_term res_a);
+  crucible_postcond {{ pftwice_mod(res_a) }};
+};
+
+let __breakpoint__fpinv_chain_mont_first_spec = do {
+  (a, a_ptr) <- ptr_to_fresh "a" felm_t;
+  a_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to a_ptr_ptr a_ptr;
+  (i, i_ptr) <- ptr_to_fresh "i" i32;
+  j_ptr <- crucible_alloc i32;
+  (t, t_ptr) <-  ptr_to_fresh "t" (llvm_array 15 felm_t);
+  (tt, tt_ptr) <- ptr_to_fresh "tt" felm_t;
+  crucible_precond {{ 0 <= i /\ i <= 14 }};
+  crucible_precond {{ digit_modx4(a) }};
+  crucible_precond {{ digit_modx4(tt) }};
+  crucible_precond {{ digit_modx4(t @ 0) }};
+  crucible_precond {{ digit_modx4(t @ 1) }};
+  crucible_precond {{ digit_modx4(t @ 2) }};
+  crucible_precond {{ digit_modx4(t @ 3) }};
+  crucible_precond {{ digit_modx4(t @ 4) }};
+  crucible_precond {{ digit_modx4(t @ 5) }};
+  crucible_precond {{ digit_modx4(t @ 6) }};
+  crucible_precond {{ digit_modx4(t @ 7) }};
+  crucible_precond {{ digit_modx4(t @ 8) }};
+  crucible_precond {{ digit_modx4(t @ 9) }};
+  crucible_precond {{ digit_modx4(t @ 10) }};
+  crucible_precond {{ digit_modx4(t @ 11) }};
+  crucible_precond {{ digit_modx4(t @ 12) }};
+  crucible_precond {{ digit_modx4(t @ 13) }};
+  crucible_precond {{ digit_modx4(t @ 14) }};
+  crucible_execute_func [a_ptr_ptr, i_ptr, j_ptr, t_ptr, tt_ptr];
+  res_a <- crucible_fresh_var "res_a" felm_t;
+  crucible_points_to a_ptr (crucible_term res_a);
+  crucible_postcond {{ pftwice_mod(res_a) }};
+};
+
+let __breakpoint__fpinv_chain_mont_middle_spec = do {
+  (a, a_ptr) <- ptr_to_fresh "a" felm_t;
+  a_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to a_ptr_ptr a_ptr;
+  (i, i_ptr) <- ptr_to_fresh "i" i32;
+  j_ptr <- crucible_alloc i32;
+  (t, t_ptr) <-  ptr_to_fresh "t" (llvm_array 15 felm_t);
+  (tt, tt_ptr) <- ptr_to_fresh "tt" felm_t;
+  crucible_precond {{ 0 <= i /\ i <= 8 }};
+  crucible_precond {{ digit_modx4(a) }};
+  crucible_precond {{ digit_modx4(tt) }};
+  crucible_precond {{ digit_modx4(t @ 0) }};
+  crucible_precond {{ digit_modx4(t @ 1) }};
+  crucible_precond {{ digit_modx4(t @ 2) }};
+  crucible_precond {{ digit_modx4(t @ 3) }};
+  crucible_precond {{ digit_modx4(t @ 4) }};
+  crucible_precond {{ digit_modx4(t @ 5) }};
+  crucible_precond {{ digit_modx4(t @ 6) }};
+  crucible_precond {{ digit_modx4(t @ 7) }};
+  crucible_precond {{ digit_modx4(t @ 8) }};
+  crucible_precond {{ digit_modx4(t @ 9) }};
+  crucible_precond {{ digit_modx4(t @ 10) }};
+  crucible_precond {{ digit_modx4(t @ 11) }};
+  crucible_precond {{ digit_modx4(t @ 12) }};
+  crucible_precond {{ digit_modx4(t @ 13) }};
+  crucible_precond {{ digit_modx4(t @ 14) }};
+  crucible_execute_func [a_ptr_ptr, i_ptr, j_ptr, t_ptr, tt_ptr];
+  res_a <- crucible_fresh_var "res_a" felm_t;
+  crucible_points_to a_ptr (crucible_term res_a);
+  crucible_postcond {{ pftwice_mod(res_a) }};
+};
+
+let __breakpoint__fpinv_chain_mont_last_spec = do {
+  (a, a_ptr) <- ptr_to_fresh "a" felm_t;
+  a_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to a_ptr_ptr a_ptr;
+  (i, i_ptr) <- ptr_to_fresh "i" i32;
+  (j, j_ptr) <- ptr_to_fresh "j" i32;
+  (t, t_ptr) <-  ptr_to_fresh "t" (llvm_array 15 felm_t);
+  (tt, tt_ptr) <- ptr_to_fresh "tt" felm_t;
+  crucible_precond {{ 0 <= i /\ i <= 5 }};
+  crucible_precond {{ 0 <= j /\ j <= 49 }};
+  crucible_precond {{ digit_modx4(tt) }};
+  crucible_precond {{ digit_modx4(t @ 14) }};
+  crucible_execute_func [a_ptr_ptr, i_ptr, j_ptr, t_ptr, tt_ptr];
+  res_a <- crucible_fresh_var "res_a" felm_t;
+  crucible_points_to a_ptr (crucible_term res_a);
+  crucible_postcond {{ pftwice_mod(res_a) }};
+};
+
+let fpinv503_mont_spec = do {
+  (a, a_ptr) <- ptr_to_fresh "a" felm_t;
+  crucible_precond {{ digit_modx4(a) }};
+  crucible_execute_func [a_ptr];
+  res_a <- crucible_fresh_var "res_a" felm_t;
+  crucible_points_to a_ptr (crucible_term res_a);
+  crucible_postcond {{ pftwice_mod(res_a) }};
+};
+
 let fp2inv503_mont_spec = do {
     (a, ap) <- B_f2elm_t "a";
     crucible_precond {{ pf2twice_mod(a) }};
     crucible_execute_func [ap];
     c <- crucible_fresh_var "c" f2elm_t;
     crucible_points_to ap (tm c);
-    crucible_postcond {{ fp2inv_mont(a) == fp2norm((c)) }};
+    crucible_postcond {{ pf2twice_mod(c) }};
+};
+
+let fp2inv503_mont_spec' = do {
+    (a, ap) <- B_f2elm_t "a";
+    crucible_precond {{ pf2twice_mod(a) }};
+    crucible_execute_func [ap];
+    c <- crucible_fresh_var "inva" f2elm_t;
+    crucible_points_to ap (tm c);
+    crucible_postcond {{ fp2inv_mont(a) == fp2norm(c) }};
     crucible_postcond {{ pf2twice_mod(c) }};
 };
 
@@ -651,6 +770,9 @@ fpmul503_mont_same_ov <- verify_unint "fpmul503_mont"
 
 fpsqr503_mont_ov <- verify_unint "fpsqr503_mont"
     [mul_single_ov,rdc_mont_ov] ["rdc_mont"] fpsqr503_mont_spec;
+fpsqr503_mont_same_ov <- verify_unint "fpsqr503_mont"
+    [mul_single_ov,rdc_mont_ov] ["rdc_mont"]
+    fpsqr503_mont_same_spec;
 
 fp2copy503_ov <- verify_unint "fp2copy503"
     [fpcopy503_ov] ["fpcopy503"] fp2copy503_spec;
@@ -733,4 +855,75 @@ from_fp2mont_ov <- verify_unint "from_fp2mont_r1"
 from_fp2mont_norm_ov <- verify_unint "from_fp2mont_r1"
     [from_mont_norm_ov] ["from_mont"] (from_fp2mont_spec true);
 
-fp2inv503_mont_ov <- admit "fp2inv503_mont" [] fp2inv503_mont_spec;
+__breakpoint__fpinv_chain_mont0_ov <- admit "__breakpoint__fpinv_chain_mont0#fpinv503_chain_mont"
+    [] __breakpoint__fpinv_chain_mont_first_spec;
+__breakpoint__fpinv_chain_mont1_ov <- admit "__breakpoint__fpinv_chain_mont1#fpinv503_chain_mont"
+    [] __breakpoint__fpinv_chain_mont_middle_spec;
+__breakpoint__fpinv_chain_mont2_ov <- admit "__breakpoint__fpinv_chain_mont2#fpinv503_chain_mont"
+    [] __breakpoint__fpinv_chain_mont_middle_spec;
+__breakpoint__fpinv_chain_mont3_ov <- admit "__breakpoint__fpinv_chain_mont3#fpinv503_chain_mont"
+    [] __breakpoint__fpinv_chain_mont_middle_spec;
+__breakpoint__fpinv_chain_mont4_ov <- admit "__breakpoint__fpinv_chain_mont4#fpinv503_chain_mont"
+    [] __breakpoint__fpinv_chain_mont_last_spec;
+let fpinv503_mont_O =
+    [ fpmul503_mont_ov
+    , fpmul503_mont_right_ov
+    , fpsqr503_mont_ov
+    , fpsqr503_mont_same_ov
+    , fpcopy503_ov
+    , __breakpoint__fpinv_chain_mont0_ov
+    , __breakpoint__fpinv_chain_mont1_ov
+    , __breakpoint__fpinv_chain_mont2_ov
+    , __breakpoint__fpinv_chain_mont3_ov
+    , __breakpoint__fpinv_chain_mont4_ov
+    ];
+let fpinv503_mont_U =
+    [ "fpmul503_mont"
+    , "fpsqr503_mont"
+    , "fpadd503"
+    ];
+
+verify_unint "__breakpoint__fpinv_chain_mont0#fpinv503_chain_mont"
+    fpinv503_mont_O
+    fpinv503_mont_U
+    __breakpoint__fpinv_chain_mont_first_spec;
+verify_unint "__breakpoint__fpinv_chain_mont1#fpinv503_chain_mont"
+    fpinv503_mont_O
+    fpinv503_mont_U
+    __breakpoint__fpinv_chain_mont_middle_spec;
+verify_unint "__breakpoint__fpinv_chain_mont2#fpinv503_chain_mont"
+    fpinv503_mont_O
+    fpinv503_mont_U
+    __breakpoint__fpinv_chain_mont_middle_spec;
+verify_unint "__breakpoint__fpinv_chain_mont3#fpinv503_chain_mont"
+    fpinv503_mont_O
+    fpinv503_mont_U
+    __breakpoint__fpinv_chain_mont_middle_spec;
+verify_unint "__breakpoint__fpinv_chain_mont4#fpinv503_chain_mont"
+    fpinv503_mont_O
+    fpinv503_mont_U
+    __breakpoint__fpinv_chain_mont_last_spec;
+fpinv503_chain_mont_ov <- verify_unint "fpinv503_chain_mont"
+    fpinv503_mont_O
+    fpinv503_mont_U
+    fpinv503_chain_mont_spec;
+
+fpinv503_mont_ov <- verify_unint "fpinv503_mont"
+    [ fpcopy503_ov
+    , fpinv503_chain_mont_ov
+    , fpsqr503_mont_same_ov
+    , fpmul503_mont_left_ov
+    ]
+    fpinv503_mont_U
+    fpinv503_mont_spec;
+
+verify_unint "fp2inv503_mont"
+    [ fpsqr503_mont_ov
+    , fpadd503_left_ov
+    , fpinv503_mont_ov
+    , fpneg503_ov
+    , fpmul503_mont_left_ov
+    ]
+    fpinv503_mont_U
+    fp2inv503_mont_spec;
+fp2inv503_mont_ov <- admit "fp2inv503_mont" [] fp2inv503_mont_spec';

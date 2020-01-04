@@ -1,42 +1,7 @@
-348a349,389
+306a307,308
+> extern void __breakpoint__LADDER3PT_main_loop(point_proj**, const digit_t**, point_proj_t*, point_proj_t*, f2elm_t**, digit_t*, int*, int*, int*, int*, int*) __attribute__((noduplicate));
 > 
-> // NOTE: Added routine for easier analysis:
-> // Here, parameter AliceOrBob is replaces by a parameter giving "nbits",
-> // the number of iterations to use.  This lets us drop the number of loop iterations
-> // for easier analysis.
-> void LADDER3PT_short(const f2elm_t xP, const f2elm_t xQ, const f2elm_t xPQ, const digit_t* m, const int nbits, point_proj_t R, const f2elm_t A)
-> {
->     point_proj_t R0 = {{{{{0}}}}}, R2 = {{{{{0}}}}};
->     f2elm_t _A24 = {{{0}}};
->     f2elm_t *A24=&_A24;
->     digit_t mask;
->     int i, bit, swap, prevbit = 0;
-> 
->     // Initializing constant
->     fpcopy((const digit_t*)&Montgomery_one, A24->e[0]);
->     fp2add(A24, A24, A24);
->     fp2add(&A, A24, A24);
->     fp2div2(A24, A24);  
->     fp2div2(A24, A24); // A24 = (A+2)/4
-> 
->     // Initializing points
->     fp2copy(&xQ, &R0->X);
->     fpcopy((const digit_t*)&Montgomery_one, (digit_t*)R0->Z.e);
->     fp2copy(&xPQ, &R2->X);
->     fpcopy((const digit_t*)&Montgomery_one, (digit_t*)R2->Z.e);
->     fp2copy(&xP, &R->X);
->     fpcopy((const digit_t*)&Montgomery_one, (digit_t*)R->Z.e);
->     fpzero((digit_t*)(R->Z.e)[1]);
-> 
->     // Main loop
->     for (i = 0; i < nbits; i++) {
->         bit = (m[i >> LOG2RADIX] >> (i & (RADIX-1))) & 1;
->         swap = bit ^ prevbit;
->         prevbit = bit;
->         mask = 0 - (digit_t)swap;
-> 
->         swap_points(R, R2, mask);
->         xDBLADD(R0, R2, &R->X, A24);
->         fp2mul_mont(&R2->X, &R->Z, &R2->X);
->     }
-> }
+338c340
+<     for (i = 0; i < nbits; i++) {
+---
+>     for (i = 0; __breakpoint__LADDER3PT_main_loop(&R, &m, &R0, &R2, &A24, &mask, &i, &nbits, &bit, &swap, &prevbit), i < nbits; i++) {

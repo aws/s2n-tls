@@ -25,18 +25,15 @@ import "../spec/interface/random.cry";
 let randombytes_spec_unint n = do {
     let t = llvm_array n char_t;
     ap <- crucible_alloc t;
-    crucible_execute_func [ap, (crucible_term {{`n:[64]}})];
-    rand <- crucible_fresh_var "random_bytes" t;
-    crucible_points_to ap (crucible_term {{(randombytes : [n][8])}});
+    crucible_execute_func [ap, (crucible_term {{ `n:[32] }})];
+    crucible_points_to ap (crucible_term {{ (randombytes : [n][8]) }});
     crucible_return (crucible_term {{0:[32]}});
 };
 
 let randombytes_spec n = do {
     let t = llvm_array n char_t;
     ap <- crucible_alloc t;
-    nbytes <- A_uint64_t "nbytes";
-    crucible_precond {{ nbytes == `n }};
-    crucible_execute_func [ap, (crucible_term nbytes)];
+    crucible_execute_func [ap, (crucible_term {{ `n:[32] }})];
     rand <- crucible_fresh_var "random_bytes" t;
     crucible_points_to ap (crucible_term rand);
     crucible_return (crucible_term {{0:[32]}});
