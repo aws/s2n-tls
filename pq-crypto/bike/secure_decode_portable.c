@@ -1,21 +1,22 @@
-/***************************************************************************
-* Additional implementation of "BIKE: Bit Flipping Key Encapsulation". 
-* Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-*
-* Written by Nir Drucker and Shay Gueron
-* AWS Cryptographic Algorithms Group
-* (ndrucker@amazon.com, gueron@amazon.com)
-*
-* The license is detailed in the file LICENSE.md, and applies to this file.
-*
-* The optimizations are based on the description developed in the paper: 
-* N. Drucker, S. Gueron, 
-* "A toolbox for software optimization of QC-MDPC code-based cryptosystems", 
-* ePrint (2017).
-* The decoder (in decoder/decoder.c) algorithm is the algorithm included in
-* the early submission of CAKE (due to N. Sandrier and R Misoczki).
-*
-* ***************************************************************************/
+/*
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License").
+ * You may not use this file except in compliance with the License.
+ * A copy of the License is located at
+ *
+ * http://aws.amazon.com/apache2.0
+ *
+ * or in the "license" file accompanying this file. This file is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ * express or implied. See the License for the specific language governing
+ * permissions and limitations under the License.
+ * The license is detailed in the file LICENSE.md, and applies to this file.
+ *
+ * Written by Nir Drucker and Shay Gueron
+ * AWS Cryptographic Algorithms Group.
+ * (ndrucker@amazon.com, gueron@amazon.com)
+ */
 
 #include "decode.h"
 #include "utilities.h"
