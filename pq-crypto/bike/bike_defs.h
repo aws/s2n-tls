@@ -32,31 +32,31 @@
 #define DV      71
 #define FAKE_DV 133
 #define T1      134
-#define U_ERR 0
+#define U_ERR   0
 
-//The gfm code is optimized to a block size in this case:
+// The gfm code is optimized to a block size in this case:
 #define BLOCK_SIZE (16384)
 
 #define MAX_DELTA 4
 
-//Round the size to the nearest byte.
-//SIZE suffix, is the number of bytes (uint8_t).
-#define N_BITS   (R_BITS * N0)
-#define R_SIZE   DIVIDE_AND_CEIL(R_BITS, 8)
-#define R_QW     DIVIDE_AND_CEIL(R_BITS, 64)
-#define N_SIZE   DIVIDE_AND_CEIL(N_BITS, 8)
-#define N_QW     DIVIDE_AND_CEIL(N_BITS, 64)
+// Round the size to the nearest byte.
+// SIZE suffix, is the number of bytes (uint8_t).
+#define N_BITS        (R_BITS * N0)
+#define R_SIZE        DIVIDE_AND_CEIL(R_BITS, 8)
+#define R_QW          DIVIDE_AND_CEIL(R_BITS, 64)
+#define N_SIZE        DIVIDE_AND_CEIL(N_BITS, 8)
+#define N_QW          DIVIDE_AND_CEIL(N_BITS, 64)
 #define N_EXTRA_BYTES (8 * N_QW - N_SIZE)
 
-#define R_BLOCKS         DIVIDE_AND_CEIL(R_BITS, BLOCK_SIZE)
-#define R_PADDED        (R_BLOCKS * BLOCK_SIZE)
-#define R_PADDED_SIZE   (R_PADDED / 8)
-#define R_PADDED_QW     (R_PADDED / 64)
+#define R_BLOCKS      DIVIDE_AND_CEIL(R_BITS, BLOCK_SIZE)
+#define R_PADDED      (R_BLOCKS * BLOCK_SIZE)
+#define R_PADDED_SIZE (R_PADDED / 8)
+#define R_PADDED_QW   (R_PADDED / 64)
 
-#define N_BLOCKS         DIVIDE_AND_CEIL(N_BITS, BLOCK_SIZE)
-#define N_PADDED        (N_BLOCKS * BLOCK_SIZE)
-#define N_PADDED_SIZE   (N_PADDED / 8)
-#define N_PADDED_QW     (N_PADDED / 64)
+#define N_BLOCKS      DIVIDE_AND_CEIL(N_BITS, BLOCK_SIZE)
+#define N_PADDED      (N_BLOCKS * BLOCK_SIZE)
+#define N_PADDED_SIZE (N_PADDED / 8)
+#define N_PADDED_QW   (N_PADDED / 64)
 
 #define R_DQWORDS DIVIDE_AND_CEIL(R_SIZE, 16)
 
@@ -75,8 +75,7 @@ bike_static_assert((N_BITS % ALL_YMM_SIZE != 0), nbits_512_err);
 #define LAST_R_BYTE_MASK  MASK(LAST_R_BYTE_LEAD)
 
 // BIKE auxiliary functions parameters:
-#define ELL_K_BITS  256
+#define ELL_K_BITS 256
 #define ELL_K_SIZE (ELL_K_BITS / 8)
 
 #define SHA_MB_SECURE_BUF_SIZE 608
-

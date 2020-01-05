@@ -22,15 +22,16 @@
 
 #include "types.h"
 
-void split_e(OUT split_e_t* split_e_, IN const e_t* e);
+void
+split_e(OUT split_e_t *split_e_, IN const e_t *e);
 
-ret_t compute_syndrome(OUT syndrome_t* syndrome,
-                       IN const ct_t* ct,
-                       IN const sk_t* sk);
+ret_t
+compute_syndrome(OUT syndrome_t *syndrome, IN const ct_t *ct, IN const sk_t *sk);
 
-//e should be zeroed before calling the decoder.
-ret_t decode(OUT e_t* e,
-             IN const syndrome_t* s,
-             IN const ct_t* ct,
-             IN const sk_t* sk,
-             IN const uint32_t u);
+// e should be zeroed before calling the decoder.
+ret_t
+decode(OUT e_t *e,
+       IN const syndrome_t *s,
+       IN const ct_t *ct,
+       IN const sk_t *   sk,
+       IN const uint32_t u);
