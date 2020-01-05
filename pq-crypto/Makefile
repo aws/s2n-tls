@@ -20,7 +20,7 @@ BCS1=$(addprefix $(BITCODE_DIR), $(BCS_11))
 
 .PHONY : all
 all: $(OBJS)
-	$(MAKE) -C bike
+	$(MAKE) -C bike_r1
 	$(MAKE) -C sike_r1
 	$(MAKE) -C sike_r2
 
@@ -31,7 +31,7 @@ sike_bc: $(BCS1)
 
 .PHONY : bike_bc
 bike_bc: $(BCS1)
-	$(MAKE) -C bike bc
+	$(MAKE) -C bike_r1 bc
 
 .PHONY : run-gcov
 run-gcov: gcov
@@ -45,7 +45,7 @@ run-lcov: lcov
 
 .PHONY : clean
 clean: decruft
-	${MAKE} -C bike decruft
+	${MAKE} -C bike_r1 decruft
 	${MAKE} -C sike_r1 decruft
 	${MAKE} -C sike_r2 decruft
 

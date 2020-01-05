@@ -219,8 +219,8 @@ SIKE_R1_COPY = $(addprefix s2n/pq-crypto/sike_r1/, $(notdir $(SIKE_R1_C)))
 SIKE_R2_C = $(wildcard ../../pq-crypto/sike_r2/*.c) $(wildcard ../../pq-crypto/sike_r2/*.h) ../../pq-crypto/sike_r2/Makefile
 SIKE_R2_COPY = $(addprefix s2n/pq-crypto/sike_r2/, $(notdir $(SIKE_R2_C)))
 
-BIKE_C = $(wildcard ../../pq-crypto/bike/*.c) $(wildcard ../../pq-crypto/bike/*.h) ../../pq-crypto/bike/Makefile
-BIKE_COPY = $(addprefix s2n/pq-crypto/bike/, $(notdir $(BIKE_C)))
+BIKE_R1_C = $(wildcard ../../pq-crypto/bike_r1/*.c) $(wildcard ../../pq-crypto/bike_r1/*.h) ../../pq-crypto/bike_r1/Makefile
+BIKE_R1_COPY = $(addprefix s2n/pq-crypto/bike_r1/, $(notdir $(BIKE_R1_C)))
 
 UTILS_C = $(wildcard ../../utils/*.c) $(wildcard ../../utils/*.h) ../../utils/Makefile
 UTILS_COPY =$(addprefix s2n/utils/, $(notdir $(UTILS_C)))
@@ -254,7 +254,7 @@ s2n/pq-crypto/sike_r1 :
 s2n/pq-crypto/sike_r2 :
 	mkdir -p $@
 
-s2n/pq-crypto/bike :
+s2n/pq-crypto/bike_r1 :
 	mkdir -p $@
 
 s2n/utils :
@@ -283,22 +283,22 @@ bitcode/sike_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/utils 
 	${MAKE} -C s2n sike_bc
 	${MAKE} -C bitcode all_llvm.bc
 
-.PHONY : bitcode/bike_llvm.bc
-bitcode/bike_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(BIKE_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
-	tr -d '\r' <../../pq-crypto/bike/bike1_l1_kem.c >s2n/pq-crypto/bike/bike1_l1_kem.c
-	patch s2n/pq-crypto/bike/bike1_l1_kem.c bike/patch/bike1_l1_kem.c.patch
-	tr -d '\r' <../../pq-crypto/bike/cleanup.h >s2n/pq-crypto/bike/cleanup.h
-	patch s2n/pq-crypto/bike/cleanup.h bike/patch/cleanup.h.patch
-	tr -d '\r' <../../pq-crypto/bike/sampling.c >s2n/pq-crypto/bike/sampling.c
-	patch s2n/pq-crypto/bike/sampling.c bike/patch/sampling.c.patch
-	tr -d '\r' <../../pq-crypto/bike/decode.c >s2n/pq-crypto/bike/decode.c
-	patch s2n/pq-crypto/bike/decode.c bike/patch/decode.c.patch
-	tr -d '\r' <../../pq-crypto/bike/secure_decode_portable.c >s2n/pq-crypto/bike/secure_decode_portable.c
-	patch s2n/pq-crypto/bike/secure_decode_portable.c bike/patch/secure_decode_portable.c.patch
-	tr -d '\r' <../../pq-crypto/bike/sampling_portable.c >s2n/pq-crypto/bike/sampling_portable.c
-	patch s2n/pq-crypto/bike/sampling_portable.c bike/patch/sampling_portable.c.patch
-	${MAKE} -C s2n bike_bc
-	${MAKE} -C bitcode bike_llvm.bc
+.PHONY : bitcode/bike_r1_llvm.bc
+bitcode/bike_r1_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(BIKE_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
+	tr -d '\r' <../../pq-crypto/bike_r1/bike1_l1_r1_kem.c >s2n/pq-crypto/bike_r1/bike1_l1_r1_kem.c
+	patch s2n/pq-crypto/bike_r1/bike1_l1_r1_kem.c bike_r1/patch/bike1_l1_r1_kem.c.patch
+	tr -d '\r' <../../pq-crypto/bike_r1/cleanup.h >s2n/pq-crypto/bike_R1/cleanup.h
+	patch s2n/pq-crypto/bike_r1/cleanup.h bike_r1/patch/cleanup.h.patch
+	tr -d '\r' <../../pq-crypto/bike_r1/sampling.c >s2n/pq-crypto/bike_r1/sampling.c
+	patch s2n/pq-crypto/bike_r1/sampling.c bike_r1/patch/sampling.c.patch
+	tr -d '\r' <../../pq-crypto/bike_r1/decode.c >s2n/pq-crypto/bike_r1/decode.c
+	patch s2n/pq-crypto/bike_r1/decode.c bike_r1/patch/decode.c.patch
+	tr -d '\r' <../../pq-crypto/bike_R1/secure_decode_portable.c >s2n/pq-crypto/bike_r1/secure_decode_portable.c
+	patch s2n/pq-crypto/bike_r1/secure_decode_portable.c bike_r1/patch/secure_decode_portable.c.patch
+	tr -d '\r' <../../pq-crypto/bike_r1/sampling_portable.c >s2n/pq-crypto/bike_r1/sampling_portable.c
+	patch s2n/pq-crypto/bike_r1/sampling_portable.c bike_r1/patch/sampling_portable.c.patch
+	${MAKE} -C s2n bike_r1_bc
+	${MAKE} -C bitcode bike_r1_llvm.bc
 
 
 s2n/%.h : ../../%.h

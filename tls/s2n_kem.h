@@ -44,7 +44,7 @@ struct s2n_iana_to_kem {
     uint8_t kem_count;
 };
 
-extern const struct s2n_kem s2n_bike_1_level_1_r1;
+extern const struct s2n_kem s2n_bike1_l1_r1;
 extern const struct s2n_kem s2n_sike_p503_r1;
 extern const struct s2n_kem s2n_sike_p434_r2;
 

@@ -37,11 +37,11 @@ get_ss e = ss where
 //       There's a small trick needed in the SAWScript to deal
 //       with this situation.
 
-BIKE1_L1_crypto_kem_dec
+BIKE1_L1_R1_crypto_kem_dec
     : char_ct
     -> char_sk
     -> (int_ty, char_ss)
-BIKE1_L1_crypto_kem_dec ct sk = (res2, ss2) where
+BIKE1_L1_R1_crypto_kem_dec ct sk = (res2, ss2) where
     (success_res : int_ty) = 0
     (fail_res : int_ty) = -1
     (l_sk:sk_t) = assemble_sk_t sk

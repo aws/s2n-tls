@@ -20,7 +20,7 @@
 
 #include <string.h>
 
-#include "bike1_l1_kem.h"
+#include "bike1_l1_r1_kem.h"
 #include "decode.h"
 #include "gf2x.h"
 #include "parallel_hash.h"
@@ -122,7 +122,7 @@ get_ss(OUT ss_t *out, IN const e_t *e)
 // NIST: In addition there are two KAT versions of this API as defined.
 ////////////////////////////////////////////////////////////////
 int
-BIKE1_L1_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
+BIKE1_L1_R1_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
 {
   // Convert to this implementation types
   sk_t *l_sk = (sk_t *)sk;
@@ -178,7 +178,7 @@ BIKE1_L1_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
 //               ct is a key encapsulation message (ciphertext),
 //               ss is the shared secret.
 int
-BIKE1_L1_crypto_kem_enc(OUT unsigned char *     ct,
+BIKE1_L1_R1_crypto_kem_enc(OUT unsigned char *     ct,
                         OUT unsigned char *     ss,
                         IN const unsigned char *pk)
 {
@@ -236,7 +236,7 @@ BIKE1_L1_crypto_kem_enc(OUT unsigned char *     ct,
 //               sk is the private key,
 //               ss is the shared secret
 int
-BIKE1_L1_crypto_kem_dec(OUT unsigned char *     ss,
+BIKE1_L1_R1_crypto_kem_dec(OUT unsigned char *     ss,
                         IN const unsigned char *ct,
                         IN const unsigned char *sk)
 {

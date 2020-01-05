@@ -22,7 +22,7 @@
 #include "tests/testlib/s2n_testlib.h"
 #include "tls/s2n_kem.h"
 
-#define RSP_FILE "kats/bike1_l1.kat"
+#define RSP_FILE "kats/bike1_l1_r1.kat"
 
 int main(int argc, char **argv, char **envp) {
     BEGIN_TEST();
@@ -30,6 +30,6 @@ int main(int argc, char **argv, char **envp) {
         /* Skip when FIPS mode is set as BIKE is not supported in FIPS mode */
         END_TEST();
     }
-    EXPECT_SUCCESS(s2n_test_kem_with_kat(&s2n_bike_1_level_1_r1, RSP_FILE));
+    EXPECT_SUCCESS(s2n_test_kem_with_kat(&s2n_bike1_l1_r1, RSP_FILE));
     END_TEST();
 }

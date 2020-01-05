@@ -21,12 +21,12 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_blob.h"
 
-#define RSP_FILE_NAME "../unit/kats/bike1_l1.kat"
+#define RSP_FILE_NAME "../unit/kats/bike1_l1_r1.kat"
 
-/* This fuzz test uses the first private key from tests/unit/kats/bike1_l1.kat, the valid ciphertext generated with the
- * public key was copied to corpus/s2n_bike_fuzz_test/valid_ciphertext */
+/* This fuzz test uses the first private key from tests/unit/kats/bike1_l1_r1.kat, the valid ciphertext generated with the
+ * public key was copied to corpus/s2n_bike_r1_fuzz_test/valid_ciphertext */
 
-static struct s2n_kem_keypair server_kem_keys = {.negotiated_kem = &s2n_bike_1_level_1_r1};
+static struct s2n_kem_keypair server_kem_keys = {.negotiated_kem = &s2n_bike1_l1_r1};
 
 static void s2n_fuzz_atexit()
 {
@@ -39,11 +39,11 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
     GUARD(s2n_init());
     GUARD(atexit(s2n_fuzz_atexit));
 
-    GUARD(s2n_alloc(&server_kem_keys.private_key, s2n_bike_1_level_1_r1.private_key_length));
+    GUARD(s2n_alloc(&server_kem_keys.private_key, s2n_bike1_l1_r1.private_key_length));
 
     FILE *kat_file = fopen(RSP_FILE_NAME, "r");
     notnull_check(kat_file);
-    GUARD(ReadHex(kat_file, server_kem_keys.private_key.data, s2n_bike_1_level_1_r1.private_key_length, "sk = "));
+    GUARD(ReadHex(kat_file, server_kem_keys.private_key.data, s2n_bike1_l1_r1.private_key_length, "sk = "));
 
     fclose(kat_file);
 
