@@ -111,8 +111,11 @@ static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_
 }
 
 static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, struct s2n_blob *shared_secret) {
-    size_t shared_secret_size;
+    notnull_check(peer_public);
+    notnull_check(own_key);
 
+    size_t shared_secret_size;
+    
     DEFER_CLEANUP(EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(own_key, NULL), EVP_PKEY_CTX_free_pointer);
     S2N_ERROR_IF(ctx == NULL, S2N_ERR_ECDHE_SHARED_SECRET);
 
@@ -312,6 +315,8 @@ int s2n_ecc_evp_parse_params_point(struct s2n_blob *point_blob, struct s2n_ecc_e
 
     /* Set the point as the public key */
     int success = EC_KEY_set_public_key(ec_key, point);
+
+    GUARD_OSSL(EVP_PKEY_set1_EC_KEY(ecc_evp_params->evp_pkey,ec_key), S2N_ERR_ECDHE_SERIALIZING);
 
     /* EC_KEY_set_public_key returns 1 on success, 0 on failure */
     S2N_ERROR_IF(success == 0, S2N_ERR_BAD_MESSAGE);
