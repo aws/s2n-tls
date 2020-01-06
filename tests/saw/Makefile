@@ -51,9 +51,9 @@ clean-bitcode :
 clean-failure-logs :
 	$(RM) -- $(wildcard failure_tests/*.log)
 
-.PHONY : clean-sike-logs
-clean-sike-logs :
-	$(RM) -- $(wildcard sike/*.log)
+.PHONY : clean-sike-r1-logs
+clean-sike-r1-logs :
+	$(RM) -- $(wildcard sike_r1/*.log)
 
 .PHONY: clean
 clean: decruft
@@ -68,7 +68,7 @@ clean_the_dir :
 	${RM} -r s2n
 	${RM} -r tmp
 	${RM} -r failure_tests/*.log
-	${RM} -r sike/*.log
+	${RM} -r sike_r1/*.log
 	${RM} -r bike/*.log
 	${RM} -r bitcode/*.bc
 
@@ -90,39 +90,39 @@ tmp/%.log : %.saw bitcode/all_llvm.bc tmp
 ## SIKE Tests
 ###########################################
 
-.PHONY : sike
-sike : sike_patched_bitcode
-	@${MAKE} clean-sike-logs
-	@${MAKE} sike/word.log
-	@${MAKE} sike/field.log
-	@${MAKE} sike/curve.log
-	@${MAKE} sike/isogeny.log
-	@${MAKE} sike/sidh.log
-	@${MAKE} sike/sike.log
+.PHONY : sike_r1
+sike_r1 : sike_r1_patched_bitcode
+	@${MAKE} clean-sike-r1-logs
+	@${MAKE} sike_r1/word.log
+	@${MAKE} sike_r1/field.log
+	@${MAKE} sike_r1/curve.log
+	@${MAKE} sike_r1/isogeny.log
+	@${MAKE} sike_r1/sidh.log
+	@${MAKE} sike_r1/sike.log
 
-sike/word.log :
+sike_r1/word.log :
 	@set -o pipefail; \
-	saw sike/verify_word.saw | tee $@
+	saw sike_r1/verify_word.saw | tee $@
 
-sike/field.log :
+sike_r1/field.log :
 	@set -o pipefail; \
-	saw sike/verify_field.saw | tee $@
+	saw sike_r1/verify_field.saw | tee $@
 
-sike/curve.log :
+sike_r1/curve.log :
 	@set -o pipefail; \
-	saw sike/verify_curve.saw | tee $@
+	saw sike_r1/verify_curve.saw | tee $@
 
-sike/isogeny.log :
+sike_r1/isogeny.log :
 	@set -o pipefail; \
-	saw sike/verify_isogeny.saw | tee $@
+	saw sike_r1/verify_isogeny.saw | tee $@
 
-sike/sidh.log :
+sike_r1/sidh.log :
 	@set -o pipefail; \
-	saw sike/verify_sidh.saw | tee $@
+	saw sike_r1/verify_sidh.saw | tee $@
 
-sike/sike.log :
+sike_r1/sike.log :
 	@set -o pipefail; \
-	saw sike/verify_sike.saw | tee $@
+	saw sike_r1/verify_sike.saw | tee $@
 
 ###########################################
 ## BIKE Tests
@@ -195,8 +195,8 @@ bitcode :
 	${MAKE} clean_the_dir
 	${MAKE} bitcode/all_llvm.bc
 
-.PHONY : sike_patched_bitcode
-sike_patched_bitcode :
+.PHONY : sike_r1_patched_bitcode
+sike_r1_patched_bitcode :
 	${MAKE} clean_the_dir
 	${MAKE} bitcode/sike_llvm.bc
 
@@ -277,9 +277,9 @@ bitcode/all_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/utils s
 
 .PHONY : bitcode/sike_llvm.bc
 bitcode/sike_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_R1_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
-	patch s2n/pq-crypto/sike_r1/fpx_r1.c sike/patch/fpx_r1.c.patch
-	patch s2n/pq-crypto/sike_r1/ec_isogeny_r1.c sike/patch/ec_isogeny_r1.c.patch
-	patch s2n/pq-crypto/sike_r1/sidh_r1.c sike/patch/sidh_r1.c.patch
+	patch s2n/pq-crypto/sike_r1/fpx_r1.c sike_r1/patch/fpx_r1.c.patch
+	patch s2n/pq-crypto/sike_r1/ec_isogeny_r1.c sike_r1/patch/ec_isogeny_r1.c.patch
+	patch s2n/pq-crypto/sike_r1/sidh_r1.c sike_r1/patch/sidh_r1.c.patch
 	${MAKE} -C s2n sike_bc
 	${MAKE} -C bitcode all_llvm.bc
 
