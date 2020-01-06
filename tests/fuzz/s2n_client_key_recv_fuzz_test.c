@@ -41,7 +41,6 @@ struct s2n_cert_chain_and_key *chain_and_key;
 struct s2n_cert_chain_and_key *cert;
 struct s2n_cipher_suite **test_suites;
 int num_suites;
-struct s2n_ecc_params test_params;
 
 /* HARDCODED LIST OF SUPPORTED CIPHER SUITES TAKEN FROM tls/s2n_cipher_suites.c */
 static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
@@ -162,9 +161,6 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
     cert = s2n_config_get_single_default_cert(config);
     notnull_check(cert);
 
-    test_params.negotiated_curve = s2n_ecc_supported_curves[0];
-    s2n_ecc_generate_ephemeral_key(&test_params);
-
     return 0;
 }
 
@@ -189,7 +185,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
             server_conn->handshake_params.our_chain_and_key = cert;
 
             if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_ecdhe_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {
-                memcpy(&server_conn->secure.server_ecc_params, &test_params, sizeof(test_params));
+                server_conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
+                s2n_ecc_generate_ephemeral_key(&server_conn->secure.server_ecc_params);
             }
 
             if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_kem_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {
@@ -200,6 +197,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
              * Do not use GUARD macro here since the connection memory hasn't been freed.
              */
             s2n_client_key_recv(server_conn);
+
             /* Cleanup */
             GUARD(s2n_connection_free(server_conn));
         }
