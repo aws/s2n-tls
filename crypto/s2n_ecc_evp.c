@@ -23,6 +23,8 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
+#define TLS_EC_CURVE_TYPE_NAMED 3
+
 DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY *, EVP_PKEY_free);
 DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY_CTX *, EVP_PKEY_CTX_free);
 
@@ -208,7 +210,7 @@ int s2n_ecc_evp_read_params(struct s2n_stuffer *in, struct s2n_blob *data_to_ver
 
     /* Read the curve */
     GUARD(s2n_stuffer_read_uint8(in, &curve_type));
-    S2N_ERROR_IF(curve_type != s2n_ecc_evp_supported_curves_list_len, S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(curve_type != TLS_EC_CURVE_TYPE_NAMED, S2N_ERR_BAD_MESSAGE);
     raw_server_ecc_params->curve_blob.data =  s2n_stuffer_raw_read(in, 2);
     notnull_check(raw_server_ecc_params->curve_blob.data);
     raw_server_ecc_params->curve_blob.size = 2;
@@ -235,13 +237,13 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
     uint8_t *encoded_point = NULL;
     
     point_blob.data = s2n_stuffer_raw_write(out, ecc_evp_params->negotiated_curve->share_size);
+    notnull_check(point_blob.data);
+
     size_t size = EVP_PKEY_get1_tls_encodedpoint(ecc_evp_params->evp_pkey, &encoded_point);
+    S2N_ERROR_IF(size != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
 
     memcpy(point_blob.data, encoded_point, size);
-    notnull_check(point_blob.data);
-    
     OPENSSL_free(encoded_point);
-    S2N_ERROR_IF(size != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
 #else
     uint8_t point_len;
     struct s2n_blob point_blob = {0};
@@ -256,8 +258,8 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
     GUARD(s2n_ecc_evp_calculate_point_length(point, group, &point_len));
     S2N_ERROR_IF(point_len != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
     point_blob.data = s2n_stuffer_raw_write(out, point_len);
-    point_blob.size = point_len;
     notnull_check(point_blob.data);
+    point_blob.size = point_len;
 
     GUARD(s2n_ecc_evp_write_point_data_snug(point, group, &point_blob));
 #endif
@@ -277,7 +279,7 @@ int s2n_ecc_evp_write_params(struct s2n_ecc_evp_params *ecc_evp_params, struct s
     written->data = s2n_stuffer_raw_write(out, 0);
     notnull_check(written->data);
 
-    GUARD(s2n_stuffer_write_uint8(out, s2n_ecc_evp_supported_curves_list_len));
+    GUARD(s2n_stuffer_write_uint8(out, TLS_EC_CURVE_TYPE_NAMED));
     GUARD(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->iana_id));
     GUARD(s2n_stuffer_write_uint8(out, key_share_size));
 
