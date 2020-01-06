@@ -30,7 +30,7 @@ jobs:
 
   - os: linux
     dist: trusty
-    env: S2N_LIBCRYPTO=openssl-1.1.1 BUILD_s2N=true GCC_VERSION=4
+    env: S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true GCC_VERSION=4
 
   - os: linux
     dist: bionic
