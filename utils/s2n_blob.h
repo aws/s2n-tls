@@ -25,8 +25,8 @@ struct s2n_blob {
     uint8_t *data;
     uint32_t size;
     uint32_t allocated;
-    unsigned int mlocked :1;
-    unsigned int growable :1;
+    unsigned mlocked :1;
+    unsigned growable :1;
 };
 
 
