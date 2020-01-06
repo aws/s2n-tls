@@ -86,7 +86,7 @@ if [[ "$TESTS" == "ALL" || "$TESTS" == "tls" ]]; then
 fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMACFailure" ]]; then make -C tests/saw failure-tests ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "ctverif" ]]; then .travis/run_ctverif.sh "$CTVERIF_INSTALL_DIR" ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "sawSIKE" ]]; then make -C tests/saw sike ; fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "sawSIKE_r1" ]]; then make -C tests/saw sike_r1 ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawBIKE" ]]; then make -C tests/saw bike ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sidetrail" ]]; then .travis/run_sidetrail.sh "$SIDETRAIL_INSTALL_DIR" "$PART" ; fi
 

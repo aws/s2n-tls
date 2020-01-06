@@ -116,7 +116,7 @@ jobs:
     addons : *sawaddons
   - os : linux
     dist: trusty
-    env: TESTS=sawSIKE SAW=true GCC_VERSION=NONE
+    env: TESTS=sawSIKE_r1 SAW=true GCC_VERSION=NONE
     addons : *sawaddons
   - os : linux
     dist: trusty
