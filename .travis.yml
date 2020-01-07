@@ -29,8 +29,8 @@ jobs:
     env: S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=6
 
   - os: linux
-    dist: trusty
-    env: S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true GCC_VERSION=4
+    dist: bionic
+    env: S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true GCC_VERSION=4.8
 
   - os: linux
     dist: bionic
