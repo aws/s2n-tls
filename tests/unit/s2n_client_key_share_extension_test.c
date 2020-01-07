@@ -20,6 +20,7 @@
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_client_extensions.h"
 #include "tls/s2n_tls.h"
 #include "tls/extensions/s2n_client_key_share.h"
 #include "tls/extensions/s2n_key_share.h"
