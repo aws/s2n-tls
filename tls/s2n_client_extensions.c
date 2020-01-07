@@ -28,7 +28,15 @@
 #include "tls/s2n_resume.h"
 
 #include "extensions/s2n_client_supported_versions.h"
+#include "extensions/s2n_client_max_frag_len.h"
+#include "extensions/s2n_client_session_ticket.h"
+#include "extensions/s2n_client_server_name.h"
+#include "extensions/s2n_client_alpn.h"
+#include "extensions/s2n_client_status_request.h"
 #include "extensions/s2n_client_key_share.h"
+#include "extensions/s2n_client_sct_list.h"
+#include "extensions/s2n_client_supported_groups.h"
+#include "extensions/s2n_client_pq_kem.h"
 #include "stuffer/s2n_stuffer.h"
 
 #include "tls/s2n_tls.h"
@@ -80,7 +88,6 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 
     uint16_t application_protocols_len = client_app_protocols->size;
     uint16_t server_name_len = strlen(conn->server_name);
-    uint16_t mfl_code_len = sizeof(conn->config->mfl_code);
     uint16_t client_ticket_len = conn->client_ticket.size;
 
     if (server_name_len) {
@@ -144,59 +151,33 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     }
 
     if (server_name_len) {
-        /* Write the server name */
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SERVER_NAME));
-        GUARD(s2n_stuffer_write_uint16(out, server_name_len + 5));
-
-        /* Size of all of the server names */
-        GUARD(s2n_stuffer_write_uint16(out, server_name_len + 3));
-
-        /* Name type - host name, RFC3546 */
-        GUARD(s2n_stuffer_write_uint8(out, 0));
-
-        struct s2n_blob server_name = {0};
-        server_name.data = (uint8_t *) conn->server_name;
-        server_name.size = server_name_len;
-        GUARD(s2n_stuffer_write_uint16(out, server_name_len));
-        GUARD(s2n_stuffer_write(out, &server_name));
+        GUARD(s2n_extensions_client_server_name_send(conn, out));
     }
 
     /* Write ALPN extension */
     if (application_protocols_len) {
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_ALPN));
-        GUARD(s2n_stuffer_write_uint16(out, application_protocols_len + 2));
-        GUARD(s2n_stuffer_write_uint16(out, application_protocols_len));
-        GUARD(s2n_stuffer_write(out, client_app_protocols));
+        GUARD(s2n_extensions_client_alpn_send(conn, out));
     }
 
     if (conn->config->status_request_type != S2N_STATUS_REQUEST_NONE) {
         /* We only support OCSP */
         eq_check(conn->config->status_request_type, S2N_STATUS_REQUEST_OCSP);
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_STATUS_REQUEST));
-        GUARD(s2n_stuffer_write_uint16(out, 5));
-        GUARD(s2n_stuffer_write_uint8(out, (uint8_t) conn->config->status_request_type));
-        GUARD(s2n_stuffer_write_uint16(out, 0));
-        GUARD(s2n_stuffer_write_uint16(out, 0));
+        GUARD(s2n_extensions_client_status_request_send(conn, out));
     }
 
     /* Write Certificate Transparency extension */
     if (conn->config->ct_type != S2N_CT_SUPPORT_NONE) {
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SCT_LIST));
-        GUARD(s2n_stuffer_write_uint16(out, 0));
+        GUARD(s2n_extensions_client_sct_list_send(conn, out));
     }
 
     /* Write Maximum Fragmentation Length extension */
     if (conn->config->mfl_code != S2N_TLS_MAX_FRAG_LEN_EXT_NONE) {
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_MAX_FRAG_LEN));
-        GUARD(s2n_stuffer_write_uint16(out, mfl_code_len));
-        GUARD(s2n_stuffer_write_uint8(out, conn->config->mfl_code));
+        GUARD(s2n_extensions_client_max_frag_len_send(conn, out));
     }
 
     /* Write Session Tickets extension */
     if (conn->config->use_tickets) {
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SESSION_TICKET));
-        GUARD(s2n_stuffer_write_uint16(out, client_ticket_len));
-        GUARD(s2n_stuffer_write(out, &conn->client_ticket));
+        GUARD(s2n_extensions_client_session_ticket_send(conn, out));
     }
 
     /*
@@ -204,40 +185,11 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
      * Supported Groups in TLS 1.3 RFC 8446) and the Supported Point Formats Extension.
      */
     if (ecc_extension_required) {
-        int ec_curves_count = s2n_array_len(s2n_ecc_supported_curves);
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SUPPORTED_GROUPS));
-        GUARD(s2n_stuffer_write_uint16(out, 2 + ec_curves_count * 2));
-        /* Curve list len */
-        GUARD(s2n_stuffer_write_uint16(out, ec_curves_count * 2));
-        /* Curve list */
-        for (int i = 0; i < ec_curves_count; i++) {
-            GUARD(s2n_stuffer_write_uint16(out, s2n_ecc_supported_curves[i]->iana_id));
-        }
-
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_EC_POINT_FORMATS));
-        GUARD(s2n_stuffer_write_uint16(out, 2));
-        /* Point format list len */
-        GUARD(s2n_stuffer_write_uint8(out, 1));
-        /* Only allow uncompressed format */
-        GUARD(s2n_stuffer_write_uint8(out, 0));
+        GUARD(s2n_extensions_client_supported_groups_send(conn, out));
     }
 
     if (pq_kem_extension_required) {
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_PQ_KEM_PARAMETERS));
-        /* Overall extension length */
-        GUARD(s2n_stuffer_write_uint16(out, 2 + pq_kem_list_size));
-        /* Length of parameters in bytes */
-        GUARD(s2n_stuffer_write_uint16(out, pq_kem_list_size));
-
-        for (int i = 0; i < cipher_preferences->count; i++) {
-            const struct s2n_iana_to_kem *supported_params = NULL;
-            if(s2n_cipher_suite_to_kem(cipher_preferences->suites[i]->iana_value, &supported_params) == 0) {
-                /* Each supported kem id is 2 bytes */
-                for (int j = 0; j < supported_params->kem_count; j++) {
-                    GUARD(s2n_stuffer_write_uint16(out, supported_params->kems[j]->kem_extension_id));
-                }
-            }
-        }
+        GUARD(s2n_extensions_client_pq_kem_send(conn, out, pq_kem_list_size));
     }
 
     return 0;
