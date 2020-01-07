@@ -28,9 +28,9 @@ logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
 
-def build_project(template=Template(), section=None, project_name=None, raw_env=None, service_role: str=None) -> Template:
+def build_project(template=Template(), section=None, project_name=None, raw_env=None,
+                  service_role: str = None) -> Template:
     template.set_version('2010-09-09')
-    # artifacts = Artifacts(Type='S3', Name='s2n-codebuild-artifact-bucket', Location='s2n-codebuild-artifact-bucket')
     artifacts = Artifacts(Type='NO_ARTIFACTS')
     env_list = list()
 
@@ -75,11 +75,12 @@ def build_project(template=Template(), section=None, project_name=None, raw_env=
     template.add_resource(project)
     template.add_output([Output(f"CodeBuildProject{project_name}", Value=Ref(project_id))])
 
-def build_role(template=Template(), section="CFNRole", project_name:str=None, **kwargs) -> Ref:
+
+def build_role(template=Template(), section="CFNRole", project_name: str = None, **kwargs) -> Ref:
     """ Build a role with a CodeBuild managed policy. """
     template.set_version('2010-09-09')
     assert project_name
-    project_name+='Role'
+    project_name += 'Role'
 
     # NOTE: By default CodeBuild manages the policies for this role.  If you delete a CFN stack and try to recreate the project
     # or make changes to it when the Codebuild managed Policy still exists, you'll see an error in the UI:
@@ -106,16 +107,10 @@ def build_role(template=Template(), section="CFNRole", project_name:str=None, **
     template.add_output([Output(project_name, Value=Ref(role_id))])
     return Ref(role_id)
 
-def build_s3_cache(template=Template(), section=None, **kwargs) -> Template:
-    """ Create/Manage the s3 bucket for use by CodeBuild Cache    """
-    # TODO: Add s3 bucket.
-    pass
 
 def main(**kwargs):
     """ Create the CFN template and either write to screen or update/create boto3. """
     codebuild = Template()
-    
-    build_s3_cache(template=codebuild)
 
     for job in config.sections():
         if 'CodeBuild:' in job:
@@ -123,7 +118,7 @@ def main(**kwargs):
             service_role = build_role(template=codebuild, project_name=job_title).to_dict()
             # Pull the env out of the section, and use the snippet for the other values.
             if 'snippet' in config[job]:
-                build_project(template=codebuild, project_name=job_title, section=config.get(job, 'snippet'),\
+                build_project(template=codebuild, project_name=job_title, section=config.get(job, 'snippet'),
                               service_role=service_role['Ref'], raw_env=config.get(job, 'env'))
             else:
                 build_project(template=codebuild, project_name=job_title, section=job, service_role=service_role['Ref'])
@@ -139,7 +134,7 @@ def main(**kwargs):
 
 if __name__ == '__main__':
     # Parse  options
-    parser = argparse.ArgumentParser(description='Creates AWS CodeBuild Project CloudFormation files ' + \
+    parser = argparse.ArgumentParser(description='Creates AWS CodeBuild Project CloudFormation files ' +
                                                  'based on a simple config')
     parser.add_argument('--config', type=str, default="codebuild.config", help='The config filename to create the '
                                                                                'CodeBuild projects')
