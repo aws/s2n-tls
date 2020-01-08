@@ -23,6 +23,12 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 
+/* Using a non-zero value 
+ * (a) makes wiped data easy to see in the debugger
+ * (b) makes use of wiped data obvious since this is unlikely to be a valid bit pattern
+ */
+#define S2N_WIPE_PATTERN 'w'
+
 bool s2n_stuffer_is_valid(const struct s2n_stuffer* stuffer)
 {
     /* Note that we do not assert any properties on the alloced, growable, and tainted fields,
@@ -135,9 +141,9 @@ int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t size)
 
     /* We know that size is now less than write_cursor */
     stuffer->write_cursor -= size;
-    memset_check(stuffer->blob.data + stuffer->write_cursor, '0', size);
+    memset_check(stuffer->blob.data + stuffer->write_cursor, S2N_WIPE_PATTERN, size);
     stuffer->read_cursor = MIN(stuffer->read_cursor, stuffer->write_cursor);
-
+    
     return 0;
 }
 
@@ -159,7 +165,7 @@ int s2n_stuffer_release_if_empty(struct s2n_stuffer *stuffer)
 int s2n_stuffer_wipe(struct s2n_stuffer *stuffer)
 {
     if (!s2n_stuffer_is_wiped(stuffer)) {
-        memset_check(stuffer->blob.data, 0, stuffer->high_water_mark);
+        memset_check(stuffer->blob.data, S2N_WIPE_PATTERN, stuffer->high_water_mark);
     }
 
     stuffer->tainted = 0;
