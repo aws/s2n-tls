@@ -16,15 +16,16 @@
 #ifndef S2N_SIKE_R2_CODE_IDENTIFIER_H
 #define S2N_SIKE_R2_CODE_IDENTIFIER_H
 
-#if defined(__x86_64__)
-// Allow the forced usage of the generic implementation if desired.
-#if defined(S2N_SIKE_R2_FORCE_GENERIC)
-#define GENERIC_IMPLEMENTATION
-#else
-#define OPTIMIZED_ASM_IMPLEMENTATION
+#ifndef S2N_NO_PQ_ASM
+#ifndef __APPLE__
+#ifdef __x86_64__
+#define S2N_PQ_ASM
 #endif
-#else
-#define GENERIC_IMPLEMENTATION
+#endif
+#endif
+
+#ifndef S2N_PQ_ASM
+#define S2N_PQ_GENERIC
 #endif
 
 #define ASM_CODE_IDENTIFIER 1
