@@ -60,16 +60,18 @@ file(GLOB PQ_SRC
         "pq-crypto/sike_r2/P434.c"
         )
 
-if($ENV{S2N_SIKE_R2_FORCE_GENERIC})
-    message(STATUS "Forcing usage of generic C code for SIKE p434 r2")
+if($ENV{S2N_NO_PQ_ASM})
+    message(STATUS "Forcing usage of generic C code for PQ crypto")
+elseif(${CMAKE_HOST_SYSTEM_NAME} MATCHES "Darwin")
+    message(STATUS "Detected Darwin, using generic C code for PQ crypto")
 elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64" OR ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "amd64" OR (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "AMD64" AND CMAKE_CL_64))
-    message(STATUS "Using optimized x86_64 assembly for SIKE p434 r2")
+    message(STATUS "Using optimized x86_64 assembly for PQ crypto")
     enable_language(ASM)
     file(GLOB PQ_X86_64_ASM
             "pq-crypto/sike_r2/fp_x64_asm.S")
     list(APPEND PQ_SRC ${PQ_X86_64_ASM})
 else()
-    message(STATUS "Architecture is not x86_64 compatible - using generic C code for SIKE p434 r2")
+    message(STATUS "Architecture is not x86_64 compatible - using generic C code for PQ crypto")
 endif()
 
 file(GLOB STUFFER_SRC
