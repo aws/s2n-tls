@@ -1,0 +1,305 @@
+69a70,126
+> extern int __breakpoint__EphemeralKeyGeneration_A_main_loop(
+>     const digit_t**,
+>     unsigned char**,
+>     point_proj_t*,
+>     point_proj_t*,
+>     point_proj_t*,
+>     point_proj_t*,
+>     point_proj_t (*)[MAX_INT_POINTS_ALICE],
+>     f2elm_t (*)[3],
+>     f2elm_t**,
+>     f2elm_t**,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int (*)[MAX_INT_POINTS_ALICE],
+>     unsigned int*,
+>     unsigned int*)__attribute__((noduplicate));
+> 
+> extern int __breakpoint__EphemeralKeyGeneration_A_first_loop(
+>     const digit_t**,
+>     unsigned char**,
+>     point_proj_t*,
+>     point_proj_t*,
+>     point_proj_t*,
+>     point_proj_t*,
+>     point_proj_t (*)[MAX_INT_POINTS_ALICE],
+>     f2elm_t (*)[3],
+>     f2elm_t**,
+>     f2elm_t**,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int (*)[MAX_INT_POINTS_ALICE],
+>     unsigned int*,
+>     unsigned int*)__attribute__((noduplicate));
+> 
+> extern int __breakpoint__EphemeralKeyGeneration_A_second_loop(
+>     const digit_t**,
+>     unsigned char**,
+>     point_proj_t*,
+>     point_proj_t*,
+>     point_proj_t*,
+>     point_proj_t*,
+>     point_proj_t (*)[MAX_INT_POINTS_ALICE],
+>     f2elm_t (*)[3],
+>     f2elm_t**,
+>     f2elm_t**,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int (*)[MAX_INT_POINTS_ALICE],
+>     unsigned int*,
+>     unsigned int*)__attribute__((noduplicate));
+> 
+74c131
+<     point_proj_t R, phiP = {0}, phiQ = {0}, phiR = {0}, pts[MAX_INT_POINTS_ALICE];
+---
+>     point_proj_t R, phiP = {0}, phiQ = {0}, phiR = {0}, pts[MAX_INT_POINTS_ALICE] = {0};
+77c134
+<     unsigned int i, row, m, index = 0, pts_index[MAX_INT_POINTS_ALICE], npts = 0, ii = 0;
+---
+>     unsigned int i, row, m, index = 0, pts_index[MAX_INT_POINTS_ALICE] = {0}, npts = 0, ii = 0;
+96,97c153,154
+<     for (row = 1; row < MAX_Alice; row++) {
+<         while (index < MAX_Alice-row) {
+---
+>     for (row = 1; __breakpoint__EphemeralKeyGeneration_A_main_loop(&PrivateKeyA, &PublicKeyA, &R, &phiP, &phiQ, &phiR, &pts, &coeff, &A24plus, &C24, &i, &row, &m, &index, &pts_index, &npts, &ii), row < MAX_Alice; row++) {
+>         while (__breakpoint__EphemeralKeyGeneration_A_first_loop(&PrivateKeyA, &PublicKeyA, &R, &phiP, &phiQ, &phiR, &pts, &coeff, &A24plus, &C24, &i, &row, &m, &index, &pts_index, &npts, &ii), index < MAX_Alice-row) {
+107c164
+<         for (i = 0; i < npts; i++) {
+---
+>         for (i = 0; __breakpoint__EphemeralKeyGeneration_A_second_loop(&PrivateKeyA, &PublicKeyA, &R, &phiP, &phiQ, &phiR, &pts, &coeff, &A24plus, &C24, &i, &row, &m, &index, &pts_index, &npts, &ii), i < npts; i++) {
+138a196,252
+> extern int __breakpoint__EphemeralKeyGeneration_B_main_loop(
+>     const digit_t**,
+>     unsigned char**,
+>     point_proj_t*,
+>     point_proj_t*,
+>     point_proj_t*,
+>     point_proj_t*,
+>     point_proj_t (*)[MAX_INT_POINTS_BOB],
+>     f2elm_t (*)[2],
+>     f2elm_t**,
+>     f2elm_t**,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int (*)[MAX_INT_POINTS_BOB],
+>     unsigned int*,
+>     unsigned int*)__attribute__((noduplicate));
+> 
+> extern int __breakpoint__EphemeralKeyGeneration_B_first_loop(
+>     const digit_t**,
+>     unsigned char**,
+>     point_proj_t*,
+>     point_proj_t*,
+>     point_proj_t*,
+>     point_proj_t*,
+>     point_proj_t (*)[MAX_INT_POINTS_BOB],
+>     f2elm_t (*)[2],
+>     f2elm_t**,
+>     f2elm_t**,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int (*)[MAX_INT_POINTS_BOB],
+>     unsigned int*,
+>     unsigned int*)__attribute__((noduplicate));
+> 
+> extern int __breakpoint__EphemeralKeyGeneration_B_second_loop(
+>     const digit_t**,
+>     unsigned char**,
+>     point_proj_t*,
+>     point_proj_t*,
+>     point_proj_t*,
+>     point_proj_t*,
+>     point_proj_t (*)[MAX_INT_POINTS_BOB],
+>     f2elm_t (*)[2],
+>     f2elm_t**,
+>     f2elm_t**,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int (*)[MAX_INT_POINTS_BOB],
+>     unsigned int*,
+>     unsigned int*)__attribute__((noduplicate));
+> 
+143,144c257,258
+<     point_proj_t R, phiP = {0}, phiQ = {0}, phiR = {0}, pts[MAX_INT_POINTS_BOB];
+<     f2elm_t _XPB, _XQB, _XRB, coeff[3], _A24plus = {0}, _A24minus = {0}, _A = {0};
+---
+>     point_proj_t R, phiP = {0}, phiQ = {0}, phiR = {0}, pts[MAX_INT_POINTS_BOB] = {0};
+>     f2elm_t _XPB, _XQB, _XRB, coeff[2], _A24plus = {0}, _A24minus = {0}, _A = {0};
+146c260
+<     unsigned int i, row, m, index = 0, pts_index[MAX_INT_POINTS_BOB], npts = 0, ii = 0;
+---
+>     unsigned int i, row, m, index = 0, pts_index[MAX_INT_POINTS_BOB] = {0}, npts = 0, ii = 0;
+166,167c280,281
+<     for (row = 1; row < MAX_Bob; row++) {
+<         while (index < MAX_Bob-row) {
+---
+>     for (row = 1; __breakpoint__EphemeralKeyGeneration_B_main_loop(&PrivateKeyB, &PublicKeyB, &R, &phiP, &phiQ, &phiR, &pts, &coeff, &A24plus, &A24minus, &i, &row, &m, &index, &pts_index, &npts, &ii), row < MAX_Bob; row++) {
+>         while (__breakpoint__EphemeralKeyGeneration_B_first_loop(&PrivateKeyB, &PublicKeyB, &R, &phiP, &phiQ, &phiR, &pts, &coeff, &A24plus, &A24minus, &i, &row, &m, &index, &pts_index, &npts, &ii), index < MAX_Bob-row) {
+177c291
+<         for (i = 0; i < npts; i++) {
+---
+>         for (i = 0; __breakpoint__EphemeralKeyGeneration_B_second_loop(&PrivateKeyB, &PublicKeyB, &R, &phiP, &phiQ, &phiR, &pts, &coeff, &A24plus, &A24minus,&i, &row, &m, &index, &pts_index, &npts, &ii), i < npts; i++) {
+208a323,376
+> extern int __breakpoint__EphemeralSecretAgreement_A_main_loop(
+>     const digit_t**,
+>     const unsigned char**,
+>     unsigned char**,
+>     point_proj_t*,
+>     point_proj_t (*)[MAX_INT_POINTS_ALICE],
+>     f2elm_t (*)[3],
+>     f2elm_t**,
+>     f2elm_t**,
+>     f2elm_t**,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int (*)[MAX_INT_POINTS_ALICE],
+>     unsigned int*,
+>     unsigned int*)__attribute__((noduplicate));
+> 
+> extern int __breakpoint__EphemeralSecretAgreement_A_first_loop(
+>     const digit_t**,
+>     const unsigned char**,
+>     unsigned char**,
+>     point_proj_t*,
+>     point_proj_t (*)[MAX_INT_POINTS_ALICE],
+>     f2elm_t (*)[3],
+>     f2elm_t**,
+>     f2elm_t**,
+>     f2elm_t**,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int (*)[MAX_INT_POINTS_ALICE],
+>     unsigned int*,
+>     unsigned int*)__attribute__((noduplicate));
+> 
+> extern int __breakpoint__EphemeralSecretAgreement_A_second_loop(
+>     const digit_t**,
+>     const unsigned char**,
+>     unsigned char**,
+>     point_proj_t*,
+>     point_proj_t (*)[MAX_INT_POINTS_ALICE],
+>     f2elm_t (*)[3],
+>     f2elm_t**,
+>     f2elm_t**,
+>     f2elm_t**,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int (*)[MAX_INT_POINTS_ALICE],
+>     unsigned int*,
+>     unsigned int*)__attribute__((noduplicate));
+> 
+215c383
+<     point_proj_t R, pts[MAX_INT_POINTS_ALICE];
+---
+>     point_proj_t R, pts[MAX_INT_POINTS_ALICE] = {0};
+219c387
+<     unsigned int i, row, m, index = 0, pts_index[MAX_INT_POINTS_ALICE], npts = 0, ii = 0;
+---
+>     unsigned int i, row, m, index = 0, pts_index[MAX_INT_POINTS_ALICE] = {0}, npts = 0, ii = 0;
+237,238c405,406
+<     for (row = 1; row < MAX_Alice; row++) {
+<         while (index < MAX_Alice-row) {
+---
+>     for (row = 1; __breakpoint__EphemeralSecretAgreement_A_main_loop(&PrivateKeyA, &PublicKeyB, &SharedSecretA, &R, &pts, &coeff, &jinv, &A24plus, &C24, &i, &row, &m, &index, &pts_index, &npts, &ii), row < MAX_Alice; row++) {
+>         while (__breakpoint__EphemeralSecretAgreement_A_first_loop(&PrivateKeyA, &PublicKeyB, &SharedSecretA, &R, &pts, &coeff, &jinv, &A24plus, &C24, &i, &row, &m, &index, &pts_index, &npts, &ii), index < MAX_Alice-row) {
+248c416
+<         for (i = 0; i < npts; i++) {
+---
+>         for (i = 0; __breakpoint__EphemeralSecretAgreement_A_second_loop(&PrivateKeyA, &PublicKeyB, &SharedSecretA, &R, &pts, &coeff, &jinv, &A24plus, &C24, &i, &row, &m, &index, &pts_index, &npts, &ii), i < npts; i++) {
+268a437,493
+> extern int __breakpoint__EphemeralSecretAgreement_B_main_loop(
+>     const digit_t**,
+>     const unsigned char**,
+>     unsigned char**,
+>     point_proj_t*,
+>     point_proj_t (*)[MAX_INT_POINTS_BOB],
+>     f2elm_t (*)[2],
+>     f2elm_t**,
+>     f2elm_t**,
+>     f2elm_t**,
+>     f2elm_t**,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int (*)[MAX_INT_POINTS_BOB],
+>     unsigned int*,
+>     unsigned int*)__attribute__((noduplicate));
+> 
+> extern int __breakpoint__EphemeralSecretAgreement_B_first_loop(
+>     const digit_t**,
+>     const unsigned char**,
+>     unsigned char**,
+>     point_proj_t*,
+>     point_proj_t (*)[MAX_INT_POINTS_BOB],
+>     f2elm_t (*)[2],
+>     f2elm_t**,
+>     f2elm_t**,
+>     f2elm_t**,
+>     f2elm_t**,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int (*)[MAX_INT_POINTS_BOB],
+>     unsigned int*,
+>     unsigned int*)__attribute__((noduplicate));
+> 
+> extern int __breakpoint__EphemeralSecretAgreement_B_second_loop(
+>     const digit_t**,
+>     const unsigned char**,
+>     unsigned char**,
+>     point_proj_t*,
+>     point_proj_t (*)[MAX_INT_POINTS_BOB],
+>     f2elm_t (*)[2],
+>     f2elm_t**,
+>     f2elm_t**,
+>     f2elm_t**,
+>     f2elm_t**,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int*,
+>     unsigned int (*)[MAX_INT_POINTS_BOB],
+>     unsigned int*,
+>     unsigned int*)__attribute__((noduplicate));
+> 
+275,276c500,501
+<     point_proj_t R, pts[MAX_INT_POINTS_BOB];
+<     f2elm_t coeff[3], PKB[3], _jinv;
+---
+>     point_proj_t R, pts[MAX_INT_POINTS_BOB] = {0};
+>     f2elm_t coeff[2], PKB[3], _jinv;
+279c504
+<     unsigned int i, row, m, index = 0, pts_index[MAX_INT_POINTS_BOB], npts = 0, ii = 0;
+---
+>     unsigned int i, row, m, index = 0, pts_index[MAX_INT_POINTS_BOB] = {0}, npts = 0, ii = 0;
+297,298c522,523
+<     for (row = 1; row < MAX_Bob; row++) {
+<         while (index < MAX_Bob-row) {
+---
+>     for (row = 1; __breakpoint__EphemeralSecretAgreement_B_main_loop(&PrivateKeyB, &PublicKeyA, &SharedSecretB, &R, &pts, &coeff, &jinv, &A24plus, &A24minus, &A, &i, &row, &m, &index, &pts_index, &npts, &ii), row < MAX_Bob; row++) {
+>         while (__breakpoint__EphemeralSecretAgreement_B_first_loop(&PrivateKeyB, &PublicKeyA, &SharedSecretB, &R, &pts, &coeff, &jinv, &A24plus, &A24minus, &A, &i, &row, &m, &index, &pts_index, &npts, &ii), index < MAX_Bob-row) {
+308c533
+<         for (i = 0; i < npts; i++) {
+---
+>         for (i = 0; __breakpoint__EphemeralSecretAgreement_B_second_loop(&PrivateKeyB, &PublicKeyA, &SharedSecretB, &R, &pts, &coeff, &jinv, &A24plus, &A24minus, &A, &i, &row, &m, &index, &pts_index, &npts, &ii), i < npts; i++) {

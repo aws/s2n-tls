@@ -12,6 +12,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 #
+
 SRCS=fp_generic_r1.c P503_r1.c sike_p503_r1_kem.c fips202_r1.c
 OBJS=$(SRCS:.c=.o)
 
@@ -21,7 +22,11 @@ BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
 .PHONY : all
 all: $(OBJS)
 
+include ../../s2n.mk
+
+CFLAGS_LLVM = -emit-llvm -c -g \
+              -std=c99 -fgnu89-inline -D_POSIX_C_SOURCE=200809L -D_FORTIFY_SOURCE=2 \
+              -I$(LIBCRYPTO_ROOT)/include/ -I../../api/ -I../../
+
 .PHONY : bc
 bc: $(BCS)
-
-include ../../s2n.mk

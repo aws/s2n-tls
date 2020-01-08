@@ -1,0 +1,100 @@
+//sike.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// Verify the top-level SIKE functions
+
+import "../spec/Loader.cry";
+import "../spec/interface/sidh.cry";
+import "../spec/shared/Constants.cry";
+import "../spec/interface/cshake.cry";
+import "../spec/interface/sike.cry";
+
+///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+// NOTE: These functions contain extra precoditions that are inherited from
+//       the called functions in SIDH. The true facts can be removed.
+
+let add_bogus_preconditions = do {
+    crucible_precond {{ pftwice_mod g_Montgomery_one }};
+    crucible_precond {{ pftwice_mod zero }};
+    crucible_precond {{ fpnorm zero == zero }};
+    crucible_precond {{ fpnorm g_Montgomery_one == g_Montgomery_one }};
+    crucible_precond {{ is_good_basis A_gen }};
+    crucible_precond {{ is_good_basis B_gen }};
+};
+
+let crypto_kem_enc_spec = do {
+    (pk, pkp) <- ptr_to_fresh_readonly "pk"
+        (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
+    let ct_t = llvm_array CRYPTO_CIPHERTEXTBYTES char_t;
+    let ss_t = llvm_array CRYPTO_BYTES char_t;
+    ctp <- crucible_alloc ct_t;
+    ssp <- crucible_alloc ss_t;
+    add_bogus_preconditions;
+    crucible_precond {{ is_good_pk_encoding pk }};
+    crucible_execute_func [ctp, ssp, pkp];
+    crucible_points_to ctp (crucible_term {{ (crypto_kem_enc pk).0 }});
+    crucible_points_to ssp (crucible_term {{ (crypto_kem_enc pk).1 }});
+    crucible_return (crucible_term {{ 0:[32] }});
+};
+
+let crypto_kem_dec_spec = do {
+    (ct, ctp) <- ptr_to_fresh_readonly "ct"
+        (llvm_array CRYPTO_CIPHERTEXTBYTES char_t);
+    (sk, skp) <- ptr_to_fresh_readonly "sk" 
+        (llvm_array CRYPTO_SECRETKEYBYTES char_t);
+    let ss_t = llvm_array CRYPTO_BYTES char_t;
+    ssp <- crucible_alloc ss_t;
+    crucible_precond {{ is_good_pk_encoding (take ct) }};
+    add_bogus_preconditions;
+    crucible_execute_func [ssp, ctp, skp];
+    crucible_points_to ssp (tm {{ crypto_kem_dec ct sk }});
+    crucible_return (crucible_term {{ 0:[32] }});
+};
+
+let crypto_kem_keypair_spec = do {
+    let pk_t = llvm_array  CRYPTO_PUBLICKEYBYTES char_t;
+    pkp <- crucible_alloc pk_t;
+    let sk_t = llvm_array CRYPTO_SECRETKEYBYTES char_t;
+    skp <- crucible_alloc sk_t;
+    add_bogus_preconditions;
+    crucible_execute_func [pkp, skp];
+    crucible_points_to pkp (crucible_term {{ (crypto_kem_keypair).0 }});
+    crucible_points_to skp (crucible_term {{ (crypto_kem_keypair).1 }});
+    crucible_return (crucible_term {{ 0:[32] }});
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+crypto_kem_keypair_ov <- verify_unint "SIKE_P503_r1_crypto_kem_keypair"
+    [ randombytes_sike_ov, random_mod_order_B_unint_ov
+    , ephemeralKeyGeneration_B_ov ]
+    [ "EphemeralKeyGeneration_B" ]
+    crypto_kem_keypair_spec;
+
+let O_kem_enc =
+    [ randombytes_sike_ov, ephemeralSecretAgreement_A_ov
+    , ephemeralKeyGeneration_A_ov, cshake256_simple_enc_ov0
+    , cshake256_simple_enc_ov1, cshake256_simple_enc_ov2 ];
+
+let U_kem_enc =
+    [ "EphemeralSecretAgreement_A", "EphemeralKeyGeneration_A"
+    , "cshake", "pftwice_mod", "fpnorm"
+    , "is_good_pk_encoding", "is_good_basis" ];
+
+crypto_kem_enc_ov <- verify_unint "SIKE_P503_r1_crypto_kem_enc"
+    O_kem_enc U_kem_enc crypto_kem_enc_spec;
+
+crypto_kem_dec_ov <- verify_unint "SIKE_P503_r1_crypto_kem_dec"
+    [ ephemeralSecretAgreement_B_ov, cshake256_simple_enc_ov0
+    , cshake256_simple_enc_ov1, cshake256_simple_enc_ov2
+    , ephemeralKeyGeneration_A_ov, memcmp_ov_for_kem_dec ]
+    [ "EphemeralSecretAgreement_B", "cshake"
+    , "EphemeralKeyGeneration_A", "pf2twice_mod"
+    , "pftwice_mod", "fp2norm", "fpnorm", "is_good_fp2_encoding"
+    , "is_good_basis" ]
+    crypto_kem_dec_spec;
+

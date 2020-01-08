@@ -27,9 +27,11 @@
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER)
 #define MODERN_EC_SUPPORTED 1
 extern const struct s2n_ecc_named_curve s2n_ecc_curve_x25519;
+#else
+#define MODERN_EC_SUPPORTED 0
 #endif
 
-extern const struct s2n_ecc_named_curve* const s2n_ecc_evp_supported_curves_list[];
+extern const struct s2n_ecc_named_curve *const s2n_ecc_evp_supported_curves_list[];
 extern const size_t s2n_ecc_evp_supported_curves_list_len;
 
 struct s2n_ecc_evp_params {
@@ -41,4 +43,18 @@ int s2n_ecc_evp_generate_ephemeral_key(struct s2n_ecc_evp_params *ecc_evp_params
 int s2n_ecc_evp_compute_shared_secret_from_params(struct s2n_ecc_evp_params *private_ecc_evp_params,
                                                   struct s2n_ecc_evp_params *public_ecc_evp_params,
                                                   struct s2n_blob *shared_key);
+int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *out);
+int s2n_ecc_evp_read_params_point(struct s2n_stuffer *in, int point_size, struct s2n_blob *point_blob);
+int s2n_ecc_evp_compute_shared_secret_from_params(struct s2n_ecc_evp_params *private_ecc_evp_params,
+                                                  struct s2n_ecc_evp_params *public_ecc_evp_params,
+                                                  struct s2n_blob *shared_key);
+int s2n_ecc_evp_parse_params_point(struct s2n_blob *point_blob, struct s2n_ecc_evp_params *ecc_evp_params);
+int s2n_ecc_evp_write_params(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *out,
+                             struct s2n_blob *written);
+int s2n_ecc_evp_read_params(struct s2n_stuffer *in, struct s2n_blob *data_to_verify,
+                            struct s2n_ecdhe_raw_server_params *raw_server_ecc_params);
+int s2n_ecc_evp_parse_params(struct s2n_ecdhe_raw_server_params *raw_server_ecc_params,
+                             struct s2n_ecc_evp_params *ecc_evp_params);
+int s2n_ecc_evp_generate_copy_params(struct s2n_ecc_evp_params *from_params, struct s2n_ecc_evp_params *to_params);
+int s2n_ecc_evp_find_supported_curve(struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **found);
 int s2n_ecc_evp_params_free(struct s2n_ecc_evp_params *ecc_evp_params);

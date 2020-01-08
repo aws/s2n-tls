@@ -1,0 +1,49 @@
+//random.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// Verify the random number operations
+
+import "../spec/interface/random.cry";
+
+///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+/* NOTES for get_random_bytes proof:
+
+ - There is nothing to prove about the randombytes operations. We
+   just assert that the call returns 0 after putting a value
+   into the parameter
+
+ - Randombytes is unspecified as to what the first argument's length is.
+   There are two calls, one in sike.c and one in sidh.c.
+   The first uses MSG_BYTES (= 24) bytes and the second uses 32.
+   So we need two specfic overrides.
+
+*/
+
+let randombytes_spec_unint n = do {
+    let t = llvm_array n char_t;
+    ap <- crucible_alloc t;
+    crucible_execute_func [ap, (crucible_term {{ `n:[32] }})];
+    crucible_points_to ap (crucible_term {{ (randombytes : [n][8]) }});
+    crucible_return (crucible_term {{0:[32]}});
+};
+
+let randombytes_spec n = do {
+    let t = llvm_array n char_t;
+    ap <- crucible_alloc t;
+    crucible_execute_func [ap, (crucible_term {{ `n:[32] }})];
+    rand <- crucible_fresh_var "random_bytes" t;
+    crucible_points_to ap (crucible_term rand);
+    crucible_return (crucible_term {{0:[32]}});
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+randombytes_sike_ov <- crucible_llvm_unsafe_assume_spec  m
+    "get_random_bytes" (randombytes_spec_unint MSG_BYTES);
+
+randombytes_sidh_ov <- crucible_llvm_unsafe_assume_spec  m
+    "get_random_bytes" (randombytes_spec BOB_OR_ALICE_BYTES);

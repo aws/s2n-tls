@@ -1,0 +1,929 @@
+//field.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// Verify the field operations
+
+import "../spec/Loader.cry";
+import "../spec/interface/fpx.cry";
+import "../spec/interface/fp_generic.cry";
+
+///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+let fpneg503_nonzero_spec = do {
+    (a, ap) <- B_felm_t "a";
+    crucible_precond {{ pftwice_mod(a) /\ a != zero }};
+    crucible_execute_func [ap];
+    c <- crucible_fresh_var "c" felm_t;
+    crucible_points_to ap (tm c);
+    crucible_postcond {{ fpneg503(a) == fpnorm((c)) }};
+    crucible_postcond {{ pftwice_mod(c) }};
+};
+
+let fpneg503_spec = do {
+    (a, ap) <- B_felm_t "a";
+    crucible_precond {{ pftwice_mod(a) }};
+    crucible_execute_func [ap];
+    c <- crucible_fresh_var "c" felm_t;
+    crucible_points_to ap (tm c);
+    crucible_postcond {{ fpneg503(a) == fpnorm((c)) }};
+    crucible_postcond {{ pftwice_mod(c) }};
+};
+
+let unary_ptr_op_felm f = do {
+    (a, ap) <- A_felm_t "a";
+    cp <- C_felm_t ();
+    crucible_precond {{ pftwice_mod(a) }};
+    crucible_execute_func [ap, cp];
+    c <- crucible_fresh_var "c" felm_t;
+    crucible_points_to cp (tm c);
+    crucible_postcond {{ f(a) == fpnorm(c) }};
+    crucible_postcond {{ pftwice_mod(c) }};
+};
+
+let binary_ptr_op_felm f left right = do {
+
+    (a, ap) <- (if left then B_felm_t else A_felm_t) "a";
+    (b, bp) <- (if right then B_felm_t else A_felm_t) "b";
+
+    crucible_precond {{ pftwice_mod(a) /\ pftwice_mod(b) }};
+
+    rp <- if left then
+            do { crucible_execute_func [ap, bp, ap]; return ap; }
+          else if right then
+            do { crucible_execute_func [ap, bp, bp]; return bp; }
+          else do {
+            cp <- C_felm_t ();
+            crucible_execute_func [ap, bp, cp];
+            return cp; };
+
+    c <- crucible_fresh_var "c" felm_t;
+    crucible_points_to rp (tm c);
+    crucible_postcond {{ f(a,b) == fpnorm(c) }};
+    crucible_postcond {{ pftwice_mod(c) }};
+};
+
+let fpcopy503_spec = do {
+    (a, ap) <- A_felm_t "a";
+    cp <- C_felm_t ();
+    crucible_execute_func [ap, cp];
+    crucible_points_to cp (tm {{ a }});
+};
+
+let fpcorrection503_spec = do {
+    (a, ap) <- B_felm_t "a";
+    crucible_precond {{ pftwice_mod(a) }};
+    crucible_execute_func [ap];
+    c <- crucible_fresh_var "c" felm_t;
+    crucible_points_to ap (tm {{ c }} );
+    crucible_postcond {{ fpnorm(a) == c }};
+    crucible_postcond {{ fpnormalized(c) }};
+};
+
+let binary_ptr_op_felm_pair f norm_post = do {
+
+    (a, ap) <- A_felm_t "a";
+    crucible_precond {{ pftwice_mod(a) }};
+    cp <- C_felm_t ();
+    crucible_execute_func [ap, ap, cp];
+    c <- crucible_fresh_var "c" felm_t;
+    crucible_points_to cp (tm c);
+    if norm_post then
+        crucible_postcond {{ f(fpnorm a, fpnorm a) == fpnorm(c) }}
+    else
+        crucible_postcond {{ f(a,a) == fpnorm(c) }};
+    crucible_postcond {{ pftwice_mod(c) }};
+};
+
+let binary_ptr_op_felm_same f norm_post = do {
+
+    (a, ap) <- B_felm_t "a";
+    crucible_precond {{ pftwice_mod(a) }};
+    crucible_execute_func [ap, ap, ap];
+    c <- crucible_fresh_var "c" felm_t;
+    crucible_points_to ap (tm c);
+    if norm_post then 
+        crucible_postcond {{ f(fpnorm a, fpnorm a) == fpnorm(c) }}
+    else
+        crucible_postcond {{ f(a, a) == fpnorm(c) }};
+    crucible_postcond {{ pftwice_mod(c) }};
+};
+
+
+let binary_ptr_op_felm_dup f left right dup_left same = do {
+    (a, ap) <- (if left then B_felm_t else A_felm_t) "a";
+    (b, bp) <- (if right then B_felm_t else A_felm_t) "b";
+
+    crucible_precond {{ pftwice_mod(a) /\ pftwice_mod(b) }};
+
+    rp <- if left then
+            do {crucible_execute_func [ap, bp, ap]; return ap; }
+          else if right then
+            do {crucible_execute_func [ap, bp, bp]; return bp; }
+          else if dup_left then
+            do {crucible_execute_func [ap, ap, bp]; return bp; }
+          else if same then
+            do {crucible_execute_func [ap, ap, ap]; return ap; }
+          else do {
+            cp <- C_felm_t ();
+            crucible_execute_func [ap, bp, cp];
+            return cp; };
+
+    c <- crucible_fresh_var "c" felm_t;
+    crucible_points_to rp (tm c);
+    crucible_postcond {{ f(a,b) == fpnorm(c) }};
+    crucible_postcond {{ pftwice_mod(c) }};
+};
+
+let fpadd503_spec = binary_ptr_op_felm {{ fpadd503 }} false false;
+let fpadd503_left_spec = binary_ptr_op_felm {{ fpadd503 }} true false;
+let fpadd503_right_spec = binary_ptr_op_felm {{ fpadd503 }} false true;
+let fpadd503_same_spec = binary_ptr_op_felm_same {{ fpadd503 }} false;
+let fpadd503_same_norm_spec = binary_ptr_op_felm_same {{ fpadd503 }} true;
+let fpadd503_pair_spec = binary_ptr_op_felm_pair {{ fpadd503 }} false;
+let fpadd503_pair_norm_spec = binary_ptr_op_felm_pair {{ fpadd503 }} true;
+
+let fpadd503_dup_left_spec = binary_ptr_op_felm_dup
+    {{ fpadd503 }} false false true false;
+
+let fpsub503_spec = binary_ptr_op_felm {{ fpsub503 }} false false;
+let fpsub503_left_spec = binary_ptr_op_felm {{ fpsub503 }} true false;
+let fpsub503_right_spec = binary_ptr_op_felm {{ fpsub503 }} false true;
+let fpsub503_same_spec = binary_ptr_op_felm_same {{ fpsub503 }} false;
+
+let fpdiv2_503_spec = unary_ptr_op_felm {{ fpdiv2_503 }};
+
+let fpzero503_spec = do {
+    cp <- C_felm_t ();
+    crucible_execute_func [cp];
+    crucible_points_to cp (tm {{ fpzero503 }});
+};
+
+// NOTE: if left & right, get the "same" call f(a,a,a),
+//       unlike the definitions above.
+let fpmul503_mont_spec left right = do {
+
+    (a, ap) <- (if left then B_felm_t else A_felm_t) "a";
+    (b, bp) <- (if right then
+                   (if left then return (a,ap) else  B_felm_t "b")
+                else A_felm_t "b");
+
+    crucible_precond {{ digit_modx4(a) /\ digit_modx4(b) }};
+
+    rp <- if left then
+            do { crucible_execute_func [ap, bp, ap]; return ap; }
+          else if right then
+            do {crucible_execute_func [ap, bp, bp]; return bp; }
+          else
+            do { cp <- C_felm_t ();
+                 crucible_execute_func [ap, bp, cp];
+                 return cp; };
+
+    c <- crucible_fresh_var "c" felm_t;
+    crucible_points_to rp (tm c);
+
+    crucible_postcond {{ fpmul503_mont(a,b) == fpnorm(c) }};
+    crucible_postcond {{ pftwice_mod(c) }};
+};
+
+let fpsqr503_mont_spec = do {
+    (a, ap) <- A_felm_t "a";
+    cp <- C_felm_t ();
+    crucible_precond {{ digit_modx4(a) }};
+    crucible_execute_func [ap, cp];
+    c <- crucible_fresh_var "c" felm_t;
+    crucible_points_to cp (tm c);
+    crucible_postcond {{ fpnorm(fpsqr503_mont(a)) == fpnorm(c) }};
+    crucible_postcond {{ pftwice_mod(c) }};
+};
+
+let fpsqr503_mont_same_spec = do {
+    (a, ap) <- B_felm_t "a";
+    crucible_precond {{ digit_modx4(a) }};
+    crucible_execute_func [ap, ap];
+    c <- crucible_fresh_var "c" felm_t;
+    crucible_points_to ap (tm c);
+    crucible_postcond {{ fpnorm(fpsqr503_mont(a)) == fpnorm(c) }};
+    crucible_postcond {{ pftwice_mod(c) }};
+};
+
+let rdc_mont_spec = do {
+    (a, ap) <- A_dfelm_t "a";
+    cp <- C_felm_t ();
+    crucible_precond {{ mont_value(a) }};
+    crucible_execute_func [ap, cp];
+    c <- crucible_fresh_var "c" felm_t;
+    crucible_points_to cp (tm c);
+    crucible_postcond {{ fpnorm(c) == rdc_mont(a) }};
+    crucible_postcond {{ pftwice_mod(c) }};
+};
+
+let to_mont_spec same = do {
+
+    (a, ap) <- (if same then B_felm_t else A_felm_t) "a";
+    crucible_precond {{ pftwice_mod(a) }};
+
+    rp <- if same then
+            do { crucible_execute_func [ap, ap]; return ap; }
+          else
+            do{ cp <- C_felm_t ();
+                crucible_execute_func [ap, cp];
+                return cp; };
+
+    c <- crucible_fresh_var "c" felm_t;
+    crucible_points_to rp (tm c);
+    crucible_postcond {{ to_mont(a) == fpnorm(c) }};
+    crucible_postcond {{ pftwice_mod(c) }};
+};
+
+let from_mont_spec norm_post = do {
+
+    (a, ap) <- A_felm_t "a";
+    cp <- C_felm_t ();
+    crucible_precond {{ pftwice_mod(a) }};
+    crucible_execute_func [ap, cp];
+    c <- crucible_fresh_var "c" felm_t;
+    crucible_points_to cp (tm c);
+    if norm_post then
+        crucible_postcond {{ from_mont(fpnorm a) == c }}
+    else
+        crucible_postcond {{ from_mont(a) == c }};
+    crucible_postcond {{ fpnormalized(c) }};
+};
+
+let inplace_ptr_op_f2elm f non_zero no_zeros norm_post = do {
+
+    (a, ap) <- B_f2elm_t "a";
+    crucible_precond {{ pf2twice_mod(a) }};
+
+    if non_zero then
+        crucible_precond {{ a != [zero, zero] }}
+    else if no_zeros then
+        crucible_precond {{ a@0 != zero /\ a@1 != zero }}
+    else
+        crucible_precond {{ True }};
+
+    crucible_execute_func [ap];
+    c <- crucible_fresh_var "c" f2elm_t;
+    crucible_points_to ap (tm c);
+    if norm_post then
+      crucible_postcond {{ f(fp2norm a) == fp2norm((c)) }}
+    else
+      crucible_postcond {{ f(a) == fp2norm((c)) }};
+    crucible_postcond {{ pf2twice_mod(c) }};
+};
+
+let unary_ptr_op_f2elm f non_zero no_zeros norm_post = do {
+
+    (a, ap) <- A_f2elm_t "a";
+    cp <- C_f2elm_t ();
+    crucible_precond {{ pf2twice_mod(a) }};
+
+    if non_zero then
+        crucible_precond {{ a != [zero, zero] }}
+    else if no_zeros then
+        crucible_precond {{ a@0 != zero /\ a@1 != zero }}
+    else
+        crucible_precond {{ True }};
+
+    crucible_execute_func [ap, cp];
+    c <- crucible_fresh_var "c" f2elm_t;
+    crucible_points_to cp (tm c);
+
+    if norm_post then
+        crucible_postcond {{ f(fp2norm a) == fp2norm(c) }}
+    else
+        crucible_postcond {{ f(a) == fp2norm(c) }};
+    crucible_postcond {{ pf2twice_mod(a) /\ pf2twice_mod(c) }};
+};
+
+let binary_ptr_op_f2elm f non_zero no_zeros left right norm_post = do {
+
+    (a, ap) <- (if left then B_f2elm_t else A_f2elm_t) "a";
+    (b, bp) <- (if right then B_f2elm_t else A_f2elm_t) "b";
+    crucible_precond {{ pf2twice_mod(a) /\ pf2twice_mod(b) }};
+
+    if non_zero then
+        crucible_precond {{ b != zero }}
+    else if no_zeros then
+        crucible_precond {{ b@0 != zero /\ b@1 != zero }}
+    else
+        crucible_precond {{ True }};
+
+    rp <- if left then
+              do { crucible_execute_func [ap, bp, ap]; return ap; }
+          else if right then
+              do { crucible_execute_func [ap, bp, bp]; return bp; }
+          else do {
+              cp <- C_f2elm_t ();
+              crucible_execute_func [ap, bp, cp];
+              return cp; };
+
+    c <- crucible_fresh_var "c" f2elm_t;
+    crucible_points_to rp (tm c);
+
+    if norm_post then
+        crucible_postcond {{ f(fp2norm a, fp2norm b) == fp2norm(c) }}
+    else
+        crucible_postcond {{ f(a,b) == fp2norm(c) }};
+
+    crucible_postcond {{ pf2twice_mod(c) }};
+};
+
+let binary_ptr_op_f2elm_same f non_zero norm_post = do {
+
+    (a, ap) <- B_f2elm_t "a";
+    crucible_precond {{ pf2twice_mod(a) }};
+
+    if non_zero then
+        crucible_precond {{ a != zero }}
+    else
+        crucible_precond {{ True }};
+
+    crucible_execute_func [ap, ap, ap];
+    c <- crucible_fresh_var "c" f2elm_t;
+    crucible_points_to ap (crucible_term c);
+
+    if norm_post then
+        crucible_postcond {{ f(fp2norm a, fp2norm a) == fp2norm(c) }}
+    else
+        crucible_postcond {{ f(a,a) == fp2norm(c) }};
+
+    crucible_postcond {{ pf2twice_mod(c) }};
+};
+
+let binary_ptr_op_f2elm_pair f non_zero norm_post = do {
+
+    (a, ap) <- B_f2elm_t "a";
+    (c, cp) <- B_f2elm_t "c";
+    crucible_precond {{ pf2twice_mod(a) }};
+
+    if non_zero then
+        crucible_precond {{ a != zero }}
+    else
+        crucible_precond {{ True }};
+
+    crucible_execute_func [ap, ap, cp];
+
+    if norm_post then
+        crucible_postcond {{ f(fp2norm a, fp2norm a) == fp2norm(c) }}
+    else
+        crucible_postcond {{ f(a,a) == fp2norm(c) }};
+
+    crucible_postcond {{ pf2twice_mod(c) }};
+};
+
+let binary_ptr_op_f2elm_dup f left right dup_left same = do {
+
+    (a, ap) <- (if left then B_f2elm_t else A_f2elm_t) "a";
+    (b, bp) <- (if right then B_f2elm_t else A_f2elm_t) "b";
+    crucible_precond {{ pf2twice_mod(a) /\ pf2twice_mod(b) }};
+
+    rp <- if left then
+            do {crucible_execute_func [ap, bp, ap]; return ap; }
+          else if right then
+            do {crucible_execute_func [ap, bp, bp]; return bp; }
+          else if dup_left then
+            do {crucible_execute_func [ap, ap, bp]; return bp; }
+          else if same then
+            do {crucible_execute_func [ap, ap, ap]; return ap; }
+          else do {
+            cp <- C_felm_t ();
+            crucible_execute_func [ap, bp, cp];
+            return cp; };
+
+    c <- crucible_fresh_var "c" f2elm_t;
+    crucible_points_to rp (tm c);
+    crucible_postcond {{ f(a,b) == fpnorm(c) }};
+    crucible_postcond {{ pf2twice_mod(c) }};
+};
+
+let fp2add503_spec_verify = binary_ptr_op_f2elm
+    {{ fp2add503 }} false false false false false;
+let fp2add503_spec = binary_ptr_op_f2elm
+    {{ fp2add503 }} false false false false true;
+let fp2add503_left_spec = binary_ptr_op_f2elm
+    {{ fp2add503 }} false false true false true;
+let fp2add503_right_spec = binary_ptr_op_f2elm
+    {{ fp2add503 }} false false false true true;
+let fp2add503_same_spec = binary_ptr_op_f2elm_same
+    {{ fp2add503 }} false true;
+let fp2add503_pair_spec = binary_ptr_op_f2elm_pair
+    {{ fp2add503 }} false true;
+let fp2add503_dup_left_spec = binary_ptr_op_f2elm_dup
+    {{ fp2add503 }} false false true false;
+
+let fp2sub503_spec_verify = binary_ptr_op_f2elm
+    {{ fp2sub503 }} false false false false false;
+let fp2sub503_spec = binary_ptr_op_f2elm
+    {{ fp2sub503 }} false false false false true;
+let fp2sub503_left_spec = binary_ptr_op_f2elm
+    {{ fp2sub503 }} false false true false true;
+let fp2sub503_right_spec = binary_ptr_op_f2elm
+    {{ fp2sub503 }} false false false true true;
+let fp2sub503_same_spec = binary_ptr_op_f2elm_same
+    {{ fp2sub503 }} false true;
+
+let fp2neg503_spec = inplace_ptr_op_f2elm
+    {{ fp2neg503 }} false false false;
+let fp2neg503_norm_spec = inplace_ptr_op_f2elm
+    {{ fp2neg503 }} false false true;
+let fp2div2_503_spec_verify = unary_ptr_op_f2elm
+    {{ fp2div2_503 }} false false false;
+let fp2div2_503_spec = unary_ptr_op_f2elm
+    {{ fp2div2_503 }} false false true;
+
+let fp2div2_503_same_spec norm_post = do {
+
+    (a, ap) <- A_f2elm_t "a";
+    crucible_precond {{ pf2twice_mod(a) }};
+    crucible_execute_func [ap, ap];
+    c <- crucible_fresh_var "c" f2elm_t;
+    crucible_points_to ap (tm c);
+
+    if norm_post then
+        crucible_postcond {{ fp2div2_503(fp2norm a) == fp2norm(c) }}
+    else
+        crucible_postcond {{ fp2div2_503(a) == fp2norm(c) }};
+    crucible_postcond {{ pf2twice_mod(c) }};
+};
+
+let fp2correction503_spec = do {
+    (a, ap) <- B_f2elm_t "a";
+    crucible_precond {{ pf2twice_mod(a) }};
+    crucible_execute_func [ap];
+    crucible_points_to ap (tm {{ fp2norm(a) }} );
+};
+
+let fp2correction503_norm_spec = do {
+    (a, ap) <- B_f2elm_t "a";
+    crucible_precond {{ pf2twice_mod(a) }};
+    crucible_execute_func [ap];
+    a' <- crucible_fresh_var "fp2corr" f2elm_t;
+    crucible_points_to ap (tm a');
+    crucible_postcond {{ a' == fp2norm a }};
+    crucible_postcond {{ fp2normalized a' }};
+    crucible_postcond {{ pf2twice_mod a' }};
+};
+
+let fp2zero503_spec = do {
+    cp <- C_f2elm_t ();
+    crucible_execute_func [cp];
+    crucible_points_to cp (tm {{ fp2zero503 }});
+};
+
+let fp2copy503_spec = do {
+    (a, ap) <- A_f2elm_t "a";
+    cp <- C_f2elm_t ();
+    crucible_execute_func [ap, cp];
+    crucible_points_to cp (crucible_term {{ a }});
+};
+
+let fp2mul503_mont_spec norm_post = do {
+
+    (a, ap) <- A_f2elm_t "a";
+    (b, bp) <- A_f2elm_t "b";
+    cp <- C_f2elm_t ();
+    crucible_precond {{ pf2twice_mod(a) /\ pf2twice_mod(b) }};
+    crucible_execute_func [ap, bp, cp];
+    c <- crucible_fresh_var "c" f2elm_t;
+    crucible_points_to cp (tm c);
+
+    if norm_post then
+        crucible_postcond
+            {{ fp2mul503_mont(fp2norm a, fp2norm b) == fp2norm c }}
+    else
+        crucible_postcond {{ fp2mul503_mont(a,b) == c }};
+
+    crucible_postcond {{ pf2twice_mod(c) }};
+};
+
+let fp2mul503_mont_left_spec norm_post = do {
+
+    (a, ap) <- B_f2elm_t "a";
+    (b, bp) <- A_f2elm_t "b";
+    crucible_precond {{ pf2twice_mod(a) /\ pf2twice_mod(b) }};
+    crucible_execute_func [ap, bp, ap];
+    c <- crucible_fresh_var "c" f2elm_t;
+    crucible_points_to ap (tm c);
+
+    if norm_post then
+        crucible_postcond
+            {{ fp2mul503_mont(fp2norm a, fp2norm b) == fp2norm c }}
+    else
+        crucible_postcond {{ fp2mul503_mont(a,b) == c }};
+
+    crucible_postcond {{ pf2twice_mod(c) }};
+};
+
+let fp2mul503_mont_right_spec norm_post = do {
+
+    (a, ap) <- A_f2elm_t "a";
+    (b, bp) <- B_f2elm_t "b";
+    crucible_precond {{ pf2twice_mod(a) /\ pf2twice_mod(b) }};
+    crucible_execute_func [ap, bp, bp];
+    c <- crucible_fresh_var "c" f2elm_t;
+    crucible_points_to bp (tm c);
+
+    if norm_post then
+        crucible_postcond
+            {{ fp2mul503_mont(fp2norm a, fp2norm b) == fp2norm c }}
+    else
+        crucible_postcond {{ fp2mul503_mont(a,b) == c }};
+
+    crucible_postcond {{ pf2twice_mod(c) }};
+};
+
+let fp2mul503_mont_same_spec norm_post = do {
+    (a, ap) <- B_f2elm_t "a";
+    crucible_precond {{ pf2twice_mod(a) }};
+    crucible_execute_func [ap, ap, ap];
+    c <- crucible_fresh_var "c" f2elm_t;
+    crucible_points_to ap (tm c);
+
+    if norm_post then
+        crucible_postcond
+            {{ fp2mul503_mont(fp2norm a,fp2norm a) == fp2norm c }}
+    else
+        crucible_postcond {{ fp2mul503_mont(a,a) == c }};
+
+    crucible_postcond {{ pf2twice_mod(c) }};
+};
+
+let fp2sqr503_mont_spec norm_post = do {
+    (a, ap) <- A_f2elm_t "a";
+    cp <- C_f2elm_t ();
+    crucible_precond {{ pf2twice_mod(a) }};
+    crucible_execute_func [ap, cp];
+    c <- crucible_fresh_var "c" f2elm_t;
+    crucible_points_to cp (tm c);
+
+    if norm_post then
+        crucible_postcond {{ fp2sqr503_mont(fp2norm a) == fp2norm c }}
+    else
+        crucible_postcond {{ fp2sqr503_mont(a) == c }};
+
+    crucible_postcond {{ pf2twice_mod(c) }};
+};
+
+let fp2sqr503_mont_same_spec norm_post = do {
+    (a, ap) <- B_f2elm_t "a";
+    crucible_precond {{ pf2twice_mod(a) }};
+    crucible_execute_func [ap, ap];
+    c <- crucible_fresh_var "c" f2elm_t;
+    crucible_points_to ap (tm c);
+
+    if norm_post then
+        crucible_postcond {{ fp2sqr503_mont(fp2norm a) == fp2norm c }}
+    else
+        crucible_postcond {{ fp2sqr503_mont(a) == c }};
+
+    crucible_postcond {{ pf2twice_mod(c) }};
+};
+
+let to_fp2mont_spec same = do {
+    (a, ap) <- (if same then B_f2elm_t else A_f2elm_t) "a";
+    crucible_precond {{ pf2twice_mod(a) }};
+    rp <- if same then
+            do { crucible_execute_func [ap, ap]; return ap; }
+          else
+            do { cp <- C_f2elm_t (); crucible_execute_func [ap, cp];
+                 return cp; };
+    c <- crucible_fresh_var "c" f2elm_t;
+    crucible_points_to rp (tm c);
+    crucible_postcond {{ to_fp2mont(a) == fp2norm(c) }};
+    crucible_postcond {{ pf2twice_mod(c) }};
+};
+
+let from_fp2mont_spec norm_post = do {
+    (a, ap) <- A_f2elm_t "a";
+    cp <- C_f2elm_t ();
+    crucible_precond {{ pf2twice_mod(a) }};
+    crucible_execute_func [ap, cp];
+    c <- crucible_fresh_var "c" f2elm_t;
+    crucible_points_to cp (tm c);
+    if norm_post then
+      crucible_postcond {{ from_fp2mont(fp2norm a) == c }}
+    else
+      crucible_postcond {{ from_fp2mont(a) == c }};
+    crucible_postcond {{ fp2normalized(c) }};
+};
+
+let fpinv503_chain_mont_spec = do {
+  (a, a_ptr) <- ptr_to_fresh "a" felm_t;
+  crucible_precond {{ digit_modx4(a) }};
+  crucible_execute_func [a_ptr];
+  res_a <- crucible_fresh_var "res_a" felm_t;
+  crucible_points_to a_ptr (crucible_term res_a);
+  crucible_postcond {{ pftwice_mod(res_a) }};
+};
+
+let __breakpoint__fpinv_chain_mont_first_spec = do {
+  (a, a_ptr) <- ptr_to_fresh "a" felm_t;
+  a_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to a_ptr_ptr a_ptr;
+  (i, i_ptr) <- ptr_to_fresh "i" i32;
+  j_ptr <- crucible_alloc i32;
+  (t, t_ptr) <-  ptr_to_fresh "t" (llvm_array 15 felm_t);
+  (tt, tt_ptr) <- ptr_to_fresh "tt" felm_t;
+  crucible_precond {{ 0 <= i /\ i <= 14 }};
+  crucible_precond {{ digit_modx4(a) }};
+  crucible_precond {{ digit_modx4(tt) }};
+  crucible_precond {{ digit_modx4(t @ 0) }};
+  crucible_precond {{ digit_modx4(t @ 1) }};
+  crucible_precond {{ digit_modx4(t @ 2) }};
+  crucible_precond {{ digit_modx4(t @ 3) }};
+  crucible_precond {{ digit_modx4(t @ 4) }};
+  crucible_precond {{ digit_modx4(t @ 5) }};
+  crucible_precond {{ digit_modx4(t @ 6) }};
+  crucible_precond {{ digit_modx4(t @ 7) }};
+  crucible_precond {{ digit_modx4(t @ 8) }};
+  crucible_precond {{ digit_modx4(t @ 9) }};
+  crucible_precond {{ digit_modx4(t @ 10) }};
+  crucible_precond {{ digit_modx4(t @ 11) }};
+  crucible_precond {{ digit_modx4(t @ 12) }};
+  crucible_precond {{ digit_modx4(t @ 13) }};
+  crucible_precond {{ digit_modx4(t @ 14) }};
+  crucible_execute_func [a_ptr_ptr, i_ptr, j_ptr, t_ptr, tt_ptr];
+  res_a <- crucible_fresh_var "res_a" felm_t;
+  crucible_points_to a_ptr (crucible_term res_a);
+  crucible_postcond {{ pftwice_mod(res_a) }};
+};
+
+let __breakpoint__fpinv_chain_mont_middle_spec = do {
+  (a, a_ptr) <- ptr_to_fresh "a" felm_t;
+  a_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to a_ptr_ptr a_ptr;
+  (i, i_ptr) <- ptr_to_fresh "i" i32;
+  j_ptr <- crucible_alloc i32;
+  (t, t_ptr) <-  ptr_to_fresh "t" (llvm_array 15 felm_t);
+  (tt, tt_ptr) <- ptr_to_fresh "tt" felm_t;
+  crucible_precond {{ 0 <= i /\ i <= 8 }};
+  crucible_precond {{ digit_modx4(a) }};
+  crucible_precond {{ digit_modx4(tt) }};
+  crucible_precond {{ digit_modx4(t @ 0) }};
+  crucible_precond {{ digit_modx4(t @ 1) }};
+  crucible_precond {{ digit_modx4(t @ 2) }};
+  crucible_precond {{ digit_modx4(t @ 3) }};
+  crucible_precond {{ digit_modx4(t @ 4) }};
+  crucible_precond {{ digit_modx4(t @ 5) }};
+  crucible_precond {{ digit_modx4(t @ 6) }};
+  crucible_precond {{ digit_modx4(t @ 7) }};
+  crucible_precond {{ digit_modx4(t @ 8) }};
+  crucible_precond {{ digit_modx4(t @ 9) }};
+  crucible_precond {{ digit_modx4(t @ 10) }};
+  crucible_precond {{ digit_modx4(t @ 11) }};
+  crucible_precond {{ digit_modx4(t @ 12) }};
+  crucible_precond {{ digit_modx4(t @ 13) }};
+  crucible_precond {{ digit_modx4(t @ 14) }};
+  crucible_execute_func [a_ptr_ptr, i_ptr, j_ptr, t_ptr, tt_ptr];
+  res_a <- crucible_fresh_var "res_a" felm_t;
+  crucible_points_to a_ptr (crucible_term res_a);
+  crucible_postcond {{ pftwice_mod(res_a) }};
+};
+
+let __breakpoint__fpinv_chain_mont_last_spec = do {
+  (a, a_ptr) <- ptr_to_fresh "a" felm_t;
+  a_ptr_ptr <- crucible_alloc (llvm_int 64);
+  crucible_points_to a_ptr_ptr a_ptr;
+  (i, i_ptr) <- ptr_to_fresh "i" i32;
+  (j, j_ptr) <- ptr_to_fresh "j" i32;
+  (t, t_ptr) <-  ptr_to_fresh "t" (llvm_array 15 felm_t);
+  (tt, tt_ptr) <- ptr_to_fresh "tt" felm_t;
+  crucible_precond {{ 0 <= i /\ i <= 5 }};
+  crucible_precond {{ 0 <= j /\ j <= 49 }};
+  crucible_precond {{ digit_modx4(tt) }};
+  crucible_precond {{ digit_modx4(t @ 14) }};
+  crucible_execute_func [a_ptr_ptr, i_ptr, j_ptr, t_ptr, tt_ptr];
+  res_a <- crucible_fresh_var "res_a" felm_t;
+  crucible_points_to a_ptr (crucible_term res_a);
+  crucible_postcond {{ pftwice_mod(res_a) }};
+};
+
+let fpinv503_mont_spec = do {
+  (a, a_ptr) <- ptr_to_fresh "a" felm_t;
+  crucible_precond {{ digit_modx4(a) }};
+  crucible_execute_func [a_ptr];
+  res_a <- crucible_fresh_var "res_a" felm_t;
+  crucible_points_to a_ptr (crucible_term res_a);
+  crucible_postcond {{ pftwice_mod(res_a) }};
+};
+
+let fp2inv503_mont_spec = do {
+    (a, ap) <- B_f2elm_t "a";
+    crucible_precond {{ pf2twice_mod(a) }};
+    crucible_execute_func [ap];
+    c <- crucible_fresh_var "c" f2elm_t;
+    crucible_points_to ap (tm c);
+    crucible_postcond {{ pf2twice_mod(c) }};
+};
+
+let fp2inv503_mont_spec' = do {
+    (a, ap) <- B_f2elm_t "a";
+    crucible_precond {{ pf2twice_mod(a) }};
+    crucible_execute_func [ap];
+    c <- crucible_fresh_var "inva" f2elm_t;
+    crucible_points_to ap (tm c);
+    crucible_postcond {{ fp2inv_mont(a) == fp2norm(c) }};
+    crucible_postcond {{ pf2twice_mod(c) }};
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+fpzero503_ov <- verify "fpzero503" [] fpzero503_spec;
+fpcopy503_ov <- verify "fpcopy503" [] fpcopy503_spec;
+fpcorrection503_ov <- verify "fpcorrection503" [] fpcorrection503_spec;
+
+fpadd503_ov <- verify "fpadd503" [] fpadd503_spec;
+fpadd503_left_ov <- admit "fpadd503" [] fpadd503_left_spec;
+fpadd503_right_ov <- admit "fpadd503" [] fpadd503_right_spec;
+fpadd503_same_ov <- verify "fpadd503" [] fpadd503_same_spec;
+fpadd503_same_norm_ov <- verify "fpadd503" [] fpadd503_same_norm_spec;
+fpadd503_pair_ov <- verify "fpadd503" [] fpadd503_pair_spec;
+fpadd503_pair_norm_ov <- verify "fpadd503" [] fpadd503_pair_norm_spec;
+fpadd503_dup_left_ov <- admit "fpadd503" [] fpadd503_dup_left_spec;
+
+fpsub503_ov <- admit "fpsub503" [] fpsub503_spec;
+fpsub503_left_ov <- admit "fpsub503" [] fpsub503_left_spec;
+fpsub503_right_ov <- admit "fpsub503" [] fpsub503_right_spec;
+fpsub503_same_ov <- admit "fpsub503" [] fpsub503_same_spec;
+
+fpneg503_nonzero_ov <- verify "fpneg503" [] fpneg503_nonzero_spec;
+fpneg503_ov <- admit "fpneg503" [] fpneg503_spec;
+fpdiv2_503_ov <- verify "fpdiv2_503" [] fpdiv2_503_spec;
+rdc_mont_ov <- admit "rdc_mont_r1" [] rdc_mont_spec;
+
+fpmul503_mont_ov <- verify_unint "fpmul503_mont"
+    [rdc_mont_ov,mul_ov,mul_half_ov] ["rdc_mont"]
+    (fpmul503_mont_spec false false);
+fpmul503_mont_left_ov <- verify_unint "fpmul503_mont"
+    [rdc_mont_ov,mul_ov,mul_half_ov] ["rdc_mont"]
+    (fpmul503_mont_spec true false);
+fpmul503_mont_right_ov <- verify_unint "fpmul503_mont"
+    [rdc_mont_ov,mul_ov,mul_half_ov] ["rdc_mont"]
+    (fpmul503_mont_spec false true);
+fpmul503_mont_same_ov <- verify_unint "fpmul503_mont"
+    [rdc_mont_ov,mul_ov,mul_half_ov] ["rdc_mont"]
+    (fpmul503_mont_spec true true);
+
+fpsqr503_mont_ov <- verify_unint "fpsqr503_mont"
+    [mul_single_ov,rdc_mont_ov] ["rdc_mont"] fpsqr503_mont_spec;
+fpsqr503_mont_same_ov <- verify_unint "fpsqr503_mont"
+    [mul_single_ov,rdc_mont_ov] ["rdc_mont"]
+    fpsqr503_mont_same_spec;
+
+fp2copy503_ov <- verify_unint "fp2copy503"
+    [fpcopy503_ov] ["fpcopy503"] fp2copy503_spec;
+fp2correction503_ov <- verify_unint "fp2correction503"
+    [fpcorrection503_ov] ["fpcorrection503"] fp2correction503_spec;
+fp2correction503_norm_ov <- verify_unint "fp2correction503"
+    [fpcorrection503_ov] ["fpcorrection503"] fp2correction503_norm_spec;
+
+fp2add503_check <- verify_unint "fp2add503"
+    [fpadd503_ov] ["fp503add"] fp2add503_spec_verify;
+fp2add503_ov <- admit "fp2add503"
+    [fpadd503_ov] fp2add503_spec;
+fp2add503_left_ov <- admit "fp2add503"
+    [fpadd503_left_ov] fp2add503_left_spec;
+fp2add503_right_ov <- admit "fp2add503"
+    [fpadd503_right_ov] fp2add503_right_spec;
+fp2add503_same_ov <- admit "fp2add503"
+    [fpadd503_same_ov] fp2add503_same_spec;
+fp2add503_pair_ov <- admit "fp2add503"
+    [] fp2add503_pair_spec;
+fp2add503_dup_left_ov <- admit "fp2add503"
+    [] fpadd503_dup_left_spec;
+
+fp2sub503_check <- verify_unint "fp2sub503"
+    [fpsub503_ov] [] fp2sub503_spec_verify;
+fp2sub503_ov <- admit "fp2sub503"
+    [fpsub503_ov] fp2sub503_spec;
+fp2sub503_left_ov <- admit "fp2sub503"
+    [fpsub503_left_ov] fp2sub503_left_spec;
+fp2sub503_right_ov <- admit "fp2sub503"
+    [fpsub503_right_ov] fp2sub503_right_spec;
+fp2sub503_same_ov <- admit "fp2sub503"
+    [fpsub503_same_ov] fp2sub503_same_spec;
+
+fp2neg503_ov <- verify_unint "fp2neg503"
+    [fpneg503_ov] ["fpneg503"] fp2neg503_spec;
+fp2neg503_norm_ov <- admit "fp2neg503" [] fp2neg503_norm_spec;
+
+fp2div2_503_check <- verify "fp2div2_503"
+    [fpdiv2_503_ov] fp2div2_503_spec_verify;
+fp2div2_503_ov <- admit "fp2div2_503"
+    [fpdiv2_503_ov] fp2div2_503_spec;
+fp2div2_503_same_ov <- admit "fp2div2_503"
+    [fpdiv2_503_ov] (fp2div2_503_same_spec true);
+
+fp2mul503_mont_ov <- admit "fp2mul503_mont"
+    [] (fp2mul503_mont_spec true);
+fp2mul503_mont_left_ov <- admit "fp2mul503_mont"
+    [] (fp2mul503_mont_left_spec true);
+fp2mul503_mont_right_ov <- admit "fp2mul503_mont"
+    [] (fp2mul503_mont_right_spec true);
+fp2mul503_mont_same_ov <- admit "fp2mul503_mont"
+    [] (fp2mul503_mont_same_spec true);
+
+fp2sqr503_mont_ov <- admit "fp2sqr503_mont"
+    [] (fp2sqr503_mont_spec true);
+fp2sqr503_mont_ov2 <- admit "fp2sqr503_mont"
+    [] (fp2sqr503_mont_spec false);
+fp2sqr503_mont_same_ov <- admit "fp2sqr503_mont"
+    [] (fp2sqr503_mont_same_spec true);
+fp2sqr503_mont_same_ov2 <- admit "fp2sqr503_mont"
+    [] (fp2sqr503_mont_same_spec false);
+
+to_mont_ov <- verify_unint "to_mont_r1"
+    [fpmul503_mont_ov] ["rdc_mont"] (to_mont_spec false);
+to_mont_same_ov <- verify_unint "to_mont_r1"
+    [fpmul503_mont_left_ov] ["fpmul503_mont"] (to_mont_spec true);
+from_mont_ov <- verify_unint "from_mont_r1"
+    [fpmul503_mont_ov,fpcorrection503_ov]
+    ["fpcorrection503", "fpmul503_mont"] (from_mont_spec false);
+from_mont_norm_ov <- admit "from_mont_r1"
+    [fpmul503_mont_ov,fpcorrection503_ov] (from_mont_spec true);
+
+to_fp2mont_ov <- verify_unint "to_fp2mont_r1"
+    [to_mont_ov] ["to_mont"] (to_fp2mont_spec false);
+to_fp2mont_same_ov <- verify_unint "to_fp2mont_r1"
+    [to_mont_same_ov] ["to_mont"] (to_fp2mont_spec true);
+from_fp2mont_ov <- verify_unint "from_fp2mont_r1"
+    [from_mont_ov] ["from_mont"] (from_fp2mont_spec false);
+from_fp2mont_norm_ov <- verify_unint "from_fp2mont_r1"
+    [from_mont_norm_ov] ["from_mont"] (from_fp2mont_spec true);
+
+__breakpoint__fpinv_chain_mont0_ov <- admit "__breakpoint__fpinv_chain_mont0#fpinv503_chain_mont"
+    [] __breakpoint__fpinv_chain_mont_first_spec;
+__breakpoint__fpinv_chain_mont1_ov <- admit "__breakpoint__fpinv_chain_mont1#fpinv503_chain_mont"
+    [] __breakpoint__fpinv_chain_mont_middle_spec;
+__breakpoint__fpinv_chain_mont2_ov <- admit "__breakpoint__fpinv_chain_mont2#fpinv503_chain_mont"
+    [] __breakpoint__fpinv_chain_mont_middle_spec;
+__breakpoint__fpinv_chain_mont3_ov <- admit "__breakpoint__fpinv_chain_mont3#fpinv503_chain_mont"
+    [] __breakpoint__fpinv_chain_mont_middle_spec;
+__breakpoint__fpinv_chain_mont4_ov <- admit "__breakpoint__fpinv_chain_mont4#fpinv503_chain_mont"
+    [] __breakpoint__fpinv_chain_mont_last_spec;
+let fpinv503_mont_O =
+    [ fpmul503_mont_ov
+    , fpmul503_mont_right_ov
+    , fpsqr503_mont_ov
+    , fpsqr503_mont_same_ov
+    , fpcopy503_ov
+    , __breakpoint__fpinv_chain_mont0_ov
+    , __breakpoint__fpinv_chain_mont1_ov
+    , __breakpoint__fpinv_chain_mont2_ov
+    , __breakpoint__fpinv_chain_mont3_ov
+    , __breakpoint__fpinv_chain_mont4_ov
+    ];
+let fpinv503_mont_U =
+    [ "fpmul503_mont"
+    , "fpsqr503_mont"
+    , "fpadd503"
+    ];
+
+verify_unint "__breakpoint__fpinv_chain_mont0#fpinv503_chain_mont"
+    fpinv503_mont_O
+    fpinv503_mont_U
+    __breakpoint__fpinv_chain_mont_first_spec;
+verify_unint "__breakpoint__fpinv_chain_mont1#fpinv503_chain_mont"
+    fpinv503_mont_O
+    fpinv503_mont_U
+    __breakpoint__fpinv_chain_mont_middle_spec;
+verify_unint "__breakpoint__fpinv_chain_mont2#fpinv503_chain_mont"
+    fpinv503_mont_O
+    fpinv503_mont_U
+    __breakpoint__fpinv_chain_mont_middle_spec;
+verify_unint "__breakpoint__fpinv_chain_mont3#fpinv503_chain_mont"
+    fpinv503_mont_O
+    fpinv503_mont_U
+    __breakpoint__fpinv_chain_mont_middle_spec;
+verify_unint "__breakpoint__fpinv_chain_mont4#fpinv503_chain_mont"
+    fpinv503_mont_O
+    fpinv503_mont_U
+    __breakpoint__fpinv_chain_mont_last_spec;
+fpinv503_chain_mont_ov <- verify_unint "fpinv503_chain_mont"
+    fpinv503_mont_O
+    fpinv503_mont_U
+    fpinv503_chain_mont_spec;
+
+fpinv503_mont_ov <- verify_unint "fpinv503_mont"
+    [ fpcopy503_ov
+    , fpinv503_chain_mont_ov
+    , fpsqr503_mont_same_ov
+    , fpmul503_mont_left_ov
+    ]
+    fpinv503_mont_U
+    fpinv503_mont_spec;
+
+verify_unint "fp2inv503_mont"
+    [ fpsqr503_mont_ov
+    , fpadd503_left_ov
+    , fpinv503_mont_ov
+    , fpneg503_ov
+    , fpmul503_mont_left_ov
+    ]
+    fpinv503_mont_U
+    fp2inv503_mont_spec;
+fp2inv503_mont_ov <- admit "fp2inv503_mont" [] fp2inv503_mont_spec';

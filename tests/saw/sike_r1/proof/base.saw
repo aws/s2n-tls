@@ -1,0 +1,363 @@
+//base.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// Base definitions and helper functions used by all proofs
+
+m <- llvm_load_module "../../bitcode/all_llvm.bc";
+
+///////////////////////////////////////////////////////////////////////////////
+// Generic Crucible and LLVM
+
+let i8 = llvm_int 8;
+let i32 = llvm_int 32;
+let tm = crucible_term;
+
+let tactic unints =
+    if debug then
+        ( do {
+            simplify (cryptol_ss ());
+            print_goal; 
+            w4_unint_yices unints;} )
+    else w4_unint_yices unints;
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands for use in production
+
+let verify_unint func overrides unints spec =
+    if do_prove then
+        crucible_llvm_verify m func overrides false spec (tactic unints)
+    else
+        crucible_llvm_unsafe_assume_spec m func spec;
+
+let verify func overrides spec =
+    verify_unint func overrides [] spec;
+
+let admit func overrides spec =
+    crucible_llvm_unsafe_assume_spec m func spec;
+
+let test func overrides spec =
+    if do_prove then
+        crucible_llvm_verify m func overrides false spec (quickcheck 100)
+    else
+        crucible_llvm_unsafe_assume_spec m func spec;
+
+let really_verify_simps func overrides unints spec transformations =
+    crucible_llvm_verify m func overrides false spec do {
+        transformations;
+        unint_yices unints;
+    };
+
+let verify_simps func overrides unints spec transformations =
+    if do_prove then
+        really_verify_simps func overrides unints spec transformations
+    else
+        crucible_llvm_unsafe_assume_spec m func spec;
+
+let custom_verify func overrides spec custom_tactic =
+    if do_prove then
+        crucible_llvm_verify m func overrides false spec custom_tactic
+    else
+        crucible_llvm_unsafe_assume_spec m func spec;
+
+let verify_shake_unint func overrides unints spec =
+    if do_prove then
+        crucible_llvm_verify m func overrides true spec (tactic unints)
+    else
+        crucible_llvm_unsafe_assume_spec m func spec;
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands for use with debugging
+
+let really_verify func overrides spec =
+    crucible_llvm_verify m func overrides false spec (tactic []);
+
+let really_verify_simps func overrides unints spec transformations =
+    crucible_llvm_verify m func overrides false spec do {
+        transformations;
+        unint_yices unints;
+    };
+
+let really_verify_unint func overrides unints spec =
+    crucible_llvm_verify m func overrides false spec (tactic unints);
+
+let really_test func overrides spec =
+    crucible_llvm_verify m func overrides false spec (quickcheck 100);
+
+let really_custom_verify func overrides spec custom_tactic =
+    crucible_llvm_verify m func overrides false spec custom_tactic;
+
+let show_admit func overrides spec =
+    crucible_llvm_verify m func overrides false spec
+        (do { simplify basic_ss; simplify 
+            (cryptol_ss()); print_goal; assume_unsat; });
+
+let show_goal func overrides unints spec transformations =
+    crucible_llvm_verify m func overrides false spec do {
+        transformations;
+        print_goal;
+        unint_yices unints;
+    };
+
+///////////////////////////////////////////////////////////////////////////////
+// SIKE constants and types
+
+let radix = 64;
+let nbits_field = 503;
+let nbits_order = 256;
+let maxbits_order = nbits_order;
+let max_words_order = eval_int {{ `((maxbits_order+radix-1)/radix) : [64] }};
+let nwords_field = 8;
+let half_nwords_field = 4;
+let twice_nwords_field = 16;
+let nwords_point = 32;
+let fp2_encoded_bytes = eval_int {{ 2*((`nbits_field + 7) / 8) : [64] }};
+let MSG_BYTES = 24;
+
+// NOTE: Bytes to hold OALICE_BITS (250) or OBOB_BITS (253) bits
+let BOB_OR_ALICE_BYTES = 32;
+
+// NOTE: This value would be 32 on a 32-bit architecture
+let digit_t = llvm_int 64;
+
+let felm_t = llvm_array nwords_field digit_t;
+let dfelm_t = llvm_array twice_nwords_field digit_t;
+let f2elm_t = llvm_array 2 felm_t;
+let char_t = llvm_int 8;
+let oALICE_BITS = 250;
+let oBOB_BITS  = 253;
+let nBITS_FIELD = 503;
+let SECRETKEY_A_BYTES = eval_int {{ (250 +7) / 8 : [64] }};
+let SECRETKEY_B_BYTES = eval_int {{ (253+7) / 8 : [64] }};
+
+let CRYPTO_SECRETKEYBYTES = 434;
+let CRYPTO_PUBLICKEYBYTES = 378;
+let CRYPTO_BYTES = 16;
+let CRYPTO_CIPHERTEXTBYTES = 402;
+
+// NOTE: Returns a Boolean in C style
+let {{
+  bool_ret : Bit -> [32]
+  bool_ret b = zero # [b]
+
+  to_c : {n} (fin n) => [n*64] -> [n][64]
+  to_c x = reverse (split x)
+
+  from_c : {n} (fin n) => [n][64] -> [n*64]
+  from_c x = join (reverse x)
+
+  word_unop : {n} (fin n) => ([n*64] -> [n*64]) -> [n][64] -> [n][64]
+  word_unop f x = to_c (f (from_c x))
+
+  word_binop : {n} (fin n) => ([n*64] -> [n*64] -> [n*64]) -> [n][64] 
+                           -> [n][64] -> [n][64]
+  word_binop f x y = to_c (f (from_c x) (from_c y))
+
+  shl1 x = x << 1
+  shr1 x = x >> 1
+}};
+
+///////////////////////////////////////////////////////////////////////////////
+// Common helper functions
+
+let alloc_init ty v = do {
+    p <- crucible_alloc ty;
+    crucible_points_to p (crucible_term v);
+    return p;
+};
+
+let alloc_init_readonly ty v = do {
+    p <- crucible_alloc_readonly ty;
+    crucible_points_to p (crucible_term v);
+    return p;
+};
+
+let ptr_to_fresh n ty = do {
+    x <- crucible_fresh_var n ty;
+    p <- alloc_init ty x;
+    return (x, p);
+};
+
+let ptr_to_fresh_readonly n ty = do {
+    x <- crucible_fresh_var n ty;
+    p <- alloc_init_readonly ty x;
+    return (x, p);
+};
+
+let inplace_ptr_op t f = do {
+
+    (a, ap) <- ptr_to_fresh "a" t;
+    crucible_execute_func [ap];
+
+    // NOTE: This doesn't prove anything about the output
+    res <- crucible_fresh_var "res" t;
+    crucible_points_to ap (tm res);
+};
+
+let binary_words_op t n m f normalized = do {
+
+    let at = llvm_array n t;
+    (a, ap) <- ptr_to_fresh_readonly "a" at;
+    (b, bp) <- ptr_to_fresh_readonly "b" at;
+    cp <- crucible_alloc (llvm_array m t);
+
+    if normalized then 
+        crucible_precond {{ digit_modx2(a) /\ digit_modx2(b) }}
+    else 
+        crucible_precond {{ True }};
+
+    crucible_execute_func [ap, bp, cp, tm {{ `n : [32] }}];
+
+    c <- crucible_fresh_var "c" at;
+    crucible_points_to cp (tm {{ c }});
+    crucible_postcond {{ c == f(a,b) }};
+
+    if normalized then
+        crucible_postcond {{ digit_modx4(c) }}
+    else
+        crucible_postcond {{ True }};
+};
+
+let binary_words_left_op t n m f normalized = do {
+
+    let at = llvm_array n t;
+    (a, ap) <- ptr_to_fresh "a" at;
+    (b, bp) <- ptr_to_fresh_readonly "b" at;
+
+    if normalized then
+        crucible_precond {{ digit_modx2(a) /\ digit_modx2(b) }}
+    else
+        crucible_precond {{ True }};
+
+    crucible_execute_func [ap, bp, ap, tm {{ `n : [32] }}];
+
+    c <- crucible_fresh_var "c" at;
+    crucible_points_to ap (tm {{ c }});
+    crucible_postcond {{ c == f(a,b) }};
+
+    if normalized then
+        crucible_postcond {{ digit_modx4(c) }}
+    else
+        crucible_postcond {{ True }};
+};
+
+let binary_words_double_op t n m f normalized = do {
+
+    let at = llvm_array n t;
+    (a, ap) <- ptr_to_fresh_readonly "a" at;
+    (b, bp) <- ptr_to_fresh_readonly "b" at;
+    cp <- crucible_alloc (llvm_array m t);
+
+    if normalized then
+        crucible_precond {{ digit_modx2(a) /\ digit_modx2(b) }}
+    else
+        crucible_precond {{ True }};
+
+    crucible_execute_func [ap, bp, cp, tm {{ `n : [32] }}];
+
+    c <- crucible_fresh_var "c" (llvm_array nwords_field t);
+    crucible_points_to cp (tm {{ c }});
+    crucible_postcond {{ c == f(a,b) }};
+
+    if normalized then
+        crucible_postcond {{ digit_modx4(c) }}
+    else
+        crucible_postcond {{ True }};
+};
+
+
+let binary_words_op_single t n m f normalized = do {
+
+    let at = llvm_array n t;
+    (a, ap) <- ptr_to_fresh "a" at;
+    cp <- crucible_alloc (llvm_array m t);
+
+    if normalized then
+        crucible_precond {{ digit_modx2(a) }}
+    else
+        crucible_precond {{ True }};
+
+    crucible_execute_func [ap, ap, cp, tm {{ `n : [32] }}];
+
+    c <- crucible_fresh_var "c" at;
+    crucible_points_to cp (tm {{ c }});
+    crucible_postcond {{ c == f(a,a) }};
+
+    if normalized then
+        crucible_postcond {{ digit_modx4(c) }}
+    else
+        crucible_postcond {{ True }};
+};
+
+let binary_words_op_double_single t n m f normalized = do {
+
+    let at = llvm_array n t;
+    (a, ap) <- ptr_to_fresh "a" at;
+    cp <- crucible_alloc (llvm_array m t);
+
+    if normalized then
+        crucible_precond {{ digit_modx2(a) }}
+    else
+        crucible_precond {{ True }};
+
+    crucible_execute_func [ap, ap, cp, tm {{ `n : [32] }}];
+
+    c <- crucible_fresh_var "c" (llvm_array twice_nwords_field t);
+    crucible_points_to cp (tm {{ c }});
+    crucible_postcond {{ c == f(a,a) }};
+
+    if normalized then
+        crucible_postcond {{ digit_modx4(c) }}
+    else
+        crucible_postcond {{ True }};
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Aliases
+
+let point_struct = llvm_struct "struct.point_proj";
+let point_proj_t = llvm_array 1 point_struct;
+let fresh_digit n = crucible_fresh_var n digit_t;
+
+// NOTE: These values are read but never modified
+let A_param v ty= ptr_to_fresh_readonly v ty;
+let A_felm_t v = ptr_to_fresh_readonly v felm_t;
+let A_f2elm_t v = ptr_to_fresh_readonly v f2elm_t;
+let A_dfelm_t v = ptr_to_fresh_readonly v dfelm_t;
+let A_point_t v = ptr_to_fresh_readonly v point_proj_t;
+let A_digit_t v = ptr_to_fresh_readonly v digit_t;
+let A_int_t v = crucible_fresh_var v i32;
+let A_uint_t v = crucible_fresh_var v i32;
+let A_uint64_t v = crucible_fresh_var v (llvm_int 64);
+let A_char_t v = ptr_to_fresh_readonly v char_t;
+let A_digit_it v = crucible_fresh_var v digit_t;
+
+// NOTE: This values are read and potentially modified
+let B_felm_t v = ptr_to_fresh v felm_t;
+let B_f2elm_t v = ptr_to_fresh v f2elm_t;
+let B_point_t v = ptr_to_fresh v point_proj_t;
+
+// NOTE: This values are outputs
+let C_felm_t() = crucible_alloc felm_t;
+let C_f2elm_t() = crucible_alloc f2elm_t;
+let C_point_t() = crucible_alloc point_proj_t;
+
+// NOTE: we are overiding memcmp as it is not link in the bc file
+let memcmp_simple_spec nbytes = do {
+    (x, xp) <- ptr_to_fresh_readonly "x" (llvm_array nbytes i8);
+    (y, yp) <- ptr_to_fresh_readonly "y" (llvm_array nbytes i8);
+    n <- crucible_fresh_var "n" (llvm_int 64);
+    crucible_precond {{ n == `nbytes }};
+    crucible_execute_func [xp, yp, (tm n)];
+    crucible_return 
+        (tm {{ if x < y then -1 else if x == y then 0:[32] else 1 }});
+};
+
+memcmp_ov_for_kem_dec <- admit "memcmp" [] (memcmp_simple_spec 378);
+
+
+/* Note the following conventions: 
+"_ov" indicates an overrides, "O" is a list of overrides, "U" is a list of uninterpreted functions.
+Overrides is a proof specification that can be used as input to other proofs.
+Uninterpreted functions are cryptol function that will not get unwrapped/unrolled by the solver.
+*/
