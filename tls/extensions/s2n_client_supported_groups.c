@@ -24,14 +24,13 @@
 
 int s2n_extensions_client_supported_groups_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    int ec_curves_count = s2n_array_len(s2n_ecc_supported_curves);
     GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SUPPORTED_GROUPS));
-    GUARD(s2n_stuffer_write_uint16(out, 2 + ec_curves_count * 2));
+    GUARD(s2n_stuffer_write_uint16(out, 2 + s2n_ecc_evp_supported_curves_list_len * 2));
     /* Curve list len */
-    GUARD(s2n_stuffer_write_uint16(out, ec_curves_count * 2));
+    GUARD(s2n_stuffer_write_uint16(out, s2n_ecc_evp_supported_curves_list_len * 2));
     /* Curve list */
-    for (int i = 0; i < ec_curves_count; i++) {
-        GUARD(s2n_stuffer_write_uint16(out, s2n_ecc_supported_curves[i]->iana_id));
+    for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
+        GUARD(s2n_stuffer_write_uint16(out, s2n_ecc_evp_supported_curves_list[i]->iana_id));
     }
 
     GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_EC_POINT_FORMATS));

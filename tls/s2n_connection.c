@@ -297,9 +297,9 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     GUARD(s2n_pkey_zero_init(&conn->secure.client_public_key));
     s2n_x509_validator_wipe(&conn->x509_validator);
     GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
-    GUARD(s2n_ecc_params_free(&conn->secure.server_ecc_params));
-    for (int i=0; i< S2N_ECC_SUPPORTED_CURVES_COUNT; i++) {
-        GUARD(s2n_ecc_params_free(&conn->secure.client_ecc_params[i]));
+    GUARD(s2n_ecc_evp_params_free(&conn->secure.server_ecc_evp_params));
+    for (int i=0; i< s2n_ecc_evp_supported_curves_list_len; i++) {
+        GUARD(s2n_ecc_evp_params_free(&conn->secure.client_ecc_evp_params[i]));
     }
     GUARD(s2n_kem_free(&conn->secure.s2n_kem_keys));
     GUARD(s2n_free(&conn->secure.client_cert_chain));
@@ -883,11 +883,11 @@ const char *s2n_connection_get_curve(struct s2n_connection *conn)
 {
     notnull_check_ptr(conn);
 
-    if (!conn->secure.server_ecc_params.negotiated_curve) {
+    if (!conn->secure.server_ecc_evp_params.negotiated_curve) {
         return "NONE";
     }
 
-    return conn->secure.server_ecc_params.negotiated_curve->name;
+    return conn->secure.server_ecc_evp_params.negotiated_curve->name;
 }
 
 const char *s2n_connection_get_kem_name(struct s2n_connection *conn)

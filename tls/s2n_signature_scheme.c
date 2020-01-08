@@ -18,7 +18,7 @@
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_signature.h"
 #include "tls/s2n_signature_scheme.h"
-#include "crypto/s2n_ecc.h"
+#include "crypto/s2n_ecc_evp.h"
 #include "utils/s2n_safety.h"
 
 

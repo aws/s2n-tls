@@ -16,7 +16,7 @@
 #include "s2n_test.h"
 
 #include "crypto/s2n_dhe.h"
-#include "crypto/s2n_ecc.h"
+#include "crypto/s2n_ecc_evp.h"
 #include "crypto/s2n_drbg.h"
 
 #include "utils/s2n_random.h"

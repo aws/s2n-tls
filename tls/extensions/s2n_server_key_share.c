@@ -24,37 +24,37 @@
 int s2n_extensions_server_key_share_send_check(struct s2n_connection *conn)
 {
     const struct s2n_ecc_named_curve *server_curve, *client_curve;
-    server_curve = conn->secure.server_ecc_params.negotiated_curve;
+    server_curve = conn->secure.server_ecc_evp_params.negotiated_curve;
     notnull_check(server_curve);
 
     int curve_index = -1;
-    for (int i = 0; i < S2N_ECC_SUPPORTED_CURVES_COUNT; i++) {
-        if (server_curve == s2n_ecc_supported_curves[i]) {
+    for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
+        if (server_curve == s2n_ecc_evp_supported_curves_list[i]) {
             curve_index = i;
             break;
         }
     }
     gt_check(curve_index, -1);
 
-    const struct s2n_ecc_params client_ecc = conn->secure.client_ecc_params[curve_index];
-    client_curve = client_ecc.negotiated_curve;
+    const struct s2n_ecc_evp_params client_ecc_evp = conn->secure.client_ecc_evp_params[curve_index];
+    client_curve = client_ecc_evp.negotiated_curve;
 
     S2N_ERROR_IF(client_curve == NULL, S2N_ERR_BAD_KEY_SHARE);
     S2N_ERROR_IF(client_curve != server_curve, S2N_ERR_BAD_KEY_SHARE);
-    S2N_ERROR_IF(client_ecc.ec_key == NULL, S2N_ERR_BAD_KEY_SHARE);
+    S2N_ERROR_IF(client_ecc_evp.evp_pkey == NULL, S2N_ERR_BAD_KEY_SHARE);
 
     return 0;
 }
 
 /*
  * Calculate the data length for Server Key Share extension
- * based on negotiated_curve selected in server_ecc_params.
+ * based on negotiated_curve selected in server_ecc_evp_params.
  *
  * This functions does not error, but s2n_extensions_server_key_share_send() would
  */
 int s2n_extensions_server_key_share_send_size(struct s2n_connection *conn)
 {
-    const struct s2n_ecc_named_curve* curve = conn->secure.server_ecc_params.negotiated_curve;
+    const struct s2n_ecc_named_curve* curve = conn->secure.server_ecc_evp_params.negotiated_curve;
 
     if (curve == NULL) {
         return 0;
@@ -85,7 +85,7 @@ int s2n_extensions_server_key_share_send(struct s2n_connection *conn, struct s2n
         - S2N_SIZE_OF_EXTENSION_DATA_SIZE
     ));
 
-    GUARD(s2n_ecdhe_parameters_send(&conn->secure.server_ecc_params, out));
+    GUARD(s2n_ecdhe_parameters_send(&conn->secure.server_ecc_evp_params, out));
 
     return 0;
 }
@@ -93,7 +93,7 @@ int s2n_extensions_server_key_share_send(struct s2n_connection *conn, struct s2n
 /*
  * Client receives a Server Hello key share.
  *
- * If the curve is supported, conn->secure.server_ecc_params will be set.
+ * If the curve is supported, conn->secure.server_ecc_evp_params will be set.
  */
 int s2n_extensions_server_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
@@ -113,10 +113,10 @@ int s2n_extensions_server_key_share_recv(struct s2n_connection *conn, struct s2n
 
     int supported_curve_index = -1;
     const struct s2n_ecc_named_curve *supported_curve = NULL;
-    for (int i = 0; i < S2N_ECC_SUPPORTED_CURVES_COUNT; i++) {
-        if (named_group == s2n_ecc_supported_curves[i]->iana_id) {
+    for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
+        if (named_group == s2n_ecc_evp_supported_curves_list[i]->iana_id) {
             supported_curve_index = i;
-            supported_curve = s2n_ecc_supported_curves[i];
+            supported_curve = s2n_ecc_evp_supported_curves_list[i];
             break;
         }
     }
@@ -135,16 +135,16 @@ int s2n_extensions_server_key_share_recv(struct s2n_connection *conn, struct s2n
     S2N_ERROR_IF(supported_curve_index == -1, S2N_ERR_BAD_KEY_SHARE);
 
     /* Key share not sent by client */
-    S2N_ERROR_IF(conn->secure.client_ecc_params[supported_curve_index].ec_key == NULL, S2N_ERR_BAD_KEY_SHARE);
+    S2N_ERROR_IF(conn->secure.client_ecc_evp_params[supported_curve_index].evp_pkey == NULL, S2N_ERR_BAD_KEY_SHARE);
 
-    struct s2n_ecc_params* server_ecc_params = &conn->secure.server_ecc_params;
-    server_ecc_params->negotiated_curve = supported_curve;
+    struct s2n_ecc_evp_params* server_ecc_evp_params = &conn->secure.server_ecc_evp_params;
+    server_ecc_evp_params->negotiated_curve = supported_curve;
 
     /* Proceed to parse curve */
     struct s2n_blob point_blob;
 
-    S2N_ERROR_IF(s2n_ecc_read_ecc_params_point(extension, &point_blob, share_size) < 0, S2N_ERR_BAD_KEY_SHARE);
-    S2N_ERROR_IF(s2n_ecc_parse_ecc_params_point(server_ecc_params, &point_blob) < 0, S2N_ERR_BAD_KEY_SHARE);
+    S2N_ERROR_IF(s2n_ecc_evp_read_params_point(extension, share_size,  &point_blob) < 0, S2N_ERR_BAD_KEY_SHARE);
+    S2N_ERROR_IF(s2n_ecc_evp_parse_params_point(&point_blob, server_ecc_evp_params) < 0, S2N_ERR_BAD_KEY_SHARE);
 
     return 0;
 }
