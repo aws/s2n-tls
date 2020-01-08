@@ -187,6 +187,12 @@ let ptr_to_fresh_readonly n ty = do {
     return (x, p);
 };
 
+let points_to_fresh p n ty = do {
+    x <- crucible_fresh_var n ty;
+    crucible_points_to p (crucible_term x);
+    return x;
+};
+
 let inplace_ptr_op t f = do {
 
     (a, ap) <- ptr_to_fresh "a" t;

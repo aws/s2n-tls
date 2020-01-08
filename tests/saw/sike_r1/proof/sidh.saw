@@ -75,7 +75,7 @@ let random_mod_order_B_unint_spec = do {
 // NOTE: We use some true facts about globals as preconditions for
 //       EphemeralKeyGeneration_A and _B.
 
-let ephemeralKeyGeneration_A_spec is_unsafe_assume = do {
+let ephemeralKeyGeneration_A_spec = do {
     (a, ap) <- ptr_to_fresh_readonly "PrivateKeyA" (llvm_array SECRETKEY_A_BYTES char_t);
     bp <- crucible_alloc (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
     crucible_precond {{ pftwice_mod g_Montgomery_one }};
@@ -87,11 +87,6 @@ let ephemeralKeyGeneration_A_spec is_unsafe_assume = do {
     crucible_execute_func [ap, bp];
     b' <- crucible_fresh_var "b'" (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
     crucible_points_to bp (tm b');
-    if is_unsafe_assume then do {
-      crucible_postcond {{ b' == EphemeralKeyGeneration_A a }};
-    } else do {
-      return ();
-    };
     crucible_return (crucible_term {{0:[32]}});
 };
 
@@ -324,7 +319,7 @@ let ephemeralKeyGeneration_A_second_loop_spec = do {
   crucible_return (crucible_term {{ 0:[32] }});
 };
 
-let ephemeralKeyGeneration_B_spec is_unsafe_assume = do {
+let ephemeralKeyGeneration_B_spec = do {
     (a, ap) <- ptr_to_fresh_readonly "PrivateKeyB" (llvm_array SECRETKEY_B_BYTES char_t);
     bp <- crucible_alloc (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
     crucible_precond {{ pftwice_mod g_Montgomery_one }};
@@ -336,11 +331,6 @@ let ephemeralKeyGeneration_B_spec is_unsafe_assume = do {
     crucible_execute_func [ap, bp];
     b' <- crucible_fresh_var "b'" (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
     crucible_points_to bp (tm b');
-    if is_unsafe_assume then do {
-      crucible_postcond {{ b' == EphemeralKeyGeneration_B a }};
-    } else do {
-      return ();
-    };
     crucible_return (crucible_term {{ 0:[32] }});
 };
 
@@ -572,7 +562,7 @@ let ephemeralKeyGeneration_B_second_loop_spec = do {
   crucible_return (crucible_term {{ 0:[32] }});
 };
 
-let ephemeralSecretAgreement_A_spec is_unsafe_assume = do {
+let ephemeralSecretAgreement_A_spec = do {
     (a, ap) <- ptr_to_fresh_readonly "PrivateKeyA" (llvm_array SECRETKEY_A_BYTES char_t);
     (b, bp) <- ptr_to_fresh_readonly "PublicKeyB" (llvm_array CRYPTO_PUBLICKEYBYTES char_t);
     ssbp <- crucible_alloc (llvm_array FP2_ENCODED_BYTES char_t); // "SharedSecretA"
@@ -584,11 +574,6 @@ let ephemeralSecretAgreement_A_spec is_unsafe_assume = do {
     crucible_execute_func [ap, bp, ssbp];
     ssb' <- crucible_fresh_var "b'" (llvm_array FP2_ENCODED_BYTES char_t);
     crucible_points_to ssbp (tm ssb');
-    if is_unsafe_assume then do {
-      crucible_postcond {{ ssb' == EphemeralSecretAgreement_A a b }};
-    } else do {
-      return ();
-    };
     crucible_return (crucible_term {{0:[32]}});
 };
 
@@ -811,7 +796,7 @@ let ephemeralSecretAgreement_A_second_loop_spec = do {
   crucible_return (crucible_term {{ 0:[32] }});
 };
 
-let ephemeralSecretAgreement_B_spec is_unsafe_assume = do {
+let ephemeralSecretAgreement_B_spec = do {
     (a, ap) <- ptr_to_fresh_readonly "PrivateKeyB" (llvm_array SECRETKEY_B_BYTES char_t);
     (b, bp) <- ptr_to_fresh_readonly "PublicKeyA" (llvm_array CRYPTO_CIPHERTEXTBYTES char_t);
     ssbp <- crucible_alloc (llvm_array FP2_ENCODED_BYTES char_t); // "SharedSecretB"
@@ -823,11 +808,6 @@ let ephemeralSecretAgreement_B_spec is_unsafe_assume = do {
     crucible_execute_func [ap, bp, ssbp];
     ssb' <- crucible_fresh_var "b'" (llvm_array FP2_ENCODED_BYTES char_t);
     crucible_points_to ssbp (tm ssb');
-    if is_unsafe_assume then do {
-      crucible_postcond {{ ssb' == EphemeralSecretAgreement_B a b }};
-    } else do {
-      return ();
-    };
     crucible_return (crucible_term {{ 0:[32] }});
 };
 
@@ -1183,11 +1163,9 @@ verify_unint "__breakpoint__EphemeralKeyGeneration_A_first_loop#EphemeralKeyGene
   O_KeyGeneration_A U_KeyGeneration_A ephemeralKeyGeneration_A_first_loop_spec;
 verify_unint "__breakpoint__EphemeralKeyGeneration_A_second_loop#EphemeralKeyGeneration_A_r1"
   O_KeyGeneration_A U_KeyGeneration_A ephemeralKeyGeneration_A_second_loop_spec;
-verify_unint "EphemeralKeyGeneration_A_r1"
+ephemeralKeyGeneration_A_ov <- verify_unint "EphemeralKeyGeneration_A_r1"
   O_KeyGeneration_A U_KeyGeneration_A
-  (ephemeralKeyGeneration_A_spec false);
-ephemeralKeyGeneration_A_ov <- admit "EphemeralKeyGeneration_A_r1" []
-  (ephemeralKeyGeneration_A_spec true);
+  ephemeralKeyGeneration_A_spec;
 
 verify_unint "__breakpoint__EphemeralKeyGeneration_B_main_loop#EphemeralKeyGeneration_B_r1"
   O_KeyGeneration_B U_KeyGeneration_B ephemeralKeyGeneration_B_main_loop_spec;
@@ -1195,11 +1173,9 @@ verify_unint "__breakpoint__EphemeralKeyGeneration_B_first_loop#EphemeralKeyGene
   O_KeyGeneration_B U_KeyGeneration_B ephemeralKeyGeneration_B_first_loop_spec;
 verify_unint "__breakpoint__EphemeralKeyGeneration_B_second_loop#EphemeralKeyGeneration_B_r1"
   O_KeyGeneration_B U_KeyGeneration_B ephemeralKeyGeneration_B_second_loop_spec;
-verify_unint "EphemeralKeyGeneration_B_r1"
+ephemeralKeyGeneration_B_ov <- verify_unint "EphemeralKeyGeneration_B_r1"
   O_KeyGeneration_B U_KeyGeneration_B
-  (ephemeralKeyGeneration_B_spec false);
-ephemeralKeyGeneration_B_ov <- admit "EphemeralKeyGeneration_B_r1" []
-  (ephemeralKeyGeneration_B_spec true);
+  ephemeralKeyGeneration_B_spec;
 
 verify_unint "__breakpoint__EphemeralSecretAgreement_A_main_loop#EphemeralSecretAgreement_A_r1"
   O_SecretAgreement_A U_SecretAgreement_A ephemeralSecretAgreement_A_main_loop_spec;
@@ -1207,11 +1183,9 @@ verify_unint "__breakpoint__EphemeralSecretAgreement_A_first_loop#EphemeralSecre
   O_SecretAgreement_A U_SecretAgreement_A ephemeralSecretAgreement_A_first_loop_spec;
 verify_unint "__breakpoint__EphemeralSecretAgreement_A_second_loop#EphemeralSecretAgreement_A_r1"
   O_SecretAgreement_A U_SecretAgreement_A ephemeralSecretAgreement_A_second_loop_spec;
-verify_unint "EphemeralSecretAgreement_A_r1"
+ephemeralSecretAgreement_A_ov <- verify_unint "EphemeralSecretAgreement_A_r1"
   O_SecretAgreement_A U_SecretAgreement_A
-  (ephemeralSecretAgreement_A_spec false);
-ephemeralSecretAgreement_A_ov <- admit "EphemeralSecretAgreement_A_r1" []
-  (ephemeralSecretAgreement_A_spec true);
+  ephemeralSecretAgreement_A_spec;
 
 verify_unint "__breakpoint__EphemeralSecretAgreement_B_main_loop#EphemeralSecretAgreement_B_r1"
   O_SecretAgreement_B U_SecretAgreement_B ephemeralSecretAgreement_B_main_loop_spec;
@@ -1219,9 +1193,7 @@ verify_unint "__breakpoint__EphemeralSecretAgreement_B_first_loop#EphemeralSecre
   O_SecretAgreement_B U_SecretAgreement_B ephemeralSecretAgreement_B_first_loop_spec;
 verify_unint "__breakpoint__EphemeralSecretAgreement_B_second_loop#EphemeralSecretAgreement_B_r1"
   O_SecretAgreement_B U_SecretAgreement_B ephemeralSecretAgreement_B_second_loop_spec;
-verify_unint "EphemeralSecretAgreement_B_r1"
+ephemeralSecretAgreement_B_ov <- verify_unint "EphemeralSecretAgreement_B_r1"
   O_SecretAgreement_B U_SecretAgreement_B
-  (ephemeralSecretAgreement_B_spec false);
-ephemeralSecretAgreement_B_ov <- admit "EphemeralSecretAgreement_B_r1" []
-  (ephemeralSecretAgreement_B_spec true);
+  ephemeralSecretAgreement_B_spec;
 
