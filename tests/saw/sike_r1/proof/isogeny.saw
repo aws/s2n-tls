@@ -149,17 +149,6 @@ let xDBLADD_spec = do {
     crucible_postcond {{ point_mod q' }};
 };
 
-let swap_points_spec_orig = do {
-    (p, pp) <- B_point_t "P";
-    (q, qp) <- B_point_t  "Q";
-    t <- crucible_fresh_var "option" (llvm_int 64);
-    crucible_execute_func [pp, qp, tm t];
-    p' <- crucible_fresh_var "swap_points_p'" point_proj_t;
-    crucible_points_to pp (tm p');
-    q' <- crucible_fresh_var "swap_points_q'" point_proj_t;
-    crucible_points_to qp (tm q');
-};
-
 let swap_points_spec = do {
     (p, pp) <- B_point_t "P";
     (q, qp) <- B_point_t  "Q";
@@ -173,24 +162,6 @@ let swap_points_spec = do {
     crucible_points_to pp (tm p');
     crucible_points_to qp (tm q');
     crucible_postcond {{ (p', q') == swap_points p q t }};
-    crucible_postcond {{ point_mod p' }};
-    crucible_postcond {{ point_mod q' }};
-};
-
-let swap_points_spec' = do {
-    (p, pp) <- B_point_t "P";
-    (q, qp) <- B_point_t  "Q";
-    t <- crucible_fresh_var "option" (llvm_int 64);
-    crucible_precond {{ t == 0 \/ t == -1 }};
-    crucible_precond {{ point_mod p }};
-    crucible_precond {{ point_mod q }};
-    crucible_execute_func [pp, qp, tm t];
-    p' <- crucible_fresh_var "p'_swap" point_proj_t;
-    q' <- crucible_fresh_var "q'_swap" point_proj_t;
-    crucible_points_to pp (tm p');
-    crucible_points_to qp (tm q');
-    crucible_equal (tm p') (tm {{ (swap_points p q t).0 }});
-    crucible_equal (tm q') (tm {{ (swap_points p q t).1 }});
     crucible_postcond {{ point_mod p' }};
     crucible_postcond {{ point_mod q' }};
 };
@@ -355,7 +326,6 @@ xDBLADD_ov <- verify_unint "xDBLADD_r1"
     xDBLADD_spec;
 
 swap_points_ov <- verify "swap_points_r1" [] swap_points_spec;
-swap_points_ov' <- verify "swap_points_r1" [] swap_points_spec';
 
 let fp_functions =
     [ "fpnorm", "fpnormalized", "fpneg503", "pftwice_mod"
