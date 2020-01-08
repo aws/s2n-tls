@@ -55,7 +55,7 @@ let crypto_kem_dec_spec = do {
 };
 
 let crypto_kem_keypair_spec = do {
-    let pk_t = llvm_array  CRYPTO_PUBLICKEYBYTES char_t;
+    let pk_t = llvm_array CRYPTO_PUBLICKEYBYTES char_t;
     pkp <- crucible_alloc pk_t;
     let sk_t = llvm_array CRYPTO_SECRETKEYBYTES char_t;
     skp <- crucible_alloc sk_t;

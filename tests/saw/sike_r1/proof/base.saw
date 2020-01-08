@@ -102,38 +102,41 @@ let show_goal func overrides unints spec transformations =
 ///////////////////////////////////////////////////////////////////////////////
 // SIKE constants and types
 
-let radix = 64;
-let nbits_field = 503;
-let nbits_order = 256;
-let maxbits_order = nbits_order;
-let max_words_order = eval_int {{ `((maxbits_order+radix-1)/radix) : [64] }};
+let RADIX = 64;
+let NBITS_FIELD = 503;
+let NBITS_ORDER = 256;
+let MAXBITS_ORDER = NBITS_ORDER;
+let max_words_order = eval_int {{ `((MAXBITS_ORDER + RADIX - 1) / RADIX) : [64] }};
 let nwords_field = 8;
 let half_nwords_field = 4;
 let twice_nwords_field = 16;
 let nwords_point = 32;
-let fp2_encoded_bytes = eval_int {{ 2*((`nbits_field + 7) / 8) : [64] }};
+
+let OALICE_BITS = 250;
+let OBOB_BITS  = 253;
+
 let MSG_BYTES = 24;
+let SECRETKEY_A_BYTES = eval_int {{ `((OALICE_BITS + 7) / 8) : [64] }};
+let SECRETKEY_B_BYTES = eval_int {{ `((OBOB_BITS + 7) / 8) : [64] }};
+let FP2_ENCODED_BYTES = eval_int {{ `(2 * ((NBITS_FIELD + 7) / 8)) : [64] }};
+
+let CRYPTO_PUBLICKEYBYTES = eval_int {{ `(3 * FP2_ENCODED_BYTES) : [64] }};
+let CRYPTO_SECRETKEYBYTES = eval_int {{ `(MSG_BYTES + SECRETKEY_B_BYTES + CRYPTO_PUBLICKEYBYTES) : [64] }};
+let CRYPTO_CIPHERTEXTBYTES = eval_int {{ `(CRYPTO_PUBLICKEYBYTES + MSG_BYTES) : [64] }};
+let CRYPTO_BYTES = 16;
 
 // NOTE: Bytes to hold OALICE_BITS (250) or OBOB_BITS (253) bits
 let BOB_OR_ALICE_BYTES = 32;
 
+
+let char_t = llvm_int 8;
 // NOTE: This value would be 32 on a 32-bit architecture
 let digit_t = llvm_int 64;
 
 let felm_t = llvm_array nwords_field digit_t;
 let dfelm_t = llvm_array twice_nwords_field digit_t;
 let f2elm_t = llvm_array 2 felm_t;
-let char_t = llvm_int 8;
-let oALICE_BITS = 250;
-let oBOB_BITS  = 253;
-let nBITS_FIELD = 503;
-let SECRETKEY_A_BYTES = eval_int {{ (250 +7) / 8 : [64] }};
-let SECRETKEY_B_BYTES = eval_int {{ (253+7) / 8 : [64] }};
 
-let CRYPTO_SECRETKEYBYTES = 434;
-let CRYPTO_PUBLICKEYBYTES = 378;
-let CRYPTO_BYTES = 16;
-let CRYPTO_CIPHERTEXTBYTES = 402;
 
 // NOTE: Returns a Boolean in C style
 let {{

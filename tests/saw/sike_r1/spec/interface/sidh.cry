@@ -41,10 +41,10 @@ fp2_decode e = to_fp2mont (wrap_f2elm (from_psq503 (ostofp2 e)))
 fp2_encode : f2elm -> [126]uchar
 fp2_encode e = fp2toos (to_psq503 (unwrap_f2elm (from_fp2mont e)))
 
-is_good_random_mod_order_A : [4][64] -> Bit
+is_good_random_mod_order_A : [32][8] -> Bit
 is_good_random_mod_order_A k = is_good_sk_alice (wrap_sk k)
 
-is_good_random_mod_order_B : [4][64] -> Bit
+is_good_random_mod_order_B : [32][8] -> Bit
 is_good_random_mod_order_B k = is_good_sk_bob (wrap_sk k)
 
 random_mod_order_B : [32][8]

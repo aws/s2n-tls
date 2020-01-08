@@ -270,10 +270,10 @@ shake256_absorb_zero_ov <- verify_shake_unint
     [] (keccak_absorb_zero_spec 10 SHAKE256_RATE);
 
 cshake256_simple_dec_ov <- admit "cshake256_simple_r1"
-    [] (cshake256_simple_spec_admit fp2_encoded_bytes 2 24);
+    [] (cshake256_simple_spec_admit FP2_ENCODED_BYTES 2 24);
 cshake256_simple_enc_ov0 <- admit "cshake256_simple_r1"
     [] (cshake256_simple_spec_admit SECRETKEY_A_BYTES 0 402);
 cshake256_simple_enc_ov1 <- admit "cshake256_simple_r1"
-    [] (cshake256_simple_spec_admit MSG_BYTES 2 fp2_encoded_bytes);
+    [] (cshake256_simple_spec_admit MSG_BYTES 2 FP2_ENCODED_BYTES);
 cshake256_simple_enc_ov2 <- admit "cshake256_simple_r1"
     [] (cshake256_simple_spec_admit CRYPTO_BYTES 1 426);

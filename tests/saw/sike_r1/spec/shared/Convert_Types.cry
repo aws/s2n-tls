@@ -93,7 +93,7 @@ unwrap_pffi f p a b i =
     y = unwrap_f2elm b
     q = f t x y i
 
-wrap_sk: [4][64] -> [256]
+wrap_sk: [32][8] -> [256]
 wrap_sk s = join (reverse s)
 
 g_FP2_ENCODED_BYTES_psq =
