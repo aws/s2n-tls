@@ -28,10 +28,7 @@ struct s2n_stuffer {
     /* Cursors to the current read/write position in the s2n_stuffer */
     uint32_t read_cursor;
     uint32_t write_cursor;
-
-    /* The total size of the data segment */
-    /* Has the stuffer been wiped? */
-    unsigned int wiped:1;
+    uint32_t high_water_mark;
 
     /* Was this stuffer alloc()'d ? */
     unsigned int alloced:1;
@@ -45,7 +42,7 @@ struct s2n_stuffer {
 
 #define s2n_stuffer_data_available( s )   ((s)->write_cursor - (s)->read_cursor)
 #define s2n_stuffer_space_remaining( s )  ((s)->blob.size - (s)->write_cursor)
-
+#define s2n_stuffer_is_wiped( s )         ((s)->high_water_mark == 0)
 /* Check basic validity constraints on the stuffer: e.g. that cursors point within the blob */
 extern bool s2n_stuffer_is_valid(const struct s2n_stuffer* stuffer);
 

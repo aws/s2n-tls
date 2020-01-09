@@ -120,6 +120,7 @@ int s2n_record_parse_wrapper(int *xor_pad,
     .in = {
       .read_cursor = 0,
       .write_cursor = MAX_SIZE,
+      .high_water_mark = MAX_SIZE,
       .blob = {
 	.data = data1,
 	.size = MAX_SIZE,
@@ -128,6 +129,7 @@ int s2n_record_parse_wrapper(int *xor_pad,
     .header_in = {
       .read_cursor = 0,
       .write_cursor = S2N_TLS_RECORD_HEADER_LENGTH,
+      .high_water_mark = S2N_TLS_RECORD_HEADER_LENGTH,
       .blob = {
 	.data = data2,
 	.size = MAX_SIZE,
