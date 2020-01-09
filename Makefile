@@ -40,9 +40,9 @@ bc:
 	${MAKE} -C tls bc
 	${MAKE} -C utils bc
 
-.PHONY : sike_bc
-sike_bc: bc
-	${MAKE} -C pq-crypto sike_bc
+.PHONY : sike_r1_bc
+sike_r1_bc: bc
+	${MAKE} -C pq-crypto sike_r1_bc
 
 .PHONY : bike_bc
 bike_bc: bc
