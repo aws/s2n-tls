@@ -29,8 +29,8 @@ sike_bc: $(BCS1)
 	$(MAKE) -C sike_r1 bc
 #	$(MAKE) -C sike_r2 bc TODO add when ready for SIKE R2 SAW proofs
 
-.PHONY : bike_bc
-bike_bc: $(BCS1)
+.PHONY : bike_r1_bc
+bike_r1_bc: $(BCS1)
 	$(MAKE) -C bike_r1 bc
 
 .PHONY : run-gcov
