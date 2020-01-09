@@ -242,8 +242,13 @@ extern __thread const char *s2n_debug_str;
 #define S2N_ERROR_IF( cond , x ) do { if ( cond ) { S2N_ERROR( x ); }} while (0)
 #define S2N_ERROR_IF_PTR( cond , x ) do { if ( cond ) { S2N_ERROR_PTR( x ); }} while (0)
 
-#define S2N_PRECONDITION( cond ) S2N_ERROR_IF(!(cond), S2N_ERR_PRECONDITION_VIOLATION)
-#define S2N_PRECONDITION_PTR( cond ) S2N_ERROR_IF_PTR(!(cond), S2N_ERR_PRECONDITION_VIOLATION)
+#ifdef __TIMING_CONTRACTS__
+#    define S2N_PRECONDITION( cond ) (void) 0
+#    define S2N_PRECONDITION_PTR( cond ) (void) 0
+#else
+#    define S2N_PRECONDITION( cond ) S2N_ERROR_IF(!(cond), S2N_ERR_PRECONDITION_VIOLATION)
+#    define S2N_PRECONDITION_PTR( cond ) S2N_ERROR_IF_PTR(!(cond), S2N_ERR_PRECONDITION_VIOLATION)
+#endif /* __TIMING_CONTRACTS__ */
 
 /**
  * Define function contracts.
