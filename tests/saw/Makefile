@@ -284,7 +284,7 @@ bitcode/sike_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/utils 
 	${MAKE} -C bitcode all_llvm.bc
 
 .PHONY : bitcode/bike_r1_llvm.bc
-bitcode/bike_r1_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(BIKE_R1_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
+bitcode/bike_r1_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike_r1 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(BIKE_R1_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
 	tr -d '\r' <../../pq-crypto/bike_r1/bike1_l1_r1_kem.c >s2n/pq-crypto/bike_r1/bike1_l1_r1_kem.c
 	patch s2n/pq-crypto/bike_r1/bike1_l1_r1_kem.c bike_r1/patch/bike1_l1_r1_kem.c.patch
 	tr -d '\r' <../../pq-crypto/bike_r1/cleanup.h >s2n/pq-crypto/bike_R1/cleanup.h
