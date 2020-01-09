@@ -23,16 +23,22 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 
+/* Using a non-zero value 
+ * (a) makes wiped data easy to see in the debugger
+ * (b) makes use of wiped data obvious since this is unlikely to be a valid bit pattern
+ */
+#define S2N_WIPE_PATTERN 'w'
+
 bool s2n_stuffer_is_valid(const struct s2n_stuffer* stuffer)
 {
-    /* Note that we do not assert any properties on the  wiped, alloced, growable, and tainted fields,
+    /* Note that we do not assert any properties on the alloced, growable, and tainted fields,
      * as all possible combinations of boolean values in those fields are valid */
     return S2N_OBJECT_PTR_IS_READABLE(stuffer) && 
-    s2n_blob_is_valid(&stuffer->blob) &&
-    /* <= is valid because we can have a fully written/read stuffer */
-    stuffer->read_cursor <= stuffer->blob.size &&
-    stuffer->write_cursor <= stuffer->blob.size &&
-    stuffer->read_cursor <= stuffer->write_cursor;
+        s2n_blob_is_valid(&stuffer->blob) &&
+        /* <= is valid because we can have a fully written/read stuffer */
+        stuffer->high_water_mark <= stuffer->blob.size &&
+        stuffer->write_cursor <= stuffer->high_water_mark &&
+        stuffer->read_cursor <= stuffer->write_cursor;
 }
 
 int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in)
@@ -40,19 +46,16 @@ int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in)
     S2N_PRECONDITION(S2N_OBJECT_PTR_IS_WRITABLE(stuffer));
     S2N_PRECONDITION(s2n_blob_is_valid(in));
     stuffer->blob = *in;
-    stuffer->wiped = 1;
+    stuffer->read_cursor = 0;
+    stuffer->write_cursor = 0;
+    stuffer->high_water_mark = 0;
     stuffer->alloced = 0;
     stuffer->growable = 0;
     stuffer->tainted = 0;
-    stuffer->read_cursor = 0;
-    stuffer->write_cursor = 0;
-
     return 0;
 }
-
 int s2n_stuffer_alloc(struct s2n_stuffer *stuffer, const uint32_t size)
 {
-
     GUARD(s2n_alloc(&stuffer->blob, size));
     GUARD(s2n_stuffer_init(stuffer, &stuffer->blob));
 
@@ -72,17 +75,10 @@ int s2n_stuffer_growable_alloc(struct s2n_stuffer *stuffer, const uint32_t size)
 
 int s2n_stuffer_free(struct s2n_stuffer *stuffer)
 {
-    if (stuffer->alloced == 0) {
-        return 0;
+    if (stuffer->alloced) {
+        GUARD(s2n_free(&stuffer->blob));
     }
-    if (stuffer->wiped == 0) {
-        GUARD(s2n_stuffer_wipe(stuffer));
-    }
-
-    GUARD(s2n_free(&stuffer->blob));
-
-    stuffer->blob.data = NULL;
-    stuffer->blob.size = 0;
+    *stuffer = (struct s2n_stuffer) {0};
 
     return 0;
 }
@@ -101,8 +97,6 @@ int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size)
     }
 
     GUARD(s2n_realloc(&stuffer->blob, size));
-
-    stuffer->blob.size = size;
 
     return 0;
 }
@@ -141,18 +135,15 @@ int s2n_stuffer_reread(struct s2n_stuffer *stuffer)
 
 int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t size)
 {
-    uint32_t n = MIN(size, stuffer->write_cursor);
-
-    /* Use '0' instead of 0 precisely to prevent C string compatibility */
-    memset_check(stuffer->blob.data + stuffer->write_cursor - n, '0', n);
-    stuffer->write_cursor -= n;
-
-    if (stuffer->write_cursor == 0) {
-        stuffer->wiped = 1;
+    if (size >= stuffer->write_cursor) {
+        return s2n_stuffer_wipe(stuffer);
     }
 
+    /* We know that size is now less than write_cursor */
+    stuffer->write_cursor -= size;
+    memset_check(stuffer->blob.data + stuffer->write_cursor, S2N_WIPE_PATTERN, size);
     stuffer->read_cursor = MIN(stuffer->read_cursor, stuffer->write_cursor);
-
+    
     return 0;
 }
 
@@ -173,8 +164,15 @@ int s2n_stuffer_release_if_empty(struct s2n_stuffer *stuffer)
 
 int s2n_stuffer_wipe(struct s2n_stuffer *stuffer)
 {
+    if (!s2n_stuffer_is_wiped(stuffer)) {
+        memset_check(stuffer->blob.data, S2N_WIPE_PATTERN, stuffer->high_water_mark);
+    }
+
     stuffer->tainted = 0;
-    return s2n_stuffer_wipe_n(stuffer, stuffer->write_cursor);
+    stuffer->write_cursor = 0;
+    stuffer->read_cursor = 0;
+    stuffer->high_water_mark = 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_stuffer_skip_read(struct s2n_stuffer *stuffer, uint32_t n)
@@ -253,7 +251,7 @@ int s2n_stuffer_skip_write(struct s2n_stuffer *stuffer, const uint32_t n)
     }
 
     stuffer->write_cursor += n;
-    stuffer->wiped = 0;
+    stuffer->high_water_mark = MAX(stuffer->write_cursor, stuffer->high_water_mark);
     return 0;
 }
 
