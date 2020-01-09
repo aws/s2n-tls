@@ -76,7 +76,7 @@ int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n
     uint16_t named_group, share_size;
     int supported_curve_index;
 
-    int bytes_processed = 0;
+    uint32_t bytes_processed = 0;
     while (bytes_processed < key_shares_size) {
         GUARD(s2n_stuffer_read_uint16(extension, &named_group));
         GUARD(s2n_stuffer_read_uint16(extension, &share_size));
