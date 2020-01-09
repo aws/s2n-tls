@@ -198,7 +198,7 @@ bitcode :
 .PHONY : sike_r1_patched_bitcode
 sike_r1_patched_bitcode :
 	${MAKE} clean_the_dir
-	${MAKE} bitcode/sike_llvm.bc
+	${MAKE} bitcode/sike_r1_llvm.bc
 
 .PHONY : bike_patched_bitcode
 bike_patched_bitcode : bitcode/bike_llvm.bc
@@ -275,12 +275,12 @@ bitcode/all_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/utils s
 	${MAKE} -C s2n bc
 	${MAKE} -C bitcode all_llvm.bc
 
-.PHONY : bitcode/sike_llvm.bc
-bitcode/sike_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_R1_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
+.PHONY : bitcode/sike_r1_llvm.bc
+bitcode/sike_r1_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_R1_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
 	patch s2n/pq-crypto/sike_r1/fpx_r1.c sike_r1/patch/fpx_r1.c.patch
 	patch s2n/pq-crypto/sike_r1/ec_isogeny_r1.c sike_r1/patch/ec_isogeny_r1.c.patch
 	patch s2n/pq-crypto/sike_r1/sidh_r1.c sike_r1/patch/sidh_r1.c.patch
-	${MAKE} -C s2n sike_bc
+	${MAKE} -C s2n sike_r1_bc
 	${MAKE} -C bitcode all_llvm.bc
 
 .PHONY : bitcode/bike_llvm.bc
