@@ -865,11 +865,11 @@ fp2_decode_ov <- verify "fp2_decode_r1"
     [to_fp2mont_same_ov]
     fp2_decode_spec;
 fp2_encode_ov <- verify "fp2_encode_r1"
-    [from_fp2mont_norm_ov]
+    [from_fp2mont_ov]
     fp2_encode_spec;
 
 let O_base_Key =
-    [ fpcopy503_ov, fpzero503_ov, fp2copy503_ov, fp2neg503_norm_ov
+    [ fpcopy503_ov, fpzero503_ov, fp2copy503_ov, fp2neg503_ov
     , fpadd503_ov,  fpadd503_left_ov, fpadd503_same_ov, fpadd503_right_ov
     , fp2add503_ov, fp2add503_left_ov, fp2add503_same_ov, fp2add503_right_ov
     , fp2sub503_right_ov, fp2sub503_left_ov, fp2sub503_same_ov
@@ -885,11 +885,11 @@ let O_base_Secret =
     , swap_points_ov, xDBLADD_ov, fp2_encode_ov, j_inv_ov, get_A_ov ];
 
 let O_base_SecretA = concat O_base_Secret
-    [ fpadd503_same_norm_ov, fpadd503_pair_ov
+    [ fpadd503_same_ov, fpadd503_pair_ov
     , LADDER3PT_ov, fp2div2_503_same_ov ];
 
 let O_base_SecretB = concat O_base_Secret
-    [fpadd503_same_norm_ov, fpadd503_pair_norm_ov , LADDER3PT_ov];
+    [fpadd503_same_ov, fpadd503_pair_ov , LADDER3PT_ov];
 
 let O_base_Isog4 =
     [xDBLe_same32_ov, get_4_isog_ov, eval_4_isog_ov, fp2_decode_ov];

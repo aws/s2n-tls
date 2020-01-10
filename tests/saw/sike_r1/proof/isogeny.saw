@@ -228,7 +228,7 @@ j_inv_ov <- verify "j_inv_r1"
 
 xDBLADD_ov <- verify "xDBLADD_r1"
     [ fp2add503_ov, fp2add503_left_ov, fp2add503_right_ov
-    , fp2sub503_ov, fp2correction503_norm_ov
+    , fp2sub503_ov, fp2correction503_ov
     , fp2mul503_mont_ov, fp2mul503_mont_left_ov
     , fp2sqr503_mont_ov, fp2sqr503_mont_same_ov ]
     xDBLADD_spec;

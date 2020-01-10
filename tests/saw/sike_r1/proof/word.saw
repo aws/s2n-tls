@@ -18,7 +18,7 @@ let binary_words_op t n = do {
     crucible_execute_func [ap, bp, cp];
 
     c <- crucible_fresh_var "c" at;
-    crucible_points_to cp (tm {{ c }});
+    crucible_points_to cp (tm c);
 };
 
 let binary_words_left_op t n = do {
@@ -29,7 +29,7 @@ let binary_words_left_op t n = do {
     crucible_execute_func [ap, bp, ap];
 
     c <- crucible_fresh_var "c" at;
-    crucible_points_to ap (tm {{ c }});
+    crucible_points_to ap (tm c);
 };
 
 let binary_words_op_single t n = do {
@@ -40,7 +40,7 @@ let binary_words_op_single t n = do {
     crucible_execute_func [ap, ap, cp];
 
     c <- crucible_fresh_var "c" at;
-    crucible_points_to cp (tm {{ c }});
+    crucible_points_to cp (tm c);
 };
 
 let clear_words_spec n = do {
@@ -184,6 +184,7 @@ let mp_shiftr1_spec n = do {
     points_to_fresh xp "x'" (llvm_array n digit_t);
     return ();
 };
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
