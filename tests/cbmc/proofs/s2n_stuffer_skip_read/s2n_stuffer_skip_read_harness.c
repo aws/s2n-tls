@@ -38,7 +38,7 @@ void s2n_stuffer_skip_read_harness() {
     assert(stuffer->blob.data == old_stuffer.blob.data);
     assert(stuffer->blob.size == old_stuffer.blob.size);
     assert(stuffer->write_cursor == old_stuffer.write_cursor);
-    assert(stuffer->wiped == old_stuffer.wiped);
+    assert(stuffer->high_water_mark == old_stuffer.high_water_mark);
     assert(stuffer->alloced == old_stuffer.alloced);
     assert(stuffer->growable == old_stuffer.growable);
     assert(stuffer->tainted == old_stuffer.tainted);
