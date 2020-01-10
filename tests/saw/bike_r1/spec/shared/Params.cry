@@ -7,7 +7,7 @@ module shared::Params where
 
 import version::input
 import interface::H_types_v1l1
-import interface::H_bike_defs
+import interface::H_bike_r1_defs
 import interface::H_defs
 
 ///////////////////////////////////////////////////////////////////////////////

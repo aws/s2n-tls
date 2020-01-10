@@ -5,7 +5,7 @@
 
 module interface::H_gf2x where
 
-import interface::H_bike_defs
+import interface::H_bike_r1_defs
 import interface::H_types_v1l1
 
 ///////////////////////////////////////////////////////////////////////////////

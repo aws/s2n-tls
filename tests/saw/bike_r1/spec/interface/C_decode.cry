@@ -6,7 +6,7 @@
 module interface::C_decode where
 
 import version::input
-import interface::H_bike_defs
+import interface::H_bike_r1_defs
 import interface::H_types_v1l1
 import interface::H_openssl
 import interface::H_gf2x
