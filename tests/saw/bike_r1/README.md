@@ -4,7 +4,7 @@ We verified the C implementation of the BIKE algorithm using the SAW tool and Cr
 | # | BIKE file  |    SAW Proof |
 | -----: | -----: |------------- | 
 | 1 | aes_ctr_prf.c,aes.h | AES.saw
-| 2 | bike1_l1_kem.c  |  bike1_l1_kem.saw, bike1_l1_kem_short.saw
+| 2 | bike_r1_kem.c  |  bike_r1_kem.saw, bike_r1_kem_short.saw
 | 3 | converts_portable.c | converts_portable.saw
 | 4 | decode.c | decode.saw, decode_short.saw
 | 5 | openssl_utils.c |  openssl_utils.saw

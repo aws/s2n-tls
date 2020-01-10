@@ -14,5 +14,5 @@ include "proof/secure_decode_portable.saw";
 include "proof/decode.saw";
 
 let do_prove = true;
-include "proof/bike1_l1_kem.saw";
+include "proof/bike_r1_kem.saw";
 
