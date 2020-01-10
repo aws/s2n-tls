@@ -5,7 +5,7 @@ let do_prove = false;
 let debug = false;
 enable_smt_array_memory_model;
 
-m <- llvm_load_module "../bitcode/bike_llvm.bc";
+m <- llvm_load_module "../bitcode/bike_r1_llvm.bc";
 
 import "spec/version/input.cry";
 import "spec/interface/H_defs.cry";
