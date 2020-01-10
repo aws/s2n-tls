@@ -21,9 +21,9 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_blob.h"
 
-#define RSP_FILE_NAME "../unit/kats/bike1_l1_r1.kat"
+#define RSP_FILE_NAME "../unit/kats/bike_r1.kat"
 
-/* This fuzz test uses the first private key from tests/unit/kats/bike1_l1_r1.kat, the valid ciphertext generated with the
+/* This fuzz test uses the first private key from tests/unit/kats/bike_r1.kat, the valid ciphertext generated with the
  * public key was copied to corpus/s2n_bike_r1_fuzz_test/valid_ciphertext */
 
 static struct s2n_kem_keypair server_kem_keys = {.negotiated_kem = &s2n_bike1_l1_r1};

@@ -20,7 +20,7 @@
 
 #include <string.h>
 
-#include "bike1_l1_r1_kem.h"
+#include "bike_r1_kem.h"
 #include "decode.h"
 #include "gf2x.h"
 #include "parallel_hash.h"

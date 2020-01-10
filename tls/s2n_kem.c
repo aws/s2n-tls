@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include "pq-crypto/bike_r1/bike1_l1_r1_kem.h"
+#include "pq-crypto/bike_r1/bike_r1_kem.h"
 #include "pq-crypto/sike_r1/sike_p503_r1_kem.h"
 #include "pq-crypto/sike_r2/sike_p434_r2_kem.h"
 
@@ -28,7 +28,7 @@
 /* The names below come from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-02#section-5.1.6 */
 const struct s2n_kem s2n_bike1_l1_r1 = {
         .name = "BIKE1r1-Level1",
-        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_BIKE1_R1_LEVEL_1,
+        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1,
         .public_key_length = BIKE1_L1_R1_PUBLIC_KEY_BYTES,
         .private_key_length = BIKE1_L1_R1_SECRET_KEY_BYTES,
         .shared_secret_key_length = BIKE1_L1_R1_SHARED_SECRET_BYTES,
