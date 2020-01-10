@@ -7,240 +7,82 @@ import "../spec/include/keccak.cry";
 import "../spec/interface/cshake.cry";
 import "../spec/Loader.cry";
 
+
 ///////////////////////////////////////////////////////////////////////////////
 // Specifications
 
-let shake_char_t = llvm_array 8 i8;
-let uint16_t = llvm_int 16;
-let uint8_t = llvm_array 8 (llvm_int 8);
 let state_t = llvm_array 25 digit_t;
 
-let SHAKE256_RATE = 136;
-let SHAKE128_RATE = 168;
-
 let load64_spec = do {
-    (x, xp) <- ptr_to_fresh "x" shake_char_t;
+    (x, xp) <- ptr_to_fresh_readonly "x" (llvm_array 8 char_t);
     crucible_execute_func [xp];
-    crucible_return (tm {{ join (reverse x):[64] }});
+    r <- crucible_fresh_var "r" i64;
+    crucible_return (tm r);
 };
 
 let store64_spec = do {
-    (x, xp) <- ptr_to_fresh "x" uint8_t;
-    u <- crucible_fresh_var "u" digit_t;
-    crucible_precond {{ True }};
+    xp <- crucible_alloc (llvm_array 8 char_t);
+    u <- crucible_fresh_var "u" i64;
     crucible_execute_func [xp, tm u];
-    res <- crucible_fresh_var "res" uint8_t;
-    crucible_points_to xp (tm res);
-    crucible_postcond {{ res ==  (reverse (split u):[8][8]) }};
+    x <- crucible_fresh_var "x" (llvm_array 8 char_t);
+    crucible_points_to xp (tm x);
 };
 
 let KeccakF1600_StatePermute_spec = do {
     (s, sp) <- ptr_to_fresh "state" state_t;
     crucible_execute_func [sp];
-    c <- crucible_fresh_var "c" state_t;
-    crucible_points_to sp (tm c);
-    crucible_postcond {{ c ==
-        (join (transpose (Keccak_f (transpose (split s): [5][5][64])))) }};
+    res_s <- crucible_fresh_var "res_s" state_t;
+    crucible_points_to sp (tm res_s);
 };
 
-let keccak_absorb_ones_spec n RATE = do {
+let keccak_absorb_spec n = do {
     (s, sp) <- ptr_to_fresh "s" state_t;
-    r <- crucible_fresh_var "r" i32;
-    (m, mp) <- ptr_to_fresh_readonly "m" (llvm_array n i8);
-    mlen <- crucible_fresh_var "mlen" digit_t;
-    crucible_precond {{ r== (`RATE:[32]) /\ (mlen == (`n:[64])) }} ;
-    crucible_execute_func [sp, (tm r), mp, (tm mlen), (tm {{ 0x1f:[8] }})];
-    res <- crucible_fresh_var "res" state_t;
-    crucible_points_to sp (tm {{ res }});
-    crucible_postcond {{ res ==
-        join (transpose ((transpose (split s:[5][5][64]))^(unflatten`{w=64}
-        (join (pad`{r= (RATE*8)} (join [reverse x | x<-m]# 0b1111)))))) }};
+    (m, mp) <- ptr_to_fresh_readonly "m" (llvm_array n char_t);
+    crucible_execute_func [sp, tm {{ `SHAKE256_RATE : [32] }}, mp, tm {{ `n : [64 ]}}, tm {{ 0x04 : [8] }}];
+    res_s <- crucible_fresh_var "res_s" state_t;
+    crucible_points_to sp (tm res_s);
 };
 
-let keccak_absorb_zero_spec n RATE  = do {
+let keccak_squeezeblocks_spec n = do {
+    let count = eval_int {{ `(n / SHAKE256_RATE) : [64] }};
+    let size = eval_int {{ `(count * SHAKE256_RATE) : [64] }};
+    hp <- crucible_alloc (llvm_array size char_t);
     (s, sp) <- ptr_to_fresh "s" state_t;
-    r <- crucible_fresh_var "r" i32;
-    (m, mp) <- ptr_to_fresh_readonly "m" (llvm_array n i8);
-    mlen <- crucible_fresh_var "mlen" digit_t;
-    crucible_precond {{ r== (`RATE:[32]) /\ (mlen == (`n:[64]))}};
-    crucible_execute_func [sp, (tm r), mp, (tm mlen), (tm {{ 0x04:[8] }})];
-    res <- crucible_fresh_var "res" state_t;
-    crucible_points_to sp (tm {{res}});
-    crucible_postcond {{ res ==
-        join (transpose ((transpose (split s:[5][5][64]))^(unflatten`{w=64}
-        (join (pad`{r= (RATE*8)} (join [reverse x | x<-m]# 0b00)))))) }};
+    crucible_execute_func [hp, tm {{ `count : [64] }}, sp, tm {{ `SHAKE256_RATE : [32] }}];
+    if eval_bool {{ 0 < `size }} then do {
+      h <- crucible_fresh_var "h" (llvm_array size char_t);
+      crucible_points_to hp (tm h);
+    } else do {
+      return ();
+    };
+    res_s <- crucible_fresh_var "res_s" state_t;
+    crucible_points_to sp (tm res_s);
 };
 
-// NOTE: If we add a permutation call at the end of the function,
-//       then it will be equivalent to the cryptol's absorb function.
-
-let keccak_absorb_corr_spec n RATE = do {
-    (s, sp) <- ptr_to_fresh "s" state_t;
-    r <- crucible_fresh_var "r" i32;
-    (m, mp) <- ptr_to_fresh "m" (llvm_array n i8);
-    mlen <- crucible_fresh_var "mlen" digit_t;
-    crucible_precond {{ s== zero /\ r== (`RATE:[32]) /\ (mlen == (`n:[64])) }};
-    crucible_execute_func [sp, (tm r), mp, (tm mlen), (tm {{ 0x1f:[8] }})];
-    res <- crucible_fresh_var "res" state_t;
-    crucible_points_to sp (tm {{ res }});
-    crucible_postcond {{ res ==
-        join (transpose (absorb`{w=64} (pad`{r= (RATE*8)}
-        (join [reverse x | x<-m]#0b1111)))) }};
-};
-
-let shake256_spec no ni = do {
-    (o, op) <- ptr_to_fresh "output" (llvm_array no i8);
-    (i, ip) <- ptr_to_fresh "input" (llvm_array ni i8);
-    crucible_precond {{ o == zero }};
-    crucible_execute_func [op, (tm {{ `no:[64] }}), ip, (tm {{ `ni:[64] }})];
-    res <- crucible_fresh_var "res" (llvm_array no i8);
-    crucible_points_to op (tm {{ res }});
-    crucible_postcond {{ res ==
-        toBytes (take`{512} (SHAKE256 (join [reverse x | x<-i]))) }};
-};
-
-let keccak_squeezeblocks_spec nb RATE = do {
-    let n = eval_int {{ (`nb)*(`RATE):[64] }};
-    (h, hp) <- ptr_to_fresh "h" (llvm_array n i8);
-    nblocks <- crucible_fresh_var "nblocks" digit_t;
-    (s, sp) <- ptr_to_fresh "s" state_t;
-    crucible_precond {{ h == zero /\ s == zero }};
-    crucible_execute_func [hp, (tm {{ `nb:[64] }}), sp, (tm {{ `RATE:[32] }})];
-    res <- crucible_fresh_var "res" state_t;
-    crucible_points_to sp (tm {{ res }});
-    crucible_postcond {{ res ==
-        join (transpose(Keccak_f(transpose (split s:[5][5][64])))) }};
-};
-
-let shake128_absorb_spec ns ni = do {
-    (s, sp) <- ptr_to_fresh "s" (llvm_array ns digit_t);
-    (i, ip) <- ptr_to_fresh "input" (llvm_array ni i8);
-    iB <- crucible_fresh_var "iB" i32;
-    crucible_execute_func [sp, ip, (tm iB)];
-    res <- crucible_fresh_var "res" digit_t;
-    crucible_points_to sp (tm {{ res }});
-};
-
-let shake128_squeezeblocks_spec no ns = do {
-    (o, op) <- ptr_to_fresh "output" (llvm_array no i8);
-    nblocks <- crucible_fresh_var "nblocks" digit_t;
-    (s, sp) <- ptr_to_fresh "s" (llvm_array ns digit_t);
-    crucible_execute_func [op, (tm nblocks), sp];
-    res <- crucible_fresh_var "res" digit_t;
-    crucible_points_to sp (tm {{ res}});
-};
-
-let shake128_spec no ni = do {
-    (o, op) <- ptr_to_fresh "output" (llvm_array no i8);
-    outlen <- crucible_fresh_var "outlen" digit_t;
-    (i, ip) <- ptr_to_fresh "input" (llvm_array ni i8);
-    inlen <- crucible_fresh_var "inlen" digit_t;
-    crucible_execute_func [op, (tm outlen), ip, (tm inlen)];
-    res <- crucible_fresh_var "res" i8;
-    crucible_points_to op (tm {{ res }});
-};
-
-let cshake128_simple_absorb_spec n RATE = do {
-    (s ,sp) <- ptr_to_fresh "s" state_t;
-    cstm <- crucible_fresh_var "cstm" uint16_t;
-    (i, ip) <- ptr_to_fresh "input" (llvm_array n i8);
-    inlen <- crucible_fresh_var "inlen" digit_t;
-    crucible_precond {{ True }};
-    crucible_execute_func [sp, (tm {{ cstm:[16] }}), ip, (tm {{ `n:[64] }})];
-    res <- crucible_fresh_var "res" state_t ;
-    crucible_points_to sp (tm {{ res }});
-    crucible_postcond {{ res ==
-        (join (transpose (unflatten `{ w=64 }
-        (join (pad `{r=(RATE*8)} (join [ reverse x | x<- i]#0b00))))) ^
-        join (transpose (Keccak_f (transpose (split ([(drop`{8} (cstm >> 8))#
-        (drop`{8} cstm) #0x10010001a801]#(zero:[24][64])):[5][5][64]))))) }};
-};
-
-let cshake128_simple_squeezeblocks_spec no ns = do {
-    (o, op) <- ptr_to_fresh "output" (llvm_array no i8);
-    nblocks <- crucible_fresh_var "nblocks" digit_t;
-    (s, sp) <- ptr_to_fresh "s" (llvm_array ns digit_t);
-    crucible_execute_func [op, (tm nblocks), sp];
-    res <- crucible_fresh_var "res" digit_t;
-    crucible_points_to sp (tm {{ res }});
-};
-
-let cshake128_simple_spec no ni = do {
-    (o, op) <- ptr_to_fresh "output" (llvm_array no i8);
-    outlen <- crucible_fresh_var "outlen" digit_t;
-    cstm <- crucible_fresh_var "cstm" (llvm_int 16);
-    (i, ip) <- ptr_to_fresh "in" (llvm_array ni i8);
-    inlen <- crucible_fresh_var "inlen" digit_t;
-    crucible_execute_func [op, (tm outlen), (tm cstm), ip, (tm inlen)];
-    res <- crucible_fresh_var "res" i8;
-    crucible_points_to op (tm {{ res }});
-};
-
-let shake256_absorb_spec ns ni = do {
-    (s, sp) <- ptr_to_fresh "s" (llvm_array ns digit_t);
-    (i, ip) <- ptr_to_fresh "input" (llvm_array ni i8);
-    iB <- crucible_fresh_var "inputByteLen" i32;
-    crucible_execute_func [sp, ip, (tm iB)];
-    res <- crucible_fresh_var "res" digit_t;
-    crucible_points_to sp (tm {{ res}});
-};
-
-let shake256_squeezeblocks_spec no ns = do{
-    (o, op) <- ptr_to_fresh "output" (llvm_array no i8);
-    nblocks <- crucible_fresh_var "nblocks" digit_t;
-    (s, sp) <- ptr_to_fresh "s" (llvm_array ns digit_t);
-    crucible_execute_func [op, (tm nblocks), sp];
-};
-
-let cshake256_simple_absorb_spec n RATE = do {
+let cshake256_simple_absorb_spec n = do {
     sp <- crucible_alloc state_t;
-    cstm <- crucible_fresh_var "cstm" uint16_t;
-    (i, ip) <- ptr_to_fresh "input" (llvm_array n i8);
-    crucible_execute_func [sp, (tm cstm), ip, (tm {{ `n:[64] }})];
-    res <- crucible_fresh_var "res" state_t;
-    crucible_points_to sp (tm {{ res }});
-    crucible_postcond {{ res ==
-        (join (transpose (unflatten `{w=64}
-        (join (pad `{r=(RATE*8)} (join [ reverse x | x<- i]#0b00))))) ^
-        join (transpose (Keccak_f (transpose (split ([(drop`{8} (cstm >> 8)) #
-        (drop`{8} cstm) #0x100100018801]#(zero:[24][64])):[5][5][64]))))) }};
+    cstm <- crucible_fresh_var "cstm" i16;
+    (input, inputp) <- ptr_to_fresh_readonly "in" (llvm_array n char_t);
+    crucible_execute_func [sp, tm cstm, inputp, tm {{ `n : [64] }}];
+    res_s <- crucible_fresh_var "res_s" state_t;
+    crucible_points_to sp (tm res_s);
 };
 
-let cshake256_simple_spec n RATE = do {
-    (o, op) <- ptr_to_fresh "output" (llvm_array 64 i8);
-    cstm <-  crucible_fresh_var "cstm" uint16_t;
-    (i, ip) <- ptr_to_fresh "in" (llvm_array n i8);
-    crucible_precond {{ True }};
-    crucible_execute_func [op, (tm {{ 64:[64] }}),
-        (tm cstm), ip, (tm {{ (`n:[64]) }})];
-    res <- crucible_fresh_var "res" (llvm_array 64 i8);
-    crucible_points_to op (tm {{ res }});
-    crucible_postcond {{ [ join (reverse x) | x <-(groupBy`{8} res) ] ==
-        take`{8}(join (transpose (Keccak_f
-        (transpose (split (join (transpose (unflatten `{w=64}
-        (join (pad `{r=(136*8)} (join [ reverse x | x<- i]#0b00))))) ^
-        join (transpose (Keccak_f (transpose (split ([(drop`{8}
-        ((cstm:[16]) >> 8))# (drop`{8} (cstm:[16])) #0x100100018801] #
-        (zero:[24][64])):[5][5][64]))))):[5][5][64]))))) }};
+let cshake256_simple_spec outsz insz = do {
+    outp <- crucible_alloc (llvm_array outsz char_t);
+    cstm <- crucible_fresh_var "cstm" i16;
+    (input, inputp) <- ptr_to_fresh_readonly "in" (llvm_array insz char_t);
+    crucible_execute_func
+        [ outp
+        , tm {{ (`outsz : [64]) }}
+        , tm cstm
+        , inputp
+        , tm {{ `insz:[64] }}
+        ];
+    out <- crucible_fresh_var "out" (llvm_array outsz char_t);
+    crucible_points_to outp (tm out);
 };
 
-let cshake256_simple_spec_admit outsz cstm insz = do {
-    op <- crucible_alloc (llvm_array outsz char_t);
-    (i, ip) <- ptr_to_fresh_readonly "in" (llvm_array insz char_t);
-    crucible_execute_func [op,
-        tm {{ (`outsz : [64]) }}, tm {{ (`cstm : [16]) }}, ip,
-        (tm {{ `insz:[64] }})];
-    crucible_points_to op (tm {{ cshake`{outsz,insz} `cstm i }});
-};
-
-let cshake256_simple_squeezeblocks_spec no ns = do {
-    (o, op) <- ptr_to_fresh "output" (llvm_array no i8);
-    nblocks <- crucible_fresh_var "nblocks" digit_t;
-    (s, sp) <- ptr_to_fresh "s" (llvm_array ns digit_t);
-    crucible_execute_func [ op, (tm nblocks), sp];
-    res <- crucible_fresh_var "res" digit_t;
-    crucible_points_to sp (tm {{ res }});
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
@@ -251,29 +93,55 @@ store64_ov <- verify "store64_r1" [] store64_spec;
 KeccakF1600_StatePermute_ov <- admit "KeccakF1600_StatePermute_r1" []
     (KeccakF1600_StatePermute_spec);
 
-// NOTE: The padding value for the following functions is 31 (0x1f)
+keccak_absorb_ov0 <- verify "keccak_absorb_r1"
+    [load64_ov, KeccakF1600_StatePermute_ov]
+    (keccak_absorb_spec CRYPTO_CIPHERTEXTBYTES);
+keccak_absorb_ov1 <- verify "keccak_absorb_r1"
+    [load64_ov, KeccakF1600_StatePermute_ov]
+    (keccak_absorb_spec FP2_ENCODED_BYTES);
+keccak_absorb_ov2 <- verify "keccak_absorb_r1"
+    [load64_ov, KeccakF1600_StatePermute_ov]
+    (keccak_absorb_spec CIPHERTEXT_PLUS_MSG_BYTES);
 
-shake128_absorb_ones_ov <- verify_shake_unint 
-    "keccak_absorb_r1" [KeccakF1600_StatePermute_ov]
-    [] (keccak_absorb_ones_spec 10 SHAKE128_RATE);
-shake256_absorb_ones_ov <- verify_shake_unint
-    "keccak_absorb_r1" [KeccakF1600_StatePermute_ov]
-    [] (keccak_absorb_ones_spec 10 SHAKE256_RATE);
+keccak_squeezeblocks_ov0 <- verify "keccak_squeezeblocks_r1"
+    [KeccakF1600_StatePermute_ov, store64_ov]
+    (keccak_squeezeblocks_spec SECRETKEY_A_BYTES);
+keccak_squeezeblocks_ov1 <- verify "keccak_squeezeblocks_r1"
+    [KeccakF1600_StatePermute_ov, store64_ov]
+    (keccak_squeezeblocks_spec MSG_BYTES);
+keccak_squeezeblocks_ov2 <- verify "keccak_squeezeblocks_r1"
+    [KeccakF1600_StatePermute_ov, store64_ov]
+    (keccak_squeezeblocks_spec CRYPTO_BYTES);
+keccak_squeezeblocks_ov3 <- verify "keccak_squeezeblocks_r1"
+    [KeccakF1600_StatePermute_ov, store64_ov]
+    (keccak_squeezeblocks_spec SHAKE256_RATE);
 
-// NOTE: The padding value for the following functions is 0
+cshake256_simple_absorb_ov0 <- verify "cshake256_simple_absorb_r1"
+    [KeccakF1600_StatePermute_ov, keccak_absorb_ov0]
+    (cshake256_simple_absorb_spec CRYPTO_CIPHERTEXTBYTES);
+cshake256_simple_absorb_ov1 <- verify "cshake256_simple_absorb_r1"
+    [KeccakF1600_StatePermute_ov, keccak_absorb_ov1]
+    (cshake256_simple_absorb_spec FP2_ENCODED_BYTES);
+cshake256_simple_absorb_ov2 <- verify "cshake256_simple_absorb_r1"
+    [KeccakF1600_StatePermute_ov, keccak_absorb_ov2]
+    (cshake256_simple_absorb_spec CIPHERTEXT_PLUS_MSG_BYTES);
 
-shake128_absorb_zero_ov <- verify_shake_unint
-    "keccak_absorb_r1" [KeccakF1600_StatePermute_ov]
-    [] (keccak_absorb_zero_spec 10 SHAKE128_RATE);
-shake256_absorb_zero_ov <- verify_shake_unint
-    "keccak_absorb_r1" [KeccakF1600_StatePermute_ov]
-    [] (keccak_absorb_zero_spec 10 SHAKE256_RATE);
+cshake256_simple_ov0 <- verify "cshake256_simple_r1"
+    [ cshake256_simple_absorb_ov0
+    , keccak_squeezeblocks_ov0
+    , keccak_squeezeblocks_ov3
+    ]
+    (cshake256_simple_spec SECRETKEY_A_BYTES CRYPTO_CIPHERTEXTBYTES);
+cshake256_simple_ov1 <- verify "cshake256_simple_r1"
+    [ cshake256_simple_absorb_ov1
+    , keccak_squeezeblocks_ov1
+    , keccak_squeezeblocks_ov3
+    ]
+    (cshake256_simple_spec MSG_BYTES FP2_ENCODED_BYTES);
+cshake256_simple_ov2 <- verify "cshake256_simple_r1"
+    [ cshake256_simple_absorb_ov2
+    , keccak_squeezeblocks_ov2
+    , keccak_squeezeblocks_ov3
+    ]
+    (cshake256_simple_spec CRYPTO_BYTES CIPHERTEXT_PLUS_MSG_BYTES);
 
-cshake256_simple_dec_ov <- admit "cshake256_simple_r1"
-    [] (cshake256_simple_spec_admit FP2_ENCODED_BYTES 2 24);
-cshake256_simple_enc_ov0 <- admit "cshake256_simple_r1"
-    [] (cshake256_simple_spec_admit SECRETKEY_A_BYTES 0 402);
-cshake256_simple_enc_ov1 <- admit "cshake256_simple_r1"
-    [] (cshake256_simple_spec_admit MSG_BYTES 2 FP2_ENCODED_BYTES);
-cshake256_simple_enc_ov2 <- admit "cshake256_simple_r1"
-    [] (cshake256_simple_spec_admit CRYPTO_BYTES 1 426);

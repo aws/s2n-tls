@@ -10,7 +10,9 @@ m <- llvm_load_module "../../bitcode/all_llvm.bc";
 // Generic Crucible and LLVM
 
 let i8 = llvm_int 8;
+let i16 = llvm_int 16;
 let i32 = llvm_int 32;
+let i64 = llvm_int 64;
 let tm = crucible_term;
 
 let tactic unints =
@@ -125,6 +127,10 @@ let CRYPTO_SECRETKEYBYTES = eval_int {{ `(MSG_BYTES + SECRETKEY_B_BYTES + CRYPTO
 let CRYPTO_CIPHERTEXTBYTES = eval_int {{ `(CRYPTO_PUBLICKEYBYTES + MSG_BYTES) : [64] }};
 let CRYPTO_BYTES = 16;
 
+let SHAKE128_RATE = 168;
+let SHAKE256_RATE = 136;
+
+let CIPHERTEXT_PLUS_MSG_BYTES = eval_int {{ `(CRYPTO_CIPHERTEXTBYTES + MSG_BYTES) : [64] }};
 // NOTE: Bytes to hold OALICE_BITS (250) or OBOB_BITS (253) bits
 let BOB_OR_ALICE_BYTES = 32;
 
