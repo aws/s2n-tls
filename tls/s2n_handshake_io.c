@@ -907,23 +907,6 @@ static int handshake_read_io(struct s2n_connection *conn)
         GUARD(s2n_handshake_handle_sslv2(conn));
     }
 
-    /* In TLS 1.3, encrypted handshake records would appear to be of record type
-     * TLS_APPLICATION_DATA. The actual record content type is found after the encryped
-     * is decrypted.
-     */
-    if (conn->actual_protocol_version == S2N_TLS13 && record_type == TLS_APPLICATION_DATA) {
-        GUARD(s2n_stuffer_skip_read(&conn->in, s2n_stuffer_data_available(&conn->in) - 1));
-
-        /* set the true record type */
-        GUARD(s2n_stuffer_read_uint8(&conn->in, &record_type));
-
-        /* wipe this last byte so the rest handshake works like < TLS 1.3 */
-        GUARD(s2n_stuffer_wipe_n(&conn->in, 1));
-
-        /* set the read cursor at where it should be */
-        GUARD(s2n_stuffer_reread(&conn->in));
-    }
-
     /* Now we have a record, but it could be a partial fragment of a message, or it might
      * contain several messages.
      */
