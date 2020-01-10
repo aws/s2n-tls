@@ -131,8 +131,6 @@ let SHAKE128_RATE = 168;
 let SHAKE256_RATE = 136;
 
 let CIPHERTEXT_PLUS_MSG_BYTES = eval_int {{ `(CRYPTO_CIPHERTEXTBYTES + MSG_BYTES) : [64] }};
-// NOTE: Bytes to hold OALICE_BITS (250) or OBOB_BITS (253) bits
-let BOB_OR_ALICE_BYTES = 32;
 
 
 let char_t = llvm_int 8;

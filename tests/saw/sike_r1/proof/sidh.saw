@@ -95,10 +95,8 @@ let ephemeralSecretAgreement_B_spec = do {
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
 
-random_mod_order_B_ov <- admit "random_mod_order_B_r1"
-    [clear_words_ov, randombytes_sidh_ov] random_mod_order_B_spec;
-random_mod_order_B_unint_ov <- admit "random_mod_order_B_r1"
-    [] random_mod_order_B_spec;
+random_mod_order_B_ov <- verify "random_mod_order_B_r1"
+    [clear_words_ov, randombytes_sidh_bob_ov] random_mod_order_B_spec;
 
 init_basis_ov <- verify "init_basis_r1"
     [fpcopy503_ov, fpzero503_ov] 
