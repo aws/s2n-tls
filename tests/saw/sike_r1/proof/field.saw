@@ -181,6 +181,10 @@ let fpmul503_mont_same_spec = binary_ptr_op_felm_same;
 let fpsqr503_mont_spec = unary_ptr_op_felm;
 let fpsqr503_mont_same_spec = unary_ptr_op_felm_same;
 
+let fpinv503_chain_mont_spec = inplace_ptr_op_felm;
+
+let fpinv503_mont_spec = inplace_ptr_op_felm;
+
 let to_mont_spec = unary_ptr_op_felm;
 let to_mont_same_spec = unary_ptr_op_felm_same;
 
@@ -231,75 +235,7 @@ let to_fp2mont_same_spec = unary_ptr_op_f2elm_same;
 
 let from_fp2mont_spec = unary_ptr_op_f2elm;
 
-let fpinv503_chain_mont_spec = do {
-  (a, a_ptr) <- ptr_to_fresh "a" felm_t;
-  crucible_execute_func [a_ptr];
-  res_a <- crucible_fresh_var "res_a" felm_t;
-  crucible_points_to a_ptr (crucible_term res_a);
-};
-
-let __breakpoint__fpinv_chain_mont_first_spec = do {
-  (a, a_ptr) <- ptr_to_fresh "a" felm_t;
-  a_ptr_ptr <- crucible_alloc (llvm_int 64);
-  crucible_points_to a_ptr_ptr a_ptr;
-  (i, i_ptr) <- ptr_to_fresh "i" i32;
-  j_ptr <- crucible_alloc i32;
-  (t, t_ptr) <-  ptr_to_fresh "t" (llvm_array 15 felm_t);
-  (tt, tt_ptr) <- ptr_to_fresh "tt" felm_t;
-  crucible_precond {{ 0 <= i /\ i <= 14 }};
-
-  crucible_execute_func [a_ptr_ptr, i_ptr, j_ptr, t_ptr, tt_ptr];
-
-  res_a <- crucible_fresh_var "res_a" felm_t;
-  crucible_points_to a_ptr (crucible_term res_a);
-};
-
-let __breakpoint__fpinv_chain_mont_middle_spec = do {
-  (a, a_ptr) <- ptr_to_fresh "a" felm_t;
-  a_ptr_ptr <- crucible_alloc (llvm_int 64);
-  crucible_points_to a_ptr_ptr a_ptr;
-  (i, i_ptr) <- ptr_to_fresh "i" i32;
-  j_ptr <- crucible_alloc i32;
-  (t, t_ptr) <-  ptr_to_fresh "t" (llvm_array 15 felm_t);
-  (tt, tt_ptr) <- ptr_to_fresh "tt" felm_t;
-  crucible_precond {{ 0 <= i /\ i <= 8 }};
-
-  crucible_execute_func [a_ptr_ptr, i_ptr, j_ptr, t_ptr, tt_ptr];
-
-  res_a <- crucible_fresh_var "res_a" felm_t;
-  crucible_points_to a_ptr (crucible_term res_a);
-};
-
-let __breakpoint__fpinv_chain_mont_last_spec = do {
-  (a, a_ptr) <- ptr_to_fresh "a" felm_t;
-  a_ptr_ptr <- crucible_alloc (llvm_int 64);
-  crucible_points_to a_ptr_ptr a_ptr;
-  (i, i_ptr) <- ptr_to_fresh "i" i32;
-  (j, j_ptr) <- ptr_to_fresh "j" i32;
-  (t, t_ptr) <-  ptr_to_fresh "t" (llvm_array 15 felm_t);
-  (tt, tt_ptr) <- ptr_to_fresh "tt" felm_t;
-  crucible_precond {{ 0 <= i /\ i <= 5 }};
-  crucible_precond {{ 0 <= j /\ j <= 49 }};
-
-  crucible_execute_func [a_ptr_ptr, i_ptr, j_ptr, t_ptr, tt_ptr];
-
-  res_a <- crucible_fresh_var "res_a" felm_t;
-  crucible_points_to a_ptr (crucible_term res_a);
-};
-
-let fpinv503_mont_spec = do {
-  (a, a_ptr) <- ptr_to_fresh "a" felm_t;
-  crucible_execute_func [a_ptr];
-  res_a <- crucible_fresh_var "res_a" felm_t;
-  crucible_points_to a_ptr (crucible_term res_a);
-};
-
-let fp2inv503_mont_spec = do {
-    (a, ap) <- B_f2elm_t "a";
-    crucible_execute_func [ap];
-    c <- crucible_fresh_var "c" f2elm_t;
-    crucible_points_to ap (tm c);
-};
+let fp2inv503_mont_spec = inplace_ptr_op_f2elm;
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -348,6 +284,23 @@ fpsqr503_mont_ov <- verify "fpsqr503_mont"
 fpsqr503_mont_same_ov <- verify "fpsqr503_mont"
     [mul_single_ov,rdc_mont_ov]
     fpsqr503_mont_same_spec;
+
+fpinv503_chain_mont_ov <- verify "fpinv503_chain_mont"
+    [ fpmul503_mont_ov
+    , fpmul503_mont_right_ov
+    , fpsqr503_mont_ov
+    , fpsqr503_mont_same_ov
+    , fpcopy503_ov
+    ]
+    fpinv503_chain_mont_spec;
+
+fpinv503_mont_ov <- verify "fpinv503_mont"
+    [ fpcopy503_ov
+    , fpinv503_chain_mont_ov
+    , fpsqr503_mont_same_ov
+    , fpmul503_mont_left_ov
+    ]
+    fpinv503_mont_spec;
 
 to_mont_ov <- verify "to_mont_r1"
     [fpmul503_mont_ov]
@@ -410,6 +363,15 @@ fp2sqr503_mont_same_ov <- verify "fp2sqr503_mont"
     [fpsqr503_mont_same_ov]
     fp2sqr503_mont_same_spec;
 
+fp2inv503_mont_ov <- verify "fp2inv503_mont"
+    [ fpsqr503_mont_ov
+    , fpadd503_left_ov
+    , fpinv503_mont_ov
+    , fpneg503_ov
+    , fpmul503_mont_left_ov
+    ]
+    fp2inv503_mont_spec;
+
 to_fp2mont_ov <- verify "to_fp2mont_r1"
     [to_mont_ov]
     to_fp2mont_spec;
@@ -419,63 +381,4 @@ to_fp2mont_same_ov <- verify "to_fp2mont_r1"
 from_fp2mont_ov <- verify "from_fp2mont_r1"
     [from_mont_ov]
     from_fp2mont_spec;
-
-__breakpoint__fpinv_chain_mont0_ov <- admit "__breakpoint__fpinv_chain_mont0#fpinv503_chain_mont"
-    [] __breakpoint__fpinv_chain_mont_first_spec;
-__breakpoint__fpinv_chain_mont1_ov <- admit "__breakpoint__fpinv_chain_mont1#fpinv503_chain_mont"
-    [] __breakpoint__fpinv_chain_mont_middle_spec;
-__breakpoint__fpinv_chain_mont2_ov <- admit "__breakpoint__fpinv_chain_mont2#fpinv503_chain_mont"
-    [] __breakpoint__fpinv_chain_mont_middle_spec;
-__breakpoint__fpinv_chain_mont3_ov <- admit "__breakpoint__fpinv_chain_mont3#fpinv503_chain_mont"
-    [] __breakpoint__fpinv_chain_mont_middle_spec;
-__breakpoint__fpinv_chain_mont4_ov <- admit "__breakpoint__fpinv_chain_mont4#fpinv503_chain_mont"
-    [] __breakpoint__fpinv_chain_mont_last_spec;
-let fpinv503_mont_O =
-    [ fpmul503_mont_ov
-    , fpmul503_mont_right_ov
-    , fpsqr503_mont_ov
-    , fpsqr503_mont_same_ov
-    , fpcopy503_ov
-    , __breakpoint__fpinv_chain_mont0_ov
-    , __breakpoint__fpinv_chain_mont1_ov
-    , __breakpoint__fpinv_chain_mont2_ov
-    , __breakpoint__fpinv_chain_mont3_ov
-    , __breakpoint__fpinv_chain_mont4_ov
-    ];
-
-verify "__breakpoint__fpinv_chain_mont0#fpinv503_chain_mont"
-    fpinv503_mont_O
-    __breakpoint__fpinv_chain_mont_first_spec;
-verify "__breakpoint__fpinv_chain_mont1#fpinv503_chain_mont"
-    fpinv503_mont_O
-    __breakpoint__fpinv_chain_mont_middle_spec;
-verify "__breakpoint__fpinv_chain_mont2#fpinv503_chain_mont"
-    fpinv503_mont_O
-    __breakpoint__fpinv_chain_mont_middle_spec;
-verify "__breakpoint__fpinv_chain_mont3#fpinv503_chain_mont"
-    fpinv503_mont_O
-    __breakpoint__fpinv_chain_mont_middle_spec;
-verify "__breakpoint__fpinv_chain_mont4#fpinv503_chain_mont"
-    fpinv503_mont_O
-    __breakpoint__fpinv_chain_mont_last_spec;
-fpinv503_chain_mont_ov <- verify "fpinv503_chain_mont"
-    fpinv503_mont_O
-    fpinv503_chain_mont_spec;
-
-fpinv503_mont_ov <- verify "fpinv503_mont"
-    [ fpcopy503_ov
-    , fpinv503_chain_mont_ov
-    , fpsqr503_mont_same_ov
-    , fpmul503_mont_left_ov
-    ]
-    fpinv503_mont_spec;
-
-fp2inv503_mont_ov <- verify "fp2inv503_mont"
-    [ fpsqr503_mont_ov
-    , fpadd503_left_ov
-    , fpinv503_mont_ov
-    , fpneg503_ov
-    , fpmul503_mont_left_ov
-    ]
-    fp2inv503_mont_spec;
 
