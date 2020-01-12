@@ -1,0 +1,27 @@
+//Montgomery_Arithmetic.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+///////////////////////////////////////////////////////////////////////////////
+
+module abstract_spec::Montgomery_Arithmetic where
+
+import lib::math::Safe_Arithmetic
+import lib::math::Modular_Arithmetic
+import shared::C_Types
+import abstract_spec::P503_Field
+
+///////////////////////////////////////////////////////////////////////////////
+
+mont_R : [1024]
+mont_R = (2^^512)
+
+mont_p503_char : [1024]
+mont_p503_char = zero # p503_char
+
+mont_p503_charx2 : [1024]
+mont_p503_charx2 = zero # (2 * p503_char)
+
+mont_R2: felm
+mont_R2 =
+    [ 0x5289A0CF641D011F, 0x9B88257189FED2B9, 0xA3B365D58DC8F17A
+    , 0x5BC57AB6EFF168EC, 0x9E51998BD84D4423, 0xBF8999CBAC3B5695
+    , 0x46E9127BCE14CDB6, 0x003F6CFCE8B81771 ]

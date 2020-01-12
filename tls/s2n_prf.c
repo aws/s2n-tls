@@ -585,8 +585,8 @@ static int s2n_prf_make_server_key(struct s2n_connection *conn, struct s2n_stuff
     struct s2n_blob server_key = {0};
     server_key.size = conn->secure.cipher_suite->record_alg->cipher->key_material_size;
     server_key.data = s2n_stuffer_raw_read(key_material, server_key.size);
-
     notnull_check(server_key.data);
+
     if (conn->mode == S2N_SERVER) {
         GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.server_key, &server_key));
     } else {
@@ -610,7 +610,7 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     out.data = key_block;
     out.size = sizeof(key_block);
 
-    struct s2n_stuffer key_material = {{0}};
+    struct s2n_stuffer key_material = {0};
     GUARD(s2n_prf(conn, &master_secret, &label, &server_random, &client_random, NULL, &out));
     GUARD(s2n_stuffer_init(&key_material, &out));
     GUARD(s2n_stuffer_write(&key_material, &out));

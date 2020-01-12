@@ -1,0 +1,26 @@
+//Finite_Field.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module abstract_spec::Finite_Field where
+
+import lib::collections::Set
+
+///////////////////////////////////////////////////////////////////////////////
+// Type and property definitions for finite fields
+
+type Field fv =
+    { is_val : Set fv
+    , eq : (fv, fv) -> Bool
+    , add_id : fv
+    , mult_id : fv
+    , add : (fv,fv) -> fv
+    , add_inv : fv -> fv
+    , sub : (fv,fv) -> fv
+    , mult : (fv,fv) -> fv
+    , mult_inv : fv -> fv
+    , div : (fv,fv) -> fv
+    , char : Integer
+    , size : Integer
+    }

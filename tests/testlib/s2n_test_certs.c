@@ -31,10 +31,10 @@ int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size)
         S2N_ERROR(S2N_ERR_NULL);
     }
 
-    // Make sure we can fit the pem into the output buffer
+    /* Make sure we can fit the pem into the output buffer */
     fseek(pem_file, 0, SEEK_END);
     const long int pem_file_size = ftell(pem_file);
-    // one extra for the null byte
+    /* one extra for the null byte */
     rewind(pem_file);
 
     if (max_size < (pem_file_size + 1)) {

@@ -36,7 +36,7 @@ int s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
             if (bytes[i] / 100) {
                 *cursor++ = dec[bytes[i] / 100];
             }
-            if ((bytes[i] % 100) / 10) {
+            if (bytes[i] >= 10) {
                 *cursor++ = dec[(bytes[i] % 100) / 10];
             }
             *cursor++ = dec[(bytes[i] % 10)];
@@ -130,5 +130,5 @@ int s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
         return 0;
     }
 
-    return -1;
+    S2N_ERROR(S2N_ERR_INVALID_ARGUMENT);
 }

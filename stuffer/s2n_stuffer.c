@@ -76,11 +76,13 @@ int s2n_stuffer_free(struct s2n_stuffer *stuffer)
 
 int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size)
 {
-    S2N_ERROR_IF(stuffer->growable == 0, S2N_ERR_RESIZE_STATIC_STUFFER);
     S2N_ERROR_IF(stuffer->tainted == 1, S2N_ERR_RESIZE_TAINTED_STUFFER);
+    S2N_ERROR_IF(stuffer->growable == 0, S2N_ERR_RESIZE_STATIC_STUFFER);
+
     if (size == stuffer->blob.size) {
         return 0;
     }
+
     if (size < stuffer->blob.size) {
         GUARD(s2n_stuffer_wipe_n(stuffer, stuffer->blob.size - size));
     }
@@ -88,6 +90,15 @@ int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size)
     GUARD(s2n_realloc(&stuffer->blob, size));
 
     stuffer->blob.size = size;
+
+    return 0;
+}
+
+int s2n_stuffer_resize_if_empty(struct s2n_stuffer *stuffer, const uint32_t size)
+{
+    if (stuffer->blob.data == NULL) {
+        GUARD(s2n_stuffer_resize(stuffer, size));
+    }
 
     return 0;
 }
@@ -128,6 +139,21 @@ int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t size)
     }
 
     stuffer->read_cursor = MIN(stuffer->read_cursor, stuffer->write_cursor);
+
+    return 0;
+}
+
+int s2n_stuffer_release_if_empty(struct s2n_stuffer *stuffer)
+{
+    if (stuffer->blob.data == NULL) {
+        return 0;
+    }
+
+    S2N_ERROR_IF(stuffer->read_cursor != stuffer->write_cursor,
+            S2N_ERR_STUFFER_HAS_UNPROCESSED_DATA);
+
+    GUARD(s2n_stuffer_wipe(stuffer));
+    GUARD(s2n_stuffer_resize(stuffer, 0));
 
     return 0;
 }
@@ -244,6 +270,32 @@ int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t * data, c
     }
 
     memcpy_check(ptr, data, size);
+
+    return 0;
+}
+
+int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec* iov, int iov_count, size_t offs, size_t size)
+{
+    void *ptr = s2n_stuffer_raw_write(stuffer, size);
+    notnull_check(ptr);
+
+    size_t size_left = size, to_skip = offs;
+    for (int i = 0; i < iov_count; i++) {
+        if (to_skip >= iov[i].iov_len) {
+            to_skip -= iov[i].iov_len;
+            continue;
+        }
+
+        uint32_t iov_len = iov[i].iov_len - to_skip;
+        uint32_t iov_size_to_take = MIN(size_left, iov_len);
+        memcpy_check(ptr, (uint8_t*)iov[i].iov_base + to_skip, iov_size_to_take);
+        size_left -= iov_size_to_take;
+        if (size_left == 0) {
+            break;
+        }
+        ptr = (void*)((uint8_t*)ptr + iov_size_to_take);
+        to_skip = 0;
+    }
 
     return 0;
 }

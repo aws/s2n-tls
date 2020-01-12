@@ -16,15 +16,17 @@
 #pragma once
 
 #include <stdint.h>
+#include "tls/s2n_crypto.h"
 #include "utils/s2n_blob.h"
 
-typedef uint8_t kem_extension_size;
+typedef uint16_t kem_extension_size;
 typedef uint16_t kem_public_key_size;
 typedef uint16_t kem_private_key_size;
 typedef uint16_t kem_shared_secret_size;
 typedef uint16_t kem_ciphertext_key_size;
 
 struct s2n_kem {
+    const char *name;
     const kem_extension_size kem_extension_id;
     const kem_public_key_size public_key_length;
     const kem_private_key_size private_key_length;
@@ -36,11 +38,14 @@ struct s2n_kem {
     int (*decapsulate)(unsigned char *shared_secret_out, const unsigned char *ciphertext_in, const unsigned char *private_key_in);
 };
 
-struct s2n_kem_keypair {
-    const struct s2n_kem *negotiated_kem;
-    struct s2n_blob public_key;
-    struct s2n_blob private_key;
+struct s2n_iana_to_kem {
+    const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN];
+    const struct s2n_kem **kems;
+    uint8_t kem_count;
 };
+
+extern const struct s2n_kem s2n_bike_1_level_1_r1;
+extern const struct s2n_kem s2n_sike_p503_r1;
 
 extern int s2n_kem_generate_keypair(struct s2n_kem_keypair *kem_keys);
 
@@ -50,7 +55,9 @@ extern int s2n_kem_encapsulate(const struct s2n_kem_keypair *kem_keys, struct s2
 extern int s2n_kem_decapsulate(const struct s2n_kem_keypair *kem_params, struct s2n_blob *shared_secret,
                                const struct s2n_blob *ciphertext);
 
-extern int s2n_kem_find_supported_kem(const struct s2n_blob *client_kem_names, const struct s2n_kem *server_supported_kems,
+extern int s2n_kem_find_supported_kem(struct s2n_blob *client_kem_names, const struct s2n_kem *server_kem_pref_list,
                                       const int num_server_supported_kems, const struct s2n_kem **matching_kem);
 
 extern int s2n_kem_free(struct s2n_kem_keypair *kem_keys);
+
+extern int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_iana_to_kem **supported_params);

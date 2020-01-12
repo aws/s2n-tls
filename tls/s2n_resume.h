@@ -34,6 +34,8 @@
 #define S2N_STATE_FORMAT_LEN            1
 #define S2N_TICKET_LIFETIME_HINT_LEN    4
 #define S2N_SESSION_TICKET_SIZE_LEN     2
+#define S2N_GREATER_OR_EQUAL            1
+#define S2N_LESS_THAN                  -1
 
 struct s2n_connection;
 struct s2n_config;

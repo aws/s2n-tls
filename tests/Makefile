@@ -21,7 +21,7 @@ else
 endif
 
 .PHONY : all
-all: libs
+all: libs viz
 	${MAKE} -C unit
 	@echo "\033[1m ${COMPILE_INFO} \033[0;39m"
 
@@ -40,7 +40,12 @@ integration:
 
 .PHONY : fuzz
 fuzz:
+	${MAKE} -C testlib
 	${MAKE} -C fuzz
+
+.PHONY : viz
+viz:
+	${MAKE} -C viz
 
 include ../s2n.mk
 

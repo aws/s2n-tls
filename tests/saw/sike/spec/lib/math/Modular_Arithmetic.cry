@@ -1,0 +1,71 @@
+//Modular_Arithmetic.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module lib::math::Modular_Arithmetic where
+
+import lib::math::Safe_Arithmetic
+
+///////////////////////////////////////////////////////////////////////////////
+
+mod_add : {a} (fin a, a >= 1) => ([a],[a],[a]) -> [a]
+mod_add(mod, x, y) = safe_mod(mod, (safe_add (x, y)))
+
+mod_sub : {a} (fin a, a >= 1) => ([a],[a],[a]) -> [a]
+mod_sub(mod, x, y) = (if x < y then  mod - d(y,x) else d(x,y))
+  where d: ([a],[a]) -> [a]
+        d (u,v) = safe_mod(mod, u-v) // u <= v so subtraction is safe
+
+mod_prod : {a} (fin a, a >= 1) => ([a],[a],[a]) -> [a]
+mod_prod(mod, x, y) = safe_mod(mod, (safe_prod(x, y)))
+
+mod_div2 : {n} (fin n, n >= 1) => ([n],[n]) -> [n]
+mod_div2(p, x) = if even(x) then x >> 1
+                 else take(safe_add(x, p)) where
+                     even y = (y && 1) == 0
+
+// NOTE: Returns x/y in F_p using Euler's binary gcd algorithm
+mod_div : {a} (fin a, a >= 1) => ([a],[a],[a]) -> [a]
+mod_div(p,x,y) = egcd(p,0,y,x)
+  where
+    // In code below, a is always odd.
+    egcd(a,ra,b,rb) =
+      if b == 0 then
+        ra
+      else if (b && 1) == 0 then // b is even
+        egcd(a, ra, b >> 1, mod_div2(p, rb))
+      else if a < b then
+        egcd(a, ra, (b - a) >> 1, mod_div2(p, mod_sub(p, rb, ra)))
+      else
+        egcd(b, rb, (a - b) >> 1, mod_div2(p, mod_sub(p, ra, rb)))
+
+mod_pow : {a} (fin a, a>=1) => ([a],[a],Integer) -> [a]
+mod_pow(mod, x, exp) =  helper(x, exp) where
+    helper : ([a],Integer) -> [a]
+    helper(cur_x, cur_exp) =
+        if (cur_exp == 0) then 1
+        else if (cur_exp == 1) then cur_x
+        else helper(mod_prod(mod, cur_x, x), (cur_exp-1))
+
+mod_pow_rs : {a} (fin a, a>=1) => ([a],[a],Integer) -> [a]
+mod_pow_rs(mod, x, exp) =
+    if (exp <= 1) then mod_pow(mod, x, exp)
+    else rs_helper(x, 1) where
+        rs_helper : ([a],Integer) -> [a]
+        rs_helper(cur_x, cur_exp) =
+            if (cur_exp * 2 == exp) then
+                mod_prod(mod, cur_x, cur_x)
+            else if (cur_exp * 2 > exp) then
+                mod_prod(mod, cur_x, mod_pow_rs(mod, x, (exp - cur_exp)))
+            else rs_helper(mod_prod(mod, cur_x, cur_x), cur_exp * 2)
+
+pow_rs_correct_10 : ([10],[10],Integer) -> Bit
+property pow_rs_correct_10 val =
+    if (0 <= val.2 /\ val.2 <= 10) then mod_pow(val) == mod_pow_rs(val)
+    else True
+
+pow_rs_correct_100 : ([100],[100],Integer) -> Bit
+property pow_rs_correct_100 val =
+    if (0 <= val.2 /\ val.2 <= 100) then mod_pow(val) == mod_pow_rs(val)
+    else True

@@ -19,19 +19,26 @@
 
 #include "tls/s2n_connection.h"
 
-extern uint8_t s2n_highest_protocol_version;
 extern uint8_t s2n_unknown_protocol_version;
+extern uint8_t s2n_highest_protocol_version;
 
 extern int s2n_flush(struct s2n_connection *conn, s2n_blocked_status * more);
 extern int s2n_client_hello_send(struct s2n_connection *conn);
 extern int s2n_client_hello_recv(struct s2n_connection *conn);
+extern int s2n_handshake_status_handler(struct s2n_connection *conn);
 extern int s2n_sslv2_client_hello_recv(struct s2n_connection *conn);
+extern int s2n_client_hello_retry_send(struct s2n_connection *conn);
+extern int s2n_client_hello_retry_recv(struct s2n_connection *conn);
 extern int s2n_server_hello_send(struct s2n_connection *conn);
 extern int s2n_server_hello_recv(struct s2n_connection *conn);
+extern int s2n_encrypted_extensions_send(struct s2n_connection *conn);
+extern int s2n_encrypted_extensions_recv(struct s2n_connection *conn);
 extern int s2n_server_cert_send(struct s2n_connection *conn);
 extern int s2n_server_cert_recv(struct s2n_connection *conn);
 extern int s2n_server_status_send(struct s2n_connection *conn);
 extern int s2n_server_status_recv(struct s2n_connection *conn);
+extern int s2n_server_cert_verify_send(struct s2n_connection *conn);
+extern int s2n_server_cert_verify_recv(struct s2n_connection *conn);
 extern int s2n_server_key_send(struct s2n_connection *conn);
 extern int s2n_server_key_external(struct s2n_connection *conn);
 extern int s2n_server_key_recv(struct s2n_connection *conn);
@@ -46,16 +53,20 @@ extern int s2n_client_key_recv(struct s2n_connection *conn);
 extern int s2n_client_key_external(struct s2n_connection *conn);
 extern int s2n_client_cert_verify_recv(struct s2n_connection *conn);
 extern int s2n_client_cert_verify_send(struct s2n_connection *conn);
-extern int s2n_client_ccs_send(struct s2n_connection *conn);
-extern int s2n_client_ccs_recv(struct s2n_connection *conn);
 extern int s2n_server_nst_send(struct s2n_connection *conn);
 extern int s2n_server_nst_recv(struct s2n_connection *conn);
-extern int s2n_server_ccs_send(struct s2n_connection *conn);
+extern int s2n_ccs_send(struct s2n_connection *conn);
+extern int s2n_basic_ccs_recv(struct s2n_connection *conn);
 extern int s2n_server_ccs_recv(struct s2n_connection *conn);
+extern int s2n_client_ccs_recv(struct s2n_connection *conn);
 extern int s2n_client_finished_send(struct s2n_connection *conn);
 extern int s2n_client_finished_recv(struct s2n_connection *conn);
 extern int s2n_server_finished_send(struct s2n_connection *conn);
 extern int s2n_server_finished_recv(struct s2n_connection *conn);
+extern int s2n_tls13_client_finished_send(struct s2n_connection *conn);
+extern int s2n_tls13_client_finished_recv(struct s2n_connection *conn);
+extern int s2n_tls13_server_finished_send(struct s2n_connection *conn);
+extern int s2n_tls13_server_finished_recv(struct s2n_connection *conn);
 extern int s2n_process_client_hello(struct s2n_connection *conn);
 extern int s2n_handshake_write_header(struct s2n_connection *conn, uint8_t message_type);
 extern int s2n_handshake_finish_header(struct s2n_connection *conn);
@@ -68,6 +79,8 @@ extern int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_st
 extern int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *extensions);
 
 extern uint16_t mfl_code_to_length[5];
+
+#define s2n_server_received_server_name(conn) ((conn)->server_name[0] != 0)
 
 #define s2n_server_can_send_ec_point_formats(conn) \
         ((conn)->ec_point_formats)
@@ -85,3 +98,6 @@ extern uint16_t mfl_code_to_length[5];
 
 #define s2n_server_sending_nst(conn) ((conn)->config->use_tickets && \
         (conn)->session_ticket_status == S2N_NEW_TICKET)
+
+#define s2n_server_can_send_kex(conn) \
+    ((conn)->secure.cipher_suite->key_exchange_alg)

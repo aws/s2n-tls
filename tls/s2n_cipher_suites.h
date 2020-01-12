@@ -17,7 +17,9 @@
 
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_crypto.h"
 
+#include "crypto/s2n_certificate.h"
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_hmac.h"
 
@@ -28,16 +30,13 @@
 #define S2N_KEY_EXCHANGE_EPH      0x02  /* Ephemeral key exchange */
 #define S2N_KEY_EXCHANGE_ECC      0x04  /* Elliptic curve cryptography */
 
-typedef enum {
-    S2N_AUTHENTICATION_RSA = 0,
-    S2N_AUTHENTICATION_ECDSA
-} s2n_authentication_method;
-
-#define S2N_MAX_POSSIBLE_RECORD_ALGS  2
+#define S2N_MAX_POSSIBLE_RECORD_ALGS    2
+#define S2N_CIPHER_SUITE_COUNT          38 /* Kept up-to-date by s2n_cipher_suite_match_test */
 
 /* Record algorithm flags that can be OR'ed */
 #define S2N_TLS12_AES_GCM_AEAD_NONCE     0x01
 #define S2N_TLS12_CHACHA_POLY_AEAD_NONCE 0x02
+#define S2N_TLS13_RECORD_AEAD_NONCE      0x04
 
 struct s2n_record_algorithm {
     const struct s2n_cipher *cipher;
@@ -130,6 +129,11 @@ extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_chacha20_poly1305_sha256;
 extern struct s2n_cipher_suite s2n_dhe_rsa_with_chacha20_poly1305_sha256;
 extern struct s2n_cipher_suite s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256;
 extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_rc4_128_sha;
+extern struct s2n_cipher_suite s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384;
+extern struct s2n_cipher_suite s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384;
+extern struct s2n_cipher_suite s2n_tls13_aes_256_gcm_sha384;
+extern struct s2n_cipher_suite s2n_tls13_aes_128_gcm_sha256;
+extern struct s2n_cipher_suite s2n_tls13_chacha20_poly1305_sha256;
 
 extern int s2n_cipher_suites_init(void);
 extern int s2n_cipher_suites_cleanup(void);

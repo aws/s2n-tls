@@ -18,6 +18,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
 #include "error/s2n_errno.h"
@@ -89,10 +90,21 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
     lt_check(__tmp_n, high);                    \
   } while (0)
 
-#define GUARD( x )              if ( (x) < 0 ) return -1
-#define GUARD_GOTO( x , label ) if ( (x) < 0 ) goto label
-#define GUARD_PTR( x )          if ( (x) < 0 ) return NULL
-#define S2N_IN_UNIT_TEST ( getenv("S2N_UNIT_TEST") != NULL )
+#define GUARD( x )              do {if ( (x) < 0 ) return S2N_FAILURE;} while (0)
+#define GUARD_GOTO( x , label ) do {if ( (x) < 0 ) goto label;} while (0)
+#define GUARD_PTR( x )          do {if ( (x) < 0 ) return NULL;} while (0)
+
+/* Check the return value from caller. If this value is -2, S2N_ERR_BLOCKED is marked*/
+#define GUARD_AGAIN( x )  do {if ( (x) == -2 ) { S2N_ERROR(S2N_ERR_BLOCKED); } GUARD( x );} while(0)
+
+/* Returns true if s2n is in unit test mode, false otherwise */
+bool s2n_in_unit_test();
+
+/* Sets whether s2n is in unit test mode */
+int s2n_in_unit_test_set(bool newval);
+
+#define S2N_IN_INTEG_TEST ( getenv("S2N_INTEG_TEST") != NULL )
+#define S2N_IN_TEST ( s2n_in_unit_test() || S2N_IN_INTEG_TEST )
 
 /* TODO: use the OSSL error code in error reporting https://github.com/awslabs/s2n/issues/705 */
 #define GUARD_OSSL( x , errcode )               \
@@ -114,7 +126,7 @@ extern pid_t s2n_actual_getpid();
 extern int s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, uint32_t len);
 
 /* Copy src to dst, or don't copy it, in constant time */
-extern int s2n_constant_time_copy_or_dont(const uint8_t * dst, const uint8_t * src, uint32_t len, uint8_t dont);
+extern int s2n_constant_time_copy_or_dont(uint8_t * dst, const uint8_t * src, uint32_t len, uint8_t dont);
 
 /* If src contains valid PKCS#1 v1.5 padding of exactly expectlen bytes, decode
  * it into dst, otherwise leave dst alone, in constant time.
@@ -135,3 +147,4 @@ extern int s2n_constant_time_pkcs1_unpad_or_dont(uint8_t * dst, const uint8_t * 
   }                                                         \
   struct __useless_struct_to_allow_trailing_semicolon__
 
+#define s2n_array_len(array) (sizeof(array) / sizeof(array[0]))

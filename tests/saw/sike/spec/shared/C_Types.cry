@@ -1,0 +1,38 @@
+//C_Types.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module shared::C_Types where
+
+import shared::Constants
+
+///////////////////////////////////////////////////////////////////////////////
+// C representation of Cryptol types
+
+type felm = [8][64]
+type f2elm = [2]felm
+type dfelm = [16][64]
+
+type point_struct = (f2elm, f2elm)
+type point_proj_t = [1]point_struct
+
+type f2elm_3 = [3]f2elm
+type f2elm_2 = [2]f2elm
+
+zero_8 =   [0x0000000000000000 | i <- ([1..8] : [8][4] )]
+
+(zero_felm: felm) = zero_8
+(zero_f2elm: f2elm) = [zero_felm, zero_felm]
+(zero_3f2elm:[3]f2elm) = [zero_f2elm, zero_f2elm, zero_f2elm]
+
+(zero_point_struct : point_struct) = (zero_f2elm, zero_f2elm)
+(zero_point_proj_t : point_proj_t) = [zero_point_struct]
+
+(g_Montgomery_one: felm) =
+    [ 0x00000000000003F9, 0x0000000000000000
+    , 0x0000000000000000, 0xB400000000000000
+    , 0x63CB1A6EA6DED2B4, 0x51689D8D667EB37D
+    , 0x8ACD77C71AB24142, 0x0026FBAEC60F5953 ]
+
+(g_Montgomery_one_list_f2elm: f2elm) =  [g_Montgomery_one, zero_8]

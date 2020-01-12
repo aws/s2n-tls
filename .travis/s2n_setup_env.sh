@@ -17,7 +17,7 @@
 # Setup Default Build Config
 : "${S2N_LIBCRYPTO:=openssl-1.1.1}"
 : "${BUILD_S2N:=false}"
-: "${GCC6_REQUIRED:=false}"
+: "${GCC_VERSION:=NONE}"
 : "${LATEST_CLANG:=false}"
 : "${TESTS:=integration}"
 
@@ -45,6 +45,7 @@
 unamestr=$(uname)
 if [[ "$unamestr" == 'Linux' ]]; then
    : "${TRAVIS_OS_NAME:=linux}"
+   : "${UBUNTU_VERSION:=$(lsb_release -rs)}"
 elif [[ "$unamestr" == 'Darwin' ]]; then
    : "${TRAVIS_OS_NAME:=osx}"
 fi
@@ -52,7 +53,7 @@ fi
 # Export all Env Variables
 export S2N_LIBCRYPTO
 export BUILD_S2N
-export GCC6_REQUIRED
+export GCC_VERSION
 export LATEST_CLANG
 export TESTS
 export BASE_S2N_DIR
@@ -74,12 +75,9 @@ export SIDETRAIL_INSTALL_DIR
 export OPENSSL_1_1_X_MASTER_INSTALL_DIR
 export FUZZ_TIMEOUT_SEC
 export TRAVIS_OS_NAME
+export UBUNTU_VERSION
+export S2N_CORKED_IO
 
-# Add all of our test dependencies to the PATH. Use Openssl 1.1.1 so the latest openssl is used for s_client
-# integration tests.
-export PATH=$PYTHON_INSTALL_DIR/bin:$OPENSSL_1_1_1_INSTALL_DIR/bin:$GNUTLS_INSTALL_DIR/bin:$SAW_INSTALL_DIR/bin:$Z3_INSTALL_DIR/bin:$SCAN_BUILD_INSTALL_DIR/bin:$LATEST_CLANG_INSTALL_DIR/bin:`pwd`/.travis/:$PATH
-export LD_LIBRARY_PATH=$OPENSSL_1_1_1_INSTALL_DIR/lib:$LD_LIBRARY_PATH; 
-export DYLD_LIBRARY_PATH=$OPENSSL_1_1_1_INSTALL_DIR/lib:$LD_LIBRARY_PATH;
 
 # Select the libcrypto to build s2n against. If this is unset, default to the latest stable version(Openssl 1.1.1)
 if [[ -z $S2N_LIBCRYPTO ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_1_INSTALL_DIR ; fi
@@ -100,9 +98,10 @@ rm -rf libcrypto-root && ln -s "$LIBCRYPTO_ROOT" libcrypto-root
 export LIBFUZZER_ROOT=$LIBFUZZER_INSTALL_DIR
 
 echo "TRAVIS_OS_NAME=$TRAVIS_OS_NAME"
+echo "UBUNTU_VERSION=$UBUNTU_VERSION"
 echo "S2N_LIBCRYPTO=$S2N_LIBCRYPTO"
 echo "BUILD_S2N=$BUILD_S2N"
-echo "GCC6_REQUIRED=$GCC6_REQUIRED"
+echo "GCC_VERSION=$GCC_VERSION"
 echo "LATEST_CLANG=$LATEST_CLANG"
 echo "TESTS=$TESTS"
 echo "PATH=$PATH"

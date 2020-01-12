@@ -305,7 +305,7 @@ int s2n_rand_cleanup_thread(void)
  */
 int s2n_set_private_drbg_for_test(struct s2n_drbg drbg)
 {
-    S2N_ERROR_IF(!S2N_IN_UNIT_TEST, S2N_ERR_NOT_IN_UNIT_TEST);
+    S2N_ERROR_IF(!s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     GUARD(s2n_drbg_wipe(&per_thread_private_drbg));
 
     per_thread_private_drbg = drbg;
@@ -337,7 +337,7 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
 
 #if defined(__x86_64__) || defined(__i386__)
     int space_remaining = 0;
-    struct s2n_stuffer stuffer = {{0}};
+    struct s2n_stuffer stuffer = {0};
     union {
         uint64_t u64;
 #if defined(__i386__)
@@ -373,7 +373,7 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
             __asm__ __volatile__(".byte 0x0f, 0xc7, 0xf0;\n" "setc %b1;\n": "=a"(output.i386_fields.u_high), "=qm"(success_high)
                                  :
                                  :"cc");
-
+            /* cppcheck-suppress knownConditionTrueFalse */
             success = success_high & success_low;
 #else
             /* execute the rdrand instruction, store the result in a general purpose register (it's assigned to
@@ -394,9 +394,7 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
             }
         }
 
-        if (!success) {
-            return -1;
-        }
+        S2N_ERROR_IF(!success, S2N_ERR_RDRAND_FAILED);
 
         int data_to_fill = MIN(sizeof(output), space_remaining);
 
@@ -405,6 +403,6 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
 
     return 0;
 #else
-    return -1;
+    S2N_ERROR(S2N_ERR_UNSUPPORTED_CPU);
 #endif
 }

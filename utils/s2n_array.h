@@ -30,6 +30,9 @@ struct s2n_array {
     size_t element_size;
 };
 
+#define s2n_array_num_elements( a )   ((a)->num_of_elements)
+#define S2N_ELEMENT_ALREADY_IN_ARRAY -1
+
 extern struct s2n_array *s2n_array_new(size_t element_size);
 extern void *s2n_array_add(struct s2n_array *array);
 extern void *s2n_array_get(struct s2n_array *array, uint32_t index);

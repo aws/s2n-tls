@@ -1,0 +1,75 @@
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+# this file except in compliance with the License. A copy of the License is
+# located at
+#
+#     http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing permissions and
+# limitations under the License.
+
+.PHONY: batch-yaml ci-yaml
+
+################################################################
+# Launching cbmc on cbmc-batch
+BATCH ?= cbmc-batch
+
+BATCHFLAGS ?= \
+	--batchpkg $(BATCHPKG) \
+	--blddir $(SRCDIR) \
+	--bucket $(BUCKET) \
+	--cbmcflags $(call encode_options,$(CBMCFLAGS)) \
+	--cbmcpkg $(CBMCPKG) \
+	--coverage-memory $(COVMEM) \
+	--goto gotos/$(ENTRY).goto \
+	--jobprefix $(ENTRY) \
+	--no-build \
+	--no-copysrc \
+	--property-memory $(PROPMEM) \
+	--srcdir $(SRCDIR) \
+	--viewerpkg $(VIEWERPKG) \
+	--wsdir $(WS)
+
+BATCHPKG ?= cbmc-batch.tar.gz
+BUCKET ?= cbmc
+CBMCPKG ?= cbmc.tar.gz
+COVMEM ?= 64000
+
+define encode_options
+       '=$(shell echo $(1) | sed 's/ ,/ /g' | sed 's/ /;/g')='
+endef
+
+PROPMEM ?= 64000
+VIEWERPKG ?= cbmc-viewer.tar.gz
+WS ?= ws
+
+define yaml_encode_options
+       "$(shell echo $(1) | sed 's/ ,/ /g' | sed 's/ /;/g')"
+endef
+
+$(ENTRY).yaml: 
+	echo 'batchpkg: $(BATCHPKG)' > $@
+	echo 'build: true' >> $@
+	echo 'cbmcflags: $(call yaml_encode_options,$(CBMCFLAGS))' >> $@
+	echo 'cbmcpkg: $(CBMCPKG)' >> $@
+	echo 'coverage_memory: $(COVMEM)' >> $@
+	echo 'expected: "SUCCESSFUL"' >> $@
+	echo 'goto: gotos/$(GOTO).goto' >> $@
+	echo 'jobos: ubuntu16' >> $@
+	echo 'property_memory: $(PROPMEM)' >> $@
+	echo 'viewerpkg: $(VIEWERPKG)' >> $@
+
+batch-yaml: $(ENTRY).yaml Makefile
+
+cbmc-batch.yaml: 
+	echo 'cbmcflags: $(strip $(call yaml_encode_options,$(CBMCFLAGS)))' > $@
+	echo 'expected: "SUCCESSFUL"' >> $@
+	echo 'goto: gotos/$(ENTRY).goto' >> $@
+	echo 'jobos: ubuntu16' >> $@
+
+ci-yaml: cbmc-batch.yaml Makefile
+
+.PHONY: ci-yaml batch-yaml

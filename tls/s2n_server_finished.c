@@ -20,6 +20,7 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_resume.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls13_handshake.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -69,6 +70,62 @@ int s2n_server_finished_send(struct s2n_connection *conn)
     if (IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type)) {
         GUARD(s2n_prf_key_expansion(conn));
     }
+
+    return 0;
+}
+
+
+int s2n_tls13_server_finished_recv(struct s2n_connection *conn) {
+    eq_check(conn->actual_protocol_version, S2N_TLS13);
+
+    uint8_t length = s2n_stuffer_data_available(&conn->handshake.io);
+    S2N_ERROR_IF(length == 0, S2N_ERR_BAD_MESSAGE);
+
+    /* read finished mac from handshake */
+    struct s2n_blob wire_finished_mac = {0};
+    s2n_blob_init(&wire_finished_mac, s2n_stuffer_raw_read(&conn->handshake.io, length), length);
+
+    /* get tls13 keys */
+    s2n_tls13_connection_keys(keys, conn);
+
+    /* get transcribe hash */
+    struct s2n_hash_state hash_state = {0};
+    GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
+
+    /* look up finished secret key */
+    struct s2n_blob finished_key = {0};
+    GUARD(s2n_blob_init(&finished_key, conn->handshake.server_finished, keys.size));
+
+    /* generate the hashed message authenticated code */
+    s2n_tls13_key_blob(server_finished_mac, keys.size);
+    GUARD(s2n_tls13_calculate_finished_mac(&keys, &finished_key, &hash_state, &server_finished_mac));
+
+    /* compare mac with received message */
+    GUARD(s2n_tls13_mac_verify(&keys, &server_finished_mac, &wire_finished_mac));
+
+    return 0;
+}
+
+int s2n_tls13_server_finished_send(struct s2n_connection *conn) {
+    eq_check(conn->actual_protocol_version, S2N_TLS13);
+
+    /* get tls13 keys */
+    s2n_tls13_connection_keys(keys, conn);
+
+    /* get transcribe hash */
+    struct s2n_hash_state hash_state = {0};
+    GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
+
+    /* look up finished secret key */
+    struct s2n_blob finished_key = {0};
+    GUARD(s2n_blob_init(&finished_key, conn->handshake.server_finished, keys.size));
+
+    /* generate the hashed message authenticated code */
+    s2n_tls13_key_blob(server_finished_mac, keys.size);
+    GUARD(s2n_tls13_calculate_finished_mac(&keys, &finished_key, &hash_state, &server_finished_mac));
+
+    /* write to handshake io */
+    GUARD(s2n_stuffer_write(&conn->handshake.io, &server_finished_mac));
 
     return 0;
 }

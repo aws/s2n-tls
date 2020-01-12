@@ -1,0 +1,216 @@
+//fpx.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module interface::fpx where
+
+import lib::math::Safe_Arithmetic
+import lib::util::Bit_Vector_Utils
+import shared::Constants
+import shared::C_Types
+import shared::Convert_Types
+import abstract_spec::Field_Types
+import abstract_spec::Finite_Field
+import abstract_spec::PSQ503_Array_Field
+import abstract_spec::P503_Array_Field
+import abstract_spec::P503_Field
+import abstract_spec::Montgomery_Arithmetic
+import interface::fp_generic
+
+///////////////////////////////////////////////////////////////////////////////
+
+psq503 = psq503_array_field
+p503 = p503_array_field
+
+identity : felm -> felm
+identity x = x
+
+// NOTE: word operations
+
+ADDC : ([64],[64],[64]) -> ([64], [64])
+ADDC(carry_in, addend1, addend2) = (carry_out, sum_out) where
+    temp_reg = addend1 + carry_in
+    sum_out = addend2 + temp_reg
+    carry_out = zero # (digit_lt(temp_reg, carry_in) ||
+                        digit_lt(sum_out, temp_reg))
+
+digit_modx2 : {a} (fin a, a >= 4) => [a][64] -> Bit
+digit_modx2 v = join(reverse(v)) < modx2 where
+    (modx2 : [a * 64]) = (2 * ((2^^(250) * 3^^(159)) - 1))
+
+digit_modx4 : {a} (fin a, a >= 8) =>  [a][64] -> Bit
+digit_modx4 v = join(reverse(v)) < modx4 where
+    (modx4 : [a * 64]) = zero # ((4 * p503_char) - 1)
+
+digit_mont : {a} (fin a, a >= 4) => [a][64] -> Bit
+digit_mont v = join(reverse(v)) < modx2 where
+    (modx2 : [a * 64]) = (2 * ((2^^(250) * 3^^(159)) - 1)) * (2^^512)
+
+mp_add : {a} (fin a) =>
+    ([a][64], [a][64]) -> [a][64]
+mp_add (v1, v2) = reverse(split`{a}(u_res)) where
+    uv1 = join(reverse(v1))
+    uv2 = join(reverse(v2))
+    u_res = uv1 + uv2
+
+mp_sub : {a} (fin a) => ([a][64], [a][64]) -> [a][64]
+mp_sub (v1, v2) = reverse(split (u_res):[a][64])
+    where
+    uv1 = join(reverse(v1))
+    uv2 = join(reverse(v2))
+    u_res = uv1 - uv2
+
+mp_addfast : ([8][64], [8][64]) -> [8][64]
+mp_addfast = mp_add
+
+mp_addfastx2 : ([16][64], [16][64]) -> [16][64]
+mp_addfastx2 = mp_add
+
+mp_subfast : ([16][64], [16][64]) -> [16][64]
+mp_subfast = mp_sub
+
+// NOTE: felm operations
+
+fpzero503 : felm
+fpzero503 = wrap_felm(p503.add_id)
+
+fpmul503_mont : (felm, felm) -> felm
+fpmul503_mont vals = res2 where
+    res1 = mp_mul vals
+    res2 = rdc_mont res1
+
+fpsqr503_mont : felm -> felm
+fpsqr503_mont fv = res2 where
+    res1 = mp_mul (fv,fv)
+    res2 = rdc_mont res1
+
+// NOTE: f2elm opertations
+
+pf2twice_mod : f2elm -> Bool
+pf2twice_mod e = r_ok /\ i_ok where
+    r_ok = pftwice_mod(e@0)
+    i_ok = pftwice_mod(e@1)
+
+pf2twice_n2_mod : f2elm_2 -> Bool
+pf2twice_n2_mod e = a_ok /\ b_ok where
+    a_ok = pf2twice_mod(e@0)
+    b_ok = pf2twice_mod(e@1)
+
+pf2twice_n3_mod : f2elm_3 -> Bool
+pf2twice_n3_mod e = a_ok /\ b_ok /\ c_ok where
+    a_ok = pf2twice_mod(e@0)
+    b_ok = pf2twice_mod(e@1)
+    c_ok = pf2twice_mod(e@2)
+
+fp2norm : f2elm -> f2elm
+fp2norm e = [r_norm, i_norm] where
+    r_norm = fpnorm(e@0)
+    i_norm = fpnorm(e@1)
+
+fp2norm_n2 : f2elm_2 -> f2elm_2
+fp2norm_n2 e = [a_norm, b_norm] where
+    a_norm = fp2norm(e@0)
+    b_norm = fp2norm(e@1)
+
+fp2norm_n3 : f2elm_3 -> f2elm_3
+fp2norm_n3 e = [a_norm, b_norm, c_norm] where
+    a_norm = fp2norm(e@0)
+    b_norm = fp2norm(e@1)
+    c_norm = fp2norm(e@2)
+
+fp2zero503 : f2elm
+fp2zero503 = wrap_f2elm(psq503.add_id)
+
+fp2add503 : (f2elm, f2elm) -> f2elm
+fp2add503 (x, y) = [c0, c1] where
+    c0 = fpadd503(x@0, y@0)
+    c1 = fpadd503(x@1, y@1)
+
+fp2add503_abstract : (f2elm, f2elm) -> f2elm
+fp2add503_abstract pnts = apply_binary_f2elm pnts psq503.add
+
+fp2sub503 : (f2elm, f2elm) -> f2elm
+fp2sub503 (x, y) = [c0, c1] where
+    c0 = fpsub503(x@0, y@0)
+    c1 = fpsub503(x@1, y@1)
+
+fp2sub503_abstract : (f2elm, f2elm) -> f2elm
+fp2sub503_abstract pnts = apply_binary_f2elm pnts psq503.sub
+
+fp2div2_503 : f2elm -> f2elm
+fp2div2_503 pnt = apply_unary_f2elm pnt psq503_array_div2
+
+ADD_LOOP : ([16][64],[64]) -> [16][64]
+ADD_LOOP(list, mask) = take`{8}(list) # new_tail where
+    (c_prime : [8][64]) = reverse (split`{8}(p503_char))
+    l0 = (ADDC(zero, list@8, c_prime@0 && mask))
+    l1 = (ADDC(l0.0, list@9, c_prime@1 && mask))
+    l2 = (ADDC(l1.0, list@10, c_prime@2 && mask))
+    l3 = (ADDC(l2.0, list@11, c_prime@3 && mask))
+    l4 = (ADDC(l3.0, list@12, c_prime@4 && mask))
+    l5 = (ADDC(l4.0, list@13, c_prime@5 && mask))
+    l6 = (ADDC(l5.0, list@14, c_prime@6 && mask))
+    l7 = (ADDC(l6.0, list@15, c_prime@7 && mask))
+    new_tail = [l0.1, l1.1, l2.1, l3.1, l4.1, l5.1, l6.1, l7.1]
+
+fp2mul503_mont : (f2elm, f2elm) -> f2elm
+fp2mul503_mont (x, y) = [c0, c1] where
+    (tt1 : dfelm) = mp_mul (x@0, y@0)
+    (tt2 : dfelm) = mp_mul (x@1, y@1)
+    (t1 : felm) = mp_addfast(x@0, x@1)
+    (t2 : felm) = mp_addfast(y@0, y@1)
+    (tt3 : dfelm) = mp_subfast (tt1, tt2)
+    (mask : [64]) = if (join(reverse(tt3)) < 0) then
+                        0xffffffffffffffff
+                    else zero
+    (tt3' : dfelm) = ADD_LOOP(tt3, mask)
+    (c0 : felm) = rdc_mont (tt3')
+    (tt1' : dfelm) = mp_addfastx2 (tt1, tt2)
+    (tt2' : dfelm) = mp_mul (t1, t2)
+    (tt2'' : dfelm) = mp_subfast (tt2', tt1')
+    (c1 : felm) = rdc_mont (tt2'')
+
+fp2sqr503_mont : f2elm -> f2elm
+fp2sqr503_mont x = [c0, c1] where
+    (t1 : felm) = mp_addfast(x@0, x@1)
+    (t2 : felm) = fpsub503(x@0, x@1)
+    (t3 : felm) = mp_addfast(x@0, x@0)
+    (c0 : felm) = fpmul503_mont(t1, t2)
+    (c1 : felm) = fpmul503_mont(t3, x@1)
+
+fp2neg503 : f2elm -> f2elm
+fp2neg503 pnt = [c0, c1] where
+    c0 = fpneg503(pnt@0)
+    c1 = fpneg503(pnt@1)
+
+fp2neg503_abstract : f2elm -> f2elm
+fp2neg503_abstract pnt = apply_unary_f2elm pnt psq503.add_inv
+
+fp2normalized : f2elm -> Bool
+fp2normalized e = psq503_array_normalized(unwrap_f2elm(e))
+
+fp2inv_mont : f2elm -> f2elm
+fp2inv_mont e = zero
+
+// NOTE: Montgomery conversion functions
+
+from_mont : felm -> felm
+from_mont ma = res where
+    (one : [512]) = 1
+    mul = fpmul503_mont (ma, reverse(split`{8}(one)))
+    res = fpnorm(mul)
+
+from_fp2mont : f2elm -> f2elm
+from_fp2mont ma = [c0, c1] where
+    c0 = from_mont(ma@0)
+    c1 = from_mont(ma@1)
+
+to_mont : felm -> felm
+to_mont a = res where
+    res = fpmul503_mont(a, mont_R2)
+
+to_fp2mont : f2elm -> f2elm
+to_fp2mont ma = [c0, c1] where
+    c0 = to_mont(ma@0)
+    c1 = to_mont(ma@1)
