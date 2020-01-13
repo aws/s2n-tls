@@ -1,10 +1,12 @@
 //base.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+
 ///////////////////////////////////////////////////////////////////////////////
 // Base definitions and helper functions used by all proofs
 
 m <- llvm_load_module "../../bitcode/all_llvm.bc";
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Generic Crucible and LLVM
@@ -101,68 +103,6 @@ let show_goal func overrides unints spec transformations =
         unint_yices unints;
     };
 
-///////////////////////////////////////////////////////////////////////////////
-// SIKE constants and types
-
-let RADIX = 64;
-let NBITS_FIELD = 503;
-let NBITS_ORDER = 256;
-let MAXBITS_ORDER = NBITS_ORDER;
-let max_words_order = eval_int {{ `((MAXBITS_ORDER + RADIX - 1) / RADIX) : [64] }};
-let nwords_field = 8;
-let half_nwords_field = 4;
-let twice_nwords_field = 16;
-let nwords_point = 32;
-
-let OALICE_BITS = 250;
-let OBOB_BITS  = 253;
-
-let MSG_BYTES = 24;
-let SECRETKEY_A_BYTES = eval_int {{ `((OALICE_BITS + 7) / 8) : [64] }};
-let SECRETKEY_B_BYTES = eval_int {{ `((OBOB_BITS + 7) / 8) : [64] }};
-let FP2_ENCODED_BYTES = eval_int {{ `(2 * ((NBITS_FIELD + 7) / 8)) : [64] }};
-
-let CRYPTO_PUBLICKEYBYTES = eval_int {{ `(3 * FP2_ENCODED_BYTES) : [64] }};
-let CRYPTO_SECRETKEYBYTES = eval_int {{ `(MSG_BYTES + SECRETKEY_B_BYTES + CRYPTO_PUBLICKEYBYTES) : [64] }};
-let CRYPTO_CIPHERTEXTBYTES = eval_int {{ `(CRYPTO_PUBLICKEYBYTES + MSG_BYTES) : [64] }};
-let CRYPTO_BYTES = 16;
-
-let SHAKE128_RATE = 168;
-let SHAKE256_RATE = 136;
-
-let CIPHERTEXT_PLUS_MSG_BYTES = eval_int {{ `(CRYPTO_CIPHERTEXTBYTES + MSG_BYTES) : [64] }};
-
-
-let char_t = llvm_int 8;
-// NOTE: This value would be 32 on a 32-bit architecture
-let digit_t = llvm_int 64;
-
-let felm_t = llvm_array nwords_field digit_t;
-let dfelm_t = llvm_array twice_nwords_field digit_t;
-let f2elm_t = llvm_array 2 felm_t;
-
-
-// NOTE: Returns a Boolean in C style
-let {{
-  bool_ret : Bit -> [32]
-  bool_ret b = zero # [b]
-
-  to_c : {n} (fin n) => [n*64] -> [n][64]
-  to_c x = reverse (split x)
-
-  from_c : {n} (fin n) => [n][64] -> [n*64]
-  from_c x = join (reverse x)
-
-  word_unop : {n} (fin n) => ([n*64] -> [n*64]) -> [n][64] -> [n][64]
-  word_unop f x = to_c (f (from_c x))
-
-  word_binop : {n} (fin n) => ([n*64] -> [n*64] -> [n*64]) -> [n][64] 
-                           -> [n][64] -> [n][64]
-  word_binop f x y = to_c (f (from_c x) (from_c y))
-
-  shl1 x = x << 1
-  shr1 x = x >> 1
-}};
 
 ///////////////////////////////////////////////////////////////////////////////
 // Common helper functions
@@ -197,63 +137,3 @@ let points_to_fresh p n ty = do {
     return x;
 };
 
-let inplace_ptr_op t f = do {
-
-    (a, ap) <- ptr_to_fresh "a" t;
-    crucible_execute_func [ap];
-
-    // NOTE: This doesn't prove anything about the output
-    res <- crucible_fresh_var "res" t;
-    crucible_points_to ap (tm res);
-};
-
-
-///////////////////////////////////////////////////////////////////////////////
-// Aliases
-
-let point_struct = llvm_struct "struct.point_proj";
-let point_proj_t = llvm_array 1 point_struct;
-let fresh_digit n = crucible_fresh_var n digit_t;
-
-// NOTE: These values are read but never modified
-let A_param v ty= ptr_to_fresh_readonly v ty;
-let A_felm_t v = ptr_to_fresh_readonly v felm_t;
-let A_f2elm_t v = ptr_to_fresh_readonly v f2elm_t;
-let A_dfelm_t v = ptr_to_fresh_readonly v dfelm_t;
-let A_point_t v = ptr_to_fresh_readonly v point_proj_t;
-let A_digit_t v = ptr_to_fresh_readonly v digit_t;
-let A_int_t v = crucible_fresh_var v i32;
-let A_uint_t v = crucible_fresh_var v i32;
-let A_uint64_t v = crucible_fresh_var v (llvm_int 64);
-let A_char_t v = ptr_to_fresh_readonly v char_t;
-let A_digit_it v = crucible_fresh_var v digit_t;
-
-// NOTE: This values are read and potentially modified
-let B_felm_t v = ptr_to_fresh v felm_t;
-let B_f2elm_t v = ptr_to_fresh v f2elm_t;
-let B_point_t v = ptr_to_fresh v point_proj_t;
-
-// NOTE: This values are outputs
-let C_felm_t() = crucible_alloc felm_t;
-let C_f2elm_t() = crucible_alloc f2elm_t;
-let C_point_t() = crucible_alloc point_proj_t;
-
-// NOTE: we are overiding memcmp as it is not link in the bc file
-let memcmp_simple_spec nbytes = do {
-    (x, xp) <- ptr_to_fresh_readonly "x" (llvm_array nbytes i8);
-    (y, yp) <- ptr_to_fresh_readonly "y" (llvm_array nbytes i8);
-    n <- crucible_fresh_var "n" (llvm_int 64);
-    crucible_precond {{ n == `nbytes }};
-    crucible_execute_func [xp, yp, (tm n)];
-    crucible_return 
-        (tm {{ if x < y then -1 else if x == y then 0:[32] else 1 }});
-};
-
-memcmp_ov_for_kem_dec <- admit "memcmp" [] (memcmp_simple_spec 378);
-
-
-/* Note the following conventions: 
-"_ov" indicates an overrides, "O" is a list of overrides, "U" is a list of uninterpreted functions.
-Overrides is a proof specification that can be used as input to other proofs.
-Uninterpreted functions are cryptol function that will not get unwrapped/unrolled by the solver.
-*/

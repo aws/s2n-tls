@@ -93,32 +93,7 @@ tmp/%.log : %.saw bitcode/all_llvm.bc tmp
 .PHONY : sike_r1
 sike_r1 : sike_r1_patched_bitcode
 	@${MAKE} clean-sike-r1-logs
-	@${MAKE} sike_r1/word.log
-	@${MAKE} sike_r1/field.log
-	@${MAKE} sike_r1/curve.log
-	@${MAKE} sike_r1/isogeny.log
-	@${MAKE} sike_r1/sidh.log
 	@${MAKE} sike_r1/sike.log
-
-sike_r1/word.log :
-	@set -o pipefail; \
-	saw sike_r1/verify_word.saw | tee $@
-
-sike_r1/field.log :
-	@set -o pipefail; \
-	saw sike_r1/verify_field.saw | tee $@
-
-sike_r1/curve.log :
-	@set -o pipefail; \
-	saw sike_r1/verify_curve.saw | tee $@
-
-sike_r1/isogeny.log :
-	@set -o pipefail; \
-	saw sike_r1/verify_isogeny.saw | tee $@
-
-sike_r1/sidh.log :
-	@set -o pipefail; \
-	saw sike_r1/verify_sidh.saw | tee $@
 
 sike_r1/sike.log :
 	@set -o pipefail; \
