@@ -27,15 +27,13 @@ endif
 endif
 endif
 
-# TODO add when ready for SIKE R2 SAW proofs
-#BCS_1=fips202.bc P434.bc
-#BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
+BCS_1=fips202.bc P434.bc
+BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
 
 .PHONY : all
 all: $(OBJS)
 
-# TODO add when ready for SIKE R2 SAW proofs
-#.PHONY : bc
-#bc: $(BCS)
+.PHONY : bc
+bc: $(BCS)
 
 include ../../s2n.mk

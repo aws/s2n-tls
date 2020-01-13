@@ -200,6 +200,11 @@ sike_r1_patched_bitcode :
 	${MAKE} clean_the_dir
 	${MAKE} bitcode/sike_r1_llvm.bc
 
+.PHONY : sike_r2_patched_bitcode
+sike_r2_patched_bitcode :
+	${MAKE} clean_the_dir
+	${MAKE} bitcode/sike_r2_llvm.bc
+
 .PHONY : bike_r1_patched_bitcode
 bike_r1_patched_bitcode : bitcode/bike_r1_llvm.bc
 
@@ -271,13 +276,18 @@ export BITCODE_DIR := $(CURDIR)/bitcode/
 tmp:
 	mkdir -p tmp
 
-bitcode/all_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_R1_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
+bitcode/all_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/pq-crypto/sike_r2 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_R1_COPY) $(SIKE_R2_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
 	${MAKE} -C s2n bc
 	${MAKE} -C bitcode all_llvm.bc
 
 .PHONY : bitcode/sike_r1_llvm.bc
 bitcode/sike_r1_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_R1_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
 	${MAKE} -C s2n sike_r1_bc
+	${MAKE} -C bitcode all_llvm.bc
+
+.PHONY : bitcode/sike_r2_llvm.bc
+bitcode/sike_r2_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r2 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_R2_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
+	${MAKE} -C s2n sike_r2_bc
 	${MAKE} -C bitcode all_llvm.bc
 
 .PHONY : bitcode/bike_r1_llvm.bc
