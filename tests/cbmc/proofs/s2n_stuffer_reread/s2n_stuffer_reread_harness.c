@@ -29,7 +29,7 @@ void s2n_stuffer_reread_harness() {
     uint32_t n;
 
     assert (s2n_stuffer_reread(stuffer) == S2N_SUCCESS);
-	   assert(stuffer->read_cursor == 0);
+    assert(stuffer->read_cursor == 0);
 
     /* These assertions should always hold, regardless of whether the test succeeded */
     assert(stuffer->blob.data == old_stuffer.blob.data);
