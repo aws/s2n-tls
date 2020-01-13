@@ -110,15 +110,6 @@ let swap_points_spec = do {
     crucible_points_to qp (tm q');
 };
 
-/* NOTE for LADDER3PT proof:
-
-   For that proof, we added some conditions in as extra preconditions,
-   but have also proved that these conditions are always true.
-   However, the "goal_insert" mechansim that should let us drop these
-   preconditions is not working well at the moment.
-
-*/
-
 let LADDER3PT_spec = do {
     (xP, xP_ptr) <- A_f2elm_t "xP";
     (xQ, xQ_ptr) <- A_f2elm_t "xQ";
@@ -136,47 +127,6 @@ let LADDER3PT_spec = do {
       , (tm aliceOrBob)
       , r_ptr
       , a_ptr
-      ];
-
-    res_r <- crucible_fresh_var "LADDER3PT_R" point_proj_t;
-    crucible_points_to r_ptr (tm res_r);
-};
-
-let LADDER3PT_main_loop_spec = do {
-    (r, r_ptr) <- B_point_t "R";
-    r_ptr_ptr <- crucible_alloc (llvm_int 64);
-    crucible_points_to r_ptr_ptr r_ptr;
-    (m, m_ptr) <- A_param "m" (llvm_array 4 digit_t);
-    m_ptr_ptr <- crucible_alloc (llvm_int 64);
-    crucible_points_to m_ptr_ptr m_ptr;
-    (r0, r0_ptr) <- B_point_t "R0";
-    (r2, r2_ptr) <- B_point_t "R2";
-    (a24, a24_ptr) <- A_f2elm_t "A24";
-    a24_ptr_ptr <- crucible_alloc (llvm_int 64);
-    crucible_points_to a24_ptr_ptr a24_ptr;
-    mask_ptr <- crucible_alloc digit_t;
-    (i, i_ptr) <- ptr_to_fresh "i" i32;
-    (nbits, nbits_ptr) <- ptr_to_fresh "nbits" i32;
-    bit_ptr <- crucible_alloc i32;
-    swap_ptr <- crucible_alloc i32;
-    (prevbit, prevbit_ptr) <- ptr_to_fresh "prevbit" i32;
-
-    crucible_precond {{ prevbit == 0 \/ prevbit == 1 }};
-    crucible_precond {{ nbits == g_OALICE_BITS \/ nbits == g_OBOB_BITS }};
-    crucible_precond {{ 0 <= i /\ i <= nbits }};
-
-    crucible_execute_func
-      [ r_ptr_ptr
-      , m_ptr_ptr
-      , r0_ptr
-      , r2_ptr
-      , a24_ptr_ptr
-      , mask_ptr
-      , i_ptr
-      , nbits_ptr
-      , bit_ptr
-      , swap_ptr
-      , prevbit_ptr
       ];
 
     res_r <- crucible_fresh_var "LADDER3PT_R" point_proj_t;
@@ -235,18 +185,12 @@ xDBLADD_ov <- verify "xDBLADD_r1"
 
 swap_points_ov <- verify "swap_points_r1" [] swap_points_spec;
 
-LADDER3PT_main_loop_ov <- admit "__breakpoint__LADDER3PT_main_loop#LADDER3PT_r1"
-    [] LADDER3PT_main_loop_spec;
 let ladder_overrides =
     [ fpcopy503_ov, fpzero503_ov, fp2copy503_ov, fp2add503_right_ov
     , fp2add503_same_ov, fp2div2_503_same_ov, fp2mul503_mont_left_ov
     , swap_points_ov, xDBLADD_ov
-    , LADDER3PT_main_loop_ov
     ];
 
-verify "__breakpoint__LADDER3PT_main_loop#LADDER3PT_r1"
-    ladder_overrides
-    LADDER3PT_main_loop_spec;
 LADDER3PT_ov <- verify "LADDER3PT_r1"
     ladder_overrides
     LADDER3PT_spec;
