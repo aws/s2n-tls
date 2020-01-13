@@ -33,7 +33,10 @@ bool s2n_stuffer_is_valid(const struct s2n_stuffer* stuffer)
 {
     /* Note that we do not assert any properties on the alloced, growable, and tainted fields,
      * as all possible combinations of boolean values in those fields are valid */
-    return S2N_OBJECT_PTR_IS_READABLE(stuffer) && 
+    if (stuffer == NULL) {
+        return false;
+    }
+    return S2N_OBJECT_PTR_IS_READABLE(stuffer) &&
         s2n_blob_is_valid(&stuffer->blob) &&
         /* <= is valid because we can have a fully written/read stuffer */
         stuffer->high_water_mark <= stuffer->blob.size &&
