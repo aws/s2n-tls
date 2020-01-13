@@ -67,17 +67,14 @@ let C_point_t() = crucible_alloc point_proj_t;
 
 
 // NOTE: we are overiding memcmp as it is not link in the bc file
-let memcmp_simple_spec nbytes = do {
-    (x, xp) <- ptr_to_fresh_readonly "x" (llvm_array nbytes i8);
-    (y, yp) <- ptr_to_fresh_readonly "y" (llvm_array nbytes i8);
-    n <- crucible_fresh_var "n" (llvm_int 64);
-    crucible_precond {{ n == `nbytes }};
-    crucible_execute_func [xp, yp, (tm n)];
-    crucible_return 
-        (tm {{ if x < y then -1 else if x == y then 0:[32] else 1 }});
+let memcmp_simple_spec n = do {
+    (x, xp) <- ptr_to_fresh_readonly "x" (llvm_array n i8);
+    (y, yp) <- ptr_to_fresh_readonly "y" (llvm_array n i8);
+    crucible_execute_func [xp, yp, tm {{ `n : [64] }}];
+    crucible_return (tm {{ if x < y then -1 else if x == y then 0:[32] else 1 }});
 };
 
-memcmp_ov_for_kem_dec <- admit "memcmp" [] (memcmp_simple_spec 378);
+memcmp_ov_for_kem_dec <- admit "memcmp" [] (memcmp_simple_spec CRYPTO_PUBLICKEYBYTES);
 
 
 /* Note the following conventions: 
