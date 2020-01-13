@@ -109,42 +109,42 @@ let xTPLe_same32_spec = point_op_scaled_same_32 "A24minus" "A24plus";
    for every value that a caller needs. This includes a few large "e".
 */
 
-xDBL_ov <- verify "xDBL_r1"
+xDBL_ov <- verify xDBL_fun_name
     [ fp2add503_left_ov,fp2add503_ov, fp2mul503_mont_left_ov, fp2mul503_mont_ov
     , fp2sqr503_mont_same_ov, fp2sub503_ov, fp2sub503_left_ov ] 
     xDBL_spec;
 
-xDBL_same_ov <- verify "xDBL_r1"
+xDBL_same_ov <- verify xDBL_fun_name
     [ fp2add503_left_ov,fp2add503_ov, fp2mul503_mont_left_ov, fp2mul503_mont_ov
     , fp2sqr503_mont_same_ov, fp2sub503_ov, fp2sub503_left_ov ]
     xDBL_same_spec;
 
 // NOTE: Proofs for some of the "e" values used in calls
 for [1,2,4,5] (\e -> do {
-    verify "xDBLe_r1"
+    verify xDBLe_fun_name
         [xDBL_same_ov, copy_words_nwords_field_x4_ov]
         (xDBLe_spec_known_e {{ `e:[32] }});
     });
 
-xDBLe_ov <- admit "xDBLe_r1" [] xDBLe_spec;
+xDBLe_ov <- admit xDBLe_fun_name [] xDBLe_spec;
 
 // NOTE: Proofs for some of the "e" values used in calls
 for [1,2,4,5] (\e -> do {
-    verify "xDBLe_r1"
+    verify xDBLe_fun_name
         [xDBL_same_ov, copy_words_same_nwords_field_x4_ov]
         (xDBLe_same_spec_known_e {{ `e:[32] }});
     });
 
-xDBLe_same_ov <- admit "xDBLe_r1" [] xDBLe_same_spec;
-xDBLe_same32_ov <- admit "xDBLe_r1" [] xDBLe_same32_spec;
+xDBLe_same_ov <- admit xDBLe_fun_name [] xDBLe_same_spec;
+xDBLe_same32_ov <- admit xDBLe_fun_name [] xDBLe_same32_spec;
 
-xTPL_ov <- verify "xTPL_r1"
+xTPL_ov <- verify xTPL_fun_name
     [ fp2sub503_ov, fp2sqr503_mont_ov, fp2add503_ov, fp2sub503_left_ov
     , fp2sub503_right_ov, fp2mul503_mont_left_ov, fp2mul503_mont_ov
     , fp2sqr503_mont_same_ov, fp2sqr503_mont_ov ]
     xTPL_spec;
 
-xTPL_same_ov <- verify "xTPL_r1"
+xTPL_same_ov <- verify xTPL_fun_name
     [ fp2sub503_ov, fp2sqr503_mont_ov, fp2add503_ov, fp2sub503_left_ov
     , fp2sub503_right_ov, fp2mul503_mont_left_ov, fp2mul503_mont_ov
     , fp2sqr503_mont_same_ov, fp2sqr503_mont_ov ]
@@ -152,20 +152,20 @@ xTPL_same_ov <- verify "xTPL_r1"
 
 // NOTE: Proofs for some of the "e" values used in calls
 for [1,2,4,5] (\e -> do {
-    verify "xTPLe_r1"
+    verify xTPLe_fun_name
         [xTPL_same_ov, copy_words_nwords_field_x4_ov]
         (xTPLe_spec_known_e {{ `e:[32] }});
     });
 
-xTPLe_ov <- admit "xTPLe_r1" [] xTPLe_spec;
+xTPLe_ov <- admit xTPLe_fun_name [] xTPLe_spec;
 
 // NOTE: Proofs for some of the "e" values used in calls
 for [1,2,4,5] (\e -> do {
-    verify "xTPLe_r1"
+    verify xTPLe_fun_name
        [xTPL_same_ov, copy_words_same_nwords_field_x4_ov]
        (xTPLe_same_spec_known_e {{ `e:[32] }});
     });
 
-xTPLe_same_ov <- admit "xTPLe_r1" [] xTPLe_same_spec;
-xTPLe_same32_ov <- admit "xTPLe_r1" [] xTPLe_same32_spec;
+xTPLe_same_ov <- admit xTPLe_fun_name [] xTPLe_same_spec;
+xTPLe_same32_ov <- admit xTPLe_fun_name [] xTPLe_same32_spec;
 

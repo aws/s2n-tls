@@ -241,51 +241,51 @@ let fp2inv503_mont_spec = inplace_ptr_op_f2elm;
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
 
-fpzero503_ov <- verify "fpzero503" [] fpzero503_spec;
-fpcopy503_ov <- verify "fpcopy503" [] fpcopy503_spec;
-fpcorrection503_ov <- verify "fpcorrection503" [] fpcorrection503_spec;
+fpzero503_ov <- verify fpzero_fun_name [] fpzero503_spec;
+fpcopy503_ov <- verify fpcopy_fun_name [] fpcopy503_spec;
+fpcorrection503_ov <- verify fpcorrection_fun_name [] fpcorrection503_spec;
 
-fpneg503_ov <- verify "fpneg503" [] fpneg503_spec;
+fpneg503_ov <- verify fpneg_fun_name [] fpneg503_spec;
 
-fpadd503_ov <- verify "fpadd503" [] fpadd503_spec;
-fpadd503_left_ov <- verify "fpadd503" [] fpadd503_left_spec;
-fpadd503_right_ov <- verify "fpadd503" [] fpadd503_right_spec;
-fpadd503_same_ov <- verify "fpadd503" [] fpadd503_same_spec;
-fpadd503_pair_ov <- verify "fpadd503" [] fpadd503_pair_spec;
+fpadd503_ov <- verify fpadd_fun_name [] fpadd503_spec;
+fpadd503_left_ov <- verify fpadd_fun_name [] fpadd503_left_spec;
+fpadd503_right_ov <- verify fpadd_fun_name [] fpadd503_right_spec;
+fpadd503_same_ov <- verify fpadd_fun_name [] fpadd503_same_spec;
+fpadd503_pair_ov <- verify fpadd_fun_name [] fpadd503_pair_spec;
 
-fpsub503_ov <- verify "fpsub503" [] fpsub503_spec;
-fpsub503_left_ov <- verify "fpsub503" [] fpsub503_left_spec;
-fpsub503_right_ov <- verify "fpsub503" [] fpsub503_right_spec;
-fpsub503_same_ov <- verify "fpsub503" [] fpsub503_same_spec;
+fpsub503_ov <- verify fpsub_fun_name [] fpsub503_spec;
+fpsub503_left_ov <- verify fpsub_fun_name [] fpsub503_left_spec;
+fpsub503_right_ov <- verify fpsub_fun_name [] fpsub503_right_spec;
+fpsub503_same_ov <- verify fpsub_fun_name [] fpsub503_same_spec;
 
-fpdiv2_503_ov <- verify "fpdiv2_503" [] fpdiv2_503_spec;
-fpdiv2_503_same_ov <- verify "fpdiv2_503" [] fpdiv2_503_same_spec;
+fpdiv2_503_ov <- verify fpdiv2_fun_name [] fpdiv2_503_spec;
+fpdiv2_503_same_ov <- verify fpdiv2_fun_name [] fpdiv2_503_same_spec;
 
-rdc_mont_ov <- verify "rdc_mont_r1"
+rdc_mont_ov <- verify rdc_mont_fun_name
     [dxd_ov]
     rdc_mont_spec;
 
-fpmul503_mont_ov <- verify "fpmul503_mont"
+fpmul503_mont_ov <- verify fpmul_mont_fun_name
     [rdc_mont_ov,mul_ov]
     fpmul503_mont_spec;
-fpmul503_mont_left_ov <- verify "fpmul503_mont"
+fpmul503_mont_left_ov <- verify fpmul_mont_fun_name
     [rdc_mont_ov,mul_ov]
     fpmul503_mont_left_spec;
-fpmul503_mont_right_ov <- verify "fpmul503_mont"
+fpmul503_mont_right_ov <- verify fpmul_mont_fun_name
     [rdc_mont_ov,mul_ov]
     fpmul503_mont_right_spec;
-fpmul503_mont_same_ov <- verify "fpmul503_mont"
+fpmul503_mont_same_ov <- verify fpmul_mont_fun_name
     [rdc_mont_ov,mul_ov]
     fpmul503_mont_same_spec;
 
-fpsqr503_mont_ov <- verify "fpsqr503_mont"
+fpsqr503_mont_ov <- verify fpsqr_mont_fun_name
     [mul_single_ov,rdc_mont_ov]
     fpsqr503_mont_spec;
-fpsqr503_mont_same_ov <- verify "fpsqr503_mont"
+fpsqr503_mont_same_ov <- verify fpsqr_mont_fun_name
     [mul_single_ov,rdc_mont_ov]
     fpsqr503_mont_same_spec;
 
-fpinv503_chain_mont_ov <- verify "fpinv503_chain_mont"
+fpinv503_chain_mont_ov <- verify fpinv_chain_mont_fun_name
     [ fpmul503_mont_ov
     , fpmul503_mont_right_ov
     , fpsqr503_mont_ov
@@ -294,7 +294,7 @@ fpinv503_chain_mont_ov <- verify "fpinv503_chain_mont"
     ]
     fpinv503_chain_mont_spec;
 
-fpinv503_mont_ov <- verify "fpinv503_mont"
+fpinv503_mont_ov <- verify fpinv_mont_fun_name
     [ fpcopy503_ov
     , fpinv503_chain_mont_ov
     , fpsqr503_mont_same_ov
@@ -302,68 +302,68 @@ fpinv503_mont_ov <- verify "fpinv503_mont"
     ]
     fpinv503_mont_spec;
 
-to_mont_ov <- verify "to_mont_r1"
+to_mont_ov <- verify to_mont_fun_name
     [fpmul503_mont_ov]
     to_mont_spec;
-to_mont_same_ov <- verify "to_mont_r1"
+to_mont_same_ov <- verify to_mont_fun_name
     [fpmul503_mont_left_ov]
     to_mont_same_spec;
-from_mont_ov <- verify "from_mont_r1"
+from_mont_ov <- verify from_mont_fun_name
     [fpmul503_mont_ov,fpcorrection503_ov]
     from_mont_spec;
 
-fp2copy503_ov <- verify "fp2copy503"
+fp2copy503_ov <- verify fp2copy_fun_name
     [fpcopy503_ov] fp2copy503_spec;
 
-fp2correction503_ov <- verify "fp2correction503"
+fp2correction503_ov <- verify fp2correction_fun_name
     [fpcorrection503_ov] fp2correction503_spec;
 
-fp2neg503_ov <- verify "fp2neg503"
+fp2neg503_ov <- verify fp2neg_fun_name
     [fpneg503_ov]
     fp2neg503_spec;
 
-fp2add503_ov <- verify "fp2add503"
+fp2add503_ov <- verify fp2add_fun_name
     [fpadd503_ov] fp2add503_spec;
-fp2add503_left_ov <- verify "fp2add503"
+fp2add503_left_ov <- verify fp2add_fun_name
     [fpadd503_left_ov] fp2add503_left_spec;
-fp2add503_right_ov <- verify "fp2add503"
+fp2add503_right_ov <- verify fp2add_fun_name
     [fpadd503_right_ov] fp2add503_right_spec;
-fp2add503_same_ov <- verify "fp2add503"
+fp2add503_same_ov <- verify fp2add_fun_name
     [fpadd503_same_ov] fp2add503_same_spec;
-fp2add503_pair_ov <- verify "fp2add503"
+fp2add503_pair_ov <- verify fp2add_fun_name
     [fpadd503_pair_ov] fp2add503_pair_spec;
 
-fp2sub503_ov <- verify "fp2sub503"
+fp2sub503_ov <- verify fp2sub_fun_name
     [fpsub503_ov] fp2sub503_spec;
-fp2sub503_left_ov <- verify "fp2sub503"
+fp2sub503_left_ov <- verify fp2sub_fun_name
     [fpsub503_left_ov] fp2sub503_left_spec;
-fp2sub503_right_ov <- verify "fp2sub503"
+fp2sub503_right_ov <- verify fp2sub_fun_name
     [fpsub503_right_ov] fp2sub503_right_spec;
-fp2sub503_same_ov <- verify "fp2sub503"
+fp2sub503_same_ov <- verify fp2sub_fun_name
     [fpsub503_same_ov] fp2sub503_same_spec;
 
-fp2div2_503_ov <- verify "fp2div2_503"
+fp2div2_503_ov <- verify fp2div2_fun_name
     [fpdiv2_503_ov] fp2div2_503_spec;
-fp2div2_503_same_ov <- verify "fp2div2_503"
+fp2div2_503_same_ov <- verify fp2div2_fun_name
     [fpdiv2_503_same_ov] fp2div2_503_same_spec;
 
-fp2mul503_mont_ov <- verify "fp2mul503_mont"
+fp2mul503_mont_ov <- verify fp2mul_mont_fun_name
     [fpmul503_mont_ov] fp2mul503_mont_spec;
-fp2mul503_mont_left_ov <- verify "fp2mul503_mont"
+fp2mul503_mont_left_ov <- verify fp2mul_mont_fun_name
     [fpmul503_mont_left_ov] fp2mul503_mont_left_spec;
-fp2mul503_mont_right_ov <- verify "fp2mul503_mont"
+fp2mul503_mont_right_ov <- verify fp2mul_mont_fun_name
     [fpmul503_mont_right_ov] fp2mul503_mont_right_spec;
-fp2mul503_mont_same_ov <- verify "fp2mul503_mont"
+fp2mul503_mont_same_ov <- verify fp2mul_mont_fun_name
     [fpmul503_mont_same_ov] fp2mul503_mont_same_spec;
 
-fp2sqr503_mont_ov <- verify "fp2sqr503_mont"
+fp2sqr503_mont_ov <- verify fp2sqr_mont_fun_name
     [fpsqr503_mont_ov]
     fp2sqr503_mont_spec;
-fp2sqr503_mont_same_ov <- verify "fp2sqr503_mont"
+fp2sqr503_mont_same_ov <- verify fp2sqr_mont_fun_name
     [fpsqr503_mont_same_ov]
     fp2sqr503_mont_same_spec;
 
-fp2inv503_mont_ov <- verify "fp2inv503_mont"
+fp2inv503_mont_ov <- verify fp2inv_mont_fun_name
     [ fpsqr503_mont_ov
     , fpadd503_left_ov
     , fpinv503_mont_ov
@@ -372,13 +372,13 @@ fp2inv503_mont_ov <- verify "fp2inv503_mont"
     ]
     fp2inv503_mont_spec;
 
-to_fp2mont_ov <- verify "to_fp2mont_r1"
+to_fp2mont_ov <- verify to_fp2mont_fun_name
     [to_mont_ov]
     to_fp2mont_spec;
-to_fp2mont_same_ov <- verify "to_fp2mont_r1"
+to_fp2mont_same_ov <- verify to_fp2mont_fun_name
     [to_mont_same_ov]
     to_fp2mont_same_spec;
-from_fp2mont_ov <- verify "from_fp2mont_r1"
+from_fp2mont_ov <- verify from_fp2mont_fun_name
     [from_mont_ov]
     from_fp2mont_spec;
 

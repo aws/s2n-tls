@@ -137,14 +137,14 @@ let LADDER3PT_spec = do {
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
 
-get_3_isog_ov <- verify "get_3_isog_r1"
+get_3_isog_ov <- verify get_3_isog_fun_name
     [ fp2add503_ov, fp2add503_left_ov, fp2add503_right_ov, fp2add503_same_ov
     , fp2sub503_ov,fp2sub503_left_ov
     , fp2mul503_mont_ov, fp2mul503_mont_left_ov, fp2mul503_mont_right_ov
     , fp2sqr503_mont_ov, fp2sqr503_mont_same_ov ]
     get_3_isog_spec;
 
-get_4_isog_ov <- verify "get_4_isog_r1"
+get_4_isog_ov <- verify get_4_isog_fun_name
     [ fp2add503_ov, fp2add503_left_ov, fp2add503_right_ov, fp2add503_same_ov
     , fp2sub503_ov, fp2mul503_mont_ov, fp2mul503_mont_left_ov
     , fp2sqr503_mont_ov, fp2sqr503_mont_same_ov ]
@@ -155,35 +155,35 @@ let eval_ov =
     , fp2mul503_mont_ov, fp2mul503_mont_left_ov
     , fp2sqr503_mont_same_ov ];
 
-eval_3_isog_ov <- verify "eval_3_isog_r1" eval_ov eval_3_isog_spec;
-eval_4_isog_ov <- verify "eval_4_isog_r1" eval_ov eval_4_isog_spec;
+eval_3_isog_ov <- verify eval_3_isog_fun_name eval_ov eval_3_isog_spec;
+eval_4_isog_ov <- verify eval_4_isog_fun_name eval_ov eval_4_isog_spec;
 
-get_A_ov <- verify "get_A_r1"
+get_A_ov <- verify get_A_fun_name
     [ fp2copy503_ov, fp2add503_ov, fp2add503_left_ov
     , fp2add503_right_ov, fp2add503_same_ov
     , fp2sub503_left_ov, fp2mul503_mont_ov, fp2mul503_mont_left_ov
     , fp2sqr503_mont_same_ov, fp2inv503_mont_ov ]
     get_A_spec;
 
-inv_3_way_ov <- verify "inv_3_way_r1"
+inv_3_way_ov <- verify inv_3_way_fun_name
     [ fp2copy503_ov, fp2mul503_mont_ov, fp2inv503_mont_ov ]
     inv_3_way_spec;
 
-j_inv_ov <- verify "j_inv_r1"
+j_inv_ov <- verify j_inv_fun_name
     [ fp2add503_left_ov, fp2add503_ov, fp2add503_same_ov, fp2add503_pair_ov
     , fp2sub503_ov, fp2sub503_left_ov, fp2sub503_right_ov
     , fp2mul503_mont_left_ov, fp2sqr503_mont_ov, fp2sqr503_mont_same_ov
     , fp2inv503_mont_ov ]
     j_inv_spec;
 
-xDBLADD_ov <- verify "xDBLADD_r1"
+xDBLADD_ov <- verify xDBLADD_fun_name
     [ fp2add503_ov, fp2add503_left_ov, fp2add503_right_ov
     , fp2sub503_ov, fp2correction503_ov
     , fp2mul503_mont_ov, fp2mul503_mont_left_ov
     , fp2sqr503_mont_ov, fp2sqr503_mont_same_ov ]
     xDBLADD_spec;
 
-swap_points_ov <- verify "swap_points_r1" [] swap_points_spec;
+swap_points_ov <- verify swap_points_fun_name [] swap_points_spec;
 
 let ladder_overrides =
     [ fpcopy503_ov, fpzero503_ov, fp2copy503_ov, fp2add503_right_ov
@@ -191,7 +191,7 @@ let ladder_overrides =
     , swap_points_ov, xDBLADD_ov
     ];
 
-LADDER3PT_ov <- verify "LADDER3PT_r1"
+LADDER3PT_ov <- verify LADDER3PT_fun_name
     ladder_overrides
     LADDER3PT_spec;
 

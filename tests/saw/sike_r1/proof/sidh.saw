@@ -95,17 +95,17 @@ let ephemeralSecretAgreement_B_spec = do {
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
 
-random_mod_order_B_ov <- verify "random_mod_order_B_r1"
+random_mod_order_B_ov <- verify random_mod_order_B_fun_name
     [clear_words_ov, randombytes_sidh_bob_ov] random_mod_order_B_spec;
 
-init_basis_ov <- verify "init_basis_r1"
+init_basis_ov <- verify init_basis_fun_name
     [fpcopy503_ov, fpzero503_ov] 
     init_basis_spec;
 
-fp2_decode_ov <- verify "fp2_decode_r1"
+fp2_decode_ov <- verify fp2_decode_fun_name
     [to_fp2mont_same_ov]
     fp2_decode_spec;
-fp2_encode_ov <- verify "fp2_encode_r1"
+fp2_encode_ov <- verify fp2_encode_fun_name
     [from_fp2mont_ov]
     fp2_encode_spec;
 
@@ -139,19 +139,19 @@ let O_base_Isog3 =
     [ xTPLe_same32_ov, get_3_isog_ov
     , eval_3_isog_ov, fp2_decode_ov ];
 
-ephemeralKeyGeneration_A_ov <- verify "EphemeralKeyGeneration_A_r1"
+ephemeralKeyGeneration_A_ov <- verify EphemeralKeyGeneration_A_fun_name
   (concat O_base_Key O_base_Isog4)
   ephemeralKeyGeneration_A_spec;
 
-ephemeralKeyGeneration_B_ov <- verify "EphemeralKeyGeneration_B_r1"
+ephemeralKeyGeneration_B_ov <- verify EphemeralKeyGeneration_B_fun_name
   (concat O_base_Key O_base_Isog3)
   ephemeralKeyGeneration_B_spec;
 
-ephemeralSecretAgreement_A_ov <- verify "EphemeralSecretAgreement_A_r1"
+ephemeralSecretAgreement_A_ov <- verify EphemeralSecretAgreement_A_fun_name
   (concat O_base_SecretA O_base_Isog4)
   ephemeralSecretAgreement_A_spec;
 
-ephemeralSecretAgreement_B_ov <- verify "EphemeralSecretAgreement_B_r1"
+ephemeralSecretAgreement_B_ov <- verify EphemeralSecretAgreement_B_fun_name
   (concat O_base_SecretB O_base_Isog3)
   ephemeralSecretAgreement_B_spec;
 

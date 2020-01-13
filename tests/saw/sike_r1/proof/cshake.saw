@@ -87,58 +87,58 @@ let cshake256_simple_spec outsz insz = do {
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
 
-load64_ov <- verify "load64_r1" [] load64_spec;
-store64_ov <- verify "store64_r1" [] store64_spec;
+load64_ov <- verify load64_fun_name [] load64_spec;
+store64_ov <- verify store64_fun_name [] store64_spec;
 
-KeccakF1600_StatePermute_ov <- admit "KeccakF1600_StatePermute_r1" []
+KeccakF1600_StatePermute_ov <- admit KeccakF1600_StatePermute_fun_name []
     (KeccakF1600_StatePermute_spec);
 
-keccak_absorb_ov0 <- verify "keccak_absorb_r1"
+keccak_absorb_ov0 <- verify keccak_absorb_fun_name
     [load64_ov, KeccakF1600_StatePermute_ov]
     (keccak_absorb_spec CRYPTO_CIPHERTEXTBYTES);
-keccak_absorb_ov1 <- verify "keccak_absorb_r1"
+keccak_absorb_ov1 <- verify keccak_absorb_fun_name
     [load64_ov, KeccakF1600_StatePermute_ov]
     (keccak_absorb_spec FP2_ENCODED_BYTES);
-keccak_absorb_ov2 <- verify "keccak_absorb_r1"
+keccak_absorb_ov2 <- verify keccak_absorb_fun_name
     [load64_ov, KeccakF1600_StatePermute_ov]
     (keccak_absorb_spec CIPHERTEXT_PLUS_MSG_BYTES);
 
-keccak_squeezeblocks_ov0 <- verify "keccak_squeezeblocks_r1"
+keccak_squeezeblocks_ov0 <- verify keccak_squeezeblocks_fun_name
     [KeccakF1600_StatePermute_ov, store64_ov]
     (keccak_squeezeblocks_spec SECRETKEY_A_BYTES);
-keccak_squeezeblocks_ov1 <- verify "keccak_squeezeblocks_r1"
+keccak_squeezeblocks_ov1 <- verify keccak_squeezeblocks_fun_name
     [KeccakF1600_StatePermute_ov, store64_ov]
     (keccak_squeezeblocks_spec MSG_BYTES);
-keccak_squeezeblocks_ov2 <- verify "keccak_squeezeblocks_r1"
+keccak_squeezeblocks_ov2 <- verify keccak_squeezeblocks_fun_name
     [KeccakF1600_StatePermute_ov, store64_ov]
     (keccak_squeezeblocks_spec CRYPTO_BYTES);
-keccak_squeezeblocks_ov3 <- verify "keccak_squeezeblocks_r1"
+keccak_squeezeblocks_ov3 <- verify keccak_squeezeblocks_fun_name
     [KeccakF1600_StatePermute_ov, store64_ov]
     (keccak_squeezeblocks_spec SHAKE256_RATE);
 
-cshake256_simple_absorb_ov0 <- verify "cshake256_simple_absorb_r1"
+cshake256_simple_absorb_ov0 <- verify cshake256_simple_absorb_fun_name
     [KeccakF1600_StatePermute_ov, keccak_absorb_ov0]
     (cshake256_simple_absorb_spec CRYPTO_CIPHERTEXTBYTES);
-cshake256_simple_absorb_ov1 <- verify "cshake256_simple_absorb_r1"
+cshake256_simple_absorb_ov1 <- verify cshake256_simple_absorb_fun_name
     [KeccakF1600_StatePermute_ov, keccak_absorb_ov1]
     (cshake256_simple_absorb_spec FP2_ENCODED_BYTES);
-cshake256_simple_absorb_ov2 <- verify "cshake256_simple_absorb_r1"
+cshake256_simple_absorb_ov2 <- verify cshake256_simple_absorb_fun_name
     [KeccakF1600_StatePermute_ov, keccak_absorb_ov2]
     (cshake256_simple_absorb_spec CIPHERTEXT_PLUS_MSG_BYTES);
 
-cshake256_simple_ov0 <- verify "cshake256_simple_r1"
+cshake256_simple_ov0 <- verify cshake256_simple_fun_name
     [ cshake256_simple_absorb_ov0
     , keccak_squeezeblocks_ov0
     , keccak_squeezeblocks_ov3
     ]
     (cshake256_simple_spec SECRETKEY_A_BYTES CRYPTO_CIPHERTEXTBYTES);
-cshake256_simple_ov1 <- verify "cshake256_simple_r1"
+cshake256_simple_ov1 <- verify cshake256_simple_fun_name
     [ cshake256_simple_absorb_ov1
     , keccak_squeezeblocks_ov1
     , keccak_squeezeblocks_ov3
     ]
     (cshake256_simple_spec MSG_BYTES FP2_ENCODED_BYTES);
-cshake256_simple_ov2 <- verify "cshake256_simple_r1"
+cshake256_simple_ov2 <- verify cshake256_simple_fun_name
     [ cshake256_simple_absorb_ov2
     , keccak_squeezeblocks_ov2
     , keccak_squeezeblocks_ov3
