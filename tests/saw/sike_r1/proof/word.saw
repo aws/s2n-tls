@@ -232,7 +232,6 @@ subfast_left_ov <- verify mp_subfast_fun_name
 
 mul_ov <- verify mp_mul_fun_name [] (mp_mul_spec nwords_field twice_nwords_field);
 mul_single_ov <- verify mp_mul_fun_name [] (mp_mul_single_spec nwords_field twice_nwords_field);
-mul_half_ov <- verify mp_mul_fun_name [] (mp_mul_spec half_nwords_field nwords_field);
 
 shiftr1_ov <- verify mp_shiftr1_fun_name [] (mp_shiftr1_spec nwords_field);
 

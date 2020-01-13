@@ -13,9 +13,6 @@ let RADIX = 64;
 let NBITS_FIELD = 503;
 let NBITS_ORDER = 256;
 let nwords_field = 8;
-let half_nwords_field = 4;
-let twice_nwords_field = 16;
-let nwords_point = 32;
 
 let OALICE_BITS = 250;
 let OBOB_BITS  = 253;
