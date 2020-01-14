@@ -26,9 +26,8 @@ void s2n_stuffer_reread_harness() {
     struct s2n_stuffer old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte;
     save_byte_from_blob(&stuffer->blob, &old_byte);
-    uint32_t n;
 
-    assert (s2n_stuffer_reread(stuffer) == S2N_SUCCESS);
+    assert(s2n_stuffer_reread(stuffer) == S2N_SUCCESS);
     assert(stuffer->read_cursor == 0);
 
     /* These assertions should always hold, regardless of whether the test succeeded */
