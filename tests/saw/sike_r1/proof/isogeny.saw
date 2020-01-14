@@ -110,12 +110,11 @@ let swap_points_spec = do {
     crucible_points_to qp (tm q');
 };
 
-let LADDER3PT_spec = do {
+let LADDER3PT_spec is_bob = do {
     (xP, xP_ptr) <- A_f2elm_t "xP";
     (xQ, xQ_ptr) <- A_f2elm_t "xQ";
     (xPQ, xPQ_ptr) <- A_f2elm_t "xPQ";
-    (m, m_ptr) <- A_param "m" (llvm_array 4 digit_t);
-    aliceOrBob <- A_uint_t "AliceOrBob";
+    (m, m_ptr) <- A_param "m" (llvm_array (if is_bob then SECRETKEY_B_BYTES else SECRETKEY_A_BYTES) char_t);
     r_ptr <- C_point_t (); // "R"
     (a, a_ptr) <- A_f2elm_t "A";
 
@@ -124,7 +123,7 @@ let LADDER3PT_spec = do {
       , xQ_ptr
       , xPQ_ptr
       , m_ptr
-      , (tm aliceOrBob)
+      , (tm (if is_bob then {{ 1 : [32] }} else {{ 0 : [32] }}))
       , r_ptr
       , a_ptr
       ];
@@ -191,7 +190,11 @@ let ladder_overrides =
     , swap_points_ov, xDBLADD_ov
     ];
 
-LADDER3PT_ov <- verify LADDER3PT_fun_name
+LADDER3PT_A_ov <- verify LADDER3PT_fun_name
     ladder_overrides
-    LADDER3PT_spec;
+    (LADDER3PT_spec false);
+
+LADDER3PT_B_ov <- verify LADDER3PT_fun_name
+    ladder_overrides
+    (LADDER3PT_spec true);
 

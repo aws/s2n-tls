@@ -115,8 +115,13 @@ let O_base_Key =
     , fp2add503_ov, fp2add503_left_ov, fp2add503_same_ov, fp2add503_right_ov
     , fp2sub503_right_ov, fp2sub503_left_ov, fp2sub503_same_ov
     , swap_points_ov, xDBLADD_ov, fp2_encode_ov
-    , LADDER3PT_ov, init_basis_ov, inv_3_way_ov
+    , init_basis_ov, inv_3_way_ov
     , fp2mul503_mont_ov, fp2mul503_mont_left_ov ];
+
+let O_base_KeyA = concat O_base_Key [LADDER3PT_A_ov];
+
+let O_base_KeyB = concat O_base_Key [LADDER3PT_B_ov];
+
 
 let O_base_Secret =
     [ fpcopy503_ov, fpzero503_ov, fp2copy503_ov
@@ -127,10 +132,10 @@ let O_base_Secret =
 
 let O_base_SecretA = concat O_base_Secret
     [ fpadd503_same_ov, fpadd503_pair_ov
-    , LADDER3PT_ov, fp2div2_503_same_ov ];
+    , LADDER3PT_A_ov, fp2div2_503_same_ov ];
 
 let O_base_SecretB = concat O_base_Secret
-    [fpadd503_same_ov, fpadd503_pair_ov , LADDER3PT_ov];
+    [fpadd503_same_ov, fpadd503_pair_ov , LADDER3PT_B_ov];
 
 let O_base_Isog4 =
     [xDBLe_same32_ov, get_4_isog_ov, eval_4_isog_ov, fp2_decode_ov];
@@ -140,11 +145,11 @@ let O_base_Isog3 =
     , eval_3_isog_ov, fp2_decode_ov ];
 
 ephemeralKeyGeneration_A_ov <- verify EphemeralKeyGeneration_A_fun_name
-  (concat O_base_Key O_base_Isog4)
+  (concat O_base_KeyA O_base_Isog4)
   ephemeralKeyGeneration_A_spec;
 
 ephemeralKeyGeneration_B_ov <- verify EphemeralKeyGeneration_B_fun_name
-  (concat O_base_Key O_base_Isog3)
+  (concat O_base_KeyB O_base_Isog3)
   ephemeralKeyGeneration_B_spec;
 
 ephemeralSecretAgreement_A_ov <- verify EphemeralSecretAgreement_A_fun_name
