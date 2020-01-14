@@ -104,7 +104,7 @@ int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size)
 int s2n_stuffer_resize_if_empty(struct s2n_stuffer *stuffer, const uint32_t size)
 {
     if (stuffer->blob.data == NULL) {
-        GUARD(s2n_stuffer_resize(stuffer, size));
+        GUARD(s2n_realloc(&stuffer->blob, size));
     }
 
     return 0;
