@@ -162,8 +162,12 @@ addx2_left_ov <- verify mp_add_fun_name [] (mp_add_left_spec twice_nwords_field)
 sub_ov <- verify mp_sub_fun_name [] (mp_sub_spec twice_nwords_field);
 sub_left_ov <- verify mp_sub_fun_name [] (mp_sub_left_spec twice_nwords_field);
 
-mul_ov <- verify mp_mul_fun_name [] (mp_mul_spec nwords_field twice_nwords_field);
-mul_single_ov <- verify mp_mul_fun_name [] (mp_mul_single_spec nwords_field twice_nwords_field);
+mul_ov <- verify mp_mul_fun_name
+  [dxd_ov]
+  (mp_mul_spec nwords_field twice_nwords_field);
+mul_single_ov <- verify mp_mul_fun_name
+  [dxd_ov]
+  (mp_mul_single_spec nwords_field twice_nwords_field);
 
 shiftr1_ov <- verify mp_shiftr1_fun_name [] (mp_shiftr1_spec nwords_field);
 
