@@ -3,10 +3,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Verify the hashing operations
 
-import "../spec/include/keccak.cry";
-import "../spec/interface/cshake.cry";
-import "../spec/Loader.cry";
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // Specifications
@@ -37,15 +33,24 @@ let KeccakF1600_StatePermute_spec = do {
 
 let shake256_spec outsz insz = do {
     outp <- crucible_alloc (llvm_array outsz char_t);
-    cstm <- crucible_fresh_var "cstm" i16;
     (input, inputp) <- ptr_to_fresh_readonly "in" (llvm_array insz char_t);
-    crucible_execute_func
-        [ outp
-        , tm {{ (`outsz : [64]) }}
-        , tm cstm
-        , inputp
-        , tm {{ `insz:[64] }}
-        ];
+    if eval_bool {{ `SIKE_REVISION == 2 }} then do {
+        crucible_execute_func
+            [ outp
+            , tm {{ (`outsz : [64]) }}
+            , inputp
+            , tm {{ `insz:[64] }}
+            ];
+    } else do {
+        cstm <- crucible_fresh_var "cstm" i16;
+        crucible_execute_func
+            [ outp
+            , tm {{ (`outsz : [64]) }}
+            , tm cstm
+            , inputp
+            , tm {{ `insz:[64] }}
+            ];
+    };
     out <- crucible_fresh_var "out" (llvm_array outsz char_t);
     crucible_points_to outp (tm out);
 };
