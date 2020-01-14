@@ -118,9 +118,6 @@ int s2n_server_encrypted_extensions_parse(struct s2n_connection *conn, struct s2
         case TLS_EXTENSION_ALPN:
             GUARD(s2n_recv_server_alpn(conn, &extension));
             break;
-        case TLS_EXTENSION_SCT_LIST:
-            GUARD(s2n_recv_server_sct_list(conn, &extension));
-            break;
         case TLS_EXTENSION_MAX_FRAG_LEN:
             GUARD(s2n_recv_server_max_fragment_length(conn, &extension));
             break;
@@ -132,6 +129,7 @@ int s2n_server_encrypted_extensions_parse(struct s2n_connection *conn, struct s2
         case TLS_EXTENSION_SESSION_TICKET:
         case TLS_EXTENSION_SUPPORTED_VERSIONS:
         case TLS_EXTENSION_KEY_SHARE:
+        case TLS_EXTENSION_SCT_LIST:
             S2N_ERROR(S2N_ERR_BAD_MESSAGE);
             break;
         }
