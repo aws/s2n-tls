@@ -25,14 +25,14 @@
 #define S2N_ERR_NUM_VALUE_BITS 26
 
 /* Start value for each error type. */
-#define S2N_ERR_T_OK_START S2N_ERR_T_OK << S2N_ERR_NUM_VALUE_BITS
-#define S2N_ERR_T_IO_START S2N_ERR_T_IO << S2N_ERR_NUM_VALUE_BITS
-#define S2N_ERR_T_CLOSED_START S2N_ERR_T_CLOSED << S2N_ERR_NUM_VALUE_BITS
-#define S2N_ERR_T_BLOCKED_START S2N_ERR_T_BLOCKED << S2N_ERR_NUM_VALUE_BITS
-#define S2N_ERR_T_ALERT_START S2N_ERR_T_ALERT << S2N_ERR_NUM_VALUE_BITS
-#define S2N_ERR_T_PROTO_START S2N_ERR_T_PROTO << S2N_ERR_NUM_VALUE_BITS
-#define S2N_ERR_T_INTERNAL_START S2N_ERR_T_INTERNAL << S2N_ERR_NUM_VALUE_BITS
-#define S2N_ERR_T_USAGE_START S2N_ERR_T_USAGE << S2N_ERR_NUM_VALUE_BITS
+#define S2N_ERR_T_OK_START (S2N_ERR_T_OK << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_IO_START (S2N_ERR_T_IO << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_CLOSED_START (S2N_ERR_T_CLOSED << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_BLOCKED_START (S2N_ERR_T_BLOCKED << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_ALERT_START (S2N_ERR_T_ALERT << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_PROTO_START (S2N_ERR_T_PROTO << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_INTERNAL_START (S2N_ERR_T_INTERNAL << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_USAGE_START (S2N_ERR_T_USAGE << S2N_ERR_NUM_VALUE_BITS)
 
 /* Order of values in this enum is important. New error values should be placed at the end of their respective category.
  * For example, a new TLS protocol related error belongs in the S2N_ERR_T_PROTO category. It should be placed
@@ -41,14 +41,24 @@
 typedef enum {
     /* S2N_ERR_T_OK */
     S2N_ERR_OK = S2N_ERR_T_OK_START,
+    S2N_ERR_T_OK_END,
+
     /* S2N_ERR_T_IO */
     S2N_ERR_IO = S2N_ERR_T_IO_START,
+    S2N_ERR_T_IO_END,
+
     /* S2N_ERR_T_CLOSED */
     S2N_ERR_CLOSED = S2N_ERR_T_CLOSED_START,
+    S2N_ERR_T_CLOSED_END,
+
     /* S2N_ERR_T_BLOCKED */
     S2N_ERR_BLOCKED = S2N_ERR_T_BLOCKED_START,
+    S2N_ERR_T_BLOCKED_END,
+
     /* S2N_ERR_T_ALERT */
     S2N_ERR_ALERT = S2N_ERR_T_ALERT_START,
+    S2N_ERR_T_ALERT_END,
+
     /* S2N_ERR_T_PROTO */
     S2N_ERR_ENCRYPT = S2N_ERR_T_PROTO_START,
     S2N_ERR_DECRYPT,
@@ -91,6 +101,9 @@ typedef enum {
     S2N_ERR_INVALID_MAX_FRAG_LEN,
     S2N_ERR_MAX_FRAG_LEN_MISMATCH,
     S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED,
+    S2N_ERR_BAD_KEY_SHARE,
+    S2N_ERR_T_PROTO_END,
+
     /* S2N_ERR_T_INTERNAL */
     S2N_ERR_MADVISE = S2N_ERR_T_INTERNAL_START,
     S2N_ERR_ALLOC,
@@ -153,6 +166,9 @@ typedef enum {
     S2N_ERR_POLLING_FROM_SOCKET,
     S2N_ERR_RECV_STUFFER_FROM_CONN,
     S2N_ERR_SEND_STUFFER_TO_CONN,
+    S2N_ERR_PRECONDITION_VIOLATION,
+    S2N_ERR_T_INTERNAL_END,
+
     /* S2N_ERR_T_USAGE */
     S2N_ERR_NO_ALERT = S2N_ERR_T_USAGE_START,
     S2N_ERR_CLIENT_MODE,
@@ -198,12 +214,12 @@ typedef enum {
     S2N_ERR_EXTERNAL_CTX_STATUS_INVALID,
     S2N_ERR_EXTERNAL_CERT_TYPE_INVALID,
     S2N_ERR_NOT_IN_UNIT_TEST,
-    S2N_ERR_BAD_KEY_SHARE,
     S2N_ERR_UNSUPPORTED_CPU,
     S2N_ERR_SESSION_ID_TOO_SHORT,
     S2N_ERR_CONNECTION_CACHING_DISALLOWED,
     S2N_ERR_SESSION_TICKET_NOT_SUPPORTED,
     S2N_ERR_OCSP_NOT_SUPPORTED,
+    S2N_ERR_T_USAGE_END,
 } s2n_error;
 
 #define S2N_DEBUG_STR_LEN 128
@@ -221,5 +237,25 @@ extern __thread const char *s2n_debug_str;
 #define S2N_ERROR_IF( cond , x ) do { if ( cond ) { S2N_ERROR( x ); }} while (0)
 #define S2N_ERROR_IF_PTR( cond , x ) do { if ( cond ) { S2N_ERROR_PTR( x ); }} while (0)
 
-extern int s2n_error_table_init();
-extern void s2n_error_table_cleanup();
+#define S2N_PRECONDITION( cond ) S2N_ERROR_IF(!(cond), S2N_ERR_PRECONDITION_VIOLATION)
+#define S2N_PRECONDITION_PTR( cond ) S2N_ERROR_IF_PTR(!(cond), S2N_ERR_PRECONDITION_VIOLATION)
+
+/**
+ * Define function contracts.
+ * When the code is being verified using CBMC these contracts are formally verified;
+ * When the code is built in debug mode, they are checked as much as possible using assertions
+ * When the code is built in production mode, non-fatal contracts are not checked.
+ * Violations of the function contracts are undefined behaviour.
+ */
+#ifdef CBMC
+#    define S2N_MEM_IS_READABLE(base, len) __CPROVER_r_ok((base), (len))
+#    define S2N_MEM_IS_WRITABLE(base, len) __CPROVER_w_ok((base), (len))
+#else
+/* the C runtime does not give a way to check these properties,
+ * but we can at least check that the pointer is valid */
+#    define S2N_MEM_IS_READABLE(base, len) (((len) == 0) || (base))
+#    define S2N_MEM_IS_WRITABLE(base, len) (((len) == 0) || (base))
+#endif /* CBMC */
+
+#define S2N_OBJECT_PTR_IS_READABLE(ptr) S2N_MEM_IS_READABLE((ptr), sizeof(*(ptr)))
+#define S2N_OBJECT_PTR_IS_WRITABLE(ptr) S2N_MEM_IS_WRITABLE((ptr), sizeof(*(ptr)))

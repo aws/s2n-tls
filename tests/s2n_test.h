@@ -79,14 +79,26 @@
 
 #define FAIL()      FAIL_MSG("")
 
-#define FAIL_MSG( msg ) do { if (isatty(fileno(stdout))) { \
+#define FAIL_MSG( msg ) do { \
+                          /* isatty will overwrite errno on failure */ \
+                          int real_errno = errno; \
+                          if (isatty(fileno(stdout))) { \
+                            errno = real_errno; \
                             fprintf(stdout, "\033[31;1mFAILED test %d\033[0m\n%s (%s line %d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_debug_str, strerror(errno), errno); \
                           } \
                           else { \
+                            errno = real_errno; \
                             fprintf(stdout, "FAILED test %d\n%s (%s line %d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_debug_str, strerror(errno), errno); \
                           } \
                           exit(1);  \
                         } while(0)
+
+#define RESET_ERRNO() \
+    do { \
+        s2n_errno = 0; \
+        s2n_debug_str = NULL; \
+        errno = 0; \
+    } while(0);
 
 #define EXPECT_TRUE( condition )    do { test_count++; if ( !(condition) ) { FAIL_MSG( #condition " is not true "); } } while(0)
 #define EXPECT_FALSE( condition )   EXPECT_TRUE( !(condition) )
@@ -97,9 +109,27 @@
 #define EXPECT_NULL( ptr )      EXPECT_EQUAL( ptr, NULL )
 #define EXPECT_NOT_NULL( ptr )  EXPECT_NOT_EQUAL( ptr, NULL )
 
-#define EXPECT_FAILURE( function_call )  do { EXPECT_EQUAL( (function_call) ,  -1 ); EXPECT_NOT_EQUAL(s2n_errno, 0); EXPECT_NOT_NULL(s2n_debug_str); s2n_errno = 0; s2n_debug_str = NULL; } while(0)
-#define EXPECT_FAILURE_WITH_ERRNO_NO_RESET( function_call, err ) do { EXPECT_EQUAL( (function_call), -1 ); EXPECT_EQUAL(s2n_errno, err); EXPECT_NOT_NULL(s2n_debug_str);} while(0)
-#define EXPECT_FAILURE_WITH_ERRNO( function_call, err ) do { EXPECT_FAILURE_WITH_ERRNO_NO_RESET( function_call, err ); s2n_errno = 0; s2n_debug_str = NULL; } while(0)
+#define EXPECT_FAILURE( function_call ) \
+    do { \
+        EXPECT_EQUAL( (function_call) ,  -1 ); \
+        EXPECT_NOT_EQUAL(s2n_errno, 0); \
+        EXPECT_NOT_NULL(s2n_debug_str); \
+        RESET_ERRNO(); \
+    } while(0)
+
+#define EXPECT_FAILURE_WITH_ERRNO_NO_RESET( function_call, err ) \
+    do { \
+        EXPECT_EQUAL( (function_call), -1 ); \
+        EXPECT_EQUAL(s2n_errno, err); \
+        EXPECT_NOT_NULL(s2n_debug_str); \
+    } while(0)
+
+#define EXPECT_FAILURE_WITH_ERRNO( function_call, err ) \
+    do { \
+        EXPECT_FAILURE_WITH_ERRNO_NO_RESET( function_call, err ); \
+        RESET_ERRNO(); \
+    } while(0)
+
 #define EXPECT_SUCCESS( function_call )  EXPECT_NOT_EQUAL( (function_call) ,  -1 )
 
 #define EXPECT_BYTEARRAY_EQUAL( p1, p2, l ) EXPECT_EQUAL( memcmp( (p1), (p2), (l) ), 0 )

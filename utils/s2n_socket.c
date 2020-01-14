@@ -80,11 +80,11 @@ int s2n_socket_read_snapshot(struct s2n_connection *conn)
 {
 #ifdef SO_RCVLOWAT
     socklen_t watlen = sizeof(int);
-    
+
     struct s2n_socket_read_io_context *r_io_ctx = (struct s2n_socket_read_io_context *) conn->recv_io_context;
     notnull_check(r_io_ctx);
 
-    getsockopt(r_io_ctx->fd, IPPROTO_TCP, SO_RCVLOWAT, &r_io_ctx->original_rcvlowat_val, &watlen);
+    getsockopt(r_io_ctx->fd, SOL_SOCKET, SO_RCVLOWAT, &r_io_ctx->original_rcvlowat_val, &watlen);
     eq_check(watlen, sizeof(int));
     r_io_ctx->original_rcvlowat_is_set = 1;
 #endif
@@ -117,7 +117,7 @@ int s2n_socket_read_restore(struct s2n_connection *conn)
     if (!r_io_ctx->original_rcvlowat_is_set) {
         return 0;
     }
-    setsockopt(r_io_ctx->fd, IPPROTO_TCP, SO_RCVLOWAT, &r_io_ctx->original_rcvlowat_val, sizeof(r_io_ctx->original_rcvlowat_val));
+    setsockopt(r_io_ctx->fd, SOL_SOCKET, SO_RCVLOWAT, &r_io_ctx->original_rcvlowat_val, sizeof(r_io_ctx->original_rcvlowat_val));
     r_io_ctx->original_rcvlowat_is_set = 0;
 #endif
 
@@ -173,7 +173,7 @@ int s2n_socket_set_read_size(struct s2n_connection *conn, int size)
     struct s2n_socket_read_io_context *r_io_ctx = (struct s2n_socket_read_io_context *) conn->recv_io_context;
     notnull_check(r_io_ctx);
 
-    setsockopt(r_io_ctx->fd, IPPROTO_TCP, SO_RCVLOWAT, &size, sizeof(size));
+    setsockopt(r_io_ctx->fd, SOL_SOCKET, SO_RCVLOWAT, &size, sizeof(size));
 #endif
 
     return 0;
