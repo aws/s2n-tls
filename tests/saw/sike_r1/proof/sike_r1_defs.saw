@@ -35,10 +35,7 @@ let is_digit_lessthan_ct_fun_name = "is_digit_lessthan_ct";
 let is_digit_nonzero_ct_fun_name = "is_digit_nonzero_ct";
 let is_digit_zero_ct_fun_name = "is_digit_zero_ct";
 let mp_add_fun_name = "mp_add_r1";
-let mp_addfast_fun_name = "mp_addfast_r1";
-let mp_addfastx2_fun_name = "mp_addfastx2_r1";
 let mp_sub_fun_name = "mp_sub_r1";
-let mp_subfast_fun_name = "mp_subfast_r1";
 let mp_mul_fun_name = "mp_mul_r1";
 let mp_shiftr1_fun_name = "mp_shiftr1_r1";
 

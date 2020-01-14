@@ -96,7 +96,7 @@ let ephemeralSecretAgreement_B_spec = do {
 // Proof commands
 
 random_mod_order_B_ov <- verify random_mod_order_B_fun_name
-    [clear_words_ov, randombytes_sidh_bob_ov] random_mod_order_B_spec;
+    [randombytes_sidh_bob_ov] random_mod_order_B_spec;
 
 init_basis_ov <- verify init_basis_fun_name
     [fpcopy503_ov, fpzero503_ov] 

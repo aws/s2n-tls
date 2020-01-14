@@ -6,48 +6,9 @@
 
 import "../spec/Loader.cry";
 
+
 ///////////////////////////////////////////////////////////////////////////////
 // Specifications
-
-let binary_words_op t n = do {
-    let at = llvm_array n t;
-    (a, ap) <- ptr_to_fresh_readonly "a" at;
-    (b, bp) <- ptr_to_fresh_readonly "b" at;
-    cp <- crucible_alloc at;
-
-    crucible_execute_func [ap, bp, cp];
-
-    c <- crucible_fresh_var "c" at;
-    crucible_points_to cp (tm c);
-};
-
-let binary_words_left_op t n = do {
-    let at = llvm_array n t;
-    (a, ap) <- ptr_to_fresh "a" at;
-    (b, bp) <- ptr_to_fresh_readonly "b" at;
-
-    crucible_execute_func [ap, bp, ap];
-
-    c <- crucible_fresh_var "c" at;
-    crucible_points_to ap (tm c);
-};
-
-let binary_words_op_single t n = do {
-    let at = llvm_array n t;
-    (a, ap) <- ptr_to_fresh "a" at;
-    cp <- crucible_alloc at;
-
-    crucible_execute_func [ap, ap, cp];
-
-    c <- crucible_fresh_var "c" at;
-    crucible_points_to cp (tm c);
-};
-
-let clear_words_spec n = do {
-    mp <- crucible_alloc (llvm_array n digit_t);
-    crucible_execute_func [mp, tm {{ `n : [64] }}];
-    crucible_points_to mp (tm {{ zero : [n][64] }});
-};
 
 let copy_words_spec n = do {
     (a, ap) <- ptr_to_fresh_readonly "a" (llvm_array n digit_t);
@@ -127,10 +88,6 @@ let mp_add_left_spec n = do {
     crucible_return (tm ret);
 };
 
-let mp_addfast_spec n = binary_words_op digit_t n;
-let mp_addfast_single_spec n = binary_words_op_single digit_t n;
-let mp_addfast_left_spec n = binary_words_left_op digit_t n;
-
 let mp_sub_spec n = do {
     (a, ap) <- ptr_to_fresh_readonly "a" (llvm_array n digit_t);
     (b, bp) <- ptr_to_fresh_readonly "b" (llvm_array n digit_t);
@@ -153,9 +110,6 @@ let mp_sub_left_spec n = do {
     ret <- crucible_fresh_var "ret" i32;
     crucible_return (tm ret);
 };
-
-let mp_subfast_spec n = binary_words_op digit_t n;
-let mp_subfast_left_spec n = binary_words_left_op digit_t n;
 
 let mp_mul_spec n m = do {
     (a, ap) <- ptr_to_fresh_readonly "a" (llvm_array n digit_t);
@@ -189,7 +143,6 @@ let mp_shiftr1_spec n = do {
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
 
-clear_words_ov <- verify clear_words_fun_name [] (clear_words_spec max_words_order);
 // NOTE: 4*nwords_field for xDBLe and xTPLe
 let nwords_field_x4 = eval_int {{ `(4 * nwords_field) : [64] }};
 copy_words_nwords_field_x4_ov <- verify copy_words_fun_name [] (copy_words_spec nwords_field_x4);
@@ -206,29 +159,8 @@ add_single_ov <- verify mp_add_fun_name [] (mp_add_single_spec nwords_field);
 addx2_ov <- verify mp_add_fun_name [] (mp_add_spec twice_nwords_field);
 addx2_left_ov <- verify mp_add_fun_name [] (mp_add_left_spec twice_nwords_field);
 
-addfast_ov <- verify mp_addfast_fun_name
-    [add_ov]
-    (mp_addfast_spec nwords_field);
-addfast_single_ov <- verify mp_addfast_fun_name
-    [add_single_ov]
-    (mp_addfast_single_spec nwords_field);
-
-addfastx2_ov <- verify mp_addfastx2_fun_name
-    [addx2_ov]
-    (mp_addfast_spec twice_nwords_field);
-addfastx2_left_ov <- verify mp_addfastx2_fun_name
-    [addx2_left_ov]
-    (mp_addfast_left_spec twice_nwords_field);
-
 sub_ov <- verify mp_sub_fun_name [] (mp_sub_spec twice_nwords_field);
 sub_left_ov <- verify mp_sub_fun_name [] (mp_sub_left_spec twice_nwords_field);
-
-subfast_ov <- verify mp_subfast_fun_name
-    [sub_ov]
-    (mp_subfast_spec twice_nwords_field);
-subfast_left_ov <- verify mp_subfast_fun_name
-    [sub_left_ov]
-    (mp_subfast_left_spec twice_nwords_field);
 
 mul_ov <- verify mp_mul_fun_name [] (mp_mul_spec nwords_field twice_nwords_field);
 mul_single_ov <- verify mp_mul_fun_name [] (mp_mul_single_spec nwords_field twice_nwords_field);
