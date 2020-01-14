@@ -93,10 +93,7 @@ let EphemeralSecretAgreement_B_fun_name = "EphemeralSecretAgreement_B_r1";
 let load64_fun_name = "load64_r1";
 let store64_fun_name = "store64_r1";
 let KeccakF1600_StatePermute_fun_name = "KeccakF1600_StatePermute_r1";
-let keccak_absorb_fun_name = "keccak_absorb_r1";
-let keccak_squeezeblocks_fun_name = "keccak_squeezeblocks_r1";
-let cshake256_simple_absorb_fun_name = "cshake256_simple_absorb_r1";
-let cshake256_simple_fun_name = "cshake256_simple_r1";
+let shake256_fun_name = "cshake256_simple_r1";
 
 let SIKE_crypto_kem_keypair_fun_name = "SIKE_P503_r1_crypto_kem_keypair";
 let SIKE_crypto_kem_enc_fun_name = "SIKE_P503_r1_crypto_kem_enc";

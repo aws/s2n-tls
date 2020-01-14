@@ -16,6 +16,6 @@ include "proof/curv.saw";
 include "proof/isogeny.saw";
 include "proof/random.saw";
 include "proof/sidh.saw";
-include "proof/cshake.saw";
+include "proof/shake.saw";
 include "proof/sike.saw";
 

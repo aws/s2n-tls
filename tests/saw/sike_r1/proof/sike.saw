@@ -53,17 +53,17 @@ crypto_kem_enc_ov <- verify SIKE_crypto_kem_enc_fun_name
     [ randombytes_sike_ov
     , ephemeralSecretAgreement_A_ov
     , ephemeralKeyGeneration_A_ov
-    , cshake256_simple_ov0
-    , cshake256_simple_ov1
-    , cshake256_simple_ov2
+    , shake256_ov0
+    , shake256_ov1
+    , shake256_ov2
     ]
     crypto_kem_enc_spec;
 
 crypto_kem_dec_ov <- verify SIKE_crypto_kem_dec_fun_name
     [ ephemeralSecretAgreement_B_ov
-    , cshake256_simple_ov0
-    , cshake256_simple_ov1
-    , cshake256_simple_ov2
+    , shake256_ov0
+    , shake256_ov1
+    , shake256_ov2
     , ephemeralKeyGeneration_A_ov
     , memcmp_ov_for_kem_dec
     ]
