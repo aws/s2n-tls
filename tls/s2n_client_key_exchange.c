@@ -146,7 +146,7 @@ int s2n_rsa_client_key_external(struct s2n_connection *conn, struct s2n_blob *sh
             S2N_ERROR(S2N_ERR_EXTERNAL_FAILURE);
         }
         default: {
-            /* the status is not anything we expected. Something went wrong and need ot set rsa_failed to 1. */
+            /* the status is not anything we expected. Something went wrong and need to set rsa_failed to 1. */
             conn->handshake.rsa_failed = 1;
 
             /* free the memory of the context */

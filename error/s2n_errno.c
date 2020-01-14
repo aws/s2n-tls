@@ -191,6 +191,8 @@ const char *s2n_strerror(int error, const char *lang)
         case S2N_ERR_SENDING_NST: return "Error in session ticket status encountered before sending NST";
         case S2N_ERR_INVALID_DYNAMIC_THRESHOLD: return "invalid dynamic record threshold";
         case S2N_ERR_INVALID_ARGUMENT: return "invalid argument provided into a function call";
+        case S2N_ERR_EXTERNAL_FAILURE: return "Error in external handshake functions";
+        case S2N_ERR_EXTERNAL_CTX_STATUS_INVALID: return "Unknown external handshake status";
         case S2N_ERR_NOT_IN_UNIT_TEST: return "Illegal configuration, can only be used during unit tests";
         case S2N_ERR_UNSUPPORTED_CPU: return "Unsupported CPU architecture";
         case S2N_ERR_SESSION_ID_TOO_SHORT: return "Session id is too short";
@@ -369,6 +371,8 @@ const char *s2n_strerror_name(int error)
         CASE_ERROR_NAME(S2N_ERR_SENDING_NST);
         CASE_ERROR_NAME(S2N_ERR_INVALID_DYNAMIC_THRESHOLD);
         CASE_ERROR_NAME(S2N_ERR_INVALID_ARGUMENT);
+        CASE_ERROR_NAME(S2N_ERR_EXTERNAL_FAILURE);
+        CASE_ERROR_NAME(S2N_ERR_EXTERNAL_CTX_STATUS_INVALID);
         CASE_ERROR_NAME(S2N_ERR_NOT_IN_UNIT_TEST);
         CASE_ERROR_NAME(S2N_ERR_UNSUPPORTED_CPU);
         CASE_ERROR_NAME(S2N_ERR_SESSION_ID_TOO_SHORT);
