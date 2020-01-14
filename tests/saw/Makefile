@@ -93,11 +93,11 @@ tmp/%.log : %.saw bitcode/all_llvm.bc tmp
 .PHONY : sike_r1
 sike_r1 : sike_r1_patched_bitcode
 	@${MAKE} clean-sike-r1-logs
-	@${MAKE} sike_r1/sike.log
+	@${MAKE} sike_r1/sike_r1.log
 
-sike_r1/sike.log :
+sike_r1/sike_r1.log :
 	@set -o pipefail; \
-	saw sike_r1/verify_sike.saw | tee $@
+	saw sike_r1/verify_sike_r1.saw | tee $@
 
 ###########################################
 ## BIKE_R1 Tests
