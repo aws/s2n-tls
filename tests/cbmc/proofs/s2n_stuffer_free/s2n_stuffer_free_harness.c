@@ -22,15 +22,18 @@
 
 void s2n_calculate_stacktrace() {}
 int munlock(const void *addr, size_t len) {
-  int rval;
-  return rval;
+    int rval;
+
+    assert(__CPROVER_r_ok(addr, len));
+
+    return rval;
 }
 
 void s2n_stuffer_free_harness() {
-  struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-  __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
+    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
 
-  if (s2n_stuffer_free(stuffer) == 0) {
-    assert_all_zeroes(stuffer, sizeof(*stuffer));
-  }
+    if (s2n_stuffer_free(stuffer) == 0) {
+        assert_all_zeroes(stuffer, sizeof(*stuffer));
+    }
 }
