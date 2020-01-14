@@ -156,7 +156,7 @@ int s2n_rsa_client_key_external(struct s2n_connection *conn, struct s2n_blob *sh
         }
     }
 
-    return -1;
+    S2N_ERROR(S2N_ERR_EXTERNAL_CTX_STATUS_INVALID);
 }
 
 int s2n_ecdhe_client_key_external(struct s2n_connection* conn, struct s2n_blob* shared_key)
