@@ -31,21 +31,6 @@ let fp2_encode_spec = do {
     crucible_points_to encp (tm enc);
 };
 
-let init_basis_spec = do {
-    (gen, genp) <- ptr_to_fresh_readonly "gen"
-        (llvm_array (eval_int {{ 5*(`nwords_field:[32]) }}) digit_t);
-    XPp <- C_f2elm_t ();
-    XQp <- C_f2elm_t ();
-    XRp <- C_f2elm_t ();
-    crucible_execute_func [genp, XPp, XQp, XRp];
-    XP <- crucible_fresh_var "XP" f2elm_t;
-    crucible_points_to XPp (tm XP);
-    XQ <- crucible_fresh_var "XQ" f2elm_t;
-    crucible_points_to XQp (tm XQ);
-    XR <- crucible_fresh_var "XR" f2elm_t;
-    crucible_points_to XRp (tm XR);
-};
-
 let random_mod_order_B_spec = do {
     random_digits_p <- crucible_alloc (llvm_array SECRETKEY_B_BYTES char_t);
     crucible_execute_func [random_digits_p];
@@ -98,10 +83,6 @@ let ephemeralSecretAgreement_B_spec = do {
 random_mod_order_B_ov <- verify random_mod_order_B_fun_name
     [randombytes_sidh_bob_ov] random_mod_order_B_spec;
 
-init_basis_ov <- verify init_basis_fun_name
-    [fpcopy503_ov, fpzero503_ov] 
-    init_basis_spec;
-
 fp2_decode_ov <- verify fp2_decode_fun_name
     [to_fp2mont_same_ov]
     fp2_decode_spec;
@@ -115,7 +96,7 @@ let O_base_Key =
     , fp2add503_ov, fp2add503_left_ov, fp2add503_same_ov, fp2add503_right_ov
     , fp2sub503_right_ov, fp2sub503_left_ov, fp2sub503_same_ov
     , swap_points_ov, xDBLADD_ov, fp2_encode_ov
-    , init_basis_ov, inv_3_way_ov
+    , inv_3_way_ov
     , fp2mul503_mont_ov, fp2mul503_mont_left_ov ];
 
 let O_base_KeyA = concat O_base_Key [LADDER3PT_A_ov];
