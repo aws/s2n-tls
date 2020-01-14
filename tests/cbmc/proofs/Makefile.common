@@ -185,7 +185,7 @@ SIMPLIFY ?= 0
 $(ENTRY_GOTO)0.goto: $(ENTRY).c $(DEPENDENCIES)
 	mkdir -p $(dir $@)
 	mkdir -p $(dir $(call LOG_FROM_ENTRY,$@))
-	$(call DO_GOTO_CC,--export-function-local-symbols --function $(ENTRY) $(INC) $(DEFINES),$^,$@)
+	$(call DO_GOTO_CC,--export-file-local-symbols --function $(ENTRY) $(INC) $(DEFINES),$^,$@)
 
 # Removes specified function bodies. This allows us to replace
 # function definitions with ABSTRACTIONS.

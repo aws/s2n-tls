@@ -37,8 +37,8 @@ void ensure_s2n_stuffer_has_allocated_fields(struct s2n_stuffer* stuffer)
 
 struct s2n_stuffer* cbmc_allocate_s2n_stuffer() {
     struct s2n_stuffer* stuffer = can_fail_malloc(sizeof(*stuffer));
-    if (stuffer) {
-	ensure_s2n_stuffer_has_allocated_fields(stuffer);
+    if (stuffer != NULL) {
+        ensure_s2n_stuffer_has_allocated_fields(stuffer);
     }
     return stuffer;
 }
