@@ -56,11 +56,15 @@ let crypto_kem_dec_spec = do {
     ap <- out_ref char_ss_T;
     (b, bp) <- in_ref char_ct_T "ct";
     (c, cp) <- in_ref char_sk_T "sk";
+    crucible_alloc_global "bike_errno";
+    _bike_errno <- point_to i32_T (crucible_global "bike_errno") "bike_errno";
 
     // NOTE: This is for memory safety
     crucible_precond {{ is_bounded_sk (assemble_sk_t c) }};
 
     crucible_execute_func [ap, bp, cp];
+
+    _bike_errno' <- point_to i32_T (crucible_global "bike_errno") "bike_errno'";
 
     ret <- crucible_fresh_var "ret" i32;
     crucible_return (tm ret);
@@ -185,7 +189,7 @@ let crypto_kem_dec_O =
     , secure_clean_syndrome_ov
     , get_ss_ov
     , count_ones_N_SIZE_ov
-    , decode_op_ov
+    , decode_ov
     ];
 let crypto_kem_dec_U =
     [ "decode"
@@ -201,7 +205,7 @@ crypto_kem_dec_ov <- verify_unint "BIKE1_L1_crypto_kem_dec"
     [ compute_syndrome_update_ov
     , secure_clean_e_ov
     , secure_clean_syndrome_ov
-    , decode_op_ov
+    , decode_ov
     , count_ones_N_SIZE_ov
     , get_ss_ov
     ]

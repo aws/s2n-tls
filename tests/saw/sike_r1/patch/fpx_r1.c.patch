@@ -1,0 +1,30 @@
+200a201,205
+> extern void __breakpoint__fpinv_chain_mont0(digit_t**, unsigned int*, unsigned int*, felm_t (*)[15], felm_t*)__attribute__((noduplicate));
+> extern void __breakpoint__fpinv_chain_mont1(digit_t**, unsigned int*, unsigned int*, felm_t (*)[15], felm_t*)__attribute__((noduplicate));
+> extern void __breakpoint__fpinv_chain_mont2(digit_t**, unsigned int*, unsigned int*, felm_t (*)[15], felm_t*)__attribute__((noduplicate));
+> extern void __breakpoint__fpinv_chain_mont3(digit_t**, unsigned int*, unsigned int*, felm_t (*)[15], felm_t*)__attribute__((noduplicate));
+> extern void __breakpoint__fpinv_chain_mont4(digit_t**, unsigned int*, unsigned int*, felm_t (*)[15], felm_t*)__attribute__((noduplicate));
+205c210
+<     felm_t t[15], tt;
+---
+>     felm_t t[15] = {0}, tt;
+210c215
+<     for (i = 0; i <= 13; i++) fpmul_mont(t[i], tt, t[i+1]);
+---
+>     for (i = 0; __breakpoint__fpinv_chain_mont0(&a, &i, &j, &t, &tt), i <= 13; i++) fpmul_mont(t[i], tt, t[i+1]);
+213c218
+<     for (i = 0; i < 8; i++) fpsqr_mont(tt, tt);
+---
+>     for (i = 0; __breakpoint__fpinv_chain_mont1(&a, &i, &j, &t, &tt), i < 8; i++) fpsqr_mont(tt, tt);
+233c238
+<     for (i = 0; i < 8; i++) fpsqr_mont(tt, tt);
+---
+>     for (i = 0; __breakpoint__fpinv_chain_mont2(&a, &i, &j, &t, &tt), i < 8; i++) fpsqr_mont(tt, tt);
+261c266
+<     for (i = 0; i < 8; i++) fpsqr_mont(tt, tt);
+---
+>     for (i = 0; __breakpoint__fpinv_chain_mont3(&a, &i, &j, &t, &tt), i < 8; i++) fpsqr_mont(tt, tt);
+298c303
+<         for (i = 0; i < 5; i++) fpsqr_mont(tt, tt);
+---
+>         for (i = 0; __breakpoint__fpinv_chain_mont4(&a, &i, &j, &t, &tt), i < 5; i++) fpsqr_mont(tt, tt);

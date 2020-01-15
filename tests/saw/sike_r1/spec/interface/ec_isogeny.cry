@@ -1,0 +1,354 @@
+//ec_isogeny.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module interface::ec_isogeny where
+
+import shared::Constants
+import shared::C_Types
+import shared::Convert_Types
+import abstract_spec::MC_PSQ503_Array_Curve
+import abstract_spec::Field_Types
+import interface::fpx
+
+///////////////////////////////////////////////////////////////////////////////
+
+mkVal v = wrap_f2elm (from_psq503{r=v, i=0})
+
+unwrap_point e = e@0
+wrap_point e = [e]
+
+xDBL : point_proj_t -> f2elm -> f2elm -> point_proj_t
+xDBL P A24plus C24 = wrap_point (Qx, Qy) where
+    (Px, Py) = unwrap_point P
+    t0 = fp2sub503 (Px, Py)
+    t1 = fp2add503 (Px, Py)
+    t2 = fp2sqr503_mont t0
+    t3 = fp2sqr503_mont t1
+    t4 = fp2mul503_mont (C24, t2)
+    Qx = fp2mul503_mont (t3, t4)
+    t5 = fp2sub503 (t3, t2)
+    t6 = fp2mul503_mont (A24plus, t5)
+    t7 = fp2add503 (t4, t6)
+    Qy = fp2mul503_mont (t7, t5)
+
+xDBL_abstract : point_proj_t -> f2elm -> f2elm -> point_proj_t
+xDBL_abstract P A24plus C24 = t3 where
+    t1 = unwrap_Point_proj_t_array_cv P
+    t2 = Mont_Curve.p_double t1
+    t3 = wrap_Point_proj_t_array_cv t2
+
+xDBLe : point_proj_t -> f2elm -> f2elm -> Integer -> point_proj_t
+xDBLe P A24plus C24 e = for_loop 0 (P) where
+    for_loop i Q =
+        if (i < e) then
+            for_loop (i+1) (xDBL Q A24plus C24)
+        else (Q)
+
+xDBLe_32 : point_proj_t -> f2elm -> f2elm -> [32] -> point_proj_t
+xDBLe_32 P A24plus C24 e = for_loop 0 (P) where
+    for_loop i Q =
+        if(i<e) then
+            for_loop (i+1) (xDBL Q A24plus C24)
+        else (Q)
+
+xTPL : point_proj_t -> f2elm -> f2elm -> point_proj_t
+xTPL P A24minus A24plus = wrap_point (Qx, Qy) where
+    (Px, Py) = unwrap_point P
+    t0 = fp2sub503 (Px, Py)                 // x-y
+    t1 = fp2add503 (Px, Py)                 // x+y
+    t2 = fp2sqr503_mont (t0)                // (x-y)^2
+    t3 = fp2sqr503_mont (t1)                // (x+y)^2
+    t4 = fp2add503 (t0, t1)                 // 2x
+    t5 = fp2sub503 (t1, t0)                 // 2y
+    t6 = fp2sqr503_mont (t4)                // 4x^2
+    t7 = fp2sub503 (t6, t3)                 // 4x^2 - (x+y)^2
+    t8 = fp2sub503 (t7, t2)                 // 4x^2 - (x+y)^2 - (x-y)^2
+    t9 = fp2mul503_mont (t3, A24plus)       // A24plus (x+y)^2
+    t10 = fp2mul503_mont (t3, t9)           // A24plus (x+y)^4
+    t11 = fp2mul503_mont (A24minus, t2)     // A24minus (x-y)^2
+    t12 = fp2mul503_mont (t2, t11)          // A24minus (x-y)^4
+    t13 = fp2sub503 (t12, t10)              // A24minus (x-y)^4 - A24plus (x+y)^4
+    t14 = fp2sub503 (t9, t11)               // A24plus (x+y)^2 - A24minus (x-y)^2
+    t15 = fp2mul503_mont (t8, t14)          // [4x^2 - (x+y)^2 - (x-y)^2][A24plus
+                                            // (x+y)^2 - A24minus (x-y)^2]
+    t16 = fp2add503 (t13, t15)              // [4x^2 - (x+y)^2 - (x-y)^2]
+                                            // [A24plus (x+y)^2 - A24minus (x-y)^2]
+                                            // + A24minus (x-y)^4 - A24plus (x+y)^4
+    t17 = fp2sqr503_mont (t16)              // t16^2
+    Qx = fp2mul503_mont (t4, t17)           // 2x * t16^2
+    t19 = fp2sub503 (t13, t15)              // A24plus (x+y)^2 - A24minus (x-y)^2 -
+                                            // [4x^2 - (x+y)^2 - (x-y)^2]
+                                            // [A24plus (x+y)^2 - A24minus (x-y)^2]
+    t20 = fp2sqr503_mont (t19)              // t19^2
+    Qy = fp2mul503_mont (t5, t20)           // 2y * t19^2
+
+xTPL_abstract : point_proj_t -> f2elm -> f2elm -> point_proj_t
+xTPL_abstract P A24minus A24plus = t3 where
+    t1 = unwrap_Point_proj_t_array_cv P
+    t2 = Mont_Curve.p_double t1
+    t3 = wrap_Point_proj_t_array_cv t2
+
+xTPLe : point_proj_t -> f2elm -> f2elm -> Integer -> point_proj_t
+xTPLe P A24minus A24plus e = for_loop 0 P where
+    for_loop i Q =
+        if (i < e) then
+            for_loop (i+1) (xTPL Q A24minus A24plus)
+        else Q
+
+xTPLe_32 : point_proj_t -> f2elm -> f2elm -> [32] -> point_proj_t
+xTPLe_32 P A24minus A24plus e = for_loop 0 P where
+    for_loop i Q =
+        if(i<e) then
+            for_loop (i+1) (xTPL Q A24minus A24plus)
+        else Q
+
+get_3_isog : point_proj_t -> (f2elm, f2elm, f2elm_2)
+get_3_isog P = (A24minus, A24plus, coeffs) where
+    (px, py) = unwrap_point P
+    coeff_0 = fp2sub503(px, py)
+    t0_0 = fp2sqr503_mont(coeff_0)
+    coeff_1 = fp2add503(px, py)
+    t1_0 = fp2sqr503_mont(coeff_1)
+    t2_0 = fp2add503(t0_0, t1_0)
+    t3_0 = fp2add503(coeff_0, coeff_1)
+    t3_1 = fp2sqr503_mont(t3_0)
+    t3_2 = fp2sub503(t3_1, t2_0)
+    t2_1 = fp2add503(t1_0, t3_2)
+    t3_3 = fp2add503(t3_2, t0_0)
+    t4_0 = fp2add503(t0_0, t3_3)
+    t4_1 = fp2add503(t4_0, t4_0)
+    t4_2 = fp2add503(t1_0, t4_1)
+    A24minus = fp2mul503_mont(t2_1, t4_2)
+    t4_3 = fp2add503(t1_0, t2_1)
+    t4_4 = fp2add503(t4_3, t4_3)
+    t4_5 = fp2add503(t0_0, t4_4)
+    t4_6 = fp2mul503_mont(t3_3, t4_5)
+    t0_1 = fp2sub503(t4_6, A24minus)
+    A24plus = fp2add503(A24minus, t0_1)
+    coeffs = [coeff_0, coeff_1]
+
+get_4_isog : point_proj_t -> (f2elm, f2elm, f2elm_3)
+get_4_isog P = (A24plus, C24, coeffs) where
+    (px, py) = unwrap_point P
+    coeff1 = fp2sub503 (px, py)
+    coeff2 = fp2add503 (px, py)
+    coeff0_0 = fp2sqr503_mont (py)
+    coeff0_1 = fp2add503 (coeff0_0, coeff0_0)
+    C24 = fp2sqr503_mont (coeff0_1)
+    coeff0 = fp2add503 (coeff0_1, coeff0_1)
+    A24plus_0 = fp2sqr503_mont px
+    A24plus_1 = fp2add503 (A24plus_0, A24plus_0)
+    A24plus = fp2sqr503_mont A24plus_1
+    coeffs = [coeff0, coeff1, coeff2]
+
+eval_3_isog : point_proj_t -> f2elm_2 -> point_proj_t
+eval_3_isog P coeffs_in = wrap_point (fx, fy) where
+    (px, py) = unwrap_point P
+    t0_0 = fp2add503 (px, py)
+    t1_0 = fp2sub503 (px, py)
+    t0_1 = fp2mul503_mont (t0_0, coeffs_in@0)
+    t1_1 = fp2mul503_mont (t1_0, coeffs_in@1)
+    t2_0 = fp2add503 (t0_1, t1_1)
+    t0_2 = fp2sub503 (t1_1, t0_1)
+    t2_1 = fp2sqr503_mont (t2_0)
+    t0_3 = fp2sqr503_mont (t0_2)
+    fx = fp2mul503_mont (px, t2_1)
+    fy = fp2mul503_mont (py, t0_3)
+
+
+eval_4_isog : point_proj_t -> f2elm_3 -> point_proj_t
+eval_4_isog P coeffs_in = wrap_point (qx, qy) where
+    (px, py) = unwrap_point P
+    t0_0 = fp2add503 (px, py)
+    t1_0 = fp2sub503 (px, py)
+    PX_0 = fp2mul503_mont (t0_0, coeffs_in@1)
+    PZ_0 = fp2mul503_mont (t1_0, coeffs_in@2)
+    t0_1 = fp2mul503_mont (t0_0, t1_0)
+    t0_2 = fp2mul503_mont (t0_1, coeffs_in@0)
+    t1_1 = fp2add503 (PX_0, PZ_0)
+    PZ_1 = fp2sub503 (PX_0, PZ_0)
+    t1_2 = fp2sqr503_mont (t1_1)
+    PZ_2 = fp2sqr503_mont (PZ_1)
+    PX_1 = fp2add503 (t1_2, t0_2)
+    t0_3 = fp2sub503(PZ_2, t0_2)
+    qx = fp2mul503_mont(PX_1, t1_2)
+    qy = fp2mul503_mont(PZ_2, t0_3)
+
+swap_points_: point_struct
+    -> point_struct
+    -> [64]
+    -> (point_struct, point_struct)
+swap_points_ q1 q2 d =
+    if (d==0) then (q1, q2) else (q2, q1)
+
+swap_points : point_proj_t
+    -> point_proj_t
+    -> [64]
+    ->  (point_proj_t, point_proj_t)
+swap_points p1 p2 d = (wrap_point s1, wrap_point s2) where
+    (s1, s2) = swap_points_ (unwrap_point p1) (unwrap_point p2) d
+
+xdbladd_ p q xpq a24 =
+    ((Px, Py), (Qx, Qy)) where
+    t0 = fp2add503 (p.0, p.1)               // px + py
+    t1 = fp2sub503 (p.0, p.1)               // px - py
+    px_1 = fp2sqr503_mont (t0)              // (px + py)^2
+    t2 = fp2sub503 (q.0, q.1)               // qx-qy
+    t2_1 = fp2norm t2
+    qx_1 = fp2add503 (q.0, q.1)             // qx + qy
+    t0_1 = fp2mul503_mont (t0, t2_1)        // (px + py) (qx-qy)'
+    pz_1 = fp2sqr503_mont (t1)              // (px - py)^2
+    t1_1 = fp2mul503_mont (t1, qx_1)        // (px - py) (qx + qy)
+    t2_2 = fp2sub503 (px_1, pz_1)           // (px + py)^2 - (px - py)^2
+    Px = fp2mul503_mont (px_1, pz_1)        // (px + py)^2 * (px - py)^2
+    qx_2 = fp2mul503_mont (t2_2, a24)       // a24[(px + py)^2 - (px - py)^2]
+    qz_1 = fp2sub503 (t0_1, t1_1)           // (px + py) (qx-qy)'- (px - py) (qx + qy)
+    pz_2 = fp2add503 (qx_2,pz_1)            // a24[(px + py)^2 - (px - py)^2] +
+                                            // (px - py)^2
+    qx_3 = fp2add503 (t0_1, t1_1)           // (px + py) (qx-qy)' + (px - py) (qx + qy)
+
+    Py = fp2mul503_mont (pz_2, t2_2)        // a24[(px + py)^2 -
+                                            // (px - py)^2] + (px - py)^2 *
+                                            // (px + py)^2 - (px - py)^2
+    qz_2 = fp2sqr503_mont (qz_1)            // [(px + py) (qx-qy)' -
+                                            // (px - py) (qx + qy)]^2
+    Qx = fp2sqr503_mont (qx_3)              // [(px + py) (qx-qy)' +
+                                            // (px - py) (qx + qy)]^2
+    Qy = fp2mul503_mont (qz_2, xpq)         // [(px + py) (qx-qy)' -
+                                            // (px - py) (qx + qy)]^2 xpq
+
+xdbladd : point_proj_t
+    -> point_proj_t
+    ->  f2elm ->  f2elm
+    -> (point_proj_t, point_proj_t)
+xdbladd p0 q0 xpq a24 =
+    (wrap_point(Px, Py), wrap_point(Qx, Qy)) where
+    p = unwrap_point p0
+    q = unwrap_point q0
+    ((Px, Py), (Qx, Qy)) = xdbladd_ p q xpq a24
+
+main_loop: [32]
+    -> Bit
+    -> point_struct
+    -> point_struct
+    -> point_struct
+    -> f2elm
+    -> [32]
+    -> [4][64]
+    -> point_struct
+main_loop i prevbit R A C A24 nbits m =
+    if (i < nbits) then
+        main_loop (i+1) bit R_u A_v C_s A24 nbits m where
+            bit = (m @ (i>>6)) ! (i && 63)
+            (swap:Bit) = bit != prevbit
+            mask = if swap then -1 else 0:[64]
+            (R_u, C_u) = swap_points_ R C mask
+            (A_v, C_v) = xdbladd_ A C_u R_u.0 A24
+            Cx = fp2mul503_mont (C_v.0, R_u.1)
+            C_s = (Cx, C_v.1)
+    else R
+
+ladder3pt : f2elm
+    ->  f2elm
+    ->  f2elm
+    ->  [4][64]
+    ->  [32]
+    ->  f2elm
+    ->  point_proj_t
+ladder3pt xP xQ xPQ m aliceorbob A = wrap_point R_out where
+    nbits =
+        if (aliceorbob == g_ALICE) then
+            g_OALICE_BITS
+        else g_OBOB_BITS
+    M = g_Montgomery_one_list_f2elm
+    t1 = fp2add503 (M, M)
+    t2 = fp2add503 (A, t1)
+    t3 = fp2div2_503 t2
+    A24 = fp2div2_503 t3
+    R0 = (xQ, M)
+    R2 = (xPQ, M)
+    R = (xP, M)
+    R_out = main_loop 0 False R R0 R2 A24 nbits m
+
+get_A_abstract : f2elm
+get_A_abstract = wrap_f2elm Mont_Curve.c_A
+
+get_A_match : f2elm -> f2elm -> f2elm -> f2elm
+get_A_match xP xQ xR = A where
+    M = g_Montgomery_one_list_f2elm
+    t0 = fp2mul503_mont (xP, xQ)            // t0 = xP*xQ
+    t1 = fp2add503 (xP, xQ)                 // t1 = xP+xQ
+    A_0 = fp2mul503_mont (xR, t1)           // A = xR*t1
+    A_1 = fp2add503 (t0, A_0)               // A = A+t0
+    t0_1 = fp2mul503_mont (t0, xR)          // t0 = t0*xR
+    A_2 = fp2sub503 (A_1, M)                // A = A-1
+    t0_2 = fp2add503 (t0_1, t0_1)           // t0 = t0+t0
+    t0_3 = fp2add503(t0_2, t0_2)            // t0 = t0+t0
+    A_3 = fp2sqr503_mont(A_2)               // A = A^2
+    t0_4 = fp2inv_mont(t0_3)                // t0 = 1/t0
+    A_4 = fp2mul503_mont(A_3, t0_4)         // A = A*t0
+    t1_5 = fp2add503 (t1, xR)               // t1 = t1+xR
+    A = fp2sub503(A_4, t1_5)                // Afinal = A-t1
+
+j_inv_abstract : f2elm
+j_inv_abstract = wrap_f2elm Mont_Curve.c_j_invariant
+
+j_inv_match : f2elm -> f2elm -> f2elm
+j_inv_match A C = jinv where
+    jinv_1 = fp2sqr503_mont(A)
+    t1 = fp2sqr503_mont(C)
+    t0 = fp2add503(t1, t1)
+    t0_3 =fp2sub503(jinv_1, t0)
+    t0_4 = fp2sub503(t0_3, t1)
+    jinv_2 = fp2sub503(t0_4, t1)
+    t1_2 = fp2sqr503_mont(t1)
+    jinv_3 = fp2mul503_mont(jinv_2, t1_2)
+    t0_5 = fp2add503(t0_4, t0_4)
+    t0_6 = fp2add503(t0_5, t0_5)
+    t1_3 = fp2sqr503_mont(t0_6)
+    t0_7 = fp2mul503_mont(t0_6, t1_3)
+    t0_8 = fp2add503(t0_7, t0_7)
+    t0_9 = fp2add503(t0_8, t0_8)
+    jinv_4 = fp2inv_mont(jinv_3)
+    jinv = fp2mul503_mont(jinv_4, t0_9)
+
+point_mod : point_proj_t -> Bool
+point_mod [(x,z)] = a /\ b where
+    a = pf2twice_mod x
+    b = pf2twice_mod z
+
+point_norm : point_proj_t -> point_proj_t
+point_norm [(x,z)] = [(fp2norm x, fp2norm z)]
+
+inv_3_way : (f2elm, f2elm, f2elm) -> (f2elm, f2elm, f2elm)
+inv_3_way (z1, z2, z3) = (inv_z1, inv_z2, inv_z3) where
+    t0 = fp2mul503_mont(z1, z2)
+    t1 = fp2mul503_mont(z3, t0)
+    inv_t1 = fp2inv_mont(t1)
+    t2 = fp2mul503_mont(z3, inv_t1)
+    inv_z1 = fp2mul503_mont(t2, z2)
+    inv_z2 = fp2mul503_mont(t2, z1)
+    inv_z3 = fp2mul503_mont(t0, inv_t1)
+
+point_n7_mod : [7]point_proj_t -> Bool
+point_n7_mod pts =
+  (point_mod (pts @ 0))
+  /\ (point_mod (pts @ 1))
+  /\ (point_mod (pts @ 2))
+  /\ (point_mod (pts @ 3))
+  /\ (point_mod (pts @ 4))
+  /\ (point_mod (pts @ 5))
+  /\ (point_mod (pts @ 6))
+
+point_n8_mod : [8]point_proj_t -> Bool
+point_n8_mod pts =
+  (point_mod (pts @ 0))
+  /\ (point_mod (pts @ 1))
+  /\ (point_mod (pts @ 2))
+  /\ (point_mod (pts @ 3))
+  /\ (point_mod (pts @ 4))
+  /\ (point_mod (pts @ 5))
+  /\ (point_mod (pts @ 6))
+  /\ (point_mod (pts @ 7))

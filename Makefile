@@ -40,9 +40,9 @@ bc:
 	${MAKE} -C tls bc
 	${MAKE} -C utils bc
 
-.PHONY : sike_bc
-sike_bc: bc
-	${MAKE} -C pq-crypto sike_bc
+.PHONY : sike_r1_bc
+sike_r1_bc: bc
+	${MAKE} -C pq-crypto sike_r1_bc
 
 .PHONY : bike_bc
 bike_bc: bc
@@ -116,7 +116,7 @@ run-lcov:
 	$(MAKE) -C tests lcov
 	$(MAKE) -C tls run-lcov
 	$(MAKE) -C utils lcov
-	lcov -a crypto/coverage.info -a error/coverage.info -a pq-crypto/coverage.info -a pq-crypto/sike_r1/coverage.info -a stuffer/coverage.info -a tls/coverage.info -a $(wildcard tls/*/coverage.info) -a utils/coverage.info --output ${COVERAGE_DIR}/all_coverage.info
+	lcov -a crypto/coverage.info -a error/coverage.info -a pq-crypto/coverage.info -a pq-crypto/sike_r1/coverage.info -a pq-crypto/sike_r2/coverage.info -a stuffer/coverage.info -a tls/coverage.info -a $(wildcard tls/*/coverage.info) -a utils/coverage.info --output ${COVERAGE_DIR}/all_coverage.info
 
 .PHONY : run-genhtml
 run-genhtml:

@@ -78,15 +78,29 @@ let fix_error_spec = do {
     crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
 };
 
-let decode_spec = do {
+let decode_spec with_post = do {
     e_ptr <- out_ref e_T;
-    (s, s_ptr) <- inout_ref syndrome_T "s";
+    (original_s, original_s_ptr) <- in_ref syndrome_T "original_s";
     (ct, ct_ptr) <- in_ref ct_T "ct";
     (sk, sk_ptr) <- in_ref sk_T "sk";
     u <- crucible_fresh_var "u" i32;
+    crucible_alloc_global "bike_errno";
+    _bike_errno <- point_to i32_T (crucible_global "bike_errno") "bike_errno";
+
     crucible_precond {{ is_bounded_sk sk }};
-    crucible_execute_func [e_ptr, s_ptr, ct_ptr, sk_ptr, tm {{ u }}];
+
+    crucible_execute_func [e_ptr, original_s_ptr, ct_ptr, sk_ptr, tm {{ u }}];
+
+    e' <- point_to e_T e_ptr "e'";
+    _bike_errno' <- point_to i32_T (crucible_global "bike_errno") "bike_errno'";
+
     res <- crucible_fresh_var "res" i32;
+
+    if with_post then
+        crucible_postcond {{ (e', original_s, res) == decode zero original_s ct sk u }}
+    else
+        return ();
+
     crucible_return (tm res);
 };
 
@@ -94,7 +108,7 @@ let decode_first_loop_spec = do {
     e_ptr <- out_ref e_T;
     e_ptr_ptr <- crucible_alloc i64;
     crucible_points_to e_ptr_ptr e_ptr;
-    (original_s, original_s_ptr) <- inout_ref syndrome_T "original_s";
+    (original_s, original_s_ptr) <- in_ref syndrome_T "original_s";
     original_s_ptr_ptr <- crucible_alloc i64; 
     crucible_points_to original_s_ptr_ptr original_s_ptr;
     (ct, ct_ptr) <- in_ref ct_T "ct";
@@ -112,6 +126,8 @@ let decode_first_loop_spec = do {
     (res', res_ptr) <- ptr_to_fresh "res'" i32;
     (i, i_ptr) <- ptr_to_fresh "i" i64;
     iter_ptr <- crucible_alloc i32;
+    crucible_alloc_global "bike_errno";
+    _bike_errno <- point_to i32_T (crucible_global "bike_errno") "bike_errno";
 
     crucible_precond {{ is_bounded_sk sk }};
     crucible_precond {{ is_bounded_compressed_idx_dv (inv_h_compressed @ 0) }};
@@ -133,6 +149,9 @@ let decode_first_loop_spec = do {
         , iter_ptr
         ];
 
+    e' <- point_to e_T e_ptr "e'";
+    _bike_errno' <- point_to i32_T (crucible_global "bike_errno") "bike_errno'";
+
     res <- crucible_fresh_var "res" i32;
     crucible_return (tm res);
 };
@@ -141,7 +160,7 @@ let decode_last_loop_spec = do {
     (e, e_ptr) <- inout_ref e_T "e";
     e_ptr_ptr <- crucible_alloc i64;
     crucible_points_to e_ptr_ptr e_ptr;
-    (original_s, original_s_ptr) <- inout_ref syndrome_T "s";
+    (original_s, original_s_ptr) <- in_ref syndrome_T "s";
     original_s_ptr_ptr <- crucible_alloc i64;
     crucible_points_to original_s_ptr_ptr original_s_ptr;
     (ct, ct_ptr) <- in_ref ct_T "ct";
@@ -159,6 +178,8 @@ let decode_last_loop_spec = do {
     (res', res_ptr) <- ptr_to_fresh "res'" i32;
     (i, i_ptr) <- ptr_to_fresh "i" i64;
     (iter, iter_ptr) <- ptr_to_fresh "iter" i32;
+    crucible_alloc_global "bike_errno";
+    _bike_errno <- point_to i32_T (crucible_global "bike_errno") "bike_errno";
 
     crucible_precond {{ is_bounded_sk sk }};
     crucible_precond {{ is_bounded_compressed_idx_dv (inv_h_compressed @ 0) }};
@@ -180,23 +201,11 @@ let decode_last_loop_spec = do {
         , iter_ptr
         ];
 
+    e' <- point_to e_T e_ptr "e'";
+    _bike_errno' <- point_to i32_T (crucible_global "bike_errno") "bike_errno'";
+
     res <- crucible_fresh_var "res" i32;
     crucible_return (tm res);
-};
-
-let decode_op_spec = do {
-    ap <- out_ref e_T;
-    (b,bp) <- inout_ref syndrome_T "s";
-    (c, cp) <- in_ref ct_T "ct";
-    (d, dp) <- in_ref sk_T "sk";
-    e <- crucible_fresh_var "u" i32;
-    crucible_precond {{ is_bounded_sk d }};
-    crucible_execute_func [ap, bp, cp, dp, tm {{e}}];
-    ret <- crucible_fresh_var "return" i32;
-    crucible_return (crucible_term {{ret}});
-    a' <- point_to e_T ap "e'";
-    b' <- point_to syndrome_T bp "s'";
-    crucible_postcond {{ (a', b', ret) == decode zero b c d e }} ;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -210,35 +219,35 @@ get_threshold_ov <- admit "get_threshold" [count_ones_R_BITS_ov]
 transpose_ov <- verify "transpose" [] transpose_spec;
 split_e_ov <- verify "split_e" [] (split_e_spec);
 
-compute_syndrome_ov <- verify_unint "compute_syndrome"
+compute_syndrome_ov <- custom_verify "compute_syndrome"
   [ gf2x_mod_mul_ov
   , gf2x_add_left_ov
   , convert_to_redundant_rep_ov
   , transpose_ov
   , secure_clean_ov_4RPS
   , secure_clean_ov_2RPS ]
-  [ "gf2x_mod_mul", "gf2x_add", "convert_to_redundant_rep", "c_transpose"]
-  compute_syndrome_spec;
+  compute_syndrome_spec
+  (unint_yices ["gf2x_mod_mul", "gf2x_add", "convert_to_redundant_rep", "c_transpose"]);
 
-compute_syndrome_update_ov <- verify_unint "compute_syndrome"
+compute_syndrome_update_ov <- custom_verify "compute_syndrome"
   [ gf2x_mod_mul_ov
   , gf2x_add_left_ov
   , convert_to_redundant_rep_ov
   , transpose_ov
   , secure_clean_ov_4RPS
   , secure_clean_ov_2RPS ]
-  ["gf2x_mod_mul", "gf2x_add", "convert_to_redundant_rep", "c_transpose"]
-  compute_syndrome_update_spec;
+  compute_syndrome_update_spec
+  (unint_yices ["gf2x_mod_mul", "gf2x_add", "convert_to_redundant_rep", "c_transpose"]);
 
-recompute_syndrome_ov <- verify_unint "recompute_syndrome"
+recompute_syndrome_ov <- custom_verify "recompute_syndrome"
   [ cyclic_product_ov
   , compute_syndrome_ov
   , split_e_ov
   , secure_clean_ov_GPNT
   , gf2x_add_left_ov
   ]
-  [ "gf2x_add", "compute_syndrome" ]
-  recompute_syndrome_spec;
+  recompute_syndrome_spec
+  (unint_yices ["gf2x_add", "compute_syndrome"]);
 
 fix_error1_ov <- verify "fix_error1"
     [find_error1_ov, recompute_syndrome_ov] fix_error_spec;
@@ -274,9 +283,9 @@ verify_unint "__breakpoint__decode_last_loop#decode"
     decode_O
     ["is_bounded_compressed_idx_dv", "is_bounded_sk", "count_ones"]
     decode_last_loop_spec;
-decode_ov <- verify "decode"
+verify "decode"
     decode_O
-    decode_spec;
+    (decode_spec false);
 
-decode_op_ov <- admit "decode" [] decode_op_spec;
+decode_ov <- admit "decode" [] (decode_spec true);
 

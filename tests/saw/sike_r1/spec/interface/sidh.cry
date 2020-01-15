@@ -1,0 +1,581 @@
+//sidh.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module interface::sidh where
+
+import shared::Constants
+import shared::C_Types
+import shared::Convert_Types
+import abstract_spec::MC_PSQ503_Array_Curve
+import abstract_spec::Sidh
+import abstract_spec::Field_Types
+import abstract_spec::Conversions
+import interface::fpx
+import interface::fp_generic
+import interface::ec_isogeny
+
+///////////////////////////////////////////////////////////////////////////////
+
+init_basis : [5*8][64] -> [3][2]p503_array_fv
+init_basis g = [xp, xq, xr] where
+  [a,b,c,d,e] = split g
+  xp = [a,b]
+  xq = [c,zero]
+  xr = [d,e]
+
+// NOTE: This function is designed to make proofs easier
+
+is_good_basis: [5*8][64] -> Bit
+is_good_basis g = ok xp /\ ok xq /\ ok xr where
+    [xp, xq, xr] = init_basis g
+    ok v = v == fp2norm v /\ pf2twice_mod v
+
+is_good_fp2_encoding: [2*Np][8] -> Bool
+is_good_fp2_encoding e = pf2twice_mod (wrap_f2elm (from_psq503 (ostofp2 e)))
+
+fp2_decode : [2*Np][8] -> f2elm
+fp2_decode e = to_fp2mont (wrap_f2elm (from_psq503 (ostofp2 e)))
+
+fp2_encode : f2elm -> [126]uchar
+fp2_encode e = fp2toos (to_psq503 (unwrap_f2elm (from_fp2mont e)))
+
+is_good_random_mod_order_A : [4][64] -> Bit
+is_good_random_mod_order_A k = is_good_sk_alice (wrap_sk k)
+
+is_good_random_mod_order_B : [4][64] -> Bit
+is_good_random_mod_order_B k = is_good_sk_bob (wrap_sk k)
+
+random_mod_order_B : [32][8]
+random_mod_order_B = (take [0...])
+
+is_good_pk_encoding: [3*126][8] -> Bool
+is_good_pk_encoding pk_bytes =
+    is_good_fp2_encoding x1 /\
+    is_good_fp2_encoding x2 /\
+    is_good_fp2_encoding x3 where
+        [x1, x2, x3] = split pk_bytes
+
+while_loop_A : ity
+    -> ity
+    -> ity
+    -> ity
+    -> [7]point_proj_t
+    -> [7]ity
+    -> f2elm
+    -> f2elm
+    -> point_proj_t
+    -> (point_proj_t, [7]point_proj_t, [7]ity, ity, ity)
+while_loop_A index row npts ii pts pts_index A24plus C24 R =
+    while_loop_A_short index row npts ii pts pts_index A24plus C24 R g_MAX_Alice
+while_loop_A_short : ity
+    -> ity
+    -> ity
+    -> ity
+    -> [7]point_proj_t
+    -> [7]ity
+    -> f2elm
+    -> f2elm
+    -> point_proj_t
+    -> ity
+    -> (point_proj_t, [7]point_proj_t, [7]ity, ity, ity)
+while_loop_A_short index row npts ii pts pts_index A24plus C24 R f1 =
+    inner index npts ii pts pts_index R where
+    inner index_1 npts_1 ii_1 pts_1 pts_index_1 R_1 =
+        if (index_1 < f1-row) then
+            inner index_2 npts_2 ii_2 pts_2 pts_index_2 R_2 where
+            npts_2 = npts_1 + 1
+            ii_2 = ii_1 + 1
+            pts_2 = update pts_1 npts_1 R_1
+            pts_index_2 = update pts_index_1 npts_1 index_1
+            (m_2:ity) = g_strat_Alice@ ii_1
+            R_2 = xDBLe_32 R_1 A24plus C24 (m_2 * 2)
+            (index_2:ity) = index_1 + m_2
+        else (R_1, pts_1, pts_index_1, npts_1, ii_1)
+
+while_loop_B : ity
+    -> ity
+    -> ity
+    -> ity
+    -> [8]point_proj_t
+    -> [8]ity
+    -> f2elm
+    -> f2elm
+    -> point_proj_t
+    -> (point_proj_t, [8]point_proj_t, [8]ity, ity, ity)
+while_loop_B index row npts ii pts pts_index A24minus A24plus R =
+  while_loop_B_short index row npts ii pts pts_index A24minus A24plus R g_MAX_Bob
+
+while_loop_B_short : ity
+    -> ity
+    -> ity
+    -> ity
+    -> [8]point_proj_t
+    -> [8]ity
+    -> f2elm
+    -> f2elm
+    -> point_proj_t
+    -> ity
+    -> (point_proj_t, [8]point_proj_t, [8]ity, ity, ity)
+while_loop_B_short index row npts ii pts pts_index A24minus A24plus R f1 =
+    inner index npts ii pts pts_index R where
+    inner index_1 npts_1 ii_1 pts_1 pts_index_1 R_1 =
+        if (index_1 < f1-row) then
+            inner index_2 npts_2 ii_2 pts_2 pts_index_2 R_2 where
+            npts_2 = npts_1+1
+            ii_2 = ii_1+1
+            pts_2 = update pts_1 npts_1 R_1
+            pts_index_2 = update pts_index_1 npts_1 index_1
+            (m_2:ity) = g_strat_Bob@ ii_1
+            R_2 = xTPLe_32 R_1 A24minus A24plus m_2
+            (index_2:ity) = index_1 + m_2
+        else (R_1, pts_1, pts_index_1, npts_1, ii_1)
+
+eval_loop_A : (point_proj_t -> f2elm_3 -> point_proj_t)
+    -> ity
+    -> [7]point_proj_t
+    -> f2elm_3
+    -> [7]point_proj_t
+eval_loop_A f_eval npts pts coeff =
+    [
+        if ix < npts then
+            f_eval pt coeff
+        else
+            pt | pt <- pts | ix <- [0 ...]
+    ]
+
+eval_loop_B : (point_proj_t -> f2elm_2 -> point_proj_t)
+    -> ity
+    -> ity
+    -> [8]point_proj_t
+    -> f2elm_2
+    -> [8]point_proj_t
+eval_loop_B f_eval ix npts pts coeff =
+    if ((ix<g_MAX_INT_POINTS_BOB) && (ix<npts)) then
+        eval_loop_B f_eval (1+ix) npts pts' coeff where
+            val = f_eval (pts@ix) coeff
+            pts' = update pts ix val
+    else pts
+
+eval_loop_A_short : (point_proj_t -> f2elm_3 -> point_proj_t)
+    -> ity
+    -> ity
+    -> [7]point_proj_t
+    -> f2elm_3
+    -> [7]point_proj_t
+eval_loop_A_short f_eval ix npts pts coeff =
+    if ((ix<g_MAX_INT_POINTS_ALICE) && (ix<npts)) then
+        eval_loop_A_short f_eval (1+ix) npts pts' coeff where
+            val = f_eval (pts@ix) coeff
+            pts' = update pts ix val
+    else pts
+
+traverse_tree_Secret_B : ity
+    -> f2elm
+    -> f2elm
+    -> point_proj_t
+    -> point_proj_t
+traverse_tree_Secret_B npts A24minus A24plus R =
+    inner 0 1 0 npts zero_point8 zero_int8 A24minus A24plus R where
+    zero_point8 =  [zero_point_proj_t | i <- ([1..8] : [8][4] )]
+    zero_int8 = [0 | i <- ([1..8] : [8][4] )]
+    inner ix r ii npts_1 pts pts_ix A24minus_1 A24plus_1 P =
+        if (r < g_MAX_Alice) then
+            inner ix_3 (r+1) ii_2 npts_3 pts_3 pts_ix_2 A24minus_2 A24plus_2 R_3 where
+                (R_2, pts_2, pts_ix_2, npts_2, ii_2)
+                    = while_loop_B ix r npts_1 ii pts pts_ix A24minus_1 A24plus_1 P
+                (A24minus_2, A24plus_2, coeff_2) = get_3_isog R_2
+                pts_3 = eval_loop_B eval_3_isog 0 npts_2 pts_2 coeff_2
+                npts_3 = npts_2 - 1
+                R_3 = pts_3@ npts_3
+                ix_3 =  pts_ix_2@ npts_3
+        else P
+
+traverse_tree_Secret_A
+    : f2elm -> f2elm
+    -> point_proj_t
+    -> [32]
+    -> point_proj_t
+traverse_tree_Secret_A A24plus C24 R f1 =
+    inner 0 1 0 npts zero_point7 zero_int7 A24plus C24 R where
+        (npts : ity) = 0
+        zero_point7 =  [zero_point_proj_t | i <- ([1..7] : [7][4] )]
+        zero_int7 = [0 | i <- ([1..7] : [7][4] )]
+        inner ix r ii npts_1 pts pts_ix A24plus_1 C24_1 P =
+            if (r < f1) then
+                inner ix_3 (r+1) ii_2 npts_3 pts_3 pts_ix_2 A24plus_2 C24_2 R_3  where
+                (R_2, pts_2, pts_ix_2, npts_2, ii_2)
+                    = while_loop_A_short ix r npts_1 ii pts pts_ix A24plus_1 C24_1 P f1
+                (A24plus_2, C24_2, coeff_2) = get_4_isog R_2
+                pts_3 = eval_loop_A eval_4_isog npts_2 pts_2 coeff_2
+                npts_3 = npts_2 - 1
+                R_3 = pts_3@ npts_3
+                ix_3 =  pts_ix_2@ npts_3
+            else P
+
+
+traverse_tree_Secret_B_short : ity
+    -> f2elm
+    -> f2elm
+    -> point_proj_t
+    -> [32]
+    -> point_proj_t
+traverse_tree_Secret_B_short npts A24minus A24plus R f1 =
+    inner 0 1 0 npts zero_point8 zero_int8 A24minus A24plus R where
+    zero_point8 =  [zero_point_proj_t | i <- ([1..8] : [8][4] )]
+    zero_int8 = [0 | i <- ([1..8] : [8][4] )]
+    inner ix r ii npts_1 pts pts_ix A24minus_1 A24plus_1 P =
+        if (r < f1)
+        then inner ix_3 (r+1) ii_2 npts_3 pts_3 pts_ix_2 A24minus_2 A24plus_2 R_3 where
+            (R_2, pts_2, pts_ix_2, npts_2, ii_2)
+                = while_loop_B_short ix r npts_1 ii pts pts_ix A24minus_1 A24plus_1 P f1
+            (A24minus_2, A24plus_2, coeff_2) = get_3_isog R_2
+            pts_3 = eval_loop_B eval_3_isog 0 npts_2 pts_2 coeff_2
+            npts_3 = npts_2 - 1
+            R_3 = pts_3@ npts_3
+            ix_3 =  pts_ix_2@ npts_3
+        else P
+
+traverse_tree_Key_A_short : ity
+    -> f2elm
+    -> f2elm
+    -> point_proj_t
+    -> point_proj_t
+    -> point_proj_t
+    -> point_proj_t
+    -> [32]
+    -> [4]point_proj_t
+traverse_tree_Key_A_short npts A24plus C24 R phiP phiQ phiR f1 =
+    inner 0 1 0 npts zero_point7 zero_int7 A24plus C24 R phiP phiQ phiR where
+    zero_point7 =  [zero_point_proj_t | i <- ([1..7] : [7][4] )]
+    zero_int7 = [0 | i <- ([1..7] : [7][4] )]
+    inner ix r ii npts_1 pts pts_ix A24plus_1 C24_1 P phiP_1 phiQ_1 phiR_1=
+        if (r < f1) then
+            inner ix_3 (r+1) ii_2 npts_3 pts_3 pts_ix_2 A24plus_2 C24_2 R_3 phiP_2 phiQ_2 phiR_2 where
+            (R_2, pts_2, pts_ix_2, npts_2, ii_2)
+                = while_loop_A_short ix r npts_1 ii pts pts_ix A24plus_1 C24_1 P f1
+            (A24plus_2, C24_2, coeff_2) = get_4_isog R_2
+            pts_3 = eval_loop_A eval_4_isog npts_2 pts_2 coeff_2
+            phiP_2 = eval_4_isog phiP_1 coeff_2
+            phiQ_2 = eval_4_isog phiQ_1 coeff_2
+            phiR_2 = eval_4_isog phiR_1 coeff_2
+            npts_3 = npts_2 - 1
+            R_3 = pts_3@ npts_3
+            ix_3 =  pts_ix_2@ npts_3
+        else [P, phiP_1, phiQ_1, phiR_1]
+
+traverse_tree_Key_B npts A24minus A24plus R phiP phiQ phiR =
+  traverse_tree_Key_B_short npts A24minus A24plus R phiP phiQ phiR g_MAX_Bob
+
+traverse_tree_Key_B_short npts A24minus A24plus R phiP phiQ phiR f1 =
+    inner 0 1 0 npts zero_point8 zero_int8 A24minus A24plus R phiP phiQ phiR where
+    zero_point8 =  [zero_point_proj_t | i <- ([1..8] : [8][4] )]
+    zero_int8 = [0 | i <- ([1..8] : [8][4] )]
+    inner ix r ii npts_1 pts pts_ix A24minus_1 A24plus_1 P phiP_1 phiQ_1 phiR_1=
+        if (r < f1) then
+            inner ix_3 (r+1) ii_2 npts_3 pts_3 pts_ix_2 A24minus_2 A24plus_2 R_3 phiP_2 phiQ_2 phiR_2 where
+            (R_2, pts_2, pts_ix_2, npts_2, ii_2)
+                = while_loop_B_short ix r npts_1 ii pts pts_ix A24minus_1 A24plus_1 P f1
+            (A24minus_2, A24plus_2, coeff_2) = get_3_isog R_2
+            pts_3 = eval_loop_B eval_3_isog 0 npts_2 pts_2 coeff_2
+            phiP_2 = eval_3_isog phiP_1 coeff_2
+            phiQ_2 = eval_3_isog phiQ_1 coeff_2
+            phiR_2 = eval_3_isog phiR_1 coeff_2
+            npts_3 = npts_2 - 1
+            R_3 = pts_3@ npts_3
+            ix_3 =  pts_ix_2@ npts_3
+        else [P, phiP_1, phiQ_1, phiR_1]
+
+addSelf : f2elm -> f2elm
+addSelf c24 = [fpadd503(c24@0, c24@0), c24@1]
+
+// NOTE: Semantics of C pointer type cast on the X86
+cast_bytes_digits: {n} (fin n) => [8*n][8] -> [n][64]
+cast_bytes_digits bytes = reverse (split (join (reverse bytes)))
+
+EphemeralSecretAgreement_A_short : [32]uchar
+    -> [378]uchar
+    -> [32]
+    -> [126]uchar
+EphemeralSecretAgreement_A_short  PrivateKeyA PublicKeyB f1 =
+    SharedSecretA where
+    // Initialize images of Bob's basis
+    (PKB_0 : f2elm) = fp2_decode (take` {126} PublicKeyB)
+    (PKB_1 : f2elm) = fp2_decode (take` {126} (drop` {126} PublicKeyB))
+    (PKB_2 : f2elm) = fp2_decode (take` {126} (drop` {252} PublicKeyB))
+    // Initialize constants
+    (A : f2elm) = get_A_match PKB_0 PKB_1 PKB_2
+    (C24_a0 : felm) = fpadd503 (g_Montgomery_one, g_Montgomery_one)
+    (C24_a : f2elm) = [C24_a0, zero_felm]
+    (A24plus_b : f2elm) =  fp2add503 (A, C24_a)
+    C24_b = addSelf C24_a
+    (R_d : point_proj_t) = ladder3pt PKB_0 PKB_1 PKB_2
+        (cast_bytes_digits PrivateKeyA) g_ALICE A
+    // Traverse tree (Large for loop)
+    (R_e : point_proj_t) = traverse_tree_Secret_A A24plus_b C24_b R_d f1
+    (A24plus_f,  C24_c, coeff) =  get_4_isog R_e
+    (C24_d : f2elm) = fp2div2_503 C24_c
+    (A24plus_g : f2elm) = fp2sub503 (A24plus_f, C24_d)
+    (C24_e : f2elm) = fp2div2_503 C24_d
+    (jinv : f2elm) = j_inv_match A24plus_g C24_e
+    (SharedSecretA : [126]uchar) = fp2_encode jinv
+
+EphemeralSecretAgreement_A : [32]uchar
+    -> [378]uchar
+    -> [126]uchar
+EphemeralSecretAgreement_A  PrivateKeyA PublicKeyB =
+    EphemeralSecretAgreement_A_short PrivateKeyA PublicKeyB g_MAX_Alice
+
+EphemeralSecretAgreement_B_short : [32]uchar
+    -> [402]uchar
+    -> [32]
+    -> [126]uchar
+EphemeralSecretAgreement_B_short PrivateKeyB PublicKeyA f1 =
+    SharedSecretB where
+    // Initialize images of Alice's basis
+    (PKB_0 : f2elm) = fp2_decode (take` {126} PublicKeyA)
+    (PKB_1 : f2elm) = fp2_decode (take` {126} (drop` {126} PublicKeyA))
+    (PKB_2 : f2elm) = fp2_decode (take` {126} (drop` {252} PublicKeyA))
+    // Initialize constants
+    (A_a : f2elm) = get_A_match PKB_0 PKB_1 PKB_2
+    (A24minus_0 : felm) = fpadd503 (g_Montgomery_one, g_Montgomery_one)
+    (A24minus_a : f2elm) = [A24minus_0, zero_felm]
+    (A24plus_b : f2elm) =  fp2add503 (A_a, A24minus_a)
+    (A24minus_c : f2elm) = fp2sub503 (A_a, A24minus_a)
+    // Retrieve kernel point
+    (R_d : point_proj_t) = ladder3pt PKB_0 PKB_1 PKB_2
+        (cast_bytes_digits PrivateKeyB) g_BOB A_a
+    // Traverse tree
+    npts = 0
+    (R_e : point_proj_t) =
+        traverse_tree_Secret_B_short npts A24minus_c A24plus_b R_d f1
+    (A24minus_f, A24plus_f, coeff) =  get_3_isog R_e
+    (A_h : f2elm) = fp2add503 (A24plus_f, A24minus_f)
+    (A_i : f2elm)= fp2add503 (A_h, A_h)
+    (A24plus_j : f2elm) = fp2sub503 (A24plus_f, A24minus_f)
+    (jinv : f2elm) = j_inv_match A_i A24plus_j
+    (SharedSecretB : [126]uchar) = fp2_encode jinv
+
+EphemeralSecretAgreement_B : [32]uchar -> [402]uchar -> [126]uchar
+EphemeralSecretAgreement_B  PrivateKeyB PublicKeyA =
+  EphemeralSecretAgreement_B_short PrivateKeyB PublicKeyA g_MAX_Bob
+
+// NOTE: This version corresponds to a modified C function with a
+//       parameter to control the amount of iteration
+EphemeralKeyGeneration_A_short : [32][8] -> [32] -> [378]uchar
+EphemeralKeyGeneration_A_short PrivateKeyA f1 = PublicKeyA where
+    [XPA, XQA, XRA] = init_basis A_gen
+    [phiP_X, phiQ_X, phiR_X] = init_basis B_gen
+    (phiP_Z : f2elm) = [g_Montgomery_one, zero_felm]
+    (phiQ_Z : f2elm) = [g_Montgomery_one, zero_felm]
+    (phiR_Z : f2elm) = [g_Montgomery_one, zero_felm]
+    (phiP_0: point_proj_t) = [(phiP_X, phiP_Z)]
+    (phiQ_0: point_proj_t) = [(phiQ_X, phiQ_Z)]
+    (phiR_0: point_proj_t) = [(phiR_X, phiR_Z)]
+    // Initialize constants
+    (A24plus_0 : f2elm) = [g_Montgomery_one, zero_felm]
+    (C24_0 : f2elm) = fp2add503(A24plus_0, A24plus_0)
+    // Retrieve kernel point
+    A = [zero_felm, zero_felm]
+    (R_0 : point_proj_t) = ladder3pt XPA XQA XRA
+        (cast_bytes_digits PrivateKeyA) g_ALICE A
+    // Traverse tree
+    (npts : ity) = 0
+    [R_e, phiP_1, phiQ_1, phiR_1] =
+        traverse_tree_Key_A_short npts A24plus_0 C24_0 R_0 phiP_0 phiQ_0 phiR_0 f1
+    (A24plus, C24_1, coeff) = get_4_isog R_e
+    ([(phiP_X2, phiP_Z2)]: point_proj_t) = eval_4_isog phiP_1 coeff
+    ([(phiQ_X2, phiQ_Z2)]: point_proj_t) = eval_4_isog phiQ_1 coeff
+    ([(phiR_X2, phiR_Z2)]: point_proj_t) = eval_4_isog phiR_1 coeff
+    (phiP_Z3, phiQ_Z3, phiR_Z3) = inv_3_way (phiP_Z2, phiQ_Z2, phiR_Z2)
+    (phiP_X3 : f2elm) = fp2mul503_mont(phiP_X2, phiP_Z3)
+    (phiQ_X3 : f2elm) = fp2mul503_mont(phiQ_X2, phiQ_Z3)
+    (phiR_X3 : f2elm) = fp2mul503_mont(phiR_X2, phiR_Z3)
+    (a1:[126]uchar) = fp2_encode(phiP_X3)
+    (a2:[126]uchar) = fp2_encode(phiQ_X3)
+    (a3:[126]uchar) = fp2_encode(phiR_X3)
+    (PublicKeyA : [378]uchar) = a1 # a2 # a3
+
+EphemeralKeyGeneration_A : [32]uchar -> [378]uchar
+EphemeralKeyGeneration_A PrivateKeyA =
+  EphemeralKeyGeneration_A_short PrivateKeyA g_MAX_Alice
+
+EphemeralKeyGeneration_B_short : [32][8] -> ity -> [378]uchar
+EphemeralKeyGeneration_B_short PrivateKeyB f1 = PublicKeyA where
+    [XPB, XQB, XRB] = init_basis(B_gen)
+    [phiP_X, phiQ_X, phiR_X] = init_basis A_gen
+    (phiP_Z : f2elm) = [g_Montgomery_one, zero_felm]
+    (phiQ_Z : f2elm) = [g_Montgomery_one, zero_felm]
+    (phiR_Z : f2elm) = [g_Montgomery_one, zero_felm]
+    (phiP_0: point_proj_t) = [(phiP_X, phiP_Z)]
+    (phiQ_0: point_proj_t) = [(phiQ_X, phiQ_Z)]
+    (phiR_0: point_proj_t) = [(phiR_X, phiR_Z)]
+    // Initialize constants
+    (A24plus_0 : f2elm) = [g_Montgomery_one, zero_felm]
+    (A24plus_1: f2elm) = fp2add503(A24plus_0, A24plus_0)
+    (A24minus_0: f2elm) = A24plus_1
+    (A24minus_1: f2elm) = fp2neg503(A24minus_0)
+    // Retrieve kernel point
+    A = [zero_felm, zero_felm]
+    (R_0 : point_proj_t) = ladder3pt XPB XQB XRB (cast_bytes_digits PrivateKeyB) g_BOB A
+    // Traverse tree
+    (npts : ity) = 0
+    [R_e, phiP_1, phiQ_1, phiR_1] =
+        traverse_tree_Key_B_short npts A24minus_1 A24plus_1 R_0 phiP_0 phiQ_0 phiR_0 f1
+    (A24minus_2, A24plus_2, coeff) = get_3_isog R_e
+    ([(phiP_X2, phiP_Z2)]: point_proj_t) = eval_3_isog phiP_1 coeff
+    ([(phiQ_X2, phiQ_Z2)]: point_proj_t) = eval_3_isog phiQ_1 coeff
+    ([(phiR_X2, phiR_Z2)]: point_proj_t) = eval_3_isog phiR_1 coeff
+    (phiP_Z3, phiQ_Z3, phiR_Z3) = inv_3_way (phiP_Z2, phiQ_Z2, phiR_Z2)
+    (phiP_X3 : f2elm) = fp2mul503_mont(phiP_X2, phiP_Z3)
+    (phiQ_X3 : f2elm) = fp2mul503_mont(phiQ_X2, phiQ_Z3)
+    (phiR_X3 : f2elm) = fp2mul503_mont(phiR_X2, phiR_Z3)
+    (a1:[126]uchar) = fp2_encode(phiP_X3)
+    (a2:[126]uchar) = fp2_encode(phiQ_X3)
+    (a3:[126]uchar) = fp2_encode(phiR_X3)
+    (PublicKeyA : [378]uchar) = a1 # a2 # a3
+
+EphemeralKeyGeneration_B : [32] uchar -> [378]uchar
+EphemeralKeyGeneration_B PrivateKeyB =
+  EphemeralKeyGeneration_B_short PrivateKeyB g_MAX_Bob
+
+type loop_control_state_A =
+  { row : [32]
+  , ii : [32]
+  , index : [32]
+  , npts : [32]
+  , pts_index : [7][32]
+  }
+
+loop_control_state_machine_A : ([125]loop_control_state_A, [125]loop_control_state_A)
+loop_control_state_machine_A = make_loop_control_state_machine_A ([init_state | i <- [0..124]], [init_state | i <- [0..124]]) init_state
+  where
+    init_state =
+      { row = 1
+      , ii = 0
+      , index = 0
+      , npts = 0
+      , pts_index = [0 | i <- [0..6]]
+      }
+
+make_loop_control_state_machine_A
+  : ([125]loop_control_state_A, [125]loop_control_state_A)
+  -> loop_control_state_A
+  -> ([125]loop_control_state_A, [125]loop_control_state_A)
+make_loop_control_state_machine_A (ii_machine, row_machine) state =
+  if state.row < g_MAX_Alice
+  then if state.index < g_MAX_Alice - state.row
+    then make_loop_control_state_machine_A
+      ((update ii_machine state.ii state), row_machine)
+      { row = state.row
+      , ii = state.ii + 1
+      , index = state.index + (g_strat_Alice @ state.ii)
+      , npts = state.npts + 1
+      , pts_index = update state.pts_index state.npts state.index
+      }
+    else make_loop_control_state_machine_A
+      (ii_machine, (update row_machine state.row state))
+      { row = state.row + 1
+      , ii = state.ii
+      , index = state.pts_index @ (state.npts - 1)
+      , npts = state.npts - 1
+      , pts_index = state.pts_index
+      }
+  else (ii_machine, row_machine)
+
+is_valid_main_loop_control_state_A
+  : [32]
+  -> [32]
+  -> [32]
+  -> [32]
+  -> [7][32]
+  -> Bit
+is_valid_main_loop_control_state_A row ii index npts pts_index =
+  (ii < g_MAX_Alice /\ (ii_machine @ ii) == state) \/ (row < g_MAX_Alice /\ (row_machine @ row) == state)
+  where
+    state = { row = row, ii = ii, index = index, npts = npts, pts_index = pts_index }
+    (ii_machine, row_machine) = loop_control_state_machine_A
+
+is_valid_second_loop_control_state_A
+  : [32]
+  -> [32]
+  -> [32]
+  -> [32]
+  -> [7][32]
+  -> Bit
+is_valid_second_loop_control_state_A row ii index npts pts_index =
+  (row_machine @ row) == state
+  where
+    state = { row = row, ii = ii, index = index, npts = npts, pts_index = pts_index }
+    (ii_machine, row_machine) = loop_control_state_machine_A
+
+type loop_control_state_B =
+  { row : [32]
+  , ii : [32]
+  , index : [32]
+  , npts : [32]
+  , pts_index : [8][32]
+  }
+
+loop_control_state_machine_B : ([159]loop_control_state_B, [159]loop_control_state_B)
+loop_control_state_machine_B = make_loop_control_state_machine_B ([init_state | i <- [0..158]], [init_state | i <- [0..158]]) init_state
+  where
+    init_state =
+      { row = 1
+      , ii = 0
+      , index = 0
+      , npts = 0
+      , pts_index = [0 | i <- [0..7]]
+      }
+
+make_loop_control_state_machine_B
+  : ([159]loop_control_state_B, [159]loop_control_state_B)
+  -> loop_control_state_B
+  -> ([159]loop_control_state_B, [159]loop_control_state_B)
+make_loop_control_state_machine_B (ii_machine, row_machine) state =
+  if state.row < g_MAX_Bob
+  then if state.index < g_MAX_Bob - state.row
+    then make_loop_control_state_machine_B
+      ((update ii_machine state.ii state), row_machine)
+      { row = state.row
+      , ii = state.ii + 1
+      , index = state.index + (g_strat_Bob @ state.ii)
+      , npts = state.npts + 1
+      , pts_index = update state.pts_index state.npts state.index
+      }
+    else make_loop_control_state_machine_B
+      (ii_machine, (update row_machine state.row state))
+      { row = state.row + 1
+      , ii = state.ii
+      , index = state.pts_index @ (state.npts - 1)
+      , npts = state.npts - 1
+      , pts_index = state.pts_index
+      }
+  else (ii_machine, row_machine)
+
+is_valid_main_loop_control_state_B
+  : [32]
+  -> [32]
+  -> [32]
+  -> [32]
+  -> [8][32]
+  -> Bit
+is_valid_main_loop_control_state_B row ii index npts pts_index =
+  (ii < g_MAX_Bob /\ (ii_machine @ ii) == state) \/ (row < g_MAX_Bob /\ (row_machine @ row) == state)
+  where
+    state = { row = row, ii = ii, index = index, npts = npts, pts_index = pts_index }
+    (ii_machine, row_machine) = loop_control_state_machine_B
+
+is_valid_second_loop_control_state_B
+  : [32]
+  -> [32]
+  -> [32]
+  -> [32]
+  -> [8][32]
+  -> Bit
+is_valid_second_loop_control_state_B row ii index npts pts_index =
+  (row_machine @ row) == state
+  where
+    state = { row = row, ii = ii, index = index, npts = npts, pts_index = pts_index }
+    (ii_machine, row_machine) = loop_control_state_machine_B

@@ -1153,9 +1153,7 @@ int s2n_connection_recv_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
     }
 
     /* Record just how many bytes we have written */
-    stuffer->write_cursor += r;
-    stuffer->wiped = 0;
-
+    GUARD(s2n_stuffer_skip_write(stuffer, r));
     return r;
 }
 

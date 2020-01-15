@@ -44,7 +44,7 @@ for file in $S2N_FILES_ARRAY_SIZING_RETURN; do
 
   if [ "${#RESULT_ARR_DIV}" != "0" ]; then
     FAILED=1
-    printf "\e[1;34mGrep for 'sizeof\((.*)\) \/ sizeof\(\1\[0\]\)' check failed in $file:\e[0m\n$RESULT_ARR_DIV\n\n"
+    printf "\e[1;34mUsage of 'sizeof(array) / sizeof(array[0])' check failed. Use s2n_array_len(array) instead in $file:\e[0m\n$RESULT_ARR_DIV\n\n"
   fi
 done
 
@@ -65,7 +65,7 @@ for file in $S2N_FILES_ASSERT_NOTNULL_CHECK; do
     # $line_one definitely contains an assignment from s2n_stuffer_raw_read(),
     # because that's what we grepped for. So verify that either $line_one or
     # $line_two contains a null check.
-    manual_null_check_regex=".*if.*==\sNULL"
+    manual_null_check_regex=".*if.*==\ NULL"
     if [[ $line_one == *"notnull_check("* ]] || [[ $line_one =~ $manual_null_check_regex ]] ||\
     [[ $line_two == *"notnull_check("* ]] || [[ $line_two =~ $manual_null_check_regex ]]; then
       # Found a notnull_check

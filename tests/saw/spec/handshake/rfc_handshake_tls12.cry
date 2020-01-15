@@ -1,0 +1,299 @@
+// This module provides an specification of the TLS 1.2 handshake message
+// state machine according to RFCs 5246, 5077 and 6066 (OCSP extension only).
+
+module rfc_handshake_tls12 where
+
+import s2n_handshake_io
+
+// Main correctness property: a simulation of the S2N handshake state
+// machine by an RFC-derived state machine. Every pair of related initial
+// 'connection' and 'Parameters' generates the same sequence of messages.
+tls12rfcSimulatesS2N : {len} (fin len) => connection -> Parameters -> Bool
+tls12rfcSimulatesS2N conn pars =
+   initial_connection conn /\ connectionParameters conn pars ==>
+   map rfc2S2N (traceRFC `{n = len} pars) == traceS2N_NoWait `{n = len} conn
+
+// The above is provable in Cryptol but not in Fall 2018 versions of SAW;
+// this alternate is better in that regard:
+tls12rfcSimulatesS2N_alt : {len} (fin len, width len >= 1) => connection -> Parameters -> Bool
+tls12rfcSimulatesS2N_alt conn pars =
+   initial_connection conn /\ connectionParameters conn pars ==>
+   tracesMatchExcludingWaits
+     (map rfc2S2N (traceRFC `{n = len} pars))
+     (traceS2N `{n = len} conn)
+
+// Generate a sequence of states for the the RFC handshake state machine given
+// handshake parameters
+traceRFC : {n} (fin n) => Parameters -> [n]Message
+traceRFC params = take (map message (iterate (handshakeTransition params) clientHelloSent))
+
+// RFC Handshake states
+type State = [5]
+
+// Handshake states
+(helloRequestSent : State) = 0
+(clientHelloSent : State) = 1
+(serverHelloSent : State) = 2
+(serverCertificateSent : State) = 3
+(serverKeyExchangeSent : State) = 4
+(certificateRequestSent : State) = 5
+(serverHelloDoneSent : State) = 6
+(serverHelloDoneSentCertRequested : State) = 7
+(clientCertificateSent : State) = 8
+(clientKeyExchangeSent : State) = 9
+(clientKeyExchangeSentCertSent : State) = 10
+(certificateVerifySent : State) = 11
+(clientChangeCipherSpecSent : State) = 12
+(clientFinishedSent : State) = 13
+(serverChangeCipherSpecSent : State) = 14
+(serverFinishedSent : State) = 15
+(applicationDataTransmission : State) = 16
+(serverNewSessionTicketSent : State) = 17
+(serverRenewSessionTicketSent : State) = 18
+(serverChangeCipherSpecWithTicketSent : State) = 19
+(serverFinishedWithTicketSent : State) = 20
+(clientChangeCipherSpecWithTicketSent : State) = 21
+(clientFinishedWithTicketSent : State) = 22
+(serverCertificateStatusSent : State) = 23
+
+// TLS protocol types
+type Protocol = [2]
+(handshake : Protocol) = 0
+(changeCipherSpec : Protocol) = 1
+(alert : Protocol) = 2
+(data : Protocol) = 3
+
+// TLS Message types
+type MessageType = [4]
+//handshake message types
+(helloRequest       : MessageType) = 0
+(clientHello        : MessageType) = 1
+(serverHello        : MessageType) = 2
+(certificate        : MessageType) = 3
+(serverKeyExchange  : MessageType) = 4
+(certificateRequest : MessageType) = 5
+(serverHelloDone    : MessageType) = 6
+(certificateVerify  : MessageType) = 7
+(clientKeyExchange  : MessageType) = 8
+(finished           : MessageType) = 9
+(newSessionTicket   : MessageType) = 10
+(certificateStatus  : MessageType) = 11
+
+// ChangeCipherSpec message types
+(changeCipherSpecMessage : MessageType) = 0
+
+// Data message types
+(applicationData : MessageType) = 0
+(error : MessageType) = 1
+
+// Sender (data flow direction)
+type Sender = [2]
+(server   : Sender) = 0
+(client   : Sender) = 1
+(both     : Sender) = 2
+(noSender : Sender) = 3
+
+// Key exchange algorithms
+type KeyExchange = [3]
+(DH_anon : KeyExchange) = 0
+(DHE_DSS : KeyExchange) = 1
+(DHE_RSA : KeyExchange) = 2
+(RSA     : KeyExchange) = 3
+(DH_DSS  : KeyExchange) = 4
+(DH_RSA  : KeyExchange) = 5
+
+// TLS protocol parameters that determine the transition to take in each state.
+// Some of these fields are set as a configuration to the end-point, while others
+// are determined from the messages send by the counterparty. We model both as
+// parameters since the state machine model reasons about both end-points.
+type Parameters = {keyExchange : KeyExchange
+                   //^ Negotiated key exchange algorithm
+                  ,sessionTicket : Bit
+                   //^ The client had a session ticket
+                  ,renewSessionTicket : Bit
+                   //^ Whether the server decides to renew a session ticket
+                  ,sendCertificateStatus : Bit
+                   //^ Whether the server decides to send the certificate status
+                   //  message
+                  ,requestClientCert : Bit
+                   //^ Whether the server requests a certificate from the client
+                  ,includeSessionTicket : Bit
+                   //^ Whether the server includes a session ticket extension in
+                   //  SERVER_HELLO
+                  }
+
+// A relation between the s2n_connection struct and the parameters
+connectionParameters : connection -> Parameters -> Bit
+connectionParameters conn params =
+    conn.server_can_send_ocsp == params.sendCertificateStatus
+ /\ ((conn.key_exchange_eph /\ ~keyExchangeNonEphemeral params /\ params.keyExchange != DH_anon) \/
+     (~conn.key_exchange_eph /\ keyExchangeNonEphemeral params))
+ /\ (conn.is_caching_enabled /\ ~conn.resume_from_cache) == params.sessionTicket
+ /\ (~params.includeSessionTicket) // s2n server does not issue tickets at this time
+ /\ (~params.renewSessionTicket) // s2n server does not issue tickets at this time
+ /\ conn.client_auth_flag == params.requestClientCert
+ /\ conn.actual_protocol_version != S2N_TLS13
+
+// A predicate that tells whether key-exchange is non-ephemeral and uses server certificate
+// data for exchanging a premaster secret (RFC 5246 7.4.3). In this case the key exchange
+// algorithm does not require KeyExchange messages.
+keyExchangeNonEphemeral : Parameters -> Bit
+keyExchangeNonEphemeral params = params.keyExchange == RSA \/ params.keyExchange == DH_DSS \/ params.keyExchange == DH_RSA
+
+// Handshake state transition relation per the RFCs. Given handshake parameters
+// and a handshake state, return the next state. If there is no valid next state,
+// the state machine stutters (returns the previous state).
+handshakeTransition : Parameters -> State -> State
+handshakeTransition params old =
+  snd (find fst (True, old) [ (old == from /\ p, to) | (from, p, to) <- valid_transitions])
+  where // The encoding of the transition relation of the state machine is a triple
+        // (oldState, transitionCondition, newState) with the meaning "if we are
+        // in the oldState, the transitionCondition is True (for the given
+        // Parameters) then the next state is newState.
+        valid_transitions =
+          [(helloRequestSent, True, clientHelloSent)
+          
+          ,(clientHelloSent,  True, serverHelloSent)
+          
+          ,(serverHelloSent, params.keyExchange != DH_anon /\ ~params.sessionTicket, serverCertificateSent)
+          ,(serverHelloSent, params.keyExchange == DH_anon /\ ~params.sessionTicket, serverKeyExchangeSent)
+          ,(serverHelloSent, params.sessionTicket /\ params.renewSessionTicket,  serverNewSessionTicketSent)
+          ,(serverHelloSent, params.sessionTicket /\ ~params.renewSessionTicket, serverChangeCipherSpecWithTicketSent)
+
+          ,(serverCertificateSent, keyExchangeNonEphemeral params /\ ~params.requestClientCert /\ ~params.sendCertificateStatus, serverHelloDoneSent)
+          ,(serverCertificateSent, keyExchangeNonEphemeral params /\ params.requestClientCert /\ ~params.sendCertificateStatus, certificateRequestSent)
+          ,(serverCertificateSent, ~(keyExchangeNonEphemeral params) /\ ~params.sendCertificateStatus, serverKeyExchangeSent)
+          ,(serverCertificateSent, params.sendCertificateStatus,  serverCertificateStatusSent)
+
+          ,(serverKeyExchangeSent, ~params.requestClientCert, serverHelloDoneSent)
+          ,(serverKeyExchangeSent, params.requestClientCert, certificateRequestSent)
+
+          ,(certificateRequestSent, True, serverHelloDoneSentCertRequested)
+
+          ,(serverHelloDoneSent, True, clientKeyExchangeSent)
+
+          ,(clientKeyExchangeSent, True, clientChangeCipherSpecSent)
+
+          ,(serverHelloDoneSentCertRequested, True, clientCertificateSent)
+
+          ,(clientCertificateSent, True, clientKeyExchangeSentCertSent)
+
+          ,(clientKeyExchangeSentCertSent, True, certificateVerifySent)
+
+          ,(certificateVerifySent, True, clientChangeCipherSpecSent)
+
+          ,(clientChangeCipherSpecSent, True, clientFinishedSent)
+
+          ,(clientFinishedSent, ~params.includeSessionTicket, serverChangeCipherSpecSent)
+          ,(clientFinishedSent, params.includeSessionTicket, serverNewSessionTicketSent)
+          
+          ,(serverNewSessionTicketSent, True, serverChangeCipherSpecSent)
+          
+          ,(serverChangeCipherSpecSent, True, serverFinishedSent)
+          
+          ,(serverFinishedSent, True, applicationDataTransmission)
+          
+          ,(serverNewSessionTicketSent, True, serverChangeCipherSpecWithTicketSent)
+          
+          ,(serverChangeCipherSpecWithTicketSent, True, serverFinishedWithTicketSent)
+          
+          ,(serverFinishedWithTicketSent, True, clientChangeCipherSpecWithTicketSent)
+          
+          ,(clientChangeCipherSpecWithTicketSent, True, clientFinishedWithTicketSent)
+          
+          ,(clientFinishedWithTicketSent, True, applicationDataTransmission)
+
+          ,(serverCertificateStatusSent, keyExchangeNonEphemeral params /\ ~params.requestClientCert, serverHelloDoneSent)
+          ,(serverCertificateStatusSent, keyExchangeNonEphemeral params /\ params.requestClientCert, certificateRequestSent)
+          ,(serverCertificateStatusSent, ~(keyExchangeNonEphemeral params), serverKeyExchangeSent)
+          ]
+
+// Abstraction of the TLS message which records the protocol, message type and
+// direction
+type Message = {messageType : MessageType
+               ,protocol : Protocol
+               ,sender : Sender
+               }
+
+mkMessage : Sender -> Protocol -> MessageType -> Message
+mkMessage s p mt = {sender = s, protocol = p, messageType = mt}
+
+// Message sent in each handshake state
+message : State -> Message
+message = lookupDefault messages (mkMessage noSender data error)
+    where messages =
+            [(helloRequestSent, mkMessage server handshake helloRequest)
+            ,(clientHelloSent, mkMessage client handshake clientHello)
+            ,(serverHelloSent, mkMessage server handshake serverHello)
+            ,(serverCertificateSent, mkMessage server handshake certificate)
+            ,(serverKeyExchangeSent, mkMessage server handshake serverKeyExchange)
+            ,(certificateRequestSent, mkMessage server handshake certificateRequest)
+            ,(serverHelloDoneSent, mkMessage server handshake serverHelloDone)
+            ,(serverHelloDoneSentCertRequested, mkMessage server handshake serverHelloDone)
+            ,(clientCertificateSent, mkMessage client handshake certificate)
+            ,(clientKeyExchangeSent, mkMessage client handshake clientKeyExchange)
+            ,(clientKeyExchangeSentCertSent, mkMessage client handshake clientKeyExchange)
+            ,(certificateVerifySent, mkMessage client handshake certificateVerify)
+            ,(clientChangeCipherSpecSent, mkMessage client changeCipherSpec changeCipherSpecMessage)
+            ,(clientFinishedSent, mkMessage client handshake finished)
+            ,(serverChangeCipherSpecSent, mkMessage server changeCipherSpec changeCipherSpecMessage)
+            ,(serverFinishedSent, mkMessage server handshake finished)
+            ,(applicationDataTransmission, mkMessage both data applicationData)
+            ,(serverNewSessionTicketSent, mkMessage server handshake newSessionTicket)
+            ,(serverChangeCipherSpecWithTicketSent, mkMessage server changeCipherSpec changeCipherSpecMessage)
+            ,(serverFinishedWithTicketSent, mkMessage server handshake finished)
+            ,(clientChangeCipherSpecWithTicketSent, mkMessage client changeCipherSpec changeCipherSpecMessage)
+            ,(clientFinishedWithTicketSent, mkMessage client handshake finished)
+            ,(serverCertificateStatusSent, mkMessage server handshake certificateStatus)
+            ]
+
+// a mapping from RFC messages to s2n handshake_action's
+rfc2S2N : Message -> handshake_action
+rfc2S2N msg = {writer = sender2writer msg.sender
+              ,record_type = protocol2recordType msg.protocol
+              ,message_type = s2nMessageType msg
+              }
+
+// an equality relation between RFC and s2n messages
+msgRFCS2N : Message -> handshake_action -> Bool
+msgRFCS2N msg hsa = rfc2S2N msg == hsa
+
+// convert a specification representation of sender to a 'writer' character in s2n.
+sender2writer : Sender -> [8]
+sender2writer sndr = if sndr == server then 'S'
+                else if sndr == client then 'C'
+                else if sndr == both   then 'B'
+                else                        'E'
+
+// Convert the RFC protocol number to s2n TLS record type constant
+protocol2recordType : Protocol -> [8]
+protocol2recordType = lookupDefault protocols TLS_APPLICATION_DATA
+   where protocols = [(handshake, TLS_HANDSHAKE)
+                     ,(changeCipherSpec, TLS_CHANGE_CIPHER_SPEC)
+                     ,(alert, TLS_ALERT)
+                     ,(data, TLS_APPLICATION_DATA)
+                     ]
+
+// Returns the s2n message type for a given RFC Message
+s2nMessageType : Message -> [8]
+s2nMessageType msg =
+  if prot == handshake then (if mt == helloRequest then TLS_HELLO_REQUEST
+                       else if mt == clientHello  then TLS_CLIENT_HELLO
+                       else if mt == serverHello  then TLS_SERVER_HELLO
+                       else if mt == certificate  then TLS_CERTIFICATE
+                       else if mt == serverKeyExchange then TLS_SERVER_KEY
+                       else if mt == certificateRequest then TLS_CERTIFICATE_REQ
+                       else if mt == serverHelloDone then TLS_SERVER_HELLO_DONE
+                       else if mt == certificateVerify then TLS_CERT_VERIFY
+                       else if mt == clientKeyExchange then TLS_CLIENT_KEY
+                       else if mt == finished then TLS_FINISHED
+                       else if mt == newSessionTicket then TLS_SERVER_NEW_SESSION_TICKET
+                       else if mt == certificateStatus then TLS_CERTIFICATE_STATUS
+                       else ERROR_MESSAGE)
+
+  else 0
+     where mt = msg.messageType
+           send = msg.sender
+           prot = msg.protocol
+
+ERROR_MESSAGE = 10 // unused in current s2n
