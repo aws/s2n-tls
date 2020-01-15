@@ -336,5 +336,79 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
+    /* Test that CCS in TLS 1.3 modes should be sent without encryption */
+    {
+        s2n_mode modes[] = { S2N_SERVER, S2N_CLIENT };
+        for (int m = 0; m < s2n_array_len(modes); m++) {
+            struct s2n_connection *conn;
+            struct s2n_cipher_suite *cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(modes[m]));
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->server_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = cipher_suite;
+            conn->server = &conn->secure;
+            conn->client = &conn->secure;
+
+            /* init record algorithm */
+            EXPECT_SUCCESS(cipher_suite->record_alg->cipher->init(&conn->secure.server_key));
+            EXPECT_SUCCESS(cipher_suite->record_alg->cipher->init(&conn->secure.client_key));
+            S2N_BLOB_FROM_HEX(key, "3fce516009c21727d0f2e4e86ee403bc");
+            EXPECT_SUCCESS(cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.server_key, &key));
+            EXPECT_SUCCESS(cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &key));
+
+            S2N_BLOB_FROM_HEX(protected_record, protected_record_hex);
+            S2N_BLOB_FROM_HEX(iv, "5d313eb2671276ee13000b30");
+
+            /* copy iv bytes from input data */
+            for (int i = 0; i < iv.size; i++) {
+                conn->secure.server_implicit_iv[i] = iv.data[i];
+                conn->secure.client_implicit_iv[i] = iv.data[i];
+            }
+
+            /* Test parsing of tls 1.3 aead record */
+            S2N_BLOB_FROM_HEX(plaintext_record, plaintext_record_hex);
+
+            uint8_t change_cipher_spec[] = { 1 };
+            struct s2n_blob in = { .data = change_cipher_spec, .size = sizeof(change_cipher_spec) };
+
+            /* Takes an input blob and writes to out stuffer then encrypt the payload */
+            EXPECT_SUCCESS(s2n_record_write(conn, TLS_CHANGE_CIPHER_SPEC, &in));
+
+            S2N_STUFFER_READ_EXPECT_EQUAL(&conn->out, TLS_CHANGE_CIPHER_SPEC, uint8);
+            S2N_STUFFER_READ_EXPECT_EQUAL(&conn->out, 0x0303, uint16);
+            S2N_STUFFER_READ_EXPECT_EQUAL(&conn->out, 1, uint16);
+            S2N_STUFFER_READ_EXPECT_EQUAL(&conn->out, 1, uint8);
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
+
+            EXPECT_SUCCESS(s2n_record_write(conn, APPLICATION_DATA, &in));
+
+            /* now test that application data writes encrypted payload */
+            S2N_STUFFER_READ_EXPECT_EQUAL(&conn->out, TLS_APPLICATION_DATA, uint8);
+            S2N_STUFFER_READ_EXPECT_EQUAL(&conn->out, 0x0303, uint16);
+            S2N_STUFFER_READ_EXPECT_EQUAL(&conn->out, 18, uint16);
+            S2N_STUFFER_READ_EXPECT_EQUAL(&conn->out, 216, uint8);
+
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->header_in, TLS_CHANGE_CIPHER_SPEC));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&conn->header_in, 0x0303));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&conn->header_in, 1));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, 1));
+
+            /* Parses unencrypted CCS record correctly */
+            EXPECT_SUCCESS(s2n_record_parse(conn));
+
+            /* now if this was an application data, it cannot be parsed */
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->header_in, APPLICATION_DATA));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&conn->header_in, 0x0303));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&conn->header_in, 1));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, 1));
+            EXPECT_FAILURE(s2n_record_parse(conn));
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+    }
+
     END_TEST();
 }

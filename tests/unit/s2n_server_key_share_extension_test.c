@@ -43,10 +43,10 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_FAILURE(s2n_extensions_server_key_share_send_check(conn));
 
-        conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
+        conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
         EXPECT_FAILURE(s2n_extensions_server_key_share_send_check(conn));
 
-        conn->secure.client_ecc_params[0].negotiated_curve = &s2n_ecc_supported_curves[0];
+        conn->secure.client_ecc_params[0].negotiated_curve = s2n_ecc_supported_curves[0];
         EXPECT_FAILURE(s2n_extensions_server_key_share_send_check(conn));
 
         EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&conn->secure.client_ecc_params[0]));
@@ -61,11 +61,11 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_EQUAL(0, s2n_extensions_server_key_share_send_size(conn));
 
-        conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
-        EXPECT_EQUAL(s2n_ecc_supported_curves[0].share_size + 8, s2n_extensions_server_key_share_send_size(conn));
+        conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
+        EXPECT_EQUAL(s2n_ecc_supported_curves[0]->share_size + 8, s2n_extensions_server_key_share_send_size(conn));
 
-        conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[1];
-        EXPECT_EQUAL(s2n_ecc_supported_curves[1].share_size + 8, s2n_extensions_server_key_share_send_size(conn));
+        conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[1];
+        EXPECT_EQUAL(s2n_ecc_supported_curves[1]->share_size + 8, s2n_extensions_server_key_share_send_size(conn));
 
         conn->secure.server_ecc_params.negotiated_curve = NULL;
         EXPECT_EQUAL(0, s2n_extensions_server_key_share_send_size(conn));
@@ -86,18 +86,18 @@ int main(int argc, char **argv)
         S2N_STUFFER_READ_SKIP_TILL_END(extension_stuffer);
 
         for (int i = 0; i < S2N_ECC_SUPPORTED_CURVES_COUNT; i++) {
-            conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[i];
-            conn->secure.client_ecc_params[i].negotiated_curve = &s2n_ecc_supported_curves[i];
+            conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[i];
+            conn->secure.client_ecc_params[i].negotiated_curve = s2n_ecc_supported_curves[i];
             EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&conn->secure.client_ecc_params[i]));
             EXPECT_SUCCESS(s2n_extensions_server_key_share_send(conn, extension_stuffer));
 
             S2N_STUFFER_READ_EXPECT_EQUAL(extension_stuffer, TLS_EXTENSION_KEY_SHARE, uint16);
-            S2N_STUFFER_READ_EXPECT_EQUAL(extension_stuffer, s2n_ecc_supported_curves[i].share_size + 4, uint16); /* 4 = iana_id + share_size */
-            S2N_STUFFER_READ_EXPECT_EQUAL(extension_stuffer, s2n_ecc_supported_curves[i].iana_id, uint16);
-            S2N_STUFFER_READ_EXPECT_EQUAL(extension_stuffer, s2n_ecc_supported_curves[i].share_size, uint16);
-            S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(extension_stuffer, s2n_ecc_supported_curves[i].share_size);
+            S2N_STUFFER_READ_EXPECT_EQUAL(extension_stuffer, s2n_ecc_supported_curves[i]->share_size + 4, uint16); /* 4 = iana_id + share_size */
+            S2N_STUFFER_READ_EXPECT_EQUAL(extension_stuffer, s2n_ecc_supported_curves[i]->iana_id, uint16);
+            S2N_STUFFER_READ_EXPECT_EQUAL(extension_stuffer, s2n_ecc_supported_curves[i]->share_size, uint16);
+            S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(extension_stuffer, s2n_ecc_supported_curves[i]->share_size);
 
-            EXPECT_EQUAL(conn->secure.server_ecc_params.negotiated_curve, &s2n_ecc_supported_curves[i]);
+            EXPECT_EQUAL(conn->secure.server_ecc_params.negotiated_curve, s2n_ecc_supported_curves[i]);
             EXPECT_SUCCESS(s2n_ecc_params_free(&conn->secure.server_ecc_params));
         }
 
@@ -113,16 +113,16 @@ int main(int argc, char **argv)
 
         EXPECT_FAILURE(s2n_extensions_server_key_share_send(conn, extension_stuffer));
 
-        conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
+        conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
         EXPECT_FAILURE(s2n_extensions_server_key_share_send(conn, extension_stuffer));
 
-        conn->secure.client_ecc_params[0].negotiated_curve = &s2n_ecc_supported_curves[0];
+        conn->secure.client_ecc_params[0].negotiated_curve = s2n_ecc_supported_curves[0];
         EXPECT_FAILURE(s2n_extensions_server_key_share_send(conn, extension_stuffer));
 
         EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&conn->secure.client_ecc_params[0]));
         EXPECT_SUCCESS(s2n_extensions_server_key_share_send(conn, extension_stuffer));
 
-        conn->secure.client_ecc_params[0].negotiated_curve = &s2n_ecc_supported_curves[1];
+        conn->secure.client_ecc_params[0].negotiated_curve = s2n_ecc_supported_curves[1];
         EXPECT_FAILURE(s2n_extensions_server_key_share_send(conn, extension_stuffer));
 
         EXPECT_SUCCESS(s2n_ecc_params_free(&conn->secure.server_ecc_params));
@@ -140,15 +140,15 @@ int main(int argc, char **argv)
 
             struct s2n_stuffer* extension_stuffer = &server_send_conn->handshake.io;
 
-            server_send_conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[i];
-            server_send_conn->secure.client_ecc_params[i].negotiated_curve = &s2n_ecc_supported_curves[i];
+            server_send_conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[i];
+            server_send_conn->secure.client_ecc_params[i].negotiated_curve = s2n_ecc_supported_curves[i];
             EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&server_send_conn->secure.client_ecc_params[i]));
             EXPECT_SUCCESS(s2n_extensions_server_key_share_send(server_send_conn, extension_stuffer));
 
             S2N_STUFFER_READ_EXPECT_EQUAL(extension_stuffer, TLS_EXTENSION_KEY_SHARE, uint16);
             S2N_STUFFER_READ_EXPECT_EQUAL(extension_stuffer, s2n_extensions_server_key_share_send_size(server_send_conn) - 4, uint16); /* 4 = S2N_SIZE_OF_EXTENSION_TYPE + S2N_SIZE_OF_EXTENSION_DATA_SIZE */
 
-            client_recv_conn->secure.client_ecc_params[i].negotiated_curve = &s2n_ecc_supported_curves[i];
+            client_recv_conn->secure.client_ecc_params[i].negotiated_curve = s2n_ecc_supported_curves[i];
             EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&client_recv_conn->secure.client_ecc_params[i]));
 
             /* Parse key share */
@@ -156,7 +156,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(extension_stuffer), 0);
 
             EXPECT_EQUAL(server_send_conn->secure.server_ecc_params.negotiated_curve->iana_id, client_recv_conn->secure.server_ecc_params.negotiated_curve->iana_id);
-            EXPECT_EQUAL(server_send_conn->secure.server_ecc_params.negotiated_curve, &s2n_ecc_supported_curves[i]);
+            EXPECT_EQUAL(server_send_conn->secure.server_ecc_params.negotiated_curve, s2n_ecc_supported_curves[i]);
 
             EXPECT_SUCCESS(s2n_connection_free(server_send_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_recv_conn));
@@ -184,11 +184,11 @@ int main(int argc, char **argv)
                 EXPECT_NULL(client_conn->secure.server_ecc_params.negotiated_curve);
                 EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&extension_stuffer, payload));
 
-                client_conn->secure.client_ecc_params[i].negotiated_curve = &s2n_ecc_supported_curves[i];
+                client_conn->secure.client_ecc_params[i].negotiated_curve = s2n_ecc_supported_curves[i];
                 EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&client_conn->secure.client_ecc_params[i]));
 
                 EXPECT_SUCCESS(s2n_extensions_server_key_share_recv(client_conn, &extension_stuffer));
-                EXPECT_EQUAL(client_conn->secure.server_ecc_params.negotiated_curve, &s2n_ecc_supported_curves[i]);
+                EXPECT_EQUAL(client_conn->secure.server_ecc_params.negotiated_curve, s2n_ecc_supported_curves[i]);
                 EXPECT_EQUAL(s2n_stuffer_data_available(&extension_stuffer), 0);
 
                 EXPECT_SUCCESS(s2n_stuffer_free(&extension_stuffer));
@@ -241,7 +241,7 @@ int main(int argc, char **argv)
             EXPECT_NULL(client_conn->secure.server_ecc_params.negotiated_curve);
             EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&extension_stuffer, p256));
 
-            client_conn->secure.client_ecc_params[1].negotiated_curve = &s2n_ecc_supported_curves[1];
+            client_conn->secure.client_ecc_params[1].negotiated_curve = s2n_ecc_supported_curves[1];
             EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&client_conn->secure.client_ecc_params[1]));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_server_key_share_recv(client_conn, &extension_stuffer), S2N_ERR_BAD_KEY_SHARE);
@@ -277,8 +277,9 @@ int main(int argc, char **argv)
 
             EXPECT_NULL(server_conn->secure.server_ecc_params.negotiated_curve);
 
-            /* Configure the "negotiated_curve" */
-            server_conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[i];
+            /* Server configures the "negotiated_curve" */
+            server_conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[i];
+
             for (int j = 0; j < S2N_ECC_SUPPORTED_CURVES_COUNT; j++) {
                 if (j != i) {
                     server_conn->secure.client_ecc_params[j].negotiated_curve = NULL;
@@ -286,7 +287,7 @@ int main(int argc, char **argv)
             }
 
             EXPECT_NOT_NULL(server_conn->secure.server_ecc_params.negotiated_curve);
-            EXPECT_EQUAL(server_conn->secure.server_ecc_params.negotiated_curve->iana_id, s2n_ecc_supported_curves[i].iana_id);
+            EXPECT_EQUAL(server_conn->secure.server_ecc_params.negotiated_curve->iana_id, s2n_ecc_supported_curves[i]->iana_id);
 
             /* Server sends ServerHello key_share */
             EXPECT_SUCCESS(s2n_extensions_server_key_share_send(server_conn, &server_hello_key_share));

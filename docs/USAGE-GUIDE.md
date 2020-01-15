@@ -398,6 +398,22 @@ if (s2n_config_set_cipher_preferences(config, prefs) < 0) {
 
 **NOTE**: To avoid possible confusion, s2n_errno should be cleared after processing an error: `s2n_errno = S2N_ERR_T_OK`
 
+### Stacktraces
+s2n has an mechanism to capture stacktraces when errors occur.
+This mechanism is off by default, but can be enabled in code by calling `s2n_stack_traces_enabled_set()`.
+It can be enabled globally by setting the environment variable `S2N_PRINT_STACKTRACE=1`.
+Note that enabling stacktraces this can significantly slow down unit tests, and can cause failures on unit-tests (such as `s2n_cbc_verify`) that measure the timing of events.
+
+```
+bool s2n_stack_traces_enabled();
+int s2n_stack_traces_enabled_set(bool newval);
+
+int s2n_calculate_stacktrace(void);
+int s2n_print_stacktrace(FILE *fptr);
+int s2n_free_stacktrace(void);
+int s2n_get_stacktrace(char*** trace, int* trace_size);
+```
+
 ### Error categories
 
 s2n organizes errors into different "types" to allow applications to do logic on error values without catching all possibilities. 

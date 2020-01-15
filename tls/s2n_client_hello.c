@@ -197,7 +197,7 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     GUARD(s2n_stuffer_skip_read(in, num_compression_methods));
 
     /* This is going to be our default if the client has no preference. */
-    conn->secure.server_ecc_params.negotiated_curve = &s2n_ecc_supported_curves[0];
+    conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
 
     uint16_t extensions_length = 0;
     if (s2n_stuffer_data_available(in) >= 2) {
@@ -270,7 +270,7 @@ static int s2n_populate_client_hello_extensions(struct s2n_client_hello *ch)
     }
 
     /* Sort extensions by extension type */
-    qsort(ch->parsed_extensions->elements, ch->parsed_extensions->num_of_elements, ch->parsed_extensions->element_size, s2n_parsed_extensions_compare);
+    qsort(ch->parsed_extensions->mem.data, ch->parsed_extensions->num_of_elements, ch->parsed_extensions->element_size, s2n_parsed_extensions_compare);
 
     return 0;
 }
@@ -313,7 +313,8 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     GUARD(s2n_set_cipher_and_cert_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
 
     /* And set the signature and hash algorithm used for key exchange signatures */
-    GUARD(s2n_set_signature_hash_pair_from_preference_list(conn, &conn->handshake_params.client_sig_hash_algs, &conn->secure.conn_hash_alg, &conn->secure.conn_sig_alg));
+    GUARD(s2n_choose_sig_scheme_from_peer_preference_list(conn, &conn->handshake_params.client_sig_hash_algs,
+                                                           &conn->secure.conn_sig_scheme));
 
     return 0;
 }
@@ -488,7 +489,7 @@ int s2n_client_hello_get_parsed_extension(struct s2n_array *parsed_extensions, s
     struct s2n_client_hello_parsed_extension search = {0};
     search.extension_type = extension_type;
 
-    struct s2n_client_hello_parsed_extension *result_extension = bsearch(&search, parsed_extensions->elements, parsed_extensions->num_of_elements,
+    struct s2n_client_hello_parsed_extension *result_extension = bsearch(&search, parsed_extensions->mem.data, parsed_extensions->num_of_elements,
             parsed_extensions->element_size, s2n_parsed_extensions_compare);
 
     notnull_check(result_extension);

@@ -52,15 +52,14 @@ static int s2n_send_client_signature_algorithms_extension(struct s2n_connection 
     /* The extension header */
     GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SIGNATURE_ALGORITHMS));
 
-    /* Each hash-signature-alg pair is two bytes, and there's another two bytes for
+    /* Each SignatureScheme is two bytes, and there's another two bytes for
      * the extension length field.
      */
-    uint16_t preferred_hashes_len = s2n_array_len(s2n_preferred_hashes);
-    uint16_t num_signature_algs = s2n_array_len(s2n_preferred_signature_algorithms);
-    uint16_t preferred_hash_sigalg_size = preferred_hashes_len * num_signature_algs * 2;
+    uint16_t num_signature_schemes = s2n_supported_sig_scheme_pref_list_len;
+    uint16_t signature_schemes_size = num_signature_schemes * TLS_SIGNATURE_SCHEME_LEN;
     uint16_t extension_len_field_size = 2;
 
-    GUARD(s2n_stuffer_write_uint16(out, extension_len_field_size + preferred_hash_sigalg_size));
+    GUARD(s2n_stuffer_write_uint16(out, extension_len_field_size + signature_schemes_size));
     GUARD(s2n_send_supported_signature_algorithms(out));
 
     return 0;
@@ -70,11 +69,10 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 {
     uint16_t total_size = 0;
     uint16_t pq_kem_list_size = 0;
-    uint16_t num_signature_algs = s2n_array_len(s2n_preferred_signature_algorithms);
 
-    /* Signature algorithms */
+    /* SignatureScheme */
     if (conn->actual_protocol_version >= S2N_TLS12) {
-        total_size += (sizeof(s2n_preferred_hashes) * num_signature_algs * 2) + 6;
+        total_size += (s2n_supported_sig_scheme_pref_list_len * TLS_SIGNATURE_SCHEME_LEN) + 6;
     }
 
     struct s2n_blob *client_app_protocols;
@@ -213,7 +211,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint16(out, ec_curves_count * 2));
         /* Curve list */
         for (int i = 0; i < ec_curves_count; i++) {
-            GUARD(s2n_stuffer_write_uint16(out, s2n_ecc_supported_curves[i].iana_id));
+            GUARD(s2n_stuffer_write_uint16(out, s2n_ecc_supported_curves[i]->iana_id));
         }
 
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_EC_POINT_FORMATS));
@@ -349,7 +347,7 @@ int s2n_parse_client_hello_server_name(struct s2n_connection *conn, struct s2n_s
 
 static int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    return s2n_recv_supported_signature_algorithms(conn, extension, &conn->handshake_params.client_sig_hash_algs);
+    return s2n_recv_supported_sig_scheme_list(extension, &conn->handshake_params.client_sig_hash_algs);
 }
 
 static int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension)

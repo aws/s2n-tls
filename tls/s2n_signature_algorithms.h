@@ -24,21 +24,17 @@
 
 struct s2n_connection;
 
-struct s2n_sig_hash_alg_pairs {
-    /* A matrix representing signature and hash algorithm pairs mapped by the
-     * algorithms' TLS values defined here:
-     * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-16 
-     */
-    uint8_t matrix[TLS_SIGNATURE_ALGORITHM_COUNT][TLS_HASH_ALGORITHM_COUNT];
+struct s2n_sig_scheme_list {
+    uint16_t iana_list[TLS_SIGNATURE_SCHEME_LIST_MAX_LEN];
+    uint8_t len;
 };
 
-static const s2n_signature_algorithm s2n_preferred_signature_algorithms[] = {
-    S2N_SIGNATURE_RSA,
-    S2N_SIGNATURE_ECDSA
-};
+extern int s2n_get_signature_scheme_pref_list(struct s2n_connection *conn, const struct s2n_signature_scheme* const** pref_list_out,
+                                              size_t *list_len_out);
 
-extern int s2n_set_signature_hash_pair_from_preference_list(struct s2n_connection *conn, struct s2n_sig_hash_alg_pairs *sig_hash_algs, 
-                                                            s2n_hash_algorithm *hash, s2n_signature_algorithm *sig);
-extern int s2n_get_signature_hash_pair_if_supported(struct s2n_stuffer *in, s2n_hash_algorithm *hash_alg, s2n_signature_algorithm *signature_alg);
+extern int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn, struct s2n_sig_scheme_list *sig_hash_algs,
+                                                            struct s2n_signature_scheme *sig_scheme_out);
+extern int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn, struct s2n_stuffer *in,
+                                                            struct s2n_signature_scheme *chosen_sig_scheme);
 extern int s2n_send_supported_signature_algorithms(struct s2n_stuffer *out);
-extern int s2n_recv_supported_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *in, struct s2n_sig_hash_alg_pairs *sig_hash_algs); 
+extern int s2n_recv_supported_sig_scheme_list(struct s2n_stuffer *in, struct s2n_sig_scheme_list *sig_hash_algs);

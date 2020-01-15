@@ -29,7 +29,7 @@ int s2n_extensions_server_key_share_send_check(struct s2n_connection *conn)
 
     int curve_index = -1;
     for (int i = 0; i < S2N_ECC_SUPPORTED_CURVES_COUNT; i++) {
-        if (server_curve == &s2n_ecc_supported_curves[i]) {
+        if (server_curve == s2n_ecc_supported_curves[i]) {
             curve_index = i;
             break;
         }
@@ -114,9 +114,9 @@ int s2n_extensions_server_key_share_recv(struct s2n_connection *conn, struct s2n
     int supported_curve_index = -1;
     const struct s2n_ecc_named_curve *supported_curve = NULL;
     for (int i = 0; i < S2N_ECC_SUPPORTED_CURVES_COUNT; i++) {
-        if (named_group == s2n_ecc_supported_curves[i].iana_id) {
+        if (named_group == s2n_ecc_supported_curves[i]->iana_id) {
             supported_curve_index = i;
-            supported_curve = &s2n_ecc_supported_curves[i];
+            supported_curve = s2n_ecc_supported_curves[i];
             break;
         }
     }

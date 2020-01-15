@@ -16,7 +16,8 @@
 #pragma once
 
 #include <s2n.h>
-
+#include <stdio.h>
+#include <stdbool.h>
 /*
  * To easily retrieve error types, we split error values into two parts.
  * The upper 6 bits describe the error type and the lower bits describe the value within the category.
@@ -83,6 +84,7 @@ typedef enum {
     S2N_ERR_DECODE_CERTIFICATE,
     S2N_ERR_DECODE_PRIVATE_KEY,
     S2N_ERR_INVALID_SIGNATURE_ALGORITHM,
+    S2N_ERR_INVALID_SIGNATURE_SCHEME,
     S2N_ERR_CBC_VERIFY,
     S2N_ERR_DH_COPYING_PUBLIC_KEY,
     S2N_ERR_SIGN,
@@ -90,6 +92,7 @@ typedef enum {
     S2N_ERR_ECDHE_GEN_KEY,
     S2N_ERR_ECDHE_SHARED_SECRET,
     S2N_ERR_ECDHE_UNSUPPORTED_CURVE,
+    S2N_ERR_ECDSA_UNSUPPORTED_CURVE,
     S2N_ERR_ECDHE_SERIALIZING,
     S2N_ERR_KEM_UNSUPPORTED_PARAMS,
     S2N_ERR_SHUTDOWN_RECORD_TYPE,
@@ -174,6 +177,7 @@ typedef enum {
     S2N_ERR_CLIENT_MODE,
     S2N_ERR_CLIENT_MODE_DISABLED,
     S2N_ERR_TOO_MANY_CERTIFICATES,
+    S2N_ERR_TOO_MANY_SIGNATURE_SCHEMES,
     S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_FIPS_MODE,
     S2N_ERR_INVALID_BASE64,
     S2N_ERR_INVALID_HEX,
@@ -229,7 +233,7 @@ extern __thread const char *s2n_debug_str;
 #define STRING__LINE__ STRING_(__LINE__)
 
 #define _S2N_DEBUG_LINE     "Error encountered in " __FILE__ " line " STRING__LINE__
-#define _S2N_ERROR( x )     do { s2n_debug_str = _S2N_DEBUG_LINE; s2n_errno = ( x ); } while (0)
+#define _S2N_ERROR( x )     do { s2n_debug_str = _S2N_DEBUG_LINE; s2n_errno = ( x ); s2n_calculate_stacktrace(); } while (0)
 #define S2N_ERROR( x )      do { _S2N_ERROR( ( x ) ); return -1; } while (0)
 #define S2N_ERROR_PRESERVE_ERRNO() do { return -1; } while (0)
 #define S2N_ERROR_PTR( x )  do { _S2N_ERROR( ( x ) ); return NULL; } while (0)
@@ -258,3 +262,17 @@ extern __thread const char *s2n_debug_str;
 
 #define S2N_OBJECT_PTR_IS_READABLE(ptr) S2N_MEM_IS_READABLE((ptr), sizeof(*(ptr)))
 #define S2N_OBJECT_PTR_IS_WRITABLE(ptr) S2N_MEM_IS_WRITABLE((ptr), sizeof(*(ptr)))
+
+/** Calculate and print stacktraces */
+struct s2n_stacktrace {
+  char **trace;
+  int trace_size;
+};
+
+extern bool s2n_stack_traces_enabled();
+extern int s2n_stack_traces_enabled_set(bool newval);
+
+extern int s2n_calculate_stacktrace(void);
+extern int s2n_print_stacktrace(FILE *fptr);
+extern int s2n_free_stacktrace(void);
+extern int s2n_get_stacktrace(struct s2n_stacktrace *trace);

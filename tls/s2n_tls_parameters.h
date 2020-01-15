@@ -92,14 +92,18 @@
 #define TLS_EXTENSION_SUPPORTED_VERSIONS   43
 #define TLS_EXTENSION_KEY_SHARE            51
 
-/* TLS Signature Algorithms - RFC 5246 7.4.1.4.1*/
+/* TLS Signature Algorithms - RFC 5246 7.4.1.4.1 */
+/* https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-16 */
 #define TLS_SIGNATURE_ALGORITHM_ANONYMOUS   0
 #define TLS_SIGNATURE_ALGORITHM_RSA         1
 #define TLS_SIGNATURE_ALGORITHM_DSA         2
 #define TLS_SIGNATURE_ALGORITHM_ECDSA       3
+#define TLS_SIGNATURE_ALGORITHM_PRIVATE     224
 
 #define TLS_SIGNATURE_ALGORITHM_COUNT       4
 
+/* TLS Hash Algorithm - https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1 */
+/* https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-18 */
 #define TLS_HASH_ALGORITHM_ANONYMOUS        0
 #define TLS_HASH_ALGORITHM_MD5              1
 #define TLS_HASH_ALGORITHM_SHA1             2
@@ -107,8 +111,45 @@
 #define TLS_HASH_ALGORITHM_SHA256           4
 #define TLS_HASH_ALGORITHM_SHA384           5
 #define TLS_HASH_ALGORITHM_SHA512           6
-
 #define TLS_HASH_ALGORITHM_COUNT            7
+
+/* TLS SignatureScheme (Backwards compatible with SigHash and SigAlg values above) */
+/* Defined here: https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-signaturescheme */
+#define TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA1             0x0201
+#define TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA224           0x0301
+#define TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA256           0x0401
+#define TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA384           0x0501
+#define TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA512           0x0601
+
+/* In TLS 1.0 and 1.1 the hard-coded default scheme was RSA_PKCS1_MD5_SHA1, but there's no IANA defined backwards
+ * compatible value for that Scheme for TLS 1.2 and 1.3. So we define an internal value in the private range that won't
+ * match anything in the valid range so that all TLS Versions can use the same SignatureScheme negotiation abstraction
+ * layer. This scheme isn't in any preference list, so it can't be negotiated even if a client sent it in its pref list. */
+#define TLS_SIGNATURE_SCHEME_PRIVATE_INTERNAL_RSA_PKCS1_MD5_SHA1         0xFFFF
+
+/* TLS 1.2 Backwards Compatible ECDSA Schemes */
+#define TLS_SIGNATURE_SCHEME_ECDSA_SHA1                 0x0203
+#define TLS_SIGNATURE_SCHEME_ECDSA_SHA224               0x0303
+#define TLS_SIGNATURE_SCHEME_ECDSA_SHA256               0x0403
+#define TLS_SIGNATURE_SCHEME_ECDSA_SHA384               0x0503
+#define TLS_SIGNATURE_SCHEME_ECDSA_SHA512               0x0603
+
+/* TLS 1.3 ECDSA Signature Schemes */
+#define TLS_SIGNATURE_SCHEME_ECDSA_SECP256R1_SHA256     0x0403
+#define TLS_SIGNATURE_SCHEME_ECDSA_SECP384R1_SHA384     0x0503
+#define TLS_SIGNATURE_SCHEME_ECDSA_SECP521R1_SHA512     0x0603
+#define TLS_SIGNATURE_SCHEME_RSA_PSS_RSAE_SHA256        0x0804
+#define TLS_SIGNATURE_SCHEME_RSA_PSS_RSAE_SHA384        0x0805
+#define TLS_SIGNATURE_SCHEME_RSA_PSS_RSAE_SHA512        0x0806
+#define TLS_SIGNATURE_SCHEME_ED25519                    0x0807
+#define TLS_SIGNATURE_SCHEME_ED448                      0x0808
+#define TLS_SIGNATURE_SCHEME_RSA_PSS_PSS_SHA256         0x0809
+#define TLS_SIGNATURE_SCHEME_RSA_PSS_PSS_SHA384         0x080A
+#define TLS_SIGNATURE_SCHEME_RSA_PSS_PSS_SHA512         0x080B
+
+
+#define TLS_SIGNATURE_SCHEME_LEN                        2
+#define TLS_SIGNATURE_SCHEME_LIST_MAX_LEN               32
 
 /* The TLS record types we support */
 #define TLS_CHANGE_CIPHER_SPEC 20

@@ -132,6 +132,7 @@ connectionParameters conn params =
  /\ (~params.includeSessionTicket) // s2n server does not issue tickets at this time
  /\ (~params.renewSessionTicket) // s2n server does not issue tickets at this time
  /\ conn.client_auth_flag == params.requestClientCert
+ /\ conn.actual_protocol_version != S2N_TLS13
 
 // A predicate that tells whether key-exchange is non-ephemeral and uses server certificate
 // data for exchanging a premaster secret (RFC 5246 7.4.3). In this case the key exchange
@@ -245,8 +246,6 @@ message = lookupDefault messages (mkMessage noSender data error)
             ,(clientFinishedWithTicketSent, mkMessage client handshake finished)
             ,(serverCertificateStatusSent, mkMessage server handshake certificateStatus)
             ]
-
-
 
 // a mapping from RFC messages to s2n handshake_action's
 rfc2S2N : Message -> handshake_action
