@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -13,18 +13,20 @@
  * permissions and limitations under the License.
  */
 
-#pragma once
-
+#include <sys/param.h>
 #include <stdint.h>
-#include <string.h>
 
-#include "utils/s2n_blob.h"
+#include "tls/extensions/s2n_client_ec_point_format.h"
+#include "tls/s2n_tls.h"
 
-struct s2n_client_hello_parsed_extension {
-	uint16_t extension_type;
-	struct s2n_blob extension;
-};
+#include "utils/s2n_safety.h"
 
-extern int s2n_client_hello_get_parsed_extension(struct s2n_array *parsed_extensions, s2n_tls_extension_type extension_type,
-        struct s2n_client_hello_parsed_extension *parsed_extension);
-extern void s2n_register_extension(uint16_t ext_type);
+int s2n_recv_client_ec_point_formats(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    /**
+     * Only uncompressed points are supported by the server and the client must include it in
+     * the extension. Just skip the extension.
+     */
+    conn->ec_point_formats = 1;
+    return 0;
+}
