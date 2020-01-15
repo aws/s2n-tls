@@ -270,7 +270,7 @@ static void swap_points(point_proj_t P, point_proj_t Q, const digit_t option) { 
 	}
 }
 
-void LADDER3PT(const f2elm_t *xP, const f2elm_t *xQ, const f2elm_t *xPQ, const digit_t *m, const unsigned int AliceOrBob, point_proj_t R, const f2elm_t *A) {
+void LADDER3PT(const f2elm_t *xP, const f2elm_t *xQ, const f2elm_t *xPQ, const unsigned char *m, const unsigned int AliceOrBob, point_proj_t R, const f2elm_t *A) {
 	point_proj_t R0 = {0}, R2 = {0};
     f2elm_t _A24 = {0};
     f2elm_t *A24=&_A24;
@@ -301,7 +301,7 @@ void LADDER3PT(const f2elm_t *xP, const f2elm_t *xQ, const f2elm_t *xPQ, const d
 
 	// Main loop
 	for (i = 0; i < nbits; i++) {
-		bit = (m[i >> LOG2RADIX] >> (i & (RADIX - 1))) & 1;
+		bit = (m[i >> 3] >> (i & 7)) & 1;
 		swap = bit ^ prevbit;
 		prevbit = bit;
 		mask = 0 - (digit_t) swap;
