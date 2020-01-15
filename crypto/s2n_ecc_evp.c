@@ -196,8 +196,7 @@ int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *ecc_e
 #if MODERN_EC_SUPPORTED
     if (ecc_evp_params->negotiated_curve->libcrypto_nid == NID_X25519) {
         GUARD(EVP_PKEY_set_type(peer_key, ecc_evp_params->negotiated_curve->libcrypto_nid));
-    }
-    else {
+    } else {
         DEFER_CLEANUP(EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL), EVP_PKEY_CTX_free_pointer);
         S2N_ERROR_IF(pctx == NULL, S2N_ERR_ECDHE_SERIALIZING);
         GUARD_OSSL(EVP_PKEY_paramgen_init(pctx), S2N_ERR_ECDHE_SERIALIZING);
@@ -226,7 +225,7 @@ int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *ecc_e
 int s2n_ecc_evp_compute_shared_secret_as_client(struct s2n_ecc_evp_params *ecc_evp_params, 
                                             struct s2n_stuffer *Yc_out, struct s2n_blob *shared_key) {
 
-    struct s2n_ecc_evp_params client_params = {0}; 
+    DEFER_CLEANUP(struct s2n_ecc_evp_params client_params = {0}, s2n_ecc_evp_params_free); 
 
     notnull_check(ecc_evp_params->negotiated_curve);
     client_params.negotiated_curve = ecc_evp_params->negotiated_curve;
@@ -240,10 +239,8 @@ int s2n_ecc_evp_compute_shared_secret_as_client(struct s2n_ecc_evp_params *ecc_e
     GUARD(s2n_stuffer_write_uint8(Yc_out, client_params.negotiated_curve->share_size));
 
     if (s2n_ecc_evp_write_params_point(&client_params, Yc_out) != 0) {
-        s2n_ecc_evp_params_free(&client_params);
         S2N_ERROR(S2N_ERR_ECDHE_SERIALIZING);
     }
-    s2n_ecc_evp_params_free(&client_params);
     return 0;
     
 }
@@ -336,7 +333,7 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
     else {
         point_blob.data = s2n_stuffer_raw_write(out, ecc_evp_params->negotiated_curve->share_size);
         notnull_check(point_blob.data);
-        memcpy(point_blob.data, encoded_point, size);
+        memcpy_check(point_blob.data, encoded_point, size);
         OPENSSL_free(encoded_point);
     }
 #else

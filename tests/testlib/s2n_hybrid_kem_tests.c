@@ -41,7 +41,7 @@ int s2n_entropy_generator(struct s2n_blob *blob)
 
 int setup_connection(struct s2n_connection *conn, const struct s2n_kem *kem, struct s2n_cipher_suite *cipher_suite) {
     conn->actual_protocol_version = S2N_TLS12;
-    conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
+    conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
     conn->secure.s2n_kem_keys.negotiated_kem = kem;
     conn->secure.cipher_suite = cipher_suite;
     conn->secure.conn_sig_scheme = s2n_rsa_pkcs1_sha384;
