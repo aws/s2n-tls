@@ -90,6 +90,17 @@ tmp/%.log : %.saw bitcode/all_llvm.bc tmp
 ## SIKE Tests
 ###########################################
 
+sike: sike_r2 sike_r1
+
+.PHONY : sike_r2
+sike_r2 : sike_r2_patched_bitcode
+	@${MAKE} clean-sike-r1-logs
+	@${MAKE} sike_r1/sike_r2.log
+
+sike_r1/sike_r2.log :
+	@set -o pipefail; \
+	saw sike_r1/verify_sike_r2.saw | tee $@
+
 .PHONY : sike_r1
 sike_r1 : sike_r1_patched_bitcode
 	@${MAKE} clean-sike-r1-logs
@@ -178,7 +189,7 @@ sike_r1_patched_bitcode :
 .PHONY : sike_r2_patched_bitcode
 sike_r2_patched_bitcode :
 	${MAKE} clean_the_dir
-	${MAKE} bitcode/sike_r2_llvm.bc
+	S2N_SIKE_R2_FORCE_GENERIC=1 ${MAKE} bitcode/sike_r2_llvm.bc
 
 .PHONY : bike_r1_patched_bitcode
 bike_r1_patched_bitcode : bitcode/bike_r1_llvm.bc
