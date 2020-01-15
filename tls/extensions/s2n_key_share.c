@@ -17,17 +17,17 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
-int s2n_ecdhe_parameters_send(struct s2n_ecc_params *ecc_params, struct s2n_stuffer *out)
+int s2n_ecdhe_parameters_send(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *out)
 {
     notnull_check(out);
-    notnull_check(ecc_params);
-    notnull_check(ecc_params->negotiated_curve);
+    notnull_check(ecc_evp_params);
+    notnull_check(ecc_evp_params->negotiated_curve);
 
-    GUARD(s2n_stuffer_write_uint16(out, ecc_params->negotiated_curve->iana_id));
-    GUARD(s2n_stuffer_write_uint16(out, ecc_params->negotiated_curve->share_size));
+    GUARD(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->iana_id));
+    GUARD(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->share_size));
 
-    GUARD(s2n_ecc_generate_ephemeral_key(ecc_params));
-    GUARD(s2n_ecc_write_ecc_params_point(ecc_params, out));
+    GUARD(s2n_ecc_evp_generate_ephemeral_key(ecc_evp_params));
+    GUARD(s2n_ecc_evp_write_params_point(ecc_evp_params, out));
 
     return 0;
 }

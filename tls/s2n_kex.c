@@ -73,7 +73,7 @@ static int s2n_check_dhe(const struct s2n_cipher_suite *cipher_suite, struct s2n
 
 static int s2n_check_ecdhe(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
 {
-    return conn->secure.server_ecc_params.negotiated_curve != NULL;
+    return conn->secure.server_ecc_evp_params.negotiated_curve != NULL;
 }
 
 static int s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)

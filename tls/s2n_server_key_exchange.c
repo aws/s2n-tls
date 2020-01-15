@@ -81,13 +81,14 @@ int s2n_ecdhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_
 {
     struct s2n_stuffer *in = &conn->handshake.io;
 
-    GUARD(s2n_ecc_read_ecc_params(in, data_to_verify, &raw_server_data->ecdhe_data));
+    GUARD(s2n_ecc_evp_read_params(in, data_to_verify, &raw_server_data->ecdhe_data));
     return 0;
 }
 
 int s2n_ecdhe_server_key_recv_parse_data(struct s2n_connection *conn, struct s2n_kex_raw_server_data *raw_server_data)
 {
-    GUARD(s2n_ecc_parse_ecc_params(&conn->secure.server_ecc_params, &raw_server_data->ecdhe_data));
+    GUARD(s2n_ecc_evp_parse_params(&raw_server_data->ecdhe_data, &conn->secure.server_ecc_evp_params));
+
     return 0;
 }
 
@@ -246,10 +247,10 @@ int s2n_ecdhe_server_key_send(struct s2n_connection *conn, struct s2n_blob *data
     struct s2n_stuffer *out = &conn->handshake.io;
 
     /* Generate an ephemeral key and  */
-    GUARD(s2n_ecc_generate_ephemeral_key(&conn->secure.server_ecc_params));
+    GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
 
     /* Write it out and calculate the data to sign later */
-    GUARD(s2n_ecc_write_ecc_params(&conn->secure.server_ecc_params, out, data_to_sign));
+    GUARD(s2n_ecc_evp_write_params(&conn->secure.server_ecc_evp_params, out, data_to_sign));
     return 0;
 }
 

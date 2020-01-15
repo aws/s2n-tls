@@ -115,8 +115,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     const uint8_t ecc_extension_required = s2n_ecc_extension_required(cipher_preferences);
     if (ecc_extension_required) {
         /* Write ECC extensions: Supported Curves and Supported Point Formats */
-        int ec_curves_count = s2n_array_len(s2n_ecc_supported_curves);
-        total_size += 12 + ec_curves_count * 2;
+        total_size += 12 + s2n_ecc_evp_supported_curves_list_len * 2;
     }
 
     const uint8_t pq_kem_extension_required = s2n_pq_kem_extension_required(cipher_preferences);
@@ -392,9 +391,9 @@ static int s2n_recv_client_supported_groups(struct s2n_connection *conn, struct 
     proposed_curves.data = s2n_stuffer_raw_read(extension, proposed_curves.size);
     notnull_check(proposed_curves.data);
 
-    if (s2n_ecc_find_supported_curve(&proposed_curves, &conn->secure.server_ecc_params.negotiated_curve) != 0) {
+    if (s2n_ecc_evp_find_supported_curve(&proposed_curves, &conn->secure.server_ecc_evp_params.negotiated_curve) != 0) {
         /* Can't agree on a curve, ECC is not allowed. Return success to proceed with the handshake. */
-        conn->secure.server_ecc_params.negotiated_curve = NULL;
+        conn->secure.server_ecc_evp_params.negotiated_curve = NULL;
     }
     return 0;
 }
