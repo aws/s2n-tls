@@ -244,8 +244,9 @@ int s2n_stuffer_skip_write(struct s2n_stuffer *stuffer, const uint32_t n)
         if (stuffer->growable) {
             /* Always grow a stuffer by at least 1k */
             uint32_t growth = MAX(n - s2n_stuffer_space_remaining(stuffer), 1024);
-
-            GUARD(s2n_stuffer_resize(stuffer, stuffer->blob.size + growth));
+            uint32_t new_size = 0;
+            GUARD(s2n_add_overflow(stuffer->blob.size, growth, &new_size));
+            GUARD(s2n_stuffer_resize(stuffer, new_size));
         } else {
             S2N_ERROR(S2N_ERR_STUFFER_IS_FULL);
         }
