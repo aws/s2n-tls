@@ -18,6 +18,7 @@
 #include <string.h>
 #include <stdio.h>
 
+
 #include <s2n.h>
 #include <tls/s2n_cipher_suites.h>
 
@@ -98,18 +99,12 @@ int main(int argc, char **argv)
         s2n_stuffer_write(&combined_stuffer, &classic_pms);
         s2n_stuffer_write(&combined_stuffer, &kem_pms);
 
-        /* Prove to ourselves that client_random and server_random are the same length
-         * so that we can combine both assignments in a single loop. */
-        eq_check(CLIENT_RANDOM_LENGTH, SERVER_RANDOM_LENGTH);
-        for (uint32_t j = 0; j < CLIENT_RANDOM_LENGTH; j++) {
-            conn->secure.client_random[j] = client_random[j];
-            conn->secure.server_random[j] = server_random[j];
-        }
+        memcpy_check(conn->secure.client_random, client_random, CLIENT_RANDOM_LENGTH);
+        memcpy_check(conn->secure.server_random, server_random, SERVER_RANDOM_LENGTH);
 
         EXPECT_SUCCESS(s2n_alloc(&conn->secure.client_key_exchange_message, client_key_exchange_message_length));
-        for (uint32_t j = 0; j < client_key_exchange_message_length; j++) {
-            conn->secure.client_key_exchange_message.data[j] = client_key_exchange_message[j];
-        }
+
+        memcpy_check(conn->secure.client_key_exchange_message.data, client_key_exchange_message, client_key_exchange_message_length);
 
         EXPECT_SUCCESS(s2n_hybrid_prf_master_secret(conn, &combined_pms));
         EXPECT_BYTEARRAY_EQUAL(expected_master_secret, conn->secure.master_secret, S2N_TLS_SECRET_LEN);
