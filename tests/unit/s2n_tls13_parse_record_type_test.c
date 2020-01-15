@@ -30,8 +30,12 @@ int main(int argc, char **argv)
     uint8_t record_type;
     BEGIN_TEST();
 
+   /* In tls13 the true record type is inserted in the last byte of the encrypted payload. This
+    * test creates a fake unencrypted payload and checks that the helper function
+    * s2n_parse_record_type() correctly parses the type.
+    */
     {
-        GUARD(s2n_stuffer_alloc(&plaintext_stuffer, sizeof(plaintext)));
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&plaintext_stuffer, sizeof(plaintext)));
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&plaintext_stuffer, plaintext));
         EXPECT_SUCCESS(s2n_parse_record_type(&plaintext_stuffer, &record_type));
         EXPECT_EQUAL(record_type, 0xf3);
@@ -39,7 +43,6 @@ int main(int argc, char **argv)
 
         /* Clean up */
         EXPECT_SUCCESS(s2n_stuffer_free(&plaintext_stuffer));
-
     }
 
     END_TEST();

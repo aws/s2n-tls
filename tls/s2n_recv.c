@@ -42,6 +42,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
     int r;
 
     *isSSLv2 = 0;
+
     /* If the record has already been decrypted, then leave it alone */
     if (conn->in_status == PLAINTEXT) {
         /* Only application data packets count as plaintext */
