@@ -93,22 +93,6 @@ static void s2n_evp_md_meth_free(EVP_MD **digest_alg) {
         EVP_MD_meth_free(*digest_alg);
     }
 }
-/* On some versions of OpenSSL, "EVP_PKEY_CTX_set_signature_md()" is just a macro that casts digest_alg to "void*",
- * which fails to compile when the "-Werror=cast-qual" compiler flag is enabled. So we work around this OpenSSL
- * issue by creating a local non-const duplicate of EVP_MD pointer, calling OpenSSL with the duplicate, then freeing the
- * duplicate since our compiler won't let us pass a const pointer to an API that doesn't guarantee to not modify it. */
-static int s2n_evp_ctx_set_signature_digest(EVP_PKEY_CTX *ctx, const EVP_MD* const_digest_alg, int s2n_err) {
-    notnull_check(ctx);
-    notnull_check(const_digest_alg);
-
-    DEFER_CLEANUP(EVP_MD *digest_alg = EVP_MD_meth_dup(const_digest_alg), s2n_evp_md_meth_free);
-    notnull_check(digest_alg);
-
-    GUARD_OSSL(EVP_PKEY_CTX_set_signature_md(ctx, digest_alg), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
-    GUARD_OSSL(EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, digest_alg), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
-
-    return 0;
-}
 
 int s2n_rsa_pss_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, struct s2n_blob *signature_out)
 {
@@ -122,7 +106,13 @@ int s2n_rsa_pss_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest,
     GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
     GUARD(s2n_hash_digest(digest, digest_data, digest_length));
 
-    const EVP_MD* digest_alg = s2n_hash_alg_to_evp_alg(digest->alg);
+    const EVP_MD* const_digest_alg = s2n_hash_alg_to_evp_alg(digest->alg);
+    notnull_check(const_digest_alg);
+    /* On some versions of OpenSSL, "EVP_PKEY_CTX_set_signature_md()" is just a macro that casts digest_alg to "void*",
+    * which fails to compile when the "-Werror=cast-qual" compiler flag is enabled. So we work around this OpenSSL
+    * issue by creating a local non-const duplicate of EVP_MD pointer, calling OpenSSL with the duplicate, then freeing the
+    * duplicate since our compiler won't let us pass a const pointer to an API that doesn't guarantee to not modify it. */
+    DEFER_CLEANUP(EVP_MD *digest_alg = EVP_MD_meth_dup(const_digest_alg), s2n_evp_md_meth_free);
     notnull_check(digest_alg);
 
     /* For more info see: https://www.openssl.org/docs/manmaster/man3/EVP_PKEY_sign.html */
@@ -132,7 +122,8 @@ int s2n_rsa_pss_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest,
     size_t signature_len = signature_out->size;
     GUARD_OSSL(EVP_PKEY_sign_init(ctx), S2N_ERR_SIGN);
     GUARD_OSSL(EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PSS_PADDING), S2N_ERR_SIGN);
-    GUARD(s2n_evp_ctx_set_signature_digest(ctx, digest_alg, S2N_ERR_SIGN));
+    GUARD_OSSL(EVP_PKEY_CTX_set_signature_md(ctx, digest_alg), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    GUARD_OSSL(EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, digest_alg), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     GUARD_OSSL(EVP_PKEY_CTX_set_rsa_pss_saltlen(ctx, RSA_PSS_SALTLEN_DIGEST), S2N_ERR_SIGN);
 
     /* Calling EVP_PKEY_sign() with NULL will only update the signature_len parameter so users can validate sizes. */
@@ -157,7 +148,15 @@ int s2n_rsa_pss_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest
     uint8_t digest_data[S2N_MAX_DIGEST_LEN];
     GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
     GUARD(s2n_hash_digest(digest, digest_data, digest_length));
-    const EVP_MD* digest_alg = s2n_hash_alg_to_evp_alg(digest->alg);
+    const EVP_MD* const_digest_alg = s2n_hash_alg_to_evp_alg(digest->alg);
+    notnull_check(const_digest_alg);
+
+    /* On some versions of OpenSSL, "EVP_PKEY_CTX_set_signature_md()" is just a macro that casts digest_alg to "void*",
+     * which fails to compile when the "-Werror=cast-qual" compiler flag is enabled. So we work around this OpenSSL
+     * issue by creating a local non-const duplicate of EVP_MD pointer, calling OpenSSL with the duplicate, then freeing the
+     * duplicate since our compiler won't let us pass a const pointer to an API that doesn't guarantee to not modify it. */
+    DEFER_CLEANUP(EVP_MD *digest_alg = EVP_MD_meth_dup(const_digest_alg), s2n_evp_md_meth_free);
+    notnull_check(digest_alg);
 
     /* For more info see: https://www.openssl.org/docs/manmaster/man3/EVP_PKEY_verify.html */
     DEFER_CLEANUP(EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(pub->key.rsa_pss_key.pkey, NULL), s2n_evp_pkey_ctx_free);
@@ -165,7 +164,8 @@ int s2n_rsa_pss_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest
 
     GUARD_OSSL(EVP_PKEY_verify_init(ctx), S2N_ERR_VERIFY_SIGNATURE);
     GUARD_OSSL(EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PSS_PADDING), S2N_ERR_SIGN);
-    GUARD(s2n_evp_ctx_set_signature_digest(ctx, digest_alg, S2N_ERR_VERIFY_SIGNATURE));
+    GUARD_OSSL(EVP_PKEY_CTX_set_signature_md(ctx, digest_alg), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    GUARD_OSSL(EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, digest_alg), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     GUARD_OSSL(EVP_PKEY_verify(ctx, signature_in->data, signature_in->size, digest_data, digest_length), S2N_ERR_VERIFY_SIGNATURE);
 
     return 0;
