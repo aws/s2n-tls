@@ -20,10 +20,12 @@
 
 #pragma once
 
+#include "defs.h"
+
 #define SUCCESS 0
 #define FAIL    (-1)
 
-typedef int ret_t;
+#define ret_t int
 
 enum _bike_err
 {

@@ -36,11 +36,25 @@ print_newline(IN const uint64_t qw_pos)
 #endif
 }
 
+// This function is stitched for R_BITS vector
+uint64_t
+r_bits_vector_weight(IN const r_t *in)
+{
+  uint64_t acc = 0;
+  for(size_t i = 0; i < (R_SIZE - 1); i++)
+  {
+    acc += __builtin_popcount(in->raw[i]);
+  }
+
+  acc += __builtin_popcount(in->raw[R_SIZE - 1] & LAST_R_BYTE_MASK);
+  return acc;
+}
+
 // Prints a QW in LE/BE in win/linux format
 _INLINE_ void
 print_uint64(IN const uint64_t val)
 {
-  // If printing in BE is requried swap the order of bytes
+// If printing in BE is requried swap the order of bytes
 #ifdef PRINT_IN_BE
   uint64_t tmp = bswap_64(val);
 #else

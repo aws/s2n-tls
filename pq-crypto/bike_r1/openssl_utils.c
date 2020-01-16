@@ -19,12 +19,14 @@
  */
 
 #include "openssl_utils.h"
-#include "openssl/bn.h"
 #include "utilities.h"
 #include <assert.h>
+#include <openssl/bn.h>
 #include <string.h>
 
-#define MAX_OPENSSL_INV_TRIALS 1000
+#ifdef USE_OPENSSL_GF2M
+
+#  define MAX_OPENSSL_INV_TRIALS 1000
 
 _INLINE_ void
 BN_CTX_cleanup(BN_CTX *ctx)
@@ -38,36 +40,8 @@ BN_CTX_cleanup(BN_CTX *ctx)
 
 DEFINE_POINTER_CLEANUP_FUNC(BN_CTX *, BN_CTX_cleanup);
 
-// Perform a cyclic product by using OpenSSL
-_INLINE_ ret_t
-ossl_cyclic_product(OUT BIGNUM *r,
-                    IN const BIGNUM *a,
-                    IN const BIGNUM *b,
-                    BN_CTX *         bn_ctx)
-{
-  BIGNUM *m = BN_CTX_get(bn_ctx);
-  if(NULL == m)
-  {
-    BIKE_ERROR(EXTERNAL_LIB_ERROR_OPENSSL);
-  }
-
-  // m = x^PARAM_R - 1
-  if((BN_set_bit(m, R_BITS) == 0) || (BN_set_bit(m, 0) == 0))
-  {
-    BIKE_ERROR(EXTERNAL_LIB_ERROR_OPENSSL);
-  }
-
-  // r = a*b mod m
-  if(BN_GF2m_mod_mul(r, a, b, m, bn_ctx) == 0)
-  {
-    BIKE_ERROR(EXTERNAL_LIB_ERROR_OPENSSL);
-  }
-
-  return SUCCESS;
-}
-
-// Loading numbers into OpenSSL should be done in Big Endian representation,
-// therefore the byte order of a number should be reversed
+// Loading (big) numbers into OpenSSL should use Big Endian representation.
+// Therefore, the bytes ordering of the number should be reversed.
 _INLINE_ void
 reverse_endian(OUT uint8_t *res, IN const uint8_t *in, IN const uint32_t n)
 {
@@ -81,7 +55,7 @@ reverse_endian(OUT uint8_t *res, IN const uint8_t *in, IN const uint32_t n)
     res[n - 1 - i] = tmp;
   }
 
-  // If the number of blocks is odd swap also the middle block
+  // If the number of blocks is odd, swap also the middle block.
   if(n % 2)
   {
     res[i] = in[i];
@@ -160,7 +134,35 @@ ossl_add(OUT uint8_t      res_bin[R_SIZE],
   return SUCCESS;
 }
 
-// Perform a cyclic product by using OpenSSL
+// Perform a cyclic product by using OpenSSL.
+_INLINE_ ret_t
+ossl_cyclic_product(OUT BIGNUM *r,
+                    IN const BIGNUM *a,
+                    IN const BIGNUM *b,
+                    BN_CTX *         bn_ctx)
+{
+  BIGNUM *m = BN_CTX_get(bn_ctx);
+  if(NULL == m)
+  {
+    BIKE_ERROR(EXTERNAL_LIB_ERROR_OPENSSL);
+  }
+
+  // m = x^PARAM_R - 1
+  if((BN_set_bit(m, R_BITS) == 0) || (BN_set_bit(m, 0) == 0))
+  {
+    BIKE_ERROR(EXTERNAL_LIB_ERROR_OPENSSL);
+  }
+
+  // r = a*b mod m
+  if(BN_GF2m_mod_mul(r, a, b, m, bn_ctx) == 0)
+  {
+    BIKE_ERROR(EXTERNAL_LIB_ERROR_OPENSSL);
+  }
+
+  return SUCCESS;
+}
+
+// Perform a cyclic product by using OpenSSL.
 ret_t
 cyclic_product(OUT uint8_t      res_bin[R_SIZE],
                IN const uint8_t a_bin[R_SIZE],
@@ -194,3 +196,5 @@ cyclic_product(OUT uint8_t      res_bin[R_SIZE],
 
   return SUCCESS;
 }
+
+#endif // USE_OPENSSL_GF2M

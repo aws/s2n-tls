@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  * The license is detailed in the file LICENSE.md, and applies to this file.
  *
- * Written by Nir Drucker and Shay Gueron,
+ * Written by Nir Drucker and Shay Gueron
  * AWS Cryptographic Algorithms Group.
  * (ndrucker@amazon.com, gueron@amazon.com)
  */
@@ -22,21 +22,22 @@
 
 #include "types.h"
 
-ret_t
-compute_syndrome(OUT syndrome_t *syndrome, IN const ct_t *ct, IN const sk_t *sk);
+EXTERNC void
+karatzuba_add1(OUT uint64_t *res,
+               IN const uint64_t *a,
+               IN const uint64_t *b,
+               IN const uint64_t  n_half,
+               IN uint64_t *alah);
 
-// e should be zeroed before calling the decoder.
-ret_t
-decode(OUT split_e_t *e,
-       IN const syndrome_t *s,
-       IN const ct_t *ct,
-       IN const sk_t *sk);
+EXTERNC void
+karatzuba_add2(OUT uint64_t *res1,
+               OUT uint64_t *res2,
+               IN const uint64_t *res,
+               IN const uint64_t *tmp,
+               IN const uint64_t  n_half);
 
-// Rotate right the first R_BITS of a syndrome.
-// Assumption: the syndrome contains three R_BITS duplications.
-// The output syndrome contains only one R_BITS rotation, the other
-// (2 * R_BITS) bits are undefined.
+EXTERNC void
+red(uint64_t *res);
+
 void
-rotate_right(OUT syndrome_t *out,
-             IN const syndrome_t *in,
-             IN const uint32_t    bitcount);
+gf2x_mul_1x1(OUT uint64_t *res, IN const uint64_t a, IN const uint64_t b);

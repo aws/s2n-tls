@@ -1,13 +1,22 @@
-/***************************************************************************
- * Additional implementation of "BIKE: Bit Flipping Key Encapsulation".
+/*
  * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
- * Written by Nir Drucker and Shay Gueron
- * AWS Cryptographic Algorithms Group
- * (ndrucker@amazon.com, gueron@amazon.com)
+ * Licensed under the Apache License, Version 2.0 (the "License").
+ * You may not use this file except in compliance with the License.
+ * A copy of the License is located at
  *
+ * http://aws.amazon.com/apache2.0
+ *
+ * or in the "license" file accompanying this file. This file is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ * express or implied. See the License for the specific language governing
+ * permissions and limitations under the License.
  * The license is detailed in the file LICENSE.md, and applies to this file.
- * ***************************************************************************/
+ *
+ * Written by Nir Drucker and Shay Gueron
+ * AWS Cryptographic Algorithms Group.
+ * (ndrucker@amazon.com, gueron@amazon.com)
+ */
 
 #pragma once
 
@@ -29,19 +38,29 @@ print_BE(IN const uint64_t *in, IN const uint32_t bits_num);
 #if VERBOSE >= 2
 #  ifdef PRINT_IN_BE
 // Print in Big Endian
-#    define print(in, bits_num) print_BE(in, bits_num)
+#    define print(name, in, bits_num) \
+      do                              \
+      {                               \
+        EDMSG(name);                  \
+        print_BE(in, bits_num);       \
+      } while(0)
 #  else
 // Print in Little Endian
-#    define print(in, bits_num) print_LE(in, bits_num)
+#    define print(name, in, bits_num) \
+      do                              \
+      {                               \
+        EDMSG(name);                  \
+        print_LE(in, bits_num);       \
+      } while(0)
 #  endif
 #else
 // No prints at all
-#  define print(in, bits_num)
+#  define print(name, in, bits_num)
 #endif
 
 // Comparing value in a constant time manner
 _INLINE_ uint32_t
-safe_cmp(IN const uint8_t *a, IN const uint8_t *b, IN const uint32_t size)
+secure_cmp(IN const uint8_t *a, IN const uint8_t *b, IN const uint32_t size)
 {
   volatile uint8_t res = 0;
 
@@ -52,6 +71,9 @@ safe_cmp(IN const uint8_t *a, IN const uint8_t *b, IN const uint32_t size)
 
   return (0 == res);
 }
+
+uint64_t
+r_bits_vector_weight(IN const r_t *in);
 
 // Constant time
 _INLINE_ uint32_t
@@ -133,9 +155,11 @@ secure_l32_mask(IN const uint32_t v1, IN const uint32_t v2)
                        "setl %%dl; \n"
                        "dec %%edx; \n"
                        "mov %%edx, %0; \n"
+
                        : "=r"(res)
                        : "r"(v2), "r"(v1)
                        : "rdx");
+
   return res;
 #else
   // If v1 >= v2 then the subtraction result is 0^32||(v1-v2)
@@ -144,7 +168,3 @@ secure_l32_mask(IN const uint32_t v1, IN const uint32_t v2)
   return ~((uint32_t)(((uint64_t)v1 - (uint64_t)v2) >> 32));
 #endif
 }
-
-// len is bytes length of in
-EXTERNC uint64_t
-count_ones(IN const uint8_t *in, IN const uint32_t len);

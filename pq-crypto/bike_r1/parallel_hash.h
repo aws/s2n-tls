@@ -34,7 +34,8 @@
 //
 // It is designed to convert the serial hashing to a parallelizeable process.
 //
-// This function assumes that m is of N_BITS length
+// This function assumes that m is of N_BITS length and that
+// ((la / MAX_MB_SLICES) >= SLICE_REM)
 void
 parallel_hash(OUT sha_hash_t *out_hash,
               IN const uint8_t *m,

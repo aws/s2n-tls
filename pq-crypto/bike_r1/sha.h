@@ -84,3 +84,9 @@ sha_mb(OUT sha_hash_t *hash_out,
     SHA384(&msg[i * ls], ls, hash_out[i].u.raw);
   }
 }
+
+_INLINE_ void
+sha_hash_cleanup(IN OUT sha_hash_t *o)
+{
+  secure_clean(o->u.raw, sizeof(*o));
+}
