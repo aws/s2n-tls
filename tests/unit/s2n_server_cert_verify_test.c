@@ -21,6 +21,8 @@
 #include "error/s2n_errno.h"
 #include "crypto/s2n_ecdsa.h"
 
+#include "tls/s2n_server_cert_verify.c"
+
 uint8_t hello[] = "Hello, World!\n";
 uint8_t goodbye[] = "Goodbye, World!\n";
 
@@ -54,7 +56,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(ecdsa_cert, cert_chain_pem, private_key_pem));
-        
+
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
         client_conn->handshake_params.our_chain_and_key = ecdsa_cert;
@@ -79,11 +81,8 @@ int main(int argc, char **argv)
         /* Send and receive cert verify */
         EXPECT_SUCCESS(s2n_server_cert_verify_send(client_conn));
 
-        /* Reinitialize hash */
-        EXPECT_SUCCESS(s2n_hash_init(&client_conn->handshake.sha256, S2N_HASH_SHA256));
-        EXPECT_SUCCESS(s2n_hash_update(&client_conn->handshake.sha256, hello, strlen((char *)hello)));
-
         EXPECT_SUCCESS(s2n_server_cert_verify_recv(client_conn));
+        EXPECT_EQUAL(client_conn->secure.conn_sig_scheme.iana_value, 0x403);
 
         /* Clean up */
         free(cert_chain_pem);
@@ -268,7 +267,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_hash_init(&client_conn->handshake.sha256, S2N_HASH_SHA256));
         EXPECT_SUCCESS(s2n_hash_update(&client_conn->handshake.sha256, hello, strlen((char *)hello)));
 
-        EXPECT_FAILURE(s2n_server_cert_verify_recv(client_conn));
+        EXPECT_FAILURE(s2n_server_cert_read_and_verify_signature(client_conn));
 
         /* send and receive with mismatched signature algs */
         client_conn->secure.conn_sig_scheme.hash_alg = S2N_HASH_SHA256;
