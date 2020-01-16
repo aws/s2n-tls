@@ -195,9 +195,6 @@ int main(int argc, char **argv) {
             /* Read point back in */
             EXPECT_SUCCESS(
                 s2n_ecc_evp_read_params_point(&wire, s2n_ecc_evp_supported_curves_list[i]->share_size, &point_blob));
-#if MODERN_EC_SUPPORTED
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_copy_params(&write_params, &read_params));
-#endif
             EXPECT_SUCCESS(s2n_ecc_evp_parse_params_point(&point_blob, &read_params));
             /* Check that the point we read is the same we wrote */
             EXPECT_TRUE(EVP_PKEY_cmp(write_params.evp_pkey, read_params.evp_pkey));
@@ -230,9 +227,6 @@ int main(int argc, char **argv) {
 
              /* Read params points from the wire */
             EXPECT_SUCCESS(s2n_ecc_evp_read_params(&wire, &ecdh_params_received, &ecdhe_data));
-#if MODERN_EC_SUPPORTED
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_copy_params(&write_params, &read_params));
-#endif
             EXPECT_SUCCESS(s2n_ecc_evp_parse_params(&ecdhe_data, &read_params));
 
             /* Check that the point we read is the same we wrote */
@@ -268,9 +262,6 @@ int main(int argc, char **argv) {
             /* Client reads the public */
             struct s2n_ecdhe_raw_server_params ecdhe_data = {0};
             EXPECT_SUCCESS(s2n_ecc_evp_read_params(&wire, &ecdh_params_received, &ecdhe_data));
-#if MODERN_EC_SUPPORTED
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_copy_params(&server_params, &read_params));
-#endif
             EXPECT_SUCCESS(s2n_ecc_evp_parse_params(&ecdhe_data, &read_params));
 
             /* Verify if the client correctly read the server public */
@@ -298,6 +289,44 @@ int main(int argc, char **argv) {
             EXPECT_SUCCESS(s2n_free(&client_shared_secret)); 
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&server_params));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&read_params));
+            EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_params));
+        }
+    }
+    {
+        /* Test generate->write->read->compute_shared with all supported curves */
+    for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
+            struct s2n_ecc_evp_params server_params = {0}, client_params = {0};
+            struct s2n_stuffer wire;
+            struct s2n_blob server_shared, client_shared, ecdh_params_sent, ecdh_params_received;
+
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire, 1024));
+
+            /* Server generates a key for a given curve */
+            server_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[i];
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_params));
+            /* Server sends the public */
+            EXPECT_SUCCESS(s2n_ecc_evp_write_params(&server_params, &wire, &ecdh_params_sent));
+            /* Client reads the public */
+            struct s2n_ecdhe_raw_server_params ecdhe_data = {0};
+            EXPECT_SUCCESS(s2n_ecc_evp_read_params(&wire, &ecdh_params_received, &ecdhe_data));
+            EXPECT_SUCCESS(s2n_ecc_evp_parse_params(&ecdhe_data, &client_params));
+
+            /* The client got the curve */
+            EXPECT_EQUAL(client_params.negotiated_curve, server_params.negotiated_curve);
+
+            /* Client sends its public */
+            EXPECT_SUCCESS(s2n_ecc_evp_compute_shared_secret_as_client(&client_params, &wire, &client_shared));
+            /* Server receives it */
+            EXPECT_SUCCESS(s2n_ecc_evp_compute_shared_secret_as_server(&server_params, &wire, &server_shared));
+            /* Shared is the same for the client and the server */
+            EXPECT_EQUAL(client_shared.size, server_shared.size);
+            EXPECT_BYTEARRAY_EQUAL(client_shared.data, server_shared.data, client_shared.size);
+
+            /* Clean up */
+            EXPECT_SUCCESS(s2n_stuffer_free(&wire));
+            EXPECT_SUCCESS(s2n_free(&server_shared));
+            EXPECT_SUCCESS(s2n_free(&client_shared));
+            EXPECT_SUCCESS(s2n_ecc_evp_params_free(&server_params));
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_params));
         }
     }

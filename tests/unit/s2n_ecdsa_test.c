@@ -25,7 +25,7 @@
 #include "tls/s2n_config.h"
 
 #include "crypto/s2n_ecdsa.h"
-#include "crypto/s2n_ecc.h"
+#include "crypto/s2n_ecc_evp.h"
 #include "crypto/s2n_fips.h"
 
 #include "utils/s2n_safety.h"

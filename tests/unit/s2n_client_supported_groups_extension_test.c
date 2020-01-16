@@ -57,9 +57,9 @@ int main()
 
         /* Force a bad value for the negotiated curve so we know extension was parsed and the curve was set to NULL */
         struct s2n_ecc_named_curve invalid_curve = { 0 };
-        conn->secure.server_ecc_params.negotiated_curve = &invalid_curve;
+        conn->secure.server_ecc_evp_params.negotiated_curve = &invalid_curve;
         EXPECT_SUCCESS(s2n_client_extensions_recv(conn, parsed_extensions));
-        EXPECT_NULL(conn->secure.server_ecc_params.negotiated_curve);
+        EXPECT_NULL(conn->secure.server_ecc_evp_params.negotiated_curve);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&supported_groups_extension));
         EXPECT_SUCCESS(s2n_array_free(parsed_extensions));

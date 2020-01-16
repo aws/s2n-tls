@@ -107,6 +107,8 @@ int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, str
 int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn);
 
 int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file);
+int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cipher_suite *cipher_suite,
+        const char * kat_file_name, uint32_t server_key_message_length, uint32_t client_key_message_length);
 
 /* Expects 2 s2n_blobs to be equal (same size and contents) */
 #define S2N_BLOB_EXPECT_EQUAL( blob1, blob2 ) do {              \
@@ -127,4 +129,4 @@ int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file);
     EXPECT_EQUAL(s2n_stuffer_data_available(stuffer), 0);       \
 } while (0)
 
-int s2n_public_ecc_keys_are_equal(struct s2n_ecc_params *params_1, struct s2n_ecc_params *params_2);
+int s2n_public_ecc_keys_are_equal(struct s2n_ecc_evp_params *params_1, struct s2n_ecc_evp_params *params_2);

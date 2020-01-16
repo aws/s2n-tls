@@ -197,7 +197,7 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     GUARD(s2n_stuffer_skip_read(in, num_compression_methods));
 
     /* This is going to be our default if the client has no preference. */
-    conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
+    conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
 
     uint16_t extensions_length = 0;
     if (s2n_stuffer_data_available(in) >= 2) {
