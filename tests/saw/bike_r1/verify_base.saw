@@ -1,0 +1,34 @@
+// verify_bike.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+let do_prove = false;
+let debug = false;
+enable_smt_array_memory_model;
+
+m <- llvm_load_module "../bitcode/bike_r1_llvm.bc";
+
+import "spec/version/input.cry";
+import "spec/interface/H_defs.cry";
+import "spec/interface/H_bike_r1_defs.cry";
+import "spec/interface/H_types_v1l1.cry";
+import "spec/interface/H_openssl.cry";
+import "spec/interface/H_gf2x.cry";
+import "spec/interface/H_utilities.cry";
+import "spec/shared/Params.cry";
+import "spec/shared/Support.cry";
+import "spec/shared/Safety.cry";
+import "spec/abstract_spec/vectors.cry";
+import "spec/abstract_spec/ring.cry";
+import "spec/interface/C_converts_portable.cry";
+import "spec/interface/C_secure_decode_portable.cry";
+import "spec/interface/C_decode.cry";
+import "spec/interface/C_parallel_hash.cry";
+import "spec/interface/C_KEM.cry";
+
+include "proof/base.saw";
+include "proof/constants.saw";
+include "proof/flat-helpers.saw";
+include "proof/types.saw";
+include "proof/helpers.saw";
+include "proof/outside.saw";
+

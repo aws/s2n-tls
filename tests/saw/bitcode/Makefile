@@ -5,5 +5,5 @@ BCS=$(wildcard *.bc)
 all_llvm.bc : $(BCS)
 	$(LLVMLINK) -o $@ $+
 
-bike_llvm.bc : $(BCS)
+bike_r1_llvm.bc : $(BCS)
 	$(LLVMLINK) -o $@ $+

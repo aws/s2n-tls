@@ -1,0 +1,49 @@
+36a37,39
+> #define OLD_GUARD(func, stat, label) {stat = func; if(stat != SUCCESS) {goto label;}}
+> #define OLD_BIKE_ERROR( x, ret, LABEL ) do { bike_errno = ( x ); ret = ( x ); goto LABEL; } while (0)
+> 
+68a72,74
+> extern ret_t __breakpoint__decode_first_loop(e_t**, const syndrome_t**, const ct_t**, const sk_t**, const uint32_t*, syndrome_t*, syndrome_t**, decode_ctx_t*, compressed_idx_dv_ar_t*, ret_t*, uint64_t*, uint32_t*) __attribute__((noduplicate));
+> extern ret_t __breakpoint__decode_last_loop(e_t**, const syndrome_t**, const ct_t**, const sk_t**, const uint32_t*, syndrome_t*, syndrome_t**, decode_ctx_t*, compressed_idx_dv_ar_t*, ret_t*, uint64_t*, uint32_t*) __attribute__((noduplicate));
+> 
+239c245
+<   syndrome_t  _s;
+---
+>   syndrome_t  _s = {0};
+240a247,249
+>   uint64_t i;
+>   uint32_t iter;
+>   ret_t res = SUCCESS;
+248c257
+<   for(uint64_t i = 0; i < FAKE_DV; i++)
+---
+>   for (i = 0; __breakpoint__decode_first_loop(&e, &original_s, &ct, &sk, &u, &_s, &s, &ctx, &inv_h_compressed, &res, &i, &iter), i < FAKE_DV; i++)
+253c262
+<       BIKE_ERROR(E_DECODING_FAILURE);
+---
+>       OLD_BIKE_ERROR(E_DECODING_FAILURE, res, EXIT);
+272c281
+<   for(uint32_t iter = 0; iter < MAX_IT; iter++)
+---
+>   for (iter = 0; __breakpoint__decode_last_loop(&e, &original_s, &ct, &sk, &u, &_s, &s, &ctx, &inv_h_compressed, &res, &i, &iter), iter < MAX_IT; iter++)
+283c292
+<     GUARD(fix_error1(s, e, &ctx, sk, ct));
+---
+>     OLD_GUARD(fix_error1(s, e, &ctx, sk, ct), res, EXIT);
+295c304
+<     GUARD(fix_black_error(s, e, &ctx, sk, ct));
+---
+>     OLD_GUARD(fix_black_error(s, e, &ctx, sk, ct), res, EXIT);
+306c315
+<     GUARD(fix_gray_error(s, e, &ctx, sk, ct));
+---
+>     OLD_GUARD(fix_gray_error(s, e, &ctx, sk, ct), res, EXIT);
+311c320
+<     BIKE_ERROR(E_DECODING_FAILURE);
+---
+>     OLD_BIKE_ERROR(E_DECODING_FAILURE, res, EXIT);
+314c323,324
+<   return SUCCESS;
+---
+> EXIT:
+>   return res;

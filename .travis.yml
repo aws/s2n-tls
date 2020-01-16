@@ -129,7 +129,7 @@ jobs:
     addons : *sawaddons
   - os : linux
     dist: trusty
-    env: TESTS=sawBIKE SAW=true GCC_VERSION=NONE S2N_LIBCRYPTO=openssl-1.0.2
+    env: TESTS=sawBIKE_r1 SAW=true GCC_VERSION=NONE S2N_LIBCRYPTO=openssl-1.0.2
     addons : *sawaddons
   - os : linux
     dist: trusty

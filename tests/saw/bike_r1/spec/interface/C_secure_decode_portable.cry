@@ -1,0 +1,17 @@
+// C_secure_decode_portable.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module interface::C_secure_decode_portable where
+
+import version::input
+import interface::H_bike_r1_defs
+import interface::H_types_v1l1
+
+///////////////////////////////////////////////////////////////////////////////
+
+compute_counter_of_unsat
+    : raw_ddq -> compressed_idx_dv_t -> compressed_idx_dv_t
+    -> upc_t
+compute_counter_of_unsat s inv_h0_compressed inv_h1_compressed = undefined

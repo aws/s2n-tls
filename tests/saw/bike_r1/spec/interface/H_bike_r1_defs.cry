@@ -1,0 +1,71 @@
+// H_bike_r1_defs.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module interface::H_bike_r1_defs where
+
+import version::input
+import interface::H_defs
+
+///////////////////////////////////////////////////////////////////////////////
+
+type N0 = 2
+type N0_t t = [N0] t
+
+// NOTE: Cryptol does not have type-level ifs, and we'd like a
+//       type-level expression if (a=b) then c else d.
+//       We can do that (for numeric c and d) as follows:
+type isneq a b = min 1 ((max a b) - (min a b)) // 0 if equal, 1 otherwise
+type iseq a b = 1 - isneq a b // 1 if equal, 0 otherwise
+type ifeq a b c d = (iseq a b)*c + (isneq a b)*d // if (a==b) then c else d
+
+//  BIKE Parameters depend on Level and Bike version
+type set_value A B C D E F G =
+  ifeq BIKE_VER 3
+       (ifeq LEVEL 5 A (ifeq LEVEL 3 B C))
+       (ifeq LEVEL 5 D (ifeq LEVEL 3 E (ifeq BITCODE 0 G F)))
+
+type R_BITS = set_value 36131 21683 11027 32749 19853 10163 163
+type DV     = set_value 133 99 67 137  103  71 3
+type FAKE_DV = set_value 261  197 132 261 197 133 4
+type T1      = set_value 300 226 154 264  199  134 7
+type BLOCK_SIZE = set_value (32768 * 2) 32768 16384 32768 32768 16384 512
+
+type MAX_DELTA = 4
+
+type U_ERR = ifeq BIKE_VER 3 /*then*/ 1 /*else*/ 0
+BATCH_SIZE = 1
+
+// Note will need to check "_t" if level and bike_ver change.
+type N_BITS   = R_BITS * N0
+type R_SIZE   = DIVIDE_AND_CEIL R_BITS  8
+type R_QW     = DIVIDE_AND_CEIL R_BITS  64
+type N_SIZE   = DIVIDE_AND_CEIL N_BITS  8
+
+type N_QW     = DIVIDE_AND_CEIL N_BITS  64
+type N_EXTRA_BYTES = 8 * N_QW - N_SIZE
+
+type R_BLOCKS        = DIVIDE_AND_CEIL R_BITS  BLOCK_SIZE
+type R_PADDED        = R_BLOCKS * BLOCK_SIZE
+type R_PADDED_SIZE   = R_PADDED / 8
+type R_PADDED_QW     = R_PADDED / 64
+
+type N_BLOCKS        = DIVIDE_AND_CEIL N_BITS  BLOCK_SIZE
+type N_PADDED        = N_BLOCKS * BLOCK_SIZE
+type N_PADDED_SIZE   = N_PADDED / 8
+type N_PADDED_QW     = N_PADDED / 64
+
+type R_DQWORDS = DIVIDE_AND_CEIL R_SIZE 16
+type R_QDQWORDS_BITS  = (DIVIDE_AND_CEIL R_BITS ALL_ZMM_SIZE) * ALL_ZMM_SIZE
+type N_QDQWORDS_BITS  = R_QDQWORDS_BITS + R_BITS
+type R_DDQWORDS_BITS  = (DIVIDE_AND_CEIL R_BITS ALL_YMM_SIZE) * ALL_YMM_SIZE
+type N_DDQWORDS_BITS  = R_DDQWORDS_BITS + R_BITS
+
+// BIKE auxiliary functions parameters:
+type ELL_K_BITS  = 256
+type ELL_K_SIZE = (ELL_K_BITS / 8)
+
+type SHA_MB_SECURE_BUF_SIZE =  608
+
+type decode_utc = ifeq BITCODE 0 675 20403

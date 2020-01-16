@@ -1,0 +1,230 @@
+// bike_r1_kem.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+let get_ss_spec with_post = do {
+
+    ap <- out_ref ss_T;
+    (e, ep) <- in_ref e_T "et";
+    crucible_execute_func [ap, ep];
+    a' <- point_to ss_T ap "a'";
+    if with_post
+
+    // NOTE: This is needed for the kem_dec proof
+    then crucible_postcond {{a' == get_ss e}}
+
+    else return ();
+};
+
+let calc_pk_spec = do {
+    ap <- out_ref pk_T;
+    (b, bp) <- in_ref seed_S "seedca";
+    (c, cp) <- in_ref pad_sk_T "sk";
+    crucible_execute_func [ap, bp, cp];
+    a' <- point_to pk_T ap "pk'";
+    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+};
+
+// NOTE: Encrypt writes to ct only on success. it always succeeds
+let encrypt_spec = do {
+    ap <- out_ref ct_T;
+    (b,bp) <- in_ref pk_T "pk";
+    (c,cp) <- in_ref seed_T "seed";
+    (d,dp) <- in_ref split_e_T "splitted_e";
+    crucible_execute_func [ap, bp, cp, dp];
+    a' <- point_to ct_T ap "ct'";
+    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+};
+
+// NOTE: BIKE1_L1_R1_crypto_kem_keypair might NOT write to its OUT parameters.
+let keypair_spec = do {
+    ap <- out_ref char_pk_T;
+    bp <- out_ref char_sk_T;
+    crucible_execute_func [ap, bp];
+};
+
+let crypto_kem_enc_spec = do {
+    ap <- out_ref char_ct_T;
+    bp <- out_ref char_ss_T;
+    (c, cp) <- in_ref char_pk_T "pk";
+    crucible_execute_func [ap, bp, cp];
+};
+
+let crypto_kem_dec_spec = do {
+    ap <- out_ref char_ss_T;
+    (b, bp) <- in_ref char_ct_T "ct";
+    (c, cp) <- in_ref char_sk_T "sk";
+    crucible_alloc_global "bike_errno";
+    _bike_errno <- point_to i32_T (crucible_global "bike_errno") "bike_errno";
+
+    // NOTE: This is for memory safety
+    crucible_precond {{ is_bounded_sk (assemble_sk_t c) }};
+
+    crucible_execute_func [ap, bp, cp];
+
+    _bike_errno' <- point_to i32_T (crucible_global "bike_errno") "bike_errno'";
+
+    ret <- crucible_fresh_var "ret" i32;
+    crucible_return (tm ret);
+};
+
+// NOTE: We need to prove crypto_kem_dec in two steps, due to SAW's
+//       treatment of memory and the fact that the OUT memory area
+//       pointed to by `ss` is written to only if the result is success.
+//       We distinguish two cases by precondition, where the precondition
+//       uses the Cryptol equivalent to predict the result code.
+
+// NOTE: Step 1 of 2 - non-success result
+let crypto_kem_dec_unsuccessful_spec = do {
+
+    ap <- out_ref char_ss_T;
+    (b, bp) <- in_ref char_ct_T "ct";
+    (c, cp) <- in_ref char_sk_T "sk";
+    crucible_precond {{ (BIKE1_L1_R1_crypto_kem_dec b c).0 != (fromInteger`{[32]} SUCCESS) }};
+
+    // NOTE: This is for memory safety
+    crucible_precond {{ is_bounded_sk (assemble_sk_t c) }};
+
+    crucible_execute_func [ap, bp, cp];
+    ret <- crucible_fresh_var "ret" i32;
+    crucible_postcond {{ ret == ((BIKE1_L1_R1_crypto_kem_dec b c).0) }};
+    crucible_return (tm ret);
+};
+
+// NOTE: Step 2 of 2 - conditioned on a SUCCESS result
+let crypto_kem_dec_successful_spec = do {
+
+    ap <- out_ref char_ss_T;
+    (b, bp) <- in_ref char_ct_T "ct";
+    (c, cp) <- in_ref char_sk_T "sk";
+    crucible_precond {{ (BIKE1_L1_R1_crypto_kem_dec b c).0 == (fromInteger`{[32]} SUCCESS) }};
+
+    // NOTE: This is for memory safety
+    crucible_precond {{ is_bounded_sk (assemble_sk_t c) }};
+
+    crucible_execute_func [ap, bp, cp];
+    a' <- point_to char_ss_T ap "a'";
+    ret <- crucible_fresh_var "ret" i32;
+    crucible_postcond {{ (ret, a') == (BIKE1_L1_R1_crypto_kem_dec b c) }};
+    crucible_return (tm ret);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+// NOTE: change default tactic to use simplification
+let tactic unints =
+    if debug then do {
+        simplify basic_ss;
+        simplify (cryptol_ss ());
+        simplify basic_ss;
+        print_goal_consts;
+        print_goal;
+        w4_unint_yices unints;
+    } else do {
+        simplify basic_ss;
+        simplify (cryptol_ss ());
+        simplify basic_ss;
+        w4_unint_yices unints;
+   };
+
+verify "get_ss"
+    [parallel_hash_ov, secure_clean_ov48]
+    (get_ss_spec false);
+
+get_ss_ov <- admit "get_ss"
+    [parallel_hash_ov, secure_clean_ov48]
+    (get_ss_spec true);
+
+calc_pk_ov <- verify  "calc_pk"
+    [ sample_uniform_r_bits_ov
+    , gf2x_mod_mul_ov
+    , secure_clean_ov_PRT
+    ]
+	calc_pk_spec;
+
+encrypt_ov <- verify "encrypt"
+    [sample_uniform_r_bits_ov
+    , secure_clean_ov_PRT // for sizeof(padded_r_t)
+    , secure_clean_ov_4RPS // for sizeof(dbl_pad_ct_t)
+    , gf2x_mod_mul_ov
+    , gf2x_add_left_ov
+    ]
+    encrypt_spec;
+
+keypair_ov <- verify "BIKE1_L1_R1_crypto_kem_keypair"
+    [ finalize_aes_ctr_prf_ov
+    , get_random_bytes_ov // get_seeds_ov_kem
+    , init_aes_ctr_prf_state_ov
+    , generate_sparse_fake_rep_ov
+    , calc_pk_ov
+    , secure_clean_ov64 // for sizeof(seeds)
+    , secure_clean_ov48 // for sizeof(aes_prf_state)
+    , secure_clean_ov_2RPS ] // for sizeof(p_sk)
+    keypair_spec;
+
+crypto_kem_enc_ov <- verify_unint "BIKE1_L1_R1_crypto_kem_enc"
+    [ finalize_aes_ctr_prf_ov
+    , encrypt_ov
+    , init_aes_ctr_prf_state_ov
+    , generate_sparse_rep_ov
+    , split_e_ov
+    , get_ss_ov
+    , secure_clean_ov_GPNT // for sizeof(split_e_t)
+    , secure_clean_ov48 // for sizeof(aes_prf_state)
+    , secure_clean_ov64 // for sizeof(seeds)
+    , secure_clean_ov_PET // for sizeof(padded_e_t)
+    , get_random_bytes_ov // get_seeds_ov_kem
+    ]
+    ["get_ss"]
+    crypto_kem_enc_spec;
+
+// NOTE: The following is a two part proof. See the explanation above.
+
+let crypto_kem_dec_O =
+    [ compute_syndrome_update_ov
+    , secure_clean_e_ov
+    , secure_clean_syndrome_ov
+    , get_ss_ov
+    , count_ones_N_SIZE_ov
+    , decode_ov
+    ];
+let crypto_kem_dec_U =
+    [ "decode"
+    , "compute_syndrome"
+    , "compute_syndrome_update"
+    , "get_ss"
+    , "count_ones"
+    , "is_bounded_compressed_idx_dv"
+    ];
+
+// NOTE: memory safety
+crypto_kem_dec_ov <- verify_unint "BIKE1_L1_R1_crypto_kem_dec"
+    [ compute_syndrome_update_ov
+    , secure_clean_e_ov
+    , secure_clean_syndrome_ov
+    , decode_ov
+    , count_ones_N_SIZE_ov
+    , get_ss_ov
+    ]
+    [ "is_bounded_sk"
+    , "is_bounded_compressed_idx_dv"
+    , "decode"
+    , "count_ones"
+    , "get_ss"
+    ]
+    crypto_kem_dec_spec;
+
+// // NOTE: Step 1 of 2 - non-success result
+// crypto_kem_dec_unsuccessful_ov <- verify_unint "BIKE1_L1_R1_crypto_kem_dec"
+//     crypto_kem_dec_O
+//     crypto_kem_dec_U
+//     crypto_kem_dec_unsuccessful_spec;
+// 
+// // NOTE: Step 1 of 2 - conditioned on a SUCCESS result
+// crypto_kem_dec_successful_ov <- verify_unint "BIKE1_L1_R1_crypto_kem_dec"
+//     crypto_kem_dec_O
+//     crypto_kem_dec_U
+//     crypto_kem_dec_successful_spec;

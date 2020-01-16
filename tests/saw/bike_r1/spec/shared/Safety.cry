@@ -1,0 +1,28 @@
+// Safety.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module shared::Safety where
+
+import interface::H_defs
+import interface::H_bike_r1_defs
+import interface::H_types_v1l1
+
+///////////////////////////////////////////////////////////////////////////////
+// This module collects definitions needed for conditions relating to the
+// memory safety proofs
+
+// NOTE: Compute_counter_of_unsat needs this condition on the
+//       two compressed_idx parameters for its memory safety, otherwise
+//       there will be indices out of bounds.
+
+is_bounded_compressed_idx_dv: compressed_idx_dv_t -> Bit
+is_bounded_compressed_idx_dv {val=v} =
+    and [x.val <= `R_BITS | x <- v]
+
+// NOTE: Those compressed_idx values are derived from secret keys, and so
+//       any parameters of secret key type should also satisfy the bounds.
+
+is_bounded_sk: sk_t -> Bit
+is_bounded_sk sk = and [is_bounded_compressed_idx_dv w | w <- sk.wlist]
