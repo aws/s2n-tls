@@ -235,3 +235,4 @@ int s2n_recv_close_notify(struct s2n_connection *conn, s2n_blocked_status * bloc
     *blocked = S2N_NOT_BLOCKED;
     return 0;
 }
+

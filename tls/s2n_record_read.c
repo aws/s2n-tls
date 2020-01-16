@@ -162,3 +162,4 @@ int s2n_parse_record_type(struct s2n_stuffer *stuffer, uint8_t * record_type) {
 
     return 0;
 }
+
