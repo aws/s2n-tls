@@ -36,7 +36,7 @@
 #define S2N_PARAM_NOT_REQUIRED  0
 #define S2N_PARAM_REQUIRED      1
 
-typedef const BIGNUM *(*ossl_get_rsa_pss_param_fn) (const RSA *d);
+typedef const BIGNUM *(*ossl_get_rsa_param_fn) (const RSA *d);
 
 const EVP_MD* s2n_hash_alg_to_evp_alg(s2n_hash_algorithm alg) {
     switch (alg) {
@@ -188,10 +188,10 @@ static int s2n_rsa_pss_validate_sign_verify_match(const struct s2n_pkey *pub, co
 }
 
 static int s2n_rsa_validate_param_equal(const RSA *pub, const RSA *priv, int required,
-                                        ossl_get_rsa_pss_param_fn get_rsa_pss_param_fn) {
+                                        ossl_get_rsa_param_fn get_rsa_param_fn) {
 
-    const BIGNUM *pub_val = get_rsa_pss_param_fn(pub);
-    const BIGNUM *priv_val = get_rsa_pss_param_fn(priv);
+    const BIGNUM *pub_val = get_rsa_param_fn(pub);
+    const BIGNUM *priv_val = get_rsa_param_fn(priv);
 
     if (required && (pub_val == NULL || priv_val == NULL)) {
         S2N_ERROR(S2N_ERR_KEY_CHECK);
