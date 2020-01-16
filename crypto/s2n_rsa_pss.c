@@ -81,6 +81,13 @@ static int s2n_rsa_is_private_key(EVP_PKEY *pkey) {
     return 0;
 }
 
+static void s2n_evp_pkey_ctx_free(EVP_PKEY_CTX **ctx) {
+
+    if (ctx != NULL) {
+        EVP_PKEY_CTX_free(*ctx);
+    }
+}
+
 static void s2n_evp_md_meth_free(EVP_MD **digest_alg) {
     if (digest_alg != NULL) {
         EVP_MD_meth_free(*digest_alg);
@@ -119,7 +126,7 @@ int s2n_rsa_pss_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest,
     notnull_check(digest_alg);
 
     /* For more info see: https://www.openssl.org/docs/manmaster/man3/EVP_PKEY_sign.html */
-    EVP_PKEY_CTX *ctx  = EVP_PKEY_CTX_new(priv->key.rsa_pss_key.pkey, NULL);
+    DEFER_CLEANUP(EVP_PKEY_CTX *ctx  = EVP_PKEY_CTX_new(priv->key.rsa_pss_key.pkey, NULL), s2n_evp_pkey_ctx_free);
     notnull_check(ctx);
 
     size_t signature_len = signature_out->size;
@@ -153,7 +160,7 @@ int s2n_rsa_pss_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest
     const EVP_MD* digest_alg = s2n_hash_alg_to_evp_alg(digest->alg);
 
     /* For more info see: https://www.openssl.org/docs/manmaster/man3/EVP_PKEY_verify.html */
-    EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(pub->key.rsa_pss_key.pkey, NULL);
+    DEFER_CLEANUP(EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(pub->key.rsa_pss_key.pkey, NULL), s2n_evp_pkey_ctx_free);
     notnull_check(ctx);
 
     GUARD_OSSL(EVP_PKEY_verify_init(ctx), S2N_ERR_VERIFY_SIGNATURE);
