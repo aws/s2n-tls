@@ -9,6 +9,65 @@ cache:
 
 jobs:
   include:
+  # Formal Verification - Sidetrail
+  - os : linux
+    dist: trusty
+    env: TESTS=sidetrail PART=1
+
+  - os : linux
+    dist: trusty
+    env: TESTS=sidetrail PART=2
+
+# Formal Verification - SAW
+  - os : linux
+    dist: trusty
+    env: TESTS=sawHMAC SAW_HMAC_TEST=md5 SAW=true GCC_VERSION=NONE
+    addons: &sawaddons
+      apt:
+        packages:
+          - clang-3.8
+          - llvm-3.8
+  - os : linux
+    dist: trusty
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha1   SAW=true GCC_VERSION=NONE
+    addons : *sawaddons
+  - os : linux
+    dist: trusty
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha224 SAW=true GCC_VERSION=NONE
+    addons : *sawaddons
+  - os : linux
+    dist: trusty
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true GCC_VERSION=NONE
+    addons : *sawaddons
+  - os : linux
+    dist: trusty
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true GCC_VERSION=NONE
+    addons : *sawaddons
+  - os : linux
+    dist: trusty
+    env: TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true GCC_VERSION=NONE
+    addons : *sawaddons
+  - os : linux
+    dist: trusty
+    env: TESTS=sawDRBG SAW=true GCC_VERSION=NONE
+    addons : *sawaddons
+  - os : linux
+    dist: trusty
+    env: TESTS=sawSIKE_r1 SAW=true GCC_VERSION=NONE
+    addons : *sawaddons
+  - os : linux
+    dist: trusty
+    env: TESTS=sawBIKE_r1 SAW=true GCC_VERSION=NONE S2N_LIBCRYPTO=openssl-1.0.2
+    addons : *sawaddons
+  - os : linux
+    dist: trusty
+    env: TESTS=tls SAW=true GCC_VERSION=NONE
+    addons : *sawaddons
+  - os : linux
+    dist: trusty
+    env: TESTS=sawHMACFailure SAW=true
+    addons : *sawaddons
+
 # Code Coverage Targets, will upload code coverage metrics during Pull Requests
   - os: linux
     dist: bionic
@@ -80,65 +139,6 @@ jobs:
   - os: linux
     dist: bionic
     env: S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=valgrind GCC_VERSION=6
-
-# Formal Verification - Sidetrail
-  - os : linux
-    dist: trusty
-    env: TESTS=sidetrail PART=1
-
-  - os : linux
-    dist: trusty
-    env: TESTS=sidetrail PART=2
-
-# Formal Verification - SAW
-  - os : linux
-    dist: trusty
-    env: TESTS=sawHMAC SAW_HMAC_TEST=md5 SAW=true GCC_VERSION=NONE
-    addons: &sawaddons
-      apt:
-        packages:
-          - clang-3.8
-          - llvm-3.8
-  - os : linux
-    dist: trusty
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha1   SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    dist: trusty
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha224 SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    dist: trusty
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    dist: trusty
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    dist: trusty
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    dist: trusty
-    env: TESTS=sawDRBG SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    dist: trusty
-    env: TESTS=sawSIKE_r1 SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    dist: trusty
-    env: TESTS=sawBIKE_r1 SAW=true GCC_VERSION=NONE S2N_LIBCRYPTO=openssl-1.0.2
-    addons : *sawaddons
-  - os : linux
-    dist: trusty
-    env: TESTS=tls SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    dist: trusty
-    env: TESTS=sawHMACFailure SAW=true
-    addons : *sawaddons
 
 before_install:
   - source .travis/s2n_setup_env.sh
