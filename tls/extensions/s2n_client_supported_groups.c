@@ -42,3 +42,25 @@ int s2n_extensions_client_supported_groups_send(struct s2n_connection *conn, str
     
     return 0;
 }
+
+int s2n_recv_client_supported_groups(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    uint16_t size_of_all;
+    struct s2n_blob proposed_curves = {0};
+
+    GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
+    if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all % 2) {
+        /* Malformed length, ignore the extension */
+        return 0;
+    }
+
+    proposed_curves.size = size_of_all;
+    proposed_curves.data = s2n_stuffer_raw_read(extension, proposed_curves.size);
+    notnull_check(proposed_curves.data);
+
+    if (s2n_ecc_evp_find_supported_curve(&proposed_curves, &conn->secure.server_ecc_evp_params.negotiated_curve) != 0) {
+        /* Can't agree on a curve, ECC is not allowed. Return success to proceed with the handshake. */
+        conn->secure.server_ecc_evp_params.negotiated_curve = NULL;
+    }
+    return 0;
+}
