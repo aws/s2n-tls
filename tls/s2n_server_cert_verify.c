@@ -81,20 +81,23 @@ int s2n_server_cert_verify_recv(struct s2n_connection *conn)
 
 int s2n_server_write_cert_verify_signature(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
+    notnull_check(conn->handshake_params.our_chain_and_key);
+    const struct s2n_pkey *pkey = conn->handshake_params.our_chain_and_key->private_key;
+
     DEFER_CLEANUP(struct s2n_blob signed_content = {0}, s2n_free);
     DEFER_CLEANUP(struct s2n_hash_state message_hash = {0}, s2n_hash_free);
     DEFER_CLEANUP(struct s2n_stuffer unsigned_content = {0}, s2n_stuffer_free);
     GUARD(s2n_hash_new(&message_hash));
     GUARD(s2n_hash_init(&message_hash, conn->secure.conn_sig_scheme.hash_alg));
 
-    uint32_t maximum_signature_length = s2n_pkey_size(conn->handshake_params.our_chain_and_key->private_key);
+    uint32_t maximum_signature_length = s2n_pkey_size(pkey);
     GUARD(s2n_alloc(&signed_content, maximum_signature_length));
     signed_content.size = maximum_signature_length;
 
     GUARD(s2n_server_generate_unsigned_cert_verify_content(conn, &unsigned_content, conn->secure.conn_sig_scheme.hash_alg));
 
     GUARD(s2n_hash_update(&message_hash, unsigned_content.blob.data, s2n_stuffer_data_available(&unsigned_content)));
-    GUARD(s2n_pkey_sign(conn->handshake_params.our_chain_and_key->private_key, &message_hash, &signed_content));
+    GUARD(s2n_pkey_sign(pkey, &message_hash, &signed_content));
 
     GUARD(s2n_stuffer_write_uint16(out, signed_content.size));
     GUARD(s2n_stuffer_write_bytes(out, signed_content.data, signed_content.size));
