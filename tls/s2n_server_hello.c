@@ -74,7 +74,7 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
     if (conn->server_protocol_version >= S2N_TLS13) {
         /* verify if it is a hello retry request*/
         if (s2n_is_hello_retry_req(conn)) {
-            GUARD(s2n_client_hello_retry_recv(conn));
+            GUARD(s2n_server_hello_retry_recv(conn));
         }
         /* Check echoed session ID matches */
         S2N_ERROR_IF(session_id_len != conn->session_id_len || memcmp(session_id, conn->session_id, session_id_len), S2N_ERR_BAD_MESSAGE);

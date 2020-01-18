@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_retry_send(NULL), S2N_ERR_UNIMPLEMENTED);
-    EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_retry_recv(NULL), S2N_ERR_UNIMPLEMENTED);
+    EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_send(NULL), S2N_ERR_UNIMPLEMENTED);
+    EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(NULL), S2N_ERR_UNIMPLEMENTED);
 
     END_TEST();
 }
