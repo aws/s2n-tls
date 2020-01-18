@@ -36,6 +36,14 @@ PROTO_VERS_TO_S_SERVER_ARG = {
 
 use_corked_io=False
 
+
+def get_supported_curves_list_by_version(libcrypto_version):
+   # Curve X25519 is supported for Openssl 1.1.0 and higher
+    if libcrypto_version == "openssl-1.1.1":
+        return ["P-256", "P-384", "X25519"]
+    else:
+        return ["P-256", "P-384"]
+
 def cleanup_processes(*processes):
     for p in processes:
         p.kill()
@@ -291,12 +299,12 @@ def sigalg_test(host, port):
     return failed
 
 
-def elliptic_curve_test(host, port):
+def elliptic_curve_test(host, port, libcrypto_version):
     """
     Acceptance test for supported elliptic curves. Tests all possible supported curves with unsupported curves mixed in
     for noise.
     """
-    supported_curves = ["P-256", "P-384"]
+    supported_curves = get_supported_curves_list_by_version(libcrypto_version)
     unsupported_curves = ["B-163", "K-409"]
     print("\n\tRunning s2n Client elliptic curve tests:")
     print("\tExpected supported:   " + str(supported_curves))
@@ -334,6 +342,7 @@ def main():
     test_ciphers = S2N_LIBCRYPTO_TO_TEST_CIPHERS[args.libcrypto]
     host = args.host
     port = args.port
+    libcrypto_version = args.libcrypto
 
     print("\nRunning s2n Client tests with: " + os.popen('openssl version').read())
     if use_corked_io == True:
@@ -344,7 +353,7 @@ def main():
     failed += handshake_resumption_test(host, port, no_ticket=True)
     failed += handshake_resumption_test(host, port)
     failed += sigalg_test(host, port)
-    failed += elliptic_curve_test(host, port)
+    failed += elliptic_curve_test(host, port, libcrypto_version)
     return failed
 
 

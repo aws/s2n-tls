@@ -59,6 +59,20 @@ class TlsExtensionServerName:
 
 use_corked_io=False
 
+def get_supported_curves_list_by_version(libcrypto_version):
+   # Curve X25519 is supported for Openssl 1.1.0 and higher
+    if libcrypto_version == "openssl-1.1.1":
+        return  ["P-256", "P-384", "X25519"]
+    else:
+        return  ["P-256", "P-384"]
+
+def get_supported_curves_str_by_version(libcrypto_version):
+   # Curve X25519 is supported for Openssl 1.1.0 and higher
+    if libcrypto_version == "openssl-1.1.1":
+        return "P-256:P-384:X25519"
+    else:
+        return "P-256:P-384"
+
 def cleanup_processes(*processes):
     for p in processes:
         p.kill()
@@ -543,12 +557,12 @@ def sigalg_test(host, port, fips_mode, use_client_auth=None, no_ticket=False):
 
     return failed
 
-def elliptic_curve_test(host, port, fips_mode):
+def elliptic_curve_test(host, port, libcrypto_version, fips_mode):
     """
     Acceptance test for supported elliptic curves. Tests all possible supported curves with unsupported curves mixed in
     for noise.
     """
-    supported_curves = ["P-256", "P-384"]
+    supported_curves = get_supported_curves_list_by_version(libcrypto_version)
     unsupported_curves = ["B-163", "K-409"]
     print("\n\tRunning elliptic curve tests:")
     print("\tExpected supported:   " + str(supported_curves))
@@ -630,7 +644,7 @@ def ocsp_stapling_test(host, port, fips_mode):
 
     return failed
 
-def cert_type_cipher_match_test(host, port):
+def cert_type_cipher_match_test(host, port, libcrypto_version):
     """
     Test s2n server's ability to correctly choose ciphers. (Especially RSA vs ECDSA)
     """
@@ -638,7 +652,7 @@ def cert_type_cipher_match_test(host, port):
     failed = 0
 
     cipher = "ALL"
-    supported_curves = "P-256:P-384"
+    supported_curves = get_supported_curves_str_by_version(libcrypto_version)
 
     # Handshake with RSA cert + ECDSApriority server cipher pref (must skip ecdsa ciphers)
     rsa_ret = try_handshake(host, port, cipher, None, curves=supported_curves,
@@ -658,7 +672,7 @@ def cert_type_cipher_match_test(host, port):
 
     return failed
 
-def multiple_cert_type_test(host, port):
+def multiple_cert_type_test(host, port, libcrypto_version):
     """
     Test s2n server's ability to correctly choose ciphers and serve the correct cert depending on the auth type for a
     given cipher.
@@ -667,7 +681,7 @@ def multiple_cert_type_test(host, port):
 
     # Basic handshake with ECDSA cert + RSA cert
     for cipher in ["ECDHE-ECDSA-AES128-SHA", "ECDHE-RSA-AES128-GCM-SHA256"]:
-        supported_curves = "P-256:P-384"
+        supported_curves = get_supported_curves_str_by_version(libcrypto_version)
         server_prefs = "test_all"
         ret = try_handshake(host, port, cipher, None, curves=supported_curves,
                 server_cert_key_list=[(TEST_RSA_CERT, TEST_RSA_KEY),(TEST_ECDSA_CERT, TEST_ECDSA_KEY)],
@@ -679,7 +693,7 @@ def multiple_cert_type_test(host, port):
 
     # Handshake with ECDSA + RSA cert but no ecdsa ciphers configured on the server
     for cipher in ["ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-GCM-SHA256", "AES128-SHA"]:
-        supported_curves = "P-256:P-384"
+        supported_curves = get_supported_curves_str_by_version(libcrypto_version)
         server_prefs = "20170210"
         ret = try_handshake(host, port, cipher, None, curves=supported_curves,
                 server_cert_key_list=[(TEST_RSA_CERT, TEST_RSA_KEY),(TEST_ECDSA_CERT, TEST_ECDSA_KEY)],
@@ -691,7 +705,7 @@ def multiple_cert_type_test(host, port):
 
     # Handshake with ECDSA + RSA cert but no rsa ciphers configured on the server
     for cipher in ["ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-GCM-SHA256", "ECDHE-ECDSA-AES256-SHA"]:
-        supported_curves = "P-256:P-384"
+        supported_curves = get_supported_curves_str_by_version(libcrypto_version)
         server_prefs = "test_all_ecdsa"
         ret = try_handshake(host, port, cipher, None, curves=supported_curves,
                 server_cert_key_list=[(TEST_RSA_CERT, TEST_RSA_KEY),(TEST_ECDSA_CERT, TEST_ECDSA_KEY)],
@@ -758,6 +772,7 @@ def main():
     test_ciphers = S2N_LIBCRYPTO_TO_TEST_CIPHERS[args.libcrypto]
     host = args.host
     port = args.port
+    libcrypto_version = args.libcrypto
 
     fips_mode = False
     if environ.get("S2N_TEST_IN_FIPS_MODE") is not None:
@@ -775,12 +790,12 @@ def main():
     failed += client_auth_test(host, port, test_ciphers, fips_mode)
     failed += sigalg_test(host, port, fips_mode)
     failed += sigalg_test(host, port, fips_mode, use_client_auth=True, no_ticket=True)
-    failed += elliptic_curve_test(host, port, fips_mode)
+    failed += elliptic_curve_test(host, port, libcrypto_version, fips_mode)
     failed += elliptic_curve_fallback_test(host, port, fips_mode)
     failed += handshake_fragmentation_test(host, port, fips_mode)
     failed += ocsp_stapling_test(host, port, fips_mode)
-    failed += cert_type_cipher_match_test(host, port)
-    failed += multiple_cert_type_test(host, port)
+    failed += cert_type_cipher_match_test(host, port, libcrypto_version)
+    failed += multiple_cert_type_test(host, port, libcrypto_version)
     failed += multiple_cert_domain_name_test(host, port)
 
     return failed
