@@ -147,8 +147,8 @@ int s2n_record_parse(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_parse_record_type(struct s2n_stuffer *stuffer, uint8_t * record_type) {
-
+int s2n_parse_record_type(struct s2n_stuffer *stuffer, uint8_t * record_type) 
+{
     GUARD(s2n_stuffer_skip_read(stuffer, s2n_stuffer_data_available(stuffer) - 1));
 
     /* set the true record type */
