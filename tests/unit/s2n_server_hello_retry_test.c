@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -13,14 +13,17 @@
  * permissions and limitations under the License.
  */
 
+#include "s2n_test.h"
+
+#include "tls/s2n_tls.h"
 #include "error/s2n_errno.h"
 
-int s2n_client_hello_retry_send(struct s2n_connection *conn)
+int main(int argc, char **argv)
 {
-    S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
-}
+    BEGIN_TEST();
 
-int s2n_client_hello_retry_recv(struct s2n_connection *conn)
-{
-    S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
+    EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_send(NULL), S2N_ERR_UNIMPLEMENTED);
+    EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(NULL), S2N_ERR_UNIMPLEMENTED);
+
+    END_TEST();
 }
