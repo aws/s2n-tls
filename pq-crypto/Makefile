@@ -37,6 +37,10 @@ sike_r2_bc: $(BCS1)
 bike_r1_bc: $(BCS1)
 	$(MAKE) -C bike_r1 bc
 
+.PHONY : bike_r2_bc
+bike_r2_bc: $(BCS1)
+	$(MAKE) -C bike_r2 bc
+
 .PHONY : run-gcov
 run-gcov: gcov
 	$(MAKE) -C sike_r1 gcov

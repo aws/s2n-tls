@@ -1,0 +1,4 @@
+133c133
+< typedef ALIGN(64) struct syndrome_s
+---
+> typedef struct syndrome_s

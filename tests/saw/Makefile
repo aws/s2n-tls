@@ -201,6 +201,9 @@ sike_r2_x86_patched_bitcode :
 .PHONY : bike_r1_patched_bitcode
 bike_r1_patched_bitcode : bitcode/bike_r1_llvm.bc
 
+.PHONY : bike_r2_patched_bitcode
+bike_r2_patched_bitcode : bitcode/bike_r2_llvm.bc
+
 ########################################################
 ## Rules to copy the s2n directory for patching and bulding
 ########################################################
@@ -219,6 +222,9 @@ SIKE_R2_COPY = $(addprefix s2n/pq-crypto/sike_r2/, $(notdir $(SIKE_R2_C)))
 
 BIKE_R1_C = $(wildcard ../../pq-crypto/bike_r1/*.c) $(wildcard ../../pq-crypto/bike_r1/*.h) ../../pq-crypto/bike_r1/Makefile
 BIKE_R1_COPY = $(addprefix s2n/pq-crypto/bike_r1/, $(notdir $(BIKE_R1_C)))
+
+BIKE_R2_C = $(wildcard ../../pq-crypto/bike_r2/*.c) $(wildcard ../../pq-crypto/bike_r2/*.h) ../../pq-crypto/bike_r2/Makefile
+BIKE_R2_COPY = $(addprefix s2n/pq-crypto/bike_r2/, $(notdir $(BIKE_R2_C)))
 
 UTILS_C = $(wildcard ../../utils/*.c) $(wildcard ../../utils/*.h) ../../utils/Makefile
 UTILS_COPY =$(addprefix s2n/utils/, $(notdir $(UTILS_C)))
@@ -253,6 +259,9 @@ s2n/pq-crypto/sike_r2 :
 	mkdir -p $@
 
 s2n/pq-crypto/bike_r1 :
+	mkdir -p $@
+
+s2n/pq-crypto/bike_r2 :
 	mkdir -p $@
 
 s2n/utils :
@@ -300,6 +309,15 @@ bitcode/bike_r1_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike_r1 s2n/uti
 	${MAKE} -C s2n bike_r1_bc
 	${MAKE} -C bitcode bike_r1_llvm.bc
 
+.PHONY : bitcode/bike_r2_llvm.bc
+bitcode/bike_r2_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike_r2 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(BIKE_R2_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
+	patch s2n/pq-crypto/bike_r2/types.h bike_r2/patch/types.h.patch
+	patch s2n/pq-crypto/bike_r2/cleanup.h bike_r2/patch/cleanup.h.patch
+	patch s2n/pq-crypto/bike_r2/sampling_portable.c bike_r2/patch/sampling_portable.c.patch
+	patch s2n/pq-crypto/bike_r2/sampling.c bike_r2/patch/sampling.c.patch
+	patch s2n/pq-crypto/bike_r2/bike_r2_kem.c bike_r2/patch/bike_r2_kem.c.patch
+	${MAKE} -C s2n bike_r2_bc
+	${MAKE} -C bitcode bike_r2_llvm.bc
 
 s2n/%.h : ../../%.h
 	cp $< $@
