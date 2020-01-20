@@ -183,13 +183,9 @@ const struct s2n_signature_scheme* const s2n_supported_sig_scheme_pref_list[] = 
         &s2n_rsa_pkcs1_sha512,
         &s2n_rsa_pkcs1_sha224,
 
-        /* ECDSA - TLS 1.3 */
-        &s2n_ecdsa_secp256r1_sha256,
-        &s2n_ecdsa_secp384r1_sha384,
-
-        /* ECDSA - TLS 1.2*/
-        &s2n_ecdsa_sha256,
-        &s2n_ecdsa_sha384,
+        /* ECDSA - TLS 1.2 */
+        &s2n_ecdsa_sha256, /* same iana value as TLS 1.3 s2n_ecdsa_secp256r1_sha256 */
+        &s2n_ecdsa_sha384, /* same iana value as TLS 1.3 s2n_ecdsa_secp384r1_sha384 */
         &s2n_ecdsa_sha512,
         &s2n_ecdsa_sha224,
 
