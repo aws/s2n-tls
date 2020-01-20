@@ -60,7 +60,7 @@ int s2n_create_cert_chain_from_stuffer(struct s2n_cert_chain *cert_chain_out, st
     struct s2n_cert **insert = &cert_chain_out->head;
     uint32_t chain_size = 0;
     do {
-        struct s2n_cert *new_node;
+        struct s2n_cert *new_node = NULL;
 
         if (s2n_stuffer_certificate_from_pem(chain_in_stuffer, &cert_out_stuffer) < 0) {
             if (chain_size == 0) {
@@ -74,7 +74,11 @@ int s2n_create_cert_chain_from_stuffer(struct s2n_cert_chain *cert_chain_out, st
         new_node = (struct s2n_cert *)(void *)mem.data;
 
         GUARD(s2n_alloc(&new_node->raw, s2n_stuffer_data_available(&cert_out_stuffer)));
-        GUARD(s2n_stuffer_read(&cert_out_stuffer, &new_node->raw));
+        if (s2n_stuffer_read(&cert_out_stuffer, &new_node->raw) != S2N_SUCCESS) {
+            GUARD(s2n_stuffer_free(&cert_out_stuffer));
+            GUARD(s2n_free(&mem));
+            S2N_ERROR_PRESERVE_ERRNO();
+        }
 
         /* Additional 3 bytes for the length field in the protocol */
         chain_size += new_node->raw.size + 3;
