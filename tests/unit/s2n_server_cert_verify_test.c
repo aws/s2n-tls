@@ -21,6 +21,8 @@
 #include "error/s2n_errno.h"
 #include "crypto/s2n_ecdsa.h"
 
+#include "tls/s2n_server_cert_verify.c"
+
 uint8_t hello[] = "Hello, World!\n";
 uint8_t goodbye[] = "Goodbye, World!\n";
 
@@ -43,8 +45,9 @@ int main(int argc, char **argv)
         char *private_key_pem;
         s2n_pkey_type pkey_type;
 
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn, *server_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
@@ -54,44 +57,44 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(ecdsa_cert, cert_chain_pem, private_key_pem));
-        
+
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert));
-        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
-        client_conn->handshake_params.our_chain_and_key = ecdsa_cert;
-        client_conn->secure.conn_sig_scheme = s2n_ecdsa_secp256r1_sha256;
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+        server_conn->handshake_params.our_chain_and_key = ecdsa_cert;
+        server_conn->secure.conn_sig_scheme = s2n_ecdsa_secp256r1_sha256;
 
         b.data = (uint8_t *) cert_chain_pem;
         b.size = strlen(cert_chain_pem) + 1;
         EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));
         EXPECT_SUCCESS(s2n_stuffer_certificate_from_pem(&certificate_in, &certificate_out));
 
-        /* Extract public key from certificate */
+        /* Extract public key from certificate and set it for client */
         b.size = s2n_stuffer_data_available(&certificate_out);
         b.data = s2n_stuffer_raw_read(&certificate_out, b.size);
         EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&client_conn->secure.server_public_key, &pkey_type, &b));
-
-        EXPECT_SUCCESS(s2n_pkey_match(&client_conn->secure.server_public_key, client_conn->handshake_params.our_chain_and_key->private_key));
+        EXPECT_SUCCESS(s2n_pkey_match(&client_conn->secure.server_public_key, server_conn->handshake_params.our_chain_and_key->private_key));
 
         /* Hash initialization */
+        EXPECT_SUCCESS(s2n_hash_init(&server_conn->handshake.sha256, S2N_HASH_SHA256));
+        EXPECT_SUCCESS(s2n_hash_update(&server_conn->handshake.sha256, hello, strlen((char *)hello)));
         EXPECT_SUCCESS(s2n_hash_init(&client_conn->handshake.sha256, S2N_HASH_SHA256));
         EXPECT_SUCCESS(s2n_hash_update(&client_conn->handshake.sha256, hello, strlen((char *)hello)));
 
-        /* Send and receive cert verify */
-        EXPECT_SUCCESS(s2n_server_cert_verify_send(client_conn));
+        /* Send cert verify */
+        EXPECT_SUCCESS(s2n_server_cert_verify_send(server_conn));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io, s2n_stuffer_data_available(&server_conn->handshake.io)));
 
-        /* Reinitialize hash */
-        EXPECT_SUCCESS(s2n_hash_init(&client_conn->handshake.sha256, S2N_HASH_SHA256));
-        EXPECT_SUCCESS(s2n_hash_update(&client_conn->handshake.sha256, hello, strlen((char *)hello)));
-
+        /* Receive and verify cert */
         EXPECT_SUCCESS(s2n_server_cert_verify_recv(client_conn));
+        EXPECT_EQUAL(client_conn->secure.conn_sig_scheme.iana_value, TLS_SIGNATURE_SCHEME_ECDSA_SHA256);
 
         /* Clean up */
         free(cert_chain_pem);
         free(private_key_pem);
-        EXPECT_SUCCESS(s2n_pkey_free(&client_conn->secure.server_public_key));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert));
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_in));
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_out));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
 
@@ -268,7 +271,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_hash_init(&client_conn->handshake.sha256, S2N_HASH_SHA256));
         EXPECT_SUCCESS(s2n_hash_update(&client_conn->handshake.sha256, hello, strlen((char *)hello)));
 
-        EXPECT_FAILURE(s2n_server_cert_verify_recv(client_conn));
+        EXPECT_FAILURE(s2n_server_cert_read_and_verify_signature(client_conn));
 
         /* send and receive with mismatched signature algs */
         client_conn->secure.conn_sig_scheme.hash_alg = S2N_HASH_SHA256;

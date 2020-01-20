@@ -38,52 +38,67 @@ int s2n_server_cert_verify_send(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_server_cert_verify_recv(struct s2n_connection *conn)
+int s2n_server_cert_read_and_verify_signature(struct s2n_connection *conn)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
     DEFER_CLEANUP(struct s2n_blob signed_content = {0}, s2n_free);
     DEFER_CLEANUP(struct s2n_stuffer unsigned_content = {0}, s2n_stuffer_free);
     DEFER_CLEANUP(struct s2n_hash_state message_hash = {0}, s2n_hash_free);
     GUARD(s2n_hash_new(&message_hash));
-    GUARD(s2n_hash_init(&message_hash, conn->secure.conn_sig_scheme.hash_alg));
+
+    struct s2n_signature_scheme chosen_sig_scheme = conn->secure.conn_sig_scheme;
+
+    /* Get signature size */
     uint16_t signature_size;
-
-    /* Read the algorithm */
-    struct s2n_signature_scheme chosen_sig_scheme = {0};
-    GUARD(s2n_get_and_validate_negotiated_signature_scheme(conn, in, &chosen_sig_scheme));
-
-    /* Verify signature */
     GUARD(s2n_stuffer_read_uint16(in, &signature_size));
     S2N_ERROR_IF(signature_size > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
 
+    /* Get wire signature */
     GUARD(s2n_alloc(&signed_content, signature_size));
     signed_content.size = signature_size;
     GUARD(s2n_stuffer_read_bytes(in, signed_content.data, signature_size));
 
+    /* Verify signature */
     GUARD(s2n_server_generate_unsigned_cert_verify_content(conn, &unsigned_content, chosen_sig_scheme.hash_alg));
+
+    GUARD(s2n_hash_init(&message_hash, chosen_sig_scheme.hash_alg));
     GUARD(s2n_hash_update(&message_hash, unsigned_content.blob.data, s2n_stuffer_data_available(&unsigned_content)));
     GUARD(s2n_pkey_verify(&conn->secure.server_public_key, &message_hash, &signed_content));
 
     return 0;
 }
 
+
+int s2n_server_cert_verify_recv(struct s2n_connection *conn)
+{
+    /* Read the algorithm and update conn->secure.conn_sig_scheme */
+    GUARD(s2n_get_and_validate_negotiated_signature_scheme(conn, &conn->handshake.io, &conn->secure.conn_sig_scheme));
+    /* Read the rest of the signature and verify */
+    GUARD(s2n_server_cert_read_and_verify_signature(conn));
+
+    return 0;
+}
+
 int s2n_server_write_cert_verify_signature(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
+    notnull_check(conn->handshake_params.our_chain_and_key);
+    const struct s2n_pkey *pkey = conn->handshake_params.our_chain_and_key->private_key;
+
     DEFER_CLEANUP(struct s2n_blob signed_content = {0}, s2n_free);
     DEFER_CLEANUP(struct s2n_hash_state message_hash = {0}, s2n_hash_free);
     DEFER_CLEANUP(struct s2n_stuffer unsigned_content = {0}, s2n_stuffer_free);
     GUARD(s2n_hash_new(&message_hash));
     GUARD(s2n_hash_init(&message_hash, conn->secure.conn_sig_scheme.hash_alg));
 
-    uint32_t maximum_signature_length = s2n_pkey_size(conn->handshake_params.our_chain_and_key->private_key);
+    uint32_t maximum_signature_length = s2n_pkey_size(pkey);
     GUARD(s2n_alloc(&signed_content, maximum_signature_length));
     signed_content.size = maximum_signature_length;
 
     GUARD(s2n_server_generate_unsigned_cert_verify_content(conn, &unsigned_content, conn->secure.conn_sig_scheme.hash_alg));
 
     GUARD(s2n_hash_update(&message_hash, unsigned_content.blob.data, s2n_stuffer_data_available(&unsigned_content)));
-    GUARD(s2n_pkey_sign(conn->handshake_params.our_chain_and_key->private_key, &message_hash, &signed_content));
-    
+    GUARD(s2n_pkey_sign(pkey, &message_hash, &signed_content));
+
     GUARD(s2n_stuffer_write_uint16(out, signed_content.size));
     GUARD(s2n_stuffer_write_bytes(out, signed_content.data, signed_content.size));
 
@@ -92,14 +107,20 @@ int s2n_server_write_cert_verify_signature(struct s2n_connection *conn, struct s
 
 int s2n_server_generate_unsigned_cert_verify_content(struct s2n_connection *conn, struct s2n_stuffer *unsigned_content, s2n_hash_algorithm chosen_hash_alg)
 {
-    struct s2n_hash_state hash_copy;
+    struct s2n_hash_state selected_hash, hash_copy;
     uint8_t hash_digest_length;
     uint8_t digest_out[S2N_MAX_DIGEST_LEN];
 
+    /* Get current hash content */
+    GUARD(s2n_handshake_get_hash_state(conn, chosen_hash_alg, &selected_hash));
+
     /* Copy current hash content */
-    GUARD(s2n_handshake_get_hash_state(conn, chosen_hash_alg, &hash_copy));
+    GUARD(s2n_hash_new(&hash_copy));
+    GUARD(s2n_hash_copy(&hash_copy, &selected_hash));
+
     GUARD(s2n_hash_digest_size(chosen_hash_alg, &hash_digest_length));
     GUARD(s2n_hash_digest(&hash_copy, digest_out, hash_digest_length));
+    GUARD(s2n_hash_free(&hash_copy));
 
     /* Concatenate the content to be signed/verified */
     GUARD(s2n_stuffer_alloc(unsigned_content, hash_digest_length + s2n_server_cert_verify_header_length()));
