@@ -49,7 +49,6 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
         *record_type = TLS_APPLICATION_DATA;
         return 0;
     }
-
     GUARD(s2n_stuffer_resize_if_empty(&conn->in, S2N_LARGE_FRAGMENT_LENGTH));
 
     /* Read the record until we at least have a header */
@@ -120,6 +119,14 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
     if (s2n_record_parse(conn) < 0) {
         GUARD(s2n_connection_kill(conn));
         S2N_ERROR_PRESERVE_ERRNO();
+    }
+
+    /* In TLS 1.3, encrypted handshake records would appear to be of record type
+    * TLS_APPLICATION_DATA. The actual record content type is found after the encrypted
+    * is decrypted.
+    */
+    if (conn->actual_protocol_version == S2N_TLS13 && *record_type == TLS_APPLICATION_DATA) {
+        GUARD(s2n_parse_record_type(&conn->in, record_type));
     }
 
     return 0;
@@ -228,3 +235,4 @@ int s2n_recv_close_notify(struct s2n_connection *conn, s2n_blocked_status * bloc
     *blocked = S2N_NOT_BLOCKED;
     return 0;
 }
+
