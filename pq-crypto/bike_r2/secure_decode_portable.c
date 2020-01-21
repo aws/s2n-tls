@@ -35,7 +35,7 @@ rotr_big(OUT syndrome_t *out, IN const syndrome_t *in, IN size_t qw_num)
   for(uint32_t idx = R_QW_HALF_LOG2; idx >= 1; idx >>= 1)
   {
     // Convert 32 bit mask to 64 bit mask
-    const uint64_t mask = ((uint32_t)secure_l32_mask(qw_num, idx) + 1U) - 1UL;
+    const uint64_t mask = ((uint32_t)secure_l32_mask(qw_num, idx) + 1U) - 1ULL;
     qw_num              = qw_num - (idx & mask);
 
     // Rotate R_QW quadwords and another idx quadwords needed by the next

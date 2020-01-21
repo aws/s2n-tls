@@ -25,8 +25,8 @@
 
 #define MAX_REM_LEN (MAX_MB_SLICES * HASH_BLOCK_SIZE)
 
-// We must ensure that the compiler does not add padding between x and y,
-// because the entire structore goes into the hash function.
+// We must ensure that the compiler does not add padding between x and y, because
+// the entire structore goes into the hash function.
 #pragma pack(push, 1)
 
 // The struct below is a concatination of eight slices and Y.

@@ -142,8 +142,8 @@ secure_l32_mask(IN const uint32_t v1, IN const uint32_t v2)
 {
 #if defined(__aarch64__)
   uint32_t res;
-  __asm__ __volatile__("cmp  %w1, %w2; \n "
-                       "cset %w0, LS; \n"
+  __asm__ __volatile__("cmp  %w2, %w1; \n "
+                       "cset %w0, HI; \n"
                        : "=r"(res)
                        : "r"(v1), "r"(v2)
                        :);

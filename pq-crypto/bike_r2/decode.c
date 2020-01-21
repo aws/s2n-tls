@@ -19,8 +19,8 @@
  *
  * [1] The optimizations are based on the description developed in the paper:
  *     Drucker, Nir, and Shay Gueron. 2019. “A Toolbox for Software Optimization
- *     of QC-MDPC Code-Based Cryptosystems.” Journal of Cryptographic
- * Engineering, January, 1–17. https://doi.org/10.1007/s13389-018-00200-4.
+ *     of QC-MDPC Code-Based Cryptosystems.” Journal of Cryptographic Engineering,
+ *     January, 1–17. https://doi.org/10.1007/s13389-018-00200-4.
  *
  * [2] The decoder algorithm is the Black-Gray decoder in
  *     the early submission of CAKE (due to N. Sandrier and R Misoczki).
@@ -243,10 +243,10 @@ find_err1(OUT split_e_t *e,
     bit_slice_full_subtract(&upc, threshold);
 
     // 3) Update the errors and the black errors vectors.
-    //    The last slice of the UPC array holds the MSB of the accumulated
-    //    values minus the threshold. Every zero bit indicates a potential error
-    //    bit. The errors values are stored in the black array and xored with
-    //    the errors Of the previous iteration.
+    //    The last slice of the UPC array holds the MSB of the accumulated values
+    //    minus the threshold. Every zero bit indicates a potential error bit.
+    //    The errors values are stored in the black array and xored with the
+    //    errors Of the previous iteration.
     const r_t *last_slice = &(upc.slice[SLICES - 1].u.r.val);
     for(size_t j = 0; j < R_SIZE; j++)
     {
@@ -306,9 +306,8 @@ find_err2(OUT split_e_t *e,
     bit_slice_full_subtract(&upc, threshold);
 
     // 3) Update the errors vector.
-    //    The last slice of the UPC array holds the MSB of the accumulated
-    //    values minus the threshold. Every zero bit indicates a potential error
-    //    bit.
+    //    The last slice of the UPC array holds the MSB of the accumulated values
+    //    minus the threshold. Every zero bit indicates a potential error bit.
     const r_t *last_slice = &(upc.slice[SLICES - 1].u.r.val);
     for(size_t j = 0; j < R_SIZE; j++)
     {

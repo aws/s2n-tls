@@ -26,9 +26,8 @@
 // The algorithm is based on the windowing method, for example as in:
 // Brent, R. P., Gaudry, P., Thomé, E., & Zimmermann, P. (2008, May), "Faster
 // multiplication in GF (2)[x]". In: International Algorithmic Number Theory
-// Symposium (pp. 153-166). Springer, Berlin, Heidelberg. In this
-// implementation, the last three bits are multiplied using a schoolbook
-// multiplicaiton.
+// Symposium (pp. 153-166). Springer, Berlin, Heidelberg. In this implementation,
+// the last three bits are multiplied using a schoolbook multiplicaiton.
 void
 gf2x_mul_1x1(uint64_t *c, uint64_t a, uint64_t b)
 {

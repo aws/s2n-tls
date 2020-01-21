@@ -23,6 +23,7 @@
 #include "gf2x_internal.h"
 #include <stdlib.h>
 #include <string.h>
+#include "cleanup.h"
 
 #ifndef USE_OPENSSL_GF2M
 
