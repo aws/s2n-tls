@@ -76,7 +76,7 @@ typedef uint32_t hdigit_t; // Unsigned 32-bit digit
 #define RADIX64 64
 
 // Extended datatype support
-#if defined(GENERIC_IMPLEMENTATION)
+#if defined(S2N_PQ_GENERIC)
 typedef uint64_t uint128_t[2];
 #elif (TARGET == TARGET_AMD64 && OS_TARGET == OS_LINUX)
 typedef unsigned uint128_t __attribute__((mode(TI)));
@@ -113,7 +113,7 @@ unsigned int is_digit_lessthan_ct(digit_t x, digit_t y) { // Is x < y?
 
 /********************** Macros for platform-dependent operations **********************/
 
-#if defined(GENERIC_IMPLEMENTATION) || (TARGET == TARGET_ARM)
+#if defined(S2N_PQ_GENERIC) || (TARGET == TARGET_ARM)
 
 // Digit multiplication
 #define MUL(multiplier, multiplicand, hi, lo) \

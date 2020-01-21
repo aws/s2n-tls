@@ -61,7 +61,7 @@ jobs:
   - os: linux
     dist: bionic
     # Force S2N to use the generic C code for SIKE round 2 (instead of the optimized x86_64 assembly code)
-    env: S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=9 S2N_SIKE_R2_FORCE_GENERIC=true
+    env: S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=9 S2N_NO_PQ_ASM=true
 
 # Fuzz Tests
   - os: linux

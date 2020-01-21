@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -13,14 +13,19 @@
  * permissions and limitations under the License.
  */
 
-#include "error/s2n_errno.h"
+#include "api/s2n.h"
+#include "stuffer/s2n_stuffer.h"
+#include <assert.h>
+#include <cbmc_proof/proof_allocators.h>
+#include <cbmc_proof/make_common_datastructures.h>
 
-int s2n_client_hello_retry_send(struct s2n_connection *conn)
-{
-    S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
-}
+void s2n_stuffer_wipe_n_harness() {
+  struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
+  int n;
 
-int s2n_client_hello_retry_recv(struct s2n_connection *conn)
-{
-    S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
+  __CPROVER_assume( s2n_stuffer_is_valid(stuffer) );
+
+  if (s2n_stuffer_wipe_n(stuffer, n) == S2N_SUCCESS){
+    assert(s2n_stuffer_is_valid(stuffer));
+  };
 }

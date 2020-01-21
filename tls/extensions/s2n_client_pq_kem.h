@@ -19,3 +19,4 @@
 #include "stuffer/s2n_stuffer.h"
 
 extern int s2n_extensions_client_pq_kem_send(struct s2n_connection *conn, struct s2n_stuffer *out, uint16_t pq_kem_list_size);
+extern int s2n_recv_pq_kem_extension(struct s2n_connection *conn, struct s2n_stuffer *extension);

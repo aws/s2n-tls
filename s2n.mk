@@ -60,9 +60,9 @@ ifdef S2N_TEST_IN_FIPS_MODE
     DEFAULT_CFLAGS += -DS2N_TEST_IN_FIPS_MODE
 endif
 
-# Force the usage of generic C code for round 2 SIKE, even if the optimized assembly could be used
-ifdef S2N_SIKE_R2_FORCE_GENERIC
-	DEFAULT_CFLAGS += -DS2N_SIKE_R2_FORCE_GENERIC
+# Force the usage of generic C code for PQ crypto, even if the optimized assembly could be used
+ifdef S2N_NO_PQ_ASM
+	DEFAULT_CFLAGS += -DS2N_NO_PQ_ASM
 endif
 
 CFLAGS += ${DEFAULT_CFLAGS}

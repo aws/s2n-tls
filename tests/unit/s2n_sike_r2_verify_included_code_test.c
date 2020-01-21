@@ -26,12 +26,12 @@ int main(int argc, char **argv)
      * where we accidentally include/run the generic C code when we actually
      * wanted to use the optimized assembly.
      */
-#if defined(OPTIMIZED_ASM_IMPLEMENTATION)
+#if defined(S2N_PQ_ASM)
     EXPECT_EQUAL(sike_r2_fp_code_identifier(), ASM_CODE_IDENTIFIER);
-#elif defined(GENERIC_IMPLEMENTATION)
+#elif defined(S2N_PQ_GENERIC)
     EXPECT_EQUAL(sike_r2_fp_code_identifier(), GENERIC_C_CODE_IDENTIFIER);
 #else
-    FAIL_MSG("Neither OPTIMIZED_ASM_IMPLEMENTATION nor GENERIC_IMPLEMENTATION was defined. One of those must be defined.");
+    FAIL_MSG("Neither S2N_PQ_ASM nor S2N_PQ_GENERIC was defined. One of those must be defined.");
 #endif
 
     END_TEST();

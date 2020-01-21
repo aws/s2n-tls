@@ -86,28 +86,33 @@ static int s2n_parse_cert_chain(struct s2n_stuffer *in)
     struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new();
     
     /* Allocate the memory for the chain and key */
-    s2n_create_cert_chain_from_stuffer(chain_and_key->cert_chain, in);
+    if (s2n_create_cert_chain_from_stuffer(chain_and_key->cert_chain, in) != S2N_SUCCESS) {
+        GUARD(s2n_cert_chain_and_key_free(chain_and_key));
+        return 0;
+    }
 
-    struct s2n_cert *next = chain_and_key->cert_chain->head;
     int chain_len = 0;
+    struct s2n_cert *next = chain_and_key->cert_chain->head;
     while(next != NULL) {
         chain_len++;
         next = next->next;
     }
-    
+
     s2n_cert_chain_and_key_free(chain_and_key);
+
     return chain_len;
 }
 
 int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
-    struct s2n_stuffer in;
+    struct s2n_stuffer in = {0};
     GUARD(s2n_stuffer_alloc(&in, len + 1));
     GUARD(s2n_stuffer_write_bytes(&in, buf, len));
     in.blob.data[len] = 0;
 
     uint8_t openssl_chain_len = openssl_parse_cert_chain(&in);
     GUARD(s2n_stuffer_reread(&in));
+
     uint8_t s2n_chain_len = s2n_parse_cert_chain(&in);
     GUARD(s2n_stuffer_free(&in));
 
@@ -119,7 +124,6 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 
         /* return -1; */
     }
-
 
     return 0;
 }

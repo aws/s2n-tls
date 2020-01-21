@@ -22,6 +22,7 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_x509_validator.h"
+#include "tls/extensions/s2n_server_certificate_status.h"
 #include "utils/s2n_safety.h"
 
 int s2n_server_status_send(struct s2n_connection *conn)
@@ -44,14 +45,8 @@ int s2n_server_status_recv(struct s2n_connection *conn)
     notnull_check(status.data);
 
     if (type == S2N_STATUS_REQUEST_OCSP) {
-        GUARD(s2n_alloc(&conn->status_response, status.size));
-        memcpy_check(conn->status_response.data, status.data, status.size);
-        conn->status_response.size = status.size;
-
-        return s2n_x509_validator_validate_cert_stapled_ocsp_response(&conn->x509_validator, conn,
-                                                                      conn->status_response.data, conn->status_response.size);
+        GUARD(s2n_server_certificate_status_parse(conn, &status));
     }
 
     return 0;
 }
-
