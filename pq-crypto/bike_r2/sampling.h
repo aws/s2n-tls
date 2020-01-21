@@ -18,6 +18,8 @@
  * (ndrucker@amazon.com, gueron@amazon.com)
  */
 
+#pragma once
+
 #include "aes_ctr_prf.h"
 #include "pq-crypto/pq_random.h"
 #include "utilities.h"
