@@ -38,9 +38,8 @@ use_corked_io=False
 
 
 def get_supported_curves_list_by_version(libcrypto_version):
-   # Curve X25519 is supported for Openssl 1.1.0 and higher
     if libcrypto_version == "openssl-1.1.1":
-        return ["P-256", "P-384", "X25519"]
+        return ["P-256", "P-384"]
     else:
         return ["P-256", "P-384"]
 
