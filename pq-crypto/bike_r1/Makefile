@@ -1,5 +1,5 @@
 #
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -31,9 +31,9 @@ CFLAGS_LLVM = -emit-llvm -c -g \
               -I$(LIBCRYPTO_ROOT)/include/ -I../../api/ -I../../
 
 BCS_1=utilities.bc decode.bc bike_r1_kem.bc \
-      converts_portable.bc secure_decode_portable.bc \
-      openssl_utils.bc aes_ctr_prf.bc parallel_hash.bc \
-      sampling_portable.bc sampling.bc
+    converts_portable.bc secure_decode_portable.bc \
+    openssl_utils.bc aes_ctr_prf.bc parallel_hash.bc \
+    sampling_portable.bc sampling.bc
 BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
 
 .PHONY : bc

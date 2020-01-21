@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -114,6 +114,7 @@ bike_static_assert((N_BITS % ALL_YMM_SIZE != 0), nbits_512_err);
 ////////////////////////////////
 // Parameters for the BG decoder.
 ////////////////////////////////
+#define BGF_DECODER
 #define DELTA  3
 #define SLICES (LOG2_MSB(DV) + 1)
 
