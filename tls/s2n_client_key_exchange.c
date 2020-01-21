@@ -306,8 +306,6 @@ int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
 
     /* Set rsa_failed to 1, if it isn't already, if the protocol version isn't what we expect */
     conn->handshake.rsa_failed |= !s2n_constant_time_equals(client_protocol_version, shared_key->data, S2N_TLS_PROTOCOL_VERSION_LEN);
-
-    GUARD(calculate_keys(conn, shared_key));
     return 0;
 }
 
@@ -320,7 +318,6 @@ int s2n_dhe_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
     /* We don't need the server params any more */
     GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
 
-    GUARD(calculate_keys(conn, shared_key));
     return 0;
 }
 
@@ -333,7 +330,6 @@ int s2n_ecdhe_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shar
     /* We don't need the server params any more */
     GUARD(s2n_ecc_params_free(&conn->secure.server_ecc_params));
 
-    GUARD(calculate_keys(conn, shared_key));
     return 0;
 }
 
@@ -366,6 +362,12 @@ int s2n_client_key_recv(struct s2n_connection *conn)
     struct s2n_blob shared_key = {0};
 
     GUARD(s2n_kex_client_key_recv(key_exchange, conn, &shared_key));
+
+    notnull_check(key_exchange->client_key_recv);
+    if (NULL == conn->config->external_rsa_decrypt || &s2n_rsa_client_key_recv != key_exchange->client_key_recv) {
+        /* we are not using external rsa decrypt, ready to calculate the key here */
+        GUARD(calculate_keys(conn, &shared_key));
+    }
 
     return 0;
 }
