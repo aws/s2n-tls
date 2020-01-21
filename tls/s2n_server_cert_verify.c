@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_certificate_verify.h"
 #include "tls/s2n_connection.h"
 #include "crypto/s2n_hash.h"
@@ -22,7 +23,7 @@
 #include "utils/s2n_safety.h"
 
 static int s2n_server_write_cert_verify_signature(struct s2n_connection *conn, struct s2n_stuffer *out);
-static int s2n_server_generate_unsigned_cert_verify_content(struct s2n_connection *conn, struct s2n_stuffer *unsigned_content, s2n_hash_algorithm chosen_hash_alg);
+static int s2n_server_generate_unsigned_cert_verify_content(struct s2n_connection *conn, struct s2n_stuffer *unsigned_content);
 static uint8_t s2n_server_cert_verify_header_length();
 
 int s2n_server_cert_verify_send(struct s2n_connection *conn)
@@ -59,7 +60,7 @@ int s2n_server_cert_read_and_verify_signature(struct s2n_connection *conn)
     GUARD(s2n_stuffer_read_bytes(in, signed_content.data, signature_size));
 
     /* Verify signature */
-    GUARD(s2n_server_generate_unsigned_cert_verify_content(conn, &unsigned_content, chosen_sig_scheme.hash_alg));
+    GUARD(s2n_server_generate_unsigned_cert_verify_content(conn, &unsigned_content));
 
     GUARD(s2n_hash_init(&message_hash, chosen_sig_scheme.hash_alg));
     GUARD(s2n_hash_update(&message_hash, unsigned_content.blob.data, s2n_stuffer_data_available(&unsigned_content)));
@@ -94,7 +95,7 @@ int s2n_server_write_cert_verify_signature(struct s2n_connection *conn, struct s
     GUARD(s2n_alloc(&signed_content, maximum_signature_length));
     signed_content.size = maximum_signature_length;
 
-    GUARD(s2n_server_generate_unsigned_cert_verify_content(conn, &unsigned_content, conn->secure.conn_sig_scheme.hash_alg));
+    GUARD(s2n_server_generate_unsigned_cert_verify_content(conn, &unsigned_content));
 
     GUARD(s2n_hash_update(&message_hash, unsigned_content.blob.data, s2n_stuffer_data_available(&unsigned_content)));
     GUARD(s2n_pkey_sign(pkey, &message_hash, &signed_content));
@@ -105,20 +106,21 @@ int s2n_server_write_cert_verify_signature(struct s2n_connection *conn, struct s
     return 0;
 }
 
-int s2n_server_generate_unsigned_cert_verify_content(struct s2n_connection *conn, struct s2n_stuffer *unsigned_content, s2n_hash_algorithm chosen_hash_alg)
+/* Concatenates the handshake hash used for generating a Certificate Verify Signature. */
+int s2n_server_generate_unsigned_cert_verify_content(struct s2n_connection *conn, struct s2n_stuffer *unsigned_content)
 {
-    struct s2n_hash_state selected_hash, hash_copy;
-    uint8_t hash_digest_length;
+    s2n_tls13_connection_keys(tls13_ctx, conn);
+
+    struct s2n_hash_state handshake_hash, hash_copy;
+    uint8_t hash_digest_length = tls13_ctx.size;
     uint8_t digest_out[S2N_MAX_DIGEST_LEN];
 
-    /* Get current hash content */
-    GUARD(s2n_handshake_get_hash_state(conn, chosen_hash_alg, &selected_hash));
+    /* Get current handshake hash */
+    GUARD(s2n_handshake_get_hash_state(conn, tls13_ctx.hash_algorithm, &handshake_hash));
 
     /* Copy current hash content */
     GUARD(s2n_hash_new(&hash_copy));
-    GUARD(s2n_hash_copy(&hash_copy, &selected_hash));
-
-    GUARD(s2n_hash_digest_size(chosen_hash_alg, &hash_digest_length));
+    GUARD(s2n_hash_copy(&hash_copy, &handshake_hash));
     GUARD(s2n_hash_digest(&hash_copy, digest_out, hash_digest_length));
     GUARD(s2n_hash_free(&hash_copy));
 

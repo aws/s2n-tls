@@ -21,6 +21,7 @@
 #include "error/s2n_errno.h"
 #include "crypto/s2n_ecdsa.h"
 
+/* included to test s2n_server_cert_read_and_verify_signature() */
 #include "tls/s2n_server_cert_verify.c"
 
 uint8_t hello[] = "Hello, World!\n";
@@ -62,6 +63,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
         server_conn->handshake_params.our_chain_and_key = ecdsa_cert;
         server_conn->secure.conn_sig_scheme = s2n_ecdsa_secp256r1_sha256;
+        server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+        client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         b.data = (uint8_t *) cert_chain_pem;
         b.size = strlen(cert_chain_pem) + 1;
@@ -87,6 +90,17 @@ int main(int argc, char **argv)
         /* Receive and verify cert */
         EXPECT_SUCCESS(s2n_server_cert_verify_recv(client_conn));
         EXPECT_EQUAL(client_conn->secure.conn_sig_scheme.iana_value, TLS_SIGNATURE_SCHEME_ECDSA_SHA256);
+
+        /* Repeat the above test succesfully */
+        EXPECT_SUCCESS(s2n_server_cert_verify_send(server_conn));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io, s2n_stuffer_data_available(&server_conn->handshake.io)));
+        EXPECT_SUCCESS(s2n_server_cert_verify_recv(client_conn));
+
+        /* Test fails if cipher suites hash is configured incorrectly */
+        client_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+        EXPECT_SUCCESS(s2n_server_cert_verify_send(server_conn));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io, s2n_stuffer_data_available(&server_conn->handshake.io)));
+        EXPECT_FAILURE(s2n_server_cert_verify_recv(client_conn));
 
         /* Clean up */
         free(cert_chain_pem);
@@ -124,6 +138,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
         client_conn->handshake_params.our_chain_and_key = ecdsa_cert;
         client_conn->secure.conn_sig_scheme = s2n_ecdsa_secp256r1_sha256;
+        client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         b.data = (uint8_t *) cert_chain_pem;
         b.size = strlen(cert_chain_pem) + 1;
@@ -187,6 +202,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
         client_conn->handshake_params.our_chain_and_key = ecdsa_cert;
         client_conn->secure.conn_sig_scheme = s2n_ecdsa_secp256r1_sha256;
+        client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         b.data = (uint8_t *) cert_chain_pem;
         b.size = strlen(cert_chain_pem) + 1;
@@ -247,6 +263,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
         client_conn->handshake_params.our_chain_and_key = ecdsa_cert;
         client_conn->secure.conn_sig_scheme = s2n_ecdsa_secp256r1_sha256;
+        client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         b.data = (uint8_t *) cert_chain_pem;
         b.size = strlen(cert_chain_pem) + 1;
