@@ -381,7 +381,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
 
-            EXPECT_SUCCESS(s2n_record_write(conn, APPLICATION_DATA, &in));
+            /* An encrypted TLS 1.3 HANDSHAKE type will look like a APPLICATION_DATA over the wire */
+            EXPECT_SUCCESS(s2n_record_write(conn, TLS_HANDSHAKE, &in));
 
             /* now test that application data writes encrypted payload */
             S2N_STUFFER_READ_EXPECT_EQUAL(&conn->out, TLS_APPLICATION_DATA, uint8);
@@ -400,7 +401,7 @@ int main(int argc, char **argv)
             /* now if this was an application data, it cannot be parsed */
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->header_in, APPLICATION_DATA));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->header_in, TLS_APPLICATION_DATA));
             EXPECT_SUCCESS(s2n_stuffer_write_uint16(&conn->header_in, 0x0303));
             EXPECT_SUCCESS(s2n_stuffer_write_uint16(&conn->header_in, 1));
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, 1));
