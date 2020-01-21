@@ -53,7 +53,7 @@ file(GLOB ERROR_SRC
 file(GLOB PQ_SRC
         "pq-crypto/*.c"
         "pq-crypto/bike_r1/*.c"
-	"pq-crypto/bike_r2/*.c"
+        "pq-crypto/bike_r2/*.c"
         "pq-crypto/sike_r1/fp_generic_r1.c"
         "pq-crypto/sike_r1/P503_r1.c"
         "pq-crypto/sike_r1/sike_p503_r1_kem.c"

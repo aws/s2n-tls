@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -68,7 +68,7 @@ perform_aes(OUT uint8_t *ct, IN OUT aes_ctr_prf_state_t *s)
 
   if(0 == s->rem_invokations)
   {
-    return E_AES_OVER_USED;
+    BIKE_ERROR(E_AES_OVER_USED);
   }
 
   GUARD(aes256_enc(ct, s->ctr.u.bytes, &s->ks_ptr));

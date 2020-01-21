@@ -76,8 +76,7 @@ const struct s2n_kem s2n_sike_p434_r2 = {
 };
 
 const struct s2n_kem *supported_bike_params[] = {
-        &s2n_bike1_l1_r1,
-	&s2n_bike1_l1_r2
+        &s2n_bike1_l1_r1
 };
 
 const struct s2n_kem *supported_sike_params[] = {

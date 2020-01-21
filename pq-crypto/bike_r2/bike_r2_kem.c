@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -227,6 +227,9 @@ BIKE1_L1_R2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
   sk_t *l_sk = (sk_t *)sk;
   pk_t *l_pk = (pk_t *)pk;
 
+  notnull_check(l_sk);
+  notnull_check(l_pk);
+
   // For DRBG and AES_PRF
   DEFER_CLEANUP(seeds_t seeds = {0}, seeds_cleanup);
   DEFER_CLEANUP(aes_ctr_prf_state_t h_prf_state = {0}, aes_ctr_prf_state_cleanup);
@@ -238,7 +241,7 @@ BIKE1_L1_R2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
   DEFER_CLEANUP(pad_sk_t p_sk = {0}, pad_sk_cleanup);
 
   // Get the entropy seeds.
-  get_seeds(&seeds);
+  GUARD(get_seeds(&seeds));
 
   DMSG("  Enter crypto_kem_keypair.\n");
   DMSG("    Calculating the secret key.\n");
@@ -299,11 +302,15 @@ BIKE1_L1_R2_crypto_kem_enc(OUT unsigned char *     ct,
   ct_t *      l_ct = (ct_t *)ct;
   ss_t *      l_ss = (ss_t *)ss;
 
+  notnull_check(l_pk);
+  notnull_check(l_ct);
+  notnull_check(l_ss);
+
   // For NIST DRBG_CTR
   DEFER_CLEANUP(seeds_t seeds = {0}, seeds_cleanup);
 
   // Get the entropy seeds.
-  get_seeds(&seeds);
+  GUARD(get_seeds(&seeds));
 
   DMSG("    Encrypting.\n");
   // In fact, seed[0] should be used.
@@ -334,6 +341,9 @@ BIKE1_L1_R2_crypto_kem_dec(OUT unsigned char *     ss,
   const sk_t *l_sk = (const sk_t *)sk;
   const ct_t *l_ct = (const ct_t *)ct;
   ss_t *      l_ss = (ss_t *)ss;
+  notnull_check(l_sk);
+  notnull_check(l_ct);
+  notnull_check(l_ss);
 
   // Force zero initialization.
   DEFER_CLEANUP(syndrome_t syndrome = {0}, syndrome_cleanup);
