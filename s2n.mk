@@ -28,8 +28,8 @@ CRYPTO_LIBS = -lcrypto
 CC	:= $(CROSS_COMPILE)$(CC)
 AR	= $(CROSS_COMPILE)ar
 RANLIB	= $(CROSS_COMPILE)ranlib
-CLANG    ?= clang-3.8
-LLVMLINK ?= llvm-link-3.8
+CLANG    ?= clang-3.9
+LLVMLINK ?= llvm-link-3.9
 
 SOURCES = $(wildcard *.c *.h)
 CRUFT   = $(wildcard *.c~ *.h~ *.c.BAK *.h.BAK *.o *.a *.so *.dylib *.bc *.gcov *.gcda *.gcno *.info *.profraw *.tmp)
