@@ -35,7 +35,7 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
         return NULL;
     }
 
-    return memcpy(to, from, size);
+    return memcpy_check(to, from, size);
 }
 
 /* Check memcpy and memset's arguments, if these are not right, log an error

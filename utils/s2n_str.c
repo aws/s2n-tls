@@ -33,7 +33,7 @@ char *s2n_strcpy(char *buf, char *last, const char *str) {
 
     char *p = buf;
     if (bytes_to_copy > 0) {
-        p = (char *)memcpy(buf, str, bytes_to_copy) + bytes_to_copy;
+        p = (char *)memcpy_check(buf, str, bytes_to_copy) + bytes_to_copy;
     }
     *p = '\0';
 
