@@ -129,6 +129,7 @@ int s2n_stuffer_rewind_read(struct s2n_stuffer *stuffer, const uint32_t size)
 
 int s2n_stuffer_reread(struct s2n_stuffer *stuffer)
 {
+    S2N_PRECONDITION(s2n_stuffer_is_valid(stuffer));
     stuffer->read_cursor = 0;
     return 0;
 }
