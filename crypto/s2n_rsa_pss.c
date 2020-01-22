@@ -38,7 +38,8 @@
 
 typedef const BIGNUM *(*ossl_get_rsa_param_fn) (const RSA *d);
 
-const EVP_MD* s2n_hash_alg_to_evp_alg(s2n_hash_algorithm alg) {
+const EVP_MD* s2n_hash_alg_to_evp_alg(s2n_hash_algorithm alg)
+{
     switch (alg) {
         case S2N_HASH_MD5_SHA1:
             return EVP_md5_sha1();
@@ -66,8 +67,8 @@ static int s2n_rsa_pss_size(const struct s2n_pkey *key)
 }
 
 
-static int s2n_rsa_is_private_key(EVP_PKEY *pkey) {
-
+static int s2n_rsa_is_private_key(EVP_PKEY *pkey)
+{
     RSA *rsa_key = EVP_PKEY_get0_RSA(pkey);
 
     const BIGNUM *d = RSA_get0_d(rsa_key);
@@ -81,7 +82,8 @@ static int s2n_rsa_is_private_key(EVP_PKEY *pkey) {
     return 0;
 }
 
-static void s2n_evp_pkey_ctx_free(EVP_PKEY_CTX **ctx) {
+static void s2n_evp_pkey_ctx_free(EVP_PKEY_CTX **ctx)
+{
 
     if (ctx != NULL) {
         EVP_PKEY_CTX_free(*ctx);
@@ -90,15 +92,13 @@ static void s2n_evp_pkey_ctx_free(EVP_PKEY_CTX **ctx) {
 
 /* On some versions of OpenSSL, "EVP_PKEY_CTX_set_signature_md()" is just a macro that casts digest_alg to "void*",
  * which fails to compile when the "-Werror=cast-qual" compiler flag is enabled. So we work around this OpenSSL
- * issue by turning off this compiler check for this one function. */
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-qual"
-static int s2n_evp_pkey_ctx_set_rsa_signature_digest(EVP_PKEY_CTX *ctx, const EVP_MD* digest_alg) {
-    GUARD_OSSL(EVP_PKEY_CTX_set_signature_md(ctx, digest_alg), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
-    GUARD_OSSL(EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, digest_alg), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+ * issue by turning off this compiler check for this one function with a cast through. */
+static int s2n_evp_pkey_ctx_set_rsa_signature_digest(EVP_PKEY_CTX *ctx, const EVP_MD* digest_alg)
+{
+    GUARD_OSSL(EVP_PKEY_CTX_set_signature_md(ctx,(EVP_MD*) (uintptr_t) digest_alg), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    GUARD_OSSL(EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, (EVP_MD*) (uintptr_t) digest_alg), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     return 0;
 }
-#pragma GCC diagnostic pop
 
 int s2n_rsa_pss_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, struct s2n_blob *signature_out)
 {
@@ -162,7 +162,8 @@ int s2n_rsa_pss_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest
     return 0;
 }
 
-static int s2n_rsa_pss_validate_sign_verify_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv) {
+static int s2n_rsa_pss_validate_sign_verify_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv)
+{
     /* Generate a random blob to sign and verify */
     s2n_stack_blob(random_data, RSA_PSS_SIGN_VERIFY_RANDOM_BLOB_SIZE, RSA_PSS_SIGN_VERIFY_RANDOM_BLOB_SIZE);
     GUARD(s2n_get_private_random_data(&random_data));
@@ -186,8 +187,8 @@ static int s2n_rsa_pss_validate_sign_verify_match(const struct s2n_pkey *pub, co
 }
 
 static int s2n_rsa_validate_param_equal(const RSA *pub, const RSA *priv, int required,
-                                        ossl_get_rsa_param_fn get_rsa_param_fn) {
-
+                                        ossl_get_rsa_param_fn get_rsa_param_fn)
+{
     const BIGNUM *pub_val = get_rsa_param_fn(pub);
     const BIGNUM *priv_val = get_rsa_param_fn(priv);
 
@@ -202,7 +203,8 @@ static int s2n_rsa_validate_param_equal(const RSA *pub, const RSA *priv, int req
     return 0;
 }
 
-static int s2n_rsa_validate_params_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv) {
+static int s2n_rsa_validate_params_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv)
+{
     notnull_check(pub);
     notnull_check(priv);
 
@@ -265,7 +267,8 @@ int s2n_evp_pkey_to_rsa_pss_public_key(struct s2n_rsa_pss_key *rsa_pss_key, EVP_
     return 0;
 }
 
-int s2n_evp_pkey_to_rsa_pss_private_key(struct s2n_rsa_pss_key *rsa_pss_key, EVP_PKEY *pkey) {
+int s2n_evp_pkey_to_rsa_pss_private_key(struct s2n_rsa_pss_key *rsa_pss_key, EVP_PKEY *pkey)
+{
     RSA *priv_rsa_key = EVP_PKEY_get0_RSA(pkey);
     notnull_check(priv_rsa_key);
 
