@@ -77,6 +77,18 @@ for file in $S2N_FILES_ASSERT_NOTNULL_CHECK; do
   done < <(grep -rnE -A 1 "=\ss2n_stuffer_raw_read\(.*\)" $file)
 done
 
+# Enforce the use of memcpy_check(), which checks for null, instead of raw
+# memcpy(). This routine greps through all .[ch] files for the usage of raw
+# memcpy() and returns a failure in that case
+S2N_FILES_ASSERT_MEMCPY_CHECK=$(find "$PWD" -type f -name "s2n*.[ch]" -not -path "*/tests/*")
+for file in $S2N_FILES_ASSERT_MEMCPY_CHECK; do
+  RESULT_RAW_MEMCPY=`grep -Ern 'memcpy\(' $file`
+  if [ "${#RESULT_RAW_MEMCPY}" != "0" ]; then
+    FAILED=1
+    printf "\e[1;34mGrep for 'memcpy()' check failed in $file:\e[0m\n$RESULT_RAW_MEMCPY\n\n"
+  fi
+done
+
 if [ $FAILED == 1 ]; then
   printf "\\033[31;1mFAILED Grep For Simple Mistakes check\\033[0m\\n"
   exit -1
