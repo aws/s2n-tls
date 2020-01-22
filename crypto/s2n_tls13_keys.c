@@ -123,17 +123,6 @@ int s2n_tls13_keys_init(struct s2n_tls13_keys *keys, s2n_hmac_algorithm alg)
 }
 
 /*
- * Frees any allocation
- */
-int s2n_tls13_keys_free(struct s2n_tls13_keys *keys) {
-    notnull_check(keys);
-
-    GUARD(s2n_hmac_free(&keys->hmac));
-
-    return 0;
-}
-
-/*
  * Derives early secrets
  */
 int s2n_tls13_derive_early_secrets(struct s2n_tls13_keys *keys)
