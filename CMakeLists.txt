@@ -56,7 +56,7 @@ file(GLOB PQ_SRC
         "pq-crypto/bike_r2/*.c"
         "pq-crypto/sike_r1/fp_generic_r1.c"
         "pq-crypto/sike_r1/P503_r1.c"
-        "pq-crypto/sike_r1/sike_p503_r1_kem.c"
+        "pq-crypto/sike_r1/sike_r1_kem.c"
         "pq-crypto/sike_r1/fips202_r1.c"
         "pq-crypto/sike_r2/fips202.c"
         "pq-crypto/sike_r2/P434.c"
