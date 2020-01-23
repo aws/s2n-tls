@@ -142,7 +142,7 @@ int main(int argc, char **argv)
         const uint8_t bike_iana[S2N_TLS_CIPHER_SUITE_LEN] = {TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384};
         EXPECT_SUCCESS(s2n_cipher_suite_to_kem(bike_iana, &supported_params));
         EXPECT_EQUAL(supported_params->kem_count, 1);
-        EXPECT_EQUAL(supported_params->kems[0]->kem_extension_id, s2n_bike_1_level_1_r1.kem_extension_id);
+        EXPECT_EQUAL(supported_params->kems[0]->kem_extension_id, s2n_bike1_l1_r1.kem_extension_id);
 
         supported_params = NULL;
         const uint8_t sike_iana[S2N_TLS_CIPHER_SUITE_LEN] = {TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384};

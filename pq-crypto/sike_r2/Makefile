@@ -17,10 +17,13 @@ SRCS=fips202.c P434.c
 OBJS=$(SRCS:.c=.o)
 
 ARCH := $(shell uname -p)
+KERNEL := $(shell uname -s)
+ifeq ($(KERNEL), Linux)
 ifeq ($(ARCH), x86_64)
-ifndef S2N_SIKE_R2_FORCE_GENERIC
+ifndef S2N_NO_PQ_ASM
 ASRC=fp_x64_asm.S
 OBJS+=$(ASRC:.S=.o)
+endif
 endif
 endif
 

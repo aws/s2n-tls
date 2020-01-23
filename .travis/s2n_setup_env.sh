@@ -77,7 +77,7 @@ export FUZZ_TIMEOUT_SEC
 export TRAVIS_OS_NAME
 export UBUNTU_VERSION
 export S2N_CORKED_IO
-export S2N_SIKE_R2_FORCE_GENERIC
+export S2N_NO_PQ_ASM
 
 
 # Select the libcrypto to build s2n against. If this is unset, default to the latest stable version(Openssl 1.1.1)

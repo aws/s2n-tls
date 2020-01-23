@@ -20,6 +20,7 @@
 #include "utils/s2n_rfc5952.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
+#include "extensions/s2n_certificate_extensions.h"
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -282,7 +283,7 @@ static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator,
 
 s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
                                                                 uint8_t *cert_chain_in, uint32_t cert_chain_len,
-                                                                s2n_cert_type *cert_type, struct s2n_pkey *public_key_out) {
+                                                                s2n_pkey_type *pkey_type, struct s2n_pkey *public_key_out) {
 
     if (!validator->skip_cert_validation && !s2n_x509_trust_store_has_certs(validator->trust_store)) {
         return S2N_CERT_ERR_UNTRUSTED;
@@ -342,7 +343,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 
         /* Pull the public key from the first certificate */
         if (certificate_count == 0) {
-            if (s2n_asn1der_to_public_key_and_type(&public_key, cert_type, &asn1cert) < 0) {
+            if (s2n_asn1der_to_public_key_and_type(&public_key, pkey_type, &asn1cert) < 0) {
                 return S2N_CERT_ERR_INVALID;
             }
         }
@@ -350,9 +351,21 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
         /* certificate extensions is a field in TLS 1.3 - https://tools.ietf.org/html/rfc8446#section-4.4.2 */
         if (conn->actual_protocol_version == S2N_TLS13) {
             uint16_t certificate_extensions_length = 0;
+            S2N_ERROR_IF(2 > s2n_stuffer_data_available(&cert_chain_in_stuffer), S2N_ERR_BAD_MESSAGE);
             GUARD(s2n_stuffer_read_uint16(&cert_chain_in_stuffer, &certificate_extensions_length));
-            /* we currently do not process certificate extensions, but we can skip pass it */
-            GUARD(s2n_stuffer_skip_read(&cert_chain_in_stuffer, certificate_extensions_length));
+            S2N_ERROR_IF(certificate_extensions_length > s2n_stuffer_data_available(&cert_chain_in_stuffer), S2N_ERR_BAD_MESSAGE);
+
+            if (certificate_extensions_length > 0) {
+                struct s2n_blob extensions = {0};
+                extensions.size = certificate_extensions_length;
+                extensions.data = s2n_stuffer_raw_read(&cert_chain_in_stuffer, extensions.size);
+                notnull_check(extensions.data);
+                
+                /* RFC 8446: if an extension applies to the entire chain, it SHOULD be included in the first CertificateEntry */
+                if (certificate_count == 0) {
+                    GUARD(s2n_certificate_extensions_parse(conn, &extensions));
+                }
+            }
         }
 
         certificate_count++;

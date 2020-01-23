@@ -1,0 +1,72 @@
+24a25,28
+> #define OLD_GUARD(func, stat, label) {stat = func; if(stat != SUCCESS) {goto label;}}
+> 
+> extern ret_t __breakpoint__get_rand_mod_len_loop(uint32_t**, const uint32_t*, aes_ctr_prf_state_t**, const uint64_t*, ret_t*) __attribute__((noduplicate));
+> 
+30a35
+>   ret_t res = SUCCESS;
+33a39
+>      __breakpoint__get_rand_mod_len_loop(&rand_pos, &len, &prf_state, &mask, &res);
+35c41
+<     GUARD(aes_ctr_prf((uint8_t *)rand_pos, prf_state, sizeof(*rand_pos)));
+---
+>     OLD_GUARD(aes_ctr_prf((uint8_t*)rand_pos, prf_state, sizeof(*rand_pos)), res, EXIT);
+48c54,55
+<   return SUCCESS;
+---
+> EXIT:
+>   return res;
+118a126,129
+> extern ret_t __breakpoint__generate_sparse_fake_rep_first_loop(uint64_t**, idx_t**, const uint32_t*, aes_ctr_prf_state_t**, uint64_t*, uint32_t (*)[DV], const uint32_t*, uint32_t*, ret_t*, uint32_t*, uint32_t*) __attribute__((noduplicate));
+> extern ret_t __breakpoint__generate_sparse_fake_rep_second_loop(uint64_t**, idx_t**, const uint32_t*, aes_ctr_prf_state_t**, uint64_t*, uint32_t (*)[DV], const uint32_t*, uint32_t*, ret_t*, uint32_t*, uint32_t*) __attribute__((noduplicate));
+> extern ret_t __breakpoint__generate_sparse_fake_rep_last_loop(uint64_t**, idx_t**, const uint32_t*, aes_ctr_prf_state_t**, uint64_t*, uint32_t (*)[DV], const uint32_t*, uint32_t*, ret_t*, uint32_t*, uint32_t*) __attribute__((noduplicate));
+> 
+131a143,144
+>   uint32_t j, i;
+>   ret_t res = SUCCESS;
+139c152,153
+<     GUARD(get_rand_mod_len(&wlist[ctr].val, len, prf_state));
+---
+>     __breakpoint__generate_sparse_fake_rep_first_loop(&a, &wlist, &padded_len, &prf_state, &ctr, &real_wlist, &len, &mask, &res, &j, &i);
+>     OLD_GUARD(get_rand_mod_len(&wlist[ctr].val, len, prf_state), res, EXIT);
+147c161,162
+<     GUARD(get_rand_mod_len(&real_wlist[ctr], FAKE_DV, prf_state));
+---
+>     __breakpoint__generate_sparse_fake_rep_second_loop(&a, &wlist, &padded_len, &prf_state, &ctr, &real_wlist, &len, &mask, &res, &j, &i);
+>     OLD_GUARD(get_rand_mod_len(&real_wlist[ctr], FAKE_DV, prf_state), res, EXIT);
+152c167
+<   for(uint32_t j = 0; j < FAKE_DV; j++)
+---
+>   for(j = 0; j < FAKE_DV; j++)
+154c169
+<     for(uint32_t i = 0; i < DV; i++)
+---
+>     for(i = 0; __breakpoint__generate_sparse_fake_rep_last_loop(&a, &wlist, &padded_len, &prf_state, &ctr, &real_wlist, &len, &mask, &res, &j, &i), i < DV; i++)
+163c178
+<   memset(a, 0, (len + 7) >> 3);
+---
+>   memset(a, 0, padded_len);
+168c183,184
+<   return SUCCESS;
+---
+> EXIT:
+>   return res;
+170a187,188
+> extern ret_t __breakpoint__generate_sparse_rep_loop(uint64_t**, idx_t**, const uint32_t*, const uint32_t*, const uint32_t*, aes_ctr_prf_state_t**, ret_t*, uint64_t*) __attribute__((noduplicate));
+> 
+187a206
+>   ret_t res = SUCCESS;
+192c211,212
+<     GUARD(get_rand_mod_len(&wlist[ctr].val, len, prf_state));
+---
+>     __breakpoint__generate_sparse_rep_loop(&a, &wlist, &weight, &len, &padded_len, &prf_state, &res, &ctr);
+>     OLD_GUARD(get_rand_mod_len(&wlist[ctr].val, len, prf_state), res, EXIT);
+199c219
+<   memset(a, 0, (len + 7) >> 3);
+---
+>   memset(a, 0, padded_len);
+204c224,225
+<   return SUCCESS;
+---
+> EXIT:
+>    return res;

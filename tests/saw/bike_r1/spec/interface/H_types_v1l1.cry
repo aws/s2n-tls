@@ -1,0 +1,475 @@
+// H_types_v1l1.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module interface::H_types_v1l1 where
+
+import interface::H_bike_r1_defs
+
+///////////////////////////////////////////////////////////////////////////////
+
+// Cryptol semantics of casting, when little-endian
+little_endian_cast: {a,b,c,d} (fin a, fin b, fin c, fin d, a*b == c*d)
+    => [a][b] -> [c][d]
+little_endian_cast x = reverse (split (join (reverse x)))
+C_cast = little_endian_cast
+
+get_qw : padded_r_t -> R_PADDED_QW_64_t
+get_qw e = C_cast (flatten_padded_r_t e)
+
+VAL : padded_r_t -> r_t
+VAL e = e.val
+
+VAL_2r : dbl_padded_r_t -> r_t
+VAL_2r e = e.u.v.val
+
+VAL_raw : padded_r_t -> R_SIZE_8_t
+VAL_raw e = (VAL e).raw
+
+VAL_raw_2r : dbl_padded_r_t -> R_SIZE_8_t
+VAL_raw_2r e = (VAL_2r e).raw
+
+PTRV_ct : ct_t -> N0_t r_t
+PTRV_ct e = e.val
+PTRV_raw_ct : ct_t -> [32]->R_SIZE_8_t
+PTRV_raw_ct e ix = ((PTRV_ct e)@ix).raw
+
+PTR : syndrome_t -> _
+PTR e = e
+
+// NOTE: The following constants are defined by version and level
+
+type R_PADDED_QW_t t   = [R_PADDED_QW] t
+type R_PADDED_QW_64_t  = R_PADDED_QW_t uint64_t
+type R_PADDED_SIZE_t t = [R_PADDED_SIZE] t
+
+type pad_r_t t = [R_PADDED_SIZE - R_SIZE]t
+type R_SIZE_t t = [R_SIZE] t
+type R_SIZE_8_t = R_SIZE_t i8
+
+type N_SIZE_t t = [N_SIZE] t
+type N_PADDED_QW_t t = [N_PADDED_QW] t
+type N_PADDED_SIZE_t t = [N_PADDED_SIZE] t
+type dbl_padded_a_t t = [(2 * R_PADDED_SIZE) - R_SIZE]t
+type R_PADDED_QW_2t t = [2 * R_PADDED_QW]t
+type R_PADDED_QW_64_2t = [2 * R_PADDED_QW][64]
+
+type R_PADDED_SIZE_2t t = [2 * R_PADDED_SIZE]t
+type T1_t t = [T1]t
+type FAKE_DV_t t = [FAKE_DV] t
+type pad_n_t t = [N_PADDED_SIZE - N_SIZE]t
+type ELL_K_SIZE_t t = [ELL_K_SIZE]t
+type ELL_K_SIZE_8t = ELL_K_SIZE_t i8
+type R_BITS_t t =  [R_BITS]t
+type R_BITS_8t = R_BITS_t i8
+
+type N_QDQWORDS_BITS_t t = [N_QDQWORDS_BITS]t
+type N_DDQWORDS_BITS_t t = [N_DDQWORDS_BITS]t
+type syndrome_q_t t = [N_QDQWORDS_BITS - N_BITS]t
+type syndrome_d_t t = [N_DDQWORDS_BITS - N_BITS]t
+
+type nbits_t = [N_BITS]uint8_t
+
+// NOTE: The following constants are defined by types.h
+
+type uint8_t = [8]
+type uint32_t = [32]
+type uint64_t  = [64]
+type i8 = [8]
+type i32 = [32]
+
+assemble_int: {n} (fin n) => [n][8] -> [n*8]
+assemble_int xs = join (reverse xs) // little-endian byte order
+flatten_int: {n} (fin n) => [n*8] -> [n][8]
+flatten_int x = reverse (split x)
+
+assemble_array f a = [f x | x <- split a]
+flatten_array f a = join [f x | x <- a]
+
+type uint128_u_t =
+    { bytes : [16] uint8_t
+    , dw : [4] uint32_t
+    , qw : [2] uint64_t
+    }
+type uint128_t = { u : uint128_u_t }
+type r_t = { raw : R_SIZE_8_t }
+make_r_t raw = { raw = raw } : r_t
+type N_r_t = R_SIZE
+type r_t_bytes = [N_r_t][8]
+assemble_r_t: r_t_bytes -> r_t
+assemble_r_t x = { raw=x }
+flatten_r_t: r_t -> r_t_bytes
+flatten_r_t {raw=x} = x
+
+type e_raw_t = N_SIZE_t i8
+type e_t =  { raw : e_raw_t }
+type N_e_t = N_SIZE
+type e_t_bytes = [N_e_t][8]
+assemble_e_t: e_t_bytes -> e_t
+assemble_e_t x = { raw=x }
+flatten_e_t: e_t -> e_t_bytes
+flatten_e_t {raw=x} = x
+
+type generic_param_n_t = { val : [N0]r_t }
+
+type N_generic_param_n_t = N0*N_r_t
+type generic_param_n_t_bytes = [N_generic_param_n_t][8]
+assemble_generic_param_n_t: generic_param_n_t_bytes -> generic_param_n_t
+assemble_generic_param_n_t x = { val=[assemble_r_t v | v <- split x] }
+flatten_generic_param_n_t: generic_param_n_t  -> generic_param_n_t_bytes
+flatten_generic_param_n_t {val=x} = join [flatten_r_t v | v <- x]
+
+// NOTE: "standard" functions for the union
+//       PROBLEM here becuase the 'raw' member is one byte shorter!
+
+// Create a value of union type `make_generic_param_n` by
+// setting the `val` member.
+make_generic_param_t_val: [N0]r_t -> generic_param_n_t
+make_generic_param_t_val x = { val = x }
+
+// Read the `raw` member of union type `make_generic_param_n`.
+get_generic_param_n_raw:  generic_param_n_t -> [N_SIZE][8]
+get_generic_param_n_raw x = take (flatten_generic_param_n_t x)
+
+// Read the `val` member  of union type `make_generic_param_n`.
+get_generic_param_n_val: generic_param_n_t -> [N0]r_t
+get_generic_param_n_val x = x.val
+
+type seed_raw_tt = [32] i8
+type seed_tt =  { raw : seed_raw_tt }
+type N_seed_tt = 32
+type seed_tt_bytes = [N_seed_tt][8]
+assemble_seed_tt: seed_tt_bytes -> seed_tt
+assemble_seed_tt x = { raw=x }
+
+// NOTE: The following constants are defined by version
+
+// BIKE_VER == 2
+//type pk_t = r_t
+//type ct_t = r_t
+// ELSE
+type pk_t = generic_param_n_t
+type N_pk_t = N_generic_param_n_t
+//type N_pk_t = N_r_t
+type pk_t_bytes = generic_param_n_t_bytes
+assemble_pk_t = assemble_generic_param_n_t
+//assemble_pk_t = assemble_r_t
+flatten_pk_t = flatten_generic_param_n_t
+
+type ct_t = generic_param_n_t
+type N_ct_t = N_generic_param_n_t
+type ct_t_bytes = generic_param_n_t_bytes
+assemble_ct_t = assemble_generic_param_n_t
+flatten_ct_t = flatten_generic_param_n_t
+
+type split_e_t = generic_param_n_t
+type N_split_e_t = N_generic_param_n_t
+assemble_split_e_t = assemble_generic_param_n_t
+//--------------------- Defined by types.h ---------------------
+
+type idx_t = { val : uint32_t, used : uint32_t }
+type N_idx_t = 8
+type idx_t_bytes = [N_idx_t][8]
+assemble_idx_t: idx_t_bytes -> idx_t
+assemble_idx_t (x#y) = {val = assemble_int x, used = assemble_int y}
+flatten_idx_t: idx_t -> idx_t_bytes
+flatten_idx_t {val = x, used = y} = (flatten_int x)#(flatten_int y)
+
+type idx_ft = [FAKE_DV] idx_t
+type N_idx_ft = FAKE_DV*N_idx_t
+type idx_ft_bytes = [N_idx_ft][8]
+assemble_idx_ft: idx_ft_bytes -> idx_ft
+assemble_idx_ft = assemble_array assemble_idx_t
+flatten_idx_ft: idx_ft -> idx_ft_bytes
+flatten_idx_ft = flatten_array flatten_idx_t
+
+type compressed_idx_dv_t = { val : idx_ft }
+type N_compressed_idx_dv_t = N_idx_ft
+type compressed_idx_dv_t_bytes = [N_compressed_idx_dv_t][8]
+assemble_compressed_idx_dv_t: compressed_idx_dv_t_bytes ->  compressed_idx_dv_t
+assemble_compressed_idx_dv_t x = { val = assemble_idx_ft x}
+flatten_compressed_idx_dv_t:  compressed_idx_dv_t -> compressed_idx_dv_t_bytes
+flatten_compressed_idx_dv_t {val=x} = flatten_idx_ft x
+
+type compressed_idx_t_t = { val : [T1] idx_t }
+type compressed_idx_dv_2t = [N0] compressed_idx_dv_t
+
+
+type sk_t = { bin : N0_t r_t, wlist : N0_t compressed_idx_dv_t }
+type N_sk_t = N0*N_r_t + N0*N_compressed_idx_dv_t
+type sk_t_bytes = [N_sk_t][8]
+
+assemble_sk_t: sk_t_bytes -> sk_t
+assemble_sk_t (x # y) =
+    { bin = assemble_array assemble_r_t x
+    , wlist = assemble_array assemble_compressed_idx_dv_t y
+    }
+
+flatten_sk_t: sk_t -> sk_t_bytes
+flatten_sk_t {bin=x, wlist=y} = xx # yy where
+  xx = flatten_array flatten_r_t x
+  yy = flatten_array flatten_compressed_idx_dv_t y
+
+// to access variants: (we use the sk_t struct as the main representation
+get_sk_raw: sk_t -> [N_sk_t][8]
+get_sk_raw = flatten_sk_t
+
+
+type padded_e_v_t = { val : e_t, pad : pad_n_t uint8_t }
+
+type padded_e_u_t =
+    { v : padded_e_v_t
+    , qw : N_PADDED_QW_t uint64_t
+    , raw : N_PADDED_SIZE_t uint8_t
+    }
+type padded_e_t = { u : padded_e_u_t }
+
+type padded_r_uv_t =
+    { val : r_t
+    , pad : pad_r_t uint8_t
+    }
+
+type padded_r_u_t =
+    { qw : R_PADDED_QW_64_t
+    , raw : R_PADDED_SIZE_t uint8_t
+    , v : padded_r_uv_t
+    }
+make_padded_r_u_t val = u where
+    (v : padded_r_uv_t) = { val = val, pad = zero }
+    (u : padded_r_u_t)  = { qw = zero, raw = zero, v = v }
+
+type padded_r_t = {
+    val : r_t,
+    pad : [R_PADDED_SIZE - R_SIZE]uint8_t
+    }
+make_padded_r_t: r_t -> padded_r_t
+make_padded_r_t x = { val = x, pad = zero }
+
+type N_padded_r_t = N_r_t + (R_PADDED_SIZE - R_SIZE)
+type padded_r_t_bytes = [N_padded_r_t][8]
+assemble_padded_r_t: padded_r_t_bytes -> padded_r_t
+assemble_padded_r_t (x#y) = { val = assemble_r_t x, pad = y }
+flatten_padded_r_t:  padded_r_t -> padded_r_t_bytes
+flatten_padded_r_t {val=x, pad=y} = (flatten_r_t x) # y
+
+// Read the `raw` member of union type `padded_r_t`.
+get_padded_r_t_raw: padded_r_t -> [R_PADDED_SIZE][8]
+get_padded_r_t_raw x = flatten_padded_r_t x
+
+// Read the `qw` member of union type `padded_r_t`.
+get_padded_r_t_qw:  padded_r_t -> [R_PADDED_QW][64]
+get_padded_r_t_qw x = C_cast (flatten_padded_r_t x)
+
+//make_padded_param_n_t val1 val2 = padded_param_n where
+//    (s1 : padded_r_t) = { u = make_padded_r_u_t val1 }
+//    (s2 : padded_r_t) = { u = make_padded_r_u_t val2 }
+//    padded_param_n  = [s1, s2]
+type padded_param_n_t = [N0] padded_r_t
+make_padded_param_n_t val1 val2  = [make_padded_r_t val1, make_padded_r_t val2]
+
+type N_padded_param_n_t = N0*N_padded_r_t
+type padded_param_n_t_bytes = [N_padded_param_n_t][8]
+assemble_padded_param_n_t: padded_param_n_t_bytes -> padded_param_n_t
+assemble_padded_param_n_t x = [assemble_padded_r_t v | v <- split x]
+
+type pad_sk_t = padded_param_n_t
+make_pad_sk_t = make_padded_param_n_t
+
+type N_pad_sk_t = N_padded_param_n_t
+type pad_sk_t_bytes = padded_param_n_t_bytes
+assemble_pad_sk_t: pad_sk_t_bytes -> pad_sk_t
+assemble_pad_sk_t = assemble_padded_param_n_t
+
+type pad_pk_t = padded_param_n_t
+type pad_ct_t = padded_param_n_t
+
+type N_pad_ct_t = N_padded_param_n_t
+type pad_ct_t_bytes = padded_param_n_t_bytes
+assemble_pad_ct_t: pad_ct_t_bytes -> pad_ct_t
+assemble_pad_ct_t = assemble_padded_param_n_t
+
+make_pad_ct_t_0 = make_padded_param_n_t
+
+type dbl_padded_r_v_t = { val : r_t, pad : dbl_padded_a_t uint8_t }
+make_dbl_padded_r_v_t val = { val = val, pad = zero }
+type dbl_padded_qw_t = R_PADDED_QW_64_2t
+type R_PADDED_SIZE_2t_8 = R_PADDED_SIZE_2t uint8_t
+
+type dbl_padded_r_u_t = {
+    v : dbl_padded_r_v_t,
+    qw : dbl_padded_qw_t,
+    raw : R_PADDED_SIZE_2t_8
+    }
+make_dbl_padded_r_u_t v qw  = { v = v, qw = qw, raw = zero }
+
+type dbl_padded_r_t = { u : dbl_padded_r_u_t }
+make_dbl_padded_r_t u = { u=u }
+make_dbl_padded_r_t_0 raw qw = p0 where
+    (val0 : r_t) = make_r_t raw
+    (v0 : dbl_padded_r_v_t) = make_dbl_padded_r_v_t val0
+    (u0 : dbl_padded_r_u_t) = make_dbl_padded_r_u_t v0 qw
+    (p0 : dbl_padded_r_t) = make_dbl_padded_r_t u0
+make_dbl_padded_r_t_1 qw =
+    make_dbl_padded_r_t ( make_dbl_padded_r_u_t zero qw)
+
+type dbl_padded_param_n_t = N0_t dbl_padded_r_t
+
+type dbl_pad_pk_t = dbl_padded_param_n_t
+type dbl_pad_ct_t = dbl_padded_param_n_t
+
+type dbl_pad_syndrome_t = dbl_padded_param_n_t
+
+type red_r_t = { raw : R_BITS_8t }
+make_red_r_t raw = { raw = raw }
+type N_red_r_t = R_BITS
+type red_r_t_bytes = [N_red_r_t][8]
+assemble_red_r_t: red_r_t_bytes -> red_r_t
+assemble_red_r_t x = {raw = x}
+flatten_red_r_t: red_r_t -> red_r_t_bytes
+flatten_red_r_t r = r.raw
+
+type ss_t = { raw : ELL_K_SIZE_8t }
+make_ss_t raw = { raw = raw }
+type N_ss_t = ELL_K_SIZE
+type ss_t_bytes = [N_ss_t][8]
+assemble_ss_t : ss_t_bytes -> ss_t
+assemble_ss_t x = {raw = x}
+disassemble_ss_t : ss_t -> ss_t_bytes
+disassemble_ss_t x = x.raw
+
+type SHA384_HASH_SIZE = 48 //48ULL
+type SHA384_HASH_SIZE_8 = [SHA384_HASH_SIZE] uint8_t
+
+type sha384_hash_t = { raw : SHA384_HASH_SIZE_8 }
+make_sha384_hash_t raw = { raw = raw }
+type N_sha384_hash_t = SHA384_HASH_SIZE
+type sha384_hash_t_bytes = [SHA384_HASH_SIZE][8]
+assemble_sha384_hash_t: sha384_hash_t_bytes -> sha384_hash_t
+assemble_sha384_hash_t x = {raw = x}
+
+type AES256_KEY_SIZE = 32// 32ULL
+type AES256_KEY_SIZE_8 = [32] uint8_t
+type aes256_key_t = { raw : AES256_KEY_SIZE_8 }
+make_aes256_keyh_t raw = { raw = raw }
+type N_aes256_key_t = AES256_KEY_SIZE
+type aes256_key_t_bytes = [32][8]
+assemble_aes256_key_t: aes256_key_t_bytes -> aes256_key_t
+assemble_aes256_key_t x = {raw = x}
+
+// NOTE: Actually is a pointer to a struct we will ignore
+type aes256_ks_t = [64]
+
+type aes_ctr_prf_state_t =
+  { ctr: [128]
+  , buffer: [128]
+  , ks:  aes256_ks_t
+  , rem_invokations: [32] // sic
+  , pos: [8]
+  }
+type N_aes_ctr_prf_state_t = (128+128+64+32+8)/8
+assemble_aes_ctr_prf_state_t: [N_aes_ctr_prf_state_t][8] -> aes_ctr_prf_state_t
+assemble_aes_ctr_prf_state_t (a#b#c#d#e) =
+ { ctr = assemble_int`{16} a
+ , buffer = assemble_int`{16} b
+ , ks = assemble_int`{8} c
+ , rem_invokations = assemble_int`{4} d
+ , pos = assemble_int`{1} e
+ }
+
+// NOTE: We only reflect the "v" substructure of syndrome_t, as the
+//       other elements are used for type conversion.
+//       See get_syndrome_raw below.
+type syndrome_t =  {
+    dup1 : red_r_t,
+    dup2 : red_r_t,
+    reserved : syndrome_d_t uint8_t
+    }
+make_syndrome_t dup1 =
+	{ dup1 = dup1, dup2 = zero, reserved = zero } : syndrome_t
+
+type N_syndrome_t = 2*N_red_r_t + (N_DDQWORDS_BITS - N_BITS)
+type syndrome_t_bytes = [N_syndrome_t][8]
+assemble_syndrome_t: syndrome_t_bytes -> syndrome_t
+assemble_syndrome_t (x#y#z) =
+    { dup1 = assemble_red_r_t x
+    , dup2 = assemble_red_r_t y
+    , reserved = z
+    }
+flatten_syndrome_t: syndrome_t -> syndrome_t_bytes
+flatten_syndrome_t s = f1#f2#f3 where
+    f1 = flatten_red_r_t s.dup1
+    f2 = flatten_red_r_t s.dup2
+    f3 = s.reserved
+
+type N_dup1_dup2_syndrome_t = 2*N_red_r_t
+assemble_dup1_dup2_syndrome_t: [N_dup1_dup2_syndrome_t][8] -> syndrome_t
+assemble_dup1_dup2_syndrome_t (x#y) =
+    { dup1 = assemble_red_r_t x
+    , dup2 = assemble_red_r_t y
+    , reserved = zero
+    }
+
+type raw_ddq = N_DDQWORDS_BITS_t uint8_t
+get_syndrome_raw: syndrome_t -> raw_ddq
+get_syndrome_raw = flatten_syndrome_t
+
+init_syndrome_t: _ -> _ -> syndrome_t
+init_syndrome_t dup1 dup2 = {dup1=dup1, dup2=dup2, reserved=zero}
+
+copy_dup1_syndrome_t : syndrome_t -> syndrome_t
+copy_dup1_syndrome_t s = init_syndrome_t s.dup1 s.dup1
+
+copy_dup12_from : syndrome_t -> syndrome_t -> syndrome_t
+copy_dup12_from s original =
+    { dup1 = original.dup1
+    , dup2 = original.dup2
+    , reserved = s.reserved
+    }
+
+type _seed_id_t = Integer
+(G_SEED : _seed_id_t) = 0
+(H_SEED : _seed_id_t) = 1
+(M_SEED : _seed_id_t) = 2
+(E_SEED : _seed_id_t) = 3
+type seed_u_t = { raw : [32] uint8_t, qw : [4] uint64_t }
+type seed_t = { u : seed_u_t }
+
+type double_seed_v_t = { s1 : seed_t, s2 : seed_t }
+
+type status_t = Integer
+(SUCCESS : status_t)                           = 0
+(FAIL : status_t)                              = 0
+(E_ERROR_WEIGHT_IS_NOT_T : status_t)           = 1
+(E_DECODING_FAILURE : status_t)                = 2
+(E_AES_CTR_PRF_INIT_FAIL : status_t)           = 3
+(E_AES_OVER_USED : status_t)                   = 4
+(EXTERNAL_LIB_ERROR_OPENSSL : status_t)        = 5
+(E_FAIL_TO_GET_SEED : status_t)                = 6
+
+type upc_t = N_QDQWORDS_BITS_t uint8_t
+
+type decode_ctx_t =
+    {  upc : upc_t
+    , black_e : e_t
+    , gray_e : e_t
+    , delta: Integer
+    , threshold : uint32_t
+    }
+
+make_decode_ctx_t upc black_e gray_e delta threshold =
+    { upc = upc
+    , black_e = black_e
+    , gray_e =  gray_e
+    , delta = delta
+    , threshold = threshold
+    }:decode_ctx_t
+
+dec_delta : decode_ctx_t -> decode_ctx_t
+dec_delta ctx =
+    { upc = ctx.upc
+    , black_e = ctx.black_e
+    , gray_e =  ctx.gray_e
+    , delta = ctx.delta -1
+    , threshold = ctx.threshold
+    }:decode_ctx_t

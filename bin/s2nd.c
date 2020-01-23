@@ -41,6 +41,9 @@
 #include <s2n.h>
 #include "common.h"
 
+#include "tls/s2n_tls13.h"
+#include "utils/s2n_safety.h"
+
 #define MAX_CERTIFICATES 50
 
 static char default_certificate_chain[] =
@@ -326,6 +329,10 @@ void usage()
     fprintf(stderr, "    Disable session ticket for resumption.\n");
     fprintf(stderr, "  -C,--corked-io\n");
     fprintf(stderr, "    Turn on corked io\n");
+    if (S2N_IN_TEST) {
+        fprintf(stderr, "  --tls13\n");
+        fprintf(stderr, "    Turn on experimental TLS1.3 support for testing.");
+    }
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -435,6 +442,7 @@ int main(int argc, char *const *argv)
     struct conn_settings conn_settings = { 0 };
     int fips_mode = 0;
     int parallelize = 0;
+    int use_tls13 = 0;
     conn_settings.session_ticket = 1;
 
     struct option long_options[] = {
@@ -457,12 +465,13 @@ int main(int argc, char *const *argv)
         {"stk-file", required_argument, 0, 'a'},
         {"no-session-ticket", no_argument, 0, 'T'},
         {"corked-io", no_argument, 0, 'C'},
+        {"tls13", no_argument, 0, '3'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hmnst:d:i:TC", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmnst:d:iTC", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -534,6 +543,9 @@ int main(int argc, char *const *argv)
             break;
         case 'T':
             conn_settings.session_ticket = 0;
+            break;
+        case '3':
+            use_tls13 = 1;
             break;
         case '?':
         default:
@@ -620,6 +632,10 @@ int main(int argc, char *const *argv)
         fprintf(stderr, "Error entering FIPS mode. s2nd is not linked with a FIPS-capable libcrypto.\n");
         exit(1);
 #endif
+    }
+
+    if (use_tls13 && S2N_IN_TEST) {
+        GUARD_EXIT(s2n_enable_tls13(), "Error enabling TLS1.3");
     }
 
     GUARD_EXIT(s2n_init(), "Error running s2n_init()");

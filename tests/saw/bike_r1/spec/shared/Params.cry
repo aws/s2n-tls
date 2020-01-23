@@ -1,0 +1,31 @@
+// Params.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module shared::Params where
+
+import version::input
+import interface::H_types_v1l1
+import interface::H_bike_r1_defs
+import interface::H_defs
+
+///////////////////////////////////////////////////////////////////////////////
+
+type sha384_hash_inner_t =
+    { raw : [48] uint8_t
+    , qw : [6] uint64_t
+    }
+type sha384_hash_t = { u:sha384_hash_inner_t }
+type sha_hash_t = sha384_hash_t
+
+// NOTE: using reduced parameter set
+type char_ct_len = N_ct_t
+type char_sk_len = N_sk_t
+type char_ss_len = N_ss_t
+type char_pk_len = N_pk_t
+
+type char_ct = ct_t_bytes
+type char_sk = sk_t_bytes
+type char_ss = ss_t_bytes
+type char_pk = pk_t_bytes

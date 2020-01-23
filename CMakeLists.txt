@@ -23,7 +23,8 @@ file(GLOB ERROR_HEADERS
 
 file(GLOB PQ_HEADERS
     "pq-crypto/*.h"
-    "pq-crypto/bike/*.h"
+    "pq-crypto/bike_r1/*.h"
+    "pq-crypto/bike_r2/*.h"
     "pq-crypto/sike_r1/*.h"
 )
 
@@ -51,7 +52,8 @@ file(GLOB ERROR_SRC
 # The SIKE code #includes .c files directly, including all sike_r*/*.c breaks the build due to duplicates
 file(GLOB PQ_SRC
         "pq-crypto/*.c"
-        "pq-crypto/bike/*.c"
+        "pq-crypto/bike_r1/*.c"
+        "pq-crypto/bike_r2/*.c"
         "pq-crypto/sike_r1/fp_generic_r1.c"
         "pq-crypto/sike_r1/P503_r1.c"
         "pq-crypto/sike_r1/sike_p503_r1_kem.c"
@@ -60,16 +62,18 @@ file(GLOB PQ_SRC
         "pq-crypto/sike_r2/P434.c"
         )
 
-if($ENV{S2N_SIKE_R2_FORCE_GENERIC})
-    message(STATUS "Forcing usage of generic C code for SIKE p434 r2")
+if($ENV{S2N_NO_PQ_ASM})
+    message(STATUS "Forcing usage of generic C code for PQ crypto")
+elseif(${CMAKE_HOST_SYSTEM_NAME} MATCHES "Darwin")
+    message(STATUS "Detected Darwin, using generic C code for PQ crypto")
 elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64" OR ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "amd64" OR (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "AMD64" AND CMAKE_CL_64))
-    message(STATUS "Using optimized x86_64 assembly for SIKE p434 r2")
+    message(STATUS "Using optimized x86_64 assembly for PQ crypto")
     enable_language(ASM)
     file(GLOB PQ_X86_64_ASM
             "pq-crypto/sike_r2/fp_x64_asm.S")
     list(APPEND PQ_SRC ${PQ_X86_64_ASM})
 else()
-    message(STATUS "Architecture is not x86_64 compatible - using generic C code for SIKE p434 r2")
+    message(STATUS "Architecture is not x86_64 compatible - using generic C code for PQ crypto")
 endif()
 
 file(GLOB STUFFER_SRC

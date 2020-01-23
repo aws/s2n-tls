@@ -19,7 +19,7 @@
 
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_signature.h"
-#include "crypto/s2n_ecc.h"
+#include "crypto/s2n_ecc_evp.h"
 
 struct s2n_signature_scheme {
     uint16_t iana_value;
