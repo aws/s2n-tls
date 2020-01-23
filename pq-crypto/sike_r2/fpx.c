@@ -124,7 +124,7 @@ void fp2correction(f2elm_t *a) { // Modular correction, a = a in GF(p^2).
 }
 
 __inline static void mp_addfast(const digit_t *a, const digit_t *b, digit_t *c) { // Multiprecision addition, c = a+b.
-#if (OS_TARGET == OS_WIN) || defined(GENERIC_IMPLEMENTATION) || (TARGET == TARGET_ARM) || (TARGET == TARGET_ARM64 && (NBITS_FIELD == 434 || NBITS_FIELD == 610))
+#if (OS_TARGET == OS_WIN) || defined(S2N_PQ_GENERIC) || (TARGET == TARGET_ARM) || (TARGET == TARGET_ARM64 && (NBITS_FIELD == 434 || NBITS_FIELD == 610))
 
 	mp_add(a, b, c, NWORDS_FIELD);
 
@@ -157,7 +157,7 @@ unsigned int mp_sub(const digit_t *a, const digit_t *b, digit_t *c, const unsign
 }
 
 __inline static void mp_subaddfast(const digit_t *a, const digit_t *b, digit_t *c) { // Multiprecision subtraction followed by addition with p*2^MAXBITS_FIELD, c = a-b+(p*2^MAXBITS_FIELD) if a-b < 0, otherwise c=a-b.
-#if (OS_TARGET == OS_WIN) || defined(GENERIC_IMPLEMENTATION) || (TARGET == TARGET_ARM) || (TARGET == TARGET_ARM64 && (NBITS_FIELD == 434 || NBITS_FIELD == 610))
+#if (OS_TARGET == OS_WIN) || defined(S2N_PQ_GENERIC) || (TARGET == TARGET_ARM) || (TARGET == TARGET_ARM64 && (NBITS_FIELD == 434 || NBITS_FIELD == 610))
 	felm_t t1;
 
 	digit_t mask = 0 - (digit_t) mp_sub(a, b, c, 2 * NWORDS_FIELD);
@@ -173,7 +173,7 @@ __inline static void mp_subaddfast(const digit_t *a, const digit_t *b, digit_t *
 }
 
 __inline static void mp_dblsubfast(const digit_t *a, const digit_t *b, digit_t *c) { // Multiprecision subtraction, c = c-a-b, where lng(a) = lng(b) = 2*NWORDS_FIELD.
-#if (OS_TARGET == OS_WIN) || defined(GENERIC_IMPLEMENTATION) || (TARGET == TARGET_ARM) || (TARGET == TARGET_ARM64 && (NBITS_FIELD == 434 || NBITS_FIELD == 610))
+#if (OS_TARGET == OS_WIN) || defined(S2N_PQ_GENERIC) || (TARGET == TARGET_ARM) || (TARGET == TARGET_ARM64 && (NBITS_FIELD == 434 || NBITS_FIELD == 610))
 
 	mp_sub(c, a, c, 2 * NWORDS_FIELD);
 	mp_sub(c, b, c, 2 * NWORDS_FIELD);

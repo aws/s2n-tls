@@ -32,3 +32,19 @@ int s2n_extensions_client_status_request_send(struct s2n_connection *conn, struc
 
     return 0;
 }
+
+int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    if (s2n_stuffer_data_available(extension) < 5) {
+        /* Malformed length, ignore the extension */
+        return 0;
+    }
+    uint8_t type;
+    GUARD(s2n_stuffer_read_uint8(extension, &type));
+    if (type != (uint8_t) S2N_STATUS_REQUEST_OCSP) {
+        /* We only support OCSP (type 1), ignore the extension */
+        return 0;
+    }
+    conn->status_type = (s2n_status_request_type) type;
+    return 0;
+}

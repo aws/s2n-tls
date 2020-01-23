@@ -14,6 +14,7 @@
  */
 
 #include "pq-crypto/bike_r1/bike_r1_kem.h"
+#include "pq-crypto/bike_r2/bike_r2_kem.h"
 #include "pq-crypto/sike_r1/sike_p503_r1_kem.h"
 #include "pq-crypto/sike_r2/sike_p434_r2_kem.h"
 
@@ -36,6 +37,18 @@ const struct s2n_kem s2n_bike1_l1_r1 = {
         .generate_keypair = &BIKE1_L1_R1_crypto_kem_keypair,
         .encapsulate = &BIKE1_L1_R1_crypto_kem_enc,
         .decapsulate = &BIKE1_L1_R1_crypto_kem_dec,
+};
+
+const struct s2n_kem s2n_bike1_l1_r2 = {
+        .name = "BIKE1r2-Level1",
+        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2,
+        .public_key_length = BIKE1_L1_R2_PUBLIC_KEY_BYTES,
+        .private_key_length = BIKE1_L1_R2_SECRET_KEY_BYTES,
+        .shared_secret_key_length = BIKE1_L1_R2_SHARED_SECRET_BYTES,
+        .ciphertext_length = BIKE1_L1_R2_CIPHERTEXT_BYTES,
+        .generate_keypair = &BIKE1_L1_R2_crypto_kem_keypair,
+        .encapsulate = &BIKE1_L1_R2_crypto_kem_enc,
+        .decapsulate = &BIKE1_L1_R2_crypto_kem_dec,
 };
 
 const struct s2n_kem s2n_sike_p503_r1 = {
@@ -63,7 +76,7 @@ const struct s2n_kem s2n_sike_p434_r2 = {
 };
 
 const struct s2n_kem *supported_bike_params[] = {
-        &s2n_bike1_l1_r1,
+        &s2n_bike1_l1_r1
 };
 
 const struct s2n_kem *supported_sike_params[] = {

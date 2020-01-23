@@ -16,6 +16,7 @@
 #include "crypto/s2n_fips.h"
 #include "error/s2n_errno.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_kex.h"
 #include "tls/s2n_tls_digest_preferences.h"
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_signature_scheme.h"
@@ -24,8 +25,11 @@
 int s2n_get_auth_method_from_sig_alg(s2n_signature_algorithm in, s2n_authentication_method* out) {
     switch(in) {
         case S2N_SIGNATURE_RSA:
-        case S2N_SIGNATURE_RSA_PSS_RSAE:
             *out = S2N_AUTHENTICATION_RSA;
+            return 0;
+        case S2N_SIGNATURE_RSA_PSS_RSAE:
+        case S2N_SIGNATURE_RSA_PSS_PSS:
+            *out = S2N_AUTHENTICATION_RSA_PSS;
             return 0;
         case S2N_SIGNATURE_ECDSA:
             *out = S2N_AUTHENTICATION_ECDSA;
@@ -35,18 +39,38 @@ int s2n_get_auth_method_from_sig_alg(s2n_signature_algorithm in, s2n_authenticat
     }
 }
 
+int s2n_auth_method_requires_ephemeral_kex(const s2n_authentication_method auth_method) {
+    switch (auth_method) {
+    case S2N_AUTHENTICATION_RSA_PSS:
+        /* RSA-PSS only supports Sign/Verify, and not Encrypt/Decrypt, which means that it MUST be used with an
+         * ephemeral Key Exchange Algorithm. */
+        return 1;
+    default:
+        return 0;
+    }
+}
+
 int s2n_choose_sig_scheme(const struct s2n_signature_scheme* const* our_pref_list, int our_size,
-                          s2n_authentication_method *required_auth_method, struct s2n_sig_scheme_list *peer_pref_list,
+                          struct s2n_cipher_suite *cipher_suite, struct s2n_sig_scheme_list *peer_pref_list,
                           struct s2n_signature_scheme *chosen_scheme_out) {
+
+    notnull_check(cipher_suite);
+
+    const struct s2n_kex *required_kex_method = cipher_suite->key_exchange_alg;
+    s2n_authentication_method required_auth_method = cipher_suite->auth_method;
 
     for (int i = 0; i < our_size; i++) {
         const struct s2n_signature_scheme *candidate = our_pref_list[i];
 
+        if (s2n_auth_method_requires_ephemeral_kex(required_auth_method) && !required_kex_method->is_ephemeral) {
+            continue;
+        }
+
         /* If we have a required Auth Method, and it doesn't match, skip the candidate */
-        if (required_auth_method != NULL && (*required_auth_method != S2N_AUTHENTICATION_METHOD_TLS13)) {
+        if (required_auth_method != S2N_AUTHENTICATION_METHOD_TLS13) {
             s2n_authentication_method candidate_auth_method;
             GUARD(s2n_get_auth_method_from_sig_alg(candidate->sig_alg, &candidate_auth_method));
-            if (candidate_auth_method != *required_auth_method) {
+            if (candidate_auth_method != required_auth_method) {
                 continue;
             }
         }
@@ -137,7 +161,7 @@ int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn,
 
     /* SignatureScheme preference list was first added in TLS 1.2. It will be empty in older TLS versions. */
     if (0 < (peer_pref_list->len)) {
-        GUARD(s2n_choose_sig_scheme(our_pref_list, our_pref_len, &cipher_suite_auth_method, peer_pref_list, &chosen_scheme));
+        GUARD(s2n_choose_sig_scheme(our_pref_list, our_pref_len, conn->secure.cipher_suite, peer_pref_list, &chosen_scheme));
     }
 
     /* In TLS 1.3, SigScheme also defines the ECDSA curve to use (instead of reusing whatever ECDHE Key Exchange curve

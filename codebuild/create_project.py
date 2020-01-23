@@ -123,7 +123,7 @@ def main(**kwargs):
             else:
                 build_project(template=codebuild, project_name=job_title, section=job, service_role=service_role['Ref'])
 
-    with(open("cfn/codebuild_test_projects.yml", 'w')) as fh:
+    with(open(args.output_dir + "/codebuild_test_projects.yml", 'w')) as fh:
         fh.write(codebuild.to_yaml())
 
     if args.dry_run:
@@ -139,6 +139,7 @@ if __name__ == '__main__':
     parser.add_argument('--config', type=str, default="codebuild.config", help='The config filename to create the '
                                                                                'CodeBuild projects')
     parser.add_argument('--dry-run', dest='dry_run', action='store_true', help='Output CFN to stdout; Do not call AWS')
+    parser.add_argument('--output-dir', dest='output_dir', default='cfn', help="Directory to write CFN files")
     args = parser.parse_args()
 
     config = configparser.RawConfigParser()
