@@ -1,0 +1,4 @@
+cbmcflags: "--bounds-check;--div-by-zero-check;--float-overflow-check;--nan-check;--pointer-check;--pointer-overflow-check;--signed-overflow-check;--undefined-shift-check;--unsigned-overflow-check;--unwind;1;--unwinding-assertions;--object-bits;8"
+expected: "SUCCESSFUL"
+goto: gotos/s2n_stuffer_reread_harness.goto
+jobos: ubuntu16

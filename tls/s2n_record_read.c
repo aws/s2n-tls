@@ -73,7 +73,7 @@ int s2n_record_header_parse(
     const uint8_t version = (protocol_version[0] * 10) + protocol_version[1];
     /* https://tools.ietf.org/html/rfc5246#appendix-E.1 states that servers must accept any value {03,XX} as the record
      * layer version number for the first TLS record. There is some ambiguity here because the client does not know
-     * what version to use in the record header prior to receiving the ServerHello. Some client implmentations may use
+     * what version to use in the record header prior to receiving the ServerHello. Some client implementations may use
      * a garbage value(not {03,XX}) in the ClientHello.
      * Choose to be lenient to these clients. After protocol negotiation, we will enforce that all record versions
      * match the negotiated version.
@@ -146,3 +146,20 @@ int s2n_record_parse(struct s2n_connection *conn)
 
     return 0;
 }
+
+int s2n_parse_record_type(struct s2n_stuffer *stuffer, uint8_t * record_type) 
+{
+    GUARD(s2n_stuffer_skip_read(stuffer, s2n_stuffer_data_available(stuffer) - 1));
+
+    /* set the true record type */
+    GUARD(s2n_stuffer_read_uint8(stuffer, record_type));
+
+    /* wipe this last byte so the rest handshake works like < TLS 1.3 */
+    GUARD(s2n_stuffer_wipe_n(stuffer, 1));
+
+    /* set the read cursor at where it should be */
+    GUARD(s2n_stuffer_reread(stuffer));
+
+    return 0;
+}
+

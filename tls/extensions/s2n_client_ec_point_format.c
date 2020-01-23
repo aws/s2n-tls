@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -13,17 +13,20 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
+#include <sys/param.h>
+#include <stdint.h>
 
+#include "tls/extensions/s2n_client_ec_point_format.h"
 #include "tls/s2n_tls.h"
-#include "error/s2n_errno.h"
 
-int main(int argc, char **argv)
+#include "utils/s2n_safety.h"
+
+int s2n_recv_client_ec_point_formats(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    BEGIN_TEST();
-
-    EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_retry_send(NULL), S2N_ERR_UNIMPLEMENTED);
-    EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_retry_recv(NULL), S2N_ERR_UNIMPLEMENTED);
-
-    END_TEST();
+    /**
+     * Only uncompressed points are supported by the server and the client must include it in
+     * the extension. Just skip the extension.
+     */
+    conn->ec_point_formats = 1;
+    return 0;
 }

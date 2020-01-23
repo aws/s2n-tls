@@ -129,6 +129,7 @@ int s2n_stuffer_rewind_read(struct s2n_stuffer *stuffer, const uint32_t size)
 
 int s2n_stuffer_reread(struct s2n_stuffer *stuffer)
 {
+    S2N_PRECONDITION(s2n_stuffer_is_valid(stuffer));
     stuffer->read_cursor = 0;
     return 0;
 }
@@ -215,6 +216,7 @@ int s2n_stuffer_erase_and_read(struct s2n_stuffer *stuffer, struct s2n_blob *out
 
 int s2n_stuffer_read_bytes(struct s2n_stuffer *stuffer, uint8_t * data, uint32_t size)
 {
+    notnull_check(data);
     GUARD(s2n_stuffer_skip_read(stuffer, size));
 
     void *ptr = stuffer->blob.data + stuffer->read_cursor - size;

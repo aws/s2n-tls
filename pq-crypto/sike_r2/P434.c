@@ -109,12 +109,10 @@ const unsigned int strat_Bob[MAX_Bob - 1] = {
 #define EphemeralSecretAgreement_A oqs_kem_sidh_p434_EphemeralSecretAgreement_A
 #define EphemeralSecretAgreement_B oqs_kem_sidh_p434_EphemeralSecretAgreement_B
 
-#if defined(OPTIMIZED_ASM_IMPLEMENTATION)
+#if defined(S2N_PQ_ASM)
 #include "fp_x64.c"
-#elif defined(GENERIC_IMPLEMENTATION)
-#include "fp_generic.c"
 #else
-#error "Neither OPTIMIZED_ASM_IMPLEMENTATION nor GENERIC_IMPLEMENTATION was defined. One of those must be defined."
+#include "fp_generic.c"
 #endif
 
 #include "fpx.c"

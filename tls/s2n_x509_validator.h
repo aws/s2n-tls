@@ -100,7 +100,7 @@ void s2n_x509_validator_wipe(struct s2n_x509_validator *validator);
  * trusted, the chain will be considered UNTRUSTED
  */
 s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
-                                                                uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_cert_type *cert_type,
+                                                                uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_pkey_type *pkey_type,
                                                                 struct s2n_pkey *public_key_out);
 
 /**

@@ -47,3 +47,21 @@ int s2n_extensions_client_pq_kem_send(struct s2n_connection *conn, struct s2n_st
 
     return 0;
 }
+
+int s2n_recv_pq_kem_extension(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    uint16_t size_of_all;
+    struct s2n_blob *proposed_kems = &conn->secure.client_pq_kem_extension;
+
+    GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
+    if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all % 2) {
+        /* Malformed length, ignore the extension */
+        return 0;
+    }
+
+    proposed_kems->size = size_of_all;
+    proposed_kems->data = s2n_stuffer_raw_read(extension, proposed_kems->size);
+    notnull_check(proposed_kems->data);
+
+    return 0;
+}

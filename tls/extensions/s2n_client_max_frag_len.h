@@ -19,3 +19,4 @@
 #include "stuffer/s2n_stuffer.h"
 
 extern int s2n_extensions_client_max_frag_len_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+extern int s2n_recv_client_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer *extension);
