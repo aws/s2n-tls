@@ -143,7 +143,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C)
 
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
-target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=c99 -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts
+target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts
         -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
         -Wno-missing-braces)
 target_compile_options(${PROJECT_NAME} PUBLIC -fPIC)
@@ -180,7 +180,7 @@ if (BUILD_TESTING)
 
     add_library(testss2n ${TESTLIB_HEADERS} ${TESTLIB_SRC})
     target_include_directories(testss2n PUBLIC tests)
-    target_compile_options(testss2n PRIVATE -std=c99)
+    target_compile_options(testss2n PRIVATE -std=gnu99)
     target_link_libraries(testss2n PUBLIC ${PROJECT_NAME} LibCrypto::Crypto ${OS_LIBS} m)
     target_include_directories(testss2n PUBLIC $<TARGET_PROPERTY:LibCrypto::Crypto,INTERFACE_INCLUDE_DIRECTORIES>)
 
@@ -197,7 +197,7 @@ if (BUILD_TESTING)
         target_include_directories(${test_case_name} PRIVATE ./)
         target_include_directories(${test_case_name} PRIVATE tests)
         target_link_libraries(${test_case_name} PRIVATE testss2n)
-        target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -D_POSIX_C_SOURCE=200809L -std=c99)
+        target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -D_POSIX_C_SOURCE=200809L -std=gnu99)
         add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
 
         set_property(
@@ -208,14 +208,16 @@ if (BUILD_TESTING)
     endforeach(test_case)
 
     add_executable(s2nc "bin/s2nc.c" "bin/echo.c")
-    target_link_libraries(s2nc ${PROJECT_NAME})
+    target_link_libraries(s2nc ${PROJECT_NAME} LibCrypto::Crypto)
+    target_include_directories(s2nc PRIVATE $<TARGET_PROPERTY:LibCrypto::Crypto,INTERFACE_INCLUDE_DIRECTORIES>)
     target_include_directories(s2nc PRIVATE api)
-    target_compile_options(s2nc PRIVATE -std=c99 -D_POSIX_C_SOURCE=200112L)
+    target_compile_options(s2nc PRIVATE -std=gnu99 -D_POSIX_C_SOURCE=200112L)
 
     add_executable(s2nd "bin/s2nd.c" "bin/echo.c")
-    target_link_libraries(s2nd ${PROJECT_NAME})
+    target_link_libraries(s2nd ${PROJECT_NAME} LibCrypto::Crypto)
+    target_include_directories(s2nd PRIVATE $<TARGET_PROPERTY:LibCrypto::Crypto,INTERFACE_INCLUDE_DIRECTORIES>)
     target_include_directories(s2nd PRIVATE api)
-    target_compile_options(s2nd PRIVATE -std=c99 -D_POSIX_C_SOURCE=200112L)
+    target_compile_options(s2nd PRIVATE -std=gnu99 -D_POSIX_C_SOURCE=200112L)
 endif()
 
 #install the s2n files
