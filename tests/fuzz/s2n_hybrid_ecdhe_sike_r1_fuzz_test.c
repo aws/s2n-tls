@@ -18,7 +18,7 @@
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_openssl.h"
 #include "error/s2n_errno.h"
-#include "pq-crypto/sike_r1/sike_p503_r1_kem.h"
+#include "pq-crypto/sike_r1/sike_r1_kem.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tests/s2n_test.h"
 #include "tests/testlib/s2n_testlib.h"
@@ -64,7 +64,7 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
     GUARD(atexit(s2n_fuzz_atexit));
 
     struct s2n_blob *public_key = &server_kem_keys.public_key;
-    GUARD(s2n_alloc(public_key, SIKE_P503_r1_PUBLIC_KEY_BYTES));
+    GUARD(s2n_alloc(public_key, SIKE_P503_R1_PUBLIC_KEY_BYTES));
     GUARD(s2n_kem_generate_keypair(&server_kem_keys));
     GUARD(s2n_free(public_key));
 
