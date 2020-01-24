@@ -13,29 +13,30 @@
 General flow of the CodeBuild Test Projects
 
 - buildspec_{OS}.yml
-    - codebuild/install_default_dependencies.sh
-        - codebuild/install_clang.sh
-        - codebuild/install_libFuzzer.sh
-        - codebuild/install_openssl_1_1_1.sh
-        - codebuild/install_openssl_1_0_2.sh
-        - codebuild/install_openssl_1_0_2_fips.sh
-        - codebuild/install_cppcheck.sh
-        - codebuild/install_libressl.sh
-        - codebuild/install_python.sh
-        - codebuild/install_gnutls.sh
-        - codebuild/install_saw.sh
-        - codebuild/install_z3_yices.sh
-        - codebuild/install_sslyze.sh
-    - codebuild/s2n_codebuild.sh
-        - codebuild/s2n_override_paths.sh
-        - codebuild/run_cppcheck.sh
-        - codebuild/copyright_mistake_scanner.sh
-        - codebuild/run_kwstyle.sh
-        - codebuild/cpp_style_comment_linter.sh
-        - codebuild/run_ctverif.sh
-        - codebuild/run_sidetrail.sh
-        - codebuild/grep_simple_mistakes.sh
-    - codebuild/s2n_after_codebuild.sh
+    - codebuild/bin/install_default_dependencies.sh
+        - codebuild/bin/install_clang.sh
+        - codebuild/bin/install_libFuzzer.sh
+        - codebuild/bin/install_openssl_1_1_1.sh
+        - codebuild/bin/install_openssl_1_0_2.sh
+        - codebuild/bin/install_openssl_1_0_2_fips.sh
+        - codebuild/bin/install_cppcheck.sh
+        - codebuild/bin/install_libressl.sh
+        - codebuild/bin/install_python.sh
+        - codebuild/bin/install_gnutls.sh
+        - codebuild/bin/install_saw.sh
+        - codebuild/bin/install_z3_yices.sh
+        - codebuild/bin/install_sslyze.sh
+        - codebuild/bin/install_sidetrail_dependencies.sh
+    - codebuild/bin/s2n_codebuild.sh
+        - codebuild/bin/s2n_override_paths.sh
+        - codebuild/bin/run_cppcheck.sh
+        - codebuild/bin/copyright_mistake_scanner.sh
+        - codebuild/bin/run_kwstyle.sh
+        - codebuild/bin/cpp_style_comment_linter.sh
+        - codebuild/bin/run_ctverif.sh
+        - codebuild/bin/run_sidetrail.sh
+        - codebuild/bin/grep_simple_mistakes.sh
+    - codebuild/bin/s2n_after_codebuild.sh
         - curl -s https://codecov.io/bash
 
 

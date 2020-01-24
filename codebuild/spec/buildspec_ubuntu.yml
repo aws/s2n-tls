@@ -32,7 +32,8 @@ phases:
         if expr "${GCC_VERSION}" : "6" >/dev/null; then
           apt-get install -y --no-install-recommends g++ g++-6 gcc gcc-6;
         fi
-      - apt-get install -y --no-install-recommends indent kwstyle lcov libssl-dev clang-3.9 llvm-3.9 m4 make net-tools nettle-bin nettle-dev pkg-config psmisc python3-pip shellcheck sudo tcpdump unzip valgrind zlib1g-dev zlibc
+      - apt-get install -y --no-install-recommends lsb wget ruby figlet curl indent kwstyle lcov libssl-dev clang-3.9 llvm-3.9 m4 make net-tools nettle-bin nettle-dev pkg-config psmisc python3-pip python-dev shellcheck sudo tcpdump unzip valgrind zlib1g-dev zlibc unzip
+      - update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 10
   pre_build:
     commands:
       - codebuild/bin/install_default_dependencies.sh

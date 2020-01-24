@@ -83,3 +83,15 @@ fi
 if [[ "$TESTS" == "integration" || "$TESTS" == "ALL" ]] ; then
     codebuild/bin/install_sslyze.sh
 fi
+
+if [[ "${TESTS}" == "sidetrail" || "${TESTS}" == "ALL" ]]; then
+    mkdir -p "${SIDETRAIL_INSTALL_DIR}" ||true
+    # Don't run install on the smack docker image.
+    if [[ $(test -x /usr/local/bin/smack) -eq 1 ]] ; then
+        codebuild/bin/install_sidetrail_dependencies.sh ; 
+        codebuild/bin/install_sidetrail.sh "${SIDETRAIL_INSTALL_DIR}" > /dev/null ;
+    else
+        echo "Symlinking to the pre-built smack env."
+        ln -s /home/user/smack.environment ${SIDETRAIL_INSTALL_DIR}/
+    fi
+fi

@@ -50,7 +50,7 @@ SMACK_DIR="${1}/smack"
 #Put the dependencies on the path
 
 # Disabling ShellCheck using https://github.com/koalaman/shellcheck/wiki/Directive
-# Turn of Warning in one line as https://github.com/koalaman/shellcheck/wiki/SC1090
+# Turn off Warning in one line as https://github.com/koalaman/shellcheck/wiki/SC1090
 # shellcheck disable=SC1090
 source "${INSTALL_DIR}/smack.environment"
 export PATH="${SMACK_DIR}/bin:${SMACK_DIR}/build:${PATH}"
@@ -58,8 +58,6 @@ export PATH="${SMACK_DIR}/bin:${SMACK_DIR}/build:${PATH}"
 which smack || echo "can't find smack"
 which boogie || echo "can't find z3"
 which llvm2bpl || echo "can't find llvm2bpl"
-which clang
-clang --version
 
 if [[ "$2" == "" || "$2" == "1" ]]; then
     runSingleTest "s2n-cbc"

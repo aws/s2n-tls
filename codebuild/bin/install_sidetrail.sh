@@ -14,9 +14,10 @@
 #
 
 set -e
+set -x
 
 usage() {
-    echo "install_ctverif.sh install_dir"
+    echo "install_sidetrail.sh install_dir"
     exit 1
 }
 
@@ -29,10 +30,11 @@ INSTALL_DIR=$1
 cd "$INSTALL_DIR"
 
 #install smack
-git clone https://github.com/smackers/smack.git -b develop
+git clone https://github.com/smackers/smack.git -b v2.4.0
 cd smack/bin
-git checkout 45e1fc5
-./build.sh
+
+# CodeBuild is missing build step output
+./build.sh | tee /dev/stderr
 
 # Disabling ShellCheck using https://github.com/koalaman/shellcheck/wiki/Directive
 # Turn of Warning in one line as https://github.com/koalaman/shellcheck/wiki/SC1090
