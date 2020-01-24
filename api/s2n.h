@@ -23,7 +23,6 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <openssl/ossl_typ.h>
 #include <sys/uio.h>
 
 /* Function return code  */
@@ -58,6 +57,8 @@ extern int s2n_error_get_type(int error);
 struct s2n_config;
 struct s2n_connection;
 
+typedef struct rsa_st RSA;
+
 extern unsigned long s2n_get_openssl_version(void);
 extern int s2n_init(void);
 extern int s2n_cleanup(void);
@@ -77,7 +78,6 @@ extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_t
 extern const char *s2n_strerror(int error, const char *lang);
 extern const char *s2n_strerror_debug(int error, const char *lang);
 extern const char *s2n_strerror_name(int error); 
-
 
 struct s2n_stacktrace;
 extern bool s2n_stack_traces_enabled(void);

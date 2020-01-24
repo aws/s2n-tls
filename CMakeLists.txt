@@ -179,9 +179,10 @@ if (BUILD_TESTING)
     file(GLOB TESTLIB_HEADERS "tests/testlib/*.h" "tests/s2n_test.h")
 
     add_library(testss2n ${TESTLIB_HEADERS} ${TESTLIB_SRC})
-    target_include_directories(testss2n PRIVATE tests)
+    target_include_directories(testss2n PUBLIC tests)
     target_compile_options(testss2n PRIVATE -std=c99)
-    target_link_libraries(testss2n PUBLIC ${PROJECT_NAME})
+    target_link_libraries(testss2n PUBLIC ${PROJECT_NAME} LibCrypto::Crypto ${OS_LIBS} m)
+    target_include_directories(testss2n PUBLIC $<TARGET_PROPERTY:LibCrypto::Crypto,INTERFACE_INCLUDE_DIRECTORIES>)
 
     #run unit tests
     file (GLOB TEST_LD_PRELOAD "tests/LD_PRELOAD/*.c")
@@ -192,12 +193,11 @@ if (BUILD_TESTING)
         string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
 
         add_executable(${test_case_name} ${test_case})
-        target_link_libraries(${test_case_name} PRIVATE testss2n LibCrypto::Crypto m pthread)
         target_include_directories(${test_case_name} PRIVATE api)
         target_include_directories(${test_case_name} PRIVATE ./)
         target_include_directories(${test_case_name} PRIVATE tests)
+        target_link_libraries(${test_case_name} PRIVATE testss2n)
         target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -D_POSIX_C_SOURCE=200809L -std=c99)
-        target_include_directories(${test_case_name} PRIVATE $<TARGET_PROPERTY:LibCrypto::Crypto,INTERFACE_INCLUDE_DIRECTORIES>)
         add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
 
         set_property(
