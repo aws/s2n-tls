@@ -48,19 +48,21 @@ const uint8_t tls11_downgrade_protection_bytes[] = {
 };
 
 static int s2n_client_detect_downgrade_mechanism(struct s2n_connection *conn) {
+    if (!s2n_is_tls13_enabled()) {
+        return 0;
+    }
+
     notnull_check(conn);
     uint8_t *downgrade_bytes = &conn->secure.server_random[S2N_TLS_RANDOM_DATA_LEN - S2N_DOWNGRADE_PROTECTION_SIZE];
 
     /* Detect downgrade attacks according to RFC 8446 section 4.1.3 */
     if (conn->client_protocol_version == S2N_TLS13 && conn->server_protocol_version == S2N_TLS12) {
-        /* If the server supports TLS1.3, the random data will be set according to RFC sect 4.1.3 */
         if (s2n_constant_time_equals(downgrade_bytes, tls12_downgrade_protection_bytes, S2N_DOWNGRADE_PROTECTION_SIZE)) {
-            S2N_ERROR(S2N_ERR_SERVER_PROTOCOL_VERSION);
+            S2N_ERROR(S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
         }
-    } else if (conn->client_protocol_version >= S2N_TLS12 && conn->server_protocol_version < S2N_TLS12) {
-        /* If the server supports TLS1.2, the random data should be set according to RFC sect 4.1.3 */
+    } else if (conn->client_protocol_version == S2N_TLS13 && conn->server_protocol_version <= S2N_TLS11) {
         if (s2n_constant_time_equals(downgrade_bytes, tls11_downgrade_protection_bytes, S2N_DOWNGRADE_PROTECTION_SIZE)) {
-            S2N_ERROR(S2N_ERR_SERVER_PROTOCOL_VERSION);
+            S2N_ERROR(S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
         }
     }
 
@@ -68,6 +70,10 @@ static int s2n_client_detect_downgrade_mechanism(struct s2n_connection *conn) {
 }
 
 static int s2n_server_add_downgrade_mechanism(struct s2n_connection *conn) {
+    if (!s2n_is_tls13_enabled()) {
+        return 0;
+    }
+
     notnull_check(conn);
     uint8_t *downgrade_bytes = &conn->secure.server_random[S2N_TLS_RANDOM_DATA_LEN - S2N_DOWNGRADE_PROTECTION_SIZE];
 
@@ -75,8 +81,8 @@ static int s2n_server_add_downgrade_mechanism(struct s2n_connection *conn) {
     if (conn->server_protocol_version >= S2N_TLS13 && conn->actual_protocol_version == S2N_TLS12) {
         /* TLS1.3 servers MUST use a special random value when negotiating TLS1.2 */
         memcpy_check(downgrade_bytes, tls12_downgrade_protection_bytes, S2N_DOWNGRADE_PROTECTION_SIZE);
-    } else if (conn->server_protocol_version >= S2N_TLS12 && conn->actual_protocol_version < S2N_TLS12) {
-        /* TLS1.3 servers MUST, and TLS1.2 servers SHOULD, use a special random value when negotiating TLS1.1 or below */
+    } else if (conn->server_protocol_version >= S2N_TLS13 && conn->actual_protocol_version <= S2N_TLS11) {
+        /* TLS1.3 servers MUST, use a special random value when negotiating TLS1.1 or below */
         memcpy_check(downgrade_bytes, tls11_downgrade_protection_bytes, S2N_DOWNGRADE_PROTECTION_SIZE);
     }
 
@@ -132,7 +138,7 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         uint8_t actual_protocol_version;
         conn->server_protocol_version = (uint8_t)(protocol_version[0] * 10) + protocol_version[1];
 
-        S2N_ERROR_IF(s2n_client_detect_downgrade_mechanism(conn), S2N_ERR_SERVER_PROTOCOL_VERSION);
+        S2N_ERROR_IF(s2n_client_detect_downgrade_mechanism(conn), S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
 
         const struct s2n_cipher_preferences *cipher_preferences;
         GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
