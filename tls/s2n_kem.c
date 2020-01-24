@@ -15,8 +15,8 @@
 
 #include "pq-crypto/bike_r1/bike_r1_kem.h"
 #include "pq-crypto/bike_r2/bike_r2_kem.h"
-#include "pq-crypto/sike_r1/sike_p503_r1_kem.h"
-#include "pq-crypto/sike_r2/sike_p434_r2_kem.h"
+#include "pq-crypto/sike_r1/sike_r1_kem.h"
+#include "pq-crypto/sike_r2/sike_r2_kem.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -53,11 +53,11 @@ const struct s2n_kem s2n_bike1_l1_r2 = {
 
 const struct s2n_kem s2n_sike_p503_r1 = {
         .name = "SIKEp503r1-KEM",
-        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1_KEM,
-        .public_key_length = SIKE_P503_r1_PUBLIC_KEY_BYTES,
-        .private_key_length = SIKE_P503_r1_SECRET_KEY_BYTES,
-        .shared_secret_key_length = SIKE_P503_r1_SHARED_SECRET_BYTES,
-        .ciphertext_length = SIKE_P503_r1_CIPHERTEXT_BYTES,
+        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1,
+        .public_key_length = SIKE_P503_R1_PUBLIC_KEY_BYTES,
+        .private_key_length = SIKE_P503_R1_SECRET_KEY_BYTES,
+        .shared_secret_key_length = SIKE_P503_R1_SHARED_SECRET_BYTES,
+        .ciphertext_length = SIKE_P503_R1_CIPHERTEXT_BYTES,
         .generate_keypair = &SIKE_P503_r1_crypto_kem_keypair,
         .encapsulate = &SIKE_P503_r1_crypto_kem_enc,
         .decapsulate = &SIKE_P503_r1_crypto_kem_dec,
@@ -65,11 +65,11 @@ const struct s2n_kem s2n_sike_p503_r1 = {
 
 const struct s2n_kem s2n_sike_p434_r2 = {
         .name = "SIKEp434r2-KEM",
-        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2_KEM,
-        .public_key_length = SIKE_P434_r2_PUBLIC_KEY_BYTES,
-        .private_key_length = SIKE_P434_r2_SECRET_KEY_BYTES,
-        .shared_secret_key_length = SIKE_P434_r2_SHARED_SECRET_BYTES,
-        .ciphertext_length = SIKE_P434_r2_CIPHERTEXT_BYTES,
+        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2,
+        .public_key_length = SIKE_P434_R2_PUBLIC_KEY_BYTES,
+        .private_key_length = SIKE_P434_R2_SECRET_KEY_BYTES,
+        .shared_secret_key_length = SIKE_P434_R2_SHARED_SECRET_BYTES,
+        .ciphertext_length = SIKE_P434_R2_CIPHERTEXT_BYTES,
         .generate_keypair = &SIKE_P434_r2_crypto_kem_keypair,
         .encapsulate = &SIKE_P434_r2_crypto_kem_enc,
         .decapsulate = &SIKE_P434_r2_crypto_kem_dec,
