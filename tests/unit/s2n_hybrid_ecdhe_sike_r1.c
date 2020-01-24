@@ -19,7 +19,7 @@
 #include "tls/s2n_kem.h"
 #include "tls/s2n_cipher_suites.h"
 
-#define RSP_FILE_NAME "kats/hybrid_ecdhe_sike_p503.kat"
+#define RSP_FILE_NAME "kats/hybrid_ecdhe_sike_r1.kat"
 #define SERVER_KEY_MESSAGE_LENGTH 711
 #define CLIENT_KEY_MESSAGE_LENGTH 470
 
