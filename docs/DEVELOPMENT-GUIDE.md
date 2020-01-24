@@ -113,11 +113,12 @@ if (s2n_do_something(with_something_else) < 0) {
 }
 ```
 
-is so common that utils/s2n_safety.h provides two macros:
+is so common that utils/s2n_safety.h provides three macros:
 
 ```c
-#define GUARD( x )      if ( (x) < 0 ) return -1
-#define GUARD_PTR( x )  if ( (x) < 0 ) return NULL
+#define GUARD( x )         if ( (x) < 0 ) return -1
+#define GUARD_STRICT( x )  if ( (x) != 0 ) return -1
+#define GUARD_PTR( x )     if ( (x) < 0 ) return NULL
 ```
 
 These macros should be used when calling functions you expect to succeed. Primarily these macros help save two lines that repeatedly clutter files, and secondarily they are very useful when developing and debugging code as it is easy to redefine the macro to implement a simple backtrace (even a simple printf will suffice, but a breakpoint is more usual). 
