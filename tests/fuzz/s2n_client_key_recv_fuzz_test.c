@@ -134,7 +134,7 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 
     /* One time Diffie-Hellman negotiation to speed along fuzz tests*/
     GUARD(s2n_init());
-    GUARD(atexit(s2n_fuzz_atexit));
+    GUARD_STRICT(atexit(s2n_fuzz_atexit));
 
     cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE);
     private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE);
