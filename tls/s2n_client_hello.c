@@ -273,19 +273,6 @@ static int s2n_populate_client_hello_extensions(struct s2n_client_hello *ch)
 
     return 0;
 }
-int s2n_handshake_status_handler(struct s2n_connection *conn)
-{
-    /* Set the handshake type */
-    GUARD(s2n_conn_set_handshake_type(conn));
-
-    if(conn->client_hello_version != S2N_SSLv2)
-    {
-        /* We've selected the parameters for the handshake, update the required hashes for this connection */
-        GUARD(s2n_conn_update_required_handshake_hashes(conn));
-    }
-
-    return 0;
-}
 
 int s2n_process_client_hello(struct s2n_connection *conn)
 {
@@ -352,15 +339,6 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
         }
     }
     GUARD(s2n_process_client_hello(conn));
-
-    /* s2n_conn_set_handshake_type() is called by SERVER_SESSION_LOOKUP in < TLS 1.3,
-     * which is something not present in the current s2n tls 1.3 state machine.
-     * we call this manually so the state machine can transition to the
-     * negotiated and handshake type for tls1.3
-     */
-    if (conn->actual_protocol_version == S2N_TLS13) {
-        GUARD(s2n_conn_set_handshake_type(conn));
-    }
 
     return 0;
 }
