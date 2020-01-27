@@ -59,6 +59,7 @@ let A_digit_it v = crucible_fresh_var v digit_t;
 // NOTE: This values are read and potentially modified
 let B_felm_t v = ptr_to_fresh v felm_t;
 let B_f2elm_t v = ptr_to_fresh v f2elm_t;
+let B_dfelm_t v = ptr_to_fresh v dfelm_t;
 let B_point_t v = ptr_to_fresh v point_proj_t;
 
 // NOTE: This values are outputs

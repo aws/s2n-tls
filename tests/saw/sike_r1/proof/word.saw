@@ -145,27 +145,3 @@ let mp_shiftr1_spec n = do {
 let nwords_field_x4 = eval_int {{ `(4 * nwords_field) : [64] }};
 copy_words_nwords_field_x4_ov <- verify copy_words_fun_name [] (copy_words_spec nwords_field_x4);
 copy_words_same_nwords_field_x4_ov <- verify copy_words_fun_name [] (copy_words_same_spec nwords_field_x4);
-
-dxd_ov <- verify digit_x_digit_fun_name [] digit_x_digit_spec;
-dlt_ov <- verify is_digit_lessthan_ct_fun_name [] is_digit_lessthan_ct_spec;
-dnz_ov <- verify is_digit_nonzero_ct_fun_name [] is_digit_nonzero_ct_spec;
-dz_ov <- verify is_digit_zero_ct_fun_name [] is_digit_zero_ct_spec;
-
-add_ov <- verify mp_add_fun_name [] (mp_add_spec nwords_field);
-add_single_ov <- verify mp_add_fun_name [] (mp_add_single_spec nwords_field);
-
-addx2_ov <- verify mp_add_fun_name [] (mp_add_spec twice_nwords_field);
-addx2_left_ov <- verify mp_add_fun_name [] (mp_add_left_spec twice_nwords_field);
-
-sub_ov <- verify mp_sub_fun_name [] (mp_sub_spec twice_nwords_field);
-sub_left_ov <- verify mp_sub_fun_name [] (mp_sub_left_spec twice_nwords_field);
-
-mul_ov <- verify mp_mul_fun_name
-  [dxd_ov]
-  (mp_mul_spec nwords_field twice_nwords_field);
-mul_single_ov <- verify mp_mul_fun_name
-  [dxd_ov]
-  (mp_mul_single_spec nwords_field twice_nwords_field);
-
-shiftr1_ov <- verify mp_shiftr1_fun_name [] (mp_shiftr1_spec nwords_field);
-
