@@ -1,0 +1,24 @@
+// sha.saw Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+let sha384_spec len = do {
+  (_, mp) <- in_ref (i8_array_t len) "m";
+  rp <- out_ref (i8_array_t SHA384_HASH_SIZE);
+  crucible_execute_func [mp, tm {{ `len:[64] }}, rp];
+  _ <- point_to (i8_array_t SHA384_HASH_SIZE) rp "r";
+  crucible_return rp;
+};
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+sha384_367_ov <- admit "SHA384" [] (sha384_spec 367);
+sha384_394_ov <- admit "SHA384" [] (sha384_spec 394);
+sha384_623_ov <- admit "SHA384" [] (sha384_spec 623);
+sha384_1292_ov <- admit "SHA384" [] (sha384_spec 1292);
+
