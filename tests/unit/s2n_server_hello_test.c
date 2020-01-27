@@ -32,6 +32,15 @@ const char hello_retry_random_hex[] =
     "CF21AD74E59A6111BE1D8C021E65B891"
     "C2A211167ABB8C5E079E09E2C8A8339C";
 
+
+const uint8_t tls12_downgrade_protection_check_bytes[] = {
+    0x44, 0x4F, 0x57, 0x4E, 0x47, 0x52, 0x44, 0x01
+};
+
+const uint8_t tls11_downgrade_protection_check_bytes[] = {
+    0x44, 0x4F, 0x57, 0x4E, 0x47, 0x52, 0x44, 0x00
+};
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -211,6 +220,7 @@ int main(int argc, char **argv)
 
         /* Verify that the downgrade is detected */
         struct s2n_stuffer *client_stuffer = &client_conn->handshake.io;
+        EXPECT_BYTEARRAY_EQUAL(&client_stuffer->blob.data[S2N_TLS_PROTOCOL_VERSION_LEN + 24], tls11_downgrade_protection_check_bytes, 8);
         EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn), S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
 
         EXPECT_EQUAL(s2n_stuffer_data_available(client_stuffer), 0);
@@ -260,6 +270,7 @@ int main(int argc, char **argv)
 
         /* Verify that the downgrade is detected */
         struct s2n_stuffer *client_stuffer = &client_conn->handshake.io;
+        EXPECT_BYTEARRAY_EQUAL(&client_stuffer->blob.data[S2N_TLS_PROTOCOL_VERSION_LEN + 24], tls12_downgrade_protection_check_bytes, 8);
         EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn), S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
 
         EXPECT_EQUAL(s2n_stuffer_data_available(client_stuffer), 0);
@@ -269,6 +280,107 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_disable_tls13());
+    }
+
+    /* Verify a TLS1.2 client can negotiate with a TLS1.3 server */
+    {
+        struct s2n_config *client_config;
+        struct s2n_connection *client_conn;
+        struct s2n_config *server_config;
+        struct s2n_connection *server_conn;
+
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+        EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+
+        /* The client will request TLS1.2 */
+        client_conn->client_protocol_version = S2N_TLS12;
+
+        struct s2n_stuffer *server_stuffer = &server_conn->handshake.io;
+
+        const uint32_t total = S2N_TLS_PROTOCOL_VERSION_LEN
+            + S2N_TLS_RANDOM_DATA_LEN
+            + SESSION_ID_SIZE
+            + server_conn->session_id_len
+            + S2N_TLS_CIPHER_SUITE_LEN
+            + COMPRESSION_METHOD_SIZE;
+
+        /* The server will respond with TLS1.2 even though it support TLS1.3. This is expected because */
+        /* the client only support TLS1.2 */
+        EXPECT_SUCCESS(s2n_enable_tls13());
+        server_conn->actual_protocol_version = S2N_TLS12;
+        server_conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+        EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
+        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_EQUAL(s2n_stuffer_data_available(server_stuffer), total);
+
+        /* Copy server stuffer to client stuffer */
+        EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io, total));
+
+        /* Verify that a TLS12 client does not error due to the downgrade */
+        struct s2n_stuffer *client_stuffer = &client_conn->handshake.io;
+        EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
+
+        EXPECT_EQUAL(s2n_stuffer_data_available(client_stuffer), 0);
+
+        EXPECT_SUCCESS(s2n_config_free(client_config));
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
+    /* Verify a TLS1.3 client can negotiate with a TLS1.2 server */
+    {
+        struct s2n_config *client_config;
+        struct s2n_connection *client_conn;
+        struct s2n_config *server_config;
+        struct s2n_connection *server_conn;
+
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+        EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+
+        /* The client will request TLS1.3 */
+        client_conn->client_protocol_version = S2N_TLS13;
+
+        struct s2n_stuffer *server_stuffer = &server_conn->handshake.io;
+
+        const uint32_t total = S2N_TLS_PROTOCOL_VERSION_LEN
+            + S2N_TLS_RANDOM_DATA_LEN
+            + SESSION_ID_SIZE
+            + server_conn->session_id_len
+            + S2N_TLS_CIPHER_SUITE_LEN
+            + COMPRESSION_METHOD_SIZE;
+
+        /* The server will respond with TLS1.2 */
+        server_conn->server_protocol_version = S2N_TLS12;
+        server_conn->actual_protocol_version = S2N_TLS12;
+        server_conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+        EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
+        EXPECT_EQUAL(s2n_stuffer_data_available(server_stuffer), total);
+
+        /* Copy server stuffer to client stuffer */
+        EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io, total));
+
+        /* Verify that a TLS13 client does not error due to the downgrade */
+        struct s2n_stuffer *client_stuffer = &client_conn->handshake.io;
+        GUARD(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
+        GUARD(s2n_disable_tls13());
+        EXPECT_EQUAL(s2n_stuffer_data_available(client_stuffer), 0);
+
+        EXPECT_SUCCESS(s2n_config_free(client_config));
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
     /* Verify a TLS1.2 client can negotiate with a TLS1.3 server */
