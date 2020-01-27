@@ -30,7 +30,6 @@
 /* This is the list of message types that we support */
 typedef enum {
     CLIENT_HELLO=0,
-    SERVER_SESSION_LOOKUP,
     SERVER_HELLO,
     SERVER_CERT,
     SERVER_NEW_SESSION_TICKET,
@@ -119,6 +118,12 @@ struct s2n_handshake {
     uint8_t server_finished[S2N_TLS_SECRET_LEN];
     uint8_t client_finished[S2N_TLS_SECRET_LEN];
 
+    /* Indicates the CLIENT_HELLO message has been completely processed */
+    uint8_t client_hello_finished;
+
+    /* Indicates the handshake blocked while trying to read data */
+    uint8_t blocked_on_read;
+
     /* Handshake type is a bitset, with the following
        bit positions */
     uint32_t handshake_type;
@@ -160,6 +165,8 @@ struct s2n_handshake {
 extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
 extern int s2n_conn_set_handshake_type(struct s2n_connection *conn);
 extern int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn);
+extern int s2n_conn_set_handshake_read_block(struct s2n_connection *conn);
+extern int s2n_conn_clear_handshake_read_block(struct s2n_connection *conn);
 extern int s2n_handshake_require_all_hashes(struct s2n_handshake *handshake);
 extern uint8_t s2n_handshake_is_hash_required(struct s2n_handshake *handshake, s2n_hash_algorithm hash_alg);
 extern int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn);

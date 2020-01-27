@@ -209,7 +209,16 @@ int s2n_resume_from_cache(struct s2n_connection *conn)
 
     size = S2N_STATE_SIZE_IN_BYTES;
 
-    GUARD_AGAIN(conn->config->cache_retrieve(conn, conn->config->cache_retrieve_data, conn->session_id, conn->session_id_len, state, &size));
+    /* cache_retrieve relies on the caller to return -2 if data is not available */
+    int r = conn->config->cache_retrieve(conn, conn->config->cache_retrieve_data, conn->session_id, conn->session_id_len, state, &size);
+    if (r < 0) {
+        if (r == S2N_ERR_CACHE_WILL_BLOCK) {
+            S2N_ERROR(S2N_ERR_BLOCKED);
+        }
+
+        GUARD(r);
+    }
+
     S2N_ERROR_IF(size != S2N_STATE_SIZE_IN_BYTES, S2N_ERR_SIZE_MISMATCH);
     GUARD(s2n_deserialize_resumption_state(conn, &from));
 

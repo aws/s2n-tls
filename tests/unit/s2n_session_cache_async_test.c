@@ -80,7 +80,7 @@ int cache_retrieve(struct s2n_connection *conn, void *ctx, const void *key, uint
          * state machine, until lock is free
          */
         cache[index].lock = 0;
-        return -2;
+        return S2N_ERR_CACHE_WILL_BLOCK;
     }
 
     if (cache[index].key_len != key_size) {
@@ -338,7 +338,7 @@ int main(int argc, char **argv)
          * connection/event from the lock
          */
         EXPECT_EQUAL(r, -1);
-        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
         s2n_errno = S2N_ERR_T_OK;
         EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
 
@@ -377,7 +377,7 @@ int main(int argc, char **argv)
          * connection/event from the lock
          */
         EXPECT_EQUAL(r, -1);
-        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
         s2n_errno = S2N_ERR_T_OK;
         EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
 
