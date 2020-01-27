@@ -86,6 +86,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED, "TLS protocol version is not supported by selected cipher suite") \
     ERR_ENTRY(S2N_ERR_BAD_KEY_SHARE, "Bad key share received") \
     ERR_ENTRY(S2N_ERR_CANCELLED, "handshake was cancelled") \
+    ERR_ENTRY(S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED, "Protocol downgrade detected by client") \
     ERR_ENTRY(S2N_ERR_MADVISE, "error calling madvise") \
     ERR_ENTRY(S2N_ERR_ALLOC, "error allocating memory") \
     ERR_ENTRY(S2N_ERR_MLOCK, "error calling mlock (Did you run prlimit?)") \
@@ -198,7 +199,6 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_CONNECTION_CACHING_DISALLOWED, "This connection is not allowed to be cached") \
     ERR_ENTRY(S2N_ERR_SESSION_TICKET_NOT_SUPPORTED, "Session ticket not supported for this connection") \
     ERR_ENTRY(S2N_ERR_OCSP_NOT_SUPPORTED, "OCSP stapling was requested, but is not supported") \
-    ERR_ENTRY(S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED, "Protocol downgrade detected by client") \
 
 #define ERR_STR_CASE(ERR, str) case ERR: return str;
 #define ERR_NAME_CASE(ERR, str) case ERR: return #ERR;
