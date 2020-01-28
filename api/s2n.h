@@ -57,8 +57,6 @@ extern int s2n_error_get_type(int error);
 struct s2n_config;
 struct s2n_connection;
 
-typedef struct rsa_st RSA;
-
 extern unsigned long s2n_get_openssl_version(void);
 extern int s2n_init(void);
 extern int s2n_cleanup(void);
@@ -265,8 +263,6 @@ typedef enum {
 struct s2n_pkey;
 typedef struct s2n_pkey s2n_cert_public_key;
 typedef struct s2n_pkey s2n_cert_private_key;
-
-extern int s2n_cert_public_key_set_rsa_from_openssl(s2n_cert_public_key *cert_pub_key, RSA *openssl_rsa);
 
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);
 extern uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn);
