@@ -37,7 +37,7 @@ static void s2n_fuzz_atexit()
 int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 {
     GUARD(s2n_init());
-    GUARD(atexit(s2n_fuzz_atexit));
+    GUARD_STRICT(atexit(s2n_fuzz_atexit));
 
     GUARD(s2n_alloc(&server_kem_keys.private_key, s2n_bike1_l1_r1.private_key_length));
 
