@@ -199,7 +199,7 @@ int s2n_server_hello_send(struct s2n_connection *conn)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_stuffer server_random = {0};
-    struct s2n_blob b, rand;
+    struct s2n_blob b, rand_data;
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
     b.data = conn->secure.server_random;
@@ -208,10 +208,10 @@ int s2n_server_hello_send(struct s2n_connection *conn)
     /* Create the server random data */
     GUARD(s2n_stuffer_init(&server_random, &b));
 
-    rand.data = s2n_stuffer_raw_write(&server_random, S2N_TLS_RANDOM_DATA_LEN);
-    rand.size = S2N_TLS_RANDOM_DATA_LEN;
-    notnull_check(rand.data);
-    GUARD(s2n_get_public_random_data(&rand));
+    rand_data.data = s2n_stuffer_raw_write(&server_random, S2N_TLS_RANDOM_DATA_LEN);
+    rand_data.size = S2N_TLS_RANDOM_DATA_LEN;
+    notnull_check(rand_data.data);
+    GUARD(s2n_get_public_random_data(&rand_data));
 
     protocol_version[0] = (uint8_t)(conn->actual_protocol_version / 10);
     protocol_version[1] = (uint8_t)(conn->actual_protocol_version % 10);
