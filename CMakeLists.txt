@@ -8,6 +8,8 @@ set(INSTALL_LIB_DIR lib CACHE PATH "Installaction directory for libraries")
 set(INSTALL_INCLUDE_DIR include CACHE PATH "installaction directory for header files")
 set(INSTALL_CMAKE_DIR lib/cmake CACHE PATH "Installation directory for cmake files")
 
+option(S2N_NO_PQ_ASM "Turns off the ASM for PQ Crypto even if it's available for the toolchain. You likely want this on older compilers." OFF)
+
 ##header files
 file(GLOB API_HEADERS
      "api/*.h"
@@ -62,9 +64,10 @@ file(GLOB PQ_SRC
         "pq-crypto/sike_r2/P434.c"
         )
 
-if($ENV{S2N_NO_PQ_ASM})
+if(S2N_NO_PQ_ASM)
     message(STATUS "Forcing usage of generic C code for PQ crypto")
 elseif(${CMAKE_HOST_SYSTEM_NAME} MATCHES "Darwin")
+    set(S2N_NO_PQ_ASM ON)	
     message(STATUS "Detected Darwin, using generic C code for PQ crypto")
 elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64" OR ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "amd64" OR (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "AMD64" AND CMAKE_CL_64))
     message(STATUS "Using optimized x86_64 assembly for PQ crypto")
@@ -73,6 +76,7 @@ elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64" OR ${CMAKE_SYSTEM_PROCESSOR} 
             "pq-crypto/sike_r2/fp_x64_asm.S")
     list(APPEND PQ_SRC ${PQ_X86_64_ASM})
 else()
+    set(S2N_NO_PQ_ASM ON)
     message(STATUS "Architecture is not x86_64 compatible - using generic C code for PQ crypto")
 endif()
 
@@ -146,6 +150,11 @@ set(CMAKE_C_FLAGS_DEBUGOPT "")
 target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts
         -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
         -Wno-missing-braces)
+
+if(S2N_NO_PQ_ASM)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_NO_PQ_ASM)
+endif()
+
 target_compile_options(${PROJECT_NAME} PUBLIC -fPIC)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE -D_POSIX_C_SOURCE=200809L)
