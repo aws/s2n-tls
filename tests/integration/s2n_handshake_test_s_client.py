@@ -191,9 +191,14 @@ def read_process_output_until(process, marker):
     output = ""
 
     while True:
+        returncode = process.poll()
         line = process.stdout.readline().decode("utf-8")
         output += line
-        if marker in line:
+
+        # Break out of this loop when either
+        # marker is found or
+        # if process terminates
+        if marker in line or returncode is not None:
             return output
 
     return output
@@ -317,6 +322,10 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
     # Wait until openssl and s2n have finished the handshake and are connected to each other
     s_client_out += read_process_output_until(s_client, openssl_connect_marker)
     s2nd_out += read_process_output_until(s2nd, openssl_connect_marker)
+
+    # Fails the test if any of the process returned abnormally
+    if s_client.returncode or s2nd.returncode:
+        return -1
 
     if resume == True:
         for i in range(0,5):
