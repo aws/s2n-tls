@@ -1,0 +1,17 @@
+---
+name: Static Analysis Checks
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  cppcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+        source ./codebuild/bin/s2n_setup_env.sh
+        ./codebuild/bin/install_cppcheck.sh "$CPPCHECK_INSTALL_DIR"
+        ./codebuild/bin/run_cppcheck.sh "$CPPCHECK_INSTALL_DIR"
