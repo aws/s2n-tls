@@ -87,10 +87,13 @@ def run_connection_test(get_peer, scenarios, test_func=None):
         server = None
         try:
             server, client = connect(get_peer, scenario)
-            if test_func:
-                return test_func(server, client)
-            else:
-                return Result()
+            result = test_func(server, client) if test_func else Result()
+            if client.poll():
+                raise AssertionError("Client process crashed")
+            if server.poll():
+                raise AssertionError("Server process crashed")
+
+            return result
         except AssertionError as error:
             return Result(error)
         finally:
