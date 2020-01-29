@@ -100,7 +100,7 @@ function_h(OUT split_e_t *splitted_e, IN const r_t *in0, IN const r_t *in1)
   DEFER_CLEANUP(generic_param_n_t tmp, generic_param_n_cleanup);
   DEFER_CLEANUP(sha_hash_t hash_seed = {0}, sha_hash_cleanup);
   DEFER_CLEANUP(seed_t seed_for_hash, seed_cleanup);
-  DEFER_CLEANUP(aes_ctr_prf_state_t prf_state = {0}, finalize_aes_ctr_prf);
+  DEFER_CLEANUP(aes_ctr_prf_state_t prf_state = {0}, aes_ctr_prf_state_cleanup);
 
   tmp.val[0] = *in0;
   tmp.val[1] = *in1;

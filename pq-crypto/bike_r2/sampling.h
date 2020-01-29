@@ -69,8 +69,6 @@ sample_uniform_r_bits(OUT r_t *r,
 
   GUARD(sample_uniform_r_bits_with_fixed_prf_context(r, &prf_state, must_be_odd));
 
-  finalize_aes_ctr_prf(&prf_state);
-
   return SUCCESS;
 }
 
