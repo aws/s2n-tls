@@ -1,0 +1,6 @@
+34,36c34
+<   typedef void *(*memset_t)(void *, int, size_t);
+<   static volatile memset_t memset_func = memset;
+<   memset_func(p, 0, len);
+---
+>   memset(p, 0, len);

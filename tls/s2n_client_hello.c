@@ -197,7 +197,7 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     GUARD(s2n_stuffer_skip_read(in, num_compression_methods));
 
     /* This is going to be our default if the client has no preference. */
-    conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
+    conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
 
     uint16_t extensions_length = 0;
     if (s2n_stuffer_data_available(in) >= 2) {
@@ -341,6 +341,16 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
         }
     }
     GUARD(s2n_process_client_hello(conn));
+
+    /* s2n_conn_set_handshake_type() is called by SERVER_SESSION_LOOKUP in < TLS 1.3,
+     * which is something not present in the current s2n tls 1.3 state machine.
+     * we call this manually so the state machine can transition to the
+     * negotiated and handshake type for tls1.3
+     */
+    if (conn->actual_protocol_version == S2N_TLS13) {
+        GUARD(s2n_conn_set_handshake_type(conn));
+    }
+
     return 0;
 }
 

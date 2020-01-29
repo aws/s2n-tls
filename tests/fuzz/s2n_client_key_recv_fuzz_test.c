@@ -134,7 +134,7 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 
     /* One time Diffie-Hellman negotiation to speed along fuzz tests*/
     GUARD(s2n_init());
-    GUARD(atexit(s2n_fuzz_atexit));
+    GUARD_STRICT(atexit(s2n_fuzz_atexit));
 
     cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE);
     private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE);
@@ -185,8 +185,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
             server_conn->handshake_params.our_chain_and_key = cert;
 
             if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_ecdhe_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {
-                server_conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
-                s2n_ecc_generate_ephemeral_key(&server_conn->secure.server_ecc_params);
+                server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+                s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.server_ecc_evp_params);
             }
 
             if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_kem_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {

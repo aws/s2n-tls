@@ -55,7 +55,7 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 #endif
 
     GUARD(s2n_init());
-    GUARD(atexit(s2n_fuzz_atexit));
+    GUARD_STRICT(atexit(s2n_fuzz_atexit));
     return 0;
 }
 
@@ -182,13 +182,13 @@ static struct s2n_cert_chain_and_key *create_cert(const char **names, int num_na
     x509_cert = NULL;
 
     /* Figure out if this should be an RSA or ECDSA certificate */
-    s2n_cert_type cert_type = (names[0][0] & 0x2) ? S2N_CERT_TYPE_RSA_SIGN : S2N_CERT_TYPE_ECDSA_SIGN;
+    s2n_pkey_type pkey_type = (names[0][0] & 0x2) ? S2N_PKEY_TYPE_RSA: S2N_PKEY_TYPE_ECDSA;
     struct s2n_cert *head = calloc(1, sizeof(struct s2n_cert));
     if (!head) {
         goto cert_cleanup;
     }
 
-    head->cert_type = cert_type;
+    head->pkey_type = pkey_type;
     cert->cert_chain->head = head;
     return cert;
 

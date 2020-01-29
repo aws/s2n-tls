@@ -1,0 +1,21 @@
+// Loader.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+module main where
+
+import version::input
+
+// mirrored H files
+import interface::H_defs
+import interface::H_bike_r1_defs
+import interface::H_types_v1l1
+import interface::H_gf2x
+import interface::H_utilities
+import shared::Support
+import shared::Params
+// mirrored C files
+import interface::C_parallel_hash
+import interface::C_decode
+import interface::C_KEM
+
+import shared::Safety

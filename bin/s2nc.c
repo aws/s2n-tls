@@ -33,6 +33,9 @@
 #include "common.h"
 #include <error/s2n_errno.h>
 
+#include "tls/s2n_tls13.h"
+#include "utils/s2n_safety.h"
+
 void usage()
 {
     fprintf(stderr, "usage: s2nc [options] host [port]\n");
@@ -74,6 +77,10 @@ void usage()
     fprintf(stderr, "    Set dynamic record timeout threshold\n");
     fprintf(stderr, "  -C,--corked-io\n");
     fprintf(stderr, "    Turn on corked io\n");
+    if (S2N_IN_TEST) {
+        fprintf(stderr, "  --tls13\n");
+        fprintf(stderr, "    Turn on experimental TLS1.3 support for testing.");
+    }
     fprintf(stderr, "\n");
     exit(1);
 }
@@ -230,6 +237,7 @@ int main(int argc, char *const *argv)
     const char *port = "443";
     int echo_input = 0;
     int use_corked_io = 0;
+    int use_tls13 = 0;
 
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
@@ -247,6 +255,7 @@ int main(int argc, char *const *argv)
         {"dynamic", required_argument, 0, 'D'},
         {"timeout", required_argument, 0, 't'},
         {"corked-io", no_argument, 0, 'C'},
+        {"tls13", no_argument, 0, '3'},
     };
 
     while (1) {
@@ -301,8 +310,11 @@ int main(int argc, char *const *argv)
         case 'D':
             dyn_rec_threshold = strtoul(optarg, 0, 10);
             if (errno == ERANGE) {
-              dyn_rec_threshold = 0;      
+                dyn_rec_threshold = 0;
             }
+            break;
+        case '3':
+            use_tls13 = 1;
             break;
         case '?':
         default:
@@ -381,6 +393,10 @@ int main(int argc, char *const *argv)
 
         if (session_ticket) {
             GUARD_EXIT(s2n_config_set_session_tickets_onoff(config, 1), "Error enabling session tickets");
+        }
+
+        if (use_tls13 && S2N_IN_TEST) {
+            GUARD_EXIT(s2n_enable_tls13(), "Error enabling TLS1.3");
         }
 
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);

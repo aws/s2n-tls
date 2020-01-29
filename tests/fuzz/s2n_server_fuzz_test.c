@@ -181,7 +181,7 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 #endif
 
     GUARD(s2n_init());
-    GUARD(atexit(s2n_server_fuzz_atexit));
+    GUARD_STRICT(atexit(s2n_server_fuzz_atexit));
 
     /* Set up Server Config */
     notnull_check(server_config = s2n_config_new());
@@ -197,7 +197,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
         return 0;
     }
 
-    struct s2n_stuffer in;
+    struct s2n_stuffer in = {0};
     GUARD(s2n_stuffer_alloc(&in, len));
     GUARD(s2n_stuffer_write_bytes(&in, buf, len));
 

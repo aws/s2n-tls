@@ -86,6 +86,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED, "TLS protocol version is not supported by selected cipher suite") \
     ERR_ENTRY(S2N_ERR_BAD_KEY_SHARE, "Bad key share received") \
     ERR_ENTRY(S2N_ERR_CANCELLED, "handshake was cancelled") \
+    ERR_ENTRY(S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED, "Protocol downgrade detected by client") \
     ERR_ENTRY(S2N_ERR_MADVISE, "error calling madvise") \
     ERR_ENTRY(S2N_ERR_ALLOC, "error allocating memory") \
     ERR_ENTRY(S2N_ERR_MLOCK, "error calling mlock (Did you run prlimit?)") \

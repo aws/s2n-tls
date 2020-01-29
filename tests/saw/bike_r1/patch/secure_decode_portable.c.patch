@@ -1,0 +1,7 @@
+24a25,26
+> extern void __breakpoint__compute_counter_of_unsat_loop(uint8_t**, const uint8_t**, const compressed_idx_dv_t**, const compressed_idx_dv_t**, uint32_t (*)[2], uint32_t (*)[2], uint32_t*, uint32_t*) __attribute__((noduplicate));
+> 
+42c44
+<     for(i = 0; i < R_BITS; i++)
+---
+>     for(i = 0; __breakpoint__compute_counter_of_unsat_loop(&upc, &s, &inv_h0_compressed, &inv_h1_compressed, &mask, &pos, &j, &i), i < R_BITS; i++)

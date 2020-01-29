@@ -32,8 +32,7 @@ phases:
         if expr "${GCC_VERSION}" : "6" >/dev/null; then
           apt-get install -y --no-install-recommends g++ g++-6 gcc gcc-6;
         fi
-      - apt-get install -y --no-install-recommends indent kwstyle lcov libssl-dev llvm m4 make net-tools nettle-bin nettle-dev pkg-config psmisc python3-pip shellcheck sudo tcpdump unzip valgrind zlib1g-dev zlibc
-      #Note: shellcheck isn't available by default in Ubuntu < 18.04
+      - apt-get install -y --no-install-recommends indent kwstyle lcov libssl-dev clang-3.9 llvm-3.9 m4 make net-tools nettle-bin nettle-dev pkg-config psmisc python3-pip shellcheck sudo tcpdump unzip valgrind zlib1g-dev zlibc
   pre_build:
     commands:
       - codebuild/bin/install_default_dependencies.sh

@@ -23,7 +23,6 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <openssl/ossl_typ.h>
 #include <sys/uio.h>
 
 /* Function return code  */
@@ -77,7 +76,6 @@ extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_t
 extern const char *s2n_strerror(int error, const char *lang);
 extern const char *s2n_strerror_debug(int error, const char *lang);
 extern const char *s2n_strerror_name(int error); 
-
 
 struct s2n_stacktrace;
 extern bool s2n_stack_traces_enabled(void);
@@ -265,8 +263,6 @@ typedef enum {
 struct s2n_pkey;
 typedef struct s2n_pkey s2n_cert_public_key;
 typedef struct s2n_pkey s2n_cert_private_key;
-
-extern int s2n_cert_public_key_set_rsa_from_openssl(s2n_cert_public_key *cert_pub_key, RSA *openssl_rsa);
 
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);
 extern uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn);

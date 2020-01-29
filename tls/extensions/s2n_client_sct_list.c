@@ -29,3 +29,10 @@ int s2n_extensions_client_sct_list_send(struct s2n_connection *conn, struct s2n_
 
     return 0;
 }
+
+int s2n_recv_client_sct_list(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    conn->ct_level_requested = S2N_CT_SUPPORT_REQUEST;
+    /* Skip reading the extension, per RFC6962 (3.1.1) it SHOULD be empty anyway  */
+    return 0;
+}

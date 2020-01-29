@@ -16,7 +16,6 @@
 #include <openssl/ec.h>
 #include <openssl/ecdsa.h>
 #include <openssl/x509.h>
-
 #include "stuffer/s2n_stuffer.h"
 
 #include "error/s2n_errno.h"

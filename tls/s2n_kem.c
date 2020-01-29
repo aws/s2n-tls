@@ -13,9 +13,10 @@
  * permissions and limitations under the License.
  */
 
-#include "pq-crypto/bike/bike1_l1_kem.h"
-#include "pq-crypto/sike_r1/sike_p503_r1_kem.h"
-#include "pq-crypto/sike_r2/sike_p434_r2_kem.h"
+#include "pq-crypto/bike_r1/bike_r1_kem.h"
+#include "pq-crypto/bike_r2/bike_r2_kem.h"
+#include "pq-crypto/sike_r1/sike_r1_kem.h"
+#include "pq-crypto/sike_r2/sike_r2_kem.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -26,25 +27,37 @@
 #include "utils/s2n_safety.h"
 
 /* The names below come from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-02#section-5.1.6 */
-const struct s2n_kem s2n_bike_1_level_1_r1 = {
+const struct s2n_kem s2n_bike1_l1_r1 = {
         .name = "BIKE1r1-Level1",
-        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_BIKE1_R1_LEVEL_1,
-        .public_key_length = BIKE1_L1_PUBLIC_KEY_BYTES,
-        .private_key_length = BIKE1_L1_SECRET_KEY_BYTES,
-        .shared_secret_key_length = BIKE1_L1_SHARED_SECRET_BYTES,
-        .ciphertext_length = BIKE1_L1_CIPHERTEXT_BYTES,
-        .generate_keypair = &BIKE1_L1_crypto_kem_keypair,
-        .encapsulate = &BIKE1_L1_crypto_kem_enc,
-        .decapsulate = &BIKE1_L1_crypto_kem_dec,
+        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1,
+        .public_key_length = BIKE1_L1_R1_PUBLIC_KEY_BYTES,
+        .private_key_length = BIKE1_L1_R1_SECRET_KEY_BYTES,
+        .shared_secret_key_length = BIKE1_L1_R1_SHARED_SECRET_BYTES,
+        .ciphertext_length = BIKE1_L1_R1_CIPHERTEXT_BYTES,
+        .generate_keypair = &BIKE1_L1_R1_crypto_kem_keypair,
+        .encapsulate = &BIKE1_L1_R1_crypto_kem_enc,
+        .decapsulate = &BIKE1_L1_R1_crypto_kem_dec,
+};
+
+const struct s2n_kem s2n_bike1_l1_r2 = {
+        .name = "BIKE1r2-Level1",
+        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2,
+        .public_key_length = BIKE1_L1_R2_PUBLIC_KEY_BYTES,
+        .private_key_length = BIKE1_L1_R2_SECRET_KEY_BYTES,
+        .shared_secret_key_length = BIKE1_L1_R2_SHARED_SECRET_BYTES,
+        .ciphertext_length = BIKE1_L1_R2_CIPHERTEXT_BYTES,
+        .generate_keypair = &BIKE1_L1_R2_crypto_kem_keypair,
+        .encapsulate = &BIKE1_L1_R2_crypto_kem_enc,
+        .decapsulate = &BIKE1_L1_R2_crypto_kem_dec,
 };
 
 const struct s2n_kem s2n_sike_p503_r1 = {
         .name = "SIKEp503r1-KEM",
-        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1_KEM,
-        .public_key_length = SIKE_P503_r1_PUBLIC_KEY_BYTES,
-        .private_key_length = SIKE_P503_r1_SECRET_KEY_BYTES,
-        .shared_secret_key_length = SIKE_P503_r1_SHARED_SECRET_BYTES,
-        .ciphertext_length = SIKE_P503_r1_CIPHERTEXT_BYTES,
+        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1,
+        .public_key_length = SIKE_P503_R1_PUBLIC_KEY_BYTES,
+        .private_key_length = SIKE_P503_R1_SECRET_KEY_BYTES,
+        .shared_secret_key_length = SIKE_P503_R1_SHARED_SECRET_BYTES,
+        .ciphertext_length = SIKE_P503_R1_CIPHERTEXT_BYTES,
         .generate_keypair = &SIKE_P503_r1_crypto_kem_keypair,
         .encapsulate = &SIKE_P503_r1_crypto_kem_enc,
         .decapsulate = &SIKE_P503_r1_crypto_kem_dec,
@@ -52,18 +65,18 @@ const struct s2n_kem s2n_sike_p503_r1 = {
 
 const struct s2n_kem s2n_sike_p434_r2 = {
         .name = "SIKEp434r2-KEM",
-        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2_KEM,
-        .public_key_length = SIKE_P434_r2_PUBLIC_KEY_BYTES,
-        .private_key_length = SIKE_P434_r2_SECRET_KEY_BYTES,
-        .shared_secret_key_length = SIKE_P434_r2_SHARED_SECRET_BYTES,
-        .ciphertext_length = SIKE_P434_r2_CIPHERTEXT_BYTES,
+        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2,
+        .public_key_length = SIKE_P434_R2_PUBLIC_KEY_BYTES,
+        .private_key_length = SIKE_P434_R2_SECRET_KEY_BYTES,
+        .shared_secret_key_length = SIKE_P434_R2_SHARED_SECRET_BYTES,
+        .ciphertext_length = SIKE_P434_R2_CIPHERTEXT_BYTES,
         .generate_keypair = &SIKE_P434_r2_crypto_kem_keypair,
         .encapsulate = &SIKE_P434_r2_crypto_kem_enc,
         .decapsulate = &SIKE_P434_r2_crypto_kem_dec,
 };
 
 const struct s2n_kem *supported_bike_params[] = {
-        &s2n_bike_1_level_1_r1,
+        &s2n_bike1_l1_r1
 };
 
 const struct s2n_kem *supported_sike_params[] = {

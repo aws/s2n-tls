@@ -275,7 +275,7 @@ clean:
 	$(RM) *.goto
 	$(RM) $(DEPENDENT_GOTOS)
 	$(RM) *.log
-	$(RM) cbmc.log property.xml coverage.xml TAGS
+	$(RM) cbmc.log property.xml coverage.xml TAGS*
 	$(RM) *~ \#*
 	$(RM) -r gotos
 

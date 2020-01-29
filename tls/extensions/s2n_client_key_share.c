@@ -16,7 +16,7 @@
 #include "tls/extensions/s2n_client_key_share.h"
 #include "tls/extensions/s2n_key_share.h"
 
-#include "crypto/s2n_ecc.h"
+#include "crypto/s2n_ecc_evp.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
@@ -34,7 +34,7 @@
  *      Key share size (2 bytes)
  *      Key share (variable size)
  *
- * This extension only modifies the connection's client ecc_params. It does
+ * This extension only modifies the connection's client ecc_evp_params. It does
  * not make any decisions about which set of params to use.
  *
  * The server will NOT alert when processing a client extension that violates the RFC.
@@ -54,9 +54,9 @@ int s2n_client_key_share_init()
             + S2N_SIZE_OF_EXTENSION_DATA_SIZE
             + S2N_SIZE_OF_CLIENT_SHARES_SIZE;
 
-    for (uint32_t i = 0; i < S2N_ECC_SUPPORTED_CURVES_COUNT; i++) {
+    for (uint32_t i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
         s2n_client_key_share_extension_size += S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIZE_OF_NAMED_GROUP;
-        s2n_client_key_share_extension_size += s2n_ecc_supported_curves[i]->share_size;
+        s2n_client_key_share_extension_size += s2n_ecc_evp_supported_curves_list[i]->share_size;
     }
 
     return 0;
@@ -87,10 +87,10 @@ int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n
         bytes_processed += share_size + S2N_SIZE_OF_NAMED_GROUP + S2N_SIZE_OF_KEY_SHARE_SIZE;
 
         supported_curve = NULL;
-        for (uint32_t i = 0; i < S2N_ECC_SUPPORTED_CURVES_COUNT; i++) {
-            if (named_group == s2n_ecc_supported_curves[i]->iana_id) {
+        for (uint32_t i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
+            if (named_group == s2n_ecc_evp_supported_curves_list[i]->iana_id) {
                 supported_curve_index = i;
-                supported_curve = s2n_ecc_supported_curves[i];
+                supported_curve = s2n_ecc_evp_supported_curves_list[i];
                 break;
             }
         }
@@ -102,7 +102,7 @@ int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n
         }
 
         /* Ignore curves that we've already received material for */
-        if (conn->secure.client_ecc_params[supported_curve_index].negotiated_curve) {
+        if (conn->secure.client_ecc_evp_params[supported_curve_index].negotiated_curve) {
             GUARD(s2n_stuffer_skip_read(extension, share_size));
             continue;
         }
@@ -113,13 +113,13 @@ int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n
             continue;
         }
 
-        GUARD(s2n_ecc_read_ecc_params_point(extension, &point_blob, share_size));
+        GUARD(s2n_ecc_evp_read_params_point(extension, share_size, &point_blob));
 
-        conn->secure.client_ecc_params[supported_curve_index].negotiated_curve = supported_curve;
-        if (s2n_ecc_parse_ecc_params_point(&conn->secure.client_ecc_params[supported_curve_index], &point_blob) < 0) {
+        conn->secure.client_ecc_evp_params[supported_curve_index].negotiated_curve = supported_curve;
+        if (s2n_ecc_evp_parse_params_point(&point_blob, &conn->secure.client_ecc_evp_params[supported_curve_index]) < 0) {
             /* Ignore curves with points we can't parse */
-            conn->secure.client_ecc_params[supported_curve_index].negotiated_curve = NULL;
-            GUARD(s2n_ecc_params_free(&conn->secure.client_ecc_params[supported_curve_index]));
+            conn->secure.client_ecc_evp_params[supported_curve_index].negotiated_curve = NULL;
+            GUARD(s2n_ecc_evp_params_free(&conn->secure.client_ecc_evp_params[supported_curve_index]));
         }
     }
 
@@ -155,14 +155,15 @@ static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s
     notnull_check(conn);
 
     const struct s2n_ecc_named_curve *named_curve = NULL;
-    struct s2n_ecc_params *ecc_params = NULL;
+    struct s2n_ecc_evp_params *ecc_evp_params = NULL;
 
-    for (uint32_t i = 0; i < S2N_ECC_SUPPORTED_CURVES_COUNT; i++) {
-        ecc_params = &conn->secure.client_ecc_params[i];
-        named_curve = s2n_ecc_supported_curves[i];
+    for (uint32_t i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
+        ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
+        named_curve = s2n_ecc_evp_supported_curves_list[i];
 
-        ecc_params->negotiated_curve = named_curve;
-        GUARD(s2n_ecdhe_parameters_send(ecc_params, out));
+        ecc_evp_params->negotiated_curve = named_curve;
+        ecc_evp_params->evp_pkey = NULL;
+        GUARD(s2n_ecdhe_parameters_send(ecc_evp_params, out));
     }
 
     return 0;

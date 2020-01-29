@@ -1,0 +1,17 @@
+// H_gf2x.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module interface::H_gf2x where
+
+import interface::H_bike_r1_defs
+import interface::H_types_v1l1
+
+///////////////////////////////////////////////////////////////////////////////
+
+gf2x_mod_mul: {len} [len][64] -> [len][64] -> [len][64]
+gf2x_mod_mul a b = a
+
+gf2x_add: [R_SIZE][8] -> [R_SIZE][8] -> [R_SIZE][8]
+gf2x_add = (^)

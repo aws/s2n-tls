@@ -28,8 +28,8 @@ CRYPTO_LIBS = -lcrypto
 CC	:= $(CROSS_COMPILE)$(CC)
 AR	= $(CROSS_COMPILE)ar
 RANLIB	= $(CROSS_COMPILE)ranlib
-CLANG    ?= clang-3.8
-LLVMLINK ?= llvm-link-3.8
+CLANG    ?= clang-3.9
+LLVMLINK ?= llvm-link-3.9
 
 SOURCES = $(wildcard *.c *.h)
 CRUFT   = $(wildcard *.c~ *.h~ *.c.BAK *.h.BAK *.o *.a *.so *.dylib *.bc *.gcov *.gcda *.gcno *.info *.profraw *.tmp)
@@ -60,9 +60,9 @@ ifdef S2N_TEST_IN_FIPS_MODE
     DEFAULT_CFLAGS += -DS2N_TEST_IN_FIPS_MODE
 endif
 
-# Force the usage of generic C code for round 2 SIKE, even if the optimized assembly could be used
-ifdef S2N_SIKE_R2_FORCE_GENERIC
-	DEFAULT_CFLAGS += -DS2N_SIKE_R2_FORCE_GENERIC
+# Force the usage of generic C code for PQ crypto, even if the optimized assembly could be used
+ifdef S2N_NO_PQ_ASM
+	DEFAULT_CFLAGS += -DS2N_NO_PQ_ASM
 endif
 
 CFLAGS += ${DEFAULT_CFLAGS}

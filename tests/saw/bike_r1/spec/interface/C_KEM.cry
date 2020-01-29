@@ -1,0 +1,63 @@
+// C_KEM.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module  interface::C_KEM where
+
+import interface::H_defs
+import interface::H_bike_r1_defs
+import interface::H_types_v1l1
+import interface::H_utilities
+
+import shared::Support
+import shared::Params
+
+import interface::C_parallel_hash
+import interface::C_converts_portable
+import interface::C_decode
+
+///////////////////////////////////////////////////////////////////////////////
+
+EXIT = undefined
+
+get_ss : e_t -> ss_t
+get_ss e = ss where
+    _ = DMSG "    Enter get_ss.\n"
+    // Calculate the hash
+    (hash:sha_hash_t) = zero
+    (hash_2:sha_hash_t) = parallel_hash hash e.raw sizeof_e_t
+    // Truncate the final hash into K by copying only the LSBs
+    (ss: ss_t) = {raw = take` {32} hash_2.u.raw}
+    _ = secure_clean hash.u.raw sizeof_hash_t
+    _ = DMSG "    Exit get_ss.\n"
+
+// NOTE: In error cases the "output" value `ss` is untouched by the code.
+//       we just set the char_ss return here to zero in that case.
+//       There's a small trick needed in the SAWScript to deal
+//       with this situation.
+
+BIKE1_L1_R1_crypto_kem_dec
+    : char_ct
+    -> char_sk
+    -> (int_ty, char_ss)
+BIKE1_L1_R1_crypto_kem_dec ct sk = (res2, ss2) where
+    (success_res : int_ty) = 0
+    (fail_res : int_ty) = -1
+    (l_sk:sk_t) = assemble_sk_t sk
+    (l_ct:ct_t) = assemble_ct_t ct
+    (e:e_t) = zero
+    (syndrome_2: syndrome_t) = compute_syndrome_update (assemble_syndrome_t zero) l_ct l_sk
+    (e_3:e_t, syndrome_3: syndrome_t, rtn_val_3) = decode e syndrome_2 l_ct l_sk `U_ERR
+    // ERR(..., EXIT) actually jumps to EXIT if there is an error, so there
+    // is non-obvious control flow in the C code.
+    // If there *is* an error, the output `ss` is not set at all.
+    // We just return a zero in that case.
+    (res2, ss2) = if rtn_val_3 <$ zero
+        then (fail_res, zero)
+        else if rtn_val_T != `T1
+        then (fail_res, zero)
+        else (success_res, ss3)
+    rtn_val_T = count_ones e_3.raw
+    (l_ss_4:ss_t) = get_ss e_3
+    (ss3:char_ss) = disassemble_ss_t l_ss_4

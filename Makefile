@@ -44,9 +44,9 @@ bc:
 sike_r1_bc: bc
 	${MAKE} -C pq-crypto sike_r1_bc
 
-.PHONY : bike_bc
-bike_bc: bc
-	${MAKE} -C pq-crypto bike_bc
+.PHONY : bike_r1_bc
+bike_r1_bc: bc
+	${MAKE} -C pq-crypto bike_r1_bc
 
 .PHONY : saw
 saw : bc 

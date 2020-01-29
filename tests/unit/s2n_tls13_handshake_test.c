@@ -66,7 +66,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_extensions_client_key_share_recv(server_conn, &client_hello_key_share));
 
         /* Server configures the "negotiated_curve" */
-        server_conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
+        server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
 
         /* Server sends ServerHello key_share */
         EXPECT_SUCCESS(s2n_extensions_server_key_share_send(server_conn, &server_hello_key_share));
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_extensions_server_key_share_recv(client_conn, &server_hello_key_share));
         EXPECT_EQUAL(s2n_stuffer_data_available(&server_hello_key_share), 0);
 
-        EXPECT_EQUAL(server_conn->secure.server_ecc_params.negotiated_curve, client_conn->secure.server_ecc_params.negotiated_curve);
+        EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, client_conn->secure.server_ecc_evp_params.negotiated_curve);
 
         DEFER_CLEANUP(struct s2n_blob server_shared_secret = { 0 }, s2n_free);
         DEFER_CLEANUP(struct s2n_blob client_shared_secret = { 0 }, s2n_free);
@@ -290,10 +290,10 @@ int main(int argc, char **argv)
                 conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
                 conn->handshake.message_number = i;
 
-                conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
-                conn->secure.client_ecc_params[0].negotiated_curve = s2n_ecc_supported_curves[0];
-                EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&conn->secure.server_ecc_params));
-                EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&conn->secure.client_ecc_params[0]));
+                conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+                conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
+                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
 
                 struct s2n_blob client_seq = { .data = conn->secure.client_sequence_number,.size = sizeof(conn->secure.client_sequence_number) };
                 struct s2n_blob server_seq = { .data = conn->secure.server_sequence_number,.size = sizeof(conn->secure.server_sequence_number) };
@@ -337,10 +337,10 @@ int main(int argc, char **argv)
                 conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
                 conn->handshake.message_number = i;
 
-                conn->secure.server_ecc_params.negotiated_curve = s2n_ecc_supported_curves[0];
-                conn->secure.client_ecc_params[0].negotiated_curve = s2n_ecc_supported_curves[0];
-                EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&conn->secure.server_ecc_params));
-                EXPECT_SUCCESS(s2n_ecc_generate_ephemeral_key(&conn->secure.client_ecc_params[0]));
+                conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+                conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
+                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
 
                 struct s2n_blob client_seq = { .data = conn->secure.client_sequence_number,.size = sizeof(conn->secure.client_sequence_number) };
                 struct s2n_blob server_seq = { .data = conn->secure.server_sequence_number,.size = sizeof(conn->secure.server_sequence_number) };
@@ -387,12 +387,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
-        server_conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
-        server_conn->handshake.message_number = CLIENT_HELLO;
-
-        client_conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
-        client_conn->handshake.message_number = CLIENT_HELLO;
-
         struct s2n_blob server_seq = { .data = server_conn->secure.server_sequence_number,.size = sizeof(server_conn->secure.server_sequence_number) };
         S2N_BLOB_FROM_HEX(seq_0, "0000000000000000");
         S2N_BLOB_FROM_HEX(seq_1, "0000000000000001");
@@ -411,9 +405,11 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_secrets_0.size, 0);
 
         /* Server reads ClientHello */
+        EXPECT_EQUAL(server_conn->handshake.handshake_type, INITIAL);
         EXPECT_SUCCESS(handshake_read_io(server_conn));
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13); /* Server is now on TLS13 */
         EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_HELLO);
+        EXPECT_EQUAL(server_conn->handshake.handshake_type, NEGOTIATED | FULL_HANDSHAKE);
 
         s2n_tls13_connection_keys(server_secrets, server_conn);
         EXPECT_EQUAL(server_secrets.size, 48);

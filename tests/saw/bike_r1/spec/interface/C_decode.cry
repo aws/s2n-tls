@@ -1,0 +1,203 @@
+// C_decode.cry Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+
+module interface::C_decode where
+
+import version::input
+import interface::H_bike_r1_defs
+import interface::H_types_v1l1
+import interface::H_openssl
+import interface::H_gf2x
+import interface::H_utilities
+import interface::C_converts_portable
+import interface::C_secure_decode_portable
+import shared::Support
+
+///////////////////////////////////////////////////////////////////////////////
+
+// NOTE: The name "transpose" is an important function in the prelude,
+//       so it can't be reused, hence `c_transpose`
+c_transpose: red_r_t -> red_r_t
+c_transpose { raw = x } = { raw = c_transpose' x }
+c_transpose': [R_BITS][8] -> [R_BITS][8]
+c_transpose' v = [v@0] # (reverse (tail v))
+
+get_threshold _ = undefined
+fix_error1 _ = undefined
+fix_black_error _ = undefined
+fix_gray_error = undefined
+
+MAX_IT = 25
+type int_ty = uint32_t
+type u_ty = uint32_t
+
+count_GT: syndrome_t ->  u_ty ->  Bool
+count_GT s u = (count_ones s.dup1.raw) > (zext u)
+count_LTE: syndrome_t -> u_ty -> int_ty -> int_ty
+count_LTE s u code_ret =
+    if((count_ones (s.dup1.raw)) <= (zext u)) then 0
+    else code_ret
+
+// NOTE: Helper functions for the pieces of the code that differ with
+//       version number. Each writes to pad_s, but the only part subsequently
+//       used is VAL(pad_s[0]).raw so we return that part of pad_s, which
+//       is a [R_SIZE][8] pad_ct is also modified, but the value is
+//       never subsequently read
+
+// bike version 1
+pad_v1 ct pad_sk = v0 where
+    c = ct.val
+    (pad_ct : pad_ct_t) = make_pad_ct_t_0 (c@0) (c@1)
+    //first mult
+    u = get_qw (pad_ct@0)
+    v = get_qw (pad_sk@0)
+    (qw0 : R_PADDED_QW_64_t) = gf2x_mod_mul u v
+    //second mult
+    x = get_qw (pad_ct@1)
+    y = get_qw (pad_sk@1)
+    (qw1 : R_PADDED_QW_64_t) = gf2x_mod_mul x y
+    // addition
+    (a : R_SIZE_8_t) = take (C_cast qw0)
+    (b : R_SIZE_8_t) = take (C_cast qw1)
+    (v0 : R_SIZE_8_t) = gf2x_add a b
+
+pad_v2 ct pad_sk = error "version 2 not implemented"
+
+pad_v3 ct pad_sk = error "version 3 not implemented"
+
+// NOTE: Compute syndrome has a result parameter of type syndrome_t,
+//       but only writes to the "dup1" field. So the remaining
+//       fields might be undefined. There are two things we could do:
+//           1. Assume the given syndrome is initialized, and return
+//              an updated value
+//           2. Just return the value of the field that becomes set.
+//       I'm trying (2) for now.
+compute_syndrome : ct_t -> sk_t -> red_r_t
+compute_syndrome ct sk = d where
+    (bin1:[2]r_t) = sk.bin
+    (pad_sk : pad_sk_t) = make_pad_sk_t (bin1@0) (bin1@1)
+    val_pad_s_0_raw = pad_v1 ct pad_sk
+    (s_tmp_bytes :red_r_t) = zero
+    (a : R_SIZE_8_t) = val_pad_s_0_raw
+    (b : R_BITS_t i8) = convert_to_redundant_rep a
+    (c : red_r_t) = make_red_r_t b
+    (d : red_r_t) = c_transpose c
+
+// We also allow for a syndrome to be updated; this is option 1 above
+compute_syndrome_update : syndrome_t -> ct_t -> sk_t -> syndrome_t
+compute_syndrome_update s ct sk = {dup1 = d, dup2 = d, reserved = s.reserved} where
+    (d : red_r_t) = compute_syndrome ct sk
+
+inv_h : sk_t -> compressed_idx_dv_2t
+inv_h sk = loop 0 zero zero where
+    (wlist : compressed_idx_dv_2t) = sk.wlist
+    sample wlist hx = ((wlist@hx).val)
+    (val0 : idx_ft) = sample wlist 0
+    (val1 : idx_ft)= sample wlist 1
+    loop : _ -> idx_ft -> idx_ft -> compressed_idx_dv_2t
+    loop ix uv0 uv1 =
+        if(ix < `FAKE_DV)
+            then loop (ix+1) uv0' uv1' where
+                (x0 : idx_t) = val0@ix
+                (x1 : idx_t) = val1@ix
+                (u0:uint32_t, u1:uint32_t) =
+                    if CONSTANT_TIME
+                        then (x0.used, x1.used)
+                        else (zero, zero)
+                (i0:idx_t) = { val = `R_BITS - x0.val, used = u0 }
+                (i1:idx_t) = { val = `R_BITS - x1.val, used = u1 }
+                (uv0':idx_ft) = update uv0 ix i0
+                (uv1':idx_ft) = update uv1 ix i1
+        else [c0, c1] where
+            (c0 : compressed_idx_dv_t) = { val = uv0 }
+            (c1 : compressed_idx_dv_t) = { val = uv1 }
+
+type loop_in = (int_ty, e_t, syndrome_t, decode_ctx_t)
+type loop_glob = (syndrome_t, ct_t, sk_t, u_ty , compressed_idx_dv_2t)
+
+// center for loop
+B_loop_inner : _
+    -> loop_in
+    -> loop_glob
+    -> loop_in
+B_loop_inner iter IN GLOB  = IN where
+    (code_ret_0, e_0, s_0, ctx_0)  = IN
+    (_, ct, sk, u, inv_h_compressed) = GLOB
+    (y:compressed_idx_dv_t) = (inv_h_compressed@0)
+    (z:compressed_idx_dv_t) = (inv_h_compressed@1)
+    center : syndrome_t -> upc_t
+    center s = compute_counter_of_unsat (get_syndrome_raw s) y z
+    count s =  count_LTE s u code_ret_0
+    make_ctx ctx upc threshold = make_decode_ctx_t upc ctx.black_e ctx.gray_e ctx.delta threshold
+    first_part : loop_in
+    first_part = OUT where
+        (upc:upc_t) = center s_0
+        (threshold:uint32_t) = get_threshold ((PTR s_0).dup1)
+        (ctx_tmp:decode_ctx_t) = make_ctx ctx_0 upc threshold
+        (e_1:e_t, s_1: syndrome_t, ctx_1:decode_ctx_t) = fix_error1 s_0 e_0 ctx_tmp sk ct
+        code_ret_1 = count_LTE s_1 u code_ret_0
+        OUT = (code_ret_1, e_1, s_1, ctx_1)
+    second_part IN fix_error =
+        if (code_ret==0) then (0, e, s, ctx)
+        else (code_ret_1, e, s_1, ctx_1) where
+            (code_ret, e, s, ctx)  = IN
+            s_1 = copy_dup1_syndrome_t s
+            (upc_1:upc_t) = center s_1
+            (ctx_1:decode_ctx_t) = make_ctx ctx upc_1 ctx.threshold
+            (e_2:e_t, s_2: syndrome_t, ctx_2:decode_ctx_t) = fix_error s_1 e ctx_1 sk ct
+            code_ret_1 = count_LTE s_2 u code_ret_0
+    //function body
+    OUT_1 = first_part
+    OUT_2 = second_part OUT_1 fix_black_error
+    OUT_3 = second_part OUT_2 fix_gray_error
+    s_3 = OUT_3.2
+    code_ret_4 = count_LTE s_3 u code_ret_0
+    s_4 = if (code_ret_4==0)
+        then s_3
+        else copy_dup1_syndrome_t s_3
+    OUT = (OUT_3.0, OUT_3.1,  OUT_3.2, OUT_3.3)
+
+B_loop
+    : _ -> loop_in -> loop_glob -> loop_in
+B_loop iter IN GLOB  =
+    if (iter<MAX_IT)
+    then if((IN.0)==0)
+            then IN
+            else B_loop (iter+1) OUT GLOB
+    else IN
+    where OUT = B_loop_inner iter IN GLOB
+
+A_loop_inner : loop_in -> loop_glob -> loop_in
+A_loop_inner IN GLOB = OUT where
+    (s: syndrome_t) = copy_dup12_from IN.2 GLOB.0
+    (IN: loop_in) = (IN.0, zero, s, IN.3)
+    OUT = B_loop 0 IN GLOB
+
+A_loop : loop_in -> loop_glob -> loop_in
+A_loop IN GLOB =
+    if (tf1)
+        then A_loop OUT GLOB
+        else IN
+            where
+                ctx = IN.3
+                u = GLOB.3
+                tf1 = ctx.delta >= 0
+                (s: syndrome_t) = IN.2
+                tf2 = count_GT s u
+                R_tmp = A_loop_inner IN GLOB
+                ctx_out = dec_delta R_tmp.3
+                OUT = (R_tmp.0, R_tmp.1, R_tmp.2, ctx_out)
+
+decode
+    : e_t -> syndrome_t -> ct_t -> sk_t -> uint32_t
+    -> (e_t, syndrome_t, int_ty)
+decode e s ct sk u = (OUT.1, OUT.2, OUT.0) where
+    (code_ret : int_ty) = -1
+    (ctx : decode_ctx_t) = zero
+    (inv_h_compressed : compressed_idx_dv_2t) = inv_h sk
+    (original_s:syndrome_t) = init_syndrome_t (s.dup1) zero
+    (IN : loop_in)= (code_ret, e, s, ctx)
+    (GLOB : loop_glob) = (original_s, ct, sk, u, inv_h_compressed)
+    (OUT: loop_in) = A_loop IN GLOB
