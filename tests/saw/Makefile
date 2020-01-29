@@ -113,8 +113,18 @@ sike_r1/sike_r1.log :
 	saw sike_r1/verify_sike_r1.saw | tee $@
 
 ###########################################
-## BIKE_R1 Tests
+## BIKE Tests
 ###########################################
+
+.PHONY: bike_r2
+bike_r2:
+	@${MAKE} clean_the_dir
+	@${MAKE} bike_r2_patched_bitcode
+	@${MAKE} bike_r2/verify_bike_r2.log
+
+bike_r2/verify_bike_r2.log:
+	@set -o pipefail; \
+	saw bike_r2/verify_bike_r2.saw | tee $@
 
 .PHONY : bike_r1
 bike_r1 :
