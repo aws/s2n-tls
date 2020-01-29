@@ -1033,6 +1033,8 @@ static int s2n_try_delete_session_cache(struct s2n_connection *conn)
 
 int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
 {
+    /* Just in case we mishandle errno in this function, we have the minimal
+     * guarantee that outside errors aren't influencing s2n. */
     errno = 0;
 
     char this = 'S';
