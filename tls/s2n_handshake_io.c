@@ -1032,7 +1032,9 @@ static int s2n_try_delete_session_cache(struct s2n_connection *conn)
 }
 
 int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
-{    
+{
+    errno = 0;
+
     char this = 'S';
     if (conn->mode == S2N_CLIENT) {
         this = 'C';
