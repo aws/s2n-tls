@@ -168,7 +168,7 @@ def run_scenarios(test_func, scenarios):
     sorted_results = sorted(results.items(), key=lambda x: not x[1].is_success())
     for scenario, result in sorted_results:
         print("%s %s" % (str(scenario), str(result).rstrip()))
-        if not result.is_success:
+        if not result.is_success():
             failed += 1
 
     return failed
