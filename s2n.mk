@@ -37,7 +37,7 @@ INDENT  = $(shell (if indent --version 2>&1 | grep GNU > /dev/null; then echo in
 
 DEFAULT_CFLAGS = -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized \
                  -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -fPIC -Wno-missing-braces\
-                 -std=c99 -D_POSIX_C_SOURCE=200809L -O2 -I$(LIBCRYPTO_ROOT)/include/ \
+                 -std=c99 -D_POSIX_C_SOURCE=200809L -I$(LIBCRYPTO_ROOT)/include/ \
                  -I$(S2N_ROOT)/api/ -I$(S2N_ROOT) -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security \
                  -D_FORTIFY_SOURCE=2 -fgnu89-inline 
 
@@ -65,6 +65,10 @@ ifdef S2N_NO_PQ_ASM
 	DEFAULT_CFLAGS += -DS2N_NO_PQ_ASM
 endif
 
+ifndef S2N_DEBUG
+	DEFAULT_CFLAGS += -O2
+endif
+
 CFLAGS += ${DEFAULT_CFLAGS}
 
 ifdef GCC_VERSION
@@ -78,7 +82,7 @@ ifdef GCC_VERSION
 	endif
 endif
 
-DEBUG_CFLAGS = -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls
+DEBUG_CFLAGS = -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -O0
 
 ifdef S2N_ADDRESS_SANITIZER
 	CFLAGS += -fsanitize=address -fuse-ld=gold ${DEBUG_CFLAGS}
