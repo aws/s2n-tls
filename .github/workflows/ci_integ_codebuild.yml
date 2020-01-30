@@ -1,0 +1,109 @@
+---
+name: s2nCodeBuildInteg
+
+on:
+  pull_request:
+    branches:
+      - master
+jobs:
+  integ:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        openssl_version:
+          - openssl-1.0.2
+          - openssl-1.0.2-fips
+          - openssl-1.1.1
+          - libressl
+        gcc_version:
+          - 6
+          - 9
+      fail-fast: true
+    steps:
+      - uses: actions/setup-node@v1
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - name: S2n Integ CodeBuild
+        uses: aws-actions/aws-codebuild-run-build@master
+        with:
+          project-name: 's2nGithubCodebuild'
+          env-passthrough: |
+            BUILD_S2N,
+            CODECOV_IO_UPLOAD,
+            GCC_VERSION,
+            S2N_COVERAGE,
+            S2N_LIBCRYPTO,
+            TESTS,
+            requester,
+            event-name
+        env:
+          BUILD_S2N: true
+          CODECOV_IO_UPLOAD: true
+          S2N_LIBCRYPTO: ${{ matrix.openssl_version }}
+          S2N_COVERAGE: true
+          TESTS: "integration"
+          GCC_VERSION: ${{ matrix.gcc_version }}
+          requester: ${{ github.actor }}
+          event-name: ${{ github.event_name }}
+  integcorkedio:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/setup-node@master
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - name: S2n Integ CodeBuild
+        uses: aws-actions/aws-codebuild-run-build@master
+        with:
+          project-name: 's2nGithubCodebuild'
+          env-passthrough: |
+            BUILD_S2N,
+            CODECOV_IO_UPLOAD,
+            GCC_VERSION,
+            S2N_COVERAGE,
+            S2N_LIBCRYPTO,
+            TESTS,
+            S2N_CORKED_IO,
+            requester,
+            event-name
+        env:
+          BUILD_S2N: true
+          CODECOV_IO_UPLOAD: true
+          S2N_LIBCRYPTO: openssl-1.1.1
+          S2N_COVERAGE: true
+          S2N_CORKED_IO: true
+          TESTS: "integration"
+          GCC_VERSION: 6
+          requester: ${{ github.actor }}
+          event-name: ${{ github.event_name }}
+      - name: S2n Integ CodeBuild
+        uses: aws-actions/aws-codebuild-run-build@master
+        with:
+          project-name: 's2nGithubCodebuild'
+          env-passthrough: |
+            BUILD_S2N,
+            CODECOV_IO_UPLOAD,
+            GCC_VERSION,
+            S2N_COVERAGE,
+            S2N_LIBCRYPTO,
+            TESTS,
+            OPENSSL_ia32cap,
+            requester,
+            event-name
+        env:
+          BUILD_S2N: true
+          CODECOV_IO_UPLOAD: true
+          S2N_LIBCRYPTO: openssl-1.1.1
+          S2N_COVERAGE: true
+          OPENSSL_ia32cap: "~0x200000200000000"
+          TESTS: "integration"
+          GCC_VERSION: 6
+          requester: ${{ github.actor }}
+          event-name: ${{ github.event_name }}

@@ -1,0 +1,45 @@
+---
+name: s2nCodeBuildAsan
+
+on:
+  pull_request:
+    branches:
+      - master
+jobs:
+  asan:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        openssl_version:
+          - openssl-1.0.2
+          - openssl-1.1.1
+        gcc_version:
+          - 6
+          - 9
+      fail-fast: true
+    steps:
+      - uses: actions/setup-node@v1
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - name: S2n Asan CodeBuild
+        uses: aws-actions/aws-codebuild-run-build@master
+        with:
+          project-name: 's2nGithubCodebuild'
+          env-passthrough: |
+            BUILD_S2N,
+            GCC_VERSION,
+            S2N_LIBCRYPTO,
+            TESTS,
+            requester,
+            event-name
+        env:
+          BUILD_S2N: true
+          S2N_LIBCRYPTO: ${{ matrix.openssl_version }}
+          TESTS: "asan"
+          GCC_VERSION: ${{ matrix.gcc_version }}
+          requester: ${{ github.actor }}
+          event-name: ${{ github.event_name }}

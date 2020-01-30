@@ -1,12 +1,12 @@
 ---
-name: s2nCodeBuild
+name: s2nCodeBuildUnit
 
 on:
   pull_request:
     branches:
       - master
 jobs:
-  tests:
+  unit:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -20,10 +20,16 @@ jobs:
       fail-fast: true
     steps:
       - uses: actions/setup-node@v1
-      - name: S2n Unit CodeBuild
-        uses: aws-actions/aws-codebuild-run-build@v1
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
         with:
-          projectName: 's2nGithubCodebuild'
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - name: S2n Unit CodeBuild
+        uses: aws-actions/aws-codebuild-run-build@master
+        with:
+          project-name: 's2nGithubCodebuild'
           env-passthrough: |
             BUILD_S2N,
             CODECOV_IO_UPLOAD,
