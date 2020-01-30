@@ -14,8 +14,13 @@
  */
 
 #include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
+
+#include <s2n.h>
 
 #include "tls/s2n_cipher_preferences.h"
+#include "tls/s2n_tls.h"
+#include "tls/s2n_tls13.h"
 
 int main(int argc, char **argv)
 {
@@ -217,6 +222,33 @@ int main(int argc, char **argv)
         EXPECT_FAILURE(s2n_ecc_extension_required(preferences));
         EXPECT_FAILURE(s2n_pq_kem_extension_required(preferences));
         EXPECT_FALSE(s2n_cipher_preference_supports_tls13(preferences));
+    }
+
+    /* Test minimum protocol version update works on config */
+    {
+        struct s2n_config *config;
+        EXPECT_NOT_NULL(config = s2n_config_new());
+
+        EXPECT_FAILURE(s2n_config_set_min_protocol_version(config, S2N_SSLv3));
+        EXPECT_SUCCESS(s2n_config_set_min_protocol_version(config, S2N_TLS12));
+
+        EXPECT_EQUAL(config->minimum_protocol_version, S2N_TLS12);
+        EXPECT_SUCCESS(s2n_config_free(config));
+    }
+
+    /* Test minimum protocol version update works with tls13 enabled/disabled */
+    {
+        struct s2n_config *config;
+        EXPECT_NOT_NULL(config = s2n_config_new());
+
+        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_FAILURE(s2n_config_set_min_protocol_version(config, S2N_TLS13));
+
+        EXPECT_SUCCESS(s2n_enable_tls13());
+        EXPECT_SUCCESS(s2n_config_set_min_protocol_version(config, S2N_TLS13));
+
+        EXPECT_EQUAL(config->minimum_protocol_version, S2N_TLS13);
+        EXPECT_SUCCESS(s2n_config_free(config));
     }
 
     END_TEST();

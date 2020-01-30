@@ -34,6 +34,8 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
 
+#include "tls/extensions/s2n_supported_versions.h"
+
 /* From RFC5246 7.4.1.2. */
 #define S2N_TLS_COMPRESSION_METHOD_NULL 0
 
@@ -139,10 +141,10 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
 
         S2N_ERROR_IF(s2n_client_detect_downgrade_mechanism(conn), S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
 
-        const struct s2n_cipher_preferences *cipher_preferences;
-        GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
+        uint8_t minimum_protocol_version;
+        GUARD(s2n_connection_get_minimum_supported_version(conn, &minimum_protocol_version));
 
-        if (conn->server_protocol_version < cipher_preferences->minimum_protocol_version
+        if (conn->server_protocol_version < minimum_protocol_version
                 || conn->server_protocol_version > conn->client_protocol_version) {
             GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
             S2N_ERROR(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);

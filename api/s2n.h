@@ -78,7 +78,7 @@ extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_t
 
 extern const char *s2n_strerror(int error, const char *lang);
 extern const char *s2n_strerror_debug(int error, const char *lang);
-extern const char *s2n_strerror_name(int error); 
+extern const char *s2n_strerror_name(int error);
 
 struct s2n_stacktrace;
 extern bool s2n_stack_traces_enabled(void);
@@ -142,6 +142,7 @@ extern int s2n_config_add_dhparams(struct s2n_config *config, const char *dhpara
 extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
 extern int s2n_config_set_signature_preferences(struct s2n_config *config, const char *version);
 extern int s2n_config_set_ecc_preferences(struct s2n_config *config, const char *version);
+extern int s2n_config_set_min_protocol_version(struct s2n_config *config, int version);
 extern int s2n_config_set_protocol_preferences(struct s2n_config *config, const char * const *protocols, int protocol_count);
 typedef enum { S2N_STATUS_REQUEST_NONE = 0, S2N_STATUS_REQUEST_OCSP = 1 } s2n_status_request_type;
 extern int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_request_type type);

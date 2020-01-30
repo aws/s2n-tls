@@ -92,14 +92,14 @@ static int s2n_connection_init_hashes(struct s2n_connection *conn)
     if (s2n_is_in_fips_mode()) {
         GUARD(s2n_hash_allow_md5_for_fips(&conn->handshake.md5));
         GUARD(s2n_hash_allow_md5_for_fips(&conn->handshake.prf_md5_hash_copy));
-        
-        /* Do not check s2n_hash_is_available before initialization. Allow MD5 and 
+
+        /* Do not check s2n_hash_is_available before initialization. Allow MD5 and
          * SHA-1 for both fips and non-fips mode. This is required to perform the
-         * signature checks in the CertificateVerify message in TLS 1.0 and TLS 1.1. 
+         * signature checks in the CertificateVerify message in TLS 1.0 and TLS 1.1.
          * This is approved per Nist SP 800-52r1.*/
         GUARD(s2n_hash_allow_md5_for_fips(&conn->handshake.md5_sha1));
     }
-    
+
     GUARD(s2n_hash_init(&conn->handshake.md5, S2N_HASH_MD5));
     GUARD(s2n_hash_init(&conn->handshake.prf_md5_hash_copy, S2N_HASH_MD5));
     GUARD(s2n_hash_init(&conn->handshake.md5_sha1, S2N_HASH_MD5_SHA1));
@@ -743,7 +743,7 @@ int s2n_connection_get_cipher_preferences(struct s2n_connection *conn, const str
     notnull_check(conn);
     notnull_check(cipher_preferences);
 
-    if(conn->cipher_pref_override != NULL) {
+    if (conn->cipher_pref_override != NULL) {
         *cipher_preferences = conn->cipher_pref_override;
     } else {
         *cipher_preferences = conn->config->cipher_preferences;
@@ -1203,4 +1203,3 @@ struct s2n_cert_chain_and_key *s2n_connection_get_selected_cert(struct s2n_conne
     notnull_check_ptr(conn);
     return conn->handshake_params.our_chain_and_key;
 }
-

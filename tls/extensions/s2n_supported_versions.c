@@ -21,11 +21,16 @@
 
 #include "utils/s2n_safety.h"
 
-int s2n_connection_get_minimum_supported_version(struct s2n_connection *conn, uint8_t *min_version) 
+int s2n_connection_get_minimum_supported_version(struct s2n_connection *conn, uint8_t *min_version)
 {
-    const struct s2n_cipher_preferences *cipher_preferences;
-    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
-    *min_version = cipher_preferences->minimum_protocol_version;
+    notnull_check(conn);
+    notnull_check(min_version);
+
+    if (conn->cipher_pref_override != NULL) {
+        *min_version = conn->cipher_pref_override->minimum_protocol_version;
+    } else {
+        *min_version = conn->config->minimum_protocol_version;
+    }
 
     return 0;
 }

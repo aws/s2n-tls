@@ -648,7 +648,7 @@ struct s2n_cipher_suite *cipher_suites_elb_security_policy_fs_1_2_2019_08[] = {
 
 const struct s2n_cipher_preferences elb_security_policy_fs_1_2_2019_08 = {
     .count = s2n_array_len(cipher_suites_elb_security_policy_fs_1_2_2019_08),
-    .suites = cipher_suites_elb_security_policy_fs_1_2_2019_08, 
+    .suites = cipher_suites_elb_security_policy_fs_1_2_2019_08,
     .minimum_protocol_version = S2N_TLS12,
     .kem_count = 0,
     .kems = NULL,
@@ -671,7 +671,7 @@ struct s2n_cipher_suite *cipher_suites_elb_security_policy_fs_1_1_2019_08[] = {
 
 const struct s2n_cipher_preferences elb_security_policy_fs_1_1_2019_08 = {
     .count = s2n_array_len(cipher_suites_elb_security_policy_fs_1_1_2019_08),
-    .suites = cipher_suites_elb_security_policy_fs_1_1_2019_08, 
+    .suites = cipher_suites_elb_security_policy_fs_1_1_2019_08,
     .minimum_protocol_version = S2N_TLS11,
     .kem_count = 0,
     .kems = NULL,
@@ -690,7 +690,7 @@ struct s2n_cipher_suite *cipher_suites_elb_security_policy_fs_1_2_Res_2019_08[] 
 
 const struct s2n_cipher_preferences elb_security_policy_fs_1_2_Res_2019_08 = {
     .count = s2n_array_len(cipher_suites_elb_security_policy_fs_1_2_Res_2019_08),
-    .suites = cipher_suites_elb_security_policy_fs_1_2_Res_2019_08, 
+    .suites = cipher_suites_elb_security_policy_fs_1_2_Res_2019_08,
     .minimum_protocol_version = S2N_TLS12,
     .kem_count = 0,
     .kems = NULL,
@@ -1076,9 +1076,9 @@ struct {
     { .version="ELBSecurityPolicy-TLS-1-2-2017-01", .preferences=&elb_security_policy_tls_1_2_2017_01, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="ELBSecurityPolicy-TLS-1-2-Ext-2018-06", .preferences=&elb_security_policy_tls_1_2_ext_2018_06, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="ELBSecurityPolicy-FS-2018-06", .preferences=&elb_security_policy_fs_2018_06, .ecc_extension_required=0, .pq_kem_extension_required=0},
-    { .version="ELBSecurityPolicy-FS-1-2-2019-08", .preferences=&elb_security_policy_fs_1_2_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0}, 
-    { .version="ELBSecurityPolicy-FS-1-1-2019-08", .preferences=&elb_security_policy_fs_1_1_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0}, 
-    { .version="ELBSecurityPolicy-FS-1-2-Res-2019-08", .preferences=&elb_security_policy_fs_1_2_Res_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0}, 
+    { .version="ELBSecurityPolicy-FS-1-2-2019-08", .preferences=&elb_security_policy_fs_1_2_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="ELBSecurityPolicy-FS-1-1-2019-08", .preferences=&elb_security_policy_fs_1_1_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="ELBSecurityPolicy-FS-1-2-Res-2019-08", .preferences=&elb_security_policy_fs_1_2_Res_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="CloudFront-Upstream", .preferences=&cipher_preferences_cloudfront_upstream, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="CloudFront-Upstream-TLS-1-0", .preferences=&cipher_preferences_cloudfront_upstream_tls10, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="CloudFront-Upstream-TLS-1-1", .preferences=&cipher_preferences_cloudfront_upstream_tls11, .ecc_extension_required=0, .pq_kem_extension_required=0},
@@ -1125,6 +1125,18 @@ struct {
     { .version=NULL, .preferences=NULL, .ecc_extension_required=0, .pq_kem_extension_required=0}
 };
 
+struct {
+    int version;
+} protocol_version_lookup [] = {
+    { .version=S2N_TLS13},
+    { .version=S2N_TLS12},
+    { .version=S2N_TLS11},
+    { .version=S2N_TLS10},
+    { .version=S2N_SSLv3},
+    { .version=S2N_SSLv2},
+    { .version=S2N_UNKNOWN_PROTOCOL_VERSION}
+};
+
 int s2n_find_cipher_pref_from_version(const char *version, const struct s2n_cipher_preferences **cipher_preferences)
 {
     notnull_check(version);
@@ -1143,7 +1155,26 @@ int s2n_find_cipher_pref_from_version(const char *version, const struct s2n_ciph
 int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version)
 {
     GUARD(s2n_find_cipher_pref_from_version(version, &config->cipher_preferences));
+    config->minimum_protocol_version = config->cipher_preferences->minimum_protocol_version;
     return 0;
+}
+
+int s2n_config_set_min_protocol_version(struct s2n_config *config, int version)
+{
+    notnull_check(config);
+
+    for (int i = 0; protocol_version_lookup[i].version != S2N_UNKNOWN_PROTOCOL_VERSION; i++) {
+        if (version == protocol_version_lookup[i].version) {
+            if ((version > s2n_highest_protocol_version) || (version < config->cipher_preferences->minimum_protocol_version)) {
+                S2N_ERROR(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+            } else {
+                config->minimum_protocol_version = version;
+                return 0;
+            }
+        }
+    }
+
+    S2N_ERROR(S2N_ERR_UNKNOWN_PROTOCOL_VERSION);
 }
 
 int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version)

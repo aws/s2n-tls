@@ -43,6 +43,8 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
+#include "tls/extensions/s2n_supported_versions.h"
+
 typedef char s2n_tls_extension_mask[8192];
 
 static s2n_tls_extension_mask s2n_suported_extensions = { 0 };
@@ -315,7 +317,10 @@ int s2n_process_client_hello(struct s2n_connection *conn)
         conn->actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
     }
 
-    if (conn->client_protocol_version < cipher_preferences->minimum_protocol_version) {
+    uint8_t minimum_protocol_version;
+    GUARD(s2n_connection_get_minimum_supported_version(conn, &minimum_protocol_version));
+
+    if (conn->client_protocol_version < minimum_protocol_version) {
         GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
         S2N_ERROR(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
     }
@@ -455,10 +460,10 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     struct s2n_client_hello *client_hello = &conn->client_hello;
     struct s2n_stuffer *in = &client_hello->raw_message;
 
-    const struct s2n_cipher_preferences *cipher_preferences;
-    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
+    uint8_t minimum_protocol_version;
+    GUARD(s2n_connection_get_minimum_supported_version(conn, &minimum_protocol_version));
 
-    if (conn->client_protocol_version < cipher_preferences->minimum_protocol_version) {
+    if (conn->client_protocol_version < minimum_protocol_version) {
         GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
         S2N_ERROR(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
     }
