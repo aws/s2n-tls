@@ -1,0 +1,44 @@
+---
+name: s2nCodeBuild
+
+on:
+  pull_request:
+    branches:
+      - master
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        openssl_version:
+          - openssl-1.0.2
+          - openssl-1.0.2-fips
+          - openssl-1.1.1
+        gcc_version:
+          - 6
+          - 9
+      fail-fast: true
+    steps:
+      - uses: actions/setup-node@v1
+      - name: S2n Unit CodeBuild
+        uses: aws-actions/aws-codebuild-run-build@v1
+        with:
+          projectName: 's2nGithubCodebuild'
+          env-passthrough: |
+            BUILD_S2N,
+            CODECOV_IO_UPLOAD,
+            GCC_VERSION,
+            S2N_COVERAGE,
+            S2N_LIBCRYPTO,
+            TESTS,
+            requester,
+            event-name
+        env:
+          BUILD_S2N: true
+          CODECOV_IO_UPLOAD: true
+          S2N_LIBCRYPTO: ${{ matrix.openssl_version }}
+          S2N_COVERAGE: true
+          TESTS: "unit"
+          GCC_VERSION: ${{ matrix.gcc_version }}
+          requester: ${{ github.actor }}
+          event-name: ${{ github.event_name }}
