@@ -64,22 +64,6 @@ file(GLOB PQ_SRC
         "pq-crypto/sike_r2/P434.c"
         )
 
-if(S2N_NO_PQ_ASM)
-    message(STATUS "Forcing usage of generic C code for PQ crypto")
-elseif(${CMAKE_HOST_SYSTEM_NAME} MATCHES "Darwin")
-    set(S2N_NO_PQ_ASM ON)	
-    message(STATUS "Detected Darwin, using generic C code for PQ crypto")
-elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64" OR ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "amd64" OR (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "AMD64" AND CMAKE_CL_64))
-    message(STATUS "Using optimized x86_64 assembly for PQ crypto")
-    enable_language(ASM)
-    file(GLOB PQ_X86_64_ASM
-            "pq-crypto/sike_r2/fp_x64_asm.S")
-    list(APPEND PQ_SRC ${PQ_X86_64_ASM})
-else()
-    set(S2N_NO_PQ_ASM ON)
-    message(STATUS "Architecture is not x86_64 compatible - using generic C code for PQ crypto")
-endif()
-
 file(GLOB STUFFER_SRC
     "stuffer/*.c"
 )
@@ -111,6 +95,27 @@ if(MSVC)
 else()
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads REQUIRED)
+endif()
+
+# The PQ ASM try_compile has to come after we turn on pthread
+if(S2N_NO_PQ_ASM)
+    message(STATUS "S2N_NO_PQ_ASM flag was detected - forcing usage of generic C code for PQ crypto")
+else()
+    message(STATUS "Attempting to try_compile PQ ASM")
+    set(PQ_ASM_COMPILES false)
+    enable_language(ASM)
+    try_compile(PQ_ASM_COMPILES ${CMAKE_BINARY_DIR}
+            SOURCES
+            "${CMAKE_SOURCE_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
+            "${CMAKE_SOURCE_DIR}/pq-crypto/sike_r2/fp_x64_asm.S")
+    if(PQ_ASM_COMPILES)
+        message(STATUS "PQ ASM try_compile succeeded - using optimized x86_64 assembly for PQ crypto")
+        file(GLOB PQ_X86_64_ASM "pq-crypto/sike_r2/fp_x64_asm.S")
+        list(APPEND PQ_SRC ${PQ_X86_64_ASM})
+    else()
+        message(STATUS "PQ ASM try_compile failed - using generic C code for PQ crypto")
+        set(S2N_NO_PQ_ASM ON)
+    endif()
 endif()
 
 if(APPLE)
