@@ -39,6 +39,7 @@ int main(int argc, char **argv)
     uint8_t random_data[S2N_DEFAULT_FRAGMENT_LENGTH + 1];
     struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
 
+
     BEGIN_TEST();
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
