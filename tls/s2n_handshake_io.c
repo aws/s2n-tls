@@ -949,6 +949,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
     }
 
     /* Record is a handshake message */
+    S2N_ERROR_IF(s2n_stuffer_data_available(&conn->in) == 0, S2N_ERR_BAD_MESSAGE);
+    
     while (s2n_stuffer_data_available(&conn->in)) {
         int r;
         uint8_t actual_handshake_message_type;
