@@ -1,0 +1,377 @@
+---
+name: s2nCodeBuildTesting
+
+on:
+  pull_request:
+    branches:
+      - master
+jobs:
+  integ:
+    needs: unit
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        openssl_version:
+          - openssl-1.0.2
+          - openssl-1.0.2-fips
+          - openssl-1.1.1
+          - libressl
+        gcc_version:
+          - 6
+          - 9
+      fail-fast: true
+    steps:
+      - uses: actions/setup-node@v1
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - uses: hmarr/debug-action@master
+      - name: S2n Integ CodeBuild
+        uses: aws-actions/aws-codebuild-run-build@master
+        with:
+          project-name: 's2nGithubCodebuild'
+          env-vars-for-codebuild: |
+            BUILD_S2N,
+            CODECOV_IO_UPLOAD,
+            GCC_VERSION,
+            S2N_COVERAGE,
+            S2N_LIBCRYPTO,
+            TESTS,
+            requester,
+            event-name
+        env:
+          BUILD_S2N: true
+          CODECOV_IO_UPLOAD: true
+          S2N_LIBCRYPTO: ${{ matrix.openssl_version }}
+          S2N_COVERAGE: true
+          TESTS: "integration"
+          GCC_VERSION: ${{ matrix.gcc_version }}
+          requester: ${{ github.actor }}
+          event-name: ${{ github.event_name }}
+  integcorkedio:
+    needs: [unit, integ]
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/setup-node@master
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - name: S2n Integ CodeBuild
+        uses: aws-actions/aws-codebuild-run-build@master
+        with:
+          project-name: 's2nGithubCodebuild'
+          env-vars-for-codebuild: |
+            BUILD_S2N,
+            CODECOV_IO_UPLOAD,
+            GCC_VERSION,
+            S2N_COVERAGE,
+            S2N_LIBCRYPTO,
+            TESTS,
+            S2N_CORKED_IO,
+            requester,
+            event-name
+        env:
+          BUILD_S2N: true
+          CODECOV_IO_UPLOAD: true
+          S2N_LIBCRYPTO: openssl-1.1.1
+          S2N_COVERAGE: true
+          S2N_CORKED_IO: true
+          TESTS: "integration"
+          GCC_VERSION: 6
+          requester: ${{ github.actor }}
+          event-name: ${{ github.event_name }}
+      - name: S2n Integ CodeBuild
+        uses: aws-actions/aws-codebuild-run-build@master
+        with:
+          project-name: 's2nGithubCodebuild'
+          env-vars-for-codebuild: |
+            BUILD_S2N,
+            CODECOV_IO_UPLOAD,
+            GCC_VERSION,
+            S2N_COVERAGE,
+            S2N_LIBCRYPTO,
+            TESTS,
+            OPENSSL_ia32cap,
+            requester,
+            event-name
+        env:
+          BUILD_S2N: true
+          CODECOV_IO_UPLOAD: true
+          S2N_LIBCRYPTO: openssl-1.1.1
+          S2N_COVERAGE: true
+          OPENSSL_ia32cap: "~0x200000200000000"
+          TESTS: "integration"
+          GCC_VERSION: 6
+          requester: ${{ github.actor }}
+          event-name: ${{ github.event_name }}
+  sawhmac:
+    needs: [unit, integ, asan]
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        hmac_tests:
+          - md5
+          - sha1
+          - sha224
+          - sha256
+          - sha384
+          - sha512
+      fail-fast: true
+    steps:
+      - uses: actions/setup-node@v1
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - name: S2n Saw Hmac CodeBuild
+        uses: aws-actions/aws-codebuild-run-build@master
+        with:
+          project-name: 's2nGithubCodebuild'
+          env-vars-for-codebuild: |
+            GCC_VERSION,
+            SAW_HMAC_TEST,
+            SAW,
+            TESTS,
+            requester,
+            event-name
+        env:
+          TESTS: "saw"
+          GCC_VERSION: none
+          SAW: true
+          SAW_HMAC_TEST: ${{ matrix.hmac_tests }}
+          requester: ${{ github.actor }}
+          event-name: ${{ github.event_name }}
+  sawother:
+    needs: [unit, integ, sawhmac, asan]
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        libcrypto:
+          - openssl-1.0.2
+          - openssl-1.1.1
+        tests:
+          - sawDRBG
+          - sawSIKE_r1
+          - sawBIKE_r1
+          - tls
+          - sawHMACFailure
+      fail-fast: true
+    steps:
+      - uses: actions/setup-node@v1
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - name: S2n Saw misc CodeBuild
+        uses: aws-actions/aws-codebuild-run-build@master
+        with:
+          project-name: 's2nGithubCodebuild'
+          env-vars-for-codebuild: |
+            GCC_VERSION,
+            S2N_LIBCRYPTO,
+            SAW,
+            TESTS,
+            requester,
+            event-name
+        env:
+          TESTS: ${{ matrix.tests }}
+          GCC_VERSION: none
+          S2N_LIBCRYPTO: ${{ matrix.libcrypto }}
+          SAW: true
+          requester: ${{ github.actor }}
+          event-name: ${{ github.event_name }}
+  sidetrail:
+    needs: [sawother, sawhmac]
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/setup-node@v1
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - name: S2n Sidetrail CodeBuild
+        uses: aws-actions/aws-codebuild-run-build@master
+        with:
+          project-name: 's2nSidetrail'
+          env-vars-for-codebuild: |
+            TESTS,
+            requester,
+            event-name
+        env:
+          TESTS: "sidetrail"
+          requester: ${{ github.actor }}
+          event-name: ${{ github.event_name }}
+  asan:
+    needs: [unit, integ]
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        openssl_version:
+          - openssl-1.0.2
+          - openssl-1.1.1
+        gcc_version:
+          - 6
+          - 9
+      fail-fast: true
+    steps:
+      - uses: actions/setup-node@v1
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - name: S2n Asan CodeBuild
+        uses: aws-actions/aws-codebuild-run-build@master
+        with:
+          project-name: 's2nGithubCodebuild'
+          env-vars-for-codebuild: |
+            BUILD_S2N,
+            GCC_VERSION,
+            S2N_LIBCRYPTO,
+            TESTS,
+            requester,
+            event-name
+        env:
+          BUILD_S2N: true
+          S2N_LIBCRYPTO: ${{ matrix.openssl_version }}
+          TESTS: "asan"
+          GCC_VERSION: ${{ matrix.gcc_version }}
+          requester: ${{ github.actor }}
+          event-name: ${{ github.event_name }}
+  unit:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        openssl_version:
+          - openssl-1.0.2
+          - openssl-1.0.2-fips
+          - openssl-1.1.1
+        gcc_version:
+          - 6
+          - 9
+      fail-fast: true
+    steps:
+      - uses: actions/setup-node@v1
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - name: S2n Unit CodeBuild
+        uses: aws-actions/aws-codebuild-run-build@master
+        with:
+          project-name: 's2nGithubCodebuild'
+          env-vars-for-codebuild: |
+            BUILD_S2N,
+            CODECOV_IO_UPLOAD,
+            GCC_VERSION,
+            S2N_COVERAGE,
+            S2N_LIBCRYPTO,
+            TESTS,
+            requester,
+            event-name
+        env:
+          BUILD_S2N: true
+          CODECOV_IO_UPLOAD: true
+          S2N_LIBCRYPTO: ${{ matrix.openssl_version }}
+          S2N_COVERAGE: true
+          TESTS: "unit"
+          GCC_VERSION: ${{ matrix.gcc_version }}
+          requester: ${{ github.actor }}
+          event-name: ${{ github.event_name }}
+  valgrind:
+    needs: [unit, integ, asan, sawhmac, sawother]
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        openssl_version:
+          - openssl-1.0.2
+          - openssl-1.0.2-fips
+          - openssl-1.1.1
+        gcc_version:
+          - 6
+          - 9
+      fail-fast: true
+    steps:
+      - uses: actions/setup-node@v1
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - name: S2n Valgrind CodeBuild
+        uses: aws-actions/aws-codebuild-run-build@master
+        with:
+          project-name: 's2nGithubCodebuild'
+          env-vars-for-codebuild: |
+            BUILD_S2N,
+            GCC_VERSION,
+            S2N_LIBCRYPTO,
+            TESTS,
+            requester,
+            event-name
+        env:
+          BUILD_S2N: true
+          S2N_LIBCRYPTO: ${{ matrix.openssl_version }}
+          TESTS: "valgrind"
+          GCC_VERSION: ${{ matrix.gcc_version }}
+          requester: ${{ github.actor }}
+          event-name: ${{ github.event_name }}
+  fuzzers:
+    needs: [valgrind, unit, integ, asan, sawhmac, sawother]
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        openssl_version:
+          - openssl-1.0.2-fips
+          - openssl-1.1.1
+      fail-fast: true
+    steps:
+      - uses: actions/setup-node@v1
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - name: S2n Fuzz CodeBuild
+        uses: aws-actions/aws-codebuild-run-build@master
+        with:
+          project-name: 's2nGithubCodebuild'
+          env-vars-for-codebuild: |
+            FUZZ_TIMEOUT_SEC,
+            LATEST_CLANG,
+            S2N_LIBCRYPTO,
+            TESTS,
+            requester,
+            event-name
+        env:
+          LATEST_CLANG: true
+          S2N_LIBCRYPTO: ${{ matrix.openssl_version }}
+          S2N_COVERAGE: true
+          TESTS: "fuzz"
+          FUZZ_TIMEOUT_SEC: 300
+          GCC_VERSION: ${{ matrix.gcc_version }}
+          requester: ${{ github.actor }}
+          event-name: ${{ github.event_name }}
