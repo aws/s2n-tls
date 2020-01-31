@@ -708,14 +708,14 @@ static int s2n_conn_post_handshake_hashes_update(struct s2n_connection *conn)
  * messages into single records. 
  * Precondition: secure outbound I/O has already been flushed
  */
-static int handshake_write_io(struct s2n_connection *conn)
+static int s2n_handshake_write_io(struct s2n_connection *conn)
 {
     uint8_t record_type = EXPECTED_RECORD_TYPE(conn);
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
     /* Populate handshake.io with header/payload for the current state, once.
      * Check wiped instead of s2n_stuffer_data_available to differentiate between the initial call
-     * to handshake_write_io and a repeated call after an EWOULDBLOCK.
+     * to s2n_handshake_write_io and a repeated call after an EWOULDBLOCK.
      */
     if (s2n_stuffer_is_wiped(&conn->handshake.io)) {
         if (record_type == TLS_HANDSHAKE) {
@@ -767,7 +767,7 @@ static int handshake_write_io(struct s2n_connection *conn)
  *  0  - we read the whole handshake message.
  * -1  - error processing the handshake message.
  */
-static int read_full_handshake_message(struct s2n_connection *conn, uint8_t * message_type)
+static int s2n_read_full_handshake_message(struct s2n_connection *conn, uint8_t * message_type)
 {
     uint32_t current_handshake_data = s2n_stuffer_data_available(&conn->handshake.io);
     if (current_handshake_data < TLS_HANDSHAKE_HEADER_LENGTH) {
@@ -895,7 +895,7 @@ done:
  * data messages that need to be handled by the application. The latter is punted
  * for now (s2n does not support renegotiations).
  */
-static int handshake_read_io(struct s2n_connection *conn)
+static int s2n_handshake_read_io(struct s2n_connection *conn)
 {
     uint8_t record_type;
     int isSSLv2;
@@ -952,7 +952,7 @@ static int handshake_read_io(struct s2n_connection *conn)
     while (s2n_stuffer_data_available(&conn->in)) {
         int r;
         uint8_t actual_handshake_message_type;
-        GUARD((r = read_full_handshake_message(conn, &actual_handshake_message_type)));
+        GUARD((r = s2n_read_full_handshake_message(conn, &actual_handshake_message_type)));
 
         /* Do we need more data? This happens for message fragmentation */
         if (r == 1) {
@@ -1055,8 +1055,8 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
                 s2n_try_delete_session_cache(conn);
                 /* The peer might have sent an alert. Try and read it. */
                 if (s2n_errno == S2N_ERR_BLOCKED && s2n_stuffer_data_available(&conn->in)) {
-                    if (handshake_read_io(conn) < 0 && s2n_errno == S2N_ERR_ALERT) {
-                        /* handshake_read_io has set s2n_errno */
+                    if (s2n_handshake_read_io(conn) < 0 && s2n_errno == S2N_ERR_ALERT) {
+                        /* s2n_handshake_read_io has set s2n_errno */
                         S2N_ERROR_PRESERVE_ERRNO();
                     }
                 }
@@ -1064,14 +1064,14 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
             }
         } else if (ACTIVE_STATE(conn).writer == this) {
             *blocked = S2N_BLOCKED_ON_WRITE;
-            if (handshake_write_io(conn) < 0 && s2n_errno != S2N_ERR_BLOCKED) {
+            if (s2n_handshake_write_io(conn) < 0 && s2n_errno != S2N_ERR_BLOCKED) {
                 /* Non-retryable write error. The peer might have sent an alert. Try and read it. */
                 const int write_errno = errno;
                 const int write_s2n_errno = s2n_errno;
                 const char *write_s2n_debug_str = s2n_debug_str;
 
-                if (handshake_read_io(conn) < 0 && s2n_errno == S2N_ERR_ALERT) {
-                    /* handshake_read_io has set s2n_errno */
+                if (s2n_handshake_read_io(conn) < 0 && s2n_errno == S2N_ERR_ALERT) {
+                    /* s2n_handshake_read_io has set s2n_errno */
                     S2N_ERROR_PRESERVE_ERRNO();
                 } else {
                     /* Let the write error take precedence if we didn't read an alert. */
@@ -1083,7 +1083,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
             }
         } else {
             *blocked = S2N_BLOCKED_ON_READ;
-            int r = handshake_read_io(conn);
+            int r = s2n_handshake_read_io(conn);
 
             if (r < 0) {
                 s2n_try_delete_session_cache(conn);

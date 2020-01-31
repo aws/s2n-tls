@@ -253,7 +253,7 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_CHANGE_CIPHER_SPEC, 0));
 
-                EXPECT_SUCCESS(handshake_read_io(conn));
+                EXPECT_SUCCESS(s2n_handshake_read_io(conn));
 
                 EXPECT_EQUAL(conn->handshake.message_number, j);
                 EXPECT_FALSE(unexpected_handler_called);
@@ -290,7 +290,7 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_CHANGE_CIPHER_SPEC, 0));
 
-                EXPECT_SUCCESS(handshake_read_io(conn));
+                EXPECT_SUCCESS(s2n_handshake_read_io(conn));
 
                 EXPECT_EQUAL(conn->handshake.message_number, j);
                 EXPECT_FALSE(unexpected_handler_called);
