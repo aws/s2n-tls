@@ -353,9 +353,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     struct s2n_blob b, r;
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
-    b.data = conn->secure.client_random;
-    b.size = S2N_TLS_RANDOM_DATA_LEN;
-
+    GUARD(s2n_blob_init(&b, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
     /* Create the client random data */
     GUARD(s2n_stuffer_init(&client_random, &b));
 

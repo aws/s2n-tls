@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 
         uint8_t original_data_size = s2n_stuffer_data_available(&extension_data);
 
-        struct s2n_array *extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension*));
+        struct s2n_array *extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension));
         for (int i=0; i < sizeof(tls13_extensions) / sizeof(uint8_t); i++) {
             struct s2n_client_hello_parsed_extension *extension;
             EXPECT_NOT_NULL(extension = s2n_array_pushback(extensions));
@@ -116,7 +116,7 @@ int main(int argc, char **argv)
         struct s2n_stuffer extension_data;
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension_data, 0));
 
-        struct s2n_array *extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension*));
+        struct s2n_array *extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension));
         struct s2n_client_hello_parsed_extension *extension;
         EXPECT_NOT_NULL(extension = s2n_array_pushback(extensions));
 
