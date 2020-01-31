@@ -149,14 +149,16 @@ let O_base_SecretB = concat O_base_Secret
     ];
 
 let O_base_Isog4 =
-    [ xDBLe_same32_ov
+    [ xDBL_same_ov
+    , copy_words_same_nwords_field_x4_ov
     , get_4_isog_ov
     , eval_4_isog_ov
     , fp2_decode_ov
     ];
 
 let O_base_Isog3 =
-    [ xTPLe_same32_ov
+    [ xTPL_same_ov
+    , copy_words_same_nwords_field_x4_ov
     , get_3_isog_ov
     , eval_3_isog_ov
     , fp2_decode_ov

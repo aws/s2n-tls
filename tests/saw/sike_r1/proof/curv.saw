@@ -14,7 +14,7 @@ let point_op t3 t4 = do {
     (a, ap) <- A_f2elm_t t3;
     (c, cp) <- A_f2elm_t t4;
     crucible_execute_func [pp, qp, ap, cp];
-    q <- crucible_fresh_var "q" point_proj_t;
+    q <- crucible_fresh_var "Q" point_proj_t;
     crucible_points_to qp (tm q);
 };
 
@@ -23,91 +23,18 @@ let point_op_same t3 t4 = do {
     (a, ap) <- A_f2elm_t t3;
     (c, cp) <- A_f2elm_t t4;
     crucible_execute_func [pp, pp, ap, cp];
-    p' <- crucible_fresh_var "xDBL_p'" point_proj_t;
+    p' <- crucible_fresh_var "Q" point_proj_t;
     crucible_points_to pp (tm p');
-};
-
-let point_op_scaled t3 t4 = do {
-    (p, pp) <- A_point_t "P";
-    qp <- C_point_t();
-    (a, ap) <- A_f2elm_t t3;
-    (c, cp) <- A_f2elm_t t4;
-    e <- A_int_t "e";
-    crucible_execute_func [pp, qp, ap, cp, tm e];
-    q <- crucible_fresh_var "q" point_proj_t;
-    crucible_points_to qp (tm q);
-};
-
-let point_op_scaled_same t3 t4 = do {
-    (p, pp) <- B_point_t "P";
-    (a, ap) <- A_f2elm_t t3;
-    (c, cp) <- A_f2elm_t t4;
-    e <- A_int_t "e";
-    crucible_execute_func [pp, pp, ap, cp, tm e];
-    q <- crucible_fresh_var "q" point_proj_t;
-    crucible_points_to pp (tm q);
-};
-
-// NOTE: this assumes a known number of iterations of xDBLe and xTRLe
-let point_op_iter t3 t4 e = do {
-    (p, pp) <- A_point_t "P";
-    qp <- C_point_t();
-    (a, ap) <- A_f2elm_t t3;
-    (c, cp) <- A_f2elm_t t4;
-    crucible_execute_func [pp, qp, ap, cp, tm e];
-    q <- crucible_fresh_var "q" point_proj_t;
-    crucible_points_to qp (tm q);
-};
-
-let point_op_iter_same t3 t4 e = do {
-    (p, pp) <- B_point_t "P";
-    (a, ap) <- A_f2elm_t t3;
-    (c, cp) <- A_f2elm_t t4;
-    crucible_execute_func [pp, pp, ap, cp, tm e];
-    q <- crucible_fresh_var "q" point_proj_t;
-    crucible_points_to pp (tm q);
-};
-
-let point_op_scaled_same_32 t3 t4 = do {
-    (p, pp) <- B_point_t "P";
-    (a, ap) <- A_f2elm_t t3;
-    (c, cp) <- A_f2elm_t t4;
-    e <- A_uint_t "e";
-    crucible_execute_func [pp, pp, ap, cp, tm e];
-    q <- crucible_fresh_var "q" point_proj_t;
-    crucible_points_to pp (tm q);
 };
 
 let xDBL_spec = point_op "A24plus" "C24";
 let xDBL_same_spec = point_op_same "A24plus" "C24";
-let xDBLe_spec_known_e = point_op_iter "A24plus" "C24";
-let xDBLe_spec = point_op_scaled "A24plus" "C24";
-let xDBLe_same_spec = point_op_scaled_same "A24plus" "C24";
-let xDBLe_same_spec_known_e = point_op_iter_same "A24plus" "C24";
-let xDBLe_same32_spec = point_op_scaled_same_32 "A24plus" "C24";
-
 let xTPL_spec = point_op "A24minus" "A24plus";
 let xTPL_same_spec = point_op_same "A24minus" "A24plus";
-let xTPLe_spec_known_e = point_op_iter "A24minus" "A24plus";
-let xTPLe_spec = point_op_scaled "A24minus" "A24plus";
-let xTPLe_same_spec = point_op_scaled_same "A24minus" "A24plus";
-let xTPLe_same_spec_known_e = point_op_iter_same "A24minus" "A24plus";
-let xTPLe_same32_spec = point_op_scaled_same_32 "A24minus" "A24plus";
 
 
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
-
-/* NOTES for xDBLe and xTPLe proofs:
-
- - We cannot prove either function with the "e" parameter a variable
-   due to limitations of SAW. Instead we have proved things about them
-   for some particular (and smallish) values of "e".
-
- - There are a fixed number of specific values of "e" that arise from
-   the Alice and Bob strategies, so in principle we could prove something
-   for every value that a caller needs. This includes a few large "e".
-*/
 
 xDBL_ov <- verify xDBL_fun_name
     [ fp2add503_left_ov
@@ -130,25 +57,6 @@ xDBL_same_ov <- verify xDBL_fun_name
     , fp2sub503_left_ov
     ]
     xDBL_same_spec;
-
-// NOTE: Proofs for some of the "e" values used in calls
-for [1,2,4,5] (\e -> do {
-    verify xDBLe_fun_name
-        [xDBL_same_ov, copy_words_nwords_field_x4_ov]
-        (xDBLe_spec_known_e {{ `e:[32] }});
-    });
-
-xDBLe_ov <- admit xDBLe_fun_name [] xDBLe_spec;
-
-// NOTE: Proofs for some of the "e" values used in calls
-for [1,2,4,5] (\e -> do {
-    verify xDBLe_fun_name
-        [xDBL_same_ov, copy_words_same_nwords_field_x4_ov]
-        (xDBLe_same_spec_known_e {{ `e:[32] }});
-    });
-
-xDBLe_same_ov <- admit xDBLe_fun_name [] xDBLe_same_spec;
-xDBLe_same32_ov <- admit xDBLe_fun_name [] xDBLe_same32_spec;
 
 xTPL_ov <- verify xTPL_fun_name
     [ fp2sub503_ov
@@ -175,23 +83,4 @@ xTPL_same_ov <- verify xTPL_fun_name
     , fp2sqr503_mont_ov
     ]
     xTPL_same_spec;
-
-// NOTE: Proofs for some of the "e" values used in calls
-for [1,2,4,5] (\e -> do {
-    verify xTPLe_fun_name
-        [xTPL_same_ov, copy_words_nwords_field_x4_ov]
-        (xTPLe_spec_known_e {{ `e:[32] }});
-    });
-
-xTPLe_ov <- admit xTPLe_fun_name [] xTPLe_spec;
-
-// NOTE: Proofs for some of the "e" values used in calls
-for [1,2,4,5] (\e -> do {
-    verify xTPLe_fun_name
-       [xTPL_same_ov, copy_words_same_nwords_field_x4_ov]
-       (xTPLe_same_spec_known_e {{ `e:[32] }});
-    });
-
-xTPLe_same_ov <- admit xTPLe_fun_name [] xTPLe_same_spec;
-xTPLe_same32_ov <- admit xTPLe_fun_name [] xTPLe_same32_spec;
 
