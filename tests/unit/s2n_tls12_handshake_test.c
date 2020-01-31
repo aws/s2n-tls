@@ -173,11 +173,11 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_write_ccs_message(&input));
 
                 if (handshakes[i][j] == SERVER_CHANGE_CIPHER_SPEC) {
-                    EXPECT_SUCCESS(handshake_read_io(conn));
+                    EXPECT_SUCCESS(s2n_handshake_read_io(conn));
                     EXPECT_TRUE(expected_handler_called);
                     EXPECT_FALSE(unexpected_handler_called);
                 } else {
-                    EXPECT_FAILURE_WITH_ERRNO(handshake_read_io(conn), S2N_ERR_BAD_MESSAGE);
+                    EXPECT_FAILURE_WITH_ERRNO(s2n_handshake_read_io(conn), S2N_ERR_BAD_MESSAGE);
                     EXPECT_FALSE(expected_handler_called);
                     EXPECT_FALSE(unexpected_handler_called);
                 }
@@ -214,11 +214,11 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_write_ccs_message(&input));
 
                 if (handshakes[i][j] == CLIENT_CHANGE_CIPHER_SPEC) {
-                    EXPECT_SUCCESS(handshake_read_io(conn));
+                    EXPECT_SUCCESS(s2n_handshake_read_io(conn));
                     EXPECT_TRUE(expected_handler_called);
                     EXPECT_FALSE(unexpected_handler_called);
                 } else {
-                    EXPECT_FAILURE_WITH_ERRNO(handshake_read_io(conn), S2N_ERR_BAD_MESSAGE);
+                    EXPECT_FAILURE_WITH_ERRNO(s2n_handshake_read_io(conn), S2N_ERR_BAD_MESSAGE);
                     EXPECT_FALSE(expected_handler_called);
                     EXPECT_FALSE(unexpected_handler_called);
                 }
