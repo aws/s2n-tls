@@ -94,18 +94,11 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     }
 
     const uint8_t pq_kem_extension_required = s2n_pq_kem_extension_required(cipher_preferences);
+    /* pq_kem_extension_required is true if and only if cipher_preferences->kem_count > 0 */
     if (pq_kem_extension_required) {
-        for (int i = 0; i < cipher_preferences->count; i++) {
-            const struct s2n_iana_to_kem *supported_params = NULL;
-            if (s2n_cipher_suite_to_kem(cipher_preferences->suites[i]->iana_value, &supported_params) == 0) {
-                /* Each supported kem id is 2 bytes */
-                pq_kem_list_size += supported_params->kem_count * 2;
-            }
-        }
-        if (pq_kem_list_size > 0) {
-            /* 2 for the extension id, 2 for overall length, 2 for length of the list, and the list size  */
-            total_size += 6 + pq_kem_list_size;
-        }
+        /* 2 for the extension id, 2 for overall length, 2 for length of the list, and 2 for each kem ID*/
+        pq_kem_list_size = cipher_preferences->kem_count * 2;
+        total_size += 6 + pq_kem_list_size;
     }
 
     if (conn->client_protocol_version >= S2N_TLS13) {

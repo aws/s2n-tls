@@ -62,6 +62,101 @@ static uint8_t sct_list[] = {
 
 extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
 
+/* Helper function to allow us to easily repeat the PQ extension test for many scenarios. */
+static int negotiate_kem(const uint8_t client_extensions[], const size_t client_extensions_len, const uint8_t client_hello_message[],
+                                size_t client_hello_len, const char cipher_pref_version[], const struct s2n_kem **negotiated_kem) {
+    int server_to_client[2];
+    int client_to_server[2];
+    char *cert_chain;
+    char *private_key;
+
+    GUARD_NONNULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
+    GUARD_NONNULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
+    GUARD(setenv("S2N_DONT_MLOCK", "1", 0));
+
+    /* Create nonblocking pipes */
+    GUARD(pipe(server_to_client));
+    GUARD(pipe(client_to_server));
+    for (int i = 0; i < 2; i++) {
+        ne_check(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
+        ne_check(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
+    }
+
+    struct s2n_connection *server_conn;
+    struct s2n_config *server_config;
+    s2n_blocked_status server_blocked;
+    struct s2n_cert_chain_and_key *chain_and_key;
+
+    size_t body_len = client_hello_len + client_extensions_len;
+    uint8_t message_header[] = {
+            /* Handshake message type CLIENT HELLO */
+            0x01,
+            /* Body len */
+            (body_len >> 16) & 0xff, (body_len >> 8) & 0xff, (body_len & 0xff),
+    };
+    size_t message_header_len = sizeof(message_header);
+    size_t message_len = message_header_len + body_len;
+    uint8_t record_header[] = {
+            /* Record type HANDSHAKE */
+            0x16,
+            /* Protocol version TLS 1.2 */
+            0x03, 0x03,
+            /* Message len */
+            (message_len >> 8) & 0xff, (message_len & 0xff),
+    };
+    size_t record_header_len = sizeof(record_header);
+
+
+    GUARD_NONNULL(server_conn = s2n_connection_new(S2N_SERVER));
+    GUARD(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
+    GUARD(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
+
+    GUARD_NONNULL(server_config = s2n_config_new());
+    GUARD(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
+    GUARD(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
+    GUARD_NONNULL(chain_and_key = s2n_cert_chain_and_key_new());
+    GUARD(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain, private_key));
+    GUARD(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+    GUARD(s2n_config_set_cipher_preferences(server_config, cipher_pref_version));
+    GUARD(s2n_connection_set_config(server_conn, server_config));
+    server_conn->secure.s2n_kem_keys.negotiated_kem = NULL;
+
+    /* Send the client hello */
+    eq_check(write(client_to_server[1], record_header, record_header_len),record_header_len);
+    eq_check(write(client_to_server[1], message_header, message_header_len),message_header_len);
+    eq_check(write(client_to_server[1], client_hello_message, client_hello_len),client_hello_len);
+    eq_check(write(client_to_server[1], client_extensions, client_extensions_len),client_extensions_len);
+
+    GUARD(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+    if (s2n_negotiate(server_conn, &server_blocked) == 0) {
+        /* We expect the overall negotiation to fail and return non-zero, but it should get far enough
+         * that a KEM extension was agreed upon. */
+        return S2N_FAILURE;
+    }
+
+    int ret_val = 0;
+    if (server_conn->secure.s2n_kem_keys.negotiated_kem != NULL) {
+        *negotiated_kem = server_conn->secure.s2n_kem_keys.negotiated_kem;
+    } else {
+        *negotiated_kem = NULL;
+        ret_val = -1;
+    }
+
+    GUARD(s2n_connection_free(server_conn));
+    GUARD(s2n_cert_chain_and_key_free(chain_and_key));
+    GUARD(s2n_config_free(server_config));
+
+    for (int i = 0; i < 2; i++) {
+        GUARD(close(server_to_client[i]));
+        GUARD(close(client_to_server[i]));
+    }
+
+    free(cert_chain);
+    free(private_key);
+
+    return ret_val;
+}
+
 int main(int argc, char **argv)
 {
     char *cert_chain;
@@ -1106,13 +1201,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
     }
 
-    /* Client sends PQ KEM extension with matching SIKE extension from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-01 */
+    /* All PQ KEM byte values are from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-02 */
     {
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
-        s2n_blocked_status server_blocked;
-        struct s2n_cert_chain_and_key *chain_and_key;
-
+        /* Expect SIKE_P434_R2 KEM - client requests SIKE ciphersuite and provides
+         * SIKE_P434_R2 extension (plus other irrelevant KEM extensions);
+         * server is using the round 1 + round 2 preference list */
         uint8_t client_extensions[] = {
                 /* Extension type pq_kem_parameters */
                 0xFE, 0x01,
@@ -1120,14 +1213,14 @@ int main(int argc, char **argv)
                 0x00, 0x08,
                 /* KEM names len */
                 0x00, 0x06,
-                /* SIKEp503r1-KEM */
-                0x00, 0x0A,
-                /* BIKE1r1-Level1 */
+                /* BIKE1_L1_R1 */
                 0x00, 0x01,
-                /* BIKE1r2-Level1 */
-                0x00, 0x04,
+                /* SIKE_P434_R2 */
+                0x00, 0x10,
+                /* BIKE1_L1_R2 */
+                0x00, 0x0D,
         };
-        int client_extensions_len = sizeof(client_extensions);
+        size_t client_extensions_len = sizeof(client_extensions);
         uint8_t client_hello_message[] = {
                 /* Protocol version TLS 1.2 */
                 0x03, 0x03,
@@ -1148,61 +1241,142 @@ int main(int argc, char **argv)
                 /* Extensions len */
                 (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
         };
-        int body_len = sizeof(client_hello_message) + client_extensions_len;
-        uint8_t message_header[] = {
-                /* Handshake message type CLIENT HELLO */
-                0x01,
-                /* Body len */
-                (body_len >> 16) & 0xff, (body_len >> 8) & 0xff, (body_len & 0xff),
+        size_t client_hello_len = sizeof(client_hello_message);
+
+        const struct s2n_kem *negotiated_kem = NULL;
+        EXPECT_SUCCESS(negotiate_kem(client_extensions, client_extensions_len, client_hello_message, client_hello_len,
+                "KMS-PQ-TLS-1-0-2020-02", &negotiated_kem));
+        EXPECT_NOT_NULL(negotiated_kem);
+        EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2);
+    }
+    {
+        /* Expect BIKE1_L1_R1 KEM - client requests BIKE ciphersuite and provides
+         * BIKE1L1R1 extension (plus other irrelevant KEM extensions);
+         * server is using the round 1 only preference list */
+        uint8_t client_extensions[] = {
+                /* Extension type pq_kem_parameters */
+                0xFE, 0x01,
+                /* Extension size */
+                0x00, 0x08,
+                /* KEM names len */
+                0x00, 0x06,
+                /* BIKE1_L1_R2 */
+                0x00, 0x0D,
+                /* SIKE_P434_R2 */
+                0x00, 0x10,
+                /* BIKE1_L1_R1 */
+                0x00, 0x01,
         };
-        int message_len = sizeof(message_header) + body_len;
-        uint8_t record_header[] = {
-                /* Record type HANDSHAKE */
-                0x16,
+        size_t client_extensions_len = sizeof(client_extensions);
+        uint8_t client_hello_message[] = {
                 /* Protocol version TLS 1.2 */
                 0x03, 0x03,
-                /* Message len */
-                (message_len >> 8) & 0xff, (message_len & 0xff),
+                /* Client random */
+                ZERO_TO_THIRTY_ONE,
+                /* SessionID len - 32 bytes */
+                0x20,
+                /* Session ID */
+                ZERO_TO_THIRTY_ONE,
+                /* Cipher suites len */
+                0x00, 0x02,
+                /* Cipher suite - TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 */
+                0xFF, 0x04,
+                /* Compression methods len */
+                0x01,
+                /* Compression method - none */
+                0x00,
+                /* Extensions len */
+                (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
         };
+        size_t client_hello_len = sizeof(client_hello_message);
 
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_piped_io(server_conn, &piped_io));
-
-        EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain, private_key));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_all"));
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-        server_conn->secure.s2n_kem_keys.negotiated_kem = NULL;
-
-        /* Send the client hello */
-        EXPECT_EQUAL(write(piped_io.client_write, record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(piped_io.client_write, message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(piped_io.client_write, client_hello_message, sizeof(client_hello_message)), sizeof(client_hello_message));
-        EXPECT_EQUAL(write(piped_io.client_write, client_extensions, sizeof(client_extensions)), sizeof(client_extensions));
-
-        EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
-        EXPECT_FAILURE(s2n_negotiate(server_conn, &server_blocked));
-        /* Expect SIKEp503r1-KEM to be selected */
-        EXPECT_NOT_NULL(server_conn->secure.s2n_kem_keys.negotiated_kem);
-        EXPECT_EQUAL(server_conn->secure.s2n_kem_keys.negotiated_kem->kem_extension_id, 0x000A);
-
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-        EXPECT_SUCCESS(s2n_config_free(server_config));
+        const struct s2n_kem *negotiated_kem = NULL;
+        EXPECT_SUCCESS(negotiate_kem(client_extensions, client_extensions_len, client_hello_message, client_hello_len,
+                "KMS-PQ-TLS-1-0-2019-06", &negotiated_kem));
+        EXPECT_NOT_NULL(negotiated_kem);
+        EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1);
     }
-
-
-    /* Client sends PQ KEM extension with no matching extensions */
     {
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
-        s2n_blocked_status server_blocked;
-        struct s2n_cert_chain_and_key *chain_and_key;
+        /* Expect SIKE_P434_R2 KEM - client requests BIKE or SIKE ciphersuites and
+         * provides only SIKE extensions; server is using the round 1 + round 2
+         * preference list */
+        uint8_t client_extensions[] = {
+                /* Extension type pq_kem_parameters */
+                0xFE, 0x01,
+                /* Extension size */
+                0x00, 0x06,
+                /* KEM names len */
+                0x00, 0x04,
+                /* SIKE_P503_R1 */
+                0x00, 0x0A,
+                /* SIKE_P434_R2 */
+                0x00, 0x10,
+        };
+        size_t client_extensions_len = sizeof(client_extensions);
+        uint8_t client_hello_message[] = {
+                /* Protocol version TLS 1.2 */
+                0x03, 0x03,
+                /* Client random */
+                ZERO_TO_THIRTY_ONE,
+                /* SessionID len - 32 bytes */
+                0x20,
+                /* Session ID */
+                ZERO_TO_THIRTY_ONE,
+                /* Cipher suites len */
+                0x00, 0x04,
+                /* Cipher suite - TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 */
+                0xFF, 0x04,
+                /* Cipher suite - TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 */
+                0xFF, 0x08,
+                /* Compression methods len */
+                0x01,
+                /* Compression method - none */
+                0x00,
+                /* Extensions len */
+                (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
+        };
+        size_t client_hello_len = sizeof(client_hello_message);
 
+        const struct s2n_kem *negotiated_kem = NULL;
+        EXPECT_SUCCESS(negotiate_kem(client_extensions, client_extensions_len, client_hello_message, client_hello_len,
+                                            "KMS-PQ-TLS-1-0-2020-02", &negotiated_kem));
+        EXPECT_NOT_NULL(negotiated_kem);
+        EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2);
+    }
+    {
+        /* Expect BIKE1_L1_R2 KEM - client requests BIKE ciphersuite and sends no PQ KEM extensions,
+         * so the server chooses it's preferred KEM; server is using the round 1 + round 2 preference list */
+        uint8_t client_hello_message[] = {
+                /* Protocol version TLS 1.2 */
+                0x03, 0x03,
+                /* Client random */
+                ZERO_TO_THIRTY_ONE,
+                /* SessionID len - 32 bytes */
+                0x20,
+                /* Session ID */
+                ZERO_TO_THIRTY_ONE,
+                /* Cipher suites len */
+                0x00, 0x02,
+                /* Cipher suite - TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 */
+                0xFF, 0x04,
+                /* Compression methods len */
+                0x01,
+                /* Compression method - none */
+                0x00,
+                /* Extensions len */
+                0x00,
+        };
+        size_t client_hello_len = sizeof(client_hello_message);
+
+        const struct s2n_kem *negotiated_kem = NULL;
+        EXPECT_SUCCESS(negotiate_kem(NULL, 0, client_hello_message, client_hello_len,
+                                            "KMS-PQ-TLS-1-0-2020-02", &negotiated_kem));
+        EXPECT_NOT_NULL(negotiated_kem);
+        EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2);
+    }
+    {
+        /* Expect NULL KEM - client sends PQ KEM extension with completely bogus extension IDs;
+         * server is using the round 1 + round 2 preference list */
         uint8_t client_extensions[] = {
                 /* Extension type pq_kem_parameters */
                 0xFE, 0x01,
@@ -1215,7 +1389,7 @@ int main(int argc, char **argv)
                 0xaa, 0xbb,
                 0xff, 0xa1,
         };
-        int client_extensions_len = sizeof(client_extensions);
+        size_t client_extensions_len = sizeof(client_extensions);
         uint8_t client_hello_message[] = {
                 /* Protocol version TLS 1.2 */
                 0x03, 0x03,
@@ -1236,51 +1410,98 @@ int main(int argc, char **argv)
                 /* Extensions len */
                 (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
         };
-        int body_len = sizeof(client_hello_message) + client_extensions_len;
-        uint8_t message_header[] = {
-                /* Handshake message type CLIENT HELLO */
-                0x01,
-                /* Body len */
-                (body_len >> 16) & 0xff, (body_len >> 8) & 0xff, (body_len & 0xff),
+        size_t client_hello_len = sizeof(client_hello_message);
+
+        const struct s2n_kem *negotiated_kem = NULL;
+        EXPECT_FAILURE(negotiate_kem(client_extensions, client_extensions_len, client_hello_message, client_hello_len,
+                                            "KMS-PQ-TLS-1-0-2020-02", &negotiated_kem));
+        EXPECT_NULL(negotiated_kem);
+    }
+    {
+        /* Expect NULL KEM - client sends PQ KEM extension with BIKE extensions, but requests SIKE ciphersuite;
+         * server is using the round 1 only preference list */
+        uint8_t client_extensions[] = {
+                /* Extension type pq_kem_parameters */
+                0xFE, 0x01,
+                /* Extension size */
+                0x00, 0x06,
+                /* KEM names len */
+                0x00, 0x04,
+                /* BIKE1_L1_R1 */
+                0x00, 0x01,
+                /* BIKE1_L1_R2 */
+                0x00, 0x0D,
         };
-        int message_len = sizeof(message_header) + body_len;
-        uint8_t record_header[] = {
-                /* Record type HANDSHAKE */
-                0x16,
+        size_t client_extensions_len = sizeof(client_extensions);
+        uint8_t client_hello_message[] = {
                 /* Protocol version TLS 1.2 */
                 0x03, 0x03,
-                /* Message len */
-                (message_len >> 8) & 0xff, (message_len & 0xff),
+                /* Client random */
+                ZERO_TO_THIRTY_ONE,
+                /* SessionID len - 32 bytes */
+                0x20,
+                /* Session ID */
+                ZERO_TO_THIRTY_ONE,
+                /* Cipher suites len */
+                0x00, 0x02,
+                /* Cipher suite - TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 */
+                0xFF, 0x08,
+                /* Compression methods len */
+                0x01,
+                /* Compression method - none */
+                0x00,
+                /* Extensions len */
+                (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
         };
+        size_t client_hello_len = sizeof(client_hello_message);
 
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_piped_io(server_conn, &piped_io));
+        const struct s2n_kem *negotiated_kem = NULL;
+        EXPECT_FAILURE(negotiate_kem(client_extensions, client_extensions_len, client_hello_message, client_hello_len,
+                                            "KMS-PQ-TLS-1-0-2019-06", &negotiated_kem));
+        EXPECT_NULL(negotiated_kem);
+    }
+    {
+        /* Expect NULL KEM - client sends PQ KEM extensions for round 2 only; the server is using the
+         * round 1 only preference list */
+        uint8_t client_extensions[] = {
+                /* Extension type pq_kem_parameters */
+                0xFE, 0x01,
+                /* Extension size */
+                0x00, 0x06,
+                /* KEM names len */
+                0x00, 0x04,
+                /* SIKE_P434_R2 */
+                0x00, 0x10,
+                /* BIKE1_L1_R2 */
+                0x00, 0x0D,
+        };
+        size_t client_extensions_len = sizeof(client_extensions);
+        uint8_t client_hello_message[] = {
+                /* Protocol version TLS 1.2 */
+                0x03, 0x03,
+                /* Client random */
+                ZERO_TO_THIRTY_ONE,
+                /* SessionID len - 32 bytes */
+                0x20,
+                /* Session ID */
+                ZERO_TO_THIRTY_ONE,
+                /* Cipher suites len */
+                0x00, 0x02,
+                /* Cipher suite - TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 */
+                0xFF, 0x08,
+                /* Compression methods len */
+                0x01,
+                /* Compression method - none */
+                0x00,
+                /* Extensions len */
+                (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
+        };
+        size_t client_hello_len = sizeof(client_hello_message);
 
-        EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain, private_key));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_all"));
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-        server_conn->secure.s2n_kem_keys.negotiated_kem = NULL;
-
-        /* Send the client hello */
-        EXPECT_EQUAL(write(piped_io.client_write, record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(piped_io.client_write, message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(piped_io.client_write, client_hello_message, sizeof(client_hello_message)), sizeof(client_hello_message));
-        EXPECT_EQUAL(write(piped_io.client_write, client_extensions, sizeof(client_extensions)), sizeof(client_extensions));
-
-        /* Verify that we fail for no mutually supported pq_kem_parameters  */
-        EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
-        EXPECT_FAILURE(s2n_negotiate(server_conn, &server_blocked));
-        /* Expect null to be selected indicating no matching KEMS*/
-        EXPECT_NULL(server_conn->secure.s2n_kem_keys.negotiated_kem);
-
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-        EXPECT_SUCCESS(s2n_config_free(server_config));
+        const struct s2n_kem *negotiated_kem = NULL;
+        EXPECT_FAILURE(negotiate_kem(client_extensions, client_extensions_len, client_hello_message, client_hello_len,
+                                            "KMS-PQ-TLS-1-0-2019-06", &negotiated_kem));
+        EXPECT_NULL(negotiated_kem);
     }
 
     s2n_piped_io_close(&piped_io);

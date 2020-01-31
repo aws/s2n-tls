@@ -774,6 +774,8 @@ const struct s2n_cipher_preferences cipher_preferences_test_all = {
     .count = s2n_array_len(s2n_all_cipher_suites),
     .suites = s2n_all_cipher_suites,
     .minimum_protocol_version = S2N_SSLv3,
+    .kem_count = s2n_array_len(pq_kems_r1r2),
+    .kems = pq_kems_r1r2,
 };
 
 /* All of the cipher suites that s2n can negotiate when in FIPS mode,
@@ -806,6 +808,8 @@ const struct s2n_cipher_preferences cipher_preferences_test_all_fips = {
     .count = s2n_array_len(s2n_all_fips_cipher_suites),
     .suites = s2n_all_fips_cipher_suites,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 /* All of the ECDSA cipher suites that s2n can negotiate, in order of IANA
@@ -826,6 +830,8 @@ const struct s2n_cipher_preferences cipher_preferences_test_all_ecdsa = {
     .count = s2n_array_len(s2n_all_ecdsa_cipher_suites),
     .suites = s2n_all_ecdsa_cipher_suites,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 /* All ECDSA cipher suites first, then the rest of the supported ciphers that s2n can negotiate.
@@ -872,6 +878,8 @@ const struct s2n_cipher_preferences cipher_preferences_test_ecdsa_priority = {
     .count = s2n_array_len(s2n_ecdsa_priority_cipher_suites),
     .suites = s2n_ecdsa_priority_cipher_suites,
     .minimum_protocol_version = S2N_SSLv3,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 static struct s2n_cipher_suite *s2n_tls13_null_key_exchange_alg_cipher_suites[] = {
@@ -884,6 +892,8 @@ const struct s2n_cipher_preferences cipher_preferences_test_tls13_null_key_excha
     .count = s2n_array_len(s2n_tls13_null_key_exchange_alg_cipher_suites),
     .suites = s2n_tls13_null_key_exchange_alg_cipher_suites,
     .minimum_protocol_version = S2N_SSLv3,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 /* Determines cipher suite availability and selects record algorithms */
