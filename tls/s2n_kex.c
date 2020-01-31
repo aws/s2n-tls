@@ -19,6 +19,7 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_cipher_preferences.h"
 #include "utils/s2n_safety.h"
 
 static int s2n_get_server_ecc_extension_size(const struct s2n_connection *conn)
@@ -78,38 +79,45 @@ static int s2n_check_ecdhe(const struct s2n_cipher_suite *cipher_suite, struct s
 
 static int s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
 {
+    const struct s2n_cipher_preferences *cipher_preferences = NULL;
+    /* If the cipher preferences have no supported KEMs, return false. */
+    if (s2n_connection_get_cipher_preferences(conn, &cipher_preferences) != 0) { return 0; }
+    if (cipher_preferences->kem_count == 0) { return 0; }
+
     const struct s2n_iana_to_kem *supported_params = NULL;
     /* If the cipher suite has no supported KEMs return false */
     if (s2n_cipher_suite_to_kem(cipher_suite->iana_value, &supported_params) != 0) { return 0; }
     if (supported_params->kem_count == 0) { return 0; }
 
-    struct s2n_blob *proposed_kems = &conn->secure.client_pq_kem_extension;
-    /* If the client did not send a PQ KEM extension the server can pick any parameters it wants */
+    struct s2n_blob *proposed_kems = &(conn->secure.client_pq_kem_extension);
+    const struct s2n_kem *chosen_kem = NULL;
     if (proposed_kems == NULL || proposed_kems->data == NULL) {
-        return 1;
+        /* If the client did not send a PQ KEM extension, then the server can pick its preferred parameter */
+        if (s2n_kem_choose_server_preferred_kem(cipher_suite->iana_value, cipher_preferences->kems, cipher_preferences->kem_count, &chosen_kem) != 0) { return 0; }
+    } else {
+        /* If the client did send a PQ KEM extension, then the server must find a mutually supported parameter. */
+        if (s2n_kem_find_supported_kem(cipher_suite->iana_value, proposed_kems, cipher_preferences->kems, cipher_preferences->kem_count, &chosen_kem) != 0) { return 0; }
     }
 
-    /* If the client did send a PQ KEM extension the server must find a mutually supported parameter */
-    const struct s2n_kem *matching_kem = NULL;
-    if(s2n_kem_find_supported_kem(proposed_kems, supported_params->kems, supported_params->kem_count, &matching_kem) != 0) { return 0; }
-    return matching_kem != NULL;
+    return chosen_kem != NULL;
 }
 
 static int s2n_configure_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
 {
-    const struct s2n_iana_to_kem *supported_params = NULL;
-    GUARD(s2n_cipher_suite_to_kem(cipher_suite->iana_value, &supported_params));
+    const struct s2n_cipher_preferences *cipher_preferences = NULL;
+    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
 
-    struct s2n_blob *proposed_kems = &conn->secure.client_pq_kem_extension;
-    /* If the client did not send a PQ KEM extension the server can pick any parameters it wants */
+    struct s2n_blob *proposed_kems = &(conn->secure.client_pq_kem_extension);
+    const struct s2n_kem *chosen_kem = NULL;
     if (proposed_kems == NULL || proposed_kems->data == NULL) {
-        conn->secure.s2n_kem_keys.negotiated_kem = supported_params->kems[0];
-        return 0;
+        /* If the client did not send a PQ KEM extension, then the server can pick its preferred parameter */
+        GUARD(s2n_kem_choose_server_preferred_kem(cipher_suite->iana_value, cipher_preferences->kems, cipher_preferences->kem_count, &chosen_kem));
+    } else {
+        /* If the client did send a PQ KEM extension, then the server must find a mutually supported parameter. */
+        GUARD(s2n_kem_find_supported_kem(cipher_suite->iana_value, proposed_kems, cipher_preferences->kems, cipher_preferences->kem_count, &chosen_kem));
     }
 
-    const struct s2n_kem *matching_kem = NULL;
-    GUARD(s2n_kem_find_supported_kem(proposed_kems, supported_params->kems, supported_params->kem_count, &matching_kem));
-    conn->secure.s2n_kem_keys.negotiated_kem = matching_kem;
+    conn->secure.s2n_kem_keys.negotiated_kem = chosen_kem;
     return 0;
 }
 

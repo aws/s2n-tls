@@ -18,6 +18,7 @@
 #include "tests/testlib/s2n_testlib.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_cipher_preferences.h"
 
 #define RSP_FILE_NAME "kats/hybrid_ecdhe_sike_r1.kat"
 #define SERVER_KEY_MESSAGE_LENGTH 711
@@ -26,6 +27,6 @@
 int main(int argc, char **argv) {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_test_hybrid_ecdhe_kem_with_kat(&s2n_sike_p503_r1, &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
-            RSP_FILE_NAME, SERVER_KEY_MESSAGE_LENGTH, CLIENT_KEY_MESSAGE_LENGTH));
+            "KMS-PQ-TLS-1-0-2019-06", RSP_FILE_NAME, SERVER_KEY_MESSAGE_LENGTH, CLIENT_KEY_MESSAGE_LENGTH));
     END_TEST();
 }
