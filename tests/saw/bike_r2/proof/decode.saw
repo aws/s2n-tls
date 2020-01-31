@@ -33,7 +33,7 @@ let bit_sliced_adder_spec = do {
   (_, rotated_syndrome_ptr) <- inout_ref syndrome_t "rotated_syndrome";
   num_of_slices <- crucible_fresh_var "num_of_slices" i64;
   crucible_precond {{ num_of_slices <= `SLICES }};
-  crucible_execute_func [upc_ptr, rotated_syndrome_ptr, tm {{ num_of_slices }}];
+  crucible_execute_func [upc_ptr, rotated_syndrome_ptr, tm num_of_slices];
   _ <- point_to (llvm_array SLICES padded_r_t) upc_ptr "upc'";
   _ <- point_to syndrome_t rotated_syndrome_ptr "rotated_syndrome'";
   return ();
@@ -42,7 +42,7 @@ let bit_sliced_adder_spec = do {
 let bit_slice_full_subtract_spec = do {
   (_, upc_ptr) <- inout_ref (llvm_array SLICES padded_r_t) "upc";
   val <- crucible_fresh_var "val" i8;
-  crucible_execute_func [upc_ptr, tm {{ val }}];
+  crucible_execute_func [upc_ptr, tm val];
   _ <- point_to (llvm_array SLICES padded_r_t) upc_ptr "upc'";
   return ();
 };
@@ -54,7 +54,7 @@ let find_err1_spec = do {
   (_, syndrome_ptr) <- in_ref syndrome_t "syndrome";
   (_, wlist_ptr) <- in_ref compressed_idx_dv_ar_t "wlist";
   threshold <- crucible_fresh_var "threshold" i8;
-  crucible_execute_func [e_ptr, black_e_ptr, gray_e_ptr, syndrome_ptr, wlist_ptr, tm {{ threshold }}];
+  crucible_execute_func [e_ptr, black_e_ptr, gray_e_ptr, syndrome_ptr, wlist_ptr, tm threshold];
   _ <- point_to split_e_t e_ptr "e'";
   _ <- point_to split_e_t black_e_ptr "black_e";
   _ <- point_to split_e_t gray_e_ptr "gray_e";
@@ -67,7 +67,7 @@ let find_err2_spec = do {
   (_, syndrome_ptr) <- in_ref syndrome_t "syndrome";
   (_, wlist_ptr) <- in_ref compressed_idx_dv_ar_t "wlist";
   threshold <- crucible_fresh_var "threshold" i8;
-  crucible_execute_func [e_ptr, pos_e_ptr, syndrome_ptr, wlist_ptr, tm {{ threshold }}];
+  crucible_execute_func [e_ptr, pos_e_ptr, syndrome_ptr, wlist_ptr, tm threshold];
   _ <- point_to split_e_t e_ptr "e'";
   return ();
 };
