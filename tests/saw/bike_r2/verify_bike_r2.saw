@@ -14,6 +14,7 @@ include "proof/bike_r2_defs.saw";
 include "proof/constants.saw";
 include "proof/helpers.saw";
 include "proof/types.saw";
+include "proof/openssl_library.saw";
 include "proof/outside.saw";
 
 include "proof/gf2x.saw";
