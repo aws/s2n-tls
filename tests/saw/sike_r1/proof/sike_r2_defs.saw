@@ -66,6 +66,9 @@ let fp2sqr_mont_fun_name = "fp2sqr434_mont";
 let fp2inv_mont_fun_name = "fp2inv434_mont";
 let to_fp2mont_fun_name = "to_fp2mont";
 let from_fp2mont_fun_name = "from_fp2mont";
+let mp_addfast_fun_name = "mp_addfast";
+let mp_subaddfast_fun_name = "mp_subaddfast";
+let mp_dblsubfast_fun_name = "mp_dblsubfast";
 
 let xDBL_fun_name = "xDBL";
 let xDBLe_fun_name = "xDBLe";

@@ -235,3 +235,15 @@ let to_fp2mont_same_spec = unary_ptr_op_f2elm_same;
 let from_fp2mont_spec = unary_ptr_op_f2elm;
 
 let fp2inv503_mont_spec = inplace_ptr_op_f2elm;
+
+let mp_addfast_spec = binary_ptr_op_felm;
+let mp_subaddfast_left_spec = binary_ptr_op_f2elm_left;
+
+let mp_dblsubfast_spec = do {
+    (a, ap) <- A_f2elm_t "a";
+    (b, bp) <- A_f2elm_t "b";
+    (c, cp) <- B_f2elm_t "c";
+    crucible_execute_func [ap, bp, cp];
+    c' <- crucible_fresh_var "c" f2elm_t;
+    crucible_points_to cp (tm c');
+};

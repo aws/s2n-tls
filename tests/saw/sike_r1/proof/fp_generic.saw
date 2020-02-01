@@ -1,0 +1,58 @@
+enable_experimental;
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+dxd_ov <- verify digit_x_digit_fun_name [] digit_x_digit_spec;
+
+///////////////////////////////////////////////////////////////////////////////
+// fpadd
+
+fpadd503_ov <- verify fpadd_fun_name [] fpadd503_spec;
+
+fpadd503_left_ov <- verify fpadd_fun_name [] fpadd503_left_spec;
+
+fpadd503_right_ov <- verify fpadd_fun_name [] fpadd503_right_spec;
+
+fpadd503_same_ov <- verify fpadd_fun_name [] fpadd503_same_spec;
+
+fpadd503_pair_ov <- verify fpadd_fun_name [] fpadd503_pair_spec;
+
+///////////////////////////////////////////////////////////////////////////////
+// fpsub
+
+fpsub503_ov <- verify fpsub_fun_name [] fpsub503_spec;
+
+fpsub503_left_ov <- verify fpsub_fun_name [] fpsub503_left_spec;
+
+fpsub503_right_ov <- verify fpsub_fun_name [] fpsub503_right_spec;
+
+fpsub503_same_ov <- verify fpsub_fun_name [] fpsub503_same_spec;
+
+///////////////////////////////////////////////////////////////////////////////
+// rdc_mont
+
+rdc_mont_ov <- verify rdc_mont_fun_name [] rdc_mont_spec;
+
+///////////////////////////////////////////////////////////////////////////////
+// mp_mul
+
+mul_ov <- verify mp_mul_fun_name [] (mp_mul_spec nwords_field twice_nwords_field);
+
+mul_single_ov <- verify mp_mul_fun_name
+    [] (mp_mul_single_spec nwords_field twice_nwords_field);
+
+///////////////////////////////////////////////////////////////////////////////
+// mp_add
+
+mp_addfast_ov <- verify mp_addfast_fun_name [] mp_addfast_spec;
+
+///////////////////////////////////////////////////////////////////////////////
+// mp_subaddx2
+
+mp_subaddfast_left_ov <- verify mp_subaddfast_fun_name [] mp_subaddfast_left_spec;
+
+///////////////////////////////////////////////////////////////////////////////
+// mp_dblsubx2
+
+mp_dblsubfast_ov <- verify mp_dblsubfast_fun_name [] mp_dblsubfast_spec;
