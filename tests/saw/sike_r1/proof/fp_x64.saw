@@ -1,6 +1,60 @@
 enable_experimental;
 
 ///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+let mp_mul_asm_spec n m = do {
+    (a, ap) <- ptr_to_fresh_readonly "a" (llvm_array n digit_t);
+    (b, bp) <- ptr_to_fresh_readonly "b" (llvm_array n digit_t);
+    cp <- crucible_alloc (llvm_array m digit_t);
+
+    crucible_execute_func [ap, bp, cp];
+
+    points_to_fresh cp "c" (llvm_array m digit_t);
+    return ();
+};
+
+let mp_mul_asm_single_spec n m = do {
+    (a, ap) <- ptr_to_fresh_readonly "a" (llvm_array n digit_t);
+    cp <- crucible_alloc (llvm_array m digit_t);
+
+    crucible_execute_func [ap, ap, cp];
+
+    points_to_fresh cp "c" (llvm_array m digit_t);
+    return ();
+};
+
+// In the generic implementation, a call to mp_mul looks like
+//   call void @mp_mul(i64* %0, i64* %1, i64* nonnull %6, i32 7), !dbg !31227
+// while in the x64 implementation, a call in the same context looks like
+//   call void @mp_mul(i64* %0, i64* %1, i64* nonnull %6, i32 undef), !dbg !30891
+// It looks like mp_mul is only called on NWORDS_FIELD in the x64
+// implementation, and so clang specializes the function and ignores
+// the last argument.
+let mp_mul_new_spec n m = do {
+    (a, ap) <- ptr_to_fresh_readonly "a" (llvm_array n digit_t);
+    (b, bp) <- ptr_to_fresh_readonly "b" (llvm_array n digit_t);
+    cp <- crucible_alloc (llvm_array m digit_t);
+    n <- crucible_fresh_var "n" (llvm_int 32);
+
+    crucible_execute_func [ap, bp, cp, tm n];
+
+    points_to_fresh cp "c" (llvm_array m digit_t);
+    return ();
+};
+
+let mp_mul_single_new_spec n m = do {
+    (a, ap) <- ptr_to_fresh_readonly "a" (llvm_array n digit_t);
+    cp <- crucible_alloc (llvm_array m digit_t);
+    n <- crucible_fresh_var "n" (llvm_int 32);
+
+    crucible_execute_func [ap, ap, cp, tm n];
+
+    points_to_fresh cp "c" (llvm_array m digit_t);
+    return ();
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // Proof commands
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -45,41 +99,11 @@ rdc_mont_ov <- verify rdc_mont_fun_name [rdc_mont_asm_ov] rdc_mont_spec;
 ///////////////////////////////////////////////////////////////////////////////
 // mp_mul
 
-// In the generic implementation, a call to mp_mul looks like
-//   call void @mp_mul(i64* %0, i64* %1, i64* nonnull %6, i32 7), !dbg !31227
-// while in the x64 implementation, a call in the same context looks like
-//   call void @mp_mul(i64* %0, i64* %1, i64* nonnull %6, i32 undef), !dbg !30891
-// It looks like mp_mul is only called on NWORDS_FIELD in the x64
-// implementation, and so clang specializes the function and ignores
-// the last argument.
-let mp_mul_new_spec n m = do {
-    (a, ap) <- ptr_to_fresh_readonly "a" (llvm_array n digit_t);
-    (b, bp) <- ptr_to_fresh_readonly "b" (llvm_array n digit_t);
-    cp <- crucible_alloc (llvm_array m digit_t);
-    n <- crucible_fresh_var "n" (llvm_int 32);
-
-    crucible_execute_func [ap, bp, cp, tm n];
-
-    points_to_fresh cp "c" (llvm_array m digit_t);
-    return ();
-};
-
-let mp_mul_single_new_spec n m = do {
-    (a, ap) <- ptr_to_fresh_readonly "a" (llvm_array n digit_t);
-    cp <- crucible_alloc (llvm_array m digit_t);
-    n <- crucible_fresh_var "n" (llvm_int 32);
-
-    crucible_execute_func [ap, ap, cp, tm n];
-
-    points_to_fresh cp "c" (llvm_array m digit_t);
-    return ();
-};
-
-mul_asm_ov <- verify_asm mp_mul_asm_fun_name (mp_mul_spec nwords_field twice_nwords_field);
+mul_asm_ov <- verify_asm mp_mul_asm_fun_name (mp_mul_asm_spec nwords_field twice_nwords_field);
 mul_ov <- verify mp_mul_fun_name [mul_asm_ov] (mp_mul_new_spec nwords_field twice_nwords_field);
 
 mul_asm_single_ov <- verify_asm mp_mul_asm_fun_name
-    (mp_mul_single_spec nwords_field twice_nwords_field);
+    (mp_mul_asm_single_spec nwords_field twice_nwords_field);
 mul_single_ov <- verify mp_mul_fun_name
     [mul_asm_single_ov] (mp_mul_single_new_spec nwords_field twice_nwords_field);
 
