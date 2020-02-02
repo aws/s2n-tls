@@ -561,7 +561,7 @@ int s2n_conn_set_handshake_read_block(struct s2n_connection *conn)
 {
     notnull_check(conn);
 
-    conn->handshake.blocked_on_read = 1;
+    conn->handshake.paused = 1;
     return 0;
 }
 
@@ -569,7 +569,7 @@ int s2n_conn_clear_handshake_read_block(struct s2n_connection *conn)
 {
     notnull_check(conn);
 
-    conn->handshake.blocked_on_read = 0;
+    conn->handshake.paused = 0;
     return 0;
 }
 
@@ -1019,12 +1019,15 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
         this = 'C';
     }
 
-    /* If we were blocked reading a record, call the handler right away. Don't try to read more data. */
-    if (conn->handshake.blocked_on_read) {
+    /* If we were blocked reading a record, then the handler is waiting on external data.
+     * The handler will know how to continue, so we should call the handler right away.
+     * We aren't going to read more handshake data yet because the current message has
+     * not finished processing. */
+    if (conn->handshake.paused) {
         int r = ACTIVE_STATE(conn).handler[conn->mode] (conn);
 
         if (r < 0) {
-            /* If we are still blocked, return control to the caller. */
+            /* If we the handler is still waiting for data, return control to the caller. */
             if (s2n_errno == S2N_ERR_BLOCKED) {
                 S2N_ERROR_PRESERVE_ERRNO();
             }
