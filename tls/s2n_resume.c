@@ -212,7 +212,7 @@ int s2n_resume_from_cache(struct s2n_connection *conn)
     /* cache_retrieve relies on the caller to return -2 if data is not available */
     int r = conn->config->cache_retrieve(conn, conn->config->cache_retrieve_data, conn->session_id, conn->session_id_len, state, &size);
     if (r < 0) {
-        if (r == S2N_ERR_CACHE_WILL_BLOCK) {
+        if (r == S2N_ERR_BLOCKED || r == -2) {
             S2N_ERROR(S2N_ERR_BLOCKED);
         }
 
