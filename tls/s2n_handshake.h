@@ -121,8 +121,8 @@ struct s2n_handshake {
     /* Indicates the CLIENT_HELLO message has been completely processed */
     uint8_t client_hello_finished;
 
-    /* Indicates the handshake blocked while trying to read data */
-    uint8_t blocked_on_read;
+    /* Indicates the handshake blocked while trying to read data, and has been paused */
+    uint8_t paused;
 
     /* Handshake type is a bitset, with the following
        bit positions */

@@ -95,6 +95,16 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
 #define GUARD_GOTO( x , label ) do {if ( (x) < 0 ) goto label;} while (0)
 #define GUARD_PTR( x )          do {if ( (x) < 0 ) return NULL;} while (0)
 
+/* Similar to GUARD, but preserves the blocking error code. -2 is left to preserve backwards compatibility .*/
+#define GUARD_AGAIN( x )                                    \
+  do {                                                      \
+    int __tmp_r = (x);                                      \
+    if (__tmp_r == -2 || __tmp_r == S2N_ERR_BLOCKED) {      \
+      S2N_ERROR(S2N_ERR_BLOCKED);                           \
+    }                                                       \
+    GUARD( __tmp_r );                                       \
+  } while(0)
+
 #define GUARD_NONNULL( x )              do {if ( (x) == NULL ) return S2N_FAILURE;} while (0)
 #define GUARD_NONNULL_GOTO( x , label ) do {if ( (x) == NULL ) goto label;} while (0)
 #define GUARD_NONNULL_PTR( x )          do {if ( (x) == NULL ) return NULL;} while (0)

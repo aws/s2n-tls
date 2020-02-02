@@ -80,7 +80,7 @@ int cache_retrieve(struct s2n_connection *conn, void *ctx, const void *key, uint
          * state machine, until lock is free
          */
         cache[index].lock = 0;
-        return -2;
+        return S2N_ERR_BLOCKED;
     }
 
     if (cache[index].key_len != key_size) {
