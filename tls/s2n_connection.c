@@ -234,6 +234,10 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     GUARD_PTR(s2n_connection_wipe(conn));
     GUARD_PTR(s2n_timer_start(conn->config, &conn->write_timer));
 
+    /* Initialize the cookie stuffer with zero length. If a cookie extension
+     * is received, the stuffer will be resized according to the cookie length */
+    GUARD_PTR(s2n_stuffer_growable_alloc(&conn->cookie_stuffer, 0));
+
     return conn;
 }
 
@@ -467,6 +471,7 @@ int s2n_connection_free(struct s2n_connection *conn)
     s2n_x509_validator_wipe(&conn->x509_validator);
     GUARD(s2n_client_hello_free(&conn->client_hello));
     GUARD(s2n_free(&conn->application_protocols_overridden));
+    GUARD(s2n_stuffer_free(&conn->cookie_stuffer));
     GUARD(s2n_free_object((uint8_t **)&conn, sizeof(struct s2n_connection)));
 
     return 0;
@@ -566,6 +571,7 @@ int s2n_connection_free_handshake(struct s2n_connection *conn)
     GUARD(s2n_free(&conn->client_ticket));
     GUARD(s2n_free(&conn->status_response));
     GUARD(s2n_free(&conn->application_protocols_overridden));
+    GUARD(s2n_stuffer_free(&conn->cookie_stuffer));
 
     /* Remove parsed extensions array from client_hello */
     GUARD(s2n_client_hello_free_parsed_extensions(&conn->client_hello));

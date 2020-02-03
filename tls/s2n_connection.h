@@ -281,6 +281,9 @@ struct s2n_connection {
 
     /* application protocols overridden */
     struct s2n_blob application_protocols_overridden;
+
+    /* Cookie extension data */
+    struct s2n_stuffer cookie_stuffer;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);
