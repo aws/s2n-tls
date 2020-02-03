@@ -288,37 +288,48 @@ int s2n_handshake_status_handler(struct s2n_connection *conn)
     return 0;
 }
 
-/* in TLS 1.3, pick a signature algorithm scheme based on server preference order along with available cert types */
+/* in TLS 1.3, pick a signature algorithm scheme based on preference order along with available cert types */
 int s2n_choose_tls13_sig_scheme_and_set_cert(struct s2n_connection *conn, struct s2n_sig_scheme_list *peer_pref_list,
                                 struct s2n_signature_scheme *sig_scheme_out)
 {
-    /* use server preference list */
-    for (int i = 0; i < s2n_tls13_sig_scheme_pref_list_len; i++) {
-        const struct s2n_signature_scheme *candidate_scheme = s2n_tls13_sig_scheme_pref_list[i];
+    S2N_ERROR_IF(conn->actual_protocol_version != S2N_TLS13, S2N_ERR_BAD_MESSAGE);
+    notnull_check(peer_pref_list);
+    S2N_ERROR_IF(peer_pref_list->len == 0, S2N_ERR_EMPTY_SIGNATURE_SCHEME);
+
+    /* get signature scheme preference list */
+    const struct s2n_signature_scheme* const* our_pref_list;
+    size_t our_pref_len;
+
+    GUARD(s2n_get_signature_scheme_pref_list(conn, &our_pref_list, &our_pref_len));
+
+    for (int i = 0; i < our_pref_len; i++) {
+        const struct s2n_signature_scheme *candidate_scheme = our_pref_list[i];
+
+        /* first check if we have a suitable cert for this scheme */
+        s2n_authentication_method candidate_auth_method;
+        GUARD(s2n_get_cert_type_from_sig_alg(candidate_scheme->sig_alg, &candidate_auth_method));
+        struct s2n_cert_chain_and_key *key_chain = s2n_conn_get_compatible_cert_chain_and_key(conn, candidate_auth_method);
+
+        if (key_chain == NULL) {
+            /* try our next preferred scheme */
+            continue;
+        }
+
         uint16_t iana_value = candidate_scheme->iana_value;
+
+        /* now check if our peer list supports this scheme */
         for (int j = 0; j < peer_pref_list->len; j++) {
             if (peer_pref_list->iana_list[j] == iana_value) {
-                /* we have a sig scheme match, now check if we have a cert for this */
-                s2n_authentication_method candidate_auth_method;
+                conn->handshake_params.our_chain_and_key = key_chain;
+                *sig_scheme_out = *candidate_scheme;
 
-                GUARD(s2n_get_auth_method_from_sig_alg(candidate_scheme->sig_alg, &candidate_auth_method));
-                struct s2n_cert_chain_and_key *key_chain = s2n_conn_get_compatible_cert_chain_and_key_by_type(conn, candidate_auth_method);
-
-                if (key_chain != NULL) {
-                    conn->handshake_params.our_chain_and_key = key_chain;
-                    *sig_scheme_out = *candidate_scheme;
-
-                    return 0;
-                }
-
-                /* skip to the next candidate */
-                break;
+                return 0;
             }
         }
     }
 
     /* no compatible signature scheme / algorithm could be used */
-    S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_SCHEME);
+    S2N_ERROR(S2N_ERR_SIGNATURE_SCHEME_MISMATCH);
 }
 
 int s2n_process_client_hello(struct s2n_connection *conn)
@@ -343,6 +354,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     GUARD(s2n_conn_find_name_matching_certs(conn));
 
     /* Now choose the ciphers and the cert chain. */
+    /* In TLS 1.3, only cipher suite is chosen, and cert chain selection deferred till signature scheme selection */
     GUARD(s2n_set_cipher_and_cert_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
 
     /* And set the signature and hash algorithm used for key exchange signatures */
@@ -351,7 +363,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
             &conn->handshake_params.client_sig_hash_algs,
             &conn->secure.conn_sig_scheme));
     } else {
-        /* in the case of TLS 1.3, signature algo and cert selection uses a different approach */
+        /* in TLS 1.3 select signature scheme and set certificate */
         GUARD(s2n_choose_tls13_sig_scheme_and_set_cert(conn,
             &conn->handshake_params.client_sig_hash_algs,
             &conn->secure.conn_sig_scheme));

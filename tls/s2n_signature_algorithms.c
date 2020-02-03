@@ -22,20 +22,42 @@
 #include "tls/s2n_signature_scheme.h"
 #include "utils/s2n_safety.h"
 
-int s2n_get_auth_method_from_sig_alg(s2n_signature_algorithm in, s2n_authentication_method* out) {
+/* lookup s2n signature authentication type based on signature algorithm */
+static int s2n_get_auth_method_from_sig_alg(s2n_signature_algorithm in, s2n_authentication_method* out) {
     switch(in) {
-        case S2N_SIGNATURE_RSA:
-            *out = S2N_AUTHENTICATION_RSA;
-            return 0;
-        case S2N_SIGNATURE_RSA_PSS_RSAE:
-        case S2N_SIGNATURE_RSA_PSS_PSS:
-            *out = S2N_AUTHENTICATION_RSA_PSS;
-            return 0;
-        case S2N_SIGNATURE_ECDSA:
-            *out = S2N_AUTHENTICATION_ECDSA;
-            return 0;
-        default:
-            S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    case S2N_SIGNATURE_RSA:
+        *out = S2N_AUTHENTICATION_RSA;
+        return 0;
+    case S2N_SIGNATURE_RSA_PSS_RSAE:
+    case S2N_SIGNATURE_RSA_PSS_PSS:
+        *out = S2N_AUTHENTICATION_RSA_PSS;
+        return 0;
+    case S2N_SIGNATURE_ECDSA:
+        *out = S2N_AUTHENTICATION_ECDSA;
+        return 0;
+    default:
+        S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    }
+}
+
+/* lookup s2n certificate type based on signature algorithm */
+int s2n_get_cert_type_from_sig_alg(s2n_signature_algorithm in, s2n_authentication_method* out) {
+    switch(in) {
+    case S2N_SIGNATURE_RSA:
+        *out = S2N_AUTHENTICATION_RSA;
+        return 0;
+    case S2N_SIGNATURE_RSA_PSS_RSAE:
+        /* RSAE certs _are_ RSA types */
+        *out = S2N_AUTHENTICATION_RSA;
+        return 0;
+    case S2N_SIGNATURE_RSA_PSS_PSS:
+        *out = S2N_AUTHENTICATION_RSA_PSS;
+        return 0;
+    case S2N_SIGNATURE_ECDSA:
+        *out = S2N_AUTHENTICATION_ECDSA;
+        return 0;
+    default:
+        S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     }
 }
 

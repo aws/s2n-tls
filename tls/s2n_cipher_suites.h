@@ -141,4 +141,4 @@ extern struct s2n_cipher_suite *s2n_cipher_suite_from_wire(const uint8_t cipher_
 extern int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN]);
 extern int s2n_set_cipher_and_cert_as_sslv2_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);
 extern int s2n_set_cipher_and_cert_as_tls_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);
-extern struct s2n_cert_chain_and_key *s2n_conn_get_compatible_cert_chain_and_key_by_type(struct s2n_connection *conn, const s2n_authentication_method auth_method);
+extern struct s2n_cert_chain_and_key *s2n_conn_get_compatible_cert_chain_and_key(struct s2n_connection *conn, const s2n_authentication_method auth_method);

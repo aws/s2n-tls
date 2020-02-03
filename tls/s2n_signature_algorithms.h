@@ -38,4 +38,4 @@ extern int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connectio
                                                             struct s2n_signature_scheme *chosen_sig_scheme);
 extern int s2n_send_supported_signature_algorithms(struct s2n_stuffer *out);
 extern int s2n_recv_supported_sig_scheme_list(struct s2n_stuffer *in, struct s2n_sig_scheme_list *sig_hash_algs);
-extern int s2n_get_auth_method_from_sig_alg(s2n_signature_algorithm in, s2n_authentication_method* out);
+extern int s2n_get_cert_type_from_sig_alg(s2n_signature_algorithm in, s2n_authentication_method* out);

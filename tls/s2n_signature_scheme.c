@@ -168,7 +168,6 @@ const struct s2n_signature_scheme s2n_rsa_pss_pss_sha512 = {
 
 /* All Supported SignatureSchemes (Both TLS 1.2 and 1.3) to send in the ClientHello to the Server. */
 /* No MD5 to avoid SLOTH Vulnerability */
-/* s2n in client mode sends this list in ClientHello */
 const struct s2n_signature_scheme* const s2n_supported_sig_scheme_pref_list[] = {
         /* RSA PSS - Commented out until Handshake can negotiate it */
         /* &s2n_rsa_pss_pss_sha256, */
@@ -223,27 +222,21 @@ const struct s2n_signature_scheme* const s2n_legacy_sig_scheme_pref_list[] = {
 
 /* Signature Scheme Preference List:  TLS 1.3 */
 /* In TLS 1.3, s2n uses this list to match against a peer sig scheme preference */
-/* In s2n server mode, the ordering in this list matters. */
+/* In s2n server mode, the ordering in this list matters */
 /* In client mode, it verifies if the server's sig scheme is present */
-/* This list MUST NOT contain any ECDSA s2n_signature_scheme's with a NULL signature_curve (except ECDSA_SHA1). */
+/* This list MUST NOT contain */
+/* - any ECDSA s2n_signature_scheme's with a NULL signature_curve (except ECDSA_SHA1) */
+/* - RSA PKCS1_* */
+/* - SHA-1 Legacy algos (s2n_rsa_pkcs1_sha1, s2n_ecdsa_sha1) */
 const struct s2n_signature_scheme * const s2n_tls13_sig_scheme_pref_list[] = {
-        /* RSA PSS - Commented out until it is actually supported */
-        /* &s2n_rsa_pss_rsae_sha256, */
-        /* &s2n_rsa_pss_rsae_sha384, */
-        /* &s2n_rsa_pss_rsae_sha512, */
-
-        /* RSA PKCS1 */
-        &s2n_rsa_pkcs1_sha256,
-        &s2n_rsa_pkcs1_sha384,
-        &s2n_rsa_pkcs1_sha512,
-
-        /* ECDSA */
+        /* ECDSA (preferred) */
         &s2n_ecdsa_secp256r1_sha256,
         &s2n_ecdsa_secp384r1_sha384,
 
-        /* SHA-1 Legacy */
-        &s2n_rsa_pkcs1_sha1,
-        &s2n_ecdsa_sha1,
+        /* RSA PSS */
+        &s2n_rsa_pss_rsae_sha256,
+        &s2n_rsa_pss_rsae_sha384,
+        &s2n_rsa_pss_rsae_sha512,
 };
 
 const size_t s2n_supported_sig_scheme_pref_list_len = s2n_array_len(s2n_supported_sig_scheme_pref_list);

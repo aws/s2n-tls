@@ -1016,7 +1016,7 @@ static int s2n_wire_ciphers_contain(const uint8_t * match, const uint8_t * wire,
  * 1. Certificates that match the client's ServerName extension.
  * 2. Default certificates
  */
-struct s2n_cert_chain_and_key *s2n_conn_get_compatible_cert_chain_and_key_by_type(struct s2n_connection *conn, const s2n_authentication_method auth_method)
+struct s2n_cert_chain_and_key *s2n_conn_get_compatible_cert_chain_and_key(struct s2n_connection *conn, const s2n_authentication_method auth_method)
 {
     if (conn->handshake_params.exact_sni_match_exists) {
         /* This may return NULL if there was an SNI match, but not a match the cipher_suite's authentication type. */
@@ -1029,11 +1029,12 @@ struct s2n_cert_chain_and_key *s2n_conn_get_compatible_cert_chain_and_key_by_typ
     }
 }
 
-static struct s2n_cert_chain_and_key *s2n_conn_get_compatible_cert_chain_and_key(struct s2n_connection *conn, struct s2n_cipher_suite *cipher_suite)
-{
-    return s2n_conn_get_compatible_cert_chain_and_key_by_type(conn, cipher_suite->auth_method);
-}
-
+/* Sets the cipher suite as the server.
+ * In TLS 1.2 or below, the certificate is also set for the connection.
+ * In TLS 1.3, certificate algorithm is not part of the cipher suite, therefore
+ * certificate selection is done at a later step during signature scheme selection.
+ * In future, this function can be split into multiple functions for better clarity between TLS versions
+ */
 static int s2n_set_cipher_and_cert_as_server(struct s2n_connection *conn, uint8_t * wire, uint32_t count, uint32_t cipher_suite_len)
 {
     uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
@@ -1082,7 +1083,7 @@ static int s2n_set_cipher_and_cert_as_server(struct s2n_connection *conn, uint8_
             /* TLS 1.3 does not include key exchange in cipher suites */
             if (match->minimum_required_tls_version < S2N_TLS13) {
                 /* Skip the suite if it is not compatible with any certificates */
-                conn->handshake_params.our_chain_and_key = s2n_conn_get_compatible_cert_chain_and_key(conn, match);
+                conn->handshake_params.our_chain_and_key = s2n_conn_get_compatible_cert_chain_and_key(conn, match->auth_method);
                 if (!conn->handshake_params.our_chain_and_key) {
                     continue;
                 }
