@@ -40,6 +40,7 @@
 #include "extensions/s2n_client_pq_kem.h"
 #include "extensions/s2n_client_ec_point_format.h"
 #include "extensions/s2n_client_renegotiation_info.h"
+
 #include "stuffer/s2n_stuffer.h"
 
 #include "tls/s2n_tls.h"
