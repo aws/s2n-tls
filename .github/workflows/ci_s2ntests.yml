@@ -28,7 +28,6 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-2
-      - uses: hmarr/debug-action@master
       - name: S2n Integ CodeBuild
         uses: aws-actions/aws-codebuild-run-build@master
         with:
@@ -52,6 +51,10 @@ jobs:
           requester: ${{ github.actor }}
           event-name: ${{ github.event_name }}
   integcorkedio:
+    # In initial testing, GitHub Actions appear to have a launch rate throttle
+    # (e.g. if you launch 20 CodeBuild jobs at once, they'll be killed off with `rate exceeded`).
+    # These dependencies are to prevent jobs from being killed until we have a better understanding
+    # rate limits.
     needs: [unit, integ]
     runs-on: ubuntu-18.04
     steps:
@@ -62,7 +65,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-2
-      - name: S2n Integ CodeBuild
+      - name: S2n Integ CorkedIo
         uses: aws-actions/aws-codebuild-run-build@master
         with:
           project-name: 's2nGithubCodebuild'
@@ -194,31 +197,35 @@ jobs:
     needs: [sawother, sawhmac]
     runs-on: ubuntu-18.04
     steps:
-      - uses: actions/setup-node@v1
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+      - name: Sidetrail NoOp Placeholder
+        uses: maddox/actions/sleep@master
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
-      - name: S2n Sidetrail CodeBuild
-        uses: aws-actions/aws-codebuild-run-build@master
-        with:
-          project-name: 's2nSidetrail'
-          env-vars-for-codebuild: |
-            TESTS,
-            requester,
-            event-name
-        env:
-          TESTS: "sidetrail"
-          requester: ${{ github.actor }}
-          event-name: ${{ github.event_name }}
+          args: "30"
+#      - uses: actions/setup-node@v1
+#      - name: Configure AWS Credentials
+#        uses: aws-actions/configure-aws-credentials@v1
+#        with:
+#          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#          aws-region: us-west-2
+#      - name: Configure AWS Credentials
+#        uses: aws-actions/configure-aws-credentials@v1
+#        with:
+#          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#          aws-region: us-west-2
+#      - name: S2n Sidetrail CodeBuild
+#        uses: aws-actions/aws-codebuild-run-build@master
+#        with:
+#          project-name: 's2nSidetrail'
+#          env-vars-for-codebuild: |
+#            TESTS,
+#            requester,
+#            event-name
+#        env:
+#          TESTS: "sidetrail"
+#          requester: ${{ github.actor }}
+#          event-name: ${{ github.event_name }}
   asan:
     needs: [unit, integ]
     runs-on: ubuntu-18.04
