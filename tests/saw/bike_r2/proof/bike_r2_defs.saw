@@ -16,6 +16,7 @@ let R_BITS = 11779;
 let DV = 71;
 let T1 = 134;
 let BLOCK_SIZE = 16384;
+let NUM_OF_SEEDS = 3;
 
 let SLICES = 8;
 

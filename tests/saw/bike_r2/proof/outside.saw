@@ -15,5 +15,6 @@ let get_random_bytes_spec n = do {
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
 
-get_random_bytes_ov <- admit "get_random_bytes" [] (get_random_bytes_spec 96);
+get_random_bytes_ov <- admit "get_random_bytes" []
+  (get_random_bytes_spec (eval_int {{ `(NUM_OF_SEEDS * 32) : [64] }}));
 
