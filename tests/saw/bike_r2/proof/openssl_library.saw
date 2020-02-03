@@ -5,6 +5,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Specifications
 
+// EVP specs
 let EVP_CIPHER_CTX_new_spec = do {
   crucible_execute_func [];
   (_, ctx_ptr) <- inout_ref evp_cipher_ctx_st_t "ctx";
@@ -49,6 +50,15 @@ let EVP_aes_256_ecb_spec = do {
   crucible_return type_ptr;
 };
 
+// SHA384 spec
+let sha384_spec len = do {
+  (_, mp) <- in_ref (i8_array_t len) "m";
+  rp <- out_ref (i8_array_t SHA384_HASH_SIZE);
+  crucible_execute_func [mp, tm {{ `len:[64] }}, rp];
+  _ <- point_to (i8_array_t SHA384_HASH_SIZE) rp "r";
+  crucible_return rp;
+};
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Proof Commands
@@ -65,4 +75,8 @@ EVP_EncryptUpdate_ov <- admit "EVP_EncryptUpdate" [] EVP_EncryptUpdate_spec;
 
 EVP_aes_256_ecb_ov <- admit "EVP_aes_256_ecb" [] EVP_aes_256_ecb_spec;
 
+sha384_367_ov <- admit "SHA384" [] (sha384_spec 367);
+sha384_394_ov <- admit "SHA384" [] (sha384_spec 394);
+sha384_623_ov <- admit "SHA384" [] (sha384_spec 623);
+sha384_1292_ov <- admit "SHA384" [] (sha384_spec 1292);
 
