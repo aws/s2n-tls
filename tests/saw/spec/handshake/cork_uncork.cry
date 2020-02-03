@@ -18,7 +18,6 @@ type State = ([2], [2])
 (clientSender : [2]) = 0
 (serverSender : [2]) = 1
 (appData      : [2]) = 2
-(sessionLookup: [2]) = 3
 
 (corked : [2]) = 1
 (uncorked : [2]) = 0
@@ -47,7 +46,6 @@ noDoubleCorkUncork conn =
 writer2sender : [8] -> [2]
 writer2sender w = if w == 'C' then clientSender else
                   if w == 'S' then serverSender else
-                  if w == 'A' then sessionLookup else
                                    appData
 
 corkedFromConn : connection -> [2]
@@ -83,18 +81,11 @@ cork_transition (s, corking) c =
   if (s == clientSender) then
      if c == 'C' then (clientSender, corking)
       | c == 'S' then (serverSender, corking + 1)
-      | c == 'A' then (sessionLookup, corking)
                  else (appData, corking)
   else if s == serverSender then
      if c == 'C' then (clientSender, corking - 1)
       | c == 'S' then (serverSender, corking)
-      | c == 'A' then (sessionLookup, corking)
                  else (appData, corking - 1)
-  else if s == sessionLookup then
-     if c == 'C' then (clientSender, corking)
-      | c == 'S' then (serverSender, corking + 1)
-      | c == 'A' then (sessionLookup, corking)
-                 else (appData, corking)
   else (appData, corking)
 
 // generate a trace of states for the standard cork/uncork state //

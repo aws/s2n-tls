@@ -96,7 +96,7 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
 #define GUARD_PTR( x )          do {if ( (x) < 0 ) return NULL;} while (0)
 
 /* Similar to GUARD, but preserves the blocking error code. -2 is left to preserve backwards compatibility .*/
-#define GUARD_AGAIN( x )                                    \
+#define GUARD_NONBLOCKING( x )                              \
   do {                                                      \
     int __tmp_r = (x);                                      \
     if (__tmp_r == -2 || __tmp_r == S2N_ERR_BLOCKED) {      \

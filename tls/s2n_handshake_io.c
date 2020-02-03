@@ -507,7 +507,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
     /* If a TLS session is resumed, the Server should respond in its ServerHello with the same SessionId the
      * Client sent in the ClientHello. */
-    if (conn->server_protocol_version <= S2N_TLS12 && conn->mode == S2N_SERVER && s2n_allowed_to_cache_connection(conn)) {
+    if (conn->actual_protocol_version <= S2N_TLS12 && conn->mode == S2N_SERVER && s2n_allowed_to_cache_connection(conn)) {
         int r = s2n_resume_from_cache(conn);
         if (r == S2N_SUCCESS || (r < 0 && s2n_errno == S2N_ERR_BLOCKED)) {
             return r;
@@ -1008,10 +1008,42 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
     return 0;
 }
 
+static int s2n_handle_retry_state(struct s2n_connection *conn)
+{
+    /* If we were blocked reading a record, then the handler is waiting on external data.
+     * The handler will know how to continue, so we should call the handler right away.
+     * We aren't going to read more handshake data yet because the current message has
+     * not finished processing. */
+    int r = ACTIVE_STATE(conn).handler[conn->mode] (conn);
+
+    if (r < 0) {
+        /* If the handler is still waiting for data, return control to the caller. */
+        if (s2n_errno == S2N_ERR_BLOCKED) {
+            S2N_ERROR_PRESERVE_ERRNO();
+        }
+
+        /* Otherwise there is some other problem and we should kill the connection. */
+        if (s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
+            s2n_try_delete_session_cache(conn);
+        }
+
+        GUARD(s2n_connection_kill(conn));
+        S2N_ERROR_PRESERVE_ERRNO();
+    }
+
+    /* The handler completed successfully, we are done with this record. */
+    /* Advance the state machine and wipe the record. */
+    GUARD(s2n_advance_message(conn));
+
+    GUARD(s2n_stuffer_wipe(&conn->header_in));
+    GUARD(s2n_stuffer_wipe(&conn->in));
+    conn->in_status = ENCRYPTED;
+
+    return 0;
+}
+
 int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
 {
-    /* Just in case we mishandle errno in this function, we have the minimal
-     * guarantee that outside errors aren't influencing s2n. */
     errno = 0;
 
     char this = 'S';
@@ -1019,50 +1051,17 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
         this = 'C';
     }
 
-    /* If we were blocked reading a record, then the handler is waiting on external data.
-     * The handler will know how to continue, so we should call the handler right away.
-     * We aren't going to read more handshake data yet because the current message has
-     * not finished processing. */
-    if (conn->handshake.paused) {
-        int r = ACTIVE_STATE(conn).handler[conn->mode] (conn);
-
-        if (r < 0) {
-            /* If we the handler is still waiting for data, return control to the caller. */
-            if (s2n_errno == S2N_ERR_BLOCKED) {
-                S2N_ERROR_PRESERVE_ERRNO();
-            }
-
-            /* Otherwise there is some other problem and we should kill the connection. */
-            if (s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
-                s2n_try_delete_session_cache(conn);
-                /* The peer might have sent an alert. Try and read it. */
-                if (s2n_errno == S2N_ERR_BLOCKED && s2n_stuffer_data_available(&conn->in)) {
-                    if (s2n_handshake_read_io(conn) < 0 && s2n_errno == S2N_ERR_ALERT) {
-                        /* s2n_handshake_read_io has set s2n_errno */
-                        S2N_ERROR_PRESERVE_ERRNO();
-                    }
-                }
-                S2N_ERROR_PRESERVE_ERRNO();
-            }
-
-            GUARD(s2n_connection_kill(conn));
-            S2N_ERROR_PRESERVE_ERRNO();
-        }
-
-        /* The handler completed successfully, we are done with this record. */
-        /* Advance the state machine and wipe the record. */
-        GUARD(s2n_advance_message(conn));
-
-        GUARD(s2n_stuffer_wipe(&conn->header_in));
-        GUARD(s2n_stuffer_wipe(&conn->in));
-        conn->in_status = ENCRYPTED;
-    }
-
     while (ACTIVE_STATE(conn).writer != 'B') {
         s2n_errno = S2N_ERR_T_OK;
 
         /* Flush any pending I/O or alert messages */
         GUARD(s2n_flush(conn, blocked));
+
+        /* If the handshake was paused, retry the current message */
+        if (conn->handshake.paused) {
+            *blocked = S2N_BLOCKED_ON_READ;
+            GUARD(s2n_handle_retry_state(conn));
+        }
 
         if (ACTIVE_STATE(conn).writer == this) {
             *blocked = S2N_BLOCKED_ON_WRITE;
