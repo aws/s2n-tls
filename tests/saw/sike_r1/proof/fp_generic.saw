@@ -37,3 +37,5 @@ mul_ov <- verify mp_mul_fun_name [] (mp_mul_spec nwords_field twice_nwords_field
 
 mul_single_ov <- verify mp_mul_fun_name
     [] (mp_mul_single_spec nwords_field twice_nwords_field);
+
+let fast_ovs = [];

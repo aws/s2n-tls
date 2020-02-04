@@ -124,3 +124,9 @@ mp_subaddfast_left_ov <- verify mp_subaddfast_fun_name [mp_subaddx2_asm_left_ov]
 
 mp_dblsubx2_asm_ov <- verify_asm mp_dblsubx2_asm_fun_name mp_dblsubfast_spec;
 mp_dblsubfast_ov <- verify mp_dblsubfast_fun_name [mp_dblsubx2_asm_ov] mp_dblsubfast_spec;
+
+let fast_ovs =
+  [ mp_addfast_ov
+  , mp_subaddfast_left_ov
+  , mp_dblsubfast_ov
+  ];

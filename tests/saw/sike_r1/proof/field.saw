@@ -113,14 +113,6 @@ fp2div2_503_ov <- verify fp2div2_fun_name
 fp2div2_503_same_ov <- verify fp2div2_fun_name
     [fpdiv2_503_same_ov] fp2div2_503_same_spec;
 
-let fast_ovs =
-  if eval_bool {{ `SIKE_REVISION == (2:[32]) }}
-    then [ mp_addfast_ov
-         , mp_subaddfast_left_ov
-         , mp_dblsubfast_ov
-         ]
-    else [];
-
 fp2mul503_mont_ov <- verify fp2mul_mont_fun_name
     ( concat [ rdc_mont_ov
              , mul_ov
