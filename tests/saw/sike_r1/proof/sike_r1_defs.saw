@@ -40,9 +40,6 @@ let mp_add_fun_name = "mp_add_r1";
 let mp_sub_fun_name = "mp_sub_r1";
 let mp_mul_fun_name = "mp_mul_r1";
 let mp_shiftr1_fun_name = "mp_shiftr1_r1";
-let mp_addfast_fun_name = "mp_addfast";
-let mp_subaddfast_fun_name = "mp_subaddfast";
-let mp_dblsubfast_fun_name = "mp_dblsubfast";
 
 let fpzero_fun_name = "fpzero503";
 let fpcopy_fun_name = "fpcopy503";

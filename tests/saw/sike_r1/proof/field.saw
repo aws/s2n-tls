@@ -113,51 +113,51 @@ fp2div2_503_ov <- verify fp2div2_fun_name
 fp2div2_503_same_ov <- verify fp2div2_fun_name
     [fpdiv2_503_same_ov] fp2div2_503_same_spec;
 
+let fast_ovs =
+  if eval_bool {{ `SIKE_REVISION == (2:[32]) }}
+    then [ mp_addfast_ov
+         , mp_subaddfast_left_ov
+         , mp_dblsubfast_ov
+         ]
+    else [];
+
 fp2mul503_mont_ov <- verify fp2mul_mont_fun_name
-    [ rdc_mont_ov
-    , mul_ov
-    , mp_addfast_ov
-    , mp_subaddfast_left_ov
-    , mp_dblsubfast_ov
-    ]
+    ( concat [ rdc_mont_ov
+             , mul_ov
+             ]
+             fast_ovs )
     fp2mul503_mont_spec;
 fp2mul503_mont_left_ov <- verify fp2mul_mont_fun_name
-    [ rdc_mont_ov
-    , mul_ov
-    , mp_addfast_ov
-    , mp_subaddfast_left_ov
-    , mp_dblsubfast_ov
-    ]
+    ( concat [ rdc_mont_ov
+             , mul_ov
+             ]
+             fast_ovs )
     fp2mul503_mont_left_spec;
 fp2mul503_mont_right_ov <- verify fp2mul_mont_fun_name
-    [ rdc_mont_ov
-    , mul_ov
-    , mp_addfast_ov
-    , mp_subaddfast_left_ov
-    , mp_dblsubfast_ov
-    ]
+    ( concat [ rdc_mont_ov
+             , mul_ov
+             ]
+             fast_ovs )
     fp2mul503_mont_right_spec;
 fp2mul503_mont_same_ov <- verify fp2mul_mont_fun_name
-    [ rdc_mont_ov
-    , mul_ov
-    , mp_addfast_ov
-    , mp_subaddfast_left_ov
-    , mp_dblsubfast_ov
-    ]
+    ( concat [ rdc_mont_ov
+             , mul_ov
+             ]
+             fast_ovs )
     fp2mul503_mont_same_spec;
 
 fp2sqr503_mont_ov <- verify fp2sqr_mont_fun_name
-    [ fpmul503_mont_ov
-    , fpsub503_ov
-    , mp_addfast_ov
-    ]
+    ( concat [ fpmul503_mont_ov
+             , fpsub503_ov
+             ]
+             fast_ovs )
     fp2sqr503_mont_spec;
 fp2sqr503_mont_same_ov <- verify fp2sqr_mont_fun_name
-    [ fpmul503_mont_ov
-    , fpmul503_mont_right_ov
-    , fpsub503_ov
-    , mp_addfast_ov
-    ]
+    ( concat [ fpmul503_mont_ov
+             , fpmul503_mont_right_ov
+             , fpsub503_ov
+             ]
+             fast_ovs )
     fp2sqr503_mont_same_spec;
 
 fp2inv503_mont_ov <- verify fp2inv_mont_fun_name
