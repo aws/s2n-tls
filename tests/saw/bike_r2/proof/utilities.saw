@@ -5,6 +5,13 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Specifications
 
+let r_bits_vector_weight_spec = do {
+  (_, in_ptr) <- in_ref r_t "in";
+  crucible_execute_func [in_ptr];
+  acc <- crucible_fresh_var "acc" i64;
+  crucible_return (tm acc);
+};
+
 let bit_scan_reverse_spec = do {
   val <- crucible_fresh_var "val" i64;
   crucible_execute_func [tm val];
@@ -35,6 +42,9 @@ let secure_l32_mask_spec = do {
 
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
+
+r_bits_vector_weight_ov <- verify r_bits_vector_weight_fun_name []
+  r_bits_vector_weight_spec;
 
 bit_scan_reverse_ov <- verify_pathsat "bit_scan_reverse" [] bit_scan_reverse_spec;
 

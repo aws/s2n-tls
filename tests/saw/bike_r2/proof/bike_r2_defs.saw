@@ -6,6 +6,7 @@
 // BIKE R2 definitions
 
 // NOTE: BIKE_VER==1 - 128-bits of post-quantum security parameters
+let BIKE_REVISION = 2;
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -27,6 +28,7 @@ let SLICES = 8;
 let gf2x_add_fun_name = "BIKE1_L1_R2_gf2x_add";
 let gf2x_mul_1x1_fun_name = "BIKE1_L1_R2_gf2x_mul_1x1";
 let gf2x_mod_mul_fun_name = "BIKE1_L1_R2_gf2x_mod_mul";
+let r_bits_vector_weight_fun_name = "BIKE1_L1_R2_r_bits_vector_weight";
 let init_aes_ctr_prf_state_fun_name = "BIKE1_L1_R2_init_aes_ctr_prf_state";
 let aes_ctr_prf_fun_name = "BIKE1_L1_R2_aes_ctr_prf";
 let parallel_hash_fun_name = "BIKE1_L1_R2_parallel_hash";

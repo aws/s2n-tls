@@ -89,6 +89,7 @@ crypto_kem_dec_ov <- verify crypto_kem_dec_fun_name
   , gf2x_mod_mul_ov
   , parallel_hash_2xR_ov
   , parallel_hash_4xR_ov
+  , r_bits_vector_weight_ov
   , secure_cmp32_ov
   , secure_l32_mask_ov
   , split_e_ov
