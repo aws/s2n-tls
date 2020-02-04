@@ -22,6 +22,8 @@
 #include <cbmc_proof/make_common_datastructures.h>
 #include <error/s2n_errno.h>
 
+/* The stuffer function s2n_get_memory fails the cbmc proof. This stub is needed
+until that proof has been written. */
 int s2n_get_memory(struct s2n_blob *b, uint32_t size)
 {
     *b = (struct s2n_blob) {.data = nondet_bool() ? malloc(size) : 0,
