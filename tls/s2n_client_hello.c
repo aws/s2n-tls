@@ -289,17 +289,15 @@ int s2n_handshake_status_handler(struct s2n_connection *conn)
 }
 
 /* in TLS 1.3, pick a signature algorithm scheme based on preference order along with available cert types */
-int s2n_choose_tls13_sig_scheme_and_set_cert(struct s2n_connection *conn, struct s2n_sig_scheme_list *peer_pref_list,
+int s2n_choose_tls13_sig_scheme_and_set_cert(struct s2n_connection *conn, struct s2n_sig_scheme_list *peer_wire_prefs,
                                 struct s2n_signature_scheme *sig_scheme_out)
 {
     S2N_ERROR_IF(conn->actual_protocol_version != S2N_TLS13, S2N_ERR_BAD_MESSAGE);
-    notnull_check(peer_pref_list);
-    S2N_ERROR_IF(peer_pref_list->len == 0, S2N_ERR_EMPTY_SIGNATURE_SCHEME);
+    notnull_check(peer_wire_prefs);
+    S2N_ERROR_IF(peer_wire_prefs->len == 0, S2N_ERR_EMPTY_SIGNATURE_SCHEME);
 
-    /* get signature scheme preference list */
     const struct s2n_signature_scheme* const* our_pref_list;
     size_t our_pref_len;
-
     GUARD(s2n_get_signature_scheme_pref_list(conn, &our_pref_list, &our_pref_len));
 
     for (int i = 0; i < our_pref_len; i++) {
@@ -311,15 +309,14 @@ int s2n_choose_tls13_sig_scheme_and_set_cert(struct s2n_connection *conn, struct
         struct s2n_cert_chain_and_key *key_chain = s2n_conn_get_compatible_cert_chain_and_key(conn, candidate_auth_method);
 
         if (key_chain == NULL) {
-            /* try our next preferred scheme */
             continue;
         }
 
         uint16_t iana_value = candidate_scheme->iana_value;
 
         /* now check if our peer list supports this scheme */
-        for (int j = 0; j < peer_pref_list->len; j++) {
-            if (peer_pref_list->iana_list[j] == iana_value) {
+        for (int j = 0; j < peer_wire_prefs->len; j++) {
+            if (peer_wire_prefs->iana_list[j] == iana_value) {
                 conn->handshake_params.our_chain_and_key = key_chain;
                 *sig_scheme_out = *candidate_scheme;
 

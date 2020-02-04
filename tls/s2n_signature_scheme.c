@@ -166,8 +166,8 @@ const struct s2n_signature_scheme s2n_rsa_pss_pss_sha512 = {
         .signature_curve = NULL /* Elliptic Curve not needed for RSA */
 };
 
-/* All Supported SignatureSchemes (Both TLS 1.2 and 1.3) to send in the ClientHello to the Server. */
-/* No MD5 to avoid SLOTH Vulnerability */
+/* All Supported SignatureSchemes (Both TLS 1.2 and 1.3) to send in the ClientHello to the Server.
+ * No MD5 to avoid SLOTH Vulnerability */
 const struct s2n_signature_scheme* const s2n_supported_sig_scheme_pref_list[] = {
         /* RSA PSS - Commented out until Handshake can negotiate it */
         /* &s2n_rsa_pss_pss_sha256, */
@@ -194,8 +194,8 @@ const struct s2n_signature_scheme* const s2n_supported_sig_scheme_pref_list[] = 
         &s2n_ecdsa_sha1,
 };
 
-/* Signature Scheme Preference List to use when picking a <=TLS 1.2 SignatureAlgorithm/SignatureScheme */
-/* As per RFC: This list MUST NOT contain any s2n_signature_scheme's with a non-null signature_curve defined. */
+/* Signature Scheme Preference List to use when picking a <=TLS 1.2 SignatureAlgorithm/SignatureScheme
+ * As per RFC: This list MUST NOT contain any s2n_signature_scheme's with a non-null signature_curve defined. */
 const struct s2n_signature_scheme* const s2n_legacy_sig_scheme_pref_list[] = {
         /* RSA PSS - Commented out until Handshake can negotiate it */
         /* &s2n_rsa_pss_pss_sha256, */
@@ -220,16 +220,16 @@ const struct s2n_signature_scheme* const s2n_legacy_sig_scheme_pref_list[] = {
         &s2n_ecdsa_sha1,
 };
 
-/* Signature Scheme Preference List:  TLS 1.3 */
-/* In TLS 1.3, s2n uses this list to match against a peer sig scheme preference */
-/* In s2n server mode, the ordering in this list matters */
-/* In client mode, it verifies if the server's sig scheme is present */
-/* This list MUST NOT contain */
-/* - any ECDSA s2n_signature_scheme's with a NULL signature_curve (except ECDSA_SHA1) */
-/* - RSA PKCS1_* */
-/* - SHA-1 Legacy algos (s2n_rsa_pkcs1_sha1, s2n_ecdsa_sha1) */
+/* Signature Scheme Preference List:  TLS 1.3
+ * In TLS 1.3, s2n uses this list to match against a peer sig scheme preference
+ * In s2n server mode, the ordering in this list matters
+ * In client mode, it verifies if the server's sig scheme is present
+ * This list MUST NOT contain
+ * - any ECDSA s2n_signature_scheme's with a NULL signature_curve (except ECDSA_SHA1)
+ * - RSA PKCS1_*
+ * - SHA-1 Legacy algos (s2n_rsa_pkcs1_sha1, s2n_ecdsa_sha1) */
 const struct s2n_signature_scheme * const s2n_tls13_sig_scheme_pref_list[] = {
-        /* ECDSA (preferred) */
+        /* ECDSA */
         &s2n_ecdsa_secp256r1_sha256,
         &s2n_ecdsa_secp384r1_sha384,
 
