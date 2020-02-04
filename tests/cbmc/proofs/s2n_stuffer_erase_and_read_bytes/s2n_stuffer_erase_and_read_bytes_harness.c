@@ -30,14 +30,15 @@ void s2n_stuffer_erase_and_read_bytes_harness() {
     struct store_byte_from_buffer old_byte;
     save_byte_from_blob(&stuffer->blob, &old_byte);
 
-    /* int s2n_stuffer_erase_and_read_bytes(struct s2n_stuffer *stuffer, uint8_t * data, uint32_t size); */
+    struct store_byte_from_buffer copied_byte;
+    if(s2n_stuffer_data_available(stuffer) >= blob->size) {
+        save_byte_from_array(&stuffer->blob.data[old_stuffer.read_cursor], blob->size, &copied_byte);
+    }
+
     if (s2n_stuffer_erase_and_read_bytes(stuffer, blob->data, blob->size) == S2N_SUCCESS) {
         assert(stuffer->read_cursor == old_stuffer.read_cursor + old_blob.size);
-
-        /* void assert_all_zeroes(const uint8_t *const a, const size_t len) */
-        assert_all_zeroes(&(old_stuffer.blob.data[old_stuffer.read_cursor]), old_blob.size);
-
-        /* TODO: Assert that byte was copied from old_stuffer into blob */
+        assert_all_zeroes(&(stuffer->blob.data[old_stuffer.read_cursor]), old_blob.size);
+        assert_byte_from_blob_matches(blob, &copied_byte);
     } else {
         assert(stuffer->read_cursor == old_stuffer.read_cursor);
         assert_byte_from_blob_matches(&stuffer->blob, &old_byte);
@@ -58,5 +59,5 @@ void s2n_stuffer_erase_and_read_bytes_harness() {
     assert(blob->size == old_blob.size);
 
     assert(s2n_stuffer_is_valid(stuffer));
-    assert(s2n_blob_is_valid(stuffer));
+    assert(s2n_blob_is_valid(blob));
 }
