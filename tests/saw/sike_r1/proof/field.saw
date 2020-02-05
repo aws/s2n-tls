@@ -132,7 +132,6 @@ let binary_ptr_op_f2elm_pair = do {
     crucible_points_to cp (tm c);
 };
 
-
 let fpzero503_spec = do {
     cp <- C_felm_t ();
     crucible_execute_func [cp];
