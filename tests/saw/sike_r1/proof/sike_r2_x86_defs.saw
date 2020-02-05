@@ -22,10 +22,10 @@ let verify_asm func spec =
 ///////////////////////////////////////////////////////////////////////////////
 // Function names
 
-let fpadd_asm_fun_name = "fpadd434_asm"
-let fpsub_asm_fun_name = "fpsub434_asm"
-let rdc_asm_fun_name = "rdc434_asm"
-let mul_asm_fun_name = "mul434_asm"
-let mp_add_asm_fun_name = "mp_add434_asm"
-let mp_subadd_asm_fun_name = "mp_subadd434x2_asm"
-let mp_dblsub_asm_fun_name = "mp_dblsub434x2_asm"
+let fpadd_asm_fun_name = "fpadd434_asm";
+let fpsub_asm_fun_name = "fpsub434_asm";
+let rdc_asm_fun_name = "rdc434_asm";
+let mul_asm_fun_name = "mul434_asm";
+let mp_add_asm_fun_name = "mp_add434_asm";
+let mp_subadd_asm_fun_name = "mp_subadd434x2_asm";
+let mp_dblsub_asm_fun_name = "mp_dblsub434x2_asm";
