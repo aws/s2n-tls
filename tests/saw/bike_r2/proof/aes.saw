@@ -132,6 +132,11 @@ init_aes_ctr_prf_state_ov <- verify init_aes_ctr_prf_state_fun_name
   [aes256_key_expansion_ov]
   init_aes_ctr_prf_state_spec;
 
+// NOTE: this is admit because the spec is actually incomplete, in that
+//       it does not check the value of rem_invokations. This is used by
+//       get_rand_mod_len which could in theory run out of invocations
+//       and fail, but we can't write the correct spec for get_rand_mod_len
+//       in saw.
 aes_ctr_prf_4_ov <- admit aes_ctr_prf_fun_name
   [aes256_enc_ov]
   (aes_ctr_prf_spec 4 false);
