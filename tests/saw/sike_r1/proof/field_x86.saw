@@ -7,12 +7,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Specifications
 
-let asm_globals =
-  [ ("asm_p434", 56)
-  , ("asm_p434p1", 56)
-  , ("asm_p434x2", 56)
-  ];
-
 let mp_subadd434x2_asm_left_spec = do {
     a <- crucible_alloc f2elm_t;
     a_star <- crucible_fresh_var "a" f2elm_t;
@@ -54,40 +48,40 @@ fpcorrection503_ov <- verify fpcorrection_fun_name [] fpcorrection503_spec;
 
 fpneg503_ov <- verify fpneg_fun_name [] fpneg503_spec;
 
-fpadd503_asm_ov <- verify_asm "fpadd434_asm" fpadd503_spec;
+fpadd503_asm_ov <- verify_asm fpadd_asm_fun_name fpadd503_spec;
 fpadd503_ov <- verify fpadd_fun_name [fpadd503_asm_ov] fpadd503_spec;
 
-fpadd503_asm_left_ov <- verify_asm "fpadd434_asm" fpadd503_left_spec;
+fpadd503_asm_left_ov <- verify_asm fpadd_asm_fun_name fpadd503_left_spec;
 fpadd503_left_ov <- verify fpadd_fun_name [fpadd503_asm_left_ov] fpadd503_left_spec;
 
-fpadd503_asm_right_ov <- verify_asm "fpadd434_asm" fpadd503_right_spec;
+fpadd503_asm_right_ov <- verify_asm fpadd_asm_fun_name fpadd503_right_spec;
 fpadd503_right_ov <- verify fpadd_fun_name [fpadd503_asm_right_ov] fpadd503_right_spec;
 
-fpadd503_asm_same_ov <- verify_asm "fpadd434_asm" fpadd503_same_spec;
+fpadd503_asm_same_ov <- verify_asm fpadd_asm_fun_name fpadd503_same_spec;
 fpadd503_same_ov <- verify fpadd_fun_name [fpadd503_asm_same_ov] fpadd503_same_spec;
 
-fpadd503_asm_pair_ov <- verify_asm "fpadd434_asm" fpadd503_pair_spec;
+fpadd503_asm_pair_ov <- verify_asm fpadd_asm_fun_name fpadd503_pair_spec;
 fpadd503_pair_ov <- verify fpadd_fun_name [fpadd503_asm_pair_ov] fpadd503_pair_spec;
 
-fpsub503_asm_ov <- verify_asm "fpsub434_asm" fpsub503_spec;
+fpsub503_asm_ov <- verify_asm fpsub_asm_fun_name fpsub503_spec;
 fpsub503_ov <- verify fpsub_fun_name [fpsub503_asm_ov] fpsub503_spec;
 
-fpsub503_asm_left_ov <- verify_asm "fpsub434_asm" fpsub503_left_spec;
+fpsub503_asm_left_ov <- verify_asm fpsub_asm_fun_name fpsub503_left_spec;
 fpsub503_left_ov <- verify fpsub_fun_name [fpsub503_asm_left_ov] fpsub503_left_spec;
 
-fpsub503_asm_right_ov <- verify_asm "fpsub434_asm" fpsub503_right_spec;
+fpsub503_asm_right_ov <- verify_asm fpsub_asm_fun_name fpsub503_right_spec;
 fpsub503_right_ov <- verify fpsub_fun_name [fpsub503_asm_right_ov] fpsub503_right_spec;
 
-fpsub503_asm_same_ov <- verify_asm "fpsub434_asm" fpsub503_same_spec;
+fpsub503_asm_same_ov <- verify_asm fpsub_asm_fun_name fpsub503_same_spec;
 fpsub503_same_ov <- verify fpsub_fun_name [fpsub503_asm_same_ov] fpsub503_same_spec;
 
 fpdiv2_503_ov <- verify fpdiv2_fun_name [] fpdiv2_503_spec;
 fpdiv2_503_same_ov <- verify fpdiv2_fun_name [] fpdiv2_503_same_spec;
 
-rdc_mont_asm_ov <- verify_asm "rdc434_asm" rdc_mont_spec;
+rdc_mont_asm_ov <- verify_asm rdc_asm_fun_name rdc_mont_spec;
 rdc_mont_ov <- verify rdc_mont_fun_name [rdc_mont_asm_ov] rdc_mont_spec;
 
-mul_asm_ov <- verify_asm "mul434_asm" (mp_mul_spec nwords_field twice_nwords_field);
+mul_asm_ov <- verify_asm mul_asm_fun_name (mp_mul_spec nwords_field twice_nwords_field);
 mul_ov <- verify mp_mul_fun_name [mul_asm_ov] (mp_mul_spec nwords_field twice_nwords_field);
 
 fpmul503_mont_ov <- verify fpmul_mont_fun_name
@@ -114,7 +108,7 @@ fpmul503_mont_same_ov <- verify fpmul_mont_fun_name
     ]
     fpmul503_mont_same_spec;
 
-mul_asm_single_ov <- verify_asm "mul434_asm"
+mul_asm_single_ov <- verify_asm mul_asm_fun_name
     (mp_mul_single_spec nwords_field twice_nwords_field);
 
 mul_single_ov <- verify mp_mul_fun_name
@@ -197,9 +191,9 @@ fp2div2_503_ov <- verify fp2div2_fun_name
 fp2div2_503_same_ov <- verify fp2div2_fun_name
     [fpdiv2_503_same_ov] fp2div2_503_same_spec;
 
-mp_add434_asm_ov <- verify_asm "mp_add434_asm" mp_add434_asm_spec;
+mp_add434_asm_ov <- verify_asm mp_add_asm_fun_name mp_add434_asm_spec;
 
-mp_subadd434x2_asm_left_ov <- verify_asm "mp_subadd434x2_asm" mp_subadd434x2_asm_left_spec;
+mp_subadd434x2_asm_left_ov <- verify_asm mp_subadd_asm_fun_name mp_subadd434x2_asm_left_spec;
 
 let mp_dblsub434x2_asm_spec = do {
   a <- crucible_alloc_readonly f2elm_t;
@@ -219,7 +213,7 @@ let mp_dblsub434x2_asm_spec = do {
   c_star <- crucible_fresh_var "c" f2elm_t;
   crucible_points_to c (crucible_term c_star);
 };
-mp_dblsub434x2_asm_ov <- verify_asm "mp_dblsub434x2_asm" mp_dblsub434x2_asm_spec;
+mp_dblsub434x2_asm_ov <- verify_asm mp_dblsub_asm_fun_name mp_dblsub434x2_asm_spec;
 
 fp2mul503_mont_ov <- verify fp2mul_mont_fun_name
     [ rdc_mont_ov
