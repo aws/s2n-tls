@@ -4,8 +4,7 @@
 
 - How does CodeBuild decide what to install/test ?
    To match with Travis and minimize rewriting, the environment variables passed to the job
-   dictate what is installed and which tests get run.  In the case where GitHub Actions starts the 
-   job, the environment variables of the CodeBuild job are over-ridden.
+   dictate what is installed and which tests get run.
 - Why not build docker images with the dependencies layered in ?
   This is the end goal: get tests running in CodeBuild first, then optimize the containers where it makes sense.
 
@@ -39,16 +38,6 @@ General flow of the CodeBuild Test Projects
     - codebuild/s2n_after_codebuild.sh
         - curl -s https://codecov.io/bash
 
-
-
-### GitHub Actions comments
-
-For the full details see [aws-actions/aws-codebuild-run-build](https://github.com/aws-actions/aws-codebuild-run-build) . The `.github/workflows/*.yml` control
- the how jobs are launched.  Due to throttling, for the first iteration the various steps have dependencies placed on them, 
- graphed below.  The number preceeding the test is the dependency order and the arrowed lines point to steps that need to be completed
- before that step can start.
-
- ![Dependency Graph](../docs/images/s2nCodeBuildJobFlow.png)
 
 ### Usage to setup Projects
 
