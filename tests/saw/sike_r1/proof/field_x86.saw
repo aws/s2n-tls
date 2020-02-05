@@ -13,12 +13,6 @@ let asm_globals =
   , ("asm_p434x2", 56)
   ];
 
-let verify_asm func spec =
-    if do_prove then
-        crucible_llvm_verify_x86 m "../../../../lib/libs2n.so" func asm_globals spec
-    else
-        crucible_llvm_unsafe_assume_spec m func spec;
-
 let mp_subadd434x2_asm_left_spec = do {
     a <- crucible_alloc f2elm_t;
     a_star <- crucible_fresh_var "a" f2elm_t;
