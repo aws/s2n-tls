@@ -98,7 +98,6 @@ sike_r1/sike_r2.log :
 
 .PHONY : sike_r2_x86
 sike_r2_x86 : sike_r2_x86_patched_bitcode
-	@${MAKE} clean-sike-r1-logs
 	@${MAKE} sike_r1/sike_r2_x86.log
 
 sike_r1/sike_r2_x86.log :
