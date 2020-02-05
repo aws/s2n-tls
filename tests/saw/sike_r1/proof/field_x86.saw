@@ -39,6 +39,25 @@ let mp_add434_asm_spec = do {
     crucible_points_to c (crucible_term c_star);
 };
 
+let mp_dblsub434x2_asm_spec = do {
+    a <- crucible_alloc_readonly f2elm_t;
+    a_star <- crucible_fresh_var "a" f2elm_t;
+    crucible_points_to a (crucible_term a_star);
+
+    b <- crucible_alloc_readonly f2elm_t;
+    b_star <- crucible_fresh_var "b" f2elm_t;
+    crucible_points_to b (crucible_term b_star);
+
+    c <- crucible_alloc f2elm_t;
+    c_star <- crucible_fresh_var "c" f2elm_t;
+    crucible_points_to c (crucible_term c_star);
+
+    crucible_execute_func [a, b, c];
+
+    c_star <- crucible_fresh_var "c" f2elm_t;
+    crucible_points_to c (crucible_term c_star);
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
 
@@ -195,24 +214,6 @@ mp_add434_asm_ov <- verify_asm mp_add_asm_fun_name mp_add434_asm_spec;
 
 mp_subadd434x2_asm_left_ov <- verify_asm mp_subadd_asm_fun_name mp_subadd434x2_asm_left_spec;
 
-let mp_dblsub434x2_asm_spec = do {
-  a <- crucible_alloc_readonly f2elm_t;
-  a_star <- crucible_fresh_var "a" f2elm_t;
-  crucible_points_to a (crucible_term a_star);
-
-  b <- crucible_alloc_readonly f2elm_t;
-  b_star <- crucible_fresh_var "b" f2elm_t;
-  crucible_points_to b (crucible_term b_star);
-
-  c <- crucible_alloc f2elm_t;
-  c_star <- crucible_fresh_var "c" f2elm_t;
-  crucible_points_to c (crucible_term c_star);
-
-  crucible_execute_func [a, b, c];
-
-  c_star <- crucible_fresh_var "c" f2elm_t;
-  crucible_points_to c (crucible_term c_star);
-};
 mp_dblsub434x2_asm_ov <- verify_asm mp_dblsub_asm_fun_name mp_dblsub434x2_asm_spec;
 
 fp2mul503_mont_ov <- verify fp2mul_mont_fun_name
