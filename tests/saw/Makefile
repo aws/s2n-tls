@@ -51,10 +51,6 @@ clean-bitcode :
 clean-failure-logs :
 	$(RM) -- $(wildcard failure_tests/*.log)
 
-.PHONY : clean-sike-r1-logs
-clean-sike-r1-logs :
-	$(RM) -- $(wildcard sike_r1/*.log)
-
 .PHONY: clean
 clean: decruft
 
@@ -90,11 +86,8 @@ tmp/%.log : %.saw bitcode/all_llvm.bc tmp
 ## SIKE Tests
 ###########################################
 
-sike: sike_r2 sike_r1
-
 .PHONY : sike_r2
 sike_r2 : sike_r2_patched_bitcode
-	@${MAKE} clean-sike-r1-logs
 	@${MAKE} sike_r1/sike_r2.log
 
 sike_r1/sike_r2.log :
@@ -103,7 +96,6 @@ sike_r1/sike_r2.log :
 
 .PHONY : sike_r1
 sike_r1 : sike_r1_patched_bitcode
-	@${MAKE} clean-sike-r1-logs
 	@${MAKE} sike_r1/sike_r1.log
 
 sike_r1/sike_r1.log :
