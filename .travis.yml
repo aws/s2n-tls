@@ -21,7 +21,7 @@ jobs:
   - os: linux
     # coverage + fuzz flags don't work simultaneously on bionic
     dist: trusty
-    env: S2N_LIBCRYPTO=openssl-1.1.1 LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=120 S2N_COVERAGE=true CODECOV_IO_UPLOAD=true
+    env: S2N_LIBCRYPTO=openssl-1.1.1 LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=90 S2N_COVERAGE=true CODECOV_IO_UPLOAD=true
 
 # Normal Build Targets
   - os: linux
@@ -66,11 +66,11 @@ jobs:
 # Fuzz Tests
   - os: linux
     dist: bionic
-    env: S2N_LIBCRYPTO=openssl-1.1.1 LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=120
+    env: S2N_LIBCRYPTO=openssl-1.1.1 LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=90
 
   - os: linux
     dist: bionic
-    env: S2N_LIBCRYPTO=openssl-1.0.2-fips LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=120
+    env: S2N_LIBCRYPTO=openssl-1.0.2-fips LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=90
   
 # ASAN and Valgrind Tests
   - os: linux
