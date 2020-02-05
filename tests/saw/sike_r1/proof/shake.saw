@@ -34,7 +34,7 @@ let KeccakF1600_StatePermute_spec = do {
 let shake256_spec outsz insz = do {
     outp <- crucible_alloc (llvm_array outsz char_t);
     (input, inputp) <- ptr_to_fresh_readonly "in" (llvm_array insz char_t);
-    if eval_bool {{ `SIKE_REVISION == 2 }} then do {
+    if eval_bool {{ `SIKE_REVISION == (2:[10]) }} then do {
         crucible_execute_func
             [ outp
             , tm {{ (`outsz : [64]) }}
