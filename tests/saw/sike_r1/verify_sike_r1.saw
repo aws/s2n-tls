@@ -11,6 +11,7 @@ include "proof/base.saw";
 include "proof/sike_r1_defs.saw";
 include "proof/sike_base.saw";
 include "proof/word.saw";
+include "proof/field_common.saw";
 include "proof/field.saw";
 include "proof/curv.saw";
 include "proof/isogeny.saw";
