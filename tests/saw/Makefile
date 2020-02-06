@@ -201,7 +201,7 @@ sike_r1_patched_bitcode :
 .PHONY : sike_r2_patched_bitcode
 sike_r2_patched_bitcode :
 	${MAKE} clean_the_dir
-	S2N_SIKE_R2_FORCE_GENERIC=1 ${MAKE} bitcode/sike_r2_llvm.bc
+	S2N_NO_PQ_ASM=1 ${MAKE} bitcode/sike_r2_llvm.bc
 
 .PHONY : sike_r2_x86_patched_bitcode
 sike_r2_x86_patched_bitcode :
