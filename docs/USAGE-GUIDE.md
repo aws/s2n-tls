@@ -815,7 +815,7 @@ typedef int s2n_client_hello_fn(struct s2n_connection *conn, void *ctx);
 
 The callback function take as an input s2n connection, which received
 ClientHello and context provided in **s2n_config_set_client_hello_cb**. The
-callback can get any ClientHello infromation from the connection and use
+callback can get any ClientHello information from the connection and use
 **s2n_connection_set_config** call to change the config of the connection.
 
 If any of the properties of the connection were changed based on server_name
