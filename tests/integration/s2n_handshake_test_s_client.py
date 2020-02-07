@@ -193,7 +193,11 @@ def read_process_output_until(process, marker):
     while True:
         line = process.stdout.readline().decode("utf-8")
         output += line
+        terminated = process.poll()
         if marker in line:
+            return output
+        if terminated is not None:
+            print("Process exited with code {}: {}".format(terminated, output))
             return output
 
     return output
@@ -282,7 +286,13 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
     if ssl_version is not None:
         s_client_cmd.append(PROTO_VERS_TO_S_CLIENT_ARG[ssl_version])
     if cipher is not None:
-        s_client_cmd.extend(["-cipher", cipher])
+        cipher_format = cipher
+
+        if client_cert is not None and 'sha1' in client_cert:
+            # OpenSSL 1.1.1e prohibits SHA1 in security level 1 and above.
+            # For those specific certs we can run in security level 0.
+            cipher_format = "{}@SECLEVEL=0".format(cipher)
+        s_client_cmd.extend(["-cipher", cipher_format])
     if sig_algs is not None:
         s_client_cmd.extend(["-sigalgs", sig_algs])
     if curves is not None:
@@ -432,7 +442,7 @@ def handshake_test(host, port, test_ciphers, fips_mode, no_ticket=False, use_cli
         threadpool = create_thread_pool()
         port_offset = 0
         results = []
-        
+
         for cipher in test_ciphers:
             async_result = threadpool.apply_async(run_handshake_test, (host, port + port_offset, ssl_version, cipher, fips_mode, no_ticket, use_client_auth, use_client_cert, use_client_key))
             port_offset += 1
