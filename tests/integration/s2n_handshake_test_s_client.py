@@ -272,10 +272,19 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
     if use_corked_io:
         s2nd_cmd.append("-C")
 
-    s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # Make sure s2nd has started
-    s2nd.stdout.readline()
+    print("Waiting for s2nd to start")
+    try:
+        out, err = s2nd.communicate(timeout=2)
+        print("out: {}".format(out))
+        print("err: {}".format(err))
+    except subprocess.TimeoutExpired as e:
+        pass
+
+    #s2nd.stdout.readline()
+    print("s2nd started")
 
     s_client_cmd = ["openssl", "s_client", "-connect", str(endpoint) + ":" + str(port)]
 
@@ -410,6 +419,8 @@ def run_handshake_test(host, port, ssl_version, cipher, fips_mode, no_ticket, us
     
     client_cert_str=str(use_client_auth)
     
+    print("Waiting for Cipher: {} ClientCert: {} Vers: {} ...".format(cipher_name, client_cert_str, S2N_PROTO_VERS_TO_STR[ssl_version]))
+
     if (use_client_auth is not None) and (client_cert_path is not None):
         client_cert_str = cert_path_to_str(client_cert_path)
 
@@ -432,7 +443,7 @@ def handshake_test(host, port, test_ciphers, fips_mode, no_ticket=False, use_cli
         threadpool = create_thread_pool()
         port_offset = 0
         results = []
-        
+
         for cipher in test_ciphers:
             async_result = threadpool.apply_async(run_handshake_test, (host, port + port_offset, ssl_version, cipher, fips_mode, no_ticket, use_client_auth, use_client_cert, use_client_key))
             port_offset += 1
