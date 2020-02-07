@@ -29,6 +29,9 @@ extern "C" {
 #define S2N_SUCCESS 0
 #define S2N_FAILURE -1
 
+/* Callback return code */
+#define S2N_CALLBACK_BLOCKED -2
+
 #define S2N_MINIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION 2
 #define S2N_MAXIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION 3
 #define S2N_SSLv2 20

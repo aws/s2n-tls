@@ -104,7 +104,6 @@ lookupDefault dict def key = fst (foldl f (def, False) dict)
           else if key == key' then (value', True)
                 else (value, found)
 
-
 fst (a, b) = a
 snd (a, b) = b
 

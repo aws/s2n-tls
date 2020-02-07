@@ -118,11 +118,11 @@ struct s2n_handshake {
     uint8_t server_finished[S2N_TLS_SECRET_LEN];
     uint8_t client_finished[S2N_TLS_SECRET_LEN];
 
-    /* Indicates the CLIENT_HELLO message has been completely processed */
-    uint8_t client_hello_finished;
+    /* Indicates the CLIENT_HELLO message has been completely received */
+    unsigned client_hello_received:1;
 
     /* Indicates the handshake blocked while trying to read data, and has been paused */
-    uint8_t paused;
+    unsigned paused:1;
 
     /* Handshake type is a bitset, with the following
        bit positions */

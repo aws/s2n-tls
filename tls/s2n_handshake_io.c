@@ -471,6 +471,7 @@ int s2n_generate_new_client_session_id(struct s2n_connection *conn)
         GUARD(s2n_get_public_random_data(&session_id));
         conn->session_id_len = S2N_TLS_SESSION_ID_MAX_LEN;
     }
+
     return 0;
 }
 
@@ -509,7 +510,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
      * Client sent in the ClientHello. */
     if (conn->actual_protocol_version <= S2N_TLS12 && conn->mode == S2N_SERVER && s2n_allowed_to_cache_connection(conn)) {
         int r = s2n_resume_from_cache(conn);
-        if (r == S2N_SUCCESS || (r < 0 && s2n_errno == S2N_ERR_BLOCKED)) {
+        if (r == S2N_SUCCESS || (r < 0 && ERR_IS_BLOCKING(s2n_errno))) {
             return r;
         }
     }
@@ -554,6 +555,7 @@ int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn)
     S2N_ERROR_IF(client_cert_auth_type != S2N_CERT_AUTH_OPTIONAL, S2N_ERR_BAD_MESSAGE);
 
     conn->handshake.handshake_type |= NO_CLIENT_CERT;
+
     return 0;
 }
 
@@ -562,6 +564,7 @@ int s2n_conn_set_handshake_read_block(struct s2n_connection *conn)
     notnull_check(conn);
 
     conn->handshake.paused = 1;
+
     return 0;
 }
 
@@ -570,6 +573,7 @@ int s2n_conn_clear_handshake_read_block(struct s2n_connection *conn)
     notnull_check(conn);
 
     conn->handshake.paused = 0;
+
     return 0;
 }
 
@@ -863,7 +867,10 @@ static int s2n_handshake_handle_sslv2(struct s2n_connection *conn)
 static int s2n_try_delete_session_cache(struct s2n_connection *conn)
 {
     notnull_check(conn);
-    conn->config->cache_delete(conn, conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
+
+    if (s2n_allowed_to_cache_connection(conn) > 0) {
+        conn->config->cache_delete(conn, conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
+    }
 
     return 0;
 }
@@ -985,6 +992,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
                 case S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED:
                     conn->closed = 1;
                     break;
+                case S2N_CALLBACK_BLOCKED:
+                    /* Fallthrough */
                 case S2N_ERR_BLOCKED:
                     /* A blocking condition is retryable, so we should return without killing the connection. */
                     S2N_ERROR_PRESERVE_ERRNO();
@@ -1014,16 +1023,17 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
      * The handler will know how to continue, so we should call the handler right away.
      * We aren't going to read more handshake data yet because the current message has
      * not finished processing. */
-    int r = ACTIVE_STATE(conn).handler[conn->mode] (conn);
+    s2n_errno = S2N_ERR_T_OK;
+    const int r = ACTIVE_STATE(conn).handler[conn->mode] (conn);
 
     if (r < 0) {
         /* If the handler is still waiting for data, return control to the caller. */
-        if (s2n_errno == S2N_ERR_BLOCKED) {
+        if (ERR_IS_BLOCKING(s2n_errno)) {
             S2N_ERROR_PRESERVE_ERRNO();
         }
 
         /* Otherwise there is some other problem and we should kill the connection. */
-        if (s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
+        if (conn->session_id_len) {
             s2n_try_delete_session_cache(conn);
         }
 
@@ -1059,7 +1069,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
 
         /* If the handshake was paused, retry the current message */
         if (conn->handshake.paused) {
-            *blocked = S2N_BLOCKED_ON_READ;
+            *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
             GUARD(s2n_handle_retry_state(conn));
         }
 
@@ -1089,8 +1099,12 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
             if (r < 0) {
                 /* One blocking condition is waiting on the session resumption cache. */
                 /* So we don't want to delete anything if we are blocked. */
-                if (s2n_errno != S2N_ERR_BLOCKED && s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
+                if (!ERR_IS_BLOCKING(s2n_errno) && conn->session_id_len) {
                     s2n_try_delete_session_cache(conn);
+                }
+
+                if (s2n_errno == S2N_CALLBACK_BLOCKED) {
+                    *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
                 }
 
                 S2N_ERROR_PRESERVE_ERRNO();
