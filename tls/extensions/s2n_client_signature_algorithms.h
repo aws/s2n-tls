@@ -18,5 +18,6 @@
 #include "tls/s2n_connection.h"
 #include "stuffer/s2n_stuffer.h"
 
-extern int s2n_send_client_signature_algorithms_extension(struct s2n_connection *conn, struct s2n_stuffer *out);
-extern int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *extension);
+int s2n_extensions_client_signature_algorithms_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+int s2n_extensions_client_signature_algorithms_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+int s2n_extensions_client_signature_algorithms_size(struct s2n_connection *conn);

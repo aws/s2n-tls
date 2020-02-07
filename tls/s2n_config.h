@@ -39,11 +39,13 @@ struct s2n_config {
     struct s2n_map *domain_name_to_cert_map;
     unsigned default_certs_are_explicit:1;
     struct auth_method_to_cert_value default_cert_per_auth_method;
-    const struct s2n_cipher_preferences *cipher_preferences;
     struct s2n_blob application_protocols;
     s2n_status_request_type status_request_type;
     s2n_clock_time_nanoseconds wall_clock;
     s2n_clock_time_nanoseconds monotonic_clock;
+
+    const struct s2n_cipher_preferences *cipher_preferences;
+    const struct s2n_signature_preferences *signature_preferences;
 
     void *sys_clock_ctx;
     void *monotonic_clock_ctx;
