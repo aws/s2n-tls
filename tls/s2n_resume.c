@@ -37,6 +37,8 @@ int s2n_allowed_to_cache_connection(struct s2n_connection *conn)
 
     struct s2n_config *config = conn->config;
 
+    notnull_check(config);
+
     /* Caching is enabled iff all of the caching callbacks are set */
     return config->cache_store && config->cache_retrieve && config->cache_delete;
 }
@@ -209,7 +211,7 @@ int s2n_resume_from_cache(struct s2n_connection *conn)
 
     size = S2N_STATE_SIZE_IN_BYTES;
 
-    /* cache_retrieve relies on the caller to return -2 if data is not available */
+    /* cache_retrieve relies on the caller to return S2N_CALLBACK_BLOCKED if data is not available */
     GUARD_NONBLOCKING(conn->config->cache_retrieve(conn, conn->config->cache_retrieve_data, conn->session_id, conn->session_id_len, state, &size));
 
     S2N_ERROR_IF(size != S2N_STATE_SIZE_IN_BYTES, S2N_ERR_SIZE_MISMATCH);
