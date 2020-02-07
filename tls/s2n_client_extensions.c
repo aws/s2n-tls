@@ -55,7 +55,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 
     /* SignatureScheme */
     if (conn->actual_protocol_version >= S2N_TLS12) {
-        total_size += (s2n_supported_sig_scheme_pref_list_len * TLS_SIGNATURE_SCHEME_LEN) + 6;
+        total_size += s2n_extensions_client_signature_algorithms_size(conn);
     }
 
     struct s2n_blob *client_app_protocols;
@@ -121,7 +121,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     }
 
     if (conn->actual_protocol_version >= S2N_TLS12) {
-        GUARD(s2n_send_client_signature_algorithms_extension(conn, out));
+        GUARD(s2n_extensions_client_signature_algorithms_send(conn, out));
     }
 
     if (server_name_len) {
@@ -184,7 +184,7 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *pa
             GUARD(s2n_parse_client_hello_server_name(conn, &extension));
             break;
         case TLS_EXTENSION_SIGNATURE_ALGORITHMS:
-            GUARD(s2n_recv_client_signature_algorithms(conn, &extension));
+            GUARD(s2n_extensions_client_signature_algorithms_recv(conn, &extension));
             break;
         case TLS_EXTENSION_ALPN:
             GUARD(s2n_recv_client_alpn(conn, &extension));

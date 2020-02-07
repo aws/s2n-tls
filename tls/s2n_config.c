@@ -113,18 +113,17 @@ static int s2n_config_init(struct s2n_config *config)
     config->disable_x509_validation = 0;
     config->max_verify_cert_chain_depth = 0;
     config->max_verify_cert_chain_depth_set = 0;
-
     config->cert_tiebreak_cb = NULL;
 
     s2n_config_set_cipher_preferences(config, "default");
-
     if (s2n_is_in_fips_mode()) {
         s2n_config_set_cipher_preferences(config, "default_fips");
     }
-
     if (s2n_is_tls13_enabled()) {
         s2n_config_set_cipher_preferences(config, "default_tls13");
     }
+
+    s2n_config_set_signature_preferences(config, "default");
 
     notnull_check(config->domain_name_to_cert_map = s2n_map_new_with_initial_capacity(1));
     GUARD(s2n_map_complete(config->domain_name_to_cert_map));
