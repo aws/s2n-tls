@@ -10,7 +10,7 @@ let mp_mul_asm_spec n m = do {
 
     crucible_execute_func [ap, bp, cp];
 
-    points_to_fresh cp "c" (llvm_array m digit_t);
+    points_to_fresh cp "_c" (llvm_array m digit_t);
     return ();
 };
 
@@ -20,7 +20,7 @@ let mp_mul_asm_single_spec n m = do {
 
     crucible_execute_func [ap, ap, cp];
 
-    points_to_fresh cp "c" (llvm_array m digit_t);
+    points_to_fresh cp "_c" (llvm_array m digit_t);
     return ();
 };
 
@@ -39,7 +39,7 @@ let mp_mul_new_spec n m = do {
 
     crucible_execute_func [ap, bp, cp, tm n];
 
-    points_to_fresh cp "c" (llvm_array m digit_t);
+    points_to_fresh cp "_c" (llvm_array m digit_t);
     return ();
 };
 
@@ -50,7 +50,7 @@ let mp_mul_single_new_spec n m = do {
 
     crucible_execute_func [ap, ap, cp, tm n];
 
-    points_to_fresh cp "c" (llvm_array m digit_t);
+    points_to_fresh cp "_c" (llvm_array m digit_t);
     return ();
 };
 
@@ -60,35 +60,35 @@ let mp_mul_single_new_spec n m = do {
 ///////////////////////////////////////////////////////////////////////////////
 // fpadd
 
-fpadd503_asm_ov <- verify_asm fpadd_asm_fun_name fpadd503_spec;
-fpadd503_ov <- verify fpadd_fun_name [fpadd503_asm_ov] fpadd503_spec;
+fpadd_asm_ov <- verify_asm fpadd_asm_fun_name fpadd_spec;
+fpadd_ov <- verify fpadd_fun_name [fpadd_asm_ov] fpadd_spec;
 
-fpadd503_asm_left_ov <- verify_asm fpadd_asm_fun_name fpadd503_left_spec;
-fpadd503_left_ov <- verify fpadd_fun_name [fpadd503_asm_left_ov] fpadd503_left_spec;
+fpadd_asm_left_ov <- verify_asm fpadd_asm_fun_name fpadd_left_spec;
+fpadd_left_ov <- verify fpadd_fun_name [fpadd_asm_left_ov] fpadd_left_spec;
 
-fpadd503_asm_right_ov <- verify_asm fpadd_asm_fun_name fpadd503_right_spec;
-fpadd503_right_ov <- verify fpadd_fun_name [fpadd503_asm_right_ov] fpadd503_right_spec;
+fpadd_asm_right_ov <- verify_asm fpadd_asm_fun_name fpadd_right_spec;
+fpadd_right_ov <- verify fpadd_fun_name [fpadd_asm_right_ov] fpadd_right_spec;
 
-fpadd503_asm_same_ov <- verify_asm fpadd_asm_fun_name fpadd503_same_spec;
-fpadd503_same_ov <- verify fpadd_fun_name [fpadd503_asm_same_ov] fpadd503_same_spec;
+fpadd_asm_same_ov <- verify_asm fpadd_asm_fun_name fpadd_same_spec;
+fpadd_same_ov <- verify fpadd_fun_name [fpadd_asm_same_ov] fpadd_same_spec;
 
-fpadd503_asm_pair_ov <- verify_asm fpadd_asm_fun_name fpadd503_pair_spec;
-fpadd503_pair_ov <- verify fpadd_fun_name [fpadd503_asm_pair_ov] fpadd503_pair_spec;
+fpadd_asm_pair_ov <- verify_asm fpadd_asm_fun_name fpadd_pair_spec;
+fpadd_pair_ov <- verify fpadd_fun_name [fpadd_asm_pair_ov] fpadd_pair_spec;
 
 ///////////////////////////////////////////////////////////////////////////////
 // fpsub
 
-fpsub503_asm_ov <- verify_asm fpsub_asm_fun_name fpsub503_spec;
-fpsub503_ov <- verify fpsub_fun_name [fpsub503_asm_ov] fpsub503_spec;
+fpsub_asm_ov <- verify_asm fpsub_asm_fun_name fpsub_spec;
+fpsub_ov <- verify fpsub_fun_name [fpsub_asm_ov] fpsub_spec;
 
-fpsub503_asm_left_ov <- verify_asm fpsub_asm_fun_name fpsub503_left_spec;
-fpsub503_left_ov <- verify fpsub_fun_name [fpsub503_asm_left_ov] fpsub503_left_spec;
+fpsub_asm_left_ov <- verify_asm fpsub_asm_fun_name fpsub_left_spec;
+fpsub_left_ov <- verify fpsub_fun_name [fpsub_asm_left_ov] fpsub_left_spec;
 
-fpsub503_asm_right_ov <- verify_asm fpsub_asm_fun_name fpsub503_right_spec;
-fpsub503_right_ov <- verify fpsub_fun_name [fpsub503_asm_right_ov] fpsub503_right_spec;
+fpsub_asm_right_ov <- verify_asm fpsub_asm_fun_name fpsub_right_spec;
+fpsub_right_ov <- verify fpsub_fun_name [fpsub_asm_right_ov] fpsub_right_spec;
 
-fpsub503_asm_same_ov <- verify_asm fpsub_asm_fun_name fpsub503_same_spec;
-fpsub503_same_ov <- verify fpsub_fun_name [fpsub503_asm_same_ov] fpsub503_same_spec;
+fpsub_asm_same_ov <- verify_asm fpsub_asm_fun_name fpsub_same_spec;
+fpsub_same_ov <- verify fpsub_fun_name [fpsub_asm_same_ov] fpsub_same_spec;
 
 ///////////////////////////////////////////////////////////////////////////////
 // rdc_mont

@@ -4,26 +4,26 @@
 ///////////////////////////////////////////////////////////////////////////////
 // fpadd
 
-fpadd503_ov <- verify fpadd_fun_name [] fpadd503_spec;
+fpadd_ov <- verify fpadd_fun_name [] fpadd_spec;
 
-fpadd503_left_ov <- verify fpadd_fun_name [] fpadd503_left_spec;
+fpadd_left_ov <- verify fpadd_fun_name [] fpadd_left_spec;
 
-fpadd503_right_ov <- verify fpadd_fun_name [] fpadd503_right_spec;
+fpadd_right_ov <- verify fpadd_fun_name [] fpadd_right_spec;
 
-fpadd503_same_ov <- verify fpadd_fun_name [] fpadd503_same_spec;
+fpadd_same_ov <- verify fpadd_fun_name [] fpadd_same_spec;
 
-fpadd503_pair_ov <- verify fpadd_fun_name [] fpadd503_pair_spec;
+fpadd_pair_ov <- verify fpadd_fun_name [] fpadd_pair_spec;
 
 ///////////////////////////////////////////////////////////////////////////////
 // fpsub
 
-fpsub503_ov <- verify fpsub_fun_name [] fpsub503_spec;
+fpsub_ov <- verify fpsub_fun_name [] fpsub_spec;
 
-fpsub503_left_ov <- verify fpsub_fun_name [] fpsub503_left_spec;
+fpsub_left_ov <- verify fpsub_fun_name [] fpsub_left_spec;
 
-fpsub503_right_ov <- verify fpsub_fun_name [] fpsub503_right_spec;
+fpsub_right_ov <- verify fpsub_fun_name [] fpsub_right_spec;
 
-fpsub503_same_ov <- verify fpsub_fun_name [] fpsub503_same_spec;
+fpsub_same_ov <- verify fpsub_fun_name [] fpsub_same_spec;
 
 ///////////////////////////////////////////////////////////////////////////////
 // rdc_mont

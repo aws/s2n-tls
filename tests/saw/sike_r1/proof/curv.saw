@@ -37,50 +37,50 @@ let xTPL_same_spec = point_op_same "A24minus" "A24plus";
 // Proof commands
 
 xDBL_ov <- verify xDBL_fun_name
-    [ fp2add503_left_ov
-    , fp2add503_ov
-    , fp2mul503_mont_left_ov
-    , fp2mul503_mont_ov
-    , fp2sqr503_mont_same_ov
-    , fp2sub503_ov
-    , fp2sub503_left_ov
+    [ fp2add_left_ov
+    , fp2add_ov
+    , fp2mul_mont_left_ov
+    , fp2mul_mont_ov
+    , fp2sqr_mont_same_ov
+    , fp2sub_ov
+    , fp2sub_left_ov
     ]
     xDBL_spec;
 
 xDBL_same_ov <- verify xDBL_fun_name
-    [ fp2add503_left_ov
-    , fp2add503_ov
-    , fp2mul503_mont_left_ov
-    , fp2mul503_mont_ov
-    , fp2sqr503_mont_same_ov
-    , fp2sub503_ov
-    , fp2sub503_left_ov
+    [ fp2add_left_ov
+    , fp2add_ov
+    , fp2mul_mont_left_ov
+    , fp2mul_mont_ov
+    , fp2sqr_mont_same_ov
+    , fp2sub_ov
+    , fp2sub_left_ov
     ]
     xDBL_same_spec;
 
 xTPL_ov <- verify xTPL_fun_name
-    [ fp2sub503_ov
-    , fp2sqr503_mont_ov
-    , fp2add503_ov
-    , fp2sub503_left_ov
-    , fp2sub503_right_ov
-    , fp2mul503_mont_left_ov
-    , fp2mul503_mont_ov
-    , fp2sqr503_mont_same_ov
-    , fp2sqr503_mont_ov
+    [ fp2sub_ov
+    , fp2sqr_mont_ov
+    , fp2add_ov
+    , fp2sub_left_ov
+    , fp2sub_right_ov
+    , fp2mul_mont_left_ov
+    , fp2mul_mont_ov
+    , fp2sqr_mont_same_ov
+    , fp2sqr_mont_ov
     ]
     xTPL_spec;
 
 xTPL_same_ov <- verify xTPL_fun_name
-    [ fp2sub503_ov
-    , fp2sqr503_mont_ov
-    , fp2add503_ov
-    , fp2sub503_left_ov
-    , fp2sub503_right_ov
-    , fp2mul503_mont_left_ov
-    , fp2mul503_mont_ov
-    , fp2sqr503_mont_same_ov
-    , fp2sqr503_mont_ov
+    [ fp2sub_ov
+    , fp2sqr_mont_ov
+    , fp2add_ov
+    , fp2sub_left_ov
+    , fp2sub_right_ov
+    , fp2mul_mont_left_ov
+    , fp2mul_mont_ov
+    , fp2sqr_mont_same_ov
+    , fp2sqr_mont_ov
     ]
     xTPL_same_spec;
 

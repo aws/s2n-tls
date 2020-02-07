@@ -89,27 +89,27 @@ fp2_encode_ov <- verify fp2_encode_fun_name
     fp2_encode_spec;
 
 let O_base_Key =
-    [ fpcopy503_ov
-    , fpzero503_ov
-    , fp2copy503_ov
-    , fp2neg503_ov
-    , fpadd503_ov
-    , fpadd503_left_ov
-    , fpadd503_same_ov
-    , fpadd503_right_ov
-    , fp2add503_ov
-    , fp2add503_left_ov
-    , fp2add503_same_ov
-    , fp2add503_right_ov
-    , fp2sub503_right_ov
-    , fp2sub503_left_ov
-    , fp2sub503_same_ov
+    [ fpcopy_ov
+    , fpzero_ov
+    , fp2copy_ov
+    , fp2neg_ov
+    , fpadd_ov
+    , fpadd_left_ov
+    , fpadd_same_ov
+    , fpadd_right_ov
+    , fp2add_ov
+    , fp2add_left_ov
+    , fp2add_same_ov
+    , fp2add_right_ov
+    , fp2sub_right_ov
+    , fp2sub_left_ov
+    , fp2sub_same_ov
     , swap_points_ov
     , xDBLADD_ov
     , fp2_encode_ov
     , inv_3_way_ov
-    , fp2mul503_mont_ov
-    , fp2mul503_mont_left_ov
+    , fp2mul_mont_ov
+    , fp2mul_mont_left_ov
     ];
 
 let O_base_KeyA = concat O_base_Key [ LADDER3PT_A_ov ];
@@ -117,17 +117,17 @@ let O_base_KeyA = concat O_base_Key [ LADDER3PT_A_ov ];
 let O_base_KeyB = concat O_base_Key [ LADDER3PT_B_ov ];
 
 let O_base_Secret =
-    [ fpcopy503_ov
-    , fpzero503_ov
-    , fp2copy503_ov
-    , fp2add503_ov
-    , fp2add503_left_ov
-    , fp2add503_same_ov
-    , fp2add503_right_ov
-    , fp2sub503_right_ov
-    , fp2sub503_left_ov
-    , fp2sub503_same_ov
-    , fp2div2_503_same_ov
+    [ fpcopy_ov
+    , fpzero_ov
+    , fp2copy_ov
+    , fp2add_ov
+    , fp2add_left_ov
+    , fp2add_same_ov
+    , fp2add_right_ov
+    , fp2sub_right_ov
+    , fp2sub_left_ov
+    , fp2sub_same_ov
+    , fp2div2_same_ov
     , swap_points_ov
     , xDBLADD_ov
     , fp2_encode_ov
@@ -136,15 +136,15 @@ let O_base_Secret =
     ];
 
 let O_base_SecretA = concat O_base_Secret
-    [ fpadd503_same_ov
-    , fpadd503_pair_ov
+    [ fpadd_same_ov
+    , fpadd_pair_ov
     , LADDER3PT_A_ov
-    , fp2div2_503_same_ov
+    , fp2div2_same_ov
     ];
 
 let O_base_SecretB = concat O_base_Secret
-    [ fpadd503_same_ov
-    , fpadd503_pair_ov
+    [ fpadd_same_ov
+    , fpadd_pair_ov
     , LADDER3PT_B_ov
     ];
 
