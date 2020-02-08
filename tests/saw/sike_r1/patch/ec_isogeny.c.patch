@@ -1,0 +1,4 @@
+304c304
+< 		bit = (m[i >> LOG2RADIX] >> (i & (RADIX - 1))) & 1;
+---
+> 		bit = (((const unsigned char *) m)[i >> 3] >> (i & 7)) & 1;
