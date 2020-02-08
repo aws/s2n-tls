@@ -53,11 +53,6 @@ rotr_small(OUT syndrome_t *out, IN const syndrome_t *in, IN const size_t bits)
   bike_static_assert(bits < 64, rotr_small_err);
   bike_static_assert(sizeof(*out) > (8 * R_QW), rotr_small_qw_err);
 
-  if (bits == 0) {
-    memmove(out, in, sizeof(syndrome_t));
-    return;
-  }
-
   for(size_t i = 0; i < R_QW; i++)
   {
     out->qw[i] = (in->qw[i] >> bits) | (in->qw[i + 1] << (64 - bits));
