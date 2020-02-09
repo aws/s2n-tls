@@ -21,7 +21,7 @@
 #include "tests/testlib/s2n_testlib.h"
 #include "tls/s2n_kem.h"
 
-#define RSP_FILE "kats/sike_p434.kat"
+#define RSP_FILE "kats/sike_r2.kat"
 
 int main(int argc, char **argv, char **envp) {
     BEGIN_TEST();

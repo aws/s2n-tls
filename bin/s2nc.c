@@ -308,6 +308,7 @@ int main(int argc, char *const *argv)
             dyn_rec_timeout = (uint8_t) MIN(255, atoi(optarg));
             break;
         case 'D':
+            errno = 0;
             dyn_rec_threshold = strtoul(optarg, 0, 10);
             if (errno == ERANGE) {
                 dyn_rec_threshold = 0;

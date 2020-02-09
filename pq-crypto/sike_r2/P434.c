@@ -118,4 +118,4 @@ const unsigned int strat_Bob[MAX_Bob - 1] = {
 #include "fpx.c"
 #include "ec_isogeny.c"
 #include "sidh.c"
-#include "sike_p434_r2_kem.c"
+#include "sike_r2_kem.c"

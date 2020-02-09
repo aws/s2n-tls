@@ -111,6 +111,9 @@ int echo(struct s2n_connection *conn, int sockfd)
     readers[1].fd = STDIN_FILENO;
     readers[1].events = POLLIN;
 
+    /* Reset errno so that we can't inherit the errno == EINTR exit condition. */
+    errno = 0;
+
     /* Act as a simple proxy between stdin and the SSL connection */
     int p;
     s2n_blocked_status blocked;
@@ -147,12 +150,11 @@ int echo(struct s2n_connection *conn, int sockfd)
     
                 /* Read as many bytes as we think we can */
     	    do {
-    	        errno = 0;
-    		bytes_read = read(STDIN_FILENO, buffer, bytes_available);
-    		if(bytes_read < 0 && errno != EINTR){
-    		  fprintf(stderr, "Error reading from stdin\n");
-    		  exit(1);
-    		}
+    	        bytes_read = read(STDIN_FILENO, buffer, bytes_available);
+    	        if(bytes_read < 0 && errno != EINTR){
+    	            fprintf(stderr, "Error reading from stdin\n");
+    	            exit(1);
+    	        }
     	    } while (bytes_read < 0);
     
                 if (bytes_read == 0) {
