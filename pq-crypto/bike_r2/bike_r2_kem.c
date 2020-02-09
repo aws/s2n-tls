@@ -21,8 +21,8 @@
 #include "bike_r2_kem.h"
 #include "decode.h"
 #include "gf2x.h"
-#include "parallel_hash.h"
 #include "sampling.h"
+#include "sha.h"
 
 _INLINE_ void
 split_e(OUT split_e_t *splitted_e, IN const e_t *e)
@@ -106,7 +106,7 @@ function_h(OUT split_e_t *splitted_e, IN const r_t *in0, IN const r_t *in1)
   tmp.val[1] = *in1;
 
   // Hash (m*f0, m*f1) to generate a seed:
-  parallel_hash(&hash_seed, (uint8_t *)&tmp, sizeof(tmp));
+  sha(&hash_seed, sizeof(tmp), (uint8_t *)&tmp);
 
   // Format the seed as a 32-bytes input:
   translate_hash_to_seed(&seed_for_hash, &hash_seed);
@@ -208,7 +208,7 @@ get_ss(OUT ss_t *out, IN const r_t *in0, IN const r_t *in1, IN const ct_t *ct)
 
   // Calculate the hash digest
   DEFER_CLEANUP(sha_hash_t hash = {0}, sha_hash_cleanup);
-  parallel_hash(&hash, tmp, sizeof(tmp));
+  sha(&hash, sizeof(tmp), tmp);
 
   // Truncate the resulting digest, to produce the key K, by copying only the
   // desired number of LSBs.
@@ -376,7 +376,9 @@ BIKE1_L1_R2_crypto_kem_dec(OUT unsigned char *     ss,
 
   uint8_t mask = ~secure_l32_mask(0, success_cond);
   for(uint32_t i = 0; i < sizeof(*l_ss); i++)
+  {
     l_ss->raw[i] = (mask & ss_succ.raw[i]) | (~mask & ss_fail.raw[i]);
+  }
 
   DMSG("  Exit crypto_kem_dec.\n");
   return SUCCESS;
