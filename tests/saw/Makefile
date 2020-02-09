@@ -97,7 +97,7 @@ sike_r1/sike_r2.log :
 	saw sike_r1/verify_sike_r2.saw | tee $@
 
 .PHONY : sike_r2_x86
-sike_r2_x86 : sike_r2_x86_patched_bitcode
+sike_r2_x86 : sike_r2_x86_patched_bitcode s2n/lib/libs2n.so
 	@${MAKE} sike_r1/sike_r2_x86.log
 
 sike_r1/sike_r2_x86.log :
@@ -227,7 +227,7 @@ PQ_CRYPTO_COPY = $(addprefix s2n/pq-crypto/, $(notdir $(PQ_CRYPTO_C)))
 SIKE_R1_C = $(wildcard ../../pq-crypto/sike_r1/*.c) $(wildcard ../../pq-crypto/sike_r1/*.h) ../../pq-crypto/sike_r1/Makefile
 SIKE_R1_COPY = $(addprefix s2n/pq-crypto/sike_r1/, $(notdir $(SIKE_R1_C)))
 
-SIKE_R2_C = $(wildcard ../../pq-crypto/sike_r2/*.c) $(wildcard ../../pq-crypto/sike_r2/*.h) ../../pq-crypto/sike_r2/Makefile
+SIKE_R2_C = $(wildcard ../../pq-crypto/sike_r2/*.c) $(wildcard ../../pq-crypto/sike_r2/*.S) $(wildcard ../../pq-crypto/sike_r2/*.h) ../../pq-crypto/sike_r2/Makefile
 SIKE_R2_COPY = $(addprefix s2n/pq-crypto/sike_r2/, $(notdir $(SIKE_R2_C)))
 
 BIKE_R1_C = $(wildcard ../../pq-crypto/bike_r1/*.c) $(wildcard ../../pq-crypto/bike_r1/*.h) ../../pq-crypto/bike_r1/Makefile
@@ -248,7 +248,10 @@ STUFFER_COPY =$(addprefix s2n/stuffer/, $(notdir $(STUFFER_C)))
 
 API_COPY =$(addprefix s2n/api/, $(notdir $(wildcard ../../api/*.h)))
 
-ERROR_COPY =$(addprefix s2n/error/, $(notdir $(wildcard ../../error/*.h)))
+ERROR_C = $(wildcard ../../error/*.c) $(wildcard ../../error/*.h) ../../error/Makefile
+ERROR_COPY = $(addprefix s2n/error/, $(notdir $(ERROR_C)))
+
+LIB_COPY = s2n/lib/Makefile
 
 s2n/error :
 	mkdir -p $@
@@ -283,12 +286,15 @@ s2n/tls :
 s2n/stuffer :
 	mkdir -p $@
 
+s2n/lib :
+	mkdir -p $@
+
 export BITCODE_DIR := $(CURDIR)/bitcode/
 
 tmp:
 	mkdir -p tmp
 
-bitcode/all_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/pq-crypto/sike_r2 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_R1_COPY) $(SIKE_R2_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
+bitcode/all_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/pq-crypto/sike_r2 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_R1_COPY) $(SIKE_R2_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY) $(LIB_COPY)
 	${MAKE} -C s2n bc
 	${MAKE} -C bitcode all_llvm.bc
 
@@ -329,10 +335,16 @@ bitcode/bike_r2_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike_r2 s2n/uti
 	${MAKE} -C s2n bike_r2_bc
 	${MAKE} -C bitcode bike_r2_llvm.bc
 
+s2n/lib/libs2n.so : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/pq-crypto/sike_r2 s2n/pq-crypto/bike_r1 s2n/pq-crypto/bike_r2 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/lib s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_R1_COPY) $(SIKE_R2_COPY) $(BIKE_R1_COPY) $(BIKE_R2_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY) $(LIB_COPY)
+	${MAKE} -C s2n libs
+
 s2n/%.h : ../../%.h
 	cp $< $@
 
 s2n/%.c : ../../%.c
+	cp $< $@
+
+s2n/%.S : ../../%.S
 	cp $< $@
 
 s2n/%Makefile : ../../%Makefile
