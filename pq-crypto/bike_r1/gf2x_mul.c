@@ -87,7 +87,11 @@ gf2x_mod_mul(OUT uint64_t *res, IN const uint64_t *a, IN const uint64_t *b)
 {
   bike_static_assert((R_PADDED_QW % 2 == 0), karatzuba_n_is_odd);
 
-  uint8_t secure_buffer[SECURE_BUFFER_SIZE];
+  ALIGN(sizeof(uint64_t)) uint8_t secure_buffer[SECURE_BUFFER_SIZE];
+  /* make sure we have the correct size allocation. */
+  bike_static_assert(sizeof(secure_buffer) % sizeof(uint64_t) == 0,
+                     secure_buffer_not_eligable_for_uint64_t);
+
   karatzuba(res, a, b, R_PADDED_QW, (uint64_t *)secure_buffer);
 
   // This function implicitly assumes that the size of res is 2*R_PADDED_QW.
