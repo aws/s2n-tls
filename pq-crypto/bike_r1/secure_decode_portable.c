@@ -62,10 +62,10 @@ rotr_small(OUT syndrome_t *out, IN const syndrome_t *in, IN const size_t bits)
 void
 rotate_right(OUT syndrome_t *out,
              IN const syndrome_t *in,
-             IN const uint32_t    bitcount)
+             IN const uint32_t    bitscount)
 {
   // Rotate (64-bit) quad-words
-  rotr_big(out, in, (bitcount / 64));
+  rotr_big(out, in, (bitscount / 64));
   // Rotate bits (less than 64)
-  rotr_small(out, out, (bitcount % 64));
+  rotr_small(out, out, (bitscount % 64));
 }

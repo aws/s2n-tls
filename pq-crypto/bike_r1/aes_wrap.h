@@ -25,10 +25,10 @@
 
 #define MAX_AES_INVOKATION (MASK(32))
 
-#define AES256_KEY_SIZE   (32ULL)
+#define AES256_KEY_SIZE   (32U)
 #define AES256_KEY_BITS   (AES256_KEY_SIZE * 8)
-#define AES256_BLOCK_SIZE (16ULL)
-#define AES256_ROUNDS     (14ULL)
+#define AES256_BLOCK_SIZE (16U)
+#define AES256_ROUNDS     (14U)
 
 typedef ALIGN(16) struct aes256_key_s
 {
