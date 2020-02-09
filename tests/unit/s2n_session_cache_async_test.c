@@ -125,7 +125,7 @@ int cache_delete(struct s2n_connection *conn, void *ctx, const void *key, uint64
     return 0;
 }
 
-void mock_client(int writefd, int readfd)
+void mock_client(struct s2n_test_piped_io *piped_io)
 {
     size_t serialized_session_state_length = 0;
     uint8_t serialized_session_state[256] = { 0 };
@@ -144,8 +144,7 @@ void mock_client(int writefd, int readfd)
     s2n_config_disable_x509_verification(config);
     s2n_connection_set_config(conn, config);
 
-    s2n_connection_set_read_fd(conn, readfd);
-    s2n_connection_set_write_fd(conn, writefd);
+    s2n_connection_set_piped_io(conn, piped_io);
 
     /* Set the session id to ensure we're able to fallback to full handshake if session is not in server cache */
     memcpy(conn->session_id, SESSION_ID, S2N_TLS_SESSION_ID_MAX_LEN);
@@ -196,8 +195,7 @@ void mock_client(int writefd, int readfd)
 
     /* Session resumption */
     conn = s2n_connection_new(S2N_CLIENT);
-    s2n_connection_set_read_fd(conn, readfd);
-    s2n_connection_set_write_fd(conn, writefd);
+    s2n_connection_set_piped_io(conn, piped_io);
 
     /* Set session state on client connection */
     if (s2n_connection_set_session(conn, serialized_session_state, serialized_session_state_length) < 0) {
@@ -229,8 +227,7 @@ void mock_client(int writefd, int readfd)
 
     /* Session resumption with bad session state */
     conn = s2n_connection_new(S2N_CLIENT);
-    s2n_connection_set_read_fd(conn, readfd);
-    s2n_connection_set_write_fd(conn, writefd);
+    s2n_connection_set_piped_io(conn, piped_io);
 
     /* Change the format of the session state and check we cannot deserialize it */
     serialized_session_state[0] = 3;
@@ -287,8 +284,6 @@ int main(int argc, char **argv)
     s2n_blocked_status blocked;
     int status;
     pid_t pid;
-    int server_to_client[2];
-    int client_to_server[2];
     char *cert_chain_pem;
     char *private_key_pem;
     char buffer[256];
@@ -305,23 +300,21 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(setenv("S2N_ENABLE_CLIENT_MODE", "1", 0));
 
     /* Create a pipe */
-    EXPECT_SUCCESS(pipe(server_to_client));
-    EXPECT_SUCCESS(pipe(client_to_server));
+    struct s2n_test_piped_io piped_io;
+    EXPECT_SUCCESS(s2n_piped_io_init(&piped_io));
 
     /* Create a child process */
     pid = fork();
     if (pid == 0) {
-        /* This is the child process, close the read end of the pipe */
-        EXPECT_SUCCESS(close(client_to_server[0]));
-        EXPECT_SUCCESS(close(server_to_client[1]));
+        /* This is the client process, close the server end of the pipe */
+        EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
 
         /* Write the fragmented hello message */
-        mock_client(client_to_server[1], server_to_client[0]);
+        mock_client(&piped_io);
     }
 
-    /* This is the parent */
-    EXPECT_SUCCESS(close(client_to_server[1]));
-    EXPECT_SUCCESS(close(server_to_client[0]));
+    /* This is the server process, close the client end of the pipe */
+    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_CLIENT));
 
     /* initial handshake */
     {
@@ -336,8 +329,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
         /* Set up the connection to read from the fd */
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
+        EXPECT_SUCCESS(s2n_connection_set_piped_io(conn, &piped_io));
 
         /* Negotiate the handshake. */
         s2n_errno = S2N_ERR_T_OK;
@@ -376,8 +368,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
         /* Set up the connection to read from the fd */
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
+        EXPECT_SUCCESS(s2n_connection_set_piped_io(conn, &piped_io));
 
         /* Negotiate the handshake. */
         s2n_errno = S2N_ERR_T_OK;
@@ -410,8 +401,7 @@ int main(int argc, char **argv)
     }
 
     /* Close the pipes */
-    EXPECT_SUCCESS(close(client_to_server[0]));
-    EXPECT_SUCCESS(close(server_to_client[1]));
+    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
 
     /* Clean up */
     EXPECT_SUCCESS(s2n_config_free(config));
