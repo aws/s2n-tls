@@ -270,6 +270,16 @@ void mock_client(int writefd, int readfd)
     _exit(result);
 }
 
+/* init session cache lock field, which is used to mock a remote
+ * connection/event block
+ */
+static void initialize_cache()
+{
+    for (int i = 0; i < 256; i++) {
+        session_cache[i].lock = 1;
+    }
+}
+
 int main(int argc, char **argv)
 {
     struct s2n_connection *conn;
@@ -285,12 +295,8 @@ int main(int argc, char **argv)
     int bytes_read;
     int shutdown_rc = -1;
 
-    /* init session cache lock field, which is used to mock a remote
-     * connection/event block
-     */
-    for (int i = 0; i < 256; i++) {
-        session_cache[i].lock = 1;
-    }
+    /* Initialize the cache so the client and server start off on the same page */
+    initialize_cache();
 
     BEGIN_TEST();
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -364,6 +370,8 @@ int main(int argc, char **argv)
 
     /* Session resumption */
     {
+        /* Clear out the previous cache entries */
+        initialize_cache();
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
