@@ -68,4 +68,3 @@ extern const struct s2n_signature_scheme* const s2n_tls13_sig_scheme_pref_list[]
 extern const size_t s2n_supported_sig_scheme_pref_list_len;
 extern const size_t s2n_legacy_sig_scheme_pref_list_len;
 extern const size_t s2n_tls13_sig_scheme_pref_list_len;
-

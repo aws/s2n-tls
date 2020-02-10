@@ -287,6 +287,48 @@ int s2n_handshake_status_handler(struct s2n_connection *conn)
 
     return 0;
 }
+
+/* in TLS 1.3, pick a signature algorithm scheme based on preference order along with available cert types */
+int s2n_choose_tls13_sig_scheme_and_set_cert(struct s2n_connection *conn, struct s2n_sig_scheme_list *peer_wire_prefs,
+                                struct s2n_signature_scheme *sig_scheme_out)
+{
+    S2N_ERROR_IF(conn->actual_protocol_version != S2N_TLS13, S2N_ERR_BAD_MESSAGE);
+    notnull_check(peer_wire_prefs);
+    S2N_ERROR_IF(peer_wire_prefs->len == 0, S2N_ERR_EMPTY_SIGNATURE_SCHEME);
+
+    const struct s2n_signature_scheme* const* our_pref_list;
+    size_t our_pref_len;
+    GUARD(s2n_get_signature_scheme_pref_list(conn, &our_pref_list, &our_pref_len));
+
+    for (int i = 0; i < our_pref_len; i++) {
+        const struct s2n_signature_scheme *candidate_scheme = our_pref_list[i];
+
+        /* first check if we have a suitable cert for this scheme */
+        s2n_authentication_method candidate_auth_method;
+        GUARD(s2n_get_cert_type_from_sig_alg(candidate_scheme->sig_alg, &candidate_auth_method));
+        struct s2n_cert_chain_and_key *key_chain = s2n_conn_get_compatible_cert_chain_and_key(conn, candidate_auth_method);
+
+        if (key_chain == NULL) {
+            continue;
+        }
+
+        uint16_t iana_value = candidate_scheme->iana_value;
+
+        /* now check if our peer list supports this scheme */
+        for (int j = 0; j < peer_wire_prefs->len; j++) {
+            if (peer_wire_prefs->iana_list[j] == iana_value) {
+                conn->handshake_params.our_chain_and_key = key_chain;
+                *sig_scheme_out = *candidate_scheme;
+
+                return 0;
+            }
+        }
+    }
+
+    /* no compatible signature scheme / algorithm could be used */
+    S2N_ERROR(S2N_ERR_SIGNATURE_SCHEME_MISMATCH);
+}
+
 int s2n_process_client_hello(struct s2n_connection *conn)
 {
     /* Client hello is parsed and config is finalized.
@@ -308,13 +350,21 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     /* Find potential certificate matches before we choose the cipher. */
     GUARD(s2n_conn_find_name_matching_certs(conn));
 
-
     /* Now choose the ciphers and the cert chain. */
+    /* In TLS 1.3, only cipher suite is chosen, and cert chain selection deferred till signature scheme selection */
     GUARD(s2n_set_cipher_and_cert_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
 
     /* And set the signature and hash algorithm used for key exchange signatures */
-    GUARD(s2n_choose_sig_scheme_from_peer_preference_list(conn, &conn->handshake_params.client_sig_hash_algs,
-                                                           &conn->secure.conn_sig_scheme));
+    if (conn->actual_protocol_version < S2N_TLS13) {
+        GUARD(s2n_choose_sig_scheme_from_peer_preference_list(conn,
+            &conn->handshake_params.client_sig_hash_algs,
+            &conn->secure.conn_sig_scheme));
+    } else {
+        /* in TLS 1.3 select signature scheme and set certificate */
+        GUARD(s2n_choose_tls13_sig_scheme_and_set_cert(conn,
+            &conn->handshake_params.client_sig_hash_algs,
+            &conn->secure.conn_sig_scheme));
+    }
 
     return 0;
 }
