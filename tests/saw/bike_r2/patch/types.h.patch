@@ -1,4 +1,4 @@
-133c133
-< typedef ALIGN(64) struct syndrome_s
+68c68
+< typedef uint32_t idx_t;
 ---
-> typedef struct syndrome_s
+> typedef ALIGN(1) uint32_t idx_t;
