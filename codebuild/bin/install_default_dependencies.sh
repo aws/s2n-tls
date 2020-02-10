@@ -16,6 +16,9 @@
 set -ex
 source codebuild/bin/s2n_setup_env.sh
 
+# TODO: Make the build directory deterministic.
+#BUILD_DIR=/tmp/tmp.$(hostname|sha256sum |cut -c 1-10)
+
  # Install latest version of clang, clang++, and llvm-symbolizer. Needed for fuzzing.
 if [[ "$TESTS" == "fuzz" || "$TESTS" == "ALL" || "$LATEST_CLANG" == "true" ]]; then
     mkdir -p "$LATEST_CLANG_INSTALL_DIR"||true
@@ -92,6 +95,6 @@ if [[ "${TESTS}" == "sidetrail" || "${TESTS}" == "ALL" ]]; then
         codebuild/bin/install_sidetrail.sh "${SIDETRAIL_INSTALL_DIR}" > /dev/null ;
     else
         echo "Symlinking to the pre-built smack env."
-        ln -s /home/user/smack.environment ${SIDETRAIL_INSTALL_DIR}/
+        ln -s /home/user/smack.environment ${SIDETRAIL_INSTALL_DIR}/ ||true
     fi
 fi

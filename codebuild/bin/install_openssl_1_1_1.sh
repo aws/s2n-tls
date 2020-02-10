@@ -30,6 +30,11 @@ INSTALL_DIR=$2
 OS_NAME=$3
 
 cd "$BUILD_DIR"
+
+#if [ -f "${INSTALL_DIR}/bin/openssl" ]; then
+#  echo "OpenSSL already installed, returning"
+#  exit 0
+#fi
 curl --retry 3 -L https://github.com/openssl/openssl/archive/OpenSSL_1_1_1-stable.zip --output OpenSSL_1_1_1-stable.zip
 unzip OpenSSL_1_1_1-stable.zip
 cd openssl-OpenSSL_1_1_1-stable
