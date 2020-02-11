@@ -368,15 +368,32 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Test: Handshake self-talks using handshake_write_io and handshake_read_io */
+    /* Test: Handshake self-talks using s2n_handshake_write_io and s2n_handshake_read_io */
     {
         EXPECT_SUCCESS(s2n_enable_tls13());
 
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
 
+        struct s2n_config *server_config;
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+
+        char *cert_chain = NULL;
+        char *private_key = NULL;
+        EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
+
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
+
+        struct s2n_cert_chain_and_key *default_cert;
+        EXPECT_NOT_NULL(default_cert = s2n_cert_chain_and_key_new());
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(default_cert, cert_chain, private_key));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, default_cert));
+
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         struct s2n_stuffer client_to_server;
         struct s2n_stuffer server_to_client;
@@ -395,7 +412,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
 
         /* Client sends ClientHello */
-        EXPECT_SUCCESS(handshake_write_io(client_conn));
+        EXPECT_SUCCESS(s2n_handshake_write_io(client_conn));
         EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), SERVER_HELLO);
 
         EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
@@ -406,7 +423,7 @@ int main(int argc, char **argv)
 
         /* Server reads ClientHello */
         EXPECT_EQUAL(server_conn->handshake.handshake_type, INITIAL);
-        EXPECT_SUCCESS(handshake_read_io(server_conn));
+        EXPECT_SUCCESS(s2n_handshake_read_io(server_conn));
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13); /* Server is now on TLS13 */
         EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_HELLO);
         EXPECT_EQUAL(server_conn->handshake.handshake_type, NEGOTIATED | FULL_HANDSHAKE);
@@ -417,21 +434,21 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_conn_set_handshake_type(server_conn));
 
         /* Server sends ServerHello */
-        EXPECT_SUCCESS(handshake_write_io(server_conn));
+        EXPECT_SUCCESS(s2n_handshake_write_io(server_conn));
         EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_CHANGE_CIPHER_SPEC);
 
         /* Server sends CCS */
-        EXPECT_SUCCESS(handshake_write_io(server_conn));
+        EXPECT_SUCCESS(s2n_handshake_write_io(server_conn));
         EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), ENCRYPTED_EXTENSIONS);
         S2N_BLOB_EXPECT_EQUAL(server_seq, seq_0);
 
         /* Server sends EncryptedExtensions */
-        EXPECT_SUCCESS(handshake_write_io(server_conn));
+        EXPECT_SUCCESS(s2n_handshake_write_io(server_conn));
         EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_CERT);
         S2N_BLOB_EXPECT_EQUAL(server_seq, seq_1);
 
         /* Client reads CCS */
-        EXPECT_SUCCESS(handshake_read_io(client_conn));
+        EXPECT_SUCCESS(s2n_handshake_read_io(client_conn));
         EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), ENCRYPTED_EXTENSIONS);
 
         s2n_tls13_connection_keys(client_secrets, client_conn);
@@ -442,7 +459,7 @@ int main(int argc, char **argv)
         S2N_BLOB_EXPECT_EQUAL(server_secrets.extract_secret, client_secrets.extract_secret);
 
         /* Client reads Encrypted extensions */
-        EXPECT_SUCCESS(handshake_read_io(client_conn));
+        EXPECT_SUCCESS(s2n_handshake_read_io(client_conn));
         EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), ENCRYPTED_EXTENSIONS);
 
         /* TODO add the rest of the handshakes tests
@@ -451,19 +468,19 @@ int main(int argc, char **argv)
 
         /*
          * // Server sends ServerCert
-         * EXPECT_SUCCESS(handshake_write_io(server_conn));
+         * EXPECT_SUCCESS(s2n_handshake_write_io(server_conn));
          * EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_CERT_VERIFY);
          *
          * // Server sends CertVerify
-         * EXPECT_SUCCESS(handshake_write_io(server_conn));
+         * EXPECT_SUCCESS(s2n_handshake_write_io(server_conn));
          * EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_FINISHED);
          *
          * // Server sends ServerFinished
-         * EXPECT_SUCCESS(handshake_write_io(server_conn));
+         * EXPECT_SUCCESS(s2n_handshake_write_io(server_conn));
          * EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_FINISHED);
          *
          * // Client sends ClientFinished
-         * EXPECT_SUCCESS(handshake_write_io(client_conn));
+         * EXPECT_SUCCESS(s2n_handshake_write_io(client_conn));
          * EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), APPLICATION_DATA);
          *
          * // Verify that sequence numbers reset
@@ -475,6 +492,12 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(default_cert));
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+
+        free(private_key);
+        free(cert_chain);
     }
 
     END_TEST();

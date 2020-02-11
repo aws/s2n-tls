@@ -127,6 +127,7 @@ int s2n_get_urandom_data(struct s2n_blob *blob)
     long backoff = 1;
 
     while (n) {
+        errno = 0;
         int r = read(entropy_fd, data, n);
         if (r <= 0) {
             /*

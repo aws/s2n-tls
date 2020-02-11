@@ -92,6 +92,7 @@
 
 /* TLS 1.3 extensions from https://tools.ietf.org/html/rfc8446#section-4.2 */
 #define TLS_EXTENSION_SUPPORTED_VERSIONS   43
+#define TLS_EXTENSION_COOKIE               44
 #define TLS_EXTENSION_KEY_SHARE            51
 
 /* TLS Signature Algorithms - RFC 5246 7.4.1.4.1 */
@@ -232,4 +233,3 @@
 #define TLS_HANDSHAKE_HEADER_LENGTH   4
 
 #define S2N_MAX_SERVER_NAME 255
-

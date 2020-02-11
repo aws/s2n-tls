@@ -173,7 +173,7 @@ endif()
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
 
 find_package(LibCrypto REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE LibCrypto::Crypto ${OS_LIBS} m)
+target_link_libraries(${PROJECT_NAME} PUBLIC LibCrypto::Crypto ${OS_LIBS} m)
 
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
@@ -190,7 +190,7 @@ if (BUILD_TESTING)
     add_library(testss2n ${TESTLIB_HEADERS} ${TESTLIB_SRC})
     target_include_directories(testss2n PUBLIC tests)
     target_compile_options(testss2n PRIVATE -std=gnu99)
-    target_link_libraries(testss2n PUBLIC ${PROJECT_NAME} LibCrypto::Crypto ${OS_LIBS} m)
+    target_link_libraries(testss2n PUBLIC ${PROJECT_NAME})
     target_include_directories(testss2n PUBLIC $<TARGET_PROPERTY:LibCrypto::Crypto,INTERFACE_INCLUDE_DIRECTORIES>)
 
     #run unit tests
@@ -230,13 +230,13 @@ if (BUILD_TESTING)
     endforeach(test_case)
 
     add_executable(s2nc "bin/s2nc.c" "bin/echo.c")
-    target_link_libraries(s2nc ${PROJECT_NAME} LibCrypto::Crypto)
+    target_link_libraries(s2nc ${PROJECT_NAME})
     target_include_directories(s2nc PRIVATE $<TARGET_PROPERTY:LibCrypto::Crypto,INTERFACE_INCLUDE_DIRECTORIES>)
     target_include_directories(s2nc PRIVATE api)
     target_compile_options(s2nc PRIVATE -std=gnu99 -D_POSIX_C_SOURCE=200112L)
 
     add_executable(s2nd "bin/s2nd.c" "bin/echo.c")
-    target_link_libraries(s2nd ${PROJECT_NAME} LibCrypto::Crypto)
+    target_link_libraries(s2nd ${PROJECT_NAME})
     target_include_directories(s2nd PRIVATE $<TARGET_PROPERTY:LibCrypto::Crypto,INTERFACE_INCLUDE_DIRECTORIES>)
     target_include_directories(s2nd PRIVATE api)
     target_compile_options(s2nd PRIVATE -std=gnu99 -D_POSIX_C_SOURCE=200112L)

@@ -22,20 +22,42 @@
 #include "tls/s2n_signature_scheme.h"
 #include "utils/s2n_safety.h"
 
-int s2n_get_auth_method_from_sig_alg(s2n_signature_algorithm in, s2n_authentication_method* out) {
+/* lookup s2n signature authentication type based on signature algorithm */
+static int s2n_get_auth_method_from_sig_alg(s2n_signature_algorithm in, s2n_authentication_method* out) {
     switch(in) {
-        case S2N_SIGNATURE_RSA:
-            *out = S2N_AUTHENTICATION_RSA;
-            return 0;
-        case S2N_SIGNATURE_RSA_PSS_RSAE:
-        case S2N_SIGNATURE_RSA_PSS_PSS:
-            *out = S2N_AUTHENTICATION_RSA_PSS;
-            return 0;
-        case S2N_SIGNATURE_ECDSA:
-            *out = S2N_AUTHENTICATION_ECDSA;
-            return 0;
-        default:
-            S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    case S2N_SIGNATURE_RSA:
+        *out = S2N_AUTHENTICATION_RSA;
+        return 0;
+    case S2N_SIGNATURE_RSA_PSS_RSAE:
+    case S2N_SIGNATURE_RSA_PSS_PSS:
+        *out = S2N_AUTHENTICATION_RSA_PSS;
+        return 0;
+    case S2N_SIGNATURE_ECDSA:
+        *out = S2N_AUTHENTICATION_ECDSA;
+        return 0;
+    default:
+        S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    }
+}
+
+/* lookup s2n certificate type based on signature algorithm */
+int s2n_get_cert_type_from_sig_alg(s2n_signature_algorithm in, s2n_authentication_method* out) {
+    switch(in) {
+    case S2N_SIGNATURE_RSA:
+        *out = S2N_AUTHENTICATION_RSA;
+        return 0;
+    case S2N_SIGNATURE_RSA_PSS_RSAE:
+        /* RSAE certs _are_ RSA types */
+        *out = S2N_AUTHENTICATION_RSA;
+        return 0;
+    case S2N_SIGNATURE_RSA_PSS_PSS:
+        *out = S2N_AUTHENTICATION_RSA_PSS;
+        return 0;
+    case S2N_SIGNATURE_ECDSA:
+        *out = S2N_AUTHENTICATION_ECDSA;
+        return 0;
+    default:
+        S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     }
 }
 
@@ -51,7 +73,7 @@ int s2n_auth_method_requires_ephemeral_kex(const s2n_authentication_method auth_
 }
 
 int s2n_choose_sig_scheme(const struct s2n_signature_scheme* const* our_pref_list, int our_size,
-                          struct s2n_cipher_suite *cipher_suite, struct s2n_sig_scheme_list *peer_pref_list,
+                          struct s2n_cipher_suite *cipher_suite, struct s2n_sig_scheme_list *peer_wire_prefs,
                           struct s2n_signature_scheme *chosen_scheme_out) {
 
     notnull_check(cipher_suite);
@@ -75,8 +97,8 @@ int s2n_choose_sig_scheme(const struct s2n_signature_scheme* const* our_pref_lis
             }
         }
 
-        for (int j = 0; j < peer_pref_list->len; j++) {
-            uint16_t their_iana_val = peer_pref_list->iana_list[j];
+        for (int j = 0; j < peer_wire_prefs->len; j++) {
+            uint16_t their_iana_val = peer_wire_prefs->iana_list[j];
 
             if (candidate->iana_value == their_iana_val) {
                 *chosen_scheme_out = *candidate;
@@ -129,7 +151,7 @@ int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn
     S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_SCHEME);
 }
 
-int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn, struct s2n_sig_scheme_list *peer_pref_list,
+int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn, struct s2n_sig_scheme_list *peer_wire_prefs,
                                                         struct s2n_signature_scheme *sig_scheme_out)
 {
     /* This function could be called in two places: after receiving the
@@ -160,8 +182,8 @@ int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn,
     GUARD(s2n_get_signature_scheme_pref_list(conn, &our_pref_list, &our_pref_len));
 
     /* SignatureScheme preference list was first added in TLS 1.2. It will be empty in older TLS versions. */
-    if (0 < (peer_pref_list->len)) {
-        GUARD(s2n_choose_sig_scheme(our_pref_list, our_pref_len, conn->secure.cipher_suite, peer_pref_list, &chosen_scheme));
+    if (0 < peer_wire_prefs->len) {
+        GUARD(s2n_choose_sig_scheme(our_pref_list, our_pref_len, conn->secure.cipher_suite, peer_wire_prefs, &chosen_scheme));
     }
 
     /* In TLS 1.3, SigScheme also defines the ECDSA curve to use (instead of reusing whatever ECDHE Key Exchange curve
