@@ -87,6 +87,6 @@ if [[ "$TESTS" == "ALL" || "$TESTS" == "sawBIKE_r1" ]]; then make -C tests/saw b
 
 # Generate *.gcov files that can be picked up by the CodeCov.io Bash helper script. Don't run lcov or genhtml 
 # since those will delete .gcov files as they're processed.
-if [[ -n "$CODECOV_IO_UPLOAD" ]]; then
+if [[ -n "$CODECOV_IO_UPLOAD" && -z "$FUZZ_COVERAGE" ]]; then
     make run-gcov;
 fi

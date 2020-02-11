@@ -13,6 +13,9 @@
  * permissions and limitations under the License.
  */
 
+/* Target Functions: s2n_extensions_client_supported_versions_recv s2n_extensions_client_supported_versions_process
+                     s2n_connection_get_minimum_supported_version */
+
 #include <stdint.h>
 
 #include <openssl/crypto.h>
@@ -75,3 +78,4 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     }
     return 0;
 }
+

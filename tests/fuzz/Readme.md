@@ -1,5 +1,7 @@
 # Fuzz Tests
-Every test in this directory will be run as a Fuzz test for several minutes during builds. To run all fuzz tests simply run `make fuzz` from the top `s2n` directory to compile s2n with the proper flags and run the fuzz tests.
+By default, every test in this directory will be run as a fuzz test for several minutes each during builds. To run all fuzz tests simply run `make fuzz` from the top `s2n` directory to compile s2n with the proper flags and run the fuzz tests. To run a specific subset of fuzz tests, simply set the FUZZ_TESTS variable as follows:
+
+> FUZZ_TESTS="test1 test2 test3"
 
 #### Each Fuzz Test should conform to the following rules:
 1. End in either `*_test.c` or `*_negative_test.c`.
@@ -9,6 +11,17 @@ Every test in this directory will be run as a Fuzz test for several minutes duri
 3. If a Positive Fuzz test, it should have a non-empty corpus directory with inputs that have a relatively high branch coverage.
 4. Have a function `int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)` that will perform any initialization that will be run only once at startup.
 5. Have a function `int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)` that will pass `buf` to one of s2n's API's
+
+## Fuzz Test Coverage
+To generate coverage reports for fuzz tests, simply set the FUZZ_COVERAGE environment variable to any non-null value and run `make fuzz`. This will report the target function coverage and overall S2N coverage when running the tests. In order to define target functions for a fuzz test, simply add the following line to your fuzz test below the copyright notice:
+
+> /* Target Functions: function1 function2 function3 */
+
+As the tests run, more detailed coverage reports are placed in the following directory:
+
+> s2n/coverage/fuzz
+
+Each test outputs an HTML file which displays line by line coverage statistics and a .txt report which gives per-function coverage statistics in human-readable ASCII. After all fuzz tests have ran, a matching pair of coverage reports is generated for the total coverage of S2N by the entire set of tests performed.
 
 ## Fuzz Test Directory Structure
 For a test with name `$TEST_NAME`, its files should be laid out with the following structure:

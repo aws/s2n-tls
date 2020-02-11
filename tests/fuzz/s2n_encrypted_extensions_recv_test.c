@@ -13,12 +13,13 @@
  * permissions and limitations under the License.
  */
 
+/* Target Functions: s2n_encrypted_extensions_recv s2n_server_encrypted_extensions_parse s2n_recv_server_server_name */
+/* Target Functions: s2n_recv_server_alpn s2n_recv_server_max_fragment_length */
+
 #include <stdint.h>
 
 #include <openssl/crypto.h>
 #include <openssl/err.h>
-
-#include "tls/s2n_encrypted_extensions.c"
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"

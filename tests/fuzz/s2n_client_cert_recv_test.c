@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+/* Target Functions: s2n_client_cert_recv s2n_x509_validator_validate_cert_chain */
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stddef.h>

@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+/* Target Functions: s2n_client_cert_verify_recv s2n_get_and_validate_negotiated_signature_scheme s2n_pkey_verify */
+
 #include <openssl/crypto.h>
 #include <openssl/err.h>
 

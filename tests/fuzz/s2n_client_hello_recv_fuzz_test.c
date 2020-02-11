@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+/* Target Functions: s2n_client_hello_recv s2n_parse_client_hello s2n_populate_client_hello_extensions s2n_process_client_hello s2n_conn_set_handshake_type */
+
 #include <stdint.h>
 
 #include <openssl/crypto.h>
