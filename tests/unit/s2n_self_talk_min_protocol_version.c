@@ -48,6 +48,7 @@ int mock_client(struct s2n_test_piped_io *piped_io)
 
     result = s2n_negotiate(client_conn, &blocked);
 
+    s2n_piped_io_close_one_end(piped_io, S2N_CLIENT);
     s2n_connection_free(client_conn);
     s2n_config_free(client_config);
 
@@ -64,17 +65,11 @@ int main(int argc, char **argv)
     s2n_blocked_status blocked;
     int status;
     pid_t pid;
-    char *cert_chain_pem;
-    char *private_key_pem;
+    char cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
+    char private_key_pem[S2N_MAX_TEST_PEM_SIZE];
     struct s2n_cert_chain_and_key *chain_and_key;
 
     BEGIN_TEST();
-
-    /* Ignore SIGPIPE */
-    signal(SIGPIPE, SIG_IGN);
-
-    EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
 
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -128,8 +123,6 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_config_free(config));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-    free(cert_chain_pem);
-    free(private_key_pem);
     END_TEST();
 
     return 0;
