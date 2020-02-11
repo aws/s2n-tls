@@ -13,6 +13,9 @@
  * permissions and limitations under the License.
  */
 
+/* Target Functions: s2n_conn_find_name_matching_certs s2n_config_add_cert_chain_and_key_to_store
+                     s2n_server_received_server_name s2n_find_cert_matches s2n_create_wildcard_hostname */
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stddef.h>

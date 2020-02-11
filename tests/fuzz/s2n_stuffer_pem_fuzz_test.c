@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+/* Target Functions: s2n_stuffer_pem_read_encapsulation_line s2n_stuffer_pem_read_contents */
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stddef.h>

@@ -13,6 +13,9 @@
  * permissions and limitations under the License.
  */
 
+/* Target Functions: s2n_extensions_client_key_share_recv s2n_ecc_evp_read_params_point
+                     s2n_ecc_evp_parse_params_point  s2n_ecc_evp_params_free */
+
 #include <stdint.h>
 
 #include <openssl/crypto.h>

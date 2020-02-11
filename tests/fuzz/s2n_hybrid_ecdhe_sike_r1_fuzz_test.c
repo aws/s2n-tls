@@ -13,6 +13,10 @@
  * permissions and limitations under the License.
  */
 
+/* Target Functions: s2n_client_key_recv s2n_kex_client_key_recv calculate_keys
+                     s2n_kex_tls_prf s2n_prf_key_expansion s2n_ecdhe_client_key_recv
+                     s2n_kem_client_key_recv s2n_hybrid_client_action */
+
 #include "crypto/s2n_crypto.h"
 #include "crypto/s2n_drbg.h"
 #include "crypto/s2n_hash.h"
