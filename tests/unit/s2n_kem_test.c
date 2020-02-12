@@ -21,6 +21,8 @@
 
 #include "utils/s2n_safety.h"
 
+#include "crypto/s2n_fips.h"
+
 #define TEST_PUBLIC_KEY_LENGTH  2
 const char TEST_PUBLIC_KEY[] = {2, 2};
 #define TEST_PRIVATE_KEY_LENGTH  3
@@ -36,12 +38,14 @@ static const uint8_t classic_ecdhe_iana[S2N_TLS_CIPHER_SUITE_LEN] = {TLS_ECDHE_E
 
 int s2n_test_generate_keypair(unsigned char *public_key, unsigned char *private_key)
 {
+    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
     memset(public_key, TEST_PUBLIC_KEY_LENGTH, TEST_PUBLIC_KEY_LENGTH);
     memset(private_key, TEST_PRIVATE_KEY_LENGTH, TEST_PRIVATE_KEY_LENGTH);
     return 0;
 }
 int s2n_test_encrypt(unsigned char *ciphertext, unsigned char *shared_secret, const unsigned char *public_key)
 {
+    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
     GUARD(memcmp(public_key, TEST_PUBLIC_KEY, TEST_PUBLIC_KEY_LENGTH));
     memset(ciphertext, TEST_CIPHERTEXT_LENGTH, TEST_CIPHERTEXT_LENGTH);
     memset(shared_secret, TEST_SHARED_SECRET_LENGTH, TEST_SHARED_SECRET_LENGTH);
@@ -49,6 +53,7 @@ int s2n_test_encrypt(unsigned char *ciphertext, unsigned char *shared_secret, co
 }
 int s2n_test_decrypt(unsigned char *shared_secret, const unsigned char *ciphertext, const unsigned char *private_key)
 {
+    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
     GUARD(memcmp(ciphertext, TEST_CIPHERTEXT, TEST_CIPHERTEXT_LENGTH));
     GUARD(memcmp(private_key, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH));
     memset(shared_secret, TEST_SHARED_SECRET_LENGTH, TEST_SHARED_SECRET_LENGTH);
@@ -67,6 +72,8 @@ const struct s2n_kem s2n_test_kem = {
 
 static int check_client_server_agreed_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], uint8_t *client_kem_ids, const uint8_t num_client_kems,
         const struct s2n_kem *server_kem_pref_list[], const uint8_t num_server_supported_kems, kem_extension_size expected_kem_id) {
+    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+
     const struct s2n_kem *negotiated_kem = NULL;
     struct s2n_blob client_kem_blob = {0};
     /* Each KEM ID is 2 bytes */
@@ -81,6 +88,11 @@ static int check_client_server_agreed_kem(const uint8_t iana_value[S2N_TLS_CIPHE
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    if (s2n_is_in_fips_mode()) {
+        /* There is no support for PQ KEMs while in FIPS mode */
+        END_TEST();
+    }
+
     {
         /* Regression test for network parsing data of expected sizes */
         EXPECT_EQUAL(sizeof(kem_extension_size), 2);

@@ -20,6 +20,7 @@
 #include "utils/s2n_safety.h"
 #include "crypto/s2n_drbg.h"
 #include "crypto/s2n_openssl.h"
+#include "crypto/s2n_fips.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tests/testlib/s2n_testlib.h"
 #include "tls/s2n_kex.h"
@@ -42,6 +43,7 @@ int s2n_entropy_generator(struct s2n_blob *blob)
 
 int setup_connection(struct s2n_connection *conn, const struct s2n_kem *kem, struct s2n_cipher_suite *cipher_suite,
                      const char *cipher_pref_version) {
+    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
     conn->actual_protocol_version = S2N_TLS12;
     conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
     conn->secure.s2n_kem_keys.negotiated_kem = kem;
@@ -54,6 +56,8 @@ int setup_connection(struct s2n_connection *conn, const struct s2n_kem *kem, str
 int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cipher_suite *cipher_suite,
         const char *cipher_pref_version, const char * kat_file_name, uint32_t server_key_message_length,
         uint32_t client_key_message_length) {
+    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+
     /* Part 1 setup a client and server connection with everything they need for a key exchange */
     struct s2n_connection *client_conn, *server_conn;
     GUARD_NONNULL(client_conn = s2n_connection_new(S2N_CLIENT));
