@@ -30,6 +30,9 @@ const char TEST_SHARED_SECRET[] = {4, 4, 4, 4};
 #define TEST_CIPHERTEXT_LENGTH  5
 const char TEST_CIPHERTEXT[] = {5, 5, 5, 5, 5};
 
+static const uint8_t bike_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 };
+static const uint8_t sike_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 };
+static const uint8_t classic_ecdhe_iana[S2N_TLS_CIPHER_SUITE_LEN] = {TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA};
 
 int s2n_test_generate_keypair(unsigned char *public_key, unsigned char *private_key)
 {
@@ -61,6 +64,19 @@ const struct s2n_kem s2n_test_kem = {
         .encapsulate = &s2n_test_encrypt,
         .decapsulate = &s2n_test_decrypt,
 };
+
+static int check_client_server_agreed_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], uint8_t *client_kem_ids, const uint8_t num_client_kems,
+        const struct s2n_kem *server_kem_pref_list[], const uint8_t num_server_supported_kems, kem_extension_size expected_kem_id) {
+    const struct s2n_kem *negotiated_kem = NULL;
+    struct s2n_blob client_kem_blob = {0};
+    /* Each KEM ID is 2 bytes */
+    GUARD(s2n_blob_init(&client_kem_blob, client_kem_ids, 2 * num_client_kems));
+    GUARD(s2n_choose_kem_with_peer_pref_list(iana_value, &client_kem_blob, server_kem_pref_list, num_server_supported_kems, &negotiated_kem));
+    GUARD_NONNULL(negotiated_kem);
+
+    /* Multiply by -1 so tests can use EXPECT_SUCCESS */
+    return (-1) * (negotiated_kem->kem_extension_id != expected_kem_id);
+}
 
 int main(int argc, char **argv)
 {
@@ -110,196 +126,124 @@ int main(int argc, char **argv)
     {
         /* The order of the client kem list should always be ignored; the server chooses based on the
          * order of the server preference list, as long as the client claims to support it. */
-        const struct s2n_kem *negotiated_kem = NULL;
-        uint8_t bike_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 };
-        uint8_t sike_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 };
         {
+            uint8_t client_kems[] = {
+                    /* BIKE1_L1_R1 */
+                    0x00, 0x01,
+                    /* BIKE1_L1_R2 */
+                    0x00, 0x0d,
+                    /* SIKE_P503_R1 */
+                    0x00, 0x0a,
+                    /* SIKE_P434_R2 */
+                    0x00, 0x10
+            };
 
-            /* bike1l1r1, bike1l1r2, sikep503r1, sikep434r2 */
-            uint8_t client_kems[] = {0x00, 0x01, 0x00, 0x0d, 0x00, 0x0a, 0x00, 0x10};
-            struct s2n_blob client_kem_blob = {0};
-            EXPECT_SUCCESS(s2n_blob_init(&client_kem_blob, client_kems, 8));
-
-            EXPECT_SUCCESS(s2n_kem_find_supported_kem(bike_iana, &client_kem_blob, pq_kems_r1, 2, &negotiated_kem));
-            EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1);
-            negotiated_kem = NULL;
-
-            EXPECT_SUCCESS(s2n_kem_find_supported_kem(bike_iana, &client_kem_blob, pq_kems_r1r2, 4, &negotiated_kem));
-            EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2);
-            negotiated_kem = NULL;
-
-            EXPECT_SUCCESS(s2n_kem_find_supported_kem(sike_iana, &client_kem_blob, pq_kems_r1, 2, &negotiated_kem));
-            EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1);
-            negotiated_kem = NULL;
-
-            EXPECT_SUCCESS(s2n_kem_find_supported_kem(sike_iana, &client_kem_blob, pq_kems_r1r2, 4, &negotiated_kem));
-            EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2);
-            negotiated_kem = NULL;
+            EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 4, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1));
+            EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 4, pq_kems_r1r2, 4, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2));
+            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 4, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1));
+            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 4, pq_kems_r1r2, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2));
         }
         {
-            /* sikep503r1, bike1l1r1, sikep434r2, bike1l1r2 */
-            uint8_t client_kems[] = {0x00, 0x0a, 0x00, 0x01, 0x00, 0x10, 0x00, 0x0d};
-            struct s2n_blob client_kem_blob = {0};
-            EXPECT_SUCCESS(s2n_blob_init(&client_kem_blob, client_kems, 8));
+            uint8_t client_kems[] = {
+                    /* SIKE_P503_R1 */
+                    0x00, 0x0a,
+                    /* BIKE1_L1_R1 */
+                    0x00, 0x01,
+                    /* SIKE_P434_R2 */
+                    0x00, 0x10,
+                    /* BIKE1_L1_R2 */
+                    0x00, 0x0d
+            };
 
-            EXPECT_SUCCESS(s2n_kem_find_supported_kem(bike_iana, &client_kem_blob, pq_kems_r1, 2, &negotiated_kem));
-            EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1);
-            negotiated_kem = NULL;
-
-            EXPECT_SUCCESS(s2n_kem_find_supported_kem(bike_iana, &client_kem_blob, pq_kems_r1r2, 4, &negotiated_kem));
-            EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2);
-            negotiated_kem = NULL;
-
-            EXPECT_SUCCESS(s2n_kem_find_supported_kem(sike_iana, &client_kem_blob, pq_kems_r1, 2, &negotiated_kem));
-            EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1);
-            negotiated_kem = NULL;
-
-            EXPECT_SUCCESS(s2n_kem_find_supported_kem(sike_iana, &client_kem_blob, pq_kems_r1r2, 4, &negotiated_kem));
-            EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2);
-            negotiated_kem = NULL;
+            EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 4, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1));
+            EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 4, pq_kems_r1r2, 4, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2));
+            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 4, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1));
+            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 4, pq_kems_r1r2, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2));
         }
         {
-            /* sikep503r1, bike1l1r1 */
-            uint8_t client_kems[] = {0x00, 0x0a, 0x00, 0x01};
-            struct s2n_blob client_kem_blob = {0};
-            EXPECT_SUCCESS(s2n_blob_init(&client_kem_blob, client_kems, 4));
+            uint8_t client_kems[] = {
+                    /* SIKE_P503_R1 */
+                    0x00, 0x0a,
+                    /* BIKE1_L1_R1 */
+                    0x00, 0x01
+            };
 
-            EXPECT_SUCCESS(s2n_kem_find_supported_kem(bike_iana, &client_kem_blob, pq_kems_r1, 2, &negotiated_kem));
-            EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1);
-            negotiated_kem = NULL;
-
-            EXPECT_SUCCESS(s2n_kem_find_supported_kem(bike_iana, &client_kem_blob, pq_kems_r1r2, 4, &negotiated_kem));
-            EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1);
-            negotiated_kem = NULL;
-
-            EXPECT_SUCCESS(s2n_kem_find_supported_kem(sike_iana, &client_kem_blob, pq_kems_r1, 2, &negotiated_kem));
-            EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1);
-            negotiated_kem = NULL;
-
-            EXPECT_SUCCESS(s2n_kem_find_supported_kem(sike_iana, &client_kem_blob, pq_kems_r1r2, 4, &negotiated_kem));
-            EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1);
-            negotiated_kem = NULL;
+            EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1));
+            EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r1r2, 4, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1));
+            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1));
+            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r1r2, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1));
         }
         {
-            /* bike1l1r2, sikep434r2 */
-            uint8_t client_kems[] = {0x00, 0x0d, 0x00, 0x10};
-            struct s2n_blob client_kem_blob = {0};
-            EXPECT_SUCCESS(s2n_blob_init(&client_kem_blob, client_kems, 4));
+            uint8_t client_kems[] = {
+                    /* BIKE1_L1_R2 */
+                    0x00, 0x0d,
+                    /* SIKE_P434_R2 */
+                    0x00, 0x10
+            };
 
-            EXPECT_FAILURE_WITH_ERRNO(s2n_kem_find_supported_kem(bike_iana, &client_kem_blob, pq_kems_r1, 2, &negotiated_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-            EXPECT_NULL(negotiated_kem);
-
-            EXPECT_SUCCESS(s2n_kem_find_supported_kem(bike_iana, &client_kem_blob, pq_kems_r1r2, 4, &negotiated_kem));
-            EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2);
-            negotiated_kem = NULL;
-
-            EXPECT_FAILURE_WITH_ERRNO(s2n_kem_find_supported_kem(sike_iana, &client_kem_blob, pq_kems_r1, 2, &negotiated_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-            EXPECT_NULL(negotiated_kem);
-
-            EXPECT_SUCCESS(s2n_kem_find_supported_kem(sike_iana, &client_kem_blob, pq_kems_r1r2, 4, &negotiated_kem));
-            EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2);
-            negotiated_kem = NULL;
+            EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+            EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r1r2, 4, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2));
+            EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r1r2, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2));
         }
         {
-            /* bike1l1r1, sikep434r2 */
-            uint8_t client_kems[] = {0x00, 0x01, 0x00, 0x10};
-            struct s2n_blob client_kem_blob = {0};
-            EXPECT_SUCCESS(s2n_blob_init(&client_kem_blob, client_kems, 4));
+            uint8_t client_kems[] = {
+                    /* BIKE1_L1_R1 */
+                    0x00, 0x01,
+                    /* SIKE_P434_R2 */
+                    0x00, 0x10
+            };
 
-            EXPECT_SUCCESS(s2n_kem_find_supported_kem(bike_iana, &client_kem_blob, pq_kems_r1, 2, &negotiated_kem));
-            EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1);
-            negotiated_kem = NULL;
-
-            EXPECT_SUCCESS(s2n_kem_find_supported_kem(bike_iana, &client_kem_blob, pq_kems_r1r2, 4, &negotiated_kem));
-            EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1);
-            negotiated_kem = NULL;
-
-            EXPECT_FAILURE_WITH_ERRNO(s2n_kem_find_supported_kem(sike_iana, &client_kem_blob, pq_kems_r1, 2, &negotiated_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-            EXPECT_NULL(negotiated_kem);
-
-            EXPECT_SUCCESS(s2n_kem_find_supported_kem(sike_iana, &client_kem_blob, pq_kems_r1r2, 4, &negotiated_kem));
-            EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2);
-            negotiated_kem = NULL;
+            EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1));
+            EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r1r2, 4, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1));
+            EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r1r2, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2));
         }
         {
-            /* bike1l1r1, bike1l1r2 */
-            uint8_t client_kems[] = {0x00, 0x01, 0x00, 0x0d};
-            struct s2n_blob client_kem_blob = {0};
-            EXPECT_SUCCESS(s2n_blob_init(&client_kem_blob, client_kems, 4));
+            uint8_t client_kems[] = {
+                    /* BIKE1_L1_R1 */
+                    0x00, 0x01,
+                    /* BIKE1_L1_R2 */
+                    0x00, 0x0d
+            };
 
-            EXPECT_SUCCESS(s2n_kem_find_supported_kem(bike_iana, &client_kem_blob, pq_kems_r1, 2, &negotiated_kem));
-            EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1);
-            negotiated_kem = NULL;
-
-            EXPECT_SUCCESS(s2n_kem_find_supported_kem(bike_iana, &client_kem_blob, pq_kems_r1r2, 4, &negotiated_kem));
-            EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2);
-            negotiated_kem = NULL;
-
-            EXPECT_FAILURE_WITH_ERRNO(s2n_kem_find_supported_kem(sike_iana, &client_kem_blob, pq_kems_r1, 2, &negotiated_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-            EXPECT_NULL(negotiated_kem);
-
-            EXPECT_FAILURE_WITH_ERRNO(s2n_kem_find_supported_kem(sike_iana, &client_kem_blob, pq_kems_r1r2, 4, &negotiated_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-            EXPECT_NULL(negotiated_kem);
+            EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1));
+            EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r1r2, 4, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2));
+            EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+            EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r1r2, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
         }
         {
-            /* sikep434r2, sikep503r1 */
-            uint8_t client_kems[] = {0x00, 0x10, 0x00, 0x0a};
-            struct s2n_blob client_kem_blob = {0};
-            EXPECT_SUCCESS(s2n_blob_init(&client_kem_blob, client_kems, 4));
+            uint8_t client_kems[] = {
+                    /* SIKE_P434_R2 */
+                    0x00, 0x10,
+                    /* SIKE_P503_R1 */
+                    0x00, 0x0a
+            };
 
-            EXPECT_FAILURE_WITH_ERRNO(s2n_kem_find_supported_kem(bike_iana, &client_kem_blob, pq_kems_r1, 2, &negotiated_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-            EXPECT_NULL(negotiated_kem);
-
-            EXPECT_FAILURE_WITH_ERRNO(s2n_kem_find_supported_kem(bike_iana, &client_kem_blob, pq_kems_r1r2, 4, &negotiated_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-            EXPECT_NULL(negotiated_kem);
-
-            EXPECT_SUCCESS(s2n_kem_find_supported_kem(sike_iana, &client_kem_blob, pq_kems_r1, 2, &negotiated_kem));
-            EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1);
-            negotiated_kem = NULL;
-
-            EXPECT_SUCCESS(s2n_kem_find_supported_kem(sike_iana, &client_kem_blob, pq_kems_r1r2, 4, &negotiated_kem));
-            EXPECT_NOT_NULL(negotiated_kem);
-            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2);
-            negotiated_kem = NULL;
+            EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+            EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r1r2, 4, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1));
+            EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 2, pq_kems_r1r2, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2));
         }
         {
             /* If the client sends no KEMs, the server chooses whichever one it prefers. */
-            EXPECT_SUCCESS(s2n_kem_choose_server_preferred_kem(bike_iana, pq_kems_r1, 2, &negotiated_kem));
+            const struct s2n_kem *negotiated_kem = NULL;
+            EXPECT_SUCCESS(s2n_choose_kem_without_peer_pref_list(bike_iana, pq_kems_r1, 2, &negotiated_kem));
             EXPECT_NOT_NULL(negotiated_kem);
             EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1);
             negotiated_kem = NULL;
 
-            EXPECT_SUCCESS(s2n_kem_choose_server_preferred_kem(bike_iana, pq_kems_r1r2, 4, &negotiated_kem));
+            EXPECT_SUCCESS(s2n_choose_kem_without_peer_pref_list(bike_iana, pq_kems_r1r2, 4, &negotiated_kem));
             EXPECT_NOT_NULL(negotiated_kem);
             EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2);
             negotiated_kem = NULL;
 
-            EXPECT_SUCCESS(s2n_kem_choose_server_preferred_kem(sike_iana, pq_kems_r1, 2, &negotiated_kem));
+            EXPECT_SUCCESS(s2n_choose_kem_without_peer_pref_list(sike_iana, pq_kems_r1, 2, &negotiated_kem));
             EXPECT_NOT_NULL(negotiated_kem);
             EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1);
             negotiated_kem = NULL;
 
-            EXPECT_SUCCESS(s2n_kem_choose_server_preferred_kem(sike_iana, pq_kems_r1r2, 4, &negotiated_kem));
+            EXPECT_SUCCESS(s2n_choose_kem_without_peer_pref_list(sike_iana, pq_kems_r1r2, 4, &negotiated_kem));
             EXPECT_NOT_NULL(negotiated_kem);
             EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2);
             negotiated_kem = NULL;
@@ -314,29 +258,30 @@ int main(int argc, char **argv)
                     &s2n_bike1_l1_r2
             };
 
-            EXPECT_FAILURE_WITH_ERRNO(s2n_kem_choose_server_preferred_kem(bike_iana, sike_only_server_pref_list, 2, &negotiated_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+            const struct s2n_kem *negotiated_kem = NULL;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_choose_kem_without_peer_pref_list(bike_iana, sike_only_server_pref_list, 2, &negotiated_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
             EXPECT_NULL(negotiated_kem);
 
-            EXPECT_FAILURE_WITH_ERRNO(s2n_kem_choose_server_preferred_kem(sike_iana, bike_r2_only_server_pref_list, 1, &negotiated_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+            negotiated_kem = NULL;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_choose_kem_without_peer_pref_list(sike_iana, bike_r2_only_server_pref_list, 1, &negotiated_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
             EXPECT_NULL(negotiated_kem);
         }
     }
     {
         const struct s2n_iana_to_kem *compatible_params = NULL;
-        const uint8_t classic_ecdhe[S2N_TLS_CIPHER_SUITE_LEN] = {TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA};
-        EXPECT_FAILURE(s2n_cipher_suite_to_kem(classic_ecdhe, &compatible_params));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_cipher_suite_to_kem(classic_ecdhe_iana, &compatible_params), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
         EXPECT_NULL(compatible_params);
 
         compatible_params = NULL;
-        const uint8_t bike_iana[S2N_TLS_CIPHER_SUITE_LEN] = {TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384};
         EXPECT_SUCCESS(s2n_cipher_suite_to_kem(bike_iana, &compatible_params));
+        EXPECT_NOT_NULL(compatible_params);
         EXPECT_EQUAL(compatible_params->kem_count, 2);
         EXPECT_EQUAL(compatible_params->kems[0]->kem_extension_id, s2n_bike1_l1_r1.kem_extension_id);
         EXPECT_EQUAL(compatible_params->kems[1]->kem_extension_id, s2n_bike1_l1_r2.kem_extension_id);
 
         compatible_params = NULL;
-        const uint8_t sike_iana[S2N_TLS_CIPHER_SUITE_LEN] = {TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384};
         EXPECT_SUCCESS(s2n_cipher_suite_to_kem(sike_iana, &compatible_params));
+        EXPECT_NOT_NULL(compatible_params);
         EXPECT_EQUAL(compatible_params->kem_count, 2);
         EXPECT_EQUAL(compatible_params->kems[0]->kem_extension_id, s2n_sike_p503_r1.kem_extension_id);
         EXPECT_EQUAL(compatible_params->kems[1]->kem_extension_id, s2n_sike_p434_r2.kem_extension_id);

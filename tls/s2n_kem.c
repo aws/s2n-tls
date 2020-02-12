@@ -170,7 +170,7 @@ static int s2n_kem_check_kem_compatibility(const uint8_t iana_value[S2N_TLS_CIPH
     return 0;
 }
 
-int s2n_kem_find_supported_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], struct s2n_blob *client_kem_ids,
+int s2n_choose_kem_with_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], struct s2n_blob *client_kem_ids,
         const struct s2n_kem *server_kem_pref_list[], const uint8_t num_server_supported_kems, const struct s2n_kem **chosen_kem) {
     struct s2n_stuffer client_kem_ids_stuffer = {0};
     GUARD(s2n_stuffer_init(&client_kem_ids_stuffer, client_kem_ids));
@@ -194,7 +194,7 @@ int s2n_kem_find_supported_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN
             GUARD(s2n_stuffer_read_uint16(&client_kem_ids_stuffer, &candidate_client_kem_id));
 
             if (candidate_server_kem->kem_extension_id == candidate_client_kem_id) {
-                *chosen_kem = server_kem_pref_list[i];
+                *chosen_kem = candidate_server_kem;
                 return 0;
             }
         }
@@ -205,7 +205,7 @@ int s2n_kem_find_supported_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN
     S2N_ERROR(S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 }
 
-int s2n_kem_choose_server_preferred_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_kem *server_kem_pref_list[],
+int s2n_choose_kem_without_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_kem *server_kem_pref_list[],
         const uint8_t num_server_supported_kems, const struct s2n_kem **chosen_kem) {
     for (uint8_t i = 0; i < num_server_supported_kems; i++) {
         uint8_t kem_is_compatible = 0;
