@@ -29,12 +29,6 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
 
-static const s2n_authentication_method pkey_type_to_auth_method[] = {
-    [S2N_PKEY_TYPE_RSA] = S2N_AUTHENTICATION_RSA,
-    [S2N_PKEY_TYPE_RSA_PSS] = S2N_AUTHENTICATION_RSA_PSS,
-    [S2N_PKEY_TYPE_ECDSA] = S2N_AUTHENTICATION_ECDSA,
-};
-
 int s2n_cert_public_key_set_rsa_from_openssl(s2n_cert_public_key *public_key, RSA *openssl_rsa)
 {
     notnull_check(openssl_rsa);
@@ -475,15 +469,6 @@ int s2n_cert_chain_and_key_matches_dns_name(const struct s2n_cert_chain_and_key 
     return 0;
 }
 
-/*
- * Note that this assumes there is a 1:1 relationship between cert type and auth method.
- * This interface will need to be updated if s2n adds support for more than one auth method per certificate type.
- */
-s2n_authentication_method s2n_cert_chain_and_key_get_auth_method(struct s2n_cert_chain_and_key *chain_and_key)
-{
-    return pkey_type_to_auth_method[chain_and_key->cert_chain->head->pkey_type];
-}
-
 int s2n_cert_chain_and_key_set_ctx(struct s2n_cert_chain_and_key *cert_and_key, void *ctx)
 {
     cert_and_key->context = ctx;
@@ -493,4 +478,9 @@ int s2n_cert_chain_and_key_set_ctx(struct s2n_cert_chain_and_key *cert_and_key, 
 void *s2n_cert_chain_and_key_get_ctx(struct s2n_cert_chain_and_key *cert_and_key)
 {
     return cert_and_key->context;
+}
+
+s2n_pkey_type s2n_cert_chain_and_key_get_pkey_type(struct s2n_cert_chain_and_key *chain_and_key)
+{
+    return chain_and_key->cert_chain->head->pkey_type;
 }

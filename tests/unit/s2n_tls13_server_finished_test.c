@@ -15,6 +15,7 @@
 
 #include "s2n_test.h"
 
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "stuffer/s2n_stuffer.h"

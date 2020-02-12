@@ -20,6 +20,7 @@
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_openssl.h"
 
+#include "tls/s2n_auth_selection.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_kex.h"
@@ -1021,35 +1022,10 @@ static int s2n_wire_ciphers_contain(const uint8_t * match, const uint8_t * wire,
     return 0;
 }
 
-/* Find the optimal certificate that is compatible with a cipher.
- * The priority of set of certificates to choose from:
- * 1. Certificates that match the client's ServerName extension.
- * 2. Default certificates
- */
-struct s2n_cert_chain_and_key *s2n_conn_get_compatible_cert_chain_and_key(struct s2n_connection *conn, const s2n_authentication_method auth_method)
-{
-    if (conn->handshake_params.exact_sni_match_exists) {
-        /* This may return NULL if there was an SNI match, but not a match the cipher_suite's authentication type. */
-        return conn->handshake_params.exact_sni_matches[auth_method];
-    } if (conn->handshake_params.wc_sni_match_exists) {
-        return conn->handshake_params.wc_sni_matches[auth_method];
-    } else {
-        /* We don't have any name matches. Use the default certificate that works with the key type. */
-        return conn->config->default_cert_per_auth_method.certs[auth_method];
-    }
-}
-
-/* Sets the cipher suite as the server.
- * In TLS 1.2 or below, the certificate is also set for the connection.
- * In TLS 1.3, certificate algorithm is not part of the cipher suite, therefore
- * certificate selection is done at a later step during signature scheme selection.
- * In future, this function can be split into multiple functions for better clarity between TLS versions
- */
-static int s2n_set_cipher_and_cert_as_server(struct s2n_connection *conn, uint8_t * wire, uint32_t count, uint32_t cipher_suite_len)
+static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire, uint32_t count, uint32_t cipher_suite_len)
 {
     uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
     struct s2n_cipher_suite *higher_vers_match = NULL;
-    struct s2n_cert_chain_and_key *higher_vers_cert = NULL;
 
     /* RFC 7507 - If client is attempting to negotiate a TLS Version that is lower than the highest supported server
      * version, and the client cipher list contains TLS_FALLBACK_SCSV, then the server must abort the connection since
@@ -1073,7 +1049,6 @@ static int s2n_set_cipher_and_cert_as_server(struct s2n_connection *conn, uint8_
 
     /* s2n supports only server order */
     for (int i = 0; i < cipher_preferences->count; i++) {
-        conn->handshake_params.our_chain_and_key = NULL;
         const uint8_t *ours = cipher_preferences->suites[i]->iana_value;
 
         if (s2n_wire_ciphers_contain(ours, wire, count, cipher_suite_len)) {
@@ -1085,6 +1060,11 @@ static int s2n_set_cipher_and_cert_as_server(struct s2n_connection *conn, uint8_
                 match = match->sslv3_cipher_suite;
             }
 
+            /* Make sure the cipher is valid for available certs */
+            if (s2n_is_cipher_suite_valid_for_auth(conn, match) != S2N_SUCCESS) {
+                continue;
+            }
+
             /* Skip the suite if we don't have an available implementation */
             if (!match->available) {
                 continue;
@@ -1092,12 +1072,6 @@ static int s2n_set_cipher_and_cert_as_server(struct s2n_connection *conn, uint8_
 
             /* TLS 1.3 does not include key exchange in cipher suites */
             if (match->minimum_required_tls_version < S2N_TLS13) {
-                /* Skip the suite if it is not compatible with any certificates */
-                conn->handshake_params.our_chain_and_key = s2n_conn_get_compatible_cert_chain_and_key(conn, match->auth_method);
-                if (!conn->handshake_params.our_chain_and_key) {
-                    continue;
-                }
-
                 /* If the kex is not supported continue to the next candidate */
                 if (!s2n_kex_supported(match, conn)) {
                     continue;
@@ -1113,7 +1087,6 @@ static int s2n_set_cipher_and_cert_as_server(struct s2n_connection *conn, uint8_
             if (conn->client_protocol_version < match->minimum_required_tls_version) {
                 if (!higher_vers_match) {
                     higher_vers_match = match;
-                    higher_vers_cert = conn->handshake_params.our_chain_and_key;
                 }
                 continue;
             }
@@ -1126,19 +1099,18 @@ static int s2n_set_cipher_and_cert_as_server(struct s2n_connection *conn, uint8_
     /* Settle for a cipher with a higher required proto version, if it was set */
     if (higher_vers_match) {
         conn->secure.cipher_suite = higher_vers_match;
-        conn->handshake_params.our_chain_and_key = higher_vers_cert;
         return 0;
     }
 
     S2N_ERROR(S2N_ERR_CIPHER_NOT_SUPPORTED);
 }
 
-int s2n_set_cipher_and_cert_as_sslv2_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count)
+int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count)
 {
-    return s2n_set_cipher_and_cert_as_server(conn, wire, count, S2N_SSLv2_CIPHER_SUITE_LEN);
+    return s2n_set_cipher_as_server(conn, wire, count, S2N_SSLv2_CIPHER_SUITE_LEN);
 }
 
-int s2n_set_cipher_and_cert_as_tls_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count)
+int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count)
 {
-    return s2n_set_cipher_and_cert_as_server(conn, wire, count, S2N_TLS_CIPHER_SUITE_LEN);
+    return s2n_set_cipher_as_server(conn, wire, count, S2N_TLS_CIPHER_SUITE_LEN);
 }

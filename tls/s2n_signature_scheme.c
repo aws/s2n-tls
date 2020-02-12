@@ -157,7 +157,7 @@ const struct s2n_signature_scheme s2n_rsa_pss_pss_sha256 = {
         .hash_alg = S2N_HASH_SHA256,
         .sig_alg = S2N_SIGNATURE_RSA_PSS_PSS,
         .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
-        .maximum_protocol_version = S2N_TLS12,
+        .minimum_protocol_version = S2N_TLS13,
 };
 
 const struct s2n_signature_scheme s2n_rsa_pss_pss_sha384 = {
@@ -165,7 +165,7 @@ const struct s2n_signature_scheme s2n_rsa_pss_pss_sha384 = {
         .hash_alg = S2N_HASH_SHA384,
         .sig_alg = S2N_SIGNATURE_RSA_PSS_PSS,
         .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
-        .maximum_protocol_version = S2N_TLS12,
+        .minimum_protocol_version = S2N_TLS13,
 };
 
 const struct s2n_signature_scheme s2n_rsa_pss_pss_sha512 = {
@@ -173,7 +173,7 @@ const struct s2n_signature_scheme s2n_rsa_pss_pss_sha512 = {
         .hash_alg = S2N_HASH_SHA512,
         .sig_alg = S2N_SIGNATURE_RSA_PSS_PSS,
         .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
-        .maximum_protocol_version = S2N_TLS12,
+        .minimum_protocol_version = S2N_TLS13,
 };
 
 /* All Supported SignatureSchemes. */

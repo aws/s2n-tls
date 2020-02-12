@@ -125,6 +125,8 @@ int s2n_fd_set_non_blocking(int fd);
 
 /* Read a cert given a path into pem_out */
 int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size);
+int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_key,
+        const char *cert_chain_file, const char *private_key_file);
 
 int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn);
 int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn);

@@ -46,7 +46,7 @@ struct s2n_config {
      * used to release memory allocated only in the deprecated API that the application 
      * does not have a reference to. */
     struct s2n_map *domain_name_to_cert_map;
-    struct auth_method_to_cert_value default_cert_per_auth_method;
+    struct certs_by_type default_certs_by_type;
     struct s2n_blob application_protocols;
     s2n_status_request_type status_request_type;
     s2n_clock_time_nanoseconds wall_clock;
