@@ -44,6 +44,7 @@
 #define TLS_CLIENT_HELLO               1
 #define TLS_SERVER_HELLO               2
 #define TLS_SERVER_NEW_SESSION_TICKET  4
+#define TLS_HELLO_RETRY_REQUEST        6
 #define TLS_ENCRYPTED_EXTENSIONS       8
 #define TLS_CERTIFICATE               11
 #define TLS_SERVER_KEY                12
@@ -54,6 +55,9 @@
 #define TLS_FINISHED                  20
 #define TLS_SERVER_CERT_STATUS        22
 #define TLS_SERVER_SESSION_LOOKUP     23
+#define TLS_MESSAGE_HASH             254
+
+#define MESSAGE_HASH_HEADER_LENGTH  4
 
 struct s2n_handshake_action {
     uint8_t record_type;
@@ -418,6 +422,22 @@ static int s2n_advance_message(struct s2n_connection *conn)
         this_mode = 'C';
     }
 
+    /* If we were responding to a client hello with a retry request, reset the handshake */
+    if (conn->handshake.message_number == SERVER_HELLO && conn->handshake.server_sent_hrr == 1) {
+        /* Reset handshake state */
+        conn->handshake.requires_retry = 0;
+        conn->handshake.client_hello_received = 0;
+        conn->handshake.handshake_type = INITIAL;
+        conn->handshake.message_number = CLIENT_HELLO;
+
+        /* Reset client hello state */
+        GUARD(s2n_stuffer_wipe(&conn->client_hello.raw_message));
+        GUARD(s2n_stuffer_resize(&conn->client_hello.raw_message, 0));
+        GUARD(s2n_client_hello_free(&conn->client_hello));
+        GUARD(s2n_stuffer_growable_alloc(&conn->client_hello.raw_message, 0));
+        return 0;
+    }
+
     /* Actually advance the message number */
     conn->handshake.message_number++;
 
@@ -482,6 +502,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
     /* In the initial TLS1.3 release, we will only support the basic handshake. */
     if (IS_TLS13_HANDSHAKE(conn)) {
+        /* We */
         conn->handshake.handshake_type |= FULL_HANDSHAKE;
         return 0;
     }
@@ -695,6 +716,13 @@ static int s2n_conn_post_handshake_hashes_update(struct s2n_connection *conn)
 
     switch(s2n_conn_get_current_message_type(conn)) {
     case SERVER_HELLO:
+        /* If we are sending a retry request, we didn't decide on a key share. There are no secrets to handle */
+        if (conn->handshake.server_sent_hrr==1) {
+            /* s2n_ecc_evp_compute_shared_secret_from_params will fail inside s2n_tls13_handle_handshake_secrets
+             * so we want to break out here. */
+            break;
+        }
+
         GUARD(s2n_tls13_handle_handshake_secrets(conn));
         GUARD(s2n_blob_zero(&client_seq));
         GUARD(s2n_blob_zero(&server_seq));
@@ -713,6 +741,29 @@ static int s2n_conn_post_handshake_hashes_update(struct s2n_connection *conn)
     return 0;
 }
 
+/*
+static int show_current_hash(struct s2n_connection *conn)
+{
+    struct s2n_tls13_keys keys;
+    GUARD(s2n_tls13_keys_from_conn(&keys, conn));
+    const uint8_t hash_digest_length = keys.size;
+
+    struct s2n_hash_state hash_state, hash_copy;
+    uint8_t hash_bytes[S2N_MAX_DIGEST_LEN];
+
+    GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
+    GUARD(s2n_hash_new(&hash_copy));
+    GUARD(s2n_hash_copy(&hash_copy, &hash_state));
+    GUARD(s2n_hash_digest(&hash_copy, hash_bytes, hash_digest_length));
+    GUARD(s2n_hash_free(&hash_copy));
+    printf(" --- [] Current Transcription Hash:\n\t\t");
+    for (int i=0; i<hash_digest_length; i++) printf("%02x, ", hash_bytes[i]);
+    printf("\n");
+
+    return 0;
+}
+*/
+
 /* Writing is relatively straight forward, simply write each message out as a record,
  * we may fragment a message across multiple records, but we never coalesce multiple
  * messages into single records. 
@@ -729,11 +780,11 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
      */
     if (s2n_stuffer_is_wiped(&conn->handshake.io)) {
         if (record_type == TLS_HANDSHAKE) {
-            GUARD(s2n_handshake_write_header(conn, ACTIVE_STATE(conn).message_type));
+            GUARD(s2n_handshake_write_header(&conn->handshake.io, ACTIVE_STATE(conn).message_type));
         }
         GUARD(ACTIVE_STATE(conn).handler[conn->mode] (conn));
         if (record_type == TLS_HANDSHAKE) {
-            GUARD(s2n_handshake_finish_header(conn));
+            GUARD(s2n_handshake_finish_header(&conn->handshake.io));
         }
     }
 
@@ -875,6 +926,83 @@ static int s2n_try_delete_session_cache(struct s2n_connection *conn)
     return 0;
 }
 
+/* HelloRetryRequests need to recreate the transcript after the ClientHello2 message is received.
+ * Doing this requires a synthetic message header, a hash of the ClientHello1 message, and a
+ * hash of the HelloRetryRequest. This should be done without having to store any state. To achieve
+ * this, here is where we get the data:
+ *
+ * ClientHello1 => This is a hash value that is stored in the cookie extension.
+ * HelloRetryRequest => This message should be re-created based on the ClientHello values.
+ *                      This works because nothing should change between ClientHello1 and
+ *                      ClientHello2 aside from the key share.
+ * ClientHello2 => This is the message currently in conn->handshake.io. We don't need to
+ *                 do anything with this message because the read_io() function will do it
+ *                 for us.
+ *
+ * https://tools.ietf.org/html/rfc8446#section-4.4.1
+ */
+static int s2n_server_hello_retry_create_transcript(struct s2n_connection *conn)
+{
+    struct s2n_tls13_keys keys;
+    GUARD(s2n_tls13_keys_from_conn(&keys, conn));
+    const uint8_t hash_digest_length = keys.size;
+
+
+    /* Create the MessageHash (our synthetic message) */
+    uint8_t msghdr[MESSAGE_HASH_HEADER_LENGTH] = {0};
+    msghdr[0] = TLS_MESSAGE_HASH;
+    msghdr[MESSAGE_HASH_HEADER_LENGTH - 1] = hash_digest_length;
+
+    struct s2n_hash_state *hash_state = &conn->handshake.sha384;
+
+    /* Save the ClientHello1 hash, which comes from the cookie */
+    uint16_t hash_len = s2n_stuffer_data_available(&conn->cookie_stuffer);
+    uint8_t client_hello1_hash_bytes[64];
+    GUARD(s2n_stuffer_read_bytes(&conn->cookie_stuffer, client_hello1_hash_bytes, hash_len));
+
+    /* Recreate the HelloRetryRequest */
+    struct s2n_stuffer hrr_stuffer;
+    GUARD(s2n_stuffer_growable_alloc(&hrr_stuffer, 0));
+
+    /* Write the header */
+    GUARD(s2n_handshake_write_header(&hrr_stuffer, 2));
+
+    /* Write the main message body just like the handshake machine would have done */
+    GUARD(s2n_server_hello_retry_write_message(conn->session_id, conn->session_id_len, conn->secure.cipher_suite, &hrr_stuffer));
+
+    /* Write the extensions as they would be written if the server was sending a HelloRetryRequest */
+    conn->handshake.server_sent_hrr = 1;
+    GUARD(s2n_server_extensions_send(conn, &hrr_stuffer));
+    conn->handshake.server_sent_hrr = 0;
+
+    /* Finish up the header */
+    GUARD(s2n_handshake_finish_header(&hrr_stuffer));
+
+
+    /* Create the transcript */
+
+    /* Step 1: Reset the hash value */
+    GUARD(s2n_hash_reset(hash_state));
+
+    /* Step 2: Update the transcript with the synthetic message */
+    GUARD(s2n_hash_update(hash_state, msghdr, MESSAGE_HASH_HEADER_LENGTH));
+
+    /* Step 3: Update the transcript with the ClientHello1 hash */
+    GUARD(s2n_hash_update(hash_state, client_hello1_hash_bytes, hash_len));
+
+    /* Step 4: Update the transcript with the saved HelloRetryRequest hash */
+    struct s2n_blob out = {0};
+    out.size = s2n_stuffer_data_available(&hrr_stuffer);
+    out.data = s2n_stuffer_raw_read(&hrr_stuffer, out.size);
+    notnull_check(out.data);
+    GUARD(s2n_hash_update(hash_state, out.data, out.size));
+
+    /* We are done with the cookie value */
+    GUARD(s2n_stuffer_wipe(&conn->cookie_stuffer));
+
+    return 0;
+}
+
 /* Reading is a little more complicated than writing as the TLS RFCs allow content
  * types to be interleaved at the record layer. We may get an alert message
  * during the handshake phase, or messages of types that we don't support (e.g.
@@ -935,6 +1063,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         return 0;
     }
 
+
     /* Record is a handshake message */
     S2N_ERROR_IF(s2n_stuffer_data_available(&conn->in) == 0, S2N_ERR_BAD_MESSAGE);
     
@@ -977,6 +1106,13 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
 
         /* Call the relevant handler */
         r = ACTIVE_STATE(conn).handler[conn->mode] (conn);
+
+
+        /* If we have a cookie and a HelloRetryRequest was sent, we need to update the transcript */
+        if (s2n_stuffer_data_available(&conn->cookie_stuffer) > 0 && conn->handshake.server_sent_hrr == 1) {
+            GUARD(s2n_server_hello_retry_create_transcript(conn));
+            /* Below, the connection hashes are updated. This will update the transcript with ClientHello2 */
+        }
 
         /* Don't update handshake hashes until after the handler has executed since some handlers need to read the
          * hash values before they are updated. */
@@ -1083,6 +1219,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
                 const char *write_s2n_debug_str = s2n_debug_str;
 
                 if (s2n_handshake_read_io(conn) < 0 && s2n_errno == S2N_ERR_ALERT) {
+                /* if (s2n_errno == S2N_ERR_ALERT && s2n_handshake_read_io(conn) < 0) { */
                     /* s2n_handshake_read_io has set s2n_errno */
                     S2N_ERROR_PRESERVE_ERRNO();
                 } else {
@@ -1095,6 +1232,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
             }
         } else {
             *blocked = S2N_BLOCKED_ON_READ;
+
             int r = s2n_handshake_read_io(conn);
 
             if (r < 0) {

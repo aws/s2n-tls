@@ -304,3 +304,9 @@ extern int s2n_connection_get_protocol_preferences(struct s2n_connection *conn, 
 extern int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type);
 extern int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type *client_cert_auth_type);
 extern int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len);
+
+extern int s2n_connection_wipe_keys(struct s2n_connection *conn);
+extern int s2n_connection_reset_hashes(struct s2n_connection *conn);
+extern int s2n_connection_reset_hmacs(struct s2n_connection *conn);
+extern int s2n_connection_init_hashes(struct s2n_connection *conn);
+extern int s2n_connection_init_hmacs(struct s2n_connection *conn);

@@ -13,10 +13,22 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/s2n_tls.h"
 #include "tls/extensions/s2n_server_key_share.h"
 
 #include "tls/s2n_client_extensions.h"
 #include "utils/s2n_safety.h"
+
+
+/* HelloRetryRequests require a different KeyShare format.
+ * This function tells us if we should use that KeyShareHelloRetryRequest format.
+ *
+ * https://tools.ietf.org/html/rfc8446#section-4.2.8
+ */
+static int s2n_requires_retry_format(struct s2n_connection *conn)
+{
+    return s2n_server_requires_retry(conn) || conn->handshake.server_sent_hrr == 1;
+}
 
 /*
  * Check whether client has sent a corresponding curve and key_share
@@ -34,6 +46,7 @@ int s2n_extensions_server_key_share_send_check(struct s2n_connection *conn)
             break;
         }
     }
+
     gt_check(curve_index, -1);
 
     const struct s2n_ecc_evp_params client_ecc_evp = conn->secure.client_ecc_evp_params[curve_index];
@@ -56,15 +69,24 @@ int s2n_extensions_server_key_share_send_size(struct s2n_connection *conn)
 {
     const struct s2n_ecc_named_curve* curve = conn->secure.server_ecc_evp_params.negotiated_curve;
 
+    /* Retry requests have a different key share format, so the size is only includes the named group */
+    if (s2n_requires_retry_format(conn)) {
+        const int retry_key_share_size = S2N_SIZE_OF_EXTENSION_TYPE
+            + S2N_SIZE_OF_EXTENSION_DATA_SIZE
+            + S2N_SIZE_OF_NAMED_GROUP;
+        return retry_key_share_size;
+    } 
+
+    /* If this is not a retry request and the curve is NULL, we aren't sending a key share */
     if (curve == NULL) {
         return 0;
     }
 
     const int key_share_size = S2N_SIZE_OF_EXTENSION_TYPE
-        + S2N_SIZE_OF_EXTENSION_DATA_SIZE
-        + S2N_SIZE_OF_NAMED_GROUP
-        + S2N_SIZE_OF_KEY_SHARE_SIZE
-        + curve->share_size;
+            + S2N_SIZE_OF_EXTENSION_DATA_SIZE
+            + S2N_SIZE_OF_NAMED_GROUP
+            + S2N_SIZE_OF_KEY_SHARE_SIZE
+            + curve->share_size;
 
     return key_share_size;
 }
@@ -76,7 +98,11 @@ int s2n_extensions_server_key_share_send_size(struct s2n_connection *conn)
  */
 int s2n_extensions_server_key_share_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    GUARD(s2n_extensions_server_key_share_send_check(conn));
+    /* Key share checks will only work if we are not sending a retry */
+    if (!s2n_server_requires_retry(conn) && conn->handshake.server_sent_hrr == 0) {
+        GUARD(s2n_extensions_server_key_share_send_check(conn));
+    }
+
     notnull_check(out);
 
     GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_KEY_SHARE));
@@ -84,6 +110,17 @@ int s2n_extensions_server_key_share_send(struct s2n_connection *conn, struct s2n
         - S2N_SIZE_OF_EXTENSION_TYPE
         - S2N_SIZE_OF_EXTENSION_DATA_SIZE
     ));
+
+    /* Retry requests only require the selected named group, not an actual share.
+     * https://tools.ietf.org/html/rfc8446#section-4.2.8 */
+    if (s2n_requires_retry_format(conn)) {
+        notnull_check(conn->secure.server_ecc_evp_params.negotiated_curve);
+
+        /* There was a mutually supported group, so that is the group we will select */
+        uint16_t curve = conn->secure.server_ecc_evp_params.negotiated_curve->iana_id;
+        GUARD(s2n_stuffer_write_uint16(out, curve));
+        return 0;
+    } 
 
     GUARD(s2n_ecdhe_parameters_send(&conn->secure.server_ecc_evp_params, out));
 
@@ -102,10 +139,17 @@ int s2n_extensions_server_key_share_recv(struct s2n_connection *conn, struct s2n
 
     uint16_t named_group, share_size;
 
-    /* Make sure we can read the next 4 bytes */
-    S2N_ERROR_IF(s2n_stuffer_data_available(extension) < 4, S2N_ERR_BAD_KEY_SHARE);
-
+    /* Make sure we can read the named group */
+    S2N_ERROR_IF(s2n_stuffer_data_available(extension) < 2, S2N_ERR_BAD_KEY_SHARE);
     GUARD(s2n_stuffer_read_uint16(extension, &named_group));
+
+    /* If this is a HelloRetryRequest, we won't have a key share. We just have the selected group. */
+    if (s2n_server_hello_is_retry(conn)) {
+        return 0;
+    }
+
+    /* Make sure we can read the key share size */
+    S2N_ERROR_IF(s2n_stuffer_data_available(extension) < 2, S2N_ERR_BAD_KEY_SHARE);
     GUARD(s2n_stuffer_read_uint16(extension, &share_size));
 
     /* and the remaining amount of bytes */

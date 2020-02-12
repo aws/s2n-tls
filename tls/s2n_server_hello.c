@@ -89,7 +89,16 @@ static int s2n_server_add_downgrade_mechanism(struct s2n_connection *conn) {
     return 0;
 }
 
-int s2n_server_hello_recv(struct s2n_connection *conn)
+extern const uint8_t hello_retry_req_random[S2N_TLS_RANDOM_DATA_LEN];
+
+bool s2n_server_hello_is_retry(struct s2n_connection *conn)
+{
+    bool has_correct_random = s2n_constant_time_equals(hello_retry_req_random, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN);
+
+    return has_correct_random;
+}
+
+int s2n_parse_server_hello(struct s2n_connection *conn)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
     uint8_t compression_method;
@@ -125,12 +134,6 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
     }
 
     if (conn->server_protocol_version >= S2N_TLS13) {
-        /* verify if it is a hello retry request*/
-        if (s2n_is_hello_retry_req(conn)) {
-            GUARD(s2n_server_hello_retry_recv(conn));
-        }
-
-        /* Check echoed session ID matches */
         S2N_ERROR_IF(session_id_len != conn->session_id_len || memcmp(session_id, conn->session_id, session_id_len), S2N_ERR_BAD_MESSAGE);
         conn->actual_protocol_version = conn->server_protocol_version;
         GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
@@ -173,6 +176,22 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         }
     }
 
+    return 0;
+}
+
+
+int s2n_server_hello_recv(struct s2n_connection *conn)
+{
+    /* Read the message off the wire */
+    GUARD(s2n_parse_server_hello(conn));
+
+    /* If this is a retry request, we have to move forward a little differently */
+    if (conn->server_protocol_version == S2N_TLS13 && conn->client_protocol_version == S2N_TLS13 && s2n_server_hello_is_retry(conn)) {
+        GUARD(s2n_server_hello_retry_recv(conn));
+        conn->handshake.client_received_hrr = 1;
+        return 0;
+    }
+
     conn->actual_protocol_version_established = 1;
 
     GUARD(s2n_conn_set_handshake_type(conn));
@@ -195,15 +214,30 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
     return 0;
 }
 
+static int s2n_hello_retry_required(struct s2n_connection *conn)
+{
+    notnull_check(conn);
+
+    return conn->handshake.requires_retry == 1; 
+}
+
 int s2n_server_hello_send(struct s2n_connection *conn)
 {
+    /* If a curve was not negotiated we need to retry */
+    if (s2n_hello_retry_required(conn) > 0) {
+        GUARD(s2n_server_hello_retry_send(conn));
+        return 0;
+    }
+
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_stuffer server_random = {0};
     struct s2n_blob b, rand_data;
-    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
     b.data = conn->secure.server_random;
     b.size = S2N_TLS_RANDOM_DATA_LEN;
+
+    /* The server is not sending a request, so clear that field to prevent any extensions from looking at it */
+    conn->handshake.server_sent_hrr = 0;
 
     /* Create the server random data */
     GUARD(s2n_stuffer_init(&server_random, &b));
@@ -213,8 +247,11 @@ int s2n_server_hello_send(struct s2n_connection *conn)
     notnull_check(rand_data.data);
     GUARD(s2n_get_public_random_data(&rand_data));
 
-    protocol_version[0] = (uint8_t)(conn->actual_protocol_version / 10);
-    protocol_version[1] = (uint8_t)(conn->actual_protocol_version % 10);
+    /* Server hello should respond with the legacy version, not the actual version */
+    uint16_t legacy_protocol_version = MIN(conn->actual_protocol_version, S2N_TLS12);
+    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
+    protocol_version[0] = (uint8_t)(legacy_protocol_version / 10);
+    protocol_version[1] = (uint8_t)(legacy_protocol_version % 10);
 
     GUARD(s2n_server_add_downgrade_mechanism(conn));
 

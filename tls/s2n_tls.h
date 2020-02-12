@@ -30,7 +30,7 @@ extern int s2n_establish_session(struct s2n_connection *conn);
 extern int s2n_sslv2_client_hello_recv(struct s2n_connection *conn);
 extern int s2n_server_hello_retry_send(struct s2n_connection *conn);
 extern int s2n_server_hello_retry_recv(struct s2n_connection *conn);
-extern bool s2n_is_hello_retry_req(struct s2n_connection *conn);
+extern int s2n_parse_server_hello(struct s2n_connection *conn);
 extern int s2n_server_hello_send(struct s2n_connection *conn);
 extern int s2n_server_hello_recv(struct s2n_connection *conn);
 extern int s2n_encrypted_extensions_send(struct s2n_connection *conn);
@@ -68,8 +68,8 @@ extern int s2n_tls13_client_finished_recv(struct s2n_connection *conn);
 extern int s2n_tls13_server_finished_send(struct s2n_connection *conn);
 extern int s2n_tls13_server_finished_recv(struct s2n_connection *conn);
 extern int s2n_process_client_hello(struct s2n_connection *conn);
-extern int s2n_handshake_write_header(struct s2n_connection *conn, uint8_t message_type);
-extern int s2n_handshake_finish_header(struct s2n_connection *conn);
+extern int s2n_handshake_write_header(struct s2n_stuffer *out, uint8_t message_type);
+extern int s2n_handshake_finish_header(struct s2n_stuffer *out);
 extern int s2n_handshake_parse_header(struct s2n_connection *conn, uint8_t * message_type, uint32_t * length);
 extern int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int *isSSLv2);
 extern int s2n_recv_close_notify(struct s2n_connection *conn, s2n_blocked_status * blocked);
@@ -79,6 +79,11 @@ extern int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_st
 extern int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *extensions);
 
 extern uint16_t mfl_code_to_length[5];
+
+bool s2n_server_requires_retry(struct s2n_connection *conn);
+bool s2n_hello_retry_is_valid(struct s2n_connection *conn);
+bool s2n_server_hello_is_retry(struct s2n_connection *conn);
+int s2n_server_hello_retry_write_message(uint8_t *session_id, uint8_t session_id_len, struct s2n_cipher_suite *cipher, struct s2n_stuffer *out);
 
 #define s2n_server_received_server_name(conn) ((conn)->server_name[0] != 0)
 

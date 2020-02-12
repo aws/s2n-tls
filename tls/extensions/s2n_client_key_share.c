@@ -75,6 +75,10 @@ int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n
     struct s2n_blob point_blob;
     uint16_t named_group, share_size;
     uint32_t supported_curve_index;
+    int preferred_named_group_index=-1;
+
+    /* Whether a match was found */
+    uint8_t match = 0;
 
     /* bytes_processed is declared as a uint32_t to avoid integer overflow in later calculations */
     uint32_t bytes_processed = 0;
@@ -89,6 +93,9 @@ int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n
         supported_curve = NULL;
         for (uint32_t i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
             if (named_group == s2n_ecc_evp_supported_curves_list[i]->iana_id) {
+                if (preferred_named_group_index == -1) {
+                    preferred_named_group_index = i;
+                }
                 supported_curve_index = i;
                 supported_curve = s2n_ecc_evp_supported_curves_list[i];
                 break;
@@ -121,7 +128,13 @@ int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n
             conn->secure.client_ecc_evp_params[supported_curve_index].negotiated_curve = NULL;
             GUARD(s2n_ecc_evp_params_free(&conn->secure.client_ecc_evp_params[supported_curve_index]));
         }
+
+        match = 1;
     }
+
+    if (match == 0) {
+        conn->handshake.requires_retry = 1;
+    } 
 
     return 0;
 }

@@ -191,6 +191,7 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     client_hello->cipher_suites.size = cipher_suites_length;
     client_hello->cipher_suites.data = s2n_stuffer_raw_read(in, cipher_suites_length);
     notnull_check(client_hello->cipher_suites.data);
+
     /* Don't choose the cipher yet, read the extensions first */
     uint8_t num_compression_methods = 0;
     GUARD(s2n_stuffer_read_uint8(in, &num_compression_methods));

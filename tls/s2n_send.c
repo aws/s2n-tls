@@ -58,6 +58,7 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status * blocked)
 
     /* If there's an alert pending out, send that */
     if (s2n_stuffer_data_available(&conn->reader_alert_out) == 2) {
+        printf(" --- [flush] reader alert\n");
         struct s2n_blob alert = {0};
         alert.data = conn->reader_alert_out.blob.data;
         alert.size = 2;
@@ -71,6 +72,7 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status * blocked)
 
     /* Do the same for writer driven alerts */
     if (s2n_stuffer_data_available(&conn->writer_alert_out) == 2) {
+        printf(" --- [flush] writer alert\n");
         struct s2n_blob alert = {0};
         alert.data = conn->writer_alert_out.blob.data;
         alert.size = 2;

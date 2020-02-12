@@ -27,32 +27,32 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_map.h"
 
-int s2n_handshake_write_header(struct s2n_connection *conn, uint8_t message_type)
+int s2n_handshake_write_header(struct s2n_stuffer *out, uint8_t message_type)
 {
-    S2N_ERROR_IF(s2n_stuffer_data_available(&conn->handshake.io), S2N_ERR_HANDSHAKE_STATE);
+    S2N_ERROR_IF(s2n_stuffer_data_available(out), S2N_ERR_HANDSHAKE_STATE);
 
     /* Write the message header */
-    GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, message_type));
+    GUARD(s2n_stuffer_write_uint8(out, message_type));
 
     /* Leave the length blank for now */
     uint16_t length = 0;
-    GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, length));
+    GUARD(s2n_stuffer_write_uint24(out, length));
 
     return 0;
 }
 
-int s2n_handshake_finish_header(struct s2n_connection *conn)
+int s2n_handshake_finish_header(struct s2n_stuffer *out)
 {
-    uint16_t length = s2n_stuffer_data_available(&conn->handshake.io);
+    uint16_t length = s2n_stuffer_data_available(out);
     S2N_ERROR_IF(length < TLS_HANDSHAKE_HEADER_LENGTH, S2N_ERR_SIZE_MISMATCH);
 
     uint16_t payload = length - TLS_HANDSHAKE_HEADER_LENGTH;
 
     /* Write the message header */
-    GUARD(s2n_stuffer_rewrite(&conn->handshake.io));
-    GUARD(s2n_stuffer_skip_write(&conn->handshake.io, 1));
-    GUARD(s2n_stuffer_write_uint24(&conn->handshake.io, payload));
-    GUARD(s2n_stuffer_skip_write(&conn->handshake.io, payload));
+    GUARD(s2n_stuffer_rewrite(out));
+    GUARD(s2n_stuffer_skip_write(out, 1));
+    GUARD(s2n_stuffer_write_uint24(out, payload));
+    GUARD(s2n_stuffer_skip_write(out, payload));
 
     return 0;
 }
