@@ -67,15 +67,6 @@ jobs:
     dist: bionic
     env: S2N_LIBCRYPTO=openssl-1.0.2-fips LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=90
   
-# Formal Verification - Sidetrail
-  - os : linux
-    dist: trusty
-    env: TESTS=sidetrail PART=1
-
-  - os : linux
-    dist: trusty
-    env: TESTS=sidetrail PART=2
-
 before_install:
   - source .travis/s2n_setup_env.sh
 

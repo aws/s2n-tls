@@ -17,7 +17,7 @@ set -e
 set -x
 
 usage() {
-    echo "install_ctverif.sh install_dir"
+    echo "install_sidetrail.sh install_dir"
     exit 1
 }
 
