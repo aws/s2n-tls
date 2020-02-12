@@ -23,7 +23,7 @@
 ////////////////////////////////////////////
 //             Basic defs
 ///////////////////////////////////////////
-#define FUNC_PREFIX BIKE1_L1_R1
+#define FUNC_PREFIX BIKE1_L1_R2
 #include "functions_renaming.h"
 
 #ifdef __cplusplus
