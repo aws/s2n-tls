@@ -328,24 +328,6 @@ typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED, S2N_CERT_AUTH_OPTIONA
 **s2n_cert_auth_type** is used to declare what type of client certificiate authentication to use.
 Currently the default for s2n is for neither the server side or the client side to use Client (aka Mutual) authentication.
 
-### s2n_cert_type
-
-```c
-typedef enum {
-    S2N_CERT_TYPE_RSA_SIGN = 1,
-    S2N_CERT_TYPE_DSS_SIGN = 2,
-    S2N_CERT_TYPE_RSA_FIXED_DH = 3,
-    S2N_CERT_TYPE_DSS_FIXED_DH = 4,
-    S2N_CERT_TYPE_RSA_EPHEMERAL_DH_RESERVED = 5,
-    S2N_CERT_TYPE_DSS_EPHEMERAL_DH_RESERVED = 6,
-    S2N_CERT_TYPE_FORTEZZA_DMS_RESERVED = 20,
-    S2N_CERT_TYPE_ECDSA_SIGN = 64,
-    S2N_CERT_TYPE_RSA_FIXED_ECDH = 65,
-    S2N_CERT_TYPE_ECDSA_FIXED_ECDH = 66,
-} s2n_cert_type;
-```
-**s2n_cert_type** is used to define what type of Certificate was used in a connection.
-
 ## Opaque structures
 
 s2n defines several opaque structures that are used for managed objects. Because
