@@ -27,6 +27,11 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
+    if (s2n_is_in_fips_mode()) {
+        /* There is no support for PQ KEMs while in FIPS mode */
+        END_TEST();
+    }
+
     EXPECT_SUCCESS(SIKE_P503_r1_crypto_kem_keypair(pub_key, priv_key));
     EXPECT_SUCCESS(SIKE_P503_r1_crypto_kem_enc(ciphertext, c_shared_secret, pub_key));
     EXPECT_SUCCESS(SIKE_P503_r1_crypto_kem_dec(s_shared_secret, ciphertext, priv_key));

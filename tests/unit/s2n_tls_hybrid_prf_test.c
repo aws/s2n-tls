@@ -26,6 +26,7 @@
 #include "tls/s2n_prf.h"
 #include "utils/s2n_safety.h"
 #include "tests/testlib/s2n_nist_kats.h"
+#include "crypto/s2n_fips.h"
 
 #define KAT_FILE_NAME "kats/hybrid_prf.kat"
 
@@ -41,6 +42,11 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+
+    if (s2n_is_in_fips_mode()) {
+        /* There is no support for PQ KEMs while in FIPS mode */
+        END_TEST();
+    }
 
     FILE *kat_file = fopen(KAT_FILE_NAME, "r");
     EXPECT_NOT_NULL(kat_file);

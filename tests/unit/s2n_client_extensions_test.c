@@ -30,6 +30,7 @@
 #include "tls/s2n_kem.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_tls_parameters.h"
+#include "crypto/s2n_fips.h"
 
 #define ZERO_TO_THIRTY_ONE  0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, \
                             0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
@@ -69,6 +70,8 @@ extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *c
 static int negotiate_kem(const uint8_t client_extensions[], const size_t client_extensions_len, const uint8_t client_hello_message[],
                                 const size_t client_hello_len, const char cipher_pref_version[], const int expected_kem_id,
                                 struct s2n_test_piped_io *piped_io) {
+    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+
     char *cert_chain;
     char *private_key;
 
@@ -1190,289 +1193,298 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
     }
 
-    /* All PQ KEM byte values are from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-02 */
-    {
-        /* Expect SIKE_P434_R2 KEM - client requests SIKE ciphersuite and provides
-         * SIKE_P434_R2 extension (plus other irrelevant KEM extensions);
-         * server is using the round 1 + round 2 preference list */
-        uint8_t client_extensions[] = {
-                /* Extension type pq_kem_parameters */
-                0xFE, 0x01,
-                /* Extension size */
-                0x00, 0x08,
-                /* KEM names len */
-                0x00, 0x06,
-                /* BIKE1_L1_R1 */
-                0x00, 0x01,
-                /* SIKE_P434_R2 */
-                0x00, 0x10,
-                /* BIKE1_L1_R2 */
-                0x00, 0x0D,
-        };
-        size_t client_extensions_len = sizeof(client_extensions);
-        uint8_t client_hello_message[] = {
-                /* Protocol version TLS 1.2 */
-                0x03, 0x03,
-                /* Client random */
-                ZERO_TO_THIRTY_ONE,
-                /* SessionID len - 32 bytes */
-                0x20,
-                /* Session ID */
-                ZERO_TO_THIRTY_ONE,
-                /* Cipher suites len */
-                0x00, 0x02,
-                /* Cipher suite - TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 */
-                0xFF, 0x08,
-                /* Compression methods len */
-                0x01,
-                /* Compression method - none */
-                0x00,
-                /* Extensions len */
-                (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
-        };
-        size_t client_hello_len = sizeof(client_hello_message);
+    if (!s2n_is_in_fips_mode()) {
+        /* PQ KEMs are not supported when in FIPS mode */
+        /* All PQ KEM byte values are from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-02 */
+        {
+            /* Expect SIKE_P434_R2 KEM - client requests SIKE ciphersuite and provides
+             * SIKE_P434_R2 extension (plus other irrelevant KEM extensions);
+             * server is using the round 1 + round 2 preference list */
+            uint8_t client_extensions[] = {
+                    /* Extension type pq_kem_parameters */
+                    0xFE, 0x01,
+                    /* Extension size */
+                    0x00, 0x08,
+                    /* KEM names len */
+                    0x00, 0x06,
+                    /* BIKE1_L1_R1 */
+                    0x00, 0x01,
+                    /* SIKE_P434_R2 */
+                    0x00, 0x10,
+                    /* BIKE1_L1_R2 */
+                    0x00, 0x0D,
+            };
+            size_t client_extensions_len = sizeof(client_extensions);
+            uint8_t client_hello_message[] = {
+                    /* Protocol version TLS 1.2 */
+                    0x03, 0x03,
+                    /* Client random */
+                    ZERO_TO_THIRTY_ONE,
+                    /* SessionID len - 32 bytes */
+                    0x20,
+                    /* Session ID */
+                    ZERO_TO_THIRTY_ONE,
+                    /* Cipher suites len */
+                    0x00, 0x02,
+                    /* Cipher suite - TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 */
+                    0xFF, 0x08,
+                    /* Compression methods len */
+                    0x01,
+                    /* Compression method - none */
+                    0x00,
+                    /* Extensions len */
+                    (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
+            };
+            size_t client_hello_len = sizeof(client_hello_message);
 
-        EXPECT_SUCCESS(negotiate_kem(client_extensions, client_extensions_len, client_hello_message, client_hello_len,
-                "KMS-PQ-TLS-1-0-2020-02", TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2, &piped_io));
-    }
-    {
-        /* Expect BIKE1_L1_R1 KEM - client requests BIKE ciphersuite and provides
-         * BIKE1L1R1 extension (plus other irrelevant KEM extensions);
-         * server is using the round 1 only preference list */
-        uint8_t client_extensions[] = {
-                /* Extension type pq_kem_parameters */
-                0xFE, 0x01,
-                /* Extension size */
-                0x00, 0x08,
-                /* KEM names len */
-                0x00, 0x06,
-                /* BIKE1_L1_R2 */
-                0x00, 0x0D,
-                /* SIKE_P434_R2 */
-                0x00, 0x10,
-                /* BIKE1_L1_R1 */
-                0x00, 0x01,
-        };
-        size_t client_extensions_len = sizeof(client_extensions);
-        uint8_t client_hello_message[] = {
-                /* Protocol version TLS 1.2 */
-                0x03, 0x03,
-                /* Client random */
-                ZERO_TO_THIRTY_ONE,
-                /* SessionID len - 32 bytes */
-                0x20,
-                /* Session ID */
-                ZERO_TO_THIRTY_ONE,
-                /* Cipher suites len */
-                0x00, 0x02,
-                /* Cipher suite - TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 */
-                0xFF, 0x04,
-                /* Compression methods len */
-                0x01,
-                /* Compression method - none */
-                0x00,
-                /* Extensions len */
-                (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
-        };
-        size_t client_hello_len = sizeof(client_hello_message);
+            EXPECT_SUCCESS(
+                    negotiate_kem(client_extensions, client_extensions_len, client_hello_message, client_hello_len,
+                                  "KMS-PQ-TLS-1-0-2020-02", TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2, &piped_io));
+        }
+        {
+            /* Expect BIKE1_L1_R1 KEM - client requests BIKE ciphersuite and provides
+             * BIKE1L1R1 extension (plus other irrelevant KEM extensions);
+             * server is using the round 1 only preference list */
+            uint8_t client_extensions[] = {
+                    /* Extension type pq_kem_parameters */
+                    0xFE, 0x01,
+                    /* Extension size */
+                    0x00, 0x08,
+                    /* KEM names len */
+                    0x00, 0x06,
+                    /* BIKE1_L1_R2 */
+                    0x00, 0x0D,
+                    /* SIKE_P434_R2 */
+                    0x00, 0x10,
+                    /* BIKE1_L1_R1 */
+                    0x00, 0x01,
+            };
+            size_t client_extensions_len = sizeof(client_extensions);
+            uint8_t client_hello_message[] = {
+                    /* Protocol version TLS 1.2 */
+                    0x03, 0x03,
+                    /* Client random */
+                    ZERO_TO_THIRTY_ONE,
+                    /* SessionID len - 32 bytes */
+                    0x20,
+                    /* Session ID */
+                    ZERO_TO_THIRTY_ONE,
+                    /* Cipher suites len */
+                    0x00, 0x02,
+                    /* Cipher suite - TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 */
+                    0xFF, 0x04,
+                    /* Compression methods len */
+                    0x01,
+                    /* Compression method - none */
+                    0x00,
+                    /* Extensions len */
+                    (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
+            };
+            size_t client_hello_len = sizeof(client_hello_message);
 
-        EXPECT_SUCCESS(negotiate_kem(client_extensions, client_extensions_len, client_hello_message, client_hello_len,
-                "KMS-PQ-TLS-1-0-2019-06", TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1, &piped_io));
-    }
-    {
-        /* Expect SIKE_P434_R2 KEM - client requests BIKE or SIKE ciphersuites and
-         * provides only SIKE extensions; server is using the round 1 + round 2
-         * preference list */
-        uint8_t client_extensions[] = {
-                /* Extension type pq_kem_parameters */
-                0xFE, 0x01,
-                /* Extension size */
-                0x00, 0x06,
-                /* KEM names len */
-                0x00, 0x04,
-                /* SIKE_P503_R1 */
-                0x00, 0x0A,
-                /* SIKE_P434_R2 */
-                0x00, 0x10,
-        };
-        size_t client_extensions_len = sizeof(client_extensions);
-        uint8_t client_hello_message[] = {
-                /* Protocol version TLS 1.2 */
-                0x03, 0x03,
-                /* Client random */
-                ZERO_TO_THIRTY_ONE,
-                /* SessionID len - 32 bytes */
-                0x20,
-                /* Session ID */
-                ZERO_TO_THIRTY_ONE,
-                /* Cipher suites len */
-                0x00, 0x04,
-                /* Cipher suite - TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 */
-                0xFF, 0x04,
-                /* Cipher suite - TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 */
-                0xFF, 0x08,
-                /* Compression methods len */
-                0x01,
-                /* Compression method - none */
-                0x00,
-                /* Extensions len */
-                (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
-        };
-        size_t client_hello_len = sizeof(client_hello_message);
+            EXPECT_SUCCESS(
+                    negotiate_kem(client_extensions, client_extensions_len, client_hello_message, client_hello_len,
+                                  "KMS-PQ-TLS-1-0-2019-06", TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1, &piped_io));
+        }
+        {
+            /* Expect SIKE_P434_R2 KEM - client requests BIKE or SIKE ciphersuites and
+             * provides only SIKE extensions; server is using the round 1 + round 2
+             * preference list */
+            uint8_t client_extensions[] = {
+                    /* Extension type pq_kem_parameters */
+                    0xFE, 0x01,
+                    /* Extension size */
+                    0x00, 0x06,
+                    /* KEM names len */
+                    0x00, 0x04,
+                    /* SIKE_P503_R1 */
+                    0x00, 0x0A,
+                    /* SIKE_P434_R2 */
+                    0x00, 0x10,
+            };
+            size_t client_extensions_len = sizeof(client_extensions);
+            uint8_t client_hello_message[] = {
+                    /* Protocol version TLS 1.2 */
+                    0x03, 0x03,
+                    /* Client random */
+                    ZERO_TO_THIRTY_ONE,
+                    /* SessionID len - 32 bytes */
+                    0x20,
+                    /* Session ID */
+                    ZERO_TO_THIRTY_ONE,
+                    /* Cipher suites len */
+                    0x00, 0x04,
+                    /* Cipher suite - TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 */
+                    0xFF, 0x04,
+                    /* Cipher suite - TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 */
+                    0xFF, 0x08,
+                    /* Compression methods len */
+                    0x01,
+                    /* Compression method - none */
+                    0x00,
+                    /* Extensions len */
+                    (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
+            };
+            size_t client_hello_len = sizeof(client_hello_message);
 
-        EXPECT_SUCCESS(negotiate_kem(client_extensions, client_extensions_len, client_hello_message, client_hello_len,
-                                            "KMS-PQ-TLS-1-0-2020-02", TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2, &piped_io));
-    }
-    {
-        /* Expect BIKE1_L1_R2 KEM - client requests BIKE ciphersuite and sends no PQ KEM extensions,
-         * so the server chooses it's preferred KEM; server is using the round 1 + round 2 preference list */
-        uint8_t client_hello_message[] = {
-                /* Protocol version TLS 1.2 */
-                0x03, 0x03,
-                /* Client random */
-                ZERO_TO_THIRTY_ONE,
-                /* SessionID len - 32 bytes */
-                0x20,
-                /* Session ID */
-                ZERO_TO_THIRTY_ONE,
-                /* Cipher suites len */
-                0x00, 0x02,
-                /* Cipher suite - TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 */
-                0xFF, 0x04,
-                /* Compression methods len */
-                0x01,
-                /* Compression method - none */
-                0x00,
-                /* Extensions len */
-                0x00,
-        };
-        size_t client_hello_len = sizeof(client_hello_message);
+            EXPECT_SUCCESS(
+                    negotiate_kem(client_extensions, client_extensions_len, client_hello_message, client_hello_len,
+                                  "KMS-PQ-TLS-1-0-2020-02", TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2, &piped_io));
+        }
+        {
+            /* Expect BIKE1_L1_R2 KEM - client requests BIKE ciphersuite and sends no PQ KEM extensions,
+             * so the server chooses it's preferred KEM; server is using the round 1 + round 2 preference list */
+            uint8_t client_hello_message[] = {
+                    /* Protocol version TLS 1.2 */
+                    0x03, 0x03,
+                    /* Client random */
+                    ZERO_TO_THIRTY_ONE,
+                    /* SessionID len - 32 bytes */
+                    0x20,
+                    /* Session ID */
+                    ZERO_TO_THIRTY_ONE,
+                    /* Cipher suites len */
+                    0x00, 0x02,
+                    /* Cipher suite - TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 */
+                    0xFF, 0x04,
+                    /* Compression methods len */
+                    0x01,
+                    /* Compression method - none */
+                    0x00,
+                    /* Extensions len */
+                    0x00,
+            };
+            size_t client_hello_len = sizeof(client_hello_message);
 
-        EXPECT_SUCCESS(negotiate_kem(NULL, 0, client_hello_message, client_hello_len,
-                                            "KMS-PQ-TLS-1-0-2020-02", TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2, &piped_io));
-    }
-    {
-        /* Expect NULL KEM - client requests SIKE ciphersuite but sends only PQ KEM extensions
-         * with completely bogus extension IDs; server is using the round 1 + round 2 preference list */
-        uint8_t client_extensions[] = {
-                /* Extension type pq_kem_parameters */
-                0xFE, 0x01,
-                /* Extension size */
-                0x00, 0x08,
-                /* KEM names len */
-                0x00, 0x06,
-                /* KEM values out of range of anything s2n supports */
-                0xcc, 0x05,
-                0xaa, 0xbb,
-                0xff, 0xa1,
-        };
-        size_t client_extensions_len = sizeof(client_extensions);
-        uint8_t client_hello_message[] = {
-                /* Protocol version TLS 1.2 */
-                0x03, 0x03,
-                /* Client random */
-                ZERO_TO_THIRTY_ONE,
-                /* SessionID len - 32 bytes */
-                0x20,
-                /* Session ID */
-                ZERO_TO_THIRTY_ONE,
-                /* Cipher suites len */
-                0x00, 0x02,
-                /* Cipher suite - TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 */
-                0xFF, 0x08,
-                /* Compression methods len */
-                0x01,
-                /* Compression method - none */
-                0x00,
-                /* Extensions len */
-                (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
-        };
-        size_t client_hello_len = sizeof(client_hello_message);
+            EXPECT_SUCCESS(negotiate_kem(NULL, 0, client_hello_message, client_hello_len,
+                                         "KMS-PQ-TLS-1-0-2020-02", TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2, &piped_io));
+        }
+        {
+            /* Expect NULL KEM - client requests SIKE ciphersuite but sends only PQ KEM extensions
+             * with completely bogus extension IDs; server is using the round 1 + round 2 preference list */
+            uint8_t client_extensions[] = {
+                    /* Extension type pq_kem_parameters */
+                    0xFE, 0x01,
+                    /* Extension size */
+                    0x00, 0x08,
+                    /* KEM names len */
+                    0x00, 0x06,
+                    /* KEM values out of range of anything s2n supports */
+                    0xcc, 0x05,
+                    0xaa, 0xbb,
+                    0xff, 0xa1,
+            };
+            size_t client_extensions_len = sizeof(client_extensions);
+            uint8_t client_hello_message[] = {
+                    /* Protocol version TLS 1.2 */
+                    0x03, 0x03,
+                    /* Client random */
+                    ZERO_TO_THIRTY_ONE,
+                    /* SessionID len - 32 bytes */
+                    0x20,
+                    /* Session ID */
+                    ZERO_TO_THIRTY_ONE,
+                    /* Cipher suites len */
+                    0x00, 0x02,
+                    /* Cipher suite - TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 */
+                    0xFF, 0x08,
+                    /* Compression methods len */
+                    0x01,
+                    /* Compression method - none */
+                    0x00,
+                    /* Extensions len */
+                    (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
+            };
+            size_t client_hello_len = sizeof(client_hello_message);
 
-        EXPECT_SUCCESS(negotiate_kem(client_extensions, client_extensions_len, client_hello_message, client_hello_len,
-                                            "KMS-PQ-TLS-1-0-2020-02", -1, &piped_io));
-    }
-    {
-        /* Expect NULL KEM - client sends PQ KEM extension with BIKE extensions, but requests SIKE ciphersuite;
-         * server is using the round 1 only preference list */
-        uint8_t client_extensions[] = {
-                /* Extension type pq_kem_parameters */
-                0xFE, 0x01,
-                /* Extension size */
-                0x00, 0x06,
-                /* KEM names len */
-                0x00, 0x04,
-                /* BIKE1_L1_R1 */
-                0x00, 0x01,
-                /* BIKE1_L1_R2 */
-                0x00, 0x0D,
-        };
-        size_t client_extensions_len = sizeof(client_extensions);
-        uint8_t client_hello_message[] = {
-                /* Protocol version TLS 1.2 */
-                0x03, 0x03,
-                /* Client random */
-                ZERO_TO_THIRTY_ONE,
-                /* SessionID len - 32 bytes */
-                0x20,
-                /* Session ID */
-                ZERO_TO_THIRTY_ONE,
-                /* Cipher suites len */
-                0x00, 0x02,
-                /* Cipher suite - TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 */
-                0xFF, 0x08,
-                /* Compression methods len */
-                0x01,
-                /* Compression method - none */
-                0x00,
-                /* Extensions len */
-                (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
-        };
-        size_t client_hello_len = sizeof(client_hello_message);
+            EXPECT_SUCCESS(
+                    negotiate_kem(client_extensions, client_extensions_len, client_hello_message, client_hello_len,
+                                  "KMS-PQ-TLS-1-0-2020-02", -1, &piped_io));
+        }
+        {
+            /* Expect NULL KEM - client sends PQ KEM extension with BIKE extensions, but requests SIKE ciphersuite;
+             * server is using the round 1 only preference list */
+            uint8_t client_extensions[] = {
+                    /* Extension type pq_kem_parameters */
+                    0xFE, 0x01,
+                    /* Extension size */
+                    0x00, 0x06,
+                    /* KEM names len */
+                    0x00, 0x04,
+                    /* BIKE1_L1_R1 */
+                    0x00, 0x01,
+                    /* BIKE1_L1_R2 */
+                    0x00, 0x0D,
+            };
+            size_t client_extensions_len = sizeof(client_extensions);
+            uint8_t client_hello_message[] = {
+                    /* Protocol version TLS 1.2 */
+                    0x03, 0x03,
+                    /* Client random */
+                    ZERO_TO_THIRTY_ONE,
+                    /* SessionID len - 32 bytes */
+                    0x20,
+                    /* Session ID */
+                    ZERO_TO_THIRTY_ONE,
+                    /* Cipher suites len */
+                    0x00, 0x02,
+                    /* Cipher suite - TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 */
+                    0xFF, 0x08,
+                    /* Compression methods len */
+                    0x01,
+                    /* Compression method - none */
+                    0x00,
+                    /* Extensions len */
+                    (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
+            };
+            size_t client_hello_len = sizeof(client_hello_message);
 
-        EXPECT_SUCCESS(negotiate_kem(client_extensions, client_extensions_len, client_hello_message, client_hello_len,
-                                            "KMS-PQ-TLS-1-0-2019-06", -1, &piped_io));
-    }
-    {
-        /* Expect NULL KEM - client sends PQ KEM extensions for round 2 only; the server is using the
-         * round 1 only preference list */
-        uint8_t client_extensions[] = {
-                /* Extension type pq_kem_parameters */
-                0xFE, 0x01,
-                /* Extension size */
-                0x00, 0x06,
-                /* KEM names len */
-                0x00, 0x04,
-                /* SIKE_P434_R2 */
-                0x00, 0x10,
-                /* BIKE1_L1_R2 */
-                0x00, 0x0D,
-        };
-        size_t client_extensions_len = sizeof(client_extensions);
-        uint8_t client_hello_message[] = {
-                /* Protocol version TLS 1.2 */
-                0x03, 0x03,
-                /* Client random */
-                ZERO_TO_THIRTY_ONE,
-                /* SessionID len - 32 bytes */
-                0x20,
-                /* Session ID */
-                ZERO_TO_THIRTY_ONE,
-                /* Cipher suites len */
-                0x00, 0x02,
-                /* Cipher suite - TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 */
-                0xFF, 0x08,
-                /* Compression methods len */
-                0x01,
-                /* Compression method - none */
-                0x00,
-                /* Extensions len */
-                (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
-        };
-        size_t client_hello_len = sizeof(client_hello_message);
+            EXPECT_SUCCESS(
+                    negotiate_kem(client_extensions, client_extensions_len, client_hello_message, client_hello_len,
+                                  "KMS-PQ-TLS-1-0-2019-06", -1, &piped_io));
+        }
+        {
+            /* Expect NULL KEM - client sends PQ KEM extensions for round 2 only; the server is using the
+             * round 1 only preference list */
+            uint8_t client_extensions[] = {
+                    /* Extension type pq_kem_parameters */
+                    0xFE, 0x01,
+                    /* Extension size */
+                    0x00, 0x06,
+                    /* KEM names len */
+                    0x00, 0x04,
+                    /* SIKE_P434_R2 */
+                    0x00, 0x10,
+                    /* BIKE1_L1_R2 */
+                    0x00, 0x0D,
+            };
+            size_t client_extensions_len = sizeof(client_extensions);
+            uint8_t client_hello_message[] = {
+                    /* Protocol version TLS 1.2 */
+                    0x03, 0x03,
+                    /* Client random */
+                    ZERO_TO_THIRTY_ONE,
+                    /* SessionID len - 32 bytes */
+                    0x20,
+                    /* Session ID */
+                    ZERO_TO_THIRTY_ONE,
+                    /* Cipher suites len */
+                    0x00, 0x02,
+                    /* Cipher suite - TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 */
+                    0xFF, 0x08,
+                    /* Compression methods len */
+                    0x01,
+                    /* Compression method - none */
+                    0x00,
+                    /* Extensions len */
+                    (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
+            };
+            size_t client_hello_len = sizeof(client_hello_message);
 
-        EXPECT_SUCCESS(negotiate_kem(client_extensions, client_extensions_len, client_hello_message, client_hello_len,
-                                            "KMS-PQ-TLS-1-0-2019-06", -1, &piped_io));
+            EXPECT_SUCCESS(
+                    negotiate_kem(client_extensions, client_extensions_len, client_hello_message, client_hello_len,
+                                  "KMS-PQ-TLS-1-0-2019-06", -1, &piped_io));
+        }
     }
 
     EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
@@ -1481,4 +1493,3 @@ int main(int argc, char **argv)
     END_TEST();
     return 0;
 }
-

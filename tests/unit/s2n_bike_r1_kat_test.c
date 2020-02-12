@@ -27,9 +27,10 @@
 int main(int argc, char **argv, char **envp) {
     BEGIN_TEST();
     if (s2n_is_in_fips_mode()) {
-        /* Skip when FIPS mode is set as BIKE is not supported in FIPS mode */
+        /* There is no support for PQ KEMs while in FIPS mode */
         END_TEST();
     }
+
     EXPECT_SUCCESS(s2n_test_kem_with_kat(&s2n_bike1_l1_r1, RSP_FILE));
     END_TEST();
 }

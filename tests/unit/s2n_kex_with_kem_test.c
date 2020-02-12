@@ -46,6 +46,8 @@ static struct s2n_cipher_suite bike_test_suite = {
 };
 
 static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *cipher_pref_version, const struct s2n_kem *negotiated_kem) {
+    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+
     struct s2n_connection *client_conn;
     struct s2n_connection *server_conn;
 
@@ -117,33 +119,83 @@ static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *ci
     return 0;
 }
 
+static int assert_kex_fips_checks(struct s2n_cipher_suite *cipher_suite, const char *cipher_pref_version, const struct s2n_kem *negotiated_kem) {
+    if (!s2n_is_in_fips_mode()) {
+        /* This function should only be called when FIPS mode is enabled */
+        return S2N_FAILURE;
+    }
+
+    struct s2n_connection *server_conn;
+    GUARD_NONNULL(server_conn = s2n_connection_new(S2N_SERVER));
+    const struct s2n_cipher_preferences *cipher_prefs = NULL;
+    GUARD(s2n_find_cipher_pref_from_version(cipher_pref_version, &cipher_prefs));
+    GUARD_NONNULL(cipher_prefs);
+    server_conn->secure.s2n_kem_keys.negotiated_kem = negotiated_kem;
+    server_conn->secure.cipher_suite = cipher_suite;
+    server_conn->cipher_pref_override = cipher_prefs;
+
+    /* If in FIPS mode:
+     * s2n_check_kem() (s2n_hybrid_ecdhe_kem.connection_supported) should return 0
+     * s2n_configure_kem() (s2n_hybrid_ecdhe_kem.configure_connection) should return -1 and
+     *     set s2n_errno to S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS */
+    int ret_val = (s2n_hybrid_ecdhe_kem.connection_supported(cipher_suite, server_conn) != 0) &&
+                  (s2n_hybrid_ecdhe_kem.configure_connection(cipher_suite, server_conn) != S2N_FAILURE) &&
+                  (s2n_errno != S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+
+    GUARD(s2n_connection_free(server_conn));
+    s2n_errno = 0;
+    s2n_debug_str = NULL;
+
+    return ret_val;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    /* KMS-PQ-TLS-1-0-2019-06 supports only Round 1 KEMs
-     * KMS-PQ-TLS-1-0-2020-02 supports Round 1 and Round 2 KEMs */
+    if (s2n_is_in_fips_mode()) {
+        /* There is no support for PQ KEMs while in FIPS mode. So we verify functions s2n_check_kem() and
+         * s2n_configure_kem() (in s2n_kex.c) are performing their FIPS checks appropriately. */
+        EXPECT_SUCCESS(assert_kex_fips_checks(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p503_r1));
+        EXPECT_SUCCESS(assert_kex_fips_checks(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p434_r2));
+        EXPECT_SUCCESS(assert_kex_fips_checks(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p503_r1));
+        EXPECT_SUCCESS(assert_kex_fips_checks(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p434_r2));
 
-    EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p503_r1));
-    EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p503_r1));
-    EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p434_r2));
+        EXPECT_SUCCESS(assert_kex_fips_checks(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r1));
+        EXPECT_SUCCESS(assert_kex_fips_checks(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r2));
+        EXPECT_SUCCESS(assert_kex_fips_checks(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r1));
+        EXPECT_SUCCESS(assert_kex_fips_checks(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r2));
+    } else {
+        /* KMS-PQ-TLS-1-0-2019-06 supports only Round 1 KEMs
+         * KMS-PQ-TLS-1-0-2020-02 supports Round 1 and Round 2 KEMs */
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p503_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p503_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p434_r2));
 
-    EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p434_r2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-    EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r1), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-    EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-    EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r1), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-    EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-
-    /* BIKE is not supported in FIPS mode */
-    if (!s2n_is_in_fips_mode()) {
         EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r1));
         EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r1));
         EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r2));
 
-        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p434_r2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p503_r1), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p434_r2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p503_r1), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p434_r2),
+                                  S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r1),
+                                  S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r2),
+                                  S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r1),
+                                  S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r2),
+                                  S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r2),
+                                  S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p434_r2),
+                                  S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p503_r1),
+                                  S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p434_r2),
+                                  S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p503_r1),
+                                  S2N_ERR_KEM_UNSUPPORTED_PARAMS);
     }
 
     END_TEST();

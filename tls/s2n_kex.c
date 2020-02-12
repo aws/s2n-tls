@@ -21,6 +21,7 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "utils/s2n_safety.h"
+#include "crypto/s2n_fips.h"
 
 static int s2n_get_server_ecc_extension_size(const struct s2n_connection *conn)
 {
@@ -79,6 +80,11 @@ static int s2n_check_ecdhe(const struct s2n_cipher_suite *cipher_suite, struct s
 
 static int s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
 {
+    /* There is no support for PQ KEMs while in FIPS mode */
+    if (s2n_is_in_fips_mode()) {
+        return 0;
+    }
+
     const struct s2n_cipher_preferences *server_cipher_preferences = NULL;
     /* If the cipher preferences have no supported KEMs, return false. */
     if (s2n_connection_get_cipher_preferences(conn, &server_cipher_preferences) != 0) { return 0; }
@@ -106,6 +112,12 @@ static int s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n
 
 static int s2n_configure_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
 {
+    /* There is no support for PQ KEMs while in FIPS mode */
+    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+    if (s2n_is_in_fips_mode()) {
+        return 0;
+    }
+
     const struct s2n_cipher_preferences *cipher_preferences = NULL;
     GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
 
