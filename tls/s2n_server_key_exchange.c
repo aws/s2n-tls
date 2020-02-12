@@ -172,7 +172,7 @@ int s2n_kem_server_key_recv_parse_data(struct s2n_connection *conn, struct s2n_k
 
     const struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
     const struct s2n_kem *match = NULL;
-    S2N_ERROR_IF(s2n_kem_find_supported_kem(cipher_suite->iana_value, &kem_data->kem_name, cipher_preferences->kems, cipher_preferences->kem_count, &match) != 0,
+    S2N_ERROR_IF(s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, &kem_data->kem_name, cipher_preferences->kems, cipher_preferences->kem_count, &match) != 0,
             S2N_ERR_KEM_UNSUPPORTED_PARAMS);
     conn->secure.s2n_kem_keys.negotiated_kem = match;
 
