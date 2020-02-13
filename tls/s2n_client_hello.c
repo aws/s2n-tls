@@ -172,14 +172,13 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     GUARD(s2n_stuffer_erase_and_read_bytes(in, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_stuffer_read_uint8(in, &conn->session_id_len));
 
-    conn->client_protocol_version = (client_protocol_version[0] * 10) + client_protocol_version[1];
-    conn->client_hello_version = conn->client_protocol_version;
     /* Protocol version in the ClientHello is fixed at 0x0303(TLS 1.2) for
-     * future versions of TLS. Still, we will negotiate down if a client sends
+     * future versions of TLS. Therefore, we will negotiate down if a client sends
      * an unexpected value above 0x0303.
      */
-    conn->actual_protocol_version = MIN(conn->client_protocol_version, conn->server_protocol_version);
-
+    conn->client_protocol_version = MIN((client_protocol_version[0] * 10) + client_protocol_version[1], S2N_TLS12);
+    conn->client_hello_version = conn->client_protocol_version;
+    
     S2N_ERROR_IF(conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN || conn->session_id_len > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
 
     GUARD(s2n_stuffer_read_bytes(in, conn->session_id, conn->session_id_len));
@@ -297,7 +296,10 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     if (client_hello->parsed_extensions != NULL && client_hello->parsed_extensions->num_of_elements > 0) {
         GUARD(s2n_client_extensions_recv(conn, client_hello->parsed_extensions));
     }
-
+    
+    if (conn->actual_protocol_version != S2N_TLS13) {
+        conn->actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
+    }
     const struct s2n_cipher_preferences *cipher_preferences;
     GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
 

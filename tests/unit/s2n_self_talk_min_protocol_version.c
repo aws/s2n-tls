@@ -41,7 +41,7 @@ int mock_client(struct s2n_test_piped_io *piped_io)
     s2n_connection_set_config(client_conn, client_config);
     s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING);
 
-    /* Force TLSv1 on a client so that server fail handshake */
+    /* Force TLSv1 on a client so that server will fail handshake */
     client_conn->client_protocol_version = S2N_TLS10;
 
     s2n_connection_set_piped_io(client_conn, piped_io);
