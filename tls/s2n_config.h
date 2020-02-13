@@ -61,7 +61,8 @@ struct s2n_config {
     uint64_t encrypt_decrypt_key_lifetime_in_nanos;
     uint64_t decrypt_key_lifetime_in_nanos;
 
-    /* If caching is being used, these must all be set */
+    uint8_t use_session_cache;
+    /* If session cache is being used, these must all be set */
     s2n_cache_store_callback cache_store;
     void *cache_store_data;
 

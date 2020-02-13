@@ -101,6 +101,7 @@ static int s2n_config_init(struct s2n_config *config)
     config->accept_mfl = 0;
     config->session_state_lifetime_in_nanos = S2N_STATE_LIFETIME_IN_NANOS;
     config->use_tickets = 0;
+    config->use_session_cache = 0;
     config->ticket_keys = NULL;
     config->ticket_key_hashes = NULL;
     config->encrypt_decrypt_key_lifetime_in_nanos = S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS;
@@ -708,12 +709,31 @@ int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enab
 
     config->use_tickets = enabled;
 
+    /* session ticket || session id is enabled */
     if (enabled) {
         GUARD(s2n_config_init_session_ticket_keys(config));
     } else {
-        GUARD(s2n_config_free_session_ticket_keys(config));
+        if (!config->use_session_cache) {
+            GUARD(s2n_config_free_session_ticket_keys(config));
+        }
     }
 
+    return 0;
+}
+
+int s2n_config_set_session_cache_onoff(struct s2n_config *config, uint8_t enabled)
+{
+    notnull_check(config);
+    if(enabled && config->cache_store && config->cache_retrieve && config->cache_delete) {
+        GUARD(s2n_config_init_session_ticket_keys(config));
+        config->use_session_cache = 1;
+    }
+    else {
+        if(!config->use_tickets) {
+            GUARD(s2n_config_free_session_ticket_keys(config));
+        }
+        config->use_session_cache = 0;
+    }
     return 0;
 }
 
@@ -744,7 +764,8 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     notnull_check(name);
     notnull_check(key);
 
-    if (!config->use_tickets) {
+    /* both session ticket and session cache encryption/decryption can use the same key mechanism */
+    if (!config->use_tickets && !config->use_session_cache) {
         return 0;
     }
 
