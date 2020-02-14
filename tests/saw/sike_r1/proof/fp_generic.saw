@@ -1,6 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
 
+dxd_ov <- verify digit_x_digit_fun_name [] digit_x_digit_spec;
+
 ///////////////////////////////////////////////////////////////////////////////
 // fpadd
 
@@ -28,14 +30,20 @@ fpsub_same_ov <- verify fpsub_fun_name [] fpsub_same_spec;
 ///////////////////////////////////////////////////////////////////////////////
 // rdc_mont
 
-rdc_mont_ov <- verify rdc_mont_fun_name [] rdc_mont_spec;
+rdc_mont_ov <- verify rdc_mont_fun_name
+  [dxd_ov]
+  rdc_mont_spec;
 
 ///////////////////////////////////////////////////////////////////////////////
 // mp_mul
 
-mul_ov <- verify mp_mul_fun_name [] (mp_mul_spec nwords_field twice_nwords_field);
+mul_ov <- verify mp_mul_fun_name
+  [dxd_ov]
+  (mp_mul_spec nwords_field twice_nwords_field);
 
 mul_single_ov <- verify mp_mul_fun_name
-    [] (mp_mul_single_spec nwords_field twice_nwords_field);
+  [dxd_ov]
+  (mp_mul_single_spec nwords_field twice_nwords_field);
 
 let fast_ovs = [];
+
