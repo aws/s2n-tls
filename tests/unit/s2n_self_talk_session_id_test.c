@@ -111,6 +111,10 @@ int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *ke
 
     uint8_t index = ((const uint8_t *)key)[0];
 
+    if (cache[index].key_len == 0) {
+        return 0;
+    }
+
     if (cache[index].key_len != key_size) {
         return -1;
     }
