@@ -144,7 +144,7 @@ static char dhparams[] =
     "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n"
     "-----END DH PARAMETERS-----\n";
 
-uint8_t ticket_key_name[16] = "2016.07.26.15\0";
+char ticket_key_name[] = "2016.07.26.15\0";
 
 uint8_t default_ticket_key[32] = {0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf, 0x0d, 0xdc,
                                   0x3f, 0x0d, 0xc4, 0x7b, 0xba, 0x63, 0x90, 0xb6, 0xc7, 0x3b,
@@ -212,10 +212,8 @@ int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *ke
 
     uint8_t index = ((const uint8_t *)key)[0];
 
-    if(cache[index].key_len != 0) {
-        S2N_ERROR_IF(cache[index].key_len != key_size, S2N_ERR_INVALID_ARGUMENT);
-        S2N_ERROR_IF(memcmp(cache[index].key, key, key_size), S2N_ERR_INVALID_ARGUMENT);
-    }
+    S2N_ERROR_IF(cache[index].key_len != 0 && cache[index].key_len != key_size, S2N_ERR_INVALID_ARGUMENT);
+    S2N_ERROR_IF(cache[index].key_len != 0 && memcmp(cache[index].key, key, key_size), S2N_ERR_INVALID_ARGUMENT);
 
     cache[index].key_len = 0;
     cache[index].value_len = 0;
@@ -344,18 +342,18 @@ void usage()
 
 
 struct conn_settings {
-    int mutual_auth;
-    int self_service_blinding;
-    int only_negotiate;
-    int prefer_throughput;
-    int prefer_low_latency;
-    int enable_mfl;
-    int session_ticket;
-    int session_cache;
+    unsigned mutual_auth:1;
+    unsigned self_service_blinding:1;
+    unsigned only_negotiate:1;
+    unsigned prefer_throughput:1;
+    unsigned prefer_low_latency:1;
+    unsigned enable_mfl:1;
+    unsigned session_ticket:1;
+    unsigned session_cache:1;
     const char *ca_dir;
     const char *ca_file;
-    int insecure;
-    int use_corked_io;
+    unsigned insecure:1;
+    unsigned use_corked_io:1;
 };
 
 int handle_connection(int fd, struct s2n_config *config, struct conn_settings settings)
@@ -746,7 +744,7 @@ int main(int argc, char *const *argv)
             st_key_length = sizeof(default_ticket_key);
         }
 
-        if (s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name), st_key, st_key_length, 0) != 0) {
+        if (s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen(ticket_key_name), st_key, st_key_length, 0) != 0) {
             fprintf(stderr, "Error adding ticket key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
             exit(1);
         }

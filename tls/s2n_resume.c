@@ -516,7 +516,7 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn)
 
     key = s2n_find_ticket_key(conn->config, key_name);
 
-    /* Key has expired; do full handshake with NST */
+    /* Key has expired; do full handshake with New Session Ticket (NST) */
     S2N_ERROR_IF(!key, S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND);
 
     GUARD(s2n_stuffer_read(from, &iv));
@@ -593,7 +593,7 @@ int s2n_decrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *f
 
     key = s2n_find_ticket_key(conn->config, key_name);
 
-    /* Key has expired; do full handshake with NST */
+    /* Key has expired; do full handshake with New Session Ticket (NST) */
     S2N_ERROR_IF(!key, S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND);
 
     GUARD(s2n_stuffer_read(from, &iv));

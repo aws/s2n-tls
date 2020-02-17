@@ -712,10 +712,8 @@ int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enab
     /* session ticket || session id is enabled */
     if (enabled) {
         GUARD(s2n_config_init_session_ticket_keys(config));
-    } else {
-        if (!config->use_session_cache) {
-            GUARD(s2n_config_free_session_ticket_keys(config));
-        }
+    } else if (!config->use_session_cache) {
+        GUARD(s2n_config_free_session_ticket_keys(config));
     }
 
     return 0;
@@ -724,12 +722,12 @@ int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enab
 int s2n_config_set_session_cache_onoff(struct s2n_config *config, uint8_t enabled)
 {
     notnull_check(config);
-    if(enabled && config->cache_store && config->cache_retrieve && config->cache_delete) {
+    if (enabled && config->cache_store && config->cache_retrieve && config->cache_delete) {
         GUARD(s2n_config_init_session_ticket_keys(config));
         config->use_session_cache = 1;
     }
     else {
-        if(!config->use_tickets) {
+        if (!config->use_tickets) {
             GUARD(s2n_config_free_session_ticket_keys(config));
         }
         config->use_session_cache = 0;
