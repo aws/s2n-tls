@@ -50,27 +50,28 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
     /* We need at least one byte of input to set parameters */
-    if (len != 0) {
-        /* Setup */
-        client_config = s2n_config_new();
-        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
-        GUARD(s2n_connection_set_config(client_conn, client_config));
-        notnull_check(client_conn);
-        GUARD(s2n_stuffer_write_bytes(&client_conn->handshake.io, buf, len));
+    S2N_FUZZ_ENSURE_MIN_LEN(len, 1);
 
-        /* Pull a byte off the libfuzzer input and use it to set parameters */
-        uint8_t randval = 0;
-        GUARD(s2n_stuffer_read_uint8(&client_conn->handshake.io, &randval));
-        client_conn->client_protocol_version = TLS_VERSIONS[(randval & 0x0f) % s2n_array_len(TLS_VERSIONS)];
-        client_conn->server_protocol_version = TLS_VERSIONS[(randval >> 4) % s2n_array_len(TLS_VERSIONS)];
-        /* Run Test
-         * Do not use GUARD macro here since the connection memory hasn't been freed.
-         */
-        s2n_server_hello_recv(client_conn);
+    /* Setup */
+    client_config = s2n_config_new();
+    struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+    GUARD(s2n_connection_set_config(client_conn, client_config));
+    notnull_check(client_conn);
+    GUARD(s2n_stuffer_write_bytes(&client_conn->handshake.io, buf, len));
 
-        /* Cleanup */
-        GUARD(s2n_config_free(client_config));
-        GUARD(s2n_connection_free(client_conn));
-    }
+    /* Pull a byte off the libfuzzer input and use it to set parameters */
+    uint8_t randval = 0;
+    GUARD(s2n_stuffer_read_uint8(&client_conn->handshake.io, &randval));
+    client_conn->client_protocol_version = TLS_VERSIONS[(randval & 0x0f) % s2n_array_len(TLS_VERSIONS)];
+    client_conn->server_protocol_version = TLS_VERSIONS[(randval >> 4) % s2n_array_len(TLS_VERSIONS)];
+    /* Run Test
+     * Do not use GUARD macro here since the connection memory hasn't been freed.
+     */
+    s2n_server_hello_recv(client_conn);
+
+    /* Cleanup */
+    GUARD(s2n_config_free(client_config));
+    GUARD(s2n_connection_free(client_conn));
+
     return 0;
 }

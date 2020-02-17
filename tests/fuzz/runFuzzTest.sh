@@ -104,7 +104,7 @@ if [[ -v FUZZ_COVERAGE ]]; then
     llvm-cov report -instr-profile=./profiles/${TEST_NAME}/${TEST_NAME}.profdata ${S2N_ROOT}/lib/libs2n.so ${FUZZCOV_SOURCES} -show-functions > ${COVERAGE_DIR}/fuzz/${TEST_NAME}_cov.txt
 
     # Use LCOV format instead of HTML if the LLVM version we're using supports it
-    if [[ $(grep -Eo "[0-9]*" <<< `llvm-cov --version` | head -1) > 8 ]]; then
+    if [[ $(grep -Eo "[0-9]*" <<< `llvm-cov --version` | head -1) -gt 8 ]]; then
         llvm-cov export -instr-profile=./profiles/${TEST_NAME}/${TEST_NAME}.profdata ${S2N_ROOT}/lib/libs2n.so ${FUZZCOV_SOURCES} -format=lcov > ${COVERAGE_DIR}/fuzz/${TEST_NAME}_cov.info
         genhtml -q -o ${COVERAGE_DIR}/html/${TEST_NAME} ${COVERAGE_DIR}/fuzz/${TEST_NAME}_cov.info
     else

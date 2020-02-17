@@ -46,7 +46,8 @@ struct host_verify_data {
     uint8_t callback_invoked;
 };
 
-static uint8_t verify_host_accept_everything(const char *host_name, size_t host_name_len, void *data) {
+static uint8_t verify_host_accept_everything(const char *host_name, size_t host_name_len, void *data)
+{
     struct host_verify_data *verify_data = (struct host_verify_data *) data;
     verify_data->callback_invoked = 1;
     return 1;
@@ -73,45 +74,43 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
     /* We need at least one byte of input to set parameters */
-    if (len != 0) {
+    S2N_FUZZ_ENSURE_MIN_LEN(len, 1);
 
-        /* Setup */
-        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
-        struct s2n_x509_trust_store trust_store;
-        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
-        notnull_check(conn);
-        GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, buf, len));
+    /* Setup */
+    struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+    struct s2n_x509_trust_store trust_store;
+    struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+    notnull_check(conn);
+    GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, buf, len));
 
-        /* Returns void, so can't be guarded */
-        s2n_x509_validator_wipe(&conn->x509_validator);
-        s2n_x509_trust_store_init_empty(&trust_store);
+    /* Returns void, so can't be guarded */
+    s2n_x509_validator_wipe(&conn->x509_validator);
+    s2n_x509_trust_store_init_empty(&trust_store);
 
-        /* Pull a byte off the libfuzzer input and use it to set parameters */
-        uint8_t randval = 0;
-        GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &randval));
+    /* Pull a byte off the libfuzzer input and use it to set parameters */
+    uint8_t randval = 0;
+    GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &randval));
 
-        if(randval % 2)
-        {
-            GUARD(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
-            GUARD(s2n_connection_set_verify_host_callback(conn, verify_host_accept_everything, &verify_data));
-        }
-
-        GUARD(s2n_x509_validator_init(&conn->x509_validator, &trust_store, 1));
-
-        conn->x509_validator.skip_cert_validation = (randval >> 1) % 2;
-        conn->actual_protocol_version = TLS_VERSIONS[((randval >> 4) & 0x0f) % s2n_array_len(TLS_VERSIONS)];
-
-        /* Run Test
-         * Do not use GUARD macro here since the connection memory hasn't been freed.
-         */
-        s2n_server_cert_recv(conn);
-
-        /* Cleanup */
-        s2n_x509_trust_store_wipe(&trust_store);
-        s2n_x509_validator_wipe(&conn->x509_validator);
-
-        GUARD(s2n_connection_free(conn));
-
+    if (randval % 2) {
+        GUARD(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+        GUARD(s2n_connection_set_verify_host_callback(conn, verify_host_accept_everything, &verify_data));
     }
+
+    GUARD(s2n_x509_validator_init(&conn->x509_validator, &trust_store, 1));
+
+    conn->x509_validator.skip_cert_validation = (randval >> 1) % 2;
+    conn->actual_protocol_version = TLS_VERSIONS[((randval >> 4) & 0x0f) % s2n_array_len(TLS_VERSIONS)];
+
+    /* Run Test
+     * Do not use GUARD macro here since the connection memory hasn't been freed.
+     */
+    s2n_server_cert_recv(conn);
+
+    /* Cleanup */
+    s2n_x509_trust_store_wipe(&trust_store);
+    s2n_x509_validator_wipe(&conn->x509_validator);
+
+    GUARD(s2n_connection_free(conn));
+
     return 0;
 }

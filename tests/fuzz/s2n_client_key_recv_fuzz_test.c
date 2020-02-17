@@ -172,41 +172,46 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 
 int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
-    for (int version = 0; version < s2n_array_len(TLS_VERSIONS); version++) {
-        for (int cipher = 0; cipher < num_suites; cipher++) {
+    /* We need at least two bytes of input to set parameters */
+    S2N_FUZZ_ENSURE_MIN_LEN(len, 2);
 
-            /* Skip incompatible TLS 1.3 cipher suites */
-            if (test_suites[cipher]->key_exchange_alg == NULL) {
-                continue;
-            }
+    /* Setup */
+    struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+    notnull_check(server_conn);
+    GUARD(s2n_stuffer_write_bytes(&server_conn->handshake.io, buf, len));
 
-            /* Setup */
+    /* Read bytes from the libfuzzer input and use them to set parameters */
+    uint8_t randval = 0;
+    GUARD(s2n_stuffer_read_uint8(&server_conn->handshake.io, &randval));
+    server_conn->server_protocol_version = TLS_VERSIONS[randval % s2n_array_len(TLS_VERSIONS)];
 
-            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
-            notnull_check(server_conn);
-            server_conn->server_protocol_version = TLS_VERSIONS[version];
-            server_conn->secure.cipher_suite = test_suites[cipher];
+    GUARD(s2n_stuffer_read_uint8(&server_conn->handshake.io, &randval));
+    server_conn->secure.cipher_suite = test_suites[randval % num_suites];
 
-            GUARD(s2n_stuffer_write_bytes(&server_conn->handshake.io, buf, len));
-            server_conn->handshake_params.our_chain_and_key = cert;
-
-            if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_ecdhe_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {
-                server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
-                s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.server_ecc_evp_params);
-            }
-
-            if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_kem_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {
-                server_conn->secure.s2n_kem_keys.negotiated_kem = &s2n_sike_p503_r1;
-            }
-
-            /* Run Test
-             * Do not use GUARD macro here since the connection memory hasn't been freed.
-             */
-            s2n_client_key_recv(server_conn);
-
-            /* Cleanup */
-            GUARD(s2n_connection_free(server_conn));
-        }
+    /* Skip incompatible TLS 1.3 cipher suites */
+    if (server_conn->secure.cipher_suite->key_exchange_alg == NULL) {
+        GUARD(s2n_connection_free(server_conn));
+        return 0;
     }
+
+    server_conn->handshake_params.our_chain_and_key = cert;
+
+    if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_ecdhe_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {
+        server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+        s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.server_ecc_evp_params);
+    }
+
+    if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_kem_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {
+        server_conn->secure.s2n_kem_keys.negotiated_kem = &s2n_sike_p503_r1;
+    }
+
+    /* Run Test
+     * Do not use GUARD macro here since the connection memory hasn't been freed.
+     */
+    s2n_client_key_recv(server_conn);
+
+    /* Cleanup */
+    GUARD(s2n_connection_free(server_conn));
+
     return 0;
 }
