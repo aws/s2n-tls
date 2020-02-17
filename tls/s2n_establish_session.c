@@ -46,10 +46,12 @@ int s2n_establish_session(struct s2n_connection *conn)
      * This function won't block, it will fail and set s2n_errno accordingly. */
     GUARD(s2n_conn_set_handshake_type(conn));
 
-    if (conn->client_hello_version != S2N_SSLv2)
-    {
-        /* We've selected the parameters for the handshake, update the required hashes for this connection */
-        GUARD(s2n_conn_update_required_handshake_hashes(conn));
+    if (conn->actual_protocol_version != S2N_TLS13) {
+        if (conn->client_hello_version != S2N_SSLv2)
+        {
+            /* We've selected the parameters for the handshake, update the required hashes for this connection */
+            GUARD(s2n_conn_update_required_handshake_hashes(conn));
+        }
     }
 
     GUARD(s2n_conn_clear_handshake_read_block(conn));
