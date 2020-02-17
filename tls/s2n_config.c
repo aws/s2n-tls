@@ -25,6 +25,7 @@
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
 #include "crypto/s2n_hkdf.h"
+#include "crypto/s2n_ecc_evp.h"
 #include "utils/s2n_map.h"
 #include "utils/s2n_blob.h"
 

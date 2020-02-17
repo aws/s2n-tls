@@ -57,10 +57,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_hello_key_share, 1024));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_hello_key_share, 1024));
 
+        /* XXX: This is only happening because the connection clears all keyshares, this is part of the HRR test */
+        EXPECT_SUCCESS(s2n_connection_add_preferred_key_share_by_group(client_conn, s2n_ecc_evp_supported_curves_list[0]->iana_id));
+
         /* Client sends ClientHello key_share */
         EXPECT_SUCCESS(s2n_extensions_client_key_share_send(client_conn, &client_hello_key_share));
         S2N_STUFFER_READ_EXPECT_EQUAL(&client_hello_key_share, TLS_EXTENSION_KEY_SHARE, uint16);
-        S2N_STUFFER_READ_EXPECT_EQUAL(&client_hello_key_share, s2n_extensions_client_key_share_size(server_conn)
+        S2N_STUFFER_READ_EXPECT_EQUAL(&client_hello_key_share, s2n_extensions_client_key_share_size(client_conn)
             - (S2N_SIZE_OF_EXTENSION_TYPE + S2N_SIZE_OF_EXTENSION_DATA_SIZE), uint16);
 
         EXPECT_SUCCESS(s2n_extensions_client_key_share_recv(server_conn, &client_hello_key_share));
@@ -406,13 +409,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
+        struct s2n_blob server_seq = { .data = server_conn->secure.server_sequence_number,.size = sizeof(server_conn->secure.server_sequence_number) };
         S2N_BLOB_FROM_HEX(seq_0, "0000000000000000");
         S2N_BLOB_FROM_HEX(seq_1, "0000000000000001");
 
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
 
-        /* Client sends ClientHello */
+        /* Client sends ClientHello1 */
         EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), CLIENT_HELLO);
         EXPECT_SUCCESS(s2n_handshake_write_io(client_conn));
 
@@ -436,51 +440,117 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_conn_set_handshake_type(server_conn));
 
-        s2n_tls13_connection_keys(keys, server_conn);
+        /* Server sends HelloRetryRequest */
+        EXPECT_SUCCESS(s2n_server_should_retry(server_conn));
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_HELLO);
+        EXPECT_SUCCESS(s2n_handshake_write_io(server_conn));
 
-        /* Capture the ClientHello message hash digest */
-        struct s2n_hash_state hash_state, clienthello1_hash;
-        uint8_t clienthello1_digest[S2N_MAX_DIGEST_LEN] = {0};
-        EXPECT_SUCCESS(s2n_handshake_get_hash_state(server_conn, keys.hash_algorithm, &hash_state));
-        EXPECT_SUCCESS(s2n_hash_new(&clienthello1_hash));
-        EXPECT_SUCCESS(s2n_hash_copy(&clienthello1_hash, &hash_state));
-        EXPECT_SUCCESS(s2n_hash_digest(&clienthello1_hash, clienthello1_digest, keys.size));
-        EXPECT_SUCCESS(s2n_hash_free(&clienthello1_hash));
+        /* Client reads ServerHello */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), SERVER_HELLO);
+        EXPECT_SUCCESS(s2n_handshake_read_io(client_conn));
+        EXPECT_EQUAL(client_conn->handshake.client_received_hrr, 1);
 
-        /* Manually create our synthetic message */
-        uint8_t msghdr[MESSAGE_HASH_HEADER_LENGTH] = {0};
-        msghdr[0] = TLS_MESSAGE_HASH;
-        msghdr[MESSAGE_HASH_HEADER_LENGTH - 1] = keys.size;
+        /* Client sends ClientHello2 */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), CLIENT_HELLO);
+        EXPECT_SUCCESS(s2n_handshake_write_io(client_conn));
 
-        struct s2n_hash_state manually_recreated_hash;
-        EXPECT_SUCCESS(s2n_hash_new(&manually_recreated_hash));
-        EXPECT_SUCCESS(s2n_hash_init(&manually_recreated_hash, keys.hash_algorithm));
-        EXPECT_SUCCESS(s2n_hash_update(&manually_recreated_hash, msghdr, MESSAGE_HASH_HEADER_LENGTH));
-        EXPECT_SUCCESS(s2n_hash_update(&manually_recreated_hash, clienthello1_digest, keys.size));
+        EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
 
-        uint8_t manual_transcript_digest[S2N_MAX_DIGEST_LEN] = {0};
-        EXPECT_SUCCESS(s2n_hash_digest(&manually_recreated_hash, manual_transcript_digest, keys.size));
-        EXPECT_SUCCESS(s2n_hash_free(&manually_recreated_hash));
+        EXPECT_EQUAL(server_secrets_0.size, 0);
 
-        /* Recreate the hash transcript just like s2n_handshake_write_io would */
-        EXPECT_SUCCESS(s2n_server_hello_retry_recreate_transcript(server_conn));
+        EXPECT_EQUAL(server_conn->handshake.handshake_type, INITIAL);
 
-        /* Capture the recreated hash digest */
-        struct s2n_hash_state recreated_hash;
-        uint8_t recreated_transcript_digest[S2N_MAX_DIGEST_LEN] = {0};
-        EXPECT_SUCCESS(s2n_handshake_get_hash_state(server_conn, keys.hash_algorithm, &hash_state));
-        EXPECT_SUCCESS(s2n_hash_new(&recreated_hash));
-        EXPECT_SUCCESS(s2n_hash_copy(&recreated_hash, &hash_state));
-        EXPECT_SUCCESS(s2n_hash_digest(&hash_state, recreated_transcript_digest, keys.size));
-        EXPECT_SUCCESS(s2n_hash_free(&recreated_hash));
+        /* Server reads ClientHello2 */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), CLIENT_HELLO);
+        EXPECT_EQUAL(server_conn->handshake.server_requires_hrr, 0);
+        EXPECT_SUCCESS(s2n_handshake_read_io(server_conn));
 
-        /* Verify the synthetic message digest is being created and updating the connection hash */
-        struct s2n_blob manual;
-        struct s2n_blob recreated;
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13); /* Server is now on TLS13 */
+        EXPECT_EQUAL(server_conn->handshake.handshake_type, NEGOTIATED | FULL_HANDSHAKE);
+        EXPECT_EQUAL(server_conn->handshake.server_requires_hrr, 0);
 
-        EXPECT_SUCCESS(s2n_blob_init(&manual, manual_transcript_digest, keys.size));
-        EXPECT_SUCCESS(s2n_blob_init(&recreated, recreated_transcript_digest, keys.size));
-        S2N_BLOB_EXPECT_EQUAL(manual, recreated);
+        EXPECT_EQUAL(server_secrets.size, 48);
+
+        EXPECT_SUCCESS(s2n_conn_set_handshake_type(server_conn));
+
+        /* Server sends ServerHello */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_HELLO);
+        EXPECT_SUCCESS(s2n_handshake_write_io(server_conn));
+
+        /* Server sends CCS */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_CHANGE_CIPHER_SPEC);
+        EXPECT_SUCCESS(s2n_handshake_write_io(server_conn));
+        S2N_BLOB_EXPECT_EQUAL(server_seq, seq_0);
+
+        /* Server sends EncryptedExtensions */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), ENCRYPTED_EXTENSIONS);
+        EXPECT_SUCCESS(s2n_handshake_write_io(server_conn));
+        S2N_BLOB_EXPECT_EQUAL(server_seq, seq_1);
+
+        /* Server sends ServerCert */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_CERT);
+        EXPECT_SUCCESS(s2n_handshake_write_io(server_conn));
+
+        /* Server sends CertVerify */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_CERT_VERIFY);
+        EXPECT_SUCCESS(s2n_handshake_write_io(server_conn));
+
+        /* Server sends ServerFinished */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_FINISHED);
+        EXPECT_SUCCESS(s2n_handshake_write_io(server_conn));
+
+        /* Client reads ServerHello */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), SERVER_HELLO);
+        EXPECT_SUCCESS(s2n_handshake_read_io(client_conn));
+
+        /* Client reads CCS
+         * The CCS message does not affect its place in the state machine. */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), ENCRYPTED_EXTENSIONS);
+        EXPECT_SUCCESS(s2n_handshake_read_io(client_conn));
+
+        s2n_tls13_connection_keys(client_secrets, client_conn);
+        EXPECT_EQUAL(client_secrets.size, 48);
+
+        /* Verify that derive and extract secrets match */
+        S2N_BLOB_EXPECT_EQUAL(server_secrets.derive_secret, client_secrets.derive_secret);
+        S2N_BLOB_EXPECT_EQUAL(server_secrets.extract_secret, client_secrets.extract_secret);
+
+        /* Client reads Encrypted extensions */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), ENCRYPTED_EXTENSIONS);
+        EXPECT_SUCCESS(s2n_handshake_read_io(client_conn));
+
+        /* Client reads ServerCert */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), SERVER_CERT);
+        EXPECT_SUCCESS(s2n_handshake_read_io(client_conn));
+
+        /* Client reads CertVerify */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), SERVER_CERT_VERIFY);
+        EXPECT_SUCCESS(s2n_handshake_read_io(client_conn));
+
+        /* Client reads ServerFinished */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), SERVER_FINISHED);
+        EXPECT_SUCCESS(s2n_handshake_read_io(client_conn));
+
+        /* Client sends CCS */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), CLIENT_CHANGE_CIPHER_SPEC);
+        EXPECT_SUCCESS(s2n_handshake_write_io(client_conn));
+
+        /* Client sends ClientFinished */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), CLIENT_FINISHED);
+        EXPECT_SUCCESS(s2n_handshake_write_io(client_conn));
+
+        /* Server reads CCS
+         * The CCS message does not affect its place in the state machine. */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), CLIENT_FINISHED);
+        EXPECT_SUCCESS(s2n_handshake_read_io(server_conn));
+
+        /* Server reads ClientFinished */
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), CLIENT_FINISHED);
+        EXPECT_SUCCESS(s2n_handshake_read_io(server_conn));
+
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), APPLICATION_DATA);
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), APPLICATION_DATA);
 
         /* Clean up */
         EXPECT_SUCCESS(s2n_stuffer_free(&client_to_server));
@@ -542,6 +612,9 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
+
+        /* XXX: This is only happening because the connection clears all keyshares, this is part of the HRR test */
+        EXPECT_SUCCESS(s2n_connection_add_preferred_key_share_by_group(client_conn, s2n_ecc_evp_supported_curves_list[0]->iana_id));
 
         /* Client sends ClientHello */
         EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), CLIENT_HELLO);

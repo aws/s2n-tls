@@ -242,7 +242,7 @@ int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *sessi
 
     DEFER_CLEANUP(struct s2n_blob session_data = {0}, s2n_free);
     GUARD(s2n_alloc(&session_data, length));
-    memcpy(session_data.data, session, length);
+    memcpy_check(session_data.data, session, length);
 
     struct s2n_stuffer from = {0};
     GUARD(s2n_stuffer_init(&from, &session_data));

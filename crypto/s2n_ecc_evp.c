@@ -17,8 +17,10 @@
 
 #include <openssl/ecdh.h>
 #include <openssl/evp.h>
+#include <strings.h>
 #include <stdint.h>
 
+#include "tls/s2n_connection.h"
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
@@ -327,6 +329,17 @@ int s2n_ecc_evp_read_params(struct s2n_stuffer *in, struct s2n_blob *data_to_ver
     return 0;
 }
 
+#if MODERN_EC_SUPPORTED
+/* OPENSSL_free is actually a #define to CRYPTO_free which has different definitions
+ * across OpenSSL versions. Defining a pointer cleanup function let's us use OPENSSL_free
+ * from the DEFER_CLEANUP macro.
+ *
+ * This function is only defined if modern EC is supported. Otherwise compilation fails
+ * with an unused-function error.
+ */
+DEFINE_POINTER_CLEANUP_FUNC(uint8_t *, OPENSSL_free);
+#endif
+
 int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *out) {
     notnull_check(ecc_evp_params);
     notnull_check(ecc_evp_params->negotiated_curve);
@@ -335,19 +348,16 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
 
 #if MODERN_EC_SUPPORTED
     struct s2n_blob point_blob = {0};
-    uint8_t *encoded_point = NULL;
+    DEFER_CLEANUP(uint8_t *encoded_point = NULL, OPENSSL_free_pointer);
 
     size_t size = EVP_PKEY_get1_tls_encodedpoint(ecc_evp_params->evp_pkey, &encoded_point);
     if (size != ecc_evp_params->negotiated_curve->share_size) {
-        OPENSSL_free(encoded_point);
         S2N_ERROR(S2N_ERR_ECDHE_SERIALIZING);
-    } 
-    else {
-        point_blob.data = s2n_stuffer_raw_write(out, ecc_evp_params->negotiated_curve->share_size);
-        notnull_check(point_blob.data);
-        memcpy_check(point_blob.data, encoded_point, size);
-        OPENSSL_free(encoded_point);
     }
+
+    point_blob.data = s2n_stuffer_raw_write(out, ecc_evp_params->negotiated_curve->share_size);
+    notnull_check(point_blob.data);
+    memcpy_check(point_blob.data, encoded_point, size);
 #else
     uint8_t point_len;
     struct s2n_blob point_blob = {0};
@@ -478,4 +488,16 @@ int s2n_ecc_evp_params_free(struct s2n_ecc_evp_params *ecc_evp_params) {
         ecc_evp_params->evp_pkey = NULL;
     }
     return 0;
+}
+
+/* Determines whether the curve has been selected for use.
+ * This is necessary because the connection has a list of curves that
+ * are allowed to be used for key shares. That list is laid out in the
+ * same order as the s2n_ecc_evp_supported_curves list. The curves
+ * that have not been selected will have 0 value, while the selected
+ * curves will have been copied from the s2n_ecc_evp_supported_curves list.
+ */
+bool s2n_is_curve_selected(const struct s2n_ecc_named_curve *curve)
+{
+    return curve->share_size > 0;
 }

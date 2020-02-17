@@ -64,6 +64,7 @@ int s2n_server_hello_retry_send(struct s2n_connection *conn)
     /* We only send retries in S2N_TLS13, so we know the legacy protocol version should be S2N_TLS12 */
     protocol_version[0] = (uint8_t)(S2N_TLS12 / 10);
     protocol_version[1] = (uint8_t)(S2N_TLS12 % 10);
+
     GUARD(s2n_stuffer_write_bytes(out, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
 
     /* Retry requests have a specifc random value */
@@ -84,6 +85,9 @@ int s2n_server_hello_retry_send(struct s2n_connection *conn)
     /* Let the handshake writer know that we sent a request */
     conn->handshake.server_sent_hrr = 1;
 
+    /* Clear all existing key shares so we can verify that what the client sends back is valid */
+    GUARD(s2n_connection_clear_all_key_shares(conn));
+
     return 0;
 }
 
@@ -92,8 +96,11 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
     /* Only allow one retry request per connection */
     S2N_ERROR_IF(conn->handshake.client_received_hrr == 1, S2N_ERR_BAD_MESSAGE);
 
-    /* Verify this message meets the minimum requirements */
-    S2N_ERROR_IF(!s2n_server_hello_retry_is_valid(conn), S2N_ERR_BAD_MESSAGE);
+    /* Set the flag to prevent multiple HelloRetryRequests */
+    conn->handshake.client_received_hrr = 1;
 
+    /* The client extension parameters, like the key share extension, have already
+     * been updated when the request was read off the wire. The state machine progress
+     * will be updated after this message completes. Nothing else needs to be done here. */
     return 0;
 }
