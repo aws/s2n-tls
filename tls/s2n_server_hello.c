@@ -201,12 +201,30 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
     return 0;
 }
 
+static int s2n_conn_reset_retry_values(struct s2n_connection *conn)
+{
+    /* Reset handshake values */
+    conn->handshake.hello_retry_request = 1;
+    conn->handshake.server_requires_hrr = 0;
+    conn->handshake.client_hello_received = 0;
+    conn->handshake.handshake_type |= HELLO_RETRY_REQUEST;
+
+    /* Reset client hello state */
+    GUARD(s2n_stuffer_wipe(&conn->client_hello.raw_message));
+    GUARD(s2n_stuffer_resize(&conn->client_hello.raw_message, 0));
+    GUARD(s2n_client_hello_free(&conn->client_hello));
+    GUARD(s2n_stuffer_growable_alloc(&conn->client_hello.raw_message, 0));
+
+    return 0;
+}
+
 int s2n_server_hello_send(struct s2n_connection *conn)
 {
     /* If a curve was not negotiated we need to retry */
     if (s2n_server_requires_retry(conn)) {
         GUARD(s2n_server_hello_retry_send(conn));
         GUARD(s2n_server_hello_retry_recreate_transcript(conn));
+        GUARD(s2n_conn_reset_retry_values(conn));
 
         return 0;
     }

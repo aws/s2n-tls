@@ -265,6 +265,7 @@ int main(int argc, char **argv)
             struct s2n_connection *server_conn;
             struct s2n_stuffer key_share_extension;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+
             /* ISSUE 1657: This is only happening because the connection clears all keyshares, this is part of the HRR test */
             for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
                 EXPECT_SUCCESS(s2n_connection_add_preferred_key_share_by_group(server_conn, s2n_ecc_evp_supported_curves_list[i]->iana_id));
@@ -292,6 +293,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             struct s2n_stuffer key_share_extension;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
             /* ISSUE 1657: This is only happening because the connection clears all keyshares, this is part of the HRR test */
             for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
                 EXPECT_SUCCESS(s2n_connection_add_preferred_key_share_by_group(conn, s2n_ecc_evp_supported_curves_list[i]->iana_id));
@@ -332,6 +334,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             struct s2n_stuffer key_share_extension;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
             /* ISSUE 1657: This is only happening because the connection clears all keyshares, this is part of the HRR test */
             for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
                 EXPECT_SUCCESS(s2n_connection_add_preferred_key_share_by_group(conn, s2n_ecc_evp_supported_curves_list[i]->iana_id));
@@ -368,6 +371,7 @@ int main(int argc, char **argv)
             struct s2n_ecc_evp_params first_params, second_params;
             int supported_curve_index = 0;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+
             /* ISSUE 1657: This is only happening because the connection clears all keyshares, this is part of the HRR test */
             for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
                 EXPECT_SUCCESS(s2n_connection_add_preferred_key_share_by_group(server_conn, s2n_ecc_evp_supported_curves_list[i]->iana_id));
@@ -409,6 +413,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             struct s2n_stuffer key_share_extension;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
             /* ISSUE 1657: This is only happening because the connection clears all keyshares, this is part of the HRR test */
             for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
                 EXPECT_SUCCESS(s2n_connection_add_preferred_key_share_by_group(conn, s2n_ecc_evp_supported_curves_list[i]->iana_id));

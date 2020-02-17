@@ -102,8 +102,8 @@ int main(int argc, char **argv)
 
         EXPECT_EQUAL(s2n_stuffer_data_available(client_stuffer), 0);
 
-        EXPECT_EQUAL(client_conn->handshake.client_received_hrr, 1);
-        EXPECT_EQUAL(server_conn->handshake.server_sent_hrr, 1);
+        EXPECT_EQUAL(client_conn->handshake.hello_retry_request, 1);
+        EXPECT_EQUAL(server_conn->handshake.hello_retry_request, 1);
 
         /* Verify that multiple hello retry messages will fail */
         EXPECT_SUCCESS(s2n_stuffer_reread(client_stuffer));
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_server_should_retry(conn));
         EXPECT_SUCCESS(s2n_server_hello_send(conn));
 
-        EXPECT_EQUAL(conn->handshake.server_sent_hrr, 1);
+        EXPECT_EQUAL(conn->handshake.hello_retry_request, 1);
 
         /* If the server has to send another HelloRetryRequest, then it should fail the connection */
         EXPECT_FAILURE(s2n_server_should_retry(conn));
@@ -178,7 +178,7 @@ int main(int argc, char **argv)
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(conn), S2N_ERR_BAD_MESSAGE);
 
-        EXPECT_EQUAL(conn->handshake.client_received_hrr, 0);
+        EXPECT_EQUAL(conn->handshake.hello_retry_request, 0);
 
         EXPECT_SUCCESS(s2n_config_free(conf));
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -216,7 +216,7 @@ int main(int argc, char **argv)
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(conn), S2N_ERR_BAD_MESSAGE);
 
-        EXPECT_EQUAL(conn->handshake.client_received_hrr, 0);
+        EXPECT_EQUAL(conn->handshake.hello_retry_request, 0);
 
         EXPECT_SUCCESS(s2n_config_free(conf));
         EXPECT_SUCCESS(s2n_connection_free(conn));

@@ -174,6 +174,9 @@ struct s2n_handshake {
 #define WITH_SESSION_TICKET         0x20
 #define IS_ISSUING_NEW_SESSION_TICKET( type )   ( (type) & WITH_SESSION_TICKET )
 
+/* A HelloRetryRequest was needed to proceed with the handshake */
+#define HELLO_RETRY_REQUEST         0x80
+
     /* Which handshake message number are we processing */
     int message_number;
 
@@ -181,10 +184,10 @@ struct s2n_handshake {
     uint8_t rsa_failed;
 
     /* Used by the client to tracks if a HelloRetryRequest has already been seen */
-    unsigned client_received_hrr:1;
+    /* unsigned client_received_hrr:1; */
 
     /* Used by the server to track whether a HelloRetryRequest was sent */
-    unsigned server_sent_hrr:1;
+    unsigned hello_retry_request:1;
 
     /* Used by the server to determine whether a HelloRetryRequest is needed */
     unsigned server_requires_hrr:1;
