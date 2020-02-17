@@ -2,7 +2,7 @@
 
 s2n is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority. It is released and licensed under the Apache License 2.0. 
 
-[![Build Status](https://img.shields.io/travis/awslabs/s2n.svg)](https://travis-ci.org/awslabs/s2n)
+[![Build Status](https://codebuild.us-west-2.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiQkcyWjA5cThqZHF3ZGR4enpYN1V4RlAwdnl3Rzk1a2lUNzB5S0JHNUxreTRLUEthbHRaZjJ0M0kvLzJrK3U3SmhtVEhOVG9qMlowenhDWXZWWnFhMU53PSIsIml2UGFyYW1ldGVyU3BlYyI6IldNeTdSak5VZ1M1WjlZRVEiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)](https://github.com/awslabs/s2n/)
 [![Apache 2 License](https://img.shields.io/github/license/awslabs/s2n.svg)](http://aws.amazon.com/apache-2-0/)
 [![C99](https://img.shields.io/badge/language-C99-blue.svg)](http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf)
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/awslabs/s2n.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/awslabs/s2n/context:cpp)
@@ -18,12 +18,12 @@ s2n is a C99 implementation of the TLS/SSL protocols that is designed to be simp
 git clone https://github.com/${YOUR_GITHUB_ACCOUNT_NAME}/s2n.git
 cd s2n
 
-# Pick an "env" line from the .travis.yml file and run it, in this case choose the openssl-1.1.1 with GCC 9 build
+# Pick an "env" line from the codebuild/codebuild.config file and run it, in this case choose the openssl-1.1.1 with GCC 9 build
 S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=9
 
-source .travis/s2n_setup_env.sh
-.travis/s2n_install_test_dependencies.sh
-.travis/s2n_travis_build.sh
+source codebuild/s2n_setup_env.sh
+codebuild/bin/s2n_install_test_dependencies.sh
+codebuild/bin/s2n_codebuild.sh
 ```
 
 ### Have a Question?
