@@ -86,10 +86,10 @@ struct s2n_config {
     /* Application supplied callback to resolve domain name conflicts when loading certs. */
     s2n_cert_tiebreak_callback cert_tiebreak_cb;
 
-    unsigned mfl_code:1;
+    uint8_t mfl_code;
 
     /* if this is FALSE, server will ignore client's Maximum Fragment Length request */
-    int accept_mfl;
+    unsigned accept_mfl:1;
 
     struct s2n_x509_trust_store trust_store;
     unsigned check_ocsp:1;
