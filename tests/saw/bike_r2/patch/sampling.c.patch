@@ -3,10 +3,6 @@
 > 
 > extern ret_t __breakpoint__get_rand_mod_len_loop(uint32_t**, const uint32_t*, aes_ctr_prf_state_t**, const uint64_t*, ret_t*) __attribute__((noduplicate));
 > 
-26c30
-< get_rand_mod_len(OUT uint32_t *    rand_pos,
----
-> get_rand_mod_len(OUT idx_t *       rand_pos,
 30a35
 >   ret_t res = SUCCESS;
 33a39

@@ -1,4 +1,0 @@
-68c68
-< typedef uint32_t idx_t;
----
-> typedef ALIGN(1) uint32_t idx_t;
