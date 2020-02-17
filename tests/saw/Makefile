@@ -333,9 +333,7 @@ bitcode/bike_r2_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike_r2 s2n/uti
 	patch s2n/pq-crypto/bike_r2/types.h bike_r2/patch/types.h.patch
 	patch s2n/pq-crypto/bike_r2/cleanup.h bike_r2/patch/cleanup.h.patch
 	patch s2n/pq-crypto/bike_r2/sampling_portable.c bike_r2/patch/sampling_portable.c.patch
-	patch s2n/pq-crypto/bike_r2/sampling.h bike_r2/patch/sampling.h.patch
 	patch s2n/pq-crypto/bike_r2/sampling.c bike_r2/patch/sampling.c.patch
-	patch s2n/pq-crypto/bike_r2/secure_decode_portable.c bike_r2/patch/secure_decode_portable.c.patch
 	patch s2n/pq-crypto/bike_r2/bike_r2_kem.c bike_r2/patch/bike_r2_kem.c.patch
 	${MAKE} -C s2n bike_r2_bc
 	${MAKE} -C bitcode bike_r2_llvm.bc

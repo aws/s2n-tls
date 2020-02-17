@@ -1,7 +1,0 @@
-55a56,61
->   if (bits == 0)
->   {
->     memmove(out, in, sizeof(syndrome_t));
->     return;
->   }
-> 
