@@ -57,7 +57,12 @@ fi
 FIPS_TEST_MSG=""
 if [ -n "${S2N_TEST_IN_FIPS_MODE}" ];
 then
-    FIPS_TEST_MSG=" FIPS test"
+    if [[ $TEST_NAME == *bike* ]] || [[ $TEST_NAME == *sike* ]]; then
+        printf "Skipping %s because PQ crypto is not supported in FIPS mode...\n" ${TEST_NAME}
+        exit 0
+    else
+        FIPS_TEST_MSG=" FIPS test"
+    fi
 fi
 
 # Make directory if it doesn't exist
