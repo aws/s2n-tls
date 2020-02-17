@@ -13,7 +13,6 @@ include "proof/sike_base.saw";
 include "proof/word.saw";
 include "proof/field_specs.saw";
 include "proof/fp_generic.saw";
-include "proof/fp_r2.saw";
 include "proof/field.saw";
 include "proof/curv.saw";
 include "proof/isogeny.saw";
@@ -21,3 +20,4 @@ include "proof/random.saw";
 include "proof/sidh.saw";
 include "proof/shake.saw";
 include "proof/sike.saw";
+
