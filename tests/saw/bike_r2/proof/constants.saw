@@ -1,4 +1,4 @@
-// constants.saw Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// constants.saw Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 let divide_and_ceil x divider = eval_int {{ `((x + divider) / divider) : [64] }};
