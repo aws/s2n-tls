@@ -284,6 +284,9 @@ struct s2n_connection {
 
     /* Cookie extension data */
     struct s2n_stuffer cookie_stuffer;
+
+    /* If write fd is broken */
+    unsigned write_fd_broken : 1;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);
