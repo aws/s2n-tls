@@ -88,7 +88,7 @@ struct s2n_cipher_suite {
     /* RFC 5426(TLS1.2) allows cipher suite defined PRFs. Cipher suites defined in and before TLS1.2 will use
      * P_hash with SHA256 when TLS1.2 is negotiated.
      */
-    const s2n_hmac_algorithm tls12_prf_alg;
+    const s2n_hmac_algorithm prf_alg;
 
     const uint8_t minimum_required_tls_version;
 };
