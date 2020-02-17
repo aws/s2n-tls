@@ -117,9 +117,7 @@ sike_r1/sike_r1.log :
 ###########################################
 
 .PHONY: bike_r2
-bike_r2:
-	@${MAKE} clean_the_dir
-	@${MAKE} bike_r2_patched_bitcode
+bike_r2: bike_r2_patched_bitcode s2n/lib/libs2n.so
 	@${MAKE} bike_r2/verify_bike_r2.log
 
 bike_r2/verify_bike_r2.log:
@@ -127,9 +125,7 @@ bike_r2/verify_bike_r2.log:
 	saw bike_r2/verify_bike_r2.saw | tee $@
 
 .PHONY : bike_r1
-bike_r1 :
-	@${MAKE} clean_the_dir
-	@${MAKE} bike_r1_patched_bitcode
+bike_r1 : bike_r1_patched_bitcode
 	@${MAKE} -C bike_r1 force_all
 
 
@@ -209,10 +205,14 @@ sike_r2_x86_patched_bitcode :
 	${MAKE} bitcode/sike_r2_llvm.bc
 
 .PHONY : bike_r1_patched_bitcode
-bike_r1_patched_bitcode : bitcode/bike_r1_llvm.bc
+bike_r1_patched_bitcode :
+	${MAKE} clean_the_dir
+	${MAKE} bitcode/bike_r1_llvm.bc
 
 .PHONY : bike_r2_patched_bitcode
-bike_r2_patched_bitcode : bitcode/bike_r2_llvm.bc
+bike_r2_patched_bitcode :
+	${MAKE} clean_the_dir
+	${MAKE} bitcode/bike_r2_llvm.bc
 
 ########################################################
 ## Rules to copy the s2n directory for patching and bulding
@@ -326,6 +326,7 @@ bitcode/bike_r1_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike_r1 s2n/uti
 	patch s2n/pq-crypto/bike_r1/sampling_portable.c bike_r1/patch/sampling_portable.c.patch
 	${MAKE} -C s2n bike_r1_bc
 	${MAKE} -C bitcode bike_r1_llvm.bc
+	${RM} -r s2n
 
 .PHONY : bitcode/bike_r2_llvm.bc
 bitcode/bike_r2_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike_r2 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(BIKE_R2_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
@@ -338,9 +339,10 @@ bitcode/bike_r2_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike_r2 s2n/uti
 	patch s2n/pq-crypto/bike_r2/bike_r2_kem.c bike_r2/patch/bike_r2_kem.c.patch
 	${MAKE} -C s2n bike_r2_bc
 	${MAKE} -C bitcode bike_r2_llvm.bc
+	${RM} -r s2n
 
 s2n/lib/libs2n.so : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/pq-crypto/sike_r2 s2n/pq-crypto/bike_r1 s2n/pq-crypto/bike_r2 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/lib s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_R1_COPY) $(SIKE_R2_COPY) $(BIKE_R1_COPY) $(BIKE_R2_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY) $(LIB_COPY)
-	${MAKE} -C s2n libs
+	${MAKE} -C s2n libs NO_STACK_PROTECTOR=1 NO_INLINE=1
 
 s2n/%.h : ../../%.h
 	cp $< $@

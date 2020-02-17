@@ -48,7 +48,7 @@ r_bits_vector_weight_ov <- verify r_bits_vector_weight_fun_name []
 
 bit_scan_reverse_ov <- verify_pathsat "bit_scan_reverse" [] bit_scan_reverse_spec;
 
-secure_cmp32_ov <- admit "secure_cmp32" [] secure_cmp32_spec;
+secure_cmp32_ov <- verify_asm "secure_cmp32" secure_cmp32_spec;
 
-secure_l32_mask_ov <- admit "secure_l32_mask" [] secure_l32_mask_spec;
+secure_l32_mask_ov <- verify_asm "secure_l32_mask" secure_l32_mask_spec;
 
