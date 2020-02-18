@@ -114,9 +114,6 @@ static int s2n_configure_kem(const struct s2n_cipher_suite *cipher_suite, struct
 {
     /* There is no support for PQ KEMs while in FIPS mode */
     S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
-    if (s2n_is_in_fips_mode()) {
-        return 0;
-    }
 
     const struct s2n_cipher_preferences *cipher_preferences = NULL;
     GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
