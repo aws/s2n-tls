@@ -144,7 +144,7 @@ static char dhparams[] =
     "HI5CnYmkAwJ6+FSWGaZQDi8bgerFk9RWwwIBAg==\n"
     "-----END DH PARAMETERS-----\n";
 
-char ticket_key_name[] = "2016.07.26.15\0";
+uint8_t ticket_key_name[16] = "2016.07.26.15\0";
 
 uint8_t default_ticket_key[32] = {0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf, 0x0d, 0xdc,
                                   0x3f, 0x0d, 0xc4, 0x7b, 0xba, 0x63, 0x90, 0xb6, 0xc7, 0x3b,
@@ -744,7 +744,7 @@ int main(int argc, char *const *argv)
             st_key_length = sizeof(default_ticket_key);
         }
 
-        if (s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen(ticket_key_name), st_key, st_key_length, 0) != 0) {
+        if (s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char*)ticket_key_name), st_key, st_key_length, 0) != 0) {
             fprintf(stderr, "Error adding ticket key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
             exit(1);
         }
