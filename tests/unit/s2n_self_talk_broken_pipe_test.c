@@ -34,7 +34,6 @@ static const char *private_key_paths[SUPPORTED_CERTIFICATE_FORMATS] = { S2N_RSA_
 
 void mock_client(struct s2n_test_piped_io *piped_io)
 {
-    char buffer[0xffff];
     struct s2n_connection *conn;
     struct s2n_config *config;
     s2n_blocked_status blocked;
