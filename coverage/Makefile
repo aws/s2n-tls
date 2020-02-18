@@ -18,4 +18,4 @@ include ../s2n.mk
 .PHONY : clean
 clean: decruft
 	rm -rf ./html/*
-
+	rm -rf ./fuzz/*

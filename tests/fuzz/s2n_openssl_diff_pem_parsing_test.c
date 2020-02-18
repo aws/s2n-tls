@@ -13,6 +13,9 @@
  * permissions and limitations under the License.
  */
 
+/* Target Functions: s2n_parse_cert_chain s2n_create_cert_chain_from_stuffer
+                     s2n_cert_chain_and_key_free */
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stddef.h>

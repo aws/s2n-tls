@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+/* Target Functions: s2n_kem_decapsulate SIKE_P434_r2_crypto_kem_dec */
+
 #include "stuffer/s2n_stuffer.h"
 
 #include "tests/s2n_test.h"

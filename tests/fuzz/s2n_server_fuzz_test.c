@@ -13,6 +13,9 @@
  * permissions and limitations under the License.
  */
 
+/* Target Functions: s2n_negotiate s2n_flush s2n_handshake_handle_app_data
+                     s2n_handshake_write_io s2n_handshake_read_io s2n_try_delete_session_cache */
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stddef.h>

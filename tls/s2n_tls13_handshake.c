@@ -44,7 +44,7 @@ static int s2n_tls13_keys_init_with_ref(struct s2n_tls13_keys *handshake, s2n_hm
 
 int s2n_tls13_keys_from_conn(struct s2n_tls13_keys *keys, struct s2n_connection *conn)
 {
-    GUARD(s2n_tls13_keys_init_with_ref(keys, conn->secure.cipher_suite->tls12_prf_alg, conn->secure.rsa_premaster_secret, conn->secure.master_secret));
+    GUARD(s2n_tls13_keys_init_with_ref(keys, conn->secure.cipher_suite->prf_alg, conn->secure.rsa_premaster_secret, conn->secure.master_secret));
 
     return 0;
 }
