@@ -145,7 +145,7 @@ static int negotiate_kem(const uint8_t client_extensions[], const size_t client_
     free(cert_chain);
     free(private_key);
 
-    S2N_ERROR_IF(negotiated_kem_id != expected_kem_id, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+    S2N_ERROR_IF(negotiated_kem_id != expected_kem_id, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
     
     return 0;
 }
