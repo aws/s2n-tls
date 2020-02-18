@@ -145,8 +145,9 @@ static int negotiate_kem(const uint8_t client_extensions[], const size_t client_
     free(cert_chain);
     free(private_key);
 
-    /* Multiply by -1 so tests can use EXPECT_SUCCESS */
-    return (-1) * (negotiated_kem_id != expected_kem_id);
+    S2N_ERROR_IF(negotiated_kem_id != expected_kem_id, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+    
+    return 0;
 }
 
 int main(int argc, char **argv)
