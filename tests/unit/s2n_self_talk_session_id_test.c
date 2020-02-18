@@ -304,7 +304,7 @@ int main(int argc, char **argv)
     uint8_t session_id_from_client[MAX_KEY_LEN];
 
      /* aes keys. Used for session ticket/session data encryption. Taken from test vectors in https://tools.ietf.org/html/rfc5869 */
-    char ticket_key_name[] = "2018.07.26.15\0";
+    uint8_t ticket_key_name[16] = "2018.07.26.15\0";
     uint8_t ticket_key[32] = {0x19, 0xef, 0x24, 0xa3, 0x2c, 0x71, 0x7b, 0x16, 0x7f, 0x33,
                              0xa9, 0x1d, 0x6f, 0x64, 0x8b, 0xdf, 0x96, 0x59, 0x67, 0x76,
                              0xaf, 0xdb, 0x63, 0x77, 0xac, 0x43, 0x4c, 0x1c, 0x29, 0x3c,
@@ -353,7 +353,7 @@ int main(int argc, char **argv)
          */
         GUARD(s2n_config_set_session_cache_onoff(config, 1));
         GUARD(config->wall_clock(config->sys_clock_ctx, &now));
-        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen(ticket_key_name), ticket_key, sizeof(ticket_key), now/ONE_SEC_IN_NANOS));
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char*)ticket_key_name), ticket_key, sizeof(ticket_key), now/ONE_SEC_IN_NANOS));
 
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
