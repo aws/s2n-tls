@@ -172,7 +172,7 @@ int main(int argc, char **argv)
 
         /* Clean up */
         EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
-        if (getenv("S2N_VALGRIND") != NULL) {
+        if (getenv("S2N_VALGRIND") == NULL) {
             EXPECT_EQUAL(status, 0);
         }
         EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
