@@ -31,13 +31,21 @@
 struct s2n_cipher_preferences;
 
 struct s2n_config {
+    unsigned cert_allocated:1;
+    unsigned default_certs_are_explicit:1;
+    unsigned use_tickets:1;
+    unsigned use_session_cache:1;
+    /* if this is FALSE, server will ignore client's Maximum Fragment Length request */
+    unsigned accept_mfl:1;
+    unsigned check_ocsp:1;
+    unsigned disable_x509_validation:1;
+    unsigned max_verify_cert_chain_depth_set:1;
+
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
      * used to release memory allocated only in the deprecated API that the application 
      * does not have a reference to. */
-    unsigned cert_allocated:1;
     struct s2n_map *domain_name_to_cert_map;
-    unsigned default_certs_are_explicit:1;
     struct auth_method_to_cert_value default_cert_per_auth_method;
     struct s2n_blob application_protocols;
     s2n_status_request_type status_request_type;
@@ -55,13 +63,11 @@ struct s2n_config {
 
     uint64_t session_state_lifetime_in_nanos;
 
-    unsigned use_tickets:1;
     struct s2n_set *ticket_keys;
     struct s2n_set *ticket_key_hashes;
     uint64_t encrypt_decrypt_key_lifetime_in_nanos;
     uint64_t decrypt_key_lifetime_in_nanos;
 
-    unsigned use_session_cache:1;
     /* If session cache is being used, these must all be set */
     s2n_cache_store_callback cache_store;
     void *cache_store_data;
@@ -88,14 +94,8 @@ struct s2n_config {
 
     uint8_t mfl_code;
 
-    /* if this is FALSE, server will ignore client's Maximum Fragment Length request */
-    unsigned accept_mfl:1;
-
     struct s2n_x509_trust_store trust_store;
-    unsigned check_ocsp:1;
-    unsigned disable_x509_validation:1;
     uint16_t max_verify_cert_chain_depth;
-    unsigned max_verify_cert_chain_depth_set:1;
 };
 
 extern struct s2n_config *s2n_fetch_default_config(void);

@@ -350,10 +350,10 @@ struct conn_settings {
     unsigned enable_mfl:1;
     unsigned session_ticket:1;
     unsigned session_cache:1;
-    const char *ca_dir;
-    const char *ca_file;
     unsigned insecure:1;
     unsigned use_corked_io:1;
+    const char *ca_dir;
+    const char *ca_file;
 };
 
 int handle_connection(int fd, struct s2n_config *config, struct conn_settings settings)
