@@ -204,12 +204,8 @@ int s2n_socket_write(void *io_context, const uint8_t *buf, uint32_t len)
     }
 
     /* On success, the number of bytes written is returned. On failure, -1 is
-     * returned and errno is set appropriately. 
-     * Don't generate a SIGPIPE signal if the peer on a stream-
-     * oriented socket has closed the connection.  The EPIPE error is
-     * still returned.
-     */
-    return send(wfd, buf, len, MSG_NOSIGNAL);
+     * returned and errno is set appropriately. */
+    return write(wfd, buf, len);
 }
 
 int s2n_socket_is_ipv6(int fd, uint8_t *ipv6) 
