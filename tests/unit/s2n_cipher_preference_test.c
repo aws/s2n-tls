@@ -70,6 +70,14 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(preferences->kems, pq_kems_sike_r1);
 
         preferences = NULL;
+        EXPECT_SUCCESS(s2n_find_cipher_pref_from_version("PQ-SIKE-TEST-TLS-1-0-2020-02", &preferences));
+        EXPECT_TRUE(s2n_ecc_extension_required(preferences));
+        EXPECT_TRUE(s2n_pq_kem_extension_required(preferences));
+        EXPECT_EQUAL(2, preferences->kem_count);
+        EXPECT_NOT_NULL(preferences->kems);
+        EXPECT_EQUAL(preferences->kems, pq_kems_sike_r1r2);
+
+        preferences = NULL;
         EXPECT_SUCCESS(s2n_find_cipher_pref_from_version("KMS-PQ-TLS-1-0-2020-02", &preferences));
         EXPECT_TRUE(s2n_ecc_extension_required(preferences));
         EXPECT_TRUE(s2n_pq_kem_extension_required(preferences));

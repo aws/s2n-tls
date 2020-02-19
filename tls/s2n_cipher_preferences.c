@@ -51,6 +51,12 @@ const struct s2n_kem *pq_kems_sike_r1[1] = {
     &s2n_sike_p503_r1,
 };
 
+/* Extension list for SIKE P503 Round 1 and SIKE P434 Round 2 only (for testing) */
+const struct s2n_kem *pq_kems_sike_r1r2[2] = {
+        &s2n_sike_p434_r2,
+        &s2n_sike_p503_r1,
+};
+
 /* s2n's list of cipher suites, in order of preferences, as of 2019-08-01 */
 struct s2n_cipher_suite *cipher_suites_20190801[] = {
     S2N_TLS13_CIPHER_SUITES_20190801,
@@ -917,6 +923,16 @@ const struct s2n_cipher_preferences cipher_preferences_pq_sike_test_tls_1_0_2019
     .kems = pq_kems_sike_r1,
 };
 
+/* Includes only SIKE round 1 and round 2 (for integration tests). The cipher suite list
+ * is the same as in cipher_preferences_pq_sike_test_tls_1_0_2019_11. */
+const struct s2n_cipher_preferences cipher_preferences_pq_sike_test_tls_1_0_2020_02 = {
+        .count = s2n_array_len(cipher_suites_pq_sike_test_tls_1_0_2019_11),
+        .suites = cipher_suites_pq_sike_test_tls_1_0_2019_11,
+        .minimum_protocol_version = S2N_TLS10,
+        .kem_count = s2n_array_len(pq_kems_sike_r1r2),
+        .kems = pq_kems_sike_r1r2,
+};
+
 struct s2n_cipher_suite *cipher_suites_kms_fips_tls_1_2_2018_10[] = {
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
@@ -966,6 +982,7 @@ struct {
     { .version="KMS-PQ-TLS-1-0-2019-06", .preferences=&cipher_preferences_kms_pq_tls_1_0_2019_06, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="KMS-PQ-TLS-1-0-2020-02", .preferences=&cipher_preferences_kms_pq_tls_1_0_2020_02, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="PQ-SIKE-TEST-TLS-1-0-2019-11", .preferences=&cipher_preferences_pq_sike_test_tls_1_0_2019_11, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="PQ-SIKE-TEST-TLS-1-0-2020-02", .preferences=&cipher_preferences_pq_sike_test_tls_1_0_2020_02, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="KMS-FIPS-TLS-1-2-2018-10", .preferences=&cipher_preferences_kms_fips_tls_1_2_2018_10, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="20140601", .preferences=&cipher_preferences_20140601, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="20141001", .preferences=&cipher_preferences_20141001, .ecc_extension_required=0, .pq_kem_extension_required=0},

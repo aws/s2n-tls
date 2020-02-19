@@ -31,6 +31,7 @@ struct s2n_cipher_preferences {
 extern const struct s2n_kem *pq_kems_r1[2];
 extern const struct s2n_kem *pq_kems_r1r2[4];
 extern const struct s2n_kem *pq_kems_sike_r1[1];
+extern const struct s2n_kem *pq_kems_sike_r1r2[2];
 
 extern const struct s2n_cipher_preferences cipher_preferences_20140601;
 extern const struct s2n_cipher_preferences cipher_preferences_20141001;
