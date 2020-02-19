@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -97,8 +97,6 @@ int main(int argc, char **argv)
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        int client_to_server[2];
-        int server_to_client[2];
 
         /* Craft a cipher preference with a cipher_idx cipher. */
         memcpy(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -115,22 +113,16 @@ int main(int argc, char **argv)
         server_config->cipher_preferences = &server_cipher_preferences;
 
         /* Create nonblocking pipes. */
-        EXPECT_SUCCESS(pipe(client_to_server));
-        EXPECT_SUCCESS(pipe(server_to_client));
-        for (int i = 0; i < 2; i++) {
-            EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
-            EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
-        }
+        struct s2n_test_piped_io piped_io;
+        EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
+
+        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
 
         /* Verify the handshake was successful. */
         EXPECT_SUCCESS(try_handshake(server_conn, client_conn));
@@ -141,11 +133,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-
-        for (int i = 0; i < 2; i++) {
-           EXPECT_SUCCESS(close(server_to_client[i]));
-           EXPECT_SUCCESS(close(client_to_server[i]));
-        }
+        EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
     }
 
     EXPECT_SUCCESS(s2n_config_free(client_config));
@@ -168,8 +156,6 @@ int main(int argc, char **argv)
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        int client_to_server[2];
-        int server_to_client[2];
 
         /* Craft a cipher preference with a cipher_idx cipher. */
         memcpy(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -186,22 +172,16 @@ int main(int argc, char **argv)
         server_config->cipher_preferences = &server_cipher_preferences;
 
         /* Create nonblocking pipes. */
-        EXPECT_SUCCESS(pipe(client_to_server));
-        EXPECT_SUCCESS(pipe(server_to_client));
-        for (int i = 0; i < 2; i++) {
-            EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
-            EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
-        }
+        struct s2n_test_piped_io piped_io;
+        EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
+
+        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
 
         /* Verify the handshake was successful. */
         EXPECT_SUCCESS(try_handshake(server_conn, client_conn));
@@ -212,11 +192,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-
-        for (int i = 0; i < 2; i++) {
-           EXPECT_SUCCESS(close(server_to_client[i]));
-           EXPECT_SUCCESS(close(client_to_server[i]));
-        }
+        EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
     }
 
     EXPECT_SUCCESS(s2n_config_free(client_config));
@@ -239,8 +215,6 @@ int main(int argc, char **argv)
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        int client_to_server[2];
-        int server_to_client[2];
 
         /* Craft a cipher preference with a cipher_idx cipher. */
         memcpy(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -257,22 +231,16 @@ int main(int argc, char **argv)
         server_config->cipher_preferences = &server_cipher_preferences;
 
         /* Create nonblocking pipes. */
-        EXPECT_SUCCESS(pipe(client_to_server));
-        EXPECT_SUCCESS(pipe(server_to_client));
-        for (int i = 0; i < 2; i++) {
-            EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
-            EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
-        }
+        struct s2n_test_piped_io piped_io;
+        EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
+
+        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
 
         /* Verify the handshake was successful. */
         EXPECT_SUCCESS(try_handshake(server_conn, client_conn));
@@ -283,6 +251,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
     }
     
     EXPECT_SUCCESS(s2n_config_free(client_config));
@@ -306,8 +275,6 @@ int main(int argc, char **argv)
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        int client_to_server[2];
-        int server_to_client[2];
 
         /* Craft a cipher preference with a cipher_idx cipher. */
         memcpy(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -324,25 +291,19 @@ int main(int argc, char **argv)
         server_config->cipher_preferences = &server_cipher_preferences;
 
         /* Create nonblocking pipes. */
-        EXPECT_SUCCESS(pipe(client_to_server));
-        EXPECT_SUCCESS(pipe(server_to_client));
-        for (int i = 0; i < 2; i++) {
-            EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
-            EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
-        }
+        struct s2n_test_piped_io piped_io;
+        EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         /* Override the config setting on the connection. */
         EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_REQUIRED));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
+
+        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
 
         /* Override the config setting on the connection. */
         EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_OPTIONAL));
@@ -356,11 +317,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-
-        for (int i = 0; i < 2; i++) {
-           EXPECT_SUCCESS(close(server_to_client[i]));
-           EXPECT_SUCCESS(close(client_to_server[i]));
-        }
+        EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
     }
 
     EXPECT_SUCCESS(s2n_config_free(client_config));
@@ -383,8 +340,6 @@ int main(int argc, char **argv)
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        int client_to_server[2];
-        int server_to_client[2];
 
         /* Craft a cipher preference with a cipher_idx cipher. */
         memcpy(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -401,25 +356,19 @@ int main(int argc, char **argv)
         server_config->cipher_preferences = &server_cipher_preferences;
 
         /* Create nonblocking pipes. */
-        EXPECT_SUCCESS(pipe(client_to_server));
-        EXPECT_SUCCESS(pipe(server_to_client));
-        for (int i = 0; i < 2; i++) {
-            EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
-            EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
-        }
+        struct s2n_test_piped_io piped_io;
+        EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         /* Override the config setting on the connection. */
         EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_OPTIONAL));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
+
+        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
 
         /* Override the config setting on the connection. */
         EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_OPTIONAL));
@@ -433,11 +382,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-
-        for (int i = 0; i < 2; i++) {
-           EXPECT_SUCCESS(close(server_to_client[i]));
-           EXPECT_SUCCESS(close(client_to_server[i]));
-        }
+        EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
     }
 
     EXPECT_SUCCESS(s2n_config_free(client_config));
@@ -468,8 +413,6 @@ int main(int argc, char **argv)
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        int client_to_server[2];
-        int server_to_client[2];
 
         /* Craft a cipher preference with a cipher_idx cipher. */
         memcpy(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -486,22 +429,16 @@ int main(int argc, char **argv)
         server_config->cipher_preferences = &server_cipher_preferences;
 
         /* Create nonblocking pipes. */
-        EXPECT_SUCCESS(pipe(client_to_server));
-        EXPECT_SUCCESS(pipe(server_to_client));
-        for (int i = 0; i < 2; i++) {
-            EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
-            EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
-        }
+        struct s2n_test_piped_io piped_io;
+        EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
+
+        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
 
         /* Verify the handshake failed. Blinding is disabled for the failure case to speed up tests. */
         EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
@@ -513,6 +450,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
     }
     
     EXPECT_SUCCESS(s2n_config_free(client_config));

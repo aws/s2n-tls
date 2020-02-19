@@ -1,5 +1,5 @@
 #
-# Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -44,9 +44,17 @@ DEFAULT_CFLAGS = -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-su
 COVERAGE_CFLAGS = -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
 
-ifdef S2N_COVERAGE
-    DEFAULT_CFLAGS += ${COVERAGE_CFLAGS}
-    LIBS += ${COVERAGE_LDFLAGS}
+FUZZ_CFLAGS = -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak
+
+# Define FUZZ_COVERAGE - to be used for generating coverage reports on fuzz tests
+#                !!! NOT COMPATIBLE WITH S2N_COVERAGE !!!
+ifdef FUZZ_COVERAGE
+	FUZZ_CFLAGS += -fprofile-instr-generate -fcoverage-mapping
+else
+	ifdef S2N_COVERAGE
+		DEFAULT_CFLAGS += ${COVERAGE_CFLAGS}
+		LIBS += ${COVERAGE_LDFLAGS}
+	endif
 endif
 
 # Add a flag to disable stack protector for alternative libcs without
@@ -88,7 +96,6 @@ ifdef S2N_DEBUG
 	CFLAGS += ${DEBUG_CFLAGS}
 endif
 
-FUZZ_CFLAGS = -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak
 LLVM_GCOV_MARKER_FILE=${COVERAGE_DIR}/use-llvm-gcov.tmp
 
 ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)

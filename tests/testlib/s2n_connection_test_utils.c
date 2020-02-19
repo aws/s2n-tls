@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -19,7 +19,17 @@
 
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
+#include "utils/s2n_socket.h"
 #include "testlib/s2n_testlib.h"
+
+
+int s2n_fd_set_blocking(int fd) {
+    return fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) ^ O_NONBLOCK);
+}
+
+int s2n_fd_set_non_blocking(int fd) {
+    return fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
+}
 
 static int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
 {
@@ -83,6 +93,70 @@ int s2n_connection_set_io_stuffers(struct s2n_stuffer *input, struct s2n_stuffer
     GUARD(s2n_connection_set_recv_ctx(conn, input));
     GUARD(s2n_connection_set_send_ctx(conn, output));
 
+    return 0;
+}
+
+int s2n_piped_io_init(struct s2n_test_piped_io *piped_io) {
+    signal(SIGPIPE, SIG_IGN);
+
+    int server_to_client[2];
+    int client_to_server[2];
+
+    GUARD(pipe(server_to_client));
+    GUARD(pipe(client_to_server));
+
+    piped_io->client_read = server_to_client[0];
+    piped_io->client_write = client_to_server[1];
+
+    piped_io->server_read = client_to_server[0];
+    piped_io->server_write = server_to_client[1];
+
+    return 0;
+}
+
+int s2n_piped_io_init_non_blocking(struct s2n_test_piped_io *piped_io) {
+    GUARD(s2n_piped_io_init(piped_io));
+
+    GUARD(s2n_fd_set_non_blocking(piped_io->client_read));
+    GUARD(s2n_fd_set_non_blocking(piped_io->client_write));
+    GUARD(s2n_fd_set_non_blocking(piped_io->server_read));
+    GUARD(s2n_fd_set_non_blocking(piped_io->server_write));
+
+    return 0;
+}
+
+int s2n_connection_set_piped_io(struct s2n_connection *conn, struct s2n_test_piped_io* piped_io) {
+    if (conn->mode == S2N_CLIENT) {
+        GUARD(s2n_connection_set_read_fd(conn, piped_io->client_read));
+        GUARD(s2n_connection_set_write_fd(conn, piped_io->client_write));
+    } else if (conn->mode == S2N_SERVER) {
+        GUARD(s2n_connection_set_read_fd(conn, piped_io->server_read));
+        GUARD(s2n_connection_set_write_fd(conn, piped_io->server_write));
+    }
+
+    return 0;
+}
+
+int s2n_connections_set_piped_io(struct s2n_connection *client, struct s2n_connection *server, struct s2n_test_piped_io* piped_io) {
+    GUARD(s2n_connection_set_piped_io(client, piped_io));
+    GUARD(s2n_connection_set_piped_io(server, piped_io));
+    return 0;
+}
+
+int s2n_piped_io_close(struct s2n_test_piped_io *piped_io) {
+    GUARD(s2n_piped_io_close_one_end(piped_io, S2N_CLIENT));
+    GUARD(s2n_piped_io_close_one_end(piped_io, S2N_SERVER));
+    return 0;
+}
+
+int s2n_piped_io_close_one_end(struct s2n_test_piped_io *piped_io, int mode_to_close) {
+    if (mode_to_close == S2N_CLIENT) {
+        GUARD(close(piped_io->client_read));
+        GUARD(close(piped_io->client_write));
+    } else if(mode_to_close == S2N_SERVER) {
+        GUARD(close(piped_io->server_read));
+        GUARD(close(piped_io->server_write));
+    }
     return 0;
 }
 

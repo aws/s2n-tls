@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@
 
 static const uint8_t buf_to_send[1023] = { 27 };
 
-int mock_client(int writefd, int readfd)
+int mock_client(struct s2n_test_piped_io *piped_io)
 {
     struct s2n_connection *conn;
     struct s2n_config *client_config;
@@ -48,8 +48,7 @@ int mock_client(int writefd, int readfd)
     s2n_connection_set_config(conn, client_config);
 
     /* Unlike the server, the client just passes ownership of I/O to s2n */
-    s2n_connection_set_read_fd(conn, readfd);
-    s2n_connection_set_write_fd(conn, writefd);
+    s2n_connection_set_piped_io(conn, piped_io);
 
     result = s2n_negotiate(conn, &blocked);
     if (result < 0) {
@@ -79,8 +78,6 @@ int main(int argc, char **argv)
     s2n_blocked_status blocked;
     int status;
     pid_t pid;
-    int server_to_client[2];
-    int client_to_server[2];
     char *cert_chain_pem;
     char *private_key_pem;
     struct s2n_cert_chain_and_key *chain_and_key;
@@ -100,15 +97,14 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
     /* Create a pipe */
-    EXPECT_SUCCESS(pipe(server_to_client));
-    EXPECT_SUCCESS(pipe(client_to_server));
+    struct s2n_test_piped_io piped_io;
+    EXPECT_SUCCESS(s2n_piped_io_init(&piped_io));
 
     /* Create a child process */
     pid = fork();
     if (pid == 0) {
-        /* This is the child process, close the read end of the pipe */
-        EXPECT_SUCCESS(close(client_to_server[0]));
-        EXPECT_SUCCESS(close(server_to_client[1]));
+        /* This is the client process, close the server end of the pipe */
+        EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
 
         /* Free the config */
         EXPECT_SUCCESS(s2n_config_free(config));
@@ -116,19 +112,18 @@ int main(int argc, char **argv)
         free(private_key_pem);
 
         /* Run the client */
-        mock_client(client_to_server[1], server_to_client[0]);
+        mock_client(&piped_io);
     }
 
-    /* This is the parent, close the write end of the pipe */
-    EXPECT_SUCCESS(close(client_to_server[1]));
-    EXPECT_SUCCESS(close(server_to_client[0]));
+    /* This is the server process, close the client end of the pipe */
+    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_CLIENT));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
     /* Make pipes non-blocking */
-    EXPECT_NOT_EQUAL(fcntl(client_to_server[0], F_SETFL, fcntl(client_to_server[0], F_GETFL) | O_NONBLOCK), -1);
-    EXPECT_NOT_EQUAL(fcntl(server_to_client[1], F_SETFL, fcntl(server_to_client[1], F_GETFL) | O_NONBLOCK), -1);
+    EXPECT_SUCCESS(s2n_fd_set_non_blocking(piped_io.server_read));
+    EXPECT_SUCCESS(s2n_fd_set_non_blocking(piped_io.server_write));
 
     /* Set up our I/O callbacks. Use stuffers for the "I/O context" */
     EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
@@ -142,14 +137,14 @@ int main(int argc, char **argv)
 
         /* check to see if we need to copy more over from the pipes to the buffers
          * to continue the handshake */
-        s2n_stuffer_recv_from_fd(&in, client_to_server[0], MAX_BUF_SIZE);
-        s2n_stuffer_send_to_fd(&out, server_to_client[1], s2n_stuffer_data_available(&out));
+        s2n_stuffer_recv_from_fd(&in, piped_io.server_read, MAX_BUF_SIZE);
+        s2n_stuffer_send_to_fd(&out, piped_io.server_write, s2n_stuffer_data_available(&out));
     } while (blocked);
 
     /* Receive only 100 bytes of the record and try to call s2n_recv */
     n = 0;
     while (n < 100) {
-        ret = s2n_stuffer_recv_from_fd(&in, client_to_server[0], 100 - n);
+        ret = s2n_stuffer_recv_from_fd(&in, piped_io.server_read, 100 - n);
 
         if (ret < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             continue;
@@ -168,7 +163,7 @@ int main(int argc, char **argv)
 
     /* Read the rest of the buffer and expect s2n_recv to succeed */
     do {
-        ret = s2n_stuffer_recv_from_fd(&in, client_to_server[0], MAX_BUF_SIZE);
+        ret = s2n_stuffer_recv_from_fd(&in, piped_io.server_read, MAX_BUF_SIZE);
 
         if (ret < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             continue;
@@ -194,8 +189,8 @@ int main(int argc, char **argv)
             server_shutdown = 1;
         }
 
-        s2n_stuffer_recv_from_fd(&in, client_to_server[0], MAX_BUF_SIZE);
-        s2n_stuffer_send_to_fd(&out, server_to_client[1], s2n_stuffer_data_available(&out));
+        s2n_stuffer_recv_from_fd(&in, piped_io.server_read, MAX_BUF_SIZE);
+        s2n_stuffer_send_to_fd(&out, piped_io.server_write, s2n_stuffer_data_available(&out));
     } while (!server_shutdown);
 
     EXPECT_SUCCESS(s2n_connection_free(conn));

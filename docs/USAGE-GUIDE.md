@@ -328,24 +328,6 @@ typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED, S2N_CERT_AUTH_OPTIONA
 **s2n_cert_auth_type** is used to declare what type of client certificiate authentication to use.
 Currently the default for s2n is for neither the server side or the client side to use Client (aka Mutual) authentication.
 
-### s2n_cert_type
-
-```c
-typedef enum {
-    S2N_CERT_TYPE_RSA_SIGN = 1,
-    S2N_CERT_TYPE_DSS_SIGN = 2,
-    S2N_CERT_TYPE_RSA_FIXED_DH = 3,
-    S2N_CERT_TYPE_DSS_FIXED_DH = 4,
-    S2N_CERT_TYPE_RSA_EPHEMERAL_DH_RESERVED = 5,
-    S2N_CERT_TYPE_DSS_EPHEMERAL_DH_RESERVED = 6,
-    S2N_CERT_TYPE_FORTEZZA_DMS_RESERVED = 20,
-    S2N_CERT_TYPE_ECDSA_SIGN = 64,
-    S2N_CERT_TYPE_RSA_FIXED_ECDH = 65,
-    S2N_CERT_TYPE_ECDSA_FIXED_ECDH = 66,
-} s2n_cert_type;
-```
-**s2n_cert_type** is used to define what type of Certificate was used in a connection.
-
 ## Opaque structures
 
 s2n defines several opaque structures that are used for managed objects. Because
@@ -553,6 +535,22 @@ underlying encrpyt/decrypt functions are not available in older versions.
 3. Prefer encryption ciphers in the following order: AES128, AES256, ChaCha20, 3DES, RC4.
 4. Prefer record authentication modes in the following order: GCM, Poly1305, SHA256, SHA1, MD5.
 
+### s2n\_config\_set\_signature\_preferences
+
+```c
+int s2n_config_set_signature_preferences(struct s2n_config *config,
+                                      const char *version);
+```
+
+**s2n_config_set_signature_preferences** sets the list of acceptable signature schemes (signature + hash algorithms).
+
+The "default" version behaves as in **s2n_config_set_signature_preferences**. Numbered versions are fixed and will never change. The currently supported versions are:
+
+| version | definition |
+|----------|-----------
+|"default" | Currently "20140601".
+|"20200207" | RSA-PSS, RSA-RSAE, RSA-PKCS1, and ECDSA. SHA1 allowed, but only as a fallback.
+|"20140601" | RSA-PKCS1 and ECDSA. SHA1 allowed, but only as a fallback.
 
 ### s2n\_config\_add\_cert\_chain\_and\_key
 
@@ -799,7 +797,7 @@ typedef int s2n_client_hello_fn(struct s2n_connection *conn, void *ctx);
 
 The callback function take as an input s2n connection, which received
 ClientHello and context provided in **s2n_config_set_client_hello_cb**. The
-callback can get any ClientHello infromation from the connection and use
+callback can get any ClientHello information from the connection and use
 **s2n_connection_set_config** call to change the config of the connection.
 
 If any of the properties of the connection were changed based on server_name
@@ -925,6 +923,9 @@ and a pointer to a 64 bit unsigned integer specifing the size of this value.
 Initially *value_size will be set to the amount of space allocated for
 the value, the callback should set *value_size to the actual size of the
 data returned. If there is insufficient space, -1 should be returned.
+
+If the cache is not ready to provide data for the request, S2N_CALLBACK_BLOCKED should be returned.
+This will cause s2n_negotiate() to return S2N_BLOCKED_ON_APPLICATION_INPUT.
 
 ### s2n\_config\_set\_cache\_delete\_callback
 

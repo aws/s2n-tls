@@ -1,4 +1,4 @@
-// helpers.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// helpers.saw Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 // NOTE: For structures or unions, where SAW support is not quite as simple

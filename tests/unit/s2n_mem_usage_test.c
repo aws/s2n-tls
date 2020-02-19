@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@
 /* This is roughly the current memory usage per connection */
 #define MEM_PER_CONNECTION (106 * 1024)
 
-/* This is the maximum  memory per conneciton including 4KB of slack */
+/* This is the maximum memory per connection including 4KB of slack */
 #define MAX_MEM_PER_CONNECTION (MEM_PER_CONNECTION + 4 * 1024)
 
 ssize_t get_vm_data_size()
@@ -73,6 +73,9 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
+    struct s2n_test_piped_io piped_io;
+    EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
+
     /* Skip the test when running under valgrind or address sanitizer, as those tools
      * impact the memory usage. */
     if (getenv("S2N_VALGRIND") != NULL || getenv("S2N_ADDRESS_SANITIZER") != NULL) {
@@ -89,8 +92,6 @@ int main(int argc, char **argv)
 
     const ssize_t maxAllowedMemDiff = 2 * connectionsToUse * MAX_MEM_PER_CONNECTION;
 
-    int *server_to_client = calloc(2 * connectionsToUse, sizeof(int));
-    int *client_to_server = calloc(2 * connectionsToUse, sizeof(int));
     struct s2n_connection **clients = calloc(connectionsToUse, sizeof(struct s2n_connection *));
     struct s2n_connection **servers = calloc(connectionsToUse, sizeof(struct s2n_connection *));
 
@@ -117,26 +118,14 @@ int main(int argc, char **argv)
     /* Allocate all connections */
     for (int i = 0; i < connectionsToUse; i++)
     {
-        /* Create nonblocking pipes */
-        EXPECT_SUCCESS(pipe(server_to_client + 2 * i));
-        EXPECT_SUCCESS(pipe(client_to_server + 2 * i));
-        for (int j = i * 2; j < (i + 1) * 2; j++) {
-            EXPECT_NOT_EQUAL(fcntl(server_to_client[j], F_SETFL, fcntl(server_to_client[j], F_GETFL) | O_NONBLOCK), -1);
-            EXPECT_NOT_EQUAL(fcntl(client_to_server[j], F_SETFL, fcntl(client_to_server[j], F_GETFL) | O_NONBLOCK), -1);
-        }
-
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[i * 2]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[i * 2 + 1]));
         EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
         clients[i] = client_conn;
 
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[i * 2]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[i * 2 + 1]));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
         EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
         servers[i] = server_conn;
@@ -146,6 +135,8 @@ int main(int argc, char **argv)
     EXPECT_NOT_EQUAL(vm_data_after_allocation, -1);
 
     for (int i = 0; i < connectionsToUse; i++) {
+        EXPECT_SUCCESS(s2n_connections_set_piped_io(clients[i], servers[i], &piped_io));
+
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(servers[i], clients[i]));
     }
 
@@ -169,21 +160,15 @@ int main(int argc, char **argv)
     for (int i = 0; i < connectionsToUse; i++) {
         EXPECT_SUCCESS(s2n_connection_free(clients[i]));
         EXPECT_SUCCESS(s2n_connection_free(servers[i]));
-
-        for (int j = i * 2; j < (i + 1) * 2; j++) {
-            EXPECT_SUCCESS(close(server_to_client[j]));
-            EXPECT_SUCCESS(close(client_to_server[j]));
-        }
     }
 
+    EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_config_free(server_config));
     EXPECT_SUCCESS(s2n_config_free(client_config));
 
     free(cert_chain);
     free(private_key);
-    free(server_to_client);
-    free(client_to_server);
     free(clients);
     free(servers);
 
@@ -195,7 +180,7 @@ int main(int argc, char **argv)
     fprintf(stdout, "VmData after free handshake: %10zu\n", vm_data_after_free_handshake);
     fprintf(stdout, "VmData after release:        %10zu\n", vm_data_after_release_buffers);
     fprintf(stdout, "Max VmData diff allowed:     %10zu\n", maxAllowedMemDiff);
-    fprintf(stdout, "Number of connecitons used:  %10zu\n", connectionsToUse);
+    fprintf(stdout, "Number of connections used:  %10zu\n", connectionsToUse);
 #endif
 
     EXPECT_TRUE(vm_data_after_allocation - vm_data_initial < maxAllowedMemDiff);

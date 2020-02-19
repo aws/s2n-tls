@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -29,12 +29,14 @@ struct s2n_sig_scheme_list {
     uint8_t len;
 };
 
-extern int s2n_get_signature_scheme_pref_list(struct s2n_connection *conn, const struct s2n_signature_scheme* const** pref_list_out,
-                                              size_t *list_len_out);
-
-extern int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn, struct s2n_sig_scheme_list *sig_hash_algs,
+int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn, struct s2n_sig_scheme_list *sig_hash_algs,
                                                             struct s2n_signature_scheme *sig_scheme_out);
-extern int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn, struct s2n_stuffer *in,
+int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn, struct s2n_stuffer *in,
                                                             struct s2n_signature_scheme *chosen_sig_scheme);
-extern int s2n_send_supported_signature_algorithms(struct s2n_stuffer *out);
-extern int s2n_recv_supported_sig_scheme_list(struct s2n_stuffer *in, struct s2n_sig_scheme_list *sig_hash_algs);
+
+int s2n_get_auth_method_from_sig_alg(s2n_signature_algorithm in, s2n_authentication_method *out);
+
+int s2n_recv_supported_sig_scheme_list(struct s2n_stuffer *in, struct s2n_sig_scheme_list *sig_hash_algs);
+int s2n_send_supported_sig_scheme_list(struct s2n_connection *conn, struct s2n_stuffer *out);
+int s2n_supported_sig_schemes_count(struct s2n_connection *conn);
+int s2n_supported_sig_scheme_list_size(struct s2n_connection *conn);

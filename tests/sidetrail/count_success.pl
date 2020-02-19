@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -22,12 +22,13 @@ use warnings;
 
 sub  trim { my $s = shift; $s =~ s/^\s+|\s+$//g; return $s };
 
-if (@ARGV != 2) {
-    die "usage: count_success.pl expected_success expected_failures";
+if (@ARGV != 3) {
+    die "usage: count_success.pl expected_success expected_failures filename";
 }
 
 my $expected_success = shift;
 my $expected_failure = shift;
+my $filename = shift;
 my @undefined_functions = ();
 my %allowed_undefined = ("__CONTRACT_invariant" => 1,
 			 "malloc" => 1,
@@ -35,7 +36,8 @@ my %allowed_undefined = ("__CONTRACT_invariant" => 1,
 
 my $verified = 0;
 my $errors = 0;
-while (my $line = <STDIN>){
+open (FILE, $filename) or die "Can't open $filename $!";
+while (my $line = <FILE>){
     print $line;
     #Check if the code under test used unexpected functions
     if ($line =~ /warning: module contains undefined functions:([a-zA-Z0-9_, ]+)/) {

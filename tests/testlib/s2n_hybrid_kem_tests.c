@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -20,11 +20,13 @@
 #include "utils/s2n_safety.h"
 #include "crypto/s2n_drbg.h"
 #include "crypto/s2n_openssl.h"
+#include "crypto/s2n_fips.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tests/testlib/s2n_testlib.h"
 #include "tls/s2n_kex.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_cipher_preferences.h"
 
 /* If the configured lib crypto supports a custom random number generator this test is run with a AES 256 DRBG with no
  * prediction resistance RNG. Running in that mode all the server and client key exchange messages and final master
@@ -39,17 +41,23 @@ int s2n_entropy_generator(struct s2n_blob *blob)
 }
 #endif
 
-int setup_connection(struct s2n_connection *conn, const struct s2n_kem *kem, struct s2n_cipher_suite *cipher_suite) {
+int setup_connection(struct s2n_connection *conn, const struct s2n_kem *kem, struct s2n_cipher_suite *cipher_suite,
+                     const char *cipher_pref_version) {
+    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
     conn->actual_protocol_version = S2N_TLS12;
     conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
     conn->secure.s2n_kem_keys.negotiated_kem = kem;
     conn->secure.cipher_suite = cipher_suite;
     conn->secure.conn_sig_scheme = s2n_rsa_pkcs1_sha384;
+    GUARD(s2n_connection_set_cipher_preferences(conn, cipher_pref_version));
     return 0;
 }
 
 int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cipher_suite *cipher_suite,
-        const char * kat_file_name, uint32_t server_key_message_length, uint32_t client_key_message_length) {
+        const char *cipher_pref_version, const char * kat_file_name, uint32_t server_key_message_length,
+        uint32_t client_key_message_length) {
+    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+
     /* Part 1 setup a client and server connection with everything they need for a key exchange */
     struct s2n_connection *client_conn, *server_conn;
     GUARD_NONNULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -98,8 +106,8 @@ int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cip
 
     server_conn->handshake_params.our_chain_and_key = chain_and_key;
 
-    GUARD(setup_connection(server_conn, kem, cipher_suite));
-    GUARD(setup_connection(client_conn, kem, cipher_suite));
+    GUARD(setup_connection(server_conn, kem, cipher_suite, cipher_pref_version));
+    GUARD(setup_connection(client_conn, kem, cipher_suite, cipher_pref_version));
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
     /* Read the seed from the RSP_FILE and create the DRBG for the test. Since the seed is the same (and prediction

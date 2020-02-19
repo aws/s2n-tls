@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -145,11 +145,13 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
         GUARD(s2n_handshake_require_hash(&conn->handshake, S2N_HASH_SHA1));
         break;
     case S2N_TLS12:
+        /* fall through */
+    case S2N_TLS13:
     {
-        /* For TLS 1.2 the cipher suite defines the PRF hash alg */
-        s2n_hmac_algorithm tls12_prf_alg = conn->secure.cipher_suite->tls12_prf_alg;
+        /* For TLS 1.2 and TLS 1.3, the cipher suite defines the PRF hash alg */
+        s2n_hmac_algorithm prf_alg = conn->secure.cipher_suite->prf_alg;
         s2n_hash_algorithm hash_alg;
-        GUARD(s2n_hmac_hash_alg(tls12_prf_alg, &hash_alg));
+        GUARD(s2n_hmac_hash_alg(prf_alg, &hash_alg));
         GUARD(s2n_handshake_require_hash(&conn->handshake, hash_alg));
         break;
     }

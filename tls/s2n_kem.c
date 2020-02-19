@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -75,24 +75,28 @@ const struct s2n_kem s2n_sike_p434_r2 = {
         .decapsulate = &SIKE_P434_r2_crypto_kem_dec,
 };
 
-const struct s2n_kem *supported_bike_params[] = {
-        &s2n_bike1_l1_r1
+/* These lists should be kept up to date with the above KEMs. Order in the lists
+ * does not matter. Adding a KEM to these lists will not automatically enable
+ * support for the KEM extension - that must be added via the cipher preferences.*/
+const struct s2n_kem *bike_kems[] = {
+        &s2n_bike1_l1_r1,
+        &s2n_bike1_l1_r2
 };
-
-const struct s2n_kem *supported_sike_params[] = {
+const struct s2n_kem *sike_kems[] = {
         &s2n_sike_p503_r1,
+        &s2n_sike_p434_r2,
 };
 
 const struct s2n_iana_to_kem kem_mapping[2] = {
         {
             .iana_value = { TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 },
-            .kems = supported_bike_params,
-            .kem_count = s2n_array_len(supported_bike_params),
+            .kems = bike_kems,
+            .kem_count = s2n_array_len(bike_kems),
         },
         {
             .iana_value = { TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 },
-            .kems = supported_sike_params,
-            .kem_count = s2n_array_len(supported_sike_params),
+            .kems = sike_kems,
+            .kem_count = s2n_array_len(sike_kems),
         }
 };
 
@@ -150,29 +154,69 @@ int s2n_kem_decapsulate(const struct s2n_kem_keypair *kem_keys, struct s2n_blob 
     return 0;
 }
 
-int s2n_kem_find_supported_kem(struct s2n_blob *client_kem_ids, const struct s2n_kem *server_kem_pref_list[],
-                               const int num_server_supported_kems, const struct s2n_kem **matching_kem)
-{
-    struct s2n_stuffer client_kems_in = {0};
+static int s2n_kem_check_kem_compatibility(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_kem *candidate_kem,
+        uint8_t *kem_is_compatible) {
+    const struct s2n_iana_to_kem *compatible_kems = NULL;
+    GUARD(s2n_cipher_suite_to_kem(iana_value, &compatible_kems));
 
-    GUARD(s2n_stuffer_init(&client_kems_in, client_kem_ids));
-    GUARD(s2n_stuffer_write(&client_kems_in, client_kem_ids));
+    for (uint8_t i = 0; i < compatible_kems->kem_count; i++) {
+        if (candidate_kem->kem_extension_id == compatible_kems->kems[i]->kem_extension_id) {
+            *kem_is_compatible = 1;
+            return 0;
+        }
+    }
 
-    for (int i = 0; i < num_server_supported_kems; i++) {
-        const struct s2n_kem candidate_server_kem_name = *server_kem_pref_list[i];
-        for (int j = 0; j < client_kem_ids->size / 2; j++) {
+    *kem_is_compatible = 0;
+    return 0;
+}
+
+int s2n_choose_kem_with_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], struct s2n_blob *client_kem_ids,
+        const struct s2n_kem *server_kem_pref_list[], const uint8_t num_server_supported_kems, const struct s2n_kem **chosen_kem) {
+    struct s2n_stuffer client_kem_ids_stuffer = {0};
+    GUARD(s2n_stuffer_init(&client_kem_ids_stuffer, client_kem_ids));
+    GUARD(s2n_stuffer_write(&client_kem_ids_stuffer, client_kem_ids));
+
+    /* Each KEM ID is 2 bytes */
+    uint8_t num_client_candidate_kems = client_kem_ids->size / 2;
+
+    for (uint8_t i = 0; i < num_server_supported_kems; i++) {
+        const struct s2n_kem *candidate_server_kem = (server_kem_pref_list[i]);
+
+        uint8_t server_kem_is_compatible = 0;
+        GUARD(s2n_kem_check_kem_compatibility(iana_value, candidate_server_kem, &server_kem_is_compatible));
+
+        if (!server_kem_is_compatible) {
+            continue;
+        }
+
+        for (uint8_t j = 0; j < num_client_candidate_kems; j++) {
             kem_extension_size candidate_client_kem_id;
-            GUARD(s2n_stuffer_read_uint16(&client_kems_in, &candidate_client_kem_id));
+            GUARD(s2n_stuffer_read_uint16(&client_kem_ids_stuffer, &candidate_client_kem_id));
 
-            if (candidate_server_kem_name.kem_extension_id == candidate_client_kem_id) {
-                *matching_kem = server_kem_pref_list[i];
+            if (candidate_server_kem->kem_extension_id == candidate_client_kem_id) {
+                *chosen_kem = candidate_server_kem;
                 return 0;
             }
         }
-        GUARD(s2n_stuffer_reread(&client_kems_in));
+        GUARD(s2n_stuffer_reread(&client_kem_ids_stuffer));
     }
 
-    /* Nothing found */
+    /* Client and server did not propose any mutually supported KEMs compatible with the ciphersuite */
+    S2N_ERROR(S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+}
+
+int s2n_choose_kem_without_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_kem *server_kem_pref_list[],
+        const uint8_t num_server_supported_kems, const struct s2n_kem **chosen_kem) {
+    for (uint8_t i = 0; i < num_server_supported_kems; i++) {
+        uint8_t kem_is_compatible = 0;
+        GUARD(s2n_kem_check_kem_compatibility(iana_value, server_kem_pref_list[i], &kem_is_compatible));
+        if (kem_is_compatible) {
+            *chosen_kem = server_kem_pref_list[i];
+            return 0;
+        }
+    }
+
+    /* The server preference list did not contain any KEM extensions compatible with the ciphersuite */
     S2N_ERROR(S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 }
 
@@ -190,12 +234,12 @@ int s2n_kem_free(struct s2n_kem_keypair *kem_keys)
     return 0;
 }
 
-int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_iana_to_kem **supported_params)
+int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_iana_to_kem **compatible_params)
 {
     for (int i = 0; i < s2n_array_len(kem_mapping); i++) {
         const struct s2n_iana_to_kem *candidate = &kem_mapping[i];
         if (memcmp(iana_value, candidate->iana_value, S2N_TLS_CIPHER_SUITE_LEN) == 0) {
-            *supported_params = candidate;
+            *compatible_params = candidate;
             return 0;
         }
     }

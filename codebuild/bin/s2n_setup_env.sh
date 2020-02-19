@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -72,6 +72,11 @@ export FUZZ_TIMEOUT_SEC
 export OS_NAME
 export S2N_CORKED_IO
 
+# S2N_COVERAGE should not be used with fuzz tests, use FUZZ_COVERAGE instead
+if [[ -v S2N_COVERAGE && "$TESTS" == "fuzz" ]]; then
+    unset S2N_COVERAGE
+    export FUZZ_COVERAGE=true
+fi
 
 # Select the libcrypto to build s2n against. If this is unset, default to the latest stable version(Openssl 1.1.1)
 if [[ -z $S2N_LIBCRYPTO ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_1_INSTALL_DIR ; fi

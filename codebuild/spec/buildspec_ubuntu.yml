@@ -1,5 +1,5 @@
 ---
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"). You may not use
 # this file except in compliance with the License. A copy of the License is
@@ -32,7 +32,13 @@ phases:
         if expr "${GCC_VERSION}" : "6" >/dev/null; then
           apt-get install -y --no-install-recommends g++ g++-6 gcc gcc-6;
         fi
-      - apt-get install -y --no-install-recommends indent kwstyle lcov libssl-dev clang-3.9 llvm-3.9 m4 make net-tools nettle-bin nettle-dev pkg-config psmisc python3-pip shellcheck sudo tcpdump unzip valgrind zlib1g-dev zlibc
+
+      # Don't install old clang and llvm if LATEST_CLANG is enabled, handle it in install_clang.sh instead
+      - |
+        if expr "${LATEST_CLANG}" != "true" >/dev/null; then
+          apt-get install -y --no-install-recommends clang-3.9 llvm-3.9;
+        fi
+      - apt-get install -y --no-install-recommends indent kwstyle lcov libssl-dev m4 make net-tools nettle-bin nettle-dev pkg-config psmisc python3-pip shellcheck sudo tcpdump unzip valgrind zlib1g-dev zlibc
   pre_build:
     commands:
       - codebuild/bin/install_default_dependencies.sh

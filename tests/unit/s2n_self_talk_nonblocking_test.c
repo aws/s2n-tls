@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 
-int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size)
+int mock_client(struct s2n_test_piped_io *piped_io, uint8_t *expected_data, uint32_t size)
 {
     uint8_t *buffer = malloc(size);
     uint8_t *ptr = buffer;
@@ -47,8 +47,7 @@ int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size)
     s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(client_conn, client_config);
 
-    s2n_connection_set_read_fd(client_conn, readfd);
-    s2n_connection_set_write_fd(client_conn, writefd);
+    s2n_connection_set_piped_io(client_conn, piped_io);
 
     result = s2n_negotiate(client_conn, &blocked);
     if (result < 0) {
@@ -86,7 +85,7 @@ int mock_client(int writefd, int readfd, uint8_t *expected_data, uint32_t size)
     return 0;
 }
 
-int mock_client_iov(int writefd, int readfd, struct iovec *iov, uint32_t iov_size)
+int mock_client_iov(struct s2n_test_piped_io *piped_io, struct iovec *iov, uint32_t iov_size)
 {
     struct s2n_connection *client_conn;
     struct s2n_config *client_config;
@@ -108,8 +107,7 @@ int mock_client_iov(int writefd, int readfd, struct iovec *iov, uint32_t iov_siz
     s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(client_conn, client_config);
 
-    s2n_connection_set_read_fd(client_conn, readfd);
-    s2n_connection_set_write_fd(client_conn, writefd);
+    s2n_connection_set_piped_io(client_conn, piped_io);
 
     result = s2n_negotiate(client_conn, &blocked);
     if (result < 0) {
@@ -171,8 +169,6 @@ int test_send(int use_iov)
     s2n_blocked_status blocked;
     int status;
     pid_t pid;
-    int server_to_client[2];
-    int client_to_server[2];
     struct s2n_cert_chain_and_key *chain_and_key;
 
     EXPECT_NOT_NULL(config = s2n_config_new());
@@ -206,26 +202,25 @@ int test_send(int use_iov)
     }
 
     /* Create a pipe */
-    EXPECT_SUCCESS(pipe(server_to_client));
-    EXPECT_SUCCESS(pipe(client_to_server));
+    struct s2n_test_piped_io piped_io;
+    EXPECT_SUCCESS(s2n_piped_io_init(&piped_io));
 
     /* Create a child process */
     pid = fork();
     if (pid == 0) {
-        /* This is the child process, close the read end of the pipe */
-        EXPECT_SUCCESS(close(client_to_server[0]));
-        EXPECT_SUCCESS(close(server_to_client[1]));
+        /* This is the client process, close the server end of the pipe */
+        EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
 
         /* Run the client */
-        const int client_rc = !use_iov ? mock_client(client_to_server[1], server_to_client[0], blob.data, data_size)
-            : mock_client_iov(client_to_server[1], server_to_client[0], iov, iov_size);
+        const int client_rc = !use_iov ? mock_client(&piped_io, blob.data, data_size)
+            : mock_client_iov(&piped_io, iov, iov_size);
 
+        EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_CLIENT));
         _exit(client_rc);
     }
 
-    /* This is the parent */
-    EXPECT_SUCCESS(close(client_to_server[1]));
-    EXPECT_SUCCESS(close(server_to_client[0]));
+    /* This is the server process, close the client end of the pipe */
+    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_CLIENT));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -234,8 +229,7 @@ int test_send(int use_iov)
     EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
 
     /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
-    EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
+    EXPECT_SUCCESS(s2n_connection_set_piped_io(conn, &piped_io));
 
     EXPECT_SUCCESS(s2n_connection_use_corked_io(conn));
 
@@ -246,8 +240,8 @@ int test_send(int use_iov)
     EXPECT_SUCCESS(kill(pid, SIGSTOP));
 
     /* Make our pipes non-blocking */
-    EXPECT_NOT_EQUAL(fcntl(client_to_server[0], F_SETFL, fcntl(client_to_server[0], F_GETFL) | O_NONBLOCK), -1);
-    EXPECT_NOT_EQUAL(fcntl(server_to_client[1], F_SETFL, fcntl(server_to_client[1], F_GETFL) | O_NONBLOCK), -1);
+    s2n_fd_set_non_blocking(piped_io.server_read);
+    s2n_fd_set_non_blocking(piped_io.server_write);
 
     /* Try to all 10MB of data, should be enough to fill PIPEBUF, so
        we'll get blocked at some point */
@@ -278,8 +272,8 @@ int test_send(int use_iov)
     EXPECT_SUCCESS(kill(pid, SIGCONT));
 
     /* Make our sockets blocking again */
-    EXPECT_NOT_EQUAL(fcntl(client_to_server[0], F_SETFL, fcntl(client_to_server[0], F_GETFL) ^ O_NONBLOCK), -1);
-    EXPECT_NOT_EQUAL(fcntl(server_to_client[1], F_SETFL, fcntl(server_to_client[1], F_GETFL) ^ O_NONBLOCK), -1);
+    s2n_fd_set_blocking(piped_io.server_read);
+    s2n_fd_set_blocking(piped_io.server_write);
 
     /* Actually send the remaining data */
     while (remaining) {
@@ -307,6 +301,7 @@ int test_send(int use_iov)
     EXPECT_EQUAL(status, 0);
     EXPECT_SUCCESS(s2n_config_free(config));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
 
     if (iov) {
         for (int i = 0; i < iov_size; i++) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -39,11 +39,13 @@ struct s2n_config {
     struct s2n_map *domain_name_to_cert_map;
     unsigned default_certs_are_explicit:1;
     struct auth_method_to_cert_value default_cert_per_auth_method;
-    const struct s2n_cipher_preferences *cipher_preferences;
     struct s2n_blob application_protocols;
     s2n_status_request_type status_request_type;
     s2n_clock_time_nanoseconds wall_clock;
     s2n_clock_time_nanoseconds monotonic_clock;
+
+    const struct s2n_cipher_preferences *cipher_preferences;
+    const struct s2n_signature_preferences *signature_preferences;
 
     void *sys_clock_ctx;
     void *monotonic_clock_ctx;
@@ -104,6 +106,5 @@ extern int s2n_config_init_session_ticket_keys(struct s2n_config *config);
 extern int s2n_config_free_session_ticket_keys(struct s2n_config *config);
 
 extern void s2n_wipe_static_configs(void);
-int s2n_config_get_cert_type(struct s2n_config *config, s2n_cert_type *cert_type);
 extern struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_config *config);
 extern int s2n_config_get_num_default_certs(struct s2n_config *config);

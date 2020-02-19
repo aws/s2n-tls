@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -12,6 +12,9 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+
+/* Target Functions: s2n_negotiate s2n_flush s2n_handshake_handle_app_data
+                     s2n_handshake_write_io s2n_handshake_read_io s2n_try_delete_session_cache */
 
 #include <errno.h>
 #include <fcntl.h>

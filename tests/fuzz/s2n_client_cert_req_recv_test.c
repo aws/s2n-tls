@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -12,6 +12,11 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+
+/* Target Functions: s2n_client_cert_req_recv s2n_recv_client_cert_preferences
+                     s2n_cert_type_to_pkey_type s2n_recv_supported_sig_scheme_list
+                     s2n_choose_sig_scheme_from_peer_preference_list
+                     s2n_set_cert_chain_as_client */
 
 #include <errno.h>
 #include <fcntl.h>

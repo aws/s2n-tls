@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -26,8 +26,8 @@ int main(int argc, char **argv)
     unsigned char encryptedSecret[BIKE1_L1_R1_CIPHERTEXT_BYTES];
 
     BEGIN_TEST();
-    /* BIKE is not supported in FIPS mode */
     if (s2n_is_in_fips_mode()) {
+        /* There is no support for PQ KEMs while in FIPS mode */
         END_TEST();
     }
 

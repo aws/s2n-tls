@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -88,7 +88,7 @@ struct s2n_cipher_suite {
     /* RFC 5426(TLS1.2) allows cipher suite defined PRFs. Cipher suites defined in and before TLS1.2 will use
      * P_hash with SHA256 when TLS1.2 is negotiated.
      */
-    const s2n_hmac_algorithm tls12_prf_alg;
+    const s2n_hmac_algorithm prf_alg;
 
     const uint8_t minimum_required_tls_version;
 };
@@ -141,3 +141,4 @@ extern struct s2n_cipher_suite *s2n_cipher_suite_from_wire(const uint8_t cipher_
 extern int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN]);
 extern int s2n_set_cipher_and_cert_as_sslv2_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);
 extern int s2n_set_cipher_and_cert_as_tls_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);
+extern struct s2n_cert_chain_and_key *s2n_conn_get_compatible_cert_chain_and_key(struct s2n_connection *conn, const s2n_authentication_method auth_method);

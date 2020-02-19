@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -158,17 +158,8 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
                 return -1;
             }
 
-            /* Calling the same funciton on the same connection again should get the same handshake name */
-            if (strcmp(s2n_connection_get_handshake_type_name(client_conn), handshake_type_name) != 0) {
-                return -1;
-            }
-
             handshake_type_name = s2n_connection_get_handshake_type_name(server_conn);
             if (NULL == strstr(handshake_type_name, "NEGOTIATED|FULL_HANDSHAKE")) {
-                return -1;
-            }
-
-            if (strcmp(s2n_connection_get_handshake_type_name(server_conn), handshake_type_name) != 0) {
                 return -1;
             }
 

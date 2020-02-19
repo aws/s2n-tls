@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@
 #include "tls/s2n_prf.h"
 #include "utils/s2n_safety.h"
 #include "tests/testlib/s2n_nist_kats.h"
+#include "crypto/s2n_fips.h"
 
 #define KAT_FILE_NAME "kats/hybrid_prf.kat"
 
@@ -36,11 +37,16 @@
 #define SERVER_RANDOM_LENGTH 32
 #define MASTER_SECRET_LENGTH 48
 
-#define NUM_TEST_VECTORS 6
+#define NUM_TEST_VECTORS 8
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+
+    if (s2n_is_in_fips_mode()) {
+        /* There is no support for PQ KEMs while in FIPS mode */
+        END_TEST();
+    }
 
     FILE *kat_file = fopen(KAT_FILE_NAME, "r");
     EXPECT_NOT_NULL(kat_file);

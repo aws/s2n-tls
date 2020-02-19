@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -36,6 +36,8 @@ int s2n_allowed_to_cache_connection(struct s2n_connection *conn)
     }
 
     struct s2n_config *config = conn->config;
+
+    notnull_check(config);
 
     /* Caching is enabled iff all of the caching callbacks are set */
     return config->cache_store && config->cache_retrieve && config->cache_delete;
@@ -209,7 +211,9 @@ int s2n_resume_from_cache(struct s2n_connection *conn)
 
     size = S2N_STATE_SIZE_IN_BYTES;
 
-    GUARD_AGAIN(conn->config->cache_retrieve(conn, conn->config->cache_retrieve_data, conn->session_id, conn->session_id_len, state, &size));
+    /* cache_retrieve relies on the caller to return S2N_CALLBACK_BLOCKED if data is not available */
+    GUARD_NONBLOCKING(conn->config->cache_retrieve(conn, conn->config->cache_retrieve_data, conn->session_id, conn->session_id_len, state, &size));
+
     S2N_ERROR_IF(size != S2N_STATE_SIZE_IN_BYTES, S2N_ERR_SIZE_MISMATCH);
     GUARD(s2n_deserialize_resumption_state(conn, &from));
 

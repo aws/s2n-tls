@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 set -ex
 
 usage() {
-    echo "run_ctverif.sh install_dir part?"
+    echo "run_sidetrail.sh install_dir s2n_dir"
     exit 1
 }
 
@@ -24,28 +24,18 @@ runSingleTest() {
     cd "${BASE_S2N_DIR}/tests/sidetrail/working/${1}"
     ./copy_as_needed.sh
     make clean
+    make 2>&1 | tee out.txt
 
-    #run the test.  We expect both to pass, and none to fail
-    FAILED=0
-    EXPECTED_PASS=1
-    EXPECTED_FAIL=0
-    make 2>&1 | ../../count_success.pl $EXPECTED_PASS $EXPECTED_FAIL || FAILED=1
-
-    if [ $FAILED == 1 ];
-    then
-	printf "\\033[31;1mFAILED ctverif\\033[0m\\n"
-	exit -1
-    else
-	printf "\\033[32;1mPASSED ctverif\\033[0m\\n"
-    fi
+    ../../count_success.pl 1 0 out.txt
 }
 
-if [[ "$#" -ne "1" && "$#" -ne "2" ]]; then
+if [[ "$#" -ne "2" ]]; then
     usage
 fi
 
 INSTALL_DIR=$1
 SMACK_DIR="${1}/smack"
+BASE_S2N_DIR=$2
 
 #Put the dependencies on the path
 
@@ -60,14 +50,12 @@ which boogie || echo "can't find z3"
 which llvm2bpl || echo "can't find llvm2bpl"
 which clang
 clang --version
+echo $BOOGIE
+echo $CORRAL
 
-if [[ "$2" == "" || "$2" == "1" ]]; then
-    runSingleTest "s2n-cbc"
-    runSingleTest "s2n-record-read-aead"
-fi
+runSingleTest "s2n-cbc" # Takes 6m 30s
+runSingleTest "s2n-record-read-aead"
+runSingleTest "s2n-record-read-cbc"
+runSingleTest "s2n-record-read-composite"
+runSingleTest "s2n-record-read-stream"
 
-if [[ "$2" == "" || "$2" == "2" ]]; then
-    runSingleTest "s2n-record-read-cbc"
-    runSingleTest "s2n-record-read-composite"
-    runSingleTest "s2n-record-read-stream"
-fi

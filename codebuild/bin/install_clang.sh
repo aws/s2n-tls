@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -46,12 +46,21 @@ git clone https://chromium.googlesource.com/chromium/src/tools/clang
 echo "Updating Clang..."
 python3 "$CLANG_DOWNLOAD_DIR"/clang/scripts/update.py
 
-# "third_party" directory is created above $CLANG_DOWNLOAD_DIR after running 
+# "third_party" directory is created above $CLANG_DOWNLOAD_DIR after running
 # update, move it into $CLANG_DOWNLOAD_DIR once update is complete.
 mv ../third_party "$CLANG_DOWNLOAD_DIR"
 
 echo "Installed Clang Version: "
 "$CLANG_DOWNLOAD_DIR"/third_party/llvm-build/Release+Asserts/bin/clang --version
+
+# Install matching LLVM if FUZZ_COVERAGE is enabled
+if [[ -v FUZZ_COVERAGE ]]; then
+	LLVM_INSTALL_DIR="$CLANG_INSTALL_DIR"/../llvm
+	mkdir -p "$LLVM_INSTALL_DIR"
+	python3 "$CLANG_DOWNLOAD_DIR"/clang/scripts/update.py --package="coverage_tools" --output-dir="$LLVM_INSTALL_DIR"
+	ln -s $LLVM_INSTALL_DIR/bin/llvm-cov /usr/bin/llvm-cov
+        ln -s $LLVM_INSTALL_DIR/bin/llvm-profdata /usr/bin/llvm-profdata
+fi
 
 mkdir -p "$CLANG_INSTALL_DIR" && cp -rf "$CLANG_DOWNLOAD_DIR"/third_party/llvm-build/Release+Asserts/* "$CLANG_INSTALL_DIR"
 

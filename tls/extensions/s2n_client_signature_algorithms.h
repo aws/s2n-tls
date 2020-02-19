@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -18,5 +18,6 @@
 #include "tls/s2n_connection.h"
 #include "stuffer/s2n_stuffer.h"
 
-extern int s2n_send_client_signature_algorithms_extension(struct s2n_connection *conn, struct s2n_stuffer *out);
-extern int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *extension);
+int s2n_extensions_client_signature_algorithms_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+int s2n_extensions_client_signature_algorithms_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+int s2n_extensions_client_signature_algorithms_size(struct s2n_connection *conn);

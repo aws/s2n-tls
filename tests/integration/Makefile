@@ -1,5 +1,5 @@
 #
-# Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ ifeq ($(S2N_CORKED_IO),true)
 endif
 
 .PHONY : all
-all: client_endpoints dynamic_record s_client s_server gnutls_cli gnutls_serv sslyze
+all: tls13 client_endpoints dynamic_record s_client s_server gnutls_cli gnutls_serv sslyze
 
 tls13:
 	( \
