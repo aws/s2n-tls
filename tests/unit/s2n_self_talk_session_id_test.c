@@ -163,10 +163,6 @@ void mock_client(struct s2n_test_piped_io *piped_io)
     /* Set the session id to ensure we're able to fallback to full handshake if session is not in server cache */
     memcpy(conn->session_id, SESSION_ID, S2N_TLS_SESSION_ID_MAX_LEN);
     conn->session_id_len = S2N_TLS_SESSION_ID_MAX_LEN;
-    /* server would choose a session ID for client */
-    if (memcmp(conn->session_id, SESSION_ID, S2N_TLS_SESSION_ID_MAX_LEN) !=  0) {
-        result = 100;
-    }
 
     if (s2n_negotiate(conn, &blocked) != 0) {
         result = 1;
@@ -197,8 +193,13 @@ void mock_client(struct s2n_test_piped_io *piped_io)
         result = 6;
     }
 
-    if (s2n_send(conn, MSG, sizeof(MSG), &blocked) != sizeof(MSG)) {
+    /* server would choose a session ID for client */
+    if (memcmp(conn->session_id, SESSION_ID, S2N_TLS_SESSION_ID_MAX_LEN) == 0) {
         result = 7;
+    }
+
+    if (s2n_send(conn, MSG, sizeof(MSG), &blocked) != sizeof(MSG)) {
+        result = 8;
     }
 
     int shutdown_rc = -1;
@@ -217,20 +218,20 @@ void mock_client(struct s2n_test_piped_io *piped_io)
 
     /* Set session state on client connection */
     if (s2n_connection_set_session(conn, serialized_session_state, serialized_session_state_length) < 0) {
-        result = 8;
+        result = 9;
     }
 
     if (s2n_negotiate(conn, &blocked) != 0) {
-        result = 9;
+        result = 10;
     }
 
     /* Make sure we did a abbreviated handshake */
     if (!IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type)) {
-        result = 10;
+        result = 11;
     }
 
     if (s2n_send(conn, MSG, sizeof(MSG), &blocked) != sizeof(MSG)) {
-        result = 11;
+        result = 12;
     }
 
     shutdown_rc = -1;
@@ -250,30 +251,30 @@ void mock_client(struct s2n_test_piped_io *piped_io)
     /* Change the format of the session state and check we cannot deserialize it */
     serialized_session_state[0] = 3;
     if (s2n_connection_set_session(conn, serialized_session_state, serialized_session_state_length) == 0) {
-        result = 12;
+        result = 13;
     }
 
     if (s2n_errno != S2N_ERR_INVALID_SERIALIZED_SESSION_STATE) {
-        result = 13;
+        result = 14;
     }
 
     serialized_session_state[0] = 0;
     /* Change the protocol version (36th byte) in session state */
     if (serialized_session_state_length < 36) {
-        result = 14;
+        result = 15;
     }
 
     serialized_session_state[35] = 30;
     if (s2n_connection_set_session(conn, serialized_session_state, serialized_session_state_length) < 0) {
-        result = 15;
-    }
-
-    if (s2n_negotiate(conn, &blocked) == 0) {
         result = 16;
     }
 
-    if (s2n_errno != S2N_ERR_BAD_MESSAGE) {
+    if (s2n_negotiate(conn, &blocked) == 0) {
         result = 17;
+    }
+
+    if (s2n_errno != S2N_ERR_BAD_MESSAGE) {
+        result = 18;
     }
 
     s2n_connection_free(conn);
