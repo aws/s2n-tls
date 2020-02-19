@@ -53,12 +53,12 @@ void mock_client(struct s2n_test_piped_io *piped_io)
 
     int result = s2n_negotiate(conn, &blocked);
     if (result < 0) {
-        _exit(1);
+        exit(1);
     }
 
     result = s2n_connection_free_handshake(conn);
     if (result < 0) {
-        _exit(1);
+        exit(1);
     }
 
     /* Close client read fd to mock half closed pipe at server side */
@@ -70,12 +70,12 @@ void mock_client(struct s2n_test_piped_io *piped_io)
 
     result = s2n_connection_free(conn);
     if (result < 0) {
-        _exit(1);
+        exit(1);
     }
 
     result = s2n_config_free(config);
     if (result < 0) {
-        _exit(1);
+        exit(1);
     }
 
     /* Give the server a chance to avoid a sigpipe */
@@ -172,6 +172,7 @@ int main(int argc, char **argv)
 
         /* Clean up */
         EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
+        EXPECT_EQUAL(status, 0);
         EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
     }
 
