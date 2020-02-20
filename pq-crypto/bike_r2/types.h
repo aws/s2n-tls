@@ -83,11 +83,11 @@ typedef struct compressed_idx_t_t
 // the compression in the decaps stage
 typedef struct sk_s
 {
-  r_t                    bin[N0];
   compressed_idx_dv_ar_t wlist;
+  r_t                    bin[N0];
 #ifndef INDCPA
-  r_t sigma0;
-  r_t sigma1;
+  r_t                    sigma0;
+  r_t                    sigma1;
 #endif
 } sk_t;
 

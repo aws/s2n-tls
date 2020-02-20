@@ -65,6 +65,12 @@ split_e_cleanup(IN OUT split_e_t *o)
 }
 
 _INLINE_ void
+sk_cleanup(IN OUT sk_t *o)
+{
+  secure_clean((uint8_t *)o, sizeof(*o));
+}
+
+_INLINE_ void
 pad_sk_cleanup(IN OUT pad_sk_t *o)
 {
   secure_clean((uint8_t *)o[0], sizeof(*o));
