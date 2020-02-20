@@ -75,8 +75,8 @@ EVP_EncryptUpdate_ov <- admit "EVP_EncryptUpdate" [] EVP_EncryptUpdate_spec;
 
 EVP_aes_256_ecb_ov <- admit "EVP_aes_256_ecb" [] EVP_aes_256_ecb_spec;
 
-sha384_367_ov <- admit "SHA384" [] (sha384_spec 367);
-sha384_394_ov <- admit "SHA384" [] (sha384_spec 394);
-sha384_623_ov <- admit "SHA384" [] (sha384_spec 623);
-sha384_1292_ov <- admit "SHA384" [] (sha384_spec 1292);
+sha384_2xR_ov <- admit "SHA384" []
+  (sha384_spec (eval_int {{ `(2 * R_SIZE) : [64] }}));
+sha384_4xR_ov <- admit "SHA384" []
+  (sha384_spec (eval_int {{ `(4 * R_SIZE) : [64] }}));
 

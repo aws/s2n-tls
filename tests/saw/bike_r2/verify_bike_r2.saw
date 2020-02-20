@@ -20,7 +20,6 @@ include "proof/outside.saw";
 include "proof/gf2x.saw";
 include "proof/utilities.saw";
 include "proof/aes.saw";
-include "proof/parallel_hash.saw";
 include "proof/sampling.saw";
 include "proof/secure_decode_portable.saw";
 include "proof/decode.saw";
