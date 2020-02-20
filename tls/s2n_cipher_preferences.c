@@ -38,8 +38,8 @@ const struct s2n_kem *pq_kems_r1[2] = {
     &s2n_sike_p503_r1,
 };
 
-/* Extension list for round 1 and round 2 PQ KEMs, in order of preference */
-const struct s2n_kem *pq_kems_r1r2[4] = {
+/* Extension list for round 2 and round 1 PQ KEMs, in order of preference */
+const struct s2n_kem *pq_kems_r2r1[4] = {
     &s2n_bike1_l1_r2,
     &s2n_bike1_l1_r1,
     &s2n_sike_p434_r2,
@@ -51,8 +51,9 @@ const struct s2n_kem *pq_kems_sike_r1[1] = {
     &s2n_sike_p503_r1,
 };
 
-/* Extension list for SIKE P503 Round 1 and SIKE P434 Round 2 only (for testing) */
-const struct s2n_kem *pq_kems_sike_r1r2[2] = {
+/* Extension list for SIKE P434 Round 2 and SIKE P503 Round 1 only (for testing),
+ * in order of preference */
+const struct s2n_kem *pq_kems_sike_r2r1[2] = {
         &s2n_sike_p434_r2,
         &s2n_sike_p503_r1,
 };
@@ -896,8 +897,8 @@ const struct s2n_cipher_preferences cipher_preferences_kms_pq_tls_1_0_2020_02 = 
     .count = s2n_array_len(cipher_suites_kms_pq_tls_1_0_2019_06),
     .suites = cipher_suites_kms_pq_tls_1_0_2019_06,
     .minimum_protocol_version = S2N_TLS10,
-    .kem_count = s2n_array_len(pq_kems_r1r2),
-    .kems = pq_kems_r1r2,
+    .kem_count = s2n_array_len(pq_kems_r2r1),
+    .kems = pq_kems_r2r1,
 };
 
 struct s2n_cipher_suite *cipher_suites_pq_sike_test_tls_1_0_2019_11[] = {
@@ -929,8 +930,8 @@ const struct s2n_cipher_preferences cipher_preferences_pq_sike_test_tls_1_0_2020
         .count = s2n_array_len(cipher_suites_pq_sike_test_tls_1_0_2019_11),
         .suites = cipher_suites_pq_sike_test_tls_1_0_2019_11,
         .minimum_protocol_version = S2N_TLS10,
-        .kem_count = s2n_array_len(pq_kems_sike_r1r2),
-        .kems = pq_kems_sike_r1r2,
+        .kem_count = s2n_array_len(pq_kems_sike_r2r1),
+        .kems = pq_kems_sike_r2r1,
 };
 
 struct s2n_cipher_suite *cipher_suites_kms_fips_tls_1_2_2018_10[] = {

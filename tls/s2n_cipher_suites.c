@@ -775,8 +775,8 @@ const struct s2n_cipher_preferences cipher_preferences_test_all = {
     .count = s2n_array_len(s2n_all_cipher_suites),
     .suites = s2n_all_cipher_suites,
     .minimum_protocol_version = S2N_SSLv3,
-    .kem_count = s2n_array_len(pq_kems_r1r2),
-    .kems = pq_kems_r1r2,
+    .kem_count = s2n_array_len(pq_kems_r2r1),
+    .kems = pq_kems_r2r1,
 };
 
 /* All of the cipher suites that s2n can negotiate when in FIPS mode,
