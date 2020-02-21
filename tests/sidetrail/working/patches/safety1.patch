@@ -86,14 +86,15 @@
    } while (0)
  
 -#define GUARD( x )              do {if ( (x) < 0 ) return S2N_FAILURE;} while (0)
+-#define GUARD_STRICT( x )       do {if ( (x) != 0 ) return S2N_FAILURE;} while (0)
 -#define GUARD_GOTO( x , label ) do {if ( (x) < 0 ) goto label;} while (0)
 -#define GUARD_PTR( x )          do {if ( (x) < 0 ) return NULL;} while (0)
 +#define GUARD( x )              __VERIFIER_assume((x) == 0)
++#define GUARD_STRICT( x )       __VERIFIER_assume((x) == 0)
 +#define GUARD_GOTO( x , label ) __VERIFIER_assume((x) == 0)
 +#define GUARD_PTR( x )          __VERIFIER_assume((x) == 0)
  
  /* Check the return value from caller. If this value is -2, S2N_ERR_BLOCKED is marked*/
- #define GUARD_AGAIN( x )  do {if ( (x) == -2 ) { S2N_ERROR(S2N_ERR_BLOCKED); } GUARD( x );} while(0)
 @@ -107,12 +102,7 @@
  #define S2N_IN_TEST ( s2n_in_unit_test() || S2N_IN_INTEG_TEST )
  

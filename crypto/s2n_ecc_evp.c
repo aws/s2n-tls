@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -27,9 +27,9 @@
 
 DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY *, EVP_PKEY_free);
 DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY_CTX *, EVP_PKEY_CTX_free);
+DEFINE_POINTER_CLEANUP_FUNC(EC_KEY *, EC_KEY_free);
 
 #if !MODERN_EC_SUPPORTED
-DEFINE_POINTER_CLEANUP_FUNC(EC_KEY *, EC_KEY_free);
 DEFINE_POINTER_CLEANUP_FUNC(EC_POINT *, EC_POINT_free);
 #endif
 
@@ -132,6 +132,11 @@ static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_
 static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, struct s2n_blob *shared_secret) {
     notnull_check(peer_public);
     notnull_check(own_key);
+
+    /* Peers MUST validate each other’s public key */
+    DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(peer_public), EC_KEY_free_pointer);
+    S2N_ERROR_IF(ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    GUARD_OSSL(EC_KEY_check_key(ec_key), S2N_ERR_ECDHE_SHARED_SECRET);
 
     size_t shared_secret_size;
     
@@ -339,7 +344,7 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
 
     DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(ecc_evp_params->evp_pkey), EC_KEY_free_pointer);
     S2N_ERROR_IF(ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
-
+    GUARD_OSSL(EC_KEY_check_key(ec_key), S2N_ERR_ECDHE_SERIALIZING);
     const EC_POINT *point = EC_KEY_get0_public_key(ec_key);
     const EC_GROUP *group = EC_KEY_get0_group(ec_key);
     S2N_ERROR_IF(point == NULL || group == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);

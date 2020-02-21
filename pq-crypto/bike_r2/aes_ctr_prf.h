@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -41,11 +41,11 @@ typedef struct aes_ctr_prf_state_s
 
 ret_t
 init_aes_ctr_prf_state(OUT aes_ctr_prf_state_t *s,
-                       IN const uint32_t        max_invokations,
+                       IN uint32_t              max_invokations,
                        IN const seed_t *seed);
 
 ret_t
-aes_ctr_prf(OUT uint8_t *a, IN OUT aes_ctr_prf_state_t *s, IN const uint32_t len);
+aes_ctr_prf(OUT uint8_t *a, IN OUT aes_ctr_prf_state_t *s, IN uint32_t len);
 
 _INLINE_ void
 finalize_aes_ctr_prf(IN OUT aes_ctr_prf_state_t *s)

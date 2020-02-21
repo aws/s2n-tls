@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ extern uint8_t s2n_highest_protocol_version;
 extern int s2n_flush(struct s2n_connection *conn, s2n_blocked_status * more);
 extern int s2n_client_hello_send(struct s2n_connection *conn);
 extern int s2n_client_hello_recv(struct s2n_connection *conn);
-extern int s2n_handshake_status_handler(struct s2n_connection *conn);
+extern int s2n_establish_session(struct s2n_connection *conn);
 extern int s2n_sslv2_client_hello_recv(struct s2n_connection *conn);
 extern int s2n_server_hello_retry_send(struct s2n_connection *conn);
 extern int s2n_server_hello_retry_recv(struct s2n_connection *conn);

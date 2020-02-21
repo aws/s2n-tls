@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -253,7 +253,7 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_CHANGE_CIPHER_SPEC, 0));
 
-                EXPECT_SUCCESS(handshake_read_io(conn));
+                EXPECT_SUCCESS(s2n_handshake_read_io(conn));
 
                 EXPECT_EQUAL(conn->handshake.message_number, j);
                 EXPECT_FALSE(unexpected_handler_called);
@@ -290,7 +290,7 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_CHANGE_CIPHER_SPEC, 0));
 
-                EXPECT_SUCCESS(handshake_read_io(conn));
+                EXPECT_SUCCESS(s2n_handshake_read_io(conn));
 
                 EXPECT_EQUAL(conn->handshake.message_number, j);
                 EXPECT_FALSE(unexpected_handler_called);
@@ -334,6 +334,61 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_conn_set_handshake_type(conn));
         EXPECT_EQUAL(conn->handshake.handshake_type, NEGOTIATED | FULL_HANDSHAKE);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test: TLS 1.3 handshake types are all properly printed */
+    {
+        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+        conn->actual_protocol_version = S2N_TLS13;
+
+        conn->handshake.handshake_type = INITIAL;
+        EXPECT_STRING_EQUAL("INITIAL", s2n_connection_get_handshake_type_name(conn));
+
+        conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
+        EXPECT_STRING_EQUAL("NEGOTIATED|FULL_HANDSHAKE", s2n_connection_get_handshake_type_name(conn));
+
+        const char* all_flags_handshake_type_name = "NEGOTIATED|FULL_HANDSHAKE|CLIENT_AUTH|WITH_SESSION_TICKET|NO_CLIENT_CERT";
+        conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH | WITH_SESSION_TICKET | NO_CLIENT_CERT;
+        EXPECT_STRING_EQUAL(all_flags_handshake_type_name, s2n_connection_get_handshake_type_name(conn));
+
+        const char *handshake_type_name;
+        for (int i = 0; i < valid_tls13_handshakes_size; i++) {
+            conn->handshake.handshake_type = i;
+
+            handshake_type_name = s2n_connection_get_handshake_type_name(conn);
+
+            /* The handshake type names must be unique */
+            for (int j = 0; j < valid_tls13_handshakes_size; j++) {
+                conn->handshake.handshake_type = j;
+                if (i == j) {
+                    EXPECT_STRING_EQUAL(handshake_type_name, s2n_connection_get_handshake_type_name(conn));
+                } else {
+                    EXPECT_STRING_NOT_EQUAL(handshake_type_name, s2n_connection_get_handshake_type_name(conn));
+                }
+            }
+        }
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test: TLS 1.3 message types are all properly printed */
+    {
+        uint32_t test_handshake_type = NEGOTIATED | FULL_HANDSHAKE;
+        const char* expected[] = { "CLIENT_HELLO", "SERVER_HELLO", "SERVER_CHANGE_CIPHER_SPEC",
+                "ENCRYPTED_EXTENSIONS", "SERVER_CERT", "SERVER_CERT_VERIFY", "SERVER_FINISHED",
+                "CLIENT_CHANGE_CIPHER_SPEC", "CLIENT_FINISHED", "APPLICATION_DATA" };
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+        conn->actual_protocol_version = S2N_TLS13;
+
+        conn->handshake.handshake_type = test_handshake_type;
+
+        for (int i=0; i < sizeof(expected) / sizeof(char *); i++) {
+            conn->handshake.message_number = i;
+            EXPECT_STRING_EQUAL(expected[i], s2n_connection_get_last_message_name(conn));
+        }
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }

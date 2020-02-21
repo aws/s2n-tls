@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls13.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -35,6 +36,58 @@
 
 /* From RFC5246 7.4.1.2. */
 #define S2N_TLS_COMPRESSION_METHOD_NULL 0
+
+/* From RFC8446 4.1.3. */
+#define S2N_DOWNGRADE_PROTECTION_SIZE   8
+const uint8_t tls12_downgrade_protection_bytes[] = {
+    0x44, 0x4F, 0x57, 0x4E, 0x47, 0x52, 0x44, 0x01
+};
+
+const uint8_t tls11_downgrade_protection_bytes[] = {
+    0x44, 0x4F, 0x57, 0x4E, 0x47, 0x52, 0x44, 0x00
+};
+
+static int s2n_client_detect_downgrade_mechanism(struct s2n_connection *conn) {
+    if (!s2n_is_tls13_enabled()) {
+        return 0;
+    }
+
+    notnull_check(conn);
+    uint8_t *downgrade_bytes = &conn->secure.server_random[S2N_TLS_RANDOM_DATA_LEN - S2N_DOWNGRADE_PROTECTION_SIZE];
+
+    /* Detect downgrade attacks according to RFC 8446 section 4.1.3 */
+    if (conn->client_protocol_version == S2N_TLS13 && conn->server_protocol_version == S2N_TLS12) {
+        if (s2n_constant_time_equals(downgrade_bytes, tls12_downgrade_protection_bytes, S2N_DOWNGRADE_PROTECTION_SIZE)) {
+            S2N_ERROR(S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
+        }
+    } else if (conn->client_protocol_version == S2N_TLS13 && conn->server_protocol_version <= S2N_TLS11) {
+        if (s2n_constant_time_equals(downgrade_bytes, tls11_downgrade_protection_bytes, S2N_DOWNGRADE_PROTECTION_SIZE)) {
+            S2N_ERROR(S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
+        }
+    }
+
+    return 0;
+}
+
+static int s2n_server_add_downgrade_mechanism(struct s2n_connection *conn) {
+    if (!s2n_is_tls13_enabled()) {
+        return 0;
+    }
+
+    notnull_check(conn);
+    uint8_t *downgrade_bytes = &conn->secure.server_random[S2N_TLS_RANDOM_DATA_LEN - S2N_DOWNGRADE_PROTECTION_SIZE];
+
+    /* Protect against downgrade attacks according to RFC 8446 section 4.1.3 */
+    if (conn->server_protocol_version >= S2N_TLS13 && conn->actual_protocol_version == S2N_TLS12) {
+        /* TLS1.3 servers MUST use a special random value when negotiating TLS1.2 */
+        memcpy_check(downgrade_bytes, tls12_downgrade_protection_bytes, S2N_DOWNGRADE_PROTECTION_SIZE);
+    } else if (conn->server_protocol_version >= S2N_TLS13 && conn->actual_protocol_version <= S2N_TLS11) {
+        /* TLS1.3 servers MUST, use a special random value when negotiating TLS1.1 or below */
+        memcpy_check(downgrade_bytes, tls11_downgrade_protection_bytes, S2N_DOWNGRADE_PROTECTION_SIZE);
+    }
+
+    return 0;
+}
 
 int s2n_server_hello_recv(struct s2n_connection *conn)
 {
@@ -76,14 +129,17 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         if (s2n_is_hello_retry_req(conn)) {
             GUARD(s2n_server_hello_retry_recv(conn));
         }
+
         /* Check echoed session ID matches */
         S2N_ERROR_IF(session_id_len != conn->session_id_len || memcmp(session_id, conn->session_id, session_id_len), S2N_ERR_BAD_MESSAGE);
         conn->actual_protocol_version = conn->server_protocol_version;
         GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
     } else {
         uint8_t actual_protocol_version;
-
         conn->server_protocol_version = (uint8_t)(protocol_version[0] * 10) + protocol_version[1];
+
+        S2N_ERROR_IF(s2n_client_detect_downgrade_mechanism(conn), S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
+
         const struct s2n_cipher_preferences *cipher_preferences;
         GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
 
@@ -143,7 +199,7 @@ int s2n_server_hello_send(struct s2n_connection *conn)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_stuffer server_random = {0};
-    struct s2n_blob b, r;
+    struct s2n_blob b, rand_data;
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
     b.data = conn->secure.server_random;
@@ -152,14 +208,15 @@ int s2n_server_hello_send(struct s2n_connection *conn)
     /* Create the server random data */
     GUARD(s2n_stuffer_init(&server_random, &b));
 
-    r.data = s2n_stuffer_raw_write(&server_random, S2N_TLS_RANDOM_DATA_LEN);
-    r.size = S2N_TLS_RANDOM_DATA_LEN;
-    notnull_check(r.data);
-    GUARD(s2n_get_public_random_data(&r));
+    rand_data.data = s2n_stuffer_raw_write(&server_random, S2N_TLS_RANDOM_DATA_LEN);
+    rand_data.size = S2N_TLS_RANDOM_DATA_LEN;
+    notnull_check(rand_data.data);
+    GUARD(s2n_get_public_random_data(&rand_data));
 
     protocol_version[0] = (uint8_t)(conn->actual_protocol_version / 10);
     protocol_version[1] = (uint8_t)(conn->actual_protocol_version % 10);
 
+    GUARD(s2n_server_add_downgrade_mechanism(conn));
 
     GUARD(s2n_stuffer_write_bytes(out, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
     GUARD(s2n_stuffer_write_bytes(out, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));

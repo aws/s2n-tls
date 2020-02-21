@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -22,7 +22,11 @@
 #include "crypto/s2n_hash.h"
 #include "utils/s2n_blob.h"
 
-#if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER)
+/* OpenSSL 1.1.1d  10 Sep 2019 is broken, so disable on that version. For further info see: crypto/evp/p_lib.c:469
+ *
+ * This feature requires this Openssl commit for Openssl 1.1.x versions: openssl/openssl@4088b92
+ */
+#if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 1) && !defined(LIBRESSL_VERSION_NUMBER) && OPENSSL_VERSION_NUMBER != 0x1010104fL
 #define RSA_PSS_SUPPORTED 1
 #define RSA_PSS_SIGN_VERIFY_RANDOM_BLOB_SIZE    32
 #define RSA_PSS_SIGN_VERIFY_SIGNATURE_SIZE      256

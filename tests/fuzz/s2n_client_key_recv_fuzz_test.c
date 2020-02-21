@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -12,6 +12,11 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+
+/* Target Functions: s2n_client_key_recv s2n_kex_client_key_recv calculate_keys
+                     s2n_hybrid_client_action s2n_kex_tls_prf s2n_prf_key_expansion
+                     s2n_rsa_client_key_recv s2n_dhe_client_key_recv
+                     s2n_ecdhe_client_key_recv s2n_kem_client_key_recv */
 
 #include <stdint.h>
 
@@ -134,7 +139,7 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 
     /* One time Diffie-Hellman negotiation to speed along fuzz tests*/
     GUARD(s2n_init());
-    GUARD(atexit(s2n_fuzz_atexit));
+    GUARD_STRICT(atexit(s2n_fuzz_atexit));
 
     cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE);
     private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE);

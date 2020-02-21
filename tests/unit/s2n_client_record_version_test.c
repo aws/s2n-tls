@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -48,8 +48,6 @@ int main(int argc, char **argv)
         struct s2n_connection *client_conn;
         struct s2n_config *client_config;
         s2n_blocked_status client_blocked;
-        int server_to_client[2];
-        int client_to_server[2];
 
         uint8_t server_hello_message[] = {
             /* Protocol version TLS 1.2 */
@@ -85,16 +83,11 @@ int main(int argc, char **argv)
         };
 
         /* Create nonblocking pipes */
-        EXPECT_SUCCESS(pipe(server_to_client));
-        EXPECT_SUCCESS(pipe(client_to_server));
-        for (int i = 0; i < 2; i++) {
-            EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
-            EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
-        }
+        struct s2n_test_piped_io piped_io;
+        EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
+        EXPECT_SUCCESS(s2n_connection_set_piped_io(client_conn, &piped_io));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
@@ -111,7 +104,7 @@ int main(int argc, char **argv)
 
         /* we need only first 10 bytes to get to ClientHello protocol version */
         while (buf_occupied < 10) {
-            ssize_t n = read(client_to_server[0], buf + buf_occupied, sizeof(buf) - buf_occupied);
+            ssize_t n = read(piped_io.server_read, buf + buf_occupied, sizeof(buf) - buf_occupied);
 
             /* We should be able to read 10 bytes without blocking */
             EXPECT_TRUE(n > 0);
@@ -130,7 +123,7 @@ int main(int argc, char **argv)
 
         /* Read the rest of the pipe */
         while (1) {
-            ssize_t n = read(client_to_server[0], buf, sizeof(buf));
+            ssize_t n = read(piped_io.server_read, buf, sizeof(buf));
 
             if (n > 0) {
                 continue;
@@ -143,9 +136,9 @@ int main(int argc, char **argv)
         }
 
         /* Write the server hello */
-        EXPECT_EQUAL(write(server_to_client[1], record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(server_to_client[1], message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(server_to_client[1], server_hello_message, sizeof(server_hello_message)), sizeof(server_hello_message));
+        EXPECT_EQUAL(write(piped_io.server_write, record_header, sizeof(record_header)), sizeof(record_header));
+        EXPECT_EQUAL(write(piped_io.server_write, message_header, sizeof(message_header)), sizeof(message_header));
+        EXPECT_EQUAL(write(piped_io.server_write, server_hello_message, sizeof(server_hello_message)), sizeof(server_hello_message));
 
         /* Verify that we proceed with handshake */
         EXPECT_EQUAL(s2n_negotiate(client_conn, &client_blocked), -1);
@@ -166,7 +159,7 @@ int main(int argc, char **argv)
         buf_occupied = 0;
         /* We need only first 5 bytes to get to record protocol version */
         while (buf_occupied < 5) {
-            ssize_t n = read(client_to_server[0], buf + buf_occupied, sizeof(buf) - buf_occupied);
+            ssize_t n = read(piped_io.server_read, buf + buf_occupied, sizeof(buf) - buf_occupied);
 
             /* We should be able to read 5 bytes without blocking */
             EXPECT_TRUE(n > 0);
@@ -179,10 +172,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_config_free(client_config));
 
-        for (int i = 0; i < 2; i++) {
-            EXPECT_SUCCESS(close(server_to_client[i]));
-            EXPECT_SUCCESS(close(client_to_server[i]));
-        }
+        EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
     }
 
     /* Server negotiates SSLv3 */
@@ -190,8 +180,6 @@ int main(int argc, char **argv)
         struct s2n_connection *client_conn;
         struct s2n_config *client_config;
         s2n_blocked_status client_blocked;
-        int server_to_client[2];
-        int client_to_server[2];
 
         uint8_t server_hello_message[] = {
             /* Protocol version SSLv3 */
@@ -227,16 +215,11 @@ int main(int argc, char **argv)
         };
 
         /* Create nonblocking pipes */
-        EXPECT_SUCCESS(pipe(server_to_client));
-        EXPECT_SUCCESS(pipe(client_to_server));
-        for (int i = 0; i < 2; i++) {
-            EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
-            EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
-        }
+        struct s2n_test_piped_io piped_io;
+        EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
+        EXPECT_SUCCESS(s2n_connection_set_piped_io(client_conn, &piped_io));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
@@ -253,7 +236,7 @@ int main(int argc, char **argv)
 
         /* we need only first 10 bytes to get to ClientHello protocol version */
         while (buf_occupied < 10) {
-            ssize_t n = read(client_to_server[0], buf + buf_occupied, sizeof(buf) - buf_occupied);
+            ssize_t n = read(piped_io.server_read, buf + buf_occupied, sizeof(buf) - buf_occupied);
 
             /* We should be able to read 10 bytes without blocking */
             EXPECT_TRUE(n > 0);
@@ -272,7 +255,7 @@ int main(int argc, char **argv)
 
         /* Read the rest of the pipe */
         while (1) {
-            ssize_t n = read(client_to_server[0], buf, sizeof(buf));
+            ssize_t n = read(piped_io.server_read, buf, sizeof(buf));
 
             if (n > 0) {
                 continue;
@@ -285,9 +268,9 @@ int main(int argc, char **argv)
         }
 
         /* Write the server hello */
-        EXPECT_EQUAL(write(server_to_client[1], record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(server_to_client[1], message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(server_to_client[1], server_hello_message, sizeof(server_hello_message)), sizeof(server_hello_message));
+        EXPECT_EQUAL(write(piped_io.server_write, record_header, sizeof(record_header)), sizeof(record_header));
+        EXPECT_EQUAL(write(piped_io.server_write, message_header, sizeof(message_header)), sizeof(message_header));
+        EXPECT_EQUAL(write(piped_io.server_write, server_hello_message, sizeof(server_hello_message)), sizeof(server_hello_message));
 
         /* Verify that we proceed with handshake */
         EXPECT_EQUAL(s2n_negotiate(client_conn, &client_blocked), -1);
@@ -308,7 +291,7 @@ int main(int argc, char **argv)
         buf_occupied = 0;
         /* We need only first 5 bytes to get to record protocol version */
         while (buf_occupied < 5) {
-            ssize_t n = read(client_to_server[0], buf + buf_occupied, sizeof(buf) - buf_occupied);
+            ssize_t n = read(piped_io.server_read, buf + buf_occupied, sizeof(buf) - buf_occupied);
 
             /* We should be able to read 5 bytes without blocking */
             EXPECT_TRUE(n > 0);
@@ -321,10 +304,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_config_free(client_config));
 
-        for (int i = 0; i < 2; i++) {
-            EXPECT_SUCCESS(close(server_to_client[i]));
-            EXPECT_SUCCESS(close(client_to_server[i]));
-        }
+        EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
     }
 
     free(cert_chain);

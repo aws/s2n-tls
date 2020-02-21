@@ -9,19 +9,9 @@ cache:
 
 jobs:
   include:
-# Code Coverage Targets, will upload code coverage metrics during Pull Requests
-  - os: linux
-    dist: bionic
-    env: S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=unit GCC_VERSION=6 S2N_COVERAGE=true CODECOV_IO_UPLOAD=true
-
   - os: linux
     dist: bionic
     env: S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=6 S2N_COVERAGE=true CODECOV_IO_UPLOAD=true
-
-  - os: linux
-    # coverage + fuzz flags don't work simultaneously on bionic
-    dist: trusty
-    env: S2N_LIBCRYPTO=openssl-1.1.1 LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=120 S2N_COVERAGE=true CODECOV_IO_UPLOAD=true
 
 # Normal Build Targets
   - os: linux
@@ -50,7 +40,7 @@ jobs:
 
   - os: linux
     dist: bionic
-    env: S2N_LIBCRYPTO=libressl      BUILD_S2N=true TESTS=integration GCC_VERSION=6
+    env: S2N_LIBCRYPTO=libressl BUILD_S2N=true TESTS=integration GCC_VERSION=6
 
   - os: linux
     dist: bionic
@@ -60,85 +50,8 @@ jobs:
 
   - os: linux
     dist: bionic
-    # Force S2N to use the generic C code for SIKE round 2 (instead of the optimized x86_64 assembly code)
+    # Force S2N to use the generic C code for PQ crypto (instead of the optimized x86_64 assembly code)
     env: S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=9 S2N_NO_PQ_ASM=true
-
-# Fuzz Tests
-  - os: linux
-    dist: bionic
-    env: S2N_LIBCRYPTO=openssl-1.1.1 LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=120
-
-  - os: linux
-    dist: bionic
-    env: S2N_LIBCRYPTO=openssl-1.0.2-fips LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=120
-  
-# ASAN and Valgrind Tests
-  - os: linux
-    dist: bionic
-    env: S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=asan GCC_VERSION=6
-
-  - os: linux
-    dist: bionic
-    env: S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=valgrind GCC_VERSION=6
-
-# Formal Verification - Sidetrail
-  - os : linux
-    dist: trusty
-    env: TESTS=sidetrail PART=1
-
-  - os : linux
-    dist: trusty
-    env: TESTS=sidetrail PART=2
-
-# Formal Verification - SAW
-  - os : linux
-    dist: trusty
-    env: TESTS=sawHMAC SAW_HMAC_TEST=md5 SAW=true GCC_VERSION=NONE
-    addons: &sawaddons
-      apt:
-        packages:
-          - clang-3.9
-          - llvm-3.9
-  - os : linux
-    dist: trusty
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha1   SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    dist: trusty
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha224 SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    dist: trusty
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    dist: trusty
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    dist: trusty
-    env: TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    dist: trusty
-    env: TESTS=sawDRBG SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    dist: trusty
-    env: TESTS=sawSIKE_r1 SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    dist: trusty
-    env: TESTS=sawBIKE_r1 SAW=true GCC_VERSION=NONE S2N_LIBCRYPTO=openssl-1.0.2
-    addons : *sawaddons
-  - os : linux
-    dist: trusty
-    env: TESTS=tls SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    dist: trusty
-    env: TESTS=sawHMACFailure SAW=true
-    addons : *sawaddons
 
 before_install:
   - source .travis/s2n_setup_env.sh

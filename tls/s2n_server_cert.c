@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -89,6 +89,7 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
 
 int s2n_server_cert_send(struct s2n_connection *conn)
 {
+    S2N_ERROR_IF(conn->handshake_params.our_chain_and_key == NULL, S2N_ERR_CERT_TYPE_UNSUPPORTED);
     if (conn->actual_protocol_version == S2N_TLS13) {
         /* server's certificate request context should always be of zero length */
         /* https://tools.ietf.org/html/rfc8446#section-4.4.2*/

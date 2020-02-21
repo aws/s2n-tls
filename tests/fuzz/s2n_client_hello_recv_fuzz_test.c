@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -12,6 +12,8 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+
+/* Target Functions: s2n_client_hello_recv s2n_parse_client_hello s2n_populate_client_hello_extensions s2n_process_client_hello s2n_conn_set_handshake_type */
 
 #include <stdint.h>
 
@@ -39,7 +41,7 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 #endif
 
     GUARD(s2n_init());
-    GUARD(atexit(s2n_fuzz_atexit));
+    GUARD_STRICT(atexit(s2n_fuzz_atexit));
     return 0;
 }
 

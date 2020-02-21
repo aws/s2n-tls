@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -13,12 +13,17 @@
  * permissions and limitations under the License.
  */
 
+/* Target Functions: s2n_server_extensions_recv s2n_recv_server_server_name
+                     s2n_recv_server_renegotiation_info_ext s2n_recv_server_alpn
+                     s2n_recv_server_status_request s2n_recv_server_sct_list
+                     s2n_recv_server_max_fragment_length s2n_recv_server_session_ticket_ext */
+
 #include <stdint.h>
 
 #include <openssl/crypto.h>
 #include <openssl/err.h>
 
-#include "tls/s2n_server_extensions.c"
+#include "tls/s2n_tls.h"
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
@@ -44,7 +49,7 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 #endif
 
     GUARD(s2n_init());
-    GUARD(atexit(s2n_fuzz_atexit));
+    GUARD_STRICT(atexit(s2n_fuzz_atexit));
     GUARD(s2n_enable_tls13());
     return 0;
 }
@@ -53,7 +58,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
     for (int version = 0; version < s2n_array_len(TLS_VERSIONS); version++) {
 
-        struct s2n_stuffer fuzz_stuffer;
+        struct s2n_stuffer fuzz_stuffer = {0};
         GUARD(s2n_stuffer_alloc(&fuzz_stuffer, len + 1));
         GUARD(s2n_stuffer_write_bytes(&fuzz_stuffer, buf, len));
 

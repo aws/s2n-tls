@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -12,6 +12,8 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+
+/* Target Functions: s2n_negotiate */
 
 #include <errno.h>
 #include <fcntl.h>
@@ -174,7 +176,7 @@ static void s2n_server_fuzz_atexit()
 int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 {
     GUARD(s2n_init());
-    GUARD(atexit(s2n_server_fuzz_atexit));
+    GUARD_STRICT(atexit(s2n_server_fuzz_atexit));
 
     /* Set up Server Config */
     notnull_check(client_config = s2n_config_new());
@@ -190,7 +192,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
         return 0;
     }
 
-    struct s2n_stuffer in;
+    struct s2n_stuffer in = {0};
     GUARD(s2n_stuffer_alloc(&in, len));
     GUARD(s2n_stuffer_write_bytes(&in, buf, len));
 

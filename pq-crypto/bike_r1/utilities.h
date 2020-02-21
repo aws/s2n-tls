@@ -1,6 +1,6 @@
 /***************************************************************************
  * Additional implementation of "BIKE: Bit Flipping Key Encapsulation".
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Written by Nir Drucker and Shay Gueron
  * AWS Cryptographic Algorithms Group

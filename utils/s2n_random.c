@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -127,6 +127,7 @@ int s2n_get_urandom_data(struct s2n_blob *blob)
     long backoff = 1;
 
     while (n) {
+        errno = 0;
         int r = read(entropy_fd, data, n);
         if (r <= 0) {
             /*

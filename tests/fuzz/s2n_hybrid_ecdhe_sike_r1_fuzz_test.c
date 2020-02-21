@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -13,12 +13,16 @@
  * permissions and limitations under the License.
  */
 
+/* Target Functions: s2n_client_key_recv s2n_kex_client_key_recv calculate_keys
+                     s2n_kex_tls_prf s2n_prf_key_expansion s2n_ecdhe_client_key_recv
+                     s2n_kem_client_key_recv s2n_hybrid_client_action */
+
 #include "crypto/s2n_crypto.h"
 #include "crypto/s2n_drbg.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_openssl.h"
 #include "error/s2n_errno.h"
-#include "pq-crypto/sike_r1/sike_p503_r1_kem.h"
+#include "pq-crypto/sike_r1/sike_r1_kem.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tests/s2n_test.h"
 #include "tests/testlib/s2n_testlib.h"
@@ -61,10 +65,10 @@ static void s2n_fuzz_atexit()
 int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 {
     GUARD(s2n_init());
-    GUARD(atexit(s2n_fuzz_atexit));
+    GUARD_STRICT(atexit(s2n_fuzz_atexit));
 
     struct s2n_blob *public_key = &server_kem_keys.public_key;
-    GUARD(s2n_alloc(public_key, SIKE_P503_r1_PUBLIC_KEY_BYTES));
+    GUARD(s2n_alloc(public_key, SIKE_P503_R1_PUBLIC_KEY_BYTES));
     GUARD(s2n_kem_generate_keypair(&server_kem_keys));
     GUARD(s2n_free(public_key));
 
