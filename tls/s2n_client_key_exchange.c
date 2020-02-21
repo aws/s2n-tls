@@ -81,7 +81,7 @@ static int calculate_keys(struct s2n_connection *conn, struct s2n_blob *shared_k
     GUARD(s2n_prf_key_expansion(conn));
     /* Save the master secret in the cache */
     if (s2n_allowed_to_cache_connection(conn)) {
-        GUARD(s2n_store_to_cache(conn));
+        s2n_store_to_cache(conn);
     }
     return 0;
 }
