@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -28,6 +28,9 @@ extern "C" {
 /* Function return code  */
 #define S2N_SUCCESS 0
 #define S2N_FAILURE -1
+
+/* Callback return code */
+#define S2N_CALLBACK_BLOCKED -2
 
 #define S2N_MINIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION 2
 #define S2N_MAXIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION 3
@@ -137,6 +140,7 @@ extern int s2n_config_set_max_cert_chain_depth(struct s2n_config *config, uint16
 
 extern int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem);
 extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
+extern int s2n_config_set_signature_preferences(struct s2n_config *config, const char *version);
 extern int s2n_config_set_protocol_preferences(struct s2n_config *config, const char * const *protocols, int protocol_count);
 typedef enum { S2N_STATUS_REQUEST_NONE = 0, S2N_STATUS_REQUEST_OCSP = 1 } s2n_status_request_type;
 extern int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_request_type type);
@@ -151,6 +155,7 @@ extern int s2n_config_accept_max_fragment_length(struct s2n_config *config);
 extern int s2n_config_set_session_state_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
 
 extern int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enabled);
+extern int s2n_config_set_session_cache_onoff(struct s2n_config *config, uint8_t enabled);
 extern int s2n_config_set_ticket_encrypt_decrypt_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
 extern int s2n_config_set_ticket_decrypt_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
 extern int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
@@ -242,23 +247,6 @@ extern int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 extern int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);
 
 extern struct s2n_cert_chain_and_key *s2n_connection_get_selected_cert(struct s2n_connection *conn);
-
-/* RFC's that define below values:
- *  - https://tools.ietf.org/html/rfc5246#section-7.4.4
- *  - https://tools.ietf.org/search/rfc4492#section-5.5
- */
-typedef enum {
-    S2N_CERT_TYPE_RSA_SIGN = 1,
-    S2N_CERT_TYPE_DSS_SIGN = 2,
-    S2N_CERT_TYPE_RSA_FIXED_DH = 3,
-    S2N_CERT_TYPE_DSS_FIXED_DH = 4,
-    S2N_CERT_TYPE_RSA_EPHEMERAL_DH_RESERVED = 5,
-    S2N_CERT_TYPE_DSS_EPHEMERAL_DH_RESERVED = 6,
-    S2N_CERT_TYPE_FORTEZZA_DMS_RESERVED = 20,
-    S2N_CERT_TYPE_ECDSA_SIGN = 64,
-    S2N_CERT_TYPE_RSA_FIXED_ECDH = 65,
-    S2N_CERT_TYPE_ECDSA_FIXED_ECDH = 66,
-} s2n_cert_type;
 
 struct s2n_pkey;
 typedef struct s2n_pkey s2n_cert_public_key;

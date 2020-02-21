@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -37,6 +37,4 @@ decode(OUT split_e_t *e,
 // The output syndrome contains only one R_BITS rotation, the other
 // (2 * R_BITS) bits are undefined.
 void
-rotate_right(OUT syndrome_t *out,
-             IN const syndrome_t *in,
-             IN const uint32_t    bitcount);
+rotate_right(OUT syndrome_t *out, IN const syndrome_t *in, IN uint32_t bitscount);

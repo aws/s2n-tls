@@ -41,6 +41,12 @@ review. The known answer tests are [here](https://github.com/awslabs/s2n/blob/ma
 and use the BIKE1_L1.const.kat from the above Additional_Implementation.2019.03.30.zip. This implementation uses constant
 time primitives on x86 and aarch64 platforms.
 
+## How to disable optimized assembly code for PQ Crypto
+Certain post-quantum KEM algorithms included in s2n use optimized assembly code for efficient computation. When compiling s2n on compatible toolchains,
+the optimized assembly code will significantly improve performance of the post-quantum cryptographic operations. s2n attempts to detect whether or not
+the architecture is compatible with the assembly code, and falls back to the portable C implementation if it detects incompatibility. However, some users
+may wish to manually force s2n to use the portable C implementation. To do so, simply `export S2N_NO_PQ_ASM=1` as an environment variable before compiling.
+
 ## How to add a new PQ KEM family
 1. Add the code to `pq-crypto/KEM_NAME/`
     1. Update `pq-crypto/Makefile` to build that directory

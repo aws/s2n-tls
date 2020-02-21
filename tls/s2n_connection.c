@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -234,6 +234,10 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     GUARD_PTR(s2n_connection_wipe(conn));
     GUARD_PTR(s2n_timer_start(conn->config, &conn->write_timer));
 
+    /* Initialize the cookie stuffer with zero length. If a cookie extension
+     * is received, the stuffer will be resized according to the cookie length */
+    GUARD_PTR(s2n_stuffer_growable_alloc(&conn->cookie_stuffer, 0));
+
     return conn;
 }
 
@@ -467,6 +471,7 @@ int s2n_connection_free(struct s2n_connection *conn)
     s2n_x509_validator_wipe(&conn->x509_validator);
     GUARD(s2n_client_hello_free(&conn->client_hello));
     GUARD(s2n_free(&conn->application_protocols_overridden));
+    GUARD(s2n_stuffer_free(&conn->cookie_stuffer));
     GUARD(s2n_free_object((uint8_t **)&conn, sizeof(struct s2n_connection)));
 
     return 0;
@@ -566,6 +571,7 @@ int s2n_connection_free_handshake(struct s2n_connection *conn)
     GUARD(s2n_free(&conn->client_ticket));
     GUARD(s2n_free(&conn->status_response));
     GUARD(s2n_free(&conn->application_protocols_overridden));
+    GUARD(s2n_stuffer_free(&conn->cookie_stuffer));
 
     /* Remove parsed extensions array from client_hello */
     GUARD(s2n_client_hello_free_parsed_extensions(&conn->client_hello));
@@ -840,6 +846,8 @@ int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
     if (0 == s2n_socket_is_ipv6(wfd, &ipv6)) {
         conn->ipv6 = (ipv6 ? 1 : 0);
     }
+
+    conn->write_fd_broken = 0;
 
     return 0;
 }
@@ -1162,6 +1170,9 @@ int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
 {
     notnull_check(conn);
     notnull_check(conn->send);
+    if (conn->write_fd_broken) {
+        S2N_ERROR(S2N_ERR_SEND_STUFFER_TO_CONN);
+    }
     /* Make sure we even have the data */
     GUARD(s2n_stuffer_skip_read(stuffer, len));
 
@@ -1175,6 +1186,11 @@ int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
         if (errno == EINTR) {
             goto SEND;
         }
+
+        if (errno == EPIPE) {
+            conn->write_fd_broken = 1;
+        }
+
         S2N_ERROR(S2N_ERR_SEND_STUFFER_TO_CONN);
     }
 

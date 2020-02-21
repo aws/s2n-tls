@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status * blocked)
     /* Write any data that's already pending */
   WRITE:
     while (s2n_stuffer_data_available(&conn->out)) {
+        errno = 0;
         w = s2n_connection_send_stuffer(&conn->out, conn, s2n_stuffer_data_available(&conn->out));
         if (w < 0) {
             if (errno == EWOULDBLOCK || errno == EAGAIN) {

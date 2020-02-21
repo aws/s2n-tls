@@ -1,4 +1,4 @@
-// constants.saw Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// constants.saw Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 // NOTE: BIKE_VER==1 - 128-bits of post-quantum security parameters

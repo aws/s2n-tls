@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -35,14 +35,9 @@ int s2n_extensions_client_pq_kem_send(struct s2n_connection *conn, struct s2n_st
     /* Length of parameters in bytes */
     GUARD(s2n_stuffer_write_uint16(out, pq_kem_list_size));
 
-    for (int i = 0; i < cipher_preferences->count; i++) {
-        const struct s2n_iana_to_kem *supported_params = NULL;
-        if(s2n_cipher_suite_to_kem(cipher_preferences->suites[i]->iana_value, &supported_params) == 0) {
-            /* Each supported kem id is 2 bytes */
-            for (int j = 0; j < supported_params->kem_count; j++) {
-                GUARD(s2n_stuffer_write_uint16(out, supported_params->kems[j]->kem_extension_id));
-            }
-        }
+    /* Each supported kem id is 2 bytes */
+    for (int i = 0; i < cipher_preferences->kem_count; i++) {
+        GUARD(s2n_stuffer_write_uint16(out, cipher_preferences->kems[i]->kem_extension_id));
     }
 
     return 0;

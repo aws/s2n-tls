@@ -282,7 +282,7 @@ let s2n_advance_message_spec = do {
     crucible_points_to (crucible_global "handshakes") (crucible_term {{ handshakes }});
     crucible_points_to (crucible_global "tls13_handshakes") (crucible_term {{ tls13_handshakes }});
     
-    let messages = [ {{CLIENT_HELLO : [5]}}, {{SERVER_SESSION_LOOKUP : [5]}}, {{SERVER_HELLO : [5]}}, {{SERVER_CERT : [5]}}, {{SERVER_NEW_SESSION_TICKET : [5]}}, {{SERVER_CERT_STATUS : [5]}}, 
+    let messages = [ {{CLIENT_HELLO : [5]}}, {{SERVER_HELLO : [5]}}, {{SERVER_CERT : [5]}}, {{SERVER_NEW_SESSION_TICKET : [5]}}, {{SERVER_CERT_STATUS : [5]}}, 
       {{SERVER_KEY : [5]}}, {{SERVER_CERT : [5]}}, {{SERVER_CERT_REQ : [5]}}, {{SERVER_HELLO_DONE : [5]}}, {{CLIENT_CERT : [5]}}, {{CLIENT_KEY : [5]}}, {{CLIENT_CERT_VERIFY : [5]}}, 
       {{CLIENT_CHANGE_CIPHER_SPEC : [5]}}, {{SERVER_FINISHED : [5]}}, {{ENCRYPTED_EXTENSIONS : [5]}}, {{SERVER_CERT_VERIFY : [5]}}, {{APPLICATION_DATA : [5]}} ];
 

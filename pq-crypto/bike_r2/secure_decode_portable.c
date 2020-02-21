@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -53,19 +53,26 @@ rotr_small(OUT syndrome_t *out, IN const syndrome_t *in, IN const size_t bits)
   bike_static_assert(bits < 64, rotr_small_err);
   bike_static_assert(sizeof(*out) > (8 * R_QW), rotr_small_qw_err);
 
+  // Convert |bits| to 0/1 by using !!bits then create a mask of 0 or 0xffffffffff
+  // Use high_shift to avoid undefined behaviour when doing x << 64;
+  const uint64_t mask       = (0 - (!!bits));
+  const uint64_t high_shift = (64 - bits) & mask;
+
   for(size_t i = 0; i < R_QW; i++)
   {
-    out->qw[i] = (in->qw[i] >> bits) | (in->qw[i + 1] << (64 - bits));
+    const uint64_t low_part  = in->qw[i] >> bits;
+    const uint64_t high_part = (in->qw[i + 1] << high_shift) & mask;
+    out->qw[i]               = low_part | high_part;
   }
 }
 
 void
 rotate_right(OUT syndrome_t *out,
              IN const syndrome_t *in,
-             IN const uint32_t    bitcount)
+             IN const uint32_t    bitscount)
 {
   // Rotate (64-bit) quad-words
-  rotr_big(out, in, (bitcount / 64));
+  rotr_big(out, in, (bitscount / 64));
   // Rotate bits (less than 64)
-  rotr_small(out, out, (bitcount % 64));
+  rotr_small(out, out, (bitscount % 64));
 }

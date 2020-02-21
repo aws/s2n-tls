@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@
 static const char *certificate_paths[SUPPORTED_CERTIFICATE_FORMATS] = { S2N_RSA_2048_PKCS1_CERT_CHAIN, S2N_RSA_2048_PKCS8_CERT_CHAIN };
 static const char *private_key_paths[SUPPORTED_CERTIFICATE_FORMATS] = { S2N_RSA_2048_PKCS1_KEY, S2N_RSA_2048_PKCS8_KEY };
 
-void mock_client(int writefd, int readfd)
+void mock_client(struct s2n_test_piped_io *piped_io)
 {
     char buffer[0xffff];
     struct s2n_connection *conn;
@@ -50,8 +50,7 @@ void mock_client(int writefd, int readfd)
     conn->client_protocol_version = S2N_TLS12;
     conn->actual_protocol_version = S2N_TLS12;
 
-    s2n_connection_set_read_fd(conn, readfd);
-    s2n_connection_set_write_fd(conn, writefd);
+    s2n_connection_set_piped_io(conn, piped_io);
 
     s2n_negotiate(conn, &blocked);
 
@@ -98,6 +97,8 @@ void mock_client(int writefd, int readfd)
     /* Give the server a chance to a void a sigpipe */
     sleep(1);
 
+    s2n_piped_io_close_one_end(piped_io, S2N_CLIENT);
+
     _exit(0);
 }
 
@@ -108,8 +109,6 @@ int main(int argc, char **argv)
     s2n_blocked_status blocked;
     int status;
     pid_t pid;
-    int server_to_client[2];
-    int client_to_server[2];
     char *cert_chain_pem;
     char *private_key_pem;
     char *dhparams_pem;
@@ -123,23 +122,21 @@ int main(int argc, char **argv)
         struct s2n_cert_chain_and_key *chain_and_keys[SUPPORTED_CERTIFICATE_FORMATS];
 
         /* Create a pipe */
-        EXPECT_SUCCESS(pipe(server_to_client));
-        EXPECT_SUCCESS(pipe(client_to_server));
+        struct s2n_test_piped_io piped_io;
+        EXPECT_SUCCESS(s2n_piped_io_init(&piped_io));
 
         /* Create a child process */
         pid = fork();
         if (pid == 0) {
-            /* This is the child process, close the read end of the pipe */
-            EXPECT_SUCCESS(close(client_to_server[0]));
-            EXPECT_SUCCESS(close(server_to_client[1]));
+            /* This is the client process, close the server end of the pipe */
+            EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
 
             /* Write the fragmented hello message */
-            mock_client(client_to_server[1], server_to_client[0]);
+            mock_client(&piped_io);
         }
 
-        /* This is the parent */
-        EXPECT_SUCCESS(close(client_to_server[1]));
-        EXPECT_SUCCESS(close(server_to_client[0]));
+        /* This is the server process, close the client end of the pipe */
+        EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_CLIENT));
 
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         conn->server_protocol_version = S2N_TLS12;
@@ -163,8 +160,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
         /* Set up the connection to read from the fd */
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
+        EXPECT_SUCCESS(s2n_connection_set_piped_io(conn, &piped_io));
 
         /* Negotiate the handshake. */
         EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
@@ -205,6 +201,7 @@ int main(int argc, char **argv)
         /* Clean up */
         EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
         EXPECT_EQUAL(status, 0);
+        EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
     }
 
     free(cert_chain_pem);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -173,11 +173,11 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_write_ccs_message(&input));
 
                 if (handshakes[i][j] == SERVER_CHANGE_CIPHER_SPEC) {
-                    EXPECT_SUCCESS(handshake_read_io(conn));
+                    EXPECT_SUCCESS(s2n_handshake_read_io(conn));
                     EXPECT_TRUE(expected_handler_called);
                     EXPECT_FALSE(unexpected_handler_called);
                 } else {
-                    EXPECT_FAILURE_WITH_ERRNO(handshake_read_io(conn), S2N_ERR_BAD_MESSAGE);
+                    EXPECT_FAILURE_WITH_ERRNO(s2n_handshake_read_io(conn), S2N_ERR_BAD_MESSAGE);
                     EXPECT_FALSE(expected_handler_called);
                     EXPECT_FALSE(unexpected_handler_called);
                 }
@@ -214,11 +214,11 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_write_ccs_message(&input));
 
                 if (handshakes[i][j] == CLIENT_CHANGE_CIPHER_SPEC) {
-                    EXPECT_SUCCESS(handshake_read_io(conn));
+                    EXPECT_SUCCESS(s2n_handshake_read_io(conn));
                     EXPECT_TRUE(expected_handler_called);
                     EXPECT_FALSE(unexpected_handler_called);
                 } else {
-                    EXPECT_FAILURE_WITH_ERRNO(handshake_read_io(conn), S2N_ERR_BAD_MESSAGE);
+                    EXPECT_FAILURE_WITH_ERRNO(s2n_handshake_read_io(conn), S2N_ERR_BAD_MESSAGE);
                     EXPECT_FALSE(expected_handler_called);
                     EXPECT_FALSE(unexpected_handler_called);
                 }
@@ -229,6 +229,64 @@ int main(int argc, char **argv)
         }
 
         EXPECT_SUCCESS(s2n_stuffer_free(&input));
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test: TLS 1.2 handshake types are all properly printed */
+    {
+        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+
+        conn->handshake.handshake_type = INITIAL;
+        EXPECT_STRING_EQUAL("INITIAL", s2n_connection_get_handshake_type_name(conn));
+
+        conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
+        EXPECT_STRING_EQUAL("NEGOTIATED|FULL_HANDSHAKE", s2n_connection_get_handshake_type_name(conn));
+
+        const char* all_flags_handshake_type_name = "NEGOTIATED|FULL_HANDSHAKE|TLS12_PERFECT_FORWARD_SECRECY|"
+                "OCSP_STATUS|CLIENT_AUTH|WITH_SESSION_TICKET|NO_CLIENT_CERT";
+        conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE | TLS12_PERFECT_FORWARD_SECRECY | \
+                OCSP_STATUS | CLIENT_AUTH | WITH_SESSION_TICKET | NO_CLIENT_CERT;
+        EXPECT_STRING_EQUAL(all_flags_handshake_type_name, s2n_connection_get_handshake_type_name(conn));
+
+        const char *handshake_type_name;
+        for (int i = 0; i < valid_tls12_handshakes_size; i++) {
+            conn->handshake.handshake_type = i;
+
+            handshake_type_name = s2n_connection_get_handshake_type_name(conn);
+
+            /* The handshake type names must be unique */
+            for (int j = 0; j < valid_tls12_handshakes_size; j++) {
+                conn->handshake.handshake_type = j;
+                if (i == j) {
+                    EXPECT_STRING_EQUAL(handshake_type_name, s2n_connection_get_handshake_type_name(conn));
+                } else {
+                    EXPECT_STRING_NOT_EQUAL(handshake_type_name, s2n_connection_get_handshake_type_name(conn));
+                }
+            }
+        }
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test: TLS 1.2 message types are all properly printed */
+    {
+        uint32_t test_handshake_type = NEGOTIATED | FULL_HANDSHAKE | TLS12_PERFECT_FORWARD_SECRECY | \
+                OCSP_STATUS | CLIENT_AUTH | WITH_SESSION_TICKET;
+        const char* expected[] = { "CLIENT_HELLO",
+                "SERVER_HELLO", "SERVER_CERT", "SERVER_CERT_STATUS", "SERVER_KEY", "SERVER_CERT_REQ", "SERVER_HELLO_DONE",
+                "CLIENT_CERT", "CLIENT_KEY", "CLIENT_CERT_VERIFY", "CLIENT_CHANGE_CIPHER_SPEC", "CLIENT_FINISHED",
+                "SERVER_NEW_SESSION_TICKET", "SERVER_CHANGE_CIPHER_SPEC", "SERVER_FINISHED",
+                "APPLICATION_DATA" };
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+
+        conn->handshake.handshake_type = test_handshake_type;
+
+        for (int i=0; i < sizeof(expected) / sizeof(char *); i++) {
+            conn->handshake.message_number = i;
+            EXPECT_STRING_EQUAL(expected[i], s2n_connection_get_last_message_name(conn));
+        }
+
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 

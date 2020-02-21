@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -308,6 +308,7 @@ int main(int argc, char *const *argv)
             dyn_rec_timeout = (uint8_t) MIN(255, atoi(optarg));
             break;
         case 'D':
+            errno = 0;
             dyn_rec_threshold = strtoul(optarg, 0, 10);
             if (errno == ERANGE) {
                 dyn_rec_threshold = 0;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -35,7 +35,25 @@ extern int s2n_stuffer_write_uint64_hex(struct s2n_stuffer *stuffer, uint64_t u)
 extern int s2n_stuffer_alloc_ro_from_hex_string(struct s2n_stuffer *stuffer, const char *str);
 
 void s2n_print_connection(struct s2n_connection *conn, const char *marker);
+
 int s2n_connection_set_io_stuffers(struct s2n_stuffer *input, struct s2n_stuffer *output, struct s2n_connection *conn);
+
+struct s2n_test_piped_io {
+    int client_read;
+    int client_write;
+    int server_read;
+    int server_write;
+};
+int s2n_piped_io_init(struct s2n_test_piped_io *piped_io);
+int s2n_piped_io_init_non_blocking(struct s2n_test_piped_io *piped_io);
+int s2n_piped_io_close(struct s2n_test_piped_io *piped_io);
+int s2n_piped_io_close_one_end(struct s2n_test_piped_io *piped_io, int mode_to_close);
+
+int s2n_connection_set_piped_io(struct s2n_connection *conn, struct s2n_test_piped_io* piped_io);
+int s2n_connections_set_piped_io(struct s2n_connection *client, struct s2n_connection *server, struct s2n_test_piped_io* piped_io);
+
+int s2n_fd_set_blocking(int fd);
+int s2n_fd_set_non_blocking(int fd);
 
 #define S2N_MAX_TEST_PEM_SIZE 4096
 
@@ -113,7 +131,8 @@ int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, stru
 
 int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file);
 int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cipher_suite *cipher_suite,
-        const char * kat_file_name, uint32_t server_key_message_length, uint32_t client_key_message_length);
+        const char *cipher_pref_version, const char * kat_file_name, uint32_t server_key_message_length,
+        uint32_t client_key_message_length);
 
 /* Expects 2 s2n_blobs to be equal (same size and contents) */
 #define S2N_BLOB_EXPECT_EQUAL( blob1, blob2 ) do {              \

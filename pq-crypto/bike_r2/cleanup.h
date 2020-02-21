@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -60,6 +60,12 @@ padded_e_cleanup(IN OUT padded_e_t *o)
 
 _INLINE_ void
 split_e_cleanup(IN OUT split_e_t *o)
+{
+  secure_clean((uint8_t *)o, sizeof(*o));
+}
+
+_INLINE_ void
+sk_cleanup(IN OUT sk_t *o)
 {
   secure_clean((uint8_t *)o, sizeof(*o));
 }

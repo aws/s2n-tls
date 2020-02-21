@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -15,10 +15,16 @@
 
 #include "s2n_test.h"
 #include "pq-crypto/sike_r2/sike_r2_code_identifier.h"
+#include "crypto/s2n_fips.h"
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+
+    if (s2n_is_in_fips_mode()) {
+        /* There is no support for PQ KEMs while in FIPS mode */
+        END_TEST();
+    }
 
     /*
      * A little extra defense in depth to ensure that we are running the code

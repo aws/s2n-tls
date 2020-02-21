@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -37,8 +37,8 @@ int s2n_allowed_to_cache_connection(struct s2n_connection *conn)
 
     struct s2n_config *config = conn->config;
 
-    /* Caching is enabled iff all of the caching callbacks are set */
-    return config->cache_store && config->cache_retrieve && config->cache_delete;
+    notnull_check(config);
+    return config->use_session_cache;
 }
 
 static int s2n_serialize_resumption_state(struct s2n_connection *conn, struct s2n_stuffer *to)
@@ -195,31 +195,30 @@ static int s2n_client_deserialize_resumption_state(struct s2n_connection *conn, 
 
 int s2n_resume_from_cache(struct s2n_connection *conn)
 {
-    uint8_t data[S2N_STATE_SIZE_IN_BYTES] = { 0 };
-    struct s2n_blob entry = {.data = data,.size = S2N_STATE_SIZE_IN_BYTES };
+    uint8_t data[S2N_TICKET_SIZE_IN_BYTES] = { 0 };
+    struct s2n_blob entry = {.data = data,.size = S2N_TICKET_SIZE_IN_BYTES };
     struct s2n_stuffer from = {0};
     uint64_t size;
 
     S2N_ERROR_IF(conn->session_id_len == 0, S2N_ERR_SESSION_ID_TOO_SHORT);
     S2N_ERROR_IF(conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN, S2N_ERR_SESSION_ID_TOO_LONG);
+    size = entry.size;
 
+    GUARD_NONBLOCKING(conn->config->cache_retrieve(conn, conn->config->cache_retrieve_data, conn->session_id, conn->session_id_len, entry.data, &size));
+
+    
+    S2N_ERROR_IF(size != entry.size, S2N_ERR_SIZE_MISMATCH);
     GUARD(s2n_stuffer_init(&from, &entry));
-    uint8_t *state = s2n_stuffer_raw_write(&from, entry.size);
-    notnull_check(state);
+    GUARD(s2n_stuffer_write(&from, &entry));
+    GUARD(s2n_decrypt_session_cache(conn, &from));
 
-    size = S2N_STATE_SIZE_IN_BYTES;
-
-    GUARD_AGAIN(conn->config->cache_retrieve(conn, conn->config->cache_retrieve_data, conn->session_id, conn->session_id_len, state, &size));
-    S2N_ERROR_IF(size != S2N_STATE_SIZE_IN_BYTES, S2N_ERR_SIZE_MISMATCH);
-    GUARD(s2n_deserialize_resumption_state(conn, &from));
-
-    return S2N_SUCCESS;
+    return 0;
 }
 
 int s2n_store_to_cache(struct s2n_connection *conn)
 {
-    uint8_t data[S2N_STATE_SIZE_IN_BYTES] = { 0 };
-    struct s2n_blob entry = {.data = data,.size = S2N_STATE_SIZE_IN_BYTES };
+    uint8_t data[S2N_TICKET_SIZE_IN_BYTES] = { 0 };
+    struct s2n_blob entry = {.data = data,.size = S2N_TICKET_SIZE_IN_BYTES };
     struct s2n_stuffer to = {0};
 
     /* session_id_len should always be >0 since either the Client provided a SessionId or the Server generated a new
@@ -228,7 +227,7 @@ int s2n_store_to_cache(struct s2n_connection *conn)
     S2N_ERROR_IF(conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN, S2N_ERR_SESSION_ID_TOO_LONG);
 
     GUARD(s2n_stuffer_init(&to, &entry));
-    GUARD(s2n_serialize_resumption_state(conn, &to));
+    GUARD(s2n_encrypt_session_cache(conn, &to));
 
     /* Store to the cache */
     conn->config->cache_store(conn, conn->config->cache_store_data, S2N_TLS_SESSION_CACHE_TTL, conn->session_id, conn->session_id_len, entry.data, entry.size);
@@ -315,6 +314,7 @@ int s2n_config_is_encrypt_decrypt_key_available(struct s2n_config *config)
 {
     uint64_t now;
     GUARD(config->wall_clock(config->sys_clock_ctx, &now));
+    notnull_check(config->ticket_keys);
 
     for (int i = s2n_set_size(config->ticket_keys) - 1; i >= 0; i--) {
         uint64_t key_intro_time = ((struct s2n_ticket_key *)s2n_set_get(config->ticket_keys, i))->intro_timestamp;
@@ -386,6 +386,7 @@ struct s2n_ticket_key *s2n_get_ticket_encrypt_decrypt_key(struct s2n_config *con
 
     uint64_t now;
     GUARD_PTR(config->wall_clock(config->sys_clock_ctx, &now));
+    notnull_check_ptr(config->ticket_keys);
 
     for (int i = s2n_set_size(config->ticket_keys) - 1; i >= 0; i--) {
         uint64_t key_intro_time = ((struct s2n_ticket_key *)s2n_set_get(config->ticket_keys, i))->intro_timestamp;
@@ -418,6 +419,7 @@ struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint
 {
     uint64_t now;
     GUARD_PTR(config->wall_clock(config->sys_clock_ctx, &now));
+    notnull_check_ptr(config->ticket_keys);
 
     for (int i = 0; i < s2n_set_size(config->ticket_keys); i++) {
         if (memcmp(((struct s2n_ticket_key *)s2n_set_get(config->ticket_keys, i))->key_name, name, S2N_TICKET_KEY_NAME_LEN) == 0) {
@@ -514,7 +516,7 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn)
 
     key = s2n_find_ticket_key(conn->config, key_name);
 
-    /* Key has expired; do full handshake with NST */
+    /* Key has expired; do full handshake with New Session Ticket (NST) */
     S2N_ERROR_IF(!key, S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND);
 
     GUARD(s2n_stuffer_read(from, &iv));
@@ -559,6 +561,67 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn)
     return 0;
 }
 
+int s2n_encrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *to)
+{
+    return s2n_encrypt_session_ticket(conn, to);
+}
+
+
+int s2n_decrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *from)
+{
+    struct s2n_ticket_key *key;
+    struct s2n_session_key aes_ticket_key;
+    struct s2n_blob aes_key_blob;
+
+    uint8_t key_name[S2N_TICKET_KEY_NAME_LEN];
+
+    uint8_t iv_data[S2N_TLS_GCM_IV_LEN] = { 0 };
+    struct s2n_blob iv = { .data = iv_data, .size = sizeof(iv_data) };
+
+    uint8_t aad_data[S2N_TICKET_AAD_LEN] = { 0 };
+    struct s2n_blob aad_blob = { .data = aad_data, .size = sizeof(aad_data) };
+    struct s2n_stuffer aad;
+
+    uint8_t s_data[S2N_STATE_SIZE_IN_BYTES] = { 0 };
+    struct s2n_blob state_blob = { .data = s_data, .size = sizeof(s_data) };
+    struct s2n_stuffer state;
+
+    uint8_t en_data[S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN];
+    struct s2n_blob en_blob = { .data = en_data, .size = sizeof(en_data) };
+
+    GUARD(s2n_stuffer_read_bytes(from, key_name, S2N_TICKET_KEY_NAME_LEN));
+
+    key = s2n_find_ticket_key(conn->config, key_name);
+
+    /* Key has expired; do full handshake with New Session Ticket (NST) */
+    S2N_ERROR_IF(!key, S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND);
+
+    GUARD(s2n_stuffer_read(from, &iv));
+
+    s2n_blob_init(&aes_key_blob, key->aes_key, S2N_AES256_KEY_LEN);
+    notnull_check(aes_ticket_key.evp_cipher_ctx = EVP_CIPHER_CTX_new());
+    GUARD(s2n_aes256_gcm.init(&aes_ticket_key));
+    GUARD(s2n_aes256_gcm.set_decryption_key(&aes_ticket_key, &aes_key_blob));
+
+    GUARD(s2n_stuffer_init(&aad, &aad_blob));
+    GUARD(s2n_stuffer_write_bytes(&aad, key->implicit_aad, S2N_TICKET_AAD_IMPLICIT_LEN));
+    GUARD(s2n_stuffer_write_bytes(&aad, key->key_name, S2N_TICKET_KEY_NAME_LEN));
+
+    GUARD(s2n_stuffer_read(from, &en_blob));
+
+    GUARD(s2n_aes256_gcm.io.aead.decrypt(&aes_ticket_key, &iv, &aad_blob, &en_blob, &en_blob));
+
+    GUARD(s2n_stuffer_init(&state, &state_blob));
+    GUARD(s2n_stuffer_write_bytes(&state, en_data, S2N_STATE_SIZE_IN_BYTES));
+
+    GUARD(s2n_deserialize_resumption_state(conn, &state));
+
+    GUARD(s2n_aes256_gcm.destroy_key(&aes_ticket_key));
+    GUARD(s2n_session_key_free(&aes_ticket_key));
+
+    return 0;
+}
+
 /* This function is used to remove all or just one expired key from server config */
 int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t expired_key_index)
 {
@@ -574,6 +637,7 @@ int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t
 
     uint64_t now;
     GUARD(config->wall_clock(config->sys_clock_ctx, &now));
+    notnull_check(config->ticket_keys);
 
     for (int i = 0; i < s2n_set_size(config->ticket_keys); i++) {
         if (now >= ((struct s2n_ticket_key *)s2n_set_get(config->ticket_keys, i))->intro_timestamp +
