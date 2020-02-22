@@ -52,7 +52,7 @@ let find_err1_spec = do {
   black_e_ptr <- out_ref split_e_t;
   gray_e_ptr <- out_ref split_e_t;
   (_, syndrome_ptr) <- in_ref_aligned 64 syndrome_t "syndrome";
-  (_, wlist_ptr) <- in_ref_aligned 1 compressed_idx_dv_ar_t "wlist";
+  (_, wlist_ptr) <- in_ref compressed_idx_dv_ar_t "wlist";
   threshold <- crucible_fresh_var "threshold" i8;
   crucible_execute_func [e_ptr, black_e_ptr, gray_e_ptr, syndrome_ptr, wlist_ptr, tm threshold];
   _ <- point_to split_e_t e_ptr "e'";
@@ -65,7 +65,7 @@ let find_err2_spec = do {
   (_, e_ptr) <- inout_ref split_e_t "e";
   (_, pos_e_ptr) <- in_ref split_e_t "pos_e";
   (_, syndrome_ptr) <- in_ref_aligned 64 syndrome_t "syndrome";
-  (_, wlist_ptr) <- in_ref_aligned 1 compressed_idx_dv_ar_t "wlist";
+  (_, wlist_ptr) <- in_ref compressed_idx_dv_ar_t "wlist";
   threshold <- crucible_fresh_var "threshold" i8;
   crucible_execute_func [e_ptr, pos_e_ptr, syndrome_ptr, wlist_ptr, tm threshold];
   _ <- point_to split_e_t e_ptr "e'";
@@ -76,7 +76,7 @@ let decode_spec = do {
   e_ptr <- out_ref split_e_t ;
   (original_s, original_s_ptr) <- in_ref_aligned 64 syndrome_t "original_s";
   (ct, ct_ptr) <- in_ref ct_t "ct";
-  (sk, sk_ptr) <- in_ref sk_t "sk";
+  (sk, sk_ptr) <- in_ref_aligned 8 sk_t "sk";
   crucible_alloc_global bike_errno_glob_name;
   _bike_errno <- point_to i32 (crucible_global bike_errno_glob_name) "bike_errno";
 

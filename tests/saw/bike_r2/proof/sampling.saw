@@ -11,7 +11,7 @@
     random source).
 */
 let get_rand_mod_len_spec = do {
-  rand_pos_ptr <- out_ref_aligned 1 i32;
+  rand_pos_ptr <- out_ref i32;
   len <- crucible_fresh_var "len" i32;
   (prf_state, prf_state_ptr, ctx_ptr) <- ptr_to_fresh_aes_ctr_prf_state "prf_state";
 
@@ -34,7 +34,7 @@ let get_rand_mod_len_spec = do {
 };
 
 let get_rand_mod_len_loop_spec = do {
-  rand_pos_ptr <- out_ref_aligned 1 i32;
+  rand_pos_ptr <- out_ref i32;
   rand_pos_ptr_ptr <- crucible_alloc i64;
   crucible_points_to rand_pos_ptr_ptr rand_pos_ptr;
   (len, len_ptr) <- in_ref i32 "len";
@@ -78,7 +78,7 @@ let sample_uniform_r_bits_spec = do {
 //       a_len_64 is the length of a `a` array, and is 1/8 times `a_len_bytes
 let secure_set_bits_spec a_len_64 weight = do {
   (a ,a_ptr) <- inout_ref (i64_array_t a_len_64) "a";
-  (wlist, wlist_ptr) <- in_ref_aligned 1 (idx_array_t weight) "wlist";
+  (wlist, wlist_ptr) <- in_ref (idx_array_t weight) "wlist";
 
   crucible_execute_func
     [ a_ptr
@@ -97,7 +97,7 @@ let secure_set_bits_loop_spec a_len_64 weight = do {
   (a ,a_ptr) <- inout_ref (i64_array_t a_len_64) "a";
   a_ptr_ptr <- crucible_alloc i64;
   crucible_points_to a_ptr_ptr a_ptr;
-  (wlist, wlist_ptr) <- in_ref_aligned 1 (idx_array_t weight) "wlist";
+  (wlist, wlist_ptr) <- in_ref (idx_array_t weight) "wlist";
   wlist_ptr_ptr <- crucible_alloc i64;
   crucible_points_to wlist_ptr_ptr wlist_ptr;
   a_len_8_ptr <- crucible_alloc i32;
@@ -135,7 +135,7 @@ let secure_set_bits_loop_spec a_len_64 weight = do {
 
 let generate_sparse_rep_spec weight len padded_len = do {
   a_ptr <- out_ref (i64_array_t (eval_int {{ `(padded_len / 8) : [64] }}));
-  (wlist, wlist_ptr) <- inout_ref_aligned 1 (idx_array_t weight) "wlist";
+  (wlist, wlist_ptr) <- inout_ref (idx_array_t weight) "wlist";
   (prf_state, prf_state_ptr, ctx_ptr) <- ptr_to_fresh_aes_ctr_prf_state "prf_state";
 
   // NOTE: Invariant
@@ -164,7 +164,7 @@ let generate_sparse_rep_loop_spec weight len padded_len = do {
   a_ptr <- out_ref (i64_array_t (eval_int {{ `(padded_len / 8) : [64] }}));
   a_ptr_ptr <- crucible_alloc i64;
   crucible_points_to a_ptr_ptr a_ptr;
-  (wlist, wlist_ptr) <- inout_ref_aligned 1 (idx_array_t weight) "wlist";
+  (wlist, wlist_ptr) <- inout_ref (idx_array_t weight) "wlist";
   wlist_ptr_ptr <- crucible_alloc i64;
   crucible_points_to wlist_ptr_ptr wlist_ptr;
   weight_ptr <- crucible_alloc i32;
