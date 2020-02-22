@@ -98,6 +98,9 @@ struct s2n_connection {
      */
     unsigned server_name_used:1;
 
+    /* If write fd is broken */
+    unsigned write_fd_broken:1;
+    
     /* Is this connection a client or a server connection */
     s2n_mode mode;
 
