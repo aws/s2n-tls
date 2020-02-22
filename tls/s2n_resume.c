@@ -406,10 +406,10 @@ struct s2n_ticket_key *s2n_get_ticket_encrypt_decrypt_key(struct s2n_config *con
         return s2n_set_get(config->ticket_keys, encrypt_decrypt_keys_index[0]);
     }
 
-    int8_t index;
-    GUARD_PTR(index = s2n_compute_weight_of_encrypt_decrypt_keys(config, encrypt_decrypt_keys_index, num_encrypt_decrypt_keys, now));
+    int8_t idx;
+    GUARD_PTR(idx = s2n_compute_weight_of_encrypt_decrypt_keys(config, encrypt_decrypt_keys_index, num_encrypt_decrypt_keys, now));
 
-    return s2n_set_get(config->ticket_keys, index);
+    return s2n_set_get(config->ticket_keys, idx);
 }
 
 /* This function is used in s2n_decrypt_session_ticket in order for s2n to
