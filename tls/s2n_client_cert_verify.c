@@ -48,14 +48,8 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
     GUARD(s2n_handshake_get_hash_state(conn, chosen_sig_scheme.hash_alg, &hash_state));
     GUARD(s2n_hash_copy(&conn->handshake.ccv_hash_copy, &hash_state));
 
-    switch (chosen_sig_scheme.sig_alg) {
-    case S2N_SIGNATURE_RSA:
-    case S2N_SIGNATURE_ECDSA:
-        GUARD(s2n_pkey_verify(&conn->secure.client_public_key, &conn->handshake.ccv_hash_copy, &signature));
-        break;
-    default:
-        S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
-    }
+    /* Verify the signature */
+    GUARD(s2n_pkey_verify(&conn->secure.client_public_key, chosen_sig_scheme.sig_alg, &conn->handshake.ccv_hash_copy, &signature));
 
     /* Client certificate has been verified. Minimize required handshake hash algs */
     GUARD(s2n_conn_update_required_handshake_hashes(conn));
@@ -80,21 +74,14 @@ int s2n_client_cert_verify_send(struct s2n_connection *conn)
     GUARD(s2n_handshake_get_hash_state(conn, chosen_sig_scheme.hash_alg, &hash_state));
     GUARD(s2n_hash_copy(&conn->handshake.ccv_hash_copy, &hash_state));
 
-    struct s2n_blob signature = {0};
-
     struct s2n_cert_chain_and_key *cert_chain_and_key = conn->handshake_params.our_chain_and_key;
-    switch (chosen_sig_scheme.sig_alg) {
-    /* s2n currently only supports RSA Signatures */
-    case S2N_SIGNATURE_RSA:
-        signature.size = s2n_pkey_size(cert_chain_and_key->private_key);
-        GUARD(s2n_stuffer_write_uint16(out, signature.size));
-        signature.data = s2n_stuffer_raw_write(out, signature.size);
-        notnull_check(signature.data);
-        GUARD(s2n_pkey_sign(cert_chain_and_key->private_key, &conn->handshake.ccv_hash_copy, &signature));
-        break;
-    default:
-        S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
-    }
+    struct s2n_blob signature = {0};
+    signature.size = s2n_pkey_size(cert_chain_and_key->private_key);
+    GUARD(s2n_stuffer_write_uint16(out, signature.size));
+    signature.data = s2n_stuffer_raw_write(out, signature.size);
+    notnull_check(signature.data);
+
+    GUARD(s2n_pkey_sign(cert_chain_and_key->private_key, chosen_sig_scheme.sig_alg, &conn->handshake.ccv_hash_copy, &signature));
 
     /* Client certificate has been verified. Minimize required handshake hash algs */
     GUARD(s2n_conn_update_required_handshake_hashes(conn));

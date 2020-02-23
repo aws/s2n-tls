@@ -143,8 +143,8 @@ int main(int argc, char **argv)
         /* Reset signature size when we compute a new signature */
         signature.size = maximum_signature_length;
         
-        EXPECT_SUCCESS(s2n_pkey_sign(&priv_key, &hash_one, &signature));
-        EXPECT_SUCCESS(s2n_pkey_verify(&pub_key, &hash_two, &signature));
+        EXPECT_SUCCESS(s2n_pkey_sign(&priv_key, S2N_SIGNATURE_ECDSA, &hash_one, &signature));
+        EXPECT_SUCCESS(s2n_pkey_verify(&pub_key, S2N_SIGNATURE_ECDSA, &hash_two, &signature));
         
         EXPECT_SUCCESS(s2n_hash_reset(&hash_one));
         EXPECT_SUCCESS(s2n_hash_reset(&hash_two));
@@ -155,8 +155,8 @@ int main(int argc, char **argv)
 
     EXPECT_FAILURE(s2n_pkey_match(&pub_key, &unmatched_priv_key));
 
-    EXPECT_SUCCESS(s2n_pkey_sign(&unmatched_priv_key, &hash_one, &bad_signature));
-    EXPECT_FAILURE(s2n_pkey_verify(&pub_key, &hash_two, &bad_signature));
+    EXPECT_SUCCESS(s2n_pkey_sign(&unmatched_priv_key, S2N_SIGNATURE_ECDSA, &hash_one, &bad_signature));
+    EXPECT_FAILURE(s2n_pkey_verify(&pub_key, S2N_SIGNATURE_ECDSA, &hash_two, &bad_signature));
     
     EXPECT_SUCCESS(s2n_free(&signature));
     EXPECT_SUCCESS(s2n_free(&bad_signature));

@@ -55,16 +55,7 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
                                                  client_cert_chain.data, client_cert_chain.size,
                                                         &pkey_type, &public_key) != S2N_CERT_OK, S2N_ERR_CERT_UNTRUSTED);
 
-    switch (pkey_type) {
-    case S2N_PKEY_TYPE_RSA:
-    case S2N_PKEY_TYPE_RSA_PSS:
-    case S2N_PKEY_TYPE_ECDSA:
-        conn->secure.client_cert_pkey_type = pkey_type;
-        break;
-    default:
-        S2N_ERROR(S2N_ERR_CERT_TYPE_UNSUPPORTED);
-    }
-
+    conn->secure.client_cert_pkey_type = pkey_type;
     GUARD(s2n_pkey_setup_for_type(&public_key, pkey_type));
     
     GUARD(s2n_pkey_check_key_exists(&public_key));
@@ -78,7 +69,6 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
 int s2n_client_cert_send(struct s2n_connection *conn)
 {
     struct s2n_cert_chain_and_key *chain_and_key = conn->handshake_params.our_chain_and_key;
-    /* TODO: Check that RSA is in conn->server_preferred_cert_types and conn->secure.client_cert_sig_algorithm */
 
     if (chain_and_key == NULL) {
         GUARD(s2n_conn_set_handshake_no_client_cert(conn));
