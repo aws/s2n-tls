@@ -1054,9 +1054,13 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
 
 int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
 {
+<<<<<<< HEAD
     errno = 0;
     s2n_errno = S2N_ERR_OK;
 
+=======
+	errno = 0;
+>>>>>>> 5fc5b84b2727a66f23dde8ad414d360e2d51ecb7
     char this = 'S';
     if (conn->mode == S2N_CLIENT) {
         this = 'C';
