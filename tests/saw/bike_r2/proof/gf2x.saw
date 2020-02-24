@@ -54,7 +54,7 @@ gf2x_add_left_ov <- verify gf2x_add_fun_name [] gf2x_add_left_spec;
 
 gf2x_mul_1x1_ov <- verify gf2x_mul_1x1_fun_name [] gf2x_mul_1x1_spec;
 
-gf2x_mod_mul_ov <- admit gf2x_mod_mul_fun_name
+gf2x_mod_mul_ov <- verify gf2x_mod_mul_fun_name
   [gf2x_mul_1x1_ov]
   gf2x_mod_mul_spec;
 

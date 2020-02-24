@@ -113,9 +113,6 @@ bit_sliced_adder_ov <- verify_pathsat "bit_sliced_adder" []
 bit_slice_full_subtract_ov <- verify "bit_slice_full_subtract" []
   bit_slice_full_subtract_spec;
 
-// disable the array memory model to save RAM
-disable_smt_array_memory_model;
-
 find_err1_ov <- verify "find_err1"
   [ rotate_right_ov
   , bit_sliced_adder_ov
@@ -129,9 +126,6 @@ find_err2_ov <- verify "find_err2"
   , bit_slice_full_subtract_ov
   ]
   find_err2_spec;
-
-// re-enable the array memory model
-enable_smt_array_memory_model;
 
 decode_ov <- verify decode_fun_name
   [ dup_ov
