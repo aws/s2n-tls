@@ -73,8 +73,8 @@ static int s2n_get_memory(struct s2n_blob *b, uint32_t size)
         }
 #endif
         if (mlock(b->data, b->size) < 0) {
-		    free(b->data);
-		    S2N_ERROR(S2N_ERR_MLOCK);
+            free(b->data);
+            S2N_ERROR(S2N_ERR_MLOCK);
         }
     } else {
         *b = (struct s2n_blob) {.data = calloc(size, 1), .size = size, .allocated = size, .mlocked = 0, .growable = 1};
