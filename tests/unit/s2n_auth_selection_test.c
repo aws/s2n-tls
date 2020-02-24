@@ -19,6 +19,7 @@
 #include "testlib/s2n_testlib.h"
 
 #include "crypto/s2n_fips.h"
+#include "crypto/s2n_rsa_pss.h"
 
 #include "tls/s2n_auth_selection.h"
 #include "tls/s2n_cipher_preferences.h"
@@ -31,11 +32,12 @@
 #define ECDSA_AUTH_CIPHER_SUITE &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha
 #define NO_AUTH_CIPHER_SUITE &s2n_tls13_aes_128_gcm_sha256
 
-#if RSA_PSS_SUPPORTED
-#define EXPECT_SUCCESS_IF_RSA_PSS_SUPPORTED(x) EXPECT_SUCCESS(x)
-#else
-#define EXPECT_SUCCESS_IF_RSA_PSS_SUPPORTED(x) EXPECT_FAILURE(x)
-#endif
+#define EXPECT_SUCCESS_IF_RSA_PSS_SUPPORTED(x) \
+    if ( s2n_is_rsa_pss_supported() ) { \
+        EXPECT_SUCCESS(x); \
+    } else { \
+        EXPECT_FAILURE(x); \
+    } \
 
 static int s2n_test_auth_combo(struct s2n_connection *conn,
         struct s2n_cipher_suite *cipher_suite, s2n_signature_algorithm sig_alg,

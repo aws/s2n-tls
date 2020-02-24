@@ -39,7 +39,12 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-#if RSA_PSS_SUPPORTED
+    /* We can't use RSA-PSS if RSA-PSS is unsupported */
+#if !RSA_PSS_SUPPORTED
+    EXPECT_FALSE(s2n_is_rsa_pss_supported());
+    END_TEST();
+#endif
+    EXPECT_TRUE(s2n_is_rsa_pss_supported());
 
     /* Positive Test: Ensure we can sign and verify a randomly generated signature.
      * Pseudocode: assert(SUCCESS == verify(Key1_public, message, sign(Key1_private, message)))
@@ -334,8 +339,6 @@ int main(int argc, char **argv)
         free(cert_chain_pem);
         free(private_key_pem);
     }
-
-#endif
 
     END_TEST();
 }

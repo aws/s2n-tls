@@ -26,6 +26,7 @@
 #include <s2n.h>
 
 #include "crypto/s2n_fips.h"
+#include "crypto/s2n_rsa_pss.h"
 
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
@@ -218,9 +219,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(server_config));
     }
 
-#if !RSA_PSS_SUPPORTED
-    END_TEST();
-#endif
+    /* Stop here if RSA_PSS unsupported */
+    if (!s2n_is_rsa_pss_supported()) {
+        END_TEST();
+    }
 
     /*  Test: RSA cert with RSA_PSS signatures */
     {
