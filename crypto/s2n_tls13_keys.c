@@ -275,6 +275,7 @@ int s2n_tls13_calculate_finished_mac(struct s2n_tls13_keys *keys, struct s2n_blo
     GUARD(s2n_hash_copy(&hash_state_copy, hash_state));
     GUARD(s2n_hash_digest(&hash_state_copy, transcribe_hash.data, transcribe_hash.size));
     GUARD(s2n_hash_free(&hash_state_copy));
+
     GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, finished_key, &transcribe_hash, finished_verify));
 
     return 0;

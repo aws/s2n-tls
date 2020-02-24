@@ -55,7 +55,10 @@ def get_openssl_cmd(scenario):
     if scenario.cipher:
         if scenario.version is Version.TLS13:
             openssl_cmd.extend(["-ciphersuites", str(scenario.cipher)])
-            openssl_cmd.extend(["-curves", scenario.curve])
+            if scenario.s2n_mode.is_client() and scenario.unsupported_curve is not None:
+                openssl_cmd.extend(["-curves", "{}:{}".format(scenario.unsupported_curve, scenario.curve)])
+            else:
+                openssl_cmd.extend(["-curves", scenario.curve])
         else:
             openssl_cmd.extend(["cipher", str(scenario.cipher)])
 

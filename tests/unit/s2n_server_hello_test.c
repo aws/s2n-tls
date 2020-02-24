@@ -469,8 +469,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, 0));
         EXPECT_EQUAL(S2N_TLS_RANDOM_DATA_LEN, random_blob.size);
 
-        /* Test s2n_server_hello_recv() fails with Unimplemented method error */
-        /* EXPECT_FAILURE_WITH_ERRNO_NO_RESET(s2n_server_hello_recv(client_conn), S2N_ERR_UNIMPLEMENTED); */
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
 

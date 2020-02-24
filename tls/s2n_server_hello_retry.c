@@ -36,7 +36,7 @@ bool s2n_server_requires_retry(struct s2n_connection *conn)
 }
 
 /* Determines whether a HelloRetryRequest is valid */
-bool s2n_hello_retry_is_valid(struct s2n_connection *conn)
+bool s2n_server_hello_retry_is_valid(struct s2n_connection *conn)
 {
     bool has_versions_ext = conn->server_protocol_version > 0;
     bool has_correct_random = s2n_constant_time_equals(hello_retry_req_random, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN);
@@ -127,7 +127,7 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
     S2N_ERROR_IF(conn->handshake.client_received_hrr == 1, S2N_ERR_BAD_MESSAGE);
 
     /* Verify this message meets the minimum requirements */
-    S2N_ERROR_IF(!s2n_hello_retry_is_valid(conn), S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(!s2n_server_hello_retry_is_valid(conn), S2N_ERR_BAD_MESSAGE);
 
     return 0;
 }

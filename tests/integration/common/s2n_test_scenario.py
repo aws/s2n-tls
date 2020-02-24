@@ -103,6 +103,9 @@ ALL_CIPHERS_PER_LIBCRYPTO_VERSION = {
 
 ALL_CURVES = ["P-256", "P-384"]
 
+# This will only work until we support X25519. Then we have to pick a new unsupported curve.
+UNSUPPORTED_CURVES = ['X25519']
+
 
 class Scenario:
 
@@ -111,7 +114,7 @@ class Scenario:
 
     """
 
-    def __init__(self, s2n_mode, host, port, version=None, cipher=None, curve=None, s2n_flags=[], peer_flags=[]):
+    def __init__(self, s2n_mode, host, port, version=None, cipher=None, curve=None, unsupported_curve=None, s2n_flags=[], peer_flags=[]):
         """
         Args:
             s2n_mode: whether s2n should act as a client or server.
@@ -131,14 +134,20 @@ class Scenario:
         self.version = version
         self.cipher = cipher
         self.curve = curve
+        self.unsupported_curve = unsupported_curve
         self.s2n_flags = s2n_flags
         self.peer_flags = peer_flags
 
     def __str__(self):
         version = self.version if self.version else "DEFAULT"
         cipher = self.cipher if self.cipher else "ANY"
-        result = "Mode:%s %s Version:%s Curve:%s Cipher:%s" % \
-            (self.s2n_mode, " ".join(self.s2n_flags), str(version).ljust(7), self.curve, str(cipher).ljust(30))
+        result = "Mode:{mode} {flags} Version:{version} Curve:{curve} Cipher:{cipher} {retry}".format(
+            mode=self.s2n_mode,
+            flags=" ".join(self.s2n_flags),
+            version=str(version).ljust(7),
+            curve=":".join([self.unsupported_curve, self.curve]) if self.unsupported_curve is not None else self.curve,
+            cipher=str(cipher).ljust(30),
+            retry="Elicit Retry" if self.unsupported_curve is not None else "")
 
         return result.ljust(100)
 
@@ -195,5 +204,19 @@ def get_scenarios(host, start_port, s2n_modes=Mode.all(), versions=[None], ciphe
                 peer_flags=peer_flags))
             port += 1
         
+            # Request an unsupported curve as the preferred choice to force the server to send a HelloRetryRequest
+            scenarios.append(Scenario(
+                s2n_mode=s2n_mode,
+                host=host,
+                port=port,
+                version=version,
+                cipher=cipher,
+                curve=curve,
+                unsupported_curve=UNSUPPORTED_CURVES[0],
+                s2n_flags=s2n_flags,
+                peer_flags=peer_flags))
+            port += 1
+
+
     return scenarios
 

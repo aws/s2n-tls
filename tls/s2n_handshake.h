@@ -161,11 +161,14 @@ struct s2n_handshake {
     /* Set to 1 if the RSA verification failed */
     uint8_t rsa_failed;
 
-    /* Track whether we received a HelloRetryRequest */
+    /* Tracks if the client has seen a HelloRetryRequest */
     unsigned client_received_hrr:1;
+
+    /* Tracks whether the server sent a HelloRetryRequest */
     unsigned server_sent_hrr:1;
+
+    /* Tracks whether the server will need to send a HelloRetryRequest */
     unsigned requires_retry:1;
-    struct s2n_stuffer hello_retry_msg;
 };
 
 extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);

@@ -52,7 +52,7 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 
-int s2n_connection_new_hashes(struct s2n_connection *conn)
+static int s2n_connection_new_hashes(struct s2n_connection *conn)
 {
     /* Allocate long-term memory for the Connection's hash states */
     GUARD(s2n_hash_new(&conn->handshake.md5));
@@ -74,7 +74,7 @@ int s2n_connection_new_hashes(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_connection_init_hashes(struct s2n_connection *conn)
+static int s2n_connection_init_hashes(struct s2n_connection *conn)
 {
     /* Initialize all of the Connection's hash states */
 
@@ -131,7 +131,7 @@ static int s2n_connection_new_hmacs(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_connection_init_hmacs(struct s2n_connection *conn)
+static int s2n_connection_init_hmacs(struct s2n_connection *conn)
 {
     /* Initialize all of the Connection's HMAC states */
     GUARD(s2n_hmac_init(&conn->initial.client_record_mac, S2N_HMAC_NONE, NULL, 0));
@@ -237,7 +237,6 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     /* Initialize the cookie stuffer with zero length. If a cookie extension
      * is received, the stuffer will be resized according to the cookie length */
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->cookie_stuffer, 0));
-    GUARD_PTR(s2n_stuffer_growable_alloc(&conn->handshake.hello_retry_msg, 0));
 
     return conn;
 }
@@ -283,7 +282,7 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     return 0;
 }
 
-int s2n_connection_wipe_keys(struct s2n_connection *conn)
+static int s2n_connection_wipe_keys(struct s2n_connection *conn)
 {
     /* Destroy any keys - we call destroy on the object as that is where
      * keys are allocated. */
@@ -314,7 +313,7 @@ int s2n_connection_wipe_keys(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_connection_reset_hashes(struct s2n_connection *conn)
+static int s2n_connection_reset_hashes(struct s2n_connection *conn)
 {
     /* Reset all of the Connection's hash states */
     GUARD(s2n_hash_reset(&conn->handshake.md5));
@@ -336,7 +335,7 @@ int s2n_connection_reset_hashes(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_connection_reset_hmacs(struct s2n_connection *conn)
+static int s2n_connection_reset_hmacs(struct s2n_connection *conn)
 {
     /* Reset all of the Connection's HMAC states */
     GUARD(s2n_hmac_reset(&conn->initial.client_record_mac));

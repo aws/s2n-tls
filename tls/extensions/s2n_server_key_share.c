@@ -77,7 +77,6 @@ int s2n_extensions_server_key_share_send_size(struct s2n_connection *conn)
         return retry_key_share_size;
     } 
 
-    /* If this is not a retry request and the curve is NULL, we aren't sending a key share */
     if (curve == NULL) {
         return 0;
     }
@@ -144,7 +143,7 @@ int s2n_extensions_server_key_share_recv(struct s2n_connection *conn, struct s2n
     GUARD(s2n_stuffer_read_uint16(extension, &named_group));
 
     /* If this is a HelloRetryRequest, we won't have a key share. We just have the selected group. */
-    if (s2n_server_hello_is_retry(conn)) {
+    if (s2n_server_hello_retry_is_valid(conn)) {
         return 0;
     }
 

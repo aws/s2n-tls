@@ -89,15 +89,6 @@ static int s2n_server_add_downgrade_mechanism(struct s2n_connection *conn) {
     return 0;
 }
 
-extern const uint8_t hello_retry_req_random[S2N_TLS_RANDOM_DATA_LEN];
-
-bool s2n_server_hello_is_retry(struct s2n_connection *conn)
-{
-    bool has_correct_random = s2n_constant_time_equals(hello_retry_req_random, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN);
-
-    return has_correct_random;
-}
-
 int s2n_parse_server_hello(struct s2n_connection *conn)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
@@ -186,7 +177,7 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
     GUARD(s2n_parse_server_hello(conn));
 
     /* If this is a retry request, we have to move forward a little differently */
-    if (conn->server_protocol_version == S2N_TLS13 && conn->client_protocol_version == S2N_TLS13 && s2n_server_hello_is_retry(conn)) {
+    if (conn->server_protocol_version == S2N_TLS13 && conn->client_protocol_version == S2N_TLS13 && s2n_server_hello_retry_is_valid(conn)) {
         GUARD(s2n_server_hello_retry_recv(conn));
         conn->handshake.client_received_hrr = 1;
         return 0;
